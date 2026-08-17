@@ -9,7 +9,7 @@ units:
   - id: definition.nimi.runtime.security-core.ownership-authorization-plane
     kind: definition
     title: Runtime ownership authorization plane
-    meaning: The Runtime ownership authorization plane validates canonical App or shared LocalAgent AIConfig ownership, machine-owned Local Capability Configuration and LocalAsset access, Runtime-resolved current-account Connector ownership and status, App Capability access, applicable policy, and Job ownership only after authentication, preserves information hiding and fixed evaluation order, and never selects a route or target.
+    meaning: The Runtime ownership authorization plane validates canonical App or shared LocalAgent AIConfig ownership, Machine Loadout store actions including Select set or explicit clear, machine-owned Loadout and ModelAsset access, Runtime-resolved current-account Connector ownership and status, App Capability access, applicable policy, and immutable Job effective-input ownership only after authentication, preserves information hiding and fixed evaluation order, and never selects a route or target.
   - id: definition.nimi.runtime.security-core.endpoint-security-plane
     kind: definition
     title: Runtime endpoint security plane
@@ -215,11 +215,11 @@ units:
         target: definition.nimi.runtime.security-core.token-validation-plane
   - id: rule.nimi.runtime.security-core.r019
     kind: rule
-    title: Local configurations and assets do not use Connector custody ownership
+    title: Loadouts and ModelAssets do not use Connector custody ownership
     modality: must_not
-    statement: A Local Capability Configuration, Machine Local AI Configuration selection, LocalAsset, Driver configuration, or Local Job is treated as a Connector custody kind or ownership path instead of using the canonical machine, configuration, asset, and Job owner policy.
-    condition: Whenever Runtime authorizes Local capability configuration or execution.
-    failure: Reject Connector-derived Local ownership and validate the exact machine-owned configuration, bindings, and request.
+    statement: A Loadout, Machine Loadout store selected relation, ModelAsset, Driver configuration, ResolvedAssembly, or Local Job is treated as a Connector custody kind or ownership path instead of using the canonical machine, Loadout, asset, and Job owner policy; Select Loadout authorization covers either one eligible target or an explicit empty relation without creating a separate Clear authority.
+    condition: Whenever Runtime authorizes a Local Loadout action or execution.
+    failure: Reject Connector-derived Local ownership, deletion required for deselection, and any owner path outside the exact machine-owned action, ModelAsset axes, captured assembly, and request.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.security-core.ownership-authorization-plane
@@ -227,9 +227,9 @@ units:
     kind: rule
     title: Cloud Connector and Local machine authorization stay distinct
     modality: must
-    statement: Cloud execution validates the Runtime-resolved current-account Connector owner, status, credential configuration, App Capability access, and applicable policy under the authenticated subject, while Local execution validates the canonical machine owner and exact selected Local Capability Configuration and LocalAsset access; an absent or invalid identity never enables inline Cloud execution or changes the committed AIConfig route, and any denied path fails without fallback.
-    condition: Whenever Runtime authorizes Local or Cloud execution inputs.
-    failure: Return the typed authentication or authorization failure and deny targets outside the exact owner partition without switching routes.
+    statement: Cloud Job submission validates and captures the Runtime-resolved current-account Connector owner, status, credential configuration, App Capability access, and applicable policy under the authenticated subject, while Local Job submission validates the canonical machine and request owner, exact selected Loadout, every model_asset_id and expected_content_id, and RecipeCustody before atomically persisting the ResolvedAssembly; an absent, explicitly cleared, or invalid selection yields the typed Local selection failure, an invalid identity never enables inline Cloud execution or changes AIConfig route, and any denied path fails without fallback.
+    condition: Whenever Runtime authorizes and captures Local or Cloud Job inputs.
+    failure: Return the typed authentication, selection, or authorization failure and deny inputs outside the exact owner partition without switching routes or publishing a partial Job.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.security-core.ownership-authorization-plane
@@ -259,7 +259,7 @@ units:
     kind: rule
     title: Connector owner mapping is fixed
     modality: must
-    statement: Authenticated remote custody records map to REALM_USER, machine-global API_KEY custody records map to SYSTEM with owner_id machine, OAUTH_MANAGED custody records map to REALM_USER, and Cloud execution relies on exact REALM_USER ownership without a second authorization; Local Capability Configurations and LocalAssets remain under their machine and RuntimeLocalService owners and Profile carries no custody identity.
+    statement: Authenticated remote custody records map to REALM_USER, machine-global API_KEY custody records map to SYSTEM with owner_id machine, OAUTH_MANAGED custody records map to REALM_USER, and Cloud execution relies on exact REALM_USER ownership without a second authorization; Loadouts and ModelAssets remain under their machine and RuntimeLocalService owners and Profile carries no custody identity.
     condition: Whenever Runtime assigns or validates connector and target ownership.
     failure: Return NOT_FOUND or deny creation for every incompatible owner, auth-kind, or target-owner mapping.
     relations:
@@ -466,7 +466,7 @@ units:
     kind: rule
     title: Cloud target and Local selection identities are separate
     modality: must
-    statement: AIConfig Cloud intent names one CapabilityImplementation and Driver-owned provider-model target selected through Nimi-owned configuration without Connector, account, or credential fields; Runtime resolves the exact current-account Connector and credential custody at Job submission, while AIConfig Local intent names no target and Runtime dereferences the machine-selected Local Capability Configuration. Connector, raw provider-model, legacy compact target, path, selected-source, and LocalAsset identities never substitute for these owners or enter ordinary App requests.
+    statement: AIConfig Cloud intent names one CapabilityImplementation and Driver-owned provider-model target selected through Nimi-owned configuration without Connector, account, or credential fields; Runtime resolves the exact current-account Connector and credential custody at Job submission, while AIConfig Local intent names no target and Runtime dereferences the machine-selected Loadout. Connector, raw provider-model, legacy compact target, path, selected-source, and ModelAsset identities never substitute for these owners or enter ordinary App requests.
     condition: Whenever Runtime composes an AI execution target.
     failure: Reject every retired or cross-owner target shape rather than converting, inferring, or falling back.
     relations:
@@ -511,9 +511,9 @@ units:
     kind: rule
     title: AI consume evaluation sequence is closed
     modality: must
-    statement: Runtime evaluates request normalization, authentication, canonical AIConfig owner, App Capability access, committed CapabilityContract route, and applicable policy, then for Local the machine selection, exact Local Capability Configuration, Driver configuration, bindings and authorization, or for Cloud the exact CapabilityImplementation target, Runtime-resolved current-account Connector owner and status, custody and minimum credential, then endpoint security, CapabilityImplementationDriver, Local or Remote ExecutionHost dispatch, Job snapshot, and audit in that order.
-    condition: Whenever Runtime handles AI consume.
-    failure: Stop at the first failed stage and do not bypass, reorder, or defer a security check beyond execution.
+    statement: Runtime evaluates request normalization, authentication, canonical AIConfig owner, App Capability access, committed CapabilityContract route, and applicable policy, then for Local the set-or-empty machine selection, exact Loadout, versioned Driver dialect and recipeId, model axes, RecipeCustody, byte revalidation, and authorization, or for Cloud the exact CapabilityImplementation target, Runtime-resolved current-account Connector owner and status, custody, and minimum credential; Runtime next atomically persists the complete Local ResolvedAssembly or Cloud effective inputs and publishes the Job, then performs endpoint security, exact Driver, Local or Remote ExecutionHost dispatch, and audit from those captured inputs only.
+    condition: Whenever Runtime handles AI consume or resumes a Job.
+    failure: Stop at the first failed stage, publish no partial Job, and do not bypass, reorder, defer a security check beyond execution, or reread current owner state after capture.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.security-core.endpoint-security-plane
@@ -533,7 +533,7 @@ units:
     kind: rule
     title: Cloud Connector and Local machine execution require exact subjects
     modality: must
-    statement: Cloud execution requires an authenticated subject owning the Runtime-resolved current-account Connector and allowed by App Capability access and applicable policy, with usable custody configuration, while Local execution requires the canonical machine and request owner authorized for the selected Local Capability Configuration and exact LocalAssets; neither branch admits inline metadata, and an invalid bearer never downgrades to anonymous Local execution or changes the committed route.
+    statement: Cloud execution requires an authenticated subject owning the Runtime-resolved current-account Connector and allowed by App Capability access and applicable policy, with usable custody configuration, while Local execution requires the canonical machine and request owner authorized for the selected Loadout and exact ModelAssets; neither branch admits inline metadata, and an invalid bearer never downgrades to anonymous Local execution or changes the committed route.
     condition: Whenever Runtime validates AI consume caller identity.
     failure: Reject a missing remote subject and return UNAUTHENTICATED with AUTH_TOKEN_INVALID for an invalid bearer instead of anonymous-local fallback.
     relations:
@@ -585,7 +585,7 @@ units:
     kind: rule
     title: Selected execution routes never fall back
     modality: must_not
-    statement: Runtime automatically switches Local to Cloud, Cloud to Local, one Local Capability Configuration to another, one CapabilityImplementation or provider-model target to another, or one Connector to another after admission or execution failure.
+    statement: Runtime automatically switches Local to Cloud, Cloud to Local, one Loadout to another, one CapabilityImplementation or provider-model target to another, or one Connector to another after admission or execution failure.
     condition: Whenever a selected route fails.
     failure: Return the exact selected composition failure without trying another route, configuration, implementation, provider, target, Connector, credential, or ExecutionHost.
     relations:
@@ -595,9 +595,9 @@ units:
     kind: rule
     title: Local and Cloud Job inputs are closed
     modality: must
-    statement: A Local Job captures the committed AIConfig Local route, features and defaults, current selected Local Capability Configuration, exact CapabilityImplementation, Driver configuration, exact bindings and request, while a Cloud Job captures the exact CapabilityImplementation, Driver-owned provider-model target, Runtime-resolved current-account Connector custody reference, defaults and request; neither uses a legacy unified target tuple, current-state pointer, raw LocalAsset, caller-supplied connector identity, path, or provider label as the Job target.
-    condition: Whenever Runtime validates or captures execution identity.
-    failure: Reject missing, stale, incompatible, unknown, or retired inputs without minting identity from inventory, custody, or provider facts.
+    statement: Before publication a Local Job atomically captures and persists the committed AIConfig Local route, features and defaults, selected Loadout identity, exact CapabilityImplementation, versioned Driver dialect and recipeId, typed options, every model axis's model_asset_id, expected_content_id, reverified absolute path and content identity, RecipeCustody identity, request, load plan, and process identity as one complete ResolvedAssembly, while a Cloud Job captures the exact CapabilityImplementation, Driver-owned provider-model target, Runtime-resolved current-account Connector custody reference, defaults, and request. Queued, running, and resumed Jobs never use a current-state pointer or reread Loadout, catalog, inventory, selection, process state, or private CAS, and neither branch uses a legacy target tuple, raw ModelAsset, caller-supplied Connector, or provider label as Job identity.
+    condition: Whenever Runtime validates, captures, or resumes execution identity.
+    failure: Reject missing, partially persisted, stale, incompatible, unknown, retired, or live-read inputs without minting identity from inventory, custody, provider facts, or current owner state.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.security-core.ownership-authorization-plane
@@ -605,9 +605,9 @@ units:
     kind: rule
     title: Memory embedding reuses canonical route and Connector security
     modality: must
-    statement: Memory embedding uses its canonical AIConfig route, for Local the machine-selected exact Local Capability Configuration and bindings, or for Cloud the exact CapabilityImplementation target and Runtime-resolved current-account Connector custody reference, and persists no inline credentials or endpoints; its separate bank owner retains bank binding, rebuild, migration, and cutover truth without a special connector router, per-consumer Connector picker, or readiness lifecycle.
-    condition: Whenever Runtime resolves Desktop-host-owned cloud memory embedding configuration.
-    failure: Reject local, invalid, owner-mismatched, status-invalid, credential-invalid, endpoint-invalid, or shortcut connector bindings.
+    statement: Memory embedding uses its canonical AIConfig route and at Job submission atomically dereferences the selected Local Loadout into a complete persisted ResolvedAssembly or captures the exact Cloud CapabilityImplementation target and Runtime-resolved current-account Connector custody reference, with no inline credentials or endpoints; queued, running, and resumed embedding Jobs never reread current Loadout, selection, catalog, inventory, process, or private CAS. Its separate bank owner retains bank binding, rebuild, migration, and cutover truth without a special connector router, per-consumer Connector picker, or readiness lifecycle.
+    condition: Whenever Runtime resolves and captures Memory embedding execution.
+    failure: Reject absent selection, invalid, owner-mismatched, status-invalid, credential-invalid, endpoint-invalid, shortcut, partial, or current-state-reconstructed inputs.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.security-core.endpoint-security-plane
@@ -627,7 +627,7 @@ units:
     kind: rule
     title: Retired target identities cannot carry new semantics
     modality: must_not
-    statement: Raw model_id, target_model_id, localModelId, goRuntimeLocalModelId, targetId or profileId, compact local target, connector_id plus model_id, deprecated field, or renamed compatibility object is admitted as durable identity for AIConfig, Local Capability Configuration, machine selection, or Job, while provider-model values remain Driver target configuration and custody identity remains distinct from the target.
+    statement: Raw model_id, target_model_id, localModelId, goRuntimeLocalModelId, targetId or profileId, compact local target, connector_id plus model_id, deprecated field, or renamed compatibility object is admitted as durable identity for AIConfig, Loadout, machine selection, or Job, while provider-model values remain Driver target configuration and custody identity remains distinct from the target.
     condition: Whenever a caller, profile, or persisted record supplies a durable Runtime target.
     failure: Reject the retired identity without conversion and require the exact canonical owner object.
     relations:

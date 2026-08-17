@@ -5,7 +5,7 @@ units:
   - id: definition.nimi.platform.product-lifecycle.cold-start-state
     kind: definition
     title: Cold-start projection state
-    meaning: A cold-start projection state describes product posture after process start and before required account, canonical Product Control, data-root, Runtime service, and current local-development App authority is available; AIProfile, AIConfig, Local Capability Configuration, machine selection, capability admission, LocalAsset, and AI execution are orthogonal and never become cold-start prerequisites; its closed fail-closed values are unavailable, setup-required, needs-confirmation, in-progress, failed, unsupported, and stale-projection.
+    meaning: A cold-start projection state describes product posture after process start and before required account, canonical Product Control, data-root, Runtime service, and current local-development App authority is available; AIProfile, AIConfig, Loadout, machine selection, capability admission, ModelAsset, and AI execution are orthogonal and never become cold-start prerequisites; its closed fail-closed values are unavailable, setup-required, needs-confirmation, in-progress, failed, unsupported, and stale-projection.
   - id: definition.nimi.platform.product-lifecycle.product-control-record
     kind: definition
     title: Canonical product-control record
@@ -17,7 +17,7 @@ units:
   - id: definition.nimi.platform.product-lifecycle.first-run-lifecycle
     kind: definition
     title: First-run product lifecycle
-    meaning: First run is the Product Control workflow from missing or incomplete account, canonical local product state, and selected writable data root to ready_for_use and ordinary product entry without requiring an AIProfile, AIConfig, local model, Local Capability Configuration, machine selection, or AI capability execution.
+    meaning: First run is the Product Control workflow from missing or incomplete account, canonical local product state, and selected writable data root to ready_for_use and ordinary product entry without requiring an AIProfile, AIConfig, local model, Loadout, machine selection, or AI capability execution.
   - id: definition.nimi.platform.product-lifecycle.runtime-service-configuration
     kind: definition
     title: Runtime service configuration boundary
@@ -42,7 +42,7 @@ units:
   - id: definition.nimi.platform.product-lifecycle.home-surface
     kind: definition
     title: Nimi Home surface
-    meaning: Nimi Home is the core product entry and control contract for account state, Runtime health and repair, canonical AIConfig editing and separately owned Machine Local AI Configuration management, current local-development Apps, Realm World and Character browsing, Avatar and Voice entry, and Support; for LocalAgent creation Home first consumes the Realm-owned public PersonaCharacter creation seam and resulting Character Source, then requests Runtime-owned materialization as a separate step; Desktop is the current replaceable host implementation and owns none of the underlying Realm, Runtime, LocalAgent, App, machine-local, protected-access, or credential truth.
+    meaning: Nimi Home is the core product entry and control contract for account state, Runtime health and repair, canonical AIConfig editing and separately owned Machine Loadout store management, current local-development Apps, Realm World and Character browsing, Avatar and Voice entry, and Support; for LocalAgent creation Home first consumes the Realm-owned public PersonaCharacter creation seam and resulting Character Source, then requests Runtime-owned materialization as a separate step; Desktop is the current replaceable host implementation and owns none of the underlying Realm, Runtime, LocalAgent, App, machine-local, protected-access, or credential truth.
   - id: definition.nimi.platform.product-lifecycle.home-placement
     kind: definition
     title: Nimi Home placement set
@@ -79,7 +79,7 @@ units:
     kind: rule
     title: P-COLD-002 process-start owner split
     modality: must
-    statement: The Desktop-hosted Home may render the shell and load packaged release metadata at process start, but derives cold-start state only from the closed Product Control inputs and owner projections admitted by P-COLD-014; AI or model configuration, capability support, LocalAsset, machine selection, admission, and Job facts remain separate setup or execution outcomes and never determine Home cold-start state.
+    statement: The Desktop-hosted Home may render the shell and load packaged release metadata at process start, but derives cold-start state only from the closed Product Control inputs and owner projections admitted by P-COLD-014; AI or model configuration, capability support, ModelAsset, machine selection, admission, and Job facts remain separate setup or execution outcomes and never determine Home cold-start state.
     condition: When the product process starts.
     failure: Reject any cold-start claim or non-ready presentation derived from an AI or model fact and project only the precise Product Control state.
     relations:
@@ -205,7 +205,7 @@ units:
     kind: rule
     title: P-COLD-011 AI capability state is outside ordinary product entry
     modality: must_not
-    statement: Local Text, STT, TTS, image, Cloud AI, AIProfile, AIConfig, Local Capability Configuration, machine selection, LocalAsset, Driver, provider, model, probe, warm, or derived admission state gates ready_for_use or ordinary product entry.
+    statement: Local Text, STT, TTS, image, Cloud AI, AIProfile, AIConfig, Loadout, machine selection, ModelAsset, Driver, provider, model, probe, warm, or derived admission state gates ready_for_use or ordinary product entry.
     condition: When first run attempts to enter ordinary product use.
     failure: Evaluate only Product Control prerequisites, enter ready_for_use when they pass, and project any affected AI capability as separately blocked or selection-required without weakening product entry.
     relations:
@@ -323,7 +323,7 @@ units:
     kind: rule
     title: P-COLD-015 no readiness proxy
     modality: must_not
-    statement: Runtime config, Desktop path cache, AIProfile, AIConfig, Local Capability Configuration, machine selection, file existence, transfer completion, import success, endpoint probe, provider test, script exit, job success, or renderer-local state satisfies product readiness without the canonical ready_for_use Product Control record.
+    statement: Runtime config, Desktop path cache, AIProfile, AIConfig, Loadout, machine selection, file existence, transfer completion, import success, endpoint probe, provider test, script exit, job success, or renderer-local state satisfies product readiness without the canonical ready_for_use Product Control record.
     condition: When product readiness is evaluated.
     failure: Reject the proxy and remain non-ready.
     relations:
@@ -657,9 +657,9 @@ units:
     kind: rule
     title: P-HOME-005 Profile and AI configuration actions remain explicit
     modality: must_not
-    statement: Home, first-run, shell, or first-party App treats a Profile recommendation as committed configuration, combines Apply Profile to AIConfig with Local Capability Configuration add, update, binding, selection, installation, or Connector selection, or embeds hidden provider, connector, engine, or model defaults.
+    statement: Home, first-run, shell, or first-party App treats a Profile recommendation as committed configuration, combines Apply Profile to AIConfig with Prepare, Commit, Select, or Delete Loadout, ModelAsset acquisition, or Connector selection, invokes an independent bind, unbind, rebind, reprojection, or Clear action, or embeds hidden provider, connector, engine, or model defaults.
     condition: When Nimi Home presents or invokes a Profile or AI configuration action.
-    failure: Reject the mixed or implicit write and require the applicable separate typed user action.
+    failure: Reject the mixed or implicit write and require the applicable separate typed user action, with UpdateLoadout only as Prepare plus Commit and explicit selection clearing only as Select Loadout.
     relations:
       - type: applies_to
         target: definition.nimi.platform.product-lifecycle.home-surface
@@ -1284,7 +1284,7 @@ units:
     kind: rule
     title: P-COLD-014 closed forbidden readiness inputs from first-run-state-machine
     modality: must_not
-    statement: Renderer-local state, localStorage, AIProfile, AIConfig, Local Capability Configuration, machine selection, LocalAsset, Runtime route or process health, endpoint probe, provider connection test, file existence, AI job outcome, Cloud API, model pack, or App-specific pack establishes ready_for_use.
+    statement: Renderer-local state, localStorage, AIProfile, AIConfig, Loadout, machine selection, ModelAsset, Runtime route or process health, endpoint probe, provider connection test, file existence, AI job outcome, Cloud API, model pack, or App-specific pack establishes ready_for_use.
     condition: Whenever first-run readiness is evaluated.
     failure: Reject the positive input and remain in the earliest affected non-ready state.
     relations:
@@ -1314,7 +1314,7 @@ units:
     kind: rule
     title: P-COLD-015 product-control-record-schema firstRun wire shape
     modality: must
-    statement: The firstRun object carries only Product Control completion truth and timestamps required by its current schema; it contains no installLevel, aiProfileAlias, AIProfile reference, AIConfig reference, Local Capability Configuration reference, machine selection, LocalAsset, or AI readiness evidence, and ready_for_use requires completed=true with non-empty completedAt.
+    statement: The firstRun object carries only Product Control completion truth and timestamps required by its current schema; it contains no installLevel, aiProfileAlias, AIProfile reference, AIConfig reference, Loadout reference, machine selection, ModelAsset, or AI readiness evidence, and ready_for_use requires completed=true with non-empty completedAt.
     condition: Whenever the product-control firstRun object is created, validated, or persisted.
     failure: Reject the invalid object and remain in or enter the precise first-run or repair state.
     relations:

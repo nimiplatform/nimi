@@ -548,9 +548,9 @@ units:
     kind: rule
     title: LocalAgent settings are bounded Kit and Runtime consumers
     modality: must
-    statement: Desktop places only the LocalAgent settings required by current Nimi Home journeys, supplies navigation, typed Runtime SDK and bounded host capabilities, and edits only the one shared LocalAgent subsystem AIConfig through canonical overwrite and Apply Profile actions; it owns no per-Agent AIConfig, product revision or history, Machine Local AI Configuration, Local Capability Configuration, machine selection, App-local configuration truth, route, transcript, presentation selection, credential, or voice artifact truth, and links machine-local management to its separate machine owner surface.
+    statement: Desktop places only the LocalAgent settings required by current Nimi Home journeys, supplies navigation, typed Runtime SDK and bounded host capabilities, and edits only the one shared LocalAgent subsystem AIConfig through canonical overwrite and Apply Profile actions; it owns no per-Agent AIConfig, product revision or history, Machine Loadout store, Loadout, machine selection, App-local configuration truth, route, transcript, presentation selection, credential, or voice artifact truth, and links machine-local management to its separate machine owner surface.
     condition: Whenever Desktop renders or configures LocalAgent settings.
-    failure: Reject Desktop-local owner truth, per-Agent model controls, machine configuration inside Agent Center, arbitrary injected panels, App-local persistence, pseudo voice, and fabricated admission or success.
+    failure: Reject Desktop-local owner truth, per-Agent model or Loadout controls, Machine Loadout store management inside Agent Center, arbitrary injected panels, App-local persistence, pseudo voice, and fabricated admission or success.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.shell-ui.kit-consumption
@@ -568,7 +568,7 @@ units:
     kind: rule
     title: First run does not gate Product Control on AI setup
     modality: must_not
-    statement: Nimi Home first run treats an AIProfile, AIConfig, Local Capability Configuration, LocalAsset installation, machine selection, capability admission, probe, health, or successful AI execution as a prerequisite or substitute for Product Control ready_for_use, or automatically applies a Profile or starts local dependency work; AI setup is an explicit independent action whose unavailable state affects only the requested capability.
+    statement: Nimi Home first run treats an AIProfile, AIConfig, Loadout, ModelAsset installation, machine selection, capability admission, probe, health, or successful AI execution as a prerequisite or substitute for Product Control ready_for_use, or automatically applies a Profile or starts local dependency work; AI setup is an explicit independent action whose unavailable state affects only the requested capability.
     condition: Whenever first-run state is presented or advanced.
     failure: Preserve the canonical Product Control state and present independent explicit AI configuration or setup actions without fabricating capability success.
     relations:

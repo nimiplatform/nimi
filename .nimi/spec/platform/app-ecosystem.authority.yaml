@@ -729,7 +729,7 @@ units:
     kind: rule
     title: P-NAPP-003 AIProfile recommendation is portable and non-binding
     modality: must
-    statement: An optional ai_profile_recommendation_ref resolves to an admitted factory AIProfile alias or profileId and remains a visible portable recommendation that writes configuration only if the user later invokes explicit Apply Profile to AIConfig; a registry row contains no embedded provider, connector, engine, or model identifier constant and the recommendation never selects an AIConfig route, Local Capability Configuration, machine relation, binding, or Connector.
+    statement: An optional ai_profile_recommendation_ref resolves to an admitted factory AIProfile alias or profileId and remains a visible portable recommendation that writes configuration only if the user later invokes explicit Apply Profile to AIConfig; a registry row contains no embedded provider, connector, engine, or model identifier constant and the recommendation never selects an AIConfig route, Loadout, machine relation, binding, or Connector.
     condition: Whenever AIProfile recommendation metadata is admitted or presented.
     failure: Reject an unresolved reference, embedded vendor identifier, automatic Apply, or recommendation presented as live selection or binding.
     relations:
@@ -753,7 +753,7 @@ units:
     kind: rule
     title: P-NAPP-005 requirement reference closure
     modality: must
-    statement: App capability declarations resolve only to admitted CapabilityContract identities and contract-scoped required standardized features for the one App AIConfig owner; App admission and manifests declare no module or feature AIConfig owner, Local Capability Configuration, local model, LocalAsset binding, machine selection, Driver, engine, local compute pack, or Runtime-private pack or source as an admission input, execution truth, or non-binding hint.
+    statement: App capability declarations resolve only to admitted CapabilityContract identities and contract-scoped required standardized features for the one App AIConfig owner; App admission and manifests declare no module or feature AIConfig owner, Loadout, local model, ModelAsset binding, machine selection, Driver, engine, local compute pack, or Runtime-private pack or source as an admission input, execution truth, or non-binding hint.
     condition: Whenever app capability or compute requirements are admitted.
     failure: Fail admission on an unknown contract or feature and reject every App-local or engine-specific configuration authority.
     relations:

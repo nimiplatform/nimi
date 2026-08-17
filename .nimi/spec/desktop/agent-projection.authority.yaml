@@ -9,7 +9,7 @@ units:
   - id: definition.nimi.desktop.agent-projection.conversation-capability
     kind: definition
     title: Desktop Runtime capability projection
-    meaning: Desktop may display bounded Runtime LocalAgent, Memory, Knowledge, CapabilityContract, derived admission, Job, and media projections without owning the shared LocalAgent AIConfig, Machine Local AI Configuration, Local Capability Configuration, resource policy, or execution truth.
+    meaning: Desktop may display bounded Runtime LocalAgent, Memory, Knowledge, CapabilityContract, derived admission, Job, and media projections without owning the shared LocalAgent AIConfig, Machine Loadout store, Loadout, resource policy, or execution truth.
   - id: definition.nimi.desktop.agent-projection.avatar-surface
     kind: definition
     title: Desktop Avatar projection placement
@@ -70,7 +70,7 @@ units:
     kind: rule
     title: LocalAgent context status is bounded
     modality: must
-    statement: Desktop may render typed readiness, reason, budget, truncation, count, provenance, and safe correlation facts but never raw source, World context, prompt, transcript, private Memory or Knowledge, proof, credentials, provider payloads, or tool payloads; a context-capacity failure is presented in user language with current and required capacity plus an explicit route to the owning Machine Local AI Configuration instead of a duplicated raw internal error.
+    statement: Desktop may render typed readiness, reason, budget, truncation, count, provenance, and safe correlation facts but never raw source, World context, prompt, transcript, private Memory or Knowledge, proof, credentials, provider payloads, or tool payloads; a context-capacity failure is presented in user language with current and required capacity plus an explicit route to the owning Machine Loadout store instead of a duplicated raw internal error.
     condition: Whenever LocalAgent source or turn-context status is displayed.
     failure: Reject an over-broad projection or raw duplicated technical failure and show bounded unavailable status with an actionable owner route.
     relations:

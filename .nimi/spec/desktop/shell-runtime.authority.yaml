@@ -159,7 +159,7 @@ units:
     kind: rule
     title: Ordinary Home entry is independent of capability configuration
     modality: must_not
-    statement: Missing Text, STT, TTS, model, LocalAsset, Local Capability Configuration, machine selection, Driver, provider connection, or other AI capability fact blocks ordinary Product Control or Nimi Home entry or forms an aggregate Local AI readiness state; each capability execution instead consumes committed configuration, request-time derived admission, and the real Job outcome.
+    statement: Missing Text, STT, TTS, model, ModelAsset, Loadout, machine selection, Driver, provider connection, or other AI capability fact blocks ordinary Product Control or Nimi Home entry or forms an aggregate Local AI readiness state; each capability execution instead consumes committed configuration, request-time derived admission, and the real Job outcome.
     condition: Whenever ordinary Home entry or capability availability is evaluated.
     failure: Keep ordinary Home and recovery surfaces available and project the exact typed owner, derived-admission, or Job failure only at the affected capability action.
     relations:

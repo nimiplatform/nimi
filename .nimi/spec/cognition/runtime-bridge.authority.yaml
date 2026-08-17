@@ -86,9 +86,9 @@ units:
     kind: rule
     title: Cognition consumes canonical capability composition
     modality: must
-    statement: The canonical App or shared LocalAgent AIConfig owner commits each CapabilityContract route, the machine owner commits Local Capability Configuration selection, Runtime resolves ordinary same-account Cloud Connector custody internally from Nimi-owned configuration and validates ownership, credential, App access, and policy, and Runtime deterministically composes exact Driver, binding, Quota, Budget and Rate Limit inputs into a Job; Cognition consumes only that admitted Job context and cannot select, resolve, probe, override, or substitute standalone defaults.
+    statement: The canonical App or shared LocalAgent AIConfig owner commits each CapabilityContract route, the machine owner sets or explicitly clears Loadout selection through Select Loadout, and at Job submission Runtime atomically dereferences any selected Local Loadout into a complete persisted ResolvedAssembly or captures the exact Cloud implementation, target, and current-account Connector custody after ownership, credential, App access, and policy checks together with Quota, Budget, and Rate Limit inputs; Cognition consumes only those immutable Job inputs and cannot select, resolve, probe, reread current owner state, override, or substitute defaults.
     condition: Whenever a Cognition adapter requires AI or embedding resources for Runtime work.
-    failure: Fail closed with the typed derived admission or Job failure when exact committed inputs are unavailable.
+    failure: Fail closed with the typed selection, derived-admission, or Job failure when exact captured inputs are unavailable.
     relations:
       - type: applies_to
         target: definition.nimi.cognition.runtime-bridge.embedding-resolution

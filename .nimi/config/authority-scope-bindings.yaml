@@ -92,8 +92,6 @@ scopes:
     bindings:
       - kind: path_glob
         value: "nimi2d/**"
-      - kind: path_glob
-        value: "apps/avatar/src/shell/renderer/nimi2d/**"
   - scope: nimi2d.generation-supply
     bindings:
       - kind: path_glob
@@ -134,8 +132,6 @@ scopes:
         value: "runtime/internal/services/account/**/*.go"
       - kind: path_glob
         value: "runtime/internal/services/connector/**/*.go"
-      - kind: path_glob
-        value: "runtime/internal/services/ai/key_source*.go"
       - kind: path_glob
         value: "runtime/internal/services/ai/cloud_*_execution.go"
       - kind: path_glob
@@ -199,8 +195,6 @@ scopes:
       - kind: path_glob
         value: "runtime/internal/services/localservice/**/*.go"
       - kind: path_glob
-        value: "runtime/internal/services/model/**/*.go"
-      - kind: path_glob
         value: "runtime/internal/services/runtimeagent/*artifact*.go"
       - kind: path_glob
         value: "runtime/internal/services/runtimeagent/*voice*.go"
@@ -214,8 +208,6 @@ scopes:
         value: "runtime/internal/services/ai/**/*.go"
       - kind: path_glob
         value: "runtime/internal/services/connector/**/*.go"
-      - kind: path_glob
-        value: "runtime/internal/services/model/**/*.go"
       - kind: path_glob
         value: "runtime/internal/providerhealth/**/*.go"
       - kind: path_glob
@@ -234,8 +226,6 @@ scopes:
         value: "runtime/internal/hostcapability/**/*.go"
       - kind: path_glob
         value: "runtime/internal/ggufmeta/**/*.go"
-      - kind: path_glob
-        value: "runtime/internal/modelregistry/**/*.go"
       - kind: path_glob
         value: "runtime/internal/filedownload/**/*.go"
   - scope: runtime.delegation

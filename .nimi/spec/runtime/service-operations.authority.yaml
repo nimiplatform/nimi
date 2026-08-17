@@ -5,7 +5,7 @@ units:
   - id: definition.nimi.runtime.service-operations.local-service-plane
     kind: definition
     title: Runtime local service operations plane
-    meaning: The Runtime local service operations plane owns concrete LocalAsset inventory, integrity, installation, transfer, dependency Jobs, storage reconciliation, and Runtime-private ExecutionHost and supervised-process operations without owning AIConfig route, Machine Local AI Configuration selection, Local Capability Configuration binding, public capability readiness, probe, warm, residency, or fallback truth.
+    meaning: The Runtime local service operations plane owns concrete per-import ModelAsset inventory, content identity and integrity, explicit catalog installation, unclassified import, transfer, removal, quarantine and storage reconciliation, non-model dependency Jobs, and Runtime-private ExecutionHost operations without owning AIConfig route, Machine Loadout store actions, Loadout model axes, public capability readiness, probe, warm, residency, or fallback truth.
   - id: definition.nimi.runtime.service-operations.artifact-plane
     kind: definition
     title: Runtime artifact operations plane
@@ -13,7 +13,7 @@ units:
   - id: definition.nimi.runtime.service-operations.scenario-job-plane
     kind: definition
     title: Runtime scenario job operations plane
-    meaning: The Runtime scenario job operations plane owns asynchronous Job creation, immutable effective-input snapshots, execution state, progress, Job-only events, cancellation, artifacts, terminal failure projection, and operation-specific terminal success results; it persists private Connector custody references but never raw credentials, and current configuration changes never rewrite a Job.
+    meaning: The Runtime scenario job operations plane owns asynchronous Job creation, atomic persistence of immutable effective inputs including complete Local ResolvedAssembly, execution state, progress, Job-only events, cancellation, artifacts, terminal failure projection, and operation-specific terminal success results; it persists private Connector custody references but never raw credentials, and queued, running, or resumed Jobs never reread current owner state or accept later configuration changes.
   - id: definition.nimi.runtime.service-operations.scenario-registry
     kind: definition
     title: Runtime scenario registry
@@ -21,7 +21,7 @@ units:
   - id: definition.nimi.runtime.service-operations.lifecycle-registry
     kind: definition
     title: Runtime service lifecycle registry
-    meaning: The Runtime service lifecycle registry is the closed state and transition contract for connector custody and authorization, remote deletion, Jobs, transfers, and explicitly Runtime-private ExecutionHost or supervised-process state; verified LocalAsset content, machine selection, derived admission, Job execution, and process residency remain orthogonal and no public local-model readiness lifecycle exists.
+    meaning: The Runtime service lifecycle registry is the closed state and transition contract for connector custody and authorization, remote deletion, Jobs, transfers, and explicitly Runtime-private ExecutionHost or supervised-process state; verified ModelAsset content, machine selection, derived admission, Job execution, and process residency remain orthogonal and no public local-model readiness lifecycle exists.
   - id: definition.nimi.runtime.service-operations.daemon-plane
     kind: definition
     title: Runtime daemon operations plane
@@ -29,12 +29,12 @@ units:
   - id: definition.nimi.runtime.service-operations.cli-plane
     kind: definition
     title: Runtime CLI operations plane
-    meaning: The Runtime CLI operations plane owns bounded Runtime service operations, LocalAsset inventory, import and transfer, Connector custody projection, explicit diagnostics, and foreground or background process control while excluding app-author tooling and all high-level generation, AIConfig ownership, route or target selection, Machine Local AI Configuration selection, default provider or model, and fallback authority.
+    meaning: The Runtime CLI operations plane owns bounded Runtime service operations, ModelAsset inventory, import and transfer, Connector custody projection, explicit diagnostics, and foreground or background process control while excluding app-author tooling and all high-level generation, AIConfig ownership, route or target selection, Machine Loadout store selection, default provider or model, and fallback authority.
   - id: rule.nimi.runtime.service-operations.r001
     kind: rule
     title: RuntimeLocalService is the sole local control plane
     modality: must
-    statement: RuntimeLocalService is the only stable RPC owner for LocalAsset inventory and integrity, audit, import, install, download, orphan adoption, scaffolding, transfer, dependency Jobs, Runtime-private ExecutionHost operations, Product Control operations, and storage cutover, while canonical Machine Local AI Configuration actions remain separately owned and Desktop, SDK, Apps, and hosts maintain no second writable asset, configuration, selection, process, or Job truth.
+    statement: RuntimeLocalService is the only stable RPC owner for ModelAsset inventory and integrity, explicit catalog install planning and acquisition, unclassified file or directory import, removal with Loadout-reference impact enumeration and force confirmation, quarantine diagnostics and recovery, transfer, non-model dependency Jobs, Runtime-private ExecutionHost operations, Product Control operations, and storage cutover, while canonical Machine Loadout store actions remain separately owned and Desktop, SDK, Apps, and hosts maintain no second writable asset, Loadout, selection, process, or Job truth.
     condition: Whenever a local Runtime resource is listed, observed, materialized, controlled, or reconciled.
     failure: Reject any operation or projection that creates a second local control plane or writable local-model truth.
     relations:
@@ -44,8 +44,8 @@ units:
     kind: rule
     title: Local listing and explicit integrity diagnostics remain separate
     modality: must
-    statement: ListLocalAssets returns only concrete verified-content inventory and performs no endpoint probe, bootstrap, warm, recovery, binding, selection, admission, or status normalization; an explicit user-requested LocalAsset diagnostic may verify content and installation only and never probes an engine or changes configuration, selection, routing, admission, or Job truth.
-    condition: Whenever LocalAssets are listed or explicitly diagnosed.
+    statement: ListModelAssets returns only concrete verified-content inventory and performs no endpoint probe, bootstrap, warm, recovery, binding, selection, admission, or status normalization; an explicit user-requested ModelAsset diagnostic may verify content and installation only and never probes an engine or changes configuration, selection, routing, admission, or Job truth.
+    condition: Whenever ModelAssets are listed or explicitly diagnosed.
     failure: Fail the diagnostic closed and reject list-driven probing, warming, recovery, selection, routing, or status mutation.
     relations:
       - type: applies_to
@@ -54,7 +54,7 @@ units:
     kind: rule
     title: ExecutionHost start warm and health stay Runtime private
     modality: must
-    statement: Runtime-private ExecutionHost supervision may start, warm, pool, lease, monitor, recover, or stop a concrete process as an implementation detail, including on demand for an exact Job, but never exposes a public Start or Warm LocalAsset action, persists capability readiness, changes AIConfig or machine selection, clears a binding, or lets Desktop, SDK, or App polling drive process state; ordinary preparation or execution failure ends only the Job unless the Driver classifies a persistent hard blocker.
+    statement: Runtime-private ExecutionHost supervision may start, warm, pool, lease, monitor, recover, or stop a concrete process as an implementation detail, including on demand for an exact Job, but never exposes a public Start or Warm ModelAsset action, persists capability readiness, changes AIConfig or machine selection, clears a binding, or lets Desktop, SDK, or App polling drive process state; ordinary preparation or execution failure ends only the Job unless the Driver classifies a persistent hard blocker.
     condition: Whenever local process preparation, residency, or health supervision runs.
     failure: Keep Host state private, return the typed Job or hard-blocker result, and reject consumer-owned lifecycle truth.
     relations:
@@ -64,9 +64,9 @@ units:
     kind: rule
     title: Local catalog intake dependency and audit families stay Runtime owned
     modality: must
-    statement: RuntimeLocalService owns verified catalog reads, non-binding install recommendation, unregistered asset scan and adoption, bundle intake, transfers, LocalAsset inventory, private services and nodes, selected-source dependency evidence, environment dependency Jobs, and local audit operations; Profile application, binding resolution, Machine Local AI Configuration selection, capability admission, and routing are absent from this control plane.
-    condition: Whenever a Tier 2 or Tier 3 local operation executes.
-    failure: Reject a consumer-side substitute or a result not derived from Runtime-owned records.
+    statement: RuntimeLocalService owns verified catalog reads, non-binding per-slot install recommendations, explicit ModelAsset intake and recovery, transfers, per-import ModelAsset inventory, private services and nodes, selected-source dependency evidence, environment dependency Jobs, and local audit operations; Profile application, Prepare or Commit Loadout, Select Loadout, capability admission, and routing are absent from this control plane, and no bundle or parent-coupled companion model identity exists.
+    condition: Whenever a local ModelAsset, dependency, or audit operation executes.
+    failure: Reject a consumer-side substitute, hidden model acquisition, bundle or companion identity, or a result not derived from Runtime-owned records.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.service-operations.local-service-plane
@@ -74,7 +74,7 @@ units:
     kind: rule
     title: Managed engine lifecycle has one truth
     modality: must
-    statement: RuntimeLocalService owns Runtime-private managed ExecutionHost process lifecycle and supervision evidence, which is not Local Capability Configuration identity, machine selection, derived admission, or product readiness, and Desktop, SDK, and Apps do not maintain or project a second process truth.
+    statement: RuntimeLocalService owns Runtime-private managed ExecutionHost process lifecycle and supervision evidence, which is not Loadout identity, machine selection, derived admission, or product readiness, and Desktop, SDK, and Apps do not maintain or project a second process truth.
     condition: Whenever a managed local engine is started, stopped, observed, or projected.
     failure: Reject any engine operation based on consumer-owned process truth.
     relations:
@@ -84,7 +84,7 @@ units:
     kind: rule
     title: Product control remains a Runtime state machine
     modality: must
-    statement: RuntimeLocalService owns validation, reconciliation, data-root materialization, and the canonical login, config, data-root, repair, blocked, and ready_for_use Product Control facts; AIConfig, Profile, LocalAsset installation, device scan, Machine Local AI Configuration, local or Cloud admission, connector diagnostics, and ExecutionHost state are never Product Control readiness inputs, while the Home host provides only the canonical record bridge and bounded OS helpers.
+    statement: RuntimeLocalService owns validation, reconciliation, data-root materialization, and the canonical login, config, data-root, repair, blocked, and ready_for_use Product Control facts; AIConfig, Profile, ModelAsset installation, device scan, Machine Loadout store, local or Cloud admission, connector diagnostics, and ExecutionHost state are never Product Control readiness inputs, while the Home host provides only the canonical record bridge and bounded OS helpers.
     condition: Whenever ordinary first-run setup reads, reconciles, or mutates product control.
     failure: Reject a Desktop, SDK, app, or host write that bypasses the Runtime Product Control state machine, every alternate record, and every protected-state selection or override of dataRoot.path.
     relations:
@@ -104,7 +104,7 @@ units:
     kind: rule
     title: Accelerator dependencies require Runtime resolution and confirmation
     modality: must
-    statement: Runtime resolves shared accelerator installation dependencies from the exact requested Runtime-private ExecutionHost or explicit install action and returns needs_confirmation before first network materialization, starting install or repair only after explicit user confirmation; completion never creates a Local Capability Configuration, binding, machine selection, capability admission, or readiness fact.
+    statement: Runtime resolves shared accelerator installation dependencies from the exact requested Runtime-private ExecutionHost or explicit install action and returns needs_confirmation before first network materialization, starting install or repair only after explicit user confirmation; completion never creates a Loadout, binding, machine selection, capability admission, or readiness fact.
     condition: Whenever a supervised local engine requires a managed accelerator dependency.
     failure: Reject Desktop probing, implicit consent, or dependency materialization before confirmation.
     relations:
@@ -132,11 +132,11 @@ units:
         target: definition.nimi.runtime.service-operations.local-service-plane
   - id: rule.nimi.runtime.service-operations.r011
     kind: rule
-    title: Dependency plans require concrete asset identities
+    title: Dependency plans exclude ModelAsset ownership
     modality: must
-    statement: ResolveLocalEnvironmentPlan and ResolveLocalEnvironmentActivationGate use asset_id or local_asset_id for a primary model payload, companion_asset_id for a companion payload, and parent_asset_id for a caller-known parent binding in model.asset and model.companion-asset families.
-    condition: Whenever local environment planning or activation resolves model payloads.
-    failure: Fail closed on a missing required identity or a pack placeholder such as a model-asset or companion-asset name instead of promoting it to a selected source record.
+    statement: ResolveLocalEnvironmentPlan and ResolveLocalEnvironmentActivationGate use only exact non-model dependency and RecipeCustody identities; ModelAsset acquisition remains a separate explicit catalog install or import, every model formerly described as a companion is an ordinary independent ModelAsset, and Job-captured model paths and content identities enter activation only through ResolvedAssembly rather than model.asset, model.companion-asset, parent_asset_id, or companion_asset_id dependency families.
+    condition: Whenever local environment planning or activation resolves model or non-model inputs.
+    failure: Reject ModelAsset selected-source ownership, parent-coupled companion identity, hidden model download, or a projection placeholder promoted to dependency truth.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.service-operations.local-service-plane
@@ -174,9 +174,9 @@ units:
     kind: rule
     title: Verified content selection admission and Host preparation are orthogonal
     modality: must
-    statement: A Runtime LocalAsset record proves concrete verified content only, an explicit Machine Local AI Configuration relation selects one saved Local Capability Configuration only when it is interpretable and configured, derived admission evaluates the exact selected configuration for a request, and Runtime-private ExecutionHost preparation may occur after Job submission; installed content never implies selection or admission, selection never triggers probe or prewarm, and Host failure never clears binding or automatically reselects.
-    condition: Whenever local installation, dependency readiness, selection, or first execution is projected.
-    failure: Reject filesystem-only readiness, fabricated installation, or a requirement for Desktop-maintained lifecycle truth.
+    statement: A Runtime ModelAsset record proves concrete content custody only, and Select Loadout either sets one saved Loadout that is interpretable and fully configured or explicitly clears the selected relation; clearing preserves every Loadout and ModelAsset, changes no AIConfig or captured Job, chooses no replacement, and affects only future Local Job composition. Derived admission evaluates the exact selected Loadout for a request, Runtime-private ExecutionHost preparation occurs only after complete Job inputs are captured, installed content never implies selection or admission, selection never triggers probe or prewarm, and Host failure never clears axes or automatically reselects.
+    condition: Whenever local installation, dependency state, selection set or clear, or first execution is projected.
+    failure: Reject filesystem-only readiness, fabricated installation, deletion required for deselection, non-empty selection of an incomplete Loadout, or Desktop-maintained lifecycle truth.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.service-operations.local-service-plane
@@ -379,9 +379,9 @@ units:
     kind: rule
     title: Scenario job methods and metadata path are fixed
     modality: must
-    statement: SubmitScenarioJob creates and returns only a Job with exact effective inputs, GetScenarioJob queries stored metadata and is the only carrier of an operation-specific terminal success result, CancelScenarioJob controls the Job, SubscribeScenarioJobEvents observes Job snapshots only, and GetScenarioArtifacts returns artifact metadata; for voice.create, GetScenarioJob returns a VoiceAsset and VoiceReference only after their successful atomic publication with COMPLETED, and every query and control operation uses the immutable Job record rather than current AIConfig, Machine Local AI Configuration, Local Capability Configuration, current Connector custody, inventory, or process state.
-    condition: Whenever a ScenarioJob is submitted, queried, canceled, subscribed, or read for artifacts.
-    failure: Reject an undeclared method role, a Submit or event response carrying a voice result, a non-terminal or failed Get response carrying a voice result, or a query or control path that depends on current connector state.
+    statement: SubmitScenarioJob atomically persists complete exact effective inputs before creating and returning only a Job, including one ResolvedAssembly for Local; GetScenarioJob queries stored metadata and is the only carrier of an operation-specific terminal success result, CancelScenarioJob controls the Job, SubscribeScenarioJobEvents observes Job snapshots only, and GetScenarioArtifacts returns artifact metadata. For voice.create, GetScenarioJob returns a VoiceAsset and VoiceReference only after successful atomic publication with COMPLETED, and every queued, running, resumed, query, and control path uses the immutable Job record rather than current AIConfig, Machine Loadout store, Loadout, catalog, Connector selection, inventory, process state, or private CAS.
+    condition: Whenever a ScenarioJob is submitted, resumed, queried, canceled, subscribed, or read for artifacts.
+    failure: Reject an undeclared method role, partial effective-input capture, a Submit or event response carrying a voice result, a non-terminal or failed Get response carrying a voice result, or a path depending on current owner state.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.service-operations.scenario-job-plane
@@ -413,9 +413,9 @@ units:
     kind: rule
     title: Scenario jobs capture exact secret-free effective inputs
     modality: must
-    statement: SubmitScenarioJob captures for Local the AIConfig Local route, required features and defaults, current selected Local Capability Configuration, exact CapabilityImplementation, Driver configuration, exact bindings and request, or for Cloud the exact CapabilityImplementation, Driver-owned provider-model target, internally resolved current-account Connector custody reference, defaults and request; raw credentials and bearer material are never persisted, minimum secret material is obtained from custody only in ephemeral execution context and zeroed after use, and later configuration changes never rewrite the snapshot.
-    condition: Whenever a ScenarioJob is created, accessed, or reaches terminal state.
-    failure: Reject creation without complete effective inputs and reject persisted raw secret material or current-state reconstruction.
+    statement: Before publication SubmitScenarioJob atomically captures and persists for Local the AIConfig Local route, features and defaults, selected Loadout identity, exact CapabilityImplementation, versioned Driver dialect and recipeId, typed options, every model axis's model_asset_id, expected_content_id, reverified absolute path and content identity, RecipeCustody identity, request, load plan, and process identity as one complete ResolvedAssembly, or for Cloud the exact CapabilityImplementation, Driver-owned provider-model target, internally resolved current-account Connector custody reference, defaults, and request; raw credentials and bearer material are never persisted, minimum secret material is obtained only in ephemeral execution context and zeroed, and queued, running, or resumed Jobs never reread current owner state.
+    condition: Whenever a ScenarioJob is created, resumed, accessed, or reaches terminal state.
+    failure: Reject publication without complete persisted effective inputs and reject raw secrets, partial capture, live owner reads, or current-state reconstruction.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.service-operations.scenario-job-plane
@@ -443,7 +443,7 @@ units:
     kind: rule
     title: Job reason metadata is safe state-consistent and nonsticky
     modality: must
-    statement: reason_metadata contains only transport-safe machine-readable values, never credentials, headers, tokens, raw sensitive provider payload, LocalAsset paths, or private process proof, may include an approved provider, Driver, or ExecutionHost message for the exact failure, is absent from CANCELED and COMPLETED, and appears consistently in SubscribeScenarioJobEvents and GetScenarioJob snapshots.
+    statement: reason_metadata contains only transport-safe machine-readable values, never credentials, headers, tokens, raw sensitive provider payload, ModelAsset paths, or private process proof, may include an approved provider, Driver, or ExecutionHost message for the exact failure, is absent from CANCELED and COMPLETED, and appears consistently in SubscribeScenarioJobEvents and GetScenarioJob snapshots.
     condition: Whenever Runtime stores or projects ScenarioJob failure metadata.
     failure: Remove unsafe or stale metadata and fail the projection when query and event snapshots disagree.
     relations:
@@ -503,7 +503,7 @@ units:
     kind: rule
     title: Local content and execution states remain orthogonal
     modality: must
-    statement: LocalAsset verified-content and install state, Local Capability Configuration interpretability and requirement resolution, Machine Local AI Configuration selection, derived admission, Job execution, and Runtime-private ExecutionHost residency or process health are independent facts; no INSTALLED, ACTIVE, UNHEALTHY, LocalWarmState, ready, resident, or warm product lifecycle collapses them, and ordinary load or generation failure changes only the Job unless the Driver classifies a persistent hard blocker.
+    statement: ModelAsset verified-content and install state, Loadout interpretability and requirement resolution, Machine Loadout store selection, derived admission, Job execution, and Runtime-private ExecutionHost residency or process health are independent facts; no INSTALLED, ACTIVE, UNHEALTHY, LocalWarmState, ready, resident, or warm product lifecycle collapses them, and ordinary load or generation failure changes only the Job unless the Driver classifies a persistent hard blocker.
     condition: Whenever Runtime stores or interprets local content, configuration, selection, admission, Job, or process state.
     failure: Reject a combined readiness lifecycle, process-derived selection, binding deletion, or execution-derived configuration mutation.
     relations:
@@ -513,7 +513,7 @@ units:
     kind: rule
     title: Local service lifecycle expresses process truth only
     modality: must
-    statement: Runtime may maintain a private supervised ExecutionHost process lifecycle for spawn, handshake, monitoring, restart, stop, and cleanup, but this state is never projected as CapabilityContract readiness, Local Capability Configuration validity, machine selection, binding, derived admission, or a reason to reroute; process failure is recorded only as private supervision evidence and the exact affected Job result unless a Driver declares a persistent hard blocker.
+    statement: Runtime may maintain a private supervised ExecutionHost process lifecycle for spawn, handshake, monitoring, restart, stop, and cleanup, but this state is never projected as CapabilityContract readiness, Loadout validity, machine selection, binding, derived admission, or a reason to reroute; process failure is recorded only as private supervision evidence and the exact affected Job result unless a Driver declares a persistent hard blocker.
     condition: Whenever Runtime changes or interprets local service lifecycle.
     failure: Reject an undeclared edge or a service state inferred solely from one model's residency.
     relations:
@@ -523,9 +523,9 @@ units:
     kind: rule
     title: Model transfer status transitions are closed
     modality: must
-    statement: Model status transitions only INSTALLED to PULLING for update, PULLING to INSTALLED on success or FAILED on error, FAILED to PULLING on retry, and INSTALLED or FAILED to REMOVED on removal.
-    condition: Whenever Runtime changes model pull or removal status.
-    failure: Reject the transition and preserve the last valid model status.
+    statement: One ModelAsset acquisition instance transitions only through queued, transferring, verifying, installed, failed, canceled, retrying, and removed content states, catalog acquisition hard-verifies every declared file hash before installed, manual import computes every digest before commit, and none of these states implies Loadout compatibility, selection, admission, readiness, or Job success.
+    condition: Whenever Runtime changes ModelAsset transfer, import, install, retry, cancel, or removal state.
+    failure: Reject an undeclared transition, partial or hash-mismatched installed state, and any content state promoted to configuration or execution truth.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.service-operations.lifecycle-registry
@@ -573,7 +573,7 @@ units:
     kind: rule
     title: Supervised engine startup failures degrade with evidence
     modality: must
-    statement: When supervised mode is enabled Runtime creates the private ExecutionHost manager, starts configured enabled hosts, injects endpoint environment only after the private process handshake, and on startup failure records bounded bootstrap evidence and may mark daemon service operation DEGRADED; it never changes AIConfig, Local Capability Configuration, machine selection, binding, or public capability readiness and never fabricates provider-unhealthy product truth.
+    statement: When supervised mode is enabled Runtime creates the private ExecutionHost manager, starts configured enabled hosts, injects endpoint environment only after the private process handshake, and on startup failure records bounded bootstrap evidence and may mark daemon service operation DEGRADED; it never changes AIConfig, Loadout, machine selection, binding, or public capability readiness and never fabricates provider-unhealthy product truth.
     condition: Whenever a configured supervised engine starts during daemon boot.
     failure: Reject a public capability-health projection, configuration mutation, or unaudited process startup failure.
     relations:
@@ -603,7 +603,7 @@ units:
     kind: rule
     title: STOPPING preempts active subsystems without fabricated terminals
     modality: must
-    statement: STOPPING rejects new Runtime Job work as unavailable, may close established Jobs and long-lived streams with typed cancellation without fabricated completion, terminates private supervised ExecutionHosts within bounded shutdown policy, and invalidates in-memory sessions on process exit without changing committed AIConfig, Local Capability Configurations, machine selection, bindings, or completed Job records.
+    statement: STOPPING rejects new Runtime Job work as unavailable, may close established Jobs and long-lived streams with typed cancellation without fabricated completion, terminates private supervised ExecutionHosts within bounded shutdown policy, and invalidates in-memory sessions on process exit without changing committed AIConfig, Loadouts, machine selection, bindings, or completed Job records.
     condition: Whenever daemon shutdown affects active child state machines.
     failure: Cancel or terminate the child path and reject any fabricated terminal frame, new work, lingering subscription, or engine left beyond its timeout.
     relations:
@@ -687,7 +687,7 @@ units:
     kind: rule
     title: Production configuration has disjoint boot and mutable classes
     modality: must
-    statement: Production service principal, service definition, listener identity, active release, Realm account endpoints, custody root, and production or test posture come only from signed service and release projections and are Runtime-immutable, while admitted Connector custody metadata and Runtime-private Local or Remote ExecutionHost operational configuration live in service-principal-owned state and change only through typed protected Desktop control after authorization and closed-schema validation; this production configuration stores no App declaration, Effective App Access Snapshot, AIConfig route, provider-model target choice, Local Capability Configuration identity, binding, or machine selection and is not a D2 local-development prerequisite.
+    statement: Production service principal, service definition, listener identity, active release, Realm account endpoints, custody root, and production or test posture come only from signed service and release projections and are Runtime-immutable, while admitted Connector custody metadata and Runtime-private Local or Remote ExecutionHost operational configuration live in service-principal-owned state and change only through typed protected Desktop control after authorization and closed-schema validation; this production configuration stores no App declaration, Effective App Access Snapshot, AIConfig route, provider-model target choice, Loadout identity, binding, or machine selection and is not a D2 local-development prerequisite.
     condition: Whenever production Runtime loads, reads, or changes configuration.
     failure: Reject mutation of boot security fields and any mutable product change lacking protected authorization or schema admission.
     relations:
@@ -757,7 +757,7 @@ units:
     kind: rule
     title: Runtime public operational command set is bounded
     modality: must
-    statement: The Runtime public operational CLI provides serve, doctor, version, model, and provider, where model is limited to LocalAsset inventory, import, pull, and transfer operations and provider is limited to Connector custody projection and user-explicit bounded diagnostics; it provides no high-level generation command or route, target, default model, default provider, AIConfig, or machine-selection mutation.
+    statement: The Runtime public operational CLI provides serve, doctor, version, model, and provider, where model is limited to ModelAsset inventory, import, pull, and transfer operations and provider is limited to Connector custody projection and user-explicit bounded diagnostics; it provides no high-level generation command or route, target, default model, default provider, AIConfig, or machine-selection mutation.
     condition: Whenever the public Runtime CLI command surface is built or displayed.
     failure: Reject a missing required operational command or any command that creates generation or configuration authority outside the canonical owners.
     relations:
@@ -807,7 +807,7 @@ units:
     kind: rule
     title: Connector CLI operations never select execution
     modality: must
-    statement: The provider namespace may list Connector custody records, invoke already admitted explicit custody create or remove operations, and run a user-explicit bounded Test Connector diagnostic, but it never creates or selects an AIConfig route, provider-model target, default provider or model, Machine Local AI Configuration relation, or generation request; custody and diagnostic outcomes remain with their canonical Runtime owners and never continue into execution.
+    statement: The provider namespace may list Connector custody records, invoke already admitted explicit custody create or remove operations, and run a user-explicit bounded Test Connector diagnostic, but it never creates or selects an AIConfig route, provider-model target, default provider or model, Machine Loadout store relation, or generation request; custody and diagnostic outcomes remain with their canonical Runtime owners and never continue into execution.
     condition: Whenever a user invokes a retained provider or Connector operation.
     failure: Reject one-shot provider routing, a machine default, implicit account or Connector selection, secret escape from Runtime custody, diagnostic-as-readiness, or any continuation into generation.
     relations:
@@ -817,7 +817,7 @@ units:
     kind: rule
     title: Doctor reports the minimum operational context
     modality: must
-    statement: nimi doctor reports binary version, daemon operational health, Runtime-private local ExecutionHost supervision detail, Connector custody status, installed LocalAssets, and optional SDK detection in the current working directory without discovering, inferring, or exposing a production Runtime private physical configuration path; only when an explicit nonproduction portable config was supplied may doctor report that path, labeled as the nonproduction portable config entry, and no diagnostic field becomes capability readiness, binding, route, selection, or execution feasibility.
+    statement: nimi doctor reports binary version, daemon operational health, Runtime-private local ExecutionHost supervision detail, Connector custody status, installed ModelAssets, and optional SDK detection in the current working directory without discovering, inferring, or exposing a production Runtime private physical configuration path; only when an explicit nonproduction portable config was supplied may doctor report that path, labeled as the nonproduction portable config entry, and no diagnostic field becomes capability readiness, binding, route, selection, or execution feasibility.
     condition: Whenever nimi doctor runs.
     failure: Return a diagnostic failure when required operational context cannot be determined, and reject default private-path discovery, private-path exposure, or a portable path reported without its nonproduction label.
     relations:

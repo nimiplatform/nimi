@@ -10,7 +10,7 @@ units:
   - id: definition.nimi.runtime.ai-provider.capability-execution-composition-plane
     kind: definition
     title: Runtime capability execution composition plane
-    meaning: The Runtime capability execution composition plane deterministically composes one committed AIConfig route with the current machine-selected Local Capability Configuration or committed Cloud CapabilityImplementation target plus the internally resolved current-account Connector, validates exact Driver configuration, ownership, credential, policy, bindings and standardized-feature support, derives request admission, and captures immutable Job inputs without App-supplied Connector identity, Profile materialization, search, ranking, probe, prewarm, or fallback.
+    meaning: The Runtime capability execution composition plane deterministically composes one committed AIConfig route with the current selected Loadout or committed Cloud CapabilityImplementation target plus the internally resolved current-account Connector, validates exact versioned Driver dialect, recipeId, options, Model Contracts, bindings, content identities, custody, ownership, credential, policy, and standardized-feature support, and atomically persists immutable Job effective inputs including the Local ResolvedAssembly without App-supplied identity, live catalog interpretation, search, ranking, probe, prewarm, or fallback.
     relations:
       - type: supersedes
         target: definition.nimi.runtime.ai-provider.profile-execution-plane
@@ -20,8 +20,8 @@ units:
     meaning: The Runtime connector plane is credential custody and account-ownership support whose create, update, delete and listing lifecycle stores provider-defined sealed payloads and whose user-explicit bounded Test Connector diagnostic never establishes route, target, binding, readiness, or execution truth; Cloud execution validates the resolved current-account Connector directly through ownership, App Capability access, credential validity, and existing policy.
   - id: definition.nimi.runtime.ai-provider.model-service-plane
     kind: definition
-    title: Runtime model service plane
-    meaning: The Runtime model service plane provides concrete LocalAsset inventory, verified-content descriptors, install and transfer truth, and non-binding implementation or asset recommendations without owning public model health, warm, readiness, preferred or fallback engine, Local Capability Configuration, binding, machine selection, or routing truth.
+    title: Runtime ModelAsset service plane
+    meaning: The Runtime ModelAsset service plane provides per-import ModelAsset inventory, immutable content identity and integrity, bounded fingerprints and provenance, explicit catalog install and unclassified import, transfer and removal truth, duplicate-content hints, and non-binding catalog recommendations without owning capability, engine, Driver, recipe, Loadout, binding, selection, readiness, or route truth.
   - id: definition.nimi.runtime.ai-provider.multimodal-provider-plane
     kind: definition
     title: Runtime multimodal provider plane
@@ -50,9 +50,9 @@ units:
     kind: rule
     title: Exact committed composition is the execution boundary
     modality: must
-    statement: Runtime independently validates the committed AIConfig owner and CapabilityContract route, then for Local the current selected Local Capability Configuration, exact CapabilityImplementation, Driver identity and portable configuration, normalized requirements, exact bindings and required standardized features, or for ordinary same-account Cloud the exact CapabilityImplementation, Driver-owned provider-model target, internally resolved current-account Connector, credential configuration, App Capability access, applicable policy, and required features, before one request is admitted and captured as a Job.
+    statement: Runtime independently validates the committed AIConfig owner and CapabilityContract route, then for Local atomically dereferences the current selected Loadout and validates its exact CapabilityImplementation, versioned Driver dialect and recipeId, typed options, projected model slots, per-slot Model Contract results, model_asset_id and expected_content_id bindings, required standardized features, and RecipeCustody before rehashing bytes and persisting one complete ResolvedAssembly as Job effective inputs, or for Cloud validates and captures the exact CapabilityImplementation, Driver target, current-account Connector custody, credentials, access, policy, features, defaults, and request; no Job is published before its complete immutable inputs are durable.
     condition: Whenever a CapabilityContract request enters execution composition.
-    failure: Reject Job submission with the typed admission reason until every exact required input is valid.
+    failure: Reject Job submission with the typed admission reason on any missing, changed, unverified, or unpersisted exact input without live catalog interpretation, search, substitution, or fallback.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.capability-execution-composition-plane
@@ -60,7 +60,7 @@ units:
     kind: rule
     title: AIProfile excludes machine account and execution evidence
     modality: must_not
-    statement: AIProfile contains canonical AIConfig owner identity, Local Capability Configuration identity, machine selection, LocalAsset id or path, exact binding, connector or account identity, secret, Runtime process identity, selected-source evidence, install result, materialization record, Job input, provider health, or scheduler state; only portable AIConfig intent, local implementation-configuration intent, Cloud implementation-target recommendation, features, defaults, provenance, and license are admitted.
+    statement: AIProfile contains canonical AIConfig owner identity, Loadout identity, machine selection, ModelAsset id or path, exact binding, connector or account identity, secret, Runtime process identity, selected-source evidence, install result, materialization record, Job input, provider health, or scheduler state; only portable AIConfig intent, local implementation-configuration intent, portable Loadout intent consisting of recipeId, per-axis content identity, source recommendation, expected integrity and execution options, Cloud implementation-target recommendation, features, defaults, provenance, and license are admitted.
     condition: Whenever Runtime imports or validates an AIProfile.
     failure: Reject the Profile with a typed forbidden non-portable field failure.
     relations:
@@ -68,21 +68,21 @@ units:
         target: definition.nimi.runtime.ai-provider.capability-execution-composition-plane
   - id: rule.nimi.runtime.ai-provider.r003
     kind: rule
-    title: Profile actions and execution composition stay separate
+    title: Profile Loadout and execution actions stay separate
     modality: must
-    statement: Import Profile changes only portable Profile storage, Apply Profile to AIConfig atomically creates or overwrites only owner intent, Add or Update Local Capability Configuration changes only one saved machine-local record, and Select Local Capability Configuration changes only the machine selection relation; Runtime-private selected-source, process, transport, admission, and Job evidence never enters Profile, AIConfig, Local Capability Configuration portable fields, or selection and no action automatically invokes another.
-    condition: Whenever a Profile, configuration, selection, or execution action produces output.
-    failure: Reject cross-action side effects and persistence of Runtime-private evidence in product configuration.
+    statement: Import Profile changes only portable Profile storage, Apply Profile to AIConfig changes only owner intent, Prepare Loadout performs no owner write, Commit Loadout writes only one Loadout, Select Loadout changes only selection, and Delete Loadout removes only its target and clears that selection only when selected; UpdateLoadout is only a Prepare-plus-Commit wrapper, no bind, unbind, or rebind action exists, Runtime-private selected-source, CAS, process, transport, admission, ResolvedAssembly, and Job evidence never enters portable or owner configuration, and no action automatically invokes another.
+    condition: Whenever a Profile, Loadout, selection, or execution action produces output.
+    failure: Reject undeclared mutation channels, cross-action side effects, downloads, and persistence of Runtime-private evidence in product configuration.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.capability-execution-composition-plane
   - id: rule.nimi.runtime.ai-provider.r004
     kind: rule
-    title: Configuration and selection actions never probe or prewarm
+    title: Configuration and selection actions never download probe or prewarm
     modality: must_not
-    statement: Apply Profile to AIConfig, Add or Update Local Capability Configuration, and Select Local Capability Configuration invokes or requires route probes, resource feasibility probes, endpoint reachability, engine health, warm or resident state, file-name inference, prior execution success, installation, or process start; Apply may save unresolved Local intent or Cloud intent without a current-account Connector, and selection requires only currently interpretable and configured local state.
+    statement: Apply Profile to AIConfig, Prepare or Commit Loadout, Select Loadout, or Delete Loadout invokes or requires ModelAsset download, dependency materialization, route or feasibility probes, endpoint reachability, engine health, warm or resident state, filename inference, prior execution success, or process start; Apply may save unresolved Local intent or Cloud intent without a Connector, and Commit may save unresolved model slots; a non-empty Select target requires any fact beyond committed interpretability and complete configuration, or an explicit empty Select target requires a Loadout target or feasibility fact.
     condition: Whenever a configuration or selection action is evaluated.
-    failure: Perform only the requested owner mutation and leave exact admission and Host preparation to Job submission and execution.
+    failure: Perform only the requested owner-local action and leave exact byte verification, admission, and Host preparation to Job submission and execution.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.capability-execution-composition-plane
@@ -90,7 +90,7 @@ units:
     kind: rule
     title: Implementation Driver and dialect mismatches fail closed
     modality: must
-    statement: Runtime consumes the exact committed CapabilityImplementation, CapabilityImplementationDriver and dialect identity plus Driver-owned portable configuration as validation inputs rather than resolver hints; for Local text execution an omitted Driver context-size field selects the Driver-owned automatic capacity derived from the exact bound model's authored capacity while an explicit positive context-size field is a fixed advanced override stored only on that Local Capability Configuration and never changes omitted-field automatic semantics for any other saved configuration, and any unknown implementation, Driver, dialect, configuration, authored capacity, requirement projection, binding, or feature mismatch fails closed without adapter inference, engine substitution, or fallback.
+    statement: Runtime consumes the exact committed CapabilityImplementation, CapabilityImplementationDriver and dialect identity plus Driver-owned portable configuration as validation inputs rather than resolver hints; for Local text execution an omitted Driver context-size field selects the Driver-owned automatic capacity derived from the exact bound model's authored capacity while an explicit positive context-size field is a fixed advanced override stored only on that Loadout and never changes omitted-field automatic semantics for any other saved configuration, and any unknown implementation, Driver, dialect, configuration, authored capacity, requirement projection, binding, or feature mismatch fails closed without adapter inference, engine substitution, or fallback.
     condition: Whenever Runtime interprets a committed Local or Cloud implementation configuration.
     failure: Return the typed admission reason without guessing capacity or inferring or substituting implementation, Driver, dialect, engine, or target.
     relations:
@@ -100,9 +100,9 @@ units:
     kind: rule
     title: Jobs fix exact effective inputs at submission
     modality: must
-    statement: Every execution or Job submission captures for Local the AIConfig Local route, required features and defaults, current selected Local Capability Configuration, exact CapabilityImplementation, Driver configuration, exact bindings and request, or for Cloud the exact CapabilityImplementation, provider-model target, internally resolved current-account Connector custody reference, defaults and request; all captured inputs are immutable under later Profile, AIConfig, local configuration, machine selection, Connector, inventory, or process changes and are written to the Job audit trail without raw secrets.
-    condition: Whenever Runtime executes or submits an AI scenario.
-    failure: Reject execution evidence that is missing, mutable after fixation, or absent from audit.
+    statement: Every execution or Job submission atomically captures and persists for Local the authorization, AIConfig Local route, features and defaults, selected Loadout identity, exact CapabilityImplementation, versioned Driver dialect and recipeId, typed options, every slot's model_asset_id, expected_content_id, reverified absolute payload path and content identity, RecipeCustody identity, request, typed load plan, and process identity as one ResolvedAssembly, or for Cloud the exact implementation, provider-model target, current-account Connector custody reference, defaults, and request; queued and running Jobs never reread Loadout, catalog, inventory, current selection, process state, or private CAS, and no later Profile, AIConfig, Loadout, selection, Connector, inventory, catalog, or process change rewrites captured inputs.
+    condition: Whenever Runtime executes, submits, resumes, or audits an AI scenario.
+    failure: Reject a Job whose effective inputs are missing, partially captured, live-read, mutable after fixation, or absent from durable audit without raw secrets.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.capability-execution-composition-plane
@@ -110,7 +110,7 @@ units:
     kind: rule
     title: Scheduling evidence is Job specific and non-authoritative
     modality: must
-    statement: Any scheduling judgement recorded for a Job corresponds only to the exact captured execution inputs about to run, never a scope or owner aggregate, and remains execution evidence that cannot change AIConfig, Machine Local AI Configuration selection, Local Capability Configuration binding, derived admission, or another Job.
+    statement: Any scheduling judgement recorded for a Job corresponds only to the exact captured execution inputs about to run, never a scope or owner aggregate, and remains execution evidence that cannot change AIConfig, Machine Loadout store selection, Loadout binding, derived admission, or another Job.
     condition: Whenever an execution snapshot records a scheduling judgement.
     failure: Reject a scope aggregate judgement recorded as execution evidence.
     relations:
@@ -120,7 +120,7 @@ units:
     kind: rule
     title: Runtime holds no global active profile
     modality: must_not
-    statement: Runtime maintains a runtime-global active AIProfile or AIConfig, treats Profile import or Apply as a persistent binding or re-apply relation, creates per-Agent AIConfig, or interprets the one shared LocalAgent subsystem AIConfig or one Machine Local AI Configuration as a global Profile.
+    statement: Runtime maintains a runtime-global active AIProfile or AIConfig, treats Profile import or Apply as a persistent binding or re-apply relation, creates per-Agent AIConfig, or interprets the one shared LocalAgent subsystem AIConfig or the Machine Loadout store as a global Profile.
     condition: Always.
     failure: Reject global-Profile, per-Agent, and live-Profile-binding interpretations and keep canonical owners separate.
     relations:
@@ -157,7 +157,7 @@ units:
     kind: rule
     title: Configuration admission and execution states are orthogonal
     modality: must
-    statement: CapabilityImplementation interpretability, normalized requirement resolution, Machine Local AI Configuration selection, derived request admission, Job execution, LocalAsset content integrity, current-account Connector ownership and credential validation, and Runtime-private Host supervision remain separate facts; ordinary Driver, load, generation, provider, transport, scheduling, or execution failure ends the affected Job and never clears a binding, changes selection, route, or Connector, or mutates configuration, and when the Driver classifies a persistent hard blocker Runtime may additionally update only the future derived-admission reason while preserving every AIConfig, Local Capability Configuration, exact binding, machine selection, private custody reference, and immutable Job input.
+    statement: CapabilityImplementation interpretability, normalized requirement resolution, Machine Loadout store selection, derived request admission, Job execution, ModelAsset content integrity, current-account Connector ownership and credential validation, and Runtime-private Host supervision remain separate facts; ordinary Driver, load, generation, provider, transport, scheduling, or execution failure ends the affected Job and never clears a binding, changes selection, route, or Connector, or mutates configuration, and when the Driver classifies a persistent hard blocker Runtime may additionally update only the future derived-admission reason while preserving every AIConfig, Loadout, exact binding, machine selection, private custody reference, and immutable Job input.
     condition: Whenever Runtime records or projects configuration, admission, or execution failure.
     failure: Preserve orthogonal owner state and reject a combined readiness or Profile workflow lifecycle, execution-driven configuration, binding, selection, or route mutation, or any persistent-blocker effect beyond the derived-admission reason.
     relations:
@@ -165,11 +165,11 @@ units:
         target: definition.nimi.runtime.ai-provider.capability-execution-composition-plane
   - id: rule.nimi.runtime.ai-provider.r014
     kind: rule
-    title: Configuration selection Job and private source identities stay distinct
+    title: Configuration asset assembly Job and private source identities stay distinct
     modality: must
-    statement: AIProfile portable intent, canonical App or shared LocalAgent AIConfig intent, one Machine Local AI Configuration, each saved Local Capability Configuration, LocalAsset verified-content identity, Runtime-private selected-source dependency evidence, private ExecutionHost process identity, and immutable Job identity remain distinct, and neither execution nor private source identity enters Profile, AIConfig, local configuration identity, or machine selection.
-    condition: Whenever media generation identities are created, stored, or projected.
-    failure: Reject identity leakage across the split or into portable payloads.
+    statement: AIProfile portable intent, canonical App or shared LocalAgent AIConfig intent, the machine Loadout store, each Loadout identity, each per-import ModelAsset identity and immutable content_id, catalog recipe identity, Runtime-private dependency or RecipeCustody evidence, Job-captured ResolvedAssembly, private ExecutionHost process identity, and Job identity remain distinct; content equality never collapses ModelAsset instances, and neither ResolvedAssembly, process, CAS, nor selected-source identity enters Profile, AIConfig, public Loadout identity, or selection.
+    condition: Whenever local execution identities are created, stored, or projected.
+    failure: Reject identity collapse, revision-like CAS projection, or leakage across canonical owners and portable payloads.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.capability-execution-composition-plane
@@ -177,9 +177,9 @@ units:
     kind: rule
     title: Execution caches derive only from captured exact inputs
     modality: must
-    statement: A Runtime-private execution cache key derives from the Job's captured exact CapabilityImplementation, Driver identity and portable configuration, standardized features, normalized requirement occurrences, exact bindings, defaults, request semantics, and relevant Host compatibility version; Profile identity, current inventory, current machine selection, mutable paths, or main asset identity alone never becomes execution authority or a product revision.
-    condition: Whenever Runtime derives cache identity for capability execution.
-    failure: Reject cache reuse keyed on incomplete or mutable semantic dimensions.
+    statement: A Runtime-private execution or process key derives only from the Job-captured ResolvedAssembly including exact CapabilityImplementation, versioned Driver dialect and recipeId, typed options, standardized features, all slot content identities and resolved paths, RecipeCustody identity, defaults, request semantics, load plan, and relevant Host compatibility version; Profile, Loadout identity alone, current inventory, current selection, private CAS, catalog revision, or mutable current path never becomes execution authority or a product revision.
+    condition: Whenever Runtime derives cache or process identity for capability execution.
+    failure: Reject reuse keyed on incomplete, live, or mutable semantic dimensions.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.capability-execution-composition-plane
@@ -187,7 +187,7 @@ units:
     kind: rule
     title: Future media workflows keep first-class shapes
     modality: must
-    statement: Each admitted CapabilityImplementation keeps first-class Driver-owned portable configuration and independently projected normalized resource-occurrence requirements, image and video contracts remain semantically distinct, no Core cross-engine option union or Nimi DAG IR is introduced, unresolved slots may persist in a Local Capability Configuration, and Driver and ExecutionHost identities remain distinct rather than public engine target inference.
+    statement: Each admitted CapabilityImplementation keeps first-class Driver-owned portable configuration and independently projected normalized resource-occurrence requirements, image and video contracts remain semantically distinct, no Core cross-engine option union or Nimi DAG IR is introduced, unresolved slots may persist in a Loadout, and Driver and ExecutionHost identities remain distinct rather than public engine target inference.
     condition: Whenever Runtime admits or projects future local media workflow shapes.
     failure: Reject collapsed media shapes and public exposure of internal backend taxonomy.
     relations:
@@ -339,7 +339,7 @@ units:
     kind: rule
     title: Profiles and configuration carry no provider secrets
     modality: must_not
-    statement: AIProfile, AIConfig, SDK state, Desktop storage, App manifests, or Kit UI state contains raw provider secrets, API keys, tokens, OAuth payloads, credential JSON, authorization headers, provider health evidence, quota, billing, or rate-limit state; AIProfile and AIConfig additionally carry no connector, account, or custody identity, Cloud intent may remain valid when current-account Connector or credential resolution is unavailable, and Cloud configuration carries no LocalAsset, local binding, selected source, or local process evidence.
+    statement: AIProfile, AIConfig, SDK state, Desktop storage, App manifests, or Kit UI state contains raw provider secrets, API keys, tokens, OAuth payloads, credential JSON, authorization headers, provider health evidence, quota, billing, or rate-limit state; AIProfile and AIConfig additionally carry no connector, account, or custody identity, Cloud intent may remain valid when current-account Connector or credential resolution is unavailable, and Cloud configuration carries no ModelAsset, local binding, selected source, or local process evidence.
     condition: Whenever cloud execution intent is declared or projected outside Runtime custody.
     failure: Reject the secret-bearing or cross-plane payload while preserving valid intent and return the existing owner or configuration-required, credential, access-denied, or policy reason when ordinary Cloud execution cannot resolve an allowed current-account Connector path.
     relations:
@@ -359,44 +359,39 @@ units:
         target: definition.nimi.runtime.ai-provider.connector-plane
   - id: rule.nimi.runtime.ai-provider.r033
     kind: rule
-    title: LocalAsset descriptors expose verified content metadata
+    title: ModelAsset descriptors expose content custody only
     modality: must
-    statement: A LocalAsset descriptor exposes concrete verified-content identity, version, content-integrity and install state, provenance, display information, artifact roles, host requirements and non-binding CapabilityImplementation recommendation metadata; it exposes no preferred or fallback engine, CapabilityImplementationDriver selection, public health timestamp, bundle readiness, warm or resident state, machine selection, binding, route, or capability readiness truth.
-    condition: Whenever Runtime projects a model descriptor.
-    failure: Reject descriptors missing required verified-content metadata or carrying routing, selection, binding, readiness, warm, or fallback truth.
+    statement: A ModelAsset descriptor exposes its Runtime-generated per-import model_asset_id, immutable content_id, ordered files and per-file integrity, aggregate size, bounded raw fingerprints, provenance, display metadata, content_verified and optional catalog_verified facts, latest bounded integrity diagnostic, and install or import state; it exposes no capability, kind, family, engine, Driver, dialect, recipe, companion, slot, Model Contract result, execution option, Loadout, binding, selection, route, readiness, or process truth.
+    condition: Whenever Runtime projects a ModelAsset descriptor.
+    failure: Reject descriptors missing identity or integrity facts, collapsing content and instance identity, or carrying interpretation, configuration, or execution truth.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.model-service-plane
   - id: rule.nimi.runtime.ai-provider.r034
     kind: rule
-    title: Capability profile is summary not execution truth
-    modality: must
-    statement: Capability and feature metadata on a LocalAsset remains a non-binding summary, while runnable Local execution is derived only from the committed AIConfig Local route, current machine-selected Local Capability Configuration, exact CapabilityImplementation and Driver configuration, resolved requirement occurrences, exact bindings, required and supported feature subset, request, and authorization; filenames, paths, logical model labels, artifact roles, engine labels, install state, bundle state, warm state, or health never form routing truth.
-    condition: Whenever local model capability or path truth is derived.
-    failure: Reject path or execution truth derived from the summary profile or from logical_model_id for passive assets.
+    title: ModelAsset fingerprints are facts not capability summaries
+    modality: must_not
+    statement: A ModelAsset fingerprint, label, format, filename, catalog match, provenance, content_verified, or catalog_verified fact declares or selects a CapabilityContract, standardized feature, engine, CapabilityImplementation, Driver, recipe, slot, Loadout, route, or readiness; only an exact Driver dialect's recipe-specific Model Contract may consume bounded fingerprints while preparing or committing an explicitly chosen Loadout binding.
+    condition: Whenever ModelAsset content facts are projected or interpreted.
+    failure: Reject import-layer capability admission, passive or runnable asset categories, and any path, binding, or execution truth inferred from content presentation.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.model-service-plane
   - id: rule.nimi.runtime.ai-provider.r035
     kind: rule
-    title: Model service method set is fixed
+    title: ModelAsset service method set is fixed
     modality: must
-    statement: RuntimeModelService exposes passive inventory listing, concrete verified-content installation or pull, removal, and bounded content-integrity diagnostics only; it exposes no public Check Model Health, readiness, warm, start, route resolution, binding, selection, or execution-feasibility operation.
-    condition: Whenever the unified model service surface is defined or extended.
-    failure: Reject undeclared methods on the unified model service surface.
+    statement: The ModelAsset service exposes passive inventory listing, explicit catalog install planning and acquisition, unclassified file or directory import, removal with Loadout-reference impact enumeration and explicit force confirmation, and bounded content-integrity diagnostics only; it exposes no public capability or kind classifier, Check Model Health, readiness, warm, start, route resolution, binding mutation, selection, Model Contract execution outside Loadout preparation, or execution-feasibility operation.
+    condition: Whenever the unified ModelAsset service surface is defined or extended.
+    failure: Reject undeclared methods, import interpretation, deletion without required reference handling, and configuration or execution authority on the ModelAsset surface.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.model-service-plane
   - id: rule.nimi.runtime.ai-provider.r036
     kind: rule
-    title: PullModel contract is fixed
-    modality: must
-    statement: PullModel requires an authorized owner and concrete asset reference with verifiable source and digest, returns a transfer Job identity and typed acceptance, commits only complete verified LocalAsset content and provenance, and writes no preferred Driver, fallback engine, bundle readiness, warm state, Local Capability Configuration, binding, machine selection, admission, or execution truth.
-    condition: Whenever PullModel runs.
-    failure: Reject unverifiable or partial content and any installation side effect outside concrete LocalAsset truth.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.ai-provider.model-service-plane
+    lifecycle: removed
+    title: Retired generic PullModel surface
+    reason: Removed because explicit verified catalog acquisition is owned by ResolveModelInstallPlan and InstallModelFromPlan, while a generic model registry would duplicate ModelAsset inventory and content lifecycle truth.
   - id: rule.nimi.runtime.ai-provider.r037
     kind: rule
     lifecycle: removed
@@ -404,11 +399,11 @@ units:
     reason: Removed because model probe, warm, health, and not-ready state do not establish product routing or capability admission.
   - id: rule.nimi.runtime.ai-provider.r038
     kind: rule
-    title: LocalAsset transfer and install status is content scoped
+    title: ModelAsset transfer and install status is content scoped
     modality: must
-    statement: LocalAsset transfer and install transitions admit only their declared queued, transferring, verifying, installed, failed, canceled, retrying, and removed content lifecycle, and installed proves verified content only rather than CapabilityImplementation interpretability, requirement resolution, machine selection, derived admission, Host residency, health, or Job success.
-    condition: Whenever a LocalAsset transfer or install status transition is applied.
-    failure: Reject every transition outside the content lifecycle and every promotion of installed into execution readiness.
+    statement: ModelAsset transfer and install transitions admit only queued, transferring, verifying, installed, failed, canceled, retrying, and removed for one acquisition instance, catalog install hard-verifies every declared file hash before atomic commit, manual import computes every digest before commit without catalog admission, and installed proves only a committed per-import identity and content_verified fact rather than catalog verification, capability, Driver, recipe compatibility, Loadout validity, selection, admission, Host state, or Job success.
+    condition: Whenever a ModelAsset transfer, import, or install status transition is applied.
+    failure: Reject transitions outside the content lifecycle, partial or hash-mismatched catalog commit, and every promotion of installed into interpretation or execution readiness.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.model-service-plane
@@ -416,7 +411,7 @@ units:
     kind: rule
     title: Unified views sync and lists stay passive
     modality: must
-    statement: A successful verified LocalAsset install reflects into the passive inventory view, local asset management consumes RuntimeLocalService authoritative detail directly rather than a second host-owned state, and listing never triggers endpoint probes, Driver or Host bootstrap, warm execution, binding, machine selection, recommendation acceptance, recovery, admission, routing, state transitions, or writes.
+    statement: A successful verified ModelAsset install reflects into the passive inventory view, model asset management consumes RuntimeLocalService authoritative detail directly rather than a second host-owned state, and listing never triggers endpoint probes, Driver or Host bootstrap, warm execution, binding, machine selection, recommendation acceptance, recovery, admission, routing, state transitions, or writes.
     condition: Whenever unified or local model views are read or synchronized.
     failure: Reject side-effecting list reads and second host-owned local state mirrors.
     relations:
@@ -429,11 +424,11 @@ units:
     reason: Removed because Check, Warm, Start, background probing, and list-polling health do not create a public capability truth; ExecutionHost supervision stays Runtime private.
   - id: rule.nimi.runtime.ai-provider.r041
     kind: rule
-    title: Local embedding bindings are exact configuration slots
+    title: Local embedding bindings are exact Loadout slots
     modality: must
-    statement: A Local text.embed CapabilityImplementationDriver projects normalized independent requirement-occurrence slots into its Local Capability Configuration and each binding names exact verified LocalAsset content or remains unresolved; Runtime never searches inventory, paths, filenames, labels, or capability hints to bind at execution, and binding remains separate from machine selection, admission, Host state, and Memory bank truth.
-    condition: Whenever a local memory embedding binding is validated.
-    failure: Reject raw paths, engine names, renderer heuristics, and non-embedding-capable targets.
+    statement: A Local text.embed versioned CapabilityImplementationDriver dialect projects its independent model slots into a Loadout and each axis remains unresolved or names model_asset_id plus expected_content_id whose chosen payload passes the recipe-specific embedding Model Contract; Runtime never searches inventory, paths, filenames, labels, kind or capability hints at execution, and binding remains separate from selection, admission, Host state, and Memory bank truth.
+    condition: Whenever a local memory embedding Loadout binding is prepared, committed, or admitted.
+    failure: Reject raw paths, engine names, renderer heuristics, label-derived capability, and targets that fail the exact embedding Model Contract.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.model-service-plane
@@ -441,7 +436,7 @@ units:
     kind: rule
     title: Runtime owns local model algorithms
     modality: must
-    statement: LocalAsset recommendation, installation, verified-content registry identity, dependency installation, and download algorithms are Runtime-owned, and Desktop, Web, and Kit consume only typed projections without parallel resolvers or identity heuristics; recommendations never bind, select, route, or participate in Job composition.
+    statement: ModelAsset recommendation, installation, verified-content registry identity, dependency installation, and download algorithms are Runtime-owned, and Desktop, Web, and Kit consume only typed projections without parallel resolvers or identity heuristics; recommendations never bind, select, route, or participate in Job composition.
     condition: Whenever local model algorithm decisions are produced or consumed.
     failure: Reject consumer-side parallel algorithm or identity authority.
     relations:
@@ -459,21 +454,21 @@ units:
         target: definition.nimi.runtime.ai-provider.model-service-plane
   - id: rule.nimi.runtime.ai-provider.r044
     kind: rule
-    title: Driver requirement occurrences are independent and exact
+    title: Driver model-slot occurrences are independent and exact
     modality: must
-    statement: Every resource occurrence independently selected, downloaded, bound, or replaced is one normalized slot projected by the exact CapabilityImplementationDriver; unresolved slots are legal saved state, selection requires every required slot configured, execution checks exact bindings, and Runtime introduces neither a generic optional-requirement or alternative-auto-selection lifecycle nor implicit substitution from catalog, inventory, names, paths, labels, or field similarity.
-    condition: Whenever Runtime projects or validates Local Capability Configuration requirements.
-    failure: Preserve unresolved state or fail exact admission rather than fabricate satisfaction, inherit a binding, or choose an alternative.
+    statement: Every model occurrence independently selected, downloaded, bound, or replaced is one normalized slot projected by the exact versioned CapabilityImplementationDriver dialect for recipeId; all model slots are user axes, and unresolved slots are legal saved Loadout state; a non-empty Select target requires every required slot configured, while an explicit empty Select clears the relation without slot-completeness validation; each chosen ModelAsset passes that recipe-specific Model Contract, and execution checks model_asset_id plus expected_content_id independently of any catalog STRICT content pin, parent or companion inheritance, alternative auto-selection, or substitution from catalog, inventory, names, paths, labels, or similarity. Catalog recommendations may prefill only during Prepare Loadout and remain overridable before Commit.
+    condition: Whenever Runtime projects or validates Loadout model slots.
+    failure: Preserve unresolved state or fail the exact Model Contract and admission rather than fabricate satisfaction, inherit a binding, enforce catalog content as execution identity, or choose an alternative.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.model-service-plane
   - id: rule.nimi.runtime.ai-provider.r045
     kind: rule
-    title: Registry identity resolution is fixed
+    title: Registry identity is per import while content identity is immutable
     modality: must
-    statement: Runtime resolves verified-content identity before inserting LocalAsset records, prevents duplicate content identities, rebuilds non-binding indexes from Runtime registry truth excluding removed records, and preserves file metadata, digest, manifest and provenance evidence; model name, engine, logical label, filename, path, prefix, slot label, and field similarity never inherit a Local Capability Configuration binding or become routing identity.
-    condition: Whenever local model registry identity is created or repaired.
-    failure: Reject duplicate or heuristic identity writes outside Runtime registry truth.
+    statement: Runtime computes immutable content_id before inserting a ModelAsset, mints a unique model_asset_id for every successful catalog install or manual import, permits multiple records with the same content_id and surfaces only a non-blocking duplicate-content hint, rebuilds indexes from Runtime registry truth excluding removed records, and preserves ordered file, digest, manifest, fingerprint, trust, and provenance evidence; content equality, model name, engine, label, filename, path, prefix, slot label, and similarity never reuse instance identity, inherit a Loadout binding, or become route identity.
+    condition: Whenever ModelAsset registry identity is created, imported, installed, indexed, or repaired.
+    failure: Reject per-import identity reuse, forced content deduplication, heuristic identity writes, and binding or route inference outside Runtime registry truth.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.model-service-plane
@@ -481,7 +476,7 @@ units:
     kind: rule
     title: Artifact downloads commit atomically
     modality: must
-    statement: LocalAsset downloads stage outside committed storage, verify required hashes and manifests before commit, commit atomically or roll back without partial content, expose durable transfer and progress state, and resume only when Runtime proves staged bytes belong to the same transfer identity; completion proves concrete verified content only and never capability readiness, binding, machine selection, Driver compatibility, Host health, or execution success.
+    statement: ModelAsset downloads stage outside committed storage, verify required hashes and manifests before commit, commit atomically or roll back without partial content, expose durable transfer and progress state, and resume only when Runtime proves staged bytes belong to the same transfer identity; completion proves concrete verified content only and never capability readiness, binding, machine selection, Driver compatibility, Host health, or execution success.
     condition: Whenever Runtime downloads local model or materialized assets.
     failure: Roll back partial commits and reject execution truth claimed from download or install progress.
     relations:
@@ -575,7 +570,7 @@ units:
     kind: rule
     title: Host mismatch keeps the supervised contract
     modality: must_not
-    statement: Runtime changes the selected Local Capability Configuration, Driver, or ExecutionHost mode after an exact local image configuration proves incompatible with the current host instead of preserving the committed selection and returning a typed derived admission reason with bounded compatibility detail.
+    statement: Runtime changes the selected Loadout, Driver, or ExecutionHost mode after an exact local image configuration proves incompatible with the current host instead of preserving the committed selection and returning a typed derived admission reason with bounded compatibility detail.
     condition: Whenever the canonical local image path meets an unsupported host.
     failure: Fail closed for the exact committed selection without Host switching or automatic re-arbitration.
     relations:
@@ -653,21 +648,21 @@ units:
         target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
   - id: rule.nimi.runtime.ai-provider.r063
     kind: rule
-    title: Local image workflow mapping is fixed
+    title: Local image dialect mapping is fixed and catalog independent
     modality: must
-    statement: The exact local image CapabilityImplementationDriver maps text-to-image with empty reference images to a request without file, files, or ref_images, maps image-to-image with the first reference image to file, all reference images to files, and the remainder to ref_images, and passes through admitted negative_prompt, while provider, Driver, implementation and Host identity come from the committed Local Capability Configuration rather than inference from a resolved engine. For the stable-diffusion.cpp Local Driver, an absent image count resolves to one, an explicit image count admits only one through four, and an explicit size admits only WIDTHxHEIGHT with each dimension from 64 through 4096 and divisible by eight. An explicit request seed is admitted only from -2147483648 through 2147483647. Any unsupported image count, size, or seed returns AI_MEDIA_OPTION_UNSUPPORTED before Job publication or ExecutionHost dispatch.
-    condition: Whenever Runtime maps a local image workflow request.
-    failure: Reject silent drops or mismapped image workflow inputs.
+    statement: The exact versioned local image CapabilityImplementationDriver dialect derives task semantics only from the recipeId committed in the Loadout and its stable code facts, never from live catalog recipe content, revision, a public mode, arbitrary family, prompt convention, or image-presence inference. qwen-image requires no input.image and lowers without init_image, ref_images, or mask_image; qwen-image-edit-2511 requires exactly one input.image and lowers it to ref_images[0], never init_image; both reject negative_prompt. A Local image input uses only typed Runtime artifact custody resolved under the exact Job owner to bounded immutable bytes before Driver planning; Local HTTPS, caller paths or file URLs, identifier smuggling, missing owner evidence, foreign or invalid artifacts, and unresolved inputs fail before dispatch, and Host adapters never open caller paths or fetch caller URLs. Only dialect identities explicitly defining image-to-image or inpaint admit init_image or mask. Image count defaults to one and admits one through four, size admits only WIDTHxHEIGHT from 64 through 4096 divisible by eight, and seed admits -2147483648 through 2147483647; any fixed mapping change requires a new dialect identity or version.
+    condition: Whenever Runtime maps a local image workflow request from a committed Loadout or captured Job.
+    failure: Reject live catalog reinterpretation, semantic drift under one dialect identity, silent drops, or mismapped image inputs before Job publication.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
   - id: rule.nimi.runtime.ai-provider.r064
     kind: rule
-    title: Local image configuration owns exact Driver slots and options
+    title: Local media Loadouts own exact Driver slots and typed options
     modality: must
-    statement: The exact local image CapabilityImplementationDriver owns portable configuration and projects normalized independent requirement-occurrence slots into the Local Capability Configuration; slots carry exact verified LocalAsset bindings or unresolved state, configuration changes update current state directly, implementation or dialect changes explicitly reproject requirements without inheriting bindings by path, name, slot label or field similarity, and execution consumes only exact committed bindings without ambient inventory resolution or dynamic import. For Z-Image, the stable-diffusion.cpp portable modelFamily field admits the canonical family identifier z-image; z-image-turbo and z-image-base are model identifiers under that family whose identity remains in canonical model catalog and LocalAsset fields, and neither identifier is a modelFamily value. The stable-diffusion.cpp portable executionOptions.seed field admits only an integer from -2147483648 through 2147483647; an invalid family placement or out-of-range seed is PORTABLE_CONFIG_INVALID and never becomes executable, normalized, or rewritten.
-    condition: Whenever a local image workflow consumes profile overrides or slot dependencies.
-    failure: Preserve unresolved state or fail exact admission rather than guessing, inheriting, importing, or choosing companions and defaults.
+    statement: The exact versioned local media CapabilityImplementationDriver dialect owns typed options and projects independent model slots by recipeId into a Loadout; every slot is unresolved or binds model_asset_id plus expected_content_id, every bound model passes that recipe-specific Model Contract, and implementation, dialect, or recipeId changes reproject slots without path, name, label, provenance, or similarity inheritance. The closed stable-diffusion.cpp v2 modelFamily values are z-image, ideogram4, and qwen-image, and the closed admitted local media recipeId values are z-image, ideogram4, qwen-image, qwen-image-edit-2511, and minimax-h3. Qwen Image uses main diffusion, text encoder, and VAE; Qwen Image Edit uses a distinct edit main plus independent text encoder and VAE; Z-Image uses main, text encoder, and VAE; Ideogram4 uses main, uncond, text encoder, and VAE; Minimax H3 uses fl2va, ref2va, encoder, video VAE, and audio VAE. Every listed model slot is an independent user axis with catalog content references only as non-binding recommendations, no cross-slot compatibility guarantee, no parent-coupled companion, and no STRICT content pin for Loadout admission; catalog transfer and install still hard-verify every declared file hash, while strict execution pinning is limited to non-model RecipeCustody source and hash. Fixed request mapping, zero-condition-t, flow shift, loader facts, slot topology, and load-affecting defaults are stable Driver dialect code facts selected by recipeId and never live catalog facts; catalog recipe change cannot reinterpret a committed Loadout. The portable executionOptions.seed admits only -2147483648 through 2147483647, and unknown family, recipeId, slot, role, format, combination, Model Contract failure, or seed is PORTABLE_CONFIG_INVALID or its exact typed contract reason.
+    condition: Whenever a local image or video Loadout is prepared, committed, admitted, or executed.
+    failure: Preserve unresolved state or fail exact contract or admission rather than guessing, inheriting, importing, coupling slots, rereading catalog, choosing recommendations or defaults, or deriving model-slot admission from a catalog STRICT content pin; committed model_asset_id plus expected_content_id, byte revalidation, catalog transfer hashes, and non-model RecipeCustody pins remain mandatory.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
@@ -999,7 +994,7 @@ units:
     kind: rule
     title: ExecutionHost target admission is private and bounded
     modality: must
-    statement: Before Host startup, Local and Remote ExecutionHost endpoints come only from exact Runtime-owned Host materialization or configuration associated with the committed Driver; a supervised Local Host may use private deterministic configuration or controlled allocation, an attached Local Host requires an exact admitted private endpoint, and a Remote Host consumes the exact Job-captured Driver target and Runtime-resolved request-scoped current-account Connector custody context. Authority promises no product-level fixed port, caller or ambient inference, environment default, or endpoint identity in an App, AIConfig, AIProfile, Driver target choice, catalog, Local Capability Configuration, binding, machine selection, public probe, or readiness truth.
+    statement: Before Host startup, Local and Remote ExecutionHost endpoints come only from exact Runtime-owned Host materialization or configuration associated with the committed Driver; a supervised Local Host may use private deterministic configuration or controlled allocation, an attached Local Host requires an exact admitted private endpoint, and a Remote Host consumes the exact Job-captured Driver target and Runtime-resolved request-scoped current-account Connector custody context. Authority promises no product-level fixed port, caller or ambient inference, environment default, or endpoint identity in an App, AIConfig, AIProfile, Driver target choice, catalog, Loadout, binding, machine selection, public probe, or readiness truth.
     condition: Whenever an ExecutionHost target is admitted.
     failure: Reject caller-injected, environment-injected, ambient, unmaterialized, or publicly projected Host endpoints and fail the exact Host composition without alternate endpoint routing.
     relations:
@@ -1076,7 +1071,7 @@ units:
     kind: rule
     title: Local App foreground text candidates consume App AIConfig
     modality: must
-    statement: The runtime.ai.text-candidate.generate Local App operation accepts only a bounded synchronous foreground request containing plain-text system and user messages plus bounded temperature, top-p, and output-token controls; Runtime admits the exact operation only for a current protected App session whose Effective App Access Snapshot covers runtime.consume, derives the current account and App identity from that session and the operation classification from the typed protected ingress, and deterministically composes Local with the current machine-selected text Local Capability Configuration or Cloud with the calling App owner's committed AIConfig-owned CapabilityImplementation and Driver target plus the internally resolved current-account Connector. Runtime validates Connector ownership, credential configuration, App access, and existing policy, returns the existing owner or configuration-required, credential, access-denied, or policy reason on failure without requesting App-side Connector selection, never chooses Local or Cloud, overrides AIConfig, or creates fallback, and the response exposes only candidate text, finish reason, and trace correlation; request and response contain no account, principal, Agent, provider, model, route, target, connector, credential, grant, tool, media, artifact, source, raw-chunk, reasoning-trace, stream, job, or background-execution field.
+    statement: The runtime.ai.text-candidate.generate Local App operation accepts only a bounded synchronous foreground request containing plain-text system and user messages plus bounded temperature, top-p, and output-token controls; Runtime admits the exact operation only for a current protected App session whose Effective App Access Snapshot covers runtime.consume, derives the current account and App identity from that session and the operation classification from the typed protected ingress, and deterministically composes Local with the current machine-selected text Loadout or Cloud with the calling App owner's committed AIConfig-owned CapabilityImplementation and Driver target plus the internally resolved current-account Connector. Runtime validates Connector ownership, credential configuration, App access, and existing policy, returns the existing owner or configuration-required, credential, access-denied, or policy reason on failure without requesting App-side Connector selection, never chooses Local or Cloud, overrides AIConfig, or creates fallback, and the response exposes only candidate text, finish reason, and trace correlation; request and response contain no account, principal, Agent, provider, model, route, target, connector, credential, grant, tool, media, artifact, source, raw-chunk, reasoning-trace, stream, job, or background-execution field.
     condition: Whenever a third-party Local App generates owner-reviewable text candidate material.
     failure: Reject a missing or non-current protected App session, missing runtime.consume coverage, unbounded or non-plain-text input, absent or inadmissible owner AIConfig composition, and every caller-selected route or generic AI payload without forcing Local, changing the committed route, fallback, or synthesized output.
     relations:
@@ -1102,7 +1097,7 @@ units:
     kind: rule
     title: Local App scenario consumption composes App AIConfig
     modality: must
-    statement: The runtime.ai.text-turn.stream, runtime.ai.scenario.execute, runtime.ai.scenario-job.submit, runtime.ai.scenario-job.get, runtime.ai.scenario-job.subscribe, runtime.ai.scenario-job.cancel, runtime.ai.artifact.read, runtime.ai.artifact.upload, runtime.ai.artifact.adopt-to-app-storage, and runtime.ai.voice-assets.list Local App operations accept only bounded closed-set scenario specifications, Job identifiers, artifact identifiers, the admitted upload body, asset adoption destination path and overwrite intent, and catalog page controls; Runtime admits each exact operation only for a current protected App session whose Effective App Access Snapshot covers runtime.consume, derives current AccountID and Registered App Subject from that session and operation classification from typed protected ingress, treats AppID only as producer or catalog metadata, and deterministically composes Local with the current machine-selected Local Capability Configuration or Cloud with the calling App owner's committed AIConfig-owned CapabilityImplementation and Driver target plus the internally resolved current-account Connector. Runtime validates Connector ownership, credential configuration, App access, and existing policy, returns the existing owner or configuration-required, credential, access-denied, or policy reason on failure without requesting App-side Connector selection, and Local App Job submit captures an immutable Runtime-private owner containing current AccountID plus Registered App Subject; get, subscribe, cancel, artifact metadata, and bounded validated transcription_text authorize and project only that owner, historical Jobs without subject binding fail, and no ScenarioRequestHead accepts the subject. Artifact read, adoption, and artifact-reference input share one authorizer over the same tuple and the exact Runtime-selected operation, artifact read alone returns complete inline bytes at or below 32 MiB, metadata and streamed custody are body-free and uncapped by that inline ceiling, provider media commits before reference, and requests and responses contain no account, subject, principal, Agent, provider, model, route, target, connector, credential, grant, allowed-use selector, tool, raw-chunk, reasoning-trace, provider URL, or background-execution field.
+    statement: The runtime.ai.text-turn.stream, runtime.ai.scenario.execute, runtime.ai.scenario-job.submit, runtime.ai.scenario-job.get, runtime.ai.scenario-job.subscribe, runtime.ai.scenario-job.cancel, runtime.ai.artifact.read, runtime.ai.artifact.upload, runtime.ai.artifact.adopt-to-app-storage, and runtime.ai.voice-assets.list Local App operations accept only bounded closed-set scenario specifications, Job identifiers, artifact identifiers, the admitted upload body, asset adoption destination path and overwrite intent, and catalog page controls; Runtime admits each exact operation only for a current protected App session whose Effective App Access Snapshot covers runtime.consume, derives current AccountID and Registered App Subject from that session and operation classification from typed protected ingress, treats AppID only as producer or catalog metadata, and for Local Job submission atomically dereferences the current selected Loadout, revalidates its model contents, and persists the complete ResolvedAssembly before publication, or for Cloud captures the calling App owner's committed AIConfig-owned CapabilityImplementation and Driver target plus the internally resolved current-account Connector. Runtime validates Connector ownership, credential configuration, App access, and existing policy, returns the existing owner or configuration-required, credential, access-denied, or policy reason on failure without requesting App-side Connector selection, and Local App Job submit captures an immutable Runtime-private owner containing current AccountID plus Registered App Subject; get, subscribe, cancel, artifact metadata, and bounded validated transcription_text authorize and project only that owner, historical Jobs without subject binding fail, and no ScenarioRequestHead accepts the subject. Artifact read, adoption, and artifact-reference input share one authorizer over the same tuple and the exact Runtime-selected operation, artifact read alone returns complete inline bytes at or below 32 MiB, metadata and streamed custody are body-free and uncapped by that inline ceiling, provider media commits before reference, and requests and responses contain no account, subject, principal, Agent, provider, model, route, target, connector, credential, grant, allowed-use selector, tool, raw-chunk, reasoning-trace, provider URL, or background-execution field.
     condition: Whenever a third-party Local App executes a synchronous scenario, submits, observes, or cancels a scenario Job, reads, uploads, adopts, or references a scenario artifact, lists voice assets, or streams a text turn.
     failure: Reject a missing or non-current protected App session, missing runtime.consume coverage, unbounded or out-of-closed-set input, unsupported artifact upload MIME, cross-owner or historical-unbound Job or artifact access, oversized inline artifact read or upload, absent or inadmissible owner AIConfig composition, and every caller-selected owner, use, route, or generic AI payload without forcing Local, changing the committed route, fallback, synthesized output, or an existence oracle; adoption returns the single broader artifact-unavailable result without target mutation.
     relations:
@@ -1118,7 +1113,7 @@ units:
     kind: rule
     title: Voice creation source preflight is deterministic and non-switching
     modality: must
-    statement: For voice.create, a request declares exactly one typed source as text_description or reference_audio, a text_description source requires the effective implementation to declare input.text and a reference_audio source requires input.audio, the Local route dereferences only its one selected Local Capability Configuration and the Cloud route only its configured CapabilityImplementation, an undeclared or unsupported source fails closed without switching Local Capability Configuration, provider, implementation, or route, and the typed source is recorded only as non-routing provenance.
+    statement: For voice.create, a request declares exactly one typed source as text_description or reference_audio, a text_description source requires the effective implementation to declare input.text and a reference_audio source requires input.audio, Local Job submission dereferences only its selected Loadout into the complete persisted ResolvedAssembly and Cloud submission captures only its configured CapabilityImplementation plus internally resolved Connector inputs, an undeclared or unsupported source fails closed without switching Loadout, provider, implementation, or route, and the typed source is recorded only as non-routing provenance.
     condition: Whenever VOICE_CREATE accepts or validates a typed source.
     failure: Fail closed on undeclared or unsupported sources without fallback, switching, or route change.
     relations:

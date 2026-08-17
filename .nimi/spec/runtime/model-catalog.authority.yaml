@@ -13,8 +13,8 @@ units:
     reason: Removed because catalog and host fitness may recommend concrete LocalAssets but never resolve bindings, machine selection, admission, readiness, or execution routes.
   - id: definition.nimi.runtime.model-catalog.local-install-recommendation-plane
     kind: definition
-    title: Runtime local install recommendation plane
-    meaning: The Runtime local install recommendation plane owns catalog metadata for concrete installable LocalAssets, variants, companions, and deterministic non-binding recommendations; it never owns Machine Local AI Configuration, Local Capability Configuration, binding, selection, admission, routing, or execution truth.
+    title: Runtime local recipe and install recommendation plane
+    meaning: The Runtime local recipe and install recommendation plane owns versioned catalog recipe metadata, concrete ModelAsset install offers with transfer integrity, per-Driver-slot non-binding content recommendations and Model Contract parameters, minimal pinned non-model RecipeCustody declarations, host and engine authoring requirements, and deterministic recommendation results; the versioned Driver dialect owns slot topology and fixed request or execution mapping, and catalog owns no download trigger, Loadout, binding, selection, admission, route, mutable execution fact, or Job truth.
     relations:
       - type: supersedes
         target: definition.nimi.runtime.model-catalog.local-resolver-plane
@@ -148,7 +148,7 @@ units:
     kind: rule
     title: Catalog support requires an implementation and Driver
     modality: must
-    statement: Catalog support metadata names only an admitted CapabilityImplementation with a wired CapabilityImplementationDriver, never treats a catalog row, provider row, LocalAsset, adapter label, health result, or active flag as a route, Machine Local AI Configuration selection, derived admission, or execution truth, and fails closed when its implementation or Driver identity is unknown.
+    statement: Catalog support metadata names only an admitted CapabilityImplementation with a wired CapabilityImplementationDriver, never treats a catalog row, provider row, ModelAsset, adapter label, health result, or active flag as a route, Machine Loadout store selection, derived admission, or execution truth, and fails closed when its implementation or Driver identity is unknown.
     condition: Whenever catalog support metadata is declared or consumed.
     failure: Reject support metadata whose exact CapabilityImplementation or Driver is unknown and never infer a route from catalog availability.
     relations:
@@ -328,7 +328,7 @@ units:
     kind: rule
     title: Local speech offers preserve concrete subroles
     modality: must
-    statement: Local speech catalog offers distinguish the existing package-native Qwen3-ASR bundle for the qwen-asr-package Driver from exact Transformers-native Qwen3-ASR-0.6B-hf and Qwen3-ASR-1.7B-hf folder bundles with their separate Driver and managed package set, mark 0.6B-hf as the visible recommended Transformers-native option and 1.7B-hf as an explicit higher-resource option without selecting either, distinguish Qwen3-TTS-12Hz-0.6B-CustomVoice for plain synthesis, Qwen3-TTS-12Hz-0.6B-Base for reference-audio voice creation, and Qwen3-TTS-12Hz-1.7B-VoiceDesign for text-description voice creation, preserve each source, role, format, compatibility, Driver identity, and split environment fact, and may feed a visible portable factory AIProfile recommendation; neither catalog nor speech policy owns a default model lane, binding, Local Capability Configuration, machine selection, AIConfig route, fallback, migration, or Cloud target.
+    statement: Local speech catalog offers distinguish the existing package-native Qwen3-ASR bundle for the qwen-asr-package Driver from exact Transformers-native Qwen3-ASR-0.6B-hf and Qwen3-ASR-1.7B-hf folder bundles with their separate Driver and managed package set, mark 0.6B-hf as the visible recommended Transformers-native option and 1.7B-hf as an explicit higher-resource option without selecting either, distinguish Qwen3-TTS-12Hz-0.6B-CustomVoice for plain synthesis, Qwen3-TTS-12Hz-0.6B-Base for reference-audio voice creation, and Qwen3-TTS-12Hz-1.7B-VoiceDesign for text-description voice creation, preserve each source, role, format, compatibility, Driver identity, and split environment fact, and may feed a visible portable factory AIProfile recommendation; neither catalog nor speech policy owns a default model lane, binding, Loadout, machine selection, AIConfig route, fallback, migration, or Cloud target.
     condition: Whenever local speech catalog or install-offer truth is declared.
     failure: Reject fuzzy buckets, implicit family generalization, merged environment topology, a default lane, binding truth, or recommendation presented as live selection.
     relations:
@@ -336,61 +336,61 @@ units:
         target: definition.nimi.runtime.model-catalog.voice-workflow-catalog-plane
   - id: rule.nimi.runtime.model-catalog.r031
     kind: rule
-    title: Local rows carry the local-plane block
+    title: Local rows carry closed recipe and ModelAsset offer blocks
     modality: must
-    statement: Every local runtime-plane models row carries a local-plane block whose install facts declare repo, revision, install_kind limited to binary, weights, or verified-hf-multi-file, entry, and artifact_roles, whose variants list one or more concrete installable LocalAssets each declaring variant_id, quant, files, per-file sha256 hashes, total_size_bytes, and host_requirement with accelerator limited to cpu, metal, or cuda, min_ram_bytes, and min_vram_bytes for non-cpu accelerators, whose optional per-variant entry defaults to the single file for single-file variants and to the install entry for multi-file bundles, and whose fitness declares param_count and context_length; catalog rows use only canonical CapabilityContracts and standardized features and never own a preferred Driver, Local Capability Configuration, binding, selection, or readiness fact.
-    condition: Whenever a local-plane catalog row is authored or validated.
-    failure: Reject local rows missing block structure, integrity material, or canonical capabilities.
+    statement: Every local catalog recipe declares recipe_id and revision, one CapabilityContract, one CapabilityImplementation and exact versioned Driver dialect, slot_metadata for every model slot that the dialect projects for that recipeId, optional Model Contract parameters, zero or more pinned non-model RecipeCustody entries, and host or engine authoring requirements; each slot metadata entry may carry ordered ModelAsset install offers with source, entry, files, per-file sha256, total_size_bytes, immutable recommended content reference, provenance, quantization, and host requirement. The catalog recipe owns recommendations, contract parameters, custody pins, and authoring requirements only, while Driver code owns slot topology, fixed request mapping, loader facts, and load-affecting execution defaults, and catalog owns no binding, Loadout, selection, readiness, route, or automatic download.
+    condition: Whenever a local catalog recipe or ModelAsset offer is authored or validated.
+    failure: Reject recipes missing exact identities, offers missing transfer integrity, catalog-defined slot topology or execution mapping, model-bearing custody, or catalog state presented as committed Loadout or execution truth.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.model-catalog.local-install-recommendation-plane
   - id: rule.nimi.runtime.model-catalog.r032
     kind: rule
-    title: Variants are the installable identity
+    title: Catalog variants are install offers not ModelAsset instances
     modality: must
-    statement: The variant_id is the concrete installable identity consumed as the asset_id of verified LocalAssets, two quantization variants and accelerator-specific rows of one quant are distinct LocalAssets under the same schema, host-fit recommendations consume each variant's host_requirement as exact input rather than filename or size inference, and any variant missing complete content-integrity hashes fails closed without becoming a Local Capability Configuration or binding.
-    condition: Whenever local variant identity or fitness is resolved.
-    failure: Fail closed on missing integrity material and reject inferred fitness or collapsed variant identity.
+    statement: A variant_id identifies one catalog install offer with exact source and content integrity, quantization or host-specific offers remain distinct recommendation candidates, and successful acquisition mints a new per-import ModelAsset identity whose immutable content_id may equal another instance; host-fit uses only declared host requirements, complete per-file hashes remain mandatory for catalog transfer and install, and neither variant_id nor recommended content identity becomes a Loadout binding or strict execution pin.
+    condition: Whenever catalog variant identity, installation, or host fit is resolved.
+    failure: Fail closed on missing transfer integrity, inferred fitness, collapsed offer identity, offer-to-instance identity reuse, or recommendation promoted to binding.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.model-catalog.local-install-recommendation-plane
   - id: rule.nimi.runtime.model-catalog.r033
     kind: rule
-    title: Companion rows describe concrete LocalAssets
+    title: Every model slot recommendation is independent
     modality: must
-    statement: A companions list declares only concrete verified LocalAsset candidates and their content relationship to a parent catalog row; every resource occurrence that a CapabilityImplementationDriver requires is projected as an independent Local Capability Configuration slot, including an mmproj slot for a text.generate implementation that promises input.image and no mmproj slot for a text-only implementation, while catalog optionality, filename, path, label similarity, or shared physical files never determines slot requiredness, binding inheritance, or selection.
-    condition: Whenever companion assets are declared or resolved from catalog rows.
-    failure: Reject shared-row companions, active companion semantics, and collapse of distinct resource-occurrence identity or role; no generic occurrence ordering is defined.
+    statement: Model content formerly described as a companion is an ordinary independent ModelAsset candidate listed under the exact Driver-projected slot metadata, never a child or identity component of another model; a recipe may recommend one or more content references per slot, including host-ranked alternatives, but makes no cross-slot training-compatibility guarantee, binding inheritance, grouped identity, selection, or download claim. RecipeCustody is a separate list limited to pinned non-model loader or execution supply and never contains a model, encoder, VAE, tokenizer data payload, or user-replaceable slot.
+    condition: Whenever slot recommendations or RecipeCustody are authored or consumed.
+    failure: Reject parent-coupled companion identity, model-bearing custody, inherited or grouped bindings, catalog-defined slot requiredness, and recommendation presented as selection or compatibility proof.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.model-catalog.local-install-recommendation-plane
   - id: rule.nimi.runtime.model-catalog.r034
     kind: rule
-    title: Presets are non-binding install recommendations
+    title: Recipe presets are per-slot non-binding recommendations
     modality: must
-    statement: A local runtime-plane source may carry curated install recommendations whose entries resolve to admitted same-provider rows and concrete LocalAsset variants, whose capability and feature claims remain consistent with the referenced CapabilityImplementation, and whose output is only a user-visible installation or Local Capability Configuration creation recommendation; presets never form a first-run gate, readiness set, AIConfig payload, binding, machine selection, fallback list, or execution route.
-    condition: Whenever local presets are authored, validated, or consumed.
-    failure: Reject unknown levels, unresolvable slots, embedding slots, and preset truth outside catalog source.
+    statement: A local source may carry curated recipe recommendations whose entries resolve to admitted recipes, exact Driver-projected slot ids, and concrete ModelAsset offers; the result is only a visible per-slot Loadout prefill or explicit install recommendation, and a one-click recommended combination still enumerates and installs each ModelAsset independently after user confirmation without creating a bundle identity, first-run gate, readiness set, AIConfig payload, binding, selection, fallback, or route.
+    condition: Whenever local recipe presets are authored, validated, installed, or consumed.
+    failure: Reject unknown recipes or slots, hidden model acquisition, grouped identity, unresolvable offers, and preset truth outside catalog source.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.model-catalog.local-install-recommendation-plane
   - id: rule.nimi.runtime.model-catalog.r035
     kind: rule
-    title: Local recommendation is deterministic and non-authoritative
+    title: Per-slot recommendation is deterministic and non-authoritative
     modality: must
-    statement: An explicit recommendation request maps the same catalog version, requested CapabilityContract and standardized features, and already collected host facts to the same ordered LocalAsset candidates without probing hardware during the request; the result never creates or mutates AIConfig, Machine Local AI Configuration, Local Capability Configuration, bindings, selection, admission, or jobs and is not consulted during execution.
-    condition: Whenever Runtime produces an install or local-configuration recommendation.
-    failure: Reject nondeterministic recommendation output and any recommendation path that mutates or participates in execution authority.
+    statement: An explicit recommendation request maps the same catalog version, recipe_id and revision, exact Driver dialect, slot id, Model Contract recommendation inputs, and already captured host facts to the same ordered catalog ModelAsset offers without probing hardware during the request; it never creates or mutates AIConfig, Loadout, bindings, selection, admission, inventory, transfer, or Jobs and is never consulted at admission or execution.
+    condition: Whenever Runtime produces a ModelAsset install or Loadout-slot recommendation.
+    failure: Reject nondeterministic output, live hardware probing, automatic acquisition, and any recommendation participating in committed or execution authority.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.model-catalog.local-install-recommendation-plane
   - id: rule.nimi.runtime.model-catalog.r036
     kind: rule
-    title: Variant recommendation is rank ordered
+    title: Slot recommendation variants are rank ordered
     modality: must
-    statement: A variant recommender evaluates catalog candidates from captured host facts and declared host requirements, orders eligible results with one stable catalog-defined ranking and tie-break, lowers confidence with typed reasons on incomplete metadata, and never automatically binds, selects, substitutes, or falls back to a candidate; companion candidates are recommended independently for the exact resource-occurrence slots projected by the chosen CapabilityImplementationDriver.
-    condition: Whenever Runtime recommends local variants.
-    failure: Reject silent selection, substitution, fallback, binding, or a second contradictory ranking mechanism.
+    statement: A recommender evaluates each slot's catalog offers from captured host facts and declared host requirements, orders eligible offers with one stable catalog-defined ranking and tie-break, lowers confidence with typed reasons on incomplete metadata, and never binds, selects, substitutes, falls back, or guarantees compatibility across slots; every model slot is recommended independently even when one user action displays a recipe combination.
+    condition: Whenever Runtime recommends local recipe slot variants.
+    failure: Reject silent binding, cross-slot coupling, substitution, fallback, or a second contradictory ranking mechanism.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.model-catalog.local-install-recommendation-plane
@@ -398,9 +398,9 @@ units:
     kind: rule
     title: Recommendation outcomes are closed
     modality: must
-    statement: A recommendation returns either an ordered set of concrete LocalAsset candidates with its captured inputs or a typed no-recommendation reason; it never returns a resolved binding set, readiness result, selected configuration, or substitute route, and absence of a recommendation does not invalidate a saved unresolved Local Capability Configuration.
+    statement: A recommendation returns either an ordered set of concrete catalog ModelAsset offers for one exact slot with captured inputs or a typed no-recommendation reason; it never returns a ModelAsset instance, resolved binding set, readiness result, selected Loadout, substitute route, or cross-slot guarantee, and absence of a recommendation does not invalidate an unresolved or custom-bound Loadout.
     condition: Whenever local recommendation outcomes are produced.
-    failure: Return the typed recommendation outcome without fabricating bindings, readiness, selection, or substitution.
+    failure: Return the typed recommendation outcome without fabricating inventory, bindings, readiness, selection, substitution, or compatibility.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.model-catalog.local-install-recommendation-plane
@@ -408,9 +408,9 @@ units:
     kind: rule
     title: Recommendation failures stay typed and non-binding
     modality: must
-    statement: Recommendation failures carry typed Runtime-owned reasons that consumers do not invent, no slot is silently satisfied, no placeholder LocalAsset identity or pseudo-ready state is emitted, and recommendation results never feed first-run readiness, ambient resolution, machine selection, or Job admission without a separate explicit Add or Update Local Capability Configuration action.
-    condition: Whenever recommendation results are returned or displayed.
-    failure: Reject invented reasons, placeholder identities, fabricated readiness, and implicit configuration mutation.
+    statement: Recommendation failures carry typed Runtime-owned reasons that consumers do not invent, no slot is silently satisfied, no placeholder ModelAsset or pseudo-ready state is emitted, and recommendation output may influence a Loadout only as server-side Prepare Loadout prefill followed by user-visible confirmation and Commit; it never feeds first-run readiness, ambient resolution, machine selection, Job admission, or execution.
+    condition: Whenever recommendation results are returned, prepared, or displayed.
+    failure: Reject invented reasons, placeholder identities, fabricated readiness, implicit Commit, and any direct configuration or execution mutation.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.model-catalog.local-install-recommendation-plane
@@ -518,7 +518,7 @@ units:
     kind: rule
     title: Local voice creation admission is implementation scoped
     modality: must
-    statement: Local voice.create uses one explicitly selected Local Capability Configuration whose CapabilityImplementation declares support for input.audio, input.text, or both, admits only reference_audio and text_description requests whose required input feature is supported by that selected implementation, never switches implementation, configuration, provider, or route because of the source, and keeps local generated voice handles persistence session_ephemeral, delete_semantics runtime_authoritative_delete, and runtime_reconciliation_required false unless a durable local voice asset substrate is separately admitted; qwen3_tts is one concrete CapabilityImplementation and never the CapabilityContract identity or generic local voice execution boundary.
+    statement: Local voice.create uses one explicitly selected Loadout whose CapabilityImplementation declares support for input.audio, input.text, or both, admits only reference_audio and text_description requests whose required input feature is supported by that selected implementation, never switches implementation, configuration, provider, or route because of the source, and keeps local generated voice handles persistence session_ephemeral, delete_semantics runtime_authoritative_delete, and runtime_reconciliation_required false unless a durable local voice asset substrate is separately admitted; qwen3_tts is one concrete CapabilityImplementation and never the CapabilityContract identity or generic local voice execution boundary.
     condition: Whenever local voice creation admission, selection, execution, or handles are projected.
     failure: Fail closed on an unsupported source feature, absent or incomplete selected configuration, implementation mismatch, route substitution, or a session-ephemeral handle promoted to durable truth.
     relations:
@@ -530,7 +530,7 @@ units:
     kind: rule
     title: LocalAgent voice policy is Runtime owned
     modality: must
-    statement: LocalAgent voice output policy lives on Runtime, including synthesis intent, voice identity, user-visible playback posture, and durable voice artifact retention, while the one shared LocalAgent AIConfig exclusively owns the audio.synthesize Local-or-Cloud route and Runtime composes its selected Local Capability Configuration or Cloud implementation and Driver target plus the internally resolved current-account Connector custody at Job submission without a second per-Agent authorization; Desktop, Zhiyu, Avatar, the voice plane, and the catalog consume projections without deciding route, model binding, machine selection, or whether a committed assistant message has voice semantics, and voice identity follows the LocalAgent presentation profile rather than Avatar assets, Avatar instances, or conversation surfaces.
+    statement: LocalAgent voice output policy lives on Runtime, including synthesis intent, voice identity, user-visible playback posture, and durable voice artifact retention, while the one shared LocalAgent AIConfig exclusively owns the audio.synthesize Local-or-Cloud route and Runtime composes its selected Loadout or Cloud implementation and Driver target plus the internally resolved current-account Connector custody at Job submission without a second per-Agent authorization; Desktop, Zhiyu, Avatar, the voice plane, and the catalog consume projections without deciding route, model binding, machine selection, or whether a committed assistant message has voice semantics, and voice identity follows the LocalAgent presentation profile rather than Avatar assets, Avatar instances, or conversation surfaces.
     condition: Whenever agent voice policy is stored, mutated, or consumed.
     failure: Reject consumer-owned policy state and route or identity decisions outside Runtime.
     relations:
@@ -610,8 +610,8 @@ units:
     kind: rule
     title: VoxCPM catalog exposes one synthesis family
     modality: must
-    statement: The local catalog exposes VoxCPM through the canonical voxcpm2-local model row with family voxcpm and audio.synthesize only, no voice.create feature, workflow, reusable voice handle, or voice-cloning claim, and one default synthesis voice posture; its reviewed LocalAsset offers remain variants under that one logical row, may carry exact per-variant repo and revision plus Runtime-private standard or MLX backend material when host-specific formats require different immutable sources, and preserve complete hashes, host requirements, family, artifact role, and backend compatibility without turning a backend or variant into a second public family, default selection, binding, route, or readiness truth.
-    condition: Whenever VoxCPM model, voice, LocalAsset offer, family, or install metadata is authored or projected.
+    statement: The local catalog exposes VoxCPM through the canonical voxcpm2-local model row with family voxcpm and audio.synthesize only, no voice.create feature, workflow, reusable voice handle, or voice-cloning claim, and one default synthesis voice posture; its reviewed ModelAsset offers remain variants under that one logical row, may carry exact per-variant repo and revision plus Runtime-private standard or MLX backend material when host-specific formats require different immutable sources, and preserve complete hashes, host requirements, family, artifact role, and backend compatibility without turning a backend or variant into a second public family, default selection, binding, route, or readiness truth.
+    condition: Whenever VoxCPM model, voice, ModelAsset offer, family, or install metadata is authored or projected.
     failure: Reject a missing or non-voxcpm family, voice-creation claim, backend-shaped family or capability, incomplete integrity material, backend and host mismatch, or recommendation presented as live selection.
     relations:
       - type: applies_to

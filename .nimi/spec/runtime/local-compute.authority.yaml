@@ -8,16 +8,16 @@ units:
     meaning: The Runtime device profile plane owns LocalDeviceProfile collection and freshness, GPU, NPU, Python, disk, and port probing semantics, recommendation and installation warnings, and Runtime-private ExecutionHost admission facts without becoming AIConfig route, machine selection, standardized-feature support, or capability readiness authority.
   - id: definition.nimi.runtime.local-compute.asset-storage-manifest-plane
     kind: definition
-    title: Runtime local asset storage manifest plane
-    meaning: The Runtime local asset storage manifest plane owns the managed models root layout, the unified asset manifest entry and intake schema, manifest validation and import path truth, and the local artifact format policy.
+    title: Runtime ModelAsset storage and manifest plane
+    meaning: The Runtime ModelAsset storage and manifest plane owns the resolved and quarantine layout, per-import ModelAsset records, immutable content identity, file integrity, bounded content fingerprints, provenance, import safety, and manifest validation without interpreting capability, engine, Driver, recipe, slot, or execution semantics.
   - id: definition.nimi.runtime.local-compute.catalog-recommendation-plane
     kind: definition
     title: Runtime local catalog recommendation plane
-    meaning: The Runtime local catalog recommendation plane owns non-binding catalog search ordering, recommendation payloads, format-aware variant descriptors, media and LLM fit evidence, community catalog access, and local download planning without selecting a Local Capability Configuration, CapabilityImplementation, Driver, binding, route, or standardized-feature support.
+    meaning: The Runtime local catalog recommendation plane owns non-binding catalog search ordering, recommendation payloads, format-aware variant descriptors, media and LLM fit evidence, community catalog access, and local download planning without selecting a Loadout, CapabilityImplementation, Driver, binding, route, or standardized-feature support.
   - id: definition.nimi.runtime.local-compute.category-capability-plane
     kind: definition
-    title: Runtime local category capability plane
-    meaning: The Runtime local category capability plane owns concrete verified LocalAsset inventory, local install and import semantics, verified content projection, install-plan diagnostics, and private Service and Node execution projections without owning Local Capability Configuration, machine selection, Driver selection, route, feature support, or capability admission.
+    title: Runtime ModelAsset inventory plane
+    meaning: The Runtime ModelAsset inventory plane owns concrete per-import ModelAsset records, immutable content identity, local catalog installation and unclassified import semantics, verified content projection, duplicate-content hints, and private Service and Node execution projections without owning capability, engine, Driver, recipe, Loadout, binding, machine selection, route, feature support, or admission.
   - id: definition.nimi.runtime.local-compute.local-engine-plane
     kind: definition
     title: Runtime local engine plane
@@ -25,7 +25,7 @@ units:
   - id: definition.nimi.runtime.local-compute.engine-protocol-health-plane
     kind: definition
     title: Runtime-private engine protocol and supervision plane
-    meaning: The Runtime-private engine protocol and supervision plane owns exact pre-start ExecutionHost endpoint materialization, llama and sidecar protocol baselines, internal process reachability and recovery probes, attached-engine credential custody, engine HTTP failure mapping, and stream downgrade simulation; endpoint materialization may use private deterministic configuration or controlled allocation but promises no product-level fixed default port, and its process, endpoint, probe, warm, resident, and health facts never become product readiness, AIConfig route, machine selection, Local Capability Configuration validity, standardized-feature support, or fallback authority.
+    meaning: The Runtime-private engine protocol and supervision plane owns exact pre-start ExecutionHost endpoint materialization, llama and sidecar protocol baselines, internal process reachability and recovery probes, attached-engine credential custody, engine HTTP failure mapping, and stream downgrade simulation; endpoint materialization may use private deterministic configuration or controlled allocation but promises no product-level fixed default port, and its process, endpoint, probe, warm, resident, and health facts never become product readiness, AIConfig route, machine selection, Loadout validity, standardized-feature support, or fallback authority.
   - id: rule.nimi.runtime.local-compute.r001
     kind: rule
     title: Device profile structure is fixed
@@ -78,11 +78,11 @@ units:
         target: definition.nimi.runtime.local-compute.device-profile-plane
   - id: rule.nimi.runtime.local-compute.r006
     kind: rule
-    title: Compatibility warnings never block install
+    title: Host recommendation warnings never block ModelAsset acquisition
     modality: must
-    statement: Install plan resolution derives WARN_GPU_REQUIRED, WARN_PYTHON_REQUIRED, and WARN_NPU_REQUIRED warnings from engine-name traits against GPU, Python, and NPU availability, emits them only in the install plan descriptor warnings, and never blocks installation on a warning alone.
-    condition: Whenever hardware-engine compatibility is evaluated for an install plan.
-    failure: Reject silent warning loss or installs blocked by warnings alone.
+    statement: Catalog install-plan resolution may derive WARN_GPU_REQUIRED, WARN_PYTHON_REQUIRED, and WARN_NPU_REQUIRED as non-binding recommendation warnings only from catalog-declared host requirements and current device facts, emits them only in the install-plan descriptor, and never treats a warning, engine, Driver, recipe compatibility, or host feasibility as ModelAsset content admission.
+    condition: Whenever host recommendation evidence is evaluated for a catalog ModelAsset install plan.
+    failure: Reject silent warning loss, engine-derived ModelAsset identity, or acquisition blocked by a recommendation warning alone.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.local-compute.device-profile-plane
@@ -90,7 +90,7 @@ units:
     kind: rule
     title: Device profile truth is fresh and single
     modality: must
-    statement: The device profile is collected live without a persistent cache at CollectDeviceProfile, when an explicit local install or recommendation action requests current host facts, and at request-time Runtime-private ExecutionHost admission when current compatibility matters, recommendation and install diagnostics share the same LocalDeviceProfile truth without a second product hardware truth, and profile import, Apply Profile to AIConfig, AIConfig route selection, Local Capability Configuration save, and machine local configuration selection neither collect a device profile nor treat probe success as configuration or selection truth.
+    statement: The device profile is collected live without a persistent cache at CollectDeviceProfile, when an explicit local install or recommendation action requests current host facts, and at request-time Runtime-private ExecutionHost admission when current compatibility matters, recommendation and install diagnostics share the same LocalDeviceProfile truth without a second product hardware truth, and profile import, Apply Profile to AIConfig, AIConfig route selection, Loadout save, and machine loadout state selection neither collect a device profile nor treat probe success as configuration or selection truth.
     condition: Whenever a consumer needs current device hardware truth.
     failure: Reject stale cached profiles, parallel product hardware truth, and probes coupled to profile, configuration, route, or selection actions.
     relations:
@@ -98,104 +98,99 @@ units:
         target: definition.nimi.runtime.local-compute.device-profile-plane
   - id: rule.nimi.runtime.local-compute.r008
     kind: rule
-    title: Asset storage layout is fixed
+    title: ModelAsset storage layout is fixed
     modality: must
-    statement: The Runtime managed models root contains the objects, sources, recipes, resolved, and cache subtrees, the resolved tree holds one directory per local asset whose asset.manifest.json is the single canonical bundle entry for every asset kind, original filenames and nested directory structures are preserved rather than content-addressed renames, legacy manifest names are rejected as public import or install entries, and bare-file intake never treats the resolved tree as orphan or unregistered candidates.
-    condition: Whenever local asset storage is laid out, imported, or scanned.
-    failure: Reject undeclared layouts, legacy manifest entries, and orphan classification of resolved assets.
+    statement: The Runtime managed models root contains exactly the resolved and quarantine subtrees, resolved holds one directory per committed ModelAsset instance with its canonical manifest and original nested payload names, quarantine holds failed intake and isolated snapshots, and no objects, sources, recipes, cache, model-resource store, or other model subtree is created; RecipeCustody and engine or dependency materialization remain under their separately owned Runtime data-plane roots.
+    condition: Whenever ModelAsset storage is laid out, imported, installed, recovered, or scanned.
+    failure: Reject an undeclared model subtree, model content outside resolved or quarantine, recipe or custody ownership in the models root, and orphan classification of a valid resolved manifest.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.local-compute.asset-storage-manifest-plane
   - id: rule.nimi.runtime.local-compute.r009
     kind: rule
-    title: Manifest intake schema is unified
+    title: ModelAsset manifest contains content facts only
     modality: must
-    statement: Stable public LocalAsset intake accepts only verified concrete-content manifests whose top-level stable identity fields are asset_id and kind, whose artifact facts may include logical_model_id and artifact_roles for provenance and display, and whose manifest never owns preferred or fallback engine choice, CapabilityImplementationDriver selection, standardized-feature support, Local Capability Configuration, binding, machine selection, route, residency, or readiness.
-    condition: Whenever a local asset manifest is authored, imported, or emitted on a stable surface.
-    failure: Fail closed on legacy manifest names, shapes, aliases, unverified identity, or execution-selection truth in the manifest.
+    statement: A committed ModelAsset manifest contains one Runtime-generated per-import model_asset_id, immutable content_id, entry, ordered files with per-file digests, aggregate size, content_verified identity fact, optional catalog_verified fact, bounded raw content fingerprints, provenance, display metadata, and import safety facts; it contains no kind, CapabilityContract, standardized feature, engine, CapabilityImplementation, Driver, dialect, recipe, companion, slot, Loadout, binding, selection, route, residency, readiness, or execution option, and derived display labels remain non-authoritative and may be unclassified.
+    condition: Whenever a ModelAsset manifest is authored, imported, installed, emitted, or repaired.
+    failure: Fail closed on missing identity or integrity facts and reject every interpretation or execution-selection fact in the manifest.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.local-compute.asset-storage-manifest-plane
   - id: rule.nimi.runtime.local-compute.r010
     kind: rule
-    title: Manifest validation and import path truth fail closed
+    title: ModelAsset validation and import path truth fail closed
     modality: must
-    statement: Manifest validation requires non-empty schema_version, engine, entry, files, license, source repo and revision, and hashes, the entry must exist in files, every hash key must reference an existing file with a non-empty value, runnable capability entries must be valid tokens under the capability vocabulary mapping, file paths reject absolute forms and parent traversal with backslashes normalized to forward slashes, an imported manifest's source repo must be the manifest's own file URL with resolved file truth derived only from the manifest parent directory plus entry, and any local-import source repo fails closed without slug, symlink, copy, or fallback-directory repair.
-    condition: Whenever a local asset manifest is validated or an imported asset path is resolved.
-    failure: Reject the manifest or import instead of repairing paths or identity heuristically.
+    statement: Manifest validation requires non-empty schema_version, model_asset_id, content_id, entry, files, and per-file hashes, requires entry and every hash key to name a normalized payload file, rejects absolute paths, parent traversal, links escaping staging, and executable treatment of imported code, recomputes the ordered content identity before commit, derives resolved paths only from the manifest parent and normalized payload names, and never rejects structurally safe content because a fingerprint is absent or because kind, capability, engine, Driver, recipe, catalog digest, or Model Contract interpretation is unknown; any interpretation occurs only in the exact Driver dialect during Loadout preparation and commit.
+    condition: Whenever a ModelAsset manifest is validated or imported payload paths are resolved.
+    failure: Quarantine failed intake without committed residue and reject path repair, catalog-digest admission, guessed identity, or import-layer model interpretation.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.local-compute.asset-storage-manifest-plane
   - id: rule.nimi.runtime.local-compute.r011
     kind: rule
-    title: Format policy stays open with fixed entry selection
+    title: ModelAsset format policy is open
     modality: must
-    statement: Local assets support both GGUF and SafeTensors artifacts without locking a single format, and llama engine entry selection prefers a gguf file, then model.safetensors, then any safetensors file.
-    condition: Whenever local artifact formats are admitted or a llama entry is selected.
-    failure: Reject single-format lockdown or entry selection outside the declared priority.
+    statement: A ModelAsset payload may contain one or many files in GGUF, SafeTensors, or another safely stored format, preserves the distribution entry and nested names, and admits an unclassified payload without engine-specific entry selection or format-derived capability admission.
+    condition: Whenever ModelAsset payload format or entry facts are admitted.
+    failure: Reject single-format lockdown, engine-specific import interpretation, or capability truth inferred from format.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.local-compute.asset-storage-manifest-plane
   - id: rule.nimi.runtime.local-compute.r012
     kind: rule
-    title: Local assets use the three-layer abstraction
+    title: ModelAsset is content custody only
     modality: must
-    statement: A LocalAssetRecord identifies one concrete verified content record and its integrity, source, kind, family, artifact roles, install evidence, and bounded provenance or display metadata; Service and Node are Runtime-private ExecutionHost projections that are never persisted as capability configuration, Driver, binding, feature support, machine selection, route, readiness, or execution authority, and passive assets share install, remove, and transfer mechanics without becoming directly schedulable.
-    condition: Whenever local asset, service, or node abstractions are stored or projected.
-    failure: Reject an abstract or unverified LocalAsset, persisted Node truth, passive direct scheduling, or any asset or service field used as product selection or routing authority.
+    statement: A ModelAssetRecord identifies one per-import distribution instance containing one to many files, immutable content identity, integrity, bounded content fingerprints, provenance, install or import evidence, and display metadata; it owns no capability, kind, family, engine, Driver, recipe, companion, slot, execution option, readiness, or promotion-on-reference semantics, while Service and Node remain Runtime-private ExecutionHost projections and never become ModelAsset, Loadout, binding, selection, route, or execution authority.
+    condition: Whenever ModelAsset, Service, or Node abstractions are stored or projected.
+    failure: Reject an abstract or unverified ModelAsset, content interpretation stored as asset truth, persisted Node routing truth, or any asset or service field used as selection or routing authority.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.local-compute.category-capability-plane
   - id: rule.nimi.runtime.local-compute.r013
     kind: rule
-    title: Service binding is one-to-one with bounded switching
+    title: Runtime process identity derives from captured assembly
     modality: must
-    statement: One local model binds at most one Service, node catalogs are generated live from installed services at query time, a request-routed single-worker switch may rebind the sole resident supervised llama worker to an explicitly targeted model without relaxing the one-to-one constraint, and bounded multi-worker residency stays unadmitted until a dedicated cutover fixes service topology, engine truth, residency budget, and eviction semantics.
-    condition: Whenever local model-to-service bindings or worker residency changes.
-    failure: Reject one-to-many bindings and default multi-worker residency before the cutover.
+    statement: A supervised process is created or reused only from the Job-captured ResolvedAssembly and exact Driver load plan, a single-worker llama process may switch only to another explicitly captured assembly under its bounded lease policy, ModelAsset identity alone never binds a Service or process, and process residency remains Runtime-private rather than inventory, Loadout, selection, or route truth.
+    condition: Whenever a local process is materialized, reused, switched, or released.
+    failure: Reject ModelAsset-to-Service binding, process identity derived from one main model alone, ambient switching, and residency projected as product truth.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.local-compute.category-capability-plane
   - id: rule.nimi.runtime.local-compute.r014
     kind: rule
-    title: Install registers and persists one identity
+    title: Every acquisition mints one ModelAsset instance
     modality: must
-    statement: InstallVerifiedAsset, InstallModelFromPlan, and ImportLocalAsset register one concrete verified LocalAsset identity with integrity, kind, source, family, artifact roles, host requirements, and Runtime-private install metadata, mint a unique local installed-record handle, never synthesize passive public identity from a path or handle, and never create or update a Local Capability Configuration, exact binding, machine selection, Driver choice, route, supported-feature claim, warm state, or fallback engine list.
-    condition: Whenever a local asset is installed or imported.
-    failure: Reject installs missing verified identity, duplicate-identity reuse for file imports, or any install operation that silently becomes configuration, binding, selection, or routing success.
+    statement: Catalog installation and ImportModelAsset each mint a unique Runtime-generated model_asset_id for one per-import ModelAsset instance, compute and persist its immutable content_id and complete file integrity, retain bounded provenance, fingerprints, trust facts, and install metadata, and never create or update a Loadout, binding, selection, Driver, recipe, route, feature claim, readiness, or engine fact; multiple ModelAsset instances with the same content_id are legal and produce a non-blocking duplicate-content hint rather than identity reuse.
+    condition: Whenever model content is installed or imported.
+    failure: Reject acquisition missing verified content identity, reuse of an existing per-import identity, forced content deduplication, or any acquisition promoted to configuration or execution success.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.local-compute.category-capability-plane
   - id: rule.nimi.runtime.local-compute.r015
     kind: rule
-    title: Verified descriptors project catalog truth
+    title: Catalog install descriptors project catalog truth
     modality: must
-    statement: Every LocalVerifiedAssetDescriptor field derives from the local provider catalog row and its local-plane block with asset_id taken from the variant identity, logical_model_id from the row model identity, kind and capabilities from row truth in canonical tokens, install facts from the install block, and files, hashes, and total size from the selected variant, Runtime keeps no in-process hardcoded verified metadata, and a projection missing integrity hashes fails closed without placeholder descriptors.
-    condition: Whenever verified local asset metadata is projected or listed.
-    failure: Fail closed on missing integrity material and delete parallel hardcoded verified truth.
+    statement: Every catalog install descriptor derives its offer, files, per-file hashes, total size, host recommendation inputs, non-binding content reference, and provenance from the local provider catalog recipe and slot metadata, Runtime keeps no in-process hardcoded verified offer metadata, and a catalog offer missing complete integrity hashes fails closed without becoming an installed ModelAsset or placeholder descriptor; a successful install mints a separate per-import ModelAsset identity.
+    condition: Whenever catalog ModelAsset offers are projected or listed.
+    failure: Fail closed on missing transfer-integrity material, parallel hardcoded catalog truth, or conflation of a catalog offer with an installed ModelAsset instance.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.local-compute.category-capability-plane
   - id: rule.nimi.runtime.local-compute.r016
     kind: rule
-    title: Install plans gate every install path
+    title: Server-held install plans gate catalog installation only
     modality: must
-    statement: ResolveModelInstallPlan collects the device profile, evaluates hardware-engine compatibility warnings, judges install availability as true only for attached mode with an explicit valid endpoint or supervised mode with a reachable engine binary and otherwise false with a reason code, fills engine-specific provider hints, and returns the plan descriptor, InstallModelFromPlan consumes only that descriptor shape and fails closed when install availability is false, no Desktop, Web, or Kit surface executes catalog or manual install outside this gate, and the verified catalog projection plus the Hugging Face community catalog remain the only catalog sources without forming a second verified catalog.
-    condition: Whenever a local install plan is resolved or consumed.
-    failure: Reject bypassed installs and plans with fabricated availability.
+    statement: ResolveModelInstallPlan resolves only a user-explicit catalog ModelAsset acquisition, captures exact catalog source, file hashes, size, provenance, non-binding host warnings, owner and session, and stores the complete plan server-side behind an opaque plan_id with bounded TTL, single use, owner-session scope, and daemon-restart invalidation; InstallModelFromPlan accepts only plan_id, revalidates the held plan and per-file integrity, and atomically commits one ModelAsset, while ImportModelAsset remains a separate safe intake path that never requires or accepts a catalog install plan.
+    condition: Whenever a catalog ModelAsset install plan is resolved or consumed.
+    failure: Reject expired, replayed, foreign-owner, foreign-session, restart-stale, caller-reconstructed, hash-mismatched, or non-catalog plans without partial commit, and reject install-plan gating of manual import.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.local-compute.category-capability-plane
   - id: rule.nimi.runtime.local-compute.r017
     kind: rule
-    title: Custom assets require an invoke profile
-    modality: must
-    statement: A custom-declared local model missing its local_invoke_profile_id is marked unavailable and execution returns FAILED_PRECONDITION with AI_LOCAL_MODEL_PROFILE_MISSING.
-    condition: Whenever a custom local model is projected or invoked without an invoke profile.
-    failure: Return the exact typed failure instead of guessing request format or parameters.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.local-compute.category-capability-plane
+    lifecycle: removed
+    title: Retired custom invoke-profile requirement
+    reason: Removed because custom ModelAssets are unclassified content and become executable only through an explicit Loadout whose exact versioned Driver dialect, recipeId, Model Contract, options, and bindings validate them; no custom invoke-profile mechanism remains.
   - id: rule.nimi.runtime.local-compute.r018
     kind: rule
     title: Local unavailability mapping is exact
@@ -210,7 +205,7 @@ units:
     kind: rule
     title: Speech bundle projection is layered and explicitly materialized
     modality: must
-    statement: The ordinary-user local speech bundle is a product projection over Runtime-owned speech asset and service truth that keeps environment bootstrap, capability download, and persistent Host materialization as internal layers of one explicit setup or repair operation rather than independent install objects. Only a user-invoked setup, download, or repair action may begin network- or storage-heavy materialization after explicit confirmation; AIConfig route selection, Select Local Capability Configuration, route attempts, Job admission, page load, and passive probing never bootstrap an environment, download a capability, initialize a persistent Host, or accept confirmation on the user's behalf. Existing verified environments, caches, and materialized slices may be reused unless repair or removal demands otherwise, setup materializes only the explicitly requested capability without prefetching every speech slice, and an admitted Job may start an already-materialized private ExecutionHost on demand without creating product readiness, binding, machine-selection, or route truth.
+    statement: The ordinary-user local speech bundle is a product projection over Runtime-owned speech asset and service truth that keeps environment bootstrap, capability download, and persistent Host materialization as internal layers of one explicit setup or repair operation rather than independent install objects. Only a user-invoked setup, download, or repair action may begin network- or storage-heavy materialization after explicit confirmation; AIConfig route selection, Select Loadout, route attempts, Job admission, page load, and passive probing never bootstrap an environment, download a capability, initialize a persistent Host, or accept confirmation on the user's behalf. Existing verified environments, caches, and materialized slices may be reused unless repair or removal demands otherwise, setup materializes only the explicitly requested capability without prefetching every speech slice, and an admitted Job may start an already-materialized private ExecutionHost on demand without creating product readiness, binding, machine-selection, or route truth.
     condition: Whenever the ordinary-user local speech bundle is projected, explicitly set up, downloaded, repaired, or used by a Job.
     failure: Fail closed awaiting an explicit setup or repair action and confirmation instead of coupling materialization to route, selection, admission, execution, page load, or probing or creating a second install owner.
     relations:
@@ -260,7 +255,7 @@ units:
     kind: rule
     title: LLM fit reuses shared truth and exposes inference
     modality: must
-    statement: LLM fit maps the shared LocalDeviceProfile into a non-binding recommendation evaluator without a second hardware truth, may present conservative parameter, context, quantization, and confidence inferences with provenance, and may return an explicitly ordered recommendation set for user choice but never a fallback list, automatic binding, Local Capability Configuration, machine selection, supported-feature claim, or execution route.
+    statement: LLM fit maps the shared LocalDeviceProfile into a non-binding recommendation evaluator without a second hardware truth, may present conservative parameter, context, quantization, and confidence inferences with provenance, and may return an explicitly ordered recommendation set for user choice but never a fallback list, automatic binding, Loadout, machine selection, supported-feature claim, or execution route.
     condition: Whenever LLM fit recommendation is computed.
     failure: Reject parallel hardware truth, hidden inference-derived confidence, or recommendation output consumed as binding, selection, routing, or fallback authority.
     relations:
@@ -300,7 +295,7 @@ units:
     kind: rule
     title: HF source recommendations split portable and runtime truth
     modality: must
-    statement: An AIProfile local implementation configuration intent may carry one portable Hugging Face source recommendation with repo identity, repo type, revision, file, directory, or manifest entries, access-policy metadata, format and variant hints, and optional expected integrity, but the recommendation is neither a LocalAsset binding nor proof that content exists; Runtime exclusively owns auth-token custody, gated access, terms approval, selected-source records, observed integrity, transfer state, and access-denied evidence, none of which persists in AIProfile or AIConfig; Import Profile and Apply Profile to AIConfig never download, resolve, verify, bind, or prepare that source, and only a separate user-explicit asset intake or Add or Update Local Capability Configuration flow may consume the recommendation while preserving unresolved slots; declared expected integrity is a hard verification requirement when content is admitted, while its absence remains risk context only, and manual import association never implies provenance verification without Runtime verification success.
+    statement: An AIProfile local implementation intent may carry one portable multi-axis Loadout intent containing recipeId, execution options, and for each Driver slot a content identity, declared expected integrity, and optional Hugging Face source recommendation containing repo identity, revision, one relative file, and an optional size hint; every recommendation is neither a ModelAsset binding nor proof that content exists. Runtime exclusively owns auth-token custody, gated access, terms approval, observed integrity, transfer state, canonical catalog manifests, and access-denied evidence, none of which persists in AIProfile or AIConfig. Import Profile and Apply Profile never download, resolve, verify, bind, or prepare a source; only a separate user-explicit ModelAsset intake may acquire it. A multi-file source is automatically acquirable only when Runtime's canonical catalog resolves its content identity to a complete verified manifest; otherwise later Prepare and Commit Loadout actions preserve that axis as unresolved content-only intent. Declared expected integrity is hard verification for catalog acquisition, while manual import computes its own identity and never gains provenance verification from association alone.
     condition: Whenever a Hugging Face source recommendation is declared, displayed, or consumed.
     failure: Fail closed on custody violations, recommendation-as-binding, implicit preparation, and implied provenance.
     relations:
@@ -311,7 +306,7 @@ units:
     title: Download sessions are resumable and explicit
     modality: must
     statement: Local downloads resume with HTTP range requests skipping completed byte ranges, retry with exponential backoff capped at eight attempts stepping from three hundred milliseconds through one, five, fifteen, thirty, sixty, one hundred twenty, and one hundred eighty seconds, move through queued, running, paused, failed, completed, and cancelled states driven only by explicit control commands without UI pseudo-pause, convert residual running or queued sessions to paused with an interruption reason after process restart requiring manual resume, verify per-file SHA-256 with an optional prefix and return AI_LOCAL_DOWNLOAD_HASH_MISMATCH on mismatch, and stage files under a per-asset staging directory committed by atomic rename with rollback on failure.
-    condition: Whenever a local asset download session runs.
+    condition: Whenever a model asset download session runs.
     failure: Reject implicit state transitions, automatic post-restart resumption, and unverified commits.
     relations:
       - type: applies_to
@@ -328,11 +323,11 @@ units:
         target: definition.nimi.runtime.local-compute.catalog-recommendation-plane
   - id: rule.nimi.runtime.local-compute.r031
     kind: rule
-    title: Family heuristics stay bounded and companion gated
+    title: Fingerprint labels stay bounded and Driver slots stay exact
     modality: must
-    statement: Family inference may supply bounded catalog provenance or display tags, but CapabilityContract and standardized-feature support come only from the selected CapabilityImplementation declaration validated by its Driver; a text-only llama implementation projects no mmproj slot, while an implementation declaring text.generate input.image support deterministically projects one required independently bound mmproj companion slot.
-    condition: Whenever Runtime enriches catalog display or a llama Driver projects requirements and supported features.
-    failure: Reject model-name, filename, catalog, or family inference as support truth and fail closed on a missing required mmproj binding.
+    statement: ModelAsset fingerprints may supply bounded display tags only, while CapabilityContract and standardized-feature support come from the exact CapabilityImplementation validated by its versioned Driver dialect; a text-only llama recipeId projects no mmproj slot, and a dialect declaring text.generate input.image projects one required independently bound mmproj model slot validated by its recipe-specific Model Contract without parent, companion, family, filename, or catalog-content authority.
+    condition: Whenever Runtime derives ModelAsset display labels or a llama Driver projects model slots and features.
+    failure: Reject model name, filename, catalog, label, or family inference as support or binding truth and fail closed on a missing or incompatible required mmproj slot.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.local-compute.catalog-recommendation-plane
@@ -360,7 +355,7 @@ units:
     kind: rule
     title: Attached endpoints are explicit and proven
     modality: must
-    statement: An attached-endpoint engine requires an explicitly admitted exact private endpoint with no silently restored loopback default, Runtime never starts, stops, or restarts the external process, the attached endpoint must expose its engine's canonical API surface, and attached Host topology never chooses or outranks a Local Capability Configuration, binding, machine selection, AIConfig route, or model; Runtime fails closed when the exact Job composition cannot use that Host.
+    statement: An attached-endpoint engine requires an explicitly admitted exact private endpoint with no silently restored loopback default, Runtime never starts, stops, or restarts the external process, the attached endpoint must expose its engine's canonical API surface, and attached Host topology never chooses or outranks a Loadout, binding, machine selection, AIConfig route, or model; Runtime fails closed when the exact Job composition cannot use that Host.
     condition: Whenever an attached-endpoint engine is configured or consumed.
     failure: Fail closed on missing endpoints, unproven execution capability, and Host topology projected as route, model, binding, or machine-selection authority.
     relations:
@@ -400,7 +395,7 @@ units:
     kind: rule
     title: ExecutionHost endpoints are exact and Runtime private
     modality: must
-    statement: Before a local ExecutionHost starts, Runtime materializes one exact private endpoint through private deterministic Host configuration or controlled allocation and captures it as Host input; authority promises no product-level fixed default port, neighboring-port search, caller or ambient inference, environment default, catalog routing identity, or endpoint-bearing AIConfig, Profile, Driver target, Local Capability Configuration, binding, or selection. An attached-endpoint Host requires an exact Runtime-admitted endpoint and fails closed with AI_LOCAL_ENDPOINT_REQUIRED when absent, an unsupported local image Host fails with AI_LOCAL_MODEL_UNAVAILABLE rather than demanding an endpoint, and no Job executes before its Host has yielded the exact endpoint.
+    statement: Before a local ExecutionHost starts, Runtime materializes one exact private endpoint through private deterministic Host configuration or controlled allocation and captures it as Host input; authority promises no product-level fixed default port, neighboring-port search, caller or ambient inference, environment default, catalog routing identity, or endpoint-bearing AIConfig, Profile, Driver target, Loadout, binding, or selection. An attached-endpoint Host requires an exact Runtime-admitted endpoint and fails closed with AI_LOCAL_ENDPOINT_REQUIRED when absent, an unsupported local image Host fails with AI_LOCAL_MODEL_UNAVAILABLE rather than demanding an endpoint, and no Job executes before its Host has yielded the exact endpoint.
     condition: Whenever a local ExecutionHost endpoint is materialized, bound, or validated.
     failure: Fail closed with the exact typed reason on missing, conflicting, externally supplied, or unmaterialized Host input without exposing a public port identity or alternate routing path.
     relations:
@@ -420,7 +415,7 @@ units:
     kind: rule
     title: llama supervision remains Runtime-private
     modality: must_not
-    statement: Llama process reachability, endpoint probes, warmup, residency, model listing, bootstrap state, or previous execution success is exposed as Local Capability Configuration readiness, machine selection truth, supported-feature truth, route availability, or a prerequisite for saving, applying, binding, or selecting configuration.
+    statement: Llama process reachability, endpoint probes, warmup, residency, model listing, bootstrap state, or previous execution success is exposed as Loadout readiness, machine selection truth, supported-feature truth, route availability, or a prerequisite for saving, applying, binding, or selecting configuration.
     condition: Whenever llama process supervision or product capability state is projected.
     failure: Keep supervision evidence private to ExecutionHost and derive only request-time admission or Job failure from exact committed configuration.
     relations:
@@ -430,7 +425,7 @@ units:
     kind: rule
     title: Private Host recovery probing is persistent and decaying
     modality: must
-    statement: A supervised ExecutionHost process in its Runtime-private unhealthy supervision state is reprobed at an eight-second interval, returns to its private active state after three consecutive probe successes, retries without a maximum count until explicit Host stop or removal, decays the interval to sixty seconds after seven hundred twenty consecutive failures and to five minutes after twenty-four cumulative hours, resets to eight seconds on any success, and resets the consecutive-success count on any failure; these states and probes never mutate AIConfig, Local Capability Configuration, exact bindings, machine selection, or completed and running Jobs and never project product readiness.
+    statement: A supervised ExecutionHost process in its Runtime-private unhealthy supervision state is reprobed at an eight-second interval, returns to its private active state after three consecutive probe successes, retries without a maximum count until explicit Host stop or removal, decays the interval to sixty seconds after seven hundred twenty consecutive failures and to five minutes after twenty-four cumulative hours, resets to eight seconds on any success, and resets the consecutive-success count on any failure; these states and probes never mutate AIConfig, Loadout, exact bindings, machine selection, or completed and running Jobs and never project product readiness.
     condition: Whenever Runtime-private supervised Host recovery probing runs.
     failure: Reject abandoned recovery, undeclared intervals, success counting across failures, and product projection of private supervision state.
     relations:
@@ -440,7 +435,7 @@ units:
     kind: rule
     title: Speech admission is derived from exact composition
     modality: must
-    statement: A local speech request deterministically composes its committed AIConfig Local route, required standardized features and defaults with the currently selected Local Capability Configuration, whose exact CapabilityImplementation and Driver project the required slots and whose exact verified-content bindings satisfy those slots; Runtime derives request-time admission from interpretability, configuration completeness, feature-subset satisfaction, exact bindings, and current private ExecutionHost constraints, missing slices or placeholder execution support fail closed with a typed admission reason without starting downloads, probing, changing route, changing machine selection, or projecting readiness, and speech temporary files keep a bounded lifecycle while reference audio, transcription text, and voice-creation text descriptions never enter long-term retention through generic logging.
+    statement: A local speech request uses its committed AIConfig Local route, required standardized features and defaults plus the current selected Loadout only to derive pre-submission admission from Driver interpretability, complete model axes, Model Contracts, feature-subset satisfaction, RecipeCustody, and current private ExecutionHost constraints; at Job submission Runtime revalidates the exact content bytes and atomically persists the complete ResolvedAssembly before publication. Missing slices or placeholder execution support fail closed with a typed admission reason without downloading, probing, changing route, changing selection, or projecting readiness; queued, running, and resumed speech Jobs never reread the current Loadout, catalog, inventory, selection, process state, or private CAS, and temporary speech files keep a bounded lifecycle while reference audio, transcription text, and voice-creation text descriptions never enter long-term retention through generic logging.
     condition: Whenever a local speech request is composed or admitted.
     failure: Fail closed on incomplete exact composition without readiness projection, implicit setup, or fallback.
     relations:
@@ -482,8 +477,8 @@ units:
     meaning: The Runtime accelerator dependency plane owns shared accelerator dependency readiness for supervised local execution, including CUDA user-space runtime source policy, accelerator profile and dependency projection boundaries, dependency resolver states, selected source records, dependency job and repair semantics, and supervised process environment constraints.
   - id: definition.nimi.runtime.local-compute.topology-resolver-plane
     kind: definition
-    title: Runtime local topology resolver plane
-    meaning: The Runtime local topology resolver plane owns canonical topology resolution for local assets, including matrix resolver matching and conflict semantics, topology and product state filtering, admission gates, image topology classification, canonical media supervised selection arbitration, media supervised modes, the internal media lifecycle, and local error attribution.
+    title: Runtime local topology validation plane
+    meaning: The Runtime local topology validation plane owns exact Driver and ExecutionHost compatibility validation for a committed Loadout and Job-captured ResolvedAssembly, including matrix matching, typed conflicts, private media modes, lifecycle, and error attribution without interpreting ModelAsset inventory or selecting implementation, slots, bindings, route, or fallback.
   - id: definition.nimi.runtime.local-compute.runtime-environment-plane
     kind: definition
     title: Runtime local engine runtime environment plane
@@ -491,11 +486,11 @@ units:
   - id: definition.nimi.runtime.local-compute.speech-engine-plane
     kind: definition
     title: Runtime local speech engine plane
-    meaning: The Runtime local speech engine plane owns implementation-neutral admitted speech and voice.create Driver and ExecutionHost compatibility, concrete implementation and install-offer facts including Qwen3 speech, separate execution and consumer lines, dependency-profile resolution for those lines, and private supervised materialization; it owns no CapabilityContract identity, default STT or TTS model lane, binding, Local Capability Configuration, machine selection, AIConfig route, or execution target.
+    meaning: The Runtime local speech engine plane owns implementation-neutral admitted speech and voice.create Driver and ExecutionHost compatibility, concrete implementation and install-offer facts including Qwen3 speech, separate execution and consumer lines, dependency-profile resolution for those lines, and private supervised materialization; it owns no CapabilityContract identity, default STT or TTS model lane, binding, Loadout, machine selection, AIConfig route, or execution target.
   - id: definition.nimi.runtime.local-compute.consumer-activation-plane
     kind: definition
     title: Runtime-private local dependency activation plane
-    meaning: The Runtime-private local dependency activation plane owns dependency verification requests and responses for internal execution consumers, dependency environment and Python dependency-profile key derivation, profile-consumption verification projections, private activation-state mapping, process-local environment deltas, reason ownership, consumer and pack registry lockstep, and selected-source evidence without making profile consumption a new selected-source owner; it is neither an AIConfig owner nor a CapabilityContract, Local Capability Configuration, machine selection, product readiness, route, feature-support, or first-run authority.
+    meaning: The Runtime-private local dependency activation plane owns dependency verification requests and responses for internal execution consumers, dependency environment and Python dependency-profile key derivation, profile-consumption verification projections, private activation-state mapping, process-local environment deltas, reason ownership, consumer and pack registry lockstep, and selected-source evidence without making profile consumption a new selected-source owner; it is neither an AIConfig owner nor a CapabilityContract, Loadout, machine selection, product readiness, route, feature-support, or first-run authority.
   - id: definition.nimi.runtime.local-compute.environment-materializer-plane
     kind: definition
     title: Runtime local environment materializer plane
@@ -507,8 +502,8 @@ units:
     reason: Removed because Profile Apply no longer resolves, installs, binds, selects, probes, warms, bootstraps, or rolls back local execution state.
   - id: definition.nimi.runtime.local-compute.machine-local-configuration-plane
     kind: definition
-    title: Runtime Machine Local AI Configuration plane
-    meaning: The Runtime Machine Local AI Configuration plane persists the unique machine aggregate, Local Capability Configuration records, normalized requirement projections, exact or unresolved bindings, and explicit per-contract selection, while local assets, dependency activation, process supervision, and Jobs remain separate owners.
+    title: Runtime Loadout plane
+    meaning: The Runtime Loadout plane persists the unique machine Loadout store, Loadout records containing exact recipeId and Driver dialect, typed options, independently projected model slots with exact ModelAsset and expected content identities or unresolved state, RecipeCustody references, validation facts, and explicit per-contract selection, while ModelAsset inventory, catalog recipes, dependency activation, process supervision, ResolvedAssembly, and Jobs remain separate owners.
     relations:
       - type: supersedes
         target: definition.nimi.runtime.local-compute.profile-application-plane
@@ -556,7 +551,7 @@ units:
     kind: rule
     title: Selected source records are single and shared
     modality: must
-    statement: Exactly one active selected-source record exists per Runtime dependency environment as private verification evidence, all consumers of that same environment reference it without independently resolving another source, Python dependency-profile consumption evidence references the canonical source records and never creates consumer-scoped selected-source ownership, and neither a source record nor profile-consumption projection becomes Local Capability Configuration identity, exact binding identity, machine selection, CapabilityImplementationDriver choice, route, feature support, admission, or Job input except through the owning configuration's separately committed exact binding.
+    statement: Exactly one active selected-source record exists per Runtime dependency environment as private verification evidence, all consumers of that same environment reference it without independently resolving another source, and Python dependency-profile consumption evidence references the canonical source records without creating consumer-scoped ownership. Neither record becomes a Loadout, ModelAsset axis, selection, CapabilityImplementationDriver choice, route, feature support, admission, or direct Job input; only a non-model RecipeCustody reference explicitly proposed by Prepare Loadout and persisted by Commit Loadout may enter the Loadout, and a Job receives that identity only inside its submission-captured ResolvedAssembly.
     condition: Whenever selected source records are created, referenced, or invalidated.
     failure: Reject duplicate active records, independent re-resolution, fallback state, or promotion of selected-source evidence into product configuration or routing truth.
     relations:
@@ -584,11 +579,11 @@ units:
         target: definition.nimi.runtime.local-compute.accelerator-dependency-plane
   - id: rule.nimi.runtime.local-compute.r053
     kind: rule
-    title: Canonical topology resolution is unique and ordered
+    title: Canonical topology validation is unique and ordered
     modality: must
-    statement: Given an explicitly committed CapabilityImplementation, Driver dialect, portable configuration, and exact LocalAsset bindings, Runtime validates at most one compatible internal image topology using host, asset family, artifact format, and Driver registry facts; this validation never chooses the implementation, Driver, configuration, binding, route, or machine selection, and ambiguity fails closed.
-    condition: Whenever an explicitly selected local image configuration is admitted for execution.
-    failure: Reject ambiguous, unsupported, or unadmitted compatibility without searching, ranking, substituting, or changing committed configuration.
+    statement: Given an explicitly committed Loadout, exact versioned Driver dialect and recipeId, typed options, Driver-projected slots, Model Contract results, Job-captured ModelAsset content identities, and host facts, Runtime validates at most one compatible private topology; this validation never derives semantics from ModelAsset labels or catalog state, chooses implementation, Driver, slot topology, binding, route, or selection, and ambiguity fails closed.
+    condition: Whenever an explicitly selected local Loadout is admitted for execution.
+    failure: Reject ambiguous, unsupported, unadmitted, catalog-reinterpreted, or label-derived compatibility without searching, ranking, substituting, or changing the committed Loadout.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.local-compute.topology-resolver-plane
@@ -604,11 +599,11 @@ units:
         target: definition.nimi.runtime.local-compute.topology-resolver-plane
   - id: rule.nimi.runtime.local-compute.r055
     kind: rule
-    title: Resolver inputs are layered and authored constraints validated
+    title: Topology inputs are layered and exact
     modality: must
-    statement: Internal topology validation consumes the explicitly committed CapabilityImplementation and Driver dialect plus Driver-owned portable configuration, host facts, verified LocalAsset manifests, exact bindings, bundle completeness, and projected requirement slots; preferred engine, asset family, filename, model lineage, dependency family, path, catalog order, or legacy backend hints never select or overwrite implementation, Driver, binding, or machine selection.
-    condition: Whenever exact Driver compatibility inputs are evaluated.
-    failure: Reject hint-driven selection, substitute authoring fields, non-canonical input, missing proof, or inferred overwrite.
+    statement: Internal topology validation consumes only the committed CapabilityImplementation, exact versioned Driver dialect and recipeId, typed options, host facts, Driver-projected slots, Model Contract evidence, and Job-captured ResolvedAssembly; ModelAsset labels or fingerprints outside a Driver Model Contract, preferred engine, filename, model lineage, dependency family, mutable path, catalog order, or legacy backend hints never select or overwrite implementation, Driver, slot, binding, or selection.
+    condition: Whenever exact Driver and Host compatibility inputs are evaluated.
+    failure: Reject hint-driven selection, live catalog reinterpretation, non-canonical input, missing captured proof, or inferred overwrite.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.local-compute.topology-resolver-plane
@@ -626,7 +621,7 @@ units:
     kind: rule
     title: Admission gates bind only proposed topologies
     modality: must
-    statement: An internal experimental topology gate applies only to an explicitly chosen CapabilityImplementation and Driver during compatibility validation, comes only from canonical registration, and never creates a selectable Local Capability Configuration, supported standardized feature, route, fallback, or product readiness fact; stable use requires the implementation registry entry itself to be admitted.
+    statement: An internal experimental topology gate applies only to an explicitly chosen CapabilityImplementation and Driver during compatibility validation, comes only from canonical registration, and never creates a selectable Loadout, supported standardized feature, route, fallback, or product readiness fact; stable use requires the implementation registry entry itself to be admitted.
     condition: Whenever an internal experimental topology gate is declared or evaluated.
     failure: Reject an unregistered gate, stable use of an experimental entry, or a gate token treated as product selection or readiness.
     relations:
@@ -651,7 +646,7 @@ units:
     kind: rule
     title: Media supervised modes share one HTTP surface
     modality: must
-    statement: The media ExecutionHost may privately distinguish native proxy and Python pipeline supervised modes behind one canonical Host protocol, but the exact committed CapabilityImplementationDriver maps execution to that Host and no Host mode, environment variable, endpoint, catalog row, or process state selects the implementation, local configuration, machine relation, or route.
+    statement: The media ExecutionHost may privately distinguish native proxy and Python pipeline supervised modes behind one canonical Host protocol, but the exact committed CapabilityImplementationDriver maps execution to that Host and no Host mode, environment variable, endpoint, catalog row, or process state selects the implementation, Loadout, machine relation, or route.
     condition: Whenever a media Driver invokes a supervised Host mode or its private protocol.
     failure: Reject undeclared modes, protocol divergence, Host-owned product selection, and legacy control-plane fabrication.
     relations:
@@ -661,7 +656,7 @@ units:
     kind: rule
     title: Internal media lifecycle is a closed ladder
     modality: must
-    statement: Local media process, materialization, control-plane, execution-plane, degradation, repair, and residency states remain Runtime-private ExecutionHost or dependency facts, persist no product active selection, and project no public capability readiness, Local Capability Configuration state, supported-feature truth, machine selection, or route availability.
+    statement: Local media process, materialization, control-plane, execution-plane, degradation, repair, and residency states remain Runtime-private ExecutionHost or dependency facts, persist no product active selection, and project no public capability readiness, Loadout state, supported-feature truth, machine selection, or route availability.
     condition: Whenever the internal local media lifecycle transitions, persists, or projects diagnostics.
     failure: Reject a private lifecycle fact promoted to product configuration, selection, admission, or readiness authority.
     relations:
@@ -691,9 +686,9 @@ units:
     kind: rule
     title: Llama engine config parameter space is typed and closed
     modality: must
-    statement: The llama CapabilityImplementationDriver dialect owns typed portable execution options such as context size, cache quantization, flash attention, and GPU-layer policy and maps validated values to invocation, while mmproj is never a portable path option and instead comes only from the exact independently projected and bound companion requirement slot; unknown or invalid dialect fields fail interpretation closed.
+    statement: The llama CapabilityImplementationDriver dialect owns typed portable execution options such as context size, cache quantization, flash attention, and GPU-layer policy and maps validated values to invocation, while mmproj is never a portable path option or parent-coupled companion and instead comes only from an exact independently projected model slot binding; unknown or invalid dialect fields fail interpretation closed.
     condition: Whenever llama Driver configuration is interpreted or mapped to invocation.
-    failure: Fail interpretation closed on unknown or invalid values, path-bearing portable bindings, missing required mmproj, or ambiguous companion binding.
+    failure: Fail interpretation closed on unknown or invalid values, path-bearing portable bindings, a missing required mmproj model slot, or an ambiguous binding.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.local-compute.runtime-environment-plane
@@ -706,7 +701,7 @@ units:
     kind: rule
     title: Local selection and Job preparation are distinct
     modality: must
-    statement: A Local Capability Configuration may be selected only when its exact Driver can interpret it and all required exact bindings are configured, without process start, warm, resident load, endpoint probe, or execution proof; each later Job prepares the selected Driver and Host on demand, and preparation failure does not invalidate the selection or configuration.
+    statement: A Loadout may be selected only when its exact versioned Driver dialect and recipeId are interpretable, every required model axis is bound as model_asset_id plus expected_content_id, every Model Contract passes, and required RecipeCustody is present, without process start, warm, resident load, endpoint probe, or execution proof; each later Job revalidates bytes and atomically persists its complete ResolvedAssembly before preparing the captured Driver and Host on demand, and preparation failure does not invalidate or rewrite the selection or Loadout.
     condition: Whenever machine selection or on-demand Local Job preparation is evaluated.
     failure: Reject an uninterpretable or unresolved selection, selection-time probe or warm, and any Job preparation result written back as configuration readiness or automatic re-selection.
     relations:
@@ -744,11 +739,11 @@ units:
         target: definition.nimi.runtime.local-compute.runtime-environment-plane
   - id: rule.nimi.runtime.local-compute.r070
     kind: rule
-    title: Daemon service lifecycle excludes capability feasibility
+    title: Daemon service lifecycle excludes capability and local-state feasibility
     modality: must
-    statement: Daemon STARTING covers only bounded core initialization of parsed and validated config, opened stores, serving gRPC and admitted HTTP listeners, and constructed core services; local engine downloads, accelerator dependency materialization, Python environment creation, dependency install, model loading, minimal execution, provider connection tests, and repair Jobs never hold STARTING open and produce only their exact Runtime-private supervision, dependency, LocalAsset, explicit diagnostic, derived-admission, or Job outcomes. A provider or capability probe never runs periodically or drives daemon READY or DEGRADED, while an exact supervised Host process bootstrap failure may remain bounded private service-operational degradation without becoming capability readiness; a missing model, connector, Driver, capability, or local environment never makes RuntimeLocalService, RuntimeAuditService, configuration, status, Product Control, or ordinary Home unavailable.
-    condition: Whenever daemon service lifecycle overlaps local execution, dependency, asset, or provider work.
-    failure: Reject a service lifecycle gated or degraded by catalog, model, provider, or probed capability feasibility, a reusable provider-health state, private Host supervision projected as capability readiness, STARTING held open by background work, or core surfaces hidden by local or Cloud execution failure.
+    statement: Daemon STARTING covers only bounded core initialization, opened or explicitly isolated stores, serving admitted listeners, and constructed core services; record-level or document-level ModelAsset and Loadout state isolation, local engine downloads, dependency materialization, model loading, provider diagnostics, and repair Jobs never hold STARTING open and produce only exact typed isolation, supervision, dependency, ModelAsset, derived-admission, or Job outcomes. Provider or capability probes never drive daemon READY or DEGRADED, and missing or isolated model state, Loadout state, Connector, Driver, capability, or local environment never makes RuntimeLocalService, RuntimeAuditService, status, Product Control, or ordinary Home unavailable.
+    condition: Whenever daemon lifecycle overlaps local state, execution, dependency, ModelAsset, or provider work.
+    failure: Reject silent state clearing, service startup blocked by an isolatable local-state failure, capability-feasibility gating, reusable provider-health state, private Host supervision projected as readiness, or core surfaces hidden by Local or Cloud execution failure.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.local-compute.runtime-environment-plane
@@ -756,9 +751,9 @@ units:
     kind: rule
     title: Local environment setup unit is the plan
     modality: must
-    statement: Runtime owns local environment setup truth whose unit is a Runtime local environment plan rather than a model row, engine installer, Desktop workflow, package-manager command, developer script, or provider health probe, plans resolve the requested compute pack or capability, installed and imported assets, host-derived platform and accelerator facts, consumer requirements, dependency source policy, exact dependency-profile fingerprint, and current selected source records into dependency state, profile reuse or isolation, confirmation requirements, activation gates, repair requirements, and product-safe Desktop projection without making model, consumer, or host-profile identity an environment owner. Managed dependency families cover the CUDA runtime, native engine packages, uv, managed Python, venv, package sets, Torch wheels, model assets, and companion assets rather than CUDA alone, a Python package set that transitively installs Torch never substitutes for the exact host-appropriate Torch-wheel dependency or its verified accelerator execution, system sources require positive canonicalized proof and managed sources live under Runtime-owned roots, and cloud API setup, account and session, provider connector configuration, and Runtime core status never require local engines, Python, Torch, CUDA, models, or accelerator dependency materialization.
+    statement: Runtime owns local environment setup truth whose unit is a Runtime local environment plan rather than a model row, Loadout, engine installer, Desktop workflow, package-manager command, developer script, or provider-health probe; plans resolve only Runtime-owned engine packages, CUDA, uv, managed Python, venv, package sets, Torch wheels, RecipeCustody, and other non-model dependencies from exact source policy and host facts into typed dependency state, confirmation, activation, and repair. ModelAsset acquisition remains a separate explicit catalog install or ImportModelAsset operation, every formerly companion model is an ordinary independent ModelAsset, and cloud-only use never requires local dependency materialization.
     condition: Whenever local environment setup is planned or cloud-only usage is evaluated.
-    failure: Reject setup truth outside plans, package-set-derived pseudo-readiness for Torch execution, and local dependency requirements imposed on cloud-only usage.
+    failure: Reject model auto-download through environment planning, a parent-coupled companion family, setup truth outside plans, package-set pseudo-readiness, or local dependencies imposed on cloud-only usage.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.local-compute.runtime-environment-plane
@@ -766,7 +761,7 @@ units:
     kind: rule
     title: Speech catalog offers preserve concrete family roles
     modality: must
-    statement: The local speech catalog may expose concrete Qwen3 install offers where qwen3_asr keeps the existing qwen-asr-package Driver for its exact package-native Qwen3-ASR bundle separate from a Transformers-native Driver and managed Python package set for exact Qwen3-ASR-0.6B-hf and Qwen3-ASR-1.7B-hf folder bundles, exposes 0.6B-hf as the visible recommended Transformers-native option and 1.7B-hf as an explicit higher-resource option, and requires explicit Driver and model selection with no fallback, migration, or cross-Driver bundle admission; qwen3_tts distinguishes Qwen3-TTS-12Hz-0.6B-CustomVoice for plain synthesis, Qwen3-TTS-12Hz-0.6B-Base for reference-audio voice creation, and Qwen3-TTS-12Hz-1.7B-VoiceDesign for text-description voice creation; these source, role, format, compatibility, and user-visible recommendation facts never establish a default lane, binding, Local Capability Configuration, machine selection, or execution route, and voice creation promotes to executable truth only after its real capability slice is admitted and explicitly configured and selected.
+    statement: The local speech catalog may expose concrete Qwen3 install offers where qwen3_asr keeps the existing qwen-asr-package Driver for its exact package-native Qwen3-ASR bundle separate from a Transformers-native Driver and managed Python package set for exact Qwen3-ASR-0.6B-hf and Qwen3-ASR-1.7B-hf folder bundles, exposes 0.6B-hf as the visible recommended Transformers-native option and 1.7B-hf as an explicit higher-resource option, and requires explicit Driver and model selection with no fallback, migration, or cross-Driver bundle admission; qwen3_tts distinguishes Qwen3-TTS-12Hz-0.6B-CustomVoice for plain synthesis, Qwen3-TTS-12Hz-0.6B-Base for reference-audio voice creation, and Qwen3-TTS-12Hz-1.7B-VoiceDesign for text-description voice creation; these source, role, format, compatibility, and user-visible recommendation facts never establish a default lane, binding, Loadout, machine selection, or execution route, and voice creation promotes to executable truth only after its real capability slice is admitted and explicitly configured and selected.
     condition: Whenever concrete local speech families, offers, roles, or voice-creation admission are projected.
     failure: Reject a catalog or engine default, implicit binding or selection, collapsed role, or voice-creation promotion before explicit admission.
     relations:
@@ -786,7 +781,7 @@ units:
     kind: rule
     title: Admitted local speech Host materialization is capability scoped
     modality: must
-    statement: When an admitted selected Local Capability Configuration requires a supervised speech ExecutionHost, Runtime may present its setup as one bundle-shaped surface while keeping environment, bootstrap, and Host details private; materialization stays lazy for the exact requested capability so transcription materializes only the exact dependencies and Host Driver declared by its admitted qwen3_asr implementation, with the qwen-asr-package and Transformers-native implementations remaining separate and neither probing, falling back to, migrating, or substituting the other's model bundle, Driver, or declared dependency requirements, while equality of their complete dependency-profile fingerprints may reuse the same immutable capsule without cross-Driver model admission. Plain synthesis materializes only its admitted qwen3_tts implementation including its exact host-appropriate Torch and torchaudio requirements, requires verified CUDA execution before activating that implementation on an admitted NVIDIA host, and carries the admitted request through bounded Driver execution without a shorter private transport deadline or fixed short generation ceiling preempting the owning Local speech Job. Local voice.create materializes only the exact selected implementation, requires the request source feature to be declared by that implementation, and invokes it through the implementation-neutral voice.create Driver and Host contract without source-based selection or fallback; the Qwen3-TTS Base and VoiceDesign implementations are concrete participants in that contract rather than owners of it. Supervised or attached Host topology never chooses a Local Capability Configuration, model, binding, route, or default lane and does not outrank another exact admitted Host composition.
+    statement: When an admitted selected Loadout requires a supervised speech ExecutionHost, Runtime may present its setup as one bundle-shaped surface while keeping environment, bootstrap, and Host details private; materialization stays lazy for the exact requested capability so transcription materializes only the exact dependencies and Host Driver declared by its admitted qwen3_asr implementation, with the qwen-asr-package and Transformers-native implementations remaining separate and neither probing, falling back to, migrating, or substituting the other's model bundle, Driver, or declared dependency requirements, while equality of their complete dependency-profile fingerprints may reuse the same immutable capsule without cross-Driver model admission. Plain synthesis materializes only its admitted qwen3_tts implementation including its exact host-appropriate Torch and torchaudio requirements, requires verified CUDA execution before activating that implementation on an admitted NVIDIA host, and carries the admitted request through bounded Driver execution without a shorter private transport deadline or fixed short generation ceiling preempting the owning Local speech Job. Local voice.create materializes only the exact selected implementation, requires the request source feature to be declared by that implementation, and invokes it through the implementation-neutral voice.create Driver and Host contract without source-based selection or fallback; the Qwen3-TTS Base and VoiceDesign implementations are concrete participants in that contract rather than owners of it. Supervised or attached Host topology never chooses a Loadout, model, binding, route, or default lane and does not outrank another exact admitted Host composition.
     condition: Whenever an admitted selected local speech composition materializes its ExecutionHost.
     failure: Reject generic-row projection, Host-topology-owned route or selection, cross-capability prefetch, package-set-only Torch readiness, unverified NVIDIA execution, and silent long-synthesis truncation caused only by a private Host or Driver deadline or fixed short generation ceiling.
     relations:
@@ -796,7 +791,7 @@ units:
     kind: rule
     title: Dependency activation is consumer keyed and Runtime private
     modality: must
-    statement: Local dependency activation is consumer-keyed and Runtime-private, where the consumer id names an internal execution dependency consumer rather than an app, module, feature requirement owner, AIConfig owner, LocalAgent, UI consumer, CapabilityImplementation, or Local Capability Configuration; a pack id may accompany a request only as private projection context after exact Job composition identifies its dependency families and never performs route, implementation, binding, or machine-selection arbitration; consumers never select sources, create selected-source records, run installers, repair dependencies, mutate PATH or global Python or package-manager state, or project product readiness, and they consume only dependency-verification responses and selected-source evidence through explicit Runtime-private mapping metadata.
+    statement: Local dependency activation is consumer-keyed and Runtime-private, where the consumer id names an internal execution dependency consumer rather than an app, module, feature requirement owner, AIConfig owner, LocalAgent, UI consumer, CapabilityImplementation, or Loadout; a pack id may accompany a request only as private projection context after exact Job composition identifies its dependency families and never performs route, implementation, binding, or machine-selection arbitration; consumers never select sources, create selected-source records, run installers, repair dependencies, mutate PATH or global Python or package-manager state, or project product readiness, and they consume only dependency-verification responses and selected-source evidence through explicit Runtime-private mapping metadata.
     condition: Whenever a local environment activation consumer is declared, requested, or mapped.
     failure: Reject consumer-created setup truth, product readiness projection, and consumer identity reuse as configuration, route, or selection identity.
     relations:
@@ -806,9 +801,9 @@ units:
     kind: rule
     title: Activation request identity vocabulary is fixed
     modality: must
-    statement: An activation request carries the consumer id, an optional projection pack id, the host profile id, platform tuple, and runtime data root, the asset id for the model asset family, and the companion asset id, companion kind, and parent asset id for the companion family, the asset id is the semantic installable identity taken from the catalog local-plane variant identity for verified assets and from the manifest asset id for explicit imports, the local asset id stays a Runtime installed-record handle usable by lifecycle calls and as a lookup hint that Runtime resolves to the asset id before writing dependency identity or selected-source truth, a model id is a catalog or route selector that never substitutes for the asset id in dependency identity, the selected source record id stays a Runtime-private proof pointer projectable for diagnostics and audit without becoming reusable model binding identity, and local asset ids, UI row ids, transfer ids, consumer ids, engine-private paths, and route-local handles stay projection only.
+    statement: An activation request carries the internal consumer id, optional projection pack id, host profile id, platform tuple, runtime data root, exact non-model dependency identities, and any RecipeCustody source and hash selected by the committed Loadout; ModelAsset slot paths and content identities enter only through the Job-captured ResolvedAssembly and never become dependency selected-source identity, while catalog offer ids, recipe metadata, Loadout ids, UI rows, transfer ids, consumer ids, engine-private paths, and route-local handles never substitute for dependency identity.
     condition: Whenever an activation request or dependency identity is composed.
-    failure: Reject projection handles or catalog selectors written as dependency identity.
+    failure: Reject ModelAsset ownership in the dependency store, parent or companion identity, projection handles, or catalog selectors written as dependency identity.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.local-compute.consumer-activation-plane
@@ -816,9 +811,9 @@ units:
     kind: rule
     title: Environment and Python profile keys derive from canonical inputs
     modality: must
-    statement: Runtime derives one dependency environment key per required dependency family from canonical dependency authority where the CUDA accelerator runtime keys on dependency id, host profile id, platform tuple, and runtime data root, the native llama engine package keys on engine id, package variant, platform tuple, and data root, the native stablediffusion-ggml engine package adds the backend family, the uv tool keys on its precisely pinned managed version, platform tuple, and data root, the Python runtime keys on exact Python version and ABI, platform tuple, and data root, the canonical Torch selected source keys on Torch version, host-derived accelerator plane, CUDA ABI, wheel, package-index and package-source identities, platform tuple, and data root, the model asset keys on asset id, model family, and data root, and the companion asset keys on asset id, parent asset id, companion kind, and data root. The venv, Python package-set, Torch, source, and Driver inputs compose one Python dependency-profile digest from exact Python version and ABI, OS and architecture, host-derived accelerator plane, Torch version, CUDA ABI, complete transitive exact dependency-lock digest, wheel identity, package-index and package-source identities, and Driver protocol and version; the profile environment key pairs that digest with the Runtime data root and excludes model id, asset id, consumer id, host-profile id, user folder name, import path, engine id, backend family, selected-source record id, and route-local handles. Equal profile digests reuse the same immutable capsule, consumer membership and consumer-specific verification are projected only through the activation gate as profile-consumption evidence, and no Python dependency family admits consumer-scoped selected-source ownership.
-    condition: Whenever a dependency environment key is derived or persisted.
-    failure: Reject keys composed from undeclared fields or projection handles.
+    statement: Runtime derives each dependency environment key only from the owning non-model dependency authority where CUDA keys on dependency, host, platform, and data root; native engine packages on exact package, backend, platform, and data root; uv and Python on pinned versions and ABI; Torch on exact accelerator, ABI, wheel, index, source, platform, and data root; and RecipeCustody on recipe identity, pinned non-model source, digest, and data root. Python profile identity composes exact Python, platform, accelerator, Torch, lock, source, and Driver protocol inputs and excludes ModelAsset, model slot, Loadout, consumer, mutable path, catalog offer, and selected-source record ids; equal profile digests reuse one immutable capsule without consumer-scoped selected-source ownership.
+    condition: Whenever a dependency environment or Python profile key is derived or persisted.
+    failure: Reject ModelAsset- or companion-keyed dependency environments, undeclared key fields, mutable paths, or projection handles.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.local-compute.consumer-activation-plane
@@ -846,9 +841,9 @@ units:
     kind: rule
     title: Activation deltas are process local only
     modality: must
-    statement: Activation deltas are process-local and consumable only after selected-source and dependency-profile consumption verification succeeds, the admitted deltas are the child-process PATH prepend for selected CUDA runtime artifacts, executable path and canonical root references for native engine packages, the precisely pinned uv tool, exact promoted profile root and Python interpreter, read-only source references for Python pipelines, and selected model and companion asset paths. A Python worker starts as an independent process from that promoted profile without resolving, synchronizing, installing, or rewriting it, and deltas are never readiness proof and never write user PATH, machine PATH, shell profiles, system CUDA, global Python, package-manager global state, or engine-private persistent setup state.
+    statement: Activation deltas are process-local and consumable only after selected-source, dependency-profile, and RecipeCustody verification succeeds; admitted deltas are child-process PATH additions for selected CUDA artifacts, exact engine package roots, pinned uv, the promoted Python profile and interpreter, read-only pipeline and custody references, and the Job-captured ModelAsset paths from ResolvedAssembly. A worker starts independently without resolving, downloading, synchronizing, installing, or rewriting models or dependencies, and deltas never become readiness or mutate user PATH, machine PATH, shell profiles, system CUDA, global Python, package-manager state, or engine-private persistent setup.
     condition: Whenever activation environment deltas are produced or consumed.
-    failure: Reject unverified delta consumption, persistent mutation, and readiness inferred from deltas.
+    failure: Reject unverified or non-captured ModelAsset paths, Loadout-time download, persistent mutation, and readiness inferred from deltas.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.local-compute.consumer-activation-plane
@@ -889,41 +884,41 @@ units:
     reason: Removed because Local dependency activation and selected-source evidence no longer participate in Product Control ready_for_use.
   - id: rule.nimi.runtime.local-compute.r085
     kind: rule
-    title: Materializers are the only materialization path
+    title: Materializers are the only dependency and custody materialization path
     modality: must
-    statement: Runtime materializers are the only admitted product path for materializing local environment dependency families, the admitted families are exactly the CUDA accelerator runtime, native llama engine package, native stablediffusion-ggml engine package, uv tool, Python runtime, venv, Python package set, Torch wheel, model asset, and companion asset families. A Python dependency profile is the immutable composite materialization of the existing Python runtime, venv, Python package-set, Torch, declared source, and Driver inputs rather than a new dependency family, selected-source owner, or authority plane; existing family materializers promote only their own verified selected-source records, and RuntimeLocalService coordinates staged profile composition from those exact inputs, performs profile-consumption verification, and atomically promotes the profile without creating, replacing, or transferring selected-source ownership. Every materializer is a RuntimeLocalService-owned job executor consuming a resolved dependency environment, source policy, source manifest, confirmation disposition, and current selected source record that stages artifacts under Runtime-owned roots, verifies family-specific evidence, and promotes a selected source record only after verification succeeds, and materializers are never Desktop workflows, engine-local installers, developer scripts, package-manager commands, PATH helpers, transfer records, endpoint probes, or model rows.
-    condition: Whenever a local environment dependency family is materialized or a Python dependency profile is composed, verified, or promoted.
-    failure: Reject materialization outside the admitted families or Runtime materializer executors, and reject dependency profiles treated as a new selected-source family or owner.
+    statement: Runtime materializers are the only admitted product path for the CUDA accelerator runtime, native llama engine package, native stablediffusion-ggml engine package, uv tool, Python runtime, venv, Python package set, Torch wheel, and RecipeCustody families; a Python dependency profile remains an immutable composition of existing families rather than a new selected-source owner. A ModelAsset is acquired only by explicit catalog install or ImportModelAsset, every model formerly described as a companion is another ordinary ModelAsset acquisition, and no Loadout action invokes either acquisition. Each materializer remains a RuntimeLocalService job executor that stages, verifies, and atomically promotes only its own selected-source evidence under Runtime-owned roots and is never a Desktop workflow, engine-local installer, script, package-manager command, PATH helper, transfer record, endpoint probe, or model row.
+    condition: Whenever a local dependency or RecipeCustody family is materialized or a Python profile is composed, verified, or promoted.
+    failure: Reject materialization outside admitted Runtime executors, ModelAsset or companion ownership in a dependency family, Loadout-triggered download, or a dependency profile treated as a new selected-source family.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.local-compute.environment-materializer-plane
   - id: rule.nimi.runtime.local-compute.r086
     kind: rule
-    title: Passive surfaces never start heavy materialization
+    title: Passive surfaces and Loadout commits never start heavy materialization
     modality: must
-    statement: ExecutionHost startup, Python pipeline startup, request-time capability composition, explicit connector diagnostics, passive import review, SDK reads, Desktop page load, and background maintenance never perform first heavy or network materialization and never resolve, synchronize, install into, or rewrite a promoted dependency profile; missing uv, Python runtime, dependency profile, venv, package set, Torch wheel, native engine package, model asset, or companion asset produces only the applicable Runtime-private dependency state or typed request-time admission reason without mutating configuration, bindings, route, or machine selection. Ordinary users are never instructed to install these dependencies through a system package manager, global Python environment, user PATH, machine PATH, shell profile, or engine-private directory, and visible terminal or external package-manager flows exist only as diagnostic export and never as dependency-state truth.
-    condition: Whenever a passive surface encounters missing local dependencies.
-    failure: Reject silent heavy materialization and ordinary-user manual installation instructions.
+    statement: Prepare Loadout, Commit Loadout, Select Loadout, ExecutionHost or Python startup, request composition, connector diagnostics, import review, SDK reads, Desktop page load, and background maintenance never download a ModelAsset or begin first heavy or network dependency materialization and never resolve, synchronize, install into, or rewrite a promoted dependency profile; missing ModelAssets, RecipeCustody, uv, Python, profiles, package sets, Torch, or engine packages produce only typed unresolved, dependency, admission, or Job outcomes without mutating Loadout, bindings, route, or selection. Ordinary users are never directed to system package managers, global Python, PATH, shell profiles, or engine-private directories as dependency truth.
+    condition: Whenever a passive surface or Loadout action encounters missing model or dependency content.
+    failure: Reject silent download or materialization, implicit confirmation, configuration mutation, and ordinary-user manual installation instructions.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.local-compute.environment-materializer-plane
   - id: rule.nimi.runtime.local-compute.r087
     kind: rule
-    title: Import-derived records are model families only
+    title: Imports produce only ModelAsset records
     modality: must
-    statement: Explicit local imports may produce selected source records only for the model asset and companion asset families, imported paths never become Python, uv, CUDA, DLL, package-manager, Torch, or native engine package roots, and native stablediffusion-ggml source candidates link to the managed image backend package registry while selected source record promotion stays owned by the local environment materializer without inference from engine startup branches, command-line backend installers, or ad hoc code paths.
-    condition: Whenever imports or package registries interact with selected source records.
-    failure: Reject import-derived non-model records and promotion outside the materializer.
+    statement: ImportModelAsset produces only a ModelAsset record and payload under resolved, never a dependency selected-source record, RecipeCustody entry, Python, uv, CUDA, DLL, package-manager, Torch, or native engine package root; user-imported code is registered as non-executable payload, while RecipeCustody and managed backend sources come only from their pinned Runtime authority and materializer.
+    condition: Whenever ModelAsset import or a package registry interacts with local source records.
+    failure: Reject import-derived dependency or custody records, executable treatment of imported code, and selected-source promotion outside its materializer.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.local-compute.environment-materializer-plane
   - id: rule.nimi.runtime.local-compute.r088
     kind: rule
-    title: Materializer projection preserves non-ready states
+    title: Materializer projection preserves confirmation and non-ready states
     modality: must
-    statement: RuntimeLocalService owns the app-facing materializer projection and command surface that reads the materializer registry for dependency families, resolves source candidates and source manifests from Runtime authority, projects current selected source summaries with bounded diagnostics, projects one capability-scoped confirmation payload covering every required dependency family, known or unknown aggregate size, storage categories, source owners, and the no-system-mutation policy before the first network or storage-heavy materialization, starts persistent materializer jobs for the complete confirmed dependency DAG without requiring an ordinary user to confirm its internal families separately, observes, cancels, retries, and repairs those jobs by dependency environment and Runtime job id, and projects activation gate failures without probing or installing dependencies, the dependency detail projection preserves the non-ready distinction among needs_confirmation, queued, downloading, verifying, installing, repair_required, failed, unsupported, and cancelled, and product-facing setup-required or confirmation text stays a projection of needs_confirmation never a ready state.
+    statement: RuntimeLocalService owns the app-facing materializer projection and command surface for non-model dependencies and RecipeCustody, resolves exact source manifests, projects bounded selected-source diagnostics, presents one capability-scoped confirmation payload covering the complete dependency DAG, aggregate size, storage categories, source owners, and no-system-mutation policy before first heavy materialization, and owns persistent observe, cancel, retry, and repair operations. The projection preserves needs_confirmation, queued, downloading, verifying, installing, repair_required, failed, unsupported, and cancelled, never treats setup text as readiness, and lists any recommended ModelAsset acquisitions separately as explicit catalog install actions rather than confirmed dependency children.
     condition: Whenever the materializer projection or command surface is served.
-    failure: Reject per-family confirmation as the ordinary-user installation workflow, incomplete confirmed dependency DAG submission, collapsed non-ready states, and confirmation text treated as readiness.
+    failure: Reject hidden ModelAsset download, incomplete confirmed dependency submission, collapsed non-ready states, per-internal-family ordinary-user confirmation, or confirmation text treated as readiness.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.local-compute.environment-materializer-plane
@@ -949,11 +944,11 @@ units:
         target: definition.nimi.runtime.local-compute.environment-materializer-plane
   - id: rule.nimi.runtime.local-compute.r091
     kind: rule
-    title: Install-level plan resolution is deterministic
+    title: Install-level planning keeps models explicit
     modality: must
-    statement: Local environment plan resolution accepts an optional install level of minimal or recommended where a set install level without an explicit asset id resolves the pack model asset and companion asset dependencies internally through the deterministic curated-preset resolver from the preset plus host posture, an explicit asset id always wins and an unset install level preserves explicit-identity behavior, a compute pack may host multiple preset model slots so install-level resolution emits one model asset dependency per resolved hosted-slot capability each carrying its resolver-filled asset id and one companion dependency per resolved companion of those slots without key collisions because model asset keys derive from the asset id, the pack to hosted-capability relation is explicit Runtime authority mapping the local text pack to text generation, the local speech pack to transcription plus synthesis, and the local native image pack to image generation and is never keyed on consumer scope, and a resolver fail-close leaves the dependency in unsupported state carrying the typed resolver reason code and a non-empty stable pack default dependency id never projected as a ready or startable dependency.
-    condition: Whenever install-level plan resolution runs or its dependencies are emitted.
-    failure: Reject nondeterministic slot resolution, consumer-scope keying, and startable unresolved dependencies.
+    statement: Local environment plan resolution may deterministically derive the non-model dependency DAG and a separate ordered recommendation list containing one visible ModelAsset catalog offer per Driver-declared recipe slot from the same catalog version and captured host posture; every recommended model item remains an independent user acquisition with its own install plan and confirmation, no parent or companion identity or group compatibility guarantee is created, no ModelAsset becomes a dependency child or starts automatically, and unresolved recommendation or dependency outcomes remain typed and non-startable.
+    condition: Whenever install-level or recipe recommendation planning emits dependencies or model offers.
+    failure: Reject hidden or grouped model download, parent-coupled companion identity, nondeterministic slot recommendation, consumer-scope keying, and startable unresolved entries.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.local-compute.environment-materializer-plane
@@ -979,21 +974,21 @@ units:
     reason: Removed because Apply Profile to AIConfig has no installation or process side effects requiring a product rollback lifecycle.
   - id: rule.nimi.runtime.local-compute.r096
     kind: rule
-    title: Local state persists atomically with bounded audit
+    title: Loadout state persists atomically with a private CAS token
     modality: must
-    statement: Runtime persists the unique Machine Local AI Configuration and its Local Capability Configuration records atomically, may use a private compare-and-swap token only to prevent lost writes, stores no product revision or history, and persists LocalAsset inventory and ExecutionHost process records under their separate owners rather than duplicating binding or machine selection truth.
-    condition: Whenever machine local configuration, LocalAsset inventory, or Runtime-private Host state changes or reloads.
-    failure: Reject non-atomic writes, lost-write acceptance, product revision semantics, or duplicated configuration, binding, selection, asset, or process truth.
+    statement: Runtime persists the unique machine Loadout store and current Loadout records atomically, may hold exactly one current Runtime-private compare-and-swap token only to prevent lost writes across Prepare and Commit, exposes that token to no caller, public Loadout, Job effective input, ResolvedAssembly, or process identity, retains no old token, rollback, product revision, or history, and persists ModelAsset inventory, catalog recipes, RecipeCustody, and ExecutionHost records under separate owners.
+    condition: Whenever Loadout state, ModelAsset inventory, custody, or Runtime-private Host state changes or reloads.
+    failure: Reject non-atomic writes, lost-write acceptance, public or execution-visible CAS, rollback or revision semantics, and duplicated Loadout, binding, selection, ModelAsset, custody, or process truth.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.local-compute.machine-local-configuration-plane
   - id: rule.nimi.runtime.local-compute.r097
     kind: rule
-    title: CapabilityImplementationDriver lookup is exact
+    title: Driver dialect and recipeId semantics are exact and stable
     modality: must
-    statement: Runtime loads the exact CapabilityImplementationDriver and dialect identity committed in a Local Capability Configuration, validates that it owns the named CapabilityImplementation and contracts, and never resolves a Driver from asset kind, provider, engine, node, model name, prefix, endpoint, capability-only table, wildcard, catalog order, or process availability.
-    condition: Whenever a Local Capability Configuration is interpreted, admitted, or executed.
-    failure: Fail interpretability or Job admission closed when the exact Driver is absent or incompatible without selecting another Driver or Host.
+    statement: Runtime loads the exact CapabilityImplementationDriver dialect and recipeId committed in a Loadout, validates that the dialect owns the implementation, contracts, slot topology, fixed request mapping, loader facts, and load-affecting defaults for that recipeId, and never rereads catalog recipes at admission or execution or resolves semantics from ModelAsset labels, provider, engine, node, prefix, endpoint, wildcard, catalog order, or process availability; any semantic change requires a new dialect identity or version rather than reinterpretation under an existing identity.
+    condition: Whenever a Loadout is prepared, committed, interpreted, admitted, or executed.
+    failure: Fail interpretability or Job admission closed when the exact dialect or recipeId implementation is absent or incompatible, without catalog reinterpretation, migration, alternate Driver, or Host substitution.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.local-compute.machine-local-configuration-plane
@@ -1003,7 +998,7 @@ units:
     kind: rule
     title: Policy gates are explicit and typed
     modality: must
-    statement: Driver compatibility and policy checks return a typed derived admission reason for the exact selected Local Capability Configuration and request, never create Node availability, readiness, routing, machine selection, supported-feature, or fallback truth, and remain traceable to the declaring Driver or policy owner.
+    statement: Driver compatibility and policy checks return a typed derived admission reason for the exact selected Loadout and request, never create Node availability, readiness, routing, machine selection, supported-feature, or fallback truth, and remain traceable to the declaring Driver or policy owner.
     condition: Whenever a local Driver compatibility or policy gate is evaluated, projected, or audited.
     failure: Reject an unowned reason, gated request projected as admitted, or a gate that mutates committed configuration.
     relations:
@@ -1016,11 +1011,11 @@ units:
     reason: Removed because process health, live Node catalogs, provider hints, probes, and rank ordering no longer select local execution or establish capability availability.
   - id: rule.nimi.runtime.local-compute.r100
     kind: rule
-    title: Local execution uses exact selected configuration and bindings
+    title: Local Job submission captures one complete ResolvedAssembly
     modality: must
-    statement: Local Job composition dereferences only the current explicit machine selection to one Local Capability Configuration and captures that record's exact CapabilityImplementation, Driver dialect and configuration, and exact required bindings; profile-binding, readiness, model prefix, filename, path, selected-source, catalog, Node, Service, resident model, or engine order never becomes routing truth, and missing, ambiguous, invalid, or failed inputs never trigger rebinding or any implementation, engine, model, configuration, provider, or Cloud fallback.
-    condition: Whenever Local execution identity and exact inputs are composed.
-    failure: Fail admission or the Job closed, preserve committed configuration and bindings, and reject prefix-derived truth, inventory search, ambient reassociation, or fallback.
+    statement: Local Job submission atomically dereferences only the current selected Loadout, validates its exact CapabilityImplementation, versioned Driver dialect and recipeId, options, supported features, Model Contract results, every model_asset_id and expected_content_id, and RecipeCustody reference, rehashes every bound payload, resolves each slot to an immutable absolute path and content identity, derives the typed load plan and process identity, and persists that complete ResolvedAssembly with the Job before publication; queued and running Jobs never reread Loadout, inventory, catalog, current paths, process state, or the private CAS token, and later Commit or Delete Loadout, selection, inventory, catalog, or process changes never rewrite captured inputs.
+    condition: Whenever Local Job identity and exact effective inputs are composed or resumed.
+    failure: Reject Job publication on a missing, changed, ambiguous, invalid, unpersisted, or partially captured input, fail later byte drift against captured identity, preserve committed owners, and never rebind, search, reinterpret, or fall back.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.local-compute.machine-local-configuration-plane
@@ -1033,7 +1028,7 @@ units:
     kind: rule
     title: Driver-owned portable configuration excludes bindings and paths
     modality: must
-    statement: Driver-owned portable configuration in a Local Capability Configuration may contain only fields defined by the exact dialect and never a LocalAsset id or path, exact binding, machine selection, process identity, endpoint, secret, or fallback list; Driver invocation combines validated portable configuration with separately captured exact bindings and request inputs without per-execution Profile override truth.
+    statement: The Driver-owned typed-options slice of a Loadout may contain only fields defined by the exact versioned dialect and never a ModelAsset id or path, model-axis binding, selection, process identity, endpoint, secret, or fallback list; the Loadout aggregate stores model_asset_id plus expected_content_id only in its separately typed model axes, and Driver invocation consumes only the options, model axes, RecipeCustody, request, load plan, and process identity already captured in the Job's complete ResolvedAssembly without per-execution Profile override or current-owner reread.
     condition: Whenever Driver-owned portable configuration is authored, updated, interpreted, or invoked.
     failure: Fail interpretation closed on unknown or protected fields instead of applying, ignoring, migrating, or inferring them.
     relations:
@@ -1041,31 +1036,31 @@ units:
         target: definition.nimi.runtime.local-compute.machine-local-configuration-plane
   - id: rule.nimi.runtime.local-compute.r103
     kind: rule
-    title: Asset kind registry is closed and proto aligned
+    title: ModelAsset probe labels are derived and non-authoritative
     modality: must
-    statement: The local asset kind registry admits the current concrete-content kinds, with runnable chat mapping to the single text.generate CapabilityContract, image to image.generate, video to video.generate, tts to audio.synthesize, stt to audio.transcribe, and embedding to text.embed; passive kinds carry no CapabilityContract and are never directly scheduled, invoked, or interpreted as strict or substitutable requirement policy.
-    condition: Whenever a local asset kind is declared, persisted, or mapped to a capability token.
-    failure: Reject undeclared asset kinds, runnable kinds without their declared capability token, and scheduled or invoked passive kinds.
+    statement: Runtime may derive bounded display labels such as gguf, safetensors, directory, unclassified, or recipe-specific probe tags from cached raw fingerprints, but no closed ModelAsset kind registry exists and no label declares capability, runnable or passive status, engine, Driver, recipe, slot eligibility, binding, selection, or execution semantics.
+    condition: Whenever a ModelAsset fingerprint or display label is derived, persisted, or projected.
+    failure: Reject a label used as admission or execution authority, a required classification for safe import, or a legacy kind promoted to public semantics.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.local-compute.category-capability-plane
   - id: rule.nimi.runtime.local-compute.r104
     kind: rule
-    title: CapabilityContract to asset-kind mapping is exact and order independent
-    modality: must
-    statement: Exact CapabilityContract-to-LocalAsset-kind mapping uses text.generate to chat, text.embed to embedding, image.generate to image, video.generate to video, audio.synthesize and voice.create to tts, audio.transcribe to stt, and music.generate to auxiliary; standardized features never create asset-kind mappings, first-match resolution is forbidden, and retired subtype or legacy aliases are accepted only by one-time non-product tooling outside Runtime and public contracts.
-    condition: Whenever a CapabilityContract is validated against a LocalAsset kind.
-    failure: Reject an unknown, ambiguous, order-dependent, feature-as-contract, subtype, or legacy alias mapping.
+    title: Capability admission never maps from ModelAsset labels
+    modality: must_not
+    statement: A CapabilityContract, standardized feature, CapabilityImplementation, Driver, recipeId, slot, or execution route is inferred or selected from a ModelAsset label, fingerprint, filename, format, model lineage, import source, catalog match, or inventory order; only the exact Loadout Driver dialect projects slots and its recipe-specific Model Contract may consume bounded fingerprints to reject or admit an explicitly chosen ModelAsset.
+    condition: Whenever a ModelAsset is considered for a Loadout slot or capability execution.
+    failure: Reject label-to-capability mapping, first-match resolution, legacy kind aliases, import-layer interpretation, and any route or binding inferred from content presentation.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.local-compute.category-capability-plane
   - id: rule.nimi.runtime.local-compute.r105
     kind: rule
-    title: Explicit machine selection supersedes media arbitration
+    title: Explicit Loadout selection supersedes media arbitration
     modality: must
-    statement: Runtime establishes or replaces the selected Local Capability Configuration relation only through the explicit machine-level Select Local Capability Configuration action, and explicit Delete of the selected record may clear it without replacement; Runtime retains the relation and every committed exact binding identity when a bound LocalAsset later becomes missing or damaged and never clears, rebinds, or re-arbitrates after import, install, removal, asset loss, health change, repair, process restart, or execution failure. Only explicit bind, unbind, rebind, requirement reprojection, or Update changes a binding, and when such an action or a later Driver or hard blocker leaves the selected record unresolved or blocked, the selection relation remains until explicit Select or Delete.
-    condition: Whenever machine local selection is written or reevaluated.
-    failure: Reject automatic takeover, ranking, replacement, clearing, or fallback and preserve the current relation with a typed derived admission reason.
+    statement: Runtime establishes, replaces, or explicitly clears one CapabilityContract selected relation only through Select Loadout; a non-empty Select target must be interpretable and fully configured, while an explicit empty target clears only the relation, preserves every Loadout and ModelAsset, changes no AIConfig or captured Job, chooses no replacement, and affects only future matching Local Job composition. Delete Loadout may also clear the relation only when deleting its selected target. A missing, removed, changed, or damaged bound ModelAsset, unavailable Driver, Model Contract failure, dependency failure, process restart, or Job failure preserves the Loadout, every model axis reference, and any still-present selection while derived admission or execution fails typed; only Commit Loadout from a valid Prepare may change model axes or reproject slots.
+    condition: Whenever Loadout selection is set, explicitly cleared, deleted with its target, or reevaluated after a selected Loadout becomes blocked.
+    failure: Reject independent bind, unbind, rebind, reprojection, or Clear mutation, deletion required to stop using Local selection, automatic takeover, ranking, replacement, clearing, ambient repair, or fallback and preserve the current relation unless Select explicitly clears it.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.local-compute.machine-local-configuration-plane
@@ -1075,7 +1070,7 @@ units:
     kind: rule
     title: Residency is private ExecutionHost state
     modality: must_not
-    statement: Runtime projects model residency, loading, switching, warm pool, lease, process health, or latest load failure as product readiness, Local Capability Configuration state, machine selection, route, binding, supported feature, or execution success.
+    statement: Runtime projects model residency, loading, switching, warm pool, lease, process health, or latest load failure as product readiness, Loadout state, machine selection, route, binding, supported feature, or execution success.
     condition: Whenever ExecutionHost residency or supervision state changes or is observed.
     failure: Keep the fact Runtime-private and expose only the affected typed Job failure or Driver-classified persistent admission blocker.
     relations:
@@ -1085,11 +1080,11 @@ units:
         target: rule.nimi.runtime.local-compute.r065
   - id: rule.nimi.runtime.local-compute.r107
     kind: rule
-    title: Machine local configuration actions replace Profile Apply stages
+    title: Loadout mutation uses one Prepare and Commit channel
     modality: must
-    statement: Runtime exposes separate atomic add or update, explicit requirement reprojection and exact bind, unbind, or rebind, select, and delete operations for Local Capability Configuration; Runtime generates a stable record identity that is neither revision nor history, may reuse an existing record only for exact portable-content equivalence, and requires an explicit user choice between Update existing and Add new when content associated with the same provenance changes. Before Select, an execution-relevant Update of the selected record, or Delete of the selected record commits, the operation displays the effect on all future matching Local App and LocalAgent execution and requires user-observed explicit confirmation, while presentation-only Update and Delete of an unselected record do not; none performs Profile Apply, automatic installation, process bootstrap, health probing, warming, provider connection testing, AIConfig mutation, or aggregate cross-action commit.
-    condition: Whenever Machine Local AI Configuration is mutated.
-    failure: Reject provenance-derived identity, silent overwrite, impact display treated as confirmation, a required mutation committed without explicit confirmation, a staged Apply pipeline, hidden side effect, partial success, cross-owner transaction, or readiness result.
+    statement: Runtime exposes Prepare Loadout, Commit Loadout, Select Loadout, and Delete Loadout as the only Loadout actions; Prepare resolves the exact Driver dialect and recipeId, projects slots, may prefill a unique installed ModelAsset matching a non-binding catalog content recommendation, evaluates each chosen model through the recipe-specific Model Contract, reports unresolved slots without downloading, captures owner, session, current private CAS token, and all proposed state server-side, and returns an opaque prepare_id with bounded TTL, single use, owner-session scope, and restart invalidation. Commit accepts only prepare_id, revalidates CAS, assets, expected content identities, contracts, and confirmation, then atomically creates or replaces one Loadout; UpdateLoadout is only a Prepare-plus-Commit wrapper, and no bind, unbind, rebind, reprojection, or independent Clear handler remains. Select accepts either one eligible non-empty target or an explicit empty target that clears only the selected relation without deleting or mutating Loadouts, ModelAssets, AIConfig, or captured Jobs and without choosing a replacement. Select including explicit clearing, an execution-relevant Commit over the selected Loadout, and Delete of the selected Loadout require displayed machine-wide impact and user-observed confirmation; no action downloads models, mutates another owner, or reports aggregate readiness.
+    condition: Whenever a Loadout is prepared, committed, selected, explicitly deselected, or deleted.
+    failure: Reject caller-carried plan content, stale CAS, expired, replayed, foreign, or restart-stale prepare_id, independent binding or Clear mutation, deletion required for deselection, provenance-derived overwrite, silent recommendation acceptance, missing confirmation, hidden download, cross-owner transaction, or partial success.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.local-compute.machine-local-configuration-plane
@@ -1097,11 +1092,11 @@ units:
         target: rule.nimi.runtime.local-compute.r094
   - id: rule.nimi.runtime.local-compute.r108
     kind: rule
-    title: Ordered occurrences and sharded bundles are exact Driver-declared truth
+    title: Ordered model occurrences and sharded ModelAssets are exact Driver truth
     modality: must
-    statement: Local Capability Configuration requirement projection creates a distinct required slot for every independently selected, downloaded, bound, or replaced resource occurrence and commits each exact binding or unresolved slot in that Local configuration rather than AIConfig; a Driver may project a role-scoped ordered occurrence sequence whose declared ordinal is exact configuration truth carried with only requirement identity, role, ordinal, and display label as public presentation and never inferred from filename, path, catalog order, or binding time; one LocalAsset may satisfy multiple occurrences with one exact binding per occurrence; a sharded multi-file resource forms one occurrence whose verified content identity is the canonical digest over its ordered per-entry digests and whose entries are never independent slots; an upstream optional file creates no slot unless the exact CapabilityImplementation and Driver declare it required, missing required occurrences fail admission without clearing other valid bindings or poisoning shared LocalAssets, and Runtime still admits no generic optional-requirement state machine or legacy slot-map interpretation.
-    condition: Whenever a Driver projects, resolves, validates, or invokes local resource occurrences.
-    failure: Preserve unresolved state and fail closed on a missing, ambiguous, skipped, defaulted, invented-optional, inferred-order, split-bundle, or legacy-normalized occurrence.
+    statement: A versioned Driver dialect projects one distinct model slot for every occurrence independently selected, downloaded, bound, or replaced, and a Loadout commits each slot as unresolved or as model_asset_id plus expected_content_id; every model slot is a user axis, catalog content references are recommendation-only, one ModelAsset may satisfy multiple slots with an explicit binding per slot, and no parent or companion identity couples them. A role-scoped ordered occurrence sequence retains its declared ordinal, while one multi-file ModelAsset remains one occurrence whose immutable content_id is the canonical digest over ordered per-entry digests and whose files are never split into slots; upstream optionality creates no slot unless the exact dialect declares it, no generic optional state or catalog STRICT content pin governs ModelAsset axes, and no legacy slot-map lifecycle exists.
+    condition: Whenever a Driver projects, resolves, validates, commits, or invokes local model occurrences.
+    failure: Preserve unresolved state and fail closed on missing, ambiguous, skipped, defaulted, parent-inherited, inferred-order, split-bundle, legacy-normalized occurrences, or model-slot admission derived from a catalog STRICT content pin; committed model_asset_id plus expected_content_id and byte revalidation remain mandatory.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.local-compute.machine-local-configuration-plane
@@ -1123,11 +1118,23 @@ units:
     kind: rule
     title: VoxCPM managed backend selection is Runtime private
     modality: must
-    statement: The voxcpm audio.synthesize implementation is owned by the Runtime-managed CapabilityImplementationDriver, speech Host assets, and one speech.voxcpm.python dependency consumer line; Runtime selects the standard Python backend only for admitted windows/amd64 CPU or CUDA profiles and the MLX backend only for the admitted darwin/arm64 profile, materializes the matching immutable exact-lock package set and embedded backend Driver, verifies that the selected LocalAsset carries family voxcpm and the matching host-qualified backend material, and dispatches through the existing private speech ExecutionHost. Unsupported platforms, missing or stale profiles, backend and asset mismatch, absent embedded Driver, failed import or preflight, and unavailable accelerator execution fail closed without probing, fallback, backend substitution, Qwen substitution, root-script execution, or a second product path.
-    condition: Whenever a selected VoxCPM Local Capability Configuration plans dependencies or materializes and executes its private speech Host.
-    failure: Reject public backend selection, a backend-shaped family, mismatched or unverified profile and asset material, unsupported host composition, ambient Python, repo-root Driver execution, and every silent backend or family switch.
+    statement: The voxcpm audio.synthesize implementation is owned by its Runtime-managed CapabilityImplementationDriver dialect, Runtime-owned Driver bundle, speech Host, and one speech.voxcpm.python dependency consumer line; Runtime selects the standard Python backend only for admitted windows/amd64 CPU or CUDA profiles and MLX only for admitted darwin/arm64, materializes the matching exact-lock managed Python profile whose pinned wheels together with the Runtime-owned Driver bundle supply the complete execution loader chain, validates the explicitly bound ModelAsset only through the voxcpm recipe Model Contract over its content fingerprints and payload, and dispatches the Job-captured ResolvedAssembly through the private speech ExecutionHost. The current voxcpm recipe declares an empty RecipeCustody set; model-payload code files are registered as content and never executed, no execution copy is materialized from the payload, and a future recipe revision that requires an externally pinned loader must declare an explicit RecipeCustody pin and raise the recipe revision together with any affected dialect identity. Unsupported hosts, missing or stale profiles, missing declared custody, Model Contract failure, absent Driver, unavailable acceleration, or execution failure fail closed without import-layer family checks, fallback, backend or ModelAsset substitution, Qwen substitution, or user-payload code execution.
+    condition: Whenever a selected VoxCPM Loadout plans dependencies or materializes and executes its private speech Host.
+    failure: Reject public backend selection, ModelAsset-family authority, mismatched or unverified profile, declared custody, or content, unsupported host composition, ambient Python, imported-code execution, payload-sourced loader execution, and every silent backend or model switch.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.voxcpm-family
       - type: applies_to
         target: definition.nimi.runtime.local-compute.speech-engine-plane
+  - id: rule.nimi.runtime.local-compute.r111
+    kind: rule
+    title: Local state isolation is record scoped then document scoped
+    modality: must
+    statement: When a ModelAsset inventory or Loadout document is syntactically parseable and one locatable record has an invalid payload or schema, Runtime preserves every valid record, copies the exact invalid record and bounded source context to quarantine, emits a typed record-isolation diagnostic, and starts normally; when the whole document is invalid JSON, truncated, or otherwise not structurally parseable, Runtime preserves a complete raw snapshot in quarantine, starts from an empty state for that document, emits a prominent typed document-isolation diagnostic, and never silently clears or rewrites the source before the snapshot is durable.
+    condition: Whenever persisted ModelAsset inventory or Loadout state is opened, parsed, validated, or recovered.
+    failure: Reject daemon blockage by isolatable state, one bad record discarding valid siblings, partial salvage of an unparseable document presented as truth, silent empty state, missing quarantine evidence, or an untyped diagnostic.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.local-compute.asset-storage-manifest-plane
+      - type: applies_to
+        target: definition.nimi.runtime.local-compute.machine-local-configuration-plane

@@ -5,7 +5,7 @@ units:
   - id: definition.nimi.runtime.agent-service.context-composition-plane
     kind: definition
     title: Runtime LocalAgent context composition plane
-    meaning: Runtime owns the private composition of model-facing context for a LocalAgent turn from admitted Realm source material, committed Conversation, operational Memory and Knowledge, current policy, and the Local or Cloud route committed by the singular shared LocalAgent AIConfig; a Local route dereferences the current Machine Local AI Configuration selection, and Apps receive only bounded status and output projections and never own or reconstruct that context.
+    meaning: Runtime owns the private composition of model-facing context for a LocalAgent turn from admitted Realm source material, committed Conversation, operational Memory and Knowledge, current policy, and the Local or Cloud route committed by the singular shared LocalAgent AIConfig; only at Job submission a Local route atomically dereferences the Machine Loadout store selection into a complete persisted ResolvedAssembly, and Apps receive only bounded status and output projections and never own, reread, or reconstruct that context.
   - id: definition.nimi.runtime.agent-service.agent-service-plane
     kind: definition
     title: Runtime LocalAgent service plane
@@ -147,9 +147,9 @@ units:
     kind: rule
     title: AI resources remain Runtime-managed
     modality: must
-    statement: The shared LocalAgent AIConfig owns each CapabilityContract's Local or Cloud route intent, the Machine Local AI Configuration owns Local configuration selection, and Runtime deterministically composes those committed facts with authorization, Token, Quota, Budget, and metering for LocalAgent Job admission; Apps may observe bounded typed admission and usage projections but never choose a hidden execution target or bypass those facts.
+    statement: The shared LocalAgent AIConfig owns each CapabilityContract's Local or Cloud route intent, the Machine Loadout store owns its set-or-empty selected relation, and at LocalAgent Job admission Runtime atomically persists either a complete Local ResolvedAssembly or exact Cloud effective inputs together with authorization, Token, Quota, Budget, and metering; queued, running, and resumed Jobs use only those captured inputs. Apps may observe bounded typed admission and usage projections but never choose a hidden execution target or bypass those facts.
     condition: Whenever Local or Cloud AI resources are composed or consumed for a LocalAgent.
-    failure: Reject Runtime route search, per-Agent overrides, caller-selected hidden targets, unmetered execution, fallback, or App-owned resource truth.
+    failure: Reject Runtime route search, current-owner rereads, per-Agent overrides, caller-selected hidden targets, unmetered execution, fallback, or App-owned resource truth.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.agent-service.agent-service-plane
@@ -157,7 +157,7 @@ units:
     kind: rule
     title: Core capability unavailability is explicit
     modality: must
-    statement: A missing or invalid selected Local Capability Configuration, unresolved required binding, uninterpretable Driver configuration, standardized-feature mismatch, missing or foreign current-account Cloud Connector, unusable credential, App access or policy denial, Character Source, Memory, Knowledge, Conversation, or required service dependency produces the existing typed owner, configuration-required, access-denied, admission, unavailable, or failed outcome without requesting App-side Connector selection and never public readiness, mock success, route mutation, automatic re-selection, or App-local fallback execution.
+    statement: A missing or invalid selected Loadout, unresolved required binding, uninterpretable Driver configuration, standardized-feature mismatch, missing or foreign current-account Cloud Connector, unusable credential, App access or policy denial, Character Source, Memory, Knowledge, Conversation, or required service dependency produces the existing typed owner, configuration-required, access-denied, admission, unavailable, or failed outcome without requesting App-side Connector selection and never public readiness, mock success, route mutation, automatic re-selection, or App-local fallback execution.
     condition: Whenever a LocalAgent core operation cannot run.
     failure: Fail closed with the owning Runtime reason and no fabricated result.
     relations:
