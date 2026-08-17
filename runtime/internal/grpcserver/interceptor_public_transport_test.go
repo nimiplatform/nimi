@@ -33,6 +33,10 @@ func TestA0OrdinaryGRPCRejectsProtectedAndTombstoneMethodsBeforeHandler(t *testi
 		{method: "/nimi.runtime.v1.RuntimeLocalService/CancelLocalEnvironmentDependencyJob", reason: runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED},
 		{method: "/nimi.runtime.v1.RuntimeLocalService/RetryLocalEnvironmentDependencyJob", reason: runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED},
 		{method: "/nimi.runtime.v1.RuntimeLocalService/RepairLocalEnvironmentDependency", reason: runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED},
+		{method: "/nimi.runtime.v1.RuntimeLocalService/ListModelAssets", reason: runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED},
+		{method: "/nimi.runtime.v1.RuntimeLocalService/GetMachineLoadouts", reason: runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED},
+		{method: "/nimi.runtime.v1.RuntimeConnectorService/ListConnectors", reason: runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED},
+		{method: "/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth", reason: runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED},
 		{method: "/nimi.runtime.v1.RuntimeAppService/PrepareLocalAppLaunch", reason: runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED},
 		{method: "/nimi.runtime.v1.RuntimeAuthService/OpenLocalAppSession", reason: runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH},
 		{method: "/nimi.runtime.v1.RuntimeAuthService/RenewLocalAppSession", reason: runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH},
@@ -76,6 +80,7 @@ func TestA0OrdinaryGRPCRejectsProtectedStreamsBeforeHandler(t *testing.T) {
 		"/nimi.runtime.v1.RuntimeAiService/StreamScenario",
 		"/nimi.runtime.v1.RuntimeAiService/UploadArtifact",
 		"/nimi.runtime.v1.RuntimeAiRealtimeService/ReadRealtimeEvents",
+		"/nimi.runtime.v1.RuntimeAuditService/SubscribeRuntimeHealthEvents",
 	} {
 		handlerCalled := false
 		stream := &authzTestStream{ctx: context.Background()}

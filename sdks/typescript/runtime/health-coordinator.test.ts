@@ -1,12 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import type {
-  AIProviderHealthEvent,
-  AIProviderHealthSnapshot,
-  GetRuntimeHealthResponse,
-  RuntimeHealthEvent,
-} from '../core-generated/runtime-typed-client';
+import type { GetRuntimeHealthResponse, RuntimeHealthEvent } from '../core-generated/runtime-typed-client';
 import { RuntimeHealthStatus } from '../core-generated/runtime-typed-client';
 import {
   NimiRuntimeHealthCoordinator,
@@ -107,19 +102,13 @@ test('Runtime health projection maps generated statuses to SDK-readable summarie
 test('Runtime health coordinator fetches, merges streams, reconnects, refreshes stale state, and stops by ref count', async () => {
   let now = Date.parse('2026-06-05T00:00:00.000Z');
   let runtimeFetches = 0;
-  let providerFetches = 0;
   let runtimeStreamSubscribes = 0;
-  let providerStreamSubscribes = 0;
   const intervals: Array<() => void> = [];
   const runtimeConnectedListeners = new Set<() => void>();
   const runtimeDisconnectedListeners = new Set<() => void>();
   const runtimeStreams = [
     new PushStream<RuntimeHealthEvent>(),
     new PushStream<RuntimeHealthEvent>(),
-  ];
-  const providerStreams = [
-    new PushStream<AIProviderHealthEvent>(),
-    new PushStream<AIProviderHealthEvent>(),
   ];
   const deps: NimiRuntimeHealthCoordinatorDeps = {
     now: () => now,
@@ -140,20 +129,8 @@ test('Runtime health coordinator fetches, merges streams, reconnects, refreshes 
         reason: `fetch-${runtimeFetches}`,
       });
     },
-    async fetchProviderHealth() {
-      providerFetches += 1;
-      return {
-        providers: [
-          providerSnapshot('openai', 'healthy'),
-          providerSnapshot('anthropic', 'degraded'),
-        ],
-      };
-    },
     async subscribeRuntimeHealth() {
       return runtimeStreams[runtimeStreamSubscribes++] ?? new PushStream<RuntimeHealthEvent>();
-    },
-    async subscribeProviderHealth() {
-      return providerStreams[providerStreamSubscribes++] ?? new PushStream<AIProviderHealthEvent>();
     },
     subscribeRuntimeConnected(listener) {
       runtimeConnectedListeners.add(listener);
@@ -178,21 +155,17 @@ test('Runtime health coordinator fetches, merges streams, reconnects, refreshes 
   assert.equal(coordinator.getSnapshot().started, true);
   assert.equal(coordinator.getSnapshot().streamConnected, true);
   assert.equal(coordinator.getSnapshot().stale, false);
-  assert.deepEqual(coordinator.getSnapshot().providerHealth.map((item) => item.providerName), ['anthropic', 'openai']);
   assert.equal(runtimeFetches, 1);
-  assert.equal(providerFetches, 1);
   assert.equal(intervals.length, 1);
 
   runtimeStreams[0]?.push(runtimeHealthEvent({
     status: RuntimeHealthStatus.DEGRADED,
     reason: 'queue pressure',
   }));
-  providerStreams[0]?.push(providerEvent('openai', 'unreachable'));
   await flushAsyncWork();
 
   assert.equal(coordinator.getSnapshot().runtimeHealth?.status, RuntimeHealthStatus.DEGRADED);
   assert.equal(coordinator.getSnapshot().runtimeHealth?.reason, 'queue pressure');
-  assert.equal(coordinator.getSnapshot().providerHealth.find((item) => item.providerName === 'openai')?.state, 'unreachable');
   assert.equal(coordinator.getSnapshot().lastStreamAt, '2026-06-05T00:00:00.000Z');
 
   now = Date.parse('2026-06-05T00:01:01.000Z');
@@ -200,7 +173,6 @@ test('Runtime health coordinator fetches, merges streams, reconnects, refreshes 
   await flushAsyncWork();
 
   assert.equal(runtimeFetches, 2);
-  assert.equal(providerFetches, 2);
   assert.equal(coordinator.getSnapshot().lastFetchedAt, '2026-06-05T00:01:01.000Z');
   assert.equal(coordinator.getSnapshot().stale, false);
 
@@ -210,7 +182,6 @@ test('Runtime health coordinator fetches, merges streams, reconnects, refreshes 
   await flushAsyncWork();
   assert.equal(coordinator.getSnapshot().streamConnected, false);
   assert.equal(runtimeStreams[0]?.returnCount, 1);
-  assert.equal(providerStreams[0]?.returnCount, 1);
   intervals[0]?.();
   await flushAsyncWork();
   assert.equal(runtimeStreamSubscribes, 1);
@@ -220,7 +191,6 @@ test('Runtime health coordinator fetches, merges streams, reconnects, refreshes 
   }
   await flushAsyncWork();
   assert.equal(runtimeStreamSubscribes, 2);
-  assert.equal(providerStreamSubscribes, 2);
   assert.equal(runtimeFetches, 3);
 
   coordinator.stop();
@@ -230,7 +200,6 @@ test('Runtime health coordinator fetches, merges streams, reconnects, refreshes 
   assert.equal(coordinator.getSnapshot().started, false);
   assert.equal(coordinator.getSnapshot().streamConnected, false);
   assert.equal(runtimeStreams[1]?.returnCount, 1);
-  assert.equal(providerStreams[1]?.returnCount, 1);
   assert.equal(intervals.length, 0);
   unsubscribe();
   assert.ok(notifications > 0);
@@ -245,14 +214,8 @@ test('Runtime health coordinator fails closed on fetch and stream errors', async
     async fetchRuntimeHealth() {
       throw new Error('runtime unavailable');
     },
-    async fetchProviderHealth() {
-      return { providers: [] };
-    },
     async subscribeRuntimeHealth() {
       return runtimeStream;
-    },
-    async subscribeProviderHealth() {
-      throw new Error('provider stream unavailable');
     },
     subscribeRuntimeConnected() {
       return () => undefined;
@@ -269,8 +232,7 @@ test('Runtime health coordinator fails closed on fetch and stream errors', async
   await flushAsyncWork();
 
   assert.equal(coordinator.getSnapshot().error, 'runtime unavailable');
-  assert.equal(coordinator.getSnapshot().streamError, 'provider stream unavailable');
-  assert.equal(coordinator.getSnapshot().providerStreamConnected, false);
+  assert.equal(coordinator.getSnapshot().streamError, null);
 });
 
 async function flushAsyncWork(): Promise<void> {
@@ -312,24 +274,5 @@ function runtimeHealthEvent(overrides: Partial<RuntimeHealthEvent> = {}): Runtim
     vramBytes: '2048',
     sampledAt: timestamp('2026-06-05T00:00:00.000Z'),
     ...overrides,
-  };
-}
-
-function providerSnapshot(providerName: string, state: string): AIProviderHealthSnapshot {
-  return {
-    providerName,
-    state,
-    reason: state,
-    consecutiveFailures: state === 'healthy' ? 0 : 1,
-    lastChangedAt: timestamp('2026-06-05T00:00:00.000Z'),
-    lastCheckedAt: timestamp('2026-06-05T00:00:00.000Z'),
-    subHealth: [],
-  };
-}
-
-function providerEvent(providerName: string, state: string): AIProviderHealthEvent {
-  return {
-    sequence: '1',
-    ...providerSnapshot(providerName, state),
   };
 }

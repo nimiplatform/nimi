@@ -5,27 +5,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
-
-	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 )
-
-func TestExecuteScenarioGRPCRequiresAppID(t *testing.T) {
-	_, err := ExecuteScenarioGRPC("127.0.0.1:50051", 0, &runtimev1.ExecuteScenarioRequest{
-		Head: &runtimev1.ScenarioRequestHead{},
-	})
-	if err == nil || err.Error() != "app_id is required" {
-		t.Fatalf("expected app_id validation error, got=%v", err)
-	}
-}
-
-func TestStreamScenarioGRPCRequiresAppID(t *testing.T) {
-	_, _, err := StreamScenarioGRPC(nil, "127.0.0.1:50051", &runtimev1.StreamScenarioRequest{
-		Head: &runtimev1.ScenarioRequestHead{},
-	})
-	if err == nil || err.Error() != "app_id is required" {
-		t.Fatalf("expected app_id validation error, got=%v", err)
-	}
-}
 
 func TestFetchHealthFailsClosedOnNonSuccessStatus(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {

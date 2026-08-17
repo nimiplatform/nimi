@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"strings"
 	"testing"
-	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/daemonctl"
 )
 
 func TestRunServeRejectsDirectUserDaemonLaunch(t *testing.T) {
@@ -16,96 +16,6 @@ func TestRunServeRejectsDirectUserDaemonLaunch(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "PROTECTED_LOCAL_RUNTIME_PRINCIPAL_REQUIRED") {
 		t.Fatalf("direct user daemon launch error = %v", err)
-	}
-}
-
-func TestExtractProviders(t *testing.T) {
-	payload := map[string]any{
-		"ai_providers": []any{
-			map[string]any{
-				"name":                 "cloud-dashscope",
-				"state":                "unhealthy",
-				"reason":               "timeout",
-				"consecutive_failures": float64(2),
-				"last_changed_at":      "2026-02-24T12:00:00Z",
-				"last_checked_at":      "2026-02-24T12:00:01Z",
-			},
-			map[string]any{
-				"name":                 "cloud-nimillm",
-				"state":                "healthy",
-				"reason":               "",
-				"consecutive_failures": float64(0),
-				"last_changed_at":      "2026-02-24T12:00:00Z",
-				"last_checked_at":      "2026-02-24T12:00:02Z",
-			},
-		},
-	}
-
-	providers := extractProviders(payload)
-	if len(providers) != 2 {
-		t.Fatalf("providers count mismatch: got=%d want=2", len(providers))
-	}
-	if providers[0].Name != "cloud-dashscope" {
-		t.Fatalf("provider 0 name mismatch: %s", providers[0].Name)
-	}
-	if providers[0].ConsecutiveFailures != 2 {
-		t.Fatalf("provider 0 failures mismatch: %d", providers[0].ConsecutiveFailures)
-	}
-	if providers[1].State != "healthy" {
-		t.Fatalf("provider 1 state mismatch: %s", providers[1].State)
-	}
-}
-
-func TestProvidersSignatureIgnoresTimestamps(t *testing.T) {
-	first := []providerSnapshot{
-		{
-			Name:                "cloud-nimillm",
-			State:               "healthy",
-			Reason:              "",
-			ConsecutiveFailures: 0,
-			LastChangedAt:       "2026-02-24T12:00:00Z",
-			LastCheckedAt:       "2026-02-24T12:00:01Z",
-		},
-	}
-	second := []providerSnapshot{
-		{
-			Name:                "cloud-nimillm",
-			State:               "healthy",
-			Reason:              "",
-			ConsecutiveFailures: 0,
-			LastChangedAt:       "2026-02-24T12:00:00Z",
-			LastCheckedAt:       "2026-02-24T12:00:09Z",
-		},
-	}
-
-	left := providersSignature(first)
-	right := providersSignature(second)
-	if left != right {
-		t.Fatalf("signature should ignore timestamps: left=%q right=%q", left, right)
-	}
-}
-
-func TestFetchProviderSnapshotsInvalidSource(t *testing.T) {
-	_, _, err := fetchProviderSnapshots("unknown", "127.0.0.1:1", "127.0.0.1:2", 2000000000)
-	if err == nil {
-		t.Fatalf("expected invalid source error")
-	}
-	if !strings.Contains(err.Error(), "expected http|grpc") {
-		t.Fatalf("unexpected error: %v", err)
-	}
-}
-
-func TestDurationMillisecondsInt32RejectsOverflow(t *testing.T) {
-	_, err := durationMillisecondsInt32((time.Duration(int64(^uint32(0)>>1)) + 1) * time.Millisecond)
-	if err == nil {
-		t.Fatal("expected overflow error")
-	}
-}
-
-func TestMillisecondsInt32RejectsOverflow(t *testing.T) {
-	_, err := millisecondsInt32(int(^uint32(0)>>1) + 1)
-	if err == nil {
-		t.Fatal("expected overflow error")
 	}
 }
 
@@ -119,198 +29,60 @@ func TestReadAllBoundedRejectsOversizePayload(t *testing.T) {
 	}
 }
 
-func TestProvidersSignatureAndDiffIgnoresTimestamps(t *testing.T) {
-	previous := []providerSnapshot{
-		{
-			Name:                "cloud-nimillm",
-			State:               "healthy",
-			Reason:              "",
-			ConsecutiveFailures: 0,
-			LastChangedAt:       "2026-02-24T12:00:00Z",
-			LastCheckedAt:       "2026-02-24T12:00:01Z",
-		},
-	}
-	current := []providerSnapshot{
-		{
-			Name:                "cloud-nimillm",
-			State:               "healthy",
-			Reason:              "",
-			ConsecutiveFailures: 0,
-			LastChangedAt:       "2026-02-24T12:00:00Z",
-			LastCheckedAt:       "2026-02-24T12:00:09Z",
-		},
-	}
-
-	if providersSignature(previous) != providersSignature(current) {
-		t.Fatalf("signature should ignore timestamps")
-	}
-	changes := buildProviderDiff(previous, current)
-	if len(changes) != 0 {
-		t.Fatalf("diff should ignore timestamps, got=%d", len(changes))
-	}
-}
-
-func TestBuildProviderDiff(t *testing.T) {
-	previous := []providerSnapshot{
-		{
-			Name:                "cloud-dashscope",
-			State:               "healthy",
-			Reason:              "",
-			ConsecutiveFailures: 0,
-		},
-		{
-			Name:                "cloud-nimillm",
-			State:               "healthy",
-			Reason:              "",
-			ConsecutiveFailures: 0,
-		},
-	}
-	current := []providerSnapshot{
-		{
-			Name:                "cloud-dashscope",
-			State:               "unhealthy",
-			Reason:              "timeout",
-			ConsecutiveFailures: 2,
-		},
-		{
-			Name:                "cloud-volcengine",
-			State:               "healthy",
-			Reason:              "",
-			ConsecutiveFailures: 0,
-		},
-	}
-
-	changes := buildProviderDiff(previous, current)
-	if len(changes) != 3 {
-		t.Fatalf("changes count mismatch: got=%d want=3", len(changes))
-	}
-	seen := map[string]string{}
-	for _, item := range changes {
-		seen[item.Name] = item.Type
-	}
-	if seen["cloud-dashscope"] != "updated" {
-		t.Fatalf("dashscope diff mismatch: %#v", changes)
-	}
-	if seen["cloud-volcengine"] != "added" {
-		t.Fatalf("volcengine diff mismatch: %#v", changes)
-	}
-	if seen["cloud-nimillm"] != "removed" {
-		t.Fatalf("nimillm diff mismatch: %#v", changes)
-	}
-}
-
-func TestExtractRuntimeHealthSnapshot(t *testing.T) {
-	payload := map[string]any{
-		"status":                "RUNTIME_HEALTH_STATUS_READY",
-		"status_code":           float64(3),
-		"reason":                "ready",
-		"queue_depth":           float64(2),
-		"active_inference_jobs": float64(4),
-		"cpu_milli":             float64(100),
-		"memory_bytes":          float64(2048),
-		"vram_bytes":            float64(4096),
-		"sampled_at":            "2026-02-24T12:00:00Z",
-	}
-
-	snapshot := extractRuntimeHealthSnapshot(payload)
-	if snapshot.Status != "RUNTIME_HEALTH_STATUS_READY" {
-		t.Fatalf("status mismatch: %s", snapshot.Status)
-	}
-	if snapshot.StatusCode != 3 {
-		t.Fatalf("status code mismatch: %d", snapshot.StatusCode)
-	}
-	if snapshot.ActiveInferenceJobs != 4 {
-		t.Fatalf("active inference mismatch: %d", snapshot.ActiveInferenceJobs)
-	}
-	if snapshot.SampledAt == "" {
-		t.Fatalf("sampled_at must be set")
-	}
-}
-
-func TestRuntimeHealthSignatureIgnoresSampledAt(t *testing.T) {
-	first := runtimeHealthSnapshot{
-		Status:              "RUNTIME_HEALTH_STATUS_READY",
-		StatusCode:          3,
-		Reason:              "ready",
-		QueueDepth:          1,
-		ActiveInferenceJobs: 3,
-		CPUMilli:            100,
-		MemoryBytes:         200,
-		VRAMBytes:           300,
-		SampledAt:           "2026-02-24T12:00:00Z",
-	}
-	second := first
-	second.SampledAt = "2026-02-24T12:00:01Z"
-
-	if runtimeHealthSignature(first) != runtimeHealthSignature(second) {
-		t.Fatalf("runtime health signature should ignore sampled_at")
-	}
-}
-
-func TestBuildRuntimeHealthChanges(t *testing.T) {
-	before := runtimeHealthSnapshot{
-		Status:              "RUNTIME_HEALTH_STATUS_READY",
-		StatusCode:          3,
-		Reason:              "ready",
-		QueueDepth:          1,
-		ActiveInferenceJobs: 2,
-		CPUMilli:            100,
-		MemoryBytes:         200,
-		VRAMBytes:           300,
-	}
-	after := before
-	after.Status = "RUNTIME_HEALTH_STATUS_DEGRADED"
-	after.StatusCode = 4
-	after.Reason = "provider unavailable"
-	after.ActiveInferenceJobs = 0
-
-	changes := buildRuntimeHealthChanges(before, after)
-	if len(changes) != 4 {
-		t.Fatalf("runtime health changes mismatch: got=%d want=4", len(changes))
-	}
-	if changes[0].Field != "status" {
-		t.Fatalf("first field mismatch: %s", changes[0].Field)
-	}
-}
-
-func TestPrintProviderSnapshotPlainText(t *testing.T) {
-	output, err := captureStdoutFromRun(func() error {
-		return printProviderSnapshot([]providerSnapshot{{
-			Name:                "openai",
-			State:               "healthy",
-			Reason:              "configured",
-			ConsecutiveFailures: 0,
-			LastCheckedAt:       "2026-03-09T10:00:00Z",
-		}}, "2026-03-09T10:00:01Z", false)
+func TestProjectPublicDaemonHealthRedactsPrivateDetail(t *testing.T) {
+	projection := projectPublicDaemonHealth(daemonctl.Status{
+		Mode:            daemonctl.ModeBackground,
+		Process:         "running",
+		GRPCAddr:        "127.0.0.1:46371",
+		ConfigPath:      `C:\private\runtime.json`,
+		HealthReachable: true,
+		HealthSummary:   "RUNTIME_HEALTH_STATUS_DEGRADED (engine:llama stderr: private detail)",
+		HealthError:     "dial private endpoint failed",
+		Version:         "0.5.0",
 	})
-	if err != nil {
-		t.Fatalf("printProviderSnapshot: %v", err)
+	if projection.Health != publicDaemonHealthReachable {
+		t.Fatalf("public health mismatch: %#v", projection)
 	}
-	if !strings.Contains(output, "Nimi Provider Snapshots") || !strings.Contains(output, "provider:") || !strings.Contains(output, "openai") || !strings.Contains(output, "state:") || !strings.Contains(output, "healthy") {
-		t.Fatalf("unexpected provider snapshot output: %q", output)
+	serialized := strings.Join([]string{projection.Mode, projection.Process, projection.Health, projection.Version}, "|")
+	for _, privateDetail := range []string{"engine:llama", "stderr", "private detail", "46371", "runtime.json"} {
+		if strings.Contains(serialized, privateDetail) {
+			t.Fatalf("public health exposed private detail %q: %#v", privateDetail, projection)
+		}
+	}
+
+	protected := projectPublicDaemonHealth(daemonctl.Status{Mode: daemonctl.ModeProtectedService, Process: "running", HealthReachable: true})
+	if protected.Health != publicDaemonHealthServiceRunning {
+		t.Fatalf("protected service health mismatch: %#v", protected)
 	}
 }
 
-func TestPrintRuntimeHealthSnapshotPlainText(t *testing.T) {
-	output, err := captureStdoutFromRun(func() error {
-		printRuntimeHealthSnapshot(runtimeHealthSnapshot{
-			Status:              "RUNTIME_HEALTH_STATUS_READY",
-			StatusCode:          3,
-			Reason:              "ready",
-			QueueDepth:          2,
-			ActiveInferenceJobs: 4,
-			CPUMilli:            100,
-			MemoryBytes:         2048,
-			VRAMBytes:           4096,
-			SampledAt:           "2026-03-09T10:00:01Z",
-		})
-		return nil
-	})
-	if err != nil {
-		t.Fatalf("printRuntimeHealthSnapshot: %v", err)
+func TestRunRuntimeHealthUsesDaemonManagerProjection(t *testing.T) {
+	previousFactory := daemonManagerFactory
+	daemonManagerFactory = func() daemonManager {
+		return stubDaemonManager{status: daemonctl.Status{
+			Mode:            daemonctl.ModeBackground,
+			Process:         "running",
+			HealthReachable: true,
+			HealthSummary:   "engine:qwen unhealthy (stderr: private detail)",
+		}}
 	}
-	if !strings.Contains(output, "Nimi Runtime Health") || !strings.Contains(output, "status:") || !strings.Contains(output, "RUNTIME_HEALTH_STATUS_READY") || !strings.Contains(output, "queue depth:") {
-		t.Fatalf("unexpected runtime health output: %q", output)
+	defer func() { daemonManagerFactory = previousFactory }()
+
+	output, err := captureStdoutFromRun(func() error { return runRuntimeHealth([]string{"--json"}) })
+	if err != nil {
+		t.Fatalf("runRuntimeHealth: %v", err)
+	}
+	if !strings.Contains(output, `"health": "reachable"`) {
+		t.Fatalf("missing sanitized health: %s", output)
+	}
+	for _, privateDetail := range []string{"engine:qwen", "stderr", "private detail", "healthSummary"} {
+		if strings.Contains(output, privateDetail) {
+			t.Fatalf("health command exposed private detail %q: %s", privateDetail, output)
+		}
+	}
+
+	if err := runRuntimeHealth([]string{"--source", "grpc"}); err == nil || !strings.Contains(err.Error(), "flag provided but not defined") {
+		t.Fatalf("retired direct transport flag was not rejected: %v", err)
 	}
 }
 
@@ -378,6 +150,14 @@ func TestStreamEventJSONDelta(t *testing.T) {
 	}
 }
 
+func testTextStreamDelta(text string) *runtimev1.ScenarioStreamDelta {
+	return &runtimev1.ScenarioStreamDelta{
+		Delta: &runtimev1.ScenarioStreamDelta_Text{
+			Text: &runtimev1.TextStreamDelta{Text: text},
+		},
+	}
+}
+
 func TestMultiStringFlagValues(t *testing.T) {
 	var values multiStringFlag
 	if err := values.Set(" first "); err != nil {
@@ -392,18 +172,6 @@ func TestMultiStringFlagValues(t *testing.T) {
 	}
 	if got[0] != "first" || got[1] != "second" {
 		t.Fatalf("values mismatch: %#v", got)
-	}
-}
-
-func TestDefaultRuntimeAIArtifactTimeoutMs(t *testing.T) {
-	if got := defaultRuntimeAIArtifactTimeoutMs(runtimeAIArtifactModeImage); got != 120000 {
-		t.Fatalf("image timeout ms mismatch: %d", got)
-	}
-	if got := defaultRuntimeAIArtifactTimeoutMs(runtimeAIArtifactModeVideo); got != 300000 {
-		t.Fatalf("video timeout ms mismatch: %d", got)
-	}
-	if got := defaultRuntimeAIArtifactTimeoutMs(runtimeAIArtifactModeTTS); got != 45000 {
-		t.Fatalf("tts timeout ms mismatch: %d", got)
 	}
 }
 

@@ -170,41 +170,6 @@ func FetchHealth(httpAddr string, timeout time.Duration) (map[string]any, error)
 	return payload, nil
 }
 
-// ProviderHealthSnapshot is a transport-neutral view for runtime provider health.
-type ProviderHealthSnapshot struct {
-	Name                string
-	State               string
-	Reason              string
-	ConsecutiveFailures int32
-	LastChangedAt       string
-	LastCheckedAt       string
-}
-
-// ProviderHealthEvent is a streamed provider health record.
-type ProviderHealthEvent struct {
-	Sequence uint64
-	Snapshot ProviderHealthSnapshot
-}
-
-// RuntimeHealthSnapshot is a transport-neutral runtime health record.
-type RuntimeHealthSnapshot struct {
-	Status              string
-	StatusCode          int32
-	Reason              string
-	QueueDepth          int32
-	ActiveInferenceJobs int32
-	CPUMilli            int64
-	MemoryBytes         int64
-	VRAMBytes           int64
-	SampledAt           string
-}
-
-// RuntimeHealthEvent is a streamed runtime health record.
-type RuntimeHealthEvent struct {
-	Sequence uint64
-	Snapshot RuntimeHealthSnapshot
-}
-
 // ArtifactResult is a collected view from ArtifactChunk streaming RPCs.
 type ArtifactResult struct {
 	ArtifactID    string
@@ -243,5 +208,3 @@ const (
 	cliCallerID   = "nimi-cli"
 	cliSurfaceID  = "runtime-cli"
 )
-
-// FetchAIProviderHealthGRPC requests provider health snapshots from RuntimeAuditService.

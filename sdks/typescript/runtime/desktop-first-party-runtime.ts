@@ -55,7 +55,6 @@ export type NimiDesktopMachineProductRuntimeClient = {
     | 'cancelLocalEnvironmentDependencyJob'
     | 'retryLocalEnvironmentDependencyJob'
     | 'repairLocalEnvironmentDependency'
-    | 'resolveLocalStateReconciliation'
     | 'importModelAsset'
     | 'listModelAssets'
     | 'getModelAsset'
@@ -79,11 +78,9 @@ export type NimiDesktopMachineProductRuntimeClient = {
     | 'listProviderCatalog'>;
   readonly audit: Pick<DesktopMachineProductRuntimeMethods,
     | 'getRuntimeHealth'
-    | 'listAIProviderHealth'
     | 'listDesktopAuditEvents'
     | 'listUsageStats'
-    | 'subscribeRuntimeHealthEvents'
-    | 'subscribeAIProviderHealthEvents'>;
+    | 'subscribeRuntimeHealthEvents'>;
   readonly externalAgents: Pick<DesktopMachineProductRuntimeMethods,
     | 'getExternalAgentGatewayStatus'
     | 'issueExternalAgentToken'
@@ -355,7 +352,6 @@ export function createNimiDesktopFirstPartyRuntimeClients(
         cancelLocalEnvironmentDependencyJob: runtime.local.cancelLocalEnvironmentDependencyJob,
         retryLocalEnvironmentDependencyJob: runtime.local.retryLocalEnvironmentDependencyJob,
         repairLocalEnvironmentDependency: runtime.local.repairLocalEnvironmentDependency,
-        resolveLocalStateReconciliation: runtime.local.resolveLocalStateReconciliation,
         importModelAsset: runtime.local.importModelAsset,
         listModelAssets: runtime.local.listModelAssets,
         getModelAsset: runtime.local.getModelAsset,
@@ -380,11 +376,9 @@ export function createNimiDesktopFirstPartyRuntimeClients(
       }),
       audit: Object.freeze({
         getRuntimeHealth: runtime.audit.getRuntimeHealth,
-        listAIProviderHealth: runtime.audit.listAIProviderHealth,
         listDesktopAuditEvents: runtime.audit.listDesktopAuditEvents,
         listUsageStats: runtime.audit.listUsageStats,
         subscribeRuntimeHealthEvents: runtime.audit.subscribeRuntimeHealthEvents,
-        subscribeAIProviderHealthEvents: runtime.audit.subscribeAIProviderHealthEvents,
       }),
       externalAgents: Object.freeze({
         getExternalAgentGatewayStatus: runtime.externalAgents.getExternalAgentGatewayStatus,

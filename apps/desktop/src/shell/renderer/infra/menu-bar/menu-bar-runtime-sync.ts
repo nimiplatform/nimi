@@ -15,7 +15,7 @@ export const MENU_BAR_SYNC_HEARTBEAT_MS = 10_000;
 
 export type MenuBarRuntimeSyncState = Pick<
   NimiRuntimeHealthCoordinatorState,
-  'runtimeHealth' | 'providerHealth' | 'lastFetchedAt' | 'lastStreamAt' | 'error' | 'streamError'
+  'runtimeHealth' | 'lastFetchedAt' | 'lastStreamAt' | 'error' | 'streamError'
 >;
 
 export function buildMenuBarRuntimeSyncPayload(
@@ -32,9 +32,6 @@ export function buildMenuBarRuntimeSyncPayload(
   return {
     ...(runtimeHealthStatus ? { runtimeHealthStatus } : {}),
     ...(runtimeHealthReason ? { runtimeHealthReason } : {}),
-    ...(healthState.providerHealth.length > 0
-      ? { providerSummary: summarizeProviderStates(healthState.providerHealth) }
-      : {}),
     updatedAt: healthState.lastStreamAt || healthState.lastFetchedAt || new Date().toISOString(),
   };
 }
@@ -43,7 +40,6 @@ export function buildMenuBarRuntimeSyncKey(payload: MenuBarRuntimeHealthSyncPayl
   return JSON.stringify({
     runtimeHealthStatus: payload.runtimeHealthStatus ?? null,
     runtimeHealthReason: payload.runtimeHealthReason ?? null,
-    providerSummary: payload.providerSummary ?? null,
   });
 }
 
@@ -133,31 +129,6 @@ export function connectMenuBarRuntimeSync(
     if (debounceTimer) clearTimeout(debounceTimer);
     if (heartbeatTimer) clearInterval(heartbeatTimer);
   };
-}
-
-function summarizeProviderStates(providers: Array<{ state?: unknown }>): {
-  healthy: number;
-  unhealthy: number;
-  unknown: number;
-  total: number;
-} {
-  const summary = {
-    healthy: 0,
-    unhealthy: 0,
-    unknown: 0,
-    total: providers.length,
-  };
-  for (const provider of providers) {
-    const state = String(provider.state || '').trim().toLowerCase();
-    if (state === 'healthy') {
-      summary.healthy += 1;
-    } else if (state === 'unhealthy') {
-      summary.unhealthy += 1;
-    } else {
-      summary.unknown += 1;
-    }
-  }
-  return summary;
 }
 
 function boundedHealthReason(value: unknown): string | undefined {

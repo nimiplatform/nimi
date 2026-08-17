@@ -11,7 +11,6 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/health"
-	"github.com/nimiplatform/nimi/runtime/internal/providerhealth"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
@@ -25,110 +24,13 @@ func auditContext(appID string) context.Context {
 	return metadata.NewIncomingContext(context.Background(), metadata.Pairs("x-nimi-app-id", appID))
 }
 
-func TestListAIProviderHealth(t *testing.T) {
-	state := health.NewState()
-	tracker := providerhealth.New()
-	if err := tracker.Mark("cloud-nimillm", true, ""); err != nil {
-		t.Fatalf("Mark healthy provider: %v", err)
-	}
-	if err := tracker.Mark("cloud-dashscope", false, "timeout"); err != nil {
-		t.Fatalf("Mark unhealthy provider: %v", err)
-	}
-
-	svc := New(state, slog.New(slog.NewTextHandler(io.Discard, nil)), tracker)
-	resp, err := svc.ListAIProviderHealth(context.Background(), nil)
-	if err != nil {
-		t.Fatalf("ListAIProviderHealth: %v", err)
-	}
-	if len(resp.GetProviders()) != 1 {
-		t.Fatalf("providers length mismatch: got=%d want=1", len(resp.GetProviders()))
-	}
-	if resp.GetProviders()[0].GetProviderName() != "cloud-nimillm" {
-		t.Fatalf("first provider mismatch: %s", resp.GetProviders()[0].GetProviderName())
-	}
-	if resp.GetProviders()[0].GetState() != "unhealthy" {
-		t.Fatalf("first state mismatch: %s", resp.GetProviders()[0].GetState())
-	}
-	if len(resp.GetProviders()[0].GetSubHealth()) != 2 {
-		t.Fatalf("sub health length mismatch: got=%d want=2", len(resp.GetProviders()[0].GetSubHealth()))
-	}
-}
-
-func TestListAIProviderHealthEmptyWhenNoTracker(t *testing.T) {
-	state := health.NewState()
-	svc := New(state, slog.New(slog.NewTextHandler(io.Discard, nil)), nil)
-	resp, err := svc.ListAIProviderHealth(context.Background(), nil)
-	if err != nil {
-		t.Fatalf("ListAIProviderHealth: %v", err)
-	}
-	if len(resp.GetProviders()) != 0 {
-		t.Fatalf("expected empty providers, got=%d", len(resp.GetProviders()))
-	}
-}
-
-func TestSubscribeAIProviderHealthEvents(t *testing.T) {
-	state := health.NewState()
-	tracker := providerhealth.New()
-	if err := tracker.Mark("cloud-nimillm", true, ""); err != nil {
-		t.Fatalf("Mark healthy provider: %v", err)
-	}
-
-	svc := New(state, slog.New(slog.NewTextHandler(io.Discard, nil)), tracker)
-
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	stream := &providerHealthStreamCollector{ctx: ctx}
-	done := make(chan error, 1)
-	go func() {
-		done <- svc.SubscribeAIProviderHealthEvents(&runtimev1.SubscribeAIProviderHealthEventsRequest{}, stream)
-	}()
-
-	if !waitForProviderEvents(stream, 1, 300*time.Millisecond) {
-		t.Fatalf("expected baseline provider event")
-	}
-	first := stream.eventAt(0)
-	if first.GetProviderName() != "cloud-nimillm" {
-		t.Fatalf("baseline provider mismatch: %s", first.GetProviderName())
-	}
-	if first.GetState() != "healthy" {
-		t.Fatalf("baseline state mismatch: %s", first.GetState())
-	}
-	if len(first.GetSubHealth()) != 1 {
-		t.Fatalf("baseline sub-health mismatch: got=%d want=1", len(first.GetSubHealth()))
-	}
-
-	if err := tracker.Mark("cloud-nimillm", false, "timeout"); err != nil {
-		t.Fatalf("Mark unhealthy provider: %v", err)
-	}
-	if !waitForProviderEvents(stream, 2, 300*time.Millisecond) {
-		t.Fatalf("expected update provider event")
-	}
-	second := stream.eventAt(1)
-	if second.GetState() != "unhealthy" {
-		t.Fatalf("update state mismatch: %s", second.GetState())
-	}
-	if len(second.GetSubHealth()) != 1 {
-		t.Fatalf("update sub-health mismatch: got=%d want=1", len(second.GetSubHealth()))
-	}
-
-	cancel()
-	select {
-	case err := <-done:
-		if err != nil {
-			t.Fatalf("SubscribeAIProviderHealthEvents returned error: %v", err)
-		}
-	case <-time.After(500 * time.Millisecond):
-		t.Fatalf("subscribe did not exit after cancel")
-	}
-}
-
 func TestGetRuntimeHealthContract(t *testing.T) {
 	state := health.NewState()
 	state.SetStatus(health.StatusReady, "ready")
 	state.SetActivity(3, 2)
 	state.SetResource(123, 456, 789)
 
-	svc := New(state, slog.New(slog.NewTextHandler(io.Discard, nil)), providerhealth.New())
+	svc := New(state, slog.New(slog.NewTextHandler(io.Discard, nil)))
 	resp, err := svc.GetRuntimeHealth(context.Background(), &runtimev1.GetRuntimeHealthRequest{})
 	if err != nil {
 		t.Fatalf("GetRuntimeHealth returned error: %v", err)
@@ -149,7 +51,7 @@ func TestGetRuntimeHealthContract(t *testing.T) {
 
 func TestSubscribeRuntimeHealthEvents(t *testing.T) {
 	state := health.NewState()
-	svc := New(state, slog.New(slog.NewTextHandler(io.Discard, nil)), providerhealth.New())
+	svc := New(state, slog.New(slog.NewTextHandler(io.Discard, nil)))
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -185,7 +87,7 @@ func TestSubscribeRuntimeHealthEvents(t *testing.T) {
 
 func TestSubscribeRuntimeHealthEventsReturnsCancelledOnStopping(t *testing.T) {
 	state := health.NewState()
-	svc := New(state, slog.New(slog.NewTextHandler(io.Discard, nil)), providerhealth.New())
+	svc := New(state, slog.New(slog.NewTextHandler(io.Discard, nil)))
 
 	stream := &runtimeHealthStreamCollector{ctx: context.Background()}
 	done := make(chan error, 1)
@@ -201,13 +103,6 @@ func TestSubscribeRuntimeHealthEventsReturnsCancelledOnStopping(t *testing.T) {
 	if status.Code(err) != codes.Canceled {
 		t.Fatalf("expected cancelled close on stopping, got %v", err)
 	}
-}
-
-type providerHealthStreamCollector struct {
-	ctx context.Context
-	mu  sync.Mutex
-	// events is guarded by mu.
-	events []*runtimev1.AIProviderHealthEvent
 }
 
 type runtimeHealthStreamCollector struct {
@@ -244,17 +139,6 @@ func (s *runtimeHealthStreamCollector) eventAt(index int) *runtimev1.RuntimeHeal
 	return s.events[index]
 }
 
-func (s *providerHealthStreamCollector) Send(event *runtimev1.AIProviderHealthEvent) error {
-	copied, ok := proto.Clone(event).(*runtimev1.AIProviderHealthEvent)
-	if !ok {
-		copied = &runtimev1.AIProviderHealthEvent{}
-	}
-	s.mu.Lock()
-	s.events = append(s.events, copied)
-	s.mu.Unlock()
-	return nil
-}
-
 type blockingRuntimeHealthStreamCollector struct {
 	ctx  context.Context
 	gate chan struct{}
@@ -274,58 +158,6 @@ func (s *blockingRuntimeHealthStreamCollector) SetTrailer(metadata.MD)       {}
 func (s *blockingRuntimeHealthStreamCollector) Context() context.Context     { return s.ctx }
 func (s *blockingRuntimeHealthStreamCollector) SendMsg(any) error            { return nil }
 func (s *blockingRuntimeHealthStreamCollector) RecvMsg(any) error            { return nil }
-
-type blockingProviderHealthStreamCollector struct {
-	ctx  context.Context
-	gate chan struct{}
-	once sync.Once
-}
-
-func (s *blockingProviderHealthStreamCollector) Send(*runtimev1.AIProviderHealthEvent) error {
-	s.once.Do(func() {
-		<-s.gate
-	})
-	return nil
-}
-
-func (s *blockingProviderHealthStreamCollector) SetHeader(metadata.MD) error  { return nil }
-func (s *blockingProviderHealthStreamCollector) SendHeader(metadata.MD) error { return nil }
-func (s *blockingProviderHealthStreamCollector) SetTrailer(metadata.MD)       {}
-func (s *blockingProviderHealthStreamCollector) Context() context.Context     { return s.ctx }
-func (s *blockingProviderHealthStreamCollector) SendMsg(any) error            { return nil }
-func (s *blockingProviderHealthStreamCollector) RecvMsg(any) error            { return nil }
-
-func (s *providerHealthStreamCollector) SetHeader(metadata.MD) error  { return nil }
-func (s *providerHealthStreamCollector) SendHeader(metadata.MD) error { return nil }
-func (s *providerHealthStreamCollector) SetTrailer(metadata.MD)       {}
-func (s *providerHealthStreamCollector) Context() context.Context     { return s.ctx }
-func (s *providerHealthStreamCollector) SendMsg(any) error            { return nil }
-func (s *providerHealthStreamCollector) RecvMsg(any) error            { return nil }
-
-func (s *providerHealthStreamCollector) eventAt(index int) *runtimev1.AIProviderHealthEvent {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if index < 0 || index >= len(s.events) {
-		return &runtimev1.AIProviderHealthEvent{}
-	}
-	return s.events[index]
-}
-
-func waitForProviderEvents(stream *providerHealthStreamCollector, target int, timeout time.Duration) bool {
-	deadline := time.Now().Add(timeout)
-	for time.Now().Before(deadline) {
-		stream.mu.Lock()
-		count := len(stream.events)
-		stream.mu.Unlock()
-		if count >= target {
-			return true
-		}
-		time.Sleep(10 * time.Millisecond)
-	}
-	stream.mu.Lock()
-	defer stream.mu.Unlock()
-	return len(stream.events) >= target
-}
 
 func waitForRuntimeHealthEvents(stream *runtimeHealthStreamCollector, target int, timeout time.Duration) bool {
 	deadline := time.Now().Add(timeout)
@@ -348,7 +180,7 @@ func waitForRuntimeHealthEvents(stream *runtimeHealthStreamCollector, target int
 func TestListAuditEventsSyntheticBaseline(t *testing.T) {
 	state := health.NewState()
 	state.SetStatus(health.StatusReady, "ready")
-	svc := New(state, slog.New(slog.NewTextHandler(io.Discard, nil)), providerhealth.New())
+	svc := New(state, slog.New(slog.NewTextHandler(io.Discard, nil)))
 
 	resp, err := svc.ListAuditEvents(context.Background(), &runtimev1.ListAuditEventsRequest{})
 	if err != nil {
@@ -371,7 +203,7 @@ func TestListAuditEventsSyntheticBaseline(t *testing.T) {
 
 func TestListAuditEventsFilterByAppId(t *testing.T) {
 	state := health.NewState()
-	svc := New(state, slog.New(slog.NewTextHandler(io.Discard, nil)), providerhealth.New())
+	svc := New(state, slog.New(slog.NewTextHandler(io.Discard, nil)))
 
 	resp, err := svc.ListAuditEvents(context.Background(), &runtimev1.ListAuditEventsRequest{
 		AppId: "nonexistent-app",
@@ -386,7 +218,7 @@ func TestListAuditEventsFilterByAppId(t *testing.T) {
 
 func TestListAuditEventsFilterByDomain(t *testing.T) {
 	state := health.NewState()
-	svc := New(state, slog.New(slog.NewTextHandler(io.Discard, nil)), providerhealth.New())
+	svc := New(state, slog.New(slog.NewTextHandler(io.Discard, nil)))
 
 	resp, err := svc.ListAuditEvents(context.Background(), &runtimev1.ListAuditEventsRequest{
 		Domain: "runtime.health",
@@ -401,7 +233,7 @@ func TestListAuditEventsFilterByDomain(t *testing.T) {
 
 func TestListAuditEventsPagination(t *testing.T) {
 	state := health.NewState()
-	svc := New(state, slog.New(slog.NewTextHandler(io.Discard, nil)), providerhealth.New())
+	svc := New(state, slog.New(slog.NewTextHandler(io.Discard, nil)))
 
 	resp, err := svc.ListAuditEvents(context.Background(), &runtimev1.ListAuditEventsRequest{
 		PageSize: 1,
@@ -418,7 +250,7 @@ func TestListUsageStatsBaseline(t *testing.T) {
 	state := health.NewState()
 	state.SetStatus(health.StatusReady, "ready")
 	state.SetActivity(2, 1)
-	svc := New(state, slog.New(slog.NewTextHandler(io.Discard, nil)), providerhealth.New())
+	svc := New(state, slog.New(slog.NewTextHandler(io.Discard, nil)))
 
 	resp, err := svc.ListUsageStats(context.Background(), &runtimev1.ListUsageStatsRequest{})
 	if err != nil {
@@ -438,7 +270,7 @@ func TestListUsageStatsBaseline(t *testing.T) {
 
 func TestListUsageStatsFilterByCapability(t *testing.T) {
 	state := health.NewState()
-	svc := New(state, slog.New(slog.NewTextHandler(io.Discard, nil)), providerhealth.New())
+	svc := New(state, slog.New(slog.NewTextHandler(io.Discard, nil)))
 
 	resp, err := svc.ListUsageStats(context.Background(), &runtimev1.ListUsageStatsRequest{
 		Capability: "nonexistent",
@@ -453,7 +285,7 @@ func TestListUsageStatsFilterByCapability(t *testing.T) {
 
 func TestListUsageStatsFilterByCallerKind(t *testing.T) {
 	state := health.NewState()
-	svc := New(state, slog.New(slog.NewTextHandler(io.Discard, nil)), providerhealth.New())
+	svc := New(state, slog.New(slog.NewTextHandler(io.Discard, nil)))
 
 	resp, err := svc.ListUsageStats(context.Background(), &runtimev1.ListUsageStatsRequest{
 		CallerKind: runtimev1.CallerKind_CALLER_KIND_THIRD_PARTY_APP,
@@ -468,7 +300,7 @@ func TestListUsageStatsFilterByCallerKind(t *testing.T) {
 
 func TestListUsageStatsFilterByCallerId(t *testing.T) {
 	state := health.NewState()
-	svc := New(state, slog.New(slog.NewTextHandler(io.Discard, nil)), providerhealth.New())
+	svc := New(state, slog.New(slog.NewTextHandler(io.Discard, nil)))
 
 	resp, err := svc.ListUsageStats(context.Background(), &runtimev1.ListUsageStatsRequest{
 		CallerId: "wrong-caller",
@@ -484,7 +316,7 @@ func TestListUsageStatsFilterByCallerId(t *testing.T) {
 func TestExportAuditEventsEofTrue(t *testing.T) {
 	state := health.NewState()
 	state.SetStatus(health.StatusReady, "ready")
-	svc := New(state, slog.New(slog.NewTextHandler(io.Discard, nil)), providerhealth.New())
+	svc := New(state, slog.New(slog.NewTextHandler(io.Discard, nil)))
 
 	ctx := auditContext("runtime")
 	stream := &exportStreamCollector{ctx: ctx}
@@ -506,7 +338,7 @@ func TestExportAuditEventsEofTrue(t *testing.T) {
 
 func TestExportAuditEventsCompressed(t *testing.T) {
 	state := health.NewState()
-	svc := New(state, slog.New(slog.NewTextHandler(io.Discard, nil)), providerhealth.New())
+	svc := New(state, slog.New(slog.NewTextHandler(io.Discard, nil)))
 
 	ctx := auditContext("runtime")
 	stream := &exportStreamCollector{ctx: ctx}
@@ -526,7 +358,7 @@ func TestExportAuditEventsCompressed(t *testing.T) {
 
 func TestExportAuditEventsSequenceStartsFromZero(t *testing.T) {
 	state := health.NewState()
-	svc := New(state, slog.New(slog.NewTextHandler(io.Discard, nil)), providerhealth.New())
+	svc := New(state, slog.New(slog.NewTextHandler(io.Discard, nil)))
 
 	ctx := auditContext("runtime")
 	stream := &exportStreamCollector{ctx: ctx}
@@ -543,7 +375,7 @@ func TestExportAuditEventsSequenceStartsFromZero(t *testing.T) {
 
 func TestExportAuditEventsRejectsMissingPrincipal(t *testing.T) {
 	state := health.NewState()
-	svc := New(state, slog.New(slog.NewTextHandler(io.Discard, nil)), providerhealth.New())
+	svc := New(state, slog.New(slog.NewTextHandler(io.Discard, nil)))
 
 	stream := &exportStreamCollector{ctx: auditContext("")}
 	err := svc.ExportAuditEvents(&runtimev1.ExportAuditEventsRequest{}, stream)
@@ -557,7 +389,7 @@ func TestExportAuditEventsRejectsMissingPrincipal(t *testing.T) {
 
 func TestExportAuditEventsRejectsAppMismatch(t *testing.T) {
 	state := health.NewState()
-	svc := New(state, slog.New(slog.NewTextHandler(io.Discard, nil)), providerhealth.New())
+	svc := New(state, slog.New(slog.NewTextHandler(io.Discard, nil)))
 
 	stream := &exportStreamCollector{ctx: auditContext("runtime")}
 	err := svc.ExportAuditEvents(&runtimev1.ExportAuditEventsRequest{AppId: "other-app"}, stream)
@@ -571,7 +403,7 @@ func TestExportAuditEventsRejectsAppMismatch(t *testing.T) {
 
 func TestExportAuditEventsUsesZeroLengthChunkForEmptyPayload(t *testing.T) {
 	state := health.NewState()
-	svc := New(state, slog.New(slog.NewTextHandler(io.Discard, nil)), providerhealth.New())
+	svc := New(state, slog.New(slog.NewTextHandler(io.Discard, nil)))
 
 	stream := &exportStreamCollector{ctx: auditContext("runtime")}
 	err := svc.ExportAuditEvents(&runtimev1.ExportAuditEventsRequest{SubjectUserId: "no-matching-events"}, stream)
@@ -592,7 +424,7 @@ func TestExportAuditEventsUsesZeroLengthChunkForEmptyPayload(t *testing.T) {
 func TestSyntheticAuditEventsUseSnakeCaseInferenceKey(t *testing.T) {
 	state := health.NewState()
 	state.SetActivity(3, 0)
-	svc := New(state, slog.New(slog.NewTextHandler(io.Discard, nil)), providerhealth.New())
+	svc := New(state, slog.New(slog.NewTextHandler(io.Discard, nil)))
 
 	resp, err := svc.ListAuditEvents(context.Background(), &runtimev1.ListAuditEventsRequest{})
 	if err != nil {
@@ -615,7 +447,7 @@ func TestSyntheticAuditEventsUseSnakeCaseInferenceKey(t *testing.T) {
 
 func TestSubscribeRuntimeHealthEventsSlowConsumerClosed(t *testing.T) {
 	state := health.NewState()
-	svc := New(state, slog.New(slog.NewTextHandler(io.Discard, nil)), providerhealth.New())
+	svc := New(state, slog.New(slog.NewTextHandler(io.Discard, nil)))
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -642,44 +474,9 @@ func TestSubscribeRuntimeHealthEventsSlowConsumerClosed(t *testing.T) {
 	}
 }
 
-func TestSubscribeAIProviderHealthEventsSlowConsumerClosed(t *testing.T) {
-	state := health.NewState()
-	tracker := providerhealth.New()
-	if err := tracker.Mark("cloud-nimillm", true, ""); err != nil {
-		t.Fatalf("Mark healthy provider: %v", err)
-	}
-	svc := New(state, slog.New(slog.NewTextHandler(io.Discard, nil)), tracker)
-
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	stream := &blockingProviderHealthStreamCollector{ctx: ctx, gate: make(chan struct{})}
-	done := make(chan error, 1)
-	go func() {
-		done <- svc.SubscribeAIProviderHealthEvents(&runtimev1.SubscribeAIProviderHealthEventsRequest{}, stream)
-	}()
-
-	time.Sleep(20 * time.Millisecond)
-	for i := 0; i < 32; i++ {
-		if err := tracker.Mark("cloud-nimillm", i%2 == 0, "flip"); err != nil {
-			t.Fatalf("Mark provider flip: %v", err)
-		}
-		time.Sleep(2 * time.Millisecond)
-	}
-	close(stream.gate)
-
-	select {
-	case err := <-done:
-		if status.Code(err) != codes.ResourceExhausted {
-			t.Fatalf("expected resource exhausted, got %v", err)
-		}
-	case <-time.After(2 * time.Second):
-		t.Fatal("subscribe provider health did not close on slow consumer")
-	}
-}
-
 func TestSubscribeRuntimeHealthEventsCloseOnCancel(t *testing.T) {
 	state := health.NewState()
-	svc := New(state, slog.New(slog.NewTextHandler(io.Discard, nil)), providerhealth.New())
+	svc := New(state, slog.New(slog.NewTextHandler(io.Discard, nil)))
 
 	ctx, cancel := context.WithCancel(context.Background())
 	stream := &runtimeHealthStreamCollector{ctx: ctx}
@@ -697,57 +494,6 @@ func TestSubscribeRuntimeHealthEventsCloseOnCancel(t *testing.T) {
 		}
 	case <-time.After(500 * time.Millisecond):
 		t.Fatal("subscribe did not exit after cancel")
-	}
-}
-
-func TestSubscribeAIProviderHealthEventsCloseOnCancel(t *testing.T) {
-	state := health.NewState()
-	tracker := providerhealth.New()
-	svc := New(state, slog.New(slog.NewTextHandler(io.Discard, nil)), tracker)
-
-	ctx, cancel := context.WithCancel(context.Background())
-	stream := &providerHealthStreamCollector{ctx: ctx}
-	done := make(chan error, 1)
-	go func() {
-		done <- svc.SubscribeAIProviderHealthEvents(&runtimev1.SubscribeAIProviderHealthEventsRequest{}, stream)
-	}()
-
-	cancel()
-	select {
-	case err := <-done:
-		if err != nil {
-			t.Fatalf("expected nil error on cancel, got=%v", err)
-		}
-	case <-time.After(500 * time.Millisecond):
-		t.Fatal("subscribe did not exit after cancel")
-	}
-}
-
-func TestSubscribeAIProviderHealthEventsNilTracker(t *testing.T) {
-	state := health.NewState()
-	svc := New(state, slog.New(slog.NewTextHandler(io.Discard, nil)), nil)
-
-	ctx, cancel := context.WithCancel(context.Background())
-	stream := &providerHealthStreamCollector{ctx: ctx}
-	done := make(chan error, 1)
-	go func() {
-		done <- svc.SubscribeAIProviderHealthEvents(&runtimev1.SubscribeAIProviderHealthEventsRequest{}, stream)
-	}()
-
-	select {
-	case err := <-done:
-		t.Fatalf("nil tracker stream closed before cancel: %v", err)
-	case <-time.After(50 * time.Millisecond):
-	}
-
-	cancel()
-	select {
-	case err := <-done:
-		if err != nil {
-			t.Fatalf("expected nil error with nil tracker on cancel, got=%v", err)
-		}
-	case <-time.After(500 * time.Millisecond):
-		t.Fatal("nil tracker stream did not exit after cancel")
 	}
 }
 

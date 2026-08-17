@@ -71,7 +71,7 @@ func TestRunRuntimeConfigUnavailableWithoutExplicitPortablePath(t *testing.T) {
 	}
 }
 
-func TestRunRuntimeConfigSetAllowsInlineProviderAPIKey(t *testing.T) {
+func TestRunRuntimeConfigSetRejectsProviderCustodyMutation(t *testing.T) {
 	homeDir := t.TempDir()
 	setCmdTestHome(t, homeDir)
 	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", "")
@@ -81,21 +81,13 @@ func TestRunRuntimeConfigSetAllowsInlineProviderAPIKey(t *testing.T) {
 		t.Fatalf("init config: %v", err)
 	}
 
-	setOutput, err := captureStdoutFromRun(func() error {
-		return runRuntimeConfig([]string{
-			"set",
-			"--set", "grpcAddr=127.0.0.1:50051",
-			"--set", "providers.gemini.baseUrl=https://generativelanguage.googleapis.com/v1beta/openai",
-			"--set", "providers.gemini.apiKeyEnv=NIMI_RUNTIME_CLOUD_GEMINI_API_KEY",
-			"--json",
-		})
+	err := runRuntimeConfig([]string{
+		"set",
+		"--set", "providers.gemini.apiKeyEnv=NIMI_RUNTIME_CLOUD_GEMINI_API_KEY",
+		"--json",
 	})
-	if err != nil {
-		t.Fatalf("runRuntimeConfig set: %v", err)
-	}
-	setPayload := parseJSONMap(t, setOutput)
-	if asString(setPayload["reasonCode"]) != configReasonRestartRequired {
-		t.Fatalf("set reasonCode mismatch: %s", setOutput)
+	if err == nil || !strings.Contains(err.Error(), configReasonSchemaInvalid) || !strings.Contains(err.Error(), "unsupported config key") {
+		t.Fatalf("provider key mutation error = %v", err)
 	}
 
 	cfgPath := cmdTestPortableConfigPath(homeDir)
@@ -103,37 +95,26 @@ func TestRunRuntimeConfigSetAllowsInlineProviderAPIKey(t *testing.T) {
 	if loadErr != nil {
 		t.Fatalf("LoadFileConfig: %v", loadErr)
 	}
-	if cfg.GRPCAddr != "127.0.0.1:50051" {
-		t.Fatalf("grpc addr mismatch: got=%q", cfg.GRPCAddr)
-	}
-	provider := cfg.Providers["gemini"]
-	if provider.APIKeyEnv != "NIMI_RUNTIME_CLOUD_GEMINI_API_KEY" {
-		t.Fatalf("apiKeyEnv mismatch: got=%q", provider.APIKeyEnv)
+	if len(cfg.Providers) != 0 {
+		t.Fatalf("rejected provider key mutation persisted: %#v", cfg.Providers)
 	}
 
-	inlineOutput, err := captureStdoutFromRun(func() error {
-		return runRuntimeConfig([]string{
-			"set",
-			"--set", "providers.gemini.apiKeyEnv=",
-			"--set", "providers.gemini.apiKey=plaintext",
-			"--json",
-		})
-	})
-	if err != nil {
-		t.Fatalf("runRuntimeConfig set inline apiKey: %v", err)
+	inputPath := filepath.Join(t.TempDir(), "provider-config.json")
+	input := `{"schemaVersion":1,"providers":{"gemini":{"apiKey":"plaintext"}}}`
+	if writeErr := os.WriteFile(inputPath, []byte(input), 0o600); writeErr != nil {
+		t.Fatal(writeErr)
 	}
-	inlinePayload := parseJSONMap(t, inlineOutput)
-	if asString(inlinePayload["reasonCode"]) != configReasonRestartRequired {
-		t.Fatalf("inline set reasonCode mismatch: %s", inlineOutput)
+	err = runRuntimeConfig([]string{"set", "--file", inputPath, "--json"})
+	if err == nil || !strings.Contains(err.Error(), configReasonSchemaInvalid) || !strings.Contains(err.Error(), "protected Connector") {
+		t.Fatalf("full provider custody mutation error = %v", err)
 	}
 
 	cfg, loadErr = config.LoadFileConfig(cfgPath)
 	if loadErr != nil {
 		t.Fatalf("LoadFileConfig reload: %v", loadErr)
 	}
-	provider = cfg.Providers["gemini"]
-	if provider.APIKey != "plaintext" {
-		t.Fatalf("apiKey mismatch: got=%q", provider.APIKey)
+	if len(cfg.Providers) != 0 {
+		t.Fatalf("rejected full provider mutation persisted: %#v", cfg.Providers)
 	}
 }
 

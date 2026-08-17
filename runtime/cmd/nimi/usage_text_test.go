@@ -34,12 +34,22 @@ func captureStderrOutput(t *testing.T, fn func()) string {
 
 func TestPrintUsageOmitsPublicAppAuthCommand(t *testing.T) {
 	output := captureStderrOutput(t, printUsage)
+	for _, heading := range []string{"Quick Start:", "Runtime Operations:", "Advanced/Admin:", "Author tooling:"} {
+		if !strings.Contains(output, heading) {
+			t.Fatalf("usage should include %s heading: %q", heading, output)
+		}
+	}
 	if strings.Contains(output, "app-auth") {
 		t.Fatalf("usage must not expose public app-auth command: %q", output)
 	}
-	for _, command := range []string{"doctor", "version", "provider", "run"} {
+	for _, command := range []string{"doctor", "version"} {
 		if !strings.Contains(output, command) {
 			t.Fatalf("usage should include %s command: %q", command, output)
+		}
+	}
+	for _, retired := range []string{"run         Generate", "chat", "Advanced AI operations", "nimi ai"} {
+		if strings.Contains(output, retired) {
+			t.Fatalf("usage must not expose retired generation command %q: %q", retired, output)
 		}
 	}
 	if regexp.MustCompile(`(?m)^\s+auth\s+`).MatchString(output) {
@@ -47,6 +57,16 @@ func TestPrintUsageOmitsPublicAppAuthCommand(t *testing.T) {
 	}
 	if regexp.MustCompile(`(?m)^\s+mod\s+`).MatchString(output) {
 		t.Fatalf("usage should not expose retired mod command group: %q", output)
+	}
+	for _, protectedCommand := range []string{"model", "provider", "providers"} {
+		if regexp.MustCompile(`(?m)^\s+` + regexp.QuoteMeta(protectedCommand) + `\s+`).MatchString(output) {
+			t.Fatalf("usage must not expose protected %s command group: %q", protectedCommand, output)
+		}
+	}
+	for _, protectedHeading := range []string{"Asset Management:", "Connector Custody:"} {
+		if strings.Contains(output, protectedHeading) {
+			t.Fatalf("usage must not expose protected product group %q: %q", protectedHeading, output)
+		}
 	}
 	if !strings.Contains(output, "config") {
 		t.Fatalf("usage should include config command group: %q", output)
@@ -74,26 +94,6 @@ func TestPrintUsageOmitsPublicAppAuthCommand(t *testing.T) {
 	}
 	if strings.Contains(output, "|grant|") {
 		t.Fatalf("usage should not include legacy grant command: %q", output)
-	}
-}
-
-func TestPrintRuntimeProviderUsageIncludesSubcommands(t *testing.T) {
-	output := captureStderrOutput(t, printRuntimeProviderUsage)
-	required := []string{
-		"nimi provider list",
-		"nimi provider set <provider>",
-		"--api-key",
-		"--api-key-env",
-		"nimi provider unset <provider>",
-		"nimi provider test <provider>",
-	}
-	for _, command := range required {
-		if !strings.Contains(output, command) {
-			t.Fatalf("runtime provider usage missing %s: %q", command, output)
-		}
-	}
-	if strings.Contains(output, "--default") {
-		t.Fatalf("runtime provider usage must not expose default routing: %q", output)
 	}
 }
 

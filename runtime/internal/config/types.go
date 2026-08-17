@@ -47,10 +47,6 @@ type Config struct {
 	// sessions. Requests above this bound are rejected. Default: 86400. (K-AUTHSVC-004)
 	SessionTTLMaxSeconds int
 
-	// AIHealthIntervalSeconds is the interval in seconds between AI provider
-	// health probes. Default: 8. (K-DAEMON-009)
-	AIHealthIntervalSeconds int
-
 	// AIHTTPTimeoutSeconds is the HTTP timeout in seconds for AI provider
 	// requests. Default: 30. (K-DAEMON-009)
 	AIHTTPTimeoutSeconds int
@@ -228,7 +224,6 @@ type FileConfig struct {
 	ManagedRoots           *FileConfigManagedRoots `json:"managedRoots,omitempty"`
 	LocalService           *FileConfigLocalService `json:"localService,omitempty"`
 
-	AIHealthIntervalSeconds   *int                         `json:"aiHealthIntervalSeconds,omitempty"`
 	AIHTTPTimeoutSeconds      *int                         `json:"aiHttpTimeoutSeconds,omitempty"`
 	GlobalConcurrencyLimit    *int                         `json:"globalConcurrencyLimit,omitempty"`
 	PerAppConcurrencyLimit    *int                         `json:"perAppConcurrencyLimit,omitempty"`

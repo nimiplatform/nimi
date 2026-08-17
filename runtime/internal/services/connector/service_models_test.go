@@ -34,7 +34,7 @@ func TestListConnectorModelsRemoteUsesCatalogWithoutOutbound(t *testing.T) {
 		},
 		HTTPTimeout:           5 * time.Second,
 		AllowLoopbackEndpoint: true,
-	}, nil))
+	}))
 	created, err := svc.CreateConnector(ctx, &runtimev1.CreateConnectorRequest{
 		Provider: "openai",
 		Endpoint: server.URL,
@@ -381,7 +381,7 @@ func TestListConnectorModelsForceRefreshIsNoOpAndDoesNotOutbound(t *testing.T) {
 			"openai": {BaseURL: server.URL, APIKey: "cloud-key"},
 		},
 		AllowLoopbackEndpoint: true,
-	}, nil))
+	}))
 	created, err := svc.CreateConnector(ctx, &runtimev1.CreateConnectorRequest{
 		Provider: "openai",
 		Endpoint: server.URL,
@@ -429,7 +429,7 @@ func TestListConnectorModelsDynamicProviderForceRefreshIsNoOp(t *testing.T) {
 		},
 		HTTPTimeout:           5 * time.Second,
 		AllowLoopbackEndpoint: true,
-	}, nil))
+	}))
 	created, err := svc.CreateConnector(ctx, &runtimev1.CreateConnectorRequest{
 		Provider: "openrouter",
 		Endpoint: server.URL,
@@ -497,7 +497,7 @@ func TestListConnectorModelsFireworksUsesSnapshotWithoutAccountModelsEndpoint(t 
 		},
 		HTTPTimeout:           5 * time.Second,
 		AllowLoopbackEndpoint: true,
-	}, nil))
+	}))
 	created, err := svc.CreateConnector(ctx, &runtimev1.CreateConnectorRequest{
 		Provider: "fireworks",
 		Endpoint: server.URL + "/inference/v1",
@@ -536,7 +536,7 @@ func TestTestConnectorRemoteStillProbesOutbound(t *testing.T) {
 		},
 		HTTPTimeout:           5 * time.Second,
 		AllowLoopbackEndpoint: true,
-	}, nil))
+	}))
 	created, err := svc.CreateConnector(ctx, &runtimev1.CreateConnectorRequest{
 		Provider: "openai",
 		Endpoint: server.URL,
@@ -577,7 +577,7 @@ func TestTestConnectorRemotePropagatesProviderAuthFailure(t *testing.T) {
 		},
 		HTTPTimeout:           5 * time.Second,
 		AllowLoopbackEndpoint: true,
-	}, nil))
+	}))
 	created, err := svc.CreateConnector(ctx, &runtimev1.CreateConnectorRequest{
 		Provider: "openai",
 		Endpoint: server.URL,
@@ -622,7 +622,7 @@ func TestTestConnectorOpenAICodexUsesOAuthHeaders(t *testing.T) {
 		},
 		HTTPTimeout:           5 * time.Second,
 		AllowLoopbackEndpoint: true,
-	}, nil))
+	}))
 	credentialPayload, err := json.Marshal(map[string]any{
 		"access_token": codexProbeJWTForTest(t, "acct_probe_123"),
 	})
@@ -678,7 +678,7 @@ func TestTestConnectorQwenOAuthUsesBearerTokenThroughOpenAICompatibleProvider(t 
 		},
 		HTTPTimeout:           5 * time.Second,
 		AllowLoopbackEndpoint: true,
-	}, nil))
+	}))
 	created, err := svc.CreateConnector(ctx, &runtimev1.CreateConnectorRequest{
 		Provider:            "openai_compatible",
 		Endpoint:            server.URL + "/v1",

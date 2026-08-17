@@ -25,7 +25,6 @@ func DefaultFileConfig() FileConfig {
 			Enabled: boolPtr(true),
 			Mode:    LocalServiceModeDesktopLocal,
 		},
-		AIHealthIntervalSeconds:   intPtr(8),
 		AIHTTPTimeoutSeconds:      intPtr(30),
 		GlobalConcurrencyLimit:    intPtr(8),
 		PerAppConcurrencyLimit:    intPtr(2),

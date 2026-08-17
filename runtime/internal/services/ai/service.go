@@ -21,7 +21,6 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
-	"github.com/nimiplatform/nimi/runtime/internal/providerhealth"
 	"github.com/nimiplatform/nimi/runtime/internal/remoteexecution"
 	"github.com/nimiplatform/nimi/runtime/internal/runtimeidentity"
 	"github.com/nimiplatform/nimi/runtime/internal/scheduler"
@@ -96,7 +95,7 @@ type runtimeAccountProjectionProvider interface {
 }
 
 // New creates a Service with all dependencies.
-func New(logger *slog.Logger, aiHealth *providerhealth.Tracker, auditStore *auditlog.Store, connStore *connector.ConnectorStore, daemonCfg config.Config) (*Service, error) {
+func New(logger *slog.Logger, auditStore *auditlog.Store, connStore *connector.ConnectorStore, daemonCfg config.Config) (*Service, error) {
 	effectiveCfg := loadConfigFromEnv()
 	if daemonCfg.AIHTTPTimeoutSeconds > 0 {
 		effectiveCfg.AIHTTPTimeout = time.Duration(daemonCfg.AIHTTPTimeoutSeconds) * time.Second
@@ -115,13 +114,13 @@ func New(logger *slog.Logger, aiHealth *providerhealth.Tracker, auditStore *audi
 			effectiveCfg.CloudProviders[providerID] = creds
 		}
 	}
-	return newService(logger, aiHealth, auditStore, connStore, effectiveCfg, daemonCfg, strings.TrimSpace(daemonCfg.ModelCatalogCustomDir))
+	return newService(logger, auditStore, connStore, effectiveCfg, daemonCfg, strings.TrimSpace(daemonCfg.ModelCatalogCustomDir))
 }
 
 // NewProtected creates the production protected-service AI surface. Provider
 // endpoints and credentials are deliberately absent from this constructor:
 // remote execution resolves them through the Runtime-owned connector store.
-func NewProtected(logger *slog.Logger, aiHealth *providerhealth.Tracker, auditStore *auditlog.Store, connStore *connector.ConnectorStore, daemonCfg config.Config) (*Service, error) {
+func NewProtected(logger *slog.Logger, auditStore *auditlog.Store, connStore *connector.ConnectorStore, daemonCfg config.Config) (*Service, error) {
 	if connStore == nil {
 		return nil, fmt.Errorf("protected AI service requires Runtime-owned connector resolver")
 	}
@@ -132,10 +131,10 @@ func NewProtected(logger *slog.Logger, aiHealth *providerhealth.Tracker, auditSt
 	if daemonCfg.AIHTTPTimeoutSeconds > 0 {
 		effectiveCfg.AIHTTPTimeout = time.Duration(daemonCfg.AIHTTPTimeoutSeconds) * time.Second
 	}
-	return newService(logger, aiHealth, auditStore, connStore, effectiveCfg, daemonCfg, "")
+	return newService(logger, auditStore, connStore, effectiveCfg, daemonCfg, "")
 }
 
-func newService(logger *slog.Logger, aiHealth *providerhealth.Tracker, auditStore *auditlog.Store, connStore *connector.ConnectorStore, effectiveCfg Config, daemonCfg config.Config, customCatalogDir string) (*Service, error) {
+func newService(logger *slog.Logger, auditStore *auditlog.Store, connStore *connector.ConnectorStore, effectiveCfg Config, daemonCfg config.Config, customCatalogDir string) (*Service, error) {
 	globalConc := daemonCfg.GlobalConcurrencyLimit
 	if globalConc <= 0 {
 		globalConc = 8
@@ -144,7 +143,7 @@ func newService(logger *slog.Logger, aiHealth *providerhealth.Tracker, auditStor
 	if perAppConc <= 0 {
 		perAppConc = 2
 	}
-	svc, err := newFromProviderConfig(logger, aiHealth, auditStore, connStore, effectiveCfg, globalConc, perAppConc)
+	svc, err := newFromProviderConfig(logger, auditStore, connStore, effectiveCfg, globalConc, perAppConc)
 	if err != nil {
 		return nil, err
 	}
@@ -153,11 +152,22 @@ func newService(logger *slog.Logger, aiHealth *providerhealth.Tracker, auditStor
 		return nil, fmt.Errorf("init voice asset store: %w", err)
 	}
 	svc.voiceAssets = voiceAssets
-	scenarioJobs, err := newScenarioJobStoreForLocalStatePath(daemonCfg.LocalStatePath)
+	scenarioJobs, err := newScenarioJobStoreForLocalStatePathBeforeStartupPrune(daemonCfg.LocalStatePath)
 	if err != nil {
 		return nil, fmt.Errorf("init scenario job store: %w", err)
 	}
 	svc.scenarioJobs = scenarioJobs
+	// Provider-persistent voice publication spans the VoiceAsset content store
+	// and the primary ScenarioJob owner. Reconcile its private pending records
+	// only after both durable stores have loaded, and before the Service becomes
+	// reachable: a completed primary Job promotes the exact captured result;
+	// every other pending record remains non-public and is removed.
+	if err := voiceAssets.reconcilePendingPublications(scenarioJobs); err != nil {
+		return nil, fmt.Errorf("reconcile pending voice publications: %w", err)
+	}
+	if err := scenarioJobs.pruneRecoveredDurableState(); err != nil {
+		return nil, fmt.Errorf("prune recovered scenario job state: %w", err)
+	}
 	if logger != nil {
 		for _, diagnostic := range scenarioJobs.IsolationDiagnostics() {
 			logger.Warn(
@@ -184,7 +194,7 @@ func newService(logger *slog.Logger, aiHealth *providerhealth.Tracker, auditStor
 }
 
 // newFromProviderConfig is an internal constructor used by New and tests.
-func newFromProviderConfig(logger *slog.Logger, aiHealth *providerhealth.Tracker, auditStore *auditlog.Store, connStore *connector.ConnectorStore, cfg Config, globalConc int, perAppConc int) (*Service, error) {
+func newFromProviderConfig(logger *slog.Logger, auditStore *auditlog.Store, connStore *connector.ConnectorStore, cfg Config, globalConc int, perAppConc int) (*Service, error) {
 	cfg = cfg.normalized()
 	if globalConc <= 0 {
 		globalConc = 8
@@ -204,13 +214,13 @@ func newFromProviderConfig(logger *slog.Logger, aiHealth *providerhealth.Tracker
 			"sequence", event.GetSequence(),
 		)
 	})
-	cloudProvider := nimillm.NewCloudProvider(cfg.toCloudConfig(), aiHealth)
+	cloudProvider := nimillm.NewCloudProvider(cfg.toCloudConfig())
 	remoteCloudConfig := cfg.toCloudConfig()
 	// Remote cloud execution may receive credentials only from request-scoped
 	// current-account Connector Host resolution; configured probe credentials are
 	// deliberately absent from the shared transport instance.
 	remoteCloudConfig.Providers = nil
-	remoteCloudTransport := nimillm.NewCloudProvider(remoteCloudConfig, aiHealth)
+	remoteCloudTransport := nimillm.NewCloudProvider(remoteCloudConfig)
 	hostAudit := auditStore
 	if hostAudit == nil {
 		// Unit/in-process construction still receives an auditable Host seam;

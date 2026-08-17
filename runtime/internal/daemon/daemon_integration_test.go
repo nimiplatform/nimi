@@ -5,7 +5,6 @@ import (
 	"errors"
 	"io"
 	"log/slog"
-	"net/http"
 	"path/filepath"
 	"testing"
 	"time"
@@ -219,68 +218,6 @@ func TestDaemonRunNeverBootstrapsPrivateLlamaWorker(t *testing.T) {
 	}
 
 	cancel()
-	if err := <-done; err != nil {
-		t.Fatalf("daemon run returned error: %v", err)
-	}
-}
-
-func TestDaemonRunWaitsForBackgroundWorkersToStop(t *testing.T) {
-	cfg := config.Config{
-		GRPCAddr:                "127.0.0.1:0",
-		HTTPAddr:                "127.0.0.1:0",
-		ShutdownTimeout:         2 * time.Second,
-		LocalStatePath:          filepath.Join(t.TempDir(), "local-state.json"),
-		AuditRingBufferSize:     64,
-		UsageStatsBufferSize:    64,
-		IdempotencyCapacity:     32,
-		AIHealthIntervalSeconds: 1,
-		AIHTTPTimeoutSeconds:    1,
-		Providers: map[string]config.RuntimeFileTarget{
-			"openai": {BaseURL: "https://provider.invalid/v1"},
-		},
-	}
-	daemon, err := newDaemonForTest(t, cfg, slog.New(slog.NewTextHandler(io.Discard, nil)), "test")
-	if err != nil {
-		t.Fatalf("create daemon: %v", err)
-	}
-	closeDaemonForTest(t, daemon)
-	if svc := daemon.grpc.LocalService(); svc != nil {
-		t.Cleanup(func() { svc.Close() })
-	}
-
-	probeStarted := make(chan struct{})
-	probeStopped := make(chan struct{})
-	daemon.probeAIProviderFn = func(ctx context.Context, _ *http.Client, _ aiProviderTarget) error {
-		select {
-		case <-probeStarted:
-		default:
-			close(probeStarted)
-		}
-		<-ctx.Done()
-		close(probeStopped)
-		return ctx.Err()
-	}
-
-	ctx, cancel := context.WithCancel(context.Background())
-	done := make(chan error, 1)
-	go func() {
-		done <- daemon.Run(ctx)
-	}()
-
-	select {
-	case <-probeStarted:
-	case <-time.After(2 * time.Second):
-		t.Fatal("expected remote provider health worker to start")
-	}
-
-	cancel()
-
-	select {
-	case <-probeStopped:
-	case <-time.After(2 * time.Second):
-		t.Fatal("expected remote provider health worker to stop after shutdown")
-	}
-
 	if err := <-done; err != nil {
 		t.Fatalf("daemon run returned error: %v", err)
 	}

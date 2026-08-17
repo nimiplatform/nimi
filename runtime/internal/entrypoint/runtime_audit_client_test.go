@@ -10,9 +10,38 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/health"
+	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
+
+func TestFetchPublicGRPCHealthUsesStandardHealthService(t *testing.T) {
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("listen: %v", err)
+	}
+	server := grpc.NewServer()
+	healthServer := health.NewServer()
+	healthServer.SetServingStatus("", healthpb.HealthCheckResponse_SERVING)
+	healthpb.RegisterHealthServer(server, healthServer)
+	go func() { _ = server.Serve(listener) }()
+	t.Cleanup(func() {
+		server.Stop()
+		_ = listener.Close()
+	})
+
+	payload, err := FetchPublicGRPCHealth(listener.Addr().String(), time.Second)
+	if err != nil {
+		t.Fatalf("FetchPublicGRPCHealth: %v", err)
+	}
+	if got := payload["status"]; got != healthpb.HealthCheckResponse_SERVING.String() {
+		t.Fatalf("public health status = %v", got)
+	}
+	if len(payload) != 1 {
+		t.Fatalf("public health must not expose Runtime-private detail: %#v", payload)
+	}
+}
 
 func TestListAuditEventsAndUsageStatsGRPC(t *testing.T) {
 	service := &testRuntimeAuditService{

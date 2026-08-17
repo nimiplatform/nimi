@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { NimiTabs } from '@nimiplatform/kit/ui';
 import { RuntimeHealthSection } from './runtime-config-runtime-health-section.js';
@@ -24,19 +24,11 @@ export function RuntimePage({ model }: RuntimePageProps) {
   const auditData = useGlobalAuditData(true);
   const [activeTab, setActiveTab] = useState<RuntimeTabKey>('overview');
 
-  const unhealthyProviderCount = useMemo(() => {
-    return auditData.providerHealth.filter((snapshot) => {
-      const stateValue = String(snapshot.state || '').toLowerCase();
-      return stateValue !== '' && stateValue !== 'healthy' && stateValue !== 'idle';
-    }).length;
-  }, [auditData.providerHealth]);
-
   const tabs: Array<{ key: RuntimeTabKey; label: string; badge?: number }> = [
     { key: 'overview', label: t('runtimeConfig.runtime.tabOverview', { defaultValue: 'Overview' }) },
     {
       key: 'health',
       label: t('runtimeConfig.runtime.tabHealth', { defaultValue: 'Health' }),
-      badge: unhealthyProviderCount > 0 ? unhealthyProviderCount : undefined,
     },
     { key: 'activity', label: t('runtimeConfig.runtime.tabActivity', { defaultValue: 'Activity' }) },
     { key: 'access', label: t('runtimeConfig.runtime.tabAccess', { defaultValue: 'Access' }) },
@@ -77,7 +69,6 @@ export function RuntimePage({ model }: RuntimePageProps) {
           {/* Runtime Health */}
           <RuntimeHealthSection
             runtimeHealth={auditData.runtimeHealth}
-            providerHealth={auditData.providerHealth}
             loading={auditData.healthLoading}
             error={auditData.healthError}
             streamConnected={auditData.healthStreamConnected}

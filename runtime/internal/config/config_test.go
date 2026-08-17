@@ -84,9 +84,6 @@ func TestLoadDefaultsWithoutConfigFile(t *testing.T) {
 		t.Fatalf("managed app/account roots should fail closed without dataRootRef: %+v", cfg.ManagedRoots)
 	}
 
-	if cfg.AIHealthIntervalSeconds != 8 {
-		t.Fatalf("aiHealthIntervalSeconds default mismatch: got=%d want=8", cfg.AIHealthIntervalSeconds)
-	}
 	if cfg.EngineLlamaVersion != engine.DefaultLlamaConfig().Version {
 		t.Fatalf("llama version default mismatch: got=%q want=%q", cfg.EngineLlamaVersion, engine.DefaultLlamaConfig().Version)
 	}
@@ -135,7 +132,6 @@ func TestLoadFromConfigFileAppliesRuntimeAndProviderDefaults(t *testing.T) {
   "localStatePath": "~/runtime/custom-state.json",
   "appIdentityProjectionPath": "~/runtime/nimi-app-identity-surfaces.yaml",
   "aiHttpTimeoutSeconds": 21,
-  "aiHealthIntervalSeconds": 3,
   "providers": {
     "gemini": {
       "apiKeyEnv": "NIMI_RUNTIME_CLOUD_GEMINI_API_KEY"
@@ -178,9 +174,6 @@ func TestLoadFromConfigFileAppliesRuntimeAndProviderDefaults(t *testing.T) {
 	}
 	if cfg.AIHTTPTimeoutSeconds != 21 {
 		t.Fatalf("aiHttpTimeoutSeconds mismatch: got=%d want=21", cfg.AIHTTPTimeoutSeconds)
-	}
-	if cfg.AIHealthIntervalSeconds != 3 {
-		t.Fatalf("aiHealthIntervalSeconds mismatch: got=%d want=3", cfg.AIHealthIntervalSeconds)
 	}
 	target, ok := cfg.Providers["gemini"]
 	if !ok {

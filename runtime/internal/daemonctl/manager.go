@@ -137,7 +137,7 @@ func NewManager(version string) *Manager {
 		executablePath:   os.Executable,
 		startProcess:     defaultStartProcess,
 		protectedService: newProtectedServiceController(),
-		probe:            entrypoint.FetchRuntimeHealthGRPC,
+		probe:            entrypoint.FetchPublicGRPCHealth,
 		isProcessAlive:   defaultProcessAlive,
 		stopProcess:      defaultStopProcess,
 		now:              time.Now,
@@ -210,7 +210,7 @@ func (m *Manager) Start(timeout time.Duration) (StartResult, error) {
 		if probeErr == nil {
 			healthSummary := normalizeHealthSummary(payload)
 			warning := ""
-			if statusValue := strings.TrimSpace(fmt.Sprint(payload["status"])); statusValue != "" && statusValue != "RUNTIME_HEALTH_STATUS_READY" {
+			if statusValue := strings.TrimSpace(fmt.Sprint(payload["status"])); statusValue != "" && statusValue != "SERVING" && statusValue != "RUNTIME_HEALTH_STATUS_READY" {
 				warning = fmt.Sprintf("runtime is reachable but reported %s", statusValue)
 			}
 			metadata := Metadata{
@@ -243,11 +243,7 @@ func (m *Manager) Start(timeout time.Duration) (StartResult, error) {
 		if m.now().After(deadline) {
 			_ = m.stopProcess(pid, executable, true)
 			_ = m.cleanupStaleFiles(paths, pid)
-			tail, tailErr := m.readTail(paths.LogFile, 40)
-			if tailErr != nil || strings.TrimSpace(tail) == "" {
-				return StartResult{}, fmt.Errorf("runtime did not become reachable within %s", timeout)
-			}
-			return StartResult{}, fmt.Errorf("runtime did not become reachable within %s\n\nLast log lines:\n%s", timeout, tail)
+			return StartResult{}, fmt.Errorf("runtime did not become reachable within %s; run 'nimi logs -f'", timeout)
 		}
 		m.sleep(150 * time.Millisecond)
 	}
@@ -649,17 +645,10 @@ func defaultStatusConfig() config.Config {
 
 func normalizeHealthSummary(payload map[string]any) string {
 	status := strings.TrimSpace(fmt.Sprint(payload["status"]))
-	reason := strings.TrimSpace(fmt.Sprint(payload["reason"]))
-	switch {
-	case status != "" && reason != "":
-		return fmt.Sprintf("%s (%s)", status, reason)
-	case status != "":
+	if status != "" {
 		return status
-	case reason != "":
-		return reason
-	default:
-		return "reachable"
 	}
+	return "reachable"
 }
 
 func isInstalledOrBuiltBinary(path string) bool {

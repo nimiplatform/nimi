@@ -94,26 +94,11 @@ func (d *Daemon) onEngineStateChange(engineName string, status string, detail st
 	if snapshot.Status == health.StatusStopping || snapshot.Status == health.StatusStopped {
 		return
 	}
-	if strings.EqualFold(strings.TrimSpace(engineName), string(engineManagedImageBackend)) {
-		normalizedStatus := strings.ToLower(strings.TrimSpace(status))
-		if d.aiHealth != nil && (normalizedStatus == "healthy" || normalizedStatus == "unhealthy") {
-			previous := d.aiHealth.SnapshotOf(localImageProviderHealthKey)
-			if err := d.aiHealth.Mark(localImageProviderHealthKey, normalizedStatus == "healthy", detail); err == nil {
-				appendProviderHealthAudit(d.auditStore, localImageProviderHealthKey, previous, d.aiHealth.SnapshotOf(localImageProviderHealthKey))
-			}
-		}
-	}
 	switch status {
 	case "unhealthy":
 		d.setDegradedStatus(fmt.Sprintf("engine:%s unhealthy (%s)", engineName, detail))
 		reasonKey := resolveInternalReasonKey(detail)
 		appendEngineCrashAudit(d.auditStore, engineName, detail, nil, reasonKey)
-		if kind, ok := engineKindForName(engineName); ok {
-			if providerName, ok := providerTargetNameForEngine(kind); ok {
-				hint := fmt.Sprintf("engine unhealthy (%s: %s)", engineName, detail)
-				d.setProviderFailureHint(providerName, hint)
-			}
-		}
 	case "healthy":
 		recoveringSameEngine := snapshot.Status == health.StatusDegraded &&
 			engineUnhealthyReasonMatches(snapshot.Reason, engineName)
@@ -127,11 +112,6 @@ func (d *Daemon) onEngineStateChange(engineName string, status string, detail st
 		}
 		if kind, envKey, ok := engineEnvKey(engineName); ok {
 			d.injectEngineEndpointEnv(kind, envKey, "recovered")
-		}
-		if kind, ok := engineKindForName(engineName); ok {
-			if providerName, ok := providerTargetNameForEngine(kind); ok {
-				d.clearProviderFailureHint(providerName)
-			}
 		}
 		d.state.SetStatus(health.StatusReady, "ready")
 		d.grpc.SyncServingState()

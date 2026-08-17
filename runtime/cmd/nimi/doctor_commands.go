@@ -6,13 +6,9 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"sort"
 	"strings"
-	"time"
 
 	"github.com/nimiplatform/nimi/runtime/internal/config"
-	"github.com/nimiplatform/nimi/runtime/internal/daemonctl"
-	"github.com/nimiplatform/nimi/runtime/internal/entrypoint"
 )
 
 type doctorItem struct {
@@ -20,10 +16,6 @@ type doctorItem struct {
 	Value  string `json:"value"`
 	Status string `json:"status"`
 	Detail string `json:"detail,omitempty"`
-}
-
-var doctorStatusProvider = func() (daemonctl.Status, error) {
-	return daemonctl.NewManager(Version).Status()
 }
 
 func runRuntimeDoctor(args []string) error {
@@ -34,9 +26,7 @@ func runRuntimeDoctor(args []string) error {
 		return err
 	}
 
-	defaultCfg := config.DefaultFileConfig()
 	configPath := strings.TrimSpace(config.RuntimeConfigPath())
-	grpcAddr := strings.TrimSpace(defaultCfg.GRPCAddr)
 	nextStep := ""
 	items := []doctorItem{
 		{Name: "runtime binary", Value: Version, Status: "ok"},
@@ -50,90 +40,26 @@ func runRuntimeDoctor(args []string) error {
 		}
 	}
 
-	cfg, cfgErr := config.Load()
-	if cfgErr == nil {
-		grpcAddr = cfg.GRPCAddr
+	runtimeStatus, statusErr := daemonManagerFactory().Status()
+	if statusErr != nil {
+		return fmt.Errorf("determine Runtime daemon status: %w", statusErr)
 	}
-
-	var providers []entrypoint.ProviderHealthSnapshot
-	if cfgErr != nil {
-		items = append(items, doctorItem{Name: "runtime config", Value: "load", Status: "warn", Detail: cfgErr.Error()})
+	publicHealth := projectPublicDaemonHealth(runtimeStatus)
+	itemStatus := "ok"
+	detail := publicHealth.Health
+	if publicHealth.Health == publicDaemonHealthStopped || publicHealth.Health == publicDaemonHealthUnreachable {
+		itemStatus = "warn"
+		detail = strings.TrimSpace(detail + "; Run 'nimi start' for background mode, or 'nimi serve' in another terminal.")
+		nextStep = "nimi start"
 	}
+	items = append(items, doctorItem{Name: "daemon", Value: publicHealth.Process, Status: itemStatus, Detail: detail})
 
-	runtimeStatus, statusErr := doctorStatusProvider()
-	healthPayload, healthErr := entrypoint.FetchRuntimeHealthGRPC(grpcAddr, 3*time.Second)
-	if healthErr != nil {
-		if statusErr == nil && runtimeStatus.Process == "running" && runtimeStatus.Mode == daemonctl.ModeProtectedService {
-			items = append(items, doctorItem{Name: "gRPC daemon", Value: grpcAddr, Status: "warn", Detail: fmt.Sprintf("Protected Runtime service is running; local gRPC health probe failed at %s; the daemon is managed by the Windows service (check config gRPC address or service logs).", grpcAddr)})
-		} else {
-			items = append(items, doctorItem{Name: "gRPC daemon", Value: grpcAddr, Status: "warn", Detail: "Run 'nimi start' for background mode, or 'nimi serve' in another terminal."})
-			nextStep = "nimi start"
-		}
-	} else {
-		status := strings.TrimSpace(fmt.Sprint(healthPayload["status"]))
-		if status == "" {
-			status = "healthy"
-		}
-		items = append(items, doctorItem{Name: "gRPC daemon", Value: grpcAddr, Status: "ok", Detail: status})
-
-		if providerSnapshots, err := entrypoint.FetchAIProviderHealthGRPC(grpcAddr, 3*time.Second); err == nil {
-			providers = providerSnapshots
-			localState := "unknown"
-			localDetail := ""
-			for _, item := range providerSnapshots {
-				if strings.TrimSpace(item.Name) != "local" {
-					continue
-				}
-				localState = item.State
-				localDetail = item.Reason
-				break
-			}
-			localStatus := "warn"
-			if localState == "healthy" || localState == "ok" || localState == "active" {
-				localStatus = "ok"
-			}
-			items = append(items, doctorItem{Name: "local engine", Value: "local", Status: localStatus, Detail: strings.TrimSpace(localState + " " + localDetail)})
-		}
-
-	}
-
-	if statusErr == nil && runtimeStatus.Process == "running" {
+	if runtimeStatus.Process == "running" {
 		items = append(items, doctorItem{
 			Name:   "runtime mode",
 			Value:  runtimeStatus.Mode.String(),
 			Status: "ok",
 		})
-	}
-
-	if cfgErr == nil {
-		configuredProviders := make([]string, 0, len(cfg.Providers))
-		for providerName, target := range cfg.Providers {
-			configuredProviders = append(configuredProviders, providerName)
-			status := "warn"
-			detail := "no api key"
-			if key := strings.TrimSpace(config.ResolveProviderAPIKey(target)); key != "" {
-				status = "ok"
-				detail = "configured"
-			}
-			items = append(items, doctorItem{
-				Name:   "cloud provider",
-				Value:  providerName,
-				Status: status,
-				Detail: detail,
-			})
-		}
-		sort.Strings(configuredProviders)
-		if len(configuredProviders) == 0 && len(providers) == 0 {
-			items = append(items, doctorItem{
-				Name:   "cloud provider",
-				Value:  "none",
-				Status: "warn",
-				Detail: "Configure caller-owned AIConfig, then try 'nimi run \"Hello from Nimi\"'",
-			})
-			if nextStep == "" {
-				nextStep = `configure caller-owned AIConfig, then run: nimi run "Hello from Nimi"`
-			}
-		}
 	}
 
 	cwd, _ := os.Getwd()

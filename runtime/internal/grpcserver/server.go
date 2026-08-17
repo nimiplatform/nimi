@@ -22,7 +22,6 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/idempotency"
 	"github.com/nimiplatform/nimi/runtime/internal/localappkernel"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
-	"github.com/nimiplatform/nimi/runtime/internal/providerhealth"
 	"github.com/nimiplatform/nimi/runtime/internal/scheduler"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	aiservice "github.com/nimiplatform/nimi/runtime/internal/services/ai"
@@ -52,7 +51,6 @@ type Server struct {
 	localAppServer        *grpc.Server
 	healthServer          *grpcHealth.Server
 	rpcRegistry           *activeRPCRegistry
-	aiHealth              *providerhealth.Tracker
 	auditStore            *auditlog.Store
 	accountService        *accountservice.Service
 	authService           *authservice.Service
@@ -499,7 +497,6 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 	if err != nil {
 		return nil, err
 	}
-	aiHealth := providerhealth.New()
 	rpcRegistry := newActiveRPCRegistry(nil)
 
 	h := grpcHealth.NewServer()
@@ -577,7 +574,7 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 		),
 	)
 	healthpb.RegisterHealthServer(g, h)
-	auditSvc := auditservice.New(state, logger, aiHealth, auditStore)
+	auditSvc := auditservice.New(state, logger, auditStore)
 	runtimev1.RegisterRuntimeAuditServiceServer(g, auditSvc)
 
 	connectorBasePath := filepath.Join(filepath.Dir(cfg.LocalStatePath), "connectors")
@@ -595,9 +592,9 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 	}
 	var aiSvc *aiservice.Service
 	if protected != nil {
-		aiSvc, err = aiservice.NewProtected(logger, aiHealth, auditStore, connStore, cfg)
+		aiSvc, err = aiservice.NewProtected(logger, auditStore, connStore, cfg)
 	} else {
-		aiSvc, err = aiservice.New(logger, aiHealth, auditStore, connStore, cfg)
+		aiSvc, err = aiservice.New(logger, auditStore, connStore, cfg)
 	}
 	if err != nil {
 		return nil, fmt.Errorf("init ai service: %w", err)
@@ -845,7 +842,6 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 		localAppServer:        localAppGRPCServer,
 		healthServer:          h,
 		rpcRegistry:           rpcRegistry,
-		aiHealth:              aiHealth,
 		auditStore:            auditStore,
 		accountService:        accountSvc,
 		authService:           authSvc,
@@ -862,10 +858,6 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 	keepLocalDevelopmentStore = true
 	keepLocalService = true
 	return s, nil
-}
-
-func (s *Server) AIHealthTracker() *providerhealth.Tracker {
-	return s.aiHealth
 }
 
 func (s *Server) AuditStore() *auditlog.Store {

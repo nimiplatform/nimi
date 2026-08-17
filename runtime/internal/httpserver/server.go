@@ -6,33 +6,28 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/nimiplatform/nimi/runtime/internal/health"
-	"github.com/nimiplatform/nimi/runtime/internal/providerhealth"
 )
 
 // Server exposes runtime diagnostics/readiness over HTTP.
 type Server struct {
-	addr     string
-	state    *health.State
-	logger   *slog.Logger
-	http     *http.Server
-	aiHealth *providerhealth.Tracker
+	addr   string
+	state  *health.State
+	logger *slog.Logger
+	http   *http.Server
 }
 
 func New(
 	addr string,
 	state *health.State,
 	logger *slog.Logger,
-	aiHealth *providerhealth.Tracker,
 ) *Server {
 	s := &Server{
-		addr:     addr,
-		state:    state,
-		logger:   logger,
-		aiHealth: aiHealth,
+		addr:   addr,
+		state:  state,
+		logger: logger,
 	}
 
 	mux := http.NewServeMux()
@@ -100,7 +95,6 @@ func (s *Server) handleRuntimeHealth(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	snapshot := s.state.Snapshot()
-	providers := providerSnapshotsPayload(s.aiHealth)
 	s.writeJSON(w, runtimeHealthStatusCode(snapshot.Status), map[string]any{
 		"status":                snapshot.Status.String(),
 		"status_code":           int32(snapshot.Status),
@@ -111,86 +105,7 @@ func (s *Server) handleRuntimeHealth(w http.ResponseWriter, req *http.Request) {
 		"memory_bytes":          snapshot.MemoryBytes,
 		"vram_bytes":            snapshot.VRAMBytes,
 		"sampled_at":            snapshot.SampledAt.Format(time.RFC3339Nano),
-		"ai_providers":          providers,
 	})
-}
-
-func providerSnapshotsPayload(tracker *providerhealth.Tracker) []map[string]any {
-	if tracker == nil {
-		return []map[string]any{}
-	}
-	snapshots := tracker.List()
-	// Reserve room for every provider plus one possible aggregated cloud entry.
-	out := make([]map[string]any, 0, len(snapshots)+1)
-	cloudSubHealth := make([]map[string]any, 0, min(len(snapshots), 4))
-	cloudState := string(providerhealth.StateHealthy)
-	cloudReason := ""
-	cloudConsecutiveFailures := 0
-	var cloudLastChangedAt time.Time
-	var cloudLastCheckedAt time.Time
-	for _, item := range snapshots {
-		entry := map[string]any{
-			"name":                 strings.TrimSpace(item.Name),
-			"state":                string(item.State),
-			"reason":               item.LastReason,
-			"consecutive_failures": item.ConsecutiveFailures,
-			"last_changed_at":      formatTimestamp(item.LastChangedAt),
-			"last_checked_at":      formatTimestamp(item.LastCheckedAt),
-		}
-		if strings.HasPrefix(strings.TrimSpace(strings.ToLower(item.Name)), "cloud-") {
-			cloudSubHealth = append(cloudSubHealth, entry)
-			if item.State == providerhealth.StateUnhealthy {
-				cloudState = string(providerhealth.StateUnhealthy)
-				if cloudReason == "" {
-					cloudReason = strings.TrimSpace(item.LastReason)
-				}
-			}
-			if item.ConsecutiveFailures > cloudConsecutiveFailures {
-				cloudConsecutiveFailures = item.ConsecutiveFailures
-			}
-			if item.LastChangedAt.After(cloudLastChangedAt) {
-				cloudLastChangedAt = item.LastChangedAt
-			}
-			if item.LastCheckedAt.After(cloudLastCheckedAt) {
-				cloudLastCheckedAt = item.LastCheckedAt
-			}
-			continue
-		}
-		out = append(out, entry)
-	}
-
-	if len(cloudSubHealth) > 0 {
-		if cloudReason == "" {
-			for _, item := range cloudSubHealth {
-				reason := strings.TrimSpace(stringFromAny(item["reason"]))
-				if reason != "" {
-					cloudReason = reason
-					break
-				}
-			}
-		}
-		out = append(out, map[string]any{
-			"name":                 "cloud-nimillm",
-			"state":                cloudState,
-			"reason":               cloudReason,
-			"consecutive_failures": cloudConsecutiveFailures,
-			"last_changed_at":      formatTimestamp(cloudLastChangedAt),
-			"last_checked_at":      formatTimestamp(cloudLastCheckedAt),
-			"sub_health":           cloudSubHealth,
-		})
-	}
-	return out
-}
-
-func stringFromAny(value any) string {
-	return fmt.Sprint(value)
-}
-
-func formatTimestamp(value time.Time) string {
-	if value.IsZero() {
-		return ""
-	}
-	return value.UTC().Format(time.RFC3339Nano)
 }
 
 func (s *Server) writeJSON(w http.ResponseWriter, statusCode int, body any) {

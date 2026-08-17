@@ -120,7 +120,7 @@ func bindVoiceAssetDeleteTarget(t *testing.T, svc *Service, assetID string, prov
 	if err != nil {
 		t.Fatalf("create voice delete connector: %v", err)
 	}
-	transport := nimillm.NewCloudProvider(nimillm.CloudConfig{HTTPTimeout: time.Second, AllowLoopbackEndpoint: true}, nil)
+	transport := nimillm.NewCloudProvider(nimillm.CloudConfig{HTTPTimeout: time.Second, AllowLoopbackEndpoint: true})
 	svc.remoteMediaHost = remoteexecution.NewProviderMediaHost(svc.connStore, transport, auditlog.New(32, 32), true)
 	svc.voiceAssets.mu.Lock()
 	remoteCatalogID := "voice-delete-catalog-" + assetID

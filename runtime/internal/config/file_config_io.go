@@ -213,9 +213,6 @@ func ValidateFileConfig(fileCfg FileConfig) error {
 	if fileCfg.SessionTTLMinSeconds != nil && fileCfg.SessionTTLMaxSeconds != nil && *fileCfg.SessionTTLMaxSeconds < *fileCfg.SessionTTLMinSeconds {
 		return fmt.Errorf("sessionTtlMaxSeconds must be >= sessionTtlMinSeconds")
 	}
-	if err := validateOptionalFileConfigInt(fileCfg.AIHealthIntervalSeconds, "aiHealthIntervalSeconds", 1, 3600); err != nil {
-		return err
-	}
 	if err := validateOptionalFileConfigInt(fileCfg.AIHTTPTimeoutSeconds, "aiHttpTimeoutSeconds", 1, 600); err != nil {
 		return err
 	}

@@ -282,6 +282,13 @@ func runRuntimeConfigSet(args []string) error {
 			return newConfigCommandError(configReasonSchemaInvalid, "run `nimi config validate`", err)
 		}
 	}
+	if !runtimeProvidersEqual(previous.Providers, mutated.Providers) {
+		return newConfigCommandError(
+			configReasonSchemaInvalid,
+			"manage provider custody through protected Connector flows",
+			fmt.Errorf("portable Runtime config cannot own or mutate provider credentials or endpoints"),
+		)
+	}
 	if strings.TrimSpace(previous.DataRootRef) != strings.TrimSpace(mutated.DataRootRef) ||
 		!fileConfigManagedRootsEqual(previous.ManagedRoots, mutated.ManagedRoots) {
 		return newConfigCommandError(

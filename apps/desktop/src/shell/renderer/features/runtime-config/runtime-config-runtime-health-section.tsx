@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import type { GetRuntimeHealthResponse, AIProviderHealthSnapshot } from '@nimiplatform/sdk/runtime/wire-types';
+import type { GetRuntimeHealthResponse } from '@nimiplatform/sdk/runtime/wire-types';
 import { ProgressIndicator, StatusBadge as KitStatusBadge, Surface, cn } from '@nimiplatform/kit/ui';
 import {
   runtimeHealthStatusLabel,
@@ -8,7 +8,6 @@ import {
   timestampToIso,
   relativeTimeShort,
 } from './runtime-config-global-audit-view-model.js';
-import { ProviderHealthTable } from './runtime-config-provider-health-table.js';
 import { IconButton, RefreshIcon, TOKEN_PANEL_CARD, TOKEN_TEXT_MUTED, TOKEN_TEXT_PRIMARY } from './runtime-config-runtime-page-ui.js';
 import { useDesktopI18nResource } from '../../i18n/i18n-context.js';
 
@@ -56,7 +55,6 @@ function LiveBadge({ connected, stale, hasHealth }: { connected: boolean; stale:
 
 type RuntimeHealthSectionProps = {
   runtimeHealth: GetRuntimeHealthResponse | null;
-  providerHealth: AIProviderHealthSnapshot[];
   loading: boolean;
   error: string | null;
   streamConnected: boolean;
@@ -67,7 +65,6 @@ type RuntimeHealthSectionProps = {
 
 export function RuntimeHealthSection({
   runtimeHealth,
-  providerHealth,
   loading,
   error,
   streamConnected,
@@ -175,8 +172,6 @@ export function RuntimeHealthSection({
           ) : null}
         </div>
       ) : null}
-
-      <ProviderHealthTable providerHealth={providerHealth} />
     </Surface>
   );
 }

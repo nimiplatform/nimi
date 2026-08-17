@@ -476,7 +476,6 @@ mod tests {
         for method_id in [
             "/nimi.runtime.v1.RuntimeLocalService/WatchLocalTransfers",
             "/nimi.runtime.v1.RuntimeAuditService/SubscribeRuntimeHealthEvents",
-            "/nimi.runtime.v1.RuntimeAuditService/SubscribeAIProviderHealthEvents",
         ] {
             assert!(protected_desktop_stream_method(method_id));
             assert!(validate_stream_method(method_id).is_ok());

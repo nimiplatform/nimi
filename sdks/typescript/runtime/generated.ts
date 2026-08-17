@@ -13,9 +13,6 @@ export {
 } from '../core-generated/runtime-rpc-auth-posture';
 export type {
   AgentConversationSummary,
-  AIProviderHealthEvent,
-  AIProviderHealthSnapshot,
-  AIProviderSubHealth,
   AccountCaller,
   AccountProjection,
   BeginLoginResponse,
@@ -44,7 +41,6 @@ export type {
   DelegatedReplayTrace,
   ExportAuditEventsRequest,
   GetRuntimeHealthResponse,
-  ListAIProviderHealthResponse,
   ListAuditEventsRequest,
   ListAuditEventsResponse,
   ListPresetVoicesRequest,

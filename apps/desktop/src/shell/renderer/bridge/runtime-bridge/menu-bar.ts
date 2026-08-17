@@ -21,6 +21,5 @@ export async function syncMenuBarRuntimeHealth(
 }
 
 export type {
-  MenuBarProviderSummary,
   MenuBarRuntimeHealthSyncPayload,
 } from '../../../shared/menu-bar-types.js';

@@ -6,15 +6,7 @@ import (
 )
 
 func printUsage() {
-	fmt.Fprintln(os.Stderr, "Nimi - AI Runtime\n\nUsage: nimi <command> [options]\n\nQuick Start:\n  serve       Start the runtime daemon in the foreground\n  start       Start the runtime daemon in the background\n  doctor      Check environment health\n  version     Show version info\n  run         Generate text from a model\n\nCloud Setup:\n  provider    Configure and test cloud providers\n\nRuntime Ops:\n  status      Show runtime process status\n  stop        Stop the runtime daemon\n  logs        Read background runtime logs\n  health      Runtime health details\n  providers   Provider health snapshots\n\nAdvanced/Admin:\n  ai          Advanced AI operations\n  knowledge   Knowledge banks, pages, search, and ingest\n  app         Inter-app messaging\n  audit       Audit events and usage\n  config      Runtime configuration\n\nAuthor tooling:\n  pnpm dlx @nimiplatform/app-tools nimi-app  App author scaffolding\n\nRun 'nimi <command> --help' for details.")
-}
-
-func printRuntimeAIUsage() {
-	fmt.Fprintln(os.Stderr, "Usage:\n  nimi ai provider-raw [--timeout --fixture]\n  nimi ai text-generate [--grpc-addr --timeout --app-id --subject-user-id --system --prompt --timeout-ms --json --caller-kind --caller-id --surface-id --trace-id]\n  nimi ai stream [--grpc-addr --timeout --app-id --subject-user-id --system --prompt --timeout-ms --json --caller-kind --caller-id --surface-id --trace-id]\n  nimi ai text-embed [--grpc-addr --timeout --app-id --subject-user-id --input ... --timeout-ms --json --caller-kind --caller-id --surface-id --trace-id]\n  nimi ai image [--grpc-addr --timeout --app-id --subject-user-id --prompt --timeout-ms --output --json --caller-kind --caller-id --surface-id --trace-id]\n  nimi ai video [--grpc-addr --timeout --app-id --subject-user-id --prompt --timeout-ms --output --json --caller-kind --caller-id --surface-id --trace-id]\n  nimi ai tts [--grpc-addr --timeout --app-id --subject-user-id --text --timeout-ms --output --json --caller-kind --caller-id --surface-id --trace-id]\n  nimi ai stt [--grpc-addr --timeout --app-id --subject-user-id --audio-file --mime-type --timeout-ms --json --caller-kind --caller-id --surface-id --trace-id]")
-}
-
-func printRuntimeProviderUsage() {
-	fmt.Fprintln(os.Stderr, "Usage:\n  nimi provider list [--json]\n  nimi provider set <provider> [--api-key --api-key-env --base-url --json]\n  nimi provider unset <provider> [--json]\n  nimi provider test <provider> [--grpc-addr --timeout --json]")
+	fmt.Fprintln(os.Stderr, "Nimi - AI Runtime\n\nUsage: nimi <command> [options]\n\nQuick Start:\n  serve       Start the runtime daemon in the foreground\n  start       Start the runtime daemon in the background\n  doctor      Check environment health\n  version     Show version info\n\nRuntime Operations:\n  status      Show runtime process status\n  stop        Stop the runtime daemon\n  logs        Read background runtime logs\n  health      Show sanitized daemon health\n\nAdvanced/Admin:\n  knowledge   Knowledge banks, pages, search, and ingest\n  app         Inter-app messaging\n  audit       Audit events and usage\n  config      Runtime configuration\n\nAuthor tooling:\n  pnpm dlx @nimiplatform/app-tools nimi-app  App author scaffolding\n\nRun 'nimi <command> --help' for details.")
 }
 
 func printRuntimeKnowledgeUsage() {

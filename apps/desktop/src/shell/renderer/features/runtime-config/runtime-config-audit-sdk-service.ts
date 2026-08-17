@@ -10,9 +10,7 @@ import type {
   ListUsageStatsRequest,
   ListUsageStatsResponse,
   GetRuntimeHealthResponse,
-  ListAIProviderHealthResponse,
   RuntimeHealthEvent,
-  AIProviderHealthEvent,
 } from '@nimiplatform/sdk/runtime/wire-types';
 const DEFAULT_DESKTOP_AUDIT_WINDOW_MS = 24 * 60 * 60 * 1000;
 const MAX_DESKTOP_AUDIT_WINDOW_MS = 7 * DEFAULT_DESKTOP_AUDIT_WINDOW_MS;
@@ -132,16 +130,6 @@ export async function fetchRuntimeHealth(runtimeAudit: RuntimeAuditClient): Prom
   );
 }
 
-export async function fetchProviderHealth(runtimeAudit: RuntimeAuditClient): Promise<ListAIProviderHealthResponse> {
-  return withAuditError(
-    runtimeAudit.listAIProviderHealth({}, { timeoutMs: 5000 }),
-  );
-}
-
 export async function subscribeRuntimeHealth(runtimeAudit: RuntimeAuditClient): Promise<AsyncIterable<RuntimeHealthEvent>> {
   return withAuditError(runtimeAudit.subscribeRuntimeHealthEvents({}));
-}
-
-export async function subscribeProviderHealth(runtimeAudit: RuntimeAuditClient): Promise<AsyncIterable<AIProviderHealthEvent>> {
-  return withAuditError(runtimeAudit.subscribeAIProviderHealthEvents({}));
 }

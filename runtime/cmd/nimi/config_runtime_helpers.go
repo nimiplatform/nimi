@@ -42,9 +42,6 @@ func mergeFileConfigWithDefaults(raw config.FileConfig) config.FileConfig {
 		merged.ManagedRoots = &managedRootsCopy
 		pruneEmptyManagedRootsConfig(&merged)
 	}
-	if raw.AIHealthIntervalSeconds != nil {
-		merged.AIHealthIntervalSeconds = raw.AIHealthIntervalSeconds
-	}
 	if raw.AIHTTPTimeoutSeconds != nil {
 		merged.AIHTTPTimeoutSeconds = raw.AIHTTPTimeoutSeconds
 	}

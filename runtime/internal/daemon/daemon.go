@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log/slog"
 	"net"
-	"net/http"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -22,7 +21,6 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/httpserver"
 	"github.com/nimiplatform/nimi/runtime/internal/localappkernel"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
-	"github.com/nimiplatform/nimi/runtime/internal/providerhealth"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	connectorservice "github.com/nimiplatform/nimi/runtime/internal/services/connector"
 	"github.com/nimiplatform/nimi/runtime/internal/videomedia"
@@ -40,16 +38,12 @@ type Daemon struct {
 	protectedStateClose     func() error
 	protectedStateCloseOnce sync.Once
 	protectedStateCloseErr  error
-	aiHealth                *providerhealth.Tracker
 	auditStore              *auditlog.Store
 	engineMgr               *engine.Manager
 	imageExecutionHost      *engine.ImageExecutionHost
 	videoExecutionHost      *engine.VideoExecutionHost
 	newEngineManager        func(logger *slog.Logger, roots engine.ManagedRoots, onState engine.StateChangeFunc) (*engine.Manager, error)
 	startEngineFn           func(ctx context.Context, kind engine.EngineKind, version string, port int, envKey string) error
-	probeAIProviderFn       func(ctx context.Context, client *http.Client, target aiProviderTarget) error
-	providerFailureHintMu   sync.RWMutex
-	providerFailureHints    map[string]string
 	startupStatusMu         sync.Mutex
 	startupDegradedReason   string
 	readyOnce               sync.Once
@@ -302,22 +296,18 @@ func newDaemon(cfg config.Config, logger *slog.Logger, version string, newGRPCSe
 		}
 	}
 	d := &Daemon{
-		cfg:                  cfg,
-		logger:               logger,
-		state:                state,
-		grpc:                 grpcServer,
-		aiHealth:             nil,
-		auditStore:           nil,
-		newEngineManager:     engine.NewManager,
-		probeAIProviderFn:    probeAIProvider,
-		providerFailureHints: map[string]string{},
-		readyCh:              make(chan struct{}),
+		cfg:              cfg,
+		logger:           logger,
+		state:            state,
+		grpc:             grpcServer,
+		auditStore:       nil,
+		newEngineManager: engine.NewManager,
+		readyCh:          make(chan struct{}),
 	}
 	d.http = httpserver.New(
 		cfg.HTTPAddr,
 		state,
 		logger,
-		grpcServer.AIHealthTracker(),
 	)
 	return d, nil
 }
@@ -409,7 +399,6 @@ func (d *Daemon) run(ctx context.Context, serverCount int, startServers daemonSe
 		}
 	}
 	defer stop()
-	d.aiHealth = d.grpc.AIHealthTracker()
 	d.auditStore = d.grpc.AuditStore()
 	d.state.SetStatus(health.StatusStarting, "booting")
 	d.grpc.SyncServingState()
@@ -454,11 +443,7 @@ func (d *Daemon) run(ctx context.Context, serverCount int, startServers daemonSe
 		d.transitionToDegraded(startupDegradedReason)
 		d.logger.Warn("runtime started in degraded state", "reason", startupDegradedReason)
 	}
-	backgroundWG.Add(2)
-	go func() {
-		defer backgroundWG.Done()
-		d.sampleAIProviderHealth(backgroundCtx)
-	}()
+	backgroundWG.Add(1)
 	go func() {
 		defer backgroundWG.Done()
 		if aiSvc := d.grpc.AIService(); aiSvc != nil {
@@ -748,16 +733,8 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 			firstFailure = fmt.Sprintf("%s: %s", failure.kind, failure.detail)
 		}
 		d.logger.Error("engine bootstrap failed", "engine", failure.kind, "detail", failure.detail)
-		if providerName, ok := providerTargetNameForEngine(failure.kind); ok {
-			reason := fmt.Sprintf("engine bootstrap failed (%s: %s)", failure.kind, failure.detail)
-			d.setProviderFailureHint(providerName, reason)
-			if d.aiHealth != nil {
-				previous := d.aiHealth.SnapshotOf(providerName)
-				if err := d.aiHealth.Mark(providerName, false, reason); err == nil {
-					appendProviderHealthAudit(d.auditStore, providerName, previous, d.aiHealth.SnapshotOf(providerName))
-				}
-			}
-			appendEngineBootstrapFailureAudit(d.auditStore, string(failure.kind), providerName, failure.detail, nil)
+		if auditTarget, ok := engineAuditTargetName(failure.kind); ok {
+			appendEngineBootstrapFailureAudit(d.auditStore, string(failure.kind), auditTarget, failure.detail, nil)
 		}
 	}
 	if firstFailure != "" {

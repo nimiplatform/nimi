@@ -5,9 +5,8 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
-	"github.com/nimiplatform/nimi/runtime/internal/config"
 	"github.com/nimiplatform/nimi/runtime/internal/engine"
-	"github.com/nimiplatform/nimi/runtime/internal/providerhealth"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 func mustListAuditEvents(t *testing.T, store *auditlog.Store, req *runtimev1.ListAuditEventsRequest) *runtimev1.ListAuditEventsResponse {
@@ -19,208 +18,56 @@ func mustListAuditEvents(t *testing.T, store *auditlog.Store, req *runtimev1.Lis
 	return resp
 }
 
-func TestAppendProviderHealthAuditOnTransition(t *testing.T) {
-	store := auditlog.New(32, 32)
-	before := providerhealth.Snapshot{
-		Name:  "cloud-nimillm",
-		State: providerhealth.StateHealthy,
-	}
-	after := providerhealth.Snapshot{
-		Name:       "cloud-nimillm",
-		State:      providerhealth.StateUnhealthy,
-		LastReason: "timeout",
-	}
-
-	appendProviderHealthAudit(store, "cloud-nimillm", before, after)
-	resp := mustListAuditEvents(t, store, &runtimev1.ListAuditEventsRequest{
-		Domain: "runtime.ai",
-	})
-	if len(resp.GetEvents()) != 1 {
-		t.Fatalf("expected 1 audit event, got=%d", len(resp.GetEvents()))
-	}
-	event := resp.GetEvents()[0]
-	if event.GetOperation() != "provider.health" {
-		t.Fatalf("unexpected operation: %s", event.GetOperation())
-	}
-	if event.GetReasonCode() != runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE {
-		t.Fatalf("unexpected reason code: %v", event.GetReasonCode())
-	}
-	if event.GetPayload() == nil {
-		t.Fatalf("payload must not be nil")
-	}
-	if got := event.GetPayload().GetFields()["providerName"].GetStringValue(); got != "cloud-nimillm" {
-		t.Fatalf("providerName mismatch: %s", got)
-	}
-	if got := event.GetPayload().GetFields()["current"].GetStructValue().GetFields()["state"].GetStringValue(); got != string(providerhealth.StateUnhealthy) {
-		t.Fatalf("current state mismatch: %s", got)
-	}
-}
-
-func TestAppendProviderHealthAuditNoTransitionNoEvent(t *testing.T) {
-	store := auditlog.New(32, 32)
-	before := providerhealth.Snapshot{
-		Name:  "cloud-nimillm",
-		State: providerhealth.StateHealthy,
-	}
-	after := providerhealth.Snapshot{
-		Name:  "cloud-nimillm",
-		State: providerhealth.StateHealthy,
-	}
-
-	appendProviderHealthAudit(store, "cloud-nimillm", before, after)
-	resp := mustListAuditEvents(t, store, &runtimev1.ListAuditEventsRequest{
-		Domain: "runtime.ai",
-	})
-	if len(resp.GetEvents()) != 0 {
-		t.Fatalf("expected no events, got=%d", len(resp.GetEvents()))
-	}
-}
-
-func TestConfiguredAIProviderTargetsIncludesExtendedProviders(t *testing.T) {
-	t.Setenv("NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL", "http://127.0.0.1:1234/v1")
-	t.Setenv("NIMI_RUNTIME_LOCAL_MEDIA_BASE_URL", "http://127.0.0.1:2834/v1")
-	t.Setenv("NIMI_RUNTIME_LOCAL_SPEECH_BASE_URL", "http://127.0.0.1:8330/v1")
-	t.Setenv("NIMI_RUNTIME_LOCAL_SIDECAR_BASE_URL", "http://127.0.0.1:3234")
-	cfg := config.Config{
-		Providers: map[string]config.RuntimeFileTarget{
-			"nimillm":               {BaseURL: "http://127.0.0.1:3234/v1", APIKey: "nimillm-key"},
-			"volcengine_openspeech": {BaseURL: "http://127.0.0.1:4234", APIKey: "speech-key"},
-			"gemini":                {BaseURL: "http://127.0.0.1:5234", APIKey: "gemini-key"},
-			"minimax":               {BaseURL: "http://127.0.0.1:6234", APIKey: "minimax-key"},
-			"kimi":                  {BaseURL: "http://127.0.0.1:7234", APIKey: "kimi-key"},
-			"glm":                   {BaseURL: "http://127.0.0.1:8234", APIKey: "glm-key"},
-		},
-	}
-
-	targets := configuredAIProviderTargets(cfg)
-	seen := make(map[string]bool, len(targets))
-	for _, item := range targets {
-		seen[item.Name] = true
-	}
-	required := []string{
-		"local-media",
-		"local-speech",
-		"local-sidecar",
-		"cloud-nimillm",
-		"cloud-volcengine-openspeech",
-		"cloud-gemini",
-		"cloud-minimax",
-		"cloud-kimi",
-		"cloud-glm",
-	}
-	for _, name := range required {
-		if !seen[name] {
-			t.Fatalf("expected provider target %q to be configured", name)
-		}
-	}
-}
-
-func TestResolveProbeEndpointAvoidsDuplicateV1(t *testing.T) {
-	got := resolveProbeEndpoint("http://127.0.0.1:1234/v1", "/v1/models")
-	if got != "http://127.0.0.1:1234/v1/models" {
-		t.Fatalf("unexpected probe endpoint: %s", got)
-	}
-}
-
-func TestResolveProbeEndpointWithHealthPath(t *testing.T) {
-	got := resolveProbeEndpoint("http://127.0.0.1:1234/v1", "/health")
-	if got != "http://127.0.0.1:1234/v1/health" {
-		t.Fatalf("unexpected health probe endpoint: %s", got)
-	}
-}
-
-func TestResolveProbeEndpointWithCatalogPath(t *testing.T) {
-	got := resolveProbeEndpoint("http://127.0.0.1:8321/v1", "/v1/catalog")
-	if got != "http://127.0.0.1:8321/v1/catalog" {
-		t.Fatalf("unexpected catalog probe endpoint: %s", got)
-	}
-}
-
-func TestProviderProbePathsUsesCanonicalMediaCatalog(t *testing.T) {
-	got := providerProbePaths("local-media")
-	if len(got) != 2 || got[0] != "/healthz" || got[1] != "/v1/catalog" {
-		t.Fatalf("unexpected media probe paths: %v", got)
-	}
-}
-
-func TestProviderProbePathsUsesCanonicalSpeechCatalog(t *testing.T) {
-	got := providerProbePaths("local-speech")
-	if len(got) != 2 || got[0] != "/healthz" || got[1] != "/v1/catalog" {
-		t.Fatalf("unexpected speech probe paths: %v", got)
-	}
-}
-
 func TestProviderTargetNameForEngineExcludesPrivateLlamaHost(t *testing.T) {
-	if target, ok := providerTargetNameForEngine(engine.EngineLlama); ok || target != "" {
+	if target, ok := engineAuditTargetName(engine.EngineLlama); ok || target != "" {
 		t.Fatalf("private llama Host leaked provider target: %q, %v", target, ok)
 	}
-
-	diffusersTarget, ok := providerTargetNameForEngine(engineManagedImageBackend)
+	diffusersTarget, ok := engineAuditTargetName(engineManagedImageBackend)
 	if !ok || diffusersTarget != "local-image" {
 		t.Fatalf("unexpected media diffusers provider target: %q, %v", diffusersTarget, ok)
 	}
 }
 
 func TestProviderTargetNameForEngineIncludesSidecar(t *testing.T) {
-	sidecarTarget, ok := providerTargetNameForEngine(engineSidecar)
-	if !ok {
-		t.Fatal("expected sidecar provider target mapping")
-	}
-	if sidecarTarget != "local-sidecar" {
-		t.Fatalf("unexpected sidecar provider target: %s", sidecarTarget)
+	sidecarTarget, ok := engineAuditTargetName(engineSidecar)
+	if !ok || sidecarTarget != "local-sidecar" {
+		t.Fatalf("unexpected sidecar provider target: %q, %v", sidecarTarget, ok)
 	}
 }
 
 func TestAppendEngineBootstrapFailureAuditIncludesImageMatrixAttribution(t *testing.T) {
 	store := auditlog.New(32, 32)
-	selection := &engine.ImageSupervisedMatrixSelection{
-		Entry: &engine.ImageSupervisedMatrixEntry{
-			EntryID:       "linux-x64-nvidia-safetensors-native",
-			BackendFamily: engine.ImageBackendFamilyStableDiffusionGGML,
-			BackendClass:  engine.ImageBackendClassNativeBinary,
-			ProductState:  engine.ImageProductStateUnsupported,
-		},
-	}
-
+	selection := &engine.ImageSupervisedMatrixSelection{Entry: &engine.ImageSupervisedMatrixEntry{
+		EntryID: "linux-x64-nvidia-safetensors-native", BackendFamily: engine.ImageBackendFamilyStableDiffusionGGML,
+		BackendClass: engine.ImageBackendClassNativeBinary, ProductState: engine.ImageProductStateUnsupported,
+	}}
 	appendEngineBootstrapFailureAudit(store, "media", "local-media", "bootstrap failed", selection)
-
-	resp := mustListAuditEvents(t, store, &runtimev1.ListAuditEventsRequest{Domain: "runtime.engine"})
-	if len(resp.GetEvents()) != 1 {
-		t.Fatalf("expected 1 runtime.engine event, got=%d", len(resp.GetEvents()))
-	}
-	payload := resp.GetEvents()[0].GetPayload().GetFields()
-	if payload["entry_id"].GetStringValue() != "linux-x64-nvidia-safetensors-native" {
-		t.Fatalf("unexpected entry_id: %q", payload["entry_id"].GetStringValue())
-	}
-	if payload["backend_family"].GetStringValue() != string(engine.ImageBackendFamilyStableDiffusionGGML) {
-		t.Fatalf("unexpected backend_family: %q", payload["backend_family"].GetStringValue())
-	}
-	if payload["backend_class"].GetStringValue() != string(engine.ImageBackendClassNativeBinary) {
-		t.Fatalf("unexpected backend_class: %q", payload["backend_class"].GetStringValue())
-	}
-	if payload["product_state"].GetStringValue() != string(engine.ImageProductStateUnsupported) {
-		t.Fatalf("unexpected product_state: %q", payload["product_state"].GetStringValue())
-	}
+	payload := mustSingleRuntimeEngineAuditPayload(t, store)
+	assertImageMatrixAuditPayload(t, payload)
 }
 
 func TestAppendRepairResolvedAuditIncludesImageMatrixAttribution(t *testing.T) {
 	store := auditlog.New(32, 32)
-	selection := &engine.ImageSupervisedMatrixSelection{
-		Entry: &engine.ImageSupervisedMatrixEntry{
-			EntryID:       "linux-x64-nvidia-safetensors-native",
-			BackendFamily: engine.ImageBackendFamilyStableDiffusionGGML,
-			BackendClass:  engine.ImageBackendClassNativeBinary,
-			ProductState:  engine.ImageProductStateUnsupported,
-		},
-	}
-
+	selection := &engine.ImageSupervisedMatrixSelection{Entry: &engine.ImageSupervisedMatrixEntry{
+		EntryID: "linux-x64-nvidia-safetensors-native", BackendFamily: engine.ImageBackendFamilyStableDiffusionGGML,
+		BackendClass: engine.ImageBackendClassNativeBinary, ProductState: engine.ImageProductStateUnsupported,
+	}}
 	appendRepairResolvedAudit(store, "media", "recovered", selection)
+	payload := mustSingleRuntimeEngineAuditPayload(t, store)
+	assertImageMatrixAuditPayload(t, payload)
+}
 
+func mustSingleRuntimeEngineAuditPayload(t *testing.T, store *auditlog.Store) map[string]*structpb.Value {
+	t.Helper()
 	resp := mustListAuditEvents(t, store, &runtimev1.ListAuditEventsRequest{Domain: "runtime.engine"})
 	if len(resp.GetEvents()) != 1 {
 		t.Fatalf("expected 1 runtime.engine event, got=%d", len(resp.GetEvents()))
 	}
-	payload := resp.GetEvents()[0].GetPayload().GetFields()
+	return resp.GetEvents()[0].GetPayload().GetFields()
+}
+
+func assertImageMatrixAuditPayload(t *testing.T, payload map[string]*structpb.Value) {
+	t.Helper()
 	if payload["entry_id"].GetStringValue() != "linux-x64-nvidia-safetensors-native" {
 		t.Fatalf("unexpected entry_id: %q", payload["entry_id"].GetStringValue())
 	}

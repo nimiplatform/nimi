@@ -190,29 +190,6 @@ func fireworksModelsBaseURL(baseURL string) (string, error) {
 	return parsed.Scheme + "://" + parsed.Host, nil
 }
 
-// ProbeHealth resolves provider health status from authenticated reachability, and
-// optionally verifies that a specific model is present in live inventory.
-func (b *Backend) ProbeHealth(ctx context.Context, modelID string) (runtimev1.TokenProviderHealthStatus, string) {
-	targetModelID := strings.TrimSpace(modelID)
-	if targetModelID == "" {
-		if err := b.ProbeConnector(ctx); err != nil {
-			return mapProbeHealthError(err)
-		}
-		return runtimev1.TokenProviderHealthStatus_TOKEN_PROVIDER_HEALTH_STATUS_HEALTHY, "reachable"
-	}
-
-	models, err := b.ListModels(ctx)
-	if err != nil {
-		return mapProbeHealthError(err)
-	}
-	for _, item := range models {
-		if strings.EqualFold(strings.TrimSpace(item.ModelID), targetModelID) {
-			return runtimev1.TokenProviderHealthStatus_TOKEN_PROVIDER_HEALTH_STATUS_HEALTHY, fmt.Sprintf("reachable (%d models)", len(models))
-		}
-	}
-	return runtimev1.TokenProviderHealthStatus_TOKEN_PROVIDER_HEALTH_STATUS_UNSUPPORTED, fmt.Sprintf("model not found: %s", targetModelID)
-}
-
 func mapProbeModels(payload openAIModelsResponse) []ProbeModel {
 	out := make([]ProbeModel, 0, len(payload.Data))
 	seen := make(map[string]struct{}, len(payload.Data))
@@ -405,26 +382,6 @@ func normalizeProbeModalities(values []string) map[string]struct{} {
 		out[normalized] = struct{}{}
 	}
 	return out
-}
-
-func mapProbeHealthError(err error) (runtimev1.TokenProviderHealthStatus, string) {
-	st, ok := status.FromError(err)
-	if !ok {
-		return runtimev1.TokenProviderHealthStatus_TOKEN_PROVIDER_HEALTH_STATUS_UNREACHABLE, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String()
-	}
-
-	switch st.Code() {
-	case codes.PermissionDenied:
-		return runtimev1.TokenProviderHealthStatus_TOKEN_PROVIDER_HEALTH_STATUS_UNAUTHORIZED, strings.TrimSpace(st.Message())
-	case codes.NotFound:
-		return runtimev1.TokenProviderHealthStatus_TOKEN_PROVIDER_HEALTH_STATUS_UNSUPPORTED, strings.TrimSpace(st.Message())
-	case codes.InvalidArgument, codes.FailedPrecondition:
-		return runtimev1.TokenProviderHealthStatus_TOKEN_PROVIDER_HEALTH_STATUS_UNSUPPORTED, strings.TrimSpace(st.Message())
-	case codes.DeadlineExceeded:
-		return runtimev1.TokenProviderHealthStatus_TOKEN_PROVIDER_HEALTH_STATUS_UNREACHABLE, strings.TrimSpace(st.Message())
-	default:
-		return runtimev1.TokenProviderHealthStatus_TOKEN_PROVIDER_HEALTH_STATUS_UNREACHABLE, strings.TrimSpace(st.Message())
-	}
 }
 
 func shouldRetryModelListPath(err error) bool {

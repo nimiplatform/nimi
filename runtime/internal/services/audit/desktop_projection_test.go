@@ -12,7 +12,6 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/health"
 	"github.com/nimiplatform/nimi/runtime/internal/protocol/envelope"
-	"github.com/nimiplatform/nimi/runtime/internal/providerhealth"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
@@ -24,7 +23,6 @@ func newDesktopAuditProjectionService(store *auditlog.Store) *Service {
 	return New(
 		health.NewState(),
 		slog.New(slog.NewTextHandler(io.Discard, nil)),
-		providerhealth.New(),
 		store,
 	)
 }

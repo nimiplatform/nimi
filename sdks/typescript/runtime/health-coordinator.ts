@@ -1,9 +1,4 @@
-import type {
-  AIProviderHealthEvent,
-  AIProviderHealthSnapshot,
-  GetRuntimeHealthResponse,
-  RuntimeHealthEvent,
-} from '../core-generated/runtime-typed-client';
+import type { GetRuntimeHealthResponse, RuntimeHealthEvent } from '../core-generated/runtime-typed-client';
 import { RuntimeHealthStatus } from '../core-generated/runtime-typed-client';
 import { toNimiRuntimeIsoFromTimestamp } from './runtime-agent-values';
 
@@ -12,9 +7,7 @@ const HEALTH_WATCHDOG_INTERVAL_MS = 60_000;
 
 export interface NimiRuntimeHealthCoordinatorDeps {
   fetchRuntimeHealth(): Promise<GetRuntimeHealthResponse>;
-  fetchProviderHealth(): Promise<{ providers: AIProviderHealthSnapshot[] }>;
   subscribeRuntimeHealth(): Promise<AsyncIterable<RuntimeHealthEvent>>;
-  subscribeProviderHealth(): Promise<AsyncIterable<AIProviderHealthEvent>>;
   subscribeRuntimeConnected(listener: () => void): () => void;
   subscribeRuntimeDisconnected(listener: () => void): () => void;
   now?: () => number;
@@ -27,10 +20,8 @@ type ResolvedNimiRuntimeHealthCoordinatorDeps =
 
 export interface NimiRuntimeHealthCoordinatorState {
   runtimeHealth: GetRuntimeHealthResponse | null;
-  providerHealth: AIProviderHealthSnapshot[];
   streamConnected: boolean;
   healthStreamConnected: boolean;
-  providerStreamConnected: boolean;
   lastFetchedAt: string | null;
   lastStreamAt: string | null;
   stale: boolean;
@@ -56,10 +47,8 @@ export interface NimiRuntimeHealthProjection {
 function buildDefaultState(): NimiRuntimeHealthCoordinatorState {
   return {
     runtimeHealth: null,
-    providerHealth: [],
     streamConnected: false,
     healthStreamConnected: false,
-    providerStreamConnected: false,
     lastFetchedAt: null,
     lastStreamAt: null,
     stale: true,
@@ -145,31 +134,6 @@ function mapRuntimeHealthEventToSnapshot(event: RuntimeHealthEvent): GetRuntimeH
     vramBytes: event.vramBytes,
     sampledAt: event.sampledAt,
   };
-}
-
-function mapProviderHealthEventToSnapshot(event: AIProviderHealthEvent): AIProviderHealthSnapshot {
-  return {
-    providerName: event.providerName,
-    state: event.state,
-    reason: event.reason,
-    consecutiveFailures: event.consecutiveFailures,
-    lastChangedAt: event.lastChangedAt,
-    lastCheckedAt: event.lastCheckedAt,
-    subHealth: event.subHealth,
-  };
-}
-
-function mergeProviderSnapshot(
-  current: AIProviderHealthSnapshot[],
-  next: AIProviderHealthSnapshot,
-): AIProviderHealthSnapshot[] {
-  const existing = current.findIndex((item) => item.providerName === next.providerName);
-  if (existing < 0) {
-    return [...current, next].sort((left, right) => left.providerName.localeCompare(right.providerName));
-  }
-  const merged = [...current];
-  merged[existing] = next;
-  return merged;
 }
 
 function computeStale(state: NimiRuntimeHealthCoordinatorState, now: number): boolean {
@@ -259,7 +223,6 @@ export class NimiRuntimeHealthCoordinator {
       started: false,
       streamConnected: false,
       healthStreamConnected: false,
-      providerStreamConnected: false,
       refreshing: false,
     }));
   }
@@ -278,16 +241,11 @@ export class NimiRuntimeHealthCoordinator {
 
     this.refreshPromise = (async () => {
       try {
-        const [runtimeHealth, providerHealth] = await Promise.all([
-          this.deps.fetchRuntimeHealth(),
-          this.deps.fetchProviderHealth(),
-        ]);
+        const runtimeHealth = await this.deps.fetchRuntimeHealth();
         const fetchedAt = toIsoString(this.deps.now());
         this.updateState((current) => ({
           ...current,
           runtimeHealth,
-          providerHealth: [...providerHealth.providers]
-            .sort((left, right) => left.providerName.localeCompare(right.providerName)),
           lastFetchedAt: fetchedAt,
           refreshing: false,
           error: null,
@@ -359,11 +317,9 @@ export class NimiRuntimeHealthCoordinator {
     this.updateState((current) => ({
       ...current,
       healthStreamConnected: false,
-      providerStreamConnected: false,
       streamConnected: false,
     }));
     this.startRuntimeHealthStream(generation);
-    this.startProviderHealthStream(generation);
   }
 
   private handleRuntimeDisconnected(): void {
@@ -374,7 +330,6 @@ export class NimiRuntimeHealthCoordinator {
       ...current,
       streamConnected: false,
       healthStreamConnected: false,
-      providerStreamConnected: false,
       streamError: null,
     }));
   }
@@ -439,58 +394,6 @@ export class NimiRuntimeHealthCoordinator {
       });
   }
 
-  private startProviderHealthStream(generation: number): void {
-    void this.deps.subscribeProviderHealth()
-      .then(async (stream) => {
-        const iterator = stream[Symbol.asyncIterator]();
-        const untrack = this.trackStreamIterator(iterator);
-        if (!this.isCurrentGeneration(generation)) {
-          untrack();
-          await Promise.resolve(iterator.return?.()).catch(() => undefined);
-          return;
-        }
-        try {
-          this.updateState((current) => ({
-            ...current,
-            providerStreamConnected: true,
-            streamError: null,
-          }));
-          while (this.isCurrentGeneration(generation)) {
-            const next = await iterator.next();
-            if (next.done) {
-              break;
-            }
-            const nextSnapshot = mapProviderHealthEventToSnapshot(next.value);
-            this.updateState((current) => ({
-              ...current,
-              providerHealth: mergeProviderSnapshot(current.providerHealth, nextSnapshot),
-              lastStreamAt: toIsoString(this.deps.now()),
-              providerStreamConnected: true,
-              streamError: null,
-            }));
-          }
-          if (this.isCurrentGeneration(generation)) {
-            this.updateState((current) => ({
-              ...current,
-              providerStreamConnected: false,
-            }));
-          }
-        } finally {
-          untrack();
-        }
-      })
-      .catch((error) => {
-        if (!this.isCurrentGeneration(generation)) {
-          return;
-        }
-        this.updateState((current) => ({
-          ...current,
-          providerStreamConnected: false,
-          streamError: toErrorMessage(error, 'provider health stream unavailable'),
-        }));
-      });
-  }
-
   private isCurrentGeneration(generation: number): boolean {
     return this.state.started && this.streamGeneration === generation;
   }
@@ -532,7 +435,7 @@ export class NimiRuntimeHealthCoordinator {
       : nextState;
     const computed: NimiRuntimeHealthCoordinatorState = {
       ...candidate,
-      streamConnected: candidate.healthStreamConnected && candidate.providerStreamConnected,
+      streamConnected: candidate.healthStreamConnected,
     };
     computed.stale = computeStale(computed, this.deps.now());
     this.state = computed;

@@ -140,44 +140,31 @@ func runRuntimeStatus(args []string) error {
 	if err != nil {
 		return err
 	}
+	projection := projectPublicDaemonHealth(status)
 	if *jsonOutput {
-		out, err := json.MarshalIndent(status, "", "  ")
+		out, err := json.MarshalIndent(projection, "", "  ")
 		if err != nil {
 			return err
 		}
 		fmt.Println(string(out))
 	} else {
 		printCLIHeader(os.Stdout, "Nimi Runtime")
-		printCLIField(os.Stdout, "mode", status.Mode.String())
-		printCLIField(os.Stdout, "process", status.Process)
-		if status.PID > 0 {
-			printCLIField(os.Stdout, "pid", fmt.Sprintf("%d", status.PID))
+		printCLIField(os.Stdout, "mode", projection.Mode)
+		printCLIField(os.Stdout, "process", projection.Process)
+		if projection.PID > 0 {
+			printCLIField(os.Stdout, "pid", fmt.Sprintf("%d", projection.PID))
 		}
-		if strings.TrimSpace(status.GRPCAddr) != "" {
-			printCLIField(os.Stdout, "grpc", status.GRPCAddr)
+		if projection.StartedAt != "" {
+			printCLIField(os.Stdout, "started", projection.StartedAt)
 		}
-		if strings.TrimSpace(status.ConfigPath) != "" {
-			printCLIField(os.Stdout, "config", status.ConfigPath)
+		if projection.Version != "" {
+			printCLIField(os.Stdout, "version", projection.Version)
 		}
-		if strings.TrimSpace(status.LogPath) != "" {
-			printCLIField(os.Stdout, "logs", status.LogPath)
-		}
-		if strings.TrimSpace(status.StartedAt) != "" {
-			printCLIField(os.Stdout, "started", status.StartedAt)
-		}
-		if strings.TrimSpace(status.Version) != "" {
-			printCLIField(os.Stdout, "version", status.Version)
-		}
-		if strings.TrimSpace(status.HealthSummary) != "" {
-			printCLIField(os.Stdout, "health", status.HealthSummary)
-		}
-		if strings.TrimSpace(status.HealthError) != "" {
-			printCLIField(os.Stdout, "detail", status.HealthError)
-		}
+		printCLIField(os.Stdout, "health", projection.Health)
 		switch {
-		case status.Process != "running":
+		case projection.Health == publicDaemonHealthStopped:
 			printCLINextStep(os.Stdout, "nimi start")
-		case !status.HealthReachable && strings.TrimSpace(status.LogPath) != "":
+		case projection.Health == publicDaemonHealthUnreachable:
 			printCLINextStep(os.Stdout, "nimi logs -f")
 		}
 	}

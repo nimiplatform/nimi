@@ -23,9 +23,7 @@ export function createRuntimeHealthCoordinator(
 ): NimiRuntimeHealthCoordinator {
   return new NimiRuntimeHealthCoordinator({
     fetchRuntimeHealth: async () => getAudit().getRuntimeHealth({}, HEALTH_CALL_OPTIONS),
-    fetchProviderHealth: async () => getAudit().listAIProviderHealth({}, HEALTH_CALL_OPTIONS),
     subscribeRuntimeHealth: async () => getAudit().subscribeRuntimeHealthEvents({}, HEALTH_STREAM_OPTIONS),
-    subscribeProviderHealth: async () => getAudit().subscribeAIProviderHealthEvents({}, HEALTH_STREAM_OPTIONS),
     subscribeRuntimeConnected: () => () => {},
     subscribeRuntimeDisconnected: () => () => {},
     setInterval: timers.setInterval,

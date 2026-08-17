@@ -32,9 +32,6 @@ func (c Config) Validate() error {
 	if c.SessionTTLMaxSeconds < c.SessionTTLMinSeconds {
 		return fmt.Errorf("session ttl max seconds must be >= session ttl min seconds")
 	}
-	if err := validateIntRange(c.AIHealthIntervalSeconds, "ai health interval seconds", 1, 3600); err != nil {
-		return err
-	}
 	if err := validateIntRange(c.AIHTTPTimeoutSeconds, "ai http timeout seconds", 1, 600); err != nil {
 		return err
 	}

@@ -11,17 +11,9 @@ export const MENU_BAR_RUNTIME_PAGES = [
 
 export type MenuBarRuntimePage = typeof MENU_BAR_RUNTIME_PAGES[number];
 
-export type MenuBarProviderSummary = {
-  readonly healthy: number;
-  readonly unhealthy: number;
-  readonly unknown: number;
-  readonly total: number;
-};
-
 export type MenuBarRuntimeHealthSyncPayload = {
   readonly runtimeHealthStatus?: string;
   readonly runtimeHealthReason?: string;
-  readonly providerSummary?: MenuBarProviderSummary;
   readonly updatedAt?: string;
 };
 
@@ -48,7 +40,7 @@ export function parseMenuBarRuntimeHealthSyncPayload(
 ): MenuBarRuntimeHealthSyncPayload {
   const record = exactOptionalRecord(
     value,
-    ['runtimeHealthStatus', 'runtimeHealthReason', 'providerSummary', 'updatedAt'],
+    ['runtimeHealthStatus', 'runtimeHealthReason', 'updatedAt'],
     'menu-bar-runtime-health-sync-payload-invalid',
   );
   const runtimeHealthStatus = optionalText(
@@ -75,9 +67,6 @@ export function parseMenuBarRuntimeHealthSyncPayload(
   return {
     ...(runtimeHealthStatus ? { runtimeHealthStatus } : {}),
     ...(runtimeHealthReason ? { runtimeHealthReason } : {}),
-    ...(record.providerSummary === undefined
-      ? {}
-      : { providerSummary: parseMenuBarProviderSummary(record.providerSummary) }),
     ...(updatedAt ? { updatedAt } : {}),
   };
 }
@@ -112,29 +101,6 @@ export function parseMenuBarOpenTabPayload(value: unknown): MenuBarOpenTabPayloa
     tab: 'runtime',
     page: page as MenuBarRuntimePage,
   };
-}
-
-function parseMenuBarProviderSummary(value: unknown): MenuBarProviderSummary {
-  const record = exactRecord(
-    value,
-    ['healthy', 'unhealthy', 'unknown', 'total'],
-    'menu-bar-provider-summary-invalid',
-  );
-  const healthy = boundedCount(record.healthy);
-  const unhealthy = boundedCount(record.unhealthy);
-  const unknown = boundedCount(record.unknown);
-  const total = boundedCount(record.total);
-  if (healthy + unhealthy + unknown !== total) {
-    throw new Error('menu-bar-provider-summary-invalid');
-  }
-  return { healthy, unhealthy, unknown, total };
-}
-
-function boundedCount(value: unknown): number {
-  if (!Number.isSafeInteger(value) || Number(value) < 0 || Number(value) > 1_000_000) {
-    throw new Error('menu-bar-provider-summary-invalid');
-  }
-  return Number(value);
 }
 
 function exactRecord(

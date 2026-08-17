@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type {
-  AIProviderHealthSnapshot,
   DesktopAuditEventProjection,
   GetRuntimeHealthResponse,
   UsageStatRecord,
@@ -216,7 +215,6 @@ export function useGlobalAuditData(enabled: boolean) {
   return {
     // Health
     runtimeHealth: enabled ? (healthState.runtimeHealth as GetRuntimeHealthResponse | null) : null,
-    providerHealth: enabled ? (healthState.providerHealth as AIProviderHealthSnapshot[]) : [],
     healthLoading: enabled ? healthState.refreshing : false,
     healthError: enabled ? (healthState.error || healthState.streamError) : null,
     healthStreamConnected: enabled ? healthState.streamConnected : false,

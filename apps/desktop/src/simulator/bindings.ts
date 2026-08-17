@@ -44,9 +44,7 @@ export function createDesktopSimulatorRuntimeHealthCoordinator(): NimiRuntimeHea
   };
   return new NimiRuntimeHealthCoordinator({
     fetchRuntimeHealth: unavailable,
-    fetchProviderHealth: unavailable,
     subscribeRuntimeHealth: unavailable,
-    subscribeProviderHealth: unavailable,
     subscribeRuntimeConnected: () => () => undefined,
     subscribeRuntimeDisconnected: () => () => undefined,
   });

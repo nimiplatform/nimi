@@ -10,7 +10,6 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
-	"github.com/nimiplatform/nimi/runtime/internal/providerhealth"
 )
 
 // CloudProvider executes only an exact caller-owned connector target. The
@@ -24,7 +23,7 @@ type CloudProvider struct {
 }
 
 // NewCloudProvider creates a CloudProvider from the given config.
-func NewCloudProvider(cfg CloudConfig, _ *providerhealth.Tracker) *CloudProvider {
+func NewCloudProvider(cfg CloudConfig) *CloudProvider {
 	backends := make(map[string]*Backend, len(cfg.Providers))
 	for providerID, creds := range cfg.Providers {
 		canonical := ResolveProviderAlias(providerID)

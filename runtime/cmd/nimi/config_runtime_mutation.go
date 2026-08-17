@@ -84,13 +84,6 @@ func applyConfigSetOperation(cfg *config.FileConfig, key string, value string) e
 		return fmt.Errorf("managedRoots.logs is Product Control-derived and cannot be set")
 	case "managedRoots.audit":
 		return fmt.Errorf("managedRoots.audit is Product Control-derived and cannot be set")
-	case "aiHealthIntervalSeconds":
-		parsed, err := strconv.Atoi(strings.TrimSpace(value))
-		if err != nil {
-			return fmt.Errorf("aiHealthIntervalSeconds must be integer: %w", err)
-		}
-		cfg.AIHealthIntervalSeconds = &parsed
-		return nil
 	case "aiHttpTimeoutSeconds":
 		parsed, err := strconv.Atoi(strings.TrimSpace(value))
 		if err != nil {
@@ -218,31 +211,7 @@ func applyConfigSetOperation(cfg *config.FileConfig, key string, value string) e
 		return nil
 	}
 
-	parts := strings.Split(normalizedKey, ".")
-	if len(parts) != 3 || parts[0] != "providers" {
-		return fmt.Errorf("unsupported config key %q", key)
-	}
-	providerName := strings.TrimSpace(parts[1])
-	providerField := strings.TrimSpace(parts[2])
-	if providerName == "" {
-		return fmt.Errorf("provider name cannot be empty")
-	}
-	if cfg.Providers == nil {
-		cfg.Providers = map[string]config.RuntimeFileTarget{}
-	}
-	target := cfg.Providers[providerName]
-	switch providerField {
-	case "baseUrl":
-		target.BaseURL = value
-	case "apiKeyEnv":
-		target.APIKeyEnv = value
-	case "apiKey":
-		target.APIKey = value
-	default:
-		return fmt.Errorf("unsupported provider config key %q", key)
-	}
-	cfg.Providers[providerName] = target
-	return nil
+	return fmt.Errorf("unsupported config key %q", key)
 }
 
 func applyConfigUnsetOperation(cfg *config.FileConfig, key string) error {
@@ -295,9 +264,6 @@ func applyConfigUnsetOperation(cfg *config.FileConfig, key string) error {
 		return fmt.Errorf("managedRoots.logs is Product Control-derived and cannot be unset")
 	case "managedRoots.audit":
 		return fmt.Errorf("managedRoots.audit is Product Control-derived and cannot be unset")
-	case "aiHealthIntervalSeconds":
-		cfg.AIHealthIntervalSeconds = defaultCfg.AIHealthIntervalSeconds
-		return nil
 	case "aiHttpTimeoutSeconds":
 		cfg.AIHTTPTimeoutSeconds = defaultCfg.AIHTTPTimeoutSeconds
 		return nil
@@ -382,36 +348,5 @@ func applyConfigUnsetOperation(cfg *config.FileConfig, key string) error {
 		return nil
 	}
 
-	parts := strings.Split(normalizedKey, ".")
-	if len(parts) < 2 || parts[0] != "providers" {
-		return fmt.Errorf("unsupported unset key %q", key)
-	}
-	providerName := strings.TrimSpace(parts[1])
-	if providerName == "" {
-		return fmt.Errorf("provider name cannot be empty")
-	}
-	if cfg.Providers == nil {
-		cfg.Providers = map[string]config.RuntimeFileTarget{}
-	}
-
-	if len(parts) == 2 {
-		delete(cfg.Providers, providerName)
-		return nil
-	}
-	if len(parts) != 3 {
-		return fmt.Errorf("unsupported unset key %q", key)
-	}
-	target := cfg.Providers[providerName]
-	switch strings.TrimSpace(parts[2]) {
-	case "baseUrl":
-		target.BaseURL = ""
-	case "apiKeyEnv":
-		target.APIKeyEnv = ""
-	case "apiKey":
-		target.APIKey = ""
-	default:
-		return fmt.Errorf("unsupported unset key %q", key)
-	}
-	cfg.Providers[providerName] = target
-	return nil
+	return fmt.Errorf("unsupported unset key %q", key)
 }

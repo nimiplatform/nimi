@@ -4,81 +4,16 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
-	"github.com/nimiplatform/nimi/runtime/internal/protocol/envelope"
-	"github.com/oklog/ulid/v2"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/credentials/insecure"
-	"google.golang.org/grpc/metadata"
-	"google.golang.org/grpc/status"
 	"io"
 	"net"
 	"net/url"
 	"strings"
+
+	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/protocol/envelope"
+	"github.com/oklog/ulid/v2"
+	"google.golang.org/grpc/metadata"
 )
-
-func StreamScenarioGRPC(ctx context.Context, grpcAddr string, req *runtimev1.StreamScenarioRequest, metadataOverride ...*ClientMetadata) (<-chan *runtimev1.StreamScenarioEvent, <-chan error, error) {
-	addr := strings.TrimSpace(grpcAddr)
-	if addr == "" {
-		return nil, nil, errors.New("grpc address is required")
-	}
-	if req == nil {
-		return nil, nil, errors.New("stream scenario request is required")
-	}
-	if req.GetHead() == nil {
-		return nil, nil, errors.New("stream scenario request head is required")
-	}
-	if strings.TrimSpace(req.GetHead().GetAppId()) == "" {
-		return nil, nil, errors.New("app_id is required")
-	}
-	if ctx == nil {
-		ctx = context.Background()
-	}
-	preparedCtx, err := prepareInsecureOutgoingContext(ctx, addr, req.GetHead().GetAppId(), firstMetadataOverride(metadataOverride...))
-	if err != nil {
-		return nil, nil, err
-	}
-	ctx = preparedCtx
-
-	conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		return nil, nil, fmt.Errorf("dial grpc %s: %w", addr, err)
-	}
-
-	client := runtimev1.NewRuntimeAiServiceClient(conn)
-	stream, err := client.StreamScenario(ctx, req)
-	if err != nil {
-		_ = conn.Close()
-		return nil, nil, fmt.Errorf("runtime ai stream scenario: %w", err)
-	}
-
-	events := make(chan *runtimev1.StreamScenarioEvent, 64)
-	errCh := make(chan error, 1)
-	go func() {
-		defer close(events)
-		defer close(errCh)
-		defer func() { _ = conn.Close() }()
-
-		for {
-			event, recvErr := stream.Recv()
-			if recvErr != nil {
-				if errors.Is(recvErr, io.EOF) || status.Code(recvErr) == codes.Canceled || ctx.Err() != nil {
-					return
-				}
-				errCh <- fmt.Errorf("recv ai stream event: %w", recvErr)
-				return
-			}
-			select {
-			case <-ctx.Done():
-				return
-			case events <- event:
-			}
-		}
-	}()
-
-	return events, errCh, nil
-}
 
 func withNimiOutgoingMetadata(ctx context.Context, appID string, metadataOverride *ClientMetadata) context.Context {
 	appID = strings.TrimSpace(appID)

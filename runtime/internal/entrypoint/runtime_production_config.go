@@ -29,7 +29,6 @@ func newProtectedRuntimeConfig(runtimeRoot, runtimeID, realmBaseURL string) conf
 		},
 		SessionTTLMinSeconds:                 60,
 		SessionTTLMaxSeconds:                 86_400,
-		AIHealthIntervalSeconds:              8,
 		AIHTTPTimeoutSeconds:                 30,
 		GlobalConcurrencyLimit:               8,
 		PerAppConcurrencyLimit:               2,

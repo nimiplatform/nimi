@@ -154,24 +154,16 @@ test('Electron menu bar projects the closed states and drops stale renderer deta
       payload: {
         runtimeHealthStatus: 'DEGRADED',
         runtimeHealthReason: 'provider quorum lost',
-        providerSummary: {
-          healthy: 1,
-          unhealthy: 2,
-          unknown: 1,
-          total: 4,
-        },
         updatedAt: '2026-07-29T00:00:00.000Z',
       },
     },
   });
   assert.deepEqual(result, { synced: true });
   assert.equal(host.snapshot().headerState, 'degraded');
-  assert.equal(host.snapshot().providerLine, 'Providers: 1 healthy / 2 unhealthy / 1 unknown');
 
   nowMs += MENU_BAR_RENDERER_FRESHNESS_MS + 1;
   assert.equal(host.snapshot().headerState, 'running');
   assert.equal(host.snapshot().runtimeLine, 'Runtime: RUNNING');
-  assert.equal(host.snapshot().providerLine, null);
   assert.equal(host.snapshot().lastCheckLine, null);
 });
 
@@ -377,16 +369,11 @@ test('Electron menu bar rejects non-exact renderer health and stays disabled off
       command: MENU_BAR_RUNTIME_HEALTH_SYNC_COMMAND,
       payload: {
         payload: {
-          providerSummary: {
-            healthy: 1,
-            unhealthy: 0,
-            unknown: 0,
-            total: 2,
-          },
+          retiredProviderHealth: true,
         },
       },
     }),
-    /menu-bar-provider-summary-invalid/u,
+    /menu-bar-runtime-health-sync-payload-invalid/u,
   );
 
   const disabledFixture = createInput({ platform: 'win32' });

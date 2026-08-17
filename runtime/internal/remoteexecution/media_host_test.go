@@ -47,7 +47,7 @@ func TestProviderMediaHostOpensCredentialOnlyInsideDispatch(t *testing.T) {
 
 	driver, target, mapped := remoteMediaHostDriverInput(t)
 	audit := auditlog.New(16, 16)
-	transport := nimillm.NewCloudProvider(nimillm.CloudConfig{HTTPTimeout: time.Second, AllowLoopbackEndpoint: true}, nil)
+	transport := nimillm.NewCloudProvider(nimillm.CloudConfig{HTTPTimeout: time.Second, AllowLoopbackEndpoint: true})
 	host := NewProviderMediaHost(store, transport, audit, true)
 	response, err := host.ExecuteMedia(context.Background(), record, target, mapped, MediaDispatchAudit{
 		AppID: "app", AccountID: "account-a", TraceID: "trace-media", CapabilityContract: "audio.synthesize",

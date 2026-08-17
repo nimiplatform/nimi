@@ -18,7 +18,6 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/config"
 	"github.com/nimiplatform/nimi/runtime/internal/engine"
 	"github.com/nimiplatform/nimi/runtime/internal/health"
-	"github.com/nimiplatform/nimi/runtime/internal/providerhealth"
 )
 
 func TestAppendEngineCrashAuditIncludesStructuredFields(t *testing.T) {
@@ -109,7 +108,6 @@ func TestStartSupervisedEnginesNeverBootstrapsLlama(t *testing.T) {
 	}
 	store := auditlog.New(64, 64)
 	daemon.auditStore = store
-	daemon.aiHealth = providerhealth.New()
 	daemon.newEngineManager = func(_ *slog.Logger, _ engine.ManagedRoots, _ engine.StateChangeFunc) (*engine.Manager, error) {
 		return &engine.Manager{}, nil
 	}
@@ -206,7 +204,6 @@ func TestStartSupervisedEnginesFailsClosedForUnsupportedSidecar(t *testing.T) {
 		t.Cleanup(func() { svc.Close() })
 	}
 	daemon.auditStore = auditlog.New(32, 32)
-	daemon.aiHealth = providerhealth.New()
 	daemon.newEngineManager = func(_ *slog.Logger, _ engine.ManagedRoots, _ engine.StateChangeFunc) (*engine.Manager, error) {
 		return &engine.Manager{}, nil
 	}
@@ -219,14 +216,6 @@ func TestStartSupervisedEnginesFailsClosedForUnsupportedSidecar(t *testing.T) {
 	}
 	if !strings.Contains(snapshot.Reason, "sidecar: engine sidecar is not yet supported for supervised lifecycle") {
 		t.Fatalf("unexpected degraded reason: %s", snapshot.Reason)
-	}
-
-	sidecarProvider := daemon.aiHealth.SnapshotOf("local-sidecar")
-	if sidecarProvider.State != providerhealth.StateUnhealthy {
-		t.Fatalf("expected local-sidecar unhealthy, got=%s", sidecarProvider.State)
-	}
-	if !strings.Contains(sidecarProvider.LastReason, "sidecar") {
-		t.Fatalf("unexpected sidecar provider reason: %s", sidecarProvider.LastReason)
 	}
 
 	events := mustListAuditEvents(t, daemon.auditStore, &runtimev1.ListAuditEventsRequest{Domain: "runtime.engine"}).GetEvents()

@@ -11,7 +11,6 @@ import (
 
 	"github.com/nimiplatform/nimi/runtime/internal/config"
 	"github.com/nimiplatform/nimi/runtime/internal/engine"
-	"github.com/nimiplatform/nimi/runtime/internal/providerhealth"
 )
 
 func newDaemonForTest(t *testing.T, cfg config.Config, logger *slog.Logger, version string) (*Daemon, error) {
@@ -75,19 +74,4 @@ func newHealthyEngineManager(t *testing.T, kind engine.EngineKind, port int) *en
 	supervisor.SetStateForTesting(engine.StatusHealthy, time.Now())
 	manager.SetSupervisorForTesting(kind, supervisor)
 	return manager
-}
-
-func waitForProviderState(t *testing.T, tracker *providerhealth.Tracker, providerName string, expected providerhealth.State) providerhealth.Snapshot {
-	t.Helper()
-	deadline := time.Now().Add(2 * time.Second)
-	for time.Now().Before(deadline) {
-		snapshot := tracker.SnapshotOf(providerName)
-		if snapshot.State == expected {
-			return snapshot
-		}
-		time.Sleep(10 * time.Millisecond)
-	}
-	snapshot := tracker.SnapshotOf(providerName)
-	t.Fatalf("provider %s did not reach state %s, got %#v", providerName, expected, snapshot)
-	return providerhealth.Snapshot{}
 }

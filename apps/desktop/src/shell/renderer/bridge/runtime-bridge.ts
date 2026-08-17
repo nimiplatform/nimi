@@ -53,7 +53,6 @@ export type { LogsExportResult } from './runtime-bridge/support-logs-export';
 export type { DesktopStorageDirs } from './runtime-bridge/desktop-storage';
 
 export type {
-  MenuBarProviderSummary,
   MenuBarRuntimeHealthSyncPayload,
 } from './runtime-bridge/menu-bar';
 

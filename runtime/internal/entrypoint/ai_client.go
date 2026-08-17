@@ -4,52 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
+	"time"
+
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
-	"strings"
-	"time"
 )
-
-func ExecuteScenarioGRPC(grpcAddr string, timeout time.Duration, req *runtimev1.ExecuteScenarioRequest, metadataOverride ...*ClientMetadata) (*runtimev1.ExecuteScenarioResponse, error) {
-	addr := strings.TrimSpace(grpcAddr)
-	if addr == "" {
-		return nil, errors.New("grpc address is required")
-	}
-	if req == nil {
-		return nil, errors.New("execute scenario request is required")
-	}
-	if req.GetHead() == nil {
-		return nil, errors.New("scenario request head is required")
-	}
-	if strings.TrimSpace(req.GetHead().GetAppId()) == "" {
-		return nil, errors.New("app_id is required")
-	}
-	if timeout <= 0 {
-		timeout = 10 * time.Second
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-	preparedCtx, err := prepareInsecureOutgoingContext(ctx, addr, req.GetHead().GetAppId(), firstMetadataOverride(metadataOverride...))
-	if err != nil {
-		return nil, err
-	}
-	ctx = preparedCtx
-
-	conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		return nil, fmt.Errorf("dial grpc %s: %w", addr, err)
-	}
-	defer func() { _ = conn.Close() }()
-
-	client := runtimev1.NewRuntimeAiServiceClient(conn)
-	resp, err := client.ExecuteScenario(ctx, req)
-	if err != nil {
-		return nil, fmt.Errorf("runtime ai execute scenario: %w", err)
-	}
-	return resp, nil
-}
 
 // SubmitScenarioJobAndCollectGRPC submits a scenario async job, polls until completion, and returns the first artifact payload.
 func SubmitScenarioJobAndCollectGRPC(grpcAddr string, timeout time.Duration, req *runtimev1.SubmitScenarioJobRequest, metadataOverride ...*ClientMetadata) (*ArtifactResult, error) {

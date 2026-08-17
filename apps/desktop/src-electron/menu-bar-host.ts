@@ -10,7 +10,6 @@ import {
   MENU_BAR_RUNTIME_HEALTH_SYNC_COMMAND,
   parseMenuBarRuntimeHealthSyncCommandPayload,
   type MenuBarOpenTabPayload,
-  type MenuBarProviderSummary,
   type MenuBarRuntimeHealthSyncPayload,
 } from '../src/shell/shared/menu-bar-types.js';
 
@@ -66,7 +65,6 @@ export type DesktopElectronMenuBarSnapshot = {
   readonly windowVisible: boolean;
   readonly actionInFlight: 'start' | 'restart' | null;
   readonly runtimeLine: string;
-  readonly providerLine: string | null;
   readonly statusLine: string;
   readonly lastCheckLine: string | null;
   readonly startEnabled: boolean;
@@ -108,7 +106,6 @@ type MenuBarInternalState = {
   lifecycleStatus: MenuBarRuntimeStatus | null;
   runtimeHealthStatus: string | null;
   runtimeHealthReason: string | null;
-  providerSummary: MenuBarProviderSummary | null;
   rendererUpdatedAt: string | null;
   rendererSyncedAtMs: number | null;
   actionInFlight: 'start' | 'restart' | null;
@@ -128,7 +125,6 @@ export function createDesktopElectronMenuBarHost(
     lifecycleStatus: null,
     runtimeHealthStatus: null,
     runtimeHealthReason: null,
-    providerSummary: null,
     rendererUpdatedAt: null,
     rendererSyncedAtMs: null,
     actionInFlight: null,
@@ -370,12 +366,6 @@ function buildMenuTemplate(
     },
     { type: 'separator' },
     { id: 'menu-bar-runtime-line', label: projection.runtimeLine, enabled: false },
-    {
-      id: 'menu-bar-provider-line',
-      label: projection.providerLine ?? 'Providers: unavailable',
-      enabled: false,
-      visible: projection.providerLine !== null,
-    },
     { id: 'menu-bar-status-line', label: projection.statusLine, enabled: false },
     {
       id: 'menu-bar-last-check-line',
@@ -435,9 +425,6 @@ function projectMenuBarSnapshot(
           ? state.runtimeHealthStatus
           : 'RUNNING'}`
         : 'Runtime: STOPPED';
-  const providerLine = rendererFresh
-    ? providerSummaryLine(state.providerSummary)
-    : null;
   const statusLine = verified
     ? runtimeStatusLine(status)
     : sourceRuntime
@@ -453,7 +440,6 @@ function projectMenuBarSnapshot(
     windowVisible: state.windowVisible,
     actionInFlight: state.actionInFlight,
     runtimeLine,
-    providerLine,
     statusLine,
     lastCheckLine,
     startEnabled: !sourceRuntime && !busy && fixedServiceVerified(status) && !running,
@@ -469,14 +455,8 @@ function syncRendererHealth(
 ): void {
   state.runtimeHealthStatus = payload.runtimeHealthStatus ?? null;
   state.runtimeHealthReason = payload.runtimeHealthReason ?? null;
-  state.providerSummary = payload.providerSummary ?? null;
   state.rendererUpdatedAt = payload.updatedAt ?? null;
   state.rendererSyncedAtMs = nowMs;
-}
-
-function providerSummaryLine(summary: MenuBarProviderSummary | null): string {
-  if (!summary) return 'Providers: pending';
-  return `Providers: ${summary.healthy} healthy / ${summary.unhealthy} unhealthy / ${summary.unknown} unknown`;
 }
 
 function runtimeStatusLine(status: MenuBarRuntimeStatus): string {

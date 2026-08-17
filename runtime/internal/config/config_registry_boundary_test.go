@@ -153,7 +153,6 @@ func TestLoadEnvOverridesNewFields(t *testing.T) {
 	t.Setenv("NIMI_RUNTIME_AUDIT_RING_BUFFER_SIZE", "10000")
 	t.Setenv("NIMI_RUNTIME_USAGE_STATS_BUFFER_SIZE", "25000")
 	t.Setenv("NIMI_RUNTIME_LOCAL_AUDIT_CAPACITY", "2000")
-	t.Setenv("NIMI_RUNTIME_AI_HEALTH_INTERVAL_SECONDS", "15")
 	t.Setenv("NIMI_RUNTIME_AI_HTTP_TIMEOUT_SECONDS", "60")
 
 	cfg, err := Load()
@@ -180,9 +179,6 @@ func TestLoadEnvOverridesNewFields(t *testing.T) {
 	}
 	if cfg.LocalAuditCapacity != 2000 {
 		t.Fatalf("localAuditCapacity got=%d want=2000", cfg.LocalAuditCapacity)
-	}
-	if cfg.AIHealthIntervalSeconds != 15 {
-		t.Fatalf("aiHealthIntervalSeconds got=%d want=15", cfg.AIHealthIntervalSeconds)
 	}
 	if cfg.AIHTTPTimeoutSeconds != 60 {
 		t.Fatalf("aiHttpTimeoutSeconds got=%d want=60", cfg.AIHTTPTimeoutSeconds)
@@ -368,7 +364,6 @@ func clearRuntimeConfigEnv(t *testing.T) {
 		"NIMI_RUNTIME_ALLOW_LOOPBACK_PROVIDER_ENDPOINT",
 		"NIMI_RUNTIME_SESSION_TTL_MIN_SECONDS",
 		"NIMI_RUNTIME_SESSION_TTL_MAX_SECONDS",
-		"NIMI_RUNTIME_AI_HEALTH_INTERVAL_SECONDS",
 		"NIMI_RUNTIME_AI_HTTP_TIMEOUT_SECONDS",
 		"NIMI_RUNTIME_GLOBAL_CONCURRENCY_LIMIT",
 		"NIMI_RUNTIME_PER_APP_CONCURRENCY_LIMIT",
@@ -457,7 +452,6 @@ func TestConfigDefaultsMatchSpec(t *testing.T) {
 		{"localAuditCapacity", cfg.LocalAuditCapacity, 5000},
 		{"sessionTtlMinSeconds", cfg.SessionTTLMinSeconds, 60},
 		{"sessionTtlMaxSeconds", cfg.SessionTTLMaxSeconds, 86400},
-		{"aiHealthIntervalSeconds", cfg.AIHealthIntervalSeconds, 8},
 		{"aiHttpTimeoutSeconds", cfg.AIHTTPTimeoutSeconds, 30},
 		{"allowLoopbackProviderEndpoint", cfg.AllowLoopbackProviderEndpoint, false},
 		{"engineLlamaEnabled", cfg.EngineLlamaEnabled, false},

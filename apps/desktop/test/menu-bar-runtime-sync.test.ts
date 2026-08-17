@@ -18,7 +18,6 @@ import {
 function createState(overrides: Partial<MenuBarRuntimeSyncState> = {}): MenuBarRuntimeSyncState {
   return {
     runtimeHealth: null,
-    providerHealth: [],
     lastFetchedAt: null,
     lastStreamAt: null,
     error: null,
@@ -27,18 +26,13 @@ function createState(overrides: Partial<MenuBarRuntimeSyncState> = {}): MenuBarR
   };
 }
 
-test('menu-bar Runtime sync projects runtime status and bounded provider summary', () => {
+test('menu-bar Runtime sync projects runtime status', () => {
   const payload = buildMenuBarRuntimeSyncPayload(
     createState({
       runtimeHealth: {
         status: 4,
         reason: 'provider quorum lost',
       } as NonNullable<MenuBarRuntimeSyncState['runtimeHealth']>,
-      providerHealth: [
-        { state: 'healthy' },
-        { state: 'unhealthy' },
-        { state: undefined },
-      ] as MenuBarRuntimeSyncState['providerHealth'],
       lastStreamAt: '2026-03-15T04:21:14.552Z',
     }),
   );
@@ -46,12 +40,6 @@ test('menu-bar Runtime sync projects runtime status and bounded provider summary
   assert.deepEqual(payload, {
     runtimeHealthStatus: 'DEGRADED',
     runtimeHealthReason: 'provider quorum lost',
-    providerSummary: {
-      healthy: 1,
-      unhealthy: 1,
-      unknown: 1,
-      total: 3,
-    },
     updatedAt: '2026-03-15T04:21:14.552Z',
   });
 });

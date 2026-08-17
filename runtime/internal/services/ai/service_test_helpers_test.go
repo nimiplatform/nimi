@@ -12,7 +12,7 @@ func newTestService(logger *slog.Logger, cfg ...Config) *Service {
 	} else {
 		effectiveCfg = loadConfigFromEnv()
 	}
-	svc, err := newFromProviderConfig(logger, nil, nil, nil, effectiveCfg, 8, 2)
+	svc, err := newFromProviderConfig(logger, nil, nil, effectiveCfg, 8, 2)
 	if err != nil {
 		panic(err)
 	}

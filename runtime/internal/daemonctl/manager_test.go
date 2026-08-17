@@ -166,8 +166,13 @@ func TestManagerStartFailsOnProbeTimeoutAndCleansState(t *testing.T) {
 	if err == nil {
 		t.Fatalf("expected start timeout")
 	}
-	if !strings.Contains(err.Error(), "Last log lines") {
+	if !strings.Contains(err.Error(), "run 'nimi logs -f'") {
 		t.Fatalf("unexpected start error: %v", err)
+	}
+	for _, privateDetail := range []string{"boot failed", "dial refused", "Last log lines"} {
+		if strings.Contains(err.Error(), privateDetail) {
+			t.Fatalf("start error exposed private detail %q: %v", privateDetail, err)
+		}
 	}
 	for _, path := range []string{paths.LockFile, paths.PIDFile, paths.MetadataFile} {
 		if _, statErr := os.Stat(path); !os.IsNotExist(statErr) {

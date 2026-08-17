@@ -7,7 +7,6 @@ import (
 	"io"
 	"log/slog"
 	"path/filepath"
-	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -17,7 +16,6 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/config"
 	"github.com/nimiplatform/nimi/runtime/internal/engine"
 	"github.com/nimiplatform/nimi/runtime/internal/health"
-	"github.com/nimiplatform/nimi/runtime/internal/providerhealth"
 )
 
 func TestLlamaHostStateNeverInjectsAmbientProviderEndpoint(t *testing.T) {
@@ -40,15 +38,11 @@ func TestLlamaHostStateNeverMutatesDaemonReadiness(t *testing.T) {
 	daemon := newTestDaemon(t, logger)
 	daemon.engineMgr = newHealthyEngineManager(t, engine.EngineLlama, 1234)
 	daemon.state.SetStatus(health.StatusDegraded, "unrelated degraded state")
-	daemon.setProviderFailureHint("local", "must remain untouched")
 
 	daemon.onEngineStateChange("llama", "healthy", "probe recovered")
 
 	if snapshot := daemon.state.Snapshot(); snapshot.Status != health.StatusDegraded || snapshot.Reason != "unrelated degraded state" {
 		t.Fatalf("private llama Host mutated Runtime readiness: %s (%s)", snapshot.Status, snapshot.Reason)
-	}
-	if hint := daemon.providerFailureHint("local"); hint != "must remain untouched" {
-		t.Fatalf("private llama Host mutated provider hint: %q", hint)
 	}
 }
 
@@ -58,7 +52,6 @@ func TestOnEngineStateChangeHealthyDoesNotRecoverDifferentEngineFailure(t *testi
 	daemon := newTestDaemon(t, logger)
 	daemon.engineMgr = newHealthyEngineManager(t, engine.EngineLlama, 1234)
 	daemon.state.SetStatus(health.StatusDegraded, "engine:media unhealthy (probe failed)")
-	daemon.setProviderFailureHint("local", "keep-local-hint")
 
 	daemon.onEngineStateChange("llama", "healthy", "ready")
 
@@ -69,47 +62,6 @@ func TestOnEngineStateChangeHealthyDoesNotRecoverDifferentEngineFailure(t *testi
 	snapshot := daemon.state.Snapshot()
 	if snapshot.Status != health.StatusDegraded || snapshot.Reason != "engine:media unhealthy (probe failed)" {
 		t.Fatalf("expected unrelated degraded state to remain untouched, got %s (%s)", snapshot.Status, snapshot.Reason)
-	}
-	if hint := daemon.providerFailureHint("local"); hint != "keep-local-hint" {
-		t.Fatalf("expected local provider hint to remain untouched, got %q", hint)
-	}
-}
-
-func TestOnEngineStateChangeManagedImageBackendMarksLocalImageProviderHealth(t *testing.T) {
-	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	daemon := newTestDaemon(t, logger)
-	daemon.aiHealth = daemon.grpc.AIHealthTracker()
-	daemon.state.SetStatus(health.StatusReady, "ready")
-
-	daemon.onEngineStateChange(string(engineManagedImageBackend), "unhealthy", "resident probe failed")
-	unhealthy := daemon.aiHealth.SnapshotOf(localImageProviderHealthKey)
-	if unhealthy.State != providerhealth.StateUnhealthy {
-		t.Fatalf("expected local-image unhealthy, got %#v", unhealthy)
-	}
-	if unhealthy.LastReason != "resident probe failed" {
-		t.Fatalf("unexpected local-image unhealthy reason: %q", unhealthy.LastReason)
-	}
-
-	daemon.onEngineStateChange(string(engineManagedImageBackend), "healthy", "resident ready")
-	healthy := daemon.aiHealth.SnapshotOf(localImageProviderHealthKey)
-	if healthy.State != providerhealth.StateHealthy {
-		t.Fatalf("expected local-image healthy, got %#v", healthy)
-	}
-	if healthy.ConsecutiveFailures != 0 {
-		t.Fatalf("expected local-image failure counter reset, got %d", healthy.ConsecutiveFailures)
-	}
-}
-
-func TestProviderProbePathsIncludeOpenAICompatibleModelsFallback(t *testing.T) {
-	paths := providerProbePaths("cloud-gemini")
-	if !slices.Contains(paths, "/models") {
-		t.Fatalf("expected generic cloud probe paths to include /models fallback, got=%v", paths)
-	}
-	if got := resolveProbeEndpoint("https://api.openai.com/v1", "/v1/models"); got != "https://api.openai.com/v1/models" {
-		t.Fatalf("unexpected /v1 probe endpoint: %s", got)
-	}
-	if got := resolveProbeEndpoint("https://generativelanguage.googleapis.com/v1beta/openai", "/models"); got != "https://generativelanguage.googleapis.com/v1beta/openai/models" {
-		t.Fatalf("unexpected openai-compatible probe endpoint: %s", got)
 	}
 }
 

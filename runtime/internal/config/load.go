@@ -41,10 +41,6 @@ func Load() (Config, error) {
 	if err != nil {
 		return Config{}, err
 	}
-	aiHealthIntervalSeconds, err := readIntWithFileConfigFallback("NIMI_RUNTIME_AI_HEALTH_INTERVAL_SECONDS", fileCfg.AIHealthIntervalSeconds, 8)
-	if err != nil {
-		return Config{}, err
-	}
 	aiHTTPTimeoutSeconds, err := readIntWithFileConfigFallback("NIMI_RUNTIME_AI_HTTP_TIMEOUT_SECONDS", fileCfg.AIHTTPTimeoutSeconds, 30)
 	if err != nil {
 		return Config{}, err
@@ -106,7 +102,6 @@ func Load() (Config, error) {
 		LocalService:                    resolveLocalService(fileCfg),
 		SessionTTLMinSeconds:            sessionTTLMinSeconds,
 		SessionTTLMaxSeconds:            sessionTTLMaxSeconds,
-		AIHealthIntervalSeconds:         aiHealthIntervalSeconds,
 		AIHTTPTimeoutSeconds:            aiHTTPTimeoutSeconds,
 		ModelCatalogCustomDir:           resolveModelCatalogCustomDir(fileCfg),
 		AppIdentityProjectionPath:       resolveAppIdentityProjectionPath(fileCfg),

@@ -144,8 +144,6 @@ export const RUNTIME_EXTERNAL_AGENT_METHODS = [
 
 export const RUNTIME_AUDIT_METHODS = [
   'getRuntimeHealth',
-  'listAIProviderHealth',
-  'subscribeAIProviderHealthEvents',
   'subscribeRuntimeHealthEvents',
   'listAuditEvents',
   'listDesktopAuditEvents',
@@ -219,7 +217,6 @@ export const RUNTIME_LOCAL_METHODS = [
   'cancelLocalEnvironmentDependencyJob',
   'retryLocalEnvironmentDependencyJob',
   'repairLocalEnvironmentDependency',
-  'resolveLocalStateReconciliation',
 ] as const satisfies readonly RuntimeTypedMethodName[];
 
 export const RUNTIME_APP_MESSAGE_METHODS = [

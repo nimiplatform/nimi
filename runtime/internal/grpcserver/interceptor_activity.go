@@ -95,7 +95,6 @@ func classifyRPCMethod(fullMethod string, isStream bool) (string, rpcShutdownDis
 	case "/nimi.runtime.v1.RuntimeAuditService/ExportAuditEvents":
 		return "mode_c_export", rpcShutdownAllowDrain
 	case "/nimi.runtime.v1.RuntimeAuditService/SubscribeRuntimeHealthEvents",
-		"/nimi.runtime.v1.RuntimeAuditService/SubscribeAIProviderHealthEvents",
 		"/nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages":
 		return "mode_d_subscription", rpcShutdownCancel
 	case "/nimi.runtime.v1.RuntimeAiService/StreamScenario":
