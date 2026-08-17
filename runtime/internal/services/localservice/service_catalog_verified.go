@@ -16,9 +16,9 @@ import (
 // surface. Per K-LOCAL-010 / K-LOCAL-011 this is the single SSOT for verified
 // local-asset truth — there is no in-process hardcoded verified-asset literal.
 //
-// Each variant is one installable asset: asset_id / template_id derive from the
-// variant-level variant_id (K-MCAT-032 installable identity), while
-// logical_model_id derives from the catalog row model_id.
+// Each variant is one independent installable ModelAsset offer: asset_id and
+// template_id derive from the variant-level variant_id. Passive offers carry no
+// parent identity, selection, requiredness, or runnable logical model.
 func verifiedAssetsFromLocalCatalog(local *catalog.LocalProviderCatalog) ([]*runtimev1.LocalVerifiedAssetDescriptor, error) {
 	if local == nil {
 		return nil, fmt.Errorf("verified asset projection: local provider catalog is nil")
@@ -40,64 +40,21 @@ func verifiedAssetsFromLocalCatalog(local *catalog.LocalProviderCatalog) ([]*run
 	return descriptors, nil
 }
 
-// ResolveCatalogModelIDForLocalAsset returns the canonical catalog model
-// identity only when the installed asset's complete sha256 fingerprint exactly
-// matches one reviewed local catalog variant. File imports keep their unique
-// installed and storage identities; this proof restores only the catalog
-// identity needed by catalog-owned execution metadata.
-func (s *Service) ResolveCatalogModelIDForLocalAsset(localAssetID string) (string, bool) {
-	if s == nil {
-		return "", false
+func verifiedAssetKindForPassiveModel(modelType string) (runtimev1.LocalAssetKind, error) {
+	switch strings.TrimSpace(modelType) {
+	case "vae":
+		return runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VAE, nil
+	case "clip":
+		return runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CLIP, nil
+	case "lora":
+		return runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_LORA, nil
+	case "controlnet":
+		return runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CONTROLNET, nil
+	case "auxiliary":
+		return runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_AUXILIARY, nil
+	default:
+		return runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED, fmt.Errorf("unsupported passive ModelAsset offer type %q", modelType)
 	}
-	s.mu.RLock()
-	asset := cloneLocalAsset(s.assets[strings.TrimSpace(localAssetID)])
-	verified := make([]*runtimev1.LocalVerifiedAssetDescriptor, 0, len(s.verified))
-	for _, descriptor := range s.verified {
-		verified = append(verified, cloneVerifiedAsset(descriptor))
-	}
-	s.mu.RUnlock()
-	if asset == nil {
-		return "", false
-	}
-	assetFingerprint := localAssetSHA256Fingerprint(asset.GetHashes())
-	if assetFingerprint == "" {
-		return "", false
-	}
-
-	resolvedModelID := ""
-	for _, descriptor := range verified {
-		if descriptor == nil ||
-			descriptor.GetKind() != asset.GetKind() ||
-			!strings.EqualFold(strings.TrimSpace(descriptor.GetEngine()), strings.TrimSpace(asset.GetEngine())) ||
-			localAssetSHA256Fingerprint(descriptor.GetHashes()) != assetFingerprint {
-			continue
-		}
-		candidate := strings.TrimSpace(descriptor.GetLogicalModelId())
-		if candidate == "" {
-			continue
-		}
-		if resolvedModelID != "" && resolvedModelID != candidate {
-			return "", false
-		}
-		resolvedModelID = candidate
-	}
-	return resolvedModelID, resolvedModelID != ""
-}
-
-func localAssetSHA256Fingerprint(hashes map[string]string) string {
-	if len(hashes) == 0 {
-		return ""
-	}
-	values := make([]string, 0, len(hashes))
-	for _, value := range hashes {
-		normalized := normalizeExpectedSHA256Hash(value)
-		if normalized == "" {
-			return ""
-		}
-		values = append(values, normalized)
-	}
-	sort.Strings(values)
-	return strings.Join(values, "\n")
 }
 
 // projectVerifiedAssetDescriptor builds one LocalVerifiedAssetDescriptor from a
@@ -105,6 +62,7 @@ func localAssetSHA256Fingerprint(hashes map[string]string) string {
 // (K-LOCAL-010): a verified projection must never produce a placeholder
 // descriptor.
 // @nimi-authority: rule.nimi.runtime.model-catalog.r058
+// @nimi-authority: rule.nimi.runtime.model-catalog.r033
 func projectVerifiedAssetDescriptor(
 	row catalog.ModelEntry,
 	variant catalog.LocalPlaneVariant,
@@ -130,9 +88,22 @@ func projectVerifiedAssetDescriptor(
 	}
 	capabilities := append([]string(nil), row.Capabilities...)
 	kind := inferAssetKindFromCapabilities(capabilities)
-	engine := strings.ToLower(strings.TrimSpace(install.PreferredEngine))
-	if engine == "" {
-		engine = defaultLocalEngine("", capabilities)
+	passive := len(capabilities) == 0
+	if passive {
+		var err error
+		kind, err = verifiedAssetKindForPassiveModel(row.ModelType)
+		if err != nil {
+			return nil, err
+		}
+	}
+	engine := ""
+	logicalModelID := ""
+	if !passive {
+		engine = strings.ToLower(strings.TrimSpace(install.PreferredEngine))
+		if engine == "" {
+			engine = defaultLocalEngine("", capabilities)
+		}
+		logicalModelID = strings.TrimSpace(row.ModelID)
 	}
 	title := strings.TrimSpace(row.ModelID)
 	if variant.Quant != "" {
@@ -148,17 +119,29 @@ func projectVerifiedAssetDescriptor(
 	var engineConfig *structpb.Struct
 	family := strings.TrimSpace(row.Family)
 	backend := strings.TrimSpace(variant.DriverBackend)
+	metadataValues := map[string]any{
+		"accelerator":    strings.ToLower(strings.TrimSpace(variant.HostRequirement.Accelerator)),
+		"min_ram_bytes":  variant.HostRequirement.MinRAMBytes,
+		"min_vram_bytes": variant.HostRequirement.MinVRAMBytes,
+	}
 	if family != "" {
-		metadata, _ = structpb.NewStruct(map[string]any{"family": family})
-		engineConfig, _ = structpb.NewStruct(map[string]any{
-			"driver_family":  family,
-			"driver_backend": backend,
-		})
+		metadataValues["family"] = family
+		if !passive {
+			engineConfig, _ = structpb.NewStruct(map[string]any{
+				"driver_family":  family,
+				"driver_backend": backend,
+			})
+		}
+	}
+	metadata, _ = structpb.NewStruct(metadataValues)
+	description := fmt.Sprintf("Verified local %s asset projected from the K-MCAT local catalog", strings.Join(capabilities, ", "))
+	if passive {
+		description = fmt.Sprintf("Verified independent local %s ModelAsset offer", strings.Join(install.ArtifactRoles, ", "))
 	}
 	return &runtimev1.LocalVerifiedAssetDescriptor{
 		TemplateId:       variantID,
 		Title:            title,
-		Description:      fmt.Sprintf("Verified local %s asset projected from the K-MCAT local catalog", strings.Join(capabilities, ", ")),
+		Description:      description,
 		AssetId:          variantID,
 		Kind:             kind,
 		Engine:           engine,
@@ -171,7 +154,7 @@ func projectVerifiedAssetDescriptor(
 		TotalSizeBytes:   variant.TotalSizeBytes,
 		Tags:             verifiedAssetTags(capabilities, variant.Quant),
 		InstallKind:      strings.TrimSpace(install.InstallKind),
-		LogicalModelId:   strings.TrimSpace(row.ModelID),
+		LogicalModelId:   logicalModelID,
 		Capabilities:     capabilities,
 		ArtifactRoles:    append([]string(nil), install.ArtifactRoles...),
 		PreferredEngine:  engine,

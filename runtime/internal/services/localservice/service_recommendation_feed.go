@@ -121,7 +121,7 @@ func (s *Service) GetRecommendationFeed(ctx context.Context, req *runtimev1.GetR
 	capability := normalizeRecommendationFeedCapability(req.GetCapability())
 	pageSize := normalizeRecommendationFeedPageSize(req.GetPageSize())
 	deviceProfile := collectDeviceProfile()
-	installedAssets := s.installedRunnableAssetsSnapshot()
+	installedAssets := s.installedModelAssetsSnapshot()
 	cache := s.loadModelIndexCache()
 	feed, cacheState := s.resolveRecommendationRemoteFeed(ctx, capability, pageSize, cache)
 	if feed == nil {
@@ -222,15 +222,15 @@ func formatFromEntry(entry string) runtimev1.LocalRecommendationFormat {
 	return runtimev1.LocalRecommendationFormat_LOCAL_RECOMMENDATION_FORMAT_UNSPECIFIED
 }
 
-func (s *Service) installedRunnableAssetsSnapshot() []*runtimev1.LocalAssetRecord {
+func (s *Service) installedModelAssetsSnapshot() []*runtimev1.ModelAssetRecord {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	items := make([]*runtimev1.LocalAssetRecord, 0, len(s.assets))
-	for _, asset := range s.assets {
-		if asset == nil || !isRunnableKind(asset.GetKind()) {
+	items := make([]*runtimev1.ModelAssetRecord, 0, len(s.modelAssets))
+	for _, asset := range s.modelAssets {
+		if asset == nil {
 			continue
 		}
-		items = append(items, cloneLocalAsset(asset))
+		items = append(items, cloneModelAsset(asset))
 	}
 	return items
 }
@@ -338,7 +338,7 @@ func materializeRecommendationFeed(
 	cacheState runtimev1.LocalRecommendationFeedCacheState,
 	capability string,
 	deviceProfile *runtimev1.LocalDeviceProfile,
-	installedAssets []*runtimev1.LocalAssetRecord,
+	installedAssets []*runtimev1.ModelAssetRecord,
 	verifiedAssets []*runtimev1.LocalVerifiedAssetDescriptor,
 ) *runtimev1.LocalRecommendationFeedDescriptor {
 	items := make([]*runtimev1.LocalRecommendationFeedItemDescriptor, 0, len(feed.Items))
@@ -453,7 +453,7 @@ func buildRecommendationFeedItem(
 	item *remoteModelEntry,
 	capability string,
 	profile *runtimev1.LocalDeviceProfile,
-	installedAssets []*runtimev1.LocalAssetRecord,
+	installedAssets []*runtimev1.ModelAssetRecord,
 	verifiedAssets []*runtimev1.LocalVerifiedAssetDescriptor,
 	sourceRank int,
 ) *runtimev1.LocalRecommendationFeedItemDescriptor {
@@ -605,16 +605,15 @@ func recommendationEntryHashes(entry remoteInstallEntry) map[string]string {
 	return hashes
 }
 
-func recommendationInstalledState(item *remoteModelEntry, installedAssets []*runtimev1.LocalAssetRecord) *runtimev1.LocalRecommendationInstalledState {
+func recommendationInstalledState(item *remoteModelEntry, installedAssets []*runtimev1.ModelAssetRecord) *runtimev1.LocalRecommendationInstalledState {
 	for _, asset := range installedAssets {
-		if asset == nil || asset.GetSource() == nil {
+		if asset == nil || asset.GetProvenance() == nil {
 			continue
 		}
-		if strings.EqualFold(strings.TrimSpace(asset.GetSource().GetRepo()), strings.TrimSpace(item.Repo)) {
+		repo := strings.TrimSpace(asset.GetProvenance().GetFields()["source_repo"].GetStringValue())
+		if strings.EqualFold(repo, strings.TrimSpace(item.Repo)) {
 			return &runtimev1.LocalRecommendationInstalledState{
-				Installed:    true,
-				LocalAssetId: asset.GetLocalAssetId(),
-				Status:       asset.GetStatus(),
+				Installed: true,
 			}
 		}
 	}

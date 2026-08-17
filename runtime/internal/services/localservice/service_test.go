@@ -2,10 +2,8 @@ package localservice
 
 import (
 	"context"
-	"encoding/json"
 	"io"
 	"log/slog"
-	"math"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -15,24 +13,12 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
-	"github.com/nimiplatform/nimi/runtime/internal/managedimagebackend"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 )
 
 func newTestService(t *testing.T) *Service {
-	t.Helper()
-	return newTestServiceWithProbe(t, func(_ context.Context, endpoint string) endpointProbeResult {
-		return endpointProbeResult{
-			healthy:  true,
-			detail:   "probe mocked healthy",
-			probeURL: endpoint,
-		}
-	})
-}
-
-func newTestServiceWithProbe(t *testing.T, probe func(context.Context, string) endpointProbeResult) *Service {
 	t.Helper()
 	statePath := filepath.Join(t.TempDir(), "local-state.json")
 	testRuntimeRoot := t.TempDir()
@@ -53,17 +39,32 @@ func newTestServiceWithProbe(t *testing.T, probe func(context.Context, string) e
 	if err := svc.SetProductVersion("test"); err != nil {
 		t.Fatalf("set test product version: %v", err)
 	}
+	svc.verified = append(svc.verified,
+		&runtimev1.LocalVerifiedAssetDescriptor{
+			TemplateId: "test.chat.qwen2", AssetId: "test.chat.qwen2",
+			Kind: runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT, Engine: "llama",
+			Capabilities: []string{"text.generate"}, Entry: "model.gguf", Files: []string{"model.gguf"},
+			Repo: "test/qwen2", Revision: "test", License: "test",
+			Hashes: map[string]string{"model.gguf": "sha256:" + validTestGGUFHash()},
+		},
+		&runtimev1.LocalVerifiedAssetDescriptor{
+			TemplateId: "test.embedding.qwen2", AssetId: "test.embedding.qwen2",
+			Kind: runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_EMBEDDING, Engine: "llama",
+			Capabilities: []string{"text.embed"}, Entry: "model.gguf", Files: []string{"model.gguf"},
+			Repo: "test/qwen2-embedding", Revision: "test", License: "test",
+			Hashes: map[string]string{"model.gguf": "sha256:" + validTestGGUFHash()},
+		},
+		&runtimev1.LocalVerifiedAssetDescriptor{
+			TemplateId: "test.chat.gemma4", AssetId: "test.chat.gemma4",
+			Kind: runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT, Engine: "llama",
+			Capabilities: []string{"text.generate"}, Entry: "model.gguf", Files: []string{"model.gguf"},
+			Repo: "test/gemma4", Revision: "test", License: "test",
+			Hashes: map[string]string{"model.gguf": "sha256:" + validGemma4TestGGUFHash()},
+		},
+	)
 	svc.SetProductControlDataRootConfigWriter(func(string) (bool, error) { return false, nil })
-	if probe != nil {
-		svc.endpointProbe = func(ctx context.Context, _ string, endpoint string) endpointProbeResult {
-			return probe(ctx, endpoint)
-		}
-	}
 	svc.managedPortAvailable = func(int) bool {
 		return true
-	}
-	svc.managedImageFreeModel = func(_ context.Context, _ managedimagebackend.LoadModelRequest) error {
-		return nil
 	}
 	svc.hfCatalogSearch = func(_ context.Context, _ hfCatalogSearchRequest) ([]*runtimev1.LocalCatalogModelDescriptor, error) {
 		return []*runtimev1.LocalCatalogModelDescriptor{}, nil
@@ -271,33 +272,6 @@ func TestWatchLocalTransfersBoundsInitialReplay(t *testing.T) {
 	}
 }
 
-func TestNewUsesConfiguredLocalModelsPathForUnregisteredScan(t *testing.T) {
-	t.Helper()
-	modelsDir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(modelsDir, "custom.gguf"), []byte("gguf"), 0o644); err != nil {
-		t.Fatalf("write model file: %v", err)
-	}
-	statePath := filepath.Join(t.TempDir(), "local-state.json")
-	svc, err := New(slog.New(slog.NewTextHandler(io.Discard, nil)), nil, statePath, 0, modelsDir)
-	if err != nil {
-		t.Fatalf("create local service: %v", err)
-	}
-	t.Cleanup(func() {
-		svc.Close()
-	})
-
-	resp, err := svc.ScanUnregisteredAssets(context.Background(), &runtimev1.ScanUnregisteredAssetsRequest{})
-	if err != nil {
-		t.Fatalf("scan unregistered assets: %v", err)
-	}
-	if len(resp.GetItems()) != 1 {
-		t.Fatalf("expected configured models path scan to find 1 item, got %d", len(resp.GetItems()))
-	}
-	if got := resp.GetItems()[0].GetPath(); got != filepath.Join(modelsDir, "custom.gguf") {
-		t.Fatalf("unexpected scan path: got=%q", got)
-	}
-}
-
 func setLocalRuntimePlatformForTest(t *testing.T, goos string, goarch string) {
 	t.Helper()
 	originalGOOS := localRuntimeGOOS
@@ -404,315 +378,6 @@ func setManagedImageHostForTest(t *testing.T, chip string) {
 	})
 }
 
-func mustImportManagedImageAssetForTest(t *testing.T, svc *Service, logicalModelID string) *runtimev1.LocalAssetRecord {
-	t.Helper()
-	manifestPath := filepath.Join(svc.localModelsPath, "resolved", filepath.FromSlash(logicalModelID), "asset.manifest.json")
-	if err := os.MkdirAll(filepath.Dir(manifestPath), 0o755); err != nil {
-		t.Fatalf("mkdir image manifest dir: %v", err)
-	}
-	entryPath := filepath.Join(filepath.Dir(manifestPath), "z_image_turbo-Q4_K.gguf")
-	if err := os.WriteFile(entryPath, validImageTestGGUF(), 0o600); err != nil {
-		t.Fatalf("write image entry: %v", err)
-	}
-	entryHash, err := computeImportFileSHA256(entryPath)
-	if err != nil {
-		t.Fatalf("hash image entry: %v", err)
-	}
-	rawManifest, err := json.Marshal(map[string]any{
-		"asset_id":         "local-import/z_image_turbo-Q4_K",
-		"kind":             "image",
-		"logical_model_id": logicalModelID,
-		"engine":           "media",
-		"capabilities":     []string{"image.generate"},
-		"entry":            "z_image_turbo-Q4_K.gguf",
-		"files":            []string{"z_image_turbo-Q4_K.gguf"},
-		"hashes":           map[string]string{"z_image_turbo-Q4_K.gguf": "sha256:" + entryHash},
-		"engineConfig": map[string]any{
-			"backend": "stablediffusion-ggml",
-		},
-	})
-	if err != nil {
-		t.Fatalf("marshal image manifest: %v", err)
-	}
-	if err := os.WriteFile(manifestPath, rawManifest, 0o600); err != nil {
-		t.Fatalf("write image manifest: %v", err)
-	}
-	imported, err := svc.ImportLocalAsset(context.Background(), &runtimev1.ImportLocalAssetRequest{
-		ManifestPath: manifestPath,
-	})
-	if err != nil {
-		t.Fatalf("import image asset: %v", err)
-	}
-	return imported.GetAsset()
-}
-
-func mustInstallUnsupportedSafetensorsNativeImageForTest(t *testing.T, svc *Service, assetID string) *runtimev1.LocalAssetRecord {
-	t.Helper()
-	manifestPath := filepath.Join(t.TempDir(), "asset.manifest.json")
-	record, err := svc.installLocalAssetRecord(
-		assetID,
-		runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE,
-		[]string{"image.generate"},
-		"media",
-		"model.safetensors",
-		"unknown",
-		"file://"+filepath.ToSlash(manifestPath),
-		"local",
-		nil,
-		"",
-		nil,
-		nil,
-		"runtime_model_ready_after_install",
-		"model installed",
-		localAssetExistingPolicyFail,
-	)
-	if err != nil {
-		t.Fatalf("install unsupported safetensors native image: %v", err)
-	}
-	return record
-}
-
-func cacheManagedImageProfileForTest(t *testing.T, svc *Service, localAssetID string) map[string]any {
-	t.Helper()
-	model := svc.modelByID(localAssetID)
-	if model == nil {
-		t.Fatalf("missing local asset %q", localAssetID)
-	}
-	modelPath := filepath.Join(runtimeManagedResolvedModelDir(resolveLocalModelsPath(svc.localModelsPath), model.GetLogicalModelId()), model.GetEntry())
-	profile := map[string]any{
-		"backend": "stablediffusion-ggml",
-		"parameters": map[string]any{
-			"model": modelPath,
-		},
-		"cfg_scale": 1,
-		"options": []any{
-			"diffusion_model",
-			"llm_path:/tmp/qwen.gguf",
-			"vae_path:/tmp/ae.safetensors",
-		},
-	}
-	svc.cacheManagedMediaImageProfile(localAssetID, "test-managed-image-profile", profile)
-	return profile
-}
-
-func containsWarning(values []string, target string) bool {
-	for _, value := range values {
-		if value == target {
-			return true
-		}
-	}
-	return false
-}
-
-func almostEqualFloat32(a float32, b float32) bool {
-	return math.Abs(float64(a-b)) < 0.001
-}
-
-func TestLocalImportVideoModelIgnoresHostRuntimeTopology(t *testing.T) {
-	svc := newTestService(t)
-	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
-	tmpDir := t.TempDir()
-	setLocalModelsPathForTest(t, svc, tmpDir)
-	manifestPath := filepath.Join(tmpDir, "resolved", "nimi", "video-model-loopback", "asset.manifest.json")
-	entryPath := filepath.Join(filepath.Dir(manifestPath), "z_video_turbo.bin")
-	if err := os.MkdirAll(filepath.Dir(manifestPath), 0o755); err != nil {
-		t.Fatalf("create manifest dir: %v", err)
-	}
-	if err := os.WriteFile(entryPath, []byte("video-model-content"), 0o600); err != nil {
-		t.Fatalf("write model entry: %v", err)
-	}
-	entryHash, err := computeImportFileSHA256(entryPath)
-	if err != nil {
-		t.Fatalf("hash model entry: %v", err)
-	}
-	rawManifest, err := json.Marshal(map[string]any{
-		"asset_id":         "local-import/z_video_turbo_loopback",
-		"kind":             "video",
-		"logical_model_id": "nimi/video-model-loopback",
-		"engine":           "media",
-		"capabilities":     []string{"video.generate"},
-		"entry":            "z_video_turbo.bin",
-		"hashes":           map[string]string{"z_video_turbo.bin": "sha256:" + entryHash},
-	})
-	if err != nil {
-		t.Fatalf("marshal manifest: %v", err)
-	}
-	if err := os.WriteFile(manifestPath, rawManifest, 0o600); err != nil {
-		t.Fatalf("write manifest: %v", err)
-	}
-
-	imported, err := svc.ImportLocalAsset(context.Background(), &runtimev1.ImportLocalAssetRequest{
-		ManifestPath: manifestPath,
-	})
-	if err != nil {
-		t.Fatalf("video asset import must not materialize a host binding: %v", err)
-	}
-	if imported.GetAsset().GetKind() != runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VIDEO {
-		t.Fatalf("unexpected imported kind: %s", imported.GetAsset().GetKind())
-	}
-}
-
-func TestLocalImportManifestDuplicateCreatesDistinctAssetRecord(t *testing.T) {
-	svc := newTestService(t)
-	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
-	tmpDir := t.TempDir()
-	setLocalModelsPathForTest(t, svc, tmpDir)
-	manifestPath := filepath.Join(tmpDir, "resolved", "nimi", "video-model-rebind", "asset.manifest.json")
-	entryPath := filepath.Join(filepath.Dir(manifestPath), "z_video_turbo.bin")
-	if err := os.MkdirAll(filepath.Dir(manifestPath), 0o755); err != nil {
-		t.Fatalf("create manifest dir: %v", err)
-	}
-	if err := os.WriteFile(entryPath, []byte("video-model-content"), 0o600); err != nil {
-		t.Fatalf("write model entry: %v", err)
-	}
-	entryHash, err := computeImportFileSHA256(entryPath)
-	if err != nil {
-		t.Fatalf("hash model entry: %v", err)
-	}
-	rawManifest, err := json.Marshal(map[string]any{
-		"asset_id":         "local-import/z_video_turbo_rebind",
-		"kind":             "video",
-		"logical_model_id": "nimi/video-model-rebind",
-		"engine":           "media",
-		"capabilities":     []string{"video.generate"},
-		"entry":            "z_video_turbo.bin",
-		"hashes":           map[string]string{"z_video_turbo.bin": "sha256:" + entryHash},
-	})
-	if err != nil {
-		t.Fatalf("marshal manifest: %v", err)
-	}
-	if err := os.WriteFile(manifestPath, rawManifest, 0o600); err != nil {
-		t.Fatalf("write manifest: %v", err)
-	}
-
-	existing, err := svc.installLocalAssetRecord(
-		"local-import/z_video_turbo_rebind",
-		runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VIDEO,
-		[]string{"video.generate"},
-		"media",
-		"z_video_turbo.bin",
-		"unknown",
-		"file://"+filepath.ToSlash(manifestPath),
-		"local",
-		map[string]string{"z_video_turbo.bin": "sha256:" + entryHash},
-		"",
-		nil,
-		nil,
-		"runtime_model_imported",
-		manifestPath,
-		localAssetExistingPolicyFail,
-	)
-	if err != nil {
-		t.Fatalf("seed existing asset: %v", err)
-	}
-	svc.setModelHealthDetail(existing.GetLocalAssetId(), "stale bad endpoint")
-	if _, err := svc.updateModelStatus(existing.GetLocalAssetId(), runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY, "stale bad endpoint"); err != nil {
-		t.Fatalf("seed unhealthy status: %v", err)
-	}
-
-	imported, err := svc.ImportLocalAsset(context.Background(), &runtimev1.ImportLocalAssetRequest{ManifestPath: manifestPath})
-	if err != nil {
-		t.Fatalf("duplicate manifest import: %v", err)
-	}
-	if imported.GetAsset().GetLocalAssetId() == existing.GetLocalAssetId() {
-		t.Fatalf("duplicate import must mint a distinct local_asset_id: %q", imported.GetAsset().GetLocalAssetId())
-	}
-	if imported.GetAsset().GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED {
-		t.Fatalf("imported asset should be installed, got %s", imported.GetAsset().GetStatus())
-	}
-	if strings.TrimSpace(imported.GetAsset().GetHealthDetail()) != "" {
-		t.Fatalf("imported asset should not inherit stale health detail, got %q", imported.GetAsset().GetHealthDetail())
-	}
-	storedExisting := svc.modelByID(existing.GetLocalAssetId())
-	if storedExisting == nil {
-		t.Fatalf("expected existing asset to remain stored")
-	}
-	if storedExisting.GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY {
-		t.Fatalf("existing asset status should remain unhealthy, got %s", storedExisting.GetStatus())
-	}
-}
-
-func TestStartLocalModelAttachedLoopbackConfigFailsBeforeProbe(t *testing.T) {
-	probeCalls := 0
-	svc := newTestServiceWithProbe(t, func(_ context.Context, endpoint string) endpointProbeResult {
-		probeCalls += 1
-		return endpointProbeResult{
-			healthy:  false,
-			detail:   "probe should not run",
-			probeURL: endpoint,
-		}
-	})
-	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
-	modelsRoot := t.TempDir()
-	setLocalModelsPathForTest(t, svc, modelsRoot)
-	model, err := svc.installLocalAssetRecord(
-		"local-import/z_video_turbo_fastfail",
-		runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VIDEO,
-		[]string{"video.generate"},
-		"media",
-		"z_video_turbo.bin",
-		"unknown",
-		"local-import/z_video_turbo_fastfail",
-		"local",
-		map[string]string{},
-		"",
-		nil,
-		nil,
-		"runtime_model_imported",
-		"seed bad media loopback asset",
-		localAssetExistingPolicyFail,
-	)
-	if err != nil {
-		t.Fatalf("seed loopback asset: %v", err)
-	}
-	entryPath := filepath.Join(resolveLocalModelsPath(modelsRoot), slugifyLocalModelID(model.GetAssetId()), model.GetEntry())
-	if err := os.MkdirAll(filepath.Dir(entryPath), 0o755); err != nil {
-		t.Fatalf("create managed entry dir: %v", err)
-	}
-	if err := os.WriteFile(entryPath, []byte("stub"), 0o600); err != nil {
-		t.Fatalf("write managed entry file: %v", err)
-	}
-
-	_, err = svc.StartLocalAsset(context.Background(), &runtimev1.StartLocalAssetRequest{
-		LocalAssetId: model.GetLocalAssetId(),
-	})
-	if err == nil {
-		t.Fatal("expected attached endpoint to be required at execution host materialization")
-	}
-	assertGRPCReasonCode(t, err, "StartLocalAsset(attached endpoint missing)", runtimev1.ReasonCode_AI_LOCAL_ENDPOINT_REQUIRED)
-	if probeCalls != 0 {
-		t.Fatalf("expected no probe for attached-loopback config error, got %d probe calls", probeCalls)
-	}
-}
-
-func TestLocalImportManifestRejectsSymlinkOutsideModelsRoot(t *testing.T) {
-	svc := newTestService(t)
-	modelsRoot := t.TempDir()
-	setLocalModelsPathForTest(t, svc, modelsRoot)
-
-	outsideDir := t.TempDir()
-	outsideManifest := filepath.Join(outsideDir, "asset.manifest.json")
-	if err := os.WriteFile(outsideManifest, []byte(`{"asset_id":"local/outside","kind":"chat","engine":"llama","capabilities":["chat"]}`), 0o600); err != nil {
-		t.Fatalf("write outside manifest: %v", err)
-	}
-	linkedManifest := filepath.Join(modelsRoot, "resolved", "nimi", "symlinked", "asset.manifest.json")
-	if err := os.MkdirAll(filepath.Dir(linkedManifest), 0o755); err != nil {
-		t.Fatalf("create linked manifest dir: %v", err)
-	}
-	if err := os.Symlink(outsideManifest, linkedManifest); err != nil {
-		if strings.Contains(err.Error(), "A required privilege is not held by the client") {
-			t.Skip("symlink privilege unavailable on this Windows host")
-		}
-		t.Fatalf("create manifest symlink: %v", err)
-	}
-
-	_, err := svc.ImportLocalAsset(context.Background(), &runtimev1.ImportLocalAssetRequest{ManifestPath: linkedManifest})
-	if err == nil {
-		t.Fatal("expected symlinked manifest outside root to be rejected")
-	}
-	assertGRPCReasonCode(t, err, "ImportLocalModel(symlink outside root)", runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID)
-}
-
 func TestLocalCollectDeviceProfileIncludesExtraPorts(t *testing.T) {
 	svc := newTestService(t)
 	resp, err := svc.CollectDeviceProfile(context.Background(), &runtimev1.CollectDeviceProfileRequest{
@@ -733,173 +398,99 @@ func TestLocalCollectDeviceProfileIncludesExtraPorts(t *testing.T) {
 	}
 }
 
-func TestResolveModelInstallPlanManualAddsDeviceWarnings(t *testing.T) {
+func TestResolveModelInstallPlanRejectsCallerReconstructedTopology(t *testing.T) {
 	svc := newTestService(t)
-	t.Setenv("NIMI_NPU_AVAILABLE", "0")
-	t.Setenv("NIMI_NPU_READY", "0")
-
-	resp, err := svc.ResolveModelInstallPlan(context.Background(), &runtimev1.ResolveModelInstallPlanRequest{
+	before := len(svc.heldModelInstallPlans)
+	_, err := svc.ResolveModelInstallPlan(context.Background(), &runtimev1.ResolveModelInstallPlanRequest{
 		ModelId:  "local/npu-model",
 		Engine:   "npu-accelerated-engine",
 		Endpoint: "http://127.0.0.1:1234/v1",
 	})
+	if status.Code(err) != codes.InvalidArgument {
+		t.Fatalf("caller-reconstructed install plan error = %v", err)
+	}
+	if len(svc.heldModelInstallPlans) != before {
+		t.Fatal("rejected caller topology created a server-held plan")
+	}
+}
+
+func TestResolveModelInstallPlanHFCatalogSourceIsEngineNeutral(t *testing.T) {
+	svc := newTestService(t)
+	svc.hfCatalogSearch = func(context.Context, hfCatalogSearchRequest) ([]*runtimev1.LocalCatalogModelDescriptor, error) {
+		return []*runtimev1.LocalCatalogModelDescriptor{{
+			ItemId: "hf_example_model", Source: "huggingface", ModelId: "example/model", Repo: "example/model",
+			Revision: "commit-1", Capabilities: []string{"text.generate"}, Engine: "llama",
+		}}, nil
+	}
+	svc.hfCatalogVariants = func(context.Context, string) ([]*runtimev1.LocalCatalogVariantDescriptor, error) {
+		return []*runtimev1.LocalCatalogVariantDescriptor{{Filename: "model.gguf", Entry: "model.gguf", Files: []string{"model.gguf"}, Sha256: strings.Repeat("a", 64)}}, nil
+	}
+	resp, err := svc.ResolveModelInstallPlan(context.Background(), &runtimev1.ResolveModelInstallPlanRequest{
+		Source: "huggingface", Repo: "example/model", Revision: "main", ModelId: "caller-value",
+		Capabilities: []string{"text.generate"}, Engine: "caller-engine", Endpoint: "http://127.0.0.1:9999",
+		Entry: "model.gguf", Files: []string{"model.gguf"}, Hashes: map[string]string{"model.gguf": strings.Repeat("a", 64)},
+	})
 	if err != nil {
-		t.Fatalf("resolve model install plan: %v", err)
+		t.Fatalf("resolve HF catalog plan: %v", err)
 	}
 	plan := resp.GetPlan()
 	if !plan.GetInstallAvailable() {
-		t.Fatalf("manual plan should remain installable with warnings")
+		t.Fatalf("catalog-backed source plan unavailable: %+v", plan)
 	}
-	if plan.GetReasonCode() != "ACTION_EXECUTED" {
-		t.Fatalf("unexpected reason code: %s", plan.GetReasonCode())
+	if plan.GetEngine() != "" || plan.GetEndpoint() != "" || plan.GetEngineRuntimeMode() != runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_UNSPECIFIED {
+		t.Fatalf("ModelAsset acquisition retained caller topology: %+v", plan)
 	}
-	found := false
-	for _, warning := range plan.GetWarnings() {
-		if warning == "WARN_NPU_REQUIRED" {
-			found = true
-			break
-		}
-	}
-	if !found {
-		t.Fatalf("expected WARN_NPU_REQUIRED warning, got %#v", plan.GetWarnings())
+	if plan.GetModelId() != "example/model" || plan.GetHashes()["model.gguf"] != strings.Repeat("a", 64) {
+		t.Fatalf("plan did not use catalog identity: %+v", plan)
 	}
 }
 
-func TestResolveModelInstallPlanSidecarEndpointRequired(t *testing.T) {
+func TestInstallModelFromPlanRejectsPlanWithoutModelAssetPayload(t *testing.T) {
 	svc := newTestService(t)
-	resp, err := svc.ResolveModelInstallPlan(context.Background(), &runtimev1.ResolveModelInstallPlanRequest{
-		ModelId:      "local/stable-audio-open-sidecar",
-		Engine:       "sidecar",
-		Capabilities: []string{"music.generate"},
+	modelAssetsBefore := len(svc.modelAssets)
+	svc.mu.Lock()
+	svc.catalog = append(svc.catalog, &runtimev1.LocalCatalogModelDescriptor{
+		ItemId: "catalog.payload-free", Source: "verified", ModelId: "local/test-attached", Repo: "test/repo",
+		Revision: "main", Capabilities: []string{"text.generate"},
+	})
+	svc.mu.Unlock()
+	resolved, err := svc.ResolveModelInstallPlan(context.Background(), &runtimev1.ResolveModelInstallPlanRequest{
+		ItemId: "catalog.payload-free",
 	})
 	if err != nil {
 		t.Fatalf("resolve model install plan: %v", err)
 	}
-	plan := resp.GetPlan()
-	if plan.GetInstallAvailable() {
-		t.Fatalf("sidecar attached-endpoint plan without endpoint must be unavailable")
+	_, err = svc.InstallModelFromPlan(context.Background(), &runtimev1.InstallModelFromPlanRequest{PlanId: resolved.GetPlan().GetPlanId()})
+	if status.Code(err) != codes.FailedPrecondition {
+		t.Fatalf("install model without payload error = %v", err)
 	}
-	if plan.GetReasonCode() != runtimev1.ReasonCode_AI_LOCAL_ENDPOINT_REQUIRED.String() {
-		t.Fatalf("unexpected reason code: %s", plan.GetReasonCode())
-	}
-	if strings.TrimSpace(plan.GetEndpoint()) != "" {
-		t.Fatalf("sidecar endpoint should remain empty when not provided, got %q", plan.GetEndpoint())
-	}
-}
-
-func TestInstallModelFromPlanRegistersAssetWithoutHostProjection(t *testing.T) {
-	svc := newTestService(t)
-	resp, err := svc.InstallModelFromPlan(context.Background(), &runtimev1.InstallModelFromPlanRequest{
-		Plan: &runtimev1.LocalInstallPlanDescriptor{
-			ModelId:          "local/test-attached",
-			Repo:             "test/repo",
-			Revision:         "main",
-			Capabilities:     []string{"text.generate"},
-			Engine:           "llama",
-			InstallAvailable: true,
-			Endpoint:         "http://127.0.0.1:1234/v1",
-			Entry:            "model.gguf",
-			License:          "test",
-		},
-	})
-	if err != nil {
-		t.Fatalf("install model from plan: %v", err)
-	}
-	asset := resp.GetAsset()
-	if asset.GetAssetId() != "local/test-attached" {
-		t.Fatalf("unexpected asset id: %q", asset.GetAssetId())
-	}
-	if asset.GetEngine() != "llama" {
-		t.Fatalf("unexpected engine: %q", asset.GetEngine())
+	if len(svc.modelAssets) != modelAssetsBefore {
+		t.Fatal("payload-free install mutated inventory")
 	}
 }
 
 func TestInstallModelFromPlanRejectsUnavailablePlan(t *testing.T) {
 	svc := newTestService(t)
-	_, err := svc.InstallModelFromPlan(context.Background(), &runtimev1.InstallModelFromPlanRequest{
-		Plan: &runtimev1.LocalInstallPlanDescriptor{
-			ModelId:      "local/unavailable",
-			ReasonCode:   runtimev1.ReasonCode_AI_LOCAL_ENDPOINT_REQUIRED.String(),
-			Capabilities: []string{"music.generate"},
-			Engine:       "sidecar",
-		},
+	svc.mu.Lock()
+	svc.catalog = append(svc.catalog, &runtimev1.LocalCatalogModelDescriptor{
+		ItemId: "catalog.unavailable", Source: "verified", ModelId: "local/unavailable", Repo: "test/repo",
+		Revision: "main", Capabilities: []string{"text.generate"}, Files: []string{"model.gguf"},
 	})
+	svc.mu.Unlock()
+	resolved, resolveErr := svc.ResolveModelInstallPlan(context.Background(), &runtimev1.ResolveModelInstallPlanRequest{
+		ItemId: "catalog.unavailable",
+	})
+	if resolveErr != nil {
+		t.Fatalf("resolve unavailable plan: %v", resolveErr)
+	}
+	_, err := svc.InstallModelFromPlan(context.Background(), &runtimev1.InstallModelFromPlanRequest{PlanId: resolved.GetPlan().GetPlanId()})
 	reason, ok := grpcerr.ExtractReasonCode(err)
 	if !ok || reason != runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE {
 		t.Fatalf("expected reason code %s, got=%v ok=%v err=%v", runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, reason, ok, err)
 	}
 }
 
-func TestInstallLocalModelSidecarRequiresEndpoint(t *testing.T) {
-	svc := newTestService(t)
-	_, err := svc.installLocalAsset(context.Background(), installLocalAssetParams{
-		assetID:      "local/stable-audio-open-sidecar",
-		engine:       "sidecar",
-		capabilities: []string{"music.generate"},
-	})
-	reason, ok := grpcerr.ExtractReasonCode(err)
-	if !ok || reason != runtimev1.ReasonCode_AI_LOCAL_ENDPOINT_REQUIRED {
-		t.Fatalf("expected reason code %s, got=%v ok=%v err=%v", runtimev1.ReasonCode_AI_LOCAL_ENDPOINT_REQUIRED, reason, ok, err)
-	}
-}
-
-func TestLocalNodeCatalogSidecarMusicAdapter(t *testing.T) {
-	svc := newTestService(t)
-
-	modelResp, err := svc.installLocalAsset(context.Background(), installLocalAssetParams{
-		assetID:      "local/stable-audio-open-sidecar",
-		capabilities: []string{"music.generate"},
-		engine:       "sidecar",
-		endpoint:     "http://127.0.0.1:19191",
-	})
-	if err != nil {
-		t.Fatalf("install local model: %v", err)
-	}
-	if _, err := svc.InstallLocalService(context.Background(), &runtimev1.InstallLocalServiceRequest{
-		ServiceId:    "svc-sidecar-music",
-		Title:        "Sidecar Music Service",
-		Engine:       "sidecar",
-		Capabilities: []string{"music.generate"},
-		LocalModelId: modelResp.GetLocalAssetId(),
-		Endpoint:     "http://127.0.0.1:19191",
-	}); err != nil {
-		t.Fatalf("install local service: %v", err)
-	}
-	if _, err := svc.StartLocalService(context.Background(), &runtimev1.StartLocalServiceRequest{
-		ServiceId: "svc-sidecar-music",
-	}); err != nil {
-		t.Fatalf("start local service: %v", err)
-	}
-
-	nodesResp, err := svc.ListNodeCatalog(context.Background(), &runtimev1.ListNodeCatalogRequest{
-		Provider:   "sidecar",
-		Capability: "music.generate",
-	})
-	if err != nil {
-		t.Fatalf("list node catalog: %v", err)
-	}
-	if len(nodesResp.GetNodes()) != 1 {
-		t.Fatalf("node count mismatch: got=%d want=1", len(nodesResp.GetNodes()))
-	}
-	node := nodesResp.GetNodes()[0]
-	if node.GetAdapter() != "sidecar_music_adapter" {
-		t.Fatalf("sidecar music adapter mismatch: %s", node.GetAdapter())
-	}
-	if node.GetApiPath() != "/v1/music/generate" {
-		t.Fatalf("sidecar music api path mismatch: %s", node.GetApiPath())
-	}
-	if node.GetBackend() != "sidecar" || node.GetProvider() != "sidecar" {
-		t.Fatalf("sidecar node backend/provider mismatch: backend=%s provider=%s", node.GetBackend(), node.GetProvider())
-	}
-	if node.GetProviderHints() == nil {
-		t.Fatalf("sidecar music node must include provider hints")
-	}
-	if got, want := node.GetProviderHints().GetExtra()["endpoint"], "http://127.0.0.1:19191"; got != want {
-		t.Fatalf("sidecar music endpoint mismatch: got=%q want=%q", got, want)
-	}
-}
-
-func TestResolveModelInstallPlanCatalogSupervisedRequiresEngineManager(t *testing.T) {
+func TestResolveModelInstallPlanCatalogSupervisedDoesNotRequireMaterializedEngine(t *testing.T) {
 	svc := newTestService(t)
 	svc.mu.Lock()
 	svc.catalog = append(svc.catalog, &runtimev1.LocalCatalogModelDescriptor{
@@ -911,6 +502,10 @@ func TestResolveModelInstallPlanCatalogSupervisedRequiresEngineManager(t *testin
 		EngineRuntimeMode: runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED,
 		InstallKind:       "download",
 		Capabilities:      []string{"text.generate"},
+		Repo:              "example/supervised",
+		Entry:             "model.gguf",
+		Files:             []string{"model.gguf"},
+		Hashes:            map[string]string{"model.gguf": strings.Repeat("a", 64)},
 	})
 	svc.mu.Unlock()
 
@@ -921,11 +516,14 @@ func TestResolveModelInstallPlanCatalogSupervisedRequiresEngineManager(t *testin
 		t.Fatalf("resolve supervised plan: %v", err)
 	}
 	plan := resp.GetPlan()
-	if plan.GetInstallAvailable() {
-		t.Fatalf("supervised plan without engine manager must be unavailable")
+	if !plan.GetInstallAvailable() {
+		t.Fatalf("ModelAsset acquisition must not require a materialized engine: %+v", plan)
 	}
-	if plan.GetReasonCode() != "LOCAL_ENGINE_MANAGER_UNAVAILABLE" {
+	if plan.GetReasonCode() != "ACTION_EXECUTED" {
 		t.Fatalf("unexpected reason code: %s", plan.GetReasonCode())
+	}
+	if plan.GetEngine() != "" || plan.GetEngineRuntimeMode() != runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_UNSPECIFIED {
+		t.Fatalf("ModelAsset plan retained execution topology: %+v", plan)
 	}
 }
 
@@ -942,6 +540,10 @@ func TestResolveModelInstallPlanCatalogSupervisedWithManagerAvailable(t *testing
 		EngineRuntimeMode: runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED,
 		InstallKind:       "download",
 		Capabilities:      []string{"text.generate"},
+		Repo:              "example/supervised-available",
+		Entry:             "model.gguf",
+		Files:             []string{"model.gguf"},
+		Hashes:            map[string]string{"model.gguf": strings.Repeat("b", 64)},
 	})
 	svc.mu.Unlock()
 
@@ -957,69 +559,5 @@ func TestResolveModelInstallPlanCatalogSupervisedWithManagerAvailable(t *testing
 	}
 	if plan.GetReasonCode() != "ACTION_EXECUTED" {
 		t.Fatalf("unexpected reason code: %s", plan.GetReasonCode())
-	}
-}
-
-func TestLocalApplyExecutionPlanRejectsUnsupportedKindInPreflight(t *testing.T) {
-	svc := newTestService(t)
-	result := svc.applyExecutionPlanStrict(context.Background(), &runtimev1.LocalExecutionPlan{
-		PlanId:   "dep-plan-unsupported-kind",
-		TargetId: "world.nimi.unsupported-kind",
-		Entries: []*runtimev1.LocalExecutionEntryDescriptor{
-			{
-				EntryId:  "dep.unsupported.kind",
-				Kind:     runtimev1.LocalExecutionEntryKind(99),
-				Selected: true,
-				Required: true,
-			},
-		},
-		DeviceProfile: &runtimev1.LocalDeviceProfile{
-			Os:   "darwin",
-			Arch: "arm64",
-			Python: &runtimev1.LocalPythonProfile{
-				Available: true,
-			},
-		},
-	})
-	if result.GetReasonCode() != "LOCAL_EXECUTION_ENTRY_KIND_UNSUPPORTED" {
-		t.Fatalf("unexpected reason code: %s", result.GetReasonCode())
-	}
-	if result.GetRollbackApplied() {
-		t.Fatalf("preflight rejection must not apply rollback")
-	}
-}
-
-func TestLocalRollbackApplyCombinesReasonCodesOnRollbackFailure(t *testing.T) {
-	svc := newTestService(t)
-	result := &runtimev1.LocalExecutionApplyResult{
-		ReasonCode: "LOCAL_DEPENDENCY_MODEL_HEALTH_FAILED",
-	}
-
-	svc.rollbackApply(context.Background(), []string{"local-model-missing"}, []string{"local-service-missing"}, result)
-
-	if !result.GetRollbackApplied() {
-		t.Fatalf("rollback_applied must be true when rollback is attempted")
-	}
-	if !strings.Contains(result.GetReasonCode(), "LOCAL_DEPENDENCY_MODEL_HEALTH_FAILED") {
-		t.Fatalf("result reason code must retain original failure, got %s", result.GetReasonCode())
-	}
-	if !strings.Contains(result.GetReasonCode(), runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE.String()) {
-		t.Fatalf("result reason code must include rollback failure reason, got %s", result.GetReasonCode())
-	}
-	if len(result.GetStageResults()) != 1 {
-		t.Fatalf("expected exactly one rollback stage result, got %d", len(result.GetStageResults()))
-	}
-	stage := result.GetStageResults()[0]
-	if stage.GetStage() != applyStageRollback {
-		t.Fatalf("expected rollback stage name, got %s", stage.GetStage())
-	}
-	if stage.GetOk() {
-		t.Fatalf("rollback stage must fail when rollback remove operations fail")
-	}
-	if stage.GetReasonCode() != runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE.String() {
-		t.Fatalf("unexpected rollback reason code: %s", stage.GetReasonCode())
-	}
-	if len(result.GetWarnings()) < 2 {
-		t.Fatalf("expected rollback warnings for failed remove operations")
 	}
 }

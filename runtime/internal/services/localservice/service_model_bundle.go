@@ -1,134 +1,20 @@
 package localservice
 
 import (
-	"context"
 	"crypto/sha256"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
-	"github.com/nimiplatform/nimi/runtime/internal/ggufmeta"
 )
 
 const ggufMagicHeader = "GGUF"
 const minManagedGGUFSizeBytes = 4 * 1024
-
-// shouldUseLogicalManagedBundlePath reports whether a runnable managed asset
-// resolves under the canonical `resolved/<logicalModelID>/` bundle layout.
-// Passive assets are path-owned by their `file://.../asset.manifest.json`
-// parent plus `entry`; `logicalModelID` is metadata and must not select storage.
-func shouldUseLogicalManagedBundlePath(model *runtimev1.LocalAssetRecord) bool {
-	if model == nil {
-		return false
-	}
-	if !isRunnableKind(model.GetKind()) {
-		return false
-	}
-	if strings.Trim(strings.TrimSpace(model.GetLogicalModelId()), "/") == "" {
-		return false
-	}
-	repo := strings.TrimSpace(model.GetSource().GetRepo())
-	if repo == "" {
-		return false
-	}
-	if strings.HasPrefix(strings.ToLower(repo), "file://") &&
-		!strings.HasSuffix(strings.ToLower(repo), "/asset.manifest.json") {
-		return false
-	}
-	return true
-}
-
-func sanitizeManagedEntryPath(entry string) (string, error) {
-	cleanEntry := filepath.Clean(strings.TrimSpace(entry))
-	if cleanEntry == "." || cleanEntry == "" || filepath.IsAbs(cleanEntry) || cleanEntry == ".." ||
-		strings.HasPrefix(cleanEntry, ".."+string(filepath.Separator)) {
-		return "", fmt.Errorf("managed local model entry path is invalid")
-	}
-	return cleanEntry, nil
-}
-
-func resolveManagedManifestBundleDir(modelsRoot string, sourceRepo string) (string, error) {
-	repo := strings.TrimSpace(sourceRepo)
-	if !strings.HasPrefix(strings.ToLower(repo), "file://") ||
-		!strings.HasSuffix(strings.ToLower(repo), "/asset.manifest.json") {
-		return "", fmt.Errorf("managed asset source must be its asset.manifest.json file URL")
-	}
-	manifestPath, err := resolveManagedFileRepoPath(repo)
-	if err != nil {
-		return "", fmt.Errorf("resolve managed asset manifest source: %w", err)
-	}
-	if err := validateResolvedModelManifestPath(manifestPath, modelsRoot); err != nil {
-		return "", err
-	}
-	resolvedManifestPath, err := filepath.EvalSymlinks(filepath.Clean(manifestPath))
-	if err != nil {
-		return "", fmt.Errorf("resolve managed asset manifest path: %w", err)
-	}
-	return filepath.Dir(resolvedManifestPath), nil
-}
-
-func resolveManagedModelEntryAbsolutePath(modelsRoot string, model *runtimev1.LocalAssetRecord) (string, error) {
-	if model == nil {
-		return "", fmt.Errorf("managed local model is unavailable")
-	}
-	root := strings.TrimSpace(modelsRoot)
-	if root == "" {
-		return "", fmt.Errorf("runtime local models root is unavailable")
-	}
-	rootAbs, err := filepath.Abs(root)
-	if err != nil {
-		return "", fmt.Errorf("resolve runtime local models root: %w", err)
-	}
-	cleanEntry, err := sanitizeManagedEntryPath(model.GetEntry())
-	if err != nil {
-		return "", err
-	}
-	repo := strings.TrimSpace(model.GetSource().GetRepo())
-	if strings.HasPrefix(strings.ToLower(repo), "file://") {
-		bundleDir, err := resolveManagedManifestBundleDir(rootAbs, repo)
-		if err != nil {
-			return "", err
-		}
-		entryPath, err := filepath.Abs(filepath.Join(bundleDir, cleanEntry))
-		if err != nil {
-			return "", fmt.Errorf("resolve imported managed model entry path: %w", err)
-		}
-		if !pathWithinBase(bundleDir, entryPath, false) {
-			return "", fmt.Errorf("managed local model entry escapes its manifest directory")
-		}
-		return entryPath, nil
-	}
-	if logicalModelID := strings.TrimSpace(model.GetLogicalModelId()); logicalModelID != "" && shouldUseLogicalManagedBundlePath(model) {
-		bundleDir, err := resolveRuntimeManagedModelBundleDir(rootAbs, logicalModelID)
-		if err != nil {
-			return "", err
-		}
-		entryPath := filepath.Join(bundleDir, cleanEntry)
-		entryPath, err = filepath.Abs(entryPath)
-		if err != nil {
-			return "", fmt.Errorf("resolve managed local model entry path: %w", err)
-		}
-		if !strings.HasPrefix(entryPath, rootAbs+string(filepath.Separator)) && entryPath != rootAbs {
-			return "", fmt.Errorf("managed local model entry escapes runtime models root")
-		}
-		return entryPath, nil
-	}
-	relativePath, err := resolveManagedEntryRelativePath(rootAbs, model.GetAssetId(), model.GetSource().GetRepo(), cleanEntry)
-	if err != nil {
-		return "", err
-	}
-	entryPath := filepath.Join(rootAbs, filepath.FromSlash(relativePath))
-	entryPath, err = filepath.Abs(entryPath)
-	if err != nil {
-		return "", fmt.Errorf("resolve managed local model entry path: %w", err)
-	}
-	return entryPath, nil
-}
 
 func validateManagedModelEntryFile(path string) error {
 	entryPath := strings.TrimSpace(path)
@@ -178,27 +64,6 @@ func validateManagedModelEntryOpenFile(path string, file *os.File, info os.FileI
 	return nil
 }
 
-func validateManagedModelEntryStaticCompatibility(path string, kind runtimev1.LocalAssetKind, capabilities []string, engine string) error {
-	entryPath := strings.TrimSpace(path)
-	if entryPath == "" {
-		return fmt.Errorf("managed local model entry path is empty")
-	}
-	if strings.ToLower(filepath.Ext(entryPath)) != ".gguf" {
-		return nil
-	}
-	if !isCanonicalSupervisedImageAsset(engine, capabilities, kind) {
-		return nil
-	}
-	summary, err := ggufmeta.InspectPath(entryPath)
-	if err != nil {
-		return fmt.Errorf("inspect image gguf metadata: %w", err)
-	}
-	if issue := ggufmeta.StableDiffusionMetadataIssue(summary); issue != "" {
-		return fmt.Errorf("image gguf incompatible with runtime stablediffusion-ggml backend: %s", issue)
-	}
-	return nil
-}
-
 func ggufLooksHeaderOnlyPlaceholder(file *os.File) (bool, error) {
 	const sampleSize = 256
 	sample := make([]byte, sampleSize)
@@ -227,31 +92,6 @@ func normalizeExpectedSHA256Hash(value string) string {
 	return trimmed
 }
 
-func expectedManagedModelEntryHash(model *runtimev1.LocalAssetRecord) string {
-	if model == nil || len(model.GetHashes()) == 0 {
-		return ""
-	}
-	entry := strings.TrimSpace(model.GetEntry())
-	if entry == "" {
-		return ""
-	}
-	if hash := normalizeExpectedSHA256Hash(model.GetHashes()[entry]); hash != "" {
-		return hash
-	}
-	base := filepath.Base(entry)
-	if hash := normalizeExpectedSHA256Hash(model.GetHashes()[base]); hash != "" {
-		return hash
-	}
-	if len(model.GetHashes()) == 1 {
-		for _, value := range model.GetHashes() {
-			if hash := normalizeExpectedSHA256Hash(value); hash != "" {
-				return hash
-			}
-		}
-	}
-	return ""
-}
-
 func computeFileSHA256(path string) (string, error) {
 	file, err := os.Open(path)
 	if err != nil {
@@ -265,7 +105,115 @@ func computeFileSHA256(path string) (string, error) {
 	return hex.EncodeToString(hasher.Sum(nil)), nil
 }
 
-func (s *Service) cachedFileSHA256(path string, info os.FileInfo) (string, error) {
+func modelAssetFileVerificationGeneration(asset *runtimev1.ModelAssetRecord, file *runtimev1.ModelAssetFile) string {
+	if asset == nil || file == nil {
+		return ""
+	}
+	return strings.TrimSpace(asset.GetContentId()) + "/" + strings.ToLower(strings.TrimSpace(file.GetSha256()))
+}
+
+func (s *Service) recordVerifiedFileSHA256(path string, info os.FileInfo, digest string, generationDigest string) {
+	if s == nil || info == nil || !info.Mode().IsRegular() || info.Mode()&os.ModeSymlink != 0 || strings.TrimSpace(digest) == "" {
+		return
+	}
+	s.mu.Lock()
+	s.entryHashCache[filepath.Clean(path)] = entryHashCacheState{
+		size:             info.Size(),
+		modTimeUnixNano:  info.ModTime().UnixNano(),
+		generationDigest: strings.TrimSpace(generationDigest),
+		sha256:           strings.ToLower(strings.TrimSpace(digest)),
+	}
+	s.mu.Unlock()
+}
+
+// cacheVerifiedModelAssetGeneration carries a digest proof produced by the
+// confirmation/import flow into later Loadout resolution. verificationRoot is
+// the pre-promotion directory when an atomic rename changed only the paths.
+func (s *Service) cacheVerifiedModelAssetGeneration(asset *runtimev1.ModelAssetRecord, directory string, verificationRoot ...string) {
+	if s == nil || asset == nil || strings.TrimSpace(asset.GetContentId()) == "" {
+		return
+	}
+	proofRoot := directory
+	if len(verificationRoot) > 0 && strings.TrimSpace(verificationRoot[0]) != "" {
+		proofRoot = verificationRoot[0]
+	}
+	type verifiedFile struct {
+		path  string
+		state entryHashCacheState
+	}
+	verified := make([]verifiedFile, 0, len(asset.GetFiles()))
+	for _, file := range asset.GetFiles() {
+		if file == nil || !safeModelAssetRelativePath(file.GetRelativePath()) {
+			return
+		}
+		relative := filepath.FromSlash(file.GetRelativePath())
+		path := filepath.Join(directory, relative)
+		proofPath := filepath.Clean(filepath.Join(proofRoot, relative))
+		info, err := os.Lstat(path)
+		if err != nil || !info.Mode().IsRegular() || info.Mode()&os.ModeSymlink != 0 || info.Size() != file.GetSizeBytes() {
+			return
+		}
+		s.mu.RLock()
+		proof, ok := s.entryHashCache[proofPath]
+		s.mu.RUnlock()
+		declaredDigest := strings.ToLower(strings.TrimSpace(file.GetSha256()))
+		if !ok || proof.size != info.Size() || proof.modTimeUnixNano != info.ModTime().UnixNano() || proof.sha256 != declaredDigest {
+			return
+		}
+		proof.generationDigest = modelAssetFileVerificationGeneration(asset, file)
+		verified = append(verified, verifiedFile{path: filepath.Clean(path), state: proof})
+	}
+	s.mu.Lock()
+	for _, file := range verified {
+		s.entryHashCache[file.path] = file.state
+	}
+	s.mu.Unlock()
+}
+
+// restoreVerifiedModelAssetGeneration rehydrates the persisted verification
+// fact recorded after import/adoption. A file modified after that fact has an
+// mtime newer than LatestIntegrityCheckedAt and is deliberately not cached.
+func (s *Service) restoreVerifiedModelAssetGeneration(asset *runtimev1.ModelAssetRecord, directory string) {
+	if s == nil || asset == nil {
+		return
+	}
+	verifiedAt, err := time.Parse(time.RFC3339Nano, strings.TrimSpace(asset.GetLatestIntegrityCheckedAt()))
+	if err != nil {
+		return
+	}
+	type verifiedFile struct {
+		path  string
+		state entryHashCacheState
+	}
+	verified := make([]verifiedFile, 0, len(asset.GetFiles()))
+	for _, file := range asset.GetFiles() {
+		if file == nil || !safeModelAssetRelativePath(file.GetRelativePath()) {
+			return
+		}
+		path := filepath.Join(directory, filepath.FromSlash(file.GetRelativePath()))
+		info, err := os.Lstat(path)
+		if err != nil || !info.Mode().IsRegular() || info.Mode()&os.ModeSymlink != 0 ||
+			info.Size() != file.GetSizeBytes() || info.ModTime().After(verifiedAt) {
+			return
+		}
+		verified = append(verified, verifiedFile{
+			path: filepath.Clean(path),
+			state: entryHashCacheState{
+				size:             info.Size(),
+				modTimeUnixNano:  info.ModTime().UnixNano(),
+				generationDigest: modelAssetFileVerificationGeneration(asset, file),
+				sha256:           strings.ToLower(strings.TrimSpace(file.GetSha256())),
+			},
+		})
+	}
+	s.mu.Lock()
+	for _, file := range verified {
+		s.entryHashCache[file.path] = file.state
+	}
+	s.mu.Unlock()
+}
+
+func (s *Service) cachedFileSHA256(path string, info os.FileInfo, generationDigest string) (string, error) {
 	if info == nil {
 		var err error
 		info, err = os.Stat(path)
@@ -274,346 +222,59 @@ func (s *Service) cachedFileSHA256(path string, info os.FileInfo) (string, error
 		}
 	}
 	cacheKey := filepath.Clean(strings.TrimSpace(path))
+	generation := strings.TrimSpace(generationDigest)
 	modTimeUnixNano := info.ModTime().UnixNano()
 	size := info.Size()
 	s.mu.RLock()
 	cached, ok := s.entryHashCache[cacheKey]
 	s.mu.RUnlock()
-	if ok && cached.size == size && cached.modTimeUnixNano == modTimeUnixNano && strings.TrimSpace(cached.sha256) != "" {
+	if ok && cached.size == size && cached.modTimeUnixNano == modTimeUnixNano &&
+		cached.generationDigest == generation && strings.TrimSpace(cached.sha256) != "" {
 		return cached.sha256, nil
 	}
-	sum, err := computeFileSHA256(cacheKey)
-	if err != nil {
-		return "", err
-	}
-	s.mu.Lock()
-	s.entryHashCache[cacheKey] = entryHashCacheState{
-		size:            size,
-		modTimeUnixNano: modTimeUnixNano,
-		sha256:          sum,
-	}
-	s.mu.Unlock()
-	return sum, nil
+	return s.freshFileSHA256(cacheKey, info, generation)
 }
 
-func (s *Service) validateManagedModelEntryForModel(path string, model *runtimev1.LocalAssetRecord) error {
-	if err := validateManagedModelEntryFile(path); err != nil {
-		return err
-	}
-	if err := validateManagedModelEntryStaticCompatibility(path, model.GetKind(), model.GetCapabilities(), model.GetEngine()); err != nil {
-		return err
-	}
-	expectedHash := expectedManagedModelEntryHash(model)
-	if expectedHash == "" {
-		return nil
-	}
-	info, err := os.Stat(strings.TrimSpace(path))
-	if err != nil {
-		return fmt.Errorf("stat managed local model entry: %w", err)
-	}
-	actualHash, err := s.cachedFileSHA256(path, info)
-	if err != nil {
-		return fmt.Errorf("compute managed local model entry hash: %w", err)
-	}
-	if !strings.EqualFold(actualHash, expectedHash) {
-		return fmt.Errorf("managed local model entry hash mismatch")
-	}
-	return nil
-}
-
-func resolveManagedSpeechBundleManifestPath(modelsRoot string, model *runtimev1.LocalAssetRecord) (string, error) {
-	if model == nil {
-		return "", fmt.Errorf("managed local model is unavailable")
-	}
-	repo := strings.TrimSpace(model.GetSource().GetRepo())
-	if strings.HasPrefix(strings.ToLower(repo), "file://") {
-		bundleDir, err := resolveManagedManifestBundleDir(modelsRoot, repo)
-		if err != nil {
-			return "", fmt.Errorf("managed speech bundle manifest path invalid: %w", err)
-		}
-		return filepath.Join(bundleDir, localAssetManifestFileName), nil
-	}
-	logicalModelID := strings.TrimSpace(model.GetLogicalModelId())
-	if logicalModelID != "" {
-		bundleDir, err := resolveRuntimeManagedModelBundleDir(strings.TrimSpace(modelsRoot), logicalModelID)
+// freshFileSHA256 deliberately bypasses entryHashCache. Job admission uses
+// this entry so every bound payload is reread even when size and mtime were
+// restored to a previously verified generation. The resulting proof may warm
+// projection caches, but it is never sourced from them.
+func (s *Service) freshFileSHA256(path string, info os.FileInfo, generationDigest string) (string, error) {
+	if info == nil {
+		var err error
+		info, err = os.Stat(path)
 		if err != nil {
 			return "", err
 		}
-		manifestPath := filepath.Join(bundleDir, localAssetManifestFileName)
-		if _, err := os.Stat(manifestPath); err == nil {
-			return manifestPath, nil
-		}
 	}
-	return "", fmt.Errorf("managed speech bundle manifest missing")
-}
-
-func declaredManagedSpeechBundleFiles(manifestPath string, model *runtimev1.LocalAssetRecord) ([]string, error) {
-	raw, err := os.ReadFile(strings.TrimSpace(manifestPath))
-	if err != nil {
-		return nil, fmt.Errorf("read managed speech bundle manifest: %w", err)
-	}
-	var manifest map[string]any
-	if err := json.Unmarshal(raw, &manifest); err != nil {
-		return nil, fmt.Errorf("decode managed speech bundle manifest: %w", err)
-	}
-	files := valueAsStringSlice(manifest["files"])
-	if len(files) == 0 {
-		files = normalizeStringSlice(model.GetFiles())
-	}
-	if len(files) == 0 {
-		return nil, fmt.Errorf("managed speech bundle manifest missing declared files")
-	}
-	return files, nil
-}
-
-func validateManagedSpeechBundleFiles(modelsRoot string, model *runtimev1.LocalAssetRecord) error {
-	if model == nil {
-		return fmt.Errorf("managed local model is unavailable")
-	}
-	manifestPath, err := resolveManagedSpeechBundleManifestPath(modelsRoot, model)
-	if err != nil {
-		return err
-	}
-	bundleFiles, err := declaredManagedSpeechBundleFiles(manifestPath, model)
-	if err != nil {
-		return err
-	}
-	bundleRoot := filepath.Dir(strings.TrimSpace(manifestPath))
-	for _, bundleFile := range bundleFiles {
-		if err := validateManagedBundleRelativeFileExists(bundleRoot, bundleFile); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func managedLocalModelBundleFailureDetail(err error) string {
-	if err == nil {
-		return "managed local model bundle invalid"
-	}
-	return "managed local model bundle invalid: " + strings.TrimSpace(err.Error())
-}
-
-func managedLocalAssetRecordFailureDetail(err error) string {
-	if err == nil {
-		return "managed local model record unresolved"
-	}
-	return "managed local model record unresolved: " + strings.TrimSpace(err.Error())
-}
-
-func managedLocalModelRegistrationFailureDetail(problem string) string {
-	trimmed := strings.TrimSpace(problem)
-	if trimmed == "" {
-		return "managed local model registration missing"
-	}
-	return "managed local model registration missing: " + trimmed
-}
-
-func managedLocalModelReadyDetail() string {
-	return "managed local model ready"
-}
-
-func managedLocalModelReadyNotStartedDetail() string {
-	return "managed local model ready (not started)"
-}
-
-func managedLocalImageReadyDetail() string {
-	return "managed local image active; backend load verified"
-}
-
-func managedLocalImagePendingValidationDetail(reason string) string {
-	base := "managed local image installed; backend validation pending"
-	trimmed := strings.TrimSpace(reason)
-	if trimmed == "" {
-		return base
-	}
-	return base + ": " + trimmed
-}
-
-func managedLocalImageExecutionFailureDetail(detail string) string {
-	trimmed := strings.TrimSpace(detail)
-	if trimmed == "" {
-		return "managed local image backend validation failed"
-	}
-	return "managed local image backend validation failed: " + trimmed
-}
-
-func isLlamaLocalAsset(model *runtimev1.LocalAssetRecord) bool {
-	return model != nil && strings.EqualFold(strings.TrimSpace(model.GetEngine()), "llama")
-}
-
-func isManagedSupervisedLlamaModel(model *runtimev1.LocalAssetRecord, mode runtimev1.LocalEngineRuntimeMode) bool {
-	if model == nil {
-		return false
-	}
-	if !strings.EqualFold(
-		managedRuntimeEngineForModel(model),
-		"llama",
-	) {
-		return false
-	}
-	if strings.ToLower(filepath.Ext(strings.TrimSpace(model.GetEntry()))) != ".gguf" {
-		return false
-	}
-	return normalizeRuntimeMode(mode) == runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED
-}
-
-func isManagedSupervisedImageModel(model *runtimev1.LocalAssetRecord, mode runtimev1.LocalEngineRuntimeMode) bool {
-	if model == nil {
-		return false
-	}
-	if !isCanonicalSupervisedImageAsset(
-		model.GetEngine(),
-		model.GetCapabilities(),
-		model.GetKind(),
-	) {
-		return false
-	}
-	entry := strings.TrimSpace(model.GetEntry())
-	ext := strings.ToLower(filepath.Ext(entry))
-	if ext != ".gguf" && ext != ".safetensors" && !strings.EqualFold(filepath.Base(entry), "model_index.json") {
-		return false
-	}
-	return normalizeRuntimeMode(mode) == runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED
-}
-
-func isManagedSupervisedSpeechModel(model *runtimev1.LocalAssetRecord, mode runtimev1.LocalEngineRuntimeMode) bool {
-	if model == nil {
-		return false
-	}
-	if !strings.EqualFold(
-		managedRuntimeEngineForModel(model),
-		"speech",
-	) {
-		return false
-	}
-	return normalizeRuntimeMode(mode) == runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED
-}
-
-func validateManagedLocalAssetRecord(model *runtimev1.LocalAssetRecord, mode runtimev1.LocalEngineRuntimeMode) error {
-	if model == nil {
-		return fmt.Errorf("managed local model is unavailable")
-	}
-	if !isManagedSupervisedLlamaModel(model, mode) &&
-		!isManagedSupervisedImageModel(model, mode) &&
-		!isManagedSupervisedSpeechModel(model, mode) {
-		return nil
-	}
-	repo := strings.TrimSpace(model.GetSource().GetRepo())
-	if !strings.HasPrefix(strings.ToLower(repo), "file://") ||
-		!strings.HasSuffix(strings.ToLower(repo), "/asset.manifest.json") {
-		return fmt.Errorf("managed local asset source repo must point to file://.../asset.manifest.json")
-	}
-	return nil
-}
-
-func (s *Service) HasManagedSupervisedLlamaModels() bool {
+	cacheKey := filepath.Clean(strings.TrimSpace(path))
+	generation := strings.TrimSpace(generationDigest)
+	modTimeUnixNano := info.ModTime().UnixNano()
+	size := info.Size()
 	s.mu.RLock()
-	defer s.mu.RUnlock()
-	profile := collectDeviceProfile()
-	for _, model := range s.assets {
-		if model == nil || model.GetStatus() == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_REMOVED {
-			continue
-		}
-		if isManagedSupervisedLlamaModel(model, runtimeModeForAsset(model, profile)) {
-			return true
-		}
+	hasher := s.entryFileSHA256
+	s.mu.RUnlock()
+	if hasher == nil {
+		hasher = computeFileSHA256
 	}
-	return false
-}
-
-func (s *Service) HasManagedSupervisedImageModels() bool {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	profile := collectDeviceProfile()
-	for _, model := range s.assets {
-		if model == nil || model.GetStatus() == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_REMOVED {
-			continue
-		}
-		if isManagedSupervisedImageModel(model, runtimeModeForAsset(model, profile)) {
-			return true
-		}
+	sum, err := hasher(cacheKey)
+	if err != nil {
+		return "", err
 	}
-	return false
-}
-
-func (s *Service) ensureManagedLocalModelBundleReady(_ context.Context, model *runtimev1.LocalAssetRecord) (string, bool, error) {
-	if model == nil {
-		return "", false, fmt.Errorf("managed local model is unavailable")
+	verifiedInfo, err := os.Stat(cacheKey)
+	if err != nil {
+		return "", err
 	}
-	localModelID := strings.TrimSpace(model.GetLocalAssetId())
-	if localModelID == "" {
-		return "", false, fmt.Errorf("managed local model is unavailable")
-	}
-	if err := validateManagedLocalAssetRecord(model, s.modelRuntimeMode(localModelID)); err != nil {
-		return "", false, err
-	}
-	mode := s.modelRuntimeMode(model.GetLocalAssetId())
-	if normalizeRuntimeMode(mode) != runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED {
-		return "", false, nil
-	}
-	shouldValidateManagedSpeechBundle := isManagedSupervisedSpeechModel(model, mode)
-	if !shouldValidateManagedSpeechBundle && strings.ToLower(filepath.Ext(strings.TrimSpace(model.GetEntry()))) != ".gguf" {
-		return "", false, nil
-	}
-
-	modelsRoot := s.resolvedLocalModelsPath()
-	entryPath, err := resolveManagedModelEntryAbsolutePath(modelsRoot, model)
-	if err == nil {
-		if validateErr := s.validateManagedModelEntryForModel(entryPath, model); validateErr == nil {
-			if shouldValidateManagedSpeechBundle {
-				if validateErr := validateManagedSpeechBundleFiles(modelsRoot, model); validateErr != nil {
-					err = validateErr
-				} else {
-					return entryPath, false, nil
-				}
-			} else {
-				return entryPath, false, nil
-			}
-		} else {
-			err = validateErr
-		}
-	}
-
-	// Hard-cut: no desktop-repair fallback. Fail-close if entry is missing.
-	{
-		entryPath, resolveErr := resolveManagedModelEntryAbsolutePath(modelsRoot, model)
-		if resolveErr != nil {
-			return "", false, fmt.Errorf("managed local model entry missing: %w", err)
-		}
-		if validateErr := s.validateManagedModelEntryForModel(entryPath, model); validateErr != nil {
-			return "", true, fmt.Errorf("validate repaired managed local model entry: %w", validateErr)
-		}
-		if shouldValidateManagedSpeechBundle {
-			if validateErr := validateManagedSpeechBundleFiles(modelsRoot, model); validateErr != nil {
-				return "", true, fmt.Errorf("validate repaired managed speech bundle: %w", validateErr)
-			}
-		}
-		return entryPath, true, nil
-	}
-}
-
-func (s *Service) rewriteManagedLocalAssetSourceRepo(localModelID string, manifestPath string) {
-	id := strings.TrimSpace(localModelID)
-	manifest := strings.TrimSpace(manifestPath)
-	if id == "" || manifest == "" {
-		return
+	if verifiedInfo.Size() != size || verifiedInfo.ModTime().UnixNano() != modTimeUnixNano || verifiedInfo.Mode() != info.Mode() {
+		return "", fmt.Errorf("file changed during sha256 verification: %s", cacheKey)
 	}
 	s.mu.Lock()
-	defer s.mu.Unlock()
-	record := s.assets[id]
-	if record == nil {
-		return
+	s.entryHashCache[cacheKey] = entryHashCacheState{
+		size:             size,
+		modTimeUnixNano:  modTimeUnixNano,
+		generationDigest: generation,
+		sha256:           sum,
 	}
-	cloned := cloneLocalAsset(record)
-	if cloned.Source == nil {
-		cloned.Source = &runtimev1.LocalAssetSource{}
-	}
-	cloned.Source.Repo = "file://" + filepath.ToSlash(manifest)
-	if strings.TrimSpace(cloned.Source.GetRevision()) == "" {
-		cloned.Source.Revision = "local"
-	}
-	cloned.UpdatedAt = nowISO()
-	s.assets[id] = cloned
-	s.persistStateLocked()
+	s.mu.Unlock()
+	return sum, nil
 }

@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"net"
 	"os"
 	"path/filepath"
@@ -219,11 +218,6 @@ func TestRunRuntimeDoctorJSON(t *testing.T) {
 				{ProviderName: "openai", State: "healthy", Reason: "configured"},
 			},
 		},
-		listResponse: &runtimev1.ListModelsResponse{
-			Models: []*runtimev1.ModelDescriptor{
-				{ModelId: "local/qwen2.5", Status: runtimev1.ModelStatus_MODEL_STATUS_INSTALLED},
-			},
-		},
 	}
 	addr, shutdown := startCmdTestOnboardingServer(t, service)
 	defer shutdown()
@@ -323,17 +317,6 @@ func TestRunRuntimeDoctorPlainTextShowsNextStepWhenRuntimeUnavailable(t *testing
 
 func TestRunTopLevelRunStreamsUsingCallerAIConfig(t *testing.T) {
 	service := &cmdTestOnboardingService{
-		listResponse: &runtimev1.ListModelsResponse{},
-		healthResponse: &runtimev1.CheckModelHealthResponse{
-			Healthy:    false,
-			ReasonCode: runtimev1.ReasonCode_AI_MODEL_NOT_FOUND,
-			ActionHint: "pull model",
-		},
-		pullResponse: &runtimev1.PullModelResponse{
-			TaskId:     "pull-1",
-			Accepted:   true,
-			ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED,
-		},
 		streamEvents: []*runtimev1.StreamScenarioEvent{
 			{
 				EventType: runtimev1.StreamEventType_STREAM_EVENT_STARTED,
@@ -432,7 +415,6 @@ func startCmdTestOnboardingServer(t *testing.T, service *cmdTestOnboardingServic
 		t.Fatalf("listen: %v", err)
 	}
 	server := grpc.NewServer()
-	runtimev1.RegisterRuntimeModelServiceServer(server, service)
 	runtimev1.RegisterRuntimeAiServiceServer(server, service)
 	runtimev1.RegisterRuntimeAuditServiceServer(server, service)
 	go func() {
@@ -445,53 +427,18 @@ func startCmdTestOnboardingServer(t *testing.T, service *cmdTestOnboardingServic
 }
 
 type cmdTestOnboardingService struct {
-	runtimev1.UnimplementedRuntimeModelServiceServer
 	runtimev1.UnimplementedRuntimeAiServiceServer
 	runtimev1.UnimplementedRuntimeAuditServiceServer
 
 	mu sync.Mutex
 
-	pullReq   *runtimev1.PullModelRequest
-	healthReq *runtimev1.CheckModelHealthRequest
 	streamReq *runtimev1.StreamScenarioRequest
 
-	listResponse           *runtimev1.ListModelsResponse
-	pullResponse           *runtimev1.PullModelResponse
-	healthResponse         *runtimev1.CheckModelHealthResponse
 	streamEvents           []*runtimev1.StreamScenarioEvent
 	runtimeHealthResponse  *runtimev1.GetRuntimeHealthResponse
 	providerHealthResponse *runtimev1.ListAIProviderHealthResponse
 
 	streamMD metadata.MD
-}
-
-func (s *cmdTestOnboardingService) ListModels(context.Context, *runtimev1.ListModelsRequest) (*runtimev1.ListModelsResponse, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if s.listResponse != nil {
-		return s.listResponse, nil
-	}
-	return &runtimev1.ListModelsResponse{}, nil
-}
-
-func (s *cmdTestOnboardingService) PullModel(ctx context.Context, req *runtimev1.PullModelRequest) (*runtimev1.PullModelResponse, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.pullReq = clonePullModelRequest(req)
-	if s.pullResponse != nil {
-		return s.pullResponse, nil
-	}
-	return nil, errors.New("pull response not configured")
-}
-
-func (s *cmdTestOnboardingService) CheckModelHealth(ctx context.Context, req *runtimev1.CheckModelHealthRequest) (*runtimev1.CheckModelHealthResponse, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.healthReq = cloneCheckModelHealthRequest(req)
-	if s.healthResponse != nil {
-		return s.healthResponse, nil
-	}
-	return &runtimev1.CheckModelHealthResponse{Healthy: true}, nil
 }
 
 func (s *cmdTestOnboardingService) StreamScenario(req *runtimev1.StreamScenarioRequest, stream grpc.ServerStreamingServer[runtimev1.StreamScenarioEvent]) error {
@@ -530,15 +477,6 @@ func (s *cmdTestOnboardingService) ListAIProviderHealth(context.Context, *runtim
 	return &runtimev1.ListAIProviderHealthResponse{}, nil
 }
 
-func (s *cmdTestOnboardingService) lastPullRequest() *runtimev1.PullModelRequest {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if s.pullReq == nil {
-		return &runtimev1.PullModelRequest{}
-	}
-	return s.pullReq
-}
-
 func (s *cmdTestOnboardingService) lastStreamRequest() *runtimev1.StreamScenarioRequest {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -552,28 +490,6 @@ func (s *cmdTestOnboardingService) lastStreamMetadata() metadata.MD {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return s.streamMD.Copy()
-}
-
-func clonePullModelRequest(input *runtimev1.PullModelRequest) *runtimev1.PullModelRequest {
-	if input == nil {
-		return nil
-	}
-	cloned, ok := proto.Clone(input).(*runtimev1.PullModelRequest)
-	if !ok {
-		return nil
-	}
-	return cloned
-}
-
-func cloneCheckModelHealthRequest(input *runtimev1.CheckModelHealthRequest) *runtimev1.CheckModelHealthRequest {
-	if input == nil {
-		return nil
-	}
-	cloned, ok := proto.Clone(input).(*runtimev1.CheckModelHealthRequest)
-	if !ok {
-		return nil
-	}
-	return cloned
 }
 
 func cloneStreamScenarioRequest(input *runtimev1.StreamScenarioRequest) *runtimev1.StreamScenarioRequest {

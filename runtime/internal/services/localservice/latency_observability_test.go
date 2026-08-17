@@ -14,8 +14,8 @@ func TestLocalServiceObservationsAreHiddenAtInfoLevel(t *testing.T) {
 		logger: slog.New(slog.NewTextHandler(&logs, &slog.HandlerOptions{Level: slog.LevelInfo})),
 	}
 
-	svc.observeCounter("runtime_local_assets_health_probe_total", 1, "local_asset_id", "asset-info")
-	svc.observeLatency("runtime.local_assets.health_probe_ms", time.Now().Add(-time.Millisecond), "local_asset_id", "asset-info")
+	svc.observeCounter("runtime_model_assets_integrity_check_total", 1, "model_asset_id", "asset-info")
+	svc.observeLatency("runtime.model_assets.integrity_check_ms", time.Now().Add(-time.Millisecond), "model_asset_id", "asset-info")
 
 	output := logs.String()
 	if strings.Contains(output, "runtime counter observation") {
@@ -32,16 +32,16 @@ func TestLocalServiceObservationsAreVisibleAtDebugLevel(t *testing.T) {
 		logger: slog.New(slog.NewTextHandler(&logs, &slog.HandlerOptions{Level: slog.LevelDebug})),
 	}
 
-	svc.observeCounter("runtime_local_assets_health_probe_total", 1, "local_asset_id", "asset-debug")
-	svc.observeLatency("runtime.local_assets.health_probe_ms", time.Now().Add(-time.Millisecond), "local_asset_id", "asset-debug")
+	svc.observeCounter("runtime_model_assets_integrity_check_total", 1, "model_asset_id", "asset-debug")
+	svc.observeLatency("runtime.model_assets.integrity_check_ms", time.Now().Add(-time.Millisecond), "model_asset_id", "asset-debug")
 
 	output := logs.String()
 	for _, expected := range []string{
 		"runtime counter observation",
 		"runtime latency observation",
-		"runtime_local_assets_health_probe_total",
-		"runtime.local_assets.health_probe_ms",
-		"local_asset_id=asset-debug",
+		"runtime_model_assets_integrity_check_total",
+		"runtime.model_assets.integrity_check_ms",
+		"model_asset_id=asset-debug",
 	} {
 		if !strings.Contains(output, expected) {
 			t.Fatalf("debug logger must include %q, got logs:\n%s", expected, output)

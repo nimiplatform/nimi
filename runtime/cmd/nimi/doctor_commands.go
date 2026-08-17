@@ -10,7 +10,6 @@ import (
 	"strings"
 	"time"
 
-	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/config"
 	"github.com/nimiplatform/nimi/runtime/internal/daemonctl"
 	"github.com/nimiplatform/nimi/runtime/internal/entrypoint"
@@ -96,20 +95,6 @@ func runRuntimeDoctor(args []string) error {
 			items = append(items, doctorItem{Name: "local engine", Value: "local", Status: localStatus, Detail: strings.TrimSpace(localState + " " + localDetail)})
 		}
 
-		if modelsResp, err := entrypoint.ListModelsGRPC(grpcAddr, 3*time.Second, onboardingAppID); err == nil {
-			installed := len(modelsResp.GetModels())
-			ready := 0
-			for _, model := range modelsResp.GetModels() {
-				if model.GetStatus() == runtimev1.ModelStatus_MODEL_STATUS_INSTALLED {
-					ready += 1
-				}
-			}
-			items = append(items, doctorItem{
-				Name:   "models",
-				Value:  fmt.Sprintf("%d installed (%d ready)", installed, ready),
-				Status: "ok",
-			})
-		}
 	}
 
 	if statusErr == nil && runtimeStatus.Process == "running" {

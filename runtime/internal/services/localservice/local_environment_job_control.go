@@ -155,21 +155,7 @@ func (s *Service) ApplyLocalEnvironmentPlan(ctx context.Context, req *runtimev1.
 }
 
 func (s *Service) resolveLocalEnvironmentPlanForApply(req *runtimev1.ResolveLocalEnvironmentPlanRequest) (localEnvironmentPlan, error) {
-	runtimeDataRoot, err := s.requireCanonicalLocalEnvironmentDataRoot(req.GetRuntimeDataRoot())
-	if err != nil {
-		return localEnvironmentPlan{}, err
-	}
-	return s.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
-		PackID:           req.GetPackId(),
-		ConsumerScope:    req.GetConsumerScope(),
-		HostProfile:      req.GetHostProfile(),
-		RuntimeDataRoot:  runtimeDataRoot,
-		AssetID:          req.GetAssetId(),
-		LocalAssetID:     req.GetLocalAssetId(),
-		CompanionAssetID: req.GetCompanionAssetId(),
-		ParentAssetID:    req.GetParentAssetId(),
-		InstallLevel:     req.GetInstallLevel(),
-	}), nil
+	return s.resolveLocalEnvironmentPlanResolution(req)
 }
 
 func localEnvironmentPlanHasCompleteConfirmation(plan localEnvironmentPlan) bool {
@@ -234,13 +220,16 @@ func (s *Service) prepareLocalEnvironmentPlanApplyActions(plan localEnvironmentP
 		case localEnvironmentStateFailed, localEnvironmentStateCancelled:
 			if hasJob &&
 				strings.TrimSpace(job.State) == localEnvironmentStateFailed &&
-				dep.DependencyFamily == localEnvironmentFamilyModelAsset &&
-				s.localEnvironmentInstalledModelAssetReady(dep.DependencyID) {
-				if err := s.validateLocalEnvironmentPlanStartDependency(dep); err != nil {
-					return nil, err
+				dep.DependencyFamily == localEnvironmentFamilyNativeSDCPP &&
+				strings.TrimSpace(job.SelectedSourceRecordID) == "" &&
+				localEnvironmentCUDAConsumerScopeRequiresRuntime(dep.ConsumerScope) {
+				if _, ready, _ := s.readySelectedSourceForFamilyAndConsumer(localEnvironmentFamilyCUDA, dep.ConsumerScope); ready {
+					if err := s.validateLocalEnvironmentPlanStartDependency(dep); err != nil {
+						return nil, err
+					}
+					actions = append(actions, localEnvironmentPlanApplyAction{Kind: localEnvironmentPlanApplyStart, Dependency: dep})
+					continue
 				}
-				actions = append(actions, localEnvironmentPlanApplyAction{Kind: localEnvironmentPlanApplyStart, Dependency: dep})
-				continue
 			}
 			if hasJob &&
 				strings.TrimSpace(job.State) == localEnvironmentStateFailed &&
@@ -314,9 +303,7 @@ func localEnvironmentDependencyFamilyHasMaterializer(family string) bool {
 		localEnvironmentFamilyPythonRuntime,
 		localEnvironmentFamilyPythonVenv,
 		localEnvironmentFamilyPythonPackageSet,
-		localEnvironmentFamilyPythonTorchWheel,
-		localEnvironmentFamilyModelAsset,
-		localEnvironmentFamilyModelCompanion:
+		localEnvironmentFamilyPythonTorchWheel:
 		return true
 	default:
 		return false
@@ -489,10 +476,6 @@ func (s *Service) localEnvironmentDependencyJobExecutor(family string) localEnvi
 		return s.executePythonPackageSetEnvironmentDependencyJob
 	case localEnvironmentFamilyPythonTorchWheel:
 		return s.executePythonTorchWheelEnvironmentDependencyJob
-	case localEnvironmentFamilyModelAsset:
-		return s.executeModelAssetEnvironmentDependencyJob
-	case localEnvironmentFamilyModelCompanion:
-		return s.executeModelCompanionEnvironmentDependencyJob
 	default:
 		return func(context.Context, localEnvironmentDependencyJobState, localEnvironmentDependencyJobProgressReporter) (localEnvironmentDependencyJobResult, error) {
 			return localEnvironmentDependencyJobResult{}, errors.New("no admitted Runtime materializer for dependency family " + strings.TrimSpace(family))

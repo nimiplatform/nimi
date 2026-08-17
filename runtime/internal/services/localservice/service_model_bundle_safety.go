@@ -1,6 +1,8 @@
 package localservice
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -23,6 +25,29 @@ func prepareManagedModelBundleStageDir(destDir string, purpose string) (string, 
 	stageDir := managedModelBundleWorkDir(destDir, purpose)
 	if err := os.MkdirAll(stageDir, 0o755); err != nil {
 		return "", fmt.Errorf("create managed model stage dir: %w", err)
+	}
+	return stageDir, nil
+}
+
+func managedModelAcquisitionStorageID(modelID string, transferID string) string {
+	return slugifyLocalModelID(modelID) + "-" + strings.ToLower(strings.TrimSpace(transferID))
+}
+
+// @nimi-authority: rule.nimi.runtime.local-compute.r029
+// managedModelDownloadStageDir is stable for one transfer so explicit resume
+// reuses only that acquisition's valid prefix. Separate acquisitions of the
+// same content never share staging or resolved-directory custody.
+func managedModelDownloadStageDir(modelsRoot string, modelID string) string {
+	normalizedID := strings.TrimSpace(modelID)
+	digest := sha256.Sum256([]byte(normalizedID))
+	identity := fmt.Sprintf("%s-%s", slugifyLocalModelID(normalizedID), hex.EncodeToString(digest[:8]))
+	return filepath.Join(modelsRoot, "staging", "downloads", identity)
+}
+
+func prepareManagedModelDownloadStageDir(modelsRoot string, modelID string) (string, error) {
+	stageDir := managedModelDownloadStageDir(modelsRoot, modelID)
+	if err := os.MkdirAll(stageDir, 0o755); err != nil {
+		return "", fmt.Errorf("create managed model download stage dir: %w", err)
 	}
 	return stageDir, nil
 }
@@ -121,7 +146,6 @@ func (activation *managedModelBundleActivation) Rollback(
 	operation string,
 	reason string,
 	modelID string,
-	localModelID string,
 ) (string, error) {
 	if activation == nil {
 		return "", nil
@@ -139,7 +163,6 @@ func (activation *managedModelBundleActivation) Rollback(
 			operation,
 			reason,
 			modelID,
-			localModelID,
 		)
 		quarantinePath = path
 		if quarantineErr != nil {
@@ -166,7 +189,6 @@ func (s *Service) quarantineManagedModelBundle(
 	operation string,
 	reason string,
 	modelID string,
-	localModelID string,
 ) (string, error) {
 	exists, err := dirExists(sourceDir)
 	if err != nil {
@@ -199,7 +221,6 @@ func (s *Service) quarantineManagedModelBundle(
 		"quarantined_at":   nowISO(),
 		"logical_model_id": strings.TrimSpace(logicalModelID),
 		"model_id":         strings.TrimSpace(modelID),
-		"local_model_id":   strings.TrimSpace(localModelID),
 		"original_path":    filepath.Clean(sourceDir),
 		"quarantine_path":  filepath.Clean(quarantineDir),
 		"operation":        strings.TrimSpace(operation),
@@ -212,14 +233,13 @@ func (s *Service) quarantineManagedModelBundle(
 
 	s.mu.Lock()
 	s.appendRuntimeAuditLocked(&runtimev1.LocalAuditEvent{
-		Id:           "audit_" + ulid.Make().String(),
-		EventType:    "runtime_model_bundle_quarantined",
-		OccurredAt:   nowISO(),
-		Source:       "local",
-		ReasonCode:   "LOCAL_MODEL_BUNDLE_QUARANTINED",
-		ModelId:      strings.TrimSpace(modelID),
-		LocalModelId: strings.TrimSpace(localModelID),
-		Detail:       fmt.Sprintf("managed model bundle quarantined after %s failure", defaultString(strings.TrimSpace(operation), "runtime")),
+		Id:         "audit_" + ulid.Make().String(),
+		EventType:  "runtime_model_bundle_quarantined",
+		OccurredAt: nowISO(),
+		Source:     "local",
+		ReasonCode: "LOCAL_MODEL_BUNDLE_QUARANTINED",
+		ModelId:    strings.TrimSpace(modelID),
+		Detail:     fmt.Sprintf("managed model bundle quarantined after %s failure", defaultString(strings.TrimSpace(operation), "runtime")),
 		Payload: toStruct(map[string]any{
 			"logicalModelId": strings.TrimSpace(logicalModelID),
 			"originalPath":   filepath.Clean(sourceDir),
@@ -265,7 +285,6 @@ func (s *Service) rollbackManagedModelStageBeforeActivation(
 		operation,
 		reason,
 		modelID,
-		"",
 	)
 	if quarantineErr != nil {
 		errs = append(errs, quarantineErr)

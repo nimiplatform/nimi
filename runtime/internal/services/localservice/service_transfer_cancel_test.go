@@ -5,7 +5,6 @@ import (
 	"errors"
 	"io"
 	"log/slog"
-	"os"
 	"path/filepath"
 	"testing"
 
@@ -105,6 +104,34 @@ func TestCancelLocalTransferTripsImportControl(t *testing.T) {
 	}
 }
 
+func TestPauseAndResumeLocalTransferControlsImport(t *testing.T) {
+	svc := newTestService(t)
+	transfer := svc.newLocalTransfer(localTransferKindImport, localTransferMutation{
+		ModelID: "model_pause_resume",
+		Phase:   "hashing",
+		State:   localTransferStateRunning,
+	})
+	sessionID := transfer.GetInstallSessionId()
+	paused, err := svc.PauseLocalTransfer(context.Background(), &runtimev1.PauseLocalTransferRequest{InstallSessionId: sessionID})
+	if err != nil || paused.GetTransfer().GetState() != localTransferStatePaused {
+		t.Fatalf("pause import = %+v err=%v", paused, err)
+	}
+	waited := make(chan error, 1)
+	go func() { waited <- svc.transferControl(sessionID).wait(context.Background()) }()
+	select {
+	case err := <-waited:
+		t.Fatalf("paused import control returned early: %v", err)
+	default:
+	}
+	resumed, err := svc.ResumeLocalTransfer(context.Background(), &runtimev1.ResumeLocalTransferRequest{InstallSessionId: sessionID})
+	if err != nil || resumed.GetTransfer().GetState() != localTransferStateRunning {
+		t.Fatalf("resume import = %+v err=%v", resumed, err)
+	}
+	if err := <-waited; err != nil {
+		t.Fatalf("resumed import control = %v", err)
+	}
+}
+
 // Late progress samples and a trailing completion from an in-flight worker
 // must never resurrect a session that already settled.
 func TestTerminalTransferStateIsNotResurrected(t *testing.T) {
@@ -125,64 +152,5 @@ func TestTerminalTransferStateIsNotResurrected(t *testing.T) {
 	svc.completeTransfer(sessionID, "register", "local model imported", nil)
 	if summary := svc.localTransferSummary(sessionID); summary.GetState() != localTransferStateCancelled {
 		t.Fatalf("state after late completion = %q, want cancelled", summary.GetState())
-	}
-}
-
-// A file import whose context is already done must abort before staging,
-// settle the session as cancelled, and leave the source file untouched.
-func TestImportLocalModelFileAbortsOnCancelledContext(t *testing.T) {
-	svc := newTestService(t)
-	sourceDir := t.TempDir()
-	sourcePath := filepath.Join(sourceDir, "Qwen3-4B-Q4_K_M.gguf")
-	if err := os.WriteFile(sourcePath, validTestGGUF(), 0o644); err != nil {
-		t.Fatalf("write source model: %v", err)
-	}
-
-	ctx, cancel := context.WithCancel(context.Background())
-	cancel()
-	_, err := svc.ImportLocalAssetFile(ctx, &runtimev1.ImportLocalAssetFileRequest{
-		FilePath:     sourcePath,
-		Capabilities: []string{"text.generate"},
-		Engine:       "llama",
-	})
-	if err == nil {
-		t.Fatal("expected import to abort on a cancelled context")
-	}
-	transfers, listErr := svc.ListLocalTransfers(context.Background(), &runtimev1.ListLocalTransfersRequest{})
-	if listErr != nil {
-		t.Fatalf("ListLocalTransfers: %v", listErr)
-	}
-	if len(transfers.GetTransfers()) != 1 {
-		t.Fatalf("transfers = %d, want 1", len(transfers.GetTransfers()))
-	}
-	transfer := transfers.GetTransfers()[0]
-	if transfer.GetState() != localTransferStateCancelled {
-		t.Fatalf("transfer state = %q, want cancelled", transfer.GetState())
-	}
-	if transfer.GetReasonCode() != "LOCAL_TRANSFER_CANCELLED" {
-		t.Fatalf("transfer reason = %q, want LOCAL_TRANSFER_CANCELLED", transfer.GetReasonCode())
-	}
-	if _, statErr := os.Stat(sourcePath); statErr != nil {
-		t.Fatalf("source file must survive an aborted import: %v", statErr)
-	}
-	if entries, globErr := filepath.Glob(filepath.Join(resolveLocalModelsPath(svc.localModelsPath), "resolved", "nimi", "*")); globErr != nil || len(entries) != 0 {
-		t.Fatalf("aborted import must not leave a managed bundle behind: entries=%v err=%v", entries, globErr)
-	}
-}
-
-// A progress callback error must abort the staged copy instead of silently
-// copying the whole file.
-func TestCopyFileWithProgressAbortsOnProgressError(t *testing.T) {
-	dir := t.TempDir()
-	sourcePath := filepath.Join(dir, "source.gguf")
-	if err := os.WriteFile(sourcePath, []byte("0123456789"), 0o644); err != nil {
-		t.Fatalf("write source: %v", err)
-	}
-	destPath := filepath.Join(dir, "dest.gguf")
-	err := copyFileWithProgress(sourcePath, destPath, 0o644, func(int64) error {
-		return errLocalTransferCancelled
-	})
-	if !errors.Is(err, errLocalTransferCancelled) {
-		t.Fatalf("copy error = %v, want errLocalTransferCancelled", err)
 	}
 }

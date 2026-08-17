@@ -1,88 +1,37 @@
 package localservice
 
 import (
-	"context"
 	"os"
 	"path/filepath"
-	"sort"
 	"testing"
 
-	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/engine"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
-func runtimeManagedResolvedModelDir(modelsRoot string, logicalModelID string) string {
-	dir, err := resolveRuntimeManagedModelBundleDir(modelsRoot, logicalModelID)
-	if err != nil {
-		panic(err)
-	}
-	return dir
-}
-
-func runtimeManagedAssetManifestPath(modelsRoot string, logicalModelID string) string {
-	return filepath.Join(runtimeManagedResolvedModelDir(modelsRoot, logicalModelID), localAssetManifestFileName)
-}
-
-func runtimeManagedBundleDir(modelsRoot string, asset *runtimev1.LocalAssetRecord) string {
-	dir, err := resolveRuntimeManagedBundleDir(modelsRoot, asset)
-	if err != nil {
-		panic(err)
-	}
-	return dir
-}
-
-func mustInstallAttachedLocalModel(t *testing.T, svc *Service, req installLocalAssetParams) *runtimev1.LocalAssetRecord {
+func newLoadoutTestService(t *testing.T, root string) *Service {
 	t.Helper()
-	capabilities := normalizeStringSlice(req.capabilities)
-	engine := defaultLocalEngine(req.engine, capabilities)
-	endpoint := req.endpoint
-	if endpoint == "" {
-		endpoint = managedDefaultEndpointForEngine(engine)
-	}
-	record, err := svc.installLocalAsset(context.Background(), installLocalAssetParams{
-		assetID:      req.assetID,
-		repo:         req.repo,
-		revision:     req.revision,
-		capabilities: capabilities,
-		engine:       engine,
-		entry:        req.entry,
-		files:        append([]string(nil), req.files...),
-		license:      req.license,
-		hashes:       cloneStringMap(req.hashes),
-		endpoint:     endpoint,
-		engineConfig: cloneStruct(req.engineConfig),
-	})
-	if err != nil {
-		t.Fatalf("install local model: %v", err)
-	}
-	return record
+	service := newLoadoutTestServiceWithoutCleanup(t, root)
+	t.Cleanup(service.Close)
+	return service
 }
 
-func mustInstallSupervisedLocalModel(t *testing.T, svc *Service, req installLocalAssetParams) *runtimev1.LocalAssetRecord {
+func newLoadoutTestServiceWithoutCleanup(t *testing.T, root string) *Service {
 	t.Helper()
-	capabilities := normalizeStringSlice(req.capabilities)
-	engine := defaultLocalEngine(req.engine, capabilities)
-	record, err := svc.installLocalAssetRecord(
-		req.assetID,
-		inferAssetKindFromCapabilities(capabilities),
-		capabilities,
-		engine,
-		defaultString(req.entry, "./dist/index.js"),
-		defaultString(req.license, "unknown"),
-		req.repo,
-		defaultString(req.revision, "main"),
-		req.hashes,
-		"",
-		req.engineConfig,
-		nil,
-		"runtime_model_ready_after_install",
-		"model installed",
-		localAssetExistingPolicyFail,
-	)
+	service, err := New(nil, nil, filepath.Join(root, "local-state.json"), 0, filepath.Join(root, "models"))
 	if err != nil {
-		t.Fatalf("install supervised local model: %v", err)
+		t.Fatalf("New local service: %v", err)
 	}
-	return record
+	return service
+}
+
+func mustStructForTest(t *testing.T, fields map[string]any) *structpb.Struct {
+	t.Helper()
+	value, err := structpb.NewStruct(fields)
+	if err != nil {
+		t.Fatalf("NewStruct: %v", err)
+	}
+	return value
 }
 
 func verifiedSelectedSourceRecordForTest(record localEnvironmentSelectedSourceRecordState) localEnvironmentSelectedSourceRecordState {
@@ -163,53 +112,4 @@ func writePythonDependencyProfileStaticFilesForTest(
 			t.Fatalf("restore dependency-profile static file read-only mode: %v", err)
 		}
 	}
-}
-
-func writeManagedBundleFilesForTest(t *testing.T, svc *Service, model *runtimev1.LocalAssetRecord, declaredFiles []string, files map[string][]byte) string {
-	t.Helper()
-	if model == nil {
-		t.Fatal("missing local asset")
-	}
-	modelsRoot := resolveLocalModelsPath(svc.localModelsPath)
-	bundleDir := runtimeManagedResolvedModelDir(modelsRoot, model.GetLogicalModelId())
-	if err := os.MkdirAll(bundleDir, 0o755); err != nil {
-		t.Fatalf("mkdir managed bundle dir: %v", err)
-	}
-	for relativePath, content := range files {
-		targetPath := filepath.Join(bundleDir, filepath.FromSlash(relativePath))
-		if err := os.MkdirAll(filepath.Dir(targetPath), 0o755); err != nil {
-			t.Fatalf("mkdir managed bundle file dir: %v", err)
-		}
-		if err := os.WriteFile(targetPath, content, 0o644); err != nil {
-			t.Fatalf("write managed bundle file %q: %v", relativePath, err)
-		}
-	}
-	normalizedDeclaredFiles := normalizeStringSlice(declaredFiles)
-	if len(normalizedDeclaredFiles) == 0 {
-		normalizedDeclaredFiles = make([]string, 0, len(files))
-		for relativePath := range files {
-			normalizedDeclaredFiles = append(normalizedDeclaredFiles, relativePath)
-		}
-	}
-	sort.Strings(normalizedDeclaredFiles)
-	manifestPath := runtimeManagedAssetManifestPath(modelsRoot, model.GetLogicalModelId())
-	if err := writeModelManifest(manifestPath, managedModelManifestDescriptor{
-		assetID:        model.GetAssetId(),
-		kind:           model.GetKind(),
-		logicalModelID: model.GetLogicalModelId(),
-		capabilities:   append([]string(nil), model.GetCapabilities()...),
-		engine:         model.GetEngine(),
-		entry:          model.GetEntry(),
-		files:          normalizedDeclaredFiles,
-		license:        model.GetLicense(),
-		repo:           defaultString(model.GetSource().GetRepo(), "test/managed-bundle"),
-		revision:       defaultString(model.GetSource().GetRevision(), "main"),
-		hashes:         cloneStringMap(model.GetHashes()),
-		engineConfig:   cloneStruct(model.GetEngineConfig()),
-		integrityMode:  "test",
-	}); err != nil {
-		t.Fatalf("write managed bundle manifest: %v", err)
-	}
-	svc.rewriteManagedLocalAssetSourceRepo(model.GetLocalAssetId(), manifestPath)
-	return bundleDir
 }

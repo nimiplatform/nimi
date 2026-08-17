@@ -300,12 +300,12 @@ func rejectRemovedModelCatalogRemoteEnv() error {
 
 func rejectLegacyLocalRuntimeEnv() error {
 	legacyMessages := map[string]string{
-		"NIMI_RUNTIME_DEFAULT_LOCAL_TEXT_MODEL":                 "local execution is selected by AIConfig intent and Machine Local Capability Configuration",
+		"NIMI_RUNTIME_DEFAULT_LOCAL_TEXT_MODEL":                 "local execution is selected by AIConfig intent and the machine-selected Loadout",
 		"NIMI_RUNTIME_DEFAULT_CLOUD_PROVIDER":                   "cloud execution is selected by caller-owned AIConfig intent",
-		"NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL":                     "ambient llama endpoints are retired; use a selected Local Capability Configuration",
-		"NIMI_RUNTIME_LOCAL_LLAMA_API_KEY":                      "ambient llama endpoints are retired; use a selected Local Capability Configuration",
-		"NIMI_RUNTIME_LOCAL_AI_BASE_URL":                        "ambient local AI endpoints are retired; use a selected Local Capability Configuration",
-		"NIMI_RUNTIME_LOCAL_AI_API_KEY":                         "ambient local AI endpoints are retired; use a selected Local Capability Configuration",
+		"NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL":                     "ambient llama endpoints are retired; use a selected Loadout",
+		"NIMI_RUNTIME_LOCAL_LLAMA_API_KEY":                      "ambient llama endpoints are retired; use a selected Loadout",
+		"NIMI_RUNTIME_LOCAL_AI_BASE_URL":                        "ambient local AI endpoints are retired; use a selected Loadout",
+		"NIMI_RUNTIME_LOCAL_AI_API_KEY":                         "ambient local AI endpoints are retired; use a selected Loadout",
 		"NIMI_RUNTIME_LOCAL_NEXA_BASE_URL":                      "Nexa support was removed; clear this variable and migrate to llama and media providers",
 		"NIMI_RUNTIME_LOCAL_NEXA_API_KEY":                       "Nexa support was removed; clear this variable and migrate to llama and media providers",
 		"NIMI_RUNTIME_LOCAL_NIMI_MEDIA_BASE_URL":                "use NIMI_RUNTIME_LOCAL_MEDIA_BASE_URL instead",

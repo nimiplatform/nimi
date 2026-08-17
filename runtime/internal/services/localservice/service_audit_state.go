@@ -81,7 +81,6 @@ func localAuditsFilterDigest(req *runtimev1.ListLocalAuditsRequest) string {
 		strings.Join(req.GetEventTypes(), ","),
 		strings.TrimSpace(req.GetSource()),
 		strings.TrimSpace(req.GetModality()),
-		strings.TrimSpace(req.GetLocalModelId()),
 		strings.TrimSpace(req.GetTargetId()),
 		strings.TrimSpace(req.GetReasonCode()),
 		strings.TrimSpace(req.GetAppId()),
@@ -113,7 +112,6 @@ func (s *Service) AppendInferenceAudit(ctx context.Context, req *runtimev1.Appen
 		ReasonCode:    reasonCode,
 		Detail:        boundedLocalAuditField(req.GetDetail()),
 		ModelId:       boundedLocalAuditField(req.GetModel()),
-		LocalModelId:  boundedLocalAuditField(req.GetLocalModelId()),
 		Payload:       mergeInferencePayload(req),
 		TraceId:       boundedLocalAuditField(traceID),
 		AppId:         boundedLocalAuditField(appID),
@@ -155,7 +153,6 @@ func (s *Service) AppendRuntimeAudit(ctx context.Context, req *runtimev1.AppendR
 		ReasonCode:    reasonCode,
 		Detail:        "",
 		ModelId:       boundedLocalAuditField(req.GetModelId()),
-		LocalModelId:  boundedLocalAuditField(req.GetLocalModelId()),
 		Payload:       cloneStruct(req.GetPayload()),
 		TraceId:       boundedLocalAuditField(traceID),
 		AppId:         boundedLocalAuditField(appID),
@@ -242,9 +239,6 @@ func matchesLocalAuditFilter(event *runtimev1.LocalAuditEvent, req *runtimev1.Li
 		return false
 	}
 	if modality := strings.TrimSpace(req.GetModality()); modality != "" && event.GetModality() != modality {
-		return false
-	}
-	if localModelID := strings.TrimSpace(req.GetLocalModelId()); localModelID != "" && event.GetLocalModelId() != localModelID {
 		return false
 	}
 	if reasonCode := strings.TrimSpace(req.GetReasonCode()); reasonCode != "" && event.GetReasonCode() != reasonCode {

@@ -166,6 +166,34 @@ func executionRuntimeEngineForAsset(
 	}
 }
 
+func managedRuntimeEngineForSelection(selection engine.ImageSupervisedMatrixSelection) string {
+	if selection.Entry == nil || selection.ControlPlane == engine.ImageControlPlaneRuntime {
+		return ""
+	}
+	return strings.ToLower(strings.TrimSpace(string(selection.ExecutionPlane)))
+}
+
+func executionRuntimeEngineForSelection(selection engine.ImageSupervisedMatrixSelection) string {
+	if selection.Entry == nil {
+		return ""
+	}
+	return strings.ToLower(strings.TrimSpace(string(selection.ExecutionPlane)))
+}
+
+func requiresGPU(engineName string) bool {
+	normalized := strings.ToLower(strings.TrimSpace(engineName))
+	return normalized == "media" || normalized == "media.diffusers" || strings.Contains(normalized, "cuda") || strings.Contains(normalized, "nvidia") || strings.Contains(normalized, "gpu")
+}
+
+func requiresPython(engineName string) bool {
+	normalized := strings.ToLower(strings.TrimSpace(engineName))
+	return normalized == "media" || normalized == "media.diffusers" || strings.Contains(normalized, "python") || strings.Contains(normalized, "py")
+}
+
+func requiresNPU(engineName string) bool {
+	return strings.Contains(strings.ToLower(strings.TrimSpace(engineName)), "npu")
+}
+
 func classifyMediaHostSupport(profile *runtimev1.LocalDeviceProfile) (string, string) {
 	cudaReady, _ := probeGPUCUDAReady()
 	return classifyMediaHostSupportWithCUDA(profile, cudaReady)
@@ -184,15 +212,6 @@ func classifyMediaHostSupportWithCUDA(profile *runtimev1.LocalDeviceProfile, cud
 	default:
 		return localEngineSupportUnsupported, engine.MediaHostSupportDetail(profile.GetOs(), profile.GetArch(), profile.GetGpu().GetVendor(), cudaReady)
 	}
-}
-
-func managedEngineSupportWarnings(engineName string, profile *runtimev1.LocalDeviceProfile) []string {
-	return managedEngineSupportWarningsForAsset(
-		engineName,
-		nil,
-		runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED,
-		profile,
-	)
 }
 
 func managedEngineSupportWarningsForAsset(
@@ -216,11 +235,6 @@ func managedEngineSupportWarningsForAsset(
 		warnings = append(warnings, warnCUDARequired)
 	}
 	return warnings
-}
-
-func shouldManageMediaEndpoint(endpoint string) bool {
-	trimmed := strings.TrimSpace(endpoint)
-	return trimmed == "" || strings.EqualFold(trimmed, defaultMediaEndpoint)
 }
 
 func normalizeEndpointForComparison(endpoint string) string {

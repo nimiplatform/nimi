@@ -2,6 +2,7 @@ package localservice
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"strings"
 	"time"
@@ -122,13 +123,30 @@ func (s *Service) failTransfer(sessionID string, message string, retryable bool)
 	})
 }
 
-func (s *Service) cancelTransfer(sessionID string, message string) {
+func (s *Service) interruptTransfer(sessionID string, message string) {
 	_ = s.mutateLocalTransfer(sessionID, true, func(summary *runtimev1.LocalTransferSessionSummary) {
+		if isTerminalTransferState(summary.GetState()) {
+			return
+		}
+		summary.State = localTransferStatePaused
+		summary.Message = message
+		summary.ReasonCode = localTransferInterruptionReason
+		summary.Retryable = true
+		summary.SpeedBytesPerSec = 0
+		summary.EtaSeconds = 0
+	})
+}
+
+func (s *Service) cancelTransfer(sessionID string, message string) {
+	summary := s.mutateLocalTransfer(sessionID, true, func(summary *runtimev1.LocalTransferSessionSummary) {
 		summary.State = localTransferStateCancelled
 		summary.Message = message
 		summary.ReasonCode = "LOCAL_TRANSFER_CANCELLED"
 		summary.Retryable = false
 	})
+	if summary != nil && normalizeTransferKind(summary.GetSessionKind()) == localTransferKindDownload {
+		s.discardManagedModelDownloadStaging(summary.GetAssetId())
+	}
 }
 
 // downloadToFileWithTransfer downloads sourceURL to targetPath through the
@@ -153,29 +171,20 @@ func (s *Service) downloadToFileWithTransfer(
 	timeout time.Duration,
 ) (filedownload.Result, error) {
 	control := s.transferControl(sessionID)
-	// When this download runs inside a local-environment materializer job, the
-	// job context carries a per-job byte-progress sink (K-RPC-025 progress
-	// projection). updateTransferProgress already derives a bounded speed / ETA
-	// onto the transfer summary; reading it back after the update reuses that
-	// one rate computation rather than duplicating it. A context with no sink
-	// (the InstallVerifiedAsset RPC path) leaves behaviour unchanged.
-	jobProgressSink := localEnvironmentJobDownloadProgressSinkFromContext(ctx)
 	progress := func(bytesReceived, bytesTotal int64) {
 		s.updateTransferProgress(sessionID, phase, bytesReceived, bytesTotal, "")
-		if jobProgressSink == nil {
-			return
-		}
-		summary := s.localTransferSummary(sessionID)
-		jobProgressSink(localEnvironmentDependencyJobProgress{
-			BytesReceived:    bytesReceived,
-			BytesTotal:       bytesTotal,
-			SpeedBytesPerSec: summary.GetSpeedBytesPerSec(),
-			EtaSeconds:       summary.GetEtaSeconds(),
-		})
 	}
 	var wait filedownload.WaitFunc
 	if control != nil {
 		wait = control.wait
+	}
+	maxAttempts := s.modelDownloadMaxAttempts
+	if maxAttempts <= 0 {
+		maxAttempts = localModelDownloadMaxAttempts
+	}
+	retryBackoff := s.modelDownloadRetryBackoff
+	if retryBackoff < 0 {
+		retryBackoff = localModelDownloadRetryBackoff
 	}
 	return filedownload.Download(ctx, filedownload.Options{
 		URL:            sourceURL,
@@ -184,10 +193,13 @@ func (s *Service) downloadToFileWithTransfer(
 		Header:         header,
 		ExpectedSHA256: expectedSHA256,
 		MaxBodyBytes:   maxBodyBytes,
-		MaxAttempts:    localModelDownloadMaxAttempts,
-		RetryBackoff:   localModelDownloadRetryBackoff,
+		MaxAttempts:    maxAttempts,
+		RetryBackoff:   retryBackoff,
 		IsTransient:    isTransientModelDownloadError,
 		Progress:       progress,
 		Wait:           wait,
+		PreservePartialOnError: func(err error) bool {
+			return !errors.Is(err, errLocalTransferCancelled) && !errors.Is(err, filedownload.ErrHashMismatch)
+		},
 	})
 }

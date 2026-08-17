@@ -8,10 +8,11 @@ import (
 )
 
 func validTestGGUF() []byte {
-	payload := make([]byte, minManagedGGUFSizeBytes)
-	copy(payload[:8], []byte{'G', 'G', 'U', 'F', 0x03, 0x00, 0x00, 0x00})
-	copy(payload[16:32], []byte("nimi-test-gguf!!"))
-	return payload
+	return buildImageTestGGUF([]ggufTestMetadataEntry{
+		{Key: "general.architecture", Type: 8, StringValue: "qwen2"},
+		{Key: "general.name", Type: 8, StringValue: "qwen-test"},
+		{Key: "qwen2.context_length", Type: 4, Uint32Value: 32768},
+	}, []string{"token_embd.weight"})
 }
 
 func validGemma4TestGGUF() []byte {
@@ -38,6 +39,20 @@ func validImageTestGGUF() []byte {
 		{Key: "general.name", Type: 8, StringValue: "z-image-turbo"},
 		{Key: "sd.version", Type: 8, StringValue: "sdxl"},
 	}, []string{"cap_embedder.0.weight"})
+}
+
+func validQwenImageTestGGUF(name string) []byte {
+	return buildImageTestGGUF([]ggufTestMetadataEntry{
+		{Key: "general.architecture", Type: 8, StringValue: "qwen_image"},
+		{Key: "general.name", Type: 8, StringValue: name},
+	}, []string{"double_blocks.0.img_attn.proj.weight", name})
+}
+
+func validQwenVLTestGGUF() []byte {
+	return buildImageTestGGUF([]ggufTestMetadataEntry{
+		{Key: "general.architecture", Type: 8, StringValue: "qwen2vl"},
+		{Key: "general.name", Type: 8, StringValue: "Qwen2.5 VL test"},
+	}, []string{"token_embd.weight"})
 }
 
 func validImageTestGGUFHash() string {

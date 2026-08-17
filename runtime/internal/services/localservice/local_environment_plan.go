@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/engine"
 )
 
@@ -24,33 +25,6 @@ const (
 )
 
 const (
-	localEnvironmentInstallLevelMinimal     = "minimal"
-	localEnvironmentInstallLevelRecommended = "recommended"
-)
-
-func normalizeLocalEnvironmentInstallLevel(installLevel string) string {
-	switch strings.ToLower(strings.TrimSpace(installLevel)) {
-	case localEnvironmentInstallLevelMinimal:
-		return localEnvironmentInstallLevelMinimal
-	case localEnvironmentInstallLevelRecommended:
-		return localEnvironmentInstallLevelRecommended
-	default:
-		return ""
-	}
-}
-
-// localResolverCapability* are the precise K-MCAT-033 preset-slot capability
-// identifiers a compute pack may host a model asset for (design/05 §3). They
-// are matched verbatim against the resolver's ResolvedSlot.Capability.
-const (
-	localResolverCapabilityTextGenerate    = "text.generate"
-	localResolverCapabilityAudioTranscribe = "audio.transcribe"
-	localResolverCapabilityAudioSynthesize = "audio.synthesize"
-	localResolverCapabilityImageGenerate   = "image.generate"
-	localResolverCapabilityVideoGenerate   = "video.generate"
-)
-
-const (
 	localEnvironmentFamilyCUDA             = "accelerator.cuda.runtime"
 	localEnvironmentFamilyNativeLlama      = "native-engine-package.llama"
 	localEnvironmentFamilyNativeSDCPP      = "native-engine-package.stablediffusion-ggml"
@@ -59,26 +33,13 @@ const (
 	localEnvironmentFamilyPythonVenv       = "python.venv"
 	localEnvironmentFamilyPythonPackageSet = "python.package-set"
 	localEnvironmentFamilyPythonTorchWheel = "python.torch-wheel"
-	localEnvironmentFamilyModelAsset       = "model.asset"
-	localEnvironmentFamilyModelCompanion   = "model.companion-asset"
 )
 
 type localEnvironmentPlanRequest struct {
-	PackID           string
-	ConsumerScope    string
-	HostProfile      *runtimev1.LocalDeviceProfile
-	RuntimeDataRoot  string
-	AssetID          string
-	LocalAssetID     string
-	CompanionAssetID string
-	ParentAssetID    string
-	// InstallLevel is the first-run install level (minimal | recommended | "").
-	// When set and no explicit AssetID is supplied, the plan resolves the
-	// pack's model.asset / model.companion-asset dependencies internally via the
-	// K-MCAT-034 deterministic resolver from the curated preset + host posture
-	// (design/05 §2-3). An explicit AssetID always wins; an empty InstallLevel
-	// preserves the prior explicit-identity behaviour.
-	InstallLevel string
+	PackID          string
+	ConsumerScope   string
+	HostProfile     *runtimev1.LocalDeviceProfile
+	RuntimeDataRoot string
 }
 
 type localEnvironmentPlan struct {
@@ -122,17 +83,37 @@ type localComputePackDefinition struct {
 	RequiredDependencyFamilies []string
 	OptionalDependencyFamilies []string
 	CloudOnlyImpact            string
-	// HostedCapabilities is the explicit set of resolver-slot capabilities a
-	// pack hosts model assets for (design/05 §3). It is NOT the broad
-	// product-facing `capabilities` grouping of local-compute-packs.yaml; it is
-	// the precise per-slot capability set the K-MCAT-033 presets bind
-	// (`text.generate` | `audio.transcribe` | `audio.synthesize` |
-	// `image.generate`). When install-level resolution is requested, the plan
-	// emits one model.asset dependency per resolved preset slot whose capability
-	// appears here — so a multi-slot pack (`local-speech` hosts both stt and
-	// tts) materialises every hosted asset. Empty means the pack hosts no
-	// preset model slot and install-level resolution does not apply.
-	HostedCapabilities []string
+}
+
+func localEnvironmentTargetForDriver(driver capabilitydriver.Driver, host localEnvironmentHostProfileState) (string, string, bool) {
+	switch driver.(type) {
+	case capabilitydriver.LlamaTextDriver:
+		consumer := "llama.cpp.cpu"
+		if localEnvironmentHostSupportsCUDA(host) {
+			consumer = "llama.cpp.cuda"
+		} else if strings.EqualFold(strings.TrimSpace(host.OS), "darwin") {
+			consumer = "llama.cpp.metal"
+		}
+		return "local-text", consumer, true
+	case capabilitydriver.StableDiffusionImageDriver:
+		consumer := "stable-diffusion.cpp.cpu"
+		if strings.EqualFold(strings.TrimSpace(host.OS), "darwin") {
+			consumer = "stable-diffusion.cpp.metal"
+		} else if localEnvironmentHostSupportsCUDA(host) {
+			consumer = stableDiffusionCUDAConsumerID
+		}
+		return "local-image-native", consumer, true
+	case capabilitydriver.Qwen3TTSDriver:
+		return "local-speech", "speech.qwen3-tts.python", true
+	case capabilitydriver.VoxCPMDriver:
+		return "local-speech", "speech.voxcpm.python", true
+	case capabilitydriver.Qwen3ASRDriver:
+		return "local-speech", "speech.qwen3-asr.python", true
+	case capabilitydriver.Qwen3ASRTransformersDriver:
+		return "local-speech", "speech.qwen3-asr-transformers.python", true
+	default:
+		return "", "", false
+	}
 }
 
 func (s *Service) resolveLocalEnvironmentPlan(req localEnvironmentPlanRequest) localEnvironmentPlan {
@@ -157,9 +138,6 @@ func (s *Service) resolveLocalEnvironmentPlan(req localEnvironmentPlanRequest) l
 	consumerScope := strings.TrimSpace(req.ConsumerScope)
 	if consumerScope == "" {
 		consumerScope = def.PackID
-		if resolved := s.localImageNativeExplicitAssetConsumerScope(def, req, profile); resolved != "" {
-			consumerScope = resolved
-		}
 	}
 	platformTuple := localEnvironmentPlatformTuple(hostState)
 
@@ -171,52 +149,25 @@ func (s *Service) resolveLocalEnvironmentPlan(req localEnvironmentPlanRequest) l
 	s.persistStateLocked()
 	s.mu.Unlock()
 
-	// design/05 §2-3: when an install_level is supplied and the caller passes no
-	// explicit AssetID, the plan resolves the pack's model.asset /
-	// model.companion-asset dependencies internally via the K-MCAT-034
-	// deterministic resolver. A pack may host more than one preset slot
-	// (`local-speech` hosts both stt and tts), so `model.asset` is 1:N per pack:
-	// one dependency per resolved preset slot whose capability the pack hosts.
-	//
-	// The resolver consumes `profile` — the host posture this plan already
-	// normalized above (a caller-supplied HostProfile, or one collected on this
-	// host when the request omitted it). It must never read req.HostProfile
-	// directly: a nil request HostProfile would zero the resolver's RAM budget
-	// and fail-close every cpu variant even on a capable host.
-	modelResolution := s.resolvePlanModelAssetDependencies(def, hostState, platformTuple, runtimeDataRoot, req, profile)
-	for family, deps := range s.resolveCachedProfileModelAssetDependencies(def, hostState, platformTuple, runtimeDataRoot, consumerScope, req) {
-		if modelResolution == nil {
-			modelResolution = make(map[string][]localEnvironmentPlanDependency, 1)
-		}
-		modelResolution[family] = deps
-	}
 	firstRunLlamaCUDARequired := s.localEnvironmentFirstRunLlamaCUDARequired(def, consumerScope)
 
 	dependencies := make([]localEnvironmentPlanDependency, 0, len(def.RequiredDependencyFamilies)+len(def.OptionalDependencyFamilies))
 	for _, family := range def.RequiredDependencyFamilies {
-		if resolved, ok := modelResolution[family]; ok {
-			dependencies = append(dependencies, resolved...)
-			continue
-		}
 		dependencyConsumerScope := localEnvironmentDependencyConsumerScope(def, family, hostState, consumerScope, firstRunLlamaCUDARequired)
-		if resolved, ok := s.resolveExpandedLocalEnvironmentDependencies(def, family, true, hostState, platformTuple, runtimeDataRoot, consumerScope, req); ok {
+		if resolved, ok := s.resolveExpandedLocalEnvironmentDependencies(def, family, true, hostState, platformTuple, runtimeDataRoot, consumerScope); ok {
 			dependencies = append(dependencies, resolved...)
 			continue
 		}
-		dependencies = append(dependencies, s.resolveLocalEnvironmentDependency(def, family, true, hostState, platformTuple, runtimeDataRoot, dependencyConsumerScope, req))
+		dependencies = append(dependencies, s.resolveLocalEnvironmentDependency(def, family, true, hostState, platformTuple, runtimeDataRoot, dependencyConsumerScope))
 	}
 	for _, family := range def.OptionalDependencyFamilies {
 		required := localEnvironmentOptionalDependencyRequiredForConsumer(def, family, hostState, consumerScope, firstRunLlamaCUDARequired)
 		dependencyConsumerScope := localEnvironmentDependencyConsumerScope(def, family, hostState, consumerScope, firstRunLlamaCUDARequired)
-		if resolved, ok := modelResolution[family]; ok {
+		if resolved, ok := s.resolveExpandedLocalEnvironmentDependencies(def, family, required, hostState, platformTuple, runtimeDataRoot, consumerScope); ok {
 			dependencies = append(dependencies, resolved...)
 			continue
 		}
-		if resolved, ok := s.resolveExpandedLocalEnvironmentDependencies(def, family, required, hostState, platformTuple, runtimeDataRoot, consumerScope, req); ok {
-			dependencies = append(dependencies, resolved...)
-			continue
-		}
-		dependencies = append(dependencies, s.resolveLocalEnvironmentDependency(def, family, required, hostState, platformTuple, runtimeDataRoot, dependencyConsumerScope, req))
+		dependencies = append(dependencies, s.resolveLocalEnvironmentDependency(def, family, required, hostState, platformTuple, runtimeDataRoot, dependencyConsumerScope))
 	}
 	for i := range dependencies {
 		dependencies[i] = s.resolveLocalEnvironmentPlanDependencyJobProjection(dependencies[i])
@@ -332,40 +283,9 @@ func localEnvironmentDependencyStorageCategory(family string) string {
 	case localEnvironmentFamilyNativeLlama, localEnvironmentFamilyNativeSDCPP,
 		localEnvironmentFamilyPythonRuntime, localEnvironmentFamilyPythonVenv, localEnvironmentFamilyPythonPackageSet:
 		return "environments"
-	case localEnvironmentFamilyModelAsset, localEnvironmentFamilyModelCompanion:
-		return "models"
 	default:
 		return ""
 	}
-}
-
-func (s *Service) localImageNativeExplicitAssetConsumerScope(
-	def localComputePackDefinition,
-	req localEnvironmentPlanRequest,
-	profile *runtimev1.LocalDeviceProfile,
-) string {
-	if def.PackID != "local-image-native" || strings.TrimSpace(req.InstallLevel) != "" {
-		return ""
-	}
-	if strings.TrimSpace(req.LocalAssetID) == "" && strings.TrimSpace(req.AssetID) == "" {
-		return ""
-	}
-	model := s.resolveManagedMediaImageModel(strings.TrimSpace(req.LocalAssetID))
-	if model == nil {
-		model = s.resolveManagedMediaImageModel(strings.TrimSpace(req.AssetID))
-	}
-	if model == nil {
-		return ""
-	}
-	selection := canonicalSupervisedImageSelectionForLocalAsset(model, profile)
-	if !selection.Matched || selection.Conflict || selection.Entry == nil || selection.ProductState != engine.ImageProductStateSupported {
-		return ""
-	}
-	consumerID, ok := managedImageConsumerIDForMatrixEntry(selection.Entry)
-	if !ok {
-		return ""
-	}
-	return consumerID
 }
 
 func (s *Service) resolveLocalEnvironmentPlanDependencyJobProjection(dep localEnvironmentPlanDependency) localEnvironmentPlanDependency {
@@ -421,8 +341,8 @@ func localEnvironmentPlanState(dependencies []localEnvironmentPlanDependency) (s
 	return state, reasonCode
 }
 
-func (s *Service) resolveLocalEnvironmentDependency(def localComputePackDefinition, family string, required bool, hostState localEnvironmentHostProfileState, platformTuple string, runtimeDataRoot string, consumerScope string, req localEnvironmentPlanRequest) localEnvironmentPlanDependency {
-	dependencyID := s.localEnvironmentDependencyID(def.PackID, family, req)
+func (s *Service) resolveLocalEnvironmentDependency(def localComputePackDefinition, family string, required bool, hostState localEnvironmentHostProfileState, platformTuple string, runtimeDataRoot string, consumerScope string) localEnvironmentPlanDependency {
+	dependencyID := defaultLocalEnvironmentDependencyID(def.PackID, family)
 	if (family == localEnvironmentFamilyPythonVenv || family == localEnvironmentFamilyPythonPackageSet) && strings.HasPrefix(strings.TrimSpace(consumerScope), "media.") {
 		plane := "cpu"
 		if localEnvironmentHostSupportsCUDA(hostState) {
@@ -435,96 +355,6 @@ func (s *Service) resolveLocalEnvironmentDependency(def localComputePackDefiniti
 		dependencyID = identity.DependencyID
 	}
 	return s.resolveLocalEnvironmentDependencyWithID(def, family, dependencyID, required, hostState, platformTuple, runtimeDataRoot, consumerScope)
-}
-
-func (s *Service) resolveCachedProfileModelAssetDependencies(
-	def localComputePackDefinition,
-	hostState localEnvironmentHostProfileState,
-	platformTuple string,
-	runtimeDataRoot string,
-	consumerScope string,
-	req localEnvironmentPlanRequest,
-) map[string][]localEnvironmentPlanDependency {
-	if def.PackID != "local-image-native" {
-		return nil
-	}
-	if strings.TrimSpace(req.InstallLevel) != "" || strings.TrimSpace(req.CompanionAssetID) != "" {
-		return nil
-	}
-	if strings.TrimSpace(req.LocalAssetID) == "" && strings.TrimSpace(req.AssetID) == "" {
-		return nil
-	}
-	cacheLocalAssetID := strings.TrimSpace(req.LocalAssetID)
-	if cacheLocalAssetID == "" {
-		if model := s.resolveManagedMediaImageModel(strings.TrimSpace(req.AssetID)); model != nil {
-			cacheLocalAssetID = strings.TrimSpace(model.GetLocalAssetId())
-		}
-	}
-	cached, ok := s.cachedManagedMediaImageProfile(cacheLocalAssetID)
-	if !ok || !cached.MaterializationResolved {
-		return map[string][]localEnvironmentPlanDependency{
-			localEnvironmentFamilyModelCompanion: {
-				localEnvironmentImageProfileBindingsRequiredDependency(def, hostState, platformTuple, runtimeDataRoot, consumerScope, req),
-			},
-		}
-	}
-	companionDeps := make([]localEnvironmentPlanDependency, 0)
-	for _, binding := range cached.MaterializationBindings {
-		if strings.TrimSpace(binding.CompanionAssetID) == "" {
-			continue
-		}
-		companionReq := req
-		companionReq.AssetID = ""
-		companionReq.LocalAssetID = ""
-		companionReq.CompanionAssetID = strings.TrimSpace(binding.CompanionAssetID)
-		companionReq.ParentAssetID = strings.TrimSpace(binding.ParentAssetID)
-		if companionReq.ParentAssetID == "" {
-			companionReq.ParentAssetID = strings.TrimSpace(req.AssetID)
-		}
-		companionDeps = append(companionDeps, s.resolveLocalEnvironmentDependency(
-			def,
-			localEnvironmentFamilyModelCompanion,
-			planModelFamilyRequired(def, localEnvironmentFamilyModelCompanion),
-			hostState,
-			platformTuple,
-			runtimeDataRoot,
-			consumerScope,
-			companionReq,
-		))
-	}
-	return map[string][]localEnvironmentPlanDependency{
-		localEnvironmentFamilyModelCompanion: companionDeps,
-	}
-}
-
-func localEnvironmentImageProfileBindingsRequiredDependency(
-	def localComputePackDefinition,
-	hostState localEnvironmentHostProfileState,
-	platformTuple string,
-	runtimeDataRoot string,
-	consumerScope string,
-	req localEnvironmentPlanRequest,
-) localEnvironmentPlanDependency {
-	identity := strings.TrimSpace(req.LocalAssetID)
-	if identity == "" {
-		identity = strings.TrimSpace(req.AssetID)
-	}
-	if identity == "" {
-		identity = "unknown"
-	}
-	dependencyID := "image-profile-bindings:" + identity
-	return localEnvironmentPlanDependency{
-		DependencyFamily:     localEnvironmentFamilyModelCompanion,
-		DependencyID:         dependencyID,
-		ConsumerScope:        strings.TrimSpace(consumerScope),
-		Required:             planModelFamilyRequired(def, localEnvironmentFamilyModelCompanion),
-		State:                localEnvironmentStateUnsupported,
-		SourceKind:           localEnvironmentSourceUnavailable,
-		ConfirmationRequired: false,
-		EnvironmentKey:       localEnvironmentKey(localEnvironmentFamilyModelCompanion, dependencyID, hostState.HostProfileID, platformTuple, runtimeDataRoot),
-		ReasonCode:           "LOCAL_ENVIRONMENT_IMAGE_PROFILE_BINDINGS_REQUIRED",
-		Detail:               "image profile materialization bindings are required before resolving companion assets; call Runtime descriptor prepare to materialize this image profile",
-	}
 }
 
 func (s *Service) resolveLocalEnvironmentDependencyWithID(def localComputePackDefinition, family string, dependencyID string, required bool, hostState localEnvironmentHostProfileState, platformTuple string, runtimeDataRoot string, consumerScope string) localEnvironmentPlanDependency {
@@ -564,15 +394,6 @@ func (s *Service) resolveLocalEnvironmentDependencyWithID(def localComputePackDe
 		dep.ConfirmationRequired = false
 		dep.ReasonCode = "LOCAL_ENVIRONMENT_DEPENDENCY_UNSUPPORTED"
 		dep.Detail = torchIdentityErr.Error()
-		return dep
-	}
-
-	if (family == localEnvironmentFamilyModelAsset || family == localEnvironmentFamilyModelCompanion) && strings.TrimSpace(dependencyID) == "" {
-		dep.State = localEnvironmentStateUnsupported
-		dep.SourceKind = localEnvironmentSourceUnavailable
-		dep.ConfirmationRequired = false
-		dep.ReasonCode = "LOCAL_ENVIRONMENT_ASSET_ID_REQUIRED"
-		dep.Detail = "model asset dependencies require explicit asset identity"
 		return dep
 	}
 
@@ -669,7 +490,7 @@ func (s *Service) resolveLocalEnvironmentDependencyWithID(def localComputePackDe
 	return dep
 }
 
-func (s *Service) resolveExpandedLocalEnvironmentDependencies(def localComputePackDefinition, family string, required bool, hostState localEnvironmentHostProfileState, platformTuple string, runtimeDataRoot string, consumerScope string, _ localEnvironmentPlanRequest) ([]localEnvironmentPlanDependency, bool) {
+func (s *Service) resolveExpandedLocalEnvironmentDependencies(def localComputePackDefinition, family string, required bool, hostState localEnvironmentHostProfileState, platformTuple string, runtimeDataRoot string, consumerScope string) ([]localEnvironmentPlanDependency, bool) {
 	if def.PackID != "local-speech" {
 		return nil, false
 	}
@@ -822,59 +643,6 @@ func localEnvironmentPythonTorchWheelDependencyID(identity engine.PythonTorchWhe
 	}, ".")
 }
 
-func (s *Service) localEnvironmentDependencyID(packID string, family string, req localEnvironmentPlanRequest) string {
-	switch family {
-	case localEnvironmentFamilyModelAsset:
-		return s.localEnvironmentModelAssetDependencyID(strings.TrimSpace(req.LocalAssetID), strings.TrimSpace(req.AssetID))
-	case localEnvironmentFamilyModelCompanion:
-		return s.localEnvironmentCompanionAssetDependencyID(strings.TrimSpace(req.CompanionAssetID), strings.TrimSpace(req.ParentAssetID), strings.TrimSpace(req.LocalAssetID))
-	default:
-		return defaultLocalEnvironmentDependencyID(packID, family)
-	}
-}
-
-func (s *Service) localEnvironmentModelAssetDependencyID(localAssetID string, assetID string) string {
-	if trimmed := strings.TrimSpace(assetID); trimmed != "" {
-		if model := s.localAssetRecordForIdentity(trimmed); model != nil {
-			if semanticAssetID := strings.TrimSpace(model.GetAssetId()); semanticAssetID != "" {
-				return semanticAssetID
-			}
-		}
-		return trimmed
-	}
-	if trimmed := strings.TrimSpace(localAssetID); trimmed != "" {
-		if model := s.localAssetRecordForIdentity(trimmed); model != nil {
-			if semanticAssetID := strings.TrimSpace(model.GetAssetId()); semanticAssetID != "" {
-				return semanticAssetID
-			}
-		}
-	}
-	return ""
-}
-
-func (s *Service) localEnvironmentCompanionAssetDependencyID(companionAssetID string, parentAssetID string, parentLocalAssetID string) string {
-	companion := strings.TrimSpace(companionAssetID)
-	parent := strings.TrimSpace(parentAssetID)
-	if parent == "" {
-		if model := s.modelByID(strings.TrimSpace(parentLocalAssetID)); model != nil {
-			parent = strings.TrimSpace(model.GetAssetId())
-		}
-	}
-	if companion == "" || parent == "" {
-		return ""
-	}
-	return localEnvironmentCompanionAssetDependencyID(companion, parent)
-}
-
-func localEnvironmentCompanionAssetDependencyID(companionAssetID string, parentAssetID string) string {
-	companion := strings.TrimSpace(companionAssetID)
-	parent := strings.TrimSpace(parentAssetID)
-	if companion == "" || parent == "" {
-		return ""
-	}
-	return "asset_id=" + companion + "|parent_asset_id=" + parent
-}
-
 func localEnvironmentHostSupportsCUDA(host localEnvironmentHostProfileState) bool {
 	return host.GPUAvailable && strings.EqualFold(strings.TrimSpace(host.GPUVendor), "nvidia")
 }
@@ -893,18 +661,16 @@ func localComputePackDefinitions() []localComputePackDefinition {
 		{
 			PackID:                     "local-text",
 			ProductLabel:               "Local text",
-			RequiredDependencyFamilies: []string{localEnvironmentFamilyNativeLlama, localEnvironmentFamilyModelAsset},
+			RequiredDependencyFamilies: []string{localEnvironmentFamilyNativeLlama},
 			OptionalDependencyFamilies: []string{localEnvironmentFamilyCUDA},
 			CloudOnlyImpact:            "none",
-			HostedCapabilities:         []string{localResolverCapabilityTextGenerate},
 		},
 		{
 			PackID:                     "local-image-native",
 			ProductLabel:               "Local image native",
-			RequiredDependencyFamilies: []string{localEnvironmentFamilyNativeSDCPP, localEnvironmentFamilyModelAsset, localEnvironmentFamilyModelCompanion},
+			RequiredDependencyFamilies: []string{localEnvironmentFamilyNativeSDCPP},
 			OptionalDependencyFamilies: []string{localEnvironmentFamilyCUDA},
 			CloudOnlyImpact:            "none",
-			HostedCapabilities:         []string{localResolverCapabilityImageGenerate},
 		},
 		{
 			PackID:       "local-image-python",
@@ -915,12 +681,9 @@ func localComputePackDefinitions() []localComputePackDefinition {
 				localEnvironmentFamilyPythonVenv,
 				localEnvironmentFamilyPythonPackageSet,
 				localEnvironmentFamilyPythonTorchWheel,
-				localEnvironmentFamilyModelAsset,
-				localEnvironmentFamilyModelCompanion,
 			},
 			OptionalDependencyFamilies: []string{localEnvironmentFamilyCUDA},
 			CloudOnlyImpact:            "none",
-			HostedCapabilities:         []string{localResolverCapabilityImageGenerate},
 		},
 		{
 			PackID:       "local-video-python",
@@ -931,20 +694,16 @@ func localComputePackDefinitions() []localComputePackDefinition {
 				localEnvironmentFamilyPythonVenv,
 				localEnvironmentFamilyPythonPackageSet,
 				localEnvironmentFamilyPythonTorchWheel,
-				localEnvironmentFamilyModelAsset,
-				localEnvironmentFamilyModelCompanion,
 			},
 			OptionalDependencyFamilies: []string{localEnvironmentFamilyCUDA},
 			CloudOnlyImpact:            "none",
-			HostedCapabilities:         []string{localResolverCapabilityVideoGenerate},
 		},
 		{
 			PackID:                     "local-speech",
 			ProductLabel:               "Local speech",
-			RequiredDependencyFamilies: []string{localEnvironmentFamilyPythonUV, localEnvironmentFamilyPythonRuntime, localEnvironmentFamilyPythonVenv, localEnvironmentFamilyPythonPackageSet, localEnvironmentFamilyPythonTorchWheel, localEnvironmentFamilyModelAsset},
+			RequiredDependencyFamilies: []string{localEnvironmentFamilyPythonUV, localEnvironmentFamilyPythonRuntime, localEnvironmentFamilyPythonVenv, localEnvironmentFamilyPythonPackageSet, localEnvironmentFamilyPythonTorchWheel},
 			OptionalDependencyFamilies: []string{localEnvironmentFamilyCUDA},
 			CloudOnlyImpact:            "none",
-			HostedCapabilities:         []string{localResolverCapabilityAudioTranscribe, localResolverCapabilityAudioSynthesize},
 		},
 		{
 			PackID:                     "local-gpu-support",
@@ -974,10 +733,6 @@ func defaultLocalEnvironmentDependencyID(packID string, family string) string {
 		return packID + ".package-set"
 	case localEnvironmentFamilyPythonTorchWheel:
 		return packID + ".torch-wheel"
-	case localEnvironmentFamilyModelAsset:
-		return packID + ".model-asset"
-	case localEnvironmentFamilyModelCompanion:
-		return packID + ".companion-asset"
 	default:
 		return strings.ReplaceAll(family, ".", "-")
 	}

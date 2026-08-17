@@ -7,22 +7,65 @@ import (
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
+	"google.golang.org/protobuf/types/known/structpb"
 )
+
+func selectEnvironmentLoadoutForTest(t *testing.T, svc *Service, capabilityContract string, recipeID string, identity capabilitydriver.Identity) {
+	t.Helper()
+	loadoutID := "environment-loadout-" + strings.ReplaceAll(capabilityContract, ".", "-")
+	loadout := &runtimev1.Loadout{
+		LoadoutId:          loadoutID,
+		CapabilityContract: capabilityContract,
+		RecipeId:           recipeID,
+		Implementation:     identity.Proto(),
+		Options:            &structpb.Struct{},
+	}
+	if _, _, err := svc.projectStoredLoadout(loadout); err != nil {
+		t.Fatalf("project environment test Loadout: %v", err)
+	}
+	svc.mu.Lock()
+	svc.loadouts[loadoutID] = loadout
+	svc.loadoutSelections[capabilityContract] = &runtimev1.LoadoutSelection{CapabilityContract: capabilityContract, LoadoutId: loadoutID}
+	svc.mu.Unlock()
+}
+
+func TestLocalEnvironmentTargetForDriverUsesRuntimeDriverContract(t *testing.T) {
+	tests := []struct {
+		name         string
+		driver       capabilitydriver.Driver
+		host         localEnvironmentHostProfileState
+		wantPack     string
+		wantConsumer string
+	}{
+		{name: "llama CUDA", driver: capabilitydriver.LlamaTextDriver{}, host: localEnvironmentHostProfileState{OS: "windows", GPUAvailable: true, GPUVendor: "nvidia"}, wantPack: "local-text", wantConsumer: "llama.cpp.cuda"},
+		{name: "stable diffusion Metal", driver: capabilitydriver.StableDiffusionImageDriver{}, host: localEnvironmentHostProfileState{OS: "darwin", Arch: "arm64"}, wantPack: "local-image-native", wantConsumer: "stable-diffusion.cpp.metal"},
+		{name: "qwen tts", driver: capabilitydriver.Qwen3TTSDriver{}, wantPack: "local-speech", wantConsumer: "speech.qwen3-tts.python"},
+		{name: "voxcpm", driver: capabilitydriver.VoxCPMDriver{}, wantPack: "local-speech", wantConsumer: "speech.voxcpm.python"},
+		{name: "qwen asr", driver: capabilitydriver.Qwen3ASRDriver{}, wantPack: "local-speech", wantConsumer: "speech.qwen3-asr.python"},
+		{name: "qwen transformers asr", driver: capabilitydriver.Qwen3ASRTransformersDriver{}, wantPack: "local-speech", wantConsumer: "speech.qwen3-asr-transformers.python"},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			pack, consumer, ok := localEnvironmentTargetForDriver(test.driver, test.host)
+			if !ok || pack != test.wantPack || consumer != test.wantConsumer {
+				t.Fatalf("environment target = %q/%q/%v, want %q/%q/true", pack, consumer, ok, test.wantPack, test.wantConsumer)
+			}
+		})
+	}
+}
 
 func TestResolveLocalEnvironmentPlanProjectsSetupRequired(t *testing.T) {
 	svc := newTestService(t)
 	svc.SetEngineManager(&mockEngineManager{})
-	model := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
-		assetID:      "speech/test-qwen3",
-		capabilities: []string{"audio.synthesize"},
-		engine:       "speech",
-		entry:        "model.onnx",
+	selectEnvironmentLoadoutForTest(t, svc, capabilitydriver.AudioSynthesizeContract, capabilitydriver.Qwen3TTSCustomVoiceRecipeID, capabilitydriver.Identity{
+		ImplementationID: capabilitydriver.Qwen3TTSImplementationID,
+		DriverID:         capabilitydriver.Qwen3TTSDriverID,
+		DriverDialect:    capabilitydriver.Qwen3TTSDriverDialect,
 	})
 
 	resp, err := svc.ResolveLocalEnvironmentPlan(context.Background(), &runtimev1.ResolveLocalEnvironmentPlanRequest{
-		PackId:        "local-speech",
-		ConsumerScope: "speech.qwen3-tts.python",
-		LocalAssetId:  model.GetLocalAssetId(),
+		CapabilityContract: capabilitydriver.AudioSynthesizeContract,
 	})
 	if err != nil {
 		t.Fatalf("ResolveLocalEnvironmentPlan: %v", err)
@@ -53,8 +96,8 @@ func TestLocalEnvironmentRPCRejectsRootDifferentFromProductControl(t *testing.T)
 			name: "plan",
 			call: func() error {
 				_, err := svc.ResolveLocalEnvironmentPlan(context.Background(), &runtimev1.ResolveLocalEnvironmentPlanRequest{
-					PackId:          "local-text",
-					RuntimeDataRoot: divergent,
+					CapabilityContract: capabilitydriver.LlamaCapabilityContract,
+					RuntimeDataRoot:    divergent,
 				})
 				return err
 			},
@@ -83,23 +126,19 @@ func TestLocalEnvironmentRPCRejectsRootDifferentFromProductControl(t *testing.T)
 func TestLocalEnvironmentRPCProjectsReadySourcesAndGate(t *testing.T) {
 	svc := newTestService(t)
 	svc.SetEngineManager(&mockEngineManager{})
-	model := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
-		assetID:      "speech/test-qwen3-ready",
-		capabilities: []string{"audio.synthesize"},
-		engine:       "speech",
-		entry:        "model.onnx",
+	selectEnvironmentLoadoutForTest(t, svc, capabilitydriver.AudioSynthesizeContract, capabilitydriver.Qwen3TTSCustomVoiceRecipeID, capabilitydriver.Identity{
+		ImplementationID: capabilitydriver.Qwen3TTSImplementationID,
+		DriverID:         capabilitydriver.Qwen3TTSDriverID,
+		DriverDialect:    capabilitydriver.Qwen3TTSDriverDialect,
 	})
 	req := localEnvironmentConsumerActivationGateRequest{
-		ConsumerID:   "speech.qwen3-tts.python",
-		PackID:       "local-speech",
-		LocalAssetID: model.GetLocalAssetId(),
+		ConsumerID: "speech.qwen3-tts.python",
+		PackID:     "local-speech",
 	}
 	markLocalEnvironmentPlanReadyForTest(t, svc, req)
 
 	planResp, err := svc.ResolveLocalEnvironmentPlan(context.Background(), &runtimev1.ResolveLocalEnvironmentPlanRequest{
-		PackId:        req.PackID,
-		ConsumerScope: req.ConsumerID,
-		LocalAssetId:  req.LocalAssetID,
+		CapabilityContract: capabilitydriver.AudioSynthesizeContract,
 	})
 	if err != nil {
 		t.Fatalf("ResolveLocalEnvironmentPlan: %v", err)
@@ -140,9 +179,8 @@ func TestLocalEnvironmentRPCProjectsReadySourcesAndGate(t *testing.T) {
 	}
 
 	gateResp, err := svc.ResolveLocalEnvironmentActivationGate(context.Background(), &runtimev1.ResolveLocalEnvironmentActivationGateRequest{
-		ConsumerId:   req.ConsumerID,
-		PackId:       req.PackID,
-		LocalAssetId: req.LocalAssetID,
+		ConsumerId: req.ConsumerID,
+		PackId:     req.PackID,
 	})
 	if err != nil {
 		t.Fatalf("ResolveLocalEnvironmentActivationGate: %v", err)

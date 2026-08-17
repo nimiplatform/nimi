@@ -72,6 +72,17 @@ func (s *Service) executeNativeSDCPPEnvironmentDependencyJob(ctx context.Context
 		}, nil
 	}
 	consumer := strings.TrimSpace(job.ConsumerScope)
+	if localEnvironmentCUDAConsumerScopeRequiresRuntime(consumer) {
+		if _, ready, _ := s.readySelectedSourceForFamilyAndConsumer(localEnvironmentFamilyCUDA, consumer); !ready {
+			if prerequisiteJob, exists := s.latestLocalEnvironmentDependencyJobForFamilyAndConsumer(localEnvironmentFamilyCUDA, consumer); exists {
+				if localEnvironmentDependencyJobActiveForPlanApply(prerequisiteJob.State) || localEnvironmentDependencyJobBlocksPrerequisiteWait(prerequisiteJob.State) {
+					if _, ok, detail := s.waitForSelectedSourceForFamilyAndConsumerDetail(ctx, localEnvironmentFamilyCUDA, consumer); !ok {
+						return failedPrerequisiteDependencyResult(detail), nil
+					}
+				}
+			}
+		}
+	}
 	contract, ok := nativeSDCPPPackageContractForEnvironment(job.EnvironmentKey, consumer)
 	if !ok {
 		return localEnvironmentDependencyJobResult{

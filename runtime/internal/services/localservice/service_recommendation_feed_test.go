@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 func TestRecommendationFeedFetchesRemoteAndBuildsInstallPayload(t *testing.T) {
@@ -111,13 +112,16 @@ func TestRecommendationFeedFallsBackToStaleCache(t *testing.T) {
 
 func TestRecommendationFeedProjectsInstalledState(t *testing.T) {
 	svc := newTestService(t)
+	provenance, err := structpb.NewStruct(map[string]any{"source_repo": "repo/small"})
+	if err != nil {
+		t.Fatalf("build provenance: %v", err)
+	}
 	svc.mu.Lock()
-	svc.assets["local_chat"] = &runtimev1.LocalAssetRecord{
-		LocalAssetId: "local_chat",
-		AssetId:      "repo/small",
-		Kind:         runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT,
-		Source:       &runtimev1.LocalAssetSource{Repo: "repo/small", Revision: "main"},
-		Status:       runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED,
+	svc.modelAssets["model_chat"] = &runtimev1.ModelAssetRecord{
+		ModelAssetId:    "model_chat",
+		ContentId:       "sha256:test",
+		ContentVerified: true,
+		Provenance:      provenance,
 	}
 	svc.mu.Unlock()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {

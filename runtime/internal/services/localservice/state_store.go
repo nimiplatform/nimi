@@ -15,79 +15,19 @@ const (
 	localStateSchemaVersion       = 2
 )
 
-// localStateSnapshot is the v2 state format. Unified assets[] replaces
-// the legacy models[] + artifacts[] dual structure. SchemaVersion must be 2.
-// Runtime does NOT read v1 state — hard cut per plan §0.
+// localStateSnapshot is the steady-state v2 runtime store. Model inventory is
+// owned by the separate ModelAsset store; retired LocalAsset rows are never
+// decoded into this snapshot.
 type localStateSnapshot struct {
-	SchemaVersion                       int                                                 `json:"schemaVersion"`
-	SavedAt                             string                                              `json:"savedAt"`
-	Assets                              []localStateAssetState                              `json:"assets"`
-	Services                            []localStateServiceState                            `json:"services"`
-	Transfers                           []localStateTransferState                           `json:"transfers,omitempty"`
-	Audits                              []localStateAuditState                              `json:"audits,omitempty"`
-	LocalEnvironmentHostProfiles        []localEnvironmentHostProfileState                  `json:"localEnvironmentHostProfiles,omitempty"`
-	LocalEnvironmentSelectedSources     []localEnvironmentSelectedSourceRecordState         `json:"localEnvironmentSelectedSourceRecords,omitempty"`
-	LocalEnvironmentDependencyJobs      []localEnvironmentDependencyJobState                `json:"localEnvironmentDependencyJobs,omitempty"`
-	LocalEnvironmentPlanContracts       []localEnvironmentPlanDependencyContractState       `json:"localEnvironmentPlanDependencyContracts,omitempty"`
-	ManagedImageProfileMaterializations []localStateManagedImageProfileMaterializationState `json:"managedImageProfileMaterializations,omitempty"`
-}
-
-type localStateBundleEntryState struct {
-	Ordinal      uint32 `json:"ordinal"`
-	RelativePath string `json:"relativePath"`
-	SHA256       string `json:"sha256"`
-}
-
-// localStateAssetState is the unified persistence row for all asset kinds.
-type localStateAssetState struct {
-	LocalAssetID     string                       `json:"localAssetId"`
-	AssetID          string                       `json:"assetId"`
-	DisplayName      string                       `json:"displayName,omitempty"`
-	SourceFileName   string                       `json:"sourceFileName,omitempty"`
-	ImportInstanceID string                       `json:"importInstanceId,omitempty"`
-	Kind             int32                        `json:"kind"`
-	Engine           string                       `json:"engine"`
-	Entry            string                       `json:"entry"`
-	Files            []string                     `json:"files,omitempty"`
-	BundleEntries    []localStateBundleEntryState `json:"bundleEntries,omitempty"`
-	License          string                       `json:"license"`
-	SourceRepo       string                       `json:"sourceRepo"`
-	SourceRev        string                       `json:"sourceRevision"`
-	Hashes           map[string]string            `json:"hashes"`
-	Status           int32                        `json:"status"`
-	InstalledAt      string                       `json:"installedAt"`
-	UpdatedAt        string                       `json:"updatedAt"`
-	HealthDetail     string                       `json:"healthDetail"`
-	ReasonCode       string                       `json:"reasonCode,omitempty"`
-	// Runnable-only fields
-	Capabilities         []string       `json:"capabilities,omitempty"`
-	LogicalModelID       string         `json:"logicalModelId,omitempty"`
-	Family               string         `json:"family,omitempty"`
-	ArtifactRoles        []string       `json:"artifactRoles,omitempty"`
-	PreferredEngine      string         `json:"preferredEngine,omitempty"`
-	FallbackEngines      []string       `json:"fallbackEngines,omitempty"`
-	BundleState          int32          `json:"bundleState,omitempty"`
-	HostRequirements     map[string]any `json:"hostRequirements,omitempty"`
-	LocalInvokeProfileID string         `json:"localInvokeProfileId,omitempty"`
-	EngineConfig         map[string]any `json:"engineConfig,omitempty"`
-	// Passive-only fields
-	Metadata map[string]any `json:"metadata,omitempty"`
-}
-
-type localStateServiceState struct {
-	ServiceID         string   `json:"serviceId"`
-	Title             string   `json:"title"`
-	Engine            string   `json:"engine"`
-	ArtifactType      string   `json:"artifactType"`
-	Endpoint          string   `json:"endpoint"`
-	Capabilities      []string `json:"capabilities"`
-	LocalModelID      string   `json:"localModelId"`
-	Status            int32    `json:"status"`
-	Detail            string   `json:"detail"`
-	ReasonCode        string   `json:"reasonCode,omitempty"`
-	InstalledAt       string   `json:"installedAt"`
-	UpdatedAt         string   `json:"updatedAt"`
-	EngineRuntimeMode int32    `json:"engineRuntimeMode,omitempty"`
+	SchemaVersion                   int                                           `json:"schemaVersion"`
+	SavedAt                         string                                        `json:"savedAt"`
+	Transfers                       []localStateTransferState                     `json:"transfers,omitempty"`
+	Audits                          []localStateAuditState                        `json:"audits,omitempty"`
+	LocalEnvironmentHostProfiles    []localEnvironmentHostProfileState            `json:"localEnvironmentHostProfiles,omitempty"`
+	LocalEnvironmentSelectedSources []localEnvironmentSelectedSourceRecordState   `json:"localEnvironmentSelectedSourceRecords,omitempty"`
+	LocalEnvironmentDependencyJobs  []localEnvironmentDependencyJobState          `json:"localEnvironmentDependencyJobs,omitempty"`
+	LocalEnvironmentPlanContracts   []localEnvironmentPlanDependencyContractState `json:"localEnvironmentPlanDependencyContracts,omitempty"`
+	retainedRecords                 []quarantinedStateRecord
 }
 
 type localStateAuditState struct {
@@ -99,7 +39,6 @@ type localStateAuditState struct {
 	ReasonCode    string         `json:"reasonCode"`
 	Detail        string         `json:"detail"`
 	ModelID       string         `json:"modelId"`
-	LocalModelID  string         `json:"localModelId"`
 	Payload       map[string]any `json:"payload"`
 	TraceID       string         `json:"traceId,omitempty"`
 	AppID         string         `json:"appId,omitempty"`
@@ -111,7 +50,6 @@ type localStateAuditState struct {
 type localStateTransferState struct {
 	InstallSessionID string `json:"installSessionId"`
 	AssetID          string `json:"assetId"`
-	LocalAssetID     string `json:"localAssetId,omitempty"`
 	SessionKind      string `json:"sessionKind"`
 	Phase            string `json:"phase"`
 	State            string `json:"state"`
@@ -124,31 +62,6 @@ type localStateTransferState struct {
 	Retryable        bool   `json:"retryable,omitempty"`
 	CreatedAt        string `json:"createdAt"`
 	UpdatedAt        string `json:"updatedAt"`
-}
-
-type localStateManagedImageProfileMaterializationState struct {
-	ProfileBindingID        string                                              `json:"profileBindingId"`
-	LocalAssetID            string                                              `json:"localAssetId"`
-	MaterializationKey      string                                              `json:"materializationKey,omitempty"`
-	MaterializationResolved bool                                                `json:"materializationResolved"`
-	MaterializationBindings []localStateManagedImageMaterializationBindingState `json:"materializationBindings,omitempty"`
-}
-
-type localStateManagedImageMaterializationBindingState struct {
-	AssetID               string         `json:"assetId,omitempty"`
-	LocalAssetID          string         `json:"localAssetId,omitempty"`
-	OccurrenceID          string         `json:"occurrenceId,omitempty"`
-	Order                 int            `json:"order,omitempty"`
-	Role                  string         `json:"role,omitempty"`
-	LogicalModelID        string         `json:"logicalModelId,omitempty"`
-	Required              bool           `json:"required,omitempty"`
-	Weight                string         `json:"weight,omitempty"`
-	Options               map[string]any `json:"options,omitempty"`
-	CompanionKind         string         `json:"companionKind,omitempty"`
-	EngineSlot            string         `json:"engineSlot,omitempty"`
-	CompanionAssetID      string         `json:"companionAssetId,omitempty"`
-	CompanionLocalAssetID string         `json:"companionLocalAssetId,omitempty"`
-	ParentAssetID         string         `json:"parentAssetId,omitempty"`
 }
 
 func resolveLocalStatePath(configuredPath string) string {
@@ -170,99 +83,15 @@ func (s *Service) restoreState() error {
 	if path == "" {
 		return nil
 	}
-	snapshot, err := loadLocalStateSnapshot(path)
+	snapshot, isolationDiagnostics, rewriteRequired, err := loadLocalStateSnapshotIsolated(path)
 	if err != nil {
 		return err
 	}
 
 	s.mu.Lock()
-	healedSnapshot := false
-
-	assetRows := make([]*runtimev1.LocalAssetRecord, 0, len(snapshot.Assets))
-	for _, item := range snapshot.Assets {
-		record := &runtimev1.LocalAssetRecord{
-			LocalAssetId:     item.LocalAssetID,
-			AssetId:          item.AssetID,
-			DisplayName:      item.DisplayName,
-			SourceFileName:   item.SourceFileName,
-			ImportInstanceId: item.ImportInstanceID,
-			Kind:             runtimev1.LocalAssetKind(item.Kind),
-			Engine:           item.Engine,
-			Entry:            item.Entry,
-			Files:            normalizeStringSlice(item.Files),
-			License:          item.License,
-			Source: &runtimev1.LocalAssetSource{
-				Repo:     item.SourceRepo,
-				Revision: item.SourceRev,
-			},
-			Hashes:               cloneStringMap(item.Hashes),
-			Status:               runtimev1.LocalAssetStatus(item.Status),
-			InstalledAt:          item.InstalledAt,
-			UpdatedAt:            item.UpdatedAt,
-			HealthDetail:         item.HealthDetail,
-			ReasonCode:           parseProjectionReasonCode(item.ReasonCode),
-			Capabilities:         normalizeStringSlice(item.Capabilities),
-			LogicalModelId:       item.LogicalModelID,
-			Family:               item.Family,
-			ArtifactRoles:        normalizeStringSlice(item.ArtifactRoles),
-			PreferredEngine:      item.PreferredEngine,
-			FallbackEngines:      normalizeStringSlice(item.FallbackEngines),
-			BundleState:          runtimev1.LocalBundleState(item.BundleState),
-			BundleEntries:        localBundleEntriesFromState(item.BundleEntries),
-			HostRequirements:     hostRequirementsFromMap(item.HostRequirements),
-			LocalInvokeProfileId: item.LocalInvokeProfileID,
-			EngineConfig:         toStruct(item.EngineConfig),
-			Metadata:             toStruct(item.Metadata),
-		}
-		if record.GetLocalAssetId() == "" {
-			continue
-		}
-		if strings.TrimSpace(record.GetDisplayName()) == "" {
-			// Heal display facts for records persisted before display_name existed.
-			record.DisplayName = defaultLocalImportDisplayName(record.GetAssetId(), record.GetImportInstanceId())
-			healedSnapshot = true
-		}
-		assetRows = append(assetRows, record)
-	}
-	assetRows, changed := dedupeLocalAssetRecords(assetRows)
-	if changed {
-		healedSnapshot = true
-	}
-	for _, record := range assetRows {
-		s.assets[record.GetLocalAssetId()] = record
-	}
-
-	modelsRoot := resolveLocalModelsPath(s.localModelsPath)
-	for _, record := range s.assets {
-		if healed := healManagedImageNativeProjection(modelsRoot, record, s.logger); healed {
-			healedSnapshot = true
-		}
-		if healed := healManagedImagePassiveProjection(modelsRoot, record, s.logger); healed {
-			healedSnapshot = true
-		}
-	}
-
-	for _, item := range snapshot.Services {
-		record := &runtimev1.LocalServiceDescriptor{
-			ServiceId:    item.ServiceID,
-			Title:        item.Title,
-			Engine:       item.Engine,
-			ArtifactType: item.ArtifactType,
-			Endpoint:     item.Endpoint,
-			Capabilities: normalizeStringSlice(item.Capabilities),
-			LocalModelId: item.LocalModelID,
-			Status:       runtimev1.LocalServiceStatus(item.Status),
-			Detail:       item.Detail,
-			ReasonCode:   parseProjectionReasonCode(item.ReasonCode),
-			InstalledAt:  item.InstalledAt,
-			UpdatedAt:    item.UpdatedAt,
-		}
-		if record.GetServiceId() == "" {
-			continue
-		}
-		s.services[record.GetServiceId()] = record
-		s.setServiceRuntimeModeLocked(record.GetServiceId(), runtimev1.LocalEngineRuntimeMode(item.EngineRuntimeMode))
-	}
+	s.stateIsolationDiagnostics = append(s.stateIsolationDiagnostics, isolationDiagnostics...)
+	s.localStateRetainedRecords = cloneQuarantinedStateRecords(snapshot.retainedRecords)
+	healedSnapshot := rewriteRequired
 
 	s.audits = s.audits[:0]
 	capacity := s.effectiveLocalAuditCapacity()
@@ -276,7 +105,6 @@ func (s *Service) restoreState() error {
 			ReasonCode:    item.ReasonCode,
 			Detail:        item.Detail,
 			ModelId:       item.ModelID,
-			LocalModelId:  item.LocalModelID,
 			Payload:       toStruct(item.Payload),
 			TraceId:       item.TraceID,
 			AppId:         item.AppID,
@@ -295,7 +123,6 @@ func (s *Service) restoreState() error {
 		summary := &runtimev1.LocalTransferSessionSummary{
 			InstallSessionId: item.InstallSessionID,
 			AssetId:          item.AssetID,
-			LocalAssetId:     item.LocalAssetID,
 			SessionKind:      normalizeTransferKind(item.SessionKind),
 			Phase:            item.Phase,
 			State:            normalizeTransferState(item.State),
@@ -355,32 +182,15 @@ func (s *Service) restoreState() error {
 		}
 		s.localEnvironmentPlanDependencyContracts[key] = item
 	}
-	s.managedImageProfiles = make(map[string]managedImageProfileState, len(snapshot.ManagedImageProfileMaterializations))
-	s.managedImageProfileBindings = make(map[string]managedImageProfileState, len(snapshot.ManagedImageProfileMaterializations))
-	for _, item := range snapshot.ManagedImageProfileMaterializations {
-		profileBindingID, localAssetID, materializationKey, bindings, ok := restoreManagedImageProfileMaterialization(item, s.assets)
-		if !ok {
-			continue
-		}
-		state := managedImageProfileState{
-			BindingID:               profileBindingID,
-			MainLocalAssetID:        localAssetID,
-			Alias:                   materializationKey,
-			MaterializationResolved: true,
-			MaterializationBindings: bindings,
-		}
-		s.managedImageProfileBindings[profileBindingID] = state
-	}
 	// Crash recovery: a job persisted at a non-terminal state across a daemon
 	// restart has no background goroutine driving it. Fail every orphan closed
 	// (retryable) so it is never a permanently frozen in-progress job.
 	if s.failOrphanedLocalEnvironmentDependencyJobsLocked() > 0 {
 		healedSnapshot = true
 	}
-	// Same crash recovery for transfer sessions: a download/import persisted
-	// at a non-terminal state has no driver after a restart and would
-	// otherwise stay "running" forever with no way to interrupt it.
-	if s.failOrphanedLocalTransfersLocked() > 0 {
+	// Transfer crash recovery pauses resumable downloads with their interruption
+	// reason while retaining the existing fail-closed handling for imports.
+	if s.reconcileOrphanedLocalTransfersLocked() > 0 {
 		healedSnapshot = true
 	}
 	if healedSnapshot {
@@ -397,88 +207,15 @@ func (s *Service) persistStateLocked() {
 	}
 
 	snapshot := localStateSnapshot{
-		SchemaVersion:                       localStateSchemaVersion,
-		SavedAt:                             time.Now().UTC().Format(time.RFC3339Nano),
-		Assets:                              make([]localStateAssetState, 0, len(s.assets)),
-		Services:                            make([]localStateServiceState, 0, len(s.services)),
-		Transfers:                           make([]localStateTransferState, 0, len(s.transfers)),
-		Audits:                              make([]localStateAuditState, 0, len(s.audits)),
-		LocalEnvironmentHostProfiles:        make([]localEnvironmentHostProfileState, 0, len(s.localEnvironmentHostProfiles)),
-		LocalEnvironmentSelectedSources:     make([]localEnvironmentSelectedSourceRecordState, 0, len(s.localEnvironmentSelectedSources)),
-		LocalEnvironmentDependencyJobs:      make([]localEnvironmentDependencyJobState, 0, len(s.localEnvironmentDependencyJobs)),
-		LocalEnvironmentPlanContracts:       make([]localEnvironmentPlanDependencyContractState, 0, len(s.localEnvironmentPlanDependencyContracts)),
-		ManagedImageProfileMaterializations: make([]localStateManagedImageProfileMaterializationState, 0, len(s.managedImageProfiles)),
-	}
-
-	assetIDs := make([]string, 0, len(s.assets))
-	for id := range s.assets {
-		assetIDs = append(assetIDs, id)
-	}
-	sort.Strings(assetIDs)
-	for _, id := range assetIDs {
-		asset := s.assets[id]
-		if asset == nil {
-			continue
-		}
-		snapshot.Assets = append(snapshot.Assets, localStateAssetState{
-			LocalAssetID:         asset.GetLocalAssetId(),
-			AssetID:              asset.GetAssetId(),
-			DisplayName:          asset.GetDisplayName(),
-			SourceFileName:       asset.GetSourceFileName(),
-			ImportInstanceID:     asset.GetImportInstanceId(),
-			Kind:                 int32(asset.GetKind()),
-			Engine:               asset.GetEngine(),
-			Entry:                asset.GetEntry(),
-			Files:                append([]string(nil), asset.GetFiles()...),
-			License:              asset.GetLicense(),
-			SourceRepo:           asset.GetSource().GetRepo(),
-			SourceRev:            asset.GetSource().GetRevision(),
-			Hashes:               cloneStringMap(asset.GetHashes()),
-			Status:               int32(asset.GetStatus()),
-			InstalledAt:          asset.GetInstalledAt(),
-			UpdatedAt:            asset.GetUpdatedAt(),
-			HealthDetail:         asset.GetHealthDetail(),
-			ReasonCode:           formatProjectionReasonCode(asset.GetReasonCode()),
-			Capabilities:         append([]string(nil), asset.GetCapabilities()...),
-			LogicalModelID:       asset.GetLogicalModelId(),
-			Family:               asset.GetFamily(),
-			ArtifactRoles:        append([]string(nil), asset.GetArtifactRoles()...),
-			PreferredEngine:      asset.GetPreferredEngine(),
-			FallbackEngines:      append([]string(nil), asset.GetFallbackEngines()...),
-			BundleState:          int32(asset.GetBundleState()),
-			BundleEntries:        localBundleEntriesToState(asset.GetBundleEntries()),
-			HostRequirements:     hostRequirementsToMap(asset.GetHostRequirements()),
-			LocalInvokeProfileID: asset.GetLocalInvokeProfileId(),
-			EngineConfig:         structToMap(asset.GetEngineConfig()),
-			Metadata:             structToMap(asset.GetMetadata()),
-		})
-	}
-
-	serviceIDs := make([]string, 0, len(s.services))
-	for id := range s.services {
-		serviceIDs = append(serviceIDs, id)
-	}
-	sort.Strings(serviceIDs)
-	for _, id := range serviceIDs {
-		service := s.services[id]
-		if service == nil {
-			continue
-		}
-		snapshot.Services = append(snapshot.Services, localStateServiceState{
-			ServiceID:         service.GetServiceId(),
-			Title:             service.GetTitle(),
-			Engine:            service.GetEngine(),
-			ArtifactType:      service.GetArtifactType(),
-			Endpoint:          service.GetEndpoint(),
-			Capabilities:      append([]string(nil), service.GetCapabilities()...),
-			LocalModelID:      service.GetLocalModelId(),
-			Status:            int32(service.GetStatus()),
-			Detail:            service.GetDetail(),
-			ReasonCode:        formatProjectionReasonCode(service.GetReasonCode()),
-			InstalledAt:       service.GetInstalledAt(),
-			UpdatedAt:         service.GetUpdatedAt(),
-			EngineRuntimeMode: int32(s.serviceRuntimeModes[id]),
-		})
+		SchemaVersion:                   localStateSchemaVersion,
+		SavedAt:                         time.Now().UTC().Format(time.RFC3339Nano),
+		Transfers:                       make([]localStateTransferState, 0, len(s.transfers)),
+		Audits:                          make([]localStateAuditState, 0, len(s.audits)),
+		LocalEnvironmentHostProfiles:    make([]localEnvironmentHostProfileState, 0, len(s.localEnvironmentHostProfiles)),
+		LocalEnvironmentSelectedSources: make([]localEnvironmentSelectedSourceRecordState, 0, len(s.localEnvironmentSelectedSources)),
+		LocalEnvironmentDependencyJobs:  make([]localEnvironmentDependencyJobState, 0, len(s.localEnvironmentDependencyJobs)),
+		LocalEnvironmentPlanContracts:   make([]localEnvironmentPlanDependencyContractState, 0, len(s.localEnvironmentPlanDependencyContracts)),
+		retainedRecords:                 cloneQuarantinedStateRecords(s.localStateRetainedRecords),
 	}
 
 	transferIDs := make([]string, 0, len(s.transfers))
@@ -494,7 +231,6 @@ func (s *Service) persistStateLocked() {
 		snapshot.Transfers = append(snapshot.Transfers, localStateTransferState{
 			InstallSessionID: transfer.GetInstallSessionId(),
 			AssetID:          transfer.GetAssetId(),
-			LocalAssetID:     transfer.GetLocalAssetId(),
 			SessionKind:      normalizeTransferKind(transfer.GetSessionKind()),
 			Phase:            transfer.GetPhase(),
 			State:            normalizeTransferState(transfer.GetState()),
@@ -523,7 +259,6 @@ func (s *Service) persistStateLocked() {
 			ReasonCode:    event.GetReasonCode(),
 			Detail:        event.GetDetail(),
 			ModelID:       event.GetModelId(),
-			LocalModelID:  event.GetLocalModelId(),
 			Payload:       structToMap(event.GetPayload()),
 			TraceID:       event.GetTraceId(),
 			AppID:         event.GetAppId(),
@@ -570,29 +305,6 @@ func (s *Service) persistStateLocked() {
 	sort.Strings(planContractKeys)
 	for _, key := range planContractKeys {
 		snapshot.LocalEnvironmentPlanContracts = append(snapshot.LocalEnvironmentPlanContracts, s.localEnvironmentPlanDependencyContracts[key])
-	}
-
-	managedImageProfileIDs := make([]string, 0, len(s.managedImageProfileBindings))
-	for profileBindingID, profile := range s.managedImageProfileBindings {
-		if !profile.MaterializationResolved || len(profile.MaterializationBindings) == 0 {
-			continue
-		}
-		managedImageProfileIDs = append(managedImageProfileIDs, profileBindingID)
-	}
-	sort.Strings(managedImageProfileIDs)
-	for _, profileBindingID := range managedImageProfileIDs {
-		profile := s.managedImageProfileBindings[profileBindingID]
-		bindings := managedImageMaterializationBindingsToLocalState(profile.MaterializationBindings)
-		if len(bindings) == 0 {
-			continue
-		}
-		snapshot.ManagedImageProfileMaterializations = append(snapshot.ManagedImageProfileMaterializations, localStateManagedImageProfileMaterializationState{
-			ProfileBindingID:        profileBindingID,
-			LocalAssetID:            strings.TrimSpace(profile.MainLocalAssetID),
-			MaterializationKey:      strings.TrimSpace(profile.Alias),
-			MaterializationResolved: true,
-			MaterializationBindings: bindings,
-		})
 	}
 
 	if err := saveLocalStateSnapshot(path, snapshot); err != nil {

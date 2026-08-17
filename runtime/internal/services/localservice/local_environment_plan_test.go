@@ -11,6 +11,31 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/engine"
 )
 
+func localEnvironmentAppleSilicon128GBProfile() *runtimev1.LocalDeviceProfile {
+	return &runtimev1.LocalDeviceProfile{
+		Os:            "darwin",
+		Arch:          "arm64",
+		TotalRamBytes: int64(128) << 30,
+		Gpu: &runtimev1.LocalGpuProfile{
+			Available:   true,
+			Vendor:      "apple",
+			Model:       "Apple M4 Max",
+			MemoryModel: runtimev1.GpuMemoryModel_GPU_MEMORY_MODEL_UNIFIED,
+		},
+		Python: &runtimev1.LocalPythonProfile{Available: true, Version: "3.11.6"},
+	}
+}
+
+func planDependenciesByFamily(plan localEnvironmentPlan, family string) []localEnvironmentPlanDependency {
+	out := make([]localEnvironmentPlanDependency, 0, 2)
+	for _, dep := range plan.Dependencies {
+		if dep.DependencyFamily == family {
+			out = append(out, dep)
+		}
+	}
+	return out
+}
+
 func TestLocalEnvironmentServiceConstructionDoesNotResolveLocalCompute(t *testing.T) {
 	svc := newLocalEnvironmentTestService(t)
 	defer func() { svc.Close() }()
@@ -60,7 +85,6 @@ func TestResolveLocalEnvironmentPlanDefaultRuntimeDataRootUsesServiceDataRootIde
 		PackID:        "local-text",
 		ConsumerScope: "llama.cpp.cuda",
 		HostProfile:   localEnvironmentNvidiaProfile(),
-		AssetID:       "text/test-model",
 	})
 	if plan.RuntimeDataRoot != dataRoot {
 		t.Fatalf("default runtime data root = %q, want data root %q", plan.RuntimeDataRoot, dataRoot)
@@ -79,13 +103,10 @@ func TestResolveLocalEnvironmentPlanIncludesPythonManagedFamilies(t *testing.T) 
 
 	runtimeDataRoot := filepath.Join(t.TempDir(), "runtime-data")
 	plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
-		PackID:           "local-image-python",
-		ConsumerScope:    "media.diffusers.cuda",
-		HostProfile:      localEnvironmentNvidiaProfile(),
-		RuntimeDataRoot:  runtimeDataRoot,
-		AssetID:          "image/test-python",
-		CompanionAssetID: "image/test-companion",
-		ParentAssetID:    "image/test-python",
+		PackID:          "local-image-python",
+		ConsumerScope:   "media.diffusers.cuda",
+		HostProfile:     localEnvironmentNvidiaProfile(),
+		RuntimeDataRoot: runtimeDataRoot,
 	})
 
 	if plan.State != localEnvironmentStateNeedsConfirmation {
@@ -96,8 +117,6 @@ func TestResolveLocalEnvironmentPlanIncludesPythonManagedFamilies(t *testing.T) 
 	assertLocalEnvironmentFamily(t, plan, localEnvironmentFamilyPythonVenv)
 	assertLocalEnvironmentFamily(t, plan, localEnvironmentFamilyPythonPackageSet)
 	assertLocalEnvironmentFamily(t, plan, localEnvironmentFamilyPythonTorchWheel)
-	assertLocalEnvironmentFamily(t, plan, localEnvironmentFamilyModelAsset)
-	assertLocalEnvironmentFamily(t, plan, localEnvironmentFamilyModelCompanion)
 	assertLocalEnvironmentFamily(t, plan, localEnvironmentFamilyCUDA)
 	for _, dep := range plan.Dependencies {
 		if dep.State == localEnvironmentStateReadyManaged || dep.State == localEnvironmentStateReadySystem {
@@ -114,7 +133,6 @@ func TestResolveLocalEnvironmentPlanIncludesPythonManagedFamilies(t *testing.T) 
 		ConsumerScope:   "media.video-python.cuda",
 		HostProfile:     localEnvironmentNvidiaProfile(),
 		RuntimeDataRoot: runtimeDataRoot,
-		AssetID:         "video/test-python",
 	})
 	videoPackages := findLocalEnvironmentDependency(t, videoPlan, localEnvironmentFamilyPythonPackageSet)
 	if videoPackages.DependencyID != imagePackages.DependencyID || videoPackages.EnvironmentKey != imagePackages.EnvironmentKey {
@@ -160,7 +178,6 @@ func TestResolveLocalSpeechPlanIncludesHostAppropriateTorchWheel(t *testing.T) {
 				ConsumerScope:   "speech.qwen3-tts.python",
 				HostProfile:     test.profile,
 				RuntimeDataRoot: filepath.Join(t.TempDir(), "runtime-data"),
-				AssetID:         "speech/test-tts-model",
 			})
 			torchDep := findLocalEnvironmentDependency(t, plan, localEnvironmentFamilyPythonTorchWheel)
 			if torchDep.DependencyID != test.wantTorchID || torchDep.ConsumerScope != test.wantTorchConsumer || !torchDep.Required {
@@ -189,7 +206,6 @@ func TestResolveLocalSpeechPlanProjectsRuntimeOwnedCapabilityConfirmation(t *tes
 		ConsumerScope:   "speech.qwen3-tts.python",
 		HostProfile:     localEnvironmentNvidiaProfile(),
 		RuntimeDataRoot: filepath.Join(t.TempDir(), "runtime-data"),
-		AssetID:         "speech/test-tts-model",
 	})
 
 	wantFamilies := []string{
@@ -198,7 +214,6 @@ func TestResolveLocalSpeechPlanProjectsRuntimeOwnedCapabilityConfirmation(t *tes
 		localEnvironmentFamilyPythonVenv,
 		localEnvironmentFamilyPythonPackageSet,
 		localEnvironmentFamilyPythonTorchWheel,
-		localEnvironmentFamilyModelAsset,
 		localEnvironmentFamilyCUDA,
 	}
 	if strings.Join(plan.RequiredDependencyFamilies, "|") != strings.Join(wantFamilies, "|") {
@@ -207,7 +222,7 @@ func TestResolveLocalSpeechPlanProjectsRuntimeOwnedCapabilityConfirmation(t *tes
 	if plan.AggregateSizeKnown || plan.AggregateSizeBytes != 0 {
 		t.Fatalf("unmaterialized plan aggregate size = known:%t bytes:%d, want explicitly unknown", plan.AggregateSizeKnown, plan.AggregateSizeBytes)
 	}
-	wantCategories := []string{"dependencies", "environments", "models"}
+	wantCategories := []string{"dependencies", "environments"}
 	if strings.Join(plan.StorageCategories, "|") != strings.Join(wantCategories, "|") {
 		t.Fatalf("storage categories = %v, want %v", plan.StorageCategories, wantCategories)
 	}
@@ -253,7 +268,6 @@ func TestResolveLocalSpeechTorchWheelIdentityUsesExactWheelSourceAndExcludesCons
 			ConsumerScope:   consumer,
 			HostProfile:     profile,
 			RuntimeDataRoot: runtimeDataRoot,
-			AssetID:         "speech/test-model",
 		})
 		return findLocalEnvironmentDependency(t, plan, localEnvironmentFamilyPythonTorchWheel)
 	}
@@ -290,7 +304,6 @@ func TestResolvePythonProfileKeepsConsumptionEvidenceOutsideCanonicalTorchSource
 			ConsumerScope:   consumer,
 			HostProfile:     profile,
 			RuntimeDataRoot: runtimeDataRoot,
-			AssetID:         "media/test-model",
 		}
 	}
 	installProfileEvidence := func(t *testing.T, packID string, consumer string, activationArtifact string) (localEnvironmentPlanDependency, localEnvironmentPlanDependency) {
@@ -401,7 +414,6 @@ func TestResolveLocalSpeechTorchWheelRejectsStaleWheelLock(t *testing.T) {
 		ConsumerScope:   "speech.qwen3-tts.python",
 		HostProfile:     localEnvironmentNvidiaProfile(),
 		RuntimeDataRoot: runtimeDataRoot,
-		AssetID:         "speech/test-tts-model",
 	}
 	plan := svc.resolveLocalEnvironmentPlan(request)
 	torchDep := findLocalEnvironmentDependency(t, plan, localEnvironmentFamilyPythonTorchWheel)
@@ -430,13 +442,10 @@ func TestResolveLocalEnvironmentPlanNativeImageExcludesPythonManagedFamilies(t *
 	svc.SetEngineManager(&mockEngineManager{})
 
 	plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
-		PackID:           "local-image-native",
-		ConsumerScope:    stableDiffusionCUDAConsumerID,
-		HostProfile:      localEnvironmentNvidiaProfile(),
-		RuntimeDataRoot:  filepath.Join(t.TempDir(), "runtime-data"),
-		AssetID:          "image/test-native",
-		CompanionAssetID: "image/test-companion",
-		ParentAssetID:    "image/test-native",
+		PackID:          "local-image-native",
+		ConsumerScope:   stableDiffusionCUDAConsumerID,
+		HostProfile:     localEnvironmentNvidiaProfile(),
+		RuntimeDataRoot: filepath.Join(t.TempDir(), "runtime-data"),
 	})
 
 	for _, family := range []string{
@@ -451,32 +460,7 @@ func TestResolveLocalEnvironmentPlanNativeImageExcludesPythonManagedFamilies(t *
 		}
 	}
 	assertLocalEnvironmentFamily(t, plan, localEnvironmentFamilyNativeSDCPP)
-	assertLocalEnvironmentFamily(t, plan, localEnvironmentFamilyModelAsset)
-	assertLocalEnvironmentFamily(t, plan, localEnvironmentFamilyModelCompanion)
 	assertLocalEnvironmentFamily(t, plan, localEnvironmentFamilyCUDA)
-}
-
-func TestResolveLocalEnvironmentPlanRequiresAssetSpecificModelDependency(t *testing.T) {
-	svc := newLocalEnvironmentTestService(t)
-	defer func() { svc.Close() }()
-
-	plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
-		PackID:          "local-image-python",
-		ConsumerScope:   "media.diffusers.cpu",
-		HostProfile:     localEnvironmentNvidiaProfile(),
-		RuntimeDataRoot: filepath.Join(t.TempDir(), "runtime-data"),
-	})
-
-	dep := findLocalEnvironmentDependency(t, plan, localEnvironmentFamilyModelAsset)
-	if dep.State != localEnvironmentStateUnsupported {
-		t.Fatalf("model asset dep state = %q, want unsupported", dep.State)
-	}
-	if dep.ReasonCode != "LOCAL_ENVIRONMENT_ASSET_ID_REQUIRED" {
-		t.Fatalf("reason = %q, want asset id required", dep.ReasonCode)
-	}
-	if dep.DependencyID != "" {
-		t.Fatalf("dependency id = %q, want empty without explicit asset identity", dep.DependencyID)
-	}
 }
 
 func TestResolveLocalEnvironmentPlanIncludesTextAndOptionalCUDA(t *testing.T) {
@@ -488,11 +472,9 @@ func TestResolveLocalEnvironmentPlanIncludesTextAndOptionalCUDA(t *testing.T) {
 		ConsumerScope:   "llama.cpp.cuda",
 		HostProfile:     localEnvironmentNvidiaProfile(),
 		RuntimeDataRoot: filepath.Join(t.TempDir(), "runtime-data"),
-		AssetID:         "text/test-model",
 	})
 
 	assertLocalEnvironmentFamily(t, plan, localEnvironmentFamilyNativeLlama)
-	assertLocalEnvironmentFamily(t, plan, localEnvironmentFamilyModelAsset)
 	assertLocalEnvironmentFamily(t, plan, localEnvironmentFamilyCUDA)
 }
 
@@ -506,7 +488,6 @@ func TestResolveLocalEnvironmentPlanPromotesFirstRunNvidiaCUDAToRequired(t *test
 		ConsumerScope:   "first-run",
 		HostProfile:     localEnvironmentNvidiaProfile(),
 		RuntimeDataRoot: filepath.Join(t.TempDir(), "runtime-data"),
-		AssetID:         "text/test-model",
 	})
 
 	dep := findLocalEnvironmentDependency(t, plan, localEnvironmentFamilyCUDA)
@@ -543,7 +524,6 @@ func TestResolveLocalEnvironmentPlanUsesEngineCUDASelectionWhenDetailedFirstRunP
 			Python: &runtimev1.LocalPythonProfile{Available: false},
 		},
 		RuntimeDataRoot: filepath.Join(t.TempDir(), "runtime-data"),
-		AssetID:         "text/test-model",
 	})
 
 	dep := findLocalEnvironmentDependency(t, plan, localEnvironmentFamilyCUDA)
@@ -580,7 +560,6 @@ func TestResolveLocalEnvironmentPlanKeepsFirstRunCUDAOptionalWhenEngineSelection
 			Python: &runtimev1.LocalPythonProfile{Available: false},
 		},
 		RuntimeDataRoot: filepath.Join(t.TempDir(), "runtime-data"),
-		AssetID:         "text/test-model",
 	})
 
 	dep := findLocalEnvironmentDependency(t, plan, localEnvironmentFamilyCUDA)
@@ -602,7 +581,6 @@ func TestResolveLocalEnvironmentPlanKeepsCPUConsumerCUDAOptional(t *testing.T) {
 		ConsumerScope:   "llama.cpp.cpu",
 		HostProfile:     localEnvironmentNvidiaProfile(),
 		RuntimeDataRoot: filepath.Join(t.TempDir(), "runtime-data"),
-		AssetID:         "text/test-model",
 	})
 
 	dep := findLocalEnvironmentDependency(t, plan, localEnvironmentFamilyCUDA)
@@ -621,7 +599,6 @@ func TestResolveLocalEnvironmentPlanRequiresCUDAForCUDAConsumer(t *testing.T) {
 		ConsumerScope:   "llama.cpp.cuda",
 		HostProfile:     localEnvironmentNvidiaProfile(),
 		RuntimeDataRoot: filepath.Join(t.TempDir(), "runtime-data"),
-		AssetID:         "text/test-model",
 	})
 
 	dep := findLocalEnvironmentDependency(t, plan, localEnvironmentFamilyCUDA)
@@ -763,7 +740,6 @@ func TestResolveLocalEnvironmentPlanRejectsLinuxTTSPythonProfile(t *testing.T) {
 		ConsumerScope:   "speech.qwen3-tts.python",
 		HostProfile:     profile,
 		RuntimeDataRoot: runtimeDataRoot,
-		AssetID:         "speech/test-tts-model",
 	})
 	assertUnsupportedLinuxPythonProfileDependency(t, plan, localEnvironmentFamilyPythonPackageSet, "speech.qwen3-tts.python", runtimeDataRoot)
 }
@@ -779,7 +755,6 @@ func TestResolveLocalEnvironmentPlanRejectsLinuxTransformersASRPythonProfile(t *
 		ConsumerScope:   "speech.qwen3-asr-transformers.python",
 		HostProfile:     profile,
 		RuntimeDataRoot: runtimeDataRoot,
-		AssetID:         "speech/test-transformers-asr-model",
 	})
 	assertUnsupportedLinuxPythonProfileDependency(t, plan, localEnvironmentFamilyPythonPackageSet, "speech.qwen3-asr-transformers.python", runtimeDataRoot)
 }
@@ -795,7 +770,6 @@ func TestResolveLocalEnvironmentPlanRejectsAllLinuxSpeechPythonProfiles(t *testi
 		ConsumerScope:   consumer,
 		HostProfile:     localEnvironmentCPUProfileForTest(),
 		RuntimeDataRoot: runtimeDataRoot,
-		AssetID:         "speech/test-tts-model",
 	})
 	for _, family := range []string{localEnvironmentFamilyPythonVenv, localEnvironmentFamilyPythonPackageSet} {
 		assertUnsupportedLinuxPythonProfileDependency(t, plan, family, consumer, runtimeDataRoot)
@@ -917,7 +891,6 @@ func TestResolveLocalEnvironmentPlanProjectsLatestFailedJob(t *testing.T) {
 		ConsumerScope:   "llama.cpp.cuda",
 		HostProfile:     profile,
 		RuntimeDataRoot: runtimeDataRoot,
-		AssetID:         "text/test-model",
 	})
 	dep := findLocalEnvironmentDependency(t, plan, localEnvironmentFamilyNativeLlama)
 	job, err := svc.startLocalEnvironmentDependencyJob(context.Background(), localEnvironmentDependencyJobRequest{
@@ -939,7 +912,6 @@ func TestResolveLocalEnvironmentPlanProjectsLatestFailedJob(t *testing.T) {
 		ConsumerScope:   "llama.cpp.cuda",
 		HostProfile:     profile,
 		RuntimeDataRoot: runtimeDataRoot,
-		AssetID:         "text/test-model",
 	})
 	failedDep := findLocalEnvironmentDependency(t, failedPlan, localEnvironmentFamilyNativeLlama)
 	if failedDep.State != localEnvironmentStateFailed {
@@ -960,13 +932,10 @@ func TestResolveLocalEnvironmentPlanDoesNotReuseSelectedSourceAcrossConsumers(t 
 	profile := localEnvironmentAppleSilicon128GBProfile()
 
 	metalPlan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
-		PackID:           "local-image-native",
-		ConsumerScope:    "stable-diffusion.cpp.metal",
-		HostProfile:      profile,
-		RuntimeDataRoot:  runtimeDataRoot,
-		AssetID:          "image/test-sd",
-		CompanionAssetID: "image/test-lora",
-		ParentAssetID:    "image/test-sd",
+		PackID:          "local-image-native",
+		ConsumerScope:   "stable-diffusion.cpp.metal",
+		HostProfile:     profile,
+		RuntimeDataRoot: runtimeDataRoot,
 	})
 	metalDep := findLocalEnvironmentDependency(t, metalPlan, localEnvironmentFamilyNativeSDCPP)
 	record := verifiedSelectedSourceRecordForTest(localEnvironmentSelectedSourceRecordState{
@@ -981,13 +950,10 @@ func TestResolveLocalEnvironmentPlanDoesNotReuseSelectedSourceAcrossConsumers(t 
 	svc.upsertLocalEnvironmentSelectedSourceRecord(record)
 
 	unknownPlan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
-		PackID:           "local-image-native",
-		ConsumerScope:    "stable-diffusion.cpp.unknown",
-		HostProfile:      profile,
-		RuntimeDataRoot:  runtimeDataRoot,
-		AssetID:          "image/test-sd",
-		CompanionAssetID: "image/test-lora",
-		ParentAssetID:    "image/test-sd",
+		PackID:          "local-image-native",
+		ConsumerScope:   "stable-diffusion.cpp.unknown",
+		HostProfile:     profile,
+		RuntimeDataRoot: runtimeDataRoot,
 	})
 	unknownDep := findLocalEnvironmentDependency(t, unknownPlan, localEnvironmentFamilyNativeSDCPP)
 	if unknownDep.EnvironmentKey != metalDep.EnvironmentKey {
@@ -1001,79 +967,6 @@ func TestResolveLocalEnvironmentPlanDoesNotReuseSelectedSourceAcrossConsumers(t 
 	}
 }
 
-func TestResolveLocalImageNativePlanInfersConsumerForExplicitInstalledAsset(t *testing.T) {
-	svc := newLocalEnvironmentTestService(t)
-	defer func() { svc.Close() }()
-	runtimeDataRoot := filepath.Join(t.TempDir(), "runtime-data")
-	profile := localEnvironmentNvidiaProfile()
-	model := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
-		assetID:      "local/local-import/z_image_turbo-Q4_K",
-		capabilities: []string{"image.generate"},
-		engine:       "media",
-		entry:        "z_image_turbo-Q4_K.gguf",
-	})
-
-	plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
-		PackID:          "local-image-native",
-		HostProfile:     profile,
-		RuntimeDataRoot: runtimeDataRoot,
-		AssetID:         model.GetAssetId(),
-		LocalAssetID:    model.GetLocalAssetId(),
-	})
-
-	if plan.ConsumerScope != stableDiffusionCUDAConsumerID {
-		t.Fatalf("plan consumer scope = %q, want %q", plan.ConsumerScope, stableDiffusionCUDAConsumerID)
-	}
-	for _, dep := range plan.Dependencies {
-		if dep.ConsumerScope != stableDiffusionCUDAConsumerID {
-			t.Fatalf("dependency %s/%s consumer scope = %q, want %q", dep.DependencyFamily, dep.DependencyID, dep.ConsumerScope, stableDiffusionCUDAConsumerID)
-		}
-	}
-	modelDep := findLocalEnvironmentDependency(t, plan, localEnvironmentFamilyModelAsset)
-	if modelDep.DependencyID != model.GetAssetId() {
-		t.Fatalf("explicit installed image model dependency id = %q, want semantic asset id %q", modelDep.DependencyID, model.GetAssetId())
-	}
-	if strings.Contains(modelDep.DependencyID, model.GetLocalAssetId()) {
-		t.Fatalf("model.asset dependency id must not contain local_asset_id %q: %q", model.GetLocalAssetId(), modelDep.DependencyID)
-	}
-	nativeDep := findLocalEnvironmentDependency(t, plan, localEnvironmentFamilyNativeSDCPP)
-	if nativeDep.State != localEnvironmentStateNeedsConfirmation {
-		t.Fatalf("native dependency state = %q, want needs_confirmation: %+v", nativeDep.State, nativeDep)
-	}
-	cudaDep := findLocalEnvironmentDependency(t, plan, localEnvironmentFamilyCUDA)
-	if !cudaDep.Required {
-		t.Fatalf("cuda dependency should be required for inferred CUDA image consumer: %+v", cudaDep)
-	}
-}
-
-func TestResolveLocalImageNativePlanAcceptsAssetIDLocalAssetIdentity(t *testing.T) {
-	svc := newLocalEnvironmentTestService(t)
-	defer func() { svc.Close() }()
-	runtimeDataRoot := filepath.Join(t.TempDir(), "runtime-data")
-	profile := localEnvironmentNvidiaProfile()
-	model := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
-		assetID:      "local/local-import/z_image_turbo-Q4_K",
-		capabilities: []string{"image.generate"},
-		engine:       "media",
-		entry:        "z_image_turbo-Q4_K.gguf",
-	})
-
-	plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
-		PackID:          "local-image-native",
-		HostProfile:     profile,
-		RuntimeDataRoot: runtimeDataRoot,
-		AssetID:         "local/" + model.GetAssetId(),
-	})
-
-	if plan.ConsumerScope != stableDiffusionCUDAConsumerID {
-		t.Fatalf("plan consumer scope = %q, want %q", plan.ConsumerScope, stableDiffusionCUDAConsumerID)
-	}
-	modelDep := findLocalEnvironmentDependency(t, plan, localEnvironmentFamilyModelAsset)
-	if modelDep.DependencyID != model.GetAssetId() {
-		t.Fatalf("explicit local identity dependency id = %q, want semantic asset id %q", modelDep.DependencyID, model.GetAssetId())
-	}
-}
-
 func TestResolveLocalEnvironmentPlanDoesNotProjectLatestJobAcrossConsumers(t *testing.T) {
 	svc := newLocalEnvironmentTestService(t)
 	defer func() { svc.Close() }()
@@ -1081,13 +974,10 @@ func TestResolveLocalEnvironmentPlanDoesNotProjectLatestJobAcrossConsumers(t *te
 	profile := localEnvironmentAppleSilicon128GBProfile()
 
 	metalPlan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
-		PackID:           "local-image-native",
-		ConsumerScope:    "stable-diffusion.cpp.metal",
-		HostProfile:      profile,
-		RuntimeDataRoot:  runtimeDataRoot,
-		AssetID:          "image/test-sd",
-		CompanionAssetID: "image/test-lora",
-		ParentAssetID:    "image/test-sd",
+		PackID:          "local-image-native",
+		ConsumerScope:   "stable-diffusion.cpp.metal",
+		HostProfile:     profile,
+		RuntimeDataRoot: runtimeDataRoot,
 	})
 	metalDep := findLocalEnvironmentDependency(t, metalPlan, localEnvironmentFamilyNativeSDCPP)
 	unknownJob, err := svc.startLocalEnvironmentDependencyJob(context.Background(), localEnvironmentDependencyJobRequest{
@@ -1105,13 +995,10 @@ func TestResolveLocalEnvironmentPlanDoesNotProjectLatestJobAcrossConsumers(t *te
 	}
 
 	nextMetalPlan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
-		PackID:           "local-image-native",
-		ConsumerScope:    "stable-diffusion.cpp.metal",
-		HostProfile:      profile,
-		RuntimeDataRoot:  runtimeDataRoot,
-		AssetID:          "image/test-sd",
-		CompanionAssetID: "image/test-lora",
-		ParentAssetID:    "image/test-sd",
+		PackID:          "local-image-native",
+		ConsumerScope:   "stable-diffusion.cpp.metal",
+		HostProfile:     profile,
+		RuntimeDataRoot: runtimeDataRoot,
 	})
 	nextMetalDep := findLocalEnvironmentDependency(t, nextMetalPlan, localEnvironmentFamilyNativeSDCPP)
 	if nextMetalDep.State == localEnvironmentStateFailed || strings.Contains(nextMetalDep.Detail, "unknown consumer package failed") {

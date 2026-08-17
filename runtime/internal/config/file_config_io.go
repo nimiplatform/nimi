@@ -291,7 +291,7 @@ func validateOptionalFileConfigPort(value *int, field string) error {
 
 func rejectRemovedExecutionRoutingConfigKeys(path string, root map[string]json.RawMessage) error {
 	if _, exists := root["defaultLocalTextModel"]; exists {
-		return fmt.Errorf("parse runtime config file %q: defaultLocalTextModel is removed; local execution is selected by AIConfig intent and Machine Local Capability Configuration", path)
+		return fmt.Errorf("parse runtime config file %q: defaultLocalTextModel is removed; local execution is selected by AIConfig intent and the machine-selected Loadout", path)
 	}
 	if _, exists := root["defaultCloudProvider"]; exists {
 		return fmt.Errorf("parse runtime config file %q: defaultCloudProvider is removed; cloud execution is selected by caller-owned AIConfig intent", path)

@@ -6,37 +6,67 @@ import (
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
+	"google.golang.org/grpc/codes"
 )
 
 func (s *Service) ResolveLocalEnvironmentPlan(_ context.Context, req *runtimev1.ResolveLocalEnvironmentPlanRequest) (*runtimev1.ResolveLocalEnvironmentPlanResponse, error) {
-	runtimeDataRoot, err := s.requireCanonicalLocalEnvironmentDataRoot(req.GetRuntimeDataRoot())
+	plan, err := s.resolveLocalEnvironmentPlanResolution(req)
 	if err != nil {
 		return nil, err
 	}
-	plan := s.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
-		PackID:           req.GetPackId(),
-		ConsumerScope:    req.GetConsumerScope(),
-		HostProfile:      req.GetHostProfile(),
-		RuntimeDataRoot:  runtimeDataRoot,
-		AssetID:          req.GetAssetId(),
-		LocalAssetID:     req.GetLocalAssetId(),
-		CompanionAssetID: req.GetCompanionAssetId(),
-		ParentAssetID:    req.GetParentAssetId(),
-		InstallLevel:     req.GetInstallLevel(),
-	})
 	return &runtimev1.ResolveLocalEnvironmentPlanResponse{
 		Plan: localEnvironmentPlanToProto(plan),
 	}, nil
 }
 
-func (s *Service) PrepareProfileRuntimeDescriptor(ctx context.Context, req *runtimev1.PrepareProfileRuntimeDescriptorRequest) (*runtimev1.PrepareProfileRuntimeDescriptorResponse, error) {
-	result, err := s.prepareProfileRuntimeDescriptor(ctx, ProfileRuntimeDescriptorPrepareRequest{
-		DescriptorJSON: req.GetDescriptorJson(),
-	})
+func (s *Service) resolveLocalEnvironmentPlanResolution(req *runtimev1.ResolveLocalEnvironmentPlanRequest) (localEnvironmentPlan, error) {
+	runtimeDataRoot, err := s.requireCanonicalLocalEnvironmentDataRoot(req.GetRuntimeDataRoot())
 	if err != nil {
-		return nil, err
+		return localEnvironmentPlan{}, err
 	}
-	return profileRuntimeDescriptorPrepareResultToProto(result), nil
+	capabilityContract := strings.TrimSpace(req.GetCapabilityContract())
+	if capabilityContract == "" {
+		return localEnvironmentPlan{}, loadoutError(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_SELECTION_INVALID, "local environment capability contract is required", nil)
+	}
+
+	s.mu.RLock()
+	selection := cloneLoadoutSelection(s.loadoutSelections[capabilityContract])
+	var loadout *runtimev1.Loadout
+	if selection != nil {
+		loadout = cloneLoadout(s.loadouts[selection.GetLoadoutId()])
+	}
+	s.mu.RUnlock()
+	if selection == nil {
+		return localEnvironmentPlan{}, loadoutError(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_SELECTION_NOT_FOUND, "no Loadout is selected for the local environment capability", map[string]string{"capability_contract": capabilityContract})
+	}
+	if loadout == nil {
+		return localEnvironmentPlan{}, loadoutError(codes.NotFound, runtimev1.ReasonCode_AI_LOADOUT_NOT_FOUND, "selected Loadout was not found", map[string]string{"loadout_id": selection.GetLoadoutId()})
+	}
+	if loadout.GetCapabilityContract() != capabilityContract {
+		return localEnvironmentPlan{}, loadoutError(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_CAPABILITY_MISMATCH, "selected Loadout capability is mismatched", map[string]string{"loadout_id": loadout.GetLoadoutId()})
+	}
+	driver, _, err := s.projectStoredLoadout(loadout)
+	if err != nil {
+		return localEnvironmentPlan{}, err
+	}
+
+	hostProfile := hostProfileOrCollected(req.GetHostProfile())
+	packID, consumerScope, ok := localEnvironmentTargetForDriver(driver, localEnvironmentHostProfileFromDeviceProfile(hostProfile))
+	if !ok {
+		identity := capabilitydriver.IdentityFromProto(loadout.GetImplementation())
+		return localEnvironmentPlan{}, loadoutError(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOADOUT_DRIVER_UNAVAILABLE, "selected Loadout Driver has no local environment contract", map[string]string{
+			"capability_contract": capabilityContract,
+			"driver_id":           identity.DriverID,
+			"driver_dialect":      identity.DriverDialect,
+		})
+	}
+	return s.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
+		PackID:          packID,
+		ConsumerScope:   consumerScope,
+		HostProfile:     hostProfile,
+		RuntimeDataRoot: runtimeDataRoot,
+	}), nil
 }
 
 func (s *Service) ListLocalEnvironmentSelectedSources(_ context.Context, req *runtimev1.ListLocalEnvironmentSelectedSourcesRequest) (*runtimev1.ListLocalEnvironmentSelectedSourcesResponse, error) {
@@ -103,44 +133,16 @@ func (s *Service) ListLocalEnvironmentDependencyJobs(_ context.Context, req *run
 	return &runtimev1.ListLocalEnvironmentDependencyJobsResponse{Jobs: out}, nil
 }
 
-func profileRuntimeDescriptorPrepareResultToProto(result *ProfileRuntimeDescriptorPrepareResult) *runtimev1.PrepareProfileRuntimeDescriptorResponse {
-	if result == nil {
-		return &runtimev1.PrepareProfileRuntimeDescriptorResponse{}
-	}
-	out := &runtimev1.PrepareProfileRuntimeDescriptorResponse{
-		DescriptorId:   result.DescriptorID,
-		ProfileId:      result.ProfileID,
-		RequirementIds: append([]string(nil), result.RequirementIDs...),
-		SliceResults:   make([]*runtimev1.ProfileRuntimeDescriptorSlicePrepareResult, 0, len(result.SliceResults)),
-	}
-	for _, item := range result.SliceResults {
-		out.SliceResults = append(out.SliceResults, &runtimev1.ProfileRuntimeDescriptorSlicePrepareResult{
-			SliceId:              item.SliceID,
-			Capability:           item.Capability,
-			Outcome:              item.Outcome,
-			ReasonCodes:          append([]string(nil), item.ReasonCodes...),
-			MaterializationKey:   item.MaterializationKey,
-			WorkflowBindingId:    item.WorkflowBindingID,
-			ReusableAssetHealthy: item.ReusableAssetHealthy,
-		})
-	}
-	return out
-}
-
 func (s *Service) ResolveLocalEnvironmentActivationGate(_ context.Context, req *runtimev1.ResolveLocalEnvironmentActivationGateRequest) (*runtimev1.ResolveLocalEnvironmentActivationGateResponse, error) {
 	runtimeDataRoot, err := s.requireCanonicalLocalEnvironmentDataRoot(req.GetRuntimeDataRoot())
 	if err != nil {
 		return nil, err
 	}
 	gate := s.resolveLocalEnvironmentConsumerActivationGate(localEnvironmentConsumerActivationGateRequest{
-		ConsumerID:       req.GetConsumerId(),
-		PackID:           req.GetPackId(),
-		HostProfile:      req.GetHostProfile(),
-		RuntimeDataRoot:  runtimeDataRoot,
-		AssetID:          req.GetAssetId(),
-		LocalAssetID:     req.GetLocalAssetId(),
-		CompanionAssetID: req.GetCompanionAssetId(),
-		ParentAssetID:    req.GetParentAssetId(),
+		ConsumerID:      req.GetConsumerId(),
+		PackID:          req.GetPackId(),
+		HostProfile:     req.GetHostProfile(),
+		RuntimeDataRoot: runtimeDataRoot,
 	})
 	return &runtimev1.ResolveLocalEnvironmentActivationGateResponse{
 		Gate: localEnvironmentActivationGateToProto(gate),

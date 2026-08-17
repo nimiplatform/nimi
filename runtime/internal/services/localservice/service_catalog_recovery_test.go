@@ -3,10 +3,8 @@ package localservice
 import (
 	"context"
 	"errors"
-	"fmt"
 	"strings"
 	"testing"
-	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"google.golang.org/grpc/codes"
@@ -41,7 +39,8 @@ func TestSearchCatalogModelsMergesVerifiedAndHuggingFaceSorted(t *testing.T) {
 	}
 
 	resp, err := svc.SearchCatalogModels(context.Background(), &runtimev1.SearchCatalogModelsRequest{
-		Query: "a",
+		Query:    "a",
+		PageSize: 200,
 	})
 	if err != nil {
 		t.Fatalf("search catalog models: %v", err)
@@ -364,114 +363,5 @@ func TestHFCatalogAmbiguousCrossKindRowFailsClosed(t *testing.T) {
 	}, "")
 	if ok || item != nil {
 		t.Fatalf("cross-kind inferred row must be blocked, got ok=%v item=%v", ok, item)
-	}
-}
-
-func TestProbeLocalModelEndpointJoinsConcurrentSameAssetProbe(t *testing.T) {
-	probeStarted := make(chan struct{}, 2)
-	releaseProbe := make(chan struct{})
-	svc := newTestServiceWithProbe(t, func(_ context.Context, endpoint string) endpointProbeResult {
-		probeStarted <- struct{}{}
-		<-releaseProbe
-		return endpointProbeResult{
-			healthy:   true,
-			responded: true,
-			detail:    "probe succeeded",
-			probeURL:  endpoint,
-			models:    []string{"local/concurrent-probe-model"},
-		}
-	})
-	model := &runtimev1.LocalAssetRecord{
-		LocalAssetId: "local-asset-concurrent-probe",
-		AssetId:      "local/concurrent-probe-model",
-		Engine:       "llama",
-	}
-	endpoint := "http://127.0.0.1:18888/v1"
-
-	errs := make(chan error, 2)
-	for i := 0; i < 2; i++ {
-		go func() {
-			probe := svc.probeLocalModelEndpoint(context.Background(), model, endpoint)
-			if !probe.healthy || !probe.responded {
-				errs <- fmt.Errorf("probe = healthy:%v responded:%v, want healthy/responded", probe.healthy, probe.responded)
-				return
-			}
-			errs <- nil
-		}()
-	}
-
-	select {
-	case <-probeStarted:
-	case <-time.After(time.Second):
-		t.Fatal("expected first probe to start")
-	}
-	select {
-	case <-probeStarted:
-		t.Fatal("concurrent same-asset health checks must join the in-flight probe")
-	case <-time.After(50 * time.Millisecond):
-	}
-	close(releaseProbe)
-
-	for i := 0; i < 2; i++ {
-		if err := <-errs; err != nil {
-			t.Fatalf("concurrent health check %d failed: %v", i+1, err)
-		}
-	}
-	if got := len(probeStarted); got != 0 {
-		t.Fatalf("unexpected additional probe calls after join: %d", got)
-	}
-}
-
-func TestCollectUnhealthyRecoveryTargetsSnapshotsRuntimeModes(t *testing.T) {
-	svc := newTestService(t)
-	setLocalRuntimePlatformForTest(t, "windows", "amd64")
-	setNvidiaGPUProbeForTest(t, true)
-	svc.mu.Lock()
-	svc.assets["model-1"] = &runtimev1.LocalAssetRecord{
-		LocalAssetId: "model-1",
-		AssetId:      "local/recovery-snapshot-model",
-		Kind:         runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VIDEO,
-		Engine:       "media",
-		Capabilities: []string{"video.generate"},
-		Status:       runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY,
-	}
-	svc.services["service-1"] = &runtimev1.LocalServiceDescriptor{
-		ServiceId: "service-1",
-		Engine:    "media",
-		Status:    runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_UNHEALTHY,
-	}
-	svc.serviceRuntimeModes["service-1"] = runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT
-	svc.mu.Unlock()
-
-	models, services := svc.collectUnhealthyRecoveryTargets()
-	svc.mu.Lock()
-	svc.assets["model-1"].Engine = "external"
-	svc.serviceRuntimeModes["service-1"] = runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED
-	svc.mu.Unlock()
-
-	if len(models) != 1 || models[0].mode != runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED {
-		t.Fatalf("expected model runtime mode snapshot to preserve original value, got %#v", models)
-	}
-	if len(services) != 1 || services[0].mode != runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT {
-		t.Fatalf("expected service runtime mode snapshot to preserve original value, got %#v", services)
-	}
-}
-
-func TestLocalRecoveryProbeIntervalBackoff(t *testing.T) {
-	now := time.Now().UTC()
-	if got := recoveryProbeInterval(now, &probeRecoveryState{
-		consecutiveFailure: localRecoverySlowFailureThreshold,
-		firstFailureAt:     now.Add(-2 * time.Hour),
-		lastProbeAt:        now,
-	}); got != localRecoverySlowProbeInterval {
-		t.Fatalf("expected slow probe interval, got %s", got)
-	}
-
-	if got := recoveryProbeInterval(now, &probeRecoveryState{
-		consecutiveFailure: localRecoverySlowFailureThreshold + 1000,
-		firstFailureAt:     now.Add(-25 * time.Hour),
-		lastProbeAt:        now,
-	}); got != localRecoveryLongFailProbeInterval {
-		t.Fatalf("expected long-fail probe interval, got %s", got)
 	}
 }

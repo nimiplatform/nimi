@@ -4,101 +4,12 @@ import (
 	"context"
 	"sort"
 	"strings"
-	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/pagination"
 	"google.golang.org/grpc/codes"
 )
-
-func (s *Service) ListLocalAssets(_ context.Context, req *runtimev1.ListLocalAssetsRequest) (*runtimev1.ListLocalAssetsResponse, error) {
-	startedAt := time.Now()
-	statusFilter := req.GetStatusFilter()
-	engineFilter := strings.ToLower(strings.TrimSpace(req.GetEngineFilter()))
-	kindFilter := req.GetKindFilter()
-
-	s.mu.RLock()
-	modelRows := make([]*runtimev1.LocalAssetRecord, 0, len(s.assets))
-	for _, model := range s.assets {
-		modelRows = append(modelRows, cloneLocalAsset(model))
-	}
-	s.mu.RUnlock()
-	modelRows, _ = dedupeLocalAssetRecords(modelRows)
-
-	models := make([]*runtimev1.LocalAssetRecord, 0, len(modelRows))
-	for _, model := range modelRows {
-		projected := cloneLocalAsset(model)
-		projected.Kind = listLocalAssetProjectedKind(projected)
-		if componentIdentity := effectiveLocalComponentPublicIdentity(projected); componentIdentity != "" {
-			metadata := structToMap(projected.GetMetadata())
-			metadata[localAssetEffectivePublicComponentIdentityField] = componentIdentity
-			projected.Metadata = toStruct(metadata)
-		}
-		if statusFilter != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNSPECIFIED && model.GetStatus() != statusFilter {
-			continue
-		}
-		if engineFilter != "" && strings.ToLower(strings.TrimSpace(model.GetEngine())) != engineFilter {
-			continue
-		}
-		if kindFilter != runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED && projected.GetKind() != kindFilter {
-			continue
-		}
-		models = append(models, projected)
-	}
-	sort.Slice(models, func(i, j int) bool {
-		ci := localModelSortCategory(models[i])
-		cj := localModelSortCategory(models[j])
-		if ci != cj {
-			return ci < cj
-		}
-		if models[i].GetAssetId() != models[j].GetAssetId() {
-			return models[i].GetAssetId() < models[j].GetAssetId()
-		}
-		return models[i].GetLocalAssetId() < models[j].GetLocalAssetId()
-	})
-	filterDigest := pagination.FilterDigest(statusFilter.String(), engineFilter, kindFilter.String())
-	start, end, next, err := resolvePageBounds(req.GetPageToken(), filterDigest, req.GetPageSize(), 50, 200, len(models))
-	if err != nil {
-		return nil, err
-	}
-	resp := &runtimev1.ListLocalAssetsResponse{
-		Assets:        models[start:end],
-		NextPageToken: next,
-	}
-	s.observeCounter("runtime_local_assets_list_total", 1,
-		"status_filter", statusFilter.String(),
-		"engine_filter", engineFilter,
-		"kind_filter", kindFilter.String(),
-		"result_count", len(resp.GetAssets()),
-		"has_next_page", strings.TrimSpace(next) != "",
-	)
-	s.observeLatency("runtime.local_assets.list_total_ms", startedAt,
-		"status_filter", statusFilter.String(),
-		"engine_filter", engineFilter,
-		"kind_filter", kindFilter.String(),
-		"result_count", len(resp.GetAssets()),
-		"has_next_page", strings.TrimSpace(next) != "",
-	)
-	return resp, nil
-}
-
-func listLocalAssetProjectedKind(asset *runtimev1.LocalAssetRecord) runtimev1.LocalAssetKind {
-	return effectiveAssetKind(asset.GetKind(), asset.GetCapabilities())
-}
-
-func localAssetHasArtifactRole(asset *runtimev1.LocalAssetRecord, role string) bool {
-	target := strings.ToLower(strings.TrimSpace(role))
-	if target == "" {
-		return false
-	}
-	for _, candidate := range asset.GetArtifactRoles() {
-		if strings.ToLower(strings.TrimSpace(candidate)) == target {
-			return true
-		}
-	}
-	return false
-}
 
 func (s *Service) ListVerifiedAssets(_ context.Context, req *runtimev1.ListVerifiedAssetsRequest) (*runtimev1.ListVerifiedAssetsResponse, error) {
 	kindFilter := req.GetKindFilter()

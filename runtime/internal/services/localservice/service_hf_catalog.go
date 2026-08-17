@@ -309,23 +309,16 @@ func inferCapabilitiesFromHF(pipelineTag string, tags []string) []string {
 	return caps
 }
 
-func mapHFRowToCatalogItem(row hfModelSearchEntry, engineFilter string) (*runtimev1.LocalCatalogModelDescriptor, bool) {
+func mapHFRowToCatalogItem(row hfModelSearchEntry, _ string) (*runtimev1.LocalCatalogModelDescriptor, bool) {
 	repoRaw := defaultString(strings.TrimSpace(row.ID), strings.TrimSpace(row.ModelID))
 	repo, err := normalizeHFRepo(repoRaw)
 	if err != nil {
 		return nil, false
 	}
 	capabilities := inferCapabilitiesFromHF(row.PipelineTag, row.Tags)
-	if len(capabilities) == 0 {
+	if len(capabilities) == 0 || inferAssetKindFromCapabilities(capabilities) == runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED {
 		return nil, false
 	}
-	engine := strings.ToLower(defaultLocalEngine(strings.TrimSpace(engineFilter), capabilities))
-	deviceProfile := collectDeviceProfile()
-	kind := inferAssetKindFromCapabilities(capabilities)
-	if kind == runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED {
-		return nil, false
-	}
-	binding := autoRecommendedRuntimeBinding(engine, capabilities, kind, deviceProfile)
 	tags := normalizeStringSlice(append(append([]string(nil), row.Tags...), capabilities...))
 	license := ""
 	if row.CardData != nil {
@@ -346,11 +339,11 @@ func mapHFRowToCatalogItem(row hfModelSearchEntry, engineFilter string) (*runtim
 		Revision:          defaultString(strings.TrimSpace(row.Sha), "main"),
 		TemplateId:        "",
 		Capabilities:      capabilities,
-		Engine:            engine,
-		EngineRuntimeMode: binding.mode,
+		Engine:            "",
+		EngineRuntimeMode: runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_UNSPECIFIED,
 		InstallKind:       "download",
-		InstallAvailable:  catalogBindingInstallAvailable(engine, capabilities, kind, binding, deviceProfile),
-		Endpoint:          binding.endpoint,
+		InstallAvailable:  false,
+		Endpoint:          "",
 		ProviderHints:     nil,
 		Entry:             "./dist/index.js",
 		Files:             []string{},

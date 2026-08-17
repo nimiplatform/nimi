@@ -1,9 +1,6 @@
 package localservice
 
 import (
-	"encoding/json"
-	"errors"
-	"fmt"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -33,37 +30,15 @@ func formatProjectionReasonCode(reason runtimev1.ReasonCode) string {
 }
 
 func loadLocalStateSnapshot(path string) (localStateSnapshot, error) {
-	result := localStateSnapshot{
-		Assets:    []localStateAssetState{},
-		Services:  []localStateServiceState{},
-		Transfers: []localStateTransferState{},
-		Audits:    []localStateAuditState{},
-	}
-
-	payload, err := os.ReadFile(path)
-	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			return result, nil
-		}
-		return result, err
-	}
-	if len(payload) == 0 {
-		return result, nil
-	}
-	if err := json.Unmarshal(payload, &result); err != nil {
-		return result, err
-	}
-	if result.SchemaVersion != localStateSchemaVersion {
-		return result, fmt.Errorf("unsupported local-state.json schemaVersion=%d (expected %d); delete local-state.json before starting Runtime", result.SchemaVersion, localStateSchemaVersion)
-	}
-	return result, nil
+	snapshot, _, _, err := loadLocalStateSnapshotIsolated(path)
+	return snapshot, err
 }
 
 func saveLocalStateSnapshot(path string, snapshot localStateSnapshot) error {
 	if strings.TrimSpace(path) == "" {
 		return nil
 	}
-	payload, err := json.MarshalIndent(snapshot, "", "  ")
+	payload, err := marshalStateSnapshotWithRetainedRecords(snapshot, snapshot.retainedRecords)
 	if err != nil {
 		return err
 	}
@@ -75,184 +50,4 @@ func saveLocalStateSnapshot(path string, snapshot localStateSnapshot) error {
 		return err
 	}
 	return os.Rename(tmpPath, path)
-}
-
-func managedImageMaterializationBindingsToLocalState(bindings []managedMediaProfileMaterializationBinding) []localStateManagedImageMaterializationBindingState {
-	if len(bindings) == 0 {
-		return nil
-	}
-	out := make([]localStateManagedImageMaterializationBindingState, 0, len(bindings))
-	for _, binding := range bindings {
-		if strings.TrimSpace(binding.AssetID) == "" && strings.TrimSpace(binding.CompanionAssetID) == "" {
-			continue
-		}
-		out = append(out, localStateManagedImageMaterializationBindingState{
-			AssetID:               strings.TrimSpace(binding.AssetID),
-			LocalAssetID:          strings.TrimSpace(binding.LocalAssetID),
-			OccurrenceID:          strings.TrimSpace(binding.OccurrenceID),
-			Order:                 binding.Order,
-			Role:                  strings.TrimSpace(binding.Role),
-			LogicalModelID:        strings.TrimSpace(binding.LogicalModelID),
-			Required:              binding.Required,
-			Weight:                strings.TrimSpace(binding.Weight),
-			Options:               cloneAnyMap(binding.Options),
-			CompanionKind:         strings.TrimSpace(binding.CompanionKind),
-			EngineSlot:            strings.TrimSpace(binding.EngineSlot),
-			CompanionAssetID:      strings.TrimSpace(binding.CompanionAssetID),
-			CompanionLocalAssetID: strings.TrimSpace(binding.CompanionLocalAssetID),
-			ParentAssetID:         strings.TrimSpace(binding.ParentAssetID),
-		})
-	}
-	return out
-}
-
-func restoreManagedImageProfileMaterialization(
-	item localStateManagedImageProfileMaterializationState,
-	assets map[string]*runtimev1.LocalAssetRecord,
-) (string, string, string, []managedMediaProfileMaterializationBinding, bool) {
-	profileBindingID := strings.TrimSpace(item.ProfileBindingID)
-	localAssetID := strings.TrimSpace(item.LocalAssetID)
-	materializationKey := strings.TrimSpace(item.MaterializationKey)
-	if !strings.HasPrefix(profileBindingID, workflowBindingIDPrefix+profileRuntimeMaterializationKeyPrefix) ||
-		localAssetID == "" ||
-		!strings.HasPrefix(materializationKey, profileRuntimeMaterializationKeyPrefix) ||
-		profileBindingID != workflowBindingIDPrefix+materializationKey ||
-		!item.MaterializationResolved ||
-		len(item.MaterializationBindings) == 0 {
-		return "", "", "", nil, false
-	}
-	mainAsset := assets[localAssetID]
-	if !localStateAssetAdmitted(mainAsset) {
-		return "", "", "", nil, false
-	}
-	bindings := managedImageMaterializationBindingsFromLocalState(item.MaterializationBindings)
-	if len(bindings) == 0 {
-		return "", "", "", nil, false
-	}
-	mainBinding := managedMediaProfileMaterializationBinding{}
-	mainBindingCount := 0
-	for _, binding := range bindings {
-		if strings.TrimSpace(binding.CompanionAssetID) != "" {
-			continue
-		}
-		mainBinding = binding
-		mainBindingCount++
-	}
-	mainAssetID := strings.TrimSpace(mainBinding.AssetID)
-	if mainBindingCount != 1 ||
-		mainAssetID == "" ||
-		strings.TrimSpace(mainBinding.LocalAssetID) != localAssetID ||
-		strings.TrimSpace(mainAsset.GetAssetId()) != mainAssetID {
-		return "", "", "", nil, false
-	}
-	for _, binding := range bindings {
-		companionAssetID := strings.TrimSpace(binding.CompanionAssetID)
-		if companionAssetID == "" {
-			continue
-		}
-		companionLocalAssetID := strings.TrimSpace(binding.CompanionLocalAssetID)
-		if strings.TrimSpace(binding.AssetID) != mainAssetID ||
-			strings.TrimSpace(binding.LocalAssetID) != localAssetID ||
-			strings.TrimSpace(binding.ParentAssetID) != mainAssetID ||
-			strings.TrimSpace(binding.CompanionKind) == "" ||
-			strings.TrimSpace(binding.EngineSlot) == "" ||
-			companionLocalAssetID == "" {
-			return "", "", "", nil, false
-		}
-		companionAsset := assets[companionLocalAssetID]
-		if !localStateAssetAdmitted(companionAsset) ||
-			strings.TrimSpace(companionAsset.GetLocalAssetId()) != companionLocalAssetID ||
-			strings.TrimSpace(companionAsset.GetAssetId()) != companionAssetID {
-			return "", "", "", nil, false
-		}
-		companionKind, ok := parseLocalAssetKindToken(binding.CompanionKind)
-		if !ok || effectiveAssetKind(companionAsset.GetKind(), companionAsset.GetCapabilities()) != companionKind {
-			return "", "", "", nil, false
-		}
-	}
-	return profileBindingID, localAssetID, materializationKey, bindings, true
-}
-
-func localStateAssetAdmitted(asset *runtimev1.LocalAssetRecord) bool {
-	if asset == nil {
-		return false
-	}
-	switch asset.GetStatus() {
-	case runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED,
-		runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE:
-		return true
-	default:
-		return false
-	}
-}
-
-func managedImageMaterializationBindingsFromLocalState(bindings []localStateManagedImageMaterializationBindingState) []managedMediaProfileMaterializationBinding {
-	if len(bindings) == 0 {
-		return nil
-	}
-	out := make([]managedMediaProfileMaterializationBinding, 0, len(bindings))
-	for _, binding := range bindings {
-		if strings.TrimSpace(binding.AssetID) == "" && strings.TrimSpace(binding.CompanionAssetID) == "" {
-			continue
-		}
-		out = append(out, managedMediaProfileMaterializationBinding{
-			AssetID:               strings.TrimSpace(binding.AssetID),
-			LocalAssetID:          strings.TrimSpace(binding.LocalAssetID),
-			OccurrenceID:          strings.TrimSpace(binding.OccurrenceID),
-			Order:                 binding.Order,
-			Role:                  strings.TrimSpace(binding.Role),
-			LogicalModelID:        strings.TrimSpace(binding.LogicalModelID),
-			Required:              binding.Required,
-			Weight:                strings.TrimSpace(binding.Weight),
-			Options:               cloneAnyMap(binding.Options),
-			CompanionKind:         strings.TrimSpace(binding.CompanionKind),
-			EngineSlot:            strings.TrimSpace(binding.EngineSlot),
-			CompanionAssetID:      strings.TrimSpace(binding.CompanionAssetID),
-			CompanionLocalAssetID: strings.TrimSpace(binding.CompanionLocalAssetID),
-			ParentAssetID:         strings.TrimSpace(binding.ParentAssetID),
-		})
-	}
-	return out
-}
-
-func hostRequirementsToMap(input *runtimev1.LocalHostRequirements) map[string]any {
-	if input == nil {
-		return nil
-	}
-	return map[string]any{
-		"gpuRequired":           input.GetGpuRequired(),
-		"pythonRuntimeRequired": input.GetPythonRuntimeRequired(),
-		"supportedPlatforms":    append([]string(nil), input.GetSupportedPlatforms()...),
-		"requiredBackends":      append([]string(nil), input.GetRequiredBackends()...),
-	}
-}
-
-func hostRequirementsFromMap(input map[string]any) *runtimev1.LocalHostRequirements {
-	if len(input) == 0 {
-		return nil
-	}
-	requirements := &runtimev1.LocalHostRequirements{}
-	if value, ok := input["gpuRequired"].(bool); ok {
-		requirements.GpuRequired = value
-	}
-	if value, ok := input["pythonRuntimeRequired"].(bool); ok {
-		requirements.PythonRuntimeRequired = value
-	}
-	if values, ok := input["supportedPlatforms"].([]any); ok {
-		requirements.SupportedPlatforms = anySliceToStrings(values)
-	}
-	if values, ok := input["requiredBackends"].([]any); ok {
-		requirements.RequiredBackends = anySliceToStrings(values)
-	}
-	return requirements
-}
-
-func anySliceToStrings(values []any) []string {
-	out := make([]string, 0, len(values))
-	for _, value := range values {
-		if text, ok := value.(string); ok && strings.TrimSpace(text) != "" {
-			out = append(out, strings.TrimSpace(text))
-		}
-	}
-	return out
 }

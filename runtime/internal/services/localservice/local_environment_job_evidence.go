@@ -260,10 +260,6 @@ func localEnvironmentSourceManifestFamilyRef(family string) string {
 		return "managed-python-package-lock-source"
 	case localEnvironmentFamilyPythonTorchWheel:
 		return "managed-torch-wheel-source"
-	case localEnvironmentFamilyModelAsset:
-		return "managed-or-imported-model-asset-source"
-	case localEnvironmentFamilyModelCompanion:
-		return "managed-or-imported-companion-asset-source"
 	default:
 		return ""
 	}
@@ -285,10 +281,6 @@ func localEnvironmentVerificationEvidenceFamilyRef(family string) string {
 		return "python-package-set-evidence"
 	case localEnvironmentFamilyPythonTorchWheel:
 		return "python-torch-wheel-evidence"
-	case localEnvironmentFamilyModelAsset:
-		return "model-asset-evidence"
-	case localEnvironmentFamilyModelCompanion:
-		return "model-companion-asset-evidence"
 	default:
 		return ""
 	}

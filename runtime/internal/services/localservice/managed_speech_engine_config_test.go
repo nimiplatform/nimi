@@ -2,6 +2,9 @@ package localservice
 
 import (
 	"context"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
@@ -84,6 +87,8 @@ func TestMaterializeSpeechExecutionHostUsesOnlyExactCapabilityPackageSet(t *test
 func TestVoxCPMExecutionHostUsesHostDerivedBackendPackageSet(t *testing.T) {
 	svc := newLocalEnvironmentTestService(t)
 	defer func() { svc.Close() }()
+	mgr := &mockEngineManager{}
+	svc.SetEngineManager(mgr)
 	host := localEnvironmentHostProfileFromDeviceProfile(hostProfileOrCollected(nil))
 	backend, err := engine.SpeechVoxCPMBackendForPlatform(localEnvironmentPlatformTuple(host))
 	if err != nil {
@@ -98,12 +103,96 @@ func TestVoxCPMExecutionHostUsesHostDerivedBackendPackageSet(t *testing.T) {
 		return path
 	}
 	upsertVerifiedSpeechPackageSetForTest(t, svc, "speech.voxcpm.python", root, "NIMI_RUNTIME_SPEECH_VOXCPM_CMD", driverPath)
-	cfg, err := svc.configuredManagedSpeechEngineConfigForCapability(capabilitydriver.AudioSynthesizeContract, capabilitydriver.VoxCPMDriverID, 18333)
+	endpoint, err := svc.MaterializeSpeechExecutionHost(context.Background(), capabilitydriver.AudioSynthesizeContract, capabilitydriver.VoxCPMDriverID, 18333)
 	if err != nil {
-		t.Fatalf("configure VoxCPM Host: %v", err)
+		t.Fatalf("materialize VoxCPM Host: %v", err)
 	}
+	if endpoint != "http://127.0.0.1:18333" || mgr.startConfigCalls != 1 {
+		t.Fatalf("VoxCPM materialization endpoint=%q starts=%d, want exact startup config", endpoint, mgr.startConfigCalls)
+	}
+	cfg := mgr.lastStartConfig
 	if cfg.SpeechHostPackageSetRoot != root || cfg.SpeechVoxCPMPackageSetRoot != root || cfg.SpeechVoxCPMBackend != backend || cfg.SpeechQwen3TTSPackageSetRoot != "" {
 		t.Fatalf("VoxCPM Host config=%+v, want exact root %q and backend %q", cfg, root, backend)
+	}
+	if cfg.SpeechRequiredDriver != engine.SpeechDriverVoxCPM {
+		t.Fatalf("VoxCPM startup required Driver=%q, want %q", cfg.SpeechRequiredDriver, engine.SpeechDriverVoxCPM)
+	}
+}
+
+func TestRegisterSpeechExecutionModelPostsCapturedBindingAndDriverFacts(t *testing.T) {
+	digest := strings.Repeat("a", 64)
+	bundleDir := t.TempDir()
+	entryPath := filepath.Join(bundleDir, "model.safetensors")
+	captured := make(chan speechExecutionModelRegistrationPayload, 1)
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		if request.Method != http.MethodPost || request.URL.Path != "/v1/models/register" {
+			writer.WriteHeader(http.StatusNotFound)
+			return
+		}
+		if request.Header.Get(engine.SpeechAdmissionTokenHeader) != "test-speech-admission-token" {
+			writer.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		var payload speechExecutionModelRegistrationPayload
+		if err := json.NewDecoder(request.Body).Decode(&payload); err != nil {
+			writer.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		captured <- payload
+		writer.Header().Set("Content-Type", "application/json")
+		_, _ = writer.Write([]byte(`{"status":"registered"}`))
+	}))
+	defer server.Close()
+
+	svc := &Service{managedSpeechAdmissionToken: "test-speech-admission-token"}
+	err := svc.RegisterSpeechExecutionModel(context.Background(), server.URL, engine.SpeechExecutionModelRegistration{
+		CapabilityContract: capabilitydriver.AudioSynthesizeContract,
+		DriverID:           capabilitydriver.Qwen3TTSDriverID,
+		ModelAssetID:       "model-asset/loadout-qwen3-tts", BundleDir: bundleDir, EntryPath: entryPath,
+		DeclaredFiles:      []string{"model.safetensors", "config.json"},
+		DeclaredFileSHA256: map[string]string{"model.safetensors": digest, "config.json": digest},
+		VerifiedContentID:  "sha256:" + digest, EntrySHA256: digest,
+	})
+	if err != nil {
+		t.Fatalf("register speech model: %v", err)
+	}
+	payload := <-captured
+	if payload.Model != "model-asset/loadout-qwen3-tts" || payload.Capability != capabilitydriver.AudioSynthesizeContract ||
+		payload.DriverID != capabilitydriver.Qwen3TTSDriverID || payload.Driver != "qwen3_tts" || payload.Family != "qwen3_tts" || payload.Backend != "qwen_tts" ||
+		payload.BundleDir != bundleDir || payload.EntryPath != entryPath || strings.Join(payload.DeclaredFiles, ",") != "model.safetensors,config.json" ||
+		payload.DeclaredFileSHA256["model.safetensors"] != digest || payload.DeclaredFileSHA256["config.json"] != digest ||
+		payload.VerifiedContentID != "sha256:"+digest || payload.EntrySHA256 != digest {
+		t.Fatalf("speech model registration payload = %+v", payload)
+	}
+}
+
+func TestVoiceCreateRegistrationCarriesExactWorkflowBinding(t *testing.T) {
+	digest := strings.Repeat("b", 64)
+	bundleDir := t.TempDir()
+	registration := engine.SpeechExecutionModelRegistration{
+		CapabilityContract:  capabilitydriver.VoiceCreateContract,
+		DriverID:            capabilitydriver.Qwen3TTSDriverID,
+		ModelAssetID:        "model-asset/loadout-qwen3-voice",
+		VoiceCreationSource: "reference_audio",
+		WorkflowModelID:     capabilitydriver.Qwen3VoiceCloneRecipeID,
+		BundleDir:           bundleDir,
+		EntryPath:           filepath.Join(bundleDir, "model.safetensors"),
+		DeclaredFiles:       []string{"model.safetensors"},
+		DeclaredFileSHA256:  map[string]string{"model.safetensors": digest},
+		VerifiedContentID:   "sha256:" + digest,
+		EntrySHA256:         digest,
+	}
+	payload, err := (&Service{}).speechExecutionModelRegistrationPayload(registration)
+	if err != nil {
+		t.Fatalf("project voice.create registration: %v", err)
+	}
+	if payload.CreationSource != "reference_audio" || payload.WorkflowModelID != capabilitydriver.Qwen3VoiceCloneRecipeID {
+		t.Fatalf("voice.create registration payload = %+v", payload)
+	}
+
+	registration.VoiceCreationSource = ""
+	if _, err := (&Service{}).speechExecutionModelRegistrationPayload(registration); err == nil {
+		t.Fatal("voice.create registration without exact source succeeded")
 	}
 }
 

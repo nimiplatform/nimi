@@ -1,7 +1,6 @@
 package localservice
 
 import (
-	"fmt"
 	"strings"
 
 	"google.golang.org/protobuf/types/known/structpb"
@@ -45,187 +44,17 @@ func matchesCatalogSearch(item *runtimev1.LocalCatalogModelDescriptor, query str
 	return false
 }
 
-func adapterForProviderCapability(provider string, capability string) string {
-	normalizedProvider := strings.ToLower(strings.TrimSpace(provider))
-	normalizedCapability := normalizeLocalCapabilityToken(capability)
-	switch normalizedProvider {
-	case "sidecar":
-		switch normalizedCapability {
-		case "music.generate":
-			return "sidecar_music_adapter"
-		default:
-			return ""
-		}
-	case "media":
-		switch normalizedCapability {
-		case "image.generate", "video.generate":
-			return "media_native_adapter"
-		default:
-			return ""
-		}
-	case "speech":
-		switch normalizedCapability {
-		case "audio.transcribe", "audio.synthesize", "voice.create":
-			return "speech_native_adapter"
-		default:
-			return ""
-		}
-	case "llama":
-		return ""
-	default:
-		return ""
-	}
-}
-
-func apiPathForProviderCapability(provider string, capability string) string {
-	normalizedProvider := strings.ToLower(strings.TrimSpace(provider))
-	if normalizedProvider == "llama" {
-		return ""
-	}
-	cap := normalizeLocalCapabilityToken(capability)
-	switch cap {
-	case "text.embed":
-		return "/v1/embeddings"
-	case "image.generate":
-		if normalizedProvider == "media" {
-			return "/v1/media/image/generate"
-		}
-		return "/v1/images/generations"
-	case "music.generate":
-		return "/v1/music/generate"
-	case "video.generate":
-		if normalizedProvider == "media" {
-			return "/v1/media/video/generate"
-		}
-		return "/v1/videos/generations"
-	case "audio.synthesize":
-		return "/v1/audio/speech"
-	case "audio.transcribe":
-		return "/v1/audio/transcriptions"
-	case "voice.create":
-		return "/v1/voice/create"
-	default:
-		return "/v1/chat/completions"
-	}
-}
-
-func buildNodeProviderHints(
-	service *runtimev1.LocalServiceDescriptor,
-	provider string,
-	capability string,
-	adapter string,
-	policyGate string,
-	available bool,
-	deviceProfile *runtimev1.LocalDeviceProfile,
-) *runtimev1.LocalProviderHints {
-	normalizedProvider := strings.ToLower(strings.TrimSpace(provider))
-	normalizedCapability := strings.ToLower(strings.TrimSpace(capability))
-	if normalizedProvider == "llama" {
-		return nil
-	}
-	normalizedPolicyGate := strings.TrimSpace(policyGate)
-	hints := &runtimev1.LocalProviderHints{
-		Extra: map[string]string{
-			"provider":     normalizedProvider,
-			"capability":   normalizedCapability,
-			"service_id":   strings.TrimSpace(service.GetServiceId()),
-			"endpoint":     strings.TrimSpace(service.GetEndpoint()),
-			"policy_gate":  normalizedPolicyGate,
-			"adapter":      strings.TrimSpace(adapter),
-			"availability": fmt.Sprintf("%t", available),
-		},
-	}
-	if supportClass, supportDetail := classifyManagedEngineSupportForAsset(
-		service.GetEngine(),
-		[]string{capability},
-		runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED,
-		deviceProfile,
-	); supportClass != "" {
-		hints.Extra["runtime_support_class"] = supportClass
-		if strings.TrimSpace(supportDetail) != "" {
-			hints.Extra["runtime_support_detail"] = strings.TrimSpace(supportDetail)
-		}
-	}
-	switch normalizedProvider {
-	case "media":
-		hints.Media = &runtimev1.LocalProviderHintsMedia{
-			Backend:          normalizedProvider,
-			PreferredAdapter: strings.TrimSpace(adapter),
-			Family:           strings.TrimSpace(hints.GetExtra()["family"]),
-			ImageDriver:      strings.TrimSpace(hints.GetExtra()["image_driver"]),
-			VideoDriver:      strings.TrimSpace(hints.GetExtra()["video_driver"]),
-			Device:           strings.TrimSpace(hints.GetExtra()["device"]),
-		}
-	case "speech":
-		hints.Speech = &runtimev1.LocalProviderHintsSpeech{
-			Backend:             normalizedProvider,
-			PreferredAdapter:    strings.TrimSpace(adapter),
-			Family:              strings.TrimSpace(hints.GetExtra()["family"]),
-			Driver:              strings.TrimSpace(hints.GetExtra()["driver"]),
-			Device:              strings.TrimSpace(hints.GetExtra()["device"]),
-			VoiceWorkflowDriver: strings.TrimSpace(hints.GetExtra()["voice_workflow_driver"]),
-			PolicyGate:          normalizedPolicyGate,
-		}
-	case "sidecar":
-		hints.Sidecar = &runtimev1.LocalProviderHintsSidecar{
-			PreferredAdapter: strings.TrimSpace(adapter),
-			Backend:          "sidecar",
-		}
-	}
-	return hints
-}
-
-func modelHealth(model *runtimev1.LocalAssetRecord) *localAssetHealth {
-	if model == nil {
-		return &localAssetHealth{
-			Status: runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY,
-			Detail: "model not found",
-		}
-	}
-	detail := model.GetHealthDetail()
-	switch model.GetStatus() {
-	case runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE:
-		if detail == "" {
-			detail = "model process active; execution health remains Runtime-private"
-		}
-	case runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY:
-		if detail == "" {
-			detail = "model unhealthy"
-		}
-	case runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_REMOVED:
-		if detail == "" {
-			detail = "model removed"
-		}
-	default:
-		if detail == "" {
-			detail = "model idle"
-		}
-	}
-	reason := model.GetReasonCode()
-	if reason == runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
-		reason = projectionReasonCodeForEngine(model.GetEngine(), detail)
-	}
-	return &localAssetHealth{
-		LocalAssetId: model.GetLocalAssetId(),
-		Status:       model.GetStatus(),
-		Detail:       detail,
-		Endpoint:     "",
-		ReasonCode:   reason,
-	}
-}
-
 func mergeInferencePayload(req *runtimev1.AppendInferenceAuditRequest) *structpb.Struct {
 	payload := map[string]any{
-		"targetId":     strings.TrimSpace(req.GetTargetId()),
-		"source":       strings.TrimSpace(req.GetSource()),
-		"provider":     strings.TrimSpace(req.GetProvider()),
-		"modality":     strings.TrimSpace(req.GetModality()),
-		"adapter":      strings.TrimSpace(req.GetAdapter()),
-		"model":        strings.TrimSpace(req.GetModel()),
-		"localModelId": strings.TrimSpace(req.GetLocalModelId()),
-		"endpoint":     strings.TrimSpace(req.GetEndpoint()),
-		"reasonCode":   strings.TrimSpace(req.GetReasonCode()),
-		"detail":       strings.TrimSpace(req.GetDetail()),
+		"targetId":   strings.TrimSpace(req.GetTargetId()),
+		"source":     strings.TrimSpace(req.GetSource()),
+		"provider":   strings.TrimSpace(req.GetProvider()),
+		"modality":   strings.TrimSpace(req.GetModality()),
+		"adapter":    strings.TrimSpace(req.GetAdapter()),
+		"model":      strings.TrimSpace(req.GetModel()),
+		"endpoint":   strings.TrimSpace(req.GetEndpoint()),
+		"reasonCode": strings.TrimSpace(req.GetReasonCode()),
+		"detail":     strings.TrimSpace(req.GetDetail()),
 	}
 	if policy := structToMap(req.GetPolicyGate()); len(policy) > 0 {
 		payload["policyGate"] = policy
@@ -238,14 +67,7 @@ func mergeInferencePayload(req *runtimev1.AppendInferenceAuditRequest) *structpb
 
 func defaultCatalogFromVerified(verified []*runtimev1.LocalVerifiedAssetDescriptor) []*runtimev1.LocalCatalogModelDescriptor {
 	items := make([]*runtimev1.LocalCatalogModelDescriptor, 0, len(verified))
-	deviceProfile := collectDeviceProfile()
 	for _, item := range verified {
-		binding := autoRecommendedRuntimeBinding(
-			item.GetEngine(),
-			item.GetCapabilities(),
-			item.GetKind(),
-			deviceProfile,
-		)
 		items = append(items, &runtimev1.LocalCatalogModelDescriptor{
 			ItemId:            "catalog_" + slug(item.GetTemplateId()),
 			Source:            "verified",
@@ -256,18 +78,19 @@ func defaultCatalogFromVerified(verified []*runtimev1.LocalVerifiedAssetDescript
 			Revision:          item.GetRevision(),
 			TemplateId:        item.GetTemplateId(),
 			Capabilities:      append([]string(nil), item.GetCapabilities()...),
-			Engine:            item.GetEngine(),
-			EngineRuntimeMode: binding.mode,
+			Engine:            "",
+			EngineRuntimeMode: runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_UNSPECIFIED,
 			InstallKind:       item.GetInstallKind(),
-			InstallAvailable:  catalogBindingInstallAvailableForVerifiedAsset(item, binding, deviceProfile),
-			Endpoint:          binding.endpoint,
+			InstallAvailable:  true,
+			Endpoint:          "",
 			Entry:             item.GetEntry(),
 			Files:             append([]string(nil), item.GetFiles()...),
 			License:           item.GetLicense(),
 			Hashes:            cloneStringMap(item.GetHashes()),
 			Tags:              append([]string(nil), item.GetTags()...),
 			Verified:          true,
-			EngineConfig:      cloneStruct(item.GetEngineConfig()),
+			EngineConfig:      nil,
+			HostRequirements:  cloneHostRequirements(item.GetHostRequirements()),
 		})
 	}
 	return items

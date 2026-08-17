@@ -2,7 +2,6 @@ package localservice
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -16,9 +15,8 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/filedownload"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
-	"github.com/nimiplatform/nimi/runtime/internal/modelregistry"
+	"github.com/nimiplatform/nimi/runtime/internal/rpcctx"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -44,26 +42,193 @@ const (
 var errModelDownloadHashMismatch = errors.New("model file hash mismatch")
 
 type managedDownloadedModelSpec struct {
-	modelID            string
-	logicalModelID     string
-	kind               runtimev1.LocalAssetKind
-	capabilities       []string
-	engine             string
-	entry              string
-	files              []string
-	license            string
-	repo               string
-	revision           string
-	hashes             map[string]string
-	engineConfig       *structpb.Struct
-	projectionOverride *modelregistry.NativeProjection
-	existingPolicy     localAssetExistingPolicy
+	modelID           string
+	displayName       string
+	catalogAssetID    string
+	catalogTemplateID string
+	kind              runtimev1.LocalAssetKind
+	capabilities      []string
+	engine            string
+	entry             string
+	files             []string
+	license           string
+	repo              string
+	revision          string
+	hashes            map[string]string
+	engineConfig      *structpb.Struct
 }
 
+type managedModelDownloadResumePlan struct {
+	spec          managedDownloadedModelSpec
+	bytesReceived int64
+	bytesTotal    int64
+}
+
+// @nimi-authority: rule.nimi.runtime.local-compute.r090
+// rebuildManagedModelDownloadResumePlan reconstructs every download and commit
+// fact from the persisted asset identity plus the current verified catalog. No
+// process-local install plan is treated as durable. The measured staging bytes
+// are the fetched on-disk prefix projected before the resumed worker starts.
+func (s *Service) rebuildManagedModelDownloadResumePlan(assetID string, transferID string) (managedModelDownloadResumePlan, string, error) {
+	descriptor := s.verifiedAssetDescriptorForAssetID(assetID)
+	if descriptor == nil {
+		reason := runtimev1.ReasonCode_AI_LOCAL_TEMPLATE_NOT_FOUND.String()
+		return managedModelDownloadResumePlan{}, reason, grpcerr.WithReasonCodeOptions(
+			codes.NotFound,
+			runtimev1.ReasonCode_AI_LOCAL_TEMPLATE_NOT_FOUND,
+			grpcerr.ReasonOptions{Message: "transfer asset is no longer present in the verified catalog"},
+		)
+	}
+
+	files := normalizeStringSlice(descriptor.GetFiles())
+	entry := strings.TrimSpace(descriptor.GetEntry())
+	if len(files) == 0 && entry != "" {
+		files = []string{entry}
+	}
+	invalid := func(message string) (managedModelDownloadResumePlan, string, error) {
+		reason := runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID.String()
+		return managedModelDownloadResumePlan{}, reason, grpcerr.WithReasonCodeOptions(
+			codes.FailedPrecondition,
+			runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID,
+			grpcerr.ReasonOptions{Message: message},
+		)
+	}
+	if strings.TrimSpace(descriptor.GetRepo()) == "" || len(files) == 0 {
+		return invalid("catalog descriptor cannot rebuild the transfer download source")
+	}
+	for _, file := range files {
+		relativeFile, err := normalizeArtifactRelativeFile(file)
+		if err != nil {
+			return invalid("catalog descriptor contains an invalid transfer file path")
+		}
+		if expectedModelSHA256(descriptor.GetHashes(), relativeFile) == "" {
+			return invalid("catalog descriptor cannot rebuild the transfer expected sha256")
+		}
+	}
+	if entry == "" {
+		entry = files[0]
+	}
+
+	modelsRoot, err := s.resolveManagedBundleModelsRoot()
+	if err != nil {
+		return managedModelDownloadResumePlan{}, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE.String(), err
+	}
+	bytesReceived, err := managedModelDownloadStagedBytes(modelsRoot, managedModelAcquisitionStorageID(descriptor.GetAssetId(), transferID), files)
+	if err != nil {
+		reason := runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE.String()
+		return managedModelDownloadResumePlan{}, reason, grpcerr.WrapWithReasonCode(
+			codes.FailedPrecondition,
+			runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE,
+			err,
+			grpcerr.ReasonOptions{Message: "transfer staging prefix could not be measured"},
+		)
+	}
+
+	return managedModelDownloadResumePlan{
+		spec: managedDownloadedModelSpec{
+			modelID:           strings.TrimSpace(descriptor.GetAssetId()),
+			displayName:       strings.TrimSpace(descriptor.GetTitle()),
+			catalogAssetID:    strings.TrimSpace(descriptor.GetAssetId()),
+			catalogTemplateID: strings.TrimSpace(descriptor.GetTemplateId()),
+			kind:              descriptor.GetKind(),
+			capabilities:      append([]string(nil), descriptor.GetCapabilities()...),
+			engine:            strings.TrimSpace(descriptor.GetEngine()),
+			entry:             entry,
+			files:             files,
+			license:           descriptor.GetLicense(),
+			repo:              descriptor.GetRepo(),
+			revision:          defaultString(descriptor.GetRevision(), "main"),
+			hashes:            cloneStringMap(descriptor.GetHashes()),
+			engineConfig:      cloneStruct(descriptor.GetEngineConfig()),
+		},
+		bytesReceived: bytesReceived,
+		bytesTotal:    clampInt64Minimum(descriptor.GetTotalSizeBytes(), 0),
+	}, "", nil
+}
+
+// managedModelDownloadStagedBytes measures bytes fetched into one asset's
+// stable staging custody. Known catalog files include already-verified files
+// plus a current `.download` prefix; without a descriptor (startup healing
+// before a later typed resume failure), only resumable `.download` files count.
+func managedModelDownloadStagedBytes(modelsRoot string, modelID string, files []string) (int64, error) {
+	if strings.TrimSpace(modelsRoot) == "" || !filepath.IsAbs(modelsRoot) {
+		return 0, fmt.Errorf("managed model staging requires an absolute models root")
+	}
+	stageDir := managedModelDownloadStageDir(modelsRoot, modelID)
+	var total int64
+	if len(files) > 0 {
+		for _, file := range files {
+			relativeFile, err := normalizeArtifactRelativeFile(file)
+			if err != nil {
+				return 0, err
+			}
+			targetPath := filepath.Join(stageDir, filepath.FromSlash(relativeFile))
+			measured := targetPath + ".download"
+			info, statErr := os.Lstat(measured)
+			if os.IsNotExist(statErr) {
+				measured = targetPath
+				info, statErr = os.Lstat(measured)
+			}
+			if os.IsNotExist(statErr) {
+				continue
+			}
+			if statErr != nil {
+				return 0, fmt.Errorf("stat managed model staging file: %w", statErr)
+			}
+			if !info.Mode().IsRegular() {
+				return 0, fmt.Errorf("managed model staging path is not a regular file: %s", measured)
+			}
+			total += info.Size()
+		}
+		return total, nil
+	}
+
+	walkErr := filepath.WalkDir(stageDir, func(path string, entry os.DirEntry, err error) error {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".download") {
+			return nil
+		}
+		info, err := entry.Info()
+		if err != nil {
+			return err
+		}
+		if !info.Mode().IsRegular() {
+			return fmt.Errorf("managed model staging path is not a regular file: %s", path)
+		}
+		total += info.Size()
+		return nil
+	})
+	if os.IsNotExist(walkErr) {
+		return 0, nil
+	}
+	if walkErr != nil {
+		return 0, fmt.Errorf("walk managed model download staging: %w", walkErr)
+	}
+	return total, nil
+}
+
+// @nimi-authority: rule.nimi.runtime.local-compute.r029
+// @nimi-authority: rule.nimi.runtime.local-compute.r030
 func (s *Service) installManagedDownloadedModel(
 	ctx context.Context,
 	spec managedDownloadedModelSpec,
-) (*runtimev1.LocalAssetRecord, error) {
+) (*runtimev1.ModelAssetRecord, error) {
+	return s.installManagedDownloadedModelWithTransfer(ctx, spec, "")
+}
+
+// installManagedDownloadedModelWithTransfer runs the managed download/install
+// pipeline either with a new transfer session or with an explicitly restored
+// session whose executor was rebuilt by ResumeLocalTransfer.
+func (s *Service) installManagedDownloadedModelWithTransfer(
+	ctx context.Context,
+	spec managedDownloadedModelSpec,
+	restoredTransferID string,
+) (*runtimev1.ModelAssetRecord, error) {
 	modelID := strings.TrimSpace(spec.modelID)
 	if modelID == "" {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID)
@@ -79,6 +244,13 @@ func (s *Service) installManagedDownloadedModel(
 	if kind == runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED {
 		kind = inferAssetKindFromCapabilities(capabilities)
 	}
+	if !isRunnableKind(kind) && (strings.TrimSpace(spec.engine) != "" || spec.engineConfig != nil) {
+		return nil, grpcerr.WithReasonCodeOptions(
+			codes.InvalidArgument,
+			runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID,
+			grpcerr.ReasonOptions{Message: "downloaded passive asset cannot declare execution engine fields"},
+		)
+	}
 	if len(files) == 0 {
 		files = []string{strings.TrimSpace(spec.entry)}
 	}
@@ -91,12 +263,35 @@ func (s *Service) installManagedDownloadedModel(
 	if err != nil {
 		return nil, err
 	}
-	logicalModelID := strings.TrimSpace(spec.logicalModelID)
-	if logicalModelID == "" {
-		logicalModelID = filepath.ToSlash(filepath.Join("nimi", slugifyLocalModelID(modelID)))
+	transferID := strings.TrimSpace(restoredTransferID)
+	if transferID == "" {
+		transfer := s.newLocalTransfer(localTransferKindDownload, localTransferMutation{
+			ModelID:   modelID,
+			Phase:     "download",
+			State:     localTransferStateRunning,
+			Message:   "downloading managed model bundle",
+			Retryable: true,
+		})
+		transferID = transfer.GetInstallSessionId()
+	} else {
+		transfer := s.localTransferSummary(transferID)
+		if transfer.GetInstallSessionId() == "" || normalizeTransferKind(transfer.GetSessionKind()) != localTransferKindDownload ||
+			strings.TrimSpace(transfer.GetAssetId()) != modelID || isTerminalTransferState(transfer.GetState()) {
+			return nil, fmt.Errorf("restored managed model transfer %q is unavailable", transferID)
+		}
+		_ = s.mutateLocalTransfer(transferID, true, func(summary *runtimev1.LocalTransferSessionSummary) {
+			summary.Phase = "download"
+			summary.State = localTransferStateRunning
+			summary.Message = "resuming managed model bundle download"
+			summary.ReasonCode = ""
+			summary.Retryable = true
+		})
 	}
+	storageID := managedModelAcquisitionStorageID(modelID, transferID)
+	logicalModelID := storageID
 	modelDir, err := resolveRuntimeManagedModelBundleDir(modelsRoot, logicalModelID)
 	if err != nil {
+		s.failTransfer(transferID, err.Error(), false)
 		return nil, grpcerr.WrapWithReasonCode(
 			codes.InvalidArgument,
 			runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID,
@@ -104,27 +299,21 @@ func (s *Service) installManagedDownloadedModel(
 			grpcerr.ReasonOptions{Message: "downloaded model storage identity is invalid"},
 		)
 	}
-	stagingDir, err := prepareManagedModelBundleStageDir(modelDir, "staging")
+	stagingDir, err := prepareManagedModelDownloadStageDir(modelsRoot, storageID)
 	if err != nil {
+		s.failTransfer(transferID, err.Error(), false)
 		return nil, err
 	}
 
 	success := false
+	preserveStaging := false
 	defer func() {
-		if !success {
+		if !success && !preserveStaging {
 			_ = os.RemoveAll(stagingDir)
 		}
 	}()
 
 	actualHashes := make(map[string]string, len(files))
-	transfer := s.newLocalTransfer(localTransferKindDownload, localTransferMutation{
-		ModelID:   modelID,
-		Phase:     "download",
-		State:     localTransferStateRunning,
-		Message:   "downloading managed model bundle",
-		Retryable: true,
-	})
-	transferID := transfer.GetInstallSessionId()
 	for _, file := range files {
 		relativeFile, err := normalizeArtifactRelativeFile(file)
 		if err != nil {
@@ -138,10 +327,22 @@ func (s *Service) installManagedDownloadedModel(
 		}
 		fileHash, err := s.downloadManagedModelFile(ctx, transferID, spec.repo, spec.revision, relativeFile, targetPath, spec.hashes)
 		if err != nil {
-			if errors.Is(err, errLocalTransferCancelled) {
+			switch {
+			case errors.Is(err, errLocalTransferCancelled):
 				s.cancelTransfer(transferID, "transfer cancelled")
-			} else {
+			case errors.Is(err, errModelDownloadHashMismatch):
+				s.failTransfer(transferID, err.Error(), false)
+			case errors.Is(err, context.Canceled) && rpcctx.WasServerShutdown(ctx):
+				preserveStaging = true
+				s.interruptTransfer(transferID, "transfer interrupted by runtime shutdown")
+			case errors.Is(err, context.Canceled):
+				preserveStaging = true
 				s.failTransfer(transferID, err.Error(), true)
+			case isRetryableManagedModelDownloadError(err):
+				preserveStaging = true
+				s.failTransfer(transferID, err.Error(), true)
+			default:
+				s.failTransfer(transferID, err.Error(), false)
 			}
 			return nil, err
 		}
@@ -161,57 +362,6 @@ func (s *Service) installManagedDownloadedModel(
 			grpcerr.ReasonOptions{Message: "downloaded model entry is invalid"},
 		)
 	}
-	if err := validateManagedModelEntryStaticCompatibility(entryPath, kind, capabilities, spec.engine); err != nil {
-		s.failTransfer(transferID, err.Error(), false)
-		return nil, grpcerr.WrapWithReasonCode(
-			codes.InvalidArgument,
-			runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID,
-			err,
-			grpcerr.ReasonOptions{Message: "downloaded model entry is incompatible with its declaration"},
-		)
-	}
-	engineConfig, projectionOverride, err := augmentManagedGGUFBundleFacts(
-		modelsRoot,
-		modelDir,
-		stagingDir,
-		entryPath,
-		spec.engine,
-		capabilities,
-		files,
-		spec.engineConfig,
-		spec.projectionOverride,
-	)
-	if err != nil {
-		s.failTransfer(transferID, err.Error(), false)
-		return nil, grpcerr.WrapWithReasonCode(
-			codes.InvalidArgument,
-			runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID,
-			err,
-			grpcerr.ReasonOptions{Message: "downloaded model bundle metadata is invalid"},
-		)
-	}
-
-	s.updateTransferProgress(transferID, "manifest", 0, 0, "writing model manifest")
-	if err := writeModelManifest(manifestPathForStaging(stagingDir), managedModelManifestDescriptor{
-		assetID:            modelID,
-		kind:               kind,
-		logicalModelID:     logicalModelID,
-		capabilities:       capabilities,
-		engine:             spec.engine,
-		entry:              spec.entry,
-		files:              files,
-		license:            spec.license,
-		repo:               spec.repo,
-		revision:           spec.revision,
-		hashes:             actualHashes,
-		engineConfig:       engineConfig,
-		projectionOverride: projectionOverride,
-		integrityMode:      "verified",
-	}); err != nil {
-		s.failTransfer(transferID, err.Error(), false)
-		return nil, err
-	}
-
 	activation, err := activateManagedModelBundle(modelDir, stagingDir)
 	if err != nil {
 		quarantinePath, quarantineErr := s.quarantineManagedModelBundle(
@@ -221,7 +371,6 @@ func (s *Service) installManagedDownloadedModel(
 			"managed_model_download_install",
 			fmt.Sprintf("activate bundle: %v", err),
 			modelID,
-			"",
 		)
 		if quarantineErr != nil {
 			s.failTransfer(transferID, fmt.Sprintf("activate managed model bundle: %v; quarantine=%v", err, quarantineErr), false)
@@ -236,24 +385,24 @@ func (s *Service) installManagedDownloadedModel(
 	}
 	success = true
 
-	s.updateTransferProgress(transferID, "register", 0, 0, "registering model")
-	record, err := s.installLocalAssetRecord(
-		modelID,
-		kind,
-		capabilities,
-		spec.engine,
-		spec.entry,
-		spec.license,
-		spec.repo,
-		spec.revision,
-		actualHashes,
-		"",
-		engineConfig,
-		projectionOverride,
-		"runtime_model_ready_after_install",
-		"model installed",
-		spec.existingPolicy,
-	)
+	s.updateTransferProgress(transferID, "register", 0, 0, "registering ModelAsset")
+	provenance := map[string]any{
+		"source_kind":     "managed_download",
+		"source_repo":     strings.TrimSpace(spec.repo),
+		"source_revision": defaultString(strings.TrimSpace(spec.revision), "main"),
+		"distribution":    "directory",
+	}
+	if catalogAssetID := strings.TrimSpace(spec.catalogAssetID); catalogAssetID != "" {
+		provenance["source_kind"] = "catalog_install"
+		provenance["catalog_asset_id"] = catalogAssetID
+		provenance["catalog_template_id"] = defaultString(strings.TrimSpace(spec.catalogTemplateID), catalogAssetID)
+	}
+	modelAsset, _, err := s.adoptResolvedModelAssetDirectoryWithOptions(ctx, modelDir, modelAssetAdoptionOptions{
+		displayName:         defaultString(strings.TrimSpace(spec.displayName), modelID),
+		preferredEntry:      entryFile,
+		provenance:          provenance,
+		requireCatalogMatch: strings.TrimSpace(spec.catalogAssetID) != "",
+	})
 	if err != nil {
 		if quarantinePath, rollbackErr := activation.Rollback(
 			s,
@@ -262,7 +411,6 @@ func (s *Service) installManagedDownloadedModel(
 			"managed_model_download_install",
 			err.Error(),
 			modelID,
-			"",
 		); rollbackErr != nil {
 			s.failTransfer(transferID, fmt.Sprintf("%s; rollback=%v", err.Error(), rollbackErr), false)
 			return nil, err
@@ -273,15 +421,13 @@ func (s *Service) installManagedDownloadedModel(
 		s.failTransfer(transferID, err.Error(), false)
 		return nil, err
 	}
-	record = applyLocalAssetBundleManifest(s, record, files, nil)
 	if commitErr := activation.Commit(); commitErr != nil {
 		s.logger.Warn("cleanup managed bundle backup failed after download install", "logical_model_id", logicalModelID, "error", commitErr)
 	}
-	s.completeTransfer(transferID, "register", "model installed", func(summary *runtimev1.LocalTransferSessionSummary) {
-		summary.LocalAssetId = record.GetLocalAssetId()
-		summary.AssetId = record.GetAssetId()
+	s.completeTransfer(transferID, "register", "ModelAsset installed", func(summary *runtimev1.LocalTransferSessionSummary) {
+		summary.AssetId = modelAsset.GetModelAssetId()
 	})
-	return record, nil
+	return modelAsset, nil
 }
 
 // resolveManagedBundleModelsRoot resolves the absolute models root a managed
@@ -306,10 +452,6 @@ func (s *Service) resolveManagedBundleModelsRoot() (string, error) {
 		})
 	}
 	return modelsRoot, nil
-}
-
-func manifestPathForStaging(stagingDir string) string {
-	return filepath.Join(stagingDir, "asset.manifest.json")
 }
 
 func (s *Service) downloadManagedModelFile(
@@ -380,6 +522,25 @@ func (s *Service) downloadManagedModelFile(
 // (`unexpected EOF`), connection resets, broken pipes, and network timeouts
 // are transient; the core handles 5xx, hash mismatch, 4xx, oversize and
 // context cancellation itself and never routes them here.
+func isRetryableManagedModelDownloadError(err error) bool {
+	if err == nil || errors.Is(err, errModelDownloadHashMismatch) || errors.Is(err, errLocalTransferCancelled) {
+		return false
+	}
+	if errors.Is(err, context.DeadlineExceeded) || errors.Is(err, filedownload.ErrTransientAttemptsExhausted) {
+		return true
+	}
+	var pathErr *os.PathError
+	return errors.As(err, &pathErr) || isTransientModelDownloadError(err)
+}
+
+func (s *Service) discardManagedModelDownloadStaging(modelID string) {
+	modelsRoot := strings.TrimSpace(s.resolvedLocalModelsPath())
+	if modelsRoot == "" || !filepath.IsAbs(modelsRoot) || strings.TrimSpace(modelID) == "" {
+		return
+	}
+	_ = os.RemoveAll(managedModelDownloadStageDir(modelsRoot, modelID))
+}
+
 func isTransientModelDownloadError(err error) bool {
 	if err == nil {
 		return false
@@ -442,107 +603,4 @@ func expectedModelSHA256(hashes map[string]string, relativeFile string) string {
 		return ""
 	}
 	return strings.TrimSpace(strings.TrimPrefix(strings.ToLower(value), "sha256:"))
-}
-
-type managedModelManifestDescriptor struct {
-	assetID            string
-	kind               runtimev1.LocalAssetKind
-	logicalModelID     string
-	capabilities       []string
-	engine             string
-	entry              string
-	files              []string
-	license            string
-	repo               string
-	revision           string
-	hashes             map[string]string
-	engineConfig       *structpb.Struct
-	projectionOverride *modelregistry.NativeProjection
-	integrityMode      string
-}
-
-func writeModelManifest(manifestPath string, descriptor managedModelManifestDescriptor) error {
-	kindToken, err := localAssetKindToken(descriptor.kind)
-	if err != nil {
-		return err
-	}
-	manifest := map[string]any{
-		"schema_version":   "1.0.0",
-		"asset_id":         descriptor.assetID,
-		"kind":             kindToken,
-		"logical_model_id": descriptor.logicalModelID,
-		"capabilities":     append([]string(nil), descriptor.capabilities...),
-		"engine":           descriptor.engine,
-		"entry":            descriptor.entry,
-		"files":            append([]string(nil), descriptor.files...),
-		"license":          descriptor.license,
-		"source": map[string]any{
-			"repo":     descriptor.repo,
-			"revision": defaultString(descriptor.revision, "main"),
-		},
-		"hashes":         descriptor.hashes,
-		"integrity_mode": descriptor.integrityMode,
-	}
-	if descriptor.engineConfig != nil {
-		rawConfig, err := protojson.Marshal(descriptor.engineConfig)
-		if err != nil {
-			return fmt.Errorf("marshal model engine config: %w", err)
-		}
-		var decoded map[string]any
-		if err := json.Unmarshal(rawConfig, &decoded); err != nil {
-			return fmt.Errorf("decode model engine config: %w", err)
-		}
-		manifest["engine_config"] = decoded
-	}
-	if descriptor.projectionOverride != nil {
-		if value := strings.TrimSpace(descriptor.projectionOverride.Family); value != "" {
-			manifest["family"] = value
-		}
-		if len(descriptor.projectionOverride.ArtifactRoles) > 0 {
-			manifest["artifact_roles"] = append([]string(nil), descriptor.projectionOverride.ArtifactRoles...)
-		}
-		if value := strings.TrimSpace(descriptor.projectionOverride.PreferredEngine); value != "" {
-			manifest["preferred_engine"] = value
-		}
-		if len(descriptor.projectionOverride.FallbackEngines) > 0 {
-			manifest["fallback_engines"] = append([]string(nil), descriptor.projectionOverride.FallbackEngines...)
-		}
-	}
-	raw, err := json.MarshalIndent(manifest, "", "  ")
-	if err != nil {
-		return fmt.Errorf("marshal model manifest: %w", err)
-	}
-	if err := os.WriteFile(manifestPath, raw, 0o644); err != nil {
-		return fmt.Errorf("write model manifest: %w", err)
-	}
-	return nil
-}
-
-func localAssetKindToken(kind runtimev1.LocalAssetKind) (string, error) {
-	switch kind {
-	case runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT:
-		return "chat", nil
-	case runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_EMBEDDING:
-		return "embedding", nil
-	case runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE:
-		return "image", nil
-	case runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VIDEO:
-		return "video", nil
-	case runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_TTS:
-		return "tts", nil
-	case runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_STT:
-		return "stt", nil
-	case runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VAE:
-		return "vae", nil
-	case runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CLIP:
-		return "clip", nil
-	case runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_LORA:
-		return "lora", nil
-	case runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CONTROLNET:
-		return "controlnet", nil
-	case runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_AUXILIARY:
-		return "auxiliary", nil
-	default:
-		return "", fmt.Errorf("local asset manifest requires concrete kind")
-	}
 }

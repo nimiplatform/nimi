@@ -49,8 +49,6 @@ func main() {
 		exitIfCommandError(args[1], runTopLevelRun(args[2:]))
 	case "ai":
 		exitIfCommandError("ai", runRuntimeAI(args[2:]))
-	case "model":
-		exitIfCommandError("model", runRuntimeModel(args[2:]))
 	case "knowledge":
 		exitIfCommandError("knowledge", runRuntimeKnowledge(args[2:]))
 	case "app":
@@ -303,27 +301,6 @@ func runRuntimeAI(args []string) error {
 		return runRuntimeAISTT(args[1:])
 	default:
 		printRuntimeAIUsage()
-		return flag.ErrHelp
-	}
-}
-
-func runRuntimeModel(args []string) error {
-	if len(args) == 0 {
-		printRuntimeModelUsage()
-		return flag.ErrHelp
-	}
-
-	switch args[0] {
-	case "list":
-		return runRuntimeModelList(args[1:])
-	case "pull":
-		return runRuntimeModelPull(args[1:])
-	case "remove":
-		return runRuntimeModelRemove(args[1:])
-	case "health":
-		return runRuntimeModelHealth(args[1:])
-	default:
-		printRuntimeModelUsage()
 		return flag.ErrHelp
 	}
 }

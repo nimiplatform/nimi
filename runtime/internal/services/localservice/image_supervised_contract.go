@@ -1,16 +1,11 @@
 package localservice
 
 import (
-	"context"
-	"fmt"
 	"path/filepath"
-	"sort"
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/engine"
-	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
-	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -25,24 +20,6 @@ type canonicalImageResolverFacts struct {
 	logicalModelID  string
 	preferredEngine string
 	engineConfig    *structpb.Struct
-}
-
-func canonicalImageResolverFactsForLocalAsset(model *runtimev1.LocalAssetRecord) canonicalImageResolverFacts {
-	if model == nil {
-		return canonicalImageResolverFacts{}
-	}
-	return canonicalImageResolverFacts{
-		engineName:      model.GetEngine(),
-		capabilities:    append([]string(nil), model.GetCapabilities()...),
-		kind:            model.GetKind(),
-		entry:           model.GetEntry(),
-		files:           append([]string(nil), model.GetFiles()...),
-		hashes:          cloneStringMap(model.GetHashes()),
-		artifactRoles:   append([]string(nil), model.GetArtifactRoles()...),
-		logicalModelID:  model.GetLogicalModelId(),
-		preferredEngine: model.GetPreferredEngine(),
-		engineConfig:    cloneStruct(model.GetEngineConfig()),
-	}
 }
 
 func canonicalImageResolverFactsForVerifiedAsset(item *runtimev1.LocalVerifiedAssetDescriptor) canonicalImageResolverFacts {
@@ -310,18 +287,6 @@ func canonicalSupervisedImageSelectionSupported(
 	return sel.Matched && !sel.Conflict && sel.Entry != nil && sel.ProductState == engine.ImageProductStateSupported
 }
 
-func canonicalSupervisedImageSelectionForLocalAsset(
-	model *runtimev1.LocalAssetRecord,
-	profile *runtimev1.LocalDeviceProfile,
-) engine.ImageSupervisedMatrixSelection {
-	if model == nil {
-		return engine.ImageSupervisedMatrixSelection{
-			CompatibilityDetail: "local image model unavailable",
-		}
-	}
-	return canonicalSupervisedImageSelection(profile, canonicalImageResolverFactsForLocalAsset(model))
-}
-
 func canonicalSupervisedImageAttachedEndpointDetail(
 	engineName string,
 	capabilities []string,
@@ -331,161 +296,4 @@ func canonicalSupervisedImageAttachedEndpointDetail(
 		return ""
 	}
 	return "local image assets require runtime supervised execution; attached endpoints are not supported for the canonical image path"
-}
-
-func canonicalImageCatalogComparableIdentity(model *runtimev1.LocalAssetRecord, managedAlias string) string {
-	if model == nil {
-		return ""
-	}
-	base := strings.TrimSpace(model.GetLogicalModelId())
-	if base == "" {
-		base = strings.TrimSpace(model.GetAssetId())
-	}
-	alias := strings.TrimSpace(managedAlias)
-	if alias == "" {
-		return base
-	}
-	if base == "" {
-		return alias
-	}
-	return base + "#" + alias
-}
-
-func managedRuntimeEngineForSelection(selection engine.ImageSupervisedMatrixSelection) string {
-	if selection.Entry == nil {
-		return ""
-	}
-	if selection.ControlPlane == engine.ImageControlPlaneRuntime {
-		return ""
-	}
-	return strings.ToLower(strings.TrimSpace(string(selection.ExecutionPlane)))
-}
-
-func executionRuntimeEngineForSelection(selection engine.ImageSupervisedMatrixSelection) string {
-	if selection.Entry == nil {
-		return ""
-	}
-	return strings.ToLower(strings.TrimSpace(string(selection.ExecutionPlane)))
-}
-
-func (s *Service) ResolveCanonicalImageSelection(_ context.Context, requestedModelID string) (engine.ImageSupervisedMatrixSelection, error) {
-	model := s.resolveManagedMediaImageModel(requestedModelID)
-	if model == nil {
-		return engine.ImageSupervisedMatrixSelection{}, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
-	}
-	return canonicalSupervisedImageSelectionForLocalAsset(model, collectDeviceProfile()), nil
-}
-
-// ResolveCanonicalImageSelectionForLocalAsset accepts only the exact
-// local_asset_id already produced by durable target resolution.
-func (s *Service) ResolveCanonicalImageSelectionForLocalAsset(_ context.Context, localAssetID string) (engine.ImageSupervisedMatrixSelection, error) {
-	id := strings.TrimSpace(localAssetID)
-	if id == "" {
-		return engine.ImageSupervisedMatrixSelection{}, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
-	}
-	s.mu.RLock()
-	model := cloneLocalAsset(s.assets[id])
-	s.mu.RUnlock()
-	if model == nil || strings.TrimSpace(model.GetLocalAssetId()) != id {
-		return engine.ImageSupervisedMatrixSelection{}, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
-	}
-	return canonicalSupervisedImageSelectionForLocalAsset(model, collectDeviceProfile()), nil
-}
-
-// ManagedSupervisedImageBootstrapSelection returns the canonical image matrix
-// selection currently required by supervised local image assets. The boolean
-// reports whether any supervised canonical image asset is present at all.
-func (s *Service) ManagedSupervisedImageBootstrapSelection() (engine.ImageSupervisedMatrixSelection, bool) {
-	s.mu.RLock()
-	models := make([]*runtimev1.LocalAssetRecord, 0, len(s.assets))
-	for _, model := range s.assets {
-		models = append(models, cloneLocalAsset(model))
-	}
-	s.mu.RUnlock()
-
-	profile := collectDeviceProfile()
-	found := false
-	activeFound := false
-	var firstActiveSelection engine.ImageSupervisedMatrixSelection
-	activeSupportedSelections := map[string]engine.ImageSupervisedMatrixSelection{}
-	supportedSelections := map[string]engine.ImageSupervisedMatrixSelection{}
-
-	for _, model := range models {
-		if model == nil || model.GetStatus() == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_REMOVED {
-			continue
-		}
-		if runtimeModeForAsset(model, profile) != runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED {
-			continue
-		}
-		if !isCanonicalSupervisedImageAsset(model.GetEngine(), model.GetCapabilities(), model.GetKind()) {
-			continue
-		}
-		found = true
-		isActive := model.GetStatus() == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE
-		if isActive {
-			activeFound = true
-		}
-		selection := canonicalSupervisedImageSelectionForLocalAsset(model, profile)
-		if selection.Conflict {
-			return selection, true
-		}
-		if !selection.Matched || selection.Entry == nil {
-			if isActive && firstActiveSelection.EntryID == "" && firstActiveSelection.CompatibilityDetail == "" {
-				firstActiveSelection = selection
-			}
-			continue
-		}
-		if isActive {
-			if selection.ProductState == engine.ImageProductStateSupported {
-				activeSupportedSelections[selection.EntryID] = selection
-			} else if firstActiveSelection.EntryID == "" && firstActiveSelection.CompatibilityDetail == "" {
-				firstActiveSelection = selection
-			}
-		}
-		if selection.ProductState == engine.ImageProductStateSupported {
-			supportedSelections[selection.EntryID] = selection
-		}
-	}
-
-	if !found {
-		return engine.ImageSupervisedMatrixSelection{}, false
-	}
-
-	selectUnique := func(
-		source map[string]engine.ImageSupervisedMatrixSelection,
-		conflictDetail string,
-	) engine.ImageSupervisedMatrixSelection {
-		entryIDs := make([]string, 0, len(source))
-		for entryID := range source {
-			entryIDs = append(entryIDs, entryID)
-		}
-		sort.Strings(entryIDs)
-		if len(entryIDs) == 1 {
-			return source[entryIDs[0]]
-		}
-		return engine.ImageSupervisedMatrixSelection{
-			Matched:          true,
-			Conflict:         true,
-			ConflictEntryIDs: append([]string(nil), entryIDs...),
-			CompatibilityDetail: fmt.Sprintf(
-				conflictDetail,
-				strings.Join(entryIDs, ", "),
-			),
-		}
-	}
-
-	if activeFound {
-		if len(activeSupportedSelections) > 0 {
-			return selectUnique(activeSupportedSelections, "multiple managed image topology entries are active: %s; runtime cannot arbitrate"), true
-		}
-		if firstActiveSelection.EntryID != "" || firstActiveSelection.CompatibilityDetail != "" {
-			return firstActiveSelection, true
-		}
-		return engine.ImageSupervisedMatrixSelection{}, false
-	}
-
-	if len(supportedSelections) > 0 {
-		return selectUnique(supportedSelections, "multiple supported managed image topology entries are installed: %s; runtime cannot arbitrate"), true
-	}
-	return engine.ImageSupervisedMatrixSelection{}, false
 }

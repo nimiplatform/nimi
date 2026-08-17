@@ -51,14 +51,6 @@ func cloneStringMap(input map[string]string) map[string]string {
 	return out
 }
 
-func cloneLocalAsset(input *runtimev1.LocalAssetRecord) *runtimev1.LocalAssetRecord {
-	if input == nil {
-		return nil
-	}
-	cloned, _ := proto.Clone(input).(*runtimev1.LocalAssetRecord)
-	return cloned
-}
-
 func cloneVerifiedAsset(input *runtimev1.LocalVerifiedAssetDescriptor) *runtimev1.LocalVerifiedAssetDescriptor {
 	if input == nil {
 		return nil
@@ -87,78 +79,14 @@ func cloneDeviceProfile(input *runtimev1.LocalDeviceProfile) *runtimev1.LocalDev
 // non-nil LocalDeviceProfile: it returns a clone of the caller's profile, or a
 // freshly collected profile for this host when the request omitted one.
 //
-// Every K-MCAT-034 resolver entry point (install-level plan resolution and
-// Product Control first-run model selection) must route its host posture
-// through this helper. A nil profile reaching resolveHostBudget zeroes the
-// RAM/VRAM budget, which makes classifyVariant rule every cpu variant
-// tierIneligible and the resolver fail-close — projecting a fully capable host
-// into the first-run `blocked`/`unsupported` state. The collected profile keeps
-// the resolver's fail-close semantics intact for genuinely under-resourced
-// hosts.
+// Environment planning uses this helper whenever host posture is optional so
+// eligibility checks evaluate the actual machine instead of an all-zero
+// synthetic profile. Explicit caller input is cloned before use.
 func hostProfileOrCollected(input *runtimev1.LocalDeviceProfile) *runtimev1.LocalDeviceProfile {
 	if profile := cloneDeviceProfile(input); profile != nil {
 		return profile
 	}
 	return collectDeviceProfile()
-}
-
-func cloneDependencyDescriptor(input *runtimev1.LocalExecutionEntryDescriptor) *runtimev1.LocalExecutionEntryDescriptor {
-	if input == nil {
-		return nil
-	}
-	cloned, _ := proto.Clone(input).(*runtimev1.LocalExecutionEntryDescriptor)
-	return cloned
-}
-
-func cloneProfileEntryDescriptor(input *runtimev1.LocalProfileEntryDescriptor) *runtimev1.LocalProfileEntryDescriptor {
-	if input == nil {
-		return nil
-	}
-	cloned, _ := proto.Clone(input).(*runtimev1.LocalProfileEntryDescriptor)
-	return cloned
-}
-
-func cloneProfileRequirement(input *runtimev1.LocalProfileRequirementDescriptor) *runtimev1.LocalProfileRequirementDescriptor {
-	if input == nil {
-		return nil
-	}
-	cloned, _ := proto.Clone(input).(*runtimev1.LocalProfileRequirementDescriptor)
-	return cloned
-}
-
-func cloneProfileDescriptor(input *runtimev1.LocalProfileDescriptor) *runtimev1.LocalProfileDescriptor {
-	if input == nil {
-		return nil
-	}
-	cloned, _ := proto.Clone(input).(*runtimev1.LocalProfileDescriptor)
-	return cloned
-}
-
-func cloneDependencyApplyResult(input *runtimev1.LocalExecutionApplyResult) *runtimev1.LocalExecutionApplyResult {
-	if input == nil {
-		return nil
-	}
-	cloned, _ := proto.Clone(input).(*runtimev1.LocalExecutionApplyResult)
-	return cloned
-}
-
-func clonePreflightDecisions(input []*runtimev1.LocalPreflightDecision) []*runtimev1.LocalPreflightDecision {
-	out := make([]*runtimev1.LocalPreflightDecision, 0, len(input))
-	for _, item := range input {
-		cloned, _ := proto.Clone(item).(*runtimev1.LocalPreflightDecision)
-		if cloned != nil {
-			out = append(out, cloned)
-		}
-	}
-	return out
-}
-
-func cloneServiceDescriptor(input *runtimev1.LocalServiceDescriptor) *runtimev1.LocalServiceDescriptor {
-	if input == nil {
-		return nil
-	}
-	cloned, _ := proto.Clone(input).(*runtimev1.LocalServiceDescriptor)
-	return cloned
 }
 
 func cloneProviderHints(input *runtimev1.LocalProviderHints) *runtimev1.LocalProviderHints {

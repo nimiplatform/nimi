@@ -1,31 +1,20 @@
 package localservice
 
 import (
-	"context"
-	"encoding/json"
-	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
-	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/engine"
 )
 
 func TestLocalEnvironmentActivationGateBlocksMissingSourceRecords(t *testing.T) {
 	svc := newTestService(t)
 	svc.SetEngineManager(&mockEngineManager{})
-	model := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
-		assetID:      "speech/gate-missing",
-		capabilities: []string{"audio.synthesize"},
-		engine:       "speech",
-		entry:        "model.onnx",
-	})
 
 	gate := svc.resolveLocalEnvironmentConsumerActivationGate(localEnvironmentConsumerActivationGateRequest{
-		ConsumerID:   "speech.qwen3-tts.python",
-		PackID:       "local-speech",
-		LocalAssetID: model.GetLocalAssetId(),
+		ConsumerID: "speech.qwen3-tts.python",
+		PackID:     "local-speech",
 	})
 
 	if gate.State != localEnvironmentActivationStateSetupRequired {
@@ -42,16 +31,9 @@ func TestLocalEnvironmentActivationGateBlocksMissingSourceRecords(t *testing.T) 
 func TestLocalEnvironmentActivationGateAdmitsReadyRecords(t *testing.T) {
 	svc := newTestService(t)
 	svc.SetEngineManager(&mockEngineManager{})
-	model := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
-		assetID:      "speech/gate-ready",
-		capabilities: []string{"audio.synthesize"},
-		engine:       "speech",
-		entry:        "model.onnx",
-	})
 	req := localEnvironmentConsumerActivationGateRequest{
-		ConsumerID:   "speech.qwen3-tts.python",
-		PackID:       "local-speech",
-		LocalAssetID: model.GetLocalAssetId(),
+		ConsumerID: "speech.qwen3-tts.python",
+		PackID:     "local-speech",
 	}
 	markLocalEnvironmentPlanReadyForTest(t, svc, req)
 
@@ -67,17 +49,10 @@ func TestLocalEnvironmentActivationGateAdmitsReadyRecords(t *testing.T) {
 
 func TestLocalEnvironmentActivationGateUsesConsumerPackOverCallerPackProjection(t *testing.T) {
 	svc := newTestService(t)
-	model := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
-		assetID:      "speech/gate-consumer-pack",
-		capabilities: []string{"audio.synthesize"},
-		engine:       "speech",
-		entry:        "model.onnx",
-	})
 
 	gate := svc.resolveLocalEnvironmentConsumerActivationGate(localEnvironmentConsumerActivationGateRequest{
-		ConsumerID:   "speech.qwen3-tts.python",
-		PackID:       "local-gpu-support",
-		LocalAssetID: model.GetLocalAssetId(),
+		ConsumerID: "speech.qwen3-tts.python",
+		PackID:     "local-gpu-support",
 	})
 
 	if gate.PackID != "local-speech" {
@@ -93,16 +68,9 @@ func TestLocalEnvironmentActivationGateUsesConsumerPackOverCallerPackProjection(
 
 func TestLocalEnvironmentActivationGateBlocksRepairRequiredSourceRecord(t *testing.T) {
 	svc := newTestService(t)
-	model := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
-		assetID:      "speech/gate-repair",
-		capabilities: []string{"audio.synthesize"},
-		engine:       "speech",
-		entry:        "model.onnx",
-	})
 	req := localEnvironmentConsumerActivationGateRequest{
-		ConsumerID:   "speech.qwen3-tts.python",
-		PackID:       "local-speech",
-		LocalAssetID: model.GetLocalAssetId(),
+		ConsumerID: "speech.qwen3-tts.python",
+		PackID:     "local-speech",
 	}
 	deps := markLocalEnvironmentPlanReadyForTest(t, svc, req)
 	if len(deps) == 0 {
@@ -175,21 +143,13 @@ func TestLocalEnvironmentActivationGatePreservesCancelledAndFailedJobs(t *testin
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			svc := newTestService(t)
-			model := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
-				assetID:      "speech/gate-job-" + tc.name,
-				capabilities: []string{"audio.synthesize"},
-				engine:       "speech",
-				entry:        "model.onnx",
-			})
 			req := localEnvironmentConsumerActivationGateRequest{
-				ConsumerID:   "speech.qwen3-tts.python",
-				PackID:       "local-speech",
-				LocalAssetID: model.GetLocalAssetId(),
+				ConsumerID: "speech.qwen3-tts.python",
+				PackID:     "local-speech",
 			}
 			plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
 				PackID:        req.PackID,
 				ConsumerScope: req.ConsumerID,
-				LocalAssetID:  req.LocalAssetID,
 			})
 			if len(plan.Dependencies) == 0 {
 				t.Fatal("expected plan dependencies")
@@ -217,32 +177,6 @@ func TestLocalEnvironmentActivationGatePreservesCancelledAndFailedJobs(t *testin
 	}
 }
 
-func TestManagedImageCUDAHealthUsesLocalEnvironmentActivationGate(t *testing.T) {
-	svc := newTestService(t)
-	setLocalRuntimePlatformForTest(t, "windows", "amd64")
-	setNvidiaGPUProbeForTest(t, false)
-	svc.SetEngineManager(&mockEngineManager{})
-	setLocalModelsPathForTest(t, svc, t.TempDir())
-	svc.SetManagedMediaEndpoint("http://127.0.0.1:8321/v1")
-	svc.SetManagedImageBackendConfig(true, "127.0.0.1:50052")
-	svc.SetManagedImageBackendHealth(true, "image backend active")
-	model := importWindowsNativeImageForActivationGateTest(t, svc)
-	cacheManagedImageProfileForTest(t, svc, model.GetLocalAssetId())
-
-	resp, err := svc.StartLocalAsset(context.Background(), &runtimev1.StartLocalAssetRequest{
-		LocalAssetId: model.GetLocalAssetId(),
-	})
-	if err != nil {
-		t.Fatalf("StartLocalAsset should return unhealthy asset, got transport error: %v", err)
-	}
-	if resp.GetAsset().GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY {
-		t.Fatalf("asset status = %s, want unhealthy", resp.GetAsset().GetStatus())
-	}
-	if !strings.Contains(resp.GetAsset().GetHealthDetail(), "local environment activation blocked") {
-		t.Fatalf("expected local environment gate detail, got %q", resp.GetAsset().GetHealthDetail())
-	}
-}
-
 func markLocalEnvironmentPlanReadyForTest(t *testing.T, svc *Service, req localEnvironmentConsumerActivationGateRequest) []localEnvironmentPlanDependency {
 	t.Helper()
 	requirement, ok := localEnvironmentConsumerRequirementByID(req.ConsumerID)
@@ -254,14 +188,10 @@ func markLocalEnvironmentPlanReadyForTest(t *testing.T, svc *Service, req localE
 		packID = requirement.PackID
 	}
 	plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
-		PackID:           packID,
-		ConsumerScope:    req.ConsumerID,
-		HostProfile:      req.HostProfile,
-		RuntimeDataRoot:  req.RuntimeDataRoot,
-		AssetID:          req.AssetID,
-		LocalAssetID:     req.LocalAssetID,
-		CompanionAssetID: req.CompanionAssetID,
-		ParentAssetID:    req.ParentAssetID,
+		PackID:          packID,
+		ConsumerScope:   req.ConsumerID,
+		HostProfile:     req.HostProfile,
+		RuntimeDataRoot: req.RuntimeDataRoot,
 	})
 	acceleratorPlane := "cpu"
 	if strings.Contains(req.ConsumerID, ".cuda") || localEnvironmentHostSupportsCUDA(localEnvironmentHostProfileFromDeviceProfile(hostProfileOrCollected(req.HostProfile))) {
@@ -322,44 +252,4 @@ func markLocalEnvironmentPlanReadyForTest(t *testing.T, svc *Service, req localE
 		}
 	}
 	return plan.Dependencies
-}
-
-func importWindowsNativeImageForActivationGateTest(t *testing.T, svc *Service) *runtimev1.LocalAssetRecord {
-	t.Helper()
-	manifestPath := filepath.Join(svc.localModelsPath, "resolved", "nimi", "image-model-cuda-gate", "asset.manifest.json")
-	rawManifest, err := json.Marshal(map[string]any{
-		"asset_id":         "local-import/z_image_turbo-Q4_K",
-		"kind":             "image",
-		"logical_model_id": "nimi/image-model-cuda-gate",
-		"engine":           "media",
-		"capabilities":     []string{"image.generate"},
-		"entry":            "z_image_turbo-Q4_K.gguf",
-		"files":            []string{"z_image_turbo-Q4_K.gguf"},
-		"hashes":           map[string]string{"z_image_turbo-Q4_K.gguf": "sha256:" + validImageTestGGUFHash()},
-		"source": map[string]any{
-			"repo": "file://" + filepath.ToSlash(manifestPath),
-		},
-		"engine_config": map[string]any{
-			"backend": "stablediffusion-ggml",
-		},
-	})
-	if err != nil {
-		t.Fatalf("marshal manifest: %v", err)
-	}
-	if err := os.MkdirAll(filepath.Dir(manifestPath), 0o755); err != nil {
-		t.Fatalf("create manifest dir: %v", err)
-	}
-	if err := os.WriteFile(filepath.Join(filepath.Dir(manifestPath), "z_image_turbo-Q4_K.gguf"), validImageTestGGUF(), 0o600); err != nil {
-		t.Fatalf("write image entry: %v", err)
-	}
-	if err := os.WriteFile(manifestPath, rawManifest, 0o600); err != nil {
-		t.Fatalf("write manifest: %v", err)
-	}
-	imported, err := svc.ImportLocalAsset(context.Background(), &runtimev1.ImportLocalAssetRequest{
-		ManifestPath: manifestPath,
-	})
-	if err != nil {
-		t.Fatalf("import image asset: %v", err)
-	}
-	return imported.GetAsset()
 }

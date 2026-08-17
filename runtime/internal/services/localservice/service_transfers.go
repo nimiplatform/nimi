@@ -26,8 +26,9 @@ const (
 	localTransferStateCancelled = "cancelled"
 	localTransferStreamBudget   = 32
 
-	localTransferKindDownload = "download"
-	localTransferKindImport   = "import"
+	localTransferKindDownload       = "download"
+	localTransferKindImport         = "import"
+	localTransferInterruptionReason = "LOCAL_TRANSFER_INTERRUPTED"
 )
 
 var errLocalTransferCancelled = errors.New("local transfer cancelled")
@@ -152,7 +153,6 @@ func cloneLocalTransferSummary(summary *runtimev1.LocalTransferSessionSummary) *
 	return &runtimev1.LocalTransferSessionSummary{
 		InstallSessionId: summary.GetInstallSessionId(),
 		AssetId:          summary.GetAssetId(),
-		LocalAssetId:     summary.GetLocalAssetId(),
 		SessionKind:      normalizeTransferKind(summary.GetSessionKind()),
 		Phase:            strings.TrimSpace(summary.GetPhase()),
 		State:            normalizeTransferState(summary.GetState()),
@@ -176,7 +176,6 @@ func localTransferEventFromSummary(summary *runtimev1.LocalTransferSessionSummar
 	return &runtimev1.LocalTransferProgressEvent{
 		InstallSessionId: summary.GetInstallSessionId(),
 		AssetId:          summary.GetAssetId(),
-		LocalAssetId:     summary.GetLocalAssetId(),
 		SessionKind:      normalizeTransferKind(summary.GetSessionKind()),
 		Phase:            strings.TrimSpace(summary.GetPhase()),
 		BytesReceived:    summary.GetBytesReceived(),
@@ -199,7 +198,6 @@ func (s *Service) newLocalTransfer(kind string, input localTransferMutation) *ru
 	summary := &runtimev1.LocalTransferSessionSummary{
 		InstallSessionId: "transfer_" + strings.ToLower(ulid.Make().String()),
 		AssetId:          defaultString(strings.TrimSpace(input.ModelID), strings.TrimSpace(input.ArtifactID)),
-		LocalAssetId:     defaultString(strings.TrimSpace(input.LocalModelID), strings.TrimSpace(input.LocalArtifactID)),
 		SessionKind:      normalizeTransferKind(kind),
 		Phase:            defaultString(strings.TrimSpace(input.Phase), "download"),
 		State:            normalizeTransferState(defaultString(strings.TrimSpace(input.State), localTransferStateRunning)),
@@ -218,9 +216,8 @@ func (s *Service) newLocalTransfer(kind string, input localTransferMutation) *ru
 	defer s.mu.Unlock()
 	s.transfers[summary.GetInstallSessionId()] = cloneLocalTransferSummary(summary)
 	if !isTerminalTransferState(summary.GetState()) {
-		// Every non-terminal transfer gets a control, not only downloads: import
-		// sessions honor cancellation through it as well. Pause/resume remain
-		// download-only (see PauseLocalTransfer / ResumeLocalTransfer).
+		// Every non-terminal transfer gets a control. Import and download sessions
+		// both honor pause, resume, and cancellation through the same bounded path.
 		s.transferControls[summary.GetInstallSessionId()] = newLocalTransferControl()
 	}
 	s.persistStateLocked()
@@ -230,9 +227,7 @@ func (s *Service) newLocalTransfer(kind string, input localTransferMutation) *ru
 
 type localTransferMutation struct {
 	ModelID          string
-	LocalModelID     string
 	ArtifactID       string
-	LocalArtifactID  string
 	Phase            string
 	State            string
 	BytesReceived    int64
@@ -267,24 +262,57 @@ func (s *Service) mutateLocalTransfer(sessionID string, persist bool, mutate fun
 	return cloneLocalTransferSummary(current)
 }
 
-// failOrphanedLocalTransfersLocked fails every transfer persisted at a
-// non-terminal state across a daemon restart. No goroutine drives those
-// sessions anymore, so without this they would project a permanently frozen
-// in-progress session that can neither advance nor be retried in place.
+// @nimi-authority: rule.nimi.runtime.local-compute.r029
+// reconcileOrphanedLocalTransfersLocked pauses residual running/queued
+// downloads after a daemon restart. Their stable per-asset staging remains the
+// resume point for a later explicit install. Imports retain the existing
+// fail-closed recovery because their source-side mutation cannot be resumed.
 // Caller must hold s.mu.
-func (s *Service) failOrphanedLocalTransfersLocked() int {
+func (s *Service) reconcileOrphanedLocalTransfersLocked() int {
 	healed := 0
 	for _, summary := range s.transfers {
 		if summary == nil || isTerminalTransferState(summary.GetState()) {
 			continue
 		}
-		summary.State = localTransferStateFailed
-		summary.Message = "transfer interrupted by runtime restart"
-		summary.ReasonCode = "LOCAL_TRANSFER_INTERRUPTED"
-		// Not retryable in place: the driver goroutine is gone, so a resume
-		// would resurrect a running state nothing advances. Start a new
-		// download/import instead.
-		summary.Retryable = false
+		state := normalizeTransferState(summary.GetState())
+		changed := false
+		if normalizeTransferKind(summary.GetSessionKind()) == localTransferKindDownload {
+			// Progress events are intentionally not fsynced on every chunk. Rebuild
+			// the durable byte projection from stable per-transfer staging so a hard
+			// restart never presents an existing Range prefix as 0 B or shares it.
+			var files []string
+			if descriptor := verifiedAssetDescriptorForAssetID(s.verified, summary.GetAssetId()); descriptor != nil {
+				files = normalizeStringSlice(descriptor.GetFiles())
+				if len(files) == 0 && strings.TrimSpace(descriptor.GetEntry()) != "" {
+					files = []string{strings.TrimSpace(descriptor.GetEntry())}
+				}
+				if descriptor.GetTotalSizeBytes() > 0 && summary.GetBytesTotal() != descriptor.GetTotalSizeBytes() {
+					summary.BytesTotal = descriptor.GetTotalSizeBytes()
+					changed = true
+				}
+			}
+			if bytesReceived, err := managedModelDownloadStagedBytes(resolveLocalModelsPath(s.localModelsPath), managedModelAcquisitionStorageID(summary.GetAssetId(), summary.GetInstallSessionId()), files); err == nil &&
+				summary.GetBytesReceived() != bytesReceived {
+				summary.BytesReceived = bytesReceived
+				changed = true
+			}
+			if state == localTransferStateRunning || state == localTransferStateQueued {
+				summary.State = localTransferStatePaused
+				summary.Message = "transfer interrupted by runtime restart"
+				summary.ReasonCode = localTransferInterruptionReason
+				summary.Retryable = true
+				changed = true
+			}
+		} else {
+			summary.State = localTransferStateFailed
+			summary.Message = "transfer interrupted by runtime restart"
+			summary.ReasonCode = localTransferInterruptionReason
+			summary.Retryable = false
+			changed = true
+		}
+		if !changed {
+			continue
+		}
 		summary.SpeedBytesPerSec = 0
 		summary.EtaSeconds = 0
 		summary.UpdatedAt = nowISO()
@@ -335,7 +363,6 @@ func (s *Service) publishTransferEventLocked(event *runtimev1.LocalTransferProgr
 		clone := localTransferEventFromSummary(&runtimev1.LocalTransferSessionSummary{
 			InstallSessionId: event.GetInstallSessionId(),
 			AssetId:          event.GetAssetId(),
-			LocalAssetId:     event.GetLocalAssetId(),
 			SessionKind:      event.GetSessionKind(),
 			Phase:            event.GetPhase(),
 			State:            event.GetState(),
@@ -405,13 +432,14 @@ func (s *Service) PauseLocalTransfer(_ context.Context, req *runtimev1.PauseLoca
 			Message: "transfer not found",
 		})
 	}
-	if control == nil || summary.GetSessionKind() != localTransferKindDownload || isTerminalTransferState(summary.GetState()) {
+	if control == nil || isTerminalTransferState(summary.GetState()) {
 		return &runtimev1.PauseLocalTransferResponse{Transfer: summary}, nil
 	}
 	_ = control.pause()
 	return &runtimev1.PauseLocalTransferResponse{Transfer: summary}, nil
 }
 
+// @nimi-authority: rule.nimi.runtime.local-compute.r090
 func (s *Service) ResumeLocalTransfer(_ context.Context, req *runtimev1.ResumeLocalTransferRequest) (*runtimev1.ResumeLocalTransferResponse, error) {
 	sessionID := strings.TrimSpace(req.GetInstallSessionId())
 	if sessionID == "" {
@@ -419,24 +447,172 @@ func (s *Service) ResumeLocalTransfer(_ context.Context, req *runtimev1.ResumeLo
 			Message: "installSessionId required",
 		})
 	}
-	control := s.transferControl(sessionID)
-	summary := s.mutateLocalTransfer(sessionID, true, func(summary *runtimev1.LocalTransferSessionSummary) {
-		if isTerminalTransferState(summary.GetState()) {
-			return
-		}
-		summary.State = localTransferStateRunning
-		summary.Message = "transfer resumed"
-	})
-	if summary == nil {
+
+	summary := s.localTransferSummary(sessionID)
+	if summary.GetInstallSessionId() == "" {
 		return nil, grpcerr.WithReasonCodeOptions(codes.NotFound, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, grpcerr.ReasonOptions{
 			Message: "transfer not found",
 		})
 	}
-	if control == nil || summary.GetSessionKind() != localTransferKindDownload || isTerminalTransferState(summary.GetState()) {
+	if isTerminalTransferState(summary.GetState()) {
 		return &runtimev1.ResumeLocalTransferResponse{Transfer: summary}, nil
 	}
-	_ = control.resume()
-	return &runtimev1.ResumeLocalTransferResponse{Transfer: summary}, nil
+
+	control := s.transferControl(sessionID)
+	state := normalizeTransferState(summary.GetState())
+	if state == localTransferStateRunning && control != nil {
+		// Idempotent resume while the original in-process executor is alive.
+		return &runtimev1.ResumeLocalTransferResponse{Transfer: summary}, nil
+	}
+	if state == localTransferStatePaused && control != nil && control.resume() {
+		// A cooperative pause retains its executor and only needs the existing
+		// control released. An interruption does not pause the control, so it
+		// deliberately falls through to full reconstruction below.
+		summary = s.mutateLocalTransfer(sessionID, true, func(summary *runtimev1.LocalTransferSessionSummary) {
+			if isTerminalTransferState(summary.GetState()) {
+				return
+			}
+			summary.State = localTransferStateRunning
+			summary.Message = "transfer resumed"
+			summary.ReasonCode = ""
+			summary.Retryable = true
+			summary.SpeedBytesPerSec = 0
+			summary.EtaSeconds = 0
+		})
+		return &runtimev1.ResumeLocalTransferResponse{Transfer: summary}, nil
+	}
+
+	if normalizeTransferKind(summary.GetSessionKind()) != localTransferKindDownload {
+		reason := runtimev1.ReasonCode_AI_LOCAL_MODEL_INVALID_TRANSITION.String()
+		err := grpcerr.WithReasonCodeOptions(
+			codes.FailedPrecondition,
+			runtimev1.ReasonCode_AI_LOCAL_MODEL_INVALID_TRANSITION,
+			grpcerr.ReasonOptions{Message: "transfer executor did not survive the runtime restart"},
+		)
+		s.failTransferWithReason(sessionID, err.Error(), reason, false)
+		return nil, err
+	}
+
+	plan, reason, err := s.rebuildManagedModelDownloadResumePlan(summary.GetAssetId(), summary.GetInstallSessionId())
+	if err != nil {
+		s.failTransferWithReason(sessionID, err.Error(), reason, false)
+		return nil, err
+	}
+	resumed, err := s.startRestoredManagedModelDownload(sessionID, plan)
+	if err != nil {
+		s.failTransferWithReason(sessionID, err.Error(), runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE.String(), false)
+		return nil, err
+	}
+	return &runtimev1.ResumeLocalTransferResponse{Transfer: resumed}, nil
+}
+
+func (s *Service) startRestoredManagedModelDownload(
+	sessionID string,
+	plan managedModelDownloadResumePlan,
+) (*runtimev1.LocalTransferSessionSummary, error) {
+	s.mu.Lock()
+	current := s.transfers[strings.TrimSpace(sessionID)]
+	if current == nil {
+		s.mu.Unlock()
+		return nil, grpcerr.WithReasonCodeOptions(codes.NotFound, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, grpcerr.ReasonOptions{
+			Message: "transfer not found",
+		})
+	}
+	if isTerminalTransferState(current.GetState()) {
+		summary := cloneLocalTransferSummary(current)
+		s.mu.Unlock()
+		return summary, nil
+	}
+	if normalizeTransferState(current.GetState()) == localTransferStateRunning && s.transferControls[sessionID] != nil {
+		summary := cloneLocalTransferSummary(current)
+		s.mu.Unlock()
+		return summary, nil
+	}
+	parent := s.jobLifetimeCtx
+	if parent == nil || s.jobLifetimeCancel == nil {
+		s.mu.Unlock()
+		return nil, grpcerr.WithReasonCodeOptions(codes.Unavailable, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
+			Message: "runtime is shutting down; transfer executor cannot be started",
+		})
+	}
+
+	control := newLocalTransferControl()
+	s.transferControls[sessionID] = control
+	current.State = localTransferStateRunning
+	current.Phase = "download"
+	current.BytesReceived = clampInt64Minimum(plan.bytesReceived, 0)
+	if plan.bytesTotal > 0 {
+		current.BytesTotal = plan.bytesTotal
+	}
+	current.SpeedBytesPerSec = 0
+	current.EtaSeconds = 0
+	current.Message = "transfer resumed"
+	current.ReasonCode = ""
+	current.Retryable = true
+	current.UpdatedAt = nowISO()
+	s.transfers[sessionID] = cloneLocalTransferSummary(current)
+	s.persistStateLocked()
+	s.publishTransferEventLocked(localTransferEventFromSummary(current))
+	summary := cloneLocalTransferSummary(current)
+	s.transferWorkerWG.Add(1)
+	s.mu.Unlock()
+
+	go func() {
+		defer s.transferWorkerWG.Done()
+		_, runErr := s.installManagedDownloadedModelWithTransfer(parent, plan.spec, sessionID)
+		s.finishRestoredManagedModelDownload(sessionID, control, runErr)
+		if runErr != nil {
+			s.logger.Debug("restored managed model transfer ended with error",
+				"install_session_id", sessionID,
+				"asset_id", plan.spec.modelID,
+				"error", runErr)
+		}
+	}()
+	return summary, nil
+}
+
+// finishRestoredManagedModelDownload drops only the executor generation that
+// just exited. If an unexpected early return left its session running, it also
+// fails that session closed so no running-without-executor state can persist.
+func (s *Service) finishRestoredManagedModelDownload(sessionID string, control *localTransferControl, runErr error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.transferControls[sessionID] != control {
+		return
+	}
+	delete(s.transferControls, sessionID)
+	current := s.transfers[sessionID]
+	if current == nil || isTerminalTransferState(current.GetState()) || normalizeTransferState(current.GetState()) == localTransferStatePaused {
+		return
+	}
+	current.State = localTransferStateFailed
+	if runErr != nil {
+		current.Message = runErr.Error()
+	} else {
+		current.Message = "transfer executor stopped before completion"
+	}
+	current.ReasonCode = "LOCAL_TRANSFER_FAILED"
+	current.Retryable = false
+	current.SpeedBytesPerSec = 0
+	current.EtaSeconds = 0
+	current.UpdatedAt = nowISO()
+	s.transfers[sessionID] = cloneLocalTransferSummary(current)
+	s.persistStateLocked()
+	s.publishTransferEventLocked(localTransferEventFromSummary(current))
+}
+
+func (s *Service) failTransferWithReason(sessionID string, message string, reason string, retryable bool) {
+	_ = s.mutateLocalTransfer(sessionID, true, func(summary *runtimev1.LocalTransferSessionSummary) {
+		if isTerminalTransferState(summary.GetState()) {
+			return
+		}
+		summary.State = localTransferStateFailed
+		summary.Message = strings.TrimSpace(message)
+		summary.ReasonCode = strings.TrimSpace(reason)
+		summary.Retryable = retryable
+		summary.SpeedBytesPerSec = 0
+		summary.EtaSeconds = 0
+	})
 }
 
 func (s *Service) CancelLocalTransfer(_ context.Context, req *runtimev1.CancelLocalTransferRequest) (*runtimev1.CancelLocalTransferResponse, error) {
@@ -455,6 +631,7 @@ func (s *Service) CancelLocalTransfer(_ context.Context, req *runtimev1.CancelLo
 		summary.State = localTransferStateCancelled
 		summary.Message = "transfer cancelled"
 		summary.ReasonCode = "LOCAL_TRANSFER_CANCELLED"
+		summary.Retryable = false
 	})
 	if summary == nil {
 		return nil, grpcerr.WithReasonCodeOptions(codes.NotFound, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, grpcerr.ReasonOptions{
@@ -463,6 +640,9 @@ func (s *Service) CancelLocalTransfer(_ context.Context, req *runtimev1.CancelLo
 	}
 	if control != nil {
 		_ = control.cancel()
+	}
+	if normalizeTransferKind(summary.GetSessionKind()) == localTransferKindDownload && normalizeTransferState(summary.GetState()) == localTransferStateCancelled {
+		s.discardManagedModelDownloadStaging(summary.GetAssetId())
 	}
 	return &runtimev1.CancelLocalTransferResponse{Transfer: summary}, nil
 }

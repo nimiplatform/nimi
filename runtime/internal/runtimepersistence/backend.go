@@ -581,6 +581,15 @@ func (b *Backend) ensureSchema() error {
 			config_blob BLOB NOT NULL,
 			PRIMARY KEY(account_namespace, owner_kind, owner_id)
 		)`,
+		`CREATE TABLE IF NOT EXISTS runtime_ai_profile (
+			account_namespace TEXT NOT NULL,
+			profile_id TEXT NOT NULL,
+			title TEXT NOT NULL,
+			profile_json BLOB NOT NULL,
+			imported_at TEXT NOT NULL,
+			updated_at TEXT NOT NULL,
+			PRIMARY KEY(account_namespace, profile_id)
+		)`,
 		`CREATE TABLE IF NOT EXISTS runtime_agent_presentation_asset (
 			asset_ref TEXT PRIMARY KEY,
 			local_agent_ref TEXT NOT NULL,

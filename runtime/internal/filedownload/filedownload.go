@@ -88,6 +88,11 @@ type Options struct {
 	Progress ProgressFunc
 	// Wait is the optional cooperative pause hook.
 	Wait WaitFunc
+	// PreservePartialOnError lets a caller retain the `.download` file for an
+	// explicit later resume. The default is fail-closed cleanup. Callers must
+	// return false for failures that invalidate the partial, such as an explicit
+	// cancellation or an integrity mismatch.
+	PreservePartialOnError func(error) bool
 }
 
 // Result reports the outcome of a successful download.
@@ -135,7 +140,7 @@ func Download(ctx context.Context, opts Options) (Result, error) {
 	for attempt := 1; attempt <= attempts; attempt++ {
 		result.Attempts = attempt
 		if err := ctx.Err(); err != nil {
-			removePartial(partialPath)
+			discardPartialOnError(opts, partialPath, err)
 			return Result{}, err
 		}
 
@@ -157,18 +162,19 @@ func Download(ctx context.Context, opts Options) (Result, error) {
 		// caller ctx is still alive is a transport error; let IsTransient decide
 		// whether it should resume.
 		if ctxErr := ctx.Err(); ctxErr != nil {
-			removePartial(partialPath)
+			discardPartialOnError(opts, partialPath, ctxErr)
 			return Result{}, ctxErr
 		}
 		if errors.Is(err, context.Canceled) {
-			removePartial(partialPath)
+			discardPartialOnError(opts, partialPath, err)
 			return Result{}, err
 		}
 
 		var nonTransient *nonTransientError
 		if errors.As(err, &nonTransient) {
-			// 4xx / oversize / hash mismatch: fail closed, discard the partial.
-			removePartial(partialPath)
+			// Callers may retain a still-valid partial for an explicit retry;
+			// integrity failures remain invalid and are discarded below.
+			discardPartialOnError(opts, partialPath, nonTransient.err)
 			return Result{}, nonTransient.err
 		}
 
@@ -184,7 +190,7 @@ func Download(ctx context.Context, opts Options) (Result, error) {
 			// explicit caller retry can still resume; a non-transient error
 			// discards it.
 			if !transient {
-				removePartial(partialPath)
+				discardPartialOnError(opts, partialPath, err)
 				return Result{}, fmt.Errorf("filedownload: %s: %w", opts.URL, err)
 			}
 			return Result{}, fmt.Errorf("%w: %s: %w", ErrTransientAttemptsExhausted, opts.URL, err)
@@ -194,7 +200,7 @@ func Download(ctx context.Context, opts Options) (Result, error) {
 		if opts.RetryBackoff > 0 {
 			select {
 			case <-ctx.Done():
-				removePartial(partialPath)
+				discardPartialOnError(opts, partialPath, ctx.Err())
 				return Result{}, ctx.Err()
 			case <-time.After(time.Duration(attempt) * opts.RetryBackoff):
 			}
@@ -205,16 +211,18 @@ func Download(ctx context.Context, opts Options) (Result, error) {
 	// whole file (re-hash once — never hash only a resumed tail).
 	sum, err := sha256File(partialPath)
 	if err != nil {
-		removePartial(partialPath)
+		discardPartialOnError(opts, partialPath, err)
 		return Result{}, fmt.Errorf("filedownload: hash %s: %w", opts.DestPath, err)
 	}
 	result.SHA256 = sum
 	if expected := strings.ToLower(strings.TrimSpace(opts.ExpectedSHA256)); expected != "" && !strings.EqualFold(expected, sum) {
-		removePartial(partialPath)
-		return Result{}, fmt.Errorf("%w: expected=%s actual=%s", ErrHashMismatch, expected, sum)
+		hashErr := fmt.Errorf("%w: expected=%s actual=%s", ErrHashMismatch, expected, sum)
+		discardPartialOnError(opts, partialPath, hashErr)
+		return Result{}, hashErr
 	}
 
 	if err := promotePartial(partialPath, opts.DestPath); err != nil {
+		discardPartialOnError(opts, partialPath, err)
 		return Result{}, fmt.Errorf("filedownload: promote %s: %w", opts.DestPath, err)
 	}
 	return result, nil
@@ -382,19 +390,23 @@ func partialSize(partialPath string) int64 {
 	return info.Size()
 }
 
-// removePartial discards the `.download` partial. It is called only on a
-// non-transient failure or after a successful rename.
+// discardPartialOnError applies the caller's explicit resume policy. Integrity
+// and cancellation owners can reject retention while resumable transfer owners
+// keep bytes that remain valid across an interruption.
+func discardPartialOnError(opts Options, partialPath string, err error) {
+	if opts.PreservePartialOnError != nil && opts.PreservePartialOnError(err) {
+		return
+	}
+	removePartial(partialPath)
+}
+
 func removePartial(partialPath string) {
 	_ = os.Remove(partialPath)
 }
 
 // promotePartial atomically renames the verified partial onto its final path.
 func promotePartial(partialPath, destPath string) error {
-	if err := os.Rename(partialPath, destPath); err != nil {
-		_ = os.Remove(partialPath)
-		return err
-	}
-	return nil
+	return os.Rename(partialPath, destPath)
 }
 
 // sha256File hashes the whole file at path — for a resumed download this
