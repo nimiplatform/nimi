@@ -3,7 +3,9 @@
 package daemonctl
 
 import (
+	"context"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"syscall"
@@ -164,6 +166,25 @@ func TestManagerStopUsesProtectedServiceControllerWithoutProcessKill(t *testing.
 	}
 	if controller.stopCalls != 1 {
 		t.Fatalf("protected service stop calls = %d, want 1", controller.stopCalls)
+	}
+}
+
+func TestManagerPrintLogsDoesNotFallBackFromProtectedService(t *testing.T) {
+	manager, _, _ := newTestManager(t)
+	manager.protectedService = &fakeProtectedServiceController{
+		status: protectedServiceStatus{Running: true, PID: 426, State: "running"},
+	}
+	manager.loadConfig = func() (config.Config, error) {
+		t.Fatal("protected service logs must not load background Runtime config")
+		return config.Config{}, nil
+	}
+
+	err := manager.PrintLogs(context.Background(), io.Discard, 20, false)
+	if err == nil {
+		t.Fatal("expected protected service logs to be unavailable")
+	}
+	if got, want := err.Error(), "protected Runtime service logs are unavailable"; got != want {
+		t.Fatalf("PrintLogs error = %q, want %q", got, want)
 	}
 }
 

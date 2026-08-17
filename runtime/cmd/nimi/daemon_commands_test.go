@@ -270,8 +270,9 @@ func TestRunRuntimeDoctorProtectedServiceUsesSanitizedServiceState(t *testing.T)
 	daemonManagerFactory = func() daemonManager {
 		statusCalls++
 		return stubDaemonManager{status: daemonctl.Status{
-			Mode:    daemonctl.ModeProtectedService,
-			Process: "running",
+			Mode:            daemonctl.ModeProtectedService,
+			Process:         "running",
+			HealthReachable: true,
 		}}
 	}
 	defer func() {

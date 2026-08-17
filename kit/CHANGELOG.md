@@ -36,6 +36,11 @@ Discipline.
 
 ### Changed
 
+- **Breaking (0.x):** Kit no longer exports the retired Runtime model-root,
+  manifest-picker, or LocalAsset-ID reveal helpers. ModelAsset custody and paths
+  are Runtime-owned; hosts must use the protected Runtime ModelAsset flows and
+  must not reconstruct managed storage paths.
+
 - **Breaking (0.x):** Model Config no longer exports the retired
   `projectModelConfigLocalSelections`, `ModelConfigMachineAggregateInput`, or
   `ModelConfigMachineConfigurationInput` compatibility projection. Hosts must

@@ -2,7 +2,6 @@
 //
 // Single shared owner for app-agnostic Rust/Tauri host glue:
 // - runtime_bridge: gRPC-over-IPC bridge (channel pool, codec, unary/stream, daemon manager)
-// - runtime_local_assets: local Runtime asset picker/reveal path helpers
 // - runtime_local_agent_identity: Runtime local-agent identity parsing/projection
 // - runtime_defaults: env reading, loopback normalization, realm/runtime defaults
 // - session_logging: panic hook, renderer log_renderer_event sink, stderr echo
@@ -28,7 +27,6 @@ mod runtime_app_storage;
 mod runtime_bridge;
 mod runtime_defaults;
 mod runtime_local_agent_identity;
-mod runtime_local_assets;
 mod session_logging;
 mod shell_ui_hooks;
 mod standard_agent_center;

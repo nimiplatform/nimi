@@ -381,6 +381,9 @@ func (m *Manager) statusFromProtectedService(controller protectedServiceControll
 }
 
 func (m *Manager) PrintLogs(ctx context.Context, w io.Writer, tail int, follow bool) error {
+	if m.protectedService != nil {
+		return fmt.Errorf("protected Runtime service logs are unavailable")
+	}
 	if tail <= 0 {
 		tail = 200
 	}

@@ -47,10 +47,13 @@ func runRuntimeDoctor(args []string) error {
 	publicHealth := projectPublicDaemonHealth(runtimeStatus)
 	itemStatus := "ok"
 	detail := publicHealth.Health
-	if publicHealth.Health == publicDaemonHealthStopped || publicHealth.Health == publicDaemonHealthUnreachable {
+	switch publicHealth.Health {
+	case publicDaemonHealthStopped:
 		itemStatus = "warn"
-		detail = strings.TrimSpace(detail + "; Run 'nimi start' for background mode, or 'nimi serve' in another terminal.")
 		nextStep = "nimi start"
+	case publicDaemonHealthUnreachable:
+		itemStatus = "warn"
+		nextStep = "nimi logs -f"
 	}
 	items = append(items, doctorItem{Name: "daemon", Value: publicHealth.Process, Status: itemStatus, Detail: detail})
 
@@ -73,13 +76,20 @@ func runRuntimeDoctor(args []string) error {
 	}
 
 	if *jsonOutput {
-		out, err := json.MarshalIndent(map[string]any{
+		payload := map[string]any{
 			"items": items,
-		}, "", "  ")
+		}
+		if nextStep != "" {
+			payload["nextStep"] = nextStep
+		}
+		out, err := json.MarshalIndent(payload, "", "  ")
 		if err != nil {
 			return err
 		}
 		fmt.Println(string(out))
+		if code := runtimeStatus.ExitCode(); code != 0 {
+			return cliExitError{code: code}
+		}
 		return nil
 	}
 
@@ -97,6 +107,9 @@ func runRuntimeDoctor(args []string) error {
 	}
 	if nextStep != "" {
 		printCLINextStep(os.Stdout, nextStep)
+	}
+	if code := runtimeStatus.ExitCode(); code != 0 {
+		return cliExitError{code: code}
 	}
 	return nil
 }

@@ -236,7 +236,7 @@ Common commands:
 pnpm build                          # SDK + install-gateway + desktop + web build
 pnpm --filter @nimiplatform/sdk build
 pnpm runtime:cmd                    # invoke the runtime CLI
-pnpm runtime:health                 # query runtime health via gRPC
+pnpm runtime:health                 # query manager-owned runtime health
 cd runtime && go test ./... -count=1
 ```
 

@@ -465,10 +465,6 @@ pub mod local_assets {
         agent_center_path_segment, nimi_avatar_resolve_agent_center_avatar_asset,
         AgentCenterAvatarAssetResolvePayload, ModelManifest,
     };
-    pub use crate::runtime_local_assets::{
-        canonical_asset_manifest_path, reveal_target_for_asset, runtime_models_dir,
-        ASSET_MANIFEST_FILE_NAME,
-    };
     pub use crate::standard_local_assets::{
         set_standard_local_assets_host_hooks, StandardLocalAssetRootsHook,
         StandardLocalAssetUrlPayload, StandardLocalAssetUrlResult, StandardLocalAssetsHostHooks,
