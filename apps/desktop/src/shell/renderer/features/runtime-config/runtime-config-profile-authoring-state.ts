@@ -1,4 +1,6 @@
 // @nimi-authority: rule.nimi.desktop.ai-consumption.r023
+// @nimi-authority: rule.nimi.desktop.ai-consumption.r004
+// @nimi-authority: rule.nimi.desktop.ai-consumption.r021
 
 import {
   createNimiAIProfileAuthoringBuilder,
@@ -17,6 +19,9 @@ import {
   type NimiAIProfileSelectionMismatchPreview,
   type NimiCapabilityAIConfig,
   type NimiPortableAIProfile,
+  type NimiPortableAIProfileImplementation,
+  type NimiPortableAIProfileLoadoutIntent,
+  type NimiPortableAIProfileResourceOccurrence,
 } from '@nimiplatform/sdk/ai';
 import type { NimiJsonObject, NimiJsonValue } from '@nimiplatform/sdk/contracts';
 import type {
@@ -30,6 +35,13 @@ export type RuntimeConfigAIProfileLocalDraft = {
   readonly includeImplementation: boolean;
   readonly recipeId: string;
   readonly portableConfigJson: string;
+  readonly resourceOccurrences?: readonly NimiPortableAIProfileResourceOccurrence[];
+  readonly loadout?: NimiPortableAIProfileLoadoutIntent;
+  readonly importedIntent?: {
+    readonly recipeId: string;
+    readonly implementation: NimiPortableAIProfileImplementation;
+  };
+  readonly recipeRefreshBlocked?: boolean;
 };
 
 export type RuntimeConfigAIProfileCloudDraft = {
@@ -229,28 +241,56 @@ export function reconcileRuntimeConfigAIProfileRecipes(
     ...draft,
     capabilities: draft.capabilities.map((capability) => {
       if (capability.route !== 'local') return capability;
+      const reconciledCapability = hasExplicitRecipeSelection(capability.local)
+        ? { ...capability, local: clearImportedRecipeIntent(capability.local) }
+        : capability;
       const current = recipes.find((recipe) => (
-        recipe.recipeId === capability.local.recipeId
-        && recipe.capabilityContract === capability.capabilityContract
+        recipe.recipeId === reconciledCapability.local.recipeId
+        && recipe.capabilityContract === reconciledCapability.capabilityContract
       ));
       if (current) {
-        if (capability.local.portableConfigJson.trim()) return capability;
+        if (reconciledCapability.local.recipeRefreshBlocked) {
+          return blockImportedRecipeRefresh(reconciledCapability);
+        }
+        if (
+          reconciledCapability.local.importedIntent
+          && !sameRecipeImplementation(
+            current,
+            reconciledCapability.local.importedIntent.implementation,
+          )
+        ) {
+          return blockImportedRecipeRefresh(reconciledCapability);
+        }
+        if (reconciledCapability.local.portableConfigJson.trim()) return reconciledCapability;
         return {
-          ...capability,
+          ...reconciledCapability,
           local: {
-            ...capability.local,
+            ...reconciledCapability.local,
             portableConfigJson: prettyJson(current.defaultOptions),
           },
         };
       }
+      if (reconciledCapability.local.importedIntent) {
+        return blockImportedRecipeRefresh(reconciledCapability);
+      }
+      if (
+        reconciledCapability.local.resourceOccurrences !== undefined
+        || reconciledCapability.local.loadout !== undefined
+      ) {
+        // A Runtime Recipe refresh must not reinterpret or erase imported
+        // portable occurrence/Loadout intent. Keep the stale exact identity so
+        // preview/export fails closed until the user explicitly chooses a new
+        // Recipe (which clears that intent in the editor).
+        return reconciledCapability;
+      }
       const replacement = recipes.find(
-        (recipe) => recipe.capabilityContract === capability.capabilityContract,
+        (recipe) => recipe.capabilityContract === reconciledCapability.capabilityContract,
       );
       if (!replacement) {
         return {
-          ...capability,
+          ...reconciledCapability,
           local: {
-            ...capability.local,
+            ...reconciledCapability.local,
             includeImplementation: false,
             recipeId: '',
             portableConfigJson: '',
@@ -258,9 +298,9 @@ export function reconcileRuntimeConfigAIProfileRecipes(
         };
       }
       return {
-        ...capability,
+        ...reconciledCapability,
         local: {
-          includeImplementation: capability.local.includeImplementation,
+          includeImplementation: reconciledCapability.local.includeImplementation,
           recipeId: replacement.recipeId,
           portableConfigJson: prettyJson(replacement.defaultOptions),
         },
@@ -567,6 +607,12 @@ function authoringBuilderFromDraft(
                 `${capability.capabilityContract} portable config`,
               ),
             }),
+            ...(capability.local.resourceOccurrences !== undefined
+              ? { resourceOccurrences: capability.local.resourceOccurrences }
+              : {}),
+            ...(capability.local.loadout !== undefined
+              ? { loadout: capability.local.loadout }
+              : {}),
           }
           : {}),
       });
@@ -607,8 +653,27 @@ function recipeForCapabilityDraft(
       && candidate.capabilityContract === capabilityContract
     ))
     : undefined;
+  const explicitlySelected = capability
+    ? hasExplicitRecipeSelection(capability.local)
+    : false;
+  if (capability?.local.recipeRefreshBlocked && !explicitlySelected) {
+    throw new Error(
+      `${capabilityContract} requires a current Runtime Recipe selection; `
+      + 'an explicit Runtime Recipe selection is required after Recipe drift',
+    );
+  }
   if (!recipe) {
     throw new Error(`${capabilityContract} requires a current Runtime Recipe selection`);
+  }
+  if (
+    capability?.local.importedIntent
+    && !explicitlySelected
+    && !sameRecipeImplementation(recipe, capability.local.importedIntent.implementation)
+  ) {
+    throw new Error(
+      `${capabilityContract} requires a current Runtime Recipe selection; `
+      + 'an explicit Runtime Recipe selection is required after Recipe drift',
+    );
   }
   return recipe;
 }
@@ -709,6 +774,19 @@ function draftFromProfile(
         portableConfigJson: prettyJson(
           capability.driverPortableConfig ?? recipe.defaultOptions,
         ),
+        importedIntent: Object.freeze({
+          recipeId: capability.loadout?.recipeId ?? recipe.recipeId,
+          implementation: Object.freeze({
+            implementationId: implementation.implementationId,
+            driverId: implementation.driverId,
+            driverDialect: implementation.driverDialect,
+            supportedFeatures: Object.freeze([...implementation.supportedFeatures]),
+          }),
+        }),
+        ...(capability.resourceOccurrences !== undefined
+          ? { resourceOccurrences: capability.resourceOccurrences }
+          : {}),
+        ...(capability.loadout !== undefined ? { loadout: capability.loadout } : {}),
       },
       cloud,
     };
@@ -743,6 +821,48 @@ function sameImplementation(
   return left.implementationId === right.implementationId
     && left.driverId === right.driverId
     && left.driverDialect === right.driverDialect;
+}
+
+function sameRecipeImplementation(
+  recipe: NimiLoadoutRecipe,
+  implementation: NimiPortableAIProfileImplementation,
+): boolean {
+  return sameImplementation(recipe.implementation, implementation)
+    && sameStrings(recipe.supportedFeatures, implementation.supportedFeatures);
+}
+
+function hasExplicitRecipeSelection(local: RuntimeConfigAIProfileLocalDraft): boolean {
+  const imported = local.importedIntent;
+  if (!imported || !local.recipeId) return false;
+  if (local.resourceOccurrences !== undefined || local.loadout !== undefined) return false;
+  return local.recipeRefreshBlocked === true || local.recipeId !== imported.recipeId;
+}
+
+function clearImportedRecipeIntent(
+  local: RuntimeConfigAIProfileLocalDraft,
+): RuntimeConfigAIProfileLocalDraft {
+  return {
+    includeImplementation: local.includeImplementation,
+    recipeId: local.recipeId,
+    portableConfigJson: local.portableConfigJson,
+    ...(local.resourceOccurrences !== undefined
+      ? { resourceOccurrences: local.resourceOccurrences }
+      : {}),
+    ...(local.loadout !== undefined ? { loadout: local.loadout } : {}),
+  };
+}
+
+function blockImportedRecipeRefresh(
+  capability: RuntimeConfigAIProfileCapabilityDraft,
+): RuntimeConfigAIProfileCapabilityDraft {
+  return {
+    ...capability,
+    local: {
+      ...capability.local,
+      recipeId: '',
+      recipeRefreshBlocked: true,
+    },
+  };
 }
 
 function sameStrings(left: readonly string[], right: readonly string[]): boolean {

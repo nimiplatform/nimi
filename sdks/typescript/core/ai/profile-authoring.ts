@@ -18,6 +18,8 @@ import {
   type NimiPortableAIProfileCapability,
   type NimiPortableAIProfileImplementation,
   type NimiPortableAIProfileInput,
+  type NimiPortableAIProfileLoadoutIntent,
+  type NimiPortableAIProfileResourceOccurrence,
 } from './config-profile.js';
 
 /** Cloud recommendation content is intentionally grantless and connectorless. */
@@ -40,11 +42,16 @@ export interface NimiAIProfileCloudRecommendationAuthoringInput {
   readonly providerModelTarget: NimiJsonObject;
 }
 
+// @nimi-authority: rule.nimi.sdks.feature-clients.r013
 export interface NimiAIProfileLocalCapabilityAuthoringInput {
   readonly capabilityContract: string;
   readonly requiredFeatures?: readonly string[];
   readonly defaults?: NimiJsonObject;
   readonly localConfiguration?: NimiAIProfileLocalImplementationAuthoringInput;
+  /** Independent portable occurrences are authored intent, never machine bindings. */
+  readonly resourceOccurrences?: readonly NimiPortableAIProfileResourceOccurrence[];
+  /** Optional portable Loadout intent is preserved without ModelAsset or selection identity. */
+  readonly loadout?: NimiPortableAIProfileLoadoutIntent;
 }
 
 export interface NimiAIProfileCloudCapabilityAuthoringInput {
@@ -350,7 +357,14 @@ export class NimiAIProfileAuthoringBuilder {
   setLocalCapability(input: NimiAIProfileLocalCapabilityAuthoringInput): this {
     assertExactRecord(
       input,
-      new Set(['capabilityContract', 'requiredFeatures', 'defaults', 'localConfiguration']),
+      new Set([
+        'capabilityContract',
+        'requiredFeatures',
+        'defaults',
+        'localConfiguration',
+        'resourceOccurrences',
+        'loadout',
+      ]),
       'Local capability input',
     );
     const capabilityContract = requireExactNonEmptyText(
@@ -378,13 +392,27 @@ export class NimiAIProfileAuthoringBuilder {
       });
       driverPortableConfig = local.portableConfig;
     }
-    this.#capabilities[capabilityContract] = Object.freeze({
+    const candidate = {
       route: 'local' as const,
       requiredFeatures,
       ...(defaults !== undefined ? { defaults } : {}),
       ...(implementation !== undefined ? { implementation } : {}),
       ...(driverPortableConfig !== undefined ? { driverPortableConfig } : {}),
-    });
+      ...(input.resourceOccurrences !== undefined
+        ? { resourceOccurrences: input.resourceOccurrences }
+        : {}),
+      ...(input.loadout !== undefined ? { loadout: input.loadout } : {}),
+    };
+    const normalized = parseNimiPortableAIProfile({
+      profileId: 'profile.authoring.local-capability',
+      title: 'Local capability authoring validation',
+      capabilities: { [capabilityContract]: candidate },
+    }).capabilities[capabilityContract];
+    if (!normalized || normalized.route !== 'local') {
+      return authoringError(`${capabilityContract} Local capability is invalid`);
+    }
+    assertAuthoringPortableValue(normalized, `${capabilityContract} Local capability`);
+    this.#capabilities[capabilityContract] = normalized;
     return this;
   }
 

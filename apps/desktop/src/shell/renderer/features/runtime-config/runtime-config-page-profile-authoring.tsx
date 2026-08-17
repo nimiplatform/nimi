@@ -560,6 +560,8 @@ function LocalImplementationFields(props: {
             updateLocal({
               recipeId,
               portableConfigJson: recipe ? JSON.stringify(recipe.defaultOptions, null, 2) : '',
+              resourceOccurrences: undefined,
+              loadout: undefined,
             });
           }}>
             {candidates.map((recipe) => (

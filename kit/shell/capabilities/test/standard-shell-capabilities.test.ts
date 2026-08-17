@@ -332,6 +332,7 @@ describe('standard shell capabilities', () => {
       'sourceRule',
     ]);
     expect(JSON.stringify(speech).toLowerCase()).not.toMatch(/ready|install|binding|selection|probe/u);
+    expect(JSON.stringify(NIMI_PLATFORM_AI_PROFILE_FACTORY_ROWS)).not.toMatch(/model\.(?:asset|companion-asset)/u);
     expect(catalog).not.toContain(['first', 'run'].join('-'));
     expect(catalog).not.toContain(['first', 'run', 'install', 'levels'].join('_'));
 

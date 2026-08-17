@@ -169,6 +169,101 @@ test('AIProfile plan distinguishes zero downloads from an unknown aggregate size
   assert.equal(unknownSize.totalDownloadBytes, null);
 });
 
+test('AIProfile transfer acquires one exact content identity once and binds every occurrence', async () => {
+  const profile = loadoutProfile(B) as unknown as { capabilities: Record<string, Record<string, unknown>> };
+  const textCapability = profile.capabilities['text.generate']!;
+  const textLoadout = textCapability.loadout as { axes: readonly Record<string, unknown>[] };
+  textCapability.loadout = {
+    ...textLoadout,
+    axes: [{
+      slotId: 'model',
+      contentId: B,
+      expectedHash: B,
+      source: { repo: 'example/shared', revision: 'main', file: 'model.gguf', sizeBytes: 200 },
+    }],
+  };
+  const imageCapability = profile.capabilities['image.generate']!;
+  const imageLoadout = imageCapability.loadout as { axes: readonly Record<string, unknown>[] };
+  imageCapability.loadout = {
+    ...imageLoadout,
+    axes: [{
+      slotId: 'main',
+      contentId: B,
+      expectedHash: B,
+      source: { repo: 'example/shared', revision: 'main', file: 'model.gguf', sizeBytes: 200 },
+    }],
+  };
+  const recipes = [
+    recipe({ id: 'text-recipe', capability: 'text.generate', slots: [{ id: 'model', contentId: B, variantId: 'shared-v1' }] }),
+    recipe({ id: 'image-recipe', capability: 'image.generate', slots: [{ id: 'main', contentId: B, variantId: 'shared-v1' }] }),
+  ];
+  const verified = [{ templateId: 'shared-v1', title: 'Shared v1', totalSizeBytes: 200 }] as NimiRuntimeLocalVerifiedAssetDescriptor[];
+  const plan = await planRuntimeConfigAIProfileTransfer({
+    profile: profile as never,
+    assets: [],
+    recipes,
+    verifiedAssets: verified,
+  });
+  assert.equal(plan.downloads.length, 1);
+  assert.equal(plan.totalDownloadBytes, 200);
+
+  const installed = asset({ id: 'shared-model', contentId: B, hash: B });
+  let resolveCalls = 0;
+  let installCalls = 0;
+  const preparedAxes = new Map<string, readonly { readonly modelAssetId?: string }[]>();
+  const result = await executeRuntimeConfigAIProfileTransfer({
+    plan,
+    assets: {
+      async listModelAssets() { return []; },
+      async listVerifiedAssets() { return verified; },
+      async resolveInstallPlan() { resolveCalls += 1; return { planId: 'plan:shared-v1' } as never; },
+      async install() { installCalls += 1; return installed; },
+    },
+    loadouts: {
+      async listRecipes() { return recipes; },
+      async prepare(input: { capabilityContract: string; modelAxes?: readonly { readonly modelAssetId?: string }[] }) {
+        preparedAxes.set(input.capabilityContract, input.modelAxes ?? []);
+        return { prepareId: input.capabilityContract };
+      },
+      async commit(id: string) { return committedLoadout(id, `loadout:${id}`); },
+      async select() { return null; },
+    } as never,
+    async applyAIProfile() {},
+  });
+  assert.equal(resolveCalls, 1);
+  assert.equal(installCalls, 1);
+  assert.deepEqual(result.installedModelAssetIds, ['shared-model']);
+  assert.equal(preparedAxes.get('text.generate')?.[0]?.modelAssetId, 'shared-model');
+  assert.equal(preparedAxes.get('image.generate')?.[0]?.modelAssetId, 'shared-model');
+});
+
+test('AIProfile plan fails closed when one content identity has conflicting acquisition intent', async () => {
+  const profile = loadoutProfile(B) as unknown as { capabilities: Record<string, Record<string, unknown>> };
+  const textCapability = profile.capabilities['text.generate']!;
+  const textLoadout = textCapability.loadout as { axes: readonly Record<string, unknown>[] };
+  textCapability.loadout = {
+    ...textLoadout,
+    axes: [{
+      slotId: 'model',
+      contentId: B,
+      expectedHash: B,
+      source: { repo: 'example/shared-text', revision: 'main', file: 'model.gguf', sizeBytes: 200 },
+    }],
+  };
+  const recipes = [
+    recipe({ id: 'text-recipe', capability: 'text.generate', slots: [{ id: 'model', contentId: B, variantId: 'shared-text-v1' }] }),
+    recipe({ id: 'image-recipe', capability: 'image.generate', slots: [{ id: 'main', contentId: B, variantId: 'shared-image-v1' }] }),
+  ];
+  const verified = [
+    { templateId: 'shared-text-v1', title: 'Shared text', totalSizeBytes: 200 },
+    { templateId: 'shared-image-v1', title: 'Shared image', totalSizeBytes: 200 },
+  ] as NimiRuntimeLocalVerifiedAssetDescriptor[];
+  await assert.rejects(
+    planRuntimeConfigAIProfileTransfer({ profile: profile as never, assets: [], recipes, verifiedAssets: verified }),
+    /conflicting acquisition intent/u,
+  );
+});
+
 test('confirmed AIProfile transfer reuses content, installs missing content, commits capabilities, then selects only after separate confirmation', async () => {
   const calls: string[] = [];
   const textAsset = asset({ id: 'text-model', contentId: A, hash: A });
@@ -279,9 +374,26 @@ test('source-backed acquisition preserves recipe capability and starts confirmed
   assert.equal(result.installedModelAssetIds.length, 2);
 });
 
-test('hash mismatch leaves only that axis unresolved while another capability commits', async () => {
+test('a multi-file sibling hash cannot satisfy the declared entry integrity', async () => {
   const textAsset = asset({ id: 'text-model', contentId: A, hash: A });
-  const imageAsset = asset({ id: 'image-model', contentId: B, hash: B });
+  const imageAsset: NimiRuntimeModelAssetRecord = {
+    ...asset({ id: 'image-model', contentId: B, hash: B }),
+    files: [
+      { relativePath: 'model.gguf', sha256: normalizeTestHash(B), sizeBytes: 100, nonExecutableContent: false },
+      { relativePath: 'config.json', sha256: normalizeTestHash(C), sizeBytes: 20, nonExecutableContent: false },
+    ],
+    totalSizeBytes: 120,
+  };
+  const existingPlan = await planRuntimeConfigAIProfileTransfer({
+    profile: loadoutProfile(C),
+    assets: [textAsset, imageAsset],
+    recipes: RECIPES,
+    verifiedAssets: VERIFIED,
+  });
+  assert.equal(
+    existingPlan.capabilities.find((item) => item.capabilityContract === 'image.generate')?.axes[0]?.state,
+    'hash-mismatch',
+  );
   const plan = await planRuntimeConfigAIProfileTransfer({
     profile: loadoutProfile(C),
     assets: [textAsset],
@@ -473,6 +585,62 @@ test('content-only axis commits as unresolved and becomes matched on a later inv
     resumed.capabilities.find((item) => item.capabilityContract === 'image.generate')?.existingLoadoutId,
     'loadout-existing-draft',
   );
+});
+
+test('confirmed Profile transfer carries Prepare machine impact into a selected Loadout Commit', async () => {
+  const profile = loadoutProfile(B) as unknown as {
+    capabilities: Record<string, unknown>;
+  };
+  delete profile.capabilities['image.generate'];
+  const textAsset = asset({ id: 'text-model', contentId: A, hash: A });
+  const selectedLoadout = {
+    ...committedLoadout('text.generate', 'selected-profile-loadout'),
+    provenance: { source_profile_id: 'profile.transfer.test' },
+  };
+  const plan = await planRuntimeConfigAIProfileTransfer({
+    profile: profile as never,
+    assets: [textAsset],
+    recipes: RECIPES,
+    verifiedAssets: VERIFIED,
+    loadouts: [selectedLoadout],
+  });
+  const confirmations: boolean[] = [];
+  const result = await executeRuntimeConfigAIProfileTransfer({
+    plan,
+    assets: {
+      async listModelAssets() { return [textAsset]; },
+      async listVerifiedAssets() { return VERIFIED; },
+      async resolveInstallPlan() { throw new Error('unexpected'); },
+      async install() { throw new Error('unexpected'); },
+    },
+    loadouts: {
+      async listRecipes() { return RECIPES; },
+      async prepare() {
+        return {
+          prepareId: 'prepare:selected-profile-loadout',
+          proposedLoadout: selectedLoadout,
+          expiresAt: '2026-08-17T01:00:00Z',
+          impact: {
+            capabilityContract: 'text.generate',
+            loadoutId: selectedLoadout.loadoutId,
+            changesFutureLocalExecution: true,
+            confirmationRequired: true,
+          },
+        };
+      },
+      async commit(_prepareId: string, confirmedMachineImpact = false) {
+        confirmations.push(confirmedMachineImpact);
+        if (!confirmedMachineImpact) throw new Error('AI_LOADOUT_CONFIRMATION_REQUIRED');
+        return selectedLoadout;
+      },
+      async select() { return null; },
+    } as never,
+    confirmedMachineImpact: true,
+    async applyAIProfile() {},
+  });
+
+  assert.deepEqual(confirmations, [true]);
+  assert.equal(result.capabilities[0]?.state, 'committed');
 });
 
 test('multi-file export preserves verified acquisition while manual content stays unresolved', async () => {

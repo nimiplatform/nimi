@@ -186,6 +186,7 @@ function PortableProfileApplyPage() {
         plan: transferPlan,
         assets: modelAssetsClient,
         loadouts: loadoutsClient,
+        confirmedMachineImpact: true,
         applyAIProfile: (profile) => profileClient.apply(profile),
       });
       setTransferResult(result);
@@ -410,7 +411,7 @@ function PortableProfileApplyPage() {
         <Surface tone="card" className="space-y-3 p-4" data-testid="runtime-portable-profile-transfer-confirmation">
           <div>
             <h3 className="text-sm font-semibold">{t('runtimeConfig.profiles.transferConfirmationTitle', { defaultValue: 'Confirm model acquisition and Loadouts' })}</h3>
-            <p className="mt-1 text-xs text-[var(--nimi-text-secondary)]">{t('runtimeConfig.profiles.transferConfirmationBody', { defaultValue: 'Nothing has been downloaded yet. This single confirmation covers the listed model transfers; each Loadout Commit remains an existing typed action.' })}</p>
+            <p className="mt-1 text-xs text-[var(--nimi-text-secondary)]">{t('runtimeConfig.profiles.transferConfirmationBody', { defaultValue: 'Nothing has been downloaded yet. This confirmation covers the listed transfers and any machine-wide change to future Local execution when an existing selected Loadout is committed. It does not select a different Loadout.' })}</p>
           </div>
           <div className="grid gap-2">
             {transferPlan.capabilities.flatMap((capability) => capability.axes.map((axis) => (
@@ -435,7 +436,7 @@ function PortableProfileApplyPage() {
               {t('runtimeConfig.profiles.cancelImport', { defaultValue: 'Cancel' })}
             </Button>
             <Button size="sm" tone="primary" disabled={busy} onClick={() => { void confirmTransfer(); }}>
-              {t('runtimeConfig.profiles.confirmTransfer', { defaultValue: 'Confirm acquisition, Commit, and Apply' })}
+              {t('runtimeConfig.profiles.confirmTransfer', { defaultValue: 'Confirm transfer and Loadout impact' })}
             </Button>
           </div>
         </Surface>

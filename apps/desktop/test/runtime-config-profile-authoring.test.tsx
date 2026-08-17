@@ -23,6 +23,7 @@ import {
   inspectRuntimeConfigAIProfileAuthoring,
   loadRuntimeConfigAIProfileAuthoringCurrentProjection,
   projectRuntimeConfigAIProfileAuthoringMachine,
+  reconcileRuntimeConfigAIProfileRecipes,
   reduceRuntimeConfigAIProfileAuthoringState,
   type RuntimeConfigAIProfileAuthoringCurrentProjection,
   type RuntimeConfigAIProfileAuthoringDraft,
@@ -234,6 +235,164 @@ test('Recipe-loaded authoring imports, edits, and exports one SDK-validated port
     state.draft.capabilities[0]?.local.portableConfigJson,
     JSON.stringify(TEXT_RECIPE.defaultOptions, null, 2),
   );
+});
+
+test('Author Profile import and export preserve the complete portable Local intent', () => {
+  const imported = parseNimiPortableAIProfile({
+    profileId: 'profile.desktop-authoring-portable-intent',
+    title: 'Portable intent round trip',
+    capabilities: {
+      'text.generate': {
+        route: 'local',
+        requiredFeatures: ['input.image'],
+        implementation: {
+          implementationId: TEXT_RECIPE.implementation.implementationId,
+          driverId: TEXT_RECIPE.implementation.driverId,
+          driverDialect: TEXT_RECIPE.implementation.driverDialect,
+          supportedFeatures: TEXT_RECIPE.supportedFeatures,
+        },
+        driverPortableConfig: { contextSize: 8192 },
+        resourceOccurrences: [
+          { occurrenceId: 'weights.primary', role: 'weights', ordinal: 0 },
+          { occurrenceId: 'vision.adapter', role: 'projector', ordinal: 1 },
+        ],
+        loadout: {
+          recipeId: TEXT_RECIPE.recipeId,
+          axes: [
+            {
+              slotId: 'main.weights',
+              contentId: `sha256:${'a'.repeat(64)}`,
+              expectedHash: `sha256:${'b'.repeat(64)}`,
+              source: {
+                repo: 'example/portable-text',
+                revision: 'revision-1',
+                file: 'model.gguf',
+                sizeBytes: 1234,
+              },
+            },
+            {
+              slotId: 'vision.adapter',
+              contentId: `sha256:${'c'.repeat(64)}`,
+              expectedHash: `sha256:${'d'.repeat(64)}`,
+            },
+          ],
+          options: { contextSize: 8192, vision: { enabled: true } },
+        },
+      },
+    },
+    provenance: { source: 'portable-round-trip-test' },
+    license: { id: 'test-license' },
+  });
+
+  const draft = importRuntimeConfigAIProfileAuthoring(
+    JSON.stringify(imported),
+    RECIPES,
+  );
+  const reexported = parseNimiPortableAIProfile(
+    exportRuntimeConfigAIProfileAuthoring(draft, RECIPES).artifactJson,
+  );
+
+  assert.deepEqual(reexported, imported);
+
+  const refreshed = reconcileRuntimeConfigAIProfileRecipes(draft, [ALT_TEXT_RECIPE]);
+  assert.deepEqual(refreshed.capabilities[0]?.local.loadout, imported.capabilities['text.generate']?.route === 'local'
+    ? imported.capabilities['text.generate'].loadout
+    : undefined);
+  assert.throws(
+    () => exportRuntimeConfigAIProfileAuthoring(refreshed, [ALT_TEXT_RECIPE]),
+    /requires a current Runtime Recipe selection/u,
+  );
+});
+
+test('same-ID Recipe drift fails closed until an explicit Recipe selection', () => {
+  const imported = parseNimiPortableAIProfile({
+    profileId: 'profile.desktop-authoring-recipe-drift',
+    title: 'Recipe drift',
+    capabilities: {
+      'text.generate': {
+        route: 'local',
+        requiredFeatures: ['input.image'],
+        implementation: {
+          ...TEXT_RECIPE.implementation,
+          supportedFeatures: TEXT_RECIPE.supportedFeatures,
+        },
+        driverPortableConfig: { contextSize: 8192 },
+        resourceOccurrences: [{ occurrenceId: 'weights.primary', role: 'weights' }],
+        loadout: {
+          recipeId: TEXT_RECIPE.recipeId,
+          axes: [{
+            slotId: 'main.weights',
+            contentId: `sha256:${'a'.repeat(64)}`,
+            expectedHash: `sha256:${'b'.repeat(64)}`,
+          }],
+          options: { contextSize: 8192 },
+        },
+      },
+    },
+    provenance: { source: 'recipe-drift-test' },
+    license: { id: 'test-license' },
+  });
+  const draft = importRuntimeConfigAIProfileAuthoring(JSON.stringify(imported), [TEXT_RECIPE]);
+  const driftedRecipe: NimiLoadoutRecipe = Object.freeze({
+    ...TEXT_RECIPE,
+    revision: 'r8',
+    implementation: Object.freeze({
+      implementationId: 'local.desktop.text-next',
+      driverId: 'nimi.runtime.driver.desktop-text-next',
+      driverDialect: 'desktop/text/v8',
+    }),
+    supportedFeatures: Object.freeze(['input.image', 'output.json']),
+  });
+
+  const refreshed = reconcileRuntimeConfigAIProfileRecipes(draft, [driftedRecipe]);
+  assert.deepEqual(
+    refreshed.capabilities[0]?.local.resourceOccurrences,
+    imported.capabilities['text.generate']?.route === 'local'
+      ? imported.capabilities['text.generate'].resourceOccurrences
+      : undefined,
+  );
+  assert.deepEqual(
+    refreshed.capabilities[0]?.local.loadout,
+    imported.capabilities['text.generate']?.route === 'local'
+      ? imported.capabilities['text.generate'].loadout
+      : undefined,
+  );
+  assert.throws(
+    () => exportRuntimeConfigAIProfileAuthoring(refreshed, [driftedRecipe]),
+    /explicit Runtime Recipe selection/u,
+  );
+
+  const explicitlySelected: RuntimeConfigAIProfileAuthoringDraft = {
+    ...refreshed,
+    capabilities: refreshed.capabilities.map((capability) => ({
+      ...capability,
+      local: {
+        ...capability.local,
+        recipeId: driftedRecipe.recipeId,
+        portableConfigJson: JSON.stringify(driftedRecipe.defaultOptions, null, 2),
+        resourceOccurrences: undefined,
+        loadout: undefined,
+      },
+    })),
+  };
+  const exported = exportRuntimeConfigAIProfileAuthoring(
+    explicitlySelected,
+    [driftedRecipe],
+  ).profile;
+  const accepted = reconcileRuntimeConfigAIProfileRecipes(explicitlySelected, [driftedRecipe]);
+  assert.deepEqual(
+    exportRuntimeConfigAIProfileAuthoring(accepted, [driftedRecipe]).profile,
+    exported,
+  );
+  const capability = exported.capabilities['text.generate'];
+  assert.equal(capability?.route, 'local');
+  if (capability?.route !== 'local') assert.fail('expected Local capability');
+  assert.deepEqual(capability.implementation, {
+    ...driftedRecipe.implementation,
+    supportedFeatures: ['input.image', 'output.json'],
+  });
+  assert.equal(capability.resourceOccurrences, undefined);
+  assert.equal(capability.loadout, undefined);
 });
 
 test('Desktop renders identity, defaults, features, and every axis from Runtime Recipe descriptors', () => {

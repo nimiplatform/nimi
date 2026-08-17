@@ -64,6 +64,12 @@ export type RuntimeConfigAIProfileTransferResult = {
   readonly appAIConfigApplied: boolean;
 };
 
+type RuntimeConfigAIProfileDownloadGroup = {
+  readonly contentId: string;
+  readonly representative: RuntimeConfigAIProfileTransferAxis;
+  readonly occurrences: readonly RuntimeConfigAIProfileTransferAxis[];
+};
+
 type AssetAdmin = Pick<NimiRuntimeLocalAssetAdminClient,
   'listModelAssets' | 'listVerifiedAssets' | 'resolveInstallPlan' | 'install'
 >;
@@ -183,7 +189,7 @@ export async function planRuntimeConfigAIProfileTransfer(input: {
       }
       const existing = assetsByContent.get(axis.contentId);
       if (existing) {
-        const hashMatches = existing.files.some((file) => `sha256:${normalizeHash(file.sha256)}` === axis.expectedHash);
+        const hashMatches = matchesExpectedAxisIntegrity(existing, axis);
         return Object.freeze({
           capabilityContract,
           slotId: axis.slotId,
@@ -250,9 +256,8 @@ export async function planRuntimeConfigAIProfileTransfer(input: {
       ...(existingLoadout ? { existingLoadout } : {}),
     }));
   }
-  const downloads = Object.freeze(capabilities.flatMap((capability) => (
-    capability.axes.filter((axis) => axis.state === 'download-required')
-  )));
+  const downloadGroups = groupRuntimeConfigAIProfileDownloads(capabilities);
+  const downloads = Object.freeze(downloadGroups.map((group) => group.representative));
   return Object.freeze({
     profile,
     capabilities: Object.freeze(capabilities),
@@ -270,6 +275,8 @@ export async function executeRuntimeConfigAIProfileTransfer(input: {
   readonly plan: RuntimeConfigAIProfileTransferPlan;
   readonly assets: AssetAdmin;
   readonly loadouts: Loadouts;
+  /** True only after the aggregate transfer page displays machine-wide Loadout impact. */
+  readonly confirmedMachineImpact?: boolean;
   readonly applyAIProfile: (profile: NimiPortableAIProfile) => Promise<unknown>;
 }): Promise<RuntimeConfigAIProfileTransferResult> {
   const resolved = new Map<string, NimiRuntimeModelAssetRecord>();
@@ -317,7 +324,10 @@ export async function executeRuntimeConfigAIProfileTransfer(input: {
         displayName: `${input.plan.profile.title} · ${capability.recipe.title}`,
         provenance: { source_profile_id: input.plan.profile.profileId },
       });
-      const draft = await input.loadouts.commit(prepared.prepareId, false);
+      const draft = await input.loadouts.commit(
+        prepared.prepareId,
+        prepared.impact?.confirmationRequired === true && input.confirmedMachineImpact === true,
+      );
       draftLoadoutIds.set(capability.capabilityContract, draft.loadoutId);
       draftLoadouts.set(capability.capabilityContract, draft);
     } catch (error) {
@@ -328,32 +338,43 @@ export async function executeRuntimeConfigAIProfileTransfer(input: {
       });
     }
   }
-  const acquisitions = await Promise.all(input.plan.downloads.map(async (axis) => {
-    if (draftFailures.has(axis.capabilityContract)) return { axis } as const;
+  const downloadGroups = groupRuntimeConfigAIProfileDownloads(input.plan.capabilities);
+  const acquisitions = await Promise.all(downloadGroups.map(async (group) => {
+    const eligibleOccurrences = group.occurrences.filter((axis) => !draftFailures.has(axis.capabilityContract));
+    if (eligibleOccurrences.length === 0) return { group } as const;
+    const axis = group.representative;
     try {
       const installed = axis.templateId
         ? await installCatalogTemplate(input.assets, axis.templateId)
-        : await installRecommendedSource(input.assets, axis);
-      verifyInstalledAxis(installed, axis);
-      return { axis, installed } as const;
+        : await installRecommendedSource(
+          input.assets,
+          axis,
+          Object.freeze([...new Set(eligibleOccurrences.map((item) => item.capabilityContract))].sort()),
+        );
+      for (const occurrence of group.occurrences) verifyInstalledAxis(installed, occurrence);
+      return { group, installed } as const;
     } catch (error) {
-      return { axis, error } as const;
+      return { group, error } as const;
     }
   }));
   for (const acquisition of acquisitions) {
     if ('installed' in acquisition && acquisition.installed !== undefined) {
       installedModelAssetIds.push(acquisition.installed.modelAssetId);
-      resolved.set(axisKey(acquisition.axis.capabilityContract, acquisition.axis.slotId), acquisition.installed);
+      for (const occurrence of acquisition.group.occurrences) {
+        resolved.set(axisKey(occurrence.capabilityContract, occurrence.slotId), acquisition.installed);
+      }
       continue;
     }
     if (!('error' in acquisition)) continue;
     const detail = errorMessage(acquisition.error);
-    failures.set(axisKey(acquisition.axis.capabilityContract, acquisition.axis.slotId), {
-      reasonCode: /hash|identity|content id/iu.test(detail)
-        ? 'AI_PROFILE_MODEL_HASH_MISMATCH'
-        : 'AI_PROFILE_MODEL_ACQUISITION_FAILED',
-      detail,
-    });
+    for (const occurrence of acquisition.group.occurrences) {
+      failures.set(axisKey(occurrence.capabilityContract, occurrence.slotId), {
+        reasonCode: /hash|identity|content id/iu.test(detail)
+          ? 'AI_PROFILE_MODEL_HASH_MISMATCH'
+          : 'AI_PROFILE_MODEL_ACQUISITION_FAILED',
+        detail,
+      });
+    }
   }
 
   const results: RuntimeConfigAIProfileTransferCapabilityResult[] = [];
@@ -405,7 +426,10 @@ export async function executeRuntimeConfigAIProfileTransfer(input: {
         displayName: `${input.plan.profile.title} · ${capability.recipe.title}`,
         provenance: { source_profile_id: input.plan.profile.profileId },
       });
-      const loadout = await input.loadouts.commit(prepared.prepareId, false);
+      const loadout = await input.loadouts.commit(
+        prepared.prepareId,
+        prepared.impact?.confirmationRequired === true && input.confirmedMachineImpact === true,
+      );
       results.push(Object.freeze({
         capabilityContract: capability.capabilityContract,
         state: 'committed' as const,
@@ -472,6 +496,7 @@ async function installCatalogTemplate(
 async function installRecommendedSource(
   assets: AssetAdmin,
   axis: RuntimeConfigAIProfileTransferAxis,
+  capabilityContracts: readonly string[],
 ): Promise<NimiRuntimeModelAssetRecord> {
   if (!axis.source) throw new Error(`${axis.displayLabel}: no portable source recommendation.`);
   const plan = await assets.resolveInstallPlan({
@@ -479,7 +504,7 @@ async function installRecommendedSource(
     modelId: axis.source.repo,
     repo: axis.source.repo,
     revision: axis.source.revision,
-    capabilities: [axis.capabilityContract],
+    capabilities: [...capabilityContracts],
     entry: axis.source.file,
     files: [axis.source.file],
     hashes: { [axis.source.file]: normalizeHash(axis.expectedHash) },
@@ -487,13 +512,78 @@ async function installRecommendedSource(
   return assets.install(plan.planId, { caller: 'core' });
 }
 
+function groupRuntimeConfigAIProfileDownloads(
+  capabilities: readonly RuntimeConfigAIProfileTransferCapability[],
+): readonly RuntimeConfigAIProfileDownloadGroup[] {
+  const grouped = new Map<string, RuntimeConfigAIProfileTransferAxis[]>();
+  for (const capability of capabilities) {
+    for (const axis of capability.axes) {
+      if (axis.state !== 'download-required') continue;
+      const existing = grouped.get(axis.contentId);
+      if (existing) existing.push(axis);
+      else grouped.set(axis.contentId, [axis]);
+    }
+  }
+  return Object.freeze([...grouped.entries()].map(([contentId, occurrences]) => {
+    const first = occurrences[0];
+    if (!first) throw new Error(`AIProfile content ${contentId} has no acquisition occurrence.`);
+    for (const occurrence of occurrences.slice(1)) {
+      if (!sameRuntimeConfigAIProfileAcquisitionIntent(first, occurrence)) {
+        throw new Error(`AIProfile content ${contentId} has conflicting acquisition intent.`);
+      }
+    }
+    const positiveSizes = new Set(occurrences.map((axis) => axis.sizeBytes).filter((size) => Number.isFinite(size) && size > 0));
+    if (positiveSizes.size > 1) {
+      throw new Error(`AIProfile content ${contentId} has conflicting acquisition size facts.`);
+    }
+    const sizeBytes = occurrences.every((axis) => Number.isFinite(axis.sizeBytes) && axis.sizeBytes > 0)
+      ? occurrences[0]!.sizeBytes
+      : 0;
+    return Object.freeze({
+      contentId,
+      representative: Object.freeze({ ...first, sizeBytes }),
+      occurrences: Object.freeze([...occurrences]),
+    });
+  }));
+}
+
+function sameRuntimeConfigAIProfileAcquisitionIntent(
+  left: RuntimeConfigAIProfileTransferAxis,
+  right: RuntimeConfigAIProfileTransferAxis,
+): boolean {
+  return normalizeHash(left.expectedHash) === normalizeHash(right.expectedHash)
+    && textFact(left.templateId) === textFact(right.templateId)
+    && portableSourceIdentity(left.source) === portableSourceIdentity(right.source);
+}
+
+function portableSourceIdentity(source: NimiPortableAIProfileLoadoutAxis['source']): string {
+  if (!source) return '';
+  return JSON.stringify([
+    source.repo.trim(),
+    source.revision.trim(),
+    source.file.trim(),
+  ]);
+}
+
 function verifyInstalledAxis(asset: NimiRuntimeModelAssetRecord, axis: RuntimeConfigAIProfileTransferAxis): void {
   if (asset.contentId !== axis.contentId) {
     throw new Error(`${axis.displayLabel}: downloaded content identity does not match the AIProfile.`);
   }
-  if (!asset.files.some((file) => `sha256:${normalizeHash(file.sha256)}` === axis.expectedHash)) {
+  if (!matchesExpectedAxisIntegrity(asset, axis)) {
     throw new Error(`${axis.displayLabel}: downloaded content hash does not match the AIProfile.`);
   }
+}
+
+function matchesExpectedAxisIntegrity(
+  asset: NimiRuntimeModelAssetRecord,
+  axis: Pick<RuntimeConfigAIProfileTransferAxis, 'expectedHash' | 'source'>,
+): boolean {
+  const entry = normalizeRelativeFile(asset.entry);
+  const expectedFile = normalizeRelativeFile(axis.source?.file ?? asset.entry);
+  if (!entry || !expectedFile || entry !== expectedFile) return false;
+  const expected = asset.files.find((file) => normalizeRelativeFile(file.relativePath) === expectedFile);
+  return expected !== undefined
+    && `sha256:${normalizeHash(expected.sha256)}` === axis.expectedHash;
 }
 
 function firstAxisReason(
@@ -541,6 +631,10 @@ function verifiedDescriptorForPortableSource(
 
 function normalizeHash(value: string): string {
   return value.trim().toLowerCase().replace(/^sha256:/u, '');
+}
+
+function normalizeRelativeFile(value: string): string {
+  return value.trim().replaceAll('\\', '/');
 }
 
 function exactSHA256(value: string, label: string): `sha256:${string}` {

@@ -138,6 +138,54 @@ test('AIProfile authoring round-trips while Runtime Recipe owns Local identity a
   assert.deepEqual(edited.capabilities, built.capabilities);
 });
 
+test('Local capability authoring preserves occurrences and complete portable Loadout intent', () => {
+  const profile = createNimiAIProfileAuthoringBuilder({
+    profileId: 'profile.authoring.complete-local-intent',
+    title: 'Complete Local intent',
+    provenance: { publisher: 'example.test' },
+    license: 'Apache-2.0',
+  }).setLocalCapability({
+    capabilityContract: 'text.generate',
+    requiredFeatures: ['input.image'],
+    localConfiguration: createNimiAIProfileLocalImplementation({ recipe: TEXT_RECIPE }),
+    resourceOccurrences: [
+      { occurrenceId: 'weights.primary', role: 'weights', ordinal: 0 },
+      { occurrenceId: 'vision.projector', role: 'projector', ordinal: 1 },
+    ],
+    loadout: {
+      recipeId: TEXT_RECIPE.recipeId,
+      axes: [
+        {
+          slotId: 'main.weights',
+          contentId: `sha256:${'a'.repeat(64)}`,
+          expectedHash: `sha256:${'b'.repeat(64)}`,
+          source: {
+            repo: 'example/text',
+            revision: 'revision-1',
+            file: 'model.gguf',
+            sizeBytes: 1024,
+          },
+        },
+        {
+          slotId: 'vision.projector',
+          contentId: `sha256:${'c'.repeat(64)}`,
+          expectedHash: `sha256:${'d'.repeat(64)}`,
+        },
+      ],
+      options: { contextSize: 8192 },
+    },
+  }).build();
+  const local = profile.capabilities['text.generate'];
+  assert.equal(local?.route, 'local');
+  if (local?.route !== 'local') assert.fail('expected Local capability');
+  assert.deepEqual(local.resourceOccurrences?.map((item) => item.occurrenceId), [
+    'weights.primary',
+    'vision.projector',
+  ]);
+  assert.equal(local.loadout?.recipeId, TEXT_RECIPE.recipeId);
+  assert.equal(local.loadout?.axes.length, 2);
+});
+
 test('AIProfile authoring recursively rejects forbidden identity and private-location classes', () => {
   const profile = localTextProfile();
   for (const [key, value] of [
