@@ -10,7 +10,7 @@ import {
   createNimiAppAIProfileClient,
   createNimiCloudAIConfigCapabilityIntent,
   parseNimiPortableAIProfile,
-  projectNimiPortableLocalCapabilityConfigurationIntent,
+  projectNimiPortableLoadoutIntent,
   runtimeAIConfigStructToJson,
   serializeNimiPortableAIProfile,
 } from './config-profile';
@@ -86,6 +86,47 @@ test('Cloud AIConfig constructor rejects alias or incomplete durable target iden
   }), /remoteModelCatalogId is required/u);
 });
 
+test('portable Cloud AIProfile uses the same exact provider-model target contract', () => {
+  const capability = CLOUD_PROFILE.capabilities['text.generate'];
+  assert.throws(() => parseNimiPortableAIProfile({
+    ...CLOUD_PROFILE,
+    capabilities: {
+      'text.generate': {
+        ...capability,
+        providerModelTarget: {
+          provider: 'example',
+          model: 'model-1',
+          remoteModelCatalogId: 'remote-model-catalog-model-1',
+        },
+      },
+    },
+  }), /model is not supported/u);
+  assert.throws(() => parseNimiPortableAIProfile({
+    ...CLOUD_PROFILE,
+    capabilities: {
+      'text.generate': {
+        ...capability,
+        providerModelTarget: {
+          provider: 'example',
+          providerModelId: 'model-1',
+        },
+      },
+    },
+  }), /remoteModelCatalogId is required/u);
+  assert.throws(() => parseNimiPortableAIProfile({
+    ...CLOUD_PROFILE,
+    capabilities: {
+      'text.generate': {
+        ...capability,
+        providerModelTarget: {
+          ...capability.providerModelTarget,
+          provider: '\u0085example',
+        },
+      },
+    },
+  }), /provider is required/u);
+});
+
 test('portable AIProfile rejects machine-private authority', () => {
   assert.throws(
     () => parseNimiPortableAIProfile({
@@ -106,6 +147,15 @@ test('portable AIProfile rejects machine-private authority', () => {
     }),
     /modelPath/u,
   );
+});
+
+test('portable AIProfile rejects unsafe integers in arbitrary portable metadata', () => {
+  assert.throws(() => parseNimiPortableAIProfile({
+    profileId: 'profile.unsafe-integer',
+    title: 'Unsafe integer',
+    capabilities: { 'text.generate': { route: 'local' } },
+    displayMetadata: { sequence: 9_007_199_254_740_992 },
+  }), /safe integer/u);
 });
 
 test('App AIProfile Preview is non-committing and direct Apply writes connector-free owner intent', async () => {
@@ -170,6 +220,21 @@ test('Profile Apply keeps Local machine implementation intent outside AIConfig',
         },
         driverPortableConfig: { contextSize: 8192 },
         resourceOccurrences: [{ occurrenceId: 'weights-main', role: 'main' }],
+        loadout: {
+          recipeId: 'llama.cpp-text-generate',
+          axes: [{
+            slotId: 'model.gguf',
+            contentId: `sha256:${'a'.repeat(64)}`,
+            expectedHash: `sha256:${'a'.repeat(64)}`,
+            source: {
+              repo: 'example/Gemma-GGUF',
+              revision: '0123456789abcdef',
+              file: 'gemma-q8_0.gguf',
+              sizeBytes: 1024,
+            },
+          }],
+          options: { contextSize: 8192 },
+        },
       },
     },
   } as const;
@@ -188,9 +253,59 @@ test('Profile Apply keeps Local machine implementation intent outside AIConfig',
   await createNimiAppAIProfileClient(client).apply(profile);
   const encoded = JSON.stringify(committed);
   assert.doesNotMatch(encoded, /implementation|driverPortableConfig|resourceOccurrences/u);
-  const localIntent = projectNimiPortableLocalCapabilityConfigurationIntent(profile, 'text.generate');
+  const localIntent = projectNimiPortableLoadoutIntent(profile, 'text.generate');
   assert.equal(localIntent?.resourceOccurrences.length, 1);
   assert.deepEqual(localIntent?.supportedFeatures, ['input.image', 'output.tool_calls']);
+  assert.equal(localIntent?.loadout?.recipeId, 'llama.cpp-text-generate');
+  assert.equal(localIntent?.loadout?.axes[0]?.slotId, 'model.gguf');
+});
+
+test('portable Loadout intent rejects unknown fields, invalid hashes, duplicate slots, and unsafe source files', () => {
+  const base = {
+    profileId: 'profile.loadout.invalid',
+    title: 'Invalid loadout',
+    capabilities: {
+      'text.generate': {
+        route: 'local',
+        requiredFeatures: [],
+        implementation: {
+          implementationId: 'local.text.llama-cpp',
+          driverId: 'driver.llama-cpp',
+          driverDialect: 'llama.cpp/v1',
+          supportedFeatures: [],
+        },
+        loadout: {
+          recipeId: 'llama.cpp-text-generate',
+          axes: [{
+            slotId: 'model.gguf',
+            contentId: `sha256:${'b'.repeat(64)}`,
+            expectedHash: `sha256:${'b'.repeat(64)}`,
+          }],
+          options: {},
+        },
+      },
+    },
+  } as const;
+  assert.throws(() => parseNimiPortableAIProfile({
+    ...base,
+    capabilities: { 'text.generate': { ...base.capabilities['text.generate'], loadout: { ...base.capabilities['text.generate'].loadout, extra: true } } },
+  } as never), /unsupported field extra/u);
+  assert.throws(() => parseNimiPortableAIProfile({
+    ...base,
+    capabilities: { 'text.generate': { ...base.capabilities['text.generate'], loadout: { ...base.capabilities['text.generate'].loadout, axes: [{ ...base.capabilities['text.generate'].loadout.axes[0], expectedHash: 'sha256:bad' }] } } },
+  } as never), /expectedHash must be an exact sha256 identity/u);
+  assert.throws(() => parseNimiPortableAIProfile({
+    ...base,
+    capabilities: { 'text.generate': { ...base.capabilities['text.generate'], loadout: { ...base.capabilities['text.generate'].loadout, axes: [base.capabilities['text.generate'].loadout.axes[0], base.capabilities['text.generate'].loadout.axes[0]] } } },
+  } as never), /is duplicated/u);
+  assert.throws(() => parseNimiPortableAIProfile({
+    ...base,
+    capabilities: { 'text.generate': { ...base.capabilities['text.generate'], loadout: { ...base.capabilities['text.generate'].loadout, axes: [{ ...base.capabilities['text.generate'].loadout.axes[0], source: { repo: 'example/repo', revision: 'main', file: '../private.gguf' } }] } } },
+  } as never), /file is required/u);
+  assert.throws(() => parseNimiPortableAIProfile({
+    ...base,
+    capabilities: { 'text.generate': { ...base.capabilities['text.generate'], loadout: { ...base.capabilities['text.generate'].loadout, axes: [{ ...base.capabilities['text.generate'].loadout.axes[0], source: { repo: 'example/repo', revision: 'main', file: 'C:/private.gguf' } }] } } },
+  } as never), /non-portable path|file is required/u);
 });
 
 test('portable AIProfile round trip preserves authored Local and Cloud intent', () => {
@@ -234,7 +349,7 @@ test('portable AIProfile round trip preserves authored Local and Cloud intent', 
   const parsed = parseNimiPortableAIProfile(serializeNimiPortableAIProfile(full));
   assert.deepEqual(parsed, full);
   assert.equal(
-    projectNimiPortableLocalCapabilityConfigurationIntent(parsed, 'text.generate')?.resourceOccurrences.length,
+    projectNimiPortableLoadoutIntent(parsed, 'text.generate')?.resourceOccurrences.length,
     2,
   );
 });

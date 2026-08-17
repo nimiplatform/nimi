@@ -3,7 +3,7 @@ import test from 'node:test';
 
 import { summarizeDesktopPortableAIProfile } from '../src/shell/renderer/features/runtime-config/runtime-config-portable-profile.js';
 
-test('Profiles projects canonical portable AIProfile intent without a Desktop library projection', () => {
+test('Profiles projects canonical portable AIProfile intent without machine-private fields', () => {
   const summary = summarizeDesktopPortableAIProfile({
     profileId: 'profile.local-chat',
     title: 'Local Chat',
@@ -24,6 +24,7 @@ test('Profiles projects canonical portable AIProfile intent without a Desktop li
       route: 'local',
       requiredFeatures: ['tool.use'],
       hasDefaults: true,
+      hasLoadout: false,
     }],
   });
   assert.doesNotMatch(

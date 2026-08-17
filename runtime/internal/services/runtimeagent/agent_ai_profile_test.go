@@ -1,10 +1,13 @@
 package runtimeagent
 
 import (
+	"bytes"
+	"context"
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/aiconfig"
+	"github.com/nimiplatform/nimi/runtime/internal/aiprofile"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -28,6 +31,7 @@ func portableAIProfileJSON() []byte {
 				},
 				"driverPortableConfig":{"contextSize":8192},
 				"resourceOccurrences":[{"occurrenceId":"main","role":"main"}]
+				,"loadout":{"recipeId":"llama.cpp-text-generate","axes":[{"slotId":"model.gguf","contentId":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","expectedHash":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","source":{"repo":"example/Gemma-GGUF","revision":"main","file":"gemma-q8_0.gguf","sizeBytes":1024}}],"options":{"contextSize":8192}}
 			},
 			"image.generate":{
 				"route":"cloud",
@@ -93,6 +97,56 @@ func TestSharedLocalAgentAIProfilePreviewDoesNotPersistAndApplyOverwrites(t *tes
 	}
 }
 
+func TestImportPortableAIProfileSavesOnlyCatalogDocument(t *testing.T) {
+	svc := newSharedAIConfigTestService(t)
+	ctx, requestContext := sharedAIConfigTestContext("account-a", "nimi.desktop")
+
+	imported, err := svc.ImportPortableAIProfile(ctx, &runtimev1.ImportPortableAIProfileRequest{
+		Context: requestContext, ProfileJson: portableAIProfileJSON(),
+	})
+	if err != nil {
+		t.Fatalf("ImportPortableAIProfile: %v", err)
+	}
+	if imported.GetProfile().GetProfileId() != "portable-profile" || imported.GetProfile().GetTitle() != "Portable Profile" {
+		t.Fatalf("imported profile = %+v", imported.GetProfile())
+	}
+	if _, found, readErr := svc.readSharedLocalAgentAIConfig(ctx, "account-a"); readErr != nil || found {
+		t.Fatalf("Import Profile changed AIConfig: found=%v err=%v", found, readErr)
+	}
+
+	listed, err := svc.ListPortableAIProfiles(ctx, &runtimev1.ListPortableAIProfilesRequest{Context: requestContext})
+	if err != nil {
+		t.Fatalf("ListPortableAIProfiles: %v", err)
+	}
+	if len(listed.GetProfiles()) != 1 || string(listed.GetProfiles()[0].GetProfileJson()) != string(portableAIProfileJSON()) {
+		t.Fatalf("portable Profile catalog = %+v", listed.GetProfiles())
+	}
+}
+
+func TestListPortableAIProfilesIsolatesInvalidStoredSibling(t *testing.T) {
+	svc := newSharedAIConfigTestService(t)
+	store := aiprofile.NewMemoryStore()
+	svc.SetAIProfileStore(store)
+	ctx, requestContext := sharedAIConfigTestContext("account-a", "nimi.desktop")
+	if _, err := store.Import(context.Background(), "account-a", &runtimev1.PortableAIProfileRecord{
+		ProfileId: "healthy", Title: "Healthy", ProfileJson: []byte(`{"profileId":"healthy","title":"Healthy","capabilities":{"text.generate":{"route":"local"}}}`),
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.Import(context.Background(), "account-a", &runtimev1.PortableAIProfileRecord{
+		ProfileId: "invalid", Title: "Invalid", ProfileJson: []byte(`{"profileId":"invalid","title":"Invalid","capabilities":{"text.generate":{"route":"local","defaults":{"token":"private"}}}}`),
+	}); err != nil {
+		t.Fatal(err)
+	}
+	listed, err := svc.ListPortableAIProfiles(ctx, &runtimev1.ListPortableAIProfilesRequest{Context: requestContext})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(listed.GetProfiles()) != 1 || listed.GetProfiles()[0].GetProfileId() != "healthy" {
+		t.Fatalf("isolated AIProfile catalog = %+v", listed.GetProfiles())
+	}
+}
+
 func TestPortableAIProfileMatchesSDKNumberAndTrimSemantics(t *testing.T) {
 	config, err := sharedLocalAgentAIConfigFromProfile([]byte(`{
 		"profileId":"p",
@@ -112,6 +166,14 @@ func TestPortableAIProfileMatchesSDKNumberAndTrimSemantics(t *testing.T) {
 	}`)); err == nil {
 		t.Fatal("ECMAScript-trimmed profileId was accepted")
 	}
+
+	raw := bytes.Replace(portableAIProfileJSON(), []byte(`"sizeBytes":1024`), []byte(`"sizeBytes":1e3`), 1)
+	if bytes.Equal(raw, portableAIProfileJSON()) {
+		t.Fatal("portable profile fixture does not contain sizeBytes")
+	}
+	if _, err := sharedLocalAgentAIConfigFromProfile(raw); err != nil {
+		t.Fatalf("SDK-valid exponent-form sizeBytes rejected: %v", err)
+	}
 }
 
 func TestSharedLocalAgentAIProfileRejectsSDKInvalidDocumentsFailClosed(t *testing.T) {
@@ -122,11 +184,19 @@ func TestSharedLocalAgentAIProfileRejectsSDKInvalidDocumentsFailClosed(t *testin
 		"missing capabilities":    `{"profileId":"p","title":"t","capabilities":{}}`,
 		"trimmed identity":        `{"profileId":" p","title":"t","capabilities":{"text.generate":{"route":"local"}}}`,
 		"portable path":           `{"profileId":"p","title":"t","capabilities":{"text.generate":{"route":"local","defaults":{"output":"/tmp/model"}}}}`,
+		"UNC path":                `{"profileId":"p","title":"t","capabilities":{"text.generate":{"route":"local","defaults":{"output":"\\\\server\\share"}}}}`,
+		"token authority":         `{"profileId":"p","title":"t","capabilities":{"text.generate":{"route":"local","defaults":{"token":"private"}}}}`,
+		"asset identity":          `{"profileId":"p","title":"t","capabilities":{"text.generate":{"route":"local","defaults":{"assetId":"machine-private"}}}}`,
+		"unsafe integer":          `{"profileId":"p","title":"t","capabilities":{"text.generate":{"route":"local","defaults":{"seed":9007199254740992}}}}`,
+		"machine identity":        `{"profileId":"p","title":"t","capabilities":{"text.generate":{"route":"local","defaults":{"machineId":"machine-private"}}}}`,
+		"device identity":         `{"profileId":"p","title":"t","capabilities":{"text.generate":{"route":"local","defaults":{"device_id":"device-private"}}}}`,
+		"host identity":           `{"profileId":"p","title":"t","capabilities":{"text.generate":{"route":"local","defaults":{"host-id":"host-private"}}}}`,
 		"duplicate feature":       `{"profileId":"p","title":"t","capabilities":{"text.generate":{"route":"local","requiredFeatures":["vision","vision"]}}}`,
 		"unsupported requirement": `{"profileId":"p","title":"t","capabilities":{"text.generate":{"route":"local","requiredFeatures":["vision"],"implementation":{"implementationId":"i","driverId":"d","driverDialect":"v1","supportedFeatures":[]}}}}`,
 		"local cloud target":      `{"profileId":"p","title":"t","capabilities":{"text.generate":{"route":"local","providerModelTarget":{}}}}`,
 		"local config no impl":    `{"profileId":"p","title":"t","capabilities":{"text.generate":{"route":"local","driverPortableConfig":{}}}}`,
 		"cloud local config":      `{"profileId":"p","title":"t","capabilities":{"image.generate":{"route":"cloud","implementation":{"implementationId":"i","driverId":"d","driverDialect":"v1","supportedFeatures":[]},"providerModelTarget":{"provider":"p","model":"m"},"resourceOccurrences":[]}}}`,
+		"drive absolute source":   `{"profileId":"p","title":"t","capabilities":{"text.generate":{"route":"local","implementation":{"implementationId":"i","driverId":"d","driverDialect":"v1","supportedFeatures":[]},"loadout":{"recipeId":"r","axes":[{"slotId":"model","contentId":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","expectedHash":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","source":{"repo":"example/repo","revision":"main","file":"C:/private.gguf"}}],"options":{}}}}}`,
 		"empty cloud target":      `{"profileId":"p","title":"t","capabilities":{"image.generate":{"route":"cloud","implementation":{"implementationId":"i","driverId":"d","driverDialect":"v1","supportedFeatures":[]},"providerModelTarget":{}}}}`,
 		"trailing JSON":           `{"profileId":"p","title":"t","capabilities":{"text.generate":{"route":"local"}}}{}`,
 	}

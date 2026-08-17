@@ -7,6 +7,7 @@ import type {
 import type { NimiJsonObject, NimiJsonValue } from '../contracts/index.js';
 import { createNimiError } from '../../types/index.js';
 import { sha256Hex } from '../../types/sha256.js';
+import type { NimiLoadoutRecipe } from '../../runtime/machine-loadouts.js';
 import {
   createNimiCloudAIConfigCapabilityIntent,
   createNimiLocalAIConfigCapabilityIntent,
@@ -19,292 +20,18 @@ import {
   type NimiPortableAIProfileInput,
 } from './config-profile.js';
 
-export const NIMI_AI_PROFILE_INPUT_IMAGE_FEATURE = 'input.image';
-export const NIMI_AI_PROFILE_INPUT_AUDIO_FEATURE = 'input.audio';
-export const NIMI_AI_PROFILE_INPUT_TEXT_FEATURE = 'input.text';
-
-export const NIMI_AI_PROFILE_LLAMA_CPP_IMPLEMENTATION = Object.freeze({
-  implementationId: 'local.text.generate.llama-cpp',
-  driverId: 'nimi.runtime.driver.llama-cpp',
-  driverDialect: 'llama.cpp/text-generate/v1',
-}) satisfies Readonly<CapabilityImplementationIdentity>;
-
-export const NIMI_AI_PROFILE_LLAMA_CPP_EMBED_IMPLEMENTATION = Object.freeze({
-  implementationId: 'local.text.embed.llama-cpp',
-  driverId: 'nimi.runtime.driver.llama-cpp',
-  driverDialect: 'llama.cpp/text-embed/v1',
-}) satisfies Readonly<CapabilityImplementationIdentity>;
-
-export const NIMI_AI_PROFILE_QWEN3_TTS_IMPLEMENTATION = Object.freeze({
-  implementationId: 'local.audio.synthesize.qwen3-tts',
-  driverId: 'nimi.runtime.driver.qwen3-tts',
-  driverDialect: 'qwen3-tts/audio-synthesize/v1',
-}) satisfies Readonly<CapabilityImplementationIdentity>;
-
-export const NIMI_AI_PROFILE_VOXCPM_IMPLEMENTATION = Object.freeze({
-  implementationId: 'local.audio.synthesize.voxcpm',
-  driverId: 'nimi.runtime.driver.voxcpm',
-  driverDialect: 'voxcpm/audio-synthesize/v1',
-}) satisfies Readonly<CapabilityImplementationIdentity>;
-
-export const NIMI_AI_PROFILE_QWEN3_VOICE_CREATE_IMPLEMENTATION = Object.freeze({
-  implementationId: 'local.voice.create.qwen3-tts',
-  driverId: 'nimi.runtime.driver.qwen3-tts',
-  driverDialect: 'qwen3-tts/voice-create/v1',
-}) satisfies Readonly<CapabilityImplementationIdentity>;
-
-export const NIMI_AI_PROFILE_QWEN3_ASR_IMPLEMENTATION = Object.freeze({
-  implementationId: 'local.audio.transcribe.qwen3-asr',
-  driverId: 'nimi.runtime.driver.qwen3-asr',
-  driverDialect: 'qwen3-asr/audio-transcribe/v1',
-}) satisfies Readonly<CapabilityImplementationIdentity>;
-
-export const NIMI_AI_PROFILE_QWEN3_ASR_TRANSFORMERS_IMPLEMENTATION = Object.freeze({
-  implementationId: 'local.audio.transcribe.qwen3-asr-transformers',
-  driverId: 'nimi.runtime.driver.qwen3-asr-transformers',
-  driverDialect: 'qwen3-asr-transformers/audio-transcribe/v1',
-}) satisfies Readonly<CapabilityImplementationIdentity>;
-
-export const NIMI_AI_PROFILE_STABLE_DIFFUSION_IMPLEMENTATION = Object.freeze({
-  implementationId: 'local.image.generate.stable-diffusion-cpp',
-  driverId: 'nimi.runtime.driver.stable-diffusion-cpp',
-  driverDialect: 'stable-diffusion.cpp/image-generate/v1',
-}) satisfies Readonly<CapabilityImplementationIdentity>;
-
-/**
- * Mirrors runtime/internal/capabilitydriver/stablediffusion_video.go:19-21;
- * implementationId/driverId alias the image pair at
- * runtime/internal/capabilitydriver/stablediffusion.go:18-19.
- */
-export const NIMI_AI_PROFILE_STABLE_DIFFUSION_VIDEO_IMPLEMENTATION = Object.freeze({
-  implementationId: 'local.image.generate.stable-diffusion-cpp',
-  driverId: 'nimi.runtime.driver.stable-diffusion-cpp',
-  driverDialect: 'stable-diffusion.cpp/minimax-h3-video-generate/v1',
-}) satisfies Readonly<CapabilityImplementationIdentity>;
-
-/** Mirrors runtime/internal/capabilitydriver/llama.go:464-465. */
-export const NIMI_AI_PROFILE_LLAMA_PORTABLE_CONFIG_FIELDS = Object.freeze([
-  'mainRequirementPolicy',
-  'mainVerifiedContentId',
-  'mmprojRequirementPolicy',
-  'mmprojVerifiedContentId',
-  'contextSize',
-  'cacheTypeK',
-  'cacheTypeV',
-  'flashAttention',
-  'gpuLayers',
-] as const);
-
-/** Mirrors the non-multimodal portable fields admitted by LlamaEmbedDriver. */
-export const NIMI_AI_PROFILE_LLAMA_EMBED_PORTABLE_CONFIG_FIELDS = Object.freeze([
-  'mainRequirementPolicy',
-  'mainVerifiedContentId',
-  'contextSize',
-  'cacheTypeK',
-  'cacheTypeV',
-  'flashAttention',
-  'gpuLayers',
-] as const);
-
-/** Mirrors parseStableDiffusionPortableConfig in Runtime's exact image Driver. */
-// @nimi-authority: rule.nimi.runtime.ai-provider.r064
-export const NIMI_AI_PROFILE_STABLE_DIFFUSION_PORTABLE_CONFIG_FIELDS = Object.freeze([
-  'modelFamily',
-  'enableInputImage',
-  'executionOptions',
-] as const);
-
-/** Mirrors runtime/internal/capabilitydriver/stablediffusion.go:862. */
-export const NIMI_AI_PROFILE_STABLE_DIFFUSION_EXECUTION_OPTION_FIELDS = Object.freeze([
-  'steps',
-  'cfgScale',
-  'width',
-  'height',
-  'seed',
-  'sampler',
-  'scheduler',
-  'threads',
-  'diffusionFlashAttention',
-  'offloadParamsToCPU',
-] as const);
-
-/**
- * Mirrors the policyKey/contentIDKey pairs admitted by
- * parseStableDiffusionVideoPortableConfig from stableDiffusionVideoSlots
- * (runtime/internal/capabilitydriver/stablediffusion_video.go:54-80,318-322).
- */
-export const NIMI_AI_PROFILE_STABLE_DIFFUSION_VIDEO_PORTABLE_CONFIG_FIELDS = Object.freeze([
-  'fl2vaRequirementPolicy',
-  'fl2vaVerifiedContentId',
-  'ref2vaRequirementPolicy',
-  'ref2vaVerifiedContentId',
-  'encoderRequirementPolicy',
-  'encoderVerifiedContentId',
-  'videoVAERequirementPolicy',
-  'videoVAEVerifiedContentId',
-  'audioVAERequirementPolicy',
-  'audioVAEVerifiedContentId',
-] as const);
-
 /** Cloud recommendation content is intentionally grantless and connectorless. */
-export const NIMI_AI_PROFILE_CLOUD_RECOMMENDATION_FIELDS = Object.freeze([
+const CLOUD_RECOMMENDATION_FIELDS = Object.freeze([
   'implementation',
   'supportedFeatures',
   'providerModelTarget',
 ] as const);
 
-/**
- * Actionable Profile digest participation. Profile identity, title,
- * description, provenance, license, and displayMetadata are deliberately
- * excluded; they do not change AIConfig or machine-local portable intent.
- */
-export const NIMI_AI_PROFILE_PORTABLE_CONTENT_DIGEST_FIELDS = Object.freeze([
-  'capabilities.<CapabilityContract>.route',
-  'capabilities.<CapabilityContract>.requiredFeatures',
-  'capabilities.<CapabilityContract>.defaults',
-  'capabilities.<CapabilityContract>.implementation.{implementationId,driverId,driverDialect,supportedFeatures}',
-  'capabilities.<CapabilityContract>.driverPortableConfig',
-  'capabilities.<CapabilityContract>.resourceOccurrences',
-  'capabilities.<CapabilityContract>.providerModelTarget',
-] as const);
-
-/**
- * Exact Local Capability Configuration portable-content participation. These
- * are the portable fields admitted by Runtime's Add request. Runtime-generated
- * id, requirements, bindings, resolution, reasons, display name, provenance,
- * Profile metadata, and machine selection do not participate.
- */
-export const NIMI_AI_PROFILE_LOCAL_EQUIVALENCE_DIGEST_FIELDS = Object.freeze([
-  'capabilityContract',
-  'implementation.{implementationId,driverId,driverDialect}',
-  'driverPortableConfig',
-  'supportedFeatures',
-] as const);
-
-export type NimiAIProfileRequirementPolicy = 'strict' | 'substitutable';
-
-export const NIMI_AI_PROFILE_LLAMA_CACHE_TYPES = Object.freeze([
-  'f32',
-  'f16',
-  'bf16',
-  'q8_0',
-  'q4_0',
-] as const);
-
-export type NimiAIProfileLlamaCacheType =
-  typeof NIMI_AI_PROFILE_LLAMA_CACHE_TYPES[number];
-
-export interface NimiAIProfileLlamaPortableConfigInput {
-  readonly mainRequirementPolicy?: NimiAIProfileRequirementPolicy;
-  readonly mainVerifiedContentId?: string;
-  readonly mmprojRequirementPolicy?: NimiAIProfileRequirementPolicy;
-  readonly mmprojVerifiedContentId?: string;
-  readonly contextSize?: number;
-  readonly cacheTypeK?: NimiAIProfileLlamaCacheType;
-  readonly cacheTypeV?: NimiAIProfileLlamaCacheType;
-  readonly flashAttention?: boolean;
-  readonly gpuLayers?: number;
-}
-
-export interface NimiAIProfileLlamaEmbedPortableConfigInput {
-  readonly mainRequirementPolicy?: NimiAIProfileRequirementPolicy;
-  readonly mainVerifiedContentId?: string;
-  readonly contextSize?: number;
-  readonly cacheTypeK?: NimiAIProfileLlamaCacheType;
-  readonly cacheTypeV?: NimiAIProfileLlamaCacheType;
-  readonly flashAttention?: boolean;
-  readonly gpuLayers?: number;
-}
-
-export const NIMI_AI_PROFILE_STABLE_DIFFUSION_MODEL_FAMILIES = Object.freeze([
-  'z-image',
-  'ideogram4',
-] as const);
-
-export type NimiAIProfileStableDiffusionModelFamily =
-  typeof NIMI_AI_PROFILE_STABLE_DIFFUSION_MODEL_FAMILIES[number];
-
-export interface NimiAIProfileStableDiffusionExecutionOptionsInput {
-  readonly steps?: number;
-  readonly cfgScale?: number;
-  readonly width?: number;
-  readonly height?: number;
-  readonly seed?: number;
-  readonly sampler?: string;
-  readonly scheduler?: string;
-  readonly threads?: number;
-  readonly diffusionFlashAttention?: boolean;
-  readonly offloadParamsToCPU?: boolean;
-}
-
-export interface NimiAIProfileStableDiffusionPortableConfigInput {
-  readonly modelFamily: NimiAIProfileStableDiffusionModelFamily;
-  readonly enableInputImage?: boolean;
-  readonly executionOptions?: NimiAIProfileStableDiffusionExecutionOptionsInput;
-}
-
-/**
- * MiniMax-H3 video.generate portable config. The ten fields are exactly the
- * policyKey/contentIDKey pairs of the five Driver slots at
- * runtime/internal/capabilitydriver/stablediffusion_video.go:54-80; any other
- * key fails closed (stablediffusion_video.go:323-327). An absent section
- * defaults every slot to substitutable (stablediffusion_video.go:312-317).
- */
-export interface NimiAIProfileStableDiffusionVideoPortableConfigInput {
-  readonly fl2vaRequirementPolicy?: NimiAIProfileRequirementPolicy;
-  readonly fl2vaVerifiedContentId?: string;
-  readonly ref2vaRequirementPolicy?: NimiAIProfileRequirementPolicy;
-  readonly ref2vaVerifiedContentId?: string;
-  readonly encoderRequirementPolicy?: NimiAIProfileRequirementPolicy;
-  readonly encoderVerifiedContentId?: string;
-  readonly videoVAERequirementPolicy?: NimiAIProfileRequirementPolicy;
-  readonly videoVAEVerifiedContentId?: string;
-  readonly audioVAERequirementPolicy?: NimiAIProfileRequirementPolicy;
-  readonly audioVAEVerifiedContentId?: string;
-}
-
-export type NimiAIProfileDriverAuthoringSection =
-  | {
-    readonly kind: 'llama';
-    readonly portableConfig?: NimiAIProfileLlamaPortableConfigInput;
-  }
-  | {
-    readonly kind: 'llama-embed';
-    readonly portableConfig?: NimiAIProfileLlamaEmbedPortableConfigInput;
-  }
-  | {
-    readonly kind: 'qwen3-tts';
-    readonly portableConfig?: NimiJsonObject;
-  }
-  | {
-    readonly kind: 'voxcpm';
-    readonly portableConfig?: NimiJsonObject;
-  }
-  | {
-    readonly kind: 'qwen3-voice-create';
-    readonly portableConfig?: NimiJsonObject;
-  }
-  | {
-    readonly kind: 'qwen3-asr';
-    readonly portableConfig?: NimiJsonObject;
-  }
-  | {
-    readonly kind: 'qwen3-asr-transformers';
-    readonly portableConfig?: NimiJsonObject;
-  }
-  | {
-    readonly kind: 'stable-diffusion';
-    readonly portableConfig: NimiAIProfileStableDiffusionPortableConfigInput;
-  }
-  | {
-    readonly kind: 'stable-diffusion-video';
-    readonly portableConfig?: NimiAIProfileStableDiffusionVideoPortableConfigInput;
-  };
-
 export interface NimiAIProfileLocalImplementationAuthoringInput {
-  readonly implementation: CapabilityImplementationIdentity;
-  readonly supportedFeatures?: readonly string[];
-  readonly driverSection: NimiAIProfileDriverAuthoringSection;
+  /** Runtime is the only owner of implementation identity, defaults, features, and slots. */
+  readonly recipe: NimiLoadoutRecipe;
+  /** Omit to use the Runtime-owned Recipe defaults. */
+  readonly portableConfig?: NimiJsonObject;
 }
 
 export interface NimiAIProfileCloudRecommendationAuthoringInput {
@@ -355,19 +82,12 @@ export interface NimiAIProfileAuthoringValidationResult {
   readonly localConfigurationDigests: Readonly<Record<string, NimiAIProfileEquivalenceDigest>>;
 }
 
-export interface NimiAIProfileAuthoringProjectedRequirement {
-  readonly requirementId: string;
-  readonly role: 'main' | 'companion';
-  readonly occurrenceOrdinal: number;
-  readonly displayLabel: string;
-  readonly resourceKind: string;
-  readonly policy: NimiAIProfileRequirementPolicy;
-  readonly preferredVerifiedContentId?: string;
-}
+export type NimiAIProfileAuthoringProjectedRequirement = NimiLoadoutRecipe['slots'][number];
 
 export interface NimiAIProfileAuthoringRequirementProjection {
-  readonly source: 'authoring-preview';
-  readonly commitTruth: 'runtime-reproject';
+  readonly source: 'runtime-recipe';
+  readonly recipeId: string;
+  readonly recipeRevision: string;
   readonly requirements: readonly NimiAIProfileAuthoringProjectedRequirement[];
 }
 
@@ -421,6 +141,11 @@ export interface NimiAIProfileAuthoringMachineConfigurationProjection {
   readonly provenance?: NimiJsonObject;
   /** Optional source identity projected by the caller; Runtime does not infer it. */
   readonly sourceProfileId?: string;
+  readonly loadout?: {
+    readonly recipeId: string;
+    readonly axes: readonly { readonly slotId: string; readonly contentId: string }[];
+    readonly options: NimiJsonObject;
+  };
 }
 
 export interface NimiAIProfileAuthoringMachineSelectionProjection {
@@ -464,7 +189,7 @@ export type NimiAIProfileLocalConfigurationDecision =
   };
 
 export interface NimiAIProfileLocalConfigurationPreview {
-  readonly action: 'add-or-update-local-capability-configuration';
+  readonly action: 'add-or-update-loadout';
   readonly source: NimiPortableAIProfile;
   readonly proposal: NimiAIProfileLocalConfigurationProposal;
   readonly equivalenceDigest: NimiAIProfileEquivalenceDigest;
@@ -472,7 +197,7 @@ export interface NimiAIProfileLocalConfigurationPreview {
   readonly decision: NimiAIProfileLocalConfigurationDecision;
   readonly runtimeMayConfigureExactPreferredContentAtCommit: boolean;
   readonly previewOnly: true;
-  readonly writesOnly: 'machine-local-capability-configuration';
+  readonly writesOnly: 'machine-loadout';
   readonly doesNotSelect: true;
 }
 
@@ -521,254 +246,16 @@ export interface NimiAIProfileSelectionMismatchPreview {
   readonly commits: false;
 }
 
-export function createNimiAIProfileLlamaPortableConfig(
-  input: NimiAIProfileLlamaPortableConfigInput = {},
-  supportedFeatures: readonly string[] = [],
-): NimiJsonObject {
-  const features = normalizeFeatureSet(supportedFeatures, 'llama supportedFeatures');
-  const config = normalizeAuthoringJsonObject(input, 'llama portableConfig');
-  validateLlamaPortableConfig(config, features);
-  return config;
-}
-
-export function createNimiAIProfileLlamaEmbedPortableConfig(
-  input: NimiAIProfileLlamaEmbedPortableConfigInput = {},
-  supportedFeatures: readonly string[] = [],
-): NimiJsonObject {
-  const features = normalizeFeatureSet(supportedFeatures, 'llama embedding supportedFeatures');
-  const config = normalizeAuthoringJsonObject(input, 'llama embedding portableConfig');
-  validateLlamaEmbedPortableConfig(config, features);
-  return config;
-}
-
-function createNimiAIProfileQwen3SpeechPortableConfig(
-  input: NimiJsonObject,
-  supportedFeatures: readonly string[],
-  label: string,
-): NimiJsonObject {
-  const features = normalizeFeatureSet(supportedFeatures, `${label} supportedFeatures`);
-  const config = normalizeAuthoringJsonObject(input, `${label} portableConfig`);
-  validateQwen3SpeechPortableConfig(config, features, label);
-  return config;
-}
-
-export function createNimiAIProfileStableDiffusionPortableConfig(
-  input: NimiAIProfileStableDiffusionPortableConfigInput,
-  supportedFeatures: readonly string[] = input?.enableInputImage === true
-    ? [NIMI_AI_PROFILE_INPUT_IMAGE_FEATURE]
-    : [],
-): NimiJsonObject {
-  const features = normalizeFeatureSet(supportedFeatures, 'stable-diffusion supportedFeatures');
-  const config = normalizeAuthoringJsonObject(input, 'stable-diffusion portableConfig');
-  validateStableDiffusionPortableConfig(config, features);
-  return config;
-}
-
-export function createNimiAIProfileStableDiffusionVideoPortableConfig(
-  input: NimiAIProfileStableDiffusionVideoPortableConfigInput = {},
-  supportedFeatures: readonly string[] = [],
-): NimiJsonObject {
-  const features = normalizeFeatureSet(
-    supportedFeatures,
-    'stable-diffusion video supportedFeatures',
-  );
-  const config = normalizeAuthoringJsonObject(input, 'stable-diffusion video portableConfig');
-  validateStableDiffusionVideoPortableConfig(config, features);
-  return config;
-}
-
-export function createNimiAIProfileLlamaLocalImplementation(input: {
-  readonly supportedFeatures?: readonly string[];
-  readonly portableConfig?: NimiAIProfileLlamaPortableConfigInput;
-} = {}): NimiAIProfileLocalImplementationAuthoringInput {
-  assertExactRecord(input, new Set(['supportedFeatures', 'portableConfig']), 'llama implementation input');
-  const supportedFeatures = normalizeFeatureSet(input.supportedFeatures ?? [], 'llama supportedFeatures');
-  const portableConfig = createNimiAIProfileLlamaPortableConfig(
-    input.portableConfig ?? {},
-    supportedFeatures,
-  );
+/** Build one portable Local implementation from Runtime-owned Recipe truth. */
+export function createNimiAIProfileLocalImplementation(
+  input: NimiAIProfileLocalImplementationAuthoringInput,
+): NimiAIProfileLocalImplementationAuthoringInput {
+  const normalized = normalizeLocalImplementationInput(input, input.recipe.capabilityContract);
   return Object.freeze({
-    implementation: Object.freeze({ ...NIMI_AI_PROFILE_LLAMA_CPP_IMPLEMENTATION }),
-    supportedFeatures,
-    driverSection: Object.freeze({ kind: 'llama' as const, portableConfig }),
+    recipe: input.recipe,
+    portableConfig: normalized.portableConfig,
   });
 }
-
-export function createNimiAIProfileLlamaEmbedLocalImplementation(input: {
-  readonly supportedFeatures?: readonly string[];
-  readonly portableConfig?: NimiAIProfileLlamaEmbedPortableConfigInput;
-} = {}): NimiAIProfileLocalImplementationAuthoringInput {
-  assertExactRecord(
-    input,
-    new Set(['supportedFeatures', 'portableConfig']),
-    'llama embedding implementation input',
-  );
-  const supportedFeatures = normalizeFeatureSet(
-    input.supportedFeatures ?? [],
-    'llama embedding supportedFeatures',
-  );
-  const portableConfig = createNimiAIProfileLlamaEmbedPortableConfig(
-    input.portableConfig ?? {},
-    supportedFeatures,
-  );
-  return Object.freeze({
-    implementation: Object.freeze({ ...NIMI_AI_PROFILE_LLAMA_CPP_EMBED_IMPLEMENTATION }),
-    supportedFeatures,
-    driverSection: Object.freeze({ kind: 'llama-embed' as const, portableConfig }),
-  });
-}
-
-export function createNimiAIProfileQwen3TTSLocalImplementation(input: {
-  readonly supportedFeatures?: readonly string[];
-} = {}): NimiAIProfileLocalImplementationAuthoringInput {
-  assertExactRecord(input, new Set(['supportedFeatures']), 'Qwen3-TTS implementation input');
-  const supportedFeatures = normalizeFeatureSet(
-    input.supportedFeatures ?? [],
-    'Qwen3-TTS supportedFeatures',
-  );
-  const portableConfig = createNimiAIProfileQwen3SpeechPortableConfig(
-    {},
-    supportedFeatures,
-    'Qwen3-TTS',
-  );
-  return Object.freeze({
-    implementation: Object.freeze({ ...NIMI_AI_PROFILE_QWEN3_TTS_IMPLEMENTATION }),
-    supportedFeatures,
-    driverSection: Object.freeze({ kind: 'qwen3-tts' as const, portableConfig }),
-  });
-}
-
-// @nimi-authority: rule.nimi.runtime.ai-provider.r112
-export function createNimiAIProfileVoxCPMLocalImplementation(input: {
-  readonly supportedFeatures?: readonly string[];
-} = {}): NimiAIProfileLocalImplementationAuthoringInput {
-  assertExactRecord(input, new Set(['supportedFeatures']), 'VoxCPM implementation input');
-  const supportedFeatures = normalizeFeatureSet(
-    input.supportedFeatures ?? [],
-    'VoxCPM supportedFeatures',
-  );
-  const portableConfig = createNimiAIProfileQwen3SpeechPortableConfig(
-    {},
-    supportedFeatures,
-    'VoxCPM',
-  );
-  return Object.freeze({
-    implementation: Object.freeze({ ...NIMI_AI_PROFILE_VOXCPM_IMPLEMENTATION }),
-    supportedFeatures,
-    driverSection: Object.freeze({ kind: 'voxcpm' as const, portableConfig }),
-  });
-}
-
-export function createNimiAIProfileQwen3VoiceCreateLocalImplementation(input: {
-  readonly supportedFeatures: readonly string[];
-}): NimiAIProfileLocalImplementationAuthoringInput {
-  assertExactRecord(input, new Set(['supportedFeatures']), 'Qwen3 voice.create implementation input');
-  const supportedFeatures = normalizeFeatureSet(
-    input.supportedFeatures,
-    'Qwen3 voice.create supportedFeatures',
-  );
-  validateQwen3VoiceCreateFeatures(supportedFeatures);
-  return Object.freeze({
-    implementation: Object.freeze({ ...NIMI_AI_PROFILE_QWEN3_VOICE_CREATE_IMPLEMENTATION }),
-    supportedFeatures,
-    driverSection: Object.freeze({ kind: 'qwen3-voice-create' as const, portableConfig: Object.freeze({}) }),
-  });
-}
-
-export function createNimiAIProfileQwen3ASRLocalImplementation(input: {
-  readonly supportedFeatures?: readonly string[];
-} = {}): NimiAIProfileLocalImplementationAuthoringInput {
-  assertExactRecord(input, new Set(['supportedFeatures']), 'Qwen3-ASR implementation input');
-  const supportedFeatures = normalizeFeatureSet(
-    input.supportedFeatures ?? [],
-    'Qwen3-ASR supportedFeatures',
-  );
-  const portableConfig = createNimiAIProfileQwen3SpeechPortableConfig(
-    {},
-    supportedFeatures,
-    'Qwen3-ASR',
-  );
-  return Object.freeze({
-    implementation: Object.freeze({ ...NIMI_AI_PROFILE_QWEN3_ASR_IMPLEMENTATION }),
-    supportedFeatures,
-    driverSection: Object.freeze({ kind: 'qwen3-asr' as const, portableConfig }),
-  });
-}
-
-export function createNimiAIProfileQwen3ASRTransformersLocalImplementation(input: {
-  readonly supportedFeatures?: readonly string[];
-} = {}): NimiAIProfileLocalImplementationAuthoringInput {
-  assertExactRecord(input, new Set(['supportedFeatures']), 'Transformers-native Qwen3-ASR implementation input');
-  const supportedFeatures = normalizeFeatureSet(
-    input.supportedFeatures ?? [],
-    'Transformers-native Qwen3-ASR supportedFeatures',
-  );
-  const portableConfig = createNimiAIProfileQwen3SpeechPortableConfig(
-    {},
-    supportedFeatures,
-    'Transformers-native Qwen3-ASR',
-  );
-  return Object.freeze({
-    implementation: Object.freeze({ ...NIMI_AI_PROFILE_QWEN3_ASR_TRANSFORMERS_IMPLEMENTATION }),
-    supportedFeatures,
-    driverSection: Object.freeze({ kind: 'qwen3-asr-transformers' as const, portableConfig }),
-  });
-}
-
-export function createNimiAIProfileStableDiffusionLocalImplementation(input: {
-  readonly supportedFeatures?: readonly string[];
-  readonly portableConfig: NimiAIProfileStableDiffusionPortableConfigInput;
-}): NimiAIProfileLocalImplementationAuthoringInput {
-  assertExactRecord(input, new Set(['supportedFeatures', 'portableConfig']), 'stable-diffusion implementation input');
-  const supportedFeatures = normalizeFeatureSet(
-    input.supportedFeatures ?? (input.portableConfig?.enableInputImage === true
-      ? [NIMI_AI_PROFILE_INPUT_IMAGE_FEATURE]
-      : []),
-    'stable-diffusion supportedFeatures',
-  );
-  const portableConfig = createNimiAIProfileStableDiffusionPortableConfig(
-    input.portableConfig,
-    supportedFeatures,
-  );
-  return Object.freeze({
-    implementation: Object.freeze({ ...NIMI_AI_PROFILE_STABLE_DIFFUSION_IMPLEMENTATION }),
-    supportedFeatures,
-    driverSection: Object.freeze({
-      kind: 'stable-diffusion' as const,
-      portableConfig: portableConfig as unknown as NimiAIProfileStableDiffusionPortableConfigInput,
-    }),
-  });
-}
-
-export function createNimiAIProfileStableDiffusionVideoLocalImplementation(input: {
-  readonly supportedFeatures?: readonly string[];
-  readonly portableConfig?: NimiAIProfileStableDiffusionVideoPortableConfigInput;
-} = {}): NimiAIProfileLocalImplementationAuthoringInput {
-  assertExactRecord(
-    input,
-    new Set(['supportedFeatures', 'portableConfig']),
-    'stable-diffusion video implementation input',
-  );
-  const supportedFeatures = normalizeFeatureSet(
-    input.supportedFeatures ?? [],
-    'stable-diffusion video supportedFeatures',
-  );
-  const portableConfig = createNimiAIProfileStableDiffusionVideoPortableConfig(
-    input.portableConfig ?? {},
-    supportedFeatures,
-  );
-  return Object.freeze({
-    implementation: Object.freeze({ ...NIMI_AI_PROFILE_STABLE_DIFFUSION_VIDEO_IMPLEMENTATION }),
-    supportedFeatures,
-    driverSection: Object.freeze({
-      kind: 'stable-diffusion-video' as const,
-      portableConfig: (
-        portableConfig as unknown as NimiAIProfileStableDiffusionVideoPortableConfigInput
-      ),
-    }),
-  });
-}
-
 export class NimiAIProfileAuthoringBuilder {
   #profileId: string;
   #title: string;
@@ -988,12 +475,6 @@ export function validateNimiAIProfileAuthoring(
   const localConfigurationDigests: Record<string, NimiAIProfileEquivalenceDigest> = {};
   for (const [capabilityContract, capability] of Object.entries(profile.capabilities)) {
     if (capability.route === 'local' && capability.implementation) {
-      validateKnownLocalConfiguration(
-        capabilityContract,
-        capability.implementation,
-        capability.implementation.supportedFeatures,
-        capability.driverPortableConfig,
-      );
       localConfigurationDigests[capabilityContract] = localConfigurationDigestFromProfile(
         capabilityContract,
         capability,
@@ -1041,6 +522,7 @@ export function deriveNimiAIProfileLocalConfigurationEquivalenceDigest(
 export function deriveNimiAIProfileRequirementProjection(
   input: NimiPortableAIProfileInput,
   capabilityContract: string,
+  recipe: NimiLoadoutRecipe,
 ): NimiAIProfileAuthoringRequirementProjection {
   const profile = validateNimiAIProfileAuthoring(input, OPTIONAL_METADATA_VALIDATION).profile;
   const contract = requireExactNonEmptyText(capabilityContract, 'CapabilityContract');
@@ -1048,11 +530,7 @@ export function deriveNimiAIProfileRequirementProjection(
   if (!capability || capability.route !== 'local' || !capability.implementation) {
     return authoringError(`AIProfile ${contract} has no Local implementation configuration intent`);
   }
-  return projectKnownDriverRequirements(
-    contract,
-    capability.implementation,
-    capability.driverPortableConfig,
-  );
+  return projectRuntimeRecipeRequirements(contract, capability.implementation, recipe);
 }
 
 export function deriveNimiAIProfileImportPreview(input: {
@@ -1131,12 +609,13 @@ export function deriveNimiAIProfileApplyPreview(input: {
 export function deriveNimiAIProfileLocalConfigurationPreview(input: {
   readonly profile: NimiPortableAIProfileInput;
   readonly capabilityContract: string;
+  readonly recipe: NimiLoadoutRecipe;
   readonly machine: NimiAIProfileAuthoringMachineProjection;
   readonly validation?: NimiAIProfileAuthoringValidationOptions;
 }): NimiAIProfileLocalConfigurationPreview {
   assertExactRecord(
     input,
-    new Set(['profile', 'capabilityContract', 'machine', 'validation']),
+    new Set(['profile', 'capabilityContract', 'recipe', 'machine', 'validation']),
     'AIProfile Local configuration preview input',
   );
   const source = validateNimiAIProfileAuthoring(input.profile, input.validation ?? {}).profile;
@@ -1167,10 +646,10 @@ export function deriveNimiAIProfileLocalConfigurationPreview(input: {
       .filter((configuration) => configuration.capabilityContract === capabilityContract)
       .filter((configuration) => sameProfileSource(source, configuration))
       .sort((left, right) => compareCanonicalText(left.configurationId, right.configurationId));
-  const requirementProjection = projectKnownDriverRequirements(
+  const requirementProjection = projectRuntimeRecipeRequirements(
     capabilityContract,
     capability.implementation,
-    capability.driverPortableConfig,
+    input.recipe,
   );
   const decision: NimiAIProfileLocalConfigurationDecision = equivalent.length > 0
     ? Object.freeze({
@@ -1198,7 +677,7 @@ export function deriveNimiAIProfileLocalConfigurationPreview(input: {
         expectedRequirementResolution: 'unresolved' as const,
       });
   return Object.freeze({
-    action: 'add-or-update-local-capability-configuration' as const,
+    action: 'add-or-update-loadout' as const,
     source,
     proposal: Object.freeze({
       capabilityContract,
@@ -1216,10 +695,10 @@ export function deriveNimiAIProfileLocalConfigurationPreview(input: {
     requirementProjection,
     decision,
     runtimeMayConfigureExactPreferredContentAtCommit: requirementProjection.requirements.some(
-      (requirement) => requirement.preferredVerifiedContentId !== undefined,
+      (requirement) => requirement.recommendedContentIds.length > 0,
     ),
     previewOnly: true as const,
-    writesOnly: 'machine-local-capability-configuration' as const,
+    writesOnly: 'machine-loadout' as const,
     doesNotSelect: true as const,
   });
 }
@@ -1349,24 +828,6 @@ const OPTIONAL_METADATA_VALIDATION: NimiAIProfileAuthoringValidationOptions = Ob
   requireNonEmptyLicense: false,
 });
 
-const LLAMA_FIELDS = new Set<string>(NIMI_AI_PROFILE_LLAMA_PORTABLE_CONFIG_FIELDS);
-const LLAMA_EMBED_FIELDS = new Set<string>(NIMI_AI_PROFILE_LLAMA_EMBED_PORTABLE_CONFIG_FIELDS);
-const STABLE_DIFFUSION_FIELDS = new Set<string>(
-  NIMI_AI_PROFILE_STABLE_DIFFUSION_PORTABLE_CONFIG_FIELDS,
-);
-const STABLE_DIFFUSION_EXECUTION_FIELDS = new Set<string>(
-  NIMI_AI_PROFILE_STABLE_DIFFUSION_EXECUTION_OPTION_FIELDS,
-);
-const STABLE_DIFFUSION_VIDEO_FIELDS = new Set<string>(
-  NIMI_AI_PROFILE_STABLE_DIFFUSION_VIDEO_PORTABLE_CONFIG_FIELDS,
-);
-const LLAMA_CACHE_TYPES = new Set<NimiAIProfileLlamaCacheType>(
-  NIMI_AI_PROFILE_LLAMA_CACHE_TYPES,
-);
-const STABLE_DIFFUSION_FAMILIES = new Set<NimiAIProfileStableDiffusionModelFamily>(
-  NIMI_AI_PROFILE_STABLE_DIFFUSION_MODEL_FAMILIES,
-);
-
 function normalizeLocalImplementationInput(
   input: NimiAIProfileLocalImplementationAuthoringInput,
   capabilityContract: string,
@@ -1377,197 +838,37 @@ function normalizeLocalImplementationInput(
 } {
   assertExactRecord(
     input,
-    new Set(['implementation', 'supportedFeatures', 'driverSection']),
+    new Set(['recipe', 'portableConfig']),
     `${capabilityContract} Local implementation`,
   );
-  const implementation = normalizeImplementation(
-    input.implementation,
-    `${capabilityContract} implementation`,
+  const recipe = requireRecord(
+    input.recipe,
+    `${capabilityContract} Runtime Recipe is required`,
   );
-  const supportedFeatures = normalizeFeatureSet(
-    input.supportedFeatures ?? [],
-    `${capabilityContract} supportedFeatures`,
+  const recipeContract = requireExactNonEmptyText(
+    recipe.capabilityContract,
+    `${capabilityContract} Runtime Recipe CapabilityContract`,
   );
-  const section = requireRecord(
-    input.driverSection,
-    `${capabilityContract} driverSection must be an object`,
-  );
-  assertExactRecord(
-    section,
-    new Set(['kind', 'portableConfig']),
-    `${capabilityContract} driverSection`,
-  );
-  if (section.kind === 'llama') {
-    assertExactImplementation(
-      implementation,
-      NIMI_AI_PROFILE_LLAMA_CPP_IMPLEMENTATION,
-      'llama',
+  if (recipeContract !== capabilityContract) {
+    return authoringError(
+      `Runtime Recipe ${String(recipe.recipeId || '')} belongs to ${recipeContract}, not ${capabilityContract}`,
     );
-    if (capabilityContract !== 'text.generate') {
-      return authoringError('llama Driver section requires text.generate');
-    }
-    return Object.freeze({
-      implementation,
-      supportedFeatures,
-      portableConfig: createNimiAIProfileLlamaPortableConfig(
-        (section.portableConfig ?? {}) as NimiAIProfileLlamaPortableConfigInput,
-        supportedFeatures,
-      ),
-    });
-  }
-  if (section.kind === 'llama-embed') {
-    assertExactImplementation(
-      implementation,
-      NIMI_AI_PROFILE_LLAMA_CPP_EMBED_IMPLEMENTATION,
-      'llama embedding',
-    );
-    if (capabilityContract !== 'text.embed') {
-      return authoringError('llama embedding Driver section requires text.embed');
-    }
-    return Object.freeze({
-      implementation,
-      supportedFeatures,
-      portableConfig: createNimiAIProfileLlamaEmbedPortableConfig(
-        (section.portableConfig ?? {}) as NimiAIProfileLlamaEmbedPortableConfigInput,
-        supportedFeatures,
-      ),
-    });
-  }
-  if (section.kind === 'qwen3-tts') {
-    assertExactImplementation(
-      implementation,
-      NIMI_AI_PROFILE_QWEN3_TTS_IMPLEMENTATION,
-      'Qwen3-TTS',
-    );
-    if (capabilityContract !== 'audio.synthesize') {
-      return authoringError('Qwen3-TTS Driver section requires audio.synthesize');
-    }
-    return Object.freeze({
-      implementation,
-      supportedFeatures,
-      portableConfig: createNimiAIProfileQwen3SpeechPortableConfig(
-        (section.portableConfig ?? {}) as NimiJsonObject,
-        supportedFeatures,
-        'Qwen3-TTS',
-      ),
-    });
-  }
-  if (section.kind === 'voxcpm') {
-    assertExactImplementation(
-      implementation,
-      NIMI_AI_PROFILE_VOXCPM_IMPLEMENTATION,
-      'VoxCPM',
-    );
-    if (capabilityContract !== 'audio.synthesize') {
-      return authoringError('VoxCPM Driver section requires audio.synthesize');
-    }
-    return Object.freeze({
-      implementation,
-      supportedFeatures,
-      portableConfig: createNimiAIProfileQwen3SpeechPortableConfig(
-        (section.portableConfig ?? {}) as NimiJsonObject,
-        supportedFeatures,
-        'VoxCPM',
-      ),
-    });
-  }
-  if (section.kind === 'qwen3-voice-create') {
-    assertExactImplementation(
-      implementation,
-      NIMI_AI_PROFILE_QWEN3_VOICE_CREATE_IMPLEMENTATION,
-      'Qwen3 voice.create',
-    );
-    if (capabilityContract !== 'voice.create') {
-      return authoringError('Qwen3 voice.create Driver section requires voice.create');
-    }
-    validateQwen3VoiceCreateFeatures(supportedFeatures);
-    return Object.freeze({
-      implementation,
-      supportedFeatures,
-      portableConfig: createNimiAIProfileQwen3SpeechPortableConfig(
-        (section.portableConfig ?? {}) as NimiJsonObject,
-        [],
-        'Qwen3 voice.create',
-      ),
-    });
-  }
-  if (section.kind === 'qwen3-asr') {
-    assertExactImplementation(
-      implementation,
-      NIMI_AI_PROFILE_QWEN3_ASR_IMPLEMENTATION,
-      'Qwen3-ASR',
-    );
-    if (capabilityContract !== 'audio.transcribe') {
-      return authoringError('Qwen3-ASR Driver section requires audio.transcribe');
-    }
-    return Object.freeze({
-      implementation,
-      supportedFeatures,
-      portableConfig: createNimiAIProfileQwen3SpeechPortableConfig(
-        (section.portableConfig ?? {}) as NimiJsonObject,
-        supportedFeatures,
-        'Qwen3-ASR',
-      ),
-    });
-  }
-  if (section.kind === 'qwen3-asr-transformers') {
-    assertExactImplementation(
-      implementation,
-      NIMI_AI_PROFILE_QWEN3_ASR_TRANSFORMERS_IMPLEMENTATION,
-      'Transformers-native Qwen3-ASR',
-    );
-    if (capabilityContract !== 'audio.transcribe') {
-      return authoringError('Transformers-native Qwen3-ASR Driver section requires audio.transcribe');
-    }
-    return Object.freeze({
-      implementation,
-      supportedFeatures,
-      portableConfig: createNimiAIProfileQwen3SpeechPortableConfig(
-        (section.portableConfig ?? {}) as NimiJsonObject,
-        supportedFeatures,
-        'Transformers-native Qwen3-ASR',
-      ),
-    });
-  }
-  if (section.kind === 'stable-diffusion-video') {
-    assertExactImplementation(
-      implementation,
-      NIMI_AI_PROFILE_STABLE_DIFFUSION_VIDEO_IMPLEMENTATION,
-      'stable-diffusion video',
-    );
-    if (capabilityContract !== 'video.generate') {
-      return authoringError('stable-diffusion video Driver section requires video.generate');
-    }
-    return Object.freeze({
-      implementation,
-      supportedFeatures,
-      portableConfig: createNimiAIProfileStableDiffusionVideoPortableConfig(
-        (section.portableConfig ?? {}) as NimiAIProfileStableDiffusionVideoPortableConfigInput,
-        supportedFeatures,
-      ),
-    });
-  }
-  if (section.kind !== 'stable-diffusion') {
-    return authoringError(`${capabilityContract} driverSection kind is unsupported`);
-  }
-  assertExactImplementation(
-    implementation,
-    NIMI_AI_PROFILE_STABLE_DIFFUSION_IMPLEMENTATION,
-    'stable-diffusion',
-  );
-  if (capabilityContract !== 'image.generate') {
-    return authoringError('stable-diffusion Driver section requires image.generate');
   }
   return Object.freeze({
-    implementation,
-    supportedFeatures,
-    portableConfig: createNimiAIProfileStableDiffusionPortableConfig(
-      section.portableConfig as unknown as NimiAIProfileStableDiffusionPortableConfigInput,
-      supportedFeatures,
+    implementation: normalizeImplementation(
+      recipe.implementation,
+      `${capabilityContract} Runtime Recipe implementation`,
+    ),
+    supportedFeatures: normalizeFeatureSet(
+      recipe.supportedFeatures,
+      `${capabilityContract} Runtime Recipe supportedFeatures`,
+    ),
+    portableConfig: normalizeAuthoringJsonObject(
+      input.portableConfig ?? recipe.defaultOptions,
+      `${capabilityContract} portableConfig`,
     ),
   });
 }
-
 function normalizeCloudRecommendation(
   input: NimiAIProfileCloudRecommendationAuthoringInput,
 ): {
@@ -1577,7 +878,7 @@ function normalizeCloudRecommendation(
 } {
   assertExactRecord(
     input,
-    new Set(NIMI_AI_PROFILE_CLOUD_RECOMMENDATION_FIELDS),
+    new Set(CLOUD_RECOMMENDATION_FIELDS),
     'Cloud recommendation',
   );
   const providerModelTarget = normalizeAuthoringJsonObject(
@@ -1636,539 +937,64 @@ function assertExactCloudRecommendationTarget(
   }
 }
 
-function validateKnownLocalConfiguration(
-  capabilityContract: string,
-  implementation: NimiPortableAIProfileImplementation | CapabilityImplementationIdentity,
-  supportedFeatures: readonly string[],
-  portableConfig: NimiJsonObject | undefined,
-): void {
-  const identity = normalizeImplementation(
-    implementation,
-    `${capabilityContract} implementation`,
-    'supportedFeatures' in implementation,
-  );
-  const features = normalizeFeatureSet(supportedFeatures, `${capabilityContract} supportedFeatures`);
-  const config = portableConfig === undefined
-    ? Object.freeze({})
-    : normalizeAuthoringJsonObject(portableConfig, `${capabilityContract} driverPortableConfig`);
-  if (sameImplementation(identity, NIMI_AI_PROFILE_LLAMA_CPP_IMPLEMENTATION)) {
-    if (capabilityContract !== 'text.generate') {
-      return authoringError('llama implementation requires text.generate');
-    }
-    validateLlamaPortableConfig(config, features);
-    return;
-  }
-  if (sameImplementation(identity, NIMI_AI_PROFILE_LLAMA_CPP_EMBED_IMPLEMENTATION)) {
-    if (capabilityContract !== 'text.embed') {
-      return authoringError('llama embedding implementation requires text.embed');
-    }
-    validateLlamaEmbedPortableConfig(config, features);
-    return;
-  }
-  if (sameImplementation(identity, NIMI_AI_PROFILE_QWEN3_TTS_IMPLEMENTATION)) {
-    if (capabilityContract !== 'audio.synthesize') {
-      return authoringError('Qwen3-TTS implementation requires audio.synthesize');
-    }
-    validateQwen3SpeechPortableConfig(config, features, 'Qwen3-TTS');
-    return;
-  }
-  if (sameImplementation(identity, NIMI_AI_PROFILE_VOXCPM_IMPLEMENTATION)) {
-    if (capabilityContract !== 'audio.synthesize') {
-      return authoringError('VoxCPM implementation requires audio.synthesize');
-    }
-    validateQwen3SpeechPortableConfig(config, features, 'VoxCPM');
-    return;
-  }
-  if (sameImplementation(identity, NIMI_AI_PROFILE_QWEN3_VOICE_CREATE_IMPLEMENTATION)) {
-    if (capabilityContract !== 'voice.create') {
-      return authoringError('Qwen3 voice.create implementation requires voice.create');
-    }
-    validateQwen3VoiceCreateFeatures(features);
-    validateQwen3SpeechPortableConfig(config, [], 'Qwen3 voice.create');
-    return;
-  }
-  if (sameImplementation(identity, NIMI_AI_PROFILE_QWEN3_ASR_IMPLEMENTATION)) {
-    if (capabilityContract !== 'audio.transcribe') {
-      return authoringError('Qwen3-ASR implementation requires audio.transcribe');
-    }
-    validateQwen3SpeechPortableConfig(config, features, 'Qwen3-ASR');
-    return;
-  }
-  if (sameImplementation(identity, NIMI_AI_PROFILE_QWEN3_ASR_TRANSFORMERS_IMPLEMENTATION)) {
-    if (capabilityContract !== 'audio.transcribe') {
-      return authoringError('Transformers-native Qwen3-ASR implementation requires audio.transcribe');
-    }
-    validateQwen3SpeechPortableConfig(config, features, 'Transformers-native Qwen3-ASR');
-    return;
-  }
-  if (sameImplementation(identity, NIMI_AI_PROFILE_STABLE_DIFFUSION_IMPLEMENTATION)) {
-    if (capabilityContract !== 'image.generate') {
-      return authoringError('stable-diffusion implementation requires image.generate');
-    }
-    validateStableDiffusionPortableConfig(config, features);
-    return;
-  }
-  if (sameImplementation(identity, NIMI_AI_PROFILE_STABLE_DIFFUSION_VIDEO_IMPLEMENTATION)) {
-    if (capabilityContract !== 'video.generate') {
-      return authoringError('stable-diffusion video implementation requires video.generate');
-    }
-    validateStableDiffusionVideoPortableConfig(config, features);
-    return;
-  }
-  return authoringError(
-    `AIProfile ${capabilityContract} uses an unsupported Local implementation or Driver dialect`,
-  );
-}
-
-function validateLlamaPortableConfig(
-  config: NimiJsonObject,
-  supportedFeatures: readonly string[],
-): void {
-  assertExactJsonKeys(config, LLAMA_FIELDS, 'llama portableConfig');
-  assertOnlyInputImageFeature(supportedFeatures, 'llama supportedFeatures');
-  const acceptsImage = supportedFeatures.includes(NIMI_AI_PROFILE_INPUT_IMAGE_FEATURE);
-  const mainPolicy = optionalPolicy(config, 'mainRequirementPolicy') ?? 'substitutable';
-  const mainContent = optionalVerifiedContentId(config, 'mainVerifiedContentId');
-  const mmprojPolicy = optionalPolicy(config, 'mmprojRequirementPolicy') ?? 'substitutable';
-  const mmprojContent = optionalVerifiedContentId(config, 'mmprojVerifiedContentId');
-  if (mainPolicy === 'strict' && mainContent === undefined) {
-    return authoringError('llama mainVerifiedContentId is required for strict policy');
-  }
-  if (mmprojPolicy === 'strict' && mmprojContent === undefined) {
-    return authoringError('llama mmprojVerifiedContentId is required for strict policy');
-  }
-  if (!acceptsImage && (
-    hasOwn(config, 'mmprojRequirementPolicy')
-    || hasOwn(config, 'mmprojVerifiedContentId')
-  )) {
-    return authoringError('llama mmproj fields require input.image support');
-  }
-  optionalInteger(config, 'contextSize', 1, 2_147_483_647);
-  optionalInteger(config, 'gpuLayers', -1, 2_147_483_647);
-  for (const key of ['cacheTypeK', 'cacheTypeV'] as const) {
-    if (!hasOwn(config, key)) continue;
-    const value = config[key];
-    if (typeof value !== 'string' || !LLAMA_CACHE_TYPES.has(value as NimiAIProfileLlamaCacheType)) {
-      return authoringError(`llama ${key} is unsupported`);
-    }
-  }
-  optionalBoolean(config, 'flashAttention');
-}
-
-function validateLlamaEmbedPortableConfig(
-  config: NimiJsonObject,
-  supportedFeatures: readonly string[],
-): void {
-  assertExactJsonKeys(config, LLAMA_EMBED_FIELDS, 'llama embedding portableConfig');
-  if (supportedFeatures.length !== 0) {
-    return authoringError('llama embedding supportedFeatures must be empty');
-  }
-  const mainPolicy = optionalPolicy(config, 'mainRequirementPolicy') ?? 'substitutable';
-  const mainContent = optionalVerifiedContentId(config, 'mainVerifiedContentId');
-  if (mainPolicy === 'strict' && mainContent === undefined) {
-    return authoringError('llama embedding mainVerifiedContentId is required for strict policy');
-  }
-  optionalInteger(config, 'contextSize', 1, 2_147_483_647);
-  optionalInteger(config, 'gpuLayers', -1, 2_147_483_647);
-  for (const key of ['cacheTypeK', 'cacheTypeV'] as const) {
-    if (!hasOwn(config, key)) continue;
-    const value = config[key];
-    if (typeof value !== 'string' || !LLAMA_CACHE_TYPES.has(value as NimiAIProfileLlamaCacheType)) {
-      return authoringError(`llama embedding ${key} is unsupported`);
-    }
-  }
-  optionalBoolean(config, 'flashAttention');
-}
-
-function validateQwen3SpeechPortableConfig(
-  config: NimiJsonObject,
-  supportedFeatures: readonly string[],
-  label: string,
-): void {
-  assertExactJsonKeys(config, new Set<string>(), `${label} portableConfig`);
-  if (supportedFeatures.length !== 0) {
-    return authoringError(`${label} supportedFeatures must be empty`);
-  }
-}
-
-function validateQwen3VoiceCreateFeatures(features: readonly string[]): void {
-  if (features.length !== 1) {
-    return authoringError('Qwen3 voice.create supports exactly one selected source feature');
-  }
-  const feature = features[0];
-  if (feature !== NIMI_AI_PROFILE_INPUT_AUDIO_FEATURE && feature !== NIMI_AI_PROFILE_INPUT_TEXT_FEATURE) {
-    return authoringError(`Qwen3 voice.create contains unsupported feature ${feature}`);
-  }
-}
-
-function validateStableDiffusionPortableConfig(
-  config: NimiJsonObject,
-  supportedFeatures: readonly string[],
-): void {
-  assertExactJsonKeys(config, STABLE_DIFFUSION_FIELDS, 'stable-diffusion portableConfig');
-  assertOnlyInputImageFeature(supportedFeatures, 'stable-diffusion supportedFeatures');
-  const modelFamily = config.modelFamily;
-  if (
-    typeof modelFamily !== 'string'
-    || !STABLE_DIFFUSION_FAMILIES.has(modelFamily as NimiAIProfileStableDiffusionModelFamily)
-  ) {
-    return authoringError('stable-diffusion modelFamily is required and must be canonical');
-  }
-  if (hasOwn(config, 'enableInputImage') && typeof config.enableInputImage !== 'boolean') {
-    return authoringError('stable-diffusion enableInputImage must be a boolean');
-  }
-  const supportsImage = supportedFeatures.includes(NIMI_AI_PROFILE_INPUT_IMAGE_FEATURE);
-  if ((config.enableInputImage === true) !== supportsImage) {
-    return authoringError('stable-diffusion enableInputImage must match input.image support');
-  }
-  if (hasOwn(config, 'executionOptions')) {
-    validateStableDiffusionExecutionOptions(config.executionOptions);
-  }
-}
-
-function validateStableDiffusionVideoPortableConfig(
-  config: NimiJsonObject,
-  supportedFeatures: readonly string[],
-): void {
-  // Unknown keys fail closed exactly like parseStableDiffusionVideoPortableConfig
-  // (runtime/internal/capabilitydriver/stablediffusion_video.go:318-327).
-  assertExactJsonKeys(
-    config,
-    STABLE_DIFFUSION_VIDEO_FIELDS,
-    'stable-diffusion video portableConfig',
-  );
-  // The MiniMax-H3 video Driver admits only input.image
-  // (stablediffusion_video.go:35,91-95).
-  assertOnlyInputImageFeature(supportedFeatures, 'stable-diffusion video supportedFeatures');
-  // Per-slot intent rules mirror stableDiffusionRequirementIntentFromFields
-  // (runtime/internal/capabilitydriver/stablediffusion.go:773-792): policy is
-  // strict|substitutable (default substitutable), verifiedContentId must be a
-  // canonical sha256 identity, and strict requires verifiedContentId.
-  validateRequirementIntent(config, 'fl2vaRequirementPolicy', 'fl2vaVerifiedContentId');
-  validateRequirementIntent(config, 'ref2vaRequirementPolicy', 'ref2vaVerifiedContentId');
-  validateRequirementIntent(config, 'encoderRequirementPolicy', 'encoderVerifiedContentId');
-  validateRequirementIntent(config, 'videoVAERequirementPolicy', 'videoVAEVerifiedContentId');
-  validateRequirementIntent(config, 'audioVAERequirementPolicy', 'audioVAEVerifiedContentId');
-}
-
-function validateRequirementIntent(
-  config: NimiJsonObject,
-  policyKey: string,
-  contentKey: string,
-): void {
-  const policy = optionalPolicy(config, policyKey) ?? 'substitutable';
-  const content = optionalVerifiedContentId(config, contentKey);
-  if (policy === 'strict' && content === undefined) {
-    return authoringError(`${contentKey} is required for strict policy`);
-  }
-}
-
-function validateStableDiffusionExecutionOptions(value: NimiJsonValue | undefined): void {
-  if (!isJsonRecord(value)) {
-    return authoringError('stable-diffusion executionOptions must be an object');
-  }
-  assertExactJsonKeys(
-    value,
-    STABLE_DIFFUSION_EXECUTION_FIELDS,
-    'stable-diffusion executionOptions',
-  );
-  optionalInteger(value, 'steps', 1, 150);
-  if (hasOwn(value, 'cfgScale')) {
-    requireFiniteNumber(value.cfgScale, 0, 30, 'stable-diffusion executionOptions.cfgScale');
-  }
-  for (const key of ['width', 'height'] as const) {
-    if (!hasOwn(value, key)) continue;
-    const dimension = requireInteger(
-      value[key],
-      64,
-      4096,
-      `stable-diffusion executionOptions.${key}`,
-    );
-    if (dimension % 8 !== 0) {
-      return authoringError(`stable-diffusion executionOptions.${key} must be a multiple of eight`);
-    }
-  }
-  optionalInteger(
-    value,
-    'seed',
-    -2147483648,
-    2147483647,
-  );
-  for (const key of ['sampler', 'scheduler'] as const) {
-    if (!hasOwn(value, key)) continue;
-    const option = value[key];
-    if (
-      typeof option !== 'string'
-      || option.length === 0
-      || option.length > 64
-      || option.trim() !== option
-      || !/^[A-Za-z0-9+_.-]+$/u.test(option)
-    ) {
-      return authoringError(`stable-diffusion executionOptions.${key} must be a Driver option token`);
-    }
-  }
-  optionalInteger(value, 'threads', 1, 1024);
-  optionalBoolean(value, 'diffusionFlashAttention');
-  optionalBoolean(value, 'offloadParamsToCPU');
-}
-
-function projectKnownDriverRequirements(
+function projectRuntimeRecipeRequirements(
   capabilityContract: string,
   implementation: NimiPortableAIProfileImplementation,
-  portableConfig: NimiJsonObject | undefined,
+  recipe: NimiLoadoutRecipe,
 ): NimiAIProfileAuthoringRequirementProjection {
-  const config: NimiJsonObject = portableConfig ?? Object.freeze({});
-  validateKnownLocalConfiguration(
-    capabilityContract,
-    implementation,
+  const normalized = normalizeLocalImplementationInput({ recipe }, capabilityContract);
+  if (!sameImplementation(implementation, normalized.implementation)) {
+    return authoringError(
+      `AIProfile ${capabilityContract} implementation does not match Runtime Recipe ${recipe.recipeId}`,
+    );
+  }
+  const profileFeatures = normalizeFeatureSet(
     implementation.supportedFeatures,
-    config,
+    `${capabilityContract} implementation supportedFeatures`,
   );
-  if (sameImplementation(implementation, NIMI_AI_PROFILE_LLAMA_CPP_IMPLEMENTATION)) {
-    const requirements: NimiAIProfileAuthoringProjectedRequirement[] = [
-      requirementPreview(
-        'main.gguf',
-        'main',
-        0,
-        'Main model',
-        'gguf',
-        optionalPolicy(config, 'mainRequirementPolicy') ?? 'substitutable',
-        optionalVerifiedContentId(config, 'mainVerifiedContentId'),
+  if (
+    profileFeatures.length !== normalized.supportedFeatures.length
+    || profileFeatures.some((feature, index) => feature !== normalized.supportedFeatures[index])
+  ) {
+    return authoringError(
+      `AIProfile ${capabilityContract} supportedFeatures do not match Runtime Recipe ${recipe.recipeId}`,
+    );
+  }
+  const recipeId = requireExactNonEmptyText(recipe.recipeId, 'Runtime Recipe recipeId');
+  const recipeRevision = requireExactNonEmptyText(recipe.revision, 'Runtime Recipe revision');
+  if (!Array.isArray(recipe.slots)) {
+    return authoringError(`Runtime Recipe ${recipeId} slots must be an array`);
+  }
+  const requirements = recipe.slots.map((slot, index) => {
+    const value = requireRecord(slot, `Runtime Recipe ${recipeId} slot ${index}`);
+    return Object.freeze({
+      slotId: requireExactNonEmptyText(value.slotId, `Runtime Recipe ${recipeId} slotId`),
+      displayLabel: requireExactNonEmptyText(
+        value.displayLabel,
+        `Runtime Recipe ${recipeId} slot displayLabel`,
       ),
-    ];
-    if (implementation.supportedFeatures.includes(NIMI_AI_PROFILE_INPUT_IMAGE_FEATURE)) {
-      requirements.push(requirementPreview(
-        'companion.mmproj',
-        'companion',
-        0,
-        'Vision projector',
-        'mmproj',
-        optionalPolicy(config, 'mmprojRequirementPolicy') ?? 'substitutable',
-        optionalVerifiedContentId(config, 'mmprojVerifiedContentId'),
-      ));
-    }
-    return Object.freeze({
-      source: 'authoring-preview' as const,
-      commitTruth: 'runtime-reproject' as const,
-      requirements: Object.freeze(requirements),
+      recommendedContentIds: normalizeFeatureSet(
+        value.recommendedContentIds,
+        `Runtime Recipe ${recipeId} recommendedContentIds`,
+      ),
+      recommendedVariantIds: normalizeFeatureSet(
+        value.recommendedVariantIds,
+        `Runtime Recipe ${recipeId} recommendedVariantIds`,
+      ),
+      modelContract: normalizeAuthoringJsonObject(
+        value.modelContract,
+        `Runtime Recipe ${recipeId} modelContract`,
+      ),
     });
-  }
-
-  if (sameImplementation(implementation, NIMI_AI_PROFILE_LLAMA_CPP_EMBED_IMPLEMENTATION)) {
-    return Object.freeze({
-      source: 'authoring-preview' as const,
-      commitTruth: 'runtime-reproject' as const,
-      requirements: Object.freeze([
-        requirementPreview(
-          'embedding.gguf',
-          'main',
-          0,
-          'Embedding model',
-          'gguf',
-          optionalPolicy(config, 'mainRequirementPolicy') ?? 'substitutable',
-          optionalVerifiedContentId(config, 'mainVerifiedContentId'),
-        ),
-      ]),
-    });
-  }
-
-  if (sameImplementation(implementation, NIMI_AI_PROFILE_QWEN3_TTS_IMPLEMENTATION)) {
-    return Object.freeze({
-      source: 'authoring-preview' as const,
-      commitTruth: 'runtime-reproject' as const,
-      requirements: Object.freeze([
-        requirementPreview(
-          'tts.model',
-          'main',
-          0,
-          'TTS model',
-          'tts',
-          'substitutable',
-          undefined,
-        ),
-      ]),
-    });
-  }
-
-  if (sameImplementation(implementation, NIMI_AI_PROFILE_VOXCPM_IMPLEMENTATION)) {
-    return Object.freeze({
-      source: 'authoring-preview' as const,
-      commitTruth: 'runtime-reproject' as const,
-      requirements: Object.freeze([
-        requirementPreview(
-          'tts.model',
-          'main',
-          0,
-          'VoxCPM synthesis model',
-          'tts',
-          'substitutable',
-          undefined,
-        ),
-      ]),
-    });
-  }
-
-  if (sameImplementation(implementation, NIMI_AI_PROFILE_QWEN3_VOICE_CREATE_IMPLEMENTATION)) {
-    return Object.freeze({
-      source: 'authoring-preview' as const,
-      commitTruth: 'runtime-reproject' as const,
-      requirements: Object.freeze([
-        requirementPreview(
-          'voice.model',
-          'main',
-          0,
-          'Voice creation model',
-          'tts',
-          'substitutable',
-          undefined,
-        ),
-      ]),
-    });
-  }
-
-  if (sameImplementation(implementation, NIMI_AI_PROFILE_QWEN3_ASR_IMPLEMENTATION)
-    || sameImplementation(implementation, NIMI_AI_PROFILE_QWEN3_ASR_TRANSFORMERS_IMPLEMENTATION)) {
-    return Object.freeze({
-      source: 'authoring-preview' as const,
-      commitTruth: 'runtime-reproject' as const,
-      requirements: Object.freeze([
-        requirementPreview(
-          'stt.model',
-          'main',
-          0,
-          'STT model',
-          'stt',
-          'substitutable',
-          undefined,
-        ),
-      ]),
-    });
-  }
-
-  if (sameImplementation(implementation, NIMI_AI_PROFILE_STABLE_DIFFUSION_VIDEO_IMPLEMENTATION)) {
-    // Slot order and facts mirror stableDiffusionVideoSlots
-    // (runtime/internal/capabilitydriver/stablediffusion_video.go:54-80).
-    return Object.freeze({
-      source: 'authoring-preview' as const,
-      commitTruth: 'runtime-reproject' as const,
-      requirements: Object.freeze([
-        requirementPreview(
-          'diffusion.fl2va',
-          'main',
-          0,
-          'MiniMax-H3 FL2VA transformer',
-          'video',
-          optionalPolicy(config, 'fl2vaRequirementPolicy') ?? 'substitutable',
-          optionalVerifiedContentId(config, 'fl2vaVerifiedContentId'),
-        ),
-        requirementPreview(
-          'diffusion.ref2va',
-          'companion',
-          0,
-          'MiniMax-H3 Ref2VA transformer',
-          'video',
-          optionalPolicy(config, 'ref2vaRequirementPolicy') ?? 'substitutable',
-          optionalVerifiedContentId(config, 'ref2vaVerifiedContentId'),
-        ),
-        requirementPreview(
-          'encoder.h3-combined',
-          'companion',
-          0,
-          'MiniMax-H3 combined Qwen3-VL encoder',
-          'chat',
-          optionalPolicy(config, 'encoderRequirementPolicy') ?? 'substitutable',
-          optionalVerifiedContentId(config, 'encoderVerifiedContentId'),
-        ),
-        requirementPreview(
-          'vae.video',
-          'companion',
-          0,
-          'MiniMax-H3 video VAE',
-          'vae',
-          optionalPolicy(config, 'videoVAERequirementPolicy') ?? 'substitutable',
-          optionalVerifiedContentId(config, 'videoVAEVerifiedContentId'),
-        ),
-        requirementPreview(
-          'vae.audio',
-          'companion',
-          0,
-          'MiniMax-H3 audio VAE',
-          'vae',
-          optionalPolicy(config, 'audioVAERequirementPolicy') ?? 'substitutable',
-          optionalVerifiedContentId(config, 'audioVAEVerifiedContentId'),
-        ),
-      ]),
-    });
-  }
-
-  const modelFamily = config.modelFamily as NimiAIProfileStableDiffusionModelFamily;
-  const requirements: NimiAIProfileAuthoringProjectedRequirement[] = [
-    requirementPreview(
-      'main.diffusion',
-      'main',
-      0,
-      'Diffusion model',
-      'image',
-      'substitutable',
-      undefined,
-    ),
-    requirementPreview(
-      'companion.text-encoder',
-      'companion',
-      0,
-      'Text encoder',
-      'chat',
-      'substitutable',
-      undefined,
-    ),
-    requirementPreview(
-      'companion.vae',
-      'companion',
-      0,
-      'VAE',
-      'vae',
-      'substitutable',
-      undefined,
-    ),
-  ];
-  if (modelFamily === 'ideogram4') {
-    requirements.push(requirementPreview(
-      'companion.uncond-diffusion',
-      'companion',
-      0,
-      'Unconditional diffusion model',
-      'image',
-      'substitutable',
-      undefined,
-    ));
-  }
+  });
+  assertUnique(requirements.map((requirement) => requirement.slotId), `Runtime Recipe ${recipeId} slotId`);
   return Object.freeze({
-    source: 'authoring-preview' as const,
-    commitTruth: 'runtime-reproject' as const,
+    source: 'runtime-recipe' as const,
+    recipeId,
+    recipeRevision,
     requirements: Object.freeze(requirements),
   });
 }
-
-function requirementPreview(
-  requirementId: string,
-  role: 'main' | 'companion',
-  occurrenceOrdinal: number,
-  displayLabel: string,
-  resourceKind: string,
-  policy: NimiAIProfileRequirementPolicy,
-  preferredVerifiedContentId: string | undefined,
-): NimiAIProfileAuthoringProjectedRequirement {
-  return Object.freeze({
-    requirementId,
-    role,
-    occurrenceOrdinal,
-    displayLabel,
-    resourceKind,
-    policy,
-    ...(preferredVerifiedContentId !== undefined ? { preferredVerifiedContentId } : {}),
-  });
-}
-
 function validateAuthoringMetadata(
   profile: NimiPortableAIProfile,
   options: NimiAIProfileAuthoringValidationOptions,
@@ -2240,6 +1066,7 @@ function portableProfileContent(profile: NimiPortableAIProfile): unknown {
           ...(capability.resourceOccurrences !== undefined
             ? { resourceOccurrences: capability.resourceOccurrences }
             : {}),
+          ...(capability.loadout !== undefined ? { loadout: capability.loadout } : {}),
         }
         : { providerModelTarget: capability.providerModelTarget }),
     })),
@@ -2254,11 +1081,12 @@ function localConfigurationDigestFromProfile(
     return authoringError(`AIProfile ${capabilityContract} has no Local implementation`);
   }
   return digestCanonical(
-    'nimi.local-capability-configuration.portable-content/v1',
+    'nimi.loadout.portable-content/v1',
     {
       capabilityContract,
       implementation: implementationContent(capability.implementation),
       driverPortableConfig: capability.driverPortableConfig ?? {},
+      loadout: capability.loadout ? portableLoadoutEquivalence(capability.loadout) : null,
       supportedFeatures: [...capability.implementation.supportedFeatures],
     },
   );
@@ -2267,21 +1095,40 @@ function localConfigurationDigestFromProfile(
 function localConfigurationDigestFromMachine(
   configuration: NimiAIProfileAuthoringMachineConfigurationProjection,
 ): NimiAIProfileEquivalenceDigest {
-  validateKnownLocalConfiguration(
-    configuration.capabilityContract,
+  const implementation = normalizeImplementation(
     configuration.implementation,
-    configuration.supportedFeatures,
-    configuration.portableConfig,
+    `${configuration.capabilityContract} machine implementation`,
   );
+  const supportedFeatures = normalizeFeatureSet(
+    configuration.supportedFeatures,
+    `${configuration.capabilityContract} machine supportedFeatures`,
+  );
+  const portableConfig = configuration.portableConfig === undefined
+    ? Object.freeze({})
+    : normalizeAuthoringJsonObject(
+      configuration.portableConfig,
+      `${configuration.capabilityContract} machine portableConfig`,
+    );
   return digestCanonical(
-    'nimi.local-capability-configuration.portable-content/v1',
+    'nimi.loadout.portable-content/v1',
     {
       capabilityContract: configuration.capabilityContract,
-      implementation: implementationContent(configuration.implementation),
-      driverPortableConfig: configuration.portableConfig ?? {},
-      supportedFeatures: [...configuration.supportedFeatures].sort(),
+      implementation: implementationContent(implementation),
+      driverPortableConfig: portableConfig,
+      loadout: configuration.loadout ?? null,
+      supportedFeatures,
     },
   );
+}
+
+function portableLoadoutEquivalence(
+  loadout: NonNullable<Extract<NimiPortableAIProfileCapability, { readonly route: 'local' }>['loadout']>,
+): unknown {
+  return {
+    recipeId: loadout.recipeId,
+    axes: loadout.axes.map((axis) => ({ slotId: axis.slotId, contentId: axis.contentId })),
+    options: loadout.options,
+  };
 }
 
 function implementationContent(
@@ -2325,7 +1172,7 @@ function normalizeMachineProjection(
   input: NimiAIProfileAuthoringMachineProjection,
 ): NimiAIProfileAuthoringMachineProjection {
   if (!input || !Array.isArray(input.configurations) || !Array.isArray(input.selections)) {
-    return authoringError('Machine Local AI Configuration projection is invalid');
+    return authoringError('Machine Loadout projection is invalid');
   }
   const configurations = input.configurations.map((configuration, index) => {
     if (!configuration || typeof configuration !== 'object') {
@@ -2376,6 +1223,9 @@ function normalizeMachineProjection(
           ),
         }
         : {}),
+      ...(configuration.loadout !== undefined
+        ? { loadout: normalizeMachineLoadoutIntent(configuration.loadout, index) }
+        : {}),
     });
     return normalized;
   });
@@ -2413,6 +1263,35 @@ function normalizeMachineProjection(
   return Object.freeze({
     configurations: Object.freeze(configurations),
     selections: Object.freeze(selections),
+  });
+}
+
+function normalizeMachineLoadoutIntent(
+  input: NonNullable<NimiAIProfileAuthoringMachineConfigurationProjection['loadout']>,
+  configurationIndex: number,
+): NonNullable<NimiAIProfileAuthoringMachineConfigurationProjection['loadout']> {
+  if (!input || typeof input !== 'object' || !Array.isArray(input.axes)) {
+    return authoringError(`Machine configuration[${configurationIndex}].loadout is invalid`);
+  }
+  const axes = input.axes.map((axis, axisIndex) => {
+    const slotId = requireExactNonEmptyText(
+      axis?.slotId,
+      `Machine configuration[${configurationIndex}].loadout.axes[${axisIndex}].slotId`,
+    );
+    const contentId = requireExactNonEmptyText(
+      axis?.contentId,
+      `Machine configuration[${configurationIndex}].loadout.axes[${axisIndex}].contentId`,
+    );
+    if (!/^sha256:[a-f0-9]{64}$/u.test(contentId)) {
+      return authoringError(`Machine configuration[${configurationIndex}].loadout.axes[${axisIndex}].contentId is invalid`);
+    }
+    return Object.freeze({ slotId, contentId });
+  });
+  assertUnique(axes.map((axis) => axis.slotId), `Machine configuration[${configurationIndex}] Loadout slots`);
+  return Object.freeze({
+    recipeId: requireExactNonEmptyText(input.recipeId, `Machine configuration[${configurationIndex}].loadout.recipeId`),
+    axes: Object.freeze(axes),
+    options: normalizeJsonObject(input.options, `Machine configuration[${configurationIndex}].loadout.options`),
   });
 }
 
@@ -2624,16 +1503,6 @@ function normalizeImplementation(
   });
 }
 
-function assertExactImplementation(
-  actual: CapabilityImplementationIdentity,
-  expected: CapabilityImplementationIdentity,
-  label: string,
-): void {
-  if (!sameImplementation(actual, expected)) {
-    return authoringError(`${label} Driver section requires its exact implementation identity`);
-  }
-}
-
 function sameImplementation(
   left: CapabilityImplementationIdentity,
   right: CapabilityImplementationIdentity,
@@ -2653,14 +1522,6 @@ function assertFeatureSubset(
   if (missing) {
     return authoringError(`${capabilityContract} implementation does not support required feature ${missing}`);
   }
-}
-
-function assertOnlyInputImageFeature(
-  features: readonly string[],
-  label: string,
-): void {
-  const unsupported = features.find((feature) => feature !== NIMI_AI_PROFILE_INPUT_IMAGE_FEATURE);
-  if (unsupported) return authoringError(`${label} contains unsupported feature ${unsupported}`);
 }
 
 function normalizeFeatureSet(value: unknown, label: string): readonly string[] {
@@ -2806,70 +1667,6 @@ function isAbsoluteOrFilePath(value: string): boolean {
     || /^[A-Za-z]:[\\/]/u.test(trimmed);
 }
 
-function optionalPolicy(
-  value: NimiJsonObject,
-  key: string,
-): NimiAIProfileRequirementPolicy | undefined {
-  if (!hasOwn(value, key)) return undefined;
-  const policy = value[key];
-  if (policy !== 'strict' && policy !== 'substitutable') {
-    return authoringError(`${key} must be strict or substitutable`);
-  }
-  return policy;
-}
-
-function optionalVerifiedContentId(
-  value: NimiJsonObject,
-  key: string,
-): string | undefined {
-  if (!hasOwn(value, key)) return undefined;
-  const contentId = value[key];
-  if (typeof contentId !== 'string' || !/^sha256:[a-f0-9]{64}$/u.test(contentId)) {
-    return authoringError(`${key} must be a canonical sha256 content identity`);
-  }
-  return contentId;
-}
-
-function optionalInteger(
-  value: NimiJsonObject,
-  key: string,
-  minimum: number,
-  maximum: number,
-): number | undefined {
-  if (!hasOwn(value, key)) return undefined;
-  return requireInteger(value[key], minimum, maximum, key);
-}
-
-function optionalBoolean(value: NimiJsonObject, key: string): boolean | undefined {
-  if (!hasOwn(value, key)) return undefined;
-  const field = value[key];
-  if (typeof field !== 'boolean') return authoringError(`${key} must be a boolean`);
-  return field;
-}
-
-function requireInteger(
-  value: unknown,
-  minimum: number,
-  maximum: number,
-  label: string,
-): number {
-  const number = requireFiniteNumber(value, minimum, maximum, label);
-  if (!Number.isInteger(number)) return authoringError(`${label} must be an integer`);
-  return number;
-}
-
-function requireFiniteNumber(
-  value: unknown,
-  minimum: number,
-  maximum: number,
-  label: string,
-): number {
-  if (typeof value !== 'number' || !Number.isFinite(value) || value < minimum || value > maximum) {
-    return authoringError(`${label} must be a finite number from ${minimum} through ${maximum}`);
-  }
-  return value;
-}
-
 function requireRequirementResolution(
   value: unknown,
   label: string,
@@ -2878,15 +1675,6 @@ function requireRequirementResolution(
     return authoringError(`${label} must be unresolved or configured`);
   }
   return value;
-}
-
-function assertExactJsonKeys(
-  value: NimiJsonObject,
-  allowed: ReadonlySet<string>,
-  label: string,
-): void {
-  const unknown = Object.keys(value).filter((key) => !allowed.has(key)).sort();
-  if (unknown.length > 0) return authoringError(`${label} contains unsupported field ${unknown[0]}`);
 }
 
 function assertExactRecord(
@@ -2902,10 +1690,6 @@ function assertExactRecord(
 function requireRecord(value: unknown, message: string): Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return authoringError(message);
   return value as Record<string, unknown>;
-}
-
-function isJsonRecord(value: unknown): value is NimiJsonObject {
-  return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
 function requireExactNonEmptyText(value: unknown, label: string): string {
@@ -2928,10 +1712,6 @@ function assertUnique(values: readonly string[], label: string): void {
 
 function compareCanonicalText(left: string, right: string): number {
   return left < right ? -1 : left > right ? 1 : 0;
-}
-
-function hasOwn(value: object, key: PropertyKey): boolean {
-  return Object.prototype.hasOwnProperty.call(value, key);
 }
 
 function authoringError(message: string): never {

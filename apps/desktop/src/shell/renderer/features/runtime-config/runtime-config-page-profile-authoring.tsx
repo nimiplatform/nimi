@@ -9,21 +9,12 @@ import {
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import {
-  NIMI_AI_PROFILE_LLAMA_CACHE_TYPES,
-  NIMI_AI_PROFILE_LLAMA_CPP_EMBED_IMPLEMENTATION,
-  NIMI_AI_PROFILE_LLAMA_CPP_IMPLEMENTATION,
-  NIMI_AI_PROFILE_QWEN3_ASR_IMPLEMENTATION,
-  NIMI_AI_PROFILE_QWEN3_ASR_TRANSFORMERS_IMPLEMENTATION,
-  NIMI_AI_PROFILE_QWEN3_TTS_IMPLEMENTATION,
-  NIMI_AI_PROFILE_STABLE_DIFFUSION_IMPLEMENTATION,
-  NIMI_AI_PROFILE_STABLE_DIFFUSION_MODEL_FAMILIES,
-  NIMI_AI_PROFILE_STABLE_DIFFUSION_VIDEO_IMPLEMENTATION,
   type NimiAIProfileApplyPreview,
-  type NimiAIProfileAuthoringProjectedRequirement,
   type NimiAIProfileFeatureSubsetResult,
   type NimiAIProfileLocalConfigurationDecision,
   type NimiAIProfileSelectionMismatchPreview,
 } from '@nimiplatform/sdk/ai';
+import type { NimiLoadoutRecipe } from '@nimiplatform/sdk/runtime';
 import { extractNimiErrorFields } from '@nimiplatform/sdk/types';
 import { Button, InlineAlert, Surface, TextField } from '@nimiplatform/kit/ui';
 import { useAppStore } from '../../app-shell/providers/app-store.js';
@@ -32,7 +23,6 @@ import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
 import { RuntimePageShell } from './runtime-config-page-shell.js';
 import { displayRuntimeConfigCapabilityLabel } from './runtime-config-capability-labels.js';
 import {
-  RUNTIME_CONFIG_AI_PROFILE_CAPABILITY_CONTRACTS,
   addRuntimeConfigAIProfileCapability,
   changeRuntimeConfigAIProfileCapabilityContract,
   createRuntimeConfigAIProfileAuthoringState,
@@ -41,6 +31,7 @@ import {
   inspectRuntimeConfigAIProfileAuthoring,
   loadRuntimeConfigAIProfileAuthoringCurrentProjection,
   reduceRuntimeConfigAIProfileAuthoringState,
+  runtimeConfigAIProfileCapabilityContracts,
   technicalErrorDetail,
   type RuntimeConfigAIProfileAuthoringCurrentProjection,
   type RuntimeConfigAIProfileAuthoringDraft,
@@ -48,10 +39,6 @@ import {
   type RuntimeConfigAIProfileAuthoringState,
   type RuntimeConfigAIProfileCapabilityContract,
   type RuntimeConfigAIProfileCapabilityDraft,
-  type RuntimeConfigAIProfileOptionalBoolean,
-  type RuntimeConfigAIProfileOptionalPolicy,
-  type RuntimeConfigAIProfileRequirementDraft,
-  type RuntimeConfigAIProfileStableDiffusionExecutionDraft,
 } from './runtime-config-profile-authoring-state.js';
 
 type ProjectionStatus = 'loading' | 'ready' | 'failed';
@@ -61,6 +48,7 @@ export type AIProfileAuthoringViewProps = {
   readonly inspection: RuntimeConfigAIProfileAuthoringInspection;
   readonly projectionStatus: ProjectionStatus;
   readonly projectionTechnicalError: string;
+  readonly recipes: readonly NimiLoadoutRecipe[];
   readonly onDraftChange: (draft: RuntimeConfigAIProfileAuthoringDraft) => void;
   readonly onImportFile: (file: File) => void;
   readonly onExport: () => void;
@@ -71,7 +59,7 @@ export function AIProfileAuthoringPage() {
   const sdk = useDesktopRendererSdk();
   const subjectUserId = useAppStore((state) => String(state.auth.user?.id ?? '').trim());
   const appAIConfig = useMemo(() => sdk.accountProduct().appAIConfig(sdk.appId()), [sdk]);
-  const machine = useMemo(() => sdk.machineProduct().local.aiConfiguration, [sdk]);
+  const loadouts = useMemo(() => sdk.machineProduct().local.loadouts, [sdk]);
   const sharedAIConfig = useMemo(() => createRuntimeAgentAIConfigAdapter({
     runtime: {
       get appId() { return sdk.appId(); },
@@ -100,16 +88,18 @@ export function AIProfileAuthoringPage() {
         getSharedAIConfig: () => readOptionalAIConfig(async () => (
           await sharedAIConfig.get({ subjectUserId })
         ).aiConfig),
-        getMachine: () => machine.get(),
+        getLoadouts: () => loadouts.get(),
+        getRecipes: () => loadouts.listRecipes(),
       });
       setCurrent(next);
+      dispatch({ type: 'recipes-loaded', recipes: next.recipes });
       setProjectionStatus('ready');
     } catch (error) {
       setCurrent(null);
       setProjectionStatus('failed');
       setProjectionTechnicalError(technicalErrorDetail(error));
     }
-  }, [appAIConfig, machine, sharedAIConfig, subjectUserId]);
+  }, [appAIConfig, loadouts, sharedAIConfig, subjectUserId]);
 
   useEffect(() => {
     void reloadProjection();
@@ -125,7 +115,7 @@ export function AIProfileAuthoringPage() {
       try {
         dispatch({
           type: 'import-succeeded',
-          draft: importRuntimeConfigAIProfileAuthoring(source),
+          draft: importRuntimeConfigAIProfileAuthoring(source, current?.recipes ?? []),
         });
       } catch (error) {
         dispatch({
@@ -141,11 +131,14 @@ export function AIProfileAuthoringPage() {
         technicalError: technicalErrorDetail(error),
       });
     });
-  }, []);
+  }, [current]);
 
   const exportArtifact = useCallback(() => {
     try {
-      const artifact = exportRuntimeConfigAIProfileAuthoring(state.draft);
+      const artifact = exportRuntimeConfigAIProfileAuthoring(
+        state.draft,
+        current?.recipes ?? [],
+      );
       downloadPortableProfile(artifact.artifactJson, artifact.fileName);
       dispatch({ type: 'export-succeeded' });
     } catch (error) {
@@ -155,7 +148,7 @@ export function AIProfileAuthoringPage() {
         technicalError: technicalErrorDetail(error),
       });
     }
-  }, [state.draft]);
+  }, [current, state.draft]);
 
   return (
     <AIProfileAuthoringView
@@ -163,6 +156,7 @@ export function AIProfileAuthoringPage() {
       inspection={inspection}
       projectionStatus={projectionStatus}
       projectionTechnicalError={projectionTechnicalError}
+      recipes={current?.recipes ?? []}
       onDraftChange={(draft) => dispatch({ type: 'draft-changed', draft })}
       onImportFile={importFile}
       onExport={exportArtifact}
@@ -178,8 +172,16 @@ export function AIProfileAuthoringView(props: AIProfileAuthoringViewProps) {
   const requirementsByCapability = new Map(
     model?.requirements.map((requirement) => [requirement.capabilityContract, requirement] as const),
   );
-  const canAddCapability = props.state.draft.capabilities.length
-    < RUNTIME_CONFIG_AI_PROFILE_CAPABILITY_CONTRACTS.length;
+  const capabilityContracts = runtimeConfigAIProfileCapabilityContracts(
+    props.state.draft,
+    props.recipes,
+  );
+  const usedCapabilities = new Set(
+    props.state.draft.capabilities.map((capability) => capability.capabilityContract),
+  );
+  const canAddCapability = props.recipes.some(
+    (recipe) => !usedCapabilities.has(recipe.capabilityContract),
+  );
   const exportReady = model?.exportArtifact !== null && model !== null;
 
   return (
@@ -257,7 +259,10 @@ export function AIProfileAuthoringView(props: AIProfileAuthoringViewProps) {
               type="button"
               size="sm"
               disabled={!canAddCapability}
-              onClick={() => updateDraft(addRuntimeConfigAIProfileCapability(props.state.draft))}
+              onClick={() => updateDraft(addRuntimeConfigAIProfileCapability(
+                props.state.draft,
+                props.recipes,
+              ))}
             >
               {t('runtimeConfig.profiles.authoring.addCapability')}
             </Button>
@@ -269,6 +274,8 @@ export function AIProfileAuthoringView(props: AIProfileAuthoringViewProps) {
               capability={capability}
               index={index}
               draft={props.state.draft}
+              recipes={props.recipes}
+              capabilityContracts={capabilityContracts}
               requirement={requirementsByCapability.get(capability.capabilityContract)}
               onChange={updateDraft}
               t={t}
@@ -377,9 +384,13 @@ function CapabilityAuthoringCard(props: {
   readonly capability: RuntimeConfigAIProfileCapabilityDraft;
   readonly index: number;
   readonly draft: RuntimeConfigAIProfileAuthoringDraft;
+  readonly recipes: readonly NimiLoadoutRecipe[];
+  readonly capabilityContracts: readonly string[];
   readonly requirement: {
     readonly supportedFeatures: readonly string[];
-    readonly projection: { readonly requirements: readonly NimiAIProfileAuthoringProjectedRequirement[] };
+    readonly projection: {
+      readonly requirements: NimiLoadoutRecipe['slots'];
+    };
   } | undefined;
   readonly onChange: (draft: RuntimeConfigAIProfileAuthoringDraft) => void;
   readonly t: TFunction;
@@ -442,9 +453,10 @@ function CapabilityAuthoringCard(props: {
             props.draft,
             capability.draftId,
             value as RuntimeConfigAIProfileCapabilityContract,
+            props.recipes,
           ))}
         >
-          {RUNTIME_CONFIG_AI_PROFILE_CAPABILITY_CONTRACTS.map((candidate) => (
+          {props.capabilityContracts.map((candidate) => (
             <option key={candidate} value={candidate} disabled={used.has(candidate)}>
               {displayRuntimeConfigCapabilityLabel(candidate, props.t)}
             </option>
@@ -484,6 +496,7 @@ function CapabilityAuthoringCard(props: {
       {capability.route === 'local' ? (
         <LocalImplementationFields
           capability={capability}
+          recipes={props.recipes}
           updateCapability={updateCapability}
           t={props.t}
         />
@@ -504,24 +517,25 @@ function CapabilityAuthoringCard(props: {
 
 function LocalImplementationFields(props: {
   readonly capability: RuntimeConfigAIProfileCapabilityDraft;
+  readonly recipes: readonly NimiLoadoutRecipe[];
   readonly updateCapability: (
     update: (current: RuntimeConfigAIProfileCapabilityDraft) => RuntimeConfigAIProfileCapabilityDraft,
   ) => void;
   readonly t: TFunction;
 }) {
   const { capability } = props;
+  const candidates = props.recipes.filter(
+    (recipe) => recipe.capabilityContract === capability.capabilityContract,
+  );
+  const selected = candidates.find((recipe) => recipe.recipeId === capability.local.recipeId);
   const updateLocal = (next: Partial<RuntimeConfigAIProfileCapabilityDraft['local']>) => {
     props.updateCapability((current) => ({
       ...current,
       local: { ...current.local, ...next },
     }));
   };
-  if (capability.local.driverKind === 'none') {
-    return (
-      <InlineAlert tone="info">
-        {props.t('runtimeConfig.profiles.authoring.localIntentOnly')}
-      </InlineAlert>
-    );
+  if (candidates.length === 0) {
+    return <InlineAlert tone="info">{props.t('runtimeConfig.profiles.authoring.localIntentOnly')}</InlineAlert>;
   }
   return (
     <div className="space-y-4 rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-subtle)] p-4" data-testid="ai-profile-authoring-local-section">
@@ -535,223 +549,49 @@ function LocalImplementationFields(props: {
           </p>
         </div>
         <label className="flex items-center gap-2 text-xs font-medium text-[var(--nimi-text-secondary)]">
-          <input
-            type="checkbox"
-            checked={capability.local.includeImplementation}
-            onChange={(event) => updateLocal({ includeImplementation: event.currentTarget.checked })}
-          />
+          <input type="checkbox" checked={capability.local.includeImplementation} onChange={(event) => updateLocal({ includeImplementation: event.currentTarget.checked })} />
           {props.t('runtimeConfig.profiles.authoring.packageImplementation')}
         </label>
       </div>
       {capability.local.includeImplementation ? (
         <>
-          <div className="grid gap-3 md:grid-cols-3" data-testid="ai-profile-authoring-local-identity">
-            <ReadOnlyAuthoringField
-              label={props.t('runtimeConfig.profiles.authoring.implementationId')}
-              value={localDriverImplementation(capability.local.driverKind).implementationId}
-            />
-            <ReadOnlyAuthoringField
-              label={props.t('runtimeConfig.profiles.authoring.driverId')}
-              value={localDriverImplementation(capability.local.driverKind).driverId}
-            />
-            <ReadOnlyAuthoringField
-              label={props.t('runtimeConfig.profiles.authoring.driverDialect')}
-              value={localDriverImplementation(capability.local.driverKind).driverDialect}
-            />
-          </div>
-          {capability.capabilityContract === 'audio.transcribe' ? (
-            <AuthoringSelect
-              label={props.t('runtimeConfig.profiles.authoring.speechTranscriptionDriver')}
-              value={capability.local.driverKind}
-              field="local-asr-driver"
-              onChange={(driverKind) => updateLocal({
-                driverKind: driverKind as 'qwen3-asr' | 'qwen3-asr-transformers',
-              })}
-            >
-              <option value="qwen3-asr">
-                {props.t('runtimeConfig.machineLocalAIConfigurations.qwen3ASREngine')}
-              </option>
-              <option value="qwen3-asr-transformers">
-                {props.t('runtimeConfig.machineLocalAIConfigurations.qwen3ASRTransformersEngine')}
-              </option>
-            </AuthoringSelect>
-          ) : null}
-          <AuthoringTextField
-            label={props.t('runtimeConfig.profiles.authoring.supportedFeatures')}
-            hint={props.t('runtimeConfig.profiles.authoring.featuresHint')}
-            value={capability.local.supportedFeaturesText}
-            field="local-supported-features"
-            placeholder="input.image"
-            onChange={(supportedFeaturesText) => updateLocal({ supportedFeaturesText })}
-          />
-          {capability.local.driverKind === 'llama' ? (
-            <LlamaAuthoringFields capability={capability} updateLocal={updateLocal} t={props.t} />
-          ) : capability.local.driverKind === 'llama-embed' ? (
-            <LlamaAuthoringFields
-              capability={capability}
-              updateLocal={updateLocal}
-              t={props.t}
-              includeProjector={false}
-            />
-          ) : capability.local.driverKind === 'qwen3-tts'
-            || capability.local.driverKind === 'qwen3-asr'
-            || capability.local.driverKind === 'qwen3-asr-transformers' ? null
-            : capability.local.driverKind === 'stable-diffusion-video' ? (
-            <StableDiffusionVideoAuthoringFields
-              capability={capability}
-              updateLocal={updateLocal}
-              t={props.t}
-            />
+          <AuthoringSelect label={props.t('runtimeConfig.loadouts.recipe')} value={capability.local.recipeId} field="local-recipe" onChange={(recipeId) => {
+            const recipe = candidates.find((candidate) => candidate.recipeId === recipeId);
+            updateLocal({
+              recipeId,
+              portableConfigJson: recipe ? JSON.stringify(recipe.defaultOptions, null, 2) : '',
+            });
+          }}>
+            {candidates.map((recipe) => (
+              <option key={recipe.recipeId} value={recipe.recipeId}>{recipe.title} ({recipe.revision})</option>
+            ))}
+          </AuthoringSelect>
+          {selected ? (
+            <>
+              <div className="grid gap-3 md:grid-cols-3" data-testid="ai-profile-authoring-local-identity">
+                <ReadOnlyAuthoringField label={props.t('runtimeConfig.profiles.authoring.implementationId')} value={selected.implementation.implementationId} />
+                <ReadOnlyAuthoringField label={props.t('runtimeConfig.profiles.authoring.driverId')} value={selected.implementation.driverId} />
+                <ReadOnlyAuthoringField label={props.t('runtimeConfig.profiles.authoring.driverDialect')} value={selected.implementation.driverDialect} />
+              </div>
+              <ReadOnlyAuthoringField label={props.t('runtimeConfig.profiles.authoring.supportedFeatures')} value={selected.supportedFeatures.join(', ') || props.t('runtimeConfig.profiles.authoring.none')} />
+              <AuthoringTextArea
+                label={props.t('runtimeConfig.profiles.authoring.driverPortableConfig')}
+                hint={props.t('runtimeConfig.profiles.authoring.requirementsRuntimeTruth')}
+                value={capability.local.portableConfigJson}
+                field="local-portable-config"
+                rows={8}
+                placeholder="{}"
+                onChange={(portableConfigJson) => updateLocal({ portableConfigJson })}
+              />
+            </>
           ) : (
-            <StableDiffusionAuthoringFields
-              capability={capability}
-              updateLocal={updateLocal}
-              t={props.t}
-            />
+            <InlineAlert tone="danger">{props.t('runtimeConfig.profiles.authoring.requirementsPending')}</InlineAlert>
           )}
         </>
       ) : null}
     </div>
   );
 }
-
-function localDriverImplementation(
-  driverKind: RuntimeConfigAIProfileCapabilityDraft['local']['driverKind'],
-) {
-  if (driverKind === 'llama') return NIMI_AI_PROFILE_LLAMA_CPP_IMPLEMENTATION;
-  if (driverKind === 'llama-embed') return NIMI_AI_PROFILE_LLAMA_CPP_EMBED_IMPLEMENTATION;
-  if (driverKind === 'qwen3-tts') return NIMI_AI_PROFILE_QWEN3_TTS_IMPLEMENTATION;
-  if (driverKind === 'qwen3-asr') return NIMI_AI_PROFILE_QWEN3_ASR_IMPLEMENTATION;
-  if (driverKind === 'qwen3-asr-transformers') {
-    return NIMI_AI_PROFILE_QWEN3_ASR_TRANSFORMERS_IMPLEMENTATION;
-  }
-  if (driverKind === 'stable-diffusion-video') {
-    return NIMI_AI_PROFILE_STABLE_DIFFUSION_VIDEO_IMPLEMENTATION;
-  }
-  return NIMI_AI_PROFILE_STABLE_DIFFUSION_IMPLEMENTATION;
-}
-
-function LlamaAuthoringFields(props: {
-  readonly capability: RuntimeConfigAIProfileCapabilityDraft;
-  readonly updateLocal: (next: Partial<RuntimeConfigAIProfileCapabilityDraft['local']>) => void;
-  readonly t: TFunction;
-  readonly includeProjector?: boolean;
-}) {
-  const llama = props.capability.local.llama;
-  const update = (next: Partial<typeof llama>) => props.updateLocal({ llama: { ...llama, ...next } });
-  return (
-    <fieldset className="space-y-4" data-testid="ai-profile-authoring-llama-fields">
-      <legend className="text-sm font-semibold text-[var(--nimi-text-primary)]">
-        {props.t('runtimeConfig.profiles.authoring.driverPortableConfig')}
-      </legend>
-      <div className="grid gap-3 lg:grid-cols-2">
-        <RequirementAuthoringFields
-          title={props.t('runtimeConfig.profiles.authoring.llamaMain')}
-          value={llama.main}
-          onChange={(main) => update({ main })}
-          t={props.t}
-        />
-        {props.includeProjector !== false ? (
-          <RequirementAuthoringFields
-            title={props.t('runtimeConfig.profiles.authoring.llamaProjector')}
-            value={llama.mmproj}
-            onChange={(mmproj) => update({ mmproj })}
-            t={props.t}
-          />
-        ) : null}
-      </div>
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-        <AuthoringTextField label={props.t('runtimeConfig.profiles.authoring.contextSize')} value={llama.contextSize} field="llama-context-size" type="number" onChange={(contextSize) => update({ contextSize })} />
-        <CacheTypeSelect label={props.t('runtimeConfig.profiles.authoring.cacheTypeK')} value={llama.cacheTypeK} onChange={(cacheTypeK) => update({ cacheTypeK })} t={props.t} />
-        <CacheTypeSelect label={props.t('runtimeConfig.profiles.authoring.cacheTypeV')} value={llama.cacheTypeV} onChange={(cacheTypeV) => update({ cacheTypeV })} t={props.t} />
-        <OptionalBooleanSelect label={props.t('runtimeConfig.profiles.authoring.flashAttention')} value={llama.flashAttention} field="llama-flash-attention" onChange={(flashAttention) => update({ flashAttention })} t={props.t} />
-        <AuthoringTextField label={props.t('runtimeConfig.profiles.authoring.gpuLayers')} value={llama.gpuLayers} field="llama-gpu-layers" type="number" onChange={(gpuLayers) => update({ gpuLayers })} />
-      </div>
-    </fieldset>
-  );
-}
-
-function StableDiffusionAuthoringFields(props: {
-  readonly capability: RuntimeConfigAIProfileCapabilityDraft;
-  readonly updateLocal: (next: Partial<RuntimeConfigAIProfileCapabilityDraft['local']>) => void;
-  readonly t: TFunction;
-}) {
-  const stable = props.capability.local.stableDiffusion;
-  const update = (next: Partial<typeof stable>) => props.updateLocal({
-    stableDiffusion: { ...stable, ...next },
-  });
-  const updateExecution = (next: Partial<RuntimeConfigAIProfileStableDiffusionExecutionDraft>) => {
-    update({ execution: { ...stable.execution, ...next } });
-  };
-  return (
-    <fieldset className="space-y-4" data-testid="ai-profile-authoring-stable-diffusion-fields">
-      <legend className="text-sm font-semibold text-[var(--nimi-text-primary)]">
-        {props.t('runtimeConfig.profiles.authoring.driverPortableConfig')}
-      </legend>
-      <div className="grid gap-3 md:grid-cols-2">
-        <AuthoringSelect
-          label={props.t('runtimeConfig.profiles.authoring.modelFamily')}
-          value={stable.modelFamily}
-          field="sd-model-family"
-          onChange={(modelFamily) => update({
-            modelFamily: modelFamily as typeof stable.modelFamily,
-          })}
-        >
-          {NIMI_AI_PROFILE_STABLE_DIFFUSION_MODEL_FAMILIES.map((family) => (
-            <option key={family} value={family}>{family}</option>
-          ))}
-        </AuthoringSelect>
-        <OptionalBooleanSelect
-          label={props.t('runtimeConfig.profiles.authoring.enableInputImage')}
-          value={stable.enableInputImage}
-          field="sd-enable-input-image"
-          onChange={(enableInputImage) => update({ enableInputImage })}
-          t={props.t}
-        />
-      </div>
-      <div className="space-y-3" data-testid="ai-profile-authoring-sd-execution-options">
-        <h6 className="text-xs font-semibold uppercase tracking-[var(--nimi-type-overline-letter-spacing)] text-[var(--nimi-text-secondary)]">
-          {props.t('runtimeConfig.profiles.authoring.executionOptions')}
-        </h6>
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          {(['steps', 'cfgScale', 'width', 'height', 'seed', 'threads'] as const).map((key) => (
-            <AuthoringTextField key={key} label={props.t(`runtimeConfig.profiles.authoring.execution.${key}`)} value={stable.execution[key]} field={`sd-${key}`} type="number" onChange={(value) => updateExecution({ [key]: value })} />
-          ))}
-          <AuthoringTextField label={props.t('runtimeConfig.profiles.authoring.execution.sampler')} value={stable.execution.sampler} field="sd-sampler" onChange={(sampler) => updateExecution({ sampler })} />
-          <AuthoringTextField label={props.t('runtimeConfig.profiles.authoring.execution.scheduler')} value={stable.execution.scheduler} field="sd-scheduler" onChange={(scheduler) => updateExecution({ scheduler })} />
-          <OptionalBooleanSelect label={props.t('runtimeConfig.profiles.authoring.execution.diffusionFlashAttention')} value={stable.execution.diffusionFlashAttention} field="sd-diffusion-flash-attention" onChange={(diffusionFlashAttention) => updateExecution({ diffusionFlashAttention })} t={props.t} />
-          <OptionalBooleanSelect label={props.t('runtimeConfig.profiles.authoring.execution.offloadParamsToCPU')} value={stable.execution.offloadParamsToCPU} field="sd-offload-params" onChange={(offloadParamsToCPU) => updateExecution({ offloadParamsToCPU })} t={props.t} />
-        </div>
-      </div>
-    </fieldset>
-  );
-}
-
-function StableDiffusionVideoAuthoringFields(props: {
-  readonly capability: RuntimeConfigAIProfileCapabilityDraft;
-  readonly updateLocal: (next: Partial<RuntimeConfigAIProfileCapabilityDraft['local']>) => void;
-  readonly t: TFunction;
-}) {
-  const video = props.capability.local.stableDiffusionVideo;
-  const update = (next: Partial<typeof video>) => props.updateLocal({
-    stableDiffusionVideo: { ...video, ...next },
-  });
-  return (
-    <fieldset className="space-y-4" data-testid="ai-profile-authoring-stable-diffusion-video-fields">
-      <legend className="text-sm font-semibold text-[var(--nimi-text-primary)]">
-        {props.t('runtimeConfig.profiles.authoring.driverPortableConfig')}
-      </legend>
-      <div className="grid gap-3 lg:grid-cols-2">
-        <RequirementAuthoringFields title={props.t('runtimeConfig.profiles.authoring.sdVideoFl2va')} value={video.fl2va} onChange={(fl2va) => update({ fl2va })} t={props.t} />
-        <RequirementAuthoringFields title={props.t('runtimeConfig.profiles.authoring.sdVideoRef2va')} value={video.ref2va} onChange={(ref2va) => update({ ref2va })} t={props.t} />
-        <RequirementAuthoringFields title={props.t('runtimeConfig.profiles.authoring.sdVideoEncoder')} value={video.encoder} onChange={(encoder) => update({ encoder })} t={props.t} />
-        <RequirementAuthoringFields title={props.t('runtimeConfig.profiles.authoring.sdVideoVideoVae')} value={video.videoVAE} onChange={(videoVAE) => update({ videoVAE })} t={props.t} />
-        <RequirementAuthoringFields title={props.t('runtimeConfig.profiles.authoring.sdVideoAudioVae')} value={video.audioVAE} onChange={(audioVAE) => update({ audioVAE })} t={props.t} />
-      </div>
-    </fieldset>
-  );
-}
-
 function CloudRecommendationFields(props: {
   readonly capability: RuntimeConfigAIProfileCapabilityDraft;
   readonly updateCapability: (
@@ -797,36 +637,10 @@ function CloudRecommendationFields(props: {
   );
 }
 
-function RequirementAuthoringFields(props: {
-  readonly title: string;
-  readonly value: RuntimeConfigAIProfileRequirementDraft;
-  readonly onChange: (value: RuntimeConfigAIProfileRequirementDraft) => void;
-  readonly t: TFunction;
-}) {
-  return (
-    <div className="space-y-3 rounded-xl border border-[var(--nimi-border-subtle)] p-3">
-      <div className="text-xs font-semibold text-[var(--nimi-text-primary)]">{props.title}</div>
-      <PolicySelect
-        label={props.t('runtimeConfig.profiles.authoring.requirementPolicy')}
-        value={props.value.policy}
-        onChange={(policy) => props.onChange({ ...props.value, policy })}
-        t={props.t}
-      />
-      <AuthoringTextField
-        label={props.t('runtimeConfig.profiles.authoring.verifiedContentId')}
-        hint={props.t('runtimeConfig.profiles.authoring.verifiedContentHint')}
-        value={props.value.verifiedContentId}
-        field="verified-content-id"
-        onChange={(verifiedContentId) => props.onChange({ ...props.value, verifiedContentId })}
-      />
-    </div>
-  );
-}
-
 function RequirementProjectionSurface(props: {
   readonly requirement: {
     readonly supportedFeatures: readonly string[];
-    readonly projection: { readonly requirements: readonly NimiAIProfileAuthoringProjectedRequirement[] };
+    readonly projection: { readonly requirements: NimiLoadoutRecipe['slots'] };
   } | undefined;
   readonly t: TFunction;
 }) {
@@ -855,24 +669,19 @@ function RequirementProjectionSurface(props: {
           <div className="space-y-2">
             {props.requirement.projection.requirements.map((requirement) => (
               <div
-                key={requirement.requirementId}
+                key={requirement.slotId}
                 className="grid gap-1 rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-3 text-xs sm:grid-cols-2"
-                data-requirement-role={requirement.role}
-                data-requirement-ordinal={requirement.occurrenceOrdinal}
+                data-recipe-slot={requirement.slotId}
               >
                 <div className="font-semibold text-[var(--nimi-text-primary)]">{requirement.displayLabel}</div>
-                <div className="font-mono text-[var(--nimi-text-muted)]">{requirement.requirementId}</div>
+                <div className="font-mono text-[var(--nimi-text-muted)]">{requirement.slotId}</div>
                 <div className="text-[var(--nimi-text-secondary)]">
-                  {props.t('runtimeConfig.profiles.authoring.requirementRoleOrdinal', {
-                    role: requirement.role,
-                    position: requirement.occurrenceOrdinal,
-                  })}
+                  {requirement.recommendedContentIds.length > 0
+                    ? requirement.recommendedContentIds.join(', ')
+                    : props.t('runtimeConfig.profiles.authoring.none')}
                 </div>
-                <div className="text-[var(--nimi-text-secondary)]">
-                  {props.t('runtimeConfig.profiles.authoring.requirementKindPolicy', {
-                    kind: requirement.resourceKind,
-                    policy: requirement.policy,
-                  })}
+                <div className="break-all font-mono text-[var(--nimi-text-secondary)]">
+                  {JSON.stringify(requirement.modelContract)}
                 </div>
               </div>
             ))}
@@ -1234,53 +1043,6 @@ function AuthoringSelect(props: {
         {props.children}
       </select>
     </label>
-  );
-}
-
-function PolicySelect(props: {
-  readonly label: string;
-  readonly value: RuntimeConfigAIProfileOptionalPolicy;
-  readonly onChange: (value: RuntimeConfigAIProfileOptionalPolicy) => void;
-  readonly t: TFunction;
-}) {
-  return (
-    <AuthoringSelect label={props.label} value={props.value} field="requirement-policy" onChange={(value) => props.onChange(value as RuntimeConfigAIProfileOptionalPolicy)}>
-      <option value="">{props.t('runtimeConfig.profiles.authoring.policyDefault')}</option>
-      <option value="substitutable">{props.t('runtimeConfig.profiles.authoring.policySubstitutable')}</option>
-      <option value="strict">{props.t('runtimeConfig.profiles.authoring.policyStrict')}</option>
-    </AuthoringSelect>
-  );
-}
-
-function OptionalBooleanSelect(props: {
-  readonly label: string;
-  readonly value: RuntimeConfigAIProfileOptionalBoolean;
-  readonly field: string;
-  readonly onChange: (value: RuntimeConfigAIProfileOptionalBoolean) => void;
-  readonly t: TFunction;
-}) {
-  return (
-    <AuthoringSelect label={props.label} value={props.value} field={props.field} onChange={(value) => props.onChange(value as RuntimeConfigAIProfileOptionalBoolean)}>
-      <option value="">{props.t('runtimeConfig.profiles.authoring.notIncluded')}</option>
-      <option value="true">{props.t('runtimeConfig.profiles.authoring.booleanTrue')}</option>
-      <option value="false">{props.t('runtimeConfig.profiles.authoring.booleanFalse')}</option>
-    </AuthoringSelect>
-  );
-}
-
-function CacheTypeSelect(props: {
-  readonly label: string;
-  readonly value: RuntimeConfigAIProfileCapabilityDraft['local']['llama']['cacheTypeK'];
-  readonly onChange: (value: RuntimeConfigAIProfileCapabilityDraft['local']['llama']['cacheTypeK']) => void;
-  readonly t: TFunction;
-}) {
-  return (
-    <AuthoringSelect label={props.label} value={props.value} field="llama-cache-type" onChange={(value) => props.onChange(value as typeof props.value)}>
-      <option value="">{props.t('runtimeConfig.profiles.authoring.notIncluded')}</option>
-      {NIMI_AI_PROFILE_LLAMA_CACHE_TYPES.map((value) => (
-        <option key={value} value={value}>{value}</option>
-      ))}
-    </AuthoringSelect>
   );
 }
 

@@ -1,7 +1,10 @@
+// @nimi-authority: rule.nimi.runtime.local-compute.r028
+
 package runtimeagent
 
 import (
 	"bytes"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -20,11 +23,12 @@ import (
 var errPortableAIProfileInvalid = errors.New("portable AIProfile is invalid")
 
 var portableAIProfileForbiddenKeys = map[string]struct{}{
-	"connectorgrantid": {}, "connectorgrant": {}, "grantid": {}, "connectorid": {}, "connector": {},
-	"accountid": {}, "account": {}, "subjectuserid": {}, "owneruserid": {}, "localassetid": {},
-	"localassetpath": {}, "binding": {}, "bindings": {}, "exactbinding": {}, "exactbindings": {},
-	"path": {}, "filepath": {}, "secret": {}, "secrets": {}, "credential": {}, "credentials": {},
-	"credentialpayload": {}, "apikey": {}, "accesstoken": {}, "refreshtoken": {}, "oauthtoken": {},
+	"connectorgrantid": {}, "connectorgrant": {}, "grant": {}, "grantid": {}, "connectorid": {}, "connector": {},
+	"accountid": {}, "account": {}, "subjectuserid": {}, "owneruserid": {}, "machine": {}, "machineid": {},
+	"deviceid": {}, "hostid": {}, "assetid": {}, "artifactid": {}, "localassetid": {}, "localassetpath": {},
+	"binding": {}, "bindings": {}, "exactbinding": {}, "exactbindings": {}, "path": {}, "filepath": {},
+	"secret": {}, "secrets": {}, "credential": {}, "credentials": {}, "credentialpayload": {}, "apikey": {},
+	"password": {}, "privatekey": {}, "token": {}, "accesstoken": {}, "refreshtoken": {}, "oauthtoken": {},
 	"endpoint": {}, "endpointurl": {}, "baseurl": {}, "runtimeprocessid": {}, "jobid": {},
 }
 
@@ -37,6 +41,8 @@ type portableAIProfileCapability struct {
 }
 
 type portableAIProfile struct {
+	profileID    string
+	title        string
 	capabilities map[string]portableAIProfileCapability
 }
 
@@ -112,10 +118,12 @@ func parsePortableAIProfile(raw []byte) (*portableAIProfile, error) {
 	if err := validatePortableAIProfileValue(root); err != nil {
 		return nil, err
 	}
-	if _, err := requirePortableText(root["profileId"]); err != nil {
+	profileID, err := requirePortableText(root["profileId"])
+	if err != nil {
 		return nil, err
 	}
-	if _, err := requirePortableText(root["title"]); err != nil {
+	title, err := requirePortableText(root["title"])
+	if err != nil {
 		return nil, err
 	}
 	if value, present := root["description"]; present {
@@ -139,7 +147,11 @@ func parsePortableAIProfile(raw []byte) (*portableAIProfile, error) {
 		contracts = append(contracts, contract)
 	}
 	sort.Strings(contracts)
-	profile := &portableAIProfile{capabilities: make(map[string]portableAIProfileCapability, len(contracts))}
+	profile := &portableAIProfile{
+		profileID:    profileID,
+		title:        title,
+		capabilities: make(map[string]portableAIProfileCapability, len(contracts)),
+	}
 	for _, rawContract := range contracts {
 		contract, err := requirePortableText(rawContract)
 		if err != nil {
@@ -150,7 +162,7 @@ func parsePortableAIProfile(raw []byte) (*portableAIProfile, error) {
 			return nil, errPortableAIProfileInvalid
 		}
 		if err := requirePortableExactKeys(record, []string{
-			"route", "requiredFeatures", "defaults", "implementation", "driverPortableConfig", "resourceOccurrences", "providerModelTarget",
+			"route", "requiredFeatures", "defaults", "implementation", "driverPortableConfig", "resourceOccurrences", "loadout", "providerModelTarget",
 		}); err != nil {
 			return nil, err
 		}
@@ -198,7 +210,14 @@ func parsePortableAIProfile(raw []byte) (*portableAIProfile, error) {
 					return nil, err
 				}
 			}
-			if capability.implementation == nil && (driverConfigPresent || resourceCount > 0) {
+			loadoutPresent := false
+			if value, present := record["loadout"]; present {
+				loadoutPresent = true
+				if err := validatePortableLoadoutIntent(value); err != nil {
+					return nil, err
+				}
+			}
+			if capability.implementation == nil && (driverConfigPresent || resourceCount > 0 || loadoutPresent) {
 				return nil, errPortableAIProfileInvalid
 			}
 		case "cloud":
@@ -206,6 +225,9 @@ func parsePortableAIProfile(raw []byte) (*portableAIProfile, error) {
 				return nil, errPortableAIProfileInvalid
 			}
 			if _, present := record["resourceOccurrences"]; present {
+				return nil, errPortableAIProfileInvalid
+			}
+			if _, present := record["loadout"]; present {
 				return nil, errPortableAIProfileInvalid
 			}
 			capability.providerModelTarget, err = portableStruct(record["providerModelTarget"])
@@ -225,6 +247,93 @@ func parsePortableAIProfile(raw []byte) (*portableAIProfile, error) {
 		profile.capabilities[contract] = capability
 	}
 	return profile, nil
+}
+
+func validatePortableLoadoutIntent(value any) error {
+	record, ok := value.(map[string]any)
+	if !ok || requirePortableExactKeys(record, []string{"recipeId", "axes", "options"}) != nil {
+		return errPortableAIProfileInvalid
+	}
+	if _, err := requirePortableText(record["recipeId"]); err != nil {
+		return err
+	}
+	if _, ok := record["options"].(map[string]any); !ok {
+		return errPortableAIProfileInvalid
+	}
+	axes, ok := record["axes"].([]any)
+	if !ok {
+		return errPortableAIProfileInvalid
+	}
+	seen := make(map[string]struct{}, len(axes))
+	for _, value := range axes {
+		axis, ok := value.(map[string]any)
+		if !ok || requirePortableExactKeys(axis, []string{"slotId", "contentId", "expectedHash", "source"}) != nil {
+			return errPortableAIProfileInvalid
+		}
+		slotID, err := requirePortableText(axis["slotId"])
+		if err != nil {
+			return err
+		}
+		if _, duplicate := seen[slotID]; duplicate {
+			return errPortableAIProfileInvalid
+		}
+		seen[slotID] = struct{}{}
+		for _, key := range []string{"contentId", "expectedHash"} {
+			identity, err := requirePortableText(axis[key])
+			if err != nil || !isPortableSHA256Identity(identity) {
+				return errPortableAIProfileInvalid
+			}
+		}
+		if sourceValue, present := axis["source"]; present {
+			source, ok := sourceValue.(map[string]any)
+			if !ok || requirePortableExactKeys(source, []string{"repo", "revision", "file", "sizeBytes"}) != nil {
+				return errPortableAIProfileInvalid
+			}
+			for _, key := range []string{"repo", "revision"} {
+				if _, err := requirePortableText(source[key]); err != nil {
+					return err
+				}
+			}
+			file, err := requirePortableText(source["file"])
+			if err != nil || !isPortableRelativeFile(file) {
+				return errPortableAIProfileInvalid
+			}
+			if size, present := source["sizeBytes"]; present {
+				number, ok := size.(json.Number)
+				if !ok {
+					return errPortableAIProfileInvalid
+				}
+				parsed, err := strconv.ParseFloat(number.String(), 64)
+				if err != nil || math.IsNaN(parsed) || math.IsInf(parsed, 0) ||
+					parsed <= 0 || math.Trunc(parsed) != parsed || parsed > 9007199254740991 {
+					return errPortableAIProfileInvalid
+				}
+			}
+		}
+	}
+	return nil
+}
+
+func isPortableSHA256Identity(value string) bool {
+	if len(value) != len("sha256:")+64 || !strings.HasPrefix(value, "sha256:") {
+		return false
+	}
+	_, err := hex.DecodeString(strings.TrimPrefix(value, "sha256:"))
+	return err == nil && value == strings.ToLower(value)
+}
+
+func isPortableRelativeFile(value string) bool {
+	normalized := strings.ReplaceAll(value, "\\", "/")
+	if strings.HasPrefix(normalized, "/") || (len(normalized) >= 2 && normalized[1] == ':' &&
+		((normalized[0] >= 'a' && normalized[0] <= 'z') || (normalized[0] >= 'A' && normalized[0] <= 'Z'))) {
+		return false
+	}
+	for _, segment := range strings.Split(normalized, "/") {
+		if segment == "" || segment == "." || segment == ".." {
+			return false
+		}
+	}
+	return true
 }
 
 func validatePortableCloudTarget(target *structpb.Struct) error {
@@ -345,8 +454,7 @@ func validatePortableAIProfileValue(value any) error {
 		}
 		return nil
 	case json.Number:
-		number, _ := strconv.ParseFloat(typed.String(), 64)
-		if math.IsNaN(number) || math.IsInf(number, 0) {
+		if !portableAIProfileNumberValid(typed) {
 			return errPortableAIProfileInvalid
 		}
 		return nil
@@ -382,6 +490,9 @@ func portableAIProfileForbiddenKey(key string) bool {
 		strings.Contains(normalized, "connectorgrant") ||
 		strings.HasSuffix(normalized, "connectorid") ||
 		strings.HasSuffix(normalized, "accountid") ||
+		strings.HasPrefix(normalized, "machine") ||
+		strings.HasSuffix(normalized, "assetid") ||
+		strings.HasSuffix(normalized, "artifactid") ||
 		strings.Contains(normalized, "localasset")
 }
 
@@ -392,7 +503,7 @@ func portableAIProfileUnsafeKey(key string) bool {
 func portableAIProfileStringIsPath(value string) bool {
 	trimmed := trimJavaScriptWhitespace(value)
 	lower := strings.ToLower(trimmed)
-	if strings.HasPrefix(trimmed, "/") || strings.HasPrefix(trimmed, "~/") || strings.HasPrefix(lower, "file://") {
+	if strings.HasPrefix(trimmed, "/") || strings.HasPrefix(trimmed, `\\`) || strings.HasPrefix(trimmed, "~/") || strings.HasPrefix(lower, "file://") {
 		return true
 	}
 	return len(trimmed) >= 3 && ((trimmed[0] >= 'A' && trimmed[0] <= 'Z') || (trimmed[0] >= 'a' && trimmed[0] <= 'z')) &&
@@ -420,10 +531,10 @@ func portableStructValue(value any) (any, error) {
 	case nil, bool, string:
 		return typed, nil
 	case json.Number:
-		number, _ := strconv.ParseFloat(typed.String(), 64)
-		if math.IsNaN(number) || math.IsInf(number, 0) {
+		if !portableAIProfileNumberValid(typed) {
 			return nil, errPortableAIProfileInvalid
 		}
+		number, _ := strconv.ParseFloat(typed.String(), 64)
 		return number, nil
 	case []any:
 		out := make([]any, len(typed))
@@ -448,6 +559,15 @@ func portableStructValue(value any) (any, error) {
 	default:
 		return nil, errPortableAIProfileInvalid
 	}
+}
+
+func portableAIProfileNumberValid(value json.Number) bool {
+	number, _ := strconv.ParseFloat(value.String(), 64)
+	if math.IsNaN(number) || math.IsInf(number, 0) {
+		return false
+	}
+	const maxSafeInteger = float64(9007199254740991)
+	return math.Trunc(number) != number || math.Abs(number) <= maxSafeInteger
 }
 
 func requirePortableExactKeys(record map[string]any, allowed []string) error {

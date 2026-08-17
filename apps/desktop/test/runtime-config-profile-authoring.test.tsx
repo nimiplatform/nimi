@@ -3,12 +3,11 @@ import test from 'node:test';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 
+import type {
+  NimiLoadoutRecipe,
+  NimiMachineLoadouts,
+} from '@nimiplatform/sdk/runtime';
 import {
-  NIMI_AI_PROFILE_LLAMA_CPP_EMBED_IMPLEMENTATION,
-  NIMI_AI_PROFILE_LLAMA_CPP_IMPLEMENTATION,
-  NIMI_AI_PROFILE_QWEN3_ASR_IMPLEMENTATION,
-  NIMI_AI_PROFILE_QWEN3_ASR_TRANSFORMERS_IMPLEMENTATION,
-  NIMI_AI_PROFILE_QWEN3_TTS_IMPLEMENTATION,
   parseNimiPortableAIProfile,
   type NimiCapabilityAIConfig,
 } from '@nimiplatform/sdk/ai';
@@ -23,6 +22,7 @@ import {
   importRuntimeConfigAIProfileAuthoring,
   inspectRuntimeConfigAIProfileAuthoring,
   loadRuntimeConfigAIProfileAuthoringCurrentProjection,
+  projectRuntimeConfigAIProfileAuthoringMachine,
   reduceRuntimeConfigAIProfileAuthoringState,
   type RuntimeConfigAIProfileAuthoringCurrentProjection,
   type RuntimeConfigAIProfileAuthoringDraft,
@@ -37,8 +37,92 @@ import {
 
 const noop = () => undefined;
 
+const TEXT_RECIPE: NimiLoadoutRecipe = Object.freeze({
+  recipeId: 'recipe.desktop.text',
+  revision: 'r7',
+  title: 'Desktop text recipe',
+  capabilityContract: 'text.generate',
+  implementation: Object.freeze({
+    implementationId: 'local.desktop.text',
+    driverId: 'nimi.runtime.driver.desktop-text',
+    driverDialect: 'desktop/text/v7',
+  }),
+  defaultOptions: Object.freeze({ contextSize: 4096, execution: { mode: 'balanced' } }),
+  supportedFeatures: Object.freeze(['input.image']),
+  slots: Object.freeze([
+    Object.freeze({
+      slotId: 'main.weights',
+      displayLabel: 'Main weights',
+      recommendedContentIds: Object.freeze(['sha256:desktop-main']),
+      recommendedVariantIds: Object.freeze(['desktop-main-q4']),
+      modelContract: Object.freeze({ format: 'desktop-bundle', architecture: 'text-v7' }),
+    }),
+    Object.freeze({
+      slotId: 'vision.adapter',
+      displayLabel: 'Vision adapter',
+      recommendedContentIds: Object.freeze([]),
+      recommendedVariantIds: Object.freeze([]),
+      modelContract: Object.freeze({ format: 'desktop-projector' }),
+    }),
+  ]),
+});
+
+const ALT_TEXT_RECIPE: NimiLoadoutRecipe = Object.freeze({
+  ...TEXT_RECIPE,
+  recipeId: 'recipe.desktop.text-alt',
+  revision: 'r2',
+  title: 'Alternative text recipe',
+  implementation: Object.freeze({
+    implementationId: 'local.desktop.text-alt',
+    driverId: 'nimi.runtime.driver.desktop-text-alt',
+    driverDialect: 'desktop/text-alt/v2',
+  }),
+  defaultOptions: Object.freeze({ contextSize: 16384, futureOption: true }),
+  supportedFeatures: Object.freeze([]),
+  slots: Object.freeze([
+    Object.freeze({
+      slotId: 'bundle.primary',
+      displayLabel: 'Primary bundle',
+      recommendedContentIds: Object.freeze([]),
+      recommendedVariantIds: Object.freeze([]),
+      modelContract: Object.freeze({ format: 'alt-bundle' }),
+    }),
+  ]),
+});
+
+const MULTI_AXIS_RECIPE: NimiLoadoutRecipe = Object.freeze({
+  ...TEXT_RECIPE,
+  recipeId: 'recipe.desktop.media',
+  revision: 'r1',
+  title: 'Multi-axis media recipe',
+  capabilityContract: 'media.compose',
+  implementation: Object.freeze({
+    implementationId: 'local.desktop.media-compose',
+    driverId: 'nimi.runtime.driver.media-compose',
+    driverDialect: 'desktop/media-compose/v1',
+  }),
+  defaultOptions: Object.freeze({ quality: 'preview' }),
+  supportedFeatures: Object.freeze(['input.audio', 'input.image']),
+  slots: Object.freeze([
+    ...TEXT_RECIPE.slots,
+    Object.freeze({
+      slotId: 'audio.vocoder',
+      displayLabel: 'Audio vocoder',
+      recommendedContentIds: Object.freeze([]),
+      recommendedVariantIds: Object.freeze([]),
+      modelContract: Object.freeze({ format: 'vocoder-bundle' }),
+    }),
+  ]),
+});
+
+const RECIPES = Object.freeze([TEXT_RECIPE, ALT_TEXT_RECIPE, MULTI_AXIS_RECIPE]);
+
 function validTextDraft(): RuntimeConfigAIProfileAuthoringDraft {
-  const state = createRuntimeConfigAIProfileAuthoringState();
+  let state = createRuntimeConfigAIProfileAuthoringState();
+  state = reduceRuntimeConfigAIProfileAuthoringState(state, {
+    type: 'recipes-loaded',
+    recipes: RECIPES,
+  });
   return {
     ...state.draft,
     profileId: 'profile.desktop-authoring-test',
@@ -54,13 +138,7 @@ function validTextDraft(): RuntimeConfigAIProfileAuthoringDraft {
       defaultsJson: '{"temperature":0.4}',
       local: {
         ...capability.local,
-        supportedFeaturesText: 'input.image',
-        llama: {
-          ...capability.local.llama,
-          main: { policy: 'substitutable', verifiedContentId: '' },
-          mmproj: { policy: 'substitutable', verifiedContentId: '' },
-          contextSize: '8192',
-        },
+        portableConfigJson: '{"contextSize":8192,"execution":{"mode":"balanced"}}',
       },
     })),
   };
@@ -84,18 +162,19 @@ function currentProjection(): RuntimeConfigAIProfileAuthoringCurrentProjection {
     },
     machine: {
       configurations: [{
-        configurationId: 'lcc_current_text_only',
+        configurationId: 'loadout-current-text-only',
         capabilityContract: 'text.generate',
-        implementation: { ...NIMI_AI_PROFILE_LLAMA_CPP_IMPLEMENTATION },
-        portableConfig: { mainRequirementPolicy: 'substitutable' },
+        implementation: { ...TEXT_RECIPE.implementation },
+        portableConfig: {},
         supportedFeatures: [],
         requirementResolution: 'configured',
       }],
       selections: [{
         capabilityContract: 'text.generate',
-        configurationId: 'lcc_current_text_only',
+        configurationId: 'loadout-current-text-only',
       }],
     },
+    recipes: RECIPES,
   };
 }
 
@@ -117,6 +196,7 @@ function renderAuthoring(
       inspection={inspectRuntimeConfigAIProfileAuthoring(state.draft, projection)}
       projectionStatus={projection ? 'ready' : 'loading'}
       projectionTechnicalError=""
+      recipes={projection?.recipes ?? []}
       onDraftChange={noop}
       onImportFile={noop}
       onExport={noop}
@@ -131,461 +211,227 @@ test.before(async () => {
   await changeLocale('en');
 });
 
-test('AIProfile authoring state imports, edits, and exports one SDK-validated portable round trip', () => {
+test('Recipe-loaded authoring imports, edits, and exports one SDK-validated portable round trip', () => {
   const draft = validTextDraft();
-  const exported = exportRuntimeConfigAIProfileAuthoring(draft);
-  const importedDraft = importRuntimeConfigAIProfileAuthoring(exported.artifactJson);
-  const reexported = exportRuntimeConfigAIProfileAuthoring(importedDraft);
+  const exported = exportRuntimeConfigAIProfileAuthoring(draft, RECIPES);
+  const importedDraft = importRuntimeConfigAIProfileAuthoring(exported.artifactJson, RECIPES);
+  const reexported = exportRuntimeConfigAIProfileAuthoring(importedDraft, RECIPES);
 
   assert.deepEqual(
     parseNimiPortableAIProfile(reexported.artifactJson),
     parseNimiPortableAIProfile(exported.artifactJson),
   );
   assert.equal(exported.fileName, 'profile.desktop-authoring-test.ai-profile.json');
+  assert.equal(importedDraft.capabilities[0]?.local.recipeId, TEXT_RECIPE.recipeId);
 
   let state = createRuntimeConfigAIProfileAuthoringState();
   state = reduceRuntimeConfigAIProfileAuthoringState(state, {
-    type: 'import-succeeded',
-    draft: importedDraft,
+    type: 'recipes-loaded',
+    recipes: RECIPES,
   });
-  assert.equal(state.operation, 'imported');
-  state = reduceRuntimeConfigAIProfileAuthoringState(state, { type: 'export-succeeded' });
-  assert.equal(state.operation, 'exported');
-  state = reduceRuntimeConfigAIProfileAuthoringState(state, {
-    type: 'draft-changed',
-    draft: { ...state.draft, title: 'Edited after export' },
-  });
-  assert.equal(state.operation, 'editing');
-  assert.equal(state.revision, 2);
+  assert.equal(state.draft.capabilities[0]?.capabilityContract, 'text.generate');
+  assert.equal(
+    state.draft.capabilities[0]?.local.portableConfigJson,
+    JSON.stringify(TEXT_RECIPE.defaultOptions, null, 2),
+  );
 });
 
-test('AIProfile authoring derives all four read-only journey actions and presents feature mismatch', () => {
-  const draft = validTextDraft();
-  const inspection = inspectRuntimeConfigAIProfileAuthoring(draft, currentProjection());
+test('Desktop renders identity, defaults, features, and every axis from Runtime Recipe descriptors', () => {
+  const html = renderAuthoring(stateWithDraft(validTextDraft()));
+  assert.match(html, /recipe\.desktop\.text/u);
+  assert.match(html, /local\.desktop\.text/u);
+  assert.match(html, /desktop\/text\/v7/u);
+  assert.match(html, /main\.weights/u);
+  assert.match(html, /vision\.adapter/u);
+  assert.match(html, /desktop-bundle/u);
+  assert.doesNotMatch(html, /llama-context-size|sd-execution-options|local-asr-driver/u);
+  assert.doesNotMatch(html, /data-requirement-role|data-requirement-ordinal/u);
+});
+
+test('a new multi-axis Recipe reaches Desktop authoring without capability or Driver branches', () => {
+  const base = validTextDraft();
+  const changed = changeRuntimeConfigAIProfileCapabilityContract(
+    base,
+    base.capabilities[0]!.draftId,
+    MULTI_AXIS_RECIPE.capabilityContract,
+    RECIPES,
+  );
+  const capability = changed.capabilities[0]!;
+  assert.equal(capability.local.recipeId, MULTI_AXIS_RECIPE.recipeId);
+  assert.equal(
+    capability.local.portableConfigJson,
+    JSON.stringify(MULTI_AXIS_RECIPE.defaultOptions, null, 2),
+  );
+  const draft = {
+    ...changed,
+    capabilities: [{
+      ...capability,
+      requiredFeaturesText: 'input.image',
+    }],
+  };
+  const html = renderAuthoring(stateWithDraft(draft));
+  assert.match(html, /media\.compose/u);
+  assert.match(html, /audio\.vocoder/u);
+  assert.match(html, /vocoder-bundle/u);
+  assert.equal(
+    parseNimiPortableAIProfile(
+      exportRuntimeConfigAIProfileAuthoring(draft, RECIPES).artifactJson,
+    ).capabilities['media.compose']?.route,
+    'local',
+  );
+});
+
+test('AIProfile authoring derives all read-only journey actions and feature mismatch', () => {
+  const inspection = inspectRuntimeConfigAIProfileAuthoring(
+    validTextDraft(),
+    currentProjection(),
+  );
   assert.equal(inspection.status, 'valid');
   if (inspection.status !== 'valid') assert.fail('expected valid authoring inspection');
-  assert.ok(inspection.model.journey);
   assert.equal(inspection.model.journey?.importPreview.previewOnly, true);
   assert.equal(inspection.model.journey?.appApplyPreview.previewOnly, true);
   assert.equal(inspection.model.journey?.sharedApplyPreview.previewOnly, true);
-  assert.equal(inspection.model.journey?.localConfigurationPreviews[0]?.decision.kind, 'add-new');
+  assert.equal(
+    inspection.model.journey?.localConfigurationPreviews[0]?.decision.kind,
+    'add-new',
+  );
   assert.equal(
     inspection.model.journey?.selectionPreviews[0]?.branches[0].featureSubset.status,
     'feature-mismatch',
   );
   assert.equal(
-    inspection.model.journey?.selectionPreviews[0]?.branches[1].featureSubset.status,
-    'compatible',
+    inspection.model.requirements[0]?.projection.source,
+    'runtime-recipe',
   );
   assert.deepEqual(
-    inspection.model.requirements[0]?.projection.requirements.map((requirement) => [
-      requirement.role,
-      requirement.occurrenceOrdinal,
-      requirement.displayLabel,
-      requirement.resourceKind,
-      requirement.policy,
-    ]),
-    [
-      ['main', 0, 'Main model', 'gguf', 'substitutable'],
-      ['companion', 0, 'Vision projector', 'mmproj', 'substitutable'],
-    ],
-  );
-
-  const markup = renderAuthoring(stateWithDraft(draft));
-  assert.match(markup, /data-testid="ai-profile-authoring-import-preview"/u);
-  assert.match(markup, /data-testid="ai-profile-authoring-apply-preview:app"/u);
-  assert.match(markup, /data-testid="ai-profile-authoring-apply-preview:shared-local-agent"/u);
-  assert.match(markup, /data-testid="ai-profile-authoring-local-preview"/u);
-  assert.match(markup, /data-testid="ai-profile-authoring-selection-preview"/u);
-  assert.match(markup, /data-feature-status="feature-mismatch"/u);
-  assert.match(markup, /The final requirement set is always the Runtime projection/u);
-  assert.match(markup, /data-preview-commits="false"/u);
-  assert.doesNotMatch(markup, /type="submit"/u);
-  assert.doesNotMatch(markup, /Confirm Apply|Save configuration/u);
-});
-
-test('AIProfile authoring renders stable-diffusion fields without LoRA controls or serialized intent', () => {
-  let draft = validTextDraft();
-  draft = changeRuntimeConfigAIProfileCapabilityContract(
-    draft,
-    draft.capabilities[0]!.draftId,
-    'image.generate',
-  );
-  const capability = draft.capabilities[0]!;
-  draft = {
-    ...draft,
-    capabilities: [{
-      ...capability,
-      requiredFeaturesText: 'input.image',
-      local: {
-        ...capability.local,
-        supportedFeaturesText: 'input.image',
-        stableDiffusion: {
-          ...capability.local.stableDiffusion,
-          modelFamily: 'ideogram4',
-          enableInputImage: 'true',
-          execution: {
-            ...capability.local.stableDiffusion.execution,
-            steps: '30',
-            cfgScale: '6.5',
-            width: '1024',
-            height: '768',
-            seed: '-1',
-            sampler: 'euler_a',
-            scheduler: 'karras',
-            threads: '8',
-            diffusionFlashAttention: 'true',
-            offloadParamsToCPU: 'false',
-          },
-        },
-      },
-    }],
-  };
-  const projection: RuntimeConfigAIProfileAuthoringCurrentProjection = {
-    ...currentProjection(),
-    machine: { configurations: [], selections: [] },
-  };
-  const markup = renderAuthoring(stateWithDraft(draft), projection);
-
-  assert.match(markup, /data-testid="ai-profile-authoring-stable-diffusion-fields"/u);
-  assert.doesNotMatch(markup, /ai-profile-authoring-lora|Add LoRA/u);
-  assert.doesNotMatch(markup, /data-authoring-field="requirement-policy"/u);
-  assert.doesNotMatch(markup, /data-authoring-field="verified-content-id"/u);
-  assert.match(markup, /data-testid="ai-profile-authoring-sd-execution-options"/u);
-
-  const exported = exportRuntimeConfigAIProfileAuthoring(draft);
-  assert.doesNotMatch(exported.artifactJson, /"loras"/u);
-  assert.doesNotMatch(
-    exported.artifactJson,
-    /(?:main|textEncoder|vae|uncondDiffusion)(?:RequirementPolicy|VerifiedContentId)/u,
+    inspection.model.requirements[0]?.projection.requirements.map((slot) => slot.slotId),
+    ['main.weights', 'vision.adapter'],
   );
 });
 
-test('AIProfile authoring round-trips the exact portable llama embedding section', () => {
-  let draft = validTextDraft();
-  draft = changeRuntimeConfigAIProfileCapabilityContract(
-    draft,
-    draft.capabilities[0]!.draftId,
-    'text.embed',
-  );
-  const capability = draft.capabilities[0]!;
-  assert.equal(capability.local.driverKind, 'llama-embed');
-  assert.equal(capability.local.includeImplementation, true);
-  draft = {
-    ...draft,
-    capabilities: [{
-      ...capability,
-      requiredFeaturesText: '',
-      local: {
-        ...capability.local,
-        supportedFeaturesText: '',
-        llama: {
-          ...capability.local.llama,
-          main: { policy: 'substitutable', verifiedContentId: '' },
-          mmproj: { policy: '', verifiedContentId: '' },
-          contextSize: '4096',
-        },
-      },
-    }],
-  };
-  const projection: RuntimeConfigAIProfileAuthoringCurrentProjection = {
-    ...currentProjection(),
-    machine: { configurations: [], selections: [] },
-  };
-  const inspection = inspectRuntimeConfigAIProfileAuthoring(draft, projection);
-  assert.equal(inspection.status, 'valid');
-  if (inspection.status !== 'valid') assert.fail('expected valid embedding authoring inspection');
-  assert.deepEqual(inspection.model.requirements[0]?.projection.requirements.map((requirement) => [
-    requirement.requirementId,
-    requirement.role,
-    requirement.displayLabel,
-    requirement.resourceKind,
-    requirement.policy,
-  ]), [[
-    'embedding.gguf',
-    'main',
-    'Embedding model',
-    'gguf',
-    'substitutable',
-  ]]);
-
-  const markup = renderAuthoring(stateWithDraft(draft), projection);
-  assert.match(markup, /data-testid="ai-profile-authoring-capability:text\.embed"/u);
-  assert.match(markup, /data-testid="ai-profile-authoring-llama-fields"/u);
-  assert.match(markup, /llama\.cpp\/text-embed\/v1/u);
-  assert.doesNotMatch(markup, /Vision projector requirement/u);
-
-  const exported = exportRuntimeConfigAIProfileAuthoring(draft);
-  const profile = parseNimiPortableAIProfile(exported.artifactJson);
-  assert.deepEqual(profile.capabilities['text.embed']?.implementation, {
-    ...NIMI_AI_PROFILE_LLAMA_CPP_EMBED_IMPLEMENTATION,
-    supportedFeatures: [],
-  });
-  const importedDraft = importRuntimeConfigAIProfileAuthoring(exported.artifactJson);
-  assert.equal(importedDraft.capabilities[0]!.local.driverKind, 'llama-embed');
-  assert.deepEqual(
-    parseNimiPortableAIProfile(
-      exportRuntimeConfigAIProfileAuthoring(importedDraft).artifactJson,
-    ),
-    profile,
-  );
-});
-
-test('AIProfile authoring round-trips exact portable Qwen3 speech sections', () => {
-  const cases = [
-    {
-      capabilityContract: 'audio.synthesize' as const,
-      driverKind: 'qwen3-tts',
-      implementation: NIMI_AI_PROFILE_QWEN3_TTS_IMPLEMENTATION,
-      requirement: ['tts.model', 'TTS model', 'tts'],
-    },
-    {
-      capabilityContract: 'audio.transcribe' as const,
-      driverKind: 'qwen3-asr',
-      implementation: NIMI_AI_PROFILE_QWEN3_ASR_IMPLEMENTATION,
-      requirement: ['stt.model', 'STT model', 'stt'],
-    },
-    {
-      capabilityContract: 'audio.transcribe' as const,
-      driverKind: 'qwen3-asr-transformers',
-      implementation: NIMI_AI_PROFILE_QWEN3_ASR_TRANSFORMERS_IMPLEMENTATION,
-      requirement: ['stt.model', 'STT model', 'stt'],
-    },
-  ] as const;
-
-  for (const speech of cases) {
-    let draft = validTextDraft();
-    draft = changeRuntimeConfigAIProfileCapabilityContract(
-      draft,
-      draft.capabilities[0]!.draftId,
-      speech.capabilityContract,
-    );
-    const capability = draft.capabilities[0]!;
-    const selectedCapability = speech.driverKind === 'qwen3-asr-transformers'
-      ? {
-        ...capability,
-        local: { ...capability.local, driverKind: speech.driverKind },
-      }
-      : capability;
-    assert.equal(selectedCapability.local.driverKind, speech.driverKind);
-    assert.equal(selectedCapability.local.includeImplementation, true);
-    draft = {
-      ...draft,
-      capabilities: [{
-        ...selectedCapability,
-        requiredFeaturesText: '',
-        defaultsJson: '',
-        local: {
-          ...selectedCapability.local,
-          supportedFeaturesText: '',
-        },
-      }],
-    };
-    const projection: RuntimeConfigAIProfileAuthoringCurrentProjection = {
-      ...currentProjection(),
-      machine: { configurations: [], selections: [] },
-    };
-    const inspection = inspectRuntimeConfigAIProfileAuthoring(draft, projection);
-    assert.equal(inspection.status, 'valid');
-    if (inspection.status !== 'valid') assert.fail('expected valid speech authoring inspection');
-    assert.deepEqual(inspection.model.requirements[0]?.projection.requirements.map((requirement) => [
-      requirement.requirementId,
-      requirement.displayLabel,
-      requirement.resourceKind,
-      requirement.policy,
-    ]), [[...speech.requirement, 'substitutable']]);
-
-    const markup = renderAuthoring(stateWithDraft(draft), projection);
-    assert.match(markup, new RegExp(`data-testid="ai-profile-authoring-capability:${speech.capabilityContract.replace('.', '\\.')}`));
-    assert.match(markup, new RegExp(speech.implementation.driverDialect.replaceAll('.', '\\.')));
-    if (speech.capabilityContract === 'audio.transcribe') {
-      assert.match(markup, /data-authoring-field="local-asr-driver"/u);
-    }
-
-    const exported = exportRuntimeConfigAIProfileAuthoring(draft);
-    const profile = parseNimiPortableAIProfile(exported.artifactJson);
-    assert.deepEqual(profile.capabilities[speech.capabilityContract]?.implementation, {
-      ...speech.implementation,
+test('an unresolved sibling Loadout does not invalidate configured Profile authoring', () => {
+  const machine: NimiMachineLoadouts = {
+    loadouts: [{
+      loadoutId: 'loadout-text',
+      capabilityContract: 'text.generate',
+      implementation: TEXT_RECIPE.implementation,
+      recipeId: TEXT_RECIPE.recipeId,
+      recipeRevision: TEXT_RECIPE.revision,
+      options: {},
+      modelAxes: [],
+      recipeCustody: [],
+      supportedFeatures: ['input.image'],
+      validationState: 'configured',
+      reasons: [],
+      displayName: 'Text',
+      provenance: {},
+      createdAt: '2026-01-01T00:00:00Z',
+      updatedAt: '2026-01-01T00:00:00Z',
+    }, {
+      loadoutId: 'loadout-unresolved',
+      capabilityContract: 'media.compose',
+      implementation: MULTI_AXIS_RECIPE.implementation,
+      recipeId: MULTI_AXIS_RECIPE.recipeId,
+      recipeRevision: MULTI_AXIS_RECIPE.revision,
+      options: {},
+      modelAxes: [],
+      recipeCustody: [],
       supportedFeatures: [],
-    });
-    const importedDraft = importRuntimeConfigAIProfileAuthoring(exported.artifactJson);
-    assert.equal(importedDraft.capabilities[0]!.local.driverKind, speech.driverKind);
-  }
-});
-
-test('AIProfile authoring renders the stable-diffusion video section and round-trips its portable config', () => {
-  let draft = validTextDraft();
-  draft = changeRuntimeConfigAIProfileCapabilityContract(
-    draft,
-    draft.capabilities[0]!.draftId,
-    'video.generate',
-  );
-  const capability = draft.capabilities[0]!;
-  assert.equal(capability.local.driverKind, 'stable-diffusion-video');
-  assert.equal(capability.local.includeImplementation, true);
-  draft = {
-    ...draft,
-    capabilities: [{
-      ...capability,
-      local: {
-        ...capability.local,
-        supportedFeaturesText: 'input.image',
-        stableDiffusionVideo: {
-          ...capability.local.stableDiffusionVideo,
-          fl2va: { policy: 'strict', verifiedContentId: `sha256:${'e'.repeat(64)}` },
-        },
-      },
+      validationState: 'unresolved',
+      reasons: ['MODEL_AXIS_UNRESOLVED'],
+      displayName: 'Unresolved',
+      provenance: {},
+      createdAt: '2026-01-01T00:00:00Z',
+      updatedAt: '2026-01-01T00:00:00Z',
     }],
+    selections: [],
   };
-  const projection: RuntimeConfigAIProfileAuthoringCurrentProjection = {
+  const projection = projectRuntimeConfigAIProfileAuthoringMachine(machine);
+  assert.equal(projection.configurations.length, 2);
+  assert.equal(projection.configurations[1]?.requirementResolution, 'unresolved');
+  const inspection = inspectRuntimeConfigAIProfileAuthoring(validTextDraft(), {
     ...currentProjection(),
-    machine: { configurations: [], selections: [] },
-  };
-  const inspection = inspectRuntimeConfigAIProfileAuthoring(draft, projection);
+    machine: projection,
+  });
   assert.equal(inspection.status, 'valid');
-  if (inspection.status !== 'valid') assert.fail('expected valid authoring inspection');
-  assert.equal(inspection.model.journey?.localConfigurationPreviews[0]?.decision.kind, 'add-new');
-  assert.deepEqual(
-    inspection.model.requirements[0]?.projection.requirements.map((requirement) => [
-      requirement.requirementId,
-      requirement.role,
-      requirement.displayLabel,
-      requirement.resourceKind,
-      requirement.policy,
-    ]),
-    [
-      ['diffusion.fl2va', 'main', 'MiniMax-H3 FL2VA transformer', 'video', 'strict'],
-      ['diffusion.ref2va', 'companion', 'MiniMax-H3 Ref2VA transformer', 'video', 'substitutable'],
-      ['encoder.h3-combined', 'companion', 'MiniMax-H3 combined Qwen3-VL encoder', 'chat', 'substitutable'],
-      ['vae.video', 'companion', 'MiniMax-H3 video VAE', 'vae', 'substitutable'],
-      ['vae.audio', 'companion', 'MiniMax-H3 audio VAE', 'vae', 'substitutable'],
-    ],
-  );
-
-  const markup = renderAuthoring(stateWithDraft(draft), projection);
-  assert.match(markup, /data-testid="ai-profile-authoring-capability:video\.generate"/u);
-  assert.match(markup, /data-testid="ai-profile-authoring-stable-diffusion-video-fields"/u);
-  assert.match(markup, /Main video model \(FL2VA\) requirement/u);
-  assert.match(markup, /stable-diffusion\.cpp\/minimax-h3-video-generate\/v1/u);
-  assert.match(markup, /MiniMax-H3 FL2VA transformer/u);
-  assert.doesNotMatch(markup, /data-testid="ai-profile-authoring-stable-diffusion-fields"/u);
-
-  const exported = exportRuntimeConfigAIProfileAuthoring(draft);
-  const importedDraft = importRuntimeConfigAIProfileAuthoring(exported.artifactJson);
-  assert.equal(importedDraft.capabilities[0]!.capabilityContract, 'video.generate');
-  assert.equal(importedDraft.capabilities[0]!.local.driverKind, 'stable-diffusion-video');
-  assert.deepEqual(
-    importedDraft.capabilities[0]!.local.stableDiffusionVideo,
-    draft.capabilities[0]!.local.stableDiffusionVideo,
-  );
-  const reexported = exportRuntimeConfigAIProfileAuthoring(importedDraft);
-  assert.deepEqual(
-    parseNimiPortableAIProfile(reexported.artifactJson),
-    parseNimiPortableAIProfile(exported.artifactJson),
-  );
 });
 
-test('AIProfile Cloud recommendation form has implementation and target fields but no account or credential inputs', () => {
+test('Cloud recommendation form has target fields but no account or credential inputs', () => {
   const draft = validTextDraft();
-  const capability = draft.capabilities[0]!;
   const cloudDraft: RuntimeConfigAIProfileAuthoringDraft = {
     ...draft,
-    capabilities: [{
+    capabilities: draft.capabilities.map((capability) => ({
       ...capability,
-      route: 'cloud',
+      route: 'cloud' as const,
+      requiredFeaturesText: '',
       cloud: {
         implementationId: 'cloud.text.example',
-        driverId: 'nimi.runtime.driver.example',
+        driverId: 'nimi.runtime.driver.cloud-example',
         driverDialect: 'example/text/v1',
-        supportedFeaturesText: 'input.image',
-        providerModelTargetJson: '{"provider":"example","providerModelId":"vision-v1","remoteModelCatalogId":"remote-model-catalog-vision-v1"}',
+        supportedFeaturesText: '',
+        providerModelTargetJson: '{"provider":"example","providerModelId":"text-v1","remoteModelCatalogId":"catalog-text-v1"}',
       },
-    }],
+    })),
   };
-  const markup = renderAuthoring(stateWithDraft(cloudDraft));
-
-  assert.match(markup, /data-testid="ai-profile-authoring-cloud-section"/u);
-  assert.match(markup, /data-authoring-account-fields="absent"/u);
-  assert.match(markup, /data-authoring-field="cloud-implementation-id"/u);
-  assert.match(markup, /data-authoring-field="cloud-provider-model-target"/u);
-  assert.doesNotMatch(markup, /data-authoring-field="[^"]*(?:account|grant|credential|secret)/iu);
-  assert.match(markup, /current-account Connector/u);
-  assert.doesNotMatch(markup, /selection-required|active account authorization|account authorization is selected/iu);
+  const html = renderAuthoring(stateWithDraft(cloudDraft));
+  assert.match(html, /cloud-provider-model-target/u);
+  assert.doesNotMatch(
+    html,
+    /data-authoring-field="(?:account|connector|grant|credential|api-key)/iu,
+  );
 });
 
-test('AIProfile import rejects forbidden identity and the authoring view presents a fail-closed information state', () => {
-  const portable = JSON.parse(
-    exportRuntimeConfigAIProfileAuthoring(validTextDraft()).artifactJson,
-  ) as Record<string, unknown>;
-  portable.displayMetadata = { nested: { machineId: 'machine-private' } };
+test('Profile import fails closed when no current Runtime Recipe owns its Local identity', () => {
+  const artifact = exportRuntimeConfigAIProfileAuthoring(validTextDraft(), RECIPES);
   assert.throws(
-    () => importRuntimeConfigAIProfileAuthoring(JSON.stringify(portable)),
-    /machineId is forbidden/u,
+    () => importRuntimeConfigAIProfileAuthoring(artifact.artifactJson, [ALT_TEXT_RECIPE]),
+    /no unambiguous current Runtime Recipe/u,
   );
 
-  const invalidDraft = {
-    ...validTextDraft(),
-    provenanceJson: '{"machineId":"machine-private"}',
-  };
-  let state = stateWithDraft(invalidDraft);
-  state = reduceRuntimeConfigAIProfileAuthoringState(state, {
-    type: 'operation-failed',
-    source: 'import',
-    technicalError: 'AIProfile.provenance.machineId is forbidden in portable AIProfile authoring',
-  });
-  const markup = renderAuthoring(state);
-  assert.match(markup, /data-testid="ai-profile-authoring-operation-error"/u);
-  assert.match(markup, /could not be imported for editing/u);
-  assert.match(markup, /data-testid="ai-profile-authoring-preview"/u);
-  assert.match(markup, /current draft cannot be projected/u);
-  assert.match(markup, /machineId is forbidden/u);
+  const parsed = JSON.parse(artifact.artifactJson) as Record<string, unknown>;
+  parsed.displayMetadata = { machineId: 'machine-private' };
+  assert.throws(
+    () => importRuntimeConfigAIProfileAuthoring(JSON.stringify(parsed), RECIPES),
+    /machineId/u,
+  );
 });
 
-test('AIProfile authoring current projection loader performs only the three injected reads', async () => {
+test('current projection loader reads AIConfig, Loadouts, and Runtime Recipes once each', async () => {
   const calls: string[] = [];
-  const app: NimiCapabilityAIConfig = {
+  const machine: NimiMachineLoadouts = { loadouts: [], selections: [] };
+  const appAIConfig: NimiCapabilityAIConfig = {
     owner: { owner: { oneofKind: 'app', app: { appId: 'nimi.desktop' } } },
-    capabilities: [],
-  };
-  const shared: NimiCapabilityAIConfig = {
-    owner: {
-      owner: {
-        oneofKind: 'runtimeLocalAgentSubsystem',
-        runtimeLocalAgentSubsystem: {},
-      },
-    },
     capabilities: [],
   };
   const projection = await loadRuntimeConfigAIProfileAuthoringCurrentProjection({
     appId: 'nimi.desktop',
-    async getAppAIConfig() {
-      calls.push('app.get');
-      return app;
+    getAppAIConfig: async () => {
+      calls.push('app');
+      return appAIConfig;
     },
-    async getSharedAIConfig() {
-      calls.push('shared.get');
-      return shared;
+    getSharedAIConfig: async () => {
+      calls.push('shared');
+      return null;
     },
-    async getMachine() {
-      calls.push('machine.get');
-      return { configurations: [], selections: [] };
+    getLoadouts: async () => {
+      calls.push('loadouts');
+      return machine;
+    },
+    getRecipes: async () => {
+      calls.push('recipes');
+      return RECIPES;
     },
   });
-
-  assert.deepEqual(calls.sort(), ['app.get', 'machine.get', 'shared.get']);
-  assert.equal(projection.appAIConfig, app);
-  assert.deepEqual(projection.machine, { configurations: [], selections: [] });
+  assert.deepEqual(calls.sort(), ['app', 'loadouts', 'recipes', 'shared']);
+  assert.deepEqual(projection.recipes, RECIPES);
 });
 
-test('AIProfile authoring has matching Chinese form, preview, and no-commit copy', async () => {
+test('Chinese authoring copy remains present after descriptor-driven UI cut', async () => {
   await changeLocale('zh');
   try {
-    const markup = renderAuthoring(stateWithDraft(validTextDraft()));
-    assert.match(markup, /创作可移植 AIProfile/u);
-    assert.match(markup, /仅预览/u);
-    assert.match(markup, /最终需求集合始终以 Runtime 投影为准/u);
-    assert.match(markup, /特性不匹配/u);
-    assert.match(markup, /不能写入 AIConfig/u);
+    const html = renderAuthoring(stateWithDraft(validTextDraft()));
+    assert.match(html, /运行时|本地|配置/u);
+    assert.match(html, /recipe\.desktop\.text/u);
   } finally {
     await changeLocale('en');
   }

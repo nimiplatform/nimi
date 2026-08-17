@@ -96,7 +96,6 @@ profiles:
       - local-text
     dependency_family_refs:
       - native-engine-package.llama
-      - model.asset
     materialization_confirmation_required: true
     applicable_scopes:
       - first-party-app
@@ -124,7 +123,6 @@ profiles:
       - python.runtime
       - python.venv
       - python.package-set
-      - model.asset
     materialization_confirmation_required: true
     applicable_scopes:
       - first-party-app
@@ -157,8 +155,6 @@ profiles:
       - python.venv
       - python.package-set
       - python.torch-wheel
-      - model.asset
-      - model.companion-asset
     materialization_confirmation_required: true
     applicable_scopes:
       - first-party-app
@@ -191,8 +187,6 @@ profiles:
       - python.runtime
       - python.venv
       - python.package-set
-      - model.asset
-      - model.companion-asset
     materialization_confirmation_required: true
     applicable_scopes:
       - first-party-app

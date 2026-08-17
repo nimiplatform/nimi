@@ -65,8 +65,7 @@ export const NIMI_APP_AI_PROFILE_FACTORY_ROWS = [
       "local-text"
     ],
     "dependencyFamilyRefs": [
-      "native-engine-package.llama",
-      "model.asset"
+      "native-engine-package.llama"
     ],
     "materializationConfirmationRequired": true,
     "applicableScopes": [
@@ -99,8 +98,7 @@ export const NIMI_APP_AI_PROFILE_FACTORY_ROWS = [
       "python.tool.uv",
       "python.runtime",
       "python.venv",
-      "python.package-set",
-      "model.asset"
+      "python.package-set"
     ],
     "materializationConfirmationRequired": true,
     "applicableScopes": [
@@ -138,9 +136,7 @@ export const NIMI_APP_AI_PROFILE_FACTORY_ROWS = [
       "python.runtime",
       "python.venv",
       "python.package-set",
-      "python.torch-wheel",
-      "model.asset",
-      "model.companion-asset"
+      "python.torch-wheel"
     ],
     "materializationConfirmationRequired": true,
     "applicableScopes": [
@@ -178,9 +174,7 @@ export const NIMI_APP_AI_PROFILE_FACTORY_ROWS = [
       "python.tool.uv",
       "python.runtime",
       "python.venv",
-      "python.package-set",
-      "model.asset",
-      "model.companion-asset"
+      "python.package-set"
     ],
     "materializationConfirmationRequired": true,
     "applicableScopes": [

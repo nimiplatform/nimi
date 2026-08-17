@@ -11,6 +11,7 @@ export type DesktopPortableAIProfileSummary = {
     readonly route: 'local' | 'cloud';
     readonly requiredFeatures: readonly string[];
     readonly hasDefaults: boolean;
+    readonly hasLoadout: boolean;
   }[];
 };
 
@@ -28,6 +29,7 @@ export function summarizeDesktopPortableAIProfile(
         route: capability.route,
         requiredFeatures: Object.freeze([...capability.requiredFeatures]),
         hasDefaults: capability.defaults !== undefined,
+        hasLoadout: capability.route === 'local' && capability.loadout !== undefined,
       }))
       .sort((left, right) => left.capabilityContract.localeCompare(right.capabilityContract))),
   });

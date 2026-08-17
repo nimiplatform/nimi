@@ -22,6 +22,26 @@ export interface NimiPortableAIProfileResourceOccurrence {
   readonly [key: string]: NimiJsonValue;
 }
 
+export interface NimiPortableAIProfileModelSourceRecommendation {
+  readonly repo: string;
+  readonly revision: string;
+  readonly file: string;
+  readonly sizeBytes?: number;
+}
+
+export interface NimiPortableAIProfileLoadoutAxis {
+  readonly slotId: string;
+  readonly contentId: `sha256:${string}`;
+  readonly expectedHash: `sha256:${string}`;
+  readonly source?: NimiPortableAIProfileModelSourceRecommendation;
+}
+
+export interface NimiPortableAIProfileLoadoutIntent {
+  readonly recipeId: string;
+  readonly axes: readonly NimiPortableAIProfileLoadoutAxis[];
+  readonly options: NimiJsonObject;
+}
+
 export type NimiPortableAIProfileCapability =
   | {
     readonly route: 'local';
@@ -30,6 +50,7 @@ export type NimiPortableAIProfileCapability =
     readonly implementation?: NimiPortableAIProfileImplementation;
     readonly driverPortableConfig?: NimiJsonObject;
     readonly resourceOccurrences?: readonly NimiPortableAIProfileResourceOccurrence[];
+    readonly loadout?: NimiPortableAIProfileLoadoutIntent;
   }
   | {
     readonly route: 'cloud';
@@ -49,12 +70,13 @@ export interface NimiPortableAIProfile {
   readonly displayMetadata?: NimiJsonObject;
 }
 
-export interface NimiPortableLocalCapabilityConfigurationIntent {
+export interface NimiPortableLoadoutIntent {
   readonly capabilityContract: string;
   readonly implementation: NimiPortableAIProfileImplementation;
   readonly driverPortableConfig: NimiJsonObject;
   readonly resourceOccurrences: readonly NimiPortableAIProfileResourceOccurrence[];
   readonly supportedFeatures: readonly string[];
+  readonly loadout?: NimiPortableAIProfileLoadoutIntent;
 }
 
 export interface NimiCloudAIConfigCapabilityInput {
@@ -83,6 +105,7 @@ export interface NimiAppAIProfileClient {
 
 // @nimi-authority: definition.nimi.sdks.feature-clients.ai-config-plane
 // @nimi-authority: rule.nimi.sdks.feature-clients.r013
+// @nimi-authority: rule.nimi.runtime.local-compute.r028
 /** Parse one closed portable AIProfile document. Connector identity is
  * intentionally absent and remains Runtime-resolved from owner configuration.
  */
@@ -120,6 +143,7 @@ export function parseNimiPortableAIProfile(
       'implementation',
       'driverPortableConfig',
       'resourceOccurrences',
+      'loadout',
       'providerModelTarget',
     ], `AIProfile ${contract}`);
     const route = requireText(value.route, `AIProfile ${contract} route is required`);
@@ -144,7 +168,10 @@ export function parseNimiPortableAIProfile(
       const resourceOccurrences = value.resourceOccurrences === undefined
         ? undefined
         : parseResourceOccurrences(value.resourceOccurrences, contract);
-      if (!implementation && (driverPortableConfig || resourceOccurrences?.length)) {
+      const loadout = value.loadout === undefined
+        ? undefined
+        : parsePortableLoadoutIntent(value.loadout, contract);
+      if (!implementation && (driverPortableConfig || resourceOccurrences?.length || loadout)) {
         profileError(`AIProfile ${contract} Local portable configuration requires CapabilityImplementation`);
       }
       capabilities[contract] = Object.freeze({
@@ -154,15 +181,16 @@ export function parseNimiPortableAIProfile(
         ...(implementation ? { implementation } : {}),
         ...(driverPortableConfig ? { driverPortableConfig } : {}),
         ...(resourceOccurrences ? { resourceOccurrences } : {}),
+        ...(loadout ? { loadout } : {}),
       });
       continue;
     }
     if (route !== 'cloud') profileError(`AIProfile ${contract} route must be local or cloud`);
-    if (value.driverPortableConfig !== undefined || value.resourceOccurrences !== undefined) {
+    if (value.driverPortableConfig !== undefined || value.resourceOccurrences !== undefined || value.loadout !== undefined) {
       profileError(`AIProfile ${contract} Cloud recommendation cannot contain Local configuration intent`);
     }
     const target = normalizeJsonObject(value.providerModelTarget, `AIProfile ${contract} providerModelTarget`);
-    if (Object.keys(target).length === 0) profileError(`AIProfile ${contract} providerModelTarget cannot be empty`);
+    assertExactCloudProviderModelTarget(target);
     capabilities[contract] = Object.freeze({
       route: 'cloud',
       requiredFeatures,
@@ -192,12 +220,12 @@ export function serializeNimiPortableAIProfile(input: NimiPortableAIProfileInput
 
 /** Projects only the Profile's Local implementation intent. Calling this does
  * not add, update, bind, or select machine configuration; a consumer must pass
- * the result to an explicit Local Capability Configuration action.
+ * the result to an explicit Loadout action.
  */
-export function projectNimiPortableLocalCapabilityConfigurationIntent(
+export function projectNimiPortableLoadoutIntent(
   input: NimiPortableAIProfileInput,
   capabilityContract: string,
-): NimiPortableLocalCapabilityConfigurationIntent | null {
+): NimiPortableLoadoutIntent | null {
   const profile = parseNimiPortableAIProfile(input);
   const contract = requireText(capabilityContract, 'CapabilityContract is required');
   const capability = profile.capabilities[contract];
@@ -208,6 +236,7 @@ export function projectNimiPortableLocalCapabilityConfigurationIntent(
     driverPortableConfig: capability.driverPortableConfig ?? Object.freeze({}),
     resourceOccurrences: capability.resourceOccurrences ?? Object.freeze([]),
     supportedFeatures: capability.implementation.supportedFeatures,
+    ...(capability.loadout ? { loadout: capability.loadout } : {}),
   });
 }
 
@@ -237,7 +266,7 @@ function assertExactCloudProviderModelTarget(target: NimiJsonObject): void {
   }
   for (const key of ['provider', 'providerModelId', 'remoteModelCatalogId'] as const) {
     const value = target[key];
-    if (typeof value !== 'string' || value.length === 0 || value.trim() !== value) {
+    if (typeof value !== 'string' || value.length === 0 || /^\p{White_Space}|\p{White_Space}$/u.test(value)) {
       profileError(`Cloud providerModelTarget.${key} is required`);
     }
   }
@@ -382,6 +411,76 @@ function parseResourceOccurrences(
   }));
 }
 
+function parsePortableLoadoutIntent(
+  value: unknown,
+  capabilityContract: string,
+): NimiPortableAIProfileLoadoutIntent {
+  const record = requireObject(value, `AIProfile ${capabilityContract} loadout must be an object`);
+  assertExactKeys(record, ['recipeId', 'axes', 'options'], `AIProfile ${capabilityContract} loadout`);
+  if (!Array.isArray(record.axes)) profileError(`AIProfile ${capabilityContract} loadout axes must be an array`);
+  const seen = new Set<string>();
+  const axes = Object.freeze(record.axes.map((value, index) => {
+    const axis = requireObject(value, `AIProfile ${capabilityContract} loadout axis[${index}] must be an object`);
+    assertExactKeys(axis, ['slotId', 'contentId', 'expectedHash', 'source'], `AIProfile ${capabilityContract} loadout axis[${index}]`);
+    const slotId = requireText(axis.slotId, `AIProfile ${capabilityContract} loadout axis[${index}] slotId is required`);
+    if (seen.has(slotId)) profileError(`AIProfile ${capabilityContract} loadout slot ${slotId} is duplicated`);
+    seen.add(slotId);
+    const source = axis.source === undefined
+      ? undefined
+      : parseModelSourceRecommendation(axis.source, capabilityContract, slotId);
+    return Object.freeze({
+      slotId,
+      contentId: requireSHA256Identity(axis.contentId, `AIProfile ${capabilityContract} loadout ${slotId} contentId`),
+      expectedHash: requireSHA256Identity(axis.expectedHash, `AIProfile ${capabilityContract} loadout ${slotId} expectedHash`),
+      ...(source ? { source } : {}),
+    });
+  }));
+  return Object.freeze({
+    recipeId: requireText(record.recipeId, `AIProfile ${capabilityContract} loadout recipeId is required`),
+    axes,
+    options: normalizeJsonObject(record.options, `AIProfile ${capabilityContract} loadout options`),
+  });
+}
+
+function parseModelSourceRecommendation(
+  value: unknown,
+  capabilityContract: string,
+  slotId: string,
+): NimiPortableAIProfileModelSourceRecommendation {
+  const label = `AIProfile ${capabilityContract} loadout ${slotId} source`;
+  const source = requireObject(value, `${label} must be an object`);
+  assertExactKeys(source, ['repo', 'revision', 'file', 'sizeBytes'], label);
+  const sizeBytes = source.sizeBytes === undefined ? undefined : requirePositiveInteger(source.sizeBytes, `${label} sizeBytes`);
+  return Object.freeze({
+    repo: requireText(source.repo, `${label} repo is required`),
+    revision: requireText(source.revision, `${label} revision is required`),
+    file: requireRelativeFile(source.file, `${label} file is required`),
+    ...(sizeBytes === undefined ? {} : { sizeBytes }),
+  });
+}
+
+function requireSHA256Identity(value: unknown, label: string): `sha256:${string}` {
+  if (typeof value !== 'string' || !/^sha256:[a-f0-9]{64}$/u.test(value)) {
+    profileError(`${label} must be an exact sha256 identity`);
+  }
+  return value as `sha256:${string}`;
+}
+
+function requirePositiveInteger(value: unknown, label: string): number {
+  if (typeof value !== 'number' || !Number.isSafeInteger(value) || value <= 0) {
+    profileError(`${label} must be a positive safe integer`);
+  }
+  return value;
+}
+
+function requireRelativeFile(value: unknown, message: string): string {
+  const file = requireText(value, message).replaceAll('\\', '/');
+  if (file.startsWith('/') || /^[a-z]:/iu.test(file) || file.split('/').some((segment) => segment === '' || segment === '.' || segment === '..')) {
+    profileError(message);
+  }
+  return file;
+}
+
 function parseRequiredFeatures(value: unknown, capabilityContract: string): readonly string[] {
   if (value === undefined) return Object.freeze([]);
   return parseFeatureSet(value, `AIProfile ${capabilityContract} requiredFeatures`);
@@ -406,7 +505,11 @@ function normalizeJsonObject(value: unknown, label: string): NimiJsonObject {
 
 function normalizeJsonValue(value: unknown, label: string): NimiJsonValue {
   if (value === null || typeof value === 'string' || typeof value === 'boolean') return value;
-  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'number') {
+    if (!Number.isFinite(value)) profileError(`${label} contains a non-finite number`);
+    if (Number.isInteger(value) && !Number.isSafeInteger(value)) profileError(`${label} contains an unsafe integer`);
+    return value;
+  }
   if (Array.isArray(value)) return Object.freeze(value.map((entry, index) => normalizeJsonValue(entry, `${label}[${index}]`)));
   if (value && typeof value === 'object') return normalizeJsonObject(value, label);
   return profileError(`${label} is not portable JSON`);
@@ -429,6 +532,7 @@ function assertPortableValue(value: unknown, label: string): void {
   }
   if (typeof value === 'number') {
     if (!Number.isFinite(value)) profileError(`${label} contains a non-finite number`);
+    if (Number.isInteger(value) && !Number.isSafeInteger(value)) profileError(`${label} contains an unsafe integer`);
     return;
   }
   if (Array.isArray(value)) {
