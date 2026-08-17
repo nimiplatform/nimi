@@ -812,11 +812,12 @@ function normalizeLocalVariant(raw, modelID, installEntry) {
   return variant;
 }
 
-const localCompanionKinds = new Set(['vae', 'clip', 'lora', 'controlnet', 'auxiliary']);
+const localPassiveModelTypes = new Set(['vae', 'clip', 'lora', 'controlnet', 'auxiliary']);
 
-// normalizeLocalInstall projects a K-MCAT-032 install block (shared by the main
-// model row and by companion blocks). label scopes error messages.
-function normalizeLocalInstall(install, label) {
+// normalizeLocalInstall projects a K-MCAT-032 install block. Runnable model
+// rows carry a preferred engine compatibility fact; passive independent
+// ModelAsset offer rows do not own execution-engine selection.
+function normalizeLocalInstall(install, label, { passive = false } = {}) {
   if (!install || typeof install !== 'object') {
     throw new Error(`${label} requires an install block`);
   }
@@ -840,18 +841,26 @@ function normalizeLocalInstall(install, label) {
   if (artifactRoles.length === 0) {
     throw new Error(`${label} install.artifact_roles must not be empty`);
   }
+  const hasPreferredEngine = Object.prototype.hasOwnProperty.call(install, 'preferred_engine');
   const preferredEngine = normalizeString(install.preferred_engine).toLowerCase();
-  if (!localPreferredEngines.has(preferredEngine)) {
+  if (passive) {
+    if (hasPreferredEngine) {
+      throw new Error(`${label} is passive and must not declare install.preferred_engine`);
+    }
+  } else if (!localPreferredEngines.has(preferredEngine)) {
     throw new Error(`${label} install.preferred_engine must be llama|media|speech|sidecar, got: ${preferredEngine}`);
   }
-  return {
+  const out = {
     repo,
     revision,
     install_kind: installKind,
     entry,
     artifact_roles: artifactRoles,
-    preferred_engine: preferredEngine,
   };
+  if (!passive) {
+    out.preferred_engine = preferredEngine;
+  }
+  return out;
 }
 
 // normalizeLocalVariantList projects a K-MCAT-032 variants array (shared by the
@@ -871,93 +880,51 @@ function normalizeLocalVariantList(rawVariants, modelID, installEntry) {
   return variants;
 }
 
-// normalizeLocalCompanion projects one K-MCAT-032 companion block. A companion
-// is a passive parent-bound asset: it carries install + variants like a model
-// but no capabilities and no fitness. companion_kind must be a K-LOCAL-007
-// passive-kind and engine_slot is a K-LOCAL-031 engine-defined slot.
-function normalizeLocalCompanion(raw, modelID) {
-  if (!raw || typeof raw !== 'object') {
-    throw new Error(`local model ${modelID} companion entry must be an object`);
-  }
-  const companionKind = normalizeString(raw.companion_kind).toLowerCase();
-  if (!localCompanionKinds.has(companionKind)) {
-    throw new Error(`local model ${modelID} companion.companion_kind must be vae|clip|lora|controlnet|auxiliary, got: ${raw.companion_kind}`);
-  }
-  const engineSlot = normalizeString(raw.engine_slot);
-  if (!engineSlot) {
-    throw new Error(`local model ${modelID} companion (${companionKind}) requires an engine_slot`);
-  }
-  const label = `local model ${modelID} companion ${companionKind}/${engineSlot}`;
-  const install = normalizeLocalInstall(raw.install, label);
-  if (!Array.isArray(raw.variants) || raw.variants.length === 0) {
-    throw new Error(`${label} requires at least one variant`);
-  }
-  const variants = normalizeLocalVariantList(raw.variants, modelID, install.entry);
-  if (raw.capabilities !== undefined) {
-    throw new Error(`${label} is passive and must not declare capabilities`);
-  }
-  if (raw.fitness !== undefined) {
-    throw new Error(`${label} is passive and must not declare fitness`);
-  }
-  return {
-    companion_kind: companionKind,
-    engine_slot: engineSlot,
-    install,
-    variants,
-  };
-}
-
-// normalizeLocalPlaneRow projects the K-MCAT-032 local-plane block
-// (install / variants / fitness / optional companions) for a single models[]
-// row. Returns null when the row carries no local-plane block.
+// normalizeLocalPlaneRow projects one independent local ModelAsset offer.
+// Runnable rows require fitness; passive rows are identified by their closed
+// model_type and carry no capability or execution-engine authority.
 export function normalizeLocalPlaneRow(model, modelID) {
   const hasInstall = model?.install && typeof model.install === 'object';
   const hasVariants = Array.isArray(model?.variants) && model.variants.length > 0;
   const hasFitness = model?.fitness && typeof model.fitness === 'object';
   if (!hasInstall && !hasVariants && !hasFitness) {
+    if (model?.companions !== undefined) {
+      throw new Error(`local model ${modelID} must not declare parent-bound companions`);
+    }
     return null;
   }
-  if (!hasInstall || !hasVariants || !hasFitness) {
-    throw new Error(`local model ${modelID} local-plane block requires install, variants, and fitness together`);
+  if (!hasInstall || !hasVariants) {
+    throw new Error(`local model ${modelID} local-plane block requires install and variants together`);
   }
-  const install = normalizeLocalInstall(model.install, `local model ${modelID}`);
+  if (model?.companions !== undefined) {
+    throw new Error(`local model ${modelID} must not declare parent-bound companions`);
+  }
+  const passive = localPassiveModelTypes.has(normalizeString(model?.model_type).toLowerCase());
+  if (passive && normalizeStringArray(model?.capabilities).length > 0) {
+    throw new Error(`local passive ModelAsset offer ${modelID} must not declare capabilities`);
+  }
+  if (!passive && !hasFitness) {
+    throw new Error(`local runnable model ${modelID} requires fitness`);
+  }
+  if (passive && hasFitness) {
+    throw new Error(`local passive ModelAsset offer ${modelID} must not declare fitness`);
+  }
+  const install = normalizeLocalInstall(model.install, `local model ${modelID}`, { passive });
+  if (passive && (install.artifact_roles.length !== 1 || !/^[a-z0-9]+(?:_[a-z0-9]+)*$/u.test(install.artifact_roles[0]))) {
+    throw new Error(`local passive ModelAsset offer ${modelID} requires exactly one canonical artifact role`);
+  }
   const variants = normalizeLocalVariantList(model.variants, modelID, install.entry);
-  const paramCount = normalizeInt(model.fitness.param_count, `local model ${modelID} fitness.param_count`);
-  if (paramCount === undefined || paramCount <= 0) {
-    throw new Error(`local model ${modelID} fitness.param_count must be a positive integer`);
-  }
-  const contextLength = normalizeInt(model.fitness.context_length, `local model ${modelID} fitness.context_length`);
-  if (contextLength === undefined) {
-    throw new Error(`local model ${modelID} fitness.context_length is required`);
-  }
-  const out = {
-    install,
-    variants,
-    fitness: {
-      param_count: paramCount,
-      context_length: contextLength,
-    },
-  };
-  // K-MCAT-032 optional companions block. engine_slot must be unique within a
-  // parent row (K-LOCAL-031). Absent or empty companions: omit the field.
-  if (model.companions !== undefined) {
-    if (!Array.isArray(model.companions)) {
-      throw new Error(`local model ${modelID} companions must be a list`);
+  const out = { install, variants };
+  if (hasFitness) {
+    const paramCount = normalizeInt(model.fitness.param_count, `local model ${modelID} fitness.param_count`);
+    if (paramCount === undefined || paramCount <= 0) {
+      throw new Error(`local model ${modelID} fitness.param_count must be a positive integer`);
     }
-    if (model.companions.length > 0) {
-      const companions = [];
-      const seenEngineSlots = new Set();
-      for (const rawCompanion of model.companions) {
-        const companion = normalizeLocalCompanion(rawCompanion, modelID);
-        const slotKey = companion.engine_slot.toLowerCase();
-        if (seenEngineSlots.has(slotKey)) {
-          throw new Error(`local model ${modelID} duplicate companion engine_slot: ${companion.engine_slot}`);
-        }
-        seenEngineSlots.add(slotKey);
-        companions.push(companion);
-      }
-      out.companions = companions;
+    const contextLength = normalizeInt(model.fitness.context_length, `local model ${modelID} fitness.context_length`);
+    if (contextLength === undefined) {
+      throw new Error(`local model ${modelID} fitness.context_length is required`);
     }
+    out.fitness = { param_count: paramCount, context_length: contextLength };
   }
   return out;
 }

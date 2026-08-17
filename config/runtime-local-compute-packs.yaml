@@ -12,8 +12,8 @@ entries:
   - packs_4
   - packs_5
   - packs_6
-  - pack selection may be explicit or derived from a local model/capability
-    request
+  - pack selection may be explicit or derived from an admitted capability
+    consumer
   - pack selection must resolve a Runtime-owned local environment plan before
     heavy materialization
   - pack selection must not make Runtime core readiness depend on local compute
@@ -32,8 +32,8 @@ entries:
   - missing local pack dependencies project Runtime local environment setup,
     failed, unsupported, cancelled, or repair state
   - local compute pack projection must not instruct ordinary users to install
-    uv, Python, Torch, CUDA, native packages, model assets, or companion assets
-    through system package managers or PATH mutation
+    uv, Python, Torch, CUDA, or native packages through system package managers
+    or PATH mutation
 
 # Canonical product-facing local compute pack authority.
 # Packs are requested capability bundles. They are not model rows, engine-local
@@ -51,7 +51,6 @@ packs:
       - text.embed
     required_dependency_families:
       - native-engine-package.llama
-      - model.asset
     optional_dependency_families:
       - accelerator.cuda.runtime
     consumers:
@@ -74,8 +73,6 @@ packs:
       - python.venv
       - python.package-set
       - native-engine-package.stablediffusion-ggml
-      - model.asset
-      - model.companion-asset
     optional_dependency_families:
       - accelerator.cuda.runtime
     consumers:
@@ -98,8 +95,6 @@ packs:
       - python.venv
       - python.package-set
       - python.torch-wheel
-      - model.asset
-      - model.companion-asset
     optional_dependency_families:
       - accelerator.cuda.runtime
     consumers:
@@ -121,8 +116,6 @@ packs:
       - python.venv
       - python.package-set
       - python.torch-wheel
-      - model.asset
-      - model.companion-asset
     optional_dependency_families:
       - accelerator.cuda.runtime
     consumers:
@@ -144,7 +137,6 @@ packs:
       - python.runtime
       - python.venv
       - python.package-set
-      - model.asset
     optional_dependency_families: []
     consumers:
       - speech.qwen3-asr.python
@@ -170,7 +162,7 @@ packs:
     cloud_only_impact: none
 
 pack_rules:
-  - pack selection may be explicit or derived from a local model/capability request
+  - pack selection may be explicit or derived from an admitted capability consumer
   - pack selection must resolve a Runtime-owned local environment plan before heavy materialization
   - pack selection must not make Runtime core readiness depend on local compute readiness
   - cloud-only usage must not select a local compute pack implicitly
@@ -180,4 +172,4 @@ pack_rules:
   - pack-level optional dependency families are projection hints only and must not weaken required dependency evaluation for a selected consumer
   - consumer ids referenced by packs must remain in lockstep with local-environment-consumer-requirements.yaml
   - missing local pack dependencies project Runtime local environment setup, failed, unsupported, cancelled, or repair state
-  - local compute pack projection must not instruct ordinary users to install uv, Python, Torch, CUDA, native packages, model assets, or companion assets through system package managers or PATH mutation
+  - local compute pack projection must not instruct ordinary users to install uv, Python, Torch, CUDA, or native packages through system package managers or PATH mutation

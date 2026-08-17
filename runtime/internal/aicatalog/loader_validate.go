@@ -38,7 +38,10 @@ func validateSnapshot(snapshot Snapshot) error {
 			return fmt.Errorf("model %s:%s missing updated_at", provider, modelID)
 		}
 		if len(model.Capabilities) == 0 {
-			return fmt.Errorf("model %s:%s missing capabilities", provider, modelID)
+			_, passiveLocalOffer := localPassiveModelTypes[strings.ToLower(strings.TrimSpace(model.ModelType))]
+			if provider != localProviderID || !passiveLocalOffer || model.Install == nil || len(model.Variants) == 0 {
+				return fmt.Errorf("model %s:%s missing capabilities", provider, modelID)
+			}
 		}
 		if _, ok := allowedUnits[strings.TrimSpace(model.Pricing.Unit)]; !ok {
 			return fmt.Errorf("model %s:%s has invalid pricing.unit %q", provider, modelID, model.Pricing.Unit)

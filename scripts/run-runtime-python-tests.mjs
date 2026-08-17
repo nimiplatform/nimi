@@ -10,7 +10,7 @@ const repoRoot = path.resolve(scriptDir, '..');
 const testRoot = path.join(repoRoot, 'runtime', 'internal', 'engine', 'assets');
 const result = spawnSyncCommand(resolveSystemPythonCommand(), ['-m', 'unittest', 'discover', '-s', testRoot, '-p', '*_test.py'], {
   cwd: repoRoot,
-  env: process.env,
+  env: { ...process.env, PYTHONDONTWRITEBYTECODE: '1' },
   stdio: 'inherit',
 });
 if (result.error) throw result.error;

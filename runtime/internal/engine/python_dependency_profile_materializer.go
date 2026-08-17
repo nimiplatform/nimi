@@ -38,6 +38,43 @@ type PythonDependencyProfileStatus struct {
 	Detail                 string
 }
 
+// PythonDependencyProfileVerificationError is a fail-closed proof that an
+// existing immutable profile generation does not match its canonical identity.
+// Callers must surface Mismatch and require an explicit repair/new generation;
+// retrying the same unchanged generation cannot make it valid.
+type PythonDependencyProfileVerificationError struct {
+	ProfileDigest string
+	ProfileRoot   string
+	Mismatch      string
+	Err           error
+}
+
+func (e *PythonDependencyProfileVerificationError) Error() string {
+	if e == nil {
+		return "python dependency profile verification failed"
+	}
+	return fmt.Sprintf(
+		"python dependency profile verification failed: profile_digest=%s profile_root=%s mismatch=%s",
+		strings.TrimSpace(e.ProfileDigest),
+		strings.TrimSpace(e.ProfileRoot),
+		strings.TrimSpace(e.Mismatch),
+	)
+}
+
+func (e *PythonDependencyProfileVerificationError) Unwrap() error {
+	if e == nil {
+		return nil
+	}
+	return e.Err
+}
+
+type pythonDependencyProfileVerificationCacheEntry struct {
+	ProfileRoot      string
+	GenerationDigest string
+	Status           PythonDependencyProfileStatus
+	Failure          *PythonDependencyProfileVerificationError
+}
+
 type pythonDependencyProfileCommandRunner func(
 	ctx context.Context,
 	dir string,
@@ -63,10 +100,10 @@ type pythonDependencyProfileProbe struct {
 
 // EnsurePythonDependencyProfile materializes one exact dependency profile in
 // a sibling staging directory and atomically promotes it. An existing valid
-// profile is only read and probed: reuse never invokes uv and never refreshes
-// files. When this explicit materializer entrypoint finds a damaged promoted
-// profile, it builds and fully verifies a sibling candidate before replacing
-// the identity root; passive startup/static verification never calls this path.
+// profile first takes a cheap metadata-generation proof; a cache miss performs
+// one read-only exact verification. Any mismatch is cached as a typed,
+// fail-closed result for that unchanged generation. Ensure never rebuilds or
+// mutates an existing promoted identity root.
 func (m *Manager) EnsurePythonDependencyProfile(
 	ctx context.Context,
 	uvPath string,
@@ -127,21 +164,49 @@ func (m *Manager) ensurePythonDependencyProfile(
 
 	profileRoot := filepath.Join(m.baseDir, "python-profiles", identity.ProfileDigest)
 	cacheRoot := filepath.Join(m.depsDir, "python-package-cache")
-	replaceExisting := false
-	var existingVerificationErr error
 	if info, statErr := os.Lstat(profileRoot); statErr == nil {
 		if !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
-			return PythonDependencyProfileStatus{}, fmt.Errorf("promoted python dependency profile root must be a non-symlink directory: %s", profileRoot)
+			return PythonDependencyProfileStatus{}, newPythonDependencyProfileVerificationError(
+				identity,
+				profileRoot,
+				fmt.Errorf("promoted root must be a non-symlink directory"),
+			)
 		}
-		status, verifyErr := verifyPythonDependencyProfile(profileCtx, run, profileRoot, cacheRoot, uvPath, trimmedConsumer, identity, true)
-		if verifyErr == nil {
+		generationDigest, generationErr := pythonDependencyProfileGenerationDigest(profileRoot)
+		if generationErr != nil {
+			return PythonDependencyProfileStatus{}, newPythonDependencyProfileVerificationError(identity, profileRoot, generationErr)
+		}
+		if cached, ok := m.cachedPythonDependencyProfileVerification(identity.ProfileDigest, profileRoot, generationDigest); ok {
+			if cached.Failure != nil {
+				return PythonDependencyProfileStatus{}, clonePythonDependencyProfileVerificationError(cached.Failure)
+			}
+			status := clonePythonDependencyProfileStatus(cached.Status)
+			status.Reused = true
+			status.Detail = "Runtime-managed immutable Python dependency profile reused from verified generation cache"
 			return status, nil
 		}
-		if ctxErr := profileCtx.Err(); ctxErr != nil {
-			return PythonDependencyProfileStatus{}, ctxErr
+
+		status, verifyErr := verifyPythonDependencyProfile(profileCtx, run, profileRoot, cacheRoot, uvPath, trimmedConsumer, identity, true)
+		if verifyErr != nil {
+			if ctxErr := profileCtx.Err(); ctxErr != nil {
+				return PythonDependencyProfileStatus{}, ctxErr
+			}
+			failure := newPythonDependencyProfileVerificationError(identity, profileRoot, verifyErr)
+			if currentGeneration, stampErr := pythonDependencyProfileGenerationDigest(profileRoot); stampErr == nil {
+				m.cachePythonDependencyProfileVerification(identity.ProfileDigest, pythonDependencyProfileVerificationCacheEntry{
+					ProfileRoot: profileRoot, GenerationDigest: currentGeneration, Failure: failure,
+				})
+			}
+			return PythonDependencyProfileStatus{}, clonePythonDependencyProfileVerificationError(failure)
 		}
-		replaceExisting = true
-		existingVerificationErr = verifyErr
+		currentGeneration, generationErr := pythonDependencyProfileGenerationDigest(profileRoot)
+		if generationErr != nil {
+			return PythonDependencyProfileStatus{}, newPythonDependencyProfileVerificationError(identity, profileRoot, generationErr)
+		}
+		m.cachePythonDependencyProfileVerification(identity.ProfileDigest, pythonDependencyProfileVerificationCacheEntry{
+			ProfileRoot: profileRoot, GenerationDigest: currentGeneration, Status: status,
+		})
+		return status, nil
 	} else if !errors.Is(statErr, os.ErrNotExist) {
 		return PythonDependencyProfileStatus{}, fmt.Errorf("inspect python dependency profile root %s: %w", profileRoot, statErr)
 	}
@@ -155,14 +220,17 @@ func (m *Manager) ensurePythonDependencyProfile(
 		identity,
 		profileRoot,
 		cacheRoot,
-		replaceExisting,
 	)
 	if err != nil {
-		if existingVerificationErr != nil {
-			return PythonDependencyProfileStatus{}, fmt.Errorf("rebuild damaged python dependency profile after verification failed (%v): %w", existingVerificationErr, err)
-		}
 		return PythonDependencyProfileStatus{}, err
 	}
+	generationDigest, generationErr := pythonDependencyProfileGenerationDigest(profileRoot)
+	if generationErr != nil {
+		return PythonDependencyProfileStatus{}, newPythonDependencyProfileVerificationError(identity, profileRoot, generationErr)
+	}
+	m.cachePythonDependencyProfileVerification(identity.ProfileDigest, pythonDependencyProfileVerificationCacheEntry{
+		ProfileRoot: profileRoot, GenerationDigest: generationDigest, Status: status,
+	})
 	return status, nil
 }
 
@@ -199,6 +267,92 @@ func (m *Manager) lockPythonDependencyProfile(ctx context.Context, profileDigest
 	}
 }
 
+func (m *Manager) cachedPythonDependencyProfileVerification(profileDigest string, profileRoot string, generationDigest string) (pythonDependencyProfileVerificationCacheEntry, bool) {
+	m.pythonProfileMu.Lock()
+	defer m.pythonProfileMu.Unlock()
+	cached, ok := m.pythonProfileVerifications[strings.TrimSpace(profileDigest)]
+	if !ok || !sameManagedPath(cached.ProfileRoot, profileRoot) || cached.GenerationDigest != generationDigest {
+		return pythonDependencyProfileVerificationCacheEntry{}, false
+	}
+	cached.Status = clonePythonDependencyProfileStatus(cached.Status)
+	cached.Failure = clonePythonDependencyProfileVerificationError(cached.Failure)
+	return cached, true
+}
+
+func (m *Manager) cachePythonDependencyProfileVerification(profileDigest string, entry pythonDependencyProfileVerificationCacheEntry) {
+	m.pythonProfileMu.Lock()
+	defer m.pythonProfileMu.Unlock()
+	if m.pythonProfileVerifications == nil {
+		m.pythonProfileVerifications = make(map[string]pythonDependencyProfileVerificationCacheEntry)
+	}
+	entry.Status = clonePythonDependencyProfileStatus(entry.Status)
+	entry.Failure = clonePythonDependencyProfileVerificationError(entry.Failure)
+	m.pythonProfileVerifications[strings.TrimSpace(profileDigest)] = entry
+}
+
+func pythonDependencyProfileGenerationDigest(profileRoot string) (string, error) {
+	trimmedRoot := strings.TrimSpace(profileRoot)
+	var facts strings.Builder
+	err := filepath.Walk(trimmedRoot, func(path string, info os.FileInfo, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+		relative, err := filepath.Rel(trimmedRoot, path)
+		if err != nil {
+			return err
+		}
+		_, _ = fmt.Fprintf(
+			&facts,
+			"%s\x00%d\x00%d\x00%d\x00%d\n",
+			filepath.ToSlash(relative),
+			info.Mode(),
+			info.Size(),
+			info.ModTime().UnixNano(),
+			info.Mode()&os.ModeSymlink,
+		)
+		return nil
+	})
+	if err != nil {
+		return "", fmt.Errorf("capture python dependency profile generation metadata: %w", err)
+	}
+	return sha256Hex([]byte(facts.String())), nil
+}
+
+func clonePythonDependencyProfileStatus(status PythonDependencyProfileStatus) PythonDependencyProfileStatus {
+	status.InstalledDistributions = append([]string(nil), status.InstalledDistributions...)
+	status.ImportProbes = append([]string(nil), status.ImportProbes...)
+	status.DriverScripts = append([]string(nil), status.DriverScripts...)
+	if status.DriverCommands != nil {
+		commands := make(map[string]string, len(status.DriverCommands))
+		for key, value := range status.DriverCommands {
+			commands[key] = value
+		}
+		status.DriverCommands = commands
+	}
+	return status
+}
+
+func clonePythonDependencyProfileVerificationError(value *PythonDependencyProfileVerificationError) *PythonDependencyProfileVerificationError {
+	if value == nil {
+		return nil
+	}
+	cloned := *value
+	return &cloned
+}
+
+func newPythonDependencyProfileVerificationError(identity PythonDependencyProfileIdentity, profileRoot string, err error) *PythonDependencyProfileVerificationError {
+	mismatch := "verification mismatch"
+	if err != nil && strings.TrimSpace(err.Error()) != "" {
+		mismatch = strings.TrimSpace(err.Error())
+	}
+	return &PythonDependencyProfileVerificationError{
+		ProfileDigest: strings.TrimSpace(identity.ProfileDigest),
+		ProfileRoot:   strings.TrimSpace(profileRoot),
+		Mismatch:      mismatch,
+		Err:           err,
+	}
+}
+
 func (m *Manager) materializePythonDependencyProfile(
 	ctx context.Context,
 	run pythonDependencyProfileCommandRunner,
@@ -208,7 +362,6 @@ func (m *Manager) materializePythonDependencyProfile(
 	identity PythonDependencyProfileIdentity,
 	profileRoot string,
 	cacheRoot string,
-	replaceExisting bool,
 ) (PythonDependencyProfileStatus, error) {
 	uvVersion, err := run(ctx, "", nil, uvPath, "--version")
 	if err != nil {
@@ -308,92 +461,40 @@ func (m *Manager) materializePythonDependencyProfile(
 		return PythonDependencyProfileStatus{}, err
 	}
 	if _, err := verifyPythonDependencyProfile(ctx, run, stagingRoot, cacheRoot, uvPath, consumer, identity, false); err != nil {
-		return PythonDependencyProfileStatus{}, fmt.Errorf("verify staged python dependency profile: %w", err)
-	}
-	if replaceExisting {
-		return m.replacePythonDependencyProfile(
-			ctx,
-			run,
-			stagingRoot,
-			profileRoot,
-			cacheRoot,
-			uvPath,
-			consumer,
-			identity,
+		return PythonDependencyProfileStatus{}, fmt.Errorf(
+			"verify staged python dependency profile: %w",
+			newPythonDependencyProfileVerificationError(identity, stagingRoot, err),
 		)
 	}
-
 	if info, statErr := os.Lstat(profileRoot); statErr == nil {
 		if !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
 			return PythonDependencyProfileStatus{}, fmt.Errorf("concurrent python dependency profile promotion produced an invalid root at %s", profileRoot)
 		}
-		return verifyPythonDependencyProfile(ctx, run, profileRoot, cacheRoot, uvPath, consumer, identity, true)
+		status, verifyErr := verifyPythonDependencyProfile(ctx, run, profileRoot, cacheRoot, uvPath, consumer, identity, true)
+		if verifyErr != nil {
+			return PythonDependencyProfileStatus{}, newPythonDependencyProfileVerificationError(identity, profileRoot, verifyErr)
+		}
+		return status, nil
 	} else if !errors.Is(statErr, os.ErrNotExist) {
 		return PythonDependencyProfileStatus{}, fmt.Errorf("inspect python dependency profile promotion target %s: %w", profileRoot, statErr)
 	}
 	if err := os.Rename(stagingRoot, profileRoot); err != nil {
 		if info, statErr := os.Lstat(profileRoot); statErr == nil && info.IsDir() && info.Mode()&os.ModeSymlink == 0 {
-			return verifyPythonDependencyProfile(ctx, run, profileRoot, cacheRoot, uvPath, consumer, identity, true)
+			status, verifyErr := verifyPythonDependencyProfile(ctx, run, profileRoot, cacheRoot, uvPath, consumer, identity, true)
+			if verifyErr != nil {
+				return PythonDependencyProfileStatus{}, newPythonDependencyProfileVerificationError(identity, profileRoot, verifyErr)
+			}
+			return status, nil
 		}
 		return PythonDependencyProfileStatus{}, fmt.Errorf("atomically promote python dependency profile %s: %w", identity.ProfileDigest, err)
 	}
 	status, err := verifyPythonDependencyProfile(ctx, run, profileRoot, cacheRoot, uvPath, consumer, identity, false)
 	if err != nil {
+		failure := newPythonDependencyProfileVerificationError(identity, profileRoot, err)
 		if removeErr := os.RemoveAll(profileRoot); removeErr != nil {
-			return PythonDependencyProfileStatus{}, fmt.Errorf("verify promoted python dependency profile: %v; remove failed candidate: %w", err, removeErr)
+			return PythonDependencyProfileStatus{}, fmt.Errorf("verify promoted python dependency profile: %v; remove failed candidate: %w", failure, removeErr)
 		}
-		return PythonDependencyProfileStatus{}, fmt.Errorf("verify promoted python dependency profile: %w", err)
-	}
-	return status, nil
-}
-
-func (m *Manager) replacePythonDependencyProfile(
-	ctx context.Context,
-	run pythonDependencyProfileCommandRunner,
-	stagingRoot string,
-	profileRoot string,
-	cacheRoot string,
-	uvPath string,
-	consumer string,
-	identity PythonDependencyProfileIdentity,
-) (PythonDependencyProfileStatus, error) {
-	backupRoot := stagingRoot + ".previous"
-	if err := os.Rename(profileRoot, backupRoot); err != nil {
-		return PythonDependencyProfileStatus{}, fmt.Errorf("stage damaged python dependency profile for replacement: %w", err)
-	}
-	restorePrevious := func() error {
-		return os.Rename(backupRoot, profileRoot)
-	}
-	if err := os.Rename(stagingRoot, profileRoot); err != nil {
-		if restoreErr := restorePrevious(); restoreErr != nil {
-			return PythonDependencyProfileStatus{}, fmt.Errorf("promote rebuilt python dependency profile: %v; restore previous profile: %w", err, restoreErr)
-		}
-		return PythonDependencyProfileStatus{}, fmt.Errorf("promote rebuilt python dependency profile: %w", err)
-	}
-
-	status, verifyErr := verifyPythonDependencyProfile(ctx, run, profileRoot, cacheRoot, uvPath, consumer, identity, false)
-	if verifyErr != nil {
-		failedRoot := stagingRoot + ".failed"
-		if moveErr := os.Rename(profileRoot, failedRoot); moveErr != nil {
-			return PythonDependencyProfileStatus{}, fmt.Errorf("verify rebuilt python dependency profile: %v; preserve failed replacement: %w", verifyErr, moveErr)
-		}
-		if restoreErr := restorePrevious(); restoreErr != nil {
-			// Keep a canonical root present if restoring the previous profile
-			// itself fails. The returned error still fails the materializer job,
-			// and the previous profile remains preserved at backupRoot.
-			fallbackErr := os.Rename(failedRoot, profileRoot)
-			if fallbackErr != nil {
-				return PythonDependencyProfileStatus{}, fmt.Errorf("verify rebuilt python dependency profile: %v; restore previous profile: %v; restore failed replacement: %w", verifyErr, restoreErr, fallbackErr)
-			}
-			return PythonDependencyProfileStatus{}, fmt.Errorf("verify rebuilt python dependency profile: %v; restore previous profile: %w", verifyErr, restoreErr)
-		}
-		if removeErr := removePythonDependencyProfileTree(failedRoot); removeErr != nil {
-			m.logger.Warn("remove failed python dependency profile replacement", "path", failedRoot, "error", removeErr)
-		}
-		return PythonDependencyProfileStatus{}, fmt.Errorf("verify rebuilt python dependency profile: %w", verifyErr)
-	}
-	if removeErr := removePythonDependencyProfileTree(backupRoot); removeErr != nil {
-		m.logger.Warn("remove replaced python dependency profile", "path", backupRoot, "error", removeErr)
+		return PythonDependencyProfileStatus{}, fmt.Errorf("verify promoted python dependency profile: %w", failure)
 	}
 	return status, nil
 }
@@ -593,7 +694,14 @@ func VerifyPythonDependencyProfileStaticContent(profileRoot string, consumer str
 			return fmt.Errorf("read python dependency profile static file %s: %w", path, err)
 		}
 		if !bytes.Equal(content, file.Content) {
-			return fmt.Errorf("python dependency profile static content drift at %s", path)
+			return fmt.Errorf(
+				"python dependency profile static content drift at %s: expected_sha256=%s actual_sha256=%s expected_size=%d actual_size=%d",
+				path,
+				sha256Hex(file.Content),
+				sha256Hex(content),
+				len(file.Content),
+				len(content),
+			)
 		}
 	}
 	return nil
@@ -635,8 +743,14 @@ func verifyPythonDependencyProfileInputs(projectRoot string, identity PythonDepe
 		if err != nil {
 			return fmt.Errorf("read python dependency profile input %s: %w", path, err)
 		}
-		if !strings.EqualFold(sha256Hex(content), input.wantDigest) {
-			return fmt.Errorf("python dependency profile input digest drift at %s", path)
+		actualDigest := sha256Hex(content)
+		if !strings.EqualFold(actualDigest, input.wantDigest) {
+			return fmt.Errorf(
+				"python dependency profile input digest drift at %s: expected_sha256=%s actual_sha256=%s",
+				path,
+				strings.ToLower(strings.TrimSpace(input.wantDigest)),
+				actualDigest,
+			)
 		}
 		embedded, err := pythonDependencyProfileInput(identity.SourceLabel, input.name)
 		if err != nil {

@@ -1,4 +1,5 @@
 import type {
+  PortableAIProfileRecord,
   RuntimeTypedCallOptions,
 } from '../core-generated/runtime-typed-client';
 import {
@@ -16,15 +17,33 @@ import type {
 } from './first-party-protected-runtime-profiles.generated';
 import type { NimiRuntimeAgentAuthClient } from './runtime-agent-protected';
 import type { NimiRuntimeScenarioJobClient } from './scenario-jobs';
+import { withNimiRuntimeIdempotencyMetadata } from './scenario-jobs';
 import {
-  createNimiMachineLocalAIConfigurationClient,
-  type NimiMachineLocalAIConfigurationClient,
-} from './machine-local-ai-configuration.js';
-import { createNimiError, ReasonCode } from '../types/index.js';
+  createNimiMachineLoadoutClient,
+  type NimiMachineLoadoutClient,
+} from './machine-loadouts.js';
+import { createNimiClientId, createNimiError, extractNimiErrorFields, ReasonCode } from '../types/index.js';
 import {
   createNimiAppAIConfigClient,
   type NimiAppAIConfigClient,
 } from '../core/ai/capability-configuration';
+import {
+  parseNimiPortableAIProfile,
+  serializeNimiPortableAIProfile,
+  type NimiPortableAIProfile,
+  type NimiPortableAIProfileInput,
+} from '../core/ai/config-profile';
+
+export type NimiDesktopPortableAIProfileCatalogRecord = {
+  readonly source: NimiPortableAIProfile;
+  readonly artifactJson: string;
+  readonly record: PortableAIProfileRecord;
+};
+
+export type NimiDesktopPortableAIProfileCatalogClient = {
+  import(profile: NimiPortableAIProfileInput): Promise<NimiDesktopPortableAIProfileCatalogRecord>;
+  list(): Promise<readonly NimiDesktopPortableAIProfileCatalogRecord[]>;
+};
 
 export type NimiDesktopMachineProductRuntimeClient = {
   readonly local: Pick<DesktopMachineProductRuntimeMethods,
@@ -36,33 +55,24 @@ export type NimiDesktopMachineProductRuntimeClient = {
     | 'cancelLocalEnvironmentDependencyJob'
     | 'retryLocalEnvironmentDependencyJob'
     | 'repairLocalEnvironmentDependency'
-    | 'listLocalAssets'
-    | 'listNodeCatalog'
-    | 'removeLocalAsset'
-    | 'startLocalAsset'
-    | 'stopLocalAsset'
+    | 'resolveLocalStateReconciliation'
+    | 'importModelAsset'
+    | 'listModelAssets'
+    | 'getModelAsset'
+    | 'removeModelAsset'
     | 'listVerifiedAssets'
     | 'searchCatalogModels'
     | 'listCatalogVariants'
     | 'getRecommendationFeed'
     | 'resolveModelInstallPlan'
     | 'installModelFromPlan'
-    | 'installVerifiedAsset'
-    | 'importLocalAsset'
-    | 'importLocalAssetFile'
-    | 'importLocalAssetBundle'
-    | 'rescanLocalAssetBundle'
     | 'listLocalTransfers'
     | 'pauseLocalTransfer'
     | 'resumeLocalTransfer'
     | 'cancelLocalTransfer'
     | 'watchLocalTransfers'
-    | 'scanUnregisteredAssets'
-    | 'scaffoldOrphanAsset'
-    | 'resolveProfile'
-    | 'applyProfile'
     | 'listLocalAudits'> & {
-      readonly aiConfiguration: NimiMachineLocalAIConfigurationClient;
+      readonly loadouts: NimiMachineLoadoutClient;
     };
   readonly connectors: Pick<DesktopMachineProductRuntimeMethods,
     | 'listConnectors'
@@ -84,6 +94,7 @@ export type NimiDesktopMachineProductRuntimeClient = {
 
 export type NimiDesktopAccountProductRuntimeClient = {
   readonly appAIConfig: (appId: string) => NimiAppAIConfigClient;
+  readonly profiles: NimiDesktopPortableAIProfileCatalogClient;
   readonly agents: Pick<DesktopAccountProductRuntimeMethods,
     | 'listAgents'
     | 'getAgent'
@@ -223,7 +234,7 @@ export function createNimiDesktopFirstPartyRuntimeClients(
       source: 'sdk',
     });
   }
-  const machineLocalAIConfiguration = createNimiMachineLocalAIConfigurationClient({
+  const machineLoadouts = createNimiMachineLoadoutClient({
     runtime: machineProductRuntime,
   });
   const protectedAgent = <T extends RuntimeOperation>(operation: T): T => (
@@ -269,6 +280,70 @@ export function createNimiDesktopFirstPartyRuntimeClients(
       },
     },
   });
+  const profileContext = async () => {
+    const subjectUserId = String(await input.getSubjectUserId?.() || '').trim();
+    if (!subjectUserId) {
+      throw createNimiError({
+        message: 'Portable AIProfile catalog requires an authenticated account.',
+        reasonCode: ReasonCode.SDK_RUNTIME_APP_AUTH_SUBJECT_USER_ID_REQUIRED,
+        actionHint: 'authenticate_runtime_account',
+        source: 'sdk',
+      });
+    }
+    return {
+      appId: input.appId,
+      subjectUserId,
+      ownerUserId: subjectUserId,
+      runtimeSourceRef: '',
+      localAgentRef: '',
+    };
+  };
+  const portableProfileRecord = (record: PortableAIProfileRecord | undefined): NimiDesktopPortableAIProfileCatalogRecord => {
+    if (!record?.profileJson?.length) {
+      throw createNimiError({
+        message: 'Portable AIProfile catalog returned an invalid record.',
+        reasonCode: ReasonCode.SDK_RUNTIME_RESPONSE_DECODE_FAILED,
+        actionHint: 'inspect_runtime_ai_profile_catalog',
+        source: 'runtime',
+      });
+    }
+    const artifactJson = new TextDecoder().decode(record.profileJson);
+    const source = parseNimiPortableAIProfile(artifactJson);
+    if (source.profileId !== record.profileId || source.title !== record.title) {
+      throw createNimiError({
+        message: 'Portable AIProfile catalog record identity does not match its document.',
+        reasonCode: ReasonCode.SDK_RUNTIME_RESPONSE_DECODE_FAILED,
+        actionHint: 'inspect_runtime_ai_profile_catalog',
+        source: 'runtime',
+      });
+    }
+    return Object.freeze({ source, artifactJson, record });
+  };
+  // @nimi-authority: rule.nimi.runtime.local-compute.r028
+  const profiles: NimiDesktopPortableAIProfileCatalogClient = Object.freeze({
+    async import(profile) {
+      const source = parseNimiPortableAIProfile(profile);
+      const response = await runtime.agents.importPortableAIProfile({
+        context: await profileContext(),
+        profileJson: new TextEncoder().encode(serializeNimiPortableAIProfile(source)),
+      }, withNimiRuntimeIdempotencyMetadata({}, createNimiClientId('portable-ai-profile-import')));
+      return portableProfileRecord(response.profile);
+    },
+    async list() {
+      const response = await runtime.agents.listPortableAIProfiles({ context: await profileContext() });
+      const isolated: NimiDesktopPortableAIProfileCatalogRecord[] = [];
+      for (const record of response.profiles) {
+        try {
+          isolated.push(portableProfileRecord(record));
+        } catch (error) {
+          const reason = extractNimiErrorFields(error).reasonCode;
+          if (reason !== 'AI_PROFILE_INVALID' && reason !== ReasonCode.SDK_RUNTIME_RESPONSE_DECODE_FAILED) throw error;
+          // A malformed persisted sibling is not allowed to hide healthy Profile records.
+        }
+      }
+      return Object.freeze(isolated);
+    },
+  });
   return Object.freeze({
     machineProduct: Object.freeze({
       local: Object.freeze({
@@ -280,33 +355,24 @@ export function createNimiDesktopFirstPartyRuntimeClients(
         cancelLocalEnvironmentDependencyJob: runtime.local.cancelLocalEnvironmentDependencyJob,
         retryLocalEnvironmentDependencyJob: runtime.local.retryLocalEnvironmentDependencyJob,
         repairLocalEnvironmentDependency: runtime.local.repairLocalEnvironmentDependency,
-        listLocalAssets: runtime.local.listLocalAssets,
-        listNodeCatalog: runtime.local.listNodeCatalog,
-        removeLocalAsset: runtime.local.removeLocalAsset,
-        startLocalAsset: runtime.local.startLocalAsset,
-        stopLocalAsset: runtime.local.stopLocalAsset,
+        resolveLocalStateReconciliation: runtime.local.resolveLocalStateReconciliation,
+        importModelAsset: runtime.local.importModelAsset,
+        listModelAssets: runtime.local.listModelAssets,
+        getModelAsset: runtime.local.getModelAsset,
+        removeModelAsset: runtime.local.removeModelAsset,
         listVerifiedAssets: runtime.local.listVerifiedAssets,
         searchCatalogModels: runtime.local.searchCatalogModels,
         listCatalogVariants: runtime.local.listCatalogVariants,
         getRecommendationFeed: runtime.local.getRecommendationFeed,
         resolveModelInstallPlan: runtime.local.resolveModelInstallPlan,
         installModelFromPlan: runtime.local.installModelFromPlan,
-        installVerifiedAsset: runtime.local.installVerifiedAsset,
-        importLocalAsset: runtime.local.importLocalAsset,
-        importLocalAssetFile: runtime.local.importLocalAssetFile,
-        importLocalAssetBundle: runtime.local.importLocalAssetBundle,
-        rescanLocalAssetBundle: runtime.local.rescanLocalAssetBundle,
         listLocalTransfers: runtime.local.listLocalTransfers,
         pauseLocalTransfer: runtime.local.pauseLocalTransfer,
         resumeLocalTransfer: runtime.local.resumeLocalTransfer,
         cancelLocalTransfer: runtime.local.cancelLocalTransfer,
         watchLocalTransfers: runtime.local.watchLocalTransfers,
-        scanUnregisteredAssets: runtime.local.scanUnregisteredAssets,
-        scaffoldOrphanAsset: runtime.local.scaffoldOrphanAsset,
-        resolveProfile: runtime.local.resolveProfile,
-        applyProfile: runtime.local.applyProfile,
         listLocalAudits: runtime.local.listLocalAudits,
-        aiConfiguration: machineLocalAIConfiguration,
+        loadouts: machineLoadouts,
       }),
       connectors: Object.freeze({
         listConnectors: machineIntentRuntime.connectors.listConnectors,
@@ -332,6 +398,7 @@ export function createNimiDesktopFirstPartyRuntimeClients(
     }),
     accountProduct: Object.freeze({
       appAIConfig,
+      profiles,
       agents: accountAgents,
       connectors: Object.freeze({
         listModelCatalogProviders: runtime.connectors.listModelCatalogProviders,

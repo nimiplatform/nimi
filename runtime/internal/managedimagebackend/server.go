@@ -49,6 +49,7 @@ type imageGenerateState struct {
 	Dst            string
 	Src            string
 	Mask           string
+	ReferenceImage []byte
 	CFGScale       float32
 	Sampler        string
 	Scheduler      string
@@ -64,6 +65,8 @@ type managedImageOptions struct {
 	Components         []managedImageComponent
 	DiffusionFA        *bool
 	OffloadParamsToCPU *bool
+	FlowShift          float32
+	QwenImageZeroCondT bool
 }
 
 type managedImageComponent struct {

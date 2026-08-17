@@ -1,6 +1,7 @@
 package capabilitydriver
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -10,6 +11,7 @@ import (
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/ggufmeta"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -20,15 +22,44 @@ const llamaEmbedModelAlias = "nimi-selected-local-embedding"
 // process, endpoint, or fallback authority with the llama ExecutionHost.
 type LlamaEmbedDriver struct{}
 
-func (LlamaEmbedDriver) EffectiveRequestDefaults(*structpb.Struct) map[string]string {
+func (LlamaEmbedDriver) EffectiveRequestDefaults(string, *structpb.Struct) map[string]string {
 	return nil
+}
+
+func (driver LlamaEmbedDriver) ProjectRecipe(recipeID string, options *structpb.Struct, supportedFeatures []string) ([]*runtimev1.LocalCapabilityRequirement, runtimev1.LocalCapabilityReason) {
+	if len(driver.recipeModelArchitectures(recipeID, EmbeddingGGUFRequirementID)) == 0 {
+		return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_DRIVER_DIALECT_UNSUPPORTED
+	}
+	return driver.Interpret(InterpretInput{RecipeID: recipeID, PortableConfig: options, SupportedFeatures: supportedFeatures})
+}
+
+func (LlamaEmbedDriver) recipeModelArchitectures(recipeID string, slotID string) []string {
+	if strings.TrimSpace(recipeID) != LlamaEmbedGGUFRecipeID || slotID != EmbeddingGGUFRequirementID {
+		return nil
+	}
+	return []string{"bert", "nomic-bert", "qwen3"}
+}
+
+func (driver LlamaEmbedDriver) ProjectModelAssetBinding(input ModelAssetBindingInput) (ModelAssetBindingProjection, runtimev1.LocalCapabilityReason) {
+	probe := input.Entry.FormatProbe
+	if filepath.Ext(strings.ToLower(input.Entry.RelativePath)) != ".gguf" || len(probe) < 4 || len(probe) > MaxAssetFormatProbeBytes || !bytes.Equal(probe[:4], []byte("GGUF")) {
+		return ModelAssetBindingProjection{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE
+	}
+	summary, err := ggufmeta.InspectLLMMetadata(bytes.NewReader(probe))
+	if err != nil || !contains(driver.recipeModelArchitectures(input.RecipeID, EmbeddingGGUFRequirementID), ggufmeta.LLMDetectedArchitecture(summary)) {
+		return ModelAssetBindingProjection{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE
+	}
+	contextWindow, _ := ggufmeta.LLMContextLength(summary)
+	return validatedModelAssetBindingProjection(input, ModelAssetDescriptor{
+		Kind: runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_EMBEDDING, Engine: "llama", ArtifactRoles: []string{"embedding"}, FormatProbe: probe,
+	}, contextWindow, driver.ValidateBinding)
 }
 
 func (LlamaEmbedDriver) Interpret(input InterpretInput) ([]*runtimev1.LocalCapabilityRequirement, runtimev1.LocalCapabilityReason) {
 	if len(input.SupportedFeatures) != 0 {
 		return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_FEATURE_UNSUPPORTED
 	}
-	portable, reason := parsePortableConfig(input.PortableConfig, false)
+	_, reason := parsePortableConfig(input.PortableConfig, false)
 	if reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {
 		return nil, reason
 	}
@@ -36,8 +67,6 @@ func (LlamaEmbedDriver) Interpret(input InterpretInput) ([]*runtimev1.LocalCapab
 		EmbeddingGGUFRequirementID,
 		runtimev1.LocalCapabilityRequirementRole_LOCAL_CAPABILITY_REQUIREMENT_ROLE_MAIN,
 		"gguf",
-		portable.mainPolicy,
-		portable.mainVerifiedContentID,
 		"embedding",
 		"Embedding model",
 	)}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
@@ -45,22 +74,22 @@ func (LlamaEmbedDriver) Interpret(input InterpretInput) ([]*runtimev1.LocalCapab
 
 func (LlamaEmbedDriver) ValidateBinding(
 	requirement *runtimev1.LocalCapabilityRequirement,
-	binding *runtimev1.LocalAssetExactBinding,
-	asset AssetDescriptor,
+	binding *runtimev1.ModelAssetExactBinding,
+	asset ModelAssetDescriptor,
 ) runtimev1.LocalCapabilityReason {
 	if requirement == nil || binding == nil ||
 		requirement.GetRequirementId() != EmbeddingGGUFRequirementID ||
 		binding.GetRequirementId() != requirement.GetRequirementId() {
 		return runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_BINDING_AMBIGUOUS
 	}
-	if binding.GetLocalAssetId() == "" || asset.LocalAssetID == "" {
+	if binding.GetModelAssetId() == "" || asset.ModelAssetID == "" {
 		return runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_NOT_FOUND
 	}
 	if binding.GetVerifiedContentId() == "" || binding.GetEntrySha256() == "" ||
 		asset.VerifiedContentID == "" || asset.EntrySHA256 == "" {
 		return runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_CONTENT_UNVERIFIED
 	}
-	if binding.GetLocalAssetId() != asset.LocalAssetID ||
+	if binding.GetModelAssetId() != asset.ModelAssetID ||
 		binding.GetVerifiedContentId() != asset.VerifiedContentID ||
 		binding.GetEntrySha256() != asset.EntrySHA256 {
 		return runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_CONTENT_MISMATCH
@@ -69,17 +98,13 @@ func (LlamaEmbedDriver) ValidateBinding(
 		asset.Engine != "llama" || !contains(asset.ArtifactRoles, "embedding") {
 		return runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE
 	}
-	if requirement.GetPolicy() == runtimev1.LocalCapabilityRequirementPolicy_LOCAL_CAPABILITY_REQUIREMENT_POLICY_STRICT &&
-		binding.GetVerifiedContentId() != requirement.GetPreferredVerifiedContentId() {
-		return runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_CONTENT_MISMATCH
-	}
 	return runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
 }
 
 func (driver LlamaEmbedDriver) ValidateCombination(
 	requirements []*runtimev1.LocalCapabilityRequirement,
-	bindings []*runtimev1.LocalAssetExactBinding,
-	assets []AssetDescriptor,
+	bindings []*runtimev1.ModelAssetExactBinding,
+	assets []ModelAssetDescriptor,
 ) runtimev1.LocalCapabilityReason {
 	if len(requirements) != 1 {
 		if len(requirements) == 0 || len(bindings) < len(requirements) {
@@ -148,14 +173,14 @@ func (driver LlamaEmbedDriver) PlanEmbedInvocation(input EmbedInvocationInput) (
 		_, _ = hash.Write([]byte(arg))
 		_, _ = hash.Write([]byte{0})
 	}
-	for _, value := range []string{binding.LocalAssetID, binding.VerifiedContentID, binding.EntrySHA256} {
+	for _, value := range invocationExactBindingIdentity(binding) {
 		_, _ = hash.Write([]byte(value))
 		_, _ = hash.Write([]byte{0})
 	}
 	return &EmbedInvocationPlan{
 		processKey:    hex.EncodeToString(hash.Sum(nil)),
 		processArgs:   processArgs,
-		modelFiles:    []InvocationExactBinding{binding},
+		modelFiles:    cloneInvocationExactBindings([]InvocationExactBinding{binding}),
 		requestPath:   "/v1/embeddings",
 		requestBody:   requestBody,
 		expectedCount: inputCount,
@@ -168,14 +193,14 @@ func exactLlamaEmbedInvocationBinding(values []InvocationExactBinding) (Invocati
 	}
 	binding := values[0]
 	if binding.RequirementID != EmbeddingGGUFRequirementID ||
-		binding.LocalAssetID == "" || binding.LocalAssetID != strings.TrimSpace(binding.LocalAssetID) ||
+		binding.ModelAssetID == "" || binding.ModelAssetID != strings.TrimSpace(binding.ModelAssetID) ||
 		binding.VerifiedContentID == "" || binding.VerifiedContentID != strings.TrimSpace(binding.VerifiedContentID) ||
 		binding.EntrySHA256 == "" || binding.EntrySHA256 != strings.TrimSpace(binding.EntrySHA256) ||
 		!canonicalInvocationSHA256(binding.VerifiedContentID, binding.EntrySHA256) ||
 		!filepath.IsAbs(binding.AbsolutePath) || filepath.Clean(binding.AbsolutePath) != binding.AbsolutePath {
 		return InvocationExactBinding{}, fmt.Errorf("llama embedding invocation binding is not exact")
 	}
-	return binding, nil
+	return cloneInvocationExactBindings([]InvocationExactBinding{binding})[0], nil
 }
 
 func llamaEmbedRequestBody(spec *runtimev1.TextEmbedScenarioSpec) ([]byte, int, error) {

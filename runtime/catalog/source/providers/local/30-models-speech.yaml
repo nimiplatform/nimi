@@ -35,35 +35,6 @@
 #     fitness:
 #       param_count: <int>
 #       context_length: <int>
-#
-# CURATED PRESETS SCHEMA (K-MCAT-033 — authoring contract, populated in
-# wave-1/wave-2). A top-level `presets:` section associates portable factory
-# AIProfile recommendations with concrete model slots for a later explicit
-# Local AI action. The preset tier keys are `minimal` and `recommended`.
-# Neither the preset nor the Profile installs, binds, selects, probes, or
-# establishes readiness. `text.embed` is deliberately not a preset slot:
-#
-#   presets:
-#     minimal:
-#       factory_aiprofile_alias: local-speech
-#       slots:
-#         - { slot: chat,  capability: text.generate,    model_ref: <model_id>, required: true }
-#         - { slot: stt,   capability: audio.transcribe, model_ref: <model_id>, required: true }
-#         - { slot: tts,   capability: audio.synthesize, model_ref: <model_id>, required: true }
-#     recommended:
-#       factory_aiprofile_alias: local-gpu
-#       slots:
-#         - { slot: chat,  capability: text.generate,    model_ref: <model_id>, required: true }
-#         - { slot: stt,   capability: audio.transcribe, model_ref: <model_id>, required: true }
-#         - { slot: tts,   capability: audio.synthesize, model_ref: <model_id>, required: true }
-#         - { slot: image, capability: image.generate,   model_ref: <model_id>, required: false, host_conditional: true }
-#
-# Each slot.model_ref must resolve to an admitted models[] row whose
-# capabilities include slot.capability. Each preset's declared capability set
-# must be a subset of the bound factory AIProfile's capability_set. The
-# deterministic resolver (K-MCAT-034..037) resolves
-# (preset_tier, host_posture) over this catalog into variant-level asset ids.
-# Catalog rows are populated in wave-1 (text/speech) and wave-2 (image/gpu).
 models:
   - model_id: qwen3-tts-local
     updated_at: 2026-05-21

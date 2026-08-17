@@ -13,7 +13,7 @@ import (
 const (
 	ManagedPythonVersion        = "3.12.13"
 	ManagedPythonABI            = "cp312"
-	speechDriverProtocolVersion = "speech-http-v1"
+	speechDriverProtocolVersion = "speech-http-v3"
 	mediaDriverProtocolVersion  = "nimi-media/0.2"
 )
 

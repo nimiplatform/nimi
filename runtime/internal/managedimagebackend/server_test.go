@@ -418,6 +418,26 @@ func TestStableDiffusionCPPResidentStartupArgsIncludeUncondDiffusionModel(t *tes
 	}
 }
 
+func TestStableDiffusionCPPResidentStartupArgsCloseQwenEditLoadContract(t *testing.T) {
+	modelPath, _ := writeManagedImageModelFixtures(t)
+	args, err := stableDiffusionCPPResidentStartupArgs(stableDiffusionCPPResidentConfig{
+		ModelPath: modelPath,
+		FlowShift: 3, QwenImageZeroCondT: true,
+	}, 8188)
+	if err != nil {
+		t.Fatal(err)
+	}
+	joined := strings.Join(args, " ")
+	for _, want := range []string{
+		"--flow-shift 3",
+		"--model-args qwen_image_zero_cond_t=true",
+	} {
+		if !strings.Contains(joined, want) {
+			t.Fatalf("Qwen edit startup args %q omit %q", joined, want)
+		}
+	}
+}
+
 func TestStableDiffusionCPPResidentStartupArgsRejectsInvalidComponents(t *testing.T) {
 	modelPath, _ := writeManagedImageModelFixtures(t)
 	cases := []struct {
@@ -860,6 +880,29 @@ func TestBuildStableDiffusionCPPGenerateRequestPreservesExplicitZeroOptions(t *t
 	}
 	if got, ok := payload["seed"]; !ok || got != int32(0) {
 		t.Fatalf("expected explicit seed=0, got value=%v present=%t", got, ok)
+	}
+}
+
+func TestBuildStableDiffusionCPPGenerateRequestUsesReferenceCarrierForInstructionEdit(t *testing.T) {
+	sourceImage := []byte("source-image")
+	path, payload, err := buildStableDiffusionCPPGenerateRequest(loadModelState{}, imageGenerateState{
+		Mode: ImageRequestModeInstructionEdit, ReferenceImage: sourceImage, PositivePrompt: "make it dusk",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if path != "/sdapi/v1/txt2img" {
+		t.Fatalf("instruction edit path = %q", path)
+	}
+	extra, ok := payload["extra_images"].([]string)
+	if !ok || len(extra) != 1 || extra[0] != base64.StdEncoding.EncodeToString(sourceImage) {
+		t.Fatalf("instruction edit reference payload = %#v", payload)
+	}
+	if _, exists := payload["init_images"]; exists {
+		t.Fatalf("instruction edit leaked img2img carrier: %#v", payload)
+	}
+	if _, exists := payload["mask"]; exists {
+		t.Fatalf("instruction edit leaked mask carrier: %#v", payload)
 	}
 }
 

@@ -26,7 +26,7 @@ func TestQwen3TTSListsPresetVoicesFromExactSelectedModel(t *testing.T) {
 	}
 	digest := strings.Repeat("a", 64)
 	voices, err := (Qwen3TTSDriver{}).ListPresetVoices([]InvocationExactBinding{{
-		RequirementID: Qwen3TTSModelRequirementID, AssetID: "local.tts.qwen3", LocalAssetID: "asset-1",
+		RequirementID: Qwen3TTSModelRequirementID, ModelAssetID: "asset-1",
 		AbsolutePath: entry, VerifiedContentID: "sha256:" + digest, EntrySHA256: digest,
 	}})
 	if err != nil {
@@ -67,12 +67,45 @@ func TestQwen3SpeechProductionRegistryProjectsExactAssetKinds(t *testing.T) {
 			if reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED || len(requirements) != 1 || requirements[0].GetRequirementId() != test.requirement || requirements[0].GetResourceKind() != test.resourceKind {
 				t.Fatalf("Interpret reason=%v requirements=%+v", reason, requirements)
 			}
-			binding := &runtimev1.LocalAssetExactBinding{RequirementId: test.requirement, LocalAssetId: "asset", VerifiedContentId: "sha256:" + strings.Repeat("a", 64), EntrySha256: strings.Repeat("a", 64)}
-			asset := AssetDescriptor{LocalAssetID: "asset", VerifiedContentID: binding.GetVerifiedContentId(), EntrySHA256: binding.GetEntrySha256(), Kind: test.assetKind, Engine: "speech", ArtifactRoles: []string{test.artifactRole}}
+			binding := &runtimev1.ModelAssetExactBinding{RequirementId: test.requirement, ModelAssetId: "asset", VerifiedContentId: "sha256:" + strings.Repeat("a", 64), EntrySha256: strings.Repeat("a", 64)}
+			asset := ModelAssetDescriptor{ModelAssetID: "asset", VerifiedContentID: binding.GetVerifiedContentId(), EntrySHA256: binding.GetEntrySha256(), Kind: test.assetKind, Engine: "speech", ArtifactRoles: []string{test.artifactRole}}
 			if reason := driver.ValidateBinding(requirements[0], binding, asset); reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {
 				t.Fatalf("ValidateBinding reason=%v", reason)
 			}
+			projection, reason := driver.ProjectModelAssetBinding(ModelAssetBindingInput{
+				Requirement: requirements[0], Binding: binding,
+				Entry: ModelAssetFileFact{RelativePath: "model.safetensors", SizeBytes: 64, FormatProbe: safetensorsProbeForTest([]byte(`{"model.weight":{"dtype":"F16","shape":[1],"data_offsets":[0,2]}}`))},
+			})
+			if reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED || projection.Descriptor.Kind != test.assetKind ||
+				projection.Descriptor.ModelAssetID != binding.GetModelAssetId() || !contains(projection.Descriptor.ArtifactRoles, test.artifactRole) {
+				t.Fatalf("ProjectModelAssetBinding reason=%v projection=%+v", reason, projection)
+			}
 		})
+	}
+}
+
+func TestQwen3VoiceCreateProjectsOnlyMatchingDataRecipes(t *testing.T) {
+	driver := Qwen3VoiceCreateDriver{}
+	for _, test := range []struct {
+		recipeID string
+		feature  string
+		role     string
+	}{
+		{recipeID: Qwen3VoiceCloneRecipeID, feature: "input.audio", role: Qwen3VoiceCloneArtifactRole},
+		{recipeID: Qwen3VoiceDesignRecipeID, feature: "input.text", role: Qwen3VoiceDesignArtifactRole},
+	} {
+		requirements, reason := driver.ProjectRecipe(test.recipeID, nil, []string{test.feature})
+		if reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED || len(requirements) != 1 ||
+			requirements[0].GetRequirementId() != Qwen3VoiceCreateModelRequirementID ||
+			requirements[0].GetCompatibilityConstraints().GetFields()["artifact_role"].GetStringValue() != test.role {
+			t.Fatalf("ProjectRecipe(%q) reason=%v requirements=%+v", test.recipeID, reason, requirements)
+		}
+	}
+	if _, reason := driver.ProjectRecipe(Qwen3VoiceCloneRecipeID, nil, []string{"input.text"}); reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_FEATURE_UNSUPPORTED {
+		t.Fatalf("clone recipe admitted design feature: %v", reason)
+	}
+	if _, reason := driver.ProjectRecipe("unknown", nil, []string{"input.audio"}); reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_PORTABLE_CONFIG_INVALID {
+		t.Fatalf("unknown voice recipe reason=%v", reason)
 	}
 }
 
@@ -80,8 +113,7 @@ func TestQwen3VoiceCreatePlansTypedSourceWithoutChangingSelection(t *testing.T) 
 	digest := strings.Repeat("e", 64)
 	binding := InvocationExactBinding{
 		RequirementID:     Qwen3VoiceCreateModelRequirementID,
-		AssetID:           "catalog/qwen3-voice",
-		LocalAssetID:      "local-qwen3-voice",
+		ModelAssetID:      "catalog/qwen3-voice",
 		AbsolutePath:      filepath.Join(t.TempDir(), "model.safetensors"),
 		VerifiedContentID: "sha256:" + digest,
 		EntrySHA256:       digest,
@@ -98,7 +130,7 @@ func TestQwen3VoiceCreatePlansTypedSourceWithoutChangingSelection(t *testing.T) 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			plan, err := (Qwen3VoiceCreateDriver{}).PlanVoiceCreateInvocation(VoiceCreateInvocationInput{ExactBindings: []InvocationExactBinding{binding}, SupportedFeatures: []string{test.feature}, Request: test.request})
-			if err != nil || plan == nil || plan.ModelAssetID() != binding.AssetID || plan.DriverID() != Qwen3TTSDriverID || plan.SourceFeature() != test.feature || plan.WorkflowModelID() != test.workflowModelID {
+			if err != nil || plan == nil || plan.ModelAssetID() != binding.ModelAssetID || plan.DriverID() != Qwen3TTSDriverID || plan.SourceFeature() != test.feature || plan.WorkflowModelID() != test.workflowModelID {
 				t.Fatalf("plan=%+v error=%v", plan, err)
 			}
 		})
@@ -112,7 +144,7 @@ func TestQwen3VoiceCreatePlansTypedSourceWithoutChangingSelection(t *testing.T) 
 func TestQwen3SpeechPlansCaptureExactModelAndAudio(t *testing.T) {
 	digest := strings.Repeat("b", 64)
 	root := t.TempDir()
-	ttsBinding := InvocationExactBinding{RequirementID: Qwen3TTSModelRequirementID, AssetID: "catalog/tts-model", LocalAssetID: "tts-asset", AbsolutePath: filepath.Join(root, "tts", "model.safetensors"), VerifiedContentID: "sha256:" + digest, EntrySHA256: digest}
+	ttsBinding := InvocationExactBinding{RequirementID: Qwen3TTSModelRequirementID, ModelAssetID: "catalog/tts-model", AbsolutePath: filepath.Join(root, "tts", "model.safetensors"), VerifiedContentID: "sha256:" + digest, EntrySHA256: digest}
 	ttsPlan, err := (Qwen3TTSDriver{}).PlanSpeechSynthesizeInvocation(SpeechSynthesizeInvocationInput{
 		ExactBindings: []InvocationExactBinding{ttsBinding},
 		Request: &runtimev1.SpeechSynthesizeScenarioSpec{
@@ -128,7 +160,7 @@ func TestQwen3SpeechPlansCaptureExactModelAndAudio(t *testing.T) {
 	}
 
 	audio := []byte("captured-audio")
-	asrBinding := InvocationExactBinding{RequirementID: Qwen3ASRModelRequirementID, AssetID: "catalog/asr-model", LocalAssetID: "asr-asset", AbsolutePath: filepath.Join(root, "asr", "model.safetensors"), VerifiedContentID: "sha256:" + digest, EntrySHA256: digest}
+	asrBinding := InvocationExactBinding{RequirementID: Qwen3ASRModelRequirementID, ModelAssetID: "catalog/asr-model", AbsolutePath: filepath.Join(root, "asr", "model.safetensors"), VerifiedContentID: "sha256:" + digest, EntrySHA256: digest}
 	asrPlan, err := (Qwen3ASRDriver{}).PlanSpeechTranscribeInvocation(SpeechTranscribeInvocationInput{
 		ExactBindings: []InvocationExactBinding{asrBinding},
 		Request:       &runtimev1.SpeechTranscribeScenarioSpec{MimeType: "audio/wav"},
@@ -153,7 +185,7 @@ func TestQwen3SpeechPlansCaptureExactModelAndAudio(t *testing.T) {
 func TestQwen3SpeechDriversFailClosedOnUnimplementedOptions(t *testing.T) {
 	digest := strings.Repeat("c", 64)
 	root := t.TempDir()
-	ttsBinding := InvocationExactBinding{RequirementID: Qwen3TTSModelRequirementID, AssetID: "catalog/tts", LocalAssetID: "tts", AbsolutePath: filepath.Join(root, "tts.safetensors"), VerifiedContentID: "sha256:" + digest, EntrySHA256: digest}
+	ttsBinding := InvocationExactBinding{RequirementID: Qwen3TTSModelRequirementID, ModelAssetID: "catalog/tts", AbsolutePath: filepath.Join(root, "tts.safetensors"), VerifiedContentID: "sha256:" + digest, EntrySHA256: digest}
 	_, err := (Qwen3TTSDriver{}).PlanSpeechSynthesizeInvocation(SpeechSynthesizeInvocationInput{
 		ExactBindings: []InvocationExactBinding{ttsBinding},
 		Request:       &runtimev1.SpeechSynthesizeScenarioSpec{Text: "hello", Speed: testFloat32(1)},
@@ -174,7 +206,7 @@ func TestQwen3SpeechDriversFailClosedOnUnimplementedOptions(t *testing.T) {
 		t.Fatalf("TTS voice asset error=%T %v", err, err)
 	}
 	_, err = (Qwen3ASRDriver{}).PlanSpeechTranscribeInvocation(SpeechTranscribeInvocationInput{
-		ExactBindings: []InvocationExactBinding{{RequirementID: Qwen3ASRModelRequirementID, AssetID: "catalog/asr", LocalAssetID: "asr", AbsolutePath: filepath.Join(root, "asr.safetensors"), VerifiedContentID: "sha256:" + digest, EntrySHA256: digest}},
+		ExactBindings: []InvocationExactBinding{{RequirementID: Qwen3ASRModelRequirementID, ModelAssetID: "catalog/asr", AbsolutePath: filepath.Join(root, "asr.safetensors"), VerifiedContentID: "sha256:" + digest, EntrySHA256: digest}},
 		Request:       &runtimev1.SpeechTranscribeScenarioSpec{Diarization: testBool(true)},
 		AudioBytes:    []byte("audio"),
 	})
@@ -183,12 +215,35 @@ func TestQwen3SpeechDriversFailClosedOnUnimplementedOptions(t *testing.T) {
 	}
 }
 
+func TestQwen3ASRDriversRejectTimestampsAtAdmission(t *testing.T) {
+	digest := strings.Repeat("d", 64)
+	binding := InvocationExactBinding{
+		RequirementID: Qwen3ASRModelRequirementID, ModelAssetID: "catalog/asr",
+		AbsolutePath: filepath.Join(t.TempDir(), "asr.safetensors"), VerifiedContentID: "sha256:" + digest, EntrySHA256: digest,
+	}
+	for _, test := range []struct {
+		name string
+		plan func(SpeechTranscribeInvocationInput) (*SpeechTranscribeInvocationPlan, error)
+	}{
+		{name: "package-native", plan: (Qwen3ASRDriver{}).PlanSpeechTranscribeInvocation},
+		{name: "transformers-native", plan: (Qwen3ASRTransformersDriver{}).PlanSpeechTranscribeInvocation},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			_, err := test.plan(SpeechTranscribeInvocationInput{
+				ExactBindings: []InvocationExactBinding{binding}, Request: &runtimev1.SpeechTranscribeScenarioSpec{Timestamps: testBool(true)}, AudioBytes: []byte("audio"),
+			})
+			if invocation, ok := err.(*InvocationError); !ok || invocation.Kind != InvocationFailureUnsupported {
+				t.Fatalf("timestamps admission error=%T %v", err, err)
+			}
+		})
+	}
+}
+
 func TestQwen3ASRDriversRejectJSONResponseFormat(t *testing.T) {
 	digest := strings.Repeat("d", 64)
 	binding := InvocationExactBinding{
 		RequirementID:     Qwen3ASRModelRequirementID,
-		AssetID:           "catalog/asr",
-		LocalAssetID:      "asr",
+		ModelAssetID:      "catalog/asr",
 		AbsolutePath:      filepath.Join(t.TempDir(), "asr.safetensors"),
 		VerifiedContentID: "sha256:" + digest,
 		EntrySHA256:       digest,

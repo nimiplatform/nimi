@@ -10,9 +10,7 @@ import sys
 from typing import Any
 
 
-DEFAULT_ASR_MODEL = "Qwen/Qwen3-ASR-0.6B"
 DEFAULT_MAX_NEW_TOKENS = 256
-DEFAULT_FORCED_ALIGNER = "Qwen/Qwen3-ForcedAligner-0.6B"
 _MODEL_CACHE: dict[tuple[str, bool, str, str], Any] = {}
 
 
@@ -87,16 +85,11 @@ def local_bundle_model_ref(request: dict[str, Any]) -> str:
     return str(bundle_path)
 
 
-def resolve_model_ref(request: dict[str, Any], cli_default: str) -> str:
-    if isinstance(request.get("model_ref"), str) and str(request["model_ref"]).strip():
-        return str(request["model_ref"]).strip()
-    entry_payload = load_entry_payload(optional_string(request, "entry_path"))
-    if isinstance(entry_payload.get("model_ref"), str) and str(entry_payload["model_ref"]).strip():
-        return str(entry_payload["model_ref"]).strip()
+def resolve_model_ref(request: dict[str, Any], _cli_default: str) -> str:
     bundle_ref = local_bundle_model_ref(request)
     if bundle_ref:
         return bundle_ref
-    return str(cli_default or DEFAULT_ASR_MODEL).strip() or DEFAULT_ASR_MODEL
+    fail("qwen3_asr requires a runtime-captured managed bundle")
 
 
 def qwen3_asr_device_map() -> str:
@@ -202,12 +195,6 @@ def allow_empty_transcript(request: dict[str, Any]) -> bool:
     return is_first_run_probe and allow_empty
 
 
-def forced_aligner_model(return_time_stamps: bool) -> str:
-    if not return_time_stamps:
-        return ""
-    return str(os.environ.get("NIMI_RUNTIME_SPEECH_QWEN3_ASR_FORCED_ALIGNER") or "").strip() or DEFAULT_FORCED_ALIGNER
-
-
 def qwen3_asr_backend_name() -> str:
     return str(os.environ.get("NIMI_RUNTIME_SPEECH_QWEN3_ASR_BACKEND") or "").strip() or "qwen_asr"
 
@@ -219,6 +206,8 @@ def cache_key(model_ref: str, return_time_stamps: bool) -> tuple[str, bool, str,
 
 
 def load_qwen3_asr_model(model_ref: str, return_time_stamps: bool):
+    if return_time_stamps:
+        fail("qwen3_asr timestamps require an explicitly captured local aligner and are not admitted")
     ensure_qwen_asr_importable()
     key = cache_key(model_ref, return_time_stamps)
     cached = _MODEL_CACHE.get(key)
@@ -233,13 +222,6 @@ def load_qwen3_asr_model(model_ref: str, return_time_stamps: bool):
         "device_map": qwen3_asr_device_map(),
         "max_new_tokens": max_new_tokens(),
     }
-    forced_aligner = forced_aligner_model(return_time_stamps)
-    if forced_aligner:
-        kwargs["forced_aligner"] = forced_aligner
-        kwargs["forced_aligner_kwargs"] = {
-            "dtype": qwen3_asr_dtype(),
-            "device_map": qwen3_asr_device_map(),
-        }
     try:
         model = Qwen3ASRModel.from_pretrained(model_ref, **kwargs)
     except Exception as error:
@@ -292,8 +274,10 @@ def handle_transcribe(request: dict[str, Any], cli_default_model: str) -> dict[s
     if not pathlib.Path(audio_path).exists():
         fail(f"audio_path does not exist: {audio_path}")
     return_time_stamps = bool_request(request, "timestamps")
+    if return_time_stamps:
+        fail("qwen3_asr timestamps require an explicitly captured local aligner and are not admitted")
     model_ref = resolve_model_ref(request, cli_default_model)
-    model = load_qwen3_asr_model(model_ref, return_time_stamps)
+    model = load_qwen3_asr_model(model_ref, False)
     language = normalized_language(optional_string(request, "language"))
     try:
         results = model.transcribe(
@@ -347,7 +331,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--request", required=True)
     parser.add_argument("--response", required=True)
-    parser.add_argument("--model", default=DEFAULT_ASR_MODEL)
+    parser.add_argument("--model", default="")
     return parser.parse_args()
 
 
@@ -355,7 +339,7 @@ def main() -> int:
     args = parse_args()
     try:
         request = read_json(args.request)
-        response = handle_request(request, str(args.model).strip() or DEFAULT_ASR_MODEL)
+        response = handle_request(request, str(args.model).strip())
         write_json(args.response, response)
         return 0
     except Exception as error:

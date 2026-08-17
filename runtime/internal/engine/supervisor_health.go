@@ -65,7 +65,7 @@ func waitSupervisorHealthy(ctx context.Context, cfg EngineConfig, interval time.
 			return WaitMediaHealthy(ctx, cfg.Endpoint(), interval, cfg.StartupTimeout)
 		}
 		if cfg.Kind == EngineSpeech {
-			return WaitSpeechHealthy(ctx, cfg.Endpoint(), interval, cfg.StartupTimeout)
+			return waitSpeechHealthy(ctx, cfg.Endpoint(), interval, cfg.StartupTimeout, speechHealthDriverForConfig(cfg))
 		}
 		return WaitHealthy(ctx, cfg.Endpoint(), cfg.HealthPath, cfg.HealthResponse, interval, cfg.StartupTimeout)
 	}
@@ -118,10 +118,14 @@ func probeSupervisorHealth(ctx context.Context, cfg EngineConfig) error {
 			return ProbeMediaHealth(ctx, cfg.Endpoint())
 		}
 		if cfg.Kind == EngineSpeech {
-			return ProbeSpeechHealth(ctx, cfg.Endpoint())
+			return probeSpeechHealth(ctx, cfg.Endpoint(), speechHealthDriverForConfig(cfg))
 		}
 		return ProbeHealth(ctx, cfg.Endpoint(), cfg.HealthPath, cfg.HealthResponse)
 	}
+}
+
+func speechHealthDriverForConfig(cfg EngineConfig) SpeechDriver {
+	return SpeechDriver(strings.TrimSpace(string(cfg.SpeechRequiredDriver)))
 }
 
 func minDuration(left time.Duration, right time.Duration) time.Duration {

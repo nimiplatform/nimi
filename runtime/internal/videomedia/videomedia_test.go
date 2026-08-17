@@ -144,13 +144,13 @@ func videoPlanForTest(t *testing.T, frameCount int, returnLastFrame bool) *capab
 		digestBytes := sha256.Sum256([]byte(requirement))
 		digest := hex.EncodeToString(digestBytes[:])
 		bindings = append(bindings, capabilitydriver.InvocationExactBinding{
-			RequirementID: requirement, LocalAssetID: "asset-" + requirement,
+			RequirementID: requirement, ModelAssetID: "asset-" + requirement,
 			AbsolutePath:      filepath.Join(root, "model-"+string(rune('a'+index))+".bin"),
 			VerifiedContentID: "sha256:" + digest, EntrySHA256: digest,
 		})
 	}
 	plan, err := (capabilitydriver.StableDiffusionVideoDriver{}).PlanVideoInvocation(capabilitydriver.VideoInvocationInput{
-		ConfigurationID: "video-media-test", ExactBindings: bindings,
+		LoadoutID: "video-media-test", ExactBindings: bindings,
 		Request: capabilitydriver.VideoInvocationRequest{
 			Prompt: "a test clip", Width: 64, Height: 64, FrameCount: frameCount, FPS: 24,
 			GenerateAudio: true, ReturnLastFrame: returnLastFrame,

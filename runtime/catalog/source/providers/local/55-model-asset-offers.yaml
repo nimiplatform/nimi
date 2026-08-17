@@ -1,0 +1,324 @@
+# Independent passive ModelAsset offers. Recipe slot metadata may recommend
+# their variant IDs; no row has a parent model, inherited binding, or download claim.
+models:
+  - model_id: asset-image-vae-z-image-ae-f16-cuda
+    model_type: vae
+    family: flux1-vae
+    updated_at: 2026-08-14
+    capabilities: []
+    install:
+      repo: Comfy-Org/z_image_turbo
+      revision: 2f862278568d3f0a83167a16e5f11094da6dee72
+      install_kind: weights
+      entry: split_files/vae/ae.safetensors
+      artifact_roles:
+        - vae
+    variants:
+      - variant_id: local.image-vae.z-image-ae.f16.cuda
+        quant: F16
+        entry: split_files/vae/ae.safetensors
+        files:
+          - split_files/vae/ae.safetensors
+        hashes:
+          split_files/vae/ae.safetensors: sha256:afc8e28272cd15db3919bacdb6918ce9c1ed22e96cb12c4d5ed0fba823529e38
+        total_size_bytes: 335304388
+        host_requirement:
+          accelerator: cuda
+          min_ram_bytes: 8589934592
+          min_vram_bytes: 4294967296
+      - variant_id: local.image-vae.z-image-ae.f16.metal
+        quant: F16
+        entry: split_files/vae/ae.safetensors
+        files:
+          - split_files/vae/ae.safetensors
+        hashes:
+          split_files/vae/ae.safetensors: sha256:afc8e28272cd15db3919bacdb6918ce9c1ed22e96cb12c4d5ed0fba823529e38
+        total_size_bytes: 335304388
+        host_requirement:
+          accelerator: metal
+          min_ram_bytes: 8589934592
+          min_vram_bytes: 4294967296
+  - model_id: asset-image-textenc-qwen3-4b-instruct-2507-q4-k-m-cuda
+    model_type: auxiliary
+    family: qwen
+    updated_at: 2026-08-14
+    capabilities: []
+    install:
+      repo: unsloth/Qwen3-4B-Instruct-2507-GGUF
+      revision: a06e946bb6b655725eafa393f4a9745d460374c9
+      install_kind: weights
+      entry: Qwen3-4B-Instruct-2507-Q4_K_M.gguf
+      artifact_roles:
+        - text_encoder
+    variants:
+      - variant_id: local.image-textenc.qwen3-4b-instruct-2507.q4-k-m.cuda
+        quant: Q4_K_M
+        entry: Qwen3-4B-Instruct-2507-Q4_K_M.gguf
+        files:
+          - Qwen3-4B-Instruct-2507-Q4_K_M.gguf
+        hashes:
+          Qwen3-4B-Instruct-2507-Q4_K_M.gguf: sha256:3605803b982cb64aead44f6c1b2ae36e3acdb41d8e46c8a94c6533bc4c67e597
+        total_size_bytes: 2497281120
+        host_requirement:
+          accelerator: cuda
+          min_ram_bytes: 8589934592
+          min_vram_bytes: 4294967296
+      - variant_id: local.image-textenc.qwen3-4b-instruct-2507.q4-k-m.metal
+        quant: Q4_K_M
+        entry: Qwen3-4B-Instruct-2507-Q4_K_M.gguf
+        files:
+          - Qwen3-4B-Instruct-2507-Q4_K_M.gguf
+        hashes:
+          Qwen3-4B-Instruct-2507-Q4_K_M.gguf: sha256:3605803b982cb64aead44f6c1b2ae36e3acdb41d8e46c8a94c6533bc4c67e597
+        total_size_bytes: 2497281120
+        host_requirement:
+          accelerator: metal
+          min_ram_bytes: 8589934592
+          min_vram_bytes: 4294967296
+      - variant_id: local.image-textenc.qwen3-4b-instruct-2507.q5-k-m.cuda
+        quant: Q5_K_M
+        entry: Qwen3-4B-Instruct-2507-Q5_K_M.gguf
+        files:
+          - Qwen3-4B-Instruct-2507-Q5_K_M.gguf
+        hashes:
+          Qwen3-4B-Instruct-2507-Q5_K_M.gguf: sha256:5bde5e9d883622acb02bf77fe7dcbc56a8b9a9ad4be78a72ca23a532658b4ecb
+        total_size_bytes: 2889514080
+        host_requirement:
+          accelerator: cuda
+          min_ram_bytes: 10737418240
+          min_vram_bytes: 5368709120
+      - variant_id: local.image-textenc.qwen3-4b-instruct-2507.q5-k-m.metal
+        quant: Q5_K_M
+        entry: Qwen3-4B-Instruct-2507-Q5_K_M.gguf
+        files:
+          - Qwen3-4B-Instruct-2507-Q5_K_M.gguf
+        hashes:
+          Qwen3-4B-Instruct-2507-Q5_K_M.gguf: sha256:5bde5e9d883622acb02bf77fe7dcbc56a8b9a9ad4be78a72ca23a532658b4ecb
+        total_size_bytes: 2889514080
+        host_requirement:
+          accelerator: metal
+          min_ram_bytes: 10737418240
+          min_vram_bytes: 5368709120
+      - variant_id: local.image-textenc.qwen3-4b-instruct-2507.q6-k.cuda
+        quant: Q6_K
+        entry: Qwen3-4B-Instruct-2507-Q6_K.gguf
+        files:
+          - Qwen3-4B-Instruct-2507-Q6_K.gguf
+        hashes:
+          Qwen3-4B-Instruct-2507-Q6_K.gguf: sha256:cd7b21b38b3e71400587c184b6a9b04d3beb4d13fdae6464d4075dee4f1bc5ad
+        total_size_bytes: 3306261600
+        host_requirement:
+          accelerator: cuda
+          min_ram_bytes: 10737418240
+          min_vram_bytes: 6442450944
+      - variant_id: local.image-textenc.qwen3-4b-instruct-2507.q6-k.metal
+        quant: Q6_K
+        entry: Qwen3-4B-Instruct-2507-Q6_K.gguf
+        files:
+          - Qwen3-4B-Instruct-2507-Q6_K.gguf
+        hashes:
+          Qwen3-4B-Instruct-2507-Q6_K.gguf: sha256:cd7b21b38b3e71400587c184b6a9b04d3beb4d13fdae6464d4075dee4f1bc5ad
+        total_size_bytes: 3306261600
+        host_requirement:
+          accelerator: metal
+          min_ram_bytes: 10737418240
+          min_vram_bytes: 6442450944
+      - variant_id: local.image-textenc.qwen3-4b-instruct-2507.q8-0.cuda
+        quant: Q8_0
+        entry: Qwen3-4B-Instruct-2507-Q8_0.gguf
+        files:
+          - Qwen3-4B-Instruct-2507-Q8_0.gguf
+        hashes:
+          Qwen3-4B-Instruct-2507-Q8_0.gguf: sha256:391c1e410fd9f4cf2de2b510273b56a84c19ce18f4fa3bfb3774031dac4ef068
+        total_size_bytes: 4280405600
+        host_requirement:
+          accelerator: cuda
+          min_ram_bytes: 12884901888
+          min_vram_bytes: 8589934592
+      - variant_id: local.image-textenc.qwen3-4b-instruct-2507.q8-0.metal
+        quant: Q8_0
+        entry: Qwen3-4B-Instruct-2507-Q8_0.gguf
+        files:
+          - Qwen3-4B-Instruct-2507-Q8_0.gguf
+        hashes:
+          Qwen3-4B-Instruct-2507-Q8_0.gguf: sha256:391c1e410fd9f4cf2de2b510273b56a84c19ce18f4fa3bfb3774031dac4ef068
+        total_size_bytes: 4280405600
+        host_requirement:
+          accelerator: metal
+          min_ram_bytes: 12884901888
+          min_vram_bytes: 8589934592
+  - model_id: asset-image-vae-flux2-ae-f16-cuda
+    model_type: vae
+    family: flux2-vae
+    updated_at: 2026-08-16
+    capabilities: []
+    install:
+      repo: black-forest-labs/FLUX.2-dev
+      revision: 26afe3a78bb242c0a8bb181dcc8937bb16e5c66c
+      install_kind: weights
+      entry: ae.safetensors
+      artifact_roles:
+        - vae
+    variants:
+      - variant_id: local.image-vae.flux2-ae.f16.cuda
+        quant: F16
+        entry: ae.safetensors
+        files:
+          - ae.safetensors
+        hashes:
+          ae.safetensors: sha256:868fe7b343cc8f3a19dbcfcafbc3d5f888802be3f89bd81b65b3621a066ce8f3
+        total_size_bytes: 336211292
+        host_requirement:
+          accelerator: cuda
+          min_ram_bytes: 8589934592
+          min_vram_bytes: 4294967296
+  - model_id: asset-image-vae-qwen-image-f16-cuda
+    model_type: vae
+    family: qwen-image-vae
+    updated_at: 2026-08-14
+    capabilities: []
+    install:
+      repo: QuantStack/Qwen-Image-GGUF
+      revision: 257f261fa92593bed760aa6fa3f7921a49fea00f
+      install_kind: weights
+      entry: VAE/Qwen_Image-VAE.safetensors
+      artifact_roles:
+        - vae
+    variants:
+      - variant_id: local.image-vae.qwen-image.f16.cuda
+        quant: F16
+        entry: VAE/Qwen_Image-VAE.safetensors
+        files:
+          - VAE/Qwen_Image-VAE.safetensors
+        hashes:
+          VAE/Qwen_Image-VAE.safetensors: sha256:a70580f0213e67967ee9c95f05bb400e8fb08307e017a924bf3441223e023d1f
+        total_size_bytes: 253806246
+        host_requirement:
+          accelerator: cuda
+          min_ram_bytes: 8589934592
+          min_vram_bytes: 4294967296
+  - model_id: asset-image-textenc-qwen2-5-vl-7b-q4-k-m-cuda
+    model_type: auxiliary
+    family: qwen-vl
+    updated_at: 2026-08-14
+    capabilities: []
+    install:
+      repo: mradermacher/Qwen2.5-VL-7B-Instruct-GGUF
+      revision: cfa2baa09946b211c107e6e104948987a64dd2c1
+      install_kind: weights
+      entry: Qwen2.5-VL-7B-Instruct.Q4_K_M.gguf
+      artifact_roles:
+        - text_encoder
+    variants:
+      - variant_id: local.image-textenc.qwen2.5-vl-7b.q4-k-m.cuda
+        quant: Q4_K_M
+        entry: Qwen2.5-VL-7B-Instruct.Q4_K_M.gguf
+        files:
+          - Qwen2.5-VL-7B-Instruct.Q4_K_M.gguf
+        hashes:
+          Qwen2.5-VL-7B-Instruct.Q4_K_M.gguf: sha256:0f00a930ba3108b6861ddadf74d8ebbd82e257c63eba728e62c3e8970f5eed94
+        total_size_bytes: 4683072512
+        host_requirement:
+          accelerator: cuda
+          min_ram_bytes: 17179869184
+          min_vram_bytes: 8589934592
+  - model_id: asset-image-vae-qwen-image-edit-2511-f16-cuda
+    model_type: vae
+    family: qwen-image-vae
+    updated_at: 2026-08-14
+    capabilities: []
+    install:
+      repo: QuantStack/Qwen-Image-GGUF
+      revision: 257f261fa92593bed760aa6fa3f7921a49fea00f
+      install_kind: weights
+      entry: VAE/Qwen_Image-VAE.safetensors
+      artifact_roles:
+        - vae
+    variants:
+      - variant_id: local.image-vae.qwen-image-edit-2511.f16.cuda
+        quant: F16
+        entry: VAE/Qwen_Image-VAE.safetensors
+        files:
+          - VAE/Qwen_Image-VAE.safetensors
+        hashes:
+          VAE/Qwen_Image-VAE.safetensors: sha256:a70580f0213e67967ee9c95f05bb400e8fb08307e017a924bf3441223e023d1f
+        total_size_bytes: 253806246
+        host_requirement:
+          accelerator: cuda
+          min_ram_bytes: 8589934592
+          min_vram_bytes: 4294967296
+  - model_id: asset-image-textenc-qwen2-5-vl-7b-edit-2511-q4-k-m-cuda
+    model_type: auxiliary
+    family: qwen-vl
+    updated_at: 2026-08-14
+    capabilities: []
+    install:
+      repo: mradermacher/Qwen2.5-VL-7B-Instruct-GGUF
+      revision: cfa2baa09946b211c107e6e104948987a64dd2c1
+      install_kind: weights
+      entry: Qwen2.5-VL-7B-Instruct.Q4_K_M.gguf
+      artifact_roles:
+        - text_encoder
+    variants:
+      - variant_id: local.image-textenc.qwen2.5-vl-7b-edit-2511.q4-k-m.cuda
+        quant: Q4_K_M
+        entry: Qwen2.5-VL-7B-Instruct.Q4_K_M.gguf
+        files:
+          - Qwen2.5-VL-7B-Instruct.Q4_K_M.gguf
+        hashes:
+          Qwen2.5-VL-7B-Instruct.Q4_K_M.gguf: sha256:0f00a930ba3108b6861ddadf74d8ebbd82e257c63eba728e62c3e8970f5eed94
+        total_size_bytes: 4683072512
+        host_requirement:
+          accelerator: cuda
+          min_ram_bytes: 17179869184
+          min_vram_bytes: 8589934592
+  - model_id: asset-video-vae-minimax-h3-f16-cuda
+    model_type: vae
+    family: minimax-h3-video-vae
+    updated_at: 2026-08-16
+    capabilities: []
+    install:
+      repo: Comfy-Org/MiniMax-H3
+      revision: d07f69bc8fa09c9717e1e47180034f9322e0e54d
+      install_kind: weights
+      entry: vae/minimax_h3_video_vae_fp16.safetensors
+      artifact_roles:
+        - video_vae
+    variants:
+      - variant_id: local.video-vae.minimax-h3.f16.cuda
+        quant: F16
+        entry: vae/minimax_h3_video_vae_fp16.safetensors
+        files:
+          - vae/minimax_h3_video_vae_fp16.safetensors
+        hashes:
+          vae/minimax_h3_video_vae_fp16.safetensors: sha256:7c1f131492e7eddacaac9069a61b81bdd39de5cc96561e677c5eab1cdce5e522
+        total_size_bytes: 5207808496
+        host_requirement:
+          accelerator: cuda
+          min_ram_bytes: 17179869184
+          min_vram_bytes: 8589934592
+  - model_id: asset-audio-vae-minimax-h3-f32-cuda
+    model_type: vae
+    family: minimax-h3-audio-vae
+    updated_at: 2026-08-16
+    capabilities: []
+    install:
+      repo: Comfy-Org/MiniMax-H3
+      revision: d07f69bc8fa09c9717e1e47180034f9322e0e54d
+      install_kind: weights
+      entry: vae/minimax_h3_audio_vae_fp32.safetensors
+      artifact_roles:
+        - audio_vae
+    variants:
+      - variant_id: local.audio-vae.minimax-h3.f32.cuda
+        quant: F32
+        entry: vae/minimax_h3_audio_vae_fp32.safetensors
+        files:
+          - vae/minimax_h3_audio_vae_fp32.safetensors
+        hashes:
+          vae/minimax_h3_audio_vae_fp32.safetensors: sha256:8e505d95dd1561d47abd43d4238fd40d9bb1ae9e147ed0a4cba778d76ae4db48
+        total_size_bytes: 605254808
+        host_requirement:
+          accelerator: cuda
+          min_ram_bytes: 8589934592
+          min_vram_bytes: 4294967296

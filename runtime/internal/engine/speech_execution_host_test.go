@@ -2,13 +2,17 @@ package engine
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -24,6 +28,7 @@ type speechExecutionHostMaterializerStub struct {
 	materializeErr error
 	onMaterialize  func()
 	capabilities   []string
+	registrations  []SpeechExecutionModelRegistration
 	stopped        chan struct{}
 	stopRelease    chan struct{}
 	stopErr        error
@@ -50,6 +55,12 @@ func (stub *speechExecutionHostMaterializerStub) MaterializeSpeechExecutionHost(
 	return stub.endpoint, stub.materializeErr
 }
 
+func (stub *speechExecutionHostMaterializerStub) RegisterSpeechExecutionModel(_ context.Context, _ string, registration SpeechExecutionModelRegistration) error {
+	registration.DeclaredFiles = append([]string(nil), registration.DeclaredFiles...)
+	stub.registrations = append(stub.registrations, registration)
+	return nil
+}
+
 func (stub *speechExecutionHostMaterializerStub) StopSpeechExecutionHost() error {
 	if stub.stopped != nil {
 		select {
@@ -64,20 +75,95 @@ func (stub *speechExecutionHostMaterializerStub) StopSpeechExecutionHost() error
 	return stub.stopErr
 }
 
+func TestSpeechExecutionHostPersistsRunningBeforeMaterialization(t *testing.T) {
+	plan := speechSynthesisPlanForHostTest(t, "persist-running-first")
+	materializer := &speechExecutionHostMaterializerStub{endpoint: "http://127.0.0.1:8330"}
+	host := NewSpeechExecutionHost(materializer, 8330, 0)
+
+	_, err := host.ExecuteSpeechSynthesis(context.Background(), plan, func() error {
+		return errors.New("persist RUNNING")
+	})
+	if err == nil {
+		t.Fatal("ExecuteSpeechSynthesis succeeded after RUNNING persistence failure")
+	}
+	if len(materializer.capabilities) != 0 || len(materializer.registrations) != 0 {
+		t.Fatalf("RUNNING persistence failure produced materialization side effects: capabilities=%v registrations=%d", materializer.capabilities, len(materializer.registrations))
+	}
+}
+
+func TestSpeechExecutionHostRejectsDeclaredBundleDriftBeforeMaterialization(t *testing.T) {
+	binding := speechBindingFixture(t, "model.safetensors", map[string][]byte{
+		"model.safetensors": []byte("captured-model"),
+		"tokenizer.json":    []byte("captured-tokenizer"),
+	})
+	plan, err := (capabilitydriver.VoxCPMDriver{}).PlanSpeechSynthesizeInvocation(capabilitydriver.SpeechSynthesizeInvocationInput{
+		ExactBindings: []capabilitydriver.InvocationExactBinding{binding},
+		Request:       &runtimev1.SpeechSynthesizeScenarioSpec{Text: "bundle drift"},
+	})
+	if err != nil {
+		t.Fatalf("plan VoxCPM synthesis: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(binding.BundleDir, "tokenizer.json"), []byte("mutated-tokenizer"), 0o600); err != nil {
+		t.Fatalf("mutate declared tokenizer: %v", err)
+	}
+	materializer := &speechExecutionHostMaterializerStub{endpoint: "http://127.0.0.1:8330"}
+	host := NewSpeechExecutionHost(materializer, 8330, 0)
+
+	_, err = host.ExecuteSpeechSynthesis(context.Background(), plan, nil)
+	if localexecution.FailureKindOf(err) != localexecution.FailureContentMismatch {
+		t.Fatalf("bundle drift error=%v kind=%q, want content mismatch", err, localexecution.FailureKindOf(err))
+	}
+	if len(materializer.capabilities) != 0 || len(materializer.registrations) != 0 {
+		t.Fatalf("bundle drift produced materialization side effects: capabilities=%v registrations=%d", materializer.capabilities, len(materializer.registrations))
+	}
+}
+
+func TestSpeechExecutionHostRejectsMissingExactRegistrationBeforeMaterialization(t *testing.T) {
+	binding := speechBindingFixture(t, "model.safetensors", map[string][]byte{"model.safetensors": []byte("captured-model")})
+	binding.RequirementID = capabilitydriver.Qwen3TTSModelRequirementID
+	binding.ModelAssetID = "model-asset/qwen3-tts"
+	binding.BundleDir = ""
+	binding.DeclaredFiles = nil
+	plan, err := (capabilitydriver.Qwen3TTSDriver{}).PlanSpeechSynthesizeInvocation(capabilitydriver.SpeechSynthesizeInvocationInput{
+		ExactBindings: []capabilitydriver.InvocationExactBinding{binding},
+		Request:       &runtimev1.SpeechSynthesizeScenarioSpec{Text: "missing exact registration"},
+	})
+	if err != nil {
+		t.Fatalf("plan synthesis: %v", err)
+	}
+	materializer := &speechExecutionHostMaterializerStub{endpoint: "http://127.0.0.1:8330"}
+	host := NewSpeechExecutionHost(materializer, 8330, 0)
+
+	_, err = host.ExecuteSpeechSynthesis(context.Background(), plan, nil)
+	if localexecution.FailureKindOf(err) != localexecution.FailureLoad {
+		t.Fatalf("missing registration error=%v kind=%q, want load failure", err, localexecution.FailureKindOf(err))
+	}
+	if len(materializer.capabilities) != 0 || len(materializer.registrations) != 0 {
+		t.Fatalf("missing registration materialized Host: capabilities=%v registrations=%d", materializer.capabilities, len(materializer.registrations))
+	}
+}
+
 func TestSpeechExecutionHostUsesExactPlanAssetIdentity(t *testing.T) {
-	digest := strings.Repeat("d", 64)
-	root := t.TempDir()
 	ttsHostModelID := "local-import/Qwen3-TTS-12Hz-0.6B-CustomVoice"
 	asrHostModelID := "local-import/Qwen3-ASR-0.6B-hf"
+	ttsBinding := speechBindingFixture(t, "tts.safetensors", map[string][]byte{
+		"tts.safetensors": []byte("captured-tts-model"),
+		"config.json":     []byte("captured-tts-config"),
+	})
+	ttsBinding.RequirementID = capabilitydriver.Qwen3TTSModelRequirementID
+	ttsBinding.ModelAssetID = ttsHostModelID
 	ttsPlan, err := (capabilitydriver.Qwen3TTSDriver{}).PlanSpeechSynthesizeInvocation(capabilitydriver.SpeechSynthesizeInvocationInput{
-		ExactBindings: []capabilitydriver.InvocationExactBinding{{RequirementID: capabilitydriver.Qwen3TTSModelRequirementID, AssetID: ttsHostModelID, LocalAssetID: "tts-exact-asset", AbsolutePath: filepath.Join(root, "tts.safetensors"), VerifiedContentID: "sha256:" + digest, EntrySHA256: digest}},
+		ExactBindings: []capabilitydriver.InvocationExactBinding{ttsBinding},
 		Request:       &runtimev1.SpeechSynthesizeScenarioSpec{Text: "hello"},
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
+	asrBinding := speechBindingFixture(t, "asr.safetensors", map[string][]byte{"asr.safetensors": []byte("captured-asr-model")})
+	asrBinding.RequirementID = capabilitydriver.Qwen3ASRModelRequirementID
+	asrBinding.ModelAssetID = asrHostModelID
 	asrPlan, err := (capabilitydriver.Qwen3ASRDriver{}).PlanSpeechTranscribeInvocation(capabilitydriver.SpeechTranscribeInvocationInput{
-		ExactBindings: []capabilitydriver.InvocationExactBinding{{RequirementID: capabilitydriver.Qwen3ASRModelRequirementID, AssetID: asrHostModelID, LocalAssetID: "asr-exact-asset", AbsolutePath: filepath.Join(root, "asr.safetensors"), VerifiedContentID: "sha256:" + digest, EntrySHA256: digest}},
+		ExactBindings: []capabilitydriver.InvocationExactBinding{asrBinding},
 		Request:       &runtimev1.SpeechTranscribeScenarioSpec{MimeType: "audio/wav", Language: "en"},
 		AudioBytes:    []byte("audio-bytes"),
 		MIMEType:      "audio/wav",
@@ -86,8 +172,11 @@ func TestSpeechExecutionHostUsesExactPlanAssetIdentity(t *testing.T) {
 		t.Fatal(err)
 	}
 	voiceHostModelID := "local-import/Qwen3-TTS-12Hz-0.6B-Base"
+	voiceBinding := speechBindingFixture(t, "voice.safetensors", map[string][]byte{"voice.safetensors": []byte("captured-voice-model")})
+	voiceBinding.RequirementID = capabilitydriver.Qwen3VoiceCreateModelRequirementID
+	voiceBinding.ModelAssetID = voiceHostModelID
 	voicePlan, err := (capabilitydriver.Qwen3VoiceCreateDriver{}).PlanVoiceCreateInvocation(capabilitydriver.VoiceCreateInvocationInput{
-		ExactBindings:     []capabilitydriver.InvocationExactBinding{{RequirementID: capabilitydriver.Qwen3VoiceCreateModelRequirementID, AssetID: voiceHostModelID, LocalAssetID: "voice-exact-asset", AbsolutePath: filepath.Join(root, "voice.safetensors"), VerifiedContentID: "sha256:" + digest, EntrySHA256: digest}},
+		ExactBindings:     []capabilitydriver.InvocationExactBinding{voiceBinding},
 		SupportedFeatures: []string{"input.audio"},
 		Request:           &runtimev1.VoiceCreateScenarioSpec{Source: &runtimev1.VoiceCreateScenarioSpec_ReferenceAudio{ReferenceAudio: &runtimev1.VoiceV2VInput{ReferenceAudioBytes: []byte("RIFF-reference"), ReferenceAudioMime: "audio/wav", Text: "hello"}}},
 	})
@@ -160,6 +249,28 @@ func TestSpeechExecutionHostUsesExactPlanAssetIdentity(t *testing.T) {
 	if got, want := strings.Join(materializer.capabilities, ","), "audio.synthesize,audio.transcribe,voice.create"; got != want {
 		t.Fatalf("materialized capabilities = %q, want %q", got, want)
 	}
+	if len(materializer.registrations) != 3 {
+		t.Fatalf("speech model registrations = %d, want one exact registration per execution", len(materializer.registrations))
+	}
+	ttsRegistration := materializer.registrations[0]
+	if ttsRegistration.CapabilityContract != capabilitydriver.AudioSynthesizeContract || ttsRegistration.DriverID != capabilitydriver.Qwen3TTSDriverID ||
+		ttsRegistration.ModelAssetID != ttsHostModelID || ttsRegistration.BundleDir != ttsBinding.BundleDir || ttsRegistration.EntryPath != ttsBinding.AbsolutePath ||
+		strings.Join(ttsRegistration.DeclaredFiles, ",") != "config.json,tts.safetensors" || ttsRegistration.VerifiedContentID != ttsBinding.VerifiedContentID || ttsRegistration.EntrySHA256 != ttsBinding.EntrySHA256 ||
+		ttsRegistration.VoiceCreationSource != "" || ttsRegistration.WorkflowModelID != "" {
+		t.Fatalf("TTS Loadout binding registration = %+v", ttsRegistration)
+	}
+	asrRegistration := materializer.registrations[1]
+	if asrRegistration.CapabilityContract != capabilitydriver.AudioTranscribeContract || asrRegistration.DriverID != capabilitydriver.Qwen3ASRDriverID ||
+		asrRegistration.ModelAssetID != asrHostModelID || asrRegistration.BundleDir != asrBinding.BundleDir || asrRegistration.EntryPath != asrBinding.AbsolutePath ||
+		asrRegistration.VoiceCreationSource != "" || asrRegistration.WorkflowModelID != "" {
+		t.Fatalf("ASR Loadout binding registration = %+v", asrRegistration)
+	}
+	voiceRegistration := materializer.registrations[2]
+	if voiceRegistration.CapabilityContract != capabilitydriver.VoiceCreateContract || voiceRegistration.DriverID != capabilitydriver.Qwen3TTSDriverID ||
+		voiceRegistration.ModelAssetID != voiceHostModelID || voiceRegistration.BundleDir != voiceBinding.BundleDir || voiceRegistration.EntryPath != voiceBinding.AbsolutePath ||
+		voiceRegistration.VoiceCreationSource != "reference_audio" || voiceRegistration.WorkflowModelID != capabilitydriver.Qwen3VoiceCloneRecipeID {
+		t.Fatalf("voice.create Loadout binding registration = %+v", voiceRegistration)
+	}
 }
 
 type speechZeroReader struct{}
@@ -173,11 +284,12 @@ func (speechZeroReader) Read(target []byte) (int, error) {
 
 func TestSpeechExecutionHostStreamsSynthesisBeyondInlineLimit(t *testing.T) {
 	const bodySize = int64(32<<20 + 1)
-	digest := strings.Repeat("d", 64)
-	root := t.TempDir()
 	modelID := "local-import/Qwen3-TTS-12Hz-0.6B-CustomVoice"
+	binding := speechBindingFixture(t, "tts.safetensors", map[string][]byte{"tts.safetensors": []byte("captured-stream-model")})
+	binding.RequirementID = capabilitydriver.Qwen3TTSModelRequirementID
+	binding.ModelAssetID = modelID
 	plan, err := (capabilitydriver.Qwen3TTSDriver{}).PlanSpeechSynthesizeInvocation(capabilitydriver.SpeechSynthesizeInvocationInput{
-		ExactBindings: []capabilitydriver.InvocationExactBinding{{RequirementID: capabilitydriver.Qwen3TTSModelRequirementID, AssetID: modelID, LocalAssetID: "tts-exact-asset", AbsolutePath: filepath.Join(root, "tts.safetensors"), VerifiedContentID: "sha256:" + digest, EntrySHA256: digest}},
+		ExactBindings: []capabilitydriver.InvocationExactBinding{binding},
 		Request:       &runtimev1.SpeechSynthesizeScenarioSpec{Text: "large local speech"},
 	})
 	if err != nil {
@@ -333,7 +445,7 @@ func TestSpeechExecutionHostFIFOAndQueuedCancellation(t *testing.T) {
 	}
 }
 
-func TestSpeechExecutionHostDoesNotPublishRunningBeforeMaterialization(t *testing.T) {
+func TestSpeechExecutionHostPublishesRunningBeforeMaterialization(t *testing.T) {
 	materializer := &speechExecutionHostMaterializerStub{materializeErr: errors.New("profile unavailable")}
 	host := NewSpeechExecutionHost(materializer, 8330, 0)
 	started := false
@@ -348,8 +460,8 @@ func TestSpeechExecutionHostDoesNotPublishRunningBeforeMaterialization(t *testin
 	if localexecution.FailureKindOf(err) != localexecution.FailureLoad {
 		t.Fatalf("materialization failure error=%v kind=%q", err, localexecution.FailureKindOf(err))
 	}
-	if started {
-		t.Fatal("materialization failure published RUNNING before exact Host was available")
+	if !started {
+		t.Fatal("materialization began before the Job durably entered RUNNING")
 	}
 }
 
@@ -818,19 +930,14 @@ func TestSpeechExecutionHostStopFailurePoisonsHostAndBlocksReplacementExecution(
 
 func speechTranscriptionPlanForHostTest(t *testing.T, label string) *capabilitydriver.SpeechTranscribeInvocationPlan {
 	t.Helper()
-	digest := strings.Repeat("d", 64)
+	binding := speechBindingFixture(t, label+".safetensors", map[string][]byte{label + ".safetensors": []byte("captured-asr-" + label)})
+	binding.RequirementID = capabilitydriver.Qwen3ASRModelRequirementID
+	binding.ModelAssetID = "local-import/Qwen3-ASR-0.6B-hf"
 	plan, err := (capabilitydriver.Qwen3ASRDriver{}).PlanSpeechTranscribeInvocation(capabilitydriver.SpeechTranscribeInvocationInput{
-		ExactBindings: []capabilitydriver.InvocationExactBinding{{
-			RequirementID:     capabilitydriver.Qwen3ASRModelRequirementID,
-			AssetID:           "local-import/Qwen3-ASR-0.6B-hf",
-			LocalAssetID:      "asr-" + label,
-			AbsolutePath:      filepath.Join(t.TempDir(), label+".safetensors"),
-			VerifiedContentID: "sha256:" + digest,
-			EntrySHA256:       digest,
-		}},
-		Request:    &runtimev1.SpeechTranscribeScenarioSpec{MimeType: "audio/wav", Language: "en"},
-		AudioBytes: []byte("audio-" + label),
-		MIMEType:   "audio/wav",
+		ExactBindings: []capabilitydriver.InvocationExactBinding{binding},
+		Request:       &runtimev1.SpeechTranscribeScenarioSpec{MimeType: "audio/wav", Language: "en"},
+		AudioBytes:    []byte("audio-" + label),
+		MIMEType:      "audio/wav",
 	})
 	if err != nil {
 		t.Fatalf("transcription plan %q: %v", label, err)
@@ -838,19 +945,57 @@ func speechTranscriptionPlanForHostTest(t *testing.T, label string) *capabilityd
 	return plan
 }
 
+func speechBindingFixture(t *testing.T, entry string, files map[string][]byte) capabilitydriver.InvocationExactBinding {
+	t.Helper()
+	root := t.TempDir()
+	declared := make([]string, 0, len(files))
+	for name := range files {
+		declared = append(declared, name)
+	}
+	slices.Sort(declared)
+	contentHasher := sha256.New()
+	entryDigest := ""
+	for _, name := range declared {
+		path := filepath.Join(root, filepath.FromSlash(name))
+		if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+			t.Fatalf("create speech fixture directory: %v", err)
+		}
+		payload := files[name]
+		if err := os.WriteFile(path, payload, 0o600); err != nil {
+			t.Fatalf("write speech fixture %q: %v", name, err)
+		}
+		digest := sha256.Sum256(payload)
+		_, _ = contentHasher.Write(digest[:])
+		if name == entry {
+			entryDigest = hex.EncodeToString(digest[:])
+		}
+	}
+	if entryDigest == "" {
+		t.Fatalf("speech fixture entry %q is not declared", entry)
+	}
+	contentDigest := entryDigest
+	if len(declared) > 1 {
+		contentDigest = hex.EncodeToString(contentHasher.Sum(nil))
+	}
+	return capabilitydriver.InvocationExactBinding{
+		RequirementID:     capabilitydriver.VoxCPMModelRequirementID,
+		ModelAssetID:      "fixture/speech-model",
+		AbsolutePath:      filepath.Join(root, filepath.FromSlash(entry)),
+		BundleDir:         root,
+		DeclaredFiles:     declared,
+		VerifiedContentID: "sha256:" + contentDigest,
+		EntrySHA256:       entryDigest,
+	}
+}
+
 func speechSynthesisPlanForHostTest(t *testing.T, text string) *capabilitydriver.SpeechSynthesizeInvocationPlan {
 	t.Helper()
-	digest := strings.Repeat("d", 64)
+	binding := speechBindingFixture(t, text+".safetensors", map[string][]byte{text + ".safetensors": []byte("captured-tts-" + text)})
+	binding.RequirementID = capabilitydriver.Qwen3TTSModelRequirementID
+	binding.ModelAssetID = "local-import/Qwen3-TTS-12Hz-0.6B-CustomVoice"
 	plan, err := (capabilitydriver.Qwen3TTSDriver{}).PlanSpeechSynthesizeInvocation(capabilitydriver.SpeechSynthesizeInvocationInput{
-		ExactBindings: []capabilitydriver.InvocationExactBinding{{
-			RequirementID:     capabilitydriver.Qwen3TTSModelRequirementID,
-			AssetID:           "local-import/Qwen3-TTS-12Hz-0.6B-CustomVoice",
-			LocalAssetID:      "tts-" + text,
-			AbsolutePath:      filepath.Join(t.TempDir(), text+".safetensors"),
-			VerifiedContentID: "sha256:" + digest,
-			EntrySHA256:       digest,
-		}},
-		Request: &runtimev1.SpeechSynthesizeScenarioSpec{Text: text},
+		ExactBindings: []capabilitydriver.InvocationExactBinding{binding},
+		Request:       &runtimev1.SpeechSynthesizeScenarioSpec{Text: text},
 	})
 	if err != nil {
 		t.Fatalf("plan %q: %v", text, err)

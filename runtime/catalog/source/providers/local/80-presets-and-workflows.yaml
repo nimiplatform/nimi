@@ -1,21 +1,392 @@
-# CURATED PRESETS (K-MCAT-033). Associates portable factory AIProfile
-# recommendations with concrete model slots for an explicit Local AI action.
-# These rows do not install, bind, select, probe, or establish readiness.
-# `text.embed` is intentionally not a preset slot in either tier.
-presets:
-  minimal:
-    factory_aiprofile_alias: local-speech
-    slots:
-      - { slot: chat, capability: text.generate, model_ref: gemma-4-e2b-it-local, required: true }
-      - { slot: stt, capability: audio.transcribe, model_ref: qwen3-asr-local, required: true }
-      - { slot: tts, capability: audio.synthesize, model_ref: qwen3-tts-local, required: true }
-  recommended:
-    factory_aiprofile_alias: local-gpu
-    slots:
-      - { slot: chat, capability: text.generate, model_ref: gemma-4-26b-a4b-it-local, required: true }
-      - { slot: stt, capability: audio.transcribe, model_ref: qwen3-asr-local, required: true }
-      - { slot: tts, capability: audio.synthesize, model_ref: qwen3-tts-local, required: true }
-      - { slot: image, capability: image.generate, model_ref: z-image-turbo-local, required: false, host_conditional: true }
+# Loadout recipe metadata attaches recommendations and Model Contract
+# parameters to exact slots projected by the versioned Driver dialect. It does
+# not own a second slot topology and never causes acquisition.
+loadout_recipes:
+  - recipe_id: llama.text-generate.gemma-4-e2b-it.v1
+    revision: "1"
+    title: Gemma 4 E2B text generation
+    capability_contract: text.generate
+    implementation_id: local.text.generate.llama-cpp
+    driver_id: nimi.runtime.driver.llama-cpp
+    driver_dialect: llama.cpp/text-generate/v1
+    default_options: {}
+    supported_features: []
+    slot_metadata:
+      - slot_id: main.gguf
+        display_label: Main model
+        recommended_variant_ids:
+          - local.chat.gemma-4-e2b-it.q3-k-m
+          - local.chat.gemma-4-e2b-it.q4-k-m
+          - local.chat.gemma-4-e2b-it.q5-k-m
+          - local.chat.gemma-4-e2b-it.q6-k
+          - local.chat.gemma-4-e2b-it.q8-0
+        model_contract:
+          format: gguf
+          gguf_architectures: [gemma4]
+  - recipe_id: llama.text-generate.gemma-4-26b-a4b-it.v1
+    revision: "1"
+    title: Gemma 4 26B-A4B text generation
+    capability_contract: text.generate
+    implementation_id: local.text.generate.llama-cpp
+    driver_id: nimi.runtime.driver.llama-cpp
+    driver_dialect: llama.cpp/text-generate/v1
+    default_options: {}
+    supported_features: []
+    slot_metadata:
+      - slot_id: main.gguf
+        display_label: Main model
+        recommended_variant_ids:
+          - local.chat.gemma-4-26b-a4b-it.q4-k-m
+          - local.chat.gemma-4-26b-a4b-it.q5-k-m
+          - local.chat.gemma-4-26b-a4b-it.q6-k
+          - local.chat.gemma-4-26b-a4b-it.q8-0
+        model_contract:
+          format: gguf
+          gguf_architectures: [gemma4]
+  - recipe_id: llama.text-embed.gguf.v1
+    revision: "1"
+    title: llama.cpp GGUF embeddings
+    capability_contract: text.embed
+    implementation_id: local.text.embed.llama-cpp
+    driver_id: nimi.runtime.driver.llama-cpp
+    driver_dialect: llama.cpp/text-embed/v1
+    default_options: {}
+    supported_features: []
+    slot_metadata:
+      - slot_id: embedding.gguf
+        display_label: Embedding model
+        recommended_variant_ids: [local.embedding.nomic-embed-text-v1.5.q4-k-m]
+        model_contract:
+          format: gguf
+          gguf_architectures: [bert, nomic-bert, qwen3]
+  - recipe_id: voxcpm2
+    revision: "2"
+    title: VoxCPM2 speech synthesis
+    capability_contract: audio.synthesize
+    implementation_id: local.audio.synthesize.voxcpm
+    driver_id: nimi.runtime.driver.voxcpm
+    driver_dialect: voxcpm/audio-synthesize/v1
+    default_options: {}
+    supported_features: []
+    custody: []
+    slot_metadata:
+      - slot_id: tts.model
+        display_label: TTS model
+        recommended_variant_ids:
+          - local.tts.voxcpm2.standard.cuda
+          - local.tts.voxcpm2.standard.cpu
+          - local.tts.voxcpm2.mlx.metal
+        model_contract:
+          format: safetensors
+          architecture: voxcpm2
+          artifact_role: tts_model
+          required_files: [config.json, tokenizer.json, tokenizer_config.json]
+          backend_contracts:
+            standard:
+              tensor_contract: voxcpm2-main-v1
+              audio_vae_files: [audiovae.safetensors, audiovae.pth]
+            mlx:
+              tensor_contract: voxcpm2-mlx-bundle-v1
+              forbidden_files: [audiovae.safetensors, audiovae.pth, tokenization_voxcpm2.py]
+  - recipe_id: qwen3-tts-customvoice
+    revision: "1"
+    title: Qwen3 TTS CustomVoice synthesis
+    capability_contract: audio.synthesize
+    implementation_id: local.audio.synthesize.qwen3-tts
+    driver_id: nimi.runtime.driver.qwen3-tts
+    driver_dialect: qwen3-tts/audio-synthesize/v1
+    default_options: {}
+    supported_features: []
+    custody: []
+    slot_metadata:
+      - slot_id: tts.model
+        display_label: TTS model
+        recommended_variant_ids: [local.tts.qwen3-tts-customvoice-0.6b.safetensors]
+        model_contract:
+          format: safetensors
+          artifact_role: tts_model
+  - recipe_id: qwen3-tts-base
+    revision: "1"
+    title: Qwen3 TTS Base synthesis
+    capability_contract: audio.synthesize
+    implementation_id: local.audio.synthesize.qwen3-tts
+    driver_id: nimi.runtime.driver.qwen3-tts
+    driver_dialect: qwen3-tts/audio-synthesize/v1
+    default_options: {}
+    supported_features: []
+    custody: []
+    slot_metadata:
+      - slot_id: tts.model
+        display_label: TTS model
+        recommended_variant_ids: [local.voice.qwen3-tts-base-0.6b.safetensors]
+        model_contract:
+          format: safetensors
+          artifact_role: tts_model
+  - recipe_id: qwen3-tts-voicedesign
+    revision: "1"
+    title: Qwen3 TTS VoiceDesign synthesis
+    capability_contract: audio.synthesize
+    implementation_id: local.audio.synthesize.qwen3-tts
+    driver_id: nimi.runtime.driver.qwen3-tts
+    driver_dialect: qwen3-tts/audio-synthesize/v1
+    default_options: {}
+    supported_features: []
+    custody: []
+    slot_metadata:
+      - slot_id: tts.model
+        display_label: TTS model
+        recommended_variant_ids: [local.voice.qwen3-tts-voicedesign-1.7b.safetensors]
+        model_contract:
+          format: safetensors
+          artifact_role: tts_model
+  - recipe_id: qwen3-local-voice-clone
+    revision: "1"
+    title: Qwen3 local voice clone
+    capability_contract: voice.create
+    implementation_id: local.voice.create.qwen3-tts
+    driver_id: nimi.runtime.driver.qwen3-tts
+    driver_dialect: qwen3-tts/voice-create/v1
+    default_options: {}
+    supported_features: [input.audio]
+    custody: []
+    slot_metadata:
+      - slot_id: voice.model
+        display_label: Voice creation model
+        recommended_variant_ids: [local.voice.qwen3-tts-base-0.6b.safetensors]
+        model_contract:
+          format: safetensors
+          artifact_role: tts_voice_clone_model
+  - recipe_id: qwen3-local-voice-design
+    revision: "1"
+    title: Qwen3 local voice design
+    capability_contract: voice.create
+    implementation_id: local.voice.create.qwen3-tts
+    driver_id: nimi.runtime.driver.qwen3-tts
+    driver_dialect: qwen3-tts/voice-create/v1
+    default_options: {}
+    supported_features: [input.text]
+    custody: []
+    slot_metadata:
+      - slot_id: voice.model
+        display_label: Voice creation model
+        recommended_variant_ids: [local.voice.qwen3-tts-voicedesign-1.7b.safetensors]
+        model_contract:
+          format: safetensors
+          artifact_role: tts_voice_design_model
+  - recipe_id: qwen3-asr
+    revision: "1"
+    title: Qwen3 ASR transcription
+    capability_contract: audio.transcribe
+    implementation_id: local.audio.transcribe.qwen3-asr
+    driver_id: nimi.runtime.driver.qwen3-asr
+    driver_dialect: qwen3-asr/audio-transcribe/v1
+    default_options: {}
+    supported_features: []
+    custody: []
+    slot_metadata:
+      - slot_id: stt.model
+        display_label: STT model
+        recommended_variant_ids: [local.stt.qwen3-asr-0.6b.safetensors]
+        model_contract:
+          format: safetensors
+          artifact_role: stt_model
+  - recipe_id: qwen3-asr-transformers
+    revision: "1"
+    title: Qwen3 ASR Transformers transcription
+    capability_contract: audio.transcribe
+    implementation_id: local.audio.transcribe.qwen3-asr-transformers
+    driver_id: nimi.runtime.driver.qwen3-asr-transformers
+    driver_dialect: qwen3-asr-transformers/audio-transcribe/v1
+    default_options: {}
+    supported_features: []
+    custody: []
+    slot_metadata:
+      - slot_id: stt.model
+        display_label: STT model
+        recommended_variant_ids: [local.stt.qwen3-asr-transformers-0.6b.safetensors]
+        model_contract:
+          format: safetensors
+          artifact_role: stt_transformers_model
+  - recipe_id: z-image
+    revision: "1"
+    title: Z-Image Turbo generation
+    capability_contract: image.generate
+    implementation_id: local.image.generate.stable-diffusion-cpp
+    driver_id: nimi.runtime.driver.stable-diffusion-cpp
+    driver_dialect: stable-diffusion.cpp/image-generate/v2
+    default_options: {}
+    supported_features: []
+    slot_metadata:
+      - slot_id: main.diffusion
+        display_label: Diffusion model
+        recommended_variant_ids:
+          - local.image.z-image-turbo.q4-k.cuda
+          - local.image.z-image-turbo.q4-k.metal
+          - local.image.z-image-turbo.q3-k.cuda
+          - local.image.z-image-turbo.q3-k.metal
+        model_contract:
+          format: gguf
+          artifact_role: diffusion_model
+          gguf_families:
+            - z-image
+      - slot_id: companion.text-encoder
+        display_label: Text encoder
+        recommended_variant_ids:
+          - local.image-textenc.qwen3-4b-instruct-2507.q4-k-m.cuda
+          - local.image-textenc.qwen3-4b-instruct-2507.q4-k-m.metal
+        model_contract:
+          format: gguf
+          artifact_role: text_encoder
+          gguf_architecture_families:
+            - qwen
+      - slot_id: companion.vae
+        display_label: VAE
+        recommended_variant_ids:
+          - local.image-vae.z-image-ae.f16.cuda
+          - local.image-vae.z-image-ae.f16.metal
+        model_contract:
+          format: safetensors
+          tensor_contract: flux1-vae-16ch
+  - recipe_id: ideogram4
+    revision: "1"
+    title: Ideogram4 generation
+    capability_contract: image.generate
+    implementation_id: local.image.generate.stable-diffusion-cpp
+    driver_id: nimi.runtime.driver.stable-diffusion-cpp
+    driver_dialect: stable-diffusion.cpp/image-generate/v2
+    default_options: {}
+    supported_features: []
+    slot_metadata:
+      - slot_id: main.diffusion
+        display_label: Diffusion model
+        recommended_variant_ids: [local.image.ideogram4.q4-0.cuda]
+        model_contract:
+          format: gguf
+          artifact_role: diffusion_model
+          gguf_families:
+            - ideogram4
+      - slot_id: companion.text-encoder
+        display_label: Text encoder
+        recommended_variant_ids: [local.image-textenc.qwen3-vl-8b-instruct.q8-0.cuda]
+        model_contract:
+          format: gguf
+          artifact_role: text_encoder
+          gguf_architecture_families:
+            - qwen-vl
+      - slot_id: companion.vae
+        display_label: VAE
+        recommended_variant_ids: [local.image-vae.flux2-ae.f16.cuda]
+        model_contract:
+          format: safetensors
+          tensor_contract: flux2-vae
+      - slot_id: companion.uncond-diffusion
+        display_label: Unconditional diffusion model
+        recommended_variant_ids: [local.image.ideogram4-uncond.q4-0.cuda]
+        model_contract:
+          format: gguf
+          artifact_role: uncond_diffusion_model
+          gguf_families:
+            - ideogram4
+  - recipe_id: minimax-h3
+    revision: "1"
+    title: MiniMax-H3 video generation
+    capability_contract: video.generate
+    implementation_id: local.image.generate.stable-diffusion-cpp
+    driver_id: nimi.runtime.driver.stable-diffusion-cpp
+    driver_dialect: stable-diffusion.cpp/minimax-h3-video-generate/v1
+    default_options: {}
+    supported_features: [input.image]
+    slot_metadata:
+      - slot_id: diffusion.fl2va
+        display_label: MiniMax-H3 FL2VA transformer
+        recommended_variant_ids: [local.video.minimax-h3-fl2va.q4-k-m.cuda]
+        model_contract:
+          format: gguf
+          artifact_role: diffusion_transformer
+      - slot_id: diffusion.ref2va
+        display_label: MiniMax-H3 Ref2VA transformer
+        recommended_variant_ids: [local.video.minimax-h3-ref2va-pruned.q4-k-m.cuda]
+        model_contract:
+          format: gguf
+          artifact_role: diffusion_transformer
+      - slot_id: encoder.h3-combined
+        display_label: MiniMax-H3 combined Qwen3-VL encoder
+        recommended_variant_ids: [local.video-encoder.minimax-h3-qwen3-vl-32b.q4-k-m.cuda]
+        model_contract:
+          format: gguf
+          artifact_role: llm
+      - slot_id: vae.video
+        display_label: MiniMax-H3 video VAE
+        recommended_variant_ids: [local.video-vae.minimax-h3.f16.cuda]
+        model_contract:
+          format: safetensors
+          tensor_contract: minimax-h3-video-vae
+      - slot_id: vae.audio
+        display_label: MiniMax-H3 audio VAE
+        recommended_variant_ids: [local.audio-vae.minimax-h3.f32.cuda]
+        model_contract:
+          format: safetensors
+          tensor_contract: minimax-h3-audio-vae
+  - recipe_id: qwen-image
+    revision: "1"
+    title: Qwen Image generation
+    capability_contract: image.generate
+    implementation_id: local.image.generate.stable-diffusion-cpp
+    driver_id: nimi.runtime.driver.stable-diffusion-cpp
+    driver_dialect: stable-diffusion.cpp/image-generate/v2
+    default_options: {}
+    supported_features: []
+    slot_metadata:
+      - slot_id: main.diffusion
+        display_label: Diffusion model
+        recommended_variant_ids: [local.image.qwen-image.q4-k-m.cuda]
+        model_contract:
+          format: gguf
+          gguf_architectures: [qwen_image]
+          artifact_role: diffusion_model
+      - slot_id: companion.text-encoder
+        display_label: Text encoder
+        recommended_variant_ids: [local.image-textenc.qwen2.5-vl-7b.q4-k-m.cuda]
+        model_contract:
+          format: gguf
+          gguf_architectures: [qwen2vl]
+          artifact_role: text_encoder
+      - slot_id: companion.vae
+        display_label: VAE
+        recommended_variant_ids: [local.image-vae.qwen-image.f16.cuda]
+        model_contract:
+          format: safetensors
+          tensor_contract: qwen-image-vae-3d
+  - recipe_id: qwen-image-edit-2511
+    revision: "1"
+    title: Qwen Image Edit 2511
+    capability_contract: image.generate
+    implementation_id: local.image.generate.stable-diffusion-cpp
+    driver_id: nimi.runtime.driver.stable-diffusion-cpp
+    driver_dialect: stable-diffusion.cpp/image-generate/v2
+    default_options: {}
+    supported_features: [input.image]
+    slot_metadata:
+      - slot_id: main.diffusion
+        display_label: Edit diffusion model
+        recommended_variant_ids: [local.image.qwen-image-edit-2511.q4-k-m.cuda]
+        model_contract:
+          format: gguf
+          gguf_architectures: [qwen_image]
+          artifact_role: edit_diffusion_model
+      - slot_id: companion.text-encoder
+        display_label: Text encoder
+        recommended_variant_ids: [local.image-textenc.qwen2.5-vl-7b-edit-2511.q4-k-m.cuda]
+        model_contract:
+          format: gguf
+          gguf_architectures: [qwen2vl]
+          artifact_role: text_encoder
+      - slot_id: companion.vae
+        display_label: VAE
+        recommended_variant_ids: [local.image-vae.qwen-image-edit-2511.f16.cuda]
+        model_contract:
+          format: safetensors
+          tensor_contract: qwen-image-vae-3d
 
 # NOTE: local workflow objects below are not a generic local workflow green
 # state. They express only the first admitted family-scoped slice:

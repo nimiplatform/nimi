@@ -261,7 +261,7 @@ func TestImageExecutionHostRunningCancellationStopsSubstrate(t *testing.T) {
 func TestImageExecutionHostRehashesEveryModelFileBeforeLoad(t *testing.T) {
 	plan := imagePlanForHostTest(t, "mismatch", 1)
 	files := plan.ModelFiles()
-	if err := os.WriteFile(files[1].AbsolutePath(), []byte("drifted"), 0o600); err != nil {
+	if err := os.WriteFile(files[1].AbsolutePath, []byte("drifted"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	substrate := &fakeImageInvocationSubstrate{healthy: true}
@@ -345,6 +345,7 @@ func TestImageInvocationTransportUsesCanonicalDriverComponentsAndPrompt(t *testi
 		t.Fatal(err)
 	}
 	if len(request.Components) != 3 || request.Components[0].OccurrenceID != "text-encoder" ||
+		request.Components[0].ComponentKind != "auxiliary" ||
 		request.Components[1].OccurrenceID != "vae" ||
 		request.Components[2].OccurrenceID != "uncond-diffusion" ||
 		request.Components[2].EngineSlot != "uncond_diffusion_model" {
@@ -356,6 +357,67 @@ func TestImageInvocationTransportUsesCanonicalDriverComponentsAndPrompt(t *testi
 	}
 	if got := generate.PositivePrompt; got != plan.RequestPlan().Prompt() {
 		t.Fatalf("image prompt = %q, want %q", got, plan.RequestPlan().Prompt())
+	}
+}
+
+func TestQwenInstructionEditTransportUsesThreeSlotRecipeAndReferenceCarrier(t *testing.T) {
+	root := t.TempDir()
+	requirementIDs := []string{
+		capabilitydriver.StableDiffusionMainRequirementID,
+		capabilitydriver.StableDiffusionTextEncoderRequirementID,
+		capabilitydriver.StableDiffusionVAERequirementID,
+	}
+	bindings := make([]capabilitydriver.InvocationExactBinding, 0, len(requirementIDs))
+	for index, requirementID := range requirementIDs {
+		path := filepath.Join(root, fmt.Sprintf("qwen-component-%d.bin", index))
+		payload := []byte(requirementID)
+		if err := os.WriteFile(path, payload, 0o600); err != nil {
+			t.Fatal(err)
+		}
+		digestBytes := sha256.Sum256(payload)
+		digest := hex.EncodeToString(digestBytes[:])
+		bindings = append(bindings, capabilitydriver.InvocationExactBinding{
+			RequirementID: requirementID, ModelAssetID: fmt.Sprintf("qwen-asset-%d", index), AbsolutePath: path,
+			VerifiedContentID: "sha256:" + digest, EntrySHA256: digest,
+		})
+	}
+	sourceBytes := testPNGBytes()
+	portable, err := structpb.NewStruct(map[string]any{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	plan, err := (capabilitydriver.StableDiffusionImageDriver{}).PlanImageInvocation(capabilitydriver.ImageInvocationInput{
+		RecipeID:          capabilitydriver.StableDiffusionQwenImageEditRecipeID,
+		PortableConfig:    portable,
+		SupportedFeatures: []string{"input.image"},
+		ExactBindings:     bindings,
+		Request:           &runtimev1.ImageGenerateScenarioSpec{Prompt: "make it dusk"},
+		Inputs: []capabilitydriver.ImageResolvedInput{{
+			SourceIdentity: "artifact_qwen_edit_source", ImageBytes: sourceBytes,
+		}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	loadRequest, err := imageLoadRequest("127.0.0.1:43210", plan, managedimagebackend.ProtocolManagedWrapper)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(loadRequest.Components) != 2 ||
+		loadRequest.Components[0].Role != "text_encoder" || loadRequest.Components[0].ComponentKind != "auxiliary" ||
+		loadRequest.Components[0].EngineSlot != "llm_path" ||
+		loadRequest.Components[1].Role != "vae" || loadRequest.Components[1].ComponentKind != "vae" ||
+		loadRequest.Components[1].EngineSlot != "vae_path" ||
+		!loadRequest.QwenImageZeroCondT || loadRequest.FlowShift != 3 {
+		t.Fatalf("Qwen edit load transport = %+v", loadRequest)
+	}
+	generateRequest, err := imageGenerateRequest("127.0.0.1:43210", managedimagebackend.ProtocolManagedWrapper, plan)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if generateRequest.Mode != managedimagebackend.ImageRequestModeInstructionEdit || generateRequest.Src != "" || generateRequest.Mask != "" ||
+		!reflect.DeepEqual(generateRequest.ReferenceImage, sourceBytes) {
+		t.Fatalf("Qwen edit generate transport = %+v", generateRequest)
 	}
 }
 
@@ -428,12 +490,11 @@ func imagePlanForHostTest(t *testing.T, prompt string, count int32) *capabilityd
 		digestBytes := sha256.Sum256(payload)
 		digest := hex.EncodeToString(digestBytes[:])
 		bindings = append(bindings, capabilitydriver.InvocationExactBinding{
-			RequirementID: requirementID, LocalAssetID: fmt.Sprintf("asset-%d", index), AbsolutePath: path,
+			RequirementID: requirementID, ModelAssetID: fmt.Sprintf("asset-%d", index), AbsolutePath: path,
 			VerifiedContentID: "sha256:" + digest, EntrySHA256: digest,
 		})
 	}
 	portable, err := structpb.NewStruct(map[string]any{
-		"modelFamily": "z-image",
 		"executionOptions": map[string]any{
 			"steps": 2, "cfgScale": 1, "width": 64, "height": 64, "seed": 7, "threads": 1,
 		},
@@ -442,6 +503,7 @@ func imagePlanForHostTest(t *testing.T, prompt string, count int32) *capabilityd
 		t.Fatal(err)
 	}
 	plan, err := (capabilitydriver.StableDiffusionImageDriver{}).PlanImageInvocation(capabilitydriver.ImageInvocationInput{
+		RecipeID:       "z-image",
 		PortableConfig: portable,
 		ExactBindings:  bindings,
 		Request:        &runtimev1.ImageGenerateScenarioSpec{Prompt: prompt, N: proto.Int32(count), Size: "64x64", Seed: proto.Int64(7)},
@@ -471,12 +533,11 @@ func imagePlanWithUncondForHostTest(t *testing.T) *capabilitydriver.ImageInvocat
 		digestBytes := sha256.Sum256(payload)
 		digest := hex.EncodeToString(digestBytes[:])
 		bindings = append(bindings, capabilitydriver.InvocationExactBinding{
-			RequirementID: requirementID, LocalAssetID: fmt.Sprintf("ideogram-asset-%d", index), AbsolutePath: path,
+			RequirementID: requirementID, ModelAssetID: fmt.Sprintf("ideogram-asset-%d", index), AbsolutePath: path,
 			VerifiedContentID: "sha256:" + digest, EntrySHA256: digest,
 		})
 	}
 	portable, err := structpb.NewStruct(map[string]any{
-		"modelFamily": "ideogram4",
 		"executionOptions": map[string]any{
 			"steps": 4, "cfgScale": 2, "width": 64, "height": 64, "seed": 8, "threads": 2,
 		},
@@ -485,6 +546,7 @@ func imagePlanWithUncondForHostTest(t *testing.T) *capabilitydriver.ImageInvocat
 		t.Fatal(err)
 	}
 	plan, err := (capabilitydriver.StableDiffusionImageDriver{}).PlanImageInvocation(capabilitydriver.ImageInvocationInput{
+		RecipeID:       "ideogram4",
 		PortableConfig: portable,
 		ExactBindings:  bindings,
 		Request:        &runtimev1.ImageGenerateScenarioSpec{Prompt: "ideogram", N: proto.Int32(1), Size: "64x64", Seed: proto.Int64(8)},

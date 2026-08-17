@@ -4,21 +4,25 @@ from __future__ import annotations
 # @nimi-authority: rule.nimi.runtime.ai-provider.r112
 
 import dataclasses
+import hashlib
 import json
 import os
 import pathlib
+import secrets
 import shlex
 import shutil
+import stat
 import subprocess
 import tempfile
 import time
 import uuid
 from typing import Any
 
-from fastapi import HTTPException
 from fastapi.responses import JSONResponse
 
 MODELS_ROOT_ENV = "NIMI_RUNTIME_LOCAL_MODELS_PATH"
+ADMISSION_TOKEN_ENV = "NIMI_RUNTIME_SPEECH_ADMISSION_TOKEN"
+ADMISSION_TOKEN_HEADER = "x-nimi-speech-admission-token"
 QWEN3_TTS_DRIVER_ENV = "NIMI_RUNTIME_SPEECH_QWEN3_TTS_CMD"
 QWEN3_ASR_DRIVER_ENV = "NIMI_RUNTIME_SPEECH_QWEN3_ASR_CMD"
 QWEN3_ASR_TRANSFORMERS_DRIVER_ENV = "NIMI_RUNTIME_SPEECH_QWEN3_ASR_TRANSFORMERS_CMD"
@@ -35,17 +39,35 @@ SPEECH_DRIVER_ENV_BY_KIND = {
     "qwen3_asr_transformers": QWEN3_ASR_TRANSFORMERS_DRIVER_ENV,
     "voxcpm": VOXCPM_DRIVER_ENV,
 }
+REGISTERED_DRIVER_FACTS = {
+    "nimi.runtime.driver.qwen3-tts": {
+        "driver": "qwen3_tts",
+        "family": "qwen3_tts",
+        "backend": "qwen_tts",
+        "capabilities": {"audio.synthesize", "voice.create"},
+    },
+    "nimi.runtime.driver.qwen3-asr": {
+        "driver": "qwen3_asr",
+        "family": "qwen3_asr",
+        "backend": "qwen_asr",
+        "capabilities": {"audio.transcribe"},
+    },
+    "nimi.runtime.driver.qwen3-asr-transformers": {
+        "driver": "qwen3_asr_transformers",
+        "family": "qwen3_asr",
+        "backend": "transformers",
+        "capabilities": {"audio.transcribe"},
+    },
+    "nimi.runtime.driver.voxcpm": {
+        "driver": "voxcpm",
+        "family": "voxcpm",
+        "backend": "",
+        "capabilities": {"audio.synthesize"},
+    },
+}
 DEFAULT_MODELS_ROOT = ""
 VOICE_CREATE_CAPABILITY = "voice.create"
 VOICE_CREATION_SOURCES = {"reference_audio", "text_description"}
-WORKFLOW_CAPABILITIES = [VOICE_CREATE_CAPABILITY]
-PLAIN_SPEECH_CAPABILITIES = [
-    "audio.synthesize",
-    "audio.transcribe",
-]
-ADMITTED_SPEECH_CAPABILITIES = PLAIN_SPEECH_CAPABILITIES + WORKFLOW_CAPABILITIES
-QWEN3_TTS_PREFLIGHT_CACHE: dict[tuple[str, str], tuple[bool, str]] = {}
-VOXCPM_PREFLIGHT_CACHE: dict[tuple[str, str, str], tuple[bool, str]] = {}
 
 
 @dataclasses.dataclass
@@ -56,10 +78,14 @@ class SpeechModelState:
     capability_drivers: dict[str, str]
     ready: bool
     detail: str
-    manifest_path: str
     bundle_dir: str
     entry_path: str
     declared_files: list[str]
+    verified_content_id: str = ""
+    entry_sha256: str = ""
+    declared_file_sha256: dict[str, str] = dataclasses.field(default_factory=dict)
+    driver_family: str = ""
+    driver_backend: str = ""
     voice_creation_sources: list[str] = dataclasses.field(default_factory=list)
     workflow_model_bindings: dict[str, list[str]] = dataclasses.field(default_factory=dict)
 
@@ -152,6 +178,7 @@ def driver_command_for_kind(driver_kind: str) -> list[str]:
 
 
 def create_voice_with_driver(model: SpeechModelState, request_payload: dict[str, Any]) -> dict[str, Any]:
+    assert_registered_model_content(model)
     driver_kind = model.capability_drivers.get("voice.create", "").strip()
     response = run_driver_command(driver_command_for_kind(driver_kind), request_payload)
     if not isinstance(response, dict):
@@ -225,130 +252,227 @@ def allow_empty_transcript_request(payload: dict[str, Any]) -> bool:
     return is_first_run_probe and allow_empty
 
 
-def normalized_capabilities(value: Any) -> list[str]:
-    if not isinstance(value, list):
-        return []
+def exact_sha256_hex(value: str) -> bool:
+    normalized = value.strip()
+    if normalized != value or len(normalized) != 64 or normalized.lower() != normalized:
+        return False
+    try:
+        int(normalized, 16)
+    except ValueError:
+        return False
+    return True
+
+
+def registered_declared_files(value: Any) -> list[str]:
+    if not isinstance(value, list) or not value:
+        raise ValueError("speech model registration requires declared_files")
     result: list[str] = []
     seen: set[str] = set()
     for item in value:
         if not isinstance(item, str):
-            continue
-        capability = item.strip()
-        if not capability:
-            continue
-        normalized = capability.lower()
-        if normalized in seen:
-            continue
-        seen.add(normalized)
-        result.append(capability)
+            raise ValueError("speech model registration declared_files are invalid")
+        declared = item.strip()
+        relative = pathlib.PurePosixPath(declared)
+        key = declared.lower()
+        if (
+            not declared
+            or declared != item
+            or relative.is_absolute()
+            or relative.as_posix() != declared
+            or declared == "."
+            or ".." in relative.parts
+            or key in seen
+        ):
+            raise ValueError("speech model registration declared_files are invalid")
+        seen.add(key)
+        result.append(declared)
     return result
 
 
-def infer_runtime_native_driver(
-    model_id: str,
-    capability: str,
-    entry_path: str,
-    declared_files: list[str],
-    artifact_roles: list[str],
-    family: str,
-) -> str:
-    normalized_model = model_id.strip().lower()
-    normalized_entry = pathlib.Path(entry_path).name.strip().lower()
-    normalized_files = [item.strip().lower() for item in declared_files]
-    normalized_family = family.strip().lower()
-    if capability == "audio.synthesize" and normalized_family == "voxcpm":
-        return "voxcpm"
-    if capability in {"audio.synthesize", "voice.create"}:
-        if "qwen3-tts" in normalized_model or "qwen3tts" in normalized_model:
-            return "qwen3_tts"
-        if "qwen3-tts" in normalized_entry or "qwen3tts" in normalized_entry:
-            return "qwen3_tts"
-        if any("qwen3-tts" in item or "qwen3tts" in item for item in normalized_files):
-            return "qwen3_tts"
-        return ""
-    if capability == "audio.transcribe":
-        normalized_roles = {item.strip().lower() for item in artifact_roles}
-        if "stt_transformers_model" in normalized_roles:
-            return "qwen3_asr_transformers"
-        if "stt_model" in normalized_roles:
-            return "qwen3_asr"
-        return ""
-    return ""
+def speech_model_registration_admitted(headers: Any) -> bool:
+    expected = os.environ.get(ADMISSION_TOKEN_ENV, "").strip()
+    provided = ""
+    if headers is not None:
+        provided = str(headers.get(ADMISSION_TOKEN_HEADER) or "")
+    return bool(expected and provided and secrets.compare_digest(expected, provided))
 
 
-QWEN3_ASR_REQUIRED_FILES = (
-    "model.safetensors",
-    "config.json",
-    "generation_config.json",
-    "preprocessor_config.json",
-    "chat_template.json",
-    "tokenizer_config.json",
-    "vocab.json",
-    "merges.txt",
-)
-
-QWEN3_ASR_TRANSFORMERS_REQUIRED_FILES = (
-    "model.safetensors",
-    "config.json",
-    "generation_config.json",
-    "processor_config.json",
-    "chat_template.jinja",
-    "tokenizer_config.json",
-    "tokenizer.json",
-)
+def resolved_managed_models_root() -> pathlib.Path:
+    configured = pathlib.Path(default_models_root())
+    if not configured.is_absolute():
+        raise ValueError("speech model registration managed models root is unavailable")
+    try:
+        resolved = configured.resolve(strict=True)
+        info = resolved.stat()
+    except OSError as error:
+        raise ValueError("speech model registration managed models root is unavailable") from error
+    if not stat.S_ISDIR(info.st_mode):
+        raise ValueError("speech model registration managed models root is unavailable")
+    return resolved
 
 
-def runtime_native_bundle_layout_problems(
-    driver_kind: str,
-    entry_value: str,
-    declared_files: list[str],
-) -> list[str]:
-    if driver_kind not in {"qwen3_asr", "qwen3_asr_transformers"}:
-        return []
-    problems: list[str] = []
-    normalized_entry = entry_value.strip().replace("\\", "/").lower()
-    if normalized_entry != "model.safetensors":
-        problems.append("qwen3_asr bundle entry must be model.safetensors")
-    normalized_declared = {
-        item.strip().replace("\\", "/").lower()
-        for item in declared_files
-        if item.strip()
+def path_is_within(root: pathlib.Path, candidate: pathlib.Path) -> bool:
+    try:
+        candidate.relative_to(root)
+    except ValueError:
+        return False
+    return True
+
+
+def registered_speech_model_state(payload: dict[str, Any]) -> SpeechModelState:
+    if not isinstance(payload, dict):
+        raise ValueError("speech model registration payload must be an object")
+    model_id = str(payload.get("model") or "").strip()
+    capability = str(payload.get("capability") or "").strip()
+    driver_id = str(payload.get("driver_id") or "").strip()
+    driver_kind = str(payload.get("driver") or "").strip()
+    family = str(payload.get("family") or "").strip()
+    backend = str(payload.get("backend") or "").strip()
+    facts = REGISTERED_DRIVER_FACTS.get(driver_id)
+    if (
+        not model_id
+        or facts is None
+        or capability not in facts["capabilities"]
+        or driver_kind != facts["driver"]
+        or family != facts["family"]
+    ):
+        raise ValueError("speech model registration Driver facts are invalid")
+    expected_backend = str(facts["backend"])
+    if driver_kind == "voxcpm":
+        expected_backend = os.environ.get(VOXCPM_BACKEND_ENV, "").strip().lower()
+        if expected_backend not in {"standard", "mlx"}:
+            raise ValueError("speech model registration VoxCPM backend is unavailable")
+    if backend != expected_backend:
+        raise ValueError("speech model registration backend does not match the configured Driver")
+
+    creation_source = str(payload.get("creation_source") or "").strip()
+    workflow_model_id = str(payload.get("workflow_model_id") or "").strip()
+    if capability == VOICE_CREATE_CAPABILITY:
+        if creation_source not in VOICE_CREATION_SOURCES or not workflow_model_id:
+            raise ValueError("speech voice.create registration requires one source and workflow model binding")
+        voice_creation_sources = [creation_source]
+        workflow_model_bindings = {creation_source: [workflow_model_id]}
+    else:
+        if creation_source or workflow_model_id:
+            raise ValueError("speech voice.create registration binding is not admitted for this capability")
+        voice_creation_sources = []
+        workflow_model_bindings = {}
+
+    bundle_dir = pathlib.Path(str(payload.get("bundle_dir") or "").strip())
+    entry_path = pathlib.Path(str(payload.get("entry_path") or "").strip())
+    declared_files = registered_declared_files(payload.get("declared_files"))
+    if not bundle_dir.is_absolute() or not entry_path.is_absolute():
+        raise ValueError("speech model registration paths must be absolute")
+    managed_root = resolved_managed_models_root()
+    try:
+        resolved_bundle = bundle_dir.resolve(strict=True)
+        bundle_info = resolved_bundle.stat()
+    except OSError as error:
+        raise ValueError("speech model registration bundle_dir is unavailable") from error
+    if not stat.S_ISDIR(bundle_info.st_mode) or not path_is_within(managed_root, resolved_bundle):
+        raise ValueError("speech model registration bundle_dir is outside the managed models root")
+    try:
+        resolved_entry = entry_path.resolve(strict=True)
+        entry_relative = resolved_entry.relative_to(resolved_bundle).as_posix()
+    except (OSError, ValueError) as error:
+        raise ValueError("speech model registration entry_path is outside bundle_dir or unavailable") from error
+    if entry_relative not in declared_files:
+        raise ValueError("speech model registration entry_path is not declared")
+
+    declared_paths: dict[str, pathlib.Path] = {}
+    for declared in declared_files:
+        candidate = resolved_bundle.joinpath(*pathlib.PurePosixPath(declared).parts)
+        try:
+            candidate_info = candidate.lstat()
+            resolved_candidate = candidate.resolve(strict=True)
+        except OSError as error:
+            raise ValueError(f"speech model registration declared file is unavailable: {declared}") from error
+        if (
+            not stat.S_ISREG(candidate_info.st_mode)
+            or not path_is_within(resolved_bundle, resolved_candidate)
+            or not path_is_within(managed_root, resolved_candidate)
+        ):
+            raise ValueError(f"speech model registration declared file is not a managed regular file: {declared}")
+        declared_paths[declared] = resolved_candidate
+    try:
+        entry_info = entry_path.lstat()
+    except OSError as error:
+        raise ValueError("speech model registration entry_path is unavailable") from error
+    if declared_paths.get(entry_relative) != resolved_entry or not stat.S_ISREG(entry_info.st_mode) or entry_info.st_size <= 0:
+        raise ValueError("speech model registration entry_path has no non-empty declared regular file")
+
+    verified_content_id = str(payload.get("verified_content_id") or "").strip()
+    entry_sha256 = str(payload.get("entry_sha256") or "").strip()
+    if not verified_content_id or not exact_sha256_hex(entry_sha256):
+        raise ValueError("speech model registration content identity is invalid")
+    declared_file_sha256_raw = payload.get("declared_file_sha256")
+    if not isinstance(declared_file_sha256_raw, dict) or set(declared_file_sha256_raw) != set(declared_files):
+        raise ValueError("speech model registration declared file identities are incomplete")
+    declared_file_sha256: dict[str, str] = {}
+    for declared in declared_files:
+        digest = str(declared_file_sha256_raw.get(declared) or "").strip().lower()
+        if not exact_sha256_hex(digest):
+            raise ValueError(f"speech model registration declared file identity is invalid: {declared}")
+        declared_file_sha256[declared] = digest
+    observed_digests = {
+        declared: sha256_file(declared_paths[declared])
+        for declared in declared_files
     }
-    required_files = QWEN3_ASR_REQUIRED_FILES if driver_kind == "qwen3_asr" else QWEN3_ASR_TRANSFORMERS_REQUIRED_FILES
-    for required_file in required_files:
-        if required_file.lower() not in normalized_declared:
-            problems.append(f'managed bundle file "{required_file}" missing')
-    return problems
+    if observed_digests != declared_file_sha256:
+        raise ValueError("speech model registration declared file bytes changed")
+    if declared_file_sha256[entry_relative] != entry_sha256.lower():
+        raise ValueError("speech model registration entry identity does not match declared bytes")
+
+    _command, driver_ready, driver_detail = driver_command_state(
+        SPEECH_DRIVER_ENV_BY_KIND[driver_kind],
+        driver_kind,
+    )
+    return SpeechModelState(
+        model_id=model_id,
+        declared_capabilities=[capability],
+        ready_capabilities=[capability] if driver_ready else [],
+        capability_drivers={capability: driver_kind},
+        ready=driver_ready,
+        detail="ready" if driver_ready else driver_detail,
+        bundle_dir=str(resolved_bundle),
+        entry_path=str(resolved_entry),
+        declared_files=declared_files,
+        verified_content_id=verified_content_id,
+        entry_sha256=entry_sha256,
+        declared_file_sha256=declared_file_sha256,
+        driver_family=family,
+        driver_backend=backend,
+        voice_creation_sources=voice_creation_sources,
+        workflow_model_bindings=workflow_model_bindings,
+    )
 
 
-def voices_file_valid(bundle_dir: str) -> tuple[bool, str]:
-    voices_path = pathlib.Path(bundle_dir) / "voices.json"
-    if not voices_path.exists():
-        return True, ""
-    try:
-        payload = json.loads(voices_path.read_text(encoding="utf-8"))
-    except Exception as error:
-        return False, f"voices.json invalid: {error}"
-    voices = []
-    if isinstance(payload, dict):
-        raw = payload.get("voices")
-        if isinstance(raw, list):
-            voices = [item for item in raw if isinstance(item, str) and item.strip()]
-    elif isinstance(payload, list):
-        voices = [item for item in payload if isinstance(item, str) and item.strip()]
-    if not voices:
-        return False, "voices.json invalid: no voices declared"
-    return True, ""
+def sha256_file(path: pathlib.Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        while chunk := handle.read(4 * 1024 * 1024):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
-def load_entry_payload(entry_path: str) -> dict[str, Any]:
-    if not entry_path:
-        return {}
-    try:
-        payload = json.loads(pathlib.Path(entry_path).read_text(encoding="utf-8"))
-    except Exception:
-        return {}
-    return payload if isinstance(payload, dict) else {}
+def assert_registered_model_content(model: SpeechModelState) -> None:
+    if not model.verified_content_id:
+        return
+    if not model.declared_files or set(model.declared_files) != set(model.declared_file_sha256):
+        raise RuntimeError("registered speech model content seal is incomplete")
+    bundle_dir = pathlib.Path(model.bundle_dir)
+    observed: dict[str, str] = {}
+    for declared in model.declared_files:
+        candidate = bundle_dir.joinpath(*pathlib.PurePosixPath(declared).parts)
+        info = candidate.lstat()
+        if candidate.is_symlink() or not stat.S_ISREG(info.st_mode):
+            raise RuntimeError(f"registered speech model file is unavailable: {declared}")
+        observed[declared] = sha256_file(candidate)
+    if observed != model.declared_file_sha256:
+        raise RuntimeError("registered speech model bytes changed before Driver load")
+    entry_relative = pathlib.Path(model.entry_path).resolve(strict=True).relative_to(bundle_dir.resolve(strict=True)).as_posix()
+    if observed.get(entry_relative) != model.entry_sha256.lower():
+        raise RuntimeError("registered speech model entry identity changed before Driver load")
 
 
 def _read_bounded_process_output(handle: Any, limit: int = 64 * 1024) -> str:
@@ -389,6 +513,7 @@ def run_driver_command(
         deadline = time.monotonic() + driver_timeout_seconds()
         with tempfile.TemporaryFile() as stdout, tempfile.TemporaryFile() as stderr:
             driver_env = os.environ.copy()
+            driver_env.pop(ADMISSION_TOKEN_ENV, None)
             if audio_candidate is not None:
                 driver_env[DRIVER_OUTPUT_PATH_ENV] = str(audio_candidate)
             proc = subprocess.Popen(
@@ -453,349 +578,6 @@ def claim_driver_audio_artifact(path_value: str, content_type: str) -> DriverAud
     )
 
 
-def qwen3_tts_driver_preflight(command: list[str], model_id: str, entry_path: str) -> tuple[bool, str]:
-    entry_payload = load_entry_payload(entry_path)
-    model_ref = str(entry_payload.get("model_ref") or "").strip() or model_id.strip()
-    cache_key = (" ".join(command), model_ref)
-    cached = QWEN3_TTS_PREFLIGHT_CACHE.get(cache_key)
-    if cached is not None:
-        return cached
-    try:
-        response = run_driver_command(
-            command,
-            {
-                "driver": "qwen3_tts",
-                "operation": "driver.preflight",
-                "model": model_id,
-                "model_ref": model_ref,
-                "entry_path": entry_path,
-            },
-        )
-    except Exception as error:
-        result = (False, f"qwen3_tts driver preflight failed: {error}")
-        QWEN3_TTS_PREFLIGHT_CACHE[cache_key] = result
-        return result
-    driver_family = str(response.get("driver_family") or "").strip()
-    if driver_family and driver_family != "qwen3_tts":
-        result = (False, f"qwen3_tts driver preflight invalid family: {driver_family}")
-        QWEN3_TTS_PREFLIGHT_CACHE[cache_key] = result
-        return result
-    result = (True, "qwen3_tts driver ready")
-    QWEN3_TTS_PREFLIGHT_CACHE[cache_key] = result
-    return result
-
-
-def voxcpm_driver_preflight(command: list[str], model_id: str, backend: str) -> tuple[bool, str]:
-    normalized_backend = backend.strip().lower()
-    cache_key = (" ".join(command), model_id.strip(), normalized_backend)
-    cached = VOXCPM_PREFLIGHT_CACHE.get(cache_key)
-    if cached is not None:
-        return cached
-    if normalized_backend not in {"standard", "mlx"}:
-        result = (False, f"voxcpm backend is not admitted: {normalized_backend or 'unset'}")
-        VOXCPM_PREFLIGHT_CACHE[cache_key] = result
-        return result
-    try:
-        response = run_driver_command(
-            command,
-            {
-                "driver": "voxcpm",
-                "operation": "driver.preflight",
-                "model": model_id,
-            },
-        )
-    except Exception as error:
-        result = (False, f"voxcpm driver preflight failed: {error}")
-        VOXCPM_PREFLIGHT_CACHE[cache_key] = result
-        return result
-    family = str(response.get("driver_family") or "").strip()
-    observed_backend = str(response.get("driver_backend") or "").strip()
-    supports = normalized_capabilities(response.get("supports"))
-    if family != "voxcpm" or observed_backend != normalized_backend or supports != ["audio.synthesize"]:
-        result = (False, "voxcpm driver preflight identity mismatch")
-        VOXCPM_PREFLIGHT_CACHE[cache_key] = result
-        return result
-    result = (True, "voxcpm driver ready")
-    VOXCPM_PREFLIGHT_CACHE[cache_key] = result
-    return result
-
-
-def normalized_string_list(value: Any) -> list[str]:
-    if isinstance(value, str):
-        values: list[Any] = [value]
-    elif isinstance(value, list):
-        values = value
-    else:
-        return []
-    result: list[str] = []
-    seen: set[str] = set()
-    for item in values:
-        if not isinstance(item, str):
-            continue
-        normalized = item.strip()
-        if not normalized:
-            continue
-        key = normalized.lower()
-        if key in seen:
-            continue
-        seen.add(key)
-        result.append(normalized)
-    return result
-
-
-def target_model_ref_matches(ref: str, model_id: str) -> bool:
-    normalized_ref = ref.strip().lower()
-    normalized_model = model_id.strip().lower()
-    if not normalized_ref or not normalized_model:
-        return False
-    if normalized_ref == normalized_model:
-        return True
-    if "/" in normalized_model and normalized_ref == normalized_model.split("/", 1)[1]:
-        return True
-    if "/" in normalized_ref and normalized_model == normalized_ref.split("/", 1)[1]:
-        return True
-    return False
-
-
-def binding_target_refs(binding: dict[str, Any]) -> list[str]:
-    refs: list[str] = []
-    refs.extend(normalized_string_list(binding.get("target_model_refs")))
-    refs.extend(normalized_string_list(binding.get("target_model_ids")))
-    refs.extend(normalized_string_list(binding.get("target_model_ref")))
-    refs.extend(normalized_string_list(binding.get("target_model_id")))
-    refs.extend(normalized_string_list(binding.get("target_model")))
-    refs.extend(normalized_string_list(binding.get("model_id")))
-    refs.extend(normalized_string_list(binding.get("model_ref")))
-    return refs
-
-
-def manifest_workflow_model_bindings(payload: dict[str, Any], model_id: str) -> dict[str, list[str]]:
-    workflow_models = payload.get("voice_workflow_models")
-    binding_rows = payload.get("model_workflow_bindings")
-    if not isinstance(workflow_models, list) or not isinstance(binding_rows, list):
-        return {}
-
-    workflow_model_rows: dict[str, dict[str, Any]] = {}
-    for row in workflow_models:
-        if not isinstance(row, dict):
-            continue
-        workflow_model_id = str(row.get("workflow_model_id") or "").strip()
-        workflow_type = str(row.get("workflow_type") or "").strip()
-        if not workflow_model_id or workflow_type not in VOICE_CREATION_SOURCES:
-            continue
-        target_refs = binding_target_refs(row)
-        if not any(target_model_ref_matches(ref, model_id) for ref in target_refs):
-            continue
-        workflow_model_rows[workflow_model_id] = row
-
-    bindings_by_capability: dict[str, list[str]] = {}
-    for row in binding_rows:
-        if not isinstance(row, dict):
-            continue
-        workflow_model_id = str(row.get("workflow_model_id") or "").strip()
-        workflow_row = workflow_model_rows.get(workflow_model_id)
-        if workflow_row is None:
-            continue
-        target_refs = binding_target_refs(row)
-        if not any(target_model_ref_matches(ref, model_id) for ref in target_refs):
-            continue
-        workflow_type = str(workflow_row.get("workflow_type") or "").strip()
-        bindings_by_capability.setdefault(workflow_type, [])
-        if workflow_model_id not in bindings_by_capability[workflow_type]:
-            bindings_by_capability[workflow_type].append(workflow_model_id)
-    return bindings_by_capability
-
-
-def manifest_voice_creation_sources(payload: dict[str, Any], model_id: str) -> list[str]:
-    sources: set[str] = set()
-    roles = {
-        item.strip().lower()
-        for item in normalized_capabilities(payload.get("artifact_roles") or payload.get("artifactRoles"))
-    }
-    if "tts_voice_clone_model" in roles:
-        sources.add("reference_audio")
-    if "tts_voice_design_model" in roles:
-        sources.add("text_description")
-
-    # Explicit catalog workflow rows remain useful diagnostic metadata for
-    # externally materialized bundles, but execution admission is owned by the
-    # exact LocalAsset role rather than by a second copy of provider workflow
-    # identities in asset.manifest.json.
-    sources.update(manifest_workflow_model_bindings(payload, model_id).keys())
-    return sorted(source for source in sources if source in VOICE_CREATION_SOURCES)
-
-
-def manifest_speech_model_state(
-    manifest_path: pathlib.Path,
-    qwen3_tts_driver_state: tuple[list[str], bool, str],
-    qwen3_asr_driver_state: tuple[list[str], bool, str],
-    qwen3_asr_transformers_driver_state: tuple[list[str], bool, str],
-    voxcpm_driver_state: tuple[list[str], bool, str],
-    voxcpm_backend: str,
-) -> SpeechModelState | None:
-    try:
-        payload = json.loads(manifest_path.read_text(encoding="utf-8"))
-    except Exception:
-        return None
-    if not isinstance(payload, dict):
-        return None
-    engine = str(payload.get("engine", "")).strip().lower()
-    if engine != "speech":
-        return None
-    model_id = str(payload.get("asset_id") or payload.get("assetId") or "").strip()
-    if not model_id:
-        return None
-    declared_capabilities = [
-        capability
-        for capability in normalized_capabilities(payload.get("capabilities"))
-        if capability in ADMITTED_SPEECH_CAPABILITIES
-    ]
-    if not declared_capabilities:
-        return None
-
-    bundle_dir = manifest_path.parent
-    entry_value = str(payload.get("entry") or "").strip()
-    entry_path = bundle_dir / entry_value if entry_value else None
-    declared_files = normalized_capabilities(payload.get("files"))
-    artifact_roles = normalized_capabilities(payload.get("artifact_roles") or payload.get("artifactRoles"))
-    family = str(payload.get("family") or "").strip().lower()
-    engine_config = payload.get("engine_config") if isinstance(payload.get("engine_config"), dict) else {}
-    asset_backend = str(engine_config.get("driver_backend") or "").strip().lower()
-    problems: list[str] = []
-    if entry_path is None:
-        problems.append("entry missing")
-        resolved_entry = ""
-    else:
-        resolved_entry = str(entry_path)
-        if not entry_path.exists():
-            problems.append(f'entry missing: "{entry_value}"')
-        elif not entry_path.is_file():
-            problems.append(f'entry not regular: "{entry_value}"')
-
-    for file_name in declared_files:
-        candidate = bundle_dir / file_name
-        if not candidate.exists():
-            problems.append(f'managed bundle file "{file_name}" missing')
-
-    ready_capabilities: list[str] = []
-    capability_drivers: dict[str, str] = {}
-    workflow_bindings = manifest_workflow_model_bindings(payload, model_id)
-    voice_creation_sources = manifest_voice_creation_sources(payload, model_id)
-    for capability in declared_capabilities:
-        if capability == VOICE_CREATE_CAPABILITY:
-            if not voice_creation_sources:
-                problems.append("voice.create requires an explicit creation-source asset role")
-                continue
-            driver_kind = infer_runtime_native_driver(model_id, capability, resolved_entry, declared_files, artifact_roles, family)
-            if not driver_kind:
-                problems.append("voice.create runtime-native driver unresolved")
-                continue
-            capability_drivers[capability] = driver_kind
-            try:
-                driver_command_for_kind(driver_kind)
-            except RuntimeError as error:
-                problems.append(str(error))
-                continue
-            ready_capabilities.append(capability)
-            continue
-        driver_kind = infer_runtime_native_driver(model_id, capability, resolved_entry, declared_files, artifact_roles, family)
-        if not driver_kind:
-            problems.append(f"{capability} runtime-native driver unresolved")
-            continue
-        capability_drivers[capability] = driver_kind
-        if capability == "audio.synthesize":
-            if driver_kind == "qwen3_tts":
-                if not qwen3_tts_driver_state[1]:
-                    problems.append(qwen3_tts_driver_state[2])
-                    continue
-                qwen3_tts_ready, qwen3_tts_detail = qwen3_tts_driver_preflight(
-                    qwen3_tts_driver_state[0],
-                    model_id,
-                    resolved_entry,
-                )
-                if not qwen3_tts_ready:
-                    problems.append(qwen3_tts_detail)
-                    continue
-                ready_capabilities.append(capability)
-                continue
-            if driver_kind == "voxcpm":
-                if family != "voxcpm" or asset_backend != voxcpm_backend:
-                    problems.append("voxcpm family or backend material does not match the configured Host")
-                    continue
-                if not voxcpm_driver_state[1]:
-                    problems.append(voxcpm_driver_state[2])
-                    continue
-                voxcpm_ready, voxcpm_detail = voxcpm_driver_preflight(
-                    voxcpm_driver_state[0],
-                    model_id,
-                    voxcpm_backend,
-                )
-                if not voxcpm_ready:
-                    problems.append(voxcpm_detail)
-                    continue
-                ready_capabilities.append(capability)
-                continue
-            problems.append(f"audio.synthesize requires unsupported driver {driver_kind}")
-            continue
-        if capability == "audio.transcribe":
-            if driver_kind not in {"qwen3_asr", "qwen3_asr_transformers"}:
-                problems.append(f"audio.transcribe requires unsupported driver {driver_kind}")
-                continue
-            layout_problems = runtime_native_bundle_layout_problems(driver_kind, entry_value, declared_files)
-            if layout_problems:
-                problems.extend(layout_problems)
-                continue
-            driver_state = qwen3_asr_driver_state if driver_kind == "qwen3_asr" else qwen3_asr_transformers_driver_state
-            if not driver_state[1]:
-                problems.append(driver_state[2])
-                continue
-            ready_capabilities.append(capability)
-    ready = len(ready_capabilities) > 0 and len(problems) == 0
-    detail = "ready" if ready else "; ".join(dict.fromkeys(problems)) or "runtime-native speech driver unavailable"
-    return SpeechModelState(
-        model_id=model_id,
-        declared_capabilities=declared_capabilities,
-        ready_capabilities=ready_capabilities,
-        capability_drivers=capability_drivers,
-        ready=ready,
-        detail=detail,
-        manifest_path=str(manifest_path),
-        bundle_dir=str(bundle_dir),
-        entry_path=resolved_entry,
-        declared_files=declared_files,
-        voice_creation_sources=voice_creation_sources,
-        workflow_model_bindings=workflow_bindings,
-    )
-
-
-def discover_speech_models(
-    models_root: str,
-    qwen3_tts_driver_state: tuple[list[str], bool, str],
-    qwen3_asr_driver_state: tuple[list[str], bool, str],
-    qwen3_asr_transformers_driver_state: tuple[list[str], bool, str],
-    voxcpm_driver_state: tuple[list[str], bool, str],
-    voxcpm_backend: str,
-) -> list[SpeechModelState]:
-    resolved_root = pathlib.Path(models_root) / "resolved"
-    if not resolved_root.exists():
-        return []
-    models: list[SpeechModelState] = []
-    for manifest_path in sorted(resolved_root.glob("**/asset.manifest.json")):
-        if not manifest_path.is_file():
-            continue
-        state = manifest_speech_model_state(
-            manifest_path,
-            qwen3_tts_driver_state,
-            qwen3_asr_driver_state,
-            qwen3_asr_transformers_driver_state,
-            voxcpm_driver_state,
-            voxcpm_backend,
-        )
-        if state is not None:
-            models.append(state)
-    return models
-
-
 def build_host_state() -> HostState:
     qwen3_tts_driver_state = driver_command_state(QWEN3_TTS_DRIVER_ENV, "qwen3_tts")
     qwen3_asr_driver_state = driver_command_state(QWEN3_ASR_DRIVER_ENV, "qwen3_asr")
@@ -804,61 +586,19 @@ def build_host_state() -> HostState:
     voxcpm_backend = os.environ.get(VOXCPM_BACKEND_ENV, "").strip().lower()
     if voxcpm_driver_state[0] and voxcpm_backend not in {"standard", "mlx"}:
         voxcpm_driver_state = (voxcpm_driver_state[0], False, "voxcpm backend is not configured")
-    models = discover_speech_models(
-        default_models_root(),
-        qwen3_tts_driver_state,
-        qwen3_asr_driver_state,
-        qwen3_asr_transformers_driver_state,
-        voxcpm_driver_state,
-        voxcpm_backend,
-    )
-    ready_models = [model for model in models if model.ready]
-    if ready_models:
-        detail = f"{len(ready_models)} ready local speech model(s) discovered"
-        status = "ok"
-        ready = True
-    elif not qwen3_tts_driver_state[0] and not qwen3_asr_driver_state[0] and not qwen3_asr_transformers_driver_state[0] and not voxcpm_driver_state[0]:
+    models: list[SpeechModelState] = []
+    if not qwen3_tts_driver_state[0] and not qwen3_asr_driver_state[0] and not qwen3_asr_transformers_driver_state[0] and not voxcpm_driver_state[0]:
         detail = "no runtime-native speech drivers configured"
         status = "not_ready"
         ready = False
-    elif not models:
-        detail = "speech drivers configured but no managed speech bundles discovered"
-        status = "not_ready"
-        ready = False
     else:
-        detail = "speech drivers configured but managed speech bundles are not ready"
+        detail = "speech drivers configured but no exact speech models registered"
         status = "not_ready"
         ready = False
     qwen3_tts_ready = qwen3_tts_driver_state[1]
     qwen3_tts_detail = qwen3_tts_driver_state[2]
-    qwen3_tts_models = [
-        model for model in models if model.capability_drivers.get("audio.synthesize", "").strip() == "qwen3_tts"
-    ]
-    if qwen3_tts_models:
-        ready_qwen3_tts_models = [
-            model for model in qwen3_tts_models if model.ready and "audio.synthesize" in model.ready_capabilities
-        ]
-        if ready_qwen3_tts_models:
-            qwen3_tts_ready = True
-            qwen3_tts_detail = "qwen3_tts driver ready"
-        else:
-            qwen3_tts_ready = False
-            qwen3_tts_detail = qwen3_tts_models[0].detail
     voxcpm_ready = voxcpm_driver_state[1]
     voxcpm_detail = voxcpm_driver_state[2]
-    voxcpm_models = [
-        model for model in models if model.capability_drivers.get("audio.synthesize", "").strip() == "voxcpm"
-    ]
-    if voxcpm_models:
-        ready_voxcpm_models = [
-            model for model in voxcpm_models if model.ready and "audio.synthesize" in model.ready_capabilities
-        ]
-        if ready_voxcpm_models:
-            voxcpm_ready = True
-            voxcpm_detail = "voxcpm driver ready"
-        else:
-            voxcpm_ready = False
-            voxcpm_detail = voxcpm_models[0].detail
     return HostState(
         ready=ready,
         status=status,
@@ -879,6 +619,33 @@ def build_host_state() -> HostState:
     )
 
 
+def merge_registered_models_into_host_state(
+    state: HostState,
+    registered_models: list[SpeechModelState],
+) -> HostState:
+    registered_by_id = {
+        model.model_id.strip(): model
+        for model in registered_models
+        if model.model_id.strip()
+    }
+    models = list(registered_by_id.values())
+    models.extend(
+        model
+        for model in state.models
+        if model.model_id.strip() not in registered_by_id
+    )
+    ready_models = [model for model in models if model.ready]
+    if not ready_models:
+        return dataclasses.replace(state, models=models)
+    return dataclasses.replace(
+        state,
+        ready=True,
+        status="ok",
+        detail=f"{len(ready_models)} ready local speech model(s) available",
+        models=models,
+    )
+
+
 def public_model_payload(model: SpeechModelState) -> dict[str, Any]:
     payload: dict[str, Any] = {
         "id": model.model_id,
@@ -894,60 +661,12 @@ def public_model_payload(model: SpeechModelState) -> dict[str, Any]:
     return payload
 
 
-def find_ready_model(model_id: str, capability: str) -> SpeechModelState:
-    target = model_id.strip()
-    normalized_target = target.lower()
-    candidate_targets = {normalized_target}
-    if "/" in normalized_target:
-        _, suffix = normalized_target.split("/", 1)
-        if suffix:
-            candidate_targets.add(suffix)
-    elif normalized_target:
-        candidate_targets.add(f"speech/{normalized_target}")
-    for model in build_host_state().models:
-        normalized_model_id = model.model_id.strip().lower()
-        if (
-            normalized_model_id in candidate_targets
-            and model.ready
-            and capability in model.ready_capabilities
-        ):
-            return model
-    raise HTTPException(
-        status_code=503,
-        detail={
-            "message": f'local speech model "{target}" is not ready for {capability}',
-            "reason": "speech_model_not_ready",
-            "model": target,
-            "capability": capability,
-        },
-    )
-
-
-def find_ready_voice_creation_model(model_id: str, creation_source: str, workflow_model_id: str) -> SpeechModelState:
-    source = creation_source.strip()
-    if source not in VOICE_CREATION_SOURCES:
-        raise HTTPException(status_code=400, detail={"message": "voice.create source is invalid", "reason": "speech_request_invalid"})
-    model = find_ready_model(model_id, VOICE_CREATE_CAPABILITY)
-    if source not in model.voice_creation_sources:
-        raise HTTPException(
-            status_code=503,
-            detail={
-                "message": f'local speech model "{model_id.strip()}" does not support voice.create source "{source}"',
-                "reason": "speech_workflow_binding_not_ready",
-                "model": model_id.strip(),
-                "capability": VOICE_CREATE_CAPABILITY,
-                "creation_source": source,
-                "workflow_model_id": workflow_model_id.strip(),
-            },
-        )
-    return model
-
-
 def synthesize_with_driver(
     model: SpeechModelState,
     request_payload: dict[str, Any],
     cancel_event: Any | None = None,
 ) -> DriverAudioArtifact:
+    assert_registered_model_content(model)
     driver_kind = model.capability_drivers.get("audio.synthesize", "").strip()
     if driver_kind == "qwen3_tts":
         command, ready, detail = driver_command_state(QWEN3_TTS_DRIVER_ENV, "qwen3_tts")
@@ -976,6 +695,7 @@ def transcribe_with_driver(
     request_payload: dict[str, Any],
     cancel_event: Any | None = None,
 ) -> str:
+    assert_registered_model_content(model)
     driver_kind = model.capability_drivers.get("audio.transcribe", "").strip()
     if driver_kind == "qwen3_asr":
         env_name = QWEN3_ASR_DRIVER_ENV
@@ -993,16 +713,6 @@ def transcribe_with_driver(
             return ""
         raise RuntimeError("speech driver response missing transcription text")
     return text
-
-
-def infer_workflow_family(target_model_id: str, workflow_model_id: str) -> str:
-    normalized_target = target_model_id.strip().lower()
-    normalized_workflow = workflow_model_id.strip().lower()
-    if "qwen3-tts" in normalized_target or "qwen3tts" in normalized_target:
-        return "qwen3_tts"
-    if "qwen3-tts" in normalized_workflow or "qwen3tts" in normalized_workflow:
-        return "qwen3_tts"
-    return ""
 
 
 def workflow_execution_unavailable_response(operation: str, detail: str, reason: str) -> JSONResponse:

@@ -6,37 +6,6 @@ import type { AIConfigCapabilityIntent } from '../core-generated/runtime-protobu
 import type { CoreStreamRequest, CoreUnaryRequest } from '../types';
 import { createNimiDesktopFirstPartyRuntimeClients } from './desktop-first-party-runtime';
 
-test('Desktop machine product carries the typed Machine Local AI Configuration module', async () => {
-  const calls: CoreUnaryRequest[] = [];
-  const transport: CoreTransport = {
-    async unary<Response>(request: CoreUnaryRequest): Promise<Response> {
-      calls.push(request);
-      if (request.methodId === '/nimi.runtime.v1.RuntimeLocalService/GetMachineLocalAIConfiguration') {
-        return {
-          aggregate: { configurations: [], selections: [] },
-        } as Response;
-      }
-      throw new Error(`unexpected Runtime method: ${request.methodId}`);
-    },
-    async *serverStream<Response>(_request: CoreStreamRequest): AsyncIterable<Response> {
-      throw new Error('unexpected Runtime stream');
-    },
-  };
-  const clients = createNimiDesktopFirstPartyRuntimeClients({
-    appId: 'nimi.desktop',
-    transport,
-  });
-
-  const aggregate = await clients.machineProduct.local.aiConfiguration.get();
-
-  assert.deepEqual(aggregate, { configurations: [], selections: [] });
-  assert.equal(
-    calls[0]?.methodId,
-    '/nimi.runtime.v1.RuntimeLocalService/GetMachineLocalAIConfiguration',
-  );
-  assert.equal(calls[0]?.metadata?.appId, undefined, 'protected host owns caller identity');
-});
-
 test('Desktop account product binds AIConfig to one explicit admitted App owner', async () => {
   const calls: CoreUnaryRequest[] = [];
   const transport: CoreTransport = {
@@ -86,6 +55,65 @@ test('Desktop account product binds AIConfig to one explicit admitted App owner'
   ]);
   for (const call of calls) {
     assert.equal(call.metadata?.appId, undefined, 'protected host owns caller identity');
+  }
+});
+
+test('Desktop account product imports only a portable Profile document and lists the catalog', async () => {
+  const calls: CoreUnaryRequest[] = [];
+  const artifactJson = JSON.stringify({
+    profileId: 'profile.portable',
+    title: 'Portable',
+    capabilities: { 'text.generate': { route: 'local' } },
+  });
+  const invalidArtifactJson = JSON.stringify({
+    profileId: 'profile.invalid',
+    title: 'Invalid',
+    capabilities: { 'text.generate': { route: 'local', defaults: { token: 'private' } } },
+  });
+  const transport: CoreTransport = {
+    async unary<Response>(request: CoreUnaryRequest): Promise<Response> {
+      calls.push(request);
+      const body = request.body as { profileJson?: Uint8Array };
+      const profileJson = body.profileJson ?? new TextEncoder().encode(artifactJson);
+      if (request.methodId.endsWith('/ImportPortableAIProfile')) {
+        return { profile: { profileId: 'profile.portable', title: 'Portable', profileJson } } as Response;
+      }
+      if (request.methodId.endsWith('/ListPortableAIProfiles')) {
+        return { profiles: [
+          { profileId: 'profile.invalid', title: 'Invalid', profileJson: new TextEncoder().encode(invalidArtifactJson) },
+          { profileId: 'profile.portable', title: 'Portable', profileJson },
+        ] } as Response;
+      }
+      throw new Error(`unexpected Runtime method: ${request.methodId}`);
+    },
+    async *serverStream<Response>(_request: CoreStreamRequest): AsyncIterable<Response> {
+      throw new Error('unexpected Runtime stream');
+    },
+  };
+  const clients = createNimiDesktopFirstPartyRuntimeClients({
+    appId: 'nimi.desktop',
+    transport,
+    getSubjectUserId: () => 'account-a',
+  });
+
+  const imported = await clients.accountProduct.profiles.import(artifactJson);
+  const listed = await clients.accountProduct.profiles.list();
+  assert.equal(imported.source.profileId, 'profile.portable');
+  assert.equal(listed.length, 1);
+  assert.equal(listed[0]?.artifactJson, artifactJson);
+  assert.deepEqual(calls.map((call) => call.methodId), [
+    '/nimi.runtime.v1.RuntimeAgentService/ImportPortableAIProfile',
+    '/nimi.runtime.v1.RuntimeAgentService/ListPortableAIProfiles',
+  ]);
+  for (const call of calls) {
+    const context = (call.body as { context?: { appId?: string; subjectUserId?: string; ownerUserId?: string } }).context;
+    assert.deepEqual(context, {
+      appId: 'nimi.desktop',
+      subjectUserId: 'account-a',
+      ownerUserId: 'account-a',
+      runtimeSourceRef: '',
+      localAgentRef: '',
+    });
   }
 });
 

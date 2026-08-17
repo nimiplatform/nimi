@@ -283,7 +283,7 @@ func beginImageExecution(ctx context.Context, onStart localexecution.ImageExecut
 func (h *ImageExecutionHost) execute(request *imageExecutionRequest) (localexecution.ImageResult, error) {
 	startedAt := time.Now()
 	_, err := h.substrate.Ensure(request.ctx, request.plan, func() error {
-		return validateImageInvocationModelContentContext(request.ctx, request.plan.ModelFiles())
+		return validateInvocationModelContentContext(request.ctx, request.plan.ModelFiles())
 	}, request.progress)
 	if err != nil {
 		if request.ctx.Err() != nil {

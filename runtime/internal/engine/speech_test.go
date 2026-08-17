@@ -128,6 +128,13 @@ func TestQwenSpeechDriversResolveManagedBundleDirectory(t *testing.T) {
 	}
 }
 
+func TestQwenASRDriverRequiresRuntimeCapturedManagedBundle(t *testing.T) {
+	got := runPythonDriverResolveModelRefExpectFailure(t, "qwen3_asr_driver.py", speechQwen3ASRDriverScript, `{}`, "Qwen/Qwen3-ASR-0.6B")
+	if !strings.Contains(got, "qwen3_asr requires a runtime-captured managed bundle") {
+		t.Fatalf("expected managed bundle requirement, got %q", got)
+	}
+}
+
 func TestQwenTTSDriverRequiresExplicitModelRef(t *testing.T) {
 	got := runPythonDriverResolveModelRefExpectFailure(t, "qwen3_tts_driver.py", speechQwen3TTSDriverScript, `{}`, "")
 	if !strings.Contains(got, "qwen3_tts model_ref is required") {
@@ -169,6 +176,25 @@ func TestQwenASRDriverAllowsEmptyTranscriptOnlyForFirstRunProbe(t *testing.T) {
 	}, true)
 	if !strings.Contains(failure["error"].(string), "qwen3_asr transcribe result missing text") {
 		t.Fatalf("expected unmarked empty transcript to fail closed, got %#v", failure)
+	}
+}
+
+func TestQwenASRDriverRejectsTimestampsWithoutCapturedAlignerBeforeLoad(t *testing.T) {
+	failure := runPythonASRDriverFakeTranscribe(t, map[string]any{
+		"operation":  "audio.transcribe",
+		"audio_path": "AUDIO_PATH",
+		"timestamps": true,
+	}, true)
+	if !strings.Contains(failure["error"].(string), "timestamps require an explicitly captured local aligner") {
+		t.Fatalf("expected timestamps admission failure, got %#v", failure)
+	}
+}
+
+func TestQwenASRDriverContainsNoHubModelFallback(t *testing.T) {
+	for _, forbidden := range []string{"Qwen/Qwen3-ASR", "Qwen/Qwen3-ForcedAligner", "forced_aligner"} {
+		if strings.Contains(speechQwen3ASRDriverScript, forbidden) {
+			t.Fatalf("qwen3_asr driver contains uncaptured Hub model input %q", forbidden)
+		}
 	}
 }
 
@@ -253,7 +279,14 @@ func runPythonASRDriverFakeTranscribe(t *testing.T, request map[string]any, expe
 	if err := os.WriteFile(audioPath, []byte("audio-bytes"), 0o644); err != nil {
 		t.Fatalf("write fake audio: %v", err)
 	}
+	modelPath := filepath.Join(tempDir, "model.safetensors")
+	if err := os.WriteFile(modelPath, []byte("model-bytes"), 0o644); err != nil {
+		t.Fatalf("write fake model: %v", err)
+	}
 	request["audio_path"] = audioPath
+	request["bundle_dir"] = tempDir
+	request["entry_path"] = modelPath
+	request["declared_files"] = []string{"model.safetensors"}
 	requestPayload, err := json.Marshal(request)
 	if err != nil {
 		t.Fatalf("marshal request: %v", err)
@@ -279,6 +312,7 @@ func runPythonASRDriverFakeTranscribe(t *testing.T, request map[string]any, expe
 	}, "\n")
 	args := appendPythonArgs(pythonArgs, "-c", code, driverPath, string(requestPayload))
 	cmd := exec.Command(python, args...)
+	cmd.Env = append(os.Environ(), "HF_HUB_OFFLINE=1", "HF_HOME="+filepath.Join(tempDir, "empty-hf-cache"))
 	output, runErr := cmd.CombinedOutput()
 	if expectFailure {
 		if runErr == nil {
@@ -332,6 +366,7 @@ func TestEnsureSpeechOnlyVerifiesPromotedSpeechScripts(t *testing.T) {
 	cfg.SpeechQwen3TTSPackageSetRoot = root
 	cfg.SpeechQwen3ASRPackageSetRoot = asrRoot
 	cfg.SpeechDriverWorkRoot = t.TempDir()
+	cfg.SpeechAdmissionToken = "test-admission-token"
 	paths := append(
 		stageManagedSpeechProfile(t, root, "speech.qwen3-tts.python"),
 		stageManagedSpeechProfile(t, asrRoot, "speech.qwen3-asr.python")...,
@@ -408,6 +443,7 @@ func TestEnsureSpeechRejectsMissingOrDriftedPromotedScriptsWithoutRepair(t *test
 		cfg.SpeechHostAcceleratorPlane = "cpu"
 		cfg.SpeechQwen3TTSPackageSetRoot = root
 		cfg.SpeechDriverWorkRoot = t.TempDir()
+		cfg.SpeechAdmissionToken = "test-admission-token"
 		return cfg, root
 	}
 
@@ -475,6 +511,7 @@ func TestEnsureSpeechRequiresRuntimeOwnedDriverWorkRoot(t *testing.T) {
 	cfg.SpeechHostAcceleratorPlane = "cpu"
 	cfg.SpeechQwen3TTSPackageSetRoot = root
 	cfg.SpeechQwen3ASRPackageSetRoot = asrRoot
+	cfg.SpeechAdmissionToken = "test-admission-token"
 	for _, pythonPath := range []string{managedPythonPath(root), managedPythonPath(asrRoot)} {
 		if err := os.MkdirAll(filepath.Dir(pythonPath), 0o755); err != nil {
 			t.Fatal(err)
@@ -631,9 +668,13 @@ func TestSpeechApplyDefaultEnvBindsRuntimeOwnedDriverWorkRoot(t *testing.T) {
 	cfg.ModelsPath = t.TempDir()
 	cfg.SpeechDriverWorkRoot = t.TempDir()
 	cfg.SpeechHostAcceleratorPlane = "cpu"
+	cfg.SpeechAdmissionToken = "test-admission-token"
 	env := speechApplyDefaultEnv(cfg, t.TempDir())
 	if got := env[speechDriverWorkRootEnv]; got != cfg.SpeechDriverWorkRoot {
 		t.Fatalf("speech driver work root = %q, want %q", got, cfg.SpeechDriverWorkRoot)
+	}
+	if got := env[speechAdmissionTokenEnv]; got != cfg.SpeechAdmissionToken {
+		t.Fatalf("speech admission token env = %q, want injected per-process token", got)
 	}
 }
 

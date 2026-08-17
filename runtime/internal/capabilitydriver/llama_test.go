@@ -79,7 +79,7 @@ func TestLlamaInterpretImageProjectsDeterministicMainThenCompanion(t *testing.T)
 		t.Fatalf("mmproj occurrence presentation = %#v", requirements[1])
 	}
 	constraints := requirements[1].GetCompatibilityConstraints().AsMap()
-	if constraints["engine"] != "llama" || constraints["artifact_role"] != "mmproj" {
+	if _, exists := constraints["engine"]; exists || constraints["artifact_role"] != "mmproj" {
 		t.Fatalf("mmproj compatibility constraints = %#v", constraints)
 	}
 }
@@ -123,19 +123,13 @@ func TestLlamaInterpretReturnsPublicReasons(t *testing.T) {
 	}
 }
 
-func TestLlamaInterpretAcceptsTypedExecutionOptionsAndNormalizesContentIDs(t *testing.T) {
-	mainUpper := "sha256:" + strings.Repeat("A", 64)
-	mmprojUpper := "sha256:" + strings.Repeat("B", 64)
+func TestLlamaInterpretAcceptsTypedExecutionOptionsWithoutModelPins(t *testing.T) {
 	portable, err := structpb.NewStruct(map[string]any{
-		"mainRequirementPolicy":   "strict",
-		"mainVerifiedContentId":   mainUpper,
-		"mmprojRequirementPolicy": "substitutable",
-		"mmprojVerifiedContentId": mmprojUpper,
-		"contextSize":             8192,
-		"cacheTypeK":              "q8_0",
-		"cacheTypeV":              "f16",
-		"flashAttention":          true,
-		"gpuLayers":               -1,
+		"contextSize":    8192,
+		"cacheTypeK":     "q8_0",
+		"cacheTypeV":     "f16",
+		"flashAttention": true,
+		"gpuLayers":      -1,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -144,18 +138,17 @@ func TestLlamaInterpretAcceptsTypedExecutionOptionsAndNormalizesContentIDs(t *te
 	if reason != success {
 		t.Fatalf("interpret reason = %v", reason)
 	}
-	if got := requirements[0].GetPreferredVerifiedContentId(); got != strings.ToLower(mainUpper) {
-		t.Fatalf("normalized main identity = %q", got)
-	}
-	if got := requirements[1].GetPreferredVerifiedContentId(); got != strings.ToLower(mmprojUpper) {
-		t.Fatalf("normalized mmproj identity = %q", got)
+	for _, requirement := range requirements {
+		if requirement.GetPolicy() != runtimev1.LocalCapabilityRequirementPolicy_LOCAL_CAPABILITY_REQUIREMENT_POLICY_SUBSTITUTABLE || requirement.GetPreferredVerifiedContentId() != "" {
+			t.Fatalf("model pin entered projected requirement: %#v", requirement)
+		}
 	}
 }
 
 func TestLlamaValidateCombinationReturnsPublicReasons(t *testing.T) {
 	driver := LlamaTextDriver{}
 	mainContentID := "sha256:" + strings.Repeat("a", 64)
-	portable, err := structpb.NewStruct(map[string]any{"mainRequirementPolicy": "strict", "mainVerifiedContentId": mainContentID})
+	portable, err := structpb.NewStruct(map[string]any{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -163,22 +156,22 @@ func TestLlamaValidateCombinationReturnsPublicReasons(t *testing.T) {
 	if reason != success {
 		t.Fatalf("interpret reason = %v", reason)
 	}
-	binding := &runtimev1.LocalAssetExactBinding{RequirementId: MainGGUFRequirementID, LocalAssetId: "asset-main", VerifiedContentId: mainContentID, EntrySha256: "sha-main"}
-	asset := AssetDescriptor{LocalAssetID: "asset-main", VerifiedContentID: mainContentID, EntrySHA256: "sha-main", Engine: "llama", ArtifactRoles: []string{"llm"}}
-	if reason := driver.ValidateCombination(requirements, []*runtimev1.LocalAssetExactBinding{binding}, []AssetDescriptor{asset}); reason != success {
-		t.Fatalf("valid strict binding reason = %v", reason)
+	binding := &runtimev1.ModelAssetExactBinding{RequirementId: MainGGUFRequirementID, ModelAssetId: "asset-main", VerifiedContentId: mainContentID, EntrySha256: "sha-main"}
+	asset := ModelAssetDescriptor{ModelAssetID: "asset-main", VerifiedContentID: mainContentID, EntrySHA256: "sha-main", Kind: runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT, Engine: "llama", ArtifactRoles: []string{"llm"}}
+	if reason := driver.ValidateCombination(requirements, []*runtimev1.ModelAssetExactBinding{binding}, []ModelAssetDescriptor{asset}); reason != success {
+		t.Fatalf("valid substitutable binding reason = %v", reason)
 	}
 	for _, test := range []struct {
 		name     string
 		want     runtimev1.LocalCapabilityReason
-		bindings []*runtimev1.LocalAssetExactBinding
-		assets   []AssetDescriptor
+		bindings []*runtimev1.ModelAssetExactBinding
+		assets   []ModelAssetDescriptor
 	}{
 		{name: "missing", want: runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_REQUIRED_BINDING_MISSING, bindings: nil, assets: nil},
-		{name: "extra", want: runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_BINDING_AMBIGUOUS, bindings: []*runtimev1.LocalAssetExactBinding{binding, binding}, assets: []AssetDescriptor{asset, asset}},
-		{name: "wrong requirement", want: runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_BINDING_AMBIGUOUS, bindings: []*runtimev1.LocalAssetExactBinding{{RequirementId: CompanionMMProjRequirementID, LocalAssetId: "asset-main", VerifiedContentId: mainContentID, EntrySha256: "sha-main"}}, assets: []AssetDescriptor{asset}},
-		{name: "incompatible role", want: runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE, bindings: []*runtimev1.LocalAssetExactBinding{binding}, assets: []AssetDescriptor{{LocalAssetID: "asset-main", VerifiedContentID: mainContentID, EntrySHA256: "sha-main", Engine: "llama", ArtifactRoles: []string{"mmproj"}}}},
-		{name: "incompatible content", want: runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_CONTENT_MISMATCH, bindings: []*runtimev1.LocalAssetExactBinding{binding}, assets: []AssetDescriptor{{LocalAssetID: "asset-main", VerifiedContentID: "other", EntrySHA256: "sha-main", Engine: "llama", ArtifactRoles: []string{"llm"}}}},
+		{name: "extra", want: runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_BINDING_AMBIGUOUS, bindings: []*runtimev1.ModelAssetExactBinding{binding, binding}, assets: []ModelAssetDescriptor{asset, asset}},
+		{name: "wrong requirement", want: runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_BINDING_AMBIGUOUS, bindings: []*runtimev1.ModelAssetExactBinding{{RequirementId: CompanionMMProjRequirementID, ModelAssetId: "asset-main", VerifiedContentId: mainContentID, EntrySha256: "sha-main"}}, assets: []ModelAssetDescriptor{asset}},
+		{name: "incompatible role", want: runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE, bindings: []*runtimev1.ModelAssetExactBinding{binding}, assets: []ModelAssetDescriptor{{ModelAssetID: "asset-main", VerifiedContentID: mainContentID, EntrySHA256: "sha-main", Kind: runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT, Engine: "llama", ArtifactRoles: []string{"mmproj"}}}},
+		{name: "incompatible content", want: runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_CONTENT_MISMATCH, bindings: []*runtimev1.ModelAssetExactBinding{binding}, assets: []ModelAssetDescriptor{{ModelAssetID: "asset-main", VerifiedContentID: "other", EntrySHA256: "sha-main", Kind: runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT, Engine: "llama", ArtifactRoles: []string{"llm"}}}},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			if reason := driver.ValidateCombination(requirements, test.bindings, test.assets); reason != test.want {
@@ -194,13 +187,13 @@ func TestLlamaValidateCombinationMatchesBindingsByStableID(t *testing.T) {
 	if reason != success {
 		t.Fatalf("interpret reason = %v", reason)
 	}
-	bindings := []*runtimev1.LocalAssetExactBinding{
-		{RequirementId: CompanionMMProjRequirementID, LocalAssetId: "projector", VerifiedContentId: "projector-content", EntrySha256: "projector-sha"},
-		{RequirementId: MainGGUFRequirementID, LocalAssetId: "model", VerifiedContentId: "model-content", EntrySha256: "model-sha"},
+	bindings := []*runtimev1.ModelAssetExactBinding{
+		{RequirementId: CompanionMMProjRequirementID, ModelAssetId: "projector", VerifiedContentId: "projector-content", EntrySha256: "projector-sha"},
+		{RequirementId: MainGGUFRequirementID, ModelAssetId: "model", VerifiedContentId: "model-content", EntrySha256: "model-sha"},
 	}
-	assets := []AssetDescriptor{
-		{LocalAssetID: "projector", VerifiedContentID: "projector-content", EntrySHA256: "projector-sha", Engine: "llama", ArtifactRoles: []string{"mmproj"}},
-		{LocalAssetID: "model", VerifiedContentID: "model-content", EntrySHA256: "model-sha", Engine: "llama", ArtifactRoles: []string{"llm"}},
+	assets := []ModelAssetDescriptor{
+		{ModelAssetID: "projector", VerifiedContentID: "projector-content", EntrySHA256: "projector-sha", Kind: runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_AUXILIARY, ArtifactRoles: []string{"mmproj"}},
+		{ModelAssetID: "model", VerifiedContentID: "model-content", EntrySHA256: "model-sha", Kind: runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT, Engine: "llama", ArtifactRoles: []string{"llm"}},
 	}
 	if reason := driver.ValidateCombination(requirements, bindings, assets); reason != success {
 		t.Fatalf("stable ID matched combination reason = %v", reason)
@@ -215,29 +208,29 @@ func TestLlamaValidateCombinationAllowsOneAssetToSatisfyDistinctOccurrences(t *t
 	}
 	for _, test := range []struct {
 		name     string
-		bindings []*runtimev1.LocalAssetExactBinding
-		assets   []AssetDescriptor
+		bindings []*runtimev1.ModelAssetExactBinding
+		assets   []ModelAssetDescriptor
 	}{
 		{
-			name: "same local asset",
-			bindings: []*runtimev1.LocalAssetExactBinding{
-				{RequirementId: MainGGUFRequirementID, LocalAssetId: "shared", VerifiedContentId: "model-content", EntrySha256: "model-sha"},
-				{RequirementId: CompanionMMProjRequirementID, LocalAssetId: "shared", VerifiedContentId: "projector-content", EntrySha256: "projector-sha"},
+			name: "same model asset",
+			bindings: []*runtimev1.ModelAssetExactBinding{
+				{RequirementId: MainGGUFRequirementID, ModelAssetId: "shared", VerifiedContentId: "model-content", EntrySha256: "model-sha"},
+				{RequirementId: CompanionMMProjRequirementID, ModelAssetId: "shared", VerifiedContentId: "projector-content", EntrySha256: "projector-sha"},
 			},
-			assets: []AssetDescriptor{
-				{LocalAssetID: "shared", VerifiedContentID: "model-content", EntrySHA256: "model-sha", Engine: "llama", ArtifactRoles: []string{"llm"}},
-				{LocalAssetID: "shared", VerifiedContentID: "projector-content", EntrySHA256: "projector-sha", Engine: "llama", ArtifactRoles: []string{"mmproj"}},
+			assets: []ModelAssetDescriptor{
+				{ModelAssetID: "shared", VerifiedContentID: "model-content", EntrySHA256: "model-sha", Kind: runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT, Engine: "llama", ArtifactRoles: []string{"llm"}},
+				{ModelAssetID: "shared", VerifiedContentID: "projector-content", EntrySHA256: "projector-sha", Kind: runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_AUXILIARY, ArtifactRoles: []string{"mmproj"}},
 			},
 		},
 		{
 			name: "same verified content",
-			bindings: []*runtimev1.LocalAssetExactBinding{
-				{RequirementId: MainGGUFRequirementID, LocalAssetId: "model", VerifiedContentId: "shared-content", EntrySha256: "shared-sha"},
-				{RequirementId: CompanionMMProjRequirementID, LocalAssetId: "projector", VerifiedContentId: "shared-content", EntrySha256: "shared-sha"},
+			bindings: []*runtimev1.ModelAssetExactBinding{
+				{RequirementId: MainGGUFRequirementID, ModelAssetId: "model", VerifiedContentId: "shared-content", EntrySha256: "shared-sha"},
+				{RequirementId: CompanionMMProjRequirementID, ModelAssetId: "projector", VerifiedContentId: "shared-content", EntrySha256: "shared-sha"},
 			},
-			assets: []AssetDescriptor{
-				{LocalAssetID: "model", VerifiedContentID: "shared-content", EntrySHA256: "shared-sha", Engine: "llama", ArtifactRoles: []string{"llm"}},
-				{LocalAssetID: "projector", VerifiedContentID: "shared-content", EntrySHA256: "shared-sha", Engine: "llama", ArtifactRoles: []string{"mmproj"}},
+			assets: []ModelAssetDescriptor{
+				{ModelAssetID: "model", VerifiedContentID: "shared-content", EntrySHA256: "shared-sha", Kind: runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT, Engine: "llama", ArtifactRoles: []string{"llm"}},
+				{ModelAssetID: "projector", VerifiedContentID: "shared-content", EntrySHA256: "shared-sha", Kind: runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_AUXILIARY, ArtifactRoles: []string{"mmproj"}},
 			},
 		},
 	} {
@@ -250,7 +243,7 @@ func TestLlamaValidateCombinationAllowsOneAssetToSatisfyDistinctOccurrences(t *t
 }
 
 func TestLlamaEffectiveRequestDefaultsMatchServerDialect(t *testing.T) {
-	defaults := (LlamaTextDriver{}).EffectiveRequestDefaults(nil)
+	defaults := (LlamaTextDriver{}).EffectiveRequestDefaults(LlamaGemma4E2BRecipeID, nil)
 	if defaults["temperature"] != "0.8" || defaults["topP"] != "0.95" || defaults["topK"] != "40" || defaults["seed"] != "random" {
 		t.Fatalf("effective request defaults = %#v", defaults)
 	}
@@ -272,7 +265,7 @@ func TestLlamaInvocationPlanUsesExactTextBindingAndPortableOptions(t *testing.T)
 		PortableConfig:           portable,
 		ModelContextWindowTokens: 32768,
 		ExactBindings: []InvocationExactBinding{{
-			RequirementID: MainGGUFRequirementID, LocalAssetID: "main", AbsolutePath: mainPath,
+			RequirementID: MainGGUFRequirementID, ModelAssetID: "main", AbsolutePath: mainPath,
 			VerifiedContentID: "sha256:" + strings.Repeat("a", 64), EntrySHA256: strings.Repeat("b", 64),
 		}},
 		Request: &runtimev1.TextGenerateScenarioSpec{
@@ -330,7 +323,7 @@ func TestLlamaInvocationPlanRequiresAndUsesExactMMProjForImage(t *testing.T) {
 		},
 	}}}
 	main := InvocationExactBinding{
-		RequirementID: MainGGUFRequirementID, LocalAssetID: "main", AbsolutePath: mainPath,
+		RequirementID: MainGGUFRequirementID, ModelAssetID: "main", AbsolutePath: mainPath,
 		VerifiedContentID: "sha256:" + strings.Repeat("a", 64), EntrySHA256: strings.Repeat("b", 64),
 	}
 	if _, err := (LlamaTextDriver{}).PlanTextInvocation(TextInvocationInput{ExactBindings: []InvocationExactBinding{main}, Request: request}); err == nil {
@@ -339,7 +332,7 @@ func TestLlamaInvocationPlanRequiresAndUsesExactMMProjForImage(t *testing.T) {
 	plan, err := (LlamaTextDriver{}).PlanTextInvocation(TextInvocationInput{
 		ModelContextWindowTokens: 32768,
 		ExactBindings: []InvocationExactBinding{main, {
-			RequirementID: CompanionMMProjRequirementID, LocalAssetID: "mmproj", AbsolutePath: mmprojPath,
+			RequirementID: CompanionMMProjRequirementID, ModelAssetID: "mmproj", AbsolutePath: mmprojPath,
 			VerifiedContentID: "sha256:" + strings.Repeat("c", 64), EntrySHA256: strings.Repeat("d", 64),
 		}},
 		Request: request,
@@ -381,13 +374,41 @@ func TestLlamaValidateBindingAllowsCompatibleSubstituteOnly(t *testing.T) {
 	if reason != success {
 		t.Fatalf("interpret reason = %v", reason)
 	}
-	binding := &runtimev1.LocalAssetExactBinding{RequirementId: MainGGUFRequirementID, LocalAssetId: "asset", VerifiedContentId: "other-content", EntrySha256: "sha"}
-	asset := AssetDescriptor{LocalAssetID: "asset", VerifiedContentID: "other-content", EntrySHA256: "sha", Engine: "llama", ArtifactRoles: []string{"llm"}}
+	binding := &runtimev1.ModelAssetExactBinding{RequirementId: MainGGUFRequirementID, ModelAssetId: "asset", VerifiedContentId: "other-content", EntrySha256: "sha"}
+	asset := ModelAssetDescriptor{ModelAssetID: "asset", VerifiedContentID: "other-content", EntrySHA256: "sha", Kind: runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT, Engine: "llama", ArtifactRoles: []string{"llm"}}
 	if reason := (LlamaTextDriver{}).ValidateBinding(requirements[0], binding, asset); reason != success {
 		t.Fatalf("compatible substitute reason = %v", reason)
 	}
 	asset.Engine = "other"
 	if reason := (LlamaTextDriver{}).ValidateBinding(requirements[0], binding, asset); reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE {
 		t.Fatalf("incompatible substitute reason = %v", reason)
+	}
+}
+
+func TestLlamaValidateBindingAcceptsEngineIndependentPassiveMMProj(t *testing.T) {
+	requirements, reason := (LlamaTextDriver{}).Interpret(InterpretInput{SupportedFeatures: []string{inputImageFeature}})
+	if reason != success {
+		t.Fatalf("interpret reason = %v", reason)
+	}
+	requirement := requirements[1]
+	binding := &runtimev1.ModelAssetExactBinding{
+		RequirementId:     CompanionMMProjRequirementID,
+		ModelAssetId:      "projector",
+		VerifiedContentId: "projector-content",
+		EntrySha256:       "projector-sha",
+	}
+	asset := ModelAssetDescriptor{
+		ModelAssetID:      "projector",
+		VerifiedContentID: "projector-content",
+		EntrySHA256:       "projector-sha",
+		Kind:              runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_AUXILIARY,
+		ArtifactRoles:     []string{"mmproj"},
+	}
+	if reason := (LlamaTextDriver{}).ValidateBinding(requirement, binding, asset); reason != success {
+		t.Fatalf("engine-independent mmproj reason = %v", reason)
+	}
+	asset.Kind = runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT
+	if reason := (LlamaTextDriver{}).ValidateBinding(requirement, binding, asset); reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE {
+		t.Fatalf("runnable mmproj kind reason = %v", reason)
 	}
 }

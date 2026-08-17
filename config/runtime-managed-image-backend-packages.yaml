@@ -32,6 +32,7 @@ entries:
     image_ref: quay.io/go-skynet/local-ai-backends:latest-metal-darwin-arm64-stablediffusion-ggml
     oci_layer_digest: sha256:89cdb483a81a98a4cd46d178d23c3540d15e7a27e53ff940984d848e16767b5e
     executable_candidates: [run.sh]
+    supported_model_families: [flux, sdxl]
     launch_mode: package_entrypoint
     wrapper_driver: localai-package-entrypoint
     product_state: supported
@@ -48,8 +49,9 @@ entries:
     install_dir_name: metal-stablediffusion-ggml-official-sdcpp
     image_ref: ""
     archive_url: https://github.com/leejet/stable-diffusion.cpp/releases/download/master-552-87ecb95/sd-master-87ecb95-bin-Darwin-macOS-15.7.4-arm64.zip
-    archive_sha256: f57c43020b172ae9e5095d7aea3c3c1c470717fbbd6b65118545c702053076b1
+    archive_sha256: f57c43020b172ae9e5095d7aea3c3c1c470717fbbd6b65118545c702053076b1 # pragma: allowlist secret
     executable_candidates: [sd-cli]
+    supported_model_families: [flux, sdxl]
     launch_mode: runtime_wrapper
     wrapper_driver: stable-diffusion.cpp
     product_state: proposed
@@ -72,7 +74,7 @@ entries:
     install_dir_name: sd-win-cuda12-x64-stablediffusion-ggml-bfbef5b
     image_ref: ""
     archive_url: https://github.com/leejet/stable-diffusion.cpp/releases/download/master-813-bfbef5b/sd-master-bfbef5b-bin-win-cuda12-x64.zip
-    archive_sha256: e101fcd3ab323547ef8b4387b5edc6e4a1a70837d394ca744cd847a30e3a9a71
+    archive_sha256: e101fcd3ab323547ef8b4387b5edc6e4a1a70837d394ca744cd847a30e3a9a71 # pragma: allowlist secret
     dependency_requirements:
       - dependency_id: nvidia-cuda-user-space-runtime
         consumer_id: stable-diffusion.cpp.cuda
@@ -81,10 +83,16 @@ entries:
         accelerator_projection_table: shared-accelerator-dependencies.yaml
         first_network_materialization_requires_confirmation: true
     executable_candidates: [sd.exe, sd-cli.exe]
-    supported_model_families: [flux, ideogram4, minimax-h3, sdxl, z-image]
+    supported_model_families: [flux, ideogram4, minimax-h3, qwen-image, sdxl, z-image]
     launch_mode: runtime_wrapper
     wrapper_driver: stable-diffusion.cpp
     product_state: supported
+    detail: >-
+      The minimax-h3 family marker denotes engine-package compatibility for the
+      Runtime-controlled Windows subset only. It is not a statement of
+      unconditional global product availability or licensing eligibility;
+      model acquisition and use remain subject to the applicable model terms
+      and regional or product obligations.
 
   - entry_id: linux-x64-nvidia-stablediffusion-ggml
     host_match:

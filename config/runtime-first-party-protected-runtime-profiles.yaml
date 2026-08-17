@@ -22,48 +22,36 @@ profiles:
       - method_id: /nimi.runtime.v1.RuntimeLocalService/CompleteProductControlFirstRunDeviceEnvironmentScan
       - method_id: /nimi.runtime.v1.RuntimeLocalService/AdmitProductControlReadyForUse
       - method_id: /nimi.runtime.v1.RuntimeLocalService/ReconcileProductControlFirstRunSetupState
-      - method_id: /nimi.runtime.v1.RuntimeLocalService/ListLocalAssets
-      - method_id: /nimi.runtime.v1.RuntimeLocalService/GetMachineLocalAIConfiguration
-      - method_id: /nimi.runtime.v1.RuntimeLocalService/GetLocalCapabilityConfiguration
-      - method_id: /nimi.runtime.v1.RuntimeLocalService/AddLocalCapabilityConfiguration
-      - method_id: /nimi.runtime.v1.RuntimeLocalService/UpdateLocalCapabilityConfiguration
-      - method_id: /nimi.runtime.v1.RuntimeLocalService/SelectLocalCapabilityConfiguration
-      - method_id: /nimi.runtime.v1.RuntimeLocalService/ClearLocalCapabilitySelection
-      - method_id: /nimi.runtime.v1.RuntimeLocalService/DeleteLocalCapabilityConfiguration
-      - method_id: /nimi.runtime.v1.RuntimeLocalService/ReprojectLocalCapabilityRequirements
-      - method_id: /nimi.runtime.v1.RuntimeLocalService/BindLocalCapabilityRequirement
-      - method_id: /nimi.runtime.v1.RuntimeLocalService/RebindLocalCapabilityRequirement
-      - method_id: /nimi.runtime.v1.RuntimeLocalService/UnbindLocalCapabilityRequirement
-      - method_id: /nimi.runtime.v1.RuntimeLocalService/ListNodeCatalog
+      - method_id: /nimi.runtime.v1.RuntimeLocalService/ResolveLocalStateReconciliation
+      - method_id: /nimi.runtime.v1.RuntimeLocalService/ImportModelAsset
+      - method_id: /nimi.runtime.v1.RuntimeLocalService/ListModelAssets
+      - method_id: /nimi.runtime.v1.RuntimeLocalService/GetModelAsset
+      - method_id: /nimi.runtime.v1.RuntimeLocalService/ListLoadoutRecipes
+      - method_id: /nimi.runtime.v1.RuntimeLocalService/GetMachineLoadouts
+      - method_id: /nimi.runtime.v1.RuntimeLocalService/GetLoadout
+      - method_id: /nimi.runtime.v1.RuntimeLocalService/PrepareLoadout
+      - method_id: /nimi.runtime.v1.RuntimeLocalService/CommitLoadout
+      - method_id: /nimi.runtime.v1.RuntimeLocalService/UpdateLoadout
+      - method_id: /nimi.runtime.v1.RuntimeLocalService/SelectLoadout
+      - method_id: /nimi.runtime.v1.RuntimeLocalService/DeleteLoadout
       - method_id: /nimi.runtime.v1.RuntimeConnectorService/ListConnectors
       - method_id: /nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth
       - method_id: /nimi.runtime.v1.RuntimeAuditService/ListAIProviderHealth
       - method_id: /nimi.runtime.v1.RuntimeAuditService/ListDesktopAuditEvents
       - method_id: /nimi.runtime.v1.RuntimeAuditService/ListUsageStats
       - method_id: /nimi.runtime.v1.RuntimeAiService/PeekScheduling
-      - method_id: /nimi.runtime.v1.RuntimeLocalService/RemoveLocalAsset
-      - method_id: /nimi.runtime.v1.RuntimeLocalService/StartLocalAsset
-      - method_id: /nimi.runtime.v1.RuntimeLocalService/StopLocalAsset
+      - method_id: /nimi.runtime.v1.RuntimeLocalService/RemoveModelAsset
       - method_id: /nimi.runtime.v1.RuntimeLocalService/ListVerifiedAssets
       - method_id: /nimi.runtime.v1.RuntimeLocalService/SearchCatalogModels
       - method_id: /nimi.runtime.v1.RuntimeLocalService/ListCatalogVariants
       - method_id: /nimi.runtime.v1.RuntimeLocalService/GetRecommendationFeed
       - method_id: /nimi.runtime.v1.RuntimeLocalService/ResolveModelInstallPlan
       - method_id: /nimi.runtime.v1.RuntimeLocalService/InstallModelFromPlan
-      - method_id: /nimi.runtime.v1.RuntimeLocalService/InstallVerifiedAsset
-      - method_id: /nimi.runtime.v1.RuntimeLocalService/ImportLocalAsset
-      - method_id: /nimi.runtime.v1.RuntimeLocalService/ImportLocalAssetFile
-      - method_id: /nimi.runtime.v1.RuntimeLocalService/ImportLocalAssetBundle
-      - method_id: /nimi.runtime.v1.RuntimeLocalService/RescanLocalAssetBundle
       - method_id: /nimi.runtime.v1.RuntimeLocalService/ListLocalTransfers
       - method_id: /nimi.runtime.v1.RuntimeLocalService/PauseLocalTransfer
       - method_id: /nimi.runtime.v1.RuntimeLocalService/ResumeLocalTransfer
       - method_id: /nimi.runtime.v1.RuntimeLocalService/CancelLocalTransfer
       - method_id: /nimi.runtime.v1.RuntimeLocalService/WatchLocalTransfers
-      - method_id: /nimi.runtime.v1.RuntimeLocalService/ScanUnregisteredAssets
-      - method_id: /nimi.runtime.v1.RuntimeLocalService/ScaffoldOrphanAsset
-      - method_id: /nimi.runtime.v1.RuntimeLocalService/ResolveProfile
-      - method_id: /nimi.runtime.v1.RuntimeLocalService/ApplyProfile
       - method_id: /nimi.runtime.v1.RuntimeConnectorService/ListProviderCatalog
       - method_id: /nimi.runtime.v1.RuntimeLocalService/ListLocalAudits
       - method_id: /nimi.runtime.v1.RuntimeAuditService/SubscribeRuntimeHealthEvents
@@ -102,6 +90,8 @@ profiles:
       - method_id: /nimi.runtime.v1.RuntimeAgentService/OverwriteSharedLocalAgentAIConfig
       - method_id: /nimi.runtime.v1.RuntimeAgentService/PreviewSharedLocalAgentAIProfile
       - method_id: /nimi.runtime.v1.RuntimeAgentService/ApplySharedLocalAgentAIProfile
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/ImportPortableAIProfile
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/ListPortableAIProfiles
       - method_id: /nimi.runtime.v1.RuntimeAgentService/GetAgentCanonicalMemoryBankStatus
       - method_id: /nimi.runtime.v1.RuntimeAgentService/RequestAgentCanonicalMemoryBankBind
       - method_id: /nimi.runtime.v1.RuntimeAppService/SendAppMessage

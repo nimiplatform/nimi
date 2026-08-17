@@ -21,16 +21,15 @@ const (
 	StableDiffusionVideoDriverID           = StableDiffusionDriverID
 	StableDiffusionVideoDriverDialect      = "stable-diffusion.cpp/minimax-h3-video-generate/v1"
 	StableDiffusionVideoCapabilityContract = "video.generate"
+	StableDiffusionVideoRecipeID           = "minimax-h3"
 
 	StableDiffusionVideoFL2VARequirementID   = "diffusion.fl2va"
 	StableDiffusionVideoRef2VARequirementID  = "diffusion.ref2va"
 	StableDiffusionVideoEncoderRequirementID = "encoder.h3-combined"
 	StableDiffusionVideoVAERequirementID     = "vae.video"
 	StableDiffusionAudioVAERequirementID     = "vae.audio"
-
-	// MaxSafetensorsHeaderBytes is the largest safetensors JSON header accepted
-	// by bounded binding validation. Callers provide the verified entry prefix.
-	MaxSafetensorsHeaderBytes = MaxAssetFormatProbeBytes - 8
+	stableDiffusionVideoMaxFrames            = 512
+	stableDiffusionVideoMaxDurationSec       = 20
 )
 
 const stableDiffusionVideoReferenceImageFeature = "input.image"
@@ -40,12 +39,34 @@ const stableDiffusionVideoReferenceImageFeature = "input.image"
 // components; each invocation loads exactly one route transformer.
 type StableDiffusionVideoDriver struct{}
 
-func (StableDiffusionVideoDriver) EffectiveRequestDefaults(_ *structpb.Struct) map[string]string {
+func (StableDiffusionVideoDriver) EffectiveRequestDefaults(_ string, _ *structpb.Struct) map[string]string {
 	return map[string]string{
 		"options.resolution": "512x288",
 		"options.frames":     "22",
 		"options.seed":       "0",
 	}
+}
+
+// ProjectRecipe keeps the MiniMax-H3 recipe identity in the versioned Driver
+// dialect. Catalog metadata decorates the five projected slots but cannot
+// create a second topology or pin a model content identity.
+func (driver StableDiffusionVideoDriver) ProjectRecipe(recipeID string, options *structpb.Struct, supportedFeatures []string) ([]*runtimev1.LocalCapabilityRequirement, runtimev1.LocalCapabilityReason) {
+	if strings.TrimSpace(recipeID) != StableDiffusionVideoRecipeID {
+		return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_PORTABLE_CONFIG_INVALID
+	}
+	return driver.Interpret(InterpretInput{RecipeID: recipeID, PortableConfig: options, SupportedFeatures: supportedFeatures})
+}
+
+func (driver StableDiffusionVideoDriver) ProjectModelAssetBinding(input ModelAssetBindingInput) (ModelAssetBindingProjection, runtimev1.LocalCapabilityReason) {
+	slot, ok := stableDiffusionVideoSlot(input.Requirement.GetRequirementId())
+	if !ok || filepath.Ext(strings.ToLower(input.Entry.RelativePath)) != "."+slot.format {
+		return ModelAssetBindingProjection{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE
+	}
+	descriptor := ModelAssetDescriptor{Kind: slot.assetKind, Engine: "media", FormatProbe: input.Entry.FormatProbe}
+	if slot.artifactRole != "" {
+		descriptor.ArtifactRoles = []string{slot.artifactRole}
+	}
+	return validatedModelAssetBindingProjection(input, descriptor, 0, driver.ValidateBinding)
 }
 
 type stableDiffusionVideoSlotSpec struct {
@@ -56,41 +77,38 @@ type stableDiffusionVideoSlotSpec struct {
 	artifactRole string
 	format       string
 	displayLabel string
-	policyKey    string
-	contentIDKey string
 }
 
 var stableDiffusionVideoSlots = []stableDiffusionVideoSlotSpec{
 	{
 		id: StableDiffusionVideoFL2VARequirementID, role: runtimev1.LocalCapabilityRequirementRole_LOCAL_CAPABILITY_REQUIREMENT_ROLE_MAIN,
 		resourceKind: "video", assetKind: runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VIDEO, artifactRole: "diffusion_transformer",
-		format: "gguf", displayLabel: "MiniMax-H3 FL2VA transformer", policyKey: "fl2vaRequirementPolicy", contentIDKey: "fl2vaVerifiedContentId",
+		format: "gguf", displayLabel: "MiniMax-H3 FL2VA transformer",
 	},
 	{
 		id: StableDiffusionVideoRef2VARequirementID, role: runtimev1.LocalCapabilityRequirementRole_LOCAL_CAPABILITY_REQUIREMENT_ROLE_COMPANION,
 		resourceKind: "video", assetKind: runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VIDEO, artifactRole: "diffusion_transformer",
-		format: "gguf", displayLabel: "MiniMax-H3 Ref2VA transformer", policyKey: "ref2vaRequirementPolicy", contentIDKey: "ref2vaVerifiedContentId",
+		format: "gguf", displayLabel: "MiniMax-H3 Ref2VA transformer",
 	},
 	{
 		id: StableDiffusionVideoEncoderRequirementID, role: runtimev1.LocalCapabilityRequirementRole_LOCAL_CAPABILITY_REQUIREMENT_ROLE_COMPANION,
 		resourceKind: "chat", assetKind: runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT, artifactRole: "llm",
-		format: "gguf", displayLabel: "MiniMax-H3 combined Qwen3-VL encoder", policyKey: "encoderRequirementPolicy", contentIDKey: "encoderVerifiedContentId",
+		format: "gguf", displayLabel: "MiniMax-H3 combined Qwen3-VL encoder",
 	},
 	{
 		id: StableDiffusionVideoVAERequirementID, role: runtimev1.LocalCapabilityRequirementRole_LOCAL_CAPABILITY_REQUIREMENT_ROLE_COMPANION,
 		resourceKind: "vae", assetKind: runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VAE,
-		format: "safetensors", displayLabel: "MiniMax-H3 video VAE", policyKey: "videoVAERequirementPolicy", contentIDKey: "videoVAEVerifiedContentId",
+		format: "safetensors", displayLabel: "MiniMax-H3 video VAE",
 	},
 	{
 		id: StableDiffusionAudioVAERequirementID, role: runtimev1.LocalCapabilityRequirementRole_LOCAL_CAPABILITY_REQUIREMENT_ROLE_COMPANION,
 		resourceKind: "vae", assetKind: runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VAE,
-		format: "safetensors", displayLabel: "MiniMax-H3 audio VAE", policyKey: "audioVAERequirementPolicy", contentIDKey: "audioVAEVerifiedContentId",
+		format: "safetensors", displayLabel: "MiniMax-H3 audio VAE",
 	},
 }
 
 type stableDiffusionVideoPortableConfig struct {
-	intents map[string]stableDiffusionRequirementIntent
-	recipe  stableDiffusionVideoRecipe
+	recipe stableDiffusionVideoRecipe
 }
 
 type stableDiffusionVideoRecipe struct {
@@ -114,7 +132,7 @@ func defaultStableDiffusionVideoRecipe() stableDiffusionVideoRecipe {
 }
 
 func (StableDiffusionVideoDriver) Interpret(input InterpretInput) ([]*runtimev1.LocalCapabilityRequirement, runtimev1.LocalCapabilityReason) {
-	portable, reason := parseStableDiffusionVideoPortableConfig(input.PortableConfig)
+	_, reason := parseStableDiffusionVideoPortableConfig(input.PortableConfig)
 	if reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {
 		return nil, reason
 	}
@@ -140,16 +158,14 @@ func (StableDiffusionVideoDriver) Interpret(input InterpretInput) ([]*runtimev1.
 			constraintValues["artifact_role"] = slot.artifactRole
 		}
 		constraints, _ := structpb.NewStruct(constraintValues)
-		intent := portable.intents[slot.id]
 		requirements = append(requirements, &runtimev1.LocalCapabilityRequirement{
-			RequirementId:              slot.id,
-			Role:                       slot.role,
-			ResourceKind:               slot.resourceKind,
-			Policy:                     intent.policy,
-			PreferredVerifiedContentId: intent.verifiedContentID,
-			CompatibilityConstraints:   constraints,
-			OccurrenceOrdinal:          0,
-			DisplayLabel:               slot.displayLabel,
+			RequirementId:            slot.id,
+			Role:                     slot.role,
+			ResourceKind:             slot.resourceKind,
+			Policy:                   runtimev1.LocalCapabilityRequirementPolicy_LOCAL_CAPABILITY_REQUIREMENT_POLICY_SUBSTITUTABLE,
+			CompatibilityConstraints: constraints,
+			OccurrenceOrdinal:        0,
+			DisplayLabel:             slot.displayLabel,
 		})
 	}
 	return requirements, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
@@ -157,8 +173,8 @@ func (StableDiffusionVideoDriver) Interpret(input InterpretInput) ([]*runtimev1.
 
 func (StableDiffusionVideoDriver) ValidateBinding(
 	requirement *runtimev1.LocalCapabilityRequirement,
-	binding *runtimev1.LocalAssetExactBinding,
-	asset AssetDescriptor,
+	binding *runtimev1.ModelAssetExactBinding,
+	asset ModelAssetDescriptor,
 ) runtimev1.LocalCapabilityReason {
 	if requirement == nil || binding == nil || binding.GetRequirementId() != requirement.GetRequirementId() {
 		return runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_BINDING_AMBIGUOUS
@@ -167,25 +183,15 @@ func (StableDiffusionVideoDriver) ValidateBinding(
 	if !ok || !validStableDiffusionVideoRequirement(requirement, slot) {
 		return runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE
 	}
-	if strings.TrimSpace(binding.GetLocalAssetId()) == "" || strings.TrimSpace(asset.LocalAssetID) == "" {
+	if strings.TrimSpace(binding.GetModelAssetId()) == "" || strings.TrimSpace(asset.ModelAssetID) == "" {
 		return runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_NOT_FOUND
 	}
 	if !canonicalInvocationSHA256(binding.GetVerifiedContentId(), binding.GetEntrySha256()) ||
 		!canonicalInvocationSHA256(asset.VerifiedContentID, asset.EntrySHA256) {
 		return runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_CONTENT_UNVERIFIED
 	}
-	if binding.GetLocalAssetId() != asset.LocalAssetID || binding.GetVerifiedContentId() != asset.VerifiedContentID ||
+	if binding.GetModelAssetId() != asset.ModelAssetID || binding.GetVerifiedContentId() != asset.VerifiedContentID ||
 		binding.GetEntrySha256() != asset.EntrySHA256 {
-		return runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_CONTENT_MISMATCH
-	}
-	if len(asset.BundleEntries) > 0 {
-		digest, err := CanonicalBundleSHA256(asset.BundleEntries)
-		if err != nil || digest != asset.EntrySHA256 || asset.VerifiedContentID != "sha256:"+digest {
-			return runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_CONTENT_MISMATCH
-		}
-	}
-	if requirement.GetPolicy() == runtimev1.LocalCapabilityRequirementPolicy_LOCAL_CAPABILITY_REQUIREMENT_POLICY_STRICT &&
-		binding.GetVerifiedContentId() != requirement.GetPreferredVerifiedContentId() {
 		return runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_CONTENT_MISMATCH
 	}
 	if asset.Kind != slot.assetKind || (slot.artifactRole != "" && !contains(asset.ArtifactRoles, slot.artifactRole)) ||
@@ -197,8 +203,8 @@ func (StableDiffusionVideoDriver) ValidateBinding(
 
 func (driver StableDiffusionVideoDriver) ValidateCombination(
 	requirements []*runtimev1.LocalCapabilityRequirement,
-	bindings []*runtimev1.LocalAssetExactBinding,
-	assets []AssetDescriptor,
+	bindings []*runtimev1.ModelAssetExactBinding,
+	assets []ModelAssetDescriptor,
 ) runtimev1.LocalCapabilityReason {
 	if len(bindings) < len(stableDiffusionVideoSlots) {
 		return runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_REQUIRED_BINDING_MISSING
@@ -246,8 +252,8 @@ func validStableDiffusionVideoRequirement(requirement *runtimev1.LocalCapability
 	if requirement == nil || requirement.GetRequirementId() != slot.id || requirement.GetRole() != slot.role ||
 		requirement.GetResourceKind() != slot.resourceKind || requirement.GetOccurrenceOrdinal() != 0 ||
 		requirement.GetDisplayLabel() != slot.displayLabel ||
-		(requirement.GetPolicy() != runtimev1.LocalCapabilityRequirementPolicy_LOCAL_CAPABILITY_REQUIREMENT_POLICY_STRICT &&
-			requirement.GetPolicy() != runtimev1.LocalCapabilityRequirementPolicy_LOCAL_CAPABILITY_REQUIREMENT_POLICY_SUBSTITUTABLE) {
+		requirement.GetPolicy() != runtimev1.LocalCapabilityRequirementPolicy_LOCAL_CAPABILITY_REQUIREMENT_POLICY_SUBSTITUTABLE ||
+		requirement.GetPreferredVerifiedContentId() != "" {
 		return false
 	}
 	constraints := requirement.GetCompatibilityConstraints()
@@ -339,32 +345,15 @@ func probeContainsAll(probe []byte, signatures ...string) bool {
 
 func parseStableDiffusionVideoPortableConfig(value *structpb.Struct) (stableDiffusionVideoPortableConfig, runtimev1.LocalCapabilityReason) {
 	result := stableDiffusionVideoPortableConfig{
-		intents: make(map[string]stableDiffusionRequirementIntent, len(stableDiffusionVideoSlots)),
-		recipe:  defaultStableDiffusionVideoRecipe(),
-	}
-	for _, slot := range stableDiffusionVideoSlots {
-		result.intents[slot.id] = stableDiffusionRequirementIntent{policy: runtimev1.LocalCapabilityRequirementPolicy_LOCAL_CAPABILITY_REQUIREMENT_POLICY_SUBSTITUTABLE}
+		recipe: defaultStableDiffusionVideoRecipe(),
 	}
 	if value == nil {
 		return result, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
 	}
-	allowed := make(map[string]struct{}, len(stableDiffusionVideoSlots)*2+1)
-	allowed["executionOptions"] = struct{}{}
-	for _, slot := range stableDiffusionVideoSlots {
-		allowed[slot.policyKey] = struct{}{}
-		allowed[slot.contentIDKey] = struct{}{}
-	}
 	for key := range value.GetFields() {
-		if _, ok := allowed[key]; !ok {
+		if key != "executionOptions" {
 			return stableDiffusionVideoPortableConfig{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_PORTABLE_CONFIG_INVALID
 		}
-	}
-	for _, slot := range stableDiffusionVideoSlots {
-		intent, reason := stableDiffusionRequirementIntentFromFields(value.GetFields(), slot.policyKey, slot.contentIDKey)
-		if reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {
-			return stableDiffusionVideoPortableConfig{}, reason
-		}
-		result.intents[slot.id] = intent
 	}
 	var reason runtimev1.LocalCapabilityReason
 	result.recipe, reason = stableDiffusionVideoRecipeFromValue(value.GetFields()["executionOptions"], result.recipe)
@@ -453,8 +442,8 @@ func stableDiffusionVideoEngineOptionIdentity(value string) string {
 }
 
 func (StableDiffusionVideoDriver) PlanVideoInvocation(input VideoInvocationInput) (*VideoInvocationPlan, error) {
-	if input.ConfigurationID == "" || input.ConfigurationID != strings.TrimSpace(input.ConfigurationID) {
-		return nil, invocationError(InvocationFailureInvalidConfig, fmt.Errorf("stable-diffusion video configuration identity is required"))
+	if input.LoadoutID == "" || input.LoadoutID != strings.TrimSpace(input.LoadoutID) {
+		return nil, invocationError(InvocationFailureInvalidConfig, fmt.Errorf("stable-diffusion video Loadout identity is required"))
 	}
 	portable, reason := parseStableDiffusionVideoPortableConfig(input.PortableConfig)
 	if reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {
@@ -511,7 +500,7 @@ func (StableDiffusionVideoDriver) PlanVideoInvocation(input VideoInvocationInput
 		_, _ = hasher.Write([]byte{0})
 	}
 	for _, binding := range modelFiles {
-		for _, value := range []string{binding.RequirementID, binding.LocalAssetID, binding.AbsolutePath, binding.VerifiedContentID, binding.EntrySHA256} {
+		for _, value := range invocationExactBindingIdentity(binding) {
 			_, _ = hasher.Write([]byte(value))
 			_, _ = hasher.Write([]byte{0})
 		}
@@ -519,7 +508,7 @@ func (StableDiffusionVideoDriver) PlanVideoInvocation(input VideoInvocationInput
 
 	return &VideoInvocationPlan{
 		processKey:              hex.EncodeToString(hasher.Sum(nil)),
-		configurationID:         input.ConfigurationID,
+		loadoutID:               input.LoadoutID,
 		driverIdentity:          identity,
 		portableConfig:          cloneStruct(input.PortableConfig),
 		exactBindings:           allBindings,
@@ -566,14 +555,14 @@ func exactStableDiffusionVideoInvocationBindings(values []InvocationExactBinding
 		if _, exists := bindings[requirementID]; exists {
 			return nil, fmt.Errorf("stable-diffusion video invocation contains duplicate requirement %q", requirementID)
 		}
-		if binding.LocalAssetID == "" || binding.LocalAssetID != strings.TrimSpace(binding.LocalAssetID) ||
+		if binding.ModelAssetID == "" || binding.ModelAssetID != strings.TrimSpace(binding.ModelAssetID) ||
 			binding.VerifiedContentID == "" || binding.VerifiedContentID != strings.TrimSpace(binding.VerifiedContentID) ||
 			binding.EntrySHA256 == "" || binding.EntrySHA256 != strings.TrimSpace(binding.EntrySHA256) ||
 			!canonicalInvocationSHA256(binding.VerifiedContentID, binding.EntrySHA256) ||
 			!filepath.IsAbs(binding.AbsolutePath) || filepath.Clean(binding.AbsolutePath) != binding.AbsolutePath {
 			return nil, fmt.Errorf("stable-diffusion video invocation requirement %q is not an exact absolute binding", requirementID)
 		}
-		bindings[requirementID] = binding
+		bindings[requirementID] = cloneInvocationExactBindings([]InvocationExactBinding{binding})[0]
 	}
 	for _, slot := range stableDiffusionVideoSlots {
 		if _, ok := bindings[slot.id]; !ok {
@@ -633,7 +622,7 @@ func normalizeStableDiffusionVideoRequest(request VideoInvocationRequest) (norma
 	if fps != 24 {
 		return normalizedStableDiffusionVideoRequest{}, invocationError(InvocationFailureInvalidRequest, fmt.Errorf("video.generate fps must be 24"))
 	}
-	if request.DurationSec < 0 || request.DurationSec > 600 || (request.DurationSec > 0 && request.FrameCount > 0) {
+	if request.DurationSec < 0 || request.DurationSec > stableDiffusionVideoMaxDurationSec || (request.DurationSec > 0 && request.FrameCount > 0) {
 		return normalizedStableDiffusionVideoRequest{}, invocationError(InvocationFailureInvalidRequest, fmt.Errorf("video.generate duration and frame count are invalid"))
 	}
 	frameCount := request.FrameCount
@@ -642,8 +631,8 @@ func normalizeStableDiffusionVideoRequest(request VideoInvocationRequest) (norma
 	} else if frameCount == 0 {
 		frameCount = 22
 	}
-	if frameCount < 5 || (frameCount-5)%17 != 0 {
-		return normalizedStableDiffusionVideoRequest{}, invocationError(InvocationFailureInvalidRequest, fmt.Errorf("video.generate frame count must be 17k+5 with k >= 0"))
+	if frameCount < 5 || frameCount > stableDiffusionVideoMaxFrames || (frameCount-5)%17 != 0 {
+		return normalizedStableDiffusionVideoRequest{}, invocationError(InvocationFailureInvalidRequest, fmt.Errorf("video.generate frame count must be 17k+5 and no greater than %d", stableDiffusionVideoMaxFrames))
 	}
 	// GenerateAudio stays a typed reject when false: proto3 erases bool
 	// presence upstream, so the driver cannot distinguish "absent" from an

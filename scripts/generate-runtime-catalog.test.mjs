@@ -4,7 +4,8 @@ import path from 'node:path';
 import test from 'node:test';
 import YAML from 'yaml';
 
-import { generateProviderCatalog } from './generate-runtime-catalog.mjs';
+import { generateProviderCatalog, localVariantContentId } from './generate-runtime-catalog.mjs';
+import { readYamlResource } from './lib/yaml-resource.mjs';
 
 const duplicateVideoFixture = path.join(
   import.meta.dirname,
@@ -18,6 +19,72 @@ test('real catalog generator rejects duplicate canonical video modes from source
     () => generateProviderCatalog(source),
     /video_generation\.modes contains duplicate normalized mode: t2v/u,
   );
+});
+
+test('local multi-file identity sorts Qwen speech files by relative path', () => {
+  const variant = {
+    files: [
+      'model.safetensors',
+      'config.json',
+      'speech_tokenizer/model.safetensors',
+    ],
+    hashes: {
+      'model.safetensors': `sha256:${'a'.repeat(64)}`,
+      'config.json': `sha256:${'b'.repeat(64)}`,
+      'speech_tokenizer/model.safetensors': `sha256:${'c'.repeat(64)}`,
+    },
+  };
+  assert.equal(
+    localVariantContentId(variant, 'Qwen speech fixture'),
+    'sha256:4a9ad32c68b9ff1e0abfe12ebda22c69e5695a2e7b4e5264c901cbc0b5887803',
+  );
+});
+
+test('local speech recipes and empty executable custody are propagated', () => {
+  const source = readYamlResource(path.join(
+    import.meta.dirname,
+    '..',
+    'runtime',
+    'catalog',
+    'source',
+    'providers',
+    'local',
+  ));
+  const generated = generateProviderCatalog(source);
+  const speech = generated.loadout_recipes.filter((recipe) => (
+    recipe.capability_contract === 'audio.synthesize' || recipe.capability_contract === 'audio.transcribe'
+  ));
+  assert.equal(speech.length, 6);
+  const byID = new Map(speech.map((recipe) => [recipe.recipe_id, recipe]));
+  for (const recipeID of ['voxcpm2', 'qwen3-tts-customvoice', 'qwen3-tts-base', 'qwen3-tts-voicedesign', 'qwen3-asr', 'qwen3-asr-transformers']) {
+    assert.deepEqual(byID.get(recipeID).custody, []);
+  }
+  assert.deepEqual(byID.get('voxcpm2').slot_metadata[0].recommended_variant_ids, [
+    'local.tts.voxcpm2.standard.cuda',
+    'local.tts.voxcpm2.standard.cpu',
+    'local.tts.voxcpm2.mlx.metal',
+  ]);
+  assert.deepEqual(byID.get('voxcpm2').slot_metadata[0].model_contract, {
+    format: 'safetensors',
+    architecture: 'voxcpm2',
+    artifact_role: 'tts_model',
+    required_files: [
+      'config.json',
+      'tokenizer.json',
+      'tokenizer_config.json',
+    ],
+    backend_contracts: {
+      standard: {
+        tensor_contract: 'voxcpm2-main-v1',
+        audio_vae_files: ['audiovae.safetensors', 'audiovae.pth'],
+      },
+      mlx: {
+        tensor_contract: 'voxcpm2-mlx-bundle-v1',
+        forbidden_files: ['audiovae.safetensors', 'audiovae.pth', 'tokenization_voxcpm2.py'],
+      },
+    },
+  });
+  assert.equal(Object.hasOwn(generated.loadout_recipes.find((recipe) => recipe.recipe_id === 'llama.text-embed.gguf.v1'), 'custody'), false);
 });
 
 function staticTextProviderWithSource(source, provider = 'source-test') {

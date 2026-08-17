@@ -61,6 +61,11 @@ func (s *managerImageInvocationSubstrate) Ensure(
 	currentKey := s.currentKey
 	s.mu.RUnlock()
 	if key == currentKey && s.Healthy() {
+		if validateContent != nil {
+			if err := validateContent(); err != nil {
+				return false, err
+			}
+		}
 		if progress != nil {
 			progress(localexecution.ImageExecutionProgress{
 				Stage:         localexecution.ImageExecutionStageReused,
@@ -161,11 +166,6 @@ func (s *managerImageInvocationSubstrate) GenerateImage(
 	if strings.TrimSpace(address) == "" || currentKey != plan.ProcessKey() {
 		return localexecution.ImageArtifact{}, fmt.Errorf("image substrate does not hold the captured plan")
 	}
-	request, err := imageGenerateRequest(address, protocol, plan)
-	if err != nil {
-		return localexecution.ImageArtifact{}, err
-	}
-
 	workRoot := strings.TrimSpace(s.config.WorkRoot)
 	if workRoot == "" {
 		workRoot = s.manager.imageExecutionWorkRoot()
@@ -181,6 +181,10 @@ func (s *managerImageInvocationSubstrate) GenerateImage(
 		return localexecution.ImageArtifact{}, fmt.Errorf("create image invocation workspace: %w", err)
 	}
 	defer func() { _ = os.RemoveAll(workDir) }()
+	request, err := imageGenerateRequest(address, protocol, plan)
+	if err != nil {
+		return localexecution.ImageArtifact{}, err
+	}
 	destination := filepath.Join(workDir, fmt.Sprintf("artifact-%d.png", index))
 	constraints, ok := plan.ResultConstraints().(capabilitydriver.StableDiffusionCPPResultConstraints)
 	if !ok {
@@ -553,6 +557,9 @@ func imageLoadRequest(address string, plan *capabilitydriver.ImageInvocationPlan
 		Threads:        int32(load.Threads()),
 	}
 	if protocol == managedimagebackend.ProtocolDirectGOSD {
+		if load.QwenImageZeroCondT() {
+			return managedimagebackend.LoadModelRequest{}, fmt.Errorf("direct gosd cannot express the Qwen Image Edit 2511 load contract")
+		}
 		request.DirectOptions = directGOSDImageLoadOptions(load)
 		request.DirectCFGScale = float32(load.CFGScale())
 		return request, nil
@@ -562,12 +569,14 @@ func imageLoadRequest(address string, plan *capabilitydriver.ImageInvocationPlan
 	}
 	request.DiffusionFA = load.DiffusionFlashAttention()
 	request.OffloadToCPU = load.OffloadParamsToCPU()
+	request.FlowShift = float32(load.FlowShift())
+	request.QwenImageZeroCondT = load.QwenImageZeroCondT()
 	request.Components = []managedimagebackend.ComponentBinding{
 		{
 			OccurrenceID:  "text-encoder",
 			Order:         0,
 			Role:          "text_encoder",
-			ComponentKind: "chat",
+			ComponentKind: "auxiliary",
 			EngineSlot:    "llm_path",
 			Path:          load.TextEncoder().AbsolutePath(),
 			Required:      true,
@@ -607,6 +616,9 @@ func directGOSDImageLoadOptions(load capabilitydriver.StableDiffusionCPPLoadPlan
 	if uncond, exists := load.UncondDiffusion(); exists {
 		options = append(options, "uncond_diffusion_model:"+uncond.AbsolutePath())
 	}
+	if load.FlowShift() > 0 {
+		options = append(options, "flow_shift:"+strconv.FormatFloat(load.FlowShift(), 'g', -1, 64))
+	}
 	if sampler := strings.TrimSpace(load.Sampler()); sampler != "" {
 		options = append(options, "sampler:"+sampler)
 	}
@@ -645,6 +657,13 @@ func imageGenerateRequest(address string, protocol managedimagebackend.Protocol,
 		request.Mode = managedimagebackend.ImageRequestModeImageToImage
 		request.Src = typed.InputImage()
 		request.Mask = typed.Mask()
+	case capabilitydriver.StableDiffusionCPPInstructionEditRequestPlan:
+		source := typed.SourceImage()
+		if source.SourceIdentity == "" || source.SourceIdentity != strings.TrimSpace(source.SourceIdentity) || len(source.ImageBytes) == 0 {
+			return managedimagebackend.ImageRequest{}, fmt.Errorf("image instruction-edit source is incomplete")
+		}
+		request.Mode = managedimagebackend.ImageRequestModeInstructionEdit
+		request.ReferenceImage = append([]byte(nil), source.ImageBytes...)
 	default:
 		return managedimagebackend.ImageRequest{}, fmt.Errorf("image request plan variant is unsupported")
 	}

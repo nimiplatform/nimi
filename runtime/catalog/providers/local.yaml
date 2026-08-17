@@ -1,6 +1,6 @@
 version: 1
 provider: local
-catalog_version: 2026-05-21-local-v8
+catalog_version: 2026-08-17-local-v9
 inventory_mode: static_source
 models:
   - model_id: qwen3-tts-local
@@ -657,7 +657,7 @@ models:
     source_ref:
       url: https://huggingface.co/unsloth/gemma-4-E2B-it-GGUF
       retrieved_at: 2026-05-21
-      note: Curated minimal-preset local chat checkpoint (Gemma 4 E2B, GGUF quants).
+      note: Curated local chat checkpoint (Gemma 4 E2B, GGUF quants).
     install:
       repo: unsloth/gemma-4-E2B-it-GGUF
       revision: 90f9618340396838ee7ff5b0ba2da27da62953d3
@@ -741,7 +741,7 @@ models:
     source_ref:
       url: https://huggingface.co/unsloth/gemma-4-E2B-it-GGUF
       retrieved_at: 2026-05-21
-      note: Curated minimal-preset local chat checkpoint (Gemma 4 E2B, GGUF quants).
+      note: Curated local chat checkpoint (Gemma 4 E2B, GGUF quants).
   - model_id: llama/gemma-4-e2b-it
     provider: local
     model_type: chat
@@ -758,7 +758,7 @@ models:
     source_ref:
       url: https://huggingface.co/unsloth/gemma-4-E2B-it-GGUF
       retrieved_at: 2026-05-21
-      note: Curated minimal-preset local chat checkpoint (Gemma 4 E2B, GGUF quants).
+      note: Curated local chat checkpoint (Gemma 4 E2B, GGUF quants).
   - model_id: unsloth/gemma-4-E2B-it-GGUF
     provider: local
     model_type: chat
@@ -775,7 +775,7 @@ models:
     source_ref:
       url: https://huggingface.co/unsloth/gemma-4-E2B-it-GGUF
       retrieved_at: 2026-05-21
-      note: Curated minimal-preset local chat checkpoint (Gemma 4 E2B, GGUF quants).
+      note: Curated local chat checkpoint (Gemma 4 E2B, GGUF quants).
   - model_id: gemma-4-26b-a4b-it-local
     provider: local
     model_type: chat
@@ -792,7 +792,7 @@ models:
     source_ref:
       url: https://huggingface.co/unsloth/gemma-4-26B-A4B-it-GGUF
       retrieved_at: 2026-05-21
-      note: Curated recommended-preset local chat checkpoint (Gemma 4 26B-A4B MoE, GGUF quants).
+      note: Curated local chat checkpoint (Gemma 4 26B-A4B MoE, GGUF quants).
     install:
       repo: unsloth/gemma-4-26B-A4B-it-GGUF
       revision: 3365c68df1a83799b846d05324ebfadbb8cc70b3
@@ -865,7 +865,7 @@ models:
     source_ref:
       url: https://huggingface.co/unsloth/gemma-4-26B-A4B-it-GGUF
       retrieved_at: 2026-05-21
-      note: Curated recommended-preset local chat checkpoint (Gemma 4 26B-A4B MoE, GGUF quants).
+      note: Curated local chat checkpoint (Gemma 4 26B-A4B MoE, GGUF quants).
   - model_id: llama/gemma-4-26b-a4b-it
     provider: local
     model_type: chat
@@ -882,7 +882,7 @@ models:
     source_ref:
       url: https://huggingface.co/unsloth/gemma-4-26B-A4B-it-GGUF
       retrieved_at: 2026-05-21
-      note: Curated recommended-preset local chat checkpoint (Gemma 4 26B-A4B MoE, GGUF quants).
+      note: Curated local chat checkpoint (Gemma 4 26B-A4B MoE, GGUF quants).
   - model_id: unsloth/gemma-4-26B-A4B-it-GGUF
     provider: local
     model_type: chat
@@ -899,7 +899,7 @@ models:
     source_ref:
       url: https://huggingface.co/unsloth/gemma-4-26B-A4B-it-GGUF
       retrieved_at: 2026-05-21
-      note: Curated recommended-preset local chat checkpoint (Gemma 4 26B-A4B MoE, GGUF quants).
+      note: Curated local chat checkpoint (Gemma 4 26B-A4B MoE, GGUF quants).
   - model_id: nomic-embed-text-local
     provider: local
     model_type: embedding
@@ -919,6 +919,29 @@ models:
       note: Nomic Embed Text v1.5 model card declaring 8192 context and 768 native embedding dimension.
     embedding: &a4
       dimension: 768
+    install:
+      repo: nomic-ai/nomic-embed-text-v1.5-GGUF
+      revision: 0188c9bf409793f810680a5a431e7b899c46104c
+      install_kind: weights
+      entry: nomic-embed-text-v1.5.Q4_K_M.gguf
+      artifact_roles:
+        - embedding
+      preferred_engine: llama
+    variants:
+      - variant_id: local.embedding.nomic-embed-text-v1.5.q4-k-m
+        quant: Q4_K_M
+        entry: nomic-embed-text-v1.5.Q4_K_M.gguf
+        files:
+          - nomic-embed-text-v1.5.Q4_K_M.gguf
+        hashes:
+          nomic-embed-text-v1.5.Q4_K_M.gguf: sha256:d4e388894e09cf3816e8b0896d81d265b55e7a9fff9ab03fe8bf4ef5e11295ac
+        total_size_bytes: 84106624
+        host_requirement:
+          accelerator: cpu
+          min_ram_bytes: 1073741824
+    fitness:
+      param_count: 137000000
+      context_length: 8192
   - model_id: local/nomic-embed-text
     provider: local
     model_type: embedding
@@ -1347,6 +1370,435 @@ models:
       retrieved_at: 2026-08-09
       note: Transformers-native Qwen3-ASR 1.7B checkpoint and explicit higher-resource option.
     transcription: *a7
+  - model_id: asset-image-vae-z-image-ae-f16-cuda
+    provider: local
+    model_type: vae
+    updated_at: 2026-08-14
+    capabilities: []
+    pricing:
+      unit: request
+      input: "0"
+      output: "0"
+      currency: none
+      as_of: 2026-03-18
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://github.com/QwenLM/Qwen3-TTS
+      retrieved_at: 2026-03-05
+      note: Open-source Qwen3-TTS repository and examples.
+    family: flux1-vae
+    install:
+      repo: Comfy-Org/z_image_turbo
+      revision: 2f862278568d3f0a83167a16e5f11094da6dee72
+      install_kind: weights
+      entry: split_files/vae/ae.safetensors
+      artifact_roles:
+        - vae
+    variants:
+      - variant_id: local.image-vae.z-image-ae.f16.cuda
+        quant: F16
+        entry: split_files/vae/ae.safetensors
+        files:
+          - split_files/vae/ae.safetensors
+        hashes:
+          split_files/vae/ae.safetensors: sha256:afc8e28272cd15db3919bacdb6918ce9c1ed22e96cb12c4d5ed0fba823529e38
+        total_size_bytes: 335304388
+        host_requirement:
+          accelerator: cuda
+          min_ram_bytes: 8589934592
+          min_vram_bytes: 4294967296
+      - variant_id: local.image-vae.z-image-ae.f16.metal
+        quant: F16
+        entry: split_files/vae/ae.safetensors
+        files:
+          - split_files/vae/ae.safetensors
+        hashes:
+          split_files/vae/ae.safetensors: sha256:afc8e28272cd15db3919bacdb6918ce9c1ed22e96cb12c4d5ed0fba823529e38
+        total_size_bytes: 335304388
+        host_requirement:
+          accelerator: metal
+          min_ram_bytes: 8589934592
+          min_vram_bytes: 4294967296
+  - model_id: asset-image-textenc-qwen3-4b-instruct-2507-q4-k-m-cuda
+    provider: local
+    model_type: auxiliary
+    updated_at: 2026-08-14
+    capabilities: []
+    pricing:
+      unit: request
+      input: "0"
+      output: "0"
+      currency: none
+      as_of: 2026-03-18
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://github.com/QwenLM/Qwen3-TTS
+      retrieved_at: 2026-03-05
+      note: Open-source Qwen3-TTS repository and examples.
+    family: qwen
+    install:
+      repo: unsloth/Qwen3-4B-Instruct-2507-GGUF
+      revision: a06e946bb6b655725eafa393f4a9745d460374c9
+      install_kind: weights
+      entry: Qwen3-4B-Instruct-2507-Q4_K_M.gguf
+      artifact_roles:
+        - text_encoder
+    variants:
+      - variant_id: local.image-textenc.qwen3-4b-instruct-2507.q4-k-m.cuda
+        quant: Q4_K_M
+        entry: Qwen3-4B-Instruct-2507-Q4_K_M.gguf
+        files:
+          - Qwen3-4B-Instruct-2507-Q4_K_M.gguf
+        hashes:
+          Qwen3-4B-Instruct-2507-Q4_K_M.gguf: sha256:3605803b982cb64aead44f6c1b2ae36e3acdb41d8e46c8a94c6533bc4c67e597
+        total_size_bytes: 2497281120
+        host_requirement:
+          accelerator: cuda
+          min_ram_bytes: 8589934592
+          min_vram_bytes: 4294967296
+      - variant_id: local.image-textenc.qwen3-4b-instruct-2507.q4-k-m.metal
+        quant: Q4_K_M
+        entry: Qwen3-4B-Instruct-2507-Q4_K_M.gguf
+        files:
+          - Qwen3-4B-Instruct-2507-Q4_K_M.gguf
+        hashes:
+          Qwen3-4B-Instruct-2507-Q4_K_M.gguf: sha256:3605803b982cb64aead44f6c1b2ae36e3acdb41d8e46c8a94c6533bc4c67e597
+        total_size_bytes: 2497281120
+        host_requirement:
+          accelerator: metal
+          min_ram_bytes: 8589934592
+          min_vram_bytes: 4294967296
+      - variant_id: local.image-textenc.qwen3-4b-instruct-2507.q5-k-m.cuda
+        quant: Q5_K_M
+        entry: Qwen3-4B-Instruct-2507-Q5_K_M.gguf
+        files:
+          - Qwen3-4B-Instruct-2507-Q5_K_M.gguf
+        hashes:
+          Qwen3-4B-Instruct-2507-Q5_K_M.gguf: sha256:5bde5e9d883622acb02bf77fe7dcbc56a8b9a9ad4be78a72ca23a532658b4ecb
+        total_size_bytes: 2889514080
+        host_requirement:
+          accelerator: cuda
+          min_ram_bytes: 10737418240
+          min_vram_bytes: 5368709120
+      - variant_id: local.image-textenc.qwen3-4b-instruct-2507.q5-k-m.metal
+        quant: Q5_K_M
+        entry: Qwen3-4B-Instruct-2507-Q5_K_M.gguf
+        files:
+          - Qwen3-4B-Instruct-2507-Q5_K_M.gguf
+        hashes:
+          Qwen3-4B-Instruct-2507-Q5_K_M.gguf: sha256:5bde5e9d883622acb02bf77fe7dcbc56a8b9a9ad4be78a72ca23a532658b4ecb
+        total_size_bytes: 2889514080
+        host_requirement:
+          accelerator: metal
+          min_ram_bytes: 10737418240
+          min_vram_bytes: 5368709120
+      - variant_id: local.image-textenc.qwen3-4b-instruct-2507.q6-k.cuda
+        quant: Q6_K
+        entry: Qwen3-4B-Instruct-2507-Q6_K.gguf
+        files:
+          - Qwen3-4B-Instruct-2507-Q6_K.gguf
+        hashes:
+          Qwen3-4B-Instruct-2507-Q6_K.gguf: sha256:cd7b21b38b3e71400587c184b6a9b04d3beb4d13fdae6464d4075dee4f1bc5ad
+        total_size_bytes: 3306261600
+        host_requirement:
+          accelerator: cuda
+          min_ram_bytes: 10737418240
+          min_vram_bytes: 6442450944
+      - variant_id: local.image-textenc.qwen3-4b-instruct-2507.q6-k.metal
+        quant: Q6_K
+        entry: Qwen3-4B-Instruct-2507-Q6_K.gguf
+        files:
+          - Qwen3-4B-Instruct-2507-Q6_K.gguf
+        hashes:
+          Qwen3-4B-Instruct-2507-Q6_K.gguf: sha256:cd7b21b38b3e71400587c184b6a9b04d3beb4d13fdae6464d4075dee4f1bc5ad
+        total_size_bytes: 3306261600
+        host_requirement:
+          accelerator: metal
+          min_ram_bytes: 10737418240
+          min_vram_bytes: 6442450944
+      - variant_id: local.image-textenc.qwen3-4b-instruct-2507.q8-0.cuda
+        quant: Q8_0
+        entry: Qwen3-4B-Instruct-2507-Q8_0.gguf
+        files:
+          - Qwen3-4B-Instruct-2507-Q8_0.gguf
+        hashes:
+          Qwen3-4B-Instruct-2507-Q8_0.gguf: sha256:391c1e410fd9f4cf2de2b510273b56a84c19ce18f4fa3bfb3774031dac4ef068
+        total_size_bytes: 4280405600
+        host_requirement:
+          accelerator: cuda
+          min_ram_bytes: 12884901888
+          min_vram_bytes: 8589934592
+      - variant_id: local.image-textenc.qwen3-4b-instruct-2507.q8-0.metal
+        quant: Q8_0
+        entry: Qwen3-4B-Instruct-2507-Q8_0.gguf
+        files:
+          - Qwen3-4B-Instruct-2507-Q8_0.gguf
+        hashes:
+          Qwen3-4B-Instruct-2507-Q8_0.gguf: sha256:391c1e410fd9f4cf2de2b510273b56a84c19ce18f4fa3bfb3774031dac4ef068
+        total_size_bytes: 4280405600
+        host_requirement:
+          accelerator: metal
+          min_ram_bytes: 12884901888
+          min_vram_bytes: 8589934592
+  - model_id: asset-image-vae-flux2-ae-f16-cuda
+    provider: local
+    model_type: vae
+    updated_at: 2026-08-16
+    capabilities: []
+    pricing:
+      unit: request
+      input: "0"
+      output: "0"
+      currency: none
+      as_of: 2026-03-18
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://github.com/QwenLM/Qwen3-TTS
+      retrieved_at: 2026-03-05
+      note: Open-source Qwen3-TTS repository and examples.
+    family: flux2-vae
+    install:
+      repo: black-forest-labs/FLUX.2-dev
+      revision: 26afe3a78bb242c0a8bb181dcc8937bb16e5c66c
+      install_kind: weights
+      entry: ae.safetensors
+      artifact_roles:
+        - vae
+    variants:
+      - variant_id: local.image-vae.flux2-ae.f16.cuda
+        quant: F16
+        entry: ae.safetensors
+        files:
+          - ae.safetensors
+        hashes:
+          ae.safetensors: sha256:868fe7b343cc8f3a19dbcfcafbc3d5f888802be3f89bd81b65b3621a066ce8f3
+        total_size_bytes: 336211292
+        host_requirement:
+          accelerator: cuda
+          min_ram_bytes: 8589934592
+          min_vram_bytes: 4294967296
+  - model_id: asset-image-vae-qwen-image-f16-cuda
+    provider: local
+    model_type: vae
+    updated_at: 2026-08-14
+    capabilities: []
+    pricing:
+      unit: request
+      input: "0"
+      output: "0"
+      currency: none
+      as_of: 2026-03-18
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://github.com/QwenLM/Qwen3-TTS
+      retrieved_at: 2026-03-05
+      note: Open-source Qwen3-TTS repository and examples.
+    family: qwen-image-vae
+    install:
+      repo: QuantStack/Qwen-Image-GGUF
+      revision: 257f261fa92593bed760aa6fa3f7921a49fea00f
+      install_kind: weights
+      entry: VAE/Qwen_Image-VAE.safetensors
+      artifact_roles:
+        - vae
+    variants:
+      - variant_id: local.image-vae.qwen-image.f16.cuda
+        quant: F16
+        entry: VAE/Qwen_Image-VAE.safetensors
+        files:
+          - VAE/Qwen_Image-VAE.safetensors
+        hashes:
+          VAE/Qwen_Image-VAE.safetensors: sha256:a70580f0213e67967ee9c95f05bb400e8fb08307e017a924bf3441223e023d1f
+        total_size_bytes: 253806246
+        host_requirement:
+          accelerator: cuda
+          min_ram_bytes: 8589934592
+          min_vram_bytes: 4294967296
+  - model_id: asset-image-textenc-qwen2-5-vl-7b-q4-k-m-cuda
+    provider: local
+    model_type: auxiliary
+    updated_at: 2026-08-14
+    capabilities: []
+    pricing:
+      unit: request
+      input: "0"
+      output: "0"
+      currency: none
+      as_of: 2026-03-18
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://github.com/QwenLM/Qwen3-TTS
+      retrieved_at: 2026-03-05
+      note: Open-source Qwen3-TTS repository and examples.
+    family: qwen-vl
+    install:
+      repo: mradermacher/Qwen2.5-VL-7B-Instruct-GGUF
+      revision: cfa2baa09946b211c107e6e104948987a64dd2c1
+      install_kind: weights
+      entry: Qwen2.5-VL-7B-Instruct.Q4_K_M.gguf
+      artifact_roles:
+        - text_encoder
+    variants:
+      - variant_id: local.image-textenc.qwen2.5-vl-7b.q4-k-m.cuda
+        quant: Q4_K_M
+        entry: Qwen2.5-VL-7B-Instruct.Q4_K_M.gguf
+        files:
+          - Qwen2.5-VL-7B-Instruct.Q4_K_M.gguf
+        hashes:
+          Qwen2.5-VL-7B-Instruct.Q4_K_M.gguf: sha256:0f00a930ba3108b6861ddadf74d8ebbd82e257c63eba728e62c3e8970f5eed94
+        total_size_bytes: 4683072512
+        host_requirement:
+          accelerator: cuda
+          min_ram_bytes: 17179869184
+          min_vram_bytes: 8589934592
+  - model_id: asset-image-vae-qwen-image-edit-2511-f16-cuda
+    provider: local
+    model_type: vae
+    updated_at: 2026-08-14
+    capabilities: []
+    pricing:
+      unit: request
+      input: "0"
+      output: "0"
+      currency: none
+      as_of: 2026-03-18
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://github.com/QwenLM/Qwen3-TTS
+      retrieved_at: 2026-03-05
+      note: Open-source Qwen3-TTS repository and examples.
+    family: qwen-image-vae
+    install:
+      repo: QuantStack/Qwen-Image-GGUF
+      revision: 257f261fa92593bed760aa6fa3f7921a49fea00f
+      install_kind: weights
+      entry: VAE/Qwen_Image-VAE.safetensors
+      artifact_roles:
+        - vae
+    variants:
+      - variant_id: local.image-vae.qwen-image-edit-2511.f16.cuda
+        quant: F16
+        entry: VAE/Qwen_Image-VAE.safetensors
+        files:
+          - VAE/Qwen_Image-VAE.safetensors
+        hashes:
+          VAE/Qwen_Image-VAE.safetensors: sha256:a70580f0213e67967ee9c95f05bb400e8fb08307e017a924bf3441223e023d1f
+        total_size_bytes: 253806246
+        host_requirement:
+          accelerator: cuda
+          min_ram_bytes: 8589934592
+          min_vram_bytes: 4294967296
+  - model_id: asset-image-textenc-qwen2-5-vl-7b-edit-2511-q4-k-m-cuda
+    provider: local
+    model_type: auxiliary
+    updated_at: 2026-08-14
+    capabilities: []
+    pricing:
+      unit: request
+      input: "0"
+      output: "0"
+      currency: none
+      as_of: 2026-03-18
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://github.com/QwenLM/Qwen3-TTS
+      retrieved_at: 2026-03-05
+      note: Open-source Qwen3-TTS repository and examples.
+    family: qwen-vl
+    install:
+      repo: mradermacher/Qwen2.5-VL-7B-Instruct-GGUF
+      revision: cfa2baa09946b211c107e6e104948987a64dd2c1
+      install_kind: weights
+      entry: Qwen2.5-VL-7B-Instruct.Q4_K_M.gguf
+      artifact_roles:
+        - text_encoder
+    variants:
+      - variant_id: local.image-textenc.qwen2.5-vl-7b-edit-2511.q4-k-m.cuda
+        quant: Q4_K_M
+        entry: Qwen2.5-VL-7B-Instruct.Q4_K_M.gguf
+        files:
+          - Qwen2.5-VL-7B-Instruct.Q4_K_M.gguf
+        hashes:
+          Qwen2.5-VL-7B-Instruct.Q4_K_M.gguf: sha256:0f00a930ba3108b6861ddadf74d8ebbd82e257c63eba728e62c3e8970f5eed94
+        total_size_bytes: 4683072512
+        host_requirement:
+          accelerator: cuda
+          min_ram_bytes: 17179869184
+          min_vram_bytes: 8589934592
+  - model_id: asset-video-vae-minimax-h3-f16-cuda
+    provider: local
+    model_type: vae
+    updated_at: 2026-08-16
+    capabilities: []
+    pricing:
+      unit: request
+      input: "0"
+      output: "0"
+      currency: none
+      as_of: 2026-03-18
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://github.com/QwenLM/Qwen3-TTS
+      retrieved_at: 2026-03-05
+      note: Open-source Qwen3-TTS repository and examples.
+    family: minimax-h3-video-vae
+    install:
+      repo: Comfy-Org/MiniMax-H3
+      revision: d07f69bc8fa09c9717e1e47180034f9322e0e54d
+      install_kind: weights
+      entry: vae/minimax_h3_video_vae_fp16.safetensors
+      artifact_roles:
+        - video_vae
+    variants:
+      - variant_id: local.video-vae.minimax-h3.f16.cuda
+        quant: F16
+        entry: vae/minimax_h3_video_vae_fp16.safetensors
+        files:
+          - vae/minimax_h3_video_vae_fp16.safetensors
+        hashes:
+          vae/minimax_h3_video_vae_fp16.safetensors: sha256:7c1f131492e7eddacaac9069a61b81bdd39de5cc96561e677c5eab1cdce5e522
+        total_size_bytes: 5207808496
+        host_requirement:
+          accelerator: cuda
+          min_ram_bytes: 17179869184
+          min_vram_bytes: 8589934592
+  - model_id: asset-audio-vae-minimax-h3-f32-cuda
+    provider: local
+    model_type: vae
+    updated_at: 2026-08-16
+    capabilities: []
+    pricing:
+      unit: request
+      input: "0"
+      output: "0"
+      currency: none
+      as_of: 2026-03-18
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://github.com/QwenLM/Qwen3-TTS
+      retrieved_at: 2026-03-05
+      note: Open-source Qwen3-TTS repository and examples.
+    family: minimax-h3-audio-vae
+    install:
+      repo: Comfy-Org/MiniMax-H3
+      revision: d07f69bc8fa09c9717e1e47180034f9322e0e54d
+      install_kind: weights
+      entry: vae/minimax_h3_audio_vae_fp32.safetensors
+      artifact_roles:
+        - audio_vae
+    variants:
+      - variant_id: local.audio-vae.minimax-h3.f32.cuda
+        quant: F32
+        entry: vae/minimax_h3_audio_vae_fp32.safetensors
+        files:
+          - vae/minimax_h3_audio_vae_fp32.safetensors
+        hashes:
+          vae/minimax_h3_audio_vae_fp32.safetensors: sha256:8e505d95dd1561d47abd43d4238fd40d9bb1ae9e147ed0a4cba778d76ae4db48
+        total_size_bytes: 605254808
+        host_requirement:
+          accelerator: cuda
+          min_ram_bytes: 8589934592
+          min_vram_bytes: 4294967296
   - model_id: flux.1-schnell-local
     provider: local
     model_type: image
@@ -1425,7 +1877,7 @@ models:
   - model_id: z-image-turbo-local
     provider: local
     model_type: image
-    updated_at: 2026-05-21
+    updated_at: 2026-08-14
     capabilities:
       - image.generate
     pricing:
@@ -1438,23 +1890,21 @@ models:
     source_ref:
       url: https://huggingface.co/leejet/Z-Image-Turbo-GGUF
       retrieved_at: 2026-05-21
-      note: Curated recommended-preset local image checkpoint (Z-Image-Turbo, stable-diffusion.cpp GGUF quants).
-    features:
-      - input.image
-      - input.mask
-    image_request_options: &a9
+      note: Curated local image checkpoint (Z-Image-Turbo, stable-diffusion.cpp GGUF quants).
+    family: z-image
+    image_request_options:
       response_formats:
         - b64_json
         - url
       max_images_per_request: 1
       supports_negative_prompt: true
-      supports_reference_images: true
-      supports_mask: true
+      supports_reference_images: false
+      supports_mask: false
       supports_seed: true
       supports_size: true
-      supports_aspect_ratio: true
-      supports_quality: true
-      supports_style: true
+      supports_aspect_ratio: false
+      supports_quality: false
+      supports_style: false
     install:
       repo: leejet/Z-Image-Turbo-GGUF
       revision: c61c0e422dc8b541b7548cf33a4ef8302b0f8085
@@ -1611,153 +2061,10 @@ models:
     fitness:
       param_count: 6000000000
       context_length: 0
-    companions:
-      - companion_kind: vae
-        engine_slot: vae_path
-        install:
-          repo: Comfy-Org/z_image_turbo
-          revision: 2f862278568d3f0a83167a16e5f11094da6dee72
-          install_kind: weights
-          entry: split_files/vae/ae.safetensors
-          artifact_roles:
-            - vae
-          preferred_engine: media
-        variants:
-          - variant_id: local.image-vae.z-image-ae.f16.cuda
-            quant: F16
-            entry: split_files/vae/ae.safetensors
-            files:
-              - split_files/vae/ae.safetensors
-            hashes:
-              split_files/vae/ae.safetensors: sha256:afc8e28272cd15db3919bacdb6918ce9c1ed22e96cb12c4d5ed0fba823529e38
-            total_size_bytes: 335304388
-            host_requirement:
-              accelerator: cuda
-              min_ram_bytes: 8589934592
-              min_vram_bytes: 4294967296
-          - variant_id: local.image-vae.z-image-ae.f16.metal
-            quant: F16
-            entry: split_files/vae/ae.safetensors
-            files:
-              - split_files/vae/ae.safetensors
-            hashes:
-              split_files/vae/ae.safetensors: sha256:afc8e28272cd15db3919bacdb6918ce9c1ed22e96cb12c4d5ed0fba823529e38
-            total_size_bytes: 335304388
-            host_requirement:
-              accelerator: metal
-              min_ram_bytes: 8589934592
-              min_vram_bytes: 4294967296
-      - companion_kind: auxiliary
-        engine_slot: llm_path
-        install:
-          repo: unsloth/Qwen3-4B-Instruct-2507-GGUF
-          revision: a06e946bb6b655725eafa393f4a9745d460374c9
-          install_kind: weights
-          entry: Qwen3-4B-Instruct-2507-Q4_K_M.gguf
-          artifact_roles:
-            - text_encoder
-          preferred_engine: media
-        variants:
-          - variant_id: local.image-textenc.qwen3-4b-instruct-2507.q4-k-m.cuda
-            quant: Q4_K_M
-            entry: Qwen3-4B-Instruct-2507-Q4_K_M.gguf
-            files:
-              - Qwen3-4B-Instruct-2507-Q4_K_M.gguf
-            hashes:
-              Qwen3-4B-Instruct-2507-Q4_K_M.gguf: sha256:3605803b982cb64aead44f6c1b2ae36e3acdb41d8e46c8a94c6533bc4c67e597
-            total_size_bytes: 2497281120
-            host_requirement:
-              accelerator: cuda
-              min_ram_bytes: 8589934592
-              min_vram_bytes: 4294967296
-          - variant_id: local.image-textenc.qwen3-4b-instruct-2507.q4-k-m.metal
-            quant: Q4_K_M
-            entry: Qwen3-4B-Instruct-2507-Q4_K_M.gguf
-            files:
-              - Qwen3-4B-Instruct-2507-Q4_K_M.gguf
-            hashes:
-              Qwen3-4B-Instruct-2507-Q4_K_M.gguf: sha256:3605803b982cb64aead44f6c1b2ae36e3acdb41d8e46c8a94c6533bc4c67e597
-            total_size_bytes: 2497281120
-            host_requirement:
-              accelerator: metal
-              min_ram_bytes: 8589934592
-              min_vram_bytes: 4294967296
-          - variant_id: local.image-textenc.qwen3-4b-instruct-2507.q5-k-m.cuda
-            quant: Q5_K_M
-            entry: Qwen3-4B-Instruct-2507-Q5_K_M.gguf
-            files:
-              - Qwen3-4B-Instruct-2507-Q5_K_M.gguf
-            hashes:
-              Qwen3-4B-Instruct-2507-Q5_K_M.gguf: sha256:5bde5e9d883622acb02bf77fe7dcbc56a8b9a9ad4be78a72ca23a532658b4ecb
-            total_size_bytes: 2889514080
-            host_requirement:
-              accelerator: cuda
-              min_ram_bytes: 10737418240
-              min_vram_bytes: 5368709120
-          - variant_id: local.image-textenc.qwen3-4b-instruct-2507.q5-k-m.metal
-            quant: Q5_K_M
-            entry: Qwen3-4B-Instruct-2507-Q5_K_M.gguf
-            files:
-              - Qwen3-4B-Instruct-2507-Q5_K_M.gguf
-            hashes:
-              Qwen3-4B-Instruct-2507-Q5_K_M.gguf: sha256:5bde5e9d883622acb02bf77fe7dcbc56a8b9a9ad4be78a72ca23a532658b4ecb
-            total_size_bytes: 2889514080
-            host_requirement:
-              accelerator: metal
-              min_ram_bytes: 10737418240
-              min_vram_bytes: 5368709120
-          - variant_id: local.image-textenc.qwen3-4b-instruct-2507.q6-k.cuda
-            quant: Q6_K
-            entry: Qwen3-4B-Instruct-2507-Q6_K.gguf
-            files:
-              - Qwen3-4B-Instruct-2507-Q6_K.gguf
-            hashes:
-              Qwen3-4B-Instruct-2507-Q6_K.gguf: sha256:cd7b21b38b3e71400587c184b6a9b04d3beb4d13fdae6464d4075dee4f1bc5ad
-            total_size_bytes: 3306261600
-            host_requirement:
-              accelerator: cuda
-              min_ram_bytes: 10737418240
-              min_vram_bytes: 6442450944
-          - variant_id: local.image-textenc.qwen3-4b-instruct-2507.q6-k.metal
-            quant: Q6_K
-            entry: Qwen3-4B-Instruct-2507-Q6_K.gguf
-            files:
-              - Qwen3-4B-Instruct-2507-Q6_K.gguf
-            hashes:
-              Qwen3-4B-Instruct-2507-Q6_K.gguf: sha256:cd7b21b38b3e71400587c184b6a9b04d3beb4d13fdae6464d4075dee4f1bc5ad
-            total_size_bytes: 3306261600
-            host_requirement:
-              accelerator: metal
-              min_ram_bytes: 10737418240
-              min_vram_bytes: 6442450944
-          - variant_id: local.image-textenc.qwen3-4b-instruct-2507.q8-0.cuda
-            quant: Q8_0
-            entry: Qwen3-4B-Instruct-2507-Q8_0.gguf
-            files:
-              - Qwen3-4B-Instruct-2507-Q8_0.gguf
-            hashes:
-              Qwen3-4B-Instruct-2507-Q8_0.gguf: sha256:391c1e410fd9f4cf2de2b510273b56a84c19ce18f4fa3bfb3774031dac4ef068
-            total_size_bytes: 4280405600
-            host_requirement:
-              accelerator: cuda
-              min_ram_bytes: 12884901888
-              min_vram_bytes: 8589934592
-          - variant_id: local.image-textenc.qwen3-4b-instruct-2507.q8-0.metal
-            quant: Q8_0
-            entry: Qwen3-4B-Instruct-2507-Q8_0.gguf
-            files:
-              - Qwen3-4B-Instruct-2507-Q8_0.gguf
-            hashes:
-              Qwen3-4B-Instruct-2507-Q8_0.gguf: sha256:391c1e410fd9f4cf2de2b510273b56a84c19ce18f4fa3bfb3774031dac4ef068
-            total_size_bytes: 4280405600
-            host_requirement:
-              accelerator: metal
-              min_ram_bytes: 12884901888
-              min_vram_bytes: 8589934592
-  - model_id: local/z-image-turbo
+  - model_id: ideogram4-local
     provider: local
     model_type: image
-    updated_at: 2026-05-21
+    updated_at: 2026-08-16
     capabilities:
       - image.generate
     pricing:
@@ -1768,17 +2075,51 @@ models:
       as_of: 2026-03-18
       notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
     source_ref:
-      url: https://huggingface.co/leejet/Z-Image-Turbo-GGUF
-      retrieved_at: 2026-05-21
-      note: Curated recommended-preset local image checkpoint (Z-Image-Turbo, stable-diffusion.cpp GGUF quants).
-    features:
-      - input.image
-      - input.mask
-    image_request_options: *a9
-  - model_id: media/z-image-turbo
+      url: https://huggingface.co/leejet/ideogram-4-GGUF/tree/c93c0ac616d3abc7910c9af0bf117244ce3a11c4
+      retrieved_at: 2026-08-16
+      note: Engine-compatible Ideogram4 main and unconditional GGUF artifacts pinned to one immutable revision.
+    family: ideogram4
+    image_request_options:
+      response_formats:
+        - b64_json
+        - url
+      max_images_per_request: 1
+      supports_negative_prompt: true
+      supports_reference_images: false
+      supports_mask: false
+      supports_seed: true
+      supports_size: true
+      supports_aspect_ratio: false
+      supports_quality: false
+      supports_style: false
+    install:
+      repo: leejet/ideogram-4-GGUF
+      revision: c93c0ac616d3abc7910c9af0bf117244ce3a11c4
+      install_kind: weights
+      entry: ideogram4-Q4_0.gguf
+      artifact_roles:
+        - diffusion_model
+      preferred_engine: media
+    variants:
+      - variant_id: local.image.ideogram4.q4-0.cuda
+        quant: Q4_0
+        entry: ideogram4-Q4_0.gguf
+        files:
+          - ideogram4-Q4_0.gguf
+        hashes:
+          ideogram4-Q4_0.gguf: sha256:08431d93824e56513cccc84a4d10d327df992cff5b5a0dcfdc739f4d50c2cc9e
+        total_size_bytes: 5643820832
+        host_requirement:
+          accelerator: cuda
+          min_ram_bytes: 34359738368
+          min_vram_bytes: 25769803776
+    fitness:
+      param_count: 10000000000
+      context_length: 0
+  - model_id: ideogram4-uncond-local
     provider: local
     model_type: image
-    updated_at: 2026-05-21
+    updated_at: 2026-08-16
     capabilities:
       - image.generate
     pricing:
@@ -1789,17 +2130,51 @@ models:
       as_of: 2026-03-18
       notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
     source_ref:
-      url: https://huggingface.co/leejet/Z-Image-Turbo-GGUF
-      retrieved_at: 2026-05-21
-      note: Curated recommended-preset local image checkpoint (Z-Image-Turbo, stable-diffusion.cpp GGUF quants).
-    features:
-      - input.image
-      - input.mask
-    image_request_options: *a9
-  - model_id: leejet/Z-Image-Turbo-GGUF
+      url: https://huggingface.co/leejet/ideogram-4-GGUF/tree/c93c0ac616d3abc7910c9af0bf117244ce3a11c4
+      retrieved_at: 2026-08-16
+      note: Engine-compatible Ideogram4 main and unconditional GGUF artifacts pinned to one immutable revision.
+    family: ideogram4
+    image_request_options: &a9
+      response_formats:
+        - b64_json
+        - url
+      max_images_per_request: 1
+      supports_negative_prompt: true
+      supports_reference_images: false
+      supports_mask: false
+      supports_seed: true
+      supports_size: true
+      supports_aspect_ratio: false
+      supports_quality: false
+      supports_style: false
+    install:
+      repo: leejet/ideogram-4-GGUF
+      revision: c93c0ac616d3abc7910c9af0bf117244ce3a11c4
+      install_kind: weights
+      entry: ideogram4_uncond-Q4_0.gguf
+      artifact_roles:
+        - uncond_diffusion_model
+      preferred_engine: media
+    variants:
+      - variant_id: local.image.ideogram4-uncond.q4-0.cuda
+        quant: Q4_0
+        entry: ideogram4_uncond-Q4_0.gguf
+        files:
+          - ideogram4_uncond-Q4_0.gguf
+        hashes:
+          ideogram4_uncond-Q4_0.gguf: sha256:2ac9c57c32dead6953da2985656cadd801991a993bd3d5205d3ac1a96686b45a
+        total_size_bytes: 5643820832
+        host_requirement:
+          accelerator: cuda
+          min_ram_bytes: 34359738368
+          min_vram_bytes: 25769803776
+    fitness:
+      param_count: 10000000000
+      context_length: 0
+  - model_id: local/ideogram4-uncond
     provider: local
     model_type: image
-    updated_at: 2026-05-21
+    updated_at: 2026-08-16
     capabilities:
       - image.generate
     pricing:
@@ -1810,13 +2185,403 @@ models:
       as_of: 2026-03-18
       notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
     source_ref:
-      url: https://huggingface.co/leejet/Z-Image-Turbo-GGUF
-      retrieved_at: 2026-05-21
-      note: Curated recommended-preset local image checkpoint (Z-Image-Turbo, stable-diffusion.cpp GGUF quants).
+      url: https://huggingface.co/leejet/ideogram-4-GGUF/tree/c93c0ac616d3abc7910c9af0bf117244ce3a11c4
+      retrieved_at: 2026-08-16
+      note: Engine-compatible Ideogram4 main and unconditional GGUF artifacts pinned to one immutable revision.
+    family: ideogram4
+    image_request_options: *a9
+  - model_id: ideogram4-qwen3-vl-8b-encoder-local
+    provider: local
+    model_type: chat
+    updated_at: 2026-08-16
+    capabilities:
+      - text.generate
+    pricing:
+      unit: request
+      input: "0"
+      output: "0"
+      currency: none
+      as_of: 2026-03-18
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://huggingface.co/unsloth/Qwen3-VL-8B-Instruct-GGUF/tree/b93a7ee713758252c555be4210c00540df954dc2
+      retrieved_at: 2026-08-16
+      note: Engine-compatible Qwen3-VL 8B text encoder conversion used by the Ideogram4 recipe.
+    family: qwen-vl
+    install:
+      repo: unsloth/Qwen3-VL-8B-Instruct-GGUF
+      revision: b93a7ee713758252c555be4210c00540df954dc2
+      install_kind: weights
+      entry: Qwen3-VL-8B-Instruct-Q8_0.gguf
+      artifact_roles:
+        - text_encoder
+      preferred_engine: media
+    variants:
+      - variant_id: local.image-textenc.qwen3-vl-8b-instruct.q8-0.cuda
+        quant: Q8_0
+        entry: Qwen3-VL-8B-Instruct-Q8_0.gguf
+        files:
+          - Qwen3-VL-8B-Instruct-Q8_0.gguf
+        hashes:
+          Qwen3-VL-8B-Instruct-Q8_0.gguf: sha256:cb8616bf6ed228982d9e47d7b72b42195342efa26044b0ee1873e61d9e78d3d7
+        total_size_bytes: 8709520224
+        host_requirement:
+          accelerator: cuda
+          min_ram_bytes: 17179869184
+          min_vram_bytes: 8589934592
+    fitness:
+      param_count: 8000000000
+      context_length: 0
+  - model_id: local/ideogram4-qwen3-vl-encoder
+    provider: local
+    model_type: chat
+    updated_at: 2026-08-16
+    capabilities:
+      - text.generate
+    pricing:
+      unit: request
+      input: "0"
+      output: "0"
+      currency: none
+      as_of: 2026-03-18
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://huggingface.co/unsloth/Qwen3-VL-8B-Instruct-GGUF/tree/b93a7ee713758252c555be4210c00540df954dc2
+      retrieved_at: 2026-08-16
+      note: Engine-compatible Qwen3-VL 8B text encoder conversion used by the Ideogram4 recipe.
+    family: qwen-vl
+  - model_id: qwen-image-local
+    provider: local
+    model_type: image
+    updated_at: 2026-08-14
+    capabilities:
+      - image.generate
+    pricing:
+      unit: request
+      input: "0"
+      output: "0"
+      currency: none
+      as_of: 2026-03-18
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://huggingface.co/Qwen/Qwen-Image/tree/75e0b4be04f60ec59a75f475837eced720f823b6
+      retrieved_at: 2026-08-14
+      note: Official Qwen Image lineage and text-to-image product semantics; not the stable-diffusion.cpp execution artifact.
+    family: qwen-image
+    image_request_options:
+      response_formats:
+        - b64_json
+        - url
+      max_images_per_request: 1
+      supports_negative_prompt: false
+      supports_reference_images: false
+      supports_mask: false
+      supports_seed: true
+      supports_size: true
+      supports_aspect_ratio: false
+      supports_quality: false
+      supports_style: false
+    install:
+      repo: QuantStack/Qwen-Image-GGUF
+      revision: 257f261fa92593bed760aa6fa3f7921a49fea00f
+      install_kind: weights
+      entry: Qwen_Image-Q4_K_M.gguf
+      artifact_roles:
+        - diffusion_model
+      preferred_engine: media
+    variants:
+      - variant_id: local.image.qwen-image.q4-k-m.cuda
+        quant: Q4_K_M
+        entry: Qwen_Image-Q4_K_M.gguf
+        files:
+          - Qwen_Image-Q4_K_M.gguf
+        hashes:
+          Qwen_Image-Q4_K_M.gguf: sha256:645473886d7dbb0103f84c563c798f7b0867293d919752d4d6be6a432b0bc988
+        total_size_bytes: 13065746976
+        host_requirement:
+          accelerator: cuda
+          min_ram_bytes: 34359738368
+          min_vram_bytes: 25769803776
+    fitness:
+      param_count: 20000000000
+      context_length: 0
+  - model_id: qwen-image-edit-2511-local
+    provider: local
+    model_type: image
+    updated_at: 2026-08-14
+    capabilities:
+      - image.generate
+    pricing:
+      unit: request
+      input: "0"
+      output: "0"
+      currency: none
+      as_of: 2026-03-18
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://huggingface.co/Qwen/Qwen-Image-Edit-2511/tree/6f3ccc0b56e431dc6a0c2b2039706d7d26f22cb9
+      retrieved_at: 2026-08-14
+      note: Official Qwen Image Edit 2511 lineage and instruction-based image editing semantics; not the stable-diffusion.cpp execution artifact.
     features:
       - input.image
-      - input.mask
-    image_request_options: *a9
+    family: qwen-image
+    image_request_options:
+      response_formats:
+        - b64_json
+        - url
+      max_images_per_request: 1
+      supports_negative_prompt: false
+      supports_reference_images: true
+      supports_mask: false
+      supports_seed: true
+      supports_size: true
+      supports_aspect_ratio: false
+      supports_quality: false
+      supports_style: false
+    install:
+      repo: unsloth/Qwen-Image-Edit-2511-GGUF
+      revision: 0d33d9692b4b26212297240d87b0d4719aa4fd06
+      install_kind: weights
+      entry: qwen-image-edit-2511-Q4_K_M.gguf
+      artifact_roles:
+        - edit_diffusion_model
+      preferred_engine: media
+    variants:
+      - variant_id: local.image.qwen-image-edit-2511.q4-k-m.cuda
+        quant: Q4_K_M
+        entry: qwen-image-edit-2511-Q4_K_M.gguf
+        files:
+          - qwen-image-edit-2511-Q4_K_M.gguf
+        hashes:
+          qwen-image-edit-2511-Q4_K_M.gguf: sha256:8677bac90627adbbc11efab87b1870e701c4eb3689ee865a3de8ab81b705a723
+        total_size_bytes: 13244758624
+        host_requirement:
+          accelerator: cuda
+          min_ram_bytes: 34359738368
+          min_vram_bytes: 25769803776
+    fitness:
+      param_count: 20000000000
+      context_length: 0
+  - model_id: minimax-h3-fl2va-local
+    provider: local
+    model_type: video
+    updated_at: 2026-08-16
+    capabilities:
+      - video.generate
+    pricing:
+      unit: request
+      input: "0"
+      output: "0"
+      currency: none
+      as_of: 2026-03-18
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://huggingface.co/leejet/MiniMax-H3-GGUF/tree/d31b8066b4f7c036e7d10d5685567f8f54c8be54
+      retrieved_at: 2026-08-16
+      note: Engine-compatible MiniMax-H3 FL2VA, Ref2VA, and combined Qwen3-VL GGUF artifacts.
+    features:
+      - input.image
+    family: minimax-h3
+    video_generation:
+      modes:
+        - t2v
+        - i2v_first_frame
+      input_roles:
+        t2v:
+          - prompt
+        i2v_first_frame:
+          - prompt
+          - first_frame
+      limits:
+        resolution:
+          - 288p
+          - 480p
+      options:
+        supports:
+          - resolution
+          - duration_sec
+        constraints: {}
+      outputs:
+        video_url: true
+    install:
+      repo: leejet/MiniMax-H3-GGUF
+      revision: d31b8066b4f7c036e7d10d5685567f8f54c8be54
+      install_kind: weights
+      entry: minimax_h3_fl2va-Q4_K_M.gguf
+      artifact_roles:
+        - diffusion_transformer
+      preferred_engine: media
+    variants:
+      - variant_id: local.video.minimax-h3-fl2va.q4-k-m.cuda
+        quant: Q4_K_M
+        entry: minimax_h3_fl2va-Q4_K_M.gguf
+        files:
+          - minimax_h3_fl2va-Q4_K_M.gguf
+        hashes:
+          minimax_h3_fl2va-Q4_K_M.gguf: sha256:a25ee3184dd56e7fc5c8db1508d2e48a7e3c92919b516935c6059e4228e16107
+        total_size_bytes: 18779848448
+        host_requirement:
+          accelerator: cuda
+          min_ram_bytes: 34359738368
+          min_vram_bytes: 25769803776
+    fitness:
+      param_count: 32000000000
+      context_length: 0
+  - model_id: minimax-h3-ref2va-local
+    provider: local
+    model_type: video
+    updated_at: 2026-08-16
+    capabilities:
+      - video.generate
+    pricing:
+      unit: request
+      input: "0"
+      output: "0"
+      currency: none
+      as_of: 2026-03-18
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://huggingface.co/leejet/MiniMax-H3-GGUF/tree/d31b8066b4f7c036e7d10d5685567f8f54c8be54
+      retrieved_at: 2026-08-16
+      note: Engine-compatible MiniMax-H3 FL2VA, Ref2VA, and combined Qwen3-VL GGUF artifacts.
+    features:
+      - input.image
+    family: minimax-h3
+    video_generation: &a10
+      modes:
+        - i2v_first_frame
+      input_roles:
+        i2v_first_frame:
+          - prompt
+          - first_frame
+      limits:
+        resolution:
+          - 288p
+          - 480p
+      options:
+        supports:
+          - resolution
+          - duration_sec
+        constraints: {}
+      outputs:
+        video_url: true
+    install:
+      repo: leejet/MiniMax-H3-GGUF
+      revision: d31b8066b4f7c036e7d10d5685567f8f54c8be54
+      install_kind: weights
+      entry: minimax_h3_ref2va_pruned-Q4_K_M.gguf
+      artifact_roles:
+        - diffusion_transformer
+      preferred_engine: media
+    variants:
+      - variant_id: local.video.minimax-h3-ref2va-pruned.q4-k-m.cuda
+        quant: Q4_K_M
+        entry: minimax_h3_ref2va_pruned-Q4_K_M.gguf
+        files:
+          - minimax_h3_ref2va_pruned-Q4_K_M.gguf
+        hashes:
+          minimax_h3_ref2va_pruned-Q4_K_M.gguf: sha256:9ca1aef9f4609a56c2c751484013e1b20fe352f892122e5ab0a428fb95a7956e
+        total_size_bytes: 11420663904
+        host_requirement:
+          accelerator: cuda
+          min_ram_bytes: 34359738368
+          min_vram_bytes: 25769803776
+      - variant_id: local.video.minimax-h3-ref2va-pruned.q2-k-m.cuda
+        quant: Q2_K_M
+        entry: minimax_h3_ref2va_pruned-Q2_K_M.gguf
+        files:
+          - minimax_h3_ref2va_pruned-Q2_K_M.gguf
+        hashes:
+          minimax_h3_ref2va_pruned-Q2_K_M.gguf: sha256:792651930a5d1a2f4b4f55d9e3c7222d2c12d8a300272bbf0fec6b13fa695d6e
+        total_size_bytes: 6724190304
+        host_requirement:
+          accelerator: cuda
+          min_ram_bytes: 25769803776
+          min_vram_bytes: 17179869184
+    fitness:
+      param_count: 20000000000
+      context_length: 0
+  - model_id: local/minimax-h3-ref2va
+    provider: local
+    model_type: video
+    updated_at: 2026-08-16
+    capabilities:
+      - video.generate
+    pricing:
+      unit: request
+      input: "0"
+      output: "0"
+      currency: none
+      as_of: 2026-03-18
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://huggingface.co/leejet/MiniMax-H3-GGUF/tree/d31b8066b4f7c036e7d10d5685567f8f54c8be54
+      retrieved_at: 2026-08-16
+      note: Engine-compatible MiniMax-H3 FL2VA, Ref2VA, and combined Qwen3-VL GGUF artifacts.
+    features:
+      - input.image
+    family: minimax-h3
+    video_generation: *a10
+  - model_id: minimax-h3-qwen3-vl-32b-encoder-local
+    provider: local
+    model_type: chat
+    updated_at: 2026-08-16
+    capabilities:
+      - text.generate
+    pricing:
+      unit: request
+      input: "0"
+      output: "0"
+      currency: none
+      as_of: 2026-03-18
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://huggingface.co/leejet/MiniMax-H3-GGUF/tree/d31b8066b4f7c036e7d10d5685567f8f54c8be54
+      retrieved_at: 2026-08-16
+      note: Engine-compatible MiniMax-H3 FL2VA, Ref2VA, and combined Qwen3-VL GGUF artifacts.
+    family: qwen-vl
+    install:
+      repo: leejet/MiniMax-H3-GGUF
+      revision: d31b8066b4f7c036e7d10d5685567f8f54c8be54
+      install_kind: weights
+      entry: qwen3vl_32b_minimax_h3-Q4_K_M.gguf
+      artifact_roles:
+        - llm
+      preferred_engine: media
+    variants:
+      - variant_id: local.video-encoder.minimax-h3-qwen3-vl-32b.q4-k-m.cuda
+        quant: Q4_K_M
+        entry: qwen3vl_32b_minimax_h3-Q4_K_M.gguf
+        files:
+          - qwen3vl_32b_minimax_h3-Q4_K_M.gguf
+        hashes:
+          qwen3vl_32b_minimax_h3-Q4_K_M.gguf: sha256:11e6efe70a57ce7f4838c47bdbd1a1c4b8ce10e2b7747f1b065990b70f4b05fc
+        total_size_bytes: 18218065024
+        host_requirement:
+          accelerator: cuda
+          min_ram_bytes: 34359738368
+          min_vram_bytes: 17179869184
+    fitness:
+      param_count: 32000000000
+      context_length: 0
+  - model_id: local/minimax-h3-qwen3-vl-encoder
+    provider: local
+    model_type: chat
+    updated_at: 2026-08-16
+    capabilities:
+      - text.generate
+    pricing:
+      unit: request
+      input: "0"
+      output: "0"
+      currency: none
+      as_of: 2026-03-18
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://huggingface.co/leejet/MiniMax-H3-GGUF/tree/d31b8066b4f7c036e7d10d5685567f8f54c8be54
+      retrieved_at: 2026-08-16
+      note: Engine-compatible MiniMax-H3 FL2VA, Ref2VA, and combined Qwen3-VL GGUF artifacts.
+    family: qwen-vl
   - model_id: wan2.1-video-local
     provider: local
     model_type: video
@@ -1836,7 +2601,7 @@ models:
       note: Official Diffusers Wan text-to-video and image-to-video pipeline documentation.
     features:
       - input.image
-    video_generation: &a10
+    video_generation: &a11
       modes:
         - t2v
         - i2v_first_frame
@@ -1877,7 +2642,7 @@ models:
       note: Official Diffusers Wan text-to-video and image-to-video pipeline documentation.
     features:
       - input.image
-    video_generation: *a10
+    video_generation: *a11
   - model_id: media/wan2.1-video
     provider: local
     model_type: video
@@ -1897,7 +2662,7 @@ models:
       note: Official Diffusers Wan text-to-video and image-to-video pipeline documentation.
     features:
       - input.image
-    video_generation: *a10
+    video_generation: *a11
   - model_id: ace-step-local
     provider: local
     model_type: music
@@ -2471,39 +3236,500 @@ voice_handle_policies:
       url: https://huggingface.co/Qwen/Qwen3-TTS-12Hz-0.6B-Base
       retrieved_at: 2026-04-17
       note: Default local voice clone checkpoint for first-wave local admission.
-presets:
-  minimal:
-    factory_aiprofile_alias: local-speech
-    slots:
-      - slot: chat
-        capability: text.generate
-        model_ref: gemma-4-e2b-it-local
-        required: true
-      - slot: stt
-        capability: audio.transcribe
-        model_ref: qwen3-asr-local
-        required: true
-      - slot: tts
-        capability: audio.synthesize
-        model_ref: qwen3-tts-local
-        required: true
-  recommended:
-    factory_aiprofile_alias: local-gpu
-    slots:
-      - slot: chat
-        capability: text.generate
-        model_ref: gemma-4-26b-a4b-it-local
-        required: true
-      - slot: stt
-        capability: audio.transcribe
-        model_ref: qwen3-asr-local
-        required: true
-      - slot: tts
-        capability: audio.synthesize
-        model_ref: qwen3-tts-local
-        required: true
-      - slot: image
-        capability: image.generate
-        model_ref: z-image-turbo-local
-        required: false
-        host_conditional: true
+loadout_recipes:
+  - recipe_id: llama.text-generate.gemma-4-e2b-it.v1
+    revision: "1"
+    title: Gemma 4 E2B text generation
+    capability_contract: text.generate
+    implementation_id: local.text.generate.llama-cpp
+    driver_id: nimi.runtime.driver.llama-cpp
+    driver_dialect: llama.cpp/text-generate/v1
+    default_options: {}
+    supported_features: []
+    slot_metadata:
+      - slot_id: main.gguf
+        display_label: Main model
+        recommended_variant_ids:
+          - local.chat.gemma-4-e2b-it.q3-k-m
+          - local.chat.gemma-4-e2b-it.q4-k-m
+          - local.chat.gemma-4-e2b-it.q5-k-m
+          - local.chat.gemma-4-e2b-it.q6-k
+          - local.chat.gemma-4-e2b-it.q8-0
+        recommended_content_ids:
+          - sha256:31aeee4a8b5c4a743f51f4021c29cfaa809d31a892cf9b918b9bb40542941197
+          - sha256:9378bc471710229ef165709b62e34bfb62231420ddaf6d729e727305b5b8672d
+          - sha256:d8fc2ac6fd597481dfd9c5ef9543ea1f0bda8088086da3853ce5e5564ab43bf8
+          - sha256:b36824f13bf9fab2910cb7b4282a4d73b13799ee4126d4ec241309ce69c0e783
+          - sha256:0a8488b149e1f700712c35d5bf0a3795f9dcc2563b4944d5ef2fb89375f9483e
+        model_contract:
+          format: gguf
+          gguf_architectures:
+            - gemma4
+  - recipe_id: llama.text-generate.gemma-4-26b-a4b-it.v1
+    revision: "1"
+    title: Gemma 4 26B-A4B text generation
+    capability_contract: text.generate
+    implementation_id: local.text.generate.llama-cpp
+    driver_id: nimi.runtime.driver.llama-cpp
+    driver_dialect: llama.cpp/text-generate/v1
+    default_options: {}
+    supported_features: []
+    slot_metadata:
+      - slot_id: main.gguf
+        display_label: Main model
+        recommended_variant_ids:
+          - local.chat.gemma-4-26b-a4b-it.q4-k-m
+          - local.chat.gemma-4-26b-a4b-it.q5-k-m
+          - local.chat.gemma-4-26b-a4b-it.q6-k
+          - local.chat.gemma-4-26b-a4b-it.q8-0
+        recommended_content_ids:
+          - sha256:34c746b1d50ab813e29cd46c4796e3f43c741901a582f93a67b55b9fc9687b35
+          - sha256:f2fe28fc1d82e7c74f47d570a8c8847513fe2712a1b3a5bcd869031d952c4936
+          - sha256:d3d9e6a63845bdc83e9f9fc5923e77c023ccc1197c9e145e6a8754bad80b5d75
+          - sha256:b26c56ea4bf724b4efa0161bb4615e974847ec64450a4dd49da8712614a128c7
+        model_contract:
+          format: gguf
+          gguf_architectures:
+            - gemma4
+  - recipe_id: llama.text-embed.gguf.v1
+    revision: "1"
+    title: llama.cpp GGUF embeddings
+    capability_contract: text.embed
+    implementation_id: local.text.embed.llama-cpp
+    driver_id: nimi.runtime.driver.llama-cpp
+    driver_dialect: llama.cpp/text-embed/v1
+    default_options: {}
+    supported_features: []
+    slot_metadata:
+      - slot_id: embedding.gguf
+        display_label: Embedding model
+        recommended_variant_ids:
+          - local.embedding.nomic-embed-text-v1.5.q4-k-m
+        recommended_content_ids:
+          - sha256:d4e388894e09cf3816e8b0896d81d265b55e7a9fff9ab03fe8bf4ef5e11295ac
+        model_contract:
+          format: gguf
+          gguf_architectures:
+            - bert
+            - nomic-bert
+            - qwen3
+  - recipe_id: voxcpm2
+    revision: "2"
+    title: VoxCPM2 speech synthesis
+    capability_contract: audio.synthesize
+    implementation_id: local.audio.synthesize.voxcpm
+    driver_id: nimi.runtime.driver.voxcpm
+    driver_dialect: voxcpm/audio-synthesize/v1
+    default_options: {}
+    supported_features: []
+    custody: []
+    slot_metadata:
+      - slot_id: tts.model
+        display_label: TTS model
+        recommended_variant_ids:
+          - local.tts.voxcpm2.standard.cuda
+          - local.tts.voxcpm2.standard.cpu
+          - local.tts.voxcpm2.mlx.metal
+        recommended_content_ids:
+          - sha256:f009f517eae1eb986798962276f6e3a7b9e3abf8310708a6a2dfdc9c9ce5c99a
+          - sha256:d1bd063053c722a191ce68eb217fd26b1c0dd8703f6e52e8ef1609fd0619de78
+        model_contract:
+          format: safetensors
+          architecture: voxcpm2
+          artifact_role: tts_model
+          required_files:
+            - config.json
+            - tokenizer.json
+            - tokenizer_config.json
+          backend_contracts:
+            standard:
+              tensor_contract: voxcpm2-main-v1
+              audio_vae_files:
+                - audiovae.safetensors
+                - audiovae.pth
+            mlx:
+              tensor_contract: voxcpm2-mlx-bundle-v1
+              forbidden_files:
+                - audiovae.safetensors
+                - audiovae.pth
+                - tokenization_voxcpm2.py
+  - recipe_id: qwen3-tts-customvoice
+    revision: "1"
+    title: Qwen3 TTS CustomVoice synthesis
+    capability_contract: audio.synthesize
+    implementation_id: local.audio.synthesize.qwen3-tts
+    driver_id: nimi.runtime.driver.qwen3-tts
+    driver_dialect: qwen3-tts/audio-synthesize/v1
+    default_options: {}
+    supported_features: []
+    custody: []
+    slot_metadata:
+      - slot_id: tts.model
+        display_label: TTS model
+        recommended_variant_ids:
+          - local.tts.qwen3-tts-customvoice-0.6b.safetensors
+        recommended_content_ids:
+          - sha256:c24b6ac48461d111bb3c65100f1e92765756c566b8c3a2c279ec25a526e76fbd
+        model_contract:
+          format: safetensors
+          artifact_role: tts_model
+  - recipe_id: qwen3-tts-base
+    revision: "1"
+    title: Qwen3 TTS Base synthesis
+    capability_contract: audio.synthesize
+    implementation_id: local.audio.synthesize.qwen3-tts
+    driver_id: nimi.runtime.driver.qwen3-tts
+    driver_dialect: qwen3-tts/audio-synthesize/v1
+    default_options: {}
+    supported_features: []
+    custody: []
+    slot_metadata:
+      - slot_id: tts.model
+        display_label: TTS model
+        recommended_variant_ids:
+          - local.voice.qwen3-tts-base-0.6b.safetensors
+        recommended_content_ids:
+          - sha256:121345dd05106a89df64676c7632528bb89c19cc5f3c70387a009466f21c6f8d
+        model_contract:
+          format: safetensors
+          artifact_role: tts_model
+  - recipe_id: qwen3-tts-voicedesign
+    revision: "1"
+    title: Qwen3 TTS VoiceDesign synthesis
+    capability_contract: audio.synthesize
+    implementation_id: local.audio.synthesize.qwen3-tts
+    driver_id: nimi.runtime.driver.qwen3-tts
+    driver_dialect: qwen3-tts/audio-synthesize/v1
+    default_options: {}
+    supported_features: []
+    custody: []
+    slot_metadata:
+      - slot_id: tts.model
+        display_label: TTS model
+        recommended_variant_ids:
+          - local.voice.qwen3-tts-voicedesign-1.7b.safetensors
+        recommended_content_ids:
+          - sha256:6a6be9af7e60cfd1bd8ff01a5a5648fb42a77aa4dd605ef59532dd3247b013b7
+        model_contract:
+          format: safetensors
+          artifact_role: tts_model
+  - recipe_id: qwen3-local-voice-clone
+    revision: "1"
+    title: Qwen3 local voice clone
+    capability_contract: voice.create
+    implementation_id: local.voice.create.qwen3-tts
+    driver_id: nimi.runtime.driver.qwen3-tts
+    driver_dialect: qwen3-tts/voice-create/v1
+    default_options: {}
+    supported_features:
+      - input.audio
+    custody: []
+    slot_metadata:
+      - slot_id: voice.model
+        display_label: Voice creation model
+        recommended_variant_ids:
+          - local.voice.qwen3-tts-base-0.6b.safetensors
+        recommended_content_ids:
+          - sha256:121345dd05106a89df64676c7632528bb89c19cc5f3c70387a009466f21c6f8d
+        model_contract:
+          format: safetensors
+          artifact_role: tts_voice_clone_model
+  - recipe_id: qwen3-local-voice-design
+    revision: "1"
+    title: Qwen3 local voice design
+    capability_contract: voice.create
+    implementation_id: local.voice.create.qwen3-tts
+    driver_id: nimi.runtime.driver.qwen3-tts
+    driver_dialect: qwen3-tts/voice-create/v1
+    default_options: {}
+    supported_features:
+      - input.text
+    custody: []
+    slot_metadata:
+      - slot_id: voice.model
+        display_label: Voice creation model
+        recommended_variant_ids:
+          - local.voice.qwen3-tts-voicedesign-1.7b.safetensors
+        recommended_content_ids:
+          - sha256:6a6be9af7e60cfd1bd8ff01a5a5648fb42a77aa4dd605ef59532dd3247b013b7
+        model_contract:
+          format: safetensors
+          artifact_role: tts_voice_design_model
+  - recipe_id: qwen3-asr
+    revision: "1"
+    title: Qwen3 ASR transcription
+    capability_contract: audio.transcribe
+    implementation_id: local.audio.transcribe.qwen3-asr
+    driver_id: nimi.runtime.driver.qwen3-asr
+    driver_dialect: qwen3-asr/audio-transcribe/v1
+    default_options: {}
+    supported_features: []
+    custody: []
+    slot_metadata:
+      - slot_id: stt.model
+        display_label: STT model
+        recommended_variant_ids:
+          - local.stt.qwen3-asr-0.6b.safetensors
+        recommended_content_ids:
+          - sha256:1f01cc256a1f8b88ed698f5ef394427f1857f1aef62b3d6ae9233f4a2a7abdef
+        model_contract:
+          format: safetensors
+          artifact_role: stt_model
+  - recipe_id: qwen3-asr-transformers
+    revision: "1"
+    title: Qwen3 ASR Transformers transcription
+    capability_contract: audio.transcribe
+    implementation_id: local.audio.transcribe.qwen3-asr-transformers
+    driver_id: nimi.runtime.driver.qwen3-asr-transformers
+    driver_dialect: qwen3-asr-transformers/audio-transcribe/v1
+    default_options: {}
+    supported_features: []
+    custody: []
+    slot_metadata:
+      - slot_id: stt.model
+        display_label: STT model
+        recommended_variant_ids:
+          - local.stt.qwen3-asr-transformers-0.6b.safetensors
+        recommended_content_ids:
+          - sha256:fe403d2d0afb0992d95e6891c5cf47c10c5c4316f164a0e401c553298f9be6cd
+        model_contract:
+          format: safetensors
+          artifact_role: stt_transformers_model
+  - recipe_id: z-image
+    revision: "1"
+    title: Z-Image Turbo generation
+    capability_contract: image.generate
+    implementation_id: local.image.generate.stable-diffusion-cpp
+    driver_id: nimi.runtime.driver.stable-diffusion-cpp
+    driver_dialect: stable-diffusion.cpp/image-generate/v2
+    default_options: {}
+    supported_features: []
+    slot_metadata:
+      - slot_id: main.diffusion
+        display_label: Diffusion model
+        recommended_variant_ids:
+          - local.image.z-image-turbo.q4-k.cuda
+          - local.image.z-image-turbo.q4-k.metal
+          - local.image.z-image-turbo.q3-k.cuda
+          - local.image.z-image-turbo.q3-k.metal
+        recommended_content_ids:
+          - sha256:14b375ab4f226bc5378f68f37e899ef3c2242b8541e61e2bc1aff40976086fbd
+          - sha256:4b44bdaa7814f20d7cf144e3939bd93aa32f50660204dd0c2aea5c5376232980
+        model_contract:
+          format: gguf
+          artifact_role: diffusion_model
+          gguf_families:
+            - z-image
+      - slot_id: companion.text-encoder
+        display_label: Text encoder
+        recommended_variant_ids:
+          - local.image-textenc.qwen3-4b-instruct-2507.q4-k-m.cuda
+          - local.image-textenc.qwen3-4b-instruct-2507.q4-k-m.metal
+        recommended_content_ids:
+          - sha256:3605803b982cb64aead44f6c1b2ae36e3acdb41d8e46c8a94c6533bc4c67e597
+        model_contract:
+          format: gguf
+          artifact_role: text_encoder
+          gguf_architecture_families:
+            - qwen
+      - slot_id: companion.vae
+        display_label: VAE
+        recommended_variant_ids:
+          - local.image-vae.z-image-ae.f16.cuda
+          - local.image-vae.z-image-ae.f16.metal
+        recommended_content_ids:
+          - sha256:afc8e28272cd15db3919bacdb6918ce9c1ed22e96cb12c4d5ed0fba823529e38
+        model_contract:
+          format: safetensors
+          tensor_contract: flux1-vae-16ch
+  - recipe_id: ideogram4
+    revision: "1"
+    title: Ideogram4 generation
+    capability_contract: image.generate
+    implementation_id: local.image.generate.stable-diffusion-cpp
+    driver_id: nimi.runtime.driver.stable-diffusion-cpp
+    driver_dialect: stable-diffusion.cpp/image-generate/v2
+    default_options: {}
+    supported_features: []
+    slot_metadata:
+      - slot_id: main.diffusion
+        display_label: Diffusion model
+        recommended_variant_ids:
+          - local.image.ideogram4.q4-0.cuda
+        recommended_content_ids:
+          - sha256:08431d93824e56513cccc84a4d10d327df992cff5b5a0dcfdc739f4d50c2cc9e
+        model_contract:
+          format: gguf
+          artifact_role: diffusion_model
+          gguf_families:
+            - ideogram4
+      - slot_id: companion.text-encoder
+        display_label: Text encoder
+        recommended_variant_ids:
+          - local.image-textenc.qwen3-vl-8b-instruct.q8-0.cuda
+        recommended_content_ids:
+          - sha256:cb8616bf6ed228982d9e47d7b72b42195342efa26044b0ee1873e61d9e78d3d7
+        model_contract:
+          format: gguf
+          artifact_role: text_encoder
+          gguf_architecture_families:
+            - qwen-vl
+      - slot_id: companion.vae
+        display_label: VAE
+        recommended_variant_ids:
+          - local.image-vae.flux2-ae.f16.cuda
+        recommended_content_ids:
+          - sha256:868fe7b343cc8f3a19dbcfcafbc3d5f888802be3f89bd81b65b3621a066ce8f3
+        model_contract:
+          format: safetensors
+          tensor_contract: flux2-vae
+      - slot_id: companion.uncond-diffusion
+        display_label: Unconditional diffusion model
+        recommended_variant_ids:
+          - local.image.ideogram4-uncond.q4-0.cuda
+        recommended_content_ids:
+          - sha256:2ac9c57c32dead6953da2985656cadd801991a993bd3d5205d3ac1a96686b45a
+        model_contract:
+          format: gguf
+          artifact_role: uncond_diffusion_model
+          gguf_families:
+            - ideogram4
+  - recipe_id: minimax-h3
+    revision: "1"
+    title: MiniMax-H3 video generation
+    capability_contract: video.generate
+    implementation_id: local.image.generate.stable-diffusion-cpp
+    driver_id: nimi.runtime.driver.stable-diffusion-cpp
+    driver_dialect: stable-diffusion.cpp/minimax-h3-video-generate/v1
+    default_options: {}
+    supported_features:
+      - input.image
+    slot_metadata:
+      - slot_id: diffusion.fl2va
+        display_label: MiniMax-H3 FL2VA transformer
+        recommended_variant_ids:
+          - local.video.minimax-h3-fl2va.q4-k-m.cuda
+        recommended_content_ids:
+          - sha256:a25ee3184dd56e7fc5c8db1508d2e48a7e3c92919b516935c6059e4228e16107
+        model_contract:
+          format: gguf
+          artifact_role: diffusion_transformer
+      - slot_id: diffusion.ref2va
+        display_label: MiniMax-H3 Ref2VA transformer
+        recommended_variant_ids:
+          - local.video.minimax-h3-ref2va-pruned.q4-k-m.cuda
+        recommended_content_ids:
+          - sha256:9ca1aef9f4609a56c2c751484013e1b20fe352f892122e5ab0a428fb95a7956e
+        model_contract:
+          format: gguf
+          artifact_role: diffusion_transformer
+      - slot_id: encoder.h3-combined
+        display_label: MiniMax-H3 combined Qwen3-VL encoder
+        recommended_variant_ids:
+          - local.video-encoder.minimax-h3-qwen3-vl-32b.q4-k-m.cuda
+        recommended_content_ids:
+          - sha256:11e6efe70a57ce7f4838c47bdbd1a1c4b8ce10e2b7747f1b065990b70f4b05fc
+        model_contract:
+          format: gguf
+          artifact_role: llm
+      - slot_id: vae.video
+        display_label: MiniMax-H3 video VAE
+        recommended_variant_ids:
+          - local.video-vae.minimax-h3.f16.cuda
+        recommended_content_ids:
+          - sha256:7c1f131492e7eddacaac9069a61b81bdd39de5cc96561e677c5eab1cdce5e522
+        model_contract:
+          format: safetensors
+          tensor_contract: minimax-h3-video-vae
+      - slot_id: vae.audio
+        display_label: MiniMax-H3 audio VAE
+        recommended_variant_ids:
+          - local.audio-vae.minimax-h3.f32.cuda
+        recommended_content_ids:
+          - sha256:8e505d95dd1561d47abd43d4238fd40d9bb1ae9e147ed0a4cba778d76ae4db48
+        model_contract:
+          format: safetensors
+          tensor_contract: minimax-h3-audio-vae
+  - recipe_id: qwen-image
+    revision: "1"
+    title: Qwen Image generation
+    capability_contract: image.generate
+    implementation_id: local.image.generate.stable-diffusion-cpp
+    driver_id: nimi.runtime.driver.stable-diffusion-cpp
+    driver_dialect: stable-diffusion.cpp/image-generate/v2
+    default_options: {}
+    supported_features: []
+    slot_metadata:
+      - slot_id: main.diffusion
+        display_label: Diffusion model
+        recommended_variant_ids:
+          - local.image.qwen-image.q4-k-m.cuda
+        recommended_content_ids:
+          - sha256:645473886d7dbb0103f84c563c798f7b0867293d919752d4d6be6a432b0bc988
+        model_contract:
+          format: gguf
+          gguf_architectures:
+            - qwen_image
+          artifact_role: diffusion_model
+      - slot_id: companion.text-encoder
+        display_label: Text encoder
+        recommended_variant_ids:
+          - local.image-textenc.qwen2.5-vl-7b.q4-k-m.cuda
+        recommended_content_ids:
+          - sha256:0f00a930ba3108b6861ddadf74d8ebbd82e257c63eba728e62c3e8970f5eed94
+        model_contract:
+          format: gguf
+          gguf_architectures:
+            - qwen2vl
+          artifact_role: text_encoder
+      - slot_id: companion.vae
+        display_label: VAE
+        recommended_variant_ids:
+          - local.image-vae.qwen-image.f16.cuda
+        recommended_content_ids:
+          - sha256:a70580f0213e67967ee9c95f05bb400e8fb08307e017a924bf3441223e023d1f
+        model_contract:
+          format: safetensors
+          tensor_contract: qwen-image-vae-3d
+  - recipe_id: qwen-image-edit-2511
+    revision: "1"
+    title: Qwen Image Edit 2511
+    capability_contract: image.generate
+    implementation_id: local.image.generate.stable-diffusion-cpp
+    driver_id: nimi.runtime.driver.stable-diffusion-cpp
+    driver_dialect: stable-diffusion.cpp/image-generate/v2
+    default_options: {}
+    supported_features:
+      - input.image
+    slot_metadata:
+      - slot_id: main.diffusion
+        display_label: Edit diffusion model
+        recommended_variant_ids:
+          - local.image.qwen-image-edit-2511.q4-k-m.cuda
+        recommended_content_ids:
+          - sha256:8677bac90627adbbc11efab87b1870e701c4eb3689ee865a3de8ab81b705a723
+        model_contract:
+          format: gguf
+          gguf_architectures:
+            - qwen_image
+          artifact_role: edit_diffusion_model
+      - slot_id: companion.text-encoder
+        display_label: Text encoder
+        recommended_variant_ids:
+          - local.image-textenc.qwen2.5-vl-7b-edit-2511.q4-k-m.cuda
+        recommended_content_ids:
+          - sha256:0f00a930ba3108b6861ddadf74d8ebbd82e257c63eba728e62c3e8970f5eed94
+        model_contract:
+          format: gguf
+          gguf_architectures:
+            - qwen2vl
+          artifact_role: text_encoder
+      - slot_id: companion.vae
+        display_label: VAE
+        recommended_variant_ids:
+          - local.image-vae.qwen-image-edit-2511.f16.cuda
+        recommended_content_ids:
+          - sha256:a70580f0213e67967ee9c95f05bb400e8fb08307e017a924bf3441223e023d1f
+        model_contract:
+          format: safetensors
+          tensor_contract: qwen-image-vae-3d

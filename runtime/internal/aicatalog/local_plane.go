@@ -3,6 +3,7 @@ package catalog
 import (
 	"fmt"
 	"path"
+	"regexp"
 	"strings"
 
 	runtimecatalog "github.com/nimiplatform/nimi/runtime/catalog"
@@ -16,14 +17,13 @@ const localProviderID = "local"
 const localProviderSnapshotFile = "providers/local.yaml"
 
 // LocalProviderCatalog is the parsed K-MCAT local provider document, exposing
-// the K-MCAT-032 local-plane rows and the K-MCAT-033 curated presets. It is the
-// single SSOT for verified local-asset truth (K-LOCAL-010 / K-LOCAL-011) — no
-// parallel in-process verified-asset literal is admitted.
+// local-plane model rows and Loadout recipe recommendations.
 type LocalProviderCatalog struct {
 	CatalogVersion string
 	models         []ModelEntry
 	modelByID      map[string]*ModelEntry
-	presets        *Presets
+	loadoutRecipes []LocalLoadoutRecipe
+	recipeByID     map[string]*LocalLoadoutRecipe
 }
 
 // LoadBuiltInLocalProviderCatalog parses the embedded built-in local provider
@@ -45,7 +45,8 @@ func LoadBuiltInLocalProviderCatalog() (*LocalProviderCatalog, error) {
 		CatalogVersion: strings.TrimSpace(doc.CatalogVersion),
 		models:         append([]ModelEntry(nil), doc.Models...),
 		modelByID:      make(map[string]*ModelEntry, len(doc.Models)),
-		presets:        doc.Presets,
+		loadoutRecipes: append([]LocalLoadoutRecipe(nil), doc.LoadoutRecipes...),
+		recipeByID:     make(map[string]*LocalLoadoutRecipe, len(doc.LoadoutRecipes)),
 	}
 	for i := range catalog.models {
 		key := normalizeID(catalog.models[i].ModelID)
@@ -54,15 +55,23 @@ func LoadBuiltInLocalProviderCatalog() (*LocalProviderCatalog, error) {
 		}
 		catalog.modelByID[key] = &catalog.models[i]
 	}
+	for i := range catalog.loadoutRecipes {
+		recipeID := strings.TrimSpace(catalog.loadoutRecipes[i].RecipeID)
+		if recipeID == "" || recipeID != catalog.loadoutRecipes[i].RecipeID {
+			return nil, fmt.Errorf("local provider snapshot has a Loadout recipe with invalid recipe_id")
+		}
+		if _, duplicate := catalog.recipeByID[recipeID]; duplicate {
+			return nil, fmt.Errorf("local provider snapshot has duplicate Loadout recipe %q", recipeID)
+		}
+		catalog.recipeByID[recipeID] = &catalog.loadoutRecipes[i]
+	}
 	if err := catalog.validateLocalPlane(); err != nil {
 		return nil, err
 	}
 	return catalog, nil
 }
 
-// localCompanionKinds is the K-LOCAL-007 passive-asset kind enum a companion
-// companion_kind must map onto.
-var localCompanionKinds = map[string]struct{}{
+var localPassiveModelTypes = map[string]struct{}{
 	"vae":        {},
 	"clip":       {},
 	"lora":       {},
@@ -70,10 +79,12 @@ var localCompanionKinds = map[string]struct{}{
 	"auxiliary":  {},
 }
 
+var localExactSHA256Pattern = regexp.MustCompile(`^sha256:[0-9a-f]{64}$`)
+
 // validateLocalPlaneVariants fails closed on structurally incomplete K-MCAT-032
 // variants (missing variant_id / files / hashes / size / host_requirement). It
-// is shared by the main-model variant list and by companion variant lists. The
-// seen map is caller-scoped so variant_id uniqueness spans model + companions.
+// is shared by runnable and passive independent ModelAsset offer rows. The
+// seen map is caller-scoped to one canonical model row.
 func validateLocalPlaneVariants(scope string, variants []LocalPlaneVariant, seenVariants map[string]struct{}) error {
 	for _, variant := range variants {
 		variantID := strings.TrimSpace(variant.VariantID)
@@ -116,20 +127,23 @@ func validateLocalPlaneVariants(scope string, variants []LocalPlaneVariant, seen
 	return nil
 }
 
-// validateLocalPlane fails closed on structurally incomplete local-plane rows,
-// companions, and presets. Integrity material (hashes) is mandatory per
-// K-MCAT-032.
+// validateLocalPlane fails closed on structurally incomplete independent local
+// ModelAsset offers. Integrity material is mandatory per K-MCAT-032.
 func (c *LocalProviderCatalog) validateLocalPlane() error {
 	for i := range c.models {
 		model := &c.models[i]
 		if model.Install == nil && len(model.Variants) == 0 && model.Fitness == nil {
-			if len(model.Companions) > 0 {
-				return fmt.Errorf("local model %q declares companions without a local-plane block", model.ModelID)
-			}
 			continue
 		}
-		if model.Install == nil || len(model.Variants) == 0 || model.Fitness == nil {
-			return fmt.Errorf("local model %q local-plane block requires install, variants, and fitness together", model.ModelID)
+		if model.Install == nil || len(model.Variants) == 0 {
+			return fmt.Errorf("local model %q local-plane block requires install and variants together", model.ModelID)
+		}
+		_, passive := localPassiveModelTypes[strings.ToLower(strings.TrimSpace(model.ModelType))]
+		if passive && (len(model.Capabilities) != 0 || model.Fitness != nil || strings.TrimSpace(model.Install.PreferredEngine) != "") {
+			return fmt.Errorf("local passive ModelAsset offer %q carries capability, fitness, or engine authority", model.ModelID)
+		}
+		if !passive && model.Fitness == nil {
+			return fmt.Errorf("local runnable model %q requires fitness", model.ModelID)
 		}
 		if strings.TrimSpace(model.Install.Repo) == "" {
 			return fmt.Errorf("local model %q install.repo is required", model.ModelID)
@@ -142,110 +156,99 @@ func (c *LocalProviderCatalog) validateLocalPlane() error {
 		if err := validateLocalPlaneVariants(fmt.Sprintf("local model %q", model.ModelID), model.Variants, seenVariants); err != nil {
 			return err
 		}
-		if err := validateLocalCompanions(model, seenVariants); err != nil {
-			return err
-		}
 	}
-	return c.validatePresets()
+	return c.validateLoadoutRecipes()
 }
 
-// validateLocalCompanions fails closed on structurally invalid K-MCAT-032
-// companions: an unknown companion_kind (must map onto K-LOCAL-007), a missing
-// or duplicate engine_slot (K-LOCAL-031), or a missing install / variants
-// block. seenVariants is the model-scoped variant_id set so a companion
-// variant_id can never collide with a main-model variant_id.
-func validateLocalCompanions(model *ModelEntry, seenVariants map[string]struct{}) error {
-	seenSlots := make(map[string]struct{}, len(model.Companions))
-	for idx := range model.Companions {
-		companion := &model.Companions[idx]
-		kind := strings.ToLower(strings.TrimSpace(companion.CompanionKind))
-		if _, ok := localCompanionKinds[kind]; !ok {
-			return fmt.Errorf("local model %q companion #%d companion_kind %q is not a K-LOCAL-007 passive kind", model.ModelID, idx, companion.CompanionKind)
-		}
-		slot := strings.TrimSpace(companion.EngineSlot)
-		if slot == "" {
-			return fmt.Errorf("local model %q companion %q requires an engine_slot", model.ModelID, kind)
-		}
-		if _, dup := seenSlots[strings.ToLower(slot)]; dup {
-			return fmt.Errorf("local model %q has duplicate companion engine_slot %q", model.ModelID, slot)
-		}
-		seenSlots[strings.ToLower(slot)] = struct{}{}
-		if companion.Install == nil || len(companion.Variants) == 0 {
-			return fmt.Errorf("local model %q companion %q requires install and at least one variant", model.ModelID, slot)
-		}
-		if strings.TrimSpace(companion.Install.Repo) == "" {
-			return fmt.Errorf("local model %q companion %q install.repo is required", model.ModelID, slot)
-		}
-		revision := strings.TrimSpace(companion.Install.Revision)
-		if revision == "" || strings.EqualFold(revision, "main") {
-			return fmt.Errorf("local model %q companion %q install.revision must be a pinned commit sha", model.ModelID, slot)
-		}
-		if err := validateLocalPlaneVariants(fmt.Sprintf("local model %q companion %q", model.ModelID, slot), companion.Variants, seenVariants); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-// validatePresets fails closed when a preset slot references a model_ref that
-// does not resolve to a local-plane row whose capabilities cover the slot
-// capability (K-MCAT-033 invariant).
-func (c *LocalProviderCatalog) validatePresets() error {
-	if c.presets == nil {
-		return nil
-	}
-	for level, preset := range map[string]*Preset{"minimal": c.presets.Minimal, "recommended": c.presets.Recommended} {
-		if preset == nil {
-			continue
-		}
-		if strings.TrimSpace(preset.FactoryAIProfileAlias) == "" {
-			return fmt.Errorf("preset %q missing factory_aiprofile_alias", level)
-		}
-		if len(preset.Slots) == 0 {
-			return fmt.Errorf("preset %q declares no slots", level)
-		}
-		for _, slot := range preset.Slots {
-			capability := strings.TrimSpace(slot.Capability)
-			if capability == "" {
-				return fmt.Errorf("preset %q slot %q missing capability", level, slot.Slot)
+func (c *LocalProviderCatalog) validateLoadoutRecipes() error {
+	for _, recipe := range c.loadoutRecipes {
+		for _, value := range []string{recipe.RecipeID, recipe.Revision, recipe.Title, recipe.CapabilityContract, recipe.ImplementationID, recipe.DriverID, recipe.DriverDialect} {
+			if strings.TrimSpace(value) == "" || strings.TrimSpace(value) != value {
+				return fmt.Errorf("local Loadout recipe %q has incomplete or non-canonical identity", recipe.RecipeID)
 			}
-			if strings.EqualFold(capability, "text.embed") {
-				return fmt.Errorf("preset %q slot %q: text.embed is not an admitted preset slot", level, slot.Slot)
+		}
+		if len(recipe.SlotMetadata) == 0 {
+			return fmt.Errorf("local Loadout recipe %q has no slot_metadata", recipe.RecipeID)
+		}
+		seenCustodyFiles := make(map[string]struct{}, len(recipe.Custody))
+		for _, custody := range recipe.Custody {
+			file := strings.TrimSpace(custody.File)
+			if file == "" || file != custody.File ||
+				strings.TrimSpace(custody.Source) == "" || strings.TrimSpace(custody.Source) != custody.Source ||
+				strings.TrimSpace(custody.Role) == "" || strings.TrimSpace(custody.Role) != custody.Role ||
+				!localExactSHA256Pattern.MatchString(custody.SHA256) {
+				return fmt.Errorf("local Loadout recipe %q has invalid custody metadata", recipe.RecipeID)
 			}
-			model := c.modelByID[normalizeID(slot.ModelRef)]
-			if model == nil {
-				return fmt.Errorf("preset %q slot %q model_ref %q does not resolve to a local catalog row", level, slot.Slot, slot.ModelRef)
+			if _, duplicate := seenCustodyFiles[file]; duplicate {
+				return fmt.Errorf("local Loadout recipe %q has duplicate custody file %q", recipe.RecipeID, file)
 			}
-			if model.Install == nil || len(model.Variants) == 0 {
-				return fmt.Errorf("preset %q slot %q model_ref %q has no local-plane block", level, slot.Slot, slot.ModelRef)
+			seenCustodyFiles[file] = struct{}{}
+		}
+		seenSlots := make(map[string]struct{}, len(recipe.SlotMetadata))
+		for _, slot := range recipe.SlotMetadata {
+			slotID := strings.TrimSpace(slot.SlotID)
+			if slotID == "" || slotID != slot.SlotID || strings.TrimSpace(slot.DisplayLabel) == "" {
+				return fmt.Errorf("local Loadout recipe %q has invalid slot metadata", recipe.RecipeID)
 			}
-			if !modelHasCapability(*model, capability) {
-				return fmt.Errorf("preset %q slot %q model_ref %q does not declare capability %q", level, slot.Slot, slot.ModelRef, capability)
+			if _, duplicate := seenSlots[slotID]; duplicate {
+				return fmt.Errorf("local Loadout recipe %q has duplicate slot_metadata %q", recipe.RecipeID, slotID)
+			}
+			seenSlots[slotID] = struct{}{}
+			if len(slot.ModelContract) == 0 {
+				return fmt.Errorf("local Loadout recipe %q slot %q has no Model Contract", recipe.RecipeID, slotID)
+			}
+			seenRecommendations := make(map[string]struct{}, len(slot.RecommendedContentIDs))
+			for _, contentID := range slot.RecommendedContentIDs {
+				if !localExactSHA256Pattern.MatchString(contentID) {
+					return fmt.Errorf("local Loadout recipe %q slot %q has invalid recommended content identity", recipe.RecipeID, slotID)
+				}
+				if _, duplicate := seenRecommendations[contentID]; duplicate {
+					return fmt.Errorf("local Loadout recipe %q slot %q has duplicate recommended content identity", recipe.RecipeID, slotID)
+				}
+				seenRecommendations[contentID] = struct{}{}
 			}
 		}
 	}
 	return nil
 }
 
-// Preset returns the curated preset for an install level (minimal|recommended).
-func (c *LocalProviderCatalog) Preset(installLevel string) (*Preset, bool) {
-	if c == nil || c.presets == nil {
-		return nil, false
+// ValidateLoadoutRecipeSlots compares catalog slot_metadata with the complete
+// live Driver projection. The catalog never supplies an expected topology.
+func (c *LocalProviderCatalog) ValidateLoadoutRecipeSlots(project func(LocalLoadoutRecipe) ([]string, error)) error {
+	if c == nil || project == nil {
+		return fmt.Errorf("Loadout recipe Driver projector is required")
 	}
-	switch strings.ToLower(strings.TrimSpace(installLevel)) {
-	case "minimal":
-		if c.presets.Minimal == nil {
-			return nil, false
+	for _, recipe := range c.loadoutRecipes {
+		projected, err := project(recipe)
+		if err != nil {
+			return fmt.Errorf("local Loadout recipe %q Driver projection failed: %w", recipe.RecipeID, err)
 		}
-		return c.presets.Minimal, true
-	case "recommended":
-		if c.presets.Recommended == nil {
-			return nil, false
+		seenProjected := make(map[string]struct{}, len(projected))
+		for _, slotID := range projected {
+			if slotID = strings.TrimSpace(slotID); slotID == "" {
+				return fmt.Errorf("local Loadout recipe %q Driver projected an empty slot", recipe.RecipeID)
+			}
+			if _, duplicate := seenProjected[slotID]; duplicate {
+				return fmt.Errorf("local Loadout recipe %q Driver projected duplicate slot %q", recipe.RecipeID, slotID)
+			}
+			seenProjected[slotID] = struct{}{}
 		}
-		return c.presets.Recommended, true
-	default:
-		return nil, false
+		seenMetadata := make(map[string]struct{}, len(recipe.SlotMetadata))
+		for _, slot := range recipe.SlotMetadata {
+			seenMetadata[slot.SlotID] = struct{}{}
+		}
+		for slotID := range seenProjected {
+			if _, ok := seenMetadata[slotID]; !ok {
+				return fmt.Errorf("local Loadout recipe %q slot_metadata is missing Driver slot %q", recipe.RecipeID, slotID)
+			}
+		}
+		for slotID := range seenMetadata {
+			if _, ok := seenProjected[slotID]; !ok {
+				return fmt.Errorf("local Loadout recipe %q slot_metadata has extra slot %q", recipe.RecipeID, slotID)
+			}
+		}
 	}
+	return nil
 }
 
 // ModelRow returns the local-plane catalog row for a model id.
@@ -271,4 +274,52 @@ func (c *LocalProviderCatalog) LocalPlaneModels() []ModelEntry {
 		out = append(out, model)
 	}
 	return out
+}
+
+func (c *LocalProviderCatalog) LoadoutRecipe(recipeID string) (LocalLoadoutRecipe, bool) {
+	if c == nil {
+		return LocalLoadoutRecipe{}, false
+	}
+	recipe := c.recipeByID[strings.TrimSpace(recipeID)]
+	if recipe == nil {
+		return LocalLoadoutRecipe{}, false
+	}
+	return cloneLocalLoadoutRecipe(*recipe), true
+}
+
+func (c *LocalProviderCatalog) LoadoutRecipes() []LocalLoadoutRecipe {
+	if c == nil {
+		return nil
+	}
+	result := make([]LocalLoadoutRecipe, 0, len(c.loadoutRecipes))
+	for _, recipe := range c.loadoutRecipes {
+		result = append(result, cloneLocalLoadoutRecipe(recipe))
+	}
+	return result
+}
+
+func cloneLocalLoadoutRecipe(recipe LocalLoadoutRecipe) LocalLoadoutRecipe {
+	recipe.DefaultOptions = cloneAnyMap(recipe.DefaultOptions)
+	recipe.SupportedFeatures = append([]string(nil), recipe.SupportedFeatures...)
+	recipe.Custody = append([]LocalRecipeCustody(nil), recipe.Custody...)
+	slots := make([]LocalRecipeSlotMetadata, 0, len(recipe.SlotMetadata))
+	for _, slot := range recipe.SlotMetadata {
+		slot.RecommendedVariantIDs = append([]string(nil), slot.RecommendedVariantIDs...)
+		slot.RecommendedContentIDs = append([]string(nil), slot.RecommendedContentIDs...)
+		slot.ModelContract = cloneAnyMap(slot.ModelContract)
+		slots = append(slots, slot)
+	}
+	recipe.SlotMetadata = slots
+	return recipe
+}
+
+func cloneAnyMap(input map[string]any) map[string]any {
+	if input == nil {
+		return nil
+	}
+	result := make(map[string]any, len(input))
+	for key, value := range input {
+		result[key] = value
+	}
+	return result
 }

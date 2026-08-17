@@ -14,7 +14,12 @@ var speechPassThroughEnvKeys = []string{
 	"NIMI_RUNTIME_SPEECH_DRIVER_TIMEOUT_MS",
 }
 
-const speechDriverWorkRootEnv = "NIMI_RUNTIME_SPEECH_DRIVER_WORK_ROOT"
+const (
+	speechDriverWorkRootEnv = "NIMI_RUNTIME_SPEECH_DRIVER_WORK_ROOT"
+	speechAdmissionTokenEnv = "NIMI_RUNTIME_SPEECH_ADMISSION_TOKEN"
+)
+
+const SpeechAdmissionTokenHeader = "X-Nimi-Speech-Admission-Token"
 
 const (
 	speechQwen3TTSDeviceMapEnv             = "NIMI_RUNTIME_SPEECH_QWEN3_TTS_DEVICE_MAP"
@@ -63,6 +68,9 @@ func speechApplyDefaultEnv(cfg EngineConfig, root string) map[string]string {
 	}
 	if modelsPath := strings.TrimSpace(cfg.ModelsPath); modelsPath != "" {
 		env["NIMI_RUNTIME_LOCAL_MODELS_PATH"] = modelsPath
+	}
+	if admissionToken := strings.TrimSpace(cfg.SpeechAdmissionToken); admissionToken != "" {
+		env[speechAdmissionTokenEnv] = admissionToken
 	}
 	if workRoot := strings.TrimSpace(cfg.SpeechDriverWorkRoot); workRoot != "" {
 		env[speechDriverWorkRootEnv] = workRoot
@@ -166,6 +174,9 @@ func ensureSpeech(_ context.Context, _ string, cfg EngineConfig) (EngineConfig, 
 	cfg.SpeechHostAcceleratorPlane = acceleratorPlane
 	if strings.TrimSpace(cfg.ModelsPath) == "" {
 		return cfg, fmt.Errorf("speech managed models root is required")
+	}
+	if strings.TrimSpace(cfg.SpeechAdmissionToken) == "" {
+		return cfg, fmt.Errorf("speech registration admission token is required")
 	}
 	workRoot := strings.TrimSpace(cfg.SpeechDriverWorkRoot)
 	if workRoot == "" || !filepath.IsAbs(workRoot) {

@@ -1,7 +1,9 @@
 package capabilitydriver
 
 import (
+	"encoding/json"
 	"fmt"
+	"path/filepath"
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -10,6 +12,7 @@ import (
 )
 
 // @nimi-authority: rule.nimi.runtime.ai-provider.r112
+// @nimi-authority: rule.nimi.runtime.local-compute.r106
 const (
 	VoxCPMFamily             = "voxcpm"
 	VoxCPMImplementationID   = "local.audio.synthesize.voxcpm"
@@ -17,6 +20,9 @@ const (
 	VoxCPMDriverDialect      = "voxcpm/audio-synthesize/v1"
 	VoxCPMModelRequirementID = "tts.model"
 	VoxCPMModelArtifactRole  = "tts_model"
+	VoxCPMRecipeID           = "voxcpm2"
+	VoxCPMBackendStandard    = "standard"
+	VoxCPMBackendMLX         = "mlx"
 )
 
 // VoxCPMDriver owns the one public VoxCPM synthesis dialect. Runtime-private
@@ -24,7 +30,7 @@ const (
 // has fixed the capability, Driver identity, model binding, and request.
 type VoxCPMDriver struct{}
 
-func (VoxCPMDriver) EffectiveRequestDefaults(*structpb.Struct) map[string]string { return nil }
+func (VoxCPMDriver) EffectiveRequestDefaults(string, *structpb.Struct) map[string]string { return nil }
 
 func (VoxCPMDriver) SpeechStreamMode() SpeechStreamMode { return SpeechStreamSimulated }
 
@@ -35,18 +41,37 @@ func (VoxCPMDriver) ListPresetVoices(bindings []InvocationExactBinding) ([]Speec
 	return []SpeechPresetVoice{{VoiceID: "default", Name: "Default"}}, nil
 }
 
-func (VoxCPMDriver) Interpret(input InterpretInput) ([]*runtimev1.LocalCapabilityRequirement, runtimev1.LocalCapabilityReason) {
+func (driver VoxCPMDriver) Interpret(input InterpretInput) ([]*runtimev1.LocalCapabilityRequirement, runtimev1.LocalCapabilityReason) {
+	return driver.interpretForBackend(input, VoxCPMBackendStandard)
+}
+
+func (VoxCPMDriver) interpretForBackend(input InterpretInput, backend string) ([]*runtimev1.LocalCapabilityRequirement, runtimev1.LocalCapabilityReason) {
 	if len(input.SupportedFeatures) != 0 {
 		return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_FEATURE_UNSUPPORTED
 	}
 	if !emptySpeechPortableConfig(input.PortableConfig) {
 		return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_PORTABLE_CONFIG_INVALID
 	}
-	constraints, _ := structpb.NewStruct(map[string]any{
-		"engine":        "speech",
-		"family":        VoxCPMFamily,
-		"artifact_role": VoxCPMModelArtifactRole,
-	})
+	values := map[string]any{
+		"engine":         "speech",
+		"family":         VoxCPMFamily,
+		"format":         "safetensors",
+		"architecture":   "voxcpm2",
+		"artifact_role":  VoxCPMModelArtifactRole,
+		"driver_backend": backend,
+		"required_files": []any{"config.json", "tokenizer.json", "tokenizer_config.json"},
+	}
+	switch backend {
+	case VoxCPMBackendStandard:
+		values["tensor_contract"] = "voxcpm2-main-v1"
+		values["audio_vae_files"] = []any{"audiovae.safetensors", "audiovae.pth"}
+	case VoxCPMBackendMLX:
+		values["tensor_contract"] = "voxcpm2-mlx-bundle-v1"
+		values["forbidden_files"] = []any{"audiovae.safetensors", "audiovae.pth", "tokenization_voxcpm2.py"}
+	default:
+		return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_PORTABLE_CONFIG_INVALID
+	}
+	constraints, _ := structpb.NewStruct(values)
 	return []*runtimev1.LocalCapabilityRequirement{{
 		RequirementId:            VoxCPMModelRequirementID,
 		Role:                     runtimev1.LocalCapabilityRequirementRole_LOCAL_CAPABILITY_REQUIREMENT_ROLE_MAIN,
@@ -57,17 +82,124 @@ func (VoxCPMDriver) Interpret(input InterpretInput) ([]*runtimev1.LocalCapabilit
 	}}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
 }
 
-func (VoxCPMDriver) ValidateBinding(requirement *runtimev1.LocalCapabilityRequirement, binding *runtimev1.LocalAssetExactBinding, asset AssetDescriptor) runtimev1.LocalCapabilityReason {
+func (driver VoxCPMDriver) ProjectRecipe(recipeID string, options *structpb.Struct, supportedFeatures []string) ([]*runtimev1.LocalCapabilityRequirement, runtimev1.LocalCapabilityReason) {
+	return driver.ProjectRecipeForBackend(recipeID, options, supportedFeatures, VoxCPMBackendStandard)
+}
+
+// ProjectRecipeForBackend keeps the public VoxCPM recipe identity stable while
+// projecting the Runtime-private contract selected from the current Host.
+func (driver VoxCPMDriver) ProjectRecipeForBackend(recipeID string, options *structpb.Struct, supportedFeatures []string, backend string) ([]*runtimev1.LocalCapabilityRequirement, runtimev1.LocalCapabilityReason) {
+	if recipeID != VoxCPMRecipeID {
+		return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_PORTABLE_CONFIG_INVALID
+	}
+	return driver.interpretForBackend(InterpretInput{PortableConfig: options, SupportedFeatures: supportedFeatures}, backend)
+}
+
+func (driver VoxCPMDriver) ProjectModelAssetBinding(input ModelAssetBindingInput) (ModelAssetBindingProjection, runtimev1.LocalCapabilityReason) {
+	if input.Requirement == nil || input.Requirement.GetRequirementId() != VoxCPMModelRequirementID || input.Requirement.GetCompatibilityConstraints() == nil ||
+		filepath.Ext(strings.ToLower(input.Entry.RelativePath)) != ".safetensors" {
+		return ModelAssetBindingProjection{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE
+	}
+	tensors, ok := safetensorsTensorFacts(input.Entry.FormatProbe)
+	if !ok {
+		return ModelAssetBindingProjection{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE
+	}
+	constraints := input.Requirement.GetCompatibilityConstraints().GetFields()
+	required, ok := modelAssetRequirementStrings(input.Requirement, "required_files")
+	if !ok || constraints["architecture"].GetStringValue() != "voxcpm2" {
+		return ModelAssetBindingProjection{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE
+	}
+	for _, relativePath := range required {
+		if _, exists := modelAssetFileFact(input, relativePath); !exists {
+			return ModelAssetBindingProjection{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE
+		}
+	}
+	config, exists := modelAssetFileFact(input, "config.json")
+	if !exists || !voxcpm2ConfigProbeValid(config.FormatProbe) {
+		return ModelAssetBindingProjection{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE
+	}
+	switch constraints["driver_backend"].GetStringValue() {
+	case VoxCPMBackendStandard:
+		audioVAEFiles, valid := modelAssetRequirementStrings(input.Requirement, "audio_vae_files")
+		if !valid || constraints["tensor_contract"].GetStringValue() != "voxcpm2-main-v1" || !modelAssetDeclaresAnyFileFact(input, audioVAEFiles) || !voxcpm2MainTensorFacts(tensors) {
+			return ModelAssetBindingProjection{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE
+		}
+	case VoxCPMBackendMLX:
+		forbidden, valid := modelAssetRequirementStrings(input.Requirement, "forbidden_files")
+		if !valid || constraints["tensor_contract"].GetStringValue() != "voxcpm2-mlx-bundle-v1" || modelAssetDeclaresAnyFileFact(input, forbidden) {
+			return ModelAssetBindingProjection{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE
+		}
+	default:
+		return ModelAssetBindingProjection{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE
+	}
+	return validatedModelAssetBindingProjection(input, ModelAssetDescriptor{
+		Kind: runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_TTS, Engine: "speech", Family: VoxCPMFamily,
+		ArtifactRoles: []string{VoxCPMModelArtifactRole}, FormatProbe: input.Entry.FormatProbe,
+	}, 0, driver.ValidateBinding)
+}
+
+func modelAssetRequirementStrings(requirement *runtimev1.LocalCapabilityRequirement, key string) ([]string, bool) {
+	if requirement == nil || requirement.GetCompatibilityConstraints() == nil {
+		return nil, false
+	}
+	value := requirement.GetCompatibilityConstraints().GetFields()[key]
+	if value == nil || value.GetListValue() == nil || len(value.GetListValue().GetValues()) == 0 {
+		return nil, false
+	}
+	result := make([]string, 0, len(value.GetListValue().GetValues()))
+	for _, item := range value.GetListValue().GetValues() {
+		text := item.GetStringValue()
+		if strings.TrimSpace(text) == "" || text != strings.TrimSpace(text) {
+			return nil, false
+		}
+		result = append(result, text)
+	}
+	return result, true
+}
+
+func modelAssetDeclaresAnyFileFact(input ModelAssetBindingInput, relativePaths []string) bool {
+	for _, relativePath := range relativePaths {
+		if _, exists := modelAssetFileFact(input, relativePath); exists {
+			return true
+		}
+	}
+	return false
+}
+
+func voxcpm2ConfigProbeValid(probe []byte) bool {
+	var config struct {
+		Architecture string `json:"architecture"`
+	}
+	return json.Unmarshal(probe, &config) == nil && config.Architecture == "voxcpm2"
+}
+
+func voxcpm2MainTensorFacts(tensors map[string]safetensorsTensorFact) bool {
+	want := map[string][]int64{
+		"base_lm.embed_tokens.weight": {73448, 2048},
+		"feat_encoder.in_proj.weight": {1024, 64},
+		"fsq_layer.in_proj.weight":    {512, 2048},
+		"stop_head.weight":            {2, 2048},
+	}
+	for name, shape := range want {
+		tensor, ok := tensors[name]
+		if !ok || !int64SlicesEqual(tensor.Shape, shape) {
+			return false
+		}
+	}
+	return true
+}
+
+func (VoxCPMDriver) ValidateBinding(requirement *runtimev1.LocalCapabilityRequirement, binding *runtimev1.ModelAssetExactBinding, asset ModelAssetDescriptor) runtimev1.LocalCapabilityReason {
 	if requirement == nil || binding == nil || requirement.GetRequirementId() != VoxCPMModelRequirementID || binding.GetRequirementId() != VoxCPMModelRequirementID {
 		return runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_BINDING_AMBIGUOUS
 	}
-	if binding.GetLocalAssetId() == "" || asset.LocalAssetID == "" {
+	if binding.GetModelAssetId() == "" || asset.ModelAssetID == "" {
 		return runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_NOT_FOUND
 	}
 	if binding.GetVerifiedContentId() == "" || binding.GetEntrySha256() == "" || asset.VerifiedContentID == "" || asset.EntrySHA256 == "" {
 		return runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_CONTENT_UNVERIFIED
 	}
-	if binding.GetLocalAssetId() != asset.LocalAssetID || binding.GetVerifiedContentId() != asset.VerifiedContentID || binding.GetEntrySha256() != asset.EntrySHA256 {
+	if binding.GetModelAssetId() != asset.ModelAssetID || binding.GetVerifiedContentId() != asset.VerifiedContentID || binding.GetEntrySha256() != asset.EntrySHA256 {
 		return runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_CONTENT_MISMATCH
 	}
 	if asset.Kind != runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_TTS || asset.Engine != "speech" || asset.Family != VoxCPMFamily || !contains(asset.ArtifactRoles, VoxCPMModelArtifactRole) {
@@ -76,7 +208,7 @@ func (VoxCPMDriver) ValidateBinding(requirement *runtimev1.LocalCapabilityRequir
 	return runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
 }
 
-func (driver VoxCPMDriver) ValidateCombination(requirements []*runtimev1.LocalCapabilityRequirement, bindings []*runtimev1.LocalAssetExactBinding, assets []AssetDescriptor) runtimev1.LocalCapabilityReason {
+func (driver VoxCPMDriver) ValidateCombination(requirements []*runtimev1.LocalCapabilityRequirement, bindings []*runtimev1.ModelAssetExactBinding, assets []ModelAssetDescriptor) runtimev1.LocalCapabilityReason {
 	return validateQwen3SpeechCombination(requirements, bindings, assets, driver.ValidateBinding)
 }
 
@@ -94,7 +226,7 @@ func (VoxCPMDriver) PlanSpeechSynthesizeInvocation(input SpeechSynthesizeInvocat
 	}
 	return &SpeechSynthesizeInvocationPlan{
 		driverID:     VoxCPMDriverID,
-		modelAssetID: binding.AssetID,
+		modelAssetID: binding.ModelAssetID,
 		modelFiles:   []InvocationExactBinding{binding},
 		request:      request,
 	}, nil

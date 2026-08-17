@@ -9,6 +9,26 @@ models:
     # vectors natively.
     embedding:
       dimension: 768
+    install:
+      repo: nomic-ai/nomic-embed-text-v1.5-GGUF
+      revision: 0188c9bf409793f810680a5a431e7b899c46104c # pragma: allowlist secret -- public immutable model revision
+      install_kind: weights
+      entry: nomic-embed-text-v1.5.Q4_K_M.gguf
+      artifact_roles: [embedding]
+      preferred_engine: llama
+    variants:
+      - variant_id: local.embedding.nomic-embed-text-v1.5.q4-k-m
+        quant: Q4_K_M
+        files: [nomic-embed-text-v1.5.Q4_K_M.gguf]
+        hashes:
+          nomic-embed-text-v1.5.Q4_K_M.gguf: "sha256:d4e388894e09cf3816e8b0896d81d265b55e7a9fff9ab03fe8bf4ef5e11295ac"
+        total_size_bytes: 84106624
+        host_requirement:
+          accelerator: cpu
+          min_ram_bytes: 1073741824
+    fitness:
+      param_count: 137000000
+      context_length: 8192
     aliases:
       - local/nomic-embed-text
       - llama/nomic-embed-text

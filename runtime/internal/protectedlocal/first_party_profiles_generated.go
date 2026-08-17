@@ -55,31 +55,29 @@ func FirstPartyProfileMethod(profileID, methodID string) (FirstPartyMethodKind, 
 			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeLocalService/ReconcileProductControlFirstRunSetupState":
 			return FirstPartyMethodUnary, true
-		case "/nimi.runtime.v1.RuntimeLocalService/ListLocalAssets":
+		case "/nimi.runtime.v1.RuntimeLocalService/ResolveLocalStateReconciliation":
 			return FirstPartyMethodUnary, true
-		case "/nimi.runtime.v1.RuntimeLocalService/GetMachineLocalAIConfiguration":
+		case "/nimi.runtime.v1.RuntimeLocalService/ImportModelAsset":
 			return FirstPartyMethodUnary, true
-		case "/nimi.runtime.v1.RuntimeLocalService/GetLocalCapabilityConfiguration":
+		case "/nimi.runtime.v1.RuntimeLocalService/ListModelAssets":
 			return FirstPartyMethodUnary, true
-		case "/nimi.runtime.v1.RuntimeLocalService/AddLocalCapabilityConfiguration":
+		case "/nimi.runtime.v1.RuntimeLocalService/GetModelAsset":
 			return FirstPartyMethodUnary, true
-		case "/nimi.runtime.v1.RuntimeLocalService/UpdateLocalCapabilityConfiguration":
+		case "/nimi.runtime.v1.RuntimeLocalService/ListLoadoutRecipes":
 			return FirstPartyMethodUnary, true
-		case "/nimi.runtime.v1.RuntimeLocalService/SelectLocalCapabilityConfiguration":
+		case "/nimi.runtime.v1.RuntimeLocalService/GetMachineLoadouts":
 			return FirstPartyMethodUnary, true
-		case "/nimi.runtime.v1.RuntimeLocalService/ClearLocalCapabilitySelection":
+		case "/nimi.runtime.v1.RuntimeLocalService/GetLoadout":
 			return FirstPartyMethodUnary, true
-		case "/nimi.runtime.v1.RuntimeLocalService/DeleteLocalCapabilityConfiguration":
+		case "/nimi.runtime.v1.RuntimeLocalService/PrepareLoadout":
 			return FirstPartyMethodUnary, true
-		case "/nimi.runtime.v1.RuntimeLocalService/ReprojectLocalCapabilityRequirements":
+		case "/nimi.runtime.v1.RuntimeLocalService/CommitLoadout":
 			return FirstPartyMethodUnary, true
-		case "/nimi.runtime.v1.RuntimeLocalService/BindLocalCapabilityRequirement":
+		case "/nimi.runtime.v1.RuntimeLocalService/UpdateLoadout":
 			return FirstPartyMethodUnary, true
-		case "/nimi.runtime.v1.RuntimeLocalService/RebindLocalCapabilityRequirement":
+		case "/nimi.runtime.v1.RuntimeLocalService/SelectLoadout":
 			return FirstPartyMethodUnary, true
-		case "/nimi.runtime.v1.RuntimeLocalService/UnbindLocalCapabilityRequirement":
-			return FirstPartyMethodUnary, true
-		case "/nimi.runtime.v1.RuntimeLocalService/ListNodeCatalog":
+		case "/nimi.runtime.v1.RuntimeLocalService/DeleteLoadout":
 			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeConnectorService/ListConnectors":
 			return FirstPartyMethodUnary, true
@@ -93,11 +91,7 @@ func FirstPartyProfileMethod(profileID, methodID string) (FirstPartyMethodKind, 
 			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeAiService/PeekScheduling":
 			return FirstPartyMethodUnary, true
-		case "/nimi.runtime.v1.RuntimeLocalService/RemoveLocalAsset":
-			return FirstPartyMethodUnary, true
-		case "/nimi.runtime.v1.RuntimeLocalService/StartLocalAsset":
-			return FirstPartyMethodUnary, true
-		case "/nimi.runtime.v1.RuntimeLocalService/StopLocalAsset":
+		case "/nimi.runtime.v1.RuntimeLocalService/RemoveModelAsset":
 			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeLocalService/ListVerifiedAssets":
 			return FirstPartyMethodUnary, true
@@ -111,16 +105,6 @@ func FirstPartyProfileMethod(profileID, methodID string) (FirstPartyMethodKind, 
 			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeLocalService/InstallModelFromPlan":
 			return FirstPartyMethodUnary, true
-		case "/nimi.runtime.v1.RuntimeLocalService/InstallVerifiedAsset":
-			return FirstPartyMethodUnary, true
-		case "/nimi.runtime.v1.RuntimeLocalService/ImportLocalAsset":
-			return FirstPartyMethodUnary, true
-		case "/nimi.runtime.v1.RuntimeLocalService/ImportLocalAssetFile":
-			return FirstPartyMethodUnary, true
-		case "/nimi.runtime.v1.RuntimeLocalService/ImportLocalAssetBundle":
-			return FirstPartyMethodUnary, true
-		case "/nimi.runtime.v1.RuntimeLocalService/RescanLocalAssetBundle":
-			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeLocalService/ListLocalTransfers":
 			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeLocalService/PauseLocalTransfer":
@@ -131,14 +115,6 @@ func FirstPartyProfileMethod(profileID, methodID string) (FirstPartyMethodKind, 
 			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeLocalService/WatchLocalTransfers":
 			return FirstPartyMethodServerStream, true
-		case "/nimi.runtime.v1.RuntimeLocalService/ScanUnregisteredAssets":
-			return FirstPartyMethodUnary, true
-		case "/nimi.runtime.v1.RuntimeLocalService/ScaffoldOrphanAsset":
-			return FirstPartyMethodUnary, true
-		case "/nimi.runtime.v1.RuntimeLocalService/ResolveProfile":
-			return FirstPartyMethodUnary, true
-		case "/nimi.runtime.v1.RuntimeLocalService/ApplyProfile":
-			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeConnectorService/ListProviderCatalog":
 			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeLocalService/ListLocalAudits":
@@ -209,6 +185,10 @@ func FirstPartyProfileMethod(profileID, methodID string) (FirstPartyMethodKind, 
 		case "/nimi.runtime.v1.RuntimeAgentService/PreviewSharedLocalAgentAIProfile":
 			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeAgentService/ApplySharedLocalAgentAIProfile":
+			return FirstPartyMethodUnary, true
+		case "/nimi.runtime.v1.RuntimeAgentService/ImportPortableAIProfile":
+			return FirstPartyMethodUnary, true
+		case "/nimi.runtime.v1.RuntimeAgentService/ListPortableAIProfiles":
 			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeAgentService/GetAgentCanonicalMemoryBankStatus":
 			return FirstPartyMethodUnary, true
@@ -366,48 +346,36 @@ func FirstPartyProfileMethods(profileID string) []FirstPartyProfileMethodEntry {
 			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/CompleteProductControlFirstRunDeviceEnvironmentScan", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/AdmitProductControlReadyForUse", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/ReconcileProductControlFirstRunSetupState", Kind: FirstPartyMethodUnary},
-			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/ListLocalAssets", Kind: FirstPartyMethodUnary},
-			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/GetMachineLocalAIConfiguration", Kind: FirstPartyMethodUnary},
-			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/GetLocalCapabilityConfiguration", Kind: FirstPartyMethodUnary},
-			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/AddLocalCapabilityConfiguration", Kind: FirstPartyMethodUnary},
-			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/UpdateLocalCapabilityConfiguration", Kind: FirstPartyMethodUnary},
-			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/SelectLocalCapabilityConfiguration", Kind: FirstPartyMethodUnary},
-			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/ClearLocalCapabilitySelection", Kind: FirstPartyMethodUnary},
-			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/DeleteLocalCapabilityConfiguration", Kind: FirstPartyMethodUnary},
-			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/ReprojectLocalCapabilityRequirements", Kind: FirstPartyMethodUnary},
-			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/BindLocalCapabilityRequirement", Kind: FirstPartyMethodUnary},
-			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/RebindLocalCapabilityRequirement", Kind: FirstPartyMethodUnary},
-			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/UnbindLocalCapabilityRequirement", Kind: FirstPartyMethodUnary},
-			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/ListNodeCatalog", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/ResolveLocalStateReconciliation", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/ImportModelAsset", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/ListModelAssets", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/GetModelAsset", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/ListLoadoutRecipes", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/GetMachineLoadouts", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/GetLoadout", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/PrepareLoadout", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/CommitLoadout", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/UpdateLoadout", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/SelectLoadout", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/DeleteLoadout", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeConnectorService/ListConnectors", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAuditService/ListAIProviderHealth", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAuditService/ListDesktopAuditEvents", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAuditService/ListUsageStats", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAiService/PeekScheduling", Kind: FirstPartyMethodUnary},
-			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/RemoveLocalAsset", Kind: FirstPartyMethodUnary},
-			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/StartLocalAsset", Kind: FirstPartyMethodUnary},
-			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/StopLocalAsset", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/RemoveModelAsset", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/ListVerifiedAssets", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/SearchCatalogModels", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/ListCatalogVariants", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/GetRecommendationFeed", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/ResolveModelInstallPlan", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/InstallModelFromPlan", Kind: FirstPartyMethodUnary},
-			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/InstallVerifiedAsset", Kind: FirstPartyMethodUnary},
-			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/ImportLocalAsset", Kind: FirstPartyMethodUnary},
-			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/ImportLocalAssetFile", Kind: FirstPartyMethodUnary},
-			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/ImportLocalAssetBundle", Kind: FirstPartyMethodUnary},
-			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/RescanLocalAssetBundle", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/ListLocalTransfers", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/PauseLocalTransfer", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/ResumeLocalTransfer", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/CancelLocalTransfer", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/WatchLocalTransfers", Kind: FirstPartyMethodServerStream},
-			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/ScanUnregisteredAssets", Kind: FirstPartyMethodUnary},
-			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/ScaffoldOrphanAsset", Kind: FirstPartyMethodUnary},
-			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/ResolveProfile", Kind: FirstPartyMethodUnary},
-			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/ApplyProfile", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeConnectorService/ListProviderCatalog", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/ListLocalAudits", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAuditService/SubscribeRuntimeHealthEvents", Kind: FirstPartyMethodServerStream},
@@ -445,6 +413,8 @@ func FirstPartyProfileMethods(profileID string) []FirstPartyProfileMethodEntry {
 			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/OverwriteSharedLocalAgentAIConfig", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/PreviewSharedLocalAgentAIProfile", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/ApplySharedLocalAgentAIProfile", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/ImportPortableAIProfile", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/ListPortableAIProfiles", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/GetAgentCanonicalMemoryBankStatus", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/RequestAgentCanonicalMemoryBankBind", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAppService/SendAppMessage", Kind: FirstPartyMethodUnary},

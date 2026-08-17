@@ -49,6 +49,11 @@ func (s *managerVideoInvocationSubstrate) Ensure(ctx context.Context, plan *capa
 	currentKey := s.currentKey
 	s.mu.RUnlock()
 	if currentKey == key && s.Healthy() {
+		if validateContent != nil {
+			if err := validateContent(); err != nil {
+				return false, err
+			}
+		}
 		if progress != nil {
 			progress(localexecution.VideoExecutionProgress{Stage: localexecution.VideoExecutionStageReused, FrameCount: int32(plan.FrameCount())})
 		}

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -19,10 +20,15 @@ const (
 	Qwen3TTSDriverDialect                = "qwen3-tts/audio-synthesize/v1"
 	AudioSynthesizeContract              = "audio.synthesize"
 	Qwen3TTSModelRequirementID           = "tts.model"
+	Qwen3TTSCustomVoiceRecipeID          = "qwen3-tts-customvoice"
+	Qwen3TTSBaseRecipeID                 = "qwen3-tts-base"
+	Qwen3TTSVoiceDesignRecipeID          = "qwen3-tts-voicedesign"
 	Qwen3VoiceCreateImplementationID     = "local.voice.create.qwen3-tts"
 	Qwen3VoiceCreateDriverDialect        = "qwen3-tts/voice-create/v1"
 	VoiceCreateContract                  = "voice.create"
 	Qwen3VoiceCreateModelRequirementID   = "voice.model"
+	Qwen3VoiceCloneRecipeID              = "qwen3-local-voice-clone"
+	Qwen3VoiceDesignRecipeID             = "qwen3-local-voice-design"
 	Qwen3VoiceCloneArtifactRole          = "tts_voice_clone_model"
 	Qwen3VoiceDesignArtifactRole         = "tts_voice_design_model"
 	Qwen3ASRImplementationID             = "local.audio.transcribe.qwen3-asr"
@@ -33,6 +39,8 @@ const (
 	Qwen3ASRTransformersDriverDialect    = "qwen3-asr-transformers/audio-transcribe/v1"
 	AudioTranscribeContract              = "audio.transcribe"
 	Qwen3ASRModelRequirementID           = "stt.model"
+	Qwen3ASRRecipeID                     = "qwen3-asr"
+	Qwen3ASRTransformersRecipeID         = "qwen3-asr-transformers"
 )
 
 // SpeechSynthesizeInvocationInput is the complete Driver-owned plain speech
@@ -90,7 +98,15 @@ func (p *SpeechSynthesizeInvocationPlan) ModelFiles() []InvocationExactBinding {
 	if p == nil {
 		return nil
 	}
-	return append([]InvocationExactBinding(nil), p.modelFiles...)
+	return cloneSpeechInvocationBindings(p.modelFiles)
+}
+
+func cloneSpeechInvocationBindings(values []InvocationExactBinding) []InvocationExactBinding {
+	cloned := append([]InvocationExactBinding(nil), values...)
+	for index := range cloned {
+		cloned[index].DeclaredFiles = append([]string(nil), cloned[index].DeclaredFiles...)
+	}
+	return cloned
 }
 
 func (p *SpeechSynthesizeInvocationPlan) Request() *runtimev1.SpeechSynthesizeScenarioSpec {
@@ -137,7 +153,7 @@ func (p *VoiceCreateInvocationPlan) ModelFiles() []InvocationExactBinding {
 	if p == nil {
 		return nil
 	}
-	return append([]InvocationExactBinding(nil), p.modelFiles...)
+	return cloneSpeechInvocationBindings(p.modelFiles)
 }
 
 func (p *VoiceCreateInvocationPlan) Request() *runtimev1.VoiceCreateScenarioSpec {
@@ -180,7 +196,7 @@ func (p *SpeechTranscribeInvocationPlan) ModelFiles() []InvocationExactBinding {
 	if p == nil {
 		return nil
 	}
-	return append([]InvocationExactBinding(nil), p.modelFiles...)
+	return cloneSpeechInvocationBindings(p.modelFiles)
 }
 
 func (p *SpeechTranscribeInvocationPlan) Request() *runtimev1.SpeechTranscribeScenarioSpec {
@@ -242,7 +258,9 @@ const (
 // Qwen3TTSDriver owns the exact Qwen3-TTS plain synthesis dialect.
 type Qwen3TTSDriver struct{}
 
-func (Qwen3TTSDriver) EffectiveRequestDefaults(*structpb.Struct) map[string]string { return nil }
+func (Qwen3TTSDriver) EffectiveRequestDefaults(string, *structpb.Struct) map[string]string {
+	return nil
+}
 
 func (Qwen3TTSDriver) SpeechStreamMode() SpeechStreamMode { return SpeechStreamSimulated }
 
@@ -311,11 +329,24 @@ func (Qwen3TTSDriver) Interpret(input InterpretInput) ([]*runtimev1.LocalCapabil
 	return interpretQwen3Speech(input, Qwen3TTSModelRequirementID, "tts", "tts_model", "TTS model")
 }
 
-func (Qwen3TTSDriver) ValidateBinding(requirement *runtimev1.LocalCapabilityRequirement, binding *runtimev1.LocalAssetExactBinding, asset AssetDescriptor) runtimev1.LocalCapabilityReason {
+func (driver Qwen3TTSDriver) ProjectRecipe(recipeID string, options *structpb.Struct, supportedFeatures []string) ([]*runtimev1.LocalCapabilityRequirement, runtimev1.LocalCapabilityReason) {
+	switch recipeID {
+	case Qwen3TTSCustomVoiceRecipeID, Qwen3TTSBaseRecipeID, Qwen3TTSVoiceDesignRecipeID:
+		return driver.Interpret(InterpretInput{PortableConfig: options, SupportedFeatures: supportedFeatures})
+	default:
+		return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_PORTABLE_CONFIG_INVALID
+	}
+}
+
+func (driver Qwen3TTSDriver) ProjectModelAssetBinding(input ModelAssetBindingInput) (ModelAssetBindingProjection, runtimev1.LocalCapabilityReason) {
+	return projectQwen3SpeechModelAsset(input, Qwen3TTSModelRequirementID, runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_TTS, "tts_model", driver.ValidateBinding)
+}
+
+func (Qwen3TTSDriver) ValidateBinding(requirement *runtimev1.LocalCapabilityRequirement, binding *runtimev1.ModelAssetExactBinding, asset ModelAssetDescriptor) runtimev1.LocalCapabilityReason {
 	return validateQwen3SpeechBinding(requirement, binding, asset, Qwen3TTSModelRequirementID, runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_TTS, "tts_model")
 }
 
-func (driver Qwen3TTSDriver) ValidateCombination(requirements []*runtimev1.LocalCapabilityRequirement, bindings []*runtimev1.LocalAssetExactBinding, assets []AssetDescriptor) runtimev1.LocalCapabilityReason {
+func (driver Qwen3TTSDriver) ValidateCombination(requirements []*runtimev1.LocalCapabilityRequirement, bindings []*runtimev1.ModelAssetExactBinding, assets []ModelAssetDescriptor) runtimev1.LocalCapabilityReason {
 	return validateQwen3SpeechCombination(requirements, bindings, assets, driver.ValidateBinding)
 }
 
@@ -333,7 +364,7 @@ func (Qwen3TTSDriver) PlanSpeechSynthesizeInvocation(input SpeechSynthesizeInvoc
 	}
 	return &SpeechSynthesizeInvocationPlan{
 		driverID:     Qwen3TTSDriverID,
-		modelAssetID: binding.AssetID,
+		modelAssetID: binding.ModelAssetID,
 		modelFiles:   []InvocationExactBinding{binding},
 		request:      request,
 	}, nil
@@ -344,7 +375,7 @@ func (Qwen3TTSDriver) PlanSpeechSynthesizeInvocation(input SpeechSynthesizeInvoc
 // identity, and its selected feature set never chooses another configuration.
 type Qwen3VoiceCreateDriver struct{}
 
-func (Qwen3VoiceCreateDriver) EffectiveRequestDefaults(*structpb.Struct) map[string]string {
+func (Qwen3VoiceCreateDriver) EffectiveRequestDefaults(string, *structpb.Struct) map[string]string {
 	return nil
 }
 
@@ -369,7 +400,31 @@ func (Qwen3VoiceCreateDriver) Interpret(input InterpretInput) ([]*runtimev1.Loca
 	}}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
 }
 
-func (Qwen3VoiceCreateDriver) ValidateBinding(requirement *runtimev1.LocalCapabilityRequirement, binding *runtimev1.LocalAssetExactBinding, asset AssetDescriptor) runtimev1.LocalCapabilityReason {
+func (driver Qwen3VoiceCreateDriver) ProjectRecipe(recipeID string, options *structpb.Struct, supportedFeatures []string) ([]*runtimev1.LocalCapabilityRequirement, runtimev1.LocalCapabilityReason) {
+	wantFeature := ""
+	switch recipeID {
+	case Qwen3VoiceCloneRecipeID:
+		wantFeature = "input.audio"
+	case Qwen3VoiceDesignRecipeID:
+		wantFeature = "input.text"
+	default:
+		return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_PORTABLE_CONFIG_INVALID
+	}
+	if len(supportedFeatures) != 1 || supportedFeatures[0] != wantFeature {
+		return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_FEATURE_UNSUPPORTED
+	}
+	return driver.Interpret(InterpretInput{PortableConfig: options, SupportedFeatures: supportedFeatures})
+}
+
+func (driver Qwen3VoiceCreateDriver) ProjectModelAssetBinding(input ModelAssetBindingInput) (ModelAssetBindingProjection, runtimev1.LocalCapabilityReason) {
+	role := ""
+	if input.Requirement != nil && input.Requirement.GetCompatibilityConstraints() != nil {
+		role = strings.TrimSpace(input.Requirement.GetCompatibilityConstraints().GetFields()["artifact_role"].GetStringValue())
+	}
+	return projectQwen3SpeechModelAsset(input, Qwen3VoiceCreateModelRequirementID, runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_TTS, role, driver.ValidateBinding)
+}
+
+func (Qwen3VoiceCreateDriver) ValidateBinding(requirement *runtimev1.LocalCapabilityRequirement, binding *runtimev1.ModelAssetExactBinding, asset ModelAssetDescriptor) runtimev1.LocalCapabilityReason {
 	if requirement == nil || requirement.GetRequirementId() != Qwen3VoiceCreateModelRequirementID || requirement.GetCompatibilityConstraints() == nil {
 		return runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_BINDING_AMBIGUOUS
 	}
@@ -380,7 +435,7 @@ func (Qwen3VoiceCreateDriver) ValidateBinding(requirement *runtimev1.LocalCapabi
 	return validateQwen3SpeechBinding(requirement, binding, asset, Qwen3VoiceCreateModelRequirementID, runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_TTS, role)
 }
 
-func (driver Qwen3VoiceCreateDriver) ValidateCombination(requirements []*runtimev1.LocalCapabilityRequirement, bindings []*runtimev1.LocalAssetExactBinding, assets []AssetDescriptor) runtimev1.LocalCapabilityReason {
+func (driver Qwen3VoiceCreateDriver) ValidateCombination(requirements []*runtimev1.LocalCapabilityRequirement, bindings []*runtimev1.ModelAssetExactBinding, assets []ModelAssetDescriptor) runtimev1.LocalCapabilityReason {
 	return validateQwen3SpeechCombination(requirements, bindings, assets, driver.ValidateBinding)
 }
 
@@ -408,7 +463,7 @@ func (Qwen3VoiceCreateDriver) PlanVoiceCreateInvocation(input VoiceCreateInvocat
 		workflowModelID = "qwen3-local-voice-clone"
 	}
 	return &VoiceCreateInvocationPlan{
-		driverID: Qwen3TTSDriverID, modelAssetID: binding.AssetID,
+		driverID: Qwen3TTSDriverID, modelAssetID: binding.ModelAssetID,
 		modelFiles: []InvocationExactBinding{binding}, request: request,
 		sourceFeature: feature, workflowModelID: workflowModelID,
 	}, nil
@@ -417,17 +472,30 @@ func (Qwen3VoiceCreateDriver) PlanVoiceCreateInvocation(input VoiceCreateInvocat
 // Qwen3ASRDriver owns the exact Qwen3-ASR transcription dialect.
 type Qwen3ASRDriver struct{}
 
-func (Qwen3ASRDriver) EffectiveRequestDefaults(*structpb.Struct) map[string]string { return nil }
+func (Qwen3ASRDriver) EffectiveRequestDefaults(string, *structpb.Struct) map[string]string {
+	return nil
+}
 
 func (Qwen3ASRDriver) Interpret(input InterpretInput) ([]*runtimev1.LocalCapabilityRequirement, runtimev1.LocalCapabilityReason) {
 	return interpretQwen3Speech(input, Qwen3ASRModelRequirementID, "stt", "stt_model", "STT model")
 }
 
-func (Qwen3ASRDriver) ValidateBinding(requirement *runtimev1.LocalCapabilityRequirement, binding *runtimev1.LocalAssetExactBinding, asset AssetDescriptor) runtimev1.LocalCapabilityReason {
+func (driver Qwen3ASRDriver) ProjectRecipe(recipeID string, options *structpb.Struct, supportedFeatures []string) ([]*runtimev1.LocalCapabilityRequirement, runtimev1.LocalCapabilityReason) {
+	if recipeID != Qwen3ASRRecipeID {
+		return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_PORTABLE_CONFIG_INVALID
+	}
+	return driver.Interpret(InterpretInput{PortableConfig: options, SupportedFeatures: supportedFeatures})
+}
+
+func (driver Qwen3ASRDriver) ProjectModelAssetBinding(input ModelAssetBindingInput) (ModelAssetBindingProjection, runtimev1.LocalCapabilityReason) {
+	return projectQwen3SpeechModelAsset(input, Qwen3ASRModelRequirementID, runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_STT, "stt_model", driver.ValidateBinding)
+}
+
+func (Qwen3ASRDriver) ValidateBinding(requirement *runtimev1.LocalCapabilityRequirement, binding *runtimev1.ModelAssetExactBinding, asset ModelAssetDescriptor) runtimev1.LocalCapabilityReason {
 	return validateQwen3SpeechBinding(requirement, binding, asset, Qwen3ASRModelRequirementID, runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_STT, "stt_model")
 }
 
-func (driver Qwen3ASRDriver) ValidateCombination(requirements []*runtimev1.LocalCapabilityRequirement, bindings []*runtimev1.LocalAssetExactBinding, assets []AssetDescriptor) runtimev1.LocalCapabilityReason {
+func (driver Qwen3ASRDriver) ValidateCombination(requirements []*runtimev1.LocalCapabilityRequirement, bindings []*runtimev1.ModelAssetExactBinding, assets []ModelAssetDescriptor) runtimev1.LocalCapabilityReason {
 	return validateQwen3SpeechCombination(requirements, bindings, assets, driver.ValidateBinding)
 }
 
@@ -438,7 +506,7 @@ func (Qwen3ASRDriver) PlanSpeechTranscribeInvocation(input SpeechTranscribeInvoc
 // Qwen3ASRTransformersDriver owns the separate Transformers-native Qwen3-ASR dialect.
 type Qwen3ASRTransformersDriver struct{}
 
-func (Qwen3ASRTransformersDriver) EffectiveRequestDefaults(*structpb.Struct) map[string]string {
+func (Qwen3ASRTransformersDriver) EffectiveRequestDefaults(string, *structpb.Struct) map[string]string {
 	return nil
 }
 
@@ -446,11 +514,22 @@ func (Qwen3ASRTransformersDriver) Interpret(input InterpretInput) ([]*runtimev1.
 	return interpretQwen3Speech(input, Qwen3ASRModelRequirementID, "stt", "stt_transformers_model", "Transformers-native STT model")
 }
 
-func (Qwen3ASRTransformersDriver) ValidateBinding(requirement *runtimev1.LocalCapabilityRequirement, binding *runtimev1.LocalAssetExactBinding, asset AssetDescriptor) runtimev1.LocalCapabilityReason {
+func (driver Qwen3ASRTransformersDriver) ProjectRecipe(recipeID string, options *structpb.Struct, supportedFeatures []string) ([]*runtimev1.LocalCapabilityRequirement, runtimev1.LocalCapabilityReason) {
+	if recipeID != Qwen3ASRTransformersRecipeID {
+		return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_PORTABLE_CONFIG_INVALID
+	}
+	return driver.Interpret(InterpretInput{PortableConfig: options, SupportedFeatures: supportedFeatures})
+}
+
+func (driver Qwen3ASRTransformersDriver) ProjectModelAssetBinding(input ModelAssetBindingInput) (ModelAssetBindingProjection, runtimev1.LocalCapabilityReason) {
+	return projectQwen3SpeechModelAsset(input, Qwen3ASRModelRequirementID, runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_STT, "stt_transformers_model", driver.ValidateBinding)
+}
+
+func (Qwen3ASRTransformersDriver) ValidateBinding(requirement *runtimev1.LocalCapabilityRequirement, binding *runtimev1.ModelAssetExactBinding, asset ModelAssetDescriptor) runtimev1.LocalCapabilityReason {
 	return validateQwen3SpeechBinding(requirement, binding, asset, Qwen3ASRModelRequirementID, runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_STT, "stt_transformers_model")
 }
 
-func (driver Qwen3ASRTransformersDriver) ValidateCombination(requirements []*runtimev1.LocalCapabilityRequirement, bindings []*runtimev1.LocalAssetExactBinding, assets []AssetDescriptor) runtimev1.LocalCapabilityReason {
+func (driver Qwen3ASRTransformersDriver) ValidateCombination(requirements []*runtimev1.LocalCapabilityRequirement, bindings []*runtimev1.ModelAssetExactBinding, assets []ModelAssetDescriptor) runtimev1.LocalCapabilityReason {
 	return validateQwen3SpeechCombination(requirements, bindings, assets, driver.ValidateBinding)
 }
 
@@ -475,7 +554,7 @@ func planQwen3ASRInvocation(input SpeechTranscribeInvocationInput, family string
 	}
 	return &SpeechTranscribeInvocationPlan{
 		driverID:     driverID,
-		modelAssetID: binding.AssetID,
+		modelAssetID: binding.ModelAssetID,
 		modelFiles:   []InvocationExactBinding{binding},
 		request:      request,
 		audioBytes:   append([]byte(nil), input.AudioBytes...),
@@ -490,7 +569,7 @@ func interpretQwen3Speech(input InterpretInput, requirementID string, resourceKi
 	if !emptySpeechPortableConfig(input.PortableConfig) {
 		return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_PORTABLE_CONFIG_INVALID
 	}
-	constraints, _ := structpb.NewStruct(map[string]any{"engine": "speech", "artifact_role": artifactRole})
+	constraints, _ := structpb.NewStruct(map[string]any{"engine": "speech", "format": "safetensors", "artifact_role": artifactRole})
 	return []*runtimev1.LocalCapabilityRequirement{{
 		RequirementId:            requirementID,
 		Role:                     runtimev1.LocalCapabilityRequirementRole_LOCAL_CAPABILITY_REQUIREMENT_ROLE_MAIN,
@@ -505,17 +584,36 @@ func emptySpeechPortableConfig(value *structpb.Struct) bool {
 	return value == nil || len(value.GetFields()) == 0
 }
 
-func validateQwen3SpeechBinding(requirement *runtimev1.LocalCapabilityRequirement, binding *runtimev1.LocalAssetExactBinding, asset AssetDescriptor, requirementID string, kind runtimev1.LocalAssetKind, artifactRole string) runtimev1.LocalCapabilityReason {
+func projectQwen3SpeechModelAsset(
+	input ModelAssetBindingInput,
+	requirementID string,
+	kind runtimev1.LocalAssetKind,
+	artifactRole string,
+	validate func(*runtimev1.LocalCapabilityRequirement, *runtimev1.ModelAssetExactBinding, ModelAssetDescriptor) runtimev1.LocalCapabilityReason,
+) (ModelAssetBindingProjection, runtimev1.LocalCapabilityReason) {
+	if input.Requirement == nil || input.Requirement.GetRequirementId() != requirementID || strings.TrimSpace(artifactRole) == "" ||
+		filepath.Ext(strings.ToLower(input.Entry.RelativePath)) != ".safetensors" {
+		return ModelAssetBindingProjection{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE
+	}
+	if _, ok := safetensorsTensorFacts(input.Entry.FormatProbe); !ok {
+		return ModelAssetBindingProjection{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE
+	}
+	return validatedModelAssetBindingProjection(input, ModelAssetDescriptor{
+		Kind: kind, Engine: "speech", ArtifactRoles: []string{artifactRole}, FormatProbe: input.Entry.FormatProbe,
+	}, 0, validate)
+}
+
+func validateQwen3SpeechBinding(requirement *runtimev1.LocalCapabilityRequirement, binding *runtimev1.ModelAssetExactBinding, asset ModelAssetDescriptor, requirementID string, kind runtimev1.LocalAssetKind, artifactRole string) runtimev1.LocalCapabilityReason {
 	if requirement == nil || binding == nil || requirement.GetRequirementId() != requirementID || binding.GetRequirementId() != requirementID {
 		return runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_BINDING_AMBIGUOUS
 	}
-	if binding.GetLocalAssetId() == "" || asset.LocalAssetID == "" {
+	if binding.GetModelAssetId() == "" || asset.ModelAssetID == "" {
 		return runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_NOT_FOUND
 	}
 	if binding.GetVerifiedContentId() == "" || binding.GetEntrySha256() == "" || asset.VerifiedContentID == "" || asset.EntrySHA256 == "" {
 		return runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_CONTENT_UNVERIFIED
 	}
-	if binding.GetLocalAssetId() != asset.LocalAssetID || binding.GetVerifiedContentId() != asset.VerifiedContentID || binding.GetEntrySha256() != asset.EntrySHA256 {
+	if binding.GetModelAssetId() != asset.ModelAssetID || binding.GetVerifiedContentId() != asset.VerifiedContentID || binding.GetEntrySha256() != asset.EntrySHA256 {
 		return runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_CONTENT_MISMATCH
 	}
 	if asset.Kind != kind || asset.Engine != "speech" || !contains(asset.ArtifactRoles, artifactRole) {
@@ -524,7 +622,7 @@ func validateQwen3SpeechBinding(requirement *runtimev1.LocalCapabilityRequiremen
 	return runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
 }
 
-func validateQwen3SpeechCombination(requirements []*runtimev1.LocalCapabilityRequirement, bindings []*runtimev1.LocalAssetExactBinding, assets []AssetDescriptor, validate func(*runtimev1.LocalCapabilityRequirement, *runtimev1.LocalAssetExactBinding, AssetDescriptor) runtimev1.LocalCapabilityReason) runtimev1.LocalCapabilityReason {
+func validateQwen3SpeechCombination(requirements []*runtimev1.LocalCapabilityRequirement, bindings []*runtimev1.ModelAssetExactBinding, assets []ModelAssetDescriptor, validate func(*runtimev1.LocalCapabilityRequirement, *runtimev1.ModelAssetExactBinding, ModelAssetDescriptor) runtimev1.LocalCapabilityReason) runtimev1.LocalCapabilityReason {
 	if len(requirements) != 1 || len(bindings) != 1 || len(assets) != 1 {
 		if len(requirements) == 0 || len(bindings) == 0 {
 			return runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_REQUIRED_BINDING_MISSING
@@ -542,15 +640,47 @@ func exactQwen3SpeechBinding(values []InvocationExactBinding, requirementID stri
 		return InvocationExactBinding{}, fmt.Errorf("speech invocation requires exactly one binding")
 	}
 	binding := values[0]
-	if binding.RequirementID != requirementID || binding.AssetID == "" || binding.AssetID != strings.TrimSpace(binding.AssetID) ||
-		binding.LocalAssetID == "" || binding.LocalAssetID != strings.TrimSpace(binding.LocalAssetID) ||
+	if binding.RequirementID != requirementID || binding.ModelAssetID == "" || binding.ModelAssetID != strings.TrimSpace(binding.ModelAssetID) ||
 		binding.VerifiedContentID == "" || binding.VerifiedContentID != strings.TrimSpace(binding.VerifiedContentID) ||
 		binding.EntrySHA256 == "" || binding.EntrySHA256 != strings.TrimSpace(binding.EntrySHA256) ||
 		!canonicalInvocationSHA256(binding.VerifiedContentID, binding.EntrySHA256) ||
-		!filepath.IsAbs(binding.AbsolutePath) || filepath.Clean(binding.AbsolutePath) != binding.AbsolutePath {
+		!filepath.IsAbs(binding.AbsolutePath) || filepath.Clean(binding.AbsolutePath) != binding.AbsolutePath ||
+		!validOptionalSpeechBundleBinding(binding) {
 		return InvocationExactBinding{}, fmt.Errorf("speech invocation binding is not exact")
 	}
+	binding.DeclaredFiles = append([]string(nil), binding.DeclaredFiles...)
 	return binding, nil
+}
+
+func validOptionalSpeechBundleBinding(binding InvocationExactBinding) bool {
+	bundleDir := strings.TrimSpace(binding.BundleDir)
+	if bundleDir == "" && len(binding.DeclaredFiles) == 0 {
+		return true
+	}
+	if bundleDir == "" || bundleDir != binding.BundleDir || !filepath.IsAbs(bundleDir) || filepath.Clean(bundleDir) != bundleDir || len(binding.DeclaredFiles) == 0 {
+		return false
+	}
+	entryRelative, err := filepath.Rel(bundleDir, binding.AbsolutePath)
+	if err != nil || entryRelative == "." || entryRelative == ".." || strings.HasPrefix(entryRelative, ".."+string(filepath.Separator)) {
+		return false
+	}
+	entryRelative = filepath.ToSlash(entryRelative)
+	entryDeclared := false
+	seen := make(map[string]struct{}, len(binding.DeclaredFiles))
+	for _, declared := range binding.DeclaredFiles {
+		if declared == "" || declared != strings.TrimSpace(declared) || path.IsAbs(declared) || path.Clean(declared) != declared || declared == "." || strings.Contains(declared, `\`) {
+			return false
+		}
+		key := strings.ToLower(declared)
+		if _, duplicate := seen[key]; duplicate {
+			return false
+		}
+		seen[key] = struct{}{}
+		if declared == entryRelative {
+			entryDeclared = true
+		}
+	}
+	return entryDeclared
 }
 
 func validateQwen3TTSRequest(value *runtimev1.SpeechSynthesizeScenarioSpec) (*runtimev1.SpeechSynthesizeScenarioSpec, error) {

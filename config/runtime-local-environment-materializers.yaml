@@ -33,9 +33,9 @@ rows:
   - startup, route resolution, Desktop page load, SDK reads, passive import
     review, health probes, and background maintenance must not trigger first
     heavy or network materialization
-  - missing uv, Python, venv, package set, Torch wheel, native package, model
-    asset, or companion asset projects Runtime local environment setup or repair
-    state, not ordinary-user package-manager or PATH prerequisites
+  - missing uv, Python, venv, package set, Torch wheel, native package, or
+    accelerator runtime projects Runtime local environment setup or repair state,
+    not ordinary-user package-manager or PATH prerequisites
 
 # Canonical Runtime materializer registry for local environment dependency
 # families. This table is downstream of local-environment-dependencies.yaml for
@@ -172,35 +172,6 @@ registry:
       - package_directory_presence
       - script_exit_only
 
-  - materializer_id: materializer.model.asset
-    dependency_family: model.asset
-    owner: RuntimeLocalService
-    admission_state: spec_aligned
-    source_manifest_ref: managed-or-imported-model-asset-source
-    verification_evidence_ref: model-asset-evidence
-    confirmation_policy: first_network_materialization_or_explicit_import
-    selected_source_promotion: ready_system_or_ready_managed_after_verification
-    repair_policy: lock_activation_until_reverified
-    forbidden_readiness_inputs:
-      - model_file_presence
-      - model_row_presence
-      - transfer_completion
-      - endpoint_reachability
-
-  - materializer_id: materializer.model.companion-asset
-    dependency_family: model.companion-asset
-    owner: RuntimeLocalService
-    admission_state: spec_aligned
-    source_manifest_ref: managed-or-imported-companion-asset-source
-    verification_evidence_ref: model-companion-asset-evidence
-    confirmation_policy: first_network_materialization_or_explicit_import
-    selected_source_promotion: ready_system_or_ready_managed_after_verification
-    repair_policy: lock_activation_until_reverified
-    forbidden_readiness_inputs:
-      - companion_file_presence
-      - missing_parent_asset_binding
-      - transfer_completion
-      - endpoint_reachability
 
 rules:
   - every dependency family in local-environment-dependencies.yaml must either have one registry entry or an explicit exclusion before implementation admission
@@ -210,4 +181,4 @@ rules:
   - consumer-specific profile activation is consumption verification only and never creates, replaces, or transfers selected-source ownership
   - a materializer may request prerequisite plan resolution but must not silently materialize another dependency family unless confirmation explicitly covers that dependency environment
   - startup, route resolution, Desktop page load, SDK reads, passive import review, health probes, and background maintenance must not trigger first heavy or network materialization
-  - missing uv, Python, venv, package set, Torch wheel, native package, model asset, or companion asset projects Runtime local environment setup or repair state, not ordinary-user package-manager or PATH prerequisites
+  - missing uv, Python, venv, package set, Torch wheel, native package, or accelerator runtime projects Runtime local environment setup or repair state, not ordinary-user package-manager or PATH prerequisites

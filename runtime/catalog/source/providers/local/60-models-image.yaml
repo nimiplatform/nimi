@@ -20,28 +20,27 @@ models:
       - local/flux.1-schnell
       - media/flux.1-schnell
 
-  # Curated first-run local image lane (K-MCAT-033 recommended preset, wave-2).
   # Z-Image-Turbo runs on stable-diffusion.cpp (stablediffusion-ggml native
-  # backend). Per the stable-diffusion.cpp Z-Image guide the workflow needs two
-  # passive companion assets: a VAE (--vae / vae_path) and a Qwen3-4B text
-  # encoder (--llm / llm_path). GGUF quants span 4GB-VRAM hosts up to high-VRAM
+  # backend). The exact Driver recipe projects independent VAE (--vae) and
+  # Qwen3-4B text-encoder (--llm) ModelAsset axes. GGUF quants span 4GB-VRAM hosts up to high-VRAM
   # hosts; each quant carries a cuda and a metal accelerator variant.
   - model_id: z-image-turbo-local
     model_type: image
-    updated_at: 2026-05-21
+    family: z-image
+    updated_at: 2026-08-14
     capabilities: [image.generate]
-    features: [input.image, input.mask]
+    features: []
     image_request_options:
       response_formats: [b64_json, url]
       max_images_per_request: 1
       supports_negative_prompt: true
-      supports_reference_images: true
-      supports_mask: true
+      supports_reference_images: false
+      supports_mask: false
       supports_seed: true
       supports_size: true
-      supports_aspect_ratio: true
-      supports_quality: true
-      supports_style: true
+      supports_aspect_ratio: false
+      supports_quality: false
+      supports_style: false
     source_ids: [z_image_turbo_gguf_modelcard, stable_diffusion_cpp_z_image_guide]
     install:
       repo: leejet/Z-Image-Turbo-GGUF
@@ -186,148 +185,207 @@ models:
     fitness:
       param_count: 6000000000
       context_length: 0
-    companions:
-      # VAE companion — stable-diffusion.cpp --vae slot. Single F16 safetensors;
-      # sourced from the Comfy-Org Z-Image-Turbo distribution (the gated FLUX
-      # repo named by the guide carries the byte-identical file but cannot be
-      # authentically resolved without authentication).
-      - companion_kind: vae
-        engine_slot: vae_path
-        install:
-          repo: Comfy-Org/z_image_turbo
-          revision: 2f862278568d3f0a83167a16e5f11094da6dee72 # pragma: allowlist secret -- public immutable model revision
-          install_kind: weights
-          entry: split_files/vae/ae.safetensors
-          artifact_roles: [vae]
-          preferred_engine: media
-        variants:
-          - variant_id: local.image-vae.z-image-ae.f16.cuda
-            quant: F16
-            entry: split_files/vae/ae.safetensors
-            files: [split_files/vae/ae.safetensors]
-            hashes:
-              split_files/vae/ae.safetensors: "sha256:afc8e28272cd15db3919bacdb6918ce9c1ed22e96cb12c4d5ed0fba823529e38"
-            total_size_bytes: 335304388
-            host_requirement:
-              accelerator: cuda
-              min_ram_bytes: 8589934592
-              min_vram_bytes: 4294967296
-          - variant_id: local.image-vae.z-image-ae.f16.metal
-            quant: F16
-            entry: split_files/vae/ae.safetensors
-            files: [split_files/vae/ae.safetensors]
-            hashes:
-              split_files/vae/ae.safetensors: "sha256:afc8e28272cd15db3919bacdb6918ce9c1ed22e96cb12c4d5ed0fba823529e38"
-            total_size_bytes: 335304388
-            host_requirement:
-              accelerator: metal
-              min_ram_bytes: 8589934592
-              min_vram_bytes: 4294967296
-      # Text-encoder companion — stable-diffusion.cpp --llm slot. Qwen3-4B used
-      # as the Z-Image prompt text encoder. A 4B autoregressive LLM text encoder
-      # is not a CLIP model; companion_kind is K-LOCAL-007's `auxiliary`
-      # catch-all (a passive role outside the named kinds), while functional
-      # routing stays precise via engine_slot llm_path — a distinct K-LOCAL-031
-      # engine slot from clip_path.
-      - companion_kind: auxiliary
-        engine_slot: llm_path
-        install:
-          repo: unsloth/Qwen3-4B-Instruct-2507-GGUF
-          revision: a06e946bb6b655725eafa393f4a9745d460374c9 # pragma: allowlist secret -- public immutable model revision
-          install_kind: weights
-          entry: Qwen3-4B-Instruct-2507-Q4_K_M.gguf
-          artifact_roles: [text_encoder]
-          preferred_engine: media
-        variants:
-          - variant_id: local.image-textenc.qwen3-4b-instruct-2507.q4-k-m.cuda
-            quant: Q4_K_M
-            entry: Qwen3-4B-Instruct-2507-Q4_K_M.gguf
-            files: [Qwen3-4B-Instruct-2507-Q4_K_M.gguf]
-            hashes:
-              Qwen3-4B-Instruct-2507-Q4_K_M.gguf: "sha256:3605803b982cb64aead44f6c1b2ae36e3acdb41d8e46c8a94c6533bc4c67e597"
-            total_size_bytes: 2497281120
-            host_requirement:
-              accelerator: cuda
-              min_ram_bytes: 8589934592
-              min_vram_bytes: 4294967296
-          - variant_id: local.image-textenc.qwen3-4b-instruct-2507.q4-k-m.metal
-            quant: Q4_K_M
-            entry: Qwen3-4B-Instruct-2507-Q4_K_M.gguf
-            files: [Qwen3-4B-Instruct-2507-Q4_K_M.gguf]
-            hashes:
-              Qwen3-4B-Instruct-2507-Q4_K_M.gguf: "sha256:3605803b982cb64aead44f6c1b2ae36e3acdb41d8e46c8a94c6533bc4c67e597"
-            total_size_bytes: 2497281120
-            host_requirement:
-              accelerator: metal
-              min_ram_bytes: 8589934592
-              min_vram_bytes: 4294967296
-          - variant_id: local.image-textenc.qwen3-4b-instruct-2507.q5-k-m.cuda
-            quant: Q5_K_M
-            entry: Qwen3-4B-Instruct-2507-Q5_K_M.gguf
-            files: [Qwen3-4B-Instruct-2507-Q5_K_M.gguf]
-            hashes:
-              Qwen3-4B-Instruct-2507-Q5_K_M.gguf: "sha256:5bde5e9d883622acb02bf77fe7dcbc56a8b9a9ad4be78a72ca23a532658b4ecb"
-            total_size_bytes: 2889514080
-            host_requirement:
-              accelerator: cuda
-              min_ram_bytes: 10737418240
-              min_vram_bytes: 5368709120
-          - variant_id: local.image-textenc.qwen3-4b-instruct-2507.q5-k-m.metal
-            quant: Q5_K_M
-            entry: Qwen3-4B-Instruct-2507-Q5_K_M.gguf
-            files: [Qwen3-4B-Instruct-2507-Q5_K_M.gguf]
-            hashes:
-              Qwen3-4B-Instruct-2507-Q5_K_M.gguf: "sha256:5bde5e9d883622acb02bf77fe7dcbc56a8b9a9ad4be78a72ca23a532658b4ecb"
-            total_size_bytes: 2889514080
-            host_requirement:
-              accelerator: metal
-              min_ram_bytes: 10737418240
-              min_vram_bytes: 5368709120
-          - variant_id: local.image-textenc.qwen3-4b-instruct-2507.q6-k.cuda
-            quant: Q6_K
-            entry: Qwen3-4B-Instruct-2507-Q6_K.gguf
-            files: [Qwen3-4B-Instruct-2507-Q6_K.gguf]
-            hashes:
-              Qwen3-4B-Instruct-2507-Q6_K.gguf: "sha256:cd7b21b38b3e71400587c184b6a9b04d3beb4d13fdae6464d4075dee4f1bc5ad"
-            total_size_bytes: 3306261600
-            host_requirement:
-              accelerator: cuda
-              min_ram_bytes: 10737418240
-              min_vram_bytes: 6442450944
-          - variant_id: local.image-textenc.qwen3-4b-instruct-2507.q6-k.metal
-            quant: Q6_K
-            entry: Qwen3-4B-Instruct-2507-Q6_K.gguf
-            files: [Qwen3-4B-Instruct-2507-Q6_K.gguf]
-            hashes:
-              Qwen3-4B-Instruct-2507-Q6_K.gguf: "sha256:cd7b21b38b3e71400587c184b6a9b04d3beb4d13fdae6464d4075dee4f1bc5ad"
-            total_size_bytes: 3306261600
-            host_requirement:
-              accelerator: metal
-              min_ram_bytes: 10737418240
-              min_vram_bytes: 6442450944
-          - variant_id: local.image-textenc.qwen3-4b-instruct-2507.q8-0.cuda
-            quant: Q8_0
-            entry: Qwen3-4B-Instruct-2507-Q8_0.gguf
-            files: [Qwen3-4B-Instruct-2507-Q8_0.gguf]
-            hashes:
-              Qwen3-4B-Instruct-2507-Q8_0.gguf: "sha256:391c1e410fd9f4cf2de2b510273b56a84c19ce18f4fa3bfb3774031dac4ef068"
-            total_size_bytes: 4280405600
-            host_requirement:
-              accelerator: cuda
-              min_ram_bytes: 12884901888
-              min_vram_bytes: 8589934592
-          - variant_id: local.image-textenc.qwen3-4b-instruct-2507.q8-0.metal
-            quant: Q8_0
-            entry: Qwen3-4B-Instruct-2507-Q8_0.gguf
-            files: [Qwen3-4B-Instruct-2507-Q8_0.gguf]
-            hashes:
-              Qwen3-4B-Instruct-2507-Q8_0.gguf: "sha256:391c1e410fd9f4cf2de2b510273b56a84c19ce18f4fa3bfb3774031dac4ef068"
-            total_size_bytes: 4280405600
-            host_requirement:
-              accelerator: metal
-              min_ram_bytes: 12884901888
-              min_vram_bytes: 8589934592
-    aliases:
-      - local/z-image-turbo
-      - media/z-image-turbo
-      - leejet/Z-Image-Turbo-GGUF
+  - model_id: ideogram4-local
+    model_type: image
+    family: ideogram4
+    updated_at: 2026-08-16
+    capabilities: [image.generate]
+    features: []
+    image_request_options:
+      response_formats: [b64_json, url]
+      max_images_per_request: 1
+      supports_negative_prompt: true
+      supports_reference_images: false
+      supports_mask: false
+      supports_seed: true
+      supports_size: true
+      supports_aspect_ratio: false
+      supports_quality: false
+      supports_style: false
+    source_ids: [ideogram4_gguf_modelcard, stable_diffusion_cpp_ideogram4_guide, qwen3_vl_8b_instruct_gguf_modelcard, flux2_dev_modelcard]
+    install:
+      repo: leejet/ideogram-4-GGUF
+      revision: c93c0ac616d3abc7910c9af0bf117244ce3a11c4 # pragma: allowlist secret -- public immutable model revision
+      install_kind: weights
+      entry: ideogram4-Q4_0.gguf
+      artifact_roles: [diffusion_model]
+      preferred_engine: media
+    variants:
+      - variant_id: local.image.ideogram4.q4-0.cuda
+        quant: Q4_0
+        entry: ideogram4-Q4_0.gguf
+        files: [ideogram4-Q4_0.gguf]
+        hashes:
+          ideogram4-Q4_0.gguf: "sha256:08431d93824e56513cccc84a4d10d327df992cff5b5a0dcfdc739f4d50c2cc9e"
+        total_size_bytes: 5643820832
+        host_requirement:
+          accelerator: cuda
+          min_ram_bytes: 34359738368
+          min_vram_bytes: 25769803776
+    fitness:
+      param_count: 10000000000
+      context_length: 0
+  - model_id: ideogram4-uncond-local
+    model_type: image
+    family: ideogram4
+    updated_at: 2026-08-16
+    capabilities: [image.generate]
+    features: []
+    image_request_options:
+      response_formats: [b64_json, url]
+      max_images_per_request: 1
+      supports_negative_prompt: true
+      supports_reference_images: false
+      supports_mask: false
+      supports_seed: true
+      supports_size: true
+      supports_aspect_ratio: false
+      supports_quality: false
+      supports_style: false
+    source_ids: [ideogram4_gguf_modelcard, stable_diffusion_cpp_ideogram4_guide]
+    install:
+      repo: leejet/ideogram-4-GGUF
+      revision: c93c0ac616d3abc7910c9af0bf117244ce3a11c4 # pragma: allowlist secret -- public immutable model revision
+      install_kind: weights
+      entry: ideogram4_uncond-Q4_0.gguf
+      artifact_roles: [uncond_diffusion_model]
+      preferred_engine: media
+    variants:
+      - variant_id: local.image.ideogram4-uncond.q4-0.cuda
+        quant: Q4_0
+        entry: ideogram4_uncond-Q4_0.gguf
+        files: [ideogram4_uncond-Q4_0.gguf]
+        hashes:
+          ideogram4_uncond-Q4_0.gguf: "sha256:2ac9c57c32dead6953da2985656cadd801991a993bd3d5205d3ac1a96686b45a"
+        total_size_bytes: 5643820832
+        host_requirement:
+          accelerator: cuda
+          min_ram_bytes: 34359738368
+          min_vram_bytes: 25769803776
+    fitness:
+      param_count: 10000000000
+      context_length: 0
+    aliases: [local/ideogram4-uncond]
+
+  - model_id: ideogram4-qwen3-vl-8b-encoder-local
+    model_type: chat
+    family: qwen-vl
+    updated_at: 2026-08-16
+    capabilities: [text.generate]
+    source_ids: [qwen3_vl_8b_instruct_gguf_modelcard, stable_diffusion_cpp_ideogram4_guide]
+    install:
+      repo: unsloth/Qwen3-VL-8B-Instruct-GGUF
+      revision: b93a7ee713758252c555be4210c00540df954dc2 # pragma: allowlist secret -- public immutable model revision
+      install_kind: weights
+      entry: Qwen3-VL-8B-Instruct-Q8_0.gguf
+      artifact_roles: [text_encoder]
+      preferred_engine: media
+    variants:
+      - variant_id: local.image-textenc.qwen3-vl-8b-instruct.q8-0.cuda
+        quant: Q8_0
+        entry: Qwen3-VL-8B-Instruct-Q8_0.gguf
+        files: [Qwen3-VL-8B-Instruct-Q8_0.gguf]
+        hashes:
+          Qwen3-VL-8B-Instruct-Q8_0.gguf: "sha256:cb8616bf6ed228982d9e47d7b72b42195342efa26044b0ee1873e61d9e78d3d7"
+        total_size_bytes: 8709520224
+        host_requirement:
+          accelerator: cuda
+          min_ram_bytes: 17179869184
+          min_vram_bytes: 8589934592
+    fitness:
+      param_count: 8000000000
+      context_length: 0
+    aliases: [local/ideogram4-qwen3-vl-encoder]
+
+  # Canonical Qwen Image text-to-image recipe for the pinned Windows x64 CUDA
+  # stable-diffusion.cpp package. Qwen/Qwen-Image is the official lineage; the
+  # executable artifacts below are separately pinned engine conversions.
+  - model_id: qwen-image-local
+    model_type: image
+    family: qwen-image
+    updated_at: 2026-08-14
+    capabilities: [image.generate]
+    features: []
+    image_request_options:
+      response_formats: [b64_json, url]
+      max_images_per_request: 1
+      supports_negative_prompt: false
+      supports_reference_images: false
+      supports_mask: false
+      supports_seed: true
+      supports_size: true
+      supports_aspect_ratio: false
+      supports_quality: false
+      supports_style: false
+    source_ids:
+      - qwen_image_official_modelcard
+      - stable_diffusion_cpp_qwen_image_guide
+      - quantstack_qwen_image_gguf_modelcard
+      - mradermacher_qwen25_vl_7b_gguf_modelcard
+    install:
+      repo: QuantStack/Qwen-Image-GGUF
+      revision: 257f261fa92593bed760aa6fa3f7921a49fea00f # pragma: allowlist secret -- public immutable model revision
+      install_kind: weights
+      entry: Qwen_Image-Q4_K_M.gguf
+      artifact_roles: [diffusion_model]
+      preferred_engine: media
+    variants:
+      - variant_id: local.image.qwen-image.q4-k-m.cuda
+        quant: Q4_K_M
+        entry: Qwen_Image-Q4_K_M.gguf
+        files: [Qwen_Image-Q4_K_M.gguf]
+        hashes:
+          Qwen_Image-Q4_K_M.gguf: "sha256:645473886d7dbb0103f84c563c798f7b0867293d919752d4d6be6a432b0bc988"
+        total_size_bytes: 13065746976
+        host_requirement:
+          accelerator: cuda
+          min_ram_bytes: 34359738368
+          min_vram_bytes: 25769803776
+    fitness:
+      param_count: 20000000000
+      context_length: 0
+  - model_id: qwen-image-edit-2511-local
+    model_type: image
+    family: qwen-image
+    updated_at: 2026-08-14
+    capabilities: [image.generate]
+    features: [input.image]
+    image_request_options:
+      response_formats: [b64_json, url]
+      max_images_per_request: 1
+      supports_negative_prompt: false
+      supports_reference_images: true
+      supports_mask: false
+      supports_seed: true
+      supports_size: true
+      supports_aspect_ratio: false
+      supports_quality: false
+      supports_style: false
+    source_ids:
+      - qwen_image_edit_2511_official_modelcard
+      - stable_diffusion_cpp_qwen_image_edit_guide
+      - unsloth_qwen_image_edit_2511_gguf_modelcard
+      - quantstack_qwen_image_gguf_modelcard
+      - mradermacher_qwen25_vl_7b_gguf_modelcard
+    install:
+      repo: unsloth/Qwen-Image-Edit-2511-GGUF
+      revision: 0d33d9692b4b26212297240d87b0d4719aa4fd06 # pragma: allowlist secret -- public immutable model revision
+      install_kind: weights
+      entry: qwen-image-edit-2511-Q4_K_M.gguf
+      artifact_roles: [edit_diffusion_model]
+      preferred_engine: media
+    variants:
+      - variant_id: local.image.qwen-image-edit-2511.q4-k-m.cuda
+        quant: Q4_K_M
+        entry: qwen-image-edit-2511-Q4_K_M.gguf
+        files: [qwen-image-edit-2511-Q4_K_M.gguf]
+        hashes:
+          qwen-image-edit-2511-Q4_K_M.gguf: "sha256:8677bac90627adbbc11efab87b1870e701c4eb3689ee865a3de8ab81b705a723"
+        total_size_bytes: 13244758624
+        host_requirement:
+          accelerator: cuda
+          min_ram_bytes: 34359738368
+          min_vram_bytes: 25769803776
+    fitness:
+      param_count: 20000000000
+      context_length: 0

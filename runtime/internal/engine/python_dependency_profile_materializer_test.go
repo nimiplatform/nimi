@@ -256,8 +256,8 @@ func TestEnsurePythonDependencyProfileReusesConsumerIndependentMediaProfile(t *t
 	if !videoStatus.Reused || videoStatus.ProfileRoot != imageStatus.ProfileRoot {
 		t.Fatalf("shared media profile reuse = %+v", videoStatus)
 	}
-	if got := countPythonDependencyProfileCommands(runner.commands, uvPath); got != uvCalls+1 {
-		t.Fatalf("second media consumer exact-lock checks = %d, want %d", got, uvCalls+1)
+	if got := countPythonDependencyProfileCommands(runner.commands, uvPath); got != uvCalls {
+		t.Fatalf("second media consumer reverified shared generation: before=%d after=%d", uvCalls, got)
 	}
 	if len(videoStatus.DriverScripts) != 1 || filepath.Base(videoStatus.DriverScripts[0]) != "media_server.py" {
 		t.Fatalf("media Driver scripts = %v", videoStatus.DriverScripts)
@@ -335,8 +335,8 @@ func TestEnsurePythonDependencyProfileStagesPromotesAndReusesReadOnly(t *testing
 	if !reused.Reused || reused.ProfileRoot != status.ProfileRoot {
 		t.Fatalf("reuse status = %+v", reused)
 	}
-	if got := countPythonDependencyProfileCommands(runner.commands, uvPath); got != uvCallsBefore+1 {
-		t.Fatalf("profile reuse exact-lock checks = %d, want %d", got, uvCallsBefore+1)
+	if got := countPythonDependencyProfileCommands(runner.commands, uvPath); got != uvCallsBefore {
+		t.Fatalf("cached profile reuse invoked uv: before=%d after=%d", uvCallsBefore, got)
 	}
 	if got := countPythonDependencyProfileCommands(runner.commands, runtimePath); got != runtimeCallsBefore {
 		t.Fatalf("profile reuse invoked shared Python runtime: before=%d after=%d", runtimeCallsBefore, got)
@@ -347,7 +347,7 @@ func TestEnsurePythonDependencyProfileStagesPromotesAndReusesReadOnly(t *testing
 	}
 }
 
-func TestEnsurePythonDependencyProfileRebuildsWhenExactEnvironmentCheckFails(t *testing.T) {
+func TestEnsurePythonDependencyProfilePersistentEnvironmentMismatchFailsClosedAndIsCached(t *testing.T) {
 	platform := currentGOOS() + "/" + currentGOARCH()
 	manager, uvPath, runtimePath := newPythonDependencyProfileTestManager(t)
 	runner := &pythonDependencyProfileTestRunner{t: t, uvPath: uvPath, runtimePath: runtimePath}
@@ -358,20 +358,29 @@ func TestEnsurePythonDependencyProfileRebuildsWhenExactEnvironmentCheckFails(t *
 	if err != nil {
 		t.Fatalf("materialize Python dependency profile: %v", err)
 	}
+	changedAt := time.Now().Add(2 * time.Second)
+	if err := os.Chtimes(status.InterpreterPath, changedAt, changedAt); err != nil {
+		t.Fatalf("change profile generation stamp: %v", err)
+	}
 	uvCallsBefore := countPythonDependencyProfileCommands(runner.commands, uvPath)
-	runner.failSyncCheckCount = 1
+	runner.failSyncCheckCount = -1
 
-	rebuilt, err := manager.ensurePythonDependencyProfile(
-		context.Background(), uvPath, runtimePath, "speech.qwen3-tts.python", platform, "cpu", runner.run,
-	)
-	if err != nil {
-		t.Fatalf("rebuild drifted Python dependency profile: %v", err)
+	for attempt := 0; attempt < 2; attempt++ {
+		_, err = manager.ensurePythonDependencyProfile(
+			context.Background(), uvPath, runtimePath, "speech.qwen3-tts.python", platform, "cpu", runner.run,
+		)
+		var verificationErr *PythonDependencyProfileVerificationError
+		if !errors.As(err, &verificationErr) {
+			t.Fatalf("attempt %d error = %v, want typed profile verification failure", attempt+1, err)
+		}
+		if verificationErr.ProfileDigest != status.Identity.ProfileDigest ||
+			verificationErr.ProfileRoot != status.ProfileRoot ||
+			!strings.Contains(verificationErr.Mismatch, "not synchronized with exact lock") {
+			t.Fatalf("attempt %d verification detail = %+v", attempt+1, verificationErr)
+		}
 	}
-	if rebuilt.Reused || rebuilt.ProfileRoot != status.ProfileRoot {
-		t.Fatalf("exact-lock drift rebuild status = %+v", rebuilt)
-	}
-	if got := countPythonDependencyProfileCommands(runner.commands, uvPath); got != uvCallsBefore+6 {
-		t.Fatalf("exact-lock drift rebuild uv calls = %d, want %d", got, uvCallsBefore+6)
+	if got := countPythonDependencyProfileCommands(runner.commands, uvPath); got != uvCallsBefore+1 {
+		t.Fatalf("persistent mismatch uv checks = %d, want one bounded check after %d initial calls", got, uvCallsBefore)
 	}
 	uvCommands := pythonDependencyProfileCommandsForBin(runner.commands, uvPath)
 	checkCommand := uvCommands[uvCallsBefore]
@@ -383,7 +392,7 @@ func TestEnsurePythonDependencyProfileRebuildsWhenExactEnvironmentCheckFails(t *
 	}
 }
 
-func TestEnsurePythonDependencyProfileRebuildsDamagedPromotedProfile(t *testing.T) {
+func TestEnsurePythonDependencyProfileStaticMismatchFailsClosedWithoutRebuild(t *testing.T) {
 	platform := currentGOOS() + "/" + currentGOARCH()
 	identity, err := ResolvePythonDependencyProfileIdentity("speech.qwen3-tts.python", platform, "cpu")
 	if err != nil {
@@ -410,27 +419,22 @@ func TestEnsurePythonDependencyProfileRebuildsDamagedPromotedProfile(t *testing.
 	}
 	uvCallsBefore := countPythonDependencyProfileCommands(runner.commands, uvPath)
 
-	rebuilt, err := manager.ensurePythonDependencyProfile(
+	_, err = manager.ensurePythonDependencyProfile(
 		context.Background(), uvPath, runtimePath, "speech.qwen3-tts.python", platform, "cpu", runner.run,
 	)
-	if err != nil {
-		t.Fatalf("rebuild damaged Python dependency profile: %v", err)
+	var verificationErr *PythonDependencyProfileVerificationError
+	if !errors.As(err, &verificationErr) || !strings.Contains(verificationErr.Mismatch, "static content drift") {
+		t.Fatalf("damaged profile verification error = %v, want typed static mismatch", err)
 	}
-	if rebuilt.Reused {
-		t.Fatalf("rebuilt profile reported reuse: %+v", rebuilt)
+	if err := VerifyPythonDependencyProfileStaticContent(status.ProfileRoot, "speech.qwen3-tts.python", identity); err == nil {
+		t.Fatal("verification failure unexpectedly rebuilt the damaged profile")
 	}
-	if rebuilt.ProfileRoot != status.ProfileRoot {
-		t.Fatalf("rebuilt profile root = %q, want stable identity root %q", rebuilt.ProfileRoot, status.ProfileRoot)
-	}
-	if err := VerifyPythonDependencyProfileStaticContent(rebuilt.ProfileRoot, "speech.qwen3-tts.python", identity); err != nil {
-		t.Fatalf("verify rebuilt profile static content: %v", err)
-	}
-	if got := countPythonDependencyProfileCommands(runner.commands, uvPath); got != uvCallsBefore+5 {
-		t.Fatalf("rebuild uv calls = %d, want %d", got, uvCallsBefore+5)
+	if got := countPythonDependencyProfileCommands(runner.commands, uvPath); got != uvCallsBefore {
+		t.Fatalf("static mismatch invoked uv or rebuild: before=%d after=%d", uvCallsBefore, got)
 	}
 }
 
-func TestEnsurePythonDependencyProfileRebuildsAfterRuntimeVerificationFailure(t *testing.T) {
+func TestEnsurePythonDependencyProfileRuntimeMismatchFailsClosedAndCachesFailure(t *testing.T) {
 	platform := currentGOOS() + "/" + currentGOARCH()
 	manager, uvPath, runtimePath := newPythonDependencyProfileTestManager(t)
 	runner := &pythonDependencyProfileTestRunner{t: t, uvPath: uvPath, runtimePath: runtimePath}
@@ -441,25 +445,29 @@ func TestEnsurePythonDependencyProfileRebuildsAfterRuntimeVerificationFailure(t 
 	if err != nil {
 		t.Fatalf("materialize Python dependency profile: %v", err)
 	}
+	changedAt := time.Now().Add(2 * time.Second)
+	if err := os.Chtimes(status.InterpreterPath, changedAt, changedAt); err != nil {
+		t.Fatalf("change profile generation stamp: %v", err)
+	}
 	uvCallsBefore := countPythonDependencyProfileCommands(runner.commands, uvPath)
 	runner.failProbeRoot = status.ProfileRoot
-	runner.failProbeCount = 1
+	runner.failProbeCount = -1
 
-	rebuilt, err := manager.ensurePythonDependencyProfile(
-		context.Background(), uvPath, runtimePath, "speech.qwen3-tts.python", platform, "cpu", runner.run,
-	)
-	if err != nil {
-		t.Fatalf("rebuild after promoted runtime verification failure: %v", err)
+	for attempt := 0; attempt < 2; attempt++ {
+		_, err := manager.ensurePythonDependencyProfile(
+			context.Background(), uvPath, runtimePath, "speech.qwen3-tts.python", platform, "cpu", runner.run,
+		)
+		var verificationErr *PythonDependencyProfileVerificationError
+		if !errors.As(err, &verificationErr) || !strings.Contains(verificationErr.Mismatch, "Torch allocation failure") {
+			t.Fatalf("attempt %d runtime verification error = %v", attempt+1, err)
+		}
 	}
-	if rebuilt.Reused {
-		t.Fatalf("runtime-rebuilt profile reported reuse: %+v", rebuilt)
-	}
-	if got := countPythonDependencyProfileCommands(runner.commands, uvPath); got != uvCallsBefore+6 {
-		t.Fatalf("runtime rebuild uv calls = %d, want %d", got, uvCallsBefore+6)
+	if got := countPythonDependencyProfileCommands(runner.commands, uvPath); got != uvCallsBefore+1 {
+		t.Fatalf("runtime mismatch uv checks = %d, want one check after %d initial calls", got, uvCallsBefore)
 	}
 }
 
-func TestEnsurePythonDependencyProfileRestoresPreviousRootWhenReplacementVerificationFails(t *testing.T) {
+func TestEnsurePythonDependencyProfileCachesStaticMismatchWithoutReplacement(t *testing.T) {
 	platform := currentGOOS() + "/" + currentGOARCH()
 	identity, err := ResolvePythonDependencyProfileIdentity("speech.qwen3-tts.python", platform, "cpu")
 	if err != nil {
@@ -482,21 +490,26 @@ func TestEnsurePythonDependencyProfileRestoresPreviousRootWhenReplacementVerific
 		t.Fatalf("drift promoted lock: %v", err)
 	}
 	previous := snapshotPythonDependencyProfileFiles(t, status.ProfileRoot)
-	runner.failProbeRoot = status.ProfileRoot
-	runner.failProbeCount = -1
+	commandsBefore := len(runner.commands)
 
-	_, err = manager.ensurePythonDependencyProfile(
-		context.Background(), uvPath, runtimePath, "speech.qwen3-tts.python", platform, "cpu", runner.run,
-	)
-	if err == nil || !strings.Contains(err.Error(), "test Torch allocation failure") {
-		t.Fatalf("replacement verification error = %v, want Torch probe failure", err)
+	for attempt := 0; attempt < 2; attempt++ {
+		_, err = manager.ensurePythonDependencyProfile(
+			context.Background(), uvPath, runtimePath, "speech.qwen3-tts.python", platform, "cpu", runner.run,
+		)
+		var verificationErr *PythonDependencyProfileVerificationError
+		if !errors.As(err, &verificationErr) || !strings.Contains(verificationErr.Mismatch, "static content drift") {
+			t.Fatalf("attempt %d static verification error = %v", attempt+1, err)
+		}
 	}
 	after := snapshotPythonDependencyProfileFiles(t, status.ProfileRoot)
 	if !reflect.DeepEqual(after, previous) {
-		t.Fatalf("failed replacement did not restore previous profile:\nprevious=%v\nafter=%v", previous, after)
+		t.Fatalf("fail-closed verification mutated profile:\nprevious=%v\nafter=%v", previous, after)
+	}
+	if len(runner.commands) != commandsBefore {
+		t.Fatalf("cached static mismatch invoked commands: before=%d after=%d", commandsBefore, len(runner.commands))
 	}
 	if err := VerifyPythonDependencyProfileStaticContent(status.ProfileRoot, "speech.qwen3-tts.python", identity); err == nil {
-		t.Fatal("failed replacement left rebuilt profile instead of restoring damaged previous root")
+		t.Fatal("fail-closed verification unexpectedly replaced the damaged profile")
 	}
 	for _, pattern := range []string{
 		filepath.Join(filepath.Dir(status.ProfileRoot), ".*.staging-*"),

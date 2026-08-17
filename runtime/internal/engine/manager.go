@@ -64,13 +64,14 @@ type Manager struct {
 	sharedAcceleratorDependenciesPath string
 	managedImageBackend               *ManagedImageBackendConfig
 
-	mu                 sync.RWMutex
-	uvToolMu           sync.Mutex
-	pythonRuntimeMu    sync.Mutex
-	pythonProfileMu    sync.Mutex
-	pythonProfileLocks map[string]chan struct{}
-	supervisors        map[EngineKind]*Supervisor
-	starting           map[EngineKind]bool
+	mu                         sync.RWMutex
+	uvToolMu                   sync.Mutex
+	pythonRuntimeMu            sync.Mutex
+	pythonProfileMu            sync.Mutex
+	pythonProfileLocks         map[string]chan struct{}
+	pythonProfileVerifications map[string]pythonDependencyProfileVerificationCacheEntry
+	supervisors                map[EngineKind]*Supervisor
+	starting                   map[EngineKind]bool
 }
 
 // NewManager creates a new engine manager.
@@ -122,6 +123,7 @@ func NewManager(logger *slog.Logger, roots ManagedRoots, onState StateChangeFunc
 		managedImageBackendsPath:          filepath.Join(baseDir, "managed-image-backends"),
 		sharedAcceleratorDependenciesPath: filepath.Join(depsDir, "accelerator-dependencies"),
 		pythonProfileLocks:                make(map[string]chan struct{}),
+		pythonProfileVerifications:        make(map[string]pythonDependencyProfileVerificationCacheEntry),
 		supervisors:                       make(map[EngineKind]*Supervisor),
 		starting:                          make(map[EngineKind]bool),
 	}, nil

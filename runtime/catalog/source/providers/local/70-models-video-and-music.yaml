@@ -1,4 +1,132 @@
 models:
+  # MiniMax-H3 is a five-axis stable-diffusion.cpp recipe. FL2VA and Ref2VA
+  # are independent video ModelAssets; the combined encoder is a reusable
+  # chat-kind ModelAsset; both VAEs are passive assets. No version grouping is
+  # implied by these catalog recommendations.
+  - model_id: minimax-h3-fl2va-local
+    model_type: video
+    family: minimax-h3
+    updated_at: 2026-08-16
+    capabilities: [video.generate]
+    features: [input.image]
+    source_ids: [minimax_h3_gguf_modelcard, minimax_h3_comfy_modelcard, stable_diffusion_cpp_minimax_h3_guide]
+    video_generation:
+      modes: [t2v, i2v_first_frame]
+      input_roles:
+        t2v: [prompt]
+        i2v_first_frame: [prompt, first_frame]
+      limits:
+        resolution: [288p, 480p]
+      options:
+        supports: [resolution, duration_sec]
+        constraints: {}
+      outputs:
+        video_url: true
+    install:
+      repo: leejet/MiniMax-H3-GGUF
+      revision: d31b8066b4f7c036e7d10d5685567f8f54c8be54 # pragma: allowlist secret -- public immutable model revision
+      install_kind: weights
+      entry: minimax_h3_fl2va-Q4_K_M.gguf
+      artifact_roles: [diffusion_transformer]
+      preferred_engine: media
+    variants:
+      - variant_id: local.video.minimax-h3-fl2va.q4-k-m.cuda
+        quant: Q4_K_M
+        entry: minimax_h3_fl2va-Q4_K_M.gguf
+        files: [minimax_h3_fl2va-Q4_K_M.gguf]
+        hashes:
+          minimax_h3_fl2va-Q4_K_M.gguf: "sha256:a25ee3184dd56e7fc5c8db1508d2e48a7e3c92919b516935c6059e4228e16107"
+        total_size_bytes: 18779848448
+        host_requirement:
+          accelerator: cuda
+          min_ram_bytes: 34359738368
+          min_vram_bytes: 25769803776
+    fitness:
+      param_count: 32000000000
+      context_length: 0
+  - model_id: minimax-h3-ref2va-local
+    model_type: video
+    family: minimax-h3
+    updated_at: 2026-08-16
+    capabilities: [video.generate]
+    features: [input.image]
+    source_ids: [minimax_h3_gguf_modelcard, stable_diffusion_cpp_minimax_h3_guide]
+    video_generation:
+      modes: [i2v_first_frame]
+      input_roles:
+        i2v_first_frame: [prompt, first_frame]
+      limits:
+        resolution: [288p, 480p]
+      options:
+        supports: [resolution, duration_sec]
+        constraints: {}
+      outputs:
+        video_url: true
+    install:
+      repo: leejet/MiniMax-H3-GGUF
+      revision: d31b8066b4f7c036e7d10d5685567f8f54c8be54 # pragma: allowlist secret -- public immutable model revision
+      install_kind: weights
+      entry: minimax_h3_ref2va_pruned-Q4_K_M.gguf
+      artifact_roles: [diffusion_transformer]
+      preferred_engine: media
+    variants:
+      - variant_id: local.video.minimax-h3-ref2va-pruned.q4-k-m.cuda
+        quant: Q4_K_M
+        entry: minimax_h3_ref2va_pruned-Q4_K_M.gguf
+        files: [minimax_h3_ref2va_pruned-Q4_K_M.gguf]
+        hashes:
+          minimax_h3_ref2va_pruned-Q4_K_M.gguf: "sha256:9ca1aef9f4609a56c2c751484013e1b20fe352f892122e5ab0a428fb95a7956e"
+        total_size_bytes: 11420663904
+        host_requirement:
+          accelerator: cuda
+          min_ram_bytes: 34359738368
+          min_vram_bytes: 25769803776
+      - variant_id: local.video.minimax-h3-ref2va-pruned.q2-k-m.cuda
+        quant: Q2_K_M
+        entry: minimax_h3_ref2va_pruned-Q2_K_M.gguf
+        files: [minimax_h3_ref2va_pruned-Q2_K_M.gguf]
+        hashes:
+          minimax_h3_ref2va_pruned-Q2_K_M.gguf: "sha256:792651930a5d1a2f4b4f55d9e3c7222d2c12d8a300272bbf0fec6b13fa695d6e"
+        total_size_bytes: 6724190304
+        host_requirement:
+          accelerator: cuda
+          min_ram_bytes: 25769803776
+          min_vram_bytes: 17179869184
+    fitness:
+      param_count: 20000000000
+      context_length: 0
+    aliases: [local/minimax-h3-ref2va]
+
+  - model_id: minimax-h3-qwen3-vl-32b-encoder-local
+    model_type: chat
+    family: qwen-vl
+    updated_at: 2026-08-16
+    capabilities: [text.generate]
+    source_ids: [minimax_h3_gguf_modelcard, stable_diffusion_cpp_minimax_h3_guide]
+    install:
+      repo: leejet/MiniMax-H3-GGUF
+      revision: d31b8066b4f7c036e7d10d5685567f8f54c8be54 # pragma: allowlist secret -- public immutable model revision
+      install_kind: weights
+      entry: qwen3vl_32b_minimax_h3-Q4_K_M.gguf
+      artifact_roles: [llm]
+      preferred_engine: media
+    variants:
+      - variant_id: local.video-encoder.minimax-h3-qwen3-vl-32b.q4-k-m.cuda
+        quant: Q4_K_M
+        entry: qwen3vl_32b_minimax_h3-Q4_K_M.gguf
+        files: [qwen3vl_32b_minimax_h3-Q4_K_M.gguf]
+        hashes:
+          qwen3vl_32b_minimax_h3-Q4_K_M.gguf: "sha256:11e6efe70a57ce7f4838c47bdbd1a1c4b8ce10e2b7747f1b065990b70f4b05fc"
+        total_size_bytes: 18218065024
+        host_requirement:
+          accelerator: cuda
+          min_ram_bytes: 34359738368
+          min_vram_bytes: 17179869184
+    fitness:
+      param_count: 32000000000
+      context_length: 0
+    aliases: [local/minimax-h3-qwen3-vl-encoder]
+
   - model_id: wan2.1-video-local
     model_type: video
     updated_at: 2026-03-15

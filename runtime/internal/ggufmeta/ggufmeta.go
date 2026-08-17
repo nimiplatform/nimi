@@ -62,64 +62,16 @@ func InspectPath(path string) (Summary, error) {
 }
 
 func Inspect(reader io.Reader) (Summary, error) {
-	if reader == nil {
-		return Summary{}, fmt.Errorf("gguf reader is unavailable")
-	}
-
-	var summary Summary
-	header := make([]byte, len(magicHeader))
-	if _, err := io.ReadFull(reader, header); err != nil {
-		return Summary{}, fmt.Errorf("read gguf magic: %w", err)
-	}
-	summary.Magic = string(header)
-	if summary.Magic != magicHeader {
-		return Summary{}, fmt.Errorf("invalid gguf magic %q", summary.Magic)
-	}
-	if err := binary.Read(reader, binary.LittleEndian, &summary.Version); err != nil {
-		return Summary{}, fmt.Errorf("read gguf version: %w", err)
-	}
-	if err := binary.Read(reader, binary.LittleEndian, &summary.TensorCount); err != nil {
-		return Summary{}, fmt.Errorf("read gguf tensor count: %w", err)
-	}
-	if err := binary.Read(reader, binary.LittleEndian, &summary.KVCount); err != nil {
-		return Summary{}, fmt.Errorf("read gguf kv count: %w", err)
-	}
-	if summary.KVCount > maxMetadataEntries {
-		return Summary{}, fmt.Errorf("gguf metadata entry count too large: %d", summary.KVCount)
-	}
-	if summary.TensorCount > maxTensorEntries {
-		return Summary{}, fmt.Errorf("gguf tensor count too large: %d", summary.TensorCount)
+	summary, err := readSummaryHeader(reader)
+	if err != nil {
+		return Summary{}, err
 	}
 
 	summary.Entries = make([]MetadataEntry, 0, summary.KVCount)
 	for i := uint64(0); i < summary.KVCount; i++ {
-		key, err := readGGUFString(reader)
+		entry, err := readMetadataEntry(reader, i)
 		if err != nil {
-			return Summary{}, fmt.Errorf("read gguf metadata key %d: %w", i, err)
-		}
-		valueType, err := readValueType(reader)
-		if err != nil {
-			return Summary{}, fmt.Errorf("read gguf metadata type %q: %w", key, err)
-		}
-		entry := MetadataEntry{Key: key, Type: valueType}
-		if valueType == ValueTypeString {
-			value, err := readGGUFString(reader)
-			if err != nil {
-				return Summary{}, fmt.Errorf("read gguf metadata string %q: %w", key, err)
-			}
-			entry.StringValue = value
-			entry.HasStringValue = true
-		} else if isIntegerValueType(valueType) {
-			value, ok, err := readUint64MetadataValue(reader, valueType)
-			if err != nil {
-				return Summary{}, fmt.Errorf("read gguf metadata integer %q: %w", key, err)
-			}
-			entry.Uint64Value = value
-			entry.HasUint64Value = ok
-		} else {
-			if err := skipValue(reader, valueType); err != nil {
-				return Summary{}, fmt.Errorf("skip gguf metadata value %q: %w", key, err)
-			}
+			return Summary{}, err
 		}
 		summary.Entries = append(summary.Entries, entry)
 	}
@@ -155,6 +107,94 @@ func Inspect(reader io.Reader) (Summary, error) {
 		}
 	}
 	return summary, nil
+}
+
+// InspectLLMMetadata reads only the GGUF metadata needed by LLM Drivers. It
+// returns as soon as architecture and model-authored context length are known,
+// without traversing unrelated tokenizer arrays or tensor headers. If a
+// bounded prefix ends after a valid architecture but before optional context
+// metadata, the already-read architecture remains usable.
+func InspectLLMMetadata(reader io.Reader) (Summary, error) {
+	summary, err := readSummaryHeader(reader)
+	if err != nil {
+		return Summary{}, err
+	}
+	for i := uint64(0); i < summary.KVCount; i++ {
+		entry, err := readMetadataEntry(reader, i)
+		if err != nil {
+			if LLMDetectedArchitecture(summary) != "" {
+				return summary, nil
+			}
+			return Summary{}, err
+		}
+		summary.Entries = append(summary.Entries, entry)
+		if _, ok := LLMContextLength(summary); ok {
+			return summary, nil
+		}
+	}
+	return summary, nil
+}
+
+func readSummaryHeader(reader io.Reader) (Summary, error) {
+	if reader == nil {
+		return Summary{}, fmt.Errorf("gguf reader is unavailable")
+	}
+
+	var summary Summary
+	header := make([]byte, len(magicHeader))
+	if _, err := io.ReadFull(reader, header); err != nil {
+		return Summary{}, fmt.Errorf("read gguf magic: %w", err)
+	}
+	summary.Magic = string(header)
+	if summary.Magic != magicHeader {
+		return Summary{}, fmt.Errorf("invalid gguf magic %q", summary.Magic)
+	}
+	if err := binary.Read(reader, binary.LittleEndian, &summary.Version); err != nil {
+		return Summary{}, fmt.Errorf("read gguf version: %w", err)
+	}
+	if err := binary.Read(reader, binary.LittleEndian, &summary.TensorCount); err != nil {
+		return Summary{}, fmt.Errorf("read gguf tensor count: %w", err)
+	}
+	if err := binary.Read(reader, binary.LittleEndian, &summary.KVCount); err != nil {
+		return Summary{}, fmt.Errorf("read gguf kv count: %w", err)
+	}
+	if summary.KVCount > maxMetadataEntries {
+		return Summary{}, fmt.Errorf("gguf metadata entry count too large: %d", summary.KVCount)
+	}
+	if summary.TensorCount > maxTensorEntries {
+		return Summary{}, fmt.Errorf("gguf tensor count too large: %d", summary.TensorCount)
+	}
+	return summary, nil
+}
+
+func readMetadataEntry(reader io.Reader, index uint64) (MetadataEntry, error) {
+	key, err := readGGUFString(reader)
+	if err != nil {
+		return MetadataEntry{}, fmt.Errorf("read gguf metadata key %d: %w", index, err)
+	}
+	valueType, err := readValueType(reader)
+	if err != nil {
+		return MetadataEntry{}, fmt.Errorf("read gguf metadata type %q: %w", key, err)
+	}
+	entry := MetadataEntry{Key: key, Type: valueType}
+	if valueType == ValueTypeString {
+		value, err := readGGUFString(reader)
+		if err != nil {
+			return MetadataEntry{}, fmt.Errorf("read gguf metadata string %q: %w", key, err)
+		}
+		entry.StringValue = value
+		entry.HasStringValue = true
+	} else if isIntegerValueType(valueType) {
+		value, ok, err := readUint64MetadataValue(reader, valueType)
+		if err != nil {
+			return MetadataEntry{}, fmt.Errorf("read gguf metadata integer %q: %w", key, err)
+		}
+		entry.Uint64Value = value
+		entry.HasUint64Value = ok
+	} else if err := skipValue(reader, valueType); err != nil {
+		return MetadataEntry{}, fmt.Errorf("skip gguf metadata value %q: %w", key, err)
+	}
+	return entry, nil
 }
 
 func (s Summary) Keys() []string {

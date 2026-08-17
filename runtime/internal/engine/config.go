@@ -37,6 +37,17 @@ const (
 	HealthModeTCP  EngineHealthMode = "tcp"
 )
 
+// SpeechDriver identifies the exact runtime-native Driver whose preflight
+// defines readiness for a capability-scoped speech ExecutionHost.
+type SpeechDriver string
+
+const (
+	SpeechDriverQwen3TTS             SpeechDriver = "qwen3_tts"
+	SpeechDriverQwen3ASR             SpeechDriver = "qwen3_asr"
+	SpeechDriverQwen3ASRTransformers SpeechDriver = "qwen3_asr_transformers"
+	SpeechDriverVoxCPM               SpeechDriver = "voxcpm"
+)
+
 // ManagedImageBackendMode selects how the runtime-owned managed image backend is supplied.
 type ManagedImageBackendMode string
 
@@ -205,6 +216,14 @@ type EngineConfig struct {
 	// with SpeechHostPackageSetRoot. It is Runtime-internal composition input,
 	// never a user-selectable accelerator override.
 	SpeechHostAcceleratorPlane string
+	// SpeechRequiredDriver is copied from the already-selected capability Driver.
+	// Supervisor readiness must not infer it from package-set path equality.
+	SpeechRequiredDriver SpeechDriver
+
+	// SpeechAdmissionToken is a Runtime-private, per-process registration secret.
+	// It is generated in-process for each supervised speech Host lifecycle and is
+	// never accepted from or projected onto a product configuration surface.
+	SpeechAdmissionToken string
 
 	// SpeechQwen3TTSPackageSetRoot is the Runtime-verified qwen3_tts Python
 	// package-set root used to derive the supervised speech TTS driver command.

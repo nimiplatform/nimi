@@ -105,12 +105,12 @@ func buildStableDiffusionCPPGenerateRequest(_ loadModelState, req imageGenerateS
 
 	switch req.Mode {
 	case ImageRequestModeTextToImage:
-		if strings.TrimSpace(req.Src) != "" || strings.TrimSpace(req.Mask) != "" {
+		if strings.TrimSpace(req.Src) != "" || strings.TrimSpace(req.Mask) != "" || len(req.ReferenceImage) != 0 {
 			return "", nil, fmt.Errorf("stable-diffusion.cpp text-to-image request contains image inputs")
 		}
 		return "/sdapi/v1/txt2img", payload, nil
 	case ImageRequestModeImageToImage:
-		if strings.TrimSpace(req.Src) == "" {
+		if strings.TrimSpace(req.Src) == "" || len(req.ReferenceImage) != 0 {
 			return "", nil, fmt.Errorf("stable-diffusion.cpp image-to-image request requires src")
 		}
 		sourceImage, err := loadManagedImageRequestImage(strings.TrimSpace(req.Src))
@@ -126,6 +126,12 @@ func buildStableDiffusionCPPGenerateRequest(_ loadModelState, req imageGenerateS
 			payload["mask"] = maskImage
 		}
 		return "/sdapi/v1/img2img", payload, nil
+	case ImageRequestModeInstructionEdit:
+		if strings.TrimSpace(req.Src) != "" || strings.TrimSpace(req.Mask) != "" || len(req.ReferenceImage) == 0 {
+			return "", nil, fmt.Errorf("stable-diffusion.cpp instruction edit requires resolved image bytes and rejects paths and masks")
+		}
+		payload["extra_images"] = []string{base64.StdEncoding.EncodeToString(req.ReferenceImage)}
+		return "/sdapi/v1/txt2img", payload, nil
 	default:
 		return "", nil, fmt.Errorf("stable-diffusion.cpp request mode is unknown")
 	}

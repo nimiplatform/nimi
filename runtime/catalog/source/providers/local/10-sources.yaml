@@ -34,19 +34,47 @@ sources:
   - source_id: gemma4_e2b_gguf_modelcard
     url: https://huggingface.co/unsloth/gemma-4-E2B-it-GGUF
     retrieved_at: 2026-05-21
-    note: Curated minimal-preset local chat checkpoint (Gemma 4 E2B, GGUF quants).
+    note: Curated local chat checkpoint (Gemma 4 E2B, GGUF quants).
   - source_id: gemma4_26b_a4b_gguf_modelcard
     url: https://huggingface.co/unsloth/gemma-4-26B-A4B-it-GGUF
     retrieved_at: 2026-05-21
-    note: Curated recommended-preset local chat checkpoint (Gemma 4 26B-A4B MoE, GGUF quants).
+    note: Curated local chat checkpoint (Gemma 4 26B-A4B MoE, GGUF quants).
   - source_id: z_image_turbo_gguf_modelcard
     url: https://huggingface.co/leejet/Z-Image-Turbo-GGUF
     retrieved_at: 2026-05-21
-    note: Curated recommended-preset local image checkpoint (Z-Image-Turbo, stable-diffusion.cpp GGUF quants).
+    note: Curated local image checkpoint (Z-Image-Turbo, stable-diffusion.cpp GGUF quants).
   - source_id: stable_diffusion_cpp_z_image_guide
-    url: https://github.com/leejet/stable-diffusion.cpp/blob/master/docs/z_image.md
-    retrieved_at: 2026-05-21
-    note: stable-diffusion.cpp Z-Image usage guide defining the diffusion-model / vae / llm engine slots.
+    url: https://github.com/leejet/stable-diffusion.cpp/blob/bfbef5b7e64e89a0205894853de25d19a7ba54b9/docs/z_image.md
+    retrieved_at: 2026-08-14
+    note: Pinned stable-diffusion.cpp Z-Image usage guide defining the diffusion-model / vae / llm engine slots.
+  - source_id: ideogram4_gguf_modelcard
+    url: https://huggingface.co/leejet/ideogram-4-GGUF/tree/c93c0ac616d3abc7910c9af0bf117244ce3a11c4
+    retrieved_at: 2026-08-16
+    note: Engine-compatible Ideogram4 main and unconditional GGUF artifacts pinned to one immutable revision.
+  - source_id: stable_diffusion_cpp_ideogram4_guide
+    url: https://github.com/leejet/stable-diffusion.cpp/blob/bfbef5b7e64e89a0205894853de25d19a7ba54b9/docs/ideogram4.md
+    retrieved_at: 2026-08-16
+    note: Pinned stable-diffusion.cpp Ideogram4 guide defining the main, unconditional, Qwen3-VL encoder, and FLUX.2 VAE slots.
+  - source_id: qwen3_vl_8b_instruct_gguf_modelcard
+    url: https://huggingface.co/unsloth/Qwen3-VL-8B-Instruct-GGUF/tree/b93a7ee713758252c555be4210c00540df954dc2
+    retrieved_at: 2026-08-16
+    note: Engine-compatible Qwen3-VL 8B text encoder conversion used by the Ideogram4 recipe.
+  - source_id: flux2_dev_modelcard
+    url: https://huggingface.co/black-forest-labs/FLUX.2-dev/tree/26afe3a78bb242c0a8bb181dcc8937bb16e5c66c
+    retrieved_at: 2026-08-16
+    note: Canonical FLUX.2 VAE source used by the Ideogram4 recipe.
+  - source_id: minimax_h3_gguf_modelcard
+    url: https://huggingface.co/leejet/MiniMax-H3-GGUF/tree/d31b8066b4f7c036e7d10d5685567f8f54c8be54
+    retrieved_at: 2026-08-16
+    note: Engine-compatible MiniMax-H3 FL2VA, Ref2VA, and combined Qwen3-VL GGUF artifacts.
+  - source_id: minimax_h3_comfy_modelcard
+    url: https://huggingface.co/Comfy-Org/MiniMax-H3/tree/d07f69bc8fa09c9717e1e47180034f9322e0e54d
+    retrieved_at: 2026-08-16
+    note: MiniMax-H3 video and audio VAE artifacts used by the stable-diffusion.cpp recipe.
+  - source_id: stable_diffusion_cpp_minimax_h3_guide
+    url: https://github.com/leejet/stable-diffusion.cpp/blob/c6beeef35526c6dc94b74a7fb69f9d2e6a2a7a12/docs/minimax_h3.md
+    retrieved_at: 2026-08-16
+    note: Pinned stable-diffusion.cpp MiniMax-H3 five-component execution guide.
   - source_id: comfy_org_z_image_turbo_modelcard
     url: https://huggingface.co/Comfy-Org/z_image_turbo
     retrieved_at: 2026-05-21
@@ -59,6 +87,34 @@ sources:
     url: https://huggingface.co/unsloth/Qwen3-4B-Instruct-2507-GGUF
     retrieved_at: 2026-05-21
     note: Z-Image-Turbo text-encoder companion source (Qwen3-4B-Instruct-2507, GGUF quants for the stable-diffusion.cpp --llm slot).
+  - source_id: qwen_image_official_modelcard
+    url: https://huggingface.co/Qwen/Qwen-Image/tree/75e0b4be04f60ec59a75f475837eced720f823b6
+    retrieved_at: 2026-08-14
+    note: Official Qwen Image lineage and text-to-image product semantics; not the stable-diffusion.cpp execution artifact.
+  - source_id: qwen_image_edit_2511_official_modelcard
+    url: https://huggingface.co/Qwen/Qwen-Image-Edit-2511/tree/6f3ccc0b56e431dc6a0c2b2039706d7d26f22cb9
+    retrieved_at: 2026-08-14
+    note: Official Qwen Image Edit 2511 lineage and instruction-based image editing semantics; not the stable-diffusion.cpp execution artifact.
+  - source_id: stable_diffusion_cpp_qwen_image_guide
+    url: https://github.com/leejet/stable-diffusion.cpp/blob/bfbef5b7e64e89a0205894853de25d19a7ba54b9/docs/qwen_image.md
+    retrieved_at: 2026-08-14
+    note: Pinned engine guide defining Qwen Image diffusion-model, VAE, LLM, sampler, and flow-shift requirements.
+  - source_id: stable_diffusion_cpp_qwen_image_edit_guide
+    url: https://github.com/leejet/stable-diffusion.cpp/blob/bfbef5b7e64e89a0205894853de25d19a7ba54b9/docs/qwen_image_edit.md
+    retrieved_at: 2026-08-14
+    note: Pinned engine guide naming the Qwen Image Edit 2511 conversion and its required zero-conditioning model option.
+  - source_id: quantstack_qwen_image_gguf_modelcard
+    url: https://huggingface.co/QuantStack/Qwen-Image-GGUF/tree/257f261fa92593bed760aa6fa3f7921a49fea00f
+    retrieved_at: 2026-08-14
+    note: Engine-compatible Qwen Image GGUF conversion plus Qwen Image VAE artifact, pinned independently from the official model lineage.
+  - source_id: unsloth_qwen_image_edit_2511_gguf_modelcard
+    url: https://huggingface.co/unsloth/Qwen-Image-Edit-2511-GGUF/tree/0d33d9692b4b26212297240d87b0d4719aa4fd06
+    retrieved_at: 2026-08-14
+    note: Engine-referenced Qwen Image Edit 2511 GGUF conversion, pinned independently from the official model lineage.
+  - source_id: mradermacher_qwen25_vl_7b_gguf_modelcard
+    url: https://huggingface.co/mradermacher/Qwen2.5-VL-7B-Instruct-GGUF/tree/cfa2baa09946b211c107e6e104948987a64dd2c1
+    retrieved_at: 2026-08-14
+    note: Engine-compatible Qwen2.5-VL-7B text-encoder GGUF companion used by the canonical Qwen Image recipes.
   - source_id: nomic_embed_text_v15_modelcard
     url: https://huggingface.co/nomic-ai/nomic-embed-text-v1.5
     retrieved_at: 2026-06-08

@@ -1,8 +1,13 @@
+// @nimi-authority: rule.nimi.runtime.local-compute.r107
+
 package capabilitydriver
 
 import (
+	"bytes"
 	"crypto/sha256"
+	"encoding/binary"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"math"
 	"path/filepath"
@@ -12,19 +17,23 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/aicapabilities"
+	"github.com/nimiplatform/nimi/runtime/internal/ggufmeta"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
 const (
 	StableDiffusionImplementationID   = "local.image.generate.stable-diffusion-cpp"
 	StableDiffusionDriverID           = "nimi.runtime.driver.stable-diffusion-cpp"
-	StableDiffusionDriverDialect      = "stable-diffusion.cpp/image-generate/v1"
+	StableDiffusionDriverDialect      = "stable-diffusion.cpp/image-generate/v2"
 	StableDiffusionCapabilityContract = "image.generate"
 
 	StableDiffusionMainRequirementID            = "main.diffusion"
 	StableDiffusionTextEncoderRequirementID     = "companion.text-encoder"
 	StableDiffusionVAERequirementID             = "companion.vae"
 	StableDiffusionUncondDiffusionRequirementID = "companion.uncond-diffusion"
+
+	StableDiffusionQwenImageRecipeID     = "qwen-image"
+	StableDiffusionQwenImageEditRecipeID = "qwen-image-edit-2511"
 )
 
 const (
@@ -40,8 +49,8 @@ const (
 // StableDiffusionImageDriver owns the stable-diffusion.cpp portable dialect.
 type StableDiffusionImageDriver struct{}
 
-func (StableDiffusionImageDriver) EffectiveRequestDefaults(value *structpb.Struct) map[string]string {
-	portable, reason := parseStableDiffusionPortableConfig(value)
+func (StableDiffusionImageDriver) EffectiveRequestDefaults(recipeID string, value *structpb.Struct) map[string]string {
+	portable, reason := parseStableDiffusionPortableConfig(recipeID, value)
 	if reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {
 		return nil
 	}
@@ -53,16 +62,16 @@ func (StableDiffusionImageDriver) EffectiveRequestDefaults(value *structpb.Struc
 }
 
 type stableDiffusionFamilySpec struct {
-	name           string
-	requiresUncond bool
-	compatibleVAEs []string
-}
-
-// stableDiffusionRequirementIntent remains the video Driver's portable
-// requirement intent. Image authoring does not admit these fields.
-type stableDiffusionRequirementIntent struct {
-	policy            runtimev1.LocalCapabilityRequirementPolicy
-	verifiedContentID string
+	name                            string
+	mainArtifactRole                string
+	requiresUncond                  bool
+	mainGGUFArchitectures           []string
+	mainGGUFFamilies                []string
+	compatibleTextEncoders          []string
+	textEncoderGGUFArchitectures    []string
+	textEncoderArchitectureFamilies []string
+	compatibleVAEs                  []string
+	vaeTensorContract               string
 }
 
 func stableDiffusionFamily(value string) (stableDiffusionFamilySpec, bool) {
@@ -73,9 +82,23 @@ func stableDiffusionFamily(value string) (stableDiffusionFamilySpec, bool) {
 	case "z-image":
 		// Z-Image consumes the FLUX.1 VAE (ae.safetensors): its decoder conv_in
 		// weight projects the 16-channel latent shape as flux1-vae.
-		return stableDiffusionFamilySpec{name: value, compatibleVAEs: []string{"flux1-vae"}}, true
+		return stableDiffusionFamilySpec{
+			name: value, mainArtifactRole: "diffusion_model", mainGGUFFamilies: []string{"z-image"},
+			compatibleTextEncoders: []string{"qwen"}, textEncoderArchitectureFamilies: []string{"qwen"},
+			compatibleVAEs: []string{"flux1-vae"}, vaeTensorContract: "flux1-vae-16ch",
+		}, true
 	case "ideogram4":
-		return stableDiffusionFamilySpec{name: value, requiresUncond: true, compatibleVAEs: []string{"flux2-vae"}}, true
+		return stableDiffusionFamilySpec{
+			name: value, mainArtifactRole: "diffusion_model", requiresUncond: true, mainGGUFFamilies: []string{"ideogram4"},
+			compatibleTextEncoders: []string{"qwen-vl"}, textEncoderArchitectureFamilies: []string{"qwen-vl"},
+			compatibleVAEs: []string{"flux2-vae"}, vaeTensorContract: "flux2-vae",
+		}, true
+	case "qwen-image":
+		return stableDiffusionFamilySpec{
+			name: value, mainArtifactRole: "diffusion_model", mainGGUFArchitectures: []string{"qwen_image"},
+			compatibleTextEncoders: []string{"qwen-vl"}, textEncoderGGUFArchitectures: []string{"qwen2vl"},
+			compatibleVAEs: []string{"qwen-image-vae"}, vaeTensorContract: "qwen-image-vae-3d",
+		}, true
 	default:
 		return stableDiffusionFamilySpec{}, false
 	}
@@ -92,16 +115,41 @@ type stableDiffusionExecutionOptions struct {
 	threads                 int
 	diffusionFlashAttention bool
 	offloadParamsToCPU      bool
+	flowShift               float64
 }
 
 type stableDiffusionPortableConfig struct {
-	family           stableDiffusionFamilySpec
-	enableInputImage bool
-	execution        stableDiffusionExecutionOptions
+	family        stableDiffusionFamilySpec
+	recipeID      string
+	qwenZeroCondT bool
+	execution     stableDiffusionExecutionOptions
+}
+
+func stableDiffusionRecipe(family stableDiffusionFamilySpec, recipeID string) (stableDiffusionFamilySpec, bool, bool) {
+	switch recipeID {
+	case "z-image":
+		return family, family.name == "z-image", false
+	case "ideogram4":
+		return family, family.name == "ideogram4", false
+	case "qwen-image":
+		return family, family.name == "qwen-image", false
+	case "qwen-image-edit-2511":
+		if family.name != "qwen-image" {
+			return stableDiffusionFamilySpec{}, false, false
+		}
+		family.mainArtifactRole = "edit_diffusion_model"
+		return family, true, true
+	default:
+		return stableDiffusionFamilySpec{}, false, false
+	}
+}
+
+func stableDiffusionRecipeSupportsInputImage(recipeID string) bool {
+	return recipeID == "qwen-image-edit-2511"
 }
 
 func (StableDiffusionImageDriver) Interpret(input InterpretInput) ([]*runtimev1.LocalCapabilityRequirement, runtimev1.LocalCapabilityReason) {
-	portable, reason := parseStableDiffusionPortableConfig(input.PortableConfig)
+	portable, reason := parseStableDiffusionPortableConfig(input.RecipeID, input.PortableConfig)
 	if reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {
 		return nil, reason
 	}
@@ -109,10 +157,30 @@ func (StableDiffusionImageDriver) Interpret(input InterpretInput) ([]*runtimev1.
 	if reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {
 		return nil, reason
 	}
-	if portable.enableInputImage != contains(features, aicapabilities.FeatureInputImage) {
+	if stableDiffusionRecipeSupportsInputImage(portable.recipeID) != contains(features, aicapabilities.FeatureInputImage) {
 		return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_FEATURE_UNSUPPORTED
 	}
 
+	mainConstraints := map[string]any{
+		"asset_kind": "image", "model_family": portable.family.name, "recipe_id": portable.recipeID,
+		"artifact_role": portable.family.mainArtifactRole, "format": "gguf",
+	}
+	if len(portable.family.mainGGUFArchitectures) > 0 {
+		mainConstraints["gguf_architectures"] = stableDiffusionAnyStrings(portable.family.mainGGUFArchitectures)
+	}
+	if len(portable.family.mainGGUFFamilies) > 0 {
+		mainConstraints["gguf_families"] = stableDiffusionAnyStrings(portable.family.mainGGUFFamilies)
+	}
+	textEncoderConstraints := map[string]any{
+		"asset_kind": "auxiliary", "artifact_role": "text_encoder",
+		"compatible_families": stableDiffusionAnyStrings(portable.family.compatibleTextEncoders), "format": "gguf",
+	}
+	if len(portable.family.textEncoderGGUFArchitectures) > 0 {
+		textEncoderConstraints["gguf_architectures"] = stableDiffusionAnyStrings(portable.family.textEncoderGGUFArchitectures)
+	}
+	if len(portable.family.textEncoderArchitectureFamilies) > 0 {
+		textEncoderConstraints["gguf_architecture_families"] = stableDiffusionAnyStrings(portable.family.textEncoderArchitectureFamilies)
+	}
 	requirements := []*runtimev1.LocalCapabilityRequirement{
 		stableDiffusionRequirement(
 			StableDiffusionMainRequirementID,
@@ -120,15 +188,15 @@ func (StableDiffusionImageDriver) Interpret(input InterpretInput) ([]*runtimev1.
 			"image",
 			0,
 			stableDiffusionMainLabel,
-			map[string]any{"asset_kind": "image", "model_family": portable.family.name},
+			mainConstraints,
 		),
 		stableDiffusionRequirement(
 			StableDiffusionTextEncoderRequirementID,
 			runtimev1.LocalCapabilityRequirementRole_LOCAL_CAPABILITY_REQUIREMENT_ROLE_COMPANION,
-			"chat",
+			"auxiliary",
 			0,
 			stableDiffusionTextEncoderLabel,
-			map[string]any{"asset_kind": "chat"},
+			textEncoderConstraints,
 		),
 		stableDiffusionRequirement(
 			StableDiffusionVAERequirementID,
@@ -136,7 +204,10 @@ func (StableDiffusionImageDriver) Interpret(input InterpretInput) ([]*runtimev1.
 			"vae",
 			0,
 			stableDiffusionVAELabel,
-			map[string]any{"asset_kind": "vae", "compatible_families": stableDiffusionAnyStrings(portable.family.compatibleVAEs)},
+			map[string]any{
+				"asset_kind": "vae", "compatible_families": stableDiffusionAnyStrings(portable.family.compatibleVAEs),
+				"format": "safetensors", "tensor_contract": portable.family.vaeTensorContract,
+			},
 		),
 	}
 	if portable.family.requiresUncond {
@@ -146,10 +217,144 @@ func (StableDiffusionImageDriver) Interpret(input InterpretInput) ([]*runtimev1.
 			"image",
 			0,
 			stableDiffusionUncondDiffusionLabel,
-			map[string]any{"asset_kind": "image", "model_family": portable.family.name, "artifact_role": "uncond_diffusion_model"},
+			map[string]any{
+				"asset_kind": "image", "model_family": portable.family.name, "artifact_role": "uncond_diffusion_model", "format": "gguf",
+				"gguf_families": stableDiffusionAnyStrings(portable.family.mainGGUFFamilies),
+			},
 		))
 	}
 	return requirements, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
+}
+
+// ProjectRecipe projects only stable facts owned by this exact Driver dialect.
+// Recommended ModelAsset identities remain catalog metadata and never become
+// slot-admission pins.
+func (driver StableDiffusionImageDriver) ProjectRecipe(recipeID string, options *structpb.Struct, supportedFeatures []string) ([]*runtimev1.LocalCapabilityRequirement, runtimev1.LocalCapabilityReason) {
+	return driver.Interpret(InterpretInput{RecipeID: recipeID, PortableConfig: options, SupportedFeatures: supportedFeatures})
+}
+
+func (driver StableDiffusionImageDriver) ProjectModelAssetBinding(input ModelAssetBindingInput) (ModelAssetBindingProjection, runtimev1.LocalCapabilityReason) {
+	requirement := input.Requirement
+	if requirement == nil || requirement.GetCompatibilityConstraints() == nil {
+		return ModelAssetBindingProjection{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE
+	}
+	format, ok := stableDiffusionRequirementConstraintString(requirement, "format")
+	if !ok || filepath.Ext(strings.ToLower(input.Entry.RelativePath)) != "."+format {
+		return ModelAssetBindingProjection{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE
+	}
+	descriptor := ModelAssetDescriptor{Engine: "media", FormatProbe: input.Entry.FormatProbe}
+	assetKind, ok := stableDiffusionRequirementConstraintString(requirement, "asset_kind")
+	if !ok {
+		return ModelAssetBindingProjection{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE
+	}
+	descriptor.Kind = stableDiffusionAssetKind(assetKind)
+	if descriptor.Kind == runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED {
+		return ModelAssetBindingProjection{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE
+	}
+	if role, exists := stableDiffusionRequirementConstraintString(requirement, "artifact_role"); exists {
+		descriptor.ArtifactRoles = []string{role}
+	}
+	switch format {
+	case "gguf":
+		summary, err := ggufmeta.Inspect(bytes.NewReader(input.Entry.FormatProbe))
+		if err != nil {
+			return ModelAssetBindingProjection{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE
+		}
+		architecture := ggufmeta.LLMDetectedArchitecture(summary)
+		if expected, exists := stableDiffusionRequirementConstraintStrings(requirement, "gguf_architectures"); exists && !contains(expected, architecture) {
+			return ModelAssetBindingProjection{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE
+		}
+		if expected, exists := stableDiffusionRequirementConstraintStrings(requirement, "gguf_families"); exists && !stableDiffusionGGUFFamilyMatches(summary, expected) {
+			return ModelAssetBindingProjection{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE
+		}
+		if expected, exists := stableDiffusionRequirementConstraintStrings(requirement, "gguf_architecture_families"); exists {
+			detected := stableDiffusionGGUFArchitectureFamily(architecture)
+			if !contains(expected, detected) {
+				return ModelAssetBindingProjection{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE
+			}
+			descriptor.Family = detected
+		}
+		if family, exists := stableDiffusionRequirementConstraintString(requirement, "model_family"); exists {
+			descriptor.Family = family
+		} else if descriptor.Family == "" {
+			families, exists := stableDiffusionRequirementConstraintStrings(requirement, "compatible_families")
+			if !exists || len(families) != 1 {
+				return ModelAssetBindingProjection{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE
+			}
+			descriptor.Family = families[0]
+		}
+	case "safetensors":
+		contract, ok := stableDiffusionRequirementConstraintString(requirement, "tensor_contract")
+		if !ok {
+			return ModelAssetBindingProjection{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE
+		}
+		family, valid := stableDiffusionVAETensorContractFamily(contract, input.Entry.FormatProbe)
+		if !valid {
+			return ModelAssetBindingProjection{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE
+		}
+		descriptor.Family = family
+	default:
+		return ModelAssetBindingProjection{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE
+	}
+	return validatedModelAssetBindingProjection(input, descriptor, 0, driver.ValidateBinding)
+}
+
+func stableDiffusionGGUFFamilyMatches(summary ggufmeta.Summary, expected []string) bool {
+	if contains(expected, ggufmeta.StableDiffusionDetectedFamily(summary)) {
+		return true
+	}
+	for _, signature := range ggufmeta.StableDiffusionTensorSignaturesPresent(summary) {
+		for _, family := range expected {
+			if strings.HasPrefix(signature, family+":") {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func stableDiffusionGGUFArchitectureFamily(architecture string) string {
+	architecture = strings.ToLower(strings.TrimSpace(architecture))
+	if !strings.HasPrefix(architecture, "qwen") {
+		return ""
+	}
+	if strings.Contains(architecture, "vl") {
+		return "qwen-vl"
+	}
+	return "qwen"
+}
+
+func stableDiffusionVAETensorContractFamily(contract string, probe []byte) (string, bool) {
+	tensors, ok := safetensorsTensorFacts(probe)
+	if !ok {
+		return "", false
+	}
+	decoder, decoderOK := tensors["decoder.conv1.weight"]
+	output, outputOK := tensors["decoder.head.2.weight"]
+	if !decoderOK || !outputOK || len(output.Shape) == 0 || output.Shape[0] != 3 {
+		return "", false
+	}
+	switch contract {
+	case "qwen-image-vae-3d":
+		if len(decoder.Shape) == 5 && len(output.Shape) == 5 && len(decoder.Shape) > 1 && decoder.Shape[1] == 16 {
+			return "qwen-image-vae", true
+		}
+	case "flux1-vae-16ch", "flux2-vae":
+		if len(decoder.Shape) != 4 || len(output.Shape) != 4 || len(decoder.Shape) < 2 {
+			return "", false
+		}
+		family := ""
+		switch decoder.Shape[1] {
+		case 16:
+			family = "flux1-vae"
+		case 32:
+			family = "flux2-vae"
+		}
+		if (contract == "flux1-vae-16ch" && family == "flux1-vae") || (contract == "flux2-vae" && family == "flux2-vae") {
+			return family, true
+		}
+	}
+	return "", false
 }
 
 func stableDiffusionAnyStrings(values []string) []any {
@@ -182,32 +387,22 @@ func stableDiffusionRequirement(
 
 func (StableDiffusionImageDriver) ValidateBinding(
 	requirement *runtimev1.LocalCapabilityRequirement,
-	binding *runtimev1.LocalAssetExactBinding,
-	asset AssetDescriptor,
+	binding *runtimev1.ModelAssetExactBinding,
+	asset ModelAssetDescriptor,
 ) runtimev1.LocalCapabilityReason {
 	if requirement == nil || binding == nil || binding.GetRequirementId() != requirement.GetRequirementId() {
 		return runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_BINDING_AMBIGUOUS
 	}
-	if strings.TrimSpace(binding.GetLocalAssetId()) == "" || strings.TrimSpace(asset.LocalAssetID) == "" {
+	if strings.TrimSpace(binding.GetModelAssetId()) == "" || strings.TrimSpace(asset.ModelAssetID) == "" {
 		return runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_NOT_FOUND
 	}
 	if !canonicalInvocationSHA256(binding.GetVerifiedContentId(), binding.GetEntrySha256()) ||
 		!canonicalInvocationSHA256(asset.VerifiedContentID, asset.EntrySHA256) {
 		return runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_CONTENT_UNVERIFIED
 	}
-	if binding.GetLocalAssetId() != asset.LocalAssetID ||
+	if binding.GetModelAssetId() != asset.ModelAssetID ||
 		binding.GetVerifiedContentId() != asset.VerifiedContentID ||
 		binding.GetEntrySha256() != asset.EntrySHA256 {
-		return runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_CONTENT_MISMATCH
-	}
-	if len(asset.BundleEntries) > 0 {
-		digest, err := CanonicalBundleSHA256(asset.BundleEntries)
-		if err != nil || digest != asset.EntrySHA256 || asset.VerifiedContentID != "sha256:"+digest {
-			return runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_CONTENT_MISMATCH
-		}
-	}
-	if requirement.GetPolicy() == runtimev1.LocalCapabilityRequirementPolicy_LOCAL_CAPABILITY_REQUIREMENT_POLICY_STRICT &&
-		binding.GetVerifiedContentId() != requirement.GetPreferredVerifiedContentId() {
 		return runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_CONTENT_MISMATCH
 	}
 	if !stableDiffusionAssetCompatible(requirement, asset) {
@@ -218,8 +413,8 @@ func (StableDiffusionImageDriver) ValidateBinding(
 
 func (driver StableDiffusionImageDriver) ValidateCombination(
 	requirements []*runtimev1.LocalCapabilityRequirement,
-	bindings []*runtimev1.LocalAssetExactBinding,
-	assets []AssetDescriptor,
+	bindings []*runtimev1.ModelAssetExactBinding,
+	assets []ModelAssetDescriptor,
 ) runtimev1.LocalCapabilityReason {
 	if len(requirements) == 0 || len(bindings) < len(requirements) {
 		return runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_REQUIRED_BINDING_MISSING
@@ -266,7 +461,7 @@ func (driver StableDiffusionImageDriver) ValidateCombination(
 
 func validStableDiffusionRequirementSequence(requirements []*runtimev1.LocalCapabilityRequirement) bool {
 	if len(requirements) < 3 || !stableDiffusionRequirementShape(requirements[0], StableDiffusionMainRequirementID, "image", 0) ||
-		!stableDiffusionRequirementShape(requirements[1], StableDiffusionTextEncoderRequirementID, "chat", 0) ||
+		!stableDiffusionRequirementShape(requirements[1], StableDiffusionTextEncoderRequirementID, "auxiliary", 0) ||
 		!stableDiffusionRequirementShape(requirements[2], StableDiffusionVAERequirementID, "vae", 0) {
 		return false
 	}
@@ -276,6 +471,31 @@ func validStableDiffusionRequirementSequence(requirements []*runtimev1.LocalCapa
 	}
 	familySpec, ok := stableDiffusionFamily(family)
 	if !ok || familySpec.name != family {
+		return false
+	}
+	recipeID, ok := stableDiffusionRequirementConstraintString(requirements[0], "recipe_id")
+	if !ok {
+		return false
+	}
+	familySpec, ok, _ = stableDiffusionRecipe(familySpec, recipeID)
+	if !ok {
+		return false
+	}
+	mainRole, mainRoleOK := stableDiffusionRequirementConstraintString(requirements[0], "artifact_role")
+	mainFormat, mainFormatOK := stableDiffusionRequirementConstraintString(requirements[0], "format")
+	textRole, textRoleOK := stableDiffusionRequirementConstraintString(requirements[1], "artifact_role")
+	textFormat, textFormatOK := stableDiffusionRequirementConstraintString(requirements[1], "format")
+	textFamilies, textFamiliesOK := stableDiffusionRequirementConstraintStrings(requirements[1], "compatible_families")
+	vaeFormat, vaeFormatOK := stableDiffusionRequirementConstraintString(requirements[2], "format")
+	vaeTensorContract, vaeTensorContractOK := stableDiffusionRequirementConstraintString(requirements[2], "tensor_contract")
+	if !mainRoleOK || mainRole != familySpec.mainArtifactRole || !mainFormatOK || mainFormat != "gguf" ||
+		!stableDiffusionRequirementConstraintStringsMatch(requirements[0], "gguf_architectures", familySpec.mainGGUFArchitectures) ||
+		!stableDiffusionRequirementConstraintStringsMatch(requirements[0], "gguf_families", familySpec.mainGGUFFamilies) ||
+		!textRoleOK || textRole != "text_encoder" || !textFormatOK || textFormat != "gguf" ||
+		!textFamiliesOK || !stableDiffusionStringSlicesEqual(textFamilies, familySpec.compatibleTextEncoders) ||
+		!stableDiffusionRequirementConstraintStringsMatch(requirements[1], "gguf_architectures", familySpec.textEncoderGGUFArchitectures) ||
+		!stableDiffusionRequirementConstraintStringsMatch(requirements[1], "gguf_architecture_families", familySpec.textEncoderArchitectureFamilies) ||
+		!vaeFormatOK || vaeFormat != "safetensors" || !vaeTensorContractOK || vaeTensorContract != familySpec.vaeTensorContract {
 		return false
 	}
 	vaeFamilies, ok := stableDiffusionRequirementConstraintStrings(requirements[2], "compatible_families")
@@ -290,6 +510,15 @@ func validStableDiffusionRequirementSequence(requirements []*runtimev1.LocalCapa
 		if uncondFamily, ok := stableDiffusionRequirementConstraintString(requirements[index], "model_family"); !ok || uncondFamily != family {
 			return false
 		}
+		if format, ok := stableDiffusionRequirementConstraintString(requirements[index], "format"); !ok || format != "gguf" {
+			return false
+		}
+		if role, ok := stableDiffusionRequirementConstraintString(requirements[index], "artifact_role"); !ok || role != "uncond_diffusion_model" {
+			return false
+		}
+		if !stableDiffusionRequirementConstraintStringsMatch(requirements[index], "gguf_families", familySpec.mainGGUFFamilies) {
+			return false
+		}
 		index++
 	} else if len(requirements) > index && requirements[index].GetRequirementId() == StableDiffusionUncondDiffusionRequirementID {
 		return false
@@ -297,12 +526,34 @@ func validStableDiffusionRequirementSequence(requirements []*runtimev1.LocalCapa
 	return index == len(requirements)
 }
 
+func validStableDiffusionRequirementSequenceForPortable(requirements []*runtimev1.LocalCapabilityRequirement, portable stableDiffusionPortableConfig) bool {
+	if !validStableDiffusionRequirementSequence(requirements) || len(requirements) < 3 {
+		return false
+	}
+	return portable.family.name == stableDiffusionRequirementModelFamily(requirements[0]) &&
+		portable.family.requiresUncond == stableDiffusionRequirementPresent(requirements, StableDiffusionUncondDiffusionRequirementID)
+}
+
+func stableDiffusionRequirementModelFamily(requirement *runtimev1.LocalCapabilityRequirement) string {
+	value, _ := stableDiffusionRequirementConstraintString(requirement, "model_family")
+	return value
+}
+
+func stableDiffusionRequirementPresent(requirements []*runtimev1.LocalCapabilityRequirement, id string) bool {
+	for _, requirement := range requirements {
+		if requirement != nil && requirement.GetRequirementId() == id {
+			return true
+		}
+	}
+	return false
+}
+
 func stableDiffusionRequirementShape(requirement *runtimev1.LocalCapabilityRequirement, id, resourceKind string, ordinal uint32) bool {
 	if requirement == nil || requirement.GetRequirementId() != id || requirement.GetResourceKind() != resourceKind ||
 		requirement.GetOccurrenceOrdinal() != ordinal || strings.TrimSpace(requirement.GetDisplayLabel()) == "" ||
 		requirement.GetDisplayLabel() != strings.TrimSpace(requirement.GetDisplayLabel()) ||
-		(requirement.GetPolicy() != runtimev1.LocalCapabilityRequirementPolicy_LOCAL_CAPABILITY_REQUIREMENT_POLICY_STRICT &&
-			requirement.GetPolicy() != runtimev1.LocalCapabilityRequirementPolicy_LOCAL_CAPABILITY_REQUIREMENT_POLICY_SUBSTITUTABLE) {
+		requirement.GetPolicy() != runtimev1.LocalCapabilityRequirementPolicy_LOCAL_CAPABILITY_REQUIREMENT_POLICY_SUBSTITUTABLE ||
+		requirement.GetPreferredVerifiedContentId() != "" {
 		return false
 	}
 	if id == StableDiffusionMainRequirementID {
@@ -311,7 +562,7 @@ func stableDiffusionRequirementShape(requirement *runtimev1.LocalCapabilityRequi
 	return requirement.GetRole() == runtimev1.LocalCapabilityRequirementRole_LOCAL_CAPABILITY_REQUIREMENT_ROLE_COMPANION
 }
 
-func stableDiffusionAssetCompatible(requirement *runtimev1.LocalCapabilityRequirement, asset AssetDescriptor) bool {
+func stableDiffusionAssetCompatible(requirement *runtimev1.LocalCapabilityRequirement, asset ModelAssetDescriptor) bool {
 	constraints := requirement.GetCompatibilityConstraints()
 	if constraints == nil || !stableDiffusionConstraintKeysValid(requirement, constraints.GetFields()) {
 		return false
@@ -340,25 +591,65 @@ func stableDiffusionAssetCompatible(requirement *runtimev1.LocalCapabilityRequir
 	if role, exists := stableDiffusionRequirementConstraintString(requirement, "artifact_role"); exists && !contains(asset.ArtifactRoles, role) {
 		return false
 	}
+	if format, exists := stableDiffusionRequirementConstraintString(requirement, "format"); exists && !stableDiffusionImageFormatValid(format, asset.FormatProbe) {
+		return false
+	}
 	return true
 }
 
 func stableDiffusionConstraintKeysValid(requirement *runtimev1.LocalCapabilityRequirement, fields map[string]*structpb.Value) bool {
 	allowed := map[string]struct{}{"asset_kind": {}}
+	required := map[string]struct{}{"asset_kind": {}}
+	expectedCount := 0
 	switch requirement.GetRequirementId() {
 	case StableDiffusionMainRequirementID:
 		allowed["model_family"] = struct{}{}
+		allowed["recipe_id"] = struct{}{}
+		allowed["artifact_role"] = struct{}{}
+		allowed["format"] = struct{}{}
+		allowed["gguf_architectures"] = struct{}{}
+		allowed["gguf_families"] = struct{}{}
+		for _, key := range []string{"model_family", "recipe_id", "artifact_role", "format"} {
+			required[key] = struct{}{}
+		}
+		expectedCount = 6
 	case StableDiffusionTextEncoderRequirementID:
+		allowed["artifact_role"] = struct{}{}
+		allowed["compatible_families"] = struct{}{}
+		allowed["format"] = struct{}{}
+		allowed["gguf_architectures"] = struct{}{}
+		allowed["gguf_architecture_families"] = struct{}{}
+		for _, key := range []string{"artifact_role", "compatible_families", "format"} {
+			required[key] = struct{}{}
+		}
+		expectedCount = 5
 	case StableDiffusionVAERequirementID:
 		allowed["compatible_families"] = struct{}{}
+		allowed["format"] = struct{}{}
+		allowed["tensor_contract"] = struct{}{}
+		for _, key := range []string{"compatible_families", "format", "tensor_contract"} {
+			required[key] = struct{}{}
+		}
+		expectedCount = 4
 	case StableDiffusionUncondDiffusionRequirementID:
 		allowed["model_family"] = struct{}{}
 		allowed["artifact_role"] = struct{}{}
+		allowed["format"] = struct{}{}
+		allowed["gguf_families"] = struct{}{}
+		for _, key := range []string{"model_family", "artifact_role", "format", "gguf_families"} {
+			required[key] = struct{}{}
+		}
+		expectedCount = 5
 	default:
 		return false
 	}
-	if len(fields) != len(allowed) {
+	if len(fields) != expectedCount {
 		return false
+	}
+	for key := range required {
+		if fields[key] == nil {
+			return false
+		}
 	}
 	for key := range fields {
 		if _, ok := allowed[key]; !ok {
@@ -366,6 +657,36 @@ func stableDiffusionConstraintKeysValid(requirement *runtimev1.LocalCapabilityRe
 		}
 	}
 	return true
+}
+
+func stableDiffusionImageFormatValid(format string, probe []byte) bool {
+	if len(probe) > MaxAssetFormatProbeBytes {
+		return false
+	}
+	switch format {
+	case "gguf":
+		return len(probe) >= 4 && bytes.Equal(probe[:4], []byte("GGUF"))
+	case "safetensors":
+		if len(probe) < 10 {
+			return false
+		}
+		headerLength := binary.LittleEndian.Uint64(probe[:8])
+		if headerLength < 2 || headerLength > MaxSafetensorsHeaderBytes || headerLength > uint64(len(probe)-8) {
+			return false
+		}
+		var header map[string]json.RawMessage
+		return json.Unmarshal(probe[8:8+headerLength], &header) == nil && len(header) > 0
+	default:
+		return false
+	}
+}
+
+func stableDiffusionRequirementConstraintStringsMatch(requirement *runtimev1.LocalCapabilityRequirement, key string, expected []string) bool {
+	actual, exists := stableDiffusionRequirementConstraintStrings(requirement, key)
+	if len(expected) == 0 {
+		return !exists
+	}
+	return exists && stableDiffusionStringSlicesEqual(actual, expected)
 }
 
 func stableDiffusionStringSlicesEqual(left, right []string) bool {
@@ -384,8 +705,8 @@ func stableDiffusionAssetKind(value string) runtimev1.LocalAssetKind {
 	switch value {
 	case "image":
 		return runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE
-	case "chat":
-		return runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT
+	case "auxiliary":
+		return runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_AUXILIARY
 	case "vae":
 		return runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VAE
 	default:
@@ -428,52 +749,58 @@ func stableDiffusionRequirementConstraintStrings(requirement *runtimev1.LocalCap
 }
 
 func (StableDiffusionImageDriver) PlanImageInvocation(input ImageInvocationInput) (*ImageInvocationPlan, error) {
-	portable, reason := parseStableDiffusionPortableConfig(input.PortableConfig)
+	portable, reason := parseStableDiffusionPortableConfig(input.RecipeID, input.PortableConfig)
 	if reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {
 		return nil, invocationError(InvocationFailureInvalidConfig, fmt.Errorf("stable-diffusion portable config: %s", reason.String()))
 	}
 	features, reason := normalizedStableDiffusionFeatures(input.SupportedFeatures)
 	if reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED ||
-		portable.enableInputImage != contains(features, aicapabilities.FeatureInputImage) {
+		stableDiffusionRecipeSupportsInputImage(portable.recipeID) != contains(features, aicapabilities.FeatureInputImage) {
 		return nil, invocationError(InvocationFailureInvalidConfig, fmt.Errorf("stable-diffusion supported features do not match the portable configuration"))
 	}
 	bindings, orderedIDs, err := exactStableDiffusionInvocationBindings(portable, input.ExactBindings)
 	if err != nil {
 		return nil, invocationError(InvocationFailureInvalidBinding, err)
 	}
-	request, err := normalizeStableDiffusionImageRequest(input.Request, portable, features)
+	request, err := normalizeStableDiffusionImageRequest(input.Request, input.Inputs, portable, features)
 	if err != nil {
 		return nil, err
 	}
 
-	modelFiles := make([]ImageModelFile, 0, len(orderedIDs))
+	modelFiles := make([]InvocationExactBinding, 0, len(orderedIDs))
 	for _, requirementID := range orderedIDs {
-		modelFiles = append(modelFiles, stableDiffusionImageModelFile(bindings[requirementID]))
+		modelFiles = append(modelFiles, cloneInvocationExactBindings([]InvocationExactBinding{bindings[requirementID]})[0])
 	}
 	hasher := sha256.New()
 	for _, value := range []string{
 		portable.family.name,
+		portable.recipeID,
 		strconv.Itoa(portable.execution.threads),
 		strconv.FormatFloat(portable.execution.cfgScale, 'g', -1, 64),
 		portable.execution.sampler,
 		portable.execution.scheduler,
 		strconv.FormatBool(portable.execution.diffusionFlashAttention),
 		strconv.FormatBool(portable.execution.offloadParamsToCPU),
+		strconv.FormatFloat(portable.execution.flowShift, 'g', -1, 64),
+		strconv.FormatBool(portable.qwenZeroCondT),
 	} {
 		_, _ = hasher.Write([]byte(value))
 		_, _ = hasher.Write([]byte{0})
 	}
 	for _, requirementID := range orderedIDs {
 		binding := bindings[requirementID]
-		for _, value := range []string{binding.RequirementID, binding.LocalAssetID, binding.AbsolutePath, binding.VerifiedContentID, binding.EntrySHA256} {
+		for _, value := range invocationExactBindingIdentity(binding) {
 			_, _ = hasher.Write([]byte(value))
 			_, _ = hasher.Write([]byte{0})
 		}
 	}
 	load := StableDiffusionCPPLoadPlan{
+		recipeID:                portable.recipeID,
 		main:                    stableDiffusionImageModelFile(bindings[StableDiffusionMainRequirementID]),
 		textEncoder:             stableDiffusionImageModelFile(bindings[StableDiffusionTextEncoderRequirementID]),
 		vae:                     stableDiffusionImageModelFile(bindings[StableDiffusionVAERequirementID]),
+		flowShift:               portable.execution.flowShift,
+		qwenImageZeroCondT:      portable.qwenZeroCondT,
 		threads:                 portable.execution.threads,
 		cfgScale:                portable.execution.cfgScale,
 		sampler:                 portable.execution.sampler,
@@ -491,13 +818,17 @@ func (StableDiffusionImageDriver) PlanImageInvocation(input ImageInvocationInput
 		cfgScale: portable.execution.cfgScale, seed: request.seed, imageCount: request.imageCount,
 		sampler: portable.execution.sampler, scheduler: portable.execution.scheduler,
 	}
-	var requestPlan ImageRequestPlan = StableDiffusionCPPTextToImageRequestPlan{stableDiffusionCPPRequestFields: requestFields}
-	if request.inputImage != "" {
-		requestPlan = StableDiffusionCPPImageToImageRequestPlan{
+	var requestPlan ImageRequestPlan
+	switch request.kind {
+	case stableDiffusionRequestTextToImage:
+		requestPlan = StableDiffusionCPPTextToImageRequestPlan{stableDiffusionCPPRequestFields: requestFields}
+	case stableDiffusionRequestInstructionEdit:
+		requestPlan = StableDiffusionCPPInstructionEditRequestPlan{
 			stableDiffusionCPPRequestFields: requestFields,
-			inputImage:                      request.inputImage,
-			mask:                            request.mask,
+			sourceImage:                     cloneImageResolvedInput(request.sourceImage),
 		}
+	default:
+		return nil, invocationError(InvocationFailureInvalidRequest, fmt.Errorf("stable-diffusion image recipe request variant is unsupported"))
 	}
 	return &ImageInvocationPlan{
 		processKey:  hex.EncodeToString(hasher.Sum(nil)),
@@ -517,7 +848,7 @@ func (StableDiffusionImageDriver) PlanImageInvocation(input ImageInvocationInput
 
 func stableDiffusionImageModelFile(binding InvocationExactBinding) ImageModelFile {
 	return ImageModelFile{
-		localAssetID:      binding.LocalAssetID,
+		modelAssetID:      binding.ModelAssetID,
 		absolutePath:      binding.AbsolutePath,
 		verifiedContentID: binding.VerifiedContentID,
 		entrySHA256:       binding.EntrySHA256,
@@ -527,7 +858,7 @@ func stableDiffusionImageModelFile(binding InvocationExactBinding) ImageModelFil
 type stableDiffusionImageTranslator struct{}
 
 func (stableDiffusionImageTranslator) validateImagePlan(plan *ImageInvocationPlan) error {
-	if plan == nil || strings.TrimSpace(plan.processKey) == "" || len(plan.modelFiles) < 3 || len(plan.modelFiles) > 4 {
+	if plan == nil || strings.TrimSpace(plan.processKey) == "" || len(plan.modelFiles) < 3 || len(plan.modelFiles) > 5 {
 		return fmt.Errorf("stable-diffusion image plan is incomplete")
 	}
 	load, ok := plan.loadPlan.(StableDiffusionCPPLoadPlan)
@@ -552,9 +883,15 @@ func (stableDiffusionImageTranslator) validateImagePlan(plan *ImageInvocationPla
 		(request.scheduler != "" && !stableDiffusionOptionToken(request.scheduler)) {
 		return fmt.Errorf("stable-diffusion image request variant is incomplete")
 	}
-	if load.threads < 0 || load.threads > 1024 || load.cfgScale != request.cfgScale ||
+	if load.recipeID == "" || load.recipeID != strings.TrimSpace(load.recipeID) ||
+		math.IsNaN(load.flowShift) || math.IsInf(load.flowShift, 0) || load.flowShift < -100 || load.flowShift > 100 ||
+		load.threads < 0 || load.threads > 1024 || load.cfgScale != request.cfgScale ||
 		load.sampler != request.sampler || load.scheduler != request.scheduler {
 		return fmt.Errorf("stable-diffusion image load and request variants are inconsistent")
+	}
+	if (load.recipeID == "qwen-image-edit-2511") != load.qwenImageZeroCondT ||
+		((load.recipeID == "qwen-image" || load.recipeID == "qwen-image-edit-2511") && load.flowShift != 3) {
+		return fmt.Errorf("stable-diffusion image recipe load facts are inconsistent")
 	}
 	files := []ImageModelFile{load.main, load.textEncoder, load.vae}
 	if uncond, exists := load.UncondDiffusion(); exists {
@@ -564,18 +901,24 @@ func (stableDiffusionImageTranslator) validateImagePlan(plan *ImageInvocationPla
 		return fmt.Errorf("stable-diffusion image load content is inconsistent")
 	}
 	for index, file := range files {
-		if file.localAssetID == "" || file.verifiedContentID == "" || file.entrySHA256 == "" ||
+		if file.modelAssetID == "" || file.verifiedContentID == "" || file.entrySHA256 == "" ||
 			!filepath.IsAbs(file.absolutePath) || filepath.Clean(file.absolutePath) != file.absolutePath ||
 			!canonicalInvocationSHA256(file.verifiedContentID, file.entrySHA256) {
 			return fmt.Errorf("stable-diffusion image load content is not exact")
 		}
-		if file != plan.modelFiles[index] {
+		if file != stableDiffusionImageModelFile(plan.modelFiles[index]) {
 			return fmt.Errorf("stable-diffusion image load content does not match custody inputs")
 		}
 	}
 	if imageToImage, isImageToImage := plan.requestPlan.(StableDiffusionCPPImageToImageRequestPlan); isImageToImage {
-		if strings.TrimSpace(imageToImage.inputImage) == "" || (imageToImage.mask != "" && strings.TrimSpace(imageToImage.mask) == "") {
+		if len(imageToImage.inputImage) == 0 {
 			return fmt.Errorf("stable-diffusion image-to-image request is incomplete")
+		}
+	}
+	if edit, isEdit := plan.requestPlan.(StableDiffusionCPPInstructionEditRequestPlan); isEdit {
+		if load.recipeID != "qwen-image-edit-2511" || edit.sourceImage.SourceIdentity == "" ||
+			edit.sourceImage.SourceIdentity != strings.TrimSpace(edit.sourceImage.SourceIdentity) || len(edit.sourceImage.ImageBytes) == 0 {
+			return fmt.Errorf("stable-diffusion instruction-edit request is incomplete")
 		}
 	}
 	return nil
@@ -586,6 +929,8 @@ func stableDiffusionCPPRequestFieldsFromPlan(plan ImageRequestPlan) (stableDiffu
 	case StableDiffusionCPPTextToImageRequestPlan:
 		return typed.stableDiffusionCPPRequestFields, nil
 	case StableDiffusionCPPImageToImageRequestPlan:
+		return typed.stableDiffusionCPPRequestFields, nil
+	case StableDiffusionCPPInstructionEditRequestPlan:
 		return typed.stableDiffusionCPPRequestFields, nil
 	default:
 		return stableDiffusionCPPRequestFields{}, fmt.Errorf("stable-diffusion image request variant is unknown")
@@ -660,14 +1005,14 @@ func exactStableDiffusionInvocationBindings(
 		if _, exists := bindings[requirementID]; exists {
 			return nil, nil, fmt.Errorf("stable-diffusion invocation contains duplicate requirement %q", requirementID)
 		}
-		if binding.LocalAssetID == "" || binding.LocalAssetID != strings.TrimSpace(binding.LocalAssetID) ||
+		if binding.ModelAssetID == "" || binding.ModelAssetID != strings.TrimSpace(binding.ModelAssetID) ||
 			binding.VerifiedContentID == "" || binding.VerifiedContentID != strings.TrimSpace(binding.VerifiedContentID) ||
 			binding.EntrySHA256 == "" || binding.EntrySHA256 != strings.TrimSpace(binding.EntrySHA256) ||
 			!canonicalInvocationSHA256(binding.VerifiedContentID, binding.EntrySHA256) ||
 			!filepath.IsAbs(binding.AbsolutePath) || filepath.Clean(binding.AbsolutePath) != binding.AbsolutePath {
 			return nil, nil, fmt.Errorf("stable-diffusion invocation requirement %q is not an exact absolute binding", requirementID)
 		}
-		bindings[requirementID] = binding
+		bindings[requirementID] = cloneInvocationExactBindings([]InvocationExactBinding{binding})[0]
 	}
 	for _, requirementID := range expected {
 		if _, exists := bindings[requirementID]; !exists {
@@ -680,11 +1025,18 @@ func exactStableDiffusionInvocationBindings(
 	return bindings, expected, nil
 }
 
+type stableDiffusionRequestKind uint8
+
+const (
+	stableDiffusionRequestTextToImage stableDiffusionRequestKind = iota + 1
+	stableDiffusionRequestInstructionEdit
+)
+
 type normalizedStableDiffusionImageRequest struct {
+	kind           stableDiffusionRequestKind
 	prompt         string
 	negativePrompt string
-	inputImage     string
-	mask           string
+	sourceImage    ImageResolvedInput
 	responseFormat string
 	width          int
 	height         int
@@ -694,6 +1046,7 @@ type normalizedStableDiffusionImageRequest struct {
 
 func normalizeStableDiffusionImageRequest(
 	spec *runtimev1.ImageGenerateScenarioSpec,
+	inputs []ImageResolvedInput,
 	portable stableDiffusionPortableConfig,
 	features []string,
 ) (normalizedStableDiffusionImageRequest, error) {
@@ -731,25 +1084,35 @@ func normalizeStableDiffusionImageRequest(
 	default:
 		return normalizedStableDiffusionImageRequest{}, invocationError(InvocationFailureInvalidOption, fmt.Errorf("stable-diffusion invocation does not support response format %q", responseFormat))
 	}
-	if len(spec.GetReferenceImages()) > 1 {
-		return normalizedStableDiffusionImageRequest{}, invocationError(InvocationFailureUnsupported, fmt.Errorf("stable-diffusion invocation supports at most one input image"))
-	}
-	inputImage := ""
-	if len(spec.GetReferenceImages()) == 1 {
-		inputImage = strings.TrimSpace(spec.GetReferenceImages()[0])
-		if inputImage == "" {
-			return normalizedStableDiffusionImageRequest{}, invocationError(InvocationFailureInvalidRequest, fmt.Errorf("image.generate input image must be non-empty"))
-		}
-	}
 	mask := strings.TrimSpace(spec.GetMask())
-	if inputImage != "" && !contains(features, aicapabilities.FeatureInputImage) {
+	if len(inputs) > 0 && !contains(features, aicapabilities.FeatureInputImage) {
 		return normalizedStableDiffusionImageRequest{}, invocationError(InvocationFailureUnsupported, fmt.Errorf("image.generate input.image is not declared by this configuration"))
 	}
-	if mask != "" && !contains(features, aicapabilities.FeatureInputMask) {
-		return normalizedStableDiffusionImageRequest{}, invocationError(InvocationFailureUnsupported, fmt.Errorf("image.generate input.mask is not declared by this configuration"))
+	if mask != "" {
+		return normalizedStableDiffusionImageRequest{}, invocationError(InvocationFailureUnsupported, fmt.Errorf("selected stable-diffusion recipe does not admit a mask"))
 	}
-	if mask != "" && inputImage == "" {
-		return normalizedStableDiffusionImageRequest{}, invocationError(InvocationFailureInvalidRequest, fmt.Errorf("image.generate mask requires an input image"))
+	negativePrompt := strings.TrimSpace(spec.GetNegativePrompt())
+	if (portable.recipeID == "qwen-image" || portable.recipeID == "qwen-image-edit-2511") && negativePrompt != "" {
+		return normalizedStableDiffusionImageRequest{}, invocationError(InvocationFailureUnsupported, fmt.Errorf("selected Qwen Image recipe does not admit negative_prompt"))
+	}
+	kind := stableDiffusionRequestTextToImage
+	sourceImage := ImageResolvedInput{}
+	switch portable.recipeID {
+	case "qwen-image-edit-2511":
+		if len(inputs) != 1 || imageCount != 1 {
+			return normalizedStableDiffusionImageRequest{}, invocationError(InvocationFailureUnsupported, fmt.Errorf("Qwen Image Edit 2511 requires exactly one source image, one output, and no mask"))
+		}
+		if inputs[0].SourceIdentity == "" || inputs[0].SourceIdentity != strings.TrimSpace(inputs[0].SourceIdentity) || len(inputs[0].ImageBytes) == 0 {
+			return normalizedStableDiffusionImageRequest{}, invocationError(InvocationFailureInvalidRequest, fmt.Errorf("image.generate resolved input.image is incomplete"))
+		}
+		sourceImage = cloneImageResolvedInput(inputs[0])
+		kind = stableDiffusionRequestInstructionEdit
+	case "z-image", "ideogram4", "qwen-image":
+		if len(inputs) != 0 {
+			return normalizedStableDiffusionImageRequest{}, invocationError(InvocationFailureUnsupported, fmt.Errorf("selected text-to-image recipe does not admit input.image"))
+		}
+	default:
+		return normalizedStableDiffusionImageRequest{}, invocationError(InvocationFailureInvalidConfig, fmt.Errorf("stable-diffusion recipe is unsupported"))
 	}
 	seed := portable.execution.seed
 	if spec.Seed != nil {
@@ -759,16 +1122,21 @@ func normalizeStableDiffusionImageRequest(
 		return normalizedStableDiffusionImageRequest{}, invocationError(InvocationFailureInvalidRequest, fmt.Errorf("image.generate seed is outside the stable-diffusion.cpp signed-int32 range"))
 	}
 	return normalizedStableDiffusionImageRequest{
+		kind:           kind,
 		prompt:         prompt,
-		negativePrompt: strings.TrimSpace(spec.GetNegativePrompt()),
-		inputImage:     inputImage,
-		mask:           mask,
+		negativePrompt: negativePrompt,
+		sourceImage:    sourceImage,
 		responseFormat: responseFormat,
 		width:          width,
 		height:         height,
 		seed:           seed,
 		imageCount:     imageCount,
 	}, nil
+}
+
+func cloneImageResolvedInput(input ImageResolvedInput) ImageResolvedInput {
+	input.ImageBytes = append([]byte(nil), input.ImageBytes...)
+	return input
 }
 
 func parseStableDiffusionSize(value string) (int, int, bool) {
@@ -795,28 +1163,33 @@ func stableDiffusionDimension(value int) bool {
 	return value >= 64 && value <= 4096 && value%8 == 0
 }
 
-func parseStableDiffusionPortableConfig(value *structpb.Struct) (stableDiffusionPortableConfig, runtimev1.LocalCapabilityReason) {
-	if value == nil {
-		return stableDiffusionPortableConfig{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_PORTABLE_CONFIG_INVALID
+func parseStableDiffusionPortableConfig(recipeID string, value *structpb.Struct) (stableDiffusionPortableConfig, runtimev1.LocalCapabilityReason) {
+	recipeID = strings.TrimSpace(recipeID)
+	familyName := recipeID
+	if recipeID == StableDiffusionQwenImageEditRecipeID {
+		familyName = "qwen-image"
 	}
-	fields := value.GetFields()
-	for key := range fields {
-		switch key {
-		case "modelFamily", "enableInputImage", "executionOptions":
-		default:
-			return stableDiffusionPortableConfig{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_PORTABLE_CONFIG_INVALID
-		}
-	}
-	familyValue, reason := portableString(fields, "modelFamily")
-	if reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED || strings.TrimSpace(familyValue) == "" {
-		return stableDiffusionPortableConfig{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_PORTABLE_CONFIG_INVALID
-	}
-	family, ok := stableDiffusionFamily(familyValue)
+	family, ok := stableDiffusionFamily(familyName)
 	if !ok {
 		return stableDiffusionPortableConfig{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_PORTABLE_CONFIG_INVALID
 	}
+	family, ok, qwenZeroCondT := stableDiffusionRecipe(family, recipeID)
+	if !ok {
+		return stableDiffusionPortableConfig{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_PORTABLE_CONFIG_INVALID
+	}
+	if value == nil {
+		value = &structpb.Struct{}
+	}
+	fields := value.GetFields()
+	for key := range fields {
+		if key != "executionOptions" {
+			return stableDiffusionPortableConfig{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_PORTABLE_CONFIG_INVALID
+		}
+	}
 	result := stableDiffusionPortableConfig{
-		family: family,
+		family:        family,
+		recipeID:      recipeID,
+		qwenZeroCondT: qwenZeroCondT,
 		execution: stableDiffusionExecutionOptions{
 			steps:    20,
 			cfgScale: 7,
@@ -825,37 +1198,22 @@ func parseStableDiffusionPortableConfig(value *structpb.Struct) (stableDiffusion
 			seed:     42,
 		},
 	}
-	if feature := fields["enableInputImage"]; feature != nil {
-		if _, ok := feature.Kind.(*structpb.Value_BoolValue); !ok {
-			return stableDiffusionPortableConfig{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_PORTABLE_CONFIG_INVALID
-		}
-		result.enableInputImage = feature.GetBoolValue()
+	switch recipeID {
+	case "z-image":
+		result.execution.steps = 8
+		result.execution.cfgScale = 1
+	case "qwen-image", "qwen-image-edit-2511":
+		result.execution.cfgScale = 2.5
+		result.execution.sampler = "euler"
+		result.execution.flowShift = 3
+		result.execution.diffusionFlashAttention = true
+		result.execution.offloadParamsToCPU = true
 	}
+	var reason runtimev1.LocalCapabilityReason
 	if result.execution, reason = stableDiffusionExecutionOptionsFromValue(fields["executionOptions"], result.execution); reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {
 		return stableDiffusionPortableConfig{}, reason
 	}
 	return result, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
-}
-
-func stableDiffusionRequirementIntentFromFields(
-	fields map[string]*structpb.Value,
-	policyKey string,
-	contentKey string,
-) (stableDiffusionRequirementIntent, runtimev1.LocalCapabilityReason) {
-	policy, reason := portablePolicy(fields, policyKey)
-	if reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {
-		return stableDiffusionRequirementIntent{}, reason
-	}
-	contentID, reason := portableString(fields, contentKey)
-	if reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {
-		return stableDiffusionRequirementIntent{}, reason
-	}
-	contentID, reason = normalizeVerifiedContentID(contentID)
-	if reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED ||
-		(policy == runtimev1.LocalCapabilityRequirementPolicy_LOCAL_CAPABILITY_REQUIREMENT_POLICY_STRICT && contentID == "") {
-		return stableDiffusionRequirementIntent{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_PORTABLE_CONFIG_INVALID
-	}
-	return stableDiffusionRequirementIntent{policy: policy, verifiedContentID: contentID}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
 }
 
 func stableDiffusionExecutionOptionsFromValue(
@@ -972,7 +1330,7 @@ func normalizedStableDiffusionFeatures(features []string) ([]string, runtimev1.L
 	set := make(map[string]struct{}, len(features))
 	for _, feature := range features {
 		feature = strings.TrimSpace(feature)
-		if feature != aicapabilities.FeatureInputImage && feature != aicapabilities.FeatureInputMask {
+		if feature != aicapabilities.FeatureInputImage {
 			return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_FEATURE_UNSUPPORTED
 		}
 		set[feature] = struct{}{}

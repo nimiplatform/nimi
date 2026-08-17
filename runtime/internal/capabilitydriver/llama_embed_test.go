@@ -21,28 +21,28 @@ func TestLlamaEmbedDriverProjectsExactEmbeddingSlotAndPlan(t *testing.T) {
 		t.Fatalf("embedding requirement = %+v", requirement)
 	}
 	digest := strings.Repeat("a", 64)
-	binding := &runtimev1.LocalAssetExactBinding{
+	binding := &runtimev1.ModelAssetExactBinding{
 		RequirementId:     EmbeddingGGUFRequirementID,
-		LocalAssetId:      "embedding/test",
+		ModelAssetId:      "embedding/test",
 		VerifiedContentId: "sha256:" + digest,
 		EntrySha256:       digest,
 	}
-	asset := AssetDescriptor{
-		LocalAssetID:      "embedding/test",
+	asset := ModelAssetDescriptor{
+		ModelAssetID:      "embedding/test",
 		VerifiedContentID: "sha256:" + digest,
 		EntrySHA256:       digest,
 		Kind:              runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_EMBEDDING,
 		Engine:            "llama",
 		ArtifactRoles:     []string{"embedding"},
 	}
-	if reason := driver.ValidateCombination(requirements, []*runtimev1.LocalAssetExactBinding{binding}, []AssetDescriptor{asset}); reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {
+	if reason := driver.ValidateCombination(requirements, []*runtimev1.ModelAssetExactBinding{binding}, []ModelAssetDescriptor{asset}); reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {
 		t.Fatalf("ValidateCombination reason = %v", reason)
 	}
 	plan, err := driver.PlanEmbedInvocation(EmbedInvocationInput{
 		ModelContextWindowTokens: 8192,
 		ExactBindings: []InvocationExactBinding{{
 			RequirementID:     EmbeddingGGUFRequirementID,
-			LocalAssetID:      "embedding/test",
+			ModelAssetID:      "embedding/test",
 			AbsolutePath:      filepath.Join(t.TempDir(), "embedding.gguf"),
 			VerifiedContentID: "sha256:" + digest,
 			EntrySHA256:       digest,

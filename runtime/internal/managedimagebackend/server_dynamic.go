@@ -28,7 +28,17 @@ func decodeLoadModelState(message *dynamicpb.Message) (loadModelState, error) {
 	}
 	diffusionFA := dynamicMessageBoolField(message, "diffusion_fa")
 	offloadToCPU := dynamicMessageBoolField(message, "offload_to_cpu")
-	options := managedImageOptions{Components: components, DiffusionFA: &diffusionFA, OffloadParamsToCPU: &offloadToCPU}
+	flowShift := dynamicMessageFloat32Field(message, "flow_shift")
+	if flowShift < 0 {
+		return loadModelState{}, fmt.Errorf("managed image flow shift must be non-negative")
+	}
+	options := managedImageOptions{
+		Components:         components,
+		DiffusionFA:        &diffusionFA,
+		OffloadParamsToCPU: &offloadToCPU,
+		FlowShift:          flowShift,
+		QwenImageZeroCondT: dynamicMessageBoolField(message, "qwen_image_zero_cond_t"),
+	}
 	return loadModelState{
 		ModelsRoot: modelsRoot,
 		ModelPath:  modelPath,
@@ -112,6 +122,7 @@ func decodeGenerateImageState(message *dynamicpb.Message) (imageGenerateState, e
 		Dst:            destination,
 		Src:            strings.TrimSpace(dynamicMessageStringField(message, "src")),
 		Mask:           strings.TrimSpace(dynamicMessageStringField(message, "mask")),
+		ReferenceImage: readBytesField(message, "reference_image"),
 		CFGScale:       dynamicMessageFloat32Field(message, "cfg_scale"),
 		Sampler:        strings.TrimSpace(dynamicMessageStringField(message, "sampler")),
 		Scheduler:      strings.TrimSpace(dynamicMessageStringField(message, "scheduler")),

@@ -498,6 +498,59 @@ func TestProbeSpeechHealthRequiresCatalogReadyTrue(t *testing.T) {
 	}
 }
 
+func TestWaitSpeechHealthAcceptsRequiredReadyDriverWithoutDiscoveredModels(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/healthz":
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"status":"not_ready","ready":false,"detail":"speech drivers configured but no managed speech bundles discovered","checks":{"voxcpm_driver":true,"voxcpm_driver_ready":true,"models_ready":0}}`))
+		case "/v1/catalog":
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"status":"not_ready","ready":false,"models":[]}`))
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer server.Close()
+
+	cfg := EngineConfig{
+		Kind:                       EngineSpeech,
+		Address:                    strings.TrimPrefix(server.URL, "http://"),
+		SpeechHostPackageSetRoot:   "voxcpm-exact",
+		SpeechRequiredDriver:       SpeechDriverVoxCPM,
+		SpeechVoxCPMPackageSetRoot: "voxcpm-exact",
+		StartupTimeout:             time.Second,
+	}
+	if err := waitSupervisorHealthy(context.Background(), cfg, 10*time.Millisecond); err != nil {
+		t.Fatalf("expected required ready speech driver to satisfy startup health without discovered models, got %v", err)
+	}
+}
+
+func TestProbeSpeechHealthRejectsWrongReadyDriverForExactHost(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/healthz":
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"status":"ok","ready":true,"checks":{"qwen3_tts_driver_ready":true,"voxcpm_driver_ready":false,"voxcpm_driver_detail":"voxcpm preflight failed"}}`))
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer server.Close()
+
+	cfg := EngineConfig{
+		Kind:                       EngineSpeech,
+		Address:                    strings.TrimPrefix(server.URL, "http://"),
+		SpeechHostPackageSetRoot:   "voxcpm-exact",
+		SpeechRequiredDriver:       SpeechDriverVoxCPM,
+		SpeechVoxCPMPackageSetRoot: "voxcpm-exact",
+	}
+	err := probeSupervisorHealth(context.Background(), cfg)
+	if err == nil || !strings.Contains(err.Error(), "required driver voxcpm reported ready=false") {
+		t.Fatalf("expected exact VoxCPM readiness failure, got %v", err)
+	}
+}
+
 func TestProbeSpeechHealthPreservesBoundedOwnerDetail(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/healthz" {

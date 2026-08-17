@@ -17,12 +17,13 @@ from starlette.background import BackgroundTask
 from starlette.concurrency import run_in_threadpool
 import uvicorn
 from speech_server_runtime import (
+    ADMISSION_TOKEN_ENV,
+    ADMISSION_TOKEN_HEADER,
     MODELS_ROOT_ENV,
     HostState,
     QWEN3_ASR_DRIVER_ENV,
     QWEN3_ASR_TRANSFORMERS_DRIVER_ENV,
     QWEN3_TTS_DRIVER_ENV,
-    QWEN3_TTS_PREFLIGHT_CACHE,
     VOXCPM_BACKEND_ENV,
     VOXCPM_DRIVER_ENV,
     DriverAudioArtifact,
@@ -31,12 +32,13 @@ from speech_server_runtime import (
     create_voice_with_driver,
     driver_command_state,
     driver_work_root,
-    find_ready_model as runtime_find_ready_model,
-    find_ready_voice_creation_model as runtime_find_ready_voice_creation_model,
     local_workflow_not_admitted_response,
+    merge_registered_models_into_host_state,
     plain_speech_unavailable_response,
     public_model_payload,
+    registered_speech_model_state,
     run_driver_command,
+    speech_model_registration_admitted,
     synthesize_with_driver,
     transcribe_with_driver,
     truthy_form_value,
@@ -137,31 +139,63 @@ async def stream_driver_audio_artifact(artifact: DriverAudioArtifact):
         artifact.cleanup()
 
 
-def find_ready_model(model_id: str, capability: str) -> SpeechModelState:
+def current_host_state(registered_models: dict[str, SpeechModelState] | None = None) -> HostState:
+    state = build_host_state()
+    if not registered_models:
+        return state
+    return merge_registered_models_into_host_state(state, list(registered_models.values()))
+
+
+def find_ready_model(
+    model_id: str,
+    capability: str,
+    registered_models: dict[str, SpeechModelState] | None = None,
+) -> SpeechModelState:
     target = model_id.strip()
-    normalized_target = target.lower()
-    candidate_targets = {normalized_target}
-    if "/" in normalized_target:
-        _, suffix = normalized_target.split("/", 1)
-        if suffix:
-            candidate_targets.add(suffix)
-    elif normalized_target:
-        candidate_targets.add(f"speech/{normalized_target}")
-    for model in build_host_state().models:
-        normalized_model_id = model.model_id.strip().lower()
+    for model in current_host_state(registered_models).models:
         if (
-            normalized_model_id in candidate_targets
+            model.model_id.strip() == target
             and model.ready
             and capability in model.ready_capabilities
         ):
             return model
-    return runtime_find_ready_model(model_id, capability)
+    raise HTTPException(
+        status_code=503,
+        detail={
+            "message": f'local speech model "{target}" is not ready for {capability}',
+            "reason": "speech_model_not_ready",
+            "model": target,
+            "capability": capability,
+        },
+    )
 
 
-def find_ready_voice_creation_model(model_id: str, creation_source: str, workflow_model_id: str) -> SpeechModelState:
-    model = find_ready_model(model_id, "voice.create")
-    if creation_source not in model.voice_creation_sources:
-        return runtime_find_ready_voice_creation_model(model_id, creation_source, workflow_model_id)
+def find_ready_voice_creation_model(
+    model_id: str,
+    creation_source: str,
+    workflow_model_id: str,
+    registered_models: dict[str, SpeechModelState] | None = None,
+) -> SpeechModelState:
+    source = creation_source.strip()
+    workflow = workflow_model_id.strip()
+    if source not in {"reference_audio", "text_description"}:
+        raise HTTPException(
+            status_code=400,
+            detail={"message": "voice.create source is invalid", "reason": "speech_request_invalid"},
+        )
+    model = find_ready_model(model_id, "voice.create", registered_models)
+    if source not in model.voice_creation_sources or workflow not in model.workflow_model_bindings.get(source, []):
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "message": f'local speech model "{model_id.strip()}" is not registered for the requested voice.create workflow',
+                "reason": "speech_workflow_binding_not_ready",
+                "model": model_id.strip(),
+                "capability": "voice.create",
+                "creation_source": source,
+                "workflow_model_id": workflow,
+            },
+        )
     return model
 
 
@@ -227,10 +261,16 @@ def safe_uploaded_audio_path(temp_dir: str | pathlib.Path, filename: str | None,
 
 def create_app() -> FastAPI:
     app = FastAPI()
+    registered_models: dict[str, SpeechModelState] = {}
+    registered_models_lock = threading.Lock()
+
+    def registered_models_snapshot() -> dict[str, SpeechModelState]:
+        with registered_models_lock:
+            return dict(registered_models)
 
     @app.get("/healthz")
     def healthz():
-        state = build_host_state()
+        state = current_host_state(registered_models_snapshot())
         return {
             "status": state.status,
             "ready": state.ready,
@@ -254,7 +294,7 @@ def create_app() -> FastAPI:
 
     @app.get("/v1/catalog")
     def catalog():
-        state = build_host_state()
+        state = current_host_state(registered_models_snapshot())
         return {
             "status": state.status,
             "ready": state.ready,
@@ -262,6 +302,39 @@ def create_app() -> FastAPI:
             "not_admitted_capabilities": [],
             "models": [public_model_payload(model) for model in state.models],
         }
+
+    @app.post("/v1/models/register")
+    def register_model(payload: dict[str, Any], request: Request):
+        if not speech_model_registration_admitted(request.headers):
+            raise HTTPException(
+                status_code=401,
+                detail={
+                    "message": "speech model registration admission denied",
+                    "reason": "speech_model_registration_unauthorized",
+                },
+            )
+        try:
+            model = registered_speech_model_state(payload)
+        except ValueError as error:
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    "message": str(error),
+                    "reason": "speech_model_registration_invalid",
+                },
+            ) from error
+        if not model.ready:
+            raise HTTPException(
+                status_code=503,
+                detail={
+                    "message": model.detail,
+                    "reason": "speech_model_registration_not_ready",
+                    "model": model.model_id,
+                },
+            )
+        with registered_models_lock:
+            registered_models[model.model_id.strip()] = model
+        return {"status": "registered", "model": public_model_payload(model)}
 
     @app.post("/v1/audio/speech")
     async def synthesize(payload: dict[str, Any], request: Request):
@@ -273,7 +346,7 @@ def create_app() -> FastAPI:
                 "speech_request_invalid",
             )
         try:
-            model = find_ready_model(speech_request.model, "audio.synthesize")
+            model = find_ready_model(speech_request.model, "audio.synthesize", registered_models_snapshot())
             artifact = await run_synthesis_for_request(
                 request,
                 model,
@@ -281,7 +354,6 @@ def create_app() -> FastAPI:
                     "driver": model.capability_drivers.get("audio.synthesize", ""),
                     "operation": "audio.synthesize",
                     "model": model.model_id,
-                    "manifest_path": model.manifest_path,
                     "bundle_dir": model.bundle_dir,
                     "entry_path": model.entry_path,
                     "declared_files": model.declared_files,
@@ -338,7 +410,7 @@ def create_app() -> FastAPI:
                 "speech_request_invalid",
             )
         try:
-            active_model = find_ready_model(target_model, "audio.transcribe")
+            active_model = find_ready_model(target_model, "audio.transcribe", registered_models_snapshot())
             raw_audio = await file.read()
             if not raw_audio:
                 return plain_speech_unavailable_response(
@@ -356,7 +428,6 @@ def create_app() -> FastAPI:
                         "driver": active_model.capability_drivers.get("audio.transcribe", ""),
                         "operation": "audio.transcribe",
                         "model": active_model.model_id,
-                        "manifest_path": active_model.manifest_path,
                         "bundle_dir": active_model.bundle_dir,
                         "entry_path": active_model.entry_path,
                         "declared_files": active_model.declared_files,
@@ -391,7 +462,7 @@ def create_app() -> FastAPI:
         if not workflow_model_id or not target_model_id or creation_source not in {"reference_audio", "text_description"}:
             return local_workflow_not_admitted_response("voice.create", "")
         try:
-            model = find_ready_voice_creation_model(target_model_id, creation_source, workflow_model_id)
+            model = find_ready_voice_creation_model(target_model_id, creation_source, workflow_model_id, registered_models_snapshot())
             response = create_voice_with_driver(
                 model,
                 {
@@ -400,7 +471,6 @@ def create_app() -> FastAPI:
                     "creation_source": creation_source,
                     "workflow_model_id": workflow_model_id,
                     "target_model_id": model.model_id,
-                    "manifest_path": model.manifest_path,
                     "bundle_dir": model.bundle_dir,
                     "entry_path": model.entry_path,
                     "declared_files": model.declared_files,

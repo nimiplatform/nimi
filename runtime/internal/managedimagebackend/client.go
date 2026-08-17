@@ -42,20 +42,23 @@ type ImageRequest struct {
 	Dst            string
 	Src            string
 	Mask           string
+	ReferenceImage []byte
 	OnProgress     func(ImageGenerateProgress) error
 }
 
 type LoadModelRequest struct {
-	BackendAddress string
-	Protocol       Protocol
-	ModelsRoot     string
-	ModelPath      string
-	DirectOptions  []string
-	DirectCFGScale float32
-	Components     []ComponentBinding
-	Threads        int32
-	DiffusionFA    bool
-	OffloadToCPU   bool
+	BackendAddress     string
+	Protocol           Protocol
+	ModelsRoot         string
+	ModelPath          string
+	DirectOptions      []string
+	DirectCFGScale     float32
+	Components         []ComponentBinding
+	Threads            int32
+	DiffusionFA        bool
+	OffloadToCPU       bool
+	FlowShift          float32
+	QwenImageZeroCondT bool
 }
 
 type Protocol string
@@ -68,8 +71,9 @@ const (
 type ImageRequestMode string
 
 const (
-	ImageRequestModeTextToImage  ImageRequestMode = "text-to-image"
-	ImageRequestModeImageToImage ImageRequestMode = "image-to-image"
+	ImageRequestModeTextToImage     ImageRequestMode = "text-to-image"
+	ImageRequestModeImageToImage    ImageRequestMode = "image-to-image"
+	ImageRequestModeInstructionEdit ImageRequestMode = "instruction-edit"
 )
 
 // ComponentBinding is the ordered, Runtime-resolved component description
@@ -130,17 +134,24 @@ func GenerateImage(ctx context.Context, req ImageRequest) (*ImageGenerateDiagnos
 	if req.Protocol != ProtocolDirectGOSD && req.Protocol != ProtocolManagedWrapper {
 		return nil, fmt.Errorf("managed image protocol is required")
 	}
-	if req.Mode != ImageRequestModeTextToImage && req.Mode != ImageRequestModeImageToImage {
+	if req.Mode != ImageRequestModeTextToImage && req.Mode != ImageRequestModeImageToImage && req.Mode != ImageRequestModeInstructionEdit {
 		return nil, fmt.Errorf("managed image request mode is required")
+	}
+	if req.Protocol == ProtocolDirectGOSD && req.Mode == ImageRequestModeInstructionEdit {
+		return nil, fmt.Errorf("direct gosd does not expose the stable-diffusion.cpp instruction-edit route")
 	}
 	switch req.Mode {
 	case ImageRequestModeTextToImage:
-		if strings.TrimSpace(req.Src) != "" || strings.TrimSpace(req.Mask) != "" {
+		if strings.TrimSpace(req.Src) != "" || strings.TrimSpace(req.Mask) != "" || len(req.ReferenceImage) != 0 {
 			return nil, fmt.Errorf("text-to-image request cannot carry image inputs")
 		}
 	case ImageRequestModeImageToImage:
-		if strings.TrimSpace(req.Src) == "" {
+		if strings.TrimSpace(req.Src) == "" || len(req.ReferenceImage) != 0 {
 			return nil, fmt.Errorf("image-to-image request requires a source image")
+		}
+	case ImageRequestModeInstructionEdit:
+		if strings.TrimSpace(req.Src) != "" || strings.TrimSpace(req.Mask) != "" || len(req.ReferenceImage) == 0 {
+			return nil, fmt.Errorf("instruction-edit request requires one resolved source image and no path or mask")
 		}
 	}
 	if err := ensureDescriptors(); err != nil {
@@ -177,6 +188,7 @@ func GenerateImage(ctx context.Context, req ImageRequest) (*ImageGenerateDiagnos
 	setStringField(generateReq, "negative_prompt", req.NegativePrompt)
 	setStringField(generateReq, "dst", req.Dst)
 	setStringField(generateReq, "src", req.Src)
+	setBytesField(generateReq, "reference_image", req.ReferenceImage)
 	if req.Protocol == ProtocolDirectGOSD {
 		if strings.TrimSpace(req.Mask) != "" {
 			setStringField(generateReq, "EnableParameters", "mask:"+req.Mask)
@@ -343,6 +355,8 @@ func LoadModel(ctx context.Context, req LoadModelRequest) (*LoadModelDiagnostics
 	setRepeatedComponentBindingField(loadReq, req.Components)
 	setBoolField(loadReq, "diffusion_fa", req.DiffusionFA)
 	setBoolField(loadReq, "offload_to_cpu", req.OffloadToCPU)
+	setFloatField(loadReq, "flow_shift", req.FlowShift)
+	setBoolField(loadReq, "qwen_image_zero_cond_t", req.QwenImageZeroCondT)
 
 	loadResp := dynamicpb.NewMessage(resultMessageDescriptor)
 	invokeStartedAt := time.Now()
@@ -407,6 +421,8 @@ func FreeModel(ctx context.Context, req LoadModelRequest) error {
 	setRepeatedComponentBindingField(freeReq, req.Components)
 	setBoolField(freeReq, "diffusion_fa", req.DiffusionFA)
 	setBoolField(freeReq, "offload_to_cpu", req.OffloadToCPU)
+	setFloatField(freeReq, "flow_shift", req.FlowShift)
+	setBoolField(freeReq, "qwen_image_zero_cond_t", req.QwenImageZeroCondT)
 
 	freeResp := dynamicpb.NewMessage(resultMessageDescriptor)
 	if err := conn.Invoke(ctx, backendFreeModelMethod, freeReq, freeResp); err != nil {
@@ -423,7 +439,7 @@ func validateLoadModelRequestCarrier(req LoadModelRequest) error {
 		return fmt.Errorf("managed image protocol is required")
 	}
 	if req.Protocol == ProtocolDirectGOSD {
-		if len(req.Components) != 0 || req.DiffusionFA || req.OffloadToCPU {
+		if len(req.Components) != 0 || req.DiffusionFA || req.OffloadToCPU || req.FlowShift != 0 || req.QwenImageZeroCondT {
 			return fmt.Errorf("direct gosd load cannot carry managed wrapper fields")
 		}
 		return nil
@@ -536,6 +552,8 @@ func ensureDescriptors() error {
 						},
 						{Name: stringPtr("diffusion_fa"), Number: int32Ptr(64), Label: descriptorpb.FieldDescriptorProto_LABEL_OPTIONAL.Enum(), Type: descriptorpb.FieldDescriptorProto_TYPE_BOOL.Enum()},
 						{Name: stringPtr("offload_to_cpu"), Number: int32Ptr(65), Label: descriptorpb.FieldDescriptorProto_LABEL_OPTIONAL.Enum(), Type: descriptorpb.FieldDescriptorProto_TYPE_BOOL.Enum()},
+						{Name: stringPtr("flow_shift"), Number: int32Ptr(66), Label: descriptorpb.FieldDescriptorProto_LABEL_OPTIONAL.Enum(), Type: descriptorpb.FieldDescriptorProto_TYPE_FLOAT.Enum()},
+						{Name: stringPtr("qwen_image_zero_cond_t"), Number: int32Ptr(67), Label: descriptorpb.FieldDescriptorProto_LABEL_OPTIONAL.Enum(), Type: descriptorpb.FieldDescriptorProto_TYPE_BOOL.Enum()},
 					},
 				},
 				{
@@ -600,6 +618,7 @@ func ensureDescriptors() error {
 						{Name: stringPtr("sampler"), Number: int32Ptr(14), Label: descriptorpb.FieldDescriptorProto_LABEL_OPTIONAL.Enum(), Type: descriptorpb.FieldDescriptorProto_TYPE_STRING.Enum()},
 						{Name: stringPtr("scheduler"), Number: int32Ptr(15), Label: descriptorpb.FieldDescriptorProto_LABEL_OPTIONAL.Enum(), Type: descriptorpb.FieldDescriptorProto_TYPE_STRING.Enum()},
 						{Name: stringPtr("mask"), Number: int32Ptr(16), Label: descriptorpb.FieldDescriptorProto_LABEL_OPTIONAL.Enum(), Type: descriptorpb.FieldDescriptorProto_TYPE_STRING.Enum()},
+						{Name: stringPtr("reference_image"), Number: int32Ptr(17), Label: descriptorpb.FieldDescriptorProto_LABEL_OPTIONAL.Enum(), Type: descriptorpb.FieldDescriptorProto_TYPE_BYTES.Enum()},
 					},
 				},
 				{

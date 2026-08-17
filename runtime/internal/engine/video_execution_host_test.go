@@ -315,6 +315,37 @@ func TestVideoExecutionHostPropagatesSubstrateFailure(t *testing.T) {
 	}
 }
 
+func TestVideoExecutionHostRejectsInactiveFifthAxisDriftBeforeGeneration(t *testing.T) {
+	plan := videoPlanForHostTest(t, "fifth-axis-drift")
+	var inactiveBinding capabilitydriver.InvocationExactBinding
+	for _, binding := range plan.ExactBindings() {
+		if binding.RequirementID == capabilitydriver.StableDiffusionVideoRef2VARequirementID {
+			inactiveBinding = binding
+			break
+		}
+	}
+	if inactiveBinding.AbsolutePath == "" {
+		t.Fatal("video plan does not contain the inactive fifth axis")
+	}
+	if err := os.WriteFile(inactiveBinding.AbsolutePath, []byte("mutated-inactive-axis"), 0o600); err != nil {
+		t.Fatalf("mutate inactive fifth axis: %v", err)
+	}
+	substrate := &fakeVideoInvocationSubstrate{healthy: true}
+	host := newVideoExecutionHostWithSubstrate(substrate, nil, time.Second)
+	defer func() { _ = host.Stop() }()
+
+	_, err := host.ExecuteVideo(context.Background(), plan, nil, nil)
+	if localexecution.FailureKindOf(err) != localexecution.FailureContentMismatch {
+		t.Fatalf("inactive fifth-axis drift error=%v kind=%q, want content mismatch", err, localexecution.FailureKindOf(err))
+	}
+	substrate.mu.Lock()
+	generated := len(substrate.generateOrder)
+	substrate.mu.Unlock()
+	if generated != 0 {
+		t.Fatalf("inactive fifth-axis drift reached generation %d times", generated)
+	}
+}
+
 func TestVideoExecutionHostCrashRecoversOnNextJob(t *testing.T) {
 	crashed := false
 	substrate := &fakeVideoInvocationSubstrate{healthy: true}
@@ -378,10 +409,10 @@ func videoPlanForHostTestWithPortable(t *testing.T, prompt string, portable *str
 		}
 		digestBytes := sha256.Sum256(payload)
 		digest := hex.EncodeToString(digestBytes[:])
-		bindings = append(bindings, capabilitydriver.InvocationExactBinding{RequirementID: requirement, LocalAssetID: fmt.Sprintf("asset-%d", index), AbsolutePath: path, VerifiedContentID: "sha256:" + digest, EntrySHA256: digest})
+		bindings = append(bindings, capabilitydriver.InvocationExactBinding{RequirementID: requirement, ModelAssetID: fmt.Sprintf("asset-%d", index), AbsolutePath: path, VerifiedContentID: "sha256:" + digest, EntrySHA256: digest})
 	}
 	plan, err := (capabilitydriver.StableDiffusionVideoDriver{}).PlanVideoInvocation(capabilitydriver.VideoInvocationInput{
-		ConfigurationID: "video-config", PortableConfig: portable, ExactBindings: bindings,
+		LoadoutID: "video-loadout", PortableConfig: portable, ExactBindings: bindings,
 		Request: capabilitydriver.VideoInvocationRequest{Prompt: prompt, Width: 32, Height: 32, FrameCount: 5, FPS: 24, Seed: 7, GenerateAudio: true},
 	})
 	if err != nil {

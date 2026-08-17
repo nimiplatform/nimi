@@ -38,10 +38,30 @@ type speechExecutionWaiter struct {
 
 const maxSpeechExecutionHostTimeout = 30 * time.Minute
 
+// @nimi-authority: rule.nimi.runtime.local-compute.r110
+// SpeechExecutionModelRegistration is the Job-captured Loadout binding passed
+// to the exact private Host. Driver family and backend remain materializer-owned
+// facts rather than ModelAsset or request selectors.
+type SpeechExecutionModelRegistration struct {
+	CapabilityContract  string
+	DriverID            string
+	ModelAssetID        string
+	VoiceCreationSource string
+	WorkflowModelID     string
+	BundleDir           string
+	EntryPath           string
+	DeclaredFiles       []string
+	DeclaredFileSHA256  map[string]string
+	VerifiedContentID   string
+	EntrySHA256         string
+}
+
 // SpeechExecutionHostMaterializer lazily starts the private Host for exactly
-// one already-selected speech capability and returns its loopback endpoint.
+// one already-selected speech capability, then registers an explicit captured
+// model binding without asking the Host to discover Loadout-owned assets.
 type SpeechExecutionHostMaterializer interface {
 	MaterializeSpeechExecutionHost(context.Context, string, string, int) (string, error)
+	RegisterSpeechExecutionModel(context.Context, string, SpeechExecutionModelRegistration) error
 	StopSpeechExecutionHost() error
 }
 
@@ -67,19 +87,20 @@ func (host *SpeechExecutionHost) ExecuteSpeechSynthesis(ctx context.Context, pla
 	if host.poisoned != nil {
 		return localexecution.SpeechSynthesisResult{}, speechHostError(localexecution.FailureProcessCrash, host.poisoned)
 	}
-	backend, err := host.materializeBackend(ctx, capabilitydriver.AudioSynthesizeContract, plan.DriverID())
+	if err := beginSpeechExecution(ctx, onStart); err != nil {
+		return localexecution.SpeechSynthesisResult{}, err
+	}
+	modelFiles := plan.ModelFiles()
+	seals, err := sealInvocationModelContentContext(ctx, modelFiles)
+	if err != nil {
+		return localexecution.SpeechSynthesisResult{}, speechContentSealError(ctx, err)
+	}
+	backend, err := host.materializeBackend(ctx, capabilitydriver.AudioSynthesizeContract, plan.DriverID(), plan.ModelAssetID(), modelFiles, seals, "", "")
 	if err != nil {
 		if ctx != nil && ctx.Err() != nil {
 			return localexecution.SpeechSynthesisResult{}, host.stopCanceledExecution(ctx.Err(), err)
 		}
 		return localexecution.SpeechSynthesisResult{}, err
-	}
-	if err := beginSpeechExecution(ctx, onStart); err != nil {
-		cancelErr := err
-		if ctx != nil && ctx.Err() != nil {
-			cancelErr = ctx.Err()
-		}
-		return localexecution.SpeechSynthesisResult{}, host.stopCanceledExecution(cancelErr, err)
 	}
 	request := plan.Request()
 	artifactBody, usage, err := backend.SynthesizeSpeechArtifactBody(ctx, plan.ModelAssetID(), request, nil)
@@ -109,19 +130,20 @@ func (host *SpeechExecutionHost) ExecuteSpeechTranscription(ctx context.Context,
 	if host.poisoned != nil {
 		return localexecution.SpeechTranscriptionResult{}, speechHostError(localexecution.FailureProcessCrash, host.poisoned)
 	}
-	backend, err := host.materializeBackend(ctx, capabilitydriver.AudioTranscribeContract, plan.DriverID())
+	if err := beginSpeechExecution(ctx, onStart); err != nil {
+		return localexecution.SpeechTranscriptionResult{}, err
+	}
+	modelFiles := plan.ModelFiles()
+	seals, err := sealInvocationModelContentContext(ctx, modelFiles)
+	if err != nil {
+		return localexecution.SpeechTranscriptionResult{}, speechContentSealError(ctx, err)
+	}
+	backend, err := host.materializeBackend(ctx, capabilitydriver.AudioTranscribeContract, plan.DriverID(), plan.ModelAssetID(), modelFiles, seals, "", "")
 	if err != nil {
 		if ctx != nil && ctx.Err() != nil {
 			return localexecution.SpeechTranscriptionResult{}, host.stopCanceledExecution(ctx.Err(), err)
 		}
 		return localexecution.SpeechTranscriptionResult{}, err
-	}
-	if err := beginSpeechExecution(ctx, onStart); err != nil {
-		cancelErr := err
-		if ctx != nil && ctx.Err() != nil {
-			cancelErr = ctx.Err()
-		}
-		return localexecution.SpeechTranscriptionResult{}, host.stopCanceledExecution(cancelErr, err)
 	}
 	text, usage, err := backend.Transcribe(ctx, plan.ModelAssetID(), plan.Request(), plan.AudioBytes(), plan.MIMEType(), nil)
 	if err != nil {
@@ -145,19 +167,33 @@ func (host *SpeechExecutionHost) ExecuteVoiceCreate(ctx context.Context, plan *c
 	if host.poisoned != nil {
 		return localexecution.VoiceCreateResult{}, speechHostError(localexecution.FailureProcessCrash, host.poisoned)
 	}
-	backend, err := host.materializeBackend(ctx, capabilitydriver.VoiceCreateContract, plan.DriverID())
+	if err := beginSpeechExecution(ctx, onStart); err != nil {
+		return localexecution.VoiceCreateResult{}, err
+	}
+	modelFiles := plan.ModelFiles()
+	seals, err := sealInvocationModelContentContext(ctx, modelFiles)
+	if err != nil {
+		return localexecution.VoiceCreateResult{}, speechContentSealError(ctx, err)
+	}
+	creationSource, err := voiceCreateRegistrationSource(plan.SourceFeature())
+	if err != nil {
+		return localexecution.VoiceCreateResult{}, speechHostError(localexecution.FailureLoad, err)
+	}
+	backend, err := host.materializeBackend(
+		ctx,
+		capabilitydriver.VoiceCreateContract,
+		plan.DriverID(),
+		plan.ModelAssetID(),
+		modelFiles,
+		seals,
+		creationSource,
+		plan.WorkflowModelID(),
+	)
 	if err != nil {
 		if ctx != nil && ctx.Err() != nil {
 			return localexecution.VoiceCreateResult{}, host.stopCanceledExecution(ctx.Err(), err)
 		}
 		return localexecution.VoiceCreateResult{}, err
-	}
-	if err := beginSpeechExecution(ctx, onStart); err != nil {
-		cancelErr := err
-		if ctx != nil && ctx.Err() != nil {
-			cancelErr = ctx.Err()
-		}
-		return localexecution.VoiceCreateResult{}, host.stopCanceledExecution(cancelErr, err)
 	}
 	payload, err := localVoiceCreatePayload(plan)
 	if err != nil {
@@ -215,6 +251,17 @@ func localVoiceCreatePayload(plan *capabilitydriver.VoiceCreateInvocationPlan) (
 		return nil, fmt.Errorf("local voice.create source is unavailable")
 	}
 	return payload, nil
+}
+
+func voiceCreateRegistrationSource(sourceFeature string) (string, error) {
+	switch strings.TrimSpace(sourceFeature) {
+	case "input.audio":
+		return "reference_audio", nil
+	case "input.text":
+		return "text_description", nil
+	default:
+		return "", fmt.Errorf("local voice.create source feature is unavailable")
+	}
 }
 
 func (lease *speechExecutionLease) acquire(ctx context.Context) (func(), error) {
@@ -300,7 +347,38 @@ func beginSpeechExecution(ctx context.Context, onStart localexecution.SpeechExec
 	return nil
 }
 
-func (host *SpeechExecutionHost) materializeBackend(ctx context.Context, capabilityContract string, driverID string) (*nimillm.Backend, error) {
+func speechContentSealError(ctx context.Context, err error) error {
+	if ctx != nil && ctx.Err() != nil {
+		return speechHostError(localexecution.FailureCanceled, ctx.Err())
+	}
+	if localexecution.FailureKindOf(err) != "" {
+		return err
+	}
+	return speechHostError(localexecution.FailureContentMismatch, err)
+}
+
+func (host *SpeechExecutionHost) materializeBackend(
+	ctx context.Context,
+	capabilityContract string,
+	driverID string,
+	modelAssetID string,
+	modelFiles []capabilitydriver.InvocationExactBinding,
+	seals []invocationModelContentSeal,
+	voiceCreationSource string,
+	workflowModelID string,
+) (*nimillm.Backend, error) {
+	registration, err := speechExecutionModelRegistration(
+		capabilityContract,
+		driverID,
+		modelAssetID,
+		modelFiles,
+		seals,
+		voiceCreationSource,
+		workflowModelID,
+	)
+	if err != nil {
+		return nil, speechHostError(localexecution.FailureLoad, fmt.Errorf("local speech model registration is incomplete: %w", err))
+	}
 	endpoint, err := host.materializer.MaterializeSpeechExecutionHost(ctx, capabilityContract, driverID, host.port)
 	if err != nil {
 		return nil, speechHostError(localexecution.FailureLoad, fmt.Errorf("materialize local speech ExecutionHost for %s: %w", capabilityContract, err))
@@ -309,11 +387,62 @@ func (host *SpeechExecutionHost) materializeBackend(ctx context.Context, capabil
 	if endpoint == "" {
 		return nil, speechHostError(localexecution.FailureLoad, fmt.Errorf("local speech ExecutionHost endpoint is unavailable"))
 	}
+	if err := host.materializer.RegisterSpeechExecutionModel(ctx, endpoint, registration); err != nil {
+		return nil, speechHostError(localexecution.FailureLoad, fmt.Errorf("register local speech model %s: %w", modelAssetID, err))
+	}
 	backend := nimillm.NewBackend("local-speech-execution-host", endpoint, "", host.timeout)
 	if backend == nil {
 		return nil, speechHostError(localexecution.FailureLoad, fmt.Errorf("local speech ExecutionHost endpoint is unavailable"))
 	}
 	return backend, nil
+}
+
+func speechExecutionModelRegistration(
+	capabilityContract string,
+	driverID string,
+	modelAssetID string,
+	modelFiles []capabilitydriver.InvocationExactBinding,
+	seals []invocationModelContentSeal,
+	voiceCreationSource string,
+	workflowModelID string,
+) (SpeechExecutionModelRegistration, error) {
+	if len(modelFiles) != 1 || len(seals) != 1 {
+		return SpeechExecutionModelRegistration{}, fmt.Errorf("exactly one captured model binding is required")
+	}
+	binding := modelFiles[0]
+	if strings.TrimSpace(capabilityContract) == "" || strings.TrimSpace(driverID) == "" || strings.TrimSpace(modelAssetID) == "" ||
+		strings.TrimSpace(binding.ModelAssetID) != strings.TrimSpace(modelAssetID) ||
+		strings.TrimSpace(binding.BundleDir) == "" || strings.TrimSpace(binding.AbsolutePath) == "" || len(binding.DeclaredFiles) == 0 ||
+		len(seals[0].declaredFileSHA256) != len(binding.DeclaredFiles) || strings.TrimSpace(binding.VerifiedContentID) == "" ||
+		strings.TrimSpace(binding.EntrySHA256) == "" {
+		return SpeechExecutionModelRegistration{}, fmt.Errorf("captured ModelAsset binding and content seal are required")
+	}
+	voiceCreationSource = strings.TrimSpace(voiceCreationSource)
+	workflowModelID = strings.TrimSpace(workflowModelID)
+	if capabilityContract == capabilitydriver.VoiceCreateContract {
+		if (voiceCreationSource != "reference_audio" && voiceCreationSource != "text_description") || workflowModelID == "" {
+			return SpeechExecutionModelRegistration{}, fmt.Errorf("voice.create source and workflow model binding are required")
+		}
+		if (voiceCreationSource == "reference_audio" && workflowModelID != capabilitydriver.Qwen3VoiceCloneRecipeID) ||
+			(voiceCreationSource == "text_description" && workflowModelID != capabilitydriver.Qwen3VoiceDesignRecipeID) {
+			return SpeechExecutionModelRegistration{}, fmt.Errorf("voice.create source does not match its captured workflow model")
+		}
+	} else if voiceCreationSource != "" || workflowModelID != "" {
+		return SpeechExecutionModelRegistration{}, fmt.Errorf("voice.create binding is not admitted for %s", capabilityContract)
+	}
+	return SpeechExecutionModelRegistration{
+		CapabilityContract:  strings.TrimSpace(capabilityContract),
+		DriverID:            strings.TrimSpace(driverID),
+		ModelAssetID:        strings.TrimSpace(modelAssetID),
+		VoiceCreationSource: voiceCreationSource,
+		WorkflowModelID:     workflowModelID,
+		BundleDir:           binding.BundleDir,
+		EntryPath:           binding.AbsolutePath,
+		DeclaredFiles:       append([]string(nil), binding.DeclaredFiles...),
+		DeclaredFileSHA256:  cloneStringMap(seals[0].declaredFileSHA256),
+		VerifiedContentID:   binding.VerifiedContentID,
+		EntrySHA256:         binding.EntrySHA256,
+	}, nil
 }
 
 func (host *SpeechExecutionHost) speechHostBackendError(ctx context.Context, err error) error {

@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import { createHash } from 'node:crypto';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -86,9 +87,134 @@ function requirePositiveSafeInteger(value, label) {
   return value;
 }
 
-function resolveCapabilities(defaultCaps, overrideCaps) {
+export function localVariantContentId(variant, label) {
+  const files = normalizeStringArray(variant?.files).sort((left, right) => (
+    left < right ? -1 : left > right ? 1 : 0
+  ));
+  if (files.length === 0) throw new Error(`${label} has no files`);
+  const digests = files.map((file) => {
+    const value = normalizeString(variant?.hashes?.[file]).toLowerCase();
+    if (!/^sha256:[0-9a-f]{64}$/u.test(value)) {
+      throw new Error(`${label} file ${file} has no exact SHA-256`);
+    }
+    return value.slice('sha256:'.length);
+  });
+  if (digests.length === 1) return `sha256:${digests[0]}`;
+  const hash = createHash('sha256');
+  for (const digest of digests) hash.update(Buffer.from(digest, 'hex'));
+  return `sha256:${hash.digest('hex')}`;
+}
+
+function normalizeLocalLoadoutRecipes(rawRecipes, models) {
+  const recipes = Array.isArray(rawRecipes) ? rawRecipes : [];
+  const variants = new Map();
+  const addVariant = (variant, owner) => {
+    const variantId = normalizeString(variant?.variant_id);
+    if (!variantId) return;
+    if (variants.has(variantId)) throw new Error(`duplicate local variant ${variantId}`);
+    const files = normalizeStringArray(variant?.files);
+    variants.set(variantId, {
+      contentId: localVariantContentId(variant, `${owner} variant ${variantId}`),
+      hashes: new Map(files.map((file) => [file, normalizeString(variant?.hashes?.[file]).toLowerCase()])),
+    });
+  };
+  for (const model of models) {
+    for (const variant of Array.isArray(model?.variants) ? model.variants : []) {
+      addVariant(variant, 'local');
+    }
+  }
+  const seenRecipes = new Set();
+  return recipes.map((recipe, recipeIndex) => {
+    const label = `loadout recipe #${recipeIndex}`;
+    const recipeId = normalizeString(recipe?.recipe_id);
+    const revision = normalizeString(recipe?.revision);
+    const title = normalizeString(recipe?.title);
+    const capabilityContract = normalizeString(recipe?.capability_contract);
+    const implementationId = normalizeString(recipe?.implementation_id);
+    const driverId = normalizeString(recipe?.driver_id);
+    const driverDialect = normalizeString(recipe?.driver_dialect);
+    if (!recipeId || !revision || !title || !capabilityContract || !implementationId || !driverId || !driverDialect) {
+      throw new Error(`${label} has incomplete identity`);
+    }
+    if (seenRecipes.has(recipeId)) throw new Error(`duplicate loadout recipe ${recipeId}`);
+    seenRecipes.add(recipeId);
+    const rawSlots = Array.isArray(recipe?.slot_metadata) ? recipe.slot_metadata : [];
+    if (rawSlots.length === 0) throw new Error(`loadout recipe ${recipeId} has no slot_metadata`);
+    const seenSlots = new Set();
+    const slotMetadata = rawSlots.map((slot, slotIndex) => {
+      const slotId = normalizeString(slot?.slot_id);
+      const displayLabel = normalizeString(slot?.display_label);
+      if (!slotId || !displayLabel || seenSlots.has(slotId)) {
+        throw new Error(`loadout recipe ${recipeId} has invalid or duplicate slot_metadata #${slotIndex}`);
+      }
+      seenSlots.add(slotId);
+      const recommendedVariantIds = normalizeStringArray(slot?.recommended_variant_ids);
+      const recommendedContentIds = normalizeStringArray(recommendedVariantIds.map((variantId) => {
+        const variant = variants.get(variantId);
+        if (!variant) throw new Error(`loadout recipe ${recipeId} references unknown variant ${variantId}`);
+        return variant.contentId;
+      }));
+      const modelContract = slot?.model_contract;
+      if (!modelContract || typeof modelContract !== 'object' || Array.isArray(modelContract) || Object.keys(modelContract).length === 0) {
+        throw new Error(`loadout recipe ${recipeId} slot ${slotId} has no model_contract`);
+      }
+      return {
+        slot_id: slotId,
+        display_label: displayLabel,
+        recommended_variant_ids: recommendedVariantIds,
+        recommended_content_ids: recommendedContentIds,
+        model_contract: structuredClone(modelContract),
+      };
+    });
+    const hasCustody = Object.prototype.hasOwnProperty.call(recipe, 'custody');
+    let custody;
+    if (hasCustody) {
+      if (!Array.isArray(recipe.custody)) {
+        throw new Error(`loadout recipe ${recipeId} custody must be an array`);
+      }
+      const recommendedVariants = slotMetadata.flatMap((slot) => (
+        slot.recommended_variant_ids.map((variantId) => variants.get(variantId))
+      ));
+      const seenCustodyFiles = new Set();
+      custody = recipe.custody.map((item, custodyIndex) => {
+        const file = normalizeString(item?.file);
+        const sha256 = normalizeString(item?.sha256).toLowerCase();
+        const source = normalizeString(item?.source);
+        const role = normalizeString(item?.role);
+        if (!file || !source || !role || !/^sha256:[0-9a-f]{64}$/u.test(sha256)) {
+          throw new Error(`loadout recipe ${recipeId} has invalid custody #${custodyIndex}`);
+        }
+        if (seenCustodyFiles.has(file)) {
+          throw new Error(`loadout recipe ${recipeId} has duplicate custody file ${file}`);
+        }
+        seenCustodyFiles.add(file);
+        if (source === 'catalog-variant' && !recommendedVariants.some((variant) => variant?.hashes.get(file) === sha256)) {
+          throw new Error(`loadout recipe ${recipeId} custody file ${file} is not pinned by a recommended catalog variant`);
+        }
+        return { file, sha256, source, role };
+      });
+    }
+    return {
+      recipe_id: recipeId,
+      revision,
+      title,
+      capability_contract: capabilityContract,
+      implementation_id: implementationId,
+      driver_id: driverId,
+      driver_dialect: driverDialect,
+      default_options: recipe?.default_options && typeof recipe.default_options === 'object' && !Array.isArray(recipe.default_options)
+        ? structuredClone(recipe.default_options)
+        : {},
+      supported_features: normalizeStringArray(recipe?.supported_features),
+      ...(hasCustody ? { custody } : {}),
+      slot_metadata: slotMetadata,
+    };
+  });
+}
+
+function resolveCapabilities(defaultCaps, overrideCaps, { allowEmpty = false } = {}) {
   const merged = normalizeStringArray([...(defaultCaps || []), ...(overrideCaps || [])]);
-  if (merged.length === 0) {
+  if (merged.length === 0 && !allowEmpty) {
     throw new Error('capabilities must not be empty');
   }
   for (const capability of merged) {
@@ -234,7 +360,8 @@ export function generateProviderCatalog(doc) {
 
     const modelType = normalizeString(model?.model_type) || defaultModelType;
     const family = normalizeString(model?.family).toLowerCase();
-    const capabilities = resolveCapabilities(defaultCapabilities, model?.capabilities);
+    const passiveLocalOffer = runtime.runtime_plane === 'local' && ['vae', 'clip', 'lora', 'controlnet', 'auxiliary'].includes(modelType.toLowerCase());
+    const capabilities = resolveCapabilities(defaultCapabilities, model?.capabilities, { allowEmpty: passiveLocalOffer });
     const normalizedCapabilities = capabilities.map((value) => normalizeString(value).toLowerCase());
     const features = normalizeStringArray(model?.features).map((value) => value.toLowerCase());
     if (features.length > 0) {
@@ -404,9 +531,8 @@ export function generateProviderCatalog(doc) {
       if (localPlane && entryModelID === canonicalModelID) {
         modelEntry.install = localPlane.install;
         modelEntry.variants = localPlane.variants;
-        modelEntry.fitness = localPlane.fitness;
-        if (localPlane.companions) {
-          modelEntry.companions = localPlane.companions;
+        if (localPlane.fitness) {
+          modelEntry.fitness = localPlane.fitness;
         }
       }
 
@@ -541,6 +667,9 @@ export function generateProviderCatalog(doc) {
   const presetsOut = runtime.runtime_plane === 'local'
     ? normalizePresets(doc?.presets, localPlaneByModelID, modelCapabilitiesByID)
     : undefined;
+  const loadoutRecipesOut = runtime.runtime_plane === 'local'
+    ? normalizeLocalLoadoutRecipes(doc?.loadout_recipes, modelsOut)
+    : [];
 
   const selectionProfilesOut = inventoryMode === 'static_source'
     ? normalizeSelectionProfiles(doc?.selection_profiles, provider, modelIndex)
@@ -742,6 +871,9 @@ export function generateProviderCatalog(doc) {
   }
   if (presetsOut) {
     result.presets = presetsOut;
+  }
+  if (loadoutRecipesOut.length > 0) {
+    result.loadout_recipes = loadoutRecipesOut;
   }
   return result;
 }

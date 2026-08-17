@@ -1,6 +1,7 @@
 package engine
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"errors"
@@ -456,6 +457,61 @@ func TestExecutionHostClassifiesLoadFailure(t *testing.T) {
 	}
 }
 
+func TestInvocationContentSealCoversCompleteDeclaredBundleIdentity(t *testing.T) {
+	tests := []struct {
+		name   string
+		mutate func(t *testing.T, binding *capabilitydriver.InvocationExactBinding)
+		want   localexecution.FailureKind
+	}{
+		{name: "original bytes"},
+		{
+			name: "same-size sibling drift",
+			mutate: func(t *testing.T, binding *capabilitydriver.InvocationExactBinding) {
+				path := filepath.Join(binding.BundleDir, "tokenizer.json")
+				original, err := os.ReadFile(path)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if err := os.WriteFile(path, bytes.Repeat([]byte{'x'}, len(original)), 0o600); err != nil {
+					t.Fatal(err)
+				}
+			},
+			want: localexecution.FailureContentMismatch,
+		},
+		{
+			name: "missing sibling",
+			mutate: func(t *testing.T, binding *capabilitydriver.InvocationExactBinding) {
+				if err := os.Remove(filepath.Join(binding.BundleDir, "tokenizer.json")); err != nil {
+					t.Fatal(err)
+				}
+			},
+			want: localexecution.FailureContentMismatch,
+		},
+		{
+			name: "declared order drift",
+			mutate: func(_ *testing.T, binding *capabilitydriver.InvocationExactBinding) {
+				binding.DeclaredFiles[0], binding.DeclaredFiles[1] = binding.DeclaredFiles[1], binding.DeclaredFiles[0]
+			},
+			want: localexecution.FailureContentMismatch,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			binding := speechBindingFixture(t, "model.gguf", map[string][]byte{
+				"model.gguf":     []byte("captured-model"),
+				"tokenizer.json": []byte("captured-tokenizer"),
+			})
+			if test.mutate != nil {
+				test.mutate(t, &binding)
+			}
+			err := validateInvocationModelContent([]capabilitydriver.InvocationExactBinding{binding})
+			if got := localexecution.FailureKindOf(err); got != test.want {
+				t.Fatalf("bundle seal error=%v kind=%q, want %q", err, got, test.want)
+			}
+		})
+	}
+}
+
 func TestExecutionHostRejectsCapturedContentDriftBeforeSpawn(t *testing.T) {
 	substrate := &fakeLlamaInvocationSubstrate{endpoint: "http://127.0.0.1:1", healthy: true}
 	host := newExecutionHostWithSubstrate(substrate, nil)
@@ -490,7 +546,7 @@ func llamaInvocationPlanForHostTest(t *testing.T, name string, portable *structp
 		ModelContextWindowTokens: 32768,
 		ExactBindings: []capabilitydriver.InvocationExactBinding{{
 			RequirementID:     capabilitydriver.MainGGUFRequirementID,
-			LocalAssetID:      "asset-" + name,
+			ModelAssetID:      "asset-" + name,
 			AbsolutePath:      modelPath,
 			VerifiedContentID: "sha256:" + digestHex,
 			EntrySHA256:       digestHex,
@@ -517,7 +573,7 @@ func llamaEmbedInvocationPlanForHostTest(t *testing.T, name string) *capabilityd
 		ModelContextWindowTokens: 8192,
 		ExactBindings: []capabilitydriver.InvocationExactBinding{{
 			RequirementID:     capabilitydriver.EmbeddingGGUFRequirementID,
-			LocalAssetID:      "asset-" + name,
+			ModelAssetID:      "asset-" + name,
 			AbsolutePath:      modelPath,
 			VerifiedContentID: "sha256:" + digestHex,
 			EntrySHA256:       digestHex,

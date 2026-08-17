@@ -9,7 +9,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-//go:embed authority/managed-image-backend-packages.yaml
+//go:embed generated/managed-image-backend-packages.yaml
 var managedImageBackendPackagesAuthorityYAML []byte
 
 var managedImageBackendPackageAuthority = sync.OnceValues(loadManagedImageBackendPackageSpecsFromAuthority)

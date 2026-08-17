@@ -8,7 +8,7 @@ pub const DESKTOP_ACCOUNT_PRODUCT_NATIVE_PROFILE_MARKER: &str = "desktop-account
 
 #[rustfmt::skip]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum DesktopMachineProductUnaryMethod { CollectDeviceProfile, ResolveLocalEnvironmentPlan, ApplyLocalEnvironmentPlan, ListLocalEnvironmentDependencyJobs, StartLocalEnvironmentDependencyJob, CancelLocalEnvironmentDependencyJob, RetryLocalEnvironmentDependencyJob, RepairLocalEnvironmentDependency, GetProductControlRecord, GetProductControlSelectedDataRoot, EnsureProductControlRecordCreated, SelectProductControlDataRoot, SetProductControlFirstRunInstallLevel, CompleteProductControlFirstRunDeviceEnvironmentScan, AdmitProductControlReadyForUse, ReconcileProductControlFirstRunSetupState, ListLocalAssets, GetMachineLocalAiConfiguration, GetLocalCapabilityConfiguration, AddLocalCapabilityConfiguration, UpdateLocalCapabilityConfiguration, SelectLocalCapabilityConfiguration, ClearLocalCapabilitySelection, DeleteLocalCapabilityConfiguration, ReprojectLocalCapabilityRequirements, BindLocalCapabilityRequirement, RebindLocalCapabilityRequirement, UnbindLocalCapabilityRequirement, ListNodeCatalog, ListConnectors, GetRuntimeHealth, ListAiProviderHealth, ListDesktopAuditEvents, ListUsageStats, PeekScheduling, RemoveLocalAsset, StartLocalAsset, StopLocalAsset, ListVerifiedAssets, SearchCatalogModels, ListCatalogVariants, GetRecommendationFeed, ResolveModelInstallPlan, InstallModelFromPlan, InstallVerifiedAsset, ImportLocalAsset, ImportLocalAssetFile, ImportLocalAssetBundle, RescanLocalAssetBundle, ListLocalTransfers, PauseLocalTransfer, ResumeLocalTransfer, CancelLocalTransfer, ScanUnregisteredAssets, ScaffoldOrphanAsset, ResolveProfile, ApplyProfile, ListProviderCatalog, ListLocalAudits, GetExternalAgentGatewayStatus, IssueExternalAgentToken, RevokeExternalAgentToken, ListExternalAgentTokens }
+pub enum DesktopMachineProductUnaryMethod { CollectDeviceProfile, ResolveLocalEnvironmentPlan, ApplyLocalEnvironmentPlan, ListLocalEnvironmentDependencyJobs, StartLocalEnvironmentDependencyJob, CancelLocalEnvironmentDependencyJob, RetryLocalEnvironmentDependencyJob, RepairLocalEnvironmentDependency, GetProductControlRecord, GetProductControlSelectedDataRoot, EnsureProductControlRecordCreated, SelectProductControlDataRoot, SetProductControlFirstRunInstallLevel, CompleteProductControlFirstRunDeviceEnvironmentScan, AdmitProductControlReadyForUse, ReconcileProductControlFirstRunSetupState, ResolveLocalStateReconciliation, ImportModelAsset, ListModelAssets, GetModelAsset, ListLoadoutRecipes, GetMachineLoadouts, GetLoadout, PrepareLoadout, CommitLoadout, UpdateLoadout, SelectLoadout, DeleteLoadout, ListConnectors, GetRuntimeHealth, ListAiProviderHealth, ListDesktopAuditEvents, ListUsageStats, PeekScheduling, RemoveModelAsset, ListVerifiedAssets, SearchCatalogModels, ListCatalogVariants, GetRecommendationFeed, ResolveModelInstallPlan, InstallModelFromPlan, ListLocalTransfers, PauseLocalTransfer, ResumeLocalTransfer, CancelLocalTransfer, ListProviderCatalog, ListLocalAudits, GetExternalAgentGatewayStatus, IssueExternalAgentToken, RevokeExternalAgentToken, ListExternalAgentTokens }
 
 impl DesktopMachineProductUnaryMethod {
     pub fn from_method_id(method_id: &str) -> Option<Self> {
@@ -29,47 +29,35 @@ impl DesktopMachineProductUnaryMethod {
             "/nimi.runtime.v1.RuntimeLocalService/CompleteProductControlFirstRunDeviceEnvironmentScan" => Self::CompleteProductControlFirstRunDeviceEnvironmentScan,
             "/nimi.runtime.v1.RuntimeLocalService/AdmitProductControlReadyForUse" => Self::AdmitProductControlReadyForUse,
             "/nimi.runtime.v1.RuntimeLocalService/ReconcileProductControlFirstRunSetupState" => Self::ReconcileProductControlFirstRunSetupState,
-            "/nimi.runtime.v1.RuntimeLocalService/ListLocalAssets" => Self::ListLocalAssets,
-            "/nimi.runtime.v1.RuntimeLocalService/GetMachineLocalAIConfiguration" => Self::GetMachineLocalAiConfiguration,
-            "/nimi.runtime.v1.RuntimeLocalService/GetLocalCapabilityConfiguration" => Self::GetLocalCapabilityConfiguration,
-            "/nimi.runtime.v1.RuntimeLocalService/AddLocalCapabilityConfiguration" => Self::AddLocalCapabilityConfiguration,
-            "/nimi.runtime.v1.RuntimeLocalService/UpdateLocalCapabilityConfiguration" => Self::UpdateLocalCapabilityConfiguration,
-            "/nimi.runtime.v1.RuntimeLocalService/SelectLocalCapabilityConfiguration" => Self::SelectLocalCapabilityConfiguration,
-            "/nimi.runtime.v1.RuntimeLocalService/ClearLocalCapabilitySelection" => Self::ClearLocalCapabilitySelection,
-            "/nimi.runtime.v1.RuntimeLocalService/DeleteLocalCapabilityConfiguration" => Self::DeleteLocalCapabilityConfiguration,
-            "/nimi.runtime.v1.RuntimeLocalService/ReprojectLocalCapabilityRequirements" => Self::ReprojectLocalCapabilityRequirements,
-            "/nimi.runtime.v1.RuntimeLocalService/BindLocalCapabilityRequirement" => Self::BindLocalCapabilityRequirement,
-            "/nimi.runtime.v1.RuntimeLocalService/RebindLocalCapabilityRequirement" => Self::RebindLocalCapabilityRequirement,
-            "/nimi.runtime.v1.RuntimeLocalService/UnbindLocalCapabilityRequirement" => Self::UnbindLocalCapabilityRequirement,
-            "/nimi.runtime.v1.RuntimeLocalService/ListNodeCatalog" => Self::ListNodeCatalog,
+            "/nimi.runtime.v1.RuntimeLocalService/ResolveLocalStateReconciliation" => Self::ResolveLocalStateReconciliation,
+            "/nimi.runtime.v1.RuntimeLocalService/ImportModelAsset" => Self::ImportModelAsset,
+            "/nimi.runtime.v1.RuntimeLocalService/ListModelAssets" => Self::ListModelAssets,
+            "/nimi.runtime.v1.RuntimeLocalService/GetModelAsset" => Self::GetModelAsset,
+            "/nimi.runtime.v1.RuntimeLocalService/ListLoadoutRecipes" => Self::ListLoadoutRecipes,
+            "/nimi.runtime.v1.RuntimeLocalService/GetMachineLoadouts" => Self::GetMachineLoadouts,
+            "/nimi.runtime.v1.RuntimeLocalService/GetLoadout" => Self::GetLoadout,
+            "/nimi.runtime.v1.RuntimeLocalService/PrepareLoadout" => Self::PrepareLoadout,
+            "/nimi.runtime.v1.RuntimeLocalService/CommitLoadout" => Self::CommitLoadout,
+            "/nimi.runtime.v1.RuntimeLocalService/UpdateLoadout" => Self::UpdateLoadout,
+            "/nimi.runtime.v1.RuntimeLocalService/SelectLoadout" => Self::SelectLoadout,
+            "/nimi.runtime.v1.RuntimeLocalService/DeleteLoadout" => Self::DeleteLoadout,
             "/nimi.runtime.v1.RuntimeConnectorService/ListConnectors" => Self::ListConnectors,
             "/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth" => Self::GetRuntimeHealth,
             "/nimi.runtime.v1.RuntimeAuditService/ListAIProviderHealth" => Self::ListAiProviderHealth,
             "/nimi.runtime.v1.RuntimeAuditService/ListDesktopAuditEvents" => Self::ListDesktopAuditEvents,
             "/nimi.runtime.v1.RuntimeAuditService/ListUsageStats" => Self::ListUsageStats,
             "/nimi.runtime.v1.RuntimeAiService/PeekScheduling" => Self::PeekScheduling,
-            "/nimi.runtime.v1.RuntimeLocalService/RemoveLocalAsset" => Self::RemoveLocalAsset,
-            "/nimi.runtime.v1.RuntimeLocalService/StartLocalAsset" => Self::StartLocalAsset,
-            "/nimi.runtime.v1.RuntimeLocalService/StopLocalAsset" => Self::StopLocalAsset,
+            "/nimi.runtime.v1.RuntimeLocalService/RemoveModelAsset" => Self::RemoveModelAsset,
             "/nimi.runtime.v1.RuntimeLocalService/ListVerifiedAssets" => Self::ListVerifiedAssets,
             "/nimi.runtime.v1.RuntimeLocalService/SearchCatalogModels" => Self::SearchCatalogModels,
             "/nimi.runtime.v1.RuntimeLocalService/ListCatalogVariants" => Self::ListCatalogVariants,
             "/nimi.runtime.v1.RuntimeLocalService/GetRecommendationFeed" => Self::GetRecommendationFeed,
             "/nimi.runtime.v1.RuntimeLocalService/ResolveModelInstallPlan" => Self::ResolveModelInstallPlan,
             "/nimi.runtime.v1.RuntimeLocalService/InstallModelFromPlan" => Self::InstallModelFromPlan,
-            "/nimi.runtime.v1.RuntimeLocalService/InstallVerifiedAsset" => Self::InstallVerifiedAsset,
-            "/nimi.runtime.v1.RuntimeLocalService/ImportLocalAsset" => Self::ImportLocalAsset,
-            "/nimi.runtime.v1.RuntimeLocalService/ImportLocalAssetFile" => Self::ImportLocalAssetFile,
-            "/nimi.runtime.v1.RuntimeLocalService/ImportLocalAssetBundle" => Self::ImportLocalAssetBundle,
-            "/nimi.runtime.v1.RuntimeLocalService/RescanLocalAssetBundle" => Self::RescanLocalAssetBundle,
             "/nimi.runtime.v1.RuntimeLocalService/ListLocalTransfers" => Self::ListLocalTransfers,
             "/nimi.runtime.v1.RuntimeLocalService/PauseLocalTransfer" => Self::PauseLocalTransfer,
             "/nimi.runtime.v1.RuntimeLocalService/ResumeLocalTransfer" => Self::ResumeLocalTransfer,
             "/nimi.runtime.v1.RuntimeLocalService/CancelLocalTransfer" => Self::CancelLocalTransfer,
-            "/nimi.runtime.v1.RuntimeLocalService/ScanUnregisteredAssets" => Self::ScanUnregisteredAssets,
-            "/nimi.runtime.v1.RuntimeLocalService/ScaffoldOrphanAsset" => Self::ScaffoldOrphanAsset,
-            "/nimi.runtime.v1.RuntimeLocalService/ResolveProfile" => Self::ResolveProfile,
-            "/nimi.runtime.v1.RuntimeLocalService/ApplyProfile" => Self::ApplyProfile,
             "/nimi.runtime.v1.RuntimeConnectorService/ListProviderCatalog" => Self::ListProviderCatalog,
             "/nimi.runtime.v1.RuntimeLocalService/ListLocalAudits" => Self::ListLocalAudits,
             "/nimi.runtime.v1.RuntimeExternalAgentService/GetExternalAgentGatewayStatus" => Self::GetExternalAgentGatewayStatus,
@@ -98,47 +86,35 @@ impl DesktopMachineProductUnaryMethod {
             Self::CompleteProductControlFirstRunDeviceEnvironmentScan => "/nimi.runtime.v1.RuntimeLocalService/CompleteProductControlFirstRunDeviceEnvironmentScan",
             Self::AdmitProductControlReadyForUse => "/nimi.runtime.v1.RuntimeLocalService/AdmitProductControlReadyForUse",
             Self::ReconcileProductControlFirstRunSetupState => "/nimi.runtime.v1.RuntimeLocalService/ReconcileProductControlFirstRunSetupState",
-            Self::ListLocalAssets => "/nimi.runtime.v1.RuntimeLocalService/ListLocalAssets",
-            Self::GetMachineLocalAiConfiguration => "/nimi.runtime.v1.RuntimeLocalService/GetMachineLocalAIConfiguration",
-            Self::GetLocalCapabilityConfiguration => "/nimi.runtime.v1.RuntimeLocalService/GetLocalCapabilityConfiguration",
-            Self::AddLocalCapabilityConfiguration => "/nimi.runtime.v1.RuntimeLocalService/AddLocalCapabilityConfiguration",
-            Self::UpdateLocalCapabilityConfiguration => "/nimi.runtime.v1.RuntimeLocalService/UpdateLocalCapabilityConfiguration",
-            Self::SelectLocalCapabilityConfiguration => "/nimi.runtime.v1.RuntimeLocalService/SelectLocalCapabilityConfiguration",
-            Self::ClearLocalCapabilitySelection => "/nimi.runtime.v1.RuntimeLocalService/ClearLocalCapabilitySelection",
-            Self::DeleteLocalCapabilityConfiguration => "/nimi.runtime.v1.RuntimeLocalService/DeleteLocalCapabilityConfiguration",
-            Self::ReprojectLocalCapabilityRequirements => "/nimi.runtime.v1.RuntimeLocalService/ReprojectLocalCapabilityRequirements",
-            Self::BindLocalCapabilityRequirement => "/nimi.runtime.v1.RuntimeLocalService/BindLocalCapabilityRequirement",
-            Self::RebindLocalCapabilityRequirement => "/nimi.runtime.v1.RuntimeLocalService/RebindLocalCapabilityRequirement",
-            Self::UnbindLocalCapabilityRequirement => "/nimi.runtime.v1.RuntimeLocalService/UnbindLocalCapabilityRequirement",
-            Self::ListNodeCatalog => "/nimi.runtime.v1.RuntimeLocalService/ListNodeCatalog",
+            Self::ResolveLocalStateReconciliation => "/nimi.runtime.v1.RuntimeLocalService/ResolveLocalStateReconciliation",
+            Self::ImportModelAsset => "/nimi.runtime.v1.RuntimeLocalService/ImportModelAsset",
+            Self::ListModelAssets => "/nimi.runtime.v1.RuntimeLocalService/ListModelAssets",
+            Self::GetModelAsset => "/nimi.runtime.v1.RuntimeLocalService/GetModelAsset",
+            Self::ListLoadoutRecipes => "/nimi.runtime.v1.RuntimeLocalService/ListLoadoutRecipes",
+            Self::GetMachineLoadouts => "/nimi.runtime.v1.RuntimeLocalService/GetMachineLoadouts",
+            Self::GetLoadout => "/nimi.runtime.v1.RuntimeLocalService/GetLoadout",
+            Self::PrepareLoadout => "/nimi.runtime.v1.RuntimeLocalService/PrepareLoadout",
+            Self::CommitLoadout => "/nimi.runtime.v1.RuntimeLocalService/CommitLoadout",
+            Self::UpdateLoadout => "/nimi.runtime.v1.RuntimeLocalService/UpdateLoadout",
+            Self::SelectLoadout => "/nimi.runtime.v1.RuntimeLocalService/SelectLoadout",
+            Self::DeleteLoadout => "/nimi.runtime.v1.RuntimeLocalService/DeleteLoadout",
             Self::ListConnectors => "/nimi.runtime.v1.RuntimeConnectorService/ListConnectors",
             Self::GetRuntimeHealth => "/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth",
             Self::ListAiProviderHealth => "/nimi.runtime.v1.RuntimeAuditService/ListAIProviderHealth",
             Self::ListDesktopAuditEvents => "/nimi.runtime.v1.RuntimeAuditService/ListDesktopAuditEvents",
             Self::ListUsageStats => "/nimi.runtime.v1.RuntimeAuditService/ListUsageStats",
             Self::PeekScheduling => "/nimi.runtime.v1.RuntimeAiService/PeekScheduling",
-            Self::RemoveLocalAsset => "/nimi.runtime.v1.RuntimeLocalService/RemoveLocalAsset",
-            Self::StartLocalAsset => "/nimi.runtime.v1.RuntimeLocalService/StartLocalAsset",
-            Self::StopLocalAsset => "/nimi.runtime.v1.RuntimeLocalService/StopLocalAsset",
+            Self::RemoveModelAsset => "/nimi.runtime.v1.RuntimeLocalService/RemoveModelAsset",
             Self::ListVerifiedAssets => "/nimi.runtime.v1.RuntimeLocalService/ListVerifiedAssets",
             Self::SearchCatalogModels => "/nimi.runtime.v1.RuntimeLocalService/SearchCatalogModels",
             Self::ListCatalogVariants => "/nimi.runtime.v1.RuntimeLocalService/ListCatalogVariants",
             Self::GetRecommendationFeed => "/nimi.runtime.v1.RuntimeLocalService/GetRecommendationFeed",
             Self::ResolveModelInstallPlan => "/nimi.runtime.v1.RuntimeLocalService/ResolveModelInstallPlan",
             Self::InstallModelFromPlan => "/nimi.runtime.v1.RuntimeLocalService/InstallModelFromPlan",
-            Self::InstallVerifiedAsset => "/nimi.runtime.v1.RuntimeLocalService/InstallVerifiedAsset",
-            Self::ImportLocalAsset => "/nimi.runtime.v1.RuntimeLocalService/ImportLocalAsset",
-            Self::ImportLocalAssetFile => "/nimi.runtime.v1.RuntimeLocalService/ImportLocalAssetFile",
-            Self::ImportLocalAssetBundle => "/nimi.runtime.v1.RuntimeLocalService/ImportLocalAssetBundle",
-            Self::RescanLocalAssetBundle => "/nimi.runtime.v1.RuntimeLocalService/RescanLocalAssetBundle",
             Self::ListLocalTransfers => "/nimi.runtime.v1.RuntimeLocalService/ListLocalTransfers",
             Self::PauseLocalTransfer => "/nimi.runtime.v1.RuntimeLocalService/PauseLocalTransfer",
             Self::ResumeLocalTransfer => "/nimi.runtime.v1.RuntimeLocalService/ResumeLocalTransfer",
             Self::CancelLocalTransfer => "/nimi.runtime.v1.RuntimeLocalService/CancelLocalTransfer",
-            Self::ScanUnregisteredAssets => "/nimi.runtime.v1.RuntimeLocalService/ScanUnregisteredAssets",
-            Self::ScaffoldOrphanAsset => "/nimi.runtime.v1.RuntimeLocalService/ScaffoldOrphanAsset",
-            Self::ResolveProfile => "/nimi.runtime.v1.RuntimeLocalService/ResolveProfile",
-            Self::ApplyProfile => "/nimi.runtime.v1.RuntimeLocalService/ApplyProfile",
             Self::ListProviderCatalog => "/nimi.runtime.v1.RuntimeConnectorService/ListProviderCatalog",
             Self::ListLocalAudits => "/nimi.runtime.v1.RuntimeLocalService/ListLocalAudits",
             Self::GetExternalAgentGatewayStatus => "/nimi.runtime.v1.RuntimeExternalAgentService/GetExternalAgentGatewayStatus",
@@ -150,7 +126,7 @@ impl DesktopMachineProductUnaryMethod {
 }
 
 #[rustfmt::skip]
-pub const DESKTOP_MACHINE_PRODUCT_UNARY_METHODS: &[DesktopMachineProductUnaryMethod] = &[DesktopMachineProductUnaryMethod::CollectDeviceProfile, DesktopMachineProductUnaryMethod::ResolveLocalEnvironmentPlan, DesktopMachineProductUnaryMethod::ApplyLocalEnvironmentPlan, DesktopMachineProductUnaryMethod::ListLocalEnvironmentDependencyJobs, DesktopMachineProductUnaryMethod::StartLocalEnvironmentDependencyJob, DesktopMachineProductUnaryMethod::CancelLocalEnvironmentDependencyJob, DesktopMachineProductUnaryMethod::RetryLocalEnvironmentDependencyJob, DesktopMachineProductUnaryMethod::RepairLocalEnvironmentDependency, DesktopMachineProductUnaryMethod::GetProductControlRecord, DesktopMachineProductUnaryMethod::GetProductControlSelectedDataRoot, DesktopMachineProductUnaryMethod::EnsureProductControlRecordCreated, DesktopMachineProductUnaryMethod::SelectProductControlDataRoot, DesktopMachineProductUnaryMethod::SetProductControlFirstRunInstallLevel, DesktopMachineProductUnaryMethod::CompleteProductControlFirstRunDeviceEnvironmentScan, DesktopMachineProductUnaryMethod::AdmitProductControlReadyForUse, DesktopMachineProductUnaryMethod::ReconcileProductControlFirstRunSetupState, DesktopMachineProductUnaryMethod::ListLocalAssets, DesktopMachineProductUnaryMethod::GetMachineLocalAiConfiguration, DesktopMachineProductUnaryMethod::GetLocalCapabilityConfiguration, DesktopMachineProductUnaryMethod::AddLocalCapabilityConfiguration, DesktopMachineProductUnaryMethod::UpdateLocalCapabilityConfiguration, DesktopMachineProductUnaryMethod::SelectLocalCapabilityConfiguration, DesktopMachineProductUnaryMethod::ClearLocalCapabilitySelection, DesktopMachineProductUnaryMethod::DeleteLocalCapabilityConfiguration, DesktopMachineProductUnaryMethod::ReprojectLocalCapabilityRequirements, DesktopMachineProductUnaryMethod::BindLocalCapabilityRequirement, DesktopMachineProductUnaryMethod::RebindLocalCapabilityRequirement, DesktopMachineProductUnaryMethod::UnbindLocalCapabilityRequirement, DesktopMachineProductUnaryMethod::ListNodeCatalog, DesktopMachineProductUnaryMethod::ListConnectors, DesktopMachineProductUnaryMethod::GetRuntimeHealth, DesktopMachineProductUnaryMethod::ListAiProviderHealth, DesktopMachineProductUnaryMethod::ListDesktopAuditEvents, DesktopMachineProductUnaryMethod::ListUsageStats, DesktopMachineProductUnaryMethod::PeekScheduling, DesktopMachineProductUnaryMethod::RemoveLocalAsset, DesktopMachineProductUnaryMethod::StartLocalAsset, DesktopMachineProductUnaryMethod::StopLocalAsset, DesktopMachineProductUnaryMethod::ListVerifiedAssets, DesktopMachineProductUnaryMethod::SearchCatalogModels, DesktopMachineProductUnaryMethod::ListCatalogVariants, DesktopMachineProductUnaryMethod::GetRecommendationFeed, DesktopMachineProductUnaryMethod::ResolveModelInstallPlan, DesktopMachineProductUnaryMethod::InstallModelFromPlan, DesktopMachineProductUnaryMethod::InstallVerifiedAsset, DesktopMachineProductUnaryMethod::ImportLocalAsset, DesktopMachineProductUnaryMethod::ImportLocalAssetFile, DesktopMachineProductUnaryMethod::ImportLocalAssetBundle, DesktopMachineProductUnaryMethod::RescanLocalAssetBundle, DesktopMachineProductUnaryMethod::ListLocalTransfers, DesktopMachineProductUnaryMethod::PauseLocalTransfer, DesktopMachineProductUnaryMethod::ResumeLocalTransfer, DesktopMachineProductUnaryMethod::CancelLocalTransfer, DesktopMachineProductUnaryMethod::ScanUnregisteredAssets, DesktopMachineProductUnaryMethod::ScaffoldOrphanAsset, DesktopMachineProductUnaryMethod::ResolveProfile, DesktopMachineProductUnaryMethod::ApplyProfile, DesktopMachineProductUnaryMethod::ListProviderCatalog, DesktopMachineProductUnaryMethod::ListLocalAudits, DesktopMachineProductUnaryMethod::GetExternalAgentGatewayStatus, DesktopMachineProductUnaryMethod::IssueExternalAgentToken, DesktopMachineProductUnaryMethod::RevokeExternalAgentToken, DesktopMachineProductUnaryMethod::ListExternalAgentTokens];
+pub const DESKTOP_MACHINE_PRODUCT_UNARY_METHODS: &[DesktopMachineProductUnaryMethod] = &[DesktopMachineProductUnaryMethod::CollectDeviceProfile, DesktopMachineProductUnaryMethod::ResolveLocalEnvironmentPlan, DesktopMachineProductUnaryMethod::ApplyLocalEnvironmentPlan, DesktopMachineProductUnaryMethod::ListLocalEnvironmentDependencyJobs, DesktopMachineProductUnaryMethod::StartLocalEnvironmentDependencyJob, DesktopMachineProductUnaryMethod::CancelLocalEnvironmentDependencyJob, DesktopMachineProductUnaryMethod::RetryLocalEnvironmentDependencyJob, DesktopMachineProductUnaryMethod::RepairLocalEnvironmentDependency, DesktopMachineProductUnaryMethod::GetProductControlRecord, DesktopMachineProductUnaryMethod::GetProductControlSelectedDataRoot, DesktopMachineProductUnaryMethod::EnsureProductControlRecordCreated, DesktopMachineProductUnaryMethod::SelectProductControlDataRoot, DesktopMachineProductUnaryMethod::SetProductControlFirstRunInstallLevel, DesktopMachineProductUnaryMethod::CompleteProductControlFirstRunDeviceEnvironmentScan, DesktopMachineProductUnaryMethod::AdmitProductControlReadyForUse, DesktopMachineProductUnaryMethod::ReconcileProductControlFirstRunSetupState, DesktopMachineProductUnaryMethod::ResolveLocalStateReconciliation, DesktopMachineProductUnaryMethod::ImportModelAsset, DesktopMachineProductUnaryMethod::ListModelAssets, DesktopMachineProductUnaryMethod::GetModelAsset, DesktopMachineProductUnaryMethod::ListLoadoutRecipes, DesktopMachineProductUnaryMethod::GetMachineLoadouts, DesktopMachineProductUnaryMethod::GetLoadout, DesktopMachineProductUnaryMethod::PrepareLoadout, DesktopMachineProductUnaryMethod::CommitLoadout, DesktopMachineProductUnaryMethod::UpdateLoadout, DesktopMachineProductUnaryMethod::SelectLoadout, DesktopMachineProductUnaryMethod::DeleteLoadout, DesktopMachineProductUnaryMethod::ListConnectors, DesktopMachineProductUnaryMethod::GetRuntimeHealth, DesktopMachineProductUnaryMethod::ListAiProviderHealth, DesktopMachineProductUnaryMethod::ListDesktopAuditEvents, DesktopMachineProductUnaryMethod::ListUsageStats, DesktopMachineProductUnaryMethod::PeekScheduling, DesktopMachineProductUnaryMethod::RemoveModelAsset, DesktopMachineProductUnaryMethod::ListVerifiedAssets, DesktopMachineProductUnaryMethod::SearchCatalogModels, DesktopMachineProductUnaryMethod::ListCatalogVariants, DesktopMachineProductUnaryMethod::GetRecommendationFeed, DesktopMachineProductUnaryMethod::ResolveModelInstallPlan, DesktopMachineProductUnaryMethod::InstallModelFromPlan, DesktopMachineProductUnaryMethod::ListLocalTransfers, DesktopMachineProductUnaryMethod::PauseLocalTransfer, DesktopMachineProductUnaryMethod::ResumeLocalTransfer, DesktopMachineProductUnaryMethod::CancelLocalTransfer, DesktopMachineProductUnaryMethod::ListProviderCatalog, DesktopMachineProductUnaryMethod::ListLocalAudits, DesktopMachineProductUnaryMethod::GetExternalAgentGatewayStatus, DesktopMachineProductUnaryMethod::IssueExternalAgentToken, DesktopMachineProductUnaryMethod::RevokeExternalAgentToken, DesktopMachineProductUnaryMethod::ListExternalAgentTokens];
 
 #[rustfmt::skip]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -188,7 +164,7 @@ pub const DESKTOP_MACHINE_PRODUCT_STREAM_METHODS: &[DesktopMachineProductStreamM
 
 #[rustfmt::skip]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum DesktopAccountProductUnaryMethod { GetAppAiConfig, OverwriteAppAiConfig, ExecuteScenario, SubmitScenarioJob, GetScenarioJob, CancelScenarioJob, GetScenarioArtifacts, ListPresetVoices, ListVoiceAssets, MaterializeRealmSource, ListAgents, GetAgent, OpenConversationAnchor, GetConversationAnchorSnapshot, ListAgentConversationSummaries, GetPublicChatSessionSnapshot, TranscribeAgentVoiceInput, RegisterAvatarLiveInstanceBinding, ResolveAvatarLiveInstanceBinding, SetAgentPresentationProfile, GetSharedLocalAgentAiConfig, OverwriteSharedLocalAgentAiConfig, PreviewSharedLocalAgentAiProfile, ApplySharedLocalAgentAiProfile, GetAgentCanonicalMemoryBankStatus, RequestAgentCanonicalMemoryBankBind, SendAppMessage, ReadArtifactBytes, CleanupGeneratedVoiceArtifacts, PutArtifact, ListModelCatalogProviders, ListCatalogProviderModels, GetCatalogModelDetail, UpsertModelCatalogProvider, DeleteModelCatalogProvider, UpsertCatalogModelOverlay, DeleteCatalogModelOverlay, ListConnectors, CreateConnector, UpdateConnector, DeleteConnector, TestConnector, ListConnectorModels, GetAgentState, ListPendingHooks, QueryAgentMemory, UpdateAgentState, EnableAutonomy, DisableAutonomy, SetAutonomyConfig, CancelHook, GetDelegatedControlSurfaceSnapshot, GetDelegatedReplayTrace, SubmitDelegatedApprovalDecision }
+pub enum DesktopAccountProductUnaryMethod { GetAppAiConfig, OverwriteAppAiConfig, ExecuteScenario, SubmitScenarioJob, GetScenarioJob, CancelScenarioJob, GetScenarioArtifacts, ListPresetVoices, ListVoiceAssets, MaterializeRealmSource, ListAgents, GetAgent, OpenConversationAnchor, GetConversationAnchorSnapshot, ListAgentConversationSummaries, GetPublicChatSessionSnapshot, TranscribeAgentVoiceInput, RegisterAvatarLiveInstanceBinding, ResolveAvatarLiveInstanceBinding, SetAgentPresentationProfile, GetSharedLocalAgentAiConfig, OverwriteSharedLocalAgentAiConfig, PreviewSharedLocalAgentAiProfile, ApplySharedLocalAgentAiProfile, ImportPortableAiProfile, ListPortableAiProfiles, GetAgentCanonicalMemoryBankStatus, RequestAgentCanonicalMemoryBankBind, SendAppMessage, ReadArtifactBytes, CleanupGeneratedVoiceArtifacts, PutArtifact, ListModelCatalogProviders, ListCatalogProviderModels, GetCatalogModelDetail, UpsertModelCatalogProvider, DeleteModelCatalogProvider, UpsertCatalogModelOverlay, DeleteCatalogModelOverlay, ListConnectors, CreateConnector, UpdateConnector, DeleteConnector, TestConnector, ListConnectorModels, GetAgentState, ListPendingHooks, QueryAgentMemory, UpdateAgentState, EnableAutonomy, DisableAutonomy, SetAutonomyConfig, CancelHook, GetDelegatedControlSurfaceSnapshot, GetDelegatedReplayTrace, SubmitDelegatedApprovalDecision }
 
 impl DesktopAccountProductUnaryMethod {
     pub fn from_method_id(method_id: &str) -> Option<Self> {
@@ -242,6 +218,12 @@ impl DesktopAccountProductUnaryMethod {
             }
             "/nimi.runtime.v1.RuntimeAgentService/ApplySharedLocalAgentAIProfile" => {
                 Self::ApplySharedLocalAgentAiProfile
+            }
+            "/nimi.runtime.v1.RuntimeAgentService/ImportPortableAIProfile" => {
+                Self::ImportPortableAiProfile
+            }
+            "/nimi.runtime.v1.RuntimeAgentService/ListPortableAIProfiles" => {
+                Self::ListPortableAiProfiles
             }
             "/nimi.runtime.v1.RuntimeAgentService/GetAgentCanonicalMemoryBankStatus" => {
                 Self::GetAgentCanonicalMemoryBankStatus
@@ -357,6 +339,12 @@ impl DesktopAccountProductUnaryMethod {
             Self::ApplySharedLocalAgentAiProfile => {
                 "/nimi.runtime.v1.RuntimeAgentService/ApplySharedLocalAgentAIProfile"
             }
+            Self::ImportPortableAiProfile => {
+                "/nimi.runtime.v1.RuntimeAgentService/ImportPortableAIProfile"
+            }
+            Self::ListPortableAiProfiles => {
+                "/nimi.runtime.v1.RuntimeAgentService/ListPortableAIProfiles"
+            }
             Self::GetAgentCanonicalMemoryBankStatus => {
                 "/nimi.runtime.v1.RuntimeAgentService/GetAgentCanonicalMemoryBankStatus"
             }
@@ -420,7 +408,7 @@ impl DesktopAccountProductUnaryMethod {
 }
 
 #[rustfmt::skip]
-pub const DESKTOP_ACCOUNT_PRODUCT_UNARY_METHODS: &[DesktopAccountProductUnaryMethod] = &[DesktopAccountProductUnaryMethod::GetAppAiConfig, DesktopAccountProductUnaryMethod::OverwriteAppAiConfig, DesktopAccountProductUnaryMethod::ExecuteScenario, DesktopAccountProductUnaryMethod::SubmitScenarioJob, DesktopAccountProductUnaryMethod::GetScenarioJob, DesktopAccountProductUnaryMethod::CancelScenarioJob, DesktopAccountProductUnaryMethod::GetScenarioArtifacts, DesktopAccountProductUnaryMethod::ListPresetVoices, DesktopAccountProductUnaryMethod::ListVoiceAssets, DesktopAccountProductUnaryMethod::MaterializeRealmSource, DesktopAccountProductUnaryMethod::ListAgents, DesktopAccountProductUnaryMethod::GetAgent, DesktopAccountProductUnaryMethod::OpenConversationAnchor, DesktopAccountProductUnaryMethod::GetConversationAnchorSnapshot, DesktopAccountProductUnaryMethod::ListAgentConversationSummaries, DesktopAccountProductUnaryMethod::GetPublicChatSessionSnapshot, DesktopAccountProductUnaryMethod::TranscribeAgentVoiceInput, DesktopAccountProductUnaryMethod::RegisterAvatarLiveInstanceBinding, DesktopAccountProductUnaryMethod::ResolveAvatarLiveInstanceBinding, DesktopAccountProductUnaryMethod::SetAgentPresentationProfile, DesktopAccountProductUnaryMethod::GetSharedLocalAgentAiConfig, DesktopAccountProductUnaryMethod::OverwriteSharedLocalAgentAiConfig, DesktopAccountProductUnaryMethod::PreviewSharedLocalAgentAiProfile, DesktopAccountProductUnaryMethod::ApplySharedLocalAgentAiProfile, DesktopAccountProductUnaryMethod::GetAgentCanonicalMemoryBankStatus, DesktopAccountProductUnaryMethod::RequestAgentCanonicalMemoryBankBind, DesktopAccountProductUnaryMethod::SendAppMessage, DesktopAccountProductUnaryMethod::ReadArtifactBytes, DesktopAccountProductUnaryMethod::CleanupGeneratedVoiceArtifacts, DesktopAccountProductUnaryMethod::PutArtifact, DesktopAccountProductUnaryMethod::ListModelCatalogProviders, DesktopAccountProductUnaryMethod::ListCatalogProviderModels, DesktopAccountProductUnaryMethod::GetCatalogModelDetail, DesktopAccountProductUnaryMethod::UpsertModelCatalogProvider, DesktopAccountProductUnaryMethod::DeleteModelCatalogProvider, DesktopAccountProductUnaryMethod::UpsertCatalogModelOverlay, DesktopAccountProductUnaryMethod::DeleteCatalogModelOverlay, DesktopAccountProductUnaryMethod::ListConnectors, DesktopAccountProductUnaryMethod::CreateConnector, DesktopAccountProductUnaryMethod::UpdateConnector, DesktopAccountProductUnaryMethod::DeleteConnector, DesktopAccountProductUnaryMethod::TestConnector, DesktopAccountProductUnaryMethod::ListConnectorModels, DesktopAccountProductUnaryMethod::GetAgentState, DesktopAccountProductUnaryMethod::ListPendingHooks, DesktopAccountProductUnaryMethod::QueryAgentMemory, DesktopAccountProductUnaryMethod::UpdateAgentState, DesktopAccountProductUnaryMethod::EnableAutonomy, DesktopAccountProductUnaryMethod::DisableAutonomy, DesktopAccountProductUnaryMethod::SetAutonomyConfig, DesktopAccountProductUnaryMethod::CancelHook, DesktopAccountProductUnaryMethod::GetDelegatedControlSurfaceSnapshot, DesktopAccountProductUnaryMethod::GetDelegatedReplayTrace, DesktopAccountProductUnaryMethod::SubmitDelegatedApprovalDecision];
+pub const DESKTOP_ACCOUNT_PRODUCT_UNARY_METHODS: &[DesktopAccountProductUnaryMethod] = &[DesktopAccountProductUnaryMethod::GetAppAiConfig, DesktopAccountProductUnaryMethod::OverwriteAppAiConfig, DesktopAccountProductUnaryMethod::ExecuteScenario, DesktopAccountProductUnaryMethod::SubmitScenarioJob, DesktopAccountProductUnaryMethod::GetScenarioJob, DesktopAccountProductUnaryMethod::CancelScenarioJob, DesktopAccountProductUnaryMethod::GetScenarioArtifacts, DesktopAccountProductUnaryMethod::ListPresetVoices, DesktopAccountProductUnaryMethod::ListVoiceAssets, DesktopAccountProductUnaryMethod::MaterializeRealmSource, DesktopAccountProductUnaryMethod::ListAgents, DesktopAccountProductUnaryMethod::GetAgent, DesktopAccountProductUnaryMethod::OpenConversationAnchor, DesktopAccountProductUnaryMethod::GetConversationAnchorSnapshot, DesktopAccountProductUnaryMethod::ListAgentConversationSummaries, DesktopAccountProductUnaryMethod::GetPublicChatSessionSnapshot, DesktopAccountProductUnaryMethod::TranscribeAgentVoiceInput, DesktopAccountProductUnaryMethod::RegisterAvatarLiveInstanceBinding, DesktopAccountProductUnaryMethod::ResolveAvatarLiveInstanceBinding, DesktopAccountProductUnaryMethod::SetAgentPresentationProfile, DesktopAccountProductUnaryMethod::GetSharedLocalAgentAiConfig, DesktopAccountProductUnaryMethod::OverwriteSharedLocalAgentAiConfig, DesktopAccountProductUnaryMethod::PreviewSharedLocalAgentAiProfile, DesktopAccountProductUnaryMethod::ApplySharedLocalAgentAiProfile, DesktopAccountProductUnaryMethod::ImportPortableAiProfile, DesktopAccountProductUnaryMethod::ListPortableAiProfiles, DesktopAccountProductUnaryMethod::GetAgentCanonicalMemoryBankStatus, DesktopAccountProductUnaryMethod::RequestAgentCanonicalMemoryBankBind, DesktopAccountProductUnaryMethod::SendAppMessage, DesktopAccountProductUnaryMethod::ReadArtifactBytes, DesktopAccountProductUnaryMethod::CleanupGeneratedVoiceArtifacts, DesktopAccountProductUnaryMethod::PutArtifact, DesktopAccountProductUnaryMethod::ListModelCatalogProviders, DesktopAccountProductUnaryMethod::ListCatalogProviderModels, DesktopAccountProductUnaryMethod::GetCatalogModelDetail, DesktopAccountProductUnaryMethod::UpsertModelCatalogProvider, DesktopAccountProductUnaryMethod::DeleteModelCatalogProvider, DesktopAccountProductUnaryMethod::UpsertCatalogModelOverlay, DesktopAccountProductUnaryMethod::DeleteCatalogModelOverlay, DesktopAccountProductUnaryMethod::ListConnectors, DesktopAccountProductUnaryMethod::CreateConnector, DesktopAccountProductUnaryMethod::UpdateConnector, DesktopAccountProductUnaryMethod::DeleteConnector, DesktopAccountProductUnaryMethod::TestConnector, DesktopAccountProductUnaryMethod::ListConnectorModels, DesktopAccountProductUnaryMethod::GetAgentState, DesktopAccountProductUnaryMethod::ListPendingHooks, DesktopAccountProductUnaryMethod::QueryAgentMemory, DesktopAccountProductUnaryMethod::UpdateAgentState, DesktopAccountProductUnaryMethod::EnableAutonomy, DesktopAccountProductUnaryMethod::DisableAutonomy, DesktopAccountProductUnaryMethod::SetAutonomyConfig, DesktopAccountProductUnaryMethod::CancelHook, DesktopAccountProductUnaryMethod::GetDelegatedControlSurfaceSnapshot, DesktopAccountProductUnaryMethod::GetDelegatedReplayTrace, DesktopAccountProductUnaryMethod::SubmitDelegatedApprovalDecision];
 
 #[rustfmt::skip]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

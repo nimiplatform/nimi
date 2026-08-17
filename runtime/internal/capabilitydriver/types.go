@@ -6,8 +6,8 @@
 package capabilitydriver
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
+	"encoding/binary"
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -19,6 +19,9 @@ const (
 	// MaxAssetFormatProbeBytes bounds the verified exact-entry prefix exposed to
 	// Drivers for format and tensor-name admission.
 	MaxAssetFormatProbeBytes = 4 << 20
+	// MaxSafetensorsHeaderBytes leaves room for the fixed eight-byte header
+	// length inside one bounded ModelAsset format probe.
+	MaxSafetensorsHeaderBytes = MaxAssetFormatProbeBytes - 8
 
 	LlamaImplementationID      = "local.text.generate.llama-cpp"
 	LlamaDriverID              = "nimi.runtime.driver.llama-cpp"
@@ -26,6 +29,10 @@ const (
 	LlamaEmbedImplementationID = "local.text.embed.llama-cpp"
 	LlamaEmbedDriverDialect    = "llama.cpp/text-embed/v1"
 	LlamaCapabilityContract    = "text.generate"
+
+	LlamaGemma4E2BRecipeID = "llama.text-generate.gemma-4-e2b-it.v1"
+	LlamaGemma426BRecipeID = "llama.text-generate.gemma-4-26b-a4b-it.v1"
+	LlamaEmbedGGUFRecipeID = "llama.text-embed.gguf.v1"
 
 	MainGGUFRequirementID        = "main.gguf"
 	CompanionMMProjRequirementID = "companion.mmproj"
@@ -59,59 +66,130 @@ func (identity Identity) Proto() *runtimev1.CapabilityImplementationIdentity {
 	}
 }
 
-// BundleEntryDescriptor is one LocalAsset-owned per-entry digest. Slice order
-// and Ordinal must agree; callers never sort or infer an order before hashing.
-type BundleEntryDescriptor struct {
-	Ordinal uint32
-	SHA256  string
-}
-
-// CanonicalBundleSHA256 returns SHA-256 over the concatenated decoded 32-byte
-// entry digests in exact declared order. Fixed-width entries make the encoding
-// unambiguous. A sharded bundle has at least two one-based contiguous entries.
-func CanonicalBundleSHA256(entries []BundleEntryDescriptor) (string, error) {
-	if len(entries) < 2 {
-		return "", fmt.Errorf("canonical bundle digest requires at least two entries")
-	}
-	hasher := sha256.New()
-	for index, entry := range entries {
-		if entry.Ordinal != uint32(index+1) {
-			return "", fmt.Errorf("canonical bundle entry %d has ordinal %d", index, entry.Ordinal)
-		}
-		digest := strings.TrimSpace(entry.SHA256)
-		if digest != entry.SHA256 || digest != strings.ToLower(digest) || len(digest) != 64 {
-			return "", fmt.Errorf("canonical bundle entry %d has invalid sha256", index)
-		}
-		decoded, err := hex.DecodeString(digest)
-		if err != nil {
-			return "", fmt.Errorf("canonical bundle entry %d sha256: %w", index, err)
-		}
-		_, _ = hasher.Write(decoded)
-	}
-	return hex.EncodeToString(hasher.Sum(nil)), nil
-}
-
-// AssetDescriptor is restricted to finite facts verified by the local store.
+// ModelAssetDescriptor is restricted to finite facts verified by ModelAsset.
 // It carries no path, filename, runtime, cache, or process information.
-type AssetDescriptor struct {
-	LocalAssetID      string
+type ModelAssetDescriptor struct {
+	ModelAssetID      string
 	VerifiedContentID string
 	EntrySHA256       string
 	Kind              runtimev1.LocalAssetKind
 	Family            string
 	Engine            string
 	ArtifactRoles     []string
-	BundleEntries     []BundleEntryDescriptor
 	// FormatProbe is a bounded prefix (at most MaxAssetFormatProbeBytes) read
 	// from the verified exact entry. It is used only by Drivers whose dialect
 	// requires magic/header validation.
 	FormatProbe []byte
 }
 
+// ModelAssetFileFact is one path-safe, content-verified file exposed while a
+// Driver projects an exact ModelAsset binding. FormatProbe is a bounded prefix
+// of that same verified file; Drivers cannot reopen paths or discover files.
+type ModelAssetFileFact struct {
+	RelativePath string
+	SizeBytes    int64
+	FormatProbe  []byte
+}
+
+// ModelAssetBindingInput contains only ModelAsset-owned facts plus the exact
+// recipe slot and binding being admitted. It has no mutable selection, route,
+// process, endpoint, or host state.
+type ModelAssetBindingInput struct {
+	RecipeID    string
+	Requirement *runtimev1.LocalCapabilityRequirement
+	Binding     *runtimev1.ModelAssetExactBinding
+	Entry       ModelAssetFileFact
+	Files       []ModelAssetFileFact
+}
+
+// ModelAssetBindingProjection is the Driver-owned interpretation of verified
+// ModelAsset facts. ModelContextWindowTokens is populated only by dialects
+// whose execution contract consumes model-authored context metadata.
+type ModelAssetBindingProjection struct {
+	Descriptor               ModelAssetDescriptor
+	ModelContextWindowTokens uint64
+}
+
+func validatedModelAssetBindingProjection(
+	input ModelAssetBindingInput,
+	descriptor ModelAssetDescriptor,
+	contextWindow uint64,
+	validate func(*runtimev1.LocalCapabilityRequirement, *runtimev1.ModelAssetExactBinding, ModelAssetDescriptor) runtimev1.LocalCapabilityReason,
+) (ModelAssetBindingProjection, runtimev1.LocalCapabilityReason) {
+	descriptor.ModelAssetID = input.Binding.GetModelAssetId()
+	descriptor.VerifiedContentID = input.Binding.GetVerifiedContentId()
+	descriptor.EntrySHA256 = input.Binding.GetEntrySha256()
+	descriptor.ArtifactRoles = append([]string(nil), descriptor.ArtifactRoles...)
+	descriptor.FormatProbe = append([]byte(nil), descriptor.FormatProbe...)
+	if reason := validate(input.Requirement, input.Binding, descriptor); reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {
+		return ModelAssetBindingProjection{}, reason
+	}
+	return ModelAssetBindingProjection{Descriptor: descriptor, ModelContextWindowTokens: contextWindow}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
+}
+
+func modelAssetFileFact(input ModelAssetBindingInput, relativePath string) (ModelAssetFileFact, bool) {
+	for _, file := range input.Files {
+		if file.RelativePath == relativePath && file.SizeBytes > 0 {
+			file.FormatProbe = append([]byte(nil), file.FormatProbe...)
+			return file, true
+		}
+	}
+	return ModelAssetFileFact{}, false
+}
+
+type safetensorsTensorFact struct {
+	DType       string  `json:"dtype"`
+	Shape       []int64 `json:"shape"`
+	DataOffsets []int64 `json:"data_offsets"`
+}
+
+func safetensorsTensorFacts(probe []byte) (map[string]safetensorsTensorFact, bool) {
+	if len(probe) < 10 || len(probe) > MaxAssetFormatProbeBytes {
+		return nil, false
+	}
+	headerLength := binary.LittleEndian.Uint64(probe[:8])
+	if headerLength < 2 || headerLength > MaxSafetensorsHeaderBytes || headerLength > uint64(len(probe)-8) {
+		return nil, false
+	}
+	var raw map[string]json.RawMessage
+	if json.Unmarshal(probe[8:8+headerLength], &raw) != nil || len(raw) == 0 {
+		return nil, false
+	}
+	tensors := make(map[string]safetensorsTensorFact, len(raw))
+	for name, payload := range raw {
+		if name == "__metadata__" {
+			continue
+		}
+		if strings.TrimSpace(name) == "" {
+			return nil, false
+		}
+		var tensor safetensorsTensorFact
+		if json.Unmarshal(payload, &tensor) != nil || strings.TrimSpace(tensor.DType) == "" || tensor.Shape == nil ||
+			len(tensor.DataOffsets) != 2 || tensor.DataOffsets[0] < 0 || tensor.DataOffsets[1] < tensor.DataOffsets[0] {
+			return nil, false
+		}
+		tensors[name] = tensor
+	}
+	return tensors, len(tensors) > 0
+}
+
+func int64SlicesEqual(left, right []int64) bool {
+	if len(left) != len(right) {
+		return false
+	}
+	for index := range left {
+		if left[index] != right[index] {
+			return false
+		}
+	}
+	return true
+}
+
 // InterpretInput is the portable resource intent interpreted by a driver.
 // It deliberately excludes the larger stored configuration and all execution
 // or host fields.
 type InterpretInput struct {
+	RecipeID          string
 	PortableConfig    *structpb.Struct
 	SupportedFeatures []string
 }
@@ -120,24 +198,45 @@ type InterpretInput struct {
 // owned by Registry rather than by this interface.
 type Driver interface {
 	Interpret(input InterpretInput) ([]*runtimev1.LocalCapabilityRequirement, runtimev1.LocalCapabilityReason)
-	ValidateBinding(requirement *runtimev1.LocalCapabilityRequirement, binding *runtimev1.LocalAssetExactBinding, asset AssetDescriptor) runtimev1.LocalCapabilityReason
-	ValidateCombination(requirements []*runtimev1.LocalCapabilityRequirement, bindings []*runtimev1.LocalAssetExactBinding, assets []AssetDescriptor) runtimev1.LocalCapabilityReason
+	// ProjectModelAssetBinding interprets verified file facts and validates the
+	// resulting descriptor against the exact slot and binding. Generic services
+	// must not reproduce recipe- or format-specific admission rules.
+	ProjectModelAssetBinding(input ModelAssetBindingInput) (ModelAssetBindingProjection, runtimev1.LocalCapabilityReason)
+	ValidateBinding(requirement *runtimev1.LocalCapabilityRequirement, binding *runtimev1.ModelAssetExactBinding, asset ModelAssetDescriptor) runtimev1.LocalCapabilityReason
+	ValidateCombination(requirements []*runtimev1.LocalCapabilityRequirement, bindings []*runtimev1.ModelAssetExactBinding, assets []ModelAssetDescriptor) runtimev1.LocalCapabilityReason
 	// EffectiveRequestDefaults projects read-only display values for request
 	// parameters the exact Driver will apply when the App intent leaves them
 	// unset. Keys use the canonical AIConfig defaults paths.
-	EffectiveRequestDefaults(portableConfig *structpb.Struct) map[string]string
+	EffectiveRequestDefaults(recipeID string, portableConfig *structpb.Struct) map[string]string
+}
+
+// RecipeDriver owns the stable recipeId-to-slot and fixed execution semantics
+// for one exact Driver dialect. Catalog metadata can decorate these slots but
+// cannot create, remove, rename, or reorder them.
+type RecipeDriver interface {
+	Driver
+	ProjectRecipe(recipeID string, options *structpb.Struct, supportedFeatures []string) ([]*runtimev1.LocalCapabilityRequirement, runtimev1.LocalCapabilityReason)
+}
+
+// HostBackendRecipeDriver is implemented only when one public recipe has
+// multiple current Host-specific execution contracts. The Driver still owns
+// every backend slot rule; callers supply only the already-resolved Host
+// backend token.
+type HostBackendRecipeDriver interface {
+	RecipeDriver
+	ProjectRecipeForBackend(recipeID string, options *structpb.Struct, supportedFeatures []string, backend string) ([]*runtimev1.LocalCapabilityRequirement, runtimev1.LocalCapabilityReason)
 }
 
 // InvocationExactBinding is the immutable, already-verified occurrence passed
-// to a Driver at job submission. Drivers receive exact absolute paths; they
-// never discover files or resolve paths relative to a host model directory.
+// to a Driver at job submission. Drivers receive exact absolute paths plus any
+// captured ModelAsset bundle manifest; they never discover files or resolve
+// bindings from a host model directory.
 type InvocationExactBinding struct {
-	RequirementID string
-	// AssetID is the stable manifest/catalog identity used by a supervised
-	// Host; LocalAssetID identifies only the machine-local occurrence.
-	AssetID           string
-	LocalAssetID      string
+	RequirementID     string
+	ModelAssetID      string
 	AbsolutePath      string
+	BundleDir         string
+	DeclaredFiles     []string
 	VerifiedContentID string
 	EntrySHA256       string
 }
@@ -145,6 +244,26 @@ type InvocationExactBinding struct {
 // TextInvocationInput is the complete Driver-owned text invocation input. It
 // deliberately contains no binary, port, endpoint, resident-process, route,
 // model-selector, or fallback facts.
+func cloneInvocationExactBindings(values []InvocationExactBinding) []InvocationExactBinding {
+	cloned := append([]InvocationExactBinding(nil), values...)
+	for index := range cloned {
+		cloned[index].DeclaredFiles = append([]string(nil), cloned[index].DeclaredFiles...)
+	}
+	return cloned
+}
+
+func invocationExactBindingIdentity(binding InvocationExactBinding) []string {
+	identity := []string{
+		binding.RequirementID,
+		binding.ModelAssetID,
+		binding.AbsolutePath,
+		binding.BundleDir,
+		binding.VerifiedContentID,
+		binding.EntrySHA256,
+	}
+	return append(identity, binding.DeclaredFiles...)
+}
+
 type TextInvocationInput struct {
 	PortableConfig           *structpb.Struct
 	ModelContextWindowTokens uint64
@@ -163,13 +282,22 @@ type EmbedInvocationInput struct {
 	Request                  *runtimev1.TextEmbedScenarioSpec
 }
 
+// ImageResolvedInput is one already-authorized, immutable image input captured
+// by the service owner. Drivers never parse a URL or open an input path.
+type ImageResolvedInput struct {
+	SourceIdentity string
+	ImageBytes     []byte
+}
+
 // ImageInvocationInput is the complete Driver-owned image invocation input.
 // Host selection, endpoints, binaries, routes, and fallback never enter it.
 type ImageInvocationInput struct {
+	RecipeID          string
 	PortableConfig    *structpb.Struct
 	SupportedFeatures []string
 	ExactBindings     []InvocationExactBinding
 	Request           *runtimev1.ImageGenerateScenarioSpec
+	Inputs            []ImageResolvedInput
 }
 
 // VideoInputRole classifies already-resolved media handles. The Driver never
@@ -210,13 +338,13 @@ type VideoInvocationRequest struct {
 }
 
 // VideoInvocationInput is the complete Driver-owned video invocation input.
-// ConfigurationID and every binding identity have already been selected and
+// LoadoutID and every binding identity have already been selected and
 // verified by the machine-configuration owner.
 type VideoInvocationInput struct {
-	ConfigurationID string
-	PortableConfig  *structpb.Struct
-	ExactBindings   []InvocationExactBinding
-	Request         VideoInvocationRequest
+	LoadoutID      string
+	PortableConfig *structpb.Struct
+	ExactBindings  []InvocationExactBinding
+	Request        VideoInvocationRequest
 }
 
 // InvocationFailureKind classifies failures while a Driver is forming a plan.
@@ -293,7 +421,7 @@ func (p *EmbedInvocationPlan) ModelFiles() []InvocationExactBinding {
 	if p == nil {
 		return nil
 	}
-	return append([]InvocationExactBinding(nil), p.modelFiles...)
+	return cloneInvocationExactBindings(p.modelFiles)
 }
 
 func (p *EmbedInvocationPlan) RequestPath() string {
@@ -338,7 +466,7 @@ func (p *TextInvocationPlan) ModelFiles() []InvocationExactBinding {
 	if p == nil {
 		return nil
 	}
-	return append([]InvocationExactBinding(nil), p.modelFiles...)
+	return cloneInvocationExactBindings(p.modelFiles)
 }
 
 func (p *TextInvocationPlan) RequestPath() string {
@@ -386,13 +514,13 @@ type EmbedInvocationDriver interface {
 // Driver/Host seam. Requirement identity has already been consumed by the
 // exact Driver and deliberately does not cross this boundary.
 type ImageModelFile struct {
-	localAssetID      string
+	modelAssetID      string
 	absolutePath      string
 	verifiedContentID string
 	entrySHA256       string
 }
 
-func (f ImageModelFile) LocalAssetID() string      { return f.localAssetID }
+func (f ImageModelFile) ModelAssetID() string      { return f.modelAssetID }
 func (f ImageModelFile) AbsolutePath() string      { return f.absolutePath }
 func (f ImageModelFile) VerifiedContentID() string { return f.verifiedContentID }
 func (f ImageModelFile) EntrySHA256() string       { return f.entrySHA256 }
@@ -406,10 +534,13 @@ type ImageLoadPlan interface {
 // StableDiffusionCPPLoadPlan contains only named stable-diffusion.cpp load
 // decisions. Backend slots and raw options are physical-adapter vocabulary.
 type StableDiffusionCPPLoadPlan struct {
+	recipeID                string
 	main                    ImageModelFile
 	textEncoder             ImageModelFile
 	vae                     ImageModelFile
 	uncondDiffusion         *ImageModelFile
+	flowShift               float64
+	qwenImageZeroCondT      bool
 	threads                 int
 	cfgScale                float64
 	sampler                 string
@@ -419,6 +550,7 @@ type StableDiffusionCPPLoadPlan struct {
 }
 
 func (StableDiffusionCPPLoadPlan) imageLoadPlanVariant()         {}
+func (p StableDiffusionCPPLoadPlan) RecipeID() string            { return p.recipeID }
 func (p StableDiffusionCPPLoadPlan) Main() ImageModelFile        { return p.main }
 func (p StableDiffusionCPPLoadPlan) TextEncoder() ImageModelFile { return p.textEncoder }
 func (p StableDiffusionCPPLoadPlan) VAE() ImageModelFile         { return p.vae }
@@ -428,10 +560,12 @@ func (p StableDiffusionCPPLoadPlan) UncondDiffusion() (ImageModelFile, bool) {
 	}
 	return *p.uncondDiffusion, true
 }
-func (p StableDiffusionCPPLoadPlan) Threads() int      { return p.threads }
-func (p StableDiffusionCPPLoadPlan) CFGScale() float64 { return p.cfgScale }
-func (p StableDiffusionCPPLoadPlan) Sampler() string   { return p.sampler }
-func (p StableDiffusionCPPLoadPlan) Scheduler() string { return p.scheduler }
+func (p StableDiffusionCPPLoadPlan) Threads() int             { return p.threads }
+func (p StableDiffusionCPPLoadPlan) CFGScale() float64        { return p.cfgScale }
+func (p StableDiffusionCPPLoadPlan) Sampler() string          { return p.sampler }
+func (p StableDiffusionCPPLoadPlan) Scheduler() string        { return p.scheduler }
+func (p StableDiffusionCPPLoadPlan) FlowShift() float64       { return p.flowShift }
+func (p StableDiffusionCPPLoadPlan) QwenImageZeroCondT() bool { return p.qwenImageZeroCondT }
 func (p StableDiffusionCPPLoadPlan) DiffusionFlashAttention() bool {
 	return p.diffusionFlashAttention
 }
@@ -492,6 +626,18 @@ type StableDiffusionCPPImageToImageRequestPlan struct {
 func (StableDiffusionCPPImageToImageRequestPlan) imageRequestPlanVariant() {}
 func (p StableDiffusionCPPImageToImageRequestPlan) InputImage() string     { return p.inputImage }
 func (p StableDiffusionCPPImageToImageRequestPlan) Mask() string           { return p.mask }
+
+type StableDiffusionCPPInstructionEditRequestPlan struct {
+	stableDiffusionCPPRequestFields
+	sourceImage ImageResolvedInput
+}
+
+func (StableDiffusionCPPInstructionEditRequestPlan) imageRequestPlanVariant() {}
+func (p StableDiffusionCPPInstructionEditRequestPlan) SourceImage() ImageResolvedInput {
+	result := p.sourceImage
+	result.ImageBytes = append([]byte(nil), p.sourceImage.ImageBytes...)
+	return result
+}
 
 // ImageResultConstraints is a closed Driver-owned result contract.
 type ImageResultConstraints interface {
@@ -559,7 +705,7 @@ type imageDialectTranslator interface {
 // ImageInvocationPlan is the immutable closed Driver/Host seam.
 type ImageInvocationPlan struct {
 	processKey        string
-	modelFiles        []ImageModelFile
+	modelFiles        []InvocationExactBinding
 	loadPlan          ImageLoadPlan
 	requestPlan       ImageRequestPlan
 	resultConstraints ImageResultConstraints
@@ -573,11 +719,11 @@ func (p *ImageInvocationPlan) ProcessKey() string {
 	return p.processKey
 }
 
-func (p *ImageInvocationPlan) ModelFiles() []ImageModelFile {
+func (p *ImageInvocationPlan) ModelFiles() []InvocationExactBinding {
 	if p == nil {
 		return nil
 	}
-	return append([]ImageModelFile(nil), p.modelFiles...)
+	return cloneInvocationExactBindings(p.modelFiles)
 }
 
 func (p *ImageInvocationPlan) LoadPlan() ImageLoadPlan {
@@ -658,7 +804,7 @@ const (
 // immutable after construction and accessors return copies where needed.
 type VideoInvocationPlan struct {
 	processKey              string
-	configurationID         string
+	loadoutID               string
 	driverIdentity          Identity
 	portableConfig          *structpb.Struct
 	exactBindings           []InvocationExactBinding
@@ -694,11 +840,11 @@ func (p *VideoInvocationPlan) ProcessKey() string {
 	return p.processKey
 }
 
-func (p *VideoInvocationPlan) ConfigurationID() string {
+func (p *VideoInvocationPlan) LoadoutID() string {
 	if p == nil {
 		return ""
 	}
-	return p.configurationID
+	return p.loadoutID
 }
 
 func (p *VideoInvocationPlan) DriverIdentity() Identity {
@@ -721,7 +867,7 @@ func (p *VideoInvocationPlan) ExactBindings() []InvocationExactBinding {
 	if p == nil {
 		return nil
 	}
-	return append([]InvocationExactBinding(nil), p.exactBindings...)
+	return cloneInvocationExactBindings(p.exactBindings)
 }
 
 // ModelFiles returns only the four slots actually loaded for this route.
@@ -729,7 +875,7 @@ func (p *VideoInvocationPlan) ModelFiles() []InvocationExactBinding {
 	if p == nil {
 		return nil
 	}
-	return append([]InvocationExactBinding(nil), p.modelFiles...)
+	return cloneInvocationExactBindings(p.modelFiles)
 }
 
 func (p *VideoInvocationPlan) DiffusionModelPath() string {

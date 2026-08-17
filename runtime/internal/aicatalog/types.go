@@ -175,9 +175,8 @@ type LocalPlaneHostRequirement struct {
 	MinVRAMBytes int64  `yaml:"min_vram_bytes,omitempty" json:"min_vram_bytes,omitempty"`
 }
 
-// LocalPlaneVariant is one K-MCAT-032 quant variant — an installable asset.
-// VariantID is the variant-level asset_id used by the resolver and by
-// InstallVerifiedAsset.
+// LocalPlaneVariant is one K-MCAT-032 quant variant — an installable ModelAsset
+// offer. VariantID is the variant-level catalog identity used by install plans.
 type LocalPlaneVariant struct {
 	VariantID       string                    `yaml:"variant_id" json:"variant_id"`
 	Quant           string                    `yaml:"quant" json:"quant"`
@@ -208,16 +207,37 @@ type LocalPlaneFitness struct {
 	ContextLength int64 `yaml:"context_length" json:"context_length"`
 }
 
-// LocalPlaneCompanion is one K-MCAT-032 companion block — a passive
-// parent-bound asset (VAE, text encoder, etc.). A companion carries install +
-// variants like a model but no capabilities and no fitness (K-LOCAL-007
-// passive asset). CompanionKind is a K-LOCAL-007 passive-kind; EngineSlot is a
-// K-LOCAL-031 engine-defined workflow slot, unique within the parent row.
-type LocalPlaneCompanion struct {
-	CompanionKind string              `yaml:"companion_kind" json:"companion_kind"`
-	EngineSlot    string              `yaml:"engine_slot" json:"engine_slot"`
-	Install       *LocalPlaneInstall  `yaml:"install" json:"install"`
-	Variants      []LocalPlaneVariant `yaml:"variants" json:"variants"`
+// LocalLoadoutRecipe is catalog recommendation and Model Contract metadata.
+// Slot topology is never authored here; the exact Driver dialect projects it.
+type LocalLoadoutRecipe struct {
+	RecipeID           string                    `yaml:"recipe_id" json:"recipe_id"`
+	Revision           string                    `yaml:"revision" json:"revision"`
+	Title              string                    `yaml:"title" json:"title"`
+	CapabilityContract string                    `yaml:"capability_contract" json:"capability_contract"`
+	ImplementationID   string                    `yaml:"implementation_id" json:"implementation_id"`
+	DriverID           string                    `yaml:"driver_id" json:"driver_id"`
+	DriverDialect      string                    `yaml:"driver_dialect" json:"driver_dialect"`
+	DefaultOptions     map[string]any            `yaml:"default_options,omitempty" json:"default_options,omitempty"`
+	SupportedFeatures  []string                  `yaml:"supported_features,omitempty" json:"supported_features,omitempty"`
+	Custody            []LocalRecipeCustody      `yaml:"custody,omitempty" json:"custody,omitempty"`
+	SlotMetadata       []LocalRecipeSlotMetadata `yaml:"slot_metadata" json:"slot_metadata"`
+}
+
+// LocalRecipeCustody is one pinned non-model file supplied with a recipe's
+// recommended catalog variants. It is read-only catalog metadata.
+type LocalRecipeCustody struct {
+	File   string `yaml:"file" json:"file"`
+	SHA256 string `yaml:"sha256" json:"sha256"`
+	Source string `yaml:"source" json:"source"`
+	Role   string `yaml:"role" json:"role"`
+}
+
+type LocalRecipeSlotMetadata struct {
+	SlotID                string         `yaml:"slot_id" json:"slot_id"`
+	DisplayLabel          string         `yaml:"display_label" json:"display_label"`
+	RecommendedVariantIDs []string       `yaml:"recommended_variant_ids,omitempty" json:"recommended_variant_ids,omitempty"`
+	RecommendedContentIDs []string       `yaml:"recommended_content_ids,omitempty" json:"recommended_content_ids,omitempty"`
+	ModelContract         map[string]any `yaml:"model_contract" json:"model_contract"`
 }
 
 type ModelEntry struct {
@@ -251,10 +271,6 @@ type ModelEntry struct {
 	Install  *LocalPlaneInstall  `yaml:"install,omitempty" json:"install,omitempty"`
 	Variants []LocalPlaneVariant `yaml:"variants,omitempty" json:"variants,omitempty"`
 	Fitness  *LocalPlaneFitness  `yaml:"fitness,omitempty" json:"fitness,omitempty"`
-	// Companions is the optional K-MCAT-032 passive companion-asset list. It is
-	// present only on rows whose engine genuinely requires companions (image /
-	// video workflow models); core text/speech rows carry none.
-	Companions []LocalPlaneCompanion `yaml:"companions,omitempty" json:"companions,omitempty"`
 }
 
 // TextContextMetadata is the bounded catalog input consumed by Runtime Agent
@@ -266,28 +282,6 @@ type TextContextMetadata struct {
 	ModelRevision       string
 	CatalogVersion      string
 	ContextWindowTokens uint64
-}
-
-// PresetSlot is one K-MCAT-033 curated slot binding a capability to a model.
-type PresetSlot struct {
-	Slot            string `yaml:"slot" json:"slot"`
-	Capability      string `yaml:"capability" json:"capability"`
-	ModelRef        string `yaml:"model_ref" json:"model_ref"`
-	Required        bool   `yaml:"required" json:"required"`
-	HostConditional bool   `yaml:"host_conditional,omitempty" json:"host_conditional,omitempty"`
-}
-
-// Preset is one K-MCAT-033 install-level preset (a fixed concrete model set).
-type Preset struct {
-	FactoryAIProfileAlias string       `yaml:"factory_aiprofile_alias" json:"factory_aiprofile_alias"`
-	Slots                 []PresetSlot `yaml:"slots" json:"slots"`
-}
-
-// Presets is the K-MCAT-033 curated presets section. Install-level keys are
-// fixed to minimal and recommended.
-type Presets struct {
-	Minimal     *Preset `yaml:"minimal,omitempty" json:"minimal,omitempty"`
-	Recommended *Preset `yaml:"recommended,omitempty" json:"recommended,omitempty"`
 }
 
 type VoiceEntry struct {
@@ -346,8 +340,9 @@ type ProviderDocument struct {
 	ModelWorkflowBindings []ModelWorkflowBinding  `yaml:"model_workflow_bindings,omitempty" json:"model_workflow_bindings,omitempty"`
 	VoiceHandlePolicies   []VoiceHandlePolicy     `yaml:"voice_handle_policies,omitempty" json:"voice_handle_policies,omitempty"`
 
-	// K-MCAT-033 curated presets — present only on the local provider document.
-	Presets *Presets `yaml:"presets,omitempty" json:"presets,omitempty"`
+	// Loadout recipes attach recommendations and contract parameters to exact
+	// Driver-projected slots without owning a second topology table.
+	LoadoutRecipes []LocalLoadoutRecipe `yaml:"loadout_recipes,omitempty" json:"loadout_recipes,omitempty"`
 
 	RawYAML string `yaml:"-" json:"raw_yaml"`
 }

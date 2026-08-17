@@ -13,6 +13,7 @@ import (
 	"math"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 
@@ -274,69 +275,147 @@ func validateInvocationModelContent(files []capabilitydriver.InvocationExactBind
 }
 
 func validateInvocationModelContentContext(ctx context.Context, files []capabilitydriver.InvocationExactBinding) error {
-	content := make([]invocationContentFile, 0, len(files))
-	for _, file := range files {
-		content = append(content, invocationContentFile{absolutePath: file.AbsolutePath, entrySHA256: file.EntrySHA256})
-	}
-	return validateInvocationContentFilesContext(ctx, content)
+	_, err := sealInvocationModelContentContext(ctx, files)
+	return err
 }
 
-func validateImageInvocationModelContentContext(ctx context.Context, files []capabilitydriver.ImageModelFile) error {
-	content := make([]invocationContentFile, 0, len(files))
-	for _, file := range files {
-		content = append(content, invocationContentFile{absolutePath: file.AbsolutePath(), entrySHA256: file.EntrySHA256()})
-	}
-	return validateInvocationContentFilesContext(ctx, content)
+type invocationModelContentSeal struct {
+	declaredFileSHA256 map[string]string
 }
 
-type invocationContentFile struct {
-	absolutePath string
-	entrySHA256  string
-}
-
-func validateInvocationContentFilesContext(ctx context.Context, files []invocationContentFile) error {
+// sealInvocationModelContentContext re-hashes the complete captured
+// ModelAsset distribution immediately before an ExecutionHost may consume its
+// paths. EntrySHA256 protects the selected entry while VerifiedContentID seals
+// every declared file in manifest order.
+func sealInvocationModelContentContext(ctx context.Context, bindings []capabilitydriver.InvocationExactBinding) ([]invocationModelContentSeal, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	if len(files) == 0 {
-		return executionFailure(localexecution.FailureContentMismatch, fmt.Errorf("captured local invocation has no model files"))
+	if len(bindings) == 0 {
+		return nil, executionFailure(localexecution.FailureContentMismatch, fmt.Errorf("captured local invocation has no model files"))
 	}
-	for _, file := range files {
+	seals := make([]invocationModelContentSeal, 0, len(bindings))
+	for _, binding := range bindings {
 		if err := ctx.Err(); err != nil {
-			return err
+			return nil, err
 		}
-		opened, err := os.Open(file.absolutePath)
+		seal, err := sealInvocationModelBindingContext(ctx, binding)
 		if err != nil {
-			return executionFailure(localexecution.FailureContentMismatch, fmt.Errorf("open captured model content: %w", err))
+			return nil, err
 		}
-		hash := sha256.New()
-		buffer := make([]byte, 4*1024*1024)
-		for {
-			if err := ctx.Err(); err != nil {
-				_ = opened.Close()
-				return err
-			}
-			read, readErr := opened.Read(buffer)
-			if read > 0 {
-				_, _ = hash.Write(buffer[:read])
-			}
-			if readErr == io.EOF {
-				break
-			}
-			if readErr != nil {
-				_ = opened.Close()
-				return executionFailure(localexecution.FailureContentMismatch, fmt.Errorf("hash captured model content: %w", readErr))
-			}
+		seals = append(seals, seal)
+	}
+	return seals, nil
+}
+
+func sealInvocationModelBindingContext(ctx context.Context, binding capabilitydriver.InvocationExactBinding) (invocationModelContentSeal, error) {
+	bundleDir := strings.TrimSpace(binding.BundleDir)
+	declared := binding.DeclaredFiles
+	if bundleDir == "" && len(declared) == 0 {
+		digest, err := hashInvocationContentFileContext(ctx, binding.AbsolutePath)
+		if err != nil {
+			return invocationModelContentSeal{}, err
 		}
-		if closeErr := opened.Close(); closeErr != nil {
-			return executionFailure(localexecution.FailureContentMismatch, fmt.Errorf("close captured model content: %w", closeErr))
+		if !strings.EqualFold(digest, strings.TrimSpace(binding.EntrySHA256)) ||
+			!strings.EqualFold("sha256:"+digest, strings.TrimSpace(binding.VerifiedContentID)) {
+			return invocationModelContentSeal{}, executionFailure(localexecution.FailureContentMismatch, fmt.Errorf("captured model content identity changed"))
 		}
-		actual := hex.EncodeToString(hash.Sum(nil))
-		if !strings.EqualFold(actual, strings.TrimSpace(file.entrySHA256)) {
-			return executionFailure(localexecution.FailureContentMismatch, fmt.Errorf("captured model content does not match entry SHA-256"))
+		return invocationModelContentSeal{declaredFileSHA256: map[string]string{filepath.Base(binding.AbsolutePath): digest}}, nil
+	}
+	if bundleDir == "" || len(declared) == 0 || !filepath.IsAbs(bundleDir) || filepath.Clean(bundleDir) != bundleDir {
+		return invocationModelContentSeal{}, executionFailure(localexecution.FailureContentMismatch, fmt.Errorf("captured model bundle identity is incomplete"))
+	}
+	bundleInfo, err := os.Lstat(bundleDir)
+	if err != nil || !bundleInfo.IsDir() || bundleInfo.Mode()&os.ModeSymlink != 0 {
+		if err == nil {
+			err = fmt.Errorf("bundle path is not a direct directory")
+		}
+		return invocationModelContentSeal{}, executionFailure(localexecution.FailureContentMismatch, fmt.Errorf("open captured model bundle: %w", err))
+	}
+	entryRelative, err := filepath.Rel(bundleDir, strings.TrimSpace(binding.AbsolutePath))
+	if err != nil || entryRelative == "." || filepath.IsAbs(entryRelative) || entryRelative == ".." || strings.HasPrefix(entryRelative, ".."+string(filepath.Separator)) {
+		return invocationModelContentSeal{}, executionFailure(localexecution.FailureContentMismatch, fmt.Errorf("captured model entry is outside its bundle"))
+	}
+	entryRelative = filepath.ToSlash(entryRelative)
+	contentHasher := sha256.New()
+	fileHashes := make(map[string]string, len(declared))
+	entryObserved := false
+	for _, relative := range declared {
+		if err := ctx.Err(); err != nil {
+			return invocationModelContentSeal{}, err
+		}
+		clean := filepath.Clean(filepath.FromSlash(relative))
+		if relative == "" || filepath.IsAbs(clean) || clean == "." || clean == ".." || strings.HasPrefix(clean, ".."+string(filepath.Separator)) || filepath.ToSlash(clean) != relative {
+			return invocationModelContentSeal{}, executionFailure(localexecution.FailureContentMismatch, fmt.Errorf("captured model bundle has an invalid declared file"))
+		}
+		if _, exists := fileHashes[relative]; exists {
+			return invocationModelContentSeal{}, executionFailure(localexecution.FailureContentMismatch, fmt.Errorf("captured model bundle has duplicate declared files"))
+		}
+		digest, err := hashInvocationContentFileContext(ctx, filepath.Join(bundleDir, clean))
+		if err != nil {
+			return invocationModelContentSeal{}, err
+		}
+		fileHashes[relative] = digest
+		decoded, _ := hex.DecodeString(digest)
+		_, _ = contentHasher.Write(decoded)
+		if relative == entryRelative {
+			entryObserved = true
+			if !strings.EqualFold(digest, strings.TrimSpace(binding.EntrySHA256)) {
+				return invocationModelContentSeal{}, executionFailure(localexecution.FailureContentMismatch, fmt.Errorf("captured model entry content changed"))
+			}
 		}
 	}
-	return nil
+	if !entryObserved {
+		return invocationModelContentSeal{}, executionFailure(localexecution.FailureContentMismatch, fmt.Errorf("captured model entry is not declared"))
+	}
+	contentDigest := fileHashes[declared[0]]
+	if len(declared) > 1 {
+		contentDigest = hex.EncodeToString(contentHasher.Sum(nil))
+	}
+	if !strings.EqualFold("sha256:"+contentDigest, strings.TrimSpace(binding.VerifiedContentID)) {
+		return invocationModelContentSeal{}, executionFailure(localexecution.FailureContentMismatch, fmt.Errorf("captured model bundle content identity changed"))
+	}
+	return invocationModelContentSeal{declaredFileSHA256: fileHashes}, nil
+}
+
+func hashInvocationContentFileContext(ctx context.Context, path string) (string, error) {
+	if !filepath.IsAbs(path) || filepath.Clean(path) != path {
+		return "", executionFailure(localexecution.FailureContentMismatch, fmt.Errorf("captured model path is not canonical and absolute"))
+	}
+	info, err := os.Lstat(path)
+	if err != nil || !info.Mode().IsRegular() || info.Mode()&os.ModeSymlink != 0 {
+		if err == nil {
+			err = fmt.Errorf("path is not a direct regular file")
+		}
+		return "", executionFailure(localexecution.FailureContentMismatch, fmt.Errorf("open captured model content: %w", err))
+	}
+	opened, err := os.Open(path)
+	if err != nil {
+		return "", executionFailure(localexecution.FailureContentMismatch, fmt.Errorf("open captured model content: %w", err))
+	}
+	hash := sha256.New()
+	buffer := make([]byte, 4*1024*1024)
+	for {
+		if err := ctx.Err(); err != nil {
+			_ = opened.Close()
+			return "", err
+		}
+		read, readErr := opened.Read(buffer)
+		if read > 0 {
+			_, _ = hash.Write(buffer[:read])
+		}
+		if readErr == io.EOF {
+			break
+		}
+		if readErr != nil {
+			_ = opened.Close()
+			return "", executionFailure(localexecution.FailureContentMismatch, fmt.Errorf("hash captured model content: %w", readErr))
+		}
+	}
+	if closeErr := opened.Close(); closeErr != nil {
+		return "", executionFailure(localexecution.FailureContentMismatch, fmt.Errorf("close captured model content: %w", closeErr))
+	}
+	return hex.EncodeToString(hash.Sum(nil)), nil
 }
 
 func (h *ExecutionHost) consumeResponse(ctx context.Context, body io.Reader) (localexecution.TextResult, error) {
@@ -500,6 +579,11 @@ func (s *managerLlamaInvocationSubstrate) Ensure(
 			endpoint, err := s.manager.EngineEndpoint(EngineLlama)
 			if err == nil {
 				s.mu.Unlock()
+				if validateContent != nil {
+					if err := validateContent(); err != nil {
+						return "", false, err
+					}
+				}
 				if progress != nil {
 					progress(localexecution.TextExecutionProgressReused)
 				}

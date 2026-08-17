@@ -149,6 +149,59 @@ func TestLoadModelAndGenerateImage(t *testing.T) {
 	}
 }
 
+func TestGenerateImageCarriesInstructionEditBytesWithoutSourcePath(t *testing.T) {
+	if err := ensureDescriptors(); err != nil {
+		t.Fatalf("ensureDescriptors: %v", err)
+	}
+
+	outputPath := filepath.Join(t.TempDir(), "artifact.png")
+	referenceImage := []byte("resolved-reference-image")
+	var received imageGenerateState
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("listen: %v", err)
+	}
+	defer func() { _ = listener.Close() }()
+	server := grpc.NewServer(grpc.UnknownServiceHandler(func(_ any, stream grpc.ServerStream) error {
+		method, _ := grpc.MethodFromServerStream(stream)
+		if method != backendGenerateImageMethod {
+			return status.Error(codes.Unimplemented, method)
+		}
+		message := dynamicpb.NewMessage(generateImageMessageDescriptor)
+		if err := stream.RecvMsg(message); err != nil {
+			return err
+		}
+		received = imageGenerateState{
+			Mode:           ImageRequestMode(readStringField(message, "mode")),
+			Src:            readStringField(message, "src"),
+			Mask:           readStringField(message, "mask"),
+			ReferenceImage: readBytesField(message, "reference_image"),
+		}
+		if err := os.WriteFile(outputPath, []byte("png"), 0o600); err != nil {
+			return err
+		}
+		return stream.SendMsg(generateTerminalEvent(true, "generated"))
+	}))
+	defer server.Stop()
+	go func() { _ = server.Serve(listener) }()
+
+	_, err = GenerateImage(context.Background(), ImageRequest{
+		BackendAddress: listener.Addr().String(),
+		Protocol:       ProtocolManagedWrapper,
+		Mode:           ImageRequestModeInstructionEdit,
+		Dst:            outputPath,
+		PositivePrompt: "make it dusk",
+		ReferenceImage: referenceImage,
+	})
+	if err != nil {
+		t.Fatalf("GenerateImage: %v", err)
+	}
+	if received.Mode != ImageRequestModeInstructionEdit || received.Src != "" || received.Mask != "" ||
+		string(received.ReferenceImage) != string(referenceImage) {
+		t.Fatalf("instruction-edit private carrier = %+v", received)
+	}
+}
+
 func TestGenerateImageAcceptsResultTerminalShapeWhenArtifactExists(t *testing.T) {
 	if err := ensureDescriptors(); err != nil {
 		t.Fatalf("ensureDescriptors: %v", err)

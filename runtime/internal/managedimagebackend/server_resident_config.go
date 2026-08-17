@@ -18,6 +18,8 @@ type stableDiffusionCPPResidentConfig struct {
 	DiffusionFA        bool                    `json:"diffusion_fa,omitempty"`
 	OffloadParamsToCPU bool                    `json:"offload_params_to_cpu,omitempty"`
 	Threads            int32                   `json:"threads,omitempty"`
+	FlowShift          float32                 `json:"flow_shift,omitempty"`
+	QwenImageZeroCondT bool                    `json:"qwen_image_zero_cond_t,omitempty"`
 }
 
 func validateManagedImageLoadState(state loadModelState) error {
@@ -50,6 +52,8 @@ func stableDiffusionCPPResidentConfigFromLoad(state loadModelState) (stableDiffu
 		DiffusionFA:        state.Options.DiffusionFA != nil && *state.Options.DiffusionFA,
 		OffloadParamsToCPU: state.Options.OffloadParamsToCPU != nil && *state.Options.OffloadParamsToCPU,
 		Threads:            state.Threads,
+		FlowShift:          state.Options.FlowShift,
+		QwenImageZeroCondT: state.Options.QwenImageZeroCondT,
 	}, nil
 }
 
@@ -92,6 +96,12 @@ func stableDiffusionCPPResidentStartupArgs(config stableDiffusionCPPResidentConf
 	if config.OffloadParamsToCPU {
 		args = append(args, "--offload-to-cpu")
 	}
+	if config.FlowShift > 0 {
+		args = append(args, "--flow-shift", strconv.FormatFloat(float64(config.FlowShift), 'g', -1, 32))
+	}
+	if config.QwenImageZeroCondT {
+		args = append(args, "--model-args", "qwen_image_zero_cond_t=true")
+	}
 	for _, component := range components {
 		binding, ok := stableDiffusionCPPSlotBindings[strings.TrimSpace(component.EngineSlot)]
 		if !ok {
@@ -116,10 +126,12 @@ func stableDiffusionCPPResidentStartupSummary(config stableDiffusionCPPResidentC
 	if len(componentSlots) == 0 {
 		componentSlots = append(componentSlots, "-")
 	}
-	return fmt.Sprintf("threads=%d diffusion_fa=%t offload_to_cpu=%t components=%s",
+	return fmt.Sprintf("threads=%d diffusion_fa=%t offload_to_cpu=%t flow_shift=%g qwen_image_zero_cond_t=%t components=%s",
 		config.Threads,
 		config.DiffusionFA,
 		config.OffloadParamsToCPU,
+		config.FlowShift,
+		config.QwenImageZeroCondT,
 		strings.Join(componentSlots, ","),
 	)
 }

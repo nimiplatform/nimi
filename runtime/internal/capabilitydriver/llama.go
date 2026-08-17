@@ -1,6 +1,7 @@
 package capabilitydriver
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -12,6 +13,7 @@ import (
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/ggufmeta"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -20,7 +22,7 @@ const inputImageFeature = "input.image"
 // LlamaTextDriver projects only llama.cpp text resource intent.
 type LlamaTextDriver struct{}
 
-func (LlamaTextDriver) EffectiveRequestDefaults(_ *structpb.Struct) map[string]string {
+func (LlamaTextDriver) EffectiveRequestDefaults(_ string, _ *structpb.Struct) map[string]string {
 	// These are the request defaults owned by the pinned llama-server dialect
 	// when llamaTextRequestBody omits unset sampling fields.
 	return map[string]string{
@@ -34,12 +36,56 @@ func (LlamaTextDriver) EffectiveRequestDefaults(_ *structpb.Struct) map[string]s
 	}
 }
 
+func (driver LlamaTextDriver) ProjectRecipe(recipeID string, options *structpb.Struct, supportedFeatures []string) ([]*runtimev1.LocalCapabilityRequirement, runtimev1.LocalCapabilityReason) {
+	if len(driver.recipeModelArchitectures(recipeID, MainGGUFRequirementID)) == 0 {
+		return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_DRIVER_DIALECT_UNSUPPORTED
+	}
+	return driver.Interpret(InterpretInput{RecipeID: recipeID, PortableConfig: options, SupportedFeatures: supportedFeatures})
+}
+
+func (LlamaTextDriver) recipeModelArchitectures(recipeID string, slotID string) []string {
+	if slotID != MainGGUFRequirementID {
+		return nil
+	}
+	switch strings.TrimSpace(recipeID) {
+	case LlamaGemma4E2BRecipeID, LlamaGemma426BRecipeID:
+		return []string{"gemma4"}
+	default:
+		return nil
+	}
+}
+
+func (driver LlamaTextDriver) ProjectModelAssetBinding(input ModelAssetBindingInput) (ModelAssetBindingProjection, runtimev1.LocalCapabilityReason) {
+	probe := input.Entry.FormatProbe
+	if filepath.Ext(strings.ToLower(input.Entry.RelativePath)) != ".gguf" || len(probe) < 4 || len(probe) > MaxAssetFormatProbeBytes || !bytes.Equal(probe[:4], []byte("GGUF")) {
+		return ModelAssetBindingProjection{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE
+	}
+	descriptor := ModelAssetDescriptor{Engine: "llama", FormatProbe: probe}
+	var contextWindow uint64
+	switch input.Requirement.GetRequirementId() {
+	case MainGGUFRequirementID:
+		summary, err := ggufmeta.InspectLLMMetadata(bytes.NewReader(probe))
+		if err != nil || !contains(driver.recipeModelArchitectures(input.RecipeID, MainGGUFRequirementID), ggufmeta.LLMDetectedArchitecture(summary)) {
+			return ModelAssetBindingProjection{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE
+		}
+		contextWindow, _ = ggufmeta.LLMContextLength(summary)
+		descriptor.Kind = runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT
+		descriptor.ArtifactRoles = []string{"llm"}
+	case CompanionMMProjRequirementID:
+		descriptor.Kind = runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_AUXILIARY
+		descriptor.ArtifactRoles = []string{"mmproj"}
+	default:
+		return ModelAssetBindingProjection{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE
+	}
+	return validatedModelAssetBindingProjection(input, descriptor, contextWindow, driver.ValidateBinding)
+}
+
 func (LlamaTextDriver) Interpret(input InterpretInput) ([]*runtimev1.LocalCapabilityRequirement, runtimev1.LocalCapabilityReason) {
 	features, reason := normalizedFeatures(input.SupportedFeatures)
 	if reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {
 		return nil, reason
 	}
-	portable, reason := parsePortableConfig(input.PortableConfig, contains(features, inputImageFeature))
+	_, reason = parsePortableConfig(input.PortableConfig, contains(features, inputImageFeature))
 	if reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {
 		return nil, reason
 	}
@@ -48,8 +94,6 @@ func (LlamaTextDriver) Interpret(input InterpretInput) ([]*runtimev1.LocalCapabi
 		MainGGUFRequirementID,
 		runtimev1.LocalCapabilityRequirementRole_LOCAL_CAPABILITY_REQUIREMENT_ROLE_MAIN,
 		"gguf",
-		portable.mainPolicy,
-		portable.mainVerifiedContentID,
 		"llm",
 		"Main model",
 	)}
@@ -58,8 +102,6 @@ func (LlamaTextDriver) Interpret(input InterpretInput) ([]*runtimev1.LocalCapabi
 			CompanionMMProjRequirementID,
 			runtimev1.LocalCapabilityRequirementRole_LOCAL_CAPABILITY_REQUIREMENT_ROLE_COMPANION,
 			"mmproj",
-			portable.mmprojPolicy,
-			portable.mmprojVerifiedContentID,
 			"mmproj",
 			"Vision projector",
 		))
@@ -67,30 +109,26 @@ func (LlamaTextDriver) Interpret(input InterpretInput) ([]*runtimev1.LocalCapabi
 	return requirements, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
 }
 
-func (driver LlamaTextDriver) ValidateBinding(requirement *runtimev1.LocalCapabilityRequirement, binding *runtimev1.LocalAssetExactBinding, asset AssetDescriptor) runtimev1.LocalCapabilityReason {
+func (driver LlamaTextDriver) ValidateBinding(requirement *runtimev1.LocalCapabilityRequirement, binding *runtimev1.ModelAssetExactBinding, asset ModelAssetDescriptor) runtimev1.LocalCapabilityReason {
 	if requirement == nil || binding == nil || binding.GetRequirementId() != requirement.GetRequirementId() {
 		return runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_BINDING_AMBIGUOUS
 	}
-	if binding.GetLocalAssetId() == "" || asset.LocalAssetID == "" {
+	if binding.GetModelAssetId() == "" || asset.ModelAssetID == "" {
 		return runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_NOT_FOUND
 	}
 	if binding.GetVerifiedContentId() == "" || binding.GetEntrySha256() == "" || asset.VerifiedContentID == "" || asset.EntrySHA256 == "" {
 		return runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_CONTENT_UNVERIFIED
 	}
-	if binding.GetLocalAssetId() != asset.LocalAssetID || binding.GetVerifiedContentId() != asset.VerifiedContentID || binding.GetEntrySha256() != asset.EntrySHA256 {
+	if binding.GetModelAssetId() != asset.ModelAssetID || binding.GetVerifiedContentId() != asset.VerifiedContentID || binding.GetEntrySha256() != asset.EntrySHA256 {
 		return runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_CONTENT_MISMATCH
 	}
 	if !llamaCompatible(requirement, asset) {
 		return runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE
 	}
-	if requirement.GetPolicy() == runtimev1.LocalCapabilityRequirementPolicy_LOCAL_CAPABILITY_REQUIREMENT_POLICY_STRICT &&
-		binding.GetVerifiedContentId() != requirement.GetPreferredVerifiedContentId() {
-		return runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_CONTENT_MISMATCH
-	}
 	return runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
 }
 
-func (driver LlamaTextDriver) ValidateCombination(requirements []*runtimev1.LocalCapabilityRequirement, bindings []*runtimev1.LocalAssetExactBinding, assets []AssetDescriptor) runtimev1.LocalCapabilityReason {
+func (driver LlamaTextDriver) ValidateCombination(requirements []*runtimev1.LocalCapabilityRequirement, bindings []*runtimev1.ModelAssetExactBinding, assets []ModelAssetDescriptor) runtimev1.LocalCapabilityReason {
 	if len(requirements) == 0 || len(bindings) < len(requirements) {
 		return runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_REQUIRED_BINDING_MISSING
 	}
@@ -190,7 +228,7 @@ func (driver LlamaTextDriver) PlanTextInvocation(input TextInvocationInput) (*Te
 		if !ok {
 			continue
 		}
-		for _, value := range []string{binding.LocalAssetID, binding.VerifiedContentID, binding.EntrySHA256} {
+		for _, value := range invocationExactBindingIdentity(binding) {
 			_, _ = hash.Write([]byte(value))
 			_, _ = hash.Write([]byte{0})
 		}
@@ -198,7 +236,7 @@ func (driver LlamaTextDriver) PlanTextInvocation(input TextInvocationInput) (*Te
 	modelFiles := make([]InvocationExactBinding, 0, len(bindings))
 	for _, requirementID := range []string{MainGGUFRequirementID, CompanionMMProjRequirementID} {
 		if binding, ok := bindings[requirementID]; ok {
-			modelFiles = append(modelFiles, binding)
+			modelFiles = append(modelFiles, cloneInvocationExactBindings([]InvocationExactBinding{binding})[0])
 		}
 	}
 	return &TextInvocationPlan{
@@ -243,14 +281,14 @@ func exactLlamaInvocationBindings(values []InvocationExactBinding) (map[string]I
 		if _, exists := bindings[requirementID]; exists {
 			return nil, false, fmt.Errorf("llama invocation contains duplicate requirement %q", requirementID)
 		}
-		if binding.LocalAssetID == "" || binding.LocalAssetID != strings.TrimSpace(binding.LocalAssetID) ||
+		if binding.ModelAssetID == "" || binding.ModelAssetID != strings.TrimSpace(binding.ModelAssetID) ||
 			binding.VerifiedContentID == "" || binding.VerifiedContentID != strings.TrimSpace(binding.VerifiedContentID) ||
 			binding.EntrySHA256 == "" || binding.EntrySHA256 != strings.TrimSpace(binding.EntrySHA256) ||
 			!canonicalInvocationSHA256(binding.VerifiedContentID, binding.EntrySHA256) ||
 			!filepath.IsAbs(binding.AbsolutePath) || filepath.Clean(binding.AbsolutePath) != binding.AbsolutePath {
 			return nil, false, fmt.Errorf("llama invocation requirement %q is not an exact absolute binding", requirementID)
 		}
-		bindings[requirementID] = binding
+		bindings[requirementID] = cloneInvocationExactBindings([]InvocationExactBinding{binding})[0]
 	}
 	if _, exists := bindings[MainGGUFRequirementID]; !exists {
 		return nil, false, fmt.Errorf("llama invocation main GGUF binding is required")
@@ -458,30 +496,22 @@ func invocationError(kind InvocationFailureKind, err error) error {
 }
 
 type portableConfig struct {
-	mainPolicy              runtimev1.LocalCapabilityRequirementPolicy
-	mainVerifiedContentID   string
-	mmprojPolicy            runtimev1.LocalCapabilityRequirementPolicy
-	mmprojVerifiedContentID string
-	contextSize             int
-	cacheTypeK              string
-	cacheTypeV              string
-	flashAttention          *bool
-	gpuLayers               *int
+	contextSize    int
+	cacheTypeK     string
+	cacheTypeV     string
+	flashAttention *bool
+	gpuLayers      *int
 }
 
-func parsePortableConfig(value *structpb.Struct, image bool) (portableConfig, runtimev1.LocalCapabilityReason) {
-	result := portableConfig{
-		mainPolicy:   runtimev1.LocalCapabilityRequirementPolicy_LOCAL_CAPABILITY_REQUIREMENT_POLICY_SUBSTITUTABLE,
-		mmprojPolicy: runtimev1.LocalCapabilityRequirementPolicy_LOCAL_CAPABILITY_REQUIREMENT_POLICY_SUBSTITUTABLE,
-	}
+func parsePortableConfig(value *structpb.Struct, _ bool) (portableConfig, runtimev1.LocalCapabilityReason) {
+	result := portableConfig{}
 	if value == nil {
 		return result, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
 	}
 	fields := value.GetFields()
 	for key := range fields {
 		switch key {
-		case "mainRequirementPolicy", "mainVerifiedContentId", "mmprojRequirementPolicy", "mmprojVerifiedContentId",
-			"contextSize", "cacheTypeK", "cacheTypeV", "flashAttention", "gpuLayers":
+		case "contextSize", "cacheTypeK", "cacheTypeV", "flashAttention", "gpuLayers":
 		default:
 			return portableConfig{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_PORTABLE_CONFIG_INVALID
 		}
@@ -506,29 +536,6 @@ func parsePortableConfig(value *structpb.Struct, image bool) (portableConfig, ru
 	if value, exists := fields["gpuLayers"]; exists {
 		layers := int(value.GetNumberValue())
 		result.gpuLayers = &layers
-	}
-	if result.mainPolicy, reason = portablePolicy(fields, "mainRequirementPolicy"); reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {
-		return portableConfig{}, reason
-	}
-	if result.mainVerifiedContentID, reason = portableString(fields, "mainVerifiedContentId"); reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {
-		return portableConfig{}, reason
-	}
-	if result.mmprojPolicy, reason = portablePolicy(fields, "mmprojRequirementPolicy"); reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {
-		return portableConfig{}, reason
-	}
-	if result.mmprojVerifiedContentID, reason = portableString(fields, "mmprojVerifiedContentId"); reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {
-		return portableConfig{}, reason
-	}
-	if result.mainVerifiedContentID, reason = normalizeVerifiedContentID(result.mainVerifiedContentID); reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {
-		return portableConfig{}, reason
-	}
-	if result.mmprojVerifiedContentID, reason = normalizeVerifiedContentID(result.mmprojVerifiedContentID); reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {
-		return portableConfig{}, reason
-	}
-	if result.mainPolicy == runtimev1.LocalCapabilityRequirementPolicy_LOCAL_CAPABILITY_REQUIREMENT_POLICY_STRICT && result.mainVerifiedContentID == "" ||
-		result.mmprojPolicy == runtimev1.LocalCapabilityRequirementPolicy_LOCAL_CAPABILITY_REQUIREMENT_POLICY_STRICT && result.mmprojVerifiedContentID == "" ||
-		!image && (fields["mmprojRequirementPolicy"] != nil || fields["mmprojVerifiedContentId"] != nil) {
-		return portableConfig{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_PORTABLE_CONFIG_INVALID
 	}
 	return result, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
 }
@@ -587,35 +594,6 @@ func supportedCacheType(value string) bool {
 	}
 }
 
-func normalizeVerifiedContentID(value string) (string, runtimev1.LocalCapabilityReason) {
-	if value == "" {
-		return "", runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
-	}
-	if !strings.HasPrefix(value, "sha256:") || len(value) != len("sha256:")+64 {
-		return "", runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_PORTABLE_CONFIG_INVALID
-	}
-	hexValue := value[len("sha256:"):]
-	if _, err := hex.DecodeString(hexValue); err != nil {
-		return "", runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_PORTABLE_CONFIG_INVALID
-	}
-	return "sha256:" + strings.ToLower(hexValue), runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
-}
-
-func portablePolicy(fields map[string]*structpb.Value, key string) (runtimev1.LocalCapabilityRequirementPolicy, runtimev1.LocalCapabilityReason) {
-	value, exists := fields[key]
-	if !exists {
-		return runtimev1.LocalCapabilityRequirementPolicy_LOCAL_CAPABILITY_REQUIREMENT_POLICY_SUBSTITUTABLE, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
-	}
-	text := value.GetStringValue()
-	if value.GetKind() == nil || (text != "strict" && text != "substitutable") {
-		return 0, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_PORTABLE_CONFIG_INVALID
-	}
-	if text == "strict" {
-		return runtimev1.LocalCapabilityRequirementPolicy_LOCAL_CAPABILITY_REQUIREMENT_POLICY_STRICT, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
-	}
-	return runtimev1.LocalCapabilityRequirementPolicy_LOCAL_CAPABILITY_REQUIREMENT_POLICY_SUBSTITUTABLE, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
-}
-
 func portableString(fields map[string]*structpb.Value, key string) (string, runtimev1.LocalCapabilityReason) {
 	value, exists := fields[key]
 	if !exists {
@@ -644,31 +622,32 @@ func normalizedFeatures(features []string) ([]string, runtimev1.LocalCapabilityR
 	return result, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
 }
 
-func llamaRequirement(id string, role runtimev1.LocalCapabilityRequirementRole, resourceKind string, policy runtimev1.LocalCapabilityRequirementPolicy, preferredID, artifactRole, displayLabel string) *runtimev1.LocalCapabilityRequirement {
-	constraints, _ := structpb.NewStruct(map[string]any{"engine": "llama", "artifact_role": artifactRole})
+func llamaRequirement(id string, role runtimev1.LocalCapabilityRequirementRole, resourceKind, artifactRole, displayLabel string) *runtimev1.LocalCapabilityRequirement {
+	constraintFields := map[string]any{"artifact_role": artifactRole}
+	if id == MainGGUFRequirementID {
+		constraintFields["engine"] = "llama"
+	}
+	constraints, _ := structpb.NewStruct(constraintFields)
 	return &runtimev1.LocalCapabilityRequirement{
-		RequirementId:              id,
-		Role:                       role,
-		ResourceKind:               resourceKind,
-		Policy:                     policy,
-		PreferredVerifiedContentId: preferredID,
-		CompatibilityConstraints:   constraints,
-		OccurrenceOrdinal:          0,
-		DisplayLabel:               displayLabel,
+		RequirementId:            id,
+		Role:                     role,
+		ResourceKind:             resourceKind,
+		Policy:                   runtimev1.LocalCapabilityRequirementPolicy_LOCAL_CAPABILITY_REQUIREMENT_POLICY_SUBSTITUTABLE,
+		CompatibilityConstraints: constraints,
+		OccurrenceOrdinal:        0,
+		DisplayLabel:             displayLabel,
 	}
 }
 
-func llamaCompatible(requirement *runtimev1.LocalCapabilityRequirement, asset AssetDescriptor) bool {
-	if asset.Engine != "llama" {
+func llamaCompatible(requirement *runtimev1.LocalCapabilityRequirement, asset ModelAssetDescriptor) bool {
+	switch requirement.GetRequirementId() {
+	case MainGGUFRequirementID:
+		return asset.Kind == runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT && asset.Engine == "llama" && contains(asset.ArtifactRoles, "llm")
+	case CompanionMMProjRequirementID:
+		return asset.Kind == runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_AUXILIARY && contains(asset.ArtifactRoles, "mmproj")
+	default:
 		return false
 	}
-	role := ""
-	if requirement.GetRequirementId() == MainGGUFRequirementID {
-		role = "llm"
-	} else if requirement.GetRequirementId() == CompanionMMProjRequirementID {
-		role = "mmproj"
-	}
-	return role != "" && contains(asset.ArtifactRoles, role)
 }
 
 func contains(values []string, wanted string) bool {

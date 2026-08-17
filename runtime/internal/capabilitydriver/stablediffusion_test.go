@@ -1,8 +1,7 @@
 package capabilitydriver
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
+	"bytes"
 	"errors"
 	"fmt"
 	"math"
@@ -17,7 +16,7 @@ import (
 
 func TestStableDiffusionInterpretTxt2ImgProjectsRequiredFamilyComposition(t *testing.T) {
 	portable := stableDiffusionPortableForTest(t, map[string]any{"modelFamily": "z-image"})
-	requirements, reason := (StableDiffusionImageDriver{}).Interpret(InterpretInput{PortableConfig: portable})
+	requirements, reason := (StableDiffusionImageDriver{}).Interpret(InterpretInput{RecipeID: "z-image", PortableConfig: portable})
 	if reason != success {
 		t.Fatalf("Interpret: %v", reason)
 	}
@@ -47,32 +46,37 @@ func TestStableDiffusionInterpretTxt2ImgProjectsRequiredFamilyComposition(t *tes
 		requirements[2].GetRole() != runtimev1.LocalCapabilityRequirementRole_LOCAL_CAPABILITY_REQUIREMENT_ROLE_COMPANION {
 		t.Fatalf("roles = %#v", requirements)
 	}
+	if requirements[1].GetResourceKind() != "auxiliary" || requirements[2].GetResourceKind() != "vae" {
+		t.Fatalf("independent model-axis kinds = %#v", requirements)
+	}
 }
 
 func TestStableDiffusionInterpretInputImageSupportMustMatchPortableDeclaration(t *testing.T) {
 	driver := StableDiffusionImageDriver{}
 	portable := stableDiffusionPortableForTest(t, map[string]any{
-		"modelFamily":      "z-image",
-		"enableInputImage": true,
+		"modelFamily": "qwen-image",
+		"recipeId":    "qwen-image-edit-2511",
 	})
-	requirements, reason := driver.Interpret(InterpretInput{PortableConfig: portable, SupportedFeatures: []string{
+	requirements, reason := driver.Interpret(InterpretInput{RecipeID: StableDiffusionQwenImageEditRecipeID, PortableConfig: portable, SupportedFeatures: []string{
 		aicapabilities.FeatureInputImage,
-		aicapabilities.FeatureInputMask,
 		aicapabilities.FeatureInputImage,
 	}})
-	if reason != success || len(requirements) != 3 {
-		t.Fatalf("img2img interpretation = %v %#v", reason, requirements)
+	if reason != success || len(requirements) != 3 ||
+		requirements[0].GetRequirementId() != StableDiffusionMainRequirementID ||
+		requirements[1].GetRequirementId() != StableDiffusionTextEncoderRequirementID ||
+		requirements[2].GetRequirementId() != StableDiffusionVAERequirementID {
+		t.Fatalf("instruction-edit interpretation = %v %#v", reason, requirements)
 	}
 	for _, requirement := range requirements {
 		if strings.Contains(requirement.GetRequirementId(), "input") || requirement.GetResourceKind() == inputImageFeature {
 			t.Fatalf("input.image was incorrectly projected as a LocalAsset requirement: %#v", requirement)
 		}
 	}
-	if _, reason := driver.Interpret(InterpretInput{PortableConfig: portable}); reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_FEATURE_UNSUPPORTED {
+	if _, reason := driver.Interpret(InterpretInput{RecipeID: StableDiffusionQwenImageEditRecipeID, PortableConfig: portable}); reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_FEATURE_UNSUPPORTED {
 		t.Fatalf("missing derived feature claim reason = %v", reason)
 	}
-	textOnly := stableDiffusionPortableForTest(t, map[string]any{"modelFamily": "z-image"})
-	if _, reason := driver.Interpret(InterpretInput{PortableConfig: textOnly, SupportedFeatures: []string{inputImageFeature}}); reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_FEATURE_UNSUPPORTED {
+	textOnly := stableDiffusionPortableForTest(t, map[string]any{"modelFamily": "qwen-image", "recipeId": "qwen-image"})
+	if _, reason := driver.Interpret(InterpretInput{RecipeID: StableDiffusionQwenImageRecipeID, PortableConfig: textOnly, SupportedFeatures: []string{inputImageFeature}}); reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_FEATURE_UNSUPPORTED {
 		t.Fatalf("undeclared input.image reason = %v", reason)
 	}
 }
@@ -86,7 +90,7 @@ func TestStableDiffusionInterpretRejectsUnsupportedLoRAConfiguration(t *testing.
 			"modelFamily": "z-image",
 			"loras":       loras,
 		})
-		requirements, reason := (StableDiffusionImageDriver{}).Interpret(InterpretInput{PortableConfig: portable})
+		requirements, reason := (StableDiffusionImageDriver{}).Interpret(InterpretInput{RecipeID: "z-image", PortableConfig: portable})
 		if reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_PORTABLE_CONFIG_INVALID || requirements != nil {
 			t.Fatalf("LoRA config admission = reason=%v requirements=%#v", reason, requirements)
 		}
@@ -95,7 +99,7 @@ func TestStableDiffusionInterpretRejectsUnsupportedLoRAConfiguration(t *testing.
 
 func TestStableDiffusionValidateCombinationRejectsRetiredLoRARequirementTail(t *testing.T) {
 	portable := stableDiffusionPortableForTest(t, map[string]any{"modelFamily": "z-image"})
-	requirements, reason := (StableDiffusionImageDriver{}).Interpret(InterpretInput{PortableConfig: portable})
+	requirements, reason := (StableDiffusionImageDriver{}).Interpret(InterpretInput{RecipeID: "z-image", PortableConfig: portable})
 	if reason != success {
 		t.Fatalf("Interpret: %v", reason)
 	}
@@ -109,8 +113,8 @@ func TestStableDiffusionValidateCombinationRejectsRetiredLoRARequirementTail(t *
 	})
 	reason = (StableDiffusionImageDriver{}).ValidateCombination(
 		requirements,
-		make([]*runtimev1.LocalAssetExactBinding, len(requirements)),
-		make([]AssetDescriptor, len(requirements)),
+		make([]*runtimev1.ModelAssetExactBinding, len(requirements)),
+		make([]ModelAssetDescriptor, len(requirements)),
 	)
 	if reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE {
 		t.Fatalf("retired LoRA requirement tail reason = %v", reason)
@@ -130,7 +134,11 @@ func TestStableDiffusionInterpretRejectsUnknownAndProtectedPortableFields(t *tes
 		{"modelFamily": "z-image", "loras": []any{map[string]any{"occurrenceOrdinal": 2}}},
 		{"modelFamily": "z-image", "executionOptions": map[string]any{"steps": 0}},
 	} {
-		if _, reason := driver.Interpret(InterpretInput{PortableConfig: stableDiffusionPortableForTest(t, fields)}); reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_PORTABLE_CONFIG_INVALID {
+		portable, err := structpb.NewStruct(fields)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, reason := driver.Interpret(InterpretInput{RecipeID: "z-image", PortableConfig: portable}); reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_PORTABLE_CONFIG_INVALID {
 			t.Fatalf("fields %#v reason = %v", fields, reason)
 		}
 	}
@@ -138,7 +146,7 @@ func TestStableDiffusionInterpretRejectsUnknownAndProtectedPortableFields(t *tes
 
 func TestStableDiffusionIdeogramProjectsUnconditionalDiffusionCompanion(t *testing.T) {
 	portable := stableDiffusionPortableForTest(t, map[string]any{"modelFamily": "ideogram4"})
-	requirements, reason := (StableDiffusionImageDriver{}).Interpret(InterpretInput{PortableConfig: portable})
+	requirements, reason := (StableDiffusionImageDriver{}).Interpret(InterpretInput{RecipeID: "ideogram4", PortableConfig: portable})
 	if reason != success || len(requirements) != 4 {
 		t.Fatalf("Interpret = %v %#v", reason, requirements)
 	}
@@ -148,46 +156,12 @@ func TestStableDiffusionIdeogramProjectsUnconditionalDiffusionCompanion(t *testi
 	}
 }
 
-func TestStableDiffusionValidateBindingChecksCanonicalBundleDigest(t *testing.T) {
-	entries := []BundleEntryDescriptor{
-		{Ordinal: 1, SHA256: strings.Repeat("a", 64)},
-		{Ordinal: 2, SHA256: strings.Repeat("b", 64)},
-	}
-	digest, err := CanonicalBundleSHA256(entries)
-	if err != nil {
-		t.Fatal(err)
-	}
-	portable := stableDiffusionPortableForTest(t, map[string]any{"modelFamily": "z-image"})
-	requirements, reason := (StableDiffusionImageDriver{}).Interpret(InterpretInput{PortableConfig: portable})
-	if reason != success {
-		t.Fatalf("Interpret: %v", reason)
-	}
-	binding := &runtimev1.LocalAssetExactBinding{
-		RequirementId: StableDiffusionMainRequirementID, LocalAssetId: "bundle-main",
-		VerifiedContentId: "sha256:" + digest, EntrySha256: digest,
-	}
-	asset := AssetDescriptor{
-		LocalAssetID: "bundle-main", VerifiedContentID: "sha256:" + digest, EntrySHA256: digest,
-		Kind: runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE, Family: "z-image", BundleEntries: entries,
-	}
-	driver := StableDiffusionImageDriver{}
-	if reason := driver.ValidateBinding(requirements[0], binding, asset); reason != success {
-		t.Fatalf("bundle binding reason = %v", reason)
-	}
-	drifted := asset
-	drifted.BundleEntries = append([]BundleEntryDescriptor(nil), entries...)
-	drifted.BundleEntries[1].SHA256 = strings.Repeat("c", 64)
-	if reason := driver.ValidateBinding(requirements[0], binding, drifted); reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_CONTENT_MISMATCH {
-		t.Fatalf("drifted bundle reason = %v", reason)
-	}
-}
-
 func TestStableDiffusionEffectiveRequestDefaultsUsePortableExecutionOptions(t *testing.T) {
 	portable := stableDiffusionPortableForTest(t, map[string]any{
 		"modelFamily":      "z-image",
 		"executionOptions": map[string]any{"width": 768, "height": 512, "seed": 13},
 	})
-	defaults := (StableDiffusionImageDriver{}).EffectiveRequestDefaults(portable)
+	defaults := (StableDiffusionImageDriver{}).EffectiveRequestDefaults("z-image", portable)
 	if defaults["n"] != "1" || defaults["size"] != "768x512" || defaults["seed"] != "13" {
 		t.Fatalf("effective request defaults = %#v", defaults)
 	}
@@ -209,6 +183,7 @@ func TestStableDiffusionPlanNormalizesRequestAndProtectsCapturedState(t *testing
 		stableDiffusionInvocationBindingForTest(StableDiffusionTextEncoderRequirementID, "text", filepath.Join(root, "text.gguf"), 'b'),
 	}
 	plan, err := (StableDiffusionImageDriver{}).PlanImageInvocation(ImageInvocationInput{
+		RecipeID:       "z-image",
 		PortableConfig: portable,
 		ExactBindings:  bindings,
 		Request: &runtimev1.ImageGenerateScenarioSpec{
@@ -239,9 +214,103 @@ func TestStableDiffusionPlanNormalizesRequestAndProtectsCapturedState(t *testing
 		t.Fatalf("normalized plan sampling fields are incorrect")
 	}
 	files := plan.ModelFiles()
-	files[0] = ImageModelFile{}
-	if plan.ModelFiles()[0].AbsolutePath() == "" {
+	files[0] = InvocationExactBinding{}
+	if plan.ModelFiles()[0].AbsolutePath == "" {
 		t.Fatal("image plan exposed mutable captured state")
+	}
+}
+
+func TestStableDiffusionQwenGeneratePlansExactThreeSlotTopology(t *testing.T) {
+	root := t.TempDir()
+	mainPath := filepath.Join(root, "qwen-image.gguf")
+	textPath := filepath.Join(root, "qwen-vl.gguf")
+	vaePath := filepath.Join(root, "qwen-image-vae.safetensors")
+	bindings := []InvocationExactBinding{
+		stableDiffusionInvocationBindingForTest(StableDiffusionVAERequirementID, "vae", vaePath, 'c'),
+		stableDiffusionInvocationBindingForTest(StableDiffusionMainRequirementID, "main", mainPath, 'a'),
+		stableDiffusionInvocationBindingForTest(StableDiffusionTextEncoderRequirementID, "text", textPath, 'b'),
+	}
+	plan, err := (StableDiffusionImageDriver{}).PlanImageInvocation(ImageInvocationInput{
+		RecipeID: StableDiffusionQwenImageRecipeID,
+		PortableConfig: stableDiffusionPortableForTest(t, map[string]any{
+			"modelFamily": "qwen-image", "recipeId": "qwen-image",
+		}),
+		ExactBindings: bindings,
+		Request:       &runtimev1.ImageGenerateScenarioSpec{Prompt: "a moonlit harbor"},
+	})
+	if err != nil {
+		t.Fatalf("PlanImageInvocation: %v", err)
+	}
+	load, loadOK := plan.LoadPlan().(StableDiffusionCPPLoadPlan)
+	_, requestOK := plan.RequestPlan().(StableDiffusionCPPTextToImageRequestPlan)
+	files := plan.ModelFiles()
+	_, hasUncond := load.UncondDiffusion()
+	if !loadOK || !requestOK || load.RecipeID() != "qwen-image" || len(files) != 3 ||
+		files[0].AbsolutePath != mainPath || files[1].AbsolutePath != textPath || files[2].AbsolutePath != vaePath ||
+		load.Main().AbsolutePath() != mainPath || load.TextEncoder().AbsolutePath() != textPath || load.VAE().AbsolutePath() != vaePath ||
+		hasUncond || load.QwenImageZeroCondT() || load.FlowShift() != 3 {
+		t.Fatalf("Qwen Image three-slot plan is incomplete: files=%#v load=%#v request=%T", files, load, plan.RequestPlan())
+	}
+}
+
+func TestStableDiffusionQwenRecipesProjectSubstitutableModelContractSlots(t *testing.T) {
+	driver := StableDiffusionImageDriver{}
+	for _, test := range []struct {
+		name     string
+		recipeID string
+		features []string
+	}{
+		{name: "generate", recipeID: StableDiffusionQwenImageRecipeID},
+		{name: "edit", recipeID: StableDiffusionQwenImageEditRecipeID, features: []string{aicapabilities.FeatureInputImage}},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			options := stableDiffusionPortableForTest(t, map[string]any{"modelFamily": "qwen-image", "recipeId": test.recipeID})
+			requirements, reason := driver.ProjectRecipe(test.recipeID, options, test.features)
+			if reason != success || len(requirements) != 3 {
+				t.Fatalf("ProjectRecipe = %v %#v", reason, requirements)
+			}
+			for _, requirement := range requirements {
+				if requirement.GetPolicy() != runtimev1.LocalCapabilityRequirementPolicy_LOCAL_CAPABILITY_REQUIREMENT_POLICY_SUBSTITUTABLE ||
+					requirement.GetPreferredVerifiedContentId() != "" {
+					t.Fatalf("catalog recommendation leaked into Driver admission: %#v", requirement)
+				}
+			}
+		})
+	}
+}
+
+func TestStableDiffusionIdeogram4PlansExactFourSlotTopology(t *testing.T) {
+	root := t.TempDir()
+	mainPath := filepath.Join(root, "ideogram4.gguf")
+	textPath := filepath.Join(root, "qwen-vl.gguf")
+	vaePath := filepath.Join(root, "flux2-vae.safetensors")
+	uncondPath := filepath.Join(root, "ideogram4-uncond.gguf")
+	bindings := []InvocationExactBinding{
+		stableDiffusionInvocationBindingForTest(StableDiffusionUncondDiffusionRequirementID, "uncond", uncondPath, 'd'),
+		stableDiffusionInvocationBindingForTest(StableDiffusionVAERequirementID, "vae", vaePath, 'c'),
+		stableDiffusionInvocationBindingForTest(StableDiffusionTextEncoderRequirementID, "text", textPath, 'b'),
+		stableDiffusionInvocationBindingForTest(StableDiffusionMainRequirementID, "main", mainPath, 'a'),
+	}
+	plan, err := (StableDiffusionImageDriver{}).PlanImageInvocation(ImageInvocationInput{
+		RecipeID: "ideogram4",
+		PortableConfig: stableDiffusionPortableForTest(t, map[string]any{
+			"modelFamily": "ideogram4", "recipeId": "ideogram4",
+		}),
+		ExactBindings: bindings,
+		Request:       &runtimev1.ImageGenerateScenarioSpec{Prompt: "editorial poster"},
+	})
+	if err != nil {
+		t.Fatalf("PlanImageInvocation: %v", err)
+	}
+	load, loadOK := plan.LoadPlan().(StableDiffusionCPPLoadPlan)
+	_, requestOK := plan.RequestPlan().(StableDiffusionCPPTextToImageRequestPlan)
+	uncond, hasUncond := load.UncondDiffusion()
+	files := plan.ModelFiles()
+	if !loadOK || !requestOK || load.RecipeID() != "ideogram4" || len(files) != 4 ||
+		files[0].AbsolutePath != mainPath || files[1].AbsolutePath != textPath || files[2].AbsolutePath != vaePath || files[3].AbsolutePath != uncondPath ||
+		load.Main().AbsolutePath() != mainPath || load.TextEncoder().AbsolutePath() != textPath || load.VAE().AbsolutePath() != vaePath ||
+		!hasUncond || uncond.AbsolutePath() != uncondPath || load.QwenImageZeroCondT() {
+		t.Fatalf("Ideogram4 four-slot plan is incomplete: files=%#v load=%#v request=%T", files, load, plan.RequestPlan())
 	}
 }
 
@@ -257,6 +326,7 @@ func TestStableDiffusionDriverTranslatesOnlyValidBackendObservations(t *testing.
 		stableDiffusionInvocationBindingForTest(StableDiffusionVAERequirementID, "vae", filepath.Join(root, "vae.safetensors"), 'c'),
 	}
 	plan, err := (StableDiffusionImageDriver{}).PlanImageInvocation(ImageInvocationInput{
+		RecipeID:       "z-image",
 		PortableConfig: portable,
 		ExactBindings:  bindings,
 		Request:        &runtimev1.ImageGenerateScenarioSpec{Prompt: "image", Size: "64x64"},
@@ -321,6 +391,7 @@ func TestStableDiffusionPlanClassifiesImageCountAndSizeAsInvalidOptions(t *testi
 	for _, test := range valid {
 		t.Run(test.name, func(t *testing.T) {
 			plan, err := driver.PlanImageInvocation(ImageInvocationInput{
+				RecipeID:       "z-image",
 				PortableConfig: portable,
 				ExactBindings:  bindings,
 				Request:        &runtimev1.ImageGenerateScenarioSpec{Prompt: "image", N: test.n, Size: test.size},
@@ -346,6 +417,7 @@ func TestStableDiffusionPlanClassifiesImageCountAndSizeAsInvalidOptions(t *testi
 	for _, test := range invalid {
 		t.Run(test.name, func(t *testing.T) {
 			_, err := driver.PlanImageInvocation(ImageInvocationInput{
+				RecipeID:       "z-image",
 				PortableConfig: portable,
 				ExactBindings:  bindings,
 				Request:        &runtimev1.ImageGenerateScenarioSpec{Prompt: "image", N: test.n, Size: test.size},
@@ -371,6 +443,7 @@ func TestStableDiffusionPlanOwnsResponseFormatAdmission(t *testing.T) {
 
 	for _, responseFormat := range []string{"", "b64_json", "base64", "url", "B64_JSON"} {
 		if _, err := driver.PlanImageInvocation(ImageInvocationInput{
+			RecipeID:       "z-image",
 			PortableConfig: portable,
 			ExactBindings:  bindings,
 			Request: &runtimev1.ImageGenerateScenarioSpec{
@@ -383,6 +456,7 @@ func TestStableDiffusionPlanOwnsResponseFormatAdmission(t *testing.T) {
 	}
 
 	_, err := driver.PlanImageInvocation(ImageInvocationInput{
+		RecipeID:       "z-image",
 		PortableConfig: portable,
 		ExactBindings:  bindings,
 		Request: &runtimev1.ImageGenerateScenarioSpec{
@@ -403,10 +477,10 @@ func TestStableDiffusionSeedAdmissionMatchesManagedInt32Carrier(t *testing.T) {
 			"modelFamily":      "z-image",
 			"executionOptions": map[string]any{"seed": seed},
 		})
-		if _, reason := driver.Interpret(InterpretInput{PortableConfig: portable}); reason != success {
+		if _, reason := driver.Interpret(InterpretInput{RecipeID: "z-image", PortableConfig: portable}); reason != success {
 			t.Fatalf("portable seed %d reason = %v", seed, reason)
 		}
-		if got := driver.EffectiveRequestDefaults(portable)["seed"]; got != fmt.Sprint(seed) {
+		if got := driver.EffectiveRequestDefaults("z-image", portable)["seed"]; got != fmt.Sprint(seed) {
 			t.Fatalf("portable seed %d default = %q", seed, got)
 		}
 	}
@@ -415,7 +489,7 @@ func TestStableDiffusionSeedAdmissionMatchesManagedInt32Carrier(t *testing.T) {
 			"modelFamily":      "z-image",
 			"executionOptions": map[string]any{"seed": seed},
 		})
-		if _, reason := driver.Interpret(InterpretInput{PortableConfig: portable}); reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_PORTABLE_CONFIG_INVALID {
+		if _, reason := driver.Interpret(InterpretInput{RecipeID: "z-image", PortableConfig: portable}); reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_PORTABLE_CONFIG_INVALID {
 			t.Fatalf("portable seed %d reason = %v", seed, reason)
 		}
 	}
@@ -429,6 +503,7 @@ func TestStableDiffusionSeedAdmissionMatchesManagedInt32Carrier(t *testing.T) {
 	}
 	for _, seed := range []int64{math.MinInt32, math.MaxInt32} {
 		plan, err := driver.PlanImageInvocation(ImageInvocationInput{
+			RecipeID:       "z-image",
 			PortableConfig: portable,
 			ExactBindings:  bindings,
 			Request:        &runtimev1.ImageGenerateScenarioSpec{Prompt: "image", Seed: testInt64(seed)},
@@ -439,6 +514,7 @@ func TestStableDiffusionSeedAdmissionMatchesManagedInt32Carrier(t *testing.T) {
 	}
 	for _, seed := range []int64{int64(math.MinInt32) - 1, int64(math.MaxInt32) + 1} {
 		_, err := driver.PlanImageInvocation(ImageInvocationInput{
+			RecipeID:       "z-image",
 			PortableConfig: portable,
 			ExactBindings:  bindings,
 			Request:        &runtimev1.ImageGenerateScenarioSpec{Prompt: "image", Seed: testInt64(seed)},
@@ -466,6 +542,7 @@ func TestStableDiffusionProcessKeyCoversEveryLoadTimeInstruction(t *testing.T) {
 			},
 		})
 		planned, err := (StableDiffusionImageDriver{}).PlanImageInvocation(ImageInvocationInput{
+			RecipeID:       "z-image",
 			PortableConfig: portable, ExactBindings: bindings,
 			Request: &runtimev1.ImageGenerateScenarioSpec{Prompt: prompt, N: testInt32(1), Size: "512x512", Seed: testInt64(7)},
 		})
@@ -489,100 +566,182 @@ func TestStableDiffusionProcessKeyCoversEveryLoadTimeInstruction(t *testing.T) {
 	}
 }
 
-func TestStableDiffusionPlanInputImageRequiresDeclaredFeature(t *testing.T) {
+func TestStableDiffusionQwenEditRequiresTypedRecipeAndSource(t *testing.T) {
 	root := t.TempDir()
+	source := ImageResolvedInput{SourceIdentity: "artifact_qwen_edit_source", ImageBytes: []byte("source-image")}
+	mainPath := filepath.Join(root, "main.gguf")
+	textPath := filepath.Join(root, "text.gguf")
+	vaePath := filepath.Join(root, "vae.safetensors")
 	bindings := []InvocationExactBinding{
-		stableDiffusionInvocationBindingForTest(StableDiffusionMainRequirementID, "main", filepath.Join(root, "main.gguf"), 'a'),
-		stableDiffusionInvocationBindingForTest(StableDiffusionTextEncoderRequirementID, "text", filepath.Join(root, "text.gguf"), 'b'),
-		stableDiffusionInvocationBindingForTest(StableDiffusionVAERequirementID, "vae", filepath.Join(root, "vae.safetensors"), 'c'),
+		stableDiffusionInvocationBindingForTest(StableDiffusionMainRequirementID, "main", mainPath, 'a'),
+		stableDiffusionInvocationBindingForTest(StableDiffusionTextEncoderRequirementID, "text", textPath, 'b'),
+		stableDiffusionInvocationBindingForTest(StableDiffusionVAERequirementID, "vae", vaePath, 'c'),
 	}
-	request := &runtimev1.ImageGenerateScenarioSpec{Prompt: "edit", ReferenceImages: []string{"input.png"}}
-	withoutFeature := stableDiffusionPortableForTest(t, map[string]any{"modelFamily": "z-image"})
-	_, err := (StableDiffusionImageDriver{}).PlanImageInvocation(ImageInvocationInput{PortableConfig: withoutFeature, ExactBindings: bindings, Request: request})
+	request := &runtimev1.ImageGenerateScenarioSpec{
+		Prompt: "change the sky to sunset",
+	}
+	withoutFeature := stableDiffusionPortableForTest(t, map[string]any{
+		"modelFamily": "qwen-image", "recipeId": "qwen-image-edit-2511",
+	})
+	_, err := (StableDiffusionImageDriver{}).PlanImageInvocation(ImageInvocationInput{RecipeID: StableDiffusionQwenImageEditRecipeID, PortableConfig: withoutFeature, ExactBindings: bindings, Request: request, Inputs: []ImageResolvedInput{source}})
 	var invocationErr *InvocationError
-	if !errors.As(err, &invocationErr) || invocationErr.Kind != InvocationFailureUnsupported {
+	if !errors.As(err, &invocationErr) || invocationErr.Kind != InvocationFailureInvalidConfig {
 		t.Fatalf("undeclared input.image error = %v", err)
 	}
-	withFeature := stableDiffusionPortableForTest(t, map[string]any{"modelFamily": "z-image", "enableInputImage": true})
 	plan, err := (StableDiffusionImageDriver{}).PlanImageInvocation(ImageInvocationInput{
-		PortableConfig: withFeature, SupportedFeatures: []string{aicapabilities.FeatureInputImage}, ExactBindings: bindings, Request: request,
+		RecipeID:          StableDiffusionQwenImageEditRecipeID,
+		PortableConfig:    withoutFeature,
+		SupportedFeatures: []string{aicapabilities.FeatureInputImage},
+		ExactBindings:     bindings,
+		Request:           request,
+		Inputs:            []ImageResolvedInput{source},
 	})
-	imageToImage, ok := plan.RequestPlan().(StableDiffusionCPPImageToImageRequestPlan)
-	if err != nil || !ok || imageToImage.InputImage() != "input.png" || imageToImage.Mask() != "" {
-		t.Fatalf("declared input.image plan = %#v err=%v", plan, err)
+	if err != nil {
+		t.Fatalf("PlanImageInvocation: %v", err)
+	}
+	edit, ok := plan.RequestPlan().(StableDiffusionCPPInstructionEditRequestPlan)
+	load, loadOK := plan.LoadPlan().(StableDiffusionCPPLoadPlan)
+	plannedSource := edit.SourceImage()
+	_, hasUncond := load.UncondDiffusion()
+	files := plan.ModelFiles()
+	if !ok || !loadOK || load.RecipeID() != "qwen-image-edit-2511" || len(files) != 3 ||
+		files[0].AbsolutePath != mainPath || files[1].AbsolutePath != textPath || files[2].AbsolutePath != vaePath ||
+		load.Main().AbsolutePath() != mainPath || load.TextEncoder().AbsolutePath() != textPath || load.VAE().AbsolutePath() != vaePath ||
+		hasUncond ||
+		!load.QwenImageZeroCondT() || load.FlowShift() != 3 || plannedSource.SourceIdentity != source.SourceIdentity ||
+		!bytes.Equal(plannedSource.ImageBytes, source.ImageBytes) || edit.ImageCount() != 1 {
+		t.Fatalf("typed Qwen edit plan is incomplete: plan=%#v load=%#v", plan, load)
+	}
+	source.ImageBytes[0] = 'X'
+	plannedSource.ImageBytes[0] = 'Y'
+	if got := edit.SourceImage().ImageBytes; !bytes.Equal(got, []byte("source-image")) {
+		t.Fatalf("Qwen edit plan did not retain immutable source bytes: %q", got)
+	}
+	withUnexpected := append(append([]InvocationExactBinding(nil), bindings...),
+		stableDiffusionInvocationBindingForTest("companion.unexpected", "unexpected", filepath.Join(root, "unexpected.gguf"), 'd'))
+	_, err = (StableDiffusionImageDriver{}).PlanImageInvocation(ImageInvocationInput{
+		RecipeID:          StableDiffusionQwenImageEditRecipeID,
+		PortableConfig:    withoutFeature,
+		SupportedFeatures: []string{aicapabilities.FeatureInputImage},
+		ExactBindings:     withUnexpected,
+		Request:           request,
+		Inputs:            []ImageResolvedInput{{SourceIdentity: "artifact_qwen_edit_source", ImageBytes: []byte("source-image")}},
+	})
+	if !errors.As(err, &invocationErr) || invocationErr.Kind != InvocationFailureInvalidBinding {
+		t.Fatalf("Qwen edit unexpected binding error = %v", err)
 	}
 }
 
-func TestStableDiffusionPlanMaskRequiresIndependentDeclaredFeatureAndInputImage(t *testing.T) {
+func TestStableDiffusionRecipesOwnImageInputSemantics(t *testing.T) {
 	root := t.TempDir()
 	bindings := []InvocationExactBinding{
 		stableDiffusionInvocationBindingForTest(StableDiffusionMainRequirementID, "main", filepath.Join(root, "main.gguf"), 'a'),
 		stableDiffusionInvocationBindingForTest(StableDiffusionTextEncoderRequirementID, "text", filepath.Join(root, "text.gguf"), 'b'),
 		stableDiffusionInvocationBindingForTest(StableDiffusionVAERequirementID, "vae", filepath.Join(root, "vae.safetensors"), 'c'),
 	}
-	portable := stableDiffusionPortableForTest(t, map[string]any{"modelFamily": "z-image", "enableInputImage": true})
-	request := &runtimev1.ImageGenerateScenarioSpec{Prompt: "inpaint", ReferenceImages: []string{"input.png"}, Mask: "mask.png"}
+	portable := stableDiffusionPortableForTest(t, map[string]any{
+		"modelFamily": "qwen-image", "recipeId": "qwen-image-edit-2511",
+	})
 	driver := StableDiffusionImageDriver{}
-
-	_, err := driver.PlanImageInvocation(ImageInvocationInput{
-		PortableConfig: portable, SupportedFeatures: []string{aicapabilities.FeatureInputImage}, ExactBindings: bindings, Request: request,
-	})
-	var invocationErr *InvocationError
-	if !errors.As(err, &invocationErr) || invocationErr.Kind != InvocationFailureUnsupported || !strings.Contains(err.Error(), aicapabilities.FeatureInputMask) {
-		t.Fatalf("undeclared input.mask error = %v", err)
-	}
-
-	features := []string{aicapabilities.FeatureInputImage, aicapabilities.FeatureInputMask}
-	plan, err := driver.PlanImageInvocation(ImageInvocationInput{
-		PortableConfig: portable, SupportedFeatures: features, ExactBindings: bindings, Request: request,
-	})
-	imageToImage, ok := plan.RequestPlan().(StableDiffusionCPPImageToImageRequestPlan)
-	if err != nil || !ok || imageToImage.InputImage() != "input.png" || imageToImage.Mask() != "mask.png" {
-		t.Fatalf("declared mask plan = %#v err=%v", plan, err)
-	}
-
-	_, err = driver.PlanImageInvocation(ImageInvocationInput{
-		PortableConfig: portable, SupportedFeatures: features, ExactBindings: bindings,
-		Request: &runtimev1.ImageGenerateScenarioSpec{Prompt: "inpaint", Mask: "mask.png"},
-	})
-	if !errors.As(err, &invocationErr) || invocationErr.Kind != InvocationFailureInvalidRequest || !strings.Contains(err.Error(), "mask requires an input image") {
-		t.Fatalf("mask without input image error = %v", err)
+	for _, test := range []struct {
+		name     string
+		portable *structpb.Struct
+		features []string
+		inputs   []ImageResolvedInput
+		mask     string
+		negative string
+		n        *int32
+	}{
+		{
+			name: "edit missing source", portable: portable,
+			features: []string{aicapabilities.FeatureInputImage},
+		},
+		{
+			name: "edit multiple sources", portable: portable,
+			features: []string{aicapabilities.FeatureInputImage}, inputs: []ImageResolvedInput{
+				{SourceIdentity: "artifact_source_a", ImageBytes: []byte("a")},
+				{SourceIdentity: "artifact_source_b", ImageBytes: []byte("b")},
+			},
+		},
+		{
+			name: "edit rejects mask", portable: portable,
+			features: []string{aicapabilities.FeatureInputImage}, inputs: []ImageResolvedInput{{SourceIdentity: "artifact_source", ImageBytes: []byte("source")}}, mask: "mask.png",
+		},
+		{
+			name: "edit rejects multiple outputs", portable: portable,
+			features: []string{aicapabilities.FeatureInputImage}, inputs: []ImageResolvedInput{{SourceIdentity: "artifact_source", ImageBytes: []byte("source")}}, n: testInt32(2),
+		},
+		{
+			name: "edit rejects negative prompt", portable: portable,
+			features: []string{aicapabilities.FeatureInputImage}, inputs: []ImageResolvedInput{{SourceIdentity: "artifact_source", ImageBytes: []byte("source")}}, negative: "do not change the background",
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			_, err := driver.PlanImageInvocation(ImageInvocationInput{
+				RecipeID:          StableDiffusionQwenImageEditRecipeID,
+				PortableConfig:    test.portable,
+				SupportedFeatures: test.features,
+				ExactBindings:     bindings,
+				Request:           &runtimev1.ImageGenerateScenarioSpec{Prompt: "edit", NegativePrompt: test.negative, Mask: test.mask, N: test.n},
+				Inputs:            test.inputs,
+			})
+			var invocationErr *InvocationError
+			if !errors.As(err, &invocationErr) || invocationErr.Kind != InvocationFailureUnsupported {
+				t.Fatalf("recipe input error = %v", err)
+			}
+		})
 	}
 }
 
-func TestCanonicalBundleSHA256RejectsInferredOrOutOfOrderOrdinals(t *testing.T) {
-	first := strings.Repeat("a", 64)
-	second := strings.Repeat("b", 64)
-	digest, err := CanonicalBundleSHA256([]BundleEntryDescriptor{{Ordinal: 1, SHA256: first}, {Ordinal: 2, SHA256: second}})
-	if err != nil {
-		t.Fatal(err)
+func TestStableDiffusionGenerateRecipeRejectsInputImageAfterExactBinding(t *testing.T) {
+	root := t.TempDir()
+	bindings := []InvocationExactBinding{
+		stableDiffusionInvocationBindingForTest(StableDiffusionMainRequirementID, "main", filepath.Join(root, "main.gguf"), 'a'),
+		stableDiffusionInvocationBindingForTest(StableDiffusionTextEncoderRequirementID, "text", filepath.Join(root, "text.gguf"), 'b'),
+		stableDiffusionInvocationBindingForTest(StableDiffusionVAERequirementID, "vae", filepath.Join(root, "vae.safetensors"), 'c'),
 	}
-	hasher := sha256.New()
-	firstBytes, _ := hex.DecodeString(first)
-	secondBytes, _ := hex.DecodeString(second)
-	_, _ = hasher.Write(firstBytes)
-	_, _ = hasher.Write(secondBytes)
-	if want := hex.EncodeToString(hasher.Sum(nil)); digest != want {
-		t.Fatalf("bundle digest = %q, want %q", digest, want)
+	portable := stableDiffusionPortableForTest(t, map[string]any{"modelFamily": "qwen-image", "recipeId": "qwen-image"})
+	driver := StableDiffusionImageDriver{}
+	if _, err := driver.PlanImageInvocation(ImageInvocationInput{
+		RecipeID:       StableDiffusionQwenImageRecipeID,
+		PortableConfig: portable, ExactBindings: bindings,
+		Request: &runtimev1.ImageGenerateScenarioSpec{Prompt: "generate"},
+	}); err != nil {
+		t.Fatalf("exact generate bindings were not valid: %v", err)
 	}
-	if _, err := CanonicalBundleSHA256([]BundleEntryDescriptor{{Ordinal: 2, SHA256: second}, {Ordinal: 1, SHA256: first}}); err == nil {
-		t.Fatal("out-of-order bundle entries must not be sorted or inferred")
+	_, err := driver.PlanImageInvocation(ImageInvocationInput{
+		RecipeID:       StableDiffusionQwenImageRecipeID,
+		PortableConfig: portable, ExactBindings: bindings,
+		Request: &runtimev1.ImageGenerateScenarioSpec{Prompt: "generate"},
+		Inputs:  []ImageResolvedInput{{SourceIdentity: "artifact_source", ImageBytes: []byte("source")}},
+	})
+	var invocationErr *InvocationError
+	if !errors.As(err, &invocationErr) || invocationErr.Kind != InvocationFailureUnsupported ||
+		!strings.Contains(err.Error(), "input.image") || strings.Contains(strings.ToLower(err.Error()), "binding") {
+		t.Fatalf("generate input.image must fail at request semantics after exact binding: %v", err)
 	}
 }
 
 func stableDiffusionPortableForTest(t *testing.T, fields map[string]any) *structpb.Struct {
 	t.Helper()
-	portable, err := structpb.NewStruct(fields)
+	owned := make(map[string]any, len(fields))
+	for key, value := range fields {
+		if key == "modelFamily" || key == "recipeId" {
+			continue
+		}
+		owned[key] = value
+	}
+	portable, err := structpb.NewStruct(owned)
 	if err != nil {
 		t.Fatalf("NewStruct: %v", err)
 	}
 	return portable
 }
 
-func stableDiffusionInvocationBindingForTest(requirementID, localAssetID, absolutePath string, marker byte) InvocationExactBinding {
+func stableDiffusionInvocationBindingForTest(requirementID, modelAssetID, absolutePath string, marker byte) InvocationExactBinding {
 	digest := strings.Repeat(string(marker), 64)
 	return InvocationExactBinding{
-		RequirementID: requirementID, LocalAssetID: localAssetID, AbsolutePath: absolutePath,
+		RequirementID: requirementID, ModelAssetID: modelAssetID, AbsolutePath: absolutePath,
 		VerifiedContentID: "sha256:" + digest, EntrySHA256: digest,
 	}
 }

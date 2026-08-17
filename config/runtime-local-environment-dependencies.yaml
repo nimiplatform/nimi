@@ -32,15 +32,9 @@ entries:
     data-plane root resolved from the selected dataRootRef; engine-private or
     home-directory install roots are not admitted
   - model import may request a plan but must not become dependency source truth
-  - imported model and companion assets may produce model-family selected source
-    records only; they must not become Python, uv, CUDA, DLL, package-manager,
-    or native engine package roots
   - missing uv, Python runtime, venv, package set, Torch wheel, native package,
-    model asset, or companion asset readiness projects Runtime local environment
-    setup or repair state, not ordinary-user package-manager or PATH
-    prerequisites
-  - companion asset dependency identity includes parent asset binding so
-    companion records cannot collide across parent model assets
+    or accelerator runtime readiness projects Runtime local environment setup or
+    repair state, not ordinary-user package-manager or PATH prerequisites
   - startup, route resolution, Desktop page load, SDK reads, passive import
     review, health probes, and background maintenance must not trigger first
     heavy or network materialization
@@ -66,11 +60,9 @@ data_plane_root_binding:
   authority: K-CFG-018
   root_id_source: tables/config-schema.yaml#managedRoots
   admitted_root_ids:
-    - models
     - dependencies
     - environments
   binding:
-    models: model payload trees (model.asset, model.companion-asset)
     dependencies: standalone downloaded dependency payloads (precisely pinned uv tool, shared accelerator/CUDA runtime, shared content-addressed Python package cache)
     environments: Nimi-managed executable environment trees (native engine packages, the exact managed Python interpreter, immutable Python dependency-profile capsules)
 
@@ -336,84 +328,6 @@ dependency_families:
       - import_probe
       - selected_source_record
 
-  - family_id: model.asset
-    owner: runtime_local_environment_plan
-    dependency_kind: model_payload
-    environment_key_fields:
-      - asset_id
-      - model_family
-      - runtime_data_root
-    environment_key_semantics:
-      asset_id: >-
-        Semantic installable asset identity. For verified catalog assets this is
-        the K-MCAT local-plane variant_id; for explicit imports this is the
-        asset.manifest.json asset_id. Runtime must resolve local_asset_id,
-        route-local handles, UI row ids, and model route ids to this semantic
-        asset_id before writing dependency identity.
-      model_family: >-
-        Runtime model-lineage key component consumed by dependency identity.
-        It may be validated against descriptor-authored `model.family`, but it
-        is not itself a public AIProfile field and must not replace the
-        authored `model.family` constraint.
-    source_policy: verified-asset-catalog-or-explicit-import
-    source_candidates:
-      - source_kind: managed
-        priority: 1
-        admission: explicit_confirmation_before_first_network_materialization
-      - source_kind: system
-        priority: 2
-        admission: explicit_user_import_with_integrity_record
-      - source_kind: unavailable
-        priority: 3
-        admission: fail_closed
-    managed_root: models
-    activation_env_delta: none
-    materializer_ref: materializer.model.asset
-    source_manifest_ref: managed-or-imported-model-asset-source
-    verification_evidence_ref: model-asset-evidence
-    required_proof:
-      - asset_record
-      - integrity_hash_or_declared_local_import
-      - capability_mapping
-      - selected_source_record
-
-  - family_id: model.companion-asset
-    owner: runtime_local_environment_plan
-    dependency_kind: companion_payload
-    environment_key_fields:
-      - asset_id
-      - parent_asset_id
-      - companion_kind
-      - runtime_data_root
-    environment_key_semantics:
-      asset_id: >-
-        Semantic companion installable asset identity. It must not be a
-        local_asset_id or selected source record id.
-      parent_asset_id: >-
-        Semantic parent model asset identity. It must match the parent
-        model.asset dependency's asset_id and must not be a local_asset_id.
-    source_policy: verified-asset-catalog-or-explicit-import
-    source_candidates:
-      - source_kind: managed
-        priority: 1
-        admission: explicit_confirmation_before_first_network_materialization
-      - source_kind: system
-        priority: 2
-        admission: explicit_user_import_with_integrity_record
-      - source_kind: unavailable
-        priority: 3
-        admission: fail_closed
-    managed_root: models
-    activation_env_delta: none
-    materializer_ref: materializer.model.companion-asset
-    source_manifest_ref: managed-or-imported-companion-asset-source
-    verification_evidence_ref: model-companion-asset-evidence
-    required_proof:
-      - asset_record
-      - integrity_hash_or_declared_local_import
-      - parent_asset_binding
-      - selected_source_record
-
 graph_rules:
   - dependency families are resolved by Runtime local environment plan before activation
   - precisely pinned managed uv 0.11.8, exact Python, venv, package sets, and Torch wheels are managed dependency families, not user or PATH prerequisites
@@ -422,11 +336,7 @@ graph_rules:
   - engine package selection consumes dependency graph truth and must not select private prerequisites
   - each dependency family materializes strictly under its managed_root K-CFG-018 data-plane root resolved from the selected dataRootRef; engine-private or home-directory install roots are not admitted
   - model import may request a plan but must not become dependency source truth
-  - imported model and companion assets may produce model-family selected source records only; they must not become Python, uv, CUDA, DLL, package-manager, or native engine package roots
-  - missing uv, Python runtime, venv, package set, Torch wheel, native package, model asset, or companion asset readiness projects Runtime local environment setup or repair state, not ordinary-user package-manager or PATH prerequisites
-  - companion asset dependency identity includes parent asset binding so companion records cannot collide across parent model assets
-  - model.asset dependency identity is the semantic asset_id; local_asset_id is lifecycle and lookup projection only
-  - model.companion-asset dependency identity is semantic asset_id plus semantic parent_asset_id; local_asset_id and selected_source_record_id must not replace either field
+  - missing uv, Python runtime, venv, package set, Torch wheel, or native package readiness projects Runtime local environment setup or repair state, not ordinary-user package-manager or PATH prerequisites
   - startup, route resolution, Desktop page load, SDK reads, passive import review, health probes, and background maintenance must not trigger first heavy or network materialization
   - profile creation stages under Runtime-owned roots, uses exact frozen synchronization against declared inputs and the shared package cache, verifies imports and accelerator execution, and atomically promotes; promoted profiles are never mutated
   - consumer activation may project profile-consumption verification but never creates, replaces, or transfers selected-source ownership

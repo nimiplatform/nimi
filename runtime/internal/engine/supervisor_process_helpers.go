@@ -62,9 +62,10 @@ func supervisorLifecycleWaitTimeout(shutdownTimeout time.Duration) time.Duration
 	if shutdownTimeout <= 0 {
 		shutdownTimeout = 100 * time.Millisecond
 	}
-	// Allow Stop's graceful phase plus its bounded force phase to complete,
-	// while ensuring an unexpected parent exit cannot leave a waiter forever.
-	return shutdownTimeout + 2*time.Second
+	// Keep the lifecycle waiter alive for at least Stop's bounded force-exit
+	// verification window; otherwise it could publish a timeout before Stop's
+	// own slow CUDA teardown allowance expires.
+	return shutdownTimeout + supervisorForceTerminationWait
 }
 
 func processLifecycle(process *supervisedProcess) *supervisorProcessLifecycle {

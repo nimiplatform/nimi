@@ -25,6 +25,17 @@ func TestStableDiffusionVideoRegistryAndRequirementProjection(t *testing.T) {
 	if !ok {
 		t.Fatalf("resolved driver = %T, want VideoInvocationDriver", driverValue)
 	}
+	recipeDriver, ok := driverValue.(RecipeDriver)
+	if !ok {
+		t.Fatalf("resolved driver = %T, want RecipeDriver", driverValue)
+	}
+	projected, recipeReason := recipeDriver.ProjectRecipe(StableDiffusionVideoRecipeID, nil, []string{stableDiffusionVideoReferenceImageFeature})
+	if recipeReason != success || len(projected) != len(stableDiffusionVideoSlots) {
+		t.Fatalf("ProjectRecipe = %#v, %v", projected, recipeReason)
+	}
+	if _, recipeReason = recipeDriver.ProjectRecipe("other", nil, nil); recipeReason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_PORTABLE_CONFIG_INVALID {
+		t.Fatalf("wrong recipe reason = %v", recipeReason)
+	}
 	requirements, reason := driver.Interpret(InterpretInput{SupportedFeatures: []string{stableDiffusionVideoReferenceImageFeature}})
 	if reason != success {
 		t.Fatalf("Interpret: %v", reason)
@@ -115,6 +126,14 @@ func TestStableDiffusionVideoValidateBindingChecksExactSlotAndBoundedFormat(t *t
 		if reason := driver.ValidateBinding(requirements[index], bindings[index], assets[index]); reason != success {
 			t.Fatalf("binding[%d] reason = %v", index, reason)
 		}
+		format := requirements[index].GetCompatibilityConstraints().GetFields()["format"].GetStringValue()
+		projection, reason := driver.ProjectModelAssetBinding(ModelAssetBindingInput{
+			RecipeID: StableDiffusionVideoRecipeID, Requirement: requirements[index], Binding: bindings[index],
+			Entry: ModelAssetFileFact{RelativePath: "model." + format, SizeBytes: int64(len(assets[index].FormatProbe)), FormatProbe: assets[index].FormatProbe},
+		})
+		if reason != success || projection.Descriptor.Kind != assets[index].Kind || projection.Descriptor.ModelAssetID != bindings[index].GetModelAssetId() {
+			t.Fatalf("projection[%d] reason=%v projection=%+v", index, reason, projection)
+		}
 	}
 	if reason := driver.ValidateCombination(requirements, bindings, assets); reason != success {
 		t.Fatalf("combination reason = %v", reason)
@@ -193,7 +212,7 @@ func TestStableDiffusionVideoPlanAppliesFirstPartyDefaultsForAbsentFields(t *tes
 	request.FrameCount = 0
 	request.FPS = 0
 	plan, err := driver.PlanVideoInvocation(VideoInvocationInput{
-		ConfigurationID: "configuration-h3", ExactBindings: bindings, Request: request,
+		LoadoutID: "loadout-h3", ExactBindings: bindings, Request: request,
 	})
 	if err != nil {
 		t.Fatalf("absent-field plan: %v", err)
@@ -216,12 +235,12 @@ func TestStableDiffusionVideoDurationAlignsUpToH3FrameGrid(t *testing.T) {
 		{durationSec: 3, wantFrames: 73},
 		{durationSec: 5, wantFrames: 124},
 		{durationSec: 10, wantFrames: 243},
-		{durationSec: 600, wantFrames: 14404},
+		{durationSec: 20, wantFrames: 481},
 	} {
 		request := stableDiffusionVideoRequestForTest()
 		request.FrameCount = 0
 		request.DurationSec = test.durationSec
-		plan, err := driver.PlanVideoInvocation(VideoInvocationInput{ConfigurationID: "configuration-h3", ExactBindings: bindings, Request: request})
+		plan, err := driver.PlanVideoInvocation(VideoInvocationInput{LoadoutID: "loadout-h3", ExactBindings: bindings, Request: request})
 		if err != nil {
 			t.Fatalf("duration %ds: %v", test.durationSec, err)
 		}
@@ -229,6 +248,24 @@ func TestStableDiffusionVideoDurationAlignsUpToH3FrameGrid(t *testing.T) {
 			t.Fatalf("duration %ds frames=%d, want %d", test.durationSec, plan.FrameCount(), test.wantFrames)
 		}
 	}
+}
+
+func TestStableDiffusionVideoFrameCarrierBoundaryAdmits498AndRejects515(t *testing.T) {
+	driver := StableDiffusionVideoDriver{}
+	bindings := stableDiffusionVideoInvocationBindingsForTest(t.TempDir())
+	request := stableDiffusionVideoRequestForTest()
+	request.FrameCount = 498
+	plan, err := driver.PlanVideoInvocation(VideoInvocationInput{
+		LoadoutID: "loadout-h3", ExactBindings: bindings, Request: request,
+	})
+	if err != nil || plan == nil || plan.FrameCount() != 498 {
+		t.Fatalf("498-frame H3 boundary plan=%#v error=%v", plan, err)
+	}
+	request.FrameCount = 515
+	_, err = driver.PlanVideoInvocation(VideoInvocationInput{
+		LoadoutID: "loadout-h3", ExactBindings: bindings, Request: request,
+	})
+	assertVideoInvocationErrorKind(t, err, InvocationFailureInvalidRequest)
 }
 
 func TestStableDiffusionVideoRatioDerivationAndContradiction(t *testing.T) {
@@ -247,7 +284,7 @@ func TestStableDiffusionVideoRatioDerivationAndContradiction(t *testing.T) {
 	} {
 		request := stableDiffusionVideoRequestForTest()
 		request.Width, request.Height, request.Ratio = 0, 0, test.ratio
-		plan, err := driver.PlanVideoInvocation(VideoInvocationInput{ConfigurationID: "configuration-h3", ExactBindings: bindings, Request: request})
+		plan, err := driver.PlanVideoInvocation(VideoInvocationInput{LoadoutID: "loadout-h3", ExactBindings: bindings, Request: request})
 		if err != nil {
 			t.Fatalf("ratio %s: %v", test.ratio, err)
 		}
@@ -259,7 +296,7 @@ func TestStableDiffusionVideoRatioDerivationAndContradiction(t *testing.T) {
 
 	consistent := stableDiffusionVideoRequestForTest()
 	consistent.Width, consistent.Height, consistent.Ratio = 1024, 576, "16:9"
-	if _, err := driver.PlanVideoInvocation(VideoInvocationInput{ConfigurationID: "configuration-h3", ExactBindings: bindings, Request: consistent}); err != nil {
+	if _, err := driver.PlanVideoInvocation(VideoInvocationInput{LoadoutID: "loadout-h3", ExactBindings: bindings, Request: consistent}); err != nil {
 		t.Fatalf("consistent explicit resolution and ratio: %v", err)
 	}
 	for _, request := range []VideoInvocationRequest{
@@ -274,7 +311,7 @@ func TestStableDiffusionVideoRatioDerivationAndContradiction(t *testing.T) {
 			return value
 		}(),
 	} {
-		_, err := driver.PlanVideoInvocation(VideoInvocationInput{ConfigurationID: "configuration-h3", ExactBindings: bindings, Request: request})
+		_, err := driver.PlanVideoInvocation(VideoInvocationInput{LoadoutID: "loadout-h3", ExactBindings: bindings, Request: request})
 		assertVideoInvocationErrorKind(t, err, InvocationFailureInvalidRequest)
 	}
 }
@@ -295,7 +332,8 @@ func TestStableDiffusionVideoPlanRejectsEveryH3AdmissionViolation(t *testing.T) 
 		{name: "fps", mutate: func(request *VideoInvocationRequest) { request.FPS = 25 }},
 		{name: "frame minimum", mutate: func(request *VideoInvocationRequest) { request.FrameCount = 4 }},
 		{name: "frame grid", mutate: func(request *VideoInvocationRequest) { request.FrameCount = 23 }},
-		{name: "duration range", mutate: func(request *VideoInvocationRequest) { request.FrameCount, request.DurationSec = 0, 601 }},
+		{name: "frame exceeds FFI carrier", mutate: func(request *VideoInvocationRequest) { request.FrameCount = 515 }},
+		{name: "duration range", mutate: func(request *VideoInvocationRequest) { request.FrameCount, request.DurationSec = 0, 21 }},
 		{name: "duration and frames", mutate: func(request *VideoInvocationRequest) { request.DurationSec = 2 }},
 		{name: "audio required", mutate: func(request *VideoInvocationRequest) { request.GenerateAudio = false }},
 	}
@@ -303,7 +341,7 @@ func TestStableDiffusionVideoPlanRejectsEveryH3AdmissionViolation(t *testing.T) 
 		t.Run(test.name, func(t *testing.T) {
 			request := valid
 			test.mutate(&request)
-			_, err := driver.PlanVideoInvocation(VideoInvocationInput{ConfigurationID: "configuration-h3", ExactBindings: bindings, Request: request})
+			_, err := driver.PlanVideoInvocation(VideoInvocationInput{LoadoutID: "loadout-h3", ExactBindings: bindings, Request: request})
 			assertVideoInvocationErrorKind(t, err, InvocationFailureInvalidRequest)
 		})
 	}
@@ -315,7 +353,7 @@ func TestStableDiffusionVideoPlanRoutesPromptAndOneResolvedImage(t *testing.T) {
 	driver := StableDiffusionVideoDriver{}
 
 	promptPlan, err := driver.PlanVideoInvocation(VideoInvocationInput{
-		ConfigurationID: "configuration-h3", ExactBindings: bindings, Request: stableDiffusionVideoRequestForTest(),
+		LoadoutID: "loadout-h3", ExactBindings: bindings, Request: stableDiffusionVideoRequestForTest(),
 	})
 	if err != nil {
 		t.Fatalf("prompt plan: %v", err)
@@ -334,7 +372,7 @@ func TestStableDiffusionVideoPlanRoutesPromptAndOneResolvedImage(t *testing.T) {
 	referenceBytes := []byte{1, 2, 3, 4}
 	request.Inputs = []VideoResolvedInput{{Role: VideoInputRoleReferenceImage, SourceIdentity: "artifact:image:sha256:abc", ImageBytes: referenceBytes}}
 	imagePlan, err := driver.PlanVideoInvocation(VideoInvocationInput{
-		ConfigurationID: "configuration-h3", ExactBindings: bindings, Request: request,
+		LoadoutID: "loadout-h3", ExactBindings: bindings, Request: request,
 	})
 	if err != nil {
 		t.Fatalf("image plan: %v", err)
@@ -375,21 +413,19 @@ func TestStableDiffusionVideoPlanRejectsUnsupportedConditioningRoutes(t *testing
 		t.Run(test.name, func(t *testing.T) {
 			request := stableDiffusionVideoRequestForTest()
 			request.Inputs = test.inputs
-			_, err := driver.PlanVideoInvocation(VideoInvocationInput{ConfigurationID: "configuration-h3", ExactBindings: bindings, Request: request})
+			_, err := driver.PlanVideoInvocation(VideoInvocationInput{LoadoutID: "loadout-h3", ExactBindings: bindings, Request: request})
 			assertVideoInvocationErrorKind(t, err, InvocationFailureUnsupported)
 		})
 	}
 
 	request := stableDiffusionVideoRequestForTest()
 	request.Inputs = []VideoResolvedInput{{Role: VideoInputRoleReferenceImage, SourceIdentity: "", ImageBytes: []byte{1}}}
-	_, err := driver.PlanVideoInvocation(VideoInvocationInput{ConfigurationID: "configuration-h3", ExactBindings: bindings, Request: request})
+	_, err := driver.PlanVideoInvocation(VideoInvocationInput{LoadoutID: "loadout-h3", ExactBindings: bindings, Request: request})
 	assertVideoInvocationErrorKind(t, err, InvocationFailureInvalidRequest)
 }
 
 func TestStableDiffusionVideoPlanIsImmutableAndRecipeIsExact(t *testing.T) {
 	portable := stableDiffusionVideoPortableForTest(t, map[string]any{
-		"fl2vaRequirementPolicy": "strict",
-		"fl2vaVerifiedContentId": "sha256:" + strings.Repeat("a", 64),
 		"executionOptions": map[string]any{
 			"cfgScale": 2.5, "flowShift": 8, "sampleMethod": "euler", "scheduler": "karras",
 			"diffusionFlashAttention": false, "offloadParamsToCPU": false, "rng": "std_default",
@@ -400,26 +436,26 @@ func TestStableDiffusionVideoPlanIsImmutableAndRecipeIsExact(t *testing.T) {
 	request.Prompt = "  ocean  "
 	request.NegativePrompt = " blur "
 	plan, err := (StableDiffusionVideoDriver{}).PlanVideoInvocation(VideoInvocationInput{
-		ConfigurationID: "configuration-h3", PortableConfig: portable, ExactBindings: bindings, Request: request,
+		LoadoutID: "loadout-h3", PortableConfig: portable, ExactBindings: bindings, Request: request,
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
 	width, height := plan.Size()
-	if plan.ConfigurationID() != "configuration-h3" || plan.DriverIdentity().DriverDialect != StableDiffusionVideoDriverDialect ||
+	if plan.LoadoutID() != "loadout-h3" || plan.DriverIdentity().DriverDialect != StableDiffusionVideoDriverDialect ||
 		plan.Prompt() != "ocean" || plan.NegativePrompt() != "blur" || width != 640 || height != 480 ||
 		plan.FrameCount() != 22 || plan.FPS() != 24 || plan.Seed() != 42 || !plan.AudioRequired() ||
 		plan.CFGScale() != 2.5 || plan.FlowShift() != 8 || plan.SampleMethod() != "euler" || plan.Scheduler() != "karras" ||
 		plan.DiffusionFlashAttention() || plan.OffloadToCPU() || plan.RNG() != "std_default" {
 		t.Fatalf("plan recipe is incomplete: %#v", plan)
 	}
-	portable.Fields["fl2vaRequirementPolicy"] = structpb.NewStringValue("substitutable")
+	portable.Fields["executionOptions"].GetStructValue().Fields["cfgScale"] = structpb.NewNumberValue(7)
 	captured := plan.PortableConfig()
-	if captured.GetFields()["fl2vaRequirementPolicy"].GetStringValue() != "strict" {
+	if captured.GetFields()["executionOptions"].GetStructValue().GetFields()["cfgScale"].GetNumberValue() != 2.5 {
 		t.Fatal("input portable config mutated the plan")
 	}
-	captured.Fields["fl2vaRequirementPolicy"] = structpb.NewStringValue("changed")
-	if plan.PortableConfig().GetFields()["fl2vaRequirementPolicy"].GetStringValue() != "strict" {
+	captured.GetFields()["executionOptions"].GetStructValue().Fields["cfgScale"] = structpb.NewNumberValue(9)
+	if plan.PortableConfig().GetFields()["executionOptions"].GetStructValue().GetFields()["cfgScale"].GetNumberValue() != 2.5 {
 		t.Fatal("portable config accessor exposed mutable state")
 	}
 	files := plan.ExactBindings()
@@ -433,8 +469,8 @@ func TestStableDiffusionVideoProcessKeyTracksOnlyExactLoadInstructions(t *testin
 	root := t.TempDir()
 	bindings := stableDiffusionVideoInvocationBindingsForTest(root)
 	driver := StableDiffusionVideoDriver{}
-	plan := func(configurationID string, portable *structpb.Struct, values []InvocationExactBinding, request VideoInvocationRequest) *VideoInvocationPlan {
-		planned, err := driver.PlanVideoInvocation(VideoInvocationInput{ConfigurationID: configurationID, PortableConfig: portable, ExactBindings: values, Request: request})
+	plan := func(loadoutID string, portable *structpb.Struct, values []InvocationExactBinding, request VideoInvocationRequest) *VideoInvocationPlan {
+		planned, err := driver.PlanVideoInvocation(VideoInvocationInput{LoadoutID: loadoutID, PortableConfig: portable, ExactBindings: values, Request: request})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -480,7 +516,7 @@ func TestStableDiffusionVideoProcessKeyTracksOnlyExactLoadInstructions(t *testin
 }
 
 func TestStableDiffusionVideoEffectiveRequestDefaultsMatchPlanDefaults(t *testing.T) {
-	defaults := (StableDiffusionVideoDriver{}).EffectiveRequestDefaults(nil)
+	defaults := (StableDiffusionVideoDriver{}).EffectiveRequestDefaults(StableDiffusionVideoRecipeID, nil)
 	if defaults["options.resolution"] != "512x288" || defaults["options.frames"] != "22" || defaults["options.seed"] != "0" {
 		t.Fatalf("effective request defaults = %#v", defaults)
 	}
@@ -499,7 +535,7 @@ func TestStableDiffusionVideoPlanFailsClosedOnWrongOrMissingSlots(t *testing.T) 
 		{name: "wrong", bindings: append(append([]InvocationExactBinding(nil), bindings[:4]...), stableDiffusionInvocationBindingForTest("vae.other", "other", filepath.Join(t.TempDir(), "other.safetensors"), 'f'))},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			_, err := driver.PlanVideoInvocation(VideoInvocationInput{ConfigurationID: "configuration-h3", ExactBindings: test.bindings, Request: request})
+			_, err := driver.PlanVideoInvocation(VideoInvocationInput{LoadoutID: "loadout-h3", ExactBindings: test.bindings, Request: request})
 			assertVideoInvocationErrorKind(t, err, InvocationFailureInvalidBinding)
 		})
 	}
@@ -526,14 +562,14 @@ func stableDiffusionVideoInvocationBindingsForTest(root string) []InvocationExac
 	}
 }
 
-func stableDiffusionVideoValidationInputsForTest(requirements []*runtimev1.LocalCapabilityRequirement) ([]*runtimev1.LocalAssetExactBinding, []AssetDescriptor) {
-	bindings := make([]*runtimev1.LocalAssetExactBinding, 0, len(requirements))
-	assets := make([]AssetDescriptor, 0, len(requirements))
+func stableDiffusionVideoValidationInputsForTest(requirements []*runtimev1.LocalCapabilityRequirement) ([]*runtimev1.ModelAssetExactBinding, []ModelAssetDescriptor) {
+	bindings := make([]*runtimev1.ModelAssetExactBinding, 0, len(requirements))
+	assets := make([]ModelAssetDescriptor, 0, len(requirements))
 	for index, slot := range stableDiffusionVideoSlots {
 		digest := strings.Repeat(string(rune('a'+index)), 64)
-		localAssetID := "asset-" + slot.id
-		bindings = append(bindings, &runtimev1.LocalAssetExactBinding{
-			RequirementId: slot.id, LocalAssetId: localAssetID, VerifiedContentId: "sha256:" + digest, EntrySha256: digest,
+		modelAssetID := "asset-" + slot.id
+		bindings = append(bindings, &runtimev1.ModelAssetExactBinding{
+			RequirementId: slot.id, ModelAssetId: modelAssetID, VerifiedContentId: "sha256:" + digest, EntrySha256: digest,
 		})
 		var probe []byte
 		switch slot.id {
@@ -552,8 +588,8 @@ func stableDiffusionVideoValidationInputsForTest(requirements []*runtimev1.Local
 		if slot.artifactRole != "" {
 			roles = []string{slot.artifactRole}
 		}
-		assets = append(assets, AssetDescriptor{
-			LocalAssetID: localAssetID, VerifiedContentID: "sha256:" + digest, EntrySHA256: digest,
+		assets = append(assets, ModelAssetDescriptor{
+			ModelAssetID: modelAssetID, VerifiedContentID: "sha256:" + digest, EntrySHA256: digest,
 			Kind: slot.assetKind, ArtifactRoles: roles, FormatProbe: probe,
 		})
 	}

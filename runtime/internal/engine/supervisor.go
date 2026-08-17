@@ -43,6 +43,12 @@ type Supervisor struct {
 const maxConsecutiveHealthProbeFailures = 3
 const supervisorStderrTailLines = 8
 
+// @nimi-authority: rule.nimi.runtime.local-compute.r035
+// Some CUDA-backed image hosts need several seconds to finish teardown after
+// forced termination. Keep the verification bounded while avoiding a false
+// failure during that normal release window.
+const supervisorForceTerminationWait = 12 * time.Second
+
 type supervisedProcess struct {
 	cmd                  *exec.Cmd
 	done                 chan struct{}
@@ -147,7 +153,7 @@ func (s *Supervisor) Stop() error {
 			process.recordLifecycleError(fmt.Errorf("force terminate supervised process tree: %w", err))
 		}
 	}
-	if waitSupervisorProcessExit(process, pid, time.Second) {
+	if waitSupervisorProcessExit(process, pid, supervisorForceTerminationWait) {
 		return s.finishStoppedProcess(process, "force terminated")
 	}
 

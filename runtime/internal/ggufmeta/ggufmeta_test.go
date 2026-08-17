@@ -308,3 +308,34 @@ func TestLLMContextLengthUsesDetectedArchitectureNumericMetadata(t *testing.T) {
 		t.Fatalf("LLMContextLength = %d ok=%v, want 262144", got, ok)
 	}
 }
+
+func TestInspectLLMMetadataStopsBeforeTruncatedLargeLaterMetadata(t *testing.T) {
+	prefix := buildTestGGUF(t, nil,
+		metadataKV{Key: "general.architecture", Type: ValueTypeString, String: "gemma4"},
+		metadataKV{Key: "gemma4.context_length", Type: ValueTypeUint32, Uint32: 262144},
+	)
+	// Declare one additional tokenizer array whose payload is outside the
+	// bounded prefix. LLM identity parsing must not traverse it after both
+	// execution facts have already been read.
+	binary.LittleEndian.PutUint64(prefix[16:24], 3)
+	var truncated bytes.Buffer
+	writeTestString(t, &truncated, "tokenizer.ggml.tokens")
+	mustBinaryWrite(t, &truncated, uint32(ValueTypeArray))
+	mustBinaryWrite(t, &truncated, uint32(ValueTypeString))
+	mustBinaryWrite(t, &truncated, uint64(1<<30))
+	prefix = append(prefix, truncated.Bytes()...)
+
+	summary, err := InspectLLMMetadata(bytes.NewReader(prefix))
+	if err != nil {
+		t.Fatalf("InspectLLMMetadata: %v", err)
+	}
+	if got := LLMDetectedArchitecture(summary); got != "gemma4" {
+		t.Fatalf("LLMDetectedArchitecture = %q, want gemma4", got)
+	}
+	if got, ok := LLMContextLength(summary); !ok || got != 262144 {
+		t.Fatalf("LLMContextLength = %d ok=%v, want 262144", got, ok)
+	}
+	if _, err := Inspect(bytes.NewReader(prefix)); err == nil {
+		t.Fatal("full GGUF inspection unexpectedly accepted the truncated tokenizer metadata")
+	}
+}

@@ -268,7 +268,7 @@ func beginVideoExecution(ctx context.Context, onStart localexecution.VideoExecut
 func (h *VideoExecutionHost) execute(request *videoExecutionRequest) (localexecution.RawAVCandidate, error) {
 	startedAt := time.Now()
 	_, err := h.substrate.Ensure(request.ctx, request.plan, func() error {
-		return validateInvocationModelContentContext(request.ctx, request.plan.ModelFiles())
+		return validateInvocationModelContentContext(request.ctx, request.plan.ExactBindings())
 	}, request.progress)
 	if err != nil {
 		if request.ctx.Err() != nil {
