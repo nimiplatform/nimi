@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -121,7 +122,7 @@ func TestExecuteVoiceWorkflowJobPersistsWorkflowFamilyAndHandlePolicyMetadata(t 
 	job := submitted.GetJob()
 	deadline := time.Now().Add(3 * time.Second)
 	for time.Now().Before(deadline) {
-		job, _ = svc.voiceAssets.getJob(submitted.GetJob().GetJobId())
+		job, _ = svc.scenarioJobs.get(submitted.GetJob().GetJobId())
 		if isTerminalScenarioJobStatus(job.GetStatus()) {
 			break
 		}
@@ -147,6 +148,34 @@ func TestExecuteVoiceWorkflowJobPersistsWorkflowFamilyAndHandlePolicyMetadata(t 
 	}
 	if !stored.GetMetadata().GetFields()["voice_handle_policy_runtime_reconciliation_required"].GetBoolValue() {
 		t.Fatalf("expected runtime reconciliation flag")
+	}
+}
+
+func TestCloudVoiceResolvedAssemblyCapturesGeneratedPreferredNameBeforeWorkerRebuild(t *testing.T) {
+	fixture := newManagedCloudScenarioTestFixture(t, "dashscope", "qwen3-tts-vc-2026-01-22", "https://example.com", Config{})
+	req := voiceReferenceAudioRequest()
+	req.GetSpec().GetVoiceCreate().GetReferenceAudio().PreferredName = ""
+	ctx := withCloudScenarioTestIntent(scenarioJobUserContext(req.GetHead().GetAppId(), "user-001"), "voice.create", fixture.targetRef)
+	effective, err := fixture.service.captureCloudVoiceWorkflowEffectiveInputs(ctx, req)
+	if err != nil {
+		t.Fatalf("capture Cloud voice inputs: %v", err)
+	}
+	defer effective.release()
+	capturedPayload := effective.mapped.Payload()
+	input, ok := capturedPayload["input"].(map[string]any)
+	if !ok || strings.TrimSpace(nimillm.ValueAsString(input["preferred_name"])) == "" {
+		t.Fatalf("captured mapped payload has no generated preferred_name: %#v", capturedPayload)
+	}
+	if strings.TrimSpace(effective.request.GetSpec().GetVoiceCreate().GetReferenceAudio().GetPreferredName()) == "" {
+		t.Fatal("generated preferred_name was not written into the durable request capture")
+	}
+	rebuilt, err := fixture.service.cloudVoiceWorkflowEffectiveInputsFromResolvedAssembly(effective.resolvedAssembly)
+	if err != nil {
+		t.Fatalf("rebuild Cloud voice inputs: %v", err)
+	}
+	defer rebuilt.release()
+	if !reflect.DeepEqual(capturedPayload, rebuilt.mapped.Payload()) {
+		t.Fatalf("worker remapped invocation changed: captured=%#v rebuilt=%#v", capturedPayload, rebuilt.mapped.Payload())
 	}
 }
 

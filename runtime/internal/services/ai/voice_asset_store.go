@@ -1,8 +1,6 @@
 package ai
 
 import (
-	"context"
-	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -11,38 +9,12 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/runtimeidentity"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 const (
-	maxVoiceAssetEventBacklog        = 128
-	maxRetainedTerminalVoiceJobs     = 1024
-	voiceAssetStoreRetentionWindow   = 30 * time.Minute
 	voiceAssetDeleteRetryCooldown    = 30 * time.Second
 	maxVoiceAssetDeleteRetryAttempts = 4
 )
-
-type voiceScenarioJobRecord struct {
-	job                            *runtimev1.ScenarioJob
-	localAppOwner                  *localAppJobOwner
-	assetID                        string
-	assetDraft                     *runtimev1.VoiceAsset
-	targetDraft                    *runtimeidentity.Target
-	cloudBindingDraft              *voiceAssetCloudBinding
-	terminalAssetSnapshot          *runtimev1.VoiceAsset
-	terminalVoiceReferenceSnapshot *runtimev1.VoiceReference
-	events                         []*runtimev1.ScenarioJobEvent
-	subscribers                    map[uint64]chan *runtimev1.ScenarioJobEvent
-	nextSubID                      uint64
-	nextSeq                        uint64
-	createdAt                      time.Time
-	updatedAt                      time.Time
-	terminalAt                     time.Time
-	cancel                         context.CancelFunc
-	cancelRequested                bool
-	cancelReason                   string
-	executionStarted               bool
-}
 
 type voiceAssetCloudBinding struct {
 	CapabilityContract  string
@@ -74,36 +46,12 @@ func (b *voiceAssetCloudBinding) Valid() bool {
 		strings.TrimSpace(b.ConnectorID) != ""
 }
 
-type voiceWorkflowSubmitInput struct {
-	Head                   *runtimev1.ScenarioRequestHead
-	LocalAppOwner          *localAppJobOwner
-	ScenarioType           runtimev1.ScenarioType
-	Spec                   *runtimev1.ScenarioSpec
-	TraceID                string
-	RouteDecision          runtimev1.RoutePolicy
-	ModelResolved          string
-	Provider               string
-	WorkflowModelID        string
-	WorkflowFamily         string
-	OutputPersistence      string
-	HandlePolicyID         string
-	HandlePersistence      string
-	HandleScope            string
-	HandleDefaultTTL       string
-	HandleDeleteSem        string
-	RuntimeReconcile       bool
-	ExecutionTarget        *runtimeidentity.Target
-	CloudBinding           *voiceAssetCloudBinding
-	EffectiveInputIdentity *runtimev1.LoadoutEffectiveInputIdentity
-	IgnoredExtensions      []*runtimev1.IgnoredScenarioExtension
-}
-
 type voiceAssetStore struct {
 	mu            sync.RWMutex
-	jobs          map[string]*voiceScenarioJobRecord
 	assets        map[string]*runtimev1.VoiceAsset
 	targets       map[string]*runtimeidentity.Target
 	cloudBindings map[string]*voiceAssetCloudBinding
+	pending       map[string]bool
 	durablePath   string
 }
 
@@ -122,101 +70,10 @@ type voiceAssetDeleteResult struct {
 
 func newVoiceAssetStore() *voiceAssetStore {
 	return &voiceAssetStore{
-		jobs:          make(map[string]*voiceScenarioJobRecord),
 		assets:        make(map[string]*runtimev1.VoiceAsset),
 		targets:       make(map[string]*runtimeidentity.Target),
 		cloudBindings: make(map[string]*voiceAssetCloudBinding),
-	}
-}
-
-func (s *voiceAssetStore) publishLocked(record *voiceScenarioJobRecord, eventType runtimev1.ScenarioJobEventType) {
-	record.nextSeq++
-	event := &runtimev1.ScenarioJobEvent{
-		EventType: eventType,
-		Sequence:  record.nextSeq,
-		TraceId:   record.job.GetTraceId(),
-		Timestamp: timestamppb.New(time.Now().UTC()),
-		Job:       cloneScenarioJob(record.job),
-	}
-	record.events = append(record.events, event)
-	if len(record.events) > maxVoiceAssetEventBacklog {
-		record.events = cloneScenarioJobEvents(record.events[len(record.events)-maxVoiceAssetEventBacklog:])
-	}
-	for _, ch := range record.subscribers {
-		select {
-		case ch <- cloneScenarioJobEvent(event):
-		default:
-		}
-	}
-}
-
-func (s *voiceAssetStore) pruneLocked(now time.Time) {
-	cutoff := now.Add(-voiceAssetStoreRetentionWindow)
-	type candidate struct {
-		jobID string
-		at    time.Time
-	}
-	terminal := make([]candidate, 0, len(s.jobs))
-	for jobID, record := range s.jobs {
-		if record == nil || record.job == nil {
-			s.deleteJobLocked(jobID)
-			continue
-		}
-		if !isTerminalScenarioJobStatus(record.job.GetStatus()) {
-			continue
-		}
-		terminalAt := voiceJobRecordTimestamp(record)
-		if !terminalAt.IsZero() && terminalAt.Before(cutoff) {
-			s.deleteJobLocked(jobID)
-			continue
-		}
-		terminal = append(terminal, candidate{jobID: jobID, at: terminalAt})
-	}
-	if len(terminal) <= maxRetainedTerminalVoiceJobs {
-		return
-	}
-	sort.Slice(terminal, func(i int, j int) bool {
-		return terminal[i].at.Before(terminal[j].at)
-	})
-	for _, item := range terminal[:len(terminal)-maxRetainedTerminalVoiceJobs] {
-		s.deleteJobLocked(item.jobID)
-	}
-}
-
-func (s *voiceAssetStore) deleteJobLocked(jobID string) {
-	record := s.jobs[jobID]
-	delete(s.jobs, jobID)
-	if record == nil {
-		return
-	}
-	if record.cancel != nil {
-		record.cancel()
-		record.cancel = nil
-	}
-	if strings.TrimSpace(record.assetID) != "" {
-		if asset := s.assets[record.assetID]; asset == nil || asset.GetPersistence() != runtimev1.VoiceAssetPersistence_VOICE_ASSET_PERSISTENCE_PROVIDER_PERSISTENT {
-			delete(s.assets, record.assetID)
-			delete(s.targets, record.assetID)
-			delete(s.cloudBindings, record.assetID)
-		}
-	}
-	for subID, ch := range record.subscribers {
-		delete(record.subscribers, subID)
-		close(ch)
-	}
-}
-
-func voiceJobRecordTimestamp(record *voiceScenarioJobRecord) time.Time {
-	if record == nil {
-		return time.Time{}
-	}
-	switch {
-	case !record.terminalAt.IsZero():
-		return record.terminalAt
-	case !record.updatedAt.IsZero():
-		return record.updatedAt
-	default:
-		return record.createdAt
+		pending:       make(map[string]bool),
 	}
 }
 

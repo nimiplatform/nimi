@@ -3,7 +3,10 @@ package ai
 import (
 	"context"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -149,6 +152,39 @@ func TestConcurrentCloudMediaIdempotentSubmissionsUseOneJobAndProviderCall(t *te
 	host.mu.Unlock()
 	if executions != 1 {
 		t.Fatalf("Cloud media provider executions=%d, want 1", executions)
+	}
+	assertSingleDurableScenarioJobBinding(t, store, localStatePath, canonicalID)
+}
+
+func TestConcurrentCloudVoiceIdempotentSubmissionsUseOnePrimaryJobAndProviderCall(t *testing.T) {
+	const callers = 16
+	var providerCalls atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		providerCalls.Add(1)
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"output":{"voice":"voice-concurrent"}}`))
+	}))
+	defer server.Close()
+	fixture := newManagedCloudScenarioTestFixture(t, "dashscope", "qwen3-tts-vd-2026-01-26", server.URL, Config{AllowLoopbackEndpoint: true})
+	store, localStatePath := newDurableScenarioJobStoreForFailureTest(t)
+	fixture.service.scenarioJobs = store
+	ctx := withCloudScenarioTestIntent(scenarioJobUserContext("nimi.desktop", "user-001"), capabilitydriver.VoiceCreateContract, fixture.targetRef)
+	request := &runtimev1.SubmitScenarioJobRequest{
+		Head:         &runtimev1.ScenarioRequestHead{AppId: "nimi.desktop", SubjectUserId: "user-001"},
+		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE, ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
+		IdempotencyKey: "concurrent-cloud-voice",
+		Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_VoiceCreate{VoiceCreate: &runtimev1.VoiceCreateScenarioSpec{
+			TargetModelId: "qwen3-tts-vd",
+			Source: &runtimev1.VoiceCreateScenarioSpec_TextDescription{TextDescription: &runtimev1.VoiceT2VInput{
+				InstructionText: "warm narrator", PreviewText: "hello",
+			}},
+		}}},
+	}
+	responses, submitErrors, done := submitScenarioJobsConcurrently(fixture.service, ctx, request, callers)
+	<-done
+	canonicalID := requireCanonicalConcurrentScenarioJobs(t, fixture.service, responses, submitErrors)
+	if providerCalls.Load() != 1 {
+		t.Fatalf("Cloud voice provider calls=%d, want 1", providerCalls.Load())
 	}
 	assertSingleDurableScenarioJobBinding(t, store, localStatePath, canonicalID)
 }

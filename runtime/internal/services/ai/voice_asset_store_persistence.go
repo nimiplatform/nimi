@@ -13,6 +13,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/runtimeidentity"
 	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -25,6 +26,7 @@ const (
 type voiceAssetDiskSnapshot struct {
 	Version int                    `json:"version"`
 	Records []voiceAssetDiskRecord `json:"records"`
+	Pending []voiceAssetDiskRecord `json:"pending,omitempty"`
 }
 
 type voiceAssetDiskRecord struct {
@@ -79,37 +81,83 @@ func (s *voiceAssetStore) loadDurableAssets() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	for index, record := range snapshot.Records {
-		var asset runtimev1.VoiceAsset
-		if err := (protojson.UnmarshalOptions{DiscardUnknown: false}).Unmarshal(record.Asset, &asset); err != nil {
+		if err := s.loadDurableAssetRecordLocked(record, index, false); err != nil {
 			return err
 		}
-		if !isPersistableVoiceAsset(&asset, record.Target) {
-			return fmt.Errorf("voice asset store record %d is not a valid provider-persistent asset", index)
+	}
+	for index, record := range snapshot.Pending {
+		if err := s.loadDurableAssetRecordLocked(record, index, true); err != nil {
+			return err
 		}
-		if len(record.ProviderModelTarget) == 0 {
-			return fmt.Errorf("voice asset store record %d has no provider-model target", index)
-		}
-		connectorID := record.ConnectorID
-		if record.Target.Cloud == nil || connectorID == "" || connectorID != strings.TrimSpace(connectorID) || connectorID != record.Target.Cloud.ConnectorID {
-			return fmt.Errorf("voice asset store record %d has no exact Connector identity", index)
-		}
-		providerTarget, buildErr := structpb.NewStruct(record.ProviderModelTarget)
-		if buildErr != nil {
-			return buildErr
-		}
-		binding := (&voiceAssetCloudBinding{
-			CapabilityContract: record.CapabilityContract, Implementation: record.Implementation,
-			ProviderModelTarget: providerTarget, ConnectorID: connectorID,
-		}).Clone()
-		if !binding.Valid() {
-			return fmt.Errorf("voice asset store record %d has no exact AIConfig execution binding", index)
-		}
-		id := strings.TrimSpace(asset.GetVoiceAssetId())
-		s.assets[id] = cloneVoiceAsset(&asset)
-		s.targets[id] = record.Target.Clone()
-		s.cloudBindings[id] = binding
 	}
 	return nil
+}
+
+func (s *voiceAssetStore) loadDurableAssetRecordLocked(record voiceAssetDiskRecord, index int, pending bool) error {
+	section := "record"
+	if pending {
+		section = "pending record"
+	}
+	var asset runtimev1.VoiceAsset
+	if err := (protojson.UnmarshalOptions{DiscardUnknown: false}).Unmarshal(record.Asset, &asset); err != nil {
+		return err
+	}
+	if !isPersistableVoiceAsset(&asset, record.Target) {
+		return fmt.Errorf("voice asset store %s %d is not a valid provider-persistent asset", section, index)
+	}
+	if len(record.ProviderModelTarget) == 0 {
+		return fmt.Errorf("voice asset store %s %d has no provider-model target", section, index)
+	}
+	connectorID := record.ConnectorID
+	if record.Target.Cloud == nil || connectorID == "" || connectorID != strings.TrimSpace(connectorID) || connectorID != record.Target.Cloud.ConnectorID {
+		return fmt.Errorf("voice asset store %s %d has no exact Connector identity", section, index)
+	}
+	providerTarget, err := structpb.NewStruct(record.ProviderModelTarget)
+	if err != nil {
+		return err
+	}
+	binding := (&voiceAssetCloudBinding{
+		CapabilityContract: record.CapabilityContract, Implementation: record.Implementation,
+		ProviderModelTarget: providerTarget, ConnectorID: connectorID,
+	}).Clone()
+	if !binding.Valid() {
+		return fmt.Errorf("voice asset store %s %d has no exact AIConfig execution binding", section, index)
+	}
+	id := strings.TrimSpace(asset.GetVoiceAssetId())
+	if s.assets[id] != nil {
+		return fmt.Errorf("voice asset store %s %d duplicates VoiceAsset %s", section, index, id)
+	}
+	s.assets[id] = cloneVoiceAsset(&asset)
+	s.targets[id] = record.Target.Clone()
+	s.cloudBindings[id] = binding
+	if pending {
+		s.pending[id] = true
+	}
+	return nil
+}
+
+func (s *voiceAssetStore) reconcilePendingPublications(jobs *scenarioJobStore) error {
+	if s == nil || jobs == nil {
+		return fmt.Errorf("voice publication reconciliation requires both stores")
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if len(s.pending) == 0 {
+		return nil
+	}
+	for id := range s.pending {
+		asset := s.assets[id]
+		completed, _, ok := jobs.completedVoiceResult(id)
+		if ok && proto.Equal(completed, asset) {
+			delete(s.pending, id)
+			continue
+		}
+		delete(s.pending, id)
+		delete(s.assets, id)
+		delete(s.targets, id)
+		delete(s.cloudBindings, id)
+	}
+	return s.persistDurableAssetsLocked()
 }
 
 func (s *voiceAssetStore) persistDurableAssetsLocked() error {
@@ -132,23 +180,21 @@ func (s *voiceAssetStore) persistDurableAssetsLocked() error {
 		ids = append(ids, id)
 	}
 	sort.Strings(ids)
-	snapshot := voiceAssetDiskSnapshot{Version: voiceAssetDiskStoreVersion, Records: make([]voiceAssetDiskRecord, 0, len(ids))}
+	snapshot := voiceAssetDiskSnapshot{
+		Version: voiceAssetDiskStoreVersion,
+		Records: make([]voiceAssetDiskRecord, 0, len(ids)),
+		Pending: make([]voiceAssetDiskRecord, 0, len(s.pending)),
+	}
 	for _, id := range ids {
-		assetRaw, err := (protojson.MarshalOptions{UseProtoNames: true}).Marshal(s.assets[id])
+		record, err := s.voiceAssetDiskRecordLocked(id)
 		if err != nil {
 			return err
 		}
-		record := voiceAssetDiskRecord{
-			Asset:  append(json.RawMessage(nil), assetRaw...),
-			Target: s.targets[id].Clone(),
+		if s.pending[id] {
+			snapshot.Pending = append(snapshot.Pending, record)
+		} else {
+			snapshot.Records = append(snapshot.Records, record)
 		}
-		if binding := s.cloudBindings[id]; binding != nil && binding.Valid() {
-			record.CapabilityContract = binding.CapabilityContract
-			record.Implementation = binding.Clone().Implementation
-			record.ProviderModelTarget = binding.ProviderModelTarget.AsMap()
-			record.ConnectorID = strings.TrimSpace(binding.ConnectorID)
-		}
-		snapshot.Records = append(snapshot.Records, record)
 	}
 	raw, err := json.Marshal(snapshot)
 	if err != nil {
@@ -181,6 +227,21 @@ func (s *voiceAssetStore) persistDurableAssetsLocked() error {
 		return err
 	}
 	return nil
+}
+
+func (s *voiceAssetStore) voiceAssetDiskRecordLocked(id string) (voiceAssetDiskRecord, error) {
+	assetRaw, err := (protojson.MarshalOptions{UseProtoNames: true}).Marshal(s.assets[id])
+	if err != nil {
+		return voiceAssetDiskRecord{}, err
+	}
+	record := voiceAssetDiskRecord{Asset: append(json.RawMessage(nil), assetRaw...), Target: s.targets[id].Clone()}
+	if binding := s.cloudBindings[id]; binding != nil && binding.Valid() {
+		record.CapabilityContract = binding.CapabilityContract
+		record.Implementation = binding.Clone().Implementation
+		record.ProviderModelTarget = binding.ProviderModelTarget.AsMap()
+		record.ConnectorID = strings.TrimSpace(binding.ConnectorID)
+	}
+	return record, nil
 }
 
 func isPersistableVoiceAsset(asset *runtimev1.VoiceAsset, target *runtimeidentity.Target) bool {

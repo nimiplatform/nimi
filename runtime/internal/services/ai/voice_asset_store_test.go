@@ -10,9 +10,11 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
+	runtimecfg "github.com/nimiplatform/nimi/runtime/internal/config"
 	"github.com/nimiplatform/nimi/runtime/internal/runtimeidentity"
+	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
 	"google.golang.org/protobuf/encoding/protojson"
-	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -32,453 +34,356 @@ func testVoiceAssetCloudBinding(target *runtimeidentity.Target) *voiceAssetCloud
 	}
 }
 
-func TestVoiceAssetStoreCompleteAndTimeoutJob(t *testing.T) {
-	store := newVoiceAssetStore()
-
-	job, asset := store.submit(&voiceWorkflowSubmitInput{
-		RouteDecision:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
-		ExecutionTarget: runtimeAgentVoiceAssetTestTarget("connector-test"),
-		Head: &runtimev1.ScenarioRequestHead{
-			AppId:         "app-1",
-			SubjectUserId: "user-1",
-		},
-		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE,
-		Spec: &runtimev1.ScenarioSpec{
-			Spec: &runtimev1.ScenarioSpec_VoiceCreate{VoiceCreate: &runtimev1.VoiceCreateScenarioSpec{
-				Source: &runtimev1.VoiceCreateScenarioSpec_ReferenceAudio{ReferenceAudio: &runtimev1.VoiceV2VInput{
-					ReferenceAudioUri:  "https://example.com/reference.wav",
-					ReferenceAudioMime: "audio/wav",
-				}},
-			}},
-		},
-		Provider: "dashscope",
-	})
-	if job == nil || asset == nil {
-		t.Fatalf("submit should create voice job and asset")
-	}
-	if _, ok := store.getAsset(asset.GetVoiceAssetId()); ok {
-		t.Fatalf("submitted voice job must not publish an Asset before completion")
-	}
-	if !store.runJob(job.GetJobId()) {
-		t.Fatal("runJob should transition the Job")
-	}
-	if _, ok := store.getAsset(asset.GetVoiceAssetId()); ok {
-		t.Fatalf("running voice job must not publish an Asset before completion")
-	}
-	if assets := store.listAssets(&runtimev1.ListVoiceAssetsRequest{AppId: "app-1", SubjectUserId: "user-1"}); len(assets) != 0 {
-		t.Fatalf("running voice job draft appeared in list: %+v", assets)
-	}
-
-	if !store.completeJob(job.GetJobId(), "voice-ref-1", map[string]any{"quality": "high"}, &runtimev1.UsageStats{InputTokens: 1}) {
-		t.Fatalf("completeJob should succeed")
-	}
-
-	completedJob, ok := store.getJob(job.GetJobId())
-	if !ok || completedJob.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
-		t.Fatalf("expected completed job, got ok=%v job=%#v", ok, completedJob)
-	}
-	if completedJob.GetProviderJobId() != "" {
-		t.Fatalf("provider-private job id escaped, got %q", completedJob.GetProviderJobId())
-	}
-	if completedJob.GetReasonCode() != runtimev1.ReasonCode_ACTION_EXECUTED {
-		t.Fatalf("expected ACTION_EXECUTED reason code, got %v", completedJob.GetReasonCode())
-	}
-
-	completedAsset, ok := store.getAsset(asset.GetVoiceAssetId())
-	if !ok || completedAsset.GetProviderVoiceRef() != "voice-ref-1" {
-		t.Fatalf("expected completed voice asset with provider ref, got ok=%v asset=%#v", ok, completedAsset)
-	}
-	if completedAsset.GetStatus() != runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_ACTIVE {
-		t.Fatalf("expected active asset after completion, got %v", completedAsset.GetStatus())
-	}
-	if completedAsset.GetMetadata() == nil || completedAsset.GetMetadata().Fields["quality"].GetStringValue() != "high" {
-		t.Fatalf("expected metadata to be persisted, got %#v", completedAsset.GetMetadata())
-	}
-	resultAsset, resultReference, ok := store.getCompletedJobResult(job.GetJobId())
-	if !ok || resultAsset.GetStatus() != runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_ACTIVE ||
-		resultReference.GetVoiceAssetId() != resultAsset.GetVoiceAssetId() {
-		t.Fatalf("completed Job result snapshot is invalid: asset=%+v reference=%+v found=%v", resultAsset, resultReference, ok)
-	}
-	store.mu.Lock()
-	store.assets[asset.GetVoiceAssetId()].Status = runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_EXPIRED
-	store.assets[asset.GetVoiceAssetId()].UpdatedAt = timestamppb.Now()
-	store.mu.Unlock()
-	resultAfterStatusMutation, referenceAfterStatusMutation, ok := store.getCompletedJobResult(job.GetJobId())
-	if !ok || resultAfterStatusMutation.GetStatus() != runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_ACTIVE ||
-		!proto.Equal(resultAfterStatusMutation, resultAsset) || !proto.Equal(referenceAfterStatusMutation, resultReference) {
-		t.Fatalf("catalog Asset status mutation changed terminal Job result: before=%+v/%+v after=%+v/%+v found=%v",
-			resultAsset, resultReference, resultAfterStatusMutation, referenceAfterStatusMutation, ok)
-	}
-
-	timeoutJob, timeoutAsset := store.submit(&voiceWorkflowSubmitInput{
-		RouteDecision:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
-		ExecutionTarget: runtimeAgentVoiceAssetTestTarget("connector-test"),
-		Head: &runtimev1.ScenarioRequestHead{
-			AppId:         "app-1",
-			SubjectUserId: "user-1",
-		},
-		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE,
-		Spec: &runtimev1.ScenarioSpec{
-			Spec: &runtimev1.ScenarioSpec_VoiceCreate{VoiceCreate: &runtimev1.VoiceCreateScenarioSpec{
-				Source: &runtimev1.VoiceCreateScenarioSpec_ReferenceAudio{ReferenceAudio: &runtimev1.VoiceV2VInput{
-					ReferenceAudioUri:  "https://example.com/reference.wav",
-					ReferenceAudioMime: "audio/wav",
-				}},
-			}},
-		},
-		Provider: "stepfun",
-	})
-	if timeoutJob == nil || timeoutAsset == nil {
-		t.Fatalf("submit should create timeout job and asset")
-	}
-
-	timeoutMetadata := structFromMap(map[string]any{"failure_stage": "voice_workflow_execution"})
-	if !store.timeoutJob(timeoutJob.GetJobId(), runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT, "timed out", timeoutMetadata) {
-		t.Fatalf("timeoutJob should succeed")
-	}
-
-	timedOutJob, ok := store.getJob(timeoutJob.GetJobId())
-	if !ok || timedOutJob.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_TIMEOUT {
-		t.Fatalf("expected timeout job status, got ok=%v job=%#v", ok, timedOutJob)
-	}
-	if timedOutJob.GetReasonCode() != runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT {
-		t.Fatalf("expected provider timeout reason code, got %v", timedOutJob.GetReasonCode())
-	}
-	if got := timedOutJob.GetReasonMetadata().GetFields()["failure_stage"].GetStringValue(); got != "voice_workflow_execution" {
-		t.Fatalf("expected typed timeout failure metadata, got %q", got)
-	}
-
-	if timedOutAsset, ok := store.getAsset(timeoutAsset.GetVoiceAssetId()); ok {
-		t.Fatalf("timed-out voice job must not publish an Asset, got %#v", timedOutAsset)
-	}
+func testVoiceAssetCloudTarget(connectorID string) *runtimeidentity.Target {
+	return &runtimeidentity.Target{Cloud: &runtimeidentity.CloudTarget{
+		ConnectorID: connectorID, RemoteModelCatalogID: "catalog-voice", ProviderModelID: "voice-model", Provider: "voice-provider",
+	}}
 }
 
-func TestVoiceAssetStoreNonSuccessTerminalsNeverPublishVoiceResults(t *testing.T) {
-	t.Run("failed", func(t *testing.T) {
-		store := newVoiceAssetStore()
-		job, draft := newVoiceAssetStoreJobForTerminalTest(t, store)
-		if !store.failJob(job.GetJobId(), runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, "failed", nil) {
-			t.Fatal("failJob should transition the Job")
-		}
-		assertVoiceAssetDraftNotPublished(t, store, draft.GetVoiceAssetId())
-	})
-
-	t.Run("timeout", func(t *testing.T) {
-		store := newVoiceAssetStore()
-		job, draft := newVoiceAssetStoreJobForTerminalTest(t, store)
-		if !store.timeoutJob(job.GetJobId(), runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT, "timeout", nil) {
-			t.Fatal("timeoutJob should transition the Job")
-		}
-		assertVoiceAssetDraftNotPublished(t, store, draft.GetVoiceAssetId())
-	})
-
-	t.Run("canceled", func(t *testing.T) {
-		store := newVoiceAssetStore()
-		job, draft := newVoiceAssetStoreJobForTerminalTest(t, store)
-		if _, ok := store.cancelJob(job.GetJobId(), "canceled"); !ok {
-			t.Fatal("cancelJob should transition the Job")
-		}
-		assertVoiceAssetDraftNotPublished(t, store, draft.GetVoiceAssetId())
-	})
-
-	t.Run("empty-provider-handle", func(t *testing.T) {
-		store := newVoiceAssetStore()
-		job, draft := newVoiceAssetStoreJobForTerminalTest(t, store)
-		if store.completeJob(job.GetJobId(), "", nil, nil) {
-			t.Fatal("completion without a provider handle must fail closed")
-		}
-		terminal, ok := store.getJob(job.GetJobId())
-		if !ok || terminal.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED ||
-			terminal.GetReasonCode() != runtimev1.ReasonCode_AI_OUTPUT_INVALID {
-			t.Fatalf("empty-handle terminal Job=%+v found=%v", terminal, ok)
-		}
-		assertVoiceAssetDraftNotPublished(t, store, draft.GetVoiceAssetId())
-	})
-
+func testProviderPersistentVoiceDraft(assetID string) *runtimev1.VoiceAsset {
+	return newVoiceAssetDraft(&voiceWorkflowSubmitInput{
+		Head:         &runtimev1.ScenarioRequestHead{AppId: "app-1", SubjectUserId: "user-1"},
+		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE,
+		Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_VoiceCreate{VoiceCreate: &runtimev1.VoiceCreateScenarioSpec{
+			Source: &runtimev1.VoiceCreateScenarioSpec_TextDescription{TextDescription: &runtimev1.VoiceT2VInput{InstructionText: "warm narrator"}},
+		}}},
+		ModelResolved: "voice-model", Provider: "voice-provider", WorkflowModelID: "voice-workflow",
+		WorkflowFamily: "voice-family", OutputPersistence: "provider_persistent",
+	}, assetID, timestamppb.Now())
 }
 
-func newVoiceAssetStoreJobForTerminalTest(t *testing.T, store *voiceAssetStore) (*runtimev1.ScenarioJob, *runtimev1.VoiceAsset) {
+func testActiveProviderPersistentVoiceAsset(assetID string) *runtimev1.VoiceAsset {
+	asset := testProviderPersistentVoiceDraft(assetID)
+	now := timestamppb.New(time.Now().UTC())
+	asset.ProviderVoiceRef = "provider-voice-ref"
+	asset.Status = runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_ACTIVE
+	asset.CreatedAt = now
+	asset.UpdatedAt = now
+	return asset
+}
+
+func persistPendingVoicePublicationForTest(t *testing.T, localStatePath string, asset *runtimev1.VoiceAsset) {
 	t.Helper()
-	if store == nil {
-		store = newVoiceAssetStore()
-	}
-	job, draft := store.submit(&voiceWorkflowSubmitInput{
-		Head:            &runtimev1.ScenarioRequestHead{AppId: "app-terminal", SubjectUserId: "user-terminal"},
-		ScenarioType:    runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE,
-		Spec:            &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_VoiceCreate{VoiceCreate: &runtimev1.VoiceCreateScenarioSpec{Source: &runtimev1.VoiceCreateScenarioSpec_TextDescription{TextDescription: &runtimev1.VoiceT2VInput{InstructionText: "calm voice"}}}}},
-		RouteDecision:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
-		Provider:        "local",
-		ExecutionTarget: &runtimeidentity.Target{Local: &runtimeidentity.LocalTarget{ReadinessRef: "local-asset://voice-terminal"}},
-	})
-	if job == nil || draft == nil {
-		t.Fatal("submit should create a private voice result draft")
-	}
-	assertVoiceAssetDraftNotPublished(t, store, draft.GetVoiceAssetId())
-	return job, draft
-}
-
-func assertVoiceAssetDraftNotPublished(t *testing.T, store *voiceAssetStore, assetID string) {
-	t.Helper()
-	if asset, ok := store.getAsset(assetID); ok {
-		t.Fatalf("private voice result draft was published: %+v", asset)
-	}
-	if assets := store.listAssets(&runtimev1.ListVoiceAssetsRequest{AppId: "app-terminal", SubjectUserId: "user-terminal"}); len(assets) != 0 {
-		t.Fatalf("private voice result draft appeared in list: %+v", assets)
-	}
-}
-
-func TestVoiceAssetStorePrunesExpiredTerminalJobsAndAssets(t *testing.T) {
-	store := newVoiceAssetStore()
-	job, asset := store.submit(&voiceWorkflowSubmitInput{
-		RouteDecision:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
-		ExecutionTarget: runtimeAgentVoiceAssetTestTarget("connector-test"),
-		Head: &runtimev1.ScenarioRequestHead{
-			AppId:         "app-1",
-			SubjectUserId: "user-1",
-		},
-		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE,
-		Spec: &runtimev1.ScenarioSpec{
-			Spec: &runtimev1.ScenarioSpec_VoiceCreate{VoiceCreate: &runtimev1.VoiceCreateScenarioSpec{
-				Source: &runtimev1.VoiceCreateScenarioSpec_ReferenceAudio{ReferenceAudio: &runtimev1.VoiceV2VInput{
-					ReferenceAudioUri:  "https://example.com/reference.wav",
-					ReferenceAudioMime: "audio/wav",
-				}},
-			}},
-		},
-		Provider: "dashscope",
-	})
-	if job == nil || asset == nil {
-		t.Fatalf("expected submitted voice workflow")
-	}
-	if !store.completeJob(job.GetJobId(), "voice-ref", nil, nil) {
-		t.Fatalf("expected completed voice workflow")
-	}
-
-	store.mu.Lock()
-	store.jobs[job.GetJobId()].terminalAt = time.Now().UTC().Add(-voiceAssetStoreRetentionWindow - time.Minute)
-	store.mu.Unlock()
-
-	if nextJob, nextAsset := store.submit(&voiceWorkflowSubmitInput{
-		RouteDecision:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
-		ExecutionTarget: runtimeAgentVoiceAssetTestTarget("connector-test"),
-		Head: &runtimev1.ScenarioRequestHead{
-			AppId:         "app-1",
-			SubjectUserId: "user-1",
-		},
-		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE,
-		Spec: &runtimev1.ScenarioSpec{
-			Spec: &runtimev1.ScenarioSpec_VoiceCreate{VoiceCreate: &runtimev1.VoiceCreateScenarioSpec{
-				Source: &runtimev1.VoiceCreateScenarioSpec_ReferenceAudio{ReferenceAudio: &runtimev1.VoiceV2VInput{
-					ReferenceAudioUri:  "https://example.com/reference.wav",
-					ReferenceAudioMime: "audio/wav",
-				}},
-			}},
-		},
-		Provider: "dashscope",
-	}); nextJob == nil || nextAsset == nil {
-		t.Fatalf("expected fresh submitted voice workflow")
-	}
-
-	if _, ok := store.getJob(job.GetJobId()); ok {
-		t.Fatalf("expected expired terminal voice job to be pruned")
-	}
-	if _, ok := store.getAsset(asset.GetVoiceAssetId()); ok {
-		t.Fatalf("expected expired terminal voice asset to be pruned")
-	}
-}
-
-func TestVoiceAssetStoreKeepsProviderPersistentAssetsAfterTerminalJobPrune(t *testing.T) {
-	store := newVoiceAssetStore()
-	target := runtimeAgentVoiceAssetTestTarget("connector-test")
-	job, asset := store.submit(&voiceWorkflowSubmitInput{
-		RouteDecision:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
-		ExecutionTarget: target,
-		CloudBinding:    testVoiceAssetCloudBinding(target),
-		Head: &runtimev1.ScenarioRequestHead{
-			AppId:         "app-1",
-			SubjectUserId: "user-1",
-		},
-		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE,
-		Spec: &runtimev1.ScenarioSpec{
-			Spec: &runtimev1.ScenarioSpec_VoiceCreate{VoiceCreate: &runtimev1.VoiceCreateScenarioSpec{
-				Source: &runtimev1.VoiceCreateScenarioSpec_ReferenceAudio{ReferenceAudio: &runtimev1.VoiceV2VInput{
-					ReferenceAudioUri:  "https://example.com/reference.wav",
-					ReferenceAudioMime: "audio/wav",
-				}},
-			}},
-		},
-		Provider:          "dashscope",
-		OutputPersistence: "provider_persistent",
-	})
-	if job == nil || asset == nil {
-		t.Fatalf("expected submitted provider-persistent voice workflow")
-	}
-	if !store.completeJob(job.GetJobId(), "dashscope-provider-voice-ref", nil, nil) {
-		t.Fatalf("expected completed voice workflow")
-	}
-
-	store.mu.Lock()
-	store.jobs[job.GetJobId()].terminalAt = time.Now().UTC().Add(-voiceAssetStoreRetentionWindow - time.Minute)
-	store.mu.Unlock()
-
-	if nextJob, nextAsset := store.submit(&voiceWorkflowSubmitInput{
-		RouteDecision:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
-		ExecutionTarget: runtimeAgentVoiceAssetTestTarget("connector-test"),
-		Head: &runtimev1.ScenarioRequestHead{
-			AppId:         "app-1",
-			SubjectUserId: "user-1",
-		},
-		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE,
-		Spec: &runtimev1.ScenarioSpec{
-			Spec: &runtimev1.ScenarioSpec_VoiceCreate{VoiceCreate: &runtimev1.VoiceCreateScenarioSpec{
-				Source: &runtimev1.VoiceCreateScenarioSpec_TextDescription{TextDescription: &runtimev1.VoiceT2VInput{
-					InstructionText: "warm cinematic narrator",
-				}},
-			}},
-		},
-		Provider: "dashscope",
-	}); nextJob == nil || nextAsset == nil {
-		t.Fatalf("expected fresh submitted voice workflow")
-	}
-
-	if _, ok := store.getJob(job.GetJobId()); ok {
-		t.Fatalf("expected expired terminal voice job to be pruned")
-	}
-	stored, ok := store.getAsset(asset.GetVoiceAssetId())
-	if !ok {
-		t.Fatalf("provider-persistent voice asset must outlive terminal job retention")
-	}
-	if stored.GetProviderVoiceRef() != "dashscope-provider-voice-ref" {
-		t.Fatalf("provider-persistent voice asset lost provider handle: %#v", stored)
-	}
-	if stored.GetPersistence() != runtimev1.VoiceAssetPersistence_VOICE_ASSET_PERSISTENCE_PROVIDER_PERSISTENT {
-		t.Fatalf("unexpected persistence after prune: %v", stored.GetPersistence())
-	}
-}
-
-func TestVoiceAssetStoreSubmitKeepsTargetRuntimePrivate(t *testing.T) {
-	store := newVoiceAssetStore()
-	targetRef := cloudScenarioTargetRef("connector-dashscope", "remote-catalog-dashscope-vc", "qwen3-tts-vc", "dashscope")
-	job, asset := store.submit(&voiceWorkflowSubmitInput{
-		RouteDecision:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
-		ExecutionTarget: targetRef,
-		Head: &runtimev1.ScenarioRequestHead{
-			AppId:         "app-1",
-			SubjectUserId: "user-1",
-		},
-		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE,
-		Spec: &runtimev1.ScenarioSpec{
-			Spec: &runtimev1.ScenarioSpec_VoiceCreate{VoiceCreate: &runtimev1.VoiceCreateScenarioSpec{
-				Source: &runtimev1.VoiceCreateScenarioSpec_ReferenceAudio{ReferenceAudio: &runtimev1.VoiceV2VInput{
-					ReferenceAudioUri:  "https://example.com/reference.wav",
-					ReferenceAudioMime: "audio/wav",
-				}},
-			}},
-		},
-		Provider: "dashscope",
-	})
-	if asset == nil {
-		t.Fatalf("submit should create voice asset")
-	}
-	if _, _, ok := store.getAssetBinding(asset.GetVoiceAssetId()); ok {
-		t.Fatalf("submit must not publish the private target or VoiceAsset")
-	}
-	if !store.completeJob(job.GetJobId(), "provider-voice-ref", nil, nil) {
-		t.Fatalf("completeJob should publish the terminal result")
-	}
-	_, storedTarget, ok := store.getAssetBinding(asset.GetVoiceAssetId())
-	if !ok || !runtimeidentity.Equal(storedTarget, targetRef) {
-		t.Fatalf("private target mismatch: got=%#v want=%#v", storedTarget, targetRef)
-	}
-}
-
-func TestVoiceAssetStoreProviderPersistentAssetsSurviveStoreReopen(t *testing.T) {
-	localStatePath := t.TempDir() + "/local-state.json"
 	store, err := newVoiceAssetStoreForLocalStatePath(localStatePath)
 	if err != nil {
-		t.Fatalf("newVoiceAssetStoreForLocalStatePath: %v", err)
+		t.Fatal(err)
 	}
-	targetRef := cloudScenarioTargetRef("connector-dashscope", "remote-catalog-dashscope-vc", "qwen3-tts-vc", "dashscope")
-	providerTarget, _ := structpb.NewStruct(map[string]any{
-		"provider": "dashscope", "providerModelId": "qwen3-tts-vc", "remoteModelCatalogId": "remote-catalog-dashscope-vc",
-	})
-	job, asset := store.submit(&voiceWorkflowSubmitInput{
-		RouteDecision:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
-		ExecutionTarget: targetRef,
-		CloudBinding: &voiceAssetCloudBinding{
-			CapabilityContract: "voice.create",
-			Implementation: &runtimev1.CapabilityImplementationIdentity{
-				ImplementationId: "cloud.voice.dashscope", DriverId: "driver.dashscope", DriverDialect: "dashscope/voice/v1",
-			},
-			ProviderModelTarget: providerTarget, ConnectorID: targetRef.Cloud.ConnectorID,
-		},
-		Head: &runtimev1.ScenarioRequestHead{
-			AppId:         "app-1",
-			SubjectUserId: "user-1",
-		},
-		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE,
-		Spec: &runtimev1.ScenarioSpec{
-			Spec: &runtimev1.ScenarioSpec_VoiceCreate{VoiceCreate: &runtimev1.VoiceCreateScenarioSpec{
-				Source: &runtimev1.VoiceCreateScenarioSpec_ReferenceAudio{ReferenceAudio: &runtimev1.VoiceV2VInput{
-					ReferenceAudioUri:  "https://example.com/reference.wav",
-					ReferenceAudioMime: "audio/wav",
-				}},
-			}},
-		},
-		Provider:          "dashscope",
-		OutputPersistence: "provider_persistent",
-	})
-	if job == nil || asset == nil {
-		t.Fatalf("submit should create voice workflow and asset")
+	target := testVoiceAssetCloudTarget("connector-voice")
+	id := strings.TrimSpace(asset.GetVoiceAssetId())
+	store.mu.Lock()
+	store.assets[id] = cloneVoiceAsset(asset)
+	store.targets[id] = target.Clone()
+	store.cloudBindings[id] = testVoiceAssetCloudBinding(target)
+	store.pending[id] = true
+	err = store.persistDurableAssetsLocked()
+	store.mu.Unlock()
+	if err != nil {
+		t.Fatalf("persist pending VoiceAsset publication: %v", err)
 	}
-	if !store.completeJob(job.GetJobId(), "dashscope-provider-voice-ref", nil, nil) {
-		t.Fatalf("completeJob should succeed")
+}
+
+func persistPrimaryVoiceScenarioJobForTest(t *testing.T, localStatePath string, asset *runtimev1.VoiceAsset, completed bool) {
+	t.Helper()
+	store, err := newScenarioJobStoreForLocalStatePath(localStatePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	now := timestamppb.New(time.Now().UTC())
+	head := &runtimev1.ScenarioRequestHead{AppId: asset.GetAppId(), SubjectUserId: asset.GetSubjectUserId()}
+	job := &runtimev1.ScenarioJob{
+		JobId: asset.GetVoiceAssetId(), Head: head,
+		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE, ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
+		RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD, Status: runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED,
+		ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED, CreatedAt: now, UpdatedAt: now,
+		TraceId: "trace-" + asset.GetVoiceAssetId(), ModelResolved: "voice-model",
+	}
+	request := &runtimev1.SubmitScenarioJobRequest{
+		Head: head, ScenarioType: job.GetScenarioType(), ExecutionMode: job.GetExecutionMode(),
+		Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_VoiceCreate{VoiceCreate: &runtimev1.VoiceCreateScenarioSpec{
+			Source:        &runtimev1.VoiceCreateScenarioSpec_TextDescription{TextDescription: &runtimev1.VoiceT2VInput{InstructionText: "warm narrator"}},
+			TargetModelId: "voice-model",
+		}}},
+	}
+	target := testVoiceAssetCloudTarget("connector-voice")
+	assembly, err := newCloudResolvedAssembly(
+		cloudResolvedRequestVoiceWorkflow,
+		capabilitydriver.VoiceCreateContract,
+		&runtimev1.CapabilityImplementationIdentity{ImplementationId: "cloud.voice.test", DriverId: "driver.voice.test", DriverDialect: "test/voice/v1"},
+		testVoiceAssetCloudBinding(target).ProviderModelTarget,
+		connector.ConnectorRecord{
+			ConnectorID: target.Cloud.ConnectorID, Kind: runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED,
+			OwnerType: runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_REALM_USER, OwnerID: asset.GetSubjectUserId(),
+			Provider: target.Cloud.Provider, Status: runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE, HasCredential: true,
+		},
+		nil,
+		request,
+		job.GetExecutionMode(),
+		capabilitydriver.CloudMediaStreamNone,
+		job.GetTraceId(),
+		asset.GetAppId(),
+		asset.GetSubjectUserId(),
+		&cloudVoiceWorkflowCapture{
+			Provider: target.Cloud.Provider, ModelID: target.Cloud.ProviderModelID, WorkflowType: "text_description",
+			WorkflowModelID: "voice-workflow", OutputPersistence: "provider_persistent",
+		},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if created, published, createErr := store.createOwnedAndBindCloudAssemblyChecked(job, func() {}, nil, "", assembly); createErr != nil || !published || created == nil {
+		t.Fatalf("persist primary voice ScenarioJob: job=%#v published=%v err=%v", created, published, createErr)
+	}
+	if !completed {
+		return
+	}
+	if terminal, transitioned, transitionErr := store.transitionVoiceCompleted(job.GetJobId(), asset, voiceAssetReference(asset.GetVoiceAssetId()), func(job *runtimev1.ScenarioJob) {
+		job.ReasonCode = runtimev1.ReasonCode_ACTION_EXECUTED
+		job.ProgressPercent = 100
+	}); transitionErr != nil || !transitioned || terminal.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
+		t.Fatalf("persist completed primary voice ScenarioJob: job=%#v transitioned=%v err=%v", terminal, transitioned, transitionErr)
+	}
+}
+
+func agePrimaryVoiceScenarioJobBeyondRetentionForTest(t *testing.T, localStatePath string, jobID string) {
+	t.Helper()
+	store, err := newScenarioJobStoreForLocalStatePath(localStatePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	store.mu.Lock()
+	record := store.jobs[strings.TrimSpace(jobID)]
+	if record == nil || record.job == nil || !isTerminalScenarioJobStatus(record.job.GetStatus()) {
+		store.mu.Unlock()
+		t.Fatalf("terminal primary voice ScenarioJob %q is missing", jobID)
+	}
+	oldUpdated := time.Now().UTC().Add(-scenarioJobRetention - time.Minute)
+	oldCreated := oldUpdated.Add(-time.Minute)
+	record.job.CreatedAt = timestamppb.New(oldCreated)
+	record.job.UpdatedAt = timestamppb.New(oldUpdated)
+	record.createdAt = oldCreated
+	record.updatedAt = oldUpdated
+	record.terminalAt = oldUpdated
+	err = store.persistDurableJobsLocked(scenarioJobPersistenceAttempt{Operation: scenarioJobPersistTransition, JobID: jobID, Status: record.job.GetStatus()})
+	store.mu.Unlock()
+	if err != nil {
+		t.Fatalf("age primary voice ScenarioJob beyond retention: %v", err)
+	}
+}
+
+func restartProtectedAIServiceForVoicePublicationTest(t *testing.T, localStatePath string) *Service {
+	t.Helper()
+	connectorStore := connector.NewConnectorStoreWithMemorySecrets(t.TempDir())
+	svc, err := NewProtected(nil, nil, connectorStore, runtimecfg.Config{LocalStatePath: localStatePath})
+	if err != nil {
+		t.Fatalf("restart protected AI Service: %v", err)
+	}
+	return svc
+}
+
+func TestVoiceAssetStoreProviderPersistentAssetSurvivesReopenWithoutOwningJobs(t *testing.T) {
+	localStatePath := filepath.Join(t.TempDir(), "local-state.json")
+	store, err := newVoiceAssetStoreForLocalStatePath(localStatePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	target := testVoiceAssetCloudTarget("connector-voice")
+	draft := testProviderPersistentVoiceDraft("voice-job-1")
+	asset, published := store.publishResult(draft, target, testVoiceAssetCloudBinding(target), "provider-voice-ref", nil,
+		func(asset *runtimev1.VoiceAsset, reference *runtimev1.VoiceReference) bool {
+			return asset.GetVoiceAssetId() == reference.GetVoiceAssetId()
+		})
+	if !published || asset == nil {
+		t.Fatal("provider-persistent VoiceAsset was not published")
 	}
 	raw, err := os.ReadFile(store.durablePath)
 	if err != nil {
-		t.Fatalf("read durable voice asset snapshot: %v", err)
-	}
-	var snapshot voiceAssetDiskSnapshot
-	if err := json.Unmarshal(raw, &snapshot); err != nil {
-		t.Fatalf("decode durable voice asset snapshot: %v", err)
-	}
-	if snapshot.Version != voiceAssetDiskStoreVersion || len(snapshot.Records) != 1 {
-		t.Fatalf("durable voice asset snapshot version/records = %d/%d", snapshot.Version, len(snapshot.Records))
-	}
-	if snapshot.Records[0].ConnectorID != targetRef.Cloud.ConnectorID || snapshot.Records[0].Target.Cloud.ConnectorID != targetRef.Cloud.ConnectorID {
-		t.Fatalf("durable voice asset snapshot did not preserve one exact Connector identity")
+		t.Fatal(err)
 	}
 	if bytes.Contains(raw, []byte("connectorGrantId")) || bytes.Contains(raw, []byte("connector_grant_id")) {
-		t.Fatal("durable voice asset snapshot retained removed grant identity")
+		t.Fatal("durable VoiceAsset retained removed grant identity")
 	}
 
 	reopened, err := newVoiceAssetStoreForLocalStatePath(localStatePath)
 	if err != nil {
-		t.Fatalf("reopen voice asset store: %v", err)
+		t.Fatal(err)
 	}
-	stored, storedTarget, ok := reopened.getAssetBinding(asset.GetVoiceAssetId())
-	if !ok {
-		t.Fatalf("provider-persistent voice asset must survive store reopen")
+	stored, storedTarget, binding, ok := reopened.getAssetCloudBinding(asset.GetVoiceAssetId())
+	if !ok || stored.GetProviderVoiceRef() != "provider-voice-ref" || !runtimeidentity.Equal(storedTarget, target) ||
+		binding == nil || !binding.Valid() || binding.ConnectorID != "connector-voice" {
+		t.Fatalf("reopened VoiceAsset=%#v target=%#v binding=%#v visible=%v", stored, storedTarget, binding, ok)
 	}
-	if stored.GetProviderVoiceRef() != "dashscope-provider-voice-ref" {
-		t.Fatalf("provider voice ref after reopen=%q", stored.GetProviderVoiceRef())
+}
+
+func TestVoiceAssetStorePublishFailsClosedWhenDurableAssetCannotPersist(t *testing.T) {
+	store := newVoiceAssetStore()
+	store.durablePath = t.TempDir()
+	target := testVoiceAssetCloudTarget("connector-voice")
+	draft := testProviderPersistentVoiceDraft("voice-job-failed")
+	commitCalled := false
+	asset, published := store.publishResult(draft, target, testVoiceAssetCloudBinding(target), "provider-voice-ref", nil,
+		func(*runtimev1.VoiceAsset, *runtimev1.VoiceReference) bool {
+			commitCalled = true
+			return true
+		})
+	if published || asset != nil || commitCalled {
+		t.Fatalf("failed durable publication asset=%#v published=%v commitCalled=%v", asset, published, commitCalled)
 	}
-	if !runtimeidentity.Equal(storedTarget, targetRef) {
-		t.Fatalf("private target after reopen mismatch: got=%#v want=%#v", storedTarget, targetRef)
+	if stored, ok := store.getAsset(draft.GetVoiceAssetId()); ok || stored != nil {
+		t.Fatalf("failed durable publication leaked VoiceAsset %#v", stored)
 	}
-	if _, ok := reopened.getJob(job.GetJobId()); ok {
-		t.Fatal("VoiceAsset durability must not extend the process-local Scenario Job retention boundary")
+}
+
+func TestVoiceAssetStoreTerminalCommitFailureRemovesDurablePending(t *testing.T) {
+	localStatePath := filepath.Join(t.TempDir(), "local-state.json")
+	store, err := newVoiceAssetStoreForLocalStatePath(localStatePath)
+	if err != nil {
+		t.Fatal(err)
 	}
-	_, _, storedBinding, ok := reopened.getAssetCloudBinding(asset.GetVoiceAssetId())
-	if !ok || !storedBinding.Valid() || storedBinding.ConnectorID != targetRef.Cloud.ConnectorID || storedBinding.Implementation.GetDriverDialect() != "dashscope/voice/v1" {
-		t.Fatalf("private AIConfig binding after reopen=%+v", storedBinding)
+	target := testVoiceAssetCloudTarget("connector-voice")
+	draft := testProviderPersistentVoiceDraft("voice-job-terminal-commit-failed")
+	commitCalled := false
+	asset, published := store.publishResult(draft, target, testVoiceAssetCloudBinding(target), "provider-voice-ref", nil,
+		func(*runtimev1.VoiceAsset, *runtimev1.VoiceReference) bool {
+			commitCalled = true
+			return false
+		})
+	if published || asset != nil || !commitCalled {
+		t.Fatalf("failed primary terminal commit asset=%#v published=%v commitCalled=%v", asset, published, commitCalled)
+	}
+	if visible, ok := store.getAsset(draft.GetVoiceAssetId()); ok || visible != nil {
+		t.Fatalf("failed primary terminal commit leaked VoiceAsset %#v", visible)
+	}
+
+	reopened, err := newVoiceAssetStoreForLocalStatePath(localStatePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	reopened.mu.RLock()
+	assetCount, pendingCount := len(reopened.assets), len(reopened.pending)
+	reopened.mu.RUnlock()
+	if assetCount != 0 || pendingCount != 0 {
+		t.Fatalf("failed primary terminal commit retained durable publication: assets=%d pending=%d", assetCount, pendingCount)
+	}
+}
+
+func TestVoicePublicationRestartPromotesPendingFromCompletedPrimaryJob(t *testing.T) {
+	localStatePath := filepath.Join(t.TempDir(), "local-state.json")
+	asset := testActiveProviderPersistentVoiceAsset("voice-job-completed-before-promote")
+	persistPrimaryVoiceScenarioJobForTest(t, localStatePath, asset, true)
+	persistPendingVoicePublicationForTest(t, localStatePath, asset)
+
+	beforeRestart, err := newVoiceAssetStoreForLocalStatePath(localStatePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if visible, ok := beforeRestart.getAsset(asset.GetVoiceAssetId()); ok || visible != nil || len(beforeRestart.listAssets(&runtimev1.ListVoiceAssetsRequest{})) != 0 {
+		t.Fatalf("private pending VoiceAsset was public before reconciliation: %#v", visible)
+	}
+
+	svc := restartProtectedAIServiceForVoicePublicationTest(t, localStatePath)
+	promoted, target, binding, ok := svc.voiceAssets.getAssetCloudBinding(asset.GetVoiceAssetId())
+	if !ok || promoted.GetProviderVoiceRef() != asset.GetProviderVoiceRef() || target == nil || binding == nil || !binding.Valid() {
+		t.Fatalf("completed primary Job did not promote pending VoiceAsset: asset=%#v target=%#v binding=%#v visible=%v", promoted, target, binding, ok)
+	}
+
+	reopened, err := newVoiceAssetStoreForLocalStatePath(localStatePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	reopened.mu.RLock()
+	pendingCount := len(reopened.pending)
+	reopened.mu.RUnlock()
+	if durable, ok := reopened.getAsset(asset.GetVoiceAssetId()); !ok || durable == nil || pendingCount != 0 {
+		t.Fatalf("promoted VoiceAsset was not durably recovered: asset=%#v visible=%v pending=%d", durable, ok, pendingCount)
+	}
+}
+
+func TestVoicePublicationRestartReconcilesBeforePruningExpiredCompletedJob(t *testing.T) {
+	localStatePath := filepath.Join(t.TempDir(), "local-state.json")
+	asset := testActiveProviderPersistentVoiceAsset("voice-job-expired-completed-before-promote")
+	persistPrimaryVoiceScenarioJobForTest(t, localStatePath, asset, true)
+	agePrimaryVoiceScenarioJobBeyondRetentionForTest(t, localStatePath, asset.GetVoiceAssetId())
+	persistPendingVoicePublicationForTest(t, localStatePath, asset)
+
+	svc := restartProtectedAIServiceForVoicePublicationTest(t, localStatePath)
+	promoted, _, binding, ok := svc.voiceAssets.getAssetCloudBinding(asset.GetVoiceAssetId())
+	if !ok || promoted.GetProviderVoiceRef() != asset.GetProviderVoiceRef() || binding == nil || !binding.Valid() {
+		t.Fatalf("expired completed primary Job did not promote pending VoiceAsset before prune: asset=%#v binding=%#v visible=%v", promoted, binding, ok)
+	}
+	if pruned, ok := svc.scenarioJobs.get(asset.GetVoiceAssetId()); ok || pruned != nil {
+		t.Fatalf("expired completed primary Job survived post-reconciliation prune: %#v", pruned)
+	}
+
+	reopened, err := newVoiceAssetStoreForLocalStatePath(localStatePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if durable, ok := reopened.getAsset(asset.GetVoiceAssetId()); !ok || durable == nil {
+		t.Fatalf("promoted VoiceAsset was lost after expired primary Job prune: asset=%#v visible=%v", durable, ok)
+	}
+}
+
+func TestVoicePublicationRestartRemovesPendingWithoutCompletedPrimaryJob(t *testing.T) {
+	for _, primaryState := range []string{"missing", "nonterminal"} {
+		t.Run(primaryState, func(t *testing.T) {
+			localStatePath := filepath.Join(t.TempDir(), "local-state.json")
+			asset := testActiveProviderPersistentVoiceAsset("voice-job-" + primaryState)
+			if primaryState == "nonterminal" {
+				persistPrimaryVoiceScenarioJobForTest(t, localStatePath, asset, false)
+			}
+			persistPendingVoicePublicationForTest(t, localStatePath, asset)
+
+			svc := restartProtectedAIServiceForVoicePublicationTest(t, localStatePath)
+			if visible, ok := svc.voiceAssets.getAsset(asset.GetVoiceAssetId()); ok || visible != nil || len(svc.voiceAssets.listAssets(&runtimev1.ListVoiceAssetsRequest{})) != 0 {
+				t.Fatalf("pending VoiceAsset without completed primary Job became public: %#v", visible)
+			}
+			if primaryState == "nonterminal" {
+				job, ok := svc.scenarioJobs.get(asset.GetVoiceAssetId())
+				if !ok || job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED {
+					t.Fatalf("restarted nonterminal primary Job=%#v visible=%v", job, ok)
+				}
+			}
+
+			reopened, err := newVoiceAssetStoreForLocalStatePath(localStatePath)
+			if err != nil {
+				t.Fatal(err)
+			}
+			reopened.mu.RLock()
+			assetCount, pendingCount := len(reopened.assets), len(reopened.pending)
+			reopened.mu.RUnlock()
+			if assetCount != 0 || pendingCount != 0 {
+				t.Fatalf("orphan pending VoiceAsset survived restart: assets=%d pending=%d", assetCount, pendingCount)
+			}
+		})
+	}
+}
+
+func TestVoiceAssetDraftPreservesExplicitWorkflowFamilyMetadata(t *testing.T) {
+	for _, tc := range []struct {
+		name, modelID, workflowModelID, family string
+	}{
+		{name: "qwen3tts", modelID: "speech/qwen3tts", workflowModelID: "qwen3-local-voice-design", family: "qwen3_tts"},
+		{name: "omnivoice", modelID: "k2-fsa/OmniVoice", workflowModelID: "local/omnivoice-voice-clone", family: "omnivoice"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			asset := newVoiceAssetDraft(&voiceWorkflowSubmitInput{
+				Head:         &runtimev1.ScenarioRequestHead{AppId: "app-1", SubjectUserId: "user-1"},
+				ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE,
+				Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_VoiceCreate{VoiceCreate: &runtimev1.VoiceCreateScenarioSpec{
+					Source: &runtimev1.VoiceCreateScenarioSpec_TextDescription{TextDescription: &runtimev1.VoiceT2VInput{InstructionText: "warm narrator"}},
+				}}},
+				ModelResolved: tc.modelID, WorkflowModelID: tc.workflowModelID, WorkflowFamily: tc.family, Provider: "local",
+			}, "voice-"+tc.name, timestamppb.Now())
+			if asset == nil || asset.GetMetadata().GetFields()["workflow_family"].GetStringValue() != tc.family {
+				t.Fatalf("VoiceAsset metadata=%#v", asset)
+			}
+		})
 	}
 }
 
 func TestVoiceAssetStoreRejectsStaleDurableVersion(t *testing.T) {
 	localStatePath := filepath.Join(t.TempDir(), "local-state.json")
 	writeVoiceAssetDiskTestFile(t, localStatePath, []byte(`{"version":1,"records":[]}`))
-
 	_, err := newVoiceAssetStoreForLocalStatePath(localStatePath)
 	if err == nil || !strings.Contains(err.Error(), "unsupported voice asset store version 1") {
 		t.Fatalf("stale durable version error = %v", err)
@@ -489,19 +394,8 @@ func TestVoiceAssetStoreRejectsRemovedGrantField(t *testing.T) {
 	localStatePath := filepath.Join(t.TempDir(), "local-state.json")
 	writeVoiceAssetDiskTestFile(t, localStatePath, []byte(`{
 		"version":2,
-		"records":[{
-			"asset":{},
-			"target":{"cloud":{
-				"connectorId":"connector-1",
-				"connectorGrantId":"removed-grant",
-				"remoteModelCatalogId":"catalog-1",
-				"providerModelId":"model-1",
-				"provider":"provider-1"
-			}},
-			"connector_id":"connector-1"
-		}]
+		"records":[{"asset":{},"target":{"cloud":{"connectorId":"connector-1","connectorGrantId":"removed-grant","remoteModelCatalogId":"catalog-1","providerModelId":"model-1","provider":"provider-1"}},"connector_id":"connector-1"}]
 	}`))
-
 	_, err := newVoiceAssetStoreForLocalStatePath(localStatePath)
 	if err == nil || !strings.Contains(err.Error(), `unknown field "connectorGrantId"`) {
 		t.Fatalf("removed grant field error = %v", err)
@@ -510,34 +404,21 @@ func TestVoiceAssetStoreRejectsRemovedGrantField(t *testing.T) {
 
 func TestVoiceAssetStoreRejectsMissingOrConflictingConnectorIdentity(t *testing.T) {
 	assetRaw, err := (protojson.MarshalOptions{UseProtoNames: true}).Marshal(&runtimev1.VoiceAsset{
-		VoiceAssetId:     "voice-asset-1",
-		Persistence:      runtimev1.VoiceAssetPersistence_VOICE_ASSET_PERSISTENCE_PROVIDER_PERSISTENT,
+		VoiceAssetId: "voice-asset-1", Persistence: runtimev1.VoiceAssetPersistence_VOICE_ASSET_PERSISTENCE_PROVIDER_PERSISTENT,
 		ProviderVoiceRef: "provider-voice-ref",
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	providerTarget := map[string]any{
-		"provider": "provider-1", "providerModelId": "model-1", "remoteModelCatalogId": "catalog-1",
-	}
 	for name, connectorID := range map[string]string{"missing": "", "conflicting": "connector-2"} {
 		t.Run(name, func(t *testing.T) {
 			localStatePath := filepath.Join(t.TempDir(), "local-state.json")
-			raw, marshalErr := json.Marshal(voiceAssetDiskSnapshot{
-				Version: voiceAssetDiskStoreVersion,
-				Records: []voiceAssetDiskRecord{{
-					Asset: assetRaw,
-					Target: &runtimeidentity.Target{Cloud: &runtimeidentity.CloudTarget{
-						ConnectorID: "connector-1", RemoteModelCatalogID: "catalog-1", ProviderModelID: "model-1", Provider: "provider-1",
-					}},
-					CapabilityContract: "voice.create",
-					Implementation: &runtimev1.CapabilityImplementationIdentity{
-						ImplementationId: "cloud.voice.provider-1", DriverId: "driver.provider-1", DriverDialect: "provider-1/voice/v1",
-					},
-					ProviderModelTarget: providerTarget,
-					ConnectorID:         connectorID,
-				}},
-			})
+			target := testVoiceAssetCloudTarget("connector-1")
+			binding := testVoiceAssetCloudBinding(target)
+			raw, marshalErr := json.Marshal(voiceAssetDiskSnapshot{Version: voiceAssetDiskStoreVersion, Records: []voiceAssetDiskRecord{{
+				Asset: assetRaw, Target: target, CapabilityContract: binding.CapabilityContract, Implementation: binding.Implementation,
+				ProviderModelTarget: binding.ProviderModelTarget.AsMap(), ConnectorID: connectorID,
+			}}})
 			if marshalErr != nil {
 				t.Fatal(marshalErr)
 			}
@@ -558,103 +439,5 @@ func writeVoiceAssetDiskTestFile(t *testing.T, localStatePath string, raw []byte
 	}
 	if err := os.WriteFile(path, raw, 0o600); err != nil {
 		t.Fatal(err)
-	}
-}
-
-func TestVoiceAssetStoreCompleteFailsClosedWhenProviderPersistentSnapshotCannotPersist(t *testing.T) {
-	store := newVoiceAssetStore()
-	store.durablePath = t.TempDir()
-	job, asset := store.submit(&voiceWorkflowSubmitInput{
-		RouteDecision:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
-		ExecutionTarget: runtimeAgentVoiceAssetTestTarget("connector-test"),
-		Head: &runtimev1.ScenarioRequestHead{
-			AppId:         "app-1",
-			SubjectUserId: "user-1",
-		},
-		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE,
-		Spec: &runtimev1.ScenarioSpec{
-			Spec: &runtimev1.ScenarioSpec_VoiceCreate{VoiceCreate: &runtimev1.VoiceCreateScenarioSpec{
-				Source: &runtimev1.VoiceCreateScenarioSpec_ReferenceAudio{ReferenceAudio: &runtimev1.VoiceV2VInput{
-					ReferenceAudioUri:  "https://example.com/reference.wav",
-					ReferenceAudioMime: "audio/wav",
-				}},
-			}},
-		},
-		Provider:          "dashscope",
-		OutputPersistence: "provider_persistent",
-	})
-	if job == nil || asset == nil {
-		t.Fatalf("submit should create provider-persistent voice workflow")
-	}
-
-	if store.completeJob(job.GetJobId(), "dashscope-provider-voice-ref", nil, nil) {
-		t.Fatalf("provider-persistent completion must fail closed when durable snapshot cannot persist")
-	}
-	if completedAsset, ok := store.getAsset(asset.GetVoiceAssetId()); ok {
-		t.Fatalf("failed durable completion must not publish a VoiceAsset, got %#v", completedAsset)
-	}
-	completedJob, ok := store.getJob(job.GetJobId())
-	if !ok {
-		t.Fatalf("job should remain visible with failed status for diagnosis")
-	}
-	if completedJob.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED {
-		t.Fatalf("job status after failed durable completion=%v, want FAILED", completedJob.GetStatus())
-	}
-}
-
-func TestVoiceAssetStoreSubmitPersistsExplicitWorkflowFamilyMetadata(t *testing.T) {
-	store := newVoiceAssetStore()
-	cases := []struct {
-		name            string
-		modelID         string
-		targetModelID   string
-		workflowModelID string
-		wantFamily      string
-	}{
-		{
-			name:            "qwen3tts",
-			modelID:         "speech/qwen3tts",
-			targetModelID:   "speech/qwen3tts",
-			workflowModelID: "qwen3-local-voice-design",
-			wantFamily:      "qwen3_tts",
-		},
-		{
-			name:            "omnivoice",
-			modelID:         "k2-fsa/OmniVoice",
-			targetModelID:   "k2-fsa/OmniVoice",
-			workflowModelID: "local/omnivoice-voice-clone",
-			wantFamily:      "omnivoice",
-		},
-	}
-
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			_, asset := store.submit(&voiceWorkflowSubmitInput{
-				RouteDecision:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
-				ExecutionTarget: runtimeAgentVoiceAssetTestTarget("connector-test"),
-				Head: &runtimev1.ScenarioRequestHead{
-					AppId:         "app-1",
-					SubjectUserId: "user-1",
-				},
-				ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE,
-				Spec: &runtimev1.ScenarioSpec{
-					Spec: &runtimev1.ScenarioSpec_VoiceCreate{VoiceCreate: &runtimev1.VoiceCreateScenarioSpec{
-						Source: &runtimev1.VoiceCreateScenarioSpec_TextDescription{TextDescription: &runtimev1.VoiceT2VInput{
-							InstructionText: "warm cinematic narrator",
-						}},
-					}},
-				},
-				ModelResolved:   tc.modelID,
-				WorkflowModelID: tc.workflowModelID,
-				WorkflowFamily:  tc.wantFamily,
-				Provider:        "local",
-			})
-			if asset == nil {
-				t.Fatalf("submit should create voice asset")
-			}
-			if got := asset.GetMetadata().GetFields()["workflow_family"].GetStringValue(); got != tc.wantFamily {
-				t.Fatalf("workflow_family=%q, want=%q", got, tc.wantFamily)
-			}
-		})
 	}
 }

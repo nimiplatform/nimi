@@ -691,6 +691,17 @@ func TestLocalSpeechSynthesisStreamUsesDeclaredSimulatedMode(t *testing.T) {
 		!stream.events[3].GetCompleted().GetStreamSimulated() {
 		t.Fatalf("local speech stream events=%+v", stream.events)
 	}
+	svc.scenarioJobs.mu.RLock()
+	defer svc.scenarioJobs.mu.RUnlock()
+	if len(svc.scenarioJobs.jobs) != 1 {
+		t.Fatalf("local speech stream durable jobs = %d, want 1", len(svc.scenarioJobs.jobs))
+	}
+	for _, record := range svc.scenarioJobs.jobs {
+		if record.job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED ||
+			record.resolvedAssembly == nil || record.resolvedAssembly.Request.Kind != "speech.synthesize" {
+			t.Fatalf("local speech stream durable capture = job %+v assembly %+v", record.job, record.resolvedAssembly)
+		}
+	}
 }
 
 func TestLocalSpeechSynthesisStreamFirstPacketTimeoutStartsAfterHostLease(t *testing.T) {

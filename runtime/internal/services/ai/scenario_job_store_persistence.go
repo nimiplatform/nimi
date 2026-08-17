@@ -58,12 +58,15 @@ type scenarioJobDiskSnapshot struct {
 }
 
 type scenarioJobDiskRecord struct {
-	Job              json.RawMessage   `json:"job"`
-	ResolvedAssembly json.RawMessage   `json:"resolved_assembly,omitempty"`
-	Owner            *localAppJobOwner `json:"owner,omitempty"`
-	CreatedAt        time.Time         `json:"created_at"`
-	UpdatedAt        time.Time         `json:"updated_at"`
-	TerminalAt       time.Time         `json:"terminal_at,omitempty"`
+	Job                   json.RawMessage   `json:"job"`
+	ResolvedAssembly      json.RawMessage   `json:"resolved_assembly,omitempty"`
+	CloudResolvedAssembly json.RawMessage   `json:"cloud_resolved_assembly,omitempty"`
+	VoiceAsset            json.RawMessage   `json:"voice_asset,omitempty"`
+	VoiceReference        json.RawMessage   `json:"voice_reference,omitempty"`
+	Owner                 *localAppJobOwner `json:"owner,omitempty"`
+	CreatedAt             time.Time         `json:"created_at"`
+	UpdatedAt             time.Time         `json:"updated_at"`
+	TerminalAt            time.Time         `json:"terminal_at,omitempty"`
 }
 
 type scenarioJobDiskIdempotencyEntry struct {
@@ -74,12 +77,23 @@ type scenarioJobDiskIdempotencyEntry struct {
 
 // @nimi-authority: rule.nimi.runtime.local-compute.r100
 func newScenarioJobStoreForLocalStatePath(localStatePath string) (*scenarioJobStore, error) {
+	return newScenarioJobStoreForLocalStatePathWithStartupPrune(localStatePath, true)
+}
+
+// newScenarioJobStoreForLocalStatePathBeforeStartupPrune retains recovered
+// terminal Jobs until every cross-store publication protocol has reconciled.
+// Production startup prunes and persists them immediately afterward.
+func newScenarioJobStoreForLocalStatePathBeforeStartupPrune(localStatePath string) (*scenarioJobStore, error) {
+	return newScenarioJobStoreForLocalStatePathWithStartupPrune(localStatePath, false)
+}
+
+func newScenarioJobStoreForLocalStatePathWithStartupPrune(localStatePath string, prune bool) (*scenarioJobStore, error) {
 	store := newScenarioJobStore()
 	store.durablePath = scenarioJobStorePathForLocalStatePath(localStatePath)
 	if store.durablePath == "" {
 		return store, nil
 	}
-	if err := store.loadDurableJobs(); err != nil {
+	if err := store.loadDurableJobs(prune); err != nil {
 		return nil, err
 	}
 	return store, nil
@@ -93,7 +107,7 @@ func scenarioJobStorePathForLocalStatePath(localStatePath string) string {
 	return filepath.Join(filepath.Dir(trimmed), scenarioJobDiskStoreDirName, scenarioJobDiskStoreFileName)
 }
 
-func (s *scenarioJobStore) loadDurableJobs() error {
+func (s *scenarioJobStore) loadDurableJobs(prune bool) error {
 	raw, err := os.ReadFile(s.durablePath)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
@@ -123,8 +137,29 @@ func (s *scenarioJobStore) loadDurableJobs() error {
 			resolvedAssembly = &localResolvedAssembly{}
 			rowErr = decodeScenarioJobStrictJSON(item.ResolvedAssembly, resolvedAssembly)
 		}
+		var cloudAssembly *cloudResolvedAssembly
+		if rowErr == nil && len(item.CloudResolvedAssembly) > 0 {
+			cloudAssembly = &cloudResolvedAssembly{}
+			rowErr = decodeScenarioJobStrictJSON(item.CloudResolvedAssembly, cloudAssembly)
+		}
 		if rowErr == nil {
-			rowErr = validateScenarioJobResolvedAssemblyPair(&job, resolvedAssembly)
+			rowErr = validatePersistedScenarioJob(&job, item.CreatedAt, item.UpdatedAt, item.TerminalAt)
+		}
+		if rowErr == nil {
+			rowErr = validateScenarioJobCapturedInputsPair(&job, resolvedAssembly, cloudAssembly)
+		}
+		var voiceAsset *runtimev1.VoiceAsset
+		if rowErr == nil && len(item.VoiceAsset) > 0 {
+			voiceAsset = &runtimev1.VoiceAsset{}
+			rowErr = (protojson.UnmarshalOptions{DiscardUnknown: false}).Unmarshal(item.VoiceAsset, voiceAsset)
+		}
+		var voiceReference *runtimev1.VoiceReference
+		if rowErr == nil && len(item.VoiceReference) > 0 {
+			voiceReference = &runtimev1.VoiceReference{}
+			rowErr = (protojson.UnmarshalOptions{DiscardUnknown: false}).Unmarshal(item.VoiceReference, voiceReference)
+		}
+		if rowErr == nil {
+			rowErr = validateScenarioJobVoiceResultPair(&job, voiceAsset, voiceReference)
 		}
 		jobID := strings.TrimSpace(job.GetJobId())
 		if rowErr == nil && (jobID == "" || item.CreatedAt.IsZero() || item.UpdatedAt.IsZero()) {
@@ -141,7 +176,7 @@ func (s *scenarioJobStore) loadDurableJobs() error {
 		}
 		if !isTerminalScenarioJobStatus(job.GetStatus()) {
 			job.Status = runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED
-			job.ReasonCode = runtimev1.ReasonCode_AI_LOCAL_EXECUTION_INFERENCE_FAILED
+			job.ReasonCode = interruptedCapturedAssemblyReasonCode(&job)
 			job.ReasonDetail = interruptedCapturedAssemblyDetail(&job)
 			job.ReasonMetadata = nil
 			job.UpdatedAt = timestamppb.New(now)
@@ -149,7 +184,8 @@ func (s *scenarioJobStore) loadDurableJobs() error {
 			item.TerminalAt = now
 		}
 		record := &scenarioJobRecord{
-			job: cloneScenarioJob(&job), resolvedAssembly: resolvedAssembly, localAppOwner: cloneLocalAppJobOwner(item.Owner),
+			job: cloneScenarioJob(&job), resolvedAssembly: resolvedAssembly, cloudAssembly: cloudAssembly, localAppOwner: cloneLocalAppJobOwner(item.Owner),
+			voiceAsset: cloneVoiceAsset(voiceAsset), voiceReference: cloneVoiceReference(voiceReference),
 			events: make([]*runtimev1.ScenarioJobEvent, 0, 1), subscribers: make(map[uint64]chan *runtimev1.ScenarioJobEvent),
 			done: make(chan struct{}), createdAt: item.CreatedAt.UTC(), updatedAt: item.UpdatedAt.UTC(), terminalAt: item.TerminalAt.UTC(),
 		}
@@ -199,8 +235,38 @@ func (s *scenarioJobStore) loadDurableJobs() error {
 			})
 		}
 	}
-	s.pruneLocked(now)
+	if prune {
+		s.pruneLocked(now)
+	}
 	return s.persistDurableJobsLocked(scenarioJobPersistenceAttempt{Operation: scenarioJobPersistLoad})
+}
+
+func (s *scenarioJobStore) pruneRecoveredDurableState() error {
+	if s == nil {
+		return fmt.Errorf("ScenarioJob store is required")
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	// A missing active document is meaningful after whole-document isolation
+	// (and on a fresh install). Do not recreate an empty active store merely as
+	// a side effect of the post-reconciliation prune phase; the first healthy
+	// Job write will materialize it.
+	if len(s.jobs) == 0 && len(s.idempotency) == 0 {
+		if _, err := os.Stat(s.durablePath); errors.Is(err, os.ErrNotExist) {
+			return nil
+		} else if err != nil {
+			return fmt.Errorf("inspect ScenarioJob store before prune: %w", err)
+		}
+	}
+	s.pruneLocked(time.Now().UTC())
+	return s.persistDurableJobsLocked(scenarioJobPersistenceAttempt{Operation: scenarioJobPersistPrune})
+}
+
+func interruptedCapturedAssemblyReasonCode(job *runtimev1.ScenarioJob) runtimev1.ReasonCode {
+	if job != nil && job.GetRouteDecision() == runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD {
+		return runtimev1.ReasonCode_AI_PROVIDER_INTERNAL
+	}
+	return runtimev1.ReasonCode_AI_LOCAL_EXECUTION_INFERENCE_FAILED
 }
 
 func decodeScenarioJobStrictJSON(payload []byte, target any) error {
@@ -334,8 +400,14 @@ func (s *scenarioJobStore) persistDurableJobsLocked(attempt scenarioJobPersisten
 		if record == nil || record.job == nil {
 			return fmt.Errorf("scenario job %q has no record", jobID)
 		}
-		if err := validateScenarioJobResolvedAssemblyPair(record.job, record.resolvedAssembly); err != nil {
+		if err := validatePersistedScenarioJob(record.job, record.createdAt, record.updatedAt, record.terminalAt); err != nil {
+			return fmt.Errorf("scenario job %q public record: %w", jobID, err)
+		}
+		if err := validateScenarioJobCapturedInputsPair(record.job, record.resolvedAssembly, record.cloudAssembly); err != nil {
 			return fmt.Errorf("scenario job %q captured inputs: %w", jobID, err)
+		}
+		if err := validateScenarioJobVoiceResultPair(record.job, record.voiceAsset, record.voiceReference); err != nil {
+			return fmt.Errorf("scenario job %q terminal voice result: %w", jobID, err)
 		}
 		raw, err := (protojson.MarshalOptions{UseProtoNames: true}).Marshal(record.job)
 		if err != nil {
@@ -348,8 +420,30 @@ func (s *scenarioJobStore) persistDurableJobsLocked(attempt scenarioJobPersisten
 				return fmt.Errorf("marshal scenario job %q ResolvedAssembly: %w", jobID, err)
 			}
 		}
+		var cloudAssemblyRaw json.RawMessage
+		if record.cloudAssembly != nil {
+			cloudAssemblyRaw, err = json.Marshal(record.cloudAssembly)
+			if err != nil {
+				return fmt.Errorf("marshal scenario job %q Cloud ResolvedAssembly: %w", jobID, err)
+			}
+		}
+		var voiceAssetRaw json.RawMessage
+		if record.voiceAsset != nil {
+			voiceAssetRaw, err = (protojson.MarshalOptions{UseProtoNames: true}).Marshal(record.voiceAsset)
+			if err != nil {
+				return fmt.Errorf("marshal scenario job %q terminal VoiceAsset: %w", jobID, err)
+			}
+		}
+		var voiceReferenceRaw json.RawMessage
+		if record.voiceReference != nil {
+			voiceReferenceRaw, err = (protojson.MarshalOptions{UseProtoNames: true}).Marshal(record.voiceReference)
+			if err != nil {
+				return fmt.Errorf("marshal scenario job %q terminal VoiceReference: %w", jobID, err)
+			}
+		}
 		snapshot.Records = append(snapshot.Records, scenarioJobDiskRecord{
-			Job: raw, ResolvedAssembly: assemblyRaw, Owner: cloneLocalAppJobOwner(record.localAppOwner),
+			Job: raw, ResolvedAssembly: assemblyRaw, CloudResolvedAssembly: cloudAssemblyRaw, Owner: cloneLocalAppJobOwner(record.localAppOwner),
+			VoiceAsset: voiceAssetRaw, VoiceReference: voiceReferenceRaw,
 			CreatedAt: record.createdAt, UpdatedAt: record.updatedAt, TerminalAt: record.terminalAt,
 		})
 	}

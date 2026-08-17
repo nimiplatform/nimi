@@ -65,9 +65,6 @@ func TestLocalVoiceCreateTypedSourcesProduceReusableVoiceAssets(t *testing.T) {
 			if err != nil {
 				t.Fatalf("SubmitScenarioJob voice.create: %v", err)
 			}
-			if _, duplicated := svc.voiceAssets.getJob(response.GetJob().GetJobId()); duplicated {
-				t.Fatal("local voice.create Job was duplicated into voiceAssetStore")
-			}
 			assembly, captured := svc.scenarioJobs.resolvedAssembly(response.GetJob().GetJobId())
 			if !captured || assembly.Request.Kind != "voice.create" || assembly.LoadPlan.Speech == nil || assembly.LoadPlan.Speech.Operation != "voice.create" {
 				t.Fatalf("local voice.create ResolvedAssembly = %+v, captured=%v", assembly, captured)

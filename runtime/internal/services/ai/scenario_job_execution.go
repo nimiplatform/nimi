@@ -17,12 +17,22 @@ import (
 func (s *Service) executeScenarioAsyncJob(
 	ctx context.Context,
 	jobID string,
-	effective *cloudMediaEffectiveInputs,
 ) {
-	if effective == nil || effective.request == nil || !s.scenarioJobs.startExecution(jobID) {
+	if !s.scenarioJobs.startExecution(jobID) {
 		return
 	}
 	defer s.finishScenarioJobExecution(jobID)
+	assembly, ok := s.scenarioJobs.cloudResolvedAssembly(jobID)
+	if !ok {
+		s.failScenarioJobPersistencePrecondition(jobID, "scenario-job-cloud-inputs-missing", nil)
+		return
+	}
+	effective, err := s.cloudMediaEffectiveInputsFromResolvedAssembly(assembly)
+	if err != nil {
+		s.finishScenarioAsyncJobFailure(ctx, jobID, nil, err)
+		return
+	}
+	defer effective.release()
 	req := effective.request
 	if _, ok, transitionErr := s.transitionScenarioJob(jobID, runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_QUEUED, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_QUEUED, nil); transitionErr != nil {
 		s.failScenarioJobPersistencePrecondition(jobID, scenarioJobQueuedPersistenceFailedReason, transitionErr)

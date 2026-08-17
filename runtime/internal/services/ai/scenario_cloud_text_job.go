@@ -79,7 +79,7 @@ func (s *Service) submitCloudTextScenarioJob(
 		TraceId:           effective.traceID,
 		IgnoredExtensions: cloneIgnoredScenarioExtensions(ignored),
 	}
-	snapshot, created, persistErr := s.scenarioJobs.createOwnedAndBindChecked(job, cancel, localAppJobOwnerFromContext(ctx), idempotencyScope)
+	snapshot, created, persistErr := s.scenarioJobs.createOwnedAndBindCloudAssemblyChecked(job, cancel, localAppJobOwnerFromContext(ctx), idempotencyScope, effective.resolvedAssembly)
 	if persistErr != nil {
 		cancel()
 		return nil, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID, persistErr, grpcerr.ReasonOptions{
@@ -94,16 +94,27 @@ func (s *Service) submitCloudTextScenarioJob(
 		cancel()
 		return &runtimev1.SubmitScenarioJobResponse{Job: snapshot}, nil
 	}
+	effective.release()
 	captureOwned = false
-	go s.executeCloudTextScenarioJob(jobCtx, jobID, effective)
+	go s.executeCloudTextScenarioJob(jobCtx, jobID)
 	return &runtimev1.SubmitScenarioJobResponse{Job: snapshot}, nil
 }
 
-func (s *Service) executeCloudTextScenarioJob(ctx context.Context, jobID string, effective *cloudTextEffectiveInputs) {
-	if effective == nil || !s.scenarioJobs.startExecution(jobID) {
+func (s *Service) executeCloudTextScenarioJob(ctx context.Context, jobID string) {
+	if !s.scenarioJobs.startExecution(jobID) {
 		return
 	}
 	defer s.finishScenarioJobExecution(jobID)
+	assembly, ok := s.scenarioJobs.cloudResolvedAssembly(jobID)
+	if !ok {
+		s.failScenarioJobPersistencePrecondition(jobID, "scenario-job-cloud-inputs-missing", nil)
+		return
+	}
+	effective, err := s.cloudTextEffectiveInputsFromResolvedAssembly(assembly)
+	if err != nil {
+		s.finishCloudScenarioJobFailure(ctx, jobID, err)
+		return
+	}
 	defer effective.release()
 	if _, ok, transitionErr := s.transitionScenarioJob(
 		jobID,
@@ -118,7 +129,7 @@ func (s *Service) executeCloudTextScenarioJob(ctx context.Context, jobID string,
 	}
 	release, err := s.acquireAsyncScenarioJobLease(ctx, effective.appID, "scenario_job_cloud_text")
 	if err != nil {
-		s.finishCloudTextScenarioJobFailure(ctx, jobID, err)
+		s.finishCloudScenarioJobFailure(ctx, jobID, err)
 		return
 	}
 	defer release()
@@ -140,7 +151,7 @@ func (s *Service) executeCloudTextScenarioJob(ctx context.Context, jobID string,
 
 	result, err := s.executeCapturedCloudText(ctx, effective)
 	if err != nil {
-		s.finishCloudTextScenarioJobFailure(ctx, jobID, err)
+		s.finishCloudScenarioJobFailure(ctx, jobID, err)
 		return
 	}
 	if existing, ok := s.scenarioJobs.get(jobID); ok && isTerminalScenarioJobStatus(existing.GetStatus()) {
@@ -180,7 +191,7 @@ func (s *Service) executeCloudTextScenarioJob(ctx context.Context, jobID string,
 	)
 }
 
-func (s *Service) finishCloudTextScenarioJobFailure(ctx context.Context, jobID string, err error) {
+func (s *Service) finishCloudScenarioJobFailure(ctx context.Context, jobID string, err error) {
 	if existing, ok := s.scenarioJobs.get(jobID); ok && isTerminalScenarioJobStatus(existing.GetStatus()) {
 		return
 	}
@@ -195,13 +206,18 @@ func (s *Service) finishCloudTextScenarioJobFailure(ctx context.Context, jobID s
 		jobStatus = runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_TIMEOUT
 		eventType = runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_TIMEOUT
 		reason = runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT
-	case errors.Is(err, context.Canceled) || status.Code(err) == codes.Canceled:
+	case errors.Is(ctx.Err(), context.Canceled) || errors.Is(err, context.Canceled) || status.Code(err) == codes.Canceled:
 		jobStatus = runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED
 		eventType = runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_CANCELED
+		reason = runtimev1.ReasonCode_ACTION_EXECUTED
 	}
 	_, _, _ = s.transitionScenarioJob(jobID, jobStatus, eventType, func(job *runtimev1.ScenarioJob) {
 		job.ReasonCode = reason
 		job.ReasonDetail = sanitizeScenarioJobReasonDetail(err, reason)
-		job.ReasonMetadata = scenarioJobReasonMetadata(err, reason)
+		if jobStatus == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED {
+			job.ReasonMetadata = nil
+		} else {
+			job.ReasonMetadata = scenarioJobReasonMetadata(err, reason)
+		}
 	})
 }

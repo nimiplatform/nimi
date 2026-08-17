@@ -18,24 +18,26 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type cloudEmbedEffectiveInputs struct {
-	implementation *runtimev1.CapabilityImplementationIdentity
-	rawTarget      *structpb.Struct
-	target         capabilitydriver.CloudEmbedTarget
-	catalogTarget  *nimillm.RemoteTarget
-	connector      connector.ConnectorRecord
-	defaults       *structpb.Struct
-	request        *runtimev1.TextEmbedScenarioSpec
-	mapped         *capabilitydriver.CloudEmbedMappedRequest
-	driver         capabilitydriver.CloudEmbedDriver
-	traceID        string
-	appID          string
-	accountID      string
+	implementation   *runtimev1.CapabilityImplementationIdentity
+	rawTarget        *structpb.Struct
+	target           capabilitydriver.CloudEmbedTarget
+	catalogTarget    *nimillm.RemoteTarget
+	connector        connector.ConnectorRecord
+	defaults         *structpb.Struct
+	request          *runtimev1.TextEmbedScenarioSpec
+	mapped           *capabilitydriver.CloudEmbedMappedRequest
+	driver           capabilitydriver.CloudEmbedDriver
+	traceID          string
+	appID            string
+	accountID        string
+	resolvedAssembly *cloudResolvedAssembly
 }
 
 func (input *cloudEmbedEffectiveInputs) release() {
@@ -51,6 +53,7 @@ func (input *cloudEmbedEffectiveInputs) release() {
 	input.request = nil
 	input.mapped = nil
 	input.driver = nil
+	input.resolvedAssembly = nil
 }
 
 func (input *cloudEmbedEffectiveInputs) modelResolved() string {
@@ -140,7 +143,7 @@ func (s *Service) captureCloudEmbedEffectiveInputs(
 	implementation, _ := proto.Clone(intent.CloudImplementation).(*runtimev1.CapabilityImplementationIdentity)
 	rawTarget, _ := proto.Clone(intent.ProviderModelTarget).(*structpb.Struct)
 	defaults, _ := proto.Clone(intent.Defaults).(*structpb.Struct)
-	effectiveRequest, _ := proto.Clone(request.GetSpec().GetTextEmbed()).(*runtimev1.TextEmbedScenarioSpec)
+	effectiveRequest := &runtimev1.TextEmbedScenarioSpec{Inputs: mapped.Inputs()}
 	effective := &cloudEmbedEffectiveInputs{
 		implementation: implementation,
 		rawTarget:      rawTarget,
@@ -155,11 +158,64 @@ func (s *Service) captureCloudEmbedEffectiveInputs(
 		appID:          strings.TrimSpace(head.GetAppId()),
 		accountID:      accountID,
 	}
+	effective.resolvedAssembly, err = newCloudResolvedAssembly(
+		cloudResolvedRequestEmbed, capabilitydriver.TextEmbedCapabilityContract, implementation, rawTarget,
+		connectorRecord, defaults, effectiveRequest, runtimev1.ExecutionMode_EXECUTION_MODE_SYNC, capabilitydriver.CloudMediaStreamNone,
+		effective.traceID, effective.appID, effective.accountID, nil,
+	)
+	if err != nil {
+		effective.release()
+		return nil, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID, err, grpcerr.ReasonOptions{Message: "Cloud ResolvedAssembly capture failed"})
+	}
 	if err := s.auditCloudEmbedCapture(effective); err != nil {
 		effective.release()
 		return nil, err
 	}
 	return effective, nil
+}
+
+func (s *Service) cloudEmbedEffectiveInputsFromResolvedAssembly(assembly *cloudResolvedAssembly) (*cloudEmbedEffectiveInputs, error) {
+	if s == nil || assembly == nil || assembly.RequestKind != cloudResolvedRequestEmbed || s.cloudEmbedDrivers == nil {
+		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+	}
+	if err := validateCloudResolvedAssembly(assembly); err != nil {
+		return nil, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID, err, grpcerr.ReasonOptions{})
+	}
+	implementation, err := assembly.implementationProto()
+	if err != nil {
+		return nil, cloudEmbedDriverError(err)
+	}
+	rawTarget, err := assembly.providerTargetProto()
+	if err != nil {
+		return nil, cloudEmbedDriverError(err)
+	}
+	defaults, err := assembly.defaultsProto()
+	if err != nil {
+		return nil, cloudEmbedDriverError(err)
+	}
+	request := &runtimev1.TextEmbedScenarioSpec{}
+	if err := (protojson.UnmarshalOptions{DiscardUnknown: false}).Unmarshal(assembly.Request, request); err != nil {
+		return nil, cloudEmbedDriverError(err)
+	}
+	driver, target, err := s.cloudEmbedDrivers.Resolve(capabilitydriver.IdentityFromProto(implementation), rawTarget)
+	if err != nil {
+		return nil, cloudEmbedDriverError(err)
+	}
+	mapped, err := driver.MapRequest(target, request, defaults)
+	if err != nil {
+		return nil, cloudEmbedDriverError(err)
+	}
+	clonedAssembly, err := cloneCloudResolvedAssembly(assembly)
+	if err != nil {
+		return nil, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID, err, grpcerr.ReasonOptions{})
+	}
+	connectorRecord := cloneConnectorRecord(assembly.Connector)
+	return &cloudEmbedEffectiveInputs{
+		implementation: implementation, rawTarget: rawTarget, target: target,
+		catalogTarget: &nimillm.RemoteTarget{ProviderType: target.Provider(), ProviderModelID: target.ProviderModelID(), RemoteModelCatalogID: target.RemoteModelCatalogID(), ConnectorID: connectorRecord.ConnectorID},
+		connector:     connectorRecord, defaults: defaults, request: request, mapped: mapped, driver: driver,
+		traceID: assembly.TraceID, appID: assembly.AppID, accountID: assembly.AccountID, resolvedAssembly: clonedAssembly,
+	}, nil
 }
 
 func (s *Service) resolveCloudEmbedConsumerIntent(ctx context.Context, head *runtimev1.ScenarioRequestHead) (executionintent.Intent, error) {
@@ -200,6 +256,68 @@ func (s *Service) executeCapturedCloudEmbed(ctx context.Context, effective *clou
 		return capabilitydriver.CloudEmbedResult{}, cloudEmbedDriverError(err)
 	}
 	return result, nil
+}
+
+func (s *Service) executeCapturedCloudEmbedJob(
+	ctx context.Context,
+	head *runtimev1.ScenarioRequestHead,
+	effective *cloudEmbedEffectiveInputs,
+	ignored []*runtimev1.IgnoredScenarioExtension,
+) (capabilitydriver.CloudEmbedResult, *runtimev1.ScenarioJob, error) {
+	if s == nil || head == nil || effective == nil || effective.resolvedAssembly == nil {
+		return capabilitydriver.CloudEmbedResult{}, nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+	}
+	job, jobCtx, err := s.captureImmediateCloudScenarioJob(
+		ctx, head, runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_EMBED,
+		runtimev1.ExecutionMode_EXECUTION_MODE_SYNC, effective.modelResolved(), ignored, effective.resolvedAssembly,
+	)
+	if err != nil {
+		return capabilitydriver.CloudEmbedResult{}, nil, err
+	}
+	jobID := job.GetJobId()
+	defer s.finishScenarioJobExecution(jobID)
+	if err := s.queueImmediateScenarioJob(jobID); err != nil {
+		return capabilitydriver.CloudEmbedResult{}, job, err
+	}
+	release, acquireResult, err := s.scheduler.Acquire(jobCtx, head.GetAppId())
+	if err != nil {
+		executionErr := schedulerAcquireError(err)
+		s.finishCloudScenarioJobFailure(jobCtx, jobID, executionErr)
+		return capabilitydriver.CloudEmbedResult{}, job, executionErr
+	}
+	defer release()
+	s.attachQueueWaitUnary(jobCtx, acquireResult)
+	if err := s.startImmediateScenarioJob(jobID); err != nil {
+		return capabilitydriver.CloudEmbedResult{}, job, err
+	}
+	assembly, ok := s.scenarioJobs.cloudResolvedAssembly(jobID)
+	if !ok {
+		err := grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+		s.finishCloudScenarioJobFailure(jobCtx, jobID, err)
+		return capabilitydriver.CloudEmbedResult{}, job, err
+	}
+	executionEffective, err := s.cloudEmbedEffectiveInputsFromResolvedAssembly(assembly)
+	if err != nil {
+		s.finishCloudScenarioJobFailure(jobCtx, jobID, err)
+		return capabilitydriver.CloudEmbedResult{}, job, err
+	}
+	defer executionEffective.release()
+	requestCtx, cancel, err := withTimeout(jobCtx, head.GetTimeoutMs(), defaultEmbedTimeout)
+	if err != nil {
+		s.finishCloudScenarioJobFailure(jobCtx, jobID, err)
+		return capabilitydriver.CloudEmbedResult{}, job, err
+	}
+	defer cancel()
+	result, err := s.executeCapturedCloudEmbed(requestCtx, executionEffective)
+	if err != nil {
+		s.finishCloudScenarioJobFailure(requestCtx, jobID, err)
+		return capabilitydriver.CloudEmbedResult{}, job, err
+	}
+	if err := s.completeImmediateScenarioJob(jobID, nil, result.Usage); err != nil {
+		s.finishCloudScenarioJobFailure(requestCtx, jobID, err)
+		return capabilitydriver.CloudEmbedResult{}, job, err
+	}
+	return result, job, nil
 }
 
 func (s *Service) auditCloudEmbedCapture(effective *cloudEmbedEffectiveInputs) error {

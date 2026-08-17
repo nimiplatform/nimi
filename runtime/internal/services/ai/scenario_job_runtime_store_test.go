@@ -1,13 +1,11 @@
 package ai
 
 import (
-	"fmt"
 	"sync"
 	"testing"
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 func TestScenarioJobStoreIdempotencyIndex(t *testing.T) {
@@ -46,6 +44,13 @@ func TestScenarioJobStoreIdempotencyIndex(t *testing.T) {
 
 func TestScenarioJobStoreConcurrentIdempotentCreateReturnsOneCanonicalJob(t *testing.T) {
 	store, localStatePath := newDurableScenarioJobStoreForFailureTest(t)
+	jobs := make([]*runtimev1.ScenarioJob, 2)
+	assemblies := make([]*cloudResolvedAssembly, 2)
+	for index := range jobs {
+		jobs[index] = completedScenarioJobForIsolationTest("job-concurrent-" + string(rune('0'+index)))
+		jobs[index].Status = runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED
+		assemblies[index] = cloudAssemblyForIsolationTest(t, jobs[index])
+	}
 	start := make(chan struct{})
 	results := make([]*runtimev1.ScenarioJob, 2)
 	created := make([]bool, 2)
@@ -57,13 +62,9 @@ func TestScenarioJobStoreConcurrentIdempotentCreateReturnsOneCanonicalJob(t *tes
 		go func() {
 			defer wait.Done()
 			<-start
-			now := timestamppb.New(time.Now().UTC())
-			results[index], created[index], errs[index] = store.createOwnedAndBindChecked(&runtimev1.ScenarioJob{
-				JobId:     fmt.Sprintf("job-concurrent-%d", index),
-				Status:    runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED,
-				CreatedAt: now,
-				UpdatedAt: now,
-			}, func() {}, nil, "scope-concurrent")
+			results[index], created[index], errs[index] = store.createOwnedAndBindCloudAssemblyChecked(
+				jobs[index], func() {}, nil, "scope-concurrent", assemblies[index],
+			)
 		}()
 	}
 	close(start)

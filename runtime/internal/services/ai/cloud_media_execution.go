@@ -20,25 +20,27 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type cloudMediaEffectiveInputs struct {
-	implementation *runtimev1.CapabilityImplementationIdentity
-	rawTarget      *structpb.Struct
-	target         capabilitydriver.CloudMediaTarget
-	catalogTarget  *nimillm.RemoteTarget
-	voiceTarget    *runtimeidentity.Target
-	connector      connector.ConnectorRecord
-	defaults       *structpb.Struct
-	request        *runtimev1.SubmitScenarioJobRequest
-	mapped         *capabilitydriver.CloudMediaMappedRequest
-	driver         capabilitydriver.CloudMediaDriver
-	traceID        string
-	appID          string
-	accountID      string
+	implementation   *runtimev1.CapabilityImplementationIdentity
+	rawTarget        *structpb.Struct
+	target           capabilitydriver.CloudMediaTarget
+	catalogTarget    *nimillm.RemoteTarget
+	voiceTarget      *runtimeidentity.Target
+	connector        connector.ConnectorRecord
+	defaults         *structpb.Struct
+	request          *runtimev1.SubmitScenarioJobRequest
+	mapped           *capabilitydriver.CloudMediaMappedRequest
+	driver           capabilitydriver.CloudMediaDriver
+	traceID          string
+	appID            string
+	accountID        string
+	resolvedAssembly *cloudResolvedAssembly
 }
 
 type cloudMediaRouteComposition struct {
@@ -116,6 +118,7 @@ func (input *cloudMediaEffectiveInputs) release() {
 	input.request = nil
 	input.mapped = nil
 	input.driver = nil
+	input.resolvedAssembly = nil
 }
 
 func (input *cloudMediaEffectiveInputs) modelResolved() string {
@@ -205,6 +208,10 @@ func (s *Service) captureCloudMediaEffectiveInputs(
 	if effectiveRequest == nil {
 		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
 	}
+	effectiveRequest.Head = cloneScenarioHead(effectiveRequest.GetHead())
+	effectiveRequest.Head.AppId = composition.appID
+	effectiveRequest.Head.SubjectUserId = accountID
+	effectiveRequest.ExecutionMode = mode
 	if effectiveRequest.GetScenarioType() == runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE {
 		effectiveSpec, resolveErr := s.resolveSynthesizeSpeechSpecVoiceRefForTarget(
 			ctx,
@@ -281,11 +288,71 @@ func (s *Service) captureCloudMediaEffectiveInputs(
 		appID:          composition.appID,
 		accountID:      accountID,
 	}
+	effective.resolvedAssembly, err = newCloudResolvedAssembly(
+		cloudResolvedRequestMedia, capabilityContract, implementation, rawTarget, connectorRecord,
+		defaults, effectiveRequest, mode, streamMode, effective.traceID, effective.appID, effective.accountID, nil,
+	)
+	if err != nil {
+		effective.release()
+		return nil, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID, err, grpcerr.ReasonOptions{Message: "Cloud ResolvedAssembly capture failed"})
+	}
 	if err := s.auditCloudMediaCapture(effective); err != nil {
 		effective.release()
 		return nil, err
 	}
 	return effective, nil
+}
+
+func (s *Service) cloudMediaEffectiveInputsFromResolvedAssembly(assembly *cloudResolvedAssembly) (*cloudMediaEffectiveInputs, error) {
+	if s == nil || assembly == nil || assembly.RequestKind != cloudResolvedRequestMedia || s.cloudMediaDrivers == nil {
+		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+	}
+	if err := validateCloudResolvedAssembly(assembly); err != nil {
+		return nil, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID, err, grpcerr.ReasonOptions{})
+	}
+	implementation, err := assembly.implementationProto()
+	if err != nil {
+		return nil, cloudMediaDriverError(assembly.CapabilityContract, err)
+	}
+	rawTarget, err := assembly.providerTargetProto()
+	if err != nil {
+		return nil, cloudMediaDriverError(assembly.CapabilityContract, err)
+	}
+	defaults, err := assembly.defaultsProto()
+	if err != nil {
+		return nil, cloudMediaDriverError(assembly.CapabilityContract, err)
+	}
+	request := &runtimev1.SubmitScenarioJobRequest{}
+	if err := (protojson.UnmarshalOptions{DiscardUnknown: false}).Unmarshal(assembly.Request, request); err != nil {
+		return nil, cloudMediaDriverError(assembly.CapabilityContract, err)
+	}
+	driver, target, err := s.cloudMediaDrivers.Resolve(capabilitydriver.IdentityFromProto(implementation), rawTarget, assembly.CapabilityContract)
+	if err != nil {
+		return nil, cloudMediaDriverError(assembly.CapabilityContract, err)
+	}
+	mapped, err := driver.MapRequest(target, request, defaults, assembly.MediaStreamMode)
+	if err != nil {
+		return nil, cloudMediaDriverError(assembly.CapabilityContract, err)
+	}
+	connectorRecord := cloneConnectorRecord(assembly.Connector)
+	safeTarget := &nimillm.RemoteTarget{
+		ProviderType: target.Provider(), ProviderModelID: target.ProviderModelID(),
+		RemoteModelCatalogID: target.RemoteModelCatalogID(), ConnectorID: connectorRecord.ConnectorID,
+	}
+	voiceTarget := &runtimeidentity.Target{Cloud: &runtimeidentity.CloudTarget{
+		ConnectorID: connectorRecord.ConnectorID, RemoteModelCatalogID: target.RemoteModelCatalogID(),
+		ProviderModelID: target.ProviderModelID(), Provider: target.Provider(),
+	}}
+	clonedAssembly, err := cloneCloudResolvedAssembly(assembly)
+	if err != nil {
+		return nil, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID, err, grpcerr.ReasonOptions{})
+	}
+	return &cloudMediaEffectiveInputs{
+		implementation: implementation, rawTarget: rawTarget, target: target, catalogTarget: safeTarget,
+		voiceTarget: voiceTarget, connector: connectorRecord, defaults: defaults, request: mapped.Request(),
+		mapped: mapped, driver: driver, traceID: assembly.TraceID, appID: assembly.AppID,
+		accountID: assembly.AccountID, resolvedAssembly: clonedAssembly,
+	}, nil
 }
 
 func cloudVideoHasArtifactReference(request *runtimev1.SubmitScenarioJobRequest) bool {

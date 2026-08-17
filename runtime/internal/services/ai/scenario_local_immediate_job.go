@@ -78,7 +78,7 @@ func (s *Service) captureImmediateLocalScenarioJob(
 	return stored, jobCtx, nil
 }
 
-func (s *Service) queueImmediateLocalScenarioJob(jobID string) error {
+func (s *Service) queueImmediateScenarioJob(jobID string) error {
 	if _, ok, err := s.transitionScenarioJob(
 		jobID,
 		runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_QUEUED,
@@ -93,7 +93,7 @@ func (s *Service) queueImmediateLocalScenarioJob(jobID string) error {
 	return nil
 }
 
-func (s *Service) startImmediateLocalScenarioJob(jobID string) error {
+func (s *Service) startImmediateScenarioJob(jobID string) error {
 	if _, ok, err := s.transitionScenarioJob(
 		jobID,
 		runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING,
@@ -108,7 +108,7 @@ func (s *Service) startImmediateLocalScenarioJob(jobID string) error {
 	return nil
 }
 
-func (s *Service) completeImmediateLocalScenarioJob(
+func (s *Service) completeImmediateScenarioJob(
 	jobID string,
 	artifacts []*runtimev1.ScenarioArtifact,
 	usage *runtimev1.UsageStats,

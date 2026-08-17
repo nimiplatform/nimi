@@ -2,6 +2,8 @@ package ai
 
 import (
 	"errors"
+	"net/http"
+	"net/http/httptest"
 	"path/filepath"
 	"sync/atomic"
 	"testing"
@@ -22,6 +24,104 @@ func newDurableScenarioJobStoreForFailureTest(t *testing.T) (*scenarioJobStore, 
 		t.Fatalf("create durable scenario job store: %v", err)
 	}
 	return store, localStatePath
+}
+
+func TestCloudVoiceRunningPersistenceFailureDoesNotCallProviderOrPublishAsset(t *testing.T) {
+	var providerCalls atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		providerCalls.Add(1)
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"output":{"voice":"must-not-publish"}}`))
+	}))
+	defer server.Close()
+	fixture := newManagedCloudScenarioTestFixture(t, "dashscope", "qwen3-tts-vd-2026-01-26", server.URL, Config{AllowLoopbackEndpoint: true})
+	store, _ := newDurableScenarioJobStoreForFailureTest(t)
+	store.persistenceFailure = func(attempt scenarioJobPersistenceAttempt) error {
+		if attempt.Operation == scenarioJobPersistTransition && attempt.Status == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING {
+			return errors.New("injected voice RUNNING persistence failure")
+		}
+		return nil
+	}
+	fixture.service.scenarioJobs = store
+	ctx := withCloudScenarioTestIntent(scenarioJobUserContext("nimi.desktop", "user-001"), capabilitydriver.VoiceCreateContract, fixture.targetRef)
+	response, err := fixture.service.SubmitScenarioJob(ctx, &runtimev1.SubmitScenarioJobRequest{
+		Head:         &runtimev1.ScenarioRequestHead{AppId: "nimi.desktop", SubjectUserId: "user-001"},
+		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE, ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
+		Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_VoiceCreate{VoiceCreate: &runtimev1.VoiceCreateScenarioSpec{
+			TargetModelId: "qwen3-tts-vd",
+			Source:        &runtimev1.VoiceCreateScenarioSpec_TextDescription{TextDescription: &runtimev1.VoiceT2VInput{InstructionText: "warm narrator", PreviewText: "hello"}},
+		}}},
+	})
+	if err != nil {
+		t.Fatalf("SubmitScenarioJob: %v", err)
+	}
+	terminal := waitScenarioJobTerminal(t, fixture.service, response.GetJob().GetJobId(), 3*time.Second)
+	if terminal.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED || providerCalls.Load() != 0 {
+		t.Fatalf("terminal=%s reason=%s providerCalls=%d", terminal.GetStatus(), terminal.GetReasonCode(), providerCalls.Load())
+	}
+	if asset, ok := fixture.service.voiceAssets.getAsset(response.GetJob().GetJobId()); ok || asset != nil {
+		t.Fatalf("RUNNING persistence failure published VoiceAsset %#v", asset)
+	}
+}
+
+func TestCloudVoiceTerminalPersistenceFailureDoesNotPublishAsset(t *testing.T) {
+	var providerCalls atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		providerCalls.Add(1)
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"output":{"voice":"must-remain-private"}}`))
+	}))
+	defer server.Close()
+	fixture := newManagedCloudScenarioTestFixture(t, "dashscope", "qwen3-tts-vd-2026-01-26", server.URL, Config{AllowLoopbackEndpoint: true})
+	store, localStatePath := newDurableScenarioJobStoreForFailureTest(t)
+	var terminalAttempts atomic.Int32
+	store.persistenceFailure = func(attempt scenarioJobPersistenceAttempt) error {
+		if attempt.Operation == scenarioJobPersistTransition && attempt.Status == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
+			terminalAttempts.Add(1)
+			return errors.New("injected voice COMPLETED persistence failure")
+		}
+		return nil
+	}
+	voiceAssets, err := newVoiceAssetStoreForLocalStatePath(localStatePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fixture.service.scenarioJobs = store
+	fixture.service.voiceAssets = voiceAssets
+	ctx := withCloudScenarioTestIntent(scenarioJobUserContext("nimi.desktop", "user-001"), capabilitydriver.VoiceCreateContract, fixture.targetRef)
+	response, err := fixture.service.SubmitScenarioJob(ctx, &runtimev1.SubmitScenarioJobRequest{
+		Head:         &runtimev1.ScenarioRequestHead{AppId: "nimi.desktop", SubjectUserId: "user-001"},
+		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE, ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
+		Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_VoiceCreate{VoiceCreate: &runtimev1.VoiceCreateScenarioSpec{
+			TargetModelId: "qwen3-tts-vd",
+			Source:        &runtimev1.VoiceCreateScenarioSpec_TextDescription{TextDescription: &runtimev1.VoiceT2VInput{InstructionText: "warm narrator", PreviewText: "hello"}},
+		}}},
+	})
+	if err != nil {
+		t.Fatalf("SubmitScenarioJob: %v", err)
+	}
+	jobID := response.GetJob().GetJobId()
+	terminal := waitScenarioJobTerminal(t, fixture.service, jobID, 3*time.Second)
+	if terminal.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED || terminal.GetReasonDetail() != scenarioJobTerminalPersistenceFailedReason {
+		t.Fatalf("terminal=%s reason=%s detail=%q", terminal.GetStatus(), terminal.GetReasonCode(), terminal.GetReasonDetail())
+	}
+	if providerCalls.Load() != 1 || terminalAttempts.Load() != maxScenarioJobTerminalPersistenceAttempts {
+		t.Fatalf("provider calls=%d terminal persistence attempts=%d", providerCalls.Load(), terminalAttempts.Load())
+	}
+	if asset, ok := fixture.service.voiceAssets.getAsset(jobID); ok || asset != nil {
+		t.Fatalf("failed terminal commit published VoiceAsset %#v", asset)
+	}
+
+	restarted := restartProtectedAIServiceForVoicePublicationTest(t, localStatePath)
+	if asset, ok := restarted.voiceAssets.getAsset(jobID); ok || asset != nil {
+		t.Fatalf("failed terminal commit recovered a public VoiceAsset %#v", asset)
+	}
+	restarted.voiceAssets.mu.RLock()
+	assetCount, pendingCount := len(restarted.voiceAssets.assets), len(restarted.voiceAssets.pending)
+	restarted.voiceAssets.mu.RUnlock()
+	if assetCount != 0 || pendingCount != 0 {
+		t.Fatalf("failed terminal commit retained voice publication state: assets=%d pending=%d", assetCount, pendingCount)
+	}
 }
 
 func assertNoSubmittedScenarioJobAfterRestart(t *testing.T, store *scenarioJobStore, localStatePath string) {

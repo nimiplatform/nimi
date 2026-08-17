@@ -104,52 +104,66 @@ func voiceWorkflowCatalogProviderType(modelResolved string, remoteTarget *nimill
 func (s *Service) executeCapturedVoiceWorkflowJob(
 	ctx context.Context,
 	jobID string,
-	voiceAssetID string,
-	effective *cloudVoiceWorkflowEffectiveInputs,
 ) {
-	if s == nil || s.voiceAssets == nil || effective == nil || !s.voiceAssets.startJobExecution(jobID) {
+	if s == nil || s.voiceAssets == nil || !s.scenarioJobs.startExecution(jobID) {
 		return
 	}
-	defer s.voiceAssets.finishJobExecution(jobID)
-	if !s.voiceAssets.queueJob(jobID) {
+	defer s.finishScenarioJobExecution(jobID)
+	if _, ok, transitionErr := s.transitionScenarioJob(jobID, runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_QUEUED, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_QUEUED, nil); transitionErr != nil {
+		s.failScenarioJobPersistencePrecondition(jobID, scenarioJobQueuedPersistenceFailedReason, transitionErr)
+		return
+	} else if !ok {
+		return
+	}
+	job, ok := s.scenarioJobs.get(jobID)
+	if !ok || job.GetHead() == nil {
+		return
+	}
+	assembly, ok := s.scenarioJobs.cloudResolvedAssembly(jobID)
+	if !ok {
+		s.finishVoiceWorkflowJobFailure(ctx, jobID, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID))
+		return
+	}
+	effective, err := s.cloudVoiceWorkflowEffectiveInputsFromResolvedAssembly(assembly)
+	if err != nil {
+		s.finishVoiceWorkflowJobFailure(ctx, jobID, err)
+		return
+	}
+	defer effective.release()
+	resolution := effective.resolution
+	assetDraft := newVoiceAssetDraft(&voiceWorkflowSubmitInput{
+		Head: job.GetHead(), ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE, Spec: effective.request.GetSpec(),
+		ModelResolved: job.GetModelResolved(), Provider: resolution.Provider, WorkflowModelID: resolution.WorkflowModelID,
+		WorkflowFamily: resolution.WorkflowFamily, OutputPersistence: resolution.OutputPersistence,
+		HandlePolicyID: resolution.HandlePolicyID, HandlePersistence: resolution.HandlePolicyPersistence,
+		HandleScope: resolution.HandlePolicyScope, HandleDefaultTTL: resolution.HandlePolicyDefaultTTL,
+		HandleDeleteSem: resolution.HandlePolicyDeleteSemantics, RuntimeReconcile: resolution.RuntimeReconciliationRequired,
+	}, jobID, job.GetCreatedAt())
+	if assetDraft == nil || effective.voiceTarget == nil || !effective.voiceTarget.Valid() {
+		s.finishVoiceWorkflowJobFailure(ctx, jobID, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID))
 		return
 	}
 	release, err := s.acquireAsyncScenarioJobLease(ctx, effective.appID, "scenario_job_voice_workflow")
 	if err != nil {
-		if errors.Is(ctx.Err(), context.DeadlineExceeded) {
-			s.voiceAssets.timeoutJob(jobID, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT, stableScenarioJobReasonDetail(runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT), voiceWorkflowFailureMetadata(err, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT, nil))
-		} else if !errors.Is(ctx.Err(), context.Canceled) {
-			reasonCode := runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE
-			s.voiceAssets.failJob(jobID, reasonCode, sanitizeScenarioJobReasonDetail(err, reasonCode), voiceWorkflowFailureMetadata(err, reasonCode, nil))
-		}
+		s.finishVoiceWorkflowJobFailure(ctx, jobID, err)
 		return
 	}
 	defer release()
-	if !s.voiceAssets.runJob(jobID) {
+	if _, ok, transitionErr := s.transitionScenarioJob(jobID, runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_RUNNING, nil); transitionErr != nil {
+		s.failScenarioJobPersistencePrecondition(jobID, scenarioJobRunningPersistenceFailedReason, transitionErr)
+		return
+	} else if !ok {
 		return
 	}
 	result, err := s.executeCapturedCloudVoiceWorkflow(ctx, effective)
 	if err != nil {
-		if errors.Is(err, context.DeadlineExceeded) {
-			s.voiceAssets.timeoutJob(jobID, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT, stableScenarioJobReasonDetail(runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT), voiceWorkflowFailureMetadata(err, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT, nil))
-			return
-		}
-		if errors.Is(err, context.Canceled) {
-			// Explicit cancellation already committed the public terminal state.
-			return
-		}
-		reasonCode := reasonCodeFromMediaError(err)
-		if reasonCode == runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
-			reasonCode = runtimev1.ReasonCode_AI_PROVIDER_INTERNAL
-		}
-		s.voiceAssets.failJob(jobID, reasonCode, sanitizeScenarioJobReasonDetail(err, reasonCode), voiceWorkflowFailureMetadata(err, reasonCode, nil))
+		s.finishVoiceWorkflowJobFailure(ctx, jobID, err)
 		return
 	}
-	resolution := effective.resolution
 	if result.Metadata == nil {
 		result.Metadata = map[string]any{}
 	}
-	result.Metadata["voice_asset_id"] = voiceAssetID
+	result.Metadata["voice_asset_id"] = assetDraft.GetVoiceAssetId()
 	result.Metadata["workflow_model_id"] = resolution.WorkflowModelID
 	result.Metadata["creation_source"] = resolution.WorkflowType
 	if strings.TrimSpace(resolution.WorkflowFamily) != "" {
@@ -175,7 +189,61 @@ func (s *Service) executeCapturedVoiceWorkflowJob(
 	}
 	// Provider polling identities remain private to Remote Host. The public
 	// workflow state machine is keyed only by the Runtime voice job id.
-	s.voiceAssets.completeJob(jobID, result.ProviderVoiceRef, result.Metadata, result.Usage)
+	binding := &voiceAssetCloudBinding{
+		CapabilityContract: effective.target.CapabilityContract(), Implementation: effective.implementation,
+		ProviderModelTarget: effective.rawTarget, ConnectorID: effective.connector.ConnectorID,
+	}
+	var transitionErr error
+	_, published := s.voiceAssets.publishResult(assetDraft, effective.voiceTarget, binding, result.ProviderVoiceRef, result.Metadata, func(asset *runtimev1.VoiceAsset, reference *runtimev1.VoiceReference) bool {
+		_, committed, err := s.transitionVoiceScenarioJobCompleted(jobID, asset, reference, func(job *runtimev1.ScenarioJob) {
+			job.ProviderJobId = ""
+			job.ReasonCode = runtimev1.ReasonCode_ACTION_EXECUTED
+			job.ReasonDetail = ""
+			job.ReasonMetadata = nil
+			job.Usage = result.Usage
+			job.ProgressPercent = 100
+		})
+		transitionErr = err
+		return committed && err == nil
+	})
+	if published || transitionErr != nil {
+		return
+	}
+	if existing, exists := s.scenarioJobs.get(jobID); exists && isTerminalScenarioJobStatus(existing.GetStatus()) {
+		return
+	}
+	s.finishVoiceWorkflowJobFailure(ctx, jobID, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID))
+}
+
+func (s *Service) finishVoiceWorkflowJobFailure(ctx context.Context, jobID string, err error) {
+	if existing, ok := s.scenarioJobs.get(jobID); ok && isTerminalScenarioJobStatus(existing.GetStatus()) {
+		return
+	}
+	reasonCode := reasonCodeFromMediaError(err)
+	if reasonCode == runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
+		if extracted, ok := grpcerr.ExtractReasonCode(err); ok {
+			reasonCode = extracted
+		}
+	}
+	if reasonCode == runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
+		reasonCode = runtimev1.ReasonCode_AI_PROVIDER_INTERNAL
+	}
+	statusValue := runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED
+	eventType := runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_FAILED
+	switch {
+	case errors.Is(ctx.Err(), context.DeadlineExceeded) || errors.Is(err, context.DeadlineExceeded) || reasonCode == runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT:
+		statusValue = runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_TIMEOUT
+		eventType = runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_TIMEOUT
+		reasonCode = runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT
+	case errors.Is(ctx.Err(), context.Canceled) || errors.Is(err, context.Canceled):
+		statusValue = runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED
+		eventType = runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_CANCELED
+	}
+	_, _, _ = s.transitionScenarioJob(jobID, statusValue, eventType, func(job *runtimev1.ScenarioJob) {
+		job.ReasonCode = reasonCode
+		job.ReasonDetail = sanitizeScenarioJobReasonDetail(err, reasonCode)
+		job.ReasonMetadata = voiceWorkflowFailureMetadata(err, reasonCode, nil)
+	})
 }
 
 // buildVoiceWorkflowPayload builds a provider-agnostic payload from the scenario request.

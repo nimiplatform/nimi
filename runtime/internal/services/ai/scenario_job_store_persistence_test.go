@@ -12,6 +12,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	runtimecfg "github.com/nimiplatform/nimi/runtime/internal/config"
 	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -33,9 +34,11 @@ func TestScenarioJobStorePersistsJobAndCapturedResolvedAssemblyInOneRecord(t *te
 	}
 	now := timestamppb.New(time.Now().UTC())
 	job := &runtimev1.ScenarioJob{
-		JobId: "job-original", ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,
+		JobId: "job-original", Head: &runtimev1.ScenarioRequestHead{AppId: "app.local", SubjectUserId: "user-local"},
+		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,
 		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB, RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
-		Status: runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED, CreatedAt: now, UpdatedAt: now,
+		Status: runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED, ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED,
+		CreatedAt: now, UpdatedAt: now, TraceId: "trace-job-original",
 		EffectiveInputIdentity: identity,
 	}
 	assembly := resolvedAssemblyForPersistenceTest(t, identity)
@@ -165,10 +168,134 @@ func TestScenarioJobStoreIsolatesInvalidRowsAndStartsAIService(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				now := time.Now().UTC()
 				snapshot.Records = append(snapshot.Records, marshalScenarioJobIsolationRowForTest(t, scenarioJobDiskRecord{
-					Job: jobRaw, ResolvedAssembly: json.RawMessage(`{"version":999}`), CreatedAt: now, UpdatedAt: now, TerminalAt: now,
+					Job: jobRaw, ResolvedAssembly: json.RawMessage(`{"version":999}`),
+					CreatedAt: job.GetCreatedAt().AsTime(), UpdatedAt: job.GetUpdatedAt().AsTime(), TerminalAt: job.GetUpdatedAt().AsTime(),
 				}))
+			},
+		},
+		{
+			name: "malformed Cloud ResolvedAssembly",
+			poison: func(snapshot *scenarioJobDiskRawSnapshot) {
+				job := completedScenarioJobForIsolationTest("job-bad-cloud-assembly")
+				job.Head = &runtimev1.ScenarioRequestHead{AppId: "app.cloud", SubjectUserId: "user-cloud"}
+				job.ScenarioType = runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE
+				job.ExecutionMode = runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB
+				job.RouteDecision = runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD
+				job.TraceId = "trace-bad-cloud"
+				jobRaw, err := (protojson.MarshalOptions{UseProtoNames: true}).Marshal(job)
+				if err != nil {
+					t.Fatal(err)
+				}
+				snapshot.Records = append(snapshot.Records, marshalScenarioJobIsolationRowForTest(t, scenarioJobDiskRecord{
+					Job: jobRaw, CloudResolvedAssembly: json.RawMessage(`{"version":999}`),
+					CreatedAt: job.GetCreatedAt().AsTime(), UpdatedAt: job.GetUpdatedAt().AsTime(), TerminalAt: job.GetUpdatedAt().AsTime(),
+				}))
+			},
+		},
+		{
+			name: "parseable Job with invalid public status",
+			poison: func(snapshot *scenarioJobDiskRawSnapshot) {
+				job := completedScenarioJobForIsolationTest("job-invalid-public-status")
+				assembly := cloudAssemblyForIsolationTest(t, job)
+				job.Status = runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_UNSPECIFIED
+				jobRaw, err := (protojson.MarshalOptions{UseProtoNames: true}).Marshal(job)
+				if err != nil {
+					t.Fatal(err)
+				}
+				assemblyRaw, err := json.Marshal(assembly)
+				if err != nil {
+					t.Fatal(err)
+				}
+				snapshot.Records = append(snapshot.Records, marshalScenarioJobIsolationRowForTest(t, scenarioJobDiskRecord{
+					Job: jobRaw, CloudResolvedAssembly: assemblyRaw,
+					CreatedAt: job.GetCreatedAt().AsTime(), UpdatedAt: job.GetUpdatedAt().AsTime(), TerminalAt: job.GetUpdatedAt().AsTime(),
+				}))
+			},
+		},
+		{
+			name: "parseable Job with unspecified public reason",
+			poison: func(snapshot *scenarioJobDiskRawSnapshot) {
+				job := completedScenarioJobForIsolationTest("job-invalid-public-reason")
+				assembly := cloudAssemblyForIsolationTest(t, job)
+				job.ReasonCode = runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED
+				jobRaw, err := (protojson.MarshalOptions{UseProtoNames: true}).Marshal(job)
+				if err != nil {
+					t.Fatal(err)
+				}
+				assemblyRaw, err := json.Marshal(assembly)
+				if err != nil {
+					t.Fatal(err)
+				}
+				snapshot.Records = append(snapshot.Records, marshalScenarioJobIsolationRowForTest(t, scenarioJobDiskRecord{
+					Job: jobRaw, CloudResolvedAssembly: assemblyRaw,
+					CreatedAt: job.GetCreatedAt().AsTime(), UpdatedAt: job.GetUpdatedAt().AsTime(), TerminalAt: job.GetUpdatedAt().AsTime(),
+				}))
+			},
+		},
+		{
+			name: "parseable Job with unknown public reason",
+			poison: func(snapshot *scenarioJobDiskRawSnapshot) {
+				job := completedScenarioJobForIsolationTest("job-unknown-public-reason")
+				assembly := cloudAssemblyForIsolationTest(t, job)
+				job.ReasonCode = runtimev1.ReasonCode(2147483647)
+				jobRaw, err := (protojson.MarshalOptions{UseProtoNames: true}).Marshal(job)
+				if err != nil {
+					t.Fatal(err)
+				}
+				assemblyRaw, err := json.Marshal(assembly)
+				if err != nil {
+					t.Fatal(err)
+				}
+				snapshot.Records = append(snapshot.Records, marshalScenarioJobIsolationRowForTest(t, scenarioJobDiskRecord{
+					Job: jobRaw, CloudResolvedAssembly: assemblyRaw,
+					CreatedAt: job.GetCreatedAt().AsTime(), UpdatedAt: job.GetUpdatedAt().AsTime(), TerminalAt: job.GetUpdatedAt().AsTime(),
+				}))
+			},
+		},
+		{
+			name: "non-voice Cloud assembly with voice workflow capture",
+			poison: func(snapshot *scenarioJobDiskRawSnapshot) {
+				job := completedScenarioJobForIsolationTest("job-nonvoice-workflow-capture")
+				assembly := cloudAssemblyForIsolationTest(t, job)
+				assembly.VoiceWorkflow = &cloudVoiceWorkflowCapture{
+					Provider: "openai", ModelID: "gpt-image-1", WorkflowType: "text_description",
+					WorkflowModelID: "voice-workflow", OutputPersistence: "provider_persistent",
+				}
+				appendCloudIsolationRowForTest(t, snapshot, job, assembly, true)
+			},
+		},
+		{
+			name: "voice Cloud assembly target mismatch",
+			poison: func(snapshot *scenarioJobDiskRawSnapshot) {
+				job := submittedVoiceScenarioJobForIsolationTest("job-voice-target-mismatch")
+				assembly := cloudVoiceAssemblyForIsolationTest(t, job)
+				assembly.VoiceWorkflow.Provider = "different-provider"
+				appendCloudIsolationRowForTest(t, snapshot, job, assembly, false)
+			},
+		},
+		{
+			name: "Cloud media assembly with unknown stream behavior",
+			poison: func(snapshot *scenarioJobDiskRawSnapshot) {
+				job := completedScenarioJobForIsolationTest("job-invalid-media-stream")
+				assembly := cloudAssemblyForIsolationTest(t, job)
+				assembly.MediaStreamMode = capabilitydriver.CloudMediaStreamMode("future-stream-mode")
+				appendCloudIsolationRowForTest(t, snapshot, job, assembly, true)
+			},
+		},
+		{
+			name: "Cloud media assembly request mode mismatch",
+			poison: func(snapshot *scenarioJobDiskRawSnapshot) {
+				job := completedScenarioJobForIsolationTest("job-media-request-mode-mismatch")
+				assembly := cloudAssemblyForIsolationTest(t, job)
+				request := cloudImageRequestForIsolationTest(job)
+				request.ExecutionMode = runtimev1.ExecutionMode_EXECUTION_MODE_STREAM
+				requestRaw, err := (protojson.MarshalOptions{UseProtoNames: true}).Marshal(request)
+				if err != nil {
+					t.Fatal(err)
+				}
+				assembly.Request = requestRaw
+				appendCloudIsolationRowForTest(t, snapshot, job, assembly, true)
 			},
 		},
 		{
@@ -180,9 +307,8 @@ func TestScenarioJobStoreIsolatesInvalidRowsAndStartsAIService(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				now := time.Now().UTC()
 				snapshot.Records = append(snapshot.Records, marshalScenarioJobIsolationRowForTest(t, scenarioJobDiskRecord{
-					Job: jobRaw, CreatedAt: now, UpdatedAt: now, TerminalAt: now,
+					Job: jobRaw, CreatedAt: job.GetCreatedAt().AsTime(), UpdatedAt: job.GetUpdatedAt().AsTime(), TerminalAt: job.GetUpdatedAt().AsTime(),
 				}))
 			},
 		},
@@ -207,9 +333,9 @@ func TestScenarioJobStoreIsolatesInvalidRowsAndStartsAIService(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				now := time.Now().UTC()
 				snapshot.Records = append(snapshot.Records, marshalScenarioJobIsolationRowForTest(t, scenarioJobDiskRecord{
-					Job: jobRaw, ResolvedAssembly: assemblyRaw, CreatedAt: now, UpdatedAt: now, TerminalAt: now,
+					Job: jobRaw, ResolvedAssembly: assemblyRaw,
+					CreatedAt: job.GetCreatedAt().AsTime(), UpdatedAt: job.GetUpdatedAt().AsTime(), TerminalAt: job.GetUpdatedAt().AsTime(),
 				}))
 			},
 		},
@@ -234,7 +360,7 @@ func TestScenarioJobStoreIsolatesInvalidRowsAndStartsAIService(t *testing.T) {
 			var logs bytes.Buffer
 			logger := slog.New(slog.NewTextHandler(&logs, nil))
 			connectorStore := connector.NewConnectorStoreWithMemorySecrets(t.TempDir())
-			svc, err := NewProtected(logger, nil, nil, connectorStore, runtimecfg.Config{LocalStatePath: localStatePath})
+			svc, err := NewProtected(logger, nil, connectorStore, runtimecfg.Config{LocalStatePath: localStatePath})
 			if err != nil {
 				t.Fatalf("invalid sibling prevented AI Service startup: %v", err)
 			}
@@ -265,14 +391,153 @@ func TestScenarioJobStoreIsolatesInvalidRowsAndStartsAIService(t *testing.T) {
 			if err := decodeScenarioJobStrictJSON(rewrittenRaw, &rewritten); err != nil || len(rewritten.Records) != 2 || len(rewritten.Idempotency) != 2 {
 				t.Fatalf("healthy ScenarioJob rewrite = records=%d bindings=%d err=%v", len(rewritten.Records), len(rewritten.Idempotency), err)
 			}
-			if created, err := svc.scenarioJobs.createOwnedChecked(completedScenarioJobForIsolationTest("job-after-isolation"), func() {}, nil); err != nil || created == nil {
-				t.Fatalf("healthy write after isolation = %#v, %v", created, err)
-			}
+			createCompletedCloudScenarioJobForIsolationTest(t, svc.scenarioJobs, "job-after-isolation")
 			preserved, err := os.ReadFile(diagnostics[0].QuarantinePath)
 			if err != nil || !bytes.Equal(preserved, poisoned) {
 				t.Fatalf("healthy write overwrote quarantined bytes: err=%v", err)
 			}
 		})
+	}
+}
+
+func TestScenarioJobStorePersistsCloudAssemblyWithoutCredentialAndUsesCloudRestartReason(t *testing.T) {
+	localStatePath := filepath.Join(t.TempDir(), "local-state.json")
+	store, err := newScenarioJobStoreForLocalStatePath(localStatePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	now := timestamppb.New(time.Now().UTC())
+	job := &runtimev1.ScenarioJob{
+		JobId: "job-cloud-restart", Head: &runtimev1.ScenarioRequestHead{AppId: "app.cloud", SubjectUserId: "user-cloud"},
+		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
+		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
+		RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
+		ModelResolved: "gpt-image-1",
+		Status:        runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING, ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED,
+		CreatedAt: now, UpdatedAt: now, TraceId: "trace-cloud-restart",
+	}
+	target, err := structpb.NewStruct(map[string]any{
+		"provider": "openai", "providerModelId": "gpt-image-1", "remoteModelCatalogId": "catalog-image",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	assembly, err := newCloudResolvedAssembly(
+		cloudResolvedRequestMedia, "image.generate",
+		&runtimev1.CapabilityImplementationIdentity{ImplementationId: "cloud.image.openai", DriverId: "nimi.runtime.driver.openai", DriverDialect: "provider/media-v1"},
+		target,
+		connector.ConnectorRecord{
+			ConnectorID: "connector-cloud", Kind: runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED,
+			OwnerType: runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_REALM_USER, OwnerID: "user-cloud",
+			Provider: "openai", Status: runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE, HasCredential: true,
+		},
+		nil, cloudImageRequestForIsolationTest(job),
+		job.GetExecutionMode(), capabilitydriver.CloudMediaStreamNone,
+		job.GetTraceId(), job.GetHead().GetAppId(), job.GetHead().GetSubjectUserId(), nil,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	created, published, err := store.createOwnedAndBindCloudAssemblyChecked(job, func() {}, nil, "scope-cloud-restart", assembly)
+	if err != nil || created == nil || !published {
+		t.Fatalf("atomic Cloud create = %#v published=%v err=%v", created, published, err)
+	}
+	raw, err := os.ReadFile(store.durablePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, expected := range []string{"captured prompt", "connector-cloud", "cloud_resolved_assembly"} {
+		if !bytes.Contains(raw, []byte(expected)) {
+			t.Fatalf("durable Cloud assembly missing %q: %s", expected, raw)
+		}
+	}
+	if bytes.Contains(raw, []byte("credential-secret")) {
+		t.Fatalf("durable Cloud assembly contains credential material: %s", raw)
+	}
+	reopened, err := newScenarioJobStoreForLocalStatePath(localStatePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	persisted, ok := reopened.get(job.GetJobId())
+	if !ok || persisted.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED {
+		t.Fatalf("restarted Cloud Job = %#v visible=%v", persisted, ok)
+	}
+	if persisted.GetReasonCode() != runtimev1.ReasonCode_AI_PROVIDER_INTERNAL {
+		t.Fatalf("restarted Cloud reason = %v, want AI_PROVIDER_INTERNAL", persisted.GetReasonCode())
+	}
+	if _, ok := reopened.cloudResolvedAssembly(job.GetJobId()); !ok {
+		t.Fatal("restarted Cloud Job lost captured ResolvedAssembly")
+	}
+}
+
+func TestScenarioJobStorePersistsCompletedVoiceResultWithCapturedCloudAssembly(t *testing.T) {
+	localStatePath := filepath.Join(t.TempDir(), "local-state.json")
+	store, err := newScenarioJobStoreForLocalStatePath(localStatePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	now := timestamppb.New(time.Now().UTC())
+	job := &runtimev1.ScenarioJob{
+		JobId: "job-cloud-voice", Head: &runtimev1.ScenarioRequestHead{AppId: "app.voice", SubjectUserId: "user-voice"},
+		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE, ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
+		RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD, Status: runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED,
+		ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED,
+		CreatedAt:  now, UpdatedAt: now, TraceId: "trace-cloud-voice", ModelResolved: "voice-model",
+	}
+	target, err := structpb.NewStruct(map[string]any{
+		"provider": "voice-provider", "providerModelId": "voice-model", "remoteModelCatalogId": "catalog-voice",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	request := &runtimev1.SubmitScenarioJobRequest{
+		Head: job.GetHead(), ScenarioType: job.GetScenarioType(), ExecutionMode: job.GetExecutionMode(),
+		Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_VoiceCreate{VoiceCreate: &runtimev1.VoiceCreateScenarioSpec{
+			Source:        &runtimev1.VoiceCreateScenarioSpec_TextDescription{TextDescription: &runtimev1.VoiceT2VInput{InstructionText: "warm narrator"}},
+			TargetModelId: "voice-model",
+		}}},
+	}
+	assembly, err := newCloudResolvedAssembly(
+		cloudResolvedRequestVoiceWorkflow, "voice.create",
+		&runtimev1.CapabilityImplementationIdentity{ImplementationId: "cloud.voice", DriverId: "nimi.runtime.driver.voice", DriverDialect: "provider/media-v1"},
+		target,
+		connector.ConnectorRecord{
+			ConnectorID: "connector-voice", Kind: runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED,
+			OwnerType: runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_REALM_USER, OwnerID: "user-voice",
+			Provider: "voice-provider", Status: runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE, HasCredential: true,
+		},
+		nil, request, job.GetExecutionMode(), capabilitydriver.CloudMediaStreamNone,
+		job.GetTraceId(), job.GetHead().GetAppId(), job.GetHead().GetSubjectUserId(),
+		&cloudVoiceWorkflowCapture{Provider: "voice-provider", ModelID: "voice-model", WorkflowType: "text_description", WorkflowModelID: "voice-model", OutputPersistence: "provider_persistent"},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	created, published, err := store.createOwnedAndBindCloudAssemblyChecked(job, func() {}, nil, "scope-cloud-voice", assembly)
+	if err != nil || created == nil || !published {
+		t.Fatalf("atomic Cloud voice create = %#v published=%v err=%v", created, published, err)
+	}
+	asset := &runtimev1.VoiceAsset{
+		VoiceAssetId: job.GetJobId(), AppId: job.GetHead().GetAppId(), SubjectUserId: job.GetHead().GetSubjectUserId(),
+		Provider: "voice-provider", ModelId: "voice-model", ProviderVoiceRef: "provider-voice-ref",
+		Persistence: runtimev1.VoiceAssetPersistence_VOICE_ASSET_PERSISTENCE_PROVIDER_PERSISTENT,
+		Status:      runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_ACTIVE, CreatedAt: now, UpdatedAt: now,
+	}
+	completed, transitioned, err := store.transitionVoiceCompleted(job.GetJobId(), asset, voiceAssetReference(asset.GetVoiceAssetId()), func(job *runtimev1.ScenarioJob) {
+		job.ReasonCode = runtimev1.ReasonCode_ACTION_EXECUTED
+		job.ProgressPercent = 100
+	})
+	if err != nil || !transitioned || completed.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
+		t.Fatalf("complete voice Job = %#v transitioned=%v err=%v", completed, transitioned, err)
+	}
+
+	reopened, err := newScenarioJobStoreForLocalStatePath(localStatePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	persistedAsset, persistedReference, ok := reopened.completedVoiceResult(job.GetJobId())
+	if !ok || persistedAsset.GetProviderVoiceRef() != "provider-voice-ref" || persistedReference.GetVoiceAssetId() != job.GetJobId() {
+		t.Fatalf("reopened voice result asset=%#v reference=%#v visible=%v", persistedAsset, persistedReference, ok)
 	}
 }
 
@@ -289,7 +554,7 @@ func TestScenarioJobStoreIsolatesTruncatedDocumentAndStartsEmptyAIService(t *tes
 	var logs bytes.Buffer
 	logger := slog.New(slog.NewTextHandler(&logs, nil))
 	connectorStore := connector.NewConnectorStoreWithMemorySecrets(t.TempDir())
-	svc, err := NewProtected(logger, nil, nil, connectorStore, runtimecfg.Config{LocalStatePath: localStatePath})
+	svc, err := NewProtected(logger, nil, connectorStore, runtimecfg.Config{LocalStatePath: localStatePath})
 	if err != nil {
 		t.Fatalf("truncated ScenarioJob document prevented AI Service startup: %v", err)
 	}
@@ -313,9 +578,7 @@ func TestScenarioJobStoreIsolatesTruncatedDocumentAndStartsEmptyAIService(t *tes
 	if _, err := os.Stat(path); !os.IsNotExist(err) {
 		t.Fatalf("isolated document remained on active path: %v", err)
 	}
-	if created, err := svc.scenarioJobs.createOwnedChecked(completedScenarioJobForIsolationTest("job-after-document-isolation"), func() {}, nil); err != nil || created == nil {
-		t.Fatalf("healthy write after document isolation = %#v, %v", created, err)
-	}
+	createCompletedCloudScenarioJobForIsolationTest(t, svc.scenarioJobs, "job-after-document-isolation")
 	preserved, err := os.ReadFile(diagnostics[0].QuarantinePath)
 	if err != nil || !bytes.Equal(preserved, poisoned) {
 		t.Fatalf("healthy write overwrote isolated document: err=%v", err)
@@ -324,19 +587,23 @@ func TestScenarioJobStoreIsolatesTruncatedDocumentAndStartsEmptyAIService(t *tes
 
 func healthyScenarioJobRawSnapshotForIsolationTest(t *testing.T) scenarioJobDiskRawSnapshot {
 	t.Helper()
-	now := time.Now().UTC()
 	snapshot := scenarioJobDiskRawSnapshot{Version: scenarioJobDiskStoreVersion}
 	for _, jobID := range []string{"job-healthy-a", "job-healthy-b"} {
 		job := completedScenarioJobForIsolationTest(jobID)
+		assemblyRaw, err := json.Marshal(cloudAssemblyForIsolationTest(t, job))
+		if err != nil {
+			t.Fatal(err)
+		}
 		jobRaw, err := (protojson.MarshalOptions{UseProtoNames: true}).Marshal(job)
 		if err != nil {
 			t.Fatal(err)
 		}
 		snapshot.Records = append(snapshot.Records, marshalScenarioJobIsolationRowForTest(t, scenarioJobDiskRecord{
-			Job: jobRaw, CreatedAt: now, UpdatedAt: now, TerminalAt: now,
+			Job: jobRaw, CloudResolvedAssembly: assemblyRaw,
+			CreatedAt: job.GetCreatedAt().AsTime(), UpdatedAt: job.GetUpdatedAt().AsTime(), TerminalAt: job.GetUpdatedAt().AsTime(),
 		}))
 		snapshot.Idempotency = append(snapshot.Idempotency, marshalScenarioJobIsolationRowForTest(t, scenarioJobDiskIdempotencyEntry{
-			ScopeKey: "scope-" + jobID, JobID: jobID, BoundAt: now,
+			ScopeKey: "scope-" + jobID, JobID: jobID, BoundAt: job.GetUpdatedAt().AsTime(),
 		}))
 	}
 	return snapshot
@@ -394,9 +661,176 @@ func resolvedAssemblyForPersistenceTest(t *testing.T, identity *runtimev1.Loadou
 func completedScenarioJobForIsolationTest(jobID string) *runtimev1.ScenarioJob {
 	now := timestamppb.New(time.Now().UTC())
 	return &runtimev1.ScenarioJob{
-		JobId: jobID, ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,
-		Status: runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED, CreatedAt: now, UpdatedAt: now,
+		JobId: jobID, Head: &runtimev1.ScenarioRequestHead{AppId: "app.cloud", SubjectUserId: "user-cloud"},
+		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE, ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
+		RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD, ModelResolved: "gpt-image-1",
+		Status: runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED, ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED,
+		CreatedAt: now, UpdatedAt: now, TraceId: "trace-" + jobID,
 	}
+}
+
+func cloudImageRequestForIsolationTest(job *runtimev1.ScenarioJob) *runtimev1.SubmitScenarioJobRequest {
+	return &runtimev1.SubmitScenarioJobRequest{
+		Head: cloneScenarioHead(job.GetHead()), ScenarioType: job.GetScenarioType(), ExecutionMode: job.GetExecutionMode(),
+		Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_ImageGenerate{
+			ImageGenerate: &runtimev1.ImageGenerateScenarioSpec{Prompt: "captured prompt"},
+		}},
+	}
+}
+
+func submittedVoiceScenarioJobForIsolationTest(jobID string) *runtimev1.ScenarioJob {
+	now := timestamppb.New(time.Now().UTC())
+	return &runtimev1.ScenarioJob{
+		JobId: jobID, Head: &runtimev1.ScenarioRequestHead{AppId: "app.voice", SubjectUserId: "user-voice"},
+		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE, ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
+		RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD, ModelResolved: "voice-model",
+		Status: runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED, ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED,
+		CreatedAt: now, UpdatedAt: now, TraceId: "trace-" + jobID,
+	}
+}
+
+func cloudVoiceAssemblyForIsolationTest(t *testing.T, job *runtimev1.ScenarioJob) *cloudResolvedAssembly {
+	t.Helper()
+	target, err := structpb.NewStruct(map[string]any{
+		"provider": "voice-provider", "providerModelId": "voice-model", "remoteModelCatalogId": "catalog-voice",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	request := &runtimev1.SubmitScenarioJobRequest{
+		Head: cloneScenarioHead(job.GetHead()), ScenarioType: job.GetScenarioType(), ExecutionMode: job.GetExecutionMode(),
+		Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_VoiceCreate{VoiceCreate: &runtimev1.VoiceCreateScenarioSpec{
+			Source: &runtimev1.VoiceCreateScenarioSpec_TextDescription{TextDescription: &runtimev1.VoiceT2VInput{
+				InstructionText: "warm narrator", PreferredName: "captured-voice-name",
+			}},
+			TargetModelId: "voice-model",
+		}}},
+	}
+	assembly, err := newCloudResolvedAssembly(
+		cloudResolvedRequestVoiceWorkflow, "voice.create",
+		&runtimev1.CapabilityImplementationIdentity{ImplementationId: "cloud.voice", DriverId: "nimi.runtime.driver.voice", DriverDialect: "provider/media-v1"},
+		target,
+		connector.ConnectorRecord{
+			ConnectorID: "connector-voice", Kind: runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED,
+			OwnerType: runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_REALM_USER, OwnerID: job.GetHead().GetSubjectUserId(),
+			Provider: "voice-provider", Status: runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE, HasCredential: true,
+		},
+		nil, request, job.GetExecutionMode(), capabilitydriver.CloudMediaStreamNone,
+		job.GetTraceId(), job.GetHead().GetAppId(), job.GetHead().GetSubjectUserId(),
+		&cloudVoiceWorkflowCapture{
+			Provider: "voice-provider", ModelID: "voice-model", WorkflowType: "text_description",
+			WorkflowModelID: "voice-workflow", OutputPersistence: "provider_persistent",
+		},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return assembly
+}
+
+func appendCloudIsolationRowForTest(
+	t *testing.T,
+	snapshot *scenarioJobDiskRawSnapshot,
+	job *runtimev1.ScenarioJob,
+	assembly *cloudResolvedAssembly,
+	terminal bool,
+) {
+	t.Helper()
+	jobRaw, err := (protojson.MarshalOptions{UseProtoNames: true}).Marshal(job)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assemblyRaw, err := json.Marshal(assembly)
+	if err != nil {
+		t.Fatal(err)
+	}
+	terminalAt := time.Time{}
+	if terminal {
+		terminalAt = job.GetUpdatedAt().AsTime()
+	}
+	snapshot.Records = append(snapshot.Records, marshalScenarioJobIsolationRowForTest(t, scenarioJobDiskRecord{
+		Job: jobRaw, CloudResolvedAssembly: assemblyRaw,
+		CreatedAt: job.GetCreatedAt().AsTime(), UpdatedAt: job.GetUpdatedAt().AsTime(), TerminalAt: terminalAt,
+	}))
+}
+
+func cloudAssemblyForIsolationTest(t *testing.T, job *runtimev1.ScenarioJob) *cloudResolvedAssembly {
+	t.Helper()
+	target, err := structpb.NewStruct(map[string]any{
+		"provider": "openai", "providerModelId": "gpt-image-1", "remoteModelCatalogId": "catalog-image",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	assembly, err := newCloudResolvedAssembly(
+		cloudResolvedRequestMedia, "image.generate",
+		&runtimev1.CapabilityImplementationIdentity{ImplementationId: "cloud.image.openai", DriverId: "nimi.runtime.driver.openai", DriverDialect: "provider/media-v1"},
+		target,
+		connector.ConnectorRecord{
+			ConnectorID: "connector-cloud", Kind: runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED,
+			OwnerType: runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_REALM_USER, OwnerID: job.GetHead().GetSubjectUserId(),
+			Provider: "openai", Status: runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE, HasCredential: true,
+		},
+		nil, cloudImageRequestForIsolationTest(job),
+		job.GetExecutionMode(), capabilitydriver.CloudMediaStreamNone,
+		job.GetTraceId(), job.GetHead().GetAppId(), job.GetHead().GetSubjectUserId(), nil,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return assembly
+}
+
+func createCompletedCloudScenarioJobForIsolationTest(t *testing.T, store *scenarioJobStore, jobID string) *runtimev1.ScenarioJob {
+	t.Helper()
+	job := completedScenarioJobForIsolationTest(jobID)
+	job.Status = runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED
+	assembly := cloudAssemblyForIsolationTest(t, job)
+	created, published, err := store.createOwnedAndBindCloudAssemblyChecked(job, func() {}, nil, "", assembly)
+	if err != nil || created == nil || !published {
+		t.Fatalf("healthy Cloud write after isolation = %#v, published=%v err=%v", created, published, err)
+	}
+	completed, transitioned, err := store.transition(
+		jobID,
+		runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED,
+		runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_COMPLETED,
+		nil,
+	)
+	if err != nil || !transitioned || completed.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
+		t.Fatalf("complete healthy Cloud write after isolation = %#v, transitioned=%v err=%v", completed, transitioned, err)
+	}
+	return completed
+}
+
+func localScenarioJobForPersistenceTest(
+	t *testing.T,
+	jobID string,
+	loadoutID string,
+	recipeID string,
+	recipeRevision string,
+) (*runtimev1.ScenarioJob, *localResolvedAssembly) {
+	t.Helper()
+	identity := &runtimev1.LoadoutEffectiveInputIdentity{
+		LoadoutId: loadoutID, CapabilityContract: "text.generate", RecipeId: recipeID, RecipeRevision: recipeRevision,
+		Implementation: &runtimev1.CapabilityImplementationIdentity{
+			ImplementationId: "local.text.generate.llama-cpp",
+			DriverId:         "nimi.runtime.driver.llama-cpp",
+			DriverDialect:    "llama.cpp/text-generate/v1",
+		},
+		ModelAxes: []*runtimev1.LoadoutEffectiveModelAxisIdentity{{
+			SlotId: "main.gguf", ModelAssetId: "model-" + jobID, ContentId: "sha256:" + strings.Repeat("a", 64),
+		}},
+	}
+	now := timestamppb.New(time.Now().UTC())
+	job := &runtimev1.ScenarioJob{
+		JobId: jobID, Head: &runtimev1.ScenarioRequestHead{AppId: "app.local", SubjectUserId: "user-local"},
+		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE, ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
+		RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL, ModelResolved: identity.GetModelAxes()[0].GetModelAssetId(),
+		Status: runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED, ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED,
+		CreatedAt: now, UpdatedAt: now, TraceId: "trace-" + jobID,
+		EffectiveInputIdentity: identity,
+	}
+	return job, resolvedAssemblyForPersistenceTest(t, identity)
 }
 
 func marshalScenarioJobIsolationRowForTest(t *testing.T, value any) json.RawMessage {
@@ -439,9 +873,11 @@ func TestScenarioJobStoreSynchronouslyPersistsTerminalEffectiveInputIdentity(t *
 	}
 	now := timestamppb.New(time.Now().UTC())
 	job := &runtimev1.ScenarioJob{
-		JobId: "job-terminal-proof", ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,
+		JobId: "job-terminal-proof", Head: &runtimev1.ScenarioRequestHead{AppId: "app.local", SubjectUserId: "user-local"},
+		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,
 		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB, RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
-		Status: runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED, CreatedAt: now, UpdatedAt: now,
+		Status: runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED, ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED,
+		CreatedAt: now, UpdatedAt: now, TraceId: "trace-job-terminal-proof",
 		EffectiveInputIdentity: identity,
 	}
 	assembly := resolvedAssemblyForPersistenceTest(t, identity)
@@ -501,14 +937,9 @@ func TestScenarioJobStorePersistsEveryTerminalTransition(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			now := timestamppb.New(time.Now().UTC())
-			job := &runtimev1.ScenarioJob{
-				JobId: "job-" + terminalStatus.String(), ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,
-				Status: runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED, CreatedAt: now, UpdatedAt: now,
-				EffectiveInputIdentity: &runtimev1.LoadoutEffectiveInputIdentity{LoadoutId: "loadout-terminal", RecipeId: "recipe-terminal", RecipeRevision: "1"},
-			}
-			if created, err := store.createOwnedChecked(job, func() {}, nil); err != nil || created == nil {
-				t.Fatalf("create durable ScenarioJob = %#v, %v", created, err)
+			job, assembly := localScenarioJobForPersistenceTest(t, "job-"+terminalStatus.String(), "loadout-terminal", "recipe-terminal", "1")
+			if created, published, err := store.createOwnedAndBindAssemblyChecked(job, func() {}, nil, "", assembly); err != nil || created == nil || !published {
+				t.Fatalf("create durable ScenarioJob = %#v, published=%v err=%v", created, published, err)
 			}
 			if _, transitioned, err := store.transition(job.GetJobId(), terminalStatus, scenarioJobEventForStatus(terminalStatus), nil); err != nil || !transitioned {
 				t.Fatalf("transition to %s: transitioned=%v err=%v", terminalStatus, transitioned, err)
@@ -531,14 +962,9 @@ func TestScenarioJobStorePersistsCancellationCompletedByFinishExecution(t *testi
 	if err != nil {
 		t.Fatal(err)
 	}
-	now := timestamppb.New(time.Now().UTC())
-	job := &runtimev1.ScenarioJob{
-		JobId: "job-canceled-proof", ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,
-		Status: runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED, CreatedAt: now, UpdatedAt: now,
-		EffectiveInputIdentity: &runtimev1.LoadoutEffectiveInputIdentity{LoadoutId: "loadout-canceled", RecipeId: "recipe-canceled", RecipeRevision: "3"},
-	}
-	if created, err := store.createOwnedChecked(job, func() {}, nil); err != nil || created == nil {
-		t.Fatalf("create durable ScenarioJob = %#v, %v", created, err)
+	job, assembly := localScenarioJobForPersistenceTest(t, "job-canceled-proof", "loadout-canceled", "recipe-canceled", "3")
+	if created, published, err := store.createOwnedAndBindAssemblyChecked(job, func() {}, nil, "", assembly); err != nil || created == nil || !published {
+		t.Fatalf("create durable ScenarioJob = %#v, published=%v err=%v", created, published, err)
 	}
 	canceled, accepted, err := store.requestCancel(job.GetJobId(), "owner canceled")
 	if err != nil || !accepted || canceled.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED {
@@ -560,14 +986,9 @@ func TestScenarioJobStoreTerminalPersistenceFailureIsReturned(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	now := timestamppb.New(time.Now().UTC())
-	job := &runtimev1.ScenarioJob{
-		JobId: "job-terminal-persist-failure", ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,
-		Status: runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED, CreatedAt: now, UpdatedAt: now,
-		EffectiveInputIdentity: &runtimev1.LoadoutEffectiveInputIdentity{LoadoutId: "loadout-failure", RecipeId: "recipe-failure", RecipeRevision: "1"},
-	}
-	if created, err := store.createOwnedChecked(job, func() {}, nil); err != nil || created == nil {
-		t.Fatalf("create durable ScenarioJob = %#v, %v", created, err)
+	job, assembly := localScenarioJobForPersistenceTest(t, "job-terminal-persist-failure", "loadout-failure", "recipe-failure", "1")
+	if created, published, err := store.createOwnedAndBindAssemblyChecked(job, func() {}, nil, "", assembly); err != nil || created == nil || !published {
+		t.Fatalf("create durable ScenarioJob = %#v, published=%v err=%v", created, published, err)
 	}
 	store.durablePath = t.TempDir()
 	current, transitioned, err := store.transition(
@@ -594,8 +1015,10 @@ func TestScenarioJobStoreFailsClosedWhenAtomicJobAssemblyCommitCannotPersist(t *
 		ModelAxes:      []*runtimev1.LoadoutEffectiveModelAxisIdentity{{SlotId: "main.gguf", ModelAssetId: "model-1", ContentId: "sha256:" + strings.Repeat("a", 64)}},
 	}
 	job := &runtimev1.ScenarioJob{
-		JobId: "job-must-not-publish", ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,
-		RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL, Status: runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED, CreatedAt: now, UpdatedAt: now,
+		JobId: "job-must-not-publish", Head: &runtimev1.ScenarioRequestHead{AppId: "app.local", SubjectUserId: "user-local"},
+		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE, ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
+		RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL, Status: runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED,
+		CreatedAt: now, UpdatedAt: now, TraceId: "trace-job-must-not-publish",
 		EffectiveInputIdentity: identity,
 	}
 	assembly := resolvedAssemblyForPersistenceTest(t, identity)

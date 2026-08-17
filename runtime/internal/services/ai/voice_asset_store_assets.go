@@ -16,7 +16,7 @@ func (s *voiceAssetStore) getAsset(voiceAssetID string) (*runtimev1.VoiceAsset, 
 	}
 	s.mu.RLock()
 	asset, ok := s.assets[id]
-	if !ok {
+	if !ok || s.pending[id] {
 		s.mu.RUnlock()
 		return nil, false
 	}
@@ -33,7 +33,7 @@ func (s *voiceAssetStore) getAssetBinding(voiceAssetID string) (*runtimev1.Voice
 	s.mu.RLock()
 	asset, ok := s.assets[id]
 	target := s.targets[id]
-	if !ok || asset == nil || target == nil || !target.Valid() {
+	if !ok || s.pending[id] || asset == nil || target == nil || !target.Valid() {
 		s.mu.RUnlock()
 		return nil, nil, false
 	}
@@ -43,21 +43,28 @@ func (s *voiceAssetStore) getAssetBinding(voiceAssetID string) (*runtimev1.Voice
 	return out, outTarget, true
 }
 
-// publishLocalResult makes one session-ephemeral VoiceAsset visible only if
-// the canonical ScenarioJob terminal commit succeeds. The commit runs while
-// the result store is locked so Get/List cannot observe an ACTIVE asset before
-// its ScenarioJob is durably COMPLETED.
-func (s *voiceAssetStore) publishLocalResult(
+// publishResult makes one VoiceAsset visible only when the primary
+// ScenarioJob terminal result commits. The VoiceAsset store owns asset
+// content and private execution binding only; it never owns Job lifecycle.
+func (s *voiceAssetStore) publishResult(
 	draft *runtimev1.VoiceAsset,
 	target *runtimeidentity.Target,
+	binding *voiceAssetCloudBinding,
 	providerVoiceRef string,
 	metadata map[string]any,
-	commit func() bool,
+	commit func(*runtimev1.VoiceAsset, *runtimev1.VoiceReference) bool,
 ) (*runtimev1.VoiceAsset, bool) {
 	providerVoiceRef = strings.TrimSpace(providerVoiceRef)
-	if s == nil || draft == nil || target == nil || !target.Valid() || target.Local == nil ||
-		draft.GetPersistence() != runtimev1.VoiceAssetPersistence_VOICE_ASSET_PERSISTENCE_SESSION_EPHEMERAL ||
+	if s == nil || draft == nil || target == nil || !target.Valid() ||
 		strings.TrimSpace(draft.GetVoiceAssetId()) == "" || providerVoiceRef == "" || commit == nil {
+		return nil, false
+	}
+	persistent := draft.GetPersistence() == runtimev1.VoiceAssetPersistence_VOICE_ASSET_PERSISTENCE_PROVIDER_PERSISTENT
+	if persistent {
+		if target.Cloud == nil || binding == nil || !binding.Valid() || target.Cloud.ConnectorID != strings.TrimSpace(binding.ConnectorID) {
+			return nil, false
+		}
+	} else if draft.GetPersistence() != runtimev1.VoiceAssetPersistence_VOICE_ASSET_PERSISTENCE_SESSION_EPHEMERAL || target.Local == nil || binding != nil {
 		return nil, false
 	}
 	asset := cloneVoiceAsset(draft)
@@ -67,9 +74,12 @@ func (s *voiceAssetStore) publishLocalResult(
 	}
 	asset.Status = runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_ACTIVE
 	now := timestamppb.New(time.Now().UTC())
-	asset.CreatedAt = now
+	if asset.GetCreatedAt() == nil {
+		asset.CreatedAt = now
+	}
 	asset.UpdatedAt = now
 	id := strings.TrimSpace(asset.GetVoiceAssetId())
+	reference := voiceAssetReference(id)
 
 	s.mu.Lock()
 	if s.assets[id] != nil {
@@ -78,11 +88,36 @@ func (s *voiceAssetStore) publishLocalResult(
 	}
 	s.assets[id] = cloneVoiceAsset(asset)
 	s.targets[id] = target.Clone()
-	if !commit() {
+	if persistent {
+		s.cloudBindings[id] = binding.Clone()
+		s.pending[id] = true
+		if err := s.persistDurableAssetsLocked(); err != nil {
+			delete(s.assets, id)
+			delete(s.targets, id)
+			delete(s.cloudBindings, id)
+			delete(s.pending, id)
+			s.mu.Unlock()
+			return nil, false
+		}
+	}
+	if !commit(asset, reference) {
 		delete(s.assets, id)
 		delete(s.targets, id)
+		delete(s.cloudBindings, id)
+		delete(s.pending, id)
+		if persistent {
+			_ = s.persistDurableAssetsLocked()
+		}
 		s.mu.Unlock()
 		return nil, false
+	}
+	if persistent {
+		// The primary ScenarioJob result is now durable. Promotion only changes
+		// the VoiceAsset library projection; if this write fails, the current
+		// process stays ACTIVE and restart reconciliation promotes the durable
+		// pending record from that primary completed result.
+		delete(s.pending, id)
+		_ = s.persistDurableAssetsLocked()
 	}
 	s.mu.Unlock()
 	return cloneVoiceAsset(asset), true
@@ -97,7 +132,7 @@ func (s *voiceAssetStore) getAssetCloudBinding(voiceAssetID string) (*runtimev1.
 	asset := s.assets[id]
 	target := s.targets[id]
 	binding := s.cloudBindings[id]
-	if asset == nil || target == nil || !target.Valid() {
+	if s.pending[id] || asset == nil || target == nil || !target.Valid() {
 		s.mu.RUnlock()
 		return nil, nil, nil, false
 	}
@@ -114,6 +149,9 @@ func (s *voiceAssetStore) listAssets(req *runtimev1.ListVoiceAssetsRequest) []*r
 	defer s.mu.RUnlock()
 	items := make([]*runtimev1.VoiceAsset, 0, len(s.assets))
 	for _, asset := range s.assets {
+		if s.pending[strings.TrimSpace(asset.GetVoiceAssetId())] {
+			continue
+		}
 		if strings.TrimSpace(req.GetAppId()) != "" && asset.GetAppId() != req.GetAppId() {
 			continue
 		}
@@ -148,7 +186,7 @@ func (s *voiceAssetStore) deleteAssetWithResult(voiceAssetID string, result voic
 	}
 	s.mu.Lock()
 	asset, ok := s.assets[id]
-	if !ok {
+	if !ok || s.pending[id] {
 		s.mu.Unlock()
 		return false
 	}
@@ -168,7 +206,7 @@ func (s *voiceAssetStore) updateAssetDeleteResult(voiceAssetID string, result vo
 	}
 	s.mu.Lock()
 	asset, ok := s.assets[id]
-	if !ok || asset == nil {
+	if !ok || s.pending[id] || asset == nil {
 		s.mu.Unlock()
 		return false
 	}
@@ -187,7 +225,7 @@ func (s *voiceAssetStore) updateDeletedAssetReconciliationResult(voiceAssetID st
 	}
 	s.mu.Lock()
 	asset, ok := s.assets[id]
-	if !ok || asset == nil || asset.GetStatus() != runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_DELETED {
+	if !ok || s.pending[id] || asset == nil || asset.GetStatus() != runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_DELETED {
 		s.mu.Unlock()
 		return false
 	}
@@ -207,6 +245,9 @@ func (s *voiceAssetStore) listPendingDeleteReconciliationAssets(appID string, su
 	defer s.mu.RUnlock()
 	items := make([]*runtimev1.VoiceAsset, 0, limit)
 	for _, asset := range s.assets {
+		if s.pending[strings.TrimSpace(asset.GetVoiceAssetId())] {
+			continue
+		}
 		if asset == nil || asset.GetStatus() != runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_DELETED {
 			continue
 		}

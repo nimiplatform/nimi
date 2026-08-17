@@ -8,6 +8,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 func TestScenarioJobStoreCoreValidationAndLookup(t *testing.T) {
@@ -38,21 +39,22 @@ func TestScenarioJobStoreCoreValidationAndLookup(t *testing.T) {
 func TestVoiceScenarioJobCancelPublishesOnlyAfterExecutionStops(t *testing.T) {
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
 	ctx := scenarioJobUserContext("app", "user")
-	job, _ := svc.voiceAssets.submit(&voiceWorkflowSubmitInput{
-		Head:         &runtimev1.ScenarioRequestHead{AppId: "app", SubjectUserId: "user"},
-		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE,
-		Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_VoiceCreate{VoiceCreate: &runtimev1.VoiceCreateScenarioSpec{
-			TargetModelId: "voice-model",
-			Source:        &runtimev1.VoiceCreateScenarioSpec_TextDescription{TextDescription: &runtimev1.VoiceT2VInput{InstructionText: "steady"}},
-		}}},
-	})
-	if job == nil {
-		t.Fatal("submit voice job")
-	}
 	executionCtx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	if !svc.voiceAssets.setJobCancel(job.GetJobId(), cancel) || !svc.voiceAssets.startJobExecution(job.GetJobId()) || !svc.voiceAssets.runJob(job.GetJobId()) {
+	now := timestamppb.Now()
+	job := &runtimev1.ScenarioJob{
+		JobId: "voice-cancel-job", Head: &runtimev1.ScenarioRequestHead{AppId: "app", SubjectUserId: "user"},
+		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE, ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
+		Status: runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED, CreatedAt: now, UpdatedAt: now, TraceId: "voice-cancel-trace",
+	}
+	if created, err := svc.scenarioJobs.createOwnedChecked(job, cancel, nil); err != nil || created == nil {
+		t.Fatalf("submit voice job: %#v, %v", created, err)
+	}
+	if !svc.scenarioJobs.startExecution(job.GetJobId()) {
 		t.Fatal("start voice execution")
+	}
+	if _, ok, err := svc.scenarioJobs.transition(job.GetJobId(), runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_RUNNING, nil); err != nil || !ok {
+		t.Fatalf("run voice job: ok=%v err=%v", ok, err)
 	}
 	response, err := svc.CancelScenarioJob(ctx, &runtimev1.CancelScenarioJobRequest{JobId: job.GetJobId(), Reason: "stop voice"})
 	if err != nil {
@@ -66,8 +68,10 @@ func TestVoiceScenarioJobCancelPublishesOnlyAfterExecutionStops(t *testing.T) {
 	if response.GetJob().GetStatus() == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED {
 		t.Fatalf("voice canceled before execution stop: %+v", response.GetJob())
 	}
-	svc.voiceAssets.finishJobExecution(job.GetJobId())
-	terminal, _ := svc.voiceAssets.getJob(job.GetJobId())
+	if err := svc.scenarioJobs.finishExecution(job.GetJobId()); err != nil {
+		t.Fatalf("finish voice execution: %v", err)
+	}
+	terminal, _ := svc.scenarioJobs.get(job.GetJobId())
 	if terminal.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED || terminal.GetReasonDetail() != "stop voice" {
 		t.Fatalf("voice cancel terminal = %+v", terminal)
 	}

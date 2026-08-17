@@ -283,17 +283,19 @@ func (s *Service) finishLocalSpeechJobFailure(ctx context.Context, jobID string,
 		jobStatus = runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_TIMEOUT
 		eventType = runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_TIMEOUT
 		reason = runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT
-	} else if errors.Is(ctx.Err(), context.Canceled) || status.Code(err) == codes.Canceled {
+	} else if errors.Is(ctx.Err(), context.Canceled) || errors.Is(err, context.Canceled) || status.Code(err) == codes.Canceled {
 		jobStatus = runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED
 		eventType = runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_CANCELED
-		if reason == runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
-			reason = runtimev1.ReasonCode_AI_LOCAL_EXECUTION_CANCELED
-		}
+		reason = runtimev1.ReasonCode_AI_LOCAL_EXECUTION_CANCELED
 	}
 	_, _, _ = s.transitionScenarioJob(jobID, jobStatus, eventType, func(job *runtimev1.ScenarioJob) {
 		job.ReasonCode = reason
 		job.ReasonDetail = sanitizeScenarioJobReasonDetail(err, reason)
-		job.ReasonMetadata = scenarioJobReasonMetadata(err, reason)
+		if jobStatus == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED {
+			job.ReasonMetadata = nil
+		} else {
+			job.ReasonMetadata = scenarioJobReasonMetadata(err, reason)
+		}
 		if job.ProgressPercent >= 100 {
 			job.ProgressPercent = 99
 		}

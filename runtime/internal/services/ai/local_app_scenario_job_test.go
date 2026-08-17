@@ -14,7 +14,6 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
 	"github.com/nimiplatform/nimi/runtime/internal/localappop"
-	"github.com/nimiplatform/nimi/runtime/internal/runtimeidentity"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -211,93 +210,6 @@ func TestSubmitLocalAppSpeechJobAcceptsMinimalTypedSpecAndBindsOwner(t *testing.
 	}
 }
 
-func TestGetLocalAppScenarioJobPublishesVoiceResultOnlyAfterCompletion(t *testing.T) {
-	svc := newTestService(nil)
-	owner := &localAppJobOwner{
-		AccountID: "account-1", RegisteredAppSubject: "protected-app-subject", ProducerAppID: "nimi.realm-persona-studio",
-	}
-	submitVoiceJob := func(t *testing.T) (*runtimev1.ScenarioJob, *runtimev1.VoiceAsset) {
-		t.Helper()
-		job, draft := svc.voiceAssets.submit(&voiceWorkflowSubmitInput{
-			Head:          &runtimev1.ScenarioRequestHead{AppId: owner.ProducerAppID, SubjectUserId: owner.AccountID},
-			LocalAppOwner: owner,
-			ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE,
-			Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_VoiceCreate{VoiceCreate: &runtimev1.VoiceCreateScenarioSpec{
-				Source: &runtimev1.VoiceCreateScenarioSpec_TextDescription{TextDescription: &runtimev1.VoiceT2VInput{InstructionText: "calm voice"}},
-			}}},
-			RouteDecision:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
-			Provider:        "local",
-			ExecutionTarget: &runtimeidentity.Target{Local: &runtimeidentity.LocalTarget{ReadinessRef: "local-asset://protected-voice-result"}},
-		})
-		if job == nil || draft == nil {
-			t.Fatal("submit should create a Job and private result draft")
-		}
-		return job, draft
-	}
-	getCtx := localAppScenarioJobContextForSubject(
-		accountservice.LocalAppOperationScenarioJobGet,
-		localappop.AppOperationIDScenarioJobGet,
-		owner.RegisteredAppSubject,
-	)
-
-	job, draft := submitVoiceJob(t)
-	if !svc.voiceAssets.runJob(job.GetJobId()) {
-		t.Fatal("runJob should transition the Job")
-	}
-	preTerminal, err := svc.GetLocalAppScenarioJob(getCtx, &runtimev1.GetLocalAppScenarioJobRequest{JobId: job.GetJobId()})
-	if err != nil {
-		t.Fatalf("GetLocalAppScenarioJob before completion: %v", err)
-	}
-	if preTerminal.GetAsset() != nil || preTerminal.GetVoiceReference() != nil {
-		t.Fatalf("pre-terminal Job leaked a voice result: %+v", preTerminal)
-	}
-	if _, ok := svc.voiceAssets.getAsset(draft.GetVoiceAssetId()); ok {
-		t.Fatal("pre-terminal result draft was publicly addressable")
-	}
-
-	if !svc.voiceAssets.completeJob(job.GetJobId(), "opaque-provider-voice-ref", nil, nil) {
-		t.Fatal("completeJob should publish the result")
-	}
-	terminal, err := svc.GetLocalAppScenarioJob(getCtx, &runtimev1.GetLocalAppScenarioJobRequest{JobId: job.GetJobId()})
-	if err != nil {
-		t.Fatalf("GetLocalAppScenarioJob after completion: %v", err)
-	}
-	if terminal.GetJob().GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED ||
-		terminal.GetAsset().GetStatus() != runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_ACTIVE ||
-		terminal.GetAsset().GetVoiceAssetId() != draft.GetVoiceAssetId() ||
-		terminal.GetVoiceReference().GetKind() != runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_VOICE_ASSET ||
-		terminal.GetVoiceReference().GetVoiceAssetId() != draft.GetVoiceAssetId() {
-		t.Fatalf("terminal voice result is not exact: %+v", terminal)
-	}
-	if !svc.voiceAssets.deleteAsset(draft.GetVoiceAssetId()) {
-		t.Fatal("deleteAsset should mutate the published catalog Asset")
-	}
-	terminalAfterDelete, err := svc.GetLocalAppScenarioJob(getCtx, &runtimev1.GetLocalAppScenarioJobRequest{JobId: job.GetJobId()})
-	if err != nil {
-		t.Fatalf("GetLocalAppScenarioJob after VoiceAsset delete: %v", err)
-	}
-	if terminalAfterDelete.GetAsset().GetStatus() != runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_ACTIVE ||
-		terminalAfterDelete.GetAsset().GetVoiceAssetId() != draft.GetVoiceAssetId() ||
-		terminalAfterDelete.GetVoiceReference().GetVoiceAssetId() != draft.GetVoiceAssetId() {
-		t.Fatalf("catalog Asset delete changed protected terminal Job result: %+v", terminalAfterDelete)
-	}
-
-	failedJob, failedDraft := submitVoiceJob(t)
-	if !svc.voiceAssets.failJob(failedJob.GetJobId(), runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, "failed", nil) {
-		t.Fatal("failJob should transition the Job")
-	}
-	failed, err := svc.GetLocalAppScenarioJob(getCtx, &runtimev1.GetLocalAppScenarioJobRequest{JobId: failedJob.GetJobId()})
-	if err != nil {
-		t.Fatalf("GetLocalAppScenarioJob failed Job: %v", err)
-	}
-	if failed.GetAsset() != nil || failed.GetVoiceReference() != nil {
-		t.Fatalf("failed Job leaked a voice result: %+v", failed)
-	}
-	if _, ok := svc.voiceAssets.getAsset(failedDraft.GetVoiceAssetId()); ok {
-		t.Fatal("failed result draft was publicly addressable")
-	}
-}
-
 func TestSubmitLocalAppScenarioJobVoiceWorkflowWithoutCurrentAccountConnectorFailsClosed(t *testing.T) {
 	catalogFixture := newManagedCloudScenarioTestFixture(t, "dashscope", "qwen3-tts-vd-2026-01-26", "https://example.invalid", Config{})
 	svc := newTestService(nil)
@@ -359,7 +271,7 @@ func TestSubmitLocalAppScenarioJobVoiceWorkflowMapsProviderUnauthorizedThroughRe
 	deadline := time.Now().Add(3 * time.Second)
 	var job *runtimev1.ScenarioJob
 	for time.Now().Before(deadline) {
-		job, _ = fixture.service.voiceAssets.getJob(response.GetJob().GetJobId())
+		job, _ = fixture.service.scenarioJobs.get(response.GetJob().GetJobId())
 		if isTerminalScenarioJobStatus(job.GetStatus()) {
 			break
 		}
@@ -457,7 +369,7 @@ func TestSubmitLocalAppScenarioJobVoiceWorkflowUsesOneCapturedAIConfigSnapshot(t
 	deadline := time.Now().Add(3 * time.Second)
 	var job *runtimev1.ScenarioJob
 	for time.Now().Before(deadline) {
-		job, _ = fixture.service.voiceAssets.getJob(response.GetJob().GetJobId())
+		job, _ = fixture.service.scenarioJobs.get(response.GetJob().GetJobId())
 		if isTerminalScenarioJobStatus(job.GetStatus()) {
 			break
 		}

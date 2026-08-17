@@ -16,7 +16,6 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/authn"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
-	"github.com/nimiplatform/nimi/runtime/internal/runtimeidentity"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
@@ -282,34 +281,16 @@ func TestScenarioJobStoreVoiceCancelAndMissingArtifactsPaths(t *testing.T) {
 		t.Fatalf("expected AI_MEDIA_JOB_NOT_FOUND for missing artifacts job, got=%v", reason)
 	}
 
-	voiceJob, _ := svc.voiceAssets.submit(&voiceWorkflowSubmitInput{
-		Head: &runtimev1.ScenarioRequestHead{
-			AppId:         "nimi.desktop",
-			SubjectUserId: "user-001",
-		},
-		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE,
-		Spec: &runtimev1.ScenarioSpec{
-			Spec: &runtimev1.ScenarioSpec_VoiceCreate{
-				VoiceCreate: &runtimev1.VoiceCreateScenarioSpec{
-					TargetModelId: "local/qwen3-tts",
-					Source: &runtimev1.VoiceCreateScenarioSpec_TextDescription{TextDescription: &runtimev1.VoiceT2VInput{
-						InstructionText: "steady narration voice",
-					}},
-				},
-			},
-		},
-		TraceID:       "voice-trace-cancel",
-		RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
-		ModelResolved: "local/qwen3-tts",
-		Provider:      "local",
-		ExecutionTarget: &runtimeidentity.Target{Local: &runtimeidentity.LocalTarget{
-			ReadinessRef: "local-asset://qwen3-tts-cancel",
-		}},
-	})
-	if voiceJob == nil {
-		t.Fatalf("submit voice design scenario job")
+	now := timestamppb.Now()
+	voiceJob := &runtimev1.ScenarioJob{
+		JobId: "voice-cancel-primary", Head: &runtimev1.ScenarioRequestHead{AppId: "nimi.desktop", SubjectUserId: "user-001"},
+		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE, ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
+		Status: runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED, ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED,
+		CreatedAt: now, UpdatedAt: now, TraceId: "voice-trace-cancel",
 	}
-
+	if created, createErr := svc.scenarioJobs.createOwnedChecked(voiceJob, func() {}, nil); createErr != nil || created == nil {
+		t.Fatalf("create primary voice ScenarioJob: %#v, %v", created, createErr)
+	}
 	jobID := voiceJob.GetJobId()
 	cancelResp, err := svc.CancelScenarioJob(ctx, &runtimev1.CancelScenarioJobRequest{
 		JobId:  jobID,
@@ -336,36 +317,22 @@ func TestScenarioJobStoreVoiceCancelAndMissingArtifactsPaths(t *testing.T) {
 		t.Fatalf("voice artifacts should remain an empty slice, got=%#v", artResp.GetArtifacts())
 	}
 
-	completedJob, _ := svc.voiceAssets.submit(&voiceWorkflowSubmitInput{
-		Head: &runtimev1.ScenarioRequestHead{
-			AppId:         "nimi.desktop",
-			SubjectUserId: "user-001",
-		},
-		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE,
-		Spec: &runtimev1.ScenarioSpec{
-			Spec: &runtimev1.ScenarioSpec_VoiceCreate{
-				VoiceCreate: &runtimev1.VoiceCreateScenarioSpec{
-					TargetModelId: "local/qwen3-tts",
-					Source: &runtimev1.VoiceCreateScenarioSpec_TextDescription{TextDescription: &runtimev1.VoiceT2VInput{
-						InstructionText: "already completed voice",
-					}},
-				},
-			},
-		},
-		TraceID:       "voice-trace-complete",
-		RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
-		ModelResolved: "local/qwen3-tts",
-		Provider:      "local",
-		ExecutionTarget: &runtimeidentity.Target{Local: &runtimeidentity.LocalTarget{
-			ReadinessRef: "local-asset://qwen3-tts-complete",
-		}},
-	})
-	if completedJob == nil {
-		t.Fatalf("submit second voice design scenario job")
+	completedJob := &runtimev1.ScenarioJob{
+		JobId: "voice-completed-primary", Head: &runtimev1.ScenarioRequestHead{AppId: "nimi.desktop", SubjectUserId: "user-001"},
+		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE, ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
+		Status: runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED, ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED,
+		CreatedAt: now, UpdatedAt: now, TraceId: "voice-trace-complete",
+	}
+	if created, createErr := svc.scenarioJobs.createOwnedChecked(completedJob, func() {}, nil); createErr != nil || created == nil {
+		t.Fatalf("create completed primary voice ScenarioJob: %#v, %v", created, createErr)
 	}
 	completedJobID := completedJob.GetJobId()
-	if ok := svc.voiceAssets.completeJob(completedJobID, "voice-ref", nil, nil); !ok {
-		t.Fatalf("expected voice completion path to succeed")
+	completedAsset := &runtimev1.VoiceAsset{
+		VoiceAssetId: completedJobID, AppId: "nimi.desktop", SubjectUserId: "user-001", ProviderVoiceRef: "voice-ref",
+		Status: runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_ACTIVE, CreatedAt: now, UpdatedAt: now,
+	}
+	if _, ok, completeErr := svc.scenarioJobs.transitionVoiceCompleted(completedJobID, completedAsset, voiceAssetReference(completedJobID), nil); completeErr != nil || !ok {
+		t.Fatalf("complete primary voice ScenarioJob: ok=%v err=%v", ok, completeErr)
 	}
 
 	_, err = svc.CancelScenarioJob(ctx, &runtimev1.CancelScenarioJobRequest{
@@ -496,20 +463,15 @@ func TestScenarioJobStoreRejectsUnauthorizedSubscriptionAndVoiceCancel(t *testin
 
 	now := time.Now().UTC()
 	voiceJobID := "voice-auth-job"
-	svc.voiceAssets.mu.Lock()
-	svc.voiceAssets.jobs[voiceJobID] = &voiceScenarioJobRecord{
-		job: &runtimev1.ScenarioJob{
-			JobId:      voiceJobID,
-			Head:       &runtimev1.ScenarioRequestHead{AppId: "app-a", SubjectUserId: "user-a"},
-			Status:     runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED,
-			TraceId:    "trace-voice-auth",
-			CreatedAt:  timestamppb.New(now),
-			UpdatedAt:  timestamppb.New(now),
-			ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED,
-		},
-		subscribers: make(map[uint64]chan *runtimev1.ScenarioJobEvent),
+	created := svc.scenarioJobs.create(&runtimev1.ScenarioJob{
+		JobId: voiceJobID, Head: &runtimev1.ScenarioRequestHead{AppId: "app-a", SubjectUserId: "user-a"},
+		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE, ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
+		Status: runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED, TraceId: "trace-voice-auth",
+		CreatedAt: timestamppb.New(now), UpdatedAt: timestamppb.New(now), ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED,
+	}, func() {})
+	if created == nil {
+		t.Fatal("create primary voice ScenarioJob")
 	}
-	svc.voiceAssets.mu.Unlock()
 
 	_, err = svc.CancelScenarioJob(
 		authn.WithIdentity(metadata.NewIncomingContext(context.Background(), metadata.Pairs("x-nimi-app-id", "app-b")), &authn.Identity{SubjectUserID: "user-b"}),
@@ -518,7 +480,7 @@ func TestScenarioJobStoreRejectsUnauthorizedSubscriptionAndVoiceCancel(t *testin
 	if status.Code(err) != codes.PermissionDenied {
 		t.Fatalf("expected permission denied for voice cancel, got %v", err)
 	}
-	job, ok := svc.voiceAssets.getJob(voiceJobID)
+	job, ok := svc.scenarioJobs.get(voiceJobID)
 	if !ok {
 		t.Fatalf("voice job should still exist")
 	}
@@ -720,157 +682,5 @@ func TestScenarioJobStoreSubscribeScenarioTerminalBacklogReturns(t *testing.T) {
 	}
 	if got := collector.events[len(collector.events)-1].GetEventType(); got != runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_COMPLETED {
 		t.Fatalf("expected completed event at terminal backlog tail, got %v", got)
-	}
-}
-
-func TestScenarioJobStoreSubscribeVoiceStreamingBranch(t *testing.T) {
-	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
-	jobID := "voice-subscribe-streaming"
-	now := time.Now().UTC()
-
-	svc.voiceAssets.mu.Lock()
-	svc.voiceAssets.jobs[jobID] = &voiceScenarioJobRecord{
-		job: &runtimev1.ScenarioJob{
-			JobId:      jobID,
-			Head:       &runtimev1.ScenarioRequestHead{AppId: "app", SubjectUserId: "user"},
-			Status:     runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED,
-			TraceId:    "trace-voice-stream",
-			CreatedAt:  timestamppb.New(now),
-			UpdatedAt:  timestamppb.New(now),
-			ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED,
-		},
-		events:      []*runtimev1.ScenarioJobEvent{},
-		subscribers: make(map[uint64]chan *runtimev1.ScenarioJobEvent),
-	}
-	svc.voiceAssets.mu.Unlock()
-
-	collector := &scenarioJobEventCollector{ctx: scenarioJobUserContext("app", "user")}
-	done := make(chan error, 1)
-	go func() {
-		done <- svc.SubscribeScenarioJobEvents(&runtimev1.SubscribeScenarioJobEventsRequest{JobId: jobID}, collector)
-	}()
-
-	time.Sleep(20 * time.Millisecond)
-	if _, ok := svc.voiceAssets.cancelJob(jobID, "stop"); !ok {
-		t.Fatalf("voice cancel should publish terminal event")
-	}
-
-	select {
-	case err := <-done:
-		if err != nil {
-			t.Fatalf("subscribe voice streaming branch returned error: %v", err)
-		}
-	case <-time.After(500 * time.Millisecond):
-		t.Fatalf("subscribe voice streaming branch did not return")
-	}
-
-	if len(collector.events) == 0 {
-		t.Fatalf("expected at least one event from voice stream branch")
-	}
-}
-
-func TestScenarioJobStoreSubscribeVoiceTerminalBacklogBranch(t *testing.T) {
-	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
-	jobID := "voice-subscribe-terminal"
-	now := time.Now().UTC()
-
-	svc.voiceAssets.mu.Lock()
-	svc.voiceAssets.jobs[jobID] = &voiceScenarioJobRecord{
-		job: &runtimev1.ScenarioJob{
-			JobId:      jobID,
-			Head:       &runtimev1.ScenarioRequestHead{AppId: "app", SubjectUserId: "user"},
-			Status:     runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED,
-			TraceId:    "trace-voice-terminal",
-			CreatedAt:  timestamppb.New(now),
-			UpdatedAt:  timestamppb.New(now),
-			ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED,
-		},
-		events: []*runtimev1.ScenarioJobEvent{
-			{
-				EventType: runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_COMPLETED,
-				Timestamp: timestamppb.New(now),
-				Job: &runtimev1.ScenarioJob{
-					JobId:  jobID,
-					Status: runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED,
-				},
-			},
-		},
-		subscribers: make(map[uint64]chan *runtimev1.ScenarioJobEvent),
-	}
-	svc.voiceAssets.mu.Unlock()
-
-	collector := &scenarioJobEventCollector{ctx: scenarioJobUserContext("app", "user")}
-	if err := svc.SubscribeScenarioJobEvents(&runtimev1.SubscribeScenarioJobEventsRequest{JobId: jobID}, collector); err != nil {
-		t.Fatalf("subscribe voice terminal backlog branch returned error: %v", err)
-	}
-	if len(collector.events) != 1 || collector.events[0].GetEventType() != runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_COMPLETED {
-		t.Fatalf("expected completed backlog event, got %#v", collector.events)
-	}
-}
-
-func TestScenarioJobStoreSubscribeVoiceBacklogSendError(t *testing.T) {
-	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
-	jobID := "voice-subscribe-backlog-send-error"
-	now := time.Now().UTC()
-
-	svc.voiceAssets.mu.Lock()
-	svc.voiceAssets.jobs[jobID] = &voiceScenarioJobRecord{
-		job: &runtimev1.ScenarioJob{
-			JobId:      jobID,
-			Head:       &runtimev1.ScenarioRequestHead{AppId: "app", SubjectUserId: "user"},
-			Status:     runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED,
-			TraceId:    "trace-voice-backlog-send-error",
-			CreatedAt:  timestamppb.New(now),
-			UpdatedAt:  timestamppb.New(now),
-			ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED,
-		},
-		events: []*runtimev1.ScenarioJobEvent{
-			{
-				EventType: runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_COMPLETED,
-				Timestamp: timestamppb.New(now),
-				Job: &runtimev1.ScenarioJob{
-					JobId:  jobID,
-					Status: runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED,
-				},
-			},
-		},
-		subscribers: make(map[uint64]chan *runtimev1.ScenarioJobEvent),
-	}
-	svc.voiceAssets.mu.Unlock()
-
-	sendErr := errors.New("voice send failed")
-	collector := &scenarioJobFailingCollector{ctx: scenarioJobUserContext("app", "user"), sendErr: sendErr}
-	err := svc.SubscribeScenarioJobEvents(&runtimev1.SubscribeScenarioJobEventsRequest{JobId: jobID}, collector)
-	if !errors.Is(err, sendErr) {
-		t.Fatalf("expected voice send error, got %v", err)
-	}
-}
-
-func TestScenarioJobStoreSubscribeVoiceContextDeadline(t *testing.T) {
-	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
-	jobID := "voice-subscribe-context-deadline"
-	now := time.Now().UTC()
-
-	svc.voiceAssets.mu.Lock()
-	svc.voiceAssets.jobs[jobID] = &voiceScenarioJobRecord{
-		job: &runtimev1.ScenarioJob{
-			JobId:      jobID,
-			Head:       &runtimev1.ScenarioRequestHead{AppId: "app", SubjectUserId: "user"},
-			Status:     runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED,
-			TraceId:    "trace-voice-context-deadline",
-			CreatedAt:  timestamppb.New(now),
-			UpdatedAt:  timestamppb.New(now),
-			ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED,
-		},
-		subscribers: make(map[uint64]chan *runtimev1.ScenarioJobEvent),
-	}
-	svc.voiceAssets.mu.Unlock()
-
-	ctx, cancel := context.WithDeadline(scenarioJobUserContext("app", "user"), time.Now().Add(-time.Second))
-	defer cancel()
-	collector := &scenarioJobEventCollector{ctx: ctx}
-	err := svc.SubscribeScenarioJobEvents(&runtimev1.SubscribeScenarioJobEventsRequest{JobId: jobID}, collector)
-	if !errors.Is(err, context.DeadlineExceeded) {
-		t.Fatalf("expected deadline exceeded from voice subscription context, got %v", err)
 	}
 }

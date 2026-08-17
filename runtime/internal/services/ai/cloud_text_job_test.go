@@ -1,7 +1,9 @@
 package ai
 
 import (
+	"bytes"
 	"context"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -11,6 +13,45 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/scheduler"
 	"google.golang.org/protobuf/encoding/protojson"
 )
+
+func TestCloudImageJobPersistsExactEffectiveInputsBeforeDispatch(t *testing.T) {
+	fixture := newManagedCloudScenarioTestFixture(t, "openai", "gpt-image-1.5", "https://api.openai.com/v1", Config{})
+	store, _ := newDurableScenarioJobStoreForFailureTest(t)
+	fixture.service.scenarioJobs = store
+	host := newControlledRemoteMediaHost(false)
+	fixture.service.SetRemoteMediaExecutionHost(host)
+	ctx := withCloudScenarioTestIntent(scenarioJobUserContext("nimi.desktop", "user-001"), "image.generate", fixture.targetRef)
+	const prompt = "durably captured cloud image prompt"
+
+	submitted, err := fixture.service.SubmitScenarioJob(ctx, cloudImageJobRequest(prompt))
+	if err != nil {
+		t.Fatalf("SubmitScenarioJob: %v", err)
+	}
+	select {
+	case <-host.started:
+	case <-time.After(2 * time.Second):
+		t.Fatal("cloud image Host did not start")
+	}
+	// Finish the async worker before TempDir cleanup. Merely releasing the Host
+	// in a defer lets the worker race the durable-store directory removal on
+	// Windows when the full package runs under load.
+	t.Cleanup(func() {
+		close(host.release)
+		waitScenarioJobTerminal(t, fixture.service, submitted.GetJob().GetJobId(), 3*time.Second)
+	})
+	raw, err := os.ReadFile(store.durablePath)
+	if err != nil {
+		t.Fatalf("read durable ScenarioJob snapshot: %v", err)
+	}
+	for _, want := range []string{prompt, fixture.connectorID, "provider_model_target", "cloud_resolved_assembly"} {
+		if !bytes.Contains(raw, []byte(want)) {
+			t.Fatalf("durable ScenarioJob %s is missing exact Cloud input %q: %s", submitted.GetJob().GetJobId(), want, raw)
+		}
+	}
+	if bytes.Contains(raw, []byte("test-key")) {
+		t.Fatalf("durable Cloud ResolvedAssembly contains credential material: %s", raw)
+	}
+}
 
 func TestCloudImageJobCapturesCurrentAccountConnector(t *testing.T) {
 	fixture := newManagedCloudScenarioTestFixture(t, "openai", "gpt-image-1.5", "https://api.openai.com/v1", Config{})

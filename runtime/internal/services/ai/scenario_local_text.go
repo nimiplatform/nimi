@@ -38,7 +38,7 @@ func executeLocalTextGenerateScenario(
 	}
 	jobID := job.GetJobId()
 	defer s.finishScenarioJobExecution(jobID)
-	if err := s.queueImmediateLocalScenarioJob(jobID); err != nil {
+	if err := s.queueImmediateScenarioJob(jobID); err != nil {
 		return nil, err
 	}
 
@@ -50,7 +50,7 @@ func executeLocalTextGenerateScenario(
 	}
 	defer release()
 	s.attachQueueWaitUnary(jobCtx, acquireResult)
-	if err := s.startImmediateLocalScenarioJob(jobID); err != nil {
+	if err := s.startImmediateScenarioJob(jobID); err != nil {
 		return nil, err
 	}
 	captured, ok := s.scenarioJobs.resolvedAssembly(jobID)
@@ -78,7 +78,7 @@ func executeLocalTextGenerateScenario(
 	}
 	usage := localTextUsage(result, executionEffective.request)
 	artifact := nimillm.BinaryArtifact("text/plain; charset=utf-8", []byte(result.Text), map[string]any{"finish_reason": result.FinishReason.String()})
-	if err := s.completeImmediateLocalScenarioJob(jobID, []*runtimev1.ScenarioArtifact{artifact}, usage); err != nil {
+	if err := s.completeImmediateScenarioJob(jobID, []*runtimev1.ScenarioArtifact{artifact}, usage); err != nil {
 		s.finishLocalTextScenarioJobFailure(requestCtx, jobID, err)
 		return nil, err
 	}
@@ -124,7 +124,7 @@ func streamLocalTextGenerateScenario(
 			s.finishLocalTextScenarioJobFailure(jobCtx, jobID, grpcerr.WithReasonCode(codes.Canceled, runtimev1.ReasonCode_AI_LOCAL_EXECUTION_CANCELED))
 		}
 	}()
-	if err := s.queueImmediateLocalScenarioJob(jobID); err != nil {
+	if err := s.queueImmediateScenarioJob(jobID); err != nil {
 		return err
 	}
 
@@ -136,7 +136,7 @@ func streamLocalTextGenerateScenario(
 	}
 	defer release()
 	s.attachQueueWait(jobCtx, acquireResult)
-	if err := s.startImmediateLocalScenarioJob(jobID); err != nil {
+	if err := s.startImmediateScenarioJob(jobID); err != nil {
 		return err
 	}
 	captured, ok := s.scenarioJobs.resolvedAssembly(jobID)
@@ -307,7 +307,7 @@ func streamLocalTextGenerateScenario(
 			}
 			usage := localTextUsage(result, executionEffective.request)
 			artifact := nimillm.BinaryArtifact("text/plain; charset=utf-8", []byte(result.Text), map[string]any{"finish_reason": result.FinishReason.String()})
-			if completeErr := s.completeImmediateLocalScenarioJob(jobID, []*runtimev1.ScenarioArtifact{artifact}, usage); completeErr != nil {
+			if completeErr := s.completeImmediateScenarioJob(jobID, []*runtimev1.ScenarioArtifact{artifact}, usage); completeErr != nil {
 				s.finishLocalTextScenarioJobFailure(requestCtx, jobID, completeErr)
 				return completeErr
 			}

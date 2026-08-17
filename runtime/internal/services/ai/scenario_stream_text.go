@@ -12,13 +12,12 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"github.com/nimiplatform/nimi/runtime/internal/rpcctx"
 	"github.com/nimiplatform/nimi/runtime/internal/usagemetrics"
-	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest, stream grpc.ServerStreamingServer[runtimev1.StreamScenarioEvent]) error {
+func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest, stream grpc.ServerStreamingServer[runtimev1.StreamScenarioEvent]) (streamErr error) {
 	scenarioStartedAt := time.Now()
 	spec := req.GetSpec().GetTextGenerate()
 	if spec == nil {
@@ -42,6 +41,27 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 		return err
 	}
 	defer effective.release()
+	job, jobCtx, err := s.captureImmediateCloudScenarioJob(
+		localCtx, req.GetHead(), runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,
+		runtimev1.ExecutionMode_EXECUTION_MODE_STREAM, effective.modelResolved(), nil, effective.resolvedAssembly,
+	)
+	if err != nil {
+		return err
+	}
+	jobID := job.GetJobId()
+	defer s.finishScenarioJobExecution(jobID)
+	defer func() {
+		if current, ok := s.scenarioJobs.get(jobID); ok && !isTerminalScenarioJobStatus(current.GetStatus()) {
+			cause := streamErr
+			if cause == nil {
+				cause = context.Canceled
+			}
+			s.finishCloudScenarioJobFailure(jobCtx, jobID, cause)
+		}
+	}()
+	if err := s.queueImmediateScenarioJob(jobID); err != nil {
+		return err
+	}
 	requestedModelID := effective.modelResolved()
 	modelResolved := effective.modelResolved()
 	routeDecision := runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD
@@ -52,24 +72,42 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 	)
 
 	schedulerStartedAt := time.Now()
-	release, acquireResult, acquireErr := s.scheduler.Acquire(stream.Context(), req.GetHead().GetAppId())
+	release, acquireResult, acquireErr := s.scheduler.Acquire(jobCtx, req.GetHead().GetAppId())
 	s.observeLatency("runtime.ai.scheduler_acquire_ms", schedulerStartedAt,
 		"caller_app_id", req.GetHead().GetAppId(),
 		"scenario_type", req.GetScenarioType().String(),
 		"requested_model_id", requestedModelID,
 	)
 	if acquireErr != nil {
-		return schedulerAcquireError(acquireErr)
+		executionErr := schedulerAcquireError(acquireErr)
+		s.finishCloudScenarioJobFailure(jobCtx, jobID, executionErr)
+		return executionErr
 	}
 	defer release()
-	waitMs := s.attachQueueWait(stream.Context(), acquireResult)
+	waitMs := s.attachQueueWait(jobCtx, acquireResult)
 	stream.SetTrailer(usagemetrics.QueueWaitTrailer(waitMs))
 	s.logQueueWait("stream_scenario_text_generate", req.GetHead().GetAppId(), acquireResult)
 	totalTimeout, err := timeoutDuration(req.GetHead().GetTimeoutMs(), defaultStreamTotalTimeout)
 	if err != nil {
 		return err
 	}
-	requestBaseCtx, baseCancel := context.WithTimeout(stream.Context(), totalTimeout)
+	if err := s.startImmediateScenarioJob(jobID); err != nil {
+		return err
+	}
+	assembly, ok := s.scenarioJobs.cloudResolvedAssembly(jobID)
+	if !ok {
+		err := grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+		s.finishCloudScenarioJobFailure(jobCtx, jobID, err)
+		return err
+	}
+	executionEffective, err := s.cloudTextEffectiveInputsFromResolvedAssembly(assembly)
+	if err != nil {
+		s.finishCloudScenarioJobFailure(jobCtx, jobID, err)
+		return err
+	}
+	defer executionEffective.release()
+	effective = executionEffective
+	requestBaseCtx, baseCancel := context.WithTimeout(jobCtx, totalTimeout)
 	defer baseCancel()
 	requestCtx, requestCancel := context.WithCancel(requestBaseCtx)
 	defer requestCancel()
@@ -139,7 +177,7 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 		"route_decision", routeDecision.String(),
 	)
 
-	traceID := ulid.Make().String()
+	traceID := job.GetTraceId()
 	var seq atomic.Uint64
 	send := func(event *runtimev1.StreamScenarioEvent) error {
 		event.Sequence = seq.Add(1)
@@ -156,6 +194,7 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 		} else if idleTimedOut.Load() {
 			cause = grpcerr.WithReasonCode(codes.DeadlineExceeded, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT)
 		}
+		s.finishCloudScenarioJobFailure(requestCtx, jobID, cause)
 		if s.logger != nil {
 			logArgs := []any{
 				"scenario_type", req.GetScenarioType().String(),
@@ -367,6 +406,9 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 			requestedModelID,
 			modelResolved,
 		)
+	}
+	if err := s.completeImmediateScenarioJob(jobID, nil, usage); err != nil {
+		return failAndStop(err)
 	}
 	s.observeLatency("runtime.ai.stream.total_ms", scenarioStartedAt,
 		"caller_app_id", req.GetHead().GetAppId(),

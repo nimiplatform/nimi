@@ -19,26 +19,28 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type cloudVoiceWorkflowEffectiveInputs struct {
-	implementation *runtimev1.CapabilityImplementationIdentity
-	rawTarget      *structpb.Struct
-	target         capabilitydriver.CloudMediaTarget
-	catalogTarget  *nimillm.RemoteTarget
-	voiceTarget    *runtimeidentity.Target
-	connector      connector.ConnectorRecord
-	defaults       *structpb.Struct
-	request        *runtimev1.SubmitScenarioJobRequest
-	mapped         *capabilitydriver.CloudVoiceWorkflowMappedRequest
-	driver         capabilitydriver.CloudMediaDriver
-	resolution     catalog.ResolveVoiceWorkflowResult
-	traceID        string
-	appID          string
-	accountID      string
+	implementation   *runtimev1.CapabilityImplementationIdentity
+	rawTarget        *structpb.Struct
+	target           capabilitydriver.CloudMediaTarget
+	catalogTarget    *nimillm.RemoteTarget
+	voiceTarget      *runtimeidentity.Target
+	connector        connector.ConnectorRecord
+	defaults         *structpb.Struct
+	request          *runtimev1.SubmitScenarioJobRequest
+	mapped           *capabilitydriver.CloudVoiceWorkflowMappedRequest
+	driver           capabilitydriver.CloudMediaDriver
+	resolution       catalog.ResolveVoiceWorkflowResult
+	traceID          string
+	appID            string
+	accountID        string
+	resolvedAssembly *cloudResolvedAssembly
 }
 
 func (input *cloudVoiceWorkflowEffectiveInputs) release() {
@@ -56,6 +58,7 @@ func (input *cloudVoiceWorkflowEffectiveInputs) release() {
 	input.mapped = nil
 	input.driver = nil
 	input.resolution = catalog.ResolveVoiceWorkflowResult{}
+	input.resolvedAssembly = nil
 }
 
 func (input *cloudVoiceWorkflowEffectiveInputs) modelResolved() string {
@@ -163,6 +166,10 @@ func (s *Service) captureCloudVoiceWorkflowEffectiveInputs(
 	if effectiveRequest == nil {
 		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
 	}
+	effectiveRequest.Head = cloneScenarioHead(effectiveRequest.GetHead())
+	effectiveRequest.Head.SubjectUserId = accountID
+	effectiveRequest.ExecutionMode = runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB
+	normalizeVoiceWorkflowPreferredName(effectiveRequest)
 	if err := validateVoiceWorkflowRequestAgainstMetadata(effectiveRequest, resolution); err != nil {
 		return nil, err
 	}
@@ -195,11 +202,111 @@ func (s *Service) captureCloudVoiceWorkflowEffectiveInputs(
 		appID:          strings.TrimSpace(req.GetHead().GetAppId()),
 		accountID:      accountID,
 	}
+	voiceCapture := &cloudVoiceWorkflowCapture{
+		Provider: resolution.Provider, ModelID: resolution.ModelID, APIModelID: resolution.APIModelID,
+		WorkflowType: resolution.WorkflowType, WorkflowModelID: resolution.WorkflowModelID,
+		WorkflowFamily: resolution.WorkflowFamily, OutputPersistence: resolution.OutputPersistence,
+		HandlePolicyID: resolution.HandlePolicyID, HandlePolicyPersistence: resolution.HandlePolicyPersistence,
+		HandlePolicyScope: resolution.HandlePolicyScope, HandlePolicyDefaultTTL: resolution.HandlePolicyDefaultTTL,
+		HandlePolicyDeleteSemantics:   resolution.HandlePolicyDeleteSemantics,
+		RuntimeReconciliationRequired: resolution.RuntimeReconciliationRequired,
+	}
+	if extensions != nil {
+		voiceCapture.Extensions, err = (protojson.MarshalOptions{UseProtoNames: true}).Marshal(extensions)
+		if err != nil {
+			effective.release()
+			return nil, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID, err, grpcerr.ReasonOptions{})
+		}
+	}
+	effective.resolvedAssembly, err = newCloudResolvedAssembly(
+		cloudResolvedRequestVoiceWorkflow, capabilityContract, implementation, rawTarget, connectorRecord,
+		defaults, effectiveRequest, runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB, capabilitydriver.CloudMediaStreamNone,
+		effective.traceID, effective.appID, effective.accountID, voiceCapture,
+	)
+	if err != nil {
+		effective.release()
+		return nil, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID, err, grpcerr.ReasonOptions{Message: "Cloud voice ResolvedAssembly capture failed"})
+	}
 	if err := s.auditCloudVoiceWorkflowCapture(effective); err != nil {
 		effective.release()
 		return nil, err
 	}
 	return effective, nil
+}
+
+func normalizeVoiceWorkflowPreferredName(req *runtimev1.SubmitScenarioJobRequest) {
+	if req == nil || req.GetSpec() == nil || req.GetSpec().GetVoiceCreate() == nil {
+		return
+	}
+	creation := req.GetSpec().GetVoiceCreate()
+	preferredName := resolveVoiceWorkflowPreferredName(req)
+	switch source := creation.GetSource().(type) {
+	case *runtimev1.VoiceCreateScenarioSpec_ReferenceAudio:
+		if source.ReferenceAudio != nil && strings.TrimSpace(source.ReferenceAudio.GetPreferredName()) == "" {
+			source.ReferenceAudio.PreferredName = preferredName
+		}
+	case *runtimev1.VoiceCreateScenarioSpec_TextDescription:
+		if source.TextDescription != nil && strings.TrimSpace(source.TextDescription.GetPreferredName()) == "" {
+			source.TextDescription.PreferredName = preferredName
+		}
+	}
+}
+
+func (s *Service) cloudVoiceWorkflowEffectiveInputsFromResolvedAssembly(assembly *cloudResolvedAssembly) (*cloudVoiceWorkflowEffectiveInputs, error) {
+	if s == nil || assembly == nil || assembly.RequestKind != cloudResolvedRequestVoiceWorkflow || s.cloudMediaDrivers == nil {
+		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+	}
+	if err := validateCloudResolvedAssembly(assembly); err != nil {
+		return nil, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID, err, grpcerr.ReasonOptions{})
+	}
+	implementation, err := assembly.implementationProto()
+	if err != nil {
+		return nil, cloudMediaDriverError(assembly.CapabilityContract, err)
+	}
+	rawTarget, err := assembly.providerTargetProto()
+	if err != nil {
+		return nil, cloudMediaDriverError(assembly.CapabilityContract, err)
+	}
+	defaults, err := assembly.defaultsProto()
+	if err != nil {
+		return nil, cloudMediaDriverError(assembly.CapabilityContract, err)
+	}
+	request := &runtimev1.SubmitScenarioJobRequest{}
+	if err := (protojson.UnmarshalOptions{DiscardUnknown: false}).Unmarshal(assembly.Request, request); err != nil {
+		return nil, cloudMediaDriverError(assembly.CapabilityContract, err)
+	}
+	driver, target, err := s.cloudMediaDrivers.Resolve(capabilitydriver.IdentityFromProto(implementation), rawTarget, assembly.CapabilityContract)
+	if err != nil {
+		return nil, cloudMediaDriverError(assembly.CapabilityContract, err)
+	}
+	var extensions *structpb.Struct
+	if len(assembly.VoiceWorkflow.Extensions) > 0 {
+		extensions = &structpb.Struct{}
+		if err := (protojson.UnmarshalOptions{DiscardUnknown: false}).Unmarshal(assembly.VoiceWorkflow.Extensions, extensions); err != nil {
+			return nil, cloudMediaDriverError(assembly.CapabilityContract, err)
+		}
+	}
+	resolution := assembly.VoiceWorkflow.resolution()
+	mapped, err := driver.MapVoiceWorkflowRequest(target, request, defaults, capabilitydriver.CloudVoiceWorkflowConfig{
+		WorkflowType: resolution.WorkflowType, WorkflowModelID: resolution.WorkflowModelID,
+		CatalogModelID: resolution.ModelID, APIModelID: resolution.APIModelID, Extensions: extensions,
+	})
+	if err != nil {
+		return nil, cloudMediaDriverError(assembly.CapabilityContract, err)
+	}
+	clonedAssembly, err := cloneCloudResolvedAssembly(assembly)
+	if err != nil {
+		return nil, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID, err, grpcerr.ReasonOptions{})
+	}
+	connectorRecord := cloneConnectorRecord(assembly.Connector)
+	return &cloudVoiceWorkflowEffectiveInputs{
+		implementation: implementation, rawTarget: rawTarget, target: target,
+		catalogTarget: &nimillm.RemoteTarget{ProviderType: target.Provider(), ProviderModelID: target.ProviderModelID(), RemoteModelCatalogID: target.RemoteModelCatalogID(), ConnectorID: connectorRecord.ConnectorID},
+		voiceTarget:   &runtimeidentity.Target{Cloud: &runtimeidentity.CloudTarget{ConnectorID: connectorRecord.ConnectorID, RemoteModelCatalogID: target.RemoteModelCatalogID(), ProviderModelID: target.ProviderModelID(), Provider: target.Provider()}},
+		connector:     connectorRecord, defaults: defaults, request: request, mapped: mapped, driver: driver,
+		resolution: resolution, traceID: assembly.TraceID, appID: assembly.AppID, accountID: assembly.AccountID,
+		resolvedAssembly: clonedAssembly,
+	}, nil
 }
 
 func (s *Service) normalizeVoiceWorkflowRequestTargetModelID(

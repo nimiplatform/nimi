@@ -39,6 +39,7 @@ const (
 	scenarioJobPersistArtifact      scenarioJobPersistenceOperation = "artifact"
 	scenarioJobPersistCancellation  scenarioJobPersistenceOperation = "cancellation"
 	scenarioJobPersistLoad          scenarioJobPersistenceOperation = "load"
+	scenarioJobPersistPrune         scenarioJobPersistenceOperation = "prune"
 )
 
 type scenarioJobPersistenceAttempt struct {
@@ -50,7 +51,10 @@ type scenarioJobPersistenceAttempt struct {
 type scenarioJobRecord struct {
 	job              *runtimev1.ScenarioJob
 	resolvedAssembly *localResolvedAssembly
+	cloudAssembly    *cloudResolvedAssembly
 	localAppOwner    *localAppJobOwner
+	voiceAsset       *runtimev1.VoiceAsset
+	voiceReference   *runtimev1.VoiceReference
 	events           []*runtimev1.ScenarioJobEvent
 	subscribers      map[uint64]chan *runtimev1.ScenarioJobEvent
 	nextSubID        uint64
@@ -135,6 +139,27 @@ func (s *scenarioJobStore) createOwnedAndBindAssemblyChecked(
 	idempotencyScope string,
 	resolvedAssembly *localResolvedAssembly,
 ) (*runtimev1.ScenarioJob, bool, error) {
+	return s.createOwnedAndBindCapturedInputsChecked(job, cancel, owner, idempotencyScope, resolvedAssembly, nil)
+}
+
+func (s *scenarioJobStore) createOwnedAndBindCloudAssemblyChecked(
+	job *runtimev1.ScenarioJob,
+	cancel context.CancelFunc,
+	owner *localAppJobOwner,
+	idempotencyScope string,
+	cloudAssembly *cloudResolvedAssembly,
+) (*runtimev1.ScenarioJob, bool, error) {
+	return s.createOwnedAndBindCapturedInputsChecked(job, cancel, owner, idempotencyScope, nil, cloudAssembly)
+}
+
+func (s *scenarioJobStore) createOwnedAndBindCapturedInputsChecked(
+	job *runtimev1.ScenarioJob,
+	cancel context.CancelFunc,
+	owner *localAppJobOwner,
+	idempotencyScope string,
+	resolvedAssembly *localResolvedAssembly,
+	cloudAssembly *cloudResolvedAssembly,
+) (*runtimev1.ScenarioJob, bool, error) {
 	if job == nil {
 		return nil, false, fmt.Errorf("scenario job is required")
 	}
@@ -157,12 +182,17 @@ func (s *scenarioJobStore) createOwnedAndBindAssemblyChecked(
 	if err != nil {
 		return nil, false, fmt.Errorf("clone local ResolvedAssembly: %w", err)
 	}
-	if err := validateScenarioJobResolvedAssemblyPair(job, capturedAssembly); err != nil {
+	capturedCloudAssembly, err := cloneCloudResolvedAssembly(cloudAssembly)
+	if err != nil {
+		return nil, false, fmt.Errorf("clone Cloud ResolvedAssembly: %w", err)
+	}
+	if err := validateScenarioJobCapturedInputsPair(job, capturedAssembly, capturedCloudAssembly); err != nil {
 		return nil, false, err
 	}
 	record := &scenarioJobRecord{
 		job:              cloneScenarioJob(job),
 		resolvedAssembly: capturedAssembly,
+		cloudAssembly:    capturedCloudAssembly,
 		localAppOwner:    cloneLocalAppJobOwner(owner),
 		events:           make([]*runtimev1.ScenarioJobEvent, 0, 8),
 		subscribers:      make(map[uint64]chan *runtimev1.ScenarioJobEvent),
@@ -231,6 +261,22 @@ func (s *scenarioJobStore) resolvedAssembly(jobID string) (*localResolvedAssembl
 	return assembly, err == nil && assembly != nil
 }
 
+func (s *scenarioJobStore) cloudResolvedAssembly(jobID string) (*cloudResolvedAssembly, bool) {
+	id := strings.TrimSpace(jobID)
+	if id == "" {
+		return nil, false
+	}
+	s.mu.RLock()
+	record := s.jobs[id]
+	if record == nil || record.cloudAssembly == nil {
+		s.mu.RUnlock()
+		return nil, false
+	}
+	assembly, err := cloneCloudResolvedAssembly(record.cloudAssembly)
+	s.mu.RUnlock()
+	return assembly, err == nil && assembly != nil
+}
+
 func (s *scenarioJobStore) localAppOwner(jobID string) (*localAppJobOwner, bool) {
 	id := strings.TrimSpace(jobID)
 	if id == "" {
@@ -261,6 +307,23 @@ func (s *scenarioJobStore) get(jobID string) (*runtimev1.ScenarioJob, bool) {
 	job := cloneScenarioJob(record.job)
 	s.mu.RUnlock()
 	return job, true
+}
+
+func (s *scenarioJobStore) completedVoiceResult(jobID string) (*runtimev1.VoiceAsset, *runtimev1.VoiceReference, bool) {
+	id := strings.TrimSpace(jobID)
+	if id == "" {
+		return nil, nil, false
+	}
+	s.mu.RLock()
+	record := s.jobs[id]
+	if record == nil || validateScenarioJobVoiceResultPair(record.job, record.voiceAsset, record.voiceReference) != nil {
+		s.mu.RUnlock()
+		return nil, nil, false
+	}
+	asset := cloneVoiceAsset(record.voiceAsset)
+	reference := cloneVoiceReference(record.voiceReference)
+	s.mu.RUnlock()
+	return asset, reference, asset != nil && reference != nil
 }
 
 func (s *scenarioJobStore) getByIdempotency(scopeKey string) (*runtimev1.ScenarioJob, bool) {
@@ -315,6 +378,33 @@ func (s *scenarioJobStore) transition(
 	eventType runtimev1.ScenarioJobEventType,
 	mutate func(*runtimev1.ScenarioJob),
 ) (*runtimev1.ScenarioJob, bool, error) {
+	return s.transitionWithVoiceResult(jobID, status, eventType, nil, nil, mutate)
+}
+
+func (s *scenarioJobStore) transitionVoiceCompleted(
+	jobID string,
+	asset *runtimev1.VoiceAsset,
+	reference *runtimev1.VoiceReference,
+	mutate func(*runtimev1.ScenarioJob),
+) (*runtimev1.ScenarioJob, bool, error) {
+	return s.transitionWithVoiceResult(
+		jobID,
+		runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED,
+		runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_COMPLETED,
+		asset,
+		reference,
+		mutate,
+	)
+}
+
+func (s *scenarioJobStore) transitionWithVoiceResult(
+	jobID string,
+	status runtimev1.ScenarioJobStatus,
+	eventType runtimev1.ScenarioJobEventType,
+	voiceAsset *runtimev1.VoiceAsset,
+	voiceReference *runtimev1.VoiceReference,
+	mutate func(*runtimev1.ScenarioJob),
+) (*runtimev1.ScenarioJob, bool, error) {
 	id := strings.TrimSpace(jobID)
 	if id == "" {
 		return nil, false, nil
@@ -336,8 +426,14 @@ func (s *scenarioJobStore) transition(
 		return job, false, nil
 	}
 	previousJob := cloneScenarioJob(record.job)
+	previousVoiceAsset := cloneVoiceAsset(record.voiceAsset)
+	previousVoiceReference := cloneVoiceReference(record.voiceReference)
 	previousUpdatedAt := record.updatedAt
 	previousTerminalAt := record.terminalAt
+	if voiceAsset != nil || voiceReference != nil {
+		record.voiceAsset = cloneVoiceAsset(voiceAsset)
+		record.voiceReference = cloneVoiceReference(voiceReference)
+	}
 	if mutate != nil {
 		mutate(record.job)
 	}
@@ -357,8 +453,21 @@ func (s *scenarioJobStore) transition(
 	if becameTerminal {
 		record.terminalAt = nowTime
 	}
+	if err := validateScenarioJobVoiceResultPair(record.job, record.voiceAsset, record.voiceReference); err != nil {
+		record.job = previousJob
+		record.voiceAsset = previousVoiceAsset
+		record.voiceReference = previousVoiceReference
+		record.updatedAt = previousUpdatedAt
+		record.terminalAt = previousTerminalAt
+		s.syncArtifactIndexLocked(id, record)
+		job := cloneScenarioJob(record.job)
+		s.mu.Unlock()
+		return job, false, err
+	}
 	if err := s.persistDurableJobsLocked(scenarioJobPersistenceAttempt{Operation: scenarioJobPersistTransition, JobID: id, Status: status}); err != nil {
 		record.job = previousJob
+		record.voiceAsset = previousVoiceAsset
+		record.voiceReference = previousVoiceReference
 		record.updatedAt = previousUpdatedAt
 		record.terminalAt = previousTerminalAt
 		s.syncArtifactIndexLocked(id, record)
@@ -377,6 +486,35 @@ func (s *scenarioJobStore) transition(
 	job := cloneScenarioJob(record.job)
 	s.mu.Unlock()
 	return job, true, nil
+}
+
+func validateScenarioJobVoiceResultPair(job *runtimev1.ScenarioJob, asset *runtimev1.VoiceAsset, reference *runtimev1.VoiceReference) error {
+	if job == nil {
+		return fmt.Errorf("ScenarioJob is required")
+	}
+	isCompletedVoice := job.GetScenarioType() == runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE &&
+		job.GetStatus() == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED
+	if asset == nil && reference == nil {
+		if isCompletedVoice {
+			return fmt.Errorf("completed voice.create ScenarioJob requires a terminal VoiceAsset result")
+		}
+		return nil
+	}
+	if !isCompletedVoice || asset == nil || reference == nil || job.GetHead() == nil {
+		return fmt.Errorf("ScenarioJob terminal VoiceAsset result is not state-consistent")
+	}
+	jobID := strings.TrimSpace(job.GetJobId())
+	assetID := strings.TrimSpace(asset.GetVoiceAssetId())
+	returnID := strings.TrimSpace(reference.GetVoiceAssetId())
+	if jobID == "" || assetID == "" || assetID != jobID || returnID != assetID ||
+		asset.GetStatus() != runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_ACTIVE ||
+		strings.TrimSpace(asset.GetProviderVoiceRef()) == "" ||
+		strings.TrimSpace(asset.GetAppId()) != strings.TrimSpace(job.GetHead().GetAppId()) ||
+		strings.TrimSpace(asset.GetSubjectUserId()) != strings.TrimSpace(job.GetHead().GetSubjectUserId()) ||
+		reference.GetKind() != runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_VOICE_ASSET {
+		return fmt.Errorf("ScenarioJob terminal VoiceAsset result identity is invalid")
+	}
+	return nil
 }
 
 // forceFailedInMemory is the last-resort observability boundary after bounded
@@ -450,6 +588,38 @@ func (s *Service) transitionScenarioJob(
 			"error", err,
 		)
 	}
+	return job, false, err
+}
+
+func (s *Service) transitionVoiceScenarioJobCompleted(
+	jobID string,
+	asset *runtimev1.VoiceAsset,
+	reference *runtimev1.VoiceReference,
+	mutate func(*runtimev1.ScenarioJob),
+) (*runtimev1.ScenarioJob, bool, error) {
+	var job *runtimev1.ScenarioJob
+	var transitioned bool
+	var err error
+	for attempt := 1; attempt <= maxScenarioJobTerminalPersistenceAttempts; attempt++ {
+		job, transitioned, err = s.scenarioJobs.transitionVoiceCompleted(jobID, asset, reference, mutate)
+		if err == nil {
+			return job, transitioned, nil
+		}
+		s.logScenarioJobPersistenceFailure(
+			"voice ScenarioJob terminal result persistence attempt failed",
+			"job_id", strings.TrimSpace(jobID),
+			"attempt", attempt,
+			"max_attempts", maxScenarioJobTerminalPersistenceAttempts,
+			"error", err,
+		)
+	}
+	job, _ = s.scenarioJobs.forceFailedInMemory(jobID, scenarioJobTerminalPersistenceFailedReason)
+	s.logScenarioJobPersistenceFailure(
+		"VOICE SCENARIO JOB TERMINAL RESULT COULD NOT BE PERSISTED; forced in-memory FAILED terminal",
+		"job_id", strings.TrimSpace(jobID),
+		"reason", scenarioJobTerminalPersistenceFailedReason,
+		"error", err,
+	)
 	return job, false, err
 }
 

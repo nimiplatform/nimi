@@ -51,7 +51,6 @@ func TestScenarioJobReasonCodeClassification(t *testing.T) {
 			},
 			ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
 			ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
-			RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
 			ModelResolved: "local/sd3",
 			TraceId:       "trace-completed",
 			Status:        runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED,
@@ -103,4 +102,66 @@ func TestScenarioJobReasonCodeClassification(t *testing.T) {
 			t.Fatalf("expected AI_MEDIA_OPTION_UNSUPPORTED, got %v (ok=%v)", reason, ok)
 		}
 	})
+}
+
+func TestStreamCancellationTerminalReasonMatchesCanceledStatus(t *testing.T) {
+	tests := []struct {
+		name        string
+		wrongReason runtimev1.ReasonCode
+		wantReason  runtimev1.ReasonCode
+		finish      func(*Service, context.Context, string, error)
+	}{
+		{
+			name:        "local speech",
+			wrongReason: runtimev1.ReasonCode_AI_LOCAL_EXECUTION_INFERENCE_FAILED,
+			wantReason:  runtimev1.ReasonCode_AI_LOCAL_EXECUTION_CANCELED,
+			finish: func(svc *Service, ctx context.Context, jobID string, err error) {
+				svc.finishLocalSpeechJobFailure(ctx, jobID, err)
+			},
+		},
+		{
+			name:        "cloud",
+			wrongReason: runtimev1.ReasonCode_AI_PROVIDER_INTERNAL,
+			wantReason:  runtimev1.ReasonCode_ACTION_EXECUTED,
+			finish: func(svc *Service, ctx context.Context, jobID string, err error) {
+				svc.finishCloudScenarioJobFailure(ctx, jobID, err)
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
+			jobID := "stream-canceled-" + test.name
+			created := svc.scenarioJobs.create(&runtimev1.ScenarioJob{
+				JobId: jobID,
+				Head: &runtimev1.ScenarioRequestHead{
+					AppId:         "nimi.desktop",
+					SubjectUserId: "user-001",
+				},
+				ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE,
+				ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_STREAM,
+				ModelResolved: "stream-model",
+				TraceId:       "trace-" + test.name,
+				Status:        runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING,
+				ReasonCode:    runtimev1.ReasonCode_ACTION_EXECUTED,
+			}, func() {})
+			if created == nil {
+				t.Fatal("create stream ScenarioJob")
+			}
+			cancelErr := grpcerr.WithReasonCodeOptions(codes.Canceled, test.wrongReason, grpcerr.ReasonOptions{
+				Metadata: map[string]string{"provider_message": "must-not-survive-cancellation"},
+			})
+			test.finish(svc, context.Background(), jobID, cancelErr)
+			terminal, ok := svc.scenarioJobs.get(jobID)
+			if !ok {
+				t.Fatal("get canceled stream ScenarioJob")
+			}
+			if terminal.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED || terminal.GetReasonCode() != test.wantReason {
+				t.Fatalf("canceled stream terminal = status=%s reason=%s", terminal.GetStatus(), terminal.GetReasonCode())
+			}
+			if terminal.GetReasonMetadata() != nil {
+				t.Fatalf("canceled stream metadata = %v, want nil", terminal.GetReasonMetadata())
+			}
+		})
+	}
 }

@@ -251,7 +251,7 @@ func (s *Service) executeCapturedLocalEmbedJob(
 	}
 	jobID := job.GetJobId()
 	defer s.finishScenarioJobExecution(jobID)
-	if err := s.queueImmediateLocalScenarioJob(jobID); err != nil {
+	if err := s.queueImmediateScenarioJob(jobID); err != nil {
 		return localexecution.EmbedResult{}, nil, job, err
 	}
 	release, acquireResult, err := s.scheduler.Acquire(jobCtx, head.GetAppId())
@@ -262,7 +262,7 @@ func (s *Service) executeCapturedLocalEmbedJob(
 	}
 	defer release()
 	s.attachQueueWaitUnary(jobCtx, acquireResult)
-	if err := s.startImmediateLocalScenarioJob(jobID); err != nil {
+	if err := s.startImmediateScenarioJob(jobID); err != nil {
 		return localexecution.EmbedResult{}, nil, job, err
 	}
 	requestCtx, cancel, err := withTimeout(jobCtx, head.GetTimeoutMs(), defaultEmbedTimeout)
@@ -291,7 +291,7 @@ func (s *Service) executeCapturedLocalEmbedJob(
 	if result.InputTokens != 0 || result.ComputeMS != 0 {
 		usage = &runtimev1.UsageStats{InputTokens: result.InputTokens, ComputeMs: result.ComputeMS}
 	}
-	if err := s.completeImmediateLocalScenarioJob(jobID, nil, usage); err != nil {
+	if err := s.completeImmediateScenarioJob(jobID, nil, usage); err != nil {
 		s.finishLocalTextScenarioJobFailure(requestCtx, jobID, err)
 		return localexecution.EmbedResult{}, nil, job, err
 	}

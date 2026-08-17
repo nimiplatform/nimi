@@ -307,8 +307,8 @@ func (s *Service) executeCapturedLocalVoiceCreateJob(
 	metadata["loadout_id"] = assembly.LoadoutID
 	metadata["implementation_id"] = assembly.DriverIdentity.ImplementationID
 	var transitionErr error
-	_, published := s.voiceAssets.publishLocalResult(assetDraft, resultTarget, result.ProviderVoiceRef, metadata, func() bool {
-		_, ok, err := s.transitionScenarioJob(jobID, runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_COMPLETED, func(job *runtimev1.ScenarioJob) {
+	_, published := s.voiceAssets.publishResult(assetDraft, resultTarget, nil, result.ProviderVoiceRef, metadata, func(asset *runtimev1.VoiceAsset, reference *runtimev1.VoiceReference) bool {
+		_, ok, err := s.transitionVoiceScenarioJobCompleted(jobID, asset, reference, func(job *runtimev1.ScenarioJob) {
 			job.ProviderJobId = ""
 			job.ReasonCode = runtimev1.ReasonCode_ACTION_EXECUTED
 			job.ReasonDetail = ""

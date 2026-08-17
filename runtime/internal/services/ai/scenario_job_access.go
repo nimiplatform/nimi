@@ -72,7 +72,7 @@ func (s *Service) GetScenarioJob(ctx context.Context, req *runtimev1.GetScenario
 		response := &runtimev1.GetScenarioJobResponse{Job: sanitizeScenarioJobForResponse(job)}
 		if job.GetScenarioType() == runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE &&
 			job.GetStatus() == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
-			asset, reference, found := s.voiceAssets.getCompletedJobResult(jobID)
+			asset, reference, found := s.scenarioJobs.completedVoiceResult(jobID)
 			if !found || asset.GetAppId() != job.GetHead().GetAppId() || asset.GetSubjectUserId() != job.GetHead().GetSubjectUserId() {
 				return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 			}
@@ -81,24 +81,7 @@ func (s *Service) GetScenarioJob(ctx context.Context, req *runtimev1.GetScenario
 		}
 		return response, nil
 	}
-	job, ok := s.voiceAssets.getJob(jobID)
-	if !ok {
-		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_MEDIA_JOB_NOT_FOUND)
-	}
-	if err := s.authorizeScenarioJob(ctx, job); err != nil {
-		return nil, err
-	}
-	response := &runtimev1.GetScenarioJobResponse{Job: job}
-	if job.GetScenarioType() == runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE &&
-		job.GetStatus() == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
-		asset, reference, ok := s.voiceAssets.getCompletedJobResult(jobID)
-		if !ok {
-			return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
-		}
-		response.Asset = asset
-		response.VoiceReference = reference
-	}
-	return response, nil
+	return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_MEDIA_JOB_NOT_FOUND)
 }
 
 func (s *Service) CancelScenarioJob(ctx context.Context, req *runtimev1.CancelScenarioJobRequest) (*runtimev1.CancelScenarioJobResponse, error) {
@@ -146,18 +129,7 @@ func (s *Service) CancelScenarioJob(ctx context.Context, req *runtimev1.CancelSc
 		}
 		return &runtimev1.CancelScenarioJobResponse{Job: job}, nil
 	}
-	existingJob, ok := s.voiceAssets.getJob(jobID)
-	if !ok {
-		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_MEDIA_JOB_NOT_FOUND)
-	}
-	if err := s.authorizeScenarioJob(ctx, existingJob); err != nil {
-		return nil, err
-	}
-	job, ok := s.voiceAssets.cancelJob(jobID, req.GetReason())
-	if !ok {
-		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_MEDIA_JOB_NOT_CANCELLABLE)
-	}
-	return &runtimev1.CancelScenarioJobResponse{Job: job}, nil
+	return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_MEDIA_JOB_NOT_FOUND)
 }
 
 func (s *Service) SubscribeScenarioJobEvents(req *runtimev1.SubscribeScenarioJobEventsRequest, stream grpc.ServerStreamingServer[runtimev1.ScenarioJobEvent]) error {
@@ -165,14 +137,12 @@ func (s *Service) SubscribeScenarioJobEvents(req *runtimev1.SubscribeScenarioJob
 		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
 	jobID := strings.TrimSpace(req.GetJobId())
-	if job, ok := s.scenarioJobs.get(jobID); ok {
-		if err := s.authorizeScenarioJob(stream.Context(), job); err != nil {
-			return err
-		}
-	} else if job, ok := s.voiceAssets.getJob(jobID); ok {
-		if err := s.authorizeScenarioJob(stream.Context(), job); err != nil {
-			return err
-		}
+	job, exists := s.scenarioJobs.get(jobID)
+	if !exists {
+		return grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_MEDIA_JOB_NOT_FOUND)
+	}
+	if err := s.authorizeScenarioJob(stream.Context(), job); err != nil {
+		return err
 	}
 	subID, ch, backlog, terminal, ok := s.scenarioJobs.subscribe(jobID, 32)
 	if ok {
@@ -205,38 +175,7 @@ func (s *Service) SubscribeScenarioJobEvents(req *runtimev1.SubscribeScenarioJob
 			}
 		}
 	}
-	voiceSubID, voiceCh, voiceBacklog, voiceTerminal, voiceOK := s.voiceAssets.subscribe(jobID, 32)
-	if !voiceOK {
-		return grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_MEDIA_JOB_NOT_FOUND)
-	}
-	defer s.voiceAssets.unsubscribe(jobID, voiceSubID)
-	for _, event := range voiceBacklog {
-		if err := stream.Send(event); err != nil {
-			return err
-		}
-	}
-	if voiceTerminal {
-		return nil
-	}
-	for {
-		select {
-		case <-stream.Context().Done():
-			if err := rpcctx.ContextDoneError(stream.Context()); err == nil {
-				return nil
-			}
-			return rpcctx.ContextDoneError(stream.Context())
-		case event, open := <-voiceCh:
-			if !open {
-				return nil
-			}
-			if err := stream.Send(event); err != nil {
-				return err
-			}
-			if isTerminalScenarioJobEvent(event.GetEventType()) {
-				return nil
-			}
-		}
-	}
+	return grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_MEDIA_JOB_NOT_FOUND)
 }
 
 func (s *Service) GetScenarioArtifacts(ctx context.Context, req *runtimev1.GetScenarioArtifactsRequest) (*runtimev1.GetScenarioArtifactsResponse, error) {
@@ -253,25 +192,15 @@ func (s *Service) GetScenarioArtifacts(ctx context.Context, req *runtimev1.GetSc
 			return nil, err
 		}
 		responseArtifacts := sanitizeScenarioArtifactsForResponse(job, artifacts)
+		if job.GetScenarioType() == runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE && responseArtifacts == nil {
+			responseArtifacts = []*runtimev1.ScenarioArtifact{}
+		}
 		output := buildScenarioOutputFromArtifacts(job, responseArtifacts)
 		return &runtimev1.GetScenarioArtifactsResponse{
 			JobId:     jobID,
 			Artifacts: responseArtifacts,
 			TraceId:   traceID,
 			Output:    output,
-		}, nil
-	}
-	if job, ok := s.voiceAssets.getJob(jobID); ok {
-		if err := s.authorizeScenarioJob(ctx, job); err != nil {
-			return nil, err
-		}
-		if err := scenarioArtifactsTerminalFailure(job); err != nil {
-			return nil, err
-		}
-		return &runtimev1.GetScenarioArtifactsResponse{
-			JobId:     jobID,
-			Artifacts: []*runtimev1.ScenarioArtifact{},
-			TraceId:   job.GetTraceId(),
 		}, nil
 	}
 	return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_MEDIA_JOB_NOT_FOUND)
@@ -296,9 +225,6 @@ func (s *Service) authorizeScenarioJob(ctx context.Context, job *runtimev1.Scena
 			jobID = strings.TrimSpace(job.GetJobId())
 		}
 		if owner, ok := s.scenarioJobs.localAppOwner(jobID); ok {
-			return authorizeLocalAppJobOwner(ctx, owner)
-		}
-		if owner, ok := s.voiceAssets.localAppOwner(jobID); ok {
 			return authorizeLocalAppJobOwner(ctx, owner)
 		}
 		// Historical Local App Jobs without an immutable subject-bound owner

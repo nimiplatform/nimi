@@ -14,13 +14,12 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/rpcctx"
 	"github.com/nimiplatform/nimi/runtime/internal/usagemetrics"
-	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-func streamLocalSpeechSynthesizeScenario(s *Service, req *runtimev1.StreamScenarioRequest, stream grpc.ServerStreamingServer[runtimev1.StreamScenarioEvent]) error {
+func streamLocalSpeechSynthesizeScenario(s *Service, req *runtimev1.StreamScenarioRequest, stream grpc.ServerStreamingServer[runtimev1.StreamScenarioEvent]) (streamErr error) {
 	capturedRequest := &runtimev1.SubmitScenarioJobRequest{
 		Head:          cloneScenarioHead(req.GetHead()),
 		ScenarioType:  req.GetScenarioType(),
@@ -36,13 +35,36 @@ func streamLocalSpeechSynthesizeScenario(s *Service, req *runtimev1.StreamScenar
 	if effective.streamMode != capabilitydriver.SpeechStreamSimulated {
 		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
 	}
-
-	release, acquireResult, err := s.scheduler.Acquire(stream.Context(), req.GetHead().GetAppId())
+	job, jobCtx, err := s.captureImmediateLocalScenarioJob(
+		stream.Context(), req.GetHead(), req.GetScenarioType(), runtimev1.ExecutionMode_EXECUTION_MODE_STREAM,
+		effective.modelResolved(), nil, effective.effectiveInputIdentity, effective.resolvedAssembly,
+	)
 	if err != nil {
-		return schedulerAcquireError(err)
+		return err
+	}
+	jobID := job.GetJobId()
+	defer s.finishScenarioJobExecution(jobID)
+	defer func() {
+		if current, ok := s.scenarioJobs.get(jobID); ok && !isTerminalScenarioJobStatus(current.GetStatus()) {
+			cause := streamErr
+			if cause == nil {
+				cause = context.Canceled
+			}
+			s.finishLocalSpeechJobFailure(jobCtx, jobID, cause)
+		}
+	}()
+	if err := s.queueImmediateScenarioJob(jobID); err != nil {
+		return err
+	}
+
+	release, acquireResult, err := s.scheduler.Acquire(jobCtx, req.GetHead().GetAppId())
+	if err != nil {
+		executionErr := schedulerAcquireError(err)
+		s.finishLocalSpeechJobFailure(jobCtx, jobID, executionErr)
+		return executionErr
 	}
 	defer release()
-	waitMS := s.attachQueueWait(stream.Context(), acquireResult)
+	waitMS := s.attachQueueWait(jobCtx, acquireResult)
 	stream.SetTrailer(usagemetrics.QueueWaitTrailer(waitMS))
 	s.logQueueWait("stream_scenario_local_speech_synthesize", req.GetHead().GetAppId(), acquireResult)
 
@@ -50,7 +72,22 @@ func streamLocalSpeechSynthesizeScenario(s *Service, req *runtimev1.StreamScenar
 	if err != nil {
 		return err
 	}
-	requestBaseCtx, baseCancel := context.WithTimeout(stream.Context(), totalTimeout)
+	if err := s.startImmediateScenarioJob(jobID); err != nil {
+		return err
+	}
+	assembly, ok := s.scenarioJobs.resolvedAssembly(jobID)
+	if !ok {
+		err := grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+		s.finishLocalSpeechJobFailure(jobCtx, jobID, err)
+		return err
+	}
+	executionEffective, err := s.localSpeechEffectiveInputsFromResolvedAssembly(assembly)
+	if err != nil {
+		s.finishLocalSpeechJobFailure(jobCtx, jobID, err)
+		return err
+	}
+	effective = executionEffective
+	requestBaseCtx, baseCancel := context.WithTimeout(jobCtx, totalTimeout)
 	defer baseCancel()
 	requestCtx, requestCancel := context.WithCancel(requestBaseCtx)
 	defer requestCancel()
@@ -79,7 +116,7 @@ func streamLocalSpeechSynthesizeScenario(s *Service, req *runtimev1.StreamScenar
 		return nil
 	}
 
-	traceID := ulid.Make().String()
+	traceID := job.GetTraceId()
 	modelResolved := effective.modelResolved()
 	var sequence atomic.Uint64
 	send := func(event *runtimev1.StreamScenarioEvent) error {
@@ -95,6 +132,7 @@ func streamLocalSpeechSynthesizeScenario(s *Service, req *runtimev1.StreamScenar
 		if firstPacketTimedOut.Load() && !firstPacketSeen.Load() {
 			cause = grpcerr.WithReasonCode(codes.DeadlineExceeded, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT)
 		}
+		s.finishLocalSpeechJobFailure(requestCtx, jobID, cause)
 		if s.logger != nil {
 			s.logger.Warn("local speech stream failed", "scenario_type", req.GetScenarioType().String(), "model_resolved", modelResolved, "trace_id", traceID, "error", cause)
 		}
@@ -167,6 +205,9 @@ func streamLocalSpeechSynthesizeScenario(s *Service, req *runtimev1.StreamScenar
 		if err := send(&runtimev1.StreamScenarioEvent{EventType: runtimev1.StreamEventType_STREAM_EVENT_USAGE, Payload: &runtimev1.StreamScenarioEvent_Usage{Usage: usage}}); err != nil {
 			return err
 		}
+	}
+	if err := s.completeImmediateScenarioJob(jobID, nil, usage); err != nil {
+		return failAndStop(err)
 	}
 	return send(&runtimev1.StreamScenarioEvent{
 		EventType: runtimev1.StreamEventType_STREAM_EVENT_COMPLETED,

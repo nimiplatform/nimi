@@ -26,7 +26,7 @@ func speechStreamVoiceOutputMode(nativeRequired bool) (runtimev1.VoiceOutputMode
 	return runtimev1.VoiceOutputMode_VOICE_OUTPUT_MODE_SIMULATED_STREAM, nil
 }
 
-func streamSpeechSynthesizeScenario(s *Service, req *runtimev1.StreamScenarioRequest, stream grpc.ServerStreamingServer[runtimev1.StreamScenarioEvent]) error {
+func streamSpeechSynthesizeScenario(s *Service, req *runtimev1.StreamScenarioRequest, stream grpc.ServerStreamingServer[runtimev1.StreamScenarioEvent]) (streamErr error) {
 	spec := req.GetSpec().GetSpeechSynthesize()
 	if spec == nil {
 		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
@@ -54,13 +54,36 @@ func streamSpeechSynthesizeScenario(s *Service, req *runtimev1.StreamScenarioReq
 		return err
 	}
 	defer effective.release()
+	job, jobCtx, err := s.captureImmediateCloudScenarioJob(
+		stream.Context(), req.GetHead(), req.GetScenarioType(), runtimev1.ExecutionMode_EXECUTION_MODE_STREAM,
+		effective.modelResolved(), nil, effective.resolvedAssembly,
+	)
+	if err != nil {
+		return err
+	}
+	jobID := job.GetJobId()
+	defer s.finishScenarioJobExecution(jobID)
+	defer func() {
+		if current, ok := s.scenarioJobs.get(jobID); ok && !isTerminalScenarioJobStatus(current.GetStatus()) {
+			cause := streamErr
+			if cause == nil {
+				cause = context.Canceled
+			}
+			s.finishCloudScenarioJobFailure(jobCtx, jobID, cause)
+		}
+	}()
+	if err := s.queueImmediateScenarioJob(jobID); err != nil {
+		return err
+	}
 
-	release, acquireResult, acquireErr := s.scheduler.Acquire(stream.Context(), req.GetHead().GetAppId())
+	release, acquireResult, acquireErr := s.scheduler.Acquire(jobCtx, req.GetHead().GetAppId())
 	if acquireErr != nil {
-		return schedulerAcquireError(acquireErr)
+		executionErr := schedulerAcquireError(acquireErr)
+		s.finishCloudScenarioJobFailure(jobCtx, jobID, executionErr)
+		return executionErr
 	}
 	defer release()
-	waitMs := s.attachQueueWait(stream.Context(), acquireResult)
+	waitMs := s.attachQueueWait(jobCtx, acquireResult)
 	stream.SetTrailer(usagemetrics.QueueWaitTrailer(waitMs))
 	s.logQueueWait("stream_scenario_speech_synthesize", req.GetHead().GetAppId(), acquireResult)
 
@@ -68,7 +91,23 @@ func streamSpeechSynthesizeScenario(s *Service, req *runtimev1.StreamScenarioReq
 	if err != nil {
 		return err
 	}
-	requestBaseCtx, baseCancel := context.WithTimeout(stream.Context(), totalTimeout)
+	if err := s.startImmediateScenarioJob(jobID); err != nil {
+		return err
+	}
+	assembly, ok := s.scenarioJobs.cloudResolvedAssembly(jobID)
+	if !ok {
+		err := grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+		s.finishCloudScenarioJobFailure(jobCtx, jobID, err)
+		return err
+	}
+	executionEffective, err := s.cloudMediaEffectiveInputsFromResolvedAssembly(assembly)
+	if err != nil {
+		s.finishCloudScenarioJobFailure(jobCtx, jobID, err)
+		return err
+	}
+	defer executionEffective.release()
+	effective = executionEffective
+	requestBaseCtx, baseCancel := context.WithTimeout(jobCtx, totalTimeout)
 	defer baseCancel()
 	requestCtx, requestCancel := context.WithCancel(requestBaseCtx)
 	defer requestCancel()
@@ -92,7 +131,7 @@ func streamSpeechSynthesizeScenario(s *Service, req *runtimev1.StreamScenarioReq
 		defer firstPacketTimer.Stop()
 	}
 
-	traceID := effective.traceID
+	traceID := job.GetTraceId()
 	modelResolved := effective.modelResolved()
 	var seq atomic.Uint64
 	send := func(event *runtimev1.StreamScenarioEvent) error {
@@ -108,6 +147,7 @@ func streamSpeechSynthesizeScenario(s *Service, req *runtimev1.StreamScenarioReq
 		if firstPacketTimedOut.Load() && !firstPacketSeen.Load() {
 			cause = grpcerr.WithReasonCode(codes.DeadlineExceeded, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT)
 		}
+		s.finishCloudScenarioJobFailure(requestCtx, jobID, cause)
 		if s.logger != nil {
 			s.logger.Warn("scenario stream failed",
 				"scenario_type", req.GetScenarioType().String(),
@@ -203,6 +243,9 @@ func streamSpeechSynthesizeScenario(s *Service, req *runtimev1.StreamScenarioReq
 	finish := result.FinishReason
 	if finish == runtimev1.FinishReason_FINISH_REASON_UNSPECIFIED {
 		finish = runtimev1.FinishReason_FINISH_REASON_STOP
+	}
+	if err := s.completeImmediateScenarioJob(jobID, nil, result.Usage); err != nil {
+		return failAndStop(err)
 	}
 	return send(&runtimev1.StreamScenarioEvent{
 		EventType: runtimev1.StreamEventType_STREAM_EVENT_COMPLETED,

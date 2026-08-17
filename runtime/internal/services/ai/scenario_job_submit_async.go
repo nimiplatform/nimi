@@ -98,7 +98,7 @@ func (s *Service) submitScenarioAsyncJob(
 		TraceId:           effective.traceID,
 		IgnoredExtensions: cloneIgnoredScenarioExtensions(ignored),
 	}
-	snapshot, created, persistErr := s.scenarioJobs.createOwnedAndBindChecked(job, cancel, localAppJobOwnerFromContext(ctx), idempotencyScope)
+	snapshot, created, persistErr := s.scenarioJobs.createOwnedAndBindCloudAssemblyChecked(job, cancel, localAppJobOwnerFromContext(ctx), idempotencyScope, effective.resolvedAssembly)
 	if persistErr != nil {
 		cancel()
 		return fail(grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID, persistErr, grpcerr.ReasonOptions{
@@ -114,9 +114,7 @@ func (s *Service) submitScenarioAsyncJob(
 		effective.release()
 		return &runtimev1.SubmitScenarioJobResponse{Job: snapshot}, nil
 	}
-	go func() {
-		defer effective.release()
-		s.executeScenarioAsyncJob(jobCtx, jobID, effective)
-	}()
+	effective.release()
+	go s.executeScenarioAsyncJob(jobCtx, jobID)
 	return &runtimev1.SubmitScenarioJobResponse{Job: snapshot}, nil
 }

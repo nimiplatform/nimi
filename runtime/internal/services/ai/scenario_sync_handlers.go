@@ -7,6 +7,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/aicapabilities"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"google.golang.org/grpc/codes"
 )
 
@@ -30,22 +31,58 @@ func executeTextGenerateScenario(ctx context.Context, s *Service, req *runtimev1
 		return nil, err
 	}
 	defer effective.release()
-
-	release, acquireResult, acquireErr := s.scheduler.Acquire(capturedCtx, req.GetHead().GetAppId())
-	if acquireErr != nil {
-		return nil, schedulerAcquireError(acquireErr)
-	}
-	defer release()
-	s.attachQueueWaitUnary(capturedCtx, acquireResult)
-	s.logQueueWait("execute_scenario_text_generate", req.GetHead().GetAppId(), acquireResult)
-
-	requestCtx, cancel, err := withTimeout(capturedCtx, req.GetHead().GetTimeoutMs(), defaultGenerateTimeout)
+	job, jobCtx, err := s.captureImmediateCloudScenarioJob(
+		capturedCtx, req.GetHead(), runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,
+		runtimev1.ExecutionMode_EXECUTION_MODE_SYNC, effective.modelResolved(), ignored, effective.resolvedAssembly,
+	)
 	if err != nil {
 		return nil, err
 	}
-	defer cancel()
-	result, err := s.executeCapturedCloudText(requestCtx, effective)
+	jobID := job.GetJobId()
+	defer s.finishScenarioJobExecution(jobID)
+	if err := s.queueImmediateScenarioJob(jobID); err != nil {
+		return nil, err
+	}
+
+	release, acquireResult, acquireErr := s.scheduler.Acquire(jobCtx, req.GetHead().GetAppId())
+	if acquireErr != nil {
+		executionErr := schedulerAcquireError(acquireErr)
+		s.finishCloudScenarioJobFailure(jobCtx, jobID, executionErr)
+		return nil, executionErr
+	}
+	defer release()
+	s.attachQueueWaitUnary(jobCtx, acquireResult)
+	s.logQueueWait("execute_scenario_text_generate", req.GetHead().GetAppId(), acquireResult)
+
+	if err := s.startImmediateScenarioJob(jobID); err != nil {
+		return nil, err
+	}
+	assembly, ok := s.scenarioJobs.cloudResolvedAssembly(jobID)
+	if !ok {
+		err := grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+		s.finishCloudScenarioJobFailure(jobCtx, jobID, err)
+		return nil, err
+	}
+	executionEffective, err := s.cloudTextEffectiveInputsFromResolvedAssembly(assembly)
 	if err != nil {
+		s.finishCloudScenarioJobFailure(jobCtx, jobID, err)
+		return nil, err
+	}
+	defer executionEffective.release()
+	requestCtx, cancel, err := withTimeout(jobCtx, req.GetHead().GetTimeoutMs(), defaultGenerateTimeout)
+	if err != nil {
+		s.finishCloudScenarioJobFailure(jobCtx, jobID, err)
+		return nil, err
+	}
+	defer cancel()
+	result, err := s.executeCapturedCloudText(requestCtx, executionEffective)
+	if err != nil {
+		s.finishCloudScenarioJobFailure(requestCtx, jobID, err)
+		return nil, err
+	}
+	artifact := nimillm.BinaryArtifact("text/plain; charset=utf-8", []byte(result.Text), map[string]any{"finish_reason": result.FinishReason.String()})
+	if err := s.completeImmediateScenarioJob(jobID, []*runtimev1.ScenarioArtifact{artifact}, result.Usage); err != nil {
+		s.finishCloudScenarioJobFailure(requestCtx, jobID, err)
 		return nil, err
 	}
 	return &runtimev1.ExecuteScenarioResponse{
@@ -55,8 +92,8 @@ func executeTextGenerateScenario(ctx context.Context, s *Service, req *runtimev1
 		FinishReason:      result.FinishReason,
 		Usage:             result.Usage,
 		RouteDecision:     runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
-		ModelResolved:     effective.modelResolved(),
-		TraceId:           effective.traceID,
+		ModelResolved:     executionEffective.modelResolved(),
+		TraceId:           job.GetTraceId(),
 		IgnoredExtensions: ignored,
 	}, nil
 }
@@ -90,21 +127,7 @@ func executeTextEmbedScenario(ctx context.Context, s *Service, req *runtimev1.Ex
 		return nil, err
 	}
 	defer effective.release()
-
-	release, acquireResult, acquireErr := s.scheduler.Acquire(ctx, req.GetHead().GetAppId())
-	if acquireErr != nil {
-		return nil, schedulerAcquireError(acquireErr)
-	}
-	defer release()
-	s.attachQueueWaitUnary(ctx, acquireResult)
-	s.logQueueWait("execute_scenario_text_embed", req.GetHead().GetAppId(), acquireResult)
-
-	requestCtx, cancel, err := withTimeout(ctx, req.GetHead().GetTimeoutMs(), defaultEmbedTimeout)
-	if err != nil {
-		return nil, err
-	}
-	defer cancel()
-	result, err := s.executeCapturedCloudEmbed(requestCtx, effective)
+	result, job, err := s.executeCapturedCloudEmbedJob(ctx, req.GetHead(), effective, ignored)
 	if err != nil {
 		return nil, err
 	}
@@ -116,7 +139,7 @@ func executeTextEmbedScenario(ctx context.Context, s *Service, req *runtimev1.Ex
 		Usage:             result.Usage,
 		RouteDecision:     runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
 		ModelResolved:     effective.modelResolved(),
-		TraceId:           effective.traceID,
+		TraceId:           job.GetTraceId(),
 		IgnoredExtensions: ignored,
 	}, nil
 }

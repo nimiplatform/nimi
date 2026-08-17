@@ -1,29 +1,55 @@
 package ai
 
 import (
-	"context"
+	"bytes"
 	"encoding/json"
-	"io"
-	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/aiconfig"
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
-	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 func TestEmbedTextsForMemoryUsesResolvedCloudBinding(t *testing.T) {
 	var providerModel string
+	var durableStore *scenarioJobStore
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/v1/models" || r.URL.Path == "/models" {
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"data":[{"id":"text-embedding-3-small"}]}`))
+			return
+		}
 		if r.URL.Path != "/v1/embeddings" {
 			http.NotFound(w, r)
 			return
+		}
+		if durableStore == nil {
+			t.Error("provider Host started before test durable store was installed")
+		} else {
+			durableStore.mu.RLock()
+			captured := false
+			for _, record := range durableStore.jobs {
+				if record != nil && record.job.GetStatus() == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING &&
+					record.cloudAssembly != nil && record.cloudAssembly.RequestKind == cloudResolvedRequestEmbed {
+					captured = true
+				}
+			}
+			durableStore.mu.RUnlock()
+			if !captured {
+				t.Error("provider Host started before RUNNING memory embed Job and Cloud assembly were durable")
+			}
+			raw, readErr := os.ReadFile(durableStore.durablePath)
+			if readErr != nil || !bytes.Contains(raw, []byte("alpha")) || bytes.Contains(raw, []byte("test-key")) {
+				t.Errorf("provider Host durable snapshot = %s readErr=%v", raw, readErr)
+			}
 		}
 		var body struct {
 			Model string   `json:"model"`
@@ -38,46 +64,42 @@ func TestEmbedTextsForMemoryUsesResolvedCloudBinding(t *testing.T) {
 	}))
 	defer func() { server.Close() }()
 
-	store := connector.NewConnectorStoreWithMemorySecrets(t.TempDir())
-	created, err := store.Create(connector.ConnectorRecord{
-		ConnectorID: "connector-openai-memory",
-		Kind:        runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED,
-		OwnerType:   runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_SYSTEM,
-		OwnerID:     "machine",
-		Provider:    "openai",
-		Endpoint:    server.URL,
-		Label:       "OpenAI Memory",
-		Status:      runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE,
-	}, "test-key")
+	fixture := newManagedCloudScenarioTestFixture(t, "openai", "text-embedding-3-small", server.URL, Config{
+		CloudProviders: map[string]nimillm.ProviderCredentials{}, AllowLoopbackEndpoint: true,
+	})
+	durableStore, _ = newDurableScenarioJobStoreForFailureTest(t)
+	fixture.service.scenarioJobs = durableStore
+	target, err := structpb.NewStruct(map[string]any{
+		"provider": "openai", "providerModelId": fixture.descriptor.GetProviderModelId(),
+		"remoteModelCatalogId": fixture.descriptor.GetRemoteModelCatalogId(),
+	})
 	if err != nil {
-		t.Fatalf("create connector: %v", err)
+		t.Fatal(err)
+	}
+	if err := fixture.service.aiConfigStore.Overwrite(fixture.context, "user-001", &runtimev1.AIConfig{
+		Owner: aiconfig.LocalAgentSubsystemOwner(),
+		Capabilities: []*runtimev1.AIConfigCapabilityIntent{{
+			CapabilityContract: capabilitydriver.TextEmbedCapabilityContract,
+			Route: &runtimev1.AIConfigCapabilityIntent_Cloud{Cloud: &runtimev1.AIConfigCloudIntent{
+				Implementation: &runtimev1.CapabilityImplementationIdentity{
+					ImplementationId: "cloud.text.embed.openai", DriverId: "nimi.runtime.driver.openai", DriverDialect: "openai/embeddings/v1",
+				},
+				ProviderModelTarget: target,
+			}},
+		}},
+	}); err != nil {
+		t.Fatalf("store shared LocalAgent AIConfig: %v", err)
 	}
 
-	svc, err := newFromProviderConfig(
-		slog.New(slog.NewTextHandler(io.Discard, nil)),
-		nil,
-		nil,
-		store,
-		Config{
-			CloudProviders:        map[string]nimillm.ProviderCredentials{"openai": {BaseURL: server.URL, APIKey: "unused"}},
-			AllowLoopbackEndpoint: true,
-		},
-		8,
-		2,
-	)
-	if err != nil {
-		t.Fatalf("new ai service: %v", err)
-	}
-
-	vectors, err := svc.EmbedTextsForMemory(context.Background(), &runtimev1.MemoryEmbeddingProfile{
+	vectors, err := fixture.service.EmbedTextsForMemory(fixture.context, &runtimev1.MemoryEmbeddingProfile{
 		Provider:  "openai",
-		ModelId:   "stale-profile-model",
+		ModelId:   fixture.descriptor.GetProviderModelId(),
 		Dimension: 3,
-		Version:   "stale-connector-id",
+		Version:   fixture.connectorID,
 		CloudBinding: &runtimev1.MemoryEmbeddingCloudBindingRef{
-			ConnectorId:          created.ConnectorID,
-			RemoteModelCatalogId: "remote-model-catalog-test",
-			ProviderModelId:      "text-embedding-3-small",
+			ConnectorId:          fixture.connectorID,
+			RemoteModelCatalogId: fixture.descriptor.GetRemoteModelCatalogId(),
+			ProviderModelId:      fixture.descriptor.GetProviderModelId(),
 			Provider:             "openai",
 		},
 	}, []string{"alpha"})
@@ -89,6 +111,17 @@ func TestEmbedTextsForMemoryUsesResolvedCloudBinding(t *testing.T) {
 	}
 	if len(vectors) != 1 || len(vectors[0]) != 3 {
 		t.Fatalf("unexpected vectors: %#v", vectors)
+	}
+	fixture.service.scenarioJobs.mu.RLock()
+	defer fixture.service.scenarioJobs.mu.RUnlock()
+	if len(fixture.service.scenarioJobs.jobs) != 1 {
+		t.Fatalf("memory Cloud embed durable jobs = %d, want 1", len(fixture.service.scenarioJobs.jobs))
+	}
+	for _, record := range fixture.service.scenarioJobs.jobs {
+		if record.job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED ||
+			record.cloudAssembly == nil || record.cloudAssembly.RequestKind != cloudResolvedRequestEmbed {
+			t.Fatalf("memory Cloud durable capture = job %+v assembly %+v", record.job, record.cloudAssembly)
+		}
 	}
 }
 
@@ -125,8 +158,18 @@ func TestEmbedTextsForMemoryUsesSelectedLocalLlamaBinding(t *testing.T) {
 		},
 	}}
 	service.SetLocalTextExecutionHost(host)
+	ctx := scenarioJobUserContext("nimi.runtime.memory", "user-001")
+	if err := service.aiConfigStore.Overwrite(ctx, "user-001", &runtimev1.AIConfig{
+		Owner: aiconfig.LocalAgentSubsystemOwner(),
+		Capabilities: []*runtimev1.AIConfigCapabilityIntent{{
+			CapabilityContract: capabilitydriver.TextEmbedCapabilityContract,
+			Route:              &runtimev1.AIConfigCapabilityIntent_Local{Local: &runtimev1.AIConfigLocalIntent{}},
+		}},
+	}); err != nil {
+		t.Fatalf("store shared LocalAgent AIConfig: %v", err)
+	}
 
-	vectors, err := service.EmbedTextsForMemory(context.Background(), &runtimev1.MemoryEmbeddingProfile{
+	vectors, err := service.EmbedTextsForMemory(ctx, &runtimev1.MemoryEmbeddingProfile{
 		Provider:  "local",
 		ModelId:   "catalog/local-memory-embedding",
 		Dimension: 3,
@@ -148,5 +191,16 @@ func TestEmbedTextsForMemoryUsesSelectedLocalLlamaBinding(t *testing.T) {
 	if len(files) != 1 || files[0].ModelAssetID != "model-embedding-memory" ||
 		files[0].BundleDir != bundleDir || len(files[0].DeclaredFiles) != 2 || files[0].DeclaredFiles[1] != "tokenizer.json" {
 		t.Fatalf("captured embedding bundle identity = %+v", files)
+	}
+	service.scenarioJobs.mu.RLock()
+	defer service.scenarioJobs.mu.RUnlock()
+	if len(service.scenarioJobs.jobs) != 1 {
+		t.Fatalf("memory Local embed durable jobs = %d, want 1", len(service.scenarioJobs.jobs))
+	}
+	for _, record := range service.scenarioJobs.jobs {
+		if record.job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED ||
+			record.resolvedAssembly == nil || record.resolvedAssembly.Request.Kind != "text.embed" {
+			t.Fatalf("memory Local durable capture = job %+v assembly %+v", record.job, record.resolvedAssembly)
+		}
 	}
 }

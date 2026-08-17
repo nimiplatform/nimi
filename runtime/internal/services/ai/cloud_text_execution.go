@@ -24,19 +24,20 @@ import (
 )
 
 type cloudTextEffectiveInputs struct {
-	implementation *runtimev1.CapabilityImplementationIdentity
-	rawTarget      *structpb.Struct
-	target         capabilitydriver.CloudTextTarget
-	catalogTarget  *nimillm.RemoteTarget
-	connector      connector.ConnectorRecord
-	defaults       *structpb.Struct
-	request        *runtimev1.TextGenerateScenarioSpec
-	mapped         *capabilitydriver.CloudTextMappedRequest
-	driver         capabilitydriver.CloudTextDriver
-	traceID        string
-	appID          string
-	accountID      string
-	cleanup        func()
+	implementation   *runtimev1.CapabilityImplementationIdentity
+	rawTarget        *structpb.Struct
+	target           capabilitydriver.CloudTextTarget
+	catalogTarget    *nimillm.RemoteTarget
+	connector        connector.ConnectorRecord
+	defaults         *structpb.Struct
+	request          *runtimev1.TextGenerateScenarioSpec
+	mapped           *capabilitydriver.CloudTextMappedRequest
+	driver           capabilitydriver.CloudTextDriver
+	traceID          string
+	appID            string
+	accountID        string
+	cleanup          func()
+	resolvedAssembly *cloudResolvedAssembly
 }
 
 func (input *cloudTextEffectiveInputs) release() {
@@ -163,10 +164,62 @@ func (s *Service) captureCloudTextEffectiveInputs(
 		accountID:      accountID,
 		cleanup:        resolved.release,
 	}
+	effective.resolvedAssembly, err = newCloudResolvedAssembly(
+		cloudResolvedRequestText, capabilitydriver.LlamaCapabilityContract, implementation, rawTarget,
+		connectorRecord, defaults, effectiveRequest, mode, capabilitydriver.CloudMediaStreamNone,
+		effective.traceID, effective.appID, effective.accountID, nil,
+	)
+	if err != nil {
+		return fail(grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID, err, grpcerr.ReasonOptions{Message: "Cloud ResolvedAssembly capture failed"}))
+	}
 	if err := s.auditCloudTextCapture(effective, stream); err != nil {
 		return fail(err)
 	}
 	return effective, nil
+}
+
+func (s *Service) cloudTextEffectiveInputsFromResolvedAssembly(assembly *cloudResolvedAssembly) (*cloudTextEffectiveInputs, error) {
+	if s == nil || assembly == nil || assembly.RequestKind != cloudResolvedRequestText || s.cloudTextDrivers == nil {
+		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+	}
+	if err := validateCloudResolvedAssembly(assembly); err != nil {
+		return nil, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID, err, grpcerr.ReasonOptions{})
+	}
+	implementation, err := assembly.implementationProto()
+	if err != nil {
+		return nil, cloudTextDriverError(err)
+	}
+	rawTarget, err := assembly.providerTargetProto()
+	if err != nil {
+		return nil, cloudTextDriverError(err)
+	}
+	defaults, err := assembly.defaultsProto()
+	if err != nil {
+		return nil, cloudTextDriverError(err)
+	}
+	request := &runtimev1.TextGenerateScenarioSpec{}
+	if err := (protojson.UnmarshalOptions{DiscardUnknown: false}).Unmarshal(assembly.Request, request); err != nil {
+		return nil, cloudTextDriverError(err)
+	}
+	driver, target, err := s.cloudTextDrivers.Resolve(capabilitydriver.IdentityFromProto(implementation), rawTarget)
+	if err != nil {
+		return nil, cloudTextDriverError(err)
+	}
+	mapped, err := driver.MapRequest(target, request, defaults, assembly.ExecutionMode == runtimev1.ExecutionMode_EXECUTION_MODE_STREAM)
+	if err != nil {
+		return nil, cloudTextDriverError(err)
+	}
+	clonedAssembly, err := cloneCloudResolvedAssembly(assembly)
+	if err != nil {
+		return nil, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID, err, grpcerr.ReasonOptions{})
+	}
+	connectorRecord := cloneConnectorRecord(assembly.Connector)
+	return &cloudTextEffectiveInputs{
+		implementation: implementation, rawTarget: rawTarget, target: target,
+		catalogTarget: &nimillm.RemoteTarget{ProviderType: target.Provider(), ProviderModelID: target.ProviderModelID(), RemoteModelCatalogID: target.RemoteModelCatalogID(), ConnectorID: connectorRecord.ConnectorID},
+		connector:     connectorRecord, defaults: defaults, request: mapped.Spec(), mapped: mapped, driver: driver,
+		traceID: assembly.TraceID, appID: assembly.AppID, accountID: assembly.AccountID, resolvedAssembly: clonedAssembly,
+	}, nil
 }
 
 func (s *Service) resolveCloudTextConsumerIntent(ctx context.Context, head *runtimev1.ScenarioRequestHead) (executionintent.Intent, error) {

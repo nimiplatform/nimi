@@ -47,8 +47,6 @@ func waitScenarioJobTerminal(t *testing.T, svc *Service, jobID string, timeout t
 	queryCtx := scenarioJobContext("nimi.desktop")
 	if stored, ok := svc.scenarioJobs.get(jobID); ok && stored.GetHead().GetSubjectUserId() != anonymousScenarioJobOwner {
 		queryCtx = scenarioJobUserContext("nimi.desktop", stored.GetHead().GetSubjectUserId())
-	} else if stored, ok := svc.voiceAssets.getJob(jobID); ok && stored.GetHead().GetSubjectUserId() != anonymousScenarioJobOwner {
-		queryCtx = scenarioJobUserContext("nimi.desktop", stored.GetHead().GetSubjectUserId())
 	}
 	deadline := time.Now().Add(timeout)
 	for time.Now().Before(deadline) {

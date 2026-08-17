@@ -3,11 +3,14 @@ package ai
 import (
 	"context"
 	"strings"
+	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/authn"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 func (s *Service) submitVoiceWorkflowJob(
@@ -31,50 +34,24 @@ func (s *Service) submitVoiceWorkflowJob(
 	if strings.TrimSpace(req.GetSpec().GetVoiceCreate().GetTargetModelId()) == "" {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_TARGET_MODEL_MISMATCH)
 	}
+	idempotencyScope, err := buildScenarioJobIdempotencyScope(ctx, req)
+	if err != nil {
+		return nil, grpcerr.WrapWithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID, err, grpcerr.ReasonOptions{})
+	}
+	if idempotencyScope != "" {
+		if existing, ok := s.scenarioJobs.getByIdempotency(idempotencyScope); ok {
+			return &runtimev1.SubmitScenarioJobResponse{Job: existing}, nil
+		}
+	}
 	effective, err := s.captureCloudVoiceWorkflowEffectiveInputs(ctx, req)
 	if err != nil {
 		return nil, err
 	}
-	releaseEffective := true
-	defer func() {
-		if releaseEffective {
-			effective.release()
-		}
-	}()
+	defer effective.release()
 	req = effective.request
-	resolution := effective.resolution
 	timeout, err := scenarioJobTimeoutDuration(req, defaultSynthesizeTimeout, false)
 	if err != nil {
 		return nil, err
-	}
-
-	job, asset := s.voiceAssets.submit(&voiceWorkflowSubmitInput{
-		Head:              req.GetHead(),
-		LocalAppOwner:     localAppJobOwnerFromContext(ctx),
-		ScenarioType:      req.GetScenarioType(),
-		Spec:              req.GetSpec(),
-		TraceID:           effective.traceID,
-		RouteDecision:     runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
-		ModelResolved:     effective.target.ProviderModelID(),
-		Provider:          resolution.Provider,
-		WorkflowModelID:   resolution.WorkflowModelID,
-		WorkflowFamily:    resolution.WorkflowFamily,
-		OutputPersistence: resolution.OutputPersistence,
-		HandlePolicyID:    resolution.HandlePolicyID,
-		HandlePersistence: resolution.HandlePolicyPersistence,
-		HandleScope:       resolution.HandlePolicyScope,
-		HandleDefaultTTL:  resolution.HandlePolicyDefaultTTL,
-		HandleDeleteSem:   resolution.HandlePolicyDeleteSemantics,
-		RuntimeReconcile:  resolution.RuntimeReconciliationRequired,
-		ExecutionTarget:   effective.voiceTarget.Clone(),
-		CloudBinding: &voiceAssetCloudBinding{
-			CapabilityContract: effective.target.CapabilityContract(), Implementation: effective.implementation,
-			ProviderModelTarget: effective.rawTarget, ConnectorID: effective.connector.ConnectorID,
-		},
-		IgnoredExtensions: ignored,
-	})
-	if job == nil || asset == nil {
-		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_INPUT_INVALID)
 	}
 
 	// Keep caller metadata and credentials out of the detached job. The typed
@@ -86,21 +63,39 @@ func (s *Service) submitVoiceWorkflowJob(
 	} else {
 		jobCtx, cancel = context.WithCancel(jobCtx)
 	}
+	now := timestamppb.New(time.Now().UTC())
+	job := &runtimev1.ScenarioJob{
+		JobId: ulid.Make().String(), Head: cloneScenarioHead(req.GetHead()),
+		ScenarioType: req.GetScenarioType(), ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
+		RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD, ModelResolved: effective.target.ProviderModelID(),
+		Status: runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED, ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED,
+		CreatedAt: now, UpdatedAt: now, TraceId: effective.traceID,
+		IgnoredExtensions: cloneIgnoredScenarioExtensions(ignored),
+	}
 	if identity := authn.IdentityFromContext(ctx); identity != nil {
 		jobCtx = authn.WithIdentity(jobCtx, &authn.Identity{SubjectUserID: identity.SubjectUserID})
 	}
-	if !s.voiceAssets.setJobCancel(job.GetJobId(), cancel) {
+	stored, created, persistErr := s.scenarioJobs.createOwnedAndBindCloudAssemblyChecked(
+		job, cancel, localAppJobOwnerFromContext(ctx), idempotencyScope, effective.resolvedAssembly,
+	)
+	if persistErr != nil {
 		cancel()
-		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
+		return nil, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID, persistErr, grpcerr.ReasonOptions{Message: "Cloud voice ScenarioJob submission could not be persisted"})
 	}
-	releaseEffective = false
+	if stored == nil {
+		cancel()
+		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+	}
+	if !created {
+		cancel()
+		return &runtimev1.SubmitScenarioJobResponse{Job: stored}, nil
+	}
 	go func() {
 		defer cancel()
-		defer effective.release()
-		s.executeCapturedVoiceWorkflowJob(jobCtx, job.GetJobId(), asset.GetVoiceAssetId(), effective)
+		s.executeCapturedVoiceWorkflowJob(jobCtx, stored.GetJobId())
 	}()
 
-	return &runtimev1.SubmitScenarioJobResponse{Job: job}, nil
+	return &runtimev1.SubmitScenarioJobResponse{Job: stored}, nil
 }
 
 func voiceAssetReference(voiceAssetID string) *runtimev1.VoiceReference {
