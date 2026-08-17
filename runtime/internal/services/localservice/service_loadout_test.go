@@ -451,6 +451,30 @@ func TestLoadoutJobAdmissionRehashesEveryPayloadWhileProjectionUsesCache(t *test
 	}
 }
 
+func TestLoadoutJobAdmissionRejectsUndeclaredBundlePayload(t *testing.T) {
+	svc, asset := loadoutGemmaFixture(t)
+	prepared := prepareGemmaLoadoutForTest(t, svc, context.Background(), "", "Gemma undeclared payload", asset)
+	committed := commitLoadoutForTest(t, svc, context.Background(), prepared.GetPrepareId(), false)
+	if _, err := svc.SelectLoadout(context.Background(), &runtimev1.SelectLoadoutRequest{
+		CapabilityContract:     capabilitydriver.LlamaCapabilityContract,
+		LoadoutId:              committed.GetLoadoutId(),
+		ConfirmedMachineImpact: true,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	svc.mu.RLock()
+	bundleDir := svc.modelAssetDirectories[asset.GetModelAssetId()]
+	svc.mu.RUnlock()
+	if err := os.WriteFile(filepath.Join(bundleDir, "generation_config.json"), []byte(`{"undeclared":true}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	_, err := svc.ResolveSelectedLocalExecution(capabilitydriver.LlamaCapabilityContract)
+	if grpcReasonForTest(err) != runtimev1.ReasonCode_AI_LOADOUT_MODEL_ASSET_CONTENT_MISMATCH {
+		t.Fatalf("undeclared bundle payload admission = reason:%s err:%v", grpcReasonForTest(err), err)
+	}
+}
+
 func TestQwen3SpeechLoadoutsResolveExecutableSelectedAssembly(t *testing.T) {
 	tests := []struct {
 		name, contract, recipeID, requirementID string

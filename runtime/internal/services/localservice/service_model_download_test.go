@@ -18,6 +18,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/rpcctx"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -109,6 +110,106 @@ func TestManagedDownloadMintsIndependentDuplicateContentInstances(t *testing.T) 
 	for _, directory := range []string{firstDir, secondDir} {
 		if _, err := os.Stat(filepath.Join(directory, "model.gguf")); err != nil {
 			t.Fatalf("acquisition payload missing from %q: %v", directory, err)
+		}
+	}
+}
+
+func TestManagedDownloadFromProtectedDynamicCatalogPlanDoesNotRequireBuiltInDescriptor(t *testing.T) {
+	svc := newTestService(t)
+	payload := append(validTestGGUF(), []byte("-dynamic-catalog")...)
+	sum := sha256.Sum256(payload)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write(payload)
+	}))
+	defer server.Close()
+	svc.hfDownloadBaseURL = server.URL
+
+	record, err := svc.installManagedDownloadedModel(context.Background(), managedDownloadedModelSpec{
+		modelID:           "dynamic.hf.model",
+		displayName:       "Dynamic HF Model",
+		catalogAssetID:    "hf_dynamic_item",
+		catalogTemplateID: "",
+		capabilities:      []string{"text.generate"},
+		entry:             "model.gguf",
+		files:             []string{"model.gguf"},
+		license:           "apache-2.0",
+		repo:              "dynamic/repo",
+		revision:          "main",
+		hashes:            map[string]string{"model.gguf": "sha256:" + hex.EncodeToString(sum[:])},
+	})
+	if err != nil {
+		t.Fatalf("dynamic protected acquisition: %v", err)
+	}
+	if record.GetModelAssetId() == "" || record.GetContentId() == "" {
+		t.Fatalf("dynamic protected acquisition returned incomplete ModelAsset: %+v", record)
+	}
+	snapshot, diagnostics, rewriteRequired, err := loadLocalStateSnapshotIsolated(svc.stateStorePath)
+	if err != nil {
+		t.Fatalf("reload completed dynamic transfer state: %v", err)
+	}
+	if len(diagnostics) != 0 || rewriteRequired || len(snapshot.Transfers) != 1 {
+		t.Fatalf("completed dynamic transfer was not restart-safe: transfers=%d diagnostics=%d rewrite=%t", len(snapshot.Transfers), len(diagnostics), rewriteRequired)
+	}
+	if snapshot.Transfers[0].State != localTransferStateCompleted || snapshot.Transfers[0].ManagedDownloadSpec != nil {
+		t.Fatalf("completed dynamic transfer retained active execution spec: %+v", snapshot.Transfers[0])
+	}
+}
+
+func TestManagedDownloadDoesNotStartHTTPBeforeDurableTransferCapture(t *testing.T) {
+	svc := newTestService(t)
+	payload := validTestGGUF()
+	sum := sha256.Sum256(payload)
+	var requests int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		atomic.AddInt32(&requests, 1)
+		_, _ = w.Write(payload)
+	}))
+	defer server.Close()
+	svc.hfDownloadBaseURL = server.URL
+	// An existing directory cannot be atomically replaced by the state file.
+	// This exercises the production persistence failure before any HTTP effect.
+	svc.stateStorePath = t.TempDir()
+
+	_, err := svc.installManagedDownloadedModel(context.Background(), managedDownloadedModelSpec{
+		modelID:      "dynamic.capture.failure",
+		capabilities: []string{"text.generate"},
+		entry:        "model.gguf",
+		files:        []string{"model.gguf"},
+		repo:         "dynamic/repo",
+		revision:     "main",
+		hashes:       map[string]string{"model.gguf": "sha256:" + hex.EncodeToString(sum[:])},
+	})
+	if err == nil {
+		t.Fatal("managed download started without durable transfer capture")
+	}
+	if got := atomic.LoadInt32(&requests); got != 0 {
+		t.Fatalf("HTTP requests before durable transfer capture = %d, want 0", got)
+	}
+	if len(svc.transfers) != 0 || len(svc.managedModelDownloadSpecs) != 0 {
+		t.Fatalf("failed durable capture retained transfer state: transfers=%d specs=%d", len(svc.transfers), len(svc.managedModelDownloadSpecs))
+	}
+}
+
+func TestLocalModelDownloadRetryPolicyMatchesAuthority(t *testing.T) {
+	want := []time.Duration{
+		300 * time.Millisecond,
+		1 * time.Second,
+		5 * time.Second,
+		15 * time.Second,
+		30 * time.Second,
+		60 * time.Second,
+		120 * time.Second,
+		180 * time.Second,
+	}
+	if localModelDownloadMaxAttempts != len(want)+1 {
+		t.Fatalf("max attempts = %d, want one initial plus %d retries", localModelDownloadMaxAttempts, len(want))
+	}
+	if len(localModelDownloadRetryDelays) != len(want) {
+		t.Fatalf("retry delay count = %d, want %d", len(localModelDownloadRetryDelays), len(want))
+	}
+	for index := range want {
+		if localModelDownloadRetryDelays[index] != want[index] {
+			t.Fatalf("retry delay %d = %s, want %s", index, localModelDownloadRetryDelays[index], want[index])
 		}
 	}
 }
@@ -226,7 +327,7 @@ func TestInstallManagedDownloadedModelRequiresExpectedHash(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected managed download without expected hash to fail")
 	}
-	if !strings.Contains(err.Error(), "requires admitted expected sha256") {
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID {
 		t.Fatalf("expected missing expected hash error, got %v", err)
 	}
 }
@@ -287,6 +388,9 @@ func TestDownloadManagedModelFileRetriesMidStreamDrop(t *testing.T) {
 		"model.gguf",
 		targetPath,
 		map[string]string{"model.gguf": "sha256:" + hex.EncodeToString(sum[:])},
+		0,
+		int64(len(modelBytes)),
+		true,
 	)
 	if err != nil {
 		t.Fatalf("downloadManagedModelFile: %v", err)
@@ -373,13 +477,13 @@ func TestManagedModelDownloadShutdownRestoresPausedWithStaging(t *testing.T) {
 	}
 	// Also model a hard stop after the last running snapshot was persisted: the
 	// restore path, rather than the cancellation handler, must heal it to paused.
-	if residual := svc.mutateLocalTransfer(transfer.GetInstallSessionId(), true, func(summary *runtimev1.LocalTransferSessionSummary) {
+	if residual, persistErr := svc.mutateLocalTransfer(transfer.GetInstallSessionId(), true, func(summary *runtimev1.LocalTransferSessionSummary) {
 		summary.State = localTransferStateRunning
 		summary.Message = "downloading model.bin"
 		summary.ReasonCode = ""
 		summary.Retryable = false
-	}); residual == nil {
-		t.Fatal("failed to persist residual running transfer")
+	}); residual == nil || persistErr != nil {
+		t.Fatalf("failed to persist residual running transfer: summary=%+v err=%v", residual, persistErr)
 	}
 
 	statePath := svc.stateStorePath
@@ -408,6 +512,350 @@ func TestManagedModelDownloadShutdownRestoresPausedWithStaging(t *testing.T) {
 	}
 }
 
+func TestResumeRestoredDynamicHFDownloadUsesDurableTransferSpec(t *testing.T) {
+	svc := newTestService(t)
+	modelID := "dynamic.hf.resume"
+	payload := append(validTestGGUF(), []byte("-dynamic-resume")...)
+	sum := sha256.Sum256(payload)
+	prefixLen := len(payload) / 3
+	requestStarted := make(chan struct{})
+	var requests int32
+	var rangeStart int64 = -1
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		attempt := atomic.AddInt32(&requests, 1)
+		if attempt == 1 {
+			w.Header().Set("Content-Length", strconv.Itoa(len(payload)))
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write(payload[:prefixLen])
+			if flusher, ok := w.(http.Flusher); ok {
+				flusher.Flush()
+			}
+			close(requestStarted)
+			<-r.Context().Done()
+			return
+		}
+		if rangeHeader := strings.TrimSpace(r.Header.Get("Range")); rangeHeader != "" {
+			startToken := strings.TrimSuffix(strings.TrimPrefix(rangeHeader, "bytes="), "-")
+			if start, parseErr := strconv.ParseInt(startToken, 10, 64); parseErr == nil {
+				atomic.StoreInt64(&rangeStart, start)
+			}
+		}
+		serveModelWithRange(w, r, payload)
+	}))
+	defer server.Close()
+	svc.hfDownloadBaseURL = server.URL
+	spec := managedDownloadedModelSpec{
+		modelID:        modelID,
+		displayName:    "Dynamic Resume",
+		catalogAssetID: "hf_dynamic_resume",
+		capabilities:   []string{"text.generate"},
+		entry:          "model.gguf",
+		files:          []string{"model.gguf"},
+		license:        "apache-2.0",
+		repo:           "dynamic/repo",
+		revision:       "main",
+		hashes:         map[string]string{"model.gguf": "sha256:" + hex.EncodeToString(sum[:])},
+	}
+
+	shutdownCtx, shutdownSignal := rpcctx.WithShutdownSignal(context.Background())
+	ctx, cancel := context.WithCancel(shutdownCtx)
+	go func() {
+		<-requestStarted
+		time.Sleep(100 * time.Millisecond)
+		shutdownSignal.MarkServerShutdown()
+		cancel()
+	}()
+	if _, err := svc.installManagedDownloadedModel(ctx, spec); !errors.Is(err, context.Canceled) {
+		t.Fatalf("interrupted dynamic download error = %v, want context.Canceled", err)
+	}
+	transfer := transferForAssetForTest(t, svc, modelID)
+	statePath := svc.stateStorePath
+	modelsRoot := svc.resolvedLocalModelsPath()
+	runtimeRoot := svc.runtimeDataRoot
+	logger := svc.logger
+	svc.Close()
+
+	restored, err := NewWithProductControlDataRoot(logger, nil, statePath, 0, modelsRoot, runtimeRoot)
+	if err != nil {
+		t.Fatalf("restore local service: %v", err)
+	}
+	defer restored.Close()
+	restored.hfDownloadBaseURL = server.URL
+	response, err := restored.ResumeLocalTransfer(context.Background(), &runtimev1.ResumeLocalTransferRequest{
+		InstallSessionId: transfer.GetInstallSessionId(),
+	})
+	if err != nil {
+		t.Fatalf("ResumeLocalTransfer dynamic HF: %v", err)
+	}
+	if response.GetTransfer().GetState() != localTransferStateRunning {
+		t.Fatalf("dynamic resume state = %q, want running", response.GetTransfer().GetState())
+	}
+	deadline := time.Now().Add(5 * time.Second)
+	for time.Now().Before(deadline) {
+		if summary := restored.localTransferSummary(transfer.GetInstallSessionId()); summary.GetState() == localTransferStateCompleted {
+			break
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+	completed := restored.localTransferSummary(transfer.GetInstallSessionId())
+	if completed.GetState() != localTransferStateCompleted {
+		t.Fatalf("dynamic resumed transfer did not complete: %+v", completed)
+	}
+	if got := atomic.LoadInt64(&rangeStart); got != int64(prefixLen) {
+		t.Fatalf("dynamic resume Range start = %d, want %d", got, prefixLen)
+	}
+	if len(restored.modelAssets) != 1 {
+		t.Fatalf("dynamic resumed ModelAsset inventory count = %d, want 1", len(restored.modelAssets))
+	}
+}
+
+func TestResumeRestoredMultiFileDownloadSkipsCompletedFilesAndKeepsAggregateProgress(t *testing.T) {
+	svc := newTestService(t)
+	modelID := "local.test.multi-file-resume"
+	fileA := []byte("already-complete-file-a")
+	fileB := []byte(strings.Repeat("resumable-file-b", 128))
+	hashA := sha256.Sum256(fileA)
+	hashB := sha256.Sum256(fileB)
+	prefixLen := len(fileB) / 3
+	bundleTotal := int64(len(fileA) + len(fileB))
+	spec := managedDownloadedModelSpec{
+		modelID:        modelID,
+		displayName:    "Multi-file resume",
+		capabilities:   []string{"audio.synthesize"},
+		entry:          "a.bin",
+		files:          []string{"a.bin", "b.bin"},
+		license:        "test",
+		repo:           "test/multi-file-resume",
+		revision:       "main",
+		totalSizeBytes: bundleTotal,
+		hashes: map[string]string{
+			"a.bin": "sha256:" + hex.EncodeToString(hashA[:]),
+			"b.bin": "sha256:" + hex.EncodeToString(hashB[:]),
+		},
+	}
+	transfer, err := svc.newManagedModelDownloadTransfer(localTransferMutation{
+		ModelID:       modelID,
+		Phase:         "download",
+		State:         localTransferStateRunning,
+		BytesReceived: 0,
+		Message:       "downloading multi-file bundle",
+	}, spec)
+	if err != nil {
+		t.Fatalf("capture multi-file transfer: %v", err)
+	}
+	stageDir := managedModelDownloadStageDir(
+		svc.resolvedLocalModelsPath(),
+		managedModelAcquisitionStorageID(modelID, transfer.GetInstallSessionId()),
+	)
+	if err := os.MkdirAll(stageDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(stageDir, "a.bin"), fileA, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(stageDir, "b.bin.download"), fileB[:prefixLen], 0o600); err != nil {
+		t.Fatal(err)
+	}
+	statePath := svc.stateStorePath
+	modelsRoot := svc.resolvedLocalModelsPath()
+	runtimeRoot := svc.runtimeDataRoot
+	logger := svc.logger
+	svc.Close()
+
+	restored, err := NewWithProductControlDataRoot(logger, nil, statePath, 0, modelsRoot, runtimeRoot)
+	if err != nil {
+		t.Fatalf("restore multi-file transfer: %v", err)
+	}
+	defer restored.Close()
+	restored.mu.RLock()
+	restoredTotal := restored.managedModelDownloadSpecs[transfer.GetInstallSessionId()].totalSizeBytes
+	restored.mu.RUnlock()
+	if restoredTotal != bundleTotal {
+		t.Fatalf("restored managed download spec total=%d, want %d", restoredTotal, bundleTotal)
+	}
+	var fileARequests int32
+	var fileBRangeStart int64 = -1
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch filepath.Base(r.URL.Path) {
+		case "a.bin":
+			atomic.AddInt32(&fileARequests, 1)
+			serveModelWithRange(w, r, fileA)
+		case "b.bin":
+			if raw := strings.TrimSpace(r.Header.Get("Range")); raw != "" {
+				startToken := strings.TrimSuffix(strings.TrimPrefix(raw, "bytes="), "-")
+				if start, parseErr := strconv.ParseInt(startToken, 10, 64); parseErr == nil {
+					atomic.StoreInt64(&fileBRangeStart, start)
+				}
+			}
+			serveModelWithRange(w, r, fileB)
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+	restored.hfDownloadBaseURL = server.URL
+	restored.modelDownloadMaxAttempts = 1
+
+	restored.mu.Lock()
+	subscriberID, updates := restored.addTransferSubscriberLocked()
+	restored.mu.Unlock()
+	defer restored.removeTransferSubscriber(subscriberID)
+
+	response, err := restored.ResumeLocalTransfer(context.Background(), &runtimev1.ResumeLocalTransferRequest{
+		InstallSessionId: transfer.GetInstallSessionId(),
+	})
+	if err != nil {
+		t.Fatalf("resume multi-file transfer: %v", err)
+	}
+	stagedBeforeResume := int64(len(fileA) + prefixLen)
+	if response.GetTransfer().GetBytesReceived() != stagedBeforeResume || response.GetTransfer().GetBytesTotal() != bundleTotal {
+		t.Fatalf("resume projection = received=%d total=%d, want %d/%d",
+			response.GetTransfer().GetBytesReceived(), response.GetTransfer().GetBytesTotal(), stagedBeforeResume, bundleTotal)
+	}
+
+	deadline := time.After(5 * time.Second)
+	for {
+		select {
+		case event := <-updates:
+			if event == nil {
+				t.Fatal("multi-file progress stream closed before terminal event")
+			}
+			if event.GetPhase() == "download" && event.GetState() == localTransferStateRunning {
+				if event.GetBytesReceived() < stagedBeforeResume {
+					t.Fatalf("multi-file progress regressed to %d below staged prefix %d", event.GetBytesReceived(), stagedBeforeResume)
+				}
+				if event.GetBytesTotal() != bundleTotal {
+					t.Fatalf("multi-file progress total = %d, want bundle total %d", event.GetBytesTotal(), bundleTotal)
+				}
+			}
+			if event.GetDone() {
+				if !event.GetSuccess() {
+					t.Fatalf("multi-file resume terminal event = %+v", event)
+				}
+				goto completed
+			}
+		case <-deadline:
+			t.Fatal("multi-file resume did not complete")
+		}
+	}
+
+completed:
+	if got := atomic.LoadInt32(&fileARequests); got != 0 {
+		t.Fatalf("completed file A was downloaded %d times", got)
+	}
+	if got := atomic.LoadInt64(&fileBRangeStart); got != int64(prefixLen) {
+		t.Fatalf("file B Range start = %d, want %d", got, prefixLen)
+	}
+}
+
+func TestResumeRestoredDownloadPersistenceFailureStartsNoWorker(t *testing.T) {
+	svc := newTestService(t)
+	modelID := "local.test.resume-persist-failure"
+	payload := []byte("resume persistence failure")
+	digest := sha256.Sum256(payload)
+	spec := managedDownloadedModelSpec{
+		modelID:      modelID,
+		displayName:  "Resume persistence failure",
+		capabilities: []string{"text.generate"},
+		entry:        "model.bin",
+		files:        []string{"model.bin"},
+		license:      "test",
+		repo:         "test/resume-persist-failure",
+		revision:     "main",
+		hashes:       map[string]string{"model.bin": "sha256:" + hex.EncodeToString(digest[:])},
+	}
+	transfer, err := svc.newManagedModelDownloadTransfer(localTransferMutation{
+		ModelID:    modelID,
+		Phase:      "download",
+		State:      localTransferStateRunning,
+		BytesTotal: int64(len(payload)),
+	}, spec)
+	if err != nil {
+		t.Fatalf("capture restored transfer: %v", err)
+	}
+	statePath := svc.stateStorePath
+	modelsRoot := svc.resolvedLocalModelsPath()
+	runtimeRoot := svc.runtimeDataRoot
+	logger := svc.logger
+	svc.Close()
+
+	restored, err := NewWithProductControlDataRoot(logger, nil, statePath, 0, modelsRoot, runtimeRoot)
+	if err != nil {
+		t.Fatalf("restore transfer: %v", err)
+	}
+	defer restored.Close()
+	var requests int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		atomic.AddInt32(&requests, 1)
+		serveModelWithRange(w, r, payload)
+	}))
+	defer server.Close()
+	restored.hfDownloadBaseURL = server.URL
+	restored.modelDownloadMaxAttempts = 1
+	restored.stateStorePath = t.TempDir()
+
+	response, err := restored.ResumeLocalTransfer(context.Background(), &runtimev1.ResumeLocalTransferRequest{
+		InstallSessionId: transfer.GetInstallSessionId(),
+	})
+	if status.Code(err) != codes.Unavailable || response != nil {
+		t.Fatalf("restored resume persistence failure response=%+v err=%v", response, err)
+	}
+	time.Sleep(50 * time.Millisecond)
+	if got := atomic.LoadInt32(&requests); got != 0 {
+		t.Fatalf("restored resume started %d HTTP requests before durable running state", got)
+	}
+	if summary := restored.localTransferSummary(transfer.GetInstallSessionId()); summary.GetState() != localTransferStatePaused {
+		t.Fatalf("restored resume persistence failure changed summary: %+v", summary)
+	}
+}
+
+func TestManagedDownloadCompletionPersistenceFailurePublishesNoModelAsset(t *testing.T) {
+	svc := newTestService(t)
+	payload := validTestGGUF()
+	digest := sha256.Sum256(payload)
+	statePath := svc.stateStorePath
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if err := os.Remove(statePath); err != nil && !os.IsNotExist(err) {
+			t.Errorf("remove state store: %v", err)
+		}
+		if err := os.Mkdir(statePath, 0o700); err != nil && !os.IsExist(err) {
+			t.Errorf("replace state store with directory: %v", err)
+		}
+		serveModelWithRange(w, r, payload)
+	}))
+	defer server.Close()
+	svc.hfDownloadBaseURL = server.URL
+	svc.modelDownloadMaxAttempts = 1
+
+	asset, err := svc.installManagedDownloadedModel(context.Background(), managedDownloadedModelSpec{
+		modelID:        "local.test.terminal-persist-failure",
+		displayName:    "Terminal persistence failure",
+		capabilities:   []string{"text.generate"},
+		entry:          "model.gguf",
+		files:          []string{"model.gguf"},
+		repo:           "test/terminal-persist-failure",
+		revision:       "main",
+		totalSizeBytes: int64(len(payload)),
+		hashes:         map[string]string{"model.gguf": "sha256:" + hex.EncodeToString(digest[:])},
+	})
+	if status.Code(err) != codes.Unavailable || asset != nil {
+		t.Fatalf("completion persistence failure asset=%+v err=%v", asset, err)
+	}
+	svc.mu.RLock()
+	assetCount := len(svc.modelAssets)
+	svc.mu.RUnlock()
+	if assetCount != 0 {
+		t.Fatalf("completion persistence failure published %d ModelAssets", assetCount)
+	}
+	entries, readErr := os.ReadDir(filepath.Join(svc.resolvedLocalModelsPath(), "resolved"))
+	if readErr != nil {
+		t.Fatalf("read resolved root: %v", readErr)
+	}
+	if len(entries) != 0 {
+		t.Fatalf("completion persistence failure retained resolved payload: %v", entries)
+	}
+}
+
 func TestResumeRestoredManagedModelDownloadRebuildsExecutorAndRangePrefix(t *testing.T) {
 	svc := newTestService(t)
 	descriptor := svc.verifiedAssetDescriptorForAssetID("test.chat.qwen2")
@@ -418,14 +866,33 @@ func TestResumeRestoredManagedModelDownloadRebuildsExecutorAndRangePrefix(t *tes
 	descriptor.TotalSizeBytes = int64(len(payload))
 	prefixLen := len(payload) / 3
 	modelID := descriptor.GetAssetId()
-	transfer := svc.newLocalTransfer(localTransferKindDownload, localTransferMutation{
+	spec := managedDownloadedModelSpec{
+		modelID:           modelID,
+		displayName:       descriptor.GetTitle(),
+		catalogAssetID:    descriptor.GetAssetId(),
+		catalogTemplateID: descriptor.GetTemplateId(),
+		kind:              descriptor.GetKind(),
+		capabilities:      append([]string(nil), descriptor.GetCapabilities()...),
+		engine:            descriptor.GetEngine(),
+		entry:             descriptor.GetEntry(),
+		files:             append([]string(nil), descriptor.GetFiles()...),
+		license:           descriptor.GetLicense(),
+		repo:              descriptor.GetRepo(),
+		revision:          descriptor.GetRevision(),
+		hashes:            cloneStringMap(descriptor.GetHashes()),
+		engineConfig:      cloneStruct(descriptor.GetEngineConfig()),
+	}
+	transfer, err := svc.newManagedModelDownloadTransfer(localTransferMutation{
 		ModelID:       modelID,
 		Phase:         "download",
 		State:         localTransferStateRunning,
 		BytesReceived: 0,
 		BytesTotal:    int64(len(payload)),
 		Message:       "downloading model.gguf",
-	})
+	}, spec)
+	if err != nil {
+		t.Fatalf("capture managed download transfer: %v", err)
+	}
 	stageDir := managedModelDownloadStageDir(svc.resolvedLocalModelsPath(), managedModelAcquisitionStorageID(modelID, transfer.GetInstallSessionId()))
 	if err := os.MkdirAll(stageDir, 0o755); err != nil {
 		t.Fatalf("create restored staging: %v", err)
@@ -453,12 +920,6 @@ func TestResumeRestoredManagedModelDownloadRebuildsExecutorAndRangePrefix(t *tes
 	if restoredTransfer.GetBytesReceived() != int64(prefixLen) {
 		t.Fatalf("restored bytesReceived = %d, want on-disk prefix %d", restoredTransfer.GetBytesReceived(), prefixLen)
 	}
-
-	// New-process catalog projection: Resume must reconstruct from this durable
-	// descriptor rather than from the original process's held install plan.
-	restored.mu.Lock()
-	restored.verified = append(restored.verified, cloneVerifiedAsset(descriptor))
-	restored.mu.Unlock()
 
 	var rangeStart int64 = -1
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -553,55 +1014,51 @@ func TestResumeRestoredManagedModelDownloadRebuildsExecutorAndRangePrefix(t *tes
 	}
 }
 
-func TestResumeRestoredManagedModelDownloadFailsTypedWhenCatalogSpecMissing(t *testing.T) {
+func TestActiveManagedModelDownloadWithoutDurableSpecIsIsolated(t *testing.T) {
 	svc := newTestService(t)
 	modelID := "local.test.resume-catalog-missing"
-	transfer := svc.newLocalTransfer(localTransferKindDownload, localTransferMutation{
+	svc.newLocalTransfer(localTransferKindDownload, localTransferMutation{
 		ModelID: modelID,
 		Phase:   "download",
 		State:   localTransferStateRunning,
 	})
 	statePath := svc.stateStorePath
-	modelsRoot := svc.resolvedLocalModelsPath()
-	runtimeRoot := svc.runtimeDataRoot
-	logger := svc.logger
 	svc.Close()
 
-	restored, err := NewWithProductControlDataRoot(logger, nil, statePath, 0, modelsRoot, runtimeRoot)
+	snapshot, diagnostics, rewriteRequired, err := loadLocalStateSnapshotIsolated(statePath)
 	if err != nil {
-		t.Fatalf("restore local service: %v", err)
+		t.Fatalf("load isolated local state: %v", err)
 	}
-	defer restored.Close()
-	if summary := restored.localTransferSummary(transfer.GetInstallSessionId()); summary.GetState() != localTransferStatePaused {
-		t.Fatalf("restored transfer state = %q, want paused", summary.GetState())
+	if len(snapshot.Transfers) != 0 {
+		t.Fatalf("active transfer without spec remained available: %+v", snapshot.Transfers)
 	}
-
-	response, err := restored.ResumeLocalTransfer(context.Background(), &runtimev1.ResumeLocalTransferRequest{
-		InstallSessionId: transfer.GetInstallSessionId(),
-	})
-	if response != nil {
-		t.Fatalf("missing-spec resume response = %+v, want nil", response)
+	if len(diagnostics) != 1 || !rewriteRequired {
+		t.Fatalf("missing-spec diagnostics=%d rewrite=%t, want 1/true", len(diagnostics), rewriteRequired)
 	}
-	if status.Code(err) != codes.NotFound {
-		t.Fatalf("missing-spec resume error = %v, want NotFound", err)
-	}
-	failed := restored.localTransferSummary(transfer.GetInstallSessionId())
-	if failed.GetState() != localTransferStateFailed || failed.GetReasonCode() != runtimev1.ReasonCode_AI_LOCAL_TEMPLATE_NOT_FOUND.String() {
-		t.Fatalf("missing-spec transfer = %+v, want typed failed catalog miss", failed)
-	}
-	if restored.transferControl(transfer.GetInstallSessionId()) != nil {
-		t.Fatal("missing-spec transfer retained an executor control")
+	if _, statErr := os.Stat(diagnostics[0].QuarantinePath); statErr != nil {
+		t.Fatalf("missing-spec quarantine was not retained: %v", statErr)
 	}
 }
 
 func TestManagedModelDownloadNetworkFailurePreservesRetryableStaging(t *testing.T) {
 	svc := newTestService(t)
 	svc.modelDownloadMaxAttempts = 1
-	svc.modelDownloadRetryBackoff = 0
 	modelID := "local.test.network-resume"
 	payload := []byte(strings.Repeat("network-resume-payload", 4096))
 	sum := sha256.Sum256(payload)
+	var requests int32
+	var rangeStart int64 = -1
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if atomic.AddInt32(&requests, 1) > 1 {
+			if rangeHeader := strings.TrimSpace(r.Header.Get("Range")); rangeHeader != "" {
+				startToken := strings.TrimSuffix(strings.TrimPrefix(rangeHeader, "bytes="), "-")
+				if start, parseErr := strconv.ParseInt(startToken, 10, 64); parseErr == nil {
+					atomic.StoreInt64(&rangeStart, start)
+				}
+			}
+			serveModelWithRange(w, r, payload)
+			return
+		}
 		w.Header().Set("Content-Length", strconv.Itoa(len(payload)))
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write(payload[:4096])
@@ -633,6 +1090,49 @@ func TestManagedModelDownloadNetworkFailurePreservesRetryableStaging(t *testing.
 	partialPath := filepath.Join(managedModelDownloadStageDir(svc.resolvedLocalModelsPath(), managedModelAcquisitionStorageID(modelID, transfer.GetInstallSessionId())), "model.bin.download")
 	if info, err := os.Stat(partialPath); err != nil || info.Size() == 0 {
 		t.Fatalf("network failure partial = %+v, err=%v", info, err)
+	}
+	prefixInfo, err := os.Stat(partialPath)
+	if err != nil {
+		t.Fatalf("stat retryable prefix: %v", err)
+	}
+	statePath := svc.stateStorePath
+	modelsRoot := svc.resolvedLocalModelsPath()
+	runtimeRoot := svc.runtimeDataRoot
+	logger := svc.logger
+	svc.Close()
+
+	restored, err := NewWithProductControlDataRoot(logger, nil, statePath, 0, modelsRoot, runtimeRoot)
+	if err != nil {
+		t.Fatalf("restore retryable transfer: %v", err)
+	}
+	defer restored.Close()
+	restored.hfDownloadBaseURL = server.URL
+	restored.modelDownloadMaxAttempts = 1
+	response, err := restored.ResumeLocalTransfer(context.Background(), &runtimev1.ResumeLocalTransferRequest{
+		InstallSessionId: transfer.GetInstallSessionId(),
+	})
+	if err != nil {
+		t.Fatalf("resume retryable failed transfer: %v", err)
+	}
+	if response.GetTransfer().GetState() != localTransferStateRunning {
+		t.Fatalf("retryable resume state = %q, want running", response.GetTransfer().GetState())
+	}
+	deadline := time.Now().Add(5 * time.Second)
+	for time.Now().Before(deadline) {
+		if summary := restored.localTransferSummary(transfer.GetInstallSessionId()); summary.GetState() == localTransferStateCompleted {
+			break
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+	completed := restored.localTransferSummary(transfer.GetInstallSessionId())
+	if completed.GetState() != localTransferStateCompleted {
+		t.Fatalf("retryable resumed transfer did not complete: %+v", completed)
+	}
+	if got := atomic.LoadInt64(&rangeStart); got != prefixInfo.Size() {
+		t.Fatalf("retryable resume Range start = %d, want %d", got, prefixInfo.Size())
+	}
+	if _, err := os.Stat(filepath.Dir(partialPath)); !os.IsNotExist(err) {
+		t.Fatalf("completed retryable staging still exists: %s err=%v", filepath.Dir(partialPath), err)
 	}
 }
 

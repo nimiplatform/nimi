@@ -55,6 +55,22 @@ type decodedModelAssetStore struct {
 	retainedRecords    []quarantinedStateRecord
 }
 
+type modelAssetStoreAccessError struct {
+	err error
+}
+
+func (e modelAssetStoreAccessError) Error() string { return e.err.Error() }
+func (e modelAssetStoreAccessError) Unwrap() error { return e.err }
+
+func failModelAssetStoreAccess(operation string, err error) error {
+	return modelAssetStoreAccessError{err: fmt.Errorf("%s: %w", operation, err)}
+}
+
+func isModelAssetStoreAccessError(err error) bool {
+	var target modelAssetStoreAccessError
+	return errors.As(err, &target)
+}
+
 func resolveModelAssetStorePath(stateStorePath string, modelsRoot string) string {
 	if path := strings.TrimSpace(stateStorePath); path != "" {
 		return filepath.Join(filepath.Dir(filepath.Clean(path)), modelAssetStoreFileName)
@@ -92,12 +108,21 @@ func loadModelAssetStore(path string, modelsRoot string) (decodedModelAssetStore
 	if raw.SchemaVersion != modelAssetStoreSchemaVersion {
 		return isolateModelAssetStoreDocument(path, payload, fmt.Errorf("unsupported schemaVersion=%d", raw.SchemaVersion))
 	}
+	if len(raw.Assets) > 0 {
+		if err := validateModelAssetStoreResolvedRoot(modelsRoot); err != nil {
+			return result, err
+		}
+	}
 
 	quarantined := make([]quarantinedStateRecord, 0)
 	seenDirectories := make(map[string]struct{}, len(raw.Assets))
+	var accessErr error
 	rows := decodeIsolatedRows(raw.Assets, modelAssetStoreFileName, "assets", &quarantined,
 		func(row *modelAssetStoreRecord, _ json.RawMessage) error {
 			if err := validateStoredModelAssetRecord(modelsRoot, row); err != nil {
+				if accessErr == nil && isModelAssetStoreAccessError(err) {
+					accessErr = err
+				}
 				return err
 			}
 			directoryKey := canonicalReportPath(row.ManagedDirectory)
@@ -113,6 +138,9 @@ func loadModelAssetStore(path string, modelsRoot string) (decodedModelAssetStore
 			}
 			return strings.TrimSpace(asset.GetModelAssetId())
 		})
+	if accessErr != nil {
+		return result, accessErr
+	}
 	for _, row := range rows {
 		asset := &runtimev1.ModelAssetRecord{}
 		if err := protojson.Unmarshal(row.Asset, asset); err != nil {
@@ -160,6 +188,28 @@ func loadModelAssetStore(path string, modelsRoot string) (decodedModelAssetStore
 	return result, nil
 }
 
+// validateModelAssetStoreResolvedRoot distinguishes a root-scope custody
+// outage from an independently invalid ModelAsset row. When the complete
+// resolved root cannot be located, every child Lstat can surface ErrNotExist
+// (including Windows PATH_NOT_FOUND/BAD_NETPATH). Treating those child errors
+// as record corruption would quarantine and rewrite the entire active
+// inventory. Fail startup without touching the store instead; once the root is
+// available, ordinary missing or invalid child records remain record-scoped.
+func validateModelAssetStoreResolvedRoot(modelsRoot string) error {
+	root := filepath.Join(resolveLocalModelsPath(modelsRoot), "resolved")
+	if strings.TrimSpace(modelsRoot) == "" || !filepath.IsAbs(root) {
+		return failModelAssetStoreAccess("inspect ModelAsset resolved root", errors.New("resolved models root is unavailable"))
+	}
+	info, err := os.Lstat(root)
+	if err != nil {
+		return failModelAssetStoreAccess("inspect ModelAsset resolved root", err)
+	}
+	if !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
+		return failModelAssetStoreAccess("inspect ModelAsset resolved root", errors.New("resolved models root must be an available non-link directory"))
+	}
+	return nil
+}
+
 // validateStoredModelAssetRecord keeps the durable inventory fail-closed
 // without rereading every payload byte during daemon startup. The store row,
 // canonical manifest, and declared payload layout are one identity; fresh
@@ -176,7 +226,13 @@ func validateStoredModelAssetRecord(modelsRoot string, row *modelAssetStoreRecor
 		return errors.New("managedDirectory must stay under the Runtime resolved models root")
 	}
 	directoryInfo, err := os.Lstat(directory)
-	if err != nil || !directoryInfo.IsDir() || directoryInfo.Mode()&os.ModeSymlink != 0 {
+	if err != nil {
+		if !errors.Is(err, os.ErrNotExist) {
+			return failModelAssetStoreAccess("inspect ModelAsset managed directory", err)
+		}
+		return errors.New("managedDirectory must be an available non-link directory")
+	}
+	if !directoryInfo.IsDir() || directoryInfo.Mode()&os.ModeSymlink != 0 {
 		return errors.New("managedDirectory must be an available non-link directory")
 	}
 
@@ -223,7 +279,13 @@ func validateStoredModelAssetRecord(modelsRoot string, row *modelAssetStoreRecor
 		totalSize += file.GetSizeBytes()
 		payloadPath := filepath.Join(directory, filepath.FromSlash(file.GetRelativePath()))
 		info, statErr := os.Lstat(payloadPath)
-		if statErr != nil || !info.Mode().IsRegular() || info.Mode()&os.ModeSymlink != 0 || info.Size() != file.GetSizeBytes() {
+		if statErr != nil {
+			if !errors.Is(statErr, os.ErrNotExist) {
+				return failModelAssetStoreAccess("inspect ModelAsset payload file", statErr)
+			}
+			return fmt.Errorf("ModelAsset payload file %q is unavailable or differs from inventory", file.GetRelativePath())
+		}
+		if !info.Mode().IsRegular() || info.Mode()&os.ModeSymlink != 0 || info.Size() != file.GetSizeBytes() {
 			return fmt.Errorf("ModelAsset payload file %q is unavailable or differs from inventory", file.GetRelativePath())
 		}
 	}
@@ -233,15 +295,25 @@ func validateStoredModelAssetRecord(modelsRoot string, row *modelAssetStoreRecor
 
 	manifestPath := filepath.Join(directory, localAssetManifestFileName)
 	if err := validateResolvedModelManifestPath(manifestPath, modelsRoot); err != nil {
+		var pathErr *os.PathError
+		if errors.As(err, &pathErr) && !errors.Is(err, os.ErrNotExist) {
+			return failModelAssetStoreAccess("validate ModelAsset manifest path", err)
+		}
 		return err
 	}
 	manifestInfo, err := os.Lstat(manifestPath)
-	if err != nil || !manifestInfo.Mode().IsRegular() || manifestInfo.Mode()&os.ModeSymlink != 0 {
+	if err != nil {
+		if !errors.Is(err, os.ErrNotExist) {
+			return failModelAssetStoreAccess("inspect ModelAsset manifest", err)
+		}
+		return errors.New("ModelAsset manifest must be an available non-link regular file")
+	}
+	if !manifestInfo.Mode().IsRegular() || manifestInfo.Mode()&os.ModeSymlink != 0 {
 		return errors.New("ModelAsset manifest must be an available non-link regular file")
 	}
 	manifestPayload, err := os.ReadFile(manifestPath)
 	if err != nil {
-		return fmt.Errorf("read ModelAsset manifest: %w", err)
+		return failModelAssetStoreAccess("read ModelAsset manifest", err)
 	}
 	var manifest modelAssetManifest
 	if err := decodeStrictJSON(manifestPayload, &manifest); err != nil {

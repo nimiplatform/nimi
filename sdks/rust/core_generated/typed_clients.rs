@@ -17013,6 +17013,7 @@ pub struct LocalCatalogModelDescriptor {
     pub verified: Option<bool>,
     pub engine_config: Option<BTreeMap<String, String>>,
     pub host_requirements: Option<Box<LocalHostRequirements>>,
+    pub total_size_bytes: Option<i64>,
 }
 
 impl LocalCatalogModelDescriptor {
@@ -17044,6 +17045,7 @@ impl LocalCatalogModelDescriptor {
         if let Some(value) = &self.verified { pairs.push(format!("verified={}", value)); }
         if self.engine_config.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode engine_config"); }
         if self.host_requirements.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode host_requirements"); }
+        if let Some(value) = &self.total_size_bytes { pairs.push(format!("total_size_bytes={}", value)); }
         pairs.join(";").into_bytes()
     }
 
@@ -17077,6 +17079,7 @@ impl LocalCatalogModelDescriptor {
         out.likes = pairs.get("likes").and_then(|value| value.parse().ok());
         out.last_modified = pairs.get("last_modified").cloned();
         out.verified = pairs.get("verified").and_then(|value| value.parse().ok());
+        out.total_size_bytes = pairs.get("total_size_bytes").and_then(|value| value.parse().ok());
         out
     }
 }
@@ -17762,6 +17765,7 @@ pub struct LocalInstallPlanDescriptor {
     pub warnings: Vec<String>,
     pub reason_code: Option<String>,
     pub engine_config: Option<BTreeMap<String, String>>,
+    pub total_size_bytes: Option<i64>,
 }
 
 impl LocalInstallPlanDescriptor {
@@ -17788,6 +17792,7 @@ impl LocalInstallPlanDescriptor {
         for value in &self.warnings { pairs.push(format!("warnings={}", value)); }
         if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={}", value)); }
         if self.engine_config.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode engine_config"); }
+        if let Some(value) = &self.total_size_bytes { pairs.push(format!("total_size_bytes={}", value)); }
         pairs.join(";").into_bytes()
     }
 
@@ -17817,6 +17822,7 @@ impl LocalInstallPlanDescriptor {
         out.license = pairs.get("license").cloned();
         out.warnings = parse_repeated_string(raw, "warnings");
         out.reason_code = pairs.get("reason_code").cloned();
+        out.total_size_bytes = pairs.get("total_size_bytes").and_then(|value| value.parse().ok());
         out
     }
 }
@@ -18469,6 +18475,7 @@ pub struct LocalVerifiedAssetDescriptor {
     pub total_size_bytes: Option<i64>,
     pub tags: Vec<String>,
     pub metadata: Option<BTreeMap<String, String>>,
+    pub content_id: Option<String>,
     pub install_kind: Option<String>,
     pub logical_model_id: Option<String>,
     pub capabilities: Vec<String>,
@@ -18499,6 +18506,7 @@ impl LocalVerifiedAssetDescriptor {
         if let Some(value) = &self.total_size_bytes { pairs.push(format!("total_size_bytes={}", value)); }
         for value in &self.tags { pairs.push(format!("tags={}", value)); }
         if self.metadata.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode metadata"); }
+        if let Some(value) = &self.content_id { pairs.push(format!("content_id={}", value)); }
         if let Some(value) = &self.install_kind { pairs.push(format!("install_kind={}", value)); }
         if let Some(value) = &self.logical_model_id { pairs.push(format!("logical_model_id={}", value)); }
         for value in &self.capabilities { pairs.push(format!("capabilities={}", value)); }
@@ -18533,6 +18541,7 @@ impl LocalVerifiedAssetDescriptor {
         out.file_count = pairs.get("file_count").and_then(|value| value.parse().ok());
         out.total_size_bytes = pairs.get("total_size_bytes").and_then(|value| value.parse().ok());
         out.tags = parse_repeated_string(raw, "tags");
+        out.content_id = pairs.get("content_id").cloned();
         out.install_kind = pairs.get("install_kind").cloned();
         out.logical_model_id = pairs.get("logical_model_id").cloned();
         out.capabilities = parse_repeated_string(raw, "capabilities");

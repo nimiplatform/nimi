@@ -127,6 +127,21 @@ func loadLocalStateSnapshotIsolated(path string) (localStateSnapshot, []stateIso
 			if strings.TrimSpace(row.InstallSessionID) == "" {
 				return errors.New("install session id is required")
 			}
+			if row.ManagedDownloadSpec != nil {
+				spec, err := managedDownloadedModelSpecFromLocalState(row.ManagedDownloadSpec)
+				if err != nil {
+					return err
+				}
+				if spec.modelID != strings.TrimSpace(row.AssetID) {
+					return errors.New("managed download spec model identity does not match transfer")
+				}
+			}
+			requiresDownloadSpec := normalizeTransferKind(row.SessionKind) == localTransferKindDownload &&
+				(!isTerminalTransferState(row.State) ||
+					(normalizeTransferState(row.State) == localTransferStateFailed && row.Retryable))
+			if requiresDownloadSpec && row.ManagedDownloadSpec == nil {
+				return errors.New("active managed download requires an immutable transfer spec")
+			}
 			return nil
 		}, func(row localStateTransferState) string { return strings.TrimSpace(row.InstallSessionID) })
 	result.Audits = decodeIsolatedRows(raw.Audits, "local-state.json", "audits", &quarantined,

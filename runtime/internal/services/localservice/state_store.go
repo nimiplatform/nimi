@@ -48,20 +48,39 @@ type localStateAuditState struct {
 }
 
 type localStateTransferState struct {
-	InstallSessionID string `json:"installSessionId"`
-	AssetID          string `json:"assetId"`
-	SessionKind      string `json:"sessionKind"`
-	Phase            string `json:"phase"`
-	State            string `json:"state"`
-	BytesReceived    int64  `json:"bytesReceived"`
-	BytesTotal       int64  `json:"bytesTotal,omitempty"`
-	SpeedBytesPerSec int64  `json:"speedBytesPerSec,omitempty"`
-	EtaSeconds       int64  `json:"etaSeconds,omitempty"`
-	Message          string `json:"message,omitempty"`
-	ReasonCode       string `json:"reasonCode,omitempty"`
-	Retryable        bool   `json:"retryable,omitempty"`
-	CreatedAt        string `json:"createdAt"`
-	UpdatedAt        string `json:"updatedAt"`
+	InstallSessionID    string                              `json:"installSessionId"`
+	AssetID             string                              `json:"assetId"`
+	SessionKind         string                              `json:"sessionKind"`
+	Phase               string                              `json:"phase"`
+	State               string                              `json:"state"`
+	BytesReceived       int64                               `json:"bytesReceived"`
+	BytesTotal          int64                               `json:"bytesTotal,omitempty"`
+	SpeedBytesPerSec    int64                               `json:"speedBytesPerSec,omitempty"`
+	EtaSeconds          int64                               `json:"etaSeconds,omitempty"`
+	Message             string                              `json:"message,omitempty"`
+	ReasonCode          string                              `json:"reasonCode,omitempty"`
+	Retryable           bool                                `json:"retryable,omitempty"`
+	CreatedAt           string                              `json:"createdAt"`
+	UpdatedAt           string                              `json:"updatedAt"`
+	ManagedDownloadSpec *localStateManagedModelDownloadSpec `json:"managedDownloadSpec,omitempty"`
+}
+
+type localStateManagedModelDownloadSpec struct {
+	ModelID           string                   `json:"modelId"`
+	DisplayName       string                   `json:"displayName,omitempty"`
+	CatalogAssetID    string                   `json:"catalogAssetId,omitempty"`
+	CatalogTemplateID string                   `json:"catalogTemplateId,omitempty"`
+	Kind              runtimev1.LocalAssetKind `json:"kind,omitempty"`
+	Capabilities      []string                 `json:"capabilities,omitempty"`
+	Engine            string                   `json:"engine,omitempty"`
+	Entry             string                   `json:"entry"`
+	Files             []string                 `json:"files"`
+	License           string                   `json:"license,omitempty"`
+	Repo              string                   `json:"repo"`
+	Revision          string                   `json:"revision"`
+	Hashes            map[string]string        `json:"hashes"`
+	TotalSizeBytes    int64                    `json:"totalSizeBytes,omitempty"`
+	EngineConfig      map[string]any           `json:"engineConfig,omitempty"`
 }
 
 func resolveLocalStatePath(configuredPath string) string {
@@ -119,6 +138,7 @@ func (s *Service) restoreState() error {
 		}
 	}
 	s.transfers = make(map[string]*runtimev1.LocalTransferSessionSummary, len(snapshot.Transfers))
+	s.managedModelDownloadSpecs = make(map[string]managedDownloadedModelSpec)
 	s.transferControls = make(map[string]*localTransferControl)
 	for _, item := range snapshot.Transfers {
 		summary := &runtimev1.LocalTransferSessionSummary{
@@ -141,6 +161,13 @@ func (s *Service) restoreState() error {
 			continue
 		}
 		s.transfers[summary.GetInstallSessionId()] = summary
+		if item.ManagedDownloadSpec != nil {
+			spec, specErr := managedDownloadedModelSpecFromLocalState(item.ManagedDownloadSpec)
+			if specErr != nil || spec.modelID != summary.GetAssetId() {
+				continue
+			}
+			s.managedModelDownloadSpecs[summary.GetInstallSessionId()] = spec
+		}
 	}
 	s.localEnvironmentHostProfiles = make(map[string]localEnvironmentHostProfileState, len(snapshot.LocalEnvironmentHostProfiles))
 	for _, item := range snapshot.LocalEnvironmentHostProfiles {
@@ -201,10 +228,10 @@ func (s *Service) restoreState() error {
 	return nil
 }
 
-func (s *Service) persistStateLocked() {
+func (s *Service) persistStateLocked() error {
 	path := strings.TrimSpace(s.stateStorePath)
 	if path == "" {
-		return
+		return nil
 	}
 
 	snapshot := localStateSnapshot{
@@ -229,7 +256,7 @@ func (s *Service) persistStateLocked() {
 		if transfer == nil {
 			continue
 		}
-		snapshot.Transfers = append(snapshot.Transfers, localStateTransferState{
+		row := localStateTransferState{
 			InstallSessionID: transfer.GetInstallSessionId(),
 			AssetID:          transfer.GetAssetId(),
 			SessionKind:      normalizeTransferKind(transfer.GetSessionKind()),
@@ -244,7 +271,11 @@ func (s *Service) persistStateLocked() {
 			Retryable:        transfer.GetRetryable(),
 			CreatedAt:        transfer.GetCreatedAt(),
 			UpdatedAt:        transfer.GetUpdatedAt(),
-		})
+		}
+		if spec, exists := s.managedModelDownloadSpecs[transfer.GetInstallSessionId()]; exists {
+			row.ManagedDownloadSpec = localStateManagedDownloadSpec(spec)
+		}
+		snapshot.Transfers = append(snapshot.Transfers, row)
 	}
 
 	for _, event := range s.audits {
@@ -310,5 +341,7 @@ func (s *Service) persistStateLocked() {
 
 	if err := saveLocalStateSnapshot(path, snapshot); err != nil {
 		s.logger.Warn("persist local runtime state failed", "path", path, "error", err)
+		return err
 	}
+	return nil
 }

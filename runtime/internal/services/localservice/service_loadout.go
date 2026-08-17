@@ -20,6 +20,7 @@ import (
 	catalog "github.com/nimiplatform/nimi/runtime/internal/aicatalog"
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/modelassetintegrity"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/proto"
@@ -633,7 +634,14 @@ func (s *Service) resolveLoadoutModelAxis(loadout *runtimev1.Loadout, driver cap
 }
 
 func (s *Service) resolveLoadoutModelAxisForAdmission(loadout *runtimev1.Loadout, driver capabilitydriver.Driver, requirement *runtimev1.LocalCapabilityRequirement, axis *runtimev1.LoadoutModelAxis) (resolvedLoadoutAxis, runtimev1.ReasonCode) {
-	return s.resolveLoadoutModelAxisWithHasher(loadout, driver, requirement, axis, s.freshFileSHA256)
+	resolved, reason := s.resolveLoadoutModelAxisWithHasher(loadout, driver, requirement, axis, s.freshFileSHA256)
+	if reason != runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
+		return resolvedLoadoutAxis{}, reason
+	}
+	if err := modelassetintegrity.ValidateDeclaredPayloadSet(resolved.bundleDir, resolved.declaredFiles); err != nil {
+		return resolvedLoadoutAxis{}, runtimev1.ReasonCode_AI_LOADOUT_MODEL_ASSET_CONTENT_MISMATCH
+	}
+	return resolved, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED
 }
 
 func (s *Service) resolveLoadoutModelAxisWithHasher(loadout *runtimev1.Loadout, driver capabilitydriver.Driver, requirement *runtimev1.LocalCapabilityRequirement, axis *runtimev1.LoadoutModelAxis, fileSHA256 loadoutFileSHA256Resolver) (resolvedLoadoutAxis, runtimev1.ReasonCode) {

@@ -72,6 +72,9 @@ func TestModelAssetStoreQuarantineFailurePreservesOriginal(t *testing.T) {
 	t.Run("record", func(t *testing.T) {
 		root := t.TempDir()
 		path := filepath.Join(root, modelAssetStoreFileName)
+		if err := os.MkdirAll(filepath.Join(root, "models", "resolved"), 0o755); err != nil {
+			t.Fatal(err)
+		}
 		payload, err := json.Marshal(map[string]any{
 			"schemaVersion": modelAssetStoreSchemaVersion,
 			"assets": []any{map[string]any{

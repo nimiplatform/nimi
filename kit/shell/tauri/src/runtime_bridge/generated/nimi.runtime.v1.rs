@@ -7809,6 +7809,8 @@ pub struct LocalVerifiedAssetDescriptor {
     pub tags: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
     #[prost(message, optional, tag = "16")]
     pub metadata: ::core::option::Option<::prost_types::Struct>,
+    #[prost(string, tag = "17")]
+    pub content_id: ::prost::alloc::string::String,
     /// Runnable-only fields
     #[prost(string, tag = "20")]
     pub install_kind: ::prost::alloc::string::String,
@@ -7956,6 +7958,8 @@ pub struct LocalCatalogModelDescriptor {
     pub engine_config: ::core::option::Option<::prost_types::Struct>,
     #[prost(message, optional, tag = "26")]
     pub host_requirements: ::core::option::Option<LocalHostRequirements>,
+    #[prost(int64, tag = "27")]
+    pub total_size_bytes: i64,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct LocalInstallPlanDescriptor {
@@ -8004,6 +8008,8 @@ pub struct LocalInstallPlanDescriptor {
     pub reason_code: ::prost::alloc::string::String,
     #[prost(message, optional, tag = "21")]
     pub engine_config: ::core::option::Option<::prost_types::Struct>,
+    #[prost(int64, tag = "22")]
+    pub total_size_bytes: i64,
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]

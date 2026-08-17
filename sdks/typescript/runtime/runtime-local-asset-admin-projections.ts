@@ -163,6 +163,7 @@ export function projectNimiRuntimeLocalVerifiedAssetDescriptor(
     endpoint: normalizeText(value.endpoint) || undefined,
     fileCount: positiveNumber(value.fileCount) ?? files.length,
     totalSizeBytes: positiveNumber(value.totalSizeBytes),
+    contentId: normalizeText(value.contentId),
     tags: textList(value.tags),
     artifactRoles: textListOrUndefined(value.artifactRoles),
     preferredEngine: normalizeText(value.preferredEngine) || undefined,
@@ -206,6 +207,7 @@ export function projectNimiRuntimeLocalCatalogItemDescriptor(
     verified: Boolean(value.verified),
     engineConfig: nonEmptyRecord(fromNimiRuntimeProtoStruct(value.engineConfig)),
     recommendation: projectNimiRuntimeLocalCatalogRecommendation((value as { recommendation?: unknown }).recommendation),
+    totalSizeBytes: positiveNumber(value.totalSizeBytes),
   };
 }
 
@@ -248,6 +250,7 @@ export function projectNimiRuntimeLocalInstallPlanDescriptor(
     warnings: textList(value.warnings),
     reasonCode: normalizeText(value.reasonCode) || undefined,
     engineConfig: nonEmptyRecord(fromNimiRuntimeProtoStruct(value.engineConfig)),
+    totalSizeBytes: positiveNumber(value.totalSizeBytes),
   };
 }
 

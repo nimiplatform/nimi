@@ -520,3 +520,27 @@ func (b *timeoutAfterPrefixBody) Read(p []byte) (int, error) {
 func (b *timeoutAfterPrefixBody) Close() error {
 	return nil
 }
+
+func TestDownloadExactRetryScheduleCapsHTTPAttempts(t *testing.T) {
+	var requests int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		atomic.AddInt32(&requests, 1)
+		w.WriteHeader(http.StatusServiceUnavailable)
+	}))
+	defer server.Close()
+
+	_, err := Download(context.Background(), Options{
+		URL:         server.URL,
+		DestPath:    filepath.Join(t.TempDir(), "payload.bin"),
+		Client:      server.Client(),
+		MaxAttempts: 64,
+		RetryDelays: []time.Duration{0, 0},
+		IsTransient: func(error) bool { return true },
+	})
+	if !errors.Is(err, ErrTransientAttemptsExhausted) {
+		t.Fatalf("download error = %v, want transient attempts exhausted", err)
+	}
+	if got := atomic.LoadInt32(&requests); got != 3 {
+		t.Fatalf("HTTP attempts = %d, want 1 initial + 2 scheduled retries", got)
+	}
+}

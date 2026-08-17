@@ -194,7 +194,7 @@ func inspectModelAssetSource(rawPath string, displayName string) (modelAssetSour
 }
 
 func (s *Service) runImportModelAsset(ctx context.Context, transferID string, modelAssetID string, source modelAssetSource) {
-	asset, err := s.importModelAssetSync(ctx, transferID, modelAssetID, source)
+	_, err := s.importModelAssetSync(ctx, transferID, modelAssetID, source)
 	if err != nil {
 		if errors.Is(err, errLocalTransferCancelled) || errors.Is(err, context.Canceled) {
 			s.cancelTransfer(transferID, "ModelAsset import cancelled")
@@ -203,9 +203,6 @@ func (s *Service) runImportModelAsset(ctx context.Context, transferID string, mo
 		s.failTransfer(transferID, err.Error(), false)
 		return
 	}
-	s.completeTransfer(transferID, "register", "ModelAsset imported", func(summary *runtimev1.LocalTransferSessionSummary) {
-		summary.AssetId = asset.GetModelAssetId()
-	})
 }
 
 func (s *Service) importModelAssetSync(ctx context.Context, transferID string, modelAssetID string, source modelAssetSource) (*runtimev1.ModelAssetRecord, error) {
@@ -216,7 +213,11 @@ func (s *Service) importModelAssetSync(ctx context.Context, transferID string, m
 	resolvedRoot := filepath.Join(modelsRoot, "resolved")
 	quarantineRoot := filepath.Join(modelsRoot, "quarantine")
 	if source.IsDir && s.adoptResolvedModelImports && pathWithinBase(resolvedRoot, source.Path, false) {
-		asset, _, err := s.adoptResolvedModelAssetDirectory(ctx, source.Path, source.DisplayName)
+		options := modelAssetAdoptionOptions{displayName: source.DisplayName}
+		if strings.TrimSpace(transferID) != "" {
+			options.transferCompletion = &modelAssetTransferCompletion{sessionID: transferID, phase: "register", message: "ModelAsset imported"}
+		}
+		asset, _, err := s.adoptResolvedModelAssetDirectoryWithOptions(ctx, source.Path, options)
 		return asset, err
 	}
 	if err := os.MkdirAll(resolvedRoot, 0o755); err != nil {
@@ -302,7 +303,16 @@ func (s *Service) importModelAssetSync(ctx context.Context, transferID string, m
 		return nil, fmt.Errorf("activate ModelAsset: %w", err)
 	}
 	settled = true
-	registered, _, err := s.registerModelAsset(asset, destination)
+	var registered *runtimev1.ModelAssetRecord
+	if strings.TrimSpace(transferID) != "" {
+		registered, _, err = s.registerModelAssetForTransfer(asset, destination, modelAssetTransferCompletion{
+			sessionID: transferID,
+			phase:     "register",
+			message:   "ModelAsset imported",
+		})
+	} else {
+		registered, _, err = s.registerModelAsset(asset, destination)
+	}
 	if err != nil {
 		failedPath := filepath.Join(quarantineRoot, "register-failed-"+modelAssetID)
 		_ = os.Rename(destination, failedPath)
@@ -666,7 +676,7 @@ func modelAssetContentID(files []*runtimev1.ModelAssetFile) string {
 		return ordered[i].GetRelativePath() < ordered[j].GetRelativePath()
 	})
 	if len(ordered) == 1 {
-		return "sha256:" + strings.ToLower(strings.TrimSpace(ordered[0].GetSha256()))
+		return normalizeVerifiedContentID(ordered[0].GetSha256())
 	}
 	hasher := sha256.New()
 	for _, file := range ordered {
@@ -731,6 +741,29 @@ func (s *Service) registerModelAsset(asset *runtimev1.ModelAssetRecord, managedD
 }
 
 func (s *Service) registerModelAssetWithPrecommit(asset *runtimev1.ModelAssetRecord, managedDirectory string, precommit func() error) (*runtimev1.ModelAssetRecord, bool, error) {
+	return s.registerModelAssetWithPrecommitAndTransfer(asset, managedDirectory, precommit, nil)
+}
+
+type modelAssetTransferCompletion struct {
+	sessionID string
+	phase     string
+	message   string
+}
+
+func (s *Service) registerModelAssetForTransfer(
+	asset *runtimev1.ModelAssetRecord,
+	managedDirectory string,
+	completion modelAssetTransferCompletion,
+) (*runtimev1.ModelAssetRecord, bool, error) {
+	return s.registerModelAssetWithPrecommitAndTransfer(asset, managedDirectory, nil, &completion)
+}
+
+func (s *Service) registerModelAssetWithPrecommitAndTransfer(
+	asset *runtimev1.ModelAssetRecord,
+	managedDirectory string,
+	precommit func() error,
+	completion *modelAssetTransferCompletion,
+) (*runtimev1.ModelAssetRecord, bool, error) {
 	if asset == nil || strings.TrimSpace(asset.GetModelAssetId()) == "" {
 		return nil, false, errors.New("ModelAsset identity is required")
 	}
@@ -750,6 +783,13 @@ func (s *Service) registerModelAssetWithPrecommit(asset *runtimev1.ModelAssetRec
 	if directoryExists {
 		if existing == nil {
 			return nil, false, fmt.Errorf("ModelAsset managed directory %q has an unavailable registration", cleanDirectory)
+		}
+		if completion != nil {
+			if err := s.completeTransfer(completion.sessionID, completion.phase, completion.message, func(summary *runtimev1.LocalTransferSessionSummary) {
+				summary.AssetId = existing.GetModelAssetId()
+			}); err != nil {
+				return nil, false, err
+			}
 		}
 		return existing, true, nil
 	}
@@ -782,13 +822,43 @@ func (s *Service) registerModelAssetWithPrecommit(asset *runtimev1.ModelAssetRec
 	s.modelAssets[id] = cloneModelAsset(asset)
 	s.modelAssetDirectories[id] = cleanDirectory
 	previousCleanup := s.terminalizeCleanupObligationsForDirectoryLocked(cleanDirectory, id)
+	var stagedCompletion *stagedTransferCompletion
+	if completion != nil {
+		stagedCompletion = s.stageTransferCompletionLocked(completion.sessionID, completion.phase, completion.message, func(summary *runtimev1.LocalTransferSessionSummary) {
+			summary.AssetId = id
+		})
+		if stagedCompletion == nil || !stagedCompletion.changed {
+			delete(s.modelAssets, id)
+			delete(s.modelAssetDirectories, id)
+			for cleanupID, obligation := range previousCleanup {
+				s.modelAssetCleanupObligations[cleanupID] = obligation
+			}
+			return nil, false, errLocalTransferCancelled
+		}
+	}
 	if err := s.persistModelAssetStoreLocked(); err != nil {
+		stagedCompletion.rollbackLocked(s)
 		delete(s.modelAssets, id)
 		delete(s.modelAssetDirectories, id)
 		for cleanupID, obligation := range previousCleanup {
 			s.modelAssetCleanupObligations[cleanupID] = obligation
 		}
 		return nil, false, err
+	}
+	if stagedCompletion != nil {
+		if err := s.persistStateLocked(); err != nil {
+			stagedCompletion.rollbackLocked(s)
+			delete(s.modelAssets, id)
+			delete(s.modelAssetDirectories, id)
+			for cleanupID, obligation := range previousCleanup {
+				s.modelAssetCleanupObligations[cleanupID] = obligation
+			}
+			if rollbackErr := s.persistModelAssetStoreLocked(); rollbackErr != nil {
+				return nil, false, localTransferPersistenceError(fmt.Errorf("persist transfer completion: %w; rollback ModelAsset inventory: %v", err, rollbackErr))
+			}
+			return nil, false, localTransferPersistenceError(err)
+		}
+		s.publishTransferEventLocked(localTransferEventFromSummary(stagedCompletion.current))
 	}
 	return cloneModelAsset(asset), false, nil
 }
@@ -1112,8 +1182,9 @@ type modelAssetAdoptionOptions struct {
 	displayName         string
 	preferredEntry      string
 	provenance          map[string]any
-	requireCatalogMatch bool
+	expectedHashes      map[string]string
 	replaceModelAssetID string
+	transferCompletion  *modelAssetTransferCompletion
 }
 
 func (s *Service) resolvedLocalModelsPath() string {
@@ -1147,6 +1218,13 @@ func (s *Service) adoptResolvedModelAssetDirectoryWithOptions(ctx context.Contex
 		if canonicalReportPath(existing) == canonicalReportPath(absolute) {
 			asset := cloneModelAsset(s.modelAssets[id])
 			s.mu.RUnlock()
+			if options.transferCompletion != nil {
+				if err := s.completeTransfer(options.transferCompletion.sessionID, options.transferCompletion.phase, options.transferCompletion.message, func(summary *runtimev1.LocalTransferSessionSummary) {
+					summary.AssetId = asset.GetModelAssetId()
+				}); err != nil {
+					return nil, false, err
+				}
+			}
 			s.cacheVerifiedModelAssetGeneration(asset, absolute)
 			return asset, true, nil
 		}
@@ -1194,8 +1272,8 @@ func (s *Service) adoptResolvedModelAssetDirectoryWithOptions(ctx context.Contex
 		}
 	}
 	catalogMatched := s.modelAssetCatalogMatch(hashes)
-	if options.requireCatalogMatch && !catalogMatched {
-		return nil, false, errors.New("resolved ModelAsset distribution does not match the verified catalog")
+	if len(options.expectedHashes) > 0 && !equalResolvedPayloadHashes(hashes, options.expectedHashes) {
+		return nil, false, errors.New("resolved ModelAsset distribution does not match the protected acquisition plan")
 	}
 	fingerprintStruct, _ := structpb.NewStruct(fingerprint)
 	provenanceFacts := options.provenance
@@ -1230,9 +1308,9 @@ func (s *Service) adoptResolvedModelAssetDirectoryWithOptions(ctx context.Contex
 		s.cacheVerifiedModelAssetGeneration(asset, absolute)
 		return cloneModelAsset(asset), false, nil
 	}
-	registered, skipped, err := s.registerModelAssetWithPrecommit(asset, absolute, func() error {
+	registered, skipped, err := s.registerModelAssetWithPrecommitAndTransfer(asset, absolute, func() error {
 		return writeManifest(manifestPath, manifestPayload)
-	})
+	}, options.transferCompletion)
 	if err != nil {
 		return nil, false, err
 	}

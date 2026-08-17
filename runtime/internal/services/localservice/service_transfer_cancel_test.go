@@ -8,8 +8,11 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 // A transfer persisted at a non-terminal state has no driver after a daemon
@@ -133,6 +136,134 @@ func TestPauseAndResumeLocalTransferControlsImport(t *testing.T) {
 	}
 }
 
+func TestPauseLocalTransferPersistenceFailureLeavesExecutorRunning(t *testing.T) {
+	svc := newTestService(t)
+	transfer := svc.newLocalTransfer(localTransferKindImport, localTransferMutation{
+		ModelID: "model_pause_persist_failure",
+		Phase:   "copy",
+		State:   localTransferStateRunning,
+	})
+	control := svc.transferControl(transfer.GetInstallSessionId())
+	if control == nil {
+		t.Fatal("running transfer has no control")
+	}
+	svc.stateStorePath = t.TempDir()
+
+	response, err := svc.PauseLocalTransfer(context.Background(), &runtimev1.PauseLocalTransferRequest{
+		InstallSessionId: transfer.GetInstallSessionId(),
+	})
+	if status.Code(err) != codes.Unavailable || response != nil {
+		t.Fatalf("pause persistence failure response=%+v err=%v", response, err)
+	}
+	if summary := svc.localTransferSummary(transfer.GetInstallSessionId()); summary.GetState() != localTransferStateRunning {
+		t.Fatalf("pause persistence failure changed summary: %+v", summary)
+	}
+	if err := control.wait(context.Background()); err != nil {
+		t.Fatalf("pause persistence failure changed executor control: %v", err)
+	}
+}
+
+func TestResumeLocalTransferPersistenceFailureLeavesExecutorPaused(t *testing.T) {
+	svc := newTestService(t)
+	transfer := svc.newLocalTransfer(localTransferKindImport, localTransferMutation{
+		ModelID: "model_resume_persist_failure",
+		Phase:   "copy",
+		State:   localTransferStateRunning,
+	})
+	if _, err := svc.PauseLocalTransfer(context.Background(), &runtimev1.PauseLocalTransferRequest{
+		InstallSessionId: transfer.GetInstallSessionId(),
+	}); err != nil {
+		t.Fatalf("prepare paused transfer: %v", err)
+	}
+	control := svc.transferControl(transfer.GetInstallSessionId())
+	if control == nil {
+		t.Fatal("paused transfer has no control")
+	}
+	svc.stateStorePath = t.TempDir()
+
+	response, err := svc.ResumeLocalTransfer(context.Background(), &runtimev1.ResumeLocalTransferRequest{
+		InstallSessionId: transfer.GetInstallSessionId(),
+	})
+	if status.Code(err) != codes.Unavailable || response != nil {
+		t.Fatalf("resume persistence failure response=%+v err=%v", response, err)
+	}
+	if summary := svc.localTransferSummary(transfer.GetInstallSessionId()); summary.GetState() != localTransferStatePaused {
+		t.Fatalf("resume persistence failure changed summary: %+v", summary)
+	}
+	waitCtx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
+	defer cancel()
+	if err := control.wait(waitCtx); !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("resume persistence failure released paused executor: %v", err)
+	}
+}
+
+func TestCancelLocalTransferPersistenceFailurePreservesControlAndStaging(t *testing.T) {
+	svc := newTestService(t)
+	transfer := svc.newLocalTransfer(localTransferKindDownload, localTransferMutation{
+		ModelID: "model_cancel_persist_failure",
+		Phase:   "download",
+		State:   localTransferStateRunning,
+	})
+	control := svc.transferControl(transfer.GetInstallSessionId())
+	if control == nil {
+		t.Fatal("running transfer has no control")
+	}
+	stageDir := managedModelDownloadStageDir(
+		svc.resolvedLocalModelsPath(),
+		managedModelAcquisitionStorageID(transfer.GetAssetId(), transfer.GetInstallSessionId()),
+	)
+	if err := os.MkdirAll(stageDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	partialPath := filepath.Join(stageDir, "model.bin.download")
+	if err := os.WriteFile(partialPath, []byte("partial"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	svc.stateStorePath = t.TempDir()
+
+	response, err := svc.CancelLocalTransfer(context.Background(), &runtimev1.CancelLocalTransferRequest{
+		InstallSessionId: transfer.GetInstallSessionId(),
+	})
+	if status.Code(err) != codes.Unavailable || response != nil {
+		t.Fatalf("cancel persistence failure response=%+v err=%v", response, err)
+	}
+	if summary := svc.localTransferSummary(transfer.GetInstallSessionId()); summary.GetState() != localTransferStateRunning {
+		t.Fatalf("cancel persistence failure changed summary: %+v", summary)
+	}
+	if err := control.wait(context.Background()); err != nil {
+		t.Fatalf("cancel persistence failure changed executor control: %v", err)
+	}
+	if _, err := os.Stat(partialPath); err != nil {
+		t.Fatalf("cancel persistence failure removed staging: %v", err)
+	}
+}
+
+func TestCompleteTransferPersistenceFailureDoesNotPublishTerminalState(t *testing.T) {
+	svc := newTestService(t)
+	transfer := svc.newLocalTransfer(localTransferKindDownload, localTransferMutation{
+		ModelID: "model_complete_persist_failure",
+		Phase:   "download",
+		State:   localTransferStateRunning,
+	})
+	svc.mu.Lock()
+	subscriberID, updates := svc.addTransferSubscriberLocked()
+	svc.mu.Unlock()
+	defer svc.removeTransferSubscriber(subscriberID)
+	svc.stateStorePath = t.TempDir()
+
+	if err := svc.completeTransfer(transfer.GetInstallSessionId(), "register", "model installed", nil); err == nil {
+		t.Fatal("terminal persistence failure returned success")
+	}
+	if summary := svc.localTransferSummary(transfer.GetInstallSessionId()); summary.GetState() != localTransferStateRunning {
+		t.Fatalf("terminal persistence failure changed summary: %+v", summary)
+	}
+	select {
+	case event := <-updates:
+		t.Fatalf("terminal persistence failure published event: %+v", event)
+	default:
+	}
+}
+
 // Late progress samples and a trailing completion from an in-flight worker
 // must never resurrect a session that already settled.
 func TestTerminalTransferStateIsNotResurrected(t *testing.T) {
@@ -153,6 +284,27 @@ func TestTerminalTransferStateIsNotResurrected(t *testing.T) {
 	svc.completeTransfer(sessionID, "register", "local model imported", nil)
 	if summary := svc.localTransferSummary(sessionID); summary.GetState() != localTransferStateCancelled {
 		t.Fatalf("state after late completion = %q, want cancelled", summary.GetState())
+	}
+}
+
+func TestPausedTransferStateIsNotResurrectedByLateProgress(t *testing.T) {
+	svc := newTestService(t)
+	transfer := svc.newLocalTransfer(localTransferKindDownload, localTransferMutation{
+		ModelID:    "local-download/paused",
+		Phase:      "download",
+		State:      localTransferStateRunning,
+		BytesTotal: 10,
+	})
+	sessionID := transfer.GetInstallSessionId()
+	if _, err := svc.PauseLocalTransfer(context.Background(), &runtimev1.PauseLocalTransferRequest{
+		InstallSessionId: sessionID,
+	}); err != nil {
+		t.Fatalf("pause transfer: %v", err)
+	}
+
+	svc.updateTransferProgress(sessionID, "download", 5, 10, "late in-flight sample")
+	if summary := svc.localTransferSummary(sessionID); summary.GetState() != localTransferStatePaused {
+		t.Fatalf("state after late progress = %q, want paused", summary.GetState())
 	}
 }
 

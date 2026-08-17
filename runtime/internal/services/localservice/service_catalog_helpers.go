@@ -91,6 +91,7 @@ func defaultCatalogFromVerified(verified []*runtimev1.LocalVerifiedAssetDescript
 			Verified:          true,
 			EngineConfig:      nil,
 			HostRequirements:  cloneHostRequirements(item.GetHostRequirements()),
+			TotalSizeBytes:    item.GetTotalSizeBytes(),
 		})
 	}
 	return items

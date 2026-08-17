@@ -4805,6 +4805,7 @@ type LocalCatalogModelDescriptor struct {
 	Verified bool `json:"verified,omitempty"`
 	EngineConfig map[string]any `json:"engine_config,omitempty"`
 	HostRequirements *LocalHostRequirements `json:"host_requirements,omitempty"`
+	TotalSizeBytes int64 `json:"total_size_bytes,omitempty"`
 }
 
 type LocalCatalogRecommendation struct {
@@ -5001,6 +5002,7 @@ type LocalInstallPlanDescriptor struct {
 	Warnings []string `json:"warnings,omitempty"`
 	ReasonCode string `json:"reason_code,omitempty"`
 	EngineConfig map[string]any `json:"engine_config,omitempty"`
+	TotalSizeBytes int64 `json:"total_size_bytes,omitempty"`
 }
 
 type LocalNpuProfile struct {
@@ -5179,6 +5181,7 @@ type LocalVerifiedAssetDescriptor struct {
 	TotalSizeBytes int64 `json:"total_size_bytes,omitempty"`
 	Tags []string `json:"tags,omitempty"`
 	Metadata map[string]any `json:"metadata,omitempty"`
+	ContentId string `json:"content_id,omitempty"`
 	InstallKind string `json:"install_kind,omitempty"`
 	LogicalModelId string `json:"logical_model_id,omitempty"`
 	Capabilities []string `json:"capabilities,omitempty"`

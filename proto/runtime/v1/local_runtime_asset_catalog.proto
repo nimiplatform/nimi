@@ -96,6 +96,7 @@ message LocalVerifiedAssetDescriptor {
   int64 total_size_bytes       = 14;
   repeated string tags         = 15;
   google.protobuf.Struct metadata = 16;
+  string content_id            = 17;
 
   // Runnable-only fields
   string install_kind                      = 20;
@@ -181,6 +182,7 @@ message LocalCatalogModelDescriptor {
   bool verified                         = 24;
   google.protobuf.Struct engine_config  = 25;
   LocalHostRequirements host_requirements = 26;
+  int64 total_size_bytes               = 27;
 }
 
 message LocalInstallPlanDescriptor {
@@ -205,4 +207,5 @@ message LocalInstallPlanDescriptor {
   repeated string warnings                    = 19;
   string reason_code                          = 20;
   google.protobuf.Struct engine_config        = 21;
+  int64 total_size_bytes                      = 22;
 }

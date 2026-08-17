@@ -3333,6 +3333,7 @@ class LocalCatalogModelDescriptor:
     verified: bool | None = None
     engine_config: Mapping[str, object] | None = None
     host_requirements: LocalHostRequirements | None = None
+    total_size_bytes: int | None = None
 
 @dataclass(frozen=True)
 class LocalCatalogRecommendation:
@@ -3529,6 +3530,7 @@ class LocalInstallPlanDescriptor:
     warnings: tuple[str, ...] = field(default_factory=tuple)
     reason_code: str | None = None
     engine_config: Mapping[str, object] | None = None
+    total_size_bytes: int | None = None
 
 @dataclass(frozen=True)
 class LocalNpuProfile:
@@ -3707,6 +3709,7 @@ class LocalVerifiedAssetDescriptor:
     total_size_bytes: int | None = None
     tags: tuple[str, ...] = field(default_factory=tuple)
     metadata: Mapping[str, object] | None = None
+    content_id: str | None = None
     install_kind: str | None = None
     logical_model_id: str | None = None
     capabilities: tuple[str, ...] = field(default_factory=tuple)

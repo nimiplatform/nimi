@@ -119,8 +119,9 @@ type Service struct {
 	modelDownloadTimeout         time.Duration
 	modelDownloadMaxBodyBytes    int64
 	modelDownloadMaxAttempts     int
-	modelDownloadRetryBackoff    time.Duration
+	modelDownloadRetryDelays     []time.Duration
 	transfers                    map[string]*runtimev1.LocalTransferSessionSummary
+	managedModelDownloadSpecs    map[string]managedDownloadedModelSpec
 	transferControls             map[string]*localTransferControl
 	transferRates                map[string]*transferRateTracker
 	transferSubscribers          map[uint64]chan *runtimev1.LocalTransferProgressEvent
@@ -264,8 +265,9 @@ func newService(logger *slog.Logger, store *auditlog.Store, stateStorePath strin
 		modelDownloadTimeout:         localModelDownloadTimeout,
 		modelDownloadMaxBodyBytes:    localModelDownloadMaxBodyBytes,
 		modelDownloadMaxAttempts:     localModelDownloadMaxAttempts,
-		modelDownloadRetryBackoff:    localModelDownloadRetryBackoff,
+		modelDownloadRetryDelays:     append([]time.Duration(nil), localModelDownloadRetryDelays...),
 		transfers:                    make(map[string]*runtimev1.LocalTransferSessionSummary),
+		managedModelDownloadSpecs:    make(map[string]managedDownloadedModelSpec),
 		transferControls:             make(map[string]*localTransferControl),
 		transferRates:                make(map[string]*transferRateTracker),
 		transferSubscribers:          make(map[uint64]chan *runtimev1.LocalTransferProgressEvent),

@@ -109,6 +109,7 @@ export interface NimiRuntimeLocalVerifiedAssetDescriptor {
   readonly endpoint?: string;
   readonly fileCount: number;
   readonly totalSizeBytes?: number;
+  readonly contentId: string;
   readonly tags: readonly string[];
   readonly artifactRoles?: readonly string[];
   readonly preferredEngine?: string;
@@ -144,6 +145,7 @@ export interface NimiRuntimeLocalCatalogItemDescriptor {
   readonly verified: boolean;
   readonly engineConfig?: JsonObject;
   readonly recommendation?: NimiRuntimeLocalCatalogRecommendation;
+  readonly totalSizeBytes?: number;
 }
 
 export interface NimiRuntimeLocalCatalogVariantDescriptor {
@@ -178,6 +180,7 @@ export interface NimiRuntimeLocalInstallPlanDescriptor {
   readonly warnings: readonly string[];
   readonly reasonCode?: string;
   readonly engineConfig?: JsonObject;
+  readonly totalSizeBytes?: number;
 }
 
 export interface NimiRuntimeLocalDeviceProfile {

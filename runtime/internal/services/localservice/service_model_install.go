@@ -97,6 +97,7 @@ func (s *Service) ResolveModelInstallPlan(ctx context.Context, req *runtimev1.Re
 			Warnings:          modelAssetInstallPlanWarnings(catalogItem.GetHostRequirements(), collectDeviceProfile()),
 			ReasonCode:        "ACTION_EXECUTED",
 			EngineConfig:      nil,
+			TotalSizeBytes:    catalogItem.GetTotalSizeBytes(),
 		}
 		evaluateCatalogModelAcquisitionPlan(plan)
 		s.mu.Lock()
@@ -231,6 +232,7 @@ func (s *Service) resolveHFCatalogAcquisition(
 	item.Entry = entry
 	item.Files = []string{entry}
 	item.Hashes = map[string]string{entry: catalogHash}
+	item.TotalSizeBytes = variant.GetSizeBytes()
 	item.EngineConfig = nil
 	item.InstallKind = "download"
 	item.InstallAvailable = true
@@ -289,6 +291,7 @@ func (s *Service) InstallModelFromPlan(ctx context.Context, req *runtimev1.Insta
 		repo:              plan.GetRepo(),
 		revision:          plan.GetRevision(),
 		hashes:            cloneStringMap(plan.GetHashes()),
+		totalSizeBytes:    plan.GetTotalSizeBytes(),
 	})
 	if err != nil {
 		return nil, err

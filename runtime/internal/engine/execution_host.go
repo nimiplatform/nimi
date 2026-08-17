@@ -20,6 +20,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
+	"github.com/nimiplatform/nimi/runtime/internal/modelassetintegrity"
 )
 
 const maxLlamaInvocationErrorBody = 64 << 10
@@ -374,6 +375,9 @@ func sealInvocationModelBindingContext(ctx context.Context, binding capabilitydr
 	}
 	if !strings.EqualFold("sha256:"+contentDigest, strings.TrimSpace(binding.VerifiedContentID)) {
 		return invocationModelContentSeal{}, executionFailure(localexecution.FailureContentMismatch, fmt.Errorf("captured model bundle content identity changed"))
+	}
+	if err := modelassetintegrity.ValidateDeclaredPayloadSet(bundleDir, declared); err != nil {
+		return invocationModelContentSeal{}, executionFailure(localexecution.FailureContentMismatch, err)
 	}
 	return invocationModelContentSeal{declaredFileSHA256: fileHashes}, nil
 }

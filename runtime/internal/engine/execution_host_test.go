@@ -494,6 +494,23 @@ func TestInvocationContentSealCoversCompleteDeclaredBundleIdentity(t *testing.T)
 			},
 			want: localexecution.FailureContentMismatch,
 		},
+		{
+			name: "undeclared regular payload",
+			mutate: func(t *testing.T, binding *capabilitydriver.InvocationExactBinding) {
+				if err := os.WriteFile(filepath.Join(binding.BundleDir, "generation_config.json"), []byte(`{"undeclared":true}`), 0o600); err != nil {
+					t.Fatal(err)
+				}
+			},
+			want: localexecution.FailureContentMismatch,
+		},
+		{
+			name: "canonical manifest control file",
+			mutate: func(t *testing.T, binding *capabilitydriver.InvocationExactBinding) {
+				if err := os.WriteFile(filepath.Join(binding.BundleDir, "asset.manifest.json"), []byte(`{"schema_version":"test"}`), 0o600); err != nil {
+					t.Fatal(err)
+				}
+			},
+		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {

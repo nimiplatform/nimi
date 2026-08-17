@@ -76,12 +76,14 @@ func projectVerifiedAssetDescriptor(
 		return nil, fmt.Errorf("verified asset projection: model %q has a variant with empty variant_id", row.ModelID)
 	}
 	hashes := make(map[string]string, len(variant.Files))
+	identityFiles := make([]*runtimev1.ModelAssetFile, 0, len(variant.Files))
 	for _, file := range variant.Files {
 		hash := strings.TrimSpace(variant.Hashes[file])
 		if hash == "" {
 			return nil, fmt.Errorf("verified asset projection: variant %q file %q is missing an integrity hash", variantID, file)
 		}
 		hashes[file] = hash
+		identityFiles = append(identityFiles, &runtimev1.ModelAssetFile{RelativePath: file, Sha256: hash})
 	}
 	if len(hashes) == 0 {
 		return nil, fmt.Errorf("verified asset projection: variant %q has no integrity material", variantID)
@@ -152,6 +154,7 @@ func projectVerifiedAssetDescriptor(
 		Hashes:           hashes,
 		FileCount:        int32(len(variant.Files)),
 		TotalSizeBytes:   variant.TotalSizeBytes,
+		ContentId:        modelAssetContentID(identityFiles),
 		Tags:             verifiedAssetTags(capabilities, variant.Quant),
 		InstallKind:      strings.TrimSpace(install.InstallKind),
 		LogicalModelId:   logicalModelID,

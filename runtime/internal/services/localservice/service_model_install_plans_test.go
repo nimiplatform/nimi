@@ -1,51 +1,20 @@
 package localservice
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"strings"
-	"sync"
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/authn"
-	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
+	"github.com/nimiplatform/nimi/runtime/internal/rpcctx"
 	"google.golang.org/grpc/metadata"
 )
 
-type modelInstallPlanDesktopVerifier struct {
-	peers protectedlocal.VerifiedDesktopPeers
-}
-
-func (verifier modelInstallPlanDesktopVerifier) VerifyDesktopPeers(context.Context) (protectedlocal.VerifiedDesktopPeers, error) {
-	return verifier.peers, nil
-}
-
-type modelInstallPlanDesktopLiveness struct {
-	revoked chan struct{}
-	once    sync.Once
-}
-
-func newModelInstallPlanDesktopLiveness() *modelInstallPlanDesktopLiveness {
-	return &modelInstallPlanDesktopLiveness{revoked: make(chan struct{})}
-}
-
-func (liveness *modelInstallPlanDesktopLiveness) Revoked() <-chan struct{} {
-	return liveness.revoked
-}
-
-func (liveness *modelInstallPlanDesktopLiveness) Close() error {
-	liveness.once.Do(func() { close(liveness.revoked) })
-	return nil
-}
-
 func TestModelInstallPlanCannotCrossProtectedDesktopConnections(t *testing.T) {
-	first := establishModelInstallPlanDesktopConnection(t, 0x31)
-	second := establishModelInstallPlanDesktopConnection(t, 0x32)
-
-	firstContext := modelInstallPlanProtectedContext(first)
-	secondContext := modelInstallPlanProtectedContext(second)
+	firstContext := modelInstallPlanProtectedContext(0x31)
+	secondContext := modelInstallPlanProtectedContext(0x32)
 	service := &Service{heldModelInstallPlans: make(map[string]heldModelInstallPlan)}
 	plan := &runtimev1.LocalInstallPlanDescriptor{PlanId: "plan-protected-connection-owner"}
 	service.holdModelInstallPlan(firstContext, plan)
@@ -87,47 +56,44 @@ func TestModelInstallPlanOwnerKeyKeepsUnprotectedContextFallback(t *testing.T) {
 	}
 }
 
-func establishModelInstallPlanDesktopConnection(t *testing.T, connectionByte byte) *protectedlocal.Connection {
-	t.Helper()
-	peers := protectedlocal.VerifiedDesktopPeers{
-		Client: protectedlocal.ProcessTuple{
-			OS:                          protectedlocal.OSWindows,
-			PID:                         4101,
-			CreationMarker:              "desktop-start",
-			OSLoginSession:              "logon-9",
-			SecurityPrincipal:           "interactive-user",
-			CanonicalExecutableIdentity: "desktop-file-identity",
-			ExecutableDigest:            modelInstallPlanIdentifier(0x11),
-			ExecutableTrustSetID:        "synthetic-desktop-test-trust-set",
-		},
-		Server: protectedlocal.ProcessTuple{
-			OS:                          protectedlocal.OSWindows,
-			PID:                         5101,
-			CreationMarker:              "runtime-start",
-			OSLoginSession:              "service-session",
-			SecurityPrincipal:           "runtime-service",
-			CanonicalExecutableIdentity: "runtime-file-identity",
-			ExecutableDigest:            modelInstallPlanIdentifier(0x12),
-			ExecutableTrustSetID:        "synthetic-runtime-test-trust-set",
-		},
-		ClientLiveness:     newModelInstallPlanDesktopLiveness(),
-		RuntimeBootEpoch:   modelInstallPlanIdentifier(0x13),
-		EndpointInstanceID: modelInstallPlanIdentifier(0x14),
-		TranscriptNonce:    modelInstallPlanIdentifier(0x15),
-	}
-	connection, err := protectedlocal.EstablishDesktopConnection(
-		context.Background(),
-		modelInstallPlanDesktopVerifier{peers: peers},
-		bytes.NewReader(bytes.Repeat([]byte{connectionByte}, protectedlocal.IdentifierBytes)),
-	)
+func TestHeldModelInstallPlanPreservesCatalogTotalSize(t *testing.T) {
+	svc := newTestService(t)
+	const totalSizeBytes int64 = 9_876_543_210
+	svc.mu.Lock()
+	svc.catalog = []*runtimev1.LocalCatalogModelDescriptor{{
+		ItemId:         "catalog.total-size",
+		Source:         "verified",
+		TemplateId:     "local.total-size",
+		ModelId:        "local/total-size",
+		Repo:           "test/total-size",
+		Revision:       "revision",
+		Capabilities:   []string{"text.generate"},
+		Entry:          "model.gguf",
+		Files:          []string{"model.gguf"},
+		Hashes:         map[string]string{"model.gguf": "sha256:" + strings.Repeat("a", 64)},
+		TotalSizeBytes: totalSizeBytes,
+	}}
+	svc.mu.Unlock()
+
+	resolved, err := svc.ResolveModelInstallPlan(context.Background(), &runtimev1.ResolveModelInstallPlanRequest{
+		ItemId: "catalog.total-size",
+	})
 	if err != nil {
-		t.Fatalf("establish verified Desktop connection: %v", err)
+		t.Fatalf("resolve total-size plan: %v", err)
 	}
-	t.Cleanup(connection.Revoke)
-	return connection
+	if got := resolved.GetPlan().GetTotalSizeBytes(); got != totalSizeBytes {
+		t.Fatalf("resolved total size=%d, want %d", got, totalSizeBytes)
+	}
+	held, err := svc.takeModelInstallPlan(context.Background(), resolved.GetPlan().GetPlanId())
+	if err != nil {
+		t.Fatalf("take held total-size plan: %v", err)
+	}
+	if got := held.GetTotalSizeBytes(); got != totalSizeBytes {
+		t.Fatalf("held total size=%d, want %d", got, totalSizeBytes)
+	}
 }
 
-func modelInstallPlanProtectedContext(connection *protectedlocal.Connection) context.Context {
+func modelInstallPlanProtectedContext(connectionByte byte) context.Context {
 	ctx := authn.WithIdentity(context.Background(), &authn.Identity{
 		SubjectUserID: "same-user",
 		SessionID:     "same-account-session",
@@ -137,13 +103,9 @@ func modelInstallPlanProtectedContext(connection *protectedlocal.Connection) con
 		"x-nimi-app-instance-id", "same-desktop-instance",
 		"x-nimi-caller-id", "same-caller",
 	))
-	return protectedlocal.ContextWithDesktopConnection(ctx, connection)
-}
-
-func modelInstallPlanIdentifier(value byte) protectedlocal.Identifier {
-	var identifier protectedlocal.Identifier
-	for index := range identifier {
-		identifier[index] = value
+	var ownerToken rpcctx.ProtectedConnectionOwnerToken
+	for index := range ownerToken {
+		ownerToken[index] = connectionByte
 	}
-	return identifier
+	return rpcctx.WithProtectedConnectionOwnerToken(ctx, ownerToken)
 }

@@ -1,6 +1,7 @@
 package localservice
 
 import (
+	"strings"
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -53,6 +54,66 @@ func TestProjectVerifiedVoxCPMAssetCarriesCanonicalFamilyAndPrivateBackend(t *te
 	}
 	if len(descriptor.GetCapabilities()) != 1 || descriptor.GetCapabilities()[0] != "audio.synthesize" {
 		t.Fatalf("VoxCPM capabilities=%v", descriptor.GetCapabilities())
+	}
+	if descriptor.GetTotalSizeBytes() != variant.TotalSizeBytes {
+		t.Fatalf("VoxCPM total size=%d, want %d", descriptor.GetTotalSizeBytes(), variant.TotalSizeBytes)
+	}
+	if descriptor.GetContentId() != variant.Hashes[variant.Files[0]] {
+		t.Fatalf("VoxCPM descriptor content identity=%q want=%q", descriptor.GetContentId(), variant.Hashes[variant.Files[0]])
+	}
+}
+
+func TestProjectVerifiedSingleFileDescriptorDoesNotDoublePrefixContentIdentity(t *testing.T) {
+	const digest = "25bddc99a7cc6d28214f12dd676ed0afa9b0a805d6477f85c275bb113cb8acee"
+	descriptor, err := projectVerifiedAssetDescriptor(catalog.ModelEntry{
+		ModelID:      "single-file-chat",
+		Capabilities: []string{"text.generate"},
+		Install: &catalog.LocalPlaneInstall{
+			InstallKind:     "verified-hf-single-file",
+			PreferredEngine: "llama",
+		},
+	}, catalog.LocalPlaneVariant{
+		VariantID: "local.chat.single-file",
+		Entry:     "model.gguf",
+		Files:     []string{"model.gguf"},
+		Hashes:    map[string]string{"model.gguf": "sha256:" + digest},
+	})
+	if err != nil {
+		t.Fatalf("project single-file descriptor: %v", err)
+	}
+	if got, want := descriptor.GetContentId(), "sha256:"+digest; got != want {
+		t.Fatalf("single-file descriptor content identity=%q want=%q", got, want)
+	}
+}
+
+func TestProjectVerifiedAssetDescriptorCarriesCanonicalMultiFileContentIdentity(t *testing.T) {
+	row := catalog.ModelEntry{
+		ModelID:      "multi-file-chat",
+		Capabilities: []string{"text.generate"},
+		Install: &catalog.LocalPlaneInstall{
+			InstallKind:     "verified-hf-multi-file",
+			PreferredEngine: "llama",
+		},
+	}
+	variant := catalog.LocalPlaneVariant{
+		VariantID: "local.chat.multi-file",
+		Entry:     "model.safetensors",
+		Files:     []string{"model.safetensors", "config.json"},
+		Hashes: map[string]string{
+			"model.safetensors": "sha256:" + strings.Repeat("1", 64),
+			"config.json":       "sha256:" + strings.Repeat("2", 64),
+		},
+	}
+	descriptor, err := projectVerifiedAssetDescriptor(row, variant)
+	if err != nil {
+		t.Fatalf("project multi-file descriptor: %v", err)
+	}
+	expected := modelAssetContentID([]*runtimev1.ModelAssetFile{
+		{RelativePath: "model.safetensors", Sha256: variant.Hashes["model.safetensors"]},
+		{RelativePath: "config.json", Sha256: variant.Hashes["config.json"]},
+	})
+	if descriptor.GetContentId() != expected || descriptor.GetContentId() == variant.Hashes[variant.Entry] {
+		t.Fatalf("multi-file descriptor content identity=%q want=%q", descriptor.GetContentId(), expected)
 	}
 }
 

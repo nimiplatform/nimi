@@ -18,7 +18,7 @@ import (
 
 func TestLocalStateRecordIsolationCoversSupportedSections(t *testing.T) {
 	valid := map[string]map[string]any{
-		"transfers":                               {"installSessionId": "transfer-ok"},
+		"transfers":                               {"installSessionId": "transfer-ok", "sessionKind": "download", "state": "completed"},
 		"audits":                                  {"id": "audit-ok"},
 		"localEnvironmentHostProfiles":            {"hostProfileId": "host-ok"},
 		"localEnvironmentSelectedSourceRecords":   {"recordId": "source-ok", "environmentKey": "env-ok", "dependencyFamily": localEnvironmentFamilyNativeLlama, "dependencyId": "llama.cpp.package"},

@@ -200,6 +200,10 @@ export interface LocalVerifiedAssetDescriptor {
      */
     metadata?: Struct;
     /**
+     * @generated from protobuf field: string content_id = 17
+     */
+    contentId: string;
+    /**
      * Runnable-only fields
      *
      * @generated from protobuf field: string install_kind = 20
@@ -483,6 +487,10 @@ export interface LocalCatalogModelDescriptor {
      * @generated from protobuf field: nimi.runtime.v1.LocalHostRequirements host_requirements = 26
      */
     hostRequirements?: LocalHostRequirements;
+    /**
+     * @generated from protobuf field: int64 total_size_bytes = 27
+     */
+    totalSizeBytes: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.LocalInstallPlanDescriptor
@@ -574,6 +582,10 @@ export interface LocalInstallPlanDescriptor {
      * @generated from protobuf field: google.protobuf.Struct engine_config = 21
      */
     engineConfig?: Struct;
+    /**
+     * @generated from protobuf field: int64 total_size_bytes = 22
+     */
+    totalSizeBytes: string;
 }
 // === Asset Kind & Status (unified from Model + Artifact) ===
 
@@ -997,6 +1009,7 @@ class LocalVerifiedAssetDescriptor$Type extends MessageType<LocalVerifiedAssetDe
             { no: 14, name: "total_size_bytes", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
             { no: 15, name: "tags", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
             { no: 16, name: "metadata", kind: "message", T: () => Struct },
+            { no: 17, name: "content_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 20, name: "install_kind", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 21, name: "logical_model_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 22, name: "capabilities", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
@@ -1025,6 +1038,7 @@ class LocalVerifiedAssetDescriptor$Type extends MessageType<LocalVerifiedAssetDe
         message.fileCount = 0;
         message.totalSizeBytes = "0";
         message.tags = [];
+        message.contentId = "";
         message.installKind = "";
         message.logicalModelId = "";
         message.capabilities = [];
@@ -1088,6 +1102,9 @@ class LocalVerifiedAssetDescriptor$Type extends MessageType<LocalVerifiedAssetDe
                     break;
                 case /* google.protobuf.Struct metadata */ 16:
                     message.metadata = Struct.internalBinaryRead(reader, reader.uint32(), options, message.metadata);
+                    break;
+                case /* string content_id */ 17:
+                    message.contentId = reader.string();
                     break;
                 case /* string install_kind */ 20:
                     message.installKind = reader.string();
@@ -1192,6 +1209,9 @@ class LocalVerifiedAssetDescriptor$Type extends MessageType<LocalVerifiedAssetDe
         /* google.protobuf.Struct metadata = 16; */
         if (message.metadata)
             Struct.internalBinaryWrite(message.metadata, writer.tag(16, WireType.LengthDelimited).fork(), options).join();
+        /* string content_id = 17; */
+        if (message.contentId !== "")
+            writer.tag(17, WireType.LengthDelimited).string(message.contentId);
         /* string install_kind = 20; */
         if (message.installKind !== "")
             writer.tag(20, WireType.LengthDelimited).string(message.installKind);
@@ -1673,7 +1693,8 @@ class LocalCatalogModelDescriptor$Type extends MessageType<LocalCatalogModelDesc
             { no: 23, name: "last_modified", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 24, name: "verified", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
             { no: 25, name: "engine_config", kind: "message", T: () => Struct },
-            { no: 26, name: "host_requirements", kind: "message", T: () => LocalHostRequirements }
+            { no: 26, name: "host_requirements", kind: "message", T: () => LocalHostRequirements },
+            { no: 27, name: "total_size_bytes", kind: "scalar", T: 3 /*ScalarType.INT64*/ }
         ]);
     }
     create(value?: PartialMessage<LocalCatalogModelDescriptor>): LocalCatalogModelDescriptor {
@@ -1701,6 +1722,7 @@ class LocalCatalogModelDescriptor$Type extends MessageType<LocalCatalogModelDesc
         message.likes = "0";
         message.lastModified = "";
         message.verified = false;
+        message.totalSizeBytes = "0";
         if (value !== undefined)
             reflectionMergePartial<LocalCatalogModelDescriptor>(this, message, value);
         return message;
@@ -1787,6 +1809,9 @@ class LocalCatalogModelDescriptor$Type extends MessageType<LocalCatalogModelDesc
                     break;
                 case /* nimi.runtime.v1.LocalHostRequirements host_requirements */ 26:
                     message.hostRequirements = LocalHostRequirements.internalBinaryRead(reader, reader.uint32(), options, message.hostRequirements);
+                    break;
+                case /* int64 total_size_bytes */ 27:
+                    message.totalSizeBytes = reader.int64().toString();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1894,6 +1919,9 @@ class LocalCatalogModelDescriptor$Type extends MessageType<LocalCatalogModelDesc
         /* nimi.runtime.v1.LocalHostRequirements host_requirements = 26; */
         if (message.hostRequirements)
             LocalHostRequirements.internalBinaryWrite(message.hostRequirements, writer.tag(26, WireType.LengthDelimited).fork(), options).join();
+        /* int64 total_size_bytes = 27; */
+        if (message.totalSizeBytes !== "0")
+            writer.tag(27, WireType.Varint).int64(message.totalSizeBytes);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -1928,7 +1956,8 @@ class LocalInstallPlanDescriptor$Type extends MessageType<LocalInstallPlanDescri
             { no: 18, name: "hashes", kind: "map", K: 9 /*ScalarType.STRING*/, V: { kind: "scalar", T: 9 /*ScalarType.STRING*/ } },
             { no: 19, name: "warnings", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
             { no: 20, name: "reason_code", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 21, name: "engine_config", kind: "message", T: () => Struct }
+            { no: 21, name: "engine_config", kind: "message", T: () => Struct },
+            { no: 22, name: "total_size_bytes", kind: "scalar", T: 3 /*ScalarType.INT64*/ }
         ]);
     }
     create(value?: PartialMessage<LocalInstallPlanDescriptor>): LocalInstallPlanDescriptor {
@@ -1952,6 +1981,7 @@ class LocalInstallPlanDescriptor$Type extends MessageType<LocalInstallPlanDescri
         message.hashes = {};
         message.warnings = [];
         message.reasonCode = "";
+        message.totalSizeBytes = "0";
         if (value !== undefined)
             reflectionMergePartial<LocalInstallPlanDescriptor>(this, message, value);
         return message;
@@ -2023,6 +2053,9 @@ class LocalInstallPlanDescriptor$Type extends MessageType<LocalInstallPlanDescri
                     break;
                 case /* google.protobuf.Struct engine_config */ 21:
                     message.engineConfig = Struct.internalBinaryRead(reader, reader.uint32(), options, message.engineConfig);
+                    break;
+                case /* int64 total_size_bytes */ 22:
+                    message.totalSizeBytes = reader.int64().toString();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -2115,6 +2148,9 @@ class LocalInstallPlanDescriptor$Type extends MessageType<LocalInstallPlanDescri
         /* google.protobuf.Struct engine_config = 21; */
         if (message.engineConfig)
             Struct.internalBinaryWrite(message.engineConfig, writer.tag(21, WireType.LengthDelimited).fork(), options).join();
+        /* int64 total_size_bytes = 22; */
+        if (message.totalSizeBytes !== "0")
+            writer.tag(22, WireType.Varint).int64(message.totalSizeBytes);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

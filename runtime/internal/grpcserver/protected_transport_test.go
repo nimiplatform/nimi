@@ -18,6 +18,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedprincipal"
 	"github.com/nimiplatform/nimi/runtime/internal/protocol/envelope"
+	"github.com/nimiplatform/nimi/runtime/internal/rpcctx"
 	authservice "github.com/nimiplatform/nimi/runtime/internal/services/auth"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -250,8 +251,8 @@ func TestProtectedDesktopRPCTransportBindsVerifiedConnectionAndGatesAdmittedServ
 		t.Fatalf("RepairLocalEnvironmentDependency protected carrier = (%+v, %v), bound=%v", repairResponse, err, localService.repairDependencyJobBound)
 	}
 	_, err = localClient.ListModelAssets(machineContext, &runtimev1.ListModelAssetsRequest{})
-	if err != nil || !localService.modelAssetsCalled {
-		t.Fatalf("ListModelAssets protected carrier: called=%v err=%v", localService.modelAssetsCalled, err)
+	if err != nil || !localService.modelAssetsCalled || !localService.ownerTokenBound {
+		t.Fatalf("ListModelAssets protected carrier: called=%v owner_token=%v err=%v", localService.modelAssetsCalled, localService.ownerTokenBound, err)
 	}
 	projection, err := auditClient.ListDesktopAuditEvents(machineContext, &runtimev1.ListDesktopAuditEventsRequest{})
 	if err != nil || projection.GetNextPageToken() != "" || !auditService.projectionCalled || !auditService.authorizationDecisionBound {
@@ -532,6 +533,7 @@ type protectedDesktopLocalTestService struct {
 	retryDependencyJobBound   bool
 	repairDependencyJobBound  bool
 	modelAssetsCalled         bool
+	ownerTokenBound           bool
 }
 
 func (service *protectedDesktopLocalTestService) GetProductControlRecord(ctx context.Context, _ *runtimev1.GetProductControlRecordRequest) (*runtimev1.ProductControlProjectionJson, error) {
@@ -574,8 +576,9 @@ func (service *protectedDesktopLocalTestService) RepairLocalEnvironmentDependenc
 	}, nil
 }
 
-func (service *protectedDesktopLocalTestService) ListModelAssets(context.Context, *runtimev1.ListModelAssetsRequest) (*runtimev1.ListModelAssetsResponse, error) {
+func (service *protectedDesktopLocalTestService) ListModelAssets(ctx context.Context, _ *runtimev1.ListModelAssetsRequest) (*runtimev1.ListModelAssetsResponse, error) {
 	service.modelAssetsCalled = true
+	_, service.ownerTokenBound = rpcctx.ProtectedConnectionOwnerTokenFromContext(ctx)
 	return &runtimev1.ListModelAssetsResponse{}, nil
 }
 

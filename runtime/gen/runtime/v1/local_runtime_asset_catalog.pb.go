@@ -517,6 +517,7 @@ type LocalVerifiedAssetDescriptor struct {
 	TotalSizeBytes int64                  `protobuf:"varint,14,opt,name=total_size_bytes,json=totalSizeBytes,proto3" json:"total_size_bytes,omitempty"`
 	Tags           []string               `protobuf:"bytes,15,rep,name=tags,proto3" json:"tags,omitempty"`
 	Metadata       *structpb.Struct       `protobuf:"bytes,16,opt,name=metadata,proto3" json:"metadata,omitempty"`
+	ContentId      string                 `protobuf:"bytes,17,opt,name=content_id,json=contentId,proto3" json:"content_id,omitempty"`
 	// Runnable-only fields
 	InstallKind      string                 `protobuf:"bytes,20,opt,name=install_kind,json=installKind,proto3" json:"install_kind,omitempty"`
 	LogicalModelId   string                 `protobuf:"bytes,21,opt,name=logical_model_id,json=logicalModelId,proto3" json:"logical_model_id,omitempty"`
@@ -671,6 +672,13 @@ func (x *LocalVerifiedAssetDescriptor) GetMetadata() *structpb.Struct {
 		return x.Metadata
 	}
 	return nil
+}
+
+func (x *LocalVerifiedAssetDescriptor) GetContentId() string {
+	if x != nil {
+		return x.ContentId
+	}
+	return ""
 }
 
 func (x *LocalVerifiedAssetDescriptor) GetInstallKind() string {
@@ -1152,6 +1160,7 @@ type LocalCatalogModelDescriptor struct {
 	Verified          bool                   `protobuf:"varint,24,opt,name=verified,proto3" json:"verified,omitempty"`
 	EngineConfig      *structpb.Struct       `protobuf:"bytes,25,opt,name=engine_config,json=engineConfig,proto3" json:"engine_config,omitempty"`
 	HostRequirements  *LocalHostRequirements `protobuf:"bytes,26,opt,name=host_requirements,json=hostRequirements,proto3" json:"host_requirements,omitempty"`
+	TotalSizeBytes    int64                  `protobuf:"varint,27,opt,name=total_size_bytes,json=totalSizeBytes,proto3" json:"total_size_bytes,omitempty"`
 	unknownFields     protoimpl.UnknownFields
 	sizeCache         protoimpl.SizeCache
 }
@@ -1368,6 +1377,13 @@ func (x *LocalCatalogModelDescriptor) GetHostRequirements() *LocalHostRequiremen
 	return nil
 }
 
+func (x *LocalCatalogModelDescriptor) GetTotalSizeBytes() int64 {
+	if x != nil {
+		return x.TotalSizeBytes
+	}
+	return 0
+}
+
 type LocalInstallPlanDescriptor struct {
 	state             protoimpl.MessageState `protogen:"open.v1"`
 	PlanId            string                 `protobuf:"bytes,1,opt,name=plan_id,json=planId,proto3" json:"plan_id,omitempty"`
@@ -1391,6 +1407,7 @@ type LocalInstallPlanDescriptor struct {
 	Warnings          []string               `protobuf:"bytes,19,rep,name=warnings,proto3" json:"warnings,omitempty"`
 	ReasonCode        string                 `protobuf:"bytes,20,opt,name=reason_code,json=reasonCode,proto3" json:"reason_code,omitempty"`
 	EngineConfig      *structpb.Struct       `protobuf:"bytes,21,opt,name=engine_config,json=engineConfig,proto3" json:"engine_config,omitempty"`
+	TotalSizeBytes    int64                  `protobuf:"varint,22,opt,name=total_size_bytes,json=totalSizeBytes,proto3" json:"total_size_bytes,omitempty"`
 	unknownFields     protoimpl.UnknownFields
 	sizeCache         protoimpl.SizeCache
 }
@@ -1572,6 +1589,13 @@ func (x *LocalInstallPlanDescriptor) GetEngineConfig() *structpb.Struct {
 	return nil
 }
 
+func (x *LocalInstallPlanDescriptor) GetTotalSizeBytes() int64 {
+	if x != nil {
+		return x.TotalSizeBytes
+	}
+	return 0
+}
+
 var File_runtime_v1_local_runtime_asset_catalog_proto protoreflect.FileDescriptor
 
 const file_runtime_v1_local_runtime_asset_catalog_proto_rawDesc = "" +
@@ -1610,7 +1634,7 @@ const file_runtime_v1_local_runtime_asset_catalog_proto_rawDesc = "" +
 	"updated_at\x18\r \x01(\tR\tupdatedAt\x12=\n" +
 	"\x1blatest_integrity_checked_at\x18\x0e \x01(\tR\x18latestIntegrityCheckedAt\x12+\n" +
 	"\x11duplicate_content\x18\x0f \x01(\bR\x10duplicateContent\x12?\n" +
-	"\x1ccontains_non_executable_code\x18\x10 \x01(\bR\x19containsNonExecutableCode\"\x92\b\n" +
+	"\x1ccontains_non_executable_code\x18\x10 \x01(\bR\x19containsNonExecutableCode\"\xb1\b\n" +
 	"\x1cLocalVerifiedAssetDescriptor\x12\x1f\n" +
 	"\vtemplate_id\x18\x01 \x01(\tR\n" +
 	"templateId\x12\x14\n" +
@@ -1630,7 +1654,9 @@ const file_runtime_v1_local_runtime_asset_catalog_proto_rawDesc = "" +
 	"file_count\x18\r \x01(\x05R\tfileCount\x12(\n" +
 	"\x10total_size_bytes\x18\x0e \x01(\x03R\x0etotalSizeBytes\x12\x12\n" +
 	"\x04tags\x18\x0f \x03(\tR\x04tags\x123\n" +
-	"\bmetadata\x18\x10 \x01(\v2\x17.google.protobuf.StructR\bmetadata\x12!\n" +
+	"\bmetadata\x18\x10 \x01(\v2\x17.google.protobuf.StructR\bmetadata\x12\x1d\n" +
+	"\n" +
+	"content_id\x18\x11 \x01(\tR\tcontentId\x12!\n" +
 	"\finstall_kind\x18\x14 \x01(\tR\vinstallKind\x12(\n" +
 	"\x10logical_model_id\x18\x15 \x01(\tR\x0elogicalModelId\x12\"\n" +
 	"\fcapabilities\x18\x16 \x03(\tR\fcapabilities\x12%\n" +
@@ -1680,7 +1706,7 @@ const file_runtime_v1_local_runtime_asset_catalog_proto_rawDesc = "" +
 	"\n" +
 	"ExtraEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xae\b\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xd8\b\n" +
 	"\x1bLocalCatalogModelDescriptor\x12\x17\n" +
 	"\aitem_id\x18\x01 \x01(\tR\x06itemId\x12\x16\n" +
 	"\x06source\x18\x02 \x01(\tR\x06source\x12\x14\n" +
@@ -1709,10 +1735,11 @@ const file_runtime_v1_local_runtime_asset_catalog_proto_rawDesc = "" +
 	"\rlast_modified\x18\x17 \x01(\tR\flastModified\x12\x1a\n" +
 	"\bverified\x18\x18 \x01(\bR\bverified\x12<\n" +
 	"\rengine_config\x18\x19 \x01(\v2\x17.google.protobuf.StructR\fengineConfig\x12S\n" +
-	"\x11host_requirements\x18\x1a \x01(\v2&.nimi.runtime.v1.LocalHostRequirementsR\x10hostRequirements\x1a9\n" +
+	"\x11host_requirements\x18\x1a \x01(\v2&.nimi.runtime.v1.LocalHostRequirementsR\x10hostRequirements\x12(\n" +
+	"\x10total_size_bytes\x18\x1b \x01(\x03R\x0etotalSizeBytes\x1a9\n" +
 	"\vHashesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xec\x06\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x96\a\n" +
 	"\x1aLocalInstallPlanDescriptor\x12\x17\n" +
 	"\aplan_id\x18\x01 \x01(\tR\x06planId\x12\x17\n" +
 	"\aitem_id\x18\x02 \x01(\tR\x06itemId\x12\x16\n" +
@@ -1737,7 +1764,8 @@ const file_runtime_v1_local_runtime_asset_catalog_proto_rawDesc = "" +
 	"\bwarnings\x18\x13 \x03(\tR\bwarnings\x12\x1f\n" +
 	"\vreason_code\x18\x14 \x01(\tR\n" +
 	"reasonCode\x12<\n" +
-	"\rengine_config\x18\x15 \x01(\v2\x17.google.protobuf.StructR\fengineConfig\x1a9\n" +
+	"\rengine_config\x18\x15 \x01(\v2\x17.google.protobuf.StructR\fengineConfig\x12(\n" +
+	"\x10total_size_bytes\x18\x16 \x01(\x03R\x0etotalSizeBytes\x1a9\n" +
 	"\vHashesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01*\xea\x02\n" +

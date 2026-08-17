@@ -207,6 +207,45 @@ func TestImportModelAssetInventoryFailureLeavesNoResolvedResidue(t *testing.T) {
 	}
 }
 
+func TestImportModelAssetCompletionPersistenceFailurePublishesNoModelAsset(t *testing.T) {
+	svc := newTestService(t)
+	sourcePath := filepath.Join(t.TempDir(), "terminal-persistence-failure.bin")
+	if err := os.WriteFile(sourcePath, []byte("terminal persistence must fail closed"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	source, err := inspectModelAssetSource(sourcePath, "terminal-persistence-failure")
+	if err != nil {
+		t.Fatal(err)
+	}
+	transfer := svc.newLocalTransfer(localTransferKindImport, localTransferMutation{
+		ModelID:    "model_terminal_persistence_failure",
+		Phase:      "copy",
+		State:      localTransferStateRunning,
+		BytesTotal: source.SizeBytes,
+	})
+	if err := os.Remove(svc.stateStorePath); err != nil && !os.IsNotExist(err) {
+		t.Fatal(err)
+	}
+	if err := os.Mkdir(svc.stateStorePath, 0o700); err != nil {
+		t.Fatal(err)
+	}
+
+	svc.runImportModelAsset(context.Background(), transfer.GetInstallSessionId(), "model_terminal_persistence_failure", source)
+	svc.mu.RLock()
+	assetCount := len(svc.modelAssets)
+	svc.mu.RUnlock()
+	if assetCount != 0 {
+		t.Fatalf("completion persistence failure published %d ModelAssets", assetCount)
+	}
+	entries, readErr := os.ReadDir(filepath.Join(svc.resolvedLocalModelsPath(), "resolved"))
+	if readErr != nil {
+		t.Fatalf("read resolved root: %v", readErr)
+	}
+	if len(entries) != 0 {
+		t.Fatalf("completion persistence failure retained resolved payload: %v", entries)
+	}
+}
+
 func TestImportModelAssetRejectsSymlinkWithoutStateWrite(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("symlink creation requires environment-specific Windows privilege")
@@ -538,6 +577,69 @@ func TestModelAssetStoreStartupStillIsolatesPayloadSizeMismatch(t *testing.T) {
 	listed, err := restarted.ListModelAssets(context.Background(), &runtimev1.ListModelAssetsRequest{})
 	if err != nil || len(listed.GetAssets()) != 1 || listed.GetAssets()[0].GetModelAssetId() != healthyAsset.GetModelAssetId() {
 		t.Fatalf("payload-size isolation = %+v err=%v", listed, err)
+	}
+}
+
+func TestModelAssetStoreUnavailableResolvedRootPreservesInventory(t *testing.T) {
+	svc := newTestService(t)
+	source := filepath.Join(t.TempDir(), "root-unavailable.bin")
+	if err := os.WriteFile(source, []byte("root unavailable must not erase inventory"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	asset := importModelAssetForTest(t, svc, source, "root unavailable")
+	statePath := svc.stateStorePath
+	modelsPath := svc.localModelsPath
+	storePath := svc.modelAssetStorePath
+	resolvedRoot := filepath.Join(modelsPath, "resolved")
+	offlineRoot := filepath.Join(filepath.Dir(resolvedRoot), "resolved-offline")
+	storeBefore, err := os.ReadFile(storePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	svc.Close()
+
+	if err := os.Rename(resolvedRoot, offlineRoot); err != nil {
+		t.Fatalf("make resolved root unavailable: %v", err)
+	}
+	restarted, restartErr := NewWithProductControlDataRoot(
+		slog.New(slog.NewTextHandler(io.Discard, nil)),
+		nil,
+		statePath,
+		0,
+		modelsPath,
+		filepath.Dir(modelsPath),
+	)
+	if restarted != nil {
+		restarted.Close()
+	}
+	if restartErr == nil {
+		t.Fatal("startup succeeded while the complete resolved ModelAsset root was unavailable")
+	}
+	storeAfter, err := os.ReadFile(storePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(storeAfter, storeBefore) || !modelAssetStorePayloadContainsID(storeAfter, asset.GetModelAssetId()) {
+		t.Fatal("root-scope unavailability rewrote active ModelAsset inventory")
+	}
+	quarantine, err := filepath.Glob(filepath.Join(
+		stateQuarantineDirectory(storePath),
+		filepath.Base(storePath)+".*.records.json",
+	))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(quarantine) != 0 {
+		t.Fatalf("root-scope unavailability isolated %d records", len(quarantine))
+	}
+
+	if err := os.Rename(offlineRoot, resolvedRoot); err != nil {
+		t.Fatalf("restore resolved root: %v", err)
+	}
+	again := restartModelAssetServiceForTest(t, statePath, modelsPath)
+	listed, err := again.ListModelAssets(context.Background(), &runtimev1.ListModelAssetsRequest{})
+	if err != nil || len(listed.GetAssets()) != 1 || listed.GetAssets()[0].GetModelAssetId() != asset.GetModelAssetId() {
+		t.Fatalf("restored root inventory = %+v err=%v", listed, err)
 	}
 }
 

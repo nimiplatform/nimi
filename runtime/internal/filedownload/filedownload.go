@@ -78,6 +78,10 @@ type Options struct {
 	// RetryBackoff is the base backoff between transient retries; attempt N
 	// waits N*RetryBackoff. 0 disables the wait.
 	RetryBackoff time.Duration
+	// RetryDelays is an exact, finite retry schedule. When non-empty it caps
+	// retries to its length (one initial request plus one request per delay) and
+	// takes precedence over RetryBackoff.
+	RetryDelays []time.Duration
 	// IsTransient classifies a transport/stream error as transient (worth a
 	// retry) or not. nil means "never transient". Caller context cancellation,
 	// 4xx, hash mismatch and oversize are handled by the core and never routed
@@ -132,6 +136,9 @@ func Download(ctx context.Context, opts Options) (Result, error) {
 	attempts := opts.MaxAttempts
 	if attempts < 1 {
 		attempts = 1
+	}
+	if len(opts.RetryDelays) > 0 && attempts > len(opts.RetryDelays)+1 {
+		attempts = len(opts.RetryDelays) + 1
 	}
 
 	partialPath := opts.DestPath + ".download"
@@ -197,12 +204,18 @@ func Download(ctx context.Context, opts Options) (Result, error) {
 		}
 
 		// Transient: keep the partial as the resume point and back off.
-		if opts.RetryBackoff > 0 {
+		retryDelay := time.Duration(0)
+		if len(opts.RetryDelays) > 0 {
+			retryDelay = opts.RetryDelays[attempt-1]
+		} else if opts.RetryBackoff > 0 {
+			retryDelay = time.Duration(attempt) * opts.RetryBackoff
+		}
+		if retryDelay > 0 {
 			select {
 			case <-ctx.Done():
 				discardPartialOnError(opts, partialPath, ctx.Err())
 				return Result{}, ctx.Err()
-			case <-time.After(time.Duration(attempt) * opts.RetryBackoff):
+			case <-time.After(retryDelay):
 			}
 		}
 	}

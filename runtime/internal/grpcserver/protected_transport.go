@@ -15,6 +15,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedprincipal"
 	"github.com/nimiplatform/nimi/runtime/internal/protocol/envelope"
+	"github.com/nimiplatform/nimi/runtime/internal/rpcctx"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
@@ -262,6 +263,10 @@ func newUnaryProtectedDesktopTransportInterceptor(desktopSessions *protectedloca
 		if err := authorizeProtectedDesktopMethodForProfile(protectedContext, info.FullMethod, desktopSessions, bundled, firstPartyProfile, firstParty); err != nil {
 			return nil, err
 		}
+		protectedContext, err = withProtectedConnectionOwnerDecision(protectedContext)
+		if err != nil {
+			return nil, err
+		}
 		var cancel context.CancelFunc
 		if bundled {
 			principal, err := bindBundledAvatarPrincipal(protectedContext, bundledProfile.Capability, desktopSessions, accountPrincipalProvider)
@@ -365,6 +370,14 @@ func withProtectedDesktopAuthorizationDecision(ctx context.Context, method strin
 	)
 }
 
+func withProtectedConnectionOwnerDecision(ctx context.Context) (context.Context, error) {
+	connectionID, ok := protectedlocal.VerifiedDesktopConnectionIDFromContext(ctx)
+	if !ok {
+		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH)
+	}
+	return rpcctx.WithProtectedConnectionOwnerToken(ctx, rpcctx.ProtectedConnectionOwnerToken(connectionID)), nil
+}
+
 type protectedDesktopServerStream struct {
 	grpc.ServerStream
 	ctx       context.Context
@@ -410,6 +423,10 @@ func newStreamProtectedDesktopTransportInterceptor(desktopSessions *protectedloc
 		}
 		protectedContext := protectedlocal.ContextWithDesktopConnection(stream.Context(), connection)
 		if err := authorizeProtectedDesktopMethodForProfile(protectedContext, info.FullMethod, desktopSessions, bundled, firstPartyProfile, firstParty); err != nil {
+			return err
+		}
+		protectedContext, err = withProtectedConnectionOwnerDecision(protectedContext)
+		if err != nil {
 			return err
 		}
 		var principal *protectedprincipal.Principal

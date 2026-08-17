@@ -22218,6 +22218,13 @@
             "repeated": false,
             "optional": false,
             "number": 26
+          },
+          {
+            "name": "total_size_bytes",
+            "type": "int64",
+            "repeated": false,
+            "optional": false,
+            "number": 27
           }
         ],
         "source_file": "proto/runtime/v1/local_runtime_asset_catalog.proto"
@@ -23382,6 +23389,13 @@
             "repeated": false,
             "optional": false,
             "number": 21
+          },
+          {
+            "name": "total_size_bytes",
+            "type": "int64",
+            "repeated": false,
+            "optional": false,
+            "number": 22
           }
         ],
         "source_file": "proto/runtime/v1/local_runtime_asset_catalog.proto"
@@ -24376,6 +24390,13 @@
             "repeated": false,
             "optional": false,
             "number": 16
+          },
+          {
+            "name": "content_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 17
           },
           {
             "name": "install_kind",

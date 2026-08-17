@@ -238,7 +238,7 @@ export function projectNimiRuntimeLocalRecommendationFeedItem(
   const repo = normalizeText(record.repo);
   const title = normalizeText(record.title);
   const preferredEngine = normalizeText(record.preferredEngine);
-  const installModelId = normalizeText(installPayload.modelId || installPayload.assetId);
+  const installModelId = normalizeText(installPayload.modelId);
   const installRepo = normalizeText(installPayload.repo);
   if (!source || !itemId || !repo || !title || !preferredEngine || !installModelId || !installRepo) {
     return undefined;

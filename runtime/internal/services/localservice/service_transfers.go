@@ -3,6 +3,7 @@ package localservice
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sort"
 	"strings"
 	"sync"
@@ -66,6 +67,12 @@ func (c *localTransferControl) resume() bool {
 	close(c.signal)
 	c.signal = make(chan struct{})
 	return true
+}
+
+func (c *localTransferControl) isPaused() bool {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.paused && !c.cancelled
 }
 
 func (c *localTransferControl) cancel() bool {
@@ -135,6 +142,13 @@ func isTerminalTransferState(state string) bool {
 	}
 }
 
+func isRetryableFailedManagedDownload(summary *runtimev1.LocalTransferSessionSummary) bool {
+	return summary != nil &&
+		normalizeTransferKind(summary.GetSessionKind()) == localTransferKindDownload &&
+		normalizeTransferState(summary.GetState()) == localTransferStateFailed &&
+		summary.GetRetryable()
+}
+
 func transferStateDoneSuccess(state string) (bool, bool) {
 	switch normalizeTransferState(state) {
 	case localTransferStateCompleted:
@@ -194,6 +208,20 @@ func localTransferEventFromSummary(summary *runtimev1.LocalTransferSessionSummar
 }
 
 func (s *Service) newLocalTransfer(kind string, input localTransferMutation) *runtimev1.LocalTransferSessionSummary {
+	summary, _ := s.createLocalTransfer(kind, input, nil, false)
+	return summary
+}
+
+func (s *Service) newManagedModelDownloadTransfer(input localTransferMutation, spec managedDownloadedModelSpec) (*runtimev1.LocalTransferSessionSummary, error) {
+	return s.createLocalTransfer(localTransferKindDownload, input, &spec, true)
+}
+
+func (s *Service) createLocalTransfer(
+	kind string,
+	input localTransferMutation,
+	downloadSpec *managedDownloadedModelSpec,
+	requireDurable bool,
+) (*runtimev1.LocalTransferSessionSummary, error) {
 	now := nowISO()
 	summary := &runtimev1.LocalTransferSessionSummary{
 		InstallSessionId: "transfer_" + strings.ToLower(ulid.Make().String()),
@@ -215,14 +243,22 @@ func (s *Service) newLocalTransfer(kind string, input localTransferMutation) *ru
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.transfers[summary.GetInstallSessionId()] = cloneLocalTransferSummary(summary)
+	if downloadSpec != nil {
+		s.managedModelDownloadSpecs[summary.GetInstallSessionId()] = cloneManagedDownloadedModelSpec(*downloadSpec)
+	}
 	if !isTerminalTransferState(summary.GetState()) {
 		// Every non-terminal transfer gets a control. Import and download sessions
 		// both honor pause, resume, and cancellation through the same bounded path.
 		s.transferControls[summary.GetInstallSessionId()] = newLocalTransferControl()
 	}
-	s.persistStateLocked()
+	if err := s.persistStateLocked(); err != nil && requireDurable {
+		delete(s.transfers, summary.GetInstallSessionId())
+		delete(s.managedModelDownloadSpecs, summary.GetInstallSessionId())
+		delete(s.transferControls, summary.GetInstallSessionId())
+		return nil, fmt.Errorf("persist managed download transfer: %w", err)
+	}
 	s.publishTransferEventLocked(localTransferEventFromSummary(summary))
-	return cloneLocalTransferSummary(summary)
+	return cloneLocalTransferSummary(summary), nil
 }
 
 type localTransferMutation struct {
@@ -239,27 +275,63 @@ type localTransferMutation struct {
 	Retryable        bool
 }
 
-func (s *Service) mutateLocalTransfer(sessionID string, persist bool, mutate func(summary *runtimev1.LocalTransferSessionSummary)) *runtimev1.LocalTransferSessionSummary {
+func (s *Service) mutateLocalTransfer(sessionID string, persist bool, mutate func(summary *runtimev1.LocalTransferSessionSummary)) (*runtimev1.LocalTransferSessionSummary, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	current := cloneLocalTransferSummary(s.transfers[strings.TrimSpace(sessionID)])
+	key := strings.TrimSpace(sessionID)
+	previous := cloneLocalTransferSummary(s.transfers[key])
+	current := cloneLocalTransferSummary(previous)
 	if current == nil {
-		return nil
+		return nil, nil
 	}
+	previousControl, hadControl := s.transferControls[key]
+	previousRate, hadRate := s.transferRates[key]
+	previousSpec, hadSpec := s.managedModelDownloadSpecs[key]
 	mutate(current)
+	current.InstallSessionId = previous.GetInstallSessionId()
 	current.SessionKind = normalizeTransferKind(current.GetSessionKind())
 	current.State = normalizeTransferState(current.GetState())
 	current.UpdatedAt = nowISO()
-	s.transfers[current.GetInstallSessionId()] = cloneLocalTransferSummary(current)
+	s.transfers[key] = cloneLocalTransferSummary(current)
 	if isTerminalTransferState(current.GetState()) {
-		delete(s.transferControls, current.GetInstallSessionId())
-		delete(s.transferRates, current.GetInstallSessionId())
+		delete(s.transferControls, key)
+		delete(s.transferRates, key)
+		if !isRetryableFailedManagedDownload(current) {
+			delete(s.managedModelDownloadSpecs, key)
+		}
 	}
 	if persist {
-		s.persistStateLocked()
+		if err := s.persistStateLocked(); err != nil {
+			s.transfers[key] = previous
+			if hadControl {
+				s.transferControls[key] = previousControl
+			} else {
+				delete(s.transferControls, key)
+			}
+			if hadRate {
+				s.transferRates[key] = previousRate
+			} else {
+				delete(s.transferRates, key)
+			}
+			if hadSpec {
+				s.managedModelDownloadSpecs[key] = cloneManagedDownloadedModelSpec(previousSpec)
+			} else {
+				delete(s.managedModelDownloadSpecs, key)
+			}
+			return cloneLocalTransferSummary(previous), err
+		}
 	}
 	s.publishTransferEventLocked(localTransferEventFromSummary(current))
-	return cloneLocalTransferSummary(current)
+	return cloneLocalTransferSummary(current), nil
+}
+
+func localTransferPersistenceError(err error) error {
+	return grpcerr.WrapWithReasonCode(
+		codes.Unavailable,
+		runtimev1.ReasonCode_AI_LOCAL_CONFIGURATION_PERSISTENCE_UNAVAILABLE,
+		err,
+		grpcerr.ReasonOptions{Message: "local transfer state could not be persisted"},
+	)
 }
 
 // @nimi-authority: rule.nimi.runtime.local-compute.r029
@@ -281,15 +353,8 @@ func (s *Service) reconcileOrphanedLocalTransfersLocked(modelsRoot string) int {
 			// the durable byte projection from stable per-transfer staging so a hard
 			// restart never presents an existing Range prefix as 0 B or shares it.
 			var files []string
-			if descriptor := verifiedAssetDescriptorForAssetID(s.verified, summary.GetAssetId()); descriptor != nil {
-				files = normalizeStringSlice(descriptor.GetFiles())
-				if len(files) == 0 && strings.TrimSpace(descriptor.GetEntry()) != "" {
-					files = []string{strings.TrimSpace(descriptor.GetEntry())}
-				}
-				if descriptor.GetTotalSizeBytes() > 0 && summary.GetBytesTotal() != descriptor.GetTotalSizeBytes() {
-					summary.BytesTotal = descriptor.GetTotalSizeBytes()
-					changed = true
-				}
+			if spec, exists := s.managedModelDownloadSpecs[summary.GetInstallSessionId()]; exists {
+				files = append([]string(nil), spec.files...)
 			}
 			if bytesReceived, err := managedModelDownloadStagedBytes(modelsRoot, managedModelAcquisitionStorageID(summary.GetAssetId(), summary.GetInstallSessionId()), files); err == nil &&
 				summary.GetBytesReceived() != bytesReceived {
@@ -420,13 +485,16 @@ func (s *Service) PauseLocalTransfer(_ context.Context, req *runtimev1.PauseLoca
 		})
 	}
 	control := s.transferControl(sessionID)
-	summary := s.mutateLocalTransfer(sessionID, true, func(summary *runtimev1.LocalTransferSessionSummary) {
+	summary, persistErr := s.mutateLocalTransfer(sessionID, true, func(summary *runtimev1.LocalTransferSessionSummary) {
 		if isTerminalTransferState(summary.GetState()) {
 			return
 		}
 		summary.State = localTransferStatePaused
 		summary.Message = "transfer paused"
 	})
+	if persistErr != nil {
+		return nil, localTransferPersistenceError(persistErr)
+	}
 	if summary == nil {
 		return nil, grpcerr.WithReasonCodeOptions(codes.NotFound, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, grpcerr.ReasonOptions{
 			Message: "transfer not found",
@@ -454,7 +522,7 @@ func (s *Service) ResumeLocalTransfer(_ context.Context, req *runtimev1.ResumeLo
 			Message: "transfer not found",
 		})
 	}
-	if isTerminalTransferState(summary.GetState()) {
+	if isTerminalTransferState(summary.GetState()) && !isRetryableFailedManagedDownload(summary) {
 		return &runtimev1.ResumeLocalTransferResponse{Transfer: summary}, nil
 	}
 
@@ -464,11 +532,12 @@ func (s *Service) ResumeLocalTransfer(_ context.Context, req *runtimev1.ResumeLo
 		// Idempotent resume while the original in-process executor is alive.
 		return &runtimev1.ResumeLocalTransferResponse{Transfer: summary}, nil
 	}
-	if state == localTransferStatePaused && control != nil && control.resume() {
+	if state == localTransferStatePaused && control != nil && control.isPaused() {
 		// A cooperative pause retains its executor and only needs the existing
 		// control released. An interruption does not pause the control, so it
 		// deliberately falls through to full reconstruction below.
-		summary = s.mutateLocalTransfer(sessionID, true, func(summary *runtimev1.LocalTransferSessionSummary) {
+		var persistErr error
+		summary, persistErr = s.mutateLocalTransfer(sessionID, true, func(summary *runtimev1.LocalTransferSessionSummary) {
 			if isTerminalTransferState(summary.GetState()) {
 				return
 			}
@@ -479,6 +548,10 @@ func (s *Service) ResumeLocalTransfer(_ context.Context, req *runtimev1.ResumeLo
 			summary.SpeedBytesPerSec = 0
 			summary.EtaSeconds = 0
 		})
+		if persistErr != nil {
+			return nil, localTransferPersistenceError(persistErr)
+		}
+		_ = control.resume()
 		return &runtimev1.ResumeLocalTransferResponse{Transfer: summary}, nil
 	}
 
@@ -518,7 +591,7 @@ func (s *Service) startRestoredManagedModelDownload(
 			Message: "transfer not found",
 		})
 	}
-	if isTerminalTransferState(current.GetState()) {
+	if isTerminalTransferState(current.GetState()) && !isRetryableFailedManagedDownload(current) {
 		summary := cloneLocalTransferSummary(current)
 		s.mu.Unlock()
 		return summary, nil
@@ -537,6 +610,8 @@ func (s *Service) startRestoredManagedModelDownload(
 	}
 
 	control := newLocalTransferControl()
+	previousControl, hadControl := s.transferControls[sessionID]
+	previous := cloneLocalTransferSummary(current)
 	s.transferControls[sessionID] = control
 	current.State = localTransferStateRunning
 	current.Phase = "download"
@@ -551,7 +626,16 @@ func (s *Service) startRestoredManagedModelDownload(
 	current.Retryable = true
 	current.UpdatedAt = nowISO()
 	s.transfers[sessionID] = cloneLocalTransferSummary(current)
-	s.persistStateLocked()
+	if err := s.persistStateLocked(); err != nil {
+		s.transfers[sessionID] = previous
+		if hadControl {
+			s.transferControls[sessionID] = previousControl
+		} else {
+			delete(s.transferControls, sessionID)
+		}
+		s.mu.Unlock()
+		return nil, localTransferPersistenceError(err)
+	}
 	s.publishTransferEventLocked(localTransferEventFromSummary(current))
 	summary := cloneLocalTransferSummary(current)
 	s.transferWorkerWG.Add(1)
@@ -581,10 +665,13 @@ func (s *Service) finishRestoredManagedModelDownload(sessionID string, control *
 		return
 	}
 	delete(s.transferControls, sessionID)
-	current := s.transfers[sessionID]
+	previous := cloneLocalTransferSummary(s.transfers[sessionID])
+	current := cloneLocalTransferSummary(previous)
 	if current == nil || isTerminalTransferState(current.GetState()) || normalizeTransferState(current.GetState()) == localTransferStatePaused {
 		return
 	}
+	previousRate, hadRate := s.transferRates[sessionID]
+	previousSpec, hadSpec := s.managedModelDownloadSpecs[sessionID]
 	current.State = localTransferStateFailed
 	if runErr != nil {
 		current.Message = runErr.Error()
@@ -597,12 +684,23 @@ func (s *Service) finishRestoredManagedModelDownload(sessionID string, control *
 	current.EtaSeconds = 0
 	current.UpdatedAt = nowISO()
 	s.transfers[sessionID] = cloneLocalTransferSummary(current)
-	s.persistStateLocked()
+	delete(s.transferRates, sessionID)
+	delete(s.managedModelDownloadSpecs, sessionID)
+	if err := s.persistStateLocked(); err != nil {
+		s.transfers[sessionID] = previous
+		if hadRate {
+			s.transferRates[sessionID] = previousRate
+		}
+		if hadSpec {
+			s.managedModelDownloadSpecs[sessionID] = cloneManagedDownloadedModelSpec(previousSpec)
+		}
+		return
+	}
 	s.publishTransferEventLocked(localTransferEventFromSummary(current))
 }
 
-func (s *Service) failTransferWithReason(sessionID string, message string, reason string, retryable bool) {
-	_ = s.mutateLocalTransfer(sessionID, true, func(summary *runtimev1.LocalTransferSessionSummary) {
+func (s *Service) failTransferWithReason(sessionID string, message string, reason string, retryable bool) error {
+	_, err := s.mutateLocalTransfer(sessionID, true, func(summary *runtimev1.LocalTransferSessionSummary) {
 		if isTerminalTransferState(summary.GetState()) {
 			return
 		}
@@ -613,6 +711,7 @@ func (s *Service) failTransferWithReason(sessionID string, message string, reaso
 		summary.SpeedBytesPerSec = 0
 		summary.EtaSeconds = 0
 	})
+	return err
 }
 
 func (s *Service) CancelLocalTransfer(_ context.Context, req *runtimev1.CancelLocalTransferRequest) (*runtimev1.CancelLocalTransferResponse, error) {
@@ -623,7 +722,7 @@ func (s *Service) CancelLocalTransfer(_ context.Context, req *runtimev1.CancelLo
 		})
 	}
 	control := s.transferControl(sessionID)
-	summary := s.mutateLocalTransfer(sessionID, true, func(summary *runtimev1.LocalTransferSessionSummary) {
+	summary, persistErr := s.mutateLocalTransfer(sessionID, true, func(summary *runtimev1.LocalTransferSessionSummary) {
 		state := normalizeTransferState(summary.GetState())
 		if state == localTransferStateCompleted || state == localTransferStateCancelled {
 			return
@@ -633,6 +732,9 @@ func (s *Service) CancelLocalTransfer(_ context.Context, req *runtimev1.CancelLo
 		summary.ReasonCode = "LOCAL_TRANSFER_CANCELLED"
 		summary.Retryable = false
 	})
+	if persistErr != nil {
+		return nil, localTransferPersistenceError(persistErr)
+	}
 	if summary == nil {
 		return nil, grpcerr.WithReasonCodeOptions(codes.NotFound, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, grpcerr.ReasonOptions{
 			Message: "transfer not found",
