@@ -43,10 +43,14 @@ func streamLocalSpeechSynthesizeScenario(s *Service, req *runtimev1.StreamScenar
 		return err
 	}
 	jobID := job.GetJobId()
+	deliveryFailure := &scenarioStreamDeliveryFailure{}
 	defer s.finishScenarioJobExecution(jobID)
 	defer func() {
 		if current, ok := s.scenarioJobs.get(jobID); ok && !isTerminalScenarioJobStatus(current.GetStatus()) {
-			cause := streamErr
+			cause := deliveryFailure.durableCause()
+			if cause == nil {
+				cause = streamErr
+			}
 			if cause == nil {
 				cause = context.Canceled
 			}
@@ -123,7 +127,11 @@ func streamLocalSpeechSynthesizeScenario(s *Service, req *runtimev1.StreamScenar
 		event.Sequence = sequence.Add(1)
 		event.TraceId = traceID
 		event.Timestamp = timestamppb.New(time.Now().UTC())
-		return stream.Send(event)
+		if err := stream.Send(event); err != nil {
+			deliveryFailure.record(err)
+			return err
+		}
+		return nil
 	}
 	failAndStop := func(cause error) error {
 		if rpcctx.WasServerShutdown(requestCtx) {
@@ -131,6 +139,9 @@ func streamLocalSpeechSynthesizeScenario(s *Service, req *runtimev1.StreamScenar
 		}
 		if firstPacketTimedOut.Load() && !firstPacketSeen.Load() {
 			cause = grpcerr.WithReasonCode(codes.DeadlineExceeded, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT)
+		}
+		if deliveryCause := deliveryFailure.durableCause(); deliveryCause != nil {
+			cause = deliveryCause
 		}
 		s.finishLocalSpeechJobFailure(requestCtx, jobID, cause)
 		if s.logger != nil {

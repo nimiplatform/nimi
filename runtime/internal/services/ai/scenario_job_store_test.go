@@ -8,6 +8,8 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/authn"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/protobuf/types/known/structpb"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 func scenarioJobContext(appID string) context.Context {
@@ -248,5 +250,53 @@ drained:
 			t.Fatalf("late channel should be closed after unsubscribe")
 		}
 	default:
+	}
+}
+
+func TestScenarioJobStoreClearsReasonMetadataFromNonFailureTerminals(t *testing.T) {
+	metadataValue, err := structpb.NewStruct(map[string]any{"action_hint": "must-not-survive"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, terminal := range []struct {
+		status runtimev1.ScenarioJobStatus
+		event  runtimev1.ScenarioJobEventType
+	}{
+		{runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_COMPLETED},
+		{runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_CANCELED},
+	} {
+		t.Run(terminal.status.String(), func(t *testing.T) {
+			store := newScenarioJobStore()
+			now := timestamppb.Now()
+			jobID := "terminal-metadata-" + terminal.status.String()
+			created := store.create(&runtimev1.ScenarioJob{
+				JobId: jobID, Head: &runtimev1.ScenarioRequestHead{AppId: "app", SubjectUserId: "user"},
+				ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
+				ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
+				Status:        runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED,
+				ReasonCode:    runtimev1.ReasonCode_ACTION_EXECUTED,
+				TraceId:       "trace-" + jobID, CreatedAt: now, UpdatedAt: now,
+			}, func() {})
+			if created == nil {
+				t.Fatal("create ScenarioJob")
+			}
+			result, transitioned, err := store.transition(jobID, terminal.status, terminal.event, func(job *runtimev1.ScenarioJob) {
+				job.ReasonMetadata = metadataValue
+			})
+			if err != nil || !transitioned {
+				t.Fatalf("transition=%v err=%v", transitioned, err)
+			}
+			if result.GetReasonMetadata() != nil {
+				t.Fatalf("terminal snapshot metadata=%v", result.GetReasonMetadata())
+			}
+			persisted, ok := store.get(jobID)
+			if !ok || persisted.GetReasonMetadata() != nil {
+				t.Fatalf("stored terminal metadata=%v visible=%v", persisted.GetReasonMetadata(), ok)
+			}
+			_, _, backlog, isTerminal, ok := store.subscribe(jobID, 8)
+			if !ok || !isTerminal || len(backlog) == 0 || backlog[len(backlog)-1].GetJob().GetReasonMetadata() != nil {
+				t.Fatalf("terminal event backlog=%v terminal=%v visible=%v", backlog, isTerminal, ok)
+			}
+		})
 	}
 }

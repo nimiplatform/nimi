@@ -6,6 +6,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 func TestScenarioJobStoreIdempotencyIndex(t *testing.T) {
@@ -204,6 +205,44 @@ func TestScenarioJobStoreTerminalTransitionIsLocked(t *testing.T) {
 	}
 	if len(completed.GetArtifacts()) != 0 {
 		t.Fatalf("rejected terminal transition must not run mutation, got artifacts=%+v", completed.GetArtifacts())
+	}
+}
+
+func TestScenarioJobStoreFailedTransitionProjectsStableReason(t *testing.T) {
+	store := newScenarioJobStore()
+	now := timestamppb.New(time.Now().UTC())
+	job := &runtimev1.ScenarioJob{
+		JobId:        "job-failed-projection",
+		Head:         &runtimev1.ScenarioRequestHead{AppId: "app", SubjectUserId: "user"},
+		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
+		Status:       runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING,
+		ReasonCode:   runtimev1.ReasonCode_ACTION_EXECUTED,
+		CreatedAt:    now,
+		UpdatedAt:    now,
+		TraceId:      "trace-failed-projection",
+	}
+	if snapshot := store.create(job, nil); snapshot == nil {
+		t.Fatal("expected create snapshot")
+	}
+	failed, ok, err := store.transition(
+		job.GetJobId(),
+		runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED,
+		runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_FAILED,
+		func(job *runtimev1.ScenarioJob) {
+			job.ReasonCode = runtimev1.ReasonCode_AI_OUTPUT_INVALID
+			job.ReasonDetail = ""
+			job.ReasonMetadata = nil
+		},
+	)
+	if err != nil || !ok {
+		t.Fatalf("failed transition = %#v transitioned=%v err=%v", failed, ok, err)
+	}
+	if failed.GetReasonDetail() != "provider returned invalid output" {
+		t.Fatalf("failed reason detail=%q", failed.GetReasonDetail())
+	}
+	metadata := failed.GetReasonMetadata().AsMap()
+	if metadata["action_hint"] != "inspect_reason_code_and_retry_with_corrected_request" {
+		t.Fatalf("failed reason metadata=%v", metadata)
 	}
 }
 

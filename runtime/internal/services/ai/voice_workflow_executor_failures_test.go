@@ -169,6 +169,10 @@ func TestCloudVoiceResolvedAssemblyCapturesGeneratedPreferredNameBeforeWorkerReb
 	if strings.TrimSpace(effective.request.GetSpec().GetVoiceCreate().GetReferenceAudio().GetPreferredName()) == "" {
 		t.Fatal("generated preferred_name was not written into the durable request capture")
 	}
+	if err := fixture.service.bindCloudCredentialCustody("job-voice-rebuild", effective.resolvedAssembly); err != nil {
+		t.Fatalf("bind Cloud voice credential custody: %v", err)
+	}
+	defer fixture.service.releaseCloudCredentialCustody(effective.resolvedAssembly.CredentialCustodyRef)
 	rebuilt, err := fixture.service.cloudVoiceWorkflowEffectiveInputsFromResolvedAssembly(effective.resolvedAssembly)
 	if err != nil {
 		t.Fatalf("rebuild Cloud voice inputs: %v", err)

@@ -32,22 +32,21 @@ func (s *Service) SubmitScenarioJob(ctx context.Context, req *runtimev1.SubmitSc
 	if mode == runtimev1.ExecutionMode_EXECUTION_MODE_UNSPECIFIED {
 		mode = runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB
 	}
-	var intentErr error
-	ctx, intent, intentErr := s.captureScenarioExecutionIntent(ctx, req.GetHead(), scenarioTargetCapability(req.GetScenarioType()))
-	if intentErr != nil {
-		return nil, intentErr
-	}
-	localText := req.GetScenarioType() == runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE && intent.IsLocal()
-	localImage := req.GetScenarioType() == runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE && intent.IsLocal()
-	localVideo := req.GetScenarioType() == runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE && intent.IsLocal()
-	localSpeech := (req.GetScenarioType() == runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE ||
-		req.GetScenarioType() == runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE) && intent.IsLocal()
 	if err := validateScenarioExecutionMode(req.GetScenarioType(), mode); err != nil {
 		return nil, err
 	}
 	if mode != runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
 	}
+	var intentErr error
+	ctx, intent, intentErr := s.captureScenarioExecutionIntent(ctx, req.GetHead(), scenarioTargetCapability(req.GetScenarioType()))
+	if intentErr != nil {
+		return nil, intentErr
+	}
+	localImage := req.GetScenarioType() == runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE && intent.IsLocal()
+	localVideo := req.GetScenarioType() == runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE && intent.IsLocal()
+	localSpeech := (req.GetScenarioType() == runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE ||
+		req.GetScenarioType() == runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE) && intent.IsLocal()
 	ignored, err := classifyScenarioExtensions(req.GetScenarioType(), req.GetExtensions())
 	if err != nil {
 		return nil, err
@@ -57,12 +56,6 @@ func (s *Service) SubmitScenarioJob(ctx context.Context, req *runtimev1.SubmitSc
 	}
 
 	switch req.GetScenarioType() {
-	case runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE:
-		if localText {
-			return s.submitLocalTextScenarioJob(ctx, req, mode, ignored)
-		}
-		return s.submitCloudTextScenarioJob(ctx, req, mode, ignored)
-
 	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE:
 		return s.submitVoiceWorkflowJob(ctx, req, ignored)
 

@@ -227,16 +227,6 @@ func TestValidateSubmitScenarioAsyncJobRequest(t *testing.T) {
 		}
 	})
 
-	t.Run("local text requires input", func(t *testing.T) {
-		req := baseScenarioJobRequest()
-		req.ScenarioType = runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE
-		req.Spec = &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_TextGenerate{TextGenerate: &runtimev1.TextGenerateScenarioSpec{}}}
-		err := validateSubmitScenarioAsyncJobRequest(req)
-		reason, _ := grpcerr.ExtractReasonCode(err)
-		if reason != runtimev1.ReasonCode_AI_INPUT_INVALID {
-			t.Fatalf("unexpected reason: %v", reason)
-		}
-	})
 }
 
 func TestTranscriptionAudioSourceHelpers(t *testing.T) {
@@ -286,9 +276,6 @@ func TestScenarioJobIdempotencyAndTimeoutHelpers(t *testing.T) {
 	}
 	if defaultScenarioJobTimeout(runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE) != defaultTranscribeTimeout {
 		t.Fatalf("unexpected transcribe timeout")
-	}
-	if defaultScenarioJobTimeout(runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE) != defaultTextGenerateJobTimeout {
-		t.Fatalf("unexpected default timeout")
 	}
 }
 

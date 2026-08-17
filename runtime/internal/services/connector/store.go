@@ -17,7 +17,8 @@ import (
 )
 
 const (
-	registryFileName = "connector-registry.json"
+	registryFileName                   = "connector-registry.json"
+	scenarioJobCredentialCustodyPrefix = "scenario-job-credential-"
 )
 
 var errConnectorLimitExceeded = errors.New("connector limit exceeded")
@@ -49,6 +50,7 @@ type ConnectorRecord struct {
 	CreatedAt            int64                        `json:"created_at"`
 	UpdatedAt            int64                        `json:"updated_at"`
 	DeletePending        bool                         `json:"delete_pending,omitempty"`
+	CredentialCustodyRef string                       `json:"-"`
 }
 
 // ConnectorMutations describes mutable fields for Update.
@@ -162,6 +164,9 @@ func (s *ConnectorStore) createLocked(record ConnectorRecord, secretPayload stri
 		record.ConnectorID = ulid.Make().String()
 	} else if _, err := sanitizeConnectorID(record.ConnectorID); err != nil {
 		return ConnectorRecord{}, fmt.Errorf("invalid connector id: %w", err)
+	}
+	if strings.HasPrefix(record.ConnectorID, scenarioJobCredentialCustodyPrefix) {
+		return ConnectorRecord{}, fmt.Errorf("invalid connector id: prefix %q is reserved for Runtime credential custody", scenarioJobCredentialCustodyPrefix)
 	}
 	now := time.Now().UnixMilli()
 	if record.CreatedAt == 0 {
@@ -324,6 +329,94 @@ func (s *ConnectorStore) LoadSecretPayload(connectorID string) (string, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return s.readSecretPayloadLocked(connectorID)
+}
+
+// CaptureCredentialCustody seals the exact current Connector credential under
+// a Job-owned opaque reference. Deleting or updating the Connector afterward
+// cannot change the credential used by the ScenarioJob being captured.
+func (s *ConnectorStore) CaptureCredentialCustody(connectorID string, jobID string) (ConnectorRecord, string, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	record, found, err := s.getRecordLocked(connectorID)
+	if err != nil {
+		return ConnectorRecord{}, "", err
+	}
+	if !found || record.Status != runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE || !record.HasCredential {
+		return ConnectorRecord{}, "", fmt.Errorf("connector %q has no credential custody", connectorID)
+	}
+	payload, err := s.readStoredSecretPayloadLocked(record.ConnectorID)
+	if err != nil {
+		return ConnectorRecord{}, "", fmt.Errorf("read connector credential: %w", err)
+	}
+	if strings.TrimSpace(payload) == "" {
+		return ConnectorRecord{}, "", fmt.Errorf("connector %q has no credential custody", connectorID)
+	}
+	ref, err := scenarioJobCredentialCustodyRef(jobID)
+	if err != nil {
+		return ConnectorRecord{}, "", err
+	}
+	if err := s.writeSecretPayloadLocked(ref, payload); err != nil {
+		return ConnectorRecord{}, "", fmt.Errorf("write ScenarioJob credential custody: %w", err)
+	}
+	return record, ref, nil
+}
+
+// LoadCredentialCustody opens one captured Job credential. It never falls
+// back to the current Connector secret.
+func (s *ConnectorStore) LoadCredentialCustody(ref string) (string, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	validated, err := validateScenarioJobCredentialCustodyRef(ref)
+	if err != nil {
+		return "", err
+	}
+	return s.readStoredSecretPayloadLocked(validated)
+}
+
+func (s *ConnectorStore) ReleaseCredentialCustody(ref string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	validated, err := validateScenarioJobCredentialCustodyRef(ref)
+	if err != nil {
+		return err
+	}
+	return s.deleteSecretPayloadLocked(validated)
+}
+
+func scenarioJobCredentialCustodyRef(jobID string) (string, error) {
+	id, err := sanitizeConnectorID(jobID)
+	if err != nil {
+		return "", fmt.Errorf("resolve ScenarioJob credential custody: %w", err)
+	}
+	return scenarioJobCredentialCustodyPrefix + id, nil
+}
+
+func validateScenarioJobCredentialCustodyRef(ref string) (string, error) {
+	validated, err := sanitizeConnectorID(ref)
+	if err != nil {
+		return "", fmt.Errorf("resolve ScenarioJob credential custody: %w", err)
+	}
+	if !strings.HasPrefix(validated, scenarioJobCredentialCustodyPrefix) || strings.TrimPrefix(validated, scenarioJobCredentialCustodyPrefix) == "" {
+		return "", fmt.Errorf("ScenarioJob credential custody reference is invalid")
+	}
+	return validated, nil
+}
+
+// ValidateCredentialCustodyRefForJob verifies that one opaque credential
+// custody reference belongs to the exact ScenarioJob generation being loaded.
+func ValidateCredentialCustodyRefForJob(ref string, jobID string) error {
+	validated, err := validateScenarioJobCredentialCustodyRef(ref)
+	if err != nil {
+		return err
+	}
+	expected, err := scenarioJobCredentialCustodyRef(jobID)
+	if err != nil {
+		return err
+	}
+	if validated != expected {
+		return fmt.Errorf("ScenarioJob credential custody reference does not belong to job %q", strings.TrimSpace(jobID))
+	}
+	return nil
 }
 
 // ReconcileStartup performs startup reconciliation:

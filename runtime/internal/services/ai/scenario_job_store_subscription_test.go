@@ -367,11 +367,24 @@ func TestScenarioJobStoreSubmitModeAndUnsupportedType(t *testing.T) {
 		t.Fatalf("expected route unsupported for non-async media submit, got=%v", reason)
 	}
 
-	if err := validateScenarioExecutionMode(
-		runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,
+	for _, mode := range []runtimev1.ExecutionMode{
 		runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
-	); err != nil {
-		t.Fatalf("text ScenarioJob mode must be admitted: %v", err)
+		runtimev1.ExecutionMode_EXECUTION_MODE_UNSPECIFIED,
+	} {
+		_, err := svc.SubmitScenarioJob(withLocalScenarioTestIntent(ctx, "text.generate"), &runtimev1.SubmitScenarioJobRequest{
+			Head:          &runtimev1.ScenarioRequestHead{AppId: "nimi.desktop", SubjectUserId: "user-1"},
+			ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,
+			ExecutionMode: mode,
+			Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_TextGenerate{
+				TextGenerate: &runtimev1.TextGenerateScenarioSpec{Input: []*runtimev1.ChatMessage{{Role: "user", Content: "x"}}},
+			}},
+		})
+		if reason, _ := grpcerr.ExtractReasonCode(err); reason != runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED {
+			t.Fatalf("text SubmitScenarioJob mode %s reason=%v err=%v", mode, reason, err)
+		}
+	}
+	if got := len(svc.scenarioJobs.jobs); got != 0 {
+		t.Fatalf("rejected text ScenarioJob submissions published %d Jobs", got)
 	}
 }
 

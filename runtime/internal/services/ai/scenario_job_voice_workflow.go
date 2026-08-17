@@ -72,6 +72,12 @@ func (s *Service) submitVoiceWorkflowJob(
 		CreatedAt: now, UpdatedAt: now, TraceId: effective.traceID,
 		IgnoredExtensions: cloneIgnoredScenarioExtensions(ignored),
 	}
+	if err := s.bindCloudCredentialCustody(job.GetJobId(), effective.resolvedAssembly); err != nil {
+		cancel()
+		return nil, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, err, grpcerr.ReasonOptions{
+			Message: "Cloud voice ScenarioJob credential custody could not be captured",
+		})
+	}
 	if identity := authn.IdentityFromContext(ctx); identity != nil {
 		jobCtx = authn.WithIdentity(jobCtx, &authn.Identity{SubjectUserID: identity.SubjectUserID})
 	}
@@ -80,14 +86,17 @@ func (s *Service) submitVoiceWorkflowJob(
 	)
 	if persistErr != nil {
 		cancel()
+		_ = s.releaseCloudCredentialCustody(effective.resolvedAssembly.CredentialCustodyRef)
 		return nil, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID, persistErr, grpcerr.ReasonOptions{Message: "Cloud voice ScenarioJob submission could not be persisted"})
 	}
 	if stored == nil {
 		cancel()
+		_ = s.releaseCloudCredentialCustody(effective.resolvedAssembly.CredentialCustodyRef)
 		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
 	if !created {
 		cancel()
+		_ = s.releaseCloudCredentialCustody(effective.resolvedAssembly.CredentialCustodyRef)
 		return &runtimev1.SubmitScenarioJobResponse{Job: stored}, nil
 	}
 	go func() {

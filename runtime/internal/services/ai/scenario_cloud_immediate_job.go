@@ -52,17 +52,27 @@ func (s *Service) captureImmediateCloudScenarioJob(
 		ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED, CreatedAt: now, UpdatedAt: now,
 		TraceId: assembly.TraceID, IgnoredExtensions: cloneIgnoredScenarioExtensions(ignored),
 	}
+	if err := s.bindCloudCredentialCustody(job.GetJobId(), assembly); err != nil {
+		cancel()
+		return nil, nil, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, err, grpcerr.ReasonOptions{
+			Message: "Cloud ScenarioJob credential custody could not be captured",
+		})
+	}
 	stored, created, persistErr := s.scenarioJobs.createOwnedAndBindCloudAssemblyChecked(
 		job, cancel, localAppJobOwnerFromContext(ctx), "", assembly,
 	)
 	if persistErr != nil {
 		cancel()
+		_ = s.releaseCloudCredentialCustody(assembly.CredentialCustodyRef)
 		return nil, nil, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID, persistErr, grpcerr.ReasonOptions{
 			Message: "captured Cloud ResolvedAssembly and ScenarioJob could not be committed atomically",
 		})
 	}
 	if !created || stored == nil || !s.scenarioJobs.startExecution(stored.GetJobId()) {
 		cancel()
+		if !created {
+			_ = s.releaseCloudCredentialCustody(assembly.CredentialCustodyRef)
+		}
 		return nil, nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
 	return stored, jobCtx, nil

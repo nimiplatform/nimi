@@ -334,7 +334,7 @@ func (s *Service) cloudMediaEffectiveInputsFromResolvedAssembly(assembly *cloudR
 	if err != nil {
 		return nil, cloudMediaDriverError(assembly.CapabilityContract, err)
 	}
-	connectorRecord := cloneConnectorRecord(assembly.Connector)
+	connectorRecord := connectorRecordWithCredentialCustody(cloneConnectorRecord(assembly.Connector), assembly.CredentialCustodyRef)
 	safeTarget := &nimillm.RemoteTarget{
 		ProviderType: target.Provider(), ProviderModelID: target.ProviderModelID(),
 		RemoteModelCatalogID: target.RemoteModelCatalogID(), ConnectorID: connectorRecord.ConnectorID,

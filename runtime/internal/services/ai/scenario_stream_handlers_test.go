@@ -4,10 +4,13 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 )
 
 type fakeScenarioStreamingSpeechProvider struct{}
@@ -63,11 +66,18 @@ func TestStreamChunkMinBytes(t *testing.T) {
 }
 
 type mockScenarioEventStream struct {
-	ctx    context.Context
-	events []*runtimev1.StreamScenarioEvent
+	ctx        context.Context
+	events     []*runtimev1.StreamScenarioEvent
+	sendCount  int
+	failSendAt int
+	sendErr    error
 }
 
 func (m *mockScenarioEventStream) Send(event *runtimev1.StreamScenarioEvent) error {
+	m.sendCount++
+	if m.failSendAt > 0 && m.sendCount == m.failSendAt {
+		return m.sendErr
+	}
 	m.events = append(m.events, event)
 	return nil
 }
@@ -81,3 +91,85 @@ func (m *mockScenarioEventStream) SetHeader(_ metadata.MD) error  { return nil }
 func (m *mockScenarioEventStream) SetTrailer(_ metadata.MD)       {}
 func (m *mockScenarioEventStream) RecvMsg(any) error              { return nil }
 func (m *mockScenarioEventStream) SendMsg(any) error              { return nil }
+
+func TestImmediateScenarioInvalidTimeoutRejectedBeforePublication(t *testing.T) {
+	invalidTimeouts := []int32{-1, int32((maxRuntimeRequestTimeout + time.Millisecond) / time.Millisecond)}
+	for _, timeoutMS := range invalidTimeouts {
+		t.Run((time.Duration(timeoutMS) * time.Millisecond).String(), func(t *testing.T) {
+			tests := []struct {
+				name string
+				run  func(*Service) error
+			}{
+				{
+					name: "execute text",
+					run: func(svc *Service) error {
+						_, err := svc.ExecuteScenario(context.Background(), &runtimev1.ExecuteScenarioRequest{
+							Head:          &runtimev1.ScenarioRequestHead{AppId: "app.timeout", SubjectUserId: "user-timeout", TimeoutMs: timeoutMS},
+							ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,
+							ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_SYNC,
+							Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_TextGenerate{TextGenerate: &runtimev1.TextGenerateScenarioSpec{
+								Input: []*runtimev1.ChatMessage{{Role: "user", Content: "hello"}},
+							}}},
+						})
+						return err
+					},
+				},
+				{
+					name: "execute embed",
+					run: func(svc *Service) error {
+						_, err := svc.ExecuteScenario(context.Background(), &runtimev1.ExecuteScenarioRequest{
+							Head:          &runtimev1.ScenarioRequestHead{AppId: "app.timeout", SubjectUserId: "user-timeout", TimeoutMs: timeoutMS},
+							ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_EMBED,
+							ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_SYNC,
+							Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_TextEmbed{TextEmbed: &runtimev1.TextEmbedScenarioSpec{
+								Inputs: []string{"hello"},
+							}}},
+						})
+						return err
+					},
+				},
+				{
+					name: "stream text",
+					run: func(svc *Service) error {
+						return svc.StreamScenario(&runtimev1.StreamScenarioRequest{
+							Head:          &runtimev1.ScenarioRequestHead{AppId: "app.timeout", SubjectUserId: "user-timeout", TimeoutMs: timeoutMS},
+							ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,
+							ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_STREAM,
+							Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_TextGenerate{TextGenerate: &runtimev1.TextGenerateScenarioSpec{
+								Input: []*runtimev1.ChatMessage{{Role: "user", Content: "hello"}},
+							}}},
+						}, &mockScenarioEventStream{ctx: context.Background()})
+					},
+				},
+				{
+					name: "stream speech",
+					run: func(svc *Service) error {
+						return svc.StreamScenario(&runtimev1.StreamScenarioRequest{
+							Head:          &runtimev1.ScenarioRequestHead{AppId: "app.timeout", SubjectUserId: "user-timeout", TimeoutMs: timeoutMS},
+							ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE,
+							ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_STREAM,
+							Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_SpeechSynthesize{
+								SpeechSynthesize: &runtimev1.SpeechSynthesizeScenarioSpec{Text: "hello"},
+							}},
+						}, &mockScenarioEventStream{ctx: context.Background()})
+					},
+				},
+			}
+			for _, test := range tests {
+				t.Run(test.name, func(t *testing.T) {
+					svc := newTestService(nil)
+					err := test.run(svc)
+					if status.Code(err) != codes.InvalidArgument {
+						t.Fatalf("status=%s err=%v", status.Code(err), err)
+					}
+					if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED {
+						t.Fatalf("reason=%s present=%v err=%v", reason, ok, err)
+					}
+					if got := len(svc.scenarioJobs.jobs); got != 0 {
+						t.Fatalf("invalid timeout published %d Jobs", got)
+					}
+				})
+			}
+		})
+	}
+}

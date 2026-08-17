@@ -165,6 +165,9 @@ func newService(logger *slog.Logger, auditStore *auditlog.Store, connStore *conn
 	if err := voiceAssets.reconcilePendingPublications(scenarioJobs); err != nil {
 		return nil, fmt.Errorf("reconcile pending voice publications: %w", err)
 	}
+	if err := svc.releaseRecoveredTerminalCloudCredentialCustody(); err != nil {
+		return nil, err
+	}
 	if err := scenarioJobs.pruneRecoveredDurableState(); err != nil {
 		return nil, fmt.Errorf("prune recovered scenario job state: %w", err)
 	}

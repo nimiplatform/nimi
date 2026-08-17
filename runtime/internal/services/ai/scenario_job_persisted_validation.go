@@ -44,11 +44,18 @@ func validatePersistedScenarioJob(job *runtimev1.ScenarioJob, createdAt, updated
 	default:
 		return fmt.Errorf("persisted ScenarioJob status is invalid")
 	}
+	if (job.GetStatus() == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED ||
+		job.GetStatus() == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED) && job.GetReasonMetadata() != nil {
+		return fmt.Errorf("persisted completed or canceled ScenarioJob has reason metadata")
+	}
 	if job.GetReasonCode() == runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
 		return fmt.Errorf("persisted ScenarioJob reason code is unspecified")
 	}
 	if _, known := runtimev1.ReasonCode_name[int32(job.GetReasonCode())]; !known {
 		return fmt.Errorf("persisted ScenarioJob reason code is unknown")
+	}
+	if err := validateFailedScenarioJobProjection(job); err != nil {
+		return fmt.Errorf("persisted ScenarioJob failure projection is invalid: %w", err)
 	}
 	if job.GetCreatedAt() == nil || job.GetUpdatedAt() == nil ||
 		job.GetCreatedAt().CheckValid() != nil || job.GetUpdatedAt().CheckValid() != nil ||

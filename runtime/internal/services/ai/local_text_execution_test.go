@@ -472,7 +472,7 @@ func TestLocalTextCapturePreservesCompleteBundleInvocationIdentity(t *testing.T)
 	selected.ExactBindings[0].BundleDir = filepath.Dir(selected.ExactBindings[0].AbsolutePath)
 	selected.ExactBindings[0].DeclaredFiles = []string{"model.gguf", "tokenizer.json"}
 	svc.SetLocalExecutionResolver(&mutableLocalExecutionResolver{projection: selected})
-	request := localTextJobRequestForTest()
+	request := localTextExecuteRequestForTest()
 	effective, err := svc.captureLocalTextEffectiveInputs(localTextIntentContext(context.Background(), nil), request.GetHead(), request.GetSpec().GetTextGenerate(), false)
 	if err != nil {
 		t.Fatalf("capture local text bundle: %v", err)
@@ -482,114 +482,6 @@ func TestLocalTextCapturePreservesCompleteBundleInvocationIdentity(t *testing.T)
 	if len(files) != 1 || files[0].ModelAssetID != selected.ExactBindings[0].ModelAssetID ||
 		files[0].BundleDir != selected.ExactBindings[0].BundleDir || !slices.Equal(files[0].DeclaredFiles, selected.ExactBindings[0].DeclaredFiles) {
 		t.Fatalf("captured invocation bundle identity = %+v, want %+v", files, selected.ExactBindings[0])
-	}
-}
-
-func TestLocalTextScenarioJobNeverRereadsSelectionAfterCapturedAssemblyPublish(t *testing.T) {
-	svc := newTestService(nil)
-	selected := selectedTextExecutionForTest(t, "loadout-captured", "captured.gguf")
-	selected.LoadoutID = "loadout-captured"
-	selected.RecipeID = capabilitydriver.LlamaGemma4E2BRecipeID
-	selected.RecipeRevision = "1"
-	selected.ExactBindings[0].ModelAssetID = "model-captured"
-	selected.ExactBindings[0].VerifiedContentID = "sha256:" + strings.Repeat("c", 64)
-	resolver := &mutableLocalExecutionResolver{projection: selected}
-	host := &localTextHostStub{started: make(chan struct{}), release: make(chan struct{})}
-	svc.SetLocalExecutionResolver(resolver)
-	svc.SetLocalTextExecutionHost(host)
-
-	response, err := svc.SubmitScenarioJob(localTextIntentContext(context.Background(), nil), localTextJobRequestForTest())
-	if err != nil {
-		t.Fatalf("SubmitScenarioJob: %v", err)
-	}
-	jobID := response.GetJob().GetJobId()
-	identity := response.GetJob().GetEffectiveInputIdentity()
-	if identity.GetLoadoutId() != selected.LoadoutID || identity.GetModelAxes()[0].GetModelAssetId() != "model-captured" {
-		t.Fatalf("published Job did not contain captured assembly: %+v", identity)
-	}
-	capturedAssembly, ok := svc.scenarioJobs.resolvedAssembly(jobID)
-	if !ok || len(capturedAssembly.ModelAxes) != 1 || capturedAssembly.ModelAxes[0].AbsolutePath != selected.ExactBindings[0].AbsolutePath {
-		t.Fatalf("published private ResolvedAssembly = %+v, visible=%v", capturedAssembly, ok)
-	}
-	resolver.mu.Lock()
-	resolver.projection = selectedTextExecutionForTest(t, "loadout-replacement", "replacement.gguf")
-	resolver.err = errors.New("current selection must not be read after Job publish")
-	resolver.mu.Unlock()
-	select {
-	case <-host.started:
-	case <-time.After(time.Second):
-		t.Fatal("captured Job did not reach execution host")
-	}
-	close(host.release)
-	completed := waitForScenarioJobTerminalForLocalTextTest(t, svc, jobID)
-	if completed.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED || completed.GetEffectiveInputIdentity().GetLoadoutId() != selected.LoadoutID {
-		t.Fatalf("completed Job changed captured assembly: %+v", completed)
-	}
-	retainedAssembly, ok := svc.scenarioJobs.resolvedAssembly(jobID)
-	if !ok || retainedAssembly.ModelAxes[0].AbsolutePath != capturedAssembly.ModelAxes[0].AbsolutePath || retainedAssembly.LoadoutID != capturedAssembly.LoadoutID {
-		t.Fatalf("selection update changed captured private ResolvedAssembly: before=%+v after=%+v visible=%v", capturedAssembly, retainedAssembly, ok)
-	}
-	if calls := resolver.callCount(); calls != 1 {
-		t.Fatalf("selection resolver calls = %d, want exactly one admission capture", calls)
-	}
-}
-
-func TestLocalTextScenarioJobWorkerUsesOnlyStoredResolvedAssemblyClone(t *testing.T) {
-	svc := newTestService(nil)
-	resolver := &mutableLocalExecutionResolver{projection: selectedTextExecutionForTest(t, "stored-worker", "stored-worker.gguf")}
-	host := &localTextHostStub{}
-	svc.SetLocalExecutionResolver(resolver)
-	svc.SetLocalTextExecutionHost(host)
-	request := localTextJobRequestForTest()
-	effective, err := svc.captureLocalTextEffectiveInputs(localTextIntentContext(context.Background(), nil), request.GetHead(), request.GetSpec().GetTextGenerate(), false)
-	if err != nil {
-		t.Fatalf("capture local text worker inputs: %v", err)
-	}
-	defer effective.release()
-
-	jobCtx, cancel := context.WithCancel(context.Background())
-	jobID := "local-text-stored-assembly-worker"
-	job := &runtimev1.ScenarioJob{
-		JobId: jobID, Head: cloneScenarioHead(request.GetHead()), ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,
-		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB, RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
-		ModelResolved: effective.modelResolved(), Status: runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED,
-		ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED, EffectiveInputIdentity: cloneLoadoutEffectiveInputIdentity(effective.effectiveInputIdentity),
-	}
-	if _, created, err := svc.scenarioJobs.createOwnedAndBindAssemblyChecked(job, cancel, nil, "", effective.resolvedAssembly); err != nil || !created {
-		cancel()
-		t.Fatalf("publish local text ScenarioJob: created=%v err=%v", created, err)
-	}
-
-	// The submission capture and an accessor-returned clone are deliberately
-	// changed after publication. Neither object is the worker's execution input.
-	effective.plan = nil
-	effective.request.Input[0].Content = "tampered-submission-object"
-	effective.resolvedAssembly.Request.Payload = []byte(`{"input":[{"role":"user","content":"tampered-capture-assembly"}]}`)
-	accessorClone, ok := svc.scenarioJobs.resolvedAssembly(jobID)
-	if !ok {
-		t.Fatal("published Job has no private ResolvedAssembly")
-	}
-	mismatched := accessorClone
-	mismatched.LoadPlan.Text.ProcessKey = "tampered-process-key"
-	if _, err := svc.localTextEffectiveInputsFromResolvedAssembly(mismatched); err == nil {
-		t.Fatal("rehydration accepted a load plan that differs from the exact Driver projection")
-	}
-	accessorClone, _ = svc.scenarioJobs.resolvedAssembly(jobID)
-	accessorClone.Request.Payload = []byte(`{"input":[{"role":"user","content":"tampered-accessor-clone"}]}`)
-
-	svc.executeLocalTextScenarioJob(jobCtx, jobID)
-	completed, ok := svc.scenarioJobs.get(jobID)
-	if !ok || completed.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
-		t.Fatalf("stored-assembly worker status=%v visible=%v reason=%v detail=%q", completed.GetStatus(), ok, completed.GetReasonCode(), completed.GetReasonDetail())
-	}
-	host.mu.Lock()
-	body := string(host.capturedBody)
-	host.mu.Unlock()
-	if !strings.Contains(body, "hello") || strings.Contains(body, "tampered") {
-		t.Fatalf("execution host request body = %s", body)
-	}
-	if calls := resolver.callCount(); calls != 1 {
-		t.Fatalf("selection resolver calls = %d, want only submission capture", calls)
 	}
 }
 
@@ -727,6 +619,70 @@ func TestLocalTextStreamFailureEmitsTypedTerminalEvent(t *testing.T) {
 	}
 }
 
+func TestLocalTextStreamSendFailurePersistsFailedCause(t *testing.T) {
+	for _, test := range []struct {
+		name         string
+		failSendAt   int
+		streamDeltas []localexecution.TextDelta
+	}{
+		{name: "started", failSendAt: 1},
+		{name: "buffered delta flush", failSendAt: 2, streamDeltas: []localexecution.TextDelta{{Text: "short"}}},
+		{name: "host delta delivery", failSendAt: 2, streamDeltas: []localexecution.TextDelta{{Text: strings.Repeat("x", minStreamChunkBytes)}}},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			svc := newTestService(nil)
+			svc.SetLocalExecutionResolver(&mutableLocalExecutionResolver{projection: selectedTextExecutionForTest(t, "config-stream-send-failure", "stream-send-failure.gguf")})
+			host := &localTextHostStub{started: make(chan struct{}), streamDeltas: test.streamDeltas}
+			svc.SetLocalTextExecutionHost(host)
+			executeRequest := localTextExecuteRequestForTest()
+			sendErr := status.Error(codes.Unavailable, "stream transport unavailable")
+			stream := &mockScenarioEventStream{
+				ctx: localTextIntentContext(context.Background(), nil), failSendAt: test.failSendAt, sendErr: sendErr,
+			}
+			err := svc.StreamScenario(&runtimev1.StreamScenarioRequest{
+				Head: executeRequest.GetHead(), ScenarioType: executeRequest.GetScenarioType(),
+				ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_STREAM, Spec: executeRequest.GetSpec(),
+			}, stream)
+			if status.Code(err) != codes.Unavailable {
+				t.Fatalf("StreamScenario status=%s err=%v", status.Code(err), err)
+			}
+			if status.Convert(err).Message() != "stream transport unavailable" {
+				t.Fatalf("StreamScenario replaced transport detail: %v", err)
+			}
+			hostStarted := false
+			select {
+			case <-host.started:
+				hostStarted = true
+			default:
+			}
+			if test.failSendAt == 1 && hostStarted {
+				t.Fatal("STARTED delivery failure invoked the local execution Host")
+			}
+			if test.failSendAt > 1 && !hostStarted {
+				t.Fatal("buffered delivery failure did not reach the local execution Host")
+			}
+			svc.scenarioJobs.mu.RLock()
+			defer svc.scenarioJobs.mu.RUnlock()
+			if len(svc.scenarioJobs.jobs) != 1 {
+				t.Fatalf("persisted stream Jobs=%d, want 1", len(svc.scenarioJobs.jobs))
+			}
+			for _, record := range svc.scenarioJobs.jobs {
+				if record.job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED ||
+					record.job.GetReasonCode() != runtimev1.ReasonCode_AI_STREAM_BROKEN {
+					t.Fatalf("stream Send terminal status=%s reason=%s", record.job.GetStatus(), record.job.GetReasonCode())
+				}
+				if record.job.GetReasonDetail() != "stream delivery failed" {
+					t.Fatalf("stream Send terminal detail=%q", record.job.GetReasonDetail())
+				}
+				metadata := record.job.GetReasonMetadata().AsMap()
+				if metadata["action_hint"] != "retry_or_reopen_stream" || metadata["retryable"] != true {
+					t.Fatalf("stream Send terminal metadata=%v", metadata)
+				}
+			}
+		})
+	}
+}
+
 func TestLocalTextStreamFirstPacketTimeoutEmitsTypedTerminalEvent(t *testing.T) {
 	svc := newTestService(nil)
 	svc.streamFirstPacketTimeout = 10 * time.Millisecond
@@ -824,6 +780,13 @@ func TestLocalTextStreamCancelTerminatesHostRequest(t *testing.T) {
 	case <-time.After(2 * time.Second):
 		t.Fatal("StreamScenario did not return")
 	}
+	svc.scenarioJobs.mu.RLock()
+	defer svc.scenarioJobs.mu.RUnlock()
+	for _, record := range svc.scenarioJobs.jobs {
+		if record.job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED || record.job.GetReasonMetadata() != nil {
+			t.Fatalf("canceled stream terminal status=%s metadata=%v", record.job.GetStatus(), record.job.GetReasonMetadata())
+		}
+	}
 }
 
 func selectedTextExecutionForTest(t *testing.T, configurationID string, filename string) *localexecution.SelectedLocalExecution {
@@ -888,16 +851,6 @@ func localTextExecuteRequestForTest() *runtimev1.ExecuteScenarioRequest {
 		Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_TextGenerate{TextGenerate: &runtimev1.TextGenerateScenarioSpec{
 			Input: []*runtimev1.ChatMessage{{Role: "user", Content: "hello"}},
 		}}},
-	}
-}
-
-func localTextJobRequestForTest() *runtimev1.SubmitScenarioJobRequest {
-	execute := localTextExecuteRequestForTest()
-	return &runtimev1.SubmitScenarioJobRequest{
-		Head:          execute.GetHead(),
-		ScenarioType:  execute.GetScenarioType(),
-		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
-		Spec:          execute.GetSpec(),
 	}
 }
 

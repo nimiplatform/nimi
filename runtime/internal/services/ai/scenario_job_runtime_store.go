@@ -445,6 +445,21 @@ func (s *scenarioJobStore) transitionWithVoiceResult(
 	if status != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_UNSPECIFIED {
 		record.job.Status = status
 	}
+	if record.job.GetStatus() == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED ||
+		record.job.GetStatus() == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED {
+		record.job.ReasonMetadata = nil
+	}
+	if err := prepareFailedScenarioJobProjection(record.job); err != nil {
+		record.job = previousJob
+		record.voiceAsset = previousVoiceAsset
+		record.voiceReference = previousVoiceReference
+		record.updatedAt = previousUpdatedAt
+		record.terminalAt = previousTerminalAt
+		s.syncArtifactIndexLocked(id, record)
+		job := cloneScenarioJob(record.job)
+		s.mu.Unlock()
+		return job, false, err
+	}
 	s.syncArtifactIndexLocked(id, record)
 	nowTime := time.Now().UTC()
 	record.updatedAt = nowTime
@@ -535,11 +550,16 @@ func (s *scenarioJobStore) forceFailedInMemory(jobID string, reason string) (*ru
 	if isTerminalScenarioJobStatus(record.job.GetStatus()) {
 		return cloneScenarioJob(record.job), false
 	}
+	previousJob := cloneScenarioJob(record.job)
 	nowTime := time.Now().UTC()
 	record.job.Status = runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED
 	record.job.ReasonCode = runtimev1.ReasonCode_AI_OUTPUT_INVALID
 	record.job.ReasonDetail = strings.TrimSpace(reason)
 	record.job.ReasonMetadata = nil
+	if err := prepareFailedScenarioJobProjection(record.job); err != nil {
+		record.job = previousJob
+		return cloneScenarioJob(record.job), false
+	}
 	record.job.UpdatedAt = timestamppb.New(nowTime)
 	record.updatedAt = nowTime
 	record.terminalAt = nowTime
@@ -567,6 +587,9 @@ func (s *Service) transitionScenarioJob(
 	for attempt := 1; attempt <= attempts; attempt++ {
 		job, transitioned, err = s.scenarioJobs.transition(jobID, status, eventType, mutate)
 		if err == nil {
+			if job != nil && isTerminalScenarioJobStatus(job.GetStatus()) {
+				s.releaseCloudCredentialCustodyForJob(jobID)
+			}
 			return job, transitioned, nil
 		}
 		s.logScenarioJobPersistenceFailure(
@@ -603,6 +626,9 @@ func (s *Service) transitionVoiceScenarioJobCompleted(
 	for attempt := 1; attempt <= maxScenarioJobTerminalPersistenceAttempts; attempt++ {
 		job, transitioned, err = s.scenarioJobs.transitionVoiceCompleted(jobID, asset, reference, mutate)
 		if err == nil {
+			if job != nil && isTerminalScenarioJobStatus(job.GetStatus()) {
+				s.releaseCloudCredentialCustodyForJob(jobID)
+			}
 			return job, transitioned, nil
 		}
 		s.logScenarioJobPersistenceFailure(
@@ -646,10 +672,14 @@ func (s *Service) failScenarioJobPersistencePrecondition(jobID string, reason st
 }
 
 func (s *Service) finishScenarioJobExecution(jobID string) {
+	var terminalPersisted bool
 	var err error
 	for attempt := 1; attempt <= maxScenarioJobTerminalPersistenceAttempts; attempt++ {
-		err = s.scenarioJobs.finishExecution(jobID)
+		terminalPersisted, err = s.scenarioJobs.finishExecution(jobID)
 		if err == nil {
+			if terminalPersisted {
+				s.releaseCloudCredentialCustodyForJob(jobID)
+			}
 			return
 		}
 		s.logScenarioJobPersistenceFailure(
@@ -839,7 +869,7 @@ func (s *scenarioJobStore) requestCancel(jobID string, reason string) (*runtimev
 		cancel()
 	}
 	if !executionStarted {
-		if err := s.finishExecution(id); err != nil {
+		if _, err := s.finishExecution(id); err != nil {
 			return job, false, err
 		}
 		job, _ = s.get(id)
@@ -847,17 +877,18 @@ func (s *scenarioJobStore) requestCancel(jobID string, reason string) (*runtimev
 	return job, true, nil
 }
 
-func (s *scenarioJobStore) finishExecution(jobID string) error {
+func (s *scenarioJobStore) finishExecution(jobID string) (bool, error) {
 	id := strings.TrimSpace(jobID)
 	if id == "" {
-		return nil
+		return false, nil
 	}
 	s.mu.Lock()
 	record := s.jobs[id]
 	if record == nil || record.job == nil {
 		s.mu.Unlock()
-		return nil
+		return false, nil
 	}
+	terminalPersisted := false
 	record.executionStarted = false
 	cancel := record.cancel
 	record.cancel = nil
@@ -881,8 +912,9 @@ func (s *scenarioJobStore) finishExecution(jobID string) error {
 			if cancel != nil {
 				cancel()
 			}
-			return fmt.Errorf("persist scenario job %q cancellation: %w", id, err)
+			return false, fmt.Errorf("persist scenario job %q cancellation: %w", id, err)
 		}
+		terminalPersisted = true
 		if !record.doneClosed {
 			record.doneClosed = true
 			close(record.done)
@@ -894,7 +926,7 @@ func (s *scenarioJobStore) finishExecution(jobID string) error {
 	if cancel != nil {
 		cancel()
 	}
-	return nil
+	return terminalPersisted, nil
 }
 
 func clampProgressPercent(value int32) int32 {

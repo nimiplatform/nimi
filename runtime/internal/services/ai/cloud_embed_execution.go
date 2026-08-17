@@ -209,7 +209,7 @@ func (s *Service) cloudEmbedEffectiveInputsFromResolvedAssembly(assembly *cloudR
 	if err != nil {
 		return nil, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID, err, grpcerr.ReasonOptions{})
 	}
-	connectorRecord := cloneConnectorRecord(assembly.Connector)
+	connectorRecord := connectorRecordWithCredentialCustody(cloneConnectorRecord(assembly.Connector), assembly.CredentialCustodyRef)
 	return &cloudEmbedEffectiveInputs{
 		implementation: implementation, rawTarget: rawTarget, target: target,
 		catalogTarget: &nimillm.RemoteTarget{ProviderType: target.Provider(), ProviderModelID: target.ProviderModelID(), RemoteModelCatalogID: target.RemoteModelCatalogID(), ConnectorID: connectorRecord.ConnectorID},

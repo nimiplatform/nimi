@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -12,9 +13,60 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
+
+type custodyTrackingSecretStore struct {
+	mu     sync.Mutex
+	values map[string]string
+}
+
+func (s *custodyTrackingSecretStore) WriteSecret(id string, value string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.values[id] = value
+	return nil
+}
+
+func (s *custodyTrackingSecretStore) ReadSecret(id string) (string, bool, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	value, ok := s.values[id]
+	return value, ok, nil
+}
+
+func (s *custodyTrackingSecretStore) DeleteSecret(id string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	delete(s.values, id)
+	return nil
+}
+
+func installCustodyTrackingConnectorStore(t *testing.T, fixture *managedCloudScenarioTestFixture) *custodyTrackingSecretStore {
+	t.Helper()
+	record, found, err := fixture.service.connStore.Get(fixture.connectorID)
+	if err != nil || !found {
+		t.Fatalf("load fixture Connector: found=%v err=%v", found, err)
+	}
+	secrets := &custodyTrackingSecretStore{values: make(map[string]string)}
+	store := connector.NewConnectorStoreWithSecretStore(t.TempDir(), secrets)
+	if _, err := store.Create(record, "test-key"); err != nil {
+		t.Fatalf("create tracked fixture Connector: %v", err)
+	}
+	fixture.service.connStore = store
+	return secrets
+}
+
+func assertOnlyLiveConnectorCredential(t *testing.T, secrets *custodyTrackingSecretStore, connectorID string) {
+	t.Helper()
+	secrets.mu.Lock()
+	defer secrets.mu.Unlock()
+	if len(secrets.values) != 1 || secrets.values[connectorID] == "" {
+		t.Fatalf("credential store after cleanup = %v; want only live Connector %q", secrets.values, connectorID)
+	}
+}
 
 func newDurableScenarioJobStoreForFailureTest(t *testing.T) (*scenarioJobStore, string) {
 	t.Helper()
@@ -110,6 +162,13 @@ func TestCloudVoiceTerminalPersistenceFailureDoesNotPublishAsset(t *testing.T) {
 	}
 	if asset, ok := fixture.service.voiceAssets.getAsset(jobID); ok || asset != nil {
 		t.Fatalf("failed terminal commit published VoiceAsset %#v", asset)
+	}
+	assembly, ok := fixture.service.scenarioJobs.cloudResolvedAssembly(jobID)
+	if !ok || assembly == nil || assembly.CredentialCustodyRef == "" {
+		t.Fatalf("failed terminal commit lost credential custody reference: %+v visible=%v", assembly, ok)
+	}
+	if captured, err := fixture.service.connStore.LoadCredentialCustody(assembly.CredentialCustodyRef); err != nil || captured == "" {
+		t.Fatalf("failed terminal commit credential custody = %q, err=%v; want retained for restart recovery", captured, err)
 	}
 
 	restarted := restartProtectedAIServiceForVoicePublicationTest(t, localStatePath)
@@ -211,6 +270,7 @@ func TestLocalSpeechIdempotencyBindingPersistenceFailureLeavesNoOrphan(t *testin
 
 func TestCloudMediaIdempotencyBindingPersistenceFailureLeavesNoOrphan(t *testing.T) {
 	fixture := newManagedCloudScenarioTestFixture(t, "openai", "gpt-image-1.5", "https://api.openai.com/v1", Config{})
+	secrets := installCustodyTrackingConnectorStore(t, &fixture)
 	store, localStatePath := newDurableScenarioJobStoreForFailureTest(t)
 	store.persistenceFailure = failScenarioJobCreateAndBindForTest
 	fixture.service.scenarioJobs = store
@@ -235,6 +295,7 @@ func TestCloudMediaIdempotencyBindingPersistenceFailureLeavesNoOrphan(t *testing
 	default:
 	}
 	assertNoSubmittedScenarioJobAfterRestart(t, store, localStatePath)
+	assertOnlyLiveConnectorCredential(t, secrets, fixture.connectorID)
 }
 
 func failScenarioJobCreateAndBindForTest(attempt scenarioJobPersistenceAttempt) error {

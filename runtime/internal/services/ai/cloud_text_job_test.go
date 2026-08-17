@@ -102,6 +102,11 @@ func TestCloudImageJobCancelStopsLocalWaitWithHonestTerminal(t *testing.T) {
 	if captured.ConnectorID != fixture.connectorID {
 		t.Fatalf("captured Connector = %+v", captured)
 	}
+	assembly, ok := fixture.service.scenarioJobs.cloudResolvedAssembly(submitted.GetJob().GetJobId())
+	if !ok || assembly == nil || assembly.CredentialCustodyRef == "" {
+		t.Fatalf("submitted Job credential custody = %+v visible=%v", assembly, ok)
+	}
+	custodyRef := assembly.CredentialCustodyRef
 	canceled, err := fixture.service.CancelScenarioJob(scenarioJobUserContext("nimi.desktop", "user-001"), &runtimev1.CancelScenarioJobRequest{
 		JobId: submitted.GetJob().GetJobId(), Reason: "user requested cancellation",
 	})
@@ -120,6 +125,9 @@ func TestCloudImageJobCancelStopsLocalWaitWithHonestTerminal(t *testing.T) {
 	job := waitScenarioJobTerminal(t, fixture.service, submitted.GetJob().GetJobId(), 3*time.Second)
 	if job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED {
 		t.Fatalf("terminal status after transport cancellation = %s", job.GetStatus())
+	}
+	if captured, err := fixture.service.connStore.LoadCredentialCustody(custodyRef); err != nil || captured != "" {
+		t.Fatalf("canceled Job credential custody = %q, err=%v; want released", captured, err)
 	}
 }
 

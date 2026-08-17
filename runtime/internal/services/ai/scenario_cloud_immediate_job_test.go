@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"testing"
 
@@ -13,6 +15,8 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"github.com/nimiplatform/nimi/runtime/internal/remoteexecution"
 	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -20,6 +24,46 @@ type durableCaptureTextHost struct {
 	store       *scenarioJobStore
 	wantMode    runtimev1.ExecutionMode
 	wantRequest string
+}
+
+type deleteConnectorBeforeTextHost struct {
+	store       *connector.ConnectorStore
+	connectorID string
+	delegate    remoteexecution.TextHost
+}
+
+func (h *deleteConnectorBeforeTextHost) deleteConnector() error {
+	if h == nil || h.store == nil {
+		return fmt.Errorf("test Connector store is unavailable")
+	}
+	return h.store.Delete(h.connectorID)
+}
+
+func (h *deleteConnectorBeforeTextHost) ExecuteText(
+	ctx context.Context,
+	record connector.ConnectorRecord,
+	target capabilitydriver.CloudTextTarget,
+	request *capabilitydriver.CloudTextMappedRequest,
+	audit remoteexecution.TextDispatchAudit,
+) (capabilitydriver.CloudTextTransportResponse, error) {
+	if err := h.deleteConnector(); err != nil {
+		return capabilitydriver.CloudTextTransportResponse{}, err
+	}
+	return h.delegate.ExecuteText(ctx, record, target, request, audit)
+}
+
+func (h *deleteConnectorBeforeTextHost) StreamText(
+	ctx context.Context,
+	record connector.ConnectorRecord,
+	target capabilitydriver.CloudTextTarget,
+	request *capabilitydriver.CloudTextMappedRequest,
+	onDelta func(string) error,
+	audit remoteexecution.TextDispatchAudit,
+) (capabilitydriver.CloudTextTransportResponse, error) {
+	if err := h.deleteConnector(); err != nil {
+		return capabilitydriver.CloudTextTransportResponse{}, err
+	}
+	return h.delegate.StreamText(ctx, record, target, request, onDelta, audit)
 }
 
 func (h *durableCaptureTextHost) assertCapturedBeforeDispatch(audit remoteexecution.TextDispatchAudit, request *capabilitydriver.CloudTextMappedRequest) error {
@@ -165,6 +209,74 @@ func TestCloudTextImmediatePathsPersistExactAssemblyBeforeHost(t *testing.T) {
 	}
 }
 
+func TestCapturedCloudJobExecutesAfterConnectorDeletionWithoutPersistingCredential(t *testing.T) {
+	var authorization string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
+		authorization = request.Header.Get("Authorization")
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"choices":[{"message":{"content":"captured custody"},"finish_reason":"stop"}]}`))
+	}))
+	defer server.Close()
+
+	fixture := newManagedCloudScenarioTestFixture(t, "openai", "gpt-4o-mini", server.URL, Config{
+		CloudProviders:        map[string]nimillm.ProviderCredentials{},
+		AllowLoopbackEndpoint: true,
+	})
+	store, _ := newDurableScenarioJobStoreForFailureTest(t)
+	fixture.service.scenarioJobs = store
+	fixture.service.SetRemoteTextExecutionHost(&deleteConnectorBeforeTextHost{
+		store: fixture.service.connStore, connectorID: fixture.connectorID, delegate: fixture.service.remoteTextHost,
+	})
+
+	const appID = "app.cloud.custody"
+	ctx := withCloudScenarioTestIntent(scenarioJobUserContext(appID, "user-001"), "text.generate", fixture.targetRef)
+	response, err := fixture.service.ExecuteScenario(ctx, &runtimev1.ExecuteScenarioRequest{
+		Head:          &runtimev1.ScenarioRequestHead{AppId: appID, SubjectUserId: "user-001"},
+		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,
+		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_SYNC,
+		Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_TextGenerate{TextGenerate: &runtimev1.TextGenerateScenarioSpec{
+			Input: []*runtimev1.ChatMessage{{Role: "user", Content: "use the captured credential"}},
+		}}},
+	})
+	if err != nil || outputText(response.GetOutput()) != "captured custody" {
+		t.Fatalf("ExecuteScenario after Connector deletion = %+v, %v", response, err)
+	}
+	if authorization != "Bearer test-key" {
+		t.Fatalf("provider authorization after Connector deletion = %q", authorization)
+	}
+	if _, found, err := fixture.service.connStore.Get(fixture.connectorID); err != nil || found {
+		t.Fatalf("deleted Connector lookup: found=%v err=%v", found, err)
+	}
+
+	raw, err := os.ReadFile(store.durablePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bytes.Contains(raw, []byte("test-key")) {
+		t.Fatalf("durable Job/assembly contains raw credential: %s", raw)
+	}
+	if !bytes.Contains(raw, []byte("credential_custody_ref")) {
+		t.Fatalf("durable Job/assembly lacks opaque credential custody ref: %s", raw)
+	}
+	store.mu.RLock()
+	var job *runtimev1.ScenarioJob
+	var custodyRef string
+	for _, record := range store.jobs {
+		if record != nil && record.cloudAssembly != nil {
+			job = cloneScenarioJob(record.job)
+			custodyRef = record.cloudAssembly.CredentialCustodyRef
+			break
+		}
+	}
+	store.mu.RUnlock()
+	if job == nil || job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED || custodyRef == "" {
+		t.Fatalf("captured terminal Job=%+v custodyRef=%q", job, custodyRef)
+	}
+	if captured, err := fixture.service.connStore.LoadCredentialCustody(custodyRef); err != nil || captured != "" {
+		t.Fatalf("terminal Job credential custody = %q, err=%v; want released", captured, err)
+	}
+}
+
 func TestCloudTextStreamFallbackPersistsActualReturnedCause(t *testing.T) {
 	fixture := newManagedCloudScenarioTestFixture(t, "openai", "gpt-4o-mini", "https://api.openai.com/v1", Config{
 		CloudProviders: map[string]nimillm.ProviderCredentials{},
@@ -205,13 +317,72 @@ func TestCloudTextStreamFallbackPersistsActualReturnedCause(t *testing.T) {
 	}
 	fixture.service.scenarioJobs.mu.RLock()
 	defer fixture.service.scenarioJobs.mu.RUnlock()
+	if len(fixture.service.scenarioJobs.jobs) != 0 {
+		t.Fatalf("invalid timeout published %d stream Jobs, want 0", len(fixture.service.scenarioJobs.jobs))
+	}
+}
+
+func TestCloudTextStartedSendFailurePersistsStreamBrokenWithoutCallingProvider(t *testing.T) {
+	providerCalled := false
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/v1/models" || r.URL.Path == "/models" {
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"data":[{"id":"gpt-4o-mini"}]}`))
+			return
+		}
+		providerCalled = true
+		http.Error(w, "provider should not be called", http.StatusInternalServerError)
+	}))
+	defer server.Close()
+	fixture := newManagedCloudScenarioTestFixture(t, "openai", "gpt-4o-mini", server.URL+"/v1", Config{
+		CloudProviders: map[string]nimillm.ProviderCredentials{},
+	})
+	target, err := structpb.NewStruct(map[string]any{
+		"provider": "openai", "providerModelId": fixture.descriptor.GetProviderModelId(),
+		"remoteModelCatalogId": fixture.descriptor.GetRemoteModelCatalogId(),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	const appID = "app.cloud.stream-delivery"
+	if err := fixture.service.aiConfigStore.Overwrite(scenarioJobUserContext(appID, "user-001"), "user-001", appAIConfig(appID,
+		&runtimev1.AIConfigCapabilityIntent{
+			CapabilityContract: "text.generate",
+			Route: &runtimev1.AIConfigCapabilityIntent_Cloud{Cloud: &runtimev1.AIConfigCloudIntent{
+				Implementation: &runtimev1.CapabilityImplementationIdentity{
+					ImplementationId: "cloud.text.openai", DriverId: "nimi.runtime.driver.openai", DriverDialect: "openai/chat-completions/v1",
+				},
+				ProviderModelTarget: target,
+			}},
+		},
+	)); err != nil {
+		t.Fatalf("store AIConfig: %v", err)
+	}
+	sendErr := status.Error(codes.Unavailable, "stream transport closed")
+	stream := &mockScenarioEventStream{ctx: scenarioJobUserContext(appID, "user-001"), failSendAt: 1, sendErr: sendErr}
+	err = fixture.service.StreamScenario(&runtimev1.StreamScenarioRequest{
+		Head:          &runtimev1.ScenarioRequestHead{AppId: appID, SubjectUserId: "user-001"},
+		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,
+		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_STREAM,
+		Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_TextGenerate{TextGenerate: &runtimev1.TextGenerateScenarioSpec{
+			Input: []*runtimev1.ChatMessage{{Role: "user", Content: "hello"}},
+		}}},
+	}, stream)
+	if status.Code(err) != codes.Unavailable {
+		t.Fatalf("stream error=%v", err)
+	}
+	if providerCalled {
+		t.Fatal("provider was called after STARTED delivery failed")
+	}
+	fixture.service.scenarioJobs.mu.RLock()
+	defer fixture.service.scenarioJobs.mu.RUnlock()
 	if len(fixture.service.scenarioJobs.jobs) != 1 {
-		t.Fatalf("captured stream jobs = %d, want 1", len(fixture.service.scenarioJobs.jobs))
+		t.Fatalf("stream Jobs=%d, want 1", len(fixture.service.scenarioJobs.jobs))
 	}
 	for _, record := range fixture.service.scenarioJobs.jobs {
 		if record.job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED ||
-			record.job.GetReasonCode() != runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED {
-			t.Fatalf("stream terminal did not preserve returned cause: status=%s reason=%s", record.job.GetStatus(), record.job.GetReasonCode())
+			record.job.GetReasonCode() != runtimev1.ReasonCode_AI_STREAM_BROKEN {
+			t.Fatalf("stream terminal=%s reason=%s", record.job.GetStatus(), record.job.GetReasonCode())
 		}
 	}
 }

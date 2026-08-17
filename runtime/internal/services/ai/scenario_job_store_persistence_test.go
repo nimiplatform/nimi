@@ -36,7 +36,7 @@ func TestScenarioJobStorePersistsJobAndCapturedResolvedAssemblyInOneRecord(t *te
 	job := &runtimev1.ScenarioJob{
 		JobId: "job-original", Head: &runtimev1.ScenarioRequestHead{AppId: "app.local", SubjectUserId: "user-local"},
 		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,
-		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB, RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_SYNC, RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 		Status: runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED, ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED,
 		CreatedAt: now, UpdatedAt: now, TraceId: "trace-job-original",
 		EffectiveInputIdentity: identity,
@@ -194,6 +194,15 @@ func TestScenarioJobStoreIsolatesInvalidRowsAndStartsAIService(t *testing.T) {
 			},
 		},
 		{
+			name: "Cloud credential custody ref belongs to another Job",
+			poison: func(snapshot *scenarioJobDiskRawSnapshot) {
+				job := completedScenarioJobForIsolationTest("job-wrong-credential-custody")
+				assembly := cloudAssemblyForIsolationTest(t, job)
+				assembly.CredentialCustodyRef = cloudCredentialCustodyRefForTest("different-job")
+				appendCloudIsolationRowForTest(t, snapshot, job, assembly, true)
+			},
+		},
+		{
 			name: "parseable Job with invalid public status",
 			poison: func(snapshot *scenarioJobDiskRawSnapshot) {
 				job := completedScenarioJobForIsolationTest("job-invalid-public-status")
@@ -251,6 +260,75 @@ func TestScenarioJobStoreIsolatesInvalidRowsAndStartsAIService(t *testing.T) {
 					Job: jobRaw, CloudResolvedAssembly: assemblyRaw,
 					CreatedAt: job.GetCreatedAt().AsTime(), UpdatedAt: job.GetUpdatedAt().AsTime(), TerminalAt: job.GetUpdatedAt().AsTime(),
 				}))
+			},
+		},
+		{
+			name: "completed Job with stale reason metadata",
+			poison: func(snapshot *scenarioJobDiskRawSnapshot) {
+				job := completedScenarioJobForIsolationTest("job-completed-stale-metadata")
+				metadataValue, err := structpb.NewStruct(map[string]any{"action_hint": "must-not-survive"})
+				if err != nil {
+					t.Fatal(err)
+				}
+				job.ReasonMetadata = metadataValue
+				appendCloudIsolationRowForTest(t, snapshot, job, cloudAssemblyForIsolationTest(t, job), true)
+			},
+		},
+		{
+			name: "canceled Job with stale reason metadata",
+			poison: func(snapshot *scenarioJobDiskRawSnapshot) {
+				job := completedScenarioJobForIsolationTest("job-canceled-stale-metadata")
+				job.Status = runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED
+				metadataValue, err := structpb.NewStruct(map[string]any{"action_hint": "must-not-survive"})
+				if err != nil {
+					t.Fatal(err)
+				}
+				job.ReasonMetadata = metadataValue
+				appendCloudIsolationRowForTest(t, snapshot, job, cloudAssemblyForIsolationTest(t, job), true)
+			},
+		},
+		{
+			name: "failed Job missing reason detail",
+			poison: func(snapshot *scenarioJobDiskRawSnapshot) {
+				job := completedScenarioJobForIsolationTest("job-failed-missing-detail")
+				job.Status = runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED
+				job.ReasonCode = runtimev1.ReasonCode_AI_PROVIDER_INTERNAL
+				job.ReasonDetail = ""
+				job.ReasonMetadata, _ = structpb.NewStruct(map[string]any{"action_hint": "retry_request"})
+				appendCloudIsolationRowForTest(t, snapshot, job, cloudAssemblyForIsolationTest(t, job), true)
+			},
+		},
+		{
+			name: "failed Job missing reason metadata",
+			poison: func(snapshot *scenarioJobDiskRawSnapshot) {
+				job := completedScenarioJobForIsolationTest("job-failed-missing-metadata")
+				job.Status = runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED
+				job.ReasonCode = runtimev1.ReasonCode_AI_PROVIDER_INTERNAL
+				job.ReasonDetail = "provider request failed"
+				job.ReasonMetadata = nil
+				appendCloudIsolationRowForTest(t, snapshot, job, cloudAssemblyForIsolationTest(t, job), true)
+			},
+		},
+		{
+			name: "failed Job with unknown reason metadata field",
+			poison: func(snapshot *scenarioJobDiskRawSnapshot) {
+				job := completedScenarioJobForIsolationTest("job-failed-unknown-metadata")
+				job.Status = runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED
+				job.ReasonCode = runtimev1.ReasonCode_AI_PROVIDER_INTERNAL
+				job.ReasonDetail = "provider request failed"
+				job.ReasonMetadata, _ = structpb.NewStruct(map[string]any{"diagnostic": "provider-secret"})
+				appendCloudIsolationRowForTest(t, snapshot, job, cloudAssemblyForIsolationTest(t, job), true)
+			},
+		},
+		{
+			name: "failed Job with invalid reason metadata type",
+			poison: func(snapshot *scenarioJobDiskRawSnapshot) {
+				job := completedScenarioJobForIsolationTest("job-failed-invalid-metadata-type")
+				job.Status = runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED
+				job.ReasonCode = runtimev1.ReasonCode_AI_PROVIDER_INTERNAL
+				job.ReasonDetail = "provider request failed"
+				job.ReasonMetadata, _ = structpb.NewStruct(map[string]any{"action_hint": true})
+				appendCloudIsolationRowForTest(t, snapshot, job, cloudAssemblyForIsolationTest(t, job), true)
 			},
 		},
 		{
@@ -406,6 +484,15 @@ func TestScenarioJobStorePersistsCloudAssemblyWithoutCredentialAndUsesCloudResta
 	if err != nil {
 		t.Fatal(err)
 	}
+	connectorStore := connector.NewConnectorStoreWithMemorySecrets(t.TempDir())
+	connectorRecord, err := connectorStore.Create(connector.ConnectorRecord{
+		ConnectorID: "connector-cloud", Kind: runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED,
+		OwnerType: runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_REALM_USER, OwnerID: "user-cloud",
+		Provider: "openai", Status: runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE,
+	}, "credential-secret")
+	if err != nil {
+		t.Fatalf("create Connector: %v", err)
+	}
 	now := timestamppb.New(time.Now().UTC())
 	job := &runtimev1.ScenarioJob{
 		JobId: "job-cloud-restart", Head: &runtimev1.ScenarioRequestHead{AppId: "app.cloud", SubjectUserId: "user-cloud"},
@@ -426,11 +513,7 @@ func TestScenarioJobStorePersistsCloudAssemblyWithoutCredentialAndUsesCloudResta
 		cloudResolvedRequestMedia, "image.generate",
 		&runtimev1.CapabilityImplementationIdentity{ImplementationId: "cloud.image.openai", DriverId: "nimi.runtime.driver.openai", DriverDialect: "provider/media-v1"},
 		target,
-		connector.ConnectorRecord{
-			ConnectorID: "connector-cloud", Kind: runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED,
-			OwnerType: runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_REALM_USER, OwnerID: "user-cloud",
-			Provider: "openai", Status: runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE, HasCredential: true,
-		},
+		connectorRecord,
 		nil, cloudImageRequestForIsolationTest(job),
 		job.GetExecutionMode(), capabilitydriver.CloudMediaStreamNone,
 		job.GetTraceId(), job.GetHead().GetAppId(), job.GetHead().GetSubjectUserId(), nil,
@@ -438,6 +521,11 @@ func TestScenarioJobStorePersistsCloudAssemblyWithoutCredentialAndUsesCloudResta
 	if err != nil {
 		t.Fatal(err)
 	}
+	svc := &Service{scenarioJobs: store, connStore: connectorStore}
+	if err := svc.bindCloudCredentialCustody(job.GetJobId(), assembly); err != nil {
+		t.Fatalf("bind credential custody: %v", err)
+	}
+	custodyRef := assembly.CredentialCustodyRef
 	created, published, err := store.createOwnedAndBindCloudAssemblyChecked(job, func() {}, nil, "scope-cloud-restart", assembly)
 	if err != nil || created == nil || !published {
 		t.Fatalf("atomic Cloud create = %#v published=%v err=%v", created, published, err)
@@ -465,8 +553,74 @@ func TestScenarioJobStorePersistsCloudAssemblyWithoutCredentialAndUsesCloudResta
 	if persisted.GetReasonCode() != runtimev1.ReasonCode_AI_PROVIDER_INTERNAL {
 		t.Fatalf("restarted Cloud reason = %v, want AI_PROVIDER_INTERNAL", persisted.GetReasonCode())
 	}
+	if persisted.GetReasonDetail() == "" {
+		t.Fatal("restarted Cloud Job has no stable reason detail")
+	}
+	metadata := persisted.GetReasonMetadata().AsMap()
+	if metadata["action_hint"] != "inspect_reason_code_and_retry_with_corrected_request" {
+		t.Fatalf("restarted Cloud reason metadata = %v", metadata)
+	}
 	if _, ok := reopened.cloudResolvedAssembly(job.GetJobId()); !ok {
 		t.Fatal("restarted Cloud Job lost captured ResolvedAssembly")
+	}
+	restarted := &Service{scenarioJobs: reopened, connStore: connectorStore}
+	if err := restarted.releaseRecoveredTerminalCloudCredentialCustody(); err != nil {
+		t.Fatalf("release recovered terminal credential custody: %v", err)
+	}
+	if captured, err := connectorStore.LoadCredentialCustody(custodyRef); err != nil || captured != "" {
+		t.Fatalf("recovered terminal credential custody = %q, err=%v; want released", captured, err)
+	}
+}
+
+func TestBindCloudCredentialCustodyCapturesConnectorRecordAndSecretFromOneGeneration(t *testing.T) {
+	connectorStore := connector.NewConnectorStoreWithMemorySecrets(t.TempDir())
+	record, err := connectorStore.Create(connector.ConnectorRecord{
+		ConnectorID: "connector-generation", Kind: runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED,
+		OwnerType: runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_REALM_USER, OwnerID: "user-cloud",
+		Provider: "openai", Endpoint: "https://old.example/v1", Status: runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE,
+		ProviderAuthProfile: "bearer-old",
+	}, `{"apiKey":"old-secret"}`)
+	if err != nil {
+		t.Fatalf("create Connector: %v", err)
+	}
+	target, err := structpb.NewStruct(map[string]any{
+		"provider": "openai", "providerModelId": "gpt-image-1", "remoteModelCatalogId": "catalog-image",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	job := &runtimev1.ScenarioJob{
+		JobId: "job-cloud-generation", Head: &runtimev1.ScenarioRequestHead{AppId: "app.cloud", SubjectUserId: "user-cloud"},
+		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE, ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
+		RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD, TraceId: "trace-cloud-generation",
+	}
+	assembly, err := newCloudResolvedAssembly(
+		cloudResolvedRequestMedia, "image.generate",
+		&runtimev1.CapabilityImplementationIdentity{ImplementationId: "cloud.image.openai", DriverId: "nimi.runtime.driver.openai", DriverDialect: "provider/media-v1"},
+		target, record, nil, cloudImageRequestForIsolationTest(job), job.GetExecutionMode(), capabilitydriver.CloudMediaStreamNone,
+		job.GetTraceId(), job.GetHead().GetAppId(), job.GetHead().GetSubjectUserId(), nil,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	newEndpoint := "https://new.example/v1"
+	newProfile := "bearer-new"
+	newSecret := `{"apiKey":"new-secret"}`
+	if _, err := connectorStore.Update(record.ConnectorID, connector.ConnectorMutations{
+		Endpoint: &newEndpoint, ProviderAuthProfile: &newProfile, SecretPayload: &newSecret,
+	}); err != nil {
+		t.Fatalf("update Connector: %v", err)
+	}
+	svc := &Service{connStore: connectorStore}
+	if err := svc.bindCloudCredentialCustody(job.GetJobId(), assembly); err != nil {
+		t.Fatalf("bind credential custody: %v", err)
+	}
+	if assembly.Connector.Endpoint != newEndpoint || assembly.Connector.ProviderAuthProfile != newProfile {
+		t.Fatalf("captured Connector record=%+v, want current generation", assembly.Connector)
+	}
+	capturedSecret, err := connectorStore.LoadCredentialCustody(assembly.CredentialCustodyRef)
+	if err != nil || capturedSecret != newSecret {
+		t.Fatalf("captured secret=%q err=%v", capturedSecret, err)
 	}
 }
 
@@ -513,6 +667,7 @@ func TestScenarioJobStorePersistsCompletedVoiceResultWithCapturedCloudAssembly(t
 	if err != nil {
 		t.Fatal(err)
 	}
+	assembly.CredentialCustodyRef = cloudCredentialCustodyRefForTest(job.GetJobId())
 	created, published, err := store.createOwnedAndBindCloudAssemblyChecked(job, func() {}, nil, "scope-cloud-voice", assembly)
 	if err != nil || created == nil || !published {
 		t.Fatalf("atomic Cloud voice create = %#v published=%v err=%v", created, published, err)
@@ -725,6 +880,7 @@ func cloudVoiceAssemblyForIsolationTest(t *testing.T, job *runtimev1.ScenarioJob
 	if err != nil {
 		t.Fatal(err)
 	}
+	assembly.CredentialCustodyRef = cloudCredentialCustodyRefForTest(job.GetJobId())
 	return assembly
 }
 
@@ -778,7 +934,12 @@ func cloudAssemblyForIsolationTest(t *testing.T, job *runtimev1.ScenarioJob) *cl
 	if err != nil {
 		t.Fatal(err)
 	}
+	assembly.CredentialCustodyRef = cloudCredentialCustodyRefForTest(job.GetJobId())
 	return assembly
+}
+
+func cloudCredentialCustodyRefForTest(jobID string) string {
+	return "scenario-job-credential-" + strings.TrimSpace(jobID)
 }
 
 func createCompletedCloudScenarioJobForIsolationTest(t *testing.T, store *scenarioJobStore, jobID string) *runtimev1.ScenarioJob {
@@ -824,7 +985,7 @@ func localScenarioJobForPersistenceTest(
 	now := timestamppb.New(time.Now().UTC())
 	job := &runtimev1.ScenarioJob{
 		JobId: jobID, Head: &runtimev1.ScenarioRequestHead{AppId: "app.local", SubjectUserId: "user-local"},
-		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE, ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
+		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE, ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_SYNC,
 		RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL, ModelResolved: identity.GetModelAxes()[0].GetModelAssetId(),
 		Status: runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED, ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED,
 		CreatedAt: now, UpdatedAt: now, TraceId: "trace-" + jobID,
@@ -875,7 +1036,7 @@ func TestScenarioJobStoreSynchronouslyPersistsTerminalEffectiveInputIdentity(t *
 	job := &runtimev1.ScenarioJob{
 		JobId: "job-terminal-proof", Head: &runtimev1.ScenarioRequestHead{AppId: "app.local", SubjectUserId: "user-local"},
 		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,
-		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB, RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_SYNC, RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 		Status: runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED, ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED,
 		CreatedAt: now, UpdatedAt: now, TraceId: "trace-job-terminal-proof",
 		EffectiveInputIdentity: identity,
@@ -1016,7 +1177,7 @@ func TestScenarioJobStoreFailsClosedWhenAtomicJobAssemblyCommitCannotPersist(t *
 	}
 	job := &runtimev1.ScenarioJob{
 		JobId: "job-must-not-publish", Head: &runtimev1.ScenarioRequestHead{AppId: "app.local", SubjectUserId: "user-local"},
-		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE, ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
+		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE, ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_SYNC,
 		RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL, Status: runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED,
 		CreatedAt: now, UpdatedAt: now, TraceId: "trace-job-must-not-publish",
 		EffectiveInputIdentity: identity,

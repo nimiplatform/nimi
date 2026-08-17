@@ -127,6 +127,9 @@ func (s *Service) CancelScenarioJob(ctx context.Context, req *runtimev1.CancelSc
 		if !ok {
 			return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_MEDIA_JOB_NOT_CANCELLABLE)
 		}
+		if job != nil && isTerminalScenarioJobStatus(job.GetStatus()) {
+			s.releaseCloudCredentialCustodyForJob(jobID)
+		}
 		return &runtimev1.CancelScenarioJobResponse{Job: job}, nil
 	}
 	return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_MEDIA_JOB_NOT_FOUND)

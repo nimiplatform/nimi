@@ -458,3 +458,90 @@ func TestConnectorStoreCreateFailsWhenSecureStoreUnavailable(t *testing.T) {
 		t.Fatal("expected create failure when secure store is unavailable")
 	}
 }
+
+func TestConnectorCredentialCustodySurvivesConnectorDeletion(t *testing.T) {
+	store := newTestStore(t)
+	record, err := store.Create(ConnectorRecord{
+		ConnectorID: "queued-cloud-job",
+		Kind:        runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED,
+		OwnerType:   runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_REALM_USER,
+		OwnerID:     "user-1",
+		Provider:    "openai",
+		Status:      runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE,
+	}, `{"apiKey":"captured-secret"}`)
+	if err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+
+	capturedRecord, ref, err := store.CaptureCredentialCustody(record.ConnectorID, "01KJOB00000000000000000000")
+	if err != nil {
+		t.Fatalf("CaptureCredentialCustody: %v", err)
+	}
+	if capturedRecord.ConnectorID != record.ConnectorID {
+		t.Fatalf("captured Connector=%+v", capturedRecord)
+	}
+	if err := store.Delete(record.ConnectorID); err != nil {
+		t.Fatalf("Delete: %v", err)
+	}
+	if current, err := store.LoadSecretPayload(record.ConnectorID); err != nil || current != "" {
+		t.Fatalf("live connector credential after delete = %q, err=%v", current, err)
+	}
+	captured, err := store.LoadCredentialCustody(ref)
+	if err != nil || captured != `{"apiKey":"captured-secret"}` {
+		t.Fatalf("captured credential after delete = %q, err=%v", captured, err)
+	}
+	if err := store.ReleaseCredentialCustody(ref); err != nil {
+		t.Fatalf("ReleaseCredentialCustody: %v", err)
+	}
+	if captured, err := store.LoadCredentialCustody(ref); err != nil || captured != "" {
+		t.Fatalf("released credential = %q, err=%v", captured, err)
+	}
+}
+
+func TestConnectorCredentialCustodyRejectsDisabledConnector(t *testing.T) {
+	store := newTestStore(t)
+	record, err := store.Create(ConnectorRecord{
+		ConnectorID: "disabled-cloud-job",
+		Kind:        runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED,
+		OwnerType:   runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_REALM_USER,
+		OwnerID:     "user-1",
+		Provider:    "openai",
+		Status:      runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE,
+	}, `{"apiKey":"must-not-capture"}`)
+	if err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+	disabled := runtimev1.ConnectorStatus_CONNECTOR_STATUS_DISABLED
+	if _, err := store.Update(record.ConnectorID, ConnectorMutations{Status: &disabled}); err != nil {
+		t.Fatalf("disable Connector: %v", err)
+	}
+	if _, ref, err := store.CaptureCredentialCustody(record.ConnectorID, "job-after-disable"); err == nil || ref != "" {
+		t.Fatalf("CaptureCredentialCustody after disable = %q, err=%v", ref, err)
+	}
+	ref, err := scenarioJobCredentialCustodyRef("job-after-disable")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if captured, err := store.LoadCredentialCustody(ref); err != nil || captured != "" {
+		t.Fatalf("disabled Connector created custody = %q, err=%v", captured, err)
+	}
+}
+
+func TestConnectorStoreRejectsCredentialCustodyNamespaceAsConnectorID(t *testing.T) {
+	store := newTestStore(t)
+	created, err := store.Create(ConnectorRecord{
+		ConnectorID: scenarioJobCredentialCustodyPrefix + "job-1",
+		Kind:        runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED,
+		OwnerType:   runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_REALM_USER,
+		OwnerID:     "user-1",
+		Provider:    "openai",
+		Status:      runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE,
+	}, `{"apiKey":"must-not-write"}`)
+	if err == nil || created.ConnectorID != "" {
+		t.Fatalf("Create with reserved credential custody ID = %+v, err=%v", created, err)
+	}
+	ref := scenarioJobCredentialCustodyPrefix + "job-1"
+	if captured, err := store.LoadCredentialCustody(ref); err != nil || captured != "" {
+		t.Fatalf("reserved Connector ID wrote credential custody = %q, err=%v", captured, err)
+	}
+}

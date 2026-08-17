@@ -27,7 +27,6 @@ func scenarioAllowedModes(scenarioType runtimev1.ScenarioType) []runtimev1.Execu
 		return []runtimev1.ExecutionMode{
 			runtimev1.ExecutionMode_EXECUTION_MODE_SYNC,
 			runtimev1.ExecutionMode_EXECUTION_MODE_STREAM,
-			runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
 		}
 	case runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_EMBED:
 		return []runtimev1.ExecutionMode{

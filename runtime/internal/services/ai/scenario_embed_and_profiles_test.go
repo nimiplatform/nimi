@@ -25,8 +25,10 @@ func TestListScenarioProfiles(t *testing.T) {
 		switch profile.GetScenarioType() {
 		case runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE:
 			foundTextGenerate = true
-			if len(profile.GetSupportedExecutionModes()) < 2 {
-				t.Fatalf("text generate profile should expose sync+stream modes")
+			if got := profile.GetSupportedExecutionModes(); len(got) != 2 ||
+				got[0] != runtimev1.ExecutionMode_EXECUTION_MODE_SYNC ||
+				got[1] != runtimev1.ExecutionMode_EXECUTION_MODE_STREAM {
+				t.Fatalf("text generate profile should expose exactly sync+stream, got=%v", got)
 			}
 		case runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE:
 			foundImageGenerate = true

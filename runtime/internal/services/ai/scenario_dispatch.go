@@ -23,6 +23,13 @@ func (s *Service) ExecuteScenario(ctx context.Context, req *runtimev1.ExecuteSce
 	if mode != runtimev1.ExecutionMode_EXECUTION_MODE_SYNC {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
 	}
+	defaultTimeout := defaultGenerateTimeout
+	if req.GetScenarioType() == runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_EMBED {
+		defaultTimeout = defaultEmbedTimeout
+	}
+	if _, err := timeoutDuration(req.GetHead().GetTimeoutMs(), defaultTimeout); err != nil {
+		return nil, err
+	}
 	ignored, err := classifyScenarioExtensions(req.GetScenarioType(), req.GetExtensions())
 	if err != nil {
 		return nil, err

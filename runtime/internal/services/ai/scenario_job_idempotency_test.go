@@ -59,39 +59,6 @@ func (r *concurrentCaptureLocalExecutionResolver) ResolveSelectedLocalExecution(
 	}
 }
 
-func TestConcurrentLocalTextIdempotentSubmissionsUseOneJobAndWorker(t *testing.T) {
-	const callers = 2
-	svc := newTestService(nil)
-	store, localStatePath := newDurableScenarioJobStoreForFailureTest(t)
-	svc.scenarioJobs = store
-	resolver := newConcurrentCaptureLocalExecutionResolver(selectedTextExecutionForTest(t, "text-idempotent", "text-idempotent.gguf"), callers)
-	host := &localTextHostStub{}
-	svc.SetLocalExecutionResolver(resolver)
-	svc.SetLocalTextExecutionHost(host)
-
-	ctx := localTextIntentContext(context.Background(), nil)
-	request := localTextJobRequestForTest()
-	request.IdempotencyKey = "concurrent-local-text"
-	responses, submitErrors, done := submitScenarioJobsConcurrently(svc, ctx, request, callers)
-	select {
-	case <-resolver.entered:
-		close(resolver.release)
-	case <-time.After(3 * time.Second):
-		close(resolver.release)
-		t.Fatal("Local text submissions did not reach concurrent capture")
-	}
-	<-done
-	canonicalID := requireCanonicalConcurrentScenarioJobs(t, svc, responses, submitErrors)
-
-	host.mu.Lock()
-	executions := host.executeCalls
-	host.mu.Unlock()
-	if executions != 1 {
-		t.Fatalf("Local text worker executions=%d, want 1", executions)
-	}
-	assertSingleDurableScenarioJobBinding(t, store, localStatePath, canonicalID)
-}
-
 func TestConcurrentLocalImageIdempotentSubmissionsUseOneJobAndWorker(t *testing.T) {
 	const callers = 2
 	svc := newTestService(nil)
@@ -128,6 +95,7 @@ func TestConcurrentLocalImageIdempotentSubmissionsUseOneJobAndWorker(t *testing.
 func TestConcurrentCloudMediaIdempotentSubmissionsUseOneJobAndProviderCall(t *testing.T) {
 	const callers = 16
 	fixture := newManagedCloudScenarioTestFixture(t, "openai", "gpt-image-1.5", "https://api.openai.com/v1", Config{})
+	secrets := installCustodyTrackingConnectorStore(t, &fixture)
 	store, localStatePath := newDurableScenarioJobStoreForFailureTest(t)
 	fixture.service.scenarioJobs = store
 	host := newControlledRemoteMediaHost(false)
@@ -154,6 +122,7 @@ func TestConcurrentCloudMediaIdempotentSubmissionsUseOneJobAndProviderCall(t *te
 		t.Fatalf("Cloud media provider executions=%d, want 1", executions)
 	}
 	assertSingleDurableScenarioJobBinding(t, store, localStatePath, canonicalID)
+	assertOnlyLiveConnectorCredential(t, secrets, fixture.connectorID)
 }
 
 func TestConcurrentCloudVoiceIdempotentSubmissionsUseOnePrimaryJobAndProviderCall(t *testing.T) {

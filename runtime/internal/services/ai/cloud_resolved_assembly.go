@@ -17,7 +17,7 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
-const cloudResolvedAssemblyVersion = 1
+const cloudResolvedAssemblyVersion = 2
 
 const (
 	cloudResolvedRequestText          = "text.generate"
@@ -31,20 +31,21 @@ const (
 // an exact Connector custody record; credential material stays in the
 // request-scoped Remote ExecutionHost opening point.
 type cloudResolvedAssembly struct {
-	Version             int                                   `json:"version"`
-	RequestKind         string                                `json:"request_kind"`
-	CapabilityContract  string                                `json:"capability_contract"`
-	Implementation      json.RawMessage                       `json:"implementation"`
-	ProviderModelTarget json.RawMessage                       `json:"provider_model_target"`
-	Connector           connector.ConnectorRecord             `json:"connector"`
-	Defaults            json.RawMessage                       `json:"defaults,omitempty"`
-	Request             json.RawMessage                       `json:"request"`
-	ExecutionMode       runtimev1.ExecutionMode               `json:"execution_mode"`
-	MediaStreamMode     capabilitydriver.CloudMediaStreamMode `json:"media_stream_mode,omitempty"`
-	TraceID             string                                `json:"trace_id"`
-	AppID               string                                `json:"app_id"`
-	AccountID           string                                `json:"account_id"`
-	VoiceWorkflow       *cloudVoiceWorkflowCapture            `json:"voice_workflow,omitempty"`
+	Version              int                                   `json:"version"`
+	RequestKind          string                                `json:"request_kind"`
+	CapabilityContract   string                                `json:"capability_contract"`
+	Implementation       json.RawMessage                       `json:"implementation"`
+	ProviderModelTarget  json.RawMessage                       `json:"provider_model_target"`
+	Connector            connector.ConnectorRecord             `json:"connector"`
+	CredentialCustodyRef string                                `json:"credential_custody_ref"`
+	Defaults             json.RawMessage                       `json:"defaults,omitempty"`
+	Request              json.RawMessage                       `json:"request"`
+	ExecutionMode        runtimev1.ExecutionMode               `json:"execution_mode"`
+	MediaStreamMode      capabilitydriver.CloudMediaStreamMode `json:"media_stream_mode,omitempty"`
+	TraceID              string                                `json:"trace_id"`
+	AppID                string                                `json:"app_id"`
+	AccountID            string                                `json:"account_id"`
+	VoiceWorkflow        *cloudVoiceWorkflowCapture            `json:"voice_workflow,omitempty"`
 }
 
 type cloudVoiceWorkflowCapture struct {
@@ -119,7 +120,7 @@ func newCloudResolvedAssembly(
 		Request: requestRaw, ExecutionMode: mode, MediaStreamMode: mediaStreamMode, TraceID: strings.TrimSpace(traceID),
 		AppID: strings.TrimSpace(appID), AccountID: strings.TrimSpace(accountID), VoiceWorkflow: voice,
 	}
-	if err := validateCloudResolvedAssembly(assembly); err != nil {
+	if err := validateCloudResolvedAssemblyDraft(assembly); err != nil {
 		return nil, err
 	}
 	return assembly, nil
@@ -141,6 +142,16 @@ func cloneCloudResolvedAssembly(input *cloudResolvedAssembly) (*cloudResolvedAss
 }
 
 func validateCloudResolvedAssembly(assembly *cloudResolvedAssembly) error {
+	if err := validateCloudResolvedAssemblyDraft(assembly); err != nil {
+		return err
+	}
+	if strings.TrimSpace(assembly.CredentialCustodyRef) == "" {
+		return fmt.Errorf("Cloud ResolvedAssembly credential custody reference is incomplete")
+	}
+	return nil
+}
+
+func validateCloudResolvedAssemblyDraft(assembly *cloudResolvedAssembly) error {
 	if assembly == nil || assembly.Version != cloudResolvedAssemblyVersion {
 		return fmt.Errorf("Cloud ResolvedAssembly version is invalid")
 	}
@@ -309,6 +320,9 @@ func validateScenarioJobCapturedInputsPair(job *runtimev1.ScenarioJob, local *lo
 	if cloud != nil {
 		if err := validateCloudResolvedAssembly(cloud); err != nil {
 			return err
+		}
+		if err := connector.ValidateCredentialCustodyRefForJob(cloud.CredentialCustodyRef, job.GetJobId()); err != nil {
+			return fmt.Errorf("Cloud ResolvedAssembly credential custody reference is invalid: %w", err)
 		}
 	}
 	if job.GetRouteDecision() != runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD {

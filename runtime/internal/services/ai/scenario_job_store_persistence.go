@@ -179,6 +179,12 @@ func (s *scenarioJobStore) loadDurableJobs(prune bool) error {
 			job.ReasonCode = interruptedCapturedAssemblyReasonCode(&job)
 			job.ReasonDetail = interruptedCapturedAssemblyDetail(&job)
 			job.ReasonMetadata = nil
+			if projectionErr := prepareFailedScenarioJobProjection(&job); projectionErr != nil {
+				quarantined = append(quarantined, scenarioJobQuarantinedRecord{
+					Section: "records", RecordIndex: index, RecordID: jobID, Reason: projectionErr.Error(),
+				})
+				continue
+			}
 			job.UpdatedAt = timestamppb.New(now)
 			item.UpdatedAt = now
 			item.TerminalAt = now

@@ -45,7 +45,13 @@ func requestScopedProviderTarget(
 	if connectorRecord.Status != runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONNECTOR_DISABLED)
 	}
-	secretPayload, err := connectors.LoadSecretPayload(connectorRecord.ConnectorID)
+	secretPayload := ""
+	var err error
+	if strings.TrimSpace(connectorRecord.CredentialCustodyRef) != "" {
+		secretPayload, err = connectors.LoadCredentialCustody(connectorRecord.CredentialCustodyRef)
+	} else {
+		secretPayload, err = connectors.LoadSecretPayload(connectorRecord.ConnectorID)
+	}
 	if err != nil {
 		return nil, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, err, grpcerr.ReasonOptions{Message: "connector credential custody is unavailable"})
 	}

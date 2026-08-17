@@ -68,7 +68,7 @@ func TestVoiceScenarioJobCancelPublishesOnlyAfterExecutionStops(t *testing.T) {
 	if response.GetJob().GetStatus() == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED {
 		t.Fatalf("voice canceled before execution stop: %+v", response.GetJob())
 	}
-	if err := svc.scenarioJobs.finishExecution(job.GetJobId()); err != nil {
+	if _, err := svc.scenarioJobs.finishExecution(job.GetJobId()); err != nil {
 		t.Fatalf("finish voice execution: %v", err)
 	}
 	terminal, _ := svc.scenarioJobs.get(job.GetJobId())

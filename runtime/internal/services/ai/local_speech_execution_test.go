@@ -22,6 +22,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 	"github.com/nimiplatform/nimi/runtime/internal/scheduler"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -700,6 +701,39 @@ func TestLocalSpeechSynthesisStreamUsesDeclaredSimulatedMode(t *testing.T) {
 		if record.job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED ||
 			record.resolvedAssembly == nil || record.resolvedAssembly.Request.Kind != "speech.synthesize" {
 			t.Fatalf("local speech stream durable capture = job %+v assembly %+v", record.job, record.resolvedAssembly)
+		}
+	}
+}
+
+func TestLocalSpeechStartedSendFailurePersistsStreamBroken(t *testing.T) {
+	svc := newTestService(nil)
+	svc.SetLocalExecutionResolver(&mutableLocalExecutionResolver{projection: selectedSpeechExecutionForTest(t, capabilitydriver.AudioSynthesizeContract, "speech-stream-send-failure")})
+	svc.SetLocalSpeechExecutionHost(&localSpeechHostStub{})
+	ctx := executionintent.WithIntent(context.Background(), executionintent.Intent{
+		CapabilityContract: capabilitydriver.AudioSynthesizeContract,
+		Route:              runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+	})
+	sendErr := status.Error(codes.Unavailable, "stream transport closed")
+	err := svc.StreamScenario(&runtimev1.StreamScenarioRequest{
+		Head:          &runtimev1.ScenarioRequestHead{AppId: "app.local", SubjectUserId: "anonymous"},
+		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE,
+		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_STREAM,
+		Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_SpeechSynthesize{
+			SpeechSynthesize: &runtimev1.SpeechSynthesizeScenarioSpec{Text: "hello stream"},
+		}},
+	}, &mockScenarioEventStream{ctx: ctx, failSendAt: 1, sendErr: sendErr})
+	if status.Code(err) != codes.Unavailable {
+		t.Fatalf("stream error=%v", err)
+	}
+	svc.scenarioJobs.mu.RLock()
+	defer svc.scenarioJobs.mu.RUnlock()
+	if len(svc.scenarioJobs.jobs) != 1 {
+		t.Fatalf("local speech stream Jobs=%d, want 1", len(svc.scenarioJobs.jobs))
+	}
+	for _, record := range svc.scenarioJobs.jobs {
+		if record.job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED ||
+			record.job.GetReasonCode() != runtimev1.ReasonCode_AI_STREAM_BROKEN {
+			t.Fatalf("local speech terminal=%s reason=%s", record.job.GetStatus(), record.job.GetReasonCode())
 		}
 	}
 }

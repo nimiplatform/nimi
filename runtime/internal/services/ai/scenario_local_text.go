@@ -102,7 +102,7 @@ func streamLocalTextGenerateScenario(
 	s *Service,
 	req *runtimev1.StreamScenarioRequest,
 	stream grpc.ServerStreamingServer[runtimev1.StreamScenarioEvent],
-) error {
+) (streamErr error) {
 	effective, err := s.captureLocalTextEffectiveInputs(ctx, req.GetHead(), req.GetSpec().GetTextGenerate(), true)
 	if err != nil {
 		return err
@@ -118,10 +118,41 @@ func streamLocalTextGenerateScenario(
 		return err
 	}
 	jobID := job.GetJobId()
+	var deliveryFailureMu sync.Mutex
+	var deliveryFailure error
+	var deliveryTransportError error
+	recordDeliveryFailure := func(err error) {
+		if err == nil {
+			return
+		}
+		deliveryFailureMu.Lock()
+		defer deliveryFailureMu.Unlock()
+		if deliveryFailure == nil {
+			deliveryFailure = scenarioStreamDeliveryError(err)
+			deliveryTransportError = err
+		}
+	}
+	currentDeliveryFailure := func() error {
+		deliveryFailureMu.Lock()
+		defer deliveryFailureMu.Unlock()
+		return deliveryFailure
+	}
+	currentDeliveryTransportError := func() error {
+		deliveryFailureMu.Lock()
+		defer deliveryFailureMu.Unlock()
+		return deliveryTransportError
+	}
 	defer s.finishScenarioJobExecution(jobID)
 	defer func() {
 		if current, ok := s.scenarioJobs.get(jobID); ok && !isTerminalScenarioJobStatus(current.GetStatus()) {
-			s.finishLocalTextScenarioJobFailure(jobCtx, jobID, grpcerr.WithReasonCode(codes.Canceled, runtimev1.ReasonCode_AI_LOCAL_EXECUTION_CANCELED))
+			cause := currentDeliveryFailure()
+			if cause == nil {
+				cause = streamErr
+			}
+			if cause == nil {
+				cause = grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+			}
+			s.finishLocalTextScenarioJobFailure(jobCtx, jobID, cause)
 		}
 	}()
 	if err := s.queueImmediateScenarioJob(jobID); err != nil {
@@ -221,7 +252,11 @@ func streamLocalTextGenerateScenario(
 		event.Sequence = sequence.Add(1)
 		event.TraceId = traceID
 		event.Timestamp = timestamppb.New(time.Now().UTC())
-		return stream.Send(event)
+		if err := stream.Send(event); err != nil {
+			recordDeliveryFailure(err)
+			return err
+		}
+		return nil
 	}
 	if err := send(&runtimev1.StreamScenarioEvent{
 		EventType: runtimev1.StreamEventType_STREAM_EVENT_STARTED,
@@ -319,7 +354,11 @@ func streamLocalTextGenerateScenario(
 				}},
 			})
 		}
-		err = localTextExecutionError(err)
+		if deliveryErr := currentDeliveryFailure(); deliveryErr != nil {
+			err = deliveryErr
+		} else {
+			err = localTextExecutionError(err)
+		}
 	}
 	if requestCtx.Err() != nil && ctx.Err() != nil {
 		s.finishLocalTextScenarioJobFailure(requestCtx, jobID, err)
@@ -329,6 +368,9 @@ func streamLocalTextGenerateScenario(
 		err = grpcerr.WithReasonCode(codes.DeadlineExceeded, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT)
 	}
 	s.finishLocalTextScenarioJobFailure(requestCtx, jobID, err)
+	if transportErr := currentDeliveryTransportError(); transportErr != nil {
+		return transportErr
+	}
 	return send(&runtimev1.StreamScenarioEvent{
 		EventType: runtimev1.StreamEventType_STREAM_EVENT_FAILED,
 		Payload: &runtimev1.StreamScenarioEvent_Failed{Failed: &runtimev1.ScenarioStreamFailed{

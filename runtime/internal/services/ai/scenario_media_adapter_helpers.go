@@ -146,6 +146,8 @@ func stableScenarioJobReasonDetail(reasonCode runtimev1.ReasonCode) string {
 		return "local execution canceled"
 	case runtimev1.ReasonCode_AI_LOCAL_EXECUTION_PROCESS_CRASHED:
 		return "local execution process crashed"
+	case runtimev1.ReasonCode_AI_STREAM_BROKEN:
+		return "stream delivery failed"
 	case runtimev1.ReasonCode_AI_INPUT_INVALID,
 		runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED:
 		return "provider rejected request parameters"
@@ -181,7 +183,7 @@ func scenarioJobReasonMetadataValues(metadata map[string]string, _ runtimev1.Rea
 		return nil
 	}
 	values := map[string]any{}
-	if actionHint := safeScenarioReasonMetadataToken(metadata["action_hint"], 120); actionHint != "" {
+	if actionHint := safeScenarioReasonMetadataToken(metadata["action_hint"], maxScenarioJobReasonMetadataTokenLength); actionHint != "" {
 		values["action_hint"] = actionHint
 	}
 	if retryable, err := strconv.ParseBool(strings.TrimSpace(metadata["retryable"])); err == nil {
