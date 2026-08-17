@@ -34,6 +34,23 @@ type stateIsolationDiagnostic struct {
 	RecordID       string
 }
 
+// recordStartupStateIsolationDiagnostics makes record isolation operator-visible
+// without reintroducing a public reconciliation control plane. It is called only
+// while the Service is being constructed, before concurrent access is possible.
+func (s *Service) recordStartupStateIsolationDiagnostics(diagnostics []stateIsolationDiagnostic) {
+	for _, diagnostic := range diagnostics {
+		s.logger.Warn(
+			"isolated corrupt local state record",
+			"store", diagnostic.Store,
+			"level", diagnostic.Level,
+			"reason", diagnostic.ReasonCode,
+			"quarantine", diagnostic.QuarantinePath,
+			"section", diagnostic.Section,
+			"index", diagnostic.RecordIndex,
+		)
+	}
+}
+
 type quarantinedStateRecord struct {
 	Store       string          `json:"store"`
 	Section     string          `json:"section"`

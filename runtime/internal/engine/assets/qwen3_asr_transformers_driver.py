@@ -10,7 +10,6 @@ import sys
 from typing import Any
 
 
-DEFAULT_ASR_MODEL = "Qwen/Qwen3-ASR-0.6B-hf"
 DEFAULT_MAX_NEW_TOKENS = 256
 _MODEL_CACHE: dict[tuple[str, str, str], tuple[Any, Any]] = {}
 
@@ -50,7 +49,7 @@ def normalized_string_list(value: Any) -> list[str]:
 def local_bundle_model_ref(request: dict[str, Any]) -> str:
     bundle_dir = optional_string(request, "bundle_dir")
     if not bundle_dir:
-        return ""
+        fail("managed Transformers ASR bundle_dir is required")
     bundle_path = pathlib.Path(bundle_dir)
     if not bundle_path.is_dir() or bundle_path.is_symlink():
         fail("managed Transformers ASR bundle_dir is unavailable")
@@ -70,12 +69,8 @@ def local_bundle_model_ref(request: dict[str, Any]) -> str:
     return str(bundle_path)
 
 
-def resolve_model_ref(request: dict[str, Any], cli_default: str) -> str:
-    bundle_ref = local_bundle_model_ref(request)
-    if bundle_ref:
-        return bundle_ref
-    model_ref = optional_string(request, "model_ref")
-    return model_ref or str(cli_default or DEFAULT_ASR_MODEL).strip() or DEFAULT_ASR_MODEL
+def resolve_model_ref(request: dict[str, Any]) -> str:
+    return local_bundle_model_ref(request)
 
 
 def transformers_device_map() -> str:
@@ -185,12 +180,12 @@ def load_model(model_ref: str) -> tuple[Any, Any]:
     try:
         from transformers import AutoModelForMultimodalLM, AutoProcessor
 
-        processor = AutoProcessor.from_pretrained(model_ref, local_files_only=pathlib.Path(model_ref).is_dir())
+        processor = AutoProcessor.from_pretrained(model_ref, local_files_only=True)
         model = AutoModelForMultimodalLM.from_pretrained(
             model_ref,
             device_map=transformers_device_map(),
             dtype=transformers_dtype(),
-            local_files_only=pathlib.Path(model_ref).is_dir(),
+            local_files_only=True,
         )
         model.eval()
     except Exception as error:
@@ -216,7 +211,7 @@ def handle_preflight(model_ref: str) -> dict[str, Any]:
     return response
 
 
-def handle_transcribe(request: dict[str, Any], cli_default_model: str) -> dict[str, Any]:
+def handle_transcribe(request: dict[str, Any]) -> dict[str, Any]:
     if bool_request(request, "timestamps"):
         fail("Transformers-native Qwen3-ASR timestamps are not admitted")
     if bool_request(request, "diarization") or int(request.get("speaker_count") or 0) != 0:
@@ -226,7 +221,7 @@ def handle_transcribe(request: dict[str, Any], cli_default_model: str) -> dict[s
     audio_path = require_string(request, "audio_path")
     if not pathlib.Path(audio_path).is_file():
         fail("audio_path does not exist")
-    model_ref = resolve_model_ref(request, cli_default_model)
+    model_ref = resolve_model_ref(request)
     processor, model = load_model(model_ref)
     language = normalized_language(optional_string(request, "language"))
     try:
@@ -248,13 +243,13 @@ def handle_transcribe(request: dict[str, Any], cli_default_model: str) -> dict[s
     return {"text": text}
 
 
-def handle_request(request: dict[str, Any], cli_default_model: str) -> dict[str, Any]:
+def handle_request(request: dict[str, Any]) -> dict[str, Any]:
     operation = require_string(request, "operation")
-    model_ref = resolve_model_ref(request, cli_default_model)
+    model_ref = resolve_model_ref(request)
     if operation == "driver.preflight":
         return handle_preflight(model_ref)
     if operation == "audio.transcribe":
-        return handle_transcribe(request, cli_default_model)
+        return handle_transcribe(request)
     fail(f"unsupported qwen3_asr_transformers operation: {operation}")
 
 
@@ -262,7 +257,6 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--request", required=True)
     parser.add_argument("--response", required=True)
-    parser.add_argument("--model", default=DEFAULT_ASR_MODEL)
     return parser.parse_args()
 
 
@@ -270,7 +264,7 @@ def main() -> int:
     args = parse_args()
     try:
         request = read_json(args.request)
-        response = handle_request(request, str(args.model).strip() or DEFAULT_ASR_MODEL)
+        response = handle_request(request)
         write_json(args.response, response)
         return 0
     except Exception as error:

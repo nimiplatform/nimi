@@ -8,7 +8,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 )
 
-func buildMediaRecommendation(candidate recommendationCandidate, profile *runtimev1.LocalDeviceProfile, verifiedAssets []*runtimev1.LocalVerifiedAssetDescriptor) *runtimev1.LocalCatalogRecommendation {
+func buildMediaRecommendation(candidate recommendationCandidate, profile *runtimev1.LocalDeviceProfile) *runtimev1.LocalCatalogRecommendation {
 	support := classifyRecommendationHostSupport(candidate.engine, profile)
 	reasonCodes := []string{}
 	notes := []string{}
@@ -74,7 +74,6 @@ func buildMediaRecommendation(candidate recommendationCandidate, profile *runtim
 		ReasonCodes:      reasonCodes,
 		RecommendedEntry: candidate.entry,
 		FallbackEntries:  append([]string(nil), candidate.fallbackEntries...),
-		SuggestedAssets:  companionSuggestions(candidate, verifiedAssets),
 		SuggestedNotes:   notes,
 		Baseline:         baseline,
 	}
@@ -473,35 +472,6 @@ func estimateLLMTokensPerSecond(profile *runtimev1.LocalDeviceProfile, requiredG
 		return base * 0.45
 	}
 	return base
-}
-
-func companionSuggestions(candidate recommendationCandidate, verifiedAssets []*runtimev1.LocalVerifiedAssetDescriptor) []*runtimev1.LocalSuggestedAsset {
-	haystack := strings.ToLower(strings.Join([]string{candidate.modelID, candidate.repo, candidate.title, strings.Join(candidate.tags, " ")}, " "))
-	if !strings.Contains(haystack, "z-image") {
-		return nil
-	}
-	items := make([]*runtimev1.LocalSuggestedAsset, 0)
-	for _, asset := range verifiedAssets {
-		if asset == nil {
-			continue
-		}
-		family := ""
-		if meta := asset.GetMetadata(); meta != nil {
-			if value := meta.GetFields()["family"]; value != nil {
-				family = value.GetStringValue()
-			}
-		}
-		if family != "z-image" {
-			continue
-		}
-		items = append(items, &runtimev1.LocalSuggestedAsset{
-			TemplateId: asset.GetTemplateId(),
-			AssetId:    asset.GetAssetId(),
-			Kind:       strings.TrimPrefix(strings.ToLower(asset.GetKind().String()), "local_asset_kind_"),
-			Family:     family,
-		})
-	}
-	return items
 }
 
 func pushRecommendationCode(codes *[]string, code string) {

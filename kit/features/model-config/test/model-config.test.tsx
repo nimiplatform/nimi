@@ -13,7 +13,6 @@ import type { ModelConfigCloudAIConfigModule, ModelConfigOverwrite } from '../sr
 import {
   modelConfigCapabilityPosture,
   modelConfigMissingRequiredFeatures,
-  projectModelConfigLocalSelections,
 } from '../src/projection.js';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -179,38 +178,24 @@ describe('public Model Config contract', () => {
     expect(node.textContent).not.toContain('Default parameters');
   });
 
-  it('projects selected, broken, and feature-mismatch machine context without owning it', () => {
-    const selections = projectModelConfigLocalSelections({
-      selections: [
-        { capabilityContract: 'text.generate', configurationId: 'text-local' },
-        {
-          capabilityContract: 'audio.transcribe',
-          configurationId: 'missing',
-          effectiveDefaults: { language: 'stale' },
-        },
-      ],
-      configurations: [{
-        configurationId: 'text-local',
-        capabilityContract: 'text.generate',
-        displayName: 'Local text',
-        supportedFeatures: ['json.output'],
-        interpretability: 'interpretable',
-        requirementResolution: 'configured',
-        reasons: [],
-      }],
-    });
-
-    expect(selections.map((entry) => entry.state)).toEqual(['selected', 'broken']);
+  it('derives feature mismatch from the host-supplied bounded selection projection', () => {
+    const selection = {
+      capabilityContract: 'text.generate',
+      state: 'selected' as const,
+      configurationId: 'text-local',
+      displayName: 'Local text',
+      supportedFeatures: ['json.output'],
+      reasons: [],
+      effectiveDefaults: null,
+    };
     const intent = {
       capabilityContract: 'text.generate',
       requiredFeatures: ['json.output', 'tool.use'],
       defaults: undefined,
       route: { oneofKind: 'local' as const, local: {} },
     };
-    expect(modelConfigMissingRequiredFeatures(intent, selections[0])).toEqual(['tool.use']);
-    expect(modelConfigCapabilityPosture(intent, selections[0])).toBe('local-feature-mismatch');
-    expect(selections[0]?.effectiveDefaults).toBeNull();
-    expect(selections[1]?.effectiveDefaults).toBeNull();
+    expect(modelConfigMissingRequiredFeatures(intent, selection)).toEqual(['tool.use']);
+    expect(modelConfigCapabilityPosture(intent, selection)).toBe('local-feature-mismatch');
   });
 
   it('fails closed when a reloaded Cloud intent lacks exact catalog identity', () => {

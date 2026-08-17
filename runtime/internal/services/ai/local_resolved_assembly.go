@@ -155,8 +155,6 @@ type localResolvedAssemblyImageRequestPlan struct {
 	ImageCount     int     `json:"image_count"`
 	Sampler        string  `json:"sampler"`
 	Scheduler      string  `json:"scheduler"`
-	InputImage     string  `json:"input_image,omitempty"`
-	Mask           string  `json:"mask,omitempty"`
 	SourceIdentity string  `json:"source_identity,omitempty"`
 	SourceImage    []byte  `json:"source_image,omitempty"`
 }
@@ -490,10 +488,6 @@ func localResolvedAssemblyForImage(selected *localexecution.SelectedLocalExecuti
 	switch typed := requestPlan.(type) {
 	case capabilitydriver.StableDiffusionCPPTextToImageRequestPlan:
 		imagePlan.Request.Kind = "text-to-image"
-	case capabilitydriver.StableDiffusionCPPImageToImageRequestPlan:
-		imagePlan.Request.Kind = "image-to-image"
-		imagePlan.Request.InputImage = typed.InputImage()
-		imagePlan.Request.Mask = typed.Mask()
 	case capabilitydriver.StableDiffusionCPPInstructionEditRequestPlan:
 		imagePlan.Request.Kind = "instruction-edit"
 		source := typed.SourceImage()

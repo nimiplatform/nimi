@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"log/slog"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -152,5 +153,27 @@ func TestTerminalTransferStateIsNotResurrected(t *testing.T) {
 	svc.completeTransfer(sessionID, "register", "local model imported", nil)
 	if summary := svc.localTransferSummary(sessionID); summary.GetState() != localTransferStateCancelled {
 		t.Fatalf("state after late completion = %q, want cancelled", summary.GetState())
+	}
+}
+
+func TestCancelTransferClearsManagedDownloadStagingBySession(t *testing.T) {
+	svc := newTestService(t)
+	transfer := svc.newLocalTransfer(localTransferKindDownload, localTransferMutation{
+		ModelID: "local.test.cancel-worker",
+		Phase:   "download",
+		State:   localTransferStateRunning,
+	})
+	storageID := managedModelAcquisitionStorageID(transfer.GetAssetId(), transfer.GetInstallSessionId())
+	stageDir := managedModelDownloadStageDir(svc.resolvedLocalModelsPath(), storageID)
+	if err := os.MkdirAll(stageDir, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(stageDir, "model.bin.download"), []byte("prefix"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	svc.cancelTransfer(transfer.GetInstallSessionId(), "transfer cancelled")
+	if _, err := os.Stat(stageDir); !os.IsNotExist(err) {
+		t.Fatalf("worker cancellation retained per-session staging: %s err=%v", stageDir, err)
 	}
 }

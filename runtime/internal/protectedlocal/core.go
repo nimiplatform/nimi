@@ -209,8 +209,15 @@ func newDirectDesktopConnection(peer DesktopPeerIdentity, liveness DesktopProces
 		default:
 		}
 	}
+	connectionID, err := readIdentifier(nil)
+	if err != nil {
+		return nil, fail(ReasonProtectedLocalCustodyBoundaryUnavailable, false, "restart_runtime_service", fmt.Errorf("generate direct connection identifier: %w", err))
+	}
 	connection := &Connection{
-		origin:         OriginContext{TransportClass: TransportDesktopControl},
+		origin: OriginContext{
+			TransportClass: TransportDesktopControl,
+			connectionID:   connectionID,
+		},
 		directPeer:     peer,
 		done:           make(chan struct{}),
 		revokedDone:    make(chan struct{}),
@@ -246,6 +253,18 @@ func DesktopConnectionFromContext(ctx context.Context) (*Connection, bool) {
 	}
 	value, ok := ctx.Value(desktopConnectionContextKey{}).(desktopConnectionContextValue)
 	return value.connection, ok && value.connection != nil
+}
+
+// VerifiedDesktopConnectionIDFromContext returns the Runtime-minted opaque
+// identity of one accepted protected Desktop transport. The identifier is for
+// Runtime-internal ephemeral ownership only and is never reconstructed from
+// request fields or gRPC metadata.
+func VerifiedDesktopConnectionIDFromContext(ctx context.Context) (Identifier, bool) {
+	connection, ok := DesktopConnectionFromContext(ctx)
+	if !ok || !connection.live.Load() || connection.origin.TransportClass != TransportDesktopControl || connection.origin.connectionID == (Identifier{}) {
+		return Identifier{}, false
+	}
+	return connection.origin.connectionID, true
 }
 
 func EstablishDesktopConnection(ctx context.Context, verifier DesktopPeerVerifier, random io.Reader) (*Connection, error) {

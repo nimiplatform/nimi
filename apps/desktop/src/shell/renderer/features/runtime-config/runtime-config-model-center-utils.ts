@@ -1,5 +1,4 @@
 import type {
-  NimiRuntimeLocalAssetDeclaration,
   NimiRuntimeLocalCatalogItemDescriptor,
   NimiRuntimeLocalTransferSessionSummary,
   NimiRuntimeLocalDownloadState,
@@ -34,8 +33,6 @@ export type LocalModelCenterProps = {
 
 export const CAPABILITY_OPTIONS = NIMI_RUNTIME_LOCAL_RUNNABLE_ASSET_KIND_IDS;
 export type CapabilityOption = NimiRuntimeLocalRunnableAssetKindId;
-export const ASSET_CLASS_OPTIONS = ['runnable', 'dependency'] as const;
-export type AssetClassOption = typeof ASSET_CLASS_OPTIONS[number];
 export type ProgressSessionState = {
   event: NimiRuntimeLocalTransferProgressEvent;
   updatedAtMs: number;
@@ -142,11 +139,6 @@ export function normalizeCapabilityOption(value: string | undefined): Capability
   return normalizeNimiRuntimeLocalRunnableAssetKindId(value);
 }
 
-export function normalizeAssetClassOption(value: string | undefined): AssetClassOption {
-  const normalized = String(value || '').trim().toLowerCase();
-  return (ASSET_CLASS_OPTIONS.find((item) => item === normalized) || 'runnable') as AssetClassOption;
-}
-
 export function basenameFromRuntimePath(value: string | undefined): string {
   const normalized = String(value || '').trim().replace(/\\/g, '/');
   if (!normalized) {
@@ -224,17 +216,6 @@ export function planBlockingHint(plan: NimiRuntimeLocalInstallPlanDescriptor | n
     return `Attached endpoint required for ${String(plan?.engine || 'this runtime').trim() || 'this runtime'}.`;
   }
   return 'This asset is not available on the current host.';
-}
-
-export function defaultAssetDeclaration(assetClass: AssetClassOption = 'runnable'): NimiRuntimeLocalAssetDeclaration {
-  if (assetClass === 'dependency') {
-    return {
-      assetKind: 'vae',
-    };
-  }
-  return {
-    assetKind: 'chat',
-  };
 }
 
 export function parseTimestamp(value: string | undefined): number {

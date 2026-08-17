@@ -931,8 +931,8 @@ func TestLoadoutStoreRecordAndDocumentIsolation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(recordState.GetAggregate().GetLoadouts()) != 2 || !hasIsolationDiagnostic(recordRestart.stateIsolationDiagnostics, loadoutRecordQuarantinedReason) {
-		t.Fatalf("record isolation = loadouts=%d diagnostics=%+v", len(recordState.GetAggregate().GetLoadouts()), recordRestart.stateIsolationDiagnostics)
+	if len(recordState.GetAggregate().GetLoadouts()) != 2 {
+		t.Fatalf("record isolation = loadouts=%d", len(recordState.GetAggregate().GetLoadouts()))
 	}
 	if err := os.WriteFile(path, []byte(`{"schemaVersion":1,"loadouts":[`), 0o600); err != nil {
 		t.Fatal(err)
@@ -946,8 +946,76 @@ func TestLoadoutStoreRecordAndDocumentIsolation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(documentState.GetAggregate().GetLoadouts()) != 0 || len(assets.GetAssets()) != 1 || !hasIsolationDiagnostic(documentRestart.stateIsolationDiagnostics, loadoutDocumentQuarantinedReason) {
-		t.Fatalf("document isolation = loadouts=%d assets=%d diagnostics=%+v", len(documentState.GetAggregate().GetLoadouts()), len(assets.GetAssets()), documentRestart.stateIsolationDiagnostics)
+	if len(documentState.GetAggregate().GetLoadouts()) != 0 || len(assets.GetAssets()) != 1 {
+		t.Fatalf("document isolation = loadouts=%d assets=%d", len(documentState.GetAggregate().GetLoadouts()), len(assets.GetAssets()))
+	}
+}
+
+func TestLoadoutStoreRejectsNonCanonicalPersistedRow(t *testing.T) {
+	svc, asset := loadoutGemmaFixture(t)
+	first := commitLoadoutForTest(t, svc, context.Background(), prepareGemmaLoadoutForTest(t, svc, context.Background(), "", "canonical-a", asset).GetPrepareId(), false)
+	second := commitLoadoutForTest(t, svc, context.Background(), prepareGemmaLoadoutForTest(t, svc, context.Background(), "", "canonical-b", asset).GetPrepareId(), false)
+	path := filepath.Join(filepath.Dir(svc.stateStorePath), loadoutStoreFileName)
+	payload, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var document map[string]any
+	if err := json.Unmarshal(payload, &document); err != nil {
+		t.Fatal(err)
+	}
+	for _, raw := range document["loadouts"].([]any) {
+		row := raw.(map[string]any)
+		if row["loadout_id"] == first.GetLoadoutId() {
+			row["display_name"] = "  canonical-a  "
+		}
+	}
+	poisoned, _ := json.Marshal(document)
+	if err := os.WriteFile(path, poisoned, 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	restarted := restartModelAssetServiceForTest(t, svc.stateStorePath, svc.localModelsPath)
+	state, err := restarted.GetMachineLoadouts(context.Background(), &runtimev1.GetMachineLoadoutsRequest{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	loadouts := state.GetAggregate().GetLoadouts()
+	if len(loadouts) != 1 || loadouts[0].GetLoadoutId() != second.GetLoadoutId() {
+		t.Fatalf("non-canonical row isolation = loadouts=%+v", loadouts)
+	}
+}
+
+func TestLoadoutBlockedValidationDominatesLaterUnresolvedAxis(t *testing.T) {
+	svc := newLoadoutTestService(t, t.TempDir())
+	contentID := "sha256:" + strings.Repeat("a", 64)
+	loadout := &runtimev1.Loadout{ModelAxes: []*runtimev1.LoadoutModelAxis{
+		{SlotId: "blocked", ModelAssetId: "missing", ExpectedContentId: contentID},
+		{SlotId: "unresolved"},
+	}}
+	requirements := []*runtimev1.LocalCapabilityRequirement{
+		{RequirementId: "blocked"},
+		{RequirementId: "unresolved"},
+	}
+	result := svc.validateLoadoutWithAxisResolver(loadout, capabilitydriver.LlamaTextDriver{}, requirements,
+		func(_ *runtimev1.Loadout, _ capabilitydriver.Driver, requirement *runtimev1.LocalCapabilityRequirement, _ *runtimev1.LoadoutModelAxis) (resolvedLoadoutAxis, runtimev1.ReasonCode) {
+			if requirement.GetRequirementId() == "blocked" {
+				return resolvedLoadoutAxis{}, runtimev1.ReasonCode_AI_LOADOUT_MODEL_ASSET_NOT_FOUND
+			}
+			return resolvedLoadoutAxis{}, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED
+		})
+	if result.state != runtimev1.LoadoutValidationState_LOADOUT_VALIDATION_STATE_BLOCKED {
+		t.Fatalf("validation state = %s, reasons=%v", result.state, result.reasons)
+	}
+	if len(result.reasons) != 2 || result.reasons[0] != runtimev1.ReasonCode_AI_LOADOUT_MODEL_ASSET_NOT_FOUND || result.reasons[1] != runtimev1.ReasonCode_AI_LOADOUT_NOT_CONFIGURED {
+		t.Fatalf("validation reasons = %v", result.reasons)
+	}
+	applyLoadoutValidation(loadout, result)
+	if got := loadout.GetModelAxes()[0].GetReasons(); len(got) != 1 || got[0] != runtimev1.ReasonCode_AI_LOADOUT_MODEL_ASSET_NOT_FOUND {
+		t.Fatalf("blocked axis reasons = %v, want only AI_LOADOUT_MODEL_ASSET_NOT_FOUND", got)
+	}
+	if got := loadout.GetModelAxes()[1].GetReasons(); len(got) != 1 || got[0] != runtimev1.ReasonCode_AI_LOADOUT_NOT_CONFIGURED {
+		t.Fatalf("unresolved axis reasons = %v, want only AI_LOADOUT_NOT_CONFIGURED", got)
 	}
 }
 
@@ -1308,14 +1376,6 @@ func safetensorsLoadoutTestBytes(shapes map[string][]int64) []byte {
 	return result
 }
 
-func hasIsolationDiagnostic(values []stateIsolationDiagnostic, reason string) bool {
-	for _, value := range values {
-		if value.ReasonCode == reason {
-			return true
-		}
-	}
-	return false
-}
 func grpcReasonForTest(err error) runtimev1.ReasonCode {
 	reason, _ := grpcerr.ExtractReasonCode(err)
 	return reason

@@ -75,25 +75,6 @@ export type ModelConfigLocalSelectionProjection = {
   readonly effectiveDefaults?: Readonly<Record<string, string>> | null;
 };
 
-export interface ModelConfigMachineConfigurationInput {
-  readonly configurationId: string;
-  readonly capabilityContract: string;
-  readonly displayName: string;
-  readonly supportedFeatures: readonly string[];
-  readonly interpretability: string;
-  readonly requirementResolution: string;
-  readonly reasons: readonly string[];
-}
-
-export interface ModelConfigMachineAggregateInput {
-  readonly selections: readonly {
-    readonly capabilityContract: string;
-    readonly configurationId: string;
-    readonly effectiveDefaults?: Readonly<Record<string, string>> | null;
-  }[];
-  readonly configurations: readonly ModelConfigMachineConfigurationInput[];
-}
-
 export type ModelConfigCapabilityPosture =
   | 'not-configured'
   | 'local-selection-missing'

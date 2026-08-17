@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -86,6 +87,42 @@ func TestRuntimeProductControlCreatesAndSelectsDataRoot(t *testing.T) {
 		if _, err := os.Stat(filepath.Join(dataRoot, retiredRoot)); !errors.Is(err, os.ErrNotExist) {
 			t.Fatalf("retired root-level directory %s was created: %v", retiredRoot, err)
 		}
+	}
+}
+
+func TestRuntimeProductControlSelectionSynchronizesModelsRootReaders(t *testing.T) {
+	home := setProductControlHomeForTest(t)
+	service := newTestService(t)
+	service.SetProductControlDataRootConfigWriter(func(string) (bool, error) { return true, nil })
+	if _, err := service.EnsureProductControlRecordCreated(context.Background(), &runtimev1.EnsureProductControlRecordCreatedRequest{}); err != nil {
+		t.Fatal(err)
+	}
+
+	stop := make(chan struct{})
+	var readers sync.WaitGroup
+	for range 8 {
+		readers.Add(1)
+		go func() {
+			defer readers.Done()
+			for {
+				select {
+				case <-stop:
+					return
+				default:
+					_ = service.resolvedLocalModelsPath()
+				}
+			}
+		}()
+	}
+	dataRoot := filepath.Join(home, "concurrent-model-root")
+	_, err := service.SelectProductControlDataRoot(context.Background(), &runtimev1.SelectProductControlDataRootRequest{DataRoot: dataRoot})
+	close(stop)
+	readers.Wait()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := service.resolvedLocalModelsPath(); got != filepath.Join(dataRoot, "models") {
+		t.Fatalf("models root = %q", got)
 	}
 }
 

@@ -239,7 +239,7 @@ func (s *Service) modelIndexCachePath() string {
 	if statePath := strings.TrimSpace(s.stateStorePath); statePath != "" {
 		return filepath.Join(filepath.Dir(statePath), modelIndexCacheFile)
 	}
-	if modelsPath := strings.TrimSpace(s.localModelsPath); modelsPath != "" {
+	if modelsPath := strings.TrimSpace(s.localModelsPathSnapshot()); modelsPath != "" {
 		return filepath.Join(filepath.Dir(modelsPath), modelIndexCacheFile)
 	}
 	if cacheRoot, err := os.UserCacheDir(); err == nil && strings.TrimSpace(cacheRoot) != "" {
@@ -481,7 +481,7 @@ func buildRecommendationFeedItem(
 	var bestRecommendation *runtimev1.LocalCatalogRecommendation
 	for _, entry := range item.Entries {
 		candidate := buildRecommendationCandidate(item, capability, engine, entry)
-		recommendation := buildFeedRecommendation(candidate, profile, verifiedAssets)
+		recommendation := buildFeedRecommendation(candidate, profile)
 		if recommendation == nil {
 			continue
 		}
@@ -504,7 +504,7 @@ func buildRecommendationFeedItem(
 	actionState := &runtimev1.LocalRecommendationActionState{
 		CanReviewInstallPlan: !installedState.GetInstalled() && strings.TrimSpace(bestEntry.Entry) != "",
 		CanOpenVariants:      len(item.Entries) > 1,
-		CanOpenLocalAsset:    installedState.GetInstalled(),
+		CanOpenModelAsset:    installedState.GetInstalled(),
 	}
 	installPayload := &runtimev1.LocalRecommendationInstallPayload{
 		ModelId:      strings.TrimSpace(item.Repo),
@@ -575,10 +575,10 @@ func buildRecommendationCandidate(item *remoteModelEntry, capability string, eng
 	}
 }
 
-func buildFeedRecommendation(candidate recommendationCandidate, profile *runtimev1.LocalDeviceProfile, verifiedAssets []*runtimev1.LocalVerifiedAssetDescriptor) *runtimev1.LocalCatalogRecommendation {
+func buildFeedRecommendation(candidate recommendationCandidate, profile *runtimev1.LocalDeviceProfile) *runtimev1.LocalCatalogRecommendation {
 	switch normalizeRecommendationFeedCapability(candidate.capability) {
 	case "image", "video":
-		return buildMediaRecommendation(candidate, profile, verifiedAssets)
+		return buildMediaRecommendation(candidate, profile)
 	default:
 		return buildLLMRecommendation(candidate, profile)
 	}

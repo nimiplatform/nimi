@@ -37,15 +37,15 @@ func managedModelAcquisitionStorageID(modelID string, transferID string) string 
 // managedModelDownloadStageDir is stable for one transfer so explicit resume
 // reuses only that acquisition's valid prefix. Separate acquisitions of the
 // same content never share staging or resolved-directory custody.
-func managedModelDownloadStageDir(modelsRoot string, modelID string) string {
-	normalizedID := strings.TrimSpace(modelID)
+func managedModelDownloadStageDir(modelsRoot string, storageID string) string {
+	normalizedID := strings.TrimSpace(storageID)
 	digest := sha256.Sum256([]byte(normalizedID))
 	identity := fmt.Sprintf("%s-%s", slugifyLocalModelID(normalizedID), hex.EncodeToString(digest[:8]))
-	return filepath.Join(modelsRoot, "staging", "downloads", identity)
+	return filepath.Join(modelsRoot, "quarantine", "downloads", identity)
 }
 
-func prepareManagedModelDownloadStageDir(modelsRoot string, modelID string) (string, error) {
-	stageDir := managedModelDownloadStageDir(modelsRoot, modelID)
+func prepareManagedModelDownloadStageDir(modelsRoot string, storageID string) (string, error) {
+	stageDir := managedModelDownloadStageDir(modelsRoot, storageID)
 	if err := os.MkdirAll(stageDir, 0o755); err != nil {
 		return "", fmt.Errorf("create managed model download stage dir: %w", err)
 	}

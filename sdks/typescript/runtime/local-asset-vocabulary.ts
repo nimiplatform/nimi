@@ -23,14 +23,6 @@ export type NimiRuntimeLocalAssetKindId =
   | NimiRuntimeLocalRunnableAssetKindId
   | NimiRuntimeLocalPassiveAssetKindId;
 
-export type NimiRuntimeLocalAssetDeclarationLike = {
-  readonly assetKind?: NimiRuntimeLocalAssetKindId | string | null;
-};
-
-export type NimiRuntimeLocalAssetDeclaration = {
-  readonly assetKind: NimiRuntimeLocalAssetKindId;
-};
-
 export type NimiRuntimeLocalGpuMemoryModelId = 'discrete' | 'unified';
 export type NimiRuntimeLocalEngineId = 'llama' | 'media' | 'speech' | 'sidecar';
 export type NimiRuntimeLocalEngineRuntimeModeId = 'supervised' | 'attached-endpoint';
@@ -126,15 +118,6 @@ const CANONICAL_CAPABILITY_TO_ASSET_KIND = {
   'voice.create': 'tts',
   'music.generate': 'auxiliary',
 } as const satisfies Partial<Record<string, NimiRuntimeLocalAssetKindId>>;
-
-const ASSET_KIND_TO_DEFAULT_CANONICAL_CAPABILITY = {
-  chat: 'text.generate',
-  embedding: 'text.embed',
-  image: 'image.generate',
-  video: 'video.generate',
-  tts: 'audio.synthesize',
-  stt: 'audio.transcribe',
-} as const satisfies Partial<Record<NimiRuntimeLocalAssetKindId, string>>;
 
 export function parseNimiRuntimeLocalAssetKindId(value: unknown): NimiRuntimeLocalAssetKindId | undefined {
   const raw = normalizeLocalVocabularyText(value);
@@ -249,13 +232,6 @@ export function isNimiRuntimeLocalRunnableAssetKindId(
   return Boolean(parsed && (NIMI_RUNTIME_LOCAL_RUNNABLE_ASSET_KIND_IDS as readonly string[]).includes(parsed));
 }
 
-export function isNimiRuntimeLocalPassiveAssetKindId(
-  value: unknown,
-): value is NimiRuntimeLocalPassiveAssetKindId {
-  const parsed = parseNimiRuntimeLocalAssetKindId(value);
-  return Boolean(parsed && (NIMI_RUNTIME_LOCAL_PASSIVE_ASSET_KIND_IDS as readonly string[]).includes(parsed));
-}
-
 export function isNimiRuntimeLocalEngineId(value: unknown): value is NimiRuntimeLocalEngineId {
   return parseNimiRuntimeLocalEngineId(value) !== undefined;
 }
@@ -272,14 +248,6 @@ export function normalizeNimiRuntimeLocalRunnableAssetKindId(
   fallback: NimiRuntimeLocalRunnableAssetKindId = 'chat',
 ): NimiRuntimeLocalRunnableAssetKindId {
   return parseNimiRuntimeLocalRunnableAssetKindId(value) ?? fallback;
-}
-
-export function normalizeNimiRuntimeLocalPassiveAssetKindId(
-  value: unknown,
-  fallback: NimiRuntimeLocalPassiveAssetKindId = 'vae',
-): NimiRuntimeLocalPassiveAssetKindId {
-  const parsed = parseNimiRuntimeLocalAssetKindId(value);
-  return parsed && isNimiRuntimeLocalPassiveAssetKindId(parsed) ? parsed : fallback;
 }
 
 export function normalizeNimiRuntimeLocalEngineId(
@@ -310,57 +278,6 @@ export function compareNimiRuntimeLocalAssetKindForDisplay(left: unknown, right:
     return leftRank - rightRank;
   }
   return String(left ?? '').localeCompare(String(right ?? ''), undefined, { sensitivity: 'base' });
-}
-
-export function normalizeNimiRuntimeLocalAssetDeclaration(
-  declaration?: NimiRuntimeLocalAssetDeclarationLike | null,
-  fallback: NimiRuntimeLocalAssetKindId = 'chat',
-): NimiRuntimeLocalAssetDeclaration {
-  assertLocalAssetDeclarationOmitsEngine(declaration);
-  const normalizedKind = normalizeNimiRuntimeLocalAssetKindId(declaration?.assetKind, fallback);
-  return { assetKind: normalizedKind };
-}
-
-export function normalizeNimiRuntimeLocalDependencyAssetDeclaration(
-  declaration?: NimiRuntimeLocalAssetDeclarationLike | null,
-  fallback: NimiRuntimeLocalPassiveAssetKindId = 'vae',
-): NimiRuntimeLocalAssetDeclaration {
-  assertLocalAssetDeclarationOmitsEngine(declaration);
-  const normalizedKind = normalizeNimiRuntimeLocalPassiveAssetKindId(declaration?.assetKind, fallback);
-  return { assetKind: normalizedKind };
-}
-
-export function canImportNimiRuntimeLocalAssetDeclaration(
-  declaration?: NimiRuntimeLocalAssetDeclarationLike | null,
-): boolean {
-  const assetKind = parseNimiRuntimeLocalAssetKindId(declaration?.assetKind);
-  if (!assetKind) {
-    return false;
-  }
-  return !hasOwnLocalAssetDeclarationEngine(declaration);
-}
-
-function hasOwnLocalAssetDeclarationEngine(
-  declaration?: NimiRuntimeLocalAssetDeclarationLike | null,
-): boolean {
-  return Boolean(declaration && Object.prototype.hasOwnProperty.call(declaration, 'engine'));
-}
-
-function assertLocalAssetDeclarationOmitsEngine(
-  declaration?: NimiRuntimeLocalAssetDeclarationLike | null,
-): void {
-  if (hasOwnLocalAssetDeclarationEngine(declaration)) {
-    throw new TypeError('Local asset import declarations must not include engine');
-  }
-}
-
-export function nimiRuntimeLocalCapabilitiesForAssetKind(kind: NimiRuntimeLocalAssetKindId): string[] {
-  const parsed = parseNimiRuntimeLocalAssetKindId(kind);
-  if (!parsed || !isNimiRuntimeLocalRunnableAssetKindId(parsed)) {
-    return [];
-  }
-  const canonical = ASSET_KIND_TO_DEFAULT_CANONICAL_CAPABILITY[parsed];
-  return canonical ? [canonical] : [];
 }
 
 export function nimiRuntimeLocalRunnableAssetKindForCapabilities(

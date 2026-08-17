@@ -12,32 +12,6 @@ function firstDialogPath(result: ShellFileDialogOpenResult): string | null {
   return path || null;
 }
 
-function isSafeLocalAssetId(localAssetId: string): boolean {
-  const trimmed = localAssetId.trim();
-  return Boolean(trimmed)
-    && trimmed !== '.'
-    && trimmed !== '..'
-    && /^[A-Za-z0-9_.-]+$/u.test(trimmed);
-}
-
-function joinHostPath(root: string, child: string): string {
-  const separator = root.includes('\\') ? '\\' : '/';
-  const trimmedRoot = root.replace(/[\\/]+$/u, '');
-  const trimmedChild = child.replace(/^[\\/]+|[\\/]+$/gu, '');
-  return [trimmedRoot, trimmedChild].filter(Boolean).join(separator);
-}
-
-function isStandardRevealNotFound(error: unknown): boolean {
-  const reasonCode = error && typeof error === 'object'
-    ? String((error as { readonly reasonCode?: unknown }).reasonCode || '').trim()
-    : '';
-  if (reasonCode === 'electron-file-reveal-target-not-found') {
-    return true;
-  }
-  return error instanceof Error
-    && /(?:not-found|target-not-found)/iu.test(error.message);
-}
-
 async function localRuntimeModelsRoot(): Promise<string> {
   const root = (await getDesktopStorageDirs()).modelsDir.trim();
   if (!root) {
@@ -64,26 +38,6 @@ export async function pickLocalRuntimeAssetDirectory(): Promise<string | null> {
     kind: 'directory',
     title: 'Select asset bundle directory to import',
   }));
-}
-
-export async function revealLocalRuntimeAssetInFolder(localAssetId: string): Promise<void> {
-  if (!hasElectronInvoke()) {
-    throw new Error('Local runtime asset reveal requires standard shell file reveal');
-  }
-  const modelsRoot = await localRuntimeModelsRoot();
-  const trimmed = localAssetId.trim();
-  if (!isSafeLocalAssetId(trimmed)) {
-    await revealShellFile(modelsRoot);
-    return;
-  }
-  try {
-    await revealShellFile(joinHostPath(modelsRoot, trimmed));
-  } catch (error) {
-    if (!isStandardRevealNotFound(error)) {
-      throw error;
-    }
-    await revealShellFile(modelsRoot);
-  }
 }
 
 export async function revealLocalRuntimeAssetsRootFolder(): Promise<void> {

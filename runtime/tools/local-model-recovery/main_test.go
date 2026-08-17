@@ -24,6 +24,81 @@ type migrationCommandReport struct {
 	Migration localservice.LegacyAssetMigrationReport `json:"migration"`
 }
 
+func TestRetireLegacyStateTerminatesRetiredConfigurationAndMaterializations(t *testing.T) {
+	temp := t.TempDir()
+	root := filepath.Join(temp, "models")
+	statePath := filepath.Join(temp, "local-state.json")
+	writeJSONFile(t, statePath, map[string]any{
+		"schemaVersion": 2,
+		"savedAt":       "2026-01-01T00:00:00Z",
+		"managedImageProfileMaterializations": []any{
+			map[string]any{"profileId": "retired-profile"},
+		},
+		"transfers": []any{},
+		"audits":    []any{},
+	})
+	legacyConfigPath := filepath.Join(temp, "machine-local-ai-configuration.json")
+	legacyConfig := []byte(`{"schemaVersion":1,"configurations":[{"configuration":{"configuration_id":"unmigratable"}}]}`)
+	if err := os.WriteFile(legacyConfigPath, legacyConfig, 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := run([]string{"--models-root", root, "--state-store", statePath, "--retire-legacy-state"}, &stdout, &stderr)
+	if code != 0 || stderr.Len() != 0 {
+		t.Fatalf("retire code=%d stdout=%q stderr=%q", code, stdout.String(), stderr.String())
+	}
+	if _, err := os.Stat(legacyConfigPath); !os.IsNotExist(err) {
+		t.Fatalf("retired machine configuration still active: %v", err)
+	}
+	statePayload, err := os.ReadFile(statePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var state map[string]json.RawMessage
+	if err := json.Unmarshal(statePayload, &state); err != nil {
+		t.Fatal(err)
+	}
+	if _, exists := state["managedImageProfileMaterializations"]; exists {
+		t.Fatalf("retired materializations still active: %s", statePayload)
+	}
+	entries, err := os.ReadDir(filepath.Join(temp, "state-quarantine"))
+	if err != nil || len(entries) < 2 {
+		t.Fatalf("retired inputs were not preserved in quarantine: entries=%d err=%v", len(entries), err)
+	}
+
+	restarted, err := localservice.NewWithProductControlDataRoot(
+		slog.New(slog.NewTextHandler(io.Discard, nil)), nil, statePath, 8, root, temp,
+	)
+	if err != nil {
+		t.Fatalf("Runtime still cannot start after explicit retirement: %v", err)
+	}
+	restarted.Close()
+}
+
+func TestRetireLegacyStateRejectsUnmigratedLocalAssetRows(t *testing.T) {
+	temp := t.TempDir()
+	root := filepath.Join(temp, "models")
+	statePath := filepath.Join(temp, "local-state.json")
+	writeLegacyState(t, statePath, "must-migrate", filepath.Join(root, "resolved", "must-migrate", "asset.manifest.json"))
+	before, err := os.ReadFile(statePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := run([]string{"--models-root", root, "--state-store", statePath, "--retire-legacy-state"}, &stdout, &stderr)
+	if code != 1 || !strings.Contains(stderr.String(), "migrate-legacy-state-assets") {
+		t.Fatalf("retire with LocalAsset rows code=%d stdout=%q stderr=%q", code, stdout.String(), stderr.String())
+	}
+	after, err := os.ReadFile(statePath)
+	if err != nil || !bytes.Equal(before, after) {
+		t.Fatalf("failed retirement mutated source: equal=%v err=%v", bytes.Equal(before, after), err)
+	}
+}
+
 func TestMigrateLegacyStateAssetsReforgesMergesRederivesAndIsIdempotent(t *testing.T) {
 	root := filepath.Join(t.TempDir(), "models")
 	statePath := filepath.Join(t.TempDir(), "local-state.json")
@@ -408,6 +483,10 @@ func setStoredCatalogVerification(t *testing.T, storePath string, verification s
 	row := rows[0].(map[string]any)
 	asset := row["asset"].(map[string]any)
 	asset["catalog_verification"] = verification
+	manifestPath := filepath.Join(row["managedDirectory"].(string), "asset.manifest.json")
+	manifest := readObjectFile(t, manifestPath)
+	manifest["catalog_verified"] = verification == "MODEL_ASSET_CATALOG_VERIFICATION_MATCHED"
+	writeJSONFile(t, manifestPath, manifest)
 	writeJSONFile(t, storePath, document)
 }
 

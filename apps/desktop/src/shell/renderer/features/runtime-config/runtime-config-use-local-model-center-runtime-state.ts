@@ -1,8 +1,9 @@
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
-import type {
-  NimiRuntimeLocalCatalogItemDescriptor,
-  NimiRuntimeLocalVerifiedAssetDescriptor,
-  NimiRuntimeModelAssetRecord,
+import {
+  isNimiRuntimeLocalRunnableAssetKindId,
+  type NimiRuntimeLocalCatalogItemDescriptor,
+  type NimiRuntimeLocalVerifiedAssetDescriptor,
+  type NimiRuntimeModelAssetRecord,
 } from '@nimiplatform/sdk/runtime';
 import {
   normalizeCapabilityOption,
@@ -10,9 +11,6 @@ import {
   type CapabilityOption,
   type LocalModelCenterProps,
 } from './runtime-config-model-center-utils';
-import {
-  isRunnableAssetKind,
-} from './runtime-config-use-local-model-center-helpers.js';
 import { useRuntimeConfigLocalAssetAdminClient } from './runtime-config-local-model-center-sdk-service';
 import { useLocalModelCenterImportActions } from './runtime-config-use-local-model-center-import-actions';
 import { useLocalModelCenterAssetTasks } from './runtime-config-use-local-model-center-asset-tasks';
@@ -86,7 +84,6 @@ export function useLocalModelCenterRuntimeState({ props }: UseLocalModelCenterRu
       return next;
     });
   }, []);
-  const [stateIsolationDiagnostic, setStateIsolationDiagnostic] = useState('');
   const [assetBusy, setAssetBusy] = useState(false);
   const [showImportMenu, setShowImportMenu] = useState(false);
   const importMenuRef = useRef<HTMLDivElement>(null);
@@ -183,7 +180,7 @@ export function useLocalModelCenterRuntimeState({ props }: UseLocalModelCenterRu
         return;
       }
       setVerifiedModels(rows.filter((item) => (
-        isRunnableAssetKind(item.kind) && !isRunnableAssetInstalled(item.assetId)
+        isNimiRuntimeLocalRunnableAssetKindId(item.kind) && !isRunnableAssetInstalled(item.assetId)
       )).slice(0, 5));
       setRuntimeInventoryError('verified-models', '');
     } catch (error) {
@@ -262,22 +259,10 @@ export function useLocalModelCenterRuntimeState({ props }: UseLocalModelCenterRu
     void refreshVerifiedAssets();
   }, [refreshVerifiedAssets]);
 
-  useEffect(() => {
-    let active = true;
-    void bindings.sdk.machineProduct().local.resolveLocalStateReconciliation({ nimiDataDir: '' }).then((response) => {
-      if (!active) return;
-      const plan = response.plan;
-      setStateIsolationDiagnostic(plan?.state === 'review_required' ? String(plan.message || '').trim() : '');
-    }).catch(() => {
-      // Inventory and Runtime health errors retain their independent banners.
-    });
-    return () => { active = false; };
-  }, [bindings.sdk]);
-
   const visibleVerifiedAssets = useMemo(() => {
     const query = deferredSearchQuery.toLowerCase().trim();
     const candidates = verifiedAssets.filter((asset) => {
-      if (isRunnableAssetKind(asset.kind)) {
+      if (isNimiRuntimeLocalRunnableAssetKindId(asset.kind)) {
         return false;
       }
       if (installedCatalogAssetsById.has(catalogAssetLookupKey(asset.assetId))) {
@@ -406,7 +391,7 @@ export function useLocalModelCenterRuntimeState({ props }: UseLocalModelCenterRu
     onPauseDownload: importActions.onPauseDownload, onResumeDownload: importActions.onResumeDownload,
     refreshAssetSections, refreshVerifiedModels,
     removeInstalledAsset, inspectInstalledAssetRemoval,
-    runtimeInventoryError, stateIsolationDiagnostic,
+    runtimeInventoryError,
     searchQuery, selectedCatalogCapability,
     setCatalogCapability, setCatalogCapabilityOverrides,
     setCatalogDisplayCount,

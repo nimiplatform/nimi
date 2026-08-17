@@ -647,16 +647,6 @@ func imageGenerateRequest(address string, protocol managedimagebackend.Protocol,
 	switch typed := requestPlan.(type) {
 	case capabilitydriver.StableDiffusionCPPTextToImageRequestPlan:
 		request.Mode = managedimagebackend.ImageRequestModeTextToImage
-	case capabilitydriver.StableDiffusionCPPImageToImageRequestPlan:
-		if err := validateImageSubstrateInputPath(typed.InputImage()); err != nil {
-			return managedimagebackend.ImageRequest{}, err
-		}
-		if err := validateImageSubstrateInputPath(typed.Mask()); err != nil {
-			return managedimagebackend.ImageRequest{}, err
-		}
-		request.Mode = managedimagebackend.ImageRequestModeImageToImage
-		request.Src = typed.InputImage()
-		request.Mask = typed.Mask()
 	case capabilitydriver.StableDiffusionCPPInstructionEditRequestPlan:
 		source := typed.SourceImage()
 		if source.SourceIdentity == "" || source.SourceIdentity != strings.TrimSpace(source.SourceIdentity) || len(source.ImageBytes) == 0 {
@@ -673,24 +663,6 @@ func imageGenerateRequest(address string, protocol managedimagebackend.Protocol,
 func imageInvocationModelsRoot(mainModelPath string) string {
 	volume := filepath.VolumeName(mainModelPath)
 	return volume + string(filepath.Separator)
-}
-
-func validateImageSubstrateInputPath(path string) error {
-	path = strings.TrimSpace(path)
-	if path == "" {
-		return nil
-	}
-	if !filepath.IsAbs(path) || filepath.Clean(path) != path {
-		return fmt.Errorf("image substrate input must be an absolute materialized path")
-	}
-	info, err := os.Stat(path)
-	if err != nil {
-		return fmt.Errorf("image substrate input is unavailable: %w", err)
-	}
-	if !info.Mode().IsRegular() {
-		return fmt.Errorf("image substrate input is not a regular file")
-	}
-	return nil
 }
 
 func (m *Manager) imageExecutionWorkRoot() string {

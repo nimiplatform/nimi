@@ -218,13 +218,13 @@ type RecipeDriver interface {
 	ProjectRecipe(recipeID string, options *structpb.Struct, supportedFeatures []string) ([]*runtimev1.LocalCapabilityRequirement, runtimev1.LocalCapabilityReason)
 }
 
-// HostBackendRecipeDriver is implemented only when one public recipe has
-// multiple current Host-specific execution contracts. The Driver still owns
-// every backend slot rule; callers supply only the already-resolved Host
-// backend token.
-type HostBackendRecipeDriver interface {
+// HostPlatformRecipeDriver is implemented only when one public recipe has
+// multiple current Host-specific execution contracts. The Driver owns both
+// Host-to-backend selection and every resulting slot rule; callers supply only
+// the current normalized GOOS/GOARCH tuple.
+type HostPlatformRecipeDriver interface {
 	RecipeDriver
-	ProjectRecipeForBackend(recipeID string, options *structpb.Struct, supportedFeatures []string, backend string) ([]*runtimev1.LocalCapabilityRequirement, runtimev1.LocalCapabilityReason)
+	ProjectRecipeForHost(recipeID string, options *structpb.Struct, supportedFeatures []string, platformTuple string) ([]*runtimev1.LocalCapabilityRequirement, runtimev1.LocalCapabilityReason)
 }
 
 // InvocationExactBinding is the immutable, already-verified occurrence passed
@@ -616,16 +616,6 @@ type StableDiffusionCPPTextToImageRequestPlan struct {
 }
 
 func (StableDiffusionCPPTextToImageRequestPlan) imageRequestPlanVariant() {}
-
-type StableDiffusionCPPImageToImageRequestPlan struct {
-	stableDiffusionCPPRequestFields
-	inputImage string
-	mask       string
-}
-
-func (StableDiffusionCPPImageToImageRequestPlan) imageRequestPlanVariant() {}
-func (p StableDiffusionCPPImageToImageRequestPlan) InputImage() string     { return p.inputImage }
-func (p StableDiffusionCPPImageToImageRequestPlan) Mask() string           { return p.mask }
 
 type StableDiffusionCPPInstructionEditRequestPlan struct {
 	stableDiffusionCPPRequestFields

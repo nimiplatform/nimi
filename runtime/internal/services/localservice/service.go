@@ -103,7 +103,6 @@ type Service struct {
 	saveModelAssetStore                     func(string, modelAssetStoreSnapshot) error
 	writeModelAssetManifest                 func(string, []byte) error
 	removeModelAssetDirectory               func(string) error
-	stateIsolationDiagnostics               []stateIsolationDiagnostic
 	localStateRetainedRecords               []quarantinedStateRecord
 	modelAssetRetainedRecords               []quarantinedStateRecord
 	heldModelInstallPlans                   map[string]heldModelInstallPlan

@@ -106,6 +106,9 @@ func (s *Service) ImportModelAsset(_ context.Context, req *runtimev1.ImportModel
 	if err != nil {
 		return nil, grpcerr.WrapWithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID, err, grpcerr.ReasonOptions{Message: "ModelAsset source is invalid"})
 	}
+	if _, err := s.resolveManagedBundleModelsRoot(); err != nil {
+		return nil, err
+	}
 	modelAssetID := "model_" + strings.ToLower(ulid.Make().String())
 	transfer := s.newLocalTransfer(localTransferKindImport, localTransferMutation{
 		ModelID: modelAssetID, Phase: "staging",
@@ -206,7 +209,10 @@ func (s *Service) runImportModelAsset(ctx context.Context, transferID string, mo
 }
 
 func (s *Service) importModelAssetSync(ctx context.Context, transferID string, modelAssetID string, source modelAssetSource) (*runtimev1.ModelAssetRecord, error) {
-	modelsRoot := resolveLocalModelsPath(s.localModelsPath)
+	modelsRoot, err := s.resolveManagedBundleModelsRoot()
+	if err != nil {
+		return nil, err
+	}
 	resolvedRoot := filepath.Join(modelsRoot, "resolved")
 	quarantineRoot := filepath.Join(modelsRoot, "quarantine")
 	if source.IsDir && s.adoptResolvedModelImports && pathWithinBase(resolvedRoot, source.Path, false) {
@@ -1039,7 +1045,7 @@ func (s *Service) terminalizeCleanupObligationsForDirectoryLocked(managedDirecto
 }
 
 func (s *Service) validModelAssetManagedDirectory(directory string) bool {
-	return modelAssetManagedDirectoryWithinRoot(s.localModelsPath, directory)
+	return modelAssetManagedDirectoryWithinRoot(s.resolvedLocalModelsPath(), directory)
 }
 
 func modelAssetManagedDirectoryWithinRoot(modelsRoot string, directory string) bool {
@@ -1078,7 +1084,7 @@ func (s *Service) persistModelAssetStoreLocked() error {
 }
 
 func (s *Service) restoreModelAssetStore() error {
-	decoded, err := loadModelAssetStore(s.modelAssetStorePath, s.localModelsPath)
+	decoded, err := loadModelAssetStore(s.modelAssetStorePath, s.localModelsPathSnapshot())
 	if err != nil {
 		return err
 	}
@@ -1087,7 +1093,7 @@ func (s *Service) restoreModelAssetStore() error {
 	s.modelAssetDirectories = decoded.Directories
 	s.modelAssetCleanupObligations = decoded.CleanupObligations
 	s.modelAssetRetainedRecords = cloneQuarantinedStateRecords(decoded.retainedRecords)
-	s.stateIsolationDiagnostics = append(s.stateIsolationDiagnostics, decoded.Diagnostics...)
+	s.recordStartupStateIsolationDiagnostics(decoded.Diagnostics)
 	if decoded.RewriteRequired {
 		err = s.persistModelAssetStoreLocked()
 	}
@@ -1111,10 +1117,14 @@ type modelAssetAdoptionOptions struct {
 }
 
 func (s *Service) resolvedLocalModelsPath() string {
+	return resolveLocalModelsPath(s.localModelsPathSnapshot())
+}
+
+func (s *Service) localModelsPathSnapshot() string {
 	s.mu.RLock()
 	configured := s.localModelsPath
 	s.mu.RUnlock()
-	return resolveLocalModelsPath(configured)
+	return configured
 }
 
 func computeImportFileSHA256(path string) (string, error) {

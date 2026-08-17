@@ -83,16 +83,33 @@ func (VoxCPMDriver) interpretForBackend(input InterpretInput, backend string) ([
 }
 
 func (driver VoxCPMDriver) ProjectRecipe(recipeID string, options *structpb.Struct, supportedFeatures []string) ([]*runtimev1.LocalCapabilityRequirement, runtimev1.LocalCapabilityReason) {
-	return driver.ProjectRecipeForBackend(recipeID, options, supportedFeatures, VoxCPMBackendStandard)
+	return driver.projectRecipeForBackend(recipeID, options, supportedFeatures, VoxCPMBackendStandard)
 }
 
-// ProjectRecipeForBackend keeps the public VoxCPM recipe identity stable while
-// projecting the Runtime-private contract selected from the current Host.
-func (driver VoxCPMDriver) ProjectRecipeForBackend(recipeID string, options *structpb.Struct, supportedFeatures []string, backend string) ([]*runtimev1.LocalCapabilityRequirement, runtimev1.LocalCapabilityReason) {
+func (driver VoxCPMDriver) ProjectRecipeForHost(recipeID string, options *structpb.Struct, supportedFeatures []string, platformTuple string) ([]*runtimev1.LocalCapabilityRequirement, runtimev1.LocalCapabilityReason) {
+	backend, ok := voxCPMBackendForPlatform(platformTuple)
+	if !ok {
+		return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_DRIVER_DIALECT_UNSUPPORTED
+	}
+	return driver.projectRecipeForBackend(recipeID, options, supportedFeatures, backend)
+}
+
+func (driver VoxCPMDriver) projectRecipeForBackend(recipeID string, options *structpb.Struct, supportedFeatures []string, backend string) ([]*runtimev1.LocalCapabilityRequirement, runtimev1.LocalCapabilityReason) {
 	if recipeID != VoxCPMRecipeID {
 		return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_PORTABLE_CONFIG_INVALID
 	}
 	return driver.interpretForBackend(InterpretInput{PortableConfig: options, SupportedFeatures: supportedFeatures}, backend)
+}
+
+func voxCPMBackendForPlatform(platformTuple string) (string, bool) {
+	switch strings.ToLower(strings.TrimSpace(platformTuple)) {
+	case "windows/amd64":
+		return VoxCPMBackendStandard, true
+	case "darwin/arm64":
+		return VoxCPMBackendMLX, true
+	default:
+		return "", false
+	}
 }
 
 func (driver VoxCPMDriver) ProjectModelAssetBinding(input ModelAssetBindingInput) (ModelAssetBindingProjection, runtimev1.LocalCapabilityReason) {

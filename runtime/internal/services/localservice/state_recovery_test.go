@@ -231,6 +231,19 @@ func TestResolvedManifestRecoveryReportIsReadOnlyAndRehashesPayload(t *testing.T
 	}
 }
 
+func TestCanonicalReportPathFoldsCaseOnlyOnWindows(t *testing.T) {
+	upper := filepath.Join(t.TempDir(), "Resolved", "Model")
+	lower := strings.ToLower(upper)
+	if canonicalReportPathForOS(upper, "windows") != canonicalReportPathForOS(lower, "windows") {
+		t.Fatal("Windows report paths must compare case-insensitively")
+	}
+	for _, goos := range []string{"linux", "darwin"} {
+		if canonicalReportPathForOS(upper, goos) == canonicalReportPathForOS(lower, goos) {
+			t.Fatalf("%s report paths unexpectedly folded case", goos)
+		}
+	}
+}
+
 func treeSnapshotForRecoveryTest(t *testing.T, root string) []string {
 	t.Helper()
 	items := make([]string, 0)

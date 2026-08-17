@@ -36,6 +36,13 @@ Discipline.
 
 ### Changed
 
+- **Breaking (0.x):** Model Config no longer exports the retired
+  `projectModelConfigLocalSelections`, `ModelConfigMachineAggregateInput`, or
+  `ModelConfigMachineConfigurationInput` compatibility projection. Hosts must
+  supply the Runtime-owned bounded current Loadout-selection projection
+  directly; Kit does not reconstruct it from machine-local configuration and
+  selection arrays.
+
 - **Breaking (0.x):** `handleSocialOAuthLogin` now completes only a
   Realm-owned browser session. `OAuthLoginInput.onSuccess` is a payload-free
   completion signal, callers must provide the canonical

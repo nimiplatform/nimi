@@ -151,7 +151,7 @@ func TestRecommendationFeedProjectsInstalledState(t *testing.T) {
 	if item.GetActionState().GetCanReviewInstallPlan() {
 		t.Fatalf("installed item must not review install plan")
 	}
-	if !item.GetActionState().GetCanOpenLocalAsset() {
+	if !item.GetActionState().GetCanOpenModelAsset() {
 		t.Fatalf("installed item should open local asset")
 	}
 }

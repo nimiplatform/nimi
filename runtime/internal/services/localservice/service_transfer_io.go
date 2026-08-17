@@ -145,7 +145,7 @@ func (s *Service) cancelTransfer(sessionID string, message string) {
 		summary.Retryable = false
 	})
 	if summary != nil && normalizeTransferKind(summary.GetSessionKind()) == localTransferKindDownload {
-		s.discardManagedModelDownloadStaging(summary.GetAssetId())
+		s.discardManagedModelDownloadStaging(managedModelAcquisitionStorageID(summary.GetAssetId(), summary.GetInstallSessionId()))
 	}
 }
 

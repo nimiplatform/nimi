@@ -31,7 +31,7 @@ func TestVoxCPMProductionRegistryExposesOneSynthesisDriver(t *testing.T) {
 		fmt.Sprint(constraints["audio_vae_files"]) != "[audiovae.safetensors audiovae.pth]" {
 		t.Fatalf("VoxCPM bundle layout contract = %#v", constraints)
 	}
-	mlxRequirements, reason := (VoxCPMDriver{}).ProjectRecipeForBackend(VoxCPMRecipeID, nil, nil, VoxCPMBackendMLX)
+	mlxRequirements, reason := (VoxCPMDriver{}).ProjectRecipeForHost(VoxCPMRecipeID, nil, nil, "darwin/arm64")
 	if reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED || len(mlxRequirements) != 1 {
 		t.Fatalf("MLX projection reason=%v requirements=%+v", reason, mlxRequirements)
 	}

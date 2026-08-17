@@ -446,10 +446,28 @@ function modelAssetIdsForLoadout(loadout: NimiMachineLoadout): Record<string, st
   return Object.fromEntries(loadout.modelAxes.map((axis) => [axis.slotId, axis.modelAssetId]));
 }
 
-function recommendedInstallMessage(items: readonly RecommendedInstallItem[], heading: string): string {
+export function recommendedInstallMessage(items: readonly RecommendedInstallItem[], heading: string): string {
   const missing = items.filter((item) => !item.installed);
-  const total = missing.reduce((sum, item) => sum + (item.descriptor?.totalSizeBytes ?? 0), 0);
-  return [heading, ...items.map((item) => `${item.displayLabel}: ${item.descriptor?.title ?? item.variantId} · ${formatBytes(item.descriptor?.totalSizeBytes ?? 0)} · ${item.installed ? 'installed' : 'download'}`), `Total download: ${formatBytes(total)}`].join('\n');
+  const total = missing.length === 0
+    ? 0
+    : missing.every((item) => knownDownloadSize(item.descriptor?.totalSizeBytes) !== null)
+      ? missing.reduce((sum, item) => sum + (knownDownloadSize(item.descriptor?.totalSizeBytes) ?? 0), 0)
+      : null;
+  return [
+    heading,
+    ...items.map((item) => `${item.displayLabel}: ${item.descriptor?.title ?? item.variantId} · ${formatDownloadBytes(knownDownloadSize(item.descriptor?.totalSizeBytes))} · ${item.installed ? 'installed' : 'download'}`),
+    `Total download: ${formatDownloadBytes(total)}`,
+  ].join('\n');
+}
+
+function knownDownloadSize(value: number | undefined): number | null {
+  return typeof value === 'number' && Number.isSafeInteger(value) && value > 0 ? value : null;
+}
+
+function formatDownloadBytes(value: number | null): string {
+  if (value === null) return 'unknown size';
+  if (value === 0) return '0 B';
+  return formatBytes(value);
 }
 
 function formatBytes(value: number): string {

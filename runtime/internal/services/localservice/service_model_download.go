@@ -150,11 +150,11 @@ func (s *Service) rebuildManagedModelDownloadResumePlan(assetID string, transfer
 // stable staging custody. Known catalog files include already-verified files
 // plus a current `.download` prefix; without a descriptor (startup healing
 // before a later typed resume failure), only resumable `.download` files count.
-func managedModelDownloadStagedBytes(modelsRoot string, modelID string, files []string) (int64, error) {
+func managedModelDownloadStagedBytes(modelsRoot string, storageID string, files []string) (int64, error) {
 	if strings.TrimSpace(modelsRoot) == "" || !filepath.IsAbs(modelsRoot) {
 		return 0, fmt.Errorf("managed model staging requires an absolute models root")
 	}
-	stageDir := managedModelDownloadStageDir(modelsRoot, modelID)
+	stageDir := managedModelDownloadStageDir(modelsRoot, storageID)
 	var total int64
 	if len(files) > 0 {
 		for _, file := range files {
@@ -432,7 +432,7 @@ func (s *Service) installManagedDownloadedModelWithTransfer(
 
 // resolveManagedBundleModelsRoot resolves the absolute models root a managed
 // bundle install must stage and activate under. This is the single
-// config-sourced runtime models root — `resolveLocalModelsPath(s.localModelsPath)`
+// synchronized config-sourced Runtime models root — `s.resolvedLocalModelsPath()`
 // → `<dataRootRef>/models` (config.resolveLocalModelsPath / NewDataPlaneModel) —
 // the same root every other models-root consumer reads (verify, engine
 // activation, warm, residency, media).
@@ -533,12 +533,12 @@ func isRetryableManagedModelDownloadError(err error) bool {
 	return errors.As(err, &pathErr) || isTransientModelDownloadError(err)
 }
 
-func (s *Service) discardManagedModelDownloadStaging(modelID string) {
+func (s *Service) discardManagedModelDownloadStaging(storageID string) {
 	modelsRoot := strings.TrimSpace(s.resolvedLocalModelsPath())
-	if modelsRoot == "" || !filepath.IsAbs(modelsRoot) || strings.TrimSpace(modelID) == "" {
+	if modelsRoot == "" || !filepath.IsAbs(modelsRoot) || strings.TrimSpace(storageID) == "" {
 		return
 	}
-	_ = os.RemoveAll(managedModelDownloadStageDir(modelsRoot, modelID))
+	_ = os.RemoveAll(managedModelDownloadStageDir(modelsRoot, storageID))
 }
 
 func isTransientModelDownloadError(err error) bool {

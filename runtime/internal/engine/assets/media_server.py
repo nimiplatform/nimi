@@ -7,6 +7,7 @@ import io
 import ipaddress
 import json
 import os
+import pathlib
 import socket
 import tempfile
 import threading
@@ -314,7 +315,16 @@ def _validate_remote_image_url(parsed):
             raise ValueError("remote image host resolves to a disallowed address")
 
 
+def _required_local_model_directory(model_id, capability):
+    normalized = str(model_id or "").strip()
+    path = pathlib.Path(normalized)
+    if not normalized or not path.is_absolute() or not path.is_dir() or path.is_symlink():
+        raise ValueError("managed %s model must be a local directory" % capability)
+    return str(path)
+
+
 def _flux_pipeline(model_id):
+    model_id = _required_local_model_directory(model_id, "image")
     key = ("flux", model_id)
     with PIPELINE_LOCK:
         pipeline = PIPELINE_CACHE.get(key)
@@ -324,13 +334,14 @@ def _flux_pipeline(model_id):
         _ensure_cuda(torch)
         from diffusers import FluxPipeline
 
-        pipeline = FluxPipeline.from_pretrained(model_id, torch_dtype=dtype)
+        pipeline = FluxPipeline.from_pretrained(model_id, torch_dtype=dtype, local_files_only=True)
         pipeline = pipeline.to(DEVICE)
         PIPELINE_CACHE[key] = pipeline
         return pipeline
 
 
 def _wan_pipeline(model_id, image_to_video):
+    model_id = _required_local_model_directory(model_id, "video")
     cache_key = ("wan_i2v" if image_to_video else "wan_t2v", model_id)
     with PIPELINE_LOCK:
         pipeline = PIPELINE_CACHE.get(cache_key)
@@ -341,11 +352,11 @@ def _wan_pipeline(model_id, image_to_video):
         if image_to_video:
             from diffusers import WanImageToVideoPipeline
 
-            pipeline = WanImageToVideoPipeline.from_pretrained(model_id, torch_dtype=dtype)
+            pipeline = WanImageToVideoPipeline.from_pretrained(model_id, torch_dtype=dtype, local_files_only=True)
         else:
             from diffusers import WanPipeline
 
-            pipeline = WanPipeline.from_pretrained(model_id, torch_dtype=dtype)
+            pipeline = WanPipeline.from_pretrained(model_id, torch_dtype=dtype, local_files_only=True)
         pipeline = pipeline.to(DEVICE)
         PIPELINE_CACHE[cache_key] = pipeline
         return pipeline

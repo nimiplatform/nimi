@@ -5,7 +5,6 @@ import { NIMI_STANDARD_SHELL_COMMANDS } from '@nimiplatform/kit/shell/capabiliti
 import {
   pickLocalRuntimeAssetDirectory,
   pickLocalRuntimeAssetFile,
-  revealLocalRuntimeAssetInFolder,
   revealLocalRuntimeAssetsRootFolder,
 } from '../src/shell/renderer/bridge/runtime-bridge/local-runtime-os-helpers';
 
@@ -111,90 +110,6 @@ test('local runtime asset pickers preserve cancel as null', async () => {
     assert.equal(await pickLocalRuntimeAssetFile(), null);
     assert.equal(await pickLocalRuntimeAssetDirectory(), null);
   });
-});
-
-test('local runtime asset reveal uses Kit standard file reveal for the asset directory', async () => {
-  const calls: Array<{ command: string; payload: unknown }> = [];
-  await withStandardShellInvoke(async (command, payload) => {
-    calls.push({ command, payload });
-    if (command === 'product_control_selected_data_root_get') {
-      return selectedDataRootProjection('/tmp/nimi-data');
-    }
-    if (command === NIMI_STANDARD_SHELL_COMMANDS['file-reveal.reveal']) {
-      return { revealed: true, path: '/tmp/nimi-data/models/asset-1' };
-    }
-    throw new Error(`unexpected command: ${command}`);
-  }, async () => {
-    await revealLocalRuntimeAssetInFolder('asset-1');
-  });
-
-  assert.deepEqual(calls, [
-    { command: 'product_control_selected_data_root_get', payload: {} },
-    {
-      command: NIMI_STANDARD_SHELL_COMMANDS['file-reveal.reveal'],
-      payload: { payload: { path: '/tmp/nimi-data/models/asset-1' } },
-    },
-  ]);
-});
-
-test('local runtime asset reveal falls back to models root when asset directory is missing', async () => {
-  const calls: Array<{ command: string; payload: unknown }> = [];
-  await withStandardShellInvoke(async (command, payload) => {
-    calls.push({ command, payload });
-    if (command === 'product_control_selected_data_root_get') {
-      return selectedDataRootProjection('/tmp/nimi-data');
-    }
-    if (command === NIMI_STANDARD_SHELL_COMMANDS['file-reveal.reveal']) {
-      const revealPath = (payload as { payload?: { path?: string } }).payload?.path;
-      if (revealPath === '/tmp/nimi-data/models/asset-missing') {
-        throw {
-          code: 'not-found',
-          reasonCode: 'electron-file-reveal-target-not-found',
-          actionHint: 'materialize_file_before_revealing_it',
-        };
-      }
-      return { revealed: true, path: '/tmp/nimi-data/models' };
-    }
-    throw new Error(`unexpected command: ${command}`);
-  }, async () => {
-    await revealLocalRuntimeAssetInFolder('asset-missing');
-  });
-
-  assert.deepEqual(calls, [
-    { command: 'product_control_selected_data_root_get', payload: {} },
-    {
-      command: NIMI_STANDARD_SHELL_COMMANDS['file-reveal.reveal'],
-      payload: { payload: { path: '/tmp/nimi-data/models/asset-missing' } },
-    },
-    {
-      command: NIMI_STANDARD_SHELL_COMMANDS['file-reveal.reveal'],
-      payload: { payload: { path: '/tmp/nimi-data/models' } },
-    },
-  ]);
-});
-
-test('local runtime asset reveal sends invalid asset ids directly to models root', async () => {
-  const calls: Array<{ command: string; payload: unknown }> = [];
-  await withStandardShellInvoke(async (command, payload) => {
-    calls.push({ command, payload });
-    if (command === 'product_control_selected_data_root_get') {
-      return selectedDataRootProjection('/tmp/nimi-data');
-    }
-    if (command === NIMI_STANDARD_SHELL_COMMANDS['file-reveal.reveal']) {
-      return { revealed: true, path: '/tmp/nimi-data/models' };
-    }
-    throw new Error(`unexpected command: ${command}`);
-  }, async () => {
-    await revealLocalRuntimeAssetInFolder('../asset-1');
-  });
-
-  assert.deepEqual(calls, [
-    { command: 'product_control_selected_data_root_get', payload: {} },
-    {
-      command: NIMI_STANDARD_SHELL_COMMANDS['file-reveal.reveal'],
-      payload: { payload: { path: '/tmp/nimi-data/models' } },
-    },
-  ]);
 });
 
 test('local runtime models root reveal uses Kit standard file reveal', async () => {

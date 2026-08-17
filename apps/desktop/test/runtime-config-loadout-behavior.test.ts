@@ -9,6 +9,7 @@ import type {
 } from '@nimiplatform/sdk/runtime';
 import { runtimeConfigLoadoutCatalogBadge } from '../src/shell/renderer/features/runtime-config/runtime-config-loadout-catalog-badge.js';
 import {
+  recommendedInstallMessage,
   recommendedInstallItems,
   runtimeConfigLoadoutErrorMessage,
 } from '../src/shell/renderer/features/runtime-config/runtime-config-page-loadouts.js';
@@ -79,6 +80,30 @@ test('single-slot recipes render the recommended combination and install entry o
     'runtime.projected.variant',
   );
 
+});
+
+test('recommended install confirmation never presents a known subtotal as the total', () => {
+  const message = recommendedInstallMessage([
+    {
+      slotId: 'known',
+      displayLabel: 'Known model',
+      contentId: `sha256:${'a'.repeat(64)}`,
+      variantId: 'known-variant',
+      descriptor: { title: 'Known', totalSizeBytes: 1024 },
+      installed: false,
+    },
+    {
+      slotId: 'unknown',
+      displayLabel: 'Unknown model',
+      contentId: `sha256:${'b'.repeat(64)}`,
+      variantId: 'unknown-variant',
+      installed: false,
+    },
+  ] as never, 'Install the recommended models');
+
+  assert.match(message, /Unknown model: unknown-variant · unknown size · download/u);
+  assert.match(message, /Total download: unknown size/u);
+  assert.doesNotMatch(message, /Total download: 1\.0 KB/u);
 });
 
 test('NOT_MATCHED ModelAsset axes render catalog_not_matched and never catalog_verified', async () => {

@@ -20,7 +20,6 @@ export function LocalModelCenter(props: LocalModelCenterProps) {
       refreshing={runtimeState.loadingInstalledAssets || runtimeState.loadingVerifiedAssets}
       modelAssets={runtimeState.filteredModelAssets}
       runtimeInventoryError={runtimeState.runtimeInventoryError}
-      stateIsolationDiagnostic={runtimeState.stateIsolationDiagnostic}
       hasSearchQuery={hasSearchQuery}
       importMenuRef={runtimeState.importMenuRef}
       installing={runtimeState.installing}

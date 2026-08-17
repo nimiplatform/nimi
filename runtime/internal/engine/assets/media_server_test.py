@@ -29,6 +29,14 @@ MEDIA_SERVER = load_media_server_module()
 
 
 class MediaServerLocalFileBoundaryTests(unittest.TestCase):
+    def test_image_pipeline_rejects_remote_model_identifier(self) -> None:
+        with self.assertRaisesRegex(ValueError, "managed image model must be a local directory"):
+            MEDIA_SERVER._flux_pipeline("black-forest-labs/FLUX.1-schnell")
+
+    def test_video_pipeline_rejects_remote_model_identifier(self) -> None:
+        with self.assertRaisesRegex(ValueError, "managed video model must be a local directory"):
+            MEDIA_SERVER._wan_pipeline("Wan-AI/Wan2.1-T2V-1.3B-Diffusers", False)
+
     def test_load_image_rejects_file_url(self) -> None:
         with self.assertRaisesRegex(ValueError, "file URLs are not admitted media inputs"):
             MEDIA_SERVER._load_image_from_uri("file:///tmp/secret.png")

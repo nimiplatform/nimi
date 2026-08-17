@@ -301,7 +301,7 @@ func (s *Service) legacyResolvedModelAssetDirectoryCandidate(record legacyLocalA
 	if strings.TrimSpace(record.LocalAssetID) == "" {
 		return "", false
 	}
-	modelsRoot := resolveLocalModelsPath(s.localModelsPath)
+	modelsRoot := s.resolvedLocalModelsPath()
 	if repo := strings.TrimSpace(record.SourceRepo); strings.HasPrefix(strings.ToLower(repo), "file://") && strings.HasSuffix(strings.ToLower(repo), "/asset.manifest.json") {
 		manifestPath, err := resolveManagedFileRepoPath(repo)
 		if err == nil {
@@ -334,7 +334,7 @@ func (s *Service) legacyResolvedModelAssetDirectory(record legacyLocalAssetState
 	if err != nil || !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
 		return "", false
 	}
-	modelsRoot, err := filepath.EvalSymlinks(resolveLocalModelsPath(s.localModelsPath))
+	modelsRoot, err := filepath.EvalSymlinks(s.resolvedLocalModelsPath())
 	if err != nil {
 		return "", false
 	}

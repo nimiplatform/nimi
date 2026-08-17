@@ -96,7 +96,13 @@ func (store *diskLoadoutStore) Load() ([]*runtimev1.Loadout, []*runtimev1.Loadou
 	for index, raw := range snapshot.Loadouts {
 		loadout := &runtimev1.Loadout{}
 		rowErr := protojson.Unmarshal(raw, loadout)
-		canonicalizeLoadout(loadout)
+		if rowErr == nil {
+			persisted := cloneLoadout(loadout)
+			canonicalizeLoadout(loadout)
+			if !proto.Equal(persisted, loadout) {
+				rowErr = errors.New("persisted Loadout is not canonical")
+			}
+		}
 		if rowErr == nil {
 			rowErr = validateStoredLoadout(loadout)
 		}
@@ -119,7 +125,13 @@ func (store *diskLoadoutStore) Load() ([]*runtimev1.Loadout, []*runtimev1.Loadou
 	for index, raw := range snapshot.Selections {
 		selection := &runtimev1.LoadoutSelection{}
 		rowErr := protojson.Unmarshal(raw, selection)
-		canonicalizeLoadoutSelection(selection)
+		if rowErr == nil {
+			persisted := cloneLoadoutSelection(selection)
+			canonicalizeLoadoutSelection(selection)
+			if !proto.Equal(persisted, selection) {
+				rowErr = errors.New("persisted Loadout selection is not canonical")
+			}
+		}
 		if rowErr == nil {
 			rowErr = validateStoredLoadoutSelection(selection, loadoutsByID)
 		}
@@ -168,11 +180,13 @@ func (store *diskLoadoutStore) Load() ([]*runtimev1.Loadout, []*runtimev1.Loadou
 	return loadouts, selections, nil
 }
 
-func (store *diskLoadoutStore) IsolationDiagnostics() []stateIsolationDiagnostic {
+func (store *diskLoadoutStore) TakeIsolationDiagnostics() []stateIsolationDiagnostic {
 	if store == nil {
 		return nil
 	}
-	return append([]stateIsolationDiagnostic(nil), store.diagnostics...)
+	diagnostics := append([]stateIsolationDiagnostic(nil), store.diagnostics...)
+	store.diagnostics = nil
+	return diagnostics
 }
 
 func (store *diskLoadoutStore) Save(loadouts []*runtimev1.Loadout, selections []*runtimev1.LoadoutSelection) error {

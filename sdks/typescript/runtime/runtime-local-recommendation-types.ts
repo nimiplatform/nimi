@@ -10,13 +10,6 @@ export type NimiRuntimeLocalRecommendationBaselineId = 'image-default-v1' | 'vid
 export type NimiRuntimeLocalRecommendationFeedCacheStateId = 'fresh' | 'stale' | 'empty';
 export type NimiRuntimeLocalRecommendationFeedCapabilityId = 'chat' | 'image' | 'video';
 export type NimiRuntimeLocalRecommendationFeedSourceId = 'model-index';
-export interface NimiRuntimeLocalRecommendationSuggestedAsset {
-  readonly templateId?: string;
-  readonly assetId?: string;
-  readonly kind: string;
-  readonly family?: string;
-}
-
 export interface NimiRuntimeLocalCatalogRecommendation {
   readonly source: NimiRuntimeLocalRecommendationSourceId;
   readonly format?: NimiRuntimeLocalRecommendationFormatId;
@@ -26,7 +19,6 @@ export interface NimiRuntimeLocalCatalogRecommendation {
   readonly reasonCodes: readonly string[];
   readonly recommendedEntry?: string;
   readonly fallbackEntries: readonly string[];
-  readonly suggestedAssets: readonly NimiRuntimeLocalRecommendationSuggestedAsset[];
   readonly suggestedNotes: readonly string[];
   readonly baseline?: NimiRuntimeLocalRecommendationBaselineId;
 }
@@ -47,7 +39,7 @@ export interface NimiRuntimeLocalRecommendationInstalledState {
 export interface NimiRuntimeLocalRecommendationActionState {
   readonly canReviewInstallPlan: boolean;
   readonly canOpenVariants: boolean;
-  readonly canOpenLocalAsset: boolean;
+  readonly canOpenModelAsset: boolean;
 }
 
 export interface NimiRuntimeLocalRecommendationInstallPayload {

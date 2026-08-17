@@ -3,7 +3,6 @@ import { runtimeAIConfigStructToJson } from '@nimiplatform/kit/core/sdk-contract
 import type {
   ModelConfigCapabilityPosture,
   ModelConfigLocalSelectionProjection,
-  ModelConfigMachineAggregateInput,
 } from './types.js';
 
 function exactCloudTargetText(value: unknown): string {
@@ -26,42 +25,6 @@ export function modelConfigJsonHasExactCloudTarget(
     && Boolean(exactCloudTargetText(fields.provider))
     && Boolean(exactCloudTargetText(fields.providerModelId))
     && Boolean(exactCloudTargetText(fields.remoteModelCatalogId));
-}
-
-export function projectModelConfigLocalSelections(
-  aggregate: ModelConfigMachineAggregateInput | null | undefined,
-): readonly ModelConfigLocalSelectionProjection[] {
-  if (!aggregate) return [];
-  return aggregate.selections.map((selection) => {
-    const configuration = aggregate.configurations.find(
-      (entry) => entry.configurationId === selection.configurationId,
-    );
-    if (!configuration) {
-      return {
-        capabilityContract: selection.capabilityContract,
-        state: 'broken' as const,
-        configurationId: selection.configurationId,
-        displayName: null,
-        supportedFeatures: [],
-        reasons: ['selected-configuration-not-found'],
-        effectiveDefaults: null,
-      };
-    }
-    const reasons = [
-      ...(configuration.interpretability === 'interpretable' ? [] : ['configuration-uninterpretable']),
-      ...(configuration.requirementResolution === 'configured' ? [] : ['configuration-unresolved']),
-      ...configuration.reasons,
-    ];
-    return {
-      capabilityContract: selection.capabilityContract,
-      state: reasons.length === 0 ? 'selected' as const : 'broken' as const,
-      configurationId: configuration.configurationId,
-      displayName: configuration.displayName,
-      supportedFeatures: configuration.supportedFeatures,
-      reasons: [...new Set(reasons)],
-      effectiveDefaults: selection.effectiveDefaults ?? null,
-    };
-  });
 }
 
 export function modelConfigMissingRequiredFeatures(

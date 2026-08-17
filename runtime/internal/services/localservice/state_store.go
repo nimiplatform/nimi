@@ -88,8 +88,9 @@ func (s *Service) restoreState() error {
 		return err
 	}
 
+	modelsRoot := s.resolvedLocalModelsPath()
 	s.mu.Lock()
-	s.stateIsolationDiagnostics = append(s.stateIsolationDiagnostics, isolationDiagnostics...)
+	s.recordStartupStateIsolationDiagnostics(isolationDiagnostics)
 	s.localStateRetainedRecords = cloneQuarantinedStateRecords(snapshot.retainedRecords)
 	healedSnapshot := rewriteRequired
 
@@ -190,7 +191,7 @@ func (s *Service) restoreState() error {
 	}
 	// Transfer crash recovery pauses resumable downloads with their interruption
 	// reason while retaining the existing fail-closed handling for imports.
-	if s.reconcileOrphanedLocalTransfersLocked() > 0 {
+	if s.reconcileOrphanedLocalTransfersLocked(modelsRoot) > 0 {
 		healedSnapshot = true
 	}
 	if healedSnapshot {

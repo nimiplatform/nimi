@@ -353,19 +353,23 @@ class SpeechServerTests(unittest.TestCase):
 
         processor = FakeProcessor()
         model = FakeModel()
+        loaded_model_refs = []
         original_load_model = QWEN3_ASR_TRANSFORMERS_DRIVER.load_model
-        QWEN3_ASR_TRANSFORMERS_DRIVER.load_model = lambda _model_ref: (processor, model)
+        QWEN3_ASR_TRANSFORMERS_DRIVER.load_model = lambda model_ref: (loaded_model_refs.append(model_ref) or (processor, model))
         try:
             with tempfile.TemporaryDirectory() as temp_dir:
+                bundle_path = pathlib.Path(temp_dir) / "bundle"
+                bundle_path.mkdir()
+                (bundle_path / "model.safetensors").write_bytes(b"model")
                 audio_path = pathlib.Path(temp_dir) / "speech.wav"
                 audio_path.write_bytes(b"RIFFdemo")
                 result = QWEN3_ASR_TRANSFORMERS_DRIVER.handle_transcribe(
                     {
                         "audio_path": str(audio_path),
-                        "model_ref": "Qwen/Qwen3-ASR-0.6B-hf",
+                        "bundle_dir": str(bundle_path),
+                        "declared_files": ["model.safetensors"],
                         "language": "en",
                     },
-                    QWEN3_ASR_TRANSFORMERS_DRIVER.DEFAULT_ASR_MODEL,
                 )
         finally:
             QWEN3_ASR_TRANSFORMERS_DRIVER.load_model = original_load_model
@@ -374,6 +378,13 @@ class SpeechServerTests(unittest.TestCase):
         self.assertEqual(processor.calls, [{"audio": str(audio_path), "language": "English"}])
         self.assertEqual(processor.return_format, "transcription_only")
         self.assertEqual(model.kwargs["max_new_tokens"], 256)
+        self.assertEqual(loaded_model_refs, [str(bundle_path)])
+
+    def test_transformers_native_driver_rejects_remote_model_fallback(self) -> None:
+        with self.assertRaisesRegex(RuntimeError, "managed Transformers ASR bundle_dir is required"):
+            QWEN3_ASR_TRANSFORMERS_DRIVER.resolve_model_ref(
+                {"model_ref": "Qwen/Qwen3-ASR-0.6B-hf"},
+            )
 
     def test_driver_work_root_is_required_and_request_exchange_is_cleaned(self) -> None:
         speech_server_runtime = sys.modules["speech_server_runtime"]

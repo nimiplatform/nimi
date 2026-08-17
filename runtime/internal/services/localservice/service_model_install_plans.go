@@ -2,12 +2,14 @@ package localservice
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
 	"strings"
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/authn"
+	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/proto"
 )
@@ -85,6 +87,9 @@ func pruneExpiredModelInstallPlansLocked(plans map[string]heldModelInstallPlan, 
 }
 
 func modelInstallPlanOwnerKey(ctx context.Context) string {
+	if connectionID, ok := protectedlocal.VerifiedDesktopConnectionIDFromContext(ctx); ok {
+		return "protected-desktop-connection\x00" + base64.RawURLEncoding.EncodeToString(connectionID[:])
+	}
 	parts := make([]string, 0, 5)
 	if identity := authn.IdentityFromContext(ctx); identity != nil {
 		parts = append(parts, strings.TrimSpace(identity.SubjectUserID), strings.TrimSpace(identity.SessionID))

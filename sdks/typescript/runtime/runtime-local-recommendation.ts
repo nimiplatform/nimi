@@ -35,7 +35,6 @@ import type {
   NimiRuntimeLocalRecommendationInstallPayload,
   NimiRuntimeLocalRecommendationInstalledState,
   NimiRuntimeLocalRecommendationSourceId,
-  NimiRuntimeLocalRecommendationSuggestedAsset,
   NimiRuntimeLocalRecommendationTierId,
 } from './runtime-local-recommendation-types';
 export * from './runtime-local-recommendation-feed-ui';
@@ -215,17 +214,6 @@ export function projectNimiRuntimeLocalCatalogRecommendation(
   if (!source) {
     return undefined;
   }
-  const suggestedAssets = Array.isArray(record.suggestedAssets)
-    ? record.suggestedAssets.map((item) => {
-      const row = asRecord(item);
-      return {
-        templateId: normalizeText(row.templateId) || undefined,
-        assetId: normalizeText(row.assetId) || undefined,
-        kind: normalizeText(row.kind),
-        family: normalizeText(row.family) || undefined,
-      };
-    }).filter((item) => item.kind)
-    : [];
   return {
     source,
     format: parseNimiRuntimeLocalRecommendationFormatId(record.format),
@@ -235,7 +223,6 @@ export function projectNimiRuntimeLocalCatalogRecommendation(
     reasonCodes: textList(record.reasonCodes),
     recommendedEntry: normalizeText(record.recommendedEntry) || undefined,
     fallbackEntries: textList(record.fallbackEntries),
-    suggestedAssets,
     suggestedNotes: textList(record.suggestedNotes),
     baseline: parseNimiRuntimeLocalRecommendationBaselineId(record.baseline),
   };
@@ -381,7 +368,7 @@ function projectNimiRuntimeLocalRecommendationActionState(
   return {
     canReviewInstallPlan: Boolean(record.canReviewInstallPlan),
     canOpenVariants: Boolean(record.canOpenVariants),
-    canOpenLocalAsset: Boolean(record.canOpenLocalAsset || record.canOpenLocalModel),
+    canOpenModelAsset: Boolean(record.canOpenModelAsset),
   };
 }
 

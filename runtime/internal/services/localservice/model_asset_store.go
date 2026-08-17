@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 	"sort"
 	"strings"
 	"time"
@@ -93,21 +94,17 @@ func loadModelAssetStore(path string, modelsRoot string) (decodedModelAssetStore
 	}
 
 	quarantined := make([]quarantinedStateRecord, 0)
+	seenDirectories := make(map[string]struct{}, len(raw.Assets))
 	rows := decodeIsolatedRows(raw.Assets, modelAssetStoreFileName, "assets", &quarantined,
 		func(row *modelAssetStoreRecord, _ json.RawMessage) error {
-			if strings.TrimSpace(row.ManagedDirectory) == "" {
-				return errors.New("managedDirectory is required")
+			if err := validateStoredModelAssetRecord(modelsRoot, row); err != nil {
+				return err
 			}
-			if !modelAssetManagedDirectoryWithinRoot(modelsRoot, row.ManagedDirectory) {
-				return errors.New("managedDirectory must stay under the Runtime resolved models root")
+			directoryKey := canonicalReportPath(row.ManagedDirectory)
+			if _, duplicate := seenDirectories[directoryKey]; duplicate {
+				return fmt.Errorf("duplicate ModelAsset managed directory %q", row.ManagedDirectory)
 			}
-			asset := &runtimev1.ModelAssetRecord{}
-			if err := protojson.Unmarshal(row.Asset, asset); err != nil {
-				return fmt.Errorf("decode ModelAsset: %w", err)
-			}
-			if strings.TrimSpace(asset.GetModelAssetId()) == "" || strings.TrimSpace(asset.GetContentId()) == "" || !asset.GetContentVerified() {
-				return errors.New("ModelAsset identity or content verification is incomplete")
-			}
+			seenDirectories[directoryKey] = struct{}{}
 			return nil
 		}, func(row modelAssetStoreRecord) string {
 			asset := &runtimev1.ModelAssetRecord{}
@@ -161,6 +158,106 @@ func loadModelAssetStore(path string, modelsRoot string) (decodedModelAssetStore
 		}
 	}
 	return result, nil
+}
+
+// validateStoredModelAssetRecord keeps the durable inventory fail-closed
+// without rereading every payload byte during daemon startup. The store row,
+// canonical manifest, and declared payload layout are one identity; fresh
+// content verification remains the Job-admission boundary.
+func validateStoredModelAssetRecord(modelsRoot string, row *modelAssetStoreRecord) error {
+	if row == nil {
+		return errors.New("ModelAsset store row is required")
+	}
+	directory := strings.TrimSpace(row.ManagedDirectory)
+	if directory == "" || directory != row.ManagedDirectory || !filepath.IsAbs(directory) || filepath.Clean(directory) != directory {
+		return errors.New("managedDirectory must be a canonical absolute path")
+	}
+	if !modelAssetManagedDirectoryWithinRoot(modelsRoot, directory) {
+		return errors.New("managedDirectory must stay under the Runtime resolved models root")
+	}
+	directoryInfo, err := os.Lstat(directory)
+	if err != nil || !directoryInfo.IsDir() || directoryInfo.Mode()&os.ModeSymlink != 0 {
+		return errors.New("managedDirectory must be an available non-link directory")
+	}
+
+	asset := &runtimev1.ModelAssetRecord{}
+	if err := protojson.Unmarshal(row.Asset, asset); err != nil {
+		return fmt.Errorf("decode ModelAsset: %w", err)
+	}
+	if asset.GetModelAssetId() == "" || strings.TrimSpace(asset.GetModelAssetId()) != asset.GetModelAssetId() ||
+		normalizeVerifiedContentID(asset.GetContentId()) != asset.GetContentId() || !asset.GetContentVerified() {
+		return errors.New("ModelAsset identity or content verification is incomplete")
+	}
+	if asset.GetCatalogVerification() != runtimev1.ModelAssetCatalogVerification_MODEL_ASSET_CATALOG_VERIFICATION_MATCHED &&
+		asset.GetCatalogVerification() != runtimev1.ModelAssetCatalogVerification_MODEL_ASSET_CATALOG_VERIFICATION_NOT_MATCHED {
+		return errors.New("ModelAsset catalog verification is not canonical")
+	}
+	if !canonicalModelAssetRelativePath(asset.GetEntry()) || len(asset.GetFiles()) == 0 {
+		return errors.New("ModelAsset entry or file inventory is incomplete")
+	}
+	seenFiles := make(map[string]struct{}, len(asset.GetFiles()))
+	entryFound := false
+	var totalSize int64
+	previousPath := ""
+	for _, file := range asset.GetFiles() {
+		if file == nil || !canonicalModelAssetRelativePath(file.GetRelativePath()) || isModelAssetControlFile(file.GetRelativePath()) {
+			return errors.New("ModelAsset file path is not canonical")
+		}
+		if previousPath != "" && file.GetRelativePath() <= previousPath {
+			return errors.New("ModelAsset files must be unique and canonically ordered")
+		}
+		previousPath = file.GetRelativePath()
+		if _, duplicate := seenFiles[file.GetRelativePath()]; duplicate {
+			return errors.New("ModelAsset file inventory contains a duplicate path")
+		}
+		seenFiles[file.GetRelativePath()] = struct{}{}
+		if normalizeExactSHA256Hex(file.GetSha256()) != file.GetSha256() || file.GetSizeBytes() < 0 {
+			return errors.New("ModelAsset file digest or size is invalid")
+		}
+		if file.GetRelativePath() == asset.GetEntry() {
+			entryFound = true
+		}
+		if file.GetSizeBytes() > int64(^uint64(0)>>1)-totalSize {
+			return errors.New("ModelAsset total size overflows")
+		}
+		totalSize += file.GetSizeBytes()
+		payloadPath := filepath.Join(directory, filepath.FromSlash(file.GetRelativePath()))
+		info, statErr := os.Lstat(payloadPath)
+		if statErr != nil || !info.Mode().IsRegular() || info.Mode()&os.ModeSymlink != 0 || info.Size() != file.GetSizeBytes() {
+			return fmt.Errorf("ModelAsset payload file %q is unavailable or differs from inventory", file.GetRelativePath())
+		}
+	}
+	if !entryFound || totalSize != asset.GetTotalSizeBytes() || modelAssetContentID(asset.GetFiles()) != asset.GetContentId() {
+		return errors.New("ModelAsset entry, total size, or content identity does not match its file inventory")
+	}
+
+	manifestPath := filepath.Join(directory, localAssetManifestFileName)
+	if err := validateResolvedModelManifestPath(manifestPath, modelsRoot); err != nil {
+		return err
+	}
+	manifestInfo, err := os.Lstat(manifestPath)
+	if err != nil || !manifestInfo.Mode().IsRegular() || manifestInfo.Mode()&os.ModeSymlink != 0 {
+		return errors.New("ModelAsset manifest must be an available non-link regular file")
+	}
+	manifestPayload, err := os.ReadFile(manifestPath)
+	if err != nil {
+		return fmt.Errorf("read ModelAsset manifest: %w", err)
+	}
+	var manifest modelAssetManifest
+	if err := decodeStrictJSON(manifestPayload, &manifest); err != nil {
+		return fmt.Errorf("decode ModelAsset manifest: %w", err)
+	}
+	if !reflect.DeepEqual(manifest, modelAssetManifestFromRecord(asset)) {
+		return errors.New("ModelAsset store row does not match its canonical manifest")
+	}
+	return nil
+}
+
+func canonicalModelAssetRelativePath(value string) bool {
+	if value == "" || strings.TrimSpace(value) != value || !safeModelAssetRelativePath(filepath.FromSlash(value)) {
+		return false
+	}
+	return filepath.ToSlash(filepath.Clean(filepath.FromSlash(value))) == value
 }
 
 func isolateModelAssetStoreDocument(path string, payload []byte, cause error) (decodedModelAssetStore, error) {

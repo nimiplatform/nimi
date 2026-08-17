@@ -910,11 +910,6 @@ func (stableDiffusionImageTranslator) validateImagePlan(plan *ImageInvocationPla
 			return fmt.Errorf("stable-diffusion image load content does not match custody inputs")
 		}
 	}
-	if imageToImage, isImageToImage := plan.requestPlan.(StableDiffusionCPPImageToImageRequestPlan); isImageToImage {
-		if len(imageToImage.inputImage) == 0 {
-			return fmt.Errorf("stable-diffusion image-to-image request is incomplete")
-		}
-	}
 	if edit, isEdit := plan.requestPlan.(StableDiffusionCPPInstructionEditRequestPlan); isEdit {
 		if load.recipeID != "qwen-image-edit-2511" || edit.sourceImage.SourceIdentity == "" ||
 			edit.sourceImage.SourceIdentity != strings.TrimSpace(edit.sourceImage.SourceIdentity) || len(edit.sourceImage.ImageBytes) == 0 {
@@ -927,8 +922,6 @@ func (stableDiffusionImageTranslator) validateImagePlan(plan *ImageInvocationPla
 func stableDiffusionCPPRequestFieldsFromPlan(plan ImageRequestPlan) (stableDiffusionCPPRequestFields, error) {
 	switch typed := plan.(type) {
 	case StableDiffusionCPPTextToImageRequestPlan:
-		return typed.stableDiffusionCPPRequestFields, nil
-	case StableDiffusionCPPImageToImageRequestPlan:
 		return typed.stableDiffusionCPPRequestFields, nil
 	case StableDiffusionCPPInstructionEditRequestPlan:
 		return typed.stableDiffusionCPPRequestFields, nil

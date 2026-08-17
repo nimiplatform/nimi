@@ -168,7 +168,7 @@ func TestLoadoutStoreQuarantineFailurePreservesOriginal(t *testing.T) {
 		if len(loadouts) != 0 || len(selections) != 0 {
 			t.Fatalf("record isolation returned loadouts=%d selections=%d", len(loadouts), len(selections))
 		}
-		assertFailedQuarantineDiagnosticForTest(t, store.IsolationDiagnostics(), "quarantine write failed")
+		assertFailedQuarantineDiagnosticForTest(t, store.TakeIsolationDiagnostics(), "quarantine write failed")
 		assertStoreBytesForTest(t, path, payload)
 		if len(store.retainedRecords) != 1 {
 			t.Fatalf("retained Loadout records = %d, want 1", len(store.retainedRecords))
@@ -197,7 +197,7 @@ func TestLoadoutStoreQuarantineFailurePreservesOriginal(t *testing.T) {
 		if err == nil {
 			t.Fatal("document quarantine failure did not fail closed")
 		}
-		assertFailedQuarantineDiagnosticForTest(t, store.IsolationDiagnostics(), "quarantine failed")
+		assertFailedQuarantineDiagnosticForTest(t, store.TakeIsolationDiagnostics(), "quarantine failed")
 		assertStoreBytesForTest(t, path, payload)
 	})
 }

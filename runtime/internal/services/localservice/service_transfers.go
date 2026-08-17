@@ -268,7 +268,7 @@ func (s *Service) mutateLocalTransfer(sessionID string, persist bool, mutate fun
 // resume point for a later explicit install. Imports retain the existing
 // fail-closed recovery because their source-side mutation cannot be resumed.
 // Caller must hold s.mu.
-func (s *Service) reconcileOrphanedLocalTransfersLocked() int {
+func (s *Service) reconcileOrphanedLocalTransfersLocked(modelsRoot string) int {
 	healed := 0
 	for _, summary := range s.transfers {
 		if summary == nil || isTerminalTransferState(summary.GetState()) {
@@ -291,7 +291,7 @@ func (s *Service) reconcileOrphanedLocalTransfersLocked() int {
 					changed = true
 				}
 			}
-			if bytesReceived, err := managedModelDownloadStagedBytes(resolveLocalModelsPath(s.localModelsPath), managedModelAcquisitionStorageID(summary.GetAssetId(), summary.GetInstallSessionId()), files); err == nil &&
+			if bytesReceived, err := managedModelDownloadStagedBytes(modelsRoot, managedModelAcquisitionStorageID(summary.GetAssetId(), summary.GetInstallSessionId()), files); err == nil &&
 				summary.GetBytesReceived() != bytesReceived {
 				summary.BytesReceived = bytesReceived
 				changed = true
@@ -642,7 +642,7 @@ func (s *Service) CancelLocalTransfer(_ context.Context, req *runtimev1.CancelLo
 		_ = control.cancel()
 	}
 	if normalizeTransferKind(summary.GetSessionKind()) == localTransferKindDownload && normalizeTransferState(summary.GetState()) == localTransferStateCancelled {
-		s.discardManagedModelDownloadStaging(summary.GetAssetId())
+		s.discardManagedModelDownloadStaging(managedModelAcquisitionStorageID(summary.GetAssetId(), summary.GetInstallSessionId()))
 	}
 	return &runtimev1.CancelLocalTransferResponse{Transfer: summary}, nil
 }

@@ -31,19 +31,20 @@ func run(args []string, stdout io.Writer, stderr io.Writer) int {
 	migrateLegacy := flags.Bool("migrate-legacy-state-assets", false, "explicitly migrate legacy resolved LocalAsset rows into ModelAsset inventory")
 	migrateConfigurations := flags.Bool("migrate-configurations", false, "report Machine Local AI Configuration rows as inactive Loadout migration drafts or explicit failures")
 	commitConfiguration := flags.String("commit-configuration", "", "explicitly commit the migration draft for one configuration_id without selecting it")
+	retireLegacyState := flags.Bool("retire-legacy-state", false, "explicitly quarantine retired machine configuration and remove retired non-model state after LocalAsset migration")
 	stateStore := flags.String("state-store", "", "Runtime local state path whose parent owns model-assets.json; required with a write mode")
 	if err := flags.Parse(args); err != nil {
 		return 2
 	}
 	writeConfiguration := strings.TrimSpace(*commitConfiguration) != ""
 	modeCount := 0
-	for _, active := range []bool{*adopt, *migrateLegacy, *migrateConfigurations, writeConfiguration} {
+	for _, active := range []bool{*adopt, *migrateLegacy, *migrateConfigurations, writeConfiguration, *retireLegacyState} {
 		if active {
 			modeCount++
 		}
 	}
 	if modeCount > 1 {
-		fmt.Fprintln(stderr, "--adopt, --migrate-legacy-state-assets, --migrate-configurations, and --commit-configuration are mutually exclusive")
+		fmt.Fprintln(stderr, "--adopt, --migrate-legacy-state-assets, --migrate-configurations, --commit-configuration, and --retire-legacy-state are mutually exclusive")
 		return 2
 	}
 	root := filepath.Clean(strings.TrimSpace(*modelsRoot))
@@ -57,6 +58,17 @@ func run(args []string, stdout io.Writer, stderr io.Writer) int {
 			return 2
 		}
 		if err := migrateLegacyStateAssets(root, statePath, stdout, stderr); err != nil {
+			fmt.Fprintln(stderr, err)
+			return 1
+		}
+		return 0
+	}
+	if *retireLegacyState {
+		statePath, ok := requiredStatePath(*stateStore, "--retire-legacy-state", stderr)
+		if !ok {
+			return 2
+		}
+		if err := retireLegacyLocalModelState(root, statePath, stdout, stderr); err != nil {
 			fmt.Fprintln(stderr, err)
 			return 1
 		}
@@ -94,6 +106,25 @@ func run(args []string, stdout io.Writer, stderr io.Writer) int {
 		return 1
 	}
 	return 0
+}
+
+func retireLegacyLocalModelState(root string, statePath string, stdout io.Writer, stderr io.Writer) error {
+	svc, err := localservice.NewForLocalModelRecovery(slog.New(slog.NewTextHandler(stderr, nil)), auditlog.New(5000, 5000), statePath, 5000, root)
+	if err != nil {
+		return fmt.Errorf("open Runtime local state: %w", err)
+	}
+	defer svc.Close()
+	report, err := svc.RetireLegacyLocalModelState(context.Background())
+	if err != nil {
+		return fmt.Errorf("retire legacy local model state: %w", err)
+	}
+	return writeJSON(stdout, map[string]any{
+		"mode":       "retire-legacy-state",
+		"modelsRoot": root,
+		"stateStore": statePath,
+		"noOp":       !report.StateChanged && !report.ConfigurationChanged,
+		"retirement": report,
+	})
 }
 
 func requiredStatePath(value string, mode string, stderr io.Writer) (string, bool) {

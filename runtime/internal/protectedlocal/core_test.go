@@ -205,6 +205,54 @@ func TestTransportAndRolesAreDerivedBeforeRequests(t *testing.T) {
 	}
 }
 
+func TestVerifiedDesktopConnectionsHaveDistinctOpaqueTransportIdentities(t *testing.T) {
+	t.Parallel()
+
+	boot := identifierFilled(0x21)
+	windowsConnection, err := EstablishDesktopConnection(
+		context.Background(),
+		fixedDesktopVerifier{peers: desktopPeers(boot)},
+		bytes.NewReader(bytes.Repeat([]byte{0x41}, IdentifierBytes)),
+	)
+	if err != nil {
+		t.Fatalf("establish Windows Desktop connection: %v", err)
+	}
+	t.Cleanup(windowsConnection.Revoke)
+
+	macOSConnection, err := newDirectDesktopConnection(DesktopPeerIdentity{
+		OS: OSMacOS, PID: 4201, UID: 501, AuditSession: 77,
+	}, nil)
+	if err != nil {
+		t.Fatalf("establish direct macOS Desktop connection: %v", err)
+	}
+	t.Cleanup(macOSConnection.Revoke)
+
+	windowsID, ok := VerifiedDesktopConnectionIDFromContext(
+		ContextWithDesktopConnection(context.Background(), windowsConnection),
+	)
+	if !ok || windowsID == (Identifier{}) {
+		t.Fatal("Windows Desktop connection has no opaque transport identity")
+	}
+	macOSID, ok := VerifiedDesktopConnectionIDFromContext(
+		ContextWithDesktopConnection(context.Background(), macOSConnection),
+	)
+	if !ok || macOSID == (Identifier{}) {
+		t.Fatal("direct macOS Desktop connection has no opaque transport identity")
+	}
+	if windowsID == macOSID {
+		t.Fatal("distinct verified Desktop connections share one transport identity")
+	}
+	if _, ok := VerifiedDesktopConnectionIDFromContext(context.Background()); ok {
+		t.Fatal("plain context unexpectedly has a verified Desktop connection identity")
+	}
+	windowsConnection.Revoke()
+	if _, ok := VerifiedDesktopConnectionIDFromContext(
+		ContextWithDesktopConnection(context.Background(), windowsConnection),
+	); ok {
+		t.Fatal("revoked Desktop connection retained an owner-session identity")
+	}
+}
+
 func TestDesktopSessionOwnershipIsBootScopedPerManager(t *testing.T) {
 	t.Parallel()
 

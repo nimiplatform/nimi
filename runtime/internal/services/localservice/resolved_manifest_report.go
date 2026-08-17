@@ -8,6 +8,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
 	"sort"
 	"strings"
 
@@ -268,11 +269,18 @@ func equalResolvedPayloadHashes(actual map[string]string, expected map[string]st
 }
 
 func canonicalReportPath(path string) string {
+	return canonicalReportPathForOS(path, runtime.GOOS)
+}
+
+func canonicalReportPathForOS(path string, goos string) string {
 	cleaned := filepath.Clean(path)
 	if absolute, err := filepath.Abs(cleaned); err == nil {
 		cleaned = absolute
 	}
-	return strings.ToLower(cleaned)
+	if strings.EqualFold(strings.TrimSpace(goos), "windows") {
+		return strings.ToLower(cleaned)
+	}
+	return cleaned
 }
 
 func directoryNameForReport(path string) string {

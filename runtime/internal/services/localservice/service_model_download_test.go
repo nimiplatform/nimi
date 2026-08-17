@@ -360,6 +360,9 @@ func TestManagedModelDownloadShutdownRestoresPausedWithStaging(t *testing.T) {
 
 	transfer := transferForAssetForTest(t, svc, modelID)
 	stageDir := managedModelDownloadStageDir(svc.resolvedLocalModelsPath(), managedModelAcquisitionStorageID(modelID, transfer.GetInstallSessionId()))
+	if !pathWithinBase(filepath.Join(svc.resolvedLocalModelsPath(), "quarantine", "downloads"), stageDir, false) {
+		t.Fatalf("download staging escaped the exact resolved/quarantine models topology: %s", stageDir)
+	}
 	partialPath := filepath.Join(stageDir, "model.bin.download")
 	beforeRestart, err := os.ReadFile(partialPath)
 	if err != nil || len(beforeRestart) == 0 {
@@ -396,6 +399,12 @@ func TestManagedModelDownloadShutdownRestoresPausedWithStaging(t *testing.T) {
 	afterRestart, err := os.ReadFile(partialPath)
 	if err != nil || !bytes.Equal(afterRestart, beforeRestart) {
 		t.Fatalf("restored staging changed: before=%d after=%d err=%v", len(beforeRestart), len(afterRestart), err)
+	}
+	if _, err := restored.CancelLocalTransfer(context.Background(), &runtimev1.CancelLocalTransferRequest{InstallSessionId: transfer.GetInstallSessionId()}); err != nil {
+		t.Fatalf("cancel restored transfer: %v", err)
+	}
+	if _, err := os.Stat(stageDir); !os.IsNotExist(err) {
+		t.Fatalf("cancel restored transfer retained staging: %s err=%v", stageDir, err)
 	}
 }
 

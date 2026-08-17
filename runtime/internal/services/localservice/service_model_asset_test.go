@@ -398,12 +398,6 @@ func TestModelAssetStoreIsolatesInvalidRecordAndKeepsHealthySibling(t *testing.T
 	if err != nil || len(listed.GetAssets()) != 1 || listed.GetAssets()[0].GetModelAssetId() != healthy.GetModelAssetId() {
 		t.Fatalf("healthy ModelAsset projection = %+v err=%v", listed, err)
 	}
-	restarted.mu.RLock()
-	diagnostics := append([]stateIsolationDiagnostic(nil), restarted.stateIsolationDiagnostics...)
-	restarted.mu.RUnlock()
-	if len(diagnostics) == 0 || diagnostics[len(diagnostics)-1].Store != modelAssetStoreFileName || diagnostics[len(diagnostics)-1].Level != stateIsolationLevelRecord {
-		t.Fatalf("record isolation diagnostics = %+v", diagnostics)
-	}
 	rewritten, err := os.ReadFile(storePath)
 	if err != nil {
 		t.Fatal(err)
@@ -411,6 +405,163 @@ func TestModelAssetStoreIsolatesInvalidRecordAndKeepsHealthySibling(t *testing.T
 	var healthyDocument modelAssetStoreSnapshot
 	if err := json.Unmarshal(rewritten, &healthyDocument); err != nil || len(healthyDocument.Assets) != 1 {
 		t.Fatalf("rewritten ModelAsset store = assets=%d err=%v", len(healthyDocument.Assets), err)
+	}
+}
+
+func TestModelAssetStoreIsolatesSemanticallyInvalidRecordAndKeepsHealthySibling(t *testing.T) {
+	svc := newTestService(t)
+	sourceA := filepath.Join(t.TempDir(), "healthy-a.bin")
+	sourceB := filepath.Join(t.TempDir(), "healthy-b.bin")
+	if err := os.WriteFile(sourceA, []byte("healthy-a"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(sourceB, []byte("healthy-b"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	poisonedAsset := importModelAssetForTest(t, svc, sourceA, "semantic-invalid")
+	healthy := importModelAssetForTest(t, svc, sourceB, "semantic-healthy")
+	statePath := svc.stateStorePath
+	modelsPath := svc.localModelsPath
+	storePath := svc.modelAssetStorePath
+	svc.Close()
+
+	payload, err := os.ReadFile(storePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var document map[string]any
+	if err := json.Unmarshal(payload, &document); err != nil {
+		t.Fatal(err)
+	}
+	rows := document["assets"].([]any)
+	mutated := false
+	for _, raw := range rows {
+		row := raw.(map[string]any)
+		asset := row["asset"].(map[string]any)
+		if asset["model_asset_id"] == poisonedAsset.GetModelAssetId() {
+			asset["entry"] = "missing-entry.bin"
+			mutated = true
+		}
+	}
+	if !mutated {
+		t.Fatal("failed to locate ModelAsset row to poison")
+	}
+	poisoned, _ := json.MarshalIndent(document, "", "  ")
+	if err := os.WriteFile(storePath, poisoned, 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	restarted := restartModelAssetServiceForTest(t, statePath, modelsPath)
+	listed, err := restarted.ListModelAssets(context.Background(), &runtimev1.ListModelAssetsRequest{})
+	if err != nil || len(listed.GetAssets()) != 1 || listed.GetAssets()[0].GetModelAssetId() != healthy.GetModelAssetId() {
+		t.Fatalf("semantic record isolation = %+v err=%v", listed, err)
+	}
+}
+
+func TestModelAssetStoreStartupDoesNotRehashPayload(t *testing.T) {
+	svc := newTestService(t)
+	driftedSource := filepath.Join(t.TempDir(), "digest-drifted.bin")
+	healthySource := filepath.Join(t.TempDir(), "digest-healthy.bin")
+	if err := os.WriteFile(driftedSource, []byte("drifted-a"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(healthySource, []byte("healthy"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	driftedAsset := importModelAssetForTest(t, svc, driftedSource, "digest-drifted")
+	healthyAsset := importModelAssetForTest(t, svc, healthySource, "digest-healthy")
+	statePath := svc.stateStorePath
+	modelsPath := svc.localModelsPath
+	storePath := svc.modelAssetStorePath
+	svc.mu.RLock()
+	driftedPath := filepath.Join(svc.modelAssetDirectories[driftedAsset.GetModelAssetId()], filepath.FromSlash(driftedAsset.GetEntry()))
+	svc.mu.RUnlock()
+	driftedInfo, err := os.Stat(driftedPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	svc.Close()
+
+	// Preserve size and mtime so startup can validate the durable inventory's
+	// structural facts without turning that validation into another content
+	// read. Job admission remains the fresh byte-integrity boundary.
+	if err := os.WriteFile(driftedPath, []byte("drifted-b"), driftedInfo.Mode().Perm()); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chtimes(driftedPath, driftedInfo.ModTime(), driftedInfo.ModTime()); err != nil {
+		t.Fatal(err)
+	}
+
+	restarted := restartModelAssetServiceForTest(t, statePath, modelsPath)
+	listed, err := restarted.ListModelAssets(context.Background(), &runtimev1.ListModelAssetsRequest{})
+	if err != nil || len(listed.GetAssets()) != 2 || !modelAssetListContainsID(listed.GetAssets(), driftedAsset.GetModelAssetId()) || !modelAssetListContainsID(listed.GetAssets(), healthyAsset.GetModelAssetId()) {
+		t.Fatalf("startup structural restore = %+v err=%v", listed, err)
+	}
+	storePayload, err := os.ReadFile(storePath)
+	if err != nil || !bytes.Contains(storePayload, []byte(driftedAsset.GetModelAssetId())) {
+		t.Fatalf("startup rewrote drifted active identity: retained=%t err=%v", bytes.Contains(storePayload, []byte(driftedAsset.GetModelAssetId())), err)
+	}
+}
+
+func TestModelAssetStoreStartupStillIsolatesPayloadSizeMismatch(t *testing.T) {
+	svc := newTestService(t)
+	driftedSource := filepath.Join(t.TempDir(), "size-drifted.bin")
+	healthySource := filepath.Join(t.TempDir(), "size-healthy.bin")
+	if err := os.WriteFile(driftedSource, []byte("size-drifted"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(healthySource, []byte("size-healthy"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	driftedAsset := importModelAssetForTest(t, svc, driftedSource, "size drifted")
+	healthyAsset := importModelAssetForTest(t, svc, healthySource, "size healthy")
+	statePath := svc.stateStorePath
+	modelsPath := svc.localModelsPath
+	svc.mu.RLock()
+	driftedPath := filepath.Join(svc.modelAssetDirectories[driftedAsset.GetModelAssetId()], filepath.FromSlash(driftedAsset.GetEntry()))
+	svc.mu.RUnlock()
+	svc.Close()
+
+	file, err := os.OpenFile(driftedPath, os.O_APPEND|os.O_WRONLY, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := file.Write([]byte("x")); err != nil {
+		_ = file.Close()
+		t.Fatal(err)
+	}
+	if err := file.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	restarted := restartModelAssetServiceForTest(t, statePath, modelsPath)
+	listed, err := restarted.ListModelAssets(context.Background(), &runtimev1.ListModelAssetsRequest{})
+	if err != nil || len(listed.GetAssets()) != 1 || listed.GetAssets()[0].GetModelAssetId() != healthyAsset.GetModelAssetId() {
+		t.Fatalf("payload-size isolation = %+v err=%v", listed, err)
+	}
+}
+
+func TestImportModelAssetRejectsMissingModelsRootBeforeWriting(t *testing.T) {
+	temp := t.TempDir()
+	t.Chdir(temp)
+	svc := newLoadoutTestService(t, filepath.Join(temp, "state"))
+	svc.mu.Lock()
+	svc.localModelsPath = ""
+	svc.mu.Unlock()
+	sourcePath := filepath.Join(temp, "source.bin")
+	if err := os.WriteFile(sourcePath, []byte("payload"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	source, err := inspectModelAssetSource(sourcePath, "missing root")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = svc.importModelAssetSync(context.Background(), "", "model_missing_root", source)
+	if grpcReasonForTest(err) != runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE {
+		t.Fatalf("missing models root import error = %v", err)
+	}
+	if _, statErr := os.Stat(filepath.Join(temp, "resolved")); !os.IsNotExist(statErr) {
+		t.Fatalf("missing models root wrote relative resolved/: %v", statErr)
 	}
 }
 
@@ -429,15 +580,9 @@ func TestModelAssetStoreIsolatesTruncatedDocumentAndStartsEmpty(t *testing.T) {
 	if err != nil || len(listed.GetAssets()) != 0 {
 		t.Fatalf("empty ModelAsset projection = %+v err=%v", listed, err)
 	}
-	restarted.mu.RLock()
-	diagnostics := append([]stateIsolationDiagnostic(nil), restarted.stateIsolationDiagnostics...)
-	restarted.mu.RUnlock()
-	if len(diagnostics) == 0 || diagnostics[len(diagnostics)-1].Store != modelAssetStoreFileName || diagnostics[len(diagnostics)-1].Level != stateIsolationLevelDocument {
-		t.Fatalf("document isolation diagnostics = %+v", diagnostics)
-	}
-	quarantinePath := diagnostics[len(diagnostics)-1].QuarantinePath
-	if _, err := os.Stat(quarantinePath); err != nil {
-		t.Fatalf("preserved ModelAsset document snapshot: %v", err)
+	quarantinePaths, err := filepath.Glob(filepath.Join(stateQuarantineDirectory(storePath), filepath.Base(storePath)+".*.document.json"))
+	if err != nil || len(quarantinePaths) != 1 {
+		t.Fatalf("preserved ModelAsset document snapshots = %v, err=%v", quarantinePaths, err)
 	}
 }
 
@@ -652,6 +797,15 @@ func restartModelAssetServiceForTest(t *testing.T, statePath string, modelsPath 
 	}
 	t.Cleanup(svc.Close)
 	return svc
+}
+
+func modelAssetListContainsID(assets []*runtimev1.ModelAssetRecord, id string) bool {
+	for _, asset := range assets {
+		if asset.GetModelAssetId() == id {
+			return true
+		}
+	}
+	return false
 }
 
 func importModelAssetForTest(t *testing.T, svc *Service, sourcePath string, displayName string) *runtimev1.ModelAssetRecord {

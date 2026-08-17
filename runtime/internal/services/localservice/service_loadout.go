@@ -19,7 +19,6 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/aicapabilities"
 	catalog "github.com/nimiplatform/nimi/runtime/internal/aicatalog"
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
-	"github.com/nimiplatform/nimi/runtime/internal/engine"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
@@ -53,6 +52,7 @@ type resolvedLoadoutAxis struct {
 type loadoutValidationResult struct {
 	state        runtimev1.LoadoutValidationState
 	reasons      []runtimev1.ReasonCode
+	axisReasons  map[string][]runtimev1.ReasonCode
 	axes         []resolvedLoadoutAxis
 	requirements []*runtimev1.LocalCapabilityRequirement
 	driver       capabilitydriver.Driver
@@ -94,9 +94,9 @@ func (s *Service) restoreLoadouts() error {
 		return err
 	}
 	if source, ok := s.loadoutStore.(interface {
-		IsolationDiagnostics() []stateIsolationDiagnostic
+		TakeIsolationDiagnostics() []stateIsolationDiagnostic
 	}); ok {
-		s.stateIsolationDiagnostics = append(s.stateIsolationDiagnostics, source.IsolationDiagnostics()...)
+		s.recordStartupStateIsolationDiagnostics(source.TakeIsolationDiagnostics())
 	}
 	byID := make(map[string]*runtimev1.Loadout, len(loadouts))
 	for _, loadout := range loadouts {
@@ -330,6 +330,7 @@ func (s *Service) PrepareLoadout(ctx context.Context, request *runtimev1.Prepare
 		RecipeId:       recipe.RecipeID, RecipeRevision: recipe.Revision, Options: options,
 		SupportedFeatures: features, DisplayName: displayName, Provenance: cloneStruct(request.GetProvenance()),
 		CreatedAt: createdAt, UpdatedAt: now.Format(time.RFC3339Nano),
+		RecipeCustody: loadoutRecipeCustodyReferences(recipe),
 	}
 	for _, requirement := range requirements {
 		metadata, exists := metadataBySlot[requirement.GetRequirementId()]
@@ -541,12 +542,9 @@ func (s *Service) projectRecipe(recipeID, contract string, implementation *runti
 		return nil, nil, loadoutError(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOADOUT_DRIVER_UNAVAILABLE, "Loadout Driver does not support recipe projection", nil)
 	}
 	var requirements []*runtimev1.LocalCapabilityRequirement
-	if backendDriver, ok := driver.(capabilitydriver.HostBackendRecipeDriver); ok {
-		backend, backendErr := engine.SpeechVoxCPMBackendForPlatform(strings.ToLower(strings.TrimSpace(localRuntimeGOOS)) + "/" + strings.ToLower(strings.TrimSpace(localRuntimeGOARCH)))
-		if backendErr != nil {
-			return nil, nil, loadoutError(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOADOUT_DRIVER_UNAVAILABLE, "Loadout Driver has no backend for the current Host posture", nil)
-		}
-		requirements, reason = backendDriver.ProjectRecipeForBackend(recipeID, options, features, backend)
+	if hostDriver, ok := driver.(capabilitydriver.HostPlatformRecipeDriver); ok {
+		platformTuple := strings.ToLower(strings.TrimSpace(localRuntimeGOOS)) + "/" + strings.ToLower(strings.TrimSpace(localRuntimeGOARCH))
+		requirements, reason = hostDriver.ProjectRecipeForHost(recipeID, options, features, platformTuple)
 	} else {
 		requirements, reason = recipeDriver.ProjectRecipe(recipeID, options, features)
 	}
@@ -578,7 +576,12 @@ func (s *Service) validateLoadoutForJobAdmission(loadout *runtimev1.Loadout, dri
 }
 
 func (s *Service) validateLoadoutWithAxisResolver(loadout *runtimev1.Loadout, driver capabilitydriver.Driver, requirements []*runtimev1.LocalCapabilityRequirement, resolveAxis loadoutModelAxisResolver) loadoutValidationResult {
-	result := loadoutValidationResult{state: runtimev1.LoadoutValidationState_LOADOUT_VALIDATION_STATE_CONFIGURED, driver: driver, requirements: requirements}
+	result := loadoutValidationResult{
+		state:        runtimev1.LoadoutValidationState_LOADOUT_VALIDATION_STATE_CONFIGURED,
+		axisReasons:  make(map[string][]runtimev1.ReasonCode, len(requirements)),
+		driver:       driver,
+		requirements: requirements,
+	}
 	if loadout == nil || driver == nil || len(requirements) == 0 {
 		result.state = runtimev1.LoadoutValidationState_LOADOUT_VALIDATION_STATE_BLOCKED
 		result.reasons = append(result.reasons, runtimev1.ReasonCode_AI_LOADOUT_DRIVER_UNAVAILABLE)
@@ -591,16 +594,21 @@ func (s *Service) validateLoadoutWithAxisResolver(loadout *runtimev1.Loadout, dr
 		}
 	}
 	for _, requirement := range requirements {
-		axis := axisBySlot[requirement.GetRequirementId()]
+		slotID := requirement.GetRequirementId()
+		axis := axisBySlot[slotID]
 		if axis == nil || axis.GetModelAssetId() == "" || axis.GetExpectedContentId() == "" {
-			result.state = runtimev1.LoadoutValidationState_LOADOUT_VALIDATION_STATE_UNRESOLVED
+			if result.state != runtimev1.LoadoutValidationState_LOADOUT_VALIDATION_STATE_BLOCKED {
+				result.state = runtimev1.LoadoutValidationState_LOADOUT_VALIDATION_STATE_UNRESOLVED
+			}
 			result.reasons = appendReasonCode(result.reasons, runtimev1.ReasonCode_AI_LOADOUT_NOT_CONFIGURED)
+			result.axisReasons[slotID] = appendReasonCode(result.axisReasons[slotID], runtimev1.ReasonCode_AI_LOADOUT_NOT_CONFIGURED)
 			continue
 		}
 		resolved, reason := resolveAxis(loadout, driver, requirement, axis)
 		if reason != runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
 			result.state = runtimev1.LoadoutValidationState_LOADOUT_VALIDATION_STATE_BLOCKED
 			result.reasons = appendReasonCode(result.reasons, reason)
+			result.axisReasons[slotID] = appendReasonCode(result.axisReasons[slotID], reason)
 			continue
 		}
 		result.axes = append(result.axes, resolved)
@@ -722,11 +730,9 @@ func applyLoadoutValidation(loadout *runtimev1.Loadout, validation loadoutValida
 			continue
 		}
 		_, axis.RecipeCompatible = resolved[axis.GetSlotId()]
-		axis.Reasons = nil
-		if axis.GetModelAssetId() == "" {
+		axis.Reasons = append([]runtimev1.ReasonCode(nil), validation.axisReasons[axis.GetSlotId()]...)
+		if axis.GetModelAssetId() == "" && len(axis.GetReasons()) == 0 {
 			axis.Reasons = []runtimev1.ReasonCode{runtimev1.ReasonCode_AI_LOADOUT_NOT_CONFIGURED}
-		} else if !axis.RecipeCompatible {
-			axis.Reasons = append([]runtimev1.ReasonCode(nil), validation.reasons...)
 		}
 	}
 }
