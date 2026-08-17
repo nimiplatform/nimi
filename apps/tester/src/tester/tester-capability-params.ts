@@ -20,6 +20,7 @@ type CapabilityParamRouteMatrix = Readonly<Record<string, ParamRouteMatrixEntry>
 const SUPPORTED = { kind: 'supported' } as const;
 const UNSUPPORTED = { kind: 'unsupported' } as const;
 const LOCAL_AND_CLOUD = { local: SUPPORTED, cloud: SUPPORTED } as const;
+const LOCAL_ONLY = { local: SUPPORTED, cloud: UNSUPPORTED } as const;
 const CLOUD_ONLY = { local: UNSUPPORTED, cloud: SUPPORTED } as const;
 const LOCAL_TEXT_CLOUD_CONFIGURABLE = { local: { kind: 'fixed', value: 'text' }, cloud: SUPPORTED } as const;
 const LOCAL_PRESET_CLOUD_CONFIGURABLE = { local: { kind: 'fixed', value: 'preset' }, cloud: SUPPORTED } as const;
@@ -68,8 +69,9 @@ export const TESTER_CAPABILITY_PARAM_ROUTE_MATRIX = {
     aspectRatio: CLOUD_ONLY,
     quality: CLOUD_ONLY,
     style: CLOUD_ONLY,
-    referenceImage: LOCAL_AND_CLOUD,
-    mask: LOCAL_AND_CLOUD,
+    referenceImage: CLOUD_ONLY,
+    referenceImageArtifactId: LOCAL_ONLY,
+    mask: CLOUD_ONLY,
   },
   // P1 §5 + FIX2: Local now honors ratio/duration/last-frame. H3 fixes fps at 24;
   // camera/watermark/draft/tier/expiry remain typed rejects; Cloud keeps the full tester surface.

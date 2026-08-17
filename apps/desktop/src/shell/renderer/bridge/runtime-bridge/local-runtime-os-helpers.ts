@@ -46,17 +46,6 @@ async function localRuntimeModelsRoot(): Promise<string> {
   return root;
 }
 
-export async function pickLocalRuntimeAssetManifestPath(): Promise<string | null> {
-  if (!hasElectronInvoke()) return null;
-  return firstDialogPath(await openShellFileDialog({
-    kind: 'file',
-    title: 'Select asset.manifest.json',
-    filters: [
-      { name: 'Asset Manifest', extensions: ['json'] },
-    ],
-  }));
-}
-
 export async function pickLocalRuntimeAssetFile(): Promise<string | null> {
   if (!hasElectronInvoke()) return null;
   return firstDialogPath(await openShellFileDialog({

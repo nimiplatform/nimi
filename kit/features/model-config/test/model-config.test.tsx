@@ -389,7 +389,7 @@ describe('public Model Config contract', () => {
     });
   });
 
-  it('restores the model hub and delegates Local model changes to Machine Local AI', async () => {
+  it('restores the model hub and delegates Local model changes to machine Loadouts', async () => {
     const onOverwrite = vi.fn<ModelConfigOverwrite>(async () => undefined);
     const onOpenMachineConfiguration = vi.fn();
     const node = await renderSurface(onOverwrite, onOpenMachineConfiguration);

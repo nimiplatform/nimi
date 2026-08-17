@@ -107,6 +107,7 @@ describe('Electron local-app standard-shell operations', () => {
         type: 'image-generate', prompt: 'portrait', negativePrompt: '', n: 0,
         size: '', aspectRatio: '', quality: '', style: '', seed: 0,
         referenceImages: ['https://example.com/reference.png'],
+        referenceImageArtifactId: '',
         mask: 'https://example.com/mask.png', responseFormat: 'b64_json',
       } },
     });
@@ -143,7 +144,7 @@ describe('Electron local-app standard-shell operations', () => {
     const spec = {
       type: 'image-generate', prompt: 'portrait', negativePrompt: '',
       size: '', aspectRatio: '', quality: '', style: '',
-      referenceImages: [], mask: '', responseFormat: '',
+      referenceImages: [], referenceImageArtifactId: '', mask: '', responseFormat: '',
     };
     for (const seed of [Number.MIN_SAFE_INTEGER, Number.MAX_SAFE_INTEGER]) {
       await expect(dispatchElectronLocalAppCommand({
@@ -160,6 +161,39 @@ describe('Electron local-app standard-shell operations', () => {
       })).rejects.toMatchObject({ reasonCode: 'invalid-payload' });
     }
     expect(calls).toHaveLength(2);
+  });
+
+  it('admits one bounded artifact-owned image reference and rejects mixed carriers', async () => {
+    const calls: unknown[] = [];
+    const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.scenarioJobSubmit'];
+    const spec = {
+      type: 'image-generate', prompt: 'edit the portrait', negativePrompt: '',
+      size: '', aspectRatio: '', quality: '', style: '',
+      referenceImages: [], referenceImageArtifactId: 'artifact-image-source-1',
+      mask: '', responseFormat: '',
+    };
+
+    await expect(dispatchElectronLocalAppCommand({
+      host: localAppHost(calls), command, payload: { spec },
+    })).resolves.toEqual({ job: null, asset: null });
+    expect(calls).toEqual([['scenarioJobSubmit', { spec }]]);
+
+    await expect(dispatchElectronLocalAppCommand({
+      host: localAppHost(calls), command, payload: {
+        spec: { ...spec, referenceImages: ['https://example.com/reference.png'] },
+      },
+    })).rejects.toMatchObject({ reasonCode: 'invalid-payload' });
+    await expect(dispatchElectronLocalAppCommand({
+      host: localAppHost(calls), command, payload: {
+        spec: { ...spec, referenceImageArtifactId: ' artifact-image-source-1' },
+      },
+    })).rejects.toMatchObject({ reasonCode: 'invalid-payload' });
+    await expect(dispatchElectronLocalAppCommand({
+      host: localAppHost(calls), command, payload: {
+        spec: { ...spec, referenceImageArtifactId: 'artifact\u007fimage-source-1' },
+      },
+    })).rejects.toMatchObject({ reasonCode: 'invalid-payload' });
+    expect(calls).toHaveLength(1);
   });
 
   it('admits only the canonical video seed range', async () => {

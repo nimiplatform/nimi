@@ -2,7 +2,6 @@ import { useDesktopI18nResource } from '../../i18n/i18n-context';
 import { ScrollArea } from '@nimiplatform/kit/ui';
 import type {
   NimiRuntimeLocalCatalogVariantDescriptor,
-  NimiRuntimeLocalAssetRecord,
   NimiRuntimeLocalCatalogItemDescriptor,
   NimiRuntimeLocalVerifiedAssetDescriptor,
 } from '@nimiplatform/sdk/runtime';
@@ -23,18 +22,10 @@ import {
   recommendationTierClass,
   recommendationTierLabel,
 } from './runtime-config-local-model-center-helpers';
-import { AssetRequirementBadges } from './runtime-config-local-model-center-sections';
-
 export function VerifiedModelSearchRow(props: {
   item: NimiRuntimeLocalVerifiedAssetDescriptor;
-  relatedAssets: NimiRuntimeLocalVerifiedAssetDescriptor[];
-  installedAssetsById: Map<string, NimiRuntimeLocalAssetRecord>;
-  assetBusy: boolean;
   installing: boolean;
-  isAssetPending: (templateId: string) => boolean;
-  onInstallMissingAssets: (assets: NimiRuntimeLocalVerifiedAssetDescriptor[]) => void;
-  onInstallAsset: (templateId: string) => void;
-  onInstallVerifiedModel: (templateId: string) => void;
+  onInstallCatalogQuickPick: (templateId: string) => void;
 }) {
   const i18n = useDesktopI18nResource().instance;
   return (
@@ -56,19 +47,10 @@ export function VerifiedModelSearchRow(props: {
         </div>
         <p className="truncate text-xs text-[var(--nimi-text-muted)]">{props.item.assetId}</p>
         {props.item.description ? <p className="mt-0.5 line-clamp-1 text-xs text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]">{props.item.description}</p> : null}
-        <AssetRequirementBadges
-          modelTemplateId={props.item.templateId}
-          relatedAssets={props.relatedAssets}
-          installedAssetsById={props.installedAssetsById}
-          assetBusy={props.assetBusy}
-          isAssetPending={props.isAssetPending}
-          onInstallMissingAssets={props.onInstallMissingAssets}
-          onInstallAsset={props.onInstallAsset}
-        />
       </div>
       <Button
         size="sm"
-        onClick={() => props.onInstallVerifiedModel(props.item.templateId)}
+        onClick={() => props.onInstallCatalogQuickPick(props.item.templateId)}
         disabled={props.installing}
       >
         <DownloadIcon className="h-3.5 w-3.5" />

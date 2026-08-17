@@ -3,7 +3,6 @@ import { useState } from 'react';
 import type { TFunction } from 'i18next';
 import type {
   NimiRuntimeLocalAssetKind,
-  NimiRuntimeLocalAssetRecord,
   NimiRuntimeLocalCatalogRecommendation,
   NimiRuntimeLocalVerifiedAssetDescriptor,
 } from '@nimiplatform/sdk/runtime';
@@ -51,122 +50,8 @@ export function localizedAssetKindLabel(value: NimiRuntimeLocalAssetKind, t: TFu
   });
 }
 
-const IMPORT_INSTANCE_TAIL_PATTERN = /^[0-7][0-9A-HJKMNP-TV-Z]{25}$/i;
-
-export function assetIdDisplaySlug(assetId: string): string {
-  const segments = String(assetId || '')
-    .split('/')
-    .map((segment) => segment.trim())
-    .filter(Boolean);
-  const tail = segments[segments.length - 1] || '';
-  if (!tail) {
-    return '';
-  }
-  const previous = segments[segments.length - 2] || '';
-  if (previous && IMPORT_INSTANCE_TAIL_PATTERN.test(tail)) {
-    return previous;
-  }
-  return tail;
-}
-
-export function assetDisplayName(asset: NimiRuntimeLocalAssetRecord): string {
-  const displayName = String(asset.displayName || '').trim();
-  if (displayName) {
-    return displayName;
-  }
-  return assetIdDisplaySlug(asset.assetId) || String(asset.assetId || '').trim();
-}
-
-const ASSET_CAPABILITY_LABEL_KEYS: Record<string, string> = {
-  chat: 'chat',
-  'text.generate': 'textGenerate',
-  'text.embed': 'embedding',
-  embedding: 'embedding',
-  image: 'imageGenerate',
-  'image.generate': 'imageGenerate',
-  video: 'videoGenerate',
-  'video.generate': 'videoGenerate',
-  tts: 'tts',
-  'audio.synthesize': 'tts',
-  stt: 'stt',
-  'audio.transcribe': 'stt',
-  'voice.create': 'voiceCreate',
-};
-
-export function localizedAssetCapabilityLabels(
-  capabilities: readonly string[] | undefined,
-  t: TFunction,
-): string[] {
-  const labels: string[] = [];
-  const seen = new Set<string>();
-  for (const capability of capabilities || []) {
-    const labelKey = ASSET_CAPABILITY_LABEL_KEYS[String(capability || '').trim().toLowerCase()];
-    if (!labelKey) {
-      continue;
-    }
-    const label = t(`runtimeConfig.localModelCenter.capabilityLabels.${labelKey}`);
-    if (!label || seen.has(label)) {
-      continue;
-    }
-    seen.add(label);
-    labels.push(label);
-    if (labels.length >= 3) {
-      break;
-    }
-  }
-  return labels;
-}
-
-export function installedAssetSourceLabel(asset: NimiRuntimeLocalAssetRecord, t: TFunction): string {
-  const repo = String(asset.source?.repo || '').trim().toLowerCase();
-  if (repo.startsWith('file://')) {
-    return t('runtimeConfig.localModelCenter.sourceLocalImport', { defaultValue: 'Local import' });
-  }
-  return t('runtimeConfig.localModelCenter.sourceCatalogInstall', { defaultValue: 'Catalog install' });
-}
-
-export function installedAssetMetaLine(asset: NimiRuntimeLocalAssetRecord, i18n: DesktopI18nResource): string {
-  const t = i18n.instance.t.bind(i18n.instance);
-  const sourceLabel = installedAssetSourceLabel(asset, t);
-  const installedAtMs = parseTimestamp(asset.installedAt);
-  if (!installedAtMs) {
-    return sourceLabel;
-  }
-  const installedLabel = t('runtimeConfig.localModelCenter.installedAtRelative', {
-    value: i18n.formatRelativeTime(new Date(installedAtMs)),
-    defaultValue: 'Installed {{value}}',
-  });
-  return `${sourceLabel} · ${installedLabel}`;
-}
-
-const GENERIC_MODEL_TAGS = [
-  'verified',
-  'recommended',
-  'chat',
-  'image',
-  'video',
-  'tts',
-  'stt',
-  'embedding',
-  'llama',
-  'media',
-  'sidecar',
-] as const;
-
 function normalizeDescriptorToken(value: string | undefined | null): string {
   return String(value || '').trim().toLowerCase();
-}
-
-function collectAssetFamilyHints(asset: NimiRuntimeLocalVerifiedAssetDescriptor): string[] {
-  const hints = new Set<string>();
-  for (const tag of asset.tags || []) {
-    const normalized = normalizeDescriptorToken(tag);
-    if (!normalized || GENERIC_MODEL_TAGS.includes(normalized as (typeof GENERIC_MODEL_TAGS)[number])) {
-      continue;
-    }
-    hints.add(normalized);
-  }
-  return [...hints];
 }
 
 export function hasDescriptorTag(
@@ -184,61 +69,6 @@ export function isRecommendedDescriptor(tags: readonly string[] | undefined | nu
   return hasDescriptorTag(tags, 'recommended');
 }
 
-function collectPassiveAssetFamilyHints(asset: NimiRuntimeLocalVerifiedAssetDescriptor): string[] {
-  const hints = new Set<string>();
-  const family = normalizeDescriptorToken(typeof asset.metadata?.family === 'string' ? asset.metadata.family : '');
-  if (family) {
-    hints.add(family);
-  }
-  for (const tag of asset.tags || []) {
-    const normalized = normalizeDescriptorToken(tag);
-    if (!normalized || GENERIC_MODEL_TAGS.includes(normalized as (typeof GENERIC_MODEL_TAGS)[number])) {
-      continue;
-    }
-    hints.add(normalized);
-  }
-  return [...hints];
-}
-
-export function filterInstalledAssets(
-  assets: NimiRuntimeLocalAssetRecord[],
-  kindFilter: 'all' | NimiRuntimeLocalAssetKind,
-  query: string,
-): NimiRuntimeLocalAssetRecord[] {
-  return assets.filter((asset) => {
-    if (asset.status === 'removed') return false;
-    const matchesKind = kindFilter === 'all' || asset.kind === kindFilter;
-    if (!matchesKind) return false;
-    if (!query) return true;
-    return (
-      asset.displayName.toLowerCase().includes(query)
-      || asset.assetId.toLowerCase().includes(query)
-      || asset.localAssetId.toLowerCase().includes(query)
-      || asset.engine.toLowerCase().includes(query)
-      || asset.kind.toLowerCase().includes(query)
-      || asset.source.repo.toLowerCase().includes(query)
-    );
-  });
-}
-
-export function relatedPassiveAssetsForRunnable(
-  runnable: NimiRuntimeLocalVerifiedAssetDescriptor,
-  passiveAssets: NimiRuntimeLocalVerifiedAssetDescriptor[],
-): NimiRuntimeLocalVerifiedAssetDescriptor[] {
-  const capabilities = new Set((runnable.capabilities || []).map((value) => normalizeDescriptorToken(value)));
-  if (!capabilities.has('image')) {
-    return [];
-  }
-  const runnableFamilies = new Set(collectAssetFamilyHints(runnable));
-  if (runnableFamilies.size === 0) {
-    return [];
-  }
-  return passiveAssets.filter((asset) => {
-    const assetFamilies = collectPassiveAssetFamilyHints(asset);
-    return assetFamilies.some((family) => runnableFamilies.has(family));
-  });
-}
-
 export type AssetTaskState = 'running' | 'completed' | 'failed';
 
 export type AssetTaskEntry = {
@@ -246,7 +76,7 @@ export type AssetTaskEntry = {
   assetId: string;
   title: string;
   kind: NimiRuntimeLocalAssetKind;
-  taskKind: 'verified-install';
+  taskKind: 'catalog-install';
   state: AssetTaskState;
   detail?: string;
   updatedAtMs: number;

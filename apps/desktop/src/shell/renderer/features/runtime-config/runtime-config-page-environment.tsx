@@ -13,7 +13,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { PillTabs } from '@nimiplatform/kit/ui';
-import type { RuntimeConfigStateV11 } from './runtime-config-state-types';
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
 import { RuntimePage } from './runtime-config-page-runtime';
 import { EnvironmentDataTab } from './runtime-config-environment-data-tab';
@@ -23,7 +22,6 @@ type EnvironmentSubTabId = 'dependencies' | 'data';
 
 type EnvironmentPageProps = {
   model: RuntimeConfigPanelControllerModel;
-  state: RuntimeConfigStateV11;
 };
 
 const SUB_TABS: Array<{ id: EnvironmentSubTabId; labelKey: string; defaultLabel: string }> = [
@@ -31,7 +29,7 @@ const SUB_TABS: Array<{ id: EnvironmentSubTabId; labelKey: string; defaultLabel:
   { id: 'data', labelKey: 'runtimeConfig.environment.tabData', defaultLabel: 'Data & Storage' },
 ];
 
-export function EnvironmentPage({ model, state }: EnvironmentPageProps) {
+export function EnvironmentPage({ model }: EnvironmentPageProps) {
   const { t } = useTranslation();
   const [subTab, setSubTab] = useState<EnvironmentSubTabId>('dependencies');
 
@@ -55,7 +53,7 @@ export function EnvironmentPage({ model, state }: EnvironmentPageProps) {
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         {subTab === 'dependencies' ? (
           <div data-testid={E2E_IDS.runtimeEnvironmentPane('dependencies')} className="flex min-h-0 min-w-0 flex-1 flex-col">
-            <RuntimePage model={model} state={state} />
+            <RuntimePage model={model} />
           </div>
         ) : null}
         {subTab === 'data' ? (

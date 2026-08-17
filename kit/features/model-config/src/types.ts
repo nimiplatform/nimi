@@ -20,13 +20,13 @@ export type ModelConfigOwnerContext =
       readonly consumer: 'nimi-first-party';
     }
   | {
-      readonly owner: 'machine-local-ai-configuration';
+      readonly owner: 'machine-loadouts';
       readonly consumer: 'nimi-first-party';
     };
 
 export type ModelConfigAIConfigOwnerContext = Exclude<
   ModelConfigOwnerContext,
-  { readonly owner: 'machine-local-ai-configuration' }
+  { readonly owner: 'machine-loadouts' }
 >;
 
 export interface ModelConfigCloudImplementationOption {

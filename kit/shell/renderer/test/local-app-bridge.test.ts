@@ -128,6 +128,31 @@ describe('renderer local-app standard-shell surface', () => {
     }]);
   });
 
+  it('forwards the typed artifact-owned image reference without another carrier', async () => {
+    const invocations: Array<{ command: string; payload: unknown }> = [];
+    (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
+      invoke: async (command: string, payload: unknown) => {
+        invocations.push({ command, payload });
+        return { output: { type: 'image-generate', artifacts: [] }, traceId: 'trace-image-1' };
+      },
+      listen: () => () => {},
+    };
+    const spec = {
+      type: 'image-generate', prompt: 'edit the portrait', negativePrompt: '',
+      size: '', aspectRatio: '', quality: '', style: '',
+      referenceImages: [], referenceImageArtifactId: 'artifact-image-source-1',
+      mask: '', responseFormat: '',
+    } as const;
+
+    await expect(createNimiLocalAppStandardShellSurface().ai.scenario.execute(spec)).resolves.toEqual({
+      output: { type: 'image-generate', artifacts: [] }, traceId: 'trace-image-1',
+    });
+    expect(invocations).toEqual([{
+      command: 'nimi.shell.localApp.scenarioExecute',
+      payload: { payload: { spec } },
+    }]);
+  });
+
   it('uploads bounded image bytes through the typed artifact surface', async () => {
     const invocations: Array<{ command: string; payload: unknown }> = [];
     (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {

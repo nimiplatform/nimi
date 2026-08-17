@@ -335,28 +335,6 @@ describe('Electron verified Desktop control host', () => {
     expect(nativeCalls).toBe(0);
   });
 
-  it('fails profile-external methods before public or native dispatch', async () => {
-    let publicUnaryCalls = 0;
-    const desktopControlHost = createNimiElectronDesktopControlHostForBinding(binding());
-    await expect(invokeElectronRuntimeUnary({
-      client: unusedPublicClient(() => { publicUnaryCalls += 1; }),
-      payload: {
-        methodId: '/nimi.runtime.v1.RuntimeLocalService/InstallLocalService',
-        requestBytesBase64: '',
-      },
-      appId: 'nimi.desktop',
-      event: {},
-      runtimeEndpoint: 'protected-desktop-control',
-      command: 'runtime_bridge_unary',
-      desktopControlHost,
-      desktopSenderAuthorized: true,
-    })).rejects.toMatchObject({
-      code: 'forbidden-renderer-access',
-      reasonCode: 'electron-desktop-runtime-method-not-admitted',
-    });
-    expect(publicUnaryCalls).toBe(0);
-  });
-
   it('projects typed Runtime reasons without fallback', async () => {
     const desktopControlHost = createNimiElectronDesktopControlHostForBinding(binding({
       desktopAccountProductUnary: async () => ({

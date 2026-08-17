@@ -23,7 +23,7 @@ import {
   type AgentCenterSharedAIConfigProjection,
   type AgentCenterSession,
 } from '@nimiplatform/kit/features/agent-center';
-import { projectModelConfigLocalSelections } from '@nimiplatform/kit/features/model-config/headless';
+import { projectDesktopMachineLoadoutSelections } from './chat-nimi-app-ai-config.js';
 import { createAgentCenterShellBridge, hasElectronInvoke } from '@nimiplatform/kit/shell/renderer/bridge';
 import type { AgentLocalTargetSnapshot } from '../../bridge/runtime-bridge/types';
 import { type InlineFeedbackState } from '../../ui/feedback/inline-feedback';
@@ -269,8 +269,8 @@ export function useAgentConversationRuntimeController(
       cloudAIConfig: createDesktopCloudAIConfigModule(bindings.sdk),
       async loadLocalSelections() {
         try {
-          return projectModelConfigLocalSelections(
-            await bindings.sdk.machineProduct().local.aiConfiguration.get(),
+          return projectDesktopMachineLoadoutSelections(
+            await bindings.sdk.machineProduct().local.loadouts.get(),
           );
         } catch {
           return ['text.generate', 'audio.transcribe'].map((capabilityContract) => ({
@@ -279,7 +279,7 @@ export function useAgentConversationRuntimeController(
             configurationId: null,
             displayName: null,
             supportedFeatures: [],
-            reasons: ['machine-local-ai-configuration-unavailable'],
+            reasons: ['machine-loadouts-unavailable'],
           }));
         }
       },

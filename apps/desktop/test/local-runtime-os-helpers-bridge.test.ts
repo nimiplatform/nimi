@@ -3,7 +3,6 @@ import test from 'node:test';
 
 import { NIMI_STANDARD_SHELL_COMMANDS } from '@nimiplatform/kit/shell/capabilities';
 import {
-  pickLocalRuntimeAssetManifestPath,
   pickLocalRuntimeAssetDirectory,
   pickLocalRuntimeAssetFile,
   revealLocalRuntimeAssetInFolder,
@@ -81,32 +80,6 @@ test('local runtime asset file picker uses Kit standard file dialog with import 
         filters: [
           { name: 'Asset Files', extensions: ['gguf', 'safetensors', 'bin', 'pt', 'onnx', 'pth'] },
           { name: 'All Files', extensions: ['*'] },
-        ],
-      },
-    },
-  }]);
-});
-
-test('local runtime manifest picker uses the Electron-compatible standard file dialog', async () => {
-  const calls: Array<{ command: string; payload: unknown }> = [];
-  await withStandardShellInvoke(async (command, payload) => {
-    calls.push({ command, payload });
-    return { canceled: false, paths: ['/tmp/runtime-models/resolved/demo/asset.manifest.json'] };
-  }, async () => {
-    assert.equal(
-      await pickLocalRuntimeAssetManifestPath(),
-      '/tmp/runtime-models/resolved/demo/asset.manifest.json',
-    );
-  });
-
-  assert.deepEqual(calls, [{
-    command: NIMI_STANDARD_SHELL_COMMANDS['file-dialog.open'],
-    payload: {
-      payload: {
-        kind: 'file',
-        title: 'Select asset.manifest.json',
-        filters: [
-          { name: 'Asset Manifest', extensions: ['json'] },
         ],
       },
     },

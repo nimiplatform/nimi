@@ -254,6 +254,7 @@ export function getDesktopAccountProductClient(): DesktopRendererAccountProductC
   const client = getDesktopRuntimeRealmSession().runtimeClients.accountProduct;
   return Object.freeze({
     appAIConfig: client.appAIConfig,
+    profiles: client.profiles,
     agents: client.agents,
     appMessages: client.appMessages,
     artifacts: client.artifacts,

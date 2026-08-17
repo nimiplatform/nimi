@@ -208,7 +208,6 @@ export function buildAuditDiagnosticsText(
       `detail=${resolveAuditDetail(event)}`,
       `policyGate=${resolveAuditPolicyGate(event)}`,
       `model=${event.modelId || '-'}`,
-      `localModelId=${event.localModelId || '-'}`,
       `label=${resolveAuditLabel(event)}`,
     ].join(' | ');
   }).join('\n');

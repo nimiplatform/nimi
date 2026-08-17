@@ -388,6 +388,7 @@ fn parse_image_spec(
             "style",
             "seed",
             "referenceImages",
+            "referenceImageArtifactId",
             "mask",
             "responseFormat",
         ],
@@ -400,6 +401,7 @@ fn parse_image_spec(
             "quality",
             "style",
             "referenceImages",
+            "referenceImageArtifactId",
             "mask",
             "responseFormat",
         ],
@@ -414,6 +416,11 @@ fn parse_image_spec(
     let reference_images =
         string_array(field(object, "referenceImages")?, 1, MAX_URI_BYTES, false)?;
     if reference_images.iter().any(|value| !is_https_url(value)) {
+        return Err(invalid_payload());
+    }
+    let reference_image_artifact_id =
+        optional_text_field(object, "referenceImageArtifactId", MAX_IDENTIFIER_BYTES)?;
+    if !reference_images.is_empty() && !reference_image_artifact_id.is_empty() {
         return Err(invalid_payload());
     }
     let mask = optional_text_field(object, "mask", MAX_URI_BYTES)?;
@@ -436,6 +443,7 @@ fn parse_image_spec(
         style: bounded_token_field(object, "style", 128)?,
         seed,
         reference_images,
+        reference_image_artifact_id,
         mask,
         response_format: string_field(object, "responseFormat")?.to_string(),
     })
@@ -1387,9 +1395,23 @@ mod tests {
             "type": "image-generate", "prompt": "portrait", "negativePrompt": "", "n": 1,
             "size": "1024x1024", "aspectRatio": "1:1", "quality": "", "style": "", "seed": 0,
             "referenceImages": ["https://example.com/reference.png"],
+            "referenceImageArtifactId": "",
             "mask": "https://example.com/mask.png", "responseFormat": "b64_json"
         });
         assert!(parse_job_spec(image.clone()).is_ok());
+        let artifact_image = json!({
+            "type": "image-generate", "prompt": "edit portrait", "negativePrompt": "",
+            "size": "1024x1024", "aspectRatio": "", "quality": "", "style": "",
+            "referenceImages": [], "referenceImageArtifactId": "artifact-image-source-1",
+            "mask": "", "responseFormat": ""
+        });
+        assert!(parse_job_spec(artifact_image).is_ok());
+        let mut conflicting = image.as_object().unwrap().clone();
+        conflicting.insert(
+            "referenceImageArtifactId".to_string(),
+            json!("artifact-image-source-1"),
+        );
+        assert!(parse_job_spec(JsonValue::Object(conflicting)).is_err());
         let mut injected = image.as_object().unwrap().clone();
         injected.insert("provider".to_string(), json!("private"));
         assert!(parse_job_spec(JsonValue::Object(injected)).is_err());
@@ -1401,7 +1423,7 @@ mod tests {
         let image = parse_execute_spec(json!({
             "type": "image-generate", "prompt": "portrait", "negativePrompt": "",
             "n": 0, "size": "", "aspectRatio": "", "quality": "", "style": "", "seed": 0,
-            "referenceImages": [], "mask": "", "responseFormat": ""
+            "referenceImages": [], "referenceImageArtifactId": "", "mask": "", "responseFormat": ""
         }))
         .expect("explicit zero image options");
         let ExecuteSpec::ImageGenerate(image) = image else {
@@ -1413,7 +1435,7 @@ mod tests {
         let omitted = parse_execute_spec(json!({
             "type": "image-generate", "prompt": "portrait", "negativePrompt": "",
             "size": "", "aspectRatio": "", "quality": "", "style": "",
-            "referenceImages": [], "mask": "", "responseFormat": ""
+            "referenceImages": [], "referenceImageArtifactId": "", "mask": "", "responseFormat": ""
         }))
         .expect("omitted image options");
         let ExecuteSpec::ImageGenerate(omitted) = omitted else {

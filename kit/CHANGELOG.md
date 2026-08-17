@@ -76,7 +76,7 @@ Discipline.
 
 - Model Config restores the established AI Model hub, capability-detail, Active
   Model trigger, and compact Local/Cloud picker UX. App and Agent Local choices
-  now project the Machine-selected configuration and deep-link to Machine Local
+  now project the machine-selected Loadout and deep-link to the Loadout owner
   AI configuration instead of selecting a machine model. First-party Cloud
   choice is Connector-first and fail-closed: no models are exposed until the
   user selects a host-projected current-account Connector; target and

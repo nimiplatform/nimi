@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { RuntimeConfigStateV11 } from './runtime-config-state-types';
 import { NimiTabs } from '@nimiplatform/kit/ui';
 import { RuntimeHealthSection } from './runtime-config-runtime-health-section.js';
 import { GlobalAuditSection } from './runtime-config-global-audit-section.js';
@@ -12,31 +11,18 @@ import { DelegatedCapabilityControlPanel } from './runtime-config-delegated-capa
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
 import { RuntimePageShell } from './runtime-config-page-shell';
 import { RuntimeOverviewTab } from './runtime-config-runtime-overview-tab';
-import { RuntimeNodeCapabilityMatrix } from './runtime-config-runtime-node-matrix';
 import { RuntimeConfigLocalSpeechEnvironmentPanel } from './runtime-config-local-speech-environment-panel';
 
 type RuntimeTabKey = 'overview' | 'health' | 'activity' | 'access';
 
 type RuntimePageProps = {
   model: RuntimeConfigPanelControllerModel;
-  state: RuntimeConfigStateV11;
 };
 
-export function RuntimePage({ model, state }: RuntimePageProps) {
+export function RuntimePage({ model }: RuntimePageProps) {
   const { t } = useTranslation();
   const auditData = useGlobalAuditData(true);
-  const [nodeMatrixExpanded, setNodeMatrixExpanded] = useState(true);
   const [activeTab, setActiveTab] = useState<RuntimeTabKey>('overview');
-
-  const sortedNodeMatrix = useMemo(
-    () =>
-      [...(state.local.nodeMatrix || [])].sort(
-        (left, right) =>
-          String(left.capability || '').localeCompare(String(right.capability || '')) ||
-          String(left.nodeId || '').localeCompare(String(right.nodeId || '')),
-      ),
-    [state.local.nodeMatrix],
-  );
 
   const unhealthyProviderCount = useMemo(() => {
     return auditData.providerHealth.filter((snapshot) => {
@@ -98,12 +84,6 @@ export function RuntimePage({ model, state }: RuntimePageProps) {
             streamError={auditData.healthStreamError}
             stale={auditData.healthStale}
             onRefresh={() => void auditData.loadHealth()}
-          />
-
-          <RuntimeNodeCapabilityMatrix
-            rows={sortedNodeMatrix}
-            expanded={nodeMatrixExpanded}
-            onToggleExpanded={() => setNodeMatrixExpanded((prev) => !prev)}
           />
         </>
       ) : null}

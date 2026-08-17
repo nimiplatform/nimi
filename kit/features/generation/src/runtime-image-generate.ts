@@ -84,6 +84,7 @@ export type RuntimeImageGenerateInput = {
   readonly style?: string;
   readonly seed?: string | number | bigint;
   readonly referenceImages?: readonly string[];
+  readonly referenceImageArtifactId?: string;
   readonly mask?: string;
   readonly responseFormat?: string;
   readonly scenarioId: string;
@@ -125,6 +126,7 @@ export async function runRuntimeImageGenerate(
       ...(input.style !== undefined ? { style: input.style } : {}),
       ...(input.seed !== undefined ? { seed: input.seed } : {}),
       ...(input.referenceImages !== undefined ? { referenceImages: input.referenceImages } : {}),
+      ...(input.referenceImageArtifactId !== undefined ? { referenceImageArtifactId: input.referenceImageArtifactId } : {}),
       ...(input.mask !== undefined ? { mask: input.mask } : {}),
       ...(input.responseFormat !== undefined ? { responseFormat: input.responseFormat } : {}),
       requestId: identity.requestId,

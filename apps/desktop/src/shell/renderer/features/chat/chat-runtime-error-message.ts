@@ -59,13 +59,13 @@ export function chatContextCapacityFailureMessage(
 ): string {
   if (failure.requiredWindowTokens !== undefined && failure.currentWindowTokens !== undefined) {
     return t('Chat.contextCapacityExceeded', {
-      defaultValue: 'This local model is using a {{current}}-token context, but this agent needs at least {{required}}. Switch Context capacity to Automatic in Local AI Configurations.',
+      defaultValue: 'This local model is using a {{current}}-token context, but this agent needs at least {{required}}. Switch Context capacity to Automatic in Loadouts.',
       current: failure.currentWindowTokens,
       required: failure.requiredWindowTokens,
     });
   }
   return t('Chat.contextCapacityExceededInputBudget', {
-    defaultValue: 'This agent needs {{required}} input tokens, but only {{available}} are available. Switch Context capacity to Automatic in Local AI Configurations.',
+    defaultValue: 'This agent needs {{required}} input tokens, but only {{available}} are available. Switch Context capacity to Automatic in Loadouts.',
     required: failure.requiredInputTokens,
     available: failure.availableInputTokens,
   });

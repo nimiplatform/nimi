@@ -336,7 +336,7 @@ test('Desktop Simulator projection boots authenticated and drives logout plus Ru
   assert.equal(attempt.nonce, 'sim-oauth-nonce-1');
   const authorizationUrl = new URL(attempt.authorizationUrl);
   assert.equal(authorizationUrl.protocol, 'https:');
-  assert.equal(authorizationUrl.pathname, '/oauth/authorize');
+  assert.equal(authorizationUrl.pathname, '/api/auth/oauth/authorize');
   assert.equal(authorizationUrl.searchParams.get('redirect_uri'), LOGIN_CALLBACK_URL);
   assert.equal(authorizationUrl.searchParams.get('state'), 'sim-oauth-state-1');
   assert.equal(authorizationUrl.hash, '');
@@ -539,7 +539,7 @@ test('Desktop Simulator auth port fails closed for out-of-order login steps', as
     }),
   );
   await assert.rejects(
-    () => auth.oauthBridge.openExternalUrl('https://simulator.invalid/oauth/authorize?state=sim-oauth-state-1'),
+    () => auth.oauthBridge.openExternalUrl('https://simulator.invalid/api/auth/oauth/authorize?state=sim-oauth-state-1'),
     /DESKTOP_SIMULATOR_AUTH_OAUTH_OPEN_REJECTED/,
   );
   // The failed steps committed no state: the session is still anonymous.

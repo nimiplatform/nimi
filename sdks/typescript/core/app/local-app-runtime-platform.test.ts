@@ -567,6 +567,7 @@ test('canonical protected operations reach typed ingress and preserve owner-unav
       type: 'image-generate', prompt: 'hello', negativePrompt: '', n: 1,
       size: '', aspectRatio: '', quality: '', style: '', seed: 0,
       referenceImages: ['https://example.com/reference.png'],
+      referenceImageArtifactId: '',
       mask: 'https://example.com/mask.png', responseFormat: 'b64_json',
     }),
     () => client.ai.scenarioJobs.get('job-1'),
@@ -655,7 +656,7 @@ test('local-app image generation preserves the route-neutral safe integer seed c
   const spec = {
     type: 'image-generate' as const,
     prompt: 'hello', negativePrompt: '', size: '', aspectRatio: '', quality: '', style: '',
-    referenceImages: [], mask: '', responseFormat: '' as const,
+    referenceImages: [], referenceImageArtifactId: '', mask: '', responseFormat: '' as const,
   };
   for (const seed of [Number.MIN_SAFE_INTEGER, Number.MAX_SAFE_INTEGER]) {
     await assert.rejects(() => jobs.submit({ ...spec, seed }), isTypedOwnerUnavailable);
@@ -668,6 +669,28 @@ test('local-app image generation preserves the route-neutral safe integer seed c
     );
   }
   assert.deepEqual(calls, ['ai.scenarioJobs.submit', 'ai.scenarioJobs.submit']);
+});
+
+test('local-app image generation admits one artifact custody carrier and rejects URL XOR', async () => {
+  const calls: string[] = [];
+  const jobs = createNimiLocalAppClient({ standardShell: standardShell(calls) }).ai.scenarioJobs;
+  const spec = {
+    type: 'image-generate' as const,
+    prompt: 'edit this image', negativePrompt: '', size: '', aspectRatio: '', quality: '', style: '',
+    referenceImages: [], referenceImageArtifactId: 'artifact-image-source-1', mask: '', responseFormat: '' as const,
+  };
+  await assert.rejects(() => jobs.submit(spec), isTypedOwnerUnavailable);
+  assert.deepEqual(calls, ['ai.scenarioJobs.submit']);
+
+  await assert.rejects(
+    () => jobs.submit({ ...spec, referenceImages: ['https://example.test/reference.png'] }),
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_LOCAL_APP_INPUT_INVALID',
+  );
+  await assert.rejects(
+    () => jobs.submit({ ...spec, referenceImageArtifactId: ' artifact-image-source-1 ' }),
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_LOCAL_APP_INPUT_INVALID',
+  );
+  assert.deepEqual(calls, ['ai.scenarioJobs.submit']);
 });
 
 test('local-app artifact upload validates the closed image input and exact custody projection', async () => {
@@ -1043,7 +1066,7 @@ test('local-app Scenario Job adapter runs the unchanged SDK image runner without
     type: 'image-generate', prompt: 'draw a moon', negativePrompt: '',
     size: '', aspectRatio: '', quality: '', style: '',
     seed: -2_147_483_648,
-    referenceImages: [], mask: '', responseFormat: '',
+    referenceImages: [], referenceImageArtifactId: '', mask: '', responseFormat: '',
   }]);
   assert.deepEqual(calls.slice(1), [
     ['subscribe', 'job-1'],

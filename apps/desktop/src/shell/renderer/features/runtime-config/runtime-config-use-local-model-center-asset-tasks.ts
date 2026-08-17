@@ -9,7 +9,8 @@ import {
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 
 export function useLocalModelCenterAssetTasks(input: {
-  onInstallVerifiedAsset: LocalModelCenterProps['onInstallVerifiedAsset'];
+  onInstallCatalogAsset: LocalModelCenterProps['onInstallCatalogAsset'];
+  onInstalled: () => Promise<void>;
   verifiedAssetsByTemplateId: Map<string, NimiRuntimeLocalVerifiedAssetDescriptor>;
 }) {
   const bindings = useDesktopRendererBindings();
@@ -54,7 +55,7 @@ export function useLocalModelCenterAssetTasks(input: {
         assetId: descriptor.assetId,
         title: descriptor.title,
         kind: descriptor.kind,
-        taskKind: 'verified-install',
+        taskKind: 'catalog-install',
         state,
         detail: String(detail || '').trim() || undefined,
         updatedAtMs: nowMs,
@@ -67,7 +68,7 @@ export function useLocalModelCenterAssetTasks(input: {
     assetPendingTemplateIds.includes(String(templateId || '').trim())
   ), [assetPendingTemplateIds]);
 
-  const installVerifiedAsset = useCallback(async (templateId: string) => {
+  const installCatalogAsset = useCallback(async (templateId: string) => {
     const normalizedTemplateId = String(templateId || '').trim();
     if (!normalizedTemplateId) {
       return;
@@ -75,7 +76,8 @@ export function useLocalModelCenterAssetTasks(input: {
     markAssetPending(normalizedTemplateId, true);
     upsertAssetTask(normalizedTemplateId, 'running');
     try {
-      await input.onInstallVerifiedAsset(normalizedTemplateId);
+      await input.onInstallCatalogAsset(normalizedTemplateId);
+      await input.onInstalled();
       upsertAssetTask(normalizedTemplateId, 'running', 'Asset install queued.');
     } catch (error: unknown) {
       upsertAssetTask(
@@ -91,7 +93,7 @@ export function useLocalModelCenterAssetTasks(input: {
 
   return {
     assetPendingTemplateIds,
-    installVerifiedAsset,
+    installCatalogAsset,
     isAssetPending,
     visibleAssetTasks,
   };

@@ -3,7 +3,7 @@
 ## What It Is
 
 The public Nimi configuration presentation toolkit for canonical App AIConfig,
-shared LocalAgent AIConfig, and first-party Machine Local AI Configuration
+shared LocalAgent AIConfig, and first-party machine Loadout
 surfaces. Every mount declares exactly one owner and consumer context.
 
 ## Public Surfaces
@@ -23,7 +23,7 @@ The AIConfig presentation keeps the established AI Model hub, capability
 detail, Active Model trigger, and Local/Cloud picker flow. A host may request
 one initial capability detail while preserving Back navigation to the complete
 hub. Local projects the
-Machine's current selection and deep-links to the Machine Local AI owner; a
+Machine's current selection and deep-links to the Loadout owner; a
 protected Third-party Local App receives only the bounded current-selection
 state, display name, supported features, and safe reasons, never configuration
 identity, bindings, LocalAssets, paths, or execution truth. It

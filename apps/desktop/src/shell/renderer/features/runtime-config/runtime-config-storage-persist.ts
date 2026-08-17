@@ -41,10 +41,6 @@ export function persistRuntimeConfigStateV11(state: RuntimeConfigStateV11): void
     selectedSource: state.selectedSource,
     activeCapability: state.activeCapability,
     local: {
-      ...state.local,
-      endpoint: '',
-      models: [],
-      nodeMatrix: [],
       status: 'idle',
       lastCheckedAt: null,
       lastDetail: '',

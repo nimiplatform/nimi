@@ -13,16 +13,7 @@ import {
 import { useLocalModelCenterProgressCache } from './runtime-config-local-model-center-progress-context.js';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 
-type DownloadCompleteHandler = (
-  installSessionId: string,
-  success: boolean,
-  message?: string,
-  localAssetId?: string,
-  assetId?: string,
-) => void;
-
 type UseLocalModelCenterDownloadsInput = {
-  onDownloadComplete?: DownloadCompleteHandler;
   onProgressSettled?: (event: NimiRuntimeLocalTransferProgressEvent) => void;
 };
 
@@ -42,8 +33,8 @@ export function useLocalModelCenterDownloads(input: UseLocalModelCenterDownloads
   // Sessions already observed in a terminal (done) state. WatchLocalTransfers
   // replays every existing session on each subscribe, so terminal sessions
   // arrive with done=true again and again; without this guard each replay would
-  // re-fire onDownloadComplete (→ a full snapshot refresh). Seed from cached
-  // terminal sessions only; listTransfers may race with a just-completed active
+  // re-run terminal refresh work. Seed from cached terminal sessions only;
+  // listTransfers may race with a just-completed active
   // transfer, so it may only mark terminals whose updatedAt predates this
   // effect's subscription window.
   const seenTerminalSessionIdsRef = useRef<Set<string>>(new Set(
@@ -55,9 +46,7 @@ export function useLocalModelCenterDownloads(input: UseLocalModelCenterDownloads
   // have to list them as dependencies. If it did, their identity churn (they
   // are recreated whenever runtime-config state updates) would tear down and
   // re-subscribe the transfer stream on every render.
-  const onDownloadCompleteRef = useRef(input.onDownloadComplete);
   const onProgressSettledRef = useRef(input.onProgressSettled);
-  onDownloadCompleteRef.current = input.onDownloadComplete;
   onProgressSettledRef.current = input.onProgressSettled;
 
   useEffect(() => {
@@ -128,13 +117,6 @@ export function useLocalModelCenterDownloads(input: UseLocalModelCenterDownloads
       });
       if (event.done && !seenTerminalSessionIdsRef.current.has(event.installSessionId)) {
         seenTerminalSessionIdsRef.current.add(event.installSessionId);
-        onDownloadCompleteRef.current?.(
-          event.installSessionId,
-          event.success,
-          event.message,
-          event.localModelId,
-          event.modelId,
-        );
         onProgressSettledRef.current?.(event);
       }
     }).then((off) => {

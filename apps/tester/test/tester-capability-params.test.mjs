@@ -47,15 +47,37 @@ test('Local video disables Cloud-only fields and presents fps as fixed 24', () =
   assert.deepEqual(local.get('fps'), { field: 'fps', state: 'fixed', fixedValue: 24 });
 });
 
-test('Local text and image preserve every field admitted by the Local App carrier', () => {
+test('Local text preserves admitted fields and image exposes only artifact custody input', () => {
   for (const capabilityId of ['text.generate', 'chat.stream']) {
     for (const field of ['topK', 'presencePenalty', 'frequencyPenalty', 'stop', 'seed']) {
       assert.equal(states(capabilityId, 'local').get(field)?.state, 'enabled', `${capabilityId}.${field}`);
     }
   }
+  const localImage = states('image.generate', 'local');
+  assert.equal(localImage.get('referenceImageArtifactId')?.state, 'enabled');
   for (const field of ['referenceImage', 'mask']) {
-    assert.equal(states('image.generate', 'local').get(field)?.state, 'enabled', `image.generate.${field}`);
+    assert.deepEqual(localImage.get(field), { field, state: 'disabled', unavailableBecause: 'route' });
   }
+  const cloudImage = states('image.generate', 'cloud');
+  for (const field of ['referenceImage', 'mask']) {
+    assert.equal(cloudImage.get(field)?.state, 'enabled', `image.generate.${field}`);
+  }
+  assert.deepEqual(cloudImage.get('referenceImageArtifactId'), {
+    field: 'referenceImageArtifactId', state: 'disabled', unavailableBecause: 'route',
+  });
+  assert.deepEqual(projectTesterCapabilityParamsForRoute('image.generate', 'cloud', {
+    referenceImage: 'https://example.test/reference.png',
+    referenceImageArtifactId: 'artifact-image-source-1',
+  }), {
+    referenceImage: 'https://example.test/reference.png',
+  });
+  assert.deepEqual(projectTesterCapabilityParamsForRoute('image.generate', 'local', {
+    referenceImage: 'https://example.test/reference.png',
+    referenceImageArtifactId: 'artifact-image-source-1',
+    mask: 'https://example.test/mask.png',
+  }), {
+    referenceImageArtifactId: 'artifact-image-source-1',
+  });
 });
 
 test('Local synthesis exposes only preset voice references until Runtime owns voice asset resolution', () => {
@@ -130,6 +152,8 @@ test('Cloud enables carrier fields but not private Local App scheduling fields',
     for (const [field, item] of states(capabilityId, 'cloud')) {
       if (capabilityId === 'video.generate' && ['serviceTier', 'executionExpiresAfterSec'].includes(field)) {
         assert.deepEqual(item, { field, state: 'disabled', unavailableBecause: 'local-app-surface' });
+      } else if (capabilityId === 'image.generate' && field === 'referenceImageArtifactId') {
+        assert.deepEqual(item, { field, state: 'disabled', unavailableBecause: 'route' });
       } else {
         assert.equal(item.state, 'enabled', `${capabilityId}.${field}`);
       }

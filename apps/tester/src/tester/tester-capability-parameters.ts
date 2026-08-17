@@ -24,6 +24,7 @@ export type TesterImageGenerationParameters = {
   quality?: string;
   style?: string;
   referenceImage?: string;
+  referenceImageArtifactId?: string;
   mask?: string;
 };
 

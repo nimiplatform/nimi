@@ -114,7 +114,7 @@ describe('registerNimiElectronRuntimeBridge runtime hardening', () => {
     });
 
     const basePayload = {
-      methodId: '/nimi.runtime.v1.RuntimeModelService/ListModels',
+      methodId: '/nimi.runtime.v1.RuntimeAppService/GetAppStorage',
       requestBytesBase64: '',
     };
     for (const payload of [
@@ -160,7 +160,7 @@ describe('registerNimiElectronRuntimeBridge runtime hardening', () => {
       await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
         command: STANDARD_COMMANDS.unary,
         payload: {
-          methodId: '/nimi.runtime.v1.RuntimeModelService/ListModels',
+          methodId: '/nimi.runtime.v1.RuntimeAppService/GetAppStorage',
           requestBytesBase64: '',
           metadata: { extra: { [key]: 'retired' } },
         },
@@ -194,7 +194,7 @@ describe('registerNimiElectronRuntimeBridge runtime hardening', () => {
     await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
       command: STANDARD_COMMANDS.unary,
       payload: {
-        methodId: '/nimi.runtime.v1.RuntimeModelService/ListModels',
+        methodId: '/nimi.runtime.v1.RuntimeAppService/GetAppStorage',
         requestBytesBase64: 'not base64!',
       },
     })).rejects.toMatchObject({ code: 'invalid-payload' });
@@ -203,7 +203,7 @@ describe('registerNimiElectronRuntimeBridge runtime hardening', () => {
     await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
       command: STANDARD_COMMANDS.unary,
       payload: {
-        methodId: '/nimi.runtime.v1.RuntimeModelService/ListModels',
+        methodId: '/nimi.runtime.v1.RuntimeAppService/GetAppStorage',
         requestBytesBase64: avatarSizedPayload,
       },
     })).resolves.toEqual({ responseBytesBase64: '' });
@@ -268,7 +268,7 @@ describe('registerNimiElectronRuntimeBridge runtime hardening', () => {
     const openResponse = await invokeBridge(ipcMain, event, {
       command: STANDARD_COMMANDS.stream_open,
       payload: {
-        methodId: '/nimi.runtime.v1.RuntimeModelService/WatchModels',
+        methodId: '/nimi.runtime.v1.RuntimeCognitionService/SubscribeMemoryEvents',
         streamId: 'stream-1',
         requestBytesBase64: toBase64(Uint8Array.from([1])),
       },
@@ -326,7 +326,7 @@ describe('registerNimiElectronRuntimeBridge runtime hardening', () => {
     const openResponse = await invokeBridge(ipcMain, event, {
       command: STANDARD_COMMANDS.stream_open,
       payload: {
-        methodId: '/nimi.runtime.v1.RuntimeModelService/WatchModels',
+        methodId: '/nimi.runtime.v1.RuntimeCognitionService/SubscribeMemoryEvents',
         streamId: 'stream-unavailable',
         requestBytesBase64: '',
       },

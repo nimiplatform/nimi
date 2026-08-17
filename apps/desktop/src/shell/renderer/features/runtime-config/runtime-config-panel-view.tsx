@@ -32,8 +32,8 @@ const LocalPage = lazy(async () => ({
 const CatalogPage = lazy(async () => ({
   default: (await import('./runtime-config-page-catalog')).CatalogPage,
 }));
-const MachineLocalAIConfigurationsPage = lazy(async () => ({
-  default: (await import('./runtime-config-page-machine-local-ai.js')).MachineLocalAIConfigurationsPage,
+const LoadoutsPage = lazy(async () => ({
+  default: (await import('./runtime-config-page-loadouts.js')).LoadoutsPage,
 }));
 const EnvironmentPage = lazy(async () => ({
   default: (await import('./runtime-config-page-environment')).EnvironmentPage,
@@ -212,12 +212,10 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
           <div className="flex w-full items-center justify-between">
             <h2 className="text-xl font-semibold leading-7 text-[color:var(--nimi-text-primary)]">{pageTitle}</h2>
             <div className="flex items-center gap-2">
-              {(model.discovering || model.checkingHealth) && (
+              {model.checkingHealth && (
                 <span className="flex items-center gap-1.5 text-xs text-[var(--nimi-text-muted)]">
                   <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-[var(--nimi-border-strong)] border-t-transparent" />
-                  {model.discovering
-                    ? t('runtimeConfig.panel.discovering', { defaultValue: 'Discovering...' })
-                    : t('runtimeConfig.panel.checkingHealth', { defaultValue: 'Checking Runtime...' })}
+                  {t('runtimeConfig.panel.checkingHealth', { defaultValue: 'Checking Runtime...' })}
                 </span>
               )}
               <RuntimeHealthBadge daemonRunning={daemonRunning} providerStatus={runtimeStatus} />
@@ -249,7 +247,7 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
             )}
             {activePage === 'localAiConfig' && (
               <div data-testid={E2E_IDS.runtimePageRoot('localAiConfig')} className="min-w-0">
-                <MachineLocalAIConfigurationsPage />
+                <LoadoutsPage />
               </div>
             )}
             {activePage === 'modelCatalog' && (
@@ -264,7 +262,7 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
             )}
             {activePage === 'environment' && (
               <div data-testid={E2E_IDS.runtimePageRoot('environment')} className="flex min-h-0 min-w-0 flex-1 flex-col">
-                <EnvironmentPage model={model} state={state} />
+                <EnvironmentPage model={model} />
               </div>
             )}
           </Suspense>

@@ -354,9 +354,6 @@ export function createDesktopSimulatorBindings(
         confirmRuntimeProfileInstall() {
           throw new Error('DESKTOP_SIMULATOR_RUNTIME_PROFILE_INSTALL_UNADMITTED');
         },
-        async pickLocalRuntimeAssetManifestPath() {
-          throw new Error('DESKTOP_SIMULATOR_RUNTIME_ASSET_PICKER_UNADMITTED');
-        },
         async pickLocalRuntimeAssetFile() {
           throw new Error('DESKTOP_SIMULATOR_RUNTIME_ASSET_PICKER_UNADMITTED');
         },

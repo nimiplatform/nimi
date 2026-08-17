@@ -1,11 +1,7 @@
 import { useDesktopI18nResource } from '../../i18n/i18n-context';
 
 import { Surface } from '@nimiplatform/kit/ui';
-import { toCanonicalNimiRuntimeLocalAssetLookupKey } from '@nimiplatform/sdk/runtime';
-import type {
-  NimiRuntimeLocalAssetRecord,
-  NimiRuntimeLocalVerifiedAssetDescriptor,
-} from '@nimiplatform/sdk/runtime';
+import type { NimiRuntimeLocalVerifiedAssetDescriptor } from '@nimiplatform/sdk/runtime';
 import {
   DownloadIcon,
   FolderOpenIcon,
@@ -20,86 +16,6 @@ import {
   LocalModelCenterAssetTasksSection,
 } from './runtime-config-local-model-center-progress-sections';
 import { Button } from './runtime-config-primitives';
-
-type AssetRequirementBadgesProps = {
-  modelTemplateId: string;
-  relatedAssets: NimiRuntimeLocalVerifiedAssetDescriptor[];
-  installedAssetsById: Map<string, NimiRuntimeLocalAssetRecord>;
-  assetBusy: boolean;
-  isAssetPending: (templateId: string) => boolean;
-  onInstallMissingAssets: (assets: NimiRuntimeLocalVerifiedAssetDescriptor[]) => void;
-  onInstallAsset: (templateId: string) => void;
-};
-
-function AssetRequirementBadges(props: AssetRequirementBadgesProps) {
-  const i18n = useDesktopI18nResource().instance;
-  if (props.relatedAssets.length === 0) {
-    return null;
-  }
-
-  const missingAssets = props.relatedAssets.filter((asset) => (
-    !props.installedAssetsById.has(toCanonicalNimiRuntimeLocalAssetLookupKey(asset.assetId))
-  ));
-  const hasPendingMissingAssets = missingAssets.some((asset) => props.isAssetPending(asset.templateId));
-
-  return (
-    <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-      {missingAssets.length > 1 ? (
-        <button
-          type="button"
-          onClick={() => props.onInstallMissingAssets(props.relatedAssets)}
-          disabled={props.assetBusy || hasPendingMissingAssets}
-          className="inline-flex items-center rounded-full border border-[color-mix(in_srgb,var(--nimi-status-warning)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-warning)_12%,transparent)] px-2 py-0.5 text-[length:var(--nimi-type-caption-size)] font-medium text-[var(--nimi-status-warning)] hover:bg-[color-mix(in_srgb,var(--nimi-status-warning)_18%,transparent)] disabled:opacity-50"
-        >
-          {hasPendingMissingAssets
-            ? i18n.t('runtimeConfig.localModelCenter.installingAssets', { defaultValue: 'Installing assets...' })
-            : i18n.t('runtimeConfig.localModelCenter.installMissing', {
-              count: missingAssets.length,
-              defaultValue: 'Install Missing ({{count}})',
-            })}
-        </button>
-      ) : null}
-      {props.relatedAssets.map((asset) => {
-        const installed = props.installedAssetsById.get(toCanonicalNimiRuntimeLocalAssetLookupKey(asset.assetId)) || null;
-        const pending = props.isAssetPending(asset.templateId);
-        return (
-          <div
-            key={`${props.modelTemplateId}-${asset.templateId}`}
-            className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[length:var(--nimi-type-caption-size)] ${
-              installed
-                ? 'border-[color-mix(in_srgb,var(--nimi-status-success)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-success)_12%,transparent)] text-[var(--nimi-status-success)]'
-                : 'border-[color-mix(in_srgb,var(--nimi-status-warning)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-warning)_12%,transparent)] text-[var(--nimi-status-warning)]'
-            }`}
-          >
-            <span>{formatAssetKindLabel(asset.kind)}</span>
-            <span>
-              {installed
-                ? i18n.t('runtimeConfig.localModelCenter.installed', { defaultValue: 'Installed' })
-                : pending
-                  ? i18n.t('runtimeConfig.localModelCenter.installingShort', { defaultValue: 'Installing' })
-                  : i18n.t('runtimeConfig.localModelCenter.required', { defaultValue: 'Required' })}
-            </span>
-            {!installed ? (
-              <button
-                type="button"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  props.onInstallAsset(asset.templateId);
-                }}
-                disabled={props.assetBusy || pending}
-                className="rounded-full bg-[var(--nimi-surface-overlay)] px-1.5 py-0.5 text-[length:var(--nimi-type-caption-size)] font-medium text-[var(--nimi-status-warning)] hover:bg-[var(--nimi-surface-card)] disabled:opacity-50"
-              >
-                {pending
-                  ? i18n.t('runtimeConfig.localModelCenter.installing', { defaultValue: 'Installing...' })
-                  : i18n.t('runtimeConfig.localModelCenter.install', { defaultValue: 'Install' })}
-              </button>
-            ) : null}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
 
 type VerifiedAssetsSectionProps = {
   hasSearchQuery: boolean;
@@ -119,7 +35,7 @@ function LocalModelCenterVerifiedAssetsSection(props: VerifiedAssetsSectionProps
         <div className="flex items-center gap-2">
           <FolderOpenIcon className="h-4 w-4 text-[var(--nimi-text-muted)]" />
           <span className="text-xs font-semibold uppercase tracking-wider text-[var(--nimi-text-muted)]">
-            {i18n.t('runtimeConfig.localModelCenter.verifiedDependencyAssets', { defaultValue: 'Verified Dependency Assets' })}
+            {i18n.t('runtimeConfig.localModelCenter.verifiedAssetOffers', { defaultValue: 'Catalog ModelAsset Offers' })}
           </span>
         </div>
         <button
@@ -180,8 +96,8 @@ function LocalModelCenterVerifiedAssetsSection(props: VerifiedAssetsSectionProps
         <div className="py-6 text-center">
           <p className="text-sm text-[var(--nimi-text-muted)]">
             {props.hasSearchQuery
-              ? i18n.t('runtimeConfig.localModelCenter.noVerifiedAssetsMatchSearch', { defaultValue: 'No verified dependency assets matched your search.' })
-              : i18n.t('runtimeConfig.localModelCenter.noVerifiedAssetsForFilter', { defaultValue: 'No verified dependency assets available for the current filter.' })}
+              ? i18n.t('runtimeConfig.localModelCenter.noVerifiedAssetsMatchSearch', { defaultValue: 'No catalog ModelAsset offers matched your search.' })
+              : i18n.t('runtimeConfig.localModelCenter.noVerifiedAssetsForFilter', { defaultValue: 'No catalog ModelAsset offers are available for the current filter.' })}
           </p>
         </div>
       )}
@@ -192,15 +108,9 @@ function LocalModelCenterVerifiedAssetsSection(props: VerifiedAssetsSectionProps
 type QuickPicksSectionProps = {
   loadingVerifiedModels: boolean;
   installing: boolean;
-  assetBusy: boolean;
   verifiedModels: NimiRuntimeLocalVerifiedAssetDescriptor[];
-  relatedAssetsByModelTemplate: Map<string, NimiRuntimeLocalVerifiedAssetDescriptor[]>;
-  installedAssetsById: Map<string, NimiRuntimeLocalAssetRecord>;
-  isAssetPending: (templateId: string) => boolean;
   onRefresh: () => void;
-  onInstallVerifiedModel: (templateId: string) => void;
-  onInstallAsset: (templateId: string) => void;
-  onInstallMissingAssets: (assets: NimiRuntimeLocalVerifiedAssetDescriptor[]) => void;
+  onInstallCatalogQuickPick: (templateId: string) => void;
 };
 
 function LocalModelCenterQuickPicksSection(props: QuickPicksSectionProps) {
@@ -230,7 +140,6 @@ function LocalModelCenterQuickPicksSection(props: QuickPicksSectionProps) {
       </div>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {props.verifiedModels.map((item) => {
-          const relatedAssets = props.relatedAssetsByModelTemplate.get(item.templateId) || [];
           return (
             <div key={item.templateId} className="flex items-center gap-3 rounded-lg border border-[color-mix(in_srgb,var(--nimi-border-subtle)_72%,transparent)] p-3 transition-colors hover:border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_24%,transparent)] hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)]/30">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-[var(--nimi-status-warning)] to-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)]">
@@ -246,19 +155,10 @@ function LocalModelCenterQuickPicksSection(props: QuickPicksSectionProps) {
                   ) : null}
                 </div>
                 <p className="truncate text-xs text-[var(--nimi-text-muted)]">{item.assetId}</p>
-                <AssetRequirementBadges
-                  modelTemplateId={`${item.templateId}-quick`}
-                  relatedAssets={relatedAssets}
-                  installedAssetsById={props.installedAssetsById}
-                  assetBusy={props.assetBusy}
-                  isAssetPending={props.isAssetPending}
-                  onInstallMissingAssets={props.onInstallMissingAssets}
-                  onInstallAsset={props.onInstallAsset}
-                />
               </div>
               <Button
                 size="sm"
-                onClick={() => props.onInstallVerifiedModel(item.templateId)}
+                onClick={() => props.onInstallCatalogQuickPick(item.templateId)}
                 disabled={props.installing}
               >
                 <DownloadIcon className="h-3.5 w-3.5" />
@@ -273,7 +173,6 @@ function LocalModelCenterQuickPicksSection(props: QuickPicksSectionProps) {
 }
 
 export {
-  AssetRequirementBadges,
   LocalModelCenterActiveDownloadsSection,
   LocalModelCenterActiveImportsSection,
   LocalModelCenterAssetTasksSection,

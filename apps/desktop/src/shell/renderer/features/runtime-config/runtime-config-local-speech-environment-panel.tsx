@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   isNimiRuntimeLocalEnvironmentDependencyJobActiveState,
@@ -11,13 +11,12 @@ import {
 } from '@nimiplatform/sdk/runtime';
 import { ConfirmDialog, Surface, cn } from '@nimiplatform/kit/ui';
 
-import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
 import { Button } from './runtime-config-primitives.js';
 import { useRuntimeConfigLocalAssetAdminClient } from './runtime-config-local-model-center-sdk-service.js';
 import { formatBytes } from './runtime-config-model-center-utils.js';
 import {
-  resolveRuntimeConfigLocalASREnvironmentPlan,
-  resolveRuntimeConfigLocalTTSEnvironmentPlan,
+  resolveRuntimeConfigLocalEnvironmentPlan,
+  type RuntimeConfigLocalCapabilityContract,
 } from './runtime-config-local-speech-environment-service.js';
 import {
   TOKEN_PANEL_CARD,
@@ -31,7 +30,17 @@ type PendingCapabilityAction = {
   readonly resolution: NimiRuntimeLocalEnvironmentPlanInput;
 };
 
-type LocalSpeechSlice = 'tts' | 'stt';
+type LocalSpeechSlice = 'text' | 'image' | 'tts' | 'stt';
+
+const LOCAL_ENVIRONMENT_CAPABILITIES: readonly {
+  readonly slice: LocalSpeechSlice;
+  readonly capabilityContract: RuntimeConfigLocalCapabilityContract;
+}[] = [
+  { slice: 'text', capabilityContract: 'text.generate' },
+  { slice: 'image', capabilityContract: 'image.generate' },
+  { slice: 'tts', capabilityContract: 'audio.synthesize' },
+  { slice: 'stt', capabilityContract: 'audio.transcribe' },
+];
 
 type LocalSpeechPlan = {
   readonly slice: LocalSpeechSlice;
@@ -117,12 +126,7 @@ export function RuntimeConfigLocalSpeechEnvironmentPanel(props: {
   readonly writesDisabled: boolean;
 }) {
   const { t } = useTranslation();
-  const sdk = useDesktopRendererSdk();
   const localEnvironment = useRuntimeConfigLocalAssetAdminClient();
-  const machineConfiguration = useMemo(
-    () => sdk.machineProduct().local.aiConfiguration,
-    [sdk],
-  );
   const [plans, setPlans] = useState<readonly LocalSpeechPlan[]>([]);
   const [jobs, setJobs] = useState<readonly NimiRuntimeLocalEnvironmentDependencyJob[]>([]);
   const [loading, setLoading] = useState(true);
@@ -134,15 +138,13 @@ export function RuntimeConfigLocalSpeechEnvironmentPanel(props: {
     if (!silent) setLoading(true);
     setErrors([]);
     try {
-      const results = await Promise.allSettled([
-        resolveRuntimeConfigLocalTTSEnvironmentPlan({ machineConfiguration, localEnvironment }),
-        resolveRuntimeConfigLocalASREnvironmentPlan({ machineConfiguration, localEnvironment }),
-      ]);
-      const slices: readonly LocalSpeechSlice[] = ['tts', 'stt'];
+      const results = await Promise.allSettled(LOCAL_ENVIRONMENT_CAPABILITIES.map(({ capabilityContract }) => (
+        resolveRuntimeConfigLocalEnvironmentPlan({ capabilityContract, localEnvironment })
+      )));
       const nextPlans: LocalSpeechPlan[] = [];
       const nextErrors: LocalSpeechError[] = [];
       results.forEach((result, index) => {
-        const slice = slices[index];
+        const slice = LOCAL_ENVIRONMENT_CAPABILITIES[index]?.slice;
         if (!slice) return;
         if (result.status === 'fulfilled') {
           nextPlans.push({ slice, plan: result.value.plan, resolution: result.value.resolution });
@@ -168,7 +170,7 @@ export function RuntimeConfigLocalSpeechEnvironmentPanel(props: {
     } finally {
       if (!silent) setLoading(false);
     }
-  }, [localEnvironment, machineConfiguration]);
+  }, [localEnvironment]);
 
   useEffect(() => {
     void refresh();
@@ -321,6 +323,11 @@ export function RuntimeConfigLocalSpeechEnvironmentPanel(props: {
                       <div className={cn('mt-1 text-xs', ready ? 'text-[var(--nimi-status-success)]' : TOKEN_TEXT_MUTED)}>
                         {state}{progress ? ` · ${progress}` : ''}
                         {dependency.reasonCode ? ` · ${dependency.reasonCode}` : ''}
+                      </div>
+                      <div className={cn('mt-1 break-all text-xs', TOKEN_TEXT_MUTED)} data-testid="runtime-environment-dependency-supply">
+                        {dependency.sourceKind} · {dependency.consumerScope}
+                        {dependency.dependencyFamily.startsWith('python.') ? ` · ${t('runtimeConfig.environment.localSpeechExactLock')}` : ''}
+                        {dependency.canonicalRoot ? ` · ${dependency.canonicalRoot}` : ''}
                       </div>
                       {dependency.detail || (active ? job?.failureDetail : '') ? (
                         <div className="mt-1 text-xs text-[var(--nimi-status-danger)]">

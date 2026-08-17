@@ -409,7 +409,7 @@ for (const [capabilityId, runnerName, mimeType, previewUrl] of MEDIA_HAPPY_CASES
     const jobClient = { marker: `job-client:${capabilityId}` };
     const calls = [];
     const parameters = capabilityId === 'image.generate'
-      ? { negativePrompt: 'no fog', count: 2, size: '768x512', seed: 0, aspectRatio: '3:2', quality: 'hd', style: 'natural', referenceImage: 'https://example.test/reference.png', mask: 'https://example.test/mask.png' }
+      ? { negativePrompt: 'no fog', count: 2, size: '768x512', seed: 0, aspectRatio: '3:2', quality: 'hd', style: 'natural', referenceImageArtifactId: 'artifact-reference', mask: 'https://example.test/mask.png' }
       : capabilityId === 'video.generate'
         ? { mode: 'i2v-reference', referenceArtifactId: 'artifact-reference', negativePrompt: 'no shake', resolution: '720p', frames: 49, seed: 0, generateAudio: false, ratio: '16:9', durationSec: 2, fps: 24, cameraFixed: false, watermark: true, draft: false, returnLastFrame: true, serviceTier: 'standard', executionExpiresAfterSec: 60 }
         : { voiceKind: 'preset', voicePreset: 'voice-preset', language: 'en', audioFormat: 'mp3', sampleRateHz: 0, speed: 0, pitch: 0, volume: 0, emotion: 'calm', timingMode: 'word' };
@@ -448,7 +448,8 @@ for (const [capabilityId, runnerName, mimeType, previewUrl] of MEDIA_HAPPY_CASES
       assert.equal(calls[0].negativePrompt, 'no fog');
       assert.equal(calls[0].count, 2);
       assert.equal(calls[0].seed, 0);
-      assert.deepEqual(calls[0].referenceImages, ['https://example.test/reference.png']);
+      assert.equal(calls[0].referenceImageArtifactId, 'artifact-reference');
+      assert.equal(calls[0].referenceImages, undefined);
       assert.equal(calls[0].mask, 'https://example.test/mask.png');
     } else if (capabilityId === 'video.generate') {
       assert.equal(calls[0].mode, 'i2v-reference');

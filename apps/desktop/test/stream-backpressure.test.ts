@@ -102,8 +102,9 @@ test('D-STRM-004: user cancel sets cancelSource=user', () => {
 });
 
 test('D-STRM-004: timeout sets cancelSource=timeout', () => {
-  // Use a very short total timeout to trigger the timeout path
+  // Total timeout starts with the first real content; waiting stays open for Runtime acceptance.
   startStream(TEST_CHAT, 1);
+  feedStreamEvent(TEST_CHAT, { type: 'text_delta', textDelta: 'partial' });
   return new Promise<void>((resolve) => {
     setTimeout(() => {
       const state = getStreamState(TEST_CHAT);

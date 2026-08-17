@@ -26,9 +26,6 @@ export function createDefaultStateV11(): RuntimeConfigStateV11 {
     selectedSource: 'local',
     activeCapability: 'chat',
     local: {
-      endpoint: '',
-      models: [],
-      nodeMatrix: [],
       status: 'idle',
       lastCheckedAt: null,
       lastDetail: '',

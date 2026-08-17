@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next';
 import { Surface, cn } from '@nimiplatform/kit/ui';
 import type {
   NimiRuntimeLocalCatalogVariantDescriptor,
-  NimiRuntimeLocalInstallPayload,
   NimiRuntimeLocalInstallPlanDescriptor,
   NimiRuntimeLocalRecommendationFeedItem,
 } from '@nimiplatform/sdk/runtime';
@@ -50,26 +49,6 @@ export type RecommendInstallController = {
   installReviewedPlan: () => Promise<void>;
   openLocalModels: () => void;
 };
-
-function installPayloadFromPlan(
-  plan: NimiRuntimeLocalInstallPlanDescriptor,
-  item: NimiRuntimeLocalRecommendationFeedItem,
-): NimiRuntimeLocalInstallPayload {
-  return {
-    modelId: plan.modelId,
-    kind: item.installPayload.kind,
-    repo: plan.repo,
-    revision: plan.revision,
-    capabilities: plan.capabilities,
-    engine: plan.engine,
-    entry: plan.entry,
-    files: plan.files,
-    license: plan.license,
-    hashes: plan.hashes,
-    endpoint: plan.endpoint,
-    engineConfig: plan.engineConfig,
-  };
-}
 
 function resolveInstallPlanPayload(
   item: NimiRuntimeLocalRecommendationFeedItem,
@@ -138,16 +117,15 @@ export function useRecommendInstallController({
     if (!planPreview) return;
     setInstalling(true);
     try {
-      await model.installLocalModel(installPayloadFromPlan(planPreview, item));
+      await model.installResolvedModelPlan(planPreview);
     } finally {
       setInstalling(false);
     }
   }, [item, model, planPreview]);
 
   const openLocalModels = useCallback(() => {
-    model.setLocalModelQuery(item.title || item.installPayload.modelId);
     model.onChangePage('localModels');
-  }, [model, item]);
+  }, [model]);
 
   return {
     planPreview,

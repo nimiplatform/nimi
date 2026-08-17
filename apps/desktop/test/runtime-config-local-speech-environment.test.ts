@@ -7,8 +7,7 @@ import type {
 } from '@nimiplatform/sdk/runtime';
 
 import {
-  resolveRuntimeConfigLocalASREnvironmentPlan,
-  resolveRuntimeConfigLocalTTSEnvironmentPlan,
+  resolveRuntimeConfigLocalEnvironmentPlan,
 } from '../src/shell/renderer/features/runtime-config/runtime-config-local-speech-environment-service.js';
 import {
   canSubmitRuntimeConfigLocalSpeechEnvironmentPlan,
@@ -88,257 +87,31 @@ function dependencyJob(input: {
   };
 }
 
-test('local speech environment resolves the selected exact ASR binding through Runtime plan authority', async () => {
+test('local environment service submits only the capability contract to Runtime', async () => {
+  const capabilities = [
+    'text.generate',
+    'image.generate',
+    'audio.synthesize',
+    'audio.transcribe',
+  ] as const;
   const requests: unknown[] = [];
-  const expectedPlan = { planId: 'plan-asr' };
 
-  const result = await resolveRuntimeConfigLocalASREnvironmentPlan({
-    machineConfiguration: {
-      async get() {
-        return {
-          selections: [{
-            capabilityContract: 'audio.transcribe',
-            configurationId: 'asr-config',
-            effectiveDefaults: null,
-          }],
-          configurations: [{
-            configurationId: 'asr-config',
-            capabilityContract: 'audio.transcribe',
-            implementation: {
-              implementationId: 'local.audio.transcribe.qwen3-asr',
-              driverId: 'nimi.runtime.driver.qwen3-asr',
-              driverDialect: 'qwen3-asr/audio-transcribe/v1',
-            },
-            projectedRequirements: [],
-            exactBindings: [{
-              requirementId: 'stt.model',
-              localAssetId: 'local-asr-1',
-              verifiedContentId: 'nimi/stt-qwen3-asr',
-              entrySha256: 'asr-sha',
-            }],
-            supportedFeatures: [],
-            interpretability: 'interpretable',
-            requirementResolution: 'configured',
-            reasons: [],
-            displayName: 'Qwen3 ASR',
-          }],
-        };
-      },
-    },
-    localEnvironment: {
-      async resolveEnvironmentPlan(request) {
-        requests.push(request);
-        return expectedPlan as never;
-      },
-    },
-  });
-
-  assert.equal(result.plan, expectedPlan);
-  assert.deepEqual(result.resolution, {
-    packId: 'local-speech',
-    consumerScope: 'speech.qwen3-asr.python',
-    localAssetId: 'local-asr-1',
-    assetId: undefined,
-  });
-  assert.deepEqual(requests, [{
-    packId: 'local-speech',
-    consumerScope: 'speech.qwen3-asr.python',
-    localAssetId: 'local-asr-1',
-    assetId: undefined,
-  }]);
-});
-
-test('local speech environment fails closed without one exact selected ASR binding', async () => {
-  await assert.rejects(
-    resolveRuntimeConfigLocalASREnvironmentPlan({
-      machineConfiguration: {
-        async get() {
-          return { configurations: [], selections: [] };
-        },
-      },
+  for (const capabilityContract of capabilities) {
+    const expectedPlan = { planId: `plan-${capabilityContract}` };
+    const result = await resolveRuntimeConfigLocalEnvironmentPlan({
+      capabilityContract,
       localEnvironment: {
-        async resolveEnvironmentPlan() {
-          throw new Error('must not resolve without exact selection');
+        async resolveEnvironmentPlan(request) {
+          requests.push(request);
+          return expectedPlan as never;
         },
       },
-    }),
-    /LOCAL_ASR_SELECTION_NOT_FOUND/u,
-  );
-});
+    });
+    assert.equal(result.plan, expectedPlan);
+    assert.deepEqual(result.resolution, { capabilityContract });
+  }
 
-test('local speech environment resolves the explicit Transformers-native ASR selection separately', async () => {
-  const requests: unknown[] = [];
-  const expectedPlan = { planId: 'plan-asr-transformers' };
-
-  const result = await resolveRuntimeConfigLocalASREnvironmentPlan({
-    machineConfiguration: {
-      async get() {
-        return {
-          selections: [{
-            capabilityContract: 'audio.transcribe',
-            configurationId: 'asr-transformers-config',
-            effectiveDefaults: null,
-          }],
-          configurations: [{
-            configurationId: 'asr-transformers-config',
-            capabilityContract: 'audio.transcribe',
-            implementation: {
-              implementationId: 'local.audio.transcribe.qwen3-asr-transformers',
-              driverId: 'nimi.runtime.driver.qwen3-asr-transformers',
-              driverDialect: 'qwen3-asr-transformers/audio-transcribe/v1',
-            },
-            projectedRequirements: [],
-            exactBindings: [{
-              requirementId: 'stt.model',
-              localAssetId: 'local-asr-transformers-1',
-              verifiedContentId: 'nimi/stt-qwen3-asr-transformers',
-              entrySha256: 'asr-transformers-sha',
-            }],
-            supportedFeatures: [],
-            interpretability: 'interpretable',
-            requirementResolution: 'configured',
-            reasons: [],
-            displayName: 'Qwen3 ASR Transformers',
-          }],
-        };
-      },
-    },
-    localEnvironment: {
-      async resolveEnvironmentPlan(request) {
-        requests.push(request);
-        return expectedPlan as never;
-      },
-    },
-  });
-
-  assert.equal(result.plan, expectedPlan);
-  assert.deepEqual(result.resolution, {
-    packId: 'local-speech',
-    consumerScope: 'speech.qwen3-asr-transformers.python',
-    localAssetId: 'local-asr-transformers-1',
-    assetId: undefined,
-  });
-  assert.deepEqual(requests, [{
-    packId: 'local-speech',
-    consumerScope: 'speech.qwen3-asr-transformers.python',
-    localAssetId: 'local-asr-transformers-1',
-    assetId: undefined,
-  }]);
-});
-
-test('local speech environment resolves the selected exact TTS binding through Runtime plan authority', async () => {
-  const requests: unknown[] = [];
-  const expectedPlan = { planId: 'plan-tts' };
-
-  const result = await resolveRuntimeConfigLocalTTSEnvironmentPlan({
-    machineConfiguration: {
-      async get() {
-        return {
-          selections: [{
-            capabilityContract: 'audio.synthesize',
-            configurationId: 'tts-config',
-            effectiveDefaults: null,
-          }],
-          configurations: [{
-            configurationId: 'tts-config',
-            capabilityContract: 'audio.synthesize',
-            implementation: {
-              implementationId: 'local.audio.synthesize.qwen3-tts',
-              driverId: 'nimi.runtime.driver.qwen3-tts',
-              driverDialect: 'qwen3-tts/audio-synthesize/v1',
-            },
-            projectedRequirements: [],
-            exactBindings: [{
-              requirementId: 'tts.model',
-              localAssetId: 'local-tts-1',
-              verifiedContentId: 'nimi/tts-qwen3-customvoice',
-              entrySha256: 'tts-sha',
-            }],
-            supportedFeatures: [],
-            interpretability: 'interpretable',
-            requirementResolution: 'configured',
-            reasons: [],
-            displayName: 'Qwen3 TTS',
-          }],
-        };
-      },
-    },
-    localEnvironment: {
-      async resolveEnvironmentPlan(request) {
-        requests.push(request);
-        return expectedPlan as never;
-      },
-    },
-  });
-
-  assert.equal(result.plan, expectedPlan);
-  assert.deepEqual(result.resolution, {
-    packId: 'local-speech',
-    consumerScope: 'speech.qwen3-tts.python',
-    localAssetId: 'local-tts-1',
-    assetId: undefined,
-  });
-  assert.deepEqual(requests, [{
-    packId: 'local-speech',
-    consumerScope: 'speech.qwen3-tts.python',
-    localAssetId: 'local-tts-1',
-    assetId: undefined,
-  }]);
-});
-
-test('local speech environment resolves the selected exact VoxCPM binding through its package set', async () => {
-  const requests: unknown[] = [];
-  const expectedPlan = { planId: 'plan-voxcpm' };
-
-  const result = await resolveRuntimeConfigLocalTTSEnvironmentPlan({
-    machineConfiguration: {
-      async get() {
-        return {
-          selections: [{
-            capabilityContract: 'audio.synthesize',
-            configurationId: 'voxcpm-config',
-            effectiveDefaults: null,
-          }],
-          configurations: [{
-            configurationId: 'voxcpm-config',
-            capabilityContract: 'audio.synthesize',
-            implementation: {
-              implementationId: 'local.audio.synthesize.voxcpm',
-              driverId: 'nimi.runtime.driver.voxcpm',
-              driverDialect: 'voxcpm/audio-synthesize/v1',
-            },
-            projectedRequirements: [],
-            exactBindings: [{
-              requirementId: 'tts.model',
-              localAssetId: 'local-voxcpm-1',
-              verifiedContentId: 'sha256:voxcpm',
-              entrySha256: 'voxcpm-sha',
-            }],
-            supportedFeatures: [],
-            interpretability: 'interpretable',
-            requirementResolution: 'configured',
-            reasons: [],
-            displayName: 'VoxCPM 2',
-          }],
-        };
-      },
-    },
-    localEnvironment: {
-      async resolveEnvironmentPlan(request) {
-        requests.push(request);
-        return expectedPlan as never;
-      },
-    },
-  });
-
-  assert.equal(result.plan, expectedPlan);
-  assert.deepEqual(result.resolution, {
-    packId: 'local-speech',
-    consumerScope: 'speech.voxcpm.python',
-    localAssetId: 'local-voxcpm-1',
-    assetId: undefined,
-  });
-  assert.deepEqual(requests, [result.resolution]);
+  assert.deepEqual(requests, capabilities.map((capabilityContract) => ({ capabilityContract })));
 });
 
 test('local speech capability setup leaves mixed repair, retry, and start admission to Runtime', () => {
@@ -392,23 +165,23 @@ test('local speech plan apply follows current missing state over a historical no
 
 test('local speech confirmation consumes only Runtime-owned plan facts', () => {
   const ready = environmentDependency({ dependencyFamily: 'python-runtime', state: 'ready_managed', sourceKind: 'managed' });
-  const missing = environmentDependency({ dependencyFamily: 'model.asset', state: 'needs_confirmation', sourceKind: 'imported' });
+  const missing = environmentDependency({ dependencyFamily: 'python-profile', state: 'needs_confirmation', sourceKind: 'managed' });
   const optional = environmentDependency({ dependencyFamily: 'optional-diagnostic', state: 'missing', sourceKind: 'unavailable', required: false });
 
   const plan = {
     ...environmentPlan([ready, missing, optional]),
-    requiredDependencyFamilies: ['python.runtime', 'model.asset'],
+    requiredDependencyFamilies: ['python.runtime', 'python-profile'],
     aggregateSizeKnown: false,
     aggregateSizeBytes: 0,
-    storageCategories: ['environments', 'models'],
+    storageCategories: ['environments'],
     sourceOwners: ['RuntimeLocalService'],
     noSystemMutation: true,
   };
   assert.deepEqual(resolveRuntimeConfigLocalSpeechConfirmationProjection(plan), {
-    families: 'python.runtime, model.asset',
+    families: 'python.runtime, python-profile',
     aggregateSizeKnown: false,
     aggregateSizeBytes: 0,
-    storageCategories: 'environments, models',
+    storageCategories: 'environments',
     sourceOwners: 'RuntimeLocalService',
     noSystemMutation: true,
   });
@@ -437,9 +210,7 @@ test('one confirmed local speech capability action submits one Runtime-owned com
     environmentDependency({ dependencyFamily: 'python-torch-wheel', state: 'missing' }),
   ]);
   const resolution = {
-    packId: 'local-speech',
-    consumerScope: 'speech.qwen3-tts.python',
-    localAssetId: 'local-tts-1',
+    capabilityContract: 'audio.synthesize',
   } as const;
   const calls: unknown[] = [];
 

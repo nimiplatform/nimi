@@ -135,6 +135,7 @@ export type NimiLocalAppImageGenerateSpec = {
   readonly style: string;
   readonly seed?: number;
   readonly referenceImages: readonly string[];
+  readonly referenceImageArtifactId: string;
   readonly mask: string;
   readonly responseFormat: '' | 'b64_json' | 'url';
 };

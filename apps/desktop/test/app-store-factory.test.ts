@@ -334,7 +334,6 @@ function createCanonicalBindings(input: {
         async writeClipboardText() {},
         exportRuntimeAuditJson() {},
         confirmRuntimeProfileInstall() { return false; },
-        async pickLocalRuntimeAssetManifestPath() { return null; },
         async pickLocalRuntimeAssetFile() { return null; },
         async pickLocalRuntimeAssetDirectory() { return null; },
         async revealLocalRuntimeAssetsRootFolder() {},

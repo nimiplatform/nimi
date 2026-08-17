@@ -5,10 +5,10 @@ import {
   createNimiCloudAIConfigCapabilityIntent,
   createNimiLocalAIConfigCapabilityIntent,
 } from '@nimiplatform/sdk/ai';
-import { projectModelConfigLocalSelections } from '@nimiplatform/kit/features/model-config/headless';
 import {
   desktopNimiAppAIConfigQueryKey,
   findDesktopNimiTextIntent,
+  projectDesktopMachineLoadoutSelections,
   readDesktopNimiAppAIConfig,
 } from '../src/shell/renderer/features/chat/chat-nimi-app-ai-config.js';
 
@@ -48,25 +48,23 @@ test('Nimi Chat locates canonical text intent without owning its construction', 
 });
 
 test('Nimi Chat projects machine-local selection as read-only Model Config context', () => {
-  assert.deepEqual(projectModelConfigLocalSelections({
+  assert.deepEqual(projectDesktopMachineLoadoutSelections({
     selections: [{
       capabilityContract: 'text.generate',
-      configurationId: 'local-text',
+      loadoutId: 'local-text',
       effectiveDefaults: { temperature: '0.8' },
     }],
-    configurations: [{
-      configurationId: 'local-text',
-      capabilityContract: 'text.generate',
-      displayName: 'Local text',
-      supportedFeatures: ['tool.use'],
-      interpretability: 'interpretable',
-      requirementResolution: 'configured',
-      reasons: [],
+    loadouts: [{
+      loadoutId: 'local-text', capabilityContract: 'text.generate',
+      implementation: { implementationId: 'local.text.generate.llama-cpp', driverId: 'nimi.runtime.driver.llama-cpp', driverDialect: 'llama.cpp/text-generate/v1' },
+      recipeId: 'llama.text-generate.gemma.v1', recipeRevision: '1', options: {}, modelAxes: [], recipeCustody: [],
+      displayName: 'Local text', supportedFeatures: ['tool.use'], validationState: 'configured', reasons: [],
+      provenance: {}, createdAt: '2026-08-15T00:00:00Z', updatedAt: '2026-08-15T00:00:00Z',
     }],
   }), [{
     capabilityContract: 'text.generate',
     state: 'selected',
-    configurationId: 'local-text',
+    configurationId: null,
     displayName: 'Local text',
     supportedFeatures: ['tool.use'],
     reasons: [],

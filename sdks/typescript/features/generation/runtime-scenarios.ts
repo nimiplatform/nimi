@@ -28,6 +28,7 @@ export type NimiRuntimeGenerationScenario =
     readonly style?: string;
     readonly seed?: string | number | bigint;
     readonly referenceImages?: readonly string[];
+    readonly referenceImageArtifactId?: string;
     readonly mask?: string;
     readonly responseFormat?: string;
   }
@@ -202,6 +203,15 @@ export function toRuntimeScenario(scenario: NimiRuntimeGenerationScenario): {
 function toRuntimeImageGenerationSpec(
   input: Extract<NimiRuntimeGenerationScenario, { readonly kind: 'image' }>,
 ): ImageGenerateScenarioSpec {
+  const referenceImages = [...(input.referenceImages ?? [])];
+  const referenceImageArtifactId = normalizeImageArtifactId(input.referenceImageArtifactId);
+  if (referenceImages.length > 0 && referenceImageArtifactId) {
+    throw generationScenarioError(
+      'SDK_GENERATION_SCENARIO_INVALID',
+      'Image generation accepts either referenceImages URLs or referenceImageArtifactId, not both',
+      'choose_image_reference_carrier',
+    );
+  }
   return {
     prompt: requireScenarioText(input.prompt, 'image generation prompt is required', 'provide_image_generation_prompt'),
     negativePrompt: normalizeScenarioText(input.negativePrompt),
@@ -211,7 +221,8 @@ function toRuntimeImageGenerationSpec(
     quality: normalizeScenarioText(input.quality),
     style: normalizeScenarioText(input.style),
     seed: normalizeOptionalScenarioInt64(input.seed),
-    referenceImages: [...(input.referenceImages ?? [])],
+    referenceImages,
+    referenceImageArtifactId,
     mask: normalizeScenarioText(input.mask),
     responseFormat: normalizeScenarioText(input.responseFormat),
   };
@@ -429,6 +440,18 @@ function requireScenarioText(value: unknown, message: string, actionHint: string
 
 function normalizeScenarioText(value: unknown): string {
   return String(value ?? '').trim();
+}
+
+function normalizeImageArtifactId(value: unknown): string {
+  if (value === undefined || value === null || value === '') return '';
+  if (typeof value !== 'string' || value.trim() !== value || value.length > 128 || /[\u0000-\u001f\u007f]/u.test(value)) {
+    throw generationScenarioError(
+      'SDK_GENERATION_SCENARIO_INVALID',
+      'Image reference artifact ID must be a canonical bounded identifier',
+      'provide_image_reference_artifact_id',
+    );
+  }
+  return value;
 }
 
 function ensureSafeExternalUrl(value: unknown, label: string): string {

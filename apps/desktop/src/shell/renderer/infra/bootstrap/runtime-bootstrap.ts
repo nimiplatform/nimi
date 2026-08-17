@@ -11,7 +11,6 @@ import {
   safeBootstrapErrorMessage,
   withBootstrapStepTimeout,
 } from '@nimiplatform/kit/shell/renderer/bootstrap';
-import { reconcileLocalRuntimeBootstrapState } from './runtime-bootstrap-local-ai';
 import { attachOfflineCoordinatorBindings } from './runtime-bootstrap-offline';
 import {
   applyRuntimeAccountStatusProjection,
@@ -329,25 +328,6 @@ function startBootstrapRuntime(lifecycle: DesktopRendererLifecyclePort): Promise
       await configureDesktopRuntimeRealmSession({
         appId: 'nimi.desktop',
         runtimeTransport: resolveDesktopRuntimeTransport(),
-      });
-      await withBootstrapStepTimeout(
-        'local runtime reconcile',
-        reconcileLocalRuntimeBootstrapState({ flowId }),
-        DEFAULT_NON_CRITICAL_BOOTSTRAP_STEP_TIMEOUT_MS,
-      ).catch((error) => {
-        logRendererEvent({
-          level: 'warn',
-          area: 'renderer-bootstrap',
-          message: 'phase:local-reconcile:deferred',
-          flowId,
-          details: {
-            error: safeBootstrapErrorMessage(error),
-          },
-        });
-        return {
-          reconciled: [],
-          adopted: [],
-        };
       });
       if (accountStatus?.state === 'authenticated' && accountProjection?.accountId) {
         await withBootstrapStepTimeout(

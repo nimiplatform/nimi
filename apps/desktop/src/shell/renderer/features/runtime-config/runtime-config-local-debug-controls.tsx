@@ -157,7 +157,7 @@ export function AuditTableRow({ event }: { event: RuntimeConfigAuditEvent }) {
   const reasonCode = resolveAuditReasonCode(event);
   const detail = resolveAuditDetail(event);
   const policyGate = resolveAuditPolicyGate(event);
-  const target = event.modelId || event.localModelId || (detail !== '-' ? detail : '—');
+  const target = event.modelId || (detail !== '-' ? detail : '—');
   const reasonDisplay = reasonCode !== '-' ? reasonCode : detail !== '-' ? detail : '—';
 
   const colorClass = auditEventTypeColor(event.eventType);
@@ -165,8 +165,7 @@ export function AuditTableRow({ event }: { event: RuntimeConfigAuditEvent }) {
   const extraMeta = useMemo(() => {
     const rows: Array<{ label: string; value: string }> = [];
     if (event.modelId) rows.push({ label: 'modelId', value: event.modelId });
-    if (event.localModelId) rows.push({ label: 'localModelId', value: event.localModelId });
-    if (detail !== '-' && detail !== event.modelId && detail !== event.localModelId) {
+    if (detail !== '-' && detail !== event.modelId) {
       rows.push({ label: 'detail', value: detail });
     }
     if (reasonCode !== '-') rows.push({ label: 'reasonCode', value: reasonCode });

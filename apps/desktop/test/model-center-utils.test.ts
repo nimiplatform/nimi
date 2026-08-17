@@ -2,10 +2,8 @@ import assert from 'node:assert/strict';
 import test, { describe } from 'node:test';
 
 import {
-  ASSET_ENGINE_OPTIONS,
   assetUnhealthyReasonSummary,
   CAPABILITY_OPTIONS,
-  filterInstalledModels,
   formatBytes,
   formatDownloadPhaseLabel,
   formatEta,
@@ -19,41 +17,9 @@ import {
   PROGRESS_SESSION_LIMIT,
   pruneProgressSessions,
   sortProgressSessions,
-  statusLabel,
   type ProgressSessionState,
 } from '../src/shell/renderer/features/runtime-config/runtime-config-model-center-utils';
-import { NIMI_RUNTIME_LOCAL_ENGINE_IDS } from '@nimiplatform/sdk/runtime';
 import { ReasonCode } from '@nimiplatform/sdk/types';
-
-// ---------------------------------------------------------------------------
-// statusLabel
-// ---------------------------------------------------------------------------
-
-describe('statusLabel', () => {
-  test('active → healthy', () => {
-    assert.equal(statusLabel('active'), 'healthy');
-  });
-
-  test('unhealthy → degraded', () => {
-    assert.equal(statusLabel('unhealthy'), 'degraded');
-  });
-
-  test('installed → idle', () => {
-    assert.equal(statusLabel('installed'), 'idle');
-  });
-
-  test('removed → unreachable', () => {
-    assert.equal(statusLabel('removed'), 'unreachable');
-  });
-
-  test('unknown string → unreachable', () => {
-    assert.equal(statusLabel('something-else'), 'unreachable');
-  });
-
-  test('empty string → unreachable', () => {
-    assert.equal(statusLabel(''), 'unreachable');
-  });
-});
 
 // ---------------------------------------------------------------------------
 // formatBytes
@@ -275,12 +241,6 @@ describe('normalizeCapabilityOption', () => {
   });
 });
 
-describe('local engine option projection', () => {
-  test('asset engine options consume SDK-projected runtime local engine ids', () => {
-    assert.deepEqual([...ASSET_ENGINE_OPTIONS], [...NIMI_RUNTIME_LOCAL_ENGINE_IDS]);
-  });
-});
-
 // ---------------------------------------------------------------------------
 // parseTimestamp
 // ---------------------------------------------------------------------------
@@ -450,90 +410,6 @@ describe('sortProgressSessions', () => {
     const result = sortProgressSessions(sessions).map((item) => item.event.installSessionId);
 
     assert.deepEqual(result, ['newer', 'older']);
-  });
-});
-
-// ---------------------------------------------------------------------------
-// filterInstalledModels
-// ---------------------------------------------------------------------------
-
-describe('filterInstalledModels', () => {
-  const models = [
-    { model: 'Qwen2.5-7B-Instruct', localModelId: 'local-qwen-001', capabilities: ['chat', 'embedding'], engine: 'localai' },
-    { model: 'Stable-Diffusion-XL', localModelId: 'local-sd-002', capabilities: ['image'], engine: 'localai' },
-    { model: 'Whisper-Large-V3', localModelId: 'local-whisper-003', capabilities: ['stt'], engine: 'nexa' },
-    { model: 'XTTS-v2', localModelId: 'local-xtts-004', capabilities: ['tts'], engine: 'localai' },
-  ];
-
-  test('empty query → returns all models', () => {
-    const result = filterInstalledModels(models, '');
-    assert.equal(result, models);
-  });
-
-  test('whitespace-only query → returns all models', () => {
-    const result = filterInstalledModels(models, '   ');
-    assert.equal(result, models);
-  });
-
-  test('match by model name', () => {
-    const result = filterInstalledModels(models, 'qwen');
-    assert.equal(result.length, 1);
-    assert.equal(result[0]!.model, 'Qwen2.5-7B-Instruct');
-  });
-
-  test('match by localModelId', () => {
-    const result = filterInstalledModels(models, 'local-sd');
-    assert.equal(result.length, 1);
-    assert.equal(result[0]!.model, 'Stable-Diffusion-XL');
-  });
-
-  test('match by capability', () => {
-    const result = filterInstalledModels(models, 'stt');
-    assert.equal(result.length, 1);
-    assert.equal(result[0]!.model, 'Whisper-Large-V3');
-  });
-
-  test('match by engine', () => {
-    const result = filterInstalledModels(models, 'nexa');
-    assert.equal(result.length, 1);
-    assert.equal(result[0]!.model, 'Whisper-Large-V3');
-  });
-
-  test('case insensitive', () => {
-    const result = filterInstalledModels(models, 'STABLE');
-    assert.equal(result.length, 1);
-    assert.equal(result[0]!.model, 'Stable-Diffusion-XL');
-  });
-
-  test('multiple matches', () => {
-    const result = filterInstalledModels(models, 'localai');
-    assert.equal(result.length, 3);
-  });
-
-  test('no match → empty array', () => {
-    const result = filterInstalledModels(models, 'nonexistent');
-    assert.equal(result.length, 0);
-  });
-
-  test('empty models array → empty result', () => {
-    const result = filterInstalledModels([], 'anything');
-    assert.equal(result.length, 0);
-  });
-
-  test('partial model fields (missing capabilities/engine)', () => {
-    const sparse = [
-      { model: 'bare-model', localModelId: 'id-1' },
-      { model: 'another', localModelId: 'id-2', capabilities: ['chat'] },
-    ];
-    const result = filterInstalledModels(sparse, 'bare');
-    assert.equal(result.length, 1);
-    assert.equal(result[0]!.model, 'bare-model');
-  });
-
-  test('match across capability join (multi-word)', () => {
-    const result = filterInstalledModels(models, 'embedding');
-    assert.equal(result.length, 1);
-    assert.equal(result[0]!.model, 'Qwen2.5-7B-Instruct');
   });
 });
 

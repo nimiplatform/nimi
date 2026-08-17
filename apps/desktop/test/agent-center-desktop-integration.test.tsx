@@ -127,7 +127,7 @@ test('Desktop Agent Center drawer delegates snapshot refresh to the Kit store', 
   assert.match(runtimeSource, /autonomy:\s*createDesktopAgentCenterAutonomyAdapter\(runtimeAgentInspect\)/u);
   assert.match(runtimeSource, /sharedAIConfig:\s*runtimeAgentCenterSharedAIConfig/u);
   assert.match(runtimeSource, /loadLocalSelections/u);
-  assert.match(runtimeSource, /projectModelConfigLocalSelections/u);
+  assert.match(runtimeSource, /projectDesktopMachineLoadoutSelections/u);
   assert.doesNotMatch(runtimeSource, /runtimeAgentAIConfigAdapter\.(?:readiness|aiProfile)/u);
   assert.doesNotMatch(settingsSource, /\.\.\.input\.runtimeAgentCenterAdapter|appearanceAdapter=/u);
 });

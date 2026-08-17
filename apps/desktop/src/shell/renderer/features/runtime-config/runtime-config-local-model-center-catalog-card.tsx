@@ -1,7 +1,6 @@
 import { useDesktopI18nResource } from '../../i18n/i18n-context';
 import type {
   NimiRuntimeLocalCatalogVariantDescriptor,
-  NimiRuntimeLocalAssetRecord,
   NimiRuntimeLocalCatalogItemDescriptor,
   NimiRuntimeLocalVerifiedAssetDescriptor,
 } from '@nimiplatform/sdk/runtime';
@@ -30,24 +29,18 @@ type CatalogCardProps = {
   searchQuery: string;
   catalogCapability: 'all' | CapabilityOption;
   loadingCatalog: boolean;
-  assetBusy: boolean;
   hasSearchQuery: boolean;
   verifiedModels: NimiRuntimeLocalVerifiedAssetDescriptor[];
   catalogItems: NimiRuntimeLocalCatalogItemDescriptor[];
   catalogDisplayCount: number;
-  relatedAssetsByModelTemplate: Map<string, NimiRuntimeLocalVerifiedAssetDescriptor[]>;
-  installedAssetsById: Map<string, NimiRuntimeLocalAssetRecord>;
   variantPickerItem: NimiRuntimeLocalCatalogItemDescriptor | null;
   variantList: NimiRuntimeLocalCatalogVariantDescriptor[];
   variantError: string;
   loadingVariants: boolean;
   selectedCatalogCapability: (item: NimiRuntimeLocalCatalogItemDescriptor) => CapabilityOption;
-  isAssetPending: (templateId: string) => boolean;
   onSearchQueryChange: (value: string) => void;
   onCatalogCapabilityChange: (value: 'all' | CapabilityOption) => void;
-  onInstallMissingAssets: (assets: NimiRuntimeLocalVerifiedAssetDescriptor[]) => void;
-  onInstallVerifiedModel: (templateId: string) => void;
-  onInstallAsset: (templateId: string) => void;
+  onInstallCatalogQuickPick: (templateId: string) => void;
   onToggleVariantPicker: (item: NimiRuntimeLocalCatalogItemDescriptor) => void;
   onCloseVariantPicker: () => void;
   onCatalogCapabilityOverrideChange: (itemId: string, capability: CapabilityOption) => void;
@@ -108,14 +101,8 @@ export function LocalModelCenterCatalogCard(props: CatalogCardProps) {
               <VerifiedModelSearchRow
                 key={item.templateId}
                 item={item}
-                relatedAssets={props.relatedAssetsByModelTemplate.get(item.templateId) || []}
-                installedAssetsById={props.installedAssetsById}
-                assetBusy={props.assetBusy}
                 installing={props.installing}
-                isAssetPending={props.isAssetPending}
-                onInstallMissingAssets={props.onInstallMissingAssets}
-                onInstallAsset={props.onInstallAsset}
-                onInstallVerifiedModel={props.onInstallVerifiedModel}
+                onInstallCatalogQuickPick={props.onInstallCatalogQuickPick}
               />
             ))}
             {props.catalogItems.slice(0, props.catalogDisplayCount).map((item) => (

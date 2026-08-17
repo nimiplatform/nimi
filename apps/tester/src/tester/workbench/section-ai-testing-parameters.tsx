@@ -323,9 +323,56 @@ function EmbeddingFields(props: ParameterPanelProps<'text.embed'>) {
 }
 
 function ImageFields(props: ParameterPanelProps<'image.generate'>) {
+  const rendererHost = useTesterRendererHost();
   const { t } = useTranslation();
   const parameters = props.parameters as TesterImageGenerationParameters;
   const update = props.onChange as (next: TesterImageGenerationParameters) => void;
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState('');
+  const [uploadedFileName, setUploadedFileName] = useState('');
+  async function selectReferenceImage(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.currentTarget.files?.[0];
+    event.currentTarget.value = '';
+    if (!file) return;
+    if (file.size === 0 || file.size > MAX_TESTER_ARTIFACT_UPLOAD_BYTES) {
+      setUploadError(t('Studio.parameters.imageFileTooLarge'));
+      return;
+    }
+    if (!isTesterImageMimeType(file.type)) {
+      setUploadError(t('Studio.parameters.imageFileMimeUnsupported'));
+      return;
+    }
+    setUploading(true);
+    setUploadError('');
+    try {
+      const result = await rendererHost.sdk.uploadLocalAppArtifact({
+        bytes: new Uint8Array(await file.arrayBuffer()),
+        mimeType: file.type,
+      });
+      const next = { ...parameters, referenceImageArtifactId: result.artifactId };
+      delete next.referenceImage;
+      setUploadedFileName(file.name);
+      update(next);
+    } catch (error) {
+      setUploadError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setUploading(false);
+    }
+  }
+  const updateReferenceUrl = (next: TesterImageGenerationParameters) => {
+    const normalized = { ...next };
+    delete normalized.referenceImageArtifactId;
+    setUploadedFileName('');
+    update(normalized);
+  };
+  const clearReferenceArtifact = () => {
+    const normalized = { ...parameters };
+    delete normalized.referenceImageArtifactId;
+    setUploadedFileName('');
+    setUploadError('');
+    update(normalized);
+  };
   const textField = (field: keyof TesterImageGenerationParameters, label: string, placeholder?: string): RouteAwareParameterField => ({
     field,
     label,
@@ -347,7 +394,32 @@ function ImageFields(props: ParameterPanelProps<'image.generate'>) {
     textField('aspectRatio', t('Studio.parameters.fields.aspectRatio')),
     textField('quality', t('Studio.parameters.fields.quality')),
     textField('style', t('Studio.parameters.fields.style')),
-    textField('referenceImage', t('Studio.parameters.fields.referenceImage'), 'https://…'),
+    {
+      field: 'referenceImage',
+      label: t('Studio.parameters.fields.referenceImage'),
+      render: (routeDisabled) => <TextParameter current={parameters} field="referenceImage" label={t('Studio.parameters.fields.referenceImage')} placeholder="https://…" onChange={updateReferenceUrl} disabled={props.disabled || routeDisabled || uploading} />,
+    },
+    {
+      field: 'referenceImageArtifactId',
+      label: t('Studio.parameters.fields.referenceImageFile'),
+      render: (routeDisabled) => (
+        <ParameterField label={t('Studio.parameters.fields.referenceImageFile')}>
+          <input ref={inputRef} className="studio-parameters__file-input" type="file" accept="image/png,image/jpeg,image/webp,image/gif" disabled={props.disabled || routeDisabled || uploading} onChange={(event) => void selectReferenceImage(event)} />
+          <div className="studio-parameters__file-row">
+            <Button type="button" tone="ghost" size="sm" disabled={props.disabled || routeDisabled || uploading} leadingIcon={<Upload size={14} aria-hidden="true" />} onClick={() => inputRef.current?.click()}>
+              {uploading ? t('Studio.parameters.uploadingImage') : t('Studio.parameters.chooseImageFile')}
+            </Button>
+            {uploadedFileName ? <span>{uploadedFileName}</span> : null}
+            {parameters.referenceImageArtifactId ? (
+              <Button type="button" tone="ghost" size="sm" disabled={props.disabled || routeDisabled || uploading} leadingIcon={<Trash2 size={14} aria-hidden="true" />} onClick={clearReferenceArtifact}>
+                {t('Studio.parameters.clearReferenceImage')}
+              </Button>
+            ) : null}
+          </div>
+          {uploadError ? <small>{uploadError}</small> : null}
+        </ParameterField>
+      ),
+    },
     textField('mask', t('Studio.parameters.fields.mask'), 'https://…'),
   ];
   return <RouteAwareParameterFields capabilityId={props.capabilityId} source={props.source} fields={fields} />;

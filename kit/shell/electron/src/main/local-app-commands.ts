@@ -513,8 +513,8 @@ function validateScenarioSpec(value: unknown, command: string, execute: boolean)
 function validateImageSpec(value: Record<string, unknown>, command: string): void {
   assertAllowedKeys(
     value,
-    ['type', 'prompt', 'negativePrompt', 'n', 'size', 'aspectRatio', 'quality', 'style', 'seed', 'referenceImages', 'mask', 'responseFormat'],
-    ['type', 'prompt', 'negativePrompt', 'size', 'aspectRatio', 'quality', 'style', 'referenceImages', 'mask', 'responseFormat'],
+    ['type', 'prompt', 'negativePrompt', 'n', 'size', 'aspectRatio', 'quality', 'style', 'seed', 'referenceImages', 'referenceImageArtifactId', 'mask', 'responseFormat'],
+    ['type', 'prompt', 'negativePrompt', 'size', 'aspectRatio', 'quality', 'style', 'referenceImages', 'referenceImageArtifactId', 'mask', 'responseFormat'],
     command,
   );
   requiredUtf8Text(value.prompt, 'prompt', command, 32 * 1024);
@@ -526,6 +526,14 @@ function validateImageSpec(value: Record<string, unknown>, command: string): voi
     throw invalidPayload(command, 'referenceImages is invalid');
   }
   for (const reference of value.referenceImages) requiredHttpsUrl(reference, 'referenceImages', command);
+  const referenceImageArtifactId = optionalBoundedIdentifier(
+    value.referenceImageArtifactId,
+    'referenceImageArtifactId',
+    command,
+  );
+  if (referenceImageArtifactId !== '' && value.referenceImages.length !== 0) {
+    throw invalidPayload(command, 'image reference carriers are mutually exclusive');
+  }
   const mask = optionalExactText(value.mask, 'mask', command, 2048);
   if (mask !== '') requiredHttpsUrl(mask, 'mask', command);
   if (!['', 'b64_json', 'url'].includes(String(value.responseFormat))) {
@@ -664,6 +672,12 @@ function optionalExactText(value: unknown, field: string, command: string, maxBy
   if (typeof value !== 'string' || value.trim() !== value || value.includes('\0')
     || Buffer.byteLength(value, 'utf8') > maxBytes) throw invalidPayload(command, `${field} is invalid`);
   return value;
+}
+
+function optionalBoundedIdentifier(value: unknown, field: string, command: string): string {
+  const text = optionalExactText(value, field, command, 128);
+  if (/[\u0000-\u001f\u007f]/u.test(text)) throw invalidPayload(command, `${field} is invalid`);
+  return text;
 }
 
 function validateInputBytes(value: unknown, maximum: number, command: string): void {

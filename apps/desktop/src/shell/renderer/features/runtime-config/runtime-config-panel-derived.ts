@@ -4,23 +4,19 @@ import {
   type RuntimeConfigStateV11,
 } from './runtime-config-state-types';
 import {
-  selectAllLocalModelsV11,
   selectFilteredConnectorModelsV11,
-  selectFilteredLocalModelsV11,
   selectOrderedConnectorsV11,
 } from './runtime-config-selectors-v11';
 
 export type RuntimeConfigPanelDerivedModel = {
   selectedConnector: RuntimeConfigStateV11['connectors'][number] | null;
   orderedConnectors: RuntimeConfigStateV11['connectors'];
-  filteredLocalModels: string[];
   filteredConnectorModels: string[];
   runtimeStatus: ProviderStatusV11 | null;
 };
 
 export function useRuntimeConfigPanelDerived(input: {
   state: RuntimeConfigStateV11 | null;
-  localModelQuery: string;
   connectorModelQuery: string;
 }): RuntimeConfigPanelDerivedModel {
   const selectedConnector = input.state
@@ -30,13 +26,6 @@ export function useRuntimeConfigPanelDerived(input: {
   const orderedConnectors = useMemo(
     () => selectOrderedConnectorsV11(input.state),
     [input.state],
-  );
-
-  const allLocalModels = useMemo(() => selectAllLocalModelsV11(input.state), [input.state]);
-
-  const filteredLocalModels = useMemo(
-    () => selectFilteredLocalModelsV11(allLocalModels, input.localModelQuery),
-    [allLocalModels, input.localModelQuery],
   );
 
   const filteredConnectorModels = useMemo(
@@ -51,7 +40,6 @@ export function useRuntimeConfigPanelDerived(input: {
   return {
     selectedConnector,
     orderedConnectors,
-    filteredLocalModels,
     filteredConnectorModels,
     runtimeStatus,
   };

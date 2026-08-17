@@ -1,39 +1,53 @@
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import type {
-  NimiRuntimeLocalAssetKind,
-  NimiRuntimeLocalAssetRecord,
   NimiRuntimeLocalCatalogItemDescriptor,
   NimiRuntimeLocalVerifiedAssetDescriptor,
+  NimiRuntimeModelAssetRecord,
 } from '@nimiplatform/sdk/runtime';
 import {
   normalizeCapabilityOption,
   CAPABILITY_OPTIONS,
-  type AssetEngineOption,
   type CapabilityOption,
   type LocalModelCenterProps,
 } from './runtime-config-model-center-utils';
 import {
-  relatedPassiveAssetsForRunnable,
-} from './runtime-config-local-model-center-helpers';
-import {
-  canImportBundleDirectoryForAssetKind,
-  canImportDeclaration,
   isRunnableAssetKind,
 } from './runtime-config-use-local-model-center-helpers.js';
 import { useRuntimeConfigLocalAssetAdminClient } from './runtime-config-local-model-center-sdk-service';
-import {
-  useLocalModelCenterImportFilePlan,
-} from './runtime-config-use-local-model-center-import-file-plan';
-import { toCanonicalNimiRuntimeLocalAssetLookupKey } from '@nimiplatform/sdk/runtime';
 import { useLocalModelCenterImportActions } from './runtime-config-use-local-model-center-import-actions';
-import { useLocalModelCenterInstalledAssetViews } from './runtime-config-use-local-model-center-installed-assets';
-import { useLocalModelCenterUnregisteredAssets } from './runtime-config-use-local-model-center-unregistered-assets';
 import { useLocalModelCenterAssetTasks } from './runtime-config-use-local-model-center-asset-tasks';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
+import { useTranslation } from 'react-i18next';
 
 type UseLocalModelCenterRuntimeStateInput = {
   props: LocalModelCenterProps;
 };
+
+type RuntimeInventoryErrorSlot = 'catalog' | 'verified-models' | 'model-assets' | 'verified-assets' | 'model-asset-action';
+
+type RuntimeInventoryErrors = Partial<Record<RuntimeInventoryErrorSlot, string>>;
+
+export function runtimeInventoryErrorFromSlots(errors: RuntimeInventoryErrors): string {
+  return errors['model-asset-action']
+    || errors['model-assets']
+    || errors.catalog
+    || errors['verified-models']
+    || errors['verified-assets']
+    || '';
+}
+
+function catalogAssetLookupKey(value: unknown): string {
+  return typeof value === 'string' ? value.trim().toLowerCase() : '';
+}
+
+export function modelAssetCatalogLookupKeys(asset: NimiRuntimeModelAssetRecord): readonly string[] {
+  const provenance = asset.provenance ?? {};
+  return [...new Set([
+    provenance.catalog_asset_id,
+    provenance.catalog_template_id,
+    provenance.source_repo,
+  ].map(catalogAssetLookupKey).filter(Boolean))];
+}
 
 function runtimeInventoryErrorMessage(error: unknown, fallback: string): string {
   if (error instanceof Error && error.message.trim()) {
@@ -48,6 +62,7 @@ function runtimeInventoryErrorMessage(error: unknown, fallback: string): string 
 export function useLocalModelCenterRuntimeState({ props }: UseLocalModelCenterRuntimeStateInput) {
   const runtimeConfigLocalAssetAdminClient = useRuntimeConfigLocalAssetAdminClient();
   const bindings = useDesktopRendererBindings();
+  const { t } = useTranslation();
   const [installing, setInstalling] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const deferredSearchQuery = useDeferredValue(searchQuery);
@@ -57,27 +72,25 @@ export function useLocalModelCenterRuntimeState({ props }: UseLocalModelCenterRu
   const [loadingCatalog, setLoadingCatalog] = useState(false);
   const [verifiedModels, setVerifiedModels] = useState<NimiRuntimeLocalVerifiedAssetDescriptor[]>([]);
   const [loadingVerifiedModels, setLoadingVerifiedModels] = useState(false);
-  const [installedAssets, setInstalledAssets] = useState<NimiRuntimeLocalAssetRecord[]>([]);
+  const [modelAssets, setModelAssets] = useState<NimiRuntimeModelAssetRecord[]>([]);
   const [loadingInstalledAssets, setLoadingInstalledAssets] = useState(false);
   const [verifiedAssets, setVerifiedAssets] = useState<NimiRuntimeLocalVerifiedAssetDescriptor[]>([]);
   const [loadingVerifiedAssets, setLoadingVerifiedAssets] = useState(false);
-  const [runtimeInventoryError, setRuntimeInventoryError] = useState('');
-  const [assetKindFilter, setAssetKindFilter] = useState<'all' | NimiRuntimeLocalAssetKind>('all');
+  const [runtimeInventoryErrors, setRuntimeInventoryErrors] = useState<RuntimeInventoryErrors>({});
+  const runtimeInventoryError = runtimeInventoryErrorFromSlots(runtimeInventoryErrors);
+  const setRuntimeInventoryError = useCallback((slot: RuntimeInventoryErrorSlot, message: string) => {
+    setRuntimeInventoryErrors((current) => {
+      const next = { ...current };
+      if (message) next[slot] = message;
+      else delete next[slot];
+      return next;
+    });
+  }, []);
+  const [stateIsolationDiagnostic, setStateIsolationDiagnostic] = useState('');
   const [assetBusy, setAssetBusy] = useState(false);
   const [showImportMenu, setShowImportMenu] = useState(false);
-  const [showImportFileDialog, setShowImportFileDialog] = useState(false);
-  const [importFileAssetKind, setImportFileAssetKind] = useState<NimiRuntimeLocalAssetKind>('chat');
-  const [importFileAuxiliaryEngine, setImportFileAuxiliaryEngine] = useState<AssetEngineOption | ''>('');
   const importMenuRef = useRef<HTMLDivElement>(null);
   const [catalogCapabilityOverrides, setCatalogCapabilityOverrides] = useState<Record<string, CapabilityOption>>({});
-  const {
-    refreshUnregisteredAssets: refreshUnregisteredAssetsState,
-    resolveUnregisteredAssetDraft,
-    setUnregisteredAssetKind,
-    setUnregisteredAuxiliaryEngine,
-    unregisteredAssetDrafts,
-    unregisteredAssets,
-  } = useLocalModelCenterUnregisteredAssets();
 
   useEffect(() => {
     if (!showImportMenu) {
@@ -91,30 +104,17 @@ export function useLocalModelCenterRuntimeState({ props }: UseLocalModelCenterRu
     return bindings.app.events.subscribeDocumentMouseDown(handler);
   }, [bindings.app.events, showImportMenu]);
 
-  const {
-    filteredInstalledDependencyAssets,
-    filteredInstalledRunnableAssets,
-    sortedInstalledRunnableAssets,
-    visibleInstalledAssets,
-  } = useLocalModelCenterInstalledAssetViews({
-    assetKindFilter,
-    deferredSearchQuery,
-    installedAssets,
-  });
-
-  const installedRunnableAssetIds = useMemo(
-    () => new Set(sortedInstalledRunnableAssets.map((asset) => toCanonicalNimiRuntimeLocalAssetLookupKey(asset.assetId)).filter(Boolean)),
-    [sortedInstalledRunnableAssets],
-  );
-
-  const installedAssetsById = useMemo(
-    () => new Map(visibleInstalledAssets.map((asset) => [toCanonicalNimiRuntimeLocalAssetLookupKey(asset.assetId), asset] as const)),
-    [visibleInstalledAssets],
-  );
+  const installedCatalogAssetsById = useMemo(() => {
+    const installed = new Map<string, NimiRuntimeModelAssetRecord>();
+    for (const asset of modelAssets) {
+      for (const key of modelAssetCatalogLookupKeys(asset)) installed.set(key, asset);
+    }
+    return installed;
+  }, [modelAssets]);
 
   const isRunnableAssetInstalled = useCallback((assetId: string) => (
-    installedRunnableAssetIds.has(toCanonicalNimiRuntimeLocalAssetLookupKey(assetId))
-  ), [installedRunnableAssetIds]);
+    installedCatalogAssetsById.has(catalogAssetLookupKey(assetId))
+  ), [installedCatalogAssetsById]);
 
   const inferredCatalogCapability = useCallback((item: NimiRuntimeLocalCatalogItemDescriptor): CapabilityOption => (
     normalizeCapabilityOption(item.capabilities.find((capability) => (
@@ -134,7 +134,6 @@ export function useLocalModelCenterRuntimeState({ props }: UseLocalModelCenterRu
   const verifiedModelsRequestSeqRef = useRef(0);
   const installedAssetsRequestSeqRef = useRef(0);
   const verifiedAssetsRequestSeqRef = useRef(0);
-  const unregisteredAssetsRequestSeqRef = useRef(0);
   const mountedRef = useRef(true);
 
   useEffect(() => {
@@ -162,12 +161,12 @@ export function useLocalModelCenterRuntimeState({ props }: UseLocalModelCenterRu
         return;
       }
       setCatalogItems(rows.filter((item) => !isRunnableAssetInstalled(item.modelId)));
-      setRuntimeInventoryError('');
+      setRuntimeInventoryError('catalog', '');
     } catch (error) {
       if (!mountedRef.current || requestId !== catalogRequestSeqRef.current) {
         return;
       }
-      setRuntimeInventoryError(runtimeInventoryErrorMessage(error, 'Runtime catalog discovery failed.'));
+      setRuntimeInventoryError('catalog', runtimeInventoryErrorMessage(error, 'Runtime catalog discovery failed.'));
     } finally {
       if (mountedRef.current && requestId === catalogRequestSeqRef.current) {
         setLoadingCatalog(false);
@@ -186,12 +185,12 @@ export function useLocalModelCenterRuntimeState({ props }: UseLocalModelCenterRu
       setVerifiedModels(rows.filter((item) => (
         isRunnableAssetKind(item.kind) && !isRunnableAssetInstalled(item.assetId)
       )).slice(0, 5));
-      setRuntimeInventoryError('');
+      setRuntimeInventoryError('verified-models', '');
     } catch (error) {
       if (!mountedRef.current || requestId !== verifiedModelsRequestSeqRef.current) {
         return;
       }
-      setRuntimeInventoryError(runtimeInventoryErrorMessage(error, 'Runtime verified model discovery failed.'));
+      setRuntimeInventoryError('verified-models', runtimeInventoryErrorMessage(error, 'Runtime verified model discovery failed.'));
     } finally {
       if (mountedRef.current && requestId === verifiedModelsRequestSeqRef.current) {
         setLoadingVerifiedModels(false);
@@ -203,23 +202,23 @@ export function useLocalModelCenterRuntimeState({ props }: UseLocalModelCenterRu
     const requestId = ++installedAssetsRequestSeqRef.current;
     setLoadingInstalledAssets(true);
     try {
-      const rows = await runtimeConfigLocalAssetAdminClient.listAssets();
+      const modelAssetRows = await runtimeConfigLocalAssetAdminClient.listModelAssets();
       if (!mountedRef.current || requestId !== installedAssetsRequestSeqRef.current) {
         return;
       }
-      setInstalledAssets([...rows]);
-      setRuntimeInventoryError('');
+      setModelAssets([...modelAssetRows]);
+      setRuntimeInventoryError('model-assets', '');
     } catch (error) {
       if (!mountedRef.current || requestId !== installedAssetsRequestSeqRef.current) {
         return;
       }
-      setRuntimeInventoryError(runtimeInventoryErrorMessage(error, 'Runtime installed asset discovery failed.'));
+      setRuntimeInventoryError('model-assets', runtimeInventoryErrorMessage(error, 'Runtime ModelAsset discovery failed.'));
     } finally {
       if (mountedRef.current && requestId === installedAssetsRequestSeqRef.current) {
         setLoadingInstalledAssets(false);
       }
     }
-  }, []);
+  }, [runtimeConfigLocalAssetAdminClient]);
 
   const refreshVerifiedAssets = useCallback(async () => {
     const requestId = ++verifiedAssetsRequestSeqRef.current;
@@ -230,25 +229,18 @@ export function useLocalModelCenterRuntimeState({ props }: UseLocalModelCenterRu
         return;
       }
       setVerifiedAssets([...rows]);
-      setRuntimeInventoryError('');
+      setRuntimeInventoryError('verified-assets', '');
     } catch (error) {
       if (!mountedRef.current || requestId !== verifiedAssetsRequestSeqRef.current) {
         return;
       }
-      setRuntimeInventoryError(runtimeInventoryErrorMessage(error, 'Runtime verified asset discovery failed.'));
+      setRuntimeInventoryError('verified-assets', runtimeInventoryErrorMessage(error, 'Runtime verified asset discovery failed.'));
     } finally {
       if (mountedRef.current && requestId === verifiedAssetsRequestSeqRef.current) {
         setLoadingVerifiedAssets(false);
       }
     }
   }, []);
-
-  const refreshUnregisteredAssets = useCallback(async () => {
-    const requestId = ++unregisteredAssetsRequestSeqRef.current;
-    await refreshUnregisteredAssetsState(() => (
-      mountedRef.current && requestId === unregisteredAssetsRequestSeqRef.current
-    ));
-  }, [refreshUnregisteredAssetsState]);
 
   useEffect(() => {
     setCatalogDisplayCount(10);
@@ -271,8 +263,16 @@ export function useLocalModelCenterRuntimeState({ props }: UseLocalModelCenterRu
   }, [refreshVerifiedAssets]);
 
   useEffect(() => {
-    void refreshUnregisteredAssets();
-  }, [refreshUnregisteredAssets]);
+    let active = true;
+    void bindings.sdk.machineProduct().local.resolveLocalStateReconciliation({ nimiDataDir: '' }).then((response) => {
+      if (!active) return;
+      const plan = response.plan;
+      setStateIsolationDiagnostic(plan?.state === 'review_required' ? String(plan.message || '').trim() : '');
+    }).catch(() => {
+      // Inventory and Runtime health errors retain their independent banners.
+    });
+    return () => { active = false; };
+  }, [bindings.sdk]);
 
   const visibleVerifiedAssets = useMemo(() => {
     const query = deferredSearchQuery.toLowerCase().trim();
@@ -280,10 +280,7 @@ export function useLocalModelCenterRuntimeState({ props }: UseLocalModelCenterRu
       if (isRunnableAssetKind(asset.kind)) {
         return false;
       }
-      if (assetKindFilter !== 'all' && asset.kind !== assetKindFilter) {
-        return false;
-      }
-      if (installedAssetsById.has(toCanonicalNimiRuntimeLocalAssetLookupKey(asset.assetId))) {
+      if (installedCatalogAssetsById.has(catalogAssetLookupKey(asset.assetId))) {
         return false;
       }
       if (!query) {
@@ -298,15 +295,18 @@ export function useLocalModelCenterRuntimeState({ props }: UseLocalModelCenterRu
       );
     });
     return candidates;
-  }, [assetKindFilter, deferredSearchQuery, installedAssetsById, verifiedAssets]);
+  }, [deferredSearchQuery, installedCatalogAssetsById, verifiedAssets]);
 
-  const relatedAssetsByModelTemplate = useMemo(() => {
-    const next = new Map<string, NimiRuntimeLocalVerifiedAssetDescriptor[]>();
-    for (const model of verifiedModels) {
-      next.set(model.templateId, relatedPassiveAssetsForRunnable(model, verifiedAssets));
-    }
-    return next;
-  }, [verifiedAssets, verifiedModels]);
+  const filteredModelAssets = useMemo(() => {
+    const query = deferredSearchQuery.trim().toLowerCase();
+    if (!query) return modelAssets;
+    return modelAssets.filter((asset) => (
+      asset.modelAssetId.toLowerCase().includes(query)
+      || asset.displayName.toLowerCase().includes(query)
+      || asset.entry.toLowerCase().includes(query)
+      || asset.contentId.toLowerCase().includes(query)
+    ));
+  }, [deferredSearchQuery, modelAssets]);
 
   const verifiedAssetsByTemplateId = useMemo(
     () => new Map(verifiedAssets.map((asset) => [asset.templateId, asset] as const)),
@@ -319,63 +319,61 @@ export function useLocalModelCenterRuntimeState({ props }: UseLocalModelCenterRu
 
   const {
     assetPendingTemplateIds,
-    installVerifiedAsset,
+    installCatalogAsset,
     isAssetPending,
     visibleAssetTasks,
   } = useLocalModelCenterAssetTasks({
-    onInstallVerifiedAsset: props.onInstallVerifiedAsset,
+    onInstallCatalogAsset: props.onInstallCatalogAsset,
+    onInstalled: refreshAssetSections,
     verifiedAssetsByTemplateId,
   });
 
-  const installMissingAssetsForModel = useCallback(async (assets: NimiRuntimeLocalVerifiedAssetDescriptor[]) => {
-    const missing = assets.filter((asset) => !installedAssetsById.has(toCanonicalNimiRuntimeLocalAssetLookupKey(asset.assetId)));
-    for (const asset of missing) {
-      await installVerifiedAsset(asset.templateId);
-    }
-  }, [installVerifiedAsset, installedAssetsById]);
-
-  const removeInstalledAsset = useCallback(async (localAssetId: string) => {
+  const inspectInstalledAssetRemoval = useCallback(async (modelAssetId: string) => {
     setAssetBusy(true);
     try {
-      await props.onRemoveAsset(localAssetId);
-    } catch {
-      // Error is already surfaced as a status banner by the panel controller.
-    }
-    try {
-      await refreshAssetSections();
-      await refreshUnregisteredAssets();
+      const inspection = await runtimeConfigLocalAssetAdminClient.inspectModelAssetRemoval(modelAssetId);
+      return [...inspection.referencingLoadoutIds];
+    } catch (error) {
+      setRuntimeInventoryError('model-asset-action', runtimeInventoryErrorMessage(error, 'Runtime ModelAsset reference inspection failed.'));
+      throw error;
     } finally {
       setAssetBusy(false);
     }
-  }, [props, refreshAssetSections, refreshUnregisteredAssets]);
+  }, [runtimeConfigLocalAssetAdminClient]);
 
-  const installVerifiedModel = useCallback(async (templateId: string) => {
+  const removeInstalledAsset = useCallback(async (modelAssetId: string) => {
+    setAssetBusy(true);
+    try {
+      const removal = await runtimeConfigLocalAssetAdminClient.removeModelAsset(modelAssetId, { caller: 'core' });
+      setRuntimeInventoryError('model-asset-action', removal.cleanupPending
+        ? t('runtimeConfig.localModelCenter.cleanupPending', {
+          defaultValue: 'The ModelAsset record was removed, but owned file cleanup is pending and will retry automatically.',
+        })
+        : '');
+      await refreshAssetSections();
+    } catch (error) {
+      setRuntimeInventoryError('model-asset-action', runtimeInventoryErrorMessage(error, 'Runtime ModelAsset removal failed.'));
+      throw error;
+    } finally {
+      setAssetBusy(false);
+    }
+  }, [refreshAssetSections, runtimeConfigLocalAssetAdminClient, t]);
+
+  const installCatalogQuickPick = useCallback(async (templateId: string) => {
     setInstalling(true);
     try {
-      await props.onInstallVerified(templateId);
+      await props.onInstallCatalogAsset(templateId);
+      await refreshAssetSections();
     } finally {
       setInstalling(false);
     }
-  }, [props]);
+  }, [props, refreshAssetSections]);
 
   const importActions = useLocalModelCenterImportActions({
-    onRefreshUnregisteredAssets: refreshUnregisteredAssets,
     onRefreshAssetSections: refreshAssetSections,
     onRefreshVerifiedModels: refreshVerifiedModels,
     props,
   });
-
-  const importUnregisteredAsset = useCallback(async (assetPath: string) => {
-    const asset = unregisteredAssets.find((item) => item.path === assetPath);
-    if (!asset) {
-      return;
-    }
-    const declaration = resolveUnregisteredAssetDraft(asset);
-    if (!canImportDeclaration(declaration)) {
-      return;
-    }
-    await importActions.importAssetFromPath(assetPath, declaration);
-  }, [importActions, resolveUnregisteredAssetDraft, unregisteredAssets]);
 
   const installCatalogVariant = useCallback(async (
     item: NimiRuntimeLocalCatalogItemDescriptor,
@@ -385,64 +383,38 @@ export function useLocalModelCenterRuntimeState({ props }: UseLocalModelCenterRu
     setInstalling(true);
     try {
       await importActions.installCatalogVariant(item, variantFilename);
+      await refreshAssetSections();
     } finally {
       setInstalling(false);
     }
-  }, [importActions]);
-
-  const {
-    canChooseImportFile,
-    importFileDeclaration,
-  } = useLocalModelCenterImportFilePlan({
-    showImportFileDialog,
-    importFileAssetKind,
-    importFileAuxiliaryEngine,
-  });
-  const canChooseImportDirectory = canImportBundleDirectoryForAssetKind(importFileAssetKind);
-
-  const rescanInstalledAsset = useCallback(async (localAssetId: string) => {
-    setAssetBusy(true);
-    try {
-      await runtimeConfigLocalAssetAdminClient.rescanBundle({ localAssetId }, { caller: 'core' });
-      await refreshAssetSections();
-      await refreshUnregisteredAssets();
-    } finally {
-      setAssetBusy(false);
-    }
-  }, [refreshAssetSections, refreshUnregisteredAssets]);
+  }, [importActions, refreshAssetSections]);
 
   return {
     activeDownloads: importActions.activeDownloads, activeImports: importActions.activeImports,
-    assetBusy, assetKindFilter, assetPendingTemplateIds,
+    assetBusy, assetPendingTemplateIds,
     assetImportError: importActions.assetImportError,
     catalogCapability, catalogDisplayCount, catalogItems,
     closeVariantPicker: importActions.closeVariantPicker,
-    deferredSearchQuery, filteredInstalledDependencyAssets, filteredInstalledRunnableAssets,
-    importFileAssetKind, importFileAuxiliaryEngine, importFileDeclaration, importMenuRef,
+    deferredSearchQuery, filteredModelAssets,
+    importMenuRef,
     importingAssetPath: importActions.importingAssetPath,
-    installCatalogVariant, installMissingAssetsForModel, installVerifiedAsset, installVerifiedModel,
-    installing, installedAssetsById, isAssetPending,
+    installCatalogAsset, installCatalogQuickPick, installCatalogVariant,
+    installing, installedCatalogAssetsById, isAssetPending,
     loadingCatalog, loadingInstalledAssets, loadingVariants: importActions.loadingVariants,
     loadingVerifiedAssets, loadingVerifiedModels,
     onCancelDownload: importActions.onCancelDownload, onDismissSession: importActions.onDismissSession,
     onPauseDownload: importActions.onPauseDownload, onResumeDownload: importActions.onResumeDownload,
-    refreshAssetSections, refreshUnregisteredAssets, refreshVerifiedModels,
-    relatedAssetsByModelTemplate, removeInstalledAsset,
-    runtimeInventoryError,
-    resolveUnregisteredAssetDraft, searchQuery, selectedCatalogCapability,
-    setAssetKindFilter, setCatalogCapability, setCatalogCapabilityOverrides,
+    refreshAssetSections, refreshVerifiedModels,
+    removeInstalledAsset, inspectInstalledAssetRemoval,
+    runtimeInventoryError, stateIsolationDiagnostic,
+    searchQuery, selectedCatalogCapability,
+    setCatalogCapability, setCatalogCapabilityOverrides,
     setCatalogDisplayCount,
-    setImportFileAssetKind, setImportFileAuxiliaryEngine,
-    setSearchQuery, setShowImportFileDialog, setShowImportMenu,
-    setUnregisteredAssetKind, setUnregisteredAuxiliaryEngine,
-    showImportFileDialog, showImportMenu, canChooseImportFile, canChooseImportDirectory,
+    setSearchQuery, setShowImportMenu,
+    showImportMenu,
     toggleVariantPicker: importActions.toggleVariantPicker,
-    unregisteredAssetDrafts, unregisteredAssets,
     importPickedAssetFile: importActions.importPickedAssetFile,
     importPickedAssetDirectory: importActions.importPickedAssetDirectory,
-    importPickedAssetManifest: importActions.importPickedAssetManifest,
-    importUnregisteredAsset,
-    rescanInstalledAsset,
     variantError: importActions.variantError, variantList: importActions.variantList,
     variantPickerItem: importActions.variantPickerItem,
     verifiedModels, visibleAssetTasks, visibleVerifiedAssets,

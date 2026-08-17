@@ -3,16 +3,14 @@ import type {
   NimiCapabilityAIConfig,
   NimiCapabilityAIConfigIntent,
 } from '@nimiplatform/sdk/ai';
+import type { NimiMachineLoadouts } from '@nimiplatform/sdk/runtime';
 import { extractNimiErrorFields } from '@nimiplatform/sdk/types';
-import {
-  projectModelConfigLocalSelections,
-  type ModelConfigLocalSelectionProjection,
-} from '@nimiplatform/kit/features/model-config/headless';
+import type { ModelConfigLocalSelectionProjection } from '@nimiplatform/kit/features/model-config/headless';
 import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
 
 export const DESKTOP_NIMI_APP_ID = 'nimi.desktop';
 export const DESKTOP_NIMI_MACHINE_LOCAL_SELECTIONS_QUERY_KEY = [
-  'machine-local-ai-configuration',
+  'machine-loadouts',
   'model-config-projection',
 ] as const;
 
@@ -73,12 +71,43 @@ export function useOverwriteDesktopNimiAppAIConfig(appId: string) {
 }
 
 /** Read-only projection of machine-owned local selections for Model Config UX. */
+// @nimi-authority: rule.nimi.runtime.local-compute.r107
+export function projectDesktopMachineLoadoutSelections(
+  aggregate: NimiMachineLoadouts,
+): readonly ModelConfigLocalSelectionProjection[] {
+  return aggregate.selections.map((selection) => {
+    const loadout = aggregate.loadouts.find((candidate) => candidate.loadoutId === selection.loadoutId);
+    if (!loadout || loadout.capabilityContract !== selection.capabilityContract) {
+      return {
+        capabilityContract: selection.capabilityContract, state: 'broken' as const,
+        configurationId: null, displayName: null, supportedFeatures: [],
+        reasons: ['selected-loadout-not-found'], effectiveDefaults: null,
+      };
+    }
+    const defaults = Object.fromEntries(Object.entries(selection.effectiveDefaults ?? {}).filter(
+      (entry): entry is [string, string] => typeof entry[1] === 'string' && entry[1].trim().length > 0,
+    ));
+    const reasons = loadout.validationState === 'configured'
+      ? [...loadout.reasons]
+      : ['loadout-unresolved', ...loadout.reasons];
+    return {
+      capabilityContract: selection.capabilityContract,
+      state: reasons.length === 0 ? 'selected' as const : 'broken' as const,
+      configurationId: null,
+      displayName: loadout.displayName || null,
+      supportedFeatures: loadout.supportedFeatures,
+      reasons,
+      effectiveDefaults: Object.keys(defaults).length > 0 ? defaults : null,
+    };
+  });
+}
+
 export function useDesktopNimiMachineLocalSelections() {
   const sdk = useDesktopRendererSdk();
   return useQuery<readonly ModelConfigLocalSelectionProjection[]>({
     queryKey: DESKTOP_NIMI_MACHINE_LOCAL_SELECTIONS_QUERY_KEY,
-    queryFn: async () => projectModelConfigLocalSelections(
-      await sdk.machineProduct().local.aiConfiguration.get(),
+    queryFn: async () => projectDesktopMachineLoadoutSelections(
+      await sdk.machineProduct().local.loadouts.get(),
     ),
     retry: false,
     staleTime: 15_000,

@@ -11,24 +11,19 @@ export function LocalModelCenter(props: LocalModelCenterProps) {
   return (
     <LocalModelCenterRuntimeView
       assetBusy={runtimeState.assetBusy}
-      assetKindFilter={runtimeState.assetKindFilter}
       assetPendingTemplateIds={runtimeState.assetPendingTemplateIds}
       catalogCapability={runtimeState.catalogCapability}
       catalogDisplayCount={runtimeState.catalogDisplayCount}
       catalogItems={runtimeState.catalogItems}
       checkingHealth={props.checkingHealth}
       deferredSearchQuery={runtimeState.deferredSearchQuery}
-      discovering={props.discovering}
-      filteredInstalledDependencyAssets={runtimeState.filteredInstalledDependencyAssets}
-      filteredInstalledRunnableAssets={runtimeState.filteredInstalledRunnableAssets}
+      refreshing={runtimeState.loadingInstalledAssets || runtimeState.loadingVerifiedAssets}
+      modelAssets={runtimeState.filteredModelAssets}
       runtimeInventoryError={runtimeState.runtimeInventoryError}
+      stateIsolationDiagnostic={runtimeState.stateIsolationDiagnostic}
       hasSearchQuery={hasSearchQuery}
-      importFileAssetKind={runtimeState.importFileAssetKind}
-      importFileAuxiliaryEngine={runtimeState.importFileAuxiliaryEngine}
       importMenuRef={runtimeState.importMenuRef}
-      importingAssetPath={runtimeState.importingAssetPath}
       installing={runtimeState.installing}
-      installedAssetsById={runtimeState.installedAssetsById}
       isAssetPending={runtimeState.isAssetPending}
       lastCheckedAt={props.state.local.lastCheckedAt}
       loadingCatalog={runtimeState.loadingCatalog}
@@ -36,81 +31,42 @@ export function LocalModelCenter(props: LocalModelCenterProps) {
       loadingVariants={runtimeState.loadingVariants}
       loadingVerifiedAssets={runtimeState.loadingVerifiedAssets}
       loadingVerifiedModels={runtimeState.loadingVerifiedModels}
-      assetImportError={runtimeState.assetImportError}
-      onArtifactKindFilterChange={runtimeState.setAssetKindFilter}
       onCancelDownload={runtimeState.onCancelDownload}
-      onAssetKindChange={(kind) => {
-        runtimeState.setImportFileAssetKind(kind);
-        if (kind !== 'auxiliary') {
-          runtimeState.setImportFileAuxiliaryEngine('');
-        }
-      }}
-      onAssetAuxiliaryEngineChange={runtimeState.setImportFileAuxiliaryEngine}
       onCatalogCapabilityChange={runtimeState.setCatalogCapability}
       onCatalogCapabilityOverrideChange={(itemId, capability) => runtimeState.setCatalogCapabilityOverrides((prev) => ({
         ...prev,
         [itemId]: capability,
       }))}
-      onChooseImportFile={() => {
-        runtimeState.setShowImportFileDialog(false);
-        void runtimeState.importPickedAssetFile(
-          runtimeState.importFileDeclaration,
-        );
+      onImportFile={() => {
+        runtimeState.setShowImportMenu(false);
+        return runtimeState.importPickedAssetFile();
       }}
-      onChooseImportDirectory={() => {
-        runtimeState.setShowImportFileDialog(false);
-        void runtimeState.importPickedAssetDirectory(
-          runtimeState.importFileDeclaration,
-        );
+      onImportDirectory={() => {
+        runtimeState.setShowImportMenu(false);
+        return runtimeState.importPickedAssetDirectory();
       }}
-      onCloseImportFileDialog={() => runtimeState.setShowImportFileDialog(false)}
       onCloseVariantPicker={runtimeState.closeVariantPicker}
       onOpenModelsFolder={() => { void commands.revealLocalRuntimeAssetsRootFolder(); }}
       onHealthCheck={() => void props.onHealthCheck()}
-      onImportManifest={() => {
-        runtimeState.setShowImportMenu(false);
-        void runtimeState.importPickedAssetManifest();
-      }}
-      onInstallAsset={(templateId) => { void runtimeState.installVerifiedAsset(templateId); }}
+      onInstallAsset={(templateId) => { void runtimeState.installCatalogAsset(templateId); }}
       onInstallCatalogVariant={(item, variantFilename) => { void runtimeState.installCatalogVariant(item, variantFilename); }}
-      onInstallMissingAssets={(assets) => { void runtimeState.installMissingAssetsForModel(assets); }}
-      onInstallVerifiedModel={(templateId) => { void runtimeState.installVerifiedModel(templateId); }}
+      onInstallCatalogQuickPick={(templateId) => { void runtimeState.installCatalogQuickPick(templateId); }}
       onLoadMoreCatalog={() => runtimeState.setCatalogDisplayCount((prev) => prev + 10)}
-      onOpenImportFile={() => {
-        runtimeState.setShowImportMenu(false);
-        runtimeState.setShowImportFileDialog(true);
-      }}
-      onOpenImportBundle={() => {
-        runtimeState.setShowImportMenu(false);
-        runtimeState.setImportFileAssetKind('chat');
-        runtimeState.setShowImportFileDialog(true);
-      }}
       onPauseDownload={runtimeState.onPauseDownload}
       onRefresh={() => {
-        void props.onDiscover().finally(() => {
-          void runtimeState.refreshUnregisteredAssets();
-        });
+        void runtimeState.refreshAssetSections();
       }}
       onRefreshAssets={() => { void runtimeState.refreshAssetSections(); }}
       onRefreshQuickPicks={() => { void runtimeState.refreshVerifiedModels(); }}
-      onRefreshUnregisteredAssets={() => { void runtimeState.refreshUnregisteredAssets(); }}
-      onRemoveAsset={(localAssetId) => { void runtimeState.removeInstalledAsset(localAssetId); }}
-      onRescanAsset={(localAssetId) => { void runtimeState.rescanInstalledAsset(localAssetId); }}
+      onInspectRemoval={runtimeState.inspectInstalledAssetRemoval}
+      onRemoveAsset={runtimeState.removeInstalledAsset}
       onResumeDownload={runtimeState.onResumeDownload}
       onSearchQueryChange={runtimeState.setSearchQuery}
       onToggleImportMenu={() => runtimeState.setShowImportMenu((prev) => !prev)}
       onToggleVariantPicker={runtimeState.toggleVariantPicker}
-      onImportUnregisteredAsset={(path) => { void runtimeState.importUnregisteredAsset(path); }}
-      onUnregisteredAssetKindChange={runtimeState.setUnregisteredAssetKind}
-      onUnregisteredAuxiliaryEngineChange={runtimeState.setUnregisteredAuxiliaryEngine}
-      relatedAssetsByModelTemplate={runtimeState.relatedAssetsByModelTemplate}
-      resolveUnregisteredAssetDraft={runtimeState.resolveUnregisteredAssetDraft}
       searchQuery={runtimeState.searchQuery}
       selectedCatalogCapability={runtimeState.selectedCatalogCapability}
-      showImportFileDialog={runtimeState.showImportFileDialog}
       showImportMenu={runtimeState.showImportMenu}
-      canChooseImportFile={runtimeState.canChooseImportFile}
-      canChooseImportDirectory={runtimeState.canChooseImportDirectory}
       variantError={runtimeState.variantError}
       variantList={runtimeState.variantList}
       variantPickerItem={runtimeState.variantPickerItem}
@@ -120,7 +76,6 @@ export function LocalModelCenter(props: LocalModelCenterProps) {
       downloads={runtimeState.activeDownloads}
       imports={runtimeState.activeImports}
       onDismissSession={runtimeState.onDismissSession}
-      unregisteredAssets={runtimeState.unregisteredAssets}
     />
   );
 }

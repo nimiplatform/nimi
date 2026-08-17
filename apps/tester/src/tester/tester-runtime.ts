@@ -277,6 +277,7 @@ export async function runTesterCapability(
           ...(parameters?.quality !== undefined ? { quality: parameters.quality } : {}),
           ...(parameters?.style !== undefined ? { style: parameters.style } : {}),
           ...(parameters?.referenceImage !== undefined ? { referenceImages: [parameters.referenceImage] } : {}),
+          ...(parameters?.referenceImageArtifactId !== undefined ? { referenceImageArtifactId: parameters.referenceImageArtifactId } : {}),
           ...(parameters?.mask !== undefined ? { mask: parameters.mask } : {}),
           scenarioId,
           surfaceId: TESTER_RUNTIME_SURFACE_ID,

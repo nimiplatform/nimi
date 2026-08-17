@@ -132,6 +132,7 @@
       "videoModeT2v": "文生视频",
       "videoModeReference": "单参考图",
       "chooseImageFile": "选择并上传图片",
+      "clearReferenceImage": "清除参考图片",
       "uploadingImage": "正在上传图片…",
       "imageFileTooLarge": "图片文件必须非空且不超过 32 MiB。",
       "imageFileMimeUnsupported": "请选择 PNG、JPEG、WebP 或 GIF 图片。",

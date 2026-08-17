@@ -52,7 +52,6 @@ export function useAuditPageData(enabled: boolean) {
           eventTypes: [],
           source: source && source !== 'all' ? source : '',
           modality: modality && modality !== 'all' ? modality : '',
-          localModelId: '',
           targetId: '',
           reasonCode: reasonCode || '',
           timeRange: timeFrom || timeTo

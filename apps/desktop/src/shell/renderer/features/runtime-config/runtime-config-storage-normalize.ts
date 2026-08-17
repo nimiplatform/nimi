@@ -1,5 +1,4 @@
 import {
-  DEFAULT_LOCAL_ENDPOINT_V11,
   normalizeCapabilityV11,
   normalizePageIdV11,
   normalizeRuntimeConfigActionFocus,
@@ -19,11 +18,9 @@ function normalizeLocalFromAny(
   const rawLocal = rawLocalRecord as Partial<RuntimeConfigStateV11['local']>;
 
   return {
-    ...fallback.local,
-    ...(rawLocal || {}),
-    endpoint: DEFAULT_LOCAL_ENDPOINT_V11,
-    models: [],
-    nodeMatrix: [],
+    status: rawLocal.status ?? fallback.local.status,
+    lastCheckedAt: rawLocal.lastCheckedAt ?? fallback.local.lastCheckedAt,
+    lastDetail: rawLocal.lastDetail ?? fallback.local.lastDetail,
   };
 }
 

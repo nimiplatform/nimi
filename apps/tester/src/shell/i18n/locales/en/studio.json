@@ -132,6 +132,7 @@
       "videoModeT2v": "Text to video",
       "videoModeReference": "Single reference image",
       "chooseImageFile": "Choose and upload image",
+      "clearReferenceImage": "Clear reference image",
       "uploadingImage": "Uploading image…",
       "imageFileTooLarge": "Image files must be non-empty and not exceed 32 MiB.",
       "imageFileMimeUnsupported": "Choose a PNG, JPEG, WebP, or GIF image.",

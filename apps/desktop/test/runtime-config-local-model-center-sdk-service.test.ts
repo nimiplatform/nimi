@@ -13,7 +13,7 @@ test('local model center defers Runtime client acquisition until an operation ru
 
   assert.equal(acquisitionCount, 0);
   await assert.rejects(
-    client.listAssets(),
+    client.listModelAssets(),
     /DESKTOP_TEST_LOCAL_ASSET_ADMIN_UNAVAILABLE/u,
   );
   assert.equal(acquisitionCount, 1);

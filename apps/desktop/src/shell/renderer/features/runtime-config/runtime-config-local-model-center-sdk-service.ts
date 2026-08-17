@@ -15,6 +15,14 @@ export type RuntimeConfigLocalAssetAdminClient = ReturnType<
   typeof createRuntimeConfigLocalAssetAdminClient
 >;
 
+export async function installRuntimeConfigCatalogAsset(
+  client: RuntimeConfigLocalAssetAdminClient,
+  templateId: string,
+) {
+  const plan = await client.resolveInstallPlan({ templateId });
+  return client.install(plan.planId, { caller: 'core' });
+}
+
 export function useRuntimeConfigLocalAssetAdminClient(): RuntimeConfigLocalAssetAdminClient {
   const sdk = useDesktopRendererSdk();
   return useMemo(

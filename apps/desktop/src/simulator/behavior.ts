@@ -358,7 +358,7 @@ function reduceAuthBeginLogin(
   const oauthState = `sim-oauth-state-${attemptSequence}`;
   const oauthNonce = `sim-oauth-nonce-${attemptSequence}`;
   const oauthCode = `sim-oauth-code-${attemptSequence}`;
-  const authorizationUrl = `https://simulator.invalid/oauth/authorize?client_id=sim-desktop-shell&redirect_uri=${encodeURIComponent(redirectUri)}&state=${oauthState}&nonce=${oauthNonce}`;
+  const authorizationUrl = `https://simulator.invalid/api/auth/oauth/authorize?client_id=sim-desktop-shell&redirect_uri=${encodeURIComponent(redirectUri)}&state=${oauthState}&nonce=${oauthNonce}`;
   const sessionRevision = auth.sessionRevision + 1;
   return {
     state: withSession(current, auth, instanceId, {

@@ -31,49 +31,31 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
   const panelState = useRuntimeConfigPanelState();
   const derived = useRuntimeConfigPanelDerived({
     state: panelState.state,
-    localModelQuery: panelState.localModelQuery,
     connectorModelQuery: panelState.connectorModelQuery,
   });
 
   // Live refs so the command context reads the latest state/guard values at
   // call time instead of capturing them in the useMemo dependency array.
-  // Keeping `commandInput` (and therefore `commands`, `refreshLocalSnapshot`,
-  // and the download-complete handler) referentially stable across state
-  // updates is what prevents the transfer-watch effect from re-subscribing on
-  // every render — the feedback loop that made the discovering/checking badge
-  // flicker. Assign in render body (not an effect) so reads are never stale.
+  // Keeping `commandInput` (and therefore `commands`) referentially stable
+  // across state updates prevents command effects from re-subscribing on every
+  // render. Assign in render body (not an effect) so reads are never stale.
   const stateRef = useRef(panelState.state);
-  const discoveringRef = useRef(panelState.discovering);
   const checkingHealthRef = useRef(panelState.checkingHealth);
   const testingConnectorRef = useRef(panelState.testingConnector);
-  const applyingRef = useRef(panelState.applying);
   const selectedConnectorRef = useRef(derived.selectedConnector);
   stateRef.current = panelState.state;
-  discoveringRef.current = panelState.discovering;
   checkingHealthRef.current = panelState.checkingHealth;
   testingConnectorRef.current = panelState.testingConnector;
-  applyingRef.current = panelState.applying;
   selectedConnectorRef.current = derived.selectedConnector;
 
   const commandInput = useMemo(() => ({
     guard: {
-      get discovering() { return discoveringRef.current; },
       get testingConnector() { return testingConnectorRef.current; },
       get checkingHealth() { return checkingHealthRef.current; },
-      get applying() { return applyingRef.current; },
-      setDiscovering: panelState.setDiscovering,
       setTestingConnector: panelState.setTestingConnector,
       setCheckingHealth: panelState.setCheckingHealth,
-      setApplying: panelState.setApplying,
     },
     provider: {
-      discover: {
-        get state() { return stateRef.current; },
-        sdk: bindings.sdk,
-        get discovering() { return discoveringRef.current; },
-        updateState: panelState.updateState,
-        setStatusBanner: setPageFeedback,
-      },
       health: {
         get state() { return stateRef.current; },
         sdk: bindings.sdk,
@@ -94,11 +76,8 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
     },
   }), [
     bindings.clock.now,
-    bindings.sdk,
     runtimeConnectorSdk,
-    panelState.setApplying,
     panelState.setCheckingHealth,
-    panelState.setDiscovering,
     panelState.setTestingConnector,
     panelState.updateState,
   ]);
@@ -108,13 +87,6 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
     [commandInput],
   );
 
-  const refreshLocalSnapshot = useCallback(async () => {
-    await Promise.all([
-      commands.discoverLocalModels(),
-      commands.runLocalHealthCheck(),
-    ]);
-  }, [commands]);
-
   const daemon = useRuntimeConfigDaemonController({
     updateState: panelState.updateState,
     runLocalHealthCheck: commands.runLocalHealthCheck,
@@ -122,10 +94,7 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
   });
 
   const installActions = useRuntimeConfigInstallActions({
-    localManifestSummaries: [],
-    refreshLocalSnapshot,
     setStatusBanner: setPageFeedback,
-    updateState: panelState.updateState,
   });
 
   const onVaultChanged = useCallback(() => {
@@ -148,7 +117,6 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
     setStatusBanner: setPageFeedback,
     setVaultEntryCount: panelState.setVaultEntryCount,
     vaultVersion: panelState.vaultVersion,
-    discoverLocalModels: commands.discoverLocalModels,
   });
 
   // Projection refresh is now driven centrally by surface subscription
@@ -204,72 +172,38 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
     return runtimeConfigNavigation.subscribe(applyNavigation);
   }, [panelState.updateState, runtimeConfigNavigation]);
 
-  const resolveRuntimeProfile = useCallback(async (
-    targetId: string,
-    profileId: string,
-    capability?: string,
-  ) => installActions.resolveRuntimeProfile(targetId, profileId, capability), [installActions]);
-
-  const applyRuntimeProfile = useCallback(async (
-    targetId: string,
-    profileId: string,
-    capability?: string,
-  ) => installActions.applyRuntimeProfile(targetId, profileId, capability), [installActions]);
-
   return {
     state: panelState.state,
     hydrated: panelState.hydrated,
     runtimeStatus: derived.runtimeStatus,
     activePage: panelState.state?.activePage || 'overview',
     showCloudApiKey: panelState.showCloudApiKey,
-    localModelQuery: panelState.localModelQuery,
     connectorModelQuery: panelState.connectorModelQuery,
     vaultEntryCount: panelState.vaultEntryCount,
-    discovering: panelState.discovering,
     testingConnector: panelState.testingConnector,
     checkingHealth: panelState.checkingHealth,
     runtimeWritesDisabled: offlineTier === 'L2',
     selectedConnector: derived.selectedConnector,
     orderedConnectors: derived.orderedConnectors,
-    filteredLocalModels: derived.filteredLocalModels,
     filteredConnectorModels: derived.filteredConnectorModels,
     registeredRuntimePackageIds: [],
     runtimeDaemonStatus: daemon.runtimeDaemonStatus,
     runtimeDaemonBusyAction: daemon.runtimeDaemonBusyAction,
     runtimeDaemonError: daemon.runtimeDaemonError,
     runtimeDaemonUpdatedAt: daemon.runtimeDaemonUpdatedAt,
-    localModelLifecycleById: installActions.localModelLifecycleById,
-    localModelLifecycleErrorById: installActions.localModelLifecycleErrorById,
     setShowCloudApiKey: panelState.setShowCloudApiKey,
-    setLocalModelQuery: panelState.setLocalModelQuery,
     setConnectorModelQuery: panelState.setConnectorModelQuery,
     setPageFeedback,
     onChangePage,
     updateState: panelState.updateState,
-    discoverLocalModels: commands.discoverLocalModels,
     runLocalHealthCheck: commands.runLocalHealthCheck,
     testSelectedConnector: commands.testSelectedConnector,
-    resolveRuntimeProfile,
-    applyRuntimeProfile,
     installCatalogLocalModel: installActions.installCatalogLocalModel,
-    installLocalModel: installActions.installLocalModel,
-    installVerifiedLocalModel: installActions.installVerifiedLocalModel,
-    importLocalModel: installActions.importLocalModel,
-    installVerifiedLocalAsset: installActions.installVerifiedLocalAsset,
-    importLocalAsset: installActions.importLocalAsset,
-    scaffoldLocalAssetOrphan: installActions.scaffoldLocalAssetOrphan,
-    importLocalModelFile: installActions.importLocalModelFile,
-    startLocalModel: installActions.startLocalModel,
-    stopLocalModel: installActions.stopLocalModel,
-    restartLocalModel: installActions.restartLocalModel,
-    removeLocalModel: installActions.removeLocalModel,
-    removeLocalAsset: installActions.removeLocalAsset,
+    installResolvedModelPlan: installActions.installResolvedModelPlan,
+    installCatalogModelAsset: installActions.installCatalogModelAsset,
     refreshRuntimeDaemonStatus: daemon.refreshRuntimeDaemonStatus,
     startRuntimeDaemon: daemon.startRuntimeDaemon,
     restartRuntimeDaemon: daemon.restartRuntimeDaemon,
     onVaultChanged,
-    onDownloadComplete: installActions.onDownloadComplete,
-    retryInstall: installActions.retryInstall,
-    installSessionMeta: installActions.installSessionMeta,
   };
 }

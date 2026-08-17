@@ -78,7 +78,7 @@ function aiConfigCopy(i18n: AgentCenterI18n | undefined): ModelConfigCopy {
     defaultsRandomValue: t('AgentCenter.aiConfig.defaultsRandomValue', 'random'),
     localChoiceDescription: t(
       'AgentCenter.aiConfig.localChoiceDescription',
-      'Use the model selected in Local AI Configurations.',
+      'Use the model selected in Loadouts.',
     ),
     localSelectedLabel: t('AgentCenter.aiConfig.localSelectedLabel', 'Selected on this machine'),
     localMissingLabel: t(
@@ -99,7 +99,7 @@ function aiConfigCopy(i18n: AgentCenterI18n | undefined): ModelConfigCopy {
       'The selected machine configuration does not provide required features: {{features}}',
       { features },
     ),
-    openMachineLabel: t('AgentCenter.aiConfig.openMachineLabel', 'Open Local AI Configurations'),
+    openMachineLabel: t('AgentCenter.aiConfig.openMachineLabel', 'Open Loadouts'),
     cloudConnectorPickerLabel: t('AgentCenter.aiConfig.cloudConnectorPickerLabel', 'Cloud Connector'),
     cloudConnectorPickerPlaceholder: t(
       'AgentCenter.aiConfig.cloudConnectorPickerPlaceholder',

@@ -1,5 +1,3 @@
-import type { NimiRuntimeLocalCatalogRecommendation } from '@nimiplatform/sdk/runtime';
-import type { JsonObject } from '@nimiplatform/sdk/types';
 import { createNimiClientId } from '@nimiplatform/sdk';
 import {
   NIMI_RUNTIME_LOCAL_RUNNABLE_ASSET_KIND_IDS,
@@ -12,22 +10,14 @@ import {
   normalizeNimiRuntimeConfigConnectorScope,
   normalizeNimiRuntimeConfigConnectorStatus,
   normalizeNimiRuntimeConfigConnectorVendor,
-  NIMI_RUNTIME_CONFIG_DEFAULT_LOCAL_ENDPOINT,
   NIMI_RUNTIME_CONFIG_DEFAULT_CONNECTOR_ENDPOINT,
   nimiRuntimeConfigConnectorVendorLabel,
   normalizeNimiRuntimeConfigEndpoint,
-  normalizeNimiRuntimeConfigLocalModelProjection,
-  normalizeNimiRuntimeConfigLocalNodeMatrixEntryProjection,
   normalizeNimiRuntimeConfigStringList,
   type NimiRuntimeConfigConnectorProjection,
-  type NimiRuntimeLocalProviderAdapterId,
   type NimiRuntimeConfigProviderStatus,
   type NimiRuntimeConnectorAuthMode,
   type NimiRuntimeConnectorScope,
-  type NimiRuntimeConfigLocalModelProjection,
-  type NimiRuntimeConfigLocalNodeCapability,
-  type NimiRuntimeConfigLocalNodeMatrixEntryProjection,
-  type NimiRuntimeConfigLocalProviderHints,
 } from '@nimiplatform/sdk/runtime';
 
 export const CAPABILITIES_V11 = NIMI_RUNTIME_LOCAL_RUNNABLE_ASSET_KIND_IDS;
@@ -37,7 +27,7 @@ export type SourceIdV11 = 'local' | 'cloud';
 /**
  * Runtime top-level pages. The former single `models` section is split
  * into four first-level pages: model market (recommendations), local
- * models, local AI configurations, and model catalog.
+ * models, Loadouts, and model catalog.
  */
 export type RuntimePageIdV11 =
   | 'overview'
@@ -70,24 +60,7 @@ export type RuntimeConfigActionFocus =
     focus: 'runtime-config-action-focus.models-configurations';
   };
 
-export type LocalModelOptionV11 = NimiRuntimeConfigLocalModelProjection & {
-  recommendation?: NimiRuntimeLocalCatalogRecommendation;
-};
-
-export type NodeCapabilityV11 = NimiRuntimeConfigLocalNodeCapability;
-
-export type LocalProviderHintsV11 = NimiRuntimeConfigLocalProviderHints & JsonObject;
-
-export type LocalNodeMatrixEntryV11 = NimiRuntimeConfigLocalNodeMatrixEntryProjection & {
-  capability: NodeCapabilityV11;
-  adapter?: NimiRuntimeLocalProviderAdapterId;
-  providerHints?: LocalProviderHintsV11;
-};
-
 export type LocalStateV11 = {
-  endpoint: string;
-  models: LocalModelOptionV11[];
-  nodeMatrix: LocalNodeMatrixEntryV11[];
   status: ProviderStatusV11;
   lastCheckedAt: string | null;
   lastDetail: string;
@@ -109,7 +82,6 @@ export type RuntimeConfigStateV11 = {
   selectedConnectorId: string;
 };
 
-export const DEFAULT_LOCAL_ENDPOINT_V11 = NIMI_RUNTIME_CONFIG_DEFAULT_LOCAL_ENDPOINT;
 export const DEFAULT_CONNECTOR_ENDPOINT_V11 = NIMI_RUNTIME_CONFIG_DEFAULT_CONNECTOR_ENDPOINT;
 
 export function normalizeSourceV11(value: unknown): SourceIdV11 {
@@ -246,14 +218,4 @@ export function normalizeConnectorV11(raw: Partial<ApiConnector>): ApiConnector 
     authMode: normalizeNimiRuntimeConfigConnectorAuthMode(raw.authMode) as NimiRuntimeConnectorAuthMode,
     scope: normalizeNimiRuntimeConfigConnectorScope(raw.scope) as NimiRuntimeConnectorScope,
   });
-}
-
-export function normalizeLocalModelV11(raw: Partial<LocalModelOptionV11>): LocalModelOptionV11 {
-  return normalizeNimiRuntimeConfigLocalModelProjection(raw) as LocalModelOptionV11;
-}
-
-export function normalizeLocalNodeMatrixEntryV11(
-  raw: Partial<LocalNodeMatrixEntryV11>,
-): LocalNodeMatrixEntryV11 {
-  return normalizeNimiRuntimeConfigLocalNodeMatrixEntryProjection(raw) as LocalNodeMatrixEntryV11;
 }

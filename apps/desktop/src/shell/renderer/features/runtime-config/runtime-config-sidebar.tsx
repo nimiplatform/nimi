@@ -124,7 +124,7 @@ export const RUNTIME_SIDEBAR_ITEMS: Array<{
   {
     id: 'localAiConfig',
     section: 'Runtime',
-    label: 'Local AI Configurations',
+    label: 'Loadouts',
     icon: ICON_LOCAL_AI_CONFIG,
   },
   {

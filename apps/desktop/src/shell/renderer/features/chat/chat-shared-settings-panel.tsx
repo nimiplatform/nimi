@@ -109,7 +109,7 @@ function useNimiChatModelConfigCopy(): ModelConfigCopy {
     }),
     defaultsRandomValue: t('Chat.settingsDefaultsRandomValue', { defaultValue: 'random' }),
     localChoiceDescription: t('Chat.settingsLocalChoiceDescription', {
-      defaultValue: 'Use the model selected in Local AI Configurations.',
+      defaultValue: 'Use the model selected in Loadouts.',
     }),
     localSelectedLabel: t('Chat.settingsLocalSelectionSelected', { defaultValue: 'Selected on this machine' }),
     localMissingLabel: t('Chat.settingsLocalSelectionMissing', {
@@ -126,7 +126,7 @@ function useNimiChatModelConfigCopy(): ModelConfigCopy {
       features,
     }),
     openMachineLabel: t('Chat.settingsOpenLocalConfigurations', {
-      defaultValue: 'Open Local AI Configurations',
+      defaultValue: 'Open Loadouts',
     }),
     cloudConnectorPickerLabel: t('Chat.settingsCloudConnectorPicker', { defaultValue: 'Cloud Connector' }),
     cloudConnectorPickerPlaceholder: t('Chat.settingsCloudConnectorPickerPlaceholder', {

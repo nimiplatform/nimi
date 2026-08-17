@@ -73,7 +73,7 @@ export function useAgentConversationHostFeedback() {
         : message,
       ...(contextCapacityFailure ? {
         actionLabel: t('Chat.openLocalAIConfigurations', {
-          defaultValue: 'Open Local AI Configurations',
+          defaultValue: 'Open Loadouts',
         }),
         onAction: () => {
           setActiveTab('runtime');

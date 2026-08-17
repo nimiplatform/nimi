@@ -210,7 +210,7 @@ describe('Electron host command policy', () => {
       await expect(invokeBridge(ipcMain, event, {
         command: STANDARD_COMMANDS.unary,
         payload: {
-          methodId: '/nimi.runtime.v1.RuntimeModelService/ListModels',
+          methodId: '/nimi.runtime.v1.RuntimeAppService/GetAppStorage',
           requestBytesBase64: toBase64(Uint8Array.from([4])),
         },
       })).resolves.toMatchObject({ responseBytesBase64: toBase64(Uint8Array.from([1, 2, 3])) });
@@ -219,7 +219,7 @@ describe('Electron host command policy', () => {
       await expect(invokeBridge(ipcMain, event, {
         command: STANDARD_COMMANDS.stream_open,
         payload: {
-          methodId: '/nimi.runtime.v1.RuntimeModelService/WatchModels',
+          methodId: '/nimi.runtime.v1.RuntimeCognitionService/SubscribeMemoryEvents',
           streamId: 'policy-stream',
           requestBytesBase64: '',
         },

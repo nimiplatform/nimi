@@ -1,6 +1,5 @@
 import { useCallback, useState } from 'react';
 import type {
-  NimiRuntimeLocalAssetDeclaration,
   NimiRuntimeLocalCatalogItemDescriptor,
   NimiRuntimeLocalCatalogVariantDescriptor,
 } from '@nimiplatform/sdk/runtime';
@@ -11,11 +10,9 @@ import {
   basenameFromRuntimePath,
   type LocalModelCenterProps,
 } from './runtime-config-model-center-utils';
-import { capabilitiesForAssetKind } from './runtime-config-use-local-model-center-helpers.js';
 import { useLocalModelCenterDownloads } from './runtime-config-use-local-model-center-downloads';
 
 type UseLocalModelCenterImportActionsInput = {
-  onRefreshUnregisteredAssets: () => Promise<void>;
   onRefreshAssetSections: () => Promise<void>;
   onRefreshVerifiedModels: () => Promise<void>;
   props: LocalModelCenterProps;
@@ -50,121 +47,21 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
     onCancelDownload,
     onDismissSession,
   } = useLocalModelCenterDownloads({
-    onDownloadComplete: input.props.onDownloadComplete,
-    onProgressSettled: () => { void input.onRefreshVerifiedModels(); },
+    onProgressSettled: () => {
+      void input.onRefreshVerifiedModels();
+      void input.onRefreshAssetSections();
+    },
   });
 
-  const handleImportedAsset = useCallback(async (
-    imported: Awaited<ReturnType<typeof runtimeConfigLocalAssetAdminClient.importAssetFile>> | {
-      scaffolded: true;
-      model: Awaited<ReturnType<typeof runtimeConfigLocalAssetAdminClient.scaffoldOrphanAsset>>;
-    },
-  ) => {
-    if ('scaffolded' in imported && imported.scaffolded) {
-      await input.props.onDiscover();
-      await input.onRefreshAssetSections();
-      await input.onRefreshUnregisteredAssets();
-      return;
-    }
-
-    await input.onRefreshAssetSections();
-    await input.onRefreshUnregisteredAssets();
-  }, [input]);
-
-  const importManagedModelAssetFromPath = useCallback(async (
-    assetPath: string,
-    declaration: NimiRuntimeLocalAssetDeclaration,
-  ) => {
-    const assetKind = declaration.assetKind;
-    if (!assetKind) {
-      throw new Error('assetKind is required for asset import');
-    }
-    const accepted = await runtimeConfigLocalAssetAdminClient.scaffoldOrphanAsset({
-      path: assetPath,
-      kind: assetKind,
-      engine: declaration.engine,
-    }, { caller: 'core' });
-    return { scaffolded: true as const, model: accepted };
-  }, []);
-
-  const importAssetFromPath = useCallback(async (
-    assetPath: string,
-    declaration: NimiRuntimeLocalAssetDeclaration,
-  ) => {
+  const importAssetFromPath = useCallback(async (assetPath: string) => {
     setImportingAssetPath(assetPath);
     setAssetImportError('');
     try {
-      const imported = await importManagedModelAssetFromPath(assetPath, declaration);
-      await handleImportedAsset(imported);
-    } catch (error: unknown) {
-      setAssetImportError(toAssetImportUserMessage(error));
-      throw error;
-    } finally {
-      setImportingAssetPath(null);
-    }
-  }, [handleImportedAsset, importManagedModelAssetFromPath]);
-
-  const importPickedAssetFile = useCallback(async (
-    declaration: NimiRuntimeLocalAssetDeclaration,
-  ) => {
-    setAssetImportError('');
-    const filePath = await commands.pickLocalRuntimeAssetFile();
-    if (!filePath) {
-      return;
-    }
-    setImportingAssetPath(filePath);
-    try {
-      const imported = await runtimeConfigLocalAssetAdminClient.importAssetFile({
-        filePath,
-        declaration,
+      const imported = await runtimeConfigLocalAssetAdminClient.importModelAsset({
+        sourcePath: assetPath,
+        displayName: basenameFromRuntimePath(assetPath) || undefined,
       }, { caller: 'core' });
-      await handleImportedAsset(imported);
-    } catch (error: unknown) {
-      setAssetImportError(toAssetImportUserMessage(error));
-      throw error;
-    } finally {
-      setImportingAssetPath(null);
-    }
-  }, [handleImportedAsset]);
-
-  const importPickedAssetManifest = useCallback(async () => {
-    setAssetImportError('');
-    const manifestPath = await commands.pickLocalRuntimeAssetManifestPath();
-    if (!manifestPath) {
-      return;
-    }
-    await runtimeConfigLocalAssetAdminClient.importAssetManifest(manifestPath, {
-      caller: 'core',
-    });
-    await input.props.onDiscover();
-    await input.onRefreshAssetSections();
-    await input.onRefreshUnregisteredAssets();
-  }, [input]);
-
-  const importPickedAssetDirectory = useCallback(async (
-    declaration: NimiRuntimeLocalAssetDeclaration,
-  ) => {
-    setAssetImportError('');
-    const directoryPath = await commands.pickLocalRuntimeAssetDirectory();
-    if (!directoryPath) {
-      return;
-    }
-    setImportingAssetPath(directoryPath);
-    try {
-      const assetKind = declaration.assetKind;
-      if (!assetKind) {
-        throw new Error('assetKind is required for bundle import');
-      }
-      const assetName = basenameFromRuntimePath(directoryPath);
-      const imported = await runtimeConfigLocalAssetAdminClient.importBundle({
-        directoryPath,
-        modelName: assetName || undefined,
-        capabilities: capabilitiesForAssetKind(assetKind),
-        engine: declaration.engine,
-      }, { caller: 'core' });
-      await input.props.onDiscover();
       await input.onRefreshAssetSections();
-      await input.onRefreshUnregisteredAssets();
       return imported;
     } catch (error: unknown) {
       setAssetImportError(toAssetImportUserMessage(error));
@@ -172,7 +69,21 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
     } finally {
       setImportingAssetPath(null);
     }
-  }, [input]);
+  }, [input.onRefreshAssetSections, runtimeConfigLocalAssetAdminClient]);
+
+  const importPickedAssetFile = useCallback(async () => {
+    setAssetImportError('');
+    const filePath = await commands.pickLocalRuntimeAssetFile();
+    if (!filePath) return;
+    return importAssetFromPath(filePath);
+  }, [commands, importAssetFromPath]);
+
+  const importPickedAssetDirectory = useCallback(async () => {
+    setAssetImportError('');
+    const directoryPath = await commands.pickLocalRuntimeAssetDirectory();
+    if (!directoryPath) return;
+    return importAssetFromPath(directoryPath);
+  }, [commands, importAssetFromPath]);
 
   const closeVariantPicker = useCallback(() => {
     setVariantPickerItem(null);
@@ -209,9 +120,11 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
     variantFilename: string,
   ) => {
     const selectedVariant = variantList.find((variant) => variant.filename === variantFilename) || null;
+    const entry = selectedVariant?.entry || variantFilename;
     await input.props.onInstallCatalogItem(item, {
-      entry: selectedVariant?.entry || variantFilename,
+      entry,
       files: selectedVariant ? [...selectedVariant.files] : [variantFilename],
+      hashes: selectedVariant?.sha256 ? { [entry]: selectedVariant.sha256 } : undefined,
       capabilities: [String(item.capabilities[0] || 'chat').trim() || 'chat'],
       engine: String(item.engine || '').trim(),
     });
@@ -224,7 +137,6 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
     importAssetFromPath,
     importPickedAssetFile,
     importPickedAssetDirectory,
-    importPickedAssetManifest,
     assetImportError,
     importingAssetPath,
     installCatalogVariant,

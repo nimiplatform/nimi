@@ -3,7 +3,7 @@ import test from 'node:test';
 
 import { normalizeStoredStateV11 } from '../src/shell/renderer/features/runtime-config/runtime-config-storage-normalize.js';
 
-test('runtime config storage normalization drops stale local runtime endpoint and inventory', () => {
+test('runtime config storage normalization drops retired local node state', () => {
   const normalized = normalizeStoredStateV11({
     version: 12,
     initializedByV11: true,
@@ -14,12 +14,6 @@ test('runtime config storage normalization drops stale local runtime endpoint an
     activeCapability: 'chat',
     local: {
       endpoint: 'http://127.0.0.1:11434',
-      models: [{
-        localModelId: 'stale-local-model',
-        model: 'stale-local-model',
-        status: 'active',
-        capabilities: ['chat'],
-      }],
       nodeMatrix: [{
         nodeId: 'stale-node',
         capability: 'chat',
@@ -28,8 +22,7 @@ test('runtime config storage normalization drops stale local runtime endpoint an
     } as never,
   });
 
-  assert.equal(normalized.local.endpoint, '');
-  assert.deepEqual(normalized.local.models, []);
-  assert.deepEqual(normalized.local.nodeMatrix, []);
+  assert.equal('endpoint' in normalized.local, false);
+  assert.equal('nodeMatrix' in normalized.local, false);
   assert.deepEqual(normalized.connectors, []);
 });

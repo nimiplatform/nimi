@@ -120,6 +120,8 @@ function LocalModelCenterActiveDownloadsSection(props: ActiveDownloadsSectionPro
 
 type ActiveImportsSectionProps = {
   imports: NimiRuntimeLocalTransferProgressEvent[];
+  onPause: (installSessionId: string) => void;
+  onResume: (installSessionId: string) => void;
   onCancel: (installSessionId: string) => void;
   onDismiss: (installSessionId: string) => void;
 };
@@ -184,6 +186,20 @@ function LocalModelCenterActiveImportsSection(props: ActiveImportsSectionProps) 
                 >
                   {'\u00d7'}
                 </button>
+              ) : null}
+              {isRunning ? (
+                <button
+                  type="button"
+                  className="ml-1 rounded border border-[var(--nimi-border-subtle)] px-2 py-1 text-xs text-[var(--nimi-text-secondary)]"
+                  onClick={() => props.onPause(event.installSessionId)}
+                >
+                  {i18n.t('runtimeConfig.localModelCenter.pause', { defaultValue: 'Pause' })}
+                </button>
+              ) : null}
+              {isPaused ? (
+                <Button size="sm" onClick={() => props.onResume(event.installSessionId)}>
+                  {i18n.t('runtimeConfig.localModelCenter.resume', { defaultValue: 'Resume' })}
+                </Button>
               ) : null}
               {canCancel ? (
                 <button
@@ -273,7 +289,7 @@ function LocalModelCenterAssetTasksSection(props: AssetTasksSectionProps) {
                   {assetTaskStatusLabel(task.state)}
                 </span>
               </div>
-              {isFailed && task.taskKind === 'verified-install' ? (
+              {isFailed && task.taskKind === 'catalog-install' ? (
                 <div className="mt-3 flex items-center justify-end">
                   <button
                     type="button"

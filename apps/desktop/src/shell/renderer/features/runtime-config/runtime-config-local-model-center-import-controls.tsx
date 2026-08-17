@@ -1,67 +1,34 @@
 import type { RefObject } from 'react';
-import type { NimiRuntimeLocalAssetKind } from '@nimiplatform/sdk/runtime';
-import type {
-  AssetEngineOption,
-} from './runtime-config-model-center-utils';
-import {
-  LocalModelCenterImportDialog,
-  LocalModelCenterToolbar,
-} from './runtime-config-local-model-center-sections';
+import { LocalModelCenterToolbar } from './runtime-config-local-model-center-sections';
 
 type LocalModelCenterImportControlsProps = {
   checkingHealth: boolean;
   lastCheckedAt?: string | null | undefined;
-  discovering: boolean;
+  refreshing: boolean;
   importMenuRef: RefObject<HTMLDivElement | null>;
   showImportMenu: boolean;
-  showImportFileDialog: boolean;
-  importFileAssetKind: NimiRuntimeLocalAssetKind;
-  importFileAuxiliaryEngine: AssetEngineOption | '';
   onHealthCheck: () => void;
   onRefresh: () => void;
   onOpenModelsFolder: () => void;
   onToggleImportMenu: () => void;
-  onOpenImportFile: () => void;
-  onOpenImportBundle: () => void;
-  onImportManifest: () => void;
-  onAssetKindChange: (kind: NimiRuntimeLocalAssetKind) => void;
-  onAuxiliaryEngineChange: (engine: AssetEngineOption | '') => void;
-  onCloseImportFileDialog: () => void;
-  onChooseImportFile: () => void;
-  onChooseImportDirectory: () => void;
-  canChooseImportFile: boolean;
-  canChooseImportDirectory: boolean;
+  onImportFile: () => Promise<unknown>;
+  onImportDirectory: () => Promise<unknown>;
 };
 
 export function LocalModelCenterImportControls(props: LocalModelCenterImportControlsProps) {
   return (
-    <>
-      <LocalModelCenterToolbar
-        checkingHealth={props.checkingHealth}
-        lastCheckedAt={props.lastCheckedAt ?? null}
-        discovering={props.discovering}
-        importMenuRef={props.importMenuRef}
-        showImportMenu={props.showImportMenu}
-        onHealthCheck={props.onHealthCheck}
-        onRefresh={props.onRefresh}
-        onOpenModelsFolder={props.onOpenModelsFolder}
-        onToggleImportMenu={props.onToggleImportMenu}
-        onOpenImportFile={props.onOpenImportFile}
-        onOpenImportBundle={props.onOpenImportBundle}
-        onImportManifest={props.onImportManifest}
-      />
-      <LocalModelCenterImportDialog
-        visible={props.showImportFileDialog}
-        assetKind={props.importFileAssetKind}
-        auxiliaryEngine={props.importFileAuxiliaryEngine}
-        onAssetKindChange={props.onAssetKindChange}
-        onAuxiliaryEngineChange={props.onAuxiliaryEngineChange}
-        onClose={props.onCloseImportFileDialog}
-        onChooseFile={props.onChooseImportFile}
-        onChooseFolder={props.onChooseImportDirectory}
-        canChooseFile={props.canChooseImportFile}
-        canChooseFolder={props.canChooseImportDirectory}
-      />
-    </>
+    <LocalModelCenterToolbar
+      checkingHealth={props.checkingHealth}
+      lastCheckedAt={props.lastCheckedAt ?? null}
+      refreshing={props.refreshing}
+      importMenuRef={props.importMenuRef}
+      showImportMenu={props.showImportMenu}
+      onHealthCheck={props.onHealthCheck}
+      onRefresh={props.onRefresh}
+      onOpenModelsFolder={props.onOpenModelsFolder}
+      onToggleImportMenu={props.onToggleImportMenu}
+      onImportFile={props.onImportFile}
+      onImportDirectory={props.onImportDirectory}
+    />
   );
 }

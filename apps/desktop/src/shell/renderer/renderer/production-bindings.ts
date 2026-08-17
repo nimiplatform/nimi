@@ -65,7 +65,6 @@ import { hasElectronInvoke } from '@nimiplatform/kit/shell/renderer/bridge';
 import {
   pickLocalRuntimeAssetDirectory,
   pickLocalRuntimeAssetFile,
-  pickLocalRuntimeAssetManifestPath,
   revealLocalRuntimeAssetsRootFolder,
 } from '../bridge/runtime-bridge/local-runtime-os-helpers.js';
 import { createDesktopProductionWorldFollowPort } from '../features/world/production-world-follow-port.js';
@@ -241,7 +240,6 @@ export function createDesktopProductionBindings(
           URL.revokeObjectURL(url);
         },
         confirmRuntimeProfileInstall: (message: string) => window.confirm(message),
-        pickLocalRuntimeAssetManifestPath,
         pickLocalRuntimeAssetFile,
         pickLocalRuntimeAssetDirectory,
         revealLocalRuntimeAssetsRootFolder,

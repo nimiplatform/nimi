@@ -87,7 +87,7 @@ export function TesterAiConfigSettingsPanel({
           configurationId: null,
           displayName: null,
           supportedFeatures: [],
-          reasons: ['machine-local-ai-configuration-unavailable'],
+          reasons: ['machine-loadout-unavailable'],
           effectiveDefaults: null,
         })));
       }

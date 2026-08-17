@@ -22,26 +22,10 @@ export function LocalPage({ model, state }: LocalPageProps) {
       ) : null}
       <LocalModelCenter
         state={state}
-        discovering={model.discovering}
         checkingHealth={model.checkingHealth}
-        localModelQuery={model.localModelQuery}
-        filteredLocalModels={model.filteredLocalModels}
-        onDiscover={model.discoverLocalModels}
         onHealthCheck={model.runLocalHealthCheck}
         onInstallCatalogItem={model.installCatalogLocalModel}
-        onInstall={model.installLocalModel}
-        onInstallVerified={model.installVerifiedLocalModel}
-        onImport={model.importLocalModel}
-        onInstallVerifiedAsset={model.installVerifiedLocalAsset}
-        onImportAsset={model.importLocalAsset}
-        onScaffoldAssetOrphan={model.scaffoldLocalAssetOrphan}
-        onImportFile={model.importLocalModelFile}
-        onRemove={model.removeLocalModel}
-        onRemoveAsset={model.removeLocalAsset}
-        onSetLocalModelQuery={model.setLocalModelQuery}
-        onDownloadComplete={model.onDownloadComplete}
-        onRetryInstall={model.retryInstall}
-        installSessionMeta={model.installSessionMeta}
+        onInstallCatalogAsset={model.installCatalogModelAsset}
       />
     </div>
   );

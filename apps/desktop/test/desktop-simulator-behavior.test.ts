@@ -95,7 +95,7 @@ test('Desktop Simulator logout is isolated and a complete broker flow reauthenti
 
   const begun = begin(loggedOut.state);
   const authorizationUrl = (begun.events[0]?.payload as { authorizationUrl: string }).authorizationUrl;
-  assert.match(authorizationUrl, /^https:\/\/simulator\.invalid\/oauth\/authorize\?/u);
+  assert.match(authorizationUrl, /^https:\/\/simulator\.invalid\/api\/auth\/oauth\/authorize\?/u);
   const opened = reduce(begun.state, command('desktop.auth.oauth.open', {
     instanceId: '1:instance:1', url: authorizationUrl, state: 'sim-oauth-state-1',
   }));
@@ -127,7 +127,7 @@ test('Desktop Simulator auth rejects stale fields, overlap, redirect mismatch, a
     instanceId: '1:instance:2', redirectUri: callbackUrl, callbackOrigin, requestedScopes: [], ttlSeconds: 600,
   }, '1:instance:1')), /AUTH_INSTANCE_REJECTED/);
   assert.throws(() => reduce(begun.state, command('desktop.auth.oauth.open', {
-    instanceId: '1:instance:1', url: 'https://simulator.invalid/oauth/authorize?state=wrong', state: 'wrong',
+    instanceId: '1:instance:1', url: 'https://simulator.invalid/api/auth/oauth/authorize?state=wrong', state: 'wrong',
   })), /AUTH_OAUTH_REJECTED/);
 });
 

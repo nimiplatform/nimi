@@ -49,6 +49,7 @@ export type NimiLocalAppImageGenerateSpec = {
   readonly style: string;
   readonly seed?: number;
   readonly referenceImages: readonly string[];
+  readonly referenceImageArtifactId: string;
   readonly mask: string;
   readonly responseFormat: '' | 'b64_json' | 'url';
 };
@@ -482,7 +483,7 @@ function validateScenarioSpec<T extends NimiLocalAppScenarioExecuteSpec | NimiLo
       record.inputs.forEach((value, index) => boundedContent(value, `text embed input ${index}`, 32 * 1024));
       break;
     case 'image-generate':
-      assertExactKeys(record, ['type', 'prompt', 'negativePrompt', 'n', 'size', 'aspectRatio', 'quality', 'style', 'seed', 'referenceImages', 'mask', 'responseFormat'], 'image spec');
+      assertExactKeys(record, ['type', 'prompt', 'negativePrompt', 'n', 'size', 'aspectRatio', 'quality', 'style', 'seed', 'referenceImages', 'referenceImageArtifactId', 'mask', 'responseFormat'], 'image spec');
       boundedContent(record.prompt, 'image prompt', 32 * 1024);
       optionalBoundedText(record.negativePrompt, 'image negativePrompt', 32 * 1024);
       optionalBoundedInteger(record.n, 'image n', 0, 4);
@@ -493,6 +494,11 @@ function validateScenarioSpec<T extends NimiLocalAppScenarioExecuteSpec | NimiLo
       optionalBoundedInteger(record.seed, 'image seed', Number.MIN_SAFE_INTEGER, Number.MAX_SAFE_INTEGER);
       if (!Array.isArray(record.referenceImages) || record.referenceImages.length > 1) invalidAIInput('image referenceImages are invalid');
       record.referenceImages.forEach((value, index) => boundedHttpsUrl(value, `image reference ${index}`));
+      if (typeof record.referenceImageArtifactId !== 'string') invalidAIInput('image referenceImageArtifactId is invalid');
+      if (record.referenceImageArtifactId !== '') boundedIdentifier(record.referenceImageArtifactId, 'image referenceImageArtifactId');
+      if (record.referenceImages.length > 0 && record.referenceImageArtifactId !== '') {
+        invalidAIInput('image referenceImages and referenceImageArtifactId are mutually exclusive');
+      }
       if (record.mask !== '') boundedHttpsUrl(record.mask, 'image mask');
       if (!['', 'b64_json', 'url'].includes(String(record.responseFormat))) invalidAIInput('image responseFormat is invalid');
       break;
@@ -867,6 +873,7 @@ function localJobSpecFromRuntimeRequest(request: SubmitScenarioJobRequest): Nimi
           ? { seed: safeOptionalSignedInt64(spec.imageGenerate.seed, 'image seed') }
           : {}),
         referenceImages: spec.imageGenerate.referenceImages,
+        referenceImageArtifactId: spec.imageGenerate.referenceImageArtifactId,
         mask: spec.imageGenerate.mask,
         responseFormat: spec.imageGenerate.responseFormat as '' | 'b64_json' | 'url',
       }, false);

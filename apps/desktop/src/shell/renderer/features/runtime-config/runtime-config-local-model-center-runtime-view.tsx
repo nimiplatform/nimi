@@ -1,12 +1,10 @@
 import type { RefObject } from 'react';
+import { useDesktopI18nResource } from '../../i18n/i18n-context';
 import type {
-  NimiRuntimeLocalAssetDeclaration,
-  NimiRuntimeLocalAssetKind,
-  NimiRuntimeLocalAssetRecord,
   NimiRuntimeLocalCatalogItemDescriptor,
   NimiRuntimeLocalCatalogVariantDescriptor,
-  NimiRuntimeLocalUnregisteredAssetDescriptor,
   NimiRuntimeLocalVerifiedAssetDescriptor,
+  NimiRuntimeModelAssetRecord,
 } from '@nimiplatform/sdk/runtime';
 import { ScrollArea } from '@nimiplatform/kit/ui';
 import type {
@@ -20,85 +18,58 @@ import {
   LocalModelCenterActiveImportsSection,
   LocalModelCenterAssetTasksSection,
   LocalModelCenterQuickPicksSection,
-  LocalModelCenterUnregisteredAssetsSection,
   LocalModelCenterVerifiedAssetsSection,
 } from './runtime-config-local-model-center-sections';
-import type {
-  AssetEngineOption,
-  CapabilityOption,
-} from './runtime-config-model-center-utils';
+import type { CapabilityOption } from './runtime-config-model-center-utils';
 import type { useLocalModelCenterDownloads } from './runtime-config-use-local-model-center-downloads';
 
 type DownloadState = ReturnType<typeof useLocalModelCenterDownloads>;
 
 type LocalModelCenterRuntimeViewProps = {
   assetBusy: boolean;
-  assetKindFilter: 'all' | NimiRuntimeLocalAssetKind;
   assetPendingTemplateIds: string[];
   catalogCapability: 'all' | CapabilityOption;
   catalogDisplayCount: number;
   catalogItems: NimiRuntimeLocalCatalogItemDescriptor[];
   checkingHealth: boolean;
   deferredSearchQuery: string;
-  discovering: boolean;
-  filteredInstalledDependencyAssets: NimiRuntimeLocalAssetRecord[];
-  filteredInstalledRunnableAssets: NimiRuntimeLocalAssetRecord[];
+  refreshing: boolean;
+  modelAssets: NimiRuntimeModelAssetRecord[];
   runtimeInventoryError: string;
+  stateIsolationDiagnostic: string;
   hasSearchQuery: boolean;
-  importFileAssetKind: NimiRuntimeLocalAssetKind;
-  importFileAuxiliaryEngine: AssetEngineOption | '';
   importMenuRef: RefObject<HTMLDivElement | null>;
-  importingAssetPath: string | null;
   installing: boolean;
-  installedAssetsById: Map<string, NimiRuntimeLocalAssetRecord>;
   isAssetPending: (templateId: string) => boolean;
   loadingCatalog: boolean;
   loadingInstalledAssets: boolean;
   loadingVariants: boolean;
   loadingVerifiedAssets: boolean;
   loadingVerifiedModels: boolean;
-  assetImportError: string;
-  onArtifactKindFilterChange: (value: 'all' | NimiRuntimeLocalAssetKind) => void;
-  onAssetKindChange: (kind: NimiRuntimeLocalAssetKind) => void;
-  onAssetAuxiliaryEngineChange: (engine: AssetEngineOption | '') => void;
   onCatalogCapabilityChange: (value: 'all' | CapabilityOption) => void;
   onCatalogCapabilityOverrideChange: (itemId: string, capability: CapabilityOption) => void;
-  onChooseImportFile: () => void;
-  onChooseImportDirectory: () => void;
-  onCloseImportFileDialog: () => void;
+  onImportFile: () => Promise<unknown>;
+  onImportDirectory: () => Promise<unknown>;
   onCloseVariantPicker: () => void;
   onHealthCheck: () => void;
   onOpenModelsFolder: () => void;
-  onImportManifest: () => void;
   onInstallAsset: (templateId: string) => void;
   onInstallCatalogVariant: (item: NimiRuntimeLocalCatalogItemDescriptor, variantFilename: string) => void;
-  onInstallMissingAssets: (assets: NimiRuntimeLocalVerifiedAssetDescriptor[]) => void;
-  onInstallVerifiedModel: (templateId: string) => void;
+  onInstallCatalogQuickPick: (templateId: string) => void;
   onLoadMoreCatalog: () => void;
-  onOpenImportFile: () => void;
-  onOpenImportBundle: () => void;
   onPauseDownload: DownloadState['onPauseDownload'];
   onRefresh: () => void;
   onRefreshAssets: () => void;
   onRefreshQuickPicks: () => void;
-  onRefreshUnregisteredAssets: () => void;
-  onRemoveAsset: (localAssetId: string) => void;
-  onRescanAsset: (localAssetId: string) => void;
+  onInspectRemoval: (localAssetId: string) => Promise<string[]>;
+  onRemoveAsset: (localAssetId: string) => Promise<void>;
   onResumeDownload: DownloadState['onResumeDownload'];
   onSearchQueryChange: (value: string) => void;
   onToggleImportMenu: () => void;
   onToggleVariantPicker: (item: NimiRuntimeLocalCatalogItemDescriptor) => void;
-  onImportUnregisteredAsset: (path: string) => void;
-  onUnregisteredAssetKindChange: (path: string, kind: NimiRuntimeLocalAssetKind) => void;
-  onUnregisteredAuxiliaryEngineChange: (path: string, engine: AssetEngineOption | '') => void;
-  relatedAssetsByModelTemplate: Map<string, NimiRuntimeLocalVerifiedAssetDescriptor[]>;
-  resolveUnregisteredAssetDraft: (asset: NimiRuntimeLocalUnregisteredAssetDescriptor) => NimiRuntimeLocalAssetDeclaration;
   searchQuery: string;
   selectedCatalogCapability: (item: NimiRuntimeLocalCatalogItemDescriptor) => CapabilityOption;
-  showImportFileDialog: boolean;
   showImportMenu: boolean;
-  canChooseImportFile: boolean;
-  canChooseImportDirectory: boolean;
   variantError: string;
   variantList: NimiRuntimeLocalCatalogVariantDescriptor[];
   variantPickerItem: NimiRuntimeLocalCatalogItemDescriptor | null;
@@ -107,16 +78,23 @@ type LocalModelCenterRuntimeViewProps = {
   visibleVerifiedAssets: NimiRuntimeLocalVerifiedAssetDescriptor[];
   downloads: DownloadState['activeDownloads'];
   imports: DownloadState['activeImports'];
-  unregisteredAssets: NimiRuntimeLocalUnregisteredAssetDescriptor[];
   onCancelDownload: DownloadState['onCancelDownload'];
   onDismissSession: (installSessionId: string) => void;
   lastCheckedAt?: string | null;
 };
 
 export function LocalModelCenterRuntimeView(props: LocalModelCenterRuntimeViewProps) {
+  const i18n = useDesktopI18nResource().instance;
+  const t = i18n.t.bind(i18n);
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <ScrollArea className="flex-1" contentClassName="mx-auto max-w-4xl space-y-8 p-6">
+        {props.stateIsolationDiagnostic ? (
+          <div className="rounded-xl border border-[color-mix(in_srgb,var(--nimi-status-warning)_32%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-warning)_10%,transparent)] px-4 py-3 text-sm text-[var(--nimi-status-warning)]" data-testid="runtime-local-state-isolation-diagnostic">
+            <p className="font-medium">{t('runtimeConfig.localModelCenter.stateCutoverFailedTitle', { defaultValue: 'Runtime local state needs review' })}</p>
+            <p className="mt-1 text-xs">{props.stateIsolationDiagnostic}</p>
+          </div>
+        ) : null}
         {props.runtimeInventoryError ? (
           <div className="rounded-xl border border-[color-mix(in_srgb,var(--nimi-status-danger)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_8%,transparent)] px-4 py-3 text-sm text-[var(--nimi-status-danger)]">
             {props.runtimeInventoryError}
@@ -125,36 +103,15 @@ export function LocalModelCenterRuntimeView(props: LocalModelCenterRuntimeViewPr
         <LocalModelCenterImportControls
           checkingHealth={props.checkingHealth}
           lastCheckedAt={props.lastCheckedAt}
-          discovering={props.discovering}
+          refreshing={props.refreshing}
           importMenuRef={props.importMenuRef}
           showImportMenu={props.showImportMenu}
-          showImportFileDialog={props.showImportFileDialog}
-          importFileAssetKind={props.importFileAssetKind}
-          importFileAuxiliaryEngine={props.importFileAuxiliaryEngine}
           onHealthCheck={props.onHealthCheck}
           onRefresh={props.onRefresh}
           onOpenModelsFolder={props.onOpenModelsFolder}
           onToggleImportMenu={props.onToggleImportMenu}
-          onOpenImportFile={props.onOpenImportFile}
-          onOpenImportBundle={props.onOpenImportBundle}
-          onImportManifest={props.onImportManifest}
-          onAssetKindChange={props.onAssetKindChange}
-          onAuxiliaryEngineChange={props.onAssetAuxiliaryEngineChange}
-          onCloseImportFileDialog={props.onCloseImportFileDialog}
-          onChooseImportFile={props.onChooseImportFile}
-          onChooseImportDirectory={props.onChooseImportDirectory}
-          canChooseImportFile={props.canChooseImportFile}
-          canChooseImportDirectory={props.canChooseImportDirectory}
-        />
-        <LocalModelCenterUnregisteredAssetsSection
-          assets={props.unregisteredAssets}
-          assetImportError={props.assetImportError}
-          importingAssetPath={props.importingAssetPath}
-          resolveDraft={props.resolveUnregisteredAssetDraft}
-          onRefresh={props.onRefreshUnregisteredAssets}
-          onAssetKindChange={props.onUnregisteredAssetKindChange}
-          onAuxiliaryEngineChange={props.onUnregisteredAuxiliaryEngineChange}
-          onImport={props.onImportUnregisteredAsset}
+          onImportFile={props.onImportFile}
+          onImportDirectory={props.onImportDirectory}
         />
         <LocalModelCenterActiveDownloadsSection
           downloads={props.downloads}
@@ -162,61 +119,51 @@ export function LocalModelCenterRuntimeView(props: LocalModelCenterRuntimeViewPr
           onResume={props.onResumeDownload}
           onCancel={props.onCancelDownload}
         />
-        <LocalModelCenterActiveImportsSection imports={props.imports} onCancel={props.onCancelDownload} onDismiss={props.onDismissSession} />
+        <LocalModelCenterActiveImportsSection
+          imports={props.imports}
+          onPause={props.onPauseDownload}
+          onResume={props.onResumeDownload}
+          onCancel={props.onCancelDownload}
+          onDismiss={props.onDismissSession}
+        />
         <LocalModelCenterAssetTasksSection
           tasks={props.visibleAssetTasks}
           pendingTemplateIds={props.assetPendingTemplateIds}
           onRetryTask={props.onInstallAsset}
         />
         <LocalModelCenterInstalledAssetsSection
-          filteredInstalledRunnableAssets={props.filteredInstalledRunnableAssets}
-          filteredInstalledDependencyAssets={props.filteredInstalledDependencyAssets}
+          modelAssets={props.modelAssets}
           loadingInstalledAssets={props.loadingInstalledAssets}
-          loadingVerifiedAssets={props.loadingVerifiedAssets}
-          assetKindFilter={props.assetKindFilter}
           assetBusy={props.assetBusy}
-          onArtifactKindFilterChange={props.onArtifactKindFilterChange}
           onRefreshAssets={props.onRefreshAssets}
+          onInspectRemoval={props.onInspectRemoval}
           onRemoveAsset={props.onRemoveAsset}
-          onRescanAsset={props.onRescanAsset}
         />
         {!props.hasSearchQuery ? (
           <LocalModelCenterQuickPicksSection
             loadingVerifiedModels={props.loadingVerifiedModels}
             installing={props.installing}
-            assetBusy={props.assetBusy}
             verifiedModels={props.verifiedModels}
-            relatedAssetsByModelTemplate={props.relatedAssetsByModelTemplate}
-            installedAssetsById={props.installedAssetsById}
-            isAssetPending={props.isAssetPending}
             onRefresh={props.onRefreshQuickPicks}
-            onInstallVerifiedModel={props.onInstallVerifiedModel}
-            onInstallAsset={props.onInstallAsset}
-            onInstallMissingAssets={props.onInstallMissingAssets}
+            onInstallCatalogQuickPick={props.onInstallCatalogQuickPick}
           />
         ) : null}
         <LocalModelCenterCatalogCard
           searchQuery={props.searchQuery}
           catalogCapability={props.catalogCapability}
           loadingCatalog={props.loadingCatalog}
-          assetBusy={props.assetBusy}
           hasSearchQuery={props.hasSearchQuery}
           verifiedModels={props.verifiedModels}
           catalogItems={props.catalogItems}
           catalogDisplayCount={props.catalogDisplayCount}
-          relatedAssetsByModelTemplate={props.relatedAssetsByModelTemplate}
-          installedAssetsById={props.installedAssetsById}
           variantPickerItem={props.variantPickerItem}
           variantList={props.variantList}
           variantError={props.variantError}
           loadingVariants={props.loadingVariants}
           selectedCatalogCapability={props.selectedCatalogCapability}
-          isAssetPending={props.isAssetPending}
           onSearchQueryChange={props.onSearchQueryChange}
           onCatalogCapabilityChange={props.onCatalogCapabilityChange}
-          onInstallMissingAssets={props.onInstallMissingAssets}
-          onInstallVerifiedModel={props.onInstallVerifiedModel}
-          onInstallAsset={props.onInstallAsset}
+          onInstallCatalogQuickPick={props.onInstallCatalogQuickPick}
           onToggleVariantPicker={props.onToggleVariantPicker}
           onCloseVariantPicker={props.onCloseVariantPicker}
           onCatalogCapabilityOverrideChange={props.onCatalogCapabilityOverrideChange}

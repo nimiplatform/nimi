@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Surface,
@@ -19,6 +20,7 @@ import {
 } from './runtime-config-runtime-page-ui';
 import { RuntimePageShell } from './runtime-config-page-shell';
 import { OverviewLoadUsageSection } from './runtime-config-overview-load-usage';
+import { useRuntimeConfigLocalAssetAdminClient } from './runtime-config-local-model-center-sdk-service';
 
 type OverviewPageProps = {
   model: RuntimeConfigPanelControllerModel;
@@ -93,8 +95,19 @@ function QuickLinkCard({
 export function OverviewPage({ model, state }: OverviewPageProps) {
   const i18n = useDesktopI18nResource();
   const { t } = useTranslation();
+  const modelAssetsClient = useRuntimeConfigLocalAssetAdminClient();
+  const [installedAssetCount, setInstalledAssetCount] = useState<number | null>(null);
 
-  const installedAssetCount = state.local.models.filter((m) => m.status !== 'removed').length;
+  useEffect(() => {
+    let active = true;
+    void modelAssetsClient.listModelAssets().then((assets) => {
+      if (active) setInstalledAssetCount(assets.length);
+    }).catch(() => {
+      if (active) setInstalledAssetCount(null);
+    });
+    return () => { active = false; };
+  }, [modelAssetsClient]);
+
   const daemonRunning = model.runtimeDaemonStatus?.running === true;
   const daemonBusy = model.runtimeDaemonBusyAction !== null;
   const daemonIssue = describeRuntimeDaemonIssue({
@@ -111,8 +124,8 @@ export function OverviewPage({ model, state }: OverviewPageProps) {
         <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-3">
           <StatTile
             title={t('runtimeConfig.overview.installedAssets', { defaultValue: 'Installed Assets' })}
-            value={installedAssetCount}
-            subtitle={t('runtimeConfig.overview.runtimeManagedInventory', { defaultValue: 'Runtime-managed inventory' })}
+            value={installedAssetCount ?? '—'}
+            subtitle={t('runtimeConfig.overview.runtimeManagedInventory', { defaultValue: 'ModelAsset inventory' })}
             onClick={() => model.onChangePage('localModels')}
           />
           <StatTile
@@ -206,7 +219,7 @@ export function OverviewPage({ model, state }: OverviewPageProps) {
         <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
           <QuickLinkCard
             title={t('runtimeConfig.overview.manageModels', { defaultValue: 'Manage Models' })}
-            description={t('runtimeConfig.overview.manageModelsDescription', { defaultValue: 'Install, start, stop local assets' })}
+            description={t('runtimeConfig.overview.manageModelsDescription', { defaultValue: 'Import, install, and manage ModelAssets' })}
             onClick={() => model.onChangePage('localModels')}
           />
           <QuickLinkCard

@@ -98,13 +98,22 @@ describe('runRuntimeImageGenerate', () => {
     const hosted = imageArtifact({ uri: 'https://cdn.example.test/image.png', sizeBytes: '1024' });
     const fake = fakeClient({ events: [imageJob(ScenarioJobStatus.COMPLETED)], artifacts: [hosted] });
     const onJobUpdate = vi.fn();
-    const request = input(fake.client, { count: 1, aspectRatio: '1:1', metadata: { source: 'tester' }, onJobUpdate });
+    const request = input(fake.client, {
+      count: 1,
+      aspectRatio: '1:1',
+      referenceImageArtifactId: 'artifact-image-source-1',
+      metadata: { source: 'tester' },
+      onJobUpdate,
+    });
 
     const result = await runRuntimeImageGenerate(request);
 
     expect(Object.keys(request)).not.toEqual(expect.arrayContaining(['config', 'binding', 'model', 'route', 'targetRef']));
     const [runtimeRequest] = fake.submitScenarioJob.mock.calls[0]!;
     expect(runtimeRequest).toMatchObject({ scenarioType: ScenarioType.IMAGE_GENERATE, executionMode: ExecutionMode.ASYNC_JOB });
+    expect(runtimeRequest.spec?.spec.oneofKind).toBe('imageGenerate');
+    if (runtimeRequest.spec?.spec.oneofKind !== 'imageGenerate') throw new Error('image scenario missing');
+    expect(runtimeRequest.spec.spec.imageGenerate.referenceImageArtifactId).toBe('artifact-image-source-1');
     expect(runtimeRequest.labels).toEqual({ scenarioId: 'image-1', surfaceId: 'test', source: 'tester' });
     expect(onJobUpdate).toHaveBeenCalled();
     if (!result.ok) throw new Error(result.message);

@@ -15,16 +15,6 @@ export function selectOrderedConnectorsV11(
   });
 }
 
-export function selectAllLocalModelsV11(state: RuntimeConfigStateV11 | null): string[] {
-  return dedupeStringsV11([...(state?.local.models || []).map((item) => item.model)]);
-}
-
-export function selectFilteredLocalModelsV11(models: readonly string[], queryInput: string): string[] {
-  const query = queryInput.trim().toLowerCase();
-  if (!query) return [...models];
-  return models.filter((model) => model.toLowerCase().includes(query));
-}
-
 export function selectFilteredConnectorModelsV11(
   connector: ApiConnector | null,
   queryInput: string,

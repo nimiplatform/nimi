@@ -7,7 +7,7 @@ export const RUNTIME_PAGE_META: Record<RuntimePageIdV11, { name: string; descrip
   },
   profiles: {
     name: 'Profiles',
-    description: 'Preview canonical portable AIProfiles and explicitly apply intent to the Nimi Desktop App AIConfig.',
+    description: 'Export portable Loadout intent and import it through explicit model acquisition, Loadout, AIConfig, and selection confirmations.',
   },
   modelMarket: {
     name: 'Model Market',
@@ -18,8 +18,8 @@ export const RUNTIME_PAGE_META: Record<RuntimePageIdV11, { name: string; descrip
     description: 'Install, import, start, stop, and remove local models.',
   },
   localAiConfig: {
-    name: 'Local AI Configurations',
-    description: 'Create and select machine-local AI configurations.',
+    name: 'Loadouts',
+    description: 'Create and select machine-local execution Loadouts.',
   },
   modelCatalog: {
     name: 'Model Catalog',

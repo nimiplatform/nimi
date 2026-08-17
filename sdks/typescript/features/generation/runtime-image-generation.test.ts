@@ -82,6 +82,7 @@ test('runNimiRuntimeImageGeneration submits an image scenario job and returns im
     negativePrompt: 'low quality',
     size: '1024x1024',
     seed: 42,
+    referenceImageArtifactId: 'artifact-image-source-1',
     responseFormat: 'b64_json',
     requestId: 'request-image-1',
     idempotencyKey: 'idem-image-1',
@@ -106,9 +107,46 @@ test('runNimiRuntimeImageGeneration submits an image scenario job and returns im
   assert.equal(submitted[0].request.spec.spec.imageGenerate.size, '1024x1024');
   assert.equal(submitted[0].request.spec.spec.imageGenerate.n, undefined);
   assert.equal(submitted[0].request.spec.spec.imageGenerate.seed, '42');
+  assert.equal(submitted[0].request.spec.spec.imageGenerate.referenceImageArtifactId, 'artifact-image-source-1');
   assert.equal(submitted[0].request.spec.spec.imageGenerate.responseFormat, 'b64_json');
   assert.equal(submitted[0].request.labels.gateway, 'openai-compatible');
   assert.equal(submitted[0].options.metadata['x-nimi-idempotency-key'], 'idem-image-1');
+});
+
+test('runNimiRuntimeImageGeneration rejects reference URL and artifact custody carriers together', async () => {
+  let submitCalls = 0;
+  await assert.rejects(
+    () => runNimiRuntimeImageGeneration({
+      runtime: {
+        async submitScenarioJob() {
+          submitCalls += 1;
+          throw new Error('submit must not be reached');
+        },
+      } as any,
+      head: { appId: 'app.test' },
+      prompt: 'edit this image',
+      referenceImages: ['https://example.test/reference.png'],
+      referenceImageArtifactId: 'artifact-image-source-1',
+      requestId: 'request-image-xor',
+      idempotencyKey: 'idem-image-xor',
+    }),
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_GENERATION_SCENARIO_INVALID',
+  );
+  assert.equal(submitCalls, 0);
+});
+
+test('runNimiRuntimeImageGeneration rejects a non-canonical artifact custody identifier', async () => {
+  await assert.rejects(
+    () => runNimiRuntimeImageGeneration({
+      runtime: {} as any,
+      head: { appId: 'app.test' },
+      prompt: 'edit this image',
+      referenceImageArtifactId: ' artifact-image-source-1 ',
+      requestId: 'request-image-artifact-invalid',
+      idempotencyKey: 'idem-image-artifact-invalid',
+    }),
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_GENERATION_SCENARIO_INVALID',
+  );
 });
 
 test('runNimiRuntimeVideoGeneration submits a video scenario job and returns video artifacts', async () => {
