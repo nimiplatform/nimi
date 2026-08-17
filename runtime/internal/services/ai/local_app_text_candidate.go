@@ -39,6 +39,9 @@ func (s *Service) GenerateLocalAppTextCandidate(ctx context.Context, req *runtim
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         decision.AppID,
 			SubjectUserId: decision.AccountID,
+			// Cold local model load is part of the Runtime-owned operation. Keep the
+			// caller free of timeout authority while admitting the bounded Job timeout.
+			TimeoutMs: int32(defaultTextGenerateJobTimeout.Milliseconds()),
 		},
 		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,
 		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_SYNC,

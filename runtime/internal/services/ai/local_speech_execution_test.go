@@ -22,6 +22,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 	"github.com/nimiplatform/nimi/runtime/internal/scheduler"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 type localSpeechHostStub struct {
@@ -525,7 +526,7 @@ func TestLocalSpeechJobsExecuteExactCapturedDriverPlans(t *testing.T) {
 				host.mu.Lock()
 				plan := host.synthesizePlan
 				host.mu.Unlock()
-				if plan == nil || plan.ModelAssetID() != "catalog/speech-tts" || plan.Request().GetText() != "hello" {
+				if plan == nil || plan.ModelAssetID() != "speech-tts-model" || plan.Request().GetText() != "hello" {
 					t.Fatalf("captured synthesis plan=%+v", plan)
 				}
 				if len(job.GetArtifacts()) != 1 || job.GetArtifacts()[0].GetMimeType() != "audio/wav" || len(job.GetArtifacts()[0].GetBytes()) != 0 || job.GetArtifacts()[0].GetUri() != "" {
@@ -554,7 +555,7 @@ func TestLocalSpeechJobsExecuteExactCapturedDriverPlans(t *testing.T) {
 				host.mu.Lock()
 				plan := host.transcribePlan
 				host.mu.Unlock()
-				if plan == nil || plan.ModelAssetID() != "catalog/speech-stt" || !reflect.DeepEqual(plan.AudioBytes(), []byte("original-audio")) || plan.Request().GetAudioSource() != nil {
+				if plan == nil || plan.ModelAssetID() != "speech-stt-model" || !reflect.DeepEqual(plan.AudioBytes(), []byte("original-audio")) || plan.Request().GetAudioSource() != nil {
 					t.Fatalf("captured transcription plan=%+v", plan)
 				}
 				if len(job.GetArtifacts()) != 1 || job.GetArtifacts()[0].GetMimeType() != "text/plain; charset=utf-8" || len(job.GetArtifacts()[0].GetBytes()) != 0 || job.GetArtifacts()[0].GetUri() != "" {
@@ -757,14 +758,22 @@ func selectedSpeechExecutionForTest(t *testing.T, contract string, configuration
 	}
 	digestBytes := sha256.Sum256(payload)
 	digest := hex.EncodeToString(digestBytes[:])
+	options, err := structpb.NewStruct(map[string]any{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	modelAssetID := fmt.Sprintf("%s-model", configurationID)
 	return &localexecution.SelectedLocalExecution{
-		ConfigurationID:    configurationID,
+		LoadoutID:          configurationID,
 		CapabilityContract: contract,
 		DisplayName:        configurationID,
+		RecipeID:           fmt.Sprintf("recipe.%s.%s", contract, configurationID),
+		RecipeRevision:     "7",
 		DriverIdentity:     identity.Proto(),
+		PortableConfig:     options,
 		Requirements:       requirements,
 		ExactBindings: []localexecution.ExactBinding{{
-			RequirementID: requirements[0].GetRequirementId(), AssetID: fmt.Sprintf("catalog/%s", configurationID), LocalAssetID: fmt.Sprintf("%s-asset", configurationID),
+			RequirementID: requirements[0].GetRequirementId(), ModelAssetID: modelAssetID,
 			AbsolutePath: path, VerifiedContentID: "sha256:" + digest, EntrySHA256: digest,
 		}},
 		Configured: true,

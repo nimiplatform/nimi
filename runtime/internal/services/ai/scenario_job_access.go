@@ -69,7 +69,17 @@ func (s *Service) GetScenarioJob(ctx context.Context, req *runtimev1.GetScenario
 		if err := s.authorizeScenarioJob(ctx, job); err != nil {
 			return nil, err
 		}
-		return &runtimev1.GetScenarioJobResponse{Job: sanitizeScenarioJobForResponse(job)}, nil
+		response := &runtimev1.GetScenarioJobResponse{Job: sanitizeScenarioJobForResponse(job)}
+		if job.GetScenarioType() == runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE &&
+			job.GetStatus() == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
+			asset, reference, found := s.voiceAssets.getCompletedJobResult(jobID)
+			if !found || asset.GetAppId() != job.GetHead().GetAppId() || asset.GetSubjectUserId() != job.GetHead().GetSubjectUserId() {
+				return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+			}
+			response.Asset = asset
+			response.VoiceReference = reference
+		}
+		return response, nil
 	}
 	job, ok := s.voiceAssets.getJob(jobID)
 	if !ok {
@@ -103,7 +113,34 @@ func (s *Service) CancelScenarioJob(ctx context.Context, req *runtimev1.CancelSc
 		if isTerminalScenarioJobStatus(existingJob.GetStatus()) {
 			return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_MEDIA_JOB_NOT_CANCELLABLE)
 		}
-		job, ok := s.scenarioJobs.requestCancel(jobID, req.GetReason())
+		var job *runtimev1.ScenarioJob
+		var ok bool
+		var persistErr error
+		for attempt := 1; attempt <= maxScenarioJobTerminalPersistenceAttempts; attempt++ {
+			job, ok, persistErr = s.scenarioJobs.requestCancel(jobID, req.GetReason())
+			if persistErr == nil {
+				break
+			}
+			s.logScenarioJobPersistenceFailure(
+				"scenario job cancellation persistence attempt failed",
+				"job_id", jobID,
+				"attempt", attempt,
+				"max_attempts", maxScenarioJobTerminalPersistenceAttempts,
+				"error", persistErr,
+			)
+		}
+		if persistErr != nil {
+			s.scenarioJobs.forceFailedInMemory(jobID, scenarioJobTerminalPersistenceFailedReason)
+			s.logScenarioJobPersistenceFailure(
+				"SCENARIO JOB CANCELLATION COULD NOT BE PERSISTED; forced in-memory FAILED terminal",
+				"job_id", jobID,
+				"reason", scenarioJobTerminalPersistenceFailedReason,
+				"error", persistErr,
+			)
+			return nil, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID, persistErr, grpcerr.ReasonOptions{
+				Message: "ScenarioJob cancellation could not be persisted",
+			})
+		}
 		if !ok {
 			return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_MEDIA_JOB_NOT_CANCELLABLE)
 		}

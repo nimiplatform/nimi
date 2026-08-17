@@ -77,7 +77,7 @@ func TestListPresetVoicesCloudDoesNotOpenSecretOrRequireRemoteHost(t *testing.T)
 	connectorService := connector.New(logger, store, nil)
 	ctx := scenarioJobUserContext("nimi.desktop", "user-001")
 	descriptor := connectorModelDescriptorForAITest(t, connectorService, ctx, record.ConnectorID, "gpt-audio")
-	service, err := newFromProviderConfig(logger, nil, nil, nil, store, Config{}, 8, 2)
+	service, err := newFromProviderConfig(logger, nil, nil, store, Config{}, 8, 2)
 	if err != nil {
 		t.Fatal(err)
 	}

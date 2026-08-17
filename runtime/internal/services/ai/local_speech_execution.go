@@ -1,3 +1,5 @@
+// @nimi-authority: rule.nimi.runtime.local-compute.r042
+
 package ai
 
 import (
@@ -15,25 +17,28 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
 type localSpeechEffectiveInputs struct {
-	head              *runtimev1.ScenarioRequestHead
-	scenarioType      runtimev1.ScenarioType
-	intent            executionintent.Intent
-	configurationID   string
-	displayName       string
-	driverIdentity    *runtimev1.CapabilityImplementationIdentity
-	portableConfig    *structpb.Struct
-	requirements      []*runtimev1.LocalCapabilityRequirement
-	exactBindings     []capabilitydriver.InvocationExactBinding
-	contentIDs        []string
-	supportedFeatures []string
-	streamMode        capabilitydriver.SpeechStreamMode
-	synthesizePlan    *capabilitydriver.SpeechSynthesizeInvocationPlan
-	transcribePlan    *capabilitydriver.SpeechTranscribeInvocationPlan
+	head                   *runtimev1.ScenarioRequestHead
+	scenarioType           runtimev1.ScenarioType
+	intent                 executionintent.Intent
+	loadoutID              string
+	displayName            string
+	effectiveInputIdentity *runtimev1.LoadoutEffectiveInputIdentity
+	driverIdentity         *runtimev1.CapabilityImplementationIdentity
+	portableConfig         *structpb.Struct
+	requirements           []*runtimev1.LocalCapabilityRequirement
+	exactBindings          []capabilitydriver.InvocationExactBinding
+	contentIDs             []string
+	supportedFeatures      []string
+	streamMode             capabilitydriver.SpeechStreamMode
+	synthesizePlan         *capabilitydriver.SpeechSynthesizeInvocationPlan
+	transcribePlan         *capabilitydriver.SpeechTranscribeInvocationPlan
+	resolvedAssembly       *localResolvedAssembly
 }
 
 func (input *localSpeechEffectiveInputs) modelResolved() string {
@@ -43,7 +48,7 @@ func (input *localSpeechEffectiveInputs) modelResolved() string {
 	if input.displayName != "" {
 		return input.displayName
 	}
-	return input.configurationID
+	return input.loadoutID
 }
 
 func (s *Service) captureLocalSpeechEffectiveInputs(ctx context.Context, head *runtimev1.ScenarioRequestHead, request *runtimev1.SubmitScenarioJobRequest) (*localSpeechEffectiveInputs, error) {
@@ -88,7 +93,7 @@ func (s *Service) captureLocalSpeechEffectiveInputs(ctx context.Context, head *r
 		head:              cloneScenarioHead(head),
 		scenarioType:      request.GetScenarioType(),
 		intent:            executionintent.Clone(intent),
-		configurationID:   strings.TrimSpace(selected.ConfigurationID),
+		loadoutID:         strings.TrimSpace(selected.LoadoutID),
 		displayName:       strings.TrimSpace(selected.DisplayName),
 		driverIdentity:    cloneCapabilityImplementationIdentity(selected.DriverIdentity),
 		portableConfig:    portable,
@@ -161,27 +166,105 @@ func (s *Service) captureLocalSpeechEffectiveInputs(ctx context.Context, head *r
 		}
 		effective.transcribePlan = plan
 	}
+	resolvedAssembly, err := localResolvedAssemblyForSpeech(selected, effective.synthesizePlan, effective.transcribePlan)
+	if err != nil {
+		return nil, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID, err, grpcerr.ReasonOptions{Message: "local speech ResolvedAssembly capture failed"})
+	}
+	effectiveInputIdentity, err := projectResolvedAssemblyEffectiveInputIdentity(resolvedAssembly)
+	if err != nil {
+		return nil, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID, err, grpcerr.ReasonOptions{Message: "local speech ResolvedAssembly attribution failed"})
+	}
+	effective.effectiveInputIdentity = effectiveInputIdentity
+	effective.resolvedAssembly = resolvedAssembly
+	return effective, nil
+}
+
+func (s *Service) localSpeechEffectiveInputsFromResolvedAssembly(assembly *localResolvedAssembly) (*localSpeechEffectiveInputs, error) {
+	if err := validateLocalResolvedAssembly(assembly); err != nil {
+		return nil, err
+	}
+	if assembly.LoadPlan.Kind != "speech" || assembly.LoadPlan.Speech == nil {
+		return nil, fmt.Errorf("local speech ResolvedAssembly contract is mismatched")
+	}
+	portable, err := resolvedAssemblyPortableConfig(assembly)
+	if err != nil {
+		return nil, err
+	}
+	if s == nil || s.capabilityDrivers == nil {
+		return nil, fmt.Errorf("local speech Driver registry is unavailable")
+	}
+	driver, reason := s.capabilityDrivers.Resolve(assembly.CapabilityContract, capabilitydriver.Identity{
+		ImplementationID: assembly.DriverIdentity.ImplementationID,
+		DriverID:         assembly.DriverIdentity.DriverID,
+		DriverDialect:    assembly.DriverIdentity.DriverDialect,
+	})
+	if reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED || driver == nil {
+		return nil, fmt.Errorf("captured local speech Driver is unavailable")
+	}
+	effective := &localSpeechEffectiveInputs{loadoutID: assembly.LoadoutID}
+	bindings := resolvedAssemblyExactBindings(assembly)
+	switch assembly.LoadPlan.Speech.Operation {
+	case "synthesize":
+		if assembly.CapabilityContract != capabilitydriver.AudioSynthesizeContract || assembly.Request.Kind != "speech.synthesize" {
+			return nil, fmt.Errorf("local speech synthesis ResolvedAssembly contract is mismatched")
+		}
+		request := &runtimev1.SpeechSynthesizeScenarioSpec{}
+		if err := (protojson.UnmarshalOptions{DiscardUnknown: false}).Unmarshal(assembly.Request.Payload, request); err != nil {
+			return nil, fmt.Errorf("decode local speech synthesis request: %w", err)
+		}
+		speechDriver, ok := driver.(capabilitydriver.SpeechSynthesizeInvocationDriver)
+		if !ok {
+			return nil, fmt.Errorf("captured local speech synthesis Driver has no invocation contract")
+		}
+		effective.synthesizePlan, err = speechDriver.PlanSpeechSynthesizeInvocation(capabilitydriver.SpeechSynthesizeInvocationInput{
+			PortableConfig: portable, ExactBindings: bindings, Request: request,
+		})
+		effective.scenarioType = runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE
+	case "transcribe":
+		if assembly.CapabilityContract != capabilitydriver.AudioTranscribeContract || assembly.Request.Kind != "speech.transcribe" {
+			return nil, fmt.Errorf("local speech transcription ResolvedAssembly contract is mismatched")
+		}
+		request := &runtimev1.SpeechTranscribeScenarioSpec{}
+		if err := (protojson.UnmarshalOptions{DiscardUnknown: false}).Unmarshal(assembly.Request.Payload, request); err != nil {
+			return nil, fmt.Errorf("decode local speech transcription request: %w", err)
+		}
+		speechDriver, ok := driver.(capabilitydriver.SpeechTranscribeInvocationDriver)
+		if !ok {
+			return nil, fmt.Errorf("captured local speech transcription Driver has no invocation contract")
+		}
+		effective.transcribePlan, err = speechDriver.PlanSpeechTranscribeInvocation(capabilitydriver.SpeechTranscribeInvocationInput{
+			PortableConfig: portable, ExactBindings: bindings, Request: request,
+			AudioBytes: append([]byte(nil), assembly.Request.BinaryInput...), MIMEType: assembly.Request.MIMEType,
+		})
+		effective.scenarioType = runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE
+	default:
+		return nil, fmt.Errorf("captured local speech operation %q is unsupported", assembly.LoadPlan.Speech.Operation)
+	}
+	if err != nil {
+		return nil, err
+	}
+	selected := selectedLocalExecutionFromResolvedAssembly(assembly)
+	selected.PortableConfig = portable
+	reprojected, err := localResolvedAssemblyForSpeech(selected, effective.synthesizePlan, effective.transcribePlan)
+	if err != nil {
+		return nil, err
+	}
+	if err := validateRehydratedResolvedAssemblyPlan(assembly, reprojected); err != nil {
+		return nil, err
+	}
 	return effective, nil
 }
 
 func validSelectedSpeechExecution(selected *localexecution.SelectedLocalExecution, contract string) bool {
-	return selected != nil && selected.Configured && strings.TrimSpace(selected.ConfigurationID) != "" &&
+	return selected != nil && selected.Configured && strings.TrimSpace(selected.LoadoutID) != "" &&
 		selected.CapabilityContract == contract && selected.DriverIdentity != nil &&
 		len(selected.Requirements) == 1 && len(selected.ExactBindings) == 1
 }
 
 func captureLocalSpeechBindings(values []localexecution.ExactBinding) ([]capabilitydriver.InvocationExactBinding, []string) {
-	bindings := make([]capabilitydriver.InvocationExactBinding, 0, len(values))
+	bindings := projectInvocationExactBindings(values)
 	contentIDs := make([]string, 0, len(values))
 	for _, binding := range values {
-		bindings = append(bindings, capabilitydriver.InvocationExactBinding{
-			RequirementID:     binding.RequirementID,
-			AssetID:           binding.AssetID,
-			LocalAssetID:      binding.LocalAssetID,
-			AbsolutePath:      binding.AbsolutePath,
-			VerifiedContentID: binding.VerifiedContentID,
-			EntrySHA256:       binding.EntrySHA256,
-		})
 		contentIDs = append(contentIDs, binding.VerifiedContentID+"/"+binding.EntrySHA256)
 	}
 	sort.Strings(contentIDs)
@@ -396,14 +479,14 @@ func (s *Service) executeCapturedLocalSpeech(ctx context.Context, effective *loc
 				ArtifactId: artifactID,
 				MimeType:   mimeType,
 				SizeBytes:  result.SizeBytes,
-				Metadata:   nimillm.ToStruct(map[string]any{"local_configuration_id": effective.configurationID}),
+				Metadata:   nimillm.ToStruct(map[string]any{"loadout_id": effective.loadoutID}),
 			}
 			return []*runtimev1.ScenarioArtifact{artifact}, map[string]*capabilitydriver.ArtifactBody{artifactID: body}, result.Usage, nil
 		}
 		if len(result.AudioBytes) == 0 {
 			return nil, nil, nil, localExecutionError(&localexecution.ExecutionError{Kind: localexecution.FailureInference, Err: fmt.Errorf("local speech synthesis returned no audio")})
 		}
-		return []*runtimev1.ScenarioArtifact{nimillm.BinaryArtifact(mimeType, result.AudioBytes, map[string]any{"local_configuration_id": effective.configurationID})}, nil, result.Usage, nil
+		return []*runtimev1.ScenarioArtifact{nimillm.BinaryArtifact(mimeType, result.AudioBytes, map[string]any{"loadout_id": effective.loadoutID})}, nil, result.Usage, nil
 	case runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE:
 		result, err := s.localSpeechHost.ExecuteSpeechTranscription(ctx, effective.transcribePlan, onStart)
 		if err != nil {
@@ -413,7 +496,7 @@ func (s *Service) executeCapturedLocalSpeech(ctx context.Context, effective *loc
 		if text == "" {
 			return nil, nil, nil, localExecutionError(&localexecution.ExecutionError{Kind: localexecution.FailureInference, Err: fmt.Errorf("local speech transcription returned no text")})
 		}
-		return []*runtimev1.ScenarioArtifact{nimillm.BinaryArtifact("text/plain; charset=utf-8", []byte(text), map[string]any{"local_configuration_id": effective.configurationID})}, nil, result.Usage, nil
+		return []*runtimev1.ScenarioArtifact{nimillm.BinaryArtifact("text/plain; charset=utf-8", []byte(text), map[string]any{"loadout_id": effective.loadoutID})}, nil, result.Usage, nil
 	default:
 		return nil, nil, nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
 	}

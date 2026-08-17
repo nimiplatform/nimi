@@ -76,7 +76,7 @@ func TestProviderTextHostOpensCredentialOnlyForDispatchAndAuditsSafely(t *testin
 
 	driver, target, mapped := remoteHostDriverInput(t)
 	audit := auditlog.New(16, 16)
-	transport := nimillm.NewCloudProvider(nimillm.CloudConfig{HTTPTimeout: time.Second, AllowLoopbackEndpoint: true}, nil, nil)
+	transport := nimillm.NewCloudProvider(nimillm.CloudConfig{HTTPTimeout: time.Second, AllowLoopbackEndpoint: true}, nil)
 	host := NewProviderTextHost(store, transport, audit, true)
 	response, err := host.ExecuteText(context.Background(), record, target, mapped, TextDispatchAudit{
 		AppID: "app", AccountID: "account-a", TraceID: "trace", CapabilityContract: "text.generate",

@@ -43,6 +43,51 @@ func (s *voiceAssetStore) getAssetBinding(voiceAssetID string) (*runtimev1.Voice
 	return out, outTarget, true
 }
 
+// publishLocalResult makes one session-ephemeral VoiceAsset visible only if
+// the canonical ScenarioJob terminal commit succeeds. The commit runs while
+// the result store is locked so Get/List cannot observe an ACTIVE asset before
+// its ScenarioJob is durably COMPLETED.
+func (s *voiceAssetStore) publishLocalResult(
+	draft *runtimev1.VoiceAsset,
+	target *runtimeidentity.Target,
+	providerVoiceRef string,
+	metadata map[string]any,
+	commit func() bool,
+) (*runtimev1.VoiceAsset, bool) {
+	providerVoiceRef = strings.TrimSpace(providerVoiceRef)
+	if s == nil || draft == nil || target == nil || !target.Valid() || target.Local == nil ||
+		draft.GetPersistence() != runtimev1.VoiceAssetPersistence_VOICE_ASSET_PERSISTENCE_SESSION_EPHEMERAL ||
+		strings.TrimSpace(draft.GetVoiceAssetId()) == "" || providerVoiceRef == "" || commit == nil {
+		return nil, false
+	}
+	asset := cloneVoiceAsset(draft)
+	asset.ProviderVoiceRef = providerVoiceRef
+	if len(metadata) > 0 {
+		asset.Metadata = structFromMap(metadata)
+	}
+	asset.Status = runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_ACTIVE
+	now := timestamppb.New(time.Now().UTC())
+	asset.CreatedAt = now
+	asset.UpdatedAt = now
+	id := strings.TrimSpace(asset.GetVoiceAssetId())
+
+	s.mu.Lock()
+	if s.assets[id] != nil {
+		s.mu.Unlock()
+		return nil, false
+	}
+	s.assets[id] = cloneVoiceAsset(asset)
+	s.targets[id] = target.Clone()
+	if !commit() {
+		delete(s.assets, id)
+		delete(s.targets, id)
+		s.mu.Unlock()
+		return nil, false
+	}
+	s.mu.Unlock()
+	return cloneVoiceAsset(asset), true
+}
+
 func (s *voiceAssetStore) getAssetCloudBinding(voiceAssetID string) (*runtimev1.VoiceAsset, *runtimeidentity.Target, *voiceAssetCloudBinding, bool) {
 	id := strings.TrimSpace(voiceAssetID)
 	if id == "" {

@@ -8,6 +8,8 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	catalog "github.com/nimiplatform/nimi/runtime/internal/aicatalog"
+	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
+	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 	connectorservice "github.com/nimiplatform/nimi/runtime/internal/services/connector"
 	memoryservice "github.com/nimiplatform/nimi/runtime/internal/services/memory"
 )
@@ -160,52 +162,56 @@ func TestResolveCloudRuntimeMemoryEmbeddingProfileProjectsCloudBinding(t *testin
 	}
 }
 
-// The local resolve path must fail-close when the catalog authority is absent
-// rather than minting a profile from the local asset record alone.
-func TestResolveLocalRuntimeMemoryEmbeddingProfileFailsClosedWithoutCatalog(t *testing.T) {
-	snapshot := &memoryservice.MemoryEmbeddingTextEmbedIntentSnapshot{
-		SourceKind: memoryservice.MemoryEmbeddingTextEmbedSourceKindLocal,
-		LocalBinding: &memoryservice.MemoryEmbeddingLocalBindingRef{
-			ProfileBindingID: "nomic-embed-text-local",
-		},
+type memoryEmbeddingLocalResolverStub struct {
+	selected *localexecution.SelectedLocalExecution
+}
+
+func (s memoryEmbeddingLocalResolverStub) SelectedLocalCapabilityContracts() []string {
+	return []string{capabilitydriver.TextEmbedCapabilityContract}
+}
+
+func (s memoryEmbeddingLocalResolverStub) ResolveSelectedLocalExecution(string) (*localexecution.SelectedLocalExecution, error) {
+	return localexecution.CloneSelectedLocalExecution(s.selected), nil
+}
+
+func TestResolveRuntimeMemoryEmbeddingProfileUsesSelectedCatalogContent(t *testing.T) {
+	resolver := newTestEmbeddingCatalogResolver(t)
+	selected := &localexecution.SelectedLocalExecution{
+		LoadoutID:          "loadout-embed",
+		CapabilityContract: capabilitydriver.TextEmbedCapabilityContract,
+		DriverIdentity: (&capabilitydriver.Identity{
+			ImplementationID: capabilitydriver.LlamaEmbedImplementationID,
+			DriverID:         capabilitydriver.LlamaDriverID,
+			DriverDialect:    capabilitydriver.LlamaEmbedDriverDialect,
+		}).Proto(),
+		Requirements: []*runtimev1.LocalCapabilityRequirement{{RequirementId: capabilitydriver.EmbeddingGGUFRequirementID}},
+		ExactBindings: []localexecution.ExactBinding{{
+			RequirementID:     capabilitydriver.EmbeddingGGUFRequirementID,
+			ModelAssetID:      "asset-nomic",
+			VerifiedContentID: "sha256:d4e388894e09cf3816e8b0896d81d265b55e7a9fff9ab03fe8bf4ef5e11295ac",
+		}},
+		Configured: true,
 	}
-	// localSvc nil already fails closed; assert that a nil catalog also yields a
-	// non-resolved outcome (no fabricated dimension path).
-	resolved := resolveLocalRuntimeMemoryEmbeddingProfile(context.Background(), snapshot, nil, nil)
-	if resolved.Profile != nil {
-		t.Fatalf("expected no resolved profile without local service/catalog, got %+v", resolved.Profile)
-	}
-	if resolved.ResolutionState == "resolved" {
-		t.Fatalf("expected fail-close resolution state, got %q", resolved.ResolutionState)
+	resolved := resolveRuntimeMemoryEmbeddingProfile(context.Background(), &memoryservice.MemoryEmbeddingTextEmbedIntentSnapshot{
+		SourceKind:   memoryservice.MemoryEmbeddingTextEmbedSourceKindLocal,
+		LocalBinding: &memoryservice.MemoryEmbeddingLocalBindingRef{},
+	}, nil, resolver, memoryEmbeddingLocalResolverStub{selected: selected})
+	if resolved.ResolutionState != "resolved" || resolved.Profile == nil ||
+		resolved.Profile.GetModelId() != "nomic-embed-text-local" || resolved.Profile.GetVersion() != "asset-nomic" || resolved.Profile.GetDimension() != 768 {
+		t.Fatalf("resolved Local memory embedding profile = %+v", resolved)
 	}
 }
 
-func TestRuntimeMemoryEmbeddingDurableLocalTargetPreservesOpaqueV2Binding(t *testing.T) {
-	profileTarget := runtimeMemoryEmbeddingDurableLocalTarget(&memoryservice.MemoryEmbeddingLocalBindingRef{
-		ProfileBindingID: "opaque-profile-binding",
-	})
-	if profileTarget.GetVersion() != "v2" ||
-		profileTarget.GetProfileBindingId() != "opaque-profile-binding" ||
-		profileTarget.GetReadinessRef() != "" {
-		t.Fatalf("profile target = %+v", profileTarget)
+func TestResolveRuntimeMemoryEmbeddingProfileRequiresSelectedLoadoutResolver(t *testing.T) {
+	snapshot := &memoryservice.MemoryEmbeddingTextEmbedIntentSnapshot{
+		SourceKind:   memoryservice.MemoryEmbeddingTextEmbedSourceKindLocal,
+		LocalBinding: &memoryservice.MemoryEmbeddingLocalBindingRef{},
 	}
-
-	readinessTarget := runtimeMemoryEmbeddingDurableLocalTarget(&memoryservice.MemoryEmbeddingLocalBindingRef{
-		ReadinessRef: "opaque-readiness-ref",
-	})
-	if readinessTarget.GetVersion() != "v2" ||
-		readinessTarget.GetReadinessRef() != "opaque-readiness-ref" ||
-		readinessTarget.GetProfileBindingId() != "" {
-		t.Fatalf("readiness target = %+v", readinessTarget)
+	resolved := resolveRuntimeMemoryEmbeddingProfile(context.Background(), snapshot, nil, nil, nil)
+	if resolved.Profile != nil {
+		t.Fatalf("local binding must not mint an embedding profile outside selected Loadout capture: %+v", resolved.Profile)
 	}
-
-	if got := runtimeMemoryEmbeddingDurableLocalTarget(&memoryservice.MemoryEmbeddingLocalBindingRef{}); got != nil {
-		t.Fatalf("empty binding target = %+v", got)
-	}
-	if got := runtimeMemoryEmbeddingDurableLocalTarget(&memoryservice.MemoryEmbeddingLocalBindingRef{
-		ProfileBindingID: "profile",
-		ReadinessRef:     "readiness",
-	}); got != nil {
-		t.Fatalf("ambiguous binding target = %+v", got)
+	if resolved.ResolutionState != "unavailable" || resolved.BlockedReasonCode != runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE {
+		t.Fatalf("local binding resolution = state %q reason %v", resolved.ResolutionState, resolved.BlockedReasonCode)
 	}
 }

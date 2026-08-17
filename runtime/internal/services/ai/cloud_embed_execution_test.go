@@ -114,9 +114,11 @@ func TestTextEmbedLocalIntentExecutesSelectedLlamaDriver(t *testing.T) {
 	service := newTestService(nil)
 	digest := strings.Repeat("a", 64)
 	service.SetLocalExecutionResolver(&mutableLocalExecutionResolver{projection: &localexecution.SelectedLocalExecution{
-		ConfigurationID:          "local-embed-config",
+		LoadoutID:                "local-embed-loadout",
 		CapabilityContract:       capabilitydriver.TextEmbedCapabilityContract,
 		DisplayName:              "Local embedding",
+		RecipeID:                 capabilitydriver.LlamaEmbedGGUFRecipeID,
+		RecipeRevision:           "1",
 		DriverIdentity:           (&capabilitydriver.Identity{ImplementationID: capabilitydriver.LlamaEmbedImplementationID, DriverID: capabilitydriver.LlamaDriverID, DriverDialect: capabilitydriver.LlamaEmbedDriverDialect}).Proto(),
 		ModelContextWindowTokens: 8192,
 		Requirements: []*runtimev1.LocalCapabilityRequirement{{
@@ -124,7 +126,7 @@ func TestTextEmbedLocalIntentExecutesSelectedLlamaDriver(t *testing.T) {
 		}},
 		ExactBindings: []localexecution.ExactBinding{{
 			RequirementID:     capabilitydriver.EmbeddingGGUFRequirementID,
-			LocalAssetID:      "embedding/test",
+			ModelAssetID:      "embedding/test",
 			AbsolutePath:      filepath.Join(t.TempDir(), "embedding.gguf"),
 			VerifiedContentID: "sha256:" + digest,
 			EntrySHA256:       digest,
@@ -157,6 +159,18 @@ func TestTextEmbedLocalIntentExecutesSelectedLlamaDriver(t *testing.T) {
 		response.GetModelResolved() != "Local embedding" || response.GetUsage().GetInputTokens() != 3 {
 		t.Fatalf("local embedding response = %+v", response)
 	}
+	service.scenarioJobs.mu.RLock()
+	if len(service.scenarioJobs.jobs) != 1 {
+		service.scenarioJobs.mu.RUnlock()
+		t.Fatalf("local sync embed persisted jobs = %d, want 1", len(service.scenarioJobs.jobs))
+	}
+	for _, record := range service.scenarioJobs.jobs {
+		if record.job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED || record.resolvedAssembly == nil || record.resolvedAssembly.Request.Kind != "text.embed" {
+			service.scenarioJobs.mu.RUnlock()
+			t.Fatalf("local sync embed durable capture = %+v assembly=%+v", record.job, record.resolvedAssembly)
+		}
+	}
+	service.scenarioJobs.mu.RUnlock()
 	host.mu.Lock()
 	plan := host.capturedEmbedPlan
 	host.mu.Unlock()

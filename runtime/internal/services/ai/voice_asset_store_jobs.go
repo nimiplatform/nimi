@@ -17,7 +17,6 @@ func (s *voiceAssetStore) submit(input *voiceWorkflowSubmitInput) (*runtimev1.Sc
 	}
 	head := input.Head
 	scenarioType := input.ScenarioType
-	spec := input.Spec
 	traceID := strings.TrimSpace(input.TraceID)
 	if traceID == "" {
 		traceID = ulid.Make().String()
@@ -25,6 +24,57 @@ func (s *voiceAssetStore) submit(input *voiceWorkflowSubmitInput) (*runtimev1.Sc
 	now := timestamppb.New(time.Now().UTC())
 	jobID := ulid.Make().String()
 	assetID := ulid.Make().String()
+	asset := newVoiceAssetDraft(input, assetID, now)
+	if asset == nil {
+		return nil, nil
+	}
+	job := &runtimev1.ScenarioJob{
+		JobId:                  jobID,
+		Head:                   cloneScenarioHead(head),
+		ScenarioType:           scenarioType,
+		ExecutionMode:          runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
+		RouteDecision:          input.RouteDecision,
+		ModelResolved:          strings.TrimSpace(input.ModelResolved),
+		Status:                 runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED,
+		ReasonCode:             runtimev1.ReasonCode_ACTION_EXECUTED,
+		CreatedAt:              now,
+		UpdatedAt:              now,
+		TraceId:                traceID,
+		ProviderJobId:          "",
+		ReasonDetail:           "",
+		RetryCount:             0,
+		Artifacts:              nil,
+		Usage:                  nil,
+		NextPollAt:             nil,
+		EffectiveInputIdentity: cloneLoadoutEffectiveInputIdentity(input.EffectiveInputIdentity),
+		IgnoredExtensions:      cloneIgnoredScenarioExtensions(input.IgnoredExtensions),
+	}
+	record := &voiceScenarioJobRecord{
+		job:               cloneScenarioJob(job),
+		localAppOwner:     cloneLocalAppJobOwner(input.LocalAppOwner),
+		assetID:           assetID,
+		assetDraft:        cloneVoiceAsset(asset),
+		targetDraft:       input.ExecutionTarget.Clone(),
+		cloudBindingDraft: input.CloudBinding.Clone(),
+		events:            make([]*runtimev1.ScenarioJobEvent, 0, 4),
+		subscribers:       make(map[uint64]chan *runtimev1.ScenarioJobEvent),
+		createdAt:         now.AsTime(),
+		updatedAt:         now.AsTime(),
+	}
+	s.mu.Lock()
+	s.publishLocked(record, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_SUBMITTED)
+	s.jobs[jobID] = record
+	s.pruneLocked(now.AsTime())
+	s.mu.Unlock()
+	return cloneScenarioJob(job), cloneVoiceAsset(asset)
+}
+
+func newVoiceAssetDraft(input *voiceWorkflowSubmitInput, assetID string, now *timestamppb.Timestamp) *runtimev1.VoiceAsset {
+	if input == nil || input.Head == nil || input.Spec == nil || strings.TrimSpace(assetID) == "" || now == nil {
+		return nil
+	}
+	scenarioType := input.ScenarioType
+	spec := input.Spec
 	creationSource := runtimev1.VoiceCreationSource_VOICE_CREATION_SOURCE_UNSPECIFIED
 	targetModelID := ""
 	if scenarioType == runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE && spec.GetVoiceCreate() != nil {
@@ -45,8 +95,8 @@ func (s *voiceAssetStore) submit(input *voiceWorkflowSubmitInput) (*runtimev1.Sc
 	}
 	asset := &runtimev1.VoiceAsset{
 		VoiceAssetId:     assetID,
-		AppId:            head.GetAppId(),
-		SubjectUserId:    head.GetSubjectUserId(),
+		AppId:            input.Head.GetAppId(),
+		SubjectUserId:    input.Head.GetSubjectUserId(),
 		CreationSource:   creationSource,
 		Provider:         provider,
 		ModelId:          strings.TrimSpace(input.ModelResolved),
@@ -94,44 +144,7 @@ func (s *voiceAssetStore) submit(input *voiceWorkflowSubmitInput) (*runtimev1.Sc
 		}
 		asset.Metadata = structFromMap(metadata)
 	}
-	job := &runtimev1.ScenarioJob{
-		JobId:             jobID,
-		Head:              cloneScenarioHead(head),
-		ScenarioType:      scenarioType,
-		ExecutionMode:     runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
-		RouteDecision:     input.RouteDecision,
-		ModelResolved:     strings.TrimSpace(input.ModelResolved),
-		Status:            runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED,
-		ReasonCode:        runtimev1.ReasonCode_ACTION_EXECUTED,
-		CreatedAt:         now,
-		UpdatedAt:         now,
-		TraceId:           traceID,
-		ProviderJobId:     "",
-		ReasonDetail:      "",
-		RetryCount:        0,
-		Artifacts:         nil,
-		Usage:             nil,
-		NextPollAt:        nil,
-		IgnoredExtensions: cloneIgnoredScenarioExtensions(input.IgnoredExtensions),
-	}
-	record := &voiceScenarioJobRecord{
-		job:               cloneScenarioJob(job),
-		localAppOwner:     cloneLocalAppJobOwner(input.LocalAppOwner),
-		assetID:           assetID,
-		assetDraft:        cloneVoiceAsset(asset),
-		targetDraft:       input.ExecutionTarget.Clone(),
-		cloudBindingDraft: input.CloudBinding.Clone(),
-		events:            make([]*runtimev1.ScenarioJobEvent, 0, 4),
-		subscribers:       make(map[uint64]chan *runtimev1.ScenarioJobEvent),
-		createdAt:         now.AsTime(),
-		updatedAt:         now.AsTime(),
-	}
-	s.mu.Lock()
-	s.publishLocked(record, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_SUBMITTED)
-	s.jobs[jobID] = record
-	s.pruneLocked(now.AsTime())
-	s.mu.Unlock()
-	return cloneScenarioJob(job), cloneVoiceAsset(asset)
+	return asset
 }
 
 func (s *voiceAssetStore) localAppOwner(jobID string) (*localAppJobOwner, bool) {
@@ -173,8 +186,19 @@ func (s *voiceAssetStore) getCompletedJobResult(jobID string) (*runtimev1.VoiceA
 	}
 	s.mu.RLock()
 	record := s.jobs[id]
-	if record == nil || record.job == nil ||
-		record.job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
+	if record == nil {
+		asset := s.assets[id]
+		valid := asset != nil && asset.GetStatus() == runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_ACTIVE &&
+			strings.TrimSpace(asset.GetVoiceAssetId()) == id && strings.TrimSpace(asset.GetProviderVoiceRef()) != "" &&
+			s.targets[id] != nil && s.targets[id].Valid()
+		resultAsset := cloneVoiceAsset(asset)
+		s.mu.RUnlock()
+		if !valid {
+			return nil, nil, false
+		}
+		return resultAsset, voiceAssetReference(id), true
+	}
+	if record.job == nil || record.job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
 		s.mu.RUnlock()
 		return nil, nil, false
 	}

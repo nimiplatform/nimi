@@ -20,12 +20,14 @@ func validateScenarioExecutionMode(scenarioType runtimev1.ScenarioType, mode run
 	return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
 }
 
+// @nimi-authority: rule.nimi.runtime.local-compute.r100
 func scenarioAllowedModes(scenarioType runtimev1.ScenarioType) []runtimev1.ExecutionMode {
 	switch scenarioType {
 	case runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE:
 		return []runtimev1.ExecutionMode{
 			runtimev1.ExecutionMode_EXECUTION_MODE_SYNC,
 			runtimev1.ExecutionMode_EXECUTION_MODE_STREAM,
+			runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
 		}
 	case runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_EMBED:
 		return []runtimev1.ExecutionMode{

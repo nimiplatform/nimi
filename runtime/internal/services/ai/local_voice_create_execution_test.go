@@ -16,6 +16,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 	"github.com/nimiplatform/nimi/runtime/internal/runtimeidentity"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 type localVoiceExecutionResolver struct {
@@ -42,10 +43,10 @@ func TestLocalVoiceCreateTypedSourcesProduceReusableVoiceAssets(t *testing.T) {
 		{name: "text-description", feature: "input.text", source: runtimev1.VoiceCreationSource_VOICE_CREATION_SOURCE_TEXT_DESCRIPTION, request: &runtimev1.VoiceCreateScenarioSpec{Source: &runtimev1.VoiceCreateScenarioSpec_TextDescription{TextDescription: &runtimev1.VoiceT2VInput{InstructionText: "warm narrator", PreviewText: "hello"}}}},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			target := &runtimeidentity.Target{Local: &runtimeidentity.LocalTarget{ReadinessRef: "local-asset://shared-qwen3-voice"}}
-			voiceSelection := selectedLocalVoiceCreateExecutionForTest(t, "voice-"+test.name, test.feature, target)
+			voiceSelection := selectedLocalVoiceCreateExecutionForTest(t, "voice-"+test.name, test.feature)
+			expectedVoiceIdentity := projectLoadoutEffectiveInputIdentity(voiceSelection)
 			synthSelection := selectedSpeechExecutionForTest(t, capabilitydriver.AudioSynthesizeContract, "synth-"+test.name)
-			synthSelection.ExecutionTarget = target.Clone()
+			synthSelection.ExecutionTarget = voiceSelection.ExecutionTarget.Clone()
 			svc := newTestService(nil)
 			svc.SetLocalExecutionResolver(&localVoiceExecutionResolver{selections: map[string]*localexecution.SelectedLocalExecution{
 				capabilitydriver.VoiceCreateContract:     voiceSelection,
@@ -64,10 +65,19 @@ func TestLocalVoiceCreateTypedSourcesProduceReusableVoiceAssets(t *testing.T) {
 			if err != nil {
 				t.Fatalf("SubmitScenarioJob voice.create: %v", err)
 			}
+			if _, duplicated := svc.voiceAssets.getJob(response.GetJob().GetJobId()); duplicated {
+				t.Fatal("local voice.create Job was duplicated into voiceAssetStore")
+			}
+			assembly, captured := svc.scenarioJobs.resolvedAssembly(response.GetJob().GetJobId())
+			if !captured || assembly.Request.Kind != "voice.create" || assembly.LoadPlan.Speech == nil || assembly.LoadPlan.Speech.Operation != "voice.create" {
+				t.Fatalf("local voice.create ResolvedAssembly = %+v, captured=%v", assembly, captured)
+			}
+			assertEffectiveInputIdentityFields(t, response.GetJob().GetEffectiveInputIdentity(), expectedVoiceIdentity)
 			job := waitLocalVoiceJobTerminal(t, svc, response.GetJob().GetJobId())
 			if job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
 				t.Fatalf("voice.create status=%s reason=%s detail=%q", job.GetStatus(), job.GetReasonCode(), job.GetReasonDetail())
 			}
+			assertEffectiveInputIdentityFields(t, job.GetEffectiveInputIdentity(), expectedVoiceIdentity)
 			result, err := svc.GetScenarioJob(ownerCtx, &runtimev1.GetScenarioJobRequest{JobId: job.GetJobId()})
 			if err != nil {
 				t.Fatalf("GetScenarioJob voice.create terminal result: %v", err)
@@ -75,6 +85,9 @@ func TestLocalVoiceCreateTypedSourcesProduceReusableVoiceAssets(t *testing.T) {
 			asset, _, ok := svc.voiceAssets.getAssetBinding(result.GetAsset().GetVoiceAssetId())
 			if !ok || asset.GetCreationSource() != test.source || asset.GetProvider() != "local" || asset.GetProviderVoiceRef() != "opaque-"+test.name || asset.GetPersistence() != runtimev1.VoiceAssetPersistence_VOICE_ASSET_PERSISTENCE_SESSION_EPHEMERAL {
 				t.Fatalf("voice asset=%+v found=%v", asset, ok)
+			}
+			if asset.GetVoiceAssetId() != job.GetJobId() {
+				t.Fatalf("local VoiceAsset id=%q, want canonical Job result id %q", asset.GetVoiceAssetId(), job.GetJobId())
 			}
 			if result.GetVoiceReference().GetVoiceAssetId() != asset.GetVoiceAssetId() {
 				t.Fatalf("voice reference=%+v asset=%+v", result.GetVoiceReference(), asset)
@@ -104,10 +117,9 @@ func TestLocalVoiceCreateTypedSourcesProduceReusableVoiceAssets(t *testing.T) {
 }
 
 func TestLocalVoiceCreateFailsClosedOnUnsupportedSelectedSource(t *testing.T) {
-	target := &runtimeidentity.Target{Local: &runtimeidentity.LocalTarget{ReadinessRef: "local-asset://voice-text-only"}}
 	svc := newTestService(nil)
 	svc.SetLocalExecutionResolver(&localVoiceExecutionResolver{selections: map[string]*localexecution.SelectedLocalExecution{
-		capabilitydriver.VoiceCreateContract: selectedLocalVoiceCreateExecutionForTest(t, "voice-text-only", "input.text", target),
+		capabilitydriver.VoiceCreateContract: selectedLocalVoiceCreateExecutionForTest(t, "voice-text-only", "input.text"),
 	}})
 	svc.SetLocalSpeechExecutionHost(&localSpeechHostStub{})
 	ctx := executionintent.WithIntent(scenarioJobUserContext("app.local", "anonymous"), executionintent.Intent{CapabilityContract: capabilitydriver.VoiceCreateContract, Route: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL, RequiredFeatures: []string{"input.audio"}})
@@ -123,7 +135,7 @@ func TestLocalVoiceCreateFailsClosedOnUnsupportedSelectedSource(t *testing.T) {
 	}
 }
 
-func selectedLocalVoiceCreateExecutionForTest(t *testing.T, configurationID string, feature string, target *runtimeidentity.Target) *localexecution.SelectedLocalExecution {
+func selectedLocalVoiceCreateExecutionForTest(t *testing.T, configurationID string, feature string) *localexecution.SelectedLocalExecution {
 	t.Helper()
 	driver := capabilitydriver.Qwen3VoiceCreateDriver{}
 	requirements, reason := driver.Interpret(capabilitydriver.InterpretInput{SupportedFeatures: []string{feature}})
@@ -137,12 +149,27 @@ func selectedLocalVoiceCreateExecutionForTest(t *testing.T, configurationID stri
 	}
 	digestBytes := sha256.Sum256(payload)
 	digest := hex.EncodeToString(digestBytes[:])
+	options, err := structpb.NewStruct(map[string]any{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	modelAssetID := fmt.Sprintf("%s-model", configurationID)
+	recipeID := capabilitydriver.Qwen3VoiceDesignRecipeID
+	if feature == "input.audio" {
+		recipeID = capabilitydriver.Qwen3VoiceCloneRecipeID
+	}
 	return &localexecution.SelectedLocalExecution{
-		ConfigurationID: configurationID, CapabilityContract: capabilitydriver.VoiceCreateContract, DisplayName: configurationID,
+		LoadoutID: configurationID, CapabilityContract: capabilitydriver.VoiceCreateContract, DisplayName: configurationID,
+		RecipeID: recipeID, RecipeRevision: "1",
 		DriverIdentity:    (&capabilitydriver.Identity{ImplementationID: capabilitydriver.Qwen3VoiceCreateImplementationID, DriverID: capabilitydriver.Qwen3TTSDriverID, DriverDialect: capabilitydriver.Qwen3VoiceCreateDriverDialect}).Proto(),
+		PortableConfig:    options,
 		Requirements:      requirements,
-		ExactBindings:     []localexecution.ExactBinding{{RequirementID: requirements[0].GetRequirementId(), AssetID: fmt.Sprintf("catalog/%s", configurationID), LocalAssetID: fmt.Sprintf("%s-asset", configurationID), AbsolutePath: path, VerifiedContentID: "sha256:" + digest, EntrySHA256: digest}},
-		SupportedFeatures: []string{feature}, ExecutionTarget: target.Clone(), Configured: true,
+		ExactBindings:     []localexecution.ExactBinding{{RequirementID: requirements[0].GetRequirementId(), ModelAssetID: modelAssetID, AbsolutePath: path, VerifiedContentID: "sha256:" + digest, EntrySHA256: digest}},
+		SupportedFeatures: []string{feature},
+		ExecutionTarget: &runtimeidentity.Target{Local: &runtimeidentity.LocalTarget{
+			ReadinessRef: "model-asset://" + modelAssetID,
+		}},
+		Configured: true,
 	}
 }
 
@@ -150,7 +177,7 @@ func waitLocalVoiceJobTerminal(t *testing.T, svc *Service, jobID string) *runtim
 	t.Helper()
 	deadline := time.Now().Add(3 * time.Second)
 	for time.Now().Before(deadline) {
-		if job, ok := svc.voiceAssets.getJob(jobID); ok && isTerminalScenarioJobStatus(job.GetStatus()) {
+		if job, ok := svc.scenarioJobs.get(jobID); ok && isTerminalScenarioJobStatus(job.GetStatus()) {
 			return job
 		}
 		time.Sleep(5 * time.Millisecond)

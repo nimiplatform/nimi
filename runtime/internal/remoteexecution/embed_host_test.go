@@ -56,7 +56,7 @@ func TestProviderEmbedHostConfinesCredentialToOneAuditedDispatch(t *testing.T) {
 	audit := auditlog.New(16, 16)
 	host := NewProviderEmbedHost(
 		store,
-		nimillm.NewCloudProvider(nimillm.CloudConfig{HTTPTimeout: time.Second, AllowLoopbackEndpoint: true}, nil, nil),
+		nimillm.NewCloudProvider(nimillm.CloudConfig{HTTPTimeout: time.Second, AllowLoopbackEndpoint: true}, nil),
 		audit,
 		true,
 	)

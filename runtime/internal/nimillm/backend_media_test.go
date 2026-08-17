@@ -248,7 +248,7 @@ func TestBackendGenerateImageUsesConfiguredCodexHostModel(t *testing.T) {
 			},
 		},
 		AllowLoopbackEndpoint: true,
-	}, nil, nil)
+	}, nil)
 	backend, toolModel := provider.ResolveMediaBackendWithTarget("gpt-image-2", &RemoteTarget{
 		ProviderType:    "openai_codex",
 		Endpoint:        server.URL + "/backend-api/codex",

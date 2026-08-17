@@ -8,19 +8,20 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	catalog "github.com/nimiplatform/nimi/runtime/internal/aicatalog"
 	"github.com/nimiplatform/nimi/runtime/internal/authn"
+	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
-	"github.com/nimiplatform/nimi/runtime/internal/runtimeidentity"
+	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 	connectorservice "github.com/nimiplatform/nimi/runtime/internal/services/connector"
-	localservice "github.com/nimiplatform/nimi/runtime/internal/services/localservice"
 	memoryservice "github.com/nimiplatform/nimi/runtime/internal/services/memory"
 )
 
+// @nimi-authority: rule.nimi.runtime.security-core.r064
 func resolveRuntimeMemoryEmbeddingProfile(
 	ctx context.Context,
 	snapshot *memoryservice.MemoryEmbeddingTextEmbedIntentSnapshot,
-	localSvc *localservice.Service,
 	connStore *connectorservice.ConnectorStore,
 	modelCatalog *catalog.Resolver,
+	localResolver localexecution.Resolver,
 ) memoryservice.MemoryEmbeddingResolvedProfile {
 	normalized := normalizeMemoryEmbeddingTextEmbedIntentSnapshot(snapshot)
 	if !memoryEmbeddingTextEmbedIntentPresent(normalized) {
@@ -31,7 +32,7 @@ func resolveRuntimeMemoryEmbeddingProfile(
 	}
 	switch normalized.SourceKind {
 	case memoryservice.MemoryEmbeddingTextEmbedSourceKindLocal:
-		return resolveLocalRuntimeMemoryEmbeddingProfile(ctx, normalized, localSvc, modelCatalog)
+		return resolveLocalRuntimeMemoryEmbeddingProfile(localResolver, modelCatalog)
 	case memoryservice.MemoryEmbeddingTextEmbedSourceKindCloud:
 		return resolveCloudRuntimeMemoryEmbeddingProfile(ctx, normalized, connStore, modelCatalog)
 	default:
@@ -62,13 +63,7 @@ func normalizeMemoryEmbeddingTextEmbedIntentSnapshot(input *memoryservice.Memory
 		}
 	}
 	if input.LocalBinding != nil {
-		out.LocalBinding = &memoryservice.MemoryEmbeddingLocalBindingRef{
-			ProfileBindingID: strings.TrimSpace(input.LocalBinding.ProfileBindingID),
-			ReadinessRef:     strings.TrimSpace(input.LocalBinding.ReadinessRef),
-		}
-		if out.LocalBinding.ProfileBindingID == "" && out.LocalBinding.ReadinessRef == "" {
-			out.LocalBinding = nil
-		}
+		out.LocalBinding = &memoryservice.MemoryEmbeddingLocalBindingRef{}
 	}
 	return out
 }
@@ -88,100 +83,45 @@ func memoryEmbeddingTextEmbedIntentPresent(snapshot *memoryservice.MemoryEmbeddi
 }
 
 func resolveLocalRuntimeMemoryEmbeddingProfile(
-	ctx context.Context,
-	snapshot *memoryservice.MemoryEmbeddingTextEmbedIntentSnapshot,
-	localSvc *localservice.Service,
+	localResolver localexecution.Resolver,
 	modelCatalog *catalog.Resolver,
 ) memoryservice.MemoryEmbeddingResolvedProfile {
-	if snapshot == nil || snapshot.LocalBinding == nil {
-		return memoryservice.MemoryEmbeddingResolvedProfile{
-			ResolutionState:   "unresolved",
-			BlockedReasonCode: runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE,
-		}
-	}
-	if localSvc == nil {
+	if localResolver == nil || modelCatalog == nil {
 		return memoryservice.MemoryEmbeddingResolvedProfile{
 			ResolutionState:   "unavailable",
 			BlockedReasonCode: runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE,
 		}
 	}
-	// K-MEM-004 / K-AIEXEC-006: embedding dimension is part of the embedding
-	// profile identity and its authority is the runtime model catalog, not the
-	// local asset record. Without the catalog we cannot mint an admitted profile.
-	if modelCatalog == nil {
-		return memoryservice.MemoryEmbeddingResolvedProfile{
-			ResolutionState:   "unavailable",
-			BlockedReasonCode: runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE,
-		}
-	}
-	target := runtimeMemoryEmbeddingDurableLocalTarget(snapshot.LocalBinding)
-	if target == nil {
+	selected, err := localResolver.ResolveSelectedLocalExecution(capabilitydriver.TextEmbedCapabilityContract)
+	if err != nil || selected == nil || !selected.Configured ||
+		selected.CapabilityContract != capabilitydriver.TextEmbedCapabilityContract ||
+		len(selected.Requirements) != 1 || len(selected.ExactBindings) != 1 ||
+		selected.DriverIdentity == nil {
 		return memoryservice.MemoryEmbeddingResolvedProfile{
 			ResolutionState:   "unresolved",
-			BlockedReasonCode: runtimev1.ReasonCode_AI_MEMORY_EMBEDDING_TARGET_REF_INVALID,
+			BlockedReasonCode: runtimev1.ReasonCode_AI_LOCAL_SELECTION_NOT_FOUND,
 		}
 	}
-	binding, asset, err := localSvc.ResolveDurableLocalTarget(ctx, target, "text.embed")
-	if err != nil {
+	binding := selected.ExactBindings[0]
+	modelID, dimension, ok := modelCatalog.ResolveLocalEmbeddingProfileForContent(binding.VerifiedContentID)
+	if !ok || strings.TrimSpace(binding.ModelAssetID) == "" {
 		return memoryservice.MemoryEmbeddingResolvedProfile{
 			ResolutionState:   "unresolved",
-			BlockedReasonCode: memoryEmbeddingReasonCodeFromError(err, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE),
-		}
-	}
-	if binding == nil || asset == nil || strings.TrimSpace(binding.GetResolvedModelId()) == "" {
-		return memoryservice.MemoryEmbeddingResolvedProfile{
-			ResolutionState:   "unresolved",
-			BlockedReasonCode: runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE,
-		}
-	}
-	// The local asset is install/inventory evidence only. Resolve the
-	// catalog-authoritative dimension from the exact target's logical model.
-	// A local embedding asset with no admitted catalog dimension must
-	// fail-close rather than fabricate a dimension.
-	dimension, ok := resolveCatalogEmbeddingDimension(
-		modelCatalog,
-		"local",
-		strings.TrimSpace(binding.GetResolvedModelId()),
-	)
-	if !ok {
-		return memoryservice.MemoryEmbeddingResolvedProfile{
-			ResolutionState:   "unresolved",
-			BlockedReasonCode: runtimev1.ReasonCode_AI_LOCAL_MODEL_PROFILE_MISSING,
+			BlockedReasonCode: runtimev1.ReasonCode_CAPABILITY_CATALOG_MISMATCH,
 		}
 	}
 	return memoryservice.MemoryEmbeddingResolvedProfile{
 		Profile: &runtimev1.MemoryEmbeddingProfile{
-			Provider:  "local",
-			ModelId:   strings.TrimSpace(binding.GetResolvedModelId()),
-			Dimension: dimension,
-			// DistanceMetric / MigrationPolicy are runtime memory-bank policy,
-			// not model-catalog facts; they remain runtime-owned constants.
-			DistanceMetric: runtimev1.MemoryDistanceMetric_MEMORY_DISTANCE_METRIC_COSINE,
-			Version: func() string {
-				if value := strings.TrimSpace(asset.GetLocalAssetId()); value != "" {
-					return value
-				}
-				return strings.TrimSpace(asset.GetAssetId())
-			}(),
+			Provider:        "local",
+			ModelId:         modelID,
+			Dimension:       dimension,
+			DistanceMetric:  runtimev1.MemoryDistanceMetric_MEMORY_DISTANCE_METRIC_COSINE,
+			Version:         strings.TrimSpace(binding.ModelAssetID),
 			MigrationPolicy: runtimev1.MemoryMigrationPolicy_MEMORY_MIGRATION_POLICY_REINDEX,
 		},
 		ResolutionState:   "resolved",
 		BlockedReasonCode: runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED,
 	}
-}
-
-func runtimeMemoryEmbeddingDurableLocalTarget(input *memoryservice.MemoryEmbeddingLocalBindingRef) *runtimeidentity.LocalTarget {
-	if input == nil {
-		return nil
-	}
-	target := &runtimeidentity.LocalTarget{
-		ProfileBindingID: strings.TrimSpace(input.ProfileBindingID),
-		ReadinessRef:     strings.TrimSpace(input.ReadinessRef),
-	}
-	if !target.Valid() {
-		return nil
-	}
-	return target
 }
 
 func resolveCloudRuntimeMemoryEmbeddingProfile(

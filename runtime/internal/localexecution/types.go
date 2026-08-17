@@ -15,17 +15,17 @@ import (
 )
 
 // ExactBinding is one verified occurrence in a selected local configuration.
-// AbsolutePath is resolved beneath Runtime's owned models root.
+// AbsolutePath is resolved beneath Runtime's owned models root. BundleDir and
+// DeclaredFiles are captured from the same verified ModelAsset manifest.
 type ExactBinding struct {
 	RequirementID     string
 	RequirementRole   runtimev1.LocalCapabilityRequirementRole
 	OccurrenceOrdinal uint32
 	DisplayLabel      string
-	// AssetID is the stable manifest/catalog identity admitted by supervised
-	// Hosts. LocalAssetID remains the machine-local occurrence identity.
-	AssetID           string
-	LocalAssetID      string
+	ModelAssetID      string
 	AbsolutePath      string
+	BundleDir         string
+	DeclaredFiles     []string
 	VerifiedContentID string
 	EntrySHA256       string
 }
@@ -34,9 +34,12 @@ type ExactBinding struct {
 // machine selection. Configured is true for every successful resolution;
 // incomplete configurations return a typed error instead of a partial value.
 type SelectedLocalExecution struct {
-	ConfigurationID    string
+	LoadoutID          string
 	CapabilityContract string
 	DisplayName        string
+	RecipeID           string
+	RecipeRevision     string
+	RecipeCustody      []*runtimev1.LoadoutRecipeCustodyReference
 	DriverIdentity     *runtimev1.CapabilityImplementationIdentity
 	PortableConfig     *structpb.Struct
 	// ModelContextWindowTokens is the exact bound model's authored capacity.

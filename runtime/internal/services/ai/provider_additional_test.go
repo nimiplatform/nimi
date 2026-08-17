@@ -28,7 +28,7 @@ func TestNewFailsOnInvalidCustomSpeechCatalog(t *testing.T) {
 		t.Fatalf("seed invalid custom dir path: %v", err)
 	}
 
-	_, err := New(logger, nil, nil, nil, nil, runtimecfg.Config{
+	_, err := New(logger, nil, nil, nil, runtimecfg.Config{
 		ModelCatalogCustomDir: invalidPath,
 	})
 	if err == nil {

@@ -128,28 +128,28 @@ func TestSubscribeJobEventsTerminalThenClose(t *testing.T) {
 	}
 
 	// Transition to RUNNING.
-	if _, ok := store.transition(
+	if _, ok, err := store.transition(
 		"stream-edge-001",
 		runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING,
 		runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_RUNNING,
 		nil,
-	); !ok {
-		t.Fatalf("transition to RUNNING failed")
+	); err != nil || !ok {
+		t.Fatalf("transition to RUNNING failed: %v", err)
 	}
-	if _, ok := store.updateProgress("stream-edge-001", 4, 8, 50); !ok {
-		t.Fatalf("updateProgress failed")
+	if _, ok, err := store.updateProgress("stream-edge-001", 4, 8, 50); err != nil || !ok {
+		t.Fatalf("updateProgress failed: %v", err)
 	}
 
 	// Transition to COMPLETED (terminal).
-	if _, ok := store.transition(
+	if _, ok, err := store.transition(
 		"stream-edge-001",
 		runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED,
 		runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_COMPLETED,
 		func(j *runtimev1.ScenarioJob) {
 			j.ReasonCode = runtimev1.ReasonCode_ACTION_EXECUTED
 		},
-	); !ok {
-		t.Fatalf("transition to COMPLETED failed")
+	); err != nil || !ok {
+		t.Fatalf("transition to COMPLETED failed: %v", err)
 	}
 
 	// Drain events from the channel; expect RUNNING then COMPLETED.

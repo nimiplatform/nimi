@@ -98,13 +98,21 @@ func (s *Service) submitScenarioAsyncJob(
 		TraceId:           effective.traceID,
 		IgnoredExtensions: cloneIgnoredScenarioExtensions(ignored),
 	}
-	snapshot := s.scenarioJobs.createOwned(job, cancel, localAppJobOwnerFromContext(ctx))
+	snapshot, created, persistErr := s.scenarioJobs.createOwnedAndBindChecked(job, cancel, localAppJobOwnerFromContext(ctx), idempotencyScope)
+	if persistErr != nil {
+		cancel()
+		return fail(grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID, persistErr, grpcerr.ReasonOptions{
+			Message: "ScenarioJob submission could not be persisted",
+		}))
+	}
 	if snapshot == nil {
 		cancel()
 		return fail(grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID))
 	}
-	if idempotencyScope != "" {
-		s.scenarioJobs.bindIdempotency(idempotencyScope, jobID)
+	if !created {
+		cancel()
+		effective.release()
+		return &runtimev1.SubmitScenarioJobResponse{Job: snapshot}, nil
 	}
 	go func() {
 		defer effective.release()

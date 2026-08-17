@@ -7,6 +7,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/aiconfig"
+	"github.com/nimiplatform/nimi/runtime/internal/aiprofile"
 	"github.com/nimiplatform/nimi/runtime/internal/authn"
 	"github.com/nimiplatform/nimi/runtime/internal/config"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
@@ -31,6 +32,7 @@ func newSharedAIConfigTestService(t *testing.T) *Service {
 	}
 	t.Cleanup(svc.Close)
 	svc.SetAIConfigStore(aiconfig.NewMemoryStore())
+	svc.SetAIProfileStore(aiprofile.NewMemoryStore())
 	return svc
 }
 

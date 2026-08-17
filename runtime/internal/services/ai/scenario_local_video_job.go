@@ -73,31 +73,57 @@ func (s *Service) submitLocalVideoScenarioJob(
 		Status: runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED, ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED,
 		CreatedAt: now, UpdatedAt: now, TraceId: ulid.Make().String(),
 		ProgressTotalSteps: int32(effective.plan.FrameCount() + 1), IgnoredExtensions: cloneIgnoredScenarioExtensions(ignored),
+		EffectiveInputIdentity: cloneLoadoutEffectiveInputIdentity(effective.effectiveInputIdentity),
 	}
-	stored := s.scenarioJobs.createOwned(job, cancel, localAppJobOwnerFromContext(ctx))
+	stored, created, persistErr := s.scenarioJobs.createOwnedAndBindAssemblyChecked(job, cancel, localAppJobOwnerFromContext(ctx), idempotencyScope, effective.resolvedAssembly)
+	if persistErr != nil {
+		cancel()
+		return nil, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID, persistErr, grpcerr.ReasonOptions{
+			Message: "ScenarioJob submission could not be persisted",
+		})
+	}
 	if stored == nil {
 		cancel()
 		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
-	if idempotencyScope != "" {
-		s.scenarioJobs.bindIdempotency(idempotencyScope, jobID)
+	if !created {
+		cancel()
+		return &runtimev1.SubmitScenarioJobResponse{Job: stored}, nil
 	}
 	ticket := s.localVideoJobOrder.reserve()
-	go s.runLocalVideoScenarioJob(jobCtx, jobID, effective, ticket)
+	go s.runLocalVideoScenarioJob(jobCtx, jobID, ticket)
 	return &runtimev1.SubmitScenarioJobResponse{Job: stored}, nil
 }
 
-func (s *Service) runLocalVideoScenarioJob(ctx context.Context, jobID string, effective *localVideoEffectiveInputs, ticket *localMediaSubmissionTicket) {
+func (s *Service) runLocalVideoScenarioJob(ctx context.Context, jobID string, ticket *localMediaSubmissionTicket) {
 	if ticket != nil {
 		defer ticket.release()
 	}
-	if effective == nil || !s.scenarioJobs.startExecution(jobID) {
+	if !s.scenarioJobs.startExecution(jobID) {
 		return
 	}
-	defer s.scenarioJobs.finishExecution(jobID)
-	if _, ok := s.scenarioJobs.transition(jobID, runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_QUEUED, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_QUEUED, nil); !ok {
+	defer s.finishScenarioJobExecution(jobID)
+	if _, ok, transitionErr := s.transitionScenarioJob(jobID, runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_QUEUED, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_QUEUED, nil); transitionErr != nil {
+		s.failScenarioJobPersistencePrecondition(jobID, scenarioJobQueuedPersistenceFailedReason, transitionErr)
+		return
+	} else if !ok {
 		return
 	}
+	job, ok := s.scenarioJobs.get(jobID)
+	if !ok || job.GetHead() == nil {
+		return
+	}
+	assembly, ok := s.scenarioJobs.resolvedAssembly(jobID)
+	if !ok {
+		s.finishLocalVideoJobFailure(ctx, jobID, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID))
+		return
+	}
+	effective, err := s.localVideoEffectiveInputsFromResolvedAssembly(assembly)
+	if err != nil {
+		s.finishLocalVideoJobFailure(ctx, jobID, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID, err, grpcerr.ReasonOptions{Message: "captured local video assembly is invalid"}))
+		return
+	}
+	effective.head = cloneScenarioHead(job.GetHead())
 	if err := ticket.wait(ctx); err != nil {
 		s.finishLocalVideoJobFailure(ctx, jobID, err)
 		return
@@ -113,7 +139,11 @@ func (s *Service) runLocalVideoScenarioJob(ctx context.Context, jobID string, ef
 		if err != nil {
 			return err
 		}
-		if _, ok := s.scenarioJobs.transition(jobID, runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_RUNNING, nil); ok {
+		if _, ok, transitionErr := s.transitionScenarioJob(jobID, runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_RUNNING, nil); transitionErr != nil {
+			release()
+			s.failScenarioJobPersistencePrecondition(jobID, scenarioJobRunningPersistenceFailedReason, transitionErr)
+			return transitionErr
+		} else if ok {
 			schedulerRelease = release
 			return nil
 		}
@@ -132,7 +162,7 @@ func (s *Service) runLocalVideoScenarioJob(ctx context.Context, jobID string, ef
 		if total <= 0 {
 			total = int32(effective.plan.FrameCount() + 1)
 		}
-		_, _ = s.scenarioJobs.updateProgress(jobID, current, total, videoJobProgressPercent(current, total))
+		_, _ = s.updateScenarioJobProgress(jobID, current, total, videoJobProgressPercent(current, total))
 	}
 	rawCandidate, err := s.executeCapturedLocalVideo(ctx, effective, onStart, progress)
 	if err != nil {
@@ -144,7 +174,7 @@ func (s *Service) runLocalVideoScenarioJob(ctx context.Context, jobID string, ef
 		return
 	}
 	encodeCurrent, encodeTotal := int32(effective.plan.FrameCount()), int32(effective.plan.FrameCount()+1)
-	_, _ = s.scenarioJobs.updateProgress(jobID, encodeCurrent, encodeTotal, videoJobProgressPercent(encodeCurrent, encodeTotal))
+	_, _ = s.updateScenarioJobProgress(jobID, encodeCurrent, encodeTotal, videoJobProgressPercent(encodeCurrent, encodeTotal))
 	encoded, err := s.localVideoMedia.EncodeAndInspect(ctx, effective.plan, rawCandidate)
 	if err != nil {
 		s.finishLocalVideoJobFailure(ctx, jobID, localVideoMediaError(err))
@@ -160,7 +190,7 @@ func (s *Service) runLocalVideoScenarioJob(ctx context.Context, jobID string, ef
 		return
 	}
 	_, err = s.storeAndAttachRuntimeJobArtifacts(ctx, jobID, effective.head, artifacts, func(candidates []*runtimev1.ScenarioArtifact) bool {
-		_, ok := s.scenarioJobs.transition(
+		_, ok, _ := s.transitionScenarioJob(
 			jobID,
 			runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED,
 			runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_COMPLETED,
@@ -201,7 +231,7 @@ func (s *Service) finishLocalVideoJobFailure(ctx context.Context, jobID string, 
 	} else if errors.Is(ctx.Err(), context.Canceled) || errors.Is(err, context.Canceled) || status.Code(err) == codes.Canceled {
 		jobStatus, eventType, reason = runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_CANCELED, runtimev1.ReasonCode_AI_LOCAL_EXECUTION_CANCELED
 	}
-	_, _ = s.scenarioJobs.transition(jobID, jobStatus, eventType, func(job *runtimev1.ScenarioJob) {
+	_, _, _ = s.transitionScenarioJob(jobID, jobStatus, eventType, func(job *runtimev1.ScenarioJob) {
 		job.Artifacts = nil
 		job.ReasonCode = reason
 		job.ReasonDetail = sanitizeScenarioJobReasonDetail(err, reason)

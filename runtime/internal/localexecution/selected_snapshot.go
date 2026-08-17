@@ -16,9 +16,11 @@ func CloneSelectedLocalExecution(input *SelectedLocalExecution) *SelectedLocalEx
 		return nil
 	}
 	out := &SelectedLocalExecution{
-		ConfigurationID:          input.ConfigurationID,
+		LoadoutID:                input.LoadoutID,
 		CapabilityContract:       input.CapabilityContract,
 		DisplayName:              input.DisplayName,
+		RecipeID:                 input.RecipeID,
+		RecipeRevision:           input.RecipeRevision,
 		ModelContextWindowTokens: input.ModelContextWindowTokens,
 		ExactBindings:            append([]ExactBinding(nil), input.ExactBindings...),
 		SupportedFeatures:        append([]string(nil), input.SupportedFeatures...),
@@ -29,6 +31,11 @@ func CloneSelectedLocalExecution(input *SelectedLocalExecution) *SelectedLocalEx
 	}
 	if input.PortableConfig != nil {
 		out.PortableConfig, _ = proto.Clone(input.PortableConfig).(*structpb.Struct)
+	}
+	for _, custody := range input.RecipeCustody {
+		if custody != nil {
+			out.RecipeCustody = append(out.RecipeCustody, proto.Clone(custody).(*runtimev1.LoadoutRecipeCustodyReference))
+		}
 	}
 	out.ExecutionTarget = input.ExecutionTarget.Clone()
 	out.Requirements = make([]*runtimev1.LocalCapabilityRequirement, 0, len(input.Requirements))

@@ -20,7 +20,6 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/config"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
-	"github.com/nimiplatform/nimi/runtime/internal/modelregistry"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"github.com/nimiplatform/nimi/runtime/internal/providerhealth"
 	"github.com/nimiplatform/nimi/runtime/internal/remoteexecution"
@@ -57,7 +56,6 @@ type Service struct {
 	logger                                 *slog.Logger
 	config                                 Config
 	audit                                  *auditlog.Store
-	registry                               *modelregistry.Registry
 	scheduler                              *scheduler.Scheduler
 	scenarioJobs                           *scenarioJobStore
 	realtimeSessions                       *realtimeSessionStore
@@ -67,7 +65,6 @@ type Service struct {
 	aiConfigStore                          aiconfig.Store
 	spendDisclosureReporter                SpendDisclosureReporter
 	connStore                              *connector.ConnectorStore
-	localImageProfile                      localImageProfileResolver
 	localExecution                         localexecution.Resolver
 	localTextHost                          localexecution.TextExecutionHost
 	localImageHost                         localexecution.ImageExecutionHost
@@ -99,7 +96,7 @@ type runtimeAccountProjectionProvider interface {
 }
 
 // New creates a Service with all dependencies.
-func New(logger *slog.Logger, registry *modelregistry.Registry, aiHealth *providerhealth.Tracker, auditStore *auditlog.Store, connStore *connector.ConnectorStore, daemonCfg config.Config) (*Service, error) {
+func New(logger *slog.Logger, aiHealth *providerhealth.Tracker, auditStore *auditlog.Store, connStore *connector.ConnectorStore, daemonCfg config.Config) (*Service, error) {
 	effectiveCfg := loadConfigFromEnv()
 	if daemonCfg.AIHTTPTimeoutSeconds > 0 {
 		effectiveCfg.AIHTTPTimeout = time.Duration(daemonCfg.AIHTTPTimeoutSeconds) * time.Second
@@ -118,13 +115,13 @@ func New(logger *slog.Logger, registry *modelregistry.Registry, aiHealth *provid
 			effectiveCfg.CloudProviders[providerID] = creds
 		}
 	}
-	return newService(logger, registry, aiHealth, auditStore, connStore, effectiveCfg, daemonCfg, strings.TrimSpace(daemonCfg.ModelCatalogCustomDir))
+	return newService(logger, aiHealth, auditStore, connStore, effectiveCfg, daemonCfg, strings.TrimSpace(daemonCfg.ModelCatalogCustomDir))
 }
 
 // NewProtected creates the production protected-service AI surface. Provider
 // endpoints and credentials are deliberately absent from this constructor:
 // remote execution resolves them through the Runtime-owned connector store.
-func NewProtected(logger *slog.Logger, registry *modelregistry.Registry, aiHealth *providerhealth.Tracker, auditStore *auditlog.Store, connStore *connector.ConnectorStore, daemonCfg config.Config) (*Service, error) {
+func NewProtected(logger *slog.Logger, aiHealth *providerhealth.Tracker, auditStore *auditlog.Store, connStore *connector.ConnectorStore, daemonCfg config.Config) (*Service, error) {
 	if connStore == nil {
 		return nil, fmt.Errorf("protected AI service requires Runtime-owned connector resolver")
 	}
@@ -135,10 +132,10 @@ func NewProtected(logger *slog.Logger, registry *modelregistry.Registry, aiHealt
 	if daemonCfg.AIHTTPTimeoutSeconds > 0 {
 		effectiveCfg.AIHTTPTimeout = time.Duration(daemonCfg.AIHTTPTimeoutSeconds) * time.Second
 	}
-	return newService(logger, registry, aiHealth, auditStore, connStore, effectiveCfg, daemonCfg, "")
+	return newService(logger, aiHealth, auditStore, connStore, effectiveCfg, daemonCfg, "")
 }
 
-func newService(logger *slog.Logger, registry *modelregistry.Registry, aiHealth *providerhealth.Tracker, auditStore *auditlog.Store, connStore *connector.ConnectorStore, effectiveCfg Config, daemonCfg config.Config, customCatalogDir string) (*Service, error) {
+func newService(logger *slog.Logger, aiHealth *providerhealth.Tracker, auditStore *auditlog.Store, connStore *connector.ConnectorStore, effectiveCfg Config, daemonCfg config.Config, customCatalogDir string) (*Service, error) {
 	globalConc := daemonCfg.GlobalConcurrencyLimit
 	if globalConc <= 0 {
 		globalConc = 8
@@ -147,7 +144,7 @@ func newService(logger *slog.Logger, registry *modelregistry.Registry, aiHealth 
 	if perAppConc <= 0 {
 		perAppConc = 2
 	}
-	svc, err := newFromProviderConfig(logger, registry, aiHealth, auditStore, connStore, effectiveCfg, globalConc, perAppConc)
+	svc, err := newFromProviderConfig(logger, aiHealth, auditStore, connStore, effectiveCfg, globalConc, perAppConc)
 	if err != nil {
 		return nil, err
 	}
@@ -156,6 +153,25 @@ func newService(logger *slog.Logger, registry *modelregistry.Registry, aiHealth 
 		return nil, fmt.Errorf("init voice asset store: %w", err)
 	}
 	svc.voiceAssets = voiceAssets
+	scenarioJobs, err := newScenarioJobStoreForLocalStatePath(daemonCfg.LocalStatePath)
+	if err != nil {
+		return nil, fmt.Errorf("init scenario job store: %w", err)
+	}
+	svc.scenarioJobs = scenarioJobs
+	if logger != nil {
+		for _, diagnostic := range scenarioJobs.IsolationDiagnostics() {
+			logger.Warn(
+				"ScenarioJob durable state was isolated",
+				"reason_code", diagnostic.ReasonCode,
+				"level", diagnostic.Level,
+				"section", diagnostic.Section,
+				"record_index", diagnostic.RecordIndex,
+				"record_id", diagnostic.RecordID,
+				"quarantine_path", diagnostic.QuarantinePath,
+				"detail", diagnostic.Message,
+			)
+		}
+	}
 	voiceCatalog, err := catalog.NewResolver(catalog.ResolverConfig{
 		Logger:    logger,
 		CustomDir: strings.TrimSpace(customCatalogDir),
@@ -168,7 +184,7 @@ func newService(logger *slog.Logger, registry *modelregistry.Registry, aiHealth 
 }
 
 // newFromProviderConfig is an internal constructor used by New and tests.
-func newFromProviderConfig(logger *slog.Logger, registry *modelregistry.Registry, aiHealth *providerhealth.Tracker, auditStore *auditlog.Store, connStore *connector.ConnectorStore, cfg Config, globalConc int, perAppConc int) (*Service, error) {
+func newFromProviderConfig(logger *slog.Logger, aiHealth *providerhealth.Tracker, auditStore *auditlog.Store, connStore *connector.ConnectorStore, cfg Config, globalConc int, perAppConc int) (*Service, error) {
 	cfg = cfg.normalized()
 	if globalConc <= 0 {
 		globalConc = 8
@@ -188,13 +204,13 @@ func newFromProviderConfig(logger *slog.Logger, registry *modelregistry.Registry
 			"sequence", event.GetSequence(),
 		)
 	})
-	cloudProvider := nimillm.NewCloudProvider(cfg.toCloudConfig(), registry, aiHealth)
+	cloudProvider := nimillm.NewCloudProvider(cfg.toCloudConfig(), aiHealth)
 	remoteCloudConfig := cfg.toCloudConfig()
 	// Remote cloud execution may receive credentials only from request-scoped
 	// current-account Connector Host resolution; configured probe credentials are
 	// deliberately absent from the shared transport instance.
 	remoteCloudConfig.Providers = nil
-	remoteCloudTransport := nimillm.NewCloudProvider(remoteCloudConfig, registry, aiHealth)
+	remoteCloudTransport := nimillm.NewCloudProvider(remoteCloudConfig, aiHealth)
 	hostAudit := auditStore
 	if hostAudit == nil {
 		// Unit/in-process construction still receives an auditable Host seam;
@@ -205,7 +221,6 @@ func newFromProviderConfig(logger *slog.Logger, registry *modelregistry.Registry
 		logger:                                 logger,
 		config:                                 cfg,
 		audit:                                  auditStore,
-		registry:                               registry,
 		scheduler:                              scheduler.New(scheduler.Config{GlobalConcurrency: globalConc, PerAppConcurrency: perAppConc, StarvationThreshold: 30 * time.Second}),
 		scenarioJobs:                           newScenarioJobStore(),
 		realtimeSessions:                       realtimeSessions,
@@ -236,9 +251,9 @@ func newFromProviderConfig(logger *slog.Logger, registry *modelregistry.Registry
 	return svc, nil
 }
 
-// SetLocalExecutionResolver wires the machine Local Capability Configuration
-// owner into job-time composition. It is independent from legacy LocalAsset
-// listing and lifecycle APIs.
+// SetLocalExecutionResolver wires the machine Loadout owner into job-time
+// composition. It is independent from legacy LocalAsset listing and lifecycle
+// APIs.
 func (s *Service) SetLocalExecutionResolver(resolver localexecution.Resolver) {
 	if s != nil {
 		s.localExecution = resolver
@@ -365,12 +380,6 @@ func (s *Service) SetSchedulerDependencyChecker(checker scheduler.DependencyFeas
 	}
 }
 
-// SetLocalImageProfileResolver wires RuntimeLocalService only for resolving
-// already-managed local input artifact paths. It is not an execution backend.
-func (s *Service) SetLocalImageProfileResolver(resolver localImageProfileResolver) {
-	s.localImageProfile = resolver
-}
-
 func (s *Service) ResolvePublicChatTextBinding(
 	ctx context.Context,
 	routeHint runtimev1.RoutePolicy,
@@ -389,7 +398,7 @@ func (s *Service) ResolvePublicChatTextBinding(
 		}
 		resolved := strings.TrimSpace(selected.DisplayName)
 		if resolved == "" {
-			resolved = strings.TrimSpace(selected.ConfigurationID)
+			resolved = strings.TrimSpace(selected.LoadoutID)
 		}
 		return runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL, resolved, nil
 	}

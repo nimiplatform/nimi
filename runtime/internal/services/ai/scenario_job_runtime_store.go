@@ -2,6 +2,8 @@ package ai
 
 import (
 	"context"
+	"fmt"
+	"log/slog"
 	"sort"
 	"strings"
 	"sync"
@@ -13,17 +15,41 @@ import (
 )
 
 const (
-	maxScenarioJobEventBacklog        = 128
-	maxRetainedTerminalScenarioJobs   = 1024
-	maxScenarioUploadedArtifacts      = 1024
-	maxScenarioIdempotencyBindings    = 2048
-	scenarioJobRetention              = 30 * time.Minute
-	scenarioUploadedArtifactRetention = 30 * time.Minute
-	scenarioIdempotencyRetention      = 30 * time.Minute
+	maxScenarioJobEventBacklog                 = 128
+	maxRetainedTerminalScenarioJobs            = 1024
+	maxScenarioUploadedArtifacts               = 1024
+	maxScenarioIdempotencyBindings             = 2048
+	maxScenarioJobTerminalPersistenceAttempts  = 3
+	scenarioJobRetention                       = 30 * time.Minute
+	scenarioUploadedArtifactRetention          = 30 * time.Minute
+	scenarioIdempotencyRetention               = 30 * time.Minute
+	scenarioJobQueuedPersistenceFailedReason   = "scenario-job-queued-persist-failed"
+	scenarioJobRunningPersistenceFailedReason  = "scenario-job-running-persist-failed"
+	scenarioJobTerminalPersistenceFailedReason = "scenario-job-terminal-persist-failed"
 )
+
+type scenarioJobPersistenceOperation string
+
+const (
+	scenarioJobPersistCreate        scenarioJobPersistenceOperation = "create"
+	scenarioJobPersistCreateAndBind scenarioJobPersistenceOperation = "create-and-bind-idempotency"
+	scenarioJobPersistBind          scenarioJobPersistenceOperation = "bind-idempotency"
+	scenarioJobPersistTransition    scenarioJobPersistenceOperation = "transition"
+	scenarioJobPersistProgress      scenarioJobPersistenceOperation = "progress"
+	scenarioJobPersistArtifact      scenarioJobPersistenceOperation = "artifact"
+	scenarioJobPersistCancellation  scenarioJobPersistenceOperation = "cancellation"
+	scenarioJobPersistLoad          scenarioJobPersistenceOperation = "load"
+)
+
+type scenarioJobPersistenceAttempt struct {
+	Operation scenarioJobPersistenceOperation
+	JobID     string
+	Status    runtimev1.ScenarioJobStatus
+}
 
 type scenarioJobRecord struct {
 	job              *runtimev1.ScenarioJob
+	resolvedAssembly *localResolvedAssembly
 	localAppOwner    *localAppJobOwner
 	events           []*runtimev1.ScenarioJobEvent
 	subscribers      map[uint64]chan *runtimev1.ScenarioJobEvent
@@ -55,11 +81,14 @@ type scenarioIdempotencyBinding struct {
 
 // @nimi-authority: definition.nimi.runtime.service-operations.scenario-job-plane
 type scenarioJobStore struct {
-	mu           sync.RWMutex
-	jobs         map[string]*scenarioJobRecord
-	artifactJobs map[string]string
-	idempotency  map[string]scenarioIdempotencyBinding
-	uploads      map[string]*uploadedArtifactRecord
+	mu                   sync.RWMutex
+	durablePath          string
+	jobs                 map[string]*scenarioJobRecord
+	artifactJobs         map[string]string
+	idempotency          map[string]scenarioIdempotencyBinding
+	uploads              map[string]*uploadedArtifactRecord
+	persistenceFailure   func(scenarioJobPersistenceAttempt) error
+	isolationDiagnostics []scenarioJobIsolationDiagnostic
 }
 
 func newScenarioJobStore() *scenarioJobStore {
@@ -72,16 +101,46 @@ func newScenarioJobStore() *scenarioJobStore {
 }
 
 func (s *scenarioJobStore) create(job *runtimev1.ScenarioJob, cancel context.CancelFunc) *runtimev1.ScenarioJob {
-	return s.createOwned(job, cancel, nil)
+	created, _ := s.createOwnedChecked(job, cancel, nil)
+	return created
 }
 
 func (s *scenarioJobStore) createOwned(job *runtimev1.ScenarioJob, cancel context.CancelFunc, owner *localAppJobOwner) *runtimev1.ScenarioJob {
+	created, _ := s.createOwnedChecked(job, cancel, owner)
+	return created
+}
+
+func (s *scenarioJobStore) createOwnedChecked(job *runtimev1.ScenarioJob, cancel context.CancelFunc, owner *localAppJobOwner) (*runtimev1.ScenarioJob, error) {
+	created, _, err := s.createOwnedAndBindChecked(job, cancel, owner, "")
+	return created, err
+}
+
+// createOwnedAndBindChecked atomically returns the Job already bound to the
+// idempotency scope or publishes the submitted Job and binding with one durable
+// snapshot. A failed write therefore leaves neither an in-memory Job nor an
+// earlier durable SUBMITTED record.
+func (s *scenarioJobStore) createOwnedAndBindChecked(
+	job *runtimev1.ScenarioJob,
+	cancel context.CancelFunc,
+	owner *localAppJobOwner,
+	idempotencyScope string,
+) (*runtimev1.ScenarioJob, bool, error) {
+	return s.createOwnedAndBindAssemblyChecked(job, cancel, owner, idempotencyScope, nil)
+}
+
+func (s *scenarioJobStore) createOwnedAndBindAssemblyChecked(
+	job *runtimev1.ScenarioJob,
+	cancel context.CancelFunc,
+	owner *localAppJobOwner,
+	idempotencyScope string,
+	resolvedAssembly *localResolvedAssembly,
+) (*runtimev1.ScenarioJob, bool, error) {
 	if job == nil {
-		return nil
+		return nil, false, fmt.Errorf("scenario job is required")
 	}
 	id := strings.TrimSpace(job.GetJobId())
 	if id == "" {
-		return nil
+		return nil, false, fmt.Errorf("scenario job id is required")
 	}
 	nowTime := time.Now().UTC()
 	now := timestamppb.New(nowTime)
@@ -94,24 +153,82 @@ func (s *scenarioJobStore) createOwned(job *runtimev1.ScenarioJob, cancel contex
 	if job.GetStatus() == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_UNSPECIFIED {
 		job.Status = runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED
 	}
-	record := &scenarioJobRecord{
-		job:           cloneScenarioJob(job),
-		localAppOwner: cloneLocalAppJobOwner(owner),
-		events:        make([]*runtimev1.ScenarioJobEvent, 0, 8),
-		subscribers:   make(map[uint64]chan *runtimev1.ScenarioJobEvent),
-		done:          make(chan struct{}),
-		cancel:        cancel,
-		createdAt:     nowTime,
-		updatedAt:     nowTime,
+	capturedAssembly, err := cloneLocalResolvedAssembly(resolvedAssembly)
+	if err != nil {
+		return nil, false, fmt.Errorf("clone local ResolvedAssembly: %w", err)
 	}
+	if err := validateScenarioJobResolvedAssemblyPair(job, capturedAssembly); err != nil {
+		return nil, false, err
+	}
+	record := &scenarioJobRecord{
+		job:              cloneScenarioJob(job),
+		resolvedAssembly: capturedAssembly,
+		localAppOwner:    cloneLocalAppJobOwner(owner),
+		events:           make([]*runtimev1.ScenarioJobEvent, 0, 8),
+		subscribers:      make(map[uint64]chan *runtimev1.ScenarioJobEvent),
+		done:             make(chan struct{}),
+		cancel:           cancel,
+		createdAt:        nowTime,
+		updatedAt:        nowTime,
+	}
+	key := strings.TrimSpace(idempotencyScope)
 
 	s.mu.Lock()
+	var previousBinding scenarioIdempotencyBinding
+	var hadPreviousBinding bool
+	operation := scenarioJobPersistCreate
+	if key != "" {
+		previousBinding, hadPreviousBinding = s.idempotency[key]
+		if hadPreviousBinding {
+			existing := s.jobs[strings.TrimSpace(previousBinding.jobID)]
+			if existing != nil && existing.job != nil {
+				snapshot := cloneScenarioJob(existing.job)
+				s.mu.Unlock()
+				return snapshot, false, nil
+			}
+		}
+	}
 	s.jobs[id] = record
 	s.syncArtifactIndexLocked(id, record)
+	if key != "" {
+		s.idempotency[key] = scenarioIdempotencyBinding{jobID: id, boundAt: nowTime}
+		operation = scenarioJobPersistCreateAndBind
+	}
 	s.publishLocked(record, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_SUBMITTED)
 	s.pruneLocked(nowTime)
+	if err := s.persistDurableJobsLocked(scenarioJobPersistenceAttempt{Operation: operation, JobID: id, Status: record.job.GetStatus()}); err != nil {
+		s.deleteJobLocked(id)
+		if key != "" {
+			if hadPreviousBinding {
+				s.idempotency[key] = previousBinding
+			} else {
+				delete(s.idempotency, key)
+			}
+		}
+		s.mu.Unlock()
+		if key != "" {
+			return nil, false, fmt.Errorf("persist scenario job %q creation and idempotency binding: %w", id, err)
+		}
+		return nil, false, fmt.Errorf("persist scenario job %q creation: %w", id, err)
+	}
 	s.mu.Unlock()
-	return cloneScenarioJob(record.job)
+	return cloneScenarioJob(record.job), true, nil
+}
+
+func (s *scenarioJobStore) resolvedAssembly(jobID string) (*localResolvedAssembly, bool) {
+	id := strings.TrimSpace(jobID)
+	if id == "" {
+		return nil, false
+	}
+	s.mu.RLock()
+	record := s.jobs[id]
+	if record == nil || record.resolvedAssembly == nil {
+		s.mu.RUnlock()
+		return nil, false
+	}
+	assembly, err := cloneLocalResolvedAssembly(record.resolvedAssembly)
+	s.mu.RUnlock()
+	return assembly, err == nil && assembly != nil
 }
 
 func (s *scenarioJobStore) localAppOwner(jobID string) (*localAppJobOwner, bool) {
@@ -164,21 +281,32 @@ func (s *scenarioJobStore) getByIdempotency(scopeKey string) (*runtimev1.Scenari
 	return job, true
 }
 
-func (s *scenarioJobStore) bindIdempotency(scopeKey string, jobID string) {
+func (s *scenarioJobStore) bindIdempotency(scopeKey string, jobID string) error {
 	key := strings.TrimSpace(scopeKey)
 	id := strings.TrimSpace(jobID)
 	if key == "" || id == "" {
-		return
+		return nil
 	}
 	s.mu.Lock()
-	if _, exists := s.jobs[id]; exists {
-		s.idempotency[key] = scenarioIdempotencyBinding{
-			jobID:   id,
-			boundAt: time.Now().UTC(),
-		}
-		s.pruneLocked(time.Now().UTC())
+	defer s.mu.Unlock()
+	if _, exists := s.jobs[id]; !exists {
+		return nil
 	}
-	s.mu.Unlock()
+	previous, hadPrevious := s.idempotency[key]
+	s.idempotency[key] = scenarioIdempotencyBinding{
+		jobID:   id,
+		boundAt: time.Now().UTC(),
+	}
+	s.pruneLocked(time.Now().UTC())
+	if err := s.persistDurableJobsLocked(scenarioJobPersistenceAttempt{Operation: scenarioJobPersistBind, JobID: id}); err != nil {
+		if hadPrevious {
+			s.idempotency[key] = previous
+		} else {
+			delete(s.idempotency, key)
+		}
+		return fmt.Errorf("persist scenario job %q idempotency binding: %w", id, err)
+	}
+	return nil
 }
 
 func (s *scenarioJobStore) transition(
@@ -186,27 +314,30 @@ func (s *scenarioJobStore) transition(
 	status runtimev1.ScenarioJobStatus,
 	eventType runtimev1.ScenarioJobEventType,
 	mutate func(*runtimev1.ScenarioJob),
-) (*runtimev1.ScenarioJob, bool) {
+) (*runtimev1.ScenarioJob, bool, error) {
 	id := strings.TrimSpace(jobID)
 	if id == "" {
-		return nil, false
+		return nil, false, nil
 	}
 	s.mu.Lock()
 	record, ok := s.jobs[id]
 	if !ok {
 		s.mu.Unlock()
-		return nil, false
+		return nil, false, nil
 	}
 	if isTerminalScenarioJobStatus(record.job.GetStatus()) {
 		job := cloneScenarioJob(record.job)
 		s.mu.Unlock()
-		return job, false
+		return job, false, nil
 	}
 	if record.cancelRequested && status != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED {
 		job := cloneScenarioJob(record.job)
 		s.mu.Unlock()
-		return job, false
+		return job, false, nil
 	}
+	previousJob := cloneScenarioJob(record.job)
+	previousUpdatedAt := record.updatedAt
+	previousTerminalAt := record.terminalAt
 	if mutate != nil {
 		mutate(record.job)
 	}
@@ -222,9 +353,21 @@ func (s *scenarioJobStore) transition(
 	nowTime := time.Now().UTC()
 	record.updatedAt = nowTime
 	record.job.UpdatedAt = timestamppb.New(nowTime)
-	if isTerminalScenarioJobStatus(record.job.GetStatus()) && !record.doneClosed {
-		record.doneClosed = true
+	becameTerminal := isTerminalScenarioJobStatus(record.job.GetStatus()) && !record.doneClosed
+	if becameTerminal {
 		record.terminalAt = nowTime
+	}
+	if err := s.persistDurableJobsLocked(scenarioJobPersistenceAttempt{Operation: scenarioJobPersistTransition, JobID: id, Status: status}); err != nil {
+		record.job = previousJob
+		record.updatedAt = previousUpdatedAt
+		record.terminalAt = previousTerminalAt
+		s.syncArtifactIndexLocked(id, record)
+		job := cloneScenarioJob(record.job)
+		s.mu.Unlock()
+		return job, false, fmt.Errorf("persist scenario job %q transition to %s: %w", id, status.String(), err)
+	}
+	if becameTerminal {
+		record.doneClosed = true
 		close(record.done)
 	}
 	if eventType != runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_TYPE_UNSPECIFIED {
@@ -233,35 +376,196 @@ func (s *scenarioJobStore) transition(
 	s.pruneLocked(nowTime)
 	job := cloneScenarioJob(record.job)
 	s.mu.Unlock()
-	return job, true
+	return job, true, nil
 }
 
-func (s *scenarioJobStore) updateProgress(jobID string, currentStep int32, totalSteps int32, progressPercent int32) (*runtimev1.ScenarioJob, bool) {
+// forceFailedInMemory is the last-resort observability boundary after bounded
+// terminal persistence retries are exhausted. It deliberately does not write
+// durable state; restart recovery will terminalize the last durable nonterminal
+// snapshot, while current callers and waiters immediately observe FAILED.
+func (s *scenarioJobStore) forceFailedInMemory(jobID string, reason string) (*runtimev1.ScenarioJob, bool) {
 	id := strings.TrimSpace(jobID)
 	if id == "" {
 		return nil, false
 	}
 	s.mu.Lock()
+	defer s.mu.Unlock()
+	record := s.jobs[id]
+	if record == nil || record.job == nil {
+		return nil, false
+	}
+	if isTerminalScenarioJobStatus(record.job.GetStatus()) {
+		return cloneScenarioJob(record.job), false
+	}
+	nowTime := time.Now().UTC()
+	record.job.Status = runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED
+	record.job.ReasonCode = runtimev1.ReasonCode_AI_OUTPUT_INVALID
+	record.job.ReasonDetail = strings.TrimSpace(reason)
+	record.job.ReasonMetadata = nil
+	record.job.UpdatedAt = timestamppb.New(nowTime)
+	record.updatedAt = nowTime
+	record.terminalAt = nowTime
+	if !record.doneClosed {
+		record.doneClosed = true
+		close(record.done)
+	}
+	s.publishLocked(record, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_FAILED)
+	return cloneScenarioJob(record.job), true
+}
+
+func (s *Service) transitionScenarioJob(
+	jobID string,
+	status runtimev1.ScenarioJobStatus,
+	eventType runtimev1.ScenarioJobEventType,
+	mutate func(*runtimev1.ScenarioJob),
+) (*runtimev1.ScenarioJob, bool, error) {
+	attempts := 1
+	if isTerminalScenarioJobStatus(status) {
+		attempts = maxScenarioJobTerminalPersistenceAttempts
+	}
+	var job *runtimev1.ScenarioJob
+	var transitioned bool
+	var err error
+	for attempt := 1; attempt <= attempts; attempt++ {
+		job, transitioned, err = s.scenarioJobs.transition(jobID, status, eventType, mutate)
+		if err == nil {
+			return job, transitioned, nil
+		}
+		s.logScenarioJobPersistenceFailure(
+			"scenario job transition persistence attempt failed",
+			"job_id", strings.TrimSpace(jobID),
+			"status", status.String(),
+			"attempt", attempt,
+			"max_attempts", attempts,
+			"error", err,
+		)
+	}
+	if isTerminalScenarioJobStatus(status) {
+		job, _ = s.scenarioJobs.forceFailedInMemory(jobID, scenarioJobTerminalPersistenceFailedReason)
+		s.logScenarioJobPersistenceFailure(
+			"SCENARIO JOB TERMINAL STATE COULD NOT BE PERSISTED; forced in-memory FAILED terminal",
+			"job_id", strings.TrimSpace(jobID),
+			"requested_status", status.String(),
+			"reason", scenarioJobTerminalPersistenceFailedReason,
+			"error", err,
+		)
+	}
+	return job, false, err
+}
+
+func (s *Service) failScenarioJobPersistencePrecondition(jobID string, reason string, cause error) {
+	_, _, terminalErr := s.transitionScenarioJob(
+		jobID,
+		runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED,
+		runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_FAILED,
+		func(job *runtimev1.ScenarioJob) {
+			job.ReasonCode = runtimev1.ReasonCode_AI_OUTPUT_INVALID
+			job.ReasonDetail = reason
+			job.ReasonMetadata = nil
+		},
+	)
+	if terminalErr != nil {
+		s.logScenarioJobPersistenceFailure(
+			"SCENARIO JOB EXECUTION PRECONDITION FAILED AND TERMINAL STATE COULD NOT BE PERSISTED",
+			"job_id", strings.TrimSpace(jobID),
+			"reason", reason,
+			"precondition_error", cause,
+			"terminal_error", terminalErr,
+		)
+	}
+}
+
+func (s *Service) finishScenarioJobExecution(jobID string) {
+	var err error
+	for attempt := 1; attempt <= maxScenarioJobTerminalPersistenceAttempts; attempt++ {
+		err = s.scenarioJobs.finishExecution(jobID)
+		if err == nil {
+			return
+		}
+		s.logScenarioJobPersistenceFailure(
+			"scenario job finish persistence attempt failed",
+			"job_id", strings.TrimSpace(jobID),
+			"attempt", attempt,
+			"max_attempts", maxScenarioJobTerminalPersistenceAttempts,
+			"error", err,
+		)
+	}
+	s.scenarioJobs.forceFailedInMemory(jobID, scenarioJobTerminalPersistenceFailedReason)
+	s.logScenarioJobPersistenceFailure(
+		"SCENARIO JOB FINISH STATE COULD NOT BE PERSISTED; forced in-memory FAILED terminal",
+		"job_id", strings.TrimSpace(jobID),
+		"reason", scenarioJobTerminalPersistenceFailedReason,
+		"error", err,
+	)
+}
+
+func (s *Service) logScenarioJobPersistenceFailure(message string, args ...any) {
+	logger := slog.Default()
+	if s != nil && s.logger != nil {
+		logger = s.logger
+	}
+	logger.Error(message, args...)
+}
+
+func (s *Service) updateScenarioJobProgress(jobID string, currentStep int32, totalSteps int32, progressPercent int32) (*runtimev1.ScenarioJob, bool) {
+	job, updated, err := s.scenarioJobs.updateProgress(jobID, currentStep, totalSteps, progressPercent)
+	if err != nil {
+		s.logScenarioJobPersistenceFailure("scenario job progress persistence failed", "job_id", strings.TrimSpace(jobID), "error", err)
+		return job, false
+	}
+	return job, updated
+}
+
+func (s *Service) commitScenarioJobArtifact(
+	jobID string,
+	artifact *runtimev1.ScenarioArtifact,
+	currentStep int32,
+	totalSteps int32,
+	progressPercent int32,
+) (*runtimev1.ScenarioJob, bool) {
+	job, committed, err := s.scenarioJobs.commitArtifact(jobID, artifact, currentStep, totalSteps, progressPercent)
+	if err != nil {
+		s.logScenarioJobPersistenceFailure("scenario job artifact persistence failed", "job_id", strings.TrimSpace(jobID), "artifact_id", strings.TrimSpace(artifact.GetArtifactId()), "error", err)
+		return job, false
+	}
+	return job, committed
+}
+
+func (s *scenarioJobStore) updateProgress(jobID string, currentStep int32, totalSteps int32, progressPercent int32) (*runtimev1.ScenarioJob, bool, error) {
+	id := strings.TrimSpace(jobID)
+	if id == "" {
+		return nil, false, nil
+	}
+	s.mu.Lock()
 	record, ok := s.jobs[id]
 	if !ok || record == nil || record.job == nil {
 		s.mu.Unlock()
-		return nil, false
+		return nil, false, nil
 	}
 	if isTerminalScenarioJobStatus(record.job.GetStatus()) || record.cancelRequested {
 		s.mu.Unlock()
-		return nil, false
+		return nil, false, nil
 	}
+	previousJob := cloneScenarioJob(record.job)
+	previousUpdatedAt := record.updatedAt
 	record.job.ProgressCurrentStep = clampProgressStep(currentStep)
 	record.job.ProgressTotalSteps = clampProgressStep(totalSteps)
 	record.job.ProgressPercent = clampProgressPercent(progressPercent)
 	nowTime := time.Now().UTC()
 	record.updatedAt = nowTime
 	record.job.UpdatedAt = timestamppb.New(nowTime)
+	if err := s.persistDurableJobsLocked(scenarioJobPersistenceAttempt{Operation: scenarioJobPersistProgress, JobID: id, Status: record.job.GetStatus()}); err != nil {
+		record.job = previousJob
+		record.updatedAt = previousUpdatedAt
+		job := cloneScenarioJob(record.job)
+		s.mu.Unlock()
+		return job, false, fmt.Errorf("persist scenario job %q progress: %w", id, err)
+	}
 	s.publishLocked(record, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_RUNNING)
 	s.pruneLocked(nowTime)
 	job := cloneScenarioJob(record.job)
 	s.mu.Unlock()
-	return job, true
+	return job, true, nil
 }
 
 func (s *scenarioJobStore) commitArtifact(
@@ -270,27 +574,29 @@ func (s *scenarioJobStore) commitArtifact(
 	currentStep int32,
 	totalSteps int32,
 	progressPercent int32,
-) (*runtimev1.ScenarioJob, bool) {
+) (*runtimev1.ScenarioJob, bool, error) {
 	id := strings.TrimSpace(jobID)
 	if id == "" || artifact == nil {
-		return nil, false
+		return nil, false, nil
 	}
 	artifactID := strings.TrimSpace(artifact.GetArtifactId())
 	if artifactID == "" {
-		return nil, false
+		return nil, false, nil
 	}
 	s.mu.Lock()
 	record, ok := s.jobs[id]
 	if !ok || record == nil || record.job == nil || isTerminalScenarioJobStatus(record.job.GetStatus()) || record.cancelRequested {
 		s.mu.Unlock()
-		return nil, false
+		return nil, false, nil
 	}
 	for _, existing := range record.job.GetArtifacts() {
 		if strings.TrimSpace(existing.GetArtifactId()) == artifactID {
 			s.mu.Unlock()
-			return nil, false
+			return nil, false, nil
 		}
 	}
+	previousJob := cloneScenarioJob(record.job)
+	previousUpdatedAt := record.updatedAt
 	record.job.Artifacts = append(record.job.Artifacts, cloneScenarioArtifact(artifact))
 	record.job.ProgressCurrentStep = clampProgressStep(currentStep)
 	record.job.ProgressTotalSteps = clampProgressStep(totalSteps)
@@ -299,11 +605,19 @@ func (s *scenarioJobStore) commitArtifact(
 	nowTime := time.Now().UTC()
 	record.updatedAt = nowTime
 	record.job.UpdatedAt = timestamppb.New(nowTime)
+	if err := s.persistDurableJobsLocked(scenarioJobPersistenceAttempt{Operation: scenarioJobPersistArtifact, JobID: id, Status: record.job.GetStatus()}); err != nil {
+		record.job = previousJob
+		record.updatedAt = previousUpdatedAt
+		s.syncArtifactIndexLocked(id, record)
+		job := cloneScenarioJob(record.job)
+		s.mu.Unlock()
+		return job, false, fmt.Errorf("persist scenario job %q artifact %q: %w", id, artifactID, err)
+	}
 	s.publishLocked(record, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_RUNNING)
 	s.pruneLocked(nowTime)
 	job := cloneScenarioJob(record.job)
 	s.mu.Unlock()
-	return job, true
+	return job, true, nil
 }
 
 func (s *scenarioJobStore) startExecution(jobID string) bool {
@@ -322,10 +636,10 @@ func (s *scenarioJobStore) startExecution(jobID string) bool {
 	return true
 }
 
-func (s *scenarioJobStore) requestCancel(jobID string, reason string) (*runtimev1.ScenarioJob, bool) {
+func (s *scenarioJobStore) requestCancel(jobID string, reason string) (*runtimev1.ScenarioJob, bool, error) {
 	id := strings.TrimSpace(jobID)
 	if id == "" {
-		return nil, false
+		return nil, false, nil
 	}
 	s.mu.Lock()
 	record, ok := s.jobs[id]
@@ -335,7 +649,7 @@ func (s *scenarioJobStore) requestCancel(jobID string, reason string) (*runtimev
 			job = cloneScenarioJob(record.job)
 		}
 		s.mu.Unlock()
-		return job, false
+		return job, false, nil
 	}
 	record.cancelRequested = true
 	record.cancelReason = strings.TrimSpace(reason)
@@ -355,27 +669,32 @@ func (s *scenarioJobStore) requestCancel(jobID string, reason string) (*runtimev
 		cancel()
 	}
 	if !executionStarted {
-		s.finishExecution(id)
+		if err := s.finishExecution(id); err != nil {
+			return job, false, err
+		}
 		job, _ = s.get(id)
 	}
-	return job, true
+	return job, true, nil
 }
 
-func (s *scenarioJobStore) finishExecution(jobID string) {
+func (s *scenarioJobStore) finishExecution(jobID string) error {
 	id := strings.TrimSpace(jobID)
 	if id == "" {
-		return
+		return nil
 	}
 	s.mu.Lock()
 	record := s.jobs[id]
 	if record == nil || record.job == nil {
 		s.mu.Unlock()
-		return
+		return nil
 	}
 	record.executionStarted = false
 	cancel := record.cancel
 	record.cancel = nil
 	if record.cancelRequested && !isTerminalScenarioJobStatus(record.job.GetStatus()) {
+		previousJob := cloneScenarioJob(record.job)
+		previousUpdatedAt := record.updatedAt
+		previousTerminalAt := record.terminalAt
 		record.job.Status = runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED
 		record.job.ReasonCode = runtimev1.ReasonCode_ACTION_EXECUTED
 		record.job.ReasonDetail = record.cancelReason
@@ -384,6 +703,16 @@ func (s *scenarioJobStore) finishExecution(jobID string) {
 		record.updatedAt = nowTime
 		record.terminalAt = nowTime
 		record.job.UpdatedAt = timestamppb.New(nowTime)
+		if err := s.persistDurableJobsLocked(scenarioJobPersistenceAttempt{Operation: scenarioJobPersistCancellation, JobID: id, Status: record.job.GetStatus()}); err != nil {
+			record.job = previousJob
+			record.updatedAt = previousUpdatedAt
+			record.terminalAt = previousTerminalAt
+			s.mu.Unlock()
+			if cancel != nil {
+				cancel()
+			}
+			return fmt.Errorf("persist scenario job %q cancellation: %w", id, err)
+		}
 		if !record.doneClosed {
 			record.doneClosed = true
 			close(record.done)
@@ -395,6 +724,7 @@ func (s *scenarioJobStore) finishExecution(jobID string) {
 	if cancel != nil {
 		cancel()
 	}
+	return nil
 }
 
 func clampProgressPercent(value int32) int32 {

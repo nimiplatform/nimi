@@ -66,49 +66,71 @@ func (s *Service) submitLocalSpeechScenarioJob(ctx context.Context, req *runtime
 	now := timestamppb.New(time.Now().UTC())
 	jobID := ulid.Make().String()
 	job := &runtimev1.ScenarioJob{
-		JobId:              jobID,
-		Head:               cloneScenarioHead(effective.head),
-		ScenarioType:       req.GetScenarioType(),
-		ExecutionMode:      mode,
-		RouteDecision:      runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
-		ModelResolved:      effective.modelResolved(),
-		Status:             runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED,
-		ReasonCode:         runtimev1.ReasonCode_ACTION_EXECUTED,
-		CreatedAt:          now,
-		UpdatedAt:          now,
-		TraceId:            ulid.Make().String(),
-		ProgressTotalSteps: 1,
-		IgnoredExtensions:  cloneIgnoredScenarioExtensions(ignored),
+		JobId:                  jobID,
+		Head:                   cloneScenarioHead(effective.head),
+		ScenarioType:           req.GetScenarioType(),
+		ExecutionMode:          mode,
+		RouteDecision:          runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+		ModelResolved:          effective.modelResolved(),
+		Status:                 runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED,
+		ReasonCode:             runtimev1.ReasonCode_ACTION_EXECUTED,
+		CreatedAt:              now,
+		UpdatedAt:              now,
+		TraceId:                ulid.Make().String(),
+		ProgressTotalSteps:     1,
+		IgnoredExtensions:      cloneIgnoredScenarioExtensions(ignored),
+		EffectiveInputIdentity: cloneLoadoutEffectiveInputIdentity(effective.effectiveInputIdentity),
 	}
-	stored := s.scenarioJobs.createOwned(job, cancel, localAppJobOwnerFromContext(ctx))
+	stored, created, persistErr := s.scenarioJobs.createOwnedAndBindAssemblyChecked(job, cancel, localAppJobOwnerFromContext(ctx), idempotencyScope, effective.resolvedAssembly)
+	if persistErr != nil {
+		cancel()
+		return nil, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID, persistErr, grpcerr.ReasonOptions{
+			Message: "ScenarioJob submission could not be persisted",
+		})
+	}
 	if stored == nil {
 		cancel()
 		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
-	if idempotencyScope != "" {
-		s.scenarioJobs.bindIdempotency(idempotencyScope, jobID)
+	if !created {
+		cancel()
+		return &runtimev1.SubmitScenarioJobResponse{Job: stored}, nil
 	}
 	ticket := s.localSpeechJobOrder.reserve()
-	go s.runLocalSpeechScenarioJob(jobCtx, jobID, effective, ticket)
+	go s.runLocalSpeechScenarioJob(jobCtx, jobID, ticket)
 	return &runtimev1.SubmitScenarioJobResponse{Job: stored}, nil
 }
 
-func (s *Service) runLocalSpeechScenarioJob(ctx context.Context, jobID string, effective *localSpeechEffectiveInputs, ticket *localSpeechSubmissionTicket) {
+func (s *Service) runLocalSpeechScenarioJob(ctx context.Context, jobID string, ticket *localSpeechSubmissionTicket) {
 	if ticket != nil {
 		defer ticket.release()
 	}
-	if effective == nil || !s.scenarioJobs.startExecution(jobID) {
+	if !s.scenarioJobs.startExecution(jobID) {
 		return
 	}
-	defer s.scenarioJobs.finishExecution(jobID)
-	defer func() {
-		effective.synthesizePlan = nil
-		effective.transcribePlan = nil
-	}()
-	if _, ok := s.scenarioJobs.transition(jobID, runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_QUEUED, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_QUEUED, nil); !ok {
+	defer s.finishScenarioJobExecution(jobID)
+	if _, ok, transitionErr := s.transitionScenarioJob(jobID, runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_QUEUED, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_QUEUED, nil); transitionErr != nil {
+		s.failScenarioJobPersistencePrecondition(jobID, scenarioJobQueuedPersistenceFailedReason, transitionErr)
+		return
+	} else if !ok {
 		return
 	}
-	_, err := ticket.wait(ctx)
+	job, ok := s.scenarioJobs.get(jobID)
+	if !ok || job.GetHead() == nil {
+		return
+	}
+	assembly, ok := s.scenarioJobs.resolvedAssembly(jobID)
+	if !ok {
+		s.finishLocalSpeechJobFailure(ctx, jobID, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID))
+		return
+	}
+	effective, err := s.localSpeechEffectiveInputsFromResolvedAssembly(assembly)
+	if err != nil {
+		s.finishLocalSpeechJobFailure(ctx, jobID, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID, err, grpcerr.ReasonOptions{Message: "captured local speech assembly is invalid"}))
+		return
+	}
+	effective.head = cloneScenarioHead(job.GetHead())
+	_, err = ticket.wait(ctx)
 	if err != nil {
 		s.finishLocalSpeechJobFailure(ctx, jobID, err)
 		return
@@ -122,7 +144,10 @@ func (s *Service) runLocalSpeechScenarioJob(ctx context.Context, jobID string, e
 	s.attachQueueWait(ctx, acquireResult)
 	s.logQueueWait("scenario_job_local_speech", effective.head.GetAppId(), acquireResult)
 	onStart := func() error {
-		if _, ok := s.scenarioJobs.transition(jobID, runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_RUNNING, nil); ok {
+		if _, ok, transitionErr := s.transitionScenarioJob(jobID, runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_RUNNING, nil); transitionErr != nil {
+			s.failScenarioJobPersistencePrecondition(jobID, scenarioJobRunningPersistenceFailedReason, transitionErr)
+			return transitionErr
+		} else if ok {
 			return nil
 		}
 		if err := ctx.Err(); err != nil {
@@ -157,7 +182,7 @@ func (s *Service) runLocalSpeechScenarioJob(ctx context.Context, jobID string, e
 		s.finishLocalSpeechJobFailure(ctx, jobID, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_LOCAL_EXECUTION_INFERENCE_FAILED, err, grpcerr.ReasonOptions{}))
 		return
 	}
-	if _, ok := s.scenarioJobs.transition(jobID, runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_COMPLETED, func(job *runtimev1.ScenarioJob) {
+	if _, ok, _ := s.transitionScenarioJob(jobID, runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_COMPLETED, func(job *runtimev1.ScenarioJob) {
 		job.Artifacts = cloneScenarioArtifacts(bound)
 		job.TranscriptionText = transcriptionText
 		job.Usage = usage
@@ -265,7 +290,7 @@ func (s *Service) finishLocalSpeechJobFailure(ctx context.Context, jobID string,
 			reason = runtimev1.ReasonCode_AI_LOCAL_EXECUTION_CANCELED
 		}
 	}
-	_, _ = s.scenarioJobs.transition(jobID, jobStatus, eventType, func(job *runtimev1.ScenarioJob) {
+	_, _, _ = s.transitionScenarioJob(jobID, jobStatus, eventType, func(job *runtimev1.ScenarioJob) {
 		job.ReasonCode = reason
 		job.ReasonDetail = sanitizeScenarioJobReasonDetail(err, reason)
 		job.ReasonMetadata = scenarioJobReasonMetadata(err, reason)

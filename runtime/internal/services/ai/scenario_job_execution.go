@@ -22,9 +22,12 @@ func (s *Service) executeScenarioAsyncJob(
 	if effective == nil || effective.request == nil || !s.scenarioJobs.startExecution(jobID) {
 		return
 	}
-	defer s.scenarioJobs.finishExecution(jobID)
+	defer s.finishScenarioJobExecution(jobID)
 	req := effective.request
-	if _, ok := s.scenarioJobs.transition(jobID, runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_QUEUED, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_QUEUED, nil); !ok {
+	if _, ok, transitionErr := s.transitionScenarioJob(jobID, runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_QUEUED, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_QUEUED, nil); transitionErr != nil {
+		s.failScenarioJobPersistencePrecondition(jobID, scenarioJobQueuedPersistenceFailedReason, transitionErr)
+		return
+	} else if !ok {
 		return
 	}
 	release, err := s.acquireAsyncScenarioJobLease(ctx, req.GetHead().GetAppId(), "scenario_job_cloud_media")
@@ -33,8 +36,11 @@ func (s *Service) executeScenarioAsyncJob(
 		return
 	}
 	defer release()
-	if _, ok := s.scenarioJobs.transition(jobID, runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_RUNNING, nil); !ok && s.logger != nil {
-		s.logger.Warn("scenario job transition to RUNNING failed", "job_id", jobID)
+	if _, ok, transitionErr := s.transitionScenarioJob(jobID, runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_RUNNING, nil); transitionErr != nil {
+		s.failScenarioJobPersistencePrecondition(jobID, scenarioJobRunningPersistenceFailedReason, transitionErr)
+		return
+	} else if !ok {
+		return
 	}
 
 	result, err := s.executeCapturedCloudMedia(ctx, effective)
@@ -62,7 +68,7 @@ func (s *Service) executeScenarioAsyncJob(
 		}
 	}
 	if custodyErr != nil {
-		if _, ok := s.scenarioJobs.transition(jobID, runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_FAILED, func(job *runtimev1.ScenarioJob) {
+		if _, ok, _ := s.transitionScenarioJob(jobID, runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_FAILED, func(job *runtimev1.ScenarioJob) {
 			job.ProviderJobId = ""
 			job.ReasonCode = runtimev1.ReasonCode_AI_PROVIDER_INTERNAL
 			job.ReasonDetail = "Runtime artifact custody failed"
@@ -74,7 +80,7 @@ func (s *Service) executeScenarioAsyncJob(
 		}
 		return
 	}
-	if _, ok := s.scenarioJobs.transition(jobID, runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_COMPLETED, func(job *runtimev1.ScenarioJob) {
+	if _, ok, _ := s.transitionScenarioJob(jobID, runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_COMPLETED, func(job *runtimev1.ScenarioJob) {
 		job.ScenarioType = req.GetScenarioType()
 		job.ExecutionMode = runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB
 		// Provider polling identifiers remain Remote Host private. Runtime's
@@ -127,7 +133,7 @@ func (s *Service) finishScenarioAsyncJobFailure(ctx context.Context, jobID strin
 		statusValue = runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED
 		eventType = runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_CANCELED
 	}
-	if _, ok := s.scenarioJobs.transition(jobID, statusValue, eventType, func(job *runtimev1.ScenarioJob) {
+	if _, ok, _ := s.transitionScenarioJob(jobID, statusValue, eventType, func(job *runtimev1.ScenarioJob) {
 		job.ReasonCode = reasonCode
 		job.ReasonDetail = sanitizeScenarioJobReasonDetail(err, reasonCode)
 		job.ReasonMetadata = scenarioJobReasonMetadata(err, reasonCode)

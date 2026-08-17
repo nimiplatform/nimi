@@ -191,18 +191,6 @@ func requiredTextGenerateFeatures(input []*runtimev1.ChatMessage) []string {
 	return required
 }
 
-func (s *Service) validateLocalTextGenerateInputCapabilities(
-	context.Context,
-	string,
-	[]*runtimev1.ChatMessage,
-) error {
-	return grpcerr.WithReasonCodeOptions(
-		codes.FailedPrecondition,
-		runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED,
-		grpcerr.ReasonOptions{Message: "legacy LocalAsset text capability inference is retired"},
-	)
-}
-
 func (s *Service) validateRemoteTextGenerateInputCapabilities(
 	ctx context.Context,
 	modelResolved string,
@@ -252,9 +240,6 @@ func (s *Service) validateTextGenerateInputParts(
 ) error {
 	if _, unsupported := unsupportedTextGeneratePartType(input); unsupported {
 		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
-	}
-	if selected != nil && selected.Route() == runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL && remoteTarget == nil {
-		return s.validateLocalTextGenerateInputCapabilities(ctx, modelResolved, input)
 	}
 	return s.validateRemoteTextGenerateInputCapabilities(ctx, modelResolved, remoteTarget, selected, input)
 }

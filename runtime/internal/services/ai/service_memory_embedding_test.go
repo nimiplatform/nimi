@@ -57,7 +57,6 @@ func TestEmbedTextsForMemoryUsesResolvedCloudBinding(t *testing.T) {
 		slog.New(slog.NewTextHandler(io.Discard, nil)),
 		nil,
 		nil,
-		nil,
 		store,
 		Config{
 			CloudProviders:        map[string]nimillm.ProviderCredentials{"openai": {BaseURL: server.URL, APIKey: "unused"}},
@@ -96,10 +95,13 @@ func TestEmbedTextsForMemoryUsesResolvedCloudBinding(t *testing.T) {
 func TestEmbedTextsForMemoryUsesSelectedLocalLlamaBinding(t *testing.T) {
 	service := newTestService(nil)
 	digest := strings.Repeat("b", 64)
+	bundleDir := t.TempDir()
 	service.SetLocalExecutionResolver(&mutableLocalExecutionResolver{projection: &localexecution.SelectedLocalExecution{
-		ConfigurationID:          "local-memory-embed-config",
+		LoadoutID:                "local-memory-embed-loadout",
 		CapabilityContract:       capabilitydriver.TextEmbedCapabilityContract,
 		DisplayName:              "Local memory embedding",
+		RecipeID:                 capabilitydriver.LlamaEmbedGGUFRecipeID,
+		RecipeRevision:           "1",
 		DriverIdentity:           (&capabilitydriver.Identity{ImplementationID: capabilitydriver.LlamaEmbedImplementationID, DriverID: capabilitydriver.LlamaDriverID, DriverDialect: capabilitydriver.LlamaEmbedDriverDialect}).Proto(),
 		ModelContextWindowTokens: 8192,
 		Requirements: []*runtimev1.LocalCapabilityRequirement{{
@@ -107,8 +109,10 @@ func TestEmbedTextsForMemoryUsesSelectedLocalLlamaBinding(t *testing.T) {
 		}},
 		ExactBindings: []localexecution.ExactBinding{{
 			RequirementID:     capabilitydriver.EmbeddingGGUFRequirementID,
-			LocalAssetID:      "embedding/memory",
-			AbsolutePath:      filepath.Join(t.TempDir(), "embedding.gguf"),
+			ModelAssetID:      "model-embedding-memory",
+			AbsolutePath:      filepath.Join(bundleDir, "embedding.gguf"),
+			BundleDir:         bundleDir,
+			DeclaredFiles:     []string{"embedding.gguf", "tokenizer.json"},
 			VerifiedContentID: "sha256:" + digest,
 			EntrySHA256:       digest,
 		}},
@@ -126,7 +130,7 @@ func TestEmbedTextsForMemoryUsesSelectedLocalLlamaBinding(t *testing.T) {
 		Provider:  "local",
 		ModelId:   "catalog/local-memory-embedding",
 		Dimension: 3,
-		Version:   "embedding/memory",
+		Version:   "model-embedding-memory",
 	}, []string{" first ", "second"})
 	if err != nil {
 		t.Fatalf("EmbedTextsForMemory(local): %v", err)
@@ -139,5 +143,10 @@ func TestEmbedTextsForMemoryUsesSelectedLocalLlamaBinding(t *testing.T) {
 	host.mu.Unlock()
 	if plan == nil || plan.RequestPath() != "/v1/embeddings" || plan.ExpectedCount() != 2 {
 		t.Fatalf("captured local memory embedding plan = %+v", plan)
+	}
+	files := plan.ModelFiles()
+	if len(files) != 1 || files[0].ModelAssetID != "model-embedding-memory" ||
+		files[0].BundleDir != bundleDir || len(files[0].DeclaredFiles) != 2 || files[0].DeclaredFiles[1] != "tokenizer.json" {
+		t.Fatalf("captured embedding bundle identity = %+v", files)
 	}
 }

@@ -304,6 +304,7 @@ func TestLocalVideoHappyPathPreservesProgressSnapshotAndJobCustody(t *testing.T)
 	if err != nil {
 		t.Fatalf("SubmitScenarioJob: %v", err)
 	}
+	assertEffectiveInputIdentityFields(t, response.GetJob().GetEffectiveInputIdentity(), projectLoadoutEffectiveInputIdentity(first))
 	jobID := response.GetJob().GetJobId()
 	select {
 	case <-host.entered:
@@ -329,6 +330,7 @@ func TestLocalVideoHappyPathPreservesProgressSnapshotAndJobCustody(t *testing.T)
 	if terminal.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED || terminal.GetProgressPercent() != 100 || len(terminal.GetArtifacts()) != 1 {
 		t.Fatalf("terminal video job = %+v", terminal)
 	}
+	assertEffectiveInputIdentityFields(t, terminal.GetEffectiveInputIdentity(), projectLoadoutEffectiveInputIdentity(first))
 	artifact := terminal.GetArtifacts()[0]
 	if artifact.GetMimeType() != videomedia.MIMETypeMP4 || artifact.GetWidth() != 512 || artifact.GetHeight() != 288 || artifact.GetFps() != 24 ||
 		artifact.GetChannels() != 2 || artifact.GetSampleRateHz() != 32000 || artifact.GetDurationMs() <= 0 || len(artifact.GetBytes()) != 0 || artifact.GetSizeBytes() == 0 {
@@ -351,9 +353,9 @@ func TestLocalVideoHappyPathPreservesProgressSnapshotAndJobCustody(t *testing.T)
 	captured := host.plans[0]
 	host.mu.Unlock()
 	width, height := captured.Size()
-	if captured.ConfigurationID() != first.ConfigurationID || captured.ConfigurationID() == second.ConfigurationID || width != 512 || height != 288 ||
+	if captured.LoadoutID() != first.LoadoutID || captured.LoadoutID() == second.LoadoutID || width != 512 || height != 288 ||
 		captured.FrameCount() != 22 || captured.FPS() != 24 || captured.Seed() != 19 || resolver.calls != 1 {
-		t.Fatalf("immutable capture = config=%q size=%dx%d frames=%d fps=%d seed=%d resolves=%d", captured.ConfigurationID(), width, height, captured.FrameCount(), captured.FPS(), captured.Seed(), resolver.calls)
+		t.Fatalf("immutable capture = loadout=%q size=%dx%d frames=%d fps=%d seed=%d resolves=%d", captured.LoadoutID(), width, height, captured.FrameCount(), captured.FPS(), captured.Seed(), resolver.calls)
 	}
 }
 
@@ -884,13 +886,17 @@ func selectedVideoExecutionForTest(t *testing.T, configurationID string) *locale
 		}
 		digestBytes := sha256.Sum256(payload)
 		digest := hex.EncodeToString(digestBytes[:])
+		modelAssetID := fmt.Sprintf("asset-%d", index)
 		bindings = append(bindings, localexecution.ExactBinding{
-			RequirementID: requirement.GetRequirementId(), LocalAssetID: fmt.Sprintf("asset-%d", index), AbsolutePath: path,
+			RequirementID: requirement.GetRequirementId(), ModelAssetID: modelAssetID, AbsolutePath: path,
 			VerifiedContentID: "sha256:" + digest, EntrySHA256: digest,
 		})
 	}
+	loadoutID := "loadout-" + configurationID
 	return &localexecution.SelectedLocalExecution{
-		ConfigurationID: configurationID, CapabilityContract: capabilitydriver.StableDiffusionVideoCapabilityContract, DisplayName: configurationID,
+		LoadoutID:          loadoutID,
+		CapabilityContract: capabilitydriver.StableDiffusionVideoCapabilityContract, DisplayName: configurationID,
+		RecipeID: capabilitydriver.StableDiffusionVideoRecipeID, RecipeRevision: "1",
 		DriverIdentity: (&capabilitydriver.Identity{
 			ImplementationID: capabilitydriver.StableDiffusionVideoImplementationID,
 			DriverID:         capabilitydriver.StableDiffusionVideoDriverID, DriverDialect: capabilitydriver.StableDiffusionVideoDriverDialect,

@@ -242,7 +242,7 @@ func newLiveSmokeCloudProviderHarness(t *testing.T, providerID string, baseURL s
 
 	connectorSvc := connector.New(logger, store, nil)
 	modelCatalog := liveSmokeConnectorModelCatalog(t, connectorSvc, context.Background(), created.ConnectorID)
-	svc, err := newFromProviderConfig(logger, nil, nil, nil, store, Config{
+	svc, err := newFromProviderConfig(logger, nil, nil, store, Config{
 		CloudProviders: map[string]nimillm.ProviderCredentials{
 			normalizedProviderID: {BaseURL: normalizedBaseURL, APIKey: normalizedAPIKey, Headers: headers},
 		},

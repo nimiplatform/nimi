@@ -118,7 +118,7 @@ func newManagedCloudScenarioTestFixture(t *testing.T, providerID string, provide
 		&authn.Identity{SubjectUserID: "user-001"},
 	)
 	descriptor := connectorModelDescriptorForAITest(t, connectorSvc, ctx, created.ConnectorID, providerModelID)
-	svc, err := newFromProviderConfig(logger, nil, nil, nil, store, cfg, 8, 2)
+	svc, err := newFromProviderConfig(logger, nil, nil, store, cfg, 8, 2)
 	if err != nil {
 		t.Fatalf("new managed cloud ai service: %v", err)
 	}

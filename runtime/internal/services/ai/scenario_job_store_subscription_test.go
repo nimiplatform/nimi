@@ -400,22 +400,11 @@ func TestScenarioJobStoreSubmitModeAndUnsupportedType(t *testing.T) {
 		t.Fatalf("expected route unsupported for non-async media submit, got=%v", reason)
 	}
 
-	cloudTextCtx := withCloudScenarioTestIntent(ctx, "text.generate", cloudScenarioTargetRef("connector-test", "catalog-test", "gpt-4o-mini", "openai"))
-	_, err = svc.SubmitScenarioJob(cloudTextCtx, &runtimev1.SubmitScenarioJobRequest{
-		Head: &runtimev1.ScenarioRequestHead{
-			AppId:         "nimi.desktop",
-			SubjectUserId: "user-1",
-		},
-		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,
-		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
-		Spec: &runtimev1.ScenarioSpec{
-			Spec: &runtimev1.ScenarioSpec_TextGenerate{TextGenerate: &runtimev1.TextGenerateScenarioSpec{
-				Input: []*runtimev1.ChatMessage{{Role: "user", Content: "unsupported async text"}},
-			}},
-		},
-	})
-	if reason, _ := grpcerr.ExtractReasonCode(err); reason != runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED {
-		t.Fatalf("expected route unsupported for async text submission, got=%v", reason)
+	if err := validateScenarioExecutionMode(
+		runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,
+		runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
+	); err != nil {
+		t.Fatalf("text ScenarioJob mode must be admitted: %v", err)
 	}
 }
 
@@ -451,7 +440,7 @@ func TestScenarioJobStoreSubscribeBranches(t *testing.T) {
 		Status:       runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED,
 		TraceId:      "trace-terminal",
 	}, func() {})
-	_, _ = svc.scenarioJobs.transition(
+	_, _, _ = svc.transitionScenarioJob(
 		terminalJobID,
 		runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED,
 		runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_COMPLETED,
@@ -679,7 +668,7 @@ func TestScenarioJobStoreSubscribeScenarioBacklogSendError(t *testing.T) {
 	if created == nil {
 		t.Fatal("create scenario job record")
 	}
-	_, _ = svc.scenarioJobs.transition(
+	_, _, _ = svc.transitionScenarioJob(
 		jobID,
 		runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED,
 		runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_COMPLETED,
@@ -715,7 +704,7 @@ func TestScenarioJobStoreSubscribeScenarioTerminalBacklogReturns(t *testing.T) {
 	if created == nil {
 		t.Fatal("create scenario job record")
 	}
-	_, _ = svc.scenarioJobs.transition(
+	_, _, _ = svc.transitionScenarioJob(
 		jobID,
 		runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED,
 		runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_COMPLETED,

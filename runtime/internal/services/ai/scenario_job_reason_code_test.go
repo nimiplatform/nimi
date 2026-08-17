@@ -51,7 +51,7 @@ func TestScenarioJobReasonCodeClassification(t *testing.T) {
 			},
 			ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
 			ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
-			RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+			RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
 			ModelResolved: "local/sd3",
 			TraceId:       "trace-completed",
 			Status:        runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED,
@@ -60,7 +60,7 @@ func TestScenarioJobReasonCodeClassification(t *testing.T) {
 		if created == nil {
 			t.Fatal("create scenario job record")
 		}
-		_, _ = svc.scenarioJobs.transition(
+		_, _, _ = svc.transitionScenarioJob(
 			jobID,
 			runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED,
 			runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_COMPLETED,

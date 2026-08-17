@@ -75,26 +75,27 @@ func (b *voiceAssetCloudBinding) Valid() bool {
 }
 
 type voiceWorkflowSubmitInput struct {
-	Head              *runtimev1.ScenarioRequestHead
-	LocalAppOwner     *localAppJobOwner
-	ScenarioType      runtimev1.ScenarioType
-	Spec              *runtimev1.ScenarioSpec
-	TraceID           string
-	RouteDecision     runtimev1.RoutePolicy
-	ModelResolved     string
-	Provider          string
-	WorkflowModelID   string
-	WorkflowFamily    string
-	OutputPersistence string
-	HandlePolicyID    string
-	HandlePersistence string
-	HandleScope       string
-	HandleDefaultTTL  string
-	HandleDeleteSem   string
-	RuntimeReconcile  bool
-	ExecutionTarget   *runtimeidentity.Target
-	CloudBinding      *voiceAssetCloudBinding
-	IgnoredExtensions []*runtimev1.IgnoredScenarioExtension
+	Head                   *runtimev1.ScenarioRequestHead
+	LocalAppOwner          *localAppJobOwner
+	ScenarioType           runtimev1.ScenarioType
+	Spec                   *runtimev1.ScenarioSpec
+	TraceID                string
+	RouteDecision          runtimev1.RoutePolicy
+	ModelResolved          string
+	Provider               string
+	WorkflowModelID        string
+	WorkflowFamily         string
+	OutputPersistence      string
+	HandlePolicyID         string
+	HandlePersistence      string
+	HandleScope            string
+	HandleDefaultTTL       string
+	HandleDeleteSem        string
+	RuntimeReconcile       bool
+	ExecutionTarget        *runtimeidentity.Target
+	CloudBinding           *voiceAssetCloudBinding
+	EffectiveInputIdentity *runtimev1.LoadoutEffectiveInputIdentity
+	IgnoredExtensions      []*runtimev1.IgnoredScenarioExtension
 }
 
 type voiceAssetStore struct {

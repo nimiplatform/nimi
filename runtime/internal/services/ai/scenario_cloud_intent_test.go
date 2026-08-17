@@ -60,7 +60,7 @@ func TestExecuteScenarioTextGenerateCloudTargetRefStaleAfterEndpointChange(t *te
 		t.Fatalf("UpdateConnector endpoint: %v", err)
 	}
 
-	svc, err := newFromProviderConfig(logger, nil, nil, nil, store, Config{}, 8, 2)
+	svc, err := newFromProviderConfig(logger, nil, nil, store, Config{}, 8, 2)
 	if err != nil {
 		t.Fatalf("new service: %v", err)
 	}

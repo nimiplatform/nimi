@@ -25,10 +25,9 @@ type MemoryEmbeddingCloudBindingRef struct {
 	Provider             string
 }
 
-type MemoryEmbeddingLocalBindingRef struct {
-	ProfileBindingID string
-	ReadinessRef     string
-}
+// MemoryEmbeddingLocalBindingRef is an intent marker only. Machine identity is
+// resolved from the current selected text.embed Loadout by the Runtime owner.
+type MemoryEmbeddingLocalBindingRef struct{}
 
 type MemoryEmbeddingTextEmbedIntentSnapshot struct {
 	SourceKind     MemoryEmbeddingTextEmbedSourceKind
@@ -149,15 +148,7 @@ func normalizeMemoryEmbeddingLocalBinding(input *MemoryEmbeddingLocalBindingRef)
 	if input == nil {
 		return nil
 	}
-	profileBindingID := strings.TrimSpace(input.ProfileBindingID)
-	readinessRef := strings.TrimSpace(input.ReadinessRef)
-	if profileBindingID == "" && readinessRef == "" {
-		return nil
-	}
-	return &MemoryEmbeddingLocalBindingRef{
-		ProfileBindingID: profileBindingID,
-		ReadinessRef:     readinessRef,
-	}
+	return &MemoryEmbeddingLocalBindingRef{}
 }
 
 func normalizeMemoryEmbeddingIntentSnapshot(input *MemoryEmbeddingTextEmbedIntentSnapshot) *MemoryEmbeddingTextEmbedIntentSnapshot {
@@ -171,16 +162,6 @@ func normalizeMemoryEmbeddingIntentSnapshot(input *MemoryEmbeddingTextEmbedInten
 		ConfigRevision: input.ConfigRevision,
 		RevisionToken:  strings.TrimSpace(input.RevisionToken),
 	}
-}
-
-func memoryEmbeddingLocalBindingToken(input *MemoryEmbeddingLocalBindingRef) string {
-	if input == nil {
-		return ""
-	}
-	if value := strings.TrimSpace(input.ProfileBindingID); value != "" {
-		return value
-	}
-	return strings.TrimSpace(input.ReadinessRef)
 }
 
 func memoryEmbeddingBlockedReasonForResolutionState(state string, sourceKind MemoryEmbeddingTextEmbedSourceKind) runtimev1.ReasonCode {
@@ -221,10 +202,7 @@ func cloneMemoryEmbeddingIntentSnapshot(input *MemoryEmbeddingTextEmbedIntentSna
 			if input.LocalBinding == nil {
 				return nil
 			}
-			return &MemoryEmbeddingLocalBindingRef{
-				ProfileBindingID: input.LocalBinding.ProfileBindingID,
-				ReadinessRef:     input.LocalBinding.ReadinessRef,
-			}
+			return &MemoryEmbeddingLocalBindingRef{}
 		}(),
 		ConfigRevision: input.ConfigRevision,
 		RevisionToken:  input.RevisionToken,
@@ -266,13 +244,7 @@ func (s *Service) resolveMemoryEmbeddingProfile(ctx context.Context, snapshot *M
 	}
 	switch normalized.SourceKind {
 	case MemoryEmbeddingTextEmbedSourceKindLocal:
-		if normalized.LocalBinding == nil {
-			return nil, memoryEmbeddingResolutionStateUnresolved, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE
-		}
-		if strings.TrimSpace(managed.GetProvider()) != "local" {
-			return nil, memoryEmbeddingResolutionStateUnresolved, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE
-		}
-		if strings.TrimSpace(managed.GetModelId()) != memoryEmbeddingLocalBindingToken(normalized.LocalBinding) {
+		if normalized.LocalBinding == nil || strings.TrimSpace(managed.GetProvider()) != "local" {
 			return nil, memoryEmbeddingResolutionStateUnresolved, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE
 		}
 		return managed, memoryEmbeddingResolutionStateResolved, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED

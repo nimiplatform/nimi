@@ -93,3 +93,62 @@ func (s *Service) ApplySharedLocalAgentAIProfile(
 	}
 	return &runtimev1.ApplySharedLocalAgentAIProfileResponse{Config: config}, nil
 }
+
+// @nimi-authority: rule.nimi.runtime.ai-provider.r003
+func (s *Service) ImportPortableAIProfile(
+	ctx context.Context,
+	req *runtimev1.ImportPortableAIProfileRequest,
+) (*runtimev1.ImportPortableAIProfileResponse, error) {
+	if req == nil {
+		return nil, status.Error(codes.InvalidArgument, "import portable AIProfile request is required")
+	}
+	caller, err := s.authorizeSharedLocalAgentAIConfig(ctx, req.GetContext(), "runtime.agent.ai_profile.write")
+	if err != nil {
+		return nil, err
+	}
+	profile, err := parsePortableAIProfile(req.GetProfileJson())
+	if err != nil {
+		return nil, invalidSharedLocalAgentAIConfigError()
+	}
+	if s.aiProfileStore == nil {
+		return nil, sharedLocalAgentAIConfigPersistenceError(status.Error(codes.Unavailable, "AIProfile store is unavailable"))
+	}
+	record, err := s.aiProfileStore.Import(ctx, caller.accountNamespace, &runtimev1.PortableAIProfileRecord{
+		ProfileId:   profile.profileID,
+		Title:       profile.title,
+		ProfileJson: append([]byte(nil), req.GetProfileJson()...),
+	})
+	if err != nil {
+		return nil, sharedLocalAgentAIConfigPersistenceError(err)
+	}
+	return &runtimev1.ImportPortableAIProfileResponse{Profile: record}, nil
+}
+
+func (s *Service) ListPortableAIProfiles(
+	ctx context.Context,
+	req *runtimev1.ListPortableAIProfilesRequest,
+) (*runtimev1.ListPortableAIProfilesResponse, error) {
+	if req == nil {
+		return nil, status.Error(codes.InvalidArgument, "list portable AIProfiles request is required")
+	}
+	caller, err := s.authorizeSharedLocalAgentAIConfig(ctx, req.GetContext(), "runtime.agent.ai_profile.read")
+	if err != nil {
+		return nil, err
+	}
+	if s.aiProfileStore == nil {
+		return nil, sharedLocalAgentAIConfigPersistenceError(status.Error(codes.Unavailable, "AIProfile store is unavailable"))
+	}
+	profiles, err := s.aiProfileStore.List(ctx, caller.accountNamespace)
+	if err != nil {
+		return nil, sharedLocalAgentAIConfigPersistenceError(err)
+	}
+	isolated := make([]*runtimev1.PortableAIProfileRecord, 0, len(profiles))
+	for _, record := range profiles {
+		profile, parseErr := parsePortableAIProfile(record.GetProfileJson())
+		if parseErr != nil || profile.profileID != record.GetProfileId() || profile.title != record.GetTitle() {
+			continue
+		}
+		isolated = append(isolated, record)
+	}
+	return &runtimev1.ListPortableAIProfilesResponse{Profiles: isolated}, nil
+}

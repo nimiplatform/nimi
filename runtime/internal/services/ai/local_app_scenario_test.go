@@ -85,6 +85,13 @@ func TestSubmitLocalAppImageJobReachesSelectedDriverWithNegativeSeed(t *testing.
 	if err != nil || response == nil || response.GetJob() == nil {
 		t.Fatalf("submit negative-seed Local App image Job response=%+v error=%v", response, err)
 	}
+	captured, ok := svc.scenarioJobs.resolvedAssembly(response.GetJob().GetJobId())
+	if !ok {
+		t.Fatal("captured local image assembly is unavailable")
+	}
+	if _, err := svc.localImageEffectiveInputsFromResolvedAssembly(captured); err != nil {
+		t.Fatalf("rehydrate compact captured local image assembly: %v", err)
+	}
 	terminal := waitForScenarioJobTerminalForLocalTextTest(t, svc, response.GetJob().GetJobId())
 	if terminal.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
 		t.Fatalf("terminal Job=%+v", terminal)

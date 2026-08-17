@@ -50,17 +50,21 @@ func (s *Service) EmbedTextsForMemory(ctx context.Context, profile *runtimev1.Me
 }
 
 func (s *Service) embedMemoryTextsLocal(ctx context.Context, profile *runtimev1.MemoryEmbeddingProfile, inputs []string) ([]*runtimev1.EmbeddingVector, error) {
-	localAssetID := strings.TrimSpace(profile.GetVersion())
-	if localAssetID == "" {
+	modelAssetID := strings.TrimSpace(profile.GetVersion())
+	if modelAssetID == "" {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEMORY_EMBEDDING_TARGET_REF_INVALID)
 	}
 	effective, err := s.captureSelectedLocalEmbedEffectiveInputs(&runtimev1.TextEmbedScenarioSpec{
 		Inputs: append([]string(nil), inputs...),
-	}, nil, localAssetID)
+	}, nil, modelAssetID)
 	if err != nil {
 		return nil, err
 	}
-	result, err := s.executeCapturedLocalEmbed(ctx, effective)
+	appID := incomingAppID(ctx)
+	if appID == "" {
+		appID = "nimi.runtime.memory"
+	}
+	result, _, _, err := s.executeCapturedLocalEmbedJob(ctx, &runtimev1.ScenarioRequestHead{AppId: appID}, effective, nil)
 	if err != nil {
 		return nil, err
 	}

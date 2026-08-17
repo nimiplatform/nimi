@@ -10,7 +10,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
-	"github.com/oklog/ulid/v2"
+	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -28,20 +28,58 @@ func executeLocalTextGenerateScenario(
 	}
 	defer effective.release()
 
-	release, acquireResult, err := s.scheduler.Acquire(ctx, req.GetHead().GetAppId())
+	job, jobCtx, err := s.captureImmediateLocalScenarioJob(
+		ctx, req.GetHead(), runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,
+		runtimev1.ExecutionMode_EXECUTION_MODE_SYNC, effective.modelResolved(), ignored,
+		effective.effectiveInputIdentity, effective.resolvedAssembly,
+	)
 	if err != nil {
-		return nil, schedulerAcquireError(err)
+		return nil, err
+	}
+	jobID := job.GetJobId()
+	defer s.finishScenarioJobExecution(jobID)
+	if err := s.queueImmediateLocalScenarioJob(jobID); err != nil {
+		return nil, err
+	}
+
+	release, acquireResult, err := s.scheduler.Acquire(jobCtx, req.GetHead().GetAppId())
+	if err != nil {
+		executionErr := schedulerAcquireError(err)
+		s.finishLocalTextScenarioJobFailure(jobCtx, jobID, executionErr)
+		return nil, executionErr
 	}
 	defer release()
-	s.attachQueueWaitUnary(ctx, acquireResult)
-	requestCtx, cancel, err := withTimeout(ctx, req.GetHead().GetTimeoutMs(), defaultGenerateTimeout)
+	s.attachQueueWaitUnary(jobCtx, acquireResult)
+	if err := s.startImmediateLocalScenarioJob(jobID); err != nil {
+		return nil, err
+	}
+	captured, ok := s.scenarioJobs.resolvedAssembly(jobID)
+	if !ok {
+		err := grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+		s.finishLocalTextScenarioJobFailure(jobCtx, jobID, err)
+		return nil, err
+	}
+	executionEffective, err := s.localTextEffectiveInputsFromResolvedAssembly(captured)
 	if err != nil {
+		s.finishLocalTextScenarioJobFailure(jobCtx, jobID, err)
+		return nil, err
+	}
+	requestCtx, cancel, err := withTimeout(jobCtx, req.GetHead().GetTimeoutMs(), defaultGenerateTimeout)
+	if err != nil {
+		s.finishLocalTextScenarioJobFailure(jobCtx, jobID, err)
 		return nil, err
 	}
 	defer cancel()
 
-	result, err := s.executeCapturedLocalText(requestCtx, effective, nil)
+	result, err := s.executeCapturedLocalText(requestCtx, executionEffective, nil)
 	if err != nil {
+		s.finishLocalTextScenarioJobFailure(requestCtx, jobID, err)
+		return nil, err
+	}
+	usage := localTextUsage(result, executionEffective.request)
+	artifact := nimillm.BinaryArtifact("text/plain; charset=utf-8", []byte(result.Text), map[string]any{"finish_reason": result.FinishReason.String()})
+	if err := s.completeImmediateLocalScenarioJob(jobID, []*runtimev1.ScenarioArtifact{artifact}, usage); err != nil {
+		s.finishLocalTextScenarioJobFailure(requestCtx, jobID, err)
 		return nil, err
 	}
 	return &runtimev1.ExecuteScenarioResponse{
@@ -51,10 +89,10 @@ func executeLocalTextGenerateScenario(
 			},
 		},
 		FinishReason:      result.FinishReason,
-		Usage:             localTextUsage(result, effective.request),
+		Usage:             usage,
 		RouteDecision:     runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 		ModelResolved:     effective.modelResolved(),
-		TraceId:           ulid.Make().String(),
+		TraceId:           job.GetTraceId(),
 		IgnoredExtensions: cloneIgnoredScenarioExtensions(ignored),
 	}, nil
 }
@@ -71,17 +109,52 @@ func streamLocalTextGenerateScenario(
 	}
 	defer effective.release()
 
-	release, acquireResult, err := s.scheduler.Acquire(ctx, req.GetHead().GetAppId())
+	job, jobCtx, err := s.captureImmediateLocalScenarioJob(
+		ctx, req.GetHead(), runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,
+		runtimev1.ExecutionMode_EXECUTION_MODE_STREAM, effective.modelResolved(), nil,
+		effective.effectiveInputIdentity, effective.resolvedAssembly,
+	)
 	if err != nil {
-		return schedulerAcquireError(err)
+		return err
+	}
+	jobID := job.GetJobId()
+	defer s.finishScenarioJobExecution(jobID)
+	defer func() {
+		if current, ok := s.scenarioJobs.get(jobID); ok && !isTerminalScenarioJobStatus(current.GetStatus()) {
+			s.finishLocalTextScenarioJobFailure(jobCtx, jobID, grpcerr.WithReasonCode(codes.Canceled, runtimev1.ReasonCode_AI_LOCAL_EXECUTION_CANCELED))
+		}
+	}()
+	if err := s.queueImmediateLocalScenarioJob(jobID); err != nil {
+		return err
+	}
+
+	release, acquireResult, err := s.scheduler.Acquire(jobCtx, req.GetHead().GetAppId())
+	if err != nil {
+		executionErr := schedulerAcquireError(err)
+		s.finishLocalTextScenarioJobFailure(jobCtx, jobID, executionErr)
+		return executionErr
 	}
 	defer release()
-	s.attachQueueWait(ctx, acquireResult)
+	s.attachQueueWait(jobCtx, acquireResult)
+	if err := s.startImmediateLocalScenarioJob(jobID); err != nil {
+		return err
+	}
+	captured, ok := s.scenarioJobs.resolvedAssembly(jobID)
+	if !ok {
+		err := grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+		s.finishLocalTextScenarioJobFailure(jobCtx, jobID, err)
+		return err
+	}
+	executionEffective, err := s.localTextEffectiveInputsFromResolvedAssembly(captured)
+	if err != nil {
+		s.finishLocalTextScenarioJobFailure(jobCtx, jobID, err)
+		return err
+	}
 	totalTimeout, err := timeoutDuration(req.GetHead().GetTimeoutMs(), defaultStreamTotalTimeout)
 	if err != nil {
 		return err
 	}
-	requestBaseCtx, baseCancel := context.WithTimeout(ctx, totalTimeout)
+	requestBaseCtx, baseCancel := context.WithTimeout(jobCtx, totalTimeout)
 	defer baseCancel()
 	requestCtx, requestCancel := context.WithCancel(requestBaseCtx)
 	defer requestCancel()
@@ -142,7 +215,7 @@ func streamLocalTextGenerateScenario(
 		resetIdleTimer()
 	}
 
-	traceID := ulid.Make().String()
+	traceID := job.GetTraceId()
 	var sequence atomic.Uint64
 	send := func(event *runtimev1.StreamScenarioEvent) error {
 		event.Sequence = sequence.Add(1)
@@ -221,7 +294,7 @@ func streamLocalTextGenerateScenario(
 		})
 	} else {
 		var result localexecution.TextResult
-		result, err = s.localTextHost.StreamText(requestCtx, effective.plan, onDelta, nil)
+		result, err = s.localTextHost.StreamText(requestCtx, executionEffective.plan, onDelta, nil)
 		if err == nil {
 			if flushErr := flushReasoning(); flushErr != nil {
 				return flushErr
@@ -232,22 +305,30 @@ func streamLocalTextGenerateScenario(
 			if result.FinishReason == runtimev1.FinishReason_FINISH_REASON_UNSPECIFIED {
 				result.FinishReason = runtimev1.FinishReason_FINISH_REASON_STOP
 			}
+			usage := localTextUsage(result, executionEffective.request)
+			artifact := nimillm.BinaryArtifact("text/plain; charset=utf-8", []byte(result.Text), map[string]any{"finish_reason": result.FinishReason.String()})
+			if completeErr := s.completeImmediateLocalScenarioJob(jobID, []*runtimev1.ScenarioArtifact{artifact}, usage); completeErr != nil {
+				s.finishLocalTextScenarioJobFailure(requestCtx, jobID, completeErr)
+				return completeErr
+			}
 			return send(&runtimev1.StreamScenarioEvent{
 				EventType: runtimev1.StreamEventType_STREAM_EVENT_COMPLETED,
 				Payload: &runtimev1.StreamScenarioEvent_Completed{Completed: &runtimev1.ScenarioStreamCompleted{
 					FinishReason: result.FinishReason,
-					Usage:        localTextUsage(result, effective.request),
+					Usage:        usage,
 				}},
 			})
 		}
 		err = localTextExecutionError(err)
 	}
 	if requestCtx.Err() != nil && ctx.Err() != nil {
+		s.finishLocalTextScenarioJobFailure(requestCtx, jobID, err)
 		return err
 	}
 	if firstPacketTimedOut.Load() || idleTimedOut.Load() || requestCtx.Err() == context.DeadlineExceeded {
 		err = grpcerr.WithReasonCode(codes.DeadlineExceeded, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT)
 	}
+	s.finishLocalTextScenarioJobFailure(requestCtx, jobID, err)
 	return send(&runtimev1.StreamScenarioEvent{
 		EventType: runtimev1.StreamEventType_STREAM_EVENT_FAILED,
 		Payload: &runtimev1.StreamScenarioEvent_Failed{Failed: &runtimev1.ScenarioStreamFailed{

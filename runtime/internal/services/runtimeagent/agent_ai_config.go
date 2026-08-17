@@ -9,6 +9,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	aicatalog "github.com/nimiplatform/nimi/runtime/internal/aicatalog"
 	"github.com/nimiplatform/nimi/runtime/internal/aiconfig"
+	"github.com/nimiplatform/nimi/runtime/internal/aiprofile"
 	"github.com/nimiplatform/nimi/runtime/internal/authn"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
@@ -25,6 +26,12 @@ type sharedLocalAgentAIConfigCaller struct {
 func (s *Service) SetAIConfigStore(store aiconfig.Store) {
 	if s != nil && store != nil {
 		s.aiConfigStore = store
+	}
+}
+
+func (s *Service) SetAIProfileStore(store aiprofile.Store) {
+	if s != nil && store != nil {
+		s.aiProfileStore = store
 	}
 }
 

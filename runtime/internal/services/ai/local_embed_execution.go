@@ -10,20 +10,22 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
-	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
 type localEmbedEffectiveInputs struct {
-	configurationID string
-	displayName     string
-	driverIdentity  *runtimev1.CapabilityImplementationIdentity
-	portableConfig  *structpb.Struct
-	exactBindings   []capabilitydriver.InvocationExactBinding
-	request         *runtimev1.TextEmbedScenarioSpec
-	plan            *capabilitydriver.EmbedInvocationPlan
+	loadoutID              string
+	displayName            string
+	effectiveInputIdentity *runtimev1.LoadoutEffectiveInputIdentity
+	driverIdentity         *runtimev1.CapabilityImplementationIdentity
+	portableConfig         *structpb.Struct
+	exactBindings          []capabilitydriver.InvocationExactBinding
+	request                *runtimev1.TextEmbedScenarioSpec
+	plan                   *capabilitydriver.EmbedInvocationPlan
+	resolvedAssembly       *localResolvedAssembly
 }
 
 func (input *localEmbedEffectiveInputs) modelResolved() string {
@@ -33,7 +35,7 @@ func (input *localEmbedEffectiveInputs) modelResolved() string {
 	if input.displayName != "" {
 		return input.displayName
 	}
-	return input.configurationID
+	return input.loadoutID
 }
 
 func (s *Service) captureLocalEmbedEffectiveInputs(
@@ -57,7 +59,7 @@ func (s *Service) captureLocalEmbedEffectiveInputs(
 func (s *Service) captureSelectedLocalEmbedEffectiveInputs(
 	spec *runtimev1.TextEmbedScenarioSpec,
 	requiredFeatures []string,
-	expectedLocalAssetID string,
+	expectedModelAssetID string,
 ) (*localEmbedEffectiveInputs, error) {
 	if s == nil || spec == nil {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
@@ -75,9 +77,9 @@ func (s *Service) captureSelectedLocalEmbedEffectiveInputs(
 	if err := requireSelectedFeatures(requiredFeatures, selected.SupportedFeatures); err != nil {
 		return nil, err
 	}
-	expectedLocalAssetID = strings.TrimSpace(expectedLocalAssetID)
-	if expectedLocalAssetID != "" && (len(selected.ExactBindings) != 1 ||
-		selected.ExactBindings[0].LocalAssetID != expectedLocalAssetID) {
+	expectedModelAssetID = strings.TrimSpace(expectedModelAssetID)
+	if expectedModelAssetID != "" && (len(selected.ExactBindings) != 1 ||
+		selected.ExactBindings[0].ModelAssetID != expectedModelAssetID) {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
 	}
 	driver, reason := s.capabilityDrivers.Resolve(
@@ -89,16 +91,7 @@ func (s *Service) captureSelectedLocalEmbedEffectiveInputs(
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_DRIVER_UNAVAILABLE)
 	}
 
-	exactBindings := make([]capabilitydriver.InvocationExactBinding, 0, len(selected.ExactBindings))
-	for _, binding := range selected.ExactBindings {
-		exactBindings = append(exactBindings, capabilitydriver.InvocationExactBinding{
-			RequirementID:     binding.RequirementID,
-			LocalAssetID:      binding.LocalAssetID,
-			AbsolutePath:      binding.AbsolutePath,
-			VerifiedContentID: binding.VerifiedContentID,
-			EntrySHA256:       binding.EntrySHA256,
-		})
-	}
+	exactBindings := projectInvocationExactBindings(selected.ExactBindings)
 	portable, _ := proto.Clone(selected.PortableConfig).(*structpb.Struct)
 	request, _ := proto.Clone(spec).(*runtimev1.TextEmbedScenarioSpec)
 	plan, err := embedDriver.PlanEmbedInvocation(capabilitydriver.EmbedInvocationInput{
@@ -113,21 +106,81 @@ func (s *Service) captureSelectedLocalEmbedEffectiveInputs(
 	if plan == nil || plan.ProcessKey() == "" {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_DRIVER_UNAVAILABLE)
 	}
+	resolvedAssembly, err := localResolvedAssemblyForEmbed(selected, request, plan)
+	if err != nil {
+		return nil, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID, err, grpcerr.ReasonOptions{Message: "local embed ResolvedAssembly capture failed"})
+	}
+	effectiveInputIdentity, err := projectResolvedAssemblyEffectiveInputIdentity(resolvedAssembly)
+	if err != nil {
+		return nil, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID, err, grpcerr.ReasonOptions{Message: "local embed ResolvedAssembly attribution failed"})
+	}
 	implementation, _ := proto.Clone(selected.DriverIdentity).(*runtimev1.CapabilityImplementationIdentity)
 	return &localEmbedEffectiveInputs{
-		configurationID: strings.TrimSpace(selected.ConfigurationID),
-		displayName:     strings.TrimSpace(selected.DisplayName),
-		driverIdentity:  implementation,
-		portableConfig:  portable,
-		exactBindings:   exactBindings,
-		request:         request,
-		plan:            plan,
+		loadoutID:              strings.TrimSpace(selected.LoadoutID),
+		displayName:            strings.TrimSpace(selected.DisplayName),
+		effectiveInputIdentity: effectiveInputIdentity,
+		driverIdentity:         implementation,
+		portableConfig:         portable,
+		exactBindings:          exactBindings,
+		request:                request,
+		plan:                   plan,
+		resolvedAssembly:       resolvedAssembly,
 	}, nil
+}
+
+func (s *Service) localEmbedEffectiveInputsFromResolvedAssembly(assembly *localResolvedAssembly) (*localEmbedEffectiveInputs, error) {
+	if err := validateLocalResolvedAssembly(assembly); err != nil {
+		return nil, err
+	}
+	if assembly.CapabilityContract != capabilitydriver.TextEmbedCapabilityContract || assembly.Request.Kind != "text.embed" ||
+		assembly.LoadPlan.Kind != "embed" || assembly.LoadPlan.Embed == nil {
+		return nil, fmt.Errorf("local embed ResolvedAssembly contract is mismatched")
+	}
+	request := &runtimev1.TextEmbedScenarioSpec{}
+	if err := (protojson.UnmarshalOptions{DiscardUnknown: false}).Unmarshal(assembly.Request.Payload, request); err != nil {
+		return nil, fmt.Errorf("decode local embed ResolvedAssembly request: %w", err)
+	}
+	portable, err := resolvedAssemblyPortableConfig(assembly)
+	if err != nil {
+		return nil, err
+	}
+	if s == nil || s.capabilityDrivers == nil {
+		return nil, fmt.Errorf("local embed Driver registry is unavailable")
+	}
+	driver, reason := s.capabilityDrivers.Resolve(capabilitydriver.TextEmbedCapabilityContract, capabilitydriver.Identity{
+		ImplementationID: assembly.DriverIdentity.ImplementationID,
+		DriverID:         assembly.DriverIdentity.DriverID,
+		DriverDialect:    assembly.DriverIdentity.DriverDialect,
+	})
+	embedDriver, ok := driver.(capabilitydriver.EmbedInvocationDriver)
+	if reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED || !ok {
+		return nil, fmt.Errorf("captured local embed Driver is unavailable")
+	}
+	plan, err := embedDriver.PlanEmbedInvocation(capabilitydriver.EmbedInvocationInput{
+		PortableConfig:           portable,
+		ModelContextWindowTokens: assembly.LoadPlan.Embed.ContextWindowTokens,
+		ExactBindings:            resolvedAssemblyExactBindings(assembly),
+		Request:                  request,
+	})
+	if err != nil {
+		return nil, err
+	}
+	selected := selectedLocalExecutionFromResolvedAssembly(assembly)
+	selected.PortableConfig = portable
+	selected.ModelContextWindowTokens = assembly.LoadPlan.Embed.ContextWindowTokens
+	reprojected, err := localResolvedAssemblyForEmbed(selected, request, plan)
+	if err != nil {
+		return nil, err
+	}
+	if err := validateRehydratedResolvedAssemblyPlan(assembly, reprojected); err != nil {
+		return nil, err
+	}
+	return &localEmbedEffectiveInputs{loadoutID: assembly.LoadoutID, request: request, plan: plan}, nil
 }
 
 func validSelectedEmbedExecution(selected *localexecution.SelectedLocalExecution) bool {
 	return selected != nil && selected.Configured &&
-		strings.TrimSpace(selected.ConfigurationID) != "" &&
+		strings.TrimSpace(selected.LoadoutID) != "" &&
 		selected.CapabilityContract == capabilitydriver.TextEmbedCapabilityContract &&
 		selected.DriverIdentity != nil &&
 		len(selected.Requirements) > 0 && len(selected.Requirements) == len(selected.ExactBindings)
@@ -179,6 +232,72 @@ func (s *Service) executeCapturedLocalEmbed(
 	return result, nil
 }
 
+func (s *Service) executeCapturedLocalEmbedJob(
+	ctx context.Context,
+	head *runtimev1.ScenarioRequestHead,
+	effective *localEmbedEffectiveInputs,
+	ignored []*runtimev1.IgnoredScenarioExtension,
+) (localexecution.EmbedResult, *runtimev1.UsageStats, *runtimev1.ScenarioJob, error) {
+	if s == nil || head == nil || effective == nil {
+		return localexecution.EmbedResult{}, nil, nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+	}
+	job, jobCtx, err := s.captureImmediateLocalScenarioJob(
+		ctx, head, runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_EMBED,
+		runtimev1.ExecutionMode_EXECUTION_MODE_SYNC, effective.modelResolved(), ignored,
+		effective.effectiveInputIdentity, effective.resolvedAssembly,
+	)
+	if err != nil {
+		return localexecution.EmbedResult{}, nil, nil, err
+	}
+	jobID := job.GetJobId()
+	defer s.finishScenarioJobExecution(jobID)
+	if err := s.queueImmediateLocalScenarioJob(jobID); err != nil {
+		return localexecution.EmbedResult{}, nil, job, err
+	}
+	release, acquireResult, err := s.scheduler.Acquire(jobCtx, head.GetAppId())
+	if err != nil {
+		executionErr := schedulerAcquireError(err)
+		s.finishLocalTextScenarioJobFailure(jobCtx, jobID, executionErr)
+		return localexecution.EmbedResult{}, nil, job, executionErr
+	}
+	defer release()
+	s.attachQueueWaitUnary(jobCtx, acquireResult)
+	if err := s.startImmediateLocalScenarioJob(jobID); err != nil {
+		return localexecution.EmbedResult{}, nil, job, err
+	}
+	requestCtx, cancel, err := withTimeout(jobCtx, head.GetTimeoutMs(), defaultEmbedTimeout)
+	if err != nil {
+		s.finishLocalTextScenarioJobFailure(jobCtx, jobID, err)
+		return localexecution.EmbedResult{}, nil, job, err
+	}
+	defer cancel()
+	captured, ok := s.scenarioJobs.resolvedAssembly(jobID)
+	if !ok {
+		err := grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+		s.finishLocalTextScenarioJobFailure(requestCtx, jobID, err)
+		return localexecution.EmbedResult{}, nil, job, err
+	}
+	rehydrated, err := s.localEmbedEffectiveInputsFromResolvedAssembly(captured)
+	if err != nil {
+		s.finishLocalTextScenarioJobFailure(requestCtx, jobID, err)
+		return localexecution.EmbedResult{}, nil, job, err
+	}
+	result, err := s.executeCapturedLocalEmbed(requestCtx, rehydrated)
+	if err != nil {
+		s.finishLocalTextScenarioJobFailure(requestCtx, jobID, err)
+		return localexecution.EmbedResult{}, nil, job, err
+	}
+	var usage *runtimev1.UsageStats
+	if result.InputTokens != 0 || result.ComputeMS != 0 {
+		usage = &runtimev1.UsageStats{InputTokens: result.InputTokens, ComputeMs: result.ComputeMS}
+	}
+	if err := s.completeImmediateLocalScenarioJob(jobID, nil, usage); err != nil {
+		s.finishLocalTextScenarioJobFailure(requestCtx, jobID, err)
+		return localexecution.EmbedResult{}, nil, job, err
+	}
+	return result, usage, job, nil
+}
+
 func executeLocalTextEmbedScenario(
 	ctx context.Context,
 	s *Service,
@@ -189,25 +308,9 @@ func executeLocalTextEmbedScenario(
 	if err != nil {
 		return nil, err
 	}
-	release, acquireResult, err := s.scheduler.Acquire(ctx, req.GetHead().GetAppId())
-	if err != nil {
-		return nil, schedulerAcquireError(err)
-	}
-	defer release()
-	s.attachQueueWaitUnary(ctx, acquireResult)
-	requestCtx, cancel, err := withTimeout(ctx, req.GetHead().GetTimeoutMs(), defaultEmbedTimeout)
+	result, usage, job, err := s.executeCapturedLocalEmbedJob(ctx, req.GetHead(), effective, ignored)
 	if err != nil {
 		return nil, err
-	}
-	defer cancel()
-
-	result, err := s.executeCapturedLocalEmbed(requestCtx, effective)
-	if err != nil {
-		return nil, err
-	}
-	usage := (*runtimev1.UsageStats)(nil)
-	if result.InputTokens != 0 || result.ComputeMS != 0 {
-		usage = &runtimev1.UsageStats{InputTokens: result.InputTokens, ComputeMs: result.ComputeMS}
 	}
 	return &runtimev1.ExecuteScenarioResponse{
 		Output: &runtimev1.ScenarioOutput{Output: &runtimev1.ScenarioOutput_TextEmbed{
@@ -217,7 +320,7 @@ func executeLocalTextEmbedScenario(
 		Usage:             usage,
 		RouteDecision:     runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 		ModelResolved:     effective.modelResolved(),
-		TraceId:           ulid.Make().String(),
+		TraceId:           job.GetTraceId(),
 		IgnoredExtensions: cloneIgnoredScenarioExtensions(ignored),
 	}, nil
 }

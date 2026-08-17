@@ -46,7 +46,7 @@ func TestListPresetVoicesUsesSelectedLocalSpeechConfigurationWithoutTargetRef(t 
 	service.localExecution = &mutableLocalExecutionResolver{
 		capabilityContract: capabilitydriver.AudioSynthesizeContract,
 		projection: &localexecution.SelectedLocalExecution{
-			ConfigurationID:    "selected-local-tts",
+			LoadoutID:          "selected-local-tts",
 			CapabilityContract: capabilitydriver.AudioSynthesizeContract,
 			DriverIdentity: &runtimev1.CapabilityImplementationIdentity{
 				ImplementationId: capabilitydriver.Qwen3TTSImplementationID,
@@ -55,7 +55,7 @@ func TestListPresetVoicesUsesSelectedLocalSpeechConfigurationWithoutTargetRef(t 
 			},
 			Requirements: []*runtimev1.LocalCapabilityRequirement{{RequirementId: capabilitydriver.Qwen3TTSModelRequirementID}},
 			ExactBindings: []localexecution.ExactBinding{{
-				RequirementID: capabilitydriver.Qwen3TTSModelRequirementID, AssetID: "local.tts.qwen3", LocalAssetID: "asset-1",
+				RequirementID: capabilitydriver.Qwen3TTSModelRequirementID, ModelAssetID: "local.tts.qwen3",
 				AbsolutePath: entry, VerifiedContentID: "sha256:" + digest, EntrySHA256: digest,
 			}},
 			Configured: true,
@@ -120,7 +120,7 @@ func bindVoiceAssetDeleteTarget(t *testing.T, svc *Service, assetID string, prov
 	if err != nil {
 		t.Fatalf("create voice delete connector: %v", err)
 	}
-	transport := nimillm.NewCloudProvider(nimillm.CloudConfig{HTTPTimeout: time.Second, AllowLoopbackEndpoint: true}, nil, nil)
+	transport := nimillm.NewCloudProvider(nimillm.CloudConfig{HTTPTimeout: time.Second, AllowLoopbackEndpoint: true}, nil)
 	svc.remoteMediaHost = remoteexecution.NewProviderMediaHost(svc.connStore, transport, auditlog.New(32, 32), true)
 	svc.voiceAssets.mu.Lock()
 	remoteCatalogID := "voice-delete-catalog-" + assetID

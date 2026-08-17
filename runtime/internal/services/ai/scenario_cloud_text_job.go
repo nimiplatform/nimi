@@ -79,13 +79,20 @@ func (s *Service) submitCloudTextScenarioJob(
 		TraceId:           effective.traceID,
 		IgnoredExtensions: cloneIgnoredScenarioExtensions(ignored),
 	}
-	snapshot := s.scenarioJobs.createOwned(job, cancel, localAppJobOwnerFromContext(ctx))
+	snapshot, created, persistErr := s.scenarioJobs.createOwnedAndBindChecked(job, cancel, localAppJobOwnerFromContext(ctx), idempotencyScope)
+	if persistErr != nil {
+		cancel()
+		return nil, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID, persistErr, grpcerr.ReasonOptions{
+			Message: "ScenarioJob submission could not be persisted",
+		})
+	}
 	if snapshot == nil {
 		cancel()
 		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
-	if idempotencyScope != "" {
-		s.scenarioJobs.bindIdempotency(idempotencyScope, jobID)
+	if !created {
+		cancel()
+		return &runtimev1.SubmitScenarioJobResponse{Job: snapshot}, nil
 	}
 	captureOwned = false
 	go s.executeCloudTextScenarioJob(jobCtx, jobID, effective)
@@ -96,14 +103,17 @@ func (s *Service) executeCloudTextScenarioJob(ctx context.Context, jobID string,
 	if effective == nil || !s.scenarioJobs.startExecution(jobID) {
 		return
 	}
-	defer s.scenarioJobs.finishExecution(jobID)
+	defer s.finishScenarioJobExecution(jobID)
 	defer effective.release()
-	if _, ok := s.scenarioJobs.transition(
+	if _, ok, transitionErr := s.transitionScenarioJob(
 		jobID,
 		runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_QUEUED,
 		runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_QUEUED,
 		nil,
-	); !ok {
+	); transitionErr != nil {
+		s.failScenarioJobPersistencePrecondition(jobID, scenarioJobQueuedPersistenceFailedReason, transitionErr)
+		return
+	} else if !ok {
 		return
 	}
 	release, err := s.acquireAsyncScenarioJobLease(ctx, effective.appID, "scenario_job_cloud_text")
@@ -112,7 +122,7 @@ func (s *Service) executeCloudTextScenarioJob(ctx context.Context, jobID string,
 		return
 	}
 	defer release()
-	if _, ok := s.scenarioJobs.transition(
+	if _, ok, transitionErr := s.transitionScenarioJob(
 		jobID,
 		runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING,
 		runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_RUNNING,
@@ -121,7 +131,10 @@ func (s *Service) executeCloudTextScenarioJob(ctx context.Context, jobID string,
 			job.ProgressTotalSteps = 1
 			job.ProgressPercent = 0
 		},
-	); !ok {
+	); transitionErr != nil {
+		s.failScenarioJobPersistencePrecondition(jobID, scenarioJobRunningPersistenceFailedReason, transitionErr)
+		return
+	} else if !ok {
 		return
 	}
 
@@ -138,7 +151,7 @@ func (s *Service) executeCloudTextScenarioJob(ctx context.Context, jobID string,
 	})
 	artifacts := []*runtimev1.ScenarioArtifact{artifact}
 	if err := s.storeRuntimeArtifacts(artifacts); err != nil {
-		_, _ = s.scenarioJobs.transition(
+		_, _, _ = s.transitionScenarioJob(
 			jobID,
 			runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED,
 			runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_FAILED,
@@ -150,7 +163,7 @@ func (s *Service) executeCloudTextScenarioJob(ctx context.Context, jobID string,
 		)
 		return
 	}
-	_, _ = s.scenarioJobs.transition(
+	_, _, _ = s.transitionScenarioJob(
 		jobID,
 		runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED,
 		runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_COMPLETED,
@@ -186,7 +199,7 @@ func (s *Service) finishCloudTextScenarioJobFailure(ctx context.Context, jobID s
 		jobStatus = runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED
 		eventType = runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_CANCELED
 	}
-	_, _ = s.scenarioJobs.transition(jobID, jobStatus, eventType, func(job *runtimev1.ScenarioJob) {
+	_, _, _ = s.transitionScenarioJob(jobID, jobStatus, eventType, func(job *runtimev1.ScenarioJob) {
 		job.ReasonCode = reason
 		job.ReasonDetail = sanitizeScenarioJobReasonDetail(err, reason)
 		job.ReasonMetadata = scenarioJobReasonMetadata(err, reason)

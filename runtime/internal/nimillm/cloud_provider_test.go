@@ -14,7 +14,7 @@ func TestCloudProviderResolvesOnlyExactRemoteTarget(t *testing.T) {
 		Providers: map[string]ProviderCredentials{
 			"openai": {BaseURL: "https://api.openai.com/v1"},
 		},
-	}, nil, nil)
+	}, nil)
 	target := &RemoteTarget{
 		ProviderType:    "openai",
 		Endpoint:        "https://api.openai.com/v1",
@@ -34,7 +34,7 @@ func TestCloudProviderRejectsMissingOrConflictingTarget(t *testing.T) {
 		Providers: map[string]ProviderCredentials{
 			"openai": {BaseURL: "https://api.openai.com/v1"},
 		},
-	}, nil, nil)
+	}, nil)
 	spec := &runtimev1.TextGenerateScenarioSpec{
 		Input: []*runtimev1.ChatMessage{{Role: "user", Content: "hello"}},
 	}
@@ -89,7 +89,7 @@ func TestCloudProviderAlwaysEnforcesEndpointSecurity(t *testing.T) {
 			"openai": {BaseURL: "http://example.com/v1"},
 		},
 		EnforceEndpointSecurity: false,
-	}, nil, nil)
+	}, nil)
 	if backend := provider.backends["openai"]; backend != nil {
 		t.Fatalf("expected insecure remote endpoint to be rejected even when EnforceEndpointSecurity=false, got %q", backend.Name)
 	}
@@ -106,7 +106,7 @@ func TestCloudProviderExecutionNeverInheritsConfiguredBackendFacts(t *testing.T)
 				},
 			},
 		},
-	}, nil, nil)
+	}, nil)
 	target := &RemoteTarget{
 		ProviderType:    "openai",
 		Endpoint:        "https://exact.example/v1",

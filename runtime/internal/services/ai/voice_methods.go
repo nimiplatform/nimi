@@ -543,9 +543,10 @@ func (s *Service) listSelectedLocalPresetVoices(
 	for _, binding := range selected.ExactBindings {
 		bindings = append(bindings, capabilitydriver.InvocationExactBinding{
 			RequirementID:     binding.RequirementID,
-			AssetID:           binding.AssetID,
-			LocalAssetID:      binding.LocalAssetID,
+			ModelAssetID:      binding.ModelAssetID,
 			AbsolutePath:      binding.AbsolutePath,
+			BundleDir:         binding.BundleDir,
+			DeclaredFiles:     append([]string(nil), binding.DeclaredFiles...),
 			VerifiedContentID: binding.VerifiedContentID,
 			EntrySHA256:       binding.EntrySHA256,
 		})
@@ -561,15 +562,15 @@ func (s *Service) listSelectedLocalPresetVoices(
 			Name:           voice.Name,
 			SupportedLangs: append([]string(nil), voice.SupportedLangs...),
 			Labels: map[string]string{
-				"route":            "local",
-				"configuration_id": selected.ConfigurationID,
+				"route":      "local",
+				"loadout_id": selected.LoadoutID,
 			},
 			Category: "local-preset",
 		})
 	}
-	modelResolved := selected.ExactBindings[0].AssetID
+	modelResolved := selected.ExactBindings[0].ModelAssetID
 	_ = grpc.SetHeader(ctx, metadata.Pairs(
-		"x-nimi-voice-catalog-source", "selected_local_configuration",
+		"x-nimi-voice-catalog-source", "selected_local_loadout",
 		"x-nimi-voice-count", strconv.Itoa(len(projected)),
 		"x-nimi-app-id", appID,
 		"x-nimi-subject-user-id", subjectUserID,

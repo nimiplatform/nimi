@@ -213,13 +213,13 @@ func TestTranscriptionTextIsCapturedFromCommittedCustodyIntoJobState(t *testing.
 	if err != nil || text != string(payload) {
 		t.Fatalf("capture text=%q err=%v", text, err)
 	}
-	job, ok := svc.scenarioJobs.transition("job-transcription", runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED,
+	job, ok, transitionErr := svc.transitionScenarioJob("job-transcription", runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED,
 		runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_COMPLETED, func(job *runtimev1.ScenarioJob) {
 			job.Artifacts = []*runtimev1.ScenarioArtifact{artifact}
 			job.TranscriptionText = text
 		})
-	if !ok {
-		t.Fatal("complete transcription job")
+	if transitionErr != nil || !ok {
+		t.Fatalf("complete transcription job: %v", transitionErr)
 	}
 	if err := svc.runtimeArtifacts.Delete("artifact-transcription"); err != nil {
 		t.Fatal(err)

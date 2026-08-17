@@ -265,13 +265,20 @@ func validateLocalAppEmbedInputs(inputs []string) ([]string, error) {
 }
 
 func validateLocalAppImageGenerateSpec(spec *runtimev1.LocalAppImageGenerateScenarioSpec) (*runtimev1.ImageGenerateScenarioSpec, error) {
+	inputCount := 0
+	if spec != nil {
+		inputCount = len(spec.GetReferenceImages())
+		if spec.GetReferenceImageArtifactId() != "" {
+			inputCount++
+		}
+	}
 	if spec == nil || !localAppExactText(spec.GetPrompt(), maxLocalAppScenarioPromptBytes) ||
 		!localAppOptionalExactText(spec.GetNegativePrompt(), maxLocalAppScenarioPromptBytes) ||
 		!localAppOptionalExactText(spec.GetSize(), maxLocalAppScenarioOptionTextBytes) ||
 		!localAppOptionalExactText(spec.GetAspectRatio(), maxLocalAppScenarioOptionTextBytes) ||
 		!localAppOptionalExactText(spec.GetQuality(), maxLocalAppScenarioOptionTextBytes) ||
 		!localAppOptionalExactText(spec.GetStyle(), maxLocalAppScenarioOptionTextBytes) ||
-		len(spec.GetReferenceImages()) > 1 {
+		inputCount > 1 {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
 	if spec.N != nil && (spec.GetN() < 0 || spec.GetN() > 16) {
@@ -282,6 +289,9 @@ func validateLocalAppImageGenerateSpec(spec *runtimev1.LocalAppImageGenerateScen
 			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 		}
 	}
+	if artifactID := spec.GetReferenceImageArtifactId(); artifactID != "" && !localAppBoundedIdentifier(artifactID) {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_ARTIFACT_INVALID_INPUT)
+	}
 	if mask := spec.GetMask(); mask != "" && !localAppHTTPSURL(mask, maxLocalAppScenarioReferenceURIBytes) {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
@@ -290,16 +300,17 @@ func validateLocalAppImageGenerateSpec(spec *runtimev1.LocalAppImageGenerateScen
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
 	return &runtimev1.ImageGenerateScenarioSpec{
-		Prompt:          spec.GetPrompt(),
-		NegativePrompt:  spec.GetNegativePrompt(),
-		N:               localAppOptionalInt32(spec.N),
-		Size:            spec.GetSize(),
-		AspectRatio:     spec.GetAspectRatio(),
-		Quality:         spec.GetQuality(),
-		Style:           spec.GetStyle(),
-		Seed:            localAppOptionalInt64(spec.Seed),
-		ReferenceImages: append([]string(nil), spec.GetReferenceImages()...),
-		Mask:            spec.GetMask(),
-		ResponseFormat:  format,
+		Prompt:                   spec.GetPrompt(),
+		NegativePrompt:           spec.GetNegativePrompt(),
+		N:                        localAppOptionalInt32(spec.N),
+		Size:                     spec.GetSize(),
+		AspectRatio:              spec.GetAspectRatio(),
+		Quality:                  spec.GetQuality(),
+		Style:                    spec.GetStyle(),
+		Seed:                     localAppOptionalInt64(spec.Seed),
+		ReferenceImages:          append([]string(nil), spec.GetReferenceImages()...),
+		ReferenceImageArtifactId: spec.GetReferenceImageArtifactId(),
+		Mask:                     spec.GetMask(),
+		ResponseFormat:           format,
 	}, nil
 }

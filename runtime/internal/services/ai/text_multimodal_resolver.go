@@ -310,17 +310,10 @@ func (s *Service) resolveTextGenerateArtifactPath(
 			return path, mimeType, cleanup, nil
 		}
 	}
-	if !localText {
-		return "", "", nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
-	}
-	if s == nil || s.localImageProfile == nil {
-		return "", "", nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
-	}
-	path, err := s.localImageProfile.ResolveManagedAssetPath(ctx, localArtifactID)
-	if err != nil {
-		return "", "", nil, err
-	}
-	return path, strings.TrimSpace(ref.GetMimeType()), nil, nil
+	// Owner-carrying Runtime artifacts and authorized Local App artifacts are
+	// the complete supported local input planes. A legacy LocalAsset id is not
+	// an attachment capability and must never resolve by possession alone.
+	return "", "", nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 }
 
 func classifyTextGenerateArtifactMedia(explicitMime string, resolvedMime string, resolvedPath string) (runtimev1.ChatContentPartType, error) {

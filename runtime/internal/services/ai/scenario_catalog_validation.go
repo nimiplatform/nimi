@@ -44,7 +44,7 @@ func (s *Service) validateImageGenerateAgainstCatalog(
 		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID)
 	}
 	required := make([]string, 0, 2)
-	if len(spec.GetReferenceImages()) > 0 {
+	if len(spec.GetReferenceImages()) > 0 || strings.TrimSpace(spec.GetReferenceImageArtifactId()) != "" {
 		required = append(required, aicapabilities.FeatureInputImage)
 	}
 	if strings.TrimSpace(spec.GetMask()) != "" {

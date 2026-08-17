@@ -28,11 +28,13 @@ import (
 // localVideoEffectiveInputs is a submit-time snapshot. Background execution
 // never rereads AIConfig, machine selection, bindings, or request content.
 type localVideoEffectiveInputs struct {
-	head            *runtimev1.ScenarioRequestHead
-	intent          executionintent.Intent
-	configurationID string
-	displayName     string
-	plan            *capabilitydriver.VideoInvocationPlan
+	head                   *runtimev1.ScenarioRequestHead
+	intent                 executionintent.Intent
+	loadoutID              string
+	displayName            string
+	plan                   *capabilitydriver.VideoInvocationPlan
+	effectiveInputIdentity *runtimev1.LoadoutEffectiveInputIdentity
+	resolvedAssembly       *localResolvedAssembly
 }
 
 func (input *localVideoEffectiveInputs) modelResolved() string {
@@ -42,7 +44,7 @@ func (input *localVideoEffectiveInputs) modelResolved() string {
 	if input.displayName != "" {
 		return input.displayName
 	}
-	return input.configurationID
+	return input.loadoutID
 }
 
 func (s *Service) captureLocalVideoEffectiveInputs(
@@ -92,17 +94,11 @@ func (s *Service) captureLocalVideoEffectiveInputs(
 	if !ok {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_DRIVER_UNAVAILABLE)
 	}
-	exactBindings := make([]capabilitydriver.InvocationExactBinding, 0, len(selected.ExactBindings))
-	for _, binding := range selected.ExactBindings {
-		exactBindings = append(exactBindings, capabilitydriver.InvocationExactBinding{
-			RequirementID: binding.RequirementID, LocalAssetID: binding.LocalAssetID, AbsolutePath: binding.AbsolutePath,
-			VerifiedContentID: binding.VerifiedContentID, EntrySHA256: binding.EntrySHA256,
-		})
-	}
+	exactBindings := projectInvocationExactBindings(selected.ExactBindings)
 	portable, _ := proto.Clone(selected.PortableConfig).(*structpb.Struct)
 	plan, err := videoDriver.PlanVideoInvocation(capabilitydriver.VideoInvocationInput{
-		ConfigurationID: strings.TrimSpace(selected.ConfigurationID),
-		PortableConfig:  portable, ExactBindings: exactBindings, Request: resolvedRequest,
+		LoadoutID:      strings.TrimSpace(selected.LoadoutID),
+		PortableConfig: portable, ExactBindings: exactBindings, Request: resolvedRequest,
 	})
 	if err != nil {
 		return nil, localVideoInvocationError(err)
@@ -110,11 +106,68 @@ func (s *Service) captureLocalVideoEffectiveInputs(
 	if plan == nil || strings.TrimSpace(plan.ProcessKey()) == "" {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_DRIVER_UNAVAILABLE)
 	}
+	resolvedAssembly, err := localResolvedAssemblyForVideo(selected, resolvedRequest, plan)
+	if err != nil {
+		return nil, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID, err, grpcerr.ReasonOptions{Message: "local video ResolvedAssembly capture failed"})
+	}
+	effectiveInputIdentity, err := projectResolvedAssemblyEffectiveInputIdentity(resolvedAssembly)
+	if err != nil {
+		return nil, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID, err, grpcerr.ReasonOptions{Message: "local video ResolvedAssembly attribution failed"})
+	}
 	return &localVideoEffectiveInputs{
 		head: cloneScenarioHead(head), intent: executionintent.Clone(intent),
-		configurationID: strings.TrimSpace(selected.ConfigurationID), displayName: strings.TrimSpace(selected.DisplayName),
-		plan: plan,
+		loadoutID: strings.TrimSpace(selected.LoadoutID), displayName: strings.TrimSpace(selected.DisplayName),
+		plan: plan, effectiveInputIdentity: effectiveInputIdentity, resolvedAssembly: resolvedAssembly,
 	}, nil
+}
+
+func (s *Service) localVideoEffectiveInputsFromResolvedAssembly(assembly *localResolvedAssembly) (*localVideoEffectiveInputs, error) {
+	if err := validateLocalResolvedAssembly(assembly); err != nil {
+		return nil, err
+	}
+	if assembly.CapabilityContract != capabilitydriver.StableDiffusionVideoCapabilityContract || assembly.Request.Kind != "video.generate" ||
+		assembly.LoadPlan.Kind != "video" || assembly.LoadPlan.Video == nil {
+		return nil, fmt.Errorf("local video ResolvedAssembly contract is mismatched")
+	}
+	request := capabilitydriver.VideoInvocationRequest{}
+	if err := decodeScenarioJobStrictJSON(assembly.Request.Payload, &request); err != nil {
+		return nil, fmt.Errorf("decode local video ResolvedAssembly request: %w", err)
+	}
+	portable, err := resolvedAssemblyPortableConfig(assembly)
+	if err != nil {
+		return nil, err
+	}
+	if s == nil || s.capabilityDrivers == nil {
+		return nil, fmt.Errorf("local video Driver registry is unavailable")
+	}
+	driver, reason := s.capabilityDrivers.Resolve(capabilitydriver.StableDiffusionVideoCapabilityContract, capabilitydriver.Identity{
+		ImplementationID: assembly.DriverIdentity.ImplementationID,
+		DriverID:         assembly.DriverIdentity.DriverID,
+		DriverDialect:    assembly.DriverIdentity.DriverDialect,
+	})
+	videoDriver, ok := driver.(capabilitydriver.VideoInvocationDriver)
+	if reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED || !ok {
+		return nil, fmt.Errorf("captured local video Driver is unavailable")
+	}
+	plan, err := videoDriver.PlanVideoInvocation(capabilitydriver.VideoInvocationInput{
+		LoadoutID:      assembly.LoadoutID,
+		PortableConfig: portable,
+		ExactBindings:  resolvedAssemblyExactBindings(assembly),
+		Request:        request,
+	})
+	if err != nil {
+		return nil, err
+	}
+	selected := selectedLocalExecutionFromResolvedAssembly(assembly)
+	selected.PortableConfig = portable
+	reprojected, err := localResolvedAssemblyForVideo(selected, request, plan)
+	if err != nil {
+		return nil, err
+	}
+	if err := validateRehydratedResolvedAssemblyPlan(assembly, reprojected); err != nil {
+		return nil, err
+	}
+	return &localVideoEffectiveInputs{loadoutID: assembly.LoadoutID, plan: plan}, nil
 }
 
 func (s *Service) resolveLocalVideoConsumerIntent(ctx context.Context, head *runtimev1.ScenarioRequestHead) (executionintent.Intent, error) {
@@ -126,7 +179,7 @@ func (s *Service) resolveLocalVideoConsumerIntent(ctx context.Context, head *run
 }
 
 func validSelectedVideoExecution(selected *localexecution.SelectedLocalExecution) bool {
-	return selected != nil && selected.Configured && strings.TrimSpace(selected.ConfigurationID) != "" &&
+	return selected != nil && selected.Configured && strings.TrimSpace(selected.LoadoutID) != "" &&
 		selected.CapabilityContract == capabilitydriver.StableDiffusionVideoCapabilityContract && selected.DriverIdentity != nil
 }
 

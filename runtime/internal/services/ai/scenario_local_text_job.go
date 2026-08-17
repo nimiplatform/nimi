@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"strings"
-	"sync"
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -68,52 +67,78 @@ func (s *Service) submitLocalTextScenarioJob(
 	jobID := ulid.Make().String()
 	now := timestamppb.New(time.Now().UTC())
 	job := &runtimev1.ScenarioJob{
-		JobId:             jobID,
-		Head:              cloneScenarioHead(req.GetHead()),
-		ScenarioType:      runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,
-		ExecutionMode:     mode,
-		RouteDecision:     runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
-		ModelResolved:     effective.modelResolved(),
-		Status:            runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED,
-		ReasonCode:        runtimev1.ReasonCode_ACTION_EXECUTED,
-		CreatedAt:         now,
-		UpdatedAt:         now,
-		TraceId:           ulid.Make().String(),
-		IgnoredExtensions: cloneIgnoredScenarioExtensions(ignored),
+		JobId:                  jobID,
+		Head:                   cloneScenarioHead(req.GetHead()),
+		ScenarioType:           runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,
+		ExecutionMode:          mode,
+		RouteDecision:          runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+		ModelResolved:          effective.modelResolved(),
+		Status:                 runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED,
+		ReasonCode:             runtimev1.ReasonCode_ACTION_EXECUTED,
+		CreatedAt:              now,
+		UpdatedAt:              now,
+		TraceId:                ulid.Make().String(),
+		IgnoredExtensions:      cloneIgnoredScenarioExtensions(ignored),
+		EffectiveInputIdentity: effective.effectiveInputIdentity,
 	}
-	snapshot := s.scenarioJobs.createOwned(job, cancel, localAppJobOwnerFromContext(ctx))
+	snapshot, created, persistErr := s.scenarioJobs.createOwnedAndBindAssemblyChecked(job, cancel, localAppJobOwnerFromContext(ctx), idempotencyScope, effective.resolvedAssembly)
+	if persistErr != nil {
+		cancel()
+		return nil, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID, persistErr, grpcerr.ReasonOptions{
+			Message: "captured ResolvedAssembly and ScenarioJob could not be committed atomically",
+		})
+	}
 	if snapshot == nil {
 		cancel()
 		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
-	if idempotencyScope != "" {
-		s.scenarioJobs.bindIdempotency(idempotencyScope, jobID)
+	if !created {
+		cancel()
+		return &runtimev1.SubmitScenarioJobResponse{Job: snapshot}, nil
 	}
+	cleanup := effective.cleanup
+	effective.cleanup = nil
 	captureOwned = false
-	go s.executeLocalTextScenarioJob(jobCtx, jobID, effective)
+	go func() {
+		if cleanup != nil {
+			defer cleanup()
+		}
+		s.executeLocalTextScenarioJob(jobCtx, jobID)
+	}()
 	return &runtimev1.SubmitScenarioJobResponse{Job: snapshot}, nil
 }
 
 func (s *Service) executeLocalTextScenarioJob(
 	ctx context.Context,
 	jobID string,
-	effective *localTextEffectiveInputs,
 ) {
-	if effective == nil || !s.scenarioJobs.startExecution(jobID) {
+	if !s.scenarioJobs.startExecution(jobID) {
 		return
 	}
-	defer s.scenarioJobs.finishExecution(jobID)
-	defer effective.release()
-	if _, ok := s.scenarioJobs.transition(
+	defer s.finishScenarioJobExecution(jobID)
+	if _, ok, transitionErr := s.transitionScenarioJob(
 		jobID,
 		runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_QUEUED,
 		runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_QUEUED,
 		nil,
-	); !ok {
+	); transitionErr != nil {
+		s.failScenarioJobPersistencePrecondition(jobID, scenarioJobQueuedPersistenceFailedReason, transitionErr)
+		return
+	} else if !ok {
 		return
 	}
 	job, ok := s.scenarioJobs.get(jobID)
 	if !ok || job.GetHead() == nil {
+		return
+	}
+	assembly, ok := s.scenarioJobs.resolvedAssembly(jobID)
+	if !ok {
+		s.finishLocalTextScenarioJobFailure(ctx, jobID, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID))
+		return
+	}
+	effective, err := s.localTextEffectiveInputsFromResolvedAssembly(assembly)
+	if err != nil {
+		s.finishLocalTextScenarioJobFailure(ctx, jobID, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID, err, grpcerr.ReasonOptions{Message: "captured local text assembly is invalid"}))
 		return
 	}
 	release, err := s.acquireAsyncScenarioJobLease(ctx, job.GetHead().GetAppId(), "scenario_job_local_text")
@@ -122,28 +147,27 @@ func (s *Service) executeLocalTextScenarioJob(
 		return
 	}
 	defer release()
-	var runningOnce sync.Once
-	ensureRunning := func() {
-		runningOnce.Do(func() {
-			_, _ = s.scenarioJobs.transition(
-				jobID,
-				runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING,
-				runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_RUNNING,
-				func(job *runtimev1.ScenarioJob) {
-					job.ProgressCurrentStep = 0
-					job.ProgressTotalSteps = 2
-					job.ProgressPercent = 0
-				},
-			)
-		})
+	if _, ok, transitionErr := s.transitionScenarioJob(
+		jobID,
+		runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING,
+		runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_RUNNING,
+		func(job *runtimev1.ScenarioJob) {
+			job.ProgressCurrentStep = 0
+			job.ProgressTotalSteps = 2
+			job.ProgressPercent = 0
+		},
+	); transitionErr != nil {
+		s.failScenarioJobPersistencePrecondition(jobID, scenarioJobRunningPersistenceFailedReason, transitionErr)
+		return
+	} else if !ok {
+		return
 	}
 	progress := func(stage localexecution.TextExecutionProgress) {
-		ensureRunning()
 		switch stage {
 		case localexecution.TextExecutionProgressLoading:
-			_, _ = s.scenarioJobs.updateProgress(jobID, 0, 2, 0)
+			_, _ = s.updateScenarioJobProgress(jobID, 0, 2, 0)
 		case localexecution.TextExecutionProgressReady, localexecution.TextExecutionProgressReused:
-			_, _ = s.scenarioJobs.updateProgress(jobID, 1, 2, 50)
+			_, _ = s.updateScenarioJobProgress(jobID, 1, 2, 50)
 		}
 	}
 	result, err := s.executeCapturedLocalText(ctx, effective, progress)
@@ -152,13 +176,12 @@ func (s *Service) executeLocalTextScenarioJob(
 		return
 	}
 
-	ensureRunning()
 	artifact := nimillm.BinaryArtifact("text/plain; charset=utf-8", []byte(result.Text), map[string]any{
 		"finish_reason": result.FinishReason.String(),
 	})
 	artifacts := []*runtimev1.ScenarioArtifact{artifact}
 	if err := s.storeRuntimeArtifacts(artifacts); err != nil {
-		_, _ = s.scenarioJobs.transition(
+		_, _, _ = s.transitionScenarioJob(
 			jobID,
 			runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED,
 			runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_FAILED,
@@ -169,7 +192,7 @@ func (s *Service) executeLocalTextScenarioJob(
 		)
 		return
 	}
-	_, _ = s.scenarioJobs.transition(
+	_, _, _ = s.transitionScenarioJob(
 		jobID,
 		runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED,
 		runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_COMPLETED,
@@ -205,7 +228,7 @@ func (s *Service) finishLocalTextScenarioJobFailure(ctx context.Context, jobID s
 		jobStatus = runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED
 		eventType = runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_CANCELED
 	}
-	_, _ = s.scenarioJobs.transition(jobID, jobStatus, eventType, func(job *runtimev1.ScenarioJob) {
+	_, _, _ = s.transitionScenarioJob(jobID, jobStatus, eventType, func(job *runtimev1.ScenarioJob) {
 		job.ReasonCode = reason
 		job.ReasonDetail = sanitizeScenarioJobReasonDetail(err, reason)
 		job.ReasonMetadata = scenarioJobReasonMetadata(err, reason)

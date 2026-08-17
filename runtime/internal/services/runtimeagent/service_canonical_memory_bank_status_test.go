@@ -6,11 +6,13 @@ import (
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/aiconfig"
+	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/config"
 	memoryservice "github.com/nimiplatform/nimi/runtime/internal/services/memory"
 )
 
-func TestRuntimeAgentCanonicalMemoryBankRemainsUnavailableWithoutMachineBinding(t *testing.T) {
+func TestRuntimeAgentCanonicalMemoryBankUsesSharedLocalIntentMarker(t *testing.T) {
 	t.Parallel()
 
 	ctx := context.Background()
@@ -37,14 +39,24 @@ func TestRuntimeAgentCanonicalMemoryBankRemainsUnavailableWithoutMachineBinding(
 		t.Fatalf("runtimeagent.New: %v", err)
 	}
 	closeRuntimeAgentServiceForTest(t, svc)
+	aiConfigStore := aiconfig.NewMemoryStore()
+	svc.SetAIConfigStore(aiConfigStore)
+	if err := aiConfigStore.Overwrite(ctx, "user-1", &runtimev1.AIConfig{
+		Owner: aiconfig.LocalAgentSubsystemOwner(),
+		Capabilities: []*runtimev1.AIConfigCapabilityIntent{{
+			CapabilityContract: capabilitydriver.TextEmbedCapabilityContract,
+			Route:              &runtimev1.AIConfigCapabilityIntent_Local{Local: &runtimev1.AIConfigLocalIntent{}},
+		}},
+	}); err != nil {
+		t.Fatalf("seed shared AIConfig: %v", err)
+	}
 	memorySvc.SetRuntimeEmbeddingIntentResolver(svc.ResolveMemoryEmbeddingIntent)
 	memorySvc.SetMemoryEmbeddingTargetAuthorizer(svc.AuthorizeMemoryEmbeddingTarget)
 	memorySvc.SetRuntimeEmbeddingProfileResolver(func(
 		_ context.Context,
 		snapshot *memoryservice.MemoryEmbeddingTextEmbedIntentSnapshot,
 	) memoryservice.MemoryEmbeddingResolvedProfile {
-		if snapshot == nil || snapshot.LocalBinding == nil ||
-			snapshot.LocalBinding.ReadinessRef != "test_runtime_readiness:v2:default-embed" {
+		if snapshot == nil || snapshot.LocalBinding == nil {
 			return memoryservice.MemoryEmbeddingResolvedProfile{ResolutionState: "unresolved"}
 		}
 		return memoryservice.MemoryEmbeddingResolvedProfile{
@@ -67,11 +79,10 @@ func TestRuntimeAgentCanonicalMemoryBankRemainsUnavailableWithoutMachineBinding(
 	if err != nil {
 		t.Fatalf("GetAgentCanonicalMemoryBankStatus(initial): %v", err)
 	}
-	if initial.GetStatus().GetMode() != runtimev1.AgentCanonicalMemoryBankMode_AGENT_CANONICAL_MEMORY_BANK_MODE_UNAVAILABLE {
-		t.Fatalf("initial mode = %s, want unavailable", initial.GetStatus().GetMode())
+	if initial.GetStatus().GetMode() != runtimev1.AgentCanonicalMemoryBankMode_AGENT_CANONICAL_MEMORY_BANK_MODE_BASELINE {
+		t.Fatalf("initial mode = %s, want baseline", initial.GetStatus().GetMode())
 	}
-
-	if initial.GetStatus().GetBindAllowed() {
-		t.Fatal("portable shared intent must not fabricate a bindable machine embedding target")
+	if !initial.GetStatus().GetBindAllowed() {
+		t.Fatal("resolved selected-Loadout profile must be bindable")
 	}
 }

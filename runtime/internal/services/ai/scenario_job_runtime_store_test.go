@@ -1,10 +1,13 @@
 package ai
 
 import (
+	"fmt"
+	"sync"
 	"testing"
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 func TestScenarioJobStoreIdempotencyIndex(t *testing.T) {
@@ -20,7 +23,9 @@ func TestScenarioJobStoreIdempotencyIndex(t *testing.T) {
 		t.Fatalf("expected create snapshot")
 	}
 
-	store.bindIdempotency("scope-1", "idem-job-1")
+	if err := store.bindIdempotency("scope-1", "idem-job-1"); err != nil {
+		t.Fatalf("bind idempotency: %v", err)
+	}
 	found, ok := store.getByIdempotency("scope-1")
 	if !ok || found.GetJobId() != "idem-job-1" {
 		t.Fatalf("expected idempotency lookup hit, ok=%v job=%v", ok, found)
@@ -31,8 +36,71 @@ func TestScenarioJobStoreIdempotencyIndex(t *testing.T) {
 	}
 
 	// Invalid inputs should be no-op and should not panic.
-	store.bindIdempotency("", "idem-job-1")
-	store.bindIdempotency("scope-2", "")
+	if err := store.bindIdempotency("", "idem-job-1"); err != nil {
+		t.Fatalf("empty scope idempotency no-op: %v", err)
+	}
+	if err := store.bindIdempotency("scope-2", ""); err != nil {
+		t.Fatalf("empty job idempotency no-op: %v", err)
+	}
+}
+
+func TestScenarioJobStoreConcurrentIdempotentCreateReturnsOneCanonicalJob(t *testing.T) {
+	store, localStatePath := newDurableScenarioJobStoreForFailureTest(t)
+	start := make(chan struct{})
+	results := make([]*runtimev1.ScenarioJob, 2)
+	created := make([]bool, 2)
+	errs := make([]error, 2)
+	var wait sync.WaitGroup
+	for index := range results {
+		index := index
+		wait.Add(1)
+		go func() {
+			defer wait.Done()
+			<-start
+			now := timestamppb.New(time.Now().UTC())
+			results[index], created[index], errs[index] = store.createOwnedAndBindChecked(&runtimev1.ScenarioJob{
+				JobId:     fmt.Sprintf("job-concurrent-%d", index),
+				Status:    runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED,
+				CreatedAt: now,
+				UpdatedAt: now,
+			}, func() {}, nil, "scope-concurrent")
+		}()
+	}
+	close(start)
+	wait.Wait()
+
+	for index, err := range errs {
+		if err != nil {
+			t.Fatalf("concurrent create %d: %v", index, err)
+		}
+	}
+	if results[0].GetJobId() == "" || results[0].GetJobId() != results[1].GetJobId() {
+		t.Fatalf("concurrent creates returned non-canonical Jobs: %q and %q", results[0].GetJobId(), results[1].GetJobId())
+	}
+	if created[0] == created[1] {
+		t.Fatalf("create-if-absent ownership = %v, want exactly one creator", created)
+	}
+	store.mu.RLock()
+	jobCount := len(store.jobs)
+	bindingCount := len(store.idempotency)
+	binding := store.idempotency["scope-concurrent"]
+	store.mu.RUnlock()
+	if jobCount != 1 || bindingCount != 1 || binding.jobID != results[0].GetJobId() {
+		t.Fatalf("in-memory create-if-absent state: jobs=%d bindings=%d binding=%q canonical=%q", jobCount, bindingCount, binding.jobID, results[0].GetJobId())
+	}
+
+	reopened, err := newScenarioJobStoreForLocalStatePath(localStatePath)
+	if err != nil {
+		t.Fatalf("reopen durable ScenarioJob store: %v", err)
+	}
+	reopened.mu.RLock()
+	durableJobCount := len(reopened.jobs)
+	durableBindingCount := len(reopened.idempotency)
+	durableBinding := reopened.idempotency["scope-concurrent"]
+	reopened.mu.RUnlock()
+	if durableJobCount != 1 || durableBindingCount != 1 || durableBinding.jobID != results[0].GetJobId() {
+		t.Fatalf("durable create-if-absent state: jobs=%d bindings=%d binding=%q canonical=%q", durableJobCount, durableBindingCount, durableBinding.jobID, results[0].GetJobId())
+	}
 }
 
 func TestScenarioJobStorePrunesExpiredTerminalState(t *testing.T) {
@@ -47,15 +115,17 @@ func TestScenarioJobStorePrunesExpiredTerminalState(t *testing.T) {
 	if snapshot := store.create(oldJob, nil); snapshot == nil {
 		t.Fatalf("expected old job snapshot")
 	}
-	if _, ok := store.transition(
+	if _, ok, err := store.transition(
 		"job-old",
 		runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED,
 		runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_COMPLETED,
 		nil,
-	); !ok {
-		t.Fatalf("expected old job terminal transition")
+	); err != nil || !ok {
+		t.Fatalf("expected old job terminal transition: %v", err)
 	}
-	store.bindIdempotency("scope-old", "job-old")
+	if err := store.bindIdempotency("scope-old", "job-old"); err != nil {
+		t.Fatalf("bind old idempotency: %v", err)
+	}
 	if stored := store.storeUploadedArtifact("app", "user", "trace-old", &runtimev1.ScenarioArtifact{ArtifactId: "artifact-old"}); stored == nil {
 		t.Fatalf("expected stored artifact")
 	}
@@ -106,15 +176,15 @@ func TestScenarioJobStoreTerminalTransitionIsLocked(t *testing.T) {
 	if snapshot := store.create(job, nil); snapshot == nil {
 		t.Fatalf("expected create snapshot")
 	}
-	if canceled, ok := store.transition(
+	if canceled, ok, err := store.transition(
 		"job-terminal-lock",
 		runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED,
 		runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_CANCELED,
 		nil,
-	); !ok || canceled.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED {
-		t.Fatalf("expected canceled terminal transition, ok=%v job=%+v", ok, canceled)
+	); err != nil || !ok || canceled.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED {
+		t.Fatalf("expected canceled terminal transition, ok=%v job=%+v err=%v", ok, canceled, err)
 	}
-	completed, ok := store.transition(
+	completed, ok, err := store.transition(
 		"job-terminal-lock",
 		runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED,
 		runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_COMPLETED,
@@ -122,6 +192,9 @@ func TestScenarioJobStoreTerminalTransitionIsLocked(t *testing.T) {
 			job.Artifacts = []*runtimev1.ScenarioArtifact{{ArtifactId: "artifact-after-cancel"}}
 		},
 	)
+	if err != nil {
+		t.Fatalf("rejected terminal transition returned persistence error: %v", err)
+	}
 	if ok {
 		t.Fatalf("terminal job must reject later completion transition, got job=%+v", completed)
 	}
@@ -145,7 +218,7 @@ func TestScenarioJobStoreFindArtifactUsesJobArtifactIndex(t *testing.T) {
 	if snapshot := store.create(job, nil); snapshot == nil {
 		t.Fatalf("expected create snapshot")
 	}
-	if _, ok := store.transition(
+	if _, ok, err := store.transition(
 		"job-indexed",
 		runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED,
 		runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_COMPLETED,
@@ -155,8 +228,8 @@ func TestScenarioJobStoreFindArtifactUsesJobArtifactIndex(t *testing.T) {
 				MimeType:   "image/png",
 			}}
 		},
-	); !ok {
-		t.Fatalf("expected completed transition")
+	); err != nil || !ok {
+		t.Fatalf("expected completed transition: %v", err)
 	}
 
 	artifact, traceID, ok := store.findArtifact("app", "user", "artifact-indexed")

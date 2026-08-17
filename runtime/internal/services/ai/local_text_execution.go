@@ -17,20 +17,23 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
 type localTextEffectiveInputs struct {
-	configurationID string
-	displayName     string
-	driverIdentity  *runtimev1.CapabilityImplementationIdentity
-	portableConfig  *structpb.Struct
-	exactBindings   []capabilitydriver.InvocationExactBinding
-	contentIDs      []string
-	request         *runtimev1.TextGenerateScenarioSpec
-	plan            *capabilitydriver.TextInvocationPlan
-	cleanup         func()
+	loadoutID              string
+	displayName            string
+	effectiveInputIdentity *runtimev1.LoadoutEffectiveInputIdentity
+	driverIdentity         *runtimev1.CapabilityImplementationIdentity
+	portableConfig         *structpb.Struct
+	exactBindings          []capabilitydriver.InvocationExactBinding
+	contentIDs             []string
+	request                *runtimev1.TextGenerateScenarioSpec
+	plan                   *capabilitydriver.TextInvocationPlan
+	resolvedAssembly       *localResolvedAssembly
+	cleanup                func()
 }
 
 func (input *localTextEffectiveInputs) release() {
@@ -46,7 +49,7 @@ func (input *localTextEffectiveInputs) modelResolved() string {
 	if input.displayName != "" {
 		return input.displayName
 	}
-	return input.configurationID
+	return input.loadoutID
 }
 
 func (s *Service) captureLocalTextRoutingIntent(ctx context.Context, head *runtimev1.ScenarioRequestHead) (context.Context, bool, error) {
@@ -110,16 +113,9 @@ func (s *Service) captureLocalTextEffectiveInputs(
 		return fail(grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_DRIVER_UNAVAILABLE))
 	}
 
-	exactBindings := make([]capabilitydriver.InvocationExactBinding, 0, len(selected.ExactBindings))
+	exactBindings := projectInvocationExactBindings(selected.ExactBindings)
 	contentIDs := make([]string, 0, len(selected.ExactBindings))
 	for _, binding := range selected.ExactBindings {
-		exactBindings = append(exactBindings, capabilitydriver.InvocationExactBinding{
-			RequirementID:     binding.RequirementID,
-			LocalAssetID:      binding.LocalAssetID,
-			AbsolutePath:      binding.AbsolutePath,
-			VerifiedContentID: binding.VerifiedContentID,
-			EntrySHA256:       binding.EntrySHA256,
-		})
 		contentIDs = append(contentIDs, binding.VerifiedContentID+"/"+binding.EntrySHA256)
 	}
 	sort.Strings(contentIDs)
@@ -138,18 +134,78 @@ func (s *Service) captureLocalTextEffectiveInputs(
 	if plan == nil || plan.ProcessKey() == "" {
 		return fail(grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_DRIVER_UNAVAILABLE))
 	}
+	resolvedAssembly, err := localResolvedAssemblyForText(selected, request, plan)
+	if err != nil {
+		return fail(grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID, err, grpcerr.ReasonOptions{Message: "local text ResolvedAssembly capture failed"}))
+	}
+	effectiveInputIdentity, err := projectResolvedAssemblyEffectiveInputIdentity(resolvedAssembly)
+	if err != nil {
+		return fail(grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID, err, grpcerr.ReasonOptions{Message: "local text ResolvedAssembly attribution failed"}))
+	}
 	implementation, _ := proto.Clone(selected.DriverIdentity).(*runtimev1.CapabilityImplementationIdentity)
 	return &localTextEffectiveInputs{
-		configurationID: strings.TrimSpace(selected.ConfigurationID),
-		displayName:     strings.TrimSpace(selected.DisplayName),
-		driverIdentity:  implementation,
-		portableConfig:  portable,
-		exactBindings:   append([]capabilitydriver.InvocationExactBinding(nil), exactBindings...),
-		contentIDs:      append([]string(nil), contentIDs...),
-		request:         request,
-		plan:            plan,
-		cleanup:         resolved.release,
+		loadoutID:              strings.TrimSpace(selected.LoadoutID),
+		displayName:            strings.TrimSpace(selected.DisplayName),
+		effectiveInputIdentity: effectiveInputIdentity,
+		driverIdentity:         implementation,
+		portableConfig:         portable,
+		exactBindings:          append([]capabilitydriver.InvocationExactBinding(nil), exactBindings...),
+		contentIDs:             append([]string(nil), contentIDs...),
+		request:                request,
+		plan:                   plan,
+		resolvedAssembly:       resolvedAssembly,
+		cleanup:                resolved.release,
 	}, nil
+}
+
+func (s *Service) localTextEffectiveInputsFromResolvedAssembly(assembly *localResolvedAssembly) (*localTextEffectiveInputs, error) {
+	if err := validateLocalResolvedAssembly(assembly); err != nil {
+		return nil, err
+	}
+	if assembly.CapabilityContract != capabilitydriver.LlamaCapabilityContract || assembly.Request.Kind != "text.generate" ||
+		assembly.LoadPlan.Kind != "text" || assembly.LoadPlan.Text == nil {
+		return nil, fmt.Errorf("local text ResolvedAssembly contract is mismatched")
+	}
+	request := &runtimev1.TextGenerateScenarioSpec{}
+	if err := (protojson.UnmarshalOptions{DiscardUnknown: false}).Unmarshal(assembly.Request.Payload, request); err != nil {
+		return nil, fmt.Errorf("decode local text ResolvedAssembly request: %w", err)
+	}
+	portable, err := resolvedAssemblyPortableConfig(assembly)
+	if err != nil {
+		return nil, err
+	}
+	if s == nil || s.capabilityDrivers == nil {
+		return nil, fmt.Errorf("local text Driver registry is unavailable")
+	}
+	driver, reason := s.capabilityDrivers.Resolve(capabilitydriver.LlamaCapabilityContract, capabilitydriver.Identity{
+		ImplementationID: assembly.DriverIdentity.ImplementationID,
+		DriverID:         assembly.DriverIdentity.DriverID,
+		DriverDialect:    assembly.DriverIdentity.DriverDialect,
+	})
+	textDriver, ok := driver.(capabilitydriver.TextInvocationDriver)
+	if reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED || !ok {
+		return nil, fmt.Errorf("captured local text Driver is unavailable")
+	}
+	plan, err := textDriver.PlanTextInvocation(capabilitydriver.TextInvocationInput{
+		PortableConfig:           portable,
+		ModelContextWindowTokens: assembly.LoadPlan.Text.ContextWindowTokens,
+		ExactBindings:            resolvedAssemblyExactBindings(assembly),
+		Request:                  request,
+		Stream:                   assembly.LoadPlan.Text.Stream,
+	})
+	if err != nil {
+		return nil, err
+	}
+	selected := selectedLocalExecutionFromResolvedAssembly(assembly)
+	selected.PortableConfig = portable
+	reprojected, err := localResolvedAssemblyForText(selected, request, plan)
+	if err != nil {
+		return nil, err
+	}
+	if err := validateRehydratedResolvedAssemblyPlan(assembly, reprojected); err != nil {
+		return nil, err
+	}
+	return &localTextEffectiveInputs{loadoutID: assembly.LoadoutID, request: request, plan: plan}, nil
 }
 
 func (s *Service) resolveSelectedLocalTextContextMetadata(ctx context.Context) (publicChatTextContextMetadataResolution, error) {
@@ -187,7 +243,7 @@ func (s *Service) resolveSelectedLocalTextContextMetadata(ctx context.Context) (
 	}
 	return publicChatTextContextMetadataResolution{
 		contextWindow:  contextWindow,
-		catalogVersion: "local-capability-configuration/v1",
+		catalogVersion: "machine-loadout/v1",
 		modelRevision:  hex.EncodeToString(hash.Sum(nil)),
 		provider:       "local",
 		release:        func() {},
@@ -206,7 +262,7 @@ func (s *Service) resolveSelectedLocalTextExecution(ctx context.Context) (*local
 
 func validSelectedTextExecution(selected *localexecution.SelectedLocalExecution) bool {
 	return selected != nil && selected.Configured &&
-		strings.TrimSpace(selected.ConfigurationID) != "" &&
+		strings.TrimSpace(selected.LoadoutID) != "" &&
 		selected.CapabilityContract == capabilitydriver.LlamaCapabilityContract &&
 		selected.DriverIdentity != nil &&
 		len(selected.Requirements) > 0 && len(selected.Requirements) == len(selected.ExactBindings)

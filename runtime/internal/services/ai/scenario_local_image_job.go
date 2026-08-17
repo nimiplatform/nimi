@@ -57,37 +57,62 @@ func (s *Service) submitLocalImageScenarioJob(ctx context.Context, req *runtimev
 		CreatedAt: now, UpdatedAt: now, ModelResolved: effective.modelResolved(), ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED,
 		RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL, ProgressTotalSteps: int32(effective.plan.ImageCount() + 1),
 		ExecutionMode: mode, Head: cloneScenarioHead(effective.head), TraceId: ulid.Make().String(),
-		IgnoredExtensions: cloneIgnoredScenarioExtensions(ignored),
+		IgnoredExtensions: cloneIgnoredScenarioExtensions(ignored), EffectiveInputIdentity: cloneLoadoutEffectiveInputIdentity(effective.effectiveInputIdentity),
 	}
-	stored := s.scenarioJobs.createOwned(job, cancel, localAppJobOwnerFromContext(ctx))
+	stored, created, persistErr := s.scenarioJobs.createOwnedAndBindAssemblyChecked(job, cancel, localAppJobOwnerFromContext(ctx), idempotencyScope, effective.resolvedAssembly)
+	if persistErr != nil {
+		cancel()
+		return nil, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID, persistErr, grpcerr.ReasonOptions{
+			Message: "ScenarioJob submission could not be persisted",
+		})
+	}
 	if stored == nil {
 		cancel()
 		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
-	if idempotencyScope != "" {
-		s.scenarioJobs.bindIdempotency(idempotencyScope, jobID)
+	if !created {
+		cancel()
+		return &runtimev1.SubmitScenarioJobResponse{Job: stored}, nil
 	}
 	ticket := s.localImageJobOrder.reserve()
-	go s.runLocalImageScenarioJob(jobCtx, jobID, effective, ticket)
+	go s.runLocalImageScenarioJob(jobCtx, jobID, ticket)
 	return &runtimev1.SubmitScenarioJobResponse{Job: stored}, nil
 }
 
-func (s *Service) runLocalImageScenarioJob(ctx context.Context, jobID string, effective *localImageEffectiveInputs, ticket *localMediaSubmissionTicket) {
+func (s *Service) runLocalImageScenarioJob(ctx context.Context, jobID string, ticket *localMediaSubmissionTicket) {
 	if ticket != nil {
 		defer ticket.release()
 	}
-	if effective == nil || !s.scenarioJobs.startExecution(jobID) {
+	if !s.scenarioJobs.startExecution(jobID) {
 		return
 	}
-	defer s.scenarioJobs.finishExecution(jobID)
-	if _, ok := s.scenarioJobs.transition(
+	defer s.finishScenarioJobExecution(jobID)
+	if _, ok, transitionErr := s.transitionScenarioJob(
 		jobID,
 		runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_QUEUED,
 		runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_QUEUED,
 		nil,
-	); !ok {
+	); transitionErr != nil {
+		s.failScenarioJobPersistencePrecondition(jobID, scenarioJobQueuedPersistenceFailedReason, transitionErr)
+		return
+	} else if !ok {
 		return
 	}
+	job, ok := s.scenarioJobs.get(jobID)
+	if !ok || job.GetHead() == nil {
+		return
+	}
+	assembly, ok := s.scenarioJobs.resolvedAssembly(jobID)
+	if !ok {
+		s.finishLocalImageJobFailure(ctx, jobID, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID))
+		return
+	}
+	effective, err := s.localImageEffectiveInputsFromResolvedAssembly(assembly)
+	if err != nil {
+		s.finishLocalImageJobFailure(ctx, jobID, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID, err, grpcerr.ReasonOptions{Message: "captured local image assembly is invalid"}))
+		return
+	}
+	effective.head = cloneScenarioHead(job.GetHead())
 	if err := ticket.wait(ctx); err != nil {
 		s.finishLocalImageJobFailure(ctx, jobID, err)
 		return
@@ -104,9 +129,13 @@ func (s *Service) runLocalImageScenarioJob(ctx context.Context, jobID string, ef
 		if err != nil {
 			return err
 		}
-		if _, ok := s.scenarioJobs.transition(jobID, runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_RUNNING, func(job *runtimev1.ScenarioJob) {
+		if _, ok, transitionErr := s.transitionScenarioJob(jobID, runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_RUNNING, func(job *runtimev1.ScenarioJob) {
 			job.ProgressTotalSteps = total
-		}); !ok {
+		}); transitionErr != nil {
+			release()
+			s.failScenarioJobPersistencePrecondition(jobID, scenarioJobRunningPersistenceFailedReason, transitionErr)
+			return transitionErr
+		} else if !ok {
 			release()
 			if err := ctx.Err(); err != nil {
 				return &localexecution.ExecutionError{Kind: localexecution.FailureCanceled, Err: err}
@@ -127,7 +156,7 @@ func (s *Service) runLocalImageScenarioJob(ctx context.Context, jobID string, ef
 		case localexecution.ImageExecutionStageProduced:
 			current = update.ArtifactIndex + 1
 		}
-		_, _ = s.scenarioJobs.updateProgress(jobID, current, total, imageJobProgressPercent(current, total))
+		_, _ = s.updateScenarioJobProgress(jobID, current, total, imageJobProgressPercent(current, total))
 	}
 	onArtifact := func(produced localexecution.ImageArtifact) error {
 		artifact := localImageArtifact(effective, produced)
@@ -136,7 +165,7 @@ func (s *Service) runLocalImageScenarioJob(ctx context.Context, jobID string, ef
 		}
 		current := produced.Index + 1
 		_, err := s.storeAndAttachRuntimeJobArtifact(ctx, jobID, effective.head, artifact, func(candidate *runtimev1.ScenarioArtifact) bool {
-			_, ok := s.scenarioJobs.commitArtifact(jobID, candidate, current, total, imageJobProgressPercent(current, total))
+			_, ok := s.commitScenarioJobArtifact(jobID, candidate, current, total, imageJobProgressPercent(current, total))
 			return ok
 		})
 		if err != nil {
@@ -161,7 +190,7 @@ func (s *Service) runLocalImageScenarioJob(ctx context.Context, jobID string, ef
 		s.finishLocalImageJobFailure(ctx, jobID, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID))
 		return
 	}
-	_, _ = s.scenarioJobs.transition(jobID, runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_COMPLETED, func(job *runtimev1.ScenarioJob) {
+	_, _, _ = s.transitionScenarioJob(jobID, runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_COMPLETED, func(job *runtimev1.ScenarioJob) {
 		job.ProgressCurrentStep, job.ProgressTotalSteps, job.ProgressPercent = total, total, 100
 		job.Usage = localImageUsage(result)
 		job.ReasonCode = runtimev1.ReasonCode_ACTION_EXECUTED
@@ -188,7 +217,7 @@ func (s *Service) finishLocalImageJobFailure(ctx context.Context, jobID string, 
 			reason = runtimev1.ReasonCode_AI_LOCAL_EXECUTION_CANCELED
 		}
 	}
-	_, _ = s.scenarioJobs.transition(jobID, jobStatus, eventType, func(job *runtimev1.ScenarioJob) {
+	_, _, _ = s.transitionScenarioJob(jobID, jobStatus, eventType, func(job *runtimev1.ScenarioJob) {
 		job.ReasonCode = reason
 		job.ReasonDetail = sanitizeScenarioJobReasonDetail(err, reason)
 		job.ReasonMetadata = scenarioJobReasonMetadata(err, reason)

@@ -73,15 +73,13 @@ func TestResolveTextGenerateArtifactPathResolvesOwnedRuntimeArtifact(t *testing.
 		}
 	})
 
-	t.Run("ownerless record keeps managed asset behavior", func(t *testing.T) {
+	t.Run("ownerless record never falls through to legacy asset resolution", func(t *testing.T) {
 		head := &runtimev1.ScenarioRequestHead{AppId: "app", SubjectUserId: "user"}
-		// Non-llama route: ownerless records are not resolved from the runtime
-		// artifact store, so the existing media-option rejection stands.
 		_, _, _, err := svc.resolveTextGenerateArtifactPath(context.Background(), head, false, &runtimev1.ChatContentArtifactRef{
 			LocalArtifactId: "artifact_ownerless",
 			MimeType:        "image/png",
 		})
-		if reason, _ := grpcerr.ExtractReasonCode(err); reason != runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED {
+		if reason, _ := grpcerr.ExtractReasonCode(err); reason != runtimev1.ReasonCode_AI_INPUT_INVALID {
 			t.Fatalf("reason = %v, err=%v", reason, err)
 		}
 	})

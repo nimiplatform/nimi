@@ -860,7 +860,11 @@ func TestLocalImageJobQueuedCancellationReachesHost(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	<-host.entered
+	select {
+	case <-host.entered:
+	case <-time.After(2 * time.Second):
+		t.Fatal("local image Host was not entered")
+	}
 	cancelCtx := metadata.NewIncomingContext(context.Background(), metadata.Pairs("x-nimi-app-id", "app.local"))
 	canceled, err := svc.CancelScenarioJob(cancelCtx, &runtimev1.CancelScenarioJobRequest{JobId: response.GetJob().GetJobId(), Reason: "owner canceled"})
 	if err != nil {
@@ -969,14 +973,13 @@ func TestLocalVideoExecutionWithoutSelectionFailsClosed(t *testing.T) {
 func selectedImageExecutionForTest(t *testing.T, configurationID string) *localexecution.SelectedLocalExecution {
 	t.Helper()
 	portable, err := structpb.NewStruct(map[string]any{
-		"modelFamily":      "z-image",
 		"executionOptions": map[string]any{"steps": 2.0, "cfgScale": 1.0, "width": 64.0, "height": 64.0, "seed": 7.0, "threads": 1.0},
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
 	driver := capabilitydriver.StableDiffusionImageDriver{}
-	requirements, reason := driver.Interpret(capabilitydriver.InterpretInput{PortableConfig: portable})
+	requirements, reason := driver.Interpret(capabilitydriver.InterpretInput{RecipeID: "z-image", PortableConfig: portable})
 	if reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {
 		t.Fatalf("Interpret: %v", reason)
 	}
@@ -990,13 +993,15 @@ func selectedImageExecutionForTest(t *testing.T, configurationID string) *locale
 		}
 		digestBytes := sha256.Sum256(payload)
 		digest := hex.EncodeToString(digestBytes[:])
+		modelAssetID := fmt.Sprintf("%s-asset-%d", configurationID, index)
 		bindings = append(bindings, localexecution.ExactBinding{
-			RequirementID: requirement.GetRequirementId(), LocalAssetID: fmt.Sprintf("%s-asset-%d", configurationID, index),
+			RequirementID: requirement.GetRequirementId(), ModelAssetID: modelAssetID,
 			AbsolutePath: path, VerifiedContentID: "sha256:" + digest, EntrySHA256: digest,
 		})
 	}
 	return &localexecution.SelectedLocalExecution{
-		ConfigurationID: configurationID, CapabilityContract: capabilitydriver.StableDiffusionCapabilityContract,
+		LoadoutID: configurationID, CapabilityContract: capabilitydriver.StableDiffusionCapabilityContract,
+		RecipeID: "z-image", RecipeRevision: "1",
 		DisplayName: configurationID, DriverIdentity: (&capabilitydriver.Identity{
 			ImplementationID: capabilitydriver.StableDiffusionImplementationID,
 			DriverID:         capabilitydriver.StableDiffusionDriverID, DriverDialect: capabilitydriver.StableDiffusionDriverDialect,

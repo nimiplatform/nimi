@@ -17,7 +17,7 @@ func TestNewProtectedIgnoresPortableProviderCredentials(t *testing.T) {
 
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	connectorStore := connector.NewConnectorStoreWithMemorySecrets(t.TempDir())
-	svc, err := NewProtected(logger, nil, nil, nil, connectorStore, runtimecfg.Config{
+	svc, err := NewProtected(logger, nil, nil, connectorStore, runtimecfg.Config{
 		LocalStatePath:                t.TempDir() + "/runtime/local-state.json",
 		AllowLoopbackProviderEndpoint: true,
 		Providers: map[string]runtimecfg.RuntimeFileTarget{
@@ -44,7 +44,7 @@ func TestNewProtectedIgnoresPortableProviderCredentials(t *testing.T) {
 
 func TestNewProtectedRequiresRuntimeOwnedConnectorResolver(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	_, err := NewProtected(logger, nil, nil, nil, nil, runtimecfg.Config{
+	_, err := NewProtected(logger, nil, nil, nil, runtimecfg.Config{
 		LocalStatePath: t.TempDir() + "/runtime/local-state.json",
 	})
 	if err == nil {
