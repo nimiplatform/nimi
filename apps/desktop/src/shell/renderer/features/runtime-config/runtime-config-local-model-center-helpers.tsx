@@ -4,7 +4,6 @@ import type { TFunction } from 'i18next';
 import type {
   NimiRuntimeLocalAssetKind,
   NimiRuntimeLocalCatalogRecommendation,
-  NimiRuntimeLocalVerifiedAssetDescriptor,
 } from '@nimiplatform/sdk/runtime';
 import {
   NIMI_RUNTIME_LOCAL_ASSET_KIND_IDS,

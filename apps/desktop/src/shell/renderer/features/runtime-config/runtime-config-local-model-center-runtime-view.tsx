@@ -1,5 +1,4 @@
 import type { RefObject } from 'react';
-import { useDesktopI18nResource } from '../../i18n/i18n-context';
 import type {
   NimiRuntimeLocalCatalogItemDescriptor,
   NimiRuntimeLocalCatalogVariantDescriptor,
@@ -83,8 +82,6 @@ type LocalModelCenterRuntimeViewProps = {
 };
 
 export function LocalModelCenterRuntimeView(props: LocalModelCenterRuntimeViewProps) {
-  const i18n = useDesktopI18nResource().instance;
-  const t = i18n.t.bind(i18n);
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <ScrollArea className="flex-1" contentClassName="mx-auto max-w-4xl space-y-8 p-6">

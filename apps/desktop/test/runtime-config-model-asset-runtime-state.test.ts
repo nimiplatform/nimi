@@ -24,6 +24,8 @@ test('Local Models catalog installed state is derived from ModelAsset provenance
   assert.deepEqual(keys, [
     'model.qwen3.gguf',
     'model.qwen3.template',
-    'nimi/qwen3',
   ]);
+  assert.deepEqual(modelAssetCatalogLookupKeys({
+    provenance: { source_repo: 'Nimi/Qwen3' },
+  } as unknown as NimiRuntimeModelAssetRecord), []);
 });

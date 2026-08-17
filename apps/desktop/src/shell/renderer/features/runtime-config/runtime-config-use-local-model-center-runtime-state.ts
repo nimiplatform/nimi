@@ -43,7 +43,6 @@ export function modelAssetCatalogLookupKeys(asset: NimiRuntimeModelAssetRecord):
   return [...new Set([
     provenance.catalog_asset_id,
     provenance.catalog_template_id,
-    provenance.source_repo,
   ].map(catalogAssetLookupKey).filter(Boolean))];
 }
 

@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import test from 'node:test';
 import type {
   NimiLoadoutRecipe,
@@ -6,6 +7,7 @@ import type {
   NimiRuntimeLocalVerifiedAssetDescriptor,
   NimiRuntimeModelAssetRecord,
 } from '@nimiplatform/sdk/runtime';
+import { createNimiError } from '@nimiplatform/sdk/types';
 import {
   executeRuntimeConfigAIProfileTransfer,
   exportRuntimeConfigAIProfileFromLoadouts,
@@ -107,7 +109,17 @@ const RECIPES = [
   recipe({ id: 'image-recipe', capability: 'image.generate', slots: [{ id: 'main', contentId: B, variantId: 'image-v1' }] }),
 ];
 
-const VERIFIED = [{ templateId: 'image-v1', title: 'Image v1', totalSizeBytes: 200 }] as NimiRuntimeLocalVerifiedAssetDescriptor[];
+const VERIFIED = [{
+  templateId: 'image-v1',
+  title: 'Image v1',
+  contentId: B,
+  repo: 'example/image',
+  revision: 'main',
+  entry: 'model.gguf',
+  files: ['config.json', 'model.gguf'],
+  hashes: { 'config.json': C, 'model.gguf': B },
+  totalSizeBytes: 200,
+}] as unknown as NimiRuntimeLocalVerifiedAssetDescriptor[];
 
 function committedLoadout(capability: string, id: string, configured = true): NimiMachineLoadout {
   return {
@@ -179,7 +191,6 @@ test('AIProfile transfer acquires one exact content identity once and binds ever
       slotId: 'model',
       contentId: B,
       expectedHash: B,
-      source: { repo: 'example/shared', revision: 'main', file: 'model.gguf', sizeBytes: 200 },
     }],
   };
   const imageCapability = profile.capabilities['image.generate']!;
@@ -194,10 +205,10 @@ test('AIProfile transfer acquires one exact content identity once and binds ever
     }],
   };
   const recipes = [
-    recipe({ id: 'text-recipe', capability: 'text.generate', slots: [{ id: 'model', contentId: B, variantId: 'shared-v1' }] }),
-    recipe({ id: 'image-recipe', capability: 'image.generate', slots: [{ id: 'main', contentId: B, variantId: 'shared-v1' }] }),
+    recipe({ id: 'text-recipe', capability: 'text.generate', slots: [{ id: 'model', contentId: B, variantId: 'shared-text-unavailable' }] }),
+    recipe({ id: 'image-recipe', capability: 'image.generate', slots: [{ id: 'main', contentId: B, variantId: 'shared-image-unavailable' }] }),
   ];
-  const verified = [{ templateId: 'shared-v1', title: 'Shared v1', totalSizeBytes: 200 }] as NimiRuntimeLocalVerifiedAssetDescriptor[];
+  const verified: NimiRuntimeLocalVerifiedAssetDescriptor[] = [];
   const plan = await planRuntimeConfigAIProfileTransfer({
     profile: profile as never,
     assets: [],
@@ -210,13 +221,18 @@ test('AIProfile transfer acquires one exact content identity once and binds ever
   const installed = asset({ id: 'shared-model', contentId: B, hash: B });
   let resolveCalls = 0;
   let installCalls = 0;
+  const resolveCapabilities: string[][] = [];
   const preparedAxes = new Map<string, readonly { readonly modelAssetId?: string }[]>();
   const result = await executeRuntimeConfigAIProfileTransfer({
     plan,
     assets: {
       async listModelAssets() { return []; },
       async listVerifiedAssets() { return verified; },
-      async resolveInstallPlan() { resolveCalls += 1; return { planId: 'plan:shared-v1' } as never; },
+      async resolveInstallPlan(input) {
+        resolveCalls += 1;
+        resolveCapabilities.push([...(input.capabilities ?? [])]);
+        return { planId: 'plan:shared-content' } as never;
+      },
       async install() { installCalls += 1; return installed; },
     },
     loadouts: {
@@ -232,9 +248,32 @@ test('AIProfile transfer acquires one exact content identity once and binds ever
   });
   assert.equal(resolveCalls, 1);
   assert.equal(installCalls, 1);
+  assert.deepEqual(resolveCapabilities, [['image.generate']]);
   assert.deepEqual(result.installedModelAssetIds, ['shared-model']);
   assert.equal(preparedAxes.get('text.generate')?.[0]?.modelAssetId, 'shared-model');
   assert.equal(preparedAxes.get('image.generate')?.[0]?.modelAssetId, 'shared-model');
+});
+
+test('content-only occurrences do not create conflicting acquisition intent for shared content', async () => {
+  const profile = loadoutProfile(B) as unknown as { capabilities: Record<string, Record<string, unknown>> };
+  const textCapability = profile.capabilities['text.generate']!;
+  const textLoadout = textCapability.loadout as { axes: readonly Record<string, unknown>[] };
+  textCapability.loadout = {
+    ...textLoadout,
+    axes: [{ slotId: 'model', contentId: B, expectedHash: C }],
+  };
+  const recipes = [
+    recipe({ id: 'text-recipe', capability: 'text.generate', slots: [{ id: 'model', contentId: B, variantId: 'unavailable-text' }] }),
+    recipe({ id: 'image-recipe', capability: 'image.generate', slots: [{ id: 'main', contentId: B, variantId: 'unavailable-image' }] }),
+  ];
+  const plan = await planRuntimeConfigAIProfileTransfer({
+    profile: profile as never,
+    assets: [],
+    recipes,
+    verifiedAssets: [],
+  });
+  assert.equal(plan.downloads.length, 1);
+  assert.equal(plan.downloads[0]?.capabilityContract, 'image.generate');
 });
 
 test('AIProfile plan fails closed when one content identity has conflicting acquisition intent', async () => {
@@ -255,11 +294,48 @@ test('AIProfile plan fails closed when one content identity has conflicting acqu
     recipe({ id: 'image-recipe', capability: 'image.generate', slots: [{ id: 'main', contentId: B, variantId: 'shared-image-v1' }] }),
   ];
   const verified = [
-    { templateId: 'shared-text-v1', title: 'Shared text', totalSizeBytes: 200 },
-    { templateId: 'shared-image-v1', title: 'Shared image', totalSizeBytes: 200 },
-  ] as NimiRuntimeLocalVerifiedAssetDescriptor[];
+    {
+      templateId: 'shared-text-v1', title: 'Shared text', contentId: B,
+      repo: 'example/shared-text', revision: 'main', entry: 'model.gguf', files: ['model.gguf'],
+      hashes: { 'model.gguf': B }, totalSizeBytes: 200,
+    },
+    {
+      templateId: 'shared-image-v1', title: 'Shared image', contentId: B,
+      repo: 'example/image', revision: 'main', entry: 'model.gguf', files: ['model.gguf'],
+      hashes: { 'model.gguf': B }, totalSizeBytes: 200,
+    },
+  ] as unknown as NimiRuntimeLocalVerifiedAssetDescriptor[];
   await assert.rejects(
     planRuntimeConfigAIProfileTransfer({ profile: profile as never, assets: [], recipes, verifiedAssets: verified }),
+    /conflicting acquisition intent/u,
+  );
+});
+
+test('AIProfile plan keeps a rejected portable source and rejects a conflicting shared acquisition before network', async () => {
+  const profile = loadoutProfile(C) as unknown as { capabilities: Record<string, Record<string, unknown>> };
+  const textCapability = profile.capabilities['text.generate']!;
+  const textLoadout = textCapability.loadout as { axes: readonly Record<string, unknown>[] };
+  textCapability.loadout = {
+    ...textLoadout,
+    axes: [{
+      slotId: 'model',
+      contentId: B,
+      expectedHash: C,
+      source: { repo: 'example/other', revision: 'main', file: 'config.json', sizeBytes: 200 },
+    }],
+  };
+  const recipes = [
+    recipe({ id: 'text-recipe', capability: 'text.generate', slots: [{ id: 'model', contentId: B, variantId: 'missing-text' }] }),
+    recipe({ id: 'image-recipe', capability: 'image.generate', slots: [{ id: 'main', contentId: B, variantId: 'image-v1' }] }),
+  ];
+
+  await assert.rejects(
+    planRuntimeConfigAIProfileTransfer({
+      profile: profile as never,
+      assets: [],
+      recipes,
+      verifiedAssets: VERIFIED,
+    }),
     /conflicting acquisition intent/u,
   );
 });
@@ -374,7 +450,7 @@ test('source-backed acquisition preserves recipe capability and starts confirmed
   assert.equal(result.installedModelAssetIds.length, 2);
 });
 
-test('a multi-file sibling hash cannot satisfy the declared entry integrity', async () => {
+test('a multi-file sibling hash cannot satisfy the declared source-file integrity', async () => {
   const textAsset = asset({ id: 'text-model', contentId: A, hash: A });
   const imageAsset: NimiRuntimeModelAssetRecord = {
     ...asset({ id: 'image-model', contentId: B, hash: B }),
@@ -400,34 +476,43 @@ test('a multi-file sibling hash cannot satisfy the declared entry integrity', as
     recipes: RECIPES,
     verifiedAssets: VERIFIED,
   });
-  const preparedInputs: { capabilityContract: string; modelAxes?: readonly unknown[] }[] = [];
-  const result = await executeRuntimeConfigAIProfileTransfer({
-    plan,
-    assets: {
-      async listModelAssets() { return [textAsset]; },
-      async listVerifiedAssets() { return VERIFIED; },
-      async resolveInstallPlan(input) { return { planId: `plan:${input.templateId}` } as never; },
-      async install() { return imageAsset; },
-    },
-    loadouts: {
-      async listRecipes() { return RECIPES; },
-      async prepare(input: { capabilityContract: string; modelAxes?: readonly unknown[] }) {
-        preparedInputs.push(input);
-        return { prepareId: input.capabilityContract };
-      },
-      async commit(id: string) { return committedLoadout(id, `loadout:${id}`, id !== 'image.generate'); },
-      async select() { return null; },
-    } as never,
-    async applyAIProfile() {},
+  const plannedAxis = plan.capabilities.find((item) => item.capabilityContract === 'image.generate')?.axes[0];
+  assert.equal(plannedAxis?.state, 'content-only');
+  assert.equal(plannedAxis?.reasonCode, 'AI_PROFILE_MODEL_SOURCE_REQUIRED');
+  assert.equal(plan.downloads.length, 0);
+});
+
+test('declared integrity follows source.file even when it is not the ModelAsset entry', async () => {
+  const profile = loadoutProfile(C) as unknown as { capabilities: Record<string, Record<string, unknown>> };
+  const imageCapability = profile.capabilities['image.generate']!;
+  const imageLoadout = imageCapability.loadout as { axes: readonly Record<string, unknown>[] };
+  imageCapability.loadout = {
+    ...imageLoadout,
+    axes: [{
+      slotId: 'main',
+      contentId: B,
+      expectedHash: C,
+      source: { repo: 'example/image', revision: 'main', file: 'config.json', sizeBytes: 120 },
+    }],
+  };
+  const imageAsset: NimiRuntimeModelAssetRecord = {
+    ...asset({ id: 'image-model', contentId: B, hash: B }),
+    files: [
+      { relativePath: 'model.gguf', sha256: normalizeTestHash(B), sizeBytes: 100, nonExecutableContent: false },
+      { relativePath: 'config.json', sha256: normalizeTestHash(C), sizeBytes: 20, nonExecutableContent: false },
+    ],
+    totalSizeBytes: 120,
+  };
+  const plan = await planRuntimeConfigAIProfileTransfer({
+    profile: profile as never,
+    assets: [asset({ id: 'text-model', contentId: A, hash: A }), imageAsset],
+    recipes: RECIPES,
+    verifiedAssets: VERIFIED,
   });
-  const image = result.capabilities.find((item) => item.capabilityContract === 'image.generate');
-  assert.deepEqual(image?.unresolvedSlotIds, ['main']);
-  assert.equal(image?.reasonCode, 'AI_PROFILE_MODEL_HASH_MISMATCH');
-  assert.deepEqual(
-    preparedInputs.find((item) => item.capabilityContract === 'image.generate')?.modelAxes,
-    [{ slotId: 'main', expectedContentId: B }],
+  assert.equal(
+    plan.capabilities.find((item) => item.capabilityContract === 'image.generate')?.axes[0]?.state,
+    'matched',
   );
-  assert.equal(result.capabilities.find((item) => item.capabilityContract === 'text.generate')?.state, 'committed');
 });
 
 test('interrupted acquisition keeps a visible unresolved Loadout that the next import resumes', async () => {
@@ -445,7 +530,7 @@ test('interrupted acquisition keeps a visible unresolved Loadout that the next i
       async listModelAssets() { return [textAsset]; },
       async listVerifiedAssets() { return VERIFIED; },
       async resolveInstallPlan(input) { return { planId: `plan:${input.templateId}` } as never; },
-      async install() { throw new Error('transfer interrupted'); },
+      async install() { throw new Error('AI_LOCAL_DOWNLOAD_HASH_MISMATCH: content identity transfer interrupted'); },
     },
     loadouts: {
       async listRecipes() { return RECIPES; },
@@ -480,6 +565,42 @@ test('interrupted acquisition keeps a visible unresolved Loadout that the next i
   assert.equal(resumed.capabilities.find((item) => item.capabilityContract === 'image.generate')?.existingLoadoutId, 'draft-image');
 });
 
+test('Runtime hash mismatch is classified by its exact structured reason', async () => {
+  const textAsset = asset({ id: 'text-model', contentId: A, hash: A });
+  const plan = await planRuntimeConfigAIProfileTransfer({
+    profile: loadoutProfile(B),
+    assets: [textAsset],
+    recipes: RECIPES,
+    verifiedAssets: VERIFIED,
+  });
+  const result = await executeRuntimeConfigAIProfileTransfer({
+    plan,
+    assets: {
+      async listModelAssets() { return [textAsset]; },
+      async listVerifiedAssets() { return VERIFIED; },
+      async resolveInstallPlan(input) { return { planId: `plan:${input.templateId}` } as never; },
+      async install() {
+        throw createNimiError({
+          message: 'download failed',
+          reasonCode: 'AI_LOCAL_DOWNLOAD_HASH_MISMATCH',
+          actionHint: 'repair_download',
+        });
+      },
+    },
+    loadouts: {
+      async listRecipes() { return RECIPES; },
+      async prepare(input: { capabilityContract: string }) { return { prepareId: input.capabilityContract }; },
+      async commit(id: string) { return committedLoadout(id, `loadout:${id}`, id !== 'image.generate'); },
+      async select() { return null; },
+    } as never,
+    async applyAIProfile() {},
+  });
+  assert.equal(
+    result.capabilities.find((item) => item.capabilityContract === 'image.generate')?.reasonCode,
+    'AI_PROFILE_MODEL_HASH_MISMATCH',
+  );
+});
+
 test('unknown recipe produces typed upgrade result and never prepares a half Loadout', async () => {
   const profile = loadoutProfile(B) as unknown as { capabilities: Record<string, Record<string, unknown>> };
   profile.capabilities['image.generate']!.loadout = {
@@ -508,11 +629,34 @@ test('unknown recipe produces typed upgrade result and never prepares a half Loa
   assert.equal(prepared.includes('image.generate'), false);
 });
 
+test('Profile supportedFeatures drift from the current Recipe fails closed', async () => {
+  const profile = loadoutProfile(B) as unknown as { capabilities: Record<string, Record<string, unknown>> };
+  const image = profile.capabilities['image.generate']!;
+  image.implementation = {
+    ...(image.implementation as object),
+    supportedFeatures: ['output.image'],
+  };
+  const plan = await planRuntimeConfigAIProfileTransfer({
+    profile: profile as never,
+    assets: [],
+    recipes: RECIPES,
+    verifiedAssets: VERIFIED,
+  });
+  const capability = plan.capabilities.find((item) => item.capabilityContract === 'image.generate');
+  assert.equal(capability?.state, 'upgrade-required');
+  assert.equal(capability?.reasonCode, 'AI_PROFILE_RECIPE_IMPLEMENTATION_MISMATCH');
+});
+
 test('content-only axis commits as unresolved and becomes matched on a later inventory replan', async () => {
   const profile = loadoutProfile(B) as unknown as { capabilities: Record<string, Record<string, unknown>> };
   const image = profile.capabilities['image.generate']!;
   const loadout = image.loadout as { axes: readonly Record<string, unknown>[] };
-  image.loadout = { ...loadout, axes: loadout.axes.map(({ source: _source, ...axis }) => axis) };
+  image.loadout = {
+    ...loadout,
+    axes: loadout.axes.map((axis) =>
+      Object.fromEntries(Object.entries(axis).filter(([key]) => key !== 'source')),
+    ),
+  };
   const textAsset = asset({ id: 'text-model', contentId: A, hash: A });
   const initial = await planRuntimeConfigAIProfileTransfer({
     profile: profile as never,
@@ -703,12 +847,12 @@ test('multi-file export preserves verified acquisition while manual content stay
 
   const verified = [
     {
-      templateId: 'catalog-multi-template', repo: 'example/catalog-multi', revision: 'catalog-revision', entry: 'model.safetensors',
-      hashes: { 'model.safetensors': A, 'config.json': B }, totalSizeBytes: 120,
+      templateId: 'catalog-multi-template', contentId: C, repo: 'example/catalog-multi', revision: 'catalog-revision', entry: 'model.safetensors',
+      files: ['config.json', 'model.safetensors'], hashes: { 'model.safetensors': A, 'config.json': B }, totalSizeBytes: 120,
     },
     {
-      templateId: 'provenance-source-template', repo: 'example/provenance-multi', revision: 'provenance-revision', entry: 'model.safetensors',
-      hashes: { 'model.safetensors': B, 'config.json': C }, totalSizeBytes: 120,
+      templateId: 'provenance-source-template', contentId: D, repo: 'example/provenance-multi', revision: 'provenance-revision', entry: 'model.safetensors',
+      files: ['config.json', 'model.safetensors'], hashes: { 'model.safetensors': B, 'config.json': C }, totalSizeBytes: 120,
     },
   ] as unknown as NimiRuntimeLocalVerifiedAssetDescriptor[];
   const plan = await planRuntimeConfigAIProfileTransfer({
@@ -723,6 +867,114 @@ test('multi-file export preserves verified acquisition while manual content stay
   assert.equal(manualPlanAxis?.state, 'content-only');
   assert.equal(manualPlanAxis?.reasonCode, 'AI_PROFILE_MODEL_SOURCE_REQUIRED');
 });
+
+test('canonical multi-file acquisition accepts a declared source file that is not the bundle entry', async () => {
+  const hashes = { 'config.json': B, 'model.safetensors': A };
+  const contentId = canonicalBundleContentId(hashes);
+  const plan = await planRuntimeConfigAIProfileTransfer({
+    profile: portableMultiFileProfile(contentId, B, 'config.json'),
+    assets: [],
+    recipes: RECIPES,
+    verifiedAssets: [verifiedMultiFileDescriptor('matching-multi-file', contentId, hashes)],
+  });
+
+  const axis = plan.capabilities[0]?.axes[0];
+  assert.equal(axis?.state, 'download-required');
+  assert.equal(axis?.templateId, 'matching-multi-file');
+  assert.equal(plan.downloads.length, 1);
+});
+
+test('canonical multi-file acquisition selects the descriptor with the complete content identity', async () => {
+  const expectedHashes = { 'config.json': B, 'model.safetensors': A };
+  const conflictingHashes = { 'config.json': C, 'model.safetensors': A };
+  const contentId = canonicalBundleContentId(expectedHashes);
+  const plan = await planRuntimeConfigAIProfileTransfer({
+    profile: portableMultiFileProfile(contentId, A, 'model.safetensors'),
+    assets: [],
+    recipes: RECIPES,
+    verifiedAssets: [
+      verifiedMultiFileDescriptor('wrong-aggregate', canonicalBundleContentId(conflictingHashes), conflictingHashes),
+      verifiedMultiFileDescriptor('matching-aggregate', contentId, expectedHashes),
+    ],
+  });
+
+  const axis = plan.capabilities[0]?.axes[0];
+  assert.equal(axis?.state, 'download-required');
+  assert.equal(axis?.templateId, 'matching-aggregate');
+  assert.equal(plan.downloads.length, 1);
+});
+
+test('canonical multi-file acquisition stays content-only when no complete content identity matches', async () => {
+  const expectedHashes = { 'config.json': B, 'model.safetensors': A };
+  const conflictingHashes = { 'config.json': B, 'model.safetensors': C };
+  const plan = await planRuntimeConfigAIProfileTransfer({
+    profile: portableMultiFileProfile(canonicalBundleContentId(expectedHashes), B, 'config.json'),
+    assets: [],
+    recipes: RECIPES,
+    verifiedAssets: [
+      verifiedMultiFileDescriptor('wrong-aggregate', canonicalBundleContentId(conflictingHashes), conflictingHashes),
+    ],
+  });
+
+  const axis = plan.capabilities[0]?.axes[0];
+  assert.equal(axis?.state, 'content-only');
+  assert.equal(axis?.reasonCode, 'AI_PROFILE_MODEL_SOURCE_REQUIRED');
+  assert.equal(plan.downloads.length, 0);
+});
+
+function portableMultiFileProfile(contentId: string, expectedHash: string, file: string) {
+  return {
+    profileId: 'profile.portable-multi-file',
+    title: 'Portable multi-file profile',
+    capabilities: {
+      'image.generate': {
+        route: 'local',
+        requiredFeatures: [],
+        implementation: {
+          implementationId: 'local.test',
+          driverId: 'driver.test',
+          driverDialect: 'image-recipe/v1',
+          supportedFeatures: [],
+        },
+        loadout: {
+          recipeId: 'image-recipe',
+          axes: [{
+            slotId: 'main',
+            contentId,
+            expectedHash,
+            source: { repo: 'example/portable-multi', revision: 'revision-1', file, sizeBytes: 120 },
+          }],
+          options: { steps: 4 },
+        },
+      },
+    },
+  } as const;
+}
+
+function verifiedMultiFileDescriptor(
+  templateId: string,
+  contentId: string,
+  hashes: Readonly<Record<string, string>>,
+): NimiRuntimeLocalVerifiedAssetDescriptor {
+  return {
+    templateId,
+    contentId,
+    repo: 'example/portable-multi',
+    revision: 'revision-1',
+    entry: 'model.safetensors',
+    files: ['config.json', 'model.safetensors'],
+    hashes: { ...hashes },
+    totalSizeBytes: 120,
+  } as unknown as NimiRuntimeLocalVerifiedAssetDescriptor;
+}
+
+function canonicalBundleContentId(hashes: Readonly<Record<string, string>>): `sha256:${string}` {
+  const digest = createHash('sha256');
+  for (const relativePath of Object.keys(hashes).sort()) {
+    digest.update(Buffer.from(normalizeTestHash(hashes[relativePath]!), 'hex'));
+  }
+  return `sha256:${digest.digest('hex')}`;
+}
 
 function normalizeTestHash(value: string): string {
   return value.replace('sha256:', '');

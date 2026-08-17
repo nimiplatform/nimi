@@ -6,6 +6,7 @@ import {
   type NimiPortableAIProfileLoadoutAxis,
 } from '@nimiplatform/sdk/ai';
 import type { NimiJsonObject } from '@nimiplatform/sdk/contracts';
+import { createNimiError, isNimiErrorLike } from '@nimiplatform/sdk/types';
 import type {
   NimiLoadoutRecipe,
   NimiMachineLoadout,
@@ -67,6 +68,7 @@ export type RuntimeConfigAIProfileTransferResult = {
 type RuntimeConfigAIProfileDownloadGroup = {
   readonly contentId: string;
   readonly representative: RuntimeConfigAIProfileTransferAxis;
+  readonly acquisitionOccurrences: readonly RuntimeConfigAIProfileTransferAxis[];
   readonly occurrences: readonly RuntimeConfigAIProfileTransferAxis[];
 };
 
@@ -148,7 +150,6 @@ export async function planRuntimeConfigAIProfileTransfer(input: {
 }): Promise<RuntimeConfigAIProfileTransferPlan> {
   const profile = parseNimiPortableAIProfile(input.profile);
   const assetsByContent = new Map(input.assets.map((asset) => [asset.contentId, asset]));
-  const verifiedByTemplate = new Map(input.verifiedAssets.map((asset) => [asset.templateId, asset]));
   const capabilities: RuntimeConfigAIProfileTransferCapability[] = [];
   for (const [capabilityContract, capability] of Object.entries(profile.capabilities)) {
     if (capability.route !== 'local' || !capability.loadout) continue;
@@ -159,7 +160,7 @@ export async function planRuntimeConfigAIProfileTransfer(input: {
       .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))[0];
     const existingLoadoutId = existingLoadout?.loadoutId;
     if (!recipe || recipe.capabilityContract !== capabilityContract ||
-      !sameImplementation(recipe.implementation, capability.implementation)) {
+      !sameImplementation(recipe, capability.implementation)) {
       capabilities.push(Object.freeze({
         capabilityContract,
         recipeId: capability.loadout.recipeId,
@@ -185,6 +186,7 @@ export async function planRuntimeConfigAIProfileTransfer(input: {
           sizeBytes: axis.source?.sizeBytes ?? 0,
           state: 'content-only' as const,
           reasonCode: 'AI_PROFILE_LOADOUT_SLOT_UNKNOWN',
+          ...(axis.source ? { source: axis.source } : {}),
         });
       }
       const existing = assetsByContent.get(axis.contentId);
@@ -204,11 +206,15 @@ export async function planRuntimeConfigAIProfileTransfer(input: {
       }
       const recommendationIndex = slot.recommendedContentIds.indexOf(axis.contentId);
       const recommendedTemplateId = recommendationIndex >= 0 ? slot.recommendedVariantIds[recommendationIndex] : undefined;
-      const recommendedDescriptor = recommendedTemplateId ? verifiedByTemplate.get(recommendedTemplateId) : undefined;
-      const sourceDescriptor = axis.source
-        ? verifiedDescriptorForPortableSource(axis.source, axis.expectedHash, input.verifiedAssets)
+      const descriptor = axis.source
+        ? verifiedDescriptorForPortableSource(
+          axis.source,
+          axis.expectedHash,
+          axis.contentId,
+          input.verifiedAssets,
+          recommendedTemplateId,
+        )
         : undefined;
-      const descriptor = recommendedDescriptor ?? sourceDescriptor;
       const templateId = descriptor?.templateId;
       if (axis.source) {
         if (axis.contentId !== axis.expectedHash && !templateId) {
@@ -221,6 +227,7 @@ export async function planRuntimeConfigAIProfileTransfer(input: {
             sizeBytes: 0,
             state: 'content-only' as const,
             reasonCode: 'AI_PROFILE_MODEL_SOURCE_REQUIRED',
+            source: axis.source,
           });
         }
         return Object.freeze({
@@ -340,17 +347,14 @@ export async function executeRuntimeConfigAIProfileTransfer(input: {
   }
   const downloadGroups = groupRuntimeConfigAIProfileDownloads(input.plan.capabilities);
   const acquisitions = await Promise.all(downloadGroups.map(async (group) => {
-    const eligibleOccurrences = group.occurrences.filter((axis) => !draftFailures.has(axis.capabilityContract));
+    const eligibleOccurrences = group.acquisitionOccurrences
+      .filter((axis) => !draftFailures.has(axis.capabilityContract));
     if (eligibleOccurrences.length === 0) return { group } as const;
-    const axis = group.representative;
+    const axis = eligibleOccurrences[0]!;
     try {
       const installed = axis.templateId
         ? await installCatalogTemplate(input.assets, axis.templateId)
-        : await installRecommendedSource(
-          input.assets,
-          axis,
-          Object.freeze([...new Set(eligibleOccurrences.map((item) => item.capabilityContract))].sort()),
-        );
+        : await installRecommendedSource(input.assets, axis);
       for (const occurrence of group.occurrences) verifyInstalledAxis(installed, occurrence);
       return { group, installed } as const;
     } catch (error) {
@@ -367,11 +371,10 @@ export async function executeRuntimeConfigAIProfileTransfer(input: {
     }
     if (!('error' in acquisition)) continue;
     const detail = errorMessage(acquisition.error);
+    const reasonCode = runtimeConfigAIProfileAcquisitionReasonCode(acquisition.error);
     for (const occurrence of acquisition.group.occurrences) {
       failures.set(axisKey(occurrence.capabilityContract, occurrence.slotId), {
-        reasonCode: /hash|identity|content id/iu.test(detail)
-          ? 'AI_PROFILE_MODEL_HASH_MISMATCH'
-          : 'AI_PROFILE_MODEL_ACQUISITION_FAILED',
+        reasonCode,
         detail,
       });
     }
@@ -496,7 +499,6 @@ async function installCatalogTemplate(
 async function installRecommendedSource(
   assets: AssetAdmin,
   axis: RuntimeConfigAIProfileTransferAxis,
-  capabilityContracts: readonly string[],
 ): Promise<NimiRuntimeModelAssetRecord> {
   if (!axis.source) throw new Error(`${axis.displayLabel}: no portable source recommendation.`);
   const plan = await assets.resolveInstallPlan({
@@ -504,7 +506,7 @@ async function installRecommendedSource(
     modelId: axis.source.repo,
     repo: axis.source.repo,
     revision: axis.source.revision,
-    capabilities: [...capabilityContracts],
+    capabilities: [axis.capabilityContract],
     entry: axis.source.file,
     files: [axis.source.file],
     hashes: { [axis.source.file]: normalizeHash(axis.expectedHash) },
@@ -518,32 +520,45 @@ function groupRuntimeConfigAIProfileDownloads(
   const grouped = new Map<string, RuntimeConfigAIProfileTransferAxis[]>();
   for (const capability of capabilities) {
     for (const axis of capability.axes) {
-      if (axis.state !== 'download-required') continue;
       const existing = grouped.get(axis.contentId);
       if (existing) existing.push(axis);
       else grouped.set(axis.contentId, [axis]);
     }
   }
-  return Object.freeze([...grouped.entries()].map(([contentId, occurrences]) => {
-    const first = occurrences[0];
-    if (!first) throw new Error(`AIProfile content ${contentId} has no acquisition occurrence.`);
-    for (const occurrence of occurrences.slice(1)) {
+  return Object.freeze([...grouped.entries()].flatMap(([contentId, occurrences]) => {
+    const sourceOccurrences = occurrences.filter((axis) => axis.source);
+    const firstSourceOccurrence = sourceOccurrences[0];
+    if (firstSourceOccurrence) {
+      for (const occurrence of sourceOccurrences.slice(1)) {
+        if (normalizeHash(firstSourceOccurrence.expectedHash) !== normalizeHash(occurrence.expectedHash)
+          || portableSourceIdentity(firstSourceOccurrence.source) !== portableSourceIdentity(occurrence.source)) {
+          throw new Error(`AIProfile content ${contentId} has conflicting acquisition intent.`);
+        }
+      }
+    }
+    const acquisitionOccurrences = occurrences.filter((axis) => axis.state === 'download-required');
+    const first = acquisitionOccurrences[0];
+    if (!first) return [];
+    for (const occurrence of acquisitionOccurrences.slice(1)) {
       if (!sameRuntimeConfigAIProfileAcquisitionIntent(first, occurrence)) {
         throw new Error(`AIProfile content ${contentId} has conflicting acquisition intent.`);
       }
     }
-    const positiveSizes = new Set(occurrences.map((axis) => axis.sizeBytes).filter((size) => Number.isFinite(size) && size > 0));
+    const positiveSizes = new Set(acquisitionOccurrences
+      .map((axis) => axis.sizeBytes)
+      .filter((size) => Number.isFinite(size) && size > 0));
     if (positiveSizes.size > 1) {
       throw new Error(`AIProfile content ${contentId} has conflicting acquisition size facts.`);
     }
-    const sizeBytes = occurrences.every((axis) => Number.isFinite(axis.sizeBytes) && axis.sizeBytes > 0)
-      ? occurrences[0]!.sizeBytes
+    const sizeBytes = acquisitionOccurrences.every((axis) => Number.isFinite(axis.sizeBytes) && axis.sizeBytes > 0)
+      ? acquisitionOccurrences[0]!.sizeBytes
       : 0;
-    return Object.freeze({
+    return [Object.freeze({
       contentId,
       representative: Object.freeze({ ...first, sizeBytes }),
+      acquisitionOccurrences: Object.freeze([...acquisitionOccurrences]),
       occurrences: Object.freeze([...occurrences]),
-    });
+    })];
   }));
 }
 
@@ -551,8 +566,10 @@ function sameRuntimeConfigAIProfileAcquisitionIntent(
   left: RuntimeConfigAIProfileTransferAxis,
   right: RuntimeConfigAIProfileTransferAxis,
 ): boolean {
+  const leftTemplateId = textFact(left.templateId);
+  const rightTemplateId = textFact(right.templateId);
+  if (leftTemplateId || rightTemplateId) return leftTemplateId === rightTemplateId;
   return normalizeHash(left.expectedHash) === normalizeHash(right.expectedHash)
-    && textFact(left.templateId) === textFact(right.templateId)
     && portableSourceIdentity(left.source) === portableSourceIdentity(right.source);
 }
 
@@ -567,10 +584,14 @@ function portableSourceIdentity(source: NimiPortableAIProfileLoadoutAxis['source
 
 function verifyInstalledAxis(asset: NimiRuntimeModelAssetRecord, axis: RuntimeConfigAIProfileTransferAxis): void {
   if (asset.contentId !== axis.contentId) {
-    throw new Error(`${axis.displayLabel}: downloaded content identity does not match the AIProfile.`);
+    throw runtimeConfigAIProfileHashMismatch(
+      `${axis.displayLabel}: downloaded content identity does not match the AIProfile.`,
+    );
   }
   if (!matchesExpectedAxisIntegrity(asset, axis)) {
-    throw new Error(`${axis.displayLabel}: downloaded content hash does not match the AIProfile.`);
+    throw runtimeConfigAIProfileHashMismatch(
+      `${axis.displayLabel}: downloaded content hash does not match the AIProfile.`,
+    );
   }
 }
 
@@ -578,9 +599,8 @@ function matchesExpectedAxisIntegrity(
   asset: NimiRuntimeModelAssetRecord,
   axis: Pick<RuntimeConfigAIProfileTransferAxis, 'expectedHash' | 'source'>,
 ): boolean {
-  const entry = normalizeRelativeFile(asset.entry);
   const expectedFile = normalizeRelativeFile(axis.source?.file ?? asset.entry);
-  if (!entry || !expectedFile || entry !== expectedFile) return false;
+  if (!expectedFile) return false;
   const expected = asset.files.find((file) => normalizeRelativeFile(file.relativePath) === expectedFile);
   return expected !== undefined
     && `sha256:${normalizeHash(expected.sha256)}` === axis.expectedHash;
@@ -603,30 +623,50 @@ function axisKey(capabilityContract: string, slotId: string): string {
 }
 
 function sameImplementation(
-  recipe: NimiLoadoutRecipe['implementation'],
+  recipe: NimiLoadoutRecipe,
   profile: Extract<NimiPortableAIProfile['capabilities'][string], { readonly route: 'local' }>['implementation'],
 ): boolean {
   return profile !== undefined &&
-    recipe.implementationId === profile.implementationId &&
-    recipe.driverId === profile.driverId &&
-    recipe.driverDialect === profile.driverDialect;
+    recipe.implementation.implementationId === profile.implementationId &&
+    recipe.implementation.driverId === profile.driverId &&
+    recipe.implementation.driverDialect === profile.driverDialect &&
+    sameFeatureSet(recipe.supportedFeatures, profile.supportedFeatures);
+}
+
+function sameFeatureSet(left: readonly string[], right: readonly string[]): boolean {
+  if (left.length !== right.length) return false;
+  const normalizedLeft = [...left].sort();
+  const normalizedRight = [...right].sort();
+  return normalizedLeft.every((feature, index) => feature === normalizedRight[index]);
 }
 
 function verifiedDescriptorForPortableSource(
   source: NonNullable<NimiPortableAIProfileLoadoutAxis['source']>,
   expectedHash: string,
+  expectedContentId: string,
   descriptors: readonly NimiRuntimeLocalVerifiedAssetDescriptor[],
+  preferredTemplateId?: string,
 ): NimiRuntimeLocalVerifiedAssetDescriptor | undefined {
   const repo = source.repo.trim().toLowerCase();
   const revision = source.revision.trim();
-  const file = source.file.trim();
-  const entryHash = normalizeHash(expectedHash);
-  return descriptors.find((descriptor) => (
-    String(descriptor.repo ?? '').trim().toLowerCase() === repo &&
-    String(descriptor.revision ?? '').trim() === revision &&
-    String(descriptor.entry ?? '').trim() === file &&
-    normalizeHash(descriptor.hashes[file] ?? '') === entryHash
-  ));
+  const file = normalizeRelativeFile(source.file);
+  const fileHash = normalizeHash(expectedHash);
+  const contentId = normalizeHash(expectedContentId);
+  const matches = (descriptor: NimiRuntimeLocalVerifiedAssetDescriptor): boolean => {
+    const declaredFile = descriptor.files.find((relativePath) => normalizeRelativeFile(relativePath) === file);
+    if (!declaredFile) return false;
+    const declaredHash = Object.entries(descriptor.hashes)
+      .find(([relativePath]) => normalizeRelativeFile(relativePath) === file)?.[1];
+    return String(descriptor.repo ?? '').trim().toLowerCase() === repo &&
+      String(descriptor.revision ?? '').trim() === revision &&
+      normalizeHash(declaredHash ?? '') === fileHash &&
+      normalizeHash(descriptor.contentId) === contentId;
+  };
+  const preferred = preferredTemplateId
+    ? descriptors.find((descriptor) => descriptor.templateId === preferredTemplateId)
+    : undefined;
+  if (preferred && matches(preferred)) return preferred;
+  return descriptors.find(matches);
 }
 
 function normalizeHash(value: string): string {
@@ -653,4 +693,21 @@ function portableJsonObject(value: Readonly<Record<string, unknown>>): NimiJsonO
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error || 'Unknown AIProfile transfer error');
+}
+
+function runtimeConfigAIProfileAcquisitionReasonCode(error: unknown): string {
+  const reasonCode = isNimiErrorLike(error) ? error.reasonCode : '';
+  return reasonCode === 'AI_LOCAL_DOWNLOAD_HASH_MISMATCH'
+    || reasonCode === 'AI_PROFILE_MODEL_HASH_MISMATCH'
+    ? 'AI_PROFILE_MODEL_HASH_MISMATCH'
+    : 'AI_PROFILE_MODEL_ACQUISITION_FAILED';
+}
+
+function runtimeConfigAIProfileHashMismatch(message: string): Error {
+  return createNimiError({
+    message,
+    reasonCode: 'AI_PROFILE_MODEL_HASH_MISMATCH',
+    actionHint: 'check_profile_model_integrity',
+    source: 'sdk',
+  });
 }

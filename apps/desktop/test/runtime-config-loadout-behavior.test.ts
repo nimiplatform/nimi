@@ -6,11 +6,14 @@ import { fileURLToPath } from 'node:url';
 
 import type {
   NimiLoadoutRecipe,
+  NimiMachineLoadout,
+  NimiRuntimeModelAssetRecord,
 } from '@nimiplatform/sdk/runtime';
 import { runtimeConfigLoadoutCatalogBadge } from '../src/shell/renderer/features/runtime-config/runtime-config-loadout-catalog-badge.js';
 import {
   recommendedInstallMessage,
   recommendedInstallItems,
+  runtimeConfigLoadoutUpdateModelAxes,
   runtimeConfigLoadoutErrorMessage,
 } from '../src/shell/renderer/features/runtime-config/runtime-config-page-loadouts.js';
 import {
@@ -187,4 +190,28 @@ test('rapid Loadout updates use one last-write-wins impact slot for cancel and c
   await confirmed?.run();
   await impactState.confirm()?.run();
   assert.deepEqual(persisted, ['last']);
+});
+
+test('Loadout axis update preserves unresolved and inventory-missing sibling intent', () => {
+  const currentContentId = `sha256:${'a'.repeat(64)}`;
+  const nextContentId = `sha256:${'b'.repeat(64)}`;
+  const unresolvedContentId = `sha256:${'c'.repeat(64)}`;
+  const staleContentId = `sha256:${'d'.repeat(64)}`;
+  const loadout = {
+    modelAxes: [
+      { slotId: 'main', displayLabel: 'Main', modelAssetId: 'asset-current', expectedContentId: currentContentId, recipeCompatible: true, reasons: [] },
+      { slotId: 'companion', displayLabel: 'Companion', modelAssetId: '', expectedContentId: unresolvedContentId, recipeCompatible: false, reasons: [] },
+      { slotId: 'custom', displayLabel: 'Custom', modelAssetId: 'asset-stale', expectedContentId: staleContentId, recipeCompatible: true, reasons: [] },
+    ],
+  } satisfies Pick<NimiMachineLoadout, 'modelAxes'>;
+  const assets = [{ modelAssetId: 'asset-next', contentId: nextContentId }] as NimiRuntimeModelAssetRecord[];
+
+  assert.deepEqual(
+    runtimeConfigLoadoutUpdateModelAxes(loadout, {}, assets, 'main', 'asset-next'),
+    [
+      { slotId: 'main', modelAssetId: 'asset-next', expectedContentId: nextContentId },
+      { slotId: 'companion', expectedContentId: unresolvedContentId },
+      { slotId: 'custom', modelAssetId: 'asset-stale', expectedContentId: staleContentId },
+    ],
+  );
 });

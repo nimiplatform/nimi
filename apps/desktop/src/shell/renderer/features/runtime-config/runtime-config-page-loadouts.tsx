@@ -7,6 +7,7 @@ import type {
   NimiLoadoutRecipe,
   NimiMachineLoadout,
   NimiMachineLoadouts,
+  NimiPrepareLoadoutInput,
   NimiRuntimeLocalVerifiedAssetDescriptor,
   NimiRuntimeModelAssetRecord,
 } from '@nimiplatform/sdk/runtime';
@@ -201,12 +202,13 @@ export function LoadoutsPage() {
 
   const requestUpdate = useCallback((loadout: NimiMachineLoadout, slotId: string, nextModelAssetId: string) => {
     const draft = edits[loadout.loadoutId] ?? { modelAssetIds: modelAssetIdsForLoadout(loadout), displayName: loadout.displayName };
-    const modelAxes = loadout.modelAxes.map((axis) => {
-      const modelAssetId = axis.slotId === slotId ? nextModelAssetId : (draft.modelAssetIds[axis.slotId] ?? axis.modelAssetId);
-      const asset = assets.find((item) => item.modelAssetId === modelAssetId);
-      return { slotId: axis.slotId, modelAssetId: asset?.modelAssetId, expectedContentId: asset?.contentId };
-    });
-    if (modelAxes.some((axis) => !axis.modelAssetId || !axis.expectedContentId)) return;
+    const modelAxes = runtimeConfigLoadoutUpdateModelAxes(
+      loadout,
+      draft.modelAssetIds,
+      assets,
+      slotId,
+      nextModelAssetId,
+    );
     const errorKey = `${loadout.loadoutId}:${slotId}`;
     const candidateErrorKey = `${errorKey}:${nextModelAssetId}`;
     const selected = isSelected(aggregate, loadout);
@@ -444,6 +446,29 @@ export function recommendedInstallItems(
 
 function modelAssetIdsForLoadout(loadout: NimiMachineLoadout): Record<string, string> {
   return Object.fromEntries(loadout.modelAxes.map((axis) => [axis.slotId, axis.modelAssetId]));
+}
+
+export function runtimeConfigLoadoutUpdateModelAxes(
+  loadout: Pick<NimiMachineLoadout, 'modelAxes'>,
+  draftModelAssetIds: Readonly<Record<string, string>>,
+  assets: readonly NimiRuntimeModelAssetRecord[],
+  slotId: string,
+  nextModelAssetId: string,
+): NimiPrepareLoadoutInput['modelAxes'] {
+  return loadout.modelAxes.map((axis) => {
+    const modelAssetId = axis.slotId === slotId
+      ? nextModelAssetId
+      : (draftModelAssetIds[axis.slotId] ?? axis.modelAssetId);
+    const asset = assets.find((item) => item.modelAssetId === modelAssetId);
+    if (asset) {
+      return { slotId: axis.slotId, modelAssetId: asset.modelAssetId, expectedContentId: asset.contentId };
+    }
+    return {
+      slotId: axis.slotId,
+      ...(axis.modelAssetId ? { modelAssetId: axis.modelAssetId } : {}),
+      ...(axis.expectedContentId ? { expectedContentId: axis.expectedContentId } : {}),
+    };
+  });
 }
 
 export function recommendedInstallMessage(items: readonly RecommendedInstallItem[], heading: string): string {
