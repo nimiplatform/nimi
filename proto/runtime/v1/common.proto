@@ -342,9 +342,9 @@ enum ReasonCode {
   AGENT_AI_CONFIG_CAPABILITY_MISMATCH = 683;
   AGENT_AI_CONFIG_MODEL_TARGET_MISMATCH = 684;
 
-  // Machine Local AI Configuration mutations. These codes describe why one
-  // explicit exact-binding write did not commit; they are not persisted as
-  // Local Capability Configuration state or projected as readiness.
+  // Retained local execution reason values. Current Loadout writes use the
+  // AI_LOADOUT_* family below; these numeric values remain stable for generic
+  // local admission and older error decoding.
   AI_LOCAL_CONFIGURATION_NOT_FOUND = 685;
   AI_LOCAL_REQUIREMENT_NOT_FOUND = 686;
   AI_LOCAL_BINDING_CONFLICT = 687;
@@ -388,6 +388,22 @@ enum ReasonCode {
   LOCAL_APP_OPERATION_UNSUPPORTED = 708;
   LOCAL_APP_OWNER_UNAVAILABLE = 709;
   CURRENT_USER_DISPLAY_UNAVAILABLE = 710;
+
+  // Machine Loadout prepare/commit/selection and exact ModelAsset composition.
+  AI_LOADOUT_NOT_FOUND = 711;
+  AI_LOADOUT_RECIPE_NOT_FOUND = 712;
+  AI_LOADOUT_DRIVER_UNAVAILABLE = 713;
+  AI_LOADOUT_MODEL_ASSET_NOT_FOUND = 714;
+  AI_LOADOUT_MODEL_ASSET_CONTENT_MISMATCH = 715;
+  AI_LOADOUT_MODEL_CONTRACT_FAILED = 716;
+  AI_LOADOUT_PREPARE_NOT_FOUND = 717;
+  AI_LOADOUT_PREPARE_EXPIRED = 718;
+  AI_LOADOUT_PREPARE_OWNER_MISMATCH = 719;
+  AI_LOADOUT_COMMIT_CONFLICT = 720;
+  AI_LOADOUT_CONFIRMATION_REQUIRED = 721;
+  AI_LOADOUT_PERSISTENCE_UNAVAILABLE = 722;
+  AI_LOADOUT_NOT_CONFIGURED = 723;
+  AI_LOADOUT_CATALOG_SCHEMA_INVALID = 724;
 
   // Reserved: old values of renumbered codes.
   // 104=APP_SCOPE_FORBIDDEN→503, 106=APP_SCOPE_REVOKED→504,

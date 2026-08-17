@@ -56,7 +56,7 @@ const (
 	protectedUploadLocalAppArtifactMethod    = "/nimi.runtime.v1.RuntimeAiService/UploadLocalAppArtifact"
 	protectedListLocalAppVoiceAssetsMethod   = "/nimi.runtime.v1.RuntimeAiService/ListLocalAppVoiceAssets"
 	protectedGetAppAIConfigMethod            = "/nimi.runtime.v1.RuntimeAiService/GetAppAIConfig"
-	protectedGetMachineLocalAIConfigMethod   = "/nimi.runtime.v1.RuntimeLocalService/GetMachineLocalAIConfiguration"
+	protectedGetMachineLoadoutsMethod        = "/nimi.runtime.v1.RuntimeLocalService/GetMachineLoadouts"
 	protectedInvokeRealmUnaryMethod          = "/nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary"
 )
 
@@ -105,7 +105,7 @@ var protectedLocalAppUnaryMethodPolicies = map[string]protectedLocalAppMethodPol
 	protectedUploadLocalAppArtifactMethod:    localAppSessionMethodPolicy(),
 	protectedListLocalAppVoiceAssetsMethod:   localAppSessionMethodPolicy(),
 	protectedGetAppAIConfigMethod:            localAppSessionMethodPolicy(),
-	protectedGetMachineLocalAIConfigMethod:   localAppSessionMethodPolicy(),
+	protectedGetMachineLoadoutsMethod:        localAppSessionMethodPolicy(),
 	protectedInvokeRealmUnaryMethod:          localAppSessionMethodPolicy(),
 }
 
@@ -337,7 +337,7 @@ func protectedLocalAppUnaryIngress(method string, request any) localappop.Ingres
 		return localappop.IngressStorageAssetMove
 	case protectedAdoptLocalAppArtifactMethod:
 		return localappop.IngressArtifactAdoptToStorage
-	case protectedGetAppAIConfigMethod, protectedGetMachineLocalAIConfigMethod:
+	case protectedGetAppAIConfigMethod, protectedGetMachineLoadoutsMethod:
 		return localappop.IngressAppAIConfigGet
 	case protectedGenerateTextCandidateMethod:
 		return localappop.IngressTextCandidateGenerate
@@ -400,7 +400,7 @@ func protectedLocalAppOwnerEnabled(method string, request any, ingress localappo
 	case protectedReadLocalAppStorageJSONMethod, protectedWriteLocalAppStorageJSONMethod, protectedRemoveLocalAppStorageJSONMethod,
 		protectedStatLocalAppAssetMethod, protectedListLocalAppAssetsMethod, protectedRemoveLocalAppAssetMethod, protectedMoveLocalAppAssetMethod,
 		protectedAdoptLocalAppArtifactMethod,
-		protectedGetAppAIConfigMethod, protectedGetMachineLocalAIConfigMethod, protectedGenerateTextCandidateMethod,
+		protectedGetAppAIConfigMethod, protectedGetMachineLoadoutsMethod, protectedGenerateTextCandidateMethod,
 		protectedExecuteLocalAppScenarioMethod, protectedSubmitScenarioJobMethod, protectedGetScenarioJobMethod, protectedCancelScenarioJobMethod,
 		protectedReadLocalAppArtifactMethod, protectedUploadLocalAppArtifactMethod, protectedListLocalAppVoiceAssetsMethod,
 		protectedAgentReferenceListMethod, protectedOpenConversationMethod, protectedSendConversationTurnMethod,

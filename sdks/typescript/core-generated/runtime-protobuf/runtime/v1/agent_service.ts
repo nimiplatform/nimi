@@ -3014,6 +3014,74 @@ export interface ApplySharedLocalAgentAIProfileResponse {
     config?: AIConfig;
 }
 /**
+ * Portable Profile catalog records contain the validated document only. They
+ * never carry or trigger AIConfig, ModelAsset, Loadout, selection, or Job state.
+ *
+ * @generated from protobuf message nimi.runtime.v1.PortableAIProfileRecord
+ */
+export interface PortableAIProfileRecord {
+    /**
+     * @generated from protobuf field: string profile_id = 1
+     */
+    profileId: string;
+    /**
+     * @generated from protobuf field: string title = 2
+     */
+    title: string;
+    /**
+     * @generated from protobuf field: bytes profile_json = 3
+     */
+    profileJson: Uint8Array;
+    /**
+     * @generated from protobuf field: google.protobuf.Timestamp imported_at = 4
+     */
+    importedAt?: Timestamp;
+    /**
+     * @generated from protobuf field: google.protobuf.Timestamp updated_at = 5
+     */
+    updatedAt?: Timestamp;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ImportPortableAIProfileRequest
+ */
+export interface ImportPortableAIProfileRequest {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AgentRequestContext context = 1
+     */
+    context?: AgentRequestContext;
+    /**
+     * @generated from protobuf field: bytes profile_json = 2
+     */
+    profileJson: Uint8Array;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ImportPortableAIProfileResponse
+ */
+export interface ImportPortableAIProfileResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.PortableAIProfileRecord profile = 1
+     */
+    profile?: PortableAIProfileRecord;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ListPortableAIProfilesRequest
+ */
+export interface ListPortableAIProfilesRequest {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AgentRequestContext context = 1
+     */
+    context?: AgentRequestContext;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ListPortableAIProfilesResponse
+ */
+export interface ListPortableAIProfilesResponse {
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.PortableAIProfileRecord profiles = 1
+     */
+    profiles: PortableAIProfileRecord[];
+}
+/**
  * @generated from protobuf enum nimi.runtime.v1.AgentLifecycleStatus
  */
 export enum AgentLifecycleStatus {
@@ -13084,3 +13152,273 @@ class ApplySharedLocalAgentAIProfileResponse$Type extends MessageType<ApplyShare
  * @generated MessageType for protobuf message nimi.runtime.v1.ApplySharedLocalAgentAIProfileResponse
  */
 export const ApplySharedLocalAgentAIProfileResponse = new ApplySharedLocalAgentAIProfileResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class PortableAIProfileRecord$Type extends MessageType<PortableAIProfileRecord> {
+    constructor() {
+        super("nimi.runtime.v1.PortableAIProfileRecord", [
+            { no: 1, name: "profile_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "title", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "profile_json", kind: "scalar", T: 12 /*ScalarType.BYTES*/ },
+            { no: 4, name: "imported_at", kind: "message", T: () => Timestamp },
+            { no: 5, name: "updated_at", kind: "message", T: () => Timestamp }
+        ]);
+    }
+    create(value?: PartialMessage<PortableAIProfileRecord>): PortableAIProfileRecord {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.profileId = "";
+        message.title = "";
+        message.profileJson = new Uint8Array(0);
+        if (value !== undefined)
+            reflectionMergePartial<PortableAIProfileRecord>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: PortableAIProfileRecord): PortableAIProfileRecord {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string profile_id */ 1:
+                    message.profileId = reader.string();
+                    break;
+                case /* string title */ 2:
+                    message.title = reader.string();
+                    break;
+                case /* bytes profile_json */ 3:
+                    message.profileJson = reader.bytes();
+                    break;
+                case /* google.protobuf.Timestamp imported_at */ 4:
+                    message.importedAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.importedAt);
+                    break;
+                case /* google.protobuf.Timestamp updated_at */ 5:
+                    message.updatedAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.updatedAt);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: PortableAIProfileRecord, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string profile_id = 1; */
+        if (message.profileId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.profileId);
+        /* string title = 2; */
+        if (message.title !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.title);
+        /* bytes profile_json = 3; */
+        if (message.profileJson.length)
+            writer.tag(3, WireType.LengthDelimited).bytes(message.profileJson);
+        /* google.protobuf.Timestamp imported_at = 4; */
+        if (message.importedAt)
+            Timestamp.internalBinaryWrite(message.importedAt, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
+        /* google.protobuf.Timestamp updated_at = 5; */
+        if (message.updatedAt)
+            Timestamp.internalBinaryWrite(message.updatedAt, writer.tag(5, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.PortableAIProfileRecord
+ */
+export const PortableAIProfileRecord = new PortableAIProfileRecord$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ImportPortableAIProfileRequest$Type extends MessageType<ImportPortableAIProfileRequest> {
+    constructor() {
+        super("nimi.runtime.v1.ImportPortableAIProfileRequest", [
+            { no: 1, name: "context", kind: "message", T: () => AgentRequestContext },
+            { no: 2, name: "profile_json", kind: "scalar", T: 12 /*ScalarType.BYTES*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ImportPortableAIProfileRequest>): ImportPortableAIProfileRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.profileJson = new Uint8Array(0);
+        if (value !== undefined)
+            reflectionMergePartial<ImportPortableAIProfileRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ImportPortableAIProfileRequest): ImportPortableAIProfileRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.AgentRequestContext context */ 1:
+                    message.context = AgentRequestContext.internalBinaryRead(reader, reader.uint32(), options, message.context);
+                    break;
+                case /* bytes profile_json */ 2:
+                    message.profileJson = reader.bytes();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ImportPortableAIProfileRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.AgentRequestContext context = 1; */
+        if (message.context)
+            AgentRequestContext.internalBinaryWrite(message.context, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* bytes profile_json = 2; */
+        if (message.profileJson.length)
+            writer.tag(2, WireType.LengthDelimited).bytes(message.profileJson);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ImportPortableAIProfileRequest
+ */
+export const ImportPortableAIProfileRequest = new ImportPortableAIProfileRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ImportPortableAIProfileResponse$Type extends MessageType<ImportPortableAIProfileResponse> {
+    constructor() {
+        super("nimi.runtime.v1.ImportPortableAIProfileResponse", [
+            { no: 1, name: "profile", kind: "message", T: () => PortableAIProfileRecord }
+        ]);
+    }
+    create(value?: PartialMessage<ImportPortableAIProfileResponse>): ImportPortableAIProfileResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<ImportPortableAIProfileResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ImportPortableAIProfileResponse): ImportPortableAIProfileResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.PortableAIProfileRecord profile */ 1:
+                    message.profile = PortableAIProfileRecord.internalBinaryRead(reader, reader.uint32(), options, message.profile);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ImportPortableAIProfileResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.PortableAIProfileRecord profile = 1; */
+        if (message.profile)
+            PortableAIProfileRecord.internalBinaryWrite(message.profile, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ImportPortableAIProfileResponse
+ */
+export const ImportPortableAIProfileResponse = new ImportPortableAIProfileResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ListPortableAIProfilesRequest$Type extends MessageType<ListPortableAIProfilesRequest> {
+    constructor() {
+        super("nimi.runtime.v1.ListPortableAIProfilesRequest", [
+            { no: 1, name: "context", kind: "message", T: () => AgentRequestContext }
+        ]);
+    }
+    create(value?: PartialMessage<ListPortableAIProfilesRequest>): ListPortableAIProfilesRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<ListPortableAIProfilesRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ListPortableAIProfilesRequest): ListPortableAIProfilesRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.AgentRequestContext context */ 1:
+                    message.context = AgentRequestContext.internalBinaryRead(reader, reader.uint32(), options, message.context);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ListPortableAIProfilesRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.AgentRequestContext context = 1; */
+        if (message.context)
+            AgentRequestContext.internalBinaryWrite(message.context, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ListPortableAIProfilesRequest
+ */
+export const ListPortableAIProfilesRequest = new ListPortableAIProfilesRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ListPortableAIProfilesResponse$Type extends MessageType<ListPortableAIProfilesResponse> {
+    constructor() {
+        super("nimi.runtime.v1.ListPortableAIProfilesResponse", [
+            { no: 1, name: "profiles", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => PortableAIProfileRecord }
+        ]);
+    }
+    create(value?: PartialMessage<ListPortableAIProfilesResponse>): ListPortableAIProfilesResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.profiles = [];
+        if (value !== undefined)
+            reflectionMergePartial<ListPortableAIProfilesResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ListPortableAIProfilesResponse): ListPortableAIProfilesResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* repeated nimi.runtime.v1.PortableAIProfileRecord profiles */ 1:
+                    message.profiles.push(PortableAIProfileRecord.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ListPortableAIProfilesResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* repeated nimi.runtime.v1.PortableAIProfileRecord profiles = 1; */
+        for (let i = 0; i < message.profiles.length; i++)
+            PortableAIProfileRecord.internalBinaryWrite(message.profiles[i], writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ListPortableAIProfilesResponse
+ */
+export const ListPortableAIProfilesResponse = new ListPortableAIProfilesResponse$Type();

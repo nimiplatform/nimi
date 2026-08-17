@@ -110,24 +110,11 @@ func (d *Daemon) sampleAIProviderHealth(ctx context.Context) {
 }
 
 func (d *Daemon) shouldTreatProviderTargetAsIdle(target aiProviderTarget) bool {
-	if d == nil || d.grpc == nil {
-		return false
-	}
-	localSvc := d.grpc.LocalService()
-	if localSvc == nil {
-		return false
-	}
 	engineName, ok := localProviderTargetEngine(target.Name)
 	if !ok {
 		return false
 	}
-	if !isCanonicalManagedProviderTarget(target, engineName) {
-		return false
-	}
-	if !localSvc.HasSupervisedEngineBinding(engineName) {
-		return false
-	}
-	return !localSvc.HasActiveSupervisedEngineBinding(engineName)
+	return isCanonicalManagedProviderTarget(target, engineName)
 }
 
 func localProviderTargetEngine(providerName string) (string, bool) {

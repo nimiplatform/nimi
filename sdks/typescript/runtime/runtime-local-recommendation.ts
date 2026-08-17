@@ -1,6 +1,5 @@
 import {
   LocalAssetKind,
-  LocalAssetStatus,
   LocalHostSupportClass,
   LocalRecommendationBaseline,
   LocalRecommendationConfidence,
@@ -16,10 +15,8 @@ import { fromNimiRuntimeProtoStruct } from './runtime-agent-values';
 import {
   normalizeNimiRuntimeLocalAssetKindId,
   parseNimiRuntimeLocalAssetKindId,
-  parseNimiRuntimeLocalAssetStatusId,
   toNimiRuntimeLocalAssetKindRequestValue,
   type NimiRuntimeLocalAssetKindId,
-  type NimiRuntimeLocalAssetStatusId,
 } from './local-asset-vocabulary';
 
 import type {
@@ -374,8 +371,6 @@ function projectNimiRuntimeLocalRecommendationInstalledState(
   const record = asRecord(value);
   return {
     installed: Boolean(record.installed),
-    localAssetId: normalizeText(record.localAssetId || record.localModelId) || undefined,
-    status: parseGeneratedOrStringStatus(record.status),
   };
 }
 
@@ -388,13 +383,6 @@ function projectNimiRuntimeLocalRecommendationActionState(
     canOpenVariants: Boolean(record.canOpenVariants),
     canOpenLocalAsset: Boolean(record.canOpenLocalAsset || record.canOpenLocalModel),
   };
-}
-
-function parseGeneratedOrStringStatus(value: unknown): NimiRuntimeLocalAssetStatusId | undefined {
-  if (!value || value === LocalAssetStatus.UNSPECIFIED) {
-    return undefined;
-  }
-  return parseNimiRuntimeLocalAssetStatusId(value);
 }
 
 function parseRuntimeEnumId<const T extends string>(

@@ -14,7 +14,6 @@ import (
 	"sync"
 	"time"
 
-	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
 	"github.com/nimiplatform/nimi/runtime/internal/config"
 	"github.com/nimiplatform/nimi/runtime/internal/engine"
@@ -32,37 +31,31 @@ import (
 // @nimi-authority: definition.nimi.runtime.service-operations.daemon-plane
 // Daemon wires runtime servers and health state lifecycle.
 type Daemon struct {
-	cfg                       config.Config
-	logger                    *slog.Logger
-	state                     *health.State
-	grpc                      *grpcserver.Server
-	http                      *httpserver.Server
-	protected                 bool
-	protectedStateClose       func() error
-	protectedStateCloseOnce   sync.Once
-	protectedStateCloseErr    error
-	aiHealth                  *providerhealth.Tracker
-	auditStore                *auditlog.Store
-	engineMgr                 *engine.Manager
-	imageExecutionHost        *engine.ImageExecutionHost
-	videoExecutionHost        *engine.VideoExecutionHost
-	newEngineManager          func(logger *slog.Logger, roots engine.ManagedRoots, onState engine.StateChangeFunc) (*engine.Manager, error)
-	startEngineFn             func(ctx context.Context, kind engine.EngineKind, version string, port int, envKey string) error
-	probeAIProviderFn         func(ctx context.Context, client *http.Client, target aiProviderTarget) error
-	detectMediaHostSupportFn  func() (engine.MediaHostSupport, string)
-	imageBootstrapSelectionFn func() (engine.ImageSupervisedMatrixSelection, bool)
-	listEmbeddingAssetsFn     func(context.Context) ([]*runtimev1.LocalAssetRecord, error)
-	providerFailureHintMu     sync.RWMutex
-	providerFailureHints      map[string]string
-	startupStatusMu           sync.Mutex
-	startupDegradedReason     string
-	readyOnce                 sync.Once
-	readyCh                   chan struct{}
-	stopSupervisedOnce        sync.Once
-	stopSupervisedFn          func()
-	// resolvedImageMatrix caches the v2 image supervised matrix selection
-	// from startup. Used for health attribution detail enrichment per K-PROV-002.
-	resolvedImageMatrix *engine.ImageSupervisedMatrixSelection
+	cfg                     config.Config
+	logger                  *slog.Logger
+	state                   *health.State
+	grpc                    *grpcserver.Server
+	http                    *httpserver.Server
+	protected               bool
+	protectedStateClose     func() error
+	protectedStateCloseOnce sync.Once
+	protectedStateCloseErr  error
+	aiHealth                *providerhealth.Tracker
+	auditStore              *auditlog.Store
+	engineMgr               *engine.Manager
+	imageExecutionHost      *engine.ImageExecutionHost
+	videoExecutionHost      *engine.VideoExecutionHost
+	newEngineManager        func(logger *slog.Logger, roots engine.ManagedRoots, onState engine.StateChangeFunc) (*engine.Manager, error)
+	startEngineFn           func(ctx context.Context, kind engine.EngineKind, version string, port int, envKey string) error
+	probeAIProviderFn       func(ctx context.Context, client *http.Client, target aiProviderTarget) error
+	providerFailureHintMu   sync.RWMutex
+	providerFailureHints    map[string]string
+	startupStatusMu         sync.Mutex
+	startupDegradedReason   string
+	readyOnce               sync.Once
+	readyCh                 chan struct{}
+	stopSupervisedOnce      sync.Once
+	stopSupervisedFn        func()
 }
 
 const (
@@ -308,33 +301,17 @@ func newDaemon(cfg config.Config, logger *slog.Logger, version string, newGRPCSe
 			aiSvc.SetLocalExecutionResolver(localSvc)
 		}
 	}
-	listEmbeddingAssets := func(ctx context.Context) ([]*runtimev1.LocalAssetRecord, error) {
-		localSvc := grpcServer.LocalService()
-		if localSvc == nil {
-			return nil, nil
-		}
-		resp, err := localSvc.ListLocalAssets(ctx, &runtimev1.ListLocalAssetsRequest{
-			StatusFilter: runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
-			KindFilter:   runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_EMBEDDING,
-		})
-		if err != nil {
-			return nil, err
-		}
-		return resp.GetAssets(), nil
-	}
 	d := &Daemon{
-		cfg:                      cfg,
-		logger:                   logger,
-		state:                    state,
-		grpc:                     grpcServer,
-		aiHealth:                 nil,
-		auditStore:               nil,
-		newEngineManager:         engine.NewManager,
-		probeAIProviderFn:        probeAIProvider,
-		detectMediaHostSupportFn: engine.DetectMediaHostSupport,
-		listEmbeddingAssetsFn:    listEmbeddingAssets,
-		providerFailureHints:     map[string]string{},
-		readyCh:                  make(chan struct{}),
+		cfg:                  cfg,
+		logger:               logger,
+		state:                state,
+		grpc:                 grpcServer,
+		aiHealth:             nil,
+		auditStore:           nil,
+		newEngineManager:     engine.NewManager,
+		probeAIProviderFn:    probeAIProvider,
+		providerFailureHints: map[string]string{},
+		readyCh:              make(chan struct{}),
 	}
 	d.http = httpserver.New(
 		cfg.HTTPAddr,
@@ -454,15 +431,6 @@ func (d *Daemon) run(ctx context.Context, serverCount int, startServers daemonSe
 		defer backgroundWG.Done()
 		d.startSupervisedEngines(backgroundCtx)
 	}()
-	if err := d.refreshManagedEmbeddingProfile(backgroundCtx); err != nil {
-		stop()
-		cancelBackground()
-		backgroundWG.Wait()
-		if shutdownErr := d.shutdown(); shutdownErr != nil {
-			return fmt.Errorf("refresh managed embedding profile: %w (shutdown: %v)", err, shutdownErr)
-		}
-		return fmt.Errorf("refresh managed embedding profile: %w", err)
-	}
 	startupDegradedReason := d.consumeStartupDegradedReason()
 	d.state.SetStatus(health.StatusReady, "ready")
 	d.grpc.SyncServingState()
@@ -611,22 +579,6 @@ func (d *Daemon) sampleRuntimeResource(ctx context.Context) {
 		}
 	}
 }
-func (d *Daemon) refreshManagedEmbeddingProfile(ctx context.Context) error {
-	memorySvc := d.grpc.MemoryService()
-	if memorySvc == nil {
-		return nil
-	}
-	if d.listEmbeddingAssetsFn == nil {
-		memorySvc.SetManagedEmbeddingProfile(nil)
-		return nil
-	}
-	assets, err := d.listEmbeddingAssetsFn(ctx)
-	if err != nil {
-		return err
-	}
-	memorySvc.SetManagedEmbeddingProfile(selectManagedEmbeddingProfile(assets))
-	return nil
-}
 func waitForShutdownDrain(ctx context.Context, timeout time.Duration) {
 	wait := timeout / 10
 	if wait > maxShutdownDrainWait {
@@ -693,7 +645,6 @@ func (d *Daemon) consumeStartupDegradedReason() string {
 }
 func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 	svc := d.grpc.LocalService()
-	managedImageAssetsPresent := svc != nil && svc.HasManagedSupervisedImageModels()
 	onState := func(kind engine.EngineKind, status engine.EngineStatus, detail string) {
 		d.onEngineStateChange(string(kind), string(status), detail)
 	}
@@ -713,7 +664,7 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 	// The llama flag requests only private manager setup used later by
 	// ExecutionHost; it never materializes a package, bootstraps a model, or
 	// creates an ambient provider route.
-	engineWorkRequested := d.cfg.EngineLlamaEnabled || managedImageAssetsPresent ||
+	engineWorkRequested := d.cfg.EngineLlamaEnabled ||
 		d.cfg.EngineMediaEnabled || d.cfg.EngineSpeechEnabled || d.cfg.EngineSidecarEnabled
 	mgr, err := managerFactory(d.logger, engineRoots, onState)
 	if err != nil {
@@ -762,67 +713,6 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 	if !engineWorkRequested {
 		return
 	}
-	d.cacheImageMatrix()
-	managedImageSelection := d.resolvedImageMatrix
-	managedImageLoopback := managedImageAssetsPresent &&
-		managedImageSelection != nil &&
-		managedImageSelection.Matched &&
-		!managedImageSelection.Conflict &&
-		managedImageSelection.Entry != nil &&
-		managedImageSelection.ProductState == engine.ImageProductStateSupported &&
-		managedImageSelection.ControlPlane == engine.ImageControlPlaneRuntime &&
-		managedImageSelection.ExecutionPlane == engine.EngineMedia &&
-		managedImageSelection.BackendClass == engine.ImageBackendClassNativeBinary
-	if managedImageAssetsPresent && !managedImageLoopback && managedImageSelection != nil {
-		detail := strings.TrimSpace(managedImageSelection.CompatibilityDetail)
-		if detail == "" && managedImageSelection.Conflict {
-			detail = "managed image bootstrap selection conflict"
-		}
-		if detail != "" {
-			d.setDegradedStatus(detail)
-		}
-	}
-	mgr.SetManagedImageBackend(nil)
-	managedImageBackendConfigured := false
-	if managedImageLoopback {
-		if managedImageSelection.EntryID == "windows-x64-nvidia-gguf" {
-			dependencyStatus := mgr.ResolveSharedAcceleratorDependency(engine.NVIDIACUDAUserSpaceRuntimeDependencyID, "stable-diffusion.cpp.cuda")
-			if runtime.GOOS == "windows" &&
-				dependencyStatus.State != engine.SharedAcceleratorDependencyReadySystem &&
-				dependencyStatus.State != engine.SharedAcceleratorDependencyReadyManaged {
-				detail := strings.TrimSpace(dependencyStatus.Detail)
-				if detail == "" {
-					detail = fmt.Sprintf("cuda_user_space_runtime state=%s", dependencyStatus.State)
-				}
-				d.setDegradedStatus(detail)
-				if svc != nil {
-					svc.SetManagedImageBackendHealth(false, detail)
-				}
-			} else if svc != nil {
-				managedImageBackendConfigured = true
-			}
-		} else {
-			if svc != nil {
-				managedImageBackendConfigured = true
-			}
-		}
-	}
-	if svc != nil {
-		// Media process lifecycle belongs to the exact LocalService asset and
-		// dependency-profile selection. Daemon startup must not publish an
-		// ambient endpoint before that owner has admitted and started it.
-		svc.SetManagedMediaEndpoint("")
-		if d.cfg.EngineSpeechEnabled {
-			svc.SetManagedSpeechEndpoint(fmt.Sprintf("http://127.0.0.1:%d/v1", d.cfg.EngineSpeechPort))
-		} else {
-			svc.SetManagedSpeechEndpoint("")
-		}
-		if managedImageBackendConfigured {
-			svc.SetManagedImageBackendConfigWithSource(true, "127.0.0.1:50052", strings.TrimSpace(d.cfg.EngineManagedImageBackendSource))
-		} else {
-			svc.SetManagedImageBackendConfig(false, "")
-		}
-	}
 	var wg sync.WaitGroup
 	type bootstrapFailure struct {
 		kind   engine.EngineKind
@@ -843,9 +733,6 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 					detail: err.Error(),
 				}
 				return
-			}
-			if svc := d.grpc.LocalService(); svc != nil {
-				svc.MarkManagedEngineUsed(string(kind), "engine_bootstrap")
 			}
 		}()
 	}
@@ -870,7 +757,7 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 					appendProviderHealthAudit(d.auditStore, providerName, previous, d.aiHealth.SnapshotOf(providerName))
 				}
 			}
-			appendEngineBootstrapFailureAudit(d.auditStore, string(failure.kind), providerName, failure.detail, d.resolvedImageMatrix)
+			appendEngineBootstrapFailureAudit(d.auditStore, string(failure.kind), providerName, failure.detail, nil)
 		}
 	}
 	if firstFailure != "" {

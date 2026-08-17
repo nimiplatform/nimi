@@ -14,7 +14,6 @@ import { MessageType } from "@protobuf-ts/runtime";
 import { LocalDeviceProfile } from "./local_runtime_device_environment";
 import { Struct } from "../../google/protobuf/struct";
 import { LocalAssetKind } from "./local_runtime_asset_catalog";
-import { LocalAssetStatus } from "./local_runtime_asset_catalog";
 /**
  * @generated from protobuf message nimi.runtime.v1.LocalSuggestedAsset
  */
@@ -122,14 +121,6 @@ export interface LocalRecommendationInstalledState {
      * @generated from protobuf field: bool installed = 1
      */
     installed: boolean;
-    /**
-     * @generated from protobuf field: string local_asset_id = 2
-     */
-    localAssetId: string;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.LocalAssetStatus status = 3
-     */
-    status: LocalAssetStatus;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.LocalRecommendationActionState
@@ -773,16 +764,12 @@ export const LocalRecommendationFeedEntryDescriptor = new LocalRecommendationFee
 class LocalRecommendationInstalledState$Type extends MessageType<LocalRecommendationInstalledState> {
     constructor() {
         super("nimi.runtime.v1.LocalRecommendationInstalledState", [
-            { no: 1, name: "installed", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
-            { no: 2, name: "local_asset_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "status", kind: "enum", T: () => ["nimi.runtime.v1.LocalAssetStatus", LocalAssetStatus, "LOCAL_ASSET_STATUS_"] }
+            { no: 1, name: "installed", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
         ]);
     }
     create(value?: PartialMessage<LocalRecommendationInstalledState>): LocalRecommendationInstalledState {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.installed = false;
-        message.localAssetId = "";
-        message.status = 0;
         if (value !== undefined)
             reflectionMergePartial<LocalRecommendationInstalledState>(this, message, value);
         return message;
@@ -794,12 +781,6 @@ class LocalRecommendationInstalledState$Type extends MessageType<LocalRecommenda
             switch (fieldNo) {
                 case /* bool installed */ 1:
                     message.installed = reader.bool();
-                    break;
-                case /* string local_asset_id */ 2:
-                    message.localAssetId = reader.string();
-                    break;
-                case /* nimi.runtime.v1.LocalAssetStatus status */ 3:
-                    message.status = reader.int32();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -816,12 +797,6 @@ class LocalRecommendationInstalledState$Type extends MessageType<LocalRecommenda
         /* bool installed = 1; */
         if (message.installed !== false)
             writer.tag(1, WireType.Varint).bool(message.installed);
-        /* string local_asset_id = 2; */
-        if (message.localAssetId !== "")
-            writer.tag(2, WireType.LengthDelimited).string(message.localAssetId);
-        /* nimi.runtime.v1.LocalAssetStatus status = 3; */
-        if (message.status !== 0)
-            writer.tag(3, WireType.Varint).int32(message.status);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

@@ -12,6 +12,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	aicatalog "github.com/nimiplatform/nimi/runtime/internal/aicatalog"
 	"github.com/nimiplatform/nimi/runtime/internal/aiconfig"
+	"github.com/nimiplatform/nimi/runtime/internal/aiprofile"
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
 	"github.com/nimiplatform/nimi/runtime/internal/runtimepersistence"
 	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
@@ -90,6 +91,7 @@ type Service struct {
 	machineExecutionBindingMu                sync.RWMutex
 	machineExecutionBindingResolver          machineExecutionBindingResolver
 	aiConfigStore                            aiconfig.Store
+	aiProfileStore                           aiprofile.Store
 	connectorStore                           *connector.ConnectorStore
 	modelCatalog                             *aicatalog.Resolver
 	auditStore                               *auditlog.Store

@@ -1,7 +1,6 @@
 import type { JsonObject } from '../types';
 import {
   isNimiRuntimeLocalRunnableAssetKindId,
-  parseNimiRuntimeLocalRunnableAssetKindId,
   type NimiRuntimeLocalRunnableAssetKindId,
 } from './local-asset-vocabulary';
 
@@ -17,8 +16,6 @@ export const NIMI_RUNTIME_LOCAL_PROVIDER_ADAPTER_IDS = [
 ] as const;
 
 export type NimiRuntimeConfigProviderStatus = 'idle' | 'healthy' | 'unreachable' | 'unsupported' | 'degraded';
-export type NimiRuntimeConfigLocalModelStatus = 'installed' | 'active' | 'unhealthy' | 'removed';
-export type NimiRuntimeConfigLocalModelIntegrityMode = 'verified' | 'local_unverified';
 export type NimiRuntimeConnectorAuthMode = 'api_key' | 'oauth_managed';
 export type NimiRuntimeConnectorScope = 'user' | 'machine-global' | 'runtime-system';
 export type NimiRuntimeLocalProviderAdapterId = (typeof NIMI_RUNTIME_LOCAL_PROVIDER_ADAPTER_IDS)[number];
@@ -64,20 +61,6 @@ export interface NimiRuntimeConfigConnectorProjectionInput {
   readonly isDraft?: unknown;
 }
 
-export interface NimiRuntimeConfigLocalModelProjection {
-  readonly localModelId: string;
-  readonly engine: string;
-  readonly model: string;
-  readonly endpoint: string;
-  readonly capabilities: readonly NimiRuntimeLocalRunnableAssetKindId[];
-  readonly status: NimiRuntimeConfigLocalModelStatus;
-  readonly integrityMode?: NimiRuntimeConfigLocalModelIntegrityMode;
-  readonly hash?: string;
-  readonly installedAt?: string;
-  readonly updatedAt?: string;
-  readonly recommendation?: unknown;
-}
-
 export type NimiRuntimeConfigLocalNodeCapability =
   | NimiRuntimeLocalRunnableAssetKindId
   | 'rerank'
@@ -115,13 +98,6 @@ function createNimiRuntimeProjectionId(prefix: string): string {
 
 function dedupeProjectionStrings(values: readonly unknown[]): string[] {
   return Array.from(new Set(values.map((item) => normalizeText(item)).filter(Boolean)));
-}
-
-function normalizeNimiRuntimeLocalModelStatus(value: unknown): NimiRuntimeConfigLocalModelStatus {
-  if (value === 'active' || value === 'unhealthy' || value === 'removed') {
-    return value;
-  }
-  return 'installed';
 }
 
 function normalizeNimiRuntimeConfigLocalNodeCapability(value: unknown): NimiRuntimeConfigLocalNodeCapability {
@@ -282,30 +258,6 @@ export function runtimeConnectorProjectionToNimiRuntimeConfigConnector(
     lastCheckedAt: null,
     lastDetail: '',
   });
-}
-
-export function normalizeNimiRuntimeConfigLocalModelProjection(
-  raw: Partial<NimiRuntimeConfigLocalModelProjection>,
-): NimiRuntimeConfigLocalModelProjection {
-  const localModelId = normalizeText(raw.localModelId)
-    || normalizeText(raw.model)
-    || createNimiRuntimeProjectionId('local-model');
-  const capabilities = (Array.isArray(raw.capabilities) ? raw.capabilities : [])
-    .map(parseNimiRuntimeLocalRunnableAssetKindId)
-    .filter((capability): capability is NimiRuntimeLocalRunnableAssetKindId => capability !== undefined);
-  return {
-    localModelId,
-    engine: normalizeText(raw.engine),
-    model: normalizeText(raw.model) || localModelId,
-    endpoint: normalizeNimiRuntimeConfigEndpoint(raw.endpoint),
-    capabilities: capabilities.length > 0 ? capabilities : ['chat'],
-    status: normalizeNimiRuntimeLocalModelStatus(raw.status),
-    integrityMode: raw.integrityMode === 'local_unverified' ? 'local_unverified' : 'verified',
-    hash: normalizeText(raw.hash) || undefined,
-    installedAt: normalizeText(raw.installedAt) || undefined,
-    updatedAt: normalizeText(raw.updatedAt) || undefined,
-    recommendation: raw.recommendation,
-  };
 }
 
 export function normalizeNimiRuntimeConfigLocalNodeMatrixEntryProjection(

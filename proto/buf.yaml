@@ -35,7 +35,6 @@ lint:
       - runtime/v1/local_runtime_recommendation.proto
       - runtime/v1/local_runtime_engine.proto
       - runtime/v1/memory.proto
-      - runtime/v1/model.proto
       - runtime/v1/runtime_service_control.proto
       - runtime/v1/voice.proto
     ENUM_VALUE_PREFIX:
@@ -56,7 +55,6 @@ lint:
       - runtime/v1/knowledge.proto
       - runtime/v1/local_runtime.proto
       - runtime/v1/memory.proto
-      - runtime/v1/model.proto
     RPC_REQUEST_STANDARD_NAME:
       - runtime/v1/external_agent.proto
     RPC_REQUEST_RESPONSE_UNIQUE:
@@ -66,7 +64,6 @@ lint:
       - runtime/v1/knowledge.proto
       - runtime/v1/local_runtime.proto
       - runtime/v1/memory.proto
-      - runtime/v1/model.proto
 breaking:
   use:
     - PACKAGE

@@ -181,8 +181,6 @@ func protectedCapabilityAuthorizerUnavailableError() error {
 
 func protectedCapabilityForUnary(fullMethod string, req any) (string, bool) {
 	switch fullMethod {
-	case "/nimi.runtime.v1.RuntimeModelService/RemoveModel":
-		return "runtime.model.remove", true
 	case "/nimi.runtime.v1.RuntimeAiService/ExecuteScenario":
 		return "ai.spend.meter", true
 	case "/nimi.runtime.v1.RuntimeAiService/SubmitScenarioJob":
@@ -319,6 +317,10 @@ func protectedCapabilityForUnary(fullMethod string, req any) (string, bool) {
 		"/nimi.runtime.v1.RuntimeAgentService/PreviewSharedLocalAgentAIProfile",
 		"/nimi.runtime.v1.RuntimeAgentService/ApplySharedLocalAgentAIProfile":
 		return "runtime.agent.ai_config.write", true
+	case "/nimi.runtime.v1.RuntimeAgentService/ImportPortableAIProfile":
+		return "runtime.agent.ai_profile.write", true
+	case "/nimi.runtime.v1.RuntimeAgentService/ListPortableAIProfiles":
+		return "runtime.agent.ai_profile.read", true
 	case "/nimi.runtime.v1.RuntimeAppService/SendAppMessage":
 		message, ok := req.(*runtimev1.SendAppMessageRequest)
 		if !ok {

@@ -122,13 +122,13 @@ func (r *selectedLocalMachineExecutionBindingResolver) ResolveMachineExecutionBi
 				map[string]string{"capability_contract": capabilityContract},
 			)
 		}
-		configurationID := strings.TrimSpace(selected.ConfigurationID)
+		loadoutID := strings.TrimSpace(selected.LoadoutID)
 		modelID := strings.TrimSpace(selected.DisplayName)
 		if modelID == "" {
-			modelID = configurationID
+			modelID = loadoutID
 		}
 		bindings[capabilityContract] = publicChatExecutionBinding{
-			BindingAlias:       configurationID,
+			BindingAlias:       loadoutID,
 			ModelID:            modelID,
 			RoutePolicy:        runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 			CapabilityContract: capabilityContract,
@@ -213,7 +213,7 @@ func machineCloudTargetText(target *structpb.Struct, key string) (string, bool) 
 
 func validSelectedLocalExecutionProjection(selected *localexecution.SelectedLocalExecution, capabilityContract string) bool {
 	if selected == nil || !selected.Configured ||
-		selected.ConfigurationID == "" || selected.ConfigurationID != strings.TrimSpace(selected.ConfigurationID) ||
+		selected.LoadoutID == "" || selected.LoadoutID != strings.TrimSpace(selected.LoadoutID) ||
 		selected.CapabilityContract != capabilityContract ||
 		selected.DriverIdentity == nil ||
 		selected.DriverIdentity.GetImplementationId() == "" || selected.DriverIdentity.GetImplementationId() != strings.TrimSpace(selected.DriverIdentity.GetImplementationId()) ||
@@ -239,7 +239,7 @@ func validSelectedLocalExecutionProjection(selected *localexecution.SelectedLoca
 			return false
 		}
 		if _, exists := requirements[binding.RequirementID]; !exists ||
-			binding.LocalAssetID == "" || binding.LocalAssetID != strings.TrimSpace(binding.LocalAssetID) ||
+			binding.ModelAssetID == "" || binding.ModelAssetID != strings.TrimSpace(binding.ModelAssetID) ||
 			!filepath.IsAbs(binding.AbsolutePath) || binding.AbsolutePath != filepath.Clean(binding.AbsolutePath) ||
 			binding.VerifiedContentID == "" || binding.VerifiedContentID != strings.TrimSpace(binding.VerifiedContentID) ||
 			binding.EntrySHA256 == "" || binding.EntrySHA256 != strings.TrimSpace(binding.EntrySHA256) {

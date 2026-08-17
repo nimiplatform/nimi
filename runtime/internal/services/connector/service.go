@@ -1,7 +1,6 @@
 package connector
 
 import (
-	"context"
 	"log/slog"
 	"sync"
 
@@ -21,7 +20,6 @@ type Service struct {
 	audit        *auditlog.Store
 	depsMu       sync.RWMutex
 	cloud        *nimillm.CloudProvider
-	localModel   localModelLister
 	modelCatalog *aicatalog.Resolver
 }
 
@@ -40,22 +38,11 @@ func New(logger *slog.Logger, store *ConnectorStore, audit *auditlog.Store) *Ser
 	return svc
 }
 
-type localModelLister interface {
-	ListLocalAssets(context.Context, *runtimev1.ListLocalAssetsRequest) (*runtimev1.ListLocalAssetsResponse, error)
-}
-
 // SetCloudProvider sets the cloud provider for probe and model listing.
 func (s *Service) SetCloudProvider(cloud *nimillm.CloudProvider) {
 	s.depsMu.Lock()
 	defer s.depsMu.Unlock()
 	s.cloud = cloud
-}
-
-// SetLocalModelLister wires RuntimeLocalService for local connector checks.
-func (s *Service) SetLocalModelLister(localSvc localModelLister) {
-	s.depsMu.Lock()
-	defer s.depsMu.Unlock()
-	s.localModel = localSvc
 }
 
 // SetModelCatalogResolver wires runtime model/voice catalog management hooks.
@@ -73,12 +60,6 @@ func (s *Service) cloudProvider() *nimillm.CloudProvider {
 	s.depsMu.RLock()
 	defer s.depsMu.RUnlock()
 	return s.cloud
-}
-
-func (s *Service) localModelLister() localModelLister {
-	s.depsMu.RLock()
-	defer s.depsMu.RUnlock()
-	return s.localModel
 }
 
 func (s *Service) modelCatalogResolver() *aicatalog.Resolver {

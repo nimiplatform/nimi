@@ -1149,9 +1149,9 @@ export enum ReasonCode {
      */
     AGENT_AI_CONFIG_MODEL_TARGET_MISMATCH = 684,
     /**
-     * Machine Local AI Configuration mutations. These codes describe why one
-     * explicit exact-binding write did not commit; they are not persisted as
-     * Local Capability Configuration state or projected as readiness.
+     * Retained local execution reason values. Current Loadout writes use the
+     * AI_LOADOUT_* family below; these numeric values remain stable for generic
+     * local admission and older error decoding.
      *
      * @generated from protobuf enum value: AI_LOCAL_CONFIGURATION_NOT_FOUND = 685;
      */
@@ -1272,7 +1272,65 @@ export enum ReasonCode {
     /**
      * @generated from protobuf enum value: CURRENT_USER_DISPLAY_UNAVAILABLE = 710;
      */
-    CURRENT_USER_DISPLAY_UNAVAILABLE = 710
+    CURRENT_USER_DISPLAY_UNAVAILABLE = 710,
+    /**
+     * Machine Loadout prepare/commit/selection and exact ModelAsset composition.
+     *
+     * @generated from protobuf enum value: AI_LOADOUT_NOT_FOUND = 711;
+     */
+    AI_LOADOUT_NOT_FOUND = 711,
+    /**
+     * @generated from protobuf enum value: AI_LOADOUT_RECIPE_NOT_FOUND = 712;
+     */
+    AI_LOADOUT_RECIPE_NOT_FOUND = 712,
+    /**
+     * @generated from protobuf enum value: AI_LOADOUT_DRIVER_UNAVAILABLE = 713;
+     */
+    AI_LOADOUT_DRIVER_UNAVAILABLE = 713,
+    /**
+     * @generated from protobuf enum value: AI_LOADOUT_MODEL_ASSET_NOT_FOUND = 714;
+     */
+    AI_LOADOUT_MODEL_ASSET_NOT_FOUND = 714,
+    /**
+     * @generated from protobuf enum value: AI_LOADOUT_MODEL_ASSET_CONTENT_MISMATCH = 715;
+     */
+    AI_LOADOUT_MODEL_ASSET_CONTENT_MISMATCH = 715,
+    /**
+     * @generated from protobuf enum value: AI_LOADOUT_MODEL_CONTRACT_FAILED = 716;
+     */
+    AI_LOADOUT_MODEL_CONTRACT_FAILED = 716,
+    /**
+     * @generated from protobuf enum value: AI_LOADOUT_PREPARE_NOT_FOUND = 717;
+     */
+    AI_LOADOUT_PREPARE_NOT_FOUND = 717,
+    /**
+     * @generated from protobuf enum value: AI_LOADOUT_PREPARE_EXPIRED = 718;
+     */
+    AI_LOADOUT_PREPARE_EXPIRED = 718,
+    /**
+     * @generated from protobuf enum value: AI_LOADOUT_PREPARE_OWNER_MISMATCH = 719;
+     */
+    AI_LOADOUT_PREPARE_OWNER_MISMATCH = 719,
+    /**
+     * @generated from protobuf enum value: AI_LOADOUT_COMMIT_CONFLICT = 720;
+     */
+    AI_LOADOUT_COMMIT_CONFLICT = 720,
+    /**
+     * @generated from protobuf enum value: AI_LOADOUT_CONFIRMATION_REQUIRED = 721;
+     */
+    AI_LOADOUT_CONFIRMATION_REQUIRED = 721,
+    /**
+     * @generated from protobuf enum value: AI_LOADOUT_PERSISTENCE_UNAVAILABLE = 722;
+     */
+    AI_LOADOUT_PERSISTENCE_UNAVAILABLE = 722,
+    /**
+     * @generated from protobuf enum value: AI_LOADOUT_NOT_CONFIGURED = 723;
+     */
+    AI_LOADOUT_NOT_CONFIGURED = 723,
+    /**
+     * @generated from protobuf enum value: AI_LOADOUT_CATALOG_SCHEMA_INVALID = 724;
+     */
+    AI_LOADOUT_CATALOG_SCHEMA_INVALID = 724
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.ExternalPrincipalType

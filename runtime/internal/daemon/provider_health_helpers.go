@@ -110,24 +110,6 @@ func isImageRelatedEngine(kind engine.EngineKind) bool {
 	return kind == engine.EngineMedia || kind == engineManagedImageBackend
 }
 
-// imageAttributionDetail formats v2 resolver fields into a structured string
-// for provider failure hints and audit detail (K-PROV-002 line 68).
-func imageAttributionDetail(sel *engine.ImageSupervisedMatrixSelection) string {
-	if sel == nil || sel.Entry == nil {
-		return ""
-	}
-	e := sel.Entry
-	return fmt.Sprintf(
-		"entry_id=%s backend_family=%s backend_class=%s product_state=%s control_plane=%s execution_plane=%s",
-		e.EntryID,
-		e.BackendFamily,
-		e.BackendClass,
-		e.ProductState,
-		e.ControlPlane,
-		e.ExecutionPlane,
-	)
-}
-
 // resolveInternalReasonKey maps an engine state detail to an internal_reason_key
 // per K-LENG-017.
 func resolveInternalReasonKey(detail string) string {

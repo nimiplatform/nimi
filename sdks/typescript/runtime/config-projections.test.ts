@@ -4,7 +4,6 @@ import test from 'node:test';
 import {
   createNimiRuntimeConfigConnectorDraft,
   normalizeNimiRuntimeConfigConnectorProjection,
-  normalizeNimiRuntimeConfigLocalModelProjection,
   normalizeNimiRuntimeConfigLocalNodeMatrixEntryProjection,
   runtimeConnectorProjectionToNimiRuntimeConfigConnector,
 } from './index';
@@ -50,23 +49,7 @@ test('Runtime config connector projection normalizes draft and connector evidenc
   assert.equal(normalized.status, 'healthy');
 });
 
-test('Runtime local config projection normalizes local models and nodes without ranking', () => {
-  const models = [
-    normalizeNimiRuntimeConfigLocalModelProjection({
-      localModelId: 'removed',
-      model: 'tester/removed',
-      capabilities: ['chat'],
-      status: 'removed',
-    }),
-    normalizeNimiRuntimeConfigLocalModelProjection({
-      localModelId: 'active',
-      model: 'tester/active',
-      engine: 'runtime-native',
-      endpoint: 'http://127.0.0.1:11434/v1///',
-      capabilities: ['chat', 'image'],
-      status: 'active',
-    }),
-  ];
+test('Runtime local config projection normalizes nodes without ranking', () => {
   const node = normalizeNimiRuntimeConfigLocalNodeMatrixEntryProjection({
     nodeId: 'tester-chat.runtime-native',
     capability: 'chat',
@@ -75,7 +58,6 @@ test('Runtime local config projection normalizes local models and nodes without 
     adapter: 'media_native_adapter',
     available: true,
   });
-  assert.equal(models[1]?.endpoint, 'http://127.0.0.1:11434/v1');
   assert.equal(node.provider, 'runtime-local');
   assert.equal(node.adapter, 'media_native_adapter');
   assert.equal(node.available, true);

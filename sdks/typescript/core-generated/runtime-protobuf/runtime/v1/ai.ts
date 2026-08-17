@@ -26,6 +26,7 @@ import type { PartialMessage } from "@protobuf-ts/runtime";
 import { reflectionMergePartial } from "@protobuf-ts/runtime";
 import { MessageType } from "@protobuf-ts/runtime";
 import { VoiceAsset } from "./voice";
+import { LoadoutEffectiveInputIdentity } from "./capability_configuration";
 import { VoiceOutputMode } from "./voice";
 import { VoiceCreationSource } from "./voice";
 import { VoiceAssetStatus } from "./voice";
@@ -545,6 +546,10 @@ export interface ImageGenerateScenarioSpec {
      * @generated from protobuf field: string response_format = 11
      */
     responseFormat: string;
+    /**
+     * @generated from protobuf field: string reference_image_artifact_id = 12
+     */
+    referenceImageArtifactId: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.VideoGenerateScenarioSpec
@@ -1352,6 +1357,10 @@ export interface LocalAppImageGenerateScenarioSpec {
      * @generated from protobuf field: string response_format = 11
      */
     responseFormat: string;
+    /**
+     * @generated from protobuf field: string reference_image_artifact_id = 12
+     */
+    referenceImageArtifactId: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ExecuteLocalAppScenarioRequest
@@ -2438,6 +2447,13 @@ export interface ScenarioJob {
      * @generated from protobuf field: string transcription_text = 23
      */
     transcriptionText: string;
+    /**
+     * Public attribution projection of the immutable Runtime-private
+     * ResolvedAssembly captured before this Job was published.
+     *
+     * @generated from protobuf field: nimi.runtime.v1.LoadoutEffectiveInputIdentity effective_input_identity = 24
+     */
+    effectiveInputIdentity?: LoadoutEffectiveInputIdentity;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.SubmitScenarioJobRequest
@@ -4938,7 +4954,8 @@ class ImageGenerateScenarioSpec$Type extends MessageType<ImageGenerateScenarioSp
             { no: 8, name: "seed", kind: "scalar", opt: true, T: 3 /*ScalarType.INT64*/ },
             { no: 9, name: "reference_images", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
             { no: 10, name: "mask", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 11, name: "response_format", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 11, name: "response_format", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 12, name: "reference_image_artifact_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<ImageGenerateScenarioSpec>): ImageGenerateScenarioSpec {
@@ -4952,6 +4969,7 @@ class ImageGenerateScenarioSpec$Type extends MessageType<ImageGenerateScenarioSp
         message.referenceImages = [];
         message.mask = "";
         message.responseFormat = "";
+        message.referenceImageArtifactId = "";
         if (value !== undefined)
             reflectionMergePartial<ImageGenerateScenarioSpec>(this, message, value);
         return message;
@@ -4993,6 +5011,9 @@ class ImageGenerateScenarioSpec$Type extends MessageType<ImageGenerateScenarioSp
                     break;
                 case /* string response_format */ 11:
                     message.responseFormat = reader.string();
+                    break;
+                case /* string reference_image_artifact_id */ 12:
+                    message.referenceImageArtifactId = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -5039,6 +5060,9 @@ class ImageGenerateScenarioSpec$Type extends MessageType<ImageGenerateScenarioSp
         /* string response_format = 11; */
         if (message.responseFormat !== "")
             writer.tag(11, WireType.LengthDelimited).string(message.responseFormat);
+        /* string reference_image_artifact_id = 12; */
+        if (message.referenceImageArtifactId !== "")
+            writer.tag(12, WireType.LengthDelimited).string(message.referenceImageArtifactId);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -7308,7 +7332,8 @@ class LocalAppImageGenerateScenarioSpec$Type extends MessageType<LocalAppImageGe
             { no: 8, name: "seed", kind: "scalar", opt: true, T: 3 /*ScalarType.INT64*/ },
             { no: 9, name: "reference_images", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
             { no: 10, name: "mask", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 11, name: "response_format", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 11, name: "response_format", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 12, name: "reference_image_artifact_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<LocalAppImageGenerateScenarioSpec>): LocalAppImageGenerateScenarioSpec {
@@ -7322,6 +7347,7 @@ class LocalAppImageGenerateScenarioSpec$Type extends MessageType<LocalAppImageGe
         message.referenceImages = [];
         message.mask = "";
         message.responseFormat = "";
+        message.referenceImageArtifactId = "";
         if (value !== undefined)
             reflectionMergePartial<LocalAppImageGenerateScenarioSpec>(this, message, value);
         return message;
@@ -7363,6 +7389,9 @@ class LocalAppImageGenerateScenarioSpec$Type extends MessageType<LocalAppImageGe
                     break;
                 case /* string response_format */ 11:
                     message.responseFormat = reader.string();
+                    break;
+                case /* string reference_image_artifact_id */ 12:
+                    message.referenceImageArtifactId = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -7409,6 +7438,9 @@ class LocalAppImageGenerateScenarioSpec$Type extends MessageType<LocalAppImageGe
         /* string response_format = 11; */
         if (message.responseFormat !== "")
             writer.tag(11, WireType.LengthDelimited).string(message.responseFormat);
+        /* string reference_image_artifact_id = 12; */
+        if (message.referenceImageArtifactId !== "")
+            writer.tag(12, WireType.LengthDelimited).string(message.referenceImageArtifactId);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -10309,7 +10341,8 @@ class ScenarioJob$Type extends MessageType<ScenarioJob> {
             { no: 20, name: "progress_percent", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
             { no: 21, name: "progress_current_step", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
             { no: 22, name: "progress_total_steps", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
-            { no: 23, name: "transcription_text", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 23, name: "transcription_text", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 24, name: "effective_input_identity", kind: "message", T: () => LoadoutEffectiveInputIdentity }
         ]);
     }
     create(value?: PartialMessage<ScenarioJob>): ScenarioJob {
@@ -10409,6 +10442,9 @@ class ScenarioJob$Type extends MessageType<ScenarioJob> {
                 case /* string transcription_text */ 23:
                     message.transcriptionText = reader.string();
                     break;
+                case /* nimi.runtime.v1.LoadoutEffectiveInputIdentity effective_input_identity */ 24:
+                    message.effectiveInputIdentity = LoadoutEffectiveInputIdentity.internalBinaryRead(reader, reader.uint32(), options, message.effectiveInputIdentity);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -10490,6 +10526,9 @@ class ScenarioJob$Type extends MessageType<ScenarioJob> {
         /* string transcription_text = 23; */
         if (message.transcriptionText !== "")
             writer.tag(23, WireType.LengthDelimited).string(message.transcriptionText);
+        /* nimi.runtime.v1.LoadoutEffectiveInputIdentity effective_input_identity = 24; */
+        if (message.effectiveInputIdentity)
+            LoadoutEffectiveInputIdentity.internalBinaryWrite(message.effectiveInputIdentity, writer.tag(24, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

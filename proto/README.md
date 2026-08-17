@@ -5,7 +5,7 @@ Shared protocol sources for public repository.
 Current state:
 
 - Runtime V1 proto sources are in `proto/runtime/v1/`.
-- Proto governance contract is tracked in `spec/runtime/proto-governance.md`.
+- Product protocol authority is tracked under `.nimi/spec/**`; generated baselines and this README are not authority.
 
 Files:
 
@@ -17,7 +17,6 @@ Files:
 - `runtime/v1/connector.proto`
 - `runtime/v1/knowledge.proto`
 - `runtime/v1/local_runtime.proto`
-- `runtime/v1/model.proto`
 
 ## Generate
 

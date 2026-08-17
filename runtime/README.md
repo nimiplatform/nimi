@@ -104,7 +104,6 @@ validates its `dataRoot.path` and retains only derived verification state.
 Registered public runtime gRPC services currently include:
 - `RuntimeAiService` — local and cloud AI execution, streaming, multimodal
 - `RuntimeAiRealtimeService` — duplex realtime text/audio session surface
-- `RuntimeModelService` — model lifecycle, listing, routing
 - `RuntimeLocalService` — local execution, supervision, provider health
 - `RuntimeAgentService` — live agent execution, hook lifecycle, canonical review
 - `RuntimeConnectorService` — provider connector lifecycle, credential hosting

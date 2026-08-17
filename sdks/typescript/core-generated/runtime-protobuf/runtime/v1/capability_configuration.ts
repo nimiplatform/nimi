@@ -11,6 +11,7 @@ import { UnknownFieldHandler } from "@protobuf-ts/runtime";
 import type { PartialMessage } from "@protobuf-ts/runtime";
 import { reflectionMergePartial } from "@protobuf-ts/runtime";
 import { MessageType } from "@protobuf-ts/runtime";
+import { ReasonCode } from "./common";
 import { Struct } from "../../google/protobuf/struct";
 /**
  * CapabilityImplementationIdentity identifies the implementation vocabulary
@@ -73,21 +74,21 @@ export interface LocalCapabilityRequirement {
     displayLabel: string;
 }
 /**
- * @generated from protobuf message nimi.runtime.v1.LocalAssetExactBinding
+ * @generated from protobuf message nimi.runtime.v1.ModelAssetExactBinding
  */
-export interface LocalAssetExactBinding {
+export interface ModelAssetExactBinding {
     /**
      * @generated from protobuf field: string requirement_id = 1
      */
     requirementId: string;
     /**
-     * @generated from protobuf field: string local_asset_id = 2
+     * @generated from protobuf field: string model_asset_id = 2
      */
-    localAssetId: string;
+    modelAssetId: string;
     /**
      * For a single-file occurrence these identify the verified entry bytes. For
      * an explicitly sharded bundle they identify the canonical SHA-256 over its
-     * ordered LocalBundleEntryDigest values.
+     * ordered bundle entry digests.
      *
      * @generated from protobuf field: string verified_content_id = 3
      */
@@ -98,13 +99,55 @@ export interface LocalAssetExactBinding {
     entrySha256: string;
 }
 /**
- * @generated from protobuf message nimi.runtime.v1.LocalCapabilityConfiguration
+ * @generated from protobuf message nimi.runtime.v1.LoadoutModelAxis
  */
-export interface LocalCapabilityConfiguration {
+export interface LoadoutModelAxis {
     /**
-     * @generated from protobuf field: string configuration_id = 1
+     * @generated from protobuf field: string slot_id = 1
      */
-    configurationId: string;
+    slotId: string;
+    /**
+     * @generated from protobuf field: string display_label = 2
+     */
+    displayLabel: string;
+    /**
+     * @generated from protobuf field: string model_asset_id = 3
+     */
+    modelAssetId: string;
+    /**
+     * @generated from protobuf field: string expected_content_id = 4
+     */
+    expectedContentId: string;
+    /**
+     * @generated from protobuf field: bool recipe_compatible = 5
+     */
+    recipeCompatible: boolean;
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.ReasonCode reasons = 6
+     */
+    reasons: ReasonCode[];
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.LoadoutRecipeCustodyReference
+ */
+export interface LoadoutRecipeCustodyReference {
+    /**
+     * @generated from protobuf field: string custody_id = 1
+     */
+    custodyId: string;
+    /**
+     * @generated from protobuf field: string expected_content_id = 2
+     */
+    expectedContentId: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.Loadout
+ */
+export interface Loadout {
+    /**
+     * @generated from protobuf field: string loadout_id = 1
+     */
+    loadoutId: string;
     /**
      * @generated from protobuf field: string capability_contract = 2
      */
@@ -114,75 +157,470 @@ export interface LocalCapabilityConfiguration {
      */
     implementation?: CapabilityImplementationIdentity;
     /**
-     * @generated from protobuf field: google.protobuf.Struct portable_config = 4
+     * @generated from protobuf field: string recipe_id = 4
      */
-    portableConfig?: Struct;
+    recipeId: string;
     /**
-     * @generated from protobuf field: repeated nimi.runtime.v1.LocalCapabilityRequirement projected_requirements = 5
+     * @generated from protobuf field: string recipe_revision = 5
      */
-    projectedRequirements: LocalCapabilityRequirement[];
+    recipeRevision: string;
     /**
-     * @generated from protobuf field: repeated nimi.runtime.v1.LocalAssetExactBinding exact_bindings = 6
+     * @generated from protobuf field: google.protobuf.Struct options = 6
      */
-    exactBindings: LocalAssetExactBinding[];
+    options?: Struct;
     /**
-     * @generated from protobuf field: repeated string supported_features = 7
+     * @generated from protobuf field: repeated nimi.runtime.v1.LoadoutModelAxis model_axes = 7
+     */
+    modelAxes: LoadoutModelAxis[];
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.LoadoutRecipeCustodyReference recipe_custody = 8
+     */
+    recipeCustody: LoadoutRecipeCustodyReference[];
+    /**
+     * @generated from protobuf field: repeated string supported_features = 9
      */
     supportedFeatures: string[];
     /**
-     * @generated from protobuf field: nimi.runtime.v1.LocalCapabilityInterpretability interpretability = 8
+     * @generated from protobuf field: nimi.runtime.v1.LoadoutValidationState validation_state = 10
      */
-    interpretability: LocalCapabilityInterpretability;
+    validationState: LoadoutValidationState;
     /**
-     * @generated from protobuf field: nimi.runtime.v1.LocalCapabilityRequirementResolution requirement_resolution = 9
+     * @generated from protobuf field: repeated nimi.runtime.v1.ReasonCode reasons = 11
      */
-    requirementResolution: LocalCapabilityRequirementResolution;
+    reasons: ReasonCode[];
     /**
-     * @generated from protobuf field: repeated nimi.runtime.v1.LocalCapabilityReason reasons = 10
-     */
-    reasons: LocalCapabilityReason[];
-    /**
-     * @generated from protobuf field: string display_name = 11
+     * @generated from protobuf field: string display_name = 12
      */
     displayName: string;
     /**
-     * @generated from protobuf field: google.protobuf.Struct provenance = 12
+     * @generated from protobuf field: google.protobuf.Struct provenance = 13
      */
     provenance?: Struct;
+    /**
+     * @generated from protobuf field: string created_at = 14
+     */
+    createdAt: string;
+    /**
+     * @generated from protobuf field: string updated_at = 15
+     */
+    updatedAt: string;
 }
 /**
- * @generated from protobuf message nimi.runtime.v1.LocalCapabilitySelection
+ * @generated from protobuf message nimi.runtime.v1.LoadoutSelection
  */
-export interface LocalCapabilitySelection {
+export interface LoadoutSelection {
     /**
      * @generated from protobuf field: string capability_contract = 1
      */
     capabilityContract: string;
     /**
-     * @generated from protobuf field: string configuration_id = 2
+     * @generated from protobuf field: string loadout_id = 2
      */
-    configurationId: string;
+    loadoutId: string;
     /**
-     * Read-only Driver-owned effective request defaults for the selected
-     * configuration. Runtime projects only string display values and never
-     * persists this field as machine selection intent.
-     *
      * @generated from protobuf field: google.protobuf.Struct effective_defaults = 3
      */
     effectiveDefaults?: Struct;
 }
 /**
- * @generated from protobuf message nimi.runtime.v1.MachineLocalAIConfiguration
+ * @generated from protobuf message nimi.runtime.v1.MachineLoadouts
  */
-export interface MachineLocalAIConfiguration {
+export interface MachineLoadouts {
     /**
-     * @generated from protobuf field: repeated nimi.runtime.v1.LocalCapabilityConfiguration configurations = 1
+     * @generated from protobuf field: repeated nimi.runtime.v1.Loadout loadouts = 1
      */
-    configurations: LocalCapabilityConfiguration[];
+    loadouts: Loadout[];
     /**
-     * @generated from protobuf field: repeated nimi.runtime.v1.LocalCapabilitySelection selections = 2
+     * @generated from protobuf field: repeated nimi.runtime.v1.LoadoutSelection selections = 2
      */
-    selections: LocalCapabilitySelection[];
+    selections: LoadoutSelection[];
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.LoadoutModelAxisInput
+ */
+export interface LoadoutModelAxisInput {
+    /**
+     * @generated from protobuf field: string slot_id = 1
+     */
+    slotId: string;
+    /**
+     * @generated from protobuf field: string model_asset_id = 2
+     */
+    modelAssetId: string;
+    /**
+     * @generated from protobuf field: string expected_content_id = 3
+     */
+    expectedContentId: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.LoadoutImpactProjection
+ */
+export interface LoadoutImpactProjection {
+    /**
+     * @generated from protobuf field: string capability_contract = 1
+     */
+    capabilityContract: string;
+    /**
+     * @generated from protobuf field: string loadout_id = 2
+     */
+    loadoutId: string;
+    /**
+     * @generated from protobuf field: bool changes_future_local_execution = 3
+     */
+    changesFutureLocalExecution: boolean;
+    /**
+     * @generated from protobuf field: bool confirmation_required = 4
+     */
+    confirmationRequired: boolean;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.LoadoutRecipeSlotDescriptor
+ */
+export interface LoadoutRecipeSlotDescriptor {
+    /**
+     * @generated from protobuf field: string slot_id = 1
+     */
+    slotId: string;
+    /**
+     * @generated from protobuf field: string display_label = 2
+     */
+    displayLabel: string;
+    /**
+     * @generated from protobuf field: repeated string recommended_content_ids = 3
+     */
+    recommendedContentIds: string[];
+    /**
+     * @generated from protobuf field: google.protobuf.Struct model_contract = 4
+     */
+    modelContract?: Struct;
+    /**
+     * @generated from protobuf field: repeated string recommended_variant_ids = 5
+     */
+    recommendedVariantIds: string[];
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.LoadoutRecipeDescriptor
+ */
+export interface LoadoutRecipeDescriptor {
+    /**
+     * @generated from protobuf field: string recipe_id = 1
+     */
+    recipeId: string;
+    /**
+     * @generated from protobuf field: string revision = 2
+     */
+    revision: string;
+    /**
+     * @generated from protobuf field: string title = 3
+     */
+    title: string;
+    /**
+     * @generated from protobuf field: string capability_contract = 4
+     */
+    capabilityContract: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.CapabilityImplementationIdentity implementation = 5
+     */
+    implementation?: CapabilityImplementationIdentity;
+    /**
+     * @generated from protobuf field: google.protobuf.Struct default_options = 6
+     */
+    defaultOptions?: Struct;
+    /**
+     * @generated from protobuf field: repeated string supported_features = 7
+     */
+    supportedFeatures: string[];
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.LoadoutRecipeSlotDescriptor slots = 8
+     */
+    slots: LoadoutRecipeSlotDescriptor[];
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.LoadoutRecipeCustodyDescriptor custody = 9
+     */
+    custody: LoadoutRecipeCustodyDescriptor[];
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ListLoadoutRecipesRequest
+ */
+export interface ListLoadoutRecipesRequest {
+    /**
+     * @generated from protobuf field: string capability_contract = 1
+     */
+    capabilityContract: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ListLoadoutRecipesResponse
+ */
+export interface ListLoadoutRecipesResponse {
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.LoadoutRecipeDescriptor recipes = 1
+     */
+    recipes: LoadoutRecipeDescriptor[];
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.GetMachineLoadoutsRequest
+ */
+export interface GetMachineLoadoutsRequest {
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.GetMachineLoadoutsResponse
+ */
+export interface GetMachineLoadoutsResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.MachineLoadouts aggregate = 1
+     */
+    aggregate?: MachineLoadouts;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.GetLoadoutRequest
+ */
+export interface GetLoadoutRequest {
+    /**
+     * @generated from protobuf field: string loadout_id = 1
+     */
+    loadoutId: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.GetLoadoutResponse
+ */
+export interface GetLoadoutResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.Loadout loadout = 1
+     */
+    loadout?: Loadout;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.PrepareLoadoutRequest
+ */
+export interface PrepareLoadoutRequest {
+    /**
+     * @generated from protobuf field: string loadout_id = 1
+     */
+    loadoutId: string;
+    /**
+     * @generated from protobuf field: string capability_contract = 2
+     */
+    capabilityContract: string;
+    /**
+     * @generated from protobuf field: string recipe_id = 3
+     */
+    recipeId: string;
+    /**
+     * @generated from protobuf field: google.protobuf.Struct options = 4
+     */
+    options?: Struct;
+    /**
+     * @generated from protobuf field: repeated string supported_features = 5
+     */
+    supportedFeatures: string[];
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.LoadoutModelAxisInput model_axes = 6
+     */
+    modelAxes: LoadoutModelAxisInput[];
+    /**
+     * @generated from protobuf field: string display_name = 7
+     */
+    displayName: string;
+    /**
+     * @generated from protobuf field: google.protobuf.Struct provenance = 8
+     */
+    provenance?: Struct;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.PrepareLoadoutResponse
+ */
+export interface PrepareLoadoutResponse {
+    /**
+     * @generated from protobuf field: string prepare_id = 1
+     */
+    prepareId: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.Loadout proposed_loadout = 2
+     */
+    proposedLoadout?: Loadout;
+    /**
+     * @generated from protobuf field: string expires_at = 3
+     */
+    expiresAt: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LoadoutImpactProjection impact = 4
+     */
+    impact?: LoadoutImpactProjection;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.CommitLoadoutRequest
+ */
+export interface CommitLoadoutRequest {
+    /**
+     * @generated from protobuf field: string prepare_id = 1
+     */
+    prepareId: string;
+    /**
+     * @generated from protobuf field: bool confirmed_machine_impact = 2
+     */
+    confirmedMachineImpact: boolean;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.CommitLoadoutResponse
+ */
+export interface CommitLoadoutResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.Loadout loadout = 1
+     */
+    loadout?: Loadout;
+}
+/**
+ * UpdateLoadout is only a convenience wrapper over PrepareLoadout followed by
+ * CommitLoadout. It carries no independent mutation semantics.
+ *
+ * @generated from protobuf message nimi.runtime.v1.UpdateLoadoutRequest
+ */
+export interface UpdateLoadoutRequest {
+    /**
+     * @generated from protobuf field: string loadout_id = 1
+     */
+    loadoutId: string;
+    /**
+     * @generated from protobuf field: string capability_contract = 2
+     */
+    capabilityContract: string;
+    /**
+     * @generated from protobuf field: string recipe_id = 3
+     */
+    recipeId: string;
+    /**
+     * @generated from protobuf field: google.protobuf.Struct options = 4
+     */
+    options?: Struct;
+    /**
+     * @generated from protobuf field: repeated string supported_features = 5
+     */
+    supportedFeatures: string[];
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.LoadoutModelAxisInput model_axes = 6
+     */
+    modelAxes: LoadoutModelAxisInput[];
+    /**
+     * @generated from protobuf field: string display_name = 7
+     */
+    displayName: string;
+    /**
+     * @generated from protobuf field: google.protobuf.Struct provenance = 8
+     */
+    provenance?: Struct;
+    /**
+     * @generated from protobuf field: bool confirmed_machine_impact = 9
+     */
+    confirmedMachineImpact: boolean;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.UpdateLoadoutResponse
+ */
+export interface UpdateLoadoutResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.Loadout loadout = 1
+     */
+    loadout?: Loadout;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.SelectLoadoutRequest
+ */
+export interface SelectLoadoutRequest {
+    /**
+     * @generated from protobuf field: string capability_contract = 1
+     */
+    capabilityContract: string;
+    /**
+     * Empty explicitly clears this contract's selected relation.
+     *
+     * @generated from protobuf field: string loadout_id = 2
+     */
+    loadoutId: string;
+    /**
+     * @generated from protobuf field: bool confirmed_machine_impact = 3
+     */
+    confirmedMachineImpact: boolean;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.SelectLoadoutResponse
+ */
+export interface SelectLoadoutResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LoadoutSelection selection = 1
+     */
+    selection?: LoadoutSelection;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.DeleteLoadoutRequest
+ */
+export interface DeleteLoadoutRequest {
+    /**
+     * @generated from protobuf field: string loadout_id = 1
+     */
+    loadoutId: string;
+    /**
+     * @generated from protobuf field: bool confirmed_machine_impact = 2
+     */
+    confirmedMachineImpact: boolean;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.DeleteLoadoutResponse
+ */
+export interface DeleteLoadoutResponse {
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.LoadoutEffectiveModelAxisIdentity
+ */
+export interface LoadoutEffectiveModelAxisIdentity {
+    /**
+     * @generated from protobuf field: string slot_id = 1
+     */
+    slotId: string;
+    /**
+     * @generated from protobuf field: string model_asset_id = 2
+     */
+    modelAssetId: string;
+    /**
+     * @generated from protobuf field: string content_id = 3
+     */
+    contentId: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.LoadoutEffectiveInputIdentity
+ */
+export interface LoadoutEffectiveInputIdentity {
+    /**
+     * @generated from protobuf field: string loadout_id = 1
+     */
+    loadoutId: string;
+    /**
+     * @generated from protobuf field: string capability_contract = 2
+     */
+    capabilityContract: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.CapabilityImplementationIdentity implementation = 3
+     */
+    implementation?: CapabilityImplementationIdentity;
+    /**
+     * @generated from protobuf field: string recipe_id = 4
+     */
+    recipeId: string;
+    /**
+     * @generated from protobuf field: string recipe_revision = 5
+     */
+    recipeRevision: string;
+    /**
+     * @generated from protobuf field: google.protobuf.Struct options = 6
+     */
+    options?: Struct;
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.LoadoutEffectiveModelAxisIdentity model_axes = 7
+     */
+    modelAxes: LoadoutEffectiveModelAxisIdentity[];
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.LoadoutRecipeCustodyReference recipe_custody = 8
+     */
+    recipeCustody: LoadoutRecipeCustodyReference[];
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.AIConfigAppOwner
@@ -345,279 +783,25 @@ export interface OverwriteAppAIConfigResponse {
     config?: AIConfig;
 }
 /**
- * @generated from protobuf message nimi.runtime.v1.GetMachineLocalAIConfigurationRequest
+ * @generated from protobuf message nimi.runtime.v1.LoadoutRecipeCustodyDescriptor
  */
-export interface GetMachineLocalAIConfigurationRequest {
-}
-/**
- * @generated from protobuf message nimi.runtime.v1.GetMachineLocalAIConfigurationResponse
- */
-export interface GetMachineLocalAIConfigurationResponse {
+export interface LoadoutRecipeCustodyDescriptor {
     /**
-     * @generated from protobuf field: nimi.runtime.v1.MachineLocalAIConfiguration aggregate = 1
+     * @generated from protobuf field: string file = 1
      */
-    aggregate?: MachineLocalAIConfiguration;
-}
-/**
- * @generated from protobuf message nimi.runtime.v1.GetLocalCapabilityConfigurationRequest
- */
-export interface GetLocalCapabilityConfigurationRequest {
+    file: string;
     /**
-     * @generated from protobuf field: string configuration_id = 1
+     * @generated from protobuf field: string sha256 = 2
      */
-    configurationId: string;
-}
-/**
- * @generated from protobuf message nimi.runtime.v1.GetLocalCapabilityConfigurationResponse
- */
-export interface GetLocalCapabilityConfigurationResponse {
+    sha256: string;
     /**
-     * @generated from protobuf field: nimi.runtime.v1.LocalCapabilityConfiguration configuration = 1
+     * @generated from protobuf field: string source = 3
      */
-    configuration?: LocalCapabilityConfiguration;
-}
-/**
- * @generated from protobuf message nimi.runtime.v1.AddLocalCapabilityConfigurationRequest
- */
-export interface AddLocalCapabilityConfigurationRequest {
+    source: string;
     /**
-     * @generated from protobuf field: string capability_contract = 1
+     * @generated from protobuf field: string role = 4
      */
-    capabilityContract: string;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.CapabilityImplementationIdentity implementation = 2
-     */
-    implementation?: CapabilityImplementationIdentity;
-    /**
-     * @generated from protobuf field: google.protobuf.Struct portable_config = 3
-     */
-    portableConfig?: Struct;
-    /**
-     * @generated from protobuf field: repeated string supported_features = 4
-     */
-    supportedFeatures: string[];
-    /**
-     * @generated from protobuf field: string display_name = 5
-     */
-    displayName: string;
-    /**
-     * @generated from protobuf field: google.protobuf.Struct provenance = 6
-     */
-    provenance?: Struct;
-}
-/**
- * @generated from protobuf message nimi.runtime.v1.AddLocalCapabilityConfigurationResponse
- */
-export interface AddLocalCapabilityConfigurationResponse {
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.LocalCapabilityConfiguration configuration = 1
-     */
-    configuration?: LocalCapabilityConfiguration;
-}
-/**
- * UpdateLocalCapabilityConfiguration replaces the mutable portable intent of
- * one saved record. Capability and implementation identity remain immutable;
- * callers create a new record when either identity changes.
- *
- * @generated from protobuf message nimi.runtime.v1.UpdateLocalCapabilityConfigurationRequest
- */
-export interface UpdateLocalCapabilityConfigurationRequest {
-    /**
-     * @generated from protobuf field: string configuration_id = 1
-     */
-    configurationId: string;
-    /**
-     * @generated from protobuf field: google.protobuf.Struct portable_config = 2
-     */
-    portableConfig?: Struct;
-    /**
-     * @generated from protobuf field: repeated string supported_features = 3
-     */
-    supportedFeatures: string[];
-    /**
-     * @generated from protobuf field: string display_name = 4
-     */
-    displayName: string;
-    /**
-     * @generated from protobuf field: google.protobuf.Struct provenance = 5
-     */
-    provenance?: Struct;
-}
-/**
- * @generated from protobuf message nimi.runtime.v1.UpdateLocalCapabilityConfigurationResponse
- */
-export interface UpdateLocalCapabilityConfigurationResponse {
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.LocalCapabilityConfiguration configuration = 1
-     */
-    configuration?: LocalCapabilityConfiguration;
-}
-/**
- * @generated from protobuf message nimi.runtime.v1.SelectLocalCapabilityConfigurationRequest
- */
-export interface SelectLocalCapabilityConfigurationRequest {
-    /**
-     * @generated from protobuf field: string capability_contract = 1
-     */
-    capabilityContract: string;
-    /**
-     * @generated from protobuf field: string configuration_id = 2
-     */
-    configurationId: string;
-}
-/**
- * @generated from protobuf message nimi.runtime.v1.SelectLocalCapabilityConfigurationResponse
- */
-export interface SelectLocalCapabilityConfigurationResponse {
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.LocalCapabilitySelection selection = 1
-     */
-    selection?: LocalCapabilitySelection;
-}
-/**
- * @generated from protobuf message nimi.runtime.v1.ClearLocalCapabilitySelectionRequest
- */
-export interface ClearLocalCapabilitySelectionRequest {
-    /**
-     * @generated from protobuf field: string capability_contract = 1
-     */
-    capabilityContract: string;
-}
-/**
- * @generated from protobuf message nimi.runtime.v1.ClearLocalCapabilitySelectionResponse
- */
-export interface ClearLocalCapabilitySelectionResponse {
-}
-/**
- * @generated from protobuf message nimi.runtime.v1.DeleteLocalCapabilityConfigurationRequest
- */
-export interface DeleteLocalCapabilityConfigurationRequest {
-    /**
-     * @generated from protobuf field: string configuration_id = 1
-     */
-    configurationId: string;
-}
-/**
- * @generated from protobuf message nimi.runtime.v1.DeleteLocalCapabilityConfigurationResponse
- */
-export interface DeleteLocalCapabilityConfigurationResponse {
-}
-/**
- * @generated from protobuf message nimi.runtime.v1.ReprojectLocalCapabilityRequirementsRequest
- */
-export interface ReprojectLocalCapabilityRequirementsRequest {
-    /**
-     * @generated from protobuf field: string configuration_id = 1
-     */
-    configurationId: string;
-}
-/**
- * @generated from protobuf message nimi.runtime.v1.ReprojectLocalCapabilityRequirementsResponse
- */
-export interface ReprojectLocalCapabilityRequirementsResponse {
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.LocalCapabilityConfiguration configuration = 1
-     */
-    configuration?: LocalCapabilityConfiguration;
-}
-/**
- * LocalAssetExactBindingTarget is the exact asset identity observed by the
- * caller. Runtime derives entry_sha256 from freshly verified bytes; callers
- * never submit a path or an inferred digest.
- *
- * @generated from protobuf message nimi.runtime.v1.LocalAssetExactBindingTarget
- */
-export interface LocalAssetExactBindingTarget {
-    /**
-     * @generated from protobuf field: string local_asset_id = 1
-     */
-    localAssetId: string;
-    /**
-     * @generated from protobuf field: string expected_verified_content_id = 2
-     */
-    expectedVerifiedContentId: string;
-}
-/**
- * @generated from protobuf message nimi.runtime.v1.BindLocalCapabilityRequirementRequest
- */
-export interface BindLocalCapabilityRequirementRequest {
-    /**
-     * @generated from protobuf field: string configuration_id = 1
-     */
-    configurationId: string;
-    /**
-     * @generated from protobuf field: string requirement_id = 2
-     */
-    requirementId: string;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.LocalAssetExactBindingTarget target = 3
-     */
-    target?: LocalAssetExactBindingTarget;
-}
-/**
- * @generated from protobuf message nimi.runtime.v1.BindLocalCapabilityRequirementResponse
- */
-export interface BindLocalCapabilityRequirementResponse {
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.LocalCapabilityConfiguration configuration = 1
-     */
-    configuration?: LocalCapabilityConfiguration;
-}
-/**
- * @generated from protobuf message nimi.runtime.v1.RebindLocalCapabilityRequirementRequest
- */
-export interface RebindLocalCapabilityRequirementRequest {
-    /**
-     * @generated from protobuf field: string configuration_id = 1
-     */
-    configurationId: string;
-    /**
-     * @generated from protobuf field: string requirement_id = 2
-     */
-    requirementId: string;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.LocalAssetExactBinding expected_current_binding = 3
-     */
-    expectedCurrentBinding?: LocalAssetExactBinding;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.LocalAssetExactBindingTarget target = 4
-     */
-    target?: LocalAssetExactBindingTarget;
-}
-/**
- * @generated from protobuf message nimi.runtime.v1.RebindLocalCapabilityRequirementResponse
- */
-export interface RebindLocalCapabilityRequirementResponse {
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.LocalCapabilityConfiguration configuration = 1
-     */
-    configuration?: LocalCapabilityConfiguration;
-}
-/**
- * @generated from protobuf message nimi.runtime.v1.UnbindLocalCapabilityRequirementRequest
- */
-export interface UnbindLocalCapabilityRequirementRequest {
-    /**
-     * @generated from protobuf field: string configuration_id = 1
-     */
-    configurationId: string;
-    /**
-     * @generated from protobuf field: string requirement_id = 2
-     */
-    requirementId: string;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.LocalAssetExactBinding expected_current_binding = 3
-     */
-    expectedCurrentBinding?: LocalAssetExactBinding;
-}
-/**
- * @generated from protobuf message nimi.runtime.v1.UnbindLocalCapabilityRequirementResponse
- */
-export interface UnbindLocalCapabilityRequirementResponse {
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.LocalCapabilityConfiguration configuration = 1
-     */
-    configuration?: LocalCapabilityConfiguration;
+    role: string;
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.LocalCapabilityInterpretability
@@ -739,6 +923,29 @@ export enum LocalCapabilityReason {
      * @generated from protobuf enum value: LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE = 11;
      */
     LOCAL_ASSET_INCOMPATIBLE = 11
+}
+// === Machine Loadouts ===
+
+/**
+ * @generated from protobuf enum nimi.runtime.v1.LoadoutValidationState
+ */
+export enum LoadoutValidationState {
+    /**
+     * @generated from protobuf enum value: LOADOUT_VALIDATION_STATE_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: LOADOUT_VALIDATION_STATE_CONFIGURED = 1;
+     */
+    CONFIGURED = 1,
+    /**
+     * @generated from protobuf enum value: LOADOUT_VALIDATION_STATE_UNRESOLVED = 2;
+     */
+    UNRESOLVED = 2,
+    /**
+     * @generated from protobuf enum value: LOADOUT_VALIDATION_STATE_BLOCKED = 3;
+     */
+    BLOCKED = 3
 }
 // @generated message type with reflection information, may provide speed optimized methods
 class CapabilityImplementationIdentity$Type extends MessageType<CapabilityImplementationIdentity> {
@@ -906,26 +1113,26 @@ class LocalCapabilityRequirement$Type extends MessageType<LocalCapabilityRequire
  */
 export const LocalCapabilityRequirement = new LocalCapabilityRequirement$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class LocalAssetExactBinding$Type extends MessageType<LocalAssetExactBinding> {
+class ModelAssetExactBinding$Type extends MessageType<ModelAssetExactBinding> {
     constructor() {
-        super("nimi.runtime.v1.LocalAssetExactBinding", [
+        super("nimi.runtime.v1.ModelAssetExactBinding", [
             { no: 1, name: "requirement_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "local_asset_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "model_asset_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "verified_content_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 4, name: "entry_sha256", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
-    create(value?: PartialMessage<LocalAssetExactBinding>): LocalAssetExactBinding {
+    create(value?: PartialMessage<ModelAssetExactBinding>): ModelAssetExactBinding {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.requirementId = "";
-        message.localAssetId = "";
+        message.modelAssetId = "";
         message.verifiedContentId = "";
         message.entrySha256 = "";
         if (value !== undefined)
-            reflectionMergePartial<LocalAssetExactBinding>(this, message, value);
+            reflectionMergePartial<ModelAssetExactBinding>(this, message, value);
         return message;
     }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAssetExactBinding): LocalAssetExactBinding {
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ModelAssetExactBinding): ModelAssetExactBinding {
         let message = target ?? this.create(), end = reader.pos + length;
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
@@ -933,8 +1140,8 @@ class LocalAssetExactBinding$Type extends MessageType<LocalAssetExactBinding> {
                 case /* string requirement_id */ 1:
                     message.requirementId = reader.string();
                     break;
-                case /* string local_asset_id */ 2:
-                    message.localAssetId = reader.string();
+                case /* string model_asset_id */ 2:
+                    message.modelAssetId = reader.string();
                     break;
                 case /* string verified_content_id */ 3:
                     message.verifiedContentId = reader.string();
@@ -953,13 +1160,13 @@ class LocalAssetExactBinding$Type extends MessageType<LocalAssetExactBinding> {
         }
         return message;
     }
-    internalBinaryWrite(message: LocalAssetExactBinding, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+    internalBinaryWrite(message: ModelAssetExactBinding, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
         /* string requirement_id = 1; */
         if (message.requirementId !== "")
             writer.tag(1, WireType.LengthDelimited).string(message.requirementId);
-        /* string local_asset_id = 2; */
-        if (message.localAssetId !== "")
-            writer.tag(2, WireType.LengthDelimited).string(message.localAssetId);
+        /* string model_asset_id = 2; */
+        if (message.modelAssetId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.modelAssetId);
         /* string verified_content_id = 3; */
         if (message.verifiedContentId !== "")
             writer.tag(3, WireType.LengthDelimited).string(message.verifiedContentId);
@@ -973,86 +1180,59 @@ class LocalAssetExactBinding$Type extends MessageType<LocalAssetExactBinding> {
     }
 }
 /**
- * @generated MessageType for protobuf message nimi.runtime.v1.LocalAssetExactBinding
+ * @generated MessageType for protobuf message nimi.runtime.v1.ModelAssetExactBinding
  */
-export const LocalAssetExactBinding = new LocalAssetExactBinding$Type();
+export const ModelAssetExactBinding = new ModelAssetExactBinding$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class LocalCapabilityConfiguration$Type extends MessageType<LocalCapabilityConfiguration> {
+class LoadoutModelAxis$Type extends MessageType<LoadoutModelAxis> {
     constructor() {
-        super("nimi.runtime.v1.LocalCapabilityConfiguration", [
-            { no: 1, name: "configuration_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "capability_contract", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "implementation", kind: "message", T: () => CapabilityImplementationIdentity },
-            { no: 4, name: "portable_config", kind: "message", T: () => Struct },
-            { no: 5, name: "projected_requirements", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalCapabilityRequirement },
-            { no: 6, name: "exact_bindings", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalAssetExactBinding },
-            { no: 7, name: "supported_features", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
-            { no: 8, name: "interpretability", kind: "enum", T: () => ["nimi.runtime.v1.LocalCapabilityInterpretability", LocalCapabilityInterpretability, "LOCAL_CAPABILITY_INTERPRETABILITY_"] },
-            { no: 9, name: "requirement_resolution", kind: "enum", T: () => ["nimi.runtime.v1.LocalCapabilityRequirementResolution", LocalCapabilityRequirementResolution, "LOCAL_CAPABILITY_REQUIREMENT_RESOLUTION_"] },
-            { no: 10, name: "reasons", kind: "enum", repeat: 1 /*RepeatType.PACKED*/, T: () => ["nimi.runtime.v1.LocalCapabilityReason", LocalCapabilityReason, "LOCAL_CAPABILITY_REASON_"] },
-            { no: 11, name: "display_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 12, name: "provenance", kind: "message", T: () => Struct }
+        super("nimi.runtime.v1.LoadoutModelAxis", [
+            { no: 1, name: "slot_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "display_label", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "model_asset_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "expected_content_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "recipe_compatible", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 6, name: "reasons", kind: "enum", repeat: 1 /*RepeatType.PACKED*/, T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] }
         ]);
     }
-    create(value?: PartialMessage<LocalCapabilityConfiguration>): LocalCapabilityConfiguration {
+    create(value?: PartialMessage<LoadoutModelAxis>): LoadoutModelAxis {
         const message = globalThis.Object.create((this.messagePrototype!));
-        message.configurationId = "";
-        message.capabilityContract = "";
-        message.projectedRequirements = [];
-        message.exactBindings = [];
-        message.supportedFeatures = [];
-        message.interpretability = 0;
-        message.requirementResolution = 0;
+        message.slotId = "";
+        message.displayLabel = "";
+        message.modelAssetId = "";
+        message.expectedContentId = "";
+        message.recipeCompatible = false;
         message.reasons = [];
-        message.displayName = "";
         if (value !== undefined)
-            reflectionMergePartial<LocalCapabilityConfiguration>(this, message, value);
+            reflectionMergePartial<LoadoutModelAxis>(this, message, value);
         return message;
     }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalCapabilityConfiguration): LocalCapabilityConfiguration {
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LoadoutModelAxis): LoadoutModelAxis {
         let message = target ?? this.create(), end = reader.pos + length;
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
-                case /* string configuration_id */ 1:
-                    message.configurationId = reader.string();
+                case /* string slot_id */ 1:
+                    message.slotId = reader.string();
                     break;
-                case /* string capability_contract */ 2:
-                    message.capabilityContract = reader.string();
+                case /* string display_label */ 2:
+                    message.displayLabel = reader.string();
                     break;
-                case /* nimi.runtime.v1.CapabilityImplementationIdentity implementation */ 3:
-                    message.implementation = CapabilityImplementationIdentity.internalBinaryRead(reader, reader.uint32(), options, message.implementation);
+                case /* string model_asset_id */ 3:
+                    message.modelAssetId = reader.string();
                     break;
-                case /* google.protobuf.Struct portable_config */ 4:
-                    message.portableConfig = Struct.internalBinaryRead(reader, reader.uint32(), options, message.portableConfig);
+                case /* string expected_content_id */ 4:
+                    message.expectedContentId = reader.string();
                     break;
-                case /* repeated nimi.runtime.v1.LocalCapabilityRequirement projected_requirements */ 5:
-                    message.projectedRequirements.push(LocalCapabilityRequirement.internalBinaryRead(reader, reader.uint32(), options));
+                case /* bool recipe_compatible */ 5:
+                    message.recipeCompatible = reader.bool();
                     break;
-                case /* repeated nimi.runtime.v1.LocalAssetExactBinding exact_bindings */ 6:
-                    message.exactBindings.push(LocalAssetExactBinding.internalBinaryRead(reader, reader.uint32(), options));
-                    break;
-                case /* repeated string supported_features */ 7:
-                    message.supportedFeatures.push(reader.string());
-                    break;
-                case /* nimi.runtime.v1.LocalCapabilityInterpretability interpretability */ 8:
-                    message.interpretability = reader.int32();
-                    break;
-                case /* nimi.runtime.v1.LocalCapabilityRequirementResolution requirement_resolution */ 9:
-                    message.requirementResolution = reader.int32();
-                    break;
-                case /* repeated nimi.runtime.v1.LocalCapabilityReason reasons */ 10:
+                case /* repeated nimi.runtime.v1.ReasonCode reasons */ 6:
                     if (wireType === WireType.LengthDelimited)
                         for (let e = reader.int32() + reader.pos; reader.pos < e;)
                             message.reasons.push(reader.int32());
                     else
                         message.reasons.push(reader.int32());
-                    break;
-                case /* string display_name */ 11:
-                    message.displayName = reader.string();
-                    break;
-                case /* google.protobuf.Struct provenance */ 12:
-                    message.provenance = Struct.internalBinaryRead(reader, reader.uint32(), options, message.provenance);
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1065,47 +1245,29 @@ class LocalCapabilityConfiguration$Type extends MessageType<LocalCapabilityConfi
         }
         return message;
     }
-    internalBinaryWrite(message: LocalCapabilityConfiguration, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* string configuration_id = 1; */
-        if (message.configurationId !== "")
-            writer.tag(1, WireType.LengthDelimited).string(message.configurationId);
-        /* string capability_contract = 2; */
-        if (message.capabilityContract !== "")
-            writer.tag(2, WireType.LengthDelimited).string(message.capabilityContract);
-        /* nimi.runtime.v1.CapabilityImplementationIdentity implementation = 3; */
-        if (message.implementation)
-            CapabilityImplementationIdentity.internalBinaryWrite(message.implementation, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
-        /* google.protobuf.Struct portable_config = 4; */
-        if (message.portableConfig)
-            Struct.internalBinaryWrite(message.portableConfig, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
-        /* repeated nimi.runtime.v1.LocalCapabilityRequirement projected_requirements = 5; */
-        for (let i = 0; i < message.projectedRequirements.length; i++)
-            LocalCapabilityRequirement.internalBinaryWrite(message.projectedRequirements[i], writer.tag(5, WireType.LengthDelimited).fork(), options).join();
-        /* repeated nimi.runtime.v1.LocalAssetExactBinding exact_bindings = 6; */
-        for (let i = 0; i < message.exactBindings.length; i++)
-            LocalAssetExactBinding.internalBinaryWrite(message.exactBindings[i], writer.tag(6, WireType.LengthDelimited).fork(), options).join();
-        /* repeated string supported_features = 7; */
-        for (let i = 0; i < message.supportedFeatures.length; i++)
-            writer.tag(7, WireType.LengthDelimited).string(message.supportedFeatures[i]);
-        /* nimi.runtime.v1.LocalCapabilityInterpretability interpretability = 8; */
-        if (message.interpretability !== 0)
-            writer.tag(8, WireType.Varint).int32(message.interpretability);
-        /* nimi.runtime.v1.LocalCapabilityRequirementResolution requirement_resolution = 9; */
-        if (message.requirementResolution !== 0)
-            writer.tag(9, WireType.Varint).int32(message.requirementResolution);
-        /* repeated nimi.runtime.v1.LocalCapabilityReason reasons = 10; */
+    internalBinaryWrite(message: LoadoutModelAxis, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string slot_id = 1; */
+        if (message.slotId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.slotId);
+        /* string display_label = 2; */
+        if (message.displayLabel !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.displayLabel);
+        /* string model_asset_id = 3; */
+        if (message.modelAssetId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.modelAssetId);
+        /* string expected_content_id = 4; */
+        if (message.expectedContentId !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.expectedContentId);
+        /* bool recipe_compatible = 5; */
+        if (message.recipeCompatible !== false)
+            writer.tag(5, WireType.Varint).bool(message.recipeCompatible);
+        /* repeated nimi.runtime.v1.ReasonCode reasons = 6; */
         if (message.reasons.length) {
-            writer.tag(10, WireType.LengthDelimited).fork();
+            writer.tag(6, WireType.LengthDelimited).fork();
             for (let i = 0; i < message.reasons.length; i++)
                 writer.int32(message.reasons[i]);
             writer.join();
         }
-        /* string display_name = 11; */
-        if (message.displayName !== "")
-            writer.tag(11, WireType.LengthDelimited).string(message.displayName);
-        /* google.protobuf.Struct provenance = 12; */
-        if (message.provenance)
-            Struct.internalBinaryWrite(message.provenance, writer.tag(12, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -1113,27 +1275,246 @@ class LocalCapabilityConfiguration$Type extends MessageType<LocalCapabilityConfi
     }
 }
 /**
- * @generated MessageType for protobuf message nimi.runtime.v1.LocalCapabilityConfiguration
+ * @generated MessageType for protobuf message nimi.runtime.v1.LoadoutModelAxis
  */
-export const LocalCapabilityConfiguration = new LocalCapabilityConfiguration$Type();
+export const LoadoutModelAxis = new LoadoutModelAxis$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class LocalCapabilitySelection$Type extends MessageType<LocalCapabilitySelection> {
+class LoadoutRecipeCustodyReference$Type extends MessageType<LoadoutRecipeCustodyReference> {
     constructor() {
-        super("nimi.runtime.v1.LocalCapabilitySelection", [
+        super("nimi.runtime.v1.LoadoutRecipeCustodyReference", [
+            { no: 1, name: "custody_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "expected_content_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<LoadoutRecipeCustodyReference>): LoadoutRecipeCustodyReference {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.custodyId = "";
+        message.expectedContentId = "";
+        if (value !== undefined)
+            reflectionMergePartial<LoadoutRecipeCustodyReference>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LoadoutRecipeCustodyReference): LoadoutRecipeCustodyReference {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string custody_id */ 1:
+                    message.custodyId = reader.string();
+                    break;
+                case /* string expected_content_id */ 2:
+                    message.expectedContentId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LoadoutRecipeCustodyReference, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string custody_id = 1; */
+        if (message.custodyId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.custodyId);
+        /* string expected_content_id = 2; */
+        if (message.expectedContentId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.expectedContentId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LoadoutRecipeCustodyReference
+ */
+export const LoadoutRecipeCustodyReference = new LoadoutRecipeCustodyReference$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class Loadout$Type extends MessageType<Loadout> {
+    constructor() {
+        super("nimi.runtime.v1.Loadout", [
+            { no: 1, name: "loadout_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "capability_contract", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "implementation", kind: "message", T: () => CapabilityImplementationIdentity },
+            { no: 4, name: "recipe_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "recipe_revision", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "options", kind: "message", T: () => Struct },
+            { no: 7, name: "model_axes", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LoadoutModelAxis },
+            { no: 8, name: "recipe_custody", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LoadoutRecipeCustodyReference },
+            { no: 9, name: "supported_features", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 10, name: "validation_state", kind: "enum", T: () => ["nimi.runtime.v1.LoadoutValidationState", LoadoutValidationState, "LOADOUT_VALIDATION_STATE_"] },
+            { no: 11, name: "reasons", kind: "enum", repeat: 1 /*RepeatType.PACKED*/, T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] },
+            { no: 12, name: "display_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 13, name: "provenance", kind: "message", T: () => Struct },
+            { no: 14, name: "created_at", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 15, name: "updated_at", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<Loadout>): Loadout {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.loadoutId = "";
+        message.capabilityContract = "";
+        message.recipeId = "";
+        message.recipeRevision = "";
+        message.modelAxes = [];
+        message.recipeCustody = [];
+        message.supportedFeatures = [];
+        message.validationState = 0;
+        message.reasons = [];
+        message.displayName = "";
+        message.createdAt = "";
+        message.updatedAt = "";
+        if (value !== undefined)
+            reflectionMergePartial<Loadout>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: Loadout): Loadout {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string loadout_id */ 1:
+                    message.loadoutId = reader.string();
+                    break;
+                case /* string capability_contract */ 2:
+                    message.capabilityContract = reader.string();
+                    break;
+                case /* nimi.runtime.v1.CapabilityImplementationIdentity implementation */ 3:
+                    message.implementation = CapabilityImplementationIdentity.internalBinaryRead(reader, reader.uint32(), options, message.implementation);
+                    break;
+                case /* string recipe_id */ 4:
+                    message.recipeId = reader.string();
+                    break;
+                case /* string recipe_revision */ 5:
+                    message.recipeRevision = reader.string();
+                    break;
+                case /* google.protobuf.Struct options */ 6:
+                    message.options = Struct.internalBinaryRead(reader, reader.uint32(), options, message.options);
+                    break;
+                case /* repeated nimi.runtime.v1.LoadoutModelAxis model_axes */ 7:
+                    message.modelAxes.push(LoadoutModelAxis.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* repeated nimi.runtime.v1.LoadoutRecipeCustodyReference recipe_custody */ 8:
+                    message.recipeCustody.push(LoadoutRecipeCustodyReference.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* repeated string supported_features */ 9:
+                    message.supportedFeatures.push(reader.string());
+                    break;
+                case /* nimi.runtime.v1.LoadoutValidationState validation_state */ 10:
+                    message.validationState = reader.int32();
+                    break;
+                case /* repeated nimi.runtime.v1.ReasonCode reasons */ 11:
+                    if (wireType === WireType.LengthDelimited)
+                        for (let e = reader.int32() + reader.pos; reader.pos < e;)
+                            message.reasons.push(reader.int32());
+                    else
+                        message.reasons.push(reader.int32());
+                    break;
+                case /* string display_name */ 12:
+                    message.displayName = reader.string();
+                    break;
+                case /* google.protobuf.Struct provenance */ 13:
+                    message.provenance = Struct.internalBinaryRead(reader, reader.uint32(), options, message.provenance);
+                    break;
+                case /* string created_at */ 14:
+                    message.createdAt = reader.string();
+                    break;
+                case /* string updated_at */ 15:
+                    message.updatedAt = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: Loadout, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string loadout_id = 1; */
+        if (message.loadoutId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.loadoutId);
+        /* string capability_contract = 2; */
+        if (message.capabilityContract !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.capabilityContract);
+        /* nimi.runtime.v1.CapabilityImplementationIdentity implementation = 3; */
+        if (message.implementation)
+            CapabilityImplementationIdentity.internalBinaryWrite(message.implementation, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
+        /* string recipe_id = 4; */
+        if (message.recipeId !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.recipeId);
+        /* string recipe_revision = 5; */
+        if (message.recipeRevision !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.recipeRevision);
+        /* google.protobuf.Struct options = 6; */
+        if (message.options)
+            Struct.internalBinaryWrite(message.options, writer.tag(6, WireType.LengthDelimited).fork(), options).join();
+        /* repeated nimi.runtime.v1.LoadoutModelAxis model_axes = 7; */
+        for (let i = 0; i < message.modelAxes.length; i++)
+            LoadoutModelAxis.internalBinaryWrite(message.modelAxes[i], writer.tag(7, WireType.LengthDelimited).fork(), options).join();
+        /* repeated nimi.runtime.v1.LoadoutRecipeCustodyReference recipe_custody = 8; */
+        for (let i = 0; i < message.recipeCustody.length; i++)
+            LoadoutRecipeCustodyReference.internalBinaryWrite(message.recipeCustody[i], writer.tag(8, WireType.LengthDelimited).fork(), options).join();
+        /* repeated string supported_features = 9; */
+        for (let i = 0; i < message.supportedFeatures.length; i++)
+            writer.tag(9, WireType.LengthDelimited).string(message.supportedFeatures[i]);
+        /* nimi.runtime.v1.LoadoutValidationState validation_state = 10; */
+        if (message.validationState !== 0)
+            writer.tag(10, WireType.Varint).int32(message.validationState);
+        /* repeated nimi.runtime.v1.ReasonCode reasons = 11; */
+        if (message.reasons.length) {
+            writer.tag(11, WireType.LengthDelimited).fork();
+            for (let i = 0; i < message.reasons.length; i++)
+                writer.int32(message.reasons[i]);
+            writer.join();
+        }
+        /* string display_name = 12; */
+        if (message.displayName !== "")
+            writer.tag(12, WireType.LengthDelimited).string(message.displayName);
+        /* google.protobuf.Struct provenance = 13; */
+        if (message.provenance)
+            Struct.internalBinaryWrite(message.provenance, writer.tag(13, WireType.LengthDelimited).fork(), options).join();
+        /* string created_at = 14; */
+        if (message.createdAt !== "")
+            writer.tag(14, WireType.LengthDelimited).string(message.createdAt);
+        /* string updated_at = 15; */
+        if (message.updatedAt !== "")
+            writer.tag(15, WireType.LengthDelimited).string(message.updatedAt);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.Loadout
+ */
+export const Loadout = new Loadout$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class LoadoutSelection$Type extends MessageType<LoadoutSelection> {
+    constructor() {
+        super("nimi.runtime.v1.LoadoutSelection", [
             { no: 1, name: "capability_contract", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "configuration_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "loadout_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "effective_defaults", kind: "message", T: () => Struct }
         ]);
     }
-    create(value?: PartialMessage<LocalCapabilitySelection>): LocalCapabilitySelection {
+    create(value?: PartialMessage<LoadoutSelection>): LoadoutSelection {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.capabilityContract = "";
-        message.configurationId = "";
+        message.loadoutId = "";
         if (value !== undefined)
-            reflectionMergePartial<LocalCapabilitySelection>(this, message, value);
+            reflectionMergePartial<LoadoutSelection>(this, message, value);
         return message;
     }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalCapabilitySelection): LocalCapabilitySelection {
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LoadoutSelection): LoadoutSelection {
         let message = target ?? this.create(), end = reader.pos + length;
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
@@ -1141,8 +1522,8 @@ class LocalCapabilitySelection$Type extends MessageType<LocalCapabilitySelection
                 case /* string capability_contract */ 1:
                     message.capabilityContract = reader.string();
                     break;
-                case /* string configuration_id */ 2:
-                    message.configurationId = reader.string();
+                case /* string loadout_id */ 2:
+                    message.loadoutId = reader.string();
                     break;
                 case /* google.protobuf.Struct effective_defaults */ 3:
                     message.effectiveDefaults = Struct.internalBinaryRead(reader, reader.uint32(), options, message.effectiveDefaults);
@@ -1158,13 +1539,13 @@ class LocalCapabilitySelection$Type extends MessageType<LocalCapabilitySelection
         }
         return message;
     }
-    internalBinaryWrite(message: LocalCapabilitySelection, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+    internalBinaryWrite(message: LoadoutSelection, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
         /* string capability_contract = 1; */
         if (message.capabilityContract !== "")
             writer.tag(1, WireType.LengthDelimited).string(message.capabilityContract);
-        /* string configuration_id = 2; */
-        if (message.configurationId !== "")
-            writer.tag(2, WireType.LengthDelimited).string(message.configurationId);
+        /* string loadout_id = 2; */
+        if (message.loadoutId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.loadoutId);
         /* google.protobuf.Struct effective_defaults = 3; */
         if (message.effectiveDefaults)
             Struct.internalBinaryWrite(message.effectiveDefaults, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
@@ -1175,35 +1556,35 @@ class LocalCapabilitySelection$Type extends MessageType<LocalCapabilitySelection
     }
 }
 /**
- * @generated MessageType for protobuf message nimi.runtime.v1.LocalCapabilitySelection
+ * @generated MessageType for protobuf message nimi.runtime.v1.LoadoutSelection
  */
-export const LocalCapabilitySelection = new LocalCapabilitySelection$Type();
+export const LoadoutSelection = new LoadoutSelection$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class MachineLocalAIConfiguration$Type extends MessageType<MachineLocalAIConfiguration> {
+class MachineLoadouts$Type extends MessageType<MachineLoadouts> {
     constructor() {
-        super("nimi.runtime.v1.MachineLocalAIConfiguration", [
-            { no: 1, name: "configurations", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalCapabilityConfiguration },
-            { no: 2, name: "selections", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalCapabilitySelection }
+        super("nimi.runtime.v1.MachineLoadouts", [
+            { no: 1, name: "loadouts", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => Loadout },
+            { no: 2, name: "selections", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LoadoutSelection }
         ]);
     }
-    create(value?: PartialMessage<MachineLocalAIConfiguration>): MachineLocalAIConfiguration {
+    create(value?: PartialMessage<MachineLoadouts>): MachineLoadouts {
         const message = globalThis.Object.create((this.messagePrototype!));
-        message.configurations = [];
+        message.loadouts = [];
         message.selections = [];
         if (value !== undefined)
-            reflectionMergePartial<MachineLocalAIConfiguration>(this, message, value);
+            reflectionMergePartial<MachineLoadouts>(this, message, value);
         return message;
     }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: MachineLocalAIConfiguration): MachineLocalAIConfiguration {
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: MachineLoadouts): MachineLoadouts {
         let message = target ?? this.create(), end = reader.pos + length;
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
-                case /* repeated nimi.runtime.v1.LocalCapabilityConfiguration configurations */ 1:
-                    message.configurations.push(LocalCapabilityConfiguration.internalBinaryRead(reader, reader.uint32(), options));
+                case /* repeated nimi.runtime.v1.Loadout loadouts */ 1:
+                    message.loadouts.push(Loadout.internalBinaryRead(reader, reader.uint32(), options));
                     break;
-                case /* repeated nimi.runtime.v1.LocalCapabilitySelection selections */ 2:
-                    message.selections.push(LocalCapabilitySelection.internalBinaryRead(reader, reader.uint32(), options));
+                case /* repeated nimi.runtime.v1.LoadoutSelection selections */ 2:
+                    message.selections.push(LoadoutSelection.internalBinaryRead(reader, reader.uint32(), options));
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1216,13 +1597,13 @@ class MachineLocalAIConfiguration$Type extends MessageType<MachineLocalAIConfigu
         }
         return message;
     }
-    internalBinaryWrite(message: MachineLocalAIConfiguration, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* repeated nimi.runtime.v1.LocalCapabilityConfiguration configurations = 1; */
-        for (let i = 0; i < message.configurations.length; i++)
-            LocalCapabilityConfiguration.internalBinaryWrite(message.configurations[i], writer.tag(1, WireType.LengthDelimited).fork(), options).join();
-        /* repeated nimi.runtime.v1.LocalCapabilitySelection selections = 2; */
+    internalBinaryWrite(message: MachineLoadouts, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* repeated nimi.runtime.v1.Loadout loadouts = 1; */
+        for (let i = 0; i < message.loadouts.length; i++)
+            Loadout.internalBinaryWrite(message.loadouts[i], writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* repeated nimi.runtime.v1.LoadoutSelection selections = 2; */
         for (let i = 0; i < message.selections.length; i++)
-            LocalCapabilitySelection.internalBinaryWrite(message.selections[i], writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+            LoadoutSelection.internalBinaryWrite(message.selections[i], writer.tag(2, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -1230,9 +1611,1393 @@ class MachineLocalAIConfiguration$Type extends MessageType<MachineLocalAIConfigu
     }
 }
 /**
- * @generated MessageType for protobuf message nimi.runtime.v1.MachineLocalAIConfiguration
+ * @generated MessageType for protobuf message nimi.runtime.v1.MachineLoadouts
  */
-export const MachineLocalAIConfiguration = new MachineLocalAIConfiguration$Type();
+export const MachineLoadouts = new MachineLoadouts$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class LoadoutModelAxisInput$Type extends MessageType<LoadoutModelAxisInput> {
+    constructor() {
+        super("nimi.runtime.v1.LoadoutModelAxisInput", [
+            { no: 1, name: "slot_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "model_asset_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "expected_content_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<LoadoutModelAxisInput>): LoadoutModelAxisInput {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.slotId = "";
+        message.modelAssetId = "";
+        message.expectedContentId = "";
+        if (value !== undefined)
+            reflectionMergePartial<LoadoutModelAxisInput>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LoadoutModelAxisInput): LoadoutModelAxisInput {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string slot_id */ 1:
+                    message.slotId = reader.string();
+                    break;
+                case /* string model_asset_id */ 2:
+                    message.modelAssetId = reader.string();
+                    break;
+                case /* string expected_content_id */ 3:
+                    message.expectedContentId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LoadoutModelAxisInput, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string slot_id = 1; */
+        if (message.slotId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.slotId);
+        /* string model_asset_id = 2; */
+        if (message.modelAssetId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.modelAssetId);
+        /* string expected_content_id = 3; */
+        if (message.expectedContentId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.expectedContentId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LoadoutModelAxisInput
+ */
+export const LoadoutModelAxisInput = new LoadoutModelAxisInput$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class LoadoutImpactProjection$Type extends MessageType<LoadoutImpactProjection> {
+    constructor() {
+        super("nimi.runtime.v1.LoadoutImpactProjection", [
+            { no: 1, name: "capability_contract", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "loadout_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "changes_future_local_execution", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 4, name: "confirmation_required", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+        ]);
+    }
+    create(value?: PartialMessage<LoadoutImpactProjection>): LoadoutImpactProjection {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.capabilityContract = "";
+        message.loadoutId = "";
+        message.changesFutureLocalExecution = false;
+        message.confirmationRequired = false;
+        if (value !== undefined)
+            reflectionMergePartial<LoadoutImpactProjection>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LoadoutImpactProjection): LoadoutImpactProjection {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string capability_contract */ 1:
+                    message.capabilityContract = reader.string();
+                    break;
+                case /* string loadout_id */ 2:
+                    message.loadoutId = reader.string();
+                    break;
+                case /* bool changes_future_local_execution */ 3:
+                    message.changesFutureLocalExecution = reader.bool();
+                    break;
+                case /* bool confirmation_required */ 4:
+                    message.confirmationRequired = reader.bool();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LoadoutImpactProjection, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string capability_contract = 1; */
+        if (message.capabilityContract !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.capabilityContract);
+        /* string loadout_id = 2; */
+        if (message.loadoutId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.loadoutId);
+        /* bool changes_future_local_execution = 3; */
+        if (message.changesFutureLocalExecution !== false)
+            writer.tag(3, WireType.Varint).bool(message.changesFutureLocalExecution);
+        /* bool confirmation_required = 4; */
+        if (message.confirmationRequired !== false)
+            writer.tag(4, WireType.Varint).bool(message.confirmationRequired);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LoadoutImpactProjection
+ */
+export const LoadoutImpactProjection = new LoadoutImpactProjection$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class LoadoutRecipeSlotDescriptor$Type extends MessageType<LoadoutRecipeSlotDescriptor> {
+    constructor() {
+        super("nimi.runtime.v1.LoadoutRecipeSlotDescriptor", [
+            { no: 1, name: "slot_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "display_label", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "recommended_content_ids", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "model_contract", kind: "message", T: () => Struct },
+            { no: 5, name: "recommended_variant_ids", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<LoadoutRecipeSlotDescriptor>): LoadoutRecipeSlotDescriptor {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.slotId = "";
+        message.displayLabel = "";
+        message.recommendedContentIds = [];
+        message.recommendedVariantIds = [];
+        if (value !== undefined)
+            reflectionMergePartial<LoadoutRecipeSlotDescriptor>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LoadoutRecipeSlotDescriptor): LoadoutRecipeSlotDescriptor {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string slot_id */ 1:
+                    message.slotId = reader.string();
+                    break;
+                case /* string display_label */ 2:
+                    message.displayLabel = reader.string();
+                    break;
+                case /* repeated string recommended_content_ids */ 3:
+                    message.recommendedContentIds.push(reader.string());
+                    break;
+                case /* google.protobuf.Struct model_contract */ 4:
+                    message.modelContract = Struct.internalBinaryRead(reader, reader.uint32(), options, message.modelContract);
+                    break;
+                case /* repeated string recommended_variant_ids */ 5:
+                    message.recommendedVariantIds.push(reader.string());
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LoadoutRecipeSlotDescriptor, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string slot_id = 1; */
+        if (message.slotId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.slotId);
+        /* string display_label = 2; */
+        if (message.displayLabel !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.displayLabel);
+        /* repeated string recommended_content_ids = 3; */
+        for (let i = 0; i < message.recommendedContentIds.length; i++)
+            writer.tag(3, WireType.LengthDelimited).string(message.recommendedContentIds[i]);
+        /* google.protobuf.Struct model_contract = 4; */
+        if (message.modelContract)
+            Struct.internalBinaryWrite(message.modelContract, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
+        /* repeated string recommended_variant_ids = 5; */
+        for (let i = 0; i < message.recommendedVariantIds.length; i++)
+            writer.tag(5, WireType.LengthDelimited).string(message.recommendedVariantIds[i]);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LoadoutRecipeSlotDescriptor
+ */
+export const LoadoutRecipeSlotDescriptor = new LoadoutRecipeSlotDescriptor$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class LoadoutRecipeDescriptor$Type extends MessageType<LoadoutRecipeDescriptor> {
+    constructor() {
+        super("nimi.runtime.v1.LoadoutRecipeDescriptor", [
+            { no: 1, name: "recipe_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "revision", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "title", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "capability_contract", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "implementation", kind: "message", T: () => CapabilityImplementationIdentity },
+            { no: 6, name: "default_options", kind: "message", T: () => Struct },
+            { no: 7, name: "supported_features", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 8, name: "slots", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LoadoutRecipeSlotDescriptor },
+            { no: 9, name: "custody", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LoadoutRecipeCustodyDescriptor }
+        ]);
+    }
+    create(value?: PartialMessage<LoadoutRecipeDescriptor>): LoadoutRecipeDescriptor {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.recipeId = "";
+        message.revision = "";
+        message.title = "";
+        message.capabilityContract = "";
+        message.supportedFeatures = [];
+        message.slots = [];
+        message.custody = [];
+        if (value !== undefined)
+            reflectionMergePartial<LoadoutRecipeDescriptor>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LoadoutRecipeDescriptor): LoadoutRecipeDescriptor {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string recipe_id */ 1:
+                    message.recipeId = reader.string();
+                    break;
+                case /* string revision */ 2:
+                    message.revision = reader.string();
+                    break;
+                case /* string title */ 3:
+                    message.title = reader.string();
+                    break;
+                case /* string capability_contract */ 4:
+                    message.capabilityContract = reader.string();
+                    break;
+                case /* nimi.runtime.v1.CapabilityImplementationIdentity implementation */ 5:
+                    message.implementation = CapabilityImplementationIdentity.internalBinaryRead(reader, reader.uint32(), options, message.implementation);
+                    break;
+                case /* google.protobuf.Struct default_options */ 6:
+                    message.defaultOptions = Struct.internalBinaryRead(reader, reader.uint32(), options, message.defaultOptions);
+                    break;
+                case /* repeated string supported_features */ 7:
+                    message.supportedFeatures.push(reader.string());
+                    break;
+                case /* repeated nimi.runtime.v1.LoadoutRecipeSlotDescriptor slots */ 8:
+                    message.slots.push(LoadoutRecipeSlotDescriptor.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* repeated nimi.runtime.v1.LoadoutRecipeCustodyDescriptor custody */ 9:
+                    message.custody.push(LoadoutRecipeCustodyDescriptor.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LoadoutRecipeDescriptor, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string recipe_id = 1; */
+        if (message.recipeId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.recipeId);
+        /* string revision = 2; */
+        if (message.revision !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.revision);
+        /* string title = 3; */
+        if (message.title !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.title);
+        /* string capability_contract = 4; */
+        if (message.capabilityContract !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.capabilityContract);
+        /* nimi.runtime.v1.CapabilityImplementationIdentity implementation = 5; */
+        if (message.implementation)
+            CapabilityImplementationIdentity.internalBinaryWrite(message.implementation, writer.tag(5, WireType.LengthDelimited).fork(), options).join();
+        /* google.protobuf.Struct default_options = 6; */
+        if (message.defaultOptions)
+            Struct.internalBinaryWrite(message.defaultOptions, writer.tag(6, WireType.LengthDelimited).fork(), options).join();
+        /* repeated string supported_features = 7; */
+        for (let i = 0; i < message.supportedFeatures.length; i++)
+            writer.tag(7, WireType.LengthDelimited).string(message.supportedFeatures[i]);
+        /* repeated nimi.runtime.v1.LoadoutRecipeSlotDescriptor slots = 8; */
+        for (let i = 0; i < message.slots.length; i++)
+            LoadoutRecipeSlotDescriptor.internalBinaryWrite(message.slots[i], writer.tag(8, WireType.LengthDelimited).fork(), options).join();
+        /* repeated nimi.runtime.v1.LoadoutRecipeCustodyDescriptor custody = 9; */
+        for (let i = 0; i < message.custody.length; i++)
+            LoadoutRecipeCustodyDescriptor.internalBinaryWrite(message.custody[i], writer.tag(9, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LoadoutRecipeDescriptor
+ */
+export const LoadoutRecipeDescriptor = new LoadoutRecipeDescriptor$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ListLoadoutRecipesRequest$Type extends MessageType<ListLoadoutRecipesRequest> {
+    constructor() {
+        super("nimi.runtime.v1.ListLoadoutRecipesRequest", [
+            { no: 1, name: "capability_contract", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ListLoadoutRecipesRequest>): ListLoadoutRecipesRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.capabilityContract = "";
+        if (value !== undefined)
+            reflectionMergePartial<ListLoadoutRecipesRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ListLoadoutRecipesRequest): ListLoadoutRecipesRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string capability_contract */ 1:
+                    message.capabilityContract = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ListLoadoutRecipesRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string capability_contract = 1; */
+        if (message.capabilityContract !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.capabilityContract);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ListLoadoutRecipesRequest
+ */
+export const ListLoadoutRecipesRequest = new ListLoadoutRecipesRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ListLoadoutRecipesResponse$Type extends MessageType<ListLoadoutRecipesResponse> {
+    constructor() {
+        super("nimi.runtime.v1.ListLoadoutRecipesResponse", [
+            { no: 1, name: "recipes", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LoadoutRecipeDescriptor }
+        ]);
+    }
+    create(value?: PartialMessage<ListLoadoutRecipesResponse>): ListLoadoutRecipesResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.recipes = [];
+        if (value !== undefined)
+            reflectionMergePartial<ListLoadoutRecipesResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ListLoadoutRecipesResponse): ListLoadoutRecipesResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* repeated nimi.runtime.v1.LoadoutRecipeDescriptor recipes */ 1:
+                    message.recipes.push(LoadoutRecipeDescriptor.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ListLoadoutRecipesResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* repeated nimi.runtime.v1.LoadoutRecipeDescriptor recipes = 1; */
+        for (let i = 0; i < message.recipes.length; i++)
+            LoadoutRecipeDescriptor.internalBinaryWrite(message.recipes[i], writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ListLoadoutRecipesResponse
+ */
+export const ListLoadoutRecipesResponse = new ListLoadoutRecipesResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class GetMachineLoadoutsRequest$Type extends MessageType<GetMachineLoadoutsRequest> {
+    constructor() {
+        super("nimi.runtime.v1.GetMachineLoadoutsRequest", []);
+    }
+    create(value?: PartialMessage<GetMachineLoadoutsRequest>): GetMachineLoadoutsRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<GetMachineLoadoutsRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetMachineLoadoutsRequest): GetMachineLoadoutsRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: GetMachineLoadoutsRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.GetMachineLoadoutsRequest
+ */
+export const GetMachineLoadoutsRequest = new GetMachineLoadoutsRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class GetMachineLoadoutsResponse$Type extends MessageType<GetMachineLoadoutsResponse> {
+    constructor() {
+        super("nimi.runtime.v1.GetMachineLoadoutsResponse", [
+            { no: 1, name: "aggregate", kind: "message", T: () => MachineLoadouts }
+        ]);
+    }
+    create(value?: PartialMessage<GetMachineLoadoutsResponse>): GetMachineLoadoutsResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<GetMachineLoadoutsResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetMachineLoadoutsResponse): GetMachineLoadoutsResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.MachineLoadouts aggregate */ 1:
+                    message.aggregate = MachineLoadouts.internalBinaryRead(reader, reader.uint32(), options, message.aggregate);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: GetMachineLoadoutsResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.MachineLoadouts aggregate = 1; */
+        if (message.aggregate)
+            MachineLoadouts.internalBinaryWrite(message.aggregate, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.GetMachineLoadoutsResponse
+ */
+export const GetMachineLoadoutsResponse = new GetMachineLoadoutsResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class GetLoadoutRequest$Type extends MessageType<GetLoadoutRequest> {
+    constructor() {
+        super("nimi.runtime.v1.GetLoadoutRequest", [
+            { no: 1, name: "loadout_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<GetLoadoutRequest>): GetLoadoutRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.loadoutId = "";
+        if (value !== undefined)
+            reflectionMergePartial<GetLoadoutRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetLoadoutRequest): GetLoadoutRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string loadout_id */ 1:
+                    message.loadoutId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: GetLoadoutRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string loadout_id = 1; */
+        if (message.loadoutId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.loadoutId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.GetLoadoutRequest
+ */
+export const GetLoadoutRequest = new GetLoadoutRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class GetLoadoutResponse$Type extends MessageType<GetLoadoutResponse> {
+    constructor() {
+        super("nimi.runtime.v1.GetLoadoutResponse", [
+            { no: 1, name: "loadout", kind: "message", T: () => Loadout }
+        ]);
+    }
+    create(value?: PartialMessage<GetLoadoutResponse>): GetLoadoutResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<GetLoadoutResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetLoadoutResponse): GetLoadoutResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.Loadout loadout */ 1:
+                    message.loadout = Loadout.internalBinaryRead(reader, reader.uint32(), options, message.loadout);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: GetLoadoutResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.Loadout loadout = 1; */
+        if (message.loadout)
+            Loadout.internalBinaryWrite(message.loadout, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.GetLoadoutResponse
+ */
+export const GetLoadoutResponse = new GetLoadoutResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class PrepareLoadoutRequest$Type extends MessageType<PrepareLoadoutRequest> {
+    constructor() {
+        super("nimi.runtime.v1.PrepareLoadoutRequest", [
+            { no: 1, name: "loadout_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "capability_contract", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "recipe_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "options", kind: "message", T: () => Struct },
+            { no: 5, name: "supported_features", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "model_axes", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LoadoutModelAxisInput },
+            { no: 7, name: "display_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 8, name: "provenance", kind: "message", T: () => Struct }
+        ]);
+    }
+    create(value?: PartialMessage<PrepareLoadoutRequest>): PrepareLoadoutRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.loadoutId = "";
+        message.capabilityContract = "";
+        message.recipeId = "";
+        message.supportedFeatures = [];
+        message.modelAxes = [];
+        message.displayName = "";
+        if (value !== undefined)
+            reflectionMergePartial<PrepareLoadoutRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: PrepareLoadoutRequest): PrepareLoadoutRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string loadout_id */ 1:
+                    message.loadoutId = reader.string();
+                    break;
+                case /* string capability_contract */ 2:
+                    message.capabilityContract = reader.string();
+                    break;
+                case /* string recipe_id */ 3:
+                    message.recipeId = reader.string();
+                    break;
+                case /* google.protobuf.Struct options */ 4:
+                    message.options = Struct.internalBinaryRead(reader, reader.uint32(), options, message.options);
+                    break;
+                case /* repeated string supported_features */ 5:
+                    message.supportedFeatures.push(reader.string());
+                    break;
+                case /* repeated nimi.runtime.v1.LoadoutModelAxisInput model_axes */ 6:
+                    message.modelAxes.push(LoadoutModelAxisInput.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* string display_name */ 7:
+                    message.displayName = reader.string();
+                    break;
+                case /* google.protobuf.Struct provenance */ 8:
+                    message.provenance = Struct.internalBinaryRead(reader, reader.uint32(), options, message.provenance);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: PrepareLoadoutRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string loadout_id = 1; */
+        if (message.loadoutId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.loadoutId);
+        /* string capability_contract = 2; */
+        if (message.capabilityContract !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.capabilityContract);
+        /* string recipe_id = 3; */
+        if (message.recipeId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.recipeId);
+        /* google.protobuf.Struct options = 4; */
+        if (message.options)
+            Struct.internalBinaryWrite(message.options, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
+        /* repeated string supported_features = 5; */
+        for (let i = 0; i < message.supportedFeatures.length; i++)
+            writer.tag(5, WireType.LengthDelimited).string(message.supportedFeatures[i]);
+        /* repeated nimi.runtime.v1.LoadoutModelAxisInput model_axes = 6; */
+        for (let i = 0; i < message.modelAxes.length; i++)
+            LoadoutModelAxisInput.internalBinaryWrite(message.modelAxes[i], writer.tag(6, WireType.LengthDelimited).fork(), options).join();
+        /* string display_name = 7; */
+        if (message.displayName !== "")
+            writer.tag(7, WireType.LengthDelimited).string(message.displayName);
+        /* google.protobuf.Struct provenance = 8; */
+        if (message.provenance)
+            Struct.internalBinaryWrite(message.provenance, writer.tag(8, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.PrepareLoadoutRequest
+ */
+export const PrepareLoadoutRequest = new PrepareLoadoutRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class PrepareLoadoutResponse$Type extends MessageType<PrepareLoadoutResponse> {
+    constructor() {
+        super("nimi.runtime.v1.PrepareLoadoutResponse", [
+            { no: 1, name: "prepare_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "proposed_loadout", kind: "message", T: () => Loadout },
+            { no: 3, name: "expires_at", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "impact", kind: "message", T: () => LoadoutImpactProjection }
+        ]);
+    }
+    create(value?: PartialMessage<PrepareLoadoutResponse>): PrepareLoadoutResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.prepareId = "";
+        message.expiresAt = "";
+        if (value !== undefined)
+            reflectionMergePartial<PrepareLoadoutResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: PrepareLoadoutResponse): PrepareLoadoutResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string prepare_id */ 1:
+                    message.prepareId = reader.string();
+                    break;
+                case /* nimi.runtime.v1.Loadout proposed_loadout */ 2:
+                    message.proposedLoadout = Loadout.internalBinaryRead(reader, reader.uint32(), options, message.proposedLoadout);
+                    break;
+                case /* string expires_at */ 3:
+                    message.expiresAt = reader.string();
+                    break;
+                case /* nimi.runtime.v1.LoadoutImpactProjection impact */ 4:
+                    message.impact = LoadoutImpactProjection.internalBinaryRead(reader, reader.uint32(), options, message.impact);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: PrepareLoadoutResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string prepare_id = 1; */
+        if (message.prepareId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.prepareId);
+        /* nimi.runtime.v1.Loadout proposed_loadout = 2; */
+        if (message.proposedLoadout)
+            Loadout.internalBinaryWrite(message.proposedLoadout, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        /* string expires_at = 3; */
+        if (message.expiresAt !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.expiresAt);
+        /* nimi.runtime.v1.LoadoutImpactProjection impact = 4; */
+        if (message.impact)
+            LoadoutImpactProjection.internalBinaryWrite(message.impact, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.PrepareLoadoutResponse
+ */
+export const PrepareLoadoutResponse = new PrepareLoadoutResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class CommitLoadoutRequest$Type extends MessageType<CommitLoadoutRequest> {
+    constructor() {
+        super("nimi.runtime.v1.CommitLoadoutRequest", [
+            { no: 1, name: "prepare_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "confirmed_machine_impact", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+        ]);
+    }
+    create(value?: PartialMessage<CommitLoadoutRequest>): CommitLoadoutRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.prepareId = "";
+        message.confirmedMachineImpact = false;
+        if (value !== undefined)
+            reflectionMergePartial<CommitLoadoutRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: CommitLoadoutRequest): CommitLoadoutRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string prepare_id */ 1:
+                    message.prepareId = reader.string();
+                    break;
+                case /* bool confirmed_machine_impact */ 2:
+                    message.confirmedMachineImpact = reader.bool();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: CommitLoadoutRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string prepare_id = 1; */
+        if (message.prepareId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.prepareId);
+        /* bool confirmed_machine_impact = 2; */
+        if (message.confirmedMachineImpact !== false)
+            writer.tag(2, WireType.Varint).bool(message.confirmedMachineImpact);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.CommitLoadoutRequest
+ */
+export const CommitLoadoutRequest = new CommitLoadoutRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class CommitLoadoutResponse$Type extends MessageType<CommitLoadoutResponse> {
+    constructor() {
+        super("nimi.runtime.v1.CommitLoadoutResponse", [
+            { no: 1, name: "loadout", kind: "message", T: () => Loadout }
+        ]);
+    }
+    create(value?: PartialMessage<CommitLoadoutResponse>): CommitLoadoutResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<CommitLoadoutResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: CommitLoadoutResponse): CommitLoadoutResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.Loadout loadout */ 1:
+                    message.loadout = Loadout.internalBinaryRead(reader, reader.uint32(), options, message.loadout);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: CommitLoadoutResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.Loadout loadout = 1; */
+        if (message.loadout)
+            Loadout.internalBinaryWrite(message.loadout, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.CommitLoadoutResponse
+ */
+export const CommitLoadoutResponse = new CommitLoadoutResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class UpdateLoadoutRequest$Type extends MessageType<UpdateLoadoutRequest> {
+    constructor() {
+        super("nimi.runtime.v1.UpdateLoadoutRequest", [
+            { no: 1, name: "loadout_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "capability_contract", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "recipe_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "options", kind: "message", T: () => Struct },
+            { no: 5, name: "supported_features", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "model_axes", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LoadoutModelAxisInput },
+            { no: 7, name: "display_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 8, name: "provenance", kind: "message", T: () => Struct },
+            { no: 9, name: "confirmed_machine_impact", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+        ]);
+    }
+    create(value?: PartialMessage<UpdateLoadoutRequest>): UpdateLoadoutRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.loadoutId = "";
+        message.capabilityContract = "";
+        message.recipeId = "";
+        message.supportedFeatures = [];
+        message.modelAxes = [];
+        message.displayName = "";
+        message.confirmedMachineImpact = false;
+        if (value !== undefined)
+            reflectionMergePartial<UpdateLoadoutRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: UpdateLoadoutRequest): UpdateLoadoutRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string loadout_id */ 1:
+                    message.loadoutId = reader.string();
+                    break;
+                case /* string capability_contract */ 2:
+                    message.capabilityContract = reader.string();
+                    break;
+                case /* string recipe_id */ 3:
+                    message.recipeId = reader.string();
+                    break;
+                case /* google.protobuf.Struct options */ 4:
+                    message.options = Struct.internalBinaryRead(reader, reader.uint32(), options, message.options);
+                    break;
+                case /* repeated string supported_features */ 5:
+                    message.supportedFeatures.push(reader.string());
+                    break;
+                case /* repeated nimi.runtime.v1.LoadoutModelAxisInput model_axes */ 6:
+                    message.modelAxes.push(LoadoutModelAxisInput.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* string display_name */ 7:
+                    message.displayName = reader.string();
+                    break;
+                case /* google.protobuf.Struct provenance */ 8:
+                    message.provenance = Struct.internalBinaryRead(reader, reader.uint32(), options, message.provenance);
+                    break;
+                case /* bool confirmed_machine_impact */ 9:
+                    message.confirmedMachineImpact = reader.bool();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: UpdateLoadoutRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string loadout_id = 1; */
+        if (message.loadoutId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.loadoutId);
+        /* string capability_contract = 2; */
+        if (message.capabilityContract !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.capabilityContract);
+        /* string recipe_id = 3; */
+        if (message.recipeId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.recipeId);
+        /* google.protobuf.Struct options = 4; */
+        if (message.options)
+            Struct.internalBinaryWrite(message.options, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
+        /* repeated string supported_features = 5; */
+        for (let i = 0; i < message.supportedFeatures.length; i++)
+            writer.tag(5, WireType.LengthDelimited).string(message.supportedFeatures[i]);
+        /* repeated nimi.runtime.v1.LoadoutModelAxisInput model_axes = 6; */
+        for (let i = 0; i < message.modelAxes.length; i++)
+            LoadoutModelAxisInput.internalBinaryWrite(message.modelAxes[i], writer.tag(6, WireType.LengthDelimited).fork(), options).join();
+        /* string display_name = 7; */
+        if (message.displayName !== "")
+            writer.tag(7, WireType.LengthDelimited).string(message.displayName);
+        /* google.protobuf.Struct provenance = 8; */
+        if (message.provenance)
+            Struct.internalBinaryWrite(message.provenance, writer.tag(8, WireType.LengthDelimited).fork(), options).join();
+        /* bool confirmed_machine_impact = 9; */
+        if (message.confirmedMachineImpact !== false)
+            writer.tag(9, WireType.Varint).bool(message.confirmedMachineImpact);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.UpdateLoadoutRequest
+ */
+export const UpdateLoadoutRequest = new UpdateLoadoutRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class UpdateLoadoutResponse$Type extends MessageType<UpdateLoadoutResponse> {
+    constructor() {
+        super("nimi.runtime.v1.UpdateLoadoutResponse", [
+            { no: 1, name: "loadout", kind: "message", T: () => Loadout }
+        ]);
+    }
+    create(value?: PartialMessage<UpdateLoadoutResponse>): UpdateLoadoutResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<UpdateLoadoutResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: UpdateLoadoutResponse): UpdateLoadoutResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.Loadout loadout */ 1:
+                    message.loadout = Loadout.internalBinaryRead(reader, reader.uint32(), options, message.loadout);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: UpdateLoadoutResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.Loadout loadout = 1; */
+        if (message.loadout)
+            Loadout.internalBinaryWrite(message.loadout, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.UpdateLoadoutResponse
+ */
+export const UpdateLoadoutResponse = new UpdateLoadoutResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class SelectLoadoutRequest$Type extends MessageType<SelectLoadoutRequest> {
+    constructor() {
+        super("nimi.runtime.v1.SelectLoadoutRequest", [
+            { no: 1, name: "capability_contract", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "loadout_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "confirmed_machine_impact", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+        ]);
+    }
+    create(value?: PartialMessage<SelectLoadoutRequest>): SelectLoadoutRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.capabilityContract = "";
+        message.loadoutId = "";
+        message.confirmedMachineImpact = false;
+        if (value !== undefined)
+            reflectionMergePartial<SelectLoadoutRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: SelectLoadoutRequest): SelectLoadoutRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string capability_contract */ 1:
+                    message.capabilityContract = reader.string();
+                    break;
+                case /* string loadout_id */ 2:
+                    message.loadoutId = reader.string();
+                    break;
+                case /* bool confirmed_machine_impact */ 3:
+                    message.confirmedMachineImpact = reader.bool();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: SelectLoadoutRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string capability_contract = 1; */
+        if (message.capabilityContract !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.capabilityContract);
+        /* string loadout_id = 2; */
+        if (message.loadoutId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.loadoutId);
+        /* bool confirmed_machine_impact = 3; */
+        if (message.confirmedMachineImpact !== false)
+            writer.tag(3, WireType.Varint).bool(message.confirmedMachineImpact);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.SelectLoadoutRequest
+ */
+export const SelectLoadoutRequest = new SelectLoadoutRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class SelectLoadoutResponse$Type extends MessageType<SelectLoadoutResponse> {
+    constructor() {
+        super("nimi.runtime.v1.SelectLoadoutResponse", [
+            { no: 1, name: "selection", kind: "message", T: () => LoadoutSelection }
+        ]);
+    }
+    create(value?: PartialMessage<SelectLoadoutResponse>): SelectLoadoutResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<SelectLoadoutResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: SelectLoadoutResponse): SelectLoadoutResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.LoadoutSelection selection */ 1:
+                    message.selection = LoadoutSelection.internalBinaryRead(reader, reader.uint32(), options, message.selection);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: SelectLoadoutResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.LoadoutSelection selection = 1; */
+        if (message.selection)
+            LoadoutSelection.internalBinaryWrite(message.selection, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.SelectLoadoutResponse
+ */
+export const SelectLoadoutResponse = new SelectLoadoutResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class DeleteLoadoutRequest$Type extends MessageType<DeleteLoadoutRequest> {
+    constructor() {
+        super("nimi.runtime.v1.DeleteLoadoutRequest", [
+            { no: 1, name: "loadout_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "confirmed_machine_impact", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+        ]);
+    }
+    create(value?: PartialMessage<DeleteLoadoutRequest>): DeleteLoadoutRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.loadoutId = "";
+        message.confirmedMachineImpact = false;
+        if (value !== undefined)
+            reflectionMergePartial<DeleteLoadoutRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: DeleteLoadoutRequest): DeleteLoadoutRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string loadout_id */ 1:
+                    message.loadoutId = reader.string();
+                    break;
+                case /* bool confirmed_machine_impact */ 2:
+                    message.confirmedMachineImpact = reader.bool();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: DeleteLoadoutRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string loadout_id = 1; */
+        if (message.loadoutId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.loadoutId);
+        /* bool confirmed_machine_impact = 2; */
+        if (message.confirmedMachineImpact !== false)
+            writer.tag(2, WireType.Varint).bool(message.confirmedMachineImpact);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.DeleteLoadoutRequest
+ */
+export const DeleteLoadoutRequest = new DeleteLoadoutRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class DeleteLoadoutResponse$Type extends MessageType<DeleteLoadoutResponse> {
+    constructor() {
+        super("nimi.runtime.v1.DeleteLoadoutResponse", []);
+    }
+    create(value?: PartialMessage<DeleteLoadoutResponse>): DeleteLoadoutResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<DeleteLoadoutResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: DeleteLoadoutResponse): DeleteLoadoutResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: DeleteLoadoutResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.DeleteLoadoutResponse
+ */
+export const DeleteLoadoutResponse = new DeleteLoadoutResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class LoadoutEffectiveModelAxisIdentity$Type extends MessageType<LoadoutEffectiveModelAxisIdentity> {
+    constructor() {
+        super("nimi.runtime.v1.LoadoutEffectiveModelAxisIdentity", [
+            { no: 1, name: "slot_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "model_asset_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "content_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<LoadoutEffectiveModelAxisIdentity>): LoadoutEffectiveModelAxisIdentity {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.slotId = "";
+        message.modelAssetId = "";
+        message.contentId = "";
+        if (value !== undefined)
+            reflectionMergePartial<LoadoutEffectiveModelAxisIdentity>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LoadoutEffectiveModelAxisIdentity): LoadoutEffectiveModelAxisIdentity {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string slot_id */ 1:
+                    message.slotId = reader.string();
+                    break;
+                case /* string model_asset_id */ 2:
+                    message.modelAssetId = reader.string();
+                    break;
+                case /* string content_id */ 3:
+                    message.contentId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LoadoutEffectiveModelAxisIdentity, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string slot_id = 1; */
+        if (message.slotId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.slotId);
+        /* string model_asset_id = 2; */
+        if (message.modelAssetId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.modelAssetId);
+        /* string content_id = 3; */
+        if (message.contentId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.contentId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LoadoutEffectiveModelAxisIdentity
+ */
+export const LoadoutEffectiveModelAxisIdentity = new LoadoutEffectiveModelAxisIdentity$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class LoadoutEffectiveInputIdentity$Type extends MessageType<LoadoutEffectiveInputIdentity> {
+    constructor() {
+        super("nimi.runtime.v1.LoadoutEffectiveInputIdentity", [
+            { no: 1, name: "loadout_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "capability_contract", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "implementation", kind: "message", T: () => CapabilityImplementationIdentity },
+            { no: 4, name: "recipe_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "recipe_revision", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "options", kind: "message", T: () => Struct },
+            { no: 7, name: "model_axes", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LoadoutEffectiveModelAxisIdentity },
+            { no: 8, name: "recipe_custody", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LoadoutRecipeCustodyReference }
+        ]);
+    }
+    create(value?: PartialMessage<LoadoutEffectiveInputIdentity>): LoadoutEffectiveInputIdentity {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.loadoutId = "";
+        message.capabilityContract = "";
+        message.recipeId = "";
+        message.recipeRevision = "";
+        message.modelAxes = [];
+        message.recipeCustody = [];
+        if (value !== undefined)
+            reflectionMergePartial<LoadoutEffectiveInputIdentity>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LoadoutEffectiveInputIdentity): LoadoutEffectiveInputIdentity {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string loadout_id */ 1:
+                    message.loadoutId = reader.string();
+                    break;
+                case /* string capability_contract */ 2:
+                    message.capabilityContract = reader.string();
+                    break;
+                case /* nimi.runtime.v1.CapabilityImplementationIdentity implementation */ 3:
+                    message.implementation = CapabilityImplementationIdentity.internalBinaryRead(reader, reader.uint32(), options, message.implementation);
+                    break;
+                case /* string recipe_id */ 4:
+                    message.recipeId = reader.string();
+                    break;
+                case /* string recipe_revision */ 5:
+                    message.recipeRevision = reader.string();
+                    break;
+                case /* google.protobuf.Struct options */ 6:
+                    message.options = Struct.internalBinaryRead(reader, reader.uint32(), options, message.options);
+                    break;
+                case /* repeated nimi.runtime.v1.LoadoutEffectiveModelAxisIdentity model_axes */ 7:
+                    message.modelAxes.push(LoadoutEffectiveModelAxisIdentity.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* repeated nimi.runtime.v1.LoadoutRecipeCustodyReference recipe_custody */ 8:
+                    message.recipeCustody.push(LoadoutRecipeCustodyReference.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LoadoutEffectiveInputIdentity, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string loadout_id = 1; */
+        if (message.loadoutId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.loadoutId);
+        /* string capability_contract = 2; */
+        if (message.capabilityContract !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.capabilityContract);
+        /* nimi.runtime.v1.CapabilityImplementationIdentity implementation = 3; */
+        if (message.implementation)
+            CapabilityImplementationIdentity.internalBinaryWrite(message.implementation, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
+        /* string recipe_id = 4; */
+        if (message.recipeId !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.recipeId);
+        /* string recipe_revision = 5; */
+        if (message.recipeRevision !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.recipeRevision);
+        /* google.protobuf.Struct options = 6; */
+        if (message.options)
+            Struct.internalBinaryWrite(message.options, writer.tag(6, WireType.LengthDelimited).fork(), options).join();
+        /* repeated nimi.runtime.v1.LoadoutEffectiveModelAxisIdentity model_axes = 7; */
+        for (let i = 0; i < message.modelAxes.length; i++)
+            LoadoutEffectiveModelAxisIdentity.internalBinaryWrite(message.modelAxes[i], writer.tag(7, WireType.LengthDelimited).fork(), options).join();
+        /* repeated nimi.runtime.v1.LoadoutRecipeCustodyReference recipe_custody = 8; */
+        for (let i = 0; i < message.recipeCustody.length; i++)
+            LoadoutRecipeCustodyReference.internalBinaryWrite(message.recipeCustody[i], writer.tag(8, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LoadoutEffectiveInputIdentity
+ */
+export const LoadoutEffectiveInputIdentity = new LoadoutEffectiveInputIdentity$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class AIConfigAppOwner$Type extends MessageType<AIConfigAppOwner> {
     constructor() {
@@ -1791,63 +3556,41 @@ class OverwriteAppAIConfigResponse$Type extends MessageType<OverwriteAppAIConfig
  */
 export const OverwriteAppAIConfigResponse = new OverwriteAppAIConfigResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class GetMachineLocalAIConfigurationRequest$Type extends MessageType<GetMachineLocalAIConfigurationRequest> {
+class LoadoutRecipeCustodyDescriptor$Type extends MessageType<LoadoutRecipeCustodyDescriptor> {
     constructor() {
-        super("nimi.runtime.v1.GetMachineLocalAIConfigurationRequest", []);
-    }
-    create(value?: PartialMessage<GetMachineLocalAIConfigurationRequest>): GetMachineLocalAIConfigurationRequest {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        if (value !== undefined)
-            reflectionMergePartial<GetMachineLocalAIConfigurationRequest>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetMachineLocalAIConfigurationRequest): GetMachineLocalAIConfigurationRequest {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: GetMachineLocalAIConfigurationRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.GetMachineLocalAIConfigurationRequest
- */
-export const GetMachineLocalAIConfigurationRequest = new GetMachineLocalAIConfigurationRequest$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class GetMachineLocalAIConfigurationResponse$Type extends MessageType<GetMachineLocalAIConfigurationResponse> {
-    constructor() {
-        super("nimi.runtime.v1.GetMachineLocalAIConfigurationResponse", [
-            { no: 1, name: "aggregate", kind: "message", T: () => MachineLocalAIConfiguration }
+        super("nimi.runtime.v1.LoadoutRecipeCustodyDescriptor", [
+            { no: 1, name: "file", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "sha256", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "source", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "role", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
-    create(value?: PartialMessage<GetMachineLocalAIConfigurationResponse>): GetMachineLocalAIConfigurationResponse {
+    create(value?: PartialMessage<LoadoutRecipeCustodyDescriptor>): LoadoutRecipeCustodyDescriptor {
         const message = globalThis.Object.create((this.messagePrototype!));
+        message.file = "";
+        message.sha256 = "";
+        message.source = "";
+        message.role = "";
         if (value !== undefined)
-            reflectionMergePartial<GetMachineLocalAIConfigurationResponse>(this, message, value);
+            reflectionMergePartial<LoadoutRecipeCustodyDescriptor>(this, message, value);
         return message;
     }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetMachineLocalAIConfigurationResponse): GetMachineLocalAIConfigurationResponse {
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LoadoutRecipeCustodyDescriptor): LoadoutRecipeCustodyDescriptor {
         let message = target ?? this.create(), end = reader.pos + length;
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
-                case /* nimi.runtime.v1.MachineLocalAIConfiguration aggregate */ 1:
-                    message.aggregate = MachineLocalAIConfiguration.internalBinaryRead(reader, reader.uint32(), options, message.aggregate);
+                case /* string file */ 1:
+                    message.file = reader.string();
+                    break;
+                case /* string sha256 */ 2:
+                    message.sha256 = reader.string();
+                    break;
+                case /* string source */ 3:
+                    message.source = reader.string();
+                    break;
+                case /* string role */ 4:
+                    message.role = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1860,10 +3603,19 @@ class GetMachineLocalAIConfigurationResponse$Type extends MessageType<GetMachine
         }
         return message;
     }
-    internalBinaryWrite(message: GetMachineLocalAIConfigurationResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* nimi.runtime.v1.MachineLocalAIConfiguration aggregate = 1; */
-        if (message.aggregate)
-            MachineLocalAIConfiguration.internalBinaryWrite(message.aggregate, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+    internalBinaryWrite(message: LoadoutRecipeCustodyDescriptor, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string file = 1; */
+        if (message.file !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.file);
+        /* string sha256 = 2; */
+        if (message.sha256 !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.sha256);
+        /* string source = 3; */
+        if (message.source !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.source);
+        /* string role = 4; */
+        if (message.role !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.role);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -1871,1102 +3623,6 @@ class GetMachineLocalAIConfigurationResponse$Type extends MessageType<GetMachine
     }
 }
 /**
- * @generated MessageType for protobuf message nimi.runtime.v1.GetMachineLocalAIConfigurationResponse
+ * @generated MessageType for protobuf message nimi.runtime.v1.LoadoutRecipeCustodyDescriptor
  */
-export const GetMachineLocalAIConfigurationResponse = new GetMachineLocalAIConfigurationResponse$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class GetLocalCapabilityConfigurationRequest$Type extends MessageType<GetLocalCapabilityConfigurationRequest> {
-    constructor() {
-        super("nimi.runtime.v1.GetLocalCapabilityConfigurationRequest", [
-            { no: 1, name: "configuration_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
-        ]);
-    }
-    create(value?: PartialMessage<GetLocalCapabilityConfigurationRequest>): GetLocalCapabilityConfigurationRequest {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        message.configurationId = "";
-        if (value !== undefined)
-            reflectionMergePartial<GetLocalCapabilityConfigurationRequest>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetLocalCapabilityConfigurationRequest): GetLocalCapabilityConfigurationRequest {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* string configuration_id */ 1:
-                    message.configurationId = reader.string();
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: GetLocalCapabilityConfigurationRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* string configuration_id = 1; */
-        if (message.configurationId !== "")
-            writer.tag(1, WireType.LengthDelimited).string(message.configurationId);
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.GetLocalCapabilityConfigurationRequest
- */
-export const GetLocalCapabilityConfigurationRequest = new GetLocalCapabilityConfigurationRequest$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class GetLocalCapabilityConfigurationResponse$Type extends MessageType<GetLocalCapabilityConfigurationResponse> {
-    constructor() {
-        super("nimi.runtime.v1.GetLocalCapabilityConfigurationResponse", [
-            { no: 1, name: "configuration", kind: "message", T: () => LocalCapabilityConfiguration }
-        ]);
-    }
-    create(value?: PartialMessage<GetLocalCapabilityConfigurationResponse>): GetLocalCapabilityConfigurationResponse {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        if (value !== undefined)
-            reflectionMergePartial<GetLocalCapabilityConfigurationResponse>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetLocalCapabilityConfigurationResponse): GetLocalCapabilityConfigurationResponse {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* nimi.runtime.v1.LocalCapabilityConfiguration configuration */ 1:
-                    message.configuration = LocalCapabilityConfiguration.internalBinaryRead(reader, reader.uint32(), options, message.configuration);
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: GetLocalCapabilityConfigurationResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* nimi.runtime.v1.LocalCapabilityConfiguration configuration = 1; */
-        if (message.configuration)
-            LocalCapabilityConfiguration.internalBinaryWrite(message.configuration, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.GetLocalCapabilityConfigurationResponse
- */
-export const GetLocalCapabilityConfigurationResponse = new GetLocalCapabilityConfigurationResponse$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class AddLocalCapabilityConfigurationRequest$Type extends MessageType<AddLocalCapabilityConfigurationRequest> {
-    constructor() {
-        super("nimi.runtime.v1.AddLocalCapabilityConfigurationRequest", [
-            { no: 1, name: "capability_contract", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "implementation", kind: "message", T: () => CapabilityImplementationIdentity },
-            { no: 3, name: "portable_config", kind: "message", T: () => Struct },
-            { no: 4, name: "supported_features", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
-            { no: 5, name: "display_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 6, name: "provenance", kind: "message", T: () => Struct }
-        ]);
-    }
-    create(value?: PartialMessage<AddLocalCapabilityConfigurationRequest>): AddLocalCapabilityConfigurationRequest {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        message.capabilityContract = "";
-        message.supportedFeatures = [];
-        message.displayName = "";
-        if (value !== undefined)
-            reflectionMergePartial<AddLocalCapabilityConfigurationRequest>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AddLocalCapabilityConfigurationRequest): AddLocalCapabilityConfigurationRequest {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* string capability_contract */ 1:
-                    message.capabilityContract = reader.string();
-                    break;
-                case /* nimi.runtime.v1.CapabilityImplementationIdentity implementation */ 2:
-                    message.implementation = CapabilityImplementationIdentity.internalBinaryRead(reader, reader.uint32(), options, message.implementation);
-                    break;
-                case /* google.protobuf.Struct portable_config */ 3:
-                    message.portableConfig = Struct.internalBinaryRead(reader, reader.uint32(), options, message.portableConfig);
-                    break;
-                case /* repeated string supported_features */ 4:
-                    message.supportedFeatures.push(reader.string());
-                    break;
-                case /* string display_name */ 5:
-                    message.displayName = reader.string();
-                    break;
-                case /* google.protobuf.Struct provenance */ 6:
-                    message.provenance = Struct.internalBinaryRead(reader, reader.uint32(), options, message.provenance);
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: AddLocalCapabilityConfigurationRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* string capability_contract = 1; */
-        if (message.capabilityContract !== "")
-            writer.tag(1, WireType.LengthDelimited).string(message.capabilityContract);
-        /* nimi.runtime.v1.CapabilityImplementationIdentity implementation = 2; */
-        if (message.implementation)
-            CapabilityImplementationIdentity.internalBinaryWrite(message.implementation, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
-        /* google.protobuf.Struct portable_config = 3; */
-        if (message.portableConfig)
-            Struct.internalBinaryWrite(message.portableConfig, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
-        /* repeated string supported_features = 4; */
-        for (let i = 0; i < message.supportedFeatures.length; i++)
-            writer.tag(4, WireType.LengthDelimited).string(message.supportedFeatures[i]);
-        /* string display_name = 5; */
-        if (message.displayName !== "")
-            writer.tag(5, WireType.LengthDelimited).string(message.displayName);
-        /* google.protobuf.Struct provenance = 6; */
-        if (message.provenance)
-            Struct.internalBinaryWrite(message.provenance, writer.tag(6, WireType.LengthDelimited).fork(), options).join();
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.AddLocalCapabilityConfigurationRequest
- */
-export const AddLocalCapabilityConfigurationRequest = new AddLocalCapabilityConfigurationRequest$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class AddLocalCapabilityConfigurationResponse$Type extends MessageType<AddLocalCapabilityConfigurationResponse> {
-    constructor() {
-        super("nimi.runtime.v1.AddLocalCapabilityConfigurationResponse", [
-            { no: 1, name: "configuration", kind: "message", T: () => LocalCapabilityConfiguration }
-        ]);
-    }
-    create(value?: PartialMessage<AddLocalCapabilityConfigurationResponse>): AddLocalCapabilityConfigurationResponse {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        if (value !== undefined)
-            reflectionMergePartial<AddLocalCapabilityConfigurationResponse>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AddLocalCapabilityConfigurationResponse): AddLocalCapabilityConfigurationResponse {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* nimi.runtime.v1.LocalCapabilityConfiguration configuration */ 1:
-                    message.configuration = LocalCapabilityConfiguration.internalBinaryRead(reader, reader.uint32(), options, message.configuration);
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: AddLocalCapabilityConfigurationResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* nimi.runtime.v1.LocalCapabilityConfiguration configuration = 1; */
-        if (message.configuration)
-            LocalCapabilityConfiguration.internalBinaryWrite(message.configuration, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.AddLocalCapabilityConfigurationResponse
- */
-export const AddLocalCapabilityConfigurationResponse = new AddLocalCapabilityConfigurationResponse$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class UpdateLocalCapabilityConfigurationRequest$Type extends MessageType<UpdateLocalCapabilityConfigurationRequest> {
-    constructor() {
-        super("nimi.runtime.v1.UpdateLocalCapabilityConfigurationRequest", [
-            { no: 1, name: "configuration_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "portable_config", kind: "message", T: () => Struct },
-            { no: 3, name: "supported_features", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
-            { no: 4, name: "display_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 5, name: "provenance", kind: "message", T: () => Struct }
-        ]);
-    }
-    create(value?: PartialMessage<UpdateLocalCapabilityConfigurationRequest>): UpdateLocalCapabilityConfigurationRequest {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        message.configurationId = "";
-        message.supportedFeatures = [];
-        message.displayName = "";
-        if (value !== undefined)
-            reflectionMergePartial<UpdateLocalCapabilityConfigurationRequest>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: UpdateLocalCapabilityConfigurationRequest): UpdateLocalCapabilityConfigurationRequest {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* string configuration_id */ 1:
-                    message.configurationId = reader.string();
-                    break;
-                case /* google.protobuf.Struct portable_config */ 2:
-                    message.portableConfig = Struct.internalBinaryRead(reader, reader.uint32(), options, message.portableConfig);
-                    break;
-                case /* repeated string supported_features */ 3:
-                    message.supportedFeatures.push(reader.string());
-                    break;
-                case /* string display_name */ 4:
-                    message.displayName = reader.string();
-                    break;
-                case /* google.protobuf.Struct provenance */ 5:
-                    message.provenance = Struct.internalBinaryRead(reader, reader.uint32(), options, message.provenance);
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: UpdateLocalCapabilityConfigurationRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* string configuration_id = 1; */
-        if (message.configurationId !== "")
-            writer.tag(1, WireType.LengthDelimited).string(message.configurationId);
-        /* google.protobuf.Struct portable_config = 2; */
-        if (message.portableConfig)
-            Struct.internalBinaryWrite(message.portableConfig, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
-        /* repeated string supported_features = 3; */
-        for (let i = 0; i < message.supportedFeatures.length; i++)
-            writer.tag(3, WireType.LengthDelimited).string(message.supportedFeatures[i]);
-        /* string display_name = 4; */
-        if (message.displayName !== "")
-            writer.tag(4, WireType.LengthDelimited).string(message.displayName);
-        /* google.protobuf.Struct provenance = 5; */
-        if (message.provenance)
-            Struct.internalBinaryWrite(message.provenance, writer.tag(5, WireType.LengthDelimited).fork(), options).join();
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.UpdateLocalCapabilityConfigurationRequest
- */
-export const UpdateLocalCapabilityConfigurationRequest = new UpdateLocalCapabilityConfigurationRequest$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class UpdateLocalCapabilityConfigurationResponse$Type extends MessageType<UpdateLocalCapabilityConfigurationResponse> {
-    constructor() {
-        super("nimi.runtime.v1.UpdateLocalCapabilityConfigurationResponse", [
-            { no: 1, name: "configuration", kind: "message", T: () => LocalCapabilityConfiguration }
-        ]);
-    }
-    create(value?: PartialMessage<UpdateLocalCapabilityConfigurationResponse>): UpdateLocalCapabilityConfigurationResponse {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        if (value !== undefined)
-            reflectionMergePartial<UpdateLocalCapabilityConfigurationResponse>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: UpdateLocalCapabilityConfigurationResponse): UpdateLocalCapabilityConfigurationResponse {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* nimi.runtime.v1.LocalCapabilityConfiguration configuration */ 1:
-                    message.configuration = LocalCapabilityConfiguration.internalBinaryRead(reader, reader.uint32(), options, message.configuration);
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: UpdateLocalCapabilityConfigurationResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* nimi.runtime.v1.LocalCapabilityConfiguration configuration = 1; */
-        if (message.configuration)
-            LocalCapabilityConfiguration.internalBinaryWrite(message.configuration, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.UpdateLocalCapabilityConfigurationResponse
- */
-export const UpdateLocalCapabilityConfigurationResponse = new UpdateLocalCapabilityConfigurationResponse$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class SelectLocalCapabilityConfigurationRequest$Type extends MessageType<SelectLocalCapabilityConfigurationRequest> {
-    constructor() {
-        super("nimi.runtime.v1.SelectLocalCapabilityConfigurationRequest", [
-            { no: 1, name: "capability_contract", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "configuration_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
-        ]);
-    }
-    create(value?: PartialMessage<SelectLocalCapabilityConfigurationRequest>): SelectLocalCapabilityConfigurationRequest {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        message.capabilityContract = "";
-        message.configurationId = "";
-        if (value !== undefined)
-            reflectionMergePartial<SelectLocalCapabilityConfigurationRequest>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: SelectLocalCapabilityConfigurationRequest): SelectLocalCapabilityConfigurationRequest {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* string capability_contract */ 1:
-                    message.capabilityContract = reader.string();
-                    break;
-                case /* string configuration_id */ 2:
-                    message.configurationId = reader.string();
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: SelectLocalCapabilityConfigurationRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* string capability_contract = 1; */
-        if (message.capabilityContract !== "")
-            writer.tag(1, WireType.LengthDelimited).string(message.capabilityContract);
-        /* string configuration_id = 2; */
-        if (message.configurationId !== "")
-            writer.tag(2, WireType.LengthDelimited).string(message.configurationId);
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.SelectLocalCapabilityConfigurationRequest
- */
-export const SelectLocalCapabilityConfigurationRequest = new SelectLocalCapabilityConfigurationRequest$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class SelectLocalCapabilityConfigurationResponse$Type extends MessageType<SelectLocalCapabilityConfigurationResponse> {
-    constructor() {
-        super("nimi.runtime.v1.SelectLocalCapabilityConfigurationResponse", [
-            { no: 1, name: "selection", kind: "message", T: () => LocalCapabilitySelection }
-        ]);
-    }
-    create(value?: PartialMessage<SelectLocalCapabilityConfigurationResponse>): SelectLocalCapabilityConfigurationResponse {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        if (value !== undefined)
-            reflectionMergePartial<SelectLocalCapabilityConfigurationResponse>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: SelectLocalCapabilityConfigurationResponse): SelectLocalCapabilityConfigurationResponse {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* nimi.runtime.v1.LocalCapabilitySelection selection */ 1:
-                    message.selection = LocalCapabilitySelection.internalBinaryRead(reader, reader.uint32(), options, message.selection);
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: SelectLocalCapabilityConfigurationResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* nimi.runtime.v1.LocalCapabilitySelection selection = 1; */
-        if (message.selection)
-            LocalCapabilitySelection.internalBinaryWrite(message.selection, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.SelectLocalCapabilityConfigurationResponse
- */
-export const SelectLocalCapabilityConfigurationResponse = new SelectLocalCapabilityConfigurationResponse$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class ClearLocalCapabilitySelectionRequest$Type extends MessageType<ClearLocalCapabilitySelectionRequest> {
-    constructor() {
-        super("nimi.runtime.v1.ClearLocalCapabilitySelectionRequest", [
-            { no: 1, name: "capability_contract", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
-        ]);
-    }
-    create(value?: PartialMessage<ClearLocalCapabilitySelectionRequest>): ClearLocalCapabilitySelectionRequest {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        message.capabilityContract = "";
-        if (value !== undefined)
-            reflectionMergePartial<ClearLocalCapabilitySelectionRequest>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ClearLocalCapabilitySelectionRequest): ClearLocalCapabilitySelectionRequest {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* string capability_contract */ 1:
-                    message.capabilityContract = reader.string();
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: ClearLocalCapabilitySelectionRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* string capability_contract = 1; */
-        if (message.capabilityContract !== "")
-            writer.tag(1, WireType.LengthDelimited).string(message.capabilityContract);
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.ClearLocalCapabilitySelectionRequest
- */
-export const ClearLocalCapabilitySelectionRequest = new ClearLocalCapabilitySelectionRequest$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class ClearLocalCapabilitySelectionResponse$Type extends MessageType<ClearLocalCapabilitySelectionResponse> {
-    constructor() {
-        super("nimi.runtime.v1.ClearLocalCapabilitySelectionResponse", []);
-    }
-    create(value?: PartialMessage<ClearLocalCapabilitySelectionResponse>): ClearLocalCapabilitySelectionResponse {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        if (value !== undefined)
-            reflectionMergePartial<ClearLocalCapabilitySelectionResponse>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ClearLocalCapabilitySelectionResponse): ClearLocalCapabilitySelectionResponse {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: ClearLocalCapabilitySelectionResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.ClearLocalCapabilitySelectionResponse
- */
-export const ClearLocalCapabilitySelectionResponse = new ClearLocalCapabilitySelectionResponse$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class DeleteLocalCapabilityConfigurationRequest$Type extends MessageType<DeleteLocalCapabilityConfigurationRequest> {
-    constructor() {
-        super("nimi.runtime.v1.DeleteLocalCapabilityConfigurationRequest", [
-            { no: 1, name: "configuration_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
-        ]);
-    }
-    create(value?: PartialMessage<DeleteLocalCapabilityConfigurationRequest>): DeleteLocalCapabilityConfigurationRequest {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        message.configurationId = "";
-        if (value !== undefined)
-            reflectionMergePartial<DeleteLocalCapabilityConfigurationRequest>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: DeleteLocalCapabilityConfigurationRequest): DeleteLocalCapabilityConfigurationRequest {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* string configuration_id */ 1:
-                    message.configurationId = reader.string();
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: DeleteLocalCapabilityConfigurationRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* string configuration_id = 1; */
-        if (message.configurationId !== "")
-            writer.tag(1, WireType.LengthDelimited).string(message.configurationId);
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.DeleteLocalCapabilityConfigurationRequest
- */
-export const DeleteLocalCapabilityConfigurationRequest = new DeleteLocalCapabilityConfigurationRequest$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class DeleteLocalCapabilityConfigurationResponse$Type extends MessageType<DeleteLocalCapabilityConfigurationResponse> {
-    constructor() {
-        super("nimi.runtime.v1.DeleteLocalCapabilityConfigurationResponse", []);
-    }
-    create(value?: PartialMessage<DeleteLocalCapabilityConfigurationResponse>): DeleteLocalCapabilityConfigurationResponse {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        if (value !== undefined)
-            reflectionMergePartial<DeleteLocalCapabilityConfigurationResponse>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: DeleteLocalCapabilityConfigurationResponse): DeleteLocalCapabilityConfigurationResponse {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: DeleteLocalCapabilityConfigurationResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.DeleteLocalCapabilityConfigurationResponse
- */
-export const DeleteLocalCapabilityConfigurationResponse = new DeleteLocalCapabilityConfigurationResponse$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class ReprojectLocalCapabilityRequirementsRequest$Type extends MessageType<ReprojectLocalCapabilityRequirementsRequest> {
-    constructor() {
-        super("nimi.runtime.v1.ReprojectLocalCapabilityRequirementsRequest", [
-            { no: 1, name: "configuration_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
-        ]);
-    }
-    create(value?: PartialMessage<ReprojectLocalCapabilityRequirementsRequest>): ReprojectLocalCapabilityRequirementsRequest {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        message.configurationId = "";
-        if (value !== undefined)
-            reflectionMergePartial<ReprojectLocalCapabilityRequirementsRequest>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ReprojectLocalCapabilityRequirementsRequest): ReprojectLocalCapabilityRequirementsRequest {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* string configuration_id */ 1:
-                    message.configurationId = reader.string();
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: ReprojectLocalCapabilityRequirementsRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* string configuration_id = 1; */
-        if (message.configurationId !== "")
-            writer.tag(1, WireType.LengthDelimited).string(message.configurationId);
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.ReprojectLocalCapabilityRequirementsRequest
- */
-export const ReprojectLocalCapabilityRequirementsRequest = new ReprojectLocalCapabilityRequirementsRequest$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class ReprojectLocalCapabilityRequirementsResponse$Type extends MessageType<ReprojectLocalCapabilityRequirementsResponse> {
-    constructor() {
-        super("nimi.runtime.v1.ReprojectLocalCapabilityRequirementsResponse", [
-            { no: 1, name: "configuration", kind: "message", T: () => LocalCapabilityConfiguration }
-        ]);
-    }
-    create(value?: PartialMessage<ReprojectLocalCapabilityRequirementsResponse>): ReprojectLocalCapabilityRequirementsResponse {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        if (value !== undefined)
-            reflectionMergePartial<ReprojectLocalCapabilityRequirementsResponse>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ReprojectLocalCapabilityRequirementsResponse): ReprojectLocalCapabilityRequirementsResponse {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* nimi.runtime.v1.LocalCapabilityConfiguration configuration */ 1:
-                    message.configuration = LocalCapabilityConfiguration.internalBinaryRead(reader, reader.uint32(), options, message.configuration);
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: ReprojectLocalCapabilityRequirementsResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* nimi.runtime.v1.LocalCapabilityConfiguration configuration = 1; */
-        if (message.configuration)
-            LocalCapabilityConfiguration.internalBinaryWrite(message.configuration, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.ReprojectLocalCapabilityRequirementsResponse
- */
-export const ReprojectLocalCapabilityRequirementsResponse = new ReprojectLocalCapabilityRequirementsResponse$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class LocalAssetExactBindingTarget$Type extends MessageType<LocalAssetExactBindingTarget> {
-    constructor() {
-        super("nimi.runtime.v1.LocalAssetExactBindingTarget", [
-            { no: 1, name: "local_asset_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "expected_verified_content_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
-        ]);
-    }
-    create(value?: PartialMessage<LocalAssetExactBindingTarget>): LocalAssetExactBindingTarget {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        message.localAssetId = "";
-        message.expectedVerifiedContentId = "";
-        if (value !== undefined)
-            reflectionMergePartial<LocalAssetExactBindingTarget>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAssetExactBindingTarget): LocalAssetExactBindingTarget {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* string local_asset_id */ 1:
-                    message.localAssetId = reader.string();
-                    break;
-                case /* string expected_verified_content_id */ 2:
-                    message.expectedVerifiedContentId = reader.string();
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: LocalAssetExactBindingTarget, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* string local_asset_id = 1; */
-        if (message.localAssetId !== "")
-            writer.tag(1, WireType.LengthDelimited).string(message.localAssetId);
-        /* string expected_verified_content_id = 2; */
-        if (message.expectedVerifiedContentId !== "")
-            writer.tag(2, WireType.LengthDelimited).string(message.expectedVerifiedContentId);
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.LocalAssetExactBindingTarget
- */
-export const LocalAssetExactBindingTarget = new LocalAssetExactBindingTarget$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class BindLocalCapabilityRequirementRequest$Type extends MessageType<BindLocalCapabilityRequirementRequest> {
-    constructor() {
-        super("nimi.runtime.v1.BindLocalCapabilityRequirementRequest", [
-            { no: 1, name: "configuration_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "requirement_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "target", kind: "message", T: () => LocalAssetExactBindingTarget }
-        ]);
-    }
-    create(value?: PartialMessage<BindLocalCapabilityRequirementRequest>): BindLocalCapabilityRequirementRequest {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        message.configurationId = "";
-        message.requirementId = "";
-        if (value !== undefined)
-            reflectionMergePartial<BindLocalCapabilityRequirementRequest>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: BindLocalCapabilityRequirementRequest): BindLocalCapabilityRequirementRequest {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* string configuration_id */ 1:
-                    message.configurationId = reader.string();
-                    break;
-                case /* string requirement_id */ 2:
-                    message.requirementId = reader.string();
-                    break;
-                case /* nimi.runtime.v1.LocalAssetExactBindingTarget target */ 3:
-                    message.target = LocalAssetExactBindingTarget.internalBinaryRead(reader, reader.uint32(), options, message.target);
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: BindLocalCapabilityRequirementRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* string configuration_id = 1; */
-        if (message.configurationId !== "")
-            writer.tag(1, WireType.LengthDelimited).string(message.configurationId);
-        /* string requirement_id = 2; */
-        if (message.requirementId !== "")
-            writer.tag(2, WireType.LengthDelimited).string(message.requirementId);
-        /* nimi.runtime.v1.LocalAssetExactBindingTarget target = 3; */
-        if (message.target)
-            LocalAssetExactBindingTarget.internalBinaryWrite(message.target, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.BindLocalCapabilityRequirementRequest
- */
-export const BindLocalCapabilityRequirementRequest = new BindLocalCapabilityRequirementRequest$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class BindLocalCapabilityRequirementResponse$Type extends MessageType<BindLocalCapabilityRequirementResponse> {
-    constructor() {
-        super("nimi.runtime.v1.BindLocalCapabilityRequirementResponse", [
-            { no: 1, name: "configuration", kind: "message", T: () => LocalCapabilityConfiguration }
-        ]);
-    }
-    create(value?: PartialMessage<BindLocalCapabilityRequirementResponse>): BindLocalCapabilityRequirementResponse {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        if (value !== undefined)
-            reflectionMergePartial<BindLocalCapabilityRequirementResponse>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: BindLocalCapabilityRequirementResponse): BindLocalCapabilityRequirementResponse {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* nimi.runtime.v1.LocalCapabilityConfiguration configuration */ 1:
-                    message.configuration = LocalCapabilityConfiguration.internalBinaryRead(reader, reader.uint32(), options, message.configuration);
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: BindLocalCapabilityRequirementResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* nimi.runtime.v1.LocalCapabilityConfiguration configuration = 1; */
-        if (message.configuration)
-            LocalCapabilityConfiguration.internalBinaryWrite(message.configuration, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.BindLocalCapabilityRequirementResponse
- */
-export const BindLocalCapabilityRequirementResponse = new BindLocalCapabilityRequirementResponse$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class RebindLocalCapabilityRequirementRequest$Type extends MessageType<RebindLocalCapabilityRequirementRequest> {
-    constructor() {
-        super("nimi.runtime.v1.RebindLocalCapabilityRequirementRequest", [
-            { no: 1, name: "configuration_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "requirement_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "expected_current_binding", kind: "message", T: () => LocalAssetExactBinding },
-            { no: 4, name: "target", kind: "message", T: () => LocalAssetExactBindingTarget }
-        ]);
-    }
-    create(value?: PartialMessage<RebindLocalCapabilityRequirementRequest>): RebindLocalCapabilityRequirementRequest {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        message.configurationId = "";
-        message.requirementId = "";
-        if (value !== undefined)
-            reflectionMergePartial<RebindLocalCapabilityRequirementRequest>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: RebindLocalCapabilityRequirementRequest): RebindLocalCapabilityRequirementRequest {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* string configuration_id */ 1:
-                    message.configurationId = reader.string();
-                    break;
-                case /* string requirement_id */ 2:
-                    message.requirementId = reader.string();
-                    break;
-                case /* nimi.runtime.v1.LocalAssetExactBinding expected_current_binding */ 3:
-                    message.expectedCurrentBinding = LocalAssetExactBinding.internalBinaryRead(reader, reader.uint32(), options, message.expectedCurrentBinding);
-                    break;
-                case /* nimi.runtime.v1.LocalAssetExactBindingTarget target */ 4:
-                    message.target = LocalAssetExactBindingTarget.internalBinaryRead(reader, reader.uint32(), options, message.target);
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: RebindLocalCapabilityRequirementRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* string configuration_id = 1; */
-        if (message.configurationId !== "")
-            writer.tag(1, WireType.LengthDelimited).string(message.configurationId);
-        /* string requirement_id = 2; */
-        if (message.requirementId !== "")
-            writer.tag(2, WireType.LengthDelimited).string(message.requirementId);
-        /* nimi.runtime.v1.LocalAssetExactBinding expected_current_binding = 3; */
-        if (message.expectedCurrentBinding)
-            LocalAssetExactBinding.internalBinaryWrite(message.expectedCurrentBinding, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
-        /* nimi.runtime.v1.LocalAssetExactBindingTarget target = 4; */
-        if (message.target)
-            LocalAssetExactBindingTarget.internalBinaryWrite(message.target, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.RebindLocalCapabilityRequirementRequest
- */
-export const RebindLocalCapabilityRequirementRequest = new RebindLocalCapabilityRequirementRequest$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class RebindLocalCapabilityRequirementResponse$Type extends MessageType<RebindLocalCapabilityRequirementResponse> {
-    constructor() {
-        super("nimi.runtime.v1.RebindLocalCapabilityRequirementResponse", [
-            { no: 1, name: "configuration", kind: "message", T: () => LocalCapabilityConfiguration }
-        ]);
-    }
-    create(value?: PartialMessage<RebindLocalCapabilityRequirementResponse>): RebindLocalCapabilityRequirementResponse {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        if (value !== undefined)
-            reflectionMergePartial<RebindLocalCapabilityRequirementResponse>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: RebindLocalCapabilityRequirementResponse): RebindLocalCapabilityRequirementResponse {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* nimi.runtime.v1.LocalCapabilityConfiguration configuration */ 1:
-                    message.configuration = LocalCapabilityConfiguration.internalBinaryRead(reader, reader.uint32(), options, message.configuration);
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: RebindLocalCapabilityRequirementResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* nimi.runtime.v1.LocalCapabilityConfiguration configuration = 1; */
-        if (message.configuration)
-            LocalCapabilityConfiguration.internalBinaryWrite(message.configuration, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.RebindLocalCapabilityRequirementResponse
- */
-export const RebindLocalCapabilityRequirementResponse = new RebindLocalCapabilityRequirementResponse$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class UnbindLocalCapabilityRequirementRequest$Type extends MessageType<UnbindLocalCapabilityRequirementRequest> {
-    constructor() {
-        super("nimi.runtime.v1.UnbindLocalCapabilityRequirementRequest", [
-            { no: 1, name: "configuration_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "requirement_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "expected_current_binding", kind: "message", T: () => LocalAssetExactBinding }
-        ]);
-    }
-    create(value?: PartialMessage<UnbindLocalCapabilityRequirementRequest>): UnbindLocalCapabilityRequirementRequest {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        message.configurationId = "";
-        message.requirementId = "";
-        if (value !== undefined)
-            reflectionMergePartial<UnbindLocalCapabilityRequirementRequest>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: UnbindLocalCapabilityRequirementRequest): UnbindLocalCapabilityRequirementRequest {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* string configuration_id */ 1:
-                    message.configurationId = reader.string();
-                    break;
-                case /* string requirement_id */ 2:
-                    message.requirementId = reader.string();
-                    break;
-                case /* nimi.runtime.v1.LocalAssetExactBinding expected_current_binding */ 3:
-                    message.expectedCurrentBinding = LocalAssetExactBinding.internalBinaryRead(reader, reader.uint32(), options, message.expectedCurrentBinding);
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: UnbindLocalCapabilityRequirementRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* string configuration_id = 1; */
-        if (message.configurationId !== "")
-            writer.tag(1, WireType.LengthDelimited).string(message.configurationId);
-        /* string requirement_id = 2; */
-        if (message.requirementId !== "")
-            writer.tag(2, WireType.LengthDelimited).string(message.requirementId);
-        /* nimi.runtime.v1.LocalAssetExactBinding expected_current_binding = 3; */
-        if (message.expectedCurrentBinding)
-            LocalAssetExactBinding.internalBinaryWrite(message.expectedCurrentBinding, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.UnbindLocalCapabilityRequirementRequest
- */
-export const UnbindLocalCapabilityRequirementRequest = new UnbindLocalCapabilityRequirementRequest$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class UnbindLocalCapabilityRequirementResponse$Type extends MessageType<UnbindLocalCapabilityRequirementResponse> {
-    constructor() {
-        super("nimi.runtime.v1.UnbindLocalCapabilityRequirementResponse", [
-            { no: 1, name: "configuration", kind: "message", T: () => LocalCapabilityConfiguration }
-        ]);
-    }
-    create(value?: PartialMessage<UnbindLocalCapabilityRequirementResponse>): UnbindLocalCapabilityRequirementResponse {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        if (value !== undefined)
-            reflectionMergePartial<UnbindLocalCapabilityRequirementResponse>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: UnbindLocalCapabilityRequirementResponse): UnbindLocalCapabilityRequirementResponse {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* nimi.runtime.v1.LocalCapabilityConfiguration configuration */ 1:
-                    message.configuration = LocalCapabilityConfiguration.internalBinaryRead(reader, reader.uint32(), options, message.configuration);
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: UnbindLocalCapabilityRequirementResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* nimi.runtime.v1.LocalCapabilityConfiguration configuration = 1; */
-        if (message.configuration)
-            LocalCapabilityConfiguration.internalBinaryWrite(message.configuration, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.UnbindLocalCapabilityRequirementResponse
- */
-export const UnbindLocalCapabilityRequirementResponse = new UnbindLocalCapabilityRequirementResponse$Type();
+export const LoadoutRecipeCustodyDescriptor = new LoadoutRecipeCustodyDescriptor$Type();

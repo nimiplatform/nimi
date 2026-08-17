@@ -52,23 +52,6 @@ export enum LocalAssetKind {
   AUXILIARY = 14,
 }
 
-export enum LocalAssetStatus {
-  UNSPECIFIED = 0,
-  INSTALLED = 1,
-  ACTIVE = 2,
-  UNHEALTHY = 3,
-  REMOVED = 4,
-}
-
-export enum LocalBundleState {
-  UNSPECIFIED = 0,
-  RESOLVING = 1,
-  READY = 2,
-  DEGRADED = 3,
-  INVALID = 4,
-  REMOVED = 5,
-}
-
 export enum LocalCapabilityInterpretability {
   UNSPECIFIED = 0,
   INTERPRETABLE = 1,
@@ -128,25 +111,11 @@ export enum LocalEngineStatus {
   UNHEALTHY = 4,
 }
 
-export enum LocalExecutionEntryKind {
-  UNSPECIFIED = 0,
-  MODEL = 1,
-  SERVICE = 2,
-  NODE = 3,
-}
-
 export enum LocalHostSupportClass {
   UNSPECIFIED = 0,
   SUPPORTED_SUPERVISED = 1,
   ATTACHED_ONLY = 2,
   UNSUPPORTED = 3,
-}
-
-export enum LocalProfileEntryKind {
-  UNSPECIFIED = 0,
-  SERVICE = 3,
-  NODE = 4,
-  ASSET = 5,
 }
 
 export enum LocalRecommendationBaseline {
@@ -199,14 +168,6 @@ export enum LocalRecommendationTier {
   RUNNABLE = 2,
   TIGHT = 3,
   NOT_RECOMMENDED = 4,
-}
-
-export enum LocalServiceStatus {
-  UNSPECIFIED = 0,
-  INSTALLED = 1,
-  ACTIVE = 2,
-  UNHEALTHY = 3,
-  REMOVED = 4,
 }
 
 export enum MemoryBankScope {
@@ -263,28 +224,18 @@ export enum MemoryReplicationOutcome {
   INVALIDATED = 4,
 }
 
+export enum ModelAssetCatalogVerification {
+  UNSPECIFIED = 0,
+  MATCHED = 1,
+  NOT_MATCHED = 2,
+}
+
 export enum ModelCatalogProviderSource {
   UNSPECIFIED = 0,
   BUILTIN = 1,
   CUSTOM = 2,
   REMOTE = 3,
   OVERRIDDEN = 4,
-}
-
-export enum ModelHealthStatus {
-  UNSPECIFIED = 0,
-  HEALTHY = 1,
-  DEGRADED = 2,
-  UNSUPPORTED = 3,
-  UNREACHABLE = 4,
-}
-
-export enum ModelStatus {
-  UNSPECIFIED = 0,
-  INSTALLED = 1,
-  PULLING = 2,
-  FAILED = 3,
-  REMOVED = 4,
 }
 
 export enum RuntimeHealthStatus {

@@ -224,72 +224,7 @@ func TestDaemonRunNeverBootstrapsPrivateLlamaWorker(t *testing.T) {
 	}
 }
 
-func TestDaemonRunRefreshesManagedEmbeddingProfileOnStartup(t *testing.T) {
-	cfg := config.Config{
-		GRPCAddr:             "127.0.0.1:0",
-		HTTPAddr:             "127.0.0.1:0",
-		ShutdownTimeout:      2 * time.Second,
-		LocalStatePath:       filepath.Join(t.TempDir(), "local-state.json"),
-		AuditRingBufferSize:  64,
-		UsageStatsBufferSize: 64,
-		IdempotencyCapacity:  32,
-	}
-	daemon, err := newDaemonForTest(t, cfg, slog.New(slog.NewTextHandler(io.Discard, nil)), "test")
-	if err != nil {
-		t.Fatalf("create daemon: %v", err)
-	}
-	closeDaemonForTest(t, daemon)
-	if svc := daemon.grpc.LocalService(); svc != nil {
-		t.Cleanup(func() { svc.Close() })
-	}
-	daemon.listEmbeddingAssetsFn = func(context.Context) ([]*runtimev1.LocalAssetRecord, error) {
-		return []*runtimev1.LocalAssetRecord{
-			{
-				LocalAssetId: "local-embed-1",
-				AssetId:      "local/embed-alpha",
-				Kind:         runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_EMBEDDING,
-				Status:       runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
-				UpdatedAt:    "2026-04-13T12:00:00Z",
-			},
-		}, nil
-	}
-
-	ctx, cancel := context.WithCancel(context.Background())
-	done := make(chan error, 1)
-	go func() {
-		done <- daemon.Run(ctx)
-	}()
-
-	deadline := time.Now().Add(2 * time.Second)
-	for time.Now().Before(deadline) {
-		if daemon.state.Snapshot().Status == health.StatusReady {
-			break
-		}
-		time.Sleep(20 * time.Millisecond)
-	}
-	if snapshot := daemon.state.Snapshot(); snapshot.Status != health.StatusReady {
-		t.Fatalf("expected daemon to reach READY, got %s (%s)", snapshot.Status, snapshot.Reason)
-	}
-
-	profile := daemon.grpc.MemoryService().ManagedEmbeddingProfile()
-	if profile == nil {
-		t.Fatal("expected managed embedding profile to be refreshed on startup")
-	}
-	if got := profile.GetModelId(); got != "local/embed-alpha" {
-		t.Fatalf("model id mismatch: got=%q want=%q", got, "local/embed-alpha")
-	}
-	if got := profile.GetVersion(); got != "local/embed-alpha@2026-04-13T12:00:00Z" {
-		t.Fatalf("version mismatch: got=%q", got)
-	}
-
-	cancel()
-	if err := <-done; err != nil {
-		t.Fatalf("daemon run returned error: %v", err)
-	}
-}
-
 func TestDaemonRunWaitsForBackgroundWorkersToStop(t *testing.T) {
-	t.Setenv("NIMI_RUNTIME_LOCAL_MEDIA_BASE_URL", "http://127.0.0.1:8321/v1")
 	cfg := config.Config{
 		GRPCAddr:                "127.0.0.1:0",
 		HTTPAddr:                "127.0.0.1:0",
@@ -300,6 +235,9 @@ func TestDaemonRunWaitsForBackgroundWorkersToStop(t *testing.T) {
 		IdempotencyCapacity:     32,
 		AIHealthIntervalSeconds: 1,
 		AIHTTPTimeoutSeconds:    1,
+		Providers: map[string]config.RuntimeFileTarget{
+			"openai": {BaseURL: "https://provider.invalid/v1"},
+		},
 	}
 	daemon, err := newDaemonForTest(t, cfg, slog.New(slog.NewTextHandler(io.Discard, nil)), "test")
 	if err != nil {
@@ -332,7 +270,7 @@ func TestDaemonRunWaitsForBackgroundWorkersToStop(t *testing.T) {
 	select {
 	case <-probeStarted:
 	case <-time.After(2 * time.Second):
-		t.Fatal("expected AI provider probe to start")
+		t.Fatal("expected remote provider health worker to start")
 	}
 
 	cancel()
@@ -340,7 +278,7 @@ func TestDaemonRunWaitsForBackgroundWorkersToStop(t *testing.T) {
 	select {
 	case <-probeStopped:
 	case <-time.After(2 * time.Second):
-		t.Fatal("expected AI provider probe to stop after shutdown")
+		t.Fatal("expected remote provider health worker to stop after shutdown")
 	}
 
 	if err := <-done; err != nil {

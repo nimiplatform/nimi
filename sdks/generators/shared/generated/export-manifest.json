@@ -32,7 +32,6 @@
     "proto/runtime/v1/local_runtime_execution_profile.proto",
     "proto/runtime/v1/local_runtime_recommendation.proto",
     "proto/runtime/v1/memory.proto",
-    "proto/runtime/v1/model.proto",
     "proto/runtime/v1/runtime_service_control.proto",
     "proto/runtime/v1/voice.proto",
     "config/realm-openapi-source.json",

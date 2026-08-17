@@ -51,10 +51,6 @@ func inferReasonCodeFromResponse(resp any) (runtimev1.ReasonCode, bool) {
 	switch value := resp.(type) {
 	case *runtimev1.Ack:
 		return value.GetReasonCode(), true
-	case *runtimev1.PullModelResponse:
-		return value.GetReasonCode(), true
-	case *runtimev1.CheckModelHealthResponse:
-		return value.GetReasonCode(), true
 	case *runtimev1.OpenSessionResponse:
 		return value.GetReasonCode(), true
 	case *runtimev1.RefreshSessionResponse:

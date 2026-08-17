@@ -96,14 +96,6 @@ func (d *Daemon) onEngineStateChange(engineName string, status string, detail st
 	}
 	if strings.EqualFold(strings.TrimSpace(engineName), string(engineManagedImageBackend)) {
 		normalizedStatus := strings.ToLower(strings.TrimSpace(status))
-		if svc := d.grpc.LocalService(); svc != nil {
-			switch normalizedStatus {
-			case "healthy":
-				svc.SetManagedImageBackendHealth(true, detail)
-			case "unhealthy":
-				svc.SetManagedImageBackendHealth(false, detail)
-			}
-		}
 		if d.aiHealth != nil && (normalizedStatus == "healthy" || normalizedStatus == "unhealthy") {
 			previous := d.aiHealth.SnapshotOf(localImageProviderHealthKey)
 			if err := d.aiHealth.Mark(localImageProviderHealthKey, normalizedStatus == "healthy", detail); err == nil {
@@ -115,13 +107,10 @@ func (d *Daemon) onEngineStateChange(engineName string, status string, detail st
 	case "unhealthy":
 		d.setDegradedStatus(fmt.Sprintf("engine:%s unhealthy (%s)", engineName, detail))
 		reasonKey := resolveInternalReasonKey(detail)
-		appendEngineCrashAudit(d.auditStore, engineName, detail, d.resolvedImageMatrix, reasonKey)
+		appendEngineCrashAudit(d.auditStore, engineName, detail, nil, reasonKey)
 		if kind, ok := engineKindForName(engineName); ok {
 			if providerName, ok := providerTargetNameForEngine(kind); ok {
 				hint := fmt.Sprintf("engine unhealthy (%s: %s)", engineName, detail)
-				if attr := imageAttributionDetail(d.resolvedImageMatrix); attr != "" && isImageRelatedEngine(kind) {
-					hint = fmt.Sprintf("%s [%s internal_reason_key=%s]", hint, attr, reasonKey)
-				}
 				d.setProviderFailureHint(providerName, hint)
 			}
 		}
@@ -133,14 +122,11 @@ func (d *Daemon) onEngineStateChange(engineName string, status string, detail st
 		}
 		if kind, ok := engineKindForName(engineName); ok {
 			if isImageRelatedEngine(kind) {
-				appendRepairResolvedAudit(d.auditStore, engineName, detail, d.resolvedImageMatrix)
+				appendRepairResolvedAudit(d.auditStore, engineName, detail, nil)
 			}
 		}
 		if kind, envKey, ok := engineEnvKey(engineName); ok {
 			d.injectEngineEndpointEnv(kind, envKey, "recovered")
-		}
-		if svc := d.grpc.LocalService(); svc != nil {
-			svc.MarkManagedEngineUsed(engineName, "engine_recovered")
 		}
 		if kind, ok := engineKindForName(engineName); ok {
 			if providerName, ok := providerTargetNameForEngine(kind); ok {

@@ -5,7 +5,6 @@ import {
   GpuMemoryModel,
   LocalAssetKind,
   LocalEngineRuntimeMode,
-  LocalProfileEntryKind,
 } from '../core-generated/runtime-typed-client';
 import {
   NIMI_RUNTIME_LOCAL_ASSET_KIND_IDS,
@@ -22,11 +21,9 @@ import {
   normalizeNimiRuntimeLocalRunnableAssetKindId,
   parseNimiRuntimeLocalAssetKindId,
   parseNimiRuntimeLocalGpuMemoryModelId,
-  parseNimiRuntimeLocalProfileEntryKindId,
   toNimiRuntimeLocalAssetKindRequestValue,
   toNimiRuntimeLocalEngineRuntimeModeRequestValue,
   toNimiRuntimeLocalGpuMemoryModelRequestValue,
-  toNimiRuntimeLocalProfileEntryKindRequestValue,
   nimiRuntimeLocalCapabilitiesForAssetKind,
   nimiRuntimeLocalRunnableAssetKindForCapabilities,
 } from './index';
@@ -68,8 +65,6 @@ describe('Nimi Runtime local asset vocabulary', () => {
     assert.equal(parseNimiRuntimeLocalAssetKindId(LocalAssetKind.CONTROLNET), 'controlnet');
     assert.equal(parseNimiRuntimeLocalAssetKindId('LOCAL_ASSET_KIND_IMAGE'), 'image');
     assert.equal(toNimiRuntimeLocalAssetKindRequestValue('tts'), LocalAssetKind.TTS);
-    assert.equal(parseNimiRuntimeLocalProfileEntryKindId(LocalProfileEntryKind.NODE), 'node');
-    assert.equal(toNimiRuntimeLocalProfileEntryKindRequestValue('asset'), LocalProfileEntryKind.ASSET);
     assert.equal(parseNimiRuntimeLocalGpuMemoryModelId(GpuMemoryModel.UNIFIED), 'unified');
     assert.equal(toNimiRuntimeLocalGpuMemoryModelRequestValue('discrete'), GpuMemoryModel.DISCRETE);
     assert.equal(normalizeNimiRuntimeLocalEngineRuntimeModeId('LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED'), 'supervised');
@@ -79,25 +74,36 @@ describe('Nimi Runtime local asset vocabulary', () => {
     );
   });
 
-  it('keeps runnable and passive asset declarations explicit', () => {
+  it('keeps local asset import declarations engine-free', () => {
     assert.equal(isNimiRuntimeLocalRunnableAssetKindId('LOCAL_ASSET_KIND_STT'), true);
     assert.equal(normalizeNimiRuntimeLocalRunnableAssetKindId('LOCAL_ASSET_KIND_IMAGE'), 'image');
     assert.deepEqual(normalizeNimiRuntimeLocalAssetDeclaration({
       assetKind: 'LOCAL_ASSET_KIND_VIDEO',
-      engine: ' media ',
     }), {
       assetKind: 'video',
-      engine: 'media',
     });
     assert.deepEqual(normalizeNimiRuntimeLocalDependencyAssetDeclaration({
       assetKind: 'chat',
-      engine: ' sidecar ',
     }), {
       assetKind: 'vae',
-      engine: 'sidecar',
     });
-    assert.equal(canImportNimiRuntimeLocalAssetDeclaration({ assetKind: 'auxiliary' }), false);
-    assert.equal(canImportNimiRuntimeLocalAssetDeclaration({ assetKind: 'auxiliary', engine: 'sidecar' }), true);
+    assert.throws(() => normalizeNimiRuntimeLocalDependencyAssetDeclaration({
+      assetKind: 'vae',
+      engine: 'sidecar',
+    } as never), /must not include engine/u);
+    assert.throws(() => normalizeNimiRuntimeLocalAssetDeclaration({
+      assetKind: 'image',
+      engine: 'media',
+    } as never), /must not include engine/u);
+    assert.throws(() => normalizeNimiRuntimeLocalAssetDeclaration({
+      assetKind: 'auxiliary',
+      engine: 'media',
+    } as never), /must not include engine/u);
+    assert.equal(canImportNimiRuntimeLocalAssetDeclaration({ assetKind: 'image' }), true);
+    assert.equal(canImportNimiRuntimeLocalAssetDeclaration({ assetKind: 'auxiliary' }), true);
+    assert.equal(canImportNimiRuntimeLocalAssetDeclaration({ assetKind: 'image', engine: 'media' } as never), false);
+    assert.equal(canImportNimiRuntimeLocalAssetDeclaration({ assetKind: 'auxiliary', engine: 'sidecar' } as never), false);
+    assert.equal(canImportNimiRuntimeLocalAssetDeclaration({ assetKind: 'vae', engine: '' } as never), false);
   });
 
   it('formats and orders asset kinds without exposing numeric enum labels to UI', () => {

@@ -72,6 +72,9 @@ func (s *Server) BeginShutdown() []activeRPCSnapshot {
 
 func (s *Server) Stop(ctx context.Context) StopResult {
 	defer func() {
+		if s.localService != nil {
+			s.localService.Close()
+		}
 		if s.localDevelopmentStore != nil {
 			_ = s.localDevelopmentStore.Close()
 		}
@@ -127,7 +130,6 @@ func (s *Server) SyncServingState() {
 	s.healthServer.SetServingStatus(runtimev1.RuntimeAuditService_ServiceDesc.ServiceName, servingStatus)
 	s.healthServer.SetServingStatus(runtimev1.RuntimeAiService_ServiceDesc.ServiceName, servingStatus)
 	s.healthServer.SetServingStatus(runtimev1.RuntimeAiRealtimeService_ServiceDesc.ServiceName, servingStatus)
-	s.healthServer.SetServingStatus(runtimev1.RuntimeModelService_ServiceDesc.ServiceName, servingStatus)
 	s.healthServer.SetServingStatus(runtimev1.RuntimeLocalService_ServiceDesc.ServiceName, servingStatus)
 	cognitionServingStatus := servingStatus
 	if s.cognitionService == nil {

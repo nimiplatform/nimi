@@ -279,6 +279,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "GetSharedLocalAgentAIConfigResponse"
   },
   {
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/ImportPortableAIProfile",
+    "service": "RuntimeAgentService",
+    "method": "ImportPortableAIProfile",
+    "kind": "unary",
+    "requestType": "ImportPortableAIProfileRequest",
+    "responseType": "ImportPortableAIProfileResponse"
+  },
+  {
     "methodId": "/nimi.runtime.v1.RuntimeAgentService/InterruptAgentVoicePlayback",
     "service": "RuntimeAgentService",
     "method": "InterruptAgentVoicePlayback",
@@ -357,6 +365,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "kind": "unary",
     "requestType": "ListPendingHooksRequest",
     "responseType": "ListPendingHooksResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/ListPortableAIProfiles",
+    "service": "RuntimeAgentService",
+    "method": "ListPortableAIProfiles",
+    "kind": "unary",
+    "requestType": "ListPortableAIProfilesRequest",
+    "responseType": "ListPortableAIProfilesResponse"
   },
   {
     "methodId": "/nimi.runtime.v1.RuntimeAgentService/MaterializeRealmSource",
@@ -1535,14 +1551,6 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "Ack"
   },
   {
-    "methodId": "/nimi.runtime.v1.RuntimeLocalService/AddLocalCapabilityConfiguration",
-    "service": "RuntimeLocalService",
-    "method": "AddLocalCapabilityConfiguration",
-    "kind": "unary",
-    "requestType": "AddLocalCapabilityConfigurationRequest",
-    "responseType": "AddLocalCapabilityConfigurationResponse"
-  },
-  {
     "methodId": "/nimi.runtime.v1.RuntimeLocalService/AdmitProductControlReadyForUse",
     "service": "RuntimeLocalService",
     "method": "AdmitProductControlReadyForUse",
@@ -1575,22 +1583,6 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ApplyLocalEnvironmentPlanResponse"
   },
   {
-    "methodId": "/nimi.runtime.v1.RuntimeLocalService/ApplyProfile",
-    "service": "RuntimeLocalService",
-    "method": "ApplyProfile",
-    "kind": "unary",
-    "requestType": "ApplyProfileRequest",
-    "responseType": "ApplyProfileResponse"
-  },
-  {
-    "methodId": "/nimi.runtime.v1.RuntimeLocalService/BindLocalCapabilityRequirement",
-    "service": "RuntimeLocalService",
-    "method": "BindLocalCapabilityRequirement",
-    "kind": "unary",
-    "requestType": "BindLocalCapabilityRequirementRequest",
-    "responseType": "BindLocalCapabilityRequirementResponse"
-  },
-  {
     "methodId": "/nimi.runtime.v1.RuntimeLocalService/CancelLocalEnvironmentDependencyJob",
     "service": "RuntimeLocalService",
     "method": "CancelLocalEnvironmentDependencyJob",
@@ -1607,28 +1599,20 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "CancelLocalTransferResponse"
   },
   {
-    "methodId": "/nimi.runtime.v1.RuntimeLocalService/CheckLocalServiceHealth",
-    "service": "RuntimeLocalService",
-    "method": "CheckLocalServiceHealth",
-    "kind": "unary",
-    "requestType": "CheckLocalServiceHealthRequest",
-    "responseType": "CheckLocalServiceHealthResponse"
-  },
-  {
-    "methodId": "/nimi.runtime.v1.RuntimeLocalService/ClearLocalCapabilitySelection",
-    "service": "RuntimeLocalService",
-    "method": "ClearLocalCapabilitySelection",
-    "kind": "unary",
-    "requestType": "ClearLocalCapabilitySelectionRequest",
-    "responseType": "ClearLocalCapabilitySelectionResponse"
-  },
-  {
     "methodId": "/nimi.runtime.v1.RuntimeLocalService/CollectDeviceProfile",
     "service": "RuntimeLocalService",
     "method": "CollectDeviceProfile",
     "kind": "unary",
     "requestType": "CollectDeviceProfileRequest",
     "responseType": "CollectDeviceProfileResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/CommitLoadout",
+    "service": "RuntimeLocalService",
+    "method": "CommitLoadout",
+    "kind": "unary",
+    "requestType": "CommitLoadoutRequest",
+    "responseType": "CommitLoadoutResponse"
   },
   {
     "methodId": "/nimi.runtime.v1.RuntimeLocalService/CompleteProductControlFirstRunDeviceEnvironmentScan",
@@ -1639,12 +1623,12 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ProductControlProjectionJson"
   },
   {
-    "methodId": "/nimi.runtime.v1.RuntimeLocalService/DeleteLocalCapabilityConfiguration",
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/DeleteLoadout",
     "service": "RuntimeLocalService",
-    "method": "DeleteLocalCapabilityConfiguration",
+    "method": "DeleteLoadout",
     "kind": "unary",
-    "requestType": "DeleteLocalCapabilityConfigurationRequest",
-    "responseType": "DeleteLocalCapabilityConfigurationResponse"
+    "requestType": "DeleteLoadoutRequest",
+    "responseType": "DeleteLoadoutResponse"
   },
   {
     "methodId": "/nimi.runtime.v1.RuntimeLocalService/EnsureEngine",
@@ -1679,20 +1663,28 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "GetEngineStatusResponse"
   },
   {
-    "methodId": "/nimi.runtime.v1.RuntimeLocalService/GetLocalCapabilityConfiguration",
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/GetLoadout",
     "service": "RuntimeLocalService",
-    "method": "GetLocalCapabilityConfiguration",
+    "method": "GetLoadout",
     "kind": "unary",
-    "requestType": "GetLocalCapabilityConfigurationRequest",
-    "responseType": "GetLocalCapabilityConfigurationResponse"
+    "requestType": "GetLoadoutRequest",
+    "responseType": "GetLoadoutResponse"
   },
   {
-    "methodId": "/nimi.runtime.v1.RuntimeLocalService/GetMachineLocalAIConfiguration",
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/GetMachineLoadouts",
     "service": "RuntimeLocalService",
-    "method": "GetMachineLocalAIConfiguration",
+    "method": "GetMachineLoadouts",
     "kind": "unary",
-    "requestType": "GetMachineLocalAIConfigurationRequest",
-    "responseType": "GetMachineLocalAIConfigurationResponse"
+    "requestType": "GetMachineLoadoutsRequest",
+    "responseType": "GetMachineLoadoutsResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/GetModelAsset",
+    "service": "RuntimeLocalService",
+    "method": "GetModelAsset",
+    "kind": "unary",
+    "requestType": "GetModelAssetRequest",
+    "responseType": "GetModelAssetResponse"
   },
   {
     "methodId": "/nimi.runtime.v1.RuntimeLocalService/GetProductControlRecord",
@@ -1719,36 +1711,12 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "GetRecommendationFeedResponse"
   },
   {
-    "methodId": "/nimi.runtime.v1.RuntimeLocalService/ImportLocalAsset",
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/ImportModelAsset",
     "service": "RuntimeLocalService",
-    "method": "ImportLocalAsset",
+    "method": "ImportModelAsset",
     "kind": "unary",
-    "requestType": "ImportLocalAssetRequest",
-    "responseType": "ImportLocalAssetResponse"
-  },
-  {
-    "methodId": "/nimi.runtime.v1.RuntimeLocalService/ImportLocalAssetBundle",
-    "service": "RuntimeLocalService",
-    "method": "ImportLocalAssetBundle",
-    "kind": "unary",
-    "requestType": "ImportLocalAssetBundleRequest",
-    "responseType": "ImportLocalAssetBundleResponse"
-  },
-  {
-    "methodId": "/nimi.runtime.v1.RuntimeLocalService/ImportLocalAssetFile",
-    "service": "RuntimeLocalService",
-    "method": "ImportLocalAssetFile",
-    "kind": "unary",
-    "requestType": "ImportLocalAssetFileRequest",
-    "responseType": "ImportLocalAssetFileResponse"
-  },
-  {
-    "methodId": "/nimi.runtime.v1.RuntimeLocalService/InstallLocalService",
-    "service": "RuntimeLocalService",
-    "method": "InstallLocalService",
-    "kind": "unary",
-    "requestType": "InstallLocalServiceRequest",
-    "responseType": "InstallLocalServiceResponse"
+    "requestType": "ImportModelAssetRequest",
+    "responseType": "ImportModelAssetResponse"
   },
   {
     "methodId": "/nimi.runtime.v1.RuntimeLocalService/InstallModelFromPlan",
@@ -1757,14 +1725,6 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "kind": "unary",
     "requestType": "InstallModelFromPlanRequest",
     "responseType": "InstallModelFromPlanResponse"
-  },
-  {
-    "methodId": "/nimi.runtime.v1.RuntimeLocalService/InstallVerifiedAsset",
-    "service": "RuntimeLocalService",
-    "method": "InstallVerifiedAsset",
-    "kind": "unary",
-    "requestType": "InstallVerifiedAssetRequest",
-    "responseType": "InstallVerifiedAssetResponse"
   },
   {
     "methodId": "/nimi.runtime.v1.RuntimeLocalService/ListCatalogVariants",
@@ -1783,12 +1743,12 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ListEnginesResponse"
   },
   {
-    "methodId": "/nimi.runtime.v1.RuntimeLocalService/ListLocalAssets",
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/ListLoadoutRecipes",
     "service": "RuntimeLocalService",
-    "method": "ListLocalAssets",
+    "method": "ListLoadoutRecipes",
     "kind": "unary",
-    "requestType": "ListLocalAssetsRequest",
-    "responseType": "ListLocalAssetsResponse"
+    "requestType": "ListLoadoutRecipesRequest",
+    "responseType": "ListLoadoutRecipesResponse"
   },
   {
     "methodId": "/nimi.runtime.v1.RuntimeLocalService/ListLocalAudits",
@@ -1815,14 +1775,6 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ListLocalEnvironmentSelectedSourcesResponse"
   },
   {
-    "methodId": "/nimi.runtime.v1.RuntimeLocalService/ListLocalServices",
-    "service": "RuntimeLocalService",
-    "method": "ListLocalServices",
-    "kind": "unary",
-    "requestType": "ListLocalServicesRequest",
-    "responseType": "ListLocalServicesResponse"
-  },
-  {
     "methodId": "/nimi.runtime.v1.RuntimeLocalService/ListLocalTransfers",
     "service": "RuntimeLocalService",
     "method": "ListLocalTransfers",
@@ -1831,12 +1783,12 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ListLocalTransfersResponse"
   },
   {
-    "methodId": "/nimi.runtime.v1.RuntimeLocalService/ListNodeCatalog",
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/ListModelAssets",
     "service": "RuntimeLocalService",
-    "method": "ListNodeCatalog",
+    "method": "ListModelAssets",
     "kind": "unary",
-    "requestType": "ListNodeCatalogRequest",
-    "responseType": "ListNodeCatalogResponse"
+    "requestType": "ListModelAssetsRequest",
+    "responseType": "ListModelAssetsResponse"
   },
   {
     "methodId": "/nimi.runtime.v1.RuntimeLocalService/ListVerifiedAssets",
@@ -1855,20 +1807,12 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "PauseLocalTransferResponse"
   },
   {
-    "methodId": "/nimi.runtime.v1.RuntimeLocalService/PrepareProfileRuntimeDescriptor",
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/PrepareLoadout",
     "service": "RuntimeLocalService",
-    "method": "PrepareProfileRuntimeDescriptor",
+    "method": "PrepareLoadout",
     "kind": "unary",
-    "requestType": "PrepareProfileRuntimeDescriptorRequest",
-    "responseType": "PrepareProfileRuntimeDescriptorResponse"
-  },
-  {
-    "methodId": "/nimi.runtime.v1.RuntimeLocalService/RebindLocalCapabilityRequirement",
-    "service": "RuntimeLocalService",
-    "method": "RebindLocalCapabilityRequirement",
-    "kind": "unary",
-    "requestType": "RebindLocalCapabilityRequirementRequest",
-    "responseType": "RebindLocalCapabilityRequirementResponse"
+    "requestType": "PrepareLoadoutRequest",
+    "responseType": "PrepareLoadoutResponse"
   },
   {
     "methodId": "/nimi.runtime.v1.RuntimeLocalService/ReconcileProductControlFirstRunSetupState",
@@ -1879,20 +1823,12 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ProductControlProjectionJson"
   },
   {
-    "methodId": "/nimi.runtime.v1.RuntimeLocalService/RemoveLocalAsset",
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/RemoveModelAsset",
     "service": "RuntimeLocalService",
-    "method": "RemoveLocalAsset",
+    "method": "RemoveModelAsset",
     "kind": "unary",
-    "requestType": "RemoveLocalAssetRequest",
-    "responseType": "RemoveLocalAssetResponse"
-  },
-  {
-    "methodId": "/nimi.runtime.v1.RuntimeLocalService/RemoveLocalService",
-    "service": "RuntimeLocalService",
-    "method": "RemoveLocalService",
-    "kind": "unary",
-    "requestType": "RemoveLocalServiceRequest",
-    "responseType": "RemoveLocalServiceResponse"
+    "requestType": "RemoveModelAssetRequest",
+    "responseType": "RemoveModelAssetResponse"
   },
   {
     "methodId": "/nimi.runtime.v1.RuntimeLocalService/RepairLocalEnvironmentDependency",
@@ -1901,22 +1837,6 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "kind": "unary",
     "requestType": "RepairLocalEnvironmentDependencyRequest",
     "responseType": "RepairLocalEnvironmentDependencyResponse"
-  },
-  {
-    "methodId": "/nimi.runtime.v1.RuntimeLocalService/ReprojectLocalCapabilityRequirements",
-    "service": "RuntimeLocalService",
-    "method": "ReprojectLocalCapabilityRequirements",
-    "kind": "unary",
-    "requestType": "ReprojectLocalCapabilityRequirementsRequest",
-    "responseType": "ReprojectLocalCapabilityRequirementsResponse"
-  },
-  {
-    "methodId": "/nimi.runtime.v1.RuntimeLocalService/RescanLocalAssetBundle",
-    "service": "RuntimeLocalService",
-    "method": "RescanLocalAssetBundle",
-    "kind": "unary",
-    "requestType": "RescanLocalAssetBundleRequest",
-    "responseType": "RescanLocalAssetBundleResponse"
   },
   {
     "methodId": "/nimi.runtime.v1.RuntimeLocalService/ResolveLocalEnvironmentActivationGate",
@@ -1951,14 +1871,6 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ResolveModelInstallPlanResponse"
   },
   {
-    "methodId": "/nimi.runtime.v1.RuntimeLocalService/ResolveProfile",
-    "service": "RuntimeLocalService",
-    "method": "ResolveProfile",
-    "kind": "unary",
-    "requestType": "ResolveProfileRequest",
-    "responseType": "ResolveProfileResponse"
-  },
-  {
     "methodId": "/nimi.runtime.v1.RuntimeLocalService/ResumeLocalTransfer",
     "service": "RuntimeLocalService",
     "method": "ResumeLocalTransfer",
@@ -1975,22 +1887,6 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "RetryLocalEnvironmentDependencyJobResponse"
   },
   {
-    "methodId": "/nimi.runtime.v1.RuntimeLocalService/ScaffoldOrphanAsset",
-    "service": "RuntimeLocalService",
-    "method": "ScaffoldOrphanAsset",
-    "kind": "unary",
-    "requestType": "ScaffoldOrphanAssetRequest",
-    "responseType": "ScaffoldOrphanAssetResponse"
-  },
-  {
-    "methodId": "/nimi.runtime.v1.RuntimeLocalService/ScanUnregisteredAssets",
-    "service": "RuntimeLocalService",
-    "method": "ScanUnregisteredAssets",
-    "kind": "unary",
-    "requestType": "ScanUnregisteredAssetsRequest",
-    "responseType": "ScanUnregisteredAssetsResponse"
-  },
-  {
     "methodId": "/nimi.runtime.v1.RuntimeLocalService/SearchCatalogModels",
     "service": "RuntimeLocalService",
     "method": "SearchCatalogModels",
@@ -1999,12 +1895,12 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "SearchCatalogModelsResponse"
   },
   {
-    "methodId": "/nimi.runtime.v1.RuntimeLocalService/SelectLocalCapabilityConfiguration",
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/SelectLoadout",
     "service": "RuntimeLocalService",
-    "method": "SelectLocalCapabilityConfiguration",
+    "method": "SelectLoadout",
     "kind": "unary",
-    "requestType": "SelectLocalCapabilityConfigurationRequest",
-    "responseType": "SelectLocalCapabilityConfigurationResponse"
+    "requestType": "SelectLoadoutRequest",
+    "responseType": "SelectLoadoutResponse"
   },
   {
     "methodId": "/nimi.runtime.v1.RuntimeLocalService/SelectProductControlDataRoot",
@@ -2031,28 +1927,12 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "StartEngineResponse"
   },
   {
-    "methodId": "/nimi.runtime.v1.RuntimeLocalService/StartLocalAsset",
-    "service": "RuntimeLocalService",
-    "method": "StartLocalAsset",
-    "kind": "unary",
-    "requestType": "StartLocalAssetRequest",
-    "responseType": "StartLocalAssetResponse"
-  },
-  {
     "methodId": "/nimi.runtime.v1.RuntimeLocalService/StartLocalEnvironmentDependencyJob",
     "service": "RuntimeLocalService",
     "method": "StartLocalEnvironmentDependencyJob",
     "kind": "unary",
     "requestType": "StartLocalEnvironmentDependencyJobRequest",
     "responseType": "StartLocalEnvironmentDependencyJobResponse"
-  },
-  {
-    "methodId": "/nimi.runtime.v1.RuntimeLocalService/StartLocalService",
-    "service": "RuntimeLocalService",
-    "method": "StartLocalService",
-    "kind": "unary",
-    "requestType": "StartLocalServiceRequest",
-    "responseType": "StartLocalServiceResponse"
   },
   {
     "methodId": "/nimi.runtime.v1.RuntimeLocalService/StopEngine",
@@ -2063,36 +1943,12 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "StopEngineResponse"
   },
   {
-    "methodId": "/nimi.runtime.v1.RuntimeLocalService/StopLocalAsset",
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/UpdateLoadout",
     "service": "RuntimeLocalService",
-    "method": "StopLocalAsset",
+    "method": "UpdateLoadout",
     "kind": "unary",
-    "requestType": "StopLocalAssetRequest",
-    "responseType": "StopLocalAssetResponse"
-  },
-  {
-    "methodId": "/nimi.runtime.v1.RuntimeLocalService/StopLocalService",
-    "service": "RuntimeLocalService",
-    "method": "StopLocalService",
-    "kind": "unary",
-    "requestType": "StopLocalServiceRequest",
-    "responseType": "StopLocalServiceResponse"
-  },
-  {
-    "methodId": "/nimi.runtime.v1.RuntimeLocalService/UnbindLocalCapabilityRequirement",
-    "service": "RuntimeLocalService",
-    "method": "UnbindLocalCapabilityRequirement",
-    "kind": "unary",
-    "requestType": "UnbindLocalCapabilityRequirementRequest",
-    "responseType": "UnbindLocalCapabilityRequirementResponse"
-  },
-  {
-    "methodId": "/nimi.runtime.v1.RuntimeLocalService/UpdateLocalCapabilityConfiguration",
-    "service": "RuntimeLocalService",
-    "method": "UpdateLocalCapabilityConfiguration",
-    "kind": "unary",
-    "requestType": "UpdateLocalCapabilityConfigurationRequest",
-    "responseType": "UpdateLocalCapabilityConfigurationResponse"
+    "requestType": "UpdateLoadoutRequest",
+    "responseType": "UpdateLoadoutResponse"
   },
   {
     "methodId": "/nimi.runtime.v1.RuntimeLocalService/WatchLocalTransfers",
@@ -2101,38 +1957,6 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "kind": "server_stream",
     "requestType": "WatchLocalTransfersRequest",
     "responseType": "LocalTransferProgressEvent"
-  },
-  {
-    "methodId": "/nimi.runtime.v1.RuntimeModelService/CheckModelHealth",
-    "service": "RuntimeModelService",
-    "method": "CheckModelHealth",
-    "kind": "unary",
-    "requestType": "CheckModelHealthRequest",
-    "responseType": "CheckModelHealthResponse"
-  },
-  {
-    "methodId": "/nimi.runtime.v1.RuntimeModelService/ListModels",
-    "service": "RuntimeModelService",
-    "method": "ListModels",
-    "kind": "unary",
-    "requestType": "ListModelsRequest",
-    "responseType": "ListModelsResponse"
-  },
-  {
-    "methodId": "/nimi.runtime.v1.RuntimeModelService/PullModel",
-    "service": "RuntimeModelService",
-    "method": "PullModel",
-    "kind": "unary",
-    "requestType": "PullModelRequest",
-    "responseType": "PullModelResponse"
-  },
-  {
-    "methodId": "/nimi.runtime.v1.RuntimeModelService/RemoveModel",
-    "service": "RuntimeModelService",
-    "method": "RemoveModel",
-    "kind": "unary",
-    "requestType": "RemoveModelRequest",
-    "responseType": "Ack"
   },
   {
     "methodId": "/nimi.runtime.v1.RuntimeServiceControlService/RequestRuntimeRestart",

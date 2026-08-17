@@ -1,22 +1,8 @@
-import { LocalExecutionEntryKind } from '../core-generated/runtime-typed-client';
 import { createNimiError, type JsonObject } from '../types';
-import type {
-  NimiRuntimeLocalDownloadState,
-  NimiRuntimeLocalExecutionEntryKindId,
-  NimiRuntimeLocalIntegrityMode,
-} from './runtime-local-asset-admin-types';
+import type { NimiRuntimeLocalDownloadState } from './runtime-local-asset-admin-types';
 
 const DEFAULT_PAGE_SIZE = 100;
 const DEFAULT_MAX_PAGES = 200;
-
-export function toCanonicalNimiRuntimeLocalAssetId(value: unknown): string {
-  const stripped = stripNimiRuntimeLocalAssetAlias(value);
-  return stripped ? `local/${stripped}` : '';
-}
-
-export function toCanonicalNimiRuntimeLocalAssetLookupKey(value: unknown): string {
-  return toCanonicalNimiRuntimeLocalAssetId(value).toLowerCase();
-}
 
 export function assertNimiRuntimeLocalWriteAllowed(command: string, caller: unknown): void {
   const normalizedCaller = normalizeText(caller).toLowerCase();
@@ -30,19 +16,6 @@ export function assertNimiRuntimeLocalWriteAllowed(command: string, caller: unkn
     source: 'sdk',
     details: { command, caller: normalizedCaller || '<missing>' },
   });
-}
-
-export function parseNimiRuntimeLocalExecutionEntryKind(
-  value: unknown,
-): NimiRuntimeLocalExecutionEntryKindId | undefined {
-  if (value === LocalExecutionEntryKind.MODEL) return 'model';
-  if (value === LocalExecutionEntryKind.SERVICE) return 'service';
-  if (value === LocalExecutionEntryKind.NODE) return 'node';
-  const normalized = normalizeText(value).toLowerCase();
-  if (normalized === 'model' || normalized === 'service' || normalized === 'node') {
-    return normalized;
-  }
-  return undefined;
 }
 
 export function normalizeNimiRuntimeLocalDownloadState(value: unknown): NimiRuntimeLocalDownloadState {
@@ -165,16 +138,6 @@ export function positiveNumber(value: unknown): number | undefined {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
 }
 
-export function finiteNumber(value: unknown): number | undefined {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : undefined;
-}
-
-export function int64String(value: unknown): string {
-  const parsed = Number(value ?? 0);
-  return Number.isFinite(parsed) ? String(Math.trunc(parsed)) : '0';
-}
-
 export function normalizePageSize(value: unknown): number {
   const parsed = Math.trunc(Number(value ?? DEFAULT_PAGE_SIZE));
   return Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_PAGE_SIZE;
@@ -194,24 +157,4 @@ export function dedupeBy<T>(items: readonly T[], keyFor: (item: T) => string): T
     }
   }
   return [...byKey.values()];
-}
-
-export function inferNimiRuntimeLocalIntegrityMode(repo: unknown): NimiRuntimeLocalIntegrityMode {
-  return normalizeText(repo).toLowerCase().startsWith('local-import/')
-    ? 'local_unverified'
-    : 'verified';
-}
-
-export function stripNimiRuntimeLocalAssetAlias(value: unknown): string {
-  const normalized = normalizeText(value);
-  if (!normalized) {
-    return '';
-  }
-  const lower = normalized.toLowerCase();
-  for (const prefix of ['local/', 'llama/', 'media/', 'speech/', 'sidecar/']) {
-    if (lower.startsWith(prefix)) {
-      return normalized.slice(prefix.length).trim();
-    }
-  }
-  return normalized;
 }

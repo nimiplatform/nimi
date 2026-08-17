@@ -119,7 +119,7 @@ func TestAIBackedPublicChatTurnExecutorCarriesLocalIntentWithoutDurableTarget(t 
 		t.Fatalf("consumer intent = %+v, ok=%v", intent, ok)
 	}
 	captured, ok := localexecution.SelectedLocalExecutionFromContext(streamer.ctx, "text.generate")
-	if !ok || captured.ConfigurationID != "lcc-text" {
+	if !ok || captured.LoadoutID != "lcc-text" {
 		t.Fatalf("captured Local execution = %+v, ok=%v", captured, ok)
 	}
 }
@@ -138,7 +138,7 @@ func publicChatTestAudioSynthesizeBinding() publicChatExecutionBinding {
 	selected.Requirements[0].RequirementId = capabilitydriver.Qwen3TTSModelRequirementID
 	selected.ExactBindings[0].RequirementID = capabilitydriver.Qwen3TTSModelRequirementID
 	return publicChatExecutionBinding{
-		BindingAlias:       selected.ConfigurationID,
+		BindingAlias:       selected.LoadoutID,
 		ModelID:            "speech/qwen3tts",
 		RoutePolicy:        runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 		CapabilityContract: capabilitydriver.AudioSynthesizeContract,

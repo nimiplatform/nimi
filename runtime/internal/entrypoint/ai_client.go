@@ -163,5 +163,3 @@ func collectScenarioArtifactResult(ctx context.Context, client runtimev1.Runtime
 		Payload:       append([]byte(nil), first.GetBytes()...),
 	}, nil
 }
-
-// ListModelsGRPC calls RuntimeModelService.ListModels over gRPC.

@@ -19,7 +19,7 @@ func TestUnaryLifecycleInterceptorAllowsLocalReadWhenStopping(t *testing.T) {
 	_, err := interceptor(
 		context.Background(),
 		struct{}{},
-		&grpc.UnaryServerInfo{FullMethod: "/nimi.runtime.v1.RuntimeLocalService/ListLocalAssets"},
+		&grpc.UnaryServerInfo{FullMethod: "/nimi.runtime.v1.RuntimeLocalService/ListModelAssets"},
 		func(_ context.Context, _ any) (any, error) {
 			handlerCalled = true
 			return struct{}{}, nil
@@ -39,11 +39,8 @@ func TestUnaryLifecycleInterceptorAllowsLocalArtifactReadsWhenStopping(t *testin
 	interceptor := newUnaryLifecycleInterceptor(state)
 
 	for _, fullMethod := range []string{
-		"/nimi.runtime.v1.RuntimeLocalService/ListLocalAssets",
-		"/nimi.runtime.v1.RuntimeLocalService/GetMachineLocalAIConfiguration",
-		"/nimi.runtime.v1.RuntimeLocalService/GetLocalCapabilityConfiguration",
+		"/nimi.runtime.v1.RuntimeLocalService/ListModelAssets",
 		"/nimi.runtime.v1.RuntimeLocalService/ListVerifiedAssets",
-		"/nimi.runtime.v1.RuntimeLocalService/ResolveProfile",
 	} {
 		handlerCalled := false
 		_, err := interceptor(
@@ -64,32 +61,6 @@ func TestUnaryLifecycleInterceptorAllowsLocalArtifactReadsWhenStopping(t *testin
 	}
 }
 
-func TestUnaryLifecycleInterceptorRejectsMachineLocalConfigurationWritesWhenStopping(t *testing.T) {
-	state := health.NewState()
-	state.SetStatus(health.StatusStopping, "draining")
-	interceptor := newUnaryLifecycleInterceptor(state)
-	for _, fullMethod := range []string{
-		"/nimi.runtime.v1.RuntimeLocalService/AddLocalCapabilityConfiguration",
-		"/nimi.runtime.v1.RuntimeLocalService/UpdateLocalCapabilityConfiguration",
-		"/nimi.runtime.v1.RuntimeLocalService/SelectLocalCapabilityConfiguration",
-		"/nimi.runtime.v1.RuntimeLocalService/ClearLocalCapabilitySelection",
-		"/nimi.runtime.v1.RuntimeLocalService/DeleteLocalCapabilityConfiguration",
-		"/nimi.runtime.v1.RuntimeLocalService/ReprojectLocalCapabilityRequirements",
-		"/nimi.runtime.v1.RuntimeLocalService/BindLocalCapabilityRequirement",
-		"/nimi.runtime.v1.RuntimeLocalService/RebindLocalCapabilityRequirement",
-		"/nimi.runtime.v1.RuntimeLocalService/UnbindLocalCapabilityRequirement",
-	} {
-		handlerCalled := false
-		_, err := interceptor(context.Background(), struct{}{}, &grpc.UnaryServerInfo{FullMethod: fullMethod}, func(context.Context, any) (any, error) {
-			handlerCalled = true
-			return struct{}{}, nil
-		})
-		if status.Code(err) != codes.Unavailable || handlerCalled {
-			t.Fatalf("%s was not rejected while stopping: called=%v err=%v", fullMethod, handlerCalled, err)
-		}
-	}
-}
-
 func TestUnaryLifecycleInterceptorRejectsLocalWriteWhenStopping(t *testing.T) {
 	state := health.NewState()
 	state.SetStatus(health.StatusStopping, "draining")
@@ -99,7 +70,7 @@ func TestUnaryLifecycleInterceptorRejectsLocalWriteWhenStopping(t *testing.T) {
 	_, err := interceptor(
 		context.Background(),
 		struct{}{},
-		&grpc.UnaryServerInfo{FullMethod: "/nimi.runtime.v1.RuntimeLocalService/InstallVerifiedAsset"},
+		&grpc.UnaryServerInfo{FullMethod: "/nimi.runtime.v1.RuntimeLocalService/InstallModelFromPlan"},
 		func(_ context.Context, _ any) (any, error) {
 			handlerCalled = true
 			return struct{}{}, nil

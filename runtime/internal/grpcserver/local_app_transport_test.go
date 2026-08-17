@@ -104,7 +104,7 @@ func TestProtectedLocalAppAIConfigOwnersDispatchAfterAdmission(t *testing.T) {
 		ingress localappop.Ingress
 	}{
 		{method: protectedGetAppAIConfigMethod, request: &runtimev1.GetAppAIConfigRequest{}, ingress: localappop.IngressAppAIConfigGet},
-		{method: protectedGetMachineLocalAIConfigMethod, request: &runtimev1.GetMachineLocalAIConfigurationRequest{}, ingress: localappop.IngressAppAIConfigGet},
+		{method: protectedGetMachineLoadoutsMethod, request: &runtimev1.GetMachineLoadoutsRequest{}, ingress: localappop.IngressAppAIConfigGet},
 	}
 	for _, test := range tests {
 		handlerCalled := false

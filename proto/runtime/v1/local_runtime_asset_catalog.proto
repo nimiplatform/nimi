@@ -5,7 +5,6 @@ package nimi.runtime.v1;
 option go_package = "github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1";
 
 import "google/protobuf/struct.proto";
-import "runtime/v1/common.proto";
 
 // === Asset Kind & Status (unified from Model + Artifact) ===
 
@@ -28,60 +27,10 @@ enum LocalAssetKind {
   LOCAL_ASSET_KIND_AUXILIARY   = 14;
 }
 
-enum LocalAssetStatus {
-  LOCAL_ASSET_STATUS_UNSPECIFIED = 0;
-  LOCAL_ASSET_STATUS_INSTALLED  = 1;
-  LOCAL_ASSET_STATUS_ACTIVE     = 2;
-  LOCAL_ASSET_STATUS_UNHEALTHY  = 3;
-  LOCAL_ASSET_STATUS_REMOVED    = 4;
-}
-
-enum LocalServiceStatus {
-  LOCAL_SERVICE_STATUS_UNSPECIFIED = 0;
-  LOCAL_SERVICE_STATUS_INSTALLED  = 1;
-  LOCAL_SERVICE_STATUS_ACTIVE     = 2;
-  LOCAL_SERVICE_STATUS_UNHEALTHY  = 3;
-  LOCAL_SERVICE_STATUS_REMOVED    = 4;
-}
-
 enum LocalEngineRuntimeMode {
   LOCAL_ENGINE_RUNTIME_MODE_UNSPECIFIED       = 0;
   LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED        = 1;
   LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT = 2;
-}
-
-enum LocalBundleState {
-  LOCAL_BUNDLE_STATE_UNSPECIFIED = 0;
-  LOCAL_BUNDLE_STATE_RESOLVING  = 1;
-  LOCAL_BUNDLE_STATE_READY      = 2;
-  LOCAL_BUNDLE_STATE_DEGRADED   = 3;
-  LOCAL_BUNDLE_STATE_INVALID    = 4;
-  LOCAL_BUNDLE_STATE_REMOVED    = 5;
-}
-
-enum LocalExecutionEntryKind {
-  LOCAL_EXECUTION_ENTRY_KIND_UNSPECIFIED = 0;
-  LOCAL_EXECUTION_ENTRY_KIND_MODEL      = 1;
-  LOCAL_EXECUTION_ENTRY_KIND_SERVICE    = 2;
-  LOCAL_EXECUTION_ENTRY_KIND_NODE       = 3;
-  reserved 4;
-  reserved "LOCAL_EXECUTION_ENTRY_KIND_WORKFLOW";
-}
-
-enum LocalProfileEntryKind {
-  LOCAL_PROFILE_ENTRY_KIND_UNSPECIFIED = 0;
-  reserved 1, 2;
-  reserved "LOCAL_PROFILE_ENTRY_KIND_MODEL", "LOCAL_PROFILE_ENTRY_KIND_ARTIFACT";
-  LOCAL_PROFILE_ENTRY_KIND_SERVICE = 3;
-  LOCAL_PROFILE_ENTRY_KIND_NODE    = 4;
-  LOCAL_PROFILE_ENTRY_KIND_ASSET   = 5;
-}
-
-// === Source ===
-
-message LocalAssetSource {
-  string repo     = 1;
-  string revision = 2;
 }
 
 // === Host Requirements ===
@@ -93,66 +42,39 @@ message LocalHostRequirements {
   repeated string required_backends   = 4;
 }
 
-// LocalBundleEntryDigest is the LocalAsset-owned manifest for one explicitly
-// sharded resource. Ordinals are one-based, contiguous, and retained in the
-// declared order; sha256 is the lowercase hexadecimal per-entry digest. The
-// canonical bundle SHA-256 hashes the concatenated decoded 32-byte digests in
-// this exact order.
-message LocalBundleEntryDigest {
-  uint32 ordinal = 1;
-  string relative_path = 2;
-  string sha256 = 3;
+// === ModelAsset content custody ===
+
+enum ModelAssetCatalogVerification {
+  MODEL_ASSET_CATALOG_VERIFICATION_UNSPECIFIED = 0;
+  MODEL_ASSET_CATALOG_VERIFICATION_MATCHED = 1;
+  MODEL_ASSET_CATALOG_VERIFICATION_NOT_MATCHED = 2;
 }
 
-// === Unified Asset Record ===
+message ModelAssetFile {
+  string relative_path = 1;
+  string sha256 = 2;
+  int64 size_bytes = 3;
+  // Imported code remains part of content identity but is never executable.
+  bool non_executable_content = 4;
+}
 
-message LocalAssetRecord {
-  string local_asset_id        = 1;
-  string asset_id              = 2;
-  LocalAssetKind kind          = 3;
-  string engine                = 4;
-  string entry                 = 5;
-  repeated string files        = 6;
-  string license               = 7;
-  LocalAssetSource source      = 8;
-  map<string, string> hashes   = 9;
-  LocalAssetStatus status      = 10;
-  string installed_at          = 11;
-  string updated_at            = 12;
-  string health_detail         = 13;
-
-  // Runnable-only fields
-  repeated string capabilities         = 20;
-  string logical_model_id              = 21;
-  string family                        = 22;
-  repeated string artifact_roles       = 23;
-  string preferred_engine              = 24;
-  repeated string fallback_engines     = 25;
-  LocalBundleState bundle_state        = 26;
-  reserved 27;
-  reserved "warm_state";
-  LocalHostRequirements host_requirements = 28;
-  string local_invoke_profile_id       = 29;
-  google.protobuf.Struct engine_config = 30;
-  reserved 31;
-  reserved "endpoint";
-  ReasonCode reason_code               = 32;
-
-  // Passive-only fields
-  google.protobuf.Struct metadata = 40;
-
-  // Installed instance display/import facts. local_asset_id remains the
-  // installed instance identity; display_name is user-editable and non-identity.
-  string display_name = 41;
-  string source_file_name = 42;
-  string import_instance_id = 43;
-
-  reserved 44, 45, 46;
-  reserved "durable_target_ref", "durable_target_status", "durable_target_reason_code";
-
-  // Empty preserves single-file entry identity. A non-empty list declares one
-  // sharded occurrence whose content identity covers every ordered entry.
-  repeated LocalBundleEntryDigest bundle_entries = 47;
+message ModelAssetRecord {
+  string model_asset_id = 1;
+  string content_id = 2;
+  string display_name = 3;
+  string entry = 4;
+  repeated ModelAssetFile files = 5;
+  int64 total_size_bytes = 6;
+  bool content_verified = 7;
+  ModelAssetCatalogVerification catalog_verification = 8;
+  bool unclassified = 9;
+  google.protobuf.Struct bounded_fingerprint = 10;
+  google.protobuf.Struct provenance = 11;
+  string created_at = 12;
+  string updated_at = 13;
+  string latest_integrity_checked_at = 14;
+  bool duplicate_content = 15;
+  bool contains_non_executable_code = 16;
 }
 
 // === Verified Asset Descriptor (unified from Model + Artifact) ===
@@ -258,6 +180,7 @@ message LocalCatalogModelDescriptor {
   string last_modified                  = 23;
   bool verified                         = 24;
   google.protobuf.Struct engine_config  = 25;
+  LocalHostRequirements host_requirements = 26;
 }
 
 message LocalInstallPlanDescriptor {

@@ -2612,20 +2612,21 @@ func (x *TextEmbedScenarioSpec) GetInputs() []string {
 }
 
 type ImageGenerateScenarioSpec struct {
-	state           protoimpl.MessageState `protogen:"open.v1"`
-	Prompt          string                 `protobuf:"bytes,1,opt,name=prompt,proto3" json:"prompt,omitempty"`
-	NegativePrompt  string                 `protobuf:"bytes,2,opt,name=negative_prompt,json=negativePrompt,proto3" json:"negative_prompt,omitempty"`
-	N               *int32                 `protobuf:"varint,3,opt,name=n,proto3,oneof" json:"n,omitempty"`
-	Size            string                 `protobuf:"bytes,4,opt,name=size,proto3" json:"size,omitempty"`
-	AspectRatio     string                 `protobuf:"bytes,5,opt,name=aspect_ratio,json=aspectRatio,proto3" json:"aspect_ratio,omitempty"`
-	Quality         string                 `protobuf:"bytes,6,opt,name=quality,proto3" json:"quality,omitempty"`
-	Style           string                 `protobuf:"bytes,7,opt,name=style,proto3" json:"style,omitempty"`
-	Seed            *int64                 `protobuf:"varint,8,opt,name=seed,proto3,oneof" json:"seed,omitempty"`
-	ReferenceImages []string               `protobuf:"bytes,9,rep,name=reference_images,json=referenceImages,proto3" json:"reference_images,omitempty"`
-	Mask            string                 `protobuf:"bytes,10,opt,name=mask,proto3" json:"mask,omitempty"`
-	ResponseFormat  string                 `protobuf:"bytes,11,opt,name=response_format,json=responseFormat,proto3" json:"response_format,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	state                    protoimpl.MessageState `protogen:"open.v1"`
+	Prompt                   string                 `protobuf:"bytes,1,opt,name=prompt,proto3" json:"prompt,omitempty"`
+	NegativePrompt           string                 `protobuf:"bytes,2,opt,name=negative_prompt,json=negativePrompt,proto3" json:"negative_prompt,omitempty"`
+	N                        *int32                 `protobuf:"varint,3,opt,name=n,proto3,oneof" json:"n,omitempty"`
+	Size                     string                 `protobuf:"bytes,4,opt,name=size,proto3" json:"size,omitempty"`
+	AspectRatio              string                 `protobuf:"bytes,5,opt,name=aspect_ratio,json=aspectRatio,proto3" json:"aspect_ratio,omitempty"`
+	Quality                  string                 `protobuf:"bytes,6,opt,name=quality,proto3" json:"quality,omitempty"`
+	Style                    string                 `protobuf:"bytes,7,opt,name=style,proto3" json:"style,omitempty"`
+	Seed                     *int64                 `protobuf:"varint,8,opt,name=seed,proto3,oneof" json:"seed,omitempty"`
+	ReferenceImages          []string               `protobuf:"bytes,9,rep,name=reference_images,json=referenceImages,proto3" json:"reference_images,omitempty"`
+	Mask                     string                 `protobuf:"bytes,10,opt,name=mask,proto3" json:"mask,omitempty"`
+	ResponseFormat           string                 `protobuf:"bytes,11,opt,name=response_format,json=responseFormat,proto3" json:"response_format,omitempty"`
+	ReferenceImageArtifactId string                 `protobuf:"bytes,12,opt,name=reference_image_artifact_id,json=referenceImageArtifactId,proto3" json:"reference_image_artifact_id,omitempty"`
+	unknownFields            protoimpl.UnknownFields
+	sizeCache                protoimpl.SizeCache
 }
 
 func (x *ImageGenerateScenarioSpec) Reset() {
@@ -2731,6 +2732,13 @@ func (x *ImageGenerateScenarioSpec) GetMask() string {
 func (x *ImageGenerateScenarioSpec) GetResponseFormat() string {
 	if x != nil {
 		return x.ResponseFormat
+	}
+	return ""
+}
+
+func (x *ImageGenerateScenarioSpec) GetReferenceImageArtifactId() string {
+	if x != nil {
+		return x.ReferenceImageArtifactId
 	}
 	return ""
 }
@@ -5109,20 +5117,21 @@ func (x *LocalAppTextEmbedScenarioSpec) GetInputs() []string {
 }
 
 type LocalAppImageGenerateScenarioSpec struct {
-	state           protoimpl.MessageState `protogen:"open.v1"`
-	Prompt          string                 `protobuf:"bytes,1,opt,name=prompt,proto3" json:"prompt,omitempty"`
-	NegativePrompt  string                 `protobuf:"bytes,2,opt,name=negative_prompt,json=negativePrompt,proto3" json:"negative_prompt,omitempty"`
-	N               *int32                 `protobuf:"varint,3,opt,name=n,proto3,oneof" json:"n,omitempty"`
-	Size            string                 `protobuf:"bytes,4,opt,name=size,proto3" json:"size,omitempty"`
-	AspectRatio     string                 `protobuf:"bytes,5,opt,name=aspect_ratio,json=aspectRatio,proto3" json:"aspect_ratio,omitempty"`
-	Quality         string                 `protobuf:"bytes,6,opt,name=quality,proto3" json:"quality,omitempty"`
-	Style           string                 `protobuf:"bytes,7,opt,name=style,proto3" json:"style,omitempty"`
-	Seed            *int64                 `protobuf:"varint,8,opt,name=seed,proto3,oneof" json:"seed,omitempty"`
-	ReferenceImages []string               `protobuf:"bytes,9,rep,name=reference_images,json=referenceImages,proto3" json:"reference_images,omitempty"`
-	Mask            string                 `protobuf:"bytes,10,opt,name=mask,proto3" json:"mask,omitempty"`
-	ResponseFormat  string                 `protobuf:"bytes,11,opt,name=response_format,json=responseFormat,proto3" json:"response_format,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	state                    protoimpl.MessageState `protogen:"open.v1"`
+	Prompt                   string                 `protobuf:"bytes,1,opt,name=prompt,proto3" json:"prompt,omitempty"`
+	NegativePrompt           string                 `protobuf:"bytes,2,opt,name=negative_prompt,json=negativePrompt,proto3" json:"negative_prompt,omitempty"`
+	N                        *int32                 `protobuf:"varint,3,opt,name=n,proto3,oneof" json:"n,omitempty"`
+	Size                     string                 `protobuf:"bytes,4,opt,name=size,proto3" json:"size,omitempty"`
+	AspectRatio              string                 `protobuf:"bytes,5,opt,name=aspect_ratio,json=aspectRatio,proto3" json:"aspect_ratio,omitempty"`
+	Quality                  string                 `protobuf:"bytes,6,opt,name=quality,proto3" json:"quality,omitempty"`
+	Style                    string                 `protobuf:"bytes,7,opt,name=style,proto3" json:"style,omitempty"`
+	Seed                     *int64                 `protobuf:"varint,8,opt,name=seed,proto3,oneof" json:"seed,omitempty"`
+	ReferenceImages          []string               `protobuf:"bytes,9,rep,name=reference_images,json=referenceImages,proto3" json:"reference_images,omitempty"`
+	Mask                     string                 `protobuf:"bytes,10,opt,name=mask,proto3" json:"mask,omitempty"`
+	ResponseFormat           string                 `protobuf:"bytes,11,opt,name=response_format,json=responseFormat,proto3" json:"response_format,omitempty"`
+	ReferenceImageArtifactId string                 `protobuf:"bytes,12,opt,name=reference_image_artifact_id,json=referenceImageArtifactId,proto3" json:"reference_image_artifact_id,omitempty"`
+	unknownFields            protoimpl.UnknownFields
+	sizeCache                protoimpl.SizeCache
 }
 
 func (x *LocalAppImageGenerateScenarioSpec) Reset() {
@@ -5228,6 +5237,13 @@ func (x *LocalAppImageGenerateScenarioSpec) GetMask() string {
 func (x *LocalAppImageGenerateScenarioSpec) GetResponseFormat() string {
 	if x != nil {
 		return x.ResponseFormat
+	}
+	return ""
+}
+
+func (x *LocalAppImageGenerateScenarioSpec) GetReferenceImageArtifactId() string {
+	if x != nil {
+		return x.ReferenceImageArtifactId
 	}
 	return ""
 }
@@ -8336,8 +8352,11 @@ type ScenarioJob struct {
 	// It is projected independently from artifact bytes and does not imply Job
 	// persistence across Runtime restart.
 	TranscriptionText string `protobuf:"bytes,23,opt,name=transcription_text,json=transcriptionText,proto3" json:"transcription_text,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	// Public attribution projection of the immutable Runtime-private
+	// ResolvedAssembly captured before this Job was published.
+	EffectiveInputIdentity *LoadoutEffectiveInputIdentity `protobuf:"bytes,24,opt,name=effective_input_identity,json=effectiveInputIdentity,proto3" json:"effective_input_identity,omitempty"`
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *ScenarioJob) Reset() {
@@ -8529,6 +8548,13 @@ func (x *ScenarioJob) GetTranscriptionText() string {
 		return x.TranscriptionText
 	}
 	return ""
+}
+
+func (x *ScenarioJob) GetEffectiveInputIdentity() *LoadoutEffectiveInputIdentity {
+	if x != nil {
+		return x.EffectiveInputIdentity
+	}
+	return nil
 }
 
 type SubmitScenarioJobRequest struct {
@@ -10493,7 +10519,7 @@ const file_runtime_v1_ai_proto_rawDesc = "" +
 	"\x12_frequency_penaltyB\a\n" +
 	"\x05_seed\"/\n" +
 	"\x15TextEmbedScenarioSpec\x12\x16\n" +
-	"\x06inputs\x18\x01 \x03(\tR\x06inputs\"\xe6\x02\n" +
+	"\x06inputs\x18\x01 \x03(\tR\x06inputs\"\xa5\x03\n" +
 	"\x19ImageGenerateScenarioSpec\x12\x16\n" +
 	"\x06prompt\x18\x01 \x01(\tR\x06prompt\x12'\n" +
 	"\x0fnegative_prompt\x18\x02 \x01(\tR\x0enegativePrompt\x12\x11\n" +
@@ -10506,7 +10532,8 @@ const file_runtime_v1_ai_proto_rawDesc = "" +
 	"\x10reference_images\x18\t \x03(\tR\x0freferenceImages\x12\x12\n" +
 	"\x04mask\x18\n" +
 	" \x01(\tR\x04mask\x12'\n" +
-	"\x0fresponse_format\x18\v \x01(\tR\x0eresponseFormatB\x04\n" +
+	"\x0fresponse_format\x18\v \x01(\tR\x0eresponseFormat\x12=\n" +
+	"\x1breference_image_artifact_id\x18\f \x01(\tR\x18referenceImageArtifactIdB\x04\n" +
 	"\x02_nB\a\n" +
 	"\x05_seed\"\x8c\x02\n" +
 	"\x19VideoGenerateScenarioSpec\x12\x16\n" +
@@ -10706,7 +10733,7 @@ const file_runtime_v1_ai_proto_rawDesc = "" +
 	"\bchannels\x18\n" +
 	" \x01(\x05R\bchannels\"7\n" +
 	"\x1dLocalAppTextEmbedScenarioSpec\x12\x16\n" +
-	"\x06inputs\x18\x01 \x03(\tR\x06inputs\"\xee\x02\n" +
+	"\x06inputs\x18\x01 \x03(\tR\x06inputs\"\xad\x03\n" +
 	"!LocalAppImageGenerateScenarioSpec\x12\x16\n" +
 	"\x06prompt\x18\x01 \x01(\tR\x06prompt\x12'\n" +
 	"\x0fnegative_prompt\x18\x02 \x01(\tR\x0enegativePrompt\x12\x11\n" +
@@ -10719,7 +10746,8 @@ const file_runtime_v1_ai_proto_rawDesc = "" +
 	"\x10reference_images\x18\t \x03(\tR\x0freferenceImages\x12\x12\n" +
 	"\x04mask\x18\n" +
 	" \x01(\tR\x04mask\x12'\n" +
-	"\x0fresponse_format\x18\v \x01(\tR\x0eresponseFormatB\x04\n" +
+	"\x0fresponse_format\x18\v \x01(\tR\x0eresponseFormat\x12=\n" +
+	"\x1breference_image_artifact_id\x18\f \x01(\tR\x18referenceImageArtifactIdB\x04\n" +
 	"\x02_nB\a\n" +
 	"\x05_seed\"\xd6\x01\n" +
 	"\x1eExecuteLocalAppScenarioRequest\x12O\n" +
@@ -10989,7 +11017,8 @@ const file_runtime_v1_ai_proto_rawDesc = "" +
 	"\x0esample_rate_hz\x18\v \x01(\x05R\fsampleRateHz\x12\x1a\n" +
 	"\bchannels\x18\f \x01(\x05R\bchannels\x12K\n" +
 	"\x10speech_alignment\x18\r \x01(\v2 .nimi.runtime.v1.SpeechAlignmentR\x0fspeechAlignment\x123\n" +
-	"\bmetadata\x18\x0e \x01(\v2\x17.google.protobuf.StructR\bmetadata\"\xdc\t\n" +
+	"\bmetadata\x18\x0e \x01(\v2\x17.google.protobuf.StructR\bmetadata\"\xc6\n" +
+	"\n" +
 	"\vScenarioJob\x12\x15\n" +
 	"\x06job_id\x18\x01 \x01(\tR\x05jobId\x128\n" +
 	"\x04head\x18\x02 \x01(\v2$.nimi.runtime.v1.ScenarioRequestHeadR\x04head\x12B\n" +
@@ -11019,7 +11048,8 @@ const file_runtime_v1_ai_proto_rawDesc = "" +
 	"\x10progress_percent\x18\x14 \x01(\x05R\x0fprogressPercent\x122\n" +
 	"\x15progress_current_step\x18\x15 \x01(\x05R\x13progressCurrentStep\x120\n" +
 	"\x14progress_total_steps\x18\x16 \x01(\x05R\x12progressTotalSteps\x12-\n" +
-	"\x12transcription_text\x18\x17 \x01(\tR\x11transcriptionText\"\xa8\x04\n" +
+	"\x12transcription_text\x18\x17 \x01(\tR\x11transcriptionText\x12h\n" +
+	"\x18effective_input_identity\x18\x18 \x01(\v2..nimi.runtime.v1.LoadoutEffectiveInputIdentityR\x16effectiveInputIdentity\"\xa8\x04\n" +
 	"\x18SubmitScenarioJobRequest\x128\n" +
 	"\x04head\x18\x01 \x01(\v2$.nimi.runtime.v1.ScenarioRequestHeadR\x04head\x12B\n" +
 	"\rscenario_type\x18\x02 \x01(\x0e2\x1d.nimi.runtime.v1.ScenarioTypeR\fscenarioType\x12E\n" +
@@ -11498,21 +11528,22 @@ var file_runtime_v1_ai_proto_goTypes = []any{
 	(VoiceAssetStatus)(0),                             // 151: nimi.runtime.v1.VoiceAssetStatus
 	(VoiceCreationSource)(0),                          // 152: nimi.runtime.v1.VoiceCreationSource
 	(VoiceOutputMode)(0),                              // 153: nimi.runtime.v1.VoiceOutputMode
-	(*VoiceAsset)(nil),                                // 154: nimi.runtime.v1.VoiceAsset
-	(*GetAppAIConfigRequest)(nil),                     // 155: nimi.runtime.v1.GetAppAIConfigRequest
-	(*OverwriteAppAIConfigRequest)(nil),               // 156: nimi.runtime.v1.OverwriteAppAIConfigRequest
-	(*GetVoiceAssetRequest)(nil),                      // 157: nimi.runtime.v1.GetVoiceAssetRequest
-	(*ListVoiceAssetsRequest)(nil),                    // 158: nimi.runtime.v1.ListVoiceAssetsRequest
-	(*DeleteVoiceAssetRequest)(nil),                   // 159: nimi.runtime.v1.DeleteVoiceAssetRequest
-	(*ListPresetVoicesRequest)(nil),                   // 160: nimi.runtime.v1.ListPresetVoicesRequest
-	(*PeekSchedulingRequest)(nil),                     // 161: nimi.runtime.v1.PeekSchedulingRequest
-	(*GetAppAIConfigResponse)(nil),                    // 162: nimi.runtime.v1.GetAppAIConfigResponse
-	(*OverwriteAppAIConfigResponse)(nil),              // 163: nimi.runtime.v1.OverwriteAppAIConfigResponse
-	(*GetVoiceAssetResponse)(nil),                     // 164: nimi.runtime.v1.GetVoiceAssetResponse
-	(*ListVoiceAssetsResponse)(nil),                   // 165: nimi.runtime.v1.ListVoiceAssetsResponse
-	(*DeleteVoiceAssetResponse)(nil),                  // 166: nimi.runtime.v1.DeleteVoiceAssetResponse
-	(*ListPresetVoicesResponse)(nil),                  // 167: nimi.runtime.v1.ListPresetVoicesResponse
-	(*PeekSchedulingResponse)(nil),                    // 168: nimi.runtime.v1.PeekSchedulingResponse
+	(*LoadoutEffectiveInputIdentity)(nil),             // 154: nimi.runtime.v1.LoadoutEffectiveInputIdentity
+	(*VoiceAsset)(nil),                                // 155: nimi.runtime.v1.VoiceAsset
+	(*GetAppAIConfigRequest)(nil),                     // 156: nimi.runtime.v1.GetAppAIConfigRequest
+	(*OverwriteAppAIConfigRequest)(nil),               // 157: nimi.runtime.v1.OverwriteAppAIConfigRequest
+	(*GetVoiceAssetRequest)(nil),                      // 158: nimi.runtime.v1.GetVoiceAssetRequest
+	(*ListVoiceAssetsRequest)(nil),                    // 159: nimi.runtime.v1.ListVoiceAssetsRequest
+	(*DeleteVoiceAssetRequest)(nil),                   // 160: nimi.runtime.v1.DeleteVoiceAssetRequest
+	(*ListPresetVoicesRequest)(nil),                   // 161: nimi.runtime.v1.ListPresetVoicesRequest
+	(*PeekSchedulingRequest)(nil),                     // 162: nimi.runtime.v1.PeekSchedulingRequest
+	(*GetAppAIConfigResponse)(nil),                    // 163: nimi.runtime.v1.GetAppAIConfigResponse
+	(*OverwriteAppAIConfigResponse)(nil),              // 164: nimi.runtime.v1.OverwriteAppAIConfigResponse
+	(*GetVoiceAssetResponse)(nil),                     // 165: nimi.runtime.v1.GetVoiceAssetResponse
+	(*ListVoiceAssetsResponse)(nil),                   // 166: nimi.runtime.v1.ListVoiceAssetsResponse
+	(*DeleteVoiceAssetResponse)(nil),                  // 167: nimi.runtime.v1.DeleteVoiceAssetResponse
+	(*ListPresetVoicesResponse)(nil),                  // 168: nimi.runtime.v1.ListPresetVoicesResponse
+	(*PeekSchedulingResponse)(nil),                    // 169: nimi.runtime.v1.PeekSchedulingResponse
 }
 var file_runtime_v1_ai_proto_depIdxs = []int32{
 	24,  // 0: nimi.runtime.v1.ChatMessage.parts:type_name -> nimi.runtime.v1.ChatContentPart
@@ -11689,96 +11720,97 @@ var file_runtime_v1_ai_proto_depIdxs = []int32{
 	148, // 171: nimi.runtime.v1.ScenarioJob.usage:type_name -> nimi.runtime.v1.UsageStats
 	35,  // 172: nimi.runtime.v1.ScenarioJob.ignored_extensions:type_name -> nimi.runtime.v1.IgnoredScenarioExtension
 	143, // 173: nimi.runtime.v1.ScenarioJob.reason_metadata:type_name -> google.protobuf.Struct
-	33,  // 174: nimi.runtime.v1.SubmitScenarioJobRequest.head:type_name -> nimi.runtime.v1.ScenarioRequestHead
-	1,   // 175: nimi.runtime.v1.SubmitScenarioJobRequest.scenario_type:type_name -> nimi.runtime.v1.ScenarioType
-	2,   // 176: nimi.runtime.v1.SubmitScenarioJobRequest.execution_mode:type_name -> nimi.runtime.v1.ExecutionMode
-	51,  // 177: nimi.runtime.v1.SubmitScenarioJobRequest.spec:type_name -> nimi.runtime.v1.ScenarioSpec
-	142, // 178: nimi.runtime.v1.SubmitScenarioJobRequest.labels:type_name -> nimi.runtime.v1.SubmitScenarioJobRequest.LabelsEntry
-	34,  // 179: nimi.runtime.v1.SubmitScenarioJobRequest.extensions:type_name -> nimi.runtime.v1.ScenarioExtension
-	111, // 180: nimi.runtime.v1.SubmitScenarioJobResponse.job:type_name -> nimi.runtime.v1.ScenarioJob
-	111, // 181: nimi.runtime.v1.GetScenarioJobResponse.job:type_name -> nimi.runtime.v1.ScenarioJob
-	154, // 182: nimi.runtime.v1.GetScenarioJobResponse.asset:type_name -> nimi.runtime.v1.VoiceAsset
-	145, // 183: nimi.runtime.v1.GetScenarioJobResponse.voice_reference:type_name -> nimi.runtime.v1.VoiceReference
-	111, // 184: nimi.runtime.v1.CancelScenarioJobResponse.job:type_name -> nimi.runtime.v1.ScenarioJob
-	20,  // 185: nimi.runtime.v1.ScenarioJobEvent.event_type:type_name -> nimi.runtime.v1.ScenarioJobEventType
-	150, // 186: nimi.runtime.v1.ScenarioJobEvent.timestamp:type_name -> google.protobuf.Timestamp
-	111, // 187: nimi.runtime.v1.ScenarioJobEvent.job:type_name -> nimi.runtime.v1.ScenarioJob
-	110, // 188: nimi.runtime.v1.GetScenarioArtifactsResponse.artifacts:type_name -> nimi.runtime.v1.ScenarioArtifact
-	63,  // 189: nimi.runtime.v1.GetScenarioArtifactsResponse.output:type_name -> nimi.runtime.v1.ScenarioOutput
-	1,   // 190: nimi.runtime.v1.ScenarioProfile.scenario_type:type_name -> nimi.runtime.v1.ScenarioType
-	2,   // 191: nimi.runtime.v1.ScenarioProfile.supported_execution_modes:type_name -> nimi.runtime.v1.ExecutionMode
-	122, // 192: nimi.runtime.v1.ListScenarioProfilesResponse.profiles:type_name -> nimi.runtime.v1.ScenarioProfile
-	10,  // 193: nimi.runtime.v1.VideoContentItem.type:type_name -> nimi.runtime.v1.VideoContentType
-	11,  // 194: nimi.runtime.v1.VideoContentItem.role:type_name -> nimi.runtime.v1.VideoContentRole
-	125, // 195: nimi.runtime.v1.VideoContentItem.image_url:type_name -> nimi.runtime.v1.VideoContentImageURL
-	126, // 196: nimi.runtime.v1.VideoContentItem.video_url:type_name -> nimi.runtime.v1.VideoContentVideoURL
-	127, // 197: nimi.runtime.v1.VideoContentItem.audio_url:type_name -> nimi.runtime.v1.VideoContentAudioURL
-	128, // 198: nimi.runtime.v1.VideoContentItem.artifact_ref:type_name -> nimi.runtime.v1.VideoContentArtifactRef
-	132, // 199: nimi.runtime.v1.SpeechTranscriptionAudioSource.audio_chunks:type_name -> nimi.runtime.v1.AudioChunks
-	13,  // 200: nimi.runtime.v1.SpeechAlignment.unit:type_name -> nimi.runtime.v1.SpeechAlignmentUnit
-	134, // 201: nimi.runtime.v1.SpeechAlignment.tokens:type_name -> nimi.runtime.v1.SpeechAlignmentToken
-	148, // 202: nimi.runtime.v1.ArtifactChunk.usage:type_name -> nimi.runtime.v1.UsageStats
-	3,   // 203: nimi.runtime.v1.ArtifactChunk.route_decision:type_name -> nimi.runtime.v1.RoutePolicy
-	137, // 204: nimi.runtime.v1.UploadArtifactRequest.metadata:type_name -> nimi.runtime.v1.UploadArtifactMetadata
-	138, // 205: nimi.runtime.v1.UploadArtifactRequest.chunk:type_name -> nimi.runtime.v1.UploadArtifactChunk
-	110, // 206: nimi.runtime.v1.UploadArtifactResponse.artifact:type_name -> nimi.runtime.v1.ScenarioArtifact
-	155, // 207: nimi.runtime.v1.RuntimeAiService.GetAppAIConfig:input_type -> nimi.runtime.v1.GetAppAIConfigRequest
-	156, // 208: nimi.runtime.v1.RuntimeAiService.OverwriteAppAIConfig:input_type -> nimi.runtime.v1.OverwriteAppAIConfigRequest
-	66,  // 209: nimi.runtime.v1.RuntimeAiService.GenerateLocalAppTextCandidate:input_type -> nimi.runtime.v1.GenerateLocalAppTextCandidateRequest
-	71,  // 210: nimi.runtime.v1.RuntimeAiService.ExecuteLocalAppScenario:input_type -> nimi.runtime.v1.ExecuteLocalAppScenarioRequest
-	80,  // 211: nimi.runtime.v1.RuntimeAiService.SubmitLocalAppScenarioJob:input_type -> nimi.runtime.v1.SubmitLocalAppScenarioJobRequest
-	84,  // 212: nimi.runtime.v1.RuntimeAiService.GetLocalAppScenarioJob:input_type -> nimi.runtime.v1.GetLocalAppScenarioJobRequest
-	86,  // 213: nimi.runtime.v1.RuntimeAiService.CancelLocalAppScenarioJob:input_type -> nimi.runtime.v1.CancelLocalAppScenarioJobRequest
-	88,  // 214: nimi.runtime.v1.RuntimeAiService.SubscribeLocalAppScenarioJobEvents:input_type -> nimi.runtime.v1.SubscribeLocalAppScenarioJobEventsRequest
-	90,  // 215: nimi.runtime.v1.RuntimeAiService.StreamLocalAppTextTurn:input_type -> nimi.runtime.v1.StreamLocalAppTextTurnRequest
-	95,  // 216: nimi.runtime.v1.RuntimeAiService.ReadLocalAppArtifact:input_type -> nimi.runtime.v1.ReadLocalAppArtifactRequest
-	97,  // 217: nimi.runtime.v1.RuntimeAiService.UploadLocalAppArtifact:input_type -> nimi.runtime.v1.UploadLocalAppArtifactRequest
-	99,  // 218: nimi.runtime.v1.RuntimeAiService.ListLocalAppVoiceAssets:input_type -> nimi.runtime.v1.ListLocalAppVoiceAssetsRequest
-	52,  // 219: nimi.runtime.v1.RuntimeAiService.ExecuteScenario:input_type -> nimi.runtime.v1.ExecuteScenarioRequest
-	101, // 220: nimi.runtime.v1.RuntimeAiService.StreamScenario:input_type -> nimi.runtime.v1.StreamScenarioRequest
-	112, // 221: nimi.runtime.v1.RuntimeAiService.SubmitScenarioJob:input_type -> nimi.runtime.v1.SubmitScenarioJobRequest
-	114, // 222: nimi.runtime.v1.RuntimeAiService.GetScenarioJob:input_type -> nimi.runtime.v1.GetScenarioJobRequest
-	116, // 223: nimi.runtime.v1.RuntimeAiService.CancelScenarioJob:input_type -> nimi.runtime.v1.CancelScenarioJobRequest
-	119, // 224: nimi.runtime.v1.RuntimeAiService.SubscribeScenarioJobEvents:input_type -> nimi.runtime.v1.SubscribeScenarioJobEventsRequest
-	120, // 225: nimi.runtime.v1.RuntimeAiService.GetScenarioArtifacts:input_type -> nimi.runtime.v1.GetScenarioArtifactsRequest
-	123, // 226: nimi.runtime.v1.RuntimeAiService.ListScenarioProfiles:input_type -> nimi.runtime.v1.ListScenarioProfilesRequest
-	157, // 227: nimi.runtime.v1.RuntimeAiService.GetVoiceAsset:input_type -> nimi.runtime.v1.GetVoiceAssetRequest
-	158, // 228: nimi.runtime.v1.RuntimeAiService.ListVoiceAssets:input_type -> nimi.runtime.v1.ListVoiceAssetsRequest
-	159, // 229: nimi.runtime.v1.RuntimeAiService.DeleteVoiceAsset:input_type -> nimi.runtime.v1.DeleteVoiceAssetRequest
-	160, // 230: nimi.runtime.v1.RuntimeAiService.ListPresetVoices:input_type -> nimi.runtime.v1.ListPresetVoicesRequest
-	139, // 231: nimi.runtime.v1.RuntimeAiService.UploadArtifact:input_type -> nimi.runtime.v1.UploadArtifactRequest
-	161, // 232: nimi.runtime.v1.RuntimeAiService.PeekScheduling:input_type -> nimi.runtime.v1.PeekSchedulingRequest
-	162, // 233: nimi.runtime.v1.RuntimeAiService.GetAppAIConfig:output_type -> nimi.runtime.v1.GetAppAIConfigResponse
-	163, // 234: nimi.runtime.v1.RuntimeAiService.OverwriteAppAIConfig:output_type -> nimi.runtime.v1.OverwriteAppAIConfigResponse
-	67,  // 235: nimi.runtime.v1.RuntimeAiService.GenerateLocalAppTextCandidate:output_type -> nimi.runtime.v1.GenerateLocalAppTextCandidateResponse
-	74,  // 236: nimi.runtime.v1.RuntimeAiService.ExecuteLocalAppScenario:output_type -> nimi.runtime.v1.ExecuteLocalAppScenarioResponse
-	83,  // 237: nimi.runtime.v1.RuntimeAiService.SubmitLocalAppScenarioJob:output_type -> nimi.runtime.v1.SubmitLocalAppScenarioJobResponse
-	85,  // 238: nimi.runtime.v1.RuntimeAiService.GetLocalAppScenarioJob:output_type -> nimi.runtime.v1.GetLocalAppScenarioJobResponse
-	87,  // 239: nimi.runtime.v1.RuntimeAiService.CancelLocalAppScenarioJob:output_type -> nimi.runtime.v1.CancelLocalAppScenarioJobResponse
-	89,  // 240: nimi.runtime.v1.RuntimeAiService.SubscribeLocalAppScenarioJobEvents:output_type -> nimi.runtime.v1.LocalAppScenarioJobEvent
-	94,  // 241: nimi.runtime.v1.RuntimeAiService.StreamLocalAppTextTurn:output_type -> nimi.runtime.v1.StreamLocalAppTextTurnEvent
-	96,  // 242: nimi.runtime.v1.RuntimeAiService.ReadLocalAppArtifact:output_type -> nimi.runtime.v1.ReadLocalAppArtifactResponse
-	98,  // 243: nimi.runtime.v1.RuntimeAiService.UploadLocalAppArtifact:output_type -> nimi.runtime.v1.UploadLocalAppArtifactResponse
-	100, // 244: nimi.runtime.v1.RuntimeAiService.ListLocalAppVoiceAssets:output_type -> nimi.runtime.v1.ListLocalAppVoiceAssetsResponse
-	64,  // 245: nimi.runtime.v1.RuntimeAiService.ExecuteScenario:output_type -> nimi.runtime.v1.ExecuteScenarioResponse
-	109, // 246: nimi.runtime.v1.RuntimeAiService.StreamScenario:output_type -> nimi.runtime.v1.StreamScenarioEvent
-	113, // 247: nimi.runtime.v1.RuntimeAiService.SubmitScenarioJob:output_type -> nimi.runtime.v1.SubmitScenarioJobResponse
-	115, // 248: nimi.runtime.v1.RuntimeAiService.GetScenarioJob:output_type -> nimi.runtime.v1.GetScenarioJobResponse
-	117, // 249: nimi.runtime.v1.RuntimeAiService.CancelScenarioJob:output_type -> nimi.runtime.v1.CancelScenarioJobResponse
-	118, // 250: nimi.runtime.v1.RuntimeAiService.SubscribeScenarioJobEvents:output_type -> nimi.runtime.v1.ScenarioJobEvent
-	121, // 251: nimi.runtime.v1.RuntimeAiService.GetScenarioArtifacts:output_type -> nimi.runtime.v1.GetScenarioArtifactsResponse
-	124, // 252: nimi.runtime.v1.RuntimeAiService.ListScenarioProfiles:output_type -> nimi.runtime.v1.ListScenarioProfilesResponse
-	164, // 253: nimi.runtime.v1.RuntimeAiService.GetVoiceAsset:output_type -> nimi.runtime.v1.GetVoiceAssetResponse
-	165, // 254: nimi.runtime.v1.RuntimeAiService.ListVoiceAssets:output_type -> nimi.runtime.v1.ListVoiceAssetsResponse
-	166, // 255: nimi.runtime.v1.RuntimeAiService.DeleteVoiceAsset:output_type -> nimi.runtime.v1.DeleteVoiceAssetResponse
-	167, // 256: nimi.runtime.v1.RuntimeAiService.ListPresetVoices:output_type -> nimi.runtime.v1.ListPresetVoicesResponse
-	140, // 257: nimi.runtime.v1.RuntimeAiService.UploadArtifact:output_type -> nimi.runtime.v1.UploadArtifactResponse
-	168, // 258: nimi.runtime.v1.RuntimeAiService.PeekScheduling:output_type -> nimi.runtime.v1.PeekSchedulingResponse
-	233, // [233:259] is the sub-list for method output_type
-	207, // [207:233] is the sub-list for method input_type
-	207, // [207:207] is the sub-list for extension type_name
-	207, // [207:207] is the sub-list for extension extendee
-	0,   // [0:207] is the sub-list for field type_name
+	154, // 174: nimi.runtime.v1.ScenarioJob.effective_input_identity:type_name -> nimi.runtime.v1.LoadoutEffectiveInputIdentity
+	33,  // 175: nimi.runtime.v1.SubmitScenarioJobRequest.head:type_name -> nimi.runtime.v1.ScenarioRequestHead
+	1,   // 176: nimi.runtime.v1.SubmitScenarioJobRequest.scenario_type:type_name -> nimi.runtime.v1.ScenarioType
+	2,   // 177: nimi.runtime.v1.SubmitScenarioJobRequest.execution_mode:type_name -> nimi.runtime.v1.ExecutionMode
+	51,  // 178: nimi.runtime.v1.SubmitScenarioJobRequest.spec:type_name -> nimi.runtime.v1.ScenarioSpec
+	142, // 179: nimi.runtime.v1.SubmitScenarioJobRequest.labels:type_name -> nimi.runtime.v1.SubmitScenarioJobRequest.LabelsEntry
+	34,  // 180: nimi.runtime.v1.SubmitScenarioJobRequest.extensions:type_name -> nimi.runtime.v1.ScenarioExtension
+	111, // 181: nimi.runtime.v1.SubmitScenarioJobResponse.job:type_name -> nimi.runtime.v1.ScenarioJob
+	111, // 182: nimi.runtime.v1.GetScenarioJobResponse.job:type_name -> nimi.runtime.v1.ScenarioJob
+	155, // 183: nimi.runtime.v1.GetScenarioJobResponse.asset:type_name -> nimi.runtime.v1.VoiceAsset
+	145, // 184: nimi.runtime.v1.GetScenarioJobResponse.voice_reference:type_name -> nimi.runtime.v1.VoiceReference
+	111, // 185: nimi.runtime.v1.CancelScenarioJobResponse.job:type_name -> nimi.runtime.v1.ScenarioJob
+	20,  // 186: nimi.runtime.v1.ScenarioJobEvent.event_type:type_name -> nimi.runtime.v1.ScenarioJobEventType
+	150, // 187: nimi.runtime.v1.ScenarioJobEvent.timestamp:type_name -> google.protobuf.Timestamp
+	111, // 188: nimi.runtime.v1.ScenarioJobEvent.job:type_name -> nimi.runtime.v1.ScenarioJob
+	110, // 189: nimi.runtime.v1.GetScenarioArtifactsResponse.artifacts:type_name -> nimi.runtime.v1.ScenarioArtifact
+	63,  // 190: nimi.runtime.v1.GetScenarioArtifactsResponse.output:type_name -> nimi.runtime.v1.ScenarioOutput
+	1,   // 191: nimi.runtime.v1.ScenarioProfile.scenario_type:type_name -> nimi.runtime.v1.ScenarioType
+	2,   // 192: nimi.runtime.v1.ScenarioProfile.supported_execution_modes:type_name -> nimi.runtime.v1.ExecutionMode
+	122, // 193: nimi.runtime.v1.ListScenarioProfilesResponse.profiles:type_name -> nimi.runtime.v1.ScenarioProfile
+	10,  // 194: nimi.runtime.v1.VideoContentItem.type:type_name -> nimi.runtime.v1.VideoContentType
+	11,  // 195: nimi.runtime.v1.VideoContentItem.role:type_name -> nimi.runtime.v1.VideoContentRole
+	125, // 196: nimi.runtime.v1.VideoContentItem.image_url:type_name -> nimi.runtime.v1.VideoContentImageURL
+	126, // 197: nimi.runtime.v1.VideoContentItem.video_url:type_name -> nimi.runtime.v1.VideoContentVideoURL
+	127, // 198: nimi.runtime.v1.VideoContentItem.audio_url:type_name -> nimi.runtime.v1.VideoContentAudioURL
+	128, // 199: nimi.runtime.v1.VideoContentItem.artifact_ref:type_name -> nimi.runtime.v1.VideoContentArtifactRef
+	132, // 200: nimi.runtime.v1.SpeechTranscriptionAudioSource.audio_chunks:type_name -> nimi.runtime.v1.AudioChunks
+	13,  // 201: nimi.runtime.v1.SpeechAlignment.unit:type_name -> nimi.runtime.v1.SpeechAlignmentUnit
+	134, // 202: nimi.runtime.v1.SpeechAlignment.tokens:type_name -> nimi.runtime.v1.SpeechAlignmentToken
+	148, // 203: nimi.runtime.v1.ArtifactChunk.usage:type_name -> nimi.runtime.v1.UsageStats
+	3,   // 204: nimi.runtime.v1.ArtifactChunk.route_decision:type_name -> nimi.runtime.v1.RoutePolicy
+	137, // 205: nimi.runtime.v1.UploadArtifactRequest.metadata:type_name -> nimi.runtime.v1.UploadArtifactMetadata
+	138, // 206: nimi.runtime.v1.UploadArtifactRequest.chunk:type_name -> nimi.runtime.v1.UploadArtifactChunk
+	110, // 207: nimi.runtime.v1.UploadArtifactResponse.artifact:type_name -> nimi.runtime.v1.ScenarioArtifact
+	156, // 208: nimi.runtime.v1.RuntimeAiService.GetAppAIConfig:input_type -> nimi.runtime.v1.GetAppAIConfigRequest
+	157, // 209: nimi.runtime.v1.RuntimeAiService.OverwriteAppAIConfig:input_type -> nimi.runtime.v1.OverwriteAppAIConfigRequest
+	66,  // 210: nimi.runtime.v1.RuntimeAiService.GenerateLocalAppTextCandidate:input_type -> nimi.runtime.v1.GenerateLocalAppTextCandidateRequest
+	71,  // 211: nimi.runtime.v1.RuntimeAiService.ExecuteLocalAppScenario:input_type -> nimi.runtime.v1.ExecuteLocalAppScenarioRequest
+	80,  // 212: nimi.runtime.v1.RuntimeAiService.SubmitLocalAppScenarioJob:input_type -> nimi.runtime.v1.SubmitLocalAppScenarioJobRequest
+	84,  // 213: nimi.runtime.v1.RuntimeAiService.GetLocalAppScenarioJob:input_type -> nimi.runtime.v1.GetLocalAppScenarioJobRequest
+	86,  // 214: nimi.runtime.v1.RuntimeAiService.CancelLocalAppScenarioJob:input_type -> nimi.runtime.v1.CancelLocalAppScenarioJobRequest
+	88,  // 215: nimi.runtime.v1.RuntimeAiService.SubscribeLocalAppScenarioJobEvents:input_type -> nimi.runtime.v1.SubscribeLocalAppScenarioJobEventsRequest
+	90,  // 216: nimi.runtime.v1.RuntimeAiService.StreamLocalAppTextTurn:input_type -> nimi.runtime.v1.StreamLocalAppTextTurnRequest
+	95,  // 217: nimi.runtime.v1.RuntimeAiService.ReadLocalAppArtifact:input_type -> nimi.runtime.v1.ReadLocalAppArtifactRequest
+	97,  // 218: nimi.runtime.v1.RuntimeAiService.UploadLocalAppArtifact:input_type -> nimi.runtime.v1.UploadLocalAppArtifactRequest
+	99,  // 219: nimi.runtime.v1.RuntimeAiService.ListLocalAppVoiceAssets:input_type -> nimi.runtime.v1.ListLocalAppVoiceAssetsRequest
+	52,  // 220: nimi.runtime.v1.RuntimeAiService.ExecuteScenario:input_type -> nimi.runtime.v1.ExecuteScenarioRequest
+	101, // 221: nimi.runtime.v1.RuntimeAiService.StreamScenario:input_type -> nimi.runtime.v1.StreamScenarioRequest
+	112, // 222: nimi.runtime.v1.RuntimeAiService.SubmitScenarioJob:input_type -> nimi.runtime.v1.SubmitScenarioJobRequest
+	114, // 223: nimi.runtime.v1.RuntimeAiService.GetScenarioJob:input_type -> nimi.runtime.v1.GetScenarioJobRequest
+	116, // 224: nimi.runtime.v1.RuntimeAiService.CancelScenarioJob:input_type -> nimi.runtime.v1.CancelScenarioJobRequest
+	119, // 225: nimi.runtime.v1.RuntimeAiService.SubscribeScenarioJobEvents:input_type -> nimi.runtime.v1.SubscribeScenarioJobEventsRequest
+	120, // 226: nimi.runtime.v1.RuntimeAiService.GetScenarioArtifacts:input_type -> nimi.runtime.v1.GetScenarioArtifactsRequest
+	123, // 227: nimi.runtime.v1.RuntimeAiService.ListScenarioProfiles:input_type -> nimi.runtime.v1.ListScenarioProfilesRequest
+	158, // 228: nimi.runtime.v1.RuntimeAiService.GetVoiceAsset:input_type -> nimi.runtime.v1.GetVoiceAssetRequest
+	159, // 229: nimi.runtime.v1.RuntimeAiService.ListVoiceAssets:input_type -> nimi.runtime.v1.ListVoiceAssetsRequest
+	160, // 230: nimi.runtime.v1.RuntimeAiService.DeleteVoiceAsset:input_type -> nimi.runtime.v1.DeleteVoiceAssetRequest
+	161, // 231: nimi.runtime.v1.RuntimeAiService.ListPresetVoices:input_type -> nimi.runtime.v1.ListPresetVoicesRequest
+	139, // 232: nimi.runtime.v1.RuntimeAiService.UploadArtifact:input_type -> nimi.runtime.v1.UploadArtifactRequest
+	162, // 233: nimi.runtime.v1.RuntimeAiService.PeekScheduling:input_type -> nimi.runtime.v1.PeekSchedulingRequest
+	163, // 234: nimi.runtime.v1.RuntimeAiService.GetAppAIConfig:output_type -> nimi.runtime.v1.GetAppAIConfigResponse
+	164, // 235: nimi.runtime.v1.RuntimeAiService.OverwriteAppAIConfig:output_type -> nimi.runtime.v1.OverwriteAppAIConfigResponse
+	67,  // 236: nimi.runtime.v1.RuntimeAiService.GenerateLocalAppTextCandidate:output_type -> nimi.runtime.v1.GenerateLocalAppTextCandidateResponse
+	74,  // 237: nimi.runtime.v1.RuntimeAiService.ExecuteLocalAppScenario:output_type -> nimi.runtime.v1.ExecuteLocalAppScenarioResponse
+	83,  // 238: nimi.runtime.v1.RuntimeAiService.SubmitLocalAppScenarioJob:output_type -> nimi.runtime.v1.SubmitLocalAppScenarioJobResponse
+	85,  // 239: nimi.runtime.v1.RuntimeAiService.GetLocalAppScenarioJob:output_type -> nimi.runtime.v1.GetLocalAppScenarioJobResponse
+	87,  // 240: nimi.runtime.v1.RuntimeAiService.CancelLocalAppScenarioJob:output_type -> nimi.runtime.v1.CancelLocalAppScenarioJobResponse
+	89,  // 241: nimi.runtime.v1.RuntimeAiService.SubscribeLocalAppScenarioJobEvents:output_type -> nimi.runtime.v1.LocalAppScenarioJobEvent
+	94,  // 242: nimi.runtime.v1.RuntimeAiService.StreamLocalAppTextTurn:output_type -> nimi.runtime.v1.StreamLocalAppTextTurnEvent
+	96,  // 243: nimi.runtime.v1.RuntimeAiService.ReadLocalAppArtifact:output_type -> nimi.runtime.v1.ReadLocalAppArtifactResponse
+	98,  // 244: nimi.runtime.v1.RuntimeAiService.UploadLocalAppArtifact:output_type -> nimi.runtime.v1.UploadLocalAppArtifactResponse
+	100, // 245: nimi.runtime.v1.RuntimeAiService.ListLocalAppVoiceAssets:output_type -> nimi.runtime.v1.ListLocalAppVoiceAssetsResponse
+	64,  // 246: nimi.runtime.v1.RuntimeAiService.ExecuteScenario:output_type -> nimi.runtime.v1.ExecuteScenarioResponse
+	109, // 247: nimi.runtime.v1.RuntimeAiService.StreamScenario:output_type -> nimi.runtime.v1.StreamScenarioEvent
+	113, // 248: nimi.runtime.v1.RuntimeAiService.SubmitScenarioJob:output_type -> nimi.runtime.v1.SubmitScenarioJobResponse
+	115, // 249: nimi.runtime.v1.RuntimeAiService.GetScenarioJob:output_type -> nimi.runtime.v1.GetScenarioJobResponse
+	117, // 250: nimi.runtime.v1.RuntimeAiService.CancelScenarioJob:output_type -> nimi.runtime.v1.CancelScenarioJobResponse
+	118, // 251: nimi.runtime.v1.RuntimeAiService.SubscribeScenarioJobEvents:output_type -> nimi.runtime.v1.ScenarioJobEvent
+	121, // 252: nimi.runtime.v1.RuntimeAiService.GetScenarioArtifacts:output_type -> nimi.runtime.v1.GetScenarioArtifactsResponse
+	124, // 253: nimi.runtime.v1.RuntimeAiService.ListScenarioProfiles:output_type -> nimi.runtime.v1.ListScenarioProfilesResponse
+	165, // 254: nimi.runtime.v1.RuntimeAiService.GetVoiceAsset:output_type -> nimi.runtime.v1.GetVoiceAssetResponse
+	166, // 255: nimi.runtime.v1.RuntimeAiService.ListVoiceAssets:output_type -> nimi.runtime.v1.ListVoiceAssetsResponse
+	167, // 256: nimi.runtime.v1.RuntimeAiService.DeleteVoiceAsset:output_type -> nimi.runtime.v1.DeleteVoiceAssetResponse
+	168, // 257: nimi.runtime.v1.RuntimeAiService.ListPresetVoices:output_type -> nimi.runtime.v1.ListPresetVoicesResponse
+	140, // 258: nimi.runtime.v1.RuntimeAiService.UploadArtifact:output_type -> nimi.runtime.v1.UploadArtifactResponse
+	169, // 259: nimi.runtime.v1.RuntimeAiService.PeekScheduling:output_type -> nimi.runtime.v1.PeekSchedulingResponse
+	234, // [234:260] is the sub-list for method output_type
+	208, // [208:234] is the sub-list for method input_type
+	208, // [208:208] is the sub-list for extension type_name
+	208, // [208:208] is the sub-list for extension extendee
+	0,   // [0:208] is the sub-list for field type_name
 }
 
 func init() { file_runtime_v1_ai_proto_init() }

@@ -296,8 +296,8 @@ func TestPublicChatCommittedTurnEmitsAvatarAutoplayProviderVoiceProjection(t *te
 		t.Fatalf("expected private Local speech intent, got %+v, ok=%v", intent, ok)
 	}
 	captured, ok := localexecution.SelectedLocalExecutionFromContext(voiceAI.submitCtx, capabilitydriver.AudioSynthesizeContract)
-	if !ok || captured.ConfigurationID != selectedSpeech.ConfigurationID {
-		t.Fatalf("expected selected Local speech execution %q, got %+v, ok=%v", selectedSpeech.ConfigurationID, captured, ok)
+	if !ok || captured.LoadoutID != selectedSpeech.LoadoutID {
+		t.Fatalf("expected selected Local speech execution %q, got %+v, ok=%v", selectedSpeech.LoadoutID, captured, ok)
 	}
 
 	lipsyncPayload := publicChatPayloadMap(t, lipsyncBatch)

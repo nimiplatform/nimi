@@ -1,76 +1,41 @@
 import type {
-  LocalAssetRecord as GeneratedLocalAssetRecord,
   LocalCatalogModelDescriptor as GeneratedLocalCatalogModelDescriptor,
   LocalCatalogVariantDescriptor as GeneratedLocalCatalogVariantDescriptor,
   LocalDeviceProfile as GeneratedLocalDeviceProfile,
   LocalEnvironmentDependencyJob as GeneratedLocalEnvironmentDependencyJob,
   LocalEnvironmentPlan as GeneratedLocalEnvironmentPlan,
   LocalEnvironmentPlanDependency as GeneratedLocalEnvironmentPlanDependency,
-  LocalExecutionApplyResult as GeneratedLocalExecutionApplyResult,
-  LocalExecutionEntryDescriptor as GeneratedLocalExecutionEntryDescriptor,
-  LocalExecutionPlan as GeneratedLocalExecutionPlan,
-  LocalExecutionStageResult as GeneratedLocalExecutionStageResult,
   LocalInstallPlanDescriptor as GeneratedLocalInstallPlanDescriptor,
-  LocalPreflightDecision as GeneratedLocalPreflightDecision,
-  LocalProfileApplyResult as GeneratedLocalProfileApplyResult,
-  LocalProfileRequirementDescriptor as GeneratedLocalProfileRequirementDescriptor,
-  LocalProfileResolutionPlan as GeneratedLocalProfileResolutionPlan,
   LocalProviderHints as GeneratedLocalProviderHints,
   LocalTransferProgressEvent as GeneratedLocalTransferProgressEvent,
   LocalTransferSessionSummary as GeneratedLocalTransferSessionSummary,
-  LocalUnregisteredAssetDeclaration as GeneratedLocalUnregisteredAssetDeclaration,
-  LocalUnregisteredAssetDescriptor as GeneratedLocalUnregisteredAssetDescriptor,
   LocalVerifiedAssetDescriptor as GeneratedLocalVerifiedAssetDescriptor,
+  ModelAssetRecord as GeneratedModelAssetRecord,
 } from '../core-generated/runtime-typed-client';
-import { normalizeNimiRuntimeReasonCode } from './reason-messages';
 import { fromNimiRuntimeProtoStruct } from './runtime-agent-values';
 import {
   normalizeNimiRuntimeLocalEngineRuntimeModeId,
   nimiRuntimeLocalRunnableAssetKindForCapabilities,
   parseNimiRuntimeLocalAssetKindId,
-  parseNimiRuntimeLocalAssetStatusId,
-  type NimiRuntimeLocalAssetDeclaration,
 } from './local-asset-vocabulary';
 import { projectNimiRuntimeLocalCatalogRecommendation } from './runtime-local-recommendation';
 import type {
-  NimiRuntimeLocalAssetRecord,
+  NimiRuntimeModelAssetRecord,
   NimiRuntimeLocalCatalogItemDescriptor,
   NimiRuntimeLocalCatalogVariantDescriptor,
   NimiRuntimeLocalDeviceProfile,
   NimiRuntimeLocalEnvironmentDependencyJob,
   NimiRuntimeLocalEnvironmentPlan,
   NimiRuntimeLocalEnvironmentPlanDependency,
-  NimiRuntimeLocalExecutionApplyResult,
-  NimiRuntimeLocalExecutionEntryDescriptor,
-  NimiRuntimeLocalExecutionPlan,
-  NimiRuntimeLocalExecutionStageResult,
-  NimiRuntimeLocalImageNativeAssetInput,
-  NimiRuntimeLocalImageNativeEnvironmentPlanInput,
-  NimiRuntimeLocalImageNativeEnvironmentPlanRuntime,
   NimiRuntimeLocalInstallPlanDescriptor,
-  NimiRuntimeLocalPreflightDecision,
-  NimiRuntimeLocalProfileApplyResult,
-  NimiRuntimeLocalProfileResolutionPlan,
   NimiRuntimeLocalProviderHints,
-  NimiRuntimeLocalQwen3ASREnvironmentPlanInput,
-  NimiRuntimeLocalQwen3ASREnvironmentPlanRuntime,
-  NimiRuntimeLocalQwen3ASRTransformersEnvironmentPlanInput,
-  NimiRuntimeLocalQwen3ASRTransformersEnvironmentPlanRuntime,
-  NimiRuntimeLocalQwen3TTSEnvironmentPlanInput,
-  NimiRuntimeLocalQwen3TTSEnvironmentPlanRuntime,
-  NimiRuntimeLocalVoxCPMEnvironmentPlanInput,
-  NimiRuntimeLocalVoxCPMEnvironmentPlanRuntime,
   NimiRuntimeLocalTransferAccepted,
   NimiRuntimeLocalTransferProgressEvent,
   NimiRuntimeLocalTransferSessionSummary,
-  NimiRuntimeLocalUnregisteredAssetDescriptor,
   NimiRuntimeLocalVerifiedAssetDescriptor,
 } from './runtime-local-asset-admin-types';
-import type { NimiRuntimeLocalProfileRequirementDescriptor } from './runtime-local-profile-manifest';
 import {
   clampNimiRuntimeLocalPercent,
-  finiteNumber,
-  inferNimiRuntimeLocalIntegrityMode,
   invalidLocalProjection,
   nonEmptyRecord,
   nonNegativeNumber,
@@ -78,21 +43,13 @@ import {
   normalizeNimiRuntimeLocalState,
   normalizeText,
   numberFromInt64,
-  parseNimiRuntimeLocalExecutionEntryKind,
   positiveNumber,
   requireProjectedText,
   stringRecord,
   textList,
   textListOrUndefined,
-  toCanonicalNimiRuntimeLocalAssetId,
 } from './runtime-local-asset-admin-values';
 
-const NIMI_RUNTIME_LOCAL_IMAGE_NATIVE_PACK_ID = 'local-image-native';
-const NIMI_RUNTIME_LOCAL_SPEECH_PACK_ID = 'local-speech';
-const NIMI_RUNTIME_LOCAL_QWEN3_ASR_CONSUMER_SCOPE = 'speech.qwen3-asr.python';
-const NIMI_RUNTIME_LOCAL_QWEN3_ASR_TRANSFORMERS_CONSUMER_SCOPE = 'speech.qwen3-asr-transformers.python';
-const NIMI_RUNTIME_LOCAL_QWEN3_TTS_CONSUMER_SCOPE = 'speech.qwen3-tts.python';
-const NIMI_RUNTIME_LOCAL_VOXCPM_CONSUMER_SCOPE = 'speech.voxcpm.python';
 const NIMI_RUNTIME_LOCAL_ENVIRONMENT_DEPENDENCY_READY_STATES: ReadonlySet<string> = new Set([
   'ready_system',
   'ready_managed',
@@ -139,51 +96,42 @@ const NIMI_RUNTIME_LOCAL_ENVIRONMENT_DEPENDENCY_JOB_CANCELLED_STATES: ReadonlySe
   'cancelled',
 ]);
 
-export function projectNimiRuntimeLocalAssetRecord(
-  value: GeneratedLocalAssetRecord,
-): NimiRuntimeLocalAssetRecord {
-  const localAssetId = requireProjectedText(value.localAssetId, 'Runtime local asset record is missing localAssetId');
-  const capabilities = textList(value.capabilities);
-  const parsedKind = parseNimiRuntimeLocalAssetKindId(value.kind);
-  if (!parsedKind) {
-    throw invalidLocalProjection(`Runtime local asset ${localAssetId} has unsupported kind ${String(value.kind)}`);
+export function projectNimiRuntimeModelAssetRecord(
+  value: GeneratedModelAssetRecord,
+): NimiRuntimeModelAssetRecord {
+  const modelAssetId = requireProjectedText(value.modelAssetId, 'Runtime ModelAsset record is missing modelAssetId');
+  const contentId = requireProjectedText(value.contentId, `Runtime ModelAsset ${modelAssetId} is missing contentId`);
+  if (!value.contentVerified) {
+    throw invalidLocalProjection(`Runtime ModelAsset ${modelAssetId} is not content verified`);
   }
-  const kind = parsedKind;
-  const status = parseNimiRuntimeLocalAssetStatusId(value.status);
-  if (!status) {
-    throw invalidLocalProjection(`Runtime local asset ${localAssetId} has unsupported status ${String(value.status)}`);
-  }
-  const source = value.source ?? { repo: '', revision: '' };
-  const reasonCode = normalizeNimiRuntimeReasonCode(value.reasonCode);
+  const catalogVerification = value.catalogVerification === 1
+    ? 'matched'
+    : value.catalogVerification === 2
+      ? 'not_matched'
+      : 'unknown';
   return {
-    localAssetId,
-    assetId: toCanonicalNimiRuntimeLocalAssetId(value.assetId),
+    modelAssetId,
+    contentId,
     displayName: normalizeText(value.displayName),
-    sourceFileName: normalizeText(value.sourceFileName),
-    kind,
-    engine: normalizeText(value.engine),
     entry: normalizeText(value.entry),
-    files: textList(value.files),
-    license: normalizeText(value.license),
-    source: {
-      repo: normalizeText(source.repo),
-      revision: normalizeText(source.revision),
-    },
-    integrityMode: inferNimiRuntimeLocalIntegrityMode(source.repo),
-    hashes: stringRecord(value.hashes),
-    status,
-    installedAt: normalizeText(value.installedAt),
+    files: value.files.map((file) => ({
+      relativePath: requireProjectedText(file.relativePath, `Runtime ModelAsset ${modelAssetId} has a file without relativePath`),
+      sha256: requireProjectedText(file.sha256, `Runtime ModelAsset ${modelAssetId} has a file without sha256`),
+      sizeBytes: nonNegativeNumber(numberFromInt64(file.sizeBytes)),
+      nonExecutableContent: Boolean(file.nonExecutableContent),
+    })),
+    totalSizeBytes: nonNegativeNumber(numberFromInt64(value.totalSizeBytes)),
+    contentVerified: true,
+    catalogVerification,
+    catalogVerified: catalogVerification === 'matched',
+    unclassified: Boolean(value.unclassified),
+    boundedFingerprint: nonEmptyRecord(fromNimiRuntimeProtoStruct(value.boundedFingerprint)),
+    provenance: nonEmptyRecord(fromNimiRuntimeProtoStruct(value.provenance)),
+    createdAt: normalizeText(value.createdAt),
     updatedAt: normalizeText(value.updatedAt),
-    reasonCode: reasonCode || undefined,
-    capabilities: capabilities.length > 0 ? capabilities : undefined,
-    logicalModelId: normalizeText(value.logicalModelId) || undefined,
-    family: normalizeText(value.family) || undefined,
-    artifactRoles: textListOrUndefined(value.artifactRoles),
-    preferredEngine: normalizeText(value.preferredEngine) || undefined,
-    fallbackEngines: textListOrUndefined(value.fallbackEngines),
-    engineConfig: nonEmptyRecord(fromNimiRuntimeProtoStruct(value.engineConfig)),
-    recommendation: projectNimiRuntimeLocalCatalogRecommendation((value as { recommendation?: unknown }).recommendation),
-    metadata: nonEmptyRecord(fromNimiRuntimeProtoStruct(value.metadata)),
+    latestIntegrityCheckedAt: normalizeText(value.latestIntegrityCheckedAt),
+    duplicateContent: Boolean(value.duplicateContent),
+    containsNonExecutableCode: Boolean(value.containsNonExecutableCode),
   };
 }
 
@@ -201,7 +149,7 @@ export function projectNimiRuntimeLocalVerifiedAssetDescriptor(
     title: normalizeText(value.title),
     description: normalizeText(value.description),
     installKind: normalizeText(value.installKind) || undefined,
-    assetId: toCanonicalNimiRuntimeLocalAssetId(value.assetId),
+    assetId: normalizeText(value.assetId),
     kind,
     logicalModelId: normalizeText(value.logicalModelId) || undefined,
     repo: normalizeText(value.repo),
@@ -347,8 +295,6 @@ export function projectNimiRuntimeLocalTransferSessionSummary(
   return {
     installSessionId: normalizeText(value.installSessionId),
     modelId: normalizeText(value.assetId),
-    localModelId: normalizeText(value.localAssetId),
-    localAssetId: normalizeText(value.localAssetId),
     sessionKind: normalizeText(value.sessionKind) || 'download',
     phase: normalizeText(value.phase),
     state,
@@ -370,8 +316,6 @@ export function projectNimiRuntimeLocalTransferProgressEvent(
   return {
     installSessionId: normalizeText(value.installSessionId),
     modelId: normalizeText(value.assetId),
-    localModelId: normalizeText(value.localAssetId) || undefined,
-    localAssetId: normalizeText(value.localAssetId) || undefined,
     sessionKind: normalizeText(value.sessionKind) || 'download',
     phase: normalizeText(value.phase),
     bytesReceived: numberFromInt64(value.bytesReceived),
@@ -499,182 +443,6 @@ export function isNimiRuntimeLocalEnvironmentDependencyJobCancelledState(state: 
   return NIMI_RUNTIME_LOCAL_ENVIRONMENT_DEPENDENCY_JOB_CANCELLED_STATES.has(normalizeNimiRuntimeLocalState(state));
 }
 
-export function buildNimiRuntimeLocalImageNativeEnvironmentPlanInput(
-  asset: NimiRuntimeLocalImageNativeAssetInput,
-): NimiRuntimeLocalImageNativeEnvironmentPlanInput {
-  return {
-    packId: NIMI_RUNTIME_LOCAL_IMAGE_NATIVE_PACK_ID,
-    assetId: normalizeText(asset.assetId) || undefined,
-    localAssetId: normalizeText(asset.localAssetId) || undefined,
-  };
-}
-
-export async function resolveNimiRuntimeLocalImageNativeEnvironmentPlan(input: {
-  readonly runtime: NimiRuntimeLocalImageNativeEnvironmentPlanRuntime;
-  readonly asset: NimiRuntimeLocalImageNativeAssetInput;
-}): Promise<NimiRuntimeLocalEnvironmentPlan> {
-  return input.runtime.resolveEnvironmentPlan(
-    buildNimiRuntimeLocalImageNativeEnvironmentPlanInput(input.asset),
-  );
-}
-
-export function buildNimiRuntimeLocalQwen3ASREnvironmentPlanInput(
-  asset: {
-    readonly assetId?: string;
-    readonly localAssetId?: string;
-  },
-): NimiRuntimeLocalQwen3ASREnvironmentPlanInput {
-  return {
-    packId: NIMI_RUNTIME_LOCAL_SPEECH_PACK_ID,
-    consumerScope: NIMI_RUNTIME_LOCAL_QWEN3_ASR_CONSUMER_SCOPE,
-    localAssetId: normalizeText(asset.localAssetId) || undefined,
-    assetId: normalizeText(asset.assetId) || undefined,
-  };
-}
-
-export async function resolveNimiRuntimeLocalQwen3ASREnvironmentPlan(input: {
-  readonly runtime: NimiRuntimeLocalQwen3ASREnvironmentPlanRuntime;
-  readonly asset: {
-    readonly assetId?: string;
-    readonly localAssetId?: string;
-  };
-}): Promise<NimiRuntimeLocalEnvironmentPlan> {
-  return input.runtime.resolveEnvironmentPlan(
-    buildNimiRuntimeLocalQwen3ASREnvironmentPlanInput(input.asset),
-  );
-}
-
-export function buildNimiRuntimeLocalQwen3ASRTransformersEnvironmentPlanInput(
-  asset: {
-    readonly assetId?: string;
-    readonly localAssetId?: string;
-  },
-): NimiRuntimeLocalQwen3ASRTransformersEnvironmentPlanInput {
-  return {
-    packId: NIMI_RUNTIME_LOCAL_SPEECH_PACK_ID,
-    consumerScope: NIMI_RUNTIME_LOCAL_QWEN3_ASR_TRANSFORMERS_CONSUMER_SCOPE,
-    localAssetId: normalizeText(asset.localAssetId) || undefined,
-    assetId: normalizeText(asset.assetId) || undefined,
-  };
-}
-
-export async function resolveNimiRuntimeLocalQwen3ASRTransformersEnvironmentPlan(input: {
-  readonly runtime: NimiRuntimeLocalQwen3ASRTransformersEnvironmentPlanRuntime;
-  readonly asset: {
-    readonly assetId?: string;
-    readonly localAssetId?: string;
-  };
-}): Promise<NimiRuntimeLocalEnvironmentPlan> {
-  return input.runtime.resolveEnvironmentPlan(
-    buildNimiRuntimeLocalQwen3ASRTransformersEnvironmentPlanInput(input.asset),
-  );
-}
-
-export function buildNimiRuntimeLocalQwen3TTSEnvironmentPlanInput(
-  asset: {
-    readonly assetId?: string;
-    readonly localAssetId?: string;
-  },
-): NimiRuntimeLocalQwen3TTSEnvironmentPlanInput {
-  return {
-    packId: NIMI_RUNTIME_LOCAL_SPEECH_PACK_ID,
-    consumerScope: NIMI_RUNTIME_LOCAL_QWEN3_TTS_CONSUMER_SCOPE,
-    localAssetId: normalizeText(asset.localAssetId) || undefined,
-    assetId: normalizeText(asset.assetId) || undefined,
-  };
-}
-
-export async function resolveNimiRuntimeLocalQwen3TTSEnvironmentPlan(input: {
-  readonly runtime: NimiRuntimeLocalQwen3TTSEnvironmentPlanRuntime;
-  readonly asset: {
-    readonly assetId?: string;
-    readonly localAssetId?: string;
-  };
-}): Promise<NimiRuntimeLocalEnvironmentPlan> {
-  return input.runtime.resolveEnvironmentPlan(
-    buildNimiRuntimeLocalQwen3TTSEnvironmentPlanInput(input.asset),
-  );
-}
-
-// @nimi-authority: rule.nimi.runtime.local-compute.r110
-export function buildNimiRuntimeLocalVoxCPMEnvironmentPlanInput(
-  asset: {
-    readonly assetId?: string;
-    readonly localAssetId?: string;
-  },
-): NimiRuntimeLocalVoxCPMEnvironmentPlanInput {
-  return {
-    packId: NIMI_RUNTIME_LOCAL_SPEECH_PACK_ID,
-    consumerScope: NIMI_RUNTIME_LOCAL_VOXCPM_CONSUMER_SCOPE,
-    localAssetId: normalizeText(asset.localAssetId) || undefined,
-    assetId: normalizeText(asset.assetId) || undefined,
-  };
-}
-
-export async function resolveNimiRuntimeLocalVoxCPMEnvironmentPlan(input: {
-  readonly runtime: NimiRuntimeLocalVoxCPMEnvironmentPlanRuntime;
-  readonly asset: {
-    readonly assetId?: string;
-    readonly localAssetId?: string;
-  };
-}): Promise<NimiRuntimeLocalEnvironmentPlan> {
-  return input.runtime.resolveEnvironmentPlan(
-    buildNimiRuntimeLocalVoxCPMEnvironmentPlanInput(input.asset),
-  );
-}
-
-export function projectNimiRuntimeLocalUnregisteredAssetDescriptor(
-  value: GeneratedLocalUnregisteredAssetDescriptor,
-): NimiRuntimeLocalUnregisteredAssetDescriptor {
-  return {
-    filename: normalizeText(value.filename),
-    path: normalizeText(value.path),
-    sizeBytes: numberFromInt64(value.sizeBytes),
-    declaration: projectNimiRuntimeLocalUnregisteredAssetDeclaration(value.declaration),
-    suggestionSource: normalizeText(value.suggestionSource) || 'unknown',
-    confidence: normalizeText(value.confidence) || 'low',
-    autoImportable: Boolean(value.autoImportable),
-    requiresManualReview: Boolean(value.requiresManualReview),
-    folderName: normalizeText(value.folderName) || undefined,
-  };
-}
-
-export function projectNimiRuntimeLocalProfileResolutionPlan(
-  value: GeneratedLocalProfileResolutionPlan,
-): NimiRuntimeLocalProfileResolutionPlan {
-  return {
-    planId: normalizeText(value.planId),
-    targetId: normalizeText(value.targetId),
-    profileId: normalizeText(value.profileId),
-    title: normalizeText(value.title),
-    description: normalizeText(value.description) || undefined,
-    recommended: Boolean(value.recommended),
-    consumeCapabilities: textList(value.consumeCapabilities),
-    requirements: projectNimiRuntimeLocalProfileRequirement(value.requirements),
-    executionPlan: value.executionPlan
-      ? projectNimiRuntimeLocalExecutionPlan(value.executionPlan)
-      : emptyNimiRuntimeLocalExecutionPlan(value.planId, value.targetId),
-    warnings: textList(value.warnings),
-    reasonCode: normalizeText(value.reasonCode) || undefined,
-  };
-}
-
-export function projectNimiRuntimeLocalProfileApplyResult(
-  value: GeneratedLocalProfileApplyResult,
-): NimiRuntimeLocalProfileApplyResult {
-  return {
-    planId: normalizeText(value.planId),
-    targetId: normalizeText(value.targetId),
-    profileId: normalizeText(value.profileId),
-    executionResult: value.executionResult
-      ? projectNimiRuntimeLocalExecutionApplyResult(value.executionResult)
-      : emptyNimiRuntimeLocalExecutionApplyResult(value.planId, value.targetId),
-    installedAssets: value.installedAssets.map(projectNimiRuntimeLocalAssetRecord),
-    warnings: textList(value.warnings),
-    reasonCode: normalizeText(value.reasonCode) || undefined,
-  };
-}
-
 function projectNimiRuntimeLocalProviderHints(
   value: GeneratedLocalProviderHints | undefined,
 ): NimiRuntimeLocalProviderHints | undefined {
@@ -724,152 +492,11 @@ function projectNimiRuntimeLocalProviderHints(
   return Object.values(hints).some(Boolean) ? hints : undefined;
 }
 
-function projectNimiRuntimeLocalExecutionPlan(
-  value: GeneratedLocalExecutionPlan,
-): NimiRuntimeLocalExecutionPlan {
-  return {
-    planId: normalizeText(value.planId),
-    targetId: normalizeText(value.targetId),
-    capability: normalizeText(value.capability) || undefined,
-    deviceProfile: value.deviceProfile
-      ? projectNimiRuntimeLocalDeviceProfile(value.deviceProfile)
-      : projectNimiRuntimeLocalDeviceProfile({} as GeneratedLocalDeviceProfile),
-    entries: value.entries.map(projectNimiRuntimeLocalExecutionEntry),
-    preflightDecisions: value.preflightDecisions.map(projectNimiRuntimeLocalPreflightDecision),
-    warnings: textList(value.warnings),
-    reasonCode: normalizeText(value.reasonCode) || undefined,
-  };
-}
-
-function projectNimiRuntimeLocalExecutionApplyResult(
-  value: GeneratedLocalExecutionApplyResult,
-): NimiRuntimeLocalExecutionApplyResult {
-  return {
-    planId: normalizeText(value.planId),
-    targetId: normalizeText(value.targetId),
-    entries: value.entries.map(projectNimiRuntimeLocalExecutionEntry),
-    installedAssets: value.installedAssets.map(projectNimiRuntimeLocalAssetRecord),
-    capabilities: textList(value.capabilities),
-    stageResults: value.stageResults.map(projectNimiRuntimeLocalExecutionStageResult),
-    preflightDecisions: value.preflightDecisions.map(projectNimiRuntimeLocalPreflightDecision),
-    rollbackApplied: Boolean(value.rollbackApplied),
-    warnings: textList(value.warnings),
-    reasonCode: normalizeText(value.reasonCode) || undefined,
-  };
-}
-
-function projectNimiRuntimeLocalExecutionEntry(
-  value: GeneratedLocalExecutionEntryDescriptor,
-): NimiRuntimeLocalExecutionEntryDescriptor {
-  return {
-    entryId: normalizeText(value.entryId),
-    kind: parseNimiRuntimeLocalExecutionEntryKind(value.kind) ?? 'model',
-    capability: normalizeText(value.capability),
-    required: Boolean(value.required),
-    selected: Boolean(value.selected),
-    preferred: Boolean(value.preferred),
-    modelId: normalizeText(value.modelId) || undefined,
-    repo: normalizeText(value.repo) || undefined,
-    engine: normalizeText(value.engine) || undefined,
-    serviceId: normalizeText(value.serviceId) || undefined,
-    nodeId: normalizeText(value.nodeId) || undefined,
-    reasonCode: normalizeText(value.reasonCode) || undefined,
-    warnings: textList(value.warnings),
-  };
-}
-
-function projectNimiRuntimeLocalPreflightDecision(
-  value: GeneratedLocalPreflightDecision,
-): NimiRuntimeLocalPreflightDecision {
-  return {
-    entryId: normalizeText(value.entryId),
-    target: normalizeText(value.target),
-    check: normalizeText(value.check),
-    ok: Boolean(value.ok),
-    reasonCode: normalizeText(value.reasonCode) || undefined,
-    detail: normalizeText(value.detail) || undefined,
-  };
-}
-
-function projectNimiRuntimeLocalExecutionStageResult(
-  value: GeneratedLocalExecutionStageResult,
-): NimiRuntimeLocalExecutionStageResult {
-  return {
-    stage: normalizeText(value.stage),
-    ok: Boolean(value.ok),
-    reasonCode: normalizeText(value.reasonCode) || undefined,
-    detail: normalizeText(value.detail) || undefined,
-  };
-}
-
-function projectNimiRuntimeLocalProfileRequirement(
-  value: GeneratedLocalProfileRequirementDescriptor | undefined,
-): NimiRuntimeLocalProfileRequirementDescriptor | undefined {
-  if (!value) {
-    return undefined;
-  }
-  return {
-    minGpuMemoryGb: finiteNumber(value.minGpuMemoryGb),
-    minDiskBytes: finiteNumber(value.minDiskBytes),
-    platforms: textList(value.platforms),
-    notes: textList(value.notes),
-  };
-}
-
-function projectNimiRuntimeLocalUnregisteredAssetDeclaration(
-  value: GeneratedLocalUnregisteredAssetDeclaration | undefined,
-): NimiRuntimeLocalAssetDeclaration | undefined {
-  if (!value) {
-    return undefined;
-  }
-  const assetKind = parseNimiRuntimeLocalAssetKindId(value.assetKind);
-  if (!assetKind) {
-    return undefined;
-  }
-  return {
-    assetKind,
-    engine: normalizeText(value.engine) || undefined,
-  };
-}
-
 export function projectNimiRuntimeLocalTransferAccepted(
   value: GeneratedLocalTransferSessionSummary,
 ): NimiRuntimeLocalTransferAccepted {
   return {
     installSessionId: normalizeText(value.installSessionId),
     modelId: normalizeText(value.assetId),
-    localModelId: normalizeText(value.localAssetId),
-    localAssetId: normalizeText(value.localAssetId),
-  };
-}
-
-function emptyNimiRuntimeLocalExecutionPlan(
-  planId: unknown,
-  targetId: unknown,
-): NimiRuntimeLocalExecutionPlan {
-  return {
-    planId: normalizeText(planId),
-    targetId: normalizeText(targetId),
-    deviceProfile: projectNimiRuntimeLocalDeviceProfile({} as GeneratedLocalDeviceProfile),
-    entries: [],
-    preflightDecisions: [],
-    warnings: [],
-  };
-}
-
-function emptyNimiRuntimeLocalExecutionApplyResult(
-  planId: unknown,
-  targetId: unknown,
-): NimiRuntimeLocalExecutionApplyResult {
-  return {
-    planId: normalizeText(planId),
-    targetId: normalizeText(targetId),
-    entries: [],
-    installedAssets: [],
-    capabilities: [],
-    stageResults: [],
-    preflightDecisions: [],
-    rollbackApplied: false,
-    warnings: [],
   };
 }

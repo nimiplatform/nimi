@@ -1,8 +1,5 @@
 import type { JsonObject } from '../types';
-import type {
-  NimiRuntimeLocalAssetKindId,
-  NimiRuntimeLocalAssetStatusId,
-} from './local-asset-vocabulary';
+import type { NimiRuntimeLocalAssetKindId } from './local-asset-vocabulary';
 
 export type NimiRuntimeLocalRecommendationSourceId = 'llmfit' | 'media-fit';
 export type NimiRuntimeLocalRecommendationFormatId = 'gguf' | 'safetensors';
@@ -45,8 +42,6 @@ export interface NimiRuntimeLocalRecommendationFeedEntry {
 
 export interface NimiRuntimeLocalRecommendationInstalledState {
   readonly installed: boolean;
-  readonly localAssetId?: string;
-  readonly status?: NimiRuntimeLocalAssetStatusId;
 }
 
 export interface NimiRuntimeLocalRecommendationActionState {

@@ -757,8 +757,6 @@ func (x *LocalRecommendationFeedEntryDescriptor) GetSha256() string {
 type LocalRecommendationInstalledState struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Installed     bool                   `protobuf:"varint,1,opt,name=installed,proto3" json:"installed,omitempty"`
-	LocalAssetId  string                 `protobuf:"bytes,2,opt,name=local_asset_id,json=localAssetId,proto3" json:"local_asset_id,omitempty"`
-	Status        LocalAssetStatus       `protobuf:"varint,3,opt,name=status,proto3,enum=nimi.runtime.v1.LocalAssetStatus" json:"status,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -798,20 +796,6 @@ func (x *LocalRecommendationInstalledState) GetInstalled() bool {
 		return x.Installed
 	}
 	return false
-}
-
-func (x *LocalRecommendationInstalledState) GetLocalAssetId() string {
-	if x != nil {
-		return x.LocalAssetId
-	}
-	return ""
-}
-
-func (x *LocalRecommendationInstalledState) GetStatus() LocalAssetStatus {
-	if x != nil {
-		return x.Status
-	}
-	return LocalAssetStatus_LOCAL_ASSET_STATUS_UNSPECIFIED
 }
 
 type LocalRecommendationActionState struct {
@@ -1302,11 +1286,9 @@ const file_runtime_v1_local_runtime_recommendation_proto_rawDesc = "" +
 	"\x05entry\x18\x03 \x01(\tR\x05entry\x12\x14\n" +
 	"\x05files\x18\x04 \x03(\tR\x05files\x12(\n" +
 	"\x10total_size_bytes\x18\x05 \x01(\x03R\x0etotalSizeBytes\x12\x16\n" +
-	"\x06sha256\x18\x06 \x01(\tR\x06sha256\"\xa2\x01\n" +
+	"\x06sha256\x18\x06 \x01(\tR\x06sha256\"e\n" +
 	"!LocalRecommendationInstalledState\x12\x1c\n" +
-	"\tinstalled\x18\x01 \x01(\bR\tinstalled\x12$\n" +
-	"\x0elocal_asset_id\x18\x02 \x01(\tR\flocalAssetId\x129\n" +
-	"\x06status\x18\x03 \x01(\x0e2!.nimi.runtime.v1.LocalAssetStatusR\x06status\"\xb4\x01\n" +
+	"\tinstalled\x18\x01 \x01(\bR\tinstalledJ\x04\b\x02\x10\x03J\x04\b\x03\x10\x04R\x0elocal_asset_idR\x06status\"\xb4\x01\n" +
 	"\x1eLocalRecommendationActionState\x125\n" +
 	"\x17can_review_install_plan\x18\x01 \x01(\bR\x14canReviewInstallPlan\x12*\n" +
 	"\x11can_open_variants\x18\x02 \x01(\bR\x0fcanOpenVariants\x12/\n" +
@@ -1431,10 +1413,9 @@ var file_runtime_v1_local_runtime_recommendation_proto_goTypes = []any{
 	(*LocalRecommendationFeedItemDescriptor)(nil),  // 15: nimi.runtime.v1.LocalRecommendationFeedItemDescriptor
 	(*LocalRecommendationFeedDescriptor)(nil),      // 16: nimi.runtime.v1.LocalRecommendationFeedDescriptor
 	nil,                        // 17: nimi.runtime.v1.LocalRecommendationInstallPayload.HashesEntry
-	(LocalAssetStatus)(0),      // 18: nimi.runtime.v1.LocalAssetStatus
-	(LocalAssetKind)(0),        // 19: nimi.runtime.v1.LocalAssetKind
-	(*structpb.Struct)(nil),    // 20: google.protobuf.Struct
-	(*LocalDeviceProfile)(nil), // 21: nimi.runtime.v1.LocalDeviceProfile
+	(LocalAssetKind)(0),        // 18: nimi.runtime.v1.LocalAssetKind
+	(*structpb.Struct)(nil),    // 19: google.protobuf.Struct
+	(*LocalDeviceProfile)(nil), // 20: nimi.runtime.v1.LocalDeviceProfile
 }
 var file_runtime_v1_local_runtime_recommendation_proto_depIdxs = []int32{
 	0,  // 0: nimi.runtime.v1.LocalCatalogRecommendation.source:type_name -> nimi.runtime.v1.LocalRecommendationSource
@@ -1445,26 +1426,25 @@ var file_runtime_v1_local_runtime_recommendation_proto_depIdxs = []int32{
 	9,  // 5: nimi.runtime.v1.LocalCatalogRecommendation.suggested_assets:type_name -> nimi.runtime.v1.LocalSuggestedAsset
 	5,  // 6: nimi.runtime.v1.LocalCatalogRecommendation.baseline:type_name -> nimi.runtime.v1.LocalRecommendationBaseline
 	1,  // 7: nimi.runtime.v1.LocalRecommendationFeedEntryDescriptor.format:type_name -> nimi.runtime.v1.LocalRecommendationFormat
-	18, // 8: nimi.runtime.v1.LocalRecommendationInstalledState.status:type_name -> nimi.runtime.v1.LocalAssetStatus
-	19, // 9: nimi.runtime.v1.LocalRecommendationInstallPayload.kind:type_name -> nimi.runtime.v1.LocalAssetKind
-	17, // 10: nimi.runtime.v1.LocalRecommendationInstallPayload.hashes:type_name -> nimi.runtime.v1.LocalRecommendationInstallPayload.HashesEntry
-	20, // 11: nimi.runtime.v1.LocalRecommendationInstallPayload.engine_config:type_name -> google.protobuf.Struct
-	8,  // 12: nimi.runtime.v1.LocalRecommendationFeedItemDescriptor.source:type_name -> nimi.runtime.v1.LocalRecommendationFeedSource
-	1,  // 13: nimi.runtime.v1.LocalRecommendationFeedItemDescriptor.formats:type_name -> nimi.runtime.v1.LocalRecommendationFormat
-	11, // 14: nimi.runtime.v1.LocalRecommendationFeedItemDescriptor.entries:type_name -> nimi.runtime.v1.LocalRecommendationFeedEntryDescriptor
-	10, // 15: nimi.runtime.v1.LocalRecommendationFeedItemDescriptor.recommendation:type_name -> nimi.runtime.v1.LocalCatalogRecommendation
-	12, // 16: nimi.runtime.v1.LocalRecommendationFeedItemDescriptor.installed_state:type_name -> nimi.runtime.v1.LocalRecommendationInstalledState
-	13, // 17: nimi.runtime.v1.LocalRecommendationFeedItemDescriptor.action_state:type_name -> nimi.runtime.v1.LocalRecommendationActionState
-	14, // 18: nimi.runtime.v1.LocalRecommendationFeedItemDescriptor.install_payload:type_name -> nimi.runtime.v1.LocalRecommendationInstallPayload
-	21, // 19: nimi.runtime.v1.LocalRecommendationFeedDescriptor.device_profile:type_name -> nimi.runtime.v1.LocalDeviceProfile
-	7,  // 20: nimi.runtime.v1.LocalRecommendationFeedDescriptor.active_capability:type_name -> nimi.runtime.v1.LocalRecommendationFeedCapability
-	6,  // 21: nimi.runtime.v1.LocalRecommendationFeedDescriptor.cache_state:type_name -> nimi.runtime.v1.LocalRecommendationFeedCacheState
-	15, // 22: nimi.runtime.v1.LocalRecommendationFeedDescriptor.items:type_name -> nimi.runtime.v1.LocalRecommendationFeedItemDescriptor
-	23, // [23:23] is the sub-list for method output_type
-	23, // [23:23] is the sub-list for method input_type
-	23, // [23:23] is the sub-list for extension type_name
-	23, // [23:23] is the sub-list for extension extendee
-	0,  // [0:23] is the sub-list for field type_name
+	18, // 8: nimi.runtime.v1.LocalRecommendationInstallPayload.kind:type_name -> nimi.runtime.v1.LocalAssetKind
+	17, // 9: nimi.runtime.v1.LocalRecommendationInstallPayload.hashes:type_name -> nimi.runtime.v1.LocalRecommendationInstallPayload.HashesEntry
+	19, // 10: nimi.runtime.v1.LocalRecommendationInstallPayload.engine_config:type_name -> google.protobuf.Struct
+	8,  // 11: nimi.runtime.v1.LocalRecommendationFeedItemDescriptor.source:type_name -> nimi.runtime.v1.LocalRecommendationFeedSource
+	1,  // 12: nimi.runtime.v1.LocalRecommendationFeedItemDescriptor.formats:type_name -> nimi.runtime.v1.LocalRecommendationFormat
+	11, // 13: nimi.runtime.v1.LocalRecommendationFeedItemDescriptor.entries:type_name -> nimi.runtime.v1.LocalRecommendationFeedEntryDescriptor
+	10, // 14: nimi.runtime.v1.LocalRecommendationFeedItemDescriptor.recommendation:type_name -> nimi.runtime.v1.LocalCatalogRecommendation
+	12, // 15: nimi.runtime.v1.LocalRecommendationFeedItemDescriptor.installed_state:type_name -> nimi.runtime.v1.LocalRecommendationInstalledState
+	13, // 16: nimi.runtime.v1.LocalRecommendationFeedItemDescriptor.action_state:type_name -> nimi.runtime.v1.LocalRecommendationActionState
+	14, // 17: nimi.runtime.v1.LocalRecommendationFeedItemDescriptor.install_payload:type_name -> nimi.runtime.v1.LocalRecommendationInstallPayload
+	20, // 18: nimi.runtime.v1.LocalRecommendationFeedDescriptor.device_profile:type_name -> nimi.runtime.v1.LocalDeviceProfile
+	7,  // 19: nimi.runtime.v1.LocalRecommendationFeedDescriptor.active_capability:type_name -> nimi.runtime.v1.LocalRecommendationFeedCapability
+	6,  // 20: nimi.runtime.v1.LocalRecommendationFeedDescriptor.cache_state:type_name -> nimi.runtime.v1.LocalRecommendationFeedCacheState
+	15, // 21: nimi.runtime.v1.LocalRecommendationFeedDescriptor.items:type_name -> nimi.runtime.v1.LocalRecommendationFeedItemDescriptor
+	22, // [22:22] is the sub-list for method output_type
+	22, // [22:22] is the sub-list for method input_type
+	22, // [22:22] is the sub-list for extension type_name
+	22, // [22:22] is the sub-list for extension extendee
+	0,  // [0:22] is the sub-list for field type_name
 }
 
 func init() { file_runtime_v1_local_runtime_recommendation_proto_init() }

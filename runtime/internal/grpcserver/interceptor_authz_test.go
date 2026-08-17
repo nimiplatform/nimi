@@ -553,8 +553,8 @@ func TestProtectedCarrierOnlyCapabilityAuthorizerRejectsPortableGrant(t *testing
 	called := false
 	_, err := interceptor(
 		ctx,
-		&runtimev1.RemoveModelRequest{AppId: "nimi.desktop", ModelId: "local/model"},
-		&grpc.UnaryServerInfo{FullMethod: "/nimi.runtime.v1.RuntimeModelService/RemoveModel"},
+		&runtimev1.ExecuteScenarioRequest{},
+		&grpc.UnaryServerInfo{FullMethod: "/nimi.runtime.v1.RuntimeAiService/ExecuteScenario"},
 		func(context.Context, any) (any, error) {
 			called = true
 			return &runtimev1.Ack{}, nil

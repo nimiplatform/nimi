@@ -4,39 +4,19 @@ import type {
 } from '../core-generated/runtime-typed-client';
 import type { JsonObject } from '../types';
 import type {
-  NimiRuntimeLocalAssetDeclaration,
   NimiRuntimeLocalAssetKindId,
-  NimiRuntimeLocalAssetStatusId,
   NimiRuntimeLocalEngineRuntimeModeId,
-  NimiRuntimeLocalProfileEntryKindId,
   NimiRuntimeLocalRunnableAssetKindId,
 } from './local-asset-vocabulary';
 import type {
   NimiRuntimeLocalCatalogRecommendation,
   NimiRuntimeLocalRecommendationFeed,
 } from './runtime-local-recommendation';
-import type {
-  NimiRuntimeLocalProfileDescriptor,
-  NimiRuntimeLocalProfileEntryDescriptor,
-  NimiRuntimeLocalProfileEntryOverride,
-  NimiRuntimeLocalProfileRequirementDescriptor,
-} from './runtime-local-profile-manifest';
 
 export type NimiRuntimeLocalAssetKind = NimiRuntimeLocalAssetKindId;
-export type NimiRuntimeLocalAssetStatus = NimiRuntimeLocalAssetStatusId;
 export type NimiRuntimeLocalCapabilityToken = NimiRuntimeLocalRunnableAssetKindId | string;
-export type NimiRuntimeLocalIntegrityMode = 'verified' | 'local_unverified';
 export type NimiRuntimeLocalDownloadState = 'queued' | 'running' | 'paused' | 'failed' | 'completed' | 'cancelled';
 export type NimiRuntimeLocalTransferSessionKind = 'download' | 'import' | string;
-export type NimiRuntimeLocalSuggestionSource =
-  | 'manifest'
-  | 'folder'
-  | 'download-metadata'
-  | 'filename'
-  | 'unknown'
-  | string;
-export type NimiRuntimeLocalSuggestionConfidence = 'high' | 'low' | string;
-export type NimiRuntimeLocalExecutionEntryKindId = 'model' | 'service' | 'node';
 
 export interface NimiRuntimeLocalProviderHints {
   readonly llama?: {
@@ -71,37 +51,43 @@ export interface NimiRuntimeLocalProviderHints {
   readonly extra?: Record<string, string>;
 }
 
-export interface NimiRuntimeLocalAssetRecord {
-  readonly localAssetId: string;
-  readonly assetId: string;
-  /** User-facing display name; non-identity. Empty only when an older runtime predates display facts. */
+export type NimiRuntimeModelAssetCatalogVerification = 'matched' | 'not_matched' | 'unknown';
+
+export interface NimiRuntimeModelAssetFile {
+  readonly relativePath: string;
+  readonly sha256: string;
+  readonly sizeBytes: number;
+  readonly nonExecutableContent: boolean;
+}
+
+export interface NimiRuntimeModelAssetRecord {
+  readonly modelAssetId: string;
+  readonly contentId: string;
   readonly displayName: string;
-  /** Original file name the asset was imported from, when known. */
-  readonly sourceFileName: string;
-  readonly kind: NimiRuntimeLocalAssetKind;
-  readonly engine: string;
   readonly entry: string;
-  readonly files: readonly string[];
-  readonly license: string;
-  readonly source: {
-    readonly repo: string;
-    readonly revision: string;
-  };
-  readonly integrityMode: NimiRuntimeLocalIntegrityMode;
-  readonly hashes: Record<string, string>;
-  readonly status: NimiRuntimeLocalAssetStatus;
-  readonly installedAt: string;
+  readonly files: readonly NimiRuntimeModelAssetFile[];
+  readonly totalSizeBytes: number;
+  readonly contentVerified: true;
+  readonly catalogVerification: NimiRuntimeModelAssetCatalogVerification;
+  readonly catalogVerified: boolean;
+  readonly unclassified: boolean;
+  readonly boundedFingerprint?: JsonObject;
+  readonly provenance?: JsonObject;
+  readonly createdAt: string;
   readonly updatedAt: string;
-  readonly reasonCode?: string;
-  readonly capabilities?: readonly string[];
-  readonly logicalModelId?: string;
-  readonly family?: string;
-  readonly artifactRoles?: readonly string[];
-  readonly preferredEngine?: string;
-  readonly fallbackEngines?: readonly string[];
-  readonly engineConfig?: JsonObject;
-  readonly recommendation?: NimiRuntimeLocalCatalogRecommendation;
-  readonly metadata?: JsonObject;
+  readonly latestIntegrityCheckedAt: string;
+  readonly duplicateContent: boolean;
+  readonly containsNonExecutableCode: boolean;
+}
+
+export interface NimiRuntimeModelAssetRemovalInspection {
+  readonly asset: NimiRuntimeModelAssetRecord;
+  readonly referencingLoadoutIds: readonly string[];
+  readonly confirmationRequired: boolean;
+}
+
+export interface NimiRuntimeModelAssetRemovalResult extends NimiRuntimeModelAssetRemovalInspection {
+  readonly cleanupPending: boolean;
 }
 
 export interface NimiRuntimeLocalVerifiedAssetDescriptor {
@@ -194,21 +180,6 @@ export interface NimiRuntimeLocalInstallPlanDescriptor {
   readonly engineConfig?: JsonObject;
 }
 
-export interface NimiRuntimeLocalInstallPayload {
-  readonly modelId: string;
-  readonly kind: NimiRuntimeLocalAssetKind;
-  readonly repo: string;
-  readonly revision?: string;
-  readonly capabilities?: readonly string[];
-  readonly engine?: string;
-  readonly entry?: string;
-  readonly files?: readonly string[];
-  readonly license?: string;
-  readonly hashes?: Record<string, string>;
-  readonly endpoint?: string;
-  readonly engineConfig?: JsonObject;
-}
-
 export interface NimiRuntimeLocalDeviceProfile {
   readonly os: string;
   readonly arch: string;
@@ -240,91 +211,9 @@ export interface NimiRuntimeLocalDeviceProfile {
   };
 }
 
-export interface NimiRuntimeLocalExecutionEntryDescriptor {
-  readonly entryId: string;
-  readonly kind: NimiRuntimeLocalExecutionEntryKindId;
-  readonly capability: string;
-  readonly required: boolean;
-  readonly selected: boolean;
-  readonly preferred: boolean;
-  readonly modelId?: string;
-  readonly repo?: string;
-  readonly engine?: string;
-  readonly serviceId?: string;
-  readonly nodeId?: string;
-  readonly reasonCode?: string;
-  readonly warnings: readonly string[];
-}
-
-export interface NimiRuntimeLocalPreflightDecision {
-  readonly entryId: string;
-  readonly target: string;
-  readonly check: string;
-  readonly ok: boolean;
-  readonly reasonCode?: string;
-  readonly detail?: string;
-}
-
-export interface NimiRuntimeLocalExecutionStageResult {
-  readonly stage: string;
-  readonly ok: boolean;
-  readonly reasonCode?: string;
-  readonly detail?: string;
-}
-
-export interface NimiRuntimeLocalExecutionPlan {
-  readonly planId: string;
-  readonly targetId: string;
-  readonly capability?: string;
-  readonly deviceProfile: NimiRuntimeLocalDeviceProfile;
-  readonly entries: readonly NimiRuntimeLocalExecutionEntryDescriptor[];
-  readonly preflightDecisions: readonly NimiRuntimeLocalPreflightDecision[];
-  readonly warnings: readonly string[];
-  readonly reasonCode?: string;
-}
-
-export interface NimiRuntimeLocalExecutionApplyResult {
-  readonly planId: string;
-  readonly targetId: string;
-  readonly entries: readonly NimiRuntimeLocalExecutionEntryDescriptor[];
-  readonly installedAssets: readonly NimiRuntimeLocalAssetRecord[];
-  readonly capabilities: readonly string[];
-  readonly stageResults: readonly NimiRuntimeLocalExecutionStageResult[];
-  readonly preflightDecisions: readonly NimiRuntimeLocalPreflightDecision[];
-  readonly rollbackApplied: boolean;
-  readonly warnings: readonly string[];
-  readonly reasonCode?: string;
-}
-
-export interface NimiRuntimeLocalProfileResolutionPlan {
-  readonly planId: string;
-  readonly targetId: string;
-  readonly profileId: string;
-  readonly title: string;
-  readonly description?: string;
-  readonly recommended: boolean;
-  readonly consumeCapabilities: readonly string[];
-  readonly requirements?: NimiRuntimeLocalProfileRequirementDescriptor;
-  readonly executionPlan: NimiRuntimeLocalExecutionPlan;
-  readonly warnings: readonly string[];
-  readonly reasonCode?: string;
-}
-
-export interface NimiRuntimeLocalProfileApplyResult {
-  readonly planId: string;
-  readonly targetId: string;
-  readonly profileId: string;
-  readonly executionResult: NimiRuntimeLocalExecutionApplyResult;
-  readonly installedAssets: readonly NimiRuntimeLocalAssetRecord[];
-  readonly warnings: readonly string[];
-  readonly reasonCode?: string;
-}
-
 export interface NimiRuntimeLocalTransferProgressEvent {
   readonly installSessionId: string;
   readonly modelId: string;
-  readonly localModelId?: string;
-  readonly localAssetId?: string;
   readonly sessionKind: NimiRuntimeLocalTransferSessionKind;
   readonly phase: string;
   readonly bytesReceived: number;
@@ -344,8 +233,6 @@ export interface NimiRuntimeLocalTransferProgressEvent {
 export interface NimiRuntimeLocalTransferSessionSummary {
   readonly installSessionId: string;
   readonly modelId: string;
-  readonly localModelId: string;
-  readonly localAssetId: string;
   readonly sessionKind: NimiRuntimeLocalTransferSessionKind;
   readonly phase: string;
   readonly state: NimiRuntimeLocalDownloadState;
@@ -363,8 +250,6 @@ export interface NimiRuntimeLocalTransferSessionSummary {
 export interface NimiRuntimeLocalTransferAccepted {
   readonly installSessionId: string;
   readonly modelId: string;
-  readonly localModelId: string;
-  readonly localAssetId: string;
 }
 
 export interface NimiRuntimeLocalEnvironmentPlanDependency {
@@ -425,31 +310,6 @@ export interface NimiRuntimeLocalEnvironmentDependencyJob {
   readonly etaSeconds: number;
 }
 
-export interface NimiRuntimeLocalUnregisteredAssetDescriptor {
-  readonly filename: string;
-  readonly path: string;
-  readonly sizeBytes: number;
-  readonly declaration?: NimiRuntimeLocalAssetDeclaration;
-  readonly suggestionSource: NimiRuntimeLocalSuggestionSource;
-  readonly confidence: NimiRuntimeLocalSuggestionConfidence;
-  readonly autoImportable: boolean;
-  readonly requiresManualReview: boolean;
-  readonly folderName?: string;
-}
-
-export interface NimiRuntimeLocalSnapshot {
-  readonly assets: readonly NimiRuntimeLocalAssetRecord[];
-  readonly generatedAt: string;
-}
-
-export interface NimiRuntimeLocalListAssetsInput {
-  readonly status?: NimiRuntimeLocalAssetStatus | string | null;
-  readonly kind?: NimiRuntimeLocalAssetKind | string | null;
-  readonly engine?: string | null;
-  readonly pageSize?: number;
-  readonly maxPages?: number;
-}
-
 export interface NimiRuntimeLocalCatalogSearchInput {
   readonly query?: string;
   readonly capability?: NimiRuntimeLocalCapabilityToken;
@@ -474,14 +334,8 @@ export interface NimiRuntimeLocalResolveInstallPlanInput {
 }
 
 export interface NimiRuntimeLocalEnvironmentPlanInput {
-  readonly packId: string;
-  readonly consumerScope?: string;
+  readonly capabilityContract: string;
   readonly runtimeDataRoot?: string;
-  readonly assetId?: string;
-  readonly localAssetId?: string;
-  readonly companionAssetId?: string;
-  readonly parentAssetId?: string;
-  readonly installLevel?: string;
 }
 
 export interface NimiRuntimeLocalEnvironmentPlanApplyInput {
@@ -493,76 +347,6 @@ export interface NimiRuntimeLocalEnvironmentPlanApplyInput {
 export interface NimiRuntimeLocalEnvironmentPlanApplyResult {
   readonly plan: NimiRuntimeLocalEnvironmentPlan;
   readonly jobs: readonly NimiRuntimeLocalEnvironmentDependencyJob[];
-}
-
-export interface NimiRuntimeLocalImageNativeAssetInput {
-  readonly assetId?: string;
-  readonly localAssetId?: string;
-}
-
-export type NimiRuntimeLocalImageNativeEnvironmentPlanInput = Omit<NimiRuntimeLocalEnvironmentPlanInput, 'consumerScope'> & {
-  readonly packId: 'local-image-native';
-  readonly consumerScope?: never;
-};
-
-export interface NimiRuntimeLocalImageNativeEnvironmentPlanRuntime {
-  readonly resolveEnvironmentPlan: (input: NimiRuntimeLocalEnvironmentPlanInput) => Promise<NimiRuntimeLocalEnvironmentPlan>;
-}
-
-export type NimiRuntimeLocalQwen3ASREnvironmentPlanInput = Omit<
-  NimiRuntimeLocalEnvironmentPlanInput,
-  'packId' | 'consumerScope'
-> & {
-  readonly packId: 'local-speech';
-  readonly consumerScope: 'speech.qwen3-asr.python';
-};
-
-export interface NimiRuntimeLocalQwen3ASREnvironmentPlanRuntime {
-  readonly resolveEnvironmentPlan: (
-    input: NimiRuntimeLocalEnvironmentPlanInput,
-  ) => Promise<NimiRuntimeLocalEnvironmentPlan>;
-}
-
-export type NimiRuntimeLocalQwen3ASRTransformersEnvironmentPlanInput = Omit<
-  NimiRuntimeLocalEnvironmentPlanInput,
-  'packId' | 'consumerScope'
-> & {
-  readonly packId: 'local-speech';
-  readonly consumerScope: 'speech.qwen3-asr-transformers.python';
-};
-
-export interface NimiRuntimeLocalQwen3ASRTransformersEnvironmentPlanRuntime {
-  readonly resolveEnvironmentPlan: (
-    input: NimiRuntimeLocalEnvironmentPlanInput,
-  ) => Promise<NimiRuntimeLocalEnvironmentPlan>;
-}
-
-export type NimiRuntimeLocalQwen3TTSEnvironmentPlanInput = Omit<
-  NimiRuntimeLocalEnvironmentPlanInput,
-  'packId' | 'consumerScope'
-> & {
-  readonly packId: 'local-speech';
-  readonly consumerScope: 'speech.qwen3-tts.python';
-};
-
-export interface NimiRuntimeLocalQwen3TTSEnvironmentPlanRuntime {
-  readonly resolveEnvironmentPlan: (
-    input: NimiRuntimeLocalEnvironmentPlanInput,
-  ) => Promise<NimiRuntimeLocalEnvironmentPlan>;
-}
-
-export type NimiRuntimeLocalVoxCPMEnvironmentPlanInput = Omit<
-  NimiRuntimeLocalEnvironmentPlanInput,
-  'packId' | 'consumerScope'
-> & {
-  readonly packId: 'local-speech';
-  readonly consumerScope: 'speech.voxcpm.python';
-};
-
-export interface NimiRuntimeLocalVoxCPMEnvironmentPlanRuntime {
-  readonly resolveEnvironmentPlan: (
-    input: NimiRuntimeLocalEnvironmentPlanInput,
-  ) => Promise<NimiRuntimeLocalEnvironmentPlan>;
 }
 
 export interface NimiRuntimeLocalWriteOptions {
@@ -582,31 +366,22 @@ export interface NimiRuntimeLocalTransferWatchOptions {
 
 export type NimiRuntimeLocalAssetAdminRpc = Pick<
   RuntimeTypedClient,
-  | 'listLocalAssets'
-  | 'removeLocalAsset'
-  | 'startLocalAsset'
-  | 'stopLocalAsset'
+  | 'importModelAsset'
+  | 'listModelAssets'
+  | 'getModelAsset'
+  | 'removeModelAsset'
   | 'listVerifiedAssets'
   | 'searchCatalogModels'
   | 'listCatalogVariants'
   | 'getRecommendationFeed'
   | 'resolveModelInstallPlan'
   | 'installModelFromPlan'
-  | 'installVerifiedAsset'
-  | 'importLocalAsset'
-  | 'importLocalAssetFile'
-  | 'importLocalAssetBundle'
-  | 'rescanLocalAssetBundle'
   | 'listLocalTransfers'
   | 'pauseLocalTransfer'
   | 'resumeLocalTransfer'
   | 'cancelLocalTransfer'
   | 'watchLocalTransfers'
   | 'collectDeviceProfile'
-  | 'scanUnregisteredAssets'
-  | 'scaffoldOrphanAsset'
-  | 'resolveProfile'
-  | 'applyProfile'
   | 'resolveLocalEnvironmentPlan'
   | 'applyLocalEnvironmentPlan'
   | 'listLocalEnvironmentDependencyJobs'
@@ -617,49 +392,22 @@ export type NimiRuntimeLocalAssetAdminRpc = Pick<
 >;
 
 export interface NimiRuntimeLocalAssetAdminClient {
-  listAssets(input?: NimiRuntimeLocalListAssetsInput): Promise<readonly NimiRuntimeLocalAssetRecord[]>;
+  importModelAsset(input: { readonly sourcePath: string; readonly displayName?: string }, options?: NimiRuntimeLocalWriteOptions): Promise<NimiRuntimeLocalTransferAccepted>;
+  listModelAssets(input?: { readonly pageSize?: number; readonly maxPages?: number }): Promise<readonly NimiRuntimeModelAssetRecord[]>;
+  getModelAsset(modelAssetId: string): Promise<NimiRuntimeModelAssetRecord>;
+  inspectModelAssetRemoval(modelAssetId: string): Promise<NimiRuntimeModelAssetRemovalInspection>;
+  removeModelAsset(modelAssetId: string, options?: NimiRuntimeLocalWriteOptions): Promise<NimiRuntimeModelAssetRemovalResult>;
   listVerifiedAssets(input?: {
     readonly kind?: NimiRuntimeLocalAssetKind | string | null;
     readonly engine?: string | null;
     readonly pageSize?: number;
     readonly maxPages?: number;
   }): Promise<readonly NimiRuntimeLocalVerifiedAssetDescriptor[]>;
-  snapshot(input?: NimiRuntimeLocalListAssetsInput): Promise<NimiRuntimeLocalSnapshot>;
   searchCatalog(input?: NimiRuntimeLocalCatalogSearchInput): Promise<readonly NimiRuntimeLocalCatalogItemDescriptor[]>;
   listCatalogVariants(repo: string): Promise<readonly NimiRuntimeLocalCatalogVariantDescriptor[]>;
   resolveInstallPlan(input: NimiRuntimeLocalResolveInstallPlanInput): Promise<NimiRuntimeLocalInstallPlanDescriptor>;
-  install(plan: NimiRuntimeLocalInstallPlanDescriptor, options?: NimiRuntimeLocalWriteOptions):
-    Promise<NimiRuntimeLocalAssetRecord>;
-  installVerifiedAsset(input: { readonly templateId: string; readonly endpoint?: string }, options?: NimiRuntimeLocalWriteOptions):
-    Promise<NimiRuntimeLocalAssetRecord>;
-  importAsset(input: { readonly manifestPath: string; readonly engineConfig?: JsonObject }, options?: NimiRuntimeLocalWriteOptions):
-    Promise<NimiRuntimeLocalAssetRecord>;
-  importAssetManifest(manifestPath: string, options?: NimiRuntimeLocalWriteOptions):
-    Promise<{ readonly asset: NimiRuntimeLocalAssetRecord }>;
-  importAssetFile(input: {
-    readonly filePath: string;
-    readonly declaration: NimiRuntimeLocalAssetDeclaration;
-    readonly assetName?: string;
-  }, options?: NimiRuntimeLocalWriteOptions): Promise<{ readonly asset: NimiRuntimeLocalAssetRecord }>;
-  importFile(input: {
-    readonly filePath: string;
-    readonly assetName?: string;
-    readonly kind: NimiRuntimeLocalAssetKind;
-    readonly engine?: string;
-  }, options?: NimiRuntimeLocalWriteOptions): Promise<NimiRuntimeLocalAssetRecord>;
-  importBundle(input: {
-    readonly directoryPath: string;
-    readonly modelName?: string;
-    readonly capabilities?: readonly string[];
-    readonly engine?: string;
-    /** Explicit ordered sharded-resource entries; empty keeps single-entry identity. */
-    readonly orderedBundleEntries?: readonly string[];
-  }, options?: NimiRuntimeLocalWriteOptions): Promise<NimiRuntimeLocalTransferAccepted>;
-  rescanBundle(input: { readonly localAssetId: string }, options?: NimiRuntimeLocalWriteOptions):
-    Promise<NimiRuntimeLocalTransferAccepted>;
-  remove(localAssetId: string, options?: NimiRuntimeLocalWriteOptions): Promise<NimiRuntimeLocalAssetRecord>;
-  start(localAssetId: string, options?: NimiRuntimeLocalWriteOptions): Promise<NimiRuntimeLocalAssetRecord>;
-  stop(localAssetId: string, options?: NimiRuntimeLocalWriteOptions): Promise<NimiRuntimeLocalAssetRecord>;
+  install(planId: string, options?: NimiRuntimeLocalWriteOptions):
+    Promise<NimiRuntimeModelAssetRecord>;
   listTransfers(): Promise<readonly NimiRuntimeLocalTransferSessionSummary[]>;
   pauseTransfer(installSessionId: string, options?: NimiRuntimeLocalWriteOptions):
     Promise<NimiRuntimeLocalTransferSessionSummary>;
@@ -676,15 +424,6 @@ export interface NimiRuntimeLocalAssetAdminClient {
     readonly capability?: string;
     readonly pageSize?: number;
   }): Promise<NimiRuntimeLocalRecommendationFeed<NimiRuntimeLocalDeviceProfile>>;
-  resolveProfile(input: {
-    readonly targetId: string;
-    readonly profile: NimiRuntimeLocalProfileDescriptor;
-    readonly capability?: string;
-    readonly deviceProfile?: NimiRuntimeLocalDeviceProfile;
-    readonly entryOverrides?: readonly NimiRuntimeLocalProfileEntryOverride[];
-  }): Promise<NimiRuntimeLocalProfileResolutionPlan>;
-  applyProfile(plan: NimiRuntimeLocalProfileResolutionPlan, options?: NimiRuntimeLocalWriteOptions):
-    Promise<NimiRuntimeLocalProfileApplyResult>;
   resolveEnvironmentPlan(input: NimiRuntimeLocalEnvironmentPlanInput): Promise<NimiRuntimeLocalEnvironmentPlan>;
   applyEnvironmentPlan(input: NimiRuntimeLocalEnvironmentPlanApplyInput, options?: NimiRuntimeLocalWriteOptions):
     Promise<NimiRuntimeLocalEnvironmentPlanApplyResult>;
@@ -710,10 +449,4 @@ export interface NimiRuntimeLocalAssetAdminClient {
     readonly reasonCode?: string;
     readonly consumerScope: string;
   }, options?: NimiRuntimeLocalWriteOptions): Promise<NimiRuntimeLocalEnvironmentDependencyJob>;
-  scanUnregisteredAssets(): Promise<readonly NimiRuntimeLocalUnregisteredAssetDescriptor[]>;
-  scaffoldOrphanAsset(input: {
-    readonly path: string;
-    readonly kind: NimiRuntimeLocalAssetKind;
-    readonly engine?: string;
-  }, options?: NimiRuntimeLocalWriteOptions): Promise<NimiRuntimeLocalAssetRecord>;
 }

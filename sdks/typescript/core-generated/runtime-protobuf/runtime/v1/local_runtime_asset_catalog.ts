@@ -11,23 +11,7 @@ import { UnknownFieldHandler } from "@protobuf-ts/runtime";
 import type { PartialMessage } from "@protobuf-ts/runtime";
 import { reflectionMergePartial } from "@protobuf-ts/runtime";
 import { MessageType } from "@protobuf-ts/runtime";
-import { ReasonCode } from "./common";
 import { Struct } from "../../google/protobuf/struct";
-// === Source ===
-
-/**
- * @generated from protobuf message nimi.runtime.v1.LocalAssetSource
- */
-export interface LocalAssetSource {
-    /**
-     * @generated from protobuf field: string repo = 1
-     */
-    repo: string;
-    /**
-     * @generated from protobuf field: string revision = 2
-     */
-    revision: string;
-}
 // === Host Requirements ===
 
 /**
@@ -52,162 +36,96 @@ export interface LocalHostRequirements {
     requiredBackends: string[];
 }
 /**
- * LocalBundleEntryDigest is the LocalAsset-owned manifest for one explicitly
- * sharded resource. Ordinals are one-based, contiguous, and retained in the
- * declared order; sha256 is the lowercase hexadecimal per-entry digest. The
- * canonical bundle SHA-256 hashes the concatenated decoded 32-byte digests in
- * this exact order.
- *
- * @generated from protobuf message nimi.runtime.v1.LocalBundleEntryDigest
+ * @generated from protobuf message nimi.runtime.v1.ModelAssetFile
  */
-export interface LocalBundleEntryDigest {
+export interface ModelAssetFile {
     /**
-     * @generated from protobuf field: uint32 ordinal = 1
-     */
-    ordinal: number;
-    /**
-     * @generated from protobuf field: string relative_path = 2
+     * @generated from protobuf field: string relative_path = 1
      */
     relativePath: string;
     /**
-     * @generated from protobuf field: string sha256 = 3
+     * @generated from protobuf field: string sha256 = 2
      */
     sha256: string;
+    /**
+     * @generated from protobuf field: int64 size_bytes = 3
+     */
+    sizeBytes: string;
+    /**
+     * Imported code remains part of content identity but is never executable.
+     *
+     * @generated from protobuf field: bool non_executable_content = 4
+     */
+    nonExecutableContent: boolean;
 }
-// === Unified Asset Record ===
-
 /**
- * @generated from protobuf message nimi.runtime.v1.LocalAssetRecord
+ * @generated from protobuf message nimi.runtime.v1.ModelAssetRecord
  */
-export interface LocalAssetRecord {
+export interface ModelAssetRecord {
     /**
-     * @generated from protobuf field: string local_asset_id = 1
+     * @generated from protobuf field: string model_asset_id = 1
      */
-    localAssetId: string;
+    modelAssetId: string;
     /**
-     * @generated from protobuf field: string asset_id = 2
+     * @generated from protobuf field: string content_id = 2
      */
-    assetId: string;
+    contentId: string;
     /**
-     * @generated from protobuf field: nimi.runtime.v1.LocalAssetKind kind = 3
-     */
-    kind: LocalAssetKind;
-    /**
-     * @generated from protobuf field: string engine = 4
-     */
-    engine: string;
-    /**
-     * @generated from protobuf field: string entry = 5
-     */
-    entry: string;
-    /**
-     * @generated from protobuf field: repeated string files = 6
-     */
-    files: string[];
-    /**
-     * @generated from protobuf field: string license = 7
-     */
-    license: string;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.LocalAssetSource source = 8
-     */
-    source?: LocalAssetSource;
-    /**
-     * @generated from protobuf field: map<string, string> hashes = 9
-     */
-    hashes: {
-        [key: string]: string;
-    };
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.LocalAssetStatus status = 10
-     */
-    status: LocalAssetStatus;
-    /**
-     * @generated from protobuf field: string installed_at = 11
-     */
-    installedAt: string;
-    /**
-     * @generated from protobuf field: string updated_at = 12
-     */
-    updatedAt: string;
-    /**
-     * @generated from protobuf field: string health_detail = 13
-     */
-    healthDetail: string;
-    /**
-     * Runnable-only fields
-     *
-     * @generated from protobuf field: repeated string capabilities = 20
-     */
-    capabilities: string[];
-    /**
-     * @generated from protobuf field: string logical_model_id = 21
-     */
-    logicalModelId: string;
-    /**
-     * @generated from protobuf field: string family = 22
-     */
-    family: string;
-    /**
-     * @generated from protobuf field: repeated string artifact_roles = 23
-     */
-    artifactRoles: string[];
-    /**
-     * @generated from protobuf field: string preferred_engine = 24
-     */
-    preferredEngine: string;
-    /**
-     * @generated from protobuf field: repeated string fallback_engines = 25
-     */
-    fallbackEngines: string[];
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.LocalBundleState bundle_state = 26
-     */
-    bundleState: LocalBundleState;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.LocalHostRequirements host_requirements = 28
-     */
-    hostRequirements?: LocalHostRequirements;
-    /**
-     * @generated from protobuf field: string local_invoke_profile_id = 29
-     */
-    localInvokeProfileId: string;
-    /**
-     * @generated from protobuf field: google.protobuf.Struct engine_config = 30
-     */
-    engineConfig?: Struct;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 32
-     */
-    reasonCode: ReasonCode;
-    /**
-     * Passive-only fields
-     *
-     * @generated from protobuf field: google.protobuf.Struct metadata = 40
-     */
-    metadata?: Struct;
-    /**
-     * Installed instance display/import facts. local_asset_id remains the
-     * installed instance identity; display_name is user-editable and non-identity.
-     *
-     * @generated from protobuf field: string display_name = 41
+     * @generated from protobuf field: string display_name = 3
      */
     displayName: string;
     /**
-     * @generated from protobuf field: string source_file_name = 42
+     * @generated from protobuf field: string entry = 4
      */
-    sourceFileName: string;
+    entry: string;
     /**
-     * @generated from protobuf field: string import_instance_id = 43
+     * @generated from protobuf field: repeated nimi.runtime.v1.ModelAssetFile files = 5
      */
-    importInstanceId: string;
+    files: ModelAssetFile[];
     /**
-     * Empty preserves single-file entry identity. A non-empty list declares one
-     * sharded occurrence whose content identity covers every ordered entry.
-     *
-     * @generated from protobuf field: repeated nimi.runtime.v1.LocalBundleEntryDigest bundle_entries = 47
+     * @generated from protobuf field: int64 total_size_bytes = 6
      */
-    bundleEntries: LocalBundleEntryDigest[];
+    totalSizeBytes: string;
+    /**
+     * @generated from protobuf field: bool content_verified = 7
+     */
+    contentVerified: boolean;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ModelAssetCatalogVerification catalog_verification = 8
+     */
+    catalogVerification: ModelAssetCatalogVerification;
+    /**
+     * @generated from protobuf field: bool unclassified = 9
+     */
+    unclassified: boolean;
+    /**
+     * @generated from protobuf field: google.protobuf.Struct bounded_fingerprint = 10
+     */
+    boundedFingerprint?: Struct;
+    /**
+     * @generated from protobuf field: google.protobuf.Struct provenance = 11
+     */
+    provenance?: Struct;
+    /**
+     * @generated from protobuf field: string created_at = 12
+     */
+    createdAt: string;
+    /**
+     * @generated from protobuf field: string updated_at = 13
+     */
+    updatedAt: string;
+    /**
+     * @generated from protobuf field: string latest_integrity_checked_at = 14
+     */
+    latestIntegrityCheckedAt: string;
+    /**
+     * @generated from protobuf field: bool duplicate_content = 15
+     */
+    duplicateContent: boolean;
+    /**
+     * @generated from protobuf field: bool contains_non_executable_code = 16
+     */
+    containsNonExecutableCode: boolean;
 }
 // === Verified Asset Descriptor (unified from Model + Artifact) ===
 
@@ -561,6 +479,10 @@ export interface LocalCatalogModelDescriptor {
      * @generated from protobuf field: google.protobuf.Struct engine_config = 25
      */
     engineConfig?: Struct;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalHostRequirements host_requirements = 26
+     */
+    hostRequirements?: LocalHostRequirements;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.LocalInstallPlanDescriptor
@@ -713,56 +635,6 @@ export enum LocalAssetKind {
     AUXILIARY = 14
 }
 /**
- * @generated from protobuf enum nimi.runtime.v1.LocalAssetStatus
- */
-export enum LocalAssetStatus {
-    /**
-     * @generated from protobuf enum value: LOCAL_ASSET_STATUS_UNSPECIFIED = 0;
-     */
-    UNSPECIFIED = 0,
-    /**
-     * @generated from protobuf enum value: LOCAL_ASSET_STATUS_INSTALLED = 1;
-     */
-    INSTALLED = 1,
-    /**
-     * @generated from protobuf enum value: LOCAL_ASSET_STATUS_ACTIVE = 2;
-     */
-    ACTIVE = 2,
-    /**
-     * @generated from protobuf enum value: LOCAL_ASSET_STATUS_UNHEALTHY = 3;
-     */
-    UNHEALTHY = 3,
-    /**
-     * @generated from protobuf enum value: LOCAL_ASSET_STATUS_REMOVED = 4;
-     */
-    REMOVED = 4
-}
-/**
- * @generated from protobuf enum nimi.runtime.v1.LocalServiceStatus
- */
-export enum LocalServiceStatus {
-    /**
-     * @generated from protobuf enum value: LOCAL_SERVICE_STATUS_UNSPECIFIED = 0;
-     */
-    UNSPECIFIED = 0,
-    /**
-     * @generated from protobuf enum value: LOCAL_SERVICE_STATUS_INSTALLED = 1;
-     */
-    INSTALLED = 1,
-    /**
-     * @generated from protobuf enum value: LOCAL_SERVICE_STATUS_ACTIVE = 2;
-     */
-    ACTIVE = 2,
-    /**
-     * @generated from protobuf enum value: LOCAL_SERVICE_STATUS_UNHEALTHY = 3;
-     */
-    UNHEALTHY = 3,
-    /**
-     * @generated from protobuf enum value: LOCAL_SERVICE_STATUS_REMOVED = 4;
-     */
-    REMOVED = 4
-}
-/**
  * @generated from protobuf enum nimi.runtime.v1.LocalEngineRuntimeMode
  */
 export enum LocalEngineRuntimeMode {
@@ -779,132 +651,25 @@ export enum LocalEngineRuntimeMode {
      */
     ATTACHED_ENDPOINT = 2
 }
+// === ModelAsset content custody ===
+
 /**
- * @generated from protobuf enum nimi.runtime.v1.LocalBundleState
+ * @generated from protobuf enum nimi.runtime.v1.ModelAssetCatalogVerification
  */
-export enum LocalBundleState {
+export enum ModelAssetCatalogVerification {
     /**
-     * @generated from protobuf enum value: LOCAL_BUNDLE_STATE_UNSPECIFIED = 0;
+     * @generated from protobuf enum value: MODEL_ASSET_CATALOG_VERIFICATION_UNSPECIFIED = 0;
      */
     UNSPECIFIED = 0,
     /**
-     * @generated from protobuf enum value: LOCAL_BUNDLE_STATE_RESOLVING = 1;
+     * @generated from protobuf enum value: MODEL_ASSET_CATALOG_VERIFICATION_MATCHED = 1;
      */
-    RESOLVING = 1,
+    MATCHED = 1,
     /**
-     * @generated from protobuf enum value: LOCAL_BUNDLE_STATE_READY = 2;
+     * @generated from protobuf enum value: MODEL_ASSET_CATALOG_VERIFICATION_NOT_MATCHED = 2;
      */
-    READY = 2,
-    /**
-     * @generated from protobuf enum value: LOCAL_BUNDLE_STATE_DEGRADED = 3;
-     */
-    DEGRADED = 3,
-    /**
-     * @generated from protobuf enum value: LOCAL_BUNDLE_STATE_INVALID = 4;
-     */
-    INVALID = 4,
-    /**
-     * @generated from protobuf enum value: LOCAL_BUNDLE_STATE_REMOVED = 5;
-     */
-    REMOVED = 5
+    NOT_MATCHED = 2
 }
-/**
- * @generated from protobuf enum nimi.runtime.v1.LocalExecutionEntryKind
- */
-export enum LocalExecutionEntryKind {
-    /**
-     * @generated from protobuf enum value: LOCAL_EXECUTION_ENTRY_KIND_UNSPECIFIED = 0;
-     */
-    UNSPECIFIED = 0,
-    /**
-     * @generated from protobuf enum value: LOCAL_EXECUTION_ENTRY_KIND_MODEL = 1;
-     */
-    MODEL = 1,
-    /**
-     * @generated from protobuf enum value: LOCAL_EXECUTION_ENTRY_KIND_SERVICE = 2;
-     */
-    SERVICE = 2,
-    /**
-     * @generated from protobuf enum value: LOCAL_EXECUTION_ENTRY_KIND_NODE = 3;
-     */
-    NODE = 3
-}
-/**
- * @generated from protobuf enum nimi.runtime.v1.LocalProfileEntryKind
- */
-export enum LocalProfileEntryKind {
-    /**
-     * @generated from protobuf enum value: LOCAL_PROFILE_ENTRY_KIND_UNSPECIFIED = 0;
-     */
-    UNSPECIFIED = 0,
-    /**
-     * @generated from protobuf enum value: LOCAL_PROFILE_ENTRY_KIND_SERVICE = 3;
-     */
-    SERVICE = 3,
-    /**
-     * @generated from protobuf enum value: LOCAL_PROFILE_ENTRY_KIND_NODE = 4;
-     */
-    NODE = 4,
-    /**
-     * @generated from protobuf enum value: LOCAL_PROFILE_ENTRY_KIND_ASSET = 5;
-     */
-    ASSET = 5
-}
-// @generated message type with reflection information, may provide speed optimized methods
-class LocalAssetSource$Type extends MessageType<LocalAssetSource> {
-    constructor() {
-        super("nimi.runtime.v1.LocalAssetSource", [
-            { no: 1, name: "repo", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "revision", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
-        ]);
-    }
-    create(value?: PartialMessage<LocalAssetSource>): LocalAssetSource {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        message.repo = "";
-        message.revision = "";
-        if (value !== undefined)
-            reflectionMergePartial<LocalAssetSource>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAssetSource): LocalAssetSource {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* string repo */ 1:
-                    message.repo = reader.string();
-                    break;
-                case /* string revision */ 2:
-                    message.revision = reader.string();
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: LocalAssetSource, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* string repo = 1; */
-        if (message.repo !== "")
-            writer.tag(1, WireType.LengthDelimited).string(message.repo);
-        /* string revision = 2; */
-        if (message.revision !== "")
-            writer.tag(2, WireType.LengthDelimited).string(message.revision);
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.LocalAssetSource
- */
-export const LocalAssetSource = new LocalAssetSource$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class LocalHostRequirements$Type extends MessageType<LocalHostRequirements> {
     constructor() {
@@ -977,36 +742,41 @@ class LocalHostRequirements$Type extends MessageType<LocalHostRequirements> {
  */
 export const LocalHostRequirements = new LocalHostRequirements$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class LocalBundleEntryDigest$Type extends MessageType<LocalBundleEntryDigest> {
+class ModelAssetFile$Type extends MessageType<ModelAssetFile> {
     constructor() {
-        super("nimi.runtime.v1.LocalBundleEntryDigest", [
-            { no: 1, name: "ordinal", kind: "scalar", T: 13 /*ScalarType.UINT32*/ },
-            { no: 2, name: "relative_path", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "sha256", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        super("nimi.runtime.v1.ModelAssetFile", [
+            { no: 1, name: "relative_path", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "sha256", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "size_bytes", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
+            { no: 4, name: "non_executable_content", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
         ]);
     }
-    create(value?: PartialMessage<LocalBundleEntryDigest>): LocalBundleEntryDigest {
+    create(value?: PartialMessage<ModelAssetFile>): ModelAssetFile {
         const message = globalThis.Object.create((this.messagePrototype!));
-        message.ordinal = 0;
         message.relativePath = "";
         message.sha256 = "";
+        message.sizeBytes = "0";
+        message.nonExecutableContent = false;
         if (value !== undefined)
-            reflectionMergePartial<LocalBundleEntryDigest>(this, message, value);
+            reflectionMergePartial<ModelAssetFile>(this, message, value);
         return message;
     }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalBundleEntryDigest): LocalBundleEntryDigest {
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ModelAssetFile): ModelAssetFile {
         let message = target ?? this.create(), end = reader.pos + length;
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
-                case /* uint32 ordinal */ 1:
-                    message.ordinal = reader.uint32();
-                    break;
-                case /* string relative_path */ 2:
+                case /* string relative_path */ 1:
                     message.relativePath = reader.string();
                     break;
-                case /* string sha256 */ 3:
+                case /* string sha256 */ 2:
                     message.sha256 = reader.string();
+                    break;
+                case /* int64 size_bytes */ 3:
+                    message.sizeBytes = reader.int64().toString();
+                    break;
+                case /* bool non_executable_content */ 4:
+                    message.nonExecutableContent = reader.bool();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1019,16 +789,19 @@ class LocalBundleEntryDigest$Type extends MessageType<LocalBundleEntryDigest> {
         }
         return message;
     }
-    internalBinaryWrite(message: LocalBundleEntryDigest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* uint32 ordinal = 1; */
-        if (message.ordinal !== 0)
-            writer.tag(1, WireType.Varint).uint32(message.ordinal);
-        /* string relative_path = 2; */
+    internalBinaryWrite(message: ModelAssetFile, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string relative_path = 1; */
         if (message.relativePath !== "")
-            writer.tag(2, WireType.LengthDelimited).string(message.relativePath);
-        /* string sha256 = 3; */
+            writer.tag(1, WireType.LengthDelimited).string(message.relativePath);
+        /* string sha256 = 2; */
         if (message.sha256 !== "")
-            writer.tag(3, WireType.LengthDelimited).string(message.sha256);
+            writer.tag(2, WireType.LengthDelimited).string(message.sha256);
+        /* int64 size_bytes = 3; */
+        if (message.sizeBytes !== "0")
+            writer.tag(3, WireType.Varint).int64(message.sizeBytes);
+        /* bool non_executable_content = 4; */
+        if (message.nonExecutableContent !== false)
+            writer.tag(4, WireType.Varint).bool(message.nonExecutableContent);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -1036,166 +809,103 @@ class LocalBundleEntryDigest$Type extends MessageType<LocalBundleEntryDigest> {
     }
 }
 /**
- * @generated MessageType for protobuf message nimi.runtime.v1.LocalBundleEntryDigest
+ * @generated MessageType for protobuf message nimi.runtime.v1.ModelAssetFile
  */
-export const LocalBundleEntryDigest = new LocalBundleEntryDigest$Type();
+export const ModelAssetFile = new ModelAssetFile$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class LocalAssetRecord$Type extends MessageType<LocalAssetRecord> {
+class ModelAssetRecord$Type extends MessageType<ModelAssetRecord> {
     constructor() {
-        super("nimi.runtime.v1.LocalAssetRecord", [
-            { no: 1, name: "local_asset_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "asset_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "kind", kind: "enum", T: () => ["nimi.runtime.v1.LocalAssetKind", LocalAssetKind, "LOCAL_ASSET_KIND_"] },
-            { no: 4, name: "engine", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 5, name: "entry", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 6, name: "files", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
-            { no: 7, name: "license", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 8, name: "source", kind: "message", T: () => LocalAssetSource },
-            { no: 9, name: "hashes", kind: "map", K: 9 /*ScalarType.STRING*/, V: { kind: "scalar", T: 9 /*ScalarType.STRING*/ } },
-            { no: 10, name: "status", kind: "enum", T: () => ["nimi.runtime.v1.LocalAssetStatus", LocalAssetStatus, "LOCAL_ASSET_STATUS_"] },
-            { no: 11, name: "installed_at", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 12, name: "updated_at", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 13, name: "health_detail", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 20, name: "capabilities", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
-            { no: 21, name: "logical_model_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 22, name: "family", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 23, name: "artifact_roles", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
-            { no: 24, name: "preferred_engine", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 25, name: "fallback_engines", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
-            { no: 26, name: "bundle_state", kind: "enum", T: () => ["nimi.runtime.v1.LocalBundleState", LocalBundleState, "LOCAL_BUNDLE_STATE_"] },
-            { no: 28, name: "host_requirements", kind: "message", T: () => LocalHostRequirements },
-            { no: 29, name: "local_invoke_profile_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 30, name: "engine_config", kind: "message", T: () => Struct },
-            { no: 32, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] },
-            { no: 40, name: "metadata", kind: "message", T: () => Struct },
-            { no: 41, name: "display_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 42, name: "source_file_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 43, name: "import_instance_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 47, name: "bundle_entries", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalBundleEntryDigest }
+        super("nimi.runtime.v1.ModelAssetRecord", [
+            { no: 1, name: "model_asset_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "content_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "display_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "entry", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "files", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => ModelAssetFile },
+            { no: 6, name: "total_size_bytes", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
+            { no: 7, name: "content_verified", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 8, name: "catalog_verification", kind: "enum", T: () => ["nimi.runtime.v1.ModelAssetCatalogVerification", ModelAssetCatalogVerification, "MODEL_ASSET_CATALOG_VERIFICATION_"] },
+            { no: 9, name: "unclassified", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 10, name: "bounded_fingerprint", kind: "message", T: () => Struct },
+            { no: 11, name: "provenance", kind: "message", T: () => Struct },
+            { no: 12, name: "created_at", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 13, name: "updated_at", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 14, name: "latest_integrity_checked_at", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 15, name: "duplicate_content", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 16, name: "contains_non_executable_code", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
         ]);
     }
-    create(value?: PartialMessage<LocalAssetRecord>): LocalAssetRecord {
+    create(value?: PartialMessage<ModelAssetRecord>): ModelAssetRecord {
         const message = globalThis.Object.create((this.messagePrototype!));
-        message.localAssetId = "";
-        message.assetId = "";
-        message.kind = 0;
-        message.engine = "";
+        message.modelAssetId = "";
+        message.contentId = "";
+        message.displayName = "";
         message.entry = "";
         message.files = [];
-        message.license = "";
-        message.hashes = {};
-        message.status = 0;
-        message.installedAt = "";
+        message.totalSizeBytes = "0";
+        message.contentVerified = false;
+        message.catalogVerification = 0;
+        message.unclassified = false;
+        message.createdAt = "";
         message.updatedAt = "";
-        message.healthDetail = "";
-        message.capabilities = [];
-        message.logicalModelId = "";
-        message.family = "";
-        message.artifactRoles = [];
-        message.preferredEngine = "";
-        message.fallbackEngines = [];
-        message.bundleState = 0;
-        message.localInvokeProfileId = "";
-        message.reasonCode = 0;
-        message.displayName = "";
-        message.sourceFileName = "";
-        message.importInstanceId = "";
-        message.bundleEntries = [];
+        message.latestIntegrityCheckedAt = "";
+        message.duplicateContent = false;
+        message.containsNonExecutableCode = false;
         if (value !== undefined)
-            reflectionMergePartial<LocalAssetRecord>(this, message, value);
+            reflectionMergePartial<ModelAssetRecord>(this, message, value);
         return message;
     }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAssetRecord): LocalAssetRecord {
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ModelAssetRecord): ModelAssetRecord {
         let message = target ?? this.create(), end = reader.pos + length;
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
-                case /* string local_asset_id */ 1:
-                    message.localAssetId = reader.string();
+                case /* string model_asset_id */ 1:
+                    message.modelAssetId = reader.string();
                     break;
-                case /* string asset_id */ 2:
-                    message.assetId = reader.string();
+                case /* string content_id */ 2:
+                    message.contentId = reader.string();
                     break;
-                case /* nimi.runtime.v1.LocalAssetKind kind */ 3:
-                    message.kind = reader.int32();
-                    break;
-                case /* string engine */ 4:
-                    message.engine = reader.string();
-                    break;
-                case /* string entry */ 5:
-                    message.entry = reader.string();
-                    break;
-                case /* repeated string files */ 6:
-                    message.files.push(reader.string());
-                    break;
-                case /* string license */ 7:
-                    message.license = reader.string();
-                    break;
-                case /* nimi.runtime.v1.LocalAssetSource source */ 8:
-                    message.source = LocalAssetSource.internalBinaryRead(reader, reader.uint32(), options, message.source);
-                    break;
-                case /* map<string, string> hashes */ 9:
-                    this.binaryReadMap9(message.hashes, reader, options);
-                    break;
-                case /* nimi.runtime.v1.LocalAssetStatus status */ 10:
-                    message.status = reader.int32();
-                    break;
-                case /* string installed_at */ 11:
-                    message.installedAt = reader.string();
-                    break;
-                case /* string updated_at */ 12:
-                    message.updatedAt = reader.string();
-                    break;
-                case /* string health_detail */ 13:
-                    message.healthDetail = reader.string();
-                    break;
-                case /* repeated string capabilities */ 20:
-                    message.capabilities.push(reader.string());
-                    break;
-                case /* string logical_model_id */ 21:
-                    message.logicalModelId = reader.string();
-                    break;
-                case /* string family */ 22:
-                    message.family = reader.string();
-                    break;
-                case /* repeated string artifact_roles */ 23:
-                    message.artifactRoles.push(reader.string());
-                    break;
-                case /* string preferred_engine */ 24:
-                    message.preferredEngine = reader.string();
-                    break;
-                case /* repeated string fallback_engines */ 25:
-                    message.fallbackEngines.push(reader.string());
-                    break;
-                case /* nimi.runtime.v1.LocalBundleState bundle_state */ 26:
-                    message.bundleState = reader.int32();
-                    break;
-                case /* nimi.runtime.v1.LocalHostRequirements host_requirements */ 28:
-                    message.hostRequirements = LocalHostRequirements.internalBinaryRead(reader, reader.uint32(), options, message.hostRequirements);
-                    break;
-                case /* string local_invoke_profile_id */ 29:
-                    message.localInvokeProfileId = reader.string();
-                    break;
-                case /* google.protobuf.Struct engine_config */ 30:
-                    message.engineConfig = Struct.internalBinaryRead(reader, reader.uint32(), options, message.engineConfig);
-                    break;
-                case /* nimi.runtime.v1.ReasonCode reason_code */ 32:
-                    message.reasonCode = reader.int32();
-                    break;
-                case /* google.protobuf.Struct metadata */ 40:
-                    message.metadata = Struct.internalBinaryRead(reader, reader.uint32(), options, message.metadata);
-                    break;
-                case /* string display_name */ 41:
+                case /* string display_name */ 3:
                     message.displayName = reader.string();
                     break;
-                case /* string source_file_name */ 42:
-                    message.sourceFileName = reader.string();
+                case /* string entry */ 4:
+                    message.entry = reader.string();
                     break;
-                case /* string import_instance_id */ 43:
-                    message.importInstanceId = reader.string();
+                case /* repeated nimi.runtime.v1.ModelAssetFile files */ 5:
+                    message.files.push(ModelAssetFile.internalBinaryRead(reader, reader.uint32(), options));
                     break;
-                case /* repeated nimi.runtime.v1.LocalBundleEntryDigest bundle_entries */ 47:
-                    message.bundleEntries.push(LocalBundleEntryDigest.internalBinaryRead(reader, reader.uint32(), options));
+                case /* int64 total_size_bytes */ 6:
+                    message.totalSizeBytes = reader.int64().toString();
+                    break;
+                case /* bool content_verified */ 7:
+                    message.contentVerified = reader.bool();
+                    break;
+                case /* nimi.runtime.v1.ModelAssetCatalogVerification catalog_verification */ 8:
+                    message.catalogVerification = reader.int32();
+                    break;
+                case /* bool unclassified */ 9:
+                    message.unclassified = reader.bool();
+                    break;
+                case /* google.protobuf.Struct bounded_fingerprint */ 10:
+                    message.boundedFingerprint = Struct.internalBinaryRead(reader, reader.uint32(), options, message.boundedFingerprint);
+                    break;
+                case /* google.protobuf.Struct provenance */ 11:
+                    message.provenance = Struct.internalBinaryRead(reader, reader.uint32(), options, message.provenance);
+                    break;
+                case /* string created_at */ 12:
+                    message.createdAt = reader.string();
+                    break;
+                case /* string updated_at */ 13:
+                    message.updatedAt = reader.string();
+                    break;
+                case /* string latest_integrity_checked_at */ 14:
+                    message.latestIntegrityCheckedAt = reader.string();
+                    break;
+                case /* bool duplicate_content */ 15:
+                    message.duplicateContent = reader.bool();
+                    break;
+                case /* bool contains_non_executable_code */ 16:
+                    message.containsNonExecutableCode = reader.bool();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1208,110 +918,55 @@ class LocalAssetRecord$Type extends MessageType<LocalAssetRecord> {
         }
         return message;
     }
-    private binaryReadMap9(map: LocalAssetRecord["hashes"], reader: IBinaryReader, options: BinaryReadOptions): void {
-        let len = reader.uint32(), end = reader.pos + len, key: keyof LocalAssetRecord["hashes"] | undefined, val: LocalAssetRecord["hashes"][any] | undefined;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case 1:
-                    key = reader.string();
-                    break;
-                case 2:
-                    val = reader.string();
-                    break;
-                default: throw new globalThis.Error("unknown map entry field for nimi.runtime.v1.LocalAssetRecord.hashes");
-            }
-        }
-        map[key ?? ""] = val ?? "";
-    }
-    internalBinaryWrite(message: LocalAssetRecord, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* string local_asset_id = 1; */
-        if (message.localAssetId !== "")
-            writer.tag(1, WireType.LengthDelimited).string(message.localAssetId);
-        /* string asset_id = 2; */
-        if (message.assetId !== "")
-            writer.tag(2, WireType.LengthDelimited).string(message.assetId);
-        /* nimi.runtime.v1.LocalAssetKind kind = 3; */
-        if (message.kind !== 0)
-            writer.tag(3, WireType.Varint).int32(message.kind);
-        /* string engine = 4; */
-        if (message.engine !== "")
-            writer.tag(4, WireType.LengthDelimited).string(message.engine);
-        /* string entry = 5; */
-        if (message.entry !== "")
-            writer.tag(5, WireType.LengthDelimited).string(message.entry);
-        /* repeated string files = 6; */
-        for (let i = 0; i < message.files.length; i++)
-            writer.tag(6, WireType.LengthDelimited).string(message.files[i]);
-        /* string license = 7; */
-        if (message.license !== "")
-            writer.tag(7, WireType.LengthDelimited).string(message.license);
-        /* nimi.runtime.v1.LocalAssetSource source = 8; */
-        if (message.source)
-            LocalAssetSource.internalBinaryWrite(message.source, writer.tag(8, WireType.LengthDelimited).fork(), options).join();
-        /* map<string, string> hashes = 9; */
-        for (let k of globalThis.Object.keys(message.hashes))
-            writer.tag(9, WireType.LengthDelimited).fork().tag(1, WireType.LengthDelimited).string(k).tag(2, WireType.LengthDelimited).string(message.hashes[k]).join();
-        /* nimi.runtime.v1.LocalAssetStatus status = 10; */
-        if (message.status !== 0)
-            writer.tag(10, WireType.Varint).int32(message.status);
-        /* string installed_at = 11; */
-        if (message.installedAt !== "")
-            writer.tag(11, WireType.LengthDelimited).string(message.installedAt);
-        /* string updated_at = 12; */
-        if (message.updatedAt !== "")
-            writer.tag(12, WireType.LengthDelimited).string(message.updatedAt);
-        /* string health_detail = 13; */
-        if (message.healthDetail !== "")
-            writer.tag(13, WireType.LengthDelimited).string(message.healthDetail);
-        /* repeated string capabilities = 20; */
-        for (let i = 0; i < message.capabilities.length; i++)
-            writer.tag(20, WireType.LengthDelimited).string(message.capabilities[i]);
-        /* string logical_model_id = 21; */
-        if (message.logicalModelId !== "")
-            writer.tag(21, WireType.LengthDelimited).string(message.logicalModelId);
-        /* string family = 22; */
-        if (message.family !== "")
-            writer.tag(22, WireType.LengthDelimited).string(message.family);
-        /* repeated string artifact_roles = 23; */
-        for (let i = 0; i < message.artifactRoles.length; i++)
-            writer.tag(23, WireType.LengthDelimited).string(message.artifactRoles[i]);
-        /* string preferred_engine = 24; */
-        if (message.preferredEngine !== "")
-            writer.tag(24, WireType.LengthDelimited).string(message.preferredEngine);
-        /* repeated string fallback_engines = 25; */
-        for (let i = 0; i < message.fallbackEngines.length; i++)
-            writer.tag(25, WireType.LengthDelimited).string(message.fallbackEngines[i]);
-        /* nimi.runtime.v1.LocalBundleState bundle_state = 26; */
-        if (message.bundleState !== 0)
-            writer.tag(26, WireType.Varint).int32(message.bundleState);
-        /* nimi.runtime.v1.LocalHostRequirements host_requirements = 28; */
-        if (message.hostRequirements)
-            LocalHostRequirements.internalBinaryWrite(message.hostRequirements, writer.tag(28, WireType.LengthDelimited).fork(), options).join();
-        /* string local_invoke_profile_id = 29; */
-        if (message.localInvokeProfileId !== "")
-            writer.tag(29, WireType.LengthDelimited).string(message.localInvokeProfileId);
-        /* google.protobuf.Struct engine_config = 30; */
-        if (message.engineConfig)
-            Struct.internalBinaryWrite(message.engineConfig, writer.tag(30, WireType.LengthDelimited).fork(), options).join();
-        /* nimi.runtime.v1.ReasonCode reason_code = 32; */
-        if (message.reasonCode !== 0)
-            writer.tag(32, WireType.Varint).int32(message.reasonCode);
-        /* google.protobuf.Struct metadata = 40; */
-        if (message.metadata)
-            Struct.internalBinaryWrite(message.metadata, writer.tag(40, WireType.LengthDelimited).fork(), options).join();
-        /* string display_name = 41; */
+    internalBinaryWrite(message: ModelAssetRecord, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string model_asset_id = 1; */
+        if (message.modelAssetId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.modelAssetId);
+        /* string content_id = 2; */
+        if (message.contentId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.contentId);
+        /* string display_name = 3; */
         if (message.displayName !== "")
-            writer.tag(41, WireType.LengthDelimited).string(message.displayName);
-        /* string source_file_name = 42; */
-        if (message.sourceFileName !== "")
-            writer.tag(42, WireType.LengthDelimited).string(message.sourceFileName);
-        /* string import_instance_id = 43; */
-        if (message.importInstanceId !== "")
-            writer.tag(43, WireType.LengthDelimited).string(message.importInstanceId);
-        /* repeated nimi.runtime.v1.LocalBundleEntryDigest bundle_entries = 47; */
-        for (let i = 0; i < message.bundleEntries.length; i++)
-            LocalBundleEntryDigest.internalBinaryWrite(message.bundleEntries[i], writer.tag(47, WireType.LengthDelimited).fork(), options).join();
+            writer.tag(3, WireType.LengthDelimited).string(message.displayName);
+        /* string entry = 4; */
+        if (message.entry !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.entry);
+        /* repeated nimi.runtime.v1.ModelAssetFile files = 5; */
+        for (let i = 0; i < message.files.length; i++)
+            ModelAssetFile.internalBinaryWrite(message.files[i], writer.tag(5, WireType.LengthDelimited).fork(), options).join();
+        /* int64 total_size_bytes = 6; */
+        if (message.totalSizeBytes !== "0")
+            writer.tag(6, WireType.Varint).int64(message.totalSizeBytes);
+        /* bool content_verified = 7; */
+        if (message.contentVerified !== false)
+            writer.tag(7, WireType.Varint).bool(message.contentVerified);
+        /* nimi.runtime.v1.ModelAssetCatalogVerification catalog_verification = 8; */
+        if (message.catalogVerification !== 0)
+            writer.tag(8, WireType.Varint).int32(message.catalogVerification);
+        /* bool unclassified = 9; */
+        if (message.unclassified !== false)
+            writer.tag(9, WireType.Varint).bool(message.unclassified);
+        /* google.protobuf.Struct bounded_fingerprint = 10; */
+        if (message.boundedFingerprint)
+            Struct.internalBinaryWrite(message.boundedFingerprint, writer.tag(10, WireType.LengthDelimited).fork(), options).join();
+        /* google.protobuf.Struct provenance = 11; */
+        if (message.provenance)
+            Struct.internalBinaryWrite(message.provenance, writer.tag(11, WireType.LengthDelimited).fork(), options).join();
+        /* string created_at = 12; */
+        if (message.createdAt !== "")
+            writer.tag(12, WireType.LengthDelimited).string(message.createdAt);
+        /* string updated_at = 13; */
+        if (message.updatedAt !== "")
+            writer.tag(13, WireType.LengthDelimited).string(message.updatedAt);
+        /* string latest_integrity_checked_at = 14; */
+        if (message.latestIntegrityCheckedAt !== "")
+            writer.tag(14, WireType.LengthDelimited).string(message.latestIntegrityCheckedAt);
+        /* bool duplicate_content = 15; */
+        if (message.duplicateContent !== false)
+            writer.tag(15, WireType.Varint).bool(message.duplicateContent);
+        /* bool contains_non_executable_code = 16; */
+        if (message.containsNonExecutableCode !== false)
+            writer.tag(16, WireType.Varint).bool(message.containsNonExecutableCode);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -1319,9 +974,9 @@ class LocalAssetRecord$Type extends MessageType<LocalAssetRecord> {
     }
 }
 /**
- * @generated MessageType for protobuf message nimi.runtime.v1.LocalAssetRecord
+ * @generated MessageType for protobuf message nimi.runtime.v1.ModelAssetRecord
  */
-export const LocalAssetRecord = new LocalAssetRecord$Type();
+export const ModelAssetRecord = new ModelAssetRecord$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class LocalVerifiedAssetDescriptor$Type extends MessageType<LocalVerifiedAssetDescriptor> {
     constructor() {
@@ -2017,7 +1672,8 @@ class LocalCatalogModelDescriptor$Type extends MessageType<LocalCatalogModelDesc
             { no: 22, name: "likes", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
             { no: 23, name: "last_modified", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 24, name: "verified", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
-            { no: 25, name: "engine_config", kind: "message", T: () => Struct }
+            { no: 25, name: "engine_config", kind: "message", T: () => Struct },
+            { no: 26, name: "host_requirements", kind: "message", T: () => LocalHostRequirements }
         ]);
     }
     create(value?: PartialMessage<LocalCatalogModelDescriptor>): LocalCatalogModelDescriptor {
@@ -2129,6 +1785,9 @@ class LocalCatalogModelDescriptor$Type extends MessageType<LocalCatalogModelDesc
                 case /* google.protobuf.Struct engine_config */ 25:
                     message.engineConfig = Struct.internalBinaryRead(reader, reader.uint32(), options, message.engineConfig);
                     break;
+                case /* nimi.runtime.v1.LocalHostRequirements host_requirements */ 26:
+                    message.hostRequirements = LocalHostRequirements.internalBinaryRead(reader, reader.uint32(), options, message.hostRequirements);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -2232,6 +1891,9 @@ class LocalCatalogModelDescriptor$Type extends MessageType<LocalCatalogModelDesc
         /* google.protobuf.Struct engine_config = 25; */
         if (message.engineConfig)
             Struct.internalBinaryWrite(message.engineConfig, writer.tag(25, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.LocalHostRequirements host_requirements = 26; */
+        if (message.hostRequirements)
+            LocalHostRequirements.internalBinaryWrite(message.hostRequirements, writer.tag(26, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

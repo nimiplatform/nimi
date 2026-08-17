@@ -26,11 +26,11 @@ func TestUnaryAuthnInterceptorRejectsMalformedAuthorizationHeader(t *testing.T) 
 	))
 	_, callErr := interceptor(
 		ctx,
-		&runtimev1.ListModelsRequest{},
-		&grpc.UnaryServerInfo{FullMethod: "/nimi.runtime.v1.RuntimeModelService/ListModels"},
+		&runtimev1.ListModelAssetsRequest{},
+		&grpc.UnaryServerInfo{FullMethod: "/nimi.runtime.v1.RuntimeLocalService/ListModelAssets"},
 		func(context.Context, any) (any, error) {
 			handlerCalled = true
-			return &runtimev1.ListModelsResponse{}, nil
+			return &runtimev1.ListModelAssetsResponse{}, nil
 		},
 	)
 	if callErr == nil {

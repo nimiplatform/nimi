@@ -17,10 +17,6 @@ const outputFiles = [
 ];
 
 const STATIC_DENIED_METHOD_IDS = Object.freeze([
-  '/nimi.runtime.v1.RuntimeModelService/ListModels',
-  '/nimi.runtime.v1.RuntimeModelService/PullModel',
-  '/nimi.runtime.v1.RuntimeModelService/RemoveModel',
-  '/nimi.runtime.v1.RuntimeModelService/CheckModelHealth',
   '/nimi.runtime.v1.RuntimeLocalService/ResolveLocalStateReconciliation',
   '/nimi.runtime.v1.RuntimeLocalService/ExecuteLocalStateCutover',
 ]);

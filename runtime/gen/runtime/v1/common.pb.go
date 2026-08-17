@@ -303,9 +303,9 @@ const (
 	ReasonCode_AGENT_AI_CONFIG_TARGET_UNAVAILABLE    ReasonCode = 682
 	ReasonCode_AGENT_AI_CONFIG_CAPABILITY_MISMATCH   ReasonCode = 683
 	ReasonCode_AGENT_AI_CONFIG_MODEL_TARGET_MISMATCH ReasonCode = 684
-	// Machine Local AI Configuration mutations. These codes describe why one
-	// explicit exact-binding write did not commit; they are not persisted as
-	// Local Capability Configuration state or projected as readiness.
+	// Retained local execution reason values. Current Loadout writes use the
+	// AI_LOADOUT_* family below; these numeric values remain stable for generic
+	// local admission and older error decoding.
 	ReasonCode_AI_LOCAL_CONFIGURATION_NOT_FOUND               ReasonCode = 685
 	ReasonCode_AI_LOCAL_REQUIREMENT_NOT_FOUND                 ReasonCode = 686
 	ReasonCode_AI_LOCAL_BINDING_CONFLICT                      ReasonCode = 687
@@ -345,6 +345,21 @@ const (
 	ReasonCode_LOCAL_APP_OPERATION_UNSUPPORTED  ReasonCode = 708
 	ReasonCode_LOCAL_APP_OWNER_UNAVAILABLE      ReasonCode = 709
 	ReasonCode_CURRENT_USER_DISPLAY_UNAVAILABLE ReasonCode = 710
+	// Machine Loadout prepare/commit/selection and exact ModelAsset composition.
+	ReasonCode_AI_LOADOUT_NOT_FOUND                    ReasonCode = 711
+	ReasonCode_AI_LOADOUT_RECIPE_NOT_FOUND             ReasonCode = 712
+	ReasonCode_AI_LOADOUT_DRIVER_UNAVAILABLE           ReasonCode = 713
+	ReasonCode_AI_LOADOUT_MODEL_ASSET_NOT_FOUND        ReasonCode = 714
+	ReasonCode_AI_LOADOUT_MODEL_ASSET_CONTENT_MISMATCH ReasonCode = 715
+	ReasonCode_AI_LOADOUT_MODEL_CONTRACT_FAILED        ReasonCode = 716
+	ReasonCode_AI_LOADOUT_PREPARE_NOT_FOUND            ReasonCode = 717
+	ReasonCode_AI_LOADOUT_PREPARE_EXPIRED              ReasonCode = 718
+	ReasonCode_AI_LOADOUT_PREPARE_OWNER_MISMATCH       ReasonCode = 719
+	ReasonCode_AI_LOADOUT_COMMIT_CONFLICT              ReasonCode = 720
+	ReasonCode_AI_LOADOUT_CONFIRMATION_REQUIRED        ReasonCode = 721
+	ReasonCode_AI_LOADOUT_PERSISTENCE_UNAVAILABLE      ReasonCode = 722
+	ReasonCode_AI_LOADOUT_NOT_CONFIGURED               ReasonCode = 723
+	ReasonCode_AI_LOADOUT_CATALOG_SCHEMA_INVALID       ReasonCode = 724
 )
 
 // Enum value maps for ReasonCode.
@@ -606,6 +621,20 @@ var (
 		708: "LOCAL_APP_OPERATION_UNSUPPORTED",
 		709: "LOCAL_APP_OWNER_UNAVAILABLE",
 		710: "CURRENT_USER_DISPLAY_UNAVAILABLE",
+		711: "AI_LOADOUT_NOT_FOUND",
+		712: "AI_LOADOUT_RECIPE_NOT_FOUND",
+		713: "AI_LOADOUT_DRIVER_UNAVAILABLE",
+		714: "AI_LOADOUT_MODEL_ASSET_NOT_FOUND",
+		715: "AI_LOADOUT_MODEL_ASSET_CONTENT_MISMATCH",
+		716: "AI_LOADOUT_MODEL_CONTRACT_FAILED",
+		717: "AI_LOADOUT_PREPARE_NOT_FOUND",
+		718: "AI_LOADOUT_PREPARE_EXPIRED",
+		719: "AI_LOADOUT_PREPARE_OWNER_MISMATCH",
+		720: "AI_LOADOUT_COMMIT_CONFLICT",
+		721: "AI_LOADOUT_CONFIRMATION_REQUIRED",
+		722: "AI_LOADOUT_PERSISTENCE_UNAVAILABLE",
+		723: "AI_LOADOUT_NOT_CONFIGURED",
+		724: "AI_LOADOUT_CATALOG_SCHEMA_INVALID",
 	}
 	ReasonCode_value = map[string]int32{
 		"REASON_CODE_UNSPECIFIED":                              0,
@@ -864,6 +893,20 @@ var (
 		"LOCAL_APP_OPERATION_UNSUPPORTED":                      708,
 		"LOCAL_APP_OWNER_UNAVAILABLE":                          709,
 		"CURRENT_USER_DISPLAY_UNAVAILABLE":                     710,
+		"AI_LOADOUT_NOT_FOUND":                                 711,
+		"AI_LOADOUT_RECIPE_NOT_FOUND":                          712,
+		"AI_LOADOUT_DRIVER_UNAVAILABLE":                        713,
+		"AI_LOADOUT_MODEL_ASSET_NOT_FOUND":                     714,
+		"AI_LOADOUT_MODEL_ASSET_CONTENT_MISMATCH":              715,
+		"AI_LOADOUT_MODEL_CONTRACT_FAILED":                     716,
+		"AI_LOADOUT_PREPARE_NOT_FOUND":                         717,
+		"AI_LOADOUT_PREPARE_EXPIRED":                           718,
+		"AI_LOADOUT_PREPARE_OWNER_MISMATCH":                    719,
+		"AI_LOADOUT_COMMIT_CONFLICT":                           720,
+		"AI_LOADOUT_CONFIRMATION_REQUIRED":                     721,
+		"AI_LOADOUT_PERSISTENCE_UNAVAILABLE":                   722,
+		"AI_LOADOUT_NOT_CONFIGURED":                            723,
+		"AI_LOADOUT_CATALOG_SCHEMA_INVALID":                    724,
 	}
 )
 
@@ -1454,7 +1497,7 @@ const file_runtime_v1_common_proto_rawDesc = "" +
 	"\vreason_code\x18\x02 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
 	"reasonCode\x12\x1f\n" +
 	"\vaction_hint\x18\x03 \x01(\tR\n" +
-	"actionHint*\xa5N\n" +
+	"actionHint*\xa7R\n" +
 	"\n" +
 	"ReasonCode\x12\x1b\n" +
 	"\x17REASON_CODE_UNSPECIFIED\x10\x00\x12\x13\n" +
@@ -1712,7 +1755,21 @@ const file_runtime_v1_common_proto_rawDesc = "" +
 	"\x17LOCAL_APP_ACCESS_DENIED\x10\xc3\x05\x12$\n" +
 	"\x1fLOCAL_APP_OPERATION_UNSUPPORTED\x10\xc4\x05\x12 \n" +
 	"\x1bLOCAL_APP_OWNER_UNAVAILABLE\x10\xc5\x05\x12%\n" +
-	" CURRENT_USER_DISPLAY_UNAVAILABLE\x10\xc6\x05\"\x06\b\xbe\x02\x10\xbe\x02\"\x06\b\xbf\x02\x10\xbf\x02\"\x06\b\xb8\x03\x10\xbb\x03\"\x06\b\xa9\x04\x10\xaf\x04\"\x06\b\xce\x04\x10\xd5\x04\"\x06\b\xe2\x04\x10\xe2\x04\"\x06\b\xfe\x04\x10\x81\x05\"\x06\b\x8b\x05\x10\x8d\x05\"\x06\b\x93\x05\x10\x93\x05\"\x06\b\x94\x05\x10\x94\x05\"\x06\b\x9c\x05\x10\x9c\x05\"\x06\b\x9d\x05\x10\x9d\x05\"\x04\bh\x10h\"\x04\bj\x10j\"\x04\bs\x10s\"\x04\bt\x10t\"\x04\bv\x10v\"\x06\b\xcb\x01\x10\xcb\x01\"\x06\b\x90\x03\x10\x90\x03\"\x06\b\x91\x03\x10\x91\x03*%AI_CONNECTOR_GRANT_SELECTION_REQUIRED*\x1aAI_CONNECTOR_GRANT_REVOKED*\x0eWF_DAG_INVALID*\x17WF_NODE_CONFIG_MISMATCH*\n" +
+	" CURRENT_USER_DISPLAY_UNAVAILABLE\x10\xc6\x05\x12\x19\n" +
+	"\x14AI_LOADOUT_NOT_FOUND\x10\xc7\x05\x12 \n" +
+	"\x1bAI_LOADOUT_RECIPE_NOT_FOUND\x10\xc8\x05\x12\"\n" +
+	"\x1dAI_LOADOUT_DRIVER_UNAVAILABLE\x10\xc9\x05\x12%\n" +
+	" AI_LOADOUT_MODEL_ASSET_NOT_FOUND\x10\xca\x05\x12,\n" +
+	"'AI_LOADOUT_MODEL_ASSET_CONTENT_MISMATCH\x10\xcb\x05\x12%\n" +
+	" AI_LOADOUT_MODEL_CONTRACT_FAILED\x10\xcc\x05\x12!\n" +
+	"\x1cAI_LOADOUT_PREPARE_NOT_FOUND\x10\xcd\x05\x12\x1f\n" +
+	"\x1aAI_LOADOUT_PREPARE_EXPIRED\x10\xce\x05\x12&\n" +
+	"!AI_LOADOUT_PREPARE_OWNER_MISMATCH\x10\xcf\x05\x12\x1f\n" +
+	"\x1aAI_LOADOUT_COMMIT_CONFLICT\x10\xd0\x05\x12%\n" +
+	" AI_LOADOUT_CONFIRMATION_REQUIRED\x10\xd1\x05\x12'\n" +
+	"\"AI_LOADOUT_PERSISTENCE_UNAVAILABLE\x10\xd2\x05\x12\x1e\n" +
+	"\x19AI_LOADOUT_NOT_CONFIGURED\x10\xd3\x05\x12&\n" +
+	"!AI_LOADOUT_CATALOG_SCHEMA_INVALID\x10\xd4\x05\"\x06\b\xbe\x02\x10\xbe\x02\"\x06\b\xbf\x02\x10\xbf\x02\"\x06\b\xb8\x03\x10\xbb\x03\"\x06\b\xa9\x04\x10\xaf\x04\"\x06\b\xce\x04\x10\xd5\x04\"\x06\b\xe2\x04\x10\xe2\x04\"\x06\b\xfe\x04\x10\x81\x05\"\x06\b\x8b\x05\x10\x8d\x05\"\x06\b\x93\x05\x10\x93\x05\"\x06\b\x94\x05\x10\x94\x05\"\x06\b\x9c\x05\x10\x9c\x05\"\x06\b\x9d\x05\x10\x9d\x05\"\x04\bh\x10h\"\x04\bj\x10j\"\x04\bs\x10s\"\x04\bt\x10t\"\x04\bv\x10v\"\x06\b\xcb\x01\x10\xcb\x01\"\x06\b\x90\x03\x10\x90\x03\"\x06\b\x91\x03\x10\x91\x03*%AI_CONNECTOR_GRANT_SELECTION_REQUIRED*\x1aAI_CONNECTOR_GRANT_REVOKED*\x0eWF_DAG_INVALID*\x17WF_NODE_CONFIG_MISMATCH*\n" +
 	"WF_TIMEOUT*\x11WF_TASK_NOT_FOUND* APP_INSTALL_DESCRIPTOR_NOT_FOUND*\x1bAPP_INSTALL_DIGEST_MISMATCH*\x1cAPP_INSTALL_MANIFEST_INVALID*\x1dAPP_INSTALL_STORAGE_VIOLATION*\x1bAPP_INSTALL_DOWNLOAD_FAILED*\x19APP_INSTALL_UNPACK_FAILED*\x14APP_INSTALL_INTERNAL*\x18APP_UPDATE_NOT_AVAILABLE*\x18APP_UPDATE_NOT_INSTALLED* APP_UPDATE_CONFIRMATION_REQUIRED*\x16APP_UPDATE_SWAP_FAILED*\x19APP_REPAIR_ACTION_INVALID*\x1dAPP_REPAIR_NO_RECOVERABLE_JOB*\x19APP_REPAIR_NOT_REPAIRABLE*\x1bAPP_LIFECYCLE_JOB_CANCELLED*\x1fAPP_OPEN_PERMISSION_NOT_GRANTED*\x19LIFECYCLE_INTENT_REQUIRED*\x19LIFECYCLE_INTENT_MISMATCH*\x17LIFECYCLE_INTENT_REPLAY*\x18LIFECYCLE_INTENT_EXPIRED*\x1dLOCAL_APP_PERMISSION_REQUIRED*\x1bLOCAL_APP_PERMISSION_DENIED*\x1cLOCAL_APP_PERMISSION_REVOKED*$LOCAL_APP_REMEMBERED_PROJECT_DORMANT*\"LOCAL_APP_RISK_DISCLOSURE_REQUIRED**LOCAL_APP_PERMISSION_RESERVED_NOT_ADMITTED*\x1cLOCAL_APP_PERMISSION_UNKNOWN*\xa9\x01\n" +
 	"\x15ExternalPrincipalType\x12'\n" +
 	"#EXTERNAL_PRINCIPAL_TYPE_UNSPECIFIED\x10\x00\x12!\n" +

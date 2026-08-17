@@ -15,7 +15,6 @@ surfaces:
   - RuntimeExternalAgentService
   - RuntimeAccountService
   - RuntimeAuditService
-  - RuntimeModelService
   - RuntimeCognitionService
   - RuntimeAppService
   - RuntimeArtifactService
@@ -107,61 +106,47 @@ services:
   - name: RuntimeLocalService
     source_rule: K-RPC-004
     methods:
-      - name: GetMachineLocalAIConfiguration
+      - name: ListLoadoutRecipes
         type: unary
-        protected_transport_ref: /nimi.runtime.v1.RuntimeLocalService/GetMachineLocalAIConfiguration
-      - name: GetLocalCapabilityConfiguration
+        protected_transport_ref: /nimi.runtime.v1.RuntimeLocalService/ListLoadoutRecipes
+      - name: GetMachineLoadouts
         type: unary
-        protected_transport_ref: /nimi.runtime.v1.RuntimeLocalService/GetLocalCapabilityConfiguration
-      - name: AddLocalCapabilityConfiguration
+        protected_transport_ref: /nimi.runtime.v1.RuntimeLocalService/GetMachineLoadouts
+      - name: GetLoadout
         type: unary
-        protected_transport_ref: /nimi.runtime.v1.RuntimeLocalService/AddLocalCapabilityConfiguration
-      - name: UpdateLocalCapabilityConfiguration
+        protected_transport_ref: /nimi.runtime.v1.RuntimeLocalService/GetLoadout
+      - name: PrepareLoadout
         type: unary
-        protected_transport_ref: /nimi.runtime.v1.RuntimeLocalService/UpdateLocalCapabilityConfiguration
-      - name: SelectLocalCapabilityConfiguration
+        protected_transport_ref: /nimi.runtime.v1.RuntimeLocalService/PrepareLoadout
+      - name: CommitLoadout
         type: unary
-        protected_transport_ref: /nimi.runtime.v1.RuntimeLocalService/SelectLocalCapabilityConfiguration
-      - name: ClearLocalCapabilitySelection
+        protected_transport_ref: /nimi.runtime.v1.RuntimeLocalService/CommitLoadout
+      - name: UpdateLoadout
         type: unary
-        protected_transport_ref: /nimi.runtime.v1.RuntimeLocalService/ClearLocalCapabilitySelection
-      - name: DeleteLocalCapabilityConfiguration
+        protected_transport_ref: /nimi.runtime.v1.RuntimeLocalService/UpdateLoadout
+      - name: SelectLoadout
         type: unary
-        protected_transport_ref: /nimi.runtime.v1.RuntimeLocalService/DeleteLocalCapabilityConfiguration
-      - name: ReprojectLocalCapabilityRequirements
+        protected_transport_ref: /nimi.runtime.v1.RuntimeLocalService/SelectLoadout
+      - name: DeleteLoadout
         type: unary
-        protected_transport_ref: /nimi.runtime.v1.RuntimeLocalService/ReprojectLocalCapabilityRequirements
-      - name: BindLocalCapabilityRequirement
+        protected_transport_ref: /nimi.runtime.v1.RuntimeLocalService/DeleteLoadout
+      - name: ImportModelAsset
         type: unary
-        protected_transport_ref: /nimi.runtime.v1.RuntimeLocalService/BindLocalCapabilityRequirement
-      - name: RebindLocalCapabilityRequirement
+        protected_transport_ref: /nimi.runtime.v1.RuntimeLocalService/ImportModelAsset
+      - name: ListModelAssets
         type: unary
-        protected_transport_ref: /nimi.runtime.v1.RuntimeLocalService/RebindLocalCapabilityRequirement
-      - name: UnbindLocalCapabilityRequirement
+        protected_transport_ref: /nimi.runtime.v1.RuntimeLocalService/ListModelAssets
+      - name: GetModelAsset
         type: unary
-        protected_transport_ref: /nimi.runtime.v1.RuntimeLocalService/UnbindLocalCapabilityRequirement
-      - name: ListLocalAssets
+        protected_transport_ref: /nimi.runtime.v1.RuntimeLocalService/GetModelAsset
+      - name: RemoveModelAsset
         type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeLocalService/RemoveModelAsset
       - name: ListVerifiedAssets
-        type: unary
-      - name: InstallVerifiedAsset
         type: unary
       - name: InstallModelFromPlan
         type: unary
-      - name: ImportLocalAsset
-        type: unary
-      - name: ImportLocalAssetFile
-        type: unary
-      - name: ImportLocalAssetBundle
-        type: unary
-      - name: RescanLocalAssetBundle
-        type: unary
-      - name: RemoveLocalAsset
-        type: unary
-      - name: StartLocalAsset
-        type: unary
-      - name: StopLocalAsset
-        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeLocalService/InstallModelFromPlan
       - name: SearchCatalogModels
         type: unary
       - name: ListCatalogVariants
@@ -173,38 +158,19 @@ services:
       - name: CollectDeviceProfile
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeLocalService/CollectDeviceProfile
-      - name: ScanUnregisteredAssets
-        type: unary
-      - name: ScaffoldOrphanAsset
-        type: unary
       - name: ListLocalTransfers
         type: unary
       - name: PauseLocalTransfer
         type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeLocalService/PauseLocalTransfer
       - name: ResumeLocalTransfer
         type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeLocalService/ResumeLocalTransfer
       - name: CancelLocalTransfer
         type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeLocalService/CancelLocalTransfer
       - name: WatchLocalTransfers
         type: server_stream
-      - name: ListLocalServices
-        type: unary
-      - name: InstallLocalService
-        type: unary
-      - name: StartLocalService
-        type: unary
-      - name: StopLocalService
-        type: unary
-      - name: CheckLocalServiceHealth
-        type: unary
-      - name: RemoveLocalService
-        type: unary
-      - name: ListNodeCatalog
-        type: unary
-      - name: ResolveProfile
-        type: unary
-      - name: ApplyProfile
-        type: unary
       - name: ListLocalAudits
         type: unary
       - name: AppendInferenceAudit
@@ -227,8 +193,6 @@ services:
       - name: ApplyLocalEnvironmentPlan
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeLocalService/ApplyLocalEnvironmentPlan
-      - name: PrepareProfileRuntimeDescriptor
-        type: unary
       - name: ListLocalEnvironmentSelectedSources
         type: unary
       - name: ListLocalEnvironmentDependencyJobs
@@ -381,17 +345,6 @@ services:
         type: server_stream
       - name: SubscribeRuntimeHealthEvents
         type: server_stream
-  - name: RuntimeModelService
-    source_rule: K-MODEL-004
-    methods:
-      - name: ListModels
-        type: unary
-      - name: PullModel
-        type: unary
-      - name: RemoveModel
-        type: unary
-      - name: CheckModelHealth
-        type: unary
   - name: RuntimeCognitionService
     source_rule: K-RPC-004a
     methods:
@@ -616,4 +569,8 @@ services:
       - name: PreviewSharedLocalAgentAIProfile
         type: unary
       - name: ApplySharedLocalAgentAIProfile
+        type: unary
+      - name: ImportPortableAIProfile
+        type: unary
+      - name: ListPortableAIProfiles
         type: unary

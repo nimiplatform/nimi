@@ -13,20 +13,7 @@ import "runtime/v1/local_runtime_engine.proto";
 import "runtime/v1/local_runtime_execution_profile.proto";
 import "runtime/v1/local_runtime_recommendation.proto";
 
-// === Asset CRUD (unified from Model + Artifact) ===
-
-message ListLocalAssetsRequest {
-  LocalAssetStatus status_filter = 1;
-  LocalAssetKind kind_filter     = 2;
-  string engine_filter           = 3;
-  int32 page_size                = 4;
-  string page_token              = 5;
-}
-
-message ListLocalAssetsResponse {
-  repeated LocalAssetRecord assets = 1;
-  string next_page_token           = 2;
-}
+// === Verified Asset Catalog ===
 
 message ListVerifiedAssetsRequest {
   LocalAssetKind kind_filter = 1;
@@ -40,83 +27,45 @@ message ListVerifiedAssetsResponse {
   string next_page_token                       = 2;
 }
 
-message InstallVerifiedAssetRequest {
-  string template_id = 1;
-  string endpoint    = 2;
+// === ModelAsset CRUD ===
+
+message ImportModelAssetRequest {
+  string source_path = 1;
+  string display_name = 2;
 }
 
-message InstallVerifiedAssetResponse {
-  LocalAssetRecord asset = 1;
-}
-
-message ImportLocalAssetRequest {
-  string manifest_path                 = 1;
-  google.protobuf.Struct engine_config = 3;
-  reserved 2;
-  reserved "endpoint";
-}
-
-message ImportLocalAssetResponse {
-  LocalAssetRecord asset = 1;
-}
-
-message ImportLocalAssetFileRequest {
-  string file_path       = 1;
-  LocalAssetKind kind    = 2;
-  string engine          = 3;
-  string asset_name      = 4;
-  repeated string capabilities = 5;
-  reserved 6;
-  reserved "endpoint";
-}
-
-message ImportLocalAssetFileResponse {
-  LocalAssetRecord asset = 1;
-}
-
-message ScaffoldOrphanAssetRequest {
-  string path              = 1;
-  LocalAssetKind kind      = 2;
-  string engine            = 3;
-  repeated string capabilities = 4;
-  reserved 5;
-  reserved "endpoint";
-}
-
-message ScaffoldOrphanAssetResponse {
-  LocalAssetRecord asset = 1;
-}
-
-message ImportLocalAssetBundleRequest {
-  string directory_path = 1;
-  string model_name     = 2;
-  repeated string capabilities = 3;
-  string engine         = 4;
-  reserved 5;
-  reserved "endpoint";
-  // Explicit one-based content order for a sharded resource. Empty retains
-  // the existing single-entry digest semantics even when sidecar files exist.
-  repeated string ordered_bundle_entries = 6;
-}
-
-message ImportLocalAssetBundleResponse {
+message ImportModelAssetResponse {
   LocalTransferSessionSummary transfer = 1;
 }
 
-message RescanLocalAssetBundleRequest {
-  string local_asset_id = 1;
+message ListModelAssetsRequest {
+  int32 page_size = 1;
+  string page_token = 2;
 }
 
-message RescanLocalAssetBundleResponse {
-  LocalTransferSessionSummary transfer = 1;
+message ListModelAssetsResponse {
+  repeated ModelAssetRecord assets = 1;
+  string next_page_token = 2;
 }
 
-message RemoveLocalAssetRequest {
-  string local_asset_id = 1;
+message GetModelAssetRequest {
+  string model_asset_id = 1;
 }
 
-message RemoveLocalAssetResponse {
-  LocalAssetRecord asset = 1;
+message GetModelAssetResponse {
+  ModelAssetRecord asset = 1;
+}
+
+message RemoveModelAssetRequest {
+  string model_asset_id = 1;
+  bool force = 2;
+}
+
+message RemoveModelAssetResponse {
+  ModelAssetRecord asset = 1;
+  repeated string referencing_loadout_ids = 2;
+  bool confirmation_required = 3;
+  bool cleanup_pending = 4;
 }
 
 // === Catalog & Install Plan ===
@@ -185,37 +134,15 @@ message ResolveModelInstallPlanResponse {
 }
 
 message InstallModelFromPlanRequest {
-  LocalInstallPlanDescriptor plan = 1;
+  reserved 1;
+  reserved "plan";
+  string plan_id = 2;
 }
 
 message InstallModelFromPlanResponse {
-  LocalAssetRecord asset = 1;
-}
-
-// === Asset Lifecycle (runnable assets) ===
-
-message StartLocalAssetRequest {
-  string local_asset_id = 1;
-}
-
-message StartLocalAssetResponse {
-  LocalAssetRecord asset = 1;
-}
-
-message StopLocalAssetRequest {
-  string local_asset_id = 1;
-}
-
-message StopLocalAssetResponse {
-  LocalAssetRecord asset = 1;
-}
-
-// === Unregistered Asset Scan ===
-
-message ScanUnregisteredAssetsRequest {}
-
-message ScanUnregisteredAssetsResponse {
-  repeated LocalUnregisteredAssetDescriptor items = 1;
+  reserved 1;
+  reserved "asset";
+  ModelAssetRecord model_asset = 2;
 }
 
 // === Transfers ===
@@ -223,8 +150,8 @@ message ScanUnregisteredAssetsResponse {
 message LocalTransferSessionSummary {
   string install_session_id = 1;
   string asset_id           = 2;
-  string local_asset_id     = 3;
-  reserved 4, 5;
+  reserved 3, 4, 5;
+  reserved "local_asset_id";
   string session_kind       = 6;
   string phase              = 7;
   string state              = 8;
@@ -242,8 +169,8 @@ message LocalTransferSessionSummary {
 message LocalTransferProgressEvent {
   string install_session_id = 1;
   string asset_id           = 2;
-  string local_asset_id     = 3;
-  reserved 4, 5;
+  reserved 3, 4, 5;
+  reserved "local_asset_id";
   string session_kind       = 6;
   string phase              = 7;
   int64 bytes_received      = 8;
@@ -295,21 +222,12 @@ message WatchLocalTransfersRequest {}
 // === Runtime-owned Local Environment ===
 
 message ResolveLocalEnvironmentPlanRequest {
-  string pack_id = 1;
-  string consumer_scope = 2;
+  string capability_contract = 1;
+  reserved 2;
   LocalDeviceProfile host_profile = 3;
   string runtime_data_root = 4;
-  string asset_id = 5;
-  string local_asset_id = 6;
-  string companion_asset_id = 7;
-  string parent_asset_id = 8;
-  // install_level is minimal or recommended. When set and no explicit asset_id
-  // is supplied, RuntimeLocalService runs the K-MCAT-034 deterministic resolver
-  // to fill the model.asset / model.companion-asset dependencies of the pack
-  // from the curated preset + host posture (K-RPC-025, model-catalog-contract
-  // K-MCAT-034). An empty install_level preserves the prior explicit-identity
-  // behaviour. A new optional field; non-breaking.
-  string install_level = 9;
+  reserved 5, 6, 7, 8, 9;
+  reserved "pack_id", "consumer_scope", "asset_id", "local_asset_id", "companion_asset_id", "parent_asset_id", "install_level";
 }
 
 message ResolveLocalEnvironmentPlanResponse {
@@ -325,27 +243,6 @@ message ApplyLocalEnvironmentPlanRequest {
 message ApplyLocalEnvironmentPlanResponse {
   LocalEnvironmentPlan plan = 1;
   repeated LocalEnvironmentDependencyJob jobs = 2;
-}
-
-message PrepareProfileRuntimeDescriptorRequest {
-  bytes descriptor_json = 1;
-}
-
-message ProfileRuntimeDescriptorSlicePrepareResult {
-  string slice_id = 1;
-  string capability = 2;
-  string outcome = 3;
-  repeated string reason_codes = 4;
-  string materialization_key = 5;
-  string workflow_binding_id = 6;
-  bool reusable_asset_healthy = 7;
-}
-
-message PrepareProfileRuntimeDescriptorResponse {
-  string descriptor_id = 1;
-  string profile_id = 2;
-  repeated string requirement_ids = 3;
-  repeated ProfileRuntimeDescriptorSlicePrepareResult slice_results = 4;
 }
 
 message ListLocalEnvironmentSelectedSourcesRequest {
@@ -371,10 +268,8 @@ message ResolveLocalEnvironmentActivationGateRequest {
   string pack_id = 2;
   LocalDeviceProfile host_profile = 3;
   string runtime_data_root = 4;
-  string asset_id = 5;
-  string local_asset_id = 6;
-  string companion_asset_id = 7;
-  string parent_asset_id = 8;
+  reserved 5, 6, 7, 8;
+  reserved "asset_id", "local_asset_id", "companion_asset_id", "parent_asset_id";
 }
 
 message ResolveLocalEnvironmentActivationGateResponse {
@@ -426,6 +321,16 @@ message RepairLocalEnvironmentDependencyResponse {
 
 // === Runtime-owned Local State Reconciliation ===
 
+message LocalStateIsolationDiagnostic {
+  string store = 1;
+  string level = 2;
+  string reason_code = 3;
+  string message = 4;
+  string quarantine_path = 5;
+  string section = 6;
+  int32 record_index = 7;
+}
+
 message LocalStateReconciliationPlan {
   string plan_id = 1;
   string state = 2;
@@ -447,6 +352,7 @@ message LocalStateReconciliationPlan {
   int32 retired_transfer_count = 18;
   int32 retired_audit_count = 19;
   int32 conflict_count = 20;
+  repeated LocalStateIsolationDiagnostic isolation_diagnostics = 21;
 }
 
 message ResolveLocalStateReconciliationRequest {
@@ -478,112 +384,15 @@ message CollectDeviceProfileResponse {
   LocalDeviceProfile profile = 1;
 }
 
-// === Profile Resolution ===
-
-message ResolveProfileRequest {
-  string target_id                             = 1;
-  LocalProfileDescriptor profile               = 2;
-  string capability                            = 3;
-  LocalDeviceProfile device_profile            = 4;
-  repeated ProfileEntryOverride entry_overrides = 5;
-}
-
-message ResolveProfileResponse {
-  LocalProfileResolutionPlan plan = 1;
-}
-
-message ApplyProfileRequest {
-  LocalProfileResolutionPlan plan = 1;
-}
-
-message ApplyProfileResponse {
-  LocalProfileApplyResult result = 1;
-}
-
-// === Services ===
-
-message ListLocalServicesRequest {
-  LocalServiceStatus status_filter = 1;
-  int32 page_size                  = 2;
-  string page_token                = 3;
-}
-
-message ListLocalServicesResponse {
-  repeated LocalServiceDescriptor services = 1;
-  string next_page_token                   = 2;
-}
-
-message InstallLocalServiceRequest {
-  string service_id            = 1;
-  string title                 = 2;
-  string engine                = 3;
-  string endpoint              = 4;
-  repeated string capabilities = 5;
-  string local_model_id        = 6;
-}
-
-message InstallLocalServiceResponse {
-  LocalServiceDescriptor service = 1;
-}
-
-message StartLocalServiceRequest {
-  string service_id = 1;
-}
-
-message StartLocalServiceResponse {
-  LocalServiceDescriptor service = 1;
-}
-
-message StopLocalServiceRequest {
-  string service_id = 1;
-}
-
-message StopLocalServiceResponse {
-  LocalServiceDescriptor service = 1;
-}
-
-message CheckLocalServiceHealthRequest {
-  string service_id = 1;
-}
-
-message CheckLocalServiceHealthResponse {
-  repeated LocalServiceDescriptor services = 1;
-}
-
-message RemoveLocalServiceRequest {
-  string service_id = 1;
-}
-
-message RemoveLocalServiceResponse {
-  LocalServiceDescriptor service = 1;
-}
-
-// === Node Catalog ===
-
-message ListNodeCatalogRequest {
-  string capability  = 1;
-  string service_id  = 2;
-  string provider    = 3;
-  string type_filter = 4;
-  int32 page_size    = 5;
-  string page_token  = 6;
-}
-
-message ListNodeCatalogResponse {
-  repeated LocalNodeDescriptor nodes = 1;
-  string next_page_token             = 2;
-}
-
 // === Audits ===
 
 message ListLocalAuditsRequest {
-  reserved 1;
-  reserved "limit";
+  reserved 1, 6;
+  reserved "limit", "local_model_id";
   string event_type            = 2;
   repeated string event_types  = 3;
   string source                = 4;
   string modality              = 5;
-  string local_model_id        = 6;
   string target_id             = 7;
   string reason_code           = 8;
   LocalAuditTimeRange time_range = 9;
@@ -599,6 +408,8 @@ message ListLocalAuditsResponse {
 }
 
 message AppendInferenceAuditRequest {
+  reserved 8;
+  reserved "local_model_id";
   string event_type                = 1;
   string target_id                 = 2;
   string source                    = 3;
@@ -606,7 +417,6 @@ message AppendInferenceAuditRequest {
   string modality                  = 5;
   string adapter                   = 6;
   string model                     = 7;
-  string local_model_id            = 8;
   string endpoint                  = 9;
   string reason_code               = 10;
   string detail                    = 11;
@@ -615,9 +425,10 @@ message AppendInferenceAuditRequest {
 }
 
 message AppendRuntimeAuditRequest {
+  reserved 3;
+  reserved "local_model_id";
   string event_type              = 1;
   string model_id                = 2;
-  string local_model_id          = 3;
   google.protobuf.Struct payload = 4;
 }
 
@@ -661,30 +472,24 @@ message ReconcileProductControlFirstRunSetupStateRequest {}
 // === Service Definition ===
 
 service RuntimeLocalService {
-  // Machine-local capability configurations
-  rpc GetMachineLocalAIConfiguration(GetMachineLocalAIConfigurationRequest) returns (GetMachineLocalAIConfigurationResponse);
-  rpc GetLocalCapabilityConfiguration(GetLocalCapabilityConfigurationRequest) returns (GetLocalCapabilityConfigurationResponse);
-  rpc AddLocalCapabilityConfiguration(AddLocalCapabilityConfigurationRequest) returns (AddLocalCapabilityConfigurationResponse);
-  rpc UpdateLocalCapabilityConfiguration(UpdateLocalCapabilityConfigurationRequest) returns (UpdateLocalCapabilityConfigurationResponse);
-  rpc SelectLocalCapabilityConfiguration(SelectLocalCapabilityConfigurationRequest) returns (SelectLocalCapabilityConfigurationResponse);
-  rpc ClearLocalCapabilitySelection(ClearLocalCapabilitySelectionRequest) returns (ClearLocalCapabilitySelectionResponse);
-  rpc DeleteLocalCapabilityConfiguration(DeleteLocalCapabilityConfigurationRequest) returns (DeleteLocalCapabilityConfigurationResponse);
-  rpc ReprojectLocalCapabilityRequirements(ReprojectLocalCapabilityRequirementsRequest) returns (ReprojectLocalCapabilityRequirementsResponse);
-  rpc BindLocalCapabilityRequirement(BindLocalCapabilityRequirementRequest) returns (BindLocalCapabilityRequirementResponse);
-  rpc RebindLocalCapabilityRequirement(RebindLocalCapabilityRequirementRequest) returns (RebindLocalCapabilityRequirementResponse);
-  rpc UnbindLocalCapabilityRequirement(UnbindLocalCapabilityRequirementRequest) returns (UnbindLocalCapabilityRequirementResponse);
+  // Machine Loadouts
+  rpc ListLoadoutRecipes(ListLoadoutRecipesRequest) returns (ListLoadoutRecipesResponse);
+  rpc GetMachineLoadouts(GetMachineLoadoutsRequest) returns (GetMachineLoadoutsResponse);
+  rpc GetLoadout(GetLoadoutRequest) returns (GetLoadoutResponse);
+  rpc PrepareLoadout(PrepareLoadoutRequest) returns (PrepareLoadoutResponse);
+  rpc CommitLoadout(CommitLoadoutRequest) returns (CommitLoadoutResponse);
+  rpc UpdateLoadout(UpdateLoadoutRequest) returns (UpdateLoadoutResponse);
+  rpc SelectLoadout(SelectLoadoutRequest) returns (SelectLoadoutResponse);
+  rpc DeleteLoadout(DeleteLoadoutRequest) returns (DeleteLoadoutResponse);
 
-  // Asset CRUD (unified)
-  rpc ListLocalAssets(ListLocalAssetsRequest) returns (ListLocalAssetsResponse);
+  // Verified asset catalog
   rpc ListVerifiedAssets(ListVerifiedAssetsRequest) returns (ListVerifiedAssetsResponse);
-  rpc InstallVerifiedAsset(InstallVerifiedAssetRequest) returns (InstallVerifiedAssetResponse);
-  rpc ImportLocalAsset(ImportLocalAssetRequest) returns (ImportLocalAssetResponse);
-  rpc ImportLocalAssetFile(ImportLocalAssetFileRequest) returns (ImportLocalAssetFileResponse);
-  rpc ScanUnregisteredAssets(ScanUnregisteredAssetsRequest) returns (ScanUnregisteredAssetsResponse);
-  rpc ScaffoldOrphanAsset(ScaffoldOrphanAssetRequest) returns (ScaffoldOrphanAssetResponse);
-  rpc ImportLocalAssetBundle(ImportLocalAssetBundleRequest) returns (ImportLocalAssetBundleResponse);
-  rpc RescanLocalAssetBundle(RescanLocalAssetBundleRequest) returns (RescanLocalAssetBundleResponse);
-  rpc RemoveLocalAsset(RemoveLocalAssetRequest) returns (RemoveLocalAssetResponse);
+
+  // ModelAsset CRUD
+  rpc ImportModelAsset(ImportModelAssetRequest) returns (ImportModelAssetResponse);
+  rpc ListModelAssets(ListModelAssetsRequest) returns (ListModelAssetsResponse);
+  rpc GetModelAsset(GetModelAssetRequest) returns (GetModelAssetResponse);
+  rpc RemoveModelAsset(RemoveModelAssetRequest) returns (RemoveModelAssetResponse);
 
   // Catalog & Install
   rpc SearchCatalogModels(SearchCatalogModelsRequest) returns (SearchCatalogModelsResponse);
@@ -692,10 +497,6 @@ service RuntimeLocalService {
   rpc GetRecommendationFeed(GetRecommendationFeedRequest) returns (GetRecommendationFeedResponse);
   rpc ResolveModelInstallPlan(ResolveModelInstallPlanRequest) returns (ResolveModelInstallPlanResponse);
   rpc InstallModelFromPlan(InstallModelFromPlanRequest) returns (InstallModelFromPlanResponse);
-
-  // Asset lifecycle (runnable assets)
-  rpc StartLocalAsset(StartLocalAssetRequest) returns (StartLocalAssetResponse);
-  rpc StopLocalAsset(StopLocalAssetRequest) returns (StopLocalAssetResponse);
 
   // Transfers
   rpc ListLocalTransfers(ListLocalTransfersRequest) returns (ListLocalTransfersResponse);
@@ -707,7 +508,6 @@ service RuntimeLocalService {
   // Runtime-owned local environment
   rpc ResolveLocalEnvironmentPlan(ResolveLocalEnvironmentPlanRequest) returns (ResolveLocalEnvironmentPlanResponse);
   rpc ApplyLocalEnvironmentPlan(ApplyLocalEnvironmentPlanRequest) returns (ApplyLocalEnvironmentPlanResponse);
-  rpc PrepareProfileRuntimeDescriptor(PrepareProfileRuntimeDescriptorRequest) returns (PrepareProfileRuntimeDescriptorResponse);
   rpc ListLocalEnvironmentSelectedSources(ListLocalEnvironmentSelectedSourcesRequest) returns (ListLocalEnvironmentSelectedSourcesResponse);
   rpc ListLocalEnvironmentDependencyJobs(ListLocalEnvironmentDependencyJobsRequest) returns (ListLocalEnvironmentDependencyJobsResponse);
   rpc ResolveLocalEnvironmentActivationGate(ResolveLocalEnvironmentActivationGateRequest) returns (ResolveLocalEnvironmentActivationGateResponse);
@@ -732,21 +532,6 @@ service RuntimeLocalService {
 
   // Device
   rpc CollectDeviceProfile(CollectDeviceProfileRequest) returns (CollectDeviceProfileResponse);
-
-  // Profile
-  rpc ResolveProfile(ResolveProfileRequest) returns (ResolveProfileResponse);
-  rpc ApplyProfile(ApplyProfileRequest) returns (ApplyProfileResponse);
-
-  // Services
-  rpc ListLocalServices(ListLocalServicesRequest) returns (ListLocalServicesResponse);
-  rpc InstallLocalService(InstallLocalServiceRequest) returns (InstallLocalServiceResponse);
-  rpc StartLocalService(StartLocalServiceRequest) returns (StartLocalServiceResponse);
-  rpc StopLocalService(StopLocalServiceRequest) returns (StopLocalServiceResponse);
-  rpc CheckLocalServiceHealth(CheckLocalServiceHealthRequest) returns (CheckLocalServiceHealthResponse);
-  rpc RemoveLocalService(RemoveLocalServiceRequest) returns (RemoveLocalServiceResponse);
-
-  // Nodes
-  rpc ListNodeCatalog(ListNodeCatalogRequest) returns (ListNodeCatalogResponse);
 
   // Audits
   rpc ListLocalAudits(ListLocalAuditsRequest) returns (ListLocalAuditsResponse);

@@ -65,7 +65,6 @@ func TestProtectedDesktopProductControlAdmitsExactDependencyJobControls(t *testi
 		}
 	}
 	for _, method := range []string{
-		"/nimi.runtime.v1.RuntimeLocalService/InstallLocalService",
 		"/nimi.runtime.v1.RuntimeLocalService/StartEngine",
 	} {
 		if _, allowed := protectedDesktopMethodRole(method); allowed {
@@ -214,7 +213,7 @@ func TestProtectedDesktopRPCTransportBindsVerifiedConnectionAndGatesAdmittedServ
 		t.Fatalf("GetProductControlRecord protected carrier = (%+v, %v), bound=%v", productControlResponse, err, localService.productControlBound)
 	}
 	environmentPlanApplyResponse, err := localClient.ApplyLocalEnvironmentPlan(machineContext, &runtimev1.ApplyLocalEnvironmentPlanRequest{
-		Resolution:     &runtimev1.ResolveLocalEnvironmentPlanRequest{PackId: "local-speech"},
+		Resolution:     &runtimev1.ResolveLocalEnvironmentPlanRequest{CapabilityContract: "audio.synthesize"},
 		ExpectedPlanId: "localenv_plan_protected",
 		Confirmed:      true,
 	})
@@ -250,9 +249,9 @@ func TestProtectedDesktopRPCTransportBindsVerifiedConnectionAndGatesAdmittedServ
 	if err != nil || repairResponse.GetJob().GetJobId() == "" || !localService.repairDependencyJobBound {
 		t.Fatalf("RepairLocalEnvironmentDependency protected carrier = (%+v, %v), bound=%v", repairResponse, err, localService.repairDependencyJobBound)
 	}
-	_, err = localClient.ListLocalAssets(machineContext, &runtimev1.ListLocalAssetsRequest{})
-	if err != nil || !localService.localAssetsCalled {
-		t.Fatalf("ListLocalAssets protected carrier: called=%v err=%v", localService.localAssetsCalled, err)
+	_, err = localClient.ListModelAssets(machineContext, &runtimev1.ListModelAssetsRequest{})
+	if err != nil || !localService.modelAssetsCalled {
+		t.Fatalf("ListModelAssets protected carrier: called=%v err=%v", localService.modelAssetsCalled, err)
 	}
 	projection, err := auditClient.ListDesktopAuditEvents(machineContext, &runtimev1.ListDesktopAuditEventsRequest{})
 	if err != nil || projection.GetNextPageToken() != "" || !auditService.projectionCalled || !auditService.authorizationDecisionBound {
@@ -329,7 +328,7 @@ func TestGeneratedFirstPartyProfilesResolveExactMarkerMethodAndKind(t *testing.T
 		protectedFirstPartyProfileMetadata, protectedlocal.DesktopMachineProductNativeMarker,
 		"x-nimi-app-id", "renderer-selected",
 	))
-	if _, _, err := resolveProtectedFirstPartyProfile(wrongApp, "/nimi.runtime.v1.RuntimeLocalService/ListLocalAssets", protectedlocal.FirstPartyMethodUnary); status.Code(err) != codes.PermissionDenied {
+	if _, _, err := resolveProtectedFirstPartyProfile(wrongApp, "/nimi.runtime.v1.RuntimeLocalService/ListModelAssets", protectedlocal.FirstPartyMethodUnary); status.Code(err) != codes.PermissionDenied {
 		t.Fatalf("wrong app marker was not denied: %v", err)
 	}
 }
@@ -532,7 +531,7 @@ type protectedDesktopLocalTestService struct {
 	cancelDependencyJobBound  bool
 	retryDependencyJobBound   bool
 	repairDependencyJobBound  bool
-	localAssetsCalled         bool
+	modelAssetsCalled         bool
 }
 
 func (service *protectedDesktopLocalTestService) GetProductControlRecord(ctx context.Context, _ *runtimev1.GetProductControlRecordRequest) (*runtimev1.ProductControlProjectionJson, error) {
@@ -575,9 +574,9 @@ func (service *protectedDesktopLocalTestService) RepairLocalEnvironmentDependenc
 	}, nil
 }
 
-func (service *protectedDesktopLocalTestService) ListLocalAssets(context.Context, *runtimev1.ListLocalAssetsRequest) (*runtimev1.ListLocalAssetsResponse, error) {
-	service.localAssetsCalled = true
-	return &runtimev1.ListLocalAssetsResponse{}, nil
+func (service *protectedDesktopLocalTestService) ListModelAssets(context.Context, *runtimev1.ListModelAssetsRequest) (*runtimev1.ListModelAssetsResponse, error) {
+	service.modelAssetsCalled = true
+	return &runtimev1.ListModelAssetsResponse{}, nil
 }
 
 func (service *protectedDesktopAccountTestService) GetAccountSessionStatus(ctx context.Context, _ *runtimev1.GetAccountSessionStatusRequest) (*runtimev1.GetAccountSessionStatusResponse, error) {

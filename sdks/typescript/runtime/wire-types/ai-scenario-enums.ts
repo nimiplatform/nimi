@@ -48,6 +48,13 @@ export enum FinishReason {
   ERROR = 5,
 }
 
+export enum LoadoutValidationState {
+  UNSPECIFIED = 0,
+  CONFIGURED = 1,
+  UNRESOLVED = 2,
+  BLOCKED = 3,
+}
+
 export enum Modal {
   UNSPECIFIED = 0,
   TEXT = 1,

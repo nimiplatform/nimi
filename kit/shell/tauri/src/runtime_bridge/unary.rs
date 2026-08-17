@@ -372,10 +372,6 @@ mod tests {
                 UnaryTransport::ProtectedDesktop
             );
         }
-        assert_eq!(
-            transport_for_public_unary("/nimi.runtime.v1.RuntimeLocalService/InstallLocalService"),
-            UnaryTransport::PublicRuntime
-        );
     }
 
     #[test]

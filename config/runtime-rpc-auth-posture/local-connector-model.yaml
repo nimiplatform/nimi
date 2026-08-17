@@ -2,27 +2,21 @@
 # Normative authority: .nimi/spec/runtime/security-core.authority.yaml
 version: 1
 methods:
-  - method_id: /nimi.runtime.v1.RuntimeLocalService/GetMachineLocalAIConfiguration
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/ListLoadoutRecipes
     posture: protected_origin_required
-  - method_id: /nimi.runtime.v1.RuntimeLocalService/GetLocalCapabilityConfiguration
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/GetMachineLoadouts
     posture: protected_origin_required
-  - method_id: /nimi.runtime.v1.RuntimeLocalService/AddLocalCapabilityConfiguration
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/GetLoadout
     posture: protected_origin_required
-  - method_id: /nimi.runtime.v1.RuntimeLocalService/UpdateLocalCapabilityConfiguration
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/PrepareLoadout
     posture: protected_origin_required
-  - method_id: /nimi.runtime.v1.RuntimeLocalService/SelectLocalCapabilityConfiguration
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/CommitLoadout
     posture: protected_origin_required
-  - method_id: /nimi.runtime.v1.RuntimeLocalService/ClearLocalCapabilitySelection
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/UpdateLoadout
     posture: protected_origin_required
-  - method_id: /nimi.runtime.v1.RuntimeLocalService/DeleteLocalCapabilityConfiguration
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/SelectLoadout
     posture: protected_origin_required
-  - method_id: /nimi.runtime.v1.RuntimeLocalService/ReprojectLocalCapabilityRequirements
-    posture: protected_origin_required
-  - method_id: /nimi.runtime.v1.RuntimeLocalService/BindLocalCapabilityRequirement
-    posture: protected_origin_required
-  - method_id: /nimi.runtime.v1.RuntimeLocalService/RebindLocalCapabilityRequirement
-    posture: protected_origin_required
-  - method_id: /nimi.runtime.v1.RuntimeLocalService/UnbindLocalCapabilityRequirement
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/DeleteLoadout
     posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeConnectorService/CreateConnector
     posture: mixed
@@ -54,25 +48,15 @@ methods:
     posture: authenticated_required
   - method_id: /nimi.runtime.v1.RuntimeConnectorService/DeleteCatalogModelOverlay
     posture: authenticated_required
-  - method_id: /nimi.runtime.v1.RuntimeLocalService/ListLocalAssets
-    posture: anonymous_read
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/ImportModelAsset
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/ListModelAssets
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/GetModelAsset
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/RemoveModelAsset
+    posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeLocalService/ListVerifiedAssets
-    posture: anonymous_read
-  - method_id: /nimi.runtime.v1.RuntimeLocalService/InstallVerifiedAsset
-    posture: anonymous_read
-  - method_id: /nimi.runtime.v1.RuntimeLocalService/ImportLocalAsset
-    posture: anonymous_read
-  - method_id: /nimi.runtime.v1.RuntimeLocalService/ImportLocalAssetFile
-    posture: anonymous_read
-  - method_id: /nimi.runtime.v1.RuntimeLocalService/ImportLocalAssetBundle
-    posture: anonymous_read
-  - method_id: /nimi.runtime.v1.RuntimeLocalService/RescanLocalAssetBundle
-    posture: anonymous_read
-  - method_id: /nimi.runtime.v1.RuntimeLocalService/ScanUnregisteredAssets
-    posture: anonymous_read
-  - method_id: /nimi.runtime.v1.RuntimeLocalService/ScaffoldOrphanAsset
-    posture: anonymous_read
-  - method_id: /nimi.runtime.v1.RuntimeLocalService/RemoveLocalAsset
     posture: anonymous_read
   - method_id: /nimi.runtime.v1.RuntimeLocalService/SearchCatalogModels
     posture: anonymous_read
@@ -83,27 +67,21 @@ methods:
   - method_id: /nimi.runtime.v1.RuntimeLocalService/ResolveModelInstallPlan
     posture: anonymous_read
   - method_id: /nimi.runtime.v1.RuntimeLocalService/InstallModelFromPlan
-    posture: anonymous_read
-  - method_id: /nimi.runtime.v1.RuntimeLocalService/StartLocalAsset
-    posture: anonymous_read
-  - method_id: /nimi.runtime.v1.RuntimeLocalService/StopLocalAsset
-    posture: anonymous_read
+    posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeLocalService/ListLocalTransfers
     posture: anonymous_read
   - method_id: /nimi.runtime.v1.RuntimeLocalService/PauseLocalTransfer
-    posture: anonymous_read
+    posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeLocalService/ResumeLocalTransfer
-    posture: anonymous_read
+    posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeLocalService/CancelLocalTransfer
-    posture: anonymous_read
+    posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeLocalService/WatchLocalTransfers
     posture: anonymous_read
   - method_id: /nimi.runtime.v1.RuntimeLocalService/ResolveLocalEnvironmentPlan
     posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeLocalService/ApplyLocalEnvironmentPlan
     posture: protected_origin_required
-  - method_id: /nimi.runtime.v1.RuntimeLocalService/PrepareProfileRuntimeDescriptor
-    posture: anonymous_read
   - method_id: /nimi.runtime.v1.RuntimeLocalService/ListLocalEnvironmentSelectedSources
     posture: anonymous_read
   - method_id: /nimi.runtime.v1.RuntimeLocalService/ListLocalEnvironmentDependencyJobs
@@ -140,24 +118,6 @@ methods:
     posture: anonymous_read
   - method_id: /nimi.runtime.v1.RuntimeLocalService/CollectDeviceProfile
     posture: protected_origin_required
-  - method_id: /nimi.runtime.v1.RuntimeLocalService/ResolveProfile
-    posture: anonymous_read
-  - method_id: /nimi.runtime.v1.RuntimeLocalService/ApplyProfile
-    posture: anonymous_read
-  - method_id: /nimi.runtime.v1.RuntimeLocalService/ListLocalServices
-    posture: anonymous_read
-  - method_id: /nimi.runtime.v1.RuntimeLocalService/InstallLocalService
-    posture: anonymous_read
-  - method_id: /nimi.runtime.v1.RuntimeLocalService/StartLocalService
-    posture: anonymous_read
-  - method_id: /nimi.runtime.v1.RuntimeLocalService/StopLocalService
-    posture: anonymous_read
-  - method_id: /nimi.runtime.v1.RuntimeLocalService/CheckLocalServiceHealth
-    posture: anonymous_read
-  - method_id: /nimi.runtime.v1.RuntimeLocalService/RemoveLocalService
-    posture: anonymous_read
-  - method_id: /nimi.runtime.v1.RuntimeLocalService/ListNodeCatalog
-    posture: anonymous_read
   - method_id: /nimi.runtime.v1.RuntimeLocalService/ListLocalAudits
     posture: anonymous_read
   - method_id: /nimi.runtime.v1.RuntimeLocalService/AppendInferenceAudit
@@ -173,12 +133,4 @@ methods:
   - method_id: /nimi.runtime.v1.RuntimeLocalService/StopEngine
     posture: anonymous_read
   - method_id: /nimi.runtime.v1.RuntimeLocalService/GetEngineStatus
-    posture: anonymous_read
-  - method_id: /nimi.runtime.v1.RuntimeModelService/ListModels
-    posture: anonymous_read
-  - method_id: /nimi.runtime.v1.RuntimeModelService/PullModel
-    posture: anonymous_read
-  - method_id: /nimi.runtime.v1.RuntimeModelService/RemoveModel
-    posture: anonymous_read
-  - method_id: /nimi.runtime.v1.RuntimeModelService/CheckModelHealth
     posture: anonymous_read

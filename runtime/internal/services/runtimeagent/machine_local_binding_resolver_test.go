@@ -87,7 +87,7 @@ func TestMachineLocalBindingResolverProjectsEveryConfiguredSelection(t *testing.
 	}
 	text := bindings[capabilitydriver.LlamaCapabilityContract]
 	if text.BindingAlias != "lcc_text" || text.ModelID != "Desktop llama" || text.RoutePolicy != runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL ||
-		text.TargetRef != nil || text.SelectedParams != nil || text.LocalExecution == nil || text.LocalExecution.ConfigurationID != "lcc_text" {
+		text.TargetRef != nil || text.SelectedParams != nil || text.LocalExecution == nil || text.LocalExecution.LoadoutID != "lcc_text" {
 		t.Fatalf("text binding = %#v", text)
 	}
 	image := bindings["image.generate"]
@@ -130,7 +130,7 @@ func TestCommittedOptionalAudioBindingAcceptsSelectedLocalExecutionWithoutTarget
 		t.Fatalf("committedOptionalExecutionBinding: binding=%+v ok=%v err=%v", binding, ok, err)
 	}
 	if binding.TargetRef != nil || !binding.LocalAIConfigIntent || binding.LocalExecution == nil ||
-		binding.LocalExecution.ConfigurationID != selected.ConfigurationID {
+		binding.LocalExecution.LoadoutID != selected.LoadoutID {
 		t.Fatalf("production-shape Local audio binding=%+v", binding)
 	}
 }
@@ -196,11 +196,11 @@ func TestPublicChatTurnAdmissionResolvesOnlyTurnExecutableSelections(t *testing.
 		projections: projections,
 	}}
 	service.SetMachineLocalExecutionResolver(source)
-	var capturedConfigurationID string
+	var capturedLoadoutID string
 	service.SetPublicChatBindingResolver(stubPublicChatBindingResolver{resolve: func(ctx context.Context, req PublicChatBindingResolutionRequest) (PublicChatBindingResolution, error) {
 		captured, ok := localexecution.SelectedLocalExecutionFromContext(ctx, textContract)
 		if ok {
-			capturedConfigurationID = captured.ConfigurationID
+			capturedLoadoutID = captured.LoadoutID
 		}
 		return PublicChatBindingResolution{
 			BindingAlias: req.BindingAlias, ModelID: req.ModelID, RoutePolicy: req.RouteHint,
@@ -228,8 +228,8 @@ func TestPublicChatTurnAdmissionResolvesOnlyTurnExecutableSelections(t *testing.
 	if len(bindings) != 2 || bindings[textContract].ModelID == "" || bindings[imageContract].ModelID == "" {
 		t.Fatalf("turn execution bindings = %#v", bindings)
 	}
-	if capturedConfigurationID != "lcc_"+textContract {
-		t.Fatalf("context metadata received captured configuration %q", capturedConfigurationID)
+	if capturedLoadoutID != "lcc_"+textContract {
+		t.Fatalf("context metadata received captured Loadout %q", capturedLoadoutID)
 	}
 }
 
@@ -349,7 +349,7 @@ func installMachineAIConfigForTest(t *testing.T, service *Service, accountID str
 func machineLocalExecutionProjectionForTest(configurationID, capabilityContract, displayName string, portable *structpb.Struct) *localexecution.SelectedLocalExecution {
 	absolutePath, _ := filepath.Abs(filepath.Join("runtime", "models", "main.gguf"))
 	return &localexecution.SelectedLocalExecution{
-		ConfigurationID:    configurationID,
+		LoadoutID:          configurationID,
 		CapabilityContract: capabilityContract,
 		DisplayName:        displayName,
 		DriverIdentity: &runtimev1.CapabilityImplementationIdentity{
@@ -363,7 +363,7 @@ func machineLocalExecutionProjectionForTest(configurationID, capabilityContract,
 		}},
 		ExactBindings: []localexecution.ExactBinding{{
 			RequirementID:     capabilitydriver.MainGGUFRequirementID,
-			LocalAssetID:      "asset-main",
+			ModelAssetID:      "asset-main",
 			AbsolutePath:      absolutePath,
 			VerifiedContentID: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
 			EntrySHA256:       "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",

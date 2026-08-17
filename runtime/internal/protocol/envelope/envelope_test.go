@@ -170,7 +170,7 @@ func TestValidateRejectsCallerAppIDMismatch(t *testing.T) {
 		"x-nimi-app-id", "nimi.desktop",
 	))
 
-	_, err := Validate(ctx, &runtimev1.RemoveModelRequest{AppId: "nimi.avatar"}, false)
+	_, err := Validate(ctx, &runtimev1.ListAuditEventsRequest{AppId: "nimi.avatar"}, false)
 	if err == nil {
 		t.Fatal("caller app id mismatch must fail")
 	}

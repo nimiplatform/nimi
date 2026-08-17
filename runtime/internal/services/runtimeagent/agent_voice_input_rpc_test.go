@@ -132,7 +132,7 @@ func (f *cancelObservedAgentVoiceTranscriptionExecutor) CancelScenarioJob(
 	f.cancelPrincipal, _ = protectedprincipal.FromContext(ctx)
 	f.cancelIntent, f.cancelIntentOK = executionintent.FromContext(ctx)
 	if selected, ok := localexecution.SelectedLocalExecutionFromContext(ctx, runtimeAgentAIConfigCapabilityAudioTranscribe); ok {
-		f.cancelLocalID = selected.ConfigurationID
+		f.cancelLocalID = selected.LoadoutID
 	}
 	if md, ok := metadata.FromIncomingContext(ctx); ok {
 		values := md.Get("x-nimi-app-id")
@@ -192,7 +192,7 @@ func configureLocalAgentVoiceTranscriptionBinding(t *testing.T, svc *Service) st
 		t.Fatal(err)
 	}
 	selected := &localexecution.SelectedLocalExecution{
-		ConfigurationID:    "lcc-asr",
+		LoadoutID:          "lcc-asr",
 		CapabilityContract: runtimeAgentAIConfigCapabilityAudioTranscribe,
 		DisplayName:        "Qwen3 ASR",
 		DriverIdentity: &runtimev1.CapabilityImplementationIdentity{
@@ -205,8 +205,7 @@ func configureLocalAgentVoiceTranscriptionBinding(t *testing.T, svc *Service) st
 		}},
 		ExactBindings: []localexecution.ExactBinding{{
 			RequirementID:     capabilitydriver.Qwen3ASRModelRequirementID,
-			AssetID:           "catalog/qwen3-asr",
-			LocalAssetID:      "asset-asr",
+			ModelAssetID:      "catalog/qwen3-asr",
 			AbsolutePath:      modelPath,
 			VerifiedContentID: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
 			EntrySHA256:       "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
@@ -285,7 +284,7 @@ func TestTranscribeAgentVoiceInputUsesSharedLocalAgentExecutionSnapshot(t *testi
 		t.Fatalf("transcription execution intent=%+v ok=%v", intent, ok)
 	}
 	captured, ok := localexecution.SelectedLocalExecutionFromContext(executor.context, runtimeAgentAIConfigCapabilityAudioTranscribe)
-	if !ok || captured.ConfigurationID != "lcc-asr" || captured.ExactBindings[0].AbsolutePath != modelPath {
+	if !ok || captured.LoadoutID != "lcc-asr" || captured.ExactBindings[0].AbsolutePath != modelPath {
 		t.Fatalf("transcription Local execution=%+v ok=%v", captured, ok)
 	}
 }

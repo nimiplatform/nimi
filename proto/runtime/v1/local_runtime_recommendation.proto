@@ -101,8 +101,8 @@ message LocalRecommendationFeedEntryDescriptor {
 
 message LocalRecommendationInstalledState {
   bool installed              = 1;
-  string local_asset_id       = 2;
-  LocalAssetStatus status     = 3;
+  reserved 2, 3;
+  reserved "local_asset_id", "status";
 }
 
 message LocalRecommendationActionState {

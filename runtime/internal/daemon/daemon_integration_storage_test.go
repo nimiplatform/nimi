@@ -129,6 +129,9 @@ func TestDaemonNewRestoresHealthySQLiteBackup(t *testing.T) {
 	if err := daemon.grpc.MemoryService().Close(); err != nil {
 		t.Fatalf("Close(memory service): %v", err)
 	}
+	if svc := daemon.grpc.LocalService(); svc != nil {
+		svc.Close()
+	}
 	if err := os.WriteFile(filepath.Join(dir, "memory.db"), []byte("corrupted-primary"), 0o600); err != nil {
 		t.Fatalf("os.WriteFile(corrupted primary): %v", err)
 	}

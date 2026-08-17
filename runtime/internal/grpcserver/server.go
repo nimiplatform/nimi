@@ -13,6 +13,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/aiconfig"
+	"github.com/nimiplatform/nimi/runtime/internal/aiprofile"
 	"github.com/nimiplatform/nimi/runtime/internal/appregistry"
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
 	"github.com/nimiplatform/nimi/runtime/internal/authn"
@@ -20,7 +21,6 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/health"
 	"github.com/nimiplatform/nimi/runtime/internal/idempotency"
 	"github.com/nimiplatform/nimi/runtime/internal/localappkernel"
-	"github.com/nimiplatform/nimi/runtime/internal/modelregistry"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 	"github.com/nimiplatform/nimi/runtime/internal/providerhealth"
 	"github.com/nimiplatform/nimi/runtime/internal/scheduler"
@@ -34,7 +34,6 @@ import (
 	externalagentservice "github.com/nimiplatform/nimi/runtime/internal/services/externalagent"
 	localservice "github.com/nimiplatform/nimi/runtime/internal/services/localservice"
 	memoryservice "github.com/nimiplatform/nimi/runtime/internal/services/memory"
-	modelservice "github.com/nimiplatform/nimi/runtime/internal/services/model"
 	runtimeagentservice "github.com/nimiplatform/nimi/runtime/internal/services/runtimeagent"
 	runtimeartifactservice "github.com/nimiplatform/nimi/runtime/internal/services/runtimeartifact"
 	runtimecontrolservice "github.com/nimiplatform/nimi/runtime/internal/services/runtimecontrol"
@@ -500,17 +499,6 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 	if err != nil {
 		return nil, err
 	}
-	registryPath := modelregistry.ResolvePersistencePath()
-	if protected != nil {
-		registryPath = filepath.Join(protected.ServiceStateRoot, "runtime", "model-registry.json")
-	}
-	modelRegistry, err := modelregistry.NewFromFile(registryPath)
-	if err != nil {
-		return nil, fmt.Errorf("load model registry: %w", err)
-	}
-	if registryPath != "" {
-		logger.Info("model registry persistence enabled", "path", registryPath)
-	}
 	aiHealth := providerhealth.New()
 	rpcRegistry := newActiveRPCRegistry(nil)
 
@@ -607,9 +595,9 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 	}
 	var aiSvc *aiservice.Service
 	if protected != nil {
-		aiSvc, err = aiservice.NewProtected(logger, modelRegistry, aiHealth, auditStore, connStore, cfg)
+		aiSvc, err = aiservice.NewProtected(logger, aiHealth, auditStore, connStore, cfg)
 	} else {
-		aiSvc, err = aiservice.New(logger, modelRegistry, aiHealth, auditStore, connStore, cfg)
+		aiSvc, err = aiservice.New(logger, aiHealth, auditStore, connStore, cfg)
 	}
 	if err != nil {
 		return nil, fmt.Errorf("init ai service: %w", err)
@@ -618,13 +606,16 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 	runtimev1.RegisterRuntimeAiServiceServer(g, aiSvc)
 	runtimev1.RegisterRuntimeAiRealtimeServiceServer(g, aiSvc)
 
-	modelSvc := modelservice.New(logger, modelRegistry) // Phase 2 Draft
-	modelSvc.SetPersistencePath(registryPath)
-	runtimev1.RegisterRuntimeModelServiceServer(g, modelSvc) // Phase 2 Draft
-	localSvc, err := localservice.NewWithProductControlDataRoot(logger, auditStore, cfg.LocalStatePath, cfg.LocalAuditCapacity, cfg.LocalModelsPath, cfg.DataRootRef)
+	localSvc, err := localservice.NewRuntimeWithProductControlDataRoot(logger, auditStore, cfg.LocalStatePath, cfg.LocalAuditCapacity, cfg.LocalModelsPath, cfg.DataRootRef)
 	if err != nil {
 		return nil, fmt.Errorf("init local service: %w", err)
 	}
+	keepLocalService := false
+	defer func() {
+		if !keepLocalService {
+			localSvc.Close()
+		}
+	}()
 	if err := localSvc.SetProductVersion(version); err != nil {
 		return nil, fmt.Errorf("init local service product version: %w", err)
 	}
@@ -649,9 +640,7 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 		})
 	}
 	localSvc.SetRuntimeAccountProjectionProvider(accountSvc)
-	modelSvc.SetLocalModelLister(localSvc)
 	runtimev1.RegisterRuntimeLocalServiceServer(g, localSvc)
-	aiSvc.SetLocalImageProfileResolver(localSvc)
 	memorySvc, err := memoryservice.New(logger, cfg)
 	if err != nil {
 		return nil, fmt.Errorf("init memory service: %w", err)
@@ -661,9 +650,14 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 		_ = memorySvc.Close()
 		return nil, fmt.Errorf("init AIConfig store: %w", err)
 	}
+	aiProfileStore, err := aiprofile.NewSQLiteStore(memorySvc.PersistenceBackend())
+	if err != nil {
+		_ = memorySvc.Close()
+		return nil, fmt.Errorf("init AIProfile store: %w", err)
+	}
 	aiSvc.SetAIConfigStore(aiConfigStore)
 	memorySvc.SetRuntimeEmbeddingProfileResolver(func(ctx context.Context, snapshot *memoryservice.MemoryEmbeddingTextEmbedIntentSnapshot) memoryservice.MemoryEmbeddingResolvedProfile {
-		return resolveRuntimeMemoryEmbeddingProfile(ctx, snapshot, localSvc, connStore, aiSvc.SpeechCatalogResolver())
+		return resolveRuntimeMemoryEmbeddingProfile(ctx, snapshot, connStore, aiSvc.SpeechCatalogResolver(), localSvc)
 	})
 	memorySvc.SetRuntimeEmbeddingVectorExecutor(aiSvc.EmbedTextsForMemory)
 	agentSvc, err := runtimeagentservice.New(logger, cfg.LocalStatePath, memorySvc)
@@ -672,6 +666,7 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 		return nil, fmt.Errorf("init agent core service: %w", err)
 	}
 	agentSvc.SetAIConfigStore(aiConfigStore)
+	agentSvc.SetAIProfileStore(aiProfileStore)
 	agentSvc.SetConnectorStore(connStore)
 	agentSvc.SetModelCatalog(aiSvc.SpeechCatalogResolver())
 	if cfg.RuntimeID == "" {
@@ -726,36 +721,6 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 		return false, ""
 	})
 
-	// K-SCHED-004 denial 2: dependency infeasible. Uses profile registry + ResolveProfile preflight.
-	// The checker looks up the profile descriptor by (targetID, profileID) from the runtime-side
-	// profile registry, then calls ResolveProfile to evaluate dependency feasibility.
-	profileRegistry := localSvc.GetProfileRegistry()
-	aiSvc.SetSchedulerDependencyChecker(func(targetID, profileID, capability string) (bool, string) {
-		profile := profileRegistry.LookupProfile(targetID, profileID)
-		if profile == nil {
-			return true, "" // profile not found — skip, not deny ("unable to evaluate ≠ infeasible")
-		}
-		resp, err := localSvc.ResolveProfile(context.Background(), &runtimev1.ResolveProfileRequest{
-			TargetId:   targetID,
-			Profile:    profile,
-			Capability: capability,
-		})
-		if err != nil || resp == nil || resp.GetPlan() == nil {
-			return true, "" // cannot evaluate — skip, not deny
-		}
-		execPlan := resp.GetPlan().GetExecutionPlan()
-		if execPlan == nil {
-			return true, ""
-		}
-		for _, decision := range execPlan.GetPreflightDecisions() {
-			if decision != nil && !decision.GetOk() {
-				return false, fmt.Sprintf("dependency infeasible: %s — %s",
-					decision.GetReasonCode(), decision.GetDetail())
-			}
-		}
-		return true, ""
-	})
-
 	// K-SCHED-005: resource assessor for risk states.
 	// Collects device profile on each Peek call (no caching per K-DEV-008).
 	aiSvc.SetSchedulerResourceAssessor(func() *scheduler.ResourceSnapshot {
@@ -799,7 +764,6 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 
 	connSvc := connectorservice.New(logger, connStore, auditStore)
 	connSvc.SetCloudProvider(aiSvc.CloudProvider())
-	connSvc.SetLocalModelLister(localSvc)
 	connSvc.SetModelCatalogResolver(aiSvc.SpeechCatalogResolver())
 	runtimev1.RegisterRuntimeConnectorServiceServer(g, connSvc)
 	logger.Info("runtime in-process mode enabled")
@@ -896,6 +860,7 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 	}
 	s.SyncServingState()
 	keepLocalDevelopmentStore = true
+	keepLocalService = true
 	return s, nil
 }
 

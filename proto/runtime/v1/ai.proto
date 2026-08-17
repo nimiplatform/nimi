@@ -333,6 +333,7 @@ message ImageGenerateScenarioSpec {
   repeated string reference_images = 9;
   string mask = 10;
   string response_format = 11;
+  string reference_image_artifact_id = 12;
 }
 
 message VideoGenerateScenarioSpec {
@@ -594,6 +595,7 @@ message LocalAppImageGenerateScenarioSpec {
   repeated string reference_images = 9;
   string mask = 10;
   string response_format = 11;
+  string reference_image_artifact_id = 12;
 }
 
 message ExecuteLocalAppScenarioRequest {
@@ -983,6 +985,9 @@ message ScenarioJob {
   // It is projected independently from artifact bytes and does not imply Job
   // persistence across Runtime restart.
   string transcription_text = 23;
+  // Public attribution projection of the immutable Runtime-private
+  // ResolvedAssembly captured before this Job was published.
+  LoadoutEffectiveInputIdentity effective_input_identity = 24;
 }
 
 message SubmitScenarioJobRequest {

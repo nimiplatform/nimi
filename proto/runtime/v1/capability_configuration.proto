@@ -5,6 +5,7 @@ package nimi.runtime.v1;
 option go_package = "github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1";
 
 import "google/protobuf/struct.proto";
+import "runtime/v1/common.proto";
 
 // CapabilityImplementationIdentity identifies the implementation vocabulary
 // against which a configuration's requirements are interpreted.
@@ -66,43 +67,182 @@ message LocalCapabilityRequirement {
   string display_label = 8;
 }
 
-message LocalAssetExactBinding {
+message ModelAssetExactBinding {
   string requirement_id = 1;
-  string local_asset_id = 2;
+  string model_asset_id = 2;
   // For a single-file occurrence these identify the verified entry bytes. For
   // an explicitly sharded bundle they identify the canonical SHA-256 over its
-  // ordered LocalBundleEntryDigest values.
+  // ordered bundle entry digests.
   string verified_content_id = 3;
   string entry_sha256 = 4;
 }
 
-message LocalCapabilityConfiguration {
-  string configuration_id = 1;
-  string capability_contract = 2;
-  CapabilityImplementationIdentity implementation = 3;
-  google.protobuf.Struct portable_config = 4;
-  repeated LocalCapabilityRequirement projected_requirements = 5;
-  repeated LocalAssetExactBinding exact_bindings = 6;
-  repeated string supported_features = 7;
-  LocalCapabilityInterpretability interpretability = 8;
-  LocalCapabilityRequirementResolution requirement_resolution = 9;
-  repeated LocalCapabilityReason reasons = 10;
-  string display_name = 11;
-  google.protobuf.Struct provenance = 12;
+// === Machine Loadouts ===
+
+enum LoadoutValidationState {
+  LOADOUT_VALIDATION_STATE_UNSPECIFIED = 0;
+  LOADOUT_VALIDATION_STATE_CONFIGURED = 1;
+  LOADOUT_VALIDATION_STATE_UNRESOLVED = 2;
+  LOADOUT_VALIDATION_STATE_BLOCKED = 3;
 }
 
-message LocalCapabilitySelection {
+message LoadoutModelAxis {
+  string slot_id = 1;
+  string display_label = 2;
+  string model_asset_id = 3;
+  string expected_content_id = 4;
+  bool recipe_compatible = 5;
+  repeated ReasonCode reasons = 6;
+}
+
+message LoadoutRecipeCustodyReference {
+  string custody_id = 1;
+  string expected_content_id = 2;
+}
+
+message Loadout {
+  string loadout_id = 1;
+  string capability_contract = 2;
+  CapabilityImplementationIdentity implementation = 3;
+  string recipe_id = 4;
+  string recipe_revision = 5;
+  google.protobuf.Struct options = 6;
+  repeated LoadoutModelAxis model_axes = 7;
+  repeated LoadoutRecipeCustodyReference recipe_custody = 8;
+  repeated string supported_features = 9;
+  LoadoutValidationState validation_state = 10;
+  repeated ReasonCode reasons = 11;
+  string display_name = 12;
+  google.protobuf.Struct provenance = 13;
+  string created_at = 14;
+  string updated_at = 15;
+}
+
+message LoadoutSelection {
   string capability_contract = 1;
-  string configuration_id = 2;
-  // Read-only Driver-owned effective request defaults for the selected
-  // configuration. Runtime projects only string display values and never
-  // persists this field as machine selection intent.
+  string loadout_id = 2;
   google.protobuf.Struct effective_defaults = 3;
 }
 
-message MachineLocalAIConfiguration {
-  repeated LocalCapabilityConfiguration configurations = 1;
-  repeated LocalCapabilitySelection selections = 2;
+message MachineLoadouts {
+  repeated Loadout loadouts = 1;
+  repeated LoadoutSelection selections = 2;
+}
+
+message LoadoutModelAxisInput {
+  string slot_id = 1;
+  string model_asset_id = 2;
+  string expected_content_id = 3;
+}
+
+message LoadoutImpactProjection {
+  string capability_contract = 1;
+  string loadout_id = 2;
+  bool changes_future_local_execution = 3;
+  bool confirmation_required = 4;
+}
+
+message LoadoutRecipeSlotDescriptor {
+  string slot_id = 1;
+  string display_label = 2;
+  repeated string recommended_content_ids = 3;
+  google.protobuf.Struct model_contract = 4;
+  repeated string recommended_variant_ids = 5;
+}
+
+message LoadoutRecipeDescriptor {
+  string recipe_id = 1;
+  string revision = 2;
+  string title = 3;
+  string capability_contract = 4;
+  CapabilityImplementationIdentity implementation = 5;
+  google.protobuf.Struct default_options = 6;
+  repeated string supported_features = 7;
+  repeated LoadoutRecipeSlotDescriptor slots = 8;
+  repeated LoadoutRecipeCustodyDescriptor custody = 9;
+}
+
+message ListLoadoutRecipesRequest {
+  string capability_contract = 1;
+}
+
+message ListLoadoutRecipesResponse {
+  repeated LoadoutRecipeDescriptor recipes = 1;
+}
+
+message GetMachineLoadoutsRequest {}
+message GetMachineLoadoutsResponse { MachineLoadouts aggregate = 1; }
+message GetLoadoutRequest { string loadout_id = 1; }
+message GetLoadoutResponse { Loadout loadout = 1; }
+
+message PrepareLoadoutRequest {
+  string loadout_id = 1;
+  string capability_contract = 2;
+  string recipe_id = 3;
+  google.protobuf.Struct options = 4;
+  repeated string supported_features = 5;
+  repeated LoadoutModelAxisInput model_axes = 6;
+  string display_name = 7;
+  google.protobuf.Struct provenance = 8;
+}
+
+message PrepareLoadoutResponse {
+  string prepare_id = 1;
+  Loadout proposed_loadout = 2;
+  string expires_at = 3;
+  LoadoutImpactProjection impact = 4;
+}
+
+message CommitLoadoutRequest {
+  string prepare_id = 1;
+  bool confirmed_machine_impact = 2;
+}
+message CommitLoadoutResponse { Loadout loadout = 1; }
+
+// UpdateLoadout is only a convenience wrapper over PrepareLoadout followed by
+// CommitLoadout. It carries no independent mutation semantics.
+message UpdateLoadoutRequest {
+  string loadout_id = 1;
+  string capability_contract = 2;
+  string recipe_id = 3;
+  google.protobuf.Struct options = 4;
+  repeated string supported_features = 5;
+  repeated LoadoutModelAxisInput model_axes = 6;
+  string display_name = 7;
+  google.protobuf.Struct provenance = 8;
+  bool confirmed_machine_impact = 9;
+}
+message UpdateLoadoutResponse { Loadout loadout = 1; }
+
+message SelectLoadoutRequest {
+  string capability_contract = 1;
+  // Empty explicitly clears this contract's selected relation.
+  string loadout_id = 2;
+  bool confirmed_machine_impact = 3;
+}
+message SelectLoadoutResponse { LoadoutSelection selection = 1; }
+
+message DeleteLoadoutRequest {
+  string loadout_id = 1;
+  bool confirmed_machine_impact = 2;
+}
+message DeleteLoadoutResponse {}
+
+message LoadoutEffectiveModelAxisIdentity {
+  string slot_id = 1;
+  string model_asset_id = 2;
+  string content_id = 3;
+}
+
+message LoadoutEffectiveInputIdentity {
+  string loadout_id = 1;
+  string capability_contract = 2;
+  CapabilityImplementationIdentity implementation = 3;
+  string recipe_id = 4;
+  string recipe_revision = 5;
+  google.protobuf.Struct options = 6;
+  repeated LoadoutEffectiveModelAxisIdentity model_axes = 7;
+  repeated LoadoutRecipeCustodyReference recipe_custody = 8;
 }
 
 message AIConfigAppOwner {
@@ -175,112 +315,9 @@ message OverwriteAppAIConfigResponse {
   AIConfig config = 1;
 }
 
-message GetMachineLocalAIConfigurationRequest {}
-
-message GetMachineLocalAIConfigurationResponse {
-  MachineLocalAIConfiguration aggregate = 1;
-}
-
-message GetLocalCapabilityConfigurationRequest {
-  string configuration_id = 1;
-}
-
-message GetLocalCapabilityConfigurationResponse {
-  LocalCapabilityConfiguration configuration = 1;
-}
-
-message AddLocalCapabilityConfigurationRequest {
-  string capability_contract = 1;
-  CapabilityImplementationIdentity implementation = 2;
-  google.protobuf.Struct portable_config = 3;
-  repeated string supported_features = 4;
-  string display_name = 5;
-  google.protobuf.Struct provenance = 6;
-}
-
-message AddLocalCapabilityConfigurationResponse {
-  LocalCapabilityConfiguration configuration = 1;
-}
-
-// UpdateLocalCapabilityConfiguration replaces the mutable portable intent of
-// one saved record. Capability and implementation identity remain immutable;
-// callers create a new record when either identity changes.
-message UpdateLocalCapabilityConfigurationRequest {
-  string configuration_id = 1;
-  google.protobuf.Struct portable_config = 2;
-  repeated string supported_features = 3;
-  string display_name = 4;
-  google.protobuf.Struct provenance = 5;
-}
-
-message UpdateLocalCapabilityConfigurationResponse {
-  LocalCapabilityConfiguration configuration = 1;
-}
-
-message SelectLocalCapabilityConfigurationRequest {
-  string capability_contract = 1;
-  string configuration_id = 2;
-}
-
-message SelectLocalCapabilityConfigurationResponse {
-  LocalCapabilitySelection selection = 1;
-}
-
-message ClearLocalCapabilitySelectionRequest {
-  string capability_contract = 1;
-}
-
-message ClearLocalCapabilitySelectionResponse {}
-
-message DeleteLocalCapabilityConfigurationRequest {
-  string configuration_id = 1;
-}
-
-message DeleteLocalCapabilityConfigurationResponse {}
-
-message ReprojectLocalCapabilityRequirementsRequest {
-  string configuration_id = 1;
-}
-
-message ReprojectLocalCapabilityRequirementsResponse {
-  LocalCapabilityConfiguration configuration = 1;
-}
-
-// LocalAssetExactBindingTarget is the exact asset identity observed by the
-// caller. Runtime derives entry_sha256 from freshly verified bytes; callers
-// never submit a path or an inferred digest.
-message LocalAssetExactBindingTarget {
-  string local_asset_id = 1;
-  string expected_verified_content_id = 2;
-}
-
-message BindLocalCapabilityRequirementRequest {
-  string configuration_id = 1;
-  string requirement_id = 2;
-  LocalAssetExactBindingTarget target = 3;
-}
-
-message BindLocalCapabilityRequirementResponse {
-  LocalCapabilityConfiguration configuration = 1;
-}
-
-message RebindLocalCapabilityRequirementRequest {
-  string configuration_id = 1;
-  string requirement_id = 2;
-  LocalAssetExactBinding expected_current_binding = 3;
-  LocalAssetExactBindingTarget target = 4;
-}
-
-message RebindLocalCapabilityRequirementResponse {
-  LocalCapabilityConfiguration configuration = 1;
-}
-
-message UnbindLocalCapabilityRequirementRequest {
-  string configuration_id = 1;
-  string requirement_id = 2;
-  LocalAssetExactBinding expected_current_binding = 3;
-}
-
-message UnbindLocalCapabilityRequirementResponse {
-  LocalCapabilityConfiguration configuration = 1;
+message LoadoutRecipeCustodyDescriptor {
+  string file = 1;
+  string sha256 = 2;
+  string source = 3;
+  string role = 4;
 }

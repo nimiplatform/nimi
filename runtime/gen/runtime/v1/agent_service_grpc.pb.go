@@ -72,6 +72,8 @@ const (
 	RuntimeAgentService_OverwriteSharedLocalAgentAIConfig_FullMethodName         = "/nimi.runtime.v1.RuntimeAgentService/OverwriteSharedLocalAgentAIConfig"
 	RuntimeAgentService_PreviewSharedLocalAgentAIProfile_FullMethodName          = "/nimi.runtime.v1.RuntimeAgentService/PreviewSharedLocalAgentAIProfile"
 	RuntimeAgentService_ApplySharedLocalAgentAIProfile_FullMethodName            = "/nimi.runtime.v1.RuntimeAgentService/ApplySharedLocalAgentAIProfile"
+	RuntimeAgentService_ImportPortableAIProfile_FullMethodName                   = "/nimi.runtime.v1.RuntimeAgentService/ImportPortableAIProfile"
+	RuntimeAgentService_ListPortableAIProfiles_FullMethodName                    = "/nimi.runtime.v1.RuntimeAgentService/ListPortableAIProfiles"
 	RuntimeAgentService_GetLocalAppSharedLocalAgentAIConfig_FullMethodName       = "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppSharedLocalAgentAIConfig"
 	RuntimeAgentService_OverwriteLocalAppSharedLocalAgentAIConfig_FullMethodName = "/nimi.runtime.v1.RuntimeAgentService/OverwriteLocalAppSharedLocalAgentAIConfig"
 	RuntimeAgentService_GetLocalAppAgentAutonomySnapshot_FullMethodName          = "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentAutonomySnapshot"
@@ -141,6 +143,8 @@ type RuntimeAgentServiceClient interface {
 	OverwriteSharedLocalAgentAIConfig(ctx context.Context, in *OverwriteSharedLocalAgentAIConfigRequest, opts ...grpc.CallOption) (*OverwriteSharedLocalAgentAIConfigResponse, error)
 	PreviewSharedLocalAgentAIProfile(ctx context.Context, in *PreviewSharedLocalAgentAIProfileRequest, opts ...grpc.CallOption) (*PreviewSharedLocalAgentAIProfileResponse, error)
 	ApplySharedLocalAgentAIProfile(ctx context.Context, in *ApplySharedLocalAgentAIProfileRequest, opts ...grpc.CallOption) (*ApplySharedLocalAgentAIProfileResponse, error)
+	ImportPortableAIProfile(ctx context.Context, in *ImportPortableAIProfileRequest, opts ...grpc.CallOption) (*ImportPortableAIProfileResponse, error)
+	ListPortableAIProfiles(ctx context.Context, in *ListPortableAIProfilesRequest, opts ...grpc.CallOption) (*ListPortableAIProfilesResponse, error)
 	// Protected-local App agent configuration carrier (agent.configure AppAccess
 	// domain). Shared AIConfig actions resolve the singular subsystem owner;
 	// autonomy and presentation stay per-Agent behind session-scoped handles.
@@ -717,6 +721,26 @@ func (c *runtimeAgentServiceClient) ApplySharedLocalAgentAIProfile(ctx context.C
 	return out, nil
 }
 
+func (c *runtimeAgentServiceClient) ImportPortableAIProfile(ctx context.Context, in *ImportPortableAIProfileRequest, opts ...grpc.CallOption) (*ImportPortableAIProfileResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ImportPortableAIProfileResponse)
+	err := c.cc.Invoke(ctx, RuntimeAgentService_ImportPortableAIProfile_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAgentServiceClient) ListPortableAIProfiles(ctx context.Context, in *ListPortableAIProfilesRequest, opts ...grpc.CallOption) (*ListPortableAIProfilesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListPortableAIProfilesResponse)
+	err := c.cc.Invoke(ctx, RuntimeAgentService_ListPortableAIProfiles_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *runtimeAgentServiceClient) GetLocalAppSharedLocalAgentAIConfig(ctx context.Context, in *GetLocalAppSharedLocalAgentAIConfigRequest, opts ...grpc.CallOption) (*GetLocalAppSharedLocalAgentAIConfigResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetLocalAppSharedLocalAgentAIConfigResponse)
@@ -838,6 +862,8 @@ type RuntimeAgentServiceServer interface {
 	OverwriteSharedLocalAgentAIConfig(context.Context, *OverwriteSharedLocalAgentAIConfigRequest) (*OverwriteSharedLocalAgentAIConfigResponse, error)
 	PreviewSharedLocalAgentAIProfile(context.Context, *PreviewSharedLocalAgentAIProfileRequest) (*PreviewSharedLocalAgentAIProfileResponse, error)
 	ApplySharedLocalAgentAIProfile(context.Context, *ApplySharedLocalAgentAIProfileRequest) (*ApplySharedLocalAgentAIProfileResponse, error)
+	ImportPortableAIProfile(context.Context, *ImportPortableAIProfileRequest) (*ImportPortableAIProfileResponse, error)
+	ListPortableAIProfiles(context.Context, *ListPortableAIProfilesRequest) (*ListPortableAIProfilesResponse, error)
 	// Protected-local App agent configuration carrier (agent.configure AppAccess
 	// domain). Shared AIConfig actions resolve the singular subsystem owner;
 	// autonomy and presentation stay per-Agent behind session-scoped handles.
@@ -1014,6 +1040,12 @@ func (UnimplementedRuntimeAgentServiceServer) PreviewSharedLocalAgentAIProfile(c
 }
 func (UnimplementedRuntimeAgentServiceServer) ApplySharedLocalAgentAIProfile(context.Context, *ApplySharedLocalAgentAIProfileRequest) (*ApplySharedLocalAgentAIProfileResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ApplySharedLocalAgentAIProfile not implemented")
+}
+func (UnimplementedRuntimeAgentServiceServer) ImportPortableAIProfile(context.Context, *ImportPortableAIProfileRequest) (*ImportPortableAIProfileResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ImportPortableAIProfile not implemented")
+}
+func (UnimplementedRuntimeAgentServiceServer) ListPortableAIProfiles(context.Context, *ListPortableAIProfilesRequest) (*ListPortableAIProfilesResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListPortableAIProfiles not implemented")
 }
 func (UnimplementedRuntimeAgentServiceServer) GetLocalAppSharedLocalAgentAIConfig(context.Context, *GetLocalAppSharedLocalAgentAIConfigRequest) (*GetLocalAppSharedLocalAgentAIConfigResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetLocalAppSharedLocalAgentAIConfig not implemented")
@@ -1986,6 +2018,42 @@ func _RuntimeAgentService_ApplySharedLocalAgentAIProfile_Handler(srv interface{}
 	return interceptor(ctx, in, info, handler)
 }
 
+func _RuntimeAgentService_ImportPortableAIProfile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ImportPortableAIProfileRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAgentServiceServer).ImportPortableAIProfile(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAgentService_ImportPortableAIProfile_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAgentServiceServer).ImportPortableAIProfile(ctx, req.(*ImportPortableAIProfileRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAgentService_ListPortableAIProfiles_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListPortableAIProfilesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAgentServiceServer).ListPortableAIProfiles(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAgentService_ListPortableAIProfiles_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAgentServiceServer).ListPortableAIProfiles(ctx, req.(*ListPortableAIProfilesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _RuntimeAgentService_GetLocalAppSharedLocalAgentAIConfig_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetLocalAppSharedLocalAgentAIConfigRequest)
 	if err := dec(in); err != nil {
@@ -2300,6 +2368,14 @@ var RuntimeAgentService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ApplySharedLocalAgentAIProfile",
 			Handler:    _RuntimeAgentService_ApplySharedLocalAgentAIProfile_Handler,
+		},
+		{
+			MethodName: "ImportPortableAIProfile",
+			Handler:    _RuntimeAgentService_ImportPortableAIProfile_Handler,
+		},
+		{
+			MethodName: "ListPortableAIProfiles",
+			Handler:    _RuntimeAgentService_ListPortableAIProfiles_Handler,
 		},
 		{
 			MethodName: "GetLocalAppSharedLocalAgentAIConfig",

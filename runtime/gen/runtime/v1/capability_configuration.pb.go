@@ -294,6 +294,58 @@ func (LocalCapabilityReason) EnumDescriptor() ([]byte, []int) {
 	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{4}
 }
 
+type LoadoutValidationState int32
+
+const (
+	LoadoutValidationState_LOADOUT_VALIDATION_STATE_UNSPECIFIED LoadoutValidationState = 0
+	LoadoutValidationState_LOADOUT_VALIDATION_STATE_CONFIGURED  LoadoutValidationState = 1
+	LoadoutValidationState_LOADOUT_VALIDATION_STATE_UNRESOLVED  LoadoutValidationState = 2
+	LoadoutValidationState_LOADOUT_VALIDATION_STATE_BLOCKED     LoadoutValidationState = 3
+)
+
+// Enum value maps for LoadoutValidationState.
+var (
+	LoadoutValidationState_name = map[int32]string{
+		0: "LOADOUT_VALIDATION_STATE_UNSPECIFIED",
+		1: "LOADOUT_VALIDATION_STATE_CONFIGURED",
+		2: "LOADOUT_VALIDATION_STATE_UNRESOLVED",
+		3: "LOADOUT_VALIDATION_STATE_BLOCKED",
+	}
+	LoadoutValidationState_value = map[string]int32{
+		"LOADOUT_VALIDATION_STATE_UNSPECIFIED": 0,
+		"LOADOUT_VALIDATION_STATE_CONFIGURED":  1,
+		"LOADOUT_VALIDATION_STATE_UNRESOLVED":  2,
+		"LOADOUT_VALIDATION_STATE_BLOCKED":     3,
+	}
+)
+
+func (x LoadoutValidationState) Enum() *LoadoutValidationState {
+	p := new(LoadoutValidationState)
+	*p = x
+	return p
+}
+
+func (x LoadoutValidationState) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (LoadoutValidationState) Descriptor() protoreflect.EnumDescriptor {
+	return file_runtime_v1_capability_configuration_proto_enumTypes[5].Descriptor()
+}
+
+func (LoadoutValidationState) Type() protoreflect.EnumType {
+	return &file_runtime_v1_capability_configuration_proto_enumTypes[5]
+}
+
+func (x LoadoutValidationState) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use LoadoutValidationState.Descriptor instead.
+func (LoadoutValidationState) EnumDescriptor() ([]byte, []int) {
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{5}
+}
+
 // CapabilityImplementationIdentity identifies the implementation vocabulary
 // against which a configuration's requirements are interpreted.
 type CapabilityImplementationIdentity struct {
@@ -458,33 +510,33 @@ func (x *LocalCapabilityRequirement) GetDisplayLabel() string {
 	return ""
 }
 
-type LocalAssetExactBinding struct {
+type ModelAssetExactBinding struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	RequirementId string                 `protobuf:"bytes,1,opt,name=requirement_id,json=requirementId,proto3" json:"requirement_id,omitempty"`
-	LocalAssetId  string                 `protobuf:"bytes,2,opt,name=local_asset_id,json=localAssetId,proto3" json:"local_asset_id,omitempty"`
+	ModelAssetId  string                 `protobuf:"bytes,2,opt,name=model_asset_id,json=modelAssetId,proto3" json:"model_asset_id,omitempty"`
 	// For a single-file occurrence these identify the verified entry bytes. For
 	// an explicitly sharded bundle they identify the canonical SHA-256 over its
-	// ordered LocalBundleEntryDigest values.
+	// ordered bundle entry digests.
 	VerifiedContentId string `protobuf:"bytes,3,opt,name=verified_content_id,json=verifiedContentId,proto3" json:"verified_content_id,omitempty"`
 	EntrySha256       string `protobuf:"bytes,4,opt,name=entry_sha256,json=entrySha256,proto3" json:"entry_sha256,omitempty"`
 	unknownFields     protoimpl.UnknownFields
 	sizeCache         protoimpl.SizeCache
 }
 
-func (x *LocalAssetExactBinding) Reset() {
-	*x = LocalAssetExactBinding{}
+func (x *ModelAssetExactBinding) Reset() {
+	*x = ModelAssetExactBinding{}
 	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *LocalAssetExactBinding) String() string {
+func (x *ModelAssetExactBinding) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*LocalAssetExactBinding) ProtoMessage() {}
+func (*ModelAssetExactBinding) ProtoMessage() {}
 
-func (x *LocalAssetExactBinding) ProtoReflect() protoreflect.Message {
+func (x *ModelAssetExactBinding) ProtoReflect() protoreflect.Message {
 	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -496,71 +548,65 @@ func (x *LocalAssetExactBinding) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use LocalAssetExactBinding.ProtoReflect.Descriptor instead.
-func (*LocalAssetExactBinding) Descriptor() ([]byte, []int) {
+// Deprecated: Use ModelAssetExactBinding.ProtoReflect.Descriptor instead.
+func (*ModelAssetExactBinding) Descriptor() ([]byte, []int) {
 	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{2}
 }
 
-func (x *LocalAssetExactBinding) GetRequirementId() string {
+func (x *ModelAssetExactBinding) GetRequirementId() string {
 	if x != nil {
 		return x.RequirementId
 	}
 	return ""
 }
 
-func (x *LocalAssetExactBinding) GetLocalAssetId() string {
+func (x *ModelAssetExactBinding) GetModelAssetId() string {
 	if x != nil {
-		return x.LocalAssetId
+		return x.ModelAssetId
 	}
 	return ""
 }
 
-func (x *LocalAssetExactBinding) GetVerifiedContentId() string {
+func (x *ModelAssetExactBinding) GetVerifiedContentId() string {
 	if x != nil {
 		return x.VerifiedContentId
 	}
 	return ""
 }
 
-func (x *LocalAssetExactBinding) GetEntrySha256() string {
+func (x *ModelAssetExactBinding) GetEntrySha256() string {
 	if x != nil {
 		return x.EntrySha256
 	}
 	return ""
 }
 
-type LocalCapabilityConfiguration struct {
-	state                 protoimpl.MessageState               `protogen:"open.v1"`
-	ConfigurationId       string                               `protobuf:"bytes,1,opt,name=configuration_id,json=configurationId,proto3" json:"configuration_id,omitempty"`
-	CapabilityContract    string                               `protobuf:"bytes,2,opt,name=capability_contract,json=capabilityContract,proto3" json:"capability_contract,omitempty"`
-	Implementation        *CapabilityImplementationIdentity    `protobuf:"bytes,3,opt,name=implementation,proto3" json:"implementation,omitempty"`
-	PortableConfig        *structpb.Struct                     `protobuf:"bytes,4,opt,name=portable_config,json=portableConfig,proto3" json:"portable_config,omitempty"`
-	ProjectedRequirements []*LocalCapabilityRequirement        `protobuf:"bytes,5,rep,name=projected_requirements,json=projectedRequirements,proto3" json:"projected_requirements,omitempty"`
-	ExactBindings         []*LocalAssetExactBinding            `protobuf:"bytes,6,rep,name=exact_bindings,json=exactBindings,proto3" json:"exact_bindings,omitempty"`
-	SupportedFeatures     []string                             `protobuf:"bytes,7,rep,name=supported_features,json=supportedFeatures,proto3" json:"supported_features,omitempty"`
-	Interpretability      LocalCapabilityInterpretability      `protobuf:"varint,8,opt,name=interpretability,proto3,enum=nimi.runtime.v1.LocalCapabilityInterpretability" json:"interpretability,omitempty"`
-	RequirementResolution LocalCapabilityRequirementResolution `protobuf:"varint,9,opt,name=requirement_resolution,json=requirementResolution,proto3,enum=nimi.runtime.v1.LocalCapabilityRequirementResolution" json:"requirement_resolution,omitempty"`
-	Reasons               []LocalCapabilityReason              `protobuf:"varint,10,rep,packed,name=reasons,proto3,enum=nimi.runtime.v1.LocalCapabilityReason" json:"reasons,omitempty"`
-	DisplayName           string                               `protobuf:"bytes,11,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
-	Provenance            *structpb.Struct                     `protobuf:"bytes,12,opt,name=provenance,proto3" json:"provenance,omitempty"`
-	unknownFields         protoimpl.UnknownFields
-	sizeCache             protoimpl.SizeCache
+type LoadoutModelAxis struct {
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	SlotId            string                 `protobuf:"bytes,1,opt,name=slot_id,json=slotId,proto3" json:"slot_id,omitempty"`
+	DisplayLabel      string                 `protobuf:"bytes,2,opt,name=display_label,json=displayLabel,proto3" json:"display_label,omitempty"`
+	ModelAssetId      string                 `protobuf:"bytes,3,opt,name=model_asset_id,json=modelAssetId,proto3" json:"model_asset_id,omitempty"`
+	ExpectedContentId string                 `protobuf:"bytes,4,opt,name=expected_content_id,json=expectedContentId,proto3" json:"expected_content_id,omitempty"`
+	RecipeCompatible  bool                   `protobuf:"varint,5,opt,name=recipe_compatible,json=recipeCompatible,proto3" json:"recipe_compatible,omitempty"`
+	Reasons           []ReasonCode           `protobuf:"varint,6,rep,packed,name=reasons,proto3,enum=nimi.runtime.v1.ReasonCode" json:"reasons,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
-func (x *LocalCapabilityConfiguration) Reset() {
-	*x = LocalCapabilityConfiguration{}
+func (x *LoadoutModelAxis) Reset() {
+	*x = LoadoutModelAxis{}
 	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *LocalCapabilityConfiguration) String() string {
+func (x *LoadoutModelAxis) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*LocalCapabilityConfiguration) ProtoMessage() {}
+func (*LoadoutModelAxis) ProtoMessage() {}
 
-func (x *LocalCapabilityConfiguration) ProtoReflect() protoreflect.Message {
+func (x *LoadoutModelAxis) ProtoReflect() protoreflect.Message {
 	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -572,121 +618,75 @@ func (x *LocalCapabilityConfiguration) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use LocalCapabilityConfiguration.ProtoReflect.Descriptor instead.
-func (*LocalCapabilityConfiguration) Descriptor() ([]byte, []int) {
+// Deprecated: Use LoadoutModelAxis.ProtoReflect.Descriptor instead.
+func (*LoadoutModelAxis) Descriptor() ([]byte, []int) {
 	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{3}
 }
 
-func (x *LocalCapabilityConfiguration) GetConfigurationId() string {
+func (x *LoadoutModelAxis) GetSlotId() string {
 	if x != nil {
-		return x.ConfigurationId
+		return x.SlotId
 	}
 	return ""
 }
 
-func (x *LocalCapabilityConfiguration) GetCapabilityContract() string {
+func (x *LoadoutModelAxis) GetDisplayLabel() string {
 	if x != nil {
-		return x.CapabilityContract
+		return x.DisplayLabel
 	}
 	return ""
 }
 
-func (x *LocalCapabilityConfiguration) GetImplementation() *CapabilityImplementationIdentity {
+func (x *LoadoutModelAxis) GetModelAssetId() string {
 	if x != nil {
-		return x.Implementation
+		return x.ModelAssetId
 	}
-	return nil
+	return ""
 }
 
-func (x *LocalCapabilityConfiguration) GetPortableConfig() *structpb.Struct {
+func (x *LoadoutModelAxis) GetExpectedContentId() string {
 	if x != nil {
-		return x.PortableConfig
+		return x.ExpectedContentId
 	}
-	return nil
+	return ""
 }
 
-func (x *LocalCapabilityConfiguration) GetProjectedRequirements() []*LocalCapabilityRequirement {
+func (x *LoadoutModelAxis) GetRecipeCompatible() bool {
 	if x != nil {
-		return x.ProjectedRequirements
+		return x.RecipeCompatible
 	}
-	return nil
+	return false
 }
 
-func (x *LocalCapabilityConfiguration) GetExactBindings() []*LocalAssetExactBinding {
-	if x != nil {
-		return x.ExactBindings
-	}
-	return nil
-}
-
-func (x *LocalCapabilityConfiguration) GetSupportedFeatures() []string {
-	if x != nil {
-		return x.SupportedFeatures
-	}
-	return nil
-}
-
-func (x *LocalCapabilityConfiguration) GetInterpretability() LocalCapabilityInterpretability {
-	if x != nil {
-		return x.Interpretability
-	}
-	return LocalCapabilityInterpretability_LOCAL_CAPABILITY_INTERPRETABILITY_UNSPECIFIED
-}
-
-func (x *LocalCapabilityConfiguration) GetRequirementResolution() LocalCapabilityRequirementResolution {
-	if x != nil {
-		return x.RequirementResolution
-	}
-	return LocalCapabilityRequirementResolution_LOCAL_CAPABILITY_REQUIREMENT_RESOLUTION_UNSPECIFIED
-}
-
-func (x *LocalCapabilityConfiguration) GetReasons() []LocalCapabilityReason {
+func (x *LoadoutModelAxis) GetReasons() []ReasonCode {
 	if x != nil {
 		return x.Reasons
 	}
 	return nil
 }
 
-func (x *LocalCapabilityConfiguration) GetDisplayName() string {
-	if x != nil {
-		return x.DisplayName
-	}
-	return ""
-}
-
-func (x *LocalCapabilityConfiguration) GetProvenance() *structpb.Struct {
-	if x != nil {
-		return x.Provenance
-	}
-	return nil
-}
-
-type LocalCapabilitySelection struct {
-	state              protoimpl.MessageState `protogen:"open.v1"`
-	CapabilityContract string                 `protobuf:"bytes,1,opt,name=capability_contract,json=capabilityContract,proto3" json:"capability_contract,omitempty"`
-	ConfigurationId    string                 `protobuf:"bytes,2,opt,name=configuration_id,json=configurationId,proto3" json:"configuration_id,omitempty"`
-	// Read-only Driver-owned effective request defaults for the selected
-	// configuration. Runtime projects only string display values and never
-	// persists this field as machine selection intent.
-	EffectiveDefaults *structpb.Struct `protobuf:"bytes,3,opt,name=effective_defaults,json=effectiveDefaults,proto3" json:"effective_defaults,omitempty"`
+type LoadoutRecipeCustodyReference struct {
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	CustodyId         string                 `protobuf:"bytes,1,opt,name=custody_id,json=custodyId,proto3" json:"custody_id,omitempty"`
+	ExpectedContentId string                 `protobuf:"bytes,2,opt,name=expected_content_id,json=expectedContentId,proto3" json:"expected_content_id,omitempty"`
 	unknownFields     protoimpl.UnknownFields
 	sizeCache         protoimpl.SizeCache
 }
 
-func (x *LocalCapabilitySelection) Reset() {
-	*x = LocalCapabilitySelection{}
+func (x *LoadoutRecipeCustodyReference) Reset() {
+	*x = LoadoutRecipeCustodyReference{}
 	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *LocalCapabilitySelection) String() string {
+func (x *LoadoutRecipeCustodyReference) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*LocalCapabilitySelection) ProtoMessage() {}
+func (*LoadoutRecipeCustodyReference) ProtoMessage() {}
 
-func (x *LocalCapabilitySelection) ProtoReflect() protoreflect.Message {
+func (x *LoadoutRecipeCustodyReference) ProtoReflect() protoreflect.Message {
 	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -698,55 +698,205 @@ func (x *LocalCapabilitySelection) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use LocalCapabilitySelection.ProtoReflect.Descriptor instead.
-func (*LocalCapabilitySelection) Descriptor() ([]byte, []int) {
+// Deprecated: Use LoadoutRecipeCustodyReference.ProtoReflect.Descriptor instead.
+func (*LoadoutRecipeCustodyReference) Descriptor() ([]byte, []int) {
 	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{4}
 }
 
-func (x *LocalCapabilitySelection) GetCapabilityContract() string {
+func (x *LoadoutRecipeCustodyReference) GetCustodyId() string {
+	if x != nil {
+		return x.CustodyId
+	}
+	return ""
+}
+
+func (x *LoadoutRecipeCustodyReference) GetExpectedContentId() string {
+	if x != nil {
+		return x.ExpectedContentId
+	}
+	return ""
+}
+
+type Loadout struct {
+	state              protoimpl.MessageState            `protogen:"open.v1"`
+	LoadoutId          string                            `protobuf:"bytes,1,opt,name=loadout_id,json=loadoutId,proto3" json:"loadout_id,omitempty"`
+	CapabilityContract string                            `protobuf:"bytes,2,opt,name=capability_contract,json=capabilityContract,proto3" json:"capability_contract,omitempty"`
+	Implementation     *CapabilityImplementationIdentity `protobuf:"bytes,3,opt,name=implementation,proto3" json:"implementation,omitempty"`
+	RecipeId           string                            `protobuf:"bytes,4,opt,name=recipe_id,json=recipeId,proto3" json:"recipe_id,omitempty"`
+	RecipeRevision     string                            `protobuf:"bytes,5,opt,name=recipe_revision,json=recipeRevision,proto3" json:"recipe_revision,omitempty"`
+	Options            *structpb.Struct                  `protobuf:"bytes,6,opt,name=options,proto3" json:"options,omitempty"`
+	ModelAxes          []*LoadoutModelAxis               `protobuf:"bytes,7,rep,name=model_axes,json=modelAxes,proto3" json:"model_axes,omitempty"`
+	RecipeCustody      []*LoadoutRecipeCustodyReference  `protobuf:"bytes,8,rep,name=recipe_custody,json=recipeCustody,proto3" json:"recipe_custody,omitempty"`
+	SupportedFeatures  []string                          `protobuf:"bytes,9,rep,name=supported_features,json=supportedFeatures,proto3" json:"supported_features,omitempty"`
+	ValidationState    LoadoutValidationState            `protobuf:"varint,10,opt,name=validation_state,json=validationState,proto3,enum=nimi.runtime.v1.LoadoutValidationState" json:"validation_state,omitempty"`
+	Reasons            []ReasonCode                      `protobuf:"varint,11,rep,packed,name=reasons,proto3,enum=nimi.runtime.v1.ReasonCode" json:"reasons,omitempty"`
+	DisplayName        string                            `protobuf:"bytes,12,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
+	Provenance         *structpb.Struct                  `protobuf:"bytes,13,opt,name=provenance,proto3" json:"provenance,omitempty"`
+	CreatedAt          string                            `protobuf:"bytes,14,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	UpdatedAt          string                            `protobuf:"bytes,15,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
+}
+
+func (x *Loadout) Reset() {
+	*x = Loadout{}
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Loadout) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Loadout) ProtoMessage() {}
+
+func (x *Loadout) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Loadout.ProtoReflect.Descriptor instead.
+func (*Loadout) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *Loadout) GetLoadoutId() string {
+	if x != nil {
+		return x.LoadoutId
+	}
+	return ""
+}
+
+func (x *Loadout) GetCapabilityContract() string {
 	if x != nil {
 		return x.CapabilityContract
 	}
 	return ""
 }
 
-func (x *LocalCapabilitySelection) GetConfigurationId() string {
+func (x *Loadout) GetImplementation() *CapabilityImplementationIdentity {
 	if x != nil {
-		return x.ConfigurationId
-	}
-	return ""
-}
-
-func (x *LocalCapabilitySelection) GetEffectiveDefaults() *structpb.Struct {
-	if x != nil {
-		return x.EffectiveDefaults
+		return x.Implementation
 	}
 	return nil
 }
 
-type MachineLocalAIConfiguration struct {
-	state          protoimpl.MessageState          `protogen:"open.v1"`
-	Configurations []*LocalCapabilityConfiguration `protobuf:"bytes,1,rep,name=configurations,proto3" json:"configurations,omitempty"`
-	Selections     []*LocalCapabilitySelection     `protobuf:"bytes,2,rep,name=selections,proto3" json:"selections,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+func (x *Loadout) GetRecipeId() string {
+	if x != nil {
+		return x.RecipeId
+	}
+	return ""
 }
 
-func (x *MachineLocalAIConfiguration) Reset() {
-	*x = MachineLocalAIConfiguration{}
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[5]
+func (x *Loadout) GetRecipeRevision() string {
+	if x != nil {
+		return x.RecipeRevision
+	}
+	return ""
+}
+
+func (x *Loadout) GetOptions() *structpb.Struct {
+	if x != nil {
+		return x.Options
+	}
+	return nil
+}
+
+func (x *Loadout) GetModelAxes() []*LoadoutModelAxis {
+	if x != nil {
+		return x.ModelAxes
+	}
+	return nil
+}
+
+func (x *Loadout) GetRecipeCustody() []*LoadoutRecipeCustodyReference {
+	if x != nil {
+		return x.RecipeCustody
+	}
+	return nil
+}
+
+func (x *Loadout) GetSupportedFeatures() []string {
+	if x != nil {
+		return x.SupportedFeatures
+	}
+	return nil
+}
+
+func (x *Loadout) GetValidationState() LoadoutValidationState {
+	if x != nil {
+		return x.ValidationState
+	}
+	return LoadoutValidationState_LOADOUT_VALIDATION_STATE_UNSPECIFIED
+}
+
+func (x *Loadout) GetReasons() []ReasonCode {
+	if x != nil {
+		return x.Reasons
+	}
+	return nil
+}
+
+func (x *Loadout) GetDisplayName() string {
+	if x != nil {
+		return x.DisplayName
+	}
+	return ""
+}
+
+func (x *Loadout) GetProvenance() *structpb.Struct {
+	if x != nil {
+		return x.Provenance
+	}
+	return nil
+}
+
+func (x *Loadout) GetCreatedAt() string {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return ""
+}
+
+func (x *Loadout) GetUpdatedAt() string {
+	if x != nil {
+		return x.UpdatedAt
+	}
+	return ""
+}
+
+type LoadoutSelection struct {
+	state              protoimpl.MessageState `protogen:"open.v1"`
+	CapabilityContract string                 `protobuf:"bytes,1,opt,name=capability_contract,json=capabilityContract,proto3" json:"capability_contract,omitempty"`
+	LoadoutId          string                 `protobuf:"bytes,2,opt,name=loadout_id,json=loadoutId,proto3" json:"loadout_id,omitempty"`
+	EffectiveDefaults  *structpb.Struct       `protobuf:"bytes,3,opt,name=effective_defaults,json=effectiveDefaults,proto3" json:"effective_defaults,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
+}
+
+func (x *LoadoutSelection) Reset() {
+	*x = LoadoutSelection{}
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *MachineLocalAIConfiguration) String() string {
+func (x *LoadoutSelection) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*MachineLocalAIConfiguration) ProtoMessage() {}
+func (*LoadoutSelection) ProtoMessage() {}
 
-func (x *MachineLocalAIConfiguration) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[5]
+func (x *LoadoutSelection) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -757,21 +907,1419 @@ func (x *MachineLocalAIConfiguration) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use MachineLocalAIConfiguration.ProtoReflect.Descriptor instead.
-func (*MachineLocalAIConfiguration) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{5}
+// Deprecated: Use LoadoutSelection.ProtoReflect.Descriptor instead.
+func (*LoadoutSelection) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{6}
 }
 
-func (x *MachineLocalAIConfiguration) GetConfigurations() []*LocalCapabilityConfiguration {
+func (x *LoadoutSelection) GetCapabilityContract() string {
 	if x != nil {
-		return x.Configurations
+		return x.CapabilityContract
+	}
+	return ""
+}
+
+func (x *LoadoutSelection) GetLoadoutId() string {
+	if x != nil {
+		return x.LoadoutId
+	}
+	return ""
+}
+
+func (x *LoadoutSelection) GetEffectiveDefaults() *structpb.Struct {
+	if x != nil {
+		return x.EffectiveDefaults
 	}
 	return nil
 }
 
-func (x *MachineLocalAIConfiguration) GetSelections() []*LocalCapabilitySelection {
+type MachineLoadouts struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Loadouts      []*Loadout             `protobuf:"bytes,1,rep,name=loadouts,proto3" json:"loadouts,omitempty"`
+	Selections    []*LoadoutSelection    `protobuf:"bytes,2,rep,name=selections,proto3" json:"selections,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MachineLoadouts) Reset() {
+	*x = MachineLoadouts{}
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MachineLoadouts) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MachineLoadouts) ProtoMessage() {}
+
+func (x *MachineLoadouts) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MachineLoadouts.ProtoReflect.Descriptor instead.
+func (*MachineLoadouts) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *MachineLoadouts) GetLoadouts() []*Loadout {
+	if x != nil {
+		return x.Loadouts
+	}
+	return nil
+}
+
+func (x *MachineLoadouts) GetSelections() []*LoadoutSelection {
 	if x != nil {
 		return x.Selections
+	}
+	return nil
+}
+
+type LoadoutModelAxisInput struct {
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	SlotId            string                 `protobuf:"bytes,1,opt,name=slot_id,json=slotId,proto3" json:"slot_id,omitempty"`
+	ModelAssetId      string                 `protobuf:"bytes,2,opt,name=model_asset_id,json=modelAssetId,proto3" json:"model_asset_id,omitempty"`
+	ExpectedContentId string                 `protobuf:"bytes,3,opt,name=expected_content_id,json=expectedContentId,proto3" json:"expected_content_id,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *LoadoutModelAxisInput) Reset() {
+	*x = LoadoutModelAxisInput{}
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LoadoutModelAxisInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LoadoutModelAxisInput) ProtoMessage() {}
+
+func (x *LoadoutModelAxisInput) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LoadoutModelAxisInput.ProtoReflect.Descriptor instead.
+func (*LoadoutModelAxisInput) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *LoadoutModelAxisInput) GetSlotId() string {
+	if x != nil {
+		return x.SlotId
+	}
+	return ""
+}
+
+func (x *LoadoutModelAxisInput) GetModelAssetId() string {
+	if x != nil {
+		return x.ModelAssetId
+	}
+	return ""
+}
+
+func (x *LoadoutModelAxisInput) GetExpectedContentId() string {
+	if x != nil {
+		return x.ExpectedContentId
+	}
+	return ""
+}
+
+type LoadoutImpactProjection struct {
+	state                       protoimpl.MessageState `protogen:"open.v1"`
+	CapabilityContract          string                 `protobuf:"bytes,1,opt,name=capability_contract,json=capabilityContract,proto3" json:"capability_contract,omitempty"`
+	LoadoutId                   string                 `protobuf:"bytes,2,opt,name=loadout_id,json=loadoutId,proto3" json:"loadout_id,omitempty"`
+	ChangesFutureLocalExecution bool                   `protobuf:"varint,3,opt,name=changes_future_local_execution,json=changesFutureLocalExecution,proto3" json:"changes_future_local_execution,omitempty"`
+	ConfirmationRequired        bool                   `protobuf:"varint,4,opt,name=confirmation_required,json=confirmationRequired,proto3" json:"confirmation_required,omitempty"`
+	unknownFields               protoimpl.UnknownFields
+	sizeCache                   protoimpl.SizeCache
+}
+
+func (x *LoadoutImpactProjection) Reset() {
+	*x = LoadoutImpactProjection{}
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LoadoutImpactProjection) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LoadoutImpactProjection) ProtoMessage() {}
+
+func (x *LoadoutImpactProjection) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LoadoutImpactProjection.ProtoReflect.Descriptor instead.
+func (*LoadoutImpactProjection) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *LoadoutImpactProjection) GetCapabilityContract() string {
+	if x != nil {
+		return x.CapabilityContract
+	}
+	return ""
+}
+
+func (x *LoadoutImpactProjection) GetLoadoutId() string {
+	if x != nil {
+		return x.LoadoutId
+	}
+	return ""
+}
+
+func (x *LoadoutImpactProjection) GetChangesFutureLocalExecution() bool {
+	if x != nil {
+		return x.ChangesFutureLocalExecution
+	}
+	return false
+}
+
+func (x *LoadoutImpactProjection) GetConfirmationRequired() bool {
+	if x != nil {
+		return x.ConfirmationRequired
+	}
+	return false
+}
+
+type LoadoutRecipeSlotDescriptor struct {
+	state                 protoimpl.MessageState `protogen:"open.v1"`
+	SlotId                string                 `protobuf:"bytes,1,opt,name=slot_id,json=slotId,proto3" json:"slot_id,omitempty"`
+	DisplayLabel          string                 `protobuf:"bytes,2,opt,name=display_label,json=displayLabel,proto3" json:"display_label,omitempty"`
+	RecommendedContentIds []string               `protobuf:"bytes,3,rep,name=recommended_content_ids,json=recommendedContentIds,proto3" json:"recommended_content_ids,omitempty"`
+	ModelContract         *structpb.Struct       `protobuf:"bytes,4,opt,name=model_contract,json=modelContract,proto3" json:"model_contract,omitempty"`
+	RecommendedVariantIds []string               `protobuf:"bytes,5,rep,name=recommended_variant_ids,json=recommendedVariantIds,proto3" json:"recommended_variant_ids,omitempty"`
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
+}
+
+func (x *LoadoutRecipeSlotDescriptor) Reset() {
+	*x = LoadoutRecipeSlotDescriptor{}
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LoadoutRecipeSlotDescriptor) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LoadoutRecipeSlotDescriptor) ProtoMessage() {}
+
+func (x *LoadoutRecipeSlotDescriptor) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LoadoutRecipeSlotDescriptor.ProtoReflect.Descriptor instead.
+func (*LoadoutRecipeSlotDescriptor) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *LoadoutRecipeSlotDescriptor) GetSlotId() string {
+	if x != nil {
+		return x.SlotId
+	}
+	return ""
+}
+
+func (x *LoadoutRecipeSlotDescriptor) GetDisplayLabel() string {
+	if x != nil {
+		return x.DisplayLabel
+	}
+	return ""
+}
+
+func (x *LoadoutRecipeSlotDescriptor) GetRecommendedContentIds() []string {
+	if x != nil {
+		return x.RecommendedContentIds
+	}
+	return nil
+}
+
+func (x *LoadoutRecipeSlotDescriptor) GetModelContract() *structpb.Struct {
+	if x != nil {
+		return x.ModelContract
+	}
+	return nil
+}
+
+func (x *LoadoutRecipeSlotDescriptor) GetRecommendedVariantIds() []string {
+	if x != nil {
+		return x.RecommendedVariantIds
+	}
+	return nil
+}
+
+type LoadoutRecipeDescriptor struct {
+	state              protoimpl.MessageState            `protogen:"open.v1"`
+	RecipeId           string                            `protobuf:"bytes,1,opt,name=recipe_id,json=recipeId,proto3" json:"recipe_id,omitempty"`
+	Revision           string                            `protobuf:"bytes,2,opt,name=revision,proto3" json:"revision,omitempty"`
+	Title              string                            `protobuf:"bytes,3,opt,name=title,proto3" json:"title,omitempty"`
+	CapabilityContract string                            `protobuf:"bytes,4,opt,name=capability_contract,json=capabilityContract,proto3" json:"capability_contract,omitempty"`
+	Implementation     *CapabilityImplementationIdentity `protobuf:"bytes,5,opt,name=implementation,proto3" json:"implementation,omitempty"`
+	DefaultOptions     *structpb.Struct                  `protobuf:"bytes,6,opt,name=default_options,json=defaultOptions,proto3" json:"default_options,omitempty"`
+	SupportedFeatures  []string                          `protobuf:"bytes,7,rep,name=supported_features,json=supportedFeatures,proto3" json:"supported_features,omitempty"`
+	Slots              []*LoadoutRecipeSlotDescriptor    `protobuf:"bytes,8,rep,name=slots,proto3" json:"slots,omitempty"`
+	Custody            []*LoadoutRecipeCustodyDescriptor `protobuf:"bytes,9,rep,name=custody,proto3" json:"custody,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
+}
+
+func (x *LoadoutRecipeDescriptor) Reset() {
+	*x = LoadoutRecipeDescriptor{}
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LoadoutRecipeDescriptor) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LoadoutRecipeDescriptor) ProtoMessage() {}
+
+func (x *LoadoutRecipeDescriptor) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LoadoutRecipeDescriptor.ProtoReflect.Descriptor instead.
+func (*LoadoutRecipeDescriptor) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *LoadoutRecipeDescriptor) GetRecipeId() string {
+	if x != nil {
+		return x.RecipeId
+	}
+	return ""
+}
+
+func (x *LoadoutRecipeDescriptor) GetRevision() string {
+	if x != nil {
+		return x.Revision
+	}
+	return ""
+}
+
+func (x *LoadoutRecipeDescriptor) GetTitle() string {
+	if x != nil {
+		return x.Title
+	}
+	return ""
+}
+
+func (x *LoadoutRecipeDescriptor) GetCapabilityContract() string {
+	if x != nil {
+		return x.CapabilityContract
+	}
+	return ""
+}
+
+func (x *LoadoutRecipeDescriptor) GetImplementation() *CapabilityImplementationIdentity {
+	if x != nil {
+		return x.Implementation
+	}
+	return nil
+}
+
+func (x *LoadoutRecipeDescriptor) GetDefaultOptions() *structpb.Struct {
+	if x != nil {
+		return x.DefaultOptions
+	}
+	return nil
+}
+
+func (x *LoadoutRecipeDescriptor) GetSupportedFeatures() []string {
+	if x != nil {
+		return x.SupportedFeatures
+	}
+	return nil
+}
+
+func (x *LoadoutRecipeDescriptor) GetSlots() []*LoadoutRecipeSlotDescriptor {
+	if x != nil {
+		return x.Slots
+	}
+	return nil
+}
+
+func (x *LoadoutRecipeDescriptor) GetCustody() []*LoadoutRecipeCustodyDescriptor {
+	if x != nil {
+		return x.Custody
+	}
+	return nil
+}
+
+type ListLoadoutRecipesRequest struct {
+	state              protoimpl.MessageState `protogen:"open.v1"`
+	CapabilityContract string                 `protobuf:"bytes,1,opt,name=capability_contract,json=capabilityContract,proto3" json:"capability_contract,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
+}
+
+func (x *ListLoadoutRecipesRequest) Reset() {
+	*x = ListLoadoutRecipesRequest{}
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListLoadoutRecipesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListLoadoutRecipesRequest) ProtoMessage() {}
+
+func (x *ListLoadoutRecipesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListLoadoutRecipesRequest.ProtoReflect.Descriptor instead.
+func (*ListLoadoutRecipesRequest) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *ListLoadoutRecipesRequest) GetCapabilityContract() string {
+	if x != nil {
+		return x.CapabilityContract
+	}
+	return ""
+}
+
+type ListLoadoutRecipesResponse struct {
+	state         protoimpl.MessageState     `protogen:"open.v1"`
+	Recipes       []*LoadoutRecipeDescriptor `protobuf:"bytes,1,rep,name=recipes,proto3" json:"recipes,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListLoadoutRecipesResponse) Reset() {
+	*x = ListLoadoutRecipesResponse{}
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListLoadoutRecipesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListLoadoutRecipesResponse) ProtoMessage() {}
+
+func (x *ListLoadoutRecipesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListLoadoutRecipesResponse.ProtoReflect.Descriptor instead.
+func (*ListLoadoutRecipesResponse) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *ListLoadoutRecipesResponse) GetRecipes() []*LoadoutRecipeDescriptor {
+	if x != nil {
+		return x.Recipes
+	}
+	return nil
+}
+
+type GetMachineLoadoutsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetMachineLoadoutsRequest) Reset() {
+	*x = GetMachineLoadoutsRequest{}
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetMachineLoadoutsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetMachineLoadoutsRequest) ProtoMessage() {}
+
+func (x *GetMachineLoadoutsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetMachineLoadoutsRequest.ProtoReflect.Descriptor instead.
+func (*GetMachineLoadoutsRequest) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{14}
+}
+
+type GetMachineLoadoutsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Aggregate     *MachineLoadouts       `protobuf:"bytes,1,opt,name=aggregate,proto3" json:"aggregate,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetMachineLoadoutsResponse) Reset() {
+	*x = GetMachineLoadoutsResponse{}
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetMachineLoadoutsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetMachineLoadoutsResponse) ProtoMessage() {}
+
+func (x *GetMachineLoadoutsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetMachineLoadoutsResponse.ProtoReflect.Descriptor instead.
+func (*GetMachineLoadoutsResponse) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *GetMachineLoadoutsResponse) GetAggregate() *MachineLoadouts {
+	if x != nil {
+		return x.Aggregate
+	}
+	return nil
+}
+
+type GetLoadoutRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	LoadoutId     string                 `protobuf:"bytes,1,opt,name=loadout_id,json=loadoutId,proto3" json:"loadout_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetLoadoutRequest) Reset() {
+	*x = GetLoadoutRequest{}
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetLoadoutRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetLoadoutRequest) ProtoMessage() {}
+
+func (x *GetLoadoutRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetLoadoutRequest.ProtoReflect.Descriptor instead.
+func (*GetLoadoutRequest) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *GetLoadoutRequest) GetLoadoutId() string {
+	if x != nil {
+		return x.LoadoutId
+	}
+	return ""
+}
+
+type GetLoadoutResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Loadout       *Loadout               `protobuf:"bytes,1,opt,name=loadout,proto3" json:"loadout,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetLoadoutResponse) Reset() {
+	*x = GetLoadoutResponse{}
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetLoadoutResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetLoadoutResponse) ProtoMessage() {}
+
+func (x *GetLoadoutResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetLoadoutResponse.ProtoReflect.Descriptor instead.
+func (*GetLoadoutResponse) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *GetLoadoutResponse) GetLoadout() *Loadout {
+	if x != nil {
+		return x.Loadout
+	}
+	return nil
+}
+
+type PrepareLoadoutRequest struct {
+	state              protoimpl.MessageState   `protogen:"open.v1"`
+	LoadoutId          string                   `protobuf:"bytes,1,opt,name=loadout_id,json=loadoutId,proto3" json:"loadout_id,omitempty"`
+	CapabilityContract string                   `protobuf:"bytes,2,opt,name=capability_contract,json=capabilityContract,proto3" json:"capability_contract,omitempty"`
+	RecipeId           string                   `protobuf:"bytes,3,opt,name=recipe_id,json=recipeId,proto3" json:"recipe_id,omitempty"`
+	Options            *structpb.Struct         `protobuf:"bytes,4,opt,name=options,proto3" json:"options,omitempty"`
+	SupportedFeatures  []string                 `protobuf:"bytes,5,rep,name=supported_features,json=supportedFeatures,proto3" json:"supported_features,omitempty"`
+	ModelAxes          []*LoadoutModelAxisInput `protobuf:"bytes,6,rep,name=model_axes,json=modelAxes,proto3" json:"model_axes,omitempty"`
+	DisplayName        string                   `protobuf:"bytes,7,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
+	Provenance         *structpb.Struct         `protobuf:"bytes,8,opt,name=provenance,proto3" json:"provenance,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
+}
+
+func (x *PrepareLoadoutRequest) Reset() {
+	*x = PrepareLoadoutRequest{}
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PrepareLoadoutRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PrepareLoadoutRequest) ProtoMessage() {}
+
+func (x *PrepareLoadoutRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PrepareLoadoutRequest.ProtoReflect.Descriptor instead.
+func (*PrepareLoadoutRequest) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{18}
+}
+
+func (x *PrepareLoadoutRequest) GetLoadoutId() string {
+	if x != nil {
+		return x.LoadoutId
+	}
+	return ""
+}
+
+func (x *PrepareLoadoutRequest) GetCapabilityContract() string {
+	if x != nil {
+		return x.CapabilityContract
+	}
+	return ""
+}
+
+func (x *PrepareLoadoutRequest) GetRecipeId() string {
+	if x != nil {
+		return x.RecipeId
+	}
+	return ""
+}
+
+func (x *PrepareLoadoutRequest) GetOptions() *structpb.Struct {
+	if x != nil {
+		return x.Options
+	}
+	return nil
+}
+
+func (x *PrepareLoadoutRequest) GetSupportedFeatures() []string {
+	if x != nil {
+		return x.SupportedFeatures
+	}
+	return nil
+}
+
+func (x *PrepareLoadoutRequest) GetModelAxes() []*LoadoutModelAxisInput {
+	if x != nil {
+		return x.ModelAxes
+	}
+	return nil
+}
+
+func (x *PrepareLoadoutRequest) GetDisplayName() string {
+	if x != nil {
+		return x.DisplayName
+	}
+	return ""
+}
+
+func (x *PrepareLoadoutRequest) GetProvenance() *structpb.Struct {
+	if x != nil {
+		return x.Provenance
+	}
+	return nil
+}
+
+type PrepareLoadoutResponse struct {
+	state           protoimpl.MessageState   `protogen:"open.v1"`
+	PrepareId       string                   `protobuf:"bytes,1,opt,name=prepare_id,json=prepareId,proto3" json:"prepare_id,omitempty"`
+	ProposedLoadout *Loadout                 `protobuf:"bytes,2,opt,name=proposed_loadout,json=proposedLoadout,proto3" json:"proposed_loadout,omitempty"`
+	ExpiresAt       string                   `protobuf:"bytes,3,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
+	Impact          *LoadoutImpactProjection `protobuf:"bytes,4,opt,name=impact,proto3" json:"impact,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *PrepareLoadoutResponse) Reset() {
+	*x = PrepareLoadoutResponse{}
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PrepareLoadoutResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PrepareLoadoutResponse) ProtoMessage() {}
+
+func (x *PrepareLoadoutResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PrepareLoadoutResponse.ProtoReflect.Descriptor instead.
+func (*PrepareLoadoutResponse) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{19}
+}
+
+func (x *PrepareLoadoutResponse) GetPrepareId() string {
+	if x != nil {
+		return x.PrepareId
+	}
+	return ""
+}
+
+func (x *PrepareLoadoutResponse) GetProposedLoadout() *Loadout {
+	if x != nil {
+		return x.ProposedLoadout
+	}
+	return nil
+}
+
+func (x *PrepareLoadoutResponse) GetExpiresAt() string {
+	if x != nil {
+		return x.ExpiresAt
+	}
+	return ""
+}
+
+func (x *PrepareLoadoutResponse) GetImpact() *LoadoutImpactProjection {
+	if x != nil {
+		return x.Impact
+	}
+	return nil
+}
+
+type CommitLoadoutRequest struct {
+	state                  protoimpl.MessageState `protogen:"open.v1"`
+	PrepareId              string                 `protobuf:"bytes,1,opt,name=prepare_id,json=prepareId,proto3" json:"prepare_id,omitempty"`
+	ConfirmedMachineImpact bool                   `protobuf:"varint,2,opt,name=confirmed_machine_impact,json=confirmedMachineImpact,proto3" json:"confirmed_machine_impact,omitempty"`
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
+}
+
+func (x *CommitLoadoutRequest) Reset() {
+	*x = CommitLoadoutRequest{}
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CommitLoadoutRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CommitLoadoutRequest) ProtoMessage() {}
+
+func (x *CommitLoadoutRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[20]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CommitLoadoutRequest.ProtoReflect.Descriptor instead.
+func (*CommitLoadoutRequest) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{20}
+}
+
+func (x *CommitLoadoutRequest) GetPrepareId() string {
+	if x != nil {
+		return x.PrepareId
+	}
+	return ""
+}
+
+func (x *CommitLoadoutRequest) GetConfirmedMachineImpact() bool {
+	if x != nil {
+		return x.ConfirmedMachineImpact
+	}
+	return false
+}
+
+type CommitLoadoutResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Loadout       *Loadout               `protobuf:"bytes,1,opt,name=loadout,proto3" json:"loadout,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CommitLoadoutResponse) Reset() {
+	*x = CommitLoadoutResponse{}
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[21]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CommitLoadoutResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CommitLoadoutResponse) ProtoMessage() {}
+
+func (x *CommitLoadoutResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[21]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CommitLoadoutResponse.ProtoReflect.Descriptor instead.
+func (*CommitLoadoutResponse) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{21}
+}
+
+func (x *CommitLoadoutResponse) GetLoadout() *Loadout {
+	if x != nil {
+		return x.Loadout
+	}
+	return nil
+}
+
+// UpdateLoadout is only a convenience wrapper over PrepareLoadout followed by
+// CommitLoadout. It carries no independent mutation semantics.
+type UpdateLoadoutRequest struct {
+	state                  protoimpl.MessageState   `protogen:"open.v1"`
+	LoadoutId              string                   `protobuf:"bytes,1,opt,name=loadout_id,json=loadoutId,proto3" json:"loadout_id,omitempty"`
+	CapabilityContract     string                   `protobuf:"bytes,2,opt,name=capability_contract,json=capabilityContract,proto3" json:"capability_contract,omitempty"`
+	RecipeId               string                   `protobuf:"bytes,3,opt,name=recipe_id,json=recipeId,proto3" json:"recipe_id,omitempty"`
+	Options                *structpb.Struct         `protobuf:"bytes,4,opt,name=options,proto3" json:"options,omitempty"`
+	SupportedFeatures      []string                 `protobuf:"bytes,5,rep,name=supported_features,json=supportedFeatures,proto3" json:"supported_features,omitempty"`
+	ModelAxes              []*LoadoutModelAxisInput `protobuf:"bytes,6,rep,name=model_axes,json=modelAxes,proto3" json:"model_axes,omitempty"`
+	DisplayName            string                   `protobuf:"bytes,7,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
+	Provenance             *structpb.Struct         `protobuf:"bytes,8,opt,name=provenance,proto3" json:"provenance,omitempty"`
+	ConfirmedMachineImpact bool                     `protobuf:"varint,9,opt,name=confirmed_machine_impact,json=confirmedMachineImpact,proto3" json:"confirmed_machine_impact,omitempty"`
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
+}
+
+func (x *UpdateLoadoutRequest) Reset() {
+	*x = UpdateLoadoutRequest{}
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[22]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateLoadoutRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateLoadoutRequest) ProtoMessage() {}
+
+func (x *UpdateLoadoutRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[22]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateLoadoutRequest.ProtoReflect.Descriptor instead.
+func (*UpdateLoadoutRequest) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{22}
+}
+
+func (x *UpdateLoadoutRequest) GetLoadoutId() string {
+	if x != nil {
+		return x.LoadoutId
+	}
+	return ""
+}
+
+func (x *UpdateLoadoutRequest) GetCapabilityContract() string {
+	if x != nil {
+		return x.CapabilityContract
+	}
+	return ""
+}
+
+func (x *UpdateLoadoutRequest) GetRecipeId() string {
+	if x != nil {
+		return x.RecipeId
+	}
+	return ""
+}
+
+func (x *UpdateLoadoutRequest) GetOptions() *structpb.Struct {
+	if x != nil {
+		return x.Options
+	}
+	return nil
+}
+
+func (x *UpdateLoadoutRequest) GetSupportedFeatures() []string {
+	if x != nil {
+		return x.SupportedFeatures
+	}
+	return nil
+}
+
+func (x *UpdateLoadoutRequest) GetModelAxes() []*LoadoutModelAxisInput {
+	if x != nil {
+		return x.ModelAxes
+	}
+	return nil
+}
+
+func (x *UpdateLoadoutRequest) GetDisplayName() string {
+	if x != nil {
+		return x.DisplayName
+	}
+	return ""
+}
+
+func (x *UpdateLoadoutRequest) GetProvenance() *structpb.Struct {
+	if x != nil {
+		return x.Provenance
+	}
+	return nil
+}
+
+func (x *UpdateLoadoutRequest) GetConfirmedMachineImpact() bool {
+	if x != nil {
+		return x.ConfirmedMachineImpact
+	}
+	return false
+}
+
+type UpdateLoadoutResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Loadout       *Loadout               `protobuf:"bytes,1,opt,name=loadout,proto3" json:"loadout,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateLoadoutResponse) Reset() {
+	*x = UpdateLoadoutResponse{}
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[23]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateLoadoutResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateLoadoutResponse) ProtoMessage() {}
+
+func (x *UpdateLoadoutResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[23]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateLoadoutResponse.ProtoReflect.Descriptor instead.
+func (*UpdateLoadoutResponse) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{23}
+}
+
+func (x *UpdateLoadoutResponse) GetLoadout() *Loadout {
+	if x != nil {
+		return x.Loadout
+	}
+	return nil
+}
+
+type SelectLoadoutRequest struct {
+	state              protoimpl.MessageState `protogen:"open.v1"`
+	CapabilityContract string                 `protobuf:"bytes,1,opt,name=capability_contract,json=capabilityContract,proto3" json:"capability_contract,omitempty"`
+	// Empty explicitly clears this contract's selected relation.
+	LoadoutId              string `protobuf:"bytes,2,opt,name=loadout_id,json=loadoutId,proto3" json:"loadout_id,omitempty"`
+	ConfirmedMachineImpact bool   `protobuf:"varint,3,opt,name=confirmed_machine_impact,json=confirmedMachineImpact,proto3" json:"confirmed_machine_impact,omitempty"`
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
+}
+
+func (x *SelectLoadoutRequest) Reset() {
+	*x = SelectLoadoutRequest{}
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[24]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SelectLoadoutRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SelectLoadoutRequest) ProtoMessage() {}
+
+func (x *SelectLoadoutRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[24]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SelectLoadoutRequest.ProtoReflect.Descriptor instead.
+func (*SelectLoadoutRequest) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{24}
+}
+
+func (x *SelectLoadoutRequest) GetCapabilityContract() string {
+	if x != nil {
+		return x.CapabilityContract
+	}
+	return ""
+}
+
+func (x *SelectLoadoutRequest) GetLoadoutId() string {
+	if x != nil {
+		return x.LoadoutId
+	}
+	return ""
+}
+
+func (x *SelectLoadoutRequest) GetConfirmedMachineImpact() bool {
+	if x != nil {
+		return x.ConfirmedMachineImpact
+	}
+	return false
+}
+
+type SelectLoadoutResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Selection     *LoadoutSelection      `protobuf:"bytes,1,opt,name=selection,proto3" json:"selection,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SelectLoadoutResponse) Reset() {
+	*x = SelectLoadoutResponse{}
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[25]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SelectLoadoutResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SelectLoadoutResponse) ProtoMessage() {}
+
+func (x *SelectLoadoutResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[25]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SelectLoadoutResponse.ProtoReflect.Descriptor instead.
+func (*SelectLoadoutResponse) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{25}
+}
+
+func (x *SelectLoadoutResponse) GetSelection() *LoadoutSelection {
+	if x != nil {
+		return x.Selection
+	}
+	return nil
+}
+
+type DeleteLoadoutRequest struct {
+	state                  protoimpl.MessageState `protogen:"open.v1"`
+	LoadoutId              string                 `protobuf:"bytes,1,opt,name=loadout_id,json=loadoutId,proto3" json:"loadout_id,omitempty"`
+	ConfirmedMachineImpact bool                   `protobuf:"varint,2,opt,name=confirmed_machine_impact,json=confirmedMachineImpact,proto3" json:"confirmed_machine_impact,omitempty"`
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
+}
+
+func (x *DeleteLoadoutRequest) Reset() {
+	*x = DeleteLoadoutRequest{}
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[26]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteLoadoutRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteLoadoutRequest) ProtoMessage() {}
+
+func (x *DeleteLoadoutRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[26]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteLoadoutRequest.ProtoReflect.Descriptor instead.
+func (*DeleteLoadoutRequest) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{26}
+}
+
+func (x *DeleteLoadoutRequest) GetLoadoutId() string {
+	if x != nil {
+		return x.LoadoutId
+	}
+	return ""
+}
+
+func (x *DeleteLoadoutRequest) GetConfirmedMachineImpact() bool {
+	if x != nil {
+		return x.ConfirmedMachineImpact
+	}
+	return false
+}
+
+type DeleteLoadoutResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteLoadoutResponse) Reset() {
+	*x = DeleteLoadoutResponse{}
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[27]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteLoadoutResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteLoadoutResponse) ProtoMessage() {}
+
+func (x *DeleteLoadoutResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[27]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteLoadoutResponse.ProtoReflect.Descriptor instead.
+func (*DeleteLoadoutResponse) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{27}
+}
+
+type LoadoutEffectiveModelAxisIdentity struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	SlotId        string                 `protobuf:"bytes,1,opt,name=slot_id,json=slotId,proto3" json:"slot_id,omitempty"`
+	ModelAssetId  string                 `protobuf:"bytes,2,opt,name=model_asset_id,json=modelAssetId,proto3" json:"model_asset_id,omitempty"`
+	ContentId     string                 `protobuf:"bytes,3,opt,name=content_id,json=contentId,proto3" json:"content_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *LoadoutEffectiveModelAxisIdentity) Reset() {
+	*x = LoadoutEffectiveModelAxisIdentity{}
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[28]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LoadoutEffectiveModelAxisIdentity) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LoadoutEffectiveModelAxisIdentity) ProtoMessage() {}
+
+func (x *LoadoutEffectiveModelAxisIdentity) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[28]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LoadoutEffectiveModelAxisIdentity.ProtoReflect.Descriptor instead.
+func (*LoadoutEffectiveModelAxisIdentity) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{28}
+}
+
+func (x *LoadoutEffectiveModelAxisIdentity) GetSlotId() string {
+	if x != nil {
+		return x.SlotId
+	}
+	return ""
+}
+
+func (x *LoadoutEffectiveModelAxisIdentity) GetModelAssetId() string {
+	if x != nil {
+		return x.ModelAssetId
+	}
+	return ""
+}
+
+func (x *LoadoutEffectiveModelAxisIdentity) GetContentId() string {
+	if x != nil {
+		return x.ContentId
+	}
+	return ""
+}
+
+type LoadoutEffectiveInputIdentity struct {
+	state              protoimpl.MessageState               `protogen:"open.v1"`
+	LoadoutId          string                               `protobuf:"bytes,1,opt,name=loadout_id,json=loadoutId,proto3" json:"loadout_id,omitempty"`
+	CapabilityContract string                               `protobuf:"bytes,2,opt,name=capability_contract,json=capabilityContract,proto3" json:"capability_contract,omitempty"`
+	Implementation     *CapabilityImplementationIdentity    `protobuf:"bytes,3,opt,name=implementation,proto3" json:"implementation,omitempty"`
+	RecipeId           string                               `protobuf:"bytes,4,opt,name=recipe_id,json=recipeId,proto3" json:"recipe_id,omitempty"`
+	RecipeRevision     string                               `protobuf:"bytes,5,opt,name=recipe_revision,json=recipeRevision,proto3" json:"recipe_revision,omitempty"`
+	Options            *structpb.Struct                     `protobuf:"bytes,6,opt,name=options,proto3" json:"options,omitempty"`
+	ModelAxes          []*LoadoutEffectiveModelAxisIdentity `protobuf:"bytes,7,rep,name=model_axes,json=modelAxes,proto3" json:"model_axes,omitempty"`
+	RecipeCustody      []*LoadoutRecipeCustodyReference     `protobuf:"bytes,8,rep,name=recipe_custody,json=recipeCustody,proto3" json:"recipe_custody,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
+}
+
+func (x *LoadoutEffectiveInputIdentity) Reset() {
+	*x = LoadoutEffectiveInputIdentity{}
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[29]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LoadoutEffectiveInputIdentity) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LoadoutEffectiveInputIdentity) ProtoMessage() {}
+
+func (x *LoadoutEffectiveInputIdentity) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[29]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LoadoutEffectiveInputIdentity.ProtoReflect.Descriptor instead.
+func (*LoadoutEffectiveInputIdentity) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{29}
+}
+
+func (x *LoadoutEffectiveInputIdentity) GetLoadoutId() string {
+	if x != nil {
+		return x.LoadoutId
+	}
+	return ""
+}
+
+func (x *LoadoutEffectiveInputIdentity) GetCapabilityContract() string {
+	if x != nil {
+		return x.CapabilityContract
+	}
+	return ""
+}
+
+func (x *LoadoutEffectiveInputIdentity) GetImplementation() *CapabilityImplementationIdentity {
+	if x != nil {
+		return x.Implementation
+	}
+	return nil
+}
+
+func (x *LoadoutEffectiveInputIdentity) GetRecipeId() string {
+	if x != nil {
+		return x.RecipeId
+	}
+	return ""
+}
+
+func (x *LoadoutEffectiveInputIdentity) GetRecipeRevision() string {
+	if x != nil {
+		return x.RecipeRevision
+	}
+	return ""
+}
+
+func (x *LoadoutEffectiveInputIdentity) GetOptions() *structpb.Struct {
+	if x != nil {
+		return x.Options
+	}
+	return nil
+}
+
+func (x *LoadoutEffectiveInputIdentity) GetModelAxes() []*LoadoutEffectiveModelAxisIdentity {
+	if x != nil {
+		return x.ModelAxes
+	}
+	return nil
+}
+
+func (x *LoadoutEffectiveInputIdentity) GetRecipeCustody() []*LoadoutRecipeCustodyReference {
+	if x != nil {
+		return x.RecipeCustody
 	}
 	return nil
 }
@@ -785,7 +2333,7 @@ type AIConfigAppOwner struct {
 
 func (x *AIConfigAppOwner) Reset() {
 	*x = AIConfigAppOwner{}
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[6]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -797,7 +2345,7 @@ func (x *AIConfigAppOwner) String() string {
 func (*AIConfigAppOwner) ProtoMessage() {}
 
 func (x *AIConfigAppOwner) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[6]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -810,7 +2358,7 @@ func (x *AIConfigAppOwner) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AIConfigAppOwner.ProtoReflect.Descriptor instead.
 func (*AIConfigAppOwner) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{6}
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *AIConfigAppOwner) GetAppId() string {
@@ -830,7 +2378,7 @@ type AIConfigRuntimeLocalAgentSubsystemOwner struct {
 
 func (x *AIConfigRuntimeLocalAgentSubsystemOwner) Reset() {
 	*x = AIConfigRuntimeLocalAgentSubsystemOwner{}
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[7]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -842,7 +2390,7 @@ func (x *AIConfigRuntimeLocalAgentSubsystemOwner) String() string {
 func (*AIConfigRuntimeLocalAgentSubsystemOwner) ProtoMessage() {}
 
 func (x *AIConfigRuntimeLocalAgentSubsystemOwner) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[7]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -855,7 +2403,7 @@ func (x *AIConfigRuntimeLocalAgentSubsystemOwner) ProtoReflect() protoreflect.Me
 
 // Deprecated: Use AIConfigRuntimeLocalAgentSubsystemOwner.ProtoReflect.Descriptor instead.
 func (*AIConfigRuntimeLocalAgentSubsystemOwner) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{7}
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{31}
 }
 
 type AIConfigOwner struct {
@@ -871,7 +2419,7 @@ type AIConfigOwner struct {
 
 func (x *AIConfigOwner) Reset() {
 	*x = AIConfigOwner{}
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[8]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -883,7 +2431,7 @@ func (x *AIConfigOwner) String() string {
 func (*AIConfigOwner) ProtoMessage() {}
 
 func (x *AIConfigOwner) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[8]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -896,7 +2444,7 @@ func (x *AIConfigOwner) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AIConfigOwner.ProtoReflect.Descriptor instead.
 func (*AIConfigOwner) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{8}
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{32}
 }
 
 func (x *AIConfigOwner) GetOwner() isAIConfigOwner_Owner {
@@ -950,7 +2498,7 @@ type AIConfigLocalIntent struct {
 
 func (x *AIConfigLocalIntent) Reset() {
 	*x = AIConfigLocalIntent{}
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[9]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -962,7 +2510,7 @@ func (x *AIConfigLocalIntent) String() string {
 func (*AIConfigLocalIntent) ProtoMessage() {}
 
 func (x *AIConfigLocalIntent) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[9]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -975,7 +2523,7 @@ func (x *AIConfigLocalIntent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AIConfigLocalIntent.ProtoReflect.Descriptor instead.
 func (*AIConfigLocalIntent) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{9}
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{33}
 }
 
 // AIConfigCloudIntent carries only the exact Cloud implementation and its
@@ -991,7 +2539,7 @@ type AIConfigCloudIntent struct {
 
 func (x *AIConfigCloudIntent) Reset() {
 	*x = AIConfigCloudIntent{}
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[10]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1003,7 +2551,7 @@ func (x *AIConfigCloudIntent) String() string {
 func (*AIConfigCloudIntent) ProtoMessage() {}
 
 func (x *AIConfigCloudIntent) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[10]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1016,7 +2564,7 @@ func (x *AIConfigCloudIntent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AIConfigCloudIntent.ProtoReflect.Descriptor instead.
 func (*AIConfigCloudIntent) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{10}
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{34}
 }
 
 func (x *AIConfigCloudIntent) GetImplementation() *CapabilityImplementationIdentity {
@@ -1052,7 +2600,7 @@ type AIConfigCapabilityIntent struct {
 
 func (x *AIConfigCapabilityIntent) Reset() {
 	*x = AIConfigCapabilityIntent{}
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[11]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1064,7 +2612,7 @@ func (x *AIConfigCapabilityIntent) String() string {
 func (*AIConfigCapabilityIntent) ProtoMessage() {}
 
 func (x *AIConfigCapabilityIntent) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[11]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1077,7 +2625,7 @@ func (x *AIConfigCapabilityIntent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AIConfigCapabilityIntent.ProtoReflect.Descriptor instead.
 func (*AIConfigCapabilityIntent) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{11}
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{35}
 }
 
 func (x *AIConfigCapabilityIntent) GetCapabilityContract() string {
@@ -1154,7 +2702,7 @@ type AIConfig struct {
 
 func (x *AIConfig) Reset() {
 	*x = AIConfig{}
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[12]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1166,7 +2714,7 @@ func (x *AIConfig) String() string {
 func (*AIConfig) ProtoMessage() {}
 
 func (x *AIConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[12]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1179,7 +2727,7 @@ func (x *AIConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AIConfig.ProtoReflect.Descriptor instead.
 func (*AIConfig) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{12}
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{36}
 }
 
 func (x *AIConfig) GetOwner() *AIConfigOwner {
@@ -1208,7 +2756,7 @@ type GetAppAIConfigRequest struct {
 
 func (x *GetAppAIConfigRequest) Reset() {
 	*x = GetAppAIConfigRequest{}
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[13]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1220,7 +2768,7 @@ func (x *GetAppAIConfigRequest) String() string {
 func (*GetAppAIConfigRequest) ProtoMessage() {}
 
 func (x *GetAppAIConfigRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[13]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1233,7 +2781,7 @@ func (x *GetAppAIConfigRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetAppAIConfigRequest.ProtoReflect.Descriptor instead.
 func (*GetAppAIConfigRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{13}
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{37}
 }
 
 func (x *GetAppAIConfigRequest) GetOwner() *AIConfigOwner {
@@ -1252,7 +2800,7 @@ type GetAppAIConfigResponse struct {
 
 func (x *GetAppAIConfigResponse) Reset() {
 	*x = GetAppAIConfigResponse{}
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[14]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[38]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1264,7 +2812,7 @@ func (x *GetAppAIConfigResponse) String() string {
 func (*GetAppAIConfigResponse) ProtoMessage() {}
 
 func (x *GetAppAIConfigResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[14]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[38]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1277,7 +2825,7 @@ func (x *GetAppAIConfigResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetAppAIConfigResponse.ProtoReflect.Descriptor instead.
 func (*GetAppAIConfigResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{14}
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{38}
 }
 
 func (x *GetAppAIConfigResponse) GetConfig() *AIConfig {
@@ -1296,7 +2844,7 @@ type OverwriteAppAIConfigRequest struct {
 
 func (x *OverwriteAppAIConfigRequest) Reset() {
 	*x = OverwriteAppAIConfigRequest{}
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[15]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[39]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1308,7 +2856,7 @@ func (x *OverwriteAppAIConfigRequest) String() string {
 func (*OverwriteAppAIConfigRequest) ProtoMessage() {}
 
 func (x *OverwriteAppAIConfigRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[15]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[39]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1321,7 +2869,7 @@ func (x *OverwriteAppAIConfigRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OverwriteAppAIConfigRequest.ProtoReflect.Descriptor instead.
 func (*OverwriteAppAIConfigRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{15}
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{39}
 }
 
 func (x *OverwriteAppAIConfigRequest) GetConfig() *AIConfig {
@@ -1340,7 +2888,7 @@ type OverwriteAppAIConfigResponse struct {
 
 func (x *OverwriteAppAIConfigResponse) Reset() {
 	*x = OverwriteAppAIConfigResponse{}
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[16]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[40]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1352,7 +2900,7 @@ func (x *OverwriteAppAIConfigResponse) String() string {
 func (*OverwriteAppAIConfigResponse) ProtoMessage() {}
 
 func (x *OverwriteAppAIConfigResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[16]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[40]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1365,7 +2913,7 @@ func (x *OverwriteAppAIConfigResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OverwriteAppAIConfigResponse.ProtoReflect.Descriptor instead.
 func (*OverwriteAppAIConfigResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{16}
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{40}
 }
 
 func (x *OverwriteAppAIConfigResponse) GetConfig() *AIConfig {
@@ -1375,27 +2923,31 @@ func (x *OverwriteAppAIConfigResponse) GetConfig() *AIConfig {
 	return nil
 }
 
-type GetMachineLocalAIConfigurationRequest struct {
+type LoadoutRecipeCustodyDescriptor struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
+	File          string                 `protobuf:"bytes,1,opt,name=file,proto3" json:"file,omitempty"`
+	Sha256        string                 `protobuf:"bytes,2,opt,name=sha256,proto3" json:"sha256,omitempty"`
+	Source        string                 `protobuf:"bytes,3,opt,name=source,proto3" json:"source,omitempty"`
+	Role          string                 `protobuf:"bytes,4,opt,name=role,proto3" json:"role,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *GetMachineLocalAIConfigurationRequest) Reset() {
-	*x = GetMachineLocalAIConfigurationRequest{}
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[17]
+func (x *LoadoutRecipeCustodyDescriptor) Reset() {
+	*x = LoadoutRecipeCustodyDescriptor{}
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[41]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *GetMachineLocalAIConfigurationRequest) String() string {
+func (x *LoadoutRecipeCustodyDescriptor) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*GetMachineLocalAIConfigurationRequest) ProtoMessage() {}
+func (*LoadoutRecipeCustodyDescriptor) ProtoMessage() {}
 
-func (x *GetMachineLocalAIConfigurationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[17]
+func (x *LoadoutRecipeCustodyDescriptor) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[41]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1406,1118 +2958,44 @@ func (x *GetMachineLocalAIConfigurationRequest) ProtoReflect() protoreflect.Mess
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GetMachineLocalAIConfigurationRequest.ProtoReflect.Descriptor instead.
-func (*GetMachineLocalAIConfigurationRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{17}
+// Deprecated: Use LoadoutRecipeCustodyDescriptor.ProtoReflect.Descriptor instead.
+func (*LoadoutRecipeCustodyDescriptor) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{41}
 }
 
-type GetMachineLocalAIConfigurationResponse struct {
-	state         protoimpl.MessageState       `protogen:"open.v1"`
-	Aggregate     *MachineLocalAIConfiguration `protobuf:"bytes,1,opt,name=aggregate,proto3" json:"aggregate,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetMachineLocalAIConfigurationResponse) Reset() {
-	*x = GetMachineLocalAIConfigurationResponse{}
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[18]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetMachineLocalAIConfigurationResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetMachineLocalAIConfigurationResponse) ProtoMessage() {}
-
-func (x *GetMachineLocalAIConfigurationResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[18]
+func (x *LoadoutRecipeCustodyDescriptor) GetFile() string {
 	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetMachineLocalAIConfigurationResponse.ProtoReflect.Descriptor instead.
-func (*GetMachineLocalAIConfigurationResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{18}
-}
-
-func (x *GetMachineLocalAIConfigurationResponse) GetAggregate() *MachineLocalAIConfiguration {
-	if x != nil {
-		return x.Aggregate
-	}
-	return nil
-}
-
-type GetLocalCapabilityConfigurationRequest struct {
-	state           protoimpl.MessageState `protogen:"open.v1"`
-	ConfigurationId string                 `protobuf:"bytes,1,opt,name=configuration_id,json=configurationId,proto3" json:"configuration_id,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
-}
-
-func (x *GetLocalCapabilityConfigurationRequest) Reset() {
-	*x = GetLocalCapabilityConfigurationRequest{}
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[19]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetLocalCapabilityConfigurationRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetLocalCapabilityConfigurationRequest) ProtoMessage() {}
-
-func (x *GetLocalCapabilityConfigurationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[19]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetLocalCapabilityConfigurationRequest.ProtoReflect.Descriptor instead.
-func (*GetLocalCapabilityConfigurationRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{19}
-}
-
-func (x *GetLocalCapabilityConfigurationRequest) GetConfigurationId() string {
-	if x != nil {
-		return x.ConfigurationId
+		return x.File
 	}
 	return ""
 }
 
-type GetLocalCapabilityConfigurationResponse struct {
-	state         protoimpl.MessageState        `protogen:"open.v1"`
-	Configuration *LocalCapabilityConfiguration `protobuf:"bytes,1,opt,name=configuration,proto3" json:"configuration,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetLocalCapabilityConfigurationResponse) Reset() {
-	*x = GetLocalCapabilityConfigurationResponse{}
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[20]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetLocalCapabilityConfigurationResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetLocalCapabilityConfigurationResponse) ProtoMessage() {}
-
-func (x *GetLocalCapabilityConfigurationResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[20]
+func (x *LoadoutRecipeCustodyDescriptor) GetSha256() string {
 	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetLocalCapabilityConfigurationResponse.ProtoReflect.Descriptor instead.
-func (*GetLocalCapabilityConfigurationResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{20}
-}
-
-func (x *GetLocalCapabilityConfigurationResponse) GetConfiguration() *LocalCapabilityConfiguration {
-	if x != nil {
-		return x.Configuration
-	}
-	return nil
-}
-
-type AddLocalCapabilityConfigurationRequest struct {
-	state              protoimpl.MessageState            `protogen:"open.v1"`
-	CapabilityContract string                            `protobuf:"bytes,1,opt,name=capability_contract,json=capabilityContract,proto3" json:"capability_contract,omitempty"`
-	Implementation     *CapabilityImplementationIdentity `protobuf:"bytes,2,opt,name=implementation,proto3" json:"implementation,omitempty"`
-	PortableConfig     *structpb.Struct                  `protobuf:"bytes,3,opt,name=portable_config,json=portableConfig,proto3" json:"portable_config,omitempty"`
-	SupportedFeatures  []string                          `protobuf:"bytes,4,rep,name=supported_features,json=supportedFeatures,proto3" json:"supported_features,omitempty"`
-	DisplayName        string                            `protobuf:"bytes,5,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
-	Provenance         *structpb.Struct                  `protobuf:"bytes,6,opt,name=provenance,proto3" json:"provenance,omitempty"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
-}
-
-func (x *AddLocalCapabilityConfigurationRequest) Reset() {
-	*x = AddLocalCapabilityConfigurationRequest{}
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[21]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *AddLocalCapabilityConfigurationRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*AddLocalCapabilityConfigurationRequest) ProtoMessage() {}
-
-func (x *AddLocalCapabilityConfigurationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[21]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use AddLocalCapabilityConfigurationRequest.ProtoReflect.Descriptor instead.
-func (*AddLocalCapabilityConfigurationRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{21}
-}
-
-func (x *AddLocalCapabilityConfigurationRequest) GetCapabilityContract() string {
-	if x != nil {
-		return x.CapabilityContract
+		return x.Sha256
 	}
 	return ""
 }
 
-func (x *AddLocalCapabilityConfigurationRequest) GetImplementation() *CapabilityImplementationIdentity {
+func (x *LoadoutRecipeCustodyDescriptor) GetSource() string {
 	if x != nil {
-		return x.Implementation
-	}
-	return nil
-}
-
-func (x *AddLocalCapabilityConfigurationRequest) GetPortableConfig() *structpb.Struct {
-	if x != nil {
-		return x.PortableConfig
-	}
-	return nil
-}
-
-func (x *AddLocalCapabilityConfigurationRequest) GetSupportedFeatures() []string {
-	if x != nil {
-		return x.SupportedFeatures
-	}
-	return nil
-}
-
-func (x *AddLocalCapabilityConfigurationRequest) GetDisplayName() string {
-	if x != nil {
-		return x.DisplayName
+		return x.Source
 	}
 	return ""
 }
 
-func (x *AddLocalCapabilityConfigurationRequest) GetProvenance() *structpb.Struct {
+func (x *LoadoutRecipeCustodyDescriptor) GetRole() string {
 	if x != nil {
-		return x.Provenance
-	}
-	return nil
-}
-
-type AddLocalCapabilityConfigurationResponse struct {
-	state         protoimpl.MessageState        `protogen:"open.v1"`
-	Configuration *LocalCapabilityConfiguration `protobuf:"bytes,1,opt,name=configuration,proto3" json:"configuration,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *AddLocalCapabilityConfigurationResponse) Reset() {
-	*x = AddLocalCapabilityConfigurationResponse{}
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[22]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *AddLocalCapabilityConfigurationResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*AddLocalCapabilityConfigurationResponse) ProtoMessage() {}
-
-func (x *AddLocalCapabilityConfigurationResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[22]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use AddLocalCapabilityConfigurationResponse.ProtoReflect.Descriptor instead.
-func (*AddLocalCapabilityConfigurationResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{22}
-}
-
-func (x *AddLocalCapabilityConfigurationResponse) GetConfiguration() *LocalCapabilityConfiguration {
-	if x != nil {
-		return x.Configuration
-	}
-	return nil
-}
-
-// UpdateLocalCapabilityConfiguration replaces the mutable portable intent of
-// one saved record. Capability and implementation identity remain immutable;
-// callers create a new record when either identity changes.
-type UpdateLocalCapabilityConfigurationRequest struct {
-	state             protoimpl.MessageState `protogen:"open.v1"`
-	ConfigurationId   string                 `protobuf:"bytes,1,opt,name=configuration_id,json=configurationId,proto3" json:"configuration_id,omitempty"`
-	PortableConfig    *structpb.Struct       `protobuf:"bytes,2,opt,name=portable_config,json=portableConfig,proto3" json:"portable_config,omitempty"`
-	SupportedFeatures []string               `protobuf:"bytes,3,rep,name=supported_features,json=supportedFeatures,proto3" json:"supported_features,omitempty"`
-	DisplayName       string                 `protobuf:"bytes,4,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
-	Provenance        *structpb.Struct       `protobuf:"bytes,5,opt,name=provenance,proto3" json:"provenance,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
-}
-
-func (x *UpdateLocalCapabilityConfigurationRequest) Reset() {
-	*x = UpdateLocalCapabilityConfigurationRequest{}
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[23]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *UpdateLocalCapabilityConfigurationRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*UpdateLocalCapabilityConfigurationRequest) ProtoMessage() {}
-
-func (x *UpdateLocalCapabilityConfigurationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[23]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use UpdateLocalCapabilityConfigurationRequest.ProtoReflect.Descriptor instead.
-func (*UpdateLocalCapabilityConfigurationRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{23}
-}
-
-func (x *UpdateLocalCapabilityConfigurationRequest) GetConfigurationId() string {
-	if x != nil {
-		return x.ConfigurationId
+		return x.Role
 	}
 	return ""
-}
-
-func (x *UpdateLocalCapabilityConfigurationRequest) GetPortableConfig() *structpb.Struct {
-	if x != nil {
-		return x.PortableConfig
-	}
-	return nil
-}
-
-func (x *UpdateLocalCapabilityConfigurationRequest) GetSupportedFeatures() []string {
-	if x != nil {
-		return x.SupportedFeatures
-	}
-	return nil
-}
-
-func (x *UpdateLocalCapabilityConfigurationRequest) GetDisplayName() string {
-	if x != nil {
-		return x.DisplayName
-	}
-	return ""
-}
-
-func (x *UpdateLocalCapabilityConfigurationRequest) GetProvenance() *structpb.Struct {
-	if x != nil {
-		return x.Provenance
-	}
-	return nil
-}
-
-type UpdateLocalCapabilityConfigurationResponse struct {
-	state         protoimpl.MessageState        `protogen:"open.v1"`
-	Configuration *LocalCapabilityConfiguration `protobuf:"bytes,1,opt,name=configuration,proto3" json:"configuration,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *UpdateLocalCapabilityConfigurationResponse) Reset() {
-	*x = UpdateLocalCapabilityConfigurationResponse{}
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[24]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *UpdateLocalCapabilityConfigurationResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*UpdateLocalCapabilityConfigurationResponse) ProtoMessage() {}
-
-func (x *UpdateLocalCapabilityConfigurationResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[24]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use UpdateLocalCapabilityConfigurationResponse.ProtoReflect.Descriptor instead.
-func (*UpdateLocalCapabilityConfigurationResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{24}
-}
-
-func (x *UpdateLocalCapabilityConfigurationResponse) GetConfiguration() *LocalCapabilityConfiguration {
-	if x != nil {
-		return x.Configuration
-	}
-	return nil
-}
-
-type SelectLocalCapabilityConfigurationRequest struct {
-	state              protoimpl.MessageState `protogen:"open.v1"`
-	CapabilityContract string                 `protobuf:"bytes,1,opt,name=capability_contract,json=capabilityContract,proto3" json:"capability_contract,omitempty"`
-	ConfigurationId    string                 `protobuf:"bytes,2,opt,name=configuration_id,json=configurationId,proto3" json:"configuration_id,omitempty"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
-}
-
-func (x *SelectLocalCapabilityConfigurationRequest) Reset() {
-	*x = SelectLocalCapabilityConfigurationRequest{}
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[25]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *SelectLocalCapabilityConfigurationRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*SelectLocalCapabilityConfigurationRequest) ProtoMessage() {}
-
-func (x *SelectLocalCapabilityConfigurationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[25]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use SelectLocalCapabilityConfigurationRequest.ProtoReflect.Descriptor instead.
-func (*SelectLocalCapabilityConfigurationRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{25}
-}
-
-func (x *SelectLocalCapabilityConfigurationRequest) GetCapabilityContract() string {
-	if x != nil {
-		return x.CapabilityContract
-	}
-	return ""
-}
-
-func (x *SelectLocalCapabilityConfigurationRequest) GetConfigurationId() string {
-	if x != nil {
-		return x.ConfigurationId
-	}
-	return ""
-}
-
-type SelectLocalCapabilityConfigurationResponse struct {
-	state         protoimpl.MessageState    `protogen:"open.v1"`
-	Selection     *LocalCapabilitySelection `protobuf:"bytes,1,opt,name=selection,proto3" json:"selection,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *SelectLocalCapabilityConfigurationResponse) Reset() {
-	*x = SelectLocalCapabilityConfigurationResponse{}
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[26]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *SelectLocalCapabilityConfigurationResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*SelectLocalCapabilityConfigurationResponse) ProtoMessage() {}
-
-func (x *SelectLocalCapabilityConfigurationResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[26]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use SelectLocalCapabilityConfigurationResponse.ProtoReflect.Descriptor instead.
-func (*SelectLocalCapabilityConfigurationResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{26}
-}
-
-func (x *SelectLocalCapabilityConfigurationResponse) GetSelection() *LocalCapabilitySelection {
-	if x != nil {
-		return x.Selection
-	}
-	return nil
-}
-
-type ClearLocalCapabilitySelectionRequest struct {
-	state              protoimpl.MessageState `protogen:"open.v1"`
-	CapabilityContract string                 `protobuf:"bytes,1,opt,name=capability_contract,json=capabilityContract,proto3" json:"capability_contract,omitempty"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
-}
-
-func (x *ClearLocalCapabilitySelectionRequest) Reset() {
-	*x = ClearLocalCapabilitySelectionRequest{}
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[27]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ClearLocalCapabilitySelectionRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ClearLocalCapabilitySelectionRequest) ProtoMessage() {}
-
-func (x *ClearLocalCapabilitySelectionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[27]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ClearLocalCapabilitySelectionRequest.ProtoReflect.Descriptor instead.
-func (*ClearLocalCapabilitySelectionRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{27}
-}
-
-func (x *ClearLocalCapabilitySelectionRequest) GetCapabilityContract() string {
-	if x != nil {
-		return x.CapabilityContract
-	}
-	return ""
-}
-
-type ClearLocalCapabilitySelectionResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ClearLocalCapabilitySelectionResponse) Reset() {
-	*x = ClearLocalCapabilitySelectionResponse{}
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[28]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ClearLocalCapabilitySelectionResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ClearLocalCapabilitySelectionResponse) ProtoMessage() {}
-
-func (x *ClearLocalCapabilitySelectionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[28]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ClearLocalCapabilitySelectionResponse.ProtoReflect.Descriptor instead.
-func (*ClearLocalCapabilitySelectionResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{28}
-}
-
-type DeleteLocalCapabilityConfigurationRequest struct {
-	state           protoimpl.MessageState `protogen:"open.v1"`
-	ConfigurationId string                 `protobuf:"bytes,1,opt,name=configuration_id,json=configurationId,proto3" json:"configuration_id,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
-}
-
-func (x *DeleteLocalCapabilityConfigurationRequest) Reset() {
-	*x = DeleteLocalCapabilityConfigurationRequest{}
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[29]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *DeleteLocalCapabilityConfigurationRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*DeleteLocalCapabilityConfigurationRequest) ProtoMessage() {}
-
-func (x *DeleteLocalCapabilityConfigurationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[29]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use DeleteLocalCapabilityConfigurationRequest.ProtoReflect.Descriptor instead.
-func (*DeleteLocalCapabilityConfigurationRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{29}
-}
-
-func (x *DeleteLocalCapabilityConfigurationRequest) GetConfigurationId() string {
-	if x != nil {
-		return x.ConfigurationId
-	}
-	return ""
-}
-
-type DeleteLocalCapabilityConfigurationResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *DeleteLocalCapabilityConfigurationResponse) Reset() {
-	*x = DeleteLocalCapabilityConfigurationResponse{}
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[30]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *DeleteLocalCapabilityConfigurationResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*DeleteLocalCapabilityConfigurationResponse) ProtoMessage() {}
-
-func (x *DeleteLocalCapabilityConfigurationResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[30]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use DeleteLocalCapabilityConfigurationResponse.ProtoReflect.Descriptor instead.
-func (*DeleteLocalCapabilityConfigurationResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{30}
-}
-
-type ReprojectLocalCapabilityRequirementsRequest struct {
-	state           protoimpl.MessageState `protogen:"open.v1"`
-	ConfigurationId string                 `protobuf:"bytes,1,opt,name=configuration_id,json=configurationId,proto3" json:"configuration_id,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
-}
-
-func (x *ReprojectLocalCapabilityRequirementsRequest) Reset() {
-	*x = ReprojectLocalCapabilityRequirementsRequest{}
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[31]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ReprojectLocalCapabilityRequirementsRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ReprojectLocalCapabilityRequirementsRequest) ProtoMessage() {}
-
-func (x *ReprojectLocalCapabilityRequirementsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[31]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ReprojectLocalCapabilityRequirementsRequest.ProtoReflect.Descriptor instead.
-func (*ReprojectLocalCapabilityRequirementsRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{31}
-}
-
-func (x *ReprojectLocalCapabilityRequirementsRequest) GetConfigurationId() string {
-	if x != nil {
-		return x.ConfigurationId
-	}
-	return ""
-}
-
-type ReprojectLocalCapabilityRequirementsResponse struct {
-	state         protoimpl.MessageState        `protogen:"open.v1"`
-	Configuration *LocalCapabilityConfiguration `protobuf:"bytes,1,opt,name=configuration,proto3" json:"configuration,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ReprojectLocalCapabilityRequirementsResponse) Reset() {
-	*x = ReprojectLocalCapabilityRequirementsResponse{}
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[32]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ReprojectLocalCapabilityRequirementsResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ReprojectLocalCapabilityRequirementsResponse) ProtoMessage() {}
-
-func (x *ReprojectLocalCapabilityRequirementsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[32]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ReprojectLocalCapabilityRequirementsResponse.ProtoReflect.Descriptor instead.
-func (*ReprojectLocalCapabilityRequirementsResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{32}
-}
-
-func (x *ReprojectLocalCapabilityRequirementsResponse) GetConfiguration() *LocalCapabilityConfiguration {
-	if x != nil {
-		return x.Configuration
-	}
-	return nil
-}
-
-// LocalAssetExactBindingTarget is the exact asset identity observed by the
-// caller. Runtime derives entry_sha256 from freshly verified bytes; callers
-// never submit a path or an inferred digest.
-type LocalAssetExactBindingTarget struct {
-	state                     protoimpl.MessageState `protogen:"open.v1"`
-	LocalAssetId              string                 `protobuf:"bytes,1,opt,name=local_asset_id,json=localAssetId,proto3" json:"local_asset_id,omitempty"`
-	ExpectedVerifiedContentId string                 `protobuf:"bytes,2,opt,name=expected_verified_content_id,json=expectedVerifiedContentId,proto3" json:"expected_verified_content_id,omitempty"`
-	unknownFields             protoimpl.UnknownFields
-	sizeCache                 protoimpl.SizeCache
-}
-
-func (x *LocalAssetExactBindingTarget) Reset() {
-	*x = LocalAssetExactBindingTarget{}
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[33]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *LocalAssetExactBindingTarget) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*LocalAssetExactBindingTarget) ProtoMessage() {}
-
-func (x *LocalAssetExactBindingTarget) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[33]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use LocalAssetExactBindingTarget.ProtoReflect.Descriptor instead.
-func (*LocalAssetExactBindingTarget) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{33}
-}
-
-func (x *LocalAssetExactBindingTarget) GetLocalAssetId() string {
-	if x != nil {
-		return x.LocalAssetId
-	}
-	return ""
-}
-
-func (x *LocalAssetExactBindingTarget) GetExpectedVerifiedContentId() string {
-	if x != nil {
-		return x.ExpectedVerifiedContentId
-	}
-	return ""
-}
-
-type BindLocalCapabilityRequirementRequest struct {
-	state           protoimpl.MessageState        `protogen:"open.v1"`
-	ConfigurationId string                        `protobuf:"bytes,1,opt,name=configuration_id,json=configurationId,proto3" json:"configuration_id,omitempty"`
-	RequirementId   string                        `protobuf:"bytes,2,opt,name=requirement_id,json=requirementId,proto3" json:"requirement_id,omitempty"`
-	Target          *LocalAssetExactBindingTarget `protobuf:"bytes,3,opt,name=target,proto3" json:"target,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
-}
-
-func (x *BindLocalCapabilityRequirementRequest) Reset() {
-	*x = BindLocalCapabilityRequirementRequest{}
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[34]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *BindLocalCapabilityRequirementRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*BindLocalCapabilityRequirementRequest) ProtoMessage() {}
-
-func (x *BindLocalCapabilityRequirementRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[34]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use BindLocalCapabilityRequirementRequest.ProtoReflect.Descriptor instead.
-func (*BindLocalCapabilityRequirementRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{34}
-}
-
-func (x *BindLocalCapabilityRequirementRequest) GetConfigurationId() string {
-	if x != nil {
-		return x.ConfigurationId
-	}
-	return ""
-}
-
-func (x *BindLocalCapabilityRequirementRequest) GetRequirementId() string {
-	if x != nil {
-		return x.RequirementId
-	}
-	return ""
-}
-
-func (x *BindLocalCapabilityRequirementRequest) GetTarget() *LocalAssetExactBindingTarget {
-	if x != nil {
-		return x.Target
-	}
-	return nil
-}
-
-type BindLocalCapabilityRequirementResponse struct {
-	state         protoimpl.MessageState        `protogen:"open.v1"`
-	Configuration *LocalCapabilityConfiguration `protobuf:"bytes,1,opt,name=configuration,proto3" json:"configuration,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *BindLocalCapabilityRequirementResponse) Reset() {
-	*x = BindLocalCapabilityRequirementResponse{}
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[35]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *BindLocalCapabilityRequirementResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*BindLocalCapabilityRequirementResponse) ProtoMessage() {}
-
-func (x *BindLocalCapabilityRequirementResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[35]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use BindLocalCapabilityRequirementResponse.ProtoReflect.Descriptor instead.
-func (*BindLocalCapabilityRequirementResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{35}
-}
-
-func (x *BindLocalCapabilityRequirementResponse) GetConfiguration() *LocalCapabilityConfiguration {
-	if x != nil {
-		return x.Configuration
-	}
-	return nil
-}
-
-type RebindLocalCapabilityRequirementRequest struct {
-	state                  protoimpl.MessageState        `protogen:"open.v1"`
-	ConfigurationId        string                        `protobuf:"bytes,1,opt,name=configuration_id,json=configurationId,proto3" json:"configuration_id,omitempty"`
-	RequirementId          string                        `protobuf:"bytes,2,opt,name=requirement_id,json=requirementId,proto3" json:"requirement_id,omitempty"`
-	ExpectedCurrentBinding *LocalAssetExactBinding       `protobuf:"bytes,3,opt,name=expected_current_binding,json=expectedCurrentBinding,proto3" json:"expected_current_binding,omitempty"`
-	Target                 *LocalAssetExactBindingTarget `protobuf:"bytes,4,opt,name=target,proto3" json:"target,omitempty"`
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
-}
-
-func (x *RebindLocalCapabilityRequirementRequest) Reset() {
-	*x = RebindLocalCapabilityRequirementRequest{}
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[36]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *RebindLocalCapabilityRequirementRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*RebindLocalCapabilityRequirementRequest) ProtoMessage() {}
-
-func (x *RebindLocalCapabilityRequirementRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[36]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use RebindLocalCapabilityRequirementRequest.ProtoReflect.Descriptor instead.
-func (*RebindLocalCapabilityRequirementRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{36}
-}
-
-func (x *RebindLocalCapabilityRequirementRequest) GetConfigurationId() string {
-	if x != nil {
-		return x.ConfigurationId
-	}
-	return ""
-}
-
-func (x *RebindLocalCapabilityRequirementRequest) GetRequirementId() string {
-	if x != nil {
-		return x.RequirementId
-	}
-	return ""
-}
-
-func (x *RebindLocalCapabilityRequirementRequest) GetExpectedCurrentBinding() *LocalAssetExactBinding {
-	if x != nil {
-		return x.ExpectedCurrentBinding
-	}
-	return nil
-}
-
-func (x *RebindLocalCapabilityRequirementRequest) GetTarget() *LocalAssetExactBindingTarget {
-	if x != nil {
-		return x.Target
-	}
-	return nil
-}
-
-type RebindLocalCapabilityRequirementResponse struct {
-	state         protoimpl.MessageState        `protogen:"open.v1"`
-	Configuration *LocalCapabilityConfiguration `protobuf:"bytes,1,opt,name=configuration,proto3" json:"configuration,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *RebindLocalCapabilityRequirementResponse) Reset() {
-	*x = RebindLocalCapabilityRequirementResponse{}
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[37]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *RebindLocalCapabilityRequirementResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*RebindLocalCapabilityRequirementResponse) ProtoMessage() {}
-
-func (x *RebindLocalCapabilityRequirementResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[37]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use RebindLocalCapabilityRequirementResponse.ProtoReflect.Descriptor instead.
-func (*RebindLocalCapabilityRequirementResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{37}
-}
-
-func (x *RebindLocalCapabilityRequirementResponse) GetConfiguration() *LocalCapabilityConfiguration {
-	if x != nil {
-		return x.Configuration
-	}
-	return nil
-}
-
-type UnbindLocalCapabilityRequirementRequest struct {
-	state                  protoimpl.MessageState  `protogen:"open.v1"`
-	ConfigurationId        string                  `protobuf:"bytes,1,opt,name=configuration_id,json=configurationId,proto3" json:"configuration_id,omitempty"`
-	RequirementId          string                  `protobuf:"bytes,2,opt,name=requirement_id,json=requirementId,proto3" json:"requirement_id,omitempty"`
-	ExpectedCurrentBinding *LocalAssetExactBinding `protobuf:"bytes,3,opt,name=expected_current_binding,json=expectedCurrentBinding,proto3" json:"expected_current_binding,omitempty"`
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
-}
-
-func (x *UnbindLocalCapabilityRequirementRequest) Reset() {
-	*x = UnbindLocalCapabilityRequirementRequest{}
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[38]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *UnbindLocalCapabilityRequirementRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*UnbindLocalCapabilityRequirementRequest) ProtoMessage() {}
-
-func (x *UnbindLocalCapabilityRequirementRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[38]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use UnbindLocalCapabilityRequirementRequest.ProtoReflect.Descriptor instead.
-func (*UnbindLocalCapabilityRequirementRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{38}
-}
-
-func (x *UnbindLocalCapabilityRequirementRequest) GetConfigurationId() string {
-	if x != nil {
-		return x.ConfigurationId
-	}
-	return ""
-}
-
-func (x *UnbindLocalCapabilityRequirementRequest) GetRequirementId() string {
-	if x != nil {
-		return x.RequirementId
-	}
-	return ""
-}
-
-func (x *UnbindLocalCapabilityRequirementRequest) GetExpectedCurrentBinding() *LocalAssetExactBinding {
-	if x != nil {
-		return x.ExpectedCurrentBinding
-	}
-	return nil
-}
-
-type UnbindLocalCapabilityRequirementResponse struct {
-	state         protoimpl.MessageState        `protogen:"open.v1"`
-	Configuration *LocalCapabilityConfiguration `protobuf:"bytes,1,opt,name=configuration,proto3" json:"configuration,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *UnbindLocalCapabilityRequirementResponse) Reset() {
-	*x = UnbindLocalCapabilityRequirementResponse{}
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[39]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *UnbindLocalCapabilityRequirementResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*UnbindLocalCapabilityRequirementResponse) ProtoMessage() {}
-
-func (x *UnbindLocalCapabilityRequirementResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[39]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use UnbindLocalCapabilityRequirementResponse.ProtoReflect.Descriptor instead.
-func (*UnbindLocalCapabilityRequirementResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{39}
-}
-
-func (x *UnbindLocalCapabilityRequirementResponse) GetConfiguration() *LocalCapabilityConfiguration {
-	if x != nil {
-		return x.Configuration
-	}
-	return nil
 }
 
 var File_runtime_v1_capability_configuration_proto protoreflect.FileDescriptor
 
 const file_runtime_v1_capability_configuration_proto_rawDesc = "" +
 	"\n" +
-	")runtime/v1/capability_configuration.proto\x12\x0fnimi.runtime.v1\x1a\x1cgoogle/protobuf/struct.proto\"\x93\x01\n" +
+	")runtime/v1/capability_configuration.proto\x12\x0fnimi.runtime.v1\x1a\x1cgoogle/protobuf/struct.proto\x1a\x17runtime/v1/common.proto\"\x93\x01\n" +
 	" CapabilityImplementationIdentity\x12+\n" +
 	"\x11implementation_id\x18\x01 \x01(\tR\x10implementationId\x12\x1b\n" +
 	"\tdriver_id\x18\x02 \x01(\tR\bdriverId\x12%\n" +
@@ -2531,36 +3009,163 @@ const file_runtime_v1_capability_configuration_proto_rawDesc = "" +
 	"\x19compatibility_constraints\x18\x06 \x01(\v2\x17.google.protobuf.StructR\x18compatibilityConstraints\x12-\n" +
 	"\x12occurrence_ordinal\x18\a \x01(\rR\x11occurrenceOrdinal\x12#\n" +
 	"\rdisplay_label\x18\b \x01(\tR\fdisplayLabel\"\xb8\x01\n" +
-	"\x16LocalAssetExactBinding\x12%\n" +
+	"\x16ModelAssetExactBinding\x12%\n" +
 	"\x0erequirement_id\x18\x01 \x01(\tR\rrequirementId\x12$\n" +
-	"\x0elocal_asset_id\x18\x02 \x01(\tR\flocalAssetId\x12.\n" +
+	"\x0emodel_asset_id\x18\x02 \x01(\tR\fmodelAssetId\x12.\n" +
 	"\x13verified_content_id\x18\x03 \x01(\tR\x11verifiedContentId\x12!\n" +
-	"\fentry_sha256\x18\x04 \x01(\tR\ventrySha256\"\xe4\x06\n" +
-	"\x1cLocalCapabilityConfiguration\x12)\n" +
-	"\x10configuration_id\x18\x01 \x01(\tR\x0fconfigurationId\x12/\n" +
+	"\fentry_sha256\x18\x04 \x01(\tR\ventrySha256\"\x8a\x02\n" +
+	"\x10LoadoutModelAxis\x12\x17\n" +
+	"\aslot_id\x18\x01 \x01(\tR\x06slotId\x12#\n" +
+	"\rdisplay_label\x18\x02 \x01(\tR\fdisplayLabel\x12$\n" +
+	"\x0emodel_asset_id\x18\x03 \x01(\tR\fmodelAssetId\x12.\n" +
+	"\x13expected_content_id\x18\x04 \x01(\tR\x11expectedContentId\x12+\n" +
+	"\x11recipe_compatible\x18\x05 \x01(\bR\x10recipeCompatible\x125\n" +
+	"\areasons\x18\x06 \x03(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\areasons\"n\n" +
+	"\x1dLoadoutRecipeCustodyReference\x12\x1d\n" +
+	"\n" +
+	"custody_id\x18\x01 \x01(\tR\tcustodyId\x12.\n" +
+	"\x13expected_content_id\x18\x02 \x01(\tR\x11expectedContentId\"\x9a\x06\n" +
+	"\aLoadout\x12\x1d\n" +
+	"\n" +
+	"loadout_id\x18\x01 \x01(\tR\tloadoutId\x12/\n" +
 	"\x13capability_contract\x18\x02 \x01(\tR\x12capabilityContract\x12Y\n" +
-	"\x0eimplementation\x18\x03 \x01(\v21.nimi.runtime.v1.CapabilityImplementationIdentityR\x0eimplementation\x12@\n" +
-	"\x0fportable_config\x18\x04 \x01(\v2\x17.google.protobuf.StructR\x0eportableConfig\x12b\n" +
-	"\x16projected_requirements\x18\x05 \x03(\v2+.nimi.runtime.v1.LocalCapabilityRequirementR\x15projectedRequirements\x12N\n" +
-	"\x0eexact_bindings\x18\x06 \x03(\v2'.nimi.runtime.v1.LocalAssetExactBindingR\rexactBindings\x12-\n" +
-	"\x12supported_features\x18\a \x03(\tR\x11supportedFeatures\x12\\\n" +
-	"\x10interpretability\x18\b \x01(\x0e20.nimi.runtime.v1.LocalCapabilityInterpretabilityR\x10interpretability\x12l\n" +
-	"\x16requirement_resolution\x18\t \x01(\x0e25.nimi.runtime.v1.LocalCapabilityRequirementResolutionR\x15requirementResolution\x12@\n" +
-	"\areasons\x18\n" +
-	" \x03(\x0e2&.nimi.runtime.v1.LocalCapabilityReasonR\areasons\x12!\n" +
-	"\fdisplay_name\x18\v \x01(\tR\vdisplayName\x127\n" +
+	"\x0eimplementation\x18\x03 \x01(\v21.nimi.runtime.v1.CapabilityImplementationIdentityR\x0eimplementation\x12\x1b\n" +
+	"\trecipe_id\x18\x04 \x01(\tR\brecipeId\x12'\n" +
+	"\x0frecipe_revision\x18\x05 \x01(\tR\x0erecipeRevision\x121\n" +
+	"\aoptions\x18\x06 \x01(\v2\x17.google.protobuf.StructR\aoptions\x12@\n" +
 	"\n" +
-	"provenance\x18\f \x01(\v2\x17.google.protobuf.StructR\n" +
-	"provenance\"\xbe\x01\n" +
-	"\x18LocalCapabilitySelection\x12/\n" +
-	"\x13capability_contract\x18\x01 \x01(\tR\x12capabilityContract\x12)\n" +
-	"\x10configuration_id\x18\x02 \x01(\tR\x0fconfigurationId\x12F\n" +
-	"\x12effective_defaults\x18\x03 \x01(\v2\x17.google.protobuf.StructR\x11effectiveDefaults\"\xbf\x01\n" +
-	"\x1bMachineLocalAIConfiguration\x12U\n" +
-	"\x0econfigurations\x18\x01 \x03(\v2-.nimi.runtime.v1.LocalCapabilityConfigurationR\x0econfigurations\x12I\n" +
+	"model_axes\x18\a \x03(\v2!.nimi.runtime.v1.LoadoutModelAxisR\tmodelAxes\x12U\n" +
+	"\x0erecipe_custody\x18\b \x03(\v2..nimi.runtime.v1.LoadoutRecipeCustodyReferenceR\rrecipeCustody\x12-\n" +
+	"\x12supported_features\x18\t \x03(\tR\x11supportedFeatures\x12R\n" +
+	"\x10validation_state\x18\n" +
+	" \x01(\x0e2'.nimi.runtime.v1.LoadoutValidationStateR\x0fvalidationState\x125\n" +
+	"\areasons\x18\v \x03(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\areasons\x12!\n" +
+	"\fdisplay_name\x18\f \x01(\tR\vdisplayName\x127\n" +
 	"\n" +
-	"selections\x18\x02 \x03(\v2).nimi.runtime.v1.LocalCapabilitySelectionR\n" +
-	"selections\")\n" +
+	"provenance\x18\r \x01(\v2\x17.google.protobuf.StructR\n" +
+	"provenance\x12\x1d\n" +
+	"\n" +
+	"created_at\x18\x0e \x01(\tR\tcreatedAt\x12\x1d\n" +
+	"\n" +
+	"updated_at\x18\x0f \x01(\tR\tupdatedAt\"\xaa\x01\n" +
+	"\x10LoadoutSelection\x12/\n" +
+	"\x13capability_contract\x18\x01 \x01(\tR\x12capabilityContract\x12\x1d\n" +
+	"\n" +
+	"loadout_id\x18\x02 \x01(\tR\tloadoutId\x12F\n" +
+	"\x12effective_defaults\x18\x03 \x01(\v2\x17.google.protobuf.StructR\x11effectiveDefaults\"\x8a\x01\n" +
+	"\x0fMachineLoadouts\x124\n" +
+	"\bloadouts\x18\x01 \x03(\v2\x18.nimi.runtime.v1.LoadoutR\bloadouts\x12A\n" +
+	"\n" +
+	"selections\x18\x02 \x03(\v2!.nimi.runtime.v1.LoadoutSelectionR\n" +
+	"selections\"\x86\x01\n" +
+	"\x15LoadoutModelAxisInput\x12\x17\n" +
+	"\aslot_id\x18\x01 \x01(\tR\x06slotId\x12$\n" +
+	"\x0emodel_asset_id\x18\x02 \x01(\tR\fmodelAssetId\x12.\n" +
+	"\x13expected_content_id\x18\x03 \x01(\tR\x11expectedContentId\"\xe3\x01\n" +
+	"\x17LoadoutImpactProjection\x12/\n" +
+	"\x13capability_contract\x18\x01 \x01(\tR\x12capabilityContract\x12\x1d\n" +
+	"\n" +
+	"loadout_id\x18\x02 \x01(\tR\tloadoutId\x12C\n" +
+	"\x1echanges_future_local_execution\x18\x03 \x01(\bR\x1bchangesFutureLocalExecution\x123\n" +
+	"\x15confirmation_required\x18\x04 \x01(\bR\x14confirmationRequired\"\x8b\x02\n" +
+	"\x1bLoadoutRecipeSlotDescriptor\x12\x17\n" +
+	"\aslot_id\x18\x01 \x01(\tR\x06slotId\x12#\n" +
+	"\rdisplay_label\x18\x02 \x01(\tR\fdisplayLabel\x126\n" +
+	"\x17recommended_content_ids\x18\x03 \x03(\tR\x15recommendedContentIds\x12>\n" +
+	"\x0emodel_contract\x18\x04 \x01(\v2\x17.google.protobuf.StructR\rmodelContract\x126\n" +
+	"\x17recommended_variant_ids\x18\x05 \x03(\tR\x15recommendedVariantIds\"\xf4\x03\n" +
+	"\x17LoadoutRecipeDescriptor\x12\x1b\n" +
+	"\trecipe_id\x18\x01 \x01(\tR\brecipeId\x12\x1a\n" +
+	"\brevision\x18\x02 \x01(\tR\brevision\x12\x14\n" +
+	"\x05title\x18\x03 \x01(\tR\x05title\x12/\n" +
+	"\x13capability_contract\x18\x04 \x01(\tR\x12capabilityContract\x12Y\n" +
+	"\x0eimplementation\x18\x05 \x01(\v21.nimi.runtime.v1.CapabilityImplementationIdentityR\x0eimplementation\x12@\n" +
+	"\x0fdefault_options\x18\x06 \x01(\v2\x17.google.protobuf.StructR\x0edefaultOptions\x12-\n" +
+	"\x12supported_features\x18\a \x03(\tR\x11supportedFeatures\x12B\n" +
+	"\x05slots\x18\b \x03(\v2,.nimi.runtime.v1.LoadoutRecipeSlotDescriptorR\x05slots\x12I\n" +
+	"\acustody\x18\t \x03(\v2/.nimi.runtime.v1.LoadoutRecipeCustodyDescriptorR\acustody\"L\n" +
+	"\x19ListLoadoutRecipesRequest\x12/\n" +
+	"\x13capability_contract\x18\x01 \x01(\tR\x12capabilityContract\"`\n" +
+	"\x1aListLoadoutRecipesResponse\x12B\n" +
+	"\arecipes\x18\x01 \x03(\v2(.nimi.runtime.v1.LoadoutRecipeDescriptorR\arecipes\"\x1b\n" +
+	"\x19GetMachineLoadoutsRequest\"\\\n" +
+	"\x1aGetMachineLoadoutsResponse\x12>\n" +
+	"\taggregate\x18\x01 \x01(\v2 .nimi.runtime.v1.MachineLoadoutsR\taggregate\"2\n" +
+	"\x11GetLoadoutRequest\x12\x1d\n" +
+	"\n" +
+	"loadout_id\x18\x01 \x01(\tR\tloadoutId\"H\n" +
+	"\x12GetLoadoutResponse\x122\n" +
+	"\aloadout\x18\x01 \x01(\v2\x18.nimi.runtime.v1.LoadoutR\aloadout\"\x89\x03\n" +
+	"\x15PrepareLoadoutRequest\x12\x1d\n" +
+	"\n" +
+	"loadout_id\x18\x01 \x01(\tR\tloadoutId\x12/\n" +
+	"\x13capability_contract\x18\x02 \x01(\tR\x12capabilityContract\x12\x1b\n" +
+	"\trecipe_id\x18\x03 \x01(\tR\brecipeId\x121\n" +
+	"\aoptions\x18\x04 \x01(\v2\x17.google.protobuf.StructR\aoptions\x12-\n" +
+	"\x12supported_features\x18\x05 \x03(\tR\x11supportedFeatures\x12E\n" +
+	"\n" +
+	"model_axes\x18\x06 \x03(\v2&.nimi.runtime.v1.LoadoutModelAxisInputR\tmodelAxes\x12!\n" +
+	"\fdisplay_name\x18\a \x01(\tR\vdisplayName\x127\n" +
+	"\n" +
+	"provenance\x18\b \x01(\v2\x17.google.protobuf.StructR\n" +
+	"provenance\"\xdd\x01\n" +
+	"\x16PrepareLoadoutResponse\x12\x1d\n" +
+	"\n" +
+	"prepare_id\x18\x01 \x01(\tR\tprepareId\x12C\n" +
+	"\x10proposed_loadout\x18\x02 \x01(\v2\x18.nimi.runtime.v1.LoadoutR\x0fproposedLoadout\x12\x1d\n" +
+	"\n" +
+	"expires_at\x18\x03 \x01(\tR\texpiresAt\x12@\n" +
+	"\x06impact\x18\x04 \x01(\v2(.nimi.runtime.v1.LoadoutImpactProjectionR\x06impact\"o\n" +
+	"\x14CommitLoadoutRequest\x12\x1d\n" +
+	"\n" +
+	"prepare_id\x18\x01 \x01(\tR\tprepareId\x128\n" +
+	"\x18confirmed_machine_impact\x18\x02 \x01(\bR\x16confirmedMachineImpact\"K\n" +
+	"\x15CommitLoadoutResponse\x122\n" +
+	"\aloadout\x18\x01 \x01(\v2\x18.nimi.runtime.v1.LoadoutR\aloadout\"\xc2\x03\n" +
+	"\x14UpdateLoadoutRequest\x12\x1d\n" +
+	"\n" +
+	"loadout_id\x18\x01 \x01(\tR\tloadoutId\x12/\n" +
+	"\x13capability_contract\x18\x02 \x01(\tR\x12capabilityContract\x12\x1b\n" +
+	"\trecipe_id\x18\x03 \x01(\tR\brecipeId\x121\n" +
+	"\aoptions\x18\x04 \x01(\v2\x17.google.protobuf.StructR\aoptions\x12-\n" +
+	"\x12supported_features\x18\x05 \x03(\tR\x11supportedFeatures\x12E\n" +
+	"\n" +
+	"model_axes\x18\x06 \x03(\v2&.nimi.runtime.v1.LoadoutModelAxisInputR\tmodelAxes\x12!\n" +
+	"\fdisplay_name\x18\a \x01(\tR\vdisplayName\x127\n" +
+	"\n" +
+	"provenance\x18\b \x01(\v2\x17.google.protobuf.StructR\n" +
+	"provenance\x128\n" +
+	"\x18confirmed_machine_impact\x18\t \x01(\bR\x16confirmedMachineImpact\"K\n" +
+	"\x15UpdateLoadoutResponse\x122\n" +
+	"\aloadout\x18\x01 \x01(\v2\x18.nimi.runtime.v1.LoadoutR\aloadout\"\xa0\x01\n" +
+	"\x14SelectLoadoutRequest\x12/\n" +
+	"\x13capability_contract\x18\x01 \x01(\tR\x12capabilityContract\x12\x1d\n" +
+	"\n" +
+	"loadout_id\x18\x02 \x01(\tR\tloadoutId\x128\n" +
+	"\x18confirmed_machine_impact\x18\x03 \x01(\bR\x16confirmedMachineImpact\"X\n" +
+	"\x15SelectLoadoutResponse\x12?\n" +
+	"\tselection\x18\x01 \x01(\v2!.nimi.runtime.v1.LoadoutSelectionR\tselection\"o\n" +
+	"\x14DeleteLoadoutRequest\x12\x1d\n" +
+	"\n" +
+	"loadout_id\x18\x01 \x01(\tR\tloadoutId\x128\n" +
+	"\x18confirmed_machine_impact\x18\x02 \x01(\bR\x16confirmedMachineImpact\"\x17\n" +
+	"\x15DeleteLoadoutResponse\"\x81\x01\n" +
+	"!LoadoutEffectiveModelAxisIdentity\x12\x17\n" +
+	"\aslot_id\x18\x01 \x01(\tR\x06slotId\x12$\n" +
+	"\x0emodel_asset_id\x18\x02 \x01(\tR\fmodelAssetId\x12\x1d\n" +
+	"\n" +
+	"content_id\x18\x03 \x01(\tR\tcontentId\"\xed\x03\n" +
+	"\x1dLoadoutEffectiveInputIdentity\x12\x1d\n" +
+	"\n" +
+	"loadout_id\x18\x01 \x01(\tR\tloadoutId\x12/\n" +
+	"\x13capability_contract\x18\x02 \x01(\tR\x12capabilityContract\x12Y\n" +
+	"\x0eimplementation\x18\x03 \x01(\v21.nimi.runtime.v1.CapabilityImplementationIdentityR\x0eimplementation\x12\x1b\n" +
+	"\trecipe_id\x18\x04 \x01(\tR\brecipeId\x12'\n" +
+	"\x0frecipe_revision\x18\x05 \x01(\tR\x0erecipeRevision\x121\n" +
+	"\aoptions\x18\x06 \x01(\v2\x17.google.protobuf.StructR\aoptions\x12Q\n" +
+	"\n" +
+	"model_axes\x18\a \x03(\v22.nimi.runtime.v1.LoadoutEffectiveModelAxisIdentityR\tmodelAxes\x12U\n" +
+	"\x0erecipe_custody\x18\b \x03(\v2..nimi.runtime.v1.LoadoutRecipeCustodyReferenceR\rrecipeCustody\")\n" +
 	"\x10AIConfigAppOwner\x12\x15\n" +
 	"\x06app_id\x18\x01 \x01(\tR\x05appId\")\n" +
 	"'AIConfigRuntimeLocalAgentSubsystemOwner\"\xce\x01\n" +
@@ -2589,72 +3194,12 @@ const file_runtime_v1_capability_configuration_proto_rawDesc = "" +
 	"\x1bOverwriteAppAIConfigRequest\x121\n" +
 	"\x06config\x18\x01 \x01(\v2\x19.nimi.runtime.v1.AIConfigR\x06config\"Q\n" +
 	"\x1cOverwriteAppAIConfigResponse\x121\n" +
-	"\x06config\x18\x01 \x01(\v2\x19.nimi.runtime.v1.AIConfigR\x06config\"'\n" +
-	"%GetMachineLocalAIConfigurationRequest\"t\n" +
-	"&GetMachineLocalAIConfigurationResponse\x12J\n" +
-	"\taggregate\x18\x01 \x01(\v2,.nimi.runtime.v1.MachineLocalAIConfigurationR\taggregate\"S\n" +
-	"&GetLocalCapabilityConfigurationRequest\x12)\n" +
-	"\x10configuration_id\x18\x01 \x01(\tR\x0fconfigurationId\"~\n" +
-	"'GetLocalCapabilityConfigurationResponse\x12S\n" +
-	"\rconfiguration\x18\x01 \x01(\v2-.nimi.runtime.v1.LocalCapabilityConfigurationR\rconfiguration\"\x81\x03\n" +
-	"&AddLocalCapabilityConfigurationRequest\x12/\n" +
-	"\x13capability_contract\x18\x01 \x01(\tR\x12capabilityContract\x12Y\n" +
-	"\x0eimplementation\x18\x02 \x01(\v21.nimi.runtime.v1.CapabilityImplementationIdentityR\x0eimplementation\x12@\n" +
-	"\x0fportable_config\x18\x03 \x01(\v2\x17.google.protobuf.StructR\x0eportableConfig\x12-\n" +
-	"\x12supported_features\x18\x04 \x03(\tR\x11supportedFeatures\x12!\n" +
-	"\fdisplay_name\x18\x05 \x01(\tR\vdisplayName\x127\n" +
-	"\n" +
-	"provenance\x18\x06 \x01(\v2\x17.google.protobuf.StructR\n" +
-	"provenance\"~\n" +
-	"'AddLocalCapabilityConfigurationResponse\x12S\n" +
-	"\rconfiguration\x18\x01 \x01(\v2-.nimi.runtime.v1.LocalCapabilityConfigurationR\rconfiguration\"\xa3\x02\n" +
-	")UpdateLocalCapabilityConfigurationRequest\x12)\n" +
-	"\x10configuration_id\x18\x01 \x01(\tR\x0fconfigurationId\x12@\n" +
-	"\x0fportable_config\x18\x02 \x01(\v2\x17.google.protobuf.StructR\x0eportableConfig\x12-\n" +
-	"\x12supported_features\x18\x03 \x03(\tR\x11supportedFeatures\x12!\n" +
-	"\fdisplay_name\x18\x04 \x01(\tR\vdisplayName\x127\n" +
-	"\n" +
-	"provenance\x18\x05 \x01(\v2\x17.google.protobuf.StructR\n" +
-	"provenance\"\x81\x01\n" +
-	"*UpdateLocalCapabilityConfigurationResponse\x12S\n" +
-	"\rconfiguration\x18\x01 \x01(\v2-.nimi.runtime.v1.LocalCapabilityConfigurationR\rconfiguration\"\x87\x01\n" +
-	")SelectLocalCapabilityConfigurationRequest\x12/\n" +
-	"\x13capability_contract\x18\x01 \x01(\tR\x12capabilityContract\x12)\n" +
-	"\x10configuration_id\x18\x02 \x01(\tR\x0fconfigurationId\"u\n" +
-	"*SelectLocalCapabilityConfigurationResponse\x12G\n" +
-	"\tselection\x18\x01 \x01(\v2).nimi.runtime.v1.LocalCapabilitySelectionR\tselection\"W\n" +
-	"$ClearLocalCapabilitySelectionRequest\x12/\n" +
-	"\x13capability_contract\x18\x01 \x01(\tR\x12capabilityContract\"'\n" +
-	"%ClearLocalCapabilitySelectionResponse\"V\n" +
-	")DeleteLocalCapabilityConfigurationRequest\x12)\n" +
-	"\x10configuration_id\x18\x01 \x01(\tR\x0fconfigurationId\",\n" +
-	"*DeleteLocalCapabilityConfigurationResponse\"X\n" +
-	"+ReprojectLocalCapabilityRequirementsRequest\x12)\n" +
-	"\x10configuration_id\x18\x01 \x01(\tR\x0fconfigurationId\"\x83\x01\n" +
-	",ReprojectLocalCapabilityRequirementsResponse\x12S\n" +
-	"\rconfiguration\x18\x01 \x01(\v2-.nimi.runtime.v1.LocalCapabilityConfigurationR\rconfiguration\"\x85\x01\n" +
-	"\x1cLocalAssetExactBindingTarget\x12$\n" +
-	"\x0elocal_asset_id\x18\x01 \x01(\tR\flocalAssetId\x12?\n" +
-	"\x1cexpected_verified_content_id\x18\x02 \x01(\tR\x19expectedVerifiedContentId\"\xc0\x01\n" +
-	"%BindLocalCapabilityRequirementRequest\x12)\n" +
-	"\x10configuration_id\x18\x01 \x01(\tR\x0fconfigurationId\x12%\n" +
-	"\x0erequirement_id\x18\x02 \x01(\tR\rrequirementId\x12E\n" +
-	"\x06target\x18\x03 \x01(\v2-.nimi.runtime.v1.LocalAssetExactBindingTargetR\x06target\"}\n" +
-	"&BindLocalCapabilityRequirementResponse\x12S\n" +
-	"\rconfiguration\x18\x01 \x01(\v2-.nimi.runtime.v1.LocalCapabilityConfigurationR\rconfiguration\"\xa5\x02\n" +
-	"'RebindLocalCapabilityRequirementRequest\x12)\n" +
-	"\x10configuration_id\x18\x01 \x01(\tR\x0fconfigurationId\x12%\n" +
-	"\x0erequirement_id\x18\x02 \x01(\tR\rrequirementId\x12a\n" +
-	"\x18expected_current_binding\x18\x03 \x01(\v2'.nimi.runtime.v1.LocalAssetExactBindingR\x16expectedCurrentBinding\x12E\n" +
-	"\x06target\x18\x04 \x01(\v2-.nimi.runtime.v1.LocalAssetExactBindingTargetR\x06target\"\x7f\n" +
-	"(RebindLocalCapabilityRequirementResponse\x12S\n" +
-	"\rconfiguration\x18\x01 \x01(\v2-.nimi.runtime.v1.LocalCapabilityConfigurationR\rconfiguration\"\xde\x01\n" +
-	"'UnbindLocalCapabilityRequirementRequest\x12)\n" +
-	"\x10configuration_id\x18\x01 \x01(\tR\x0fconfigurationId\x12%\n" +
-	"\x0erequirement_id\x18\x02 \x01(\tR\rrequirementId\x12a\n" +
-	"\x18expected_current_binding\x18\x03 \x01(\v2'.nimi.runtime.v1.LocalAssetExactBindingR\x16expectedCurrentBinding\"\x7f\n" +
-	"(UnbindLocalCapabilityRequirementResponse\x12S\n" +
-	"\rconfiguration\x18\x01 \x01(\v2-.nimi.runtime.v1.LocalCapabilityConfigurationR\rconfiguration*\xbc\x01\n" +
+	"\x06config\x18\x01 \x01(\v2\x19.nimi.runtime.v1.AIConfigR\x06config\"x\n" +
+	"\x1eLoadoutRecipeCustodyDescriptor\x12\x12\n" +
+	"\x04file\x18\x01 \x01(\tR\x04file\x12\x16\n" +
+	"\x06sha256\x18\x02 \x01(\tR\x06sha256\x12\x16\n" +
+	"\x06source\x18\x03 \x01(\tR\x06source\x12\x12\n" +
+	"\x04role\x18\x04 \x01(\tR\x04role*\xbc\x01\n" +
 	"\x1fLocalCapabilityInterpretability\x121\n" +
 	"-LOCAL_CAPABILITY_INTERPRETABILITY_UNSPECIFIED\x10\x00\x123\n" +
 	"/LOCAL_CAPABILITY_INTERPRETABILITY_INTERPRETABLE\x10\x01\x121\n" +
@@ -2684,7 +3229,12 @@ const file_runtime_v1_capability_configuration_proto_rawDesc = "" +
 	"6LOCAL_CAPABILITY_REASON_LOCAL_ASSET_CONTENT_UNVERIFIED\x10\t\x128\n" +
 	"4LOCAL_CAPABILITY_REASON_LOCAL_ASSET_CONTENT_MISMATCH\x10\n" +
 	"\x124\n" +
-	"0LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE\x10\vB?Z=github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1b\x06proto3"
+	"0LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE\x10\v*\xba\x01\n" +
+	"\x16LoadoutValidationState\x12(\n" +
+	"$LOADOUT_VALIDATION_STATE_UNSPECIFIED\x10\x00\x12'\n" +
+	"#LOADOUT_VALIDATION_STATE_CONFIGURED\x10\x01\x12'\n" +
+	"#LOADOUT_VALIDATION_STATE_UNRESOLVED\x10\x02\x12$\n" +
+	" LOADOUT_VALIDATION_STATE_BLOCKED\x10\x03B?Z=github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1b\x06proto3"
 
 var (
 	file_runtime_v1_capability_configuration_proto_rawDescOnce sync.Once
@@ -2698,107 +3248,116 @@ func file_runtime_v1_capability_configuration_proto_rawDescGZIP() []byte {
 	return file_runtime_v1_capability_configuration_proto_rawDescData
 }
 
-var file_runtime_v1_capability_configuration_proto_enumTypes = make([]protoimpl.EnumInfo, 5)
-var file_runtime_v1_capability_configuration_proto_msgTypes = make([]protoimpl.MessageInfo, 40)
+var file_runtime_v1_capability_configuration_proto_enumTypes = make([]protoimpl.EnumInfo, 6)
+var file_runtime_v1_capability_configuration_proto_msgTypes = make([]protoimpl.MessageInfo, 42)
 var file_runtime_v1_capability_configuration_proto_goTypes = []any{
-	(LocalCapabilityInterpretability)(0),                 // 0: nimi.runtime.v1.LocalCapabilityInterpretability
-	(LocalCapabilityRequirementResolution)(0),            // 1: nimi.runtime.v1.LocalCapabilityRequirementResolution
-	(LocalCapabilityRequirementPolicy)(0),                // 2: nimi.runtime.v1.LocalCapabilityRequirementPolicy
-	(LocalCapabilityRequirementRole)(0),                  // 3: nimi.runtime.v1.LocalCapabilityRequirementRole
-	(LocalCapabilityReason)(0),                           // 4: nimi.runtime.v1.LocalCapabilityReason
-	(*CapabilityImplementationIdentity)(nil),             // 5: nimi.runtime.v1.CapabilityImplementationIdentity
-	(*LocalCapabilityRequirement)(nil),                   // 6: nimi.runtime.v1.LocalCapabilityRequirement
-	(*LocalAssetExactBinding)(nil),                       // 7: nimi.runtime.v1.LocalAssetExactBinding
-	(*LocalCapabilityConfiguration)(nil),                 // 8: nimi.runtime.v1.LocalCapabilityConfiguration
-	(*LocalCapabilitySelection)(nil),                     // 9: nimi.runtime.v1.LocalCapabilitySelection
-	(*MachineLocalAIConfiguration)(nil),                  // 10: nimi.runtime.v1.MachineLocalAIConfiguration
-	(*AIConfigAppOwner)(nil),                             // 11: nimi.runtime.v1.AIConfigAppOwner
-	(*AIConfigRuntimeLocalAgentSubsystemOwner)(nil),      // 12: nimi.runtime.v1.AIConfigRuntimeLocalAgentSubsystemOwner
-	(*AIConfigOwner)(nil),                                // 13: nimi.runtime.v1.AIConfigOwner
-	(*AIConfigLocalIntent)(nil),                          // 14: nimi.runtime.v1.AIConfigLocalIntent
-	(*AIConfigCloudIntent)(nil),                          // 15: nimi.runtime.v1.AIConfigCloudIntent
-	(*AIConfigCapabilityIntent)(nil),                     // 16: nimi.runtime.v1.AIConfigCapabilityIntent
-	(*AIConfig)(nil),                                     // 17: nimi.runtime.v1.AIConfig
-	(*GetAppAIConfigRequest)(nil),                        // 18: nimi.runtime.v1.GetAppAIConfigRequest
-	(*GetAppAIConfigResponse)(nil),                       // 19: nimi.runtime.v1.GetAppAIConfigResponse
-	(*OverwriteAppAIConfigRequest)(nil),                  // 20: nimi.runtime.v1.OverwriteAppAIConfigRequest
-	(*OverwriteAppAIConfigResponse)(nil),                 // 21: nimi.runtime.v1.OverwriteAppAIConfigResponse
-	(*GetMachineLocalAIConfigurationRequest)(nil),        // 22: nimi.runtime.v1.GetMachineLocalAIConfigurationRequest
-	(*GetMachineLocalAIConfigurationResponse)(nil),       // 23: nimi.runtime.v1.GetMachineLocalAIConfigurationResponse
-	(*GetLocalCapabilityConfigurationRequest)(nil),       // 24: nimi.runtime.v1.GetLocalCapabilityConfigurationRequest
-	(*GetLocalCapabilityConfigurationResponse)(nil),      // 25: nimi.runtime.v1.GetLocalCapabilityConfigurationResponse
-	(*AddLocalCapabilityConfigurationRequest)(nil),       // 26: nimi.runtime.v1.AddLocalCapabilityConfigurationRequest
-	(*AddLocalCapabilityConfigurationResponse)(nil),      // 27: nimi.runtime.v1.AddLocalCapabilityConfigurationResponse
-	(*UpdateLocalCapabilityConfigurationRequest)(nil),    // 28: nimi.runtime.v1.UpdateLocalCapabilityConfigurationRequest
-	(*UpdateLocalCapabilityConfigurationResponse)(nil),   // 29: nimi.runtime.v1.UpdateLocalCapabilityConfigurationResponse
-	(*SelectLocalCapabilityConfigurationRequest)(nil),    // 30: nimi.runtime.v1.SelectLocalCapabilityConfigurationRequest
-	(*SelectLocalCapabilityConfigurationResponse)(nil),   // 31: nimi.runtime.v1.SelectLocalCapabilityConfigurationResponse
-	(*ClearLocalCapabilitySelectionRequest)(nil),         // 32: nimi.runtime.v1.ClearLocalCapabilitySelectionRequest
-	(*ClearLocalCapabilitySelectionResponse)(nil),        // 33: nimi.runtime.v1.ClearLocalCapabilitySelectionResponse
-	(*DeleteLocalCapabilityConfigurationRequest)(nil),    // 34: nimi.runtime.v1.DeleteLocalCapabilityConfigurationRequest
-	(*DeleteLocalCapabilityConfigurationResponse)(nil),   // 35: nimi.runtime.v1.DeleteLocalCapabilityConfigurationResponse
-	(*ReprojectLocalCapabilityRequirementsRequest)(nil),  // 36: nimi.runtime.v1.ReprojectLocalCapabilityRequirementsRequest
-	(*ReprojectLocalCapabilityRequirementsResponse)(nil), // 37: nimi.runtime.v1.ReprojectLocalCapabilityRequirementsResponse
-	(*LocalAssetExactBindingTarget)(nil),                 // 38: nimi.runtime.v1.LocalAssetExactBindingTarget
-	(*BindLocalCapabilityRequirementRequest)(nil),        // 39: nimi.runtime.v1.BindLocalCapabilityRequirementRequest
-	(*BindLocalCapabilityRequirementResponse)(nil),       // 40: nimi.runtime.v1.BindLocalCapabilityRequirementResponse
-	(*RebindLocalCapabilityRequirementRequest)(nil),      // 41: nimi.runtime.v1.RebindLocalCapabilityRequirementRequest
-	(*RebindLocalCapabilityRequirementResponse)(nil),     // 42: nimi.runtime.v1.RebindLocalCapabilityRequirementResponse
-	(*UnbindLocalCapabilityRequirementRequest)(nil),      // 43: nimi.runtime.v1.UnbindLocalCapabilityRequirementRequest
-	(*UnbindLocalCapabilityRequirementResponse)(nil),     // 44: nimi.runtime.v1.UnbindLocalCapabilityRequirementResponse
-	(*structpb.Struct)(nil),                              // 45: google.protobuf.Struct
+	(LocalCapabilityInterpretability)(0),            // 0: nimi.runtime.v1.LocalCapabilityInterpretability
+	(LocalCapabilityRequirementResolution)(0),       // 1: nimi.runtime.v1.LocalCapabilityRequirementResolution
+	(LocalCapabilityRequirementPolicy)(0),           // 2: nimi.runtime.v1.LocalCapabilityRequirementPolicy
+	(LocalCapabilityRequirementRole)(0),             // 3: nimi.runtime.v1.LocalCapabilityRequirementRole
+	(LocalCapabilityReason)(0),                      // 4: nimi.runtime.v1.LocalCapabilityReason
+	(LoadoutValidationState)(0),                     // 5: nimi.runtime.v1.LoadoutValidationState
+	(*CapabilityImplementationIdentity)(nil),        // 6: nimi.runtime.v1.CapabilityImplementationIdentity
+	(*LocalCapabilityRequirement)(nil),              // 7: nimi.runtime.v1.LocalCapabilityRequirement
+	(*ModelAssetExactBinding)(nil),                  // 8: nimi.runtime.v1.ModelAssetExactBinding
+	(*LoadoutModelAxis)(nil),                        // 9: nimi.runtime.v1.LoadoutModelAxis
+	(*LoadoutRecipeCustodyReference)(nil),           // 10: nimi.runtime.v1.LoadoutRecipeCustodyReference
+	(*Loadout)(nil),                                 // 11: nimi.runtime.v1.Loadout
+	(*LoadoutSelection)(nil),                        // 12: nimi.runtime.v1.LoadoutSelection
+	(*MachineLoadouts)(nil),                         // 13: nimi.runtime.v1.MachineLoadouts
+	(*LoadoutModelAxisInput)(nil),                   // 14: nimi.runtime.v1.LoadoutModelAxisInput
+	(*LoadoutImpactProjection)(nil),                 // 15: nimi.runtime.v1.LoadoutImpactProjection
+	(*LoadoutRecipeSlotDescriptor)(nil),             // 16: nimi.runtime.v1.LoadoutRecipeSlotDescriptor
+	(*LoadoutRecipeDescriptor)(nil),                 // 17: nimi.runtime.v1.LoadoutRecipeDescriptor
+	(*ListLoadoutRecipesRequest)(nil),               // 18: nimi.runtime.v1.ListLoadoutRecipesRequest
+	(*ListLoadoutRecipesResponse)(nil),              // 19: nimi.runtime.v1.ListLoadoutRecipesResponse
+	(*GetMachineLoadoutsRequest)(nil),               // 20: nimi.runtime.v1.GetMachineLoadoutsRequest
+	(*GetMachineLoadoutsResponse)(nil),              // 21: nimi.runtime.v1.GetMachineLoadoutsResponse
+	(*GetLoadoutRequest)(nil),                       // 22: nimi.runtime.v1.GetLoadoutRequest
+	(*GetLoadoutResponse)(nil),                      // 23: nimi.runtime.v1.GetLoadoutResponse
+	(*PrepareLoadoutRequest)(nil),                   // 24: nimi.runtime.v1.PrepareLoadoutRequest
+	(*PrepareLoadoutResponse)(nil),                  // 25: nimi.runtime.v1.PrepareLoadoutResponse
+	(*CommitLoadoutRequest)(nil),                    // 26: nimi.runtime.v1.CommitLoadoutRequest
+	(*CommitLoadoutResponse)(nil),                   // 27: nimi.runtime.v1.CommitLoadoutResponse
+	(*UpdateLoadoutRequest)(nil),                    // 28: nimi.runtime.v1.UpdateLoadoutRequest
+	(*UpdateLoadoutResponse)(nil),                   // 29: nimi.runtime.v1.UpdateLoadoutResponse
+	(*SelectLoadoutRequest)(nil),                    // 30: nimi.runtime.v1.SelectLoadoutRequest
+	(*SelectLoadoutResponse)(nil),                   // 31: nimi.runtime.v1.SelectLoadoutResponse
+	(*DeleteLoadoutRequest)(nil),                    // 32: nimi.runtime.v1.DeleteLoadoutRequest
+	(*DeleteLoadoutResponse)(nil),                   // 33: nimi.runtime.v1.DeleteLoadoutResponse
+	(*LoadoutEffectiveModelAxisIdentity)(nil),       // 34: nimi.runtime.v1.LoadoutEffectiveModelAxisIdentity
+	(*LoadoutEffectiveInputIdentity)(nil),           // 35: nimi.runtime.v1.LoadoutEffectiveInputIdentity
+	(*AIConfigAppOwner)(nil),                        // 36: nimi.runtime.v1.AIConfigAppOwner
+	(*AIConfigRuntimeLocalAgentSubsystemOwner)(nil), // 37: nimi.runtime.v1.AIConfigRuntimeLocalAgentSubsystemOwner
+	(*AIConfigOwner)(nil),                           // 38: nimi.runtime.v1.AIConfigOwner
+	(*AIConfigLocalIntent)(nil),                     // 39: nimi.runtime.v1.AIConfigLocalIntent
+	(*AIConfigCloudIntent)(nil),                     // 40: nimi.runtime.v1.AIConfigCloudIntent
+	(*AIConfigCapabilityIntent)(nil),                // 41: nimi.runtime.v1.AIConfigCapabilityIntent
+	(*AIConfig)(nil),                                // 42: nimi.runtime.v1.AIConfig
+	(*GetAppAIConfigRequest)(nil),                   // 43: nimi.runtime.v1.GetAppAIConfigRequest
+	(*GetAppAIConfigResponse)(nil),                  // 44: nimi.runtime.v1.GetAppAIConfigResponse
+	(*OverwriteAppAIConfigRequest)(nil),             // 45: nimi.runtime.v1.OverwriteAppAIConfigRequest
+	(*OverwriteAppAIConfigResponse)(nil),            // 46: nimi.runtime.v1.OverwriteAppAIConfigResponse
+	(*LoadoutRecipeCustodyDescriptor)(nil),          // 47: nimi.runtime.v1.LoadoutRecipeCustodyDescriptor
+	(*structpb.Struct)(nil),                         // 48: google.protobuf.Struct
+	(ReasonCode)(0),                                 // 49: nimi.runtime.v1.ReasonCode
 }
 var file_runtime_v1_capability_configuration_proto_depIdxs = []int32{
 	3,  // 0: nimi.runtime.v1.LocalCapabilityRequirement.role:type_name -> nimi.runtime.v1.LocalCapabilityRequirementRole
 	2,  // 1: nimi.runtime.v1.LocalCapabilityRequirement.policy:type_name -> nimi.runtime.v1.LocalCapabilityRequirementPolicy
-	45, // 2: nimi.runtime.v1.LocalCapabilityRequirement.compatibility_constraints:type_name -> google.protobuf.Struct
-	5,  // 3: nimi.runtime.v1.LocalCapabilityConfiguration.implementation:type_name -> nimi.runtime.v1.CapabilityImplementationIdentity
-	45, // 4: nimi.runtime.v1.LocalCapabilityConfiguration.portable_config:type_name -> google.protobuf.Struct
-	6,  // 5: nimi.runtime.v1.LocalCapabilityConfiguration.projected_requirements:type_name -> nimi.runtime.v1.LocalCapabilityRequirement
-	7,  // 6: nimi.runtime.v1.LocalCapabilityConfiguration.exact_bindings:type_name -> nimi.runtime.v1.LocalAssetExactBinding
-	0,  // 7: nimi.runtime.v1.LocalCapabilityConfiguration.interpretability:type_name -> nimi.runtime.v1.LocalCapabilityInterpretability
-	1,  // 8: nimi.runtime.v1.LocalCapabilityConfiguration.requirement_resolution:type_name -> nimi.runtime.v1.LocalCapabilityRequirementResolution
-	4,  // 9: nimi.runtime.v1.LocalCapabilityConfiguration.reasons:type_name -> nimi.runtime.v1.LocalCapabilityReason
-	45, // 10: nimi.runtime.v1.LocalCapabilityConfiguration.provenance:type_name -> google.protobuf.Struct
-	45, // 11: nimi.runtime.v1.LocalCapabilitySelection.effective_defaults:type_name -> google.protobuf.Struct
-	8,  // 12: nimi.runtime.v1.MachineLocalAIConfiguration.configurations:type_name -> nimi.runtime.v1.LocalCapabilityConfiguration
-	9,  // 13: nimi.runtime.v1.MachineLocalAIConfiguration.selections:type_name -> nimi.runtime.v1.LocalCapabilitySelection
-	11, // 14: nimi.runtime.v1.AIConfigOwner.app:type_name -> nimi.runtime.v1.AIConfigAppOwner
-	12, // 15: nimi.runtime.v1.AIConfigOwner.runtime_local_agent_subsystem:type_name -> nimi.runtime.v1.AIConfigRuntimeLocalAgentSubsystemOwner
-	5,  // 16: nimi.runtime.v1.AIConfigCloudIntent.implementation:type_name -> nimi.runtime.v1.CapabilityImplementationIdentity
-	45, // 17: nimi.runtime.v1.AIConfigCloudIntent.provider_model_target:type_name -> google.protobuf.Struct
-	45, // 18: nimi.runtime.v1.AIConfigCapabilityIntent.defaults:type_name -> google.protobuf.Struct
-	14, // 19: nimi.runtime.v1.AIConfigCapabilityIntent.local:type_name -> nimi.runtime.v1.AIConfigLocalIntent
-	15, // 20: nimi.runtime.v1.AIConfigCapabilityIntent.cloud:type_name -> nimi.runtime.v1.AIConfigCloudIntent
-	13, // 21: nimi.runtime.v1.AIConfig.owner:type_name -> nimi.runtime.v1.AIConfigOwner
-	16, // 22: nimi.runtime.v1.AIConfig.capabilities:type_name -> nimi.runtime.v1.AIConfigCapabilityIntent
-	13, // 23: nimi.runtime.v1.GetAppAIConfigRequest.owner:type_name -> nimi.runtime.v1.AIConfigOwner
-	17, // 24: nimi.runtime.v1.GetAppAIConfigResponse.config:type_name -> nimi.runtime.v1.AIConfig
-	17, // 25: nimi.runtime.v1.OverwriteAppAIConfigRequest.config:type_name -> nimi.runtime.v1.AIConfig
-	17, // 26: nimi.runtime.v1.OverwriteAppAIConfigResponse.config:type_name -> nimi.runtime.v1.AIConfig
-	10, // 27: nimi.runtime.v1.GetMachineLocalAIConfigurationResponse.aggregate:type_name -> nimi.runtime.v1.MachineLocalAIConfiguration
-	8,  // 28: nimi.runtime.v1.GetLocalCapabilityConfigurationResponse.configuration:type_name -> nimi.runtime.v1.LocalCapabilityConfiguration
-	5,  // 29: nimi.runtime.v1.AddLocalCapabilityConfigurationRequest.implementation:type_name -> nimi.runtime.v1.CapabilityImplementationIdentity
-	45, // 30: nimi.runtime.v1.AddLocalCapabilityConfigurationRequest.portable_config:type_name -> google.protobuf.Struct
-	45, // 31: nimi.runtime.v1.AddLocalCapabilityConfigurationRequest.provenance:type_name -> google.protobuf.Struct
-	8,  // 32: nimi.runtime.v1.AddLocalCapabilityConfigurationResponse.configuration:type_name -> nimi.runtime.v1.LocalCapabilityConfiguration
-	45, // 33: nimi.runtime.v1.UpdateLocalCapabilityConfigurationRequest.portable_config:type_name -> google.protobuf.Struct
-	45, // 34: nimi.runtime.v1.UpdateLocalCapabilityConfigurationRequest.provenance:type_name -> google.protobuf.Struct
-	8,  // 35: nimi.runtime.v1.UpdateLocalCapabilityConfigurationResponse.configuration:type_name -> nimi.runtime.v1.LocalCapabilityConfiguration
-	9,  // 36: nimi.runtime.v1.SelectLocalCapabilityConfigurationResponse.selection:type_name -> nimi.runtime.v1.LocalCapabilitySelection
-	8,  // 37: nimi.runtime.v1.ReprojectLocalCapabilityRequirementsResponse.configuration:type_name -> nimi.runtime.v1.LocalCapabilityConfiguration
-	38, // 38: nimi.runtime.v1.BindLocalCapabilityRequirementRequest.target:type_name -> nimi.runtime.v1.LocalAssetExactBindingTarget
-	8,  // 39: nimi.runtime.v1.BindLocalCapabilityRequirementResponse.configuration:type_name -> nimi.runtime.v1.LocalCapabilityConfiguration
-	7,  // 40: nimi.runtime.v1.RebindLocalCapabilityRequirementRequest.expected_current_binding:type_name -> nimi.runtime.v1.LocalAssetExactBinding
-	38, // 41: nimi.runtime.v1.RebindLocalCapabilityRequirementRequest.target:type_name -> nimi.runtime.v1.LocalAssetExactBindingTarget
-	8,  // 42: nimi.runtime.v1.RebindLocalCapabilityRequirementResponse.configuration:type_name -> nimi.runtime.v1.LocalCapabilityConfiguration
-	7,  // 43: nimi.runtime.v1.UnbindLocalCapabilityRequirementRequest.expected_current_binding:type_name -> nimi.runtime.v1.LocalAssetExactBinding
-	8,  // 44: nimi.runtime.v1.UnbindLocalCapabilityRequirementResponse.configuration:type_name -> nimi.runtime.v1.LocalCapabilityConfiguration
-	45, // [45:45] is the sub-list for method output_type
-	45, // [45:45] is the sub-list for method input_type
-	45, // [45:45] is the sub-list for extension type_name
-	45, // [45:45] is the sub-list for extension extendee
-	0,  // [0:45] is the sub-list for field type_name
+	48, // 2: nimi.runtime.v1.LocalCapabilityRequirement.compatibility_constraints:type_name -> google.protobuf.Struct
+	49, // 3: nimi.runtime.v1.LoadoutModelAxis.reasons:type_name -> nimi.runtime.v1.ReasonCode
+	6,  // 4: nimi.runtime.v1.Loadout.implementation:type_name -> nimi.runtime.v1.CapabilityImplementationIdentity
+	48, // 5: nimi.runtime.v1.Loadout.options:type_name -> google.protobuf.Struct
+	9,  // 6: nimi.runtime.v1.Loadout.model_axes:type_name -> nimi.runtime.v1.LoadoutModelAxis
+	10, // 7: nimi.runtime.v1.Loadout.recipe_custody:type_name -> nimi.runtime.v1.LoadoutRecipeCustodyReference
+	5,  // 8: nimi.runtime.v1.Loadout.validation_state:type_name -> nimi.runtime.v1.LoadoutValidationState
+	49, // 9: nimi.runtime.v1.Loadout.reasons:type_name -> nimi.runtime.v1.ReasonCode
+	48, // 10: nimi.runtime.v1.Loadout.provenance:type_name -> google.protobuf.Struct
+	48, // 11: nimi.runtime.v1.LoadoutSelection.effective_defaults:type_name -> google.protobuf.Struct
+	11, // 12: nimi.runtime.v1.MachineLoadouts.loadouts:type_name -> nimi.runtime.v1.Loadout
+	12, // 13: nimi.runtime.v1.MachineLoadouts.selections:type_name -> nimi.runtime.v1.LoadoutSelection
+	48, // 14: nimi.runtime.v1.LoadoutRecipeSlotDescriptor.model_contract:type_name -> google.protobuf.Struct
+	6,  // 15: nimi.runtime.v1.LoadoutRecipeDescriptor.implementation:type_name -> nimi.runtime.v1.CapabilityImplementationIdentity
+	48, // 16: nimi.runtime.v1.LoadoutRecipeDescriptor.default_options:type_name -> google.protobuf.Struct
+	16, // 17: nimi.runtime.v1.LoadoutRecipeDescriptor.slots:type_name -> nimi.runtime.v1.LoadoutRecipeSlotDescriptor
+	47, // 18: nimi.runtime.v1.LoadoutRecipeDescriptor.custody:type_name -> nimi.runtime.v1.LoadoutRecipeCustodyDescriptor
+	17, // 19: nimi.runtime.v1.ListLoadoutRecipesResponse.recipes:type_name -> nimi.runtime.v1.LoadoutRecipeDescriptor
+	13, // 20: nimi.runtime.v1.GetMachineLoadoutsResponse.aggregate:type_name -> nimi.runtime.v1.MachineLoadouts
+	11, // 21: nimi.runtime.v1.GetLoadoutResponse.loadout:type_name -> nimi.runtime.v1.Loadout
+	48, // 22: nimi.runtime.v1.PrepareLoadoutRequest.options:type_name -> google.protobuf.Struct
+	14, // 23: nimi.runtime.v1.PrepareLoadoutRequest.model_axes:type_name -> nimi.runtime.v1.LoadoutModelAxisInput
+	48, // 24: nimi.runtime.v1.PrepareLoadoutRequest.provenance:type_name -> google.protobuf.Struct
+	11, // 25: nimi.runtime.v1.PrepareLoadoutResponse.proposed_loadout:type_name -> nimi.runtime.v1.Loadout
+	15, // 26: nimi.runtime.v1.PrepareLoadoutResponse.impact:type_name -> nimi.runtime.v1.LoadoutImpactProjection
+	11, // 27: nimi.runtime.v1.CommitLoadoutResponse.loadout:type_name -> nimi.runtime.v1.Loadout
+	48, // 28: nimi.runtime.v1.UpdateLoadoutRequest.options:type_name -> google.protobuf.Struct
+	14, // 29: nimi.runtime.v1.UpdateLoadoutRequest.model_axes:type_name -> nimi.runtime.v1.LoadoutModelAxisInput
+	48, // 30: nimi.runtime.v1.UpdateLoadoutRequest.provenance:type_name -> google.protobuf.Struct
+	11, // 31: nimi.runtime.v1.UpdateLoadoutResponse.loadout:type_name -> nimi.runtime.v1.Loadout
+	12, // 32: nimi.runtime.v1.SelectLoadoutResponse.selection:type_name -> nimi.runtime.v1.LoadoutSelection
+	6,  // 33: nimi.runtime.v1.LoadoutEffectiveInputIdentity.implementation:type_name -> nimi.runtime.v1.CapabilityImplementationIdentity
+	48, // 34: nimi.runtime.v1.LoadoutEffectiveInputIdentity.options:type_name -> google.protobuf.Struct
+	34, // 35: nimi.runtime.v1.LoadoutEffectiveInputIdentity.model_axes:type_name -> nimi.runtime.v1.LoadoutEffectiveModelAxisIdentity
+	10, // 36: nimi.runtime.v1.LoadoutEffectiveInputIdentity.recipe_custody:type_name -> nimi.runtime.v1.LoadoutRecipeCustodyReference
+	36, // 37: nimi.runtime.v1.AIConfigOwner.app:type_name -> nimi.runtime.v1.AIConfigAppOwner
+	37, // 38: nimi.runtime.v1.AIConfigOwner.runtime_local_agent_subsystem:type_name -> nimi.runtime.v1.AIConfigRuntimeLocalAgentSubsystemOwner
+	6,  // 39: nimi.runtime.v1.AIConfigCloudIntent.implementation:type_name -> nimi.runtime.v1.CapabilityImplementationIdentity
+	48, // 40: nimi.runtime.v1.AIConfigCloudIntent.provider_model_target:type_name -> google.protobuf.Struct
+	48, // 41: nimi.runtime.v1.AIConfigCapabilityIntent.defaults:type_name -> google.protobuf.Struct
+	39, // 42: nimi.runtime.v1.AIConfigCapabilityIntent.local:type_name -> nimi.runtime.v1.AIConfigLocalIntent
+	40, // 43: nimi.runtime.v1.AIConfigCapabilityIntent.cloud:type_name -> nimi.runtime.v1.AIConfigCloudIntent
+	38, // 44: nimi.runtime.v1.AIConfig.owner:type_name -> nimi.runtime.v1.AIConfigOwner
+	41, // 45: nimi.runtime.v1.AIConfig.capabilities:type_name -> nimi.runtime.v1.AIConfigCapabilityIntent
+	38, // 46: nimi.runtime.v1.GetAppAIConfigRequest.owner:type_name -> nimi.runtime.v1.AIConfigOwner
+	42, // 47: nimi.runtime.v1.GetAppAIConfigResponse.config:type_name -> nimi.runtime.v1.AIConfig
+	42, // 48: nimi.runtime.v1.OverwriteAppAIConfigRequest.config:type_name -> nimi.runtime.v1.AIConfig
+	42, // 49: nimi.runtime.v1.OverwriteAppAIConfigResponse.config:type_name -> nimi.runtime.v1.AIConfig
+	50, // [50:50] is the sub-list for method output_type
+	50, // [50:50] is the sub-list for method input_type
+	50, // [50:50] is the sub-list for extension type_name
+	50, // [50:50] is the sub-list for extension extendee
+	0,  // [0:50] is the sub-list for field type_name
 }
 
 func init() { file_runtime_v1_capability_configuration_proto_init() }
@@ -2806,11 +3365,12 @@ func file_runtime_v1_capability_configuration_proto_init() {
 	if File_runtime_v1_capability_configuration_proto != nil {
 		return
 	}
-	file_runtime_v1_capability_configuration_proto_msgTypes[8].OneofWrappers = []any{
+	file_runtime_v1_common_proto_init()
+	file_runtime_v1_capability_configuration_proto_msgTypes[32].OneofWrappers = []any{
 		(*AIConfigOwner_App)(nil),
 		(*AIConfigOwner_RuntimeLocalAgentSubsystem)(nil),
 	}
-	file_runtime_v1_capability_configuration_proto_msgTypes[11].OneofWrappers = []any{
+	file_runtime_v1_capability_configuration_proto_msgTypes[35].OneofWrappers = []any{
 		(*AIConfigCapabilityIntent_Local)(nil),
 		(*AIConfigCapabilityIntent_Cloud)(nil),
 	}
@@ -2819,8 +3379,8 @@ func file_runtime_v1_capability_configuration_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_runtime_v1_capability_configuration_proto_rawDesc), len(file_runtime_v1_capability_configuration_proto_rawDesc)),
-			NumEnums:      5,
-			NumMessages:   40,
+			NumEnums:      6,
+			NumMessages:   42,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
