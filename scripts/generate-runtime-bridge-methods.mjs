@@ -16,11 +16,6 @@ const outputFiles = [
   resolve(repoRoot, 'kit/shell/tauri/src/runtime_bridge/generated/method_ids.rs'),
 ];
 
-const STATIC_DENIED_METHOD_IDS = Object.freeze([
-  '/nimi.runtime.v1.RuntimeLocalService/ResolveLocalStateReconciliation',
-  '/nimi.runtime.v1.RuntimeLocalService/ExecuteLocalStateCutover',
-]);
-
 const GENERIC_BRIDGE_DENIED_POSTURES = Object.freeze(new Set([
   'protected_origin_required',
   'deny_all_tombstone',
@@ -121,11 +116,6 @@ function main() {
   const methodIds = manifest.method_ids.map((methodId) => String(methodId));
   const methodIdSet = new Set(methodIds);
   const deniedMethods = readPostureDeniedMethodIds(methodIdSet);
-  for (const methodId of STATIC_DENIED_METHOD_IDS) deniedMethods.add(methodId);
-  const missingDeniedMethods = STATIC_DENIED_METHOD_IDS.filter((methodId) => !methodIdSet.has(methodId));
-  if (missingDeniedMethods.length > 0) {
-    throw new Error(`runtime bridge denied methods missing from manifest: ${missingDeniedMethods.join(', ')}`);
-  }
   const allowlistedMethods = uniqueSorted(
     methodIds.filter((method) => !deniedMethods.has(method)),
   );

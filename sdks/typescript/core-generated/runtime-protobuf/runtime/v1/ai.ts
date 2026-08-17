@@ -3171,35 +3171,6 @@ export enum ReasoningTraceMode {
     SEPARATE = 2
 }
 /**
- * @generated from protobuf enum nimi.runtime.v1.TokenProviderHealthStatus
- */
-export enum TokenProviderHealthStatus {
-    /**
-     * @generated from protobuf enum value: TOKEN_PROVIDER_HEALTH_STATUS_UNSPECIFIED = 0;
-     */
-    UNSPECIFIED = 0,
-    /**
-     * @generated from protobuf enum value: TOKEN_PROVIDER_HEALTH_STATUS_HEALTHY = 1;
-     */
-    HEALTHY = 1,
-    /**
-     * @generated from protobuf enum value: TOKEN_PROVIDER_HEALTH_STATUS_DEGRADED = 2;
-     */
-    DEGRADED = 2,
-    /**
-     * @generated from protobuf enum value: TOKEN_PROVIDER_HEALTH_STATUS_UNREACHABLE = 3;
-     */
-    UNREACHABLE = 3,
-    /**
-     * @generated from protobuf enum value: TOKEN_PROVIDER_HEALTH_STATUS_UNAUTHORIZED = 4;
-     */
-    UNAUTHORIZED = 4,
-    /**
-     * @generated from protobuf enum value: TOKEN_PROVIDER_HEALTH_STATUS_UNSUPPORTED = 5;
-     */
-    UNSUPPORTED = 5
-}
-/**
  * @generated from protobuf enum nimi.runtime.v1.StreamEventType
  */
 export enum StreamEventType {

@@ -478,74 +478,6 @@ func (LocalRecommendationFeedSource) EnumDescriptor() ([]byte, []int) {
 	return file_runtime_v1_local_runtime_recommendation_proto_rawDescGZIP(), []int{8}
 }
 
-type LocalSuggestedAsset struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	TemplateId    string                 `protobuf:"bytes,1,opt,name=template_id,json=templateId,proto3" json:"template_id,omitempty"`
-	AssetId       string                 `protobuf:"bytes,2,opt,name=asset_id,json=assetId,proto3" json:"asset_id,omitempty"`
-	Kind          string                 `protobuf:"bytes,3,opt,name=kind,proto3" json:"kind,omitempty"`
-	Family        string                 `protobuf:"bytes,4,opt,name=family,proto3" json:"family,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *LocalSuggestedAsset) Reset() {
-	*x = LocalSuggestedAsset{}
-	mi := &file_runtime_v1_local_runtime_recommendation_proto_msgTypes[0]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *LocalSuggestedAsset) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*LocalSuggestedAsset) ProtoMessage() {}
-
-func (x *LocalSuggestedAsset) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_recommendation_proto_msgTypes[0]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use LocalSuggestedAsset.ProtoReflect.Descriptor instead.
-func (*LocalSuggestedAsset) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_recommendation_proto_rawDescGZIP(), []int{0}
-}
-
-func (x *LocalSuggestedAsset) GetTemplateId() string {
-	if x != nil {
-		return x.TemplateId
-	}
-	return ""
-}
-
-func (x *LocalSuggestedAsset) GetAssetId() string {
-	if x != nil {
-		return x.AssetId
-	}
-	return ""
-}
-
-func (x *LocalSuggestedAsset) GetKind() string {
-	if x != nil {
-		return x.Kind
-	}
-	return ""
-}
-
-func (x *LocalSuggestedAsset) GetFamily() string {
-	if x != nil {
-		return x.Family
-	}
-	return ""
-}
-
 type LocalCatalogRecommendation struct {
 	state            protoimpl.MessageState        `protogen:"open.v1"`
 	Source           LocalRecommendationSource     `protobuf:"varint,1,opt,name=source,proto3,enum=nimi.runtime.v1.LocalRecommendationSource" json:"source,omitempty"`
@@ -556,7 +488,6 @@ type LocalCatalogRecommendation struct {
 	ReasonCodes      []string                      `protobuf:"bytes,6,rep,name=reason_codes,json=reasonCodes,proto3" json:"reason_codes,omitempty"`
 	RecommendedEntry string                        `protobuf:"bytes,7,opt,name=recommended_entry,json=recommendedEntry,proto3" json:"recommended_entry,omitempty"`
 	FallbackEntries  []string                      `protobuf:"bytes,8,rep,name=fallback_entries,json=fallbackEntries,proto3" json:"fallback_entries,omitempty"`
-	SuggestedAssets  []*LocalSuggestedAsset        `protobuf:"bytes,9,rep,name=suggested_assets,json=suggestedAssets,proto3" json:"suggested_assets,omitempty"`
 	SuggestedNotes   []string                      `protobuf:"bytes,10,rep,name=suggested_notes,json=suggestedNotes,proto3" json:"suggested_notes,omitempty"`
 	Baseline         LocalRecommendationBaseline   `protobuf:"varint,11,opt,name=baseline,proto3,enum=nimi.runtime.v1.LocalRecommendationBaseline" json:"baseline,omitempty"`
 	unknownFields    protoimpl.UnknownFields
@@ -565,7 +496,7 @@ type LocalCatalogRecommendation struct {
 
 func (x *LocalCatalogRecommendation) Reset() {
 	*x = LocalCatalogRecommendation{}
-	mi := &file_runtime_v1_local_runtime_recommendation_proto_msgTypes[1]
+	mi := &file_runtime_v1_local_runtime_recommendation_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -577,7 +508,7 @@ func (x *LocalCatalogRecommendation) String() string {
 func (*LocalCatalogRecommendation) ProtoMessage() {}
 
 func (x *LocalCatalogRecommendation) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_recommendation_proto_msgTypes[1]
+	mi := &file_runtime_v1_local_runtime_recommendation_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -590,7 +521,7 @@ func (x *LocalCatalogRecommendation) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LocalCatalogRecommendation.ProtoReflect.Descriptor instead.
 func (*LocalCatalogRecommendation) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_recommendation_proto_rawDescGZIP(), []int{1}
+	return file_runtime_v1_local_runtime_recommendation_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *LocalCatalogRecommendation) GetSource() LocalRecommendationSource {
@@ -649,13 +580,6 @@ func (x *LocalCatalogRecommendation) GetFallbackEntries() []string {
 	return nil
 }
 
-func (x *LocalCatalogRecommendation) GetSuggestedAssets() []*LocalSuggestedAsset {
-	if x != nil {
-		return x.SuggestedAssets
-	}
-	return nil
-}
-
 func (x *LocalCatalogRecommendation) GetSuggestedNotes() []string {
 	if x != nil {
 		return x.SuggestedNotes
@@ -684,7 +608,7 @@ type LocalRecommendationFeedEntryDescriptor struct {
 
 func (x *LocalRecommendationFeedEntryDescriptor) Reset() {
 	*x = LocalRecommendationFeedEntryDescriptor{}
-	mi := &file_runtime_v1_local_runtime_recommendation_proto_msgTypes[2]
+	mi := &file_runtime_v1_local_runtime_recommendation_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -696,7 +620,7 @@ func (x *LocalRecommendationFeedEntryDescriptor) String() string {
 func (*LocalRecommendationFeedEntryDescriptor) ProtoMessage() {}
 
 func (x *LocalRecommendationFeedEntryDescriptor) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_recommendation_proto_msgTypes[2]
+	mi := &file_runtime_v1_local_runtime_recommendation_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -709,7 +633,7 @@ func (x *LocalRecommendationFeedEntryDescriptor) ProtoReflect() protoreflect.Mes
 
 // Deprecated: Use LocalRecommendationFeedEntryDescriptor.ProtoReflect.Descriptor instead.
 func (*LocalRecommendationFeedEntryDescriptor) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_recommendation_proto_rawDescGZIP(), []int{2}
+	return file_runtime_v1_local_runtime_recommendation_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *LocalRecommendationFeedEntryDescriptor) GetEntryId() string {
@@ -763,7 +687,7 @@ type LocalRecommendationInstalledState struct {
 
 func (x *LocalRecommendationInstalledState) Reset() {
 	*x = LocalRecommendationInstalledState{}
-	mi := &file_runtime_v1_local_runtime_recommendation_proto_msgTypes[3]
+	mi := &file_runtime_v1_local_runtime_recommendation_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -775,7 +699,7 @@ func (x *LocalRecommendationInstalledState) String() string {
 func (*LocalRecommendationInstalledState) ProtoMessage() {}
 
 func (x *LocalRecommendationInstalledState) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_recommendation_proto_msgTypes[3]
+	mi := &file_runtime_v1_local_runtime_recommendation_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -788,7 +712,7 @@ func (x *LocalRecommendationInstalledState) ProtoReflect() protoreflect.Message 
 
 // Deprecated: Use LocalRecommendationInstalledState.ProtoReflect.Descriptor instead.
 func (*LocalRecommendationInstalledState) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_recommendation_proto_rawDescGZIP(), []int{3}
+	return file_runtime_v1_local_runtime_recommendation_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *LocalRecommendationInstalledState) GetInstalled() bool {
@@ -802,14 +726,14 @@ type LocalRecommendationActionState struct {
 	state                protoimpl.MessageState `protogen:"open.v1"`
 	CanReviewInstallPlan bool                   `protobuf:"varint,1,opt,name=can_review_install_plan,json=canReviewInstallPlan,proto3" json:"can_review_install_plan,omitempty"`
 	CanOpenVariants      bool                   `protobuf:"varint,2,opt,name=can_open_variants,json=canOpenVariants,proto3" json:"can_open_variants,omitempty"`
-	CanOpenLocalAsset    bool                   `protobuf:"varint,3,opt,name=can_open_local_asset,json=canOpenLocalAsset,proto3" json:"can_open_local_asset,omitempty"`
+	CanOpenModelAsset    bool                   `protobuf:"varint,3,opt,name=can_open_model_asset,json=canOpenModelAsset,proto3" json:"can_open_model_asset,omitempty"`
 	unknownFields        protoimpl.UnknownFields
 	sizeCache            protoimpl.SizeCache
 }
 
 func (x *LocalRecommendationActionState) Reset() {
 	*x = LocalRecommendationActionState{}
-	mi := &file_runtime_v1_local_runtime_recommendation_proto_msgTypes[4]
+	mi := &file_runtime_v1_local_runtime_recommendation_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -821,7 +745,7 @@ func (x *LocalRecommendationActionState) String() string {
 func (*LocalRecommendationActionState) ProtoMessage() {}
 
 func (x *LocalRecommendationActionState) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_recommendation_proto_msgTypes[4]
+	mi := &file_runtime_v1_local_runtime_recommendation_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -834,7 +758,7 @@ func (x *LocalRecommendationActionState) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LocalRecommendationActionState.ProtoReflect.Descriptor instead.
 func (*LocalRecommendationActionState) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_recommendation_proto_rawDescGZIP(), []int{4}
+	return file_runtime_v1_local_runtime_recommendation_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *LocalRecommendationActionState) GetCanReviewInstallPlan() bool {
@@ -851,9 +775,9 @@ func (x *LocalRecommendationActionState) GetCanOpenVariants() bool {
 	return false
 }
 
-func (x *LocalRecommendationActionState) GetCanOpenLocalAsset() bool {
+func (x *LocalRecommendationActionState) GetCanOpenModelAsset() bool {
 	if x != nil {
-		return x.CanOpenLocalAsset
+		return x.CanOpenModelAsset
 	}
 	return false
 }
@@ -878,7 +802,7 @@ type LocalRecommendationInstallPayload struct {
 
 func (x *LocalRecommendationInstallPayload) Reset() {
 	*x = LocalRecommendationInstallPayload{}
-	mi := &file_runtime_v1_local_runtime_recommendation_proto_msgTypes[5]
+	mi := &file_runtime_v1_local_runtime_recommendation_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -890,7 +814,7 @@ func (x *LocalRecommendationInstallPayload) String() string {
 func (*LocalRecommendationInstallPayload) ProtoMessage() {}
 
 func (x *LocalRecommendationInstallPayload) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_recommendation_proto_msgTypes[5]
+	mi := &file_runtime_v1_local_runtime_recommendation_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -903,7 +827,7 @@ func (x *LocalRecommendationInstallPayload) ProtoReflect() protoreflect.Message 
 
 // Deprecated: Use LocalRecommendationInstallPayload.ProtoReflect.Descriptor instead.
 func (*LocalRecommendationInstallPayload) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_recommendation_proto_rawDescGZIP(), []int{5}
+	return file_runtime_v1_local_runtime_recommendation_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *LocalRecommendationInstallPayload) GetModelId() string {
@@ -1017,7 +941,7 @@ type LocalRecommendationFeedItemDescriptor struct {
 
 func (x *LocalRecommendationFeedItemDescriptor) Reset() {
 	*x = LocalRecommendationFeedItemDescriptor{}
-	mi := &file_runtime_v1_local_runtime_recommendation_proto_msgTypes[6]
+	mi := &file_runtime_v1_local_runtime_recommendation_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1029,7 +953,7 @@ func (x *LocalRecommendationFeedItemDescriptor) String() string {
 func (*LocalRecommendationFeedItemDescriptor) ProtoMessage() {}
 
 func (x *LocalRecommendationFeedItemDescriptor) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_recommendation_proto_msgTypes[6]
+	mi := &file_runtime_v1_local_runtime_recommendation_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1042,7 +966,7 @@ func (x *LocalRecommendationFeedItemDescriptor) ProtoReflect() protoreflect.Mess
 
 // Deprecated: Use LocalRecommendationFeedItemDescriptor.ProtoReflect.Descriptor instead.
 func (*LocalRecommendationFeedItemDescriptor) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_recommendation_proto_rawDescGZIP(), []int{6}
+	return file_runtime_v1_local_runtime_recommendation_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *LocalRecommendationFeedItemDescriptor) GetItemId() string {
@@ -1191,7 +1115,7 @@ type LocalRecommendationFeedDescriptor struct {
 
 func (x *LocalRecommendationFeedDescriptor) Reset() {
 	*x = LocalRecommendationFeedDescriptor{}
-	mi := &file_runtime_v1_local_runtime_recommendation_proto_msgTypes[7]
+	mi := &file_runtime_v1_local_runtime_recommendation_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1203,7 +1127,7 @@ func (x *LocalRecommendationFeedDescriptor) String() string {
 func (*LocalRecommendationFeedDescriptor) ProtoMessage() {}
 
 func (x *LocalRecommendationFeedDescriptor) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_recommendation_proto_msgTypes[7]
+	mi := &file_runtime_v1_local_runtime_recommendation_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1216,7 +1140,7 @@ func (x *LocalRecommendationFeedDescriptor) ProtoReflect() protoreflect.Message 
 
 // Deprecated: Use LocalRecommendationFeedDescriptor.ProtoReflect.Descriptor instead.
 func (*LocalRecommendationFeedDescriptor) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_recommendation_proto_rawDescGZIP(), []int{7}
+	return file_runtime_v1_local_runtime_recommendation_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *LocalRecommendationFeedDescriptor) GetDeviceProfile() *LocalDeviceProfile {
@@ -1258,13 +1182,7 @@ var File_runtime_v1_local_runtime_recommendation_proto protoreflect.FileDescript
 
 const file_runtime_v1_local_runtime_recommendation_proto_rawDesc = "" +
 	"\n" +
-	"-runtime/v1/local_runtime_recommendation.proto\x12\x0fnimi.runtime.v1\x1a\x1cgoogle/protobuf/struct.proto\x1a,runtime/v1/local_runtime_asset_catalog.proto\x1a1runtime/v1/local_runtime_device_environment.proto\"}\n" +
-	"\x13LocalSuggestedAsset\x12\x1f\n" +
-	"\vtemplate_id\x18\x01 \x01(\tR\n" +
-	"templateId\x12\x19\n" +
-	"\basset_id\x18\x02 \x01(\tR\aassetId\x12\x12\n" +
-	"\x04kind\x18\x03 \x01(\tR\x04kind\x12\x16\n" +
-	"\x06family\x18\x04 \x01(\tR\x06family\"\xc7\x05\n" +
+	"-runtime/v1/local_runtime_recommendation.proto\x12\x0fnimi.runtime.v1\x1a\x1cgoogle/protobuf/struct.proto\x1a,runtime/v1/local_runtime_asset_catalog.proto\x1a1runtime/v1/local_runtime_device_environment.proto\"\x8e\x05\n" +
 	"\x1aLocalCatalogRecommendation\x12B\n" +
 	"\x06source\x18\x01 \x01(\x0e2*.nimi.runtime.v1.LocalRecommendationSourceR\x06source\x12B\n" +
 	"\x06format\x18\x02 \x01(\x0e2*.nimi.runtime.v1.LocalRecommendationFormatR\x06format\x12<\n" +
@@ -1275,11 +1193,11 @@ const file_runtime_v1_local_runtime_recommendation_proto_rawDesc = "" +
 	"confidence\x12!\n" +
 	"\freason_codes\x18\x06 \x03(\tR\vreasonCodes\x12+\n" +
 	"\x11recommended_entry\x18\a \x01(\tR\x10recommendedEntry\x12)\n" +
-	"\x10fallback_entries\x18\b \x03(\tR\x0ffallbackEntries\x12O\n" +
-	"\x10suggested_assets\x18\t \x03(\v2$.nimi.runtime.v1.LocalSuggestedAssetR\x0fsuggestedAssets\x12'\n" +
+	"\x10fallback_entries\x18\b \x03(\tR\x0ffallbackEntries\x12'\n" +
 	"\x0fsuggested_notes\x18\n" +
 	" \x03(\tR\x0esuggestedNotes\x12H\n" +
-	"\bbaseline\x18\v \x01(\x0e2,.nimi.runtime.v1.LocalRecommendationBaselineR\bbaseline\"\xf5\x01\n" +
+	"\bbaseline\x18\v \x01(\x0e2,.nimi.runtime.v1.LocalRecommendationBaselineR\bbaselineJ\x04\b\t\x10\n" +
+	"R\x10suggested_assets\"\xf5\x01\n" +
 	"&LocalRecommendationFeedEntryDescriptor\x12\x19\n" +
 	"\bentry_id\x18\x01 \x01(\tR\aentryId\x12B\n" +
 	"\x06format\x18\x02 \x01(\x0e2*.nimi.runtime.v1.LocalRecommendationFormatR\x06format\x12\x14\n" +
@@ -1288,11 +1206,11 @@ const file_runtime_v1_local_runtime_recommendation_proto_rawDesc = "" +
 	"\x10total_size_bytes\x18\x05 \x01(\x03R\x0etotalSizeBytes\x12\x16\n" +
 	"\x06sha256\x18\x06 \x01(\tR\x06sha256\"e\n" +
 	"!LocalRecommendationInstalledState\x12\x1c\n" +
-	"\tinstalled\x18\x01 \x01(\bR\tinstalledJ\x04\b\x02\x10\x03J\x04\b\x03\x10\x04R\x0elocal_asset_idR\x06status\"\xb4\x01\n" +
+	"\tinstalled\x18\x01 \x01(\bR\tinstalledJ\x04\b\x02\x10\x03J\x04\b\x03\x10\x04R\x0elocal_asset_idR\x06status\"\xca\x01\n" +
 	"\x1eLocalRecommendationActionState\x125\n" +
 	"\x17can_review_install_plan\x18\x01 \x01(\bR\x14canReviewInstallPlan\x12*\n" +
 	"\x11can_open_variants\x18\x02 \x01(\bR\x0fcanOpenVariants\x12/\n" +
-	"\x14can_open_local_asset\x18\x03 \x01(\bR\x11canOpenLocalAsset\"\x92\x04\n" +
+	"\x14can_open_model_asset\x18\x03 \x01(\bR\x11canOpenModelAssetR\x14can_open_local_asset\"\x92\x04\n" +
 	"!LocalRecommendationInstallPayload\x12\x19\n" +
 	"\bmodel_id\x18\x01 \x01(\tR\amodelId\x123\n" +
 	"\x04kind\x18\x02 \x01(\x0e2\x1f.nimi.runtime.v1.LocalAssetKindR\x04kind\x12\x12\n" +
@@ -1393,7 +1311,7 @@ func file_runtime_v1_local_runtime_recommendation_proto_rawDescGZIP() []byte {
 }
 
 var file_runtime_v1_local_runtime_recommendation_proto_enumTypes = make([]protoimpl.EnumInfo, 9)
-var file_runtime_v1_local_runtime_recommendation_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_runtime_v1_local_runtime_recommendation_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
 var file_runtime_v1_local_runtime_recommendation_proto_goTypes = []any{
 	(LocalRecommendationSource)(0),                 // 0: nimi.runtime.v1.LocalRecommendationSource
 	(LocalRecommendationFormat)(0),                 // 1: nimi.runtime.v1.LocalRecommendationFormat
@@ -1404,18 +1322,17 @@ var file_runtime_v1_local_runtime_recommendation_proto_goTypes = []any{
 	(LocalRecommendationFeedCacheState)(0),         // 6: nimi.runtime.v1.LocalRecommendationFeedCacheState
 	(LocalRecommendationFeedCapability)(0),         // 7: nimi.runtime.v1.LocalRecommendationFeedCapability
 	(LocalRecommendationFeedSource)(0),             // 8: nimi.runtime.v1.LocalRecommendationFeedSource
-	(*LocalSuggestedAsset)(nil),                    // 9: nimi.runtime.v1.LocalSuggestedAsset
-	(*LocalCatalogRecommendation)(nil),             // 10: nimi.runtime.v1.LocalCatalogRecommendation
-	(*LocalRecommendationFeedEntryDescriptor)(nil), // 11: nimi.runtime.v1.LocalRecommendationFeedEntryDescriptor
-	(*LocalRecommendationInstalledState)(nil),      // 12: nimi.runtime.v1.LocalRecommendationInstalledState
-	(*LocalRecommendationActionState)(nil),         // 13: nimi.runtime.v1.LocalRecommendationActionState
-	(*LocalRecommendationInstallPayload)(nil),      // 14: nimi.runtime.v1.LocalRecommendationInstallPayload
-	(*LocalRecommendationFeedItemDescriptor)(nil),  // 15: nimi.runtime.v1.LocalRecommendationFeedItemDescriptor
-	(*LocalRecommendationFeedDescriptor)(nil),      // 16: nimi.runtime.v1.LocalRecommendationFeedDescriptor
-	nil,                        // 17: nimi.runtime.v1.LocalRecommendationInstallPayload.HashesEntry
-	(LocalAssetKind)(0),        // 18: nimi.runtime.v1.LocalAssetKind
-	(*structpb.Struct)(nil),    // 19: google.protobuf.Struct
-	(*LocalDeviceProfile)(nil), // 20: nimi.runtime.v1.LocalDeviceProfile
+	(*LocalCatalogRecommendation)(nil),             // 9: nimi.runtime.v1.LocalCatalogRecommendation
+	(*LocalRecommendationFeedEntryDescriptor)(nil), // 10: nimi.runtime.v1.LocalRecommendationFeedEntryDescriptor
+	(*LocalRecommendationInstalledState)(nil),      // 11: nimi.runtime.v1.LocalRecommendationInstalledState
+	(*LocalRecommendationActionState)(nil),         // 12: nimi.runtime.v1.LocalRecommendationActionState
+	(*LocalRecommendationInstallPayload)(nil),      // 13: nimi.runtime.v1.LocalRecommendationInstallPayload
+	(*LocalRecommendationFeedItemDescriptor)(nil),  // 14: nimi.runtime.v1.LocalRecommendationFeedItemDescriptor
+	(*LocalRecommendationFeedDescriptor)(nil),      // 15: nimi.runtime.v1.LocalRecommendationFeedDescriptor
+	nil,                        // 16: nimi.runtime.v1.LocalRecommendationInstallPayload.HashesEntry
+	(LocalAssetKind)(0),        // 17: nimi.runtime.v1.LocalAssetKind
+	(*structpb.Struct)(nil),    // 18: google.protobuf.Struct
+	(*LocalDeviceProfile)(nil), // 19: nimi.runtime.v1.LocalDeviceProfile
 }
 var file_runtime_v1_local_runtime_recommendation_proto_depIdxs = []int32{
 	0,  // 0: nimi.runtime.v1.LocalCatalogRecommendation.source:type_name -> nimi.runtime.v1.LocalRecommendationSource
@@ -1423,28 +1340,27 @@ var file_runtime_v1_local_runtime_recommendation_proto_depIdxs = []int32{
 	2,  // 2: nimi.runtime.v1.LocalCatalogRecommendation.tier:type_name -> nimi.runtime.v1.LocalRecommendationTier
 	4,  // 3: nimi.runtime.v1.LocalCatalogRecommendation.host_support_class:type_name -> nimi.runtime.v1.LocalHostSupportClass
 	3,  // 4: nimi.runtime.v1.LocalCatalogRecommendation.confidence:type_name -> nimi.runtime.v1.LocalRecommendationConfidence
-	9,  // 5: nimi.runtime.v1.LocalCatalogRecommendation.suggested_assets:type_name -> nimi.runtime.v1.LocalSuggestedAsset
-	5,  // 6: nimi.runtime.v1.LocalCatalogRecommendation.baseline:type_name -> nimi.runtime.v1.LocalRecommendationBaseline
-	1,  // 7: nimi.runtime.v1.LocalRecommendationFeedEntryDescriptor.format:type_name -> nimi.runtime.v1.LocalRecommendationFormat
-	18, // 8: nimi.runtime.v1.LocalRecommendationInstallPayload.kind:type_name -> nimi.runtime.v1.LocalAssetKind
-	17, // 9: nimi.runtime.v1.LocalRecommendationInstallPayload.hashes:type_name -> nimi.runtime.v1.LocalRecommendationInstallPayload.HashesEntry
-	19, // 10: nimi.runtime.v1.LocalRecommendationInstallPayload.engine_config:type_name -> google.protobuf.Struct
-	8,  // 11: nimi.runtime.v1.LocalRecommendationFeedItemDescriptor.source:type_name -> nimi.runtime.v1.LocalRecommendationFeedSource
-	1,  // 12: nimi.runtime.v1.LocalRecommendationFeedItemDescriptor.formats:type_name -> nimi.runtime.v1.LocalRecommendationFormat
-	11, // 13: nimi.runtime.v1.LocalRecommendationFeedItemDescriptor.entries:type_name -> nimi.runtime.v1.LocalRecommendationFeedEntryDescriptor
-	10, // 14: nimi.runtime.v1.LocalRecommendationFeedItemDescriptor.recommendation:type_name -> nimi.runtime.v1.LocalCatalogRecommendation
-	12, // 15: nimi.runtime.v1.LocalRecommendationFeedItemDescriptor.installed_state:type_name -> nimi.runtime.v1.LocalRecommendationInstalledState
-	13, // 16: nimi.runtime.v1.LocalRecommendationFeedItemDescriptor.action_state:type_name -> nimi.runtime.v1.LocalRecommendationActionState
-	14, // 17: nimi.runtime.v1.LocalRecommendationFeedItemDescriptor.install_payload:type_name -> nimi.runtime.v1.LocalRecommendationInstallPayload
-	20, // 18: nimi.runtime.v1.LocalRecommendationFeedDescriptor.device_profile:type_name -> nimi.runtime.v1.LocalDeviceProfile
-	7,  // 19: nimi.runtime.v1.LocalRecommendationFeedDescriptor.active_capability:type_name -> nimi.runtime.v1.LocalRecommendationFeedCapability
-	6,  // 20: nimi.runtime.v1.LocalRecommendationFeedDescriptor.cache_state:type_name -> nimi.runtime.v1.LocalRecommendationFeedCacheState
-	15, // 21: nimi.runtime.v1.LocalRecommendationFeedDescriptor.items:type_name -> nimi.runtime.v1.LocalRecommendationFeedItemDescriptor
-	22, // [22:22] is the sub-list for method output_type
-	22, // [22:22] is the sub-list for method input_type
-	22, // [22:22] is the sub-list for extension type_name
-	22, // [22:22] is the sub-list for extension extendee
-	0,  // [0:22] is the sub-list for field type_name
+	5,  // 5: nimi.runtime.v1.LocalCatalogRecommendation.baseline:type_name -> nimi.runtime.v1.LocalRecommendationBaseline
+	1,  // 6: nimi.runtime.v1.LocalRecommendationFeedEntryDescriptor.format:type_name -> nimi.runtime.v1.LocalRecommendationFormat
+	17, // 7: nimi.runtime.v1.LocalRecommendationInstallPayload.kind:type_name -> nimi.runtime.v1.LocalAssetKind
+	16, // 8: nimi.runtime.v1.LocalRecommendationInstallPayload.hashes:type_name -> nimi.runtime.v1.LocalRecommendationInstallPayload.HashesEntry
+	18, // 9: nimi.runtime.v1.LocalRecommendationInstallPayload.engine_config:type_name -> google.protobuf.Struct
+	8,  // 10: nimi.runtime.v1.LocalRecommendationFeedItemDescriptor.source:type_name -> nimi.runtime.v1.LocalRecommendationFeedSource
+	1,  // 11: nimi.runtime.v1.LocalRecommendationFeedItemDescriptor.formats:type_name -> nimi.runtime.v1.LocalRecommendationFormat
+	10, // 12: nimi.runtime.v1.LocalRecommendationFeedItemDescriptor.entries:type_name -> nimi.runtime.v1.LocalRecommendationFeedEntryDescriptor
+	9,  // 13: nimi.runtime.v1.LocalRecommendationFeedItemDescriptor.recommendation:type_name -> nimi.runtime.v1.LocalCatalogRecommendation
+	11, // 14: nimi.runtime.v1.LocalRecommendationFeedItemDescriptor.installed_state:type_name -> nimi.runtime.v1.LocalRecommendationInstalledState
+	12, // 15: nimi.runtime.v1.LocalRecommendationFeedItemDescriptor.action_state:type_name -> nimi.runtime.v1.LocalRecommendationActionState
+	13, // 16: nimi.runtime.v1.LocalRecommendationFeedItemDescriptor.install_payload:type_name -> nimi.runtime.v1.LocalRecommendationInstallPayload
+	19, // 17: nimi.runtime.v1.LocalRecommendationFeedDescriptor.device_profile:type_name -> nimi.runtime.v1.LocalDeviceProfile
+	7,  // 18: nimi.runtime.v1.LocalRecommendationFeedDescriptor.active_capability:type_name -> nimi.runtime.v1.LocalRecommendationFeedCapability
+	6,  // 19: nimi.runtime.v1.LocalRecommendationFeedDescriptor.cache_state:type_name -> nimi.runtime.v1.LocalRecommendationFeedCacheState
+	14, // 20: nimi.runtime.v1.LocalRecommendationFeedDescriptor.items:type_name -> nimi.runtime.v1.LocalRecommendationFeedItemDescriptor
+	21, // [21:21] is the sub-list for method output_type
+	21, // [21:21] is the sub-list for method input_type
+	21, // [21:21] is the sub-list for extension type_name
+	21, // [21:21] is the sub-list for extension extendee
+	0,  // [0:21] is the sub-list for field type_name
 }
 
 func init() { file_runtime_v1_local_runtime_recommendation_proto_init() }
@@ -1460,7 +1376,7 @@ func file_runtime_v1_local_runtime_recommendation_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_runtime_v1_local_runtime_recommendation_proto_rawDesc), len(file_runtime_v1_local_runtime_recommendation_proto_rawDesc)),
 			NumEnums:      9,
-			NumMessages:   9,
+			NumMessages:   8,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

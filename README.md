@@ -143,35 +143,21 @@ products publicly installable.
 ## Source Checkout Quickstart
 
 These commands are for a source checkout or locally built runtime binary.
-Once the runtime CLI is on `PATH`, initialize config, start the daemon, and
-verify a runnable route:
+Once the runtime CLI is on `PATH`, initialize config and run the daemon in the
+foreground. Use background commands only on a build with an admitted manager or
+service controller:
 
 ```sh
 # Create runtime config if it is missing.
 nimi init
 
-# Start the local runtime daemon in the background.
-nimi start
-
-# Ask Runtime to answer a question through the configured route.
-nimi run "What is Nimi?"
-
-# Same prompt, explicitly routed through Gemini.
-nimi run "What is Nimi?" --provider gemini
-
-# Save Gemini as the default provider route for later calls.
-nimi provider set gemini --api-key-env GEMINI_API_KEY --default
+# Run the local runtime daemon in the foreground.
+nimi serve
 ```
 
-For local-first setup, replace the provider step with the relevant local model
-pull and readiness check:
-
-```sh
-nimi model pull --model-ref <admitted-model-ref>
-nimi model health --model-id <installed-model-id>
-```
-
-`nimi doctor` reports environment, daemon, and provider readiness.
+Connector custody and ModelAsset/Loadout selection are managed through the
+Desktop protected Runtime surface. App-facing AI execution uses the SDK rather
+than a parallel CLI configuration owner.
 
 ## Documentation
 

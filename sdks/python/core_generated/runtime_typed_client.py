@@ -220,7 +220,6 @@ SpeechAlignmentUnit = Literal["SPEECH_ALIGNMENT_UNIT_UNSPECIFIED", "SPEECH_ALIGN
 SpeechTimingMode = Literal["SPEECH_TIMING_MODE_UNSPECIFIED", "SPEECH_TIMING_MODE_NONE", "SPEECH_TIMING_MODE_WORD", "SPEECH_TIMING_MODE_CHAR"]
 StreamEventType = Literal["STREAM_EVENT_TYPE_UNSPECIFIED", "STREAM_EVENT_STARTED", "STREAM_EVENT_DELTA", "STREAM_EVENT_TOOL_CALL", "STREAM_EVENT_TOOL_RESULT", "STREAM_EVENT_USAGE", "STREAM_EVENT_COMPLETED", "STREAM_EVENT_FAILED", "STREAM_EVENT_TOOL_APPROVAL_REQUEST"]
 TextSourceType = Literal["TEXT_SOURCE_TYPE_UNSPECIFIED", "TEXT_SOURCE_TYPE_URL", "TEXT_SOURCE_TYPE_DOCUMENT"]
-TokenProviderHealthStatus = Literal["TOKEN_PROVIDER_HEALTH_STATUS_UNSPECIFIED", "TOKEN_PROVIDER_HEALTH_STATUS_HEALTHY", "TOKEN_PROVIDER_HEALTH_STATUS_DEGRADED", "TOKEN_PROVIDER_HEALTH_STATUS_UNREACHABLE", "TOKEN_PROVIDER_HEALTH_STATUS_UNAUTHORIZED", "TOKEN_PROVIDER_HEALTH_STATUS_UNSUPPORTED"]
 ToolChoiceMode = Literal["TOOL_CHOICE_MODE_UNSPECIFIED", "TOOL_CHOICE_MODE_AUTO", "TOOL_CHOICE_MODE_NONE", "TOOL_CHOICE_MODE_REQUIRED", "TOOL_CHOICE_MODE_TOOL"]
 ToolSpecKind = Literal["TOOL_SPEC_KIND_UNSPECIFIED", "TOOL_SPEC_KIND_FUNCTION", "TOOL_SPEC_KIND_PROVIDER"]
 UsageWindow = Literal["USAGE_WINDOW_UNSPECIFIED", "USAGE_WINDOW_MINUTE", "USAGE_WINDOW_HOUR", "USAGE_WINDOW_DAY"]
@@ -273,36 +272,6 @@ class AIConfigOwner:
 @dataclass(frozen=True)
 class AIConfigRuntimeLocalAgentSubsystemOwner:
     pass
-
-@dataclass(frozen=True)
-class AIProviderHealthEvent:
-    sequence: int | None = None
-    provider_name: str | None = None
-    state: str | None = None
-    reason: str | None = None
-    consecutive_failures: int | None = None
-    last_changed_at: str | None = None
-    last_checked_at: str | None = None
-    sub_health: tuple[AIProviderSubHealth, ...] = field(default_factory=tuple)
-
-@dataclass(frozen=True)
-class AIProviderHealthSnapshot:
-    provider_name: str | None = None
-    state: str | None = None
-    reason: str | None = None
-    consecutive_failures: int | None = None
-    last_changed_at: str | None = None
-    last_checked_at: str | None = None
-    sub_health: tuple[AIProviderSubHealth, ...] = field(default_factory=tuple)
-
-@dataclass(frozen=True)
-class AIProviderSubHealth:
-    provider_name: str | None = None
-    state: str | None = None
-    reason: str | None = None
-    consecutive_failures: int | None = None
-    last_changed_at: str | None = None
-    last_checked_at: str | None = None
 
 @dataclass(frozen=True)
 class AccountCaller:
@@ -1674,17 +1643,6 @@ class ExecuteLocalAppScenarioResponse:
     trace_id: str | None = None
 
 @dataclass(frozen=True)
-class ExecuteLocalStateCutoverRequest:
-    nimi_data_dir: str | None = None
-    plan_id: str | None = None
-    confirmed: bool | None = None
-
-@dataclass(frozen=True)
-class ExecuteLocalStateCutoverResponse:
-    plan: LocalStateReconciliationPlan | None = None
-    transfer: LocalTransferSessionSummary | None = None
-
-@dataclass(frozen=True)
 class ExecuteScenarioRequest:
     head: ScenarioRequestHead | None = None
     scenario_type: ScenarioType | None = None
@@ -2460,14 +2418,6 @@ class KnowledgeRequestContext:
 @dataclass(frozen=True)
 class KnowledgeWorkspacePrivateOwner:
     workspace_id: str | None = None
-
-@dataclass(frozen=True)
-class ListAIProviderHealthRequest:
-    pass
-
-@dataclass(frozen=True)
-class ListAIProviderHealthResponse:
-    providers: tuple[AIProviderHealthSnapshot, ...] = field(default_factory=tuple)
 
 @dataclass(frozen=True)
 class ListAgentConversationSummariesRequest:
@@ -3394,7 +3344,6 @@ class LocalCatalogRecommendation:
     reason_codes: tuple[str, ...] = field(default_factory=tuple)
     recommended_entry: str | None = None
     fallback_entries: tuple[str, ...] = field(default_factory=tuple)
-    suggested_assets: tuple[LocalSuggestedAsset, ...] = field(default_factory=tuple)
     suggested_notes: tuple[str, ...] = field(default_factory=tuple)
     baseline: LocalRecommendationBaseline | None = None
 
@@ -3644,7 +3593,7 @@ class LocalPythonProfile:
 class LocalRecommendationActionState:
     can_review_install_plan: bool | None = None
     can_open_variants: bool | None = None
-    can_open_local_asset: bool | None = None
+    can_open_model_asset: bool | None = None
 
 @dataclass(frozen=True)
 class LocalRecommendationFeedDescriptor:
@@ -3703,47 +3652,6 @@ class LocalRecommendationInstallPayload:
 @dataclass(frozen=True)
 class LocalRecommendationInstalledState:
     installed: bool | None = None
-
-@dataclass(frozen=True)
-class LocalStateIsolationDiagnostic:
-    store: str | None = None
-    level: str | None = None
-    reason_code: str | None = None
-    message: str | None = None
-    quarantine_path: str | None = None
-    section: str | None = None
-    record_index: int | None = None
-
-@dataclass(frozen=True)
-class LocalStateReconciliationPlan:
-    plan_id: str | None = None
-    state: str | None = None
-    reason_code: str | None = None
-    message: str | None = None
-    active_state_path: str | None = None
-    local_models_path: str | None = None
-    nimi_data_dir: str | None = None
-    retired_state_path: str | None = None
-    retired_state_detected: bool | None = None
-    active_state_detected: bool | None = None
-    confirmation_required: bool | None = None
-    active_asset_count: int | None = None
-    active_service_count: int | None = None
-    active_transfer_count: int | None = None
-    active_audit_count: int | None = None
-    retired_asset_count: int | None = None
-    retired_service_count: int | None = None
-    retired_transfer_count: int | None = None
-    retired_audit_count: int | None = None
-    conflict_count: int | None = None
-    isolation_diagnostics: tuple[LocalStateIsolationDiagnostic, ...] = field(default_factory=tuple)
-
-@dataclass(frozen=True)
-class LocalSuggestedAsset:
-    template_id: str | None = None
-    asset_id: str | None = None
-    kind: str | None = None
-    family: str | None = None
 
 @dataclass(frozen=True)
 class LocalTransferProgressEvent:
@@ -4804,14 +4712,6 @@ class ResolveLocalEnvironmentPlanResponse:
     plan: LocalEnvironmentPlan | None = None
 
 @dataclass(frozen=True)
-class ResolveLocalStateReconciliationRequest:
-    nimi_data_dir: str | None = None
-
-@dataclass(frozen=True)
-class ResolveLocalStateReconciliationResponse:
-    plan: LocalStateReconciliationPlan | None = None
-
-@dataclass(frozen=True)
 class ResolveModelInstallPlanRequest:
     item_id: str | None = None
     source: str | None = None
@@ -5374,10 +5274,6 @@ class SubmitScenarioJobRequest:
 @dataclass(frozen=True)
 class SubmitScenarioJobResponse:
     job: ScenarioJob | None = None
-
-@dataclass(frozen=True)
-class SubscribeAIProviderHealthEventsRequest:
-    pass
 
 @dataclass(frozen=True)
 class SubscribeAccountSessionEventsRequest:
@@ -6465,10 +6361,6 @@ class RuntimeTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(GetRuntimeHealthResponse, raw)
 
-    async def list_aiprovider_health(self, request: ListAIProviderHealthRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListAIProviderHealthResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAuditService/ListAIProviderHealth", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(ListAIProviderHealthResponse, raw)
-
     async def list_audit_events(self, request: ListAuditEventsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListAuditEventsResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAuditService/ListAuditEvents", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ListAuditEventsResponse, raw)
@@ -6480,9 +6372,6 @@ class RuntimeTypedClient:
     async def list_usage_stats(self, request: ListUsageStatsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListUsageStatsResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAuditService/ListUsageStats", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ListUsageStatsResponse, raw)
-
-    def subscribe_aiprovider_health_events(self, request: SubscribeAIProviderHealthEventsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> AsyncIterator[AIProviderHealthEvent]:
-        return self._stream("/nimi.runtime.v1.RuntimeAuditService/SubscribeAIProviderHealthEvents", _model_body(request), AIProviderHealthEvent, metadata=metadata, timeout_ms=timeout_ms)
 
     def subscribe_runtime_health_events(self, request: SubscribeRuntimeHealthEventsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> AsyncIterator[RuntimeHealthEvent]:
         return self._stream("/nimi.runtime.v1.RuntimeAuditService/SubscribeRuntimeHealthEvents", _model_body(request), RuntimeHealthEvent, metadata=metadata, timeout_ms=timeout_ms)
@@ -6790,10 +6679,6 @@ class RuntimeTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/EnsureProductControlRecordCreated", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ProductControlProjectionJson, raw)
 
-    async def execute_local_state_cutover(self, request: ExecuteLocalStateCutoverRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ExecuteLocalStateCutoverResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/ExecuteLocalStateCutover", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(ExecuteLocalStateCutoverResponse, raw)
-
     async def get_engine_status(self, request: GetEngineStatusRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetEngineStatusResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/GetEngineStatus", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(GetEngineStatusResponse, raw)
@@ -6893,10 +6778,6 @@ class RuntimeTypedClient:
     async def resolve_local_environment_plan(self, request: ResolveLocalEnvironmentPlanRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ResolveLocalEnvironmentPlanResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/ResolveLocalEnvironmentPlan", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ResolveLocalEnvironmentPlanResponse, raw)
-
-    async def resolve_local_state_reconciliation(self, request: ResolveLocalStateReconciliationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ResolveLocalStateReconciliationResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/ResolveLocalStateReconciliation", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(ResolveLocalStateReconciliationResponse, raw)
 
     async def resolve_model_install_plan(self, request: ResolveModelInstallPlanRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ResolveModelInstallPlanResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/ResolveModelInstallPlan", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))

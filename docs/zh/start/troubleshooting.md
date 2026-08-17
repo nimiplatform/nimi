@@ -10,22 +10,22 @@
 nimi doctor
 ```
 
-如果 daemon 不可达，Runtime 会给出与 CLI 首次运行路径一致的下一步：
+在具有已准入后台/服务控制器的构建中，daemon 停止时会给出受限的后台启动提示：
 
 ```sh
 nimi start
 ```
 
-需要前台运行 daemon 时使用：
+源码开发或没有该后台拓扑的构建应以前台方式运行：
 
 ```sh
 nimi serve
 ```
 
-随后验证零配置路径：
+已准入后台管理时，可验证其脱敏后的 manager 摘要：
 
 ```sh
-nimi run "What is Nimi?"
+nimi health --json
 ```
 
 ## SDK Client 配置

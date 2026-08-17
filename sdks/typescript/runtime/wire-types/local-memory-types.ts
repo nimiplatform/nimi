@@ -15,8 +15,6 @@ import type {
   CollectDeviceProfileResponse,
   CompleteProductControlFirstRunDeviceEnvironmentScanRequest,
   EnsureProductControlRecordCreatedRequest,
-  ExecuteLocalStateCutoverRequest,
-  ExecuteLocalStateCutoverResponse,
   GetModelAssetRequest,
   GetModelAssetResponse,
   GetProductControlRecordRequest,
@@ -42,8 +40,6 @@ import type {
   ListVerifiedAssetsRequest,
   ListVerifiedAssetsResponse,
   LocalCatalogVariantDescriptor,
-  LocalStateIsolationDiagnostic,
-  LocalStateReconciliationPlan,
   LocalTransferProgressEvent,
   LocalTransferSessionSummary,
   PauseLocalTransferRequest,
@@ -58,8 +54,6 @@ import type {
   ResolveLocalEnvironmentActivationGateResponse,
   ResolveLocalEnvironmentPlanRequest,
   ResolveLocalEnvironmentPlanResponse,
-  ResolveLocalStateReconciliationRequest,
-  ResolveLocalStateReconciliationResponse,
   ResolveModelInstallPlanRequest,
   ResolveModelInstallPlanResponse,
   ResumeLocalTransferRequest,
@@ -89,8 +83,6 @@ export type {
   CollectDeviceProfileResponse,
   CompleteProductControlFirstRunDeviceEnvironmentScanRequest,
   EnsureProductControlRecordCreatedRequest,
-  ExecuteLocalStateCutoverRequest,
-  ExecuteLocalStateCutoverResponse,
   GetModelAssetRequest,
   GetModelAssetResponse,
   GetProductControlRecordRequest,
@@ -116,8 +108,6 @@ export type {
   ListVerifiedAssetsRequest,
   ListVerifiedAssetsResponse,
   LocalCatalogVariantDescriptor,
-  LocalStateIsolationDiagnostic,
-  LocalStateReconciliationPlan,
   LocalTransferProgressEvent,
   LocalTransferSessionSummary,
   PauseLocalTransferRequest,
@@ -132,8 +122,6 @@ export type {
   ResolveLocalEnvironmentActivationGateResponse,
   ResolveLocalEnvironmentPlanRequest,
   ResolveLocalEnvironmentPlanResponse,
-  ResolveLocalStateReconciliationRequest,
-  ResolveLocalStateReconciliationResponse,
   ResolveModelInstallPlanRequest,
   ResolveModelInstallPlanResponse,
   ResumeLocalTransferRequest,
@@ -249,7 +237,6 @@ import type {
   LocalRecommendationFeedItemDescriptor,
   LocalRecommendationInstallPayload,
   LocalRecommendationInstalledState,
-  LocalSuggestedAsset,
 } from "../../core-generated/runtime-protobuf/runtime/v1/local_runtime_recommendation";
 
 export type {
@@ -260,7 +247,6 @@ export type {
   LocalRecommendationFeedItemDescriptor,
   LocalRecommendationInstallPayload,
   LocalRecommendationInstalledState,
-  LocalSuggestedAsset,
 };
 
 import type {

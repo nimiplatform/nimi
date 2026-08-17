@@ -19,14 +19,12 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	RuntimeAuditService_ListAuditEvents_FullMethodName                 = "/nimi.runtime.v1.RuntimeAuditService/ListAuditEvents"
-	RuntimeAuditService_ListDesktopAuditEvents_FullMethodName          = "/nimi.runtime.v1.RuntimeAuditService/ListDesktopAuditEvents"
-	RuntimeAuditService_ExportAuditEvents_FullMethodName               = "/nimi.runtime.v1.RuntimeAuditService/ExportAuditEvents"
-	RuntimeAuditService_ListUsageStats_FullMethodName                  = "/nimi.runtime.v1.RuntimeAuditService/ListUsageStats"
-	RuntimeAuditService_GetRuntimeHealth_FullMethodName                = "/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth"
-	RuntimeAuditService_ListAIProviderHealth_FullMethodName            = "/nimi.runtime.v1.RuntimeAuditService/ListAIProviderHealth"
-	RuntimeAuditService_SubscribeAIProviderHealthEvents_FullMethodName = "/nimi.runtime.v1.RuntimeAuditService/SubscribeAIProviderHealthEvents"
-	RuntimeAuditService_SubscribeRuntimeHealthEvents_FullMethodName    = "/nimi.runtime.v1.RuntimeAuditService/SubscribeRuntimeHealthEvents"
+	RuntimeAuditService_ListAuditEvents_FullMethodName              = "/nimi.runtime.v1.RuntimeAuditService/ListAuditEvents"
+	RuntimeAuditService_ListDesktopAuditEvents_FullMethodName       = "/nimi.runtime.v1.RuntimeAuditService/ListDesktopAuditEvents"
+	RuntimeAuditService_ExportAuditEvents_FullMethodName            = "/nimi.runtime.v1.RuntimeAuditService/ExportAuditEvents"
+	RuntimeAuditService_ListUsageStats_FullMethodName               = "/nimi.runtime.v1.RuntimeAuditService/ListUsageStats"
+	RuntimeAuditService_GetRuntimeHealth_FullMethodName             = "/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth"
+	RuntimeAuditService_SubscribeRuntimeHealthEvents_FullMethodName = "/nimi.runtime.v1.RuntimeAuditService/SubscribeRuntimeHealthEvents"
 )
 
 // RuntimeAuditServiceClient is the client API for RuntimeAuditService service.
@@ -38,8 +36,6 @@ type RuntimeAuditServiceClient interface {
 	ExportAuditEvents(ctx context.Context, in *ExportAuditEventsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[AuditExportChunk], error)
 	ListUsageStats(ctx context.Context, in *ListUsageStatsRequest, opts ...grpc.CallOption) (*ListUsageStatsResponse, error)
 	GetRuntimeHealth(ctx context.Context, in *GetRuntimeHealthRequest, opts ...grpc.CallOption) (*GetRuntimeHealthResponse, error)
-	ListAIProviderHealth(ctx context.Context, in *ListAIProviderHealthRequest, opts ...grpc.CallOption) (*ListAIProviderHealthResponse, error)
-	SubscribeAIProviderHealthEvents(ctx context.Context, in *SubscribeAIProviderHealthEventsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[AIProviderHealthEvent], error)
 	SubscribeRuntimeHealthEvents(ctx context.Context, in *SubscribeRuntimeHealthEventsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[RuntimeHealthEvent], error)
 }
 
@@ -110,38 +106,9 @@ func (c *runtimeAuditServiceClient) GetRuntimeHealth(ctx context.Context, in *Ge
 	return out, nil
 }
 
-func (c *runtimeAuditServiceClient) ListAIProviderHealth(ctx context.Context, in *ListAIProviderHealthRequest, opts ...grpc.CallOption) (*ListAIProviderHealthResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ListAIProviderHealthResponse)
-	err := c.cc.Invoke(ctx, RuntimeAuditService_ListAIProviderHealth_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *runtimeAuditServiceClient) SubscribeAIProviderHealthEvents(ctx context.Context, in *SubscribeAIProviderHealthEventsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[AIProviderHealthEvent], error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &RuntimeAuditService_ServiceDesc.Streams[1], RuntimeAuditService_SubscribeAIProviderHealthEvents_FullMethodName, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	x := &grpc.GenericClientStream[SubscribeAIProviderHealthEventsRequest, AIProviderHealthEvent]{ClientStream: stream}
-	if err := x.ClientStream.SendMsg(in); err != nil {
-		return nil, err
-	}
-	if err := x.ClientStream.CloseSend(); err != nil {
-		return nil, err
-	}
-	return x, nil
-}
-
-// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type RuntimeAuditService_SubscribeAIProviderHealthEventsClient = grpc.ServerStreamingClient[AIProviderHealthEvent]
-
 func (c *runtimeAuditServiceClient) SubscribeRuntimeHealthEvents(ctx context.Context, in *SubscribeRuntimeHealthEventsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[RuntimeHealthEvent], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &RuntimeAuditService_ServiceDesc.Streams[2], RuntimeAuditService_SubscribeRuntimeHealthEvents_FullMethodName, cOpts...)
+	stream, err := c.cc.NewStream(ctx, &RuntimeAuditService_ServiceDesc.Streams[1], RuntimeAuditService_SubscribeRuntimeHealthEvents_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -167,8 +134,6 @@ type RuntimeAuditServiceServer interface {
 	ExportAuditEvents(*ExportAuditEventsRequest, grpc.ServerStreamingServer[AuditExportChunk]) error
 	ListUsageStats(context.Context, *ListUsageStatsRequest) (*ListUsageStatsResponse, error)
 	GetRuntimeHealth(context.Context, *GetRuntimeHealthRequest) (*GetRuntimeHealthResponse, error)
-	ListAIProviderHealth(context.Context, *ListAIProviderHealthRequest) (*ListAIProviderHealthResponse, error)
-	SubscribeAIProviderHealthEvents(*SubscribeAIProviderHealthEventsRequest, grpc.ServerStreamingServer[AIProviderHealthEvent]) error
 	SubscribeRuntimeHealthEvents(*SubscribeRuntimeHealthEventsRequest, grpc.ServerStreamingServer[RuntimeHealthEvent]) error
 }
 
@@ -193,12 +158,6 @@ func (UnimplementedRuntimeAuditServiceServer) ListUsageStats(context.Context, *L
 }
 func (UnimplementedRuntimeAuditServiceServer) GetRuntimeHealth(context.Context, *GetRuntimeHealthRequest) (*GetRuntimeHealthResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetRuntimeHealth not implemented")
-}
-func (UnimplementedRuntimeAuditServiceServer) ListAIProviderHealth(context.Context, *ListAIProviderHealthRequest) (*ListAIProviderHealthResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method ListAIProviderHealth not implemented")
-}
-func (UnimplementedRuntimeAuditServiceServer) SubscribeAIProviderHealthEvents(*SubscribeAIProviderHealthEventsRequest, grpc.ServerStreamingServer[AIProviderHealthEvent]) error {
-	return status.Error(codes.Unimplemented, "method SubscribeAIProviderHealthEvents not implemented")
 }
 func (UnimplementedRuntimeAuditServiceServer) SubscribeRuntimeHealthEvents(*SubscribeRuntimeHealthEventsRequest, grpc.ServerStreamingServer[RuntimeHealthEvent]) error {
 	return status.Error(codes.Unimplemented, "method SubscribeRuntimeHealthEvents not implemented")
@@ -306,35 +265,6 @@ func _RuntimeAuditService_GetRuntimeHealth_Handler(srv interface{}, ctx context.
 	return interceptor(ctx, in, info, handler)
 }
 
-func _RuntimeAuditService_ListAIProviderHealth_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ListAIProviderHealthRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RuntimeAuditServiceServer).ListAIProviderHealth(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: RuntimeAuditService_ListAIProviderHealth_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeAuditServiceServer).ListAIProviderHealth(ctx, req.(*ListAIProviderHealthRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _RuntimeAuditService_SubscribeAIProviderHealthEvents_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(SubscribeAIProviderHealthEventsRequest)
-	if err := stream.RecvMsg(m); err != nil {
-		return err
-	}
-	return srv.(RuntimeAuditServiceServer).SubscribeAIProviderHealthEvents(m, &grpc.GenericServerStream[SubscribeAIProviderHealthEventsRequest, AIProviderHealthEvent]{ServerStream: stream})
-}
-
-// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type RuntimeAuditService_SubscribeAIProviderHealthEventsServer = grpc.ServerStreamingServer[AIProviderHealthEvent]
-
 func _RuntimeAuditService_SubscribeRuntimeHealthEvents_Handler(srv interface{}, stream grpc.ServerStream) error {
 	m := new(SubscribeRuntimeHealthEventsRequest)
 	if err := stream.RecvMsg(m); err != nil {
@@ -369,20 +299,11 @@ var RuntimeAuditService_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "GetRuntimeHealth",
 			Handler:    _RuntimeAuditService_GetRuntimeHealth_Handler,
 		},
-		{
-			MethodName: "ListAIProviderHealth",
-			Handler:    _RuntimeAuditService_ListAIProviderHealth_Handler,
-		},
 	},
 	Streams: []grpc.StreamDesc{
 		{
 			StreamName:    "ExportAuditEvents",
 			Handler:       _RuntimeAuditService_ExportAuditEvents_Handler,
-			ServerStreams: true,
-		},
-		{
-			StreamName:    "SubscribeAIProviderHealthEvents",
-			Handler:       _RuntimeAuditService_SubscribeAIProviderHealthEvents_Handler,
 			ServerStreams: true,
 		},
 		{

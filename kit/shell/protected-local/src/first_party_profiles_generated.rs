@@ -8,7 +8,7 @@ pub const DESKTOP_ACCOUNT_PRODUCT_NATIVE_PROFILE_MARKER: &str = "desktop-account
 
 #[rustfmt::skip]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum DesktopMachineProductUnaryMethod { CollectDeviceProfile, ResolveLocalEnvironmentPlan, ApplyLocalEnvironmentPlan, ListLocalEnvironmentDependencyJobs, StartLocalEnvironmentDependencyJob, CancelLocalEnvironmentDependencyJob, RetryLocalEnvironmentDependencyJob, RepairLocalEnvironmentDependency, GetProductControlRecord, GetProductControlSelectedDataRoot, EnsureProductControlRecordCreated, SelectProductControlDataRoot, SetProductControlFirstRunInstallLevel, CompleteProductControlFirstRunDeviceEnvironmentScan, AdmitProductControlReadyForUse, ReconcileProductControlFirstRunSetupState, ResolveLocalStateReconciliation, ImportModelAsset, ListModelAssets, GetModelAsset, ListLoadoutRecipes, GetMachineLoadouts, GetLoadout, PrepareLoadout, CommitLoadout, UpdateLoadout, SelectLoadout, DeleteLoadout, ListConnectors, GetRuntimeHealth, ListAiProviderHealth, ListDesktopAuditEvents, ListUsageStats, PeekScheduling, RemoveModelAsset, ListVerifiedAssets, SearchCatalogModels, ListCatalogVariants, GetRecommendationFeed, ResolveModelInstallPlan, InstallModelFromPlan, ListLocalTransfers, PauseLocalTransfer, ResumeLocalTransfer, CancelLocalTransfer, ListProviderCatalog, ListLocalAudits, GetExternalAgentGatewayStatus, IssueExternalAgentToken, RevokeExternalAgentToken, ListExternalAgentTokens }
+pub enum DesktopMachineProductUnaryMethod { CollectDeviceProfile, ResolveLocalEnvironmentPlan, ApplyLocalEnvironmentPlan, ListLocalEnvironmentDependencyJobs, StartLocalEnvironmentDependencyJob, CancelLocalEnvironmentDependencyJob, RetryLocalEnvironmentDependencyJob, RepairLocalEnvironmentDependency, GetProductControlRecord, GetProductControlSelectedDataRoot, EnsureProductControlRecordCreated, SelectProductControlDataRoot, SetProductControlFirstRunInstallLevel, CompleteProductControlFirstRunDeviceEnvironmentScan, AdmitProductControlReadyForUse, ReconcileProductControlFirstRunSetupState, ImportModelAsset, ListModelAssets, GetModelAsset, ListLoadoutRecipes, GetMachineLoadouts, GetLoadout, PrepareLoadout, CommitLoadout, UpdateLoadout, SelectLoadout, DeleteLoadout, ListConnectors, GetRuntimeHealth, ListDesktopAuditEvents, ListUsageStats, PeekScheduling, RemoveModelAsset, ListVerifiedAssets, SearchCatalogModels, ListCatalogVariants, GetRecommendationFeed, ResolveModelInstallPlan, InstallModelFromPlan, ListLocalTransfers, PauseLocalTransfer, ResumeLocalTransfer, CancelLocalTransfer, ListProviderCatalog, ListLocalAudits, GetExternalAgentGatewayStatus, IssueExternalAgentToken, RevokeExternalAgentToken, ListExternalAgentTokens }
 
 impl DesktopMachineProductUnaryMethod {
     pub fn from_method_id(method_id: &str) -> Option<Self> {
@@ -29,7 +29,6 @@ impl DesktopMachineProductUnaryMethod {
             "/nimi.runtime.v1.RuntimeLocalService/CompleteProductControlFirstRunDeviceEnvironmentScan" => Self::CompleteProductControlFirstRunDeviceEnvironmentScan,
             "/nimi.runtime.v1.RuntimeLocalService/AdmitProductControlReadyForUse" => Self::AdmitProductControlReadyForUse,
             "/nimi.runtime.v1.RuntimeLocalService/ReconcileProductControlFirstRunSetupState" => Self::ReconcileProductControlFirstRunSetupState,
-            "/nimi.runtime.v1.RuntimeLocalService/ResolveLocalStateReconciliation" => Self::ResolveLocalStateReconciliation,
             "/nimi.runtime.v1.RuntimeLocalService/ImportModelAsset" => Self::ImportModelAsset,
             "/nimi.runtime.v1.RuntimeLocalService/ListModelAssets" => Self::ListModelAssets,
             "/nimi.runtime.v1.RuntimeLocalService/GetModelAsset" => Self::GetModelAsset,
@@ -43,7 +42,6 @@ impl DesktopMachineProductUnaryMethod {
             "/nimi.runtime.v1.RuntimeLocalService/DeleteLoadout" => Self::DeleteLoadout,
             "/nimi.runtime.v1.RuntimeConnectorService/ListConnectors" => Self::ListConnectors,
             "/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth" => Self::GetRuntimeHealth,
-            "/nimi.runtime.v1.RuntimeAuditService/ListAIProviderHealth" => Self::ListAiProviderHealth,
             "/nimi.runtime.v1.RuntimeAuditService/ListDesktopAuditEvents" => Self::ListDesktopAuditEvents,
             "/nimi.runtime.v1.RuntimeAuditService/ListUsageStats" => Self::ListUsageStats,
             "/nimi.runtime.v1.RuntimeAiService/PeekScheduling" => Self::PeekScheduling,
@@ -86,7 +84,6 @@ impl DesktopMachineProductUnaryMethod {
             Self::CompleteProductControlFirstRunDeviceEnvironmentScan => "/nimi.runtime.v1.RuntimeLocalService/CompleteProductControlFirstRunDeviceEnvironmentScan",
             Self::AdmitProductControlReadyForUse => "/nimi.runtime.v1.RuntimeLocalService/AdmitProductControlReadyForUse",
             Self::ReconcileProductControlFirstRunSetupState => "/nimi.runtime.v1.RuntimeLocalService/ReconcileProductControlFirstRunSetupState",
-            Self::ResolveLocalStateReconciliation => "/nimi.runtime.v1.RuntimeLocalService/ResolveLocalStateReconciliation",
             Self::ImportModelAsset => "/nimi.runtime.v1.RuntimeLocalService/ImportModelAsset",
             Self::ListModelAssets => "/nimi.runtime.v1.RuntimeLocalService/ListModelAssets",
             Self::GetModelAsset => "/nimi.runtime.v1.RuntimeLocalService/GetModelAsset",
@@ -100,7 +97,6 @@ impl DesktopMachineProductUnaryMethod {
             Self::DeleteLoadout => "/nimi.runtime.v1.RuntimeLocalService/DeleteLoadout",
             Self::ListConnectors => "/nimi.runtime.v1.RuntimeConnectorService/ListConnectors",
             Self::GetRuntimeHealth => "/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth",
-            Self::ListAiProviderHealth => "/nimi.runtime.v1.RuntimeAuditService/ListAIProviderHealth",
             Self::ListDesktopAuditEvents => "/nimi.runtime.v1.RuntimeAuditService/ListDesktopAuditEvents",
             Self::ListUsageStats => "/nimi.runtime.v1.RuntimeAuditService/ListUsageStats",
             Self::PeekScheduling => "/nimi.runtime.v1.RuntimeAiService/PeekScheduling",
@@ -126,11 +122,11 @@ impl DesktopMachineProductUnaryMethod {
 }
 
 #[rustfmt::skip]
-pub const DESKTOP_MACHINE_PRODUCT_UNARY_METHODS: &[DesktopMachineProductUnaryMethod] = &[DesktopMachineProductUnaryMethod::CollectDeviceProfile, DesktopMachineProductUnaryMethod::ResolveLocalEnvironmentPlan, DesktopMachineProductUnaryMethod::ApplyLocalEnvironmentPlan, DesktopMachineProductUnaryMethod::ListLocalEnvironmentDependencyJobs, DesktopMachineProductUnaryMethod::StartLocalEnvironmentDependencyJob, DesktopMachineProductUnaryMethod::CancelLocalEnvironmentDependencyJob, DesktopMachineProductUnaryMethod::RetryLocalEnvironmentDependencyJob, DesktopMachineProductUnaryMethod::RepairLocalEnvironmentDependency, DesktopMachineProductUnaryMethod::GetProductControlRecord, DesktopMachineProductUnaryMethod::GetProductControlSelectedDataRoot, DesktopMachineProductUnaryMethod::EnsureProductControlRecordCreated, DesktopMachineProductUnaryMethod::SelectProductControlDataRoot, DesktopMachineProductUnaryMethod::SetProductControlFirstRunInstallLevel, DesktopMachineProductUnaryMethod::CompleteProductControlFirstRunDeviceEnvironmentScan, DesktopMachineProductUnaryMethod::AdmitProductControlReadyForUse, DesktopMachineProductUnaryMethod::ReconcileProductControlFirstRunSetupState, DesktopMachineProductUnaryMethod::ResolveLocalStateReconciliation, DesktopMachineProductUnaryMethod::ImportModelAsset, DesktopMachineProductUnaryMethod::ListModelAssets, DesktopMachineProductUnaryMethod::GetModelAsset, DesktopMachineProductUnaryMethod::ListLoadoutRecipes, DesktopMachineProductUnaryMethod::GetMachineLoadouts, DesktopMachineProductUnaryMethod::GetLoadout, DesktopMachineProductUnaryMethod::PrepareLoadout, DesktopMachineProductUnaryMethod::CommitLoadout, DesktopMachineProductUnaryMethod::UpdateLoadout, DesktopMachineProductUnaryMethod::SelectLoadout, DesktopMachineProductUnaryMethod::DeleteLoadout, DesktopMachineProductUnaryMethod::ListConnectors, DesktopMachineProductUnaryMethod::GetRuntimeHealth, DesktopMachineProductUnaryMethod::ListAiProviderHealth, DesktopMachineProductUnaryMethod::ListDesktopAuditEvents, DesktopMachineProductUnaryMethod::ListUsageStats, DesktopMachineProductUnaryMethod::PeekScheduling, DesktopMachineProductUnaryMethod::RemoveModelAsset, DesktopMachineProductUnaryMethod::ListVerifiedAssets, DesktopMachineProductUnaryMethod::SearchCatalogModels, DesktopMachineProductUnaryMethod::ListCatalogVariants, DesktopMachineProductUnaryMethod::GetRecommendationFeed, DesktopMachineProductUnaryMethod::ResolveModelInstallPlan, DesktopMachineProductUnaryMethod::InstallModelFromPlan, DesktopMachineProductUnaryMethod::ListLocalTransfers, DesktopMachineProductUnaryMethod::PauseLocalTransfer, DesktopMachineProductUnaryMethod::ResumeLocalTransfer, DesktopMachineProductUnaryMethod::CancelLocalTransfer, DesktopMachineProductUnaryMethod::ListProviderCatalog, DesktopMachineProductUnaryMethod::ListLocalAudits, DesktopMachineProductUnaryMethod::GetExternalAgentGatewayStatus, DesktopMachineProductUnaryMethod::IssueExternalAgentToken, DesktopMachineProductUnaryMethod::RevokeExternalAgentToken, DesktopMachineProductUnaryMethod::ListExternalAgentTokens];
+pub const DESKTOP_MACHINE_PRODUCT_UNARY_METHODS: &[DesktopMachineProductUnaryMethod] = &[DesktopMachineProductUnaryMethod::CollectDeviceProfile, DesktopMachineProductUnaryMethod::ResolveLocalEnvironmentPlan, DesktopMachineProductUnaryMethod::ApplyLocalEnvironmentPlan, DesktopMachineProductUnaryMethod::ListLocalEnvironmentDependencyJobs, DesktopMachineProductUnaryMethod::StartLocalEnvironmentDependencyJob, DesktopMachineProductUnaryMethod::CancelLocalEnvironmentDependencyJob, DesktopMachineProductUnaryMethod::RetryLocalEnvironmentDependencyJob, DesktopMachineProductUnaryMethod::RepairLocalEnvironmentDependency, DesktopMachineProductUnaryMethod::GetProductControlRecord, DesktopMachineProductUnaryMethod::GetProductControlSelectedDataRoot, DesktopMachineProductUnaryMethod::EnsureProductControlRecordCreated, DesktopMachineProductUnaryMethod::SelectProductControlDataRoot, DesktopMachineProductUnaryMethod::SetProductControlFirstRunInstallLevel, DesktopMachineProductUnaryMethod::CompleteProductControlFirstRunDeviceEnvironmentScan, DesktopMachineProductUnaryMethod::AdmitProductControlReadyForUse, DesktopMachineProductUnaryMethod::ReconcileProductControlFirstRunSetupState, DesktopMachineProductUnaryMethod::ImportModelAsset, DesktopMachineProductUnaryMethod::ListModelAssets, DesktopMachineProductUnaryMethod::GetModelAsset, DesktopMachineProductUnaryMethod::ListLoadoutRecipes, DesktopMachineProductUnaryMethod::GetMachineLoadouts, DesktopMachineProductUnaryMethod::GetLoadout, DesktopMachineProductUnaryMethod::PrepareLoadout, DesktopMachineProductUnaryMethod::CommitLoadout, DesktopMachineProductUnaryMethod::UpdateLoadout, DesktopMachineProductUnaryMethod::SelectLoadout, DesktopMachineProductUnaryMethod::DeleteLoadout, DesktopMachineProductUnaryMethod::ListConnectors, DesktopMachineProductUnaryMethod::GetRuntimeHealth, DesktopMachineProductUnaryMethod::ListDesktopAuditEvents, DesktopMachineProductUnaryMethod::ListUsageStats, DesktopMachineProductUnaryMethod::PeekScheduling, DesktopMachineProductUnaryMethod::RemoveModelAsset, DesktopMachineProductUnaryMethod::ListVerifiedAssets, DesktopMachineProductUnaryMethod::SearchCatalogModels, DesktopMachineProductUnaryMethod::ListCatalogVariants, DesktopMachineProductUnaryMethod::GetRecommendationFeed, DesktopMachineProductUnaryMethod::ResolveModelInstallPlan, DesktopMachineProductUnaryMethod::InstallModelFromPlan, DesktopMachineProductUnaryMethod::ListLocalTransfers, DesktopMachineProductUnaryMethod::PauseLocalTransfer, DesktopMachineProductUnaryMethod::ResumeLocalTransfer, DesktopMachineProductUnaryMethod::CancelLocalTransfer, DesktopMachineProductUnaryMethod::ListProviderCatalog, DesktopMachineProductUnaryMethod::ListLocalAudits, DesktopMachineProductUnaryMethod::GetExternalAgentGatewayStatus, DesktopMachineProductUnaryMethod::IssueExternalAgentToken, DesktopMachineProductUnaryMethod::RevokeExternalAgentToken, DesktopMachineProductUnaryMethod::ListExternalAgentTokens];
 
 #[rustfmt::skip]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum DesktopMachineProductStreamMethod { WatchLocalTransfers, SubscribeRuntimeHealthEvents, SubscribeAiProviderHealthEvents }
+pub enum DesktopMachineProductStreamMethod { WatchLocalTransfers, SubscribeRuntimeHealthEvents }
 
 impl DesktopMachineProductStreamMethod {
     pub fn from_method_id(method_id: &str) -> Option<Self> {
@@ -138,9 +134,6 @@ impl DesktopMachineProductStreamMethod {
             "/nimi.runtime.v1.RuntimeLocalService/WatchLocalTransfers" => Self::WatchLocalTransfers,
             "/nimi.runtime.v1.RuntimeAuditService/SubscribeRuntimeHealthEvents" => {
                 Self::SubscribeRuntimeHealthEvents
-            }
-            "/nimi.runtime.v1.RuntimeAuditService/SubscribeAIProviderHealthEvents" => {
-                Self::SubscribeAiProviderHealthEvents
             }
             _ => return None,
         })
@@ -152,15 +145,12 @@ impl DesktopMachineProductStreamMethod {
             Self::SubscribeRuntimeHealthEvents => {
                 "/nimi.runtime.v1.RuntimeAuditService/SubscribeRuntimeHealthEvents"
             }
-            Self::SubscribeAiProviderHealthEvents => {
-                "/nimi.runtime.v1.RuntimeAuditService/SubscribeAIProviderHealthEvents"
-            }
         }
     }
 }
 
 #[rustfmt::skip]
-pub const DESKTOP_MACHINE_PRODUCT_STREAM_METHODS: &[DesktopMachineProductStreamMethod] = &[DesktopMachineProductStreamMethod::WatchLocalTransfers, DesktopMachineProductStreamMethod::SubscribeRuntimeHealthEvents, DesktopMachineProductStreamMethod::SubscribeAiProviderHealthEvents];
+pub const DESKTOP_MACHINE_PRODUCT_STREAM_METHODS: &[DesktopMachineProductStreamMethod] = &[DesktopMachineProductStreamMethod::WatchLocalTransfers, DesktopMachineProductStreamMethod::SubscribeRuntimeHealthEvents];
 
 #[rustfmt::skip]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

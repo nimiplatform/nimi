@@ -206,15 +206,6 @@ export enum TextSourceType {
   DOCUMENT = 2,
 }
 
-export enum TokenProviderHealthStatus {
-  UNSPECIFIED = 0,
-  HEALTHY = 1,
-  DEGRADED = 2,
-  UNREACHABLE = 3,
-  UNAUTHORIZED = 4,
-  UNSUPPORTED = 5,
-}
-
 export enum ToolChoiceMode {
   UNSPECIFIED = 0,
   AUTO = 1,

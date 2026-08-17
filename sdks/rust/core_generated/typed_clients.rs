@@ -2253,22 +2253,6 @@ impl Default for TextSourceType {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum TokenProviderHealthStatus {
-    TOKENPROVIDERHEALTHSTATUSUNSPECIFIED,
-    TOKENPROVIDERHEALTHSTATUSHEALTHY,
-    TOKENPROVIDERHEALTHSTATUSDEGRADED,
-    TOKENPROVIDERHEALTHSTATUSUNREACHABLE,
-    TOKENPROVIDERHEALTHSTATUSUNAUTHORIZED,
-    TOKENPROVIDERHEALTHSTATUSUNSUPPORTED,
-}
-
-impl Default for TokenProviderHealthStatus {
-    fn default() -> Self {
-        Self::TOKENPROVIDERHEALTHSTATUSUNSPECIFIED
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ToolChoiceMode {
     TOOLCHOICEMODEUNSPECIFIED,
     TOOLCHOICEMODEAUTO,
@@ -2694,131 +2678,6 @@ impl AIConfigRuntimeLocalAgentSubsystemOwner {
             panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client received undecodable response payload");
         }
         Self::default()
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct AIProviderHealthEvent {
-    pub sequence: Option<u64>,
-    pub provider_name: Option<String>,
-    pub state: Option<String>,
-    pub reason: Option<String>,
-    pub consecutive_failures: Option<i32>,
-    pub last_changed_at: Option<String>,
-    pub last_checked_at: Option<String>,
-    pub sub_health: Vec<Box<AIProviderSubHealth>>,
-}
-
-impl AIProviderHealthEvent {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.sequence { pairs.push(format!("sequence={}", value)); }
-        if let Some(value) = &self.provider_name { pairs.push(format!("provider_name={}", value)); }
-        if let Some(value) = &self.state { pairs.push(format!("state={}", value)); }
-        if let Some(value) = &self.reason { pairs.push(format!("reason={}", value)); }
-        if let Some(value) = &self.consecutive_failures { pairs.push(format!("consecutive_failures={}", value)); }
-        if let Some(value) = &self.last_changed_at { pairs.push(format!("last_changed_at={}", value)); }
-        if let Some(value) = &self.last_checked_at { pairs.push(format!("last_checked_at={}", value)); }
-        if !self.sub_health.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode sub_health"); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["sub_health"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-
-        out.sequence = pairs.get("sequence").and_then(|value| value.parse().ok());
-        out.provider_name = pairs.get("provider_name").cloned();
-        out.state = pairs.get("state").cloned();
-        out.reason = pairs.get("reason").cloned();
-        out.consecutive_failures = pairs.get("consecutive_failures").and_then(|value| value.parse().ok());
-        out.last_changed_at = pairs.get("last_changed_at").cloned();
-        out.last_checked_at = pairs.get("last_checked_at").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct AIProviderHealthSnapshot {
-    pub provider_name: Option<String>,
-    pub state: Option<String>,
-    pub reason: Option<String>,
-    pub consecutive_failures: Option<i32>,
-    pub last_changed_at: Option<String>,
-    pub last_checked_at: Option<String>,
-    pub sub_health: Vec<Box<AIProviderSubHealth>>,
-}
-
-impl AIProviderHealthSnapshot {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.provider_name { pairs.push(format!("provider_name={}", value)); }
-        if let Some(value) = &self.state { pairs.push(format!("state={}", value)); }
-        if let Some(value) = &self.reason { pairs.push(format!("reason={}", value)); }
-        if let Some(value) = &self.consecutive_failures { pairs.push(format!("consecutive_failures={}", value)); }
-        if let Some(value) = &self.last_changed_at { pairs.push(format!("last_changed_at={}", value)); }
-        if let Some(value) = &self.last_checked_at { pairs.push(format!("last_checked_at={}", value)); }
-        if !self.sub_health.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode sub_health"); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["sub_health"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-
-        out.provider_name = pairs.get("provider_name").cloned();
-        out.state = pairs.get("state").cloned();
-        out.reason = pairs.get("reason").cloned();
-        out.consecutive_failures = pairs.get("consecutive_failures").and_then(|value| value.parse().ok());
-        out.last_changed_at = pairs.get("last_changed_at").cloned();
-        out.last_checked_at = pairs.get("last_checked_at").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct AIProviderSubHealth {
-    pub provider_name: Option<String>,
-    pub state: Option<String>,
-    pub reason: Option<String>,
-    pub consecutive_failures: Option<i32>,
-    pub last_changed_at: Option<String>,
-    pub last_checked_at: Option<String>,
-}
-
-impl AIProviderSubHealth {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.provider_name { pairs.push(format!("provider_name={}", value)); }
-        if let Some(value) = &self.state { pairs.push(format!("state={}", value)); }
-        if let Some(value) = &self.reason { pairs.push(format!("reason={}", value)); }
-        if let Some(value) = &self.consecutive_failures { pairs.push(format!("consecutive_failures={}", value)); }
-        if let Some(value) = &self.last_changed_at { pairs.push(format!("last_changed_at={}", value)); }
-        if let Some(value) = &self.last_checked_at { pairs.push(format!("last_checked_at={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-
-        out.provider_name = pairs.get("provider_name").cloned();
-        out.state = pairs.get("state").cloned();
-        out.reason = pairs.get("reason").cloned();
-        out.consecutive_failures = pairs.get("consecutive_failures").and_then(|value| value.parse().ok());
-        out.last_changed_at = pairs.get("last_changed_at").cloned();
-        out.last_checked_at = pairs.get("last_checked_at").cloned();
-        out
     }
 }
 
@@ -8940,64 +8799,6 @@ impl ExecuteLocalAppScenarioResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct ExecuteLocalStateCutoverRequest {
-    pub nimi_data_dir: Option<String>,
-    pub plan_id: Option<String>,
-    pub confirmed: Option<bool>,
-}
-
-impl ExecuteLocalStateCutoverRequest {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.nimi_data_dir { pairs.push(format!("nimi_data_dir={}", value)); }
-        if let Some(value) = &self.plan_id { pairs.push(format!("plan_id={}", value)); }
-        if let Some(value) = &self.confirmed { pairs.push(format!("confirmed={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-
-        out.nimi_data_dir = pairs.get("nimi_data_dir").cloned();
-        out.plan_id = pairs.get("plan_id").cloned();
-        out.confirmed = pairs.get("confirmed").and_then(|value| value.parse().ok());
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct ExecuteLocalStateCutoverResponse {
-    pub plan: Option<Box<LocalStateReconciliationPlan>>,
-    pub transfer: Option<Box<LocalTransferSessionSummary>>,
-}
-
-impl ExecuteLocalStateCutoverResponse {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let pairs: Vec<String> = Vec::new();
-        if self.plan.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode plan"); }
-        if self.transfer.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode transfer"); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let out = Self::default();
-        for key in ["plan", "transfer"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-        if !pairs.is_empty() {
-            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
-        }
-
-
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct ExecuteScenarioRequest {
     pub head: Option<Box<ScenarioRequestHead>>,
     pub scenario_type: Option<ScenarioType>,
@@ -12946,53 +12747,6 @@ impl KnowledgeWorkspacePrivateOwner {
         let mut out = Self::default();
 
         out.workspace_id = pairs.get("workspace_id").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct ListAIProviderHealthRequest {
-
-}
-
-impl ListAIProviderHealthRequest {
-    pub fn to_transport(&self) -> Vec<u8> {
-        Vec::new()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        if !raw.is_empty() {
-            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client received undecodable response payload");
-        }
-        Self::default()
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct ListAIProviderHealthResponse {
-    pub providers: Vec<Box<AIProviderHealthSnapshot>>,
-}
-
-impl ListAIProviderHealthResponse {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let pairs: Vec<String> = Vec::new();
-        if !self.providers.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode providers"); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let out = Self::default();
-        for key in ["providers"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-        if !pairs.is_empty() {
-            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
-        }
-
-
         out
     }
 }
@@ -17337,7 +17091,6 @@ pub struct LocalCatalogRecommendation {
     pub reason_codes: Vec<String>,
     pub recommended_entry: Option<String>,
     pub fallback_entries: Vec<String>,
-    pub suggested_assets: Vec<Box<LocalSuggestedAsset>>,
     pub suggested_notes: Vec<String>,
     pub baseline: Option<LocalRecommendationBaseline>,
 }
@@ -17353,7 +17106,6 @@ impl LocalCatalogRecommendation {
         for value in &self.reason_codes { pairs.push(format!("reason_codes={}", value)); }
         if let Some(value) = &self.recommended_entry { pairs.push(format!("recommended_entry={}", value)); }
         for value in &self.fallback_entries { pairs.push(format!("fallback_entries={}", value)); }
-        if !self.suggested_assets.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode suggested_assets"); }
         for value in &self.suggested_notes { pairs.push(format!("suggested_notes={}", value)); }
         if let Some(value) = &self.baseline { pairs.push(format!("baseline={:?}", value)); }
         pairs.join(";").into_bytes()
@@ -17362,7 +17114,7 @@ impl LocalCatalogRecommendation {
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
         let mut out = Self::default();
-        for key in ["source", "format", "tier", "host_support_class", "confidence", "suggested_assets", "baseline"] {
+        for key in ["source", "format", "tier", "host_support_class", "confidence", "baseline"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
             }
@@ -18326,7 +18078,7 @@ impl LocalPythonProfile {
 pub struct LocalRecommendationActionState {
     pub can_review_install_plan: Option<bool>,
     pub can_open_variants: Option<bool>,
-    pub can_open_local_asset: Option<bool>,
+    pub can_open_model_asset: Option<bool>,
 }
 
 impl LocalRecommendationActionState {
@@ -18334,7 +18086,7 @@ impl LocalRecommendationActionState {
         let mut pairs: Vec<String> = Vec::new();
         if let Some(value) = &self.can_review_install_plan { pairs.push(format!("can_review_install_plan={}", value)); }
         if let Some(value) = &self.can_open_variants { pairs.push(format!("can_open_variants={}", value)); }
-        if let Some(value) = &self.can_open_local_asset { pairs.push(format!("can_open_local_asset={}", value)); }
+        if let Some(value) = &self.can_open_model_asset { pairs.push(format!("can_open_model_asset={}", value)); }
         pairs.join(";").into_bytes()
     }
 
@@ -18344,7 +18096,7 @@ impl LocalRecommendationActionState {
 
         out.can_review_install_plan = pairs.get("can_review_install_plan").and_then(|value| value.parse().ok());
         out.can_open_variants = pairs.get("can_open_variants").and_then(|value| value.parse().ok());
-        out.can_open_local_asset = pairs.get("can_open_local_asset").and_then(|value| value.parse().ok());
+        out.can_open_model_asset = pairs.get("can_open_model_asset").and_then(|value| value.parse().ok());
         out
     }
 }
@@ -18569,160 +18321,6 @@ impl LocalRecommendationInstalledState {
         let mut out = Self::default();
 
         out.installed = pairs.get("installed").and_then(|value| value.parse().ok());
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct LocalStateIsolationDiagnostic {
-    pub store: Option<String>,
-    pub level: Option<String>,
-    pub reason_code: Option<String>,
-    pub message: Option<String>,
-    pub quarantine_path: Option<String>,
-    pub section: Option<String>,
-    pub record_index: Option<i32>,
-}
-
-impl LocalStateIsolationDiagnostic {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.store { pairs.push(format!("store={}", value)); }
-        if let Some(value) = &self.level { pairs.push(format!("level={}", value)); }
-        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={}", value)); }
-        if let Some(value) = &self.message { pairs.push(format!("message={}", value)); }
-        if let Some(value) = &self.quarantine_path { pairs.push(format!("quarantine_path={}", value)); }
-        if let Some(value) = &self.section { pairs.push(format!("section={}", value)); }
-        if let Some(value) = &self.record_index { pairs.push(format!("record_index={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-
-        out.store = pairs.get("store").cloned();
-        out.level = pairs.get("level").cloned();
-        out.reason_code = pairs.get("reason_code").cloned();
-        out.message = pairs.get("message").cloned();
-        out.quarantine_path = pairs.get("quarantine_path").cloned();
-        out.section = pairs.get("section").cloned();
-        out.record_index = pairs.get("record_index").and_then(|value| value.parse().ok());
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct LocalStateReconciliationPlan {
-    pub plan_id: Option<String>,
-    pub state: Option<String>,
-    pub reason_code: Option<String>,
-    pub message: Option<String>,
-    pub active_state_path: Option<String>,
-    pub local_models_path: Option<String>,
-    pub nimi_data_dir: Option<String>,
-    pub retired_state_path: Option<String>,
-    pub retired_state_detected: Option<bool>,
-    pub active_state_detected: Option<bool>,
-    pub confirmation_required: Option<bool>,
-    pub active_asset_count: Option<i32>,
-    pub active_service_count: Option<i32>,
-    pub active_transfer_count: Option<i32>,
-    pub active_audit_count: Option<i32>,
-    pub retired_asset_count: Option<i32>,
-    pub retired_service_count: Option<i32>,
-    pub retired_transfer_count: Option<i32>,
-    pub retired_audit_count: Option<i32>,
-    pub conflict_count: Option<i32>,
-    pub isolation_diagnostics: Vec<Box<LocalStateIsolationDiagnostic>>,
-}
-
-impl LocalStateReconciliationPlan {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.plan_id { pairs.push(format!("plan_id={}", value)); }
-        if let Some(value) = &self.state { pairs.push(format!("state={}", value)); }
-        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={}", value)); }
-        if let Some(value) = &self.message { pairs.push(format!("message={}", value)); }
-        if let Some(value) = &self.active_state_path { pairs.push(format!("active_state_path={}", value)); }
-        if let Some(value) = &self.local_models_path { pairs.push(format!("local_models_path={}", value)); }
-        if let Some(value) = &self.nimi_data_dir { pairs.push(format!("nimi_data_dir={}", value)); }
-        if let Some(value) = &self.retired_state_path { pairs.push(format!("retired_state_path={}", value)); }
-        if let Some(value) = &self.retired_state_detected { pairs.push(format!("retired_state_detected={}", value)); }
-        if let Some(value) = &self.active_state_detected { pairs.push(format!("active_state_detected={}", value)); }
-        if let Some(value) = &self.confirmation_required { pairs.push(format!("confirmation_required={}", value)); }
-        if let Some(value) = &self.active_asset_count { pairs.push(format!("active_asset_count={}", value)); }
-        if let Some(value) = &self.active_service_count { pairs.push(format!("active_service_count={}", value)); }
-        if let Some(value) = &self.active_transfer_count { pairs.push(format!("active_transfer_count={}", value)); }
-        if let Some(value) = &self.active_audit_count { pairs.push(format!("active_audit_count={}", value)); }
-        if let Some(value) = &self.retired_asset_count { pairs.push(format!("retired_asset_count={}", value)); }
-        if let Some(value) = &self.retired_service_count { pairs.push(format!("retired_service_count={}", value)); }
-        if let Some(value) = &self.retired_transfer_count { pairs.push(format!("retired_transfer_count={}", value)); }
-        if let Some(value) = &self.retired_audit_count { pairs.push(format!("retired_audit_count={}", value)); }
-        if let Some(value) = &self.conflict_count { pairs.push(format!("conflict_count={}", value)); }
-        if !self.isolation_diagnostics.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode isolation_diagnostics"); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["isolation_diagnostics"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-
-        out.plan_id = pairs.get("plan_id").cloned();
-        out.state = pairs.get("state").cloned();
-        out.reason_code = pairs.get("reason_code").cloned();
-        out.message = pairs.get("message").cloned();
-        out.active_state_path = pairs.get("active_state_path").cloned();
-        out.local_models_path = pairs.get("local_models_path").cloned();
-        out.nimi_data_dir = pairs.get("nimi_data_dir").cloned();
-        out.retired_state_path = pairs.get("retired_state_path").cloned();
-        out.retired_state_detected = pairs.get("retired_state_detected").and_then(|value| value.parse().ok());
-        out.active_state_detected = pairs.get("active_state_detected").and_then(|value| value.parse().ok());
-        out.confirmation_required = pairs.get("confirmation_required").and_then(|value| value.parse().ok());
-        out.active_asset_count = pairs.get("active_asset_count").and_then(|value| value.parse().ok());
-        out.active_service_count = pairs.get("active_service_count").and_then(|value| value.parse().ok());
-        out.active_transfer_count = pairs.get("active_transfer_count").and_then(|value| value.parse().ok());
-        out.active_audit_count = pairs.get("active_audit_count").and_then(|value| value.parse().ok());
-        out.retired_asset_count = pairs.get("retired_asset_count").and_then(|value| value.parse().ok());
-        out.retired_service_count = pairs.get("retired_service_count").and_then(|value| value.parse().ok());
-        out.retired_transfer_count = pairs.get("retired_transfer_count").and_then(|value| value.parse().ok());
-        out.retired_audit_count = pairs.get("retired_audit_count").and_then(|value| value.parse().ok());
-        out.conflict_count = pairs.get("conflict_count").and_then(|value| value.parse().ok());
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct LocalSuggestedAsset {
-    pub template_id: Option<String>,
-    pub asset_id: Option<String>,
-    pub kind: Option<String>,
-    pub family: Option<String>,
-}
-
-impl LocalSuggestedAsset {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.template_id { pairs.push(format!("template_id={}", value)); }
-        if let Some(value) = &self.asset_id { pairs.push(format!("asset_id={}", value)); }
-        if let Some(value) = &self.kind { pairs.push(format!("kind={}", value)); }
-        if let Some(value) = &self.family { pairs.push(format!("family={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-
-        out.template_id = pairs.get("template_id").cloned();
-        out.asset_id = pairs.get("asset_id").cloned();
-        out.kind = pairs.get("kind").cloned();
-        out.family = pairs.get("family").cloned();
         out
     }
 }
@@ -23783,56 +23381,6 @@ impl ResolveLocalEnvironmentPlanResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct ResolveLocalStateReconciliationRequest {
-    pub nimi_data_dir: Option<String>,
-}
-
-impl ResolveLocalStateReconciliationRequest {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.nimi_data_dir { pairs.push(format!("nimi_data_dir={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-
-        out.nimi_data_dir = pairs.get("nimi_data_dir").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct ResolveLocalStateReconciliationResponse {
-    pub plan: Option<Box<LocalStateReconciliationPlan>>,
-}
-
-impl ResolveLocalStateReconciliationResponse {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let pairs: Vec<String> = Vec::new();
-        if self.plan.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode plan"); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let out = Self::default();
-        for key in ["plan"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-        if !pairs.is_empty() {
-            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
-        }
-
-
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct ResolveModelInstallPlanRequest {
     pub item_id: Option<String>,
     pub source: Option<String>,
@@ -26494,24 +26042,6 @@ impl SubmitScenarioJobResponse {
 
 
         out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct SubscribeAIProviderHealthEventsRequest {
-
-}
-
-impl SubscribeAIProviderHealthEventsRequest {
-    pub fn to_transport(&self) -> Vec<u8> {
-        Vec::new()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        if !raw.is_empty() {
-            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client received undecodable response payload");
-        }
-        Self::default()
     }
 }
 
@@ -29412,24 +28942,6 @@ impl From<Vec<u8>> for AIConfigRuntimeLocalAgentSubsystemOwner {
     }
 }
 
-impl From<Vec<u8>> for AIProviderHealthEvent {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for AIProviderHealthSnapshot {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for AIProviderSubHealth {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
 impl From<Vec<u8>> for AccountCaller {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -30456,18 +29968,6 @@ impl From<Vec<u8>> for ExecuteLocalAppScenarioResponse {
     }
 }
 
-impl From<Vec<u8>> for ExecuteLocalStateCutoverRequest {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for ExecuteLocalStateCutoverResponse {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
 impl From<Vec<u8>> for ExecuteScenarioRequest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -31237,18 +30737,6 @@ impl From<Vec<u8>> for KnowledgeRequestContext {
 }
 
 impl From<Vec<u8>> for KnowledgeWorkspacePrivateOwner {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for ListAIProviderHealthRequest {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for ListAIProviderHealthResponse {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -32214,24 +31702,6 @@ impl From<Vec<u8>> for LocalRecommendationInstalledState {
     }
 }
 
-impl From<Vec<u8>> for LocalStateIsolationDiagnostic {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for LocalStateReconciliationPlan {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for LocalSuggestedAsset {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
 impl From<Vec<u8>> for LocalTransferProgressEvent {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -33162,18 +32632,6 @@ impl From<Vec<u8>> for ResolveLocalEnvironmentPlanResponse {
     }
 }
 
-impl From<Vec<u8>> for ResolveLocalStateReconciliationRequest {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for ResolveLocalStateReconciliationResponse {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
 impl From<Vec<u8>> for ResolveModelInstallPlanRequest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -33649,12 +33107,6 @@ impl From<Vec<u8>> for SubmitScenarioJobRequest {
 }
 
 impl From<Vec<u8>> for SubmitScenarioJobResponse {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for SubscribeAIProviderHealthEventsRequest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -35443,16 +34895,6 @@ where
         Ok(GetRuntimeHealthResponse::from_transport(&raw))
     }
 
-    pub fn list_aiprovider_health(&self, request: ListAIProviderHealthRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ListAIProviderHealthResponse, T::Error> {
-        let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/nimi.runtime.v1.RuntimeAuditService/ListAIProviderHealth".to_string(),
-            metadata,
-            body: request.to_transport(),
-            timeout,
-        })?;
-        Ok(ListAIProviderHealthResponse::from_transport(&raw))
-    }
-
     pub fn list_audit_events(&self, request: ListAuditEventsRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ListAuditEventsResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "/nimi.runtime.v1.RuntimeAuditService/ListAuditEvents".to_string(),
@@ -35481,19 +34923,6 @@ where
             timeout,
         })?;
         Ok(ListUsageStatsResponse::from_transport(&raw))
-    }
-
-    pub fn subscribe_aiprovider_health_events(&self, request: SubscribeAIProviderHealthEventsRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RuntimeTypedStream<T::Stream, AIProviderHealthEvent>, T::Error>
-    where
-        T::Stream: CoreTypedStream,
-    {
-        let inner = self.core.server_stream(CoreStreamRequest {
-            method_id: "/nimi.runtime.v1.RuntimeAuditService/SubscribeAIProviderHealthEvents".to_string(),
-            metadata,
-            body: request.to_transport(),
-            timeout,
-        })?;
-        Ok(RuntimeTypedStream { inner, _response: std::marker::PhantomData })
     }
 
     pub fn subscribe_runtime_health_events(&self, request: SubscribeRuntimeHealthEventsRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RuntimeTypedStream<T::Stream, RuntimeHealthEvent>, T::Error>
@@ -36272,16 +35701,6 @@ where
         Ok(ProductControlProjectionJson::from_transport(&raw))
     }
 
-    pub fn execute_local_state_cutover(&self, request: ExecuteLocalStateCutoverRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ExecuteLocalStateCutoverResponse, T::Error> {
-        let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/nimi.runtime.v1.RuntimeLocalService/ExecuteLocalStateCutover".to_string(),
-            metadata,
-            body: request.to_transport(),
-            timeout,
-        })?;
-        Ok(ExecuteLocalStateCutoverResponse::from_transport(&raw))
-    }
-
     pub fn get_engine_status(&self, request: GetEngineStatusRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GetEngineStatusResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "/nimi.runtime.v1.RuntimeLocalService/GetEngineStatus".to_string(),
@@ -36530,16 +35949,6 @@ where
             timeout,
         })?;
         Ok(ResolveLocalEnvironmentPlanResponse::from_transport(&raw))
-    }
-
-    pub fn resolve_local_state_reconciliation(&self, request: ResolveLocalStateReconciliationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ResolveLocalStateReconciliationResponse, T::Error> {
-        let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/nimi.runtime.v1.RuntimeLocalService/ResolveLocalStateReconciliation".to_string(),
-            metadata,
-            body: request.to_transport(),
-            timeout,
-        })?;
-        Ok(ResolveLocalStateReconciliationResponse::from_transport(&raw))
     }
 
     pub fn resolve_model_install_plan(&self, request: ResolveModelInstallPlanRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ResolveModelInstallPlanResponse, T::Error> {

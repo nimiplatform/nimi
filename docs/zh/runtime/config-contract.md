@@ -48,9 +48,8 @@ Portable 配置：
 - 只有显式提供时，`nimi doctor` 或 `nimi version` 才能以
   nonproduction 标签报告该入口。
 
-`nimi provider set`、`unset` 或交互式 setup 的 provider mutation 仅在显式
-提供这一 nonproduction 路径时可用。生产凭据和配置继续由 protected service
-保管。
+portable configuration 不拥有 provider credential。CLI 对 `providers.*` 的
+mutation 会 fail closed；生产凭据和配置继续由 protected Connector service 保管。
 
 ## 验证与写入
 

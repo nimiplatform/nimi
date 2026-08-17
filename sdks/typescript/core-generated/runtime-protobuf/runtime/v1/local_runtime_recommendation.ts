@@ -15,27 +15,6 @@ import { LocalDeviceProfile } from "./local_runtime_device_environment";
 import { Struct } from "../../google/protobuf/struct";
 import { LocalAssetKind } from "./local_runtime_asset_catalog";
 /**
- * @generated from protobuf message nimi.runtime.v1.LocalSuggestedAsset
- */
-export interface LocalSuggestedAsset {
-    /**
-     * @generated from protobuf field: string template_id = 1
-     */
-    templateId: string;
-    /**
-     * @generated from protobuf field: string asset_id = 2
-     */
-    assetId: string;
-    /**
-     * @generated from protobuf field: string kind = 3
-     */
-    kind: string;
-    /**
-     * @generated from protobuf field: string family = 4
-     */
-    family: string;
-}
-/**
  * @generated from protobuf message nimi.runtime.v1.LocalCatalogRecommendation
  */
 export interface LocalCatalogRecommendation {
@@ -71,10 +50,6 @@ export interface LocalCatalogRecommendation {
      * @generated from protobuf field: repeated string fallback_entries = 8
      */
     fallbackEntries: string[];
-    /**
-     * @generated from protobuf field: repeated nimi.runtime.v1.LocalSuggestedAsset suggested_assets = 9
-     */
-    suggestedAssets: LocalSuggestedAsset[];
     /**
      * @generated from protobuf field: repeated string suggested_notes = 10
      */
@@ -135,9 +110,9 @@ export interface LocalRecommendationActionState {
      */
     canOpenVariants: boolean;
     /**
-     * @generated from protobuf field: bool can_open_local_asset = 3
+     * @generated from protobuf field: bool can_open_model_asset = 3
      */
-    canOpenLocalAsset: boolean;
+    canOpenModelAsset: boolean;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.LocalRecommendationInstallPayload
@@ -476,77 +451,6 @@ export enum LocalRecommendationFeedSource {
     MODEL_INDEX = 1
 }
 // @generated message type with reflection information, may provide speed optimized methods
-class LocalSuggestedAsset$Type extends MessageType<LocalSuggestedAsset> {
-    constructor() {
-        super("nimi.runtime.v1.LocalSuggestedAsset", [
-            { no: 1, name: "template_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "asset_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "kind", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 4, name: "family", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
-        ]);
-    }
-    create(value?: PartialMessage<LocalSuggestedAsset>): LocalSuggestedAsset {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        message.templateId = "";
-        message.assetId = "";
-        message.kind = "";
-        message.family = "";
-        if (value !== undefined)
-            reflectionMergePartial<LocalSuggestedAsset>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalSuggestedAsset): LocalSuggestedAsset {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* string template_id */ 1:
-                    message.templateId = reader.string();
-                    break;
-                case /* string asset_id */ 2:
-                    message.assetId = reader.string();
-                    break;
-                case /* string kind */ 3:
-                    message.kind = reader.string();
-                    break;
-                case /* string family */ 4:
-                    message.family = reader.string();
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: LocalSuggestedAsset, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* string template_id = 1; */
-        if (message.templateId !== "")
-            writer.tag(1, WireType.LengthDelimited).string(message.templateId);
-        /* string asset_id = 2; */
-        if (message.assetId !== "")
-            writer.tag(2, WireType.LengthDelimited).string(message.assetId);
-        /* string kind = 3; */
-        if (message.kind !== "")
-            writer.tag(3, WireType.LengthDelimited).string(message.kind);
-        /* string family = 4; */
-        if (message.family !== "")
-            writer.tag(4, WireType.LengthDelimited).string(message.family);
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.LocalSuggestedAsset
- */
-export const LocalSuggestedAsset = new LocalSuggestedAsset$Type();
-// @generated message type with reflection information, may provide speed optimized methods
 class LocalCatalogRecommendation$Type extends MessageType<LocalCatalogRecommendation> {
     constructor() {
         super("nimi.runtime.v1.LocalCatalogRecommendation", [
@@ -558,7 +462,6 @@ class LocalCatalogRecommendation$Type extends MessageType<LocalCatalogRecommenda
             { no: 6, name: "reason_codes", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
             { no: 7, name: "recommended_entry", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 8, name: "fallback_entries", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
-            { no: 9, name: "suggested_assets", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalSuggestedAsset },
             { no: 10, name: "suggested_notes", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
             { no: 11, name: "baseline", kind: "enum", T: () => ["nimi.runtime.v1.LocalRecommendationBaseline", LocalRecommendationBaseline, "LOCAL_RECOMMENDATION_BASELINE_"] }
         ]);
@@ -573,7 +476,6 @@ class LocalCatalogRecommendation$Type extends MessageType<LocalCatalogRecommenda
         message.reasonCodes = [];
         message.recommendedEntry = "";
         message.fallbackEntries = [];
-        message.suggestedAssets = [];
         message.suggestedNotes = [];
         message.baseline = 0;
         if (value !== undefined)
@@ -608,9 +510,6 @@ class LocalCatalogRecommendation$Type extends MessageType<LocalCatalogRecommenda
                     break;
                 case /* repeated string fallback_entries */ 8:
                     message.fallbackEntries.push(reader.string());
-                    break;
-                case /* repeated nimi.runtime.v1.LocalSuggestedAsset suggested_assets */ 9:
-                    message.suggestedAssets.push(LocalSuggestedAsset.internalBinaryRead(reader, reader.uint32(), options));
                     break;
                 case /* repeated string suggested_notes */ 10:
                     message.suggestedNotes.push(reader.string());
@@ -654,9 +553,6 @@ class LocalCatalogRecommendation$Type extends MessageType<LocalCatalogRecommenda
         /* repeated string fallback_entries = 8; */
         for (let i = 0; i < message.fallbackEntries.length; i++)
             writer.tag(8, WireType.LengthDelimited).string(message.fallbackEntries[i]);
-        /* repeated nimi.runtime.v1.LocalSuggestedAsset suggested_assets = 9; */
-        for (let i = 0; i < message.suggestedAssets.length; i++)
-            LocalSuggestedAsset.internalBinaryWrite(message.suggestedAssets[i], writer.tag(9, WireType.LengthDelimited).fork(), options).join();
         /* repeated string suggested_notes = 10; */
         for (let i = 0; i < message.suggestedNotes.length; i++)
             writer.tag(10, WireType.LengthDelimited).string(message.suggestedNotes[i]);
@@ -813,14 +709,14 @@ class LocalRecommendationActionState$Type extends MessageType<LocalRecommendatio
         super("nimi.runtime.v1.LocalRecommendationActionState", [
             { no: 1, name: "can_review_install_plan", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
             { no: 2, name: "can_open_variants", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
-            { no: 3, name: "can_open_local_asset", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+            { no: 3, name: "can_open_model_asset", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
         ]);
     }
     create(value?: PartialMessage<LocalRecommendationActionState>): LocalRecommendationActionState {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.canReviewInstallPlan = false;
         message.canOpenVariants = false;
-        message.canOpenLocalAsset = false;
+        message.canOpenModelAsset = false;
         if (value !== undefined)
             reflectionMergePartial<LocalRecommendationActionState>(this, message, value);
         return message;
@@ -836,8 +732,8 @@ class LocalRecommendationActionState$Type extends MessageType<LocalRecommendatio
                 case /* bool can_open_variants */ 2:
                     message.canOpenVariants = reader.bool();
                     break;
-                case /* bool can_open_local_asset */ 3:
-                    message.canOpenLocalAsset = reader.bool();
+                case /* bool can_open_model_asset */ 3:
+                    message.canOpenModelAsset = reader.bool();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -857,9 +753,9 @@ class LocalRecommendationActionState$Type extends MessageType<LocalRecommendatio
         /* bool can_open_variants = 2; */
         if (message.canOpenVariants !== false)
             writer.tag(2, WireType.Varint).bool(message.canOpenVariants);
-        /* bool can_open_local_asset = 3; */
-        if (message.canOpenLocalAsset !== false)
-            writer.tag(3, WireType.Varint).bool(message.canOpenLocalAsset);
+        /* bool can_open_model_asset = 3; */
+        if (message.canOpenModelAsset !== false)
+            writer.tag(3, WireType.Varint).bool(message.canOpenModelAsset);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

@@ -51,8 +51,6 @@ const (
 	RuntimeLocalService_CancelLocalEnvironmentDependencyJob_FullMethodName                 = "/nimi.runtime.v1.RuntimeLocalService/CancelLocalEnvironmentDependencyJob"
 	RuntimeLocalService_RetryLocalEnvironmentDependencyJob_FullMethodName                  = "/nimi.runtime.v1.RuntimeLocalService/RetryLocalEnvironmentDependencyJob"
 	RuntimeLocalService_RepairLocalEnvironmentDependency_FullMethodName                    = "/nimi.runtime.v1.RuntimeLocalService/RepairLocalEnvironmentDependency"
-	RuntimeLocalService_ResolveLocalStateReconciliation_FullMethodName                     = "/nimi.runtime.v1.RuntimeLocalService/ResolveLocalStateReconciliation"
-	RuntimeLocalService_ExecuteLocalStateCutover_FullMethodName                            = "/nimi.runtime.v1.RuntimeLocalService/ExecuteLocalStateCutover"
 	RuntimeLocalService_GetProductControlRecord_FullMethodName                             = "/nimi.runtime.v1.RuntimeLocalService/GetProductControlRecord"
 	RuntimeLocalService_GetProductControlSelectedDataRoot_FullMethodName                   = "/nimi.runtime.v1.RuntimeLocalService/GetProductControlSelectedDataRoot"
 	RuntimeLocalService_EnsureProductControlRecordCreated_FullMethodName                   = "/nimi.runtime.v1.RuntimeLocalService/EnsureProductControlRecordCreated"
@@ -114,9 +112,6 @@ type RuntimeLocalServiceClient interface {
 	CancelLocalEnvironmentDependencyJob(ctx context.Context, in *CancelLocalEnvironmentDependencyJobRequest, opts ...grpc.CallOption) (*CancelLocalEnvironmentDependencyJobResponse, error)
 	RetryLocalEnvironmentDependencyJob(ctx context.Context, in *RetryLocalEnvironmentDependencyJobRequest, opts ...grpc.CallOption) (*RetryLocalEnvironmentDependencyJobResponse, error)
 	RepairLocalEnvironmentDependency(ctx context.Context, in *RepairLocalEnvironmentDependencyRequest, opts ...grpc.CallOption) (*RepairLocalEnvironmentDependencyResponse, error)
-	// Runtime-owned local state reconciliation
-	ResolveLocalStateReconciliation(ctx context.Context, in *ResolveLocalStateReconciliationRequest, opts ...grpc.CallOption) (*ResolveLocalStateReconciliationResponse, error)
-	ExecuteLocalStateCutover(ctx context.Context, in *ExecuteLocalStateCutoverRequest, opts ...grpc.CallOption) (*ExecuteLocalStateCutoverResponse, error)
 	// Runtime-owned product-control record
 	GetProductControlRecord(ctx context.Context, in *GetProductControlRecordRequest, opts ...grpc.CallOption) (*ProductControlProjectionJson, error)
 	GetProductControlSelectedDataRoot(ctx context.Context, in *GetProductControlSelectedDataRootRequest, opts ...grpc.CallOption) (*ProductControlProjectionJson, error)
@@ -477,26 +472,6 @@ func (c *runtimeLocalServiceClient) RepairLocalEnvironmentDependency(ctx context
 	return out, nil
 }
 
-func (c *runtimeLocalServiceClient) ResolveLocalStateReconciliation(ctx context.Context, in *ResolveLocalStateReconciliationRequest, opts ...grpc.CallOption) (*ResolveLocalStateReconciliationResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ResolveLocalStateReconciliationResponse)
-	err := c.cc.Invoke(ctx, RuntimeLocalService_ResolveLocalStateReconciliation_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *runtimeLocalServiceClient) ExecuteLocalStateCutover(ctx context.Context, in *ExecuteLocalStateCutoverRequest, opts ...grpc.CallOption) (*ExecuteLocalStateCutoverResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ExecuteLocalStateCutoverResponse)
-	err := c.cc.Invoke(ctx, RuntimeLocalService_ExecuteLocalStateCutover_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *runtimeLocalServiceClient) GetProductControlRecord(ctx context.Context, in *GetProductControlRecordRequest, opts ...grpc.CallOption) (*ProductControlProjectionJson, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ProductControlProjectionJson)
@@ -709,9 +684,6 @@ type RuntimeLocalServiceServer interface {
 	CancelLocalEnvironmentDependencyJob(context.Context, *CancelLocalEnvironmentDependencyJobRequest) (*CancelLocalEnvironmentDependencyJobResponse, error)
 	RetryLocalEnvironmentDependencyJob(context.Context, *RetryLocalEnvironmentDependencyJobRequest) (*RetryLocalEnvironmentDependencyJobResponse, error)
 	RepairLocalEnvironmentDependency(context.Context, *RepairLocalEnvironmentDependencyRequest) (*RepairLocalEnvironmentDependencyResponse, error)
-	// Runtime-owned local state reconciliation
-	ResolveLocalStateReconciliation(context.Context, *ResolveLocalStateReconciliationRequest) (*ResolveLocalStateReconciliationResponse, error)
-	ExecuteLocalStateCutover(context.Context, *ExecuteLocalStateCutoverRequest) (*ExecuteLocalStateCutoverResponse, error)
 	// Runtime-owned product-control record
 	GetProductControlRecord(context.Context, *GetProductControlRecordRequest) (*ProductControlProjectionJson, error)
 	GetProductControlSelectedDataRoot(context.Context, *GetProductControlSelectedDataRootRequest) (*ProductControlProjectionJson, error)
@@ -837,12 +809,6 @@ func (UnimplementedRuntimeLocalServiceServer) RetryLocalEnvironmentDependencyJob
 }
 func (UnimplementedRuntimeLocalServiceServer) RepairLocalEnvironmentDependency(context.Context, *RepairLocalEnvironmentDependencyRequest) (*RepairLocalEnvironmentDependencyResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method RepairLocalEnvironmentDependency not implemented")
-}
-func (UnimplementedRuntimeLocalServiceServer) ResolveLocalStateReconciliation(context.Context, *ResolveLocalStateReconciliationRequest) (*ResolveLocalStateReconciliationResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method ResolveLocalStateReconciliation not implemented")
-}
-func (UnimplementedRuntimeLocalServiceServer) ExecuteLocalStateCutover(context.Context, *ExecuteLocalStateCutoverRequest) (*ExecuteLocalStateCutoverResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method ExecuteLocalStateCutover not implemented")
 }
 func (UnimplementedRuntimeLocalServiceServer) GetProductControlRecord(context.Context, *GetProductControlRecordRequest) (*ProductControlProjectionJson, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetProductControlRecord not implemented")
@@ -1484,42 +1450,6 @@ func _RuntimeLocalService_RepairLocalEnvironmentDependency_Handler(srv interface
 	return interceptor(ctx, in, info, handler)
 }
 
-func _RuntimeLocalService_ResolveLocalStateReconciliation_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ResolveLocalStateReconciliationRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RuntimeLocalServiceServer).ResolveLocalStateReconciliation(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: RuntimeLocalService_ResolveLocalStateReconciliation_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeLocalServiceServer).ResolveLocalStateReconciliation(ctx, req.(*ResolveLocalStateReconciliationRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _RuntimeLocalService_ExecuteLocalStateCutover_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ExecuteLocalStateCutoverRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RuntimeLocalServiceServer).ExecuteLocalStateCutover(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: RuntimeLocalService_ExecuteLocalStateCutover_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeLocalServiceServer).ExecuteLocalStateCutover(ctx, req.(*ExecuteLocalStateCutoverRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _RuntimeLocalService_GetProductControlRecord_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetProductControlRecordRequest)
 	if err := dec(in); err != nil {
@@ -1956,14 +1886,6 @@ var RuntimeLocalService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "RepairLocalEnvironmentDependency",
 			Handler:    _RuntimeLocalService_RepairLocalEnvironmentDependency_Handler,
-		},
-		{
-			MethodName: "ResolveLocalStateReconciliation",
-			Handler:    _RuntimeLocalService_ResolveLocalStateReconciliation_Handler,
-		},
-		{
-			MethodName: "ExecuteLocalStateCutover",
-			Handler:    _RuntimeLocalService_ExecuteLocalStateCutover_Handler,
 		},
 		{
 			MethodName: "GetProductControlRecord",

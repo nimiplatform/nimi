@@ -29,7 +29,7 @@ units:
   - id: definition.nimi.runtime.service-operations.cli-plane
     kind: definition
     title: Runtime CLI operations plane
-    meaning: The Runtime CLI operations plane owns bounded Runtime service operations, ModelAsset inventory, import and transfer, Connector custody projection, explicit diagnostics, and foreground or background process control while excluding app-author tooling and all high-level generation, AIConfig ownership, route or target selection, Machine Loadout store selection, default provider or model, and fallback authority.
+    meaning: The Runtime CLI operations plane owns foreground Runtime process control plus background process or service control only on a build with an admitted background manager or production service controller, daemon-manager process or service status and a sanitized public reachability classification only through that admitted topology, bounded public diagnostics, version output, and separately governed Advanced or Admin operations, while an unavailable topology fails closed and protected Runtime health, ModelAsset, Machine Loadout, Connector custody, and Runtime-private ExecutionHost product operations remain reachable only through Desktop's verified protected product surface and owned by their canonical Runtime services; the CLI excludes app-author tooling, high-level generation, AIConfig ownership, route or target selection, defaults, fallback authority, and every protected Desktop product projection or mutation.
   - id: rule.nimi.runtime.service-operations.r001
     kind: rule
     title: RuntimeLocalService is the sole local control plane
@@ -757,9 +757,9 @@ units:
     kind: rule
     title: Runtime public operational command set is bounded
     modality: must
-    statement: The Runtime public operational CLI provides serve, doctor, version, model, and provider, where model is limited to ModelAsset inventory, import, pull, and transfer operations and provider is limited to Connector custody projection and user-explicit bounded diagnostics; it provides no high-level generation command or route, target, default model, default provider, AIConfig, or machine-selection mutation.
+    statement: The Runtime public operational CLI provides foreground process control, a stable background command grammar whose execution is limited to the current build's admitted background manager or production service controller, daemon-manager status and a sanitized public health classification through that admitted topology, doctor, version, and separately governed Advanced or Admin namespaces; an unavailable background topology fails closed, and the CLI opens or depends on no ordinary production Runtime RPC or HTTP listener, calls no protected Runtime health method, and exposes no model or provider namespace, detailed Runtime health snapshot, ModelAsset inventory, import, install, transfer, or removal, Machine Loadout operation, Connector custody or test, Runtime-private ExecutionHost detail, high-level generation, route, target, default, AIConfig, or machine-selection mutation.
     condition: Whenever the public Runtime CLI command surface is built or displayed.
-    failure: Reject a missing required operational command or any command that creates generation or configuration authority outside the canonical owners.
+    failure: Reject a missing required foreground operation, background pseudo-success or fallback on a build without its admitted topology, any protected product projection or mutation, and any command that creates generation or configuration authority outside the canonical owners.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.service-operations.cli-plane
@@ -767,9 +767,9 @@ units:
     kind: rule
     title: Top-level usage separates operational domains
     modality: must
-    statement: Top-level nimi usage groups commands under Runtime Operations, Asset Management, Connector Custody and Diagnostics, and Advanced or Admin so each retained operational responsibility is explicit and no generation, default route, or default provider experience is implied.
+    statement: Top-level nimi usage groups commands under Quick Start, Runtime Operations, Advanced or Admin, and an external Author tooling pointer so each retained public responsibility is explicit; it advertises no Asset Management, Model, Provider, Connector Custody, protected ExecutionHost diagnostic, generation, default route, or default provider experience.
     condition: Whenever nimi renders top-level help.
-    failure: Reject help output missing a required operational group or implying a retired generation or routing path.
+    failure: Reject help output missing a retained public group or advertising a protected product, retired generation, or routing path.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.service-operations.cli-plane
@@ -787,7 +787,7 @@ units:
     kind: rule
     title: Daemon-down CLI failures are actionable and redacted
     modality: must
-    statement: When the daemon is unreachable, an operational command or user-explicit bounded provider test fails closed with one executable next-step hint and exposes no raw gRPC or dial detail on the public surface; the diagnostic neither creates a route nor continues into generation.
+    statement: When the daemon is unreachable, a retained daemon-dependent operational command fails closed with one executable next-step hint and exposes no raw gRPC or dial detail on the public surface; the diagnostic neither queries a protected product surface nor creates a route or continues into generation.
     condition: Whenever a retained CLI operation cannot reach Runtime.
     failure: Return a non-success exit with the bounded hint rather than raw transport detail or pseudo-success.
     relations:
@@ -797,19 +797,19 @@ units:
     kind: rule
     lifecycle: removed
     title: Retired generation-triggered model installation
-    reason: Removed because a generation command no longer resolves a model, starts installation, or continues execution; retained LocalAsset pull and import are separate explicit operations.
+    reason: Removed because a generation command no longer resolves a model, starts installation, or continues execution, and ModelAsset product operations are absent from Runtime CLI and remain on Desktop's verified protected surface.
   - id: rule.nimi.runtime.service-operations.r080
     kind: rule
     lifecycle: removed
     title: Retired high-level model and provider route grammar
-    reason: Removed because model inventory and Connector operations are operational namespaces and never generation route or target selectors.
+    reason: Removed because Runtime CLI has no model or provider namespace and protected ModelAsset and Connector product operations remain on Desktop's verified protected surface rather than acting as generation route or target selectors.
   - id: rule.nimi.runtime.service-operations.r081
     kind: rule
-    title: Connector CLI operations never select execution
-    modality: must
-    statement: The provider namespace may list Connector custody records, invoke already admitted explicit custody create or remove operations, and run a user-explicit bounded Test Connector diagnostic, but it never creates or selects an AIConfig route, provider-model target, default provider or model, Machine Loadout store relation, or generation request; custody and diagnostic outcomes remain with their canonical Runtime owners and never continue into execution.
-    condition: Whenever a user invokes a retained provider or Connector operation.
-    failure: Reject one-shot provider routing, a machine default, implicit account or Connector selection, secret escape from Runtime custody, diagnostic-as-readiness, or any continuation into generation.
+    title: Connector custody stays outside Runtime CLI
+    modality: must_not
+    statement: The Runtime CLI exposes a provider or Connector namespace, Connector custody record or mutation, Test Connector diagnostic, credential carrier, provider-model target, default provider or model, Machine Loadout store relation, or generation request; Connector product operations remain exclusively on Desktop's verified protected surface and with their canonical Runtime owners.
+    condition: Whenever the Runtime CLI surface is built, displayed, or invoked.
+    failure: Reject the command before protected transport or owner execution without exposing Connector existence, credentials, custody, diagnostics, selection, routing, or generation.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.service-operations.cli-plane
@@ -817,9 +817,9 @@ units:
     kind: rule
     title: Doctor reports the minimum operational context
     modality: must
-    statement: nimi doctor reports binary version, daemon operational health, Runtime-private local ExecutionHost supervision detail, Connector custody status, installed ModelAssets, and optional SDK detection in the current working directory without discovering, inferring, or exposing a production Runtime private physical configuration path; only when an explicit nonproduction portable config was supplied may doctor report that path, labeled as the nonproduction portable config entry, and no diagnostic field becomes capability readiness, binding, route, selection, or execution feasibility.
+    statement: nimi doctor reports binary version, the admitted daemon manager's process or protected-service state, a sanitized reachable, unreachable, service-running, or stopped health classification, and optional SDK detection in the current working directory, or returns a bounded diagnostic failure when the current build has no admitted background topology, without opening or depending on an ordinary production Runtime listener, calling a protected Runtime health method, or querying or exposing a detailed Runtime health reason, ModelAsset inventory, Machine Loadout state, Connector custody, Runtime-private ExecutionHost supervision, credentials, or a production Runtime private physical configuration path; only when an explicit nonproduction portable config was supplied may doctor report that path, labeled as the nonproduction portable config entry, and no diagnostic field becomes capability readiness, binding, route, selection, or execution feasibility.
     condition: Whenever nimi doctor runs.
-    failure: Return a diagnostic failure when required operational context cannot be determined, and reject default private-path discovery, private-path exposure, or a portable path reported without its nonproduction label.
+    failure: Return a diagnostic failure when daemon-manager state cannot be determined, and reject an ordinary production listener dependency, protected health or product lookup, unsanitized health reason, default private-path discovery, private-path exposure, or a portable path reported without its nonproduction label.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.service-operations.cli-plane
@@ -857,9 +857,9 @@ units:
     kind: rule
     title: Background Runtime commands and meanings are stable
     modality: must
-    statement: Background management provides nimi start, stop, status, and logs, where status reports process or instance state and health remains the detailed Runtime health view.
+    statement: Background management provides the stable nimi start, stop, status, logs, and health grammar, where an admitted background manager or production service controller owns execution, status reports its process or protected-service state plus its reachability classification, and health renders the same manager-owned facts as a bounded diagnostic; a build without an admitted background topology returns a bounded unsupported failure without spawning a fallback process or claiming service state, and neither status nor health queries or exposes the protected detailed Runtime health view.
     condition: Whenever the background Runtime CLI surface is built or invoked.
-    failure: Reject a missing command or a status result presented as the detailed health view.
+    failure: Reject a missing command, fallback or pseudo-success on an unavailable topology, a protected health lookup, an unsanitized private reason, or a status or health result presented as detailed Runtime health.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.service-operations.cli-plane

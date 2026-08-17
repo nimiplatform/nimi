@@ -984,14 +984,6 @@ RUNTIME_METHODS = [
     "response_type": "GetRuntimeHealthResponse"
   },
   {
-    "method_id": "/nimi.runtime.v1.RuntimeAuditService/ListAIProviderHealth",
-    "service": "RuntimeAuditService",
-    "method": "ListAIProviderHealth",
-    "kind": "unary",
-    "request_type": "ListAIProviderHealthRequest",
-    "response_type": "ListAIProviderHealthResponse"
-  },
-  {
     "method_id": "/nimi.runtime.v1.RuntimeAuditService/ListAuditEvents",
     "service": "RuntimeAuditService",
     "method": "ListAuditEvents",
@@ -1014,14 +1006,6 @@ RUNTIME_METHODS = [
     "kind": "unary",
     "request_type": "ListUsageStatsRequest",
     "response_type": "ListUsageStatsResponse"
-  },
-  {
-    "method_id": "/nimi.runtime.v1.RuntimeAuditService/SubscribeAIProviderHealthEvents",
-    "service": "RuntimeAuditService",
-    "method": "SubscribeAIProviderHealthEvents",
-    "kind": "server_stream",
-    "request_type": "SubscribeAIProviderHealthEventsRequest",
-    "response_type": "AIProviderHealthEvent"
   },
   {
     "method_id": "/nimi.runtime.v1.RuntimeAuditService/SubscribeRuntimeHealthEvents",
@@ -1640,14 +1624,6 @@ RUNTIME_METHODS = [
     "response_type": "ProductControlProjectionJson"
   },
   {
-    "method_id": "/nimi.runtime.v1.RuntimeLocalService/ExecuteLocalStateCutover",
-    "service": "RuntimeLocalService",
-    "method": "ExecuteLocalStateCutover",
-    "kind": "unary",
-    "request_type": "ExecuteLocalStateCutoverRequest",
-    "response_type": "ExecuteLocalStateCutoverResponse"
-  },
-  {
     "method_id": "/nimi.runtime.v1.RuntimeLocalService/GetEngineStatus",
     "service": "RuntimeLocalService",
     "method": "GetEngineStatus",
@@ -1846,14 +1822,6 @@ RUNTIME_METHODS = [
     "kind": "unary",
     "request_type": "ResolveLocalEnvironmentPlanRequest",
     "response_type": "ResolveLocalEnvironmentPlanResponse"
-  },
-  {
-    "method_id": "/nimi.runtime.v1.RuntimeLocalService/ResolveLocalStateReconciliation",
-    "service": "RuntimeLocalService",
-    "method": "ResolveLocalStateReconciliation",
-    "kind": "unary",
-    "request_type": "ResolveLocalStateReconciliationRequest",
-    "response_type": "ResolveLocalStateReconciliationResponse"
   },
   {
     "method_id": "/nimi.runtime.v1.RuntimeLocalService/ResolveModelInstallPlan",

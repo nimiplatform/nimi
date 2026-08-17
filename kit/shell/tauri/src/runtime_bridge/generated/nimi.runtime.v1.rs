@@ -6405,44 +6405,6 @@ impl ReasoningTraceMode {
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
-pub enum TokenProviderHealthStatus {
-    Unspecified = 0,
-    Healthy = 1,
-    Degraded = 2,
-    Unreachable = 3,
-    Unauthorized = 4,
-    Unsupported = 5,
-}
-impl TokenProviderHealthStatus {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "TOKEN_PROVIDER_HEALTH_STATUS_UNSPECIFIED",
-            Self::Healthy => "TOKEN_PROVIDER_HEALTH_STATUS_HEALTHY",
-            Self::Degraded => "TOKEN_PROVIDER_HEALTH_STATUS_DEGRADED",
-            Self::Unreachable => "TOKEN_PROVIDER_HEALTH_STATUS_UNREACHABLE",
-            Self::Unauthorized => "TOKEN_PROVIDER_HEALTH_STATUS_UNAUTHORIZED",
-            Self::Unsupported => "TOKEN_PROVIDER_HEALTH_STATUS_UNSUPPORTED",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "TOKEN_PROVIDER_HEALTH_STATUS_UNSPECIFIED" => Some(Self::Unspecified),
-            "TOKEN_PROVIDER_HEALTH_STATUS_HEALTHY" => Some(Self::Healthy),
-            "TOKEN_PROVIDER_HEALTH_STATUS_DEGRADED" => Some(Self::Degraded),
-            "TOKEN_PROVIDER_HEALTH_STATUS_UNREACHABLE" => Some(Self::Unreachable),
-            "TOKEN_PROVIDER_HEALTH_STATUS_UNAUTHORIZED" => Some(Self::Unauthorized),
-            "TOKEN_PROVIDER_HEALTH_STATUS_UNSUPPORTED" => Some(Self::Unsupported),
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
 pub enum StreamEventType {
     Unspecified = 0,
     StreamEventStarted = 1,
@@ -8471,17 +8433,6 @@ pub struct LocalAuditTimeRange {
     pub to: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct LocalSuggestedAsset {
-    #[prost(string, tag = "1")]
-    pub template_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub asset_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub kind: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub family: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct LocalCatalogRecommendation {
     #[prost(enumeration = "LocalRecommendationSource", tag = "1")]
     pub source: i32,
@@ -8499,8 +8450,6 @@ pub struct LocalCatalogRecommendation {
     pub recommended_entry: ::prost::alloc::string::String,
     #[prost(string, repeated, tag = "8")]
     pub fallback_entries: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(message, repeated, tag = "9")]
-    pub suggested_assets: ::prost::alloc::vec::Vec<LocalSuggestedAsset>,
     #[prost(string, repeated, tag = "10")]
     pub suggested_notes: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
     #[prost(enumeration = "LocalRecommendationBaseline", tag = "11")]
@@ -8533,7 +8482,7 @@ pub struct LocalRecommendationActionState {
     #[prost(bool, tag = "2")]
     pub can_open_variants: bool,
     #[prost(bool, tag = "3")]
-    pub can_open_local_asset: bool,
+    pub can_open_model_asset: bool,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct LocalRecommendationInstallPayload {
@@ -9436,94 +9385,6 @@ pub struct RepairLocalEnvironmentDependencyRequest {
 pub struct RepairLocalEnvironmentDependencyResponse {
     #[prost(message, optional, tag = "1")]
     pub job: ::core::option::Option<LocalEnvironmentDependencyJob>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct LocalStateIsolationDiagnostic {
-    #[prost(string, tag = "1")]
-    pub store: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub level: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub reason_code: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub message: ::prost::alloc::string::String,
-    #[prost(string, tag = "5")]
-    pub quarantine_path: ::prost::alloc::string::String,
-    #[prost(string, tag = "6")]
-    pub section: ::prost::alloc::string::String,
-    #[prost(int32, tag = "7")]
-    pub record_index: i32,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct LocalStateReconciliationPlan {
-    #[prost(string, tag = "1")]
-    pub plan_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub state: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub reason_code: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub message: ::prost::alloc::string::String,
-    #[prost(string, tag = "5")]
-    pub active_state_path: ::prost::alloc::string::String,
-    #[prost(string, tag = "6")]
-    pub local_models_path: ::prost::alloc::string::String,
-    #[prost(string, tag = "7")]
-    pub nimi_data_dir: ::prost::alloc::string::String,
-    #[prost(string, tag = "8")]
-    pub retired_state_path: ::prost::alloc::string::String,
-    #[prost(bool, tag = "9")]
-    pub retired_state_detected: bool,
-    #[prost(bool, tag = "10")]
-    pub active_state_detected: bool,
-    #[prost(bool, tag = "11")]
-    pub confirmation_required: bool,
-    #[prost(int32, tag = "12")]
-    pub active_asset_count: i32,
-    #[prost(int32, tag = "13")]
-    pub active_service_count: i32,
-    #[prost(int32, tag = "14")]
-    pub active_transfer_count: i32,
-    #[prost(int32, tag = "15")]
-    pub active_audit_count: i32,
-    #[prost(int32, tag = "16")]
-    pub retired_asset_count: i32,
-    #[prost(int32, tag = "17")]
-    pub retired_service_count: i32,
-    #[prost(int32, tag = "18")]
-    pub retired_transfer_count: i32,
-    #[prost(int32, tag = "19")]
-    pub retired_audit_count: i32,
-    #[prost(int32, tag = "20")]
-    pub conflict_count: i32,
-    #[prost(message, repeated, tag = "21")]
-    pub isolation_diagnostics: ::prost::alloc::vec::Vec<LocalStateIsolationDiagnostic>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct ResolveLocalStateReconciliationRequest {
-    #[prost(string, tag = "1")]
-    pub nimi_data_dir: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct ResolveLocalStateReconciliationResponse {
-    #[prost(message, optional, tag = "1")]
-    pub plan: ::core::option::Option<LocalStateReconciliationPlan>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct ExecuteLocalStateCutoverRequest {
-    #[prost(string, tag = "1")]
-    pub nimi_data_dir: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub plan_id: ::prost::alloc::string::String,
-    #[prost(bool, tag = "3")]
-    pub confirmed: bool,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct ExecuteLocalStateCutoverResponse {
-    #[prost(message, optional, tag = "1")]
-    pub plan: ::core::option::Option<LocalStateReconciliationPlan>,
-    #[prost(message, optional, tag = "2")]
-    pub transfer: ::core::option::Option<LocalTransferSessionSummary>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct CollectDeviceProfileRequest {
@@ -10671,67 +10532,6 @@ pub mod runtime_local_service_client {
                     GrpcMethod::new(
                         "nimi.runtime.v1.RuntimeLocalService",
                         "RepairLocalEnvironmentDependency",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        /// Runtime-owned local state reconciliation
-        pub async fn resolve_local_state_reconciliation(
-            &mut self,
-            request: impl tonic::IntoRequest<
-                super::ResolveLocalStateReconciliationRequest,
-            >,
-        ) -> std::result::Result<
-            tonic::Response<super::ResolveLocalStateReconciliationResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeLocalService/ResolveLocalStateReconciliation",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeLocalService",
-                        "ResolveLocalStateReconciliation",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        pub async fn execute_local_state_cutover(
-            &mut self,
-            request: impl tonic::IntoRequest<super::ExecuteLocalStateCutoverRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::ExecuteLocalStateCutoverResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeLocalService/ExecuteLocalStateCutover",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeLocalService",
-                        "ExecuteLocalStateCutover",
                     ),
                 );
             self.inner.unary(req, path, codec).await
@@ -13092,66 +12892,6 @@ pub struct RuntimeHealthEvent {
     #[prost(message, optional, tag = "10")]
     pub sampled_at: ::core::option::Option<::prost_types::Timestamp>,
 }
-#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct ListAiProviderHealthRequest {}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct AiProviderSubHealth {
-    #[prost(string, tag = "1")]
-    pub provider_name: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub state: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub reason: ::prost::alloc::string::String,
-    #[prost(int32, tag = "4")]
-    pub consecutive_failures: i32,
-    #[prost(message, optional, tag = "5")]
-    pub last_changed_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(message, optional, tag = "6")]
-    pub last_checked_at: ::core::option::Option<::prost_types::Timestamp>,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct AiProviderHealthSnapshot {
-    #[prost(string, tag = "1")]
-    pub provider_name: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub state: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub reason: ::prost::alloc::string::String,
-    #[prost(int32, tag = "4")]
-    pub consecutive_failures: i32,
-    #[prost(message, optional, tag = "5")]
-    pub last_changed_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(message, optional, tag = "6")]
-    pub last_checked_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(message, repeated, tag = "7")]
-    pub sub_health: ::prost::alloc::vec::Vec<AiProviderSubHealth>,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct ListAiProviderHealthResponse {
-    #[prost(message, repeated, tag = "1")]
-    pub providers: ::prost::alloc::vec::Vec<AiProviderHealthSnapshot>,
-}
-#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct SubscribeAiProviderHealthEventsRequest {}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct AiProviderHealthEvent {
-    #[prost(uint64, tag = "1")]
-    pub sequence: u64,
-    #[prost(string, tag = "2")]
-    pub provider_name: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub state: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub reason: ::prost::alloc::string::String,
-    #[prost(int32, tag = "5")]
-    pub consecutive_failures: i32,
-    #[prost(message, optional, tag = "6")]
-    pub last_changed_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(message, optional, tag = "7")]
-    pub last_checked_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(message, repeated, tag = "8")]
-    pub sub_health: ::prost::alloc::vec::Vec<AiProviderSubHealth>,
-}
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct AuditExportChunk {
     #[prost(string, tag = "1")]
@@ -13470,66 +13210,6 @@ pub mod runtime_audit_service_client {
                     ),
                 );
             self.inner.unary(req, path, codec).await
-        }
-        pub async fn list_ai_provider_health(
-            &mut self,
-            request: impl tonic::IntoRequest<super::ListAiProviderHealthRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::ListAiProviderHealthResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAuditService/ListAIProviderHealth",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeAuditService",
-                        "ListAIProviderHealth",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        pub async fn subscribe_ai_provider_health_events(
-            &mut self,
-            request: impl tonic::IntoRequest<
-                super::SubscribeAiProviderHealthEventsRequest,
-            >,
-        ) -> std::result::Result<
-            tonic::Response<tonic::codec::Streaming<super::AiProviderHealthEvent>>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAuditService/SubscribeAIProviderHealthEvents",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeAuditService",
-                        "SubscribeAIProviderHealthEvents",
-                    ),
-                );
-            self.inner.server_streaming(req, path, codec).await
         }
         pub async fn subscribe_runtime_health_events(
             &mut self,

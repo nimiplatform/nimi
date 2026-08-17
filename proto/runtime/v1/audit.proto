@@ -186,44 +186,6 @@ message RuntimeHealthEvent {
   google.protobuf.Timestamp sampled_at = 10;
 }
 
-message ListAIProviderHealthRequest {}
-
-message AIProviderSubHealth {
-  string provider_name = 1;
-  string state = 2;
-  string reason = 3;
-  int32 consecutive_failures = 4;
-  google.protobuf.Timestamp last_changed_at = 5;
-  google.protobuf.Timestamp last_checked_at = 6;
-}
-
-message AIProviderHealthSnapshot {
-  string provider_name = 1;
-  string state = 2;
-  string reason = 3;
-  int32 consecutive_failures = 4;
-  google.protobuf.Timestamp last_changed_at = 5;
-  google.protobuf.Timestamp last_checked_at = 6;
-  repeated AIProviderSubHealth sub_health = 7;
-}
-
-message ListAIProviderHealthResponse {
-  repeated AIProviderHealthSnapshot providers = 1;
-}
-
-message SubscribeAIProviderHealthEventsRequest {}
-
-message AIProviderHealthEvent {
-  uint64 sequence = 1;
-  string provider_name = 2;
-  string state = 3;
-  string reason = 4;
-  int32 consecutive_failures = 5;
-  google.protobuf.Timestamp last_changed_at = 6;
-  google.protobuf.Timestamp last_checked_at = 7;
-  repeated AIProviderSubHealth sub_health = 8;
-}
-
 message AuditExportChunk {
   string export_id = 1;
   uint64 sequence = 2;
@@ -238,7 +200,5 @@ service RuntimeAuditService {
   rpc ExportAuditEvents(ExportAuditEventsRequest) returns (stream AuditExportChunk);
   rpc ListUsageStats(ListUsageStatsRequest) returns (ListUsageStatsResponse);
   rpc GetRuntimeHealth(GetRuntimeHealthRequest) returns (GetRuntimeHealthResponse);
-  rpc ListAIProviderHealth(ListAIProviderHealthRequest) returns (ListAIProviderHealthResponse);
-  rpc SubscribeAIProviderHealthEvents(SubscribeAIProviderHealthEventsRequest) returns (stream AIProviderHealthEvent);
   rpc SubscribeRuntimeHealthEvents(SubscribeRuntimeHealthEventsRequest) returns (stream RuntimeHealthEvent);
 }

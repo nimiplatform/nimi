@@ -1552,17 +1552,6 @@ const (
 	TEXTSOURCETYPEDOCUMENT TextSourceType = "TEXT_SOURCE_TYPE_DOCUMENT"
 )
 
-type TokenProviderHealthStatus string
-
-const (
-	TOKENPROVIDERHEALTHSTATUSUNSPECIFIED TokenProviderHealthStatus = "TOKEN_PROVIDER_HEALTH_STATUS_UNSPECIFIED"
-	TOKENPROVIDERHEALTHSTATUSHEALTHY TokenProviderHealthStatus = "TOKEN_PROVIDER_HEALTH_STATUS_HEALTHY"
-	TOKENPROVIDERHEALTHSTATUSDEGRADED TokenProviderHealthStatus = "TOKEN_PROVIDER_HEALTH_STATUS_DEGRADED"
-	TOKENPROVIDERHEALTHSTATUSUNREACHABLE TokenProviderHealthStatus = "TOKEN_PROVIDER_HEALTH_STATUS_UNREACHABLE"
-	TOKENPROVIDERHEALTHSTATUSUNAUTHORIZED TokenProviderHealthStatus = "TOKEN_PROVIDER_HEALTH_STATUS_UNAUTHORIZED"
-	TOKENPROVIDERHEALTHSTATUSUNSUPPORTED TokenProviderHealthStatus = "TOKEN_PROVIDER_HEALTH_STATUS_UNSUPPORTED"
-)
-
 type ToolChoiceMode string
 
 const (
@@ -1755,36 +1744,6 @@ type AIConfigOwner struct {
 
 type AIConfigRuntimeLocalAgentSubsystemOwner struct {
 
-}
-
-type AIProviderHealthEvent struct {
-	Sequence uint64 `json:"sequence,omitempty"`
-	ProviderName string `json:"provider_name,omitempty"`
-	State string `json:"state,omitempty"`
-	Reason string `json:"reason,omitempty"`
-	ConsecutiveFailures int32 `json:"consecutive_failures,omitempty"`
-	LastChangedAt string `json:"last_changed_at,omitempty"`
-	LastCheckedAt string `json:"last_checked_at,omitempty"`
-	SubHealth []AIProviderSubHealth `json:"sub_health,omitempty"`
-}
-
-type AIProviderHealthSnapshot struct {
-	ProviderName string `json:"provider_name,omitempty"`
-	State string `json:"state,omitempty"`
-	Reason string `json:"reason,omitempty"`
-	ConsecutiveFailures int32 `json:"consecutive_failures,omitempty"`
-	LastChangedAt string `json:"last_changed_at,omitempty"`
-	LastCheckedAt string `json:"last_checked_at,omitempty"`
-	SubHealth []AIProviderSubHealth `json:"sub_health,omitempty"`
-}
-
-type AIProviderSubHealth struct {
-	ProviderName string `json:"provider_name,omitempty"`
-	State string `json:"state,omitempty"`
-	Reason string `json:"reason,omitempty"`
-	ConsecutiveFailures int32 `json:"consecutive_failures,omitempty"`
-	LastChangedAt string `json:"last_changed_at,omitempty"`
-	LastCheckedAt string `json:"last_checked_at,omitempty"`
 }
 
 type AccountCaller struct {
@@ -3156,17 +3115,6 @@ type ExecuteLocalAppScenarioResponse struct {
 	TraceId string `json:"trace_id,omitempty"`
 }
 
-type ExecuteLocalStateCutoverRequest struct {
-	NimiDataDir string `json:"nimi_data_dir,omitempty"`
-	PlanId string `json:"plan_id,omitempty"`
-	Confirmed bool `json:"confirmed,omitempty"`
-}
-
-type ExecuteLocalStateCutoverResponse struct {
-	Plan *LocalStateReconciliationPlan `json:"plan,omitempty"`
-	Transfer *LocalTransferSessionSummary `json:"transfer,omitempty"`
-}
-
 type ExecuteScenarioRequest struct {
 	Head *ScenarioRequestHead `json:"head,omitempty"`
 	ScenarioType ScenarioType `json:"scenario_type,omitempty"`
@@ -3942,14 +3890,6 @@ type KnowledgeRequestContext struct {
 
 type KnowledgeWorkspacePrivateOwner struct {
 	WorkspaceId string `json:"workspace_id,omitempty"`
-}
-
-type ListAIProviderHealthRequest struct {
-
-}
-
-type ListAIProviderHealthResponse struct {
-	Providers []AIProviderHealthSnapshot `json:"providers,omitempty"`
 }
 
 type ListAgentConversationSummariesRequest struct {
@@ -4876,7 +4816,6 @@ type LocalCatalogRecommendation struct {
 	ReasonCodes []string `json:"reason_codes,omitempty"`
 	RecommendedEntry string `json:"recommended_entry,omitempty"`
 	FallbackEntries []string `json:"fallback_entries,omitempty"`
-	SuggestedAssets []LocalSuggestedAsset `json:"suggested_assets,omitempty"`
 	SuggestedNotes []string `json:"suggested_notes,omitempty"`
 	Baseline LocalRecommendationBaseline `json:"baseline,omitempty"`
 }
@@ -5126,7 +5065,7 @@ type LocalPythonProfile struct {
 type LocalRecommendationActionState struct {
 	CanReviewInstallPlan bool `json:"can_review_install_plan,omitempty"`
 	CanOpenVariants bool `json:"can_open_variants,omitempty"`
-	CanOpenLocalAsset bool `json:"can_open_local_asset,omitempty"`
+	CanOpenModelAsset bool `json:"can_open_model_asset,omitempty"`
 }
 
 type LocalRecommendationFeedDescriptor struct {
@@ -5185,47 +5124,6 @@ type LocalRecommendationInstallPayload struct {
 
 type LocalRecommendationInstalledState struct {
 	Installed bool `json:"installed,omitempty"`
-}
-
-type LocalStateIsolationDiagnostic struct {
-	Store string `json:"store,omitempty"`
-	Level string `json:"level,omitempty"`
-	ReasonCode string `json:"reason_code,omitempty"`
-	Message string `json:"message,omitempty"`
-	QuarantinePath string `json:"quarantine_path,omitempty"`
-	Section string `json:"section,omitempty"`
-	RecordIndex int32 `json:"record_index,omitempty"`
-}
-
-type LocalStateReconciliationPlan struct {
-	PlanId string `json:"plan_id,omitempty"`
-	State string `json:"state,omitempty"`
-	ReasonCode string `json:"reason_code,omitempty"`
-	Message string `json:"message,omitempty"`
-	ActiveStatePath string `json:"active_state_path,omitempty"`
-	LocalModelsPath string `json:"local_models_path,omitempty"`
-	NimiDataDir string `json:"nimi_data_dir,omitempty"`
-	RetiredStatePath string `json:"retired_state_path,omitempty"`
-	RetiredStateDetected bool `json:"retired_state_detected,omitempty"`
-	ActiveStateDetected bool `json:"active_state_detected,omitempty"`
-	ConfirmationRequired bool `json:"confirmation_required,omitempty"`
-	ActiveAssetCount int32 `json:"active_asset_count,omitempty"`
-	ActiveServiceCount int32 `json:"active_service_count,omitempty"`
-	ActiveTransferCount int32 `json:"active_transfer_count,omitempty"`
-	ActiveAuditCount int32 `json:"active_audit_count,omitempty"`
-	RetiredAssetCount int32 `json:"retired_asset_count,omitempty"`
-	RetiredServiceCount int32 `json:"retired_service_count,omitempty"`
-	RetiredTransferCount int32 `json:"retired_transfer_count,omitempty"`
-	RetiredAuditCount int32 `json:"retired_audit_count,omitempty"`
-	ConflictCount int32 `json:"conflict_count,omitempty"`
-	IsolationDiagnostics []LocalStateIsolationDiagnostic `json:"isolation_diagnostics,omitempty"`
-}
-
-type LocalSuggestedAsset struct {
-	TemplateId string `json:"template_id,omitempty"`
-	AssetId string `json:"asset_id,omitempty"`
-	Kind string `json:"kind,omitempty"`
-	Family string `json:"family,omitempty"`
 }
 
 type LocalTransferProgressEvent struct {
@@ -6286,14 +6184,6 @@ type ResolveLocalEnvironmentPlanResponse struct {
 	Plan *LocalEnvironmentPlan `json:"plan,omitempty"`
 }
 
-type ResolveLocalStateReconciliationRequest struct {
-	NimiDataDir string `json:"nimi_data_dir,omitempty"`
-}
-
-type ResolveLocalStateReconciliationResponse struct {
-	Plan *LocalStateReconciliationPlan `json:"plan,omitempty"`
-}
-
 type ResolveModelInstallPlanRequest struct {
 	ItemId string `json:"item_id,omitempty"`
 	Source string `json:"source,omitempty"`
@@ -6856,10 +6746,6 @@ type SubmitScenarioJobRequest struct {
 
 type SubmitScenarioJobResponse struct {
 	Job *ScenarioJob `json:"job,omitempty"`
-}
-
-type SubscribeAIProviderHealthEventsRequest struct {
-
 }
 
 type SubscribeAccountSessionEventsRequest struct {
@@ -8541,14 +8427,6 @@ func (c RuntimeTypedClient) GetRuntimeHealth(ctx context.Context, request GetRun
 	return decodeRuntimeTypedResponse[GetRuntimeHealthResponse](raw, "GetRuntimeHealthResponse")
 }
 
-func (c RuntimeTypedClient) ListAIProviderHealth(ctx context.Context, request ListAIProviderHealthRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListAIProviderHealthResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAuditService/ListAIProviderHealth", request, metadata, timeoutMS)
-	if err != nil {
-		return ListAIProviderHealthResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[ListAIProviderHealthResponse](raw, "ListAIProviderHealthResponse")
-}
-
 func (c RuntimeTypedClient) ListAuditEvents(ctx context.Context, request ListAuditEventsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListAuditEventsResponse, error) {
 	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAuditService/ListAuditEvents", request, metadata, timeoutMS)
 	if err != nil {
@@ -8571,14 +8449,6 @@ func (c RuntimeTypedClient) ListUsageStats(ctx context.Context, request ListUsag
 		return ListUsageStatsResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[ListUsageStatsResponse](raw, "ListUsageStatsResponse")
-}
-
-func (c RuntimeTypedClient) SubscribeAIProviderHealthEvents(ctx context.Context, request SubscribeAIProviderHealthEventsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (*RuntimeTypedStream[AIProviderHealthEvent], error) {
-	reader, err := c.streamTyped(ctx, "/nimi.runtime.v1.RuntimeAuditService/SubscribeAIProviderHealthEvents", request, metadata, timeoutMS)
-	if err != nil {
-		return nil, err
-	}
-	return &RuntimeTypedStream[AIProviderHealthEvent]{reader: reader}, nil
 }
 
 func (c RuntimeTypedClient) SubscribeRuntimeHealthEvents(ctx context.Context, request SubscribeRuntimeHealthEventsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (*RuntimeTypedStream[RuntimeHealthEvent], error) {
@@ -9197,14 +9067,6 @@ func (c RuntimeTypedClient) EnsureProductControlRecordCreated(ctx context.Contex
 	return decodeRuntimeTypedResponse[ProductControlProjectionJson](raw, "ProductControlProjectionJson")
 }
 
-func (c RuntimeTypedClient) ExecuteLocalStateCutover(ctx context.Context, request ExecuteLocalStateCutoverRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ExecuteLocalStateCutoverResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/ExecuteLocalStateCutover", request, metadata, timeoutMS)
-	if err != nil {
-		return ExecuteLocalStateCutoverResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[ExecuteLocalStateCutoverResponse](raw, "ExecuteLocalStateCutoverResponse")
-}
-
 func (c RuntimeTypedClient) GetEngineStatus(ctx context.Context, request GetEngineStatusRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetEngineStatusResponse, error) {
 	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/GetEngineStatus", request, metadata, timeoutMS)
 	if err != nil {
@@ -9403,14 +9265,6 @@ func (c RuntimeTypedClient) ResolveLocalEnvironmentPlan(ctx context.Context, req
 		return ResolveLocalEnvironmentPlanResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[ResolveLocalEnvironmentPlanResponse](raw, "ResolveLocalEnvironmentPlanResponse")
-}
-
-func (c RuntimeTypedClient) ResolveLocalStateReconciliation(ctx context.Context, request ResolveLocalStateReconciliationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ResolveLocalStateReconciliationResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/ResolveLocalStateReconciliation", request, metadata, timeoutMS)
-	if err != nil {
-		return ResolveLocalStateReconciliationResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[ResolveLocalStateReconciliationResponse](raw, "ResolveLocalStateReconciliationResponse")
 }
 
 func (c RuntimeTypedClient) ResolveModelInstallPlan(ctx context.Context, request ResolveModelInstallPlanRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ResolveModelInstallPlanResponse, error) {

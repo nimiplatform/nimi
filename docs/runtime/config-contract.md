@@ -52,9 +52,9 @@ Portable configuration:
 - is shown by `nimi doctor` or `nimi version` only when explicitly supplied,
   and then only with a nonproduction label.
 
-Provider mutation through `nimi provider set`, `unset`, or interactive setup is
-available only when this explicit nonproduction path is supplied. Production
-credentials and configuration remain in protected service custody.
+Portable configuration never owns provider credentials. CLI attempts to mutate
+`providers.*` fail closed; production credentials and configuration remain in
+protected Connector service custody.
 
 ## Validation and writes
 

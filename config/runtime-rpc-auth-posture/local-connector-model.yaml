@@ -112,10 +112,6 @@ methods:
     posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeLocalService/RepairLocalEnvironmentDependency
     posture: protected_origin_required
-  - method_id: /nimi.runtime.v1.RuntimeLocalService/ResolveLocalStateReconciliation
-    posture: anonymous_read
-  - method_id: /nimi.runtime.v1.RuntimeLocalService/ExecuteLocalStateCutover
-    posture: anonymous_read
   - method_id: /nimi.runtime.v1.RuntimeLocalService/CollectDeviceProfile
     posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeLocalService/ListLocalAudits

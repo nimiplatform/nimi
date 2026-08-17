@@ -156,17 +156,12 @@ export type {
 };
 
 import type {
-  AIProviderHealthEvent,
-  AIProviderHealthSnapshot,
-  AIProviderSubHealth,
   AuditEventRecord,
   AuditExportChunk,
   DesktopAuditEventProjection,
   ExportAuditEventsRequest,
   GetRuntimeHealthRequest,
   GetRuntimeHealthResponse,
-  ListAIProviderHealthRequest,
-  ListAIProviderHealthResponse,
   ListAuditEventsRequest,
   ListAuditEventsResponse,
   ListDesktopAuditEventsRequest,
@@ -174,23 +169,17 @@ import type {
   ListUsageStatsRequest,
   ListUsageStatsResponse,
   RuntimeHealthEvent,
-  SubscribeAIProviderHealthEventsRequest,
   SubscribeRuntimeHealthEventsRequest,
   UsageStatRecord,
 } from "../../core-generated/runtime-protobuf/runtime/v1/audit";
 
 export type {
-  AIProviderHealthEvent,
-  AIProviderHealthSnapshot,
-  AIProviderSubHealth,
   AuditEventRecord,
   AuditExportChunk,
   DesktopAuditEventProjection,
   ExportAuditEventsRequest,
   GetRuntimeHealthRequest,
   GetRuntimeHealthResponse,
-  ListAIProviderHealthRequest,
-  ListAIProviderHealthResponse,
   ListAuditEventsRequest,
   ListAuditEventsResponse,
   ListDesktopAuditEventsRequest,
@@ -198,7 +187,6 @@ export type {
   ListUsageStatsRequest,
   ListUsageStatsResponse,
   RuntimeHealthEvent,
-  SubscribeAIProviderHealthEventsRequest,
   SubscribeRuntimeHealthEventsRequest,
   UsageStatRecord,
 };

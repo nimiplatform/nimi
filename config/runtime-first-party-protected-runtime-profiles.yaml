@@ -22,7 +22,6 @@ profiles:
       - method_id: /nimi.runtime.v1.RuntimeLocalService/CompleteProductControlFirstRunDeviceEnvironmentScan
       - method_id: /nimi.runtime.v1.RuntimeLocalService/AdmitProductControlReadyForUse
       - method_id: /nimi.runtime.v1.RuntimeLocalService/ReconcileProductControlFirstRunSetupState
-      - method_id: /nimi.runtime.v1.RuntimeLocalService/ResolveLocalStateReconciliation
       - method_id: /nimi.runtime.v1.RuntimeLocalService/ImportModelAsset
       - method_id: /nimi.runtime.v1.RuntimeLocalService/ListModelAssets
       - method_id: /nimi.runtime.v1.RuntimeLocalService/GetModelAsset
@@ -36,7 +35,6 @@ profiles:
       - method_id: /nimi.runtime.v1.RuntimeLocalService/DeleteLoadout
       - method_id: /nimi.runtime.v1.RuntimeConnectorService/ListConnectors
       - method_id: /nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth
-      - method_id: /nimi.runtime.v1.RuntimeAuditService/ListAIProviderHealth
       - method_id: /nimi.runtime.v1.RuntimeAuditService/ListDesktopAuditEvents
       - method_id: /nimi.runtime.v1.RuntimeAuditService/ListUsageStats
       - method_id: /nimi.runtime.v1.RuntimeAiService/PeekScheduling
@@ -55,7 +53,6 @@ profiles:
       - method_id: /nimi.runtime.v1.RuntimeConnectorService/ListProviderCatalog
       - method_id: /nimi.runtime.v1.RuntimeLocalService/ListLocalAudits
       - method_id: /nimi.runtime.v1.RuntimeAuditService/SubscribeRuntimeHealthEvents
-      - method_id: /nimi.runtime.v1.RuntimeAuditService/SubscribeAIProviderHealthEvents
       - method_id: /nimi.runtime.v1.RuntimeExternalAgentService/GetExternalAgentGatewayStatus
       - method_id: /nimi.runtime.v1.RuntimeExternalAgentService/IssueExternalAgentToken
       - method_id: /nimi.runtime.v1.RuntimeExternalAgentService/RevokeExternalAgentToken

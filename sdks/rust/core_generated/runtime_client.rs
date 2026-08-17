@@ -992,14 +992,6 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "GetRuntimeHealthResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/nimi.runtime.v1.RuntimeAuditService/ListAIProviderHealth",
-        service: "RuntimeAuditService",
-        method: "ListAIProviderHealth",
-        kind: "unary",
-        request_type: "ListAIProviderHealthRequest",
-        response_type: "ListAIProviderHealthResponse",
-    },
-    RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeAuditService/ListAuditEvents",
         service: "RuntimeAuditService",
         method: "ListAuditEvents",
@@ -1022,14 +1014,6 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         kind: "unary",
         request_type: "ListUsageStatsRequest",
         response_type: "ListUsageStatsResponse",
-    },
-    RuntimeMethodDescriptor {
-        method_id: "/nimi.runtime.v1.RuntimeAuditService/SubscribeAIProviderHealthEvents",
-        service: "RuntimeAuditService",
-        method: "SubscribeAIProviderHealthEvents",
-        kind: "server_stream",
-        request_type: "SubscribeAIProviderHealthEventsRequest",
-        response_type: "AIProviderHealthEvent",
     },
     RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeAuditService/SubscribeRuntimeHealthEvents",
@@ -1648,14 +1632,6 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "ProductControlProjectionJson",
     },
     RuntimeMethodDescriptor {
-        method_id: "/nimi.runtime.v1.RuntimeLocalService/ExecuteLocalStateCutover",
-        service: "RuntimeLocalService",
-        method: "ExecuteLocalStateCutover",
-        kind: "unary",
-        request_type: "ExecuteLocalStateCutoverRequest",
-        response_type: "ExecuteLocalStateCutoverResponse",
-    },
-    RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeLocalService/GetEngineStatus",
         service: "RuntimeLocalService",
         method: "GetEngineStatus",
@@ -1854,14 +1830,6 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         kind: "unary",
         request_type: "ResolveLocalEnvironmentPlanRequest",
         response_type: "ResolveLocalEnvironmentPlanResponse",
-    },
-    RuntimeMethodDescriptor {
-        method_id: "/nimi.runtime.v1.RuntimeLocalService/ResolveLocalStateReconciliation",
-        service: "RuntimeLocalService",
-        method: "ResolveLocalStateReconciliation",
-        kind: "unary",
-        request_type: "ResolveLocalStateReconciliationRequest",
-        response_type: "ResolveLocalStateReconciliationResponse",
     },
     RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeLocalService/ResolveModelInstallPlan",

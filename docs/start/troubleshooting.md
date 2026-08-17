@@ -12,23 +12,24 @@ Run:
 nimi doctor
 ```
 
-If the daemon is not reachable, Runtime reports the same next step used by the
-CLI onboarding path:
+On a build with an admitted background/service controller, a stopped daemon
+reports the bounded background next step:
 
 ```sh
 nimi start
 ```
 
-or, when you need the daemon in the foreground:
+For source development or a build without that background topology, run it in
+the foreground:
 
 ```sh
 nimi serve
 ```
 
-Then verify the zero-config path:
+Where background management is admitted, verify its sanitized manager summary:
 
 ```sh
-nimi run "What is Nimi?"
+nimi health --json
 ```
 
 ## SDK Client Configuration

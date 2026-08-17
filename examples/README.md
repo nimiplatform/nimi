@@ -11,13 +11,15 @@ checkout with the runtime CLI built locally:
 pnpm install
 pnpm build:runtime
 export PATH="$PWD/dist:$PATH"
-nimi start
+nimi serve
 ```
 
-Fastest Runtime proof:
+On a build with an admitted background/service controller, its bounded process
+proof is:
 
 ```bash
-nimi run "What is Nimi?"
+nimi doctor
+nimi health --json
 ```
 
 Node.js is only needed when you run the TypeScript example files directly.

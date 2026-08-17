@@ -17,11 +17,11 @@ Runtime endpoint variables are layer-specific:
 | `NIMI_RUNTIME_ENDPOINT` | SDK Runtime client default in Node.js | App-side default when `createNimiClient` omits `runtime.transport` |
 | `NIMI_RUNTIME_GRPC_ADDR` | Runtime daemon config | Daemon listen address |
 
-Use a real CLI call to check the Runtime installation:
+Use the CLI to check the Runtime installation and public health projection:
 
 ```bash
 nimi start
-nimi run "What is Nimi?"
+nimi health --json
 ```
 
 ## Dispatch Text Generation
@@ -94,7 +94,7 @@ pnpm --filter @nimiplatform/examples check
 pnpm --filter @nimiplatform/tester test
 ```
 
-For an App repository, run `nimi run`, the App's validation commands, and one App-owned generation call with the exact configured App identity.
+For an App repository, run `nimi doctor`, the App's validation commands, and one App-owned generation call with the exact configured App identity.
 
 ## Source Basis
 

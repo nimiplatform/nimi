@@ -12,14 +12,13 @@ It owns:
 
 If you are using Nimi as a product, use the installed `nimi` binary.
 
-First-run path:
+On a build with an admitted background/service controller:
 
 ```bash
 nimi start
 
 nimi doctor
 nimi status
-nimi run "What is Nimi?"
 ```
 
 Foreground/developer path:
@@ -28,19 +27,10 @@ Foreground/developer path:
 nimi serve
 ```
 
-Cloud path:
-
-```bash
-nimi run "Hello from Nimi" --provider gemini
-```
-
-Or save a reusable default:
-
-```bash
-nimi provider set gemini --api-key-env NIMI_RUNTIME_CLOUD_GEMINI_API_KEY --default
-export NIMI_RUNTIME_CLOUD_GEMINI_API_KEY="<your-key>"
-nimi run "Hello from Nimi" --cloud
-```
+Connector custody and ModelAsset/Loadout selection are exposed only through
+Desktop's verified protected Runtime surface. The CLI and standalone SDK
+clients do not own parallel provider credentials, model selection, or
+generation routing.
 
 Core command groups:
 - `serve`
@@ -48,26 +38,21 @@ Core command groups:
 - `doctor`
 - `init`
 - `version`
-- `run`
-- `model`
-- `provider`
 - `status`
 - `stop`
 - `logs`
 
 Advanced runtime groups:
-- `ai`
 - `knowledge`
 - `app`
 - `audit`
 - `health`
-- `providers`
 - `config`
 
 Run `nimi <command> --help` for the current command contract.
 
-High-level onboarding stays on `nimi run` and SDK `runtime.generate()/stream()`.
-Fully-qualified explicit model ids stay on lower-level surfaces such as `nimi ai text-generate --model-id ...` and `runtime.ai.text.generate({ model: ... })`.
+App-facing inference uses the SDK's typed Runtime clients after Desktop's
+verified protected surface has committed Connector and Loadout intent.
 
 ## Source Development
 
@@ -78,20 +63,10 @@ cd runtime
 go run ./cmd/nimi serve
 ```
 
-Useful source-development commands:
-
-```bash
-cd runtime
-go run ./cmd/nimi doctor --json
-go run ./cmd/nimi health --source grpc
-go run ./cmd/nimi version --json
-go run ./cmd/nimi model list --json
-go run ./cmd/nimi provider list --json
-go run ./cmd/nimi run "hello runtime" --yes --json
-```
-
-The source-development and scripted paths may use `--yes` for repeatability.
-That flag is not part of the public first-run happy path, which stays on bare `nimi run "<prompt>"`.
+`doctor`, `status`, and `health` use only an admitted daemon manager or
+service controller. They fail explicitly on builds without that background
+topology; they do not probe a protected Runtime method or invent a fallback
+process.
 
 Production Runtime private configuration is service-principal-owned protected
 state. `~/.nimi/runtime/config.json`, `~/.nimi/config.json`, and
@@ -104,7 +79,7 @@ validates its `dataRoot.path` and retains only derived verification state.
 Registered public runtime gRPC services currently include:
 - `RuntimeAiService` — local and cloud AI execution, streaming, multimodal
 - `RuntimeAiRealtimeService` — duplex realtime text/audio session surface
-- `RuntimeLocalService` — local execution, supervision, provider health
+- `RuntimeLocalService` — local model inventory, Loadouts, acquisition, and supervision
 - `RuntimeAgentService` — live agent execution, hook lifecycle, canonical review
 - `RuntimeConnectorService` — provider connector lifecycle, credential hosting
 - `RuntimeAuthService` — authentication and token management
@@ -120,15 +95,18 @@ Notes:
 - standard `grpc.health.v1.Health` probing is also registered for daemon health, but
   it is not part of the runtime-owned proto service inventory above.
 
-The runtime exposes:
+The explicit nonproduction foreground configuration may expose:
 - gRPC on `127.0.0.1:46371` by default
 - HTTP health endpoints on `127.0.0.1:46372` by default
 
+Production does not open these ordinary listeners. Desktop reaches protected
+Runtime methods through the verified native transport.
+
 CLI runtime management semantics:
 - `serve`: foreground runtime with direct logs
-- `start`: background runtime with readiness probe
+- `start`: admitted background/service start, otherwise bounded unsupported failure
 - `status`: process status + reachability summary
-- `health`: detailed runtime health payload
+- `health`: sanitized daemon process or protected-service health summary
 - `logs`: managed background log tail
 
 Health endpoints:

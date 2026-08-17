@@ -122,7 +122,6 @@ pnpm dev:runtime
 
 ```bash
 pnpm runtime:health
-pnpm runtime:providers
 pnpm runtime:config:get
 ```
 
@@ -133,33 +132,11 @@ pnpm runtime:config:get
 
 ### 4.3 配置 AI Provider 凭据（可选）
 
-如需调用云端 AI provider（如 Gemini），有两种方式配置凭据：
-
-**方式 A：通过 Desktop UI 管理 Connector（推荐）**
+如需调用云端 AI provider（如 Gemini），通过 Desktop UI 管理 Connector。
 
 启动 Desktop 后，在 Runtime Config 面板中添加 Connector 并填入 API Key。凭据由 Runtime ConnectorService 托管，Desktop renderer 不接触原始 key（K-KEYSRC-001、D-SEC-009）。
 
-**方式 B：通过 config.json 环境变量引用（CLI 场景）**
-
-适用于无 Desktop 的纯 CLI 开发/调试：
-
-```bash
-export GEMINI_API_KEY="<your-gemini-key>"
-pnpm runtime:cmd -- config set --set providers.gemini.apiKeyEnv=GEMINI_API_KEY --json
-```
-
-说明：
-
-1. 禁止将明文 `apiKey` 写入配置文件（校验会拒绝）。
-2. `apiKeyEnv` 引用环境变量名，runtime 启动时从环境读取。
-3. 修改 config 后必须重启 runtime 才生效。
-4. Gemini 在有 key 且未设置 base URL 时，默认走 `https://generativelanguage.googleapis.com/v1beta/openai`。
-
-### 4.4 首次 AI 调用
-
-```bash
-pnpm runtime:run:hello
-```
+CLI 配置不拥有 provider 凭据；AI 调用由已认证 App 通过 SDK 的 typed Runtime client 发起。
 
 ## 5. SDK 快速验证
 
@@ -313,7 +290,6 @@ pnpm runtime:cmd -- <subcommand> [args]
 例如：
 
 ```bash
-pnpm runtime:cmd -- health --source grpc
-pnpm runtime:cmd -- providers --source grpc
-pnpm runtime:cmd -- config set --set providers.gemini.apiKeyEnv=GEMINI_API_KEY --json
+pnpm runtime:cmd -- health --json
+pnpm runtime:cmd -- doctor --json
 ```

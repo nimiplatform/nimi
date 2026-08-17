@@ -55,8 +55,6 @@ func FirstPartyProfileMethod(profileID, methodID string) (FirstPartyMethodKind, 
 			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeLocalService/ReconcileProductControlFirstRunSetupState":
 			return FirstPartyMethodUnary, true
-		case "/nimi.runtime.v1.RuntimeLocalService/ResolveLocalStateReconciliation":
-			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeLocalService/ImportModelAsset":
 			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeLocalService/ListModelAssets":
@@ -82,8 +80,6 @@ func FirstPartyProfileMethod(profileID, methodID string) (FirstPartyMethodKind, 
 		case "/nimi.runtime.v1.RuntimeConnectorService/ListConnectors":
 			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth":
-			return FirstPartyMethodUnary, true
-		case "/nimi.runtime.v1.RuntimeAuditService/ListAIProviderHealth":
 			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeAuditService/ListDesktopAuditEvents":
 			return FirstPartyMethodUnary, true
@@ -120,8 +116,6 @@ func FirstPartyProfileMethod(profileID, methodID string) (FirstPartyMethodKind, 
 		case "/nimi.runtime.v1.RuntimeLocalService/ListLocalAudits":
 			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeAuditService/SubscribeRuntimeHealthEvents":
-			return FirstPartyMethodServerStream, true
-		case "/nimi.runtime.v1.RuntimeAuditService/SubscribeAIProviderHealthEvents":
 			return FirstPartyMethodServerStream, true
 		case "/nimi.runtime.v1.RuntimeExternalAgentService/GetExternalAgentGatewayStatus":
 			return FirstPartyMethodUnary, true
@@ -346,7 +340,6 @@ func FirstPartyProfileMethods(profileID string) []FirstPartyProfileMethodEntry {
 			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/CompleteProductControlFirstRunDeviceEnvironmentScan", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/AdmitProductControlReadyForUse", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/ReconcileProductControlFirstRunSetupState", Kind: FirstPartyMethodUnary},
-			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/ResolveLocalStateReconciliation", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/ImportModelAsset", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/ListModelAssets", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/GetModelAsset", Kind: FirstPartyMethodUnary},
@@ -360,7 +353,6 @@ func FirstPartyProfileMethods(profileID string) []FirstPartyProfileMethodEntry {
 			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/DeleteLoadout", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeConnectorService/ListConnectors", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth", Kind: FirstPartyMethodUnary},
-			{MethodID: "/nimi.runtime.v1.RuntimeAuditService/ListAIProviderHealth", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAuditService/ListDesktopAuditEvents", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAuditService/ListUsageStats", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAiService/PeekScheduling", Kind: FirstPartyMethodUnary},
@@ -379,7 +371,6 @@ func FirstPartyProfileMethods(profileID string) []FirstPartyProfileMethodEntry {
 			{MethodID: "/nimi.runtime.v1.RuntimeConnectorService/ListProviderCatalog", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/ListLocalAudits", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAuditService/SubscribeRuntimeHealthEvents", Kind: FirstPartyMethodServerStream},
-			{MethodID: "/nimi.runtime.v1.RuntimeAuditService/SubscribeAIProviderHealthEvents", Kind: FirstPartyMethodServerStream},
 			{MethodID: "/nimi.runtime.v1.RuntimeExternalAgentService/GetExternalAgentGatewayStatus", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeExternalAgentService/IssueExternalAgentToken", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeExternalAgentService/RevokeExternalAgentToken", Kind: FirstPartyMethodUnary},

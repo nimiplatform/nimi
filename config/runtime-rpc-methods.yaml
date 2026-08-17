@@ -224,10 +224,6 @@ services:
       - name: ReconcileProductControlFirstRunSetupState
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeLocalService/ReconcileProductControlFirstRunSetupState
-      - name: ResolveLocalStateReconciliation
-        type: unary
-      - name: ExecuteLocalStateCutover
-        type: unary
       - name: StartLocalEnvironmentDependencyJob
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeLocalService/StartLocalEnvironmentDependencyJob
@@ -339,12 +335,14 @@ services:
         type: unary
       - name: GetRuntimeHealth
         type: unary
-      - name: ListAIProviderHealth
-        type: unary
-      - name: SubscribeAIProviderHealthEvents
-        type: server_stream
+        authority_status: admitted_exact_desktop_health_projection
+        transport_disposition: protected_desktop_control_only
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth
       - name: SubscribeRuntimeHealthEvents
         type: server_stream
+        authority_status: admitted_exact_desktop_health_projection
+        transport_disposition: protected_desktop_control_only
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAuditService/SubscribeRuntimeHealthEvents
   - name: RuntimeCognitionService
     source_rule: K-RPC-004a
     methods:

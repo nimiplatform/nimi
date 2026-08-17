@@ -140,7 +140,7 @@ const required = [
   archiveName,
   'Run: nimi start',
   'Run: nimi doctor',
-  'Run: nimi run "What is Nimi?"',
+  'Run: nimi status',
 ];
 
 for (const token of required) {

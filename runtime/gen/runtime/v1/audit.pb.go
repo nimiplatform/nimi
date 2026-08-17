@@ -1516,398 +1516,6 @@ func (x *RuntimeHealthEvent) GetSampledAt() *timestamppb.Timestamp {
 	return nil
 }
 
-type ListAIProviderHealthRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ListAIProviderHealthRequest) Reset() {
-	*x = ListAIProviderHealthRequest{}
-	mi := &file_runtime_v1_audit_proto_msgTypes[14]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ListAIProviderHealthRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ListAIProviderHealthRequest) ProtoMessage() {}
-
-func (x *ListAIProviderHealthRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_audit_proto_msgTypes[14]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ListAIProviderHealthRequest.ProtoReflect.Descriptor instead.
-func (*ListAIProviderHealthRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_audit_proto_rawDescGZIP(), []int{14}
-}
-
-type AIProviderSubHealth struct {
-	state               protoimpl.MessageState `protogen:"open.v1"`
-	ProviderName        string                 `protobuf:"bytes,1,opt,name=provider_name,json=providerName,proto3" json:"provider_name,omitempty"`
-	State               string                 `protobuf:"bytes,2,opt,name=state,proto3" json:"state,omitempty"`
-	Reason              string                 `protobuf:"bytes,3,opt,name=reason,proto3" json:"reason,omitempty"`
-	ConsecutiveFailures int32                  `protobuf:"varint,4,opt,name=consecutive_failures,json=consecutiveFailures,proto3" json:"consecutive_failures,omitempty"`
-	LastChangedAt       *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=last_changed_at,json=lastChangedAt,proto3" json:"last_changed_at,omitempty"`
-	LastCheckedAt       *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=last_checked_at,json=lastCheckedAt,proto3" json:"last_checked_at,omitempty"`
-	unknownFields       protoimpl.UnknownFields
-	sizeCache           protoimpl.SizeCache
-}
-
-func (x *AIProviderSubHealth) Reset() {
-	*x = AIProviderSubHealth{}
-	mi := &file_runtime_v1_audit_proto_msgTypes[15]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *AIProviderSubHealth) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*AIProviderSubHealth) ProtoMessage() {}
-
-func (x *AIProviderSubHealth) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_audit_proto_msgTypes[15]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use AIProviderSubHealth.ProtoReflect.Descriptor instead.
-func (*AIProviderSubHealth) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_audit_proto_rawDescGZIP(), []int{15}
-}
-
-func (x *AIProviderSubHealth) GetProviderName() string {
-	if x != nil {
-		return x.ProviderName
-	}
-	return ""
-}
-
-func (x *AIProviderSubHealth) GetState() string {
-	if x != nil {
-		return x.State
-	}
-	return ""
-}
-
-func (x *AIProviderSubHealth) GetReason() string {
-	if x != nil {
-		return x.Reason
-	}
-	return ""
-}
-
-func (x *AIProviderSubHealth) GetConsecutiveFailures() int32 {
-	if x != nil {
-		return x.ConsecutiveFailures
-	}
-	return 0
-}
-
-func (x *AIProviderSubHealth) GetLastChangedAt() *timestamppb.Timestamp {
-	if x != nil {
-		return x.LastChangedAt
-	}
-	return nil
-}
-
-func (x *AIProviderSubHealth) GetLastCheckedAt() *timestamppb.Timestamp {
-	if x != nil {
-		return x.LastCheckedAt
-	}
-	return nil
-}
-
-type AIProviderHealthSnapshot struct {
-	state               protoimpl.MessageState `protogen:"open.v1"`
-	ProviderName        string                 `protobuf:"bytes,1,opt,name=provider_name,json=providerName,proto3" json:"provider_name,omitempty"`
-	State               string                 `protobuf:"bytes,2,opt,name=state,proto3" json:"state,omitempty"`
-	Reason              string                 `protobuf:"bytes,3,opt,name=reason,proto3" json:"reason,omitempty"`
-	ConsecutiveFailures int32                  `protobuf:"varint,4,opt,name=consecutive_failures,json=consecutiveFailures,proto3" json:"consecutive_failures,omitempty"`
-	LastChangedAt       *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=last_changed_at,json=lastChangedAt,proto3" json:"last_changed_at,omitempty"`
-	LastCheckedAt       *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=last_checked_at,json=lastCheckedAt,proto3" json:"last_checked_at,omitempty"`
-	SubHealth           []*AIProviderSubHealth `protobuf:"bytes,7,rep,name=sub_health,json=subHealth,proto3" json:"sub_health,omitempty"`
-	unknownFields       protoimpl.UnknownFields
-	sizeCache           protoimpl.SizeCache
-}
-
-func (x *AIProviderHealthSnapshot) Reset() {
-	*x = AIProviderHealthSnapshot{}
-	mi := &file_runtime_v1_audit_proto_msgTypes[16]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *AIProviderHealthSnapshot) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*AIProviderHealthSnapshot) ProtoMessage() {}
-
-func (x *AIProviderHealthSnapshot) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_audit_proto_msgTypes[16]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use AIProviderHealthSnapshot.ProtoReflect.Descriptor instead.
-func (*AIProviderHealthSnapshot) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_audit_proto_rawDescGZIP(), []int{16}
-}
-
-func (x *AIProviderHealthSnapshot) GetProviderName() string {
-	if x != nil {
-		return x.ProviderName
-	}
-	return ""
-}
-
-func (x *AIProviderHealthSnapshot) GetState() string {
-	if x != nil {
-		return x.State
-	}
-	return ""
-}
-
-func (x *AIProviderHealthSnapshot) GetReason() string {
-	if x != nil {
-		return x.Reason
-	}
-	return ""
-}
-
-func (x *AIProviderHealthSnapshot) GetConsecutiveFailures() int32 {
-	if x != nil {
-		return x.ConsecutiveFailures
-	}
-	return 0
-}
-
-func (x *AIProviderHealthSnapshot) GetLastChangedAt() *timestamppb.Timestamp {
-	if x != nil {
-		return x.LastChangedAt
-	}
-	return nil
-}
-
-func (x *AIProviderHealthSnapshot) GetLastCheckedAt() *timestamppb.Timestamp {
-	if x != nil {
-		return x.LastCheckedAt
-	}
-	return nil
-}
-
-func (x *AIProviderHealthSnapshot) GetSubHealth() []*AIProviderSubHealth {
-	if x != nil {
-		return x.SubHealth
-	}
-	return nil
-}
-
-type ListAIProviderHealthResponse struct {
-	state         protoimpl.MessageState      `protogen:"open.v1"`
-	Providers     []*AIProviderHealthSnapshot `protobuf:"bytes,1,rep,name=providers,proto3" json:"providers,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ListAIProviderHealthResponse) Reset() {
-	*x = ListAIProviderHealthResponse{}
-	mi := &file_runtime_v1_audit_proto_msgTypes[17]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ListAIProviderHealthResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ListAIProviderHealthResponse) ProtoMessage() {}
-
-func (x *ListAIProviderHealthResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_audit_proto_msgTypes[17]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ListAIProviderHealthResponse.ProtoReflect.Descriptor instead.
-func (*ListAIProviderHealthResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_audit_proto_rawDescGZIP(), []int{17}
-}
-
-func (x *ListAIProviderHealthResponse) GetProviders() []*AIProviderHealthSnapshot {
-	if x != nil {
-		return x.Providers
-	}
-	return nil
-}
-
-type SubscribeAIProviderHealthEventsRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *SubscribeAIProviderHealthEventsRequest) Reset() {
-	*x = SubscribeAIProviderHealthEventsRequest{}
-	mi := &file_runtime_v1_audit_proto_msgTypes[18]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *SubscribeAIProviderHealthEventsRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*SubscribeAIProviderHealthEventsRequest) ProtoMessage() {}
-
-func (x *SubscribeAIProviderHealthEventsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_audit_proto_msgTypes[18]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use SubscribeAIProviderHealthEventsRequest.ProtoReflect.Descriptor instead.
-func (*SubscribeAIProviderHealthEventsRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_audit_proto_rawDescGZIP(), []int{18}
-}
-
-type AIProviderHealthEvent struct {
-	state               protoimpl.MessageState `protogen:"open.v1"`
-	Sequence            uint64                 `protobuf:"varint,1,opt,name=sequence,proto3" json:"sequence,omitempty"`
-	ProviderName        string                 `protobuf:"bytes,2,opt,name=provider_name,json=providerName,proto3" json:"provider_name,omitempty"`
-	State               string                 `protobuf:"bytes,3,opt,name=state,proto3" json:"state,omitempty"`
-	Reason              string                 `protobuf:"bytes,4,opt,name=reason,proto3" json:"reason,omitempty"`
-	ConsecutiveFailures int32                  `protobuf:"varint,5,opt,name=consecutive_failures,json=consecutiveFailures,proto3" json:"consecutive_failures,omitempty"`
-	LastChangedAt       *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=last_changed_at,json=lastChangedAt,proto3" json:"last_changed_at,omitempty"`
-	LastCheckedAt       *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=last_checked_at,json=lastCheckedAt,proto3" json:"last_checked_at,omitempty"`
-	SubHealth           []*AIProviderSubHealth `protobuf:"bytes,8,rep,name=sub_health,json=subHealth,proto3" json:"sub_health,omitempty"`
-	unknownFields       protoimpl.UnknownFields
-	sizeCache           protoimpl.SizeCache
-}
-
-func (x *AIProviderHealthEvent) Reset() {
-	*x = AIProviderHealthEvent{}
-	mi := &file_runtime_v1_audit_proto_msgTypes[19]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *AIProviderHealthEvent) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*AIProviderHealthEvent) ProtoMessage() {}
-
-func (x *AIProviderHealthEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_audit_proto_msgTypes[19]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use AIProviderHealthEvent.ProtoReflect.Descriptor instead.
-func (*AIProviderHealthEvent) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_audit_proto_rawDescGZIP(), []int{19}
-}
-
-func (x *AIProviderHealthEvent) GetSequence() uint64 {
-	if x != nil {
-		return x.Sequence
-	}
-	return 0
-}
-
-func (x *AIProviderHealthEvent) GetProviderName() string {
-	if x != nil {
-		return x.ProviderName
-	}
-	return ""
-}
-
-func (x *AIProviderHealthEvent) GetState() string {
-	if x != nil {
-		return x.State
-	}
-	return ""
-}
-
-func (x *AIProviderHealthEvent) GetReason() string {
-	if x != nil {
-		return x.Reason
-	}
-	return ""
-}
-
-func (x *AIProviderHealthEvent) GetConsecutiveFailures() int32 {
-	if x != nil {
-		return x.ConsecutiveFailures
-	}
-	return 0
-}
-
-func (x *AIProviderHealthEvent) GetLastChangedAt() *timestamppb.Timestamp {
-	if x != nil {
-		return x.LastChangedAt
-	}
-	return nil
-}
-
-func (x *AIProviderHealthEvent) GetLastCheckedAt() *timestamppb.Timestamp {
-	if x != nil {
-		return x.LastCheckedAt
-	}
-	return nil
-}
-
-func (x *AIProviderHealthEvent) GetSubHealth() []*AIProviderSubHealth {
-	if x != nil {
-		return x.SubHealth
-	}
-	return nil
-}
-
 type AuditExportChunk struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	ExportId      string                 `protobuf:"bytes,1,opt,name=export_id,json=exportId,proto3" json:"export_id,omitempty"`
@@ -1921,7 +1529,7 @@ type AuditExportChunk struct {
 
 func (x *AuditExportChunk) Reset() {
 	*x = AuditExportChunk{}
-	mi := &file_runtime_v1_audit_proto_msgTypes[20]
+	mi := &file_runtime_v1_audit_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1933,7 +1541,7 @@ func (x *AuditExportChunk) String() string {
 func (*AuditExportChunk) ProtoMessage() {}
 
 func (x *AuditExportChunk) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_audit_proto_msgTypes[20]
+	mi := &file_runtime_v1_audit_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1946,7 +1554,7 @@ func (x *AuditExportChunk) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AuditExportChunk.ProtoReflect.Descriptor instead.
 func (*AuditExportChunk) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_audit_proto_rawDescGZIP(), []int{20}
+	return file_runtime_v1_audit_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *AuditExportChunk) GetExportId() string {
@@ -2149,37 +1757,7 @@ const file_runtime_v1_audit_proto_rawDesc = "" +
 	"vram_bytes\x18\t \x01(\x03R\tvramBytes\x129\n" +
 	"\n" +
 	"sampled_at\x18\n" +
-	" \x01(\v2\x1a.google.protobuf.TimestampR\tsampledAtJ\x04\b\x05\x10\x06R\x10active_workflows\"\x1d\n" +
-	"\x1bListAIProviderHealthRequest\"\xa3\x02\n" +
-	"\x13AIProviderSubHealth\x12#\n" +
-	"\rprovider_name\x18\x01 \x01(\tR\fproviderName\x12\x14\n" +
-	"\x05state\x18\x02 \x01(\tR\x05state\x12\x16\n" +
-	"\x06reason\x18\x03 \x01(\tR\x06reason\x121\n" +
-	"\x14consecutive_failures\x18\x04 \x01(\x05R\x13consecutiveFailures\x12B\n" +
-	"\x0flast_changed_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\rlastChangedAt\x12B\n" +
-	"\x0flast_checked_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\rlastCheckedAt\"\xed\x02\n" +
-	"\x18AIProviderHealthSnapshot\x12#\n" +
-	"\rprovider_name\x18\x01 \x01(\tR\fproviderName\x12\x14\n" +
-	"\x05state\x18\x02 \x01(\tR\x05state\x12\x16\n" +
-	"\x06reason\x18\x03 \x01(\tR\x06reason\x121\n" +
-	"\x14consecutive_failures\x18\x04 \x01(\x05R\x13consecutiveFailures\x12B\n" +
-	"\x0flast_changed_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\rlastChangedAt\x12B\n" +
-	"\x0flast_checked_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\rlastCheckedAt\x12C\n" +
-	"\n" +
-	"sub_health\x18\a \x03(\v2$.nimi.runtime.v1.AIProviderSubHealthR\tsubHealth\"g\n" +
-	"\x1cListAIProviderHealthResponse\x12G\n" +
-	"\tproviders\x18\x01 \x03(\v2).nimi.runtime.v1.AIProviderHealthSnapshotR\tproviders\"(\n" +
-	"&SubscribeAIProviderHealthEventsRequest\"\x86\x03\n" +
-	"\x15AIProviderHealthEvent\x12\x1a\n" +
-	"\bsequence\x18\x01 \x01(\x04R\bsequence\x12#\n" +
-	"\rprovider_name\x18\x02 \x01(\tR\fproviderName\x12\x14\n" +
-	"\x05state\x18\x03 \x01(\tR\x05state\x12\x16\n" +
-	"\x06reason\x18\x04 \x01(\tR\x06reason\x121\n" +
-	"\x14consecutive_failures\x18\x05 \x01(\x05R\x13consecutiveFailures\x12B\n" +
-	"\x0flast_changed_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\rlastChangedAt\x12B\n" +
-	"\x0flast_checked_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\rlastCheckedAt\x12C\n" +
-	"\n" +
-	"sub_health\x18\b \x03(\v2$.nimi.runtime.v1.AIProviderSubHealthR\tsubHealth\"\x90\x01\n" +
+	" \x01(\v2\x1a.google.protobuf.TimestampR\tsampledAtJ\x04\b\x05\x10\x06R\x10active_workflows\"\x90\x01\n" +
 	"\x10AuditExportChunk\x12\x1b\n" +
 	"\texport_id\x18\x01 \x01(\tR\bexportId\x12\x1a\n" +
 	"\bsequence\x18\x02 \x01(\x04R\bsequence\x12\x14\n" +
@@ -2197,15 +1775,13 @@ const file_runtime_v1_audit_proto_rawDesc = "" +
 	"\x1eRUNTIME_HEALTH_STATUS_STARTING\x10\x02\x12\x1f\n" +
 	"\x1bRUNTIME_HEALTH_STATUS_READY\x10\x03\x12\"\n" +
 	"\x1eRUNTIME_HEALTH_STATUS_DEGRADED\x10\x04\x12\"\n" +
-	"\x1eRUNTIME_HEALTH_STATUS_STOPPING\x10\x052\xa0\a\n" +
+	"\x1eRUNTIME_HEALTH_STATUS_STOPPING\x10\x052\xa4\x05\n" +
 	"\x13RuntimeAuditService\x12d\n" +
 	"\x0fListAuditEvents\x12'.nimi.runtime.v1.ListAuditEventsRequest\x1a(.nimi.runtime.v1.ListAuditEventsResponse\x12y\n" +
 	"\x16ListDesktopAuditEvents\x12..nimi.runtime.v1.ListDesktopAuditEventsRequest\x1a/.nimi.runtime.v1.ListDesktopAuditEventsResponse\x12c\n" +
 	"\x11ExportAuditEvents\x12).nimi.runtime.v1.ExportAuditEventsRequest\x1a!.nimi.runtime.v1.AuditExportChunk0\x01\x12a\n" +
 	"\x0eListUsageStats\x12&.nimi.runtime.v1.ListUsageStatsRequest\x1a'.nimi.runtime.v1.ListUsageStatsResponse\x12g\n" +
-	"\x10GetRuntimeHealth\x12(.nimi.runtime.v1.GetRuntimeHealthRequest\x1a).nimi.runtime.v1.GetRuntimeHealthResponse\x12s\n" +
-	"\x14ListAIProviderHealth\x12,.nimi.runtime.v1.ListAIProviderHealthRequest\x1a-.nimi.runtime.v1.ListAIProviderHealthResponse\x12\x84\x01\n" +
-	"\x1fSubscribeAIProviderHealthEvents\x127.nimi.runtime.v1.SubscribeAIProviderHealthEventsRequest\x1a&.nimi.runtime.v1.AIProviderHealthEvent0\x01\x12{\n" +
+	"\x10GetRuntimeHealth\x12(.nimi.runtime.v1.GetRuntimeHealthRequest\x1a).nimi.runtime.v1.GetRuntimeHealthResponse\x12{\n" +
 	"\x1cSubscribeRuntimeHealthEvents\x124.nimi.runtime.v1.SubscribeRuntimeHealthEventsRequest\x1a#.nimi.runtime.v1.RuntimeHealthEvent0\x01B?Z=github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1b\x06proto3"
 
 var (
@@ -2221,98 +1797,79 @@ func file_runtime_v1_audit_proto_rawDescGZIP() []byte {
 }
 
 var file_runtime_v1_audit_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_runtime_v1_audit_proto_msgTypes = make([]protoimpl.MessageInfo, 21)
+var file_runtime_v1_audit_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
 var file_runtime_v1_audit_proto_goTypes = []any{
-	(UsageWindow)(0),                               // 0: nimi.runtime.v1.UsageWindow
-	(RuntimeHealthStatus)(0),                       // 1: nimi.runtime.v1.RuntimeHealthStatus
-	(*ListAuditEventsRequest)(nil),                 // 2: nimi.runtime.v1.ListAuditEventsRequest
-	(*AuditEventRecord)(nil),                       // 3: nimi.runtime.v1.AuditEventRecord
-	(*ListAuditEventsResponse)(nil),                // 4: nimi.runtime.v1.ListAuditEventsResponse
-	(*ListDesktopAuditEventsRequest)(nil),          // 5: nimi.runtime.v1.ListDesktopAuditEventsRequest
-	(*DesktopAuditEventProjection)(nil),            // 6: nimi.runtime.v1.DesktopAuditEventProjection
-	(*ListDesktopAuditEventsResponse)(nil),         // 7: nimi.runtime.v1.ListDesktopAuditEventsResponse
-	(*ExportAuditEventsRequest)(nil),               // 8: nimi.runtime.v1.ExportAuditEventsRequest
-	(*ListUsageStatsRequest)(nil),                  // 9: nimi.runtime.v1.ListUsageStatsRequest
-	(*UsageStatRecord)(nil),                        // 10: nimi.runtime.v1.UsageStatRecord
-	(*ListUsageStatsResponse)(nil),                 // 11: nimi.runtime.v1.ListUsageStatsResponse
-	(*GetRuntimeHealthRequest)(nil),                // 12: nimi.runtime.v1.GetRuntimeHealthRequest
-	(*GetRuntimeHealthResponse)(nil),               // 13: nimi.runtime.v1.GetRuntimeHealthResponse
-	(*SubscribeRuntimeHealthEventsRequest)(nil),    // 14: nimi.runtime.v1.SubscribeRuntimeHealthEventsRequest
-	(*RuntimeHealthEvent)(nil),                     // 15: nimi.runtime.v1.RuntimeHealthEvent
-	(*ListAIProviderHealthRequest)(nil),            // 16: nimi.runtime.v1.ListAIProviderHealthRequest
-	(*AIProviderSubHealth)(nil),                    // 17: nimi.runtime.v1.AIProviderSubHealth
-	(*AIProviderHealthSnapshot)(nil),               // 18: nimi.runtime.v1.AIProviderHealthSnapshot
-	(*ListAIProviderHealthResponse)(nil),           // 19: nimi.runtime.v1.ListAIProviderHealthResponse
-	(*SubscribeAIProviderHealthEventsRequest)(nil), // 20: nimi.runtime.v1.SubscribeAIProviderHealthEventsRequest
-	(*AIProviderHealthEvent)(nil),                  // 21: nimi.runtime.v1.AIProviderHealthEvent
-	(*AuditExportChunk)(nil),                       // 22: nimi.runtime.v1.AuditExportChunk
-	(ReasonCode)(0),                                // 23: nimi.runtime.v1.ReasonCode
-	(*timestamppb.Timestamp)(nil),                  // 24: google.protobuf.Timestamp
-	(CallerKind)(0),                                // 25: nimi.runtime.v1.CallerKind
-	(*structpb.Struct)(nil),                        // 26: google.protobuf.Struct
+	(UsageWindow)(0),                            // 0: nimi.runtime.v1.UsageWindow
+	(RuntimeHealthStatus)(0),                    // 1: nimi.runtime.v1.RuntimeHealthStatus
+	(*ListAuditEventsRequest)(nil),              // 2: nimi.runtime.v1.ListAuditEventsRequest
+	(*AuditEventRecord)(nil),                    // 3: nimi.runtime.v1.AuditEventRecord
+	(*ListAuditEventsResponse)(nil),             // 4: nimi.runtime.v1.ListAuditEventsResponse
+	(*ListDesktopAuditEventsRequest)(nil),       // 5: nimi.runtime.v1.ListDesktopAuditEventsRequest
+	(*DesktopAuditEventProjection)(nil),         // 6: nimi.runtime.v1.DesktopAuditEventProjection
+	(*ListDesktopAuditEventsResponse)(nil),      // 7: nimi.runtime.v1.ListDesktopAuditEventsResponse
+	(*ExportAuditEventsRequest)(nil),            // 8: nimi.runtime.v1.ExportAuditEventsRequest
+	(*ListUsageStatsRequest)(nil),               // 9: nimi.runtime.v1.ListUsageStatsRequest
+	(*UsageStatRecord)(nil),                     // 10: nimi.runtime.v1.UsageStatRecord
+	(*ListUsageStatsResponse)(nil),              // 11: nimi.runtime.v1.ListUsageStatsResponse
+	(*GetRuntimeHealthRequest)(nil),             // 12: nimi.runtime.v1.GetRuntimeHealthRequest
+	(*GetRuntimeHealthResponse)(nil),            // 13: nimi.runtime.v1.GetRuntimeHealthResponse
+	(*SubscribeRuntimeHealthEventsRequest)(nil), // 14: nimi.runtime.v1.SubscribeRuntimeHealthEventsRequest
+	(*RuntimeHealthEvent)(nil),                  // 15: nimi.runtime.v1.RuntimeHealthEvent
+	(*AuditExportChunk)(nil),                    // 16: nimi.runtime.v1.AuditExportChunk
+	(ReasonCode)(0),                             // 17: nimi.runtime.v1.ReasonCode
+	(*timestamppb.Timestamp)(nil),               // 18: google.protobuf.Timestamp
+	(CallerKind)(0),                             // 19: nimi.runtime.v1.CallerKind
+	(*structpb.Struct)(nil),                     // 20: google.protobuf.Struct
 }
 var file_runtime_v1_audit_proto_depIdxs = []int32{
-	23, // 0: nimi.runtime.v1.ListAuditEventsRequest.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	24, // 1: nimi.runtime.v1.ListAuditEventsRequest.from_time:type_name -> google.protobuf.Timestamp
-	24, // 2: nimi.runtime.v1.ListAuditEventsRequest.to_time:type_name -> google.protobuf.Timestamp
-	25, // 3: nimi.runtime.v1.ListAuditEventsRequest.caller_kind:type_name -> nimi.runtime.v1.CallerKind
-	23, // 4: nimi.runtime.v1.AuditEventRecord.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	24, // 5: nimi.runtime.v1.AuditEventRecord.timestamp:type_name -> google.protobuf.Timestamp
-	26, // 6: nimi.runtime.v1.AuditEventRecord.payload:type_name -> google.protobuf.Struct
-	25, // 7: nimi.runtime.v1.AuditEventRecord.caller_kind:type_name -> nimi.runtime.v1.CallerKind
+	17, // 0: nimi.runtime.v1.ListAuditEventsRequest.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	18, // 1: nimi.runtime.v1.ListAuditEventsRequest.from_time:type_name -> google.protobuf.Timestamp
+	18, // 2: nimi.runtime.v1.ListAuditEventsRequest.to_time:type_name -> google.protobuf.Timestamp
+	19, // 3: nimi.runtime.v1.ListAuditEventsRequest.caller_kind:type_name -> nimi.runtime.v1.CallerKind
+	17, // 4: nimi.runtime.v1.AuditEventRecord.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	18, // 5: nimi.runtime.v1.AuditEventRecord.timestamp:type_name -> google.protobuf.Timestamp
+	20, // 6: nimi.runtime.v1.AuditEventRecord.payload:type_name -> google.protobuf.Struct
+	19, // 7: nimi.runtime.v1.AuditEventRecord.caller_kind:type_name -> nimi.runtime.v1.CallerKind
 	3,  // 8: nimi.runtime.v1.ListAuditEventsResponse.events:type_name -> nimi.runtime.v1.AuditEventRecord
-	23, // 9: nimi.runtime.v1.ListDesktopAuditEventsRequest.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	25, // 10: nimi.runtime.v1.ListDesktopAuditEventsRequest.caller_kind:type_name -> nimi.runtime.v1.CallerKind
-	24, // 11: nimi.runtime.v1.ListDesktopAuditEventsRequest.from_time:type_name -> google.protobuf.Timestamp
-	24, // 12: nimi.runtime.v1.ListDesktopAuditEventsRequest.to_time:type_name -> google.protobuf.Timestamp
-	23, // 13: nimi.runtime.v1.DesktopAuditEventProjection.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	24, // 14: nimi.runtime.v1.DesktopAuditEventProjection.timestamp:type_name -> google.protobuf.Timestamp
-	25, // 15: nimi.runtime.v1.DesktopAuditEventProjection.caller_kind:type_name -> nimi.runtime.v1.CallerKind
+	17, // 9: nimi.runtime.v1.ListDesktopAuditEventsRequest.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	19, // 10: nimi.runtime.v1.ListDesktopAuditEventsRequest.caller_kind:type_name -> nimi.runtime.v1.CallerKind
+	18, // 11: nimi.runtime.v1.ListDesktopAuditEventsRequest.from_time:type_name -> google.protobuf.Timestamp
+	18, // 12: nimi.runtime.v1.ListDesktopAuditEventsRequest.to_time:type_name -> google.protobuf.Timestamp
+	17, // 13: nimi.runtime.v1.DesktopAuditEventProjection.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	18, // 14: nimi.runtime.v1.DesktopAuditEventProjection.timestamp:type_name -> google.protobuf.Timestamp
+	19, // 15: nimi.runtime.v1.DesktopAuditEventProjection.caller_kind:type_name -> nimi.runtime.v1.CallerKind
 	6,  // 16: nimi.runtime.v1.ListDesktopAuditEventsResponse.events:type_name -> nimi.runtime.v1.DesktopAuditEventProjection
-	24, // 17: nimi.runtime.v1.ExportAuditEventsRequest.from_time:type_name -> google.protobuf.Timestamp
-	24, // 18: nimi.runtime.v1.ExportAuditEventsRequest.to_time:type_name -> google.protobuf.Timestamp
-	25, // 19: nimi.runtime.v1.ListUsageStatsRequest.caller_kind:type_name -> nimi.runtime.v1.CallerKind
+	18, // 17: nimi.runtime.v1.ExportAuditEventsRequest.from_time:type_name -> google.protobuf.Timestamp
+	18, // 18: nimi.runtime.v1.ExportAuditEventsRequest.to_time:type_name -> google.protobuf.Timestamp
+	19, // 19: nimi.runtime.v1.ListUsageStatsRequest.caller_kind:type_name -> nimi.runtime.v1.CallerKind
 	0,  // 20: nimi.runtime.v1.ListUsageStatsRequest.window:type_name -> nimi.runtime.v1.UsageWindow
-	24, // 21: nimi.runtime.v1.ListUsageStatsRequest.from_time:type_name -> google.protobuf.Timestamp
-	24, // 22: nimi.runtime.v1.ListUsageStatsRequest.to_time:type_name -> google.protobuf.Timestamp
-	25, // 23: nimi.runtime.v1.UsageStatRecord.caller_kind:type_name -> nimi.runtime.v1.CallerKind
+	18, // 21: nimi.runtime.v1.ListUsageStatsRequest.from_time:type_name -> google.protobuf.Timestamp
+	18, // 22: nimi.runtime.v1.ListUsageStatsRequest.to_time:type_name -> google.protobuf.Timestamp
+	19, // 23: nimi.runtime.v1.UsageStatRecord.caller_kind:type_name -> nimi.runtime.v1.CallerKind
 	0,  // 24: nimi.runtime.v1.UsageStatRecord.window:type_name -> nimi.runtime.v1.UsageWindow
-	24, // 25: nimi.runtime.v1.UsageStatRecord.bucket_start:type_name -> google.protobuf.Timestamp
+	18, // 25: nimi.runtime.v1.UsageStatRecord.bucket_start:type_name -> google.protobuf.Timestamp
 	10, // 26: nimi.runtime.v1.ListUsageStatsResponse.records:type_name -> nimi.runtime.v1.UsageStatRecord
 	1,  // 27: nimi.runtime.v1.GetRuntimeHealthResponse.status:type_name -> nimi.runtime.v1.RuntimeHealthStatus
-	24, // 28: nimi.runtime.v1.GetRuntimeHealthResponse.sampled_at:type_name -> google.protobuf.Timestamp
+	18, // 28: nimi.runtime.v1.GetRuntimeHealthResponse.sampled_at:type_name -> google.protobuf.Timestamp
 	1,  // 29: nimi.runtime.v1.RuntimeHealthEvent.status:type_name -> nimi.runtime.v1.RuntimeHealthStatus
-	24, // 30: nimi.runtime.v1.RuntimeHealthEvent.sampled_at:type_name -> google.protobuf.Timestamp
-	24, // 31: nimi.runtime.v1.AIProviderSubHealth.last_changed_at:type_name -> google.protobuf.Timestamp
-	24, // 32: nimi.runtime.v1.AIProviderSubHealth.last_checked_at:type_name -> google.protobuf.Timestamp
-	24, // 33: nimi.runtime.v1.AIProviderHealthSnapshot.last_changed_at:type_name -> google.protobuf.Timestamp
-	24, // 34: nimi.runtime.v1.AIProviderHealthSnapshot.last_checked_at:type_name -> google.protobuf.Timestamp
-	17, // 35: nimi.runtime.v1.AIProviderHealthSnapshot.sub_health:type_name -> nimi.runtime.v1.AIProviderSubHealth
-	18, // 36: nimi.runtime.v1.ListAIProviderHealthResponse.providers:type_name -> nimi.runtime.v1.AIProviderHealthSnapshot
-	24, // 37: nimi.runtime.v1.AIProviderHealthEvent.last_changed_at:type_name -> google.protobuf.Timestamp
-	24, // 38: nimi.runtime.v1.AIProviderHealthEvent.last_checked_at:type_name -> google.protobuf.Timestamp
-	17, // 39: nimi.runtime.v1.AIProviderHealthEvent.sub_health:type_name -> nimi.runtime.v1.AIProviderSubHealth
-	2,  // 40: nimi.runtime.v1.RuntimeAuditService.ListAuditEvents:input_type -> nimi.runtime.v1.ListAuditEventsRequest
-	5,  // 41: nimi.runtime.v1.RuntimeAuditService.ListDesktopAuditEvents:input_type -> nimi.runtime.v1.ListDesktopAuditEventsRequest
-	8,  // 42: nimi.runtime.v1.RuntimeAuditService.ExportAuditEvents:input_type -> nimi.runtime.v1.ExportAuditEventsRequest
-	9,  // 43: nimi.runtime.v1.RuntimeAuditService.ListUsageStats:input_type -> nimi.runtime.v1.ListUsageStatsRequest
-	12, // 44: nimi.runtime.v1.RuntimeAuditService.GetRuntimeHealth:input_type -> nimi.runtime.v1.GetRuntimeHealthRequest
-	16, // 45: nimi.runtime.v1.RuntimeAuditService.ListAIProviderHealth:input_type -> nimi.runtime.v1.ListAIProviderHealthRequest
-	20, // 46: nimi.runtime.v1.RuntimeAuditService.SubscribeAIProviderHealthEvents:input_type -> nimi.runtime.v1.SubscribeAIProviderHealthEventsRequest
-	14, // 47: nimi.runtime.v1.RuntimeAuditService.SubscribeRuntimeHealthEvents:input_type -> nimi.runtime.v1.SubscribeRuntimeHealthEventsRequest
-	4,  // 48: nimi.runtime.v1.RuntimeAuditService.ListAuditEvents:output_type -> nimi.runtime.v1.ListAuditEventsResponse
-	7,  // 49: nimi.runtime.v1.RuntimeAuditService.ListDesktopAuditEvents:output_type -> nimi.runtime.v1.ListDesktopAuditEventsResponse
-	22, // 50: nimi.runtime.v1.RuntimeAuditService.ExportAuditEvents:output_type -> nimi.runtime.v1.AuditExportChunk
-	11, // 51: nimi.runtime.v1.RuntimeAuditService.ListUsageStats:output_type -> nimi.runtime.v1.ListUsageStatsResponse
-	13, // 52: nimi.runtime.v1.RuntimeAuditService.GetRuntimeHealth:output_type -> nimi.runtime.v1.GetRuntimeHealthResponse
-	19, // 53: nimi.runtime.v1.RuntimeAuditService.ListAIProviderHealth:output_type -> nimi.runtime.v1.ListAIProviderHealthResponse
-	21, // 54: nimi.runtime.v1.RuntimeAuditService.SubscribeAIProviderHealthEvents:output_type -> nimi.runtime.v1.AIProviderHealthEvent
-	15, // 55: nimi.runtime.v1.RuntimeAuditService.SubscribeRuntimeHealthEvents:output_type -> nimi.runtime.v1.RuntimeHealthEvent
-	48, // [48:56] is the sub-list for method output_type
-	40, // [40:48] is the sub-list for method input_type
-	40, // [40:40] is the sub-list for extension type_name
-	40, // [40:40] is the sub-list for extension extendee
-	0,  // [0:40] is the sub-list for field type_name
+	18, // 30: nimi.runtime.v1.RuntimeHealthEvent.sampled_at:type_name -> google.protobuf.Timestamp
+	2,  // 31: nimi.runtime.v1.RuntimeAuditService.ListAuditEvents:input_type -> nimi.runtime.v1.ListAuditEventsRequest
+	5,  // 32: nimi.runtime.v1.RuntimeAuditService.ListDesktopAuditEvents:input_type -> nimi.runtime.v1.ListDesktopAuditEventsRequest
+	8,  // 33: nimi.runtime.v1.RuntimeAuditService.ExportAuditEvents:input_type -> nimi.runtime.v1.ExportAuditEventsRequest
+	9,  // 34: nimi.runtime.v1.RuntimeAuditService.ListUsageStats:input_type -> nimi.runtime.v1.ListUsageStatsRequest
+	12, // 35: nimi.runtime.v1.RuntimeAuditService.GetRuntimeHealth:input_type -> nimi.runtime.v1.GetRuntimeHealthRequest
+	14, // 36: nimi.runtime.v1.RuntimeAuditService.SubscribeRuntimeHealthEvents:input_type -> nimi.runtime.v1.SubscribeRuntimeHealthEventsRequest
+	4,  // 37: nimi.runtime.v1.RuntimeAuditService.ListAuditEvents:output_type -> nimi.runtime.v1.ListAuditEventsResponse
+	7,  // 38: nimi.runtime.v1.RuntimeAuditService.ListDesktopAuditEvents:output_type -> nimi.runtime.v1.ListDesktopAuditEventsResponse
+	16, // 39: nimi.runtime.v1.RuntimeAuditService.ExportAuditEvents:output_type -> nimi.runtime.v1.AuditExportChunk
+	11, // 40: nimi.runtime.v1.RuntimeAuditService.ListUsageStats:output_type -> nimi.runtime.v1.ListUsageStatsResponse
+	13, // 41: nimi.runtime.v1.RuntimeAuditService.GetRuntimeHealth:output_type -> nimi.runtime.v1.GetRuntimeHealthResponse
+	15, // 42: nimi.runtime.v1.RuntimeAuditService.SubscribeRuntimeHealthEvents:output_type -> nimi.runtime.v1.RuntimeHealthEvent
+	37, // [37:43] is the sub-list for method output_type
+	31, // [31:37] is the sub-list for method input_type
+	31, // [31:31] is the sub-list for extension type_name
+	31, // [31:31] is the sub-list for extension extendee
+	0,  // [0:31] is the sub-list for field type_name
 }
 
 func init() { file_runtime_v1_audit_proto_init() }
@@ -2327,7 +1884,7 @@ func file_runtime_v1_audit_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_runtime_v1_audit_proto_rawDesc), len(file_runtime_v1_audit_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   21,
+			NumMessages:   15,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

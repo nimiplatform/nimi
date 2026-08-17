@@ -319,61 +319,6 @@ message RepairLocalEnvironmentDependencyResponse {
   LocalEnvironmentDependencyJob job = 1;
 }
 
-// === Runtime-owned Local State Reconciliation ===
-
-message LocalStateIsolationDiagnostic {
-  string store = 1;
-  string level = 2;
-  string reason_code = 3;
-  string message = 4;
-  string quarantine_path = 5;
-  string section = 6;
-  int32 record_index = 7;
-}
-
-message LocalStateReconciliationPlan {
-  string plan_id = 1;
-  string state = 2;
-  string reason_code = 3;
-  string message = 4;
-  string active_state_path = 5;
-  string local_models_path = 6;
-  string nimi_data_dir = 7;
-  string retired_state_path = 8;
-  bool retired_state_detected = 9;
-  bool active_state_detected = 10;
-  bool confirmation_required = 11;
-  int32 active_asset_count = 12;
-  int32 active_service_count = 13;
-  int32 active_transfer_count = 14;
-  int32 active_audit_count = 15;
-  int32 retired_asset_count = 16;
-  int32 retired_service_count = 17;
-  int32 retired_transfer_count = 18;
-  int32 retired_audit_count = 19;
-  int32 conflict_count = 20;
-  repeated LocalStateIsolationDiagnostic isolation_diagnostics = 21;
-}
-
-message ResolveLocalStateReconciliationRequest {
-  string nimi_data_dir = 1;
-}
-
-message ResolveLocalStateReconciliationResponse {
-  LocalStateReconciliationPlan plan = 1;
-}
-
-message ExecuteLocalStateCutoverRequest {
-  string nimi_data_dir = 1;
-  string plan_id = 2;
-  bool confirmed = 3;
-}
-
-message ExecuteLocalStateCutoverResponse {
-  LocalStateReconciliationPlan plan = 1;
-  LocalTransferSessionSummary transfer = 2;
-}
-
 // === Device Profile ===
 
 message CollectDeviceProfileRequest {
@@ -515,10 +460,6 @@ service RuntimeLocalService {
   rpc CancelLocalEnvironmentDependencyJob(CancelLocalEnvironmentDependencyJobRequest) returns (CancelLocalEnvironmentDependencyJobResponse);
   rpc RetryLocalEnvironmentDependencyJob(RetryLocalEnvironmentDependencyJobRequest) returns (RetryLocalEnvironmentDependencyJobResponse);
   rpc RepairLocalEnvironmentDependency(RepairLocalEnvironmentDependencyRequest) returns (RepairLocalEnvironmentDependencyResponse);
-
-  // Runtime-owned local state reconciliation
-  rpc ResolveLocalStateReconciliation(ResolveLocalStateReconciliationRequest) returns (ResolveLocalStateReconciliationResponse);
-  rpc ExecuteLocalStateCutover(ExecuteLocalStateCutoverRequest) returns (ExecuteLocalStateCutoverResponse);
 
   // Runtime-owned product-control record
   rpc GetProductControlRecord(GetProductControlRecordRequest) returns (ProductControlProjectionJson);

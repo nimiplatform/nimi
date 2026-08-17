@@ -17,10 +17,6 @@ methods:
   - method_id: /nimi.runtime.v1.RuntimeAuditService/ListUsageStats
     posture: anonymous_read
   - method_id: /nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth
-    posture: anonymous_read
-  - method_id: /nimi.runtime.v1.RuntimeAuditService/ListAIProviderHealth
-    posture: anonymous_read
-  - method_id: /nimi.runtime.v1.RuntimeAuditService/SubscribeAIProviderHealthEvents
-    posture: anonymous_read
+    posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAuditService/SubscribeRuntimeHealthEvents
-    posture: anonymous_read
+    posture: protected_origin_required

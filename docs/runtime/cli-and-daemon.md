@@ -32,15 +32,13 @@ on its state.
 | --- | --- |
 | `nimi init` | Initialize runtime configuration |
 | `nimi serve` | Run the daemon in the foreground |
-| `nimi start` | Start the daemon in the background |
-| `nimi stop` | Stop the daemon |
-| `nimi status` | Show daemon state |
-| `nimi logs` | Read the daemon's log |
-| `nimi doctor` | Diagnose daemon, providers, models, audit volume, replication backlog |
+| `nimi start` | Start the daemon through an admitted background/service controller |
+| `nimi stop` | Stop the daemon through that admitted controller |
+| `nimi status` | Show admitted daemon-manager state |
+| `nimi logs` | Read an admitted background manager's log |
+| `nimi doctor` | Diagnose daemon and SDK attachment prerequisites |
 | `nimi version` | Show CLI and daemon version |
-| `nimi run` / `nimi chat` | Generate text using Runtime-owned implementation selection |
-| `nimi provider` | Configure and test cloud providers |
-| `nimi model` | List, pull, remove, and check local models |
+| `nimi health` | Read the sanitized daemon-manager summary |
 
 The CLI is not a remote-control surface for arbitrary state. It is
 a small set of bounded operations that match the daemon's lifecycle
@@ -49,30 +47,19 @@ extensions.
 
 ## First-Run Flow
 
-The CLI does not have an install wizard. A source checkout or locally
-built binary follows an explicit command path:
+The CLI does not have an install wizard. A source checkout or locally built
+binary follows an explicit foreground path; background commands are available
+only when that build has an admitted manager or service controller:
 
 ```bash
 nimi init
-nimi provider set gemini --api-key-env GEMINI_API_KEY --default
-nimi start
-nimi run "What is Nimi?"
-nimi doctor
+nimi serve
 ```
 
-For local-first setup, replace the provider step with local asset installation
-and daemon diagnostics:
-
-```bash
-nimi model list
-nimi model pull --model-ref <admitted-model-ref>
-nimi doctor
-```
-
-Both cloud and local setup paths converge on a daemon that is `READY` and can
-select an admitted implementation for the requested capability. If required
-configuration or assets are missing, the CLI returns a typed failure instead of
-silently choosing a client-side fallback.
+Connector custody and ModelAsset/Loadout intent are committed through Desktop's
+verified protected Runtime surface. An App then performs generation through the
+typed SDK. The CLI does not provide a parallel provider, model-selection, or
+generation configuration owner.
 
 ## Reader Scenario: Going From Install To First Generation
 
@@ -80,50 +67,48 @@ You have just installed Nimi and want to confirm everything works.
 
 1. **Initialize config.** `nimi init` creates the runtime config
    when it is missing.
-2. **Configure Runtime.** For Cloud use, `nimi provider set <provider>` writes
-   provider credentials or credential references into Runtime config. For Local
-   use, `nimi model pull` installs an admitted local model bundle.
-3. **Daemon start.** `nimi serve` (or `nimi start` for
-   background). The daemon's lifecycle moves through
+2. **Configure Runtime.** Use Desktop's protected Connector and ModelAsset /
+   Loadout surfaces for the required capability intent.
+3. **Daemon start.** Use `nimi serve`, or `nimi start` only on a build with an
+   admitted background/service controller. The daemon's lifecycle moves through
    `STARTING → READY`.
-4. **Verify.** `nimi doctor` reports daemon `READY`, provider configuration,
-   installed-asset status, audit volume, and replication backlog.
-5. **First generation.** `nimi run "What is Nimi?"` or an App connecting
-   through the SDK issues a request. Runtime selects an admitted implementation
-   and returns a typed result or typed failure.
+4. **Verify.** On an admitted background topology, `nimi doctor` reports daemon
+   and SDK attachment prerequisites and `nimi health --json` reads the
+   sanitized daemon-manager summary. A build without that topology fails these
+   commands explicitly instead of starting a fallback process.
+5. **First generation.** The configured App connects through the SDK and issues
+   a request. Runtime returns a typed result or typed failure.
 
-The CLI surfaces enough to confirm health without exposing
-internal state. If `nimi doctor` reports anything yellow or red,
-the report names the area and points at the relevant kernel rule
-context.
+The CLI surfaces bounded lifecycle and public health facts without exposing
+Connector or ModelAsset custody state.
 
 ## Reader Scenario: Recovering From Degraded State
 
-The daemon enters `DEGRADED` — perhaps a provider went unhealthy
-mid-session, perhaps replication is backlogged.
+The daemon enters `DEGRADED` because a Runtime-owned subsystem can no longer
+serve its declared contract. Detailed Runtime health remains on Desktop's
+verified protected surface.
 
-1. **`nimi status` reports `DEGRADED`.** The daemon is still
-   serving but with reduced capability.
-2. **`nimi doctor`** reports the affected Runtime area, such as invalid
-   provider configuration or replication backlog N.
-3. **Action.** You repair the machine configuration, wait for the backlog to
-   drain, or restart a stuck sub-component.
-4. **`nimi status` reports `READY`.** Streams that were live
+1. **The owning protected surface reports the typed degradation.** The daemon
+   may still be serving with reduced capability.
+2. **`nimi health --json`**, where background management is admitted, reports
+   only whether the daemon is reachable,
+   unreachable, service-running, or stopped without exposing private reasons.
+3. **Action.** Use the owning protected surface to inspect or act on the typed
+   reason.
+4. **The protected health surface returns to `READY`.** Streams that were live
    during degradation either completed under the contract or
    were terminated with typed failure frames; new streams behave
    normally.
 
-The state machine is what makes this recoverable. A binary
-"healthy / unhealthy" report would not tell you what is actually
-wrong; the typed degradation lets the CLI point at the area.
+The typed state remains recoverable without projecting private ExecutionHost or
+provider detail through the public CLI.
 
 ## Credential Custody
 
-The CLI writes provider credentials or credential references only to
-Runtime-owned daemon configuration through an admitted administration command.
-Ordinary App capability requests never inject provider credentials or select a
-credential record. Runtime resolves credential material after request admission
-and keeps it out of SDK results, App logs, and App-owned storage.
+Connector credentials remain in Runtime custody and are managed through
+Desktop's verified protected surface. The CLI has no provider or Connector
+custody namespace. Ordinary App capability requests never inject provider
+credentials or select a credential record.
 
 ## Source Basis
 

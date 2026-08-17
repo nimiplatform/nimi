@@ -147,8 +147,6 @@ scopes:
       - kind: path_glob
         value: "runtime/internal/grpcerr/**/*.go"
       - kind: path_glob
-        value: "runtime/internal/materializationreadiness/**/*.go"
-      - kind: path_glob
         value: "runtime/internal/streamutil/**/*.go"
       - kind: path_glob
         value: "runtime/internal/services/audit/**/*.go"
@@ -208,8 +206,6 @@ scopes:
         value: "runtime/internal/services/ai/**/*.go"
       - kind: path_glob
         value: "runtime/internal/services/connector/**/*.go"
-      - kind: path_glob
-        value: "runtime/internal/providerhealth/**/*.go"
       - kind: path_glob
         value: "runtime/internal/providerregistry/**/*.go"
       - kind: path_glob
@@ -404,8 +400,6 @@ scopes:
         value: "kit/shell/tauri/src/nimi_data_directory/*"
       - kind: path_glob
         value: "runtime/internal/services/localservice/product_control*.go"
-      - kind: path_glob
-        value: "runtime/internal/materializationreadiness/*.go"
       - kind: path_glob
         value: "runtime/internal/engine/*materializer*.go"
   - scope: platform.governance-release

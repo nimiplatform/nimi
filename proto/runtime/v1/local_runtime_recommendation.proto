@@ -69,13 +69,6 @@ enum LocalRecommendationFeedSource {
   LOCAL_RECOMMENDATION_FEED_SOURCE_MODEL_INDEX = 1;
 }
 
-message LocalSuggestedAsset {
-  string template_id = 1;
-  string asset_id    = 2;
-  string kind        = 3;
-  string family      = 4;
-}
-
 message LocalCatalogRecommendation {
   LocalRecommendationSource source             = 1;
   LocalRecommendationFormat format             = 2;
@@ -85,7 +78,8 @@ message LocalCatalogRecommendation {
   repeated string reason_codes                 = 6;
   string recommended_entry                     = 7;
   repeated string fallback_entries             = 8;
-  repeated LocalSuggestedAsset suggested_assets = 9;
+  reserved 9;
+  reserved "suggested_assets";
   repeated string suggested_notes              = 10;
   LocalRecommendationBaseline baseline         = 11;
 }
@@ -106,9 +100,10 @@ message LocalRecommendationInstalledState {
 }
 
 message LocalRecommendationActionState {
+  reserved "can_open_local_asset";
   bool can_review_install_plan = 1;
   bool can_open_variants       = 2;
-  bool can_open_local_asset    = 3;
+  bool can_open_model_asset    = 3;
 }
 
 message LocalRecommendationInstallPayload {

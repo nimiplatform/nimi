@@ -17,11 +17,11 @@ Runtime endpoint 变量按层区分：
 | `NIMI_RUNTIME_ENDPOINT` | Node.js 中 SDK Runtime client 的默认配置 | `createNimiClient` 省略 `runtime.transport` 时使用的 App 侧默认值 |
 | `NIMI_RUNTIME_GRPC_ADDR` | Runtime daemon 配置 | daemon 监听地址 |
 
-先运行一次真实 CLI 调用，确认 Runtime 安装可用：
+先通过 CLI 确认 Runtime 安装与公开 health 投影可用：
 
 ```bash
 nimi start
-nimi run "What is Nimi?"
+nimi health --json
 ```
 
 ## 发起文本生成
@@ -94,7 +94,7 @@ pnpm --filter @nimiplatform/examples check
 pnpm --filter @nimiplatform/tester test
 ```
 
-在 App 仓库中，依次运行 `nimi run`、App 自己的验证命令，再用准确的已配置 App 身份发起一次生成调用。
+在 App 仓库中，依次运行 `nimi doctor`、App 自己的验证命令，再用准确的已配置 App 身份发起一次生成调用。
 
 ## 来源依据
 
