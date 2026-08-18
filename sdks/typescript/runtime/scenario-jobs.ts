@@ -377,14 +377,11 @@ function throwIfAborted(signal: AbortSignal | undefined): void {
 
 function abortedNimiRuntimeScenarioJobError(): Error {
   return createNimiError({
-    message: 'Runtime Scenario job was canceled by the caller.',
-    reasonCode: ReasonCode.RUNTIME_CALL_FAILED,
-    actionHint: 'retry_runtime_scenario_job_if_needed',
+    message: 'The caller stopped waiting for the Runtime Scenario job.',
+    reasonCode: ReasonCode.OPERATION_ABORTED,
+    actionHint: 'inspect_runtime_scenario_job_if_needed',
     retryable: false,
     source: 'sdk',
-    details: {
-      [NIMI_RUNTIME_SCENARIO_JOB_STATUS_DETAIL_KEY]: ScenarioJobStatus[ScenarioJobStatus.CANCELED],
-    },
   });
 }
 

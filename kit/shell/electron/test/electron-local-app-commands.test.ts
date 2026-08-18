@@ -63,7 +63,7 @@ describe('Electron local-app standard-shell operations', () => {
       command: NIMI_STANDARD_SHELL_COMMANDS['local-app.modelConfigLocalSelectionsGet'],
       payload: { payload: {} },
     })).resolves.toEqual([{
-      capabilityContract: 'text.generate', state: 'selected', configurationId: null,
+      capabilityContract: 'text.generate', state: 'selected', loadoutId: null,
       displayName: 'gemma4-26b', supportedFeatures: [], reasons: [],
       effectiveDefaults: { temperature: '0.8' },
     }]);
@@ -666,7 +666,7 @@ function localAppHost(calls: unknown[]) {
     modelConfigLocalSelectionsGet: async () => {
       calls.push(['modelConfigLocalSelectionsGet']);
       return [{
-        capabilityContract: 'text.generate', state: 'selected', configurationId: null,
+        capabilityContract: 'text.generate', state: 'selected', loadoutId: null,
         displayName: 'gemma4-26b', supportedFeatures: [], reasons: [],
         effectiveDefaults: { temperature: '0.8' },
       }];

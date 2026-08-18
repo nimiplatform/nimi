@@ -430,7 +430,7 @@ function binding(calls: Array<{ method: string; input?: unknown }>) {
     localAppSessionRenew: record('localAppSessionRenew', statusProjection()),
     localAppAIConfigGet: record('localAppAIConfigGet', { owner: { owner: { oneofKind: 'app', app: { appId: 'app.example' } } }, capabilities: [] }),
     localAppModelConfigLocalSelectionsGet: record('localAppModelConfigLocalSelectionsGet', [{
-      capabilityContract: 'text.generate', state: 'selected', configurationId: null,
+      capabilityContract: 'text.generate', state: 'selected', loadoutId: null,
       displayName: 'gemma4-26b', supportedFeatures: [], reasons: [],
       effectiveDefaults: { temperature: '0.8' },
     }]),

@@ -541,7 +541,7 @@ test('Runtime voice job runner rejects incomplete or cross-owner full VoiceAsset
   }
 });
 
-test('Runtime ScenarioJob abort preserves a typed canceled terminal projection', async () => {
+test('Runtime ScenarioJob abort remains caller-local until Runtime reports a terminal job', async () => {
   const controller = new AbortController();
   let cancelReason = '';
   const client: NimiRuntimeScenarioJobClient = {
@@ -565,8 +565,8 @@ test('Runtime ScenarioJob abort preserves a typed canceled terminal projection',
   controller.abort('tester-user-canceled');
 
   await assert.rejects(pending, (error: unknown) => {
-    assert.equal(getNimiRuntimeScenarioJobTerminalStatusFromError(error), ScenarioJobStatus.CANCELED);
-    assert.equal((error as { readonly reasonCode?: unknown }).reasonCode, ReasonCode.RUNTIME_CALL_FAILED);
+    assert.equal(getNimiRuntimeScenarioJobTerminalStatusFromError(error), null);
+    assert.equal((error as { readonly reasonCode?: unknown }).reasonCode, ReasonCode.OPERATION_ABORTED);
     return true;
   });
   assert.equal(cancelReason, 'tester-user-canceled');

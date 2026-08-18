@@ -90,7 +90,7 @@ export type NimiLocalAppSessionStatus = {
 export type NimiLocalAppModelConfigLocalSelection = {
   readonly capabilityContract: string;
   readonly state: 'selected' | 'broken';
-  readonly configurationId: null;
+  readonly loadoutId: null;
   readonly displayName: string | null;
   readonly supportedFeatures: readonly string[];
   readonly reasons: readonly string[];
@@ -1954,7 +1954,7 @@ function parseModelConfigLocalSelections(
   return Object.freeze(value.map((entry) => {
     const record = assertRecord(entry, `${command}: local selection is invalid`);
     assertProjectionKeys(record, [
-      'capabilityContract', 'state', 'configurationId', 'displayName',
+      'capabilityContract', 'state', 'loadoutId', 'displayName',
       'supportedFeatures', 'reasons', 'effectiveDefaults',
     ], command, 'Model Config local selection');
     const capabilityContract = requiredText(
@@ -1964,7 +1964,7 @@ function parseModelConfigLocalSelections(
       MAX_IDENTIFIER_LENGTH,
     );
     if ((record.state !== 'selected' && record.state !== 'broken')
-      || record.configurationId !== null
+      || record.loadoutId !== null
       || (record.displayName !== null && (
         typeof record.displayName !== 'string'
         || !record.displayName
@@ -1981,7 +1981,7 @@ function parseModelConfigLocalSelections(
     return Object.freeze({
       capabilityContract,
       state: record.state,
-      configurationId: null,
+      loadoutId: null,
       displayName: record.displayName as string | null,
       supportedFeatures: Object.freeze([...record.supportedFeatures] as string[]),
       reasons: Object.freeze([...record.reasons] as string[]),

@@ -1334,14 +1334,14 @@ async function invokeModelConfigLocalSelections(
   return Object.freeze(value.map((entry) => {
     if (!isPlainRecord(entry)
       || !hasExactKeys(entry, [
-        'capabilityContract', 'state', 'configurationId', 'displayName',
+        'capabilityContract', 'state', 'loadoutId', 'displayName',
         'supportedFeatures', 'reasons', 'effectiveDefaults',
       ])
       || typeof entry.capabilityContract !== 'string'
       || !entry.capabilityContract
       || entry.capabilityContract.trim() !== entry.capabilityContract
       || (entry.state !== 'selected' && entry.state !== 'broken')
-      || entry.configurationId !== null
+      || entry.loadoutId !== null
       || (entry.displayName !== null && (
         typeof entry.displayName !== 'string'
         || !entry.displayName
@@ -1359,7 +1359,7 @@ async function invokeModelConfigLocalSelections(
     return Object.freeze({
       capabilityContract: entry.capabilityContract,
       state: entry.state,
-      configurationId: null,
+      loadoutId: null,
       displayName: entry.displayName,
       supportedFeatures: Object.freeze([...entry.supportedFeatures]),
       reasons: Object.freeze([...entry.reasons]),

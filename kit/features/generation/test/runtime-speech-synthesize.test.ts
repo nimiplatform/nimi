@@ -143,7 +143,7 @@ describe('runRuntimeSpeechSynthesize', () => {
     const pending = runRuntimeSpeechSynthesize(input(fake.client, { signal: controller.signal, abortReason: 'stop speech' }));
     await new Promise((resolve) => setTimeout(resolve, 0));
     controller.abort();
-    expect(await pending).toMatchObject({ ok: false, reason: 'runtime-canceled' });
+    expect(await pending).toMatchObject({ ok: false, reason: 'operation-aborted' });
     expect(fake.cancelScenarioJob).toHaveBeenCalledTimes(1);
     expect(fake.cancelScenarioJob.mock.calls[0]?.[0]).toMatchObject({ jobId: 'job-speech-1', reason: 'stop speech' });
   });

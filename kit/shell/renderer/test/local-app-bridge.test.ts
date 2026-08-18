@@ -73,7 +73,7 @@ describe('renderer local-app standard-shell surface', () => {
       invoke: async () => [{
         capabilityContract: 'text.generate',
         state: 'selected',
-        configurationId: null,
+        loadoutId: null,
         displayName: 'gemma4-26b',
         supportedFeatures: ['input.image'],
         reasons: [],
@@ -86,7 +86,7 @@ describe('renderer local-app standard-shell surface', () => {
     ).resolves.toEqual([{
       capabilityContract: 'text.generate',
       state: 'selected',
-      configurationId: null,
+      loadoutId: null,
       displayName: 'gemma4-26b',
       supportedFeatures: ['input.image'],
       reasons: [],
@@ -97,7 +97,7 @@ describe('renderer local-app standard-shell surface', () => {
       invoke: async () => [{
         capabilityContract: 'text.generate',
         state: 'selected',
-        configurationId: null,
+        loadoutId: null,
         displayName: 'gemma4-26b',
         supportedFeatures: [],
         reasons: [],

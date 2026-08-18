@@ -60,7 +60,7 @@ fn project_local_selections(
                 return Ok(json!({
                     "capabilityContract": selection.capability_contract,
                     "state": "broken",
-                    "configurationId": null,
+                    "loadoutId": null,
                     "displayName": null,
                     "supportedFeatures": [],
                     "reasons": ["selected-loadout-not-found"],
@@ -96,7 +96,7 @@ fn project_local_selections(
             Ok(json!({
                 "capabilityContract": selection.capability_contract,
                 "state": if reasons.is_empty() { "selected" } else { "broken" },
-                "configurationId": null,
+                "loadoutId": null,
                 "displayName": if display_name.is_empty() { JsonValue::Null } else { JsonValue::String(display_name.to_string()) },
                 "supportedFeatures": loadout.supported_features,
                 "reasons": reasons,
@@ -610,7 +610,7 @@ mod tests {
         .unwrap();
         assert_eq!(projected[0]["state"], "selected");
         assert_eq!(projected[0]["displayName"], "gemma4-26b");
-        assert_eq!(projected[0]["configurationId"], JsonValue::Null);
+        assert_eq!(projected[0]["loadoutId"], JsonValue::Null);
         assert_eq!(projected[0]["supportedFeatures"], json!(["input.image"]));
         assert_eq!(projected[0]["effectiveDefaults"]["temperature"], "0.8");
         assert!(!projected.to_string().contains("loadout-private"));

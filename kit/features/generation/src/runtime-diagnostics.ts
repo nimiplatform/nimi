@@ -13,6 +13,7 @@ export type RuntimeGenerationNonSuccessReason =
 
 export type RuntimeScenarioJobNonSuccessReason =
   | RuntimeGenerationNonSuccessReason
+  | 'operation-aborted'
   | 'runtime-canceled'
   | 'runtime-timeout';
 
@@ -77,6 +78,9 @@ export function runtimeScenarioJobNonSuccessReasonFromError(
   }
   if (terminalStatus === ScenarioJobStatus.TIMEOUT) {
     return 'runtime-timeout';
+  }
+  if (errorReasonCode(error) === ReasonCode.OPERATION_ABORTED) {
+    return 'operation-aborted';
   }
   return runtimeGenerationNonSuccessReasonFromError(error);
 }
