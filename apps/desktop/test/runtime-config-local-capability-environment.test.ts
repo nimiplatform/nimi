@@ -11,6 +11,7 @@ import {
 } from '../src/shell/renderer/features/runtime-config/runtime-config-local-capability-environment-service.js';
 import {
   canSubmitRuntimeConfigLocalCapabilityEnvironmentPlan,
+  projectRuntimeConfigLocalCapabilityEnvironmentState,
   resolveRuntimeConfigLocalCapabilityConfirmationProjection,
   submitRuntimeConfigLocalCapabilityEnvironmentPlan,
 } from '../src/shell/renderer/features/runtime-config/runtime-config-local-capability-environment-panel.js';
@@ -91,6 +92,7 @@ test('local environment service submits only the capability contract to Runtime'
   const capabilities = [
     'text.generate',
     'image.generate',
+    'video.generate',
     'audio.synthesize',
     'audio.transcribe',
     'voice.create',
@@ -126,6 +128,21 @@ test('local capability setup leaves mixed repair, retry, and start admission to 
     environmentPlan([runtime, profile, torch]),
     [failedProfileJob, activeTorchJob],
   ), true);
+});
+
+test('local capability environment presents Runtime-owned ready, active, and attention states', () => {
+  const ready = environmentDependency({ dependencyFamily: 'python-runtime', state: 'ready_managed' });
+  const missing = environmentDependency({ dependencyFamily: 'python-profile', state: 'missing' });
+  const active = dependencyJob({ dependency: missing, state: 'installing' });
+
+  assert.deepEqual(projectRuntimeConfigLocalCapabilityEnvironmentState(environmentPlan([ready]), []), {
+    state: 'ready',
+    requiredCount: 1,
+    attentionCount: 0,
+    activeJobs: [],
+  });
+  assert.equal(projectRuntimeConfigLocalCapabilityEnvironmentState(environmentPlan([ready, missing]), []).state, 'attention');
+  assert.equal(projectRuntimeConfigLocalCapabilityEnvironmentState(environmentPlan([ready, missing]), [active]).state, 'active');
 });
 
 test('local capability plan apply visibility binds active jobs to the exact consumer', () => {

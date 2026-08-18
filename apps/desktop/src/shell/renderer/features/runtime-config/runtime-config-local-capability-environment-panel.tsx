@@ -12,6 +12,7 @@ import {
 import { ConfirmDialog, Surface, cn } from '@nimiplatform/kit/ui';
 
 import { Button } from './runtime-config-primitives.js';
+import { useAppStore } from '../../app-shell/providers/app-store.js';
 import { useRuntimeConfigLocalEnvironmentClient } from './runtime-config-local-environment-sdk-service.js';
 import { formatBytes } from './runtime-config-model-center-utils.js';
 import {
@@ -27,6 +28,7 @@ import {
 const LOCAL_ENVIRONMENT_CAPABILITIES = [
   { slice: 'text', capabilityContract: 'text.generate' },
   { slice: 'image', capabilityContract: 'image.generate' },
+  { slice: 'video', capabilityContract: 'video.generate' },
   { slice: 'tts', capabilityContract: 'audio.synthesize' },
   { slice: 'stt', capabilityContract: 'audio.transcribe' },
   { slice: 'voice', capabilityContract: 'voice.create' },
@@ -87,6 +89,33 @@ export function canSubmitRuntimeConfigLocalCapabilityEnvironmentPlan(
   });
 }
 
+export function projectRuntimeConfigLocalCapabilityEnvironmentState(
+  plan: NimiRuntimeLocalEnvironmentPlan,
+  jobs: readonly NimiRuntimeLocalEnvironmentDependencyJob[],
+): {
+  readonly state: 'ready' | 'active' | 'attention' | 'unsupported';
+  readonly requiredCount: number;
+  readonly attentionCount: number;
+  readonly activeJobs: readonly NimiRuntimeLocalEnvironmentDependencyJob[];
+} {
+  const required = plan.dependencies.filter((dependency) => dependency.required);
+  const activeJobs = required.flatMap((dependency) => {
+    const job = latestDependencyJob(jobs, dependency);
+    return job && isNimiRuntimeLocalEnvironmentDependencyJobActiveState(job.state) ? [job] : [];
+  });
+  const attentionCount = required.filter(
+    (dependency) => !isNimiRuntimeLocalEnvironmentDependencyReadyState(dependency.state),
+  ).length;
+  const state = plan.state === 'unsupported'
+    ? 'unsupported'
+    : activeJobs.length > 0
+      ? 'active'
+      : attentionCount > 0
+        ? 'attention'
+        : 'ready';
+  return Object.freeze({ state, requiredCount: required.length, attentionCount, activeJobs: Object.freeze(activeJobs) });
+}
+
 export function resolveRuntimeConfigLocalCapabilityConfirmationProjection(
   plan: NimiRuntimeLocalEnvironmentPlan,
 ): {
@@ -127,6 +156,7 @@ export function RuntimeConfigLocalCapabilityEnvironmentPanel(props: {
   readonly writesDisabled: boolean;
 }) {
   const { t } = useTranslation();
+  const setActiveTab = useAppStore((state) => state.setActiveTab);
   const localEnvironment = useRuntimeConfigLocalEnvironmentClient();
   const [plans, setPlans] = useState<readonly LocalCapabilityPlan[]>([]);
   const [jobs, setJobs] = useState<readonly NimiRuntimeLocalEnvironmentDependencyJob[]>([]);
@@ -222,6 +252,13 @@ export function RuntimeConfigLocalCapabilityEnvironmentPanel(props: {
     }
   }, [localEnvironment, refresh]);
 
+  const planPresentations = plans.map((item) => ({
+    ...item,
+    presentation: projectRuntimeConfigLocalCapabilityEnvironmentState(item.plan, jobs),
+  }));
+  const readyCount = planPresentations.filter((item) => item.presentation.state === 'ready').length;
+  const textReady = planPresentations.some((item) => item.slice === 'text' && item.presentation.state === 'ready');
+
   return (
     <>
       <Surface
@@ -237,12 +274,26 @@ export function RuntimeConfigLocalCapabilityEnvironmentPanel(props: {
             <p className={cn('mt-1 text-xs', TOKEN_TEXT_MUTED)}>
               {t('runtimeConfig.environment.localCapabilityDescription')}
             </p>
+            {!loading && planPresentations.length > 0 ? (
+              <p className={cn('mt-2 text-xs font-semibold', readyCount === planPresentations.length ? 'text-[var(--nimi-status-success)]' : TOKEN_TEXT_MUTED)}>
+                {readyCount === planPresentations.length
+                  ? t('runtimeConfig.environment.localCapabilityAllReady', { count: readyCount })
+                  : t('runtimeConfig.environment.localCapabilityReadyCount', { ready: readyCount, total: planPresentations.length })}
+              </p>
+            ) : null}
           </div>
-          <Button variant="secondary" size="sm" disabled={loading || Boolean(busyKey)} onClick={() => void refresh()}>
-            {loading
-              ? t('runtimeConfig.environment.localCapabilityLoading')
-              : t('runtimeConfig.environment.localCapabilityRefresh')}
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="secondary" size="sm" disabled={loading || Boolean(busyKey)} onClick={() => void refresh()}>
+              {loading
+                ? t('runtimeConfig.environment.localCapabilityLoading')
+                : t('runtimeConfig.environment.localCapabilityRefresh')}
+            </Button>
+            {textReady ? (
+              <Button size="sm" onClick={() => setActiveTab('chat')}>
+                {t('runtimeConfig.environment.localCapabilityTryText')}
+              </Button>
+            ) : null}
+          </div>
         </div>
 
         {errors.map((failure) => (
@@ -250,10 +301,15 @@ export function RuntimeConfigLocalCapabilityEnvironmentPanel(props: {
             key={`${failure.slice || 'capability'}:${failure.detail}`}
             className="mt-4 rounded-lg border border-[color-mix(in_srgb,var(--nimi-status-danger)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_8%,transparent)] px-3 py-2 text-xs text-[var(--nimi-status-danger)]"
           >
-            {t('runtimeConfig.environment.localCapabilityPreflightFailure', {
-              capability: failure.slice ? t(`runtimeConfig.environment.localCapability${failure.slice.toUpperCase()}`) : t('runtimeConfig.environment.localCapabilityLabel'),
-              detail: failure.detail,
-            })}
+            <div className="font-semibold">
+              {t('runtimeConfig.environment.localCapabilityUnavailable', {
+                capability: failure.slice ? t(`runtimeConfig.environment.localCapability${failure.slice.toUpperCase()}`) : t('runtimeConfig.environment.localCapabilityLabel'),
+              })}
+            </div>
+            <details className="mt-1">
+              <summary className="cursor-pointer font-semibold">{t('runtimeConfig.environment.localCapabilityTechnicalDetails')}</summary>
+              <div className="mt-1 whitespace-pre-wrap break-all font-mono">{failure.detail}</div>
+            </details>
           </div>
         ))}
 
@@ -263,86 +319,87 @@ export function RuntimeConfigLocalCapabilityEnvironmentPanel(props: {
           </div>
         ) : null}
 
-        {plans.map(({ slice, plan, resolution }) => {
-          const activeJobs = plan.dependencies.flatMap((dependency) => {
-            const job = latestDependencyJob(jobs, dependency);
-            return job && isNimiRuntimeLocalEnvironmentDependencyJobActiveState(job.state) ? [job] : [];
-          });
+        {planPresentations.map(({ slice, plan, resolution, presentation }) => {
+          const { activeJobs } = presentation;
           const capabilityBusy = busyKey.startsWith(`${slice}:`);
           const canApply = canSubmitRuntimeConfigLocalCapabilityEnvironmentPlan(plan, jobs);
           return (
-          <div key={slice} className="mt-4 space-y-2">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <h3 className={cn('text-sm font-semibold', TOKEN_TEXT_PRIMARY)}>
-                {t('runtimeConfig.environment.localCapabilitySliceTitle', {
-                  capability: t(`runtimeConfig.environment.localCapability${slice.toUpperCase()}`),
-                })}
-              </h3>
+          <div key={slice} className="mt-4 rounded-xl border border-[var(--nimi-border-subtle)] p-4">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h3 className={cn('text-sm font-semibold', TOKEN_TEXT_PRIMARY)}>
+                  {t(`runtimeConfig.environment.localCapability${slice.toUpperCase()}`)}
+                </h3>
+                <div className={cn('mt-1 text-xs', presentation.state === 'ready' ? 'text-[var(--nimi-status-success)]' : presentation.state === 'unsupported' || presentation.state === 'attention' ? 'text-[var(--nimi-status-danger)]' : TOKEN_TEXT_MUTED)}>
+                  {presentation.state === 'ready'
+                    ? t('runtimeConfig.environment.localCapabilityStateReady')
+                    : presentation.state === 'active'
+                      ? t('runtimeConfig.environment.localCapabilityStateInstalling')
+                      : presentation.state === 'unsupported'
+                        ? t('runtimeConfig.environment.localCapabilityStateUnsupported')
+                        : t('runtimeConfig.environment.localCapabilityStateAttention', { count: presentation.attentionCount })}
+                </div>
+              </div>
               <div className="flex shrink-0 gap-2">
-              {activeJobs.length > 0 ? (
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  disabled={capabilityBusy || props.writesDisabled}
-                  onClick={() => void cancelJobs(slice, activeJobs)}
-                >
-                  {t('runtimeConfig.environment.localCapabilityCancel')}
-                </Button>
-              ) : null}
-              {canApply ? (
-                <Button
-                  size="sm"
-                  disabled={capabilityBusy || props.writesDisabled}
-                  onClick={() => setPending({ slice, plan, resolution })}
-                >
-                  {t('runtimeConfig.environment.localCapabilitySetup')}
-                </Button>
-              ) : null}
+                {activeJobs.length > 0 ? (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    disabled={capabilityBusy || props.writesDisabled}
+                    onClick={() => void cancelJobs(slice, activeJobs)}
+                  >
+                    {t('runtimeConfig.environment.localCapabilityCancel')}
+                  </Button>
+                ) : null}
+                {canApply ? (
+                  <Button
+                    size="sm"
+                    disabled={capabilityBusy || props.writesDisabled}
+                    onClick={() => setPending({ slice, plan, resolution })}
+                  >
+                    {t('runtimeConfig.environment.localCapabilitySetup')}
+                  </Button>
+                ) : null}
               </div>
             </div>
-            {plan.dependencies.map((dependency) => {
-              const job = latestDependencyJob(jobs, dependency);
-              const active = Boolean(job && isNimiRuntimeLocalEnvironmentDependencyJobActiveState(job.state));
-              const ready = isNimiRuntimeLocalEnvironmentDependencyReadyState(dependency.state);
-              const state = active && job ? job.state : dependency.state;
-              const progress = active && job && job.bytesTotal > 0
-                ? t('runtimeConfig.environment.localCapabilityProgress', { percent: Math.round(job.percent) })
-                : '';
-              return (
-                <div
-                  key={`${slice}:${dependency.environmentKey}:${dependency.dependencyId}`}
-                  className="rounded-xl border border-[var(--nimi-border-subtle)] px-3 py-3"
-                >
-                  <div className="flex flex-wrap items-start gap-3">
-                    <div className="min-w-0">
-                      <div className={cn('text-sm font-medium', TOKEN_TEXT_PRIMARY)}>
-                        {dependency.dependencyFamily}
+            <details className="mt-3 text-xs text-[var(--nimi-text-muted)]">
+              <summary className="cursor-pointer font-semibold">
+                {t('runtimeConfig.environment.localCapabilityTechnicalDetailsCount', { count: plan.dependencies.length })}
+              </summary>
+              <div className="mt-2 grid gap-2">
+                {plan.dependencies.map((dependency) => {
+                  const job = latestDependencyJob(jobs, dependency);
+                  const active = Boolean(job && isNimiRuntimeLocalEnvironmentDependencyJobActiveState(job.state));
+                  const ready = isNimiRuntimeLocalEnvironmentDependencyReadyState(dependency.state);
+                  const state = active && job ? job.state : dependency.state;
+                  const progress = active && job && job.bytesTotal > 0
+                    ? t('runtimeConfig.environment.localCapabilityProgress', { percent: Math.round(job.percent) })
+                    : '';
+                  return (
+                    <div
+                      key={`${slice}:${dependency.environmentKey}:${dependency.dependencyId}`}
+                      className="rounded-lg border border-[var(--nimi-border-subtle)] px-3 py-2"
+                    >
+                      <div className={cn('font-medium', TOKEN_TEXT_PRIMARY)}>{dependency.dependencyFamily}</div>
+                      <div className="mt-0.5 break-all font-mono">{dependency.dependencyId}</div>
+                      <div className={cn('mt-1', ready ? 'text-[var(--nimi-status-success)]' : TOKEN_TEXT_MUTED)}>
+                        {state}{progress ? ` · ${progress}` : ''}{dependency.reasonCode ? ` · ${dependency.reasonCode}` : ''}
                       </div>
-                      <div className={cn('mt-0.5 break-all text-xs', TOKEN_TEXT_MUTED)}>
-                        {dependency.dependencyId}
-                      </div>
-                      <div className={cn('mt-1 text-xs', ready ? 'text-[var(--nimi-status-success)]' : TOKEN_TEXT_MUTED)}>
-                        {state}{progress ? ` · ${progress}` : ''}
-                        {dependency.reasonCode ? ` · ${dependency.reasonCode}` : ''}
-                      </div>
-                      <div className={cn('mt-1 break-all text-xs', TOKEN_TEXT_MUTED)} data-testid="runtime-environment-dependency-supply">
+                      <div className="mt-1 break-all font-mono" data-testid="runtime-environment-dependency-supply">
                         {dependency.sourceKind} · {dependency.consumerScope}
                         {dependency.dependencyFamily.startsWith('python.') ? ` · ${t('runtimeConfig.environment.localCapabilityExactLock')}` : ''}
                         {dependency.canonicalRoot ? ` · ${dependency.canonicalRoot}` : ''}
                       </div>
                       {dependency.detail || (active ? job?.failureDetail : '') ? (
-                        <div className="mt-1 text-xs text-[var(--nimi-status-danger)]">
-                          {t('runtimeConfig.environment.localCapabilityDependencyFailure', {
-                            capability: t(`runtimeConfig.environment.localCapability${slice.toUpperCase()}`),
-                            detail: dependency.detail || (active ? job?.failureDetail : ''),
-                          })}
+                        <div className="mt-1 whitespace-pre-wrap text-[var(--nimi-status-danger)]">
+                          {dependency.detail || (active ? job?.failureDetail : '')}
                         </div>
                       ) : null}
                     </div>
-                  </div>
-                </div>
-              );
-            })}
+                  );
+                })}
+              </div>
+            </details>
           </div>
           );
         })}
@@ -350,21 +407,24 @@ export function RuntimeConfigLocalCapabilityEnvironmentPanel(props: {
 
       <ConfirmDialog
         open={Boolean(pending)}
-        title={t('runtimeConfig.environment.localCapabilityConfirmTitle')}
+        title={t('runtimeConfig.environment.localCapabilityConfirmTitle', {
+          capability: pending ? t(`runtimeConfig.environment.localCapability${pending.slice.toUpperCase()}`) : '',
+        })}
         message={pending
           ? (() => {
               const projection = resolveRuntimeConfigLocalCapabilityConfirmationProjection(pending.plan);
+              const attentionCount = pending.plan.dependencies.filter((dependency) => (
+                dependency.required && !isNimiRuntimeLocalEnvironmentDependencyReadyState(dependency.state)
+              )).length;
               return t('runtimeConfig.environment.localCapabilityConfirmMessage', {
-                family: projection.families,
+                capability: t(`runtimeConfig.environment.localCapability${pending.slice.toUpperCase()}`),
+                count: attentionCount,
                 aggregateSize: projection.aggregateSizeKnown
                   ? formatBytes(projection.aggregateSizeBytes)
                   : t('runtimeConfig.environment.localCapabilityAggregateSizeUnknown'),
-                storageCategory: projection.storageCategories,
-                sourceOwner: projection.sourceOwners,
                 mutationPolicy: projection.noSystemMutation
                   ? t('runtimeConfig.environment.localCapabilityNoSystemMutation')
                   : t('runtimeConfig.environment.localCapabilitySystemMutationPolicyUnknown'),
-                root: pending.plan.runtimeDataRoot || '-',
               });
             })()
           : ''}

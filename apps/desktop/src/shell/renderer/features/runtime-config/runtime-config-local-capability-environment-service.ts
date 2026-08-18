@@ -11,6 +11,7 @@ type LocalEnvironmentPlanReader = {
 export type RuntimeConfigLocalCapabilityContract =
   | 'text.generate'
   | 'image.generate'
+  | 'video.generate'
   | 'audio.synthesize'
   | 'audio.transcribe'
   | 'voice.create';

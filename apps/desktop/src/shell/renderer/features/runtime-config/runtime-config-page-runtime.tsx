@@ -25,7 +25,7 @@ export function RuntimePage({ model }: RuntimePageProps) {
   const [activeTab, setActiveTab] = useState<RuntimeTabKey>('overview');
 
   const tabs: Array<{ key: RuntimeTabKey; label: string; badge?: number }> = [
-    { key: 'overview', label: t('runtimeConfig.runtime.tabOverview', { defaultValue: 'Overview' }) },
+    { key: 'overview', label: t('runtimeConfig.environment.localCapabilityTab', { defaultValue: 'Local AI' }) },
     {
       key: 'health',
       label: t('runtimeConfig.runtime.tabHealth', { defaultValue: 'Health' }),
@@ -60,7 +60,13 @@ export function RuntimePage({ model }: RuntimePageProps) {
       {activeTab === 'overview' ? (
         <>
           <RuntimeConfigLocalCapabilityEnvironmentPanel writesDisabled={model.runtimeWritesDisabled} />
-          <RuntimeOverviewTab model={model} />
+          <details className="rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-4 text-xs text-[var(--nimi-text-secondary)]">
+            <summary className="cursor-pointer font-semibold text-[var(--nimi-text-primary)]">
+              {t('runtimeConfig.environment.runtimeTechnicalStatus', { defaultValue: 'Runtime technical status' })}
+            </summary>
+            <p className="mt-1">{t('runtimeConfig.environment.runtimeTechnicalStatusDescription', { defaultValue: 'Daemon, bridge, resource, and configuration diagnostics for support and development.' })}</p>
+            <div className="mt-4"><RuntimeOverviewTab model={model} /></div>
+          </details>
         </>
       ) : null}
 

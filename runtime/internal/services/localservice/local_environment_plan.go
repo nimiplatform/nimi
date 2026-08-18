@@ -95,7 +95,7 @@ func localEnvironmentTargetForDriver(driver capabilitydriver.Driver, host localE
 			consumer = "llama.cpp.metal"
 		}
 		return "local-text", consumer, true
-	case capabilitydriver.StableDiffusionImageDriver:
+	case capabilitydriver.StableDiffusionImageDriver, capabilitydriver.StableDiffusionVideoDriver:
 		consumer := "stable-diffusion.cpp.cpu"
 		if strings.EqualFold(strings.TrimSpace(host.OS), "darwin") {
 			consumer = "stable-diffusion.cpp.metal"

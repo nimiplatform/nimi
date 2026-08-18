@@ -40,6 +40,7 @@ func TestLocalEnvironmentTargetForDriverUsesRuntimeDriverContract(t *testing.T) 
 	}{
 		{name: "llama CUDA", driver: capabilitydriver.LlamaTextDriver{}, host: localEnvironmentHostProfileState{OS: "windows", GPUAvailable: true, GPUVendor: "nvidia"}, wantPack: "local-text", wantConsumer: "llama.cpp.cuda"},
 		{name: "stable diffusion Metal", driver: capabilitydriver.StableDiffusionImageDriver{}, host: localEnvironmentHostProfileState{OS: "darwin", Arch: "arm64"}, wantPack: "local-image-native", wantConsumer: "stable-diffusion.cpp.metal"},
+		{name: "stable diffusion video CUDA", driver: capabilitydriver.StableDiffusionVideoDriver{}, host: localEnvironmentHostProfileState{OS: "windows", GPUAvailable: true, GPUVendor: "nvidia"}, wantPack: "local-image-native", wantConsumer: stableDiffusionCUDAConsumerID},
 		{name: "qwen tts", driver: capabilitydriver.Qwen3TTSDriver{}, wantPack: "local-speech", wantConsumer: "speech.qwen3-tts.python"},
 		{name: "qwen voice create", driver: capabilitydriver.Qwen3VoiceCreateDriver{}, wantPack: "local-speech", wantConsumer: "speech.qwen3-tts.python"},
 		{name: "voxcpm", driver: capabilitydriver.VoxCPMDriver{}, wantPack: "local-speech", wantConsumer: "speech.voxcpm.python"},
