@@ -17,7 +17,7 @@ export const RUNTIME_PAGE_META: Record<RuntimePageIdV11, { name: string; descrip
     name: 'Local Models',
     description: 'Install, import, start, stop, and remove local models.',
   },
-  localAiConfig: {
+  loadouts: {
     name: 'Loadouts',
     description: 'Create and select machine-local execution Loadouts.',
   },

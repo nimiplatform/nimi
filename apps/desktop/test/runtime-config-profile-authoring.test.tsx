@@ -162,8 +162,8 @@ function currentProjection(): RuntimeConfigAIProfileAuthoringCurrentProjection {
       capabilities: [],
     },
     machine: {
-      configurations: [{
-        configurationId: 'loadout-current-text-only',
+      loadouts: [{
+        loadoutId: 'loadout-current-text-only',
         capabilityContract: 'text.generate',
         implementation: { ...TEXT_RECIPE.implementation },
         portableConfig: {},
@@ -172,7 +172,7 @@ function currentProjection(): RuntimeConfigAIProfileAuthoringCurrentProjection {
       }],
       selections: [{
         capabilityContract: 'text.generate',
-        configurationId: 'loadout-current-text-only',
+        loadoutId: 'loadout-current-text-only',
       }],
     },
     recipes: RECIPES,
@@ -506,8 +506,8 @@ test('an unresolved sibling Loadout does not invalidate configured Profile autho
     selections: [],
   };
   const projection = projectRuntimeConfigAIProfileAuthoringMachine(machine);
-  assert.equal(projection.configurations.length, 2);
-  assert.equal(projection.configurations[1]?.requirementResolution, 'unresolved');
+  assert.equal(projection.loadouts.length, 2);
+  assert.equal(projection.loadouts[1]?.requirementResolution, 'unresolved');
   const inspection = inspectRuntimeConfigAIProfileAuthoring(validTextDraft(), {
     ...currentProjection(),
     machine: projection,

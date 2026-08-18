@@ -34,7 +34,7 @@ export type RuntimePageIdV11 =
   | 'profiles'
   | 'modelMarket'
   | 'localModels'
-  | 'localAiConfig'
+  | 'loadouts'
   | 'modelCatalog'
   | 'cloud'
   | 'environment';
@@ -55,9 +55,9 @@ export type RuntimeConfigActionFocus =
     focus: 'runtime-config-action-focus.models-catalog-install';
   }
   | {
-    page: 'localAiConfig';
-    action: 'open-configurations';
-    focus: 'runtime-config-action-focus.models-configurations';
+    page: 'loadouts';
+    action: 'open-loadouts';
+    focus: 'runtime-config-action-focus.loadouts';
   };
 
 export type LocalStateV11 = {
@@ -99,7 +99,7 @@ export function normalizePageIdV11(value: unknown): RuntimePageIdV11 {
     || value === 'profiles'
     || value === 'modelMarket'
     || value === 'localModels'
-    || value === 'localAiConfig'
+    || value === 'loadouts'
     || value === 'modelCatalog'
     || value === 'cloud'
     || value === 'environment'
@@ -137,14 +137,14 @@ export function normalizeRuntimeConfigActionFocus(value: unknown): RuntimeConfig
     };
   }
   if (
-    record.page === 'localAiConfig'
-    && record.action === 'open-configurations'
-    && record.focus === 'runtime-config-action-focus.models-configurations'
+    record.page === 'loadouts'
+    && record.action === 'open-loadouts'
+    && record.focus === 'runtime-config-action-focus.loadouts'
   ) {
     return {
-      page: 'localAiConfig',
-      action: 'open-configurations',
-      focus: 'runtime-config-action-focus.models-configurations',
+      page: 'loadouts',
+      action: 'open-loadouts',
+      focus: 'runtime-config-action-focus.loadouts',
     };
   }
   return null;

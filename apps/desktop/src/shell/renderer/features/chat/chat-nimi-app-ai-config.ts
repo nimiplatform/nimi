@@ -80,7 +80,7 @@ export function projectDesktopMachineLoadoutSelections(
     if (!loadout || loadout.capabilityContract !== selection.capabilityContract) {
       return {
         capabilityContract: selection.capabilityContract, state: 'broken' as const,
-        configurationId: null, displayName: null, supportedFeatures: [],
+        loadoutId: null, displayName: null, supportedFeatures: [],
         reasons: ['selected-loadout-not-found'], effectiveDefaults: null,
       };
     }
@@ -93,7 +93,7 @@ export function projectDesktopMachineLoadoutSelections(
     return {
       capabilityContract: selection.capabilityContract,
       state: reasons.length === 0 ? 'selected' as const : 'broken' as const,
-      configurationId: null,
+      loadoutId: null,
       displayName: loadout.displayName || null,
       supportedFeatures: loadout.supportedFeatures,
       reasons,

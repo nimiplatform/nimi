@@ -68,7 +68,7 @@ export interface ModelConfigCloudAIConfigModule {
 export type ModelConfigLocalSelectionProjection = {
   readonly capabilityContract: string;
   readonly state: 'missing' | 'selected' | 'broken' | 'unavailable';
-  readonly configurationId: string | null;
+  readonly loadoutId: string | null;
   readonly displayName: string | null;
   readonly supportedFeatures: readonly string[];
   readonly reasons: readonly string[];

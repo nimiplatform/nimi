@@ -120,8 +120,8 @@ test('Desktop Agent Center drawer delegates snapshot refresh to the Kit store', 
   assert.doesNotMatch(settingsSource, /boundedContext|runtimeAgentAIConfigReadiness|runtimeAgentAIConfigError/u);
   assert.match(settingsSource, /session=\{input\.runtimeAgentCenterAdapter\}/u);
   assert.match(settingsSource, /chrome="standalone"/u);
-  assert.match(settingsSource, /openMachineConfiguration/u);
-  assert.match(settingsSource, /action:\s*'open-configurations'/u);
+  assert.match(settingsSource, /openMachineLoadout/u);
+  assert.match(settingsSource, /action:\s*'open-loadouts'/u);
   assert.doesNotMatch(settingsSource, /runtimeLoadInput|AgentCenterStateInput|runtimeAdapter=/u);
   assert.match(runtimeSource, /createFirstPartyAgentCenterSession\(\{/u);
   assert.match(runtimeSource, /autonomy:\s*createDesktopAgentCenterAutonomyAdapter\(runtimeAgentInspect\)/u);

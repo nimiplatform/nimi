@@ -84,7 +84,7 @@ export function TesterAiConfigSettingsPanel({
         setLocalSelections(testerModelConfigCapabilityContracts.map((capabilityContract) => ({
           capabilityContract,
           state: 'unavailable',
-          configurationId: null,
+          loadoutId: null,
           displayName: null,
           supportedFeatures: [],
           reasons: ['machine-loadout-unavailable'],

@@ -225,19 +225,19 @@ function AiModeSettings(props: {
     machineSelections.data ?? [{
       capabilityContract: 'text.generate',
       state: 'unavailable',
-      configurationId: null,
+      loadoutId: null,
       displayName: null,
       supportedFeatures: [],
       reasons: [],
     }]
   ), [machineSelections.data]);
 
-  const openMachineConfiguration = useCallback(() => {
+  const openMachineLoadout = useCallback(() => {
     setActiveTab('runtime');
     runtimeConfigNavigation.focusAction({
-      page: 'localAiConfig',
-      action: 'open-configurations',
-      focus: 'runtime-config-action-focus.models-configurations',
+      page: 'loadouts',
+      action: 'open-loadouts',
+      focus: 'runtime-config-action-focus.loadouts',
     });
   }, [runtimeConfigNavigation, setActiveTab]);
 
@@ -284,7 +284,7 @@ function AiModeSettings(props: {
           onOverwrite={async (capabilities) => {
             await overwriteAppAIConfig.mutateAsync(capabilities);
           }}
-          onOpenMachineConfiguration={openMachineConfiguration}
+          onOpenMachineLoadout={openMachineLoadout}
           onOpenCloudConnectorConfiguration={openCloudConnectorConfiguration}
           formatError={(error) => {
             const fallback = copy.saveFailed || 'Runtime could not save the Nimi Desktop AI intent.';

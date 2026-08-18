@@ -223,7 +223,7 @@ export function AgentCenterAIConfigSection({
         localSelections={snapshot.state.localSelections}
         cloudAIConfig={session.cloudAIConfig}
         onOverwrite={(capabilities) => session.overwriteSharedAIConfig({ capabilities })}
-        onOpenMachineConfiguration={placementActions?.openMachineConfiguration}
+        onOpenMachineLoadout={placementActions?.openMachineLoadout}
         onOpenCloudConnectorConfiguration={placementActions?.openCloudConnectorConfiguration}
         formatError={(error) => ({
           message: copy.saveFailed || 'Could not save AIConfig.',

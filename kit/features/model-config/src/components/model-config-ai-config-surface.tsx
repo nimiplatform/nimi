@@ -88,7 +88,7 @@ export type ModelConfigAIConfigSurfaceProps = {
   readonly onOverwrite?: ModelConfigOverwrite;
   /** Opens the Nimi-owned owner surface for read-only protected App mounts. */
   readonly onOpenOwnerConfiguration?: () => void;
-  readonly onOpenMachineConfiguration?: (capabilityContract: string) => void;
+  readonly onOpenMachineLoadout?: (capabilityContract: string) => void;
   readonly onOpenCloudConnectorConfiguration?: () => void;
   readonly formatError?: (error: unknown) => ModelConfigFormattedError;
   readonly copy?: ModelConfigCopy;
@@ -253,7 +253,7 @@ function capabilitySummary(
 ): string {
   const posture = modelConfigCapabilityPosture(intent, selection);
   if (posture === 'local-configured') {
-    return selection?.displayName || selection?.configurationId || copy.configuredLabel;
+    return selection?.displayName || selection?.loadoutId || copy.configuredLabel;
   }
   if (posture === 'cloud-configured') {
     return cloudModelLabel(intent) || statusBadge(posture, copy).label;
@@ -369,7 +369,7 @@ export function ModelConfigAIConfigSurface(props: ModelConfigAIConfigSurfaceProp
             cloudAIConfig={props.cloudAIConfig}
             onOverwrite={props.onOverwrite}
             onOpenOwnerConfiguration={props.onOpenOwnerConfiguration}
-            onOpenMachineConfiguration={props.onOpenMachineConfiguration}
+            onOpenMachineLoadout={props.onOpenMachineLoadout}
             onOpenCloudConnectorConfiguration={props.onOpenCloudConnectorConfiguration}
             formatError={props.formatError}
             copy={copy}
@@ -448,7 +448,7 @@ type CapabilityIntentEditorProps = {
   readonly cloudAIConfig?: ModelConfigCloudAIConfigModule;
   readonly onOverwrite?: ModelConfigOverwrite;
   readonly onOpenOwnerConfiguration?: () => void;
-  readonly onOpenMachineConfiguration?: (capabilityContract: string) => void;
+  readonly onOpenMachineLoadout?: (capabilityContract: string) => void;
   readonly onOpenCloudConnectorConfiguration?: () => void;
   readonly formatError?: (error: unknown) => ModelConfigFormattedError;
   readonly copy: ResolvedCopy;
@@ -798,11 +798,11 @@ function FirstPartyCapabilityIntentEditor(props: CapabilityIntentEditorProps) {
               </div>
             );
           }}
-          renderItemActions={(choice) => choice.route === 'local' && props.onOpenMachineConfiguration ? (
+          renderItemActions={(choice) => choice.route === 'local' && props.onOpenMachineLoadout ? (
             <Button
               size="sm"
               tone="secondary"
-              onClick={() => props.onOpenMachineConfiguration?.(props.capabilityContract)}
+              onClick={() => props.onOpenMachineLoadout?.(props.capabilityContract)}
             >
               {props.copy.openMachineLabel}
             </Button>
@@ -822,7 +822,7 @@ function FirstPartyCapabilityIntentEditor(props: CapabilityIntentEditorProps) {
           selection={props.selection}
           missingFeatures={missingFeatures}
           copy={props.copy}
-          onOpenMachineConfiguration={props.onOpenMachineConfiguration ? () => props.onOpenMachineConfiguration?.(props.capabilityContract) : undefined}
+          onOpenMachineLoadout={props.onOpenMachineLoadout ? () => props.onOpenMachineLoadout?.(props.capabilityContract) : undefined}
         />
       ) : null}
 
@@ -900,7 +900,7 @@ function LocalSelectionSummary(props: {
   readonly selection: ModelConfigLocalSelectionProjection | null;
   readonly missingFeatures: readonly string[];
   readonly copy: ResolvedCopy;
-  readonly onOpenMachineConfiguration?: () => void;
+  readonly onOpenMachineLoadout?: () => void;
 }) {
   const selection = props.selection;
   let toneClass = 'text-[var(--nimi-status-warning)]';
@@ -914,13 +914,13 @@ function LocalSelectionSummary(props: {
     message = props.copy.localMismatchLabel(props.missingFeatures.join(', '));
   } else if (selection?.state === 'selected') {
     toneClass = 'text-[var(--nimi-status-success)]';
-    message = `${props.copy.localSelectedLabel}: ${selection.displayName || selection.configurationId || ''}`;
+    message = `${props.copy.localSelectedLabel}: ${selection.displayName || selection.loadoutId || ''}`;
   }
   return (
     <div className="flex min-w-0 items-start justify-between gap-3">
       <p className={cn('m-0 min-w-0 text-[11px] leading-relaxed', toneClass)}>{message}</p>
-      {props.onOpenMachineConfiguration ? (
-        <button type="button" onClick={props.onOpenMachineConfiguration} className="shrink-0 text-[11px] font-medium text-[var(--nimi-action-primary-bg)] hover:underline">
+      {props.onOpenMachineLoadout ? (
+        <button type="button" onClick={props.onOpenMachineLoadout} className="shrink-0 text-[11px] font-medium text-[var(--nimi-action-primary-bg)] hover:underline">
           {props.copy.openMachineLabel}
         </button>
       ) : null}

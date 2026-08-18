@@ -76,7 +76,7 @@ function unavailableLocalSelections(): readonly ModelConfigLocalSelectionProject
   return CANONICAL_CAPABILITY_IDS.map((capabilityContract) => ({
     capabilityContract,
     state: 'unavailable',
-    configurationId: null,
+    loadoutId: null,
     displayName: null,
     supportedFeatures: [],
     reasons: [],
@@ -257,12 +257,12 @@ export function AppsAIConfigSection({
     machineSelections.data ?? unavailableLocalSelections()
   ), [machineSelections.data]);
 
-  const openMachineConfiguration = useCallback(() => {
+  const openMachineLoadout = useCallback(() => {
     setActiveTab('runtime');
     runtimeConfigNavigation.focusAction({
-      page: 'localAiConfig',
-      action: 'open-configurations',
-      focus: 'runtime-config-action-focus.models-configurations',
+      page: 'loadouts',
+      action: 'open-loadouts',
+      focus: 'runtime-config-action-focus.loadouts',
     });
   }, [runtimeConfigNavigation, setActiveTab]);
 
@@ -289,7 +289,7 @@ export function AppsAIConfigSection({
         onOverwrite={async (capabilities) => {
           await overwriteAppAIConfig.mutateAsync(capabilities);
         }}
-        onOpenMachineConfiguration={openMachineConfiguration}
+        onOpenMachineLoadout={openMachineLoadout}
         onOpenCloudConnectorConfiguration={openCloudConnectorConfiguration}
         formatError={(error) => ({
           message: copy.saveFailed || 'Runtime could not save this app\'s AI configuration.',

@@ -242,7 +242,7 @@ test('Model Config projects bounded read-only machine selections', async () => {
     modelConfig: { localSelections: async () => [{
       capabilityContract: 'text.generate',
       state: 'selected',
-      configurationId: null,
+      loadoutId: null,
       displayName: 'gemma4-26b',
       supportedFeatures: ['input.image'],
       reasons: [],
@@ -254,7 +254,7 @@ test('Model Config projects bounded read-only machine selections', async () => {
   assert.deepEqual(selections, [{
     capabilityContract: 'text.generate',
     state: 'selected',
-    configurationId: null,
+    loadoutId: null,
     displayName: 'gemma4-26b',
     supportedFeatures: ['input.image'],
     reasons: [],
@@ -267,7 +267,7 @@ test('Model Config projects bounded read-only machine selections', async () => {
     modelConfig: { localSelections: async () => [{
       capabilityContract: 'text.generate',
       state: 'selected',
-      configurationId: null,
+      loadoutId: null,
       displayName: 'gemma4-26b',
       supportedFeatures: [],
       reasons: [],

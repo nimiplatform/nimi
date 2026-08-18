@@ -276,7 +276,7 @@ export function useAgentConversationRuntimeController(
           return ['text.generate', 'audio.transcribe'].map((capabilityContract) => ({
             capabilityContract,
             state: 'unavailable' as const,
-            configurationId: null,
+            loadoutId: null,
             displayName: null,
             supportedFeatures: [],
             reasons: ['machine-loadouts-unavailable'],

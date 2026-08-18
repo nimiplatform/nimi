@@ -867,8 +867,8 @@ function SelectionPreview(props: {
           <div className="mt-1 text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-muted)]">
             {'prerequisite' in branch
               ? props.t('runtimeConfig.profiles.authoring.prerequisite', { value: branch.prerequisite })
-              : props.t('runtimeConfig.profiles.authoring.currentSelection', {
-                value: branch.configurationId ?? props.t('runtimeConfig.profiles.authoring.none'),
+              : props.t('runtimeConfig.profiles.authoring.currentLoadout', {
+                value: branch.loadoutId ?? props.t('runtimeConfig.profiles.authoring.none'),
               })}
           </div>
         </div>
@@ -1072,11 +1072,11 @@ function localDecisionCopy(
   }
   if (decision.kind === 'reuse-equivalent') {
     return t('runtimeConfig.profiles.authoring.decisionReuse', {
-      ids: decision.matches.map((match) => match.configurationId).join(', '),
+      ids: decision.matches.map((match) => match.loadoutId).join(', '),
     });
   }
   return t('runtimeConfig.profiles.authoring.decisionChoose', {
-    ids: decision.updateCandidateConfigurationIds.join(', '),
+    ids: decision.updateCandidateLoadoutIds.join(', '),
   });
 }
 

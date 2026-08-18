@@ -288,7 +288,7 @@ test('Import and Apply previews stay owner-specific and non-committing', () => {
 test('Local configuration preview reuses generic Recipe slots and keeps decisions separate', () => {
   const profile = localTextProfile();
   const emptyMachine: NimiAIProfileAuthoringMachineProjection = {
-    configurations: [],
+    loadouts: [],
     selections: [],
   };
   const add = deriveNimiAIProfileLocalConfigurationPreview({
@@ -304,8 +304,8 @@ test('Local configuration preview reuses generic Recipe slots and keeps decision
   assert.equal(add.runtimeMayConfigureExactPreferredContentAtCommit, true);
 
   const equivalentMachine: NimiAIProfileAuthoringMachineProjection = {
-    configurations: [{
-      configurationId: 'loadout-equivalent',
+    loadouts: [{
+      loadoutId: 'loadout-equivalent',
       capabilityContract: 'text.generate',
       implementation: { ...TEXT_RECIPE.implementation },
       portableConfig: add.proposal.portableConfig,
@@ -325,9 +325,9 @@ test('Local configuration preview reuses generic Recipe slots and keeps decision
   assert.equal(reuse.decision.kind, 'reuse-equivalent');
 
   const changedSameSource: NimiAIProfileAuthoringMachineProjection = {
-    configurations: [{
-      ...equivalentMachine.configurations[0]!,
-      configurationId: 'loadout-same-source-old-content',
+    loadouts: [{
+      ...equivalentMachine.loadouts[0]!,
+      loadoutId: 'loadout-same-source-old-content',
       portableConfig: { contextSize: 4096 },
       requirementResolution: 'unresolved',
     }],
@@ -345,8 +345,8 @@ test('Local configuration preview reuses generic Recipe slots and keeps decision
 test('selection mismatch preview remains generic across implementation identities', () => {
   const profile = localTextProfile();
   const machine: NimiAIProfileAuthoringMachineProjection = {
-    configurations: [{
-      configurationId: 'loadout-text-only',
+    loadouts: [{
+      loadoutId: 'loadout-text-only',
       capabilityContract: 'text.generate',
       implementation: { ...TEXT_RECIPE.implementation },
       portableConfig: { contextSize: 4096 },
@@ -355,7 +355,7 @@ test('selection mismatch preview remains generic across implementation identitie
     }],
     selections: [{
       capabilityContract: 'text.generate',
-      configurationId: 'loadout-text-only',
+      loadoutId: 'loadout-text-only',
     }],
   };
   const preview = deriveNimiAIProfileSelectionMismatchPreview({

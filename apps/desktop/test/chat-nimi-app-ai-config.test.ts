@@ -64,7 +64,7 @@ test('Nimi Chat projects machine-local selection as read-only Model Config conte
   }), [{
     capabilityContract: 'text.generate',
     state: 'selected',
-    configurationId: null,
+    loadoutId: null,
     displayName: 'Local text',
     supportedFeatures: ['tool.use'],
     reasons: [],

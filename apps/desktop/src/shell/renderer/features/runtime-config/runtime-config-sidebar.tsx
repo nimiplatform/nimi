@@ -87,7 +87,7 @@ const ICON_ENVIRONMENT = (
 /**
  * Runtime sidebar entries. The former single Models section is split
  * into four first-level pages (model market, local models, local AI
- * configurations, model catalog).
+ * Loadouts, model catalog).
  * Developer-only surfaces are NOT ordinary entries — they
  * live in the developer-mode-gated Developer Tools tab.
  */
@@ -122,7 +122,7 @@ export const RUNTIME_SIDEBAR_ITEMS: Array<{
     icon: ICON_MODELS,
   },
   {
-    id: 'localAiConfig',
+    id: 'loadouts',
     section: 'Runtime',
     label: 'Loadouts',
     icon: ICON_LOCAL_AI_CONFIG,

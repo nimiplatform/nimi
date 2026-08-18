@@ -727,7 +727,7 @@ export interface AgentCenterAppearanceAssetAdmissionInput {
 export interface AgentCenterPlacementActions {
   readonly close?: () => void;
   readonly openRuntimeSettings?: () => void;
-  readonly openMachineConfiguration?: (capabilityContract: string) => void;
+  readonly openMachineLoadout?: (capabilityContract: string) => void;
   readonly openCloudConnectorConfiguration?: () => void;
   readonly launchAvatar?: () => void;
 }

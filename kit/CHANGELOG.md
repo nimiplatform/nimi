@@ -42,6 +42,10 @@ Discipline.
   `runtime-call-failed`. Consumers with exhaustive unavailable-reason handling
   must add `runtime-timeout`; the shared terminal-status mapper is exported for
   custom runners.
+- **Breaking (0.x):** Model Config machine-selection projections and navigation
+  callbacks now use exact Machine Loadout vocabulary (`loadoutId` and
+  `onOpenMachineLoadout`). The former machine-configuration names were removed
+  without compatibility aliases.
 - Renderer bridge errors retain structured reason, action, trace, and retry
   fields while scrubbing credentials and private paths from `message`,
   `details`, and `details.rawMessage`.

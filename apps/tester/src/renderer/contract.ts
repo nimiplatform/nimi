@@ -107,7 +107,7 @@ export interface TesterRendererSdkPort {
     localSelections(): Promise<readonly {
       readonly capabilityContract: string;
       readonly state: 'selected' | 'broken';
-      readonly configurationId: null;
+      readonly loadoutId: null;
       readonly displayName: string | null;
       readonly supportedFeatures: readonly string[];
       readonly reasons: readonly string[];

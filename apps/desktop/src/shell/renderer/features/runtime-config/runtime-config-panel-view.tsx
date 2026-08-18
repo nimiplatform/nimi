@@ -98,7 +98,7 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
   useEffect(() => {
     if (
       actionFocus?.focus !== 'runtime-config-action-focus.models-catalog-install'
-      && actionFocus?.focus !== 'runtime-config-action-focus.models-configurations'
+      && actionFocus?.focus !== 'runtime-config-action-focus.loadouts'
     ) {
       return;
     }
@@ -245,8 +245,8 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
                 <LocalPage model={model} state={state} />
               </div>
             )}
-            {activePage === 'localAiConfig' && (
-              <div data-testid={E2E_IDS.runtimePageRoot('localAiConfig')} className="min-w-0">
+            {activePage === 'loadouts' && (
+              <div data-testid={E2E_IDS.runtimePageRoot('loadouts')} className="min-w-0">
                 <LoadoutsPage />
               </div>
             )}

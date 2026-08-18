@@ -138,8 +138,8 @@ export interface NimiAIProfileApplyPreview {
   readonly writesOnly: 'target-ai-config';
 }
 
-export interface NimiAIProfileAuthoringMachineConfigurationProjection {
-  readonly configurationId: string;
+export interface NimiAIProfileAuthoringMachineLoadoutProjection {
+  readonly loadoutId: string;
   readonly capabilityContract: string;
   readonly implementation: CapabilityImplementationIdentity;
   readonly portableConfig?: NimiJsonObject;
@@ -157,11 +157,11 @@ export interface NimiAIProfileAuthoringMachineConfigurationProjection {
 
 export interface NimiAIProfileAuthoringMachineSelectionProjection {
   readonly capabilityContract: string;
-  readonly configurationId: string;
+  readonly loadoutId: string;
 }
 
 export interface NimiAIProfileAuthoringMachineProjection {
-  readonly configurations: readonly NimiAIProfileAuthoringMachineConfigurationProjection[];
+  readonly loadouts: readonly NimiAIProfileAuthoringMachineLoadoutProjection[];
   readonly selections: readonly NimiAIProfileAuthoringMachineSelectionProjection[];
 }
 
@@ -182,7 +182,7 @@ export type NimiAIProfileLocalConfigurationDecision =
   | {
     readonly kind: 'reuse-equivalent';
     readonly matches: readonly {
-      readonly configurationId: string;
+      readonly loadoutId: string;
       readonly requirementResolution: 'unresolved' | 'configured';
     }[];
     readonly expectedRequirementResolution: 'unresolved' | 'configured';
@@ -190,7 +190,7 @@ export type NimiAIProfileLocalConfigurationDecision =
   }
   | {
     readonly kind: 'choose-update-or-add';
-    readonly updateCandidateConfigurationIds: readonly string[];
+    readonly updateCandidateLoadoutIds: readonly string[];
     readonly updateExpectedRequirementResolution: 'unresolved';
     readonly addExpectedRequirementResolution: 'unresolved';
   };
@@ -229,13 +229,13 @@ export interface NimiAIProfileSelectionMismatchPreview {
   readonly branches: readonly [
     {
       readonly kind: 'continue-current-selection';
-      readonly configurationId: string | null;
+      readonly loadoutId: string | null;
       readonly featureSubset: NimiAIProfileFeatureSubsetResult;
       readonly changesSelection: false;
     },
     {
       readonly kind: 'select-recommended-local-configuration';
-      readonly configurationIds: readonly string[];
+      readonly loadoutIds: readonly string[];
       readonly prerequisite: 'none' | 'add-or-update-local-configuration' | 'local-recommendation-unavailable';
       readonly featureSubset: NimiAIProfileFeatureSubsetResult;
       readonly changesSelection: boolean;
@@ -660,20 +660,20 @@ export function deriveNimiAIProfileLocalConfigurationPreview(input: {
     capabilityContract,
     capability,
   );
-  const equivalent = machine.configurations
-    .filter((configuration) => configuration.capabilityContract === capabilityContract)
-    .filter((configuration) => sameImplementation(
-      configuration.implementation,
+  const equivalent = machine.loadouts
+    .filter((loadout) => loadout.capabilityContract === capabilityContract)
+    .filter((loadout) => sameImplementation(
+      loadout.implementation,
       capability.implementation!,
     ))
-    .filter((configuration) => localConfigurationDigestFromMachine(configuration) === equivalenceDigest)
-    .sort((left, right) => compareCanonicalText(left.configurationId, right.configurationId));
+    .filter((loadout) => localConfigurationDigestFromMachineLoadout(loadout) === equivalenceDigest)
+    .sort((left, right) => compareCanonicalText(left.loadoutId, right.loadoutId));
   const sameSource = equivalent.length > 0
     ? []
-    : machine.configurations
-      .filter((configuration) => configuration.capabilityContract === capabilityContract)
-      .filter((configuration) => sameProfileSource(source, configuration))
-      .sort((left, right) => compareCanonicalText(left.configurationId, right.configurationId));
+    : machine.loadouts
+      .filter((loadout) => loadout.capabilityContract === capabilityContract)
+      .filter((loadout) => sameProfileSource(source, loadout))
+      .sort((left, right) => compareCanonicalText(left.loadoutId, right.loadoutId));
   const requirementProjection = projectRuntimeRecipeRequirements(
     capabilityContract,
     capability.implementation,
@@ -682,20 +682,20 @@ export function deriveNimiAIProfileLocalConfigurationPreview(input: {
   const decision: NimiAIProfileLocalConfigurationDecision = equivalent.length > 0
     ? Object.freeze({
       kind: 'reuse-equivalent' as const,
-      matches: Object.freeze(equivalent.map((configuration) => Object.freeze({
-        configurationId: configuration.configurationId,
-        requirementResolution: configuration.requirementResolution,
+      matches: Object.freeze(equivalent.map((loadout) => Object.freeze({
+        loadoutId: loadout.loadoutId,
+        requirementResolution: loadout.requirementResolution,
       }))),
       expectedRequirementResolution: equivalent.every(
-        (configuration) => configuration.requirementResolution === 'configured',
+        (loadout) => loadout.requirementResolution === 'configured',
       ) ? 'configured' as const : 'unresolved' as const,
       requiresExistingRecordSelection: equivalent.length > 1,
     })
     : sameSource.length > 0
       ? Object.freeze({
         kind: 'choose-update-or-add' as const,
-        updateCandidateConfigurationIds: Object.freeze(
-          sameSource.map((configuration) => configuration.configurationId),
+        updateCandidateLoadoutIds: Object.freeze(
+          sameSource.map((loadout) => loadout.loadoutId),
         ),
         updateExpectedRequirementResolution: 'unresolved' as const,
         addExpectedRequirementResolution: 'unresolved' as const,
@@ -755,30 +755,30 @@ export function deriveNimiAIProfileSelectionMismatchPreview(input: {
   const currentSelection = machine.selections.find(
     (selection) => selection.capabilityContract === capabilityContract,
   );
-  const currentConfiguration = currentSelection
-    ? machine.configurations.find(
-      (configuration) => configuration.configurationId === currentSelection.configurationId,
+  const currentLoadout = currentSelection
+    ? machine.loadouts.find(
+      (loadout) => loadout.loadoutId === currentSelection.loadoutId,
     )
     : undefined;
-  if (currentSelection && !currentConfiguration) {
+  if (currentSelection && !currentLoadout) {
     return authoringError(`Machine selection for ${capabilityContract} is dangling`);
   }
 
   const localCapability = capability.route === 'local' && capability.implementation
     ? capability
     : null;
-  const equivalentConfigurationIds = localCapability?.implementation
-    ? machine.configurations
-      .filter((configuration) => configuration.capabilityContract === capabilityContract)
-      .filter((configuration) => sameImplementation(
-        configuration.implementation,
+  const equivalentLoadoutIds = localCapability?.implementation
+    ? machine.loadouts
+      .filter((loadout) => loadout.capabilityContract === capabilityContract)
+      .filter((loadout) => sameImplementation(
+        loadout.implementation,
         localCapability.implementation!,
       ))
-      .filter((configuration) => (
-        localConfigurationDigestFromMachine(configuration)
+      .filter((loadout) => (
+        localConfigurationDigestFromMachineLoadout(loadout)
           === localConfigurationDigestFromProfile(capabilityContract, localCapability)
       ))
-      .map((configuration) => configuration.configurationId)
+      .map((loadout) => loadout.loadoutId)
       .sort()
     : [];
 
@@ -792,8 +792,8 @@ export function deriveNimiAIProfileSelectionMismatchPreview(input: {
       ? null
       : normalizeSelectionCloudAlternative(input.cloudAlternative);
 
-  const currentFeatureSubset = currentConfiguration
-    ? deriveFeatureSubset(requiredFeatures, currentConfiguration.supportedFeatures)
+  const currentFeatureSubset = currentLoadout
+    ? deriveFeatureSubset(requiredFeatures, currentLoadout.supportedFeatures)
     : unavailableFeatureSubset(requiredFeatures);
   const recommendedFeatureSubset = localCapability?.implementation
     ? deriveFeatureSubset(requiredFeatures, localCapability.implementation.supportedFeatures)
@@ -809,22 +809,22 @@ export function deriveNimiAIProfileSelectionMismatchPreview(input: {
     branches: Object.freeze([
       Object.freeze({
         kind: 'continue-current-selection' as const,
-        configurationId: currentConfiguration?.configurationId ?? null,
+        loadoutId: currentLoadout?.loadoutId ?? null,
         featureSubset: currentFeatureSubset,
         changesSelection: false as const,
       }),
       Object.freeze({
         kind: 'select-recommended-local-configuration' as const,
-        configurationIds: Object.freeze(equivalentConfigurationIds),
+        loadoutIds: Object.freeze(equivalentLoadoutIds),
         prerequisite: !localCapability
           ? 'local-recommendation-unavailable' as const
-          : equivalentConfigurationIds.length > 0
+          : equivalentLoadoutIds.length > 0
             ? 'none' as const
             : 'add-or-update-local-configuration' as const,
         featureSubset: recommendedFeatureSubset,
         changesSelection: localCapability !== null && (
-          equivalentConfigurationIds.length === 0
-          || !equivalentConfigurationIds.includes(currentConfiguration?.configurationId ?? '')
+          equivalentLoadoutIds.length === 0
+          || !equivalentLoadoutIds.includes(currentLoadout?.loadoutId ?? '')
         ),
       }),
       Object.freeze({
@@ -1120,30 +1120,30 @@ function localConfigurationDigestFromProfile(
   );
 }
 
-function localConfigurationDigestFromMachine(
-  configuration: NimiAIProfileAuthoringMachineConfigurationProjection,
+function localConfigurationDigestFromMachineLoadout(
+  loadout: NimiAIProfileAuthoringMachineLoadoutProjection,
 ): NimiAIProfileEquivalenceDigest {
   const implementation = normalizeImplementation(
-    configuration.implementation,
-    `${configuration.capabilityContract} machine implementation`,
+    loadout.implementation,
+    `${loadout.capabilityContract} machine implementation`,
   );
   const supportedFeatures = normalizeFeatureSet(
-    configuration.supportedFeatures,
-    `${configuration.capabilityContract} machine supportedFeatures`,
+    loadout.supportedFeatures,
+    `${loadout.capabilityContract} machine supportedFeatures`,
   );
-  const portableConfig = configuration.portableConfig === undefined
+  const portableConfig = loadout.portableConfig === undefined
     ? Object.freeze({})
     : normalizeAuthoringJsonObject(
-      configuration.portableConfig,
-      `${configuration.capabilityContract} machine portableConfig`,
+      loadout.portableConfig,
+      `${loadout.capabilityContract} machine portableConfig`,
     );
   return digestCanonical(
     'nimi.loadout.portable-content/v1',
     {
-      capabilityContract: configuration.capabilityContract,
+      capabilityContract: loadout.capabilityContract,
       implementation: implementationContent(implementation),
       driverPortableConfig: portableConfig,
-      loadout: configuration.loadout ?? null,
+      loadout: loadout.loadout ?? null,
       supportedFeatures,
     },
   );
@@ -1199,70 +1199,70 @@ function canonicalize(value: unknown): unknown {
 function normalizeMachineProjection(
   input: NimiAIProfileAuthoringMachineProjection,
 ): NimiAIProfileAuthoringMachineProjection {
-  if (!input || !Array.isArray(input.configurations) || !Array.isArray(input.selections)) {
+  if (!input || !Array.isArray(input.loadouts) || !Array.isArray(input.selections)) {
     return authoringError('Machine Loadout projection is invalid');
   }
-  const configurations = input.configurations.map((configuration, index) => {
-    if (!configuration || typeof configuration !== 'object') {
-      return authoringError(`Machine configuration[${index}] is invalid`);
+  const loadouts = input.loadouts.map((loadout, index) => {
+    if (!loadout || typeof loadout !== 'object') {
+      return authoringError(`Machine Loadout[${index}] is invalid`);
     }
     const normalized = Object.freeze({
-      configurationId: requireExactNonEmptyText(
-        configuration.configurationId,
-        `Machine configuration[${index}].configurationId`,
+      loadoutId: requireExactNonEmptyText(
+        loadout.loadoutId,
+        `Machine Loadout[${index}].loadoutId`,
       ),
       capabilityContract: requireExactNonEmptyText(
-        configuration.capabilityContract,
-        `Machine configuration[${index}].capabilityContract`,
+        loadout.capabilityContract,
+        `Machine Loadout[${index}].capabilityContract`,
       ),
       implementation: normalizeImplementation(
-        configuration.implementation,
-        `Machine configuration[${index}].implementation`,
+        loadout.implementation,
+        `Machine Loadout[${index}].implementation`,
       ),
-      ...(configuration.portableConfig !== undefined
+      ...(loadout.portableConfig !== undefined
         ? {
           portableConfig: normalizeJsonObject(
-            configuration.portableConfig,
-            `Machine configuration[${index}].portableConfig`,
+            loadout.portableConfig,
+            `Machine Loadout[${index}].portableConfig`,
           ),
         }
         : {}),
       supportedFeatures: normalizeFeatureSet(
-        configuration.supportedFeatures,
-        `Machine configuration[${index}].supportedFeatures`,
+        loadout.supportedFeatures,
+        `Machine Loadout[${index}].supportedFeatures`,
       ),
       requirementResolution: requireRequirementResolution(
-        configuration.requirementResolution,
-        `Machine configuration[${index}].requirementResolution`,
+        loadout.requirementResolution,
+        `Machine Loadout[${index}].requirementResolution`,
       ),
-      ...(configuration.provenance !== undefined
+      ...(loadout.provenance !== undefined
         ? {
           provenance: normalizeJsonObject(
-            configuration.provenance,
-            `Machine configuration[${index}].provenance`,
+            loadout.provenance,
+            `Machine Loadout[${index}].provenance`,
           ),
         }
         : {}),
-      ...(configuration.sourceProfileId !== undefined
+      ...(loadout.sourceProfileId !== undefined
         ? {
           sourceProfileId: requireExactNonEmptyText(
-            configuration.sourceProfileId,
-            `Machine configuration[${index}].sourceProfileId`,
+            loadout.sourceProfileId,
+            `Machine Loadout[${index}].sourceProfileId`,
           ),
         }
         : {}),
-      ...(configuration.loadout !== undefined
-        ? { loadout: normalizeMachineLoadoutIntent(configuration.loadout, index) }
+      ...(loadout.loadout !== undefined
+        ? { loadout: normalizeMachineLoadoutIntent(loadout.loadout, index) }
         : {}),
     });
     return normalized;
   });
   assertUnique(
-    configurations.map((configuration) => configuration.configurationId),
-    'Machine configuration ids',
+    loadouts.map((loadout) => loadout.loadoutId),
+    'Machine Loadout ids',
   );
   const byId = new Map(
-    configurations.map((configuration) => [configuration.configurationId, configuration] as const),
+    loadouts.map((loadout) => [loadout.loadoutId, loadout] as const),
   );
   const selections = input.selections.map((selection, index) => {
     if (!selection || typeof selection !== 'object') {
@@ -1273,13 +1273,13 @@ function normalizeMachineProjection(
         selection.capabilityContract,
         `Machine selection[${index}].capabilityContract`,
       ),
-      configurationId: requireExactNonEmptyText(
-        selection.configurationId,
-        `Machine selection[${index}].configurationId`,
+      loadoutId: requireExactNonEmptyText(
+        selection.loadoutId,
+        `Machine selection[${index}].loadoutId`,
       ),
     });
-    const configuration = byId.get(normalized.configurationId);
-    if (!configuration || configuration.capabilityContract !== normalized.capabilityContract) {
+    const loadout = byId.get(normalized.loadoutId);
+    if (!loadout || loadout.capabilityContract !== normalized.capabilityContract) {
       return authoringError(`Machine selection[${index}] is dangling or mismatched`);
     }
     return normalized;
@@ -1289,48 +1289,48 @@ function normalizeMachineProjection(
     'Machine selection capability contracts',
   );
   return Object.freeze({
-    configurations: Object.freeze(configurations),
+    loadouts: Object.freeze(loadouts),
     selections: Object.freeze(selections),
   });
 }
 
 function normalizeMachineLoadoutIntent(
-  input: NonNullable<NimiAIProfileAuthoringMachineConfigurationProjection['loadout']>,
-  configurationIndex: number,
-): NonNullable<NimiAIProfileAuthoringMachineConfigurationProjection['loadout']> {
+  input: NonNullable<NimiAIProfileAuthoringMachineLoadoutProjection['loadout']>,
+  loadoutIndex: number,
+): NonNullable<NimiAIProfileAuthoringMachineLoadoutProjection['loadout']> {
   if (!input || typeof input !== 'object' || !Array.isArray(input.axes)) {
-    return authoringError(`Machine configuration[${configurationIndex}].loadout is invalid`);
+    return authoringError(`Machine Loadout[${loadoutIndex}].loadout is invalid`);
   }
   const axes = input.axes.map((axis, axisIndex) => {
     const slotId = requireExactNonEmptyText(
       axis?.slotId,
-      `Machine configuration[${configurationIndex}].loadout.axes[${axisIndex}].slotId`,
+      `Machine Loadout[${loadoutIndex}].loadout.axes[${axisIndex}].slotId`,
     );
     const contentId = requireExactNonEmptyText(
       axis?.contentId,
-      `Machine configuration[${configurationIndex}].loadout.axes[${axisIndex}].contentId`,
+      `Machine Loadout[${loadoutIndex}].loadout.axes[${axisIndex}].contentId`,
     );
     if (!/^sha256:[a-f0-9]{64}$/u.test(contentId)) {
-      return authoringError(`Machine configuration[${configurationIndex}].loadout.axes[${axisIndex}].contentId is invalid`);
+      return authoringError(`Machine Loadout[${loadoutIndex}].loadout.axes[${axisIndex}].contentId is invalid`);
     }
     return Object.freeze({ slotId, contentId });
   });
-  assertUnique(axes.map((axis) => axis.slotId), `Machine configuration[${configurationIndex}] Loadout slots`);
+  assertUnique(axes.map((axis) => axis.slotId), `Machine Loadout[${loadoutIndex}] slots`);
   return Object.freeze({
-    recipeId: requireExactNonEmptyText(input.recipeId, `Machine configuration[${configurationIndex}].loadout.recipeId`),
+    recipeId: requireExactNonEmptyText(input.recipeId, `Machine Loadout[${loadoutIndex}].loadout.recipeId`),
     axes: Object.freeze(axes),
-    options: normalizeJsonObject(input.options, `Machine configuration[${configurationIndex}].loadout.options`),
+    options: normalizeJsonObject(input.options, `Machine Loadout[${loadoutIndex}].loadout.options`),
   });
 }
 
 function sameProfileSource(
   profile: NimiPortableAIProfile,
-  configuration: NimiAIProfileAuthoringMachineConfigurationProjection,
+  loadout: NimiAIProfileAuthoringMachineLoadoutProjection,
 ): boolean {
-  if (configuration.sourceProfileId === profile.profileId) return true;
-  if (profile.provenance === undefined || configuration.provenance === undefined) return false;
+  if (loadout.sourceProfileId === profile.profileId) return true;
+  if (profile.provenance === undefined || loadout.provenance === undefined) return false;
   if (Object.keys(profile.provenance).length === 0) return false;
-  return canonicalJson(profile.provenance) === canonicalJson(configuration.provenance);
+  return canonicalJson(profile.provenance) === canonicalJson(loadout.provenance);
 }
 
 function deriveFeatureSubset(

@@ -78,9 +78,9 @@ export function useAgentConversationHostFeedback() {
         onAction: () => {
           setActiveTab('runtime');
           runtimeConfigNavigation.focusAction({
-            page: 'localAiConfig',
-            action: 'open-configurations',
-            focus: 'runtime-config-action-focus.models-configurations',
+            page: 'loadouts',
+            action: 'open-loadouts',
+            focus: 'runtime-config-action-focus.loadouts',
           });
         },
       } : {}),

@@ -44,7 +44,7 @@ async function flush(): Promise<void> {
 
 async function renderSurface(
   onOverwrite: ModelConfigOverwrite,
-  onOpenMachineConfiguration = vi.fn(),
+  onOpenMachineLoadout = vi.fn(),
   options: {
     readonly cloudAIConfig?: ModelConfigCloudAIConfigModule;
     readonly consumer?: 'nimi-first-party' | 'third-party-app';
@@ -73,7 +73,7 @@ async function renderSurface(
         localSelections={[{
           capabilityContract: 'text.generate',
           state: 'selected',
-          configurationId: 'machine-text',
+          loadoutId: 'machine-text',
           displayName: 'Machine text model',
           supportedFeatures: [],
           reasons: [],
@@ -104,7 +104,7 @@ async function renderSurface(
             connectors: [{ connectorId: 'connector-test', label: 'Test account', provider: 'provider-test' }],
           }),
         }}
-        onOpenMachineConfiguration={onOpenMachineConfiguration}
+        onOpenMachineLoadout={onOpenMachineLoadout}
         onOpenCloudConnectorConfiguration={options.onOpenCloudConnectorConfiguration}
         onOpenOwnerConfiguration={options.onOpenOwnerConfiguration}
         onOverwrite={onOverwrite}
@@ -182,7 +182,7 @@ describe('public Model Config contract', () => {
     const selection = {
       capabilityContract: 'text.generate',
       state: 'selected' as const,
-      configurationId: 'text-local',
+      loadoutId: 'text-local',
       displayName: 'Local text',
       supportedFeatures: ['json.output'],
       reasons: [],
@@ -253,7 +253,7 @@ describe('public Model Config contract', () => {
     const localSelections = [{
       capabilityContract: 'text.generate',
       state: 'selected' as const,
-      configurationId: 'machine-text',
+      loadoutId: 'machine-text',
       displayName: 'Machine text model',
       supportedFeatures: [],
       reasons: [],
@@ -305,7 +305,7 @@ describe('public Model Config contract', () => {
       defaults: undefined,
       route: { oneofKind: 'local', local: {} },
     }]);
-    expect(JSON.stringify(onOverwrite.mock.calls[0]?.[0])).not.toMatch(/modelId|targetRef|configurationId/u);
+    expect(JSON.stringify(onOverwrite.mock.calls[0]?.[0])).not.toMatch(/modelId|targetRef|loadoutId/u);
   });
 
   it('shows Driver-owned Local defaults and provider-owned Cloud placeholders without setting keys', async () => {
@@ -376,8 +376,8 @@ describe('public Model Config contract', () => {
 
   it('restores the model hub and delegates Local model changes to machine Loadouts', async () => {
     const onOverwrite = vi.fn<ModelConfigOverwrite>(async () => undefined);
-    const onOpenMachineConfiguration = vi.fn();
-    const node = await renderSurface(onOverwrite, onOpenMachineConfiguration);
+    const onOpenMachineLoadout = vi.fn();
+    const node = await renderSurface(onOverwrite, onOpenMachineLoadout);
 
     expect(node.textContent).toContain('Models');
     expect(node.textContent).toContain('Machine text model');
@@ -407,7 +407,7 @@ describe('public Model Config contract', () => {
     )) as HTMLButtonElement;
     act(() => { openMachine.click(); });
 
-    expect(onOpenMachineConfiguration).toHaveBeenCalledTimes(1);
+    expect(onOpenMachineLoadout).toHaveBeenCalledTimes(1);
     expect(onOverwrite).not.toHaveBeenCalled();
   });
 

@@ -484,8 +484,8 @@ export function projectRuntimeConfigAIProfileAuthoringMachine(
   machine: NimiMachineLoadouts,
 ): NimiAIProfileAuthoringMachineProjection {
   return Object.freeze({
-    configurations: Object.freeze(machine.loadouts.map((loadout) => Object.freeze({
-      configurationId: loadout.loadoutId,
+    loadouts: Object.freeze(machine.loadouts.map((loadout) => Object.freeze({
+      loadoutId: loadout.loadoutId,
       capabilityContract: loadout.capabilityContract,
       implementation: Object.freeze({ ...loadout.implementation }),
       portableConfig: loadout.options as unknown as NimiJsonObject,
@@ -507,7 +507,7 @@ export function projectRuntimeConfigAIProfileAuthoringMachine(
     }))),
     selections: Object.freeze(machine.selections.map((selection) => Object.freeze({
       capabilityContract: selection.capabilityContract,
-      configurationId: selection.loadoutId,
+      loadoutId: selection.loadoutId,
     }))),
   });
 }
