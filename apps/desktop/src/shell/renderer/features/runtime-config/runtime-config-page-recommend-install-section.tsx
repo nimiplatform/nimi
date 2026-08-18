@@ -237,10 +237,12 @@ export function RecommendInstallSection({
                   <span className="font-medium text-[var(--nimi-text-primary)]">{t('runtimeConfig.recommend.planFiles', { defaultValue: 'Files' })}</span>
                   <p className="mt-0.5">{planPreview.files.length}</p>
                 </div>
-                <div>
-                  <span className="font-medium text-[var(--nimi-text-primary)]">{t('runtimeConfig.recommend.planRuntimeMode', { defaultValue: 'Runtime mode' })}</span>
-                  <p className="mt-0.5">{planPreview.engineRuntimeMode}</p>
-                </div>
+                {planPreview.engineRuntimeMode ? (
+                  <div>
+                    <span className="font-medium text-[var(--nimi-text-primary)]">{t('runtimeConfig.recommend.planRuntimeMode', { defaultValue: 'Runtime mode' })}</span>
+                    <p className="mt-0.5">{planPreview.engineRuntimeMode}</p>
+                  </div>
+                ) : null}
               </div>
               {planPreview.warnings.length > 0 ? (
                 <div className="rounded-lg border border-[var(--nimi-status-warning-soft-border)] bg-[var(--nimi-status-warning-soft-bg)] px-4 py-3 text-xs text-[var(--nimi-status-warning-soft-text)]">

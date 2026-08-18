@@ -63,12 +63,22 @@ test('Runtime local projections retain canonical content identity and exact acqu
   assert.equal(plan.totalSizeBytes, 123);
 });
 
-test('Runtime local projections reject unspecified engine execution semantics', () => {
-  assert.throws(() => projectNimiRuntimeLocalCatalogItemDescriptor({
-    itemId: 'catalog.unknown-mode', capabilities: ['text.generate'],
+test('Runtime local projections preserve engine-neutral acquisition without accepting unknown modes', () => {
+  const catalog = projectNimiRuntimeLocalCatalogItemDescriptor({
+    itemId: 'catalog.engine-neutral', capabilities: ['text.generate'],
     engineRuntimeMode: LocalEngineRuntimeMode.UNSPECIFIED,
+  } as never);
+  assert.equal(catalog.engineRuntimeMode, undefined);
+
+  const plan = projectNimiRuntimeLocalInstallPlanDescriptor({
+    planId: 'plan.engine-neutral', engineRuntimeMode: LocalEngineRuntimeMode.UNSPECIFIED,
+  } as never);
+  assert.equal(plan.engineRuntimeMode, undefined);
+
+  assert.throws(() => projectNimiRuntimeLocalCatalogItemDescriptor({
+    itemId: 'catalog.unknown-mode', capabilities: ['text.generate'], engineRuntimeMode: 99,
   } as never), /unknown engine runtime mode/);
   assert.throws(() => projectNimiRuntimeLocalInstallPlanDescriptor({
-    planId: 'plan.unknown-mode', engineRuntimeMode: LocalEngineRuntimeMode.UNSPECIFIED,
+    planId: 'plan.unknown-mode', engineRuntimeMode: 99,
   } as never), /unknown engine runtime mode/);
 });

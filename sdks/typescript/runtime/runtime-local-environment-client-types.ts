@@ -129,7 +129,7 @@ export interface NimiRuntimeLocalCatalogItemDescriptor {
   readonly templateId?: string;
   readonly capabilities: readonly NimiRuntimeLocalCapabilityToken[];
   readonly engine: string;
-  readonly engineRuntimeMode: NimiRuntimeLocalEngineRuntimeModeId;
+  readonly engineRuntimeMode?: NimiRuntimeLocalEngineRuntimeModeId;
   readonly installKind: string;
   readonly installAvailable: boolean;
   readonly endpoint?: string;
@@ -168,7 +168,7 @@ export interface NimiRuntimeLocalInstallPlanDescriptor {
   readonly revision: string;
   readonly capabilities: readonly NimiRuntimeLocalCapabilityToken[];
   readonly engine: string;
-  readonly engineRuntimeMode: NimiRuntimeLocalEngineRuntimeModeId;
+  readonly engineRuntimeMode?: NimiRuntimeLocalEngineRuntimeModeId;
   readonly installKind: string;
   readonly installAvailable: boolean;
   readonly endpoint: string;
