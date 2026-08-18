@@ -354,6 +354,8 @@ func (s *Service) installManagedDownloadedModelWithTransfer(
 			case errors.Is(err, context.Canceled) && rpcctx.WasServerShutdown(ctx):
 				preserveStaging = true
 				s.interruptTransfer(transferID, "transfer interrupted by runtime shutdown")
+			case errors.Is(err, context.Canceled) && normalizeTransferState(s.localTransferSummary(transferID).GetState()) == localTransferStatePaused:
+				preserveStaging = true
 			case errors.Is(err, context.Canceled):
 				preserveStaging = true
 				s.failTransfer(transferID, err.Error(), true)

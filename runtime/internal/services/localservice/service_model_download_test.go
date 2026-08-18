@@ -512,6 +512,49 @@ func TestManagedModelDownloadShutdownRestoresPausedWithStaging(t *testing.T) {
 	}
 }
 
+func TestPausedManagedModelDownloadStaysPausedWhenInstallCallIsCanceled(t *testing.T) {
+	svc := newTestService(t)
+	modelID := "local.test.paused-call-cancel"
+	payload := []byte(strings.Repeat("paused-call-cancel-payload", 4096))
+	sum := sha256.Sum256(payload)
+	requestStarted := make(chan struct{})
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Length", strconv.Itoa(len(payload)))
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write(payload[:4096])
+		if flusher, ok := w.(http.Flusher); ok {
+			flusher.Flush()
+		}
+		close(requestStarted)
+		<-r.Context().Done()
+	}))
+	defer server.Close()
+	svc.hfDownloadBaseURL = server.URL
+
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan error, 1)
+	go func() {
+		_, err := svc.installManagedDownloadedModel(ctx, managedDownloadFailureSpec(modelID, hex.EncodeToString(sum[:])))
+		done <- err
+	}()
+	<-requestStarted
+	transfer := transferForAssetForTest(t, svc, modelID)
+	if _, err := svc.PauseLocalTransfer(context.Background(), &runtimev1.PauseLocalTransferRequest{
+		InstallSessionId: transfer.GetInstallSessionId(),
+	}); err != nil {
+		t.Fatalf("pause managed download: %v", err)
+	}
+	cancel()
+	if err := <-done; !errors.Is(err, context.Canceled) {
+		t.Fatalf("cancel paused install call error = %v, want context.Canceled", err)
+	}
+
+	paused := svc.localTransferSummary(transfer.GetInstallSessionId())
+	if paused.GetState() != localTransferStatePaused || !paused.GetRetryable() {
+		t.Fatalf("paused transfer after install call cancellation = %+v, want paused/retryable", paused)
+	}
+}
+
 func TestResumeRestoredDynamicHFDownloadUsesDurableTransferSpec(t *testing.T) {
 	svc := newTestService(t)
 	modelID := "dynamic.hf.resume"
