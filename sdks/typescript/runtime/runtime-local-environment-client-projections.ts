@@ -33,7 +33,7 @@ import type {
   NimiRuntimeLocalTransferProgressEvent,
   NimiRuntimeLocalTransferSessionSummary,
   NimiRuntimeLocalVerifiedAssetDescriptor,
-} from './runtime-local-asset-admin-types';
+} from './runtime-local-environment-client-types';
 import {
   clampNimiRuntimeLocalPercent,
   invalidLocalProjection,
@@ -48,7 +48,7 @@ import {
   stringRecord,
   textList,
   textListOrUndefined,
-} from './runtime-local-asset-admin-values';
+} from './runtime-local-environment-client-values';
 
 const NIMI_RUNTIME_LOCAL_ENVIRONMENT_DEPENDENCY_READY_STATES: ReadonlySet<string> = new Set([
   'ready_system',

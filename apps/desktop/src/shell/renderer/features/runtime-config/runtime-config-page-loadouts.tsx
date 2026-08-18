@@ -27,8 +27,8 @@ import {
 import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
 import {
   installRuntimeConfigCatalogAsset,
-  useRuntimeConfigLocalAssetAdminClient,
-} from './runtime-config-local-model-center-sdk-service.js';
+  useRuntimeConfigLocalEnvironmentClient,
+} from './runtime-config-local-environment-sdk-service.js';
 import { runtimeConfigLoadoutCatalogBadge } from './runtime-config-loadout-catalog-badge.js';
 import {
   createRuntimeConfigLoadoutImpactState,
@@ -54,7 +54,7 @@ export function LoadoutsPage() {
   const { t } = useTranslation();
   const sdk = useDesktopRendererSdk();
   const loadoutsClient = useMemo(() => sdk.machineProduct().local.loadouts, [sdk]);
-  const modelAssetsClient = useRuntimeConfigLocalAssetAdminClient();
+  const modelAssetsClient = useRuntimeConfigLocalEnvironmentClient();
   const impactState = useMemo(() => createRuntimeConfigLoadoutImpactState(), []);
   const [aggregate, setAggregate] = useState<NimiMachineLoadouts | null>(null);
   const [recipes, setRecipes] = useState<readonly NimiLoadoutRecipe[]>([]);

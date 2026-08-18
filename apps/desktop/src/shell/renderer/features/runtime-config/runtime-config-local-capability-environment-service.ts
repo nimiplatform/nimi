@@ -1,11 +1,11 @@
 import type {
-  NimiRuntimeLocalAssetAdminClient,
+  NimiRuntimeLocalEnvironmentClient,
   NimiRuntimeLocalEnvironmentPlan,
   NimiRuntimeLocalEnvironmentPlanInput,
 } from '@nimiplatform/sdk/runtime';
 
 type LocalEnvironmentPlanReader = {
-  readonly resolveEnvironmentPlan: NimiRuntimeLocalAssetAdminClient['resolveEnvironmentPlan'];
+  readonly resolveEnvironmentPlan: NimiRuntimeLocalEnvironmentClient['resolveEnvironmentPlan'];
 };
 
 export type RuntimeConfigLocalCapabilityContract =

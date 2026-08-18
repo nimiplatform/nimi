@@ -11,7 +11,7 @@ import type {
   NimiLoadoutRecipe,
   NimiMachineLoadout,
   NimiMachineLoadoutClient,
-  NimiRuntimeLocalAssetAdminClient,
+  NimiRuntimeLocalEnvironmentClient,
   NimiRuntimeLocalVerifiedAssetDescriptor,
   NimiRuntimeModelAssetRecord,
 } from '@nimiplatform/sdk/runtime';
@@ -72,7 +72,7 @@ type RuntimeConfigAIProfileDownloadGroup = {
   readonly occurrences: readonly RuntimeConfigAIProfileTransferAxis[];
 };
 
-type AssetAdmin = Pick<NimiRuntimeLocalAssetAdminClient,
+type LocalEnvironmentClient = Pick<NimiRuntimeLocalEnvironmentClient,
   'listModelAssets' | 'listVerifiedAssets' | 'resolveInstallPlan' | 'install'
 >;
 
@@ -280,7 +280,7 @@ export async function planRuntimeConfigAIProfileTransfer(input: {
 // @nimi-authority: rule.nimi.runtime.local-compute.r028
 export async function executeRuntimeConfigAIProfileTransfer(input: {
   readonly plan: RuntimeConfigAIProfileTransferPlan;
-  readonly assets: AssetAdmin;
+  readonly assets: LocalEnvironmentClient;
   readonly loadouts: Loadouts;
   /** True only after the aggregate transfer page displays machine-wide Loadout impact. */
   readonly confirmedMachineImpact?: boolean;
@@ -489,7 +489,7 @@ export async function selectRuntimeConfigAIProfileLoadouts(input: {
 }
 
 async function installCatalogTemplate(
-  assets: AssetAdmin,
+  assets: LocalEnvironmentClient,
   templateId: string,
 ): Promise<NimiRuntimeModelAssetRecord> {
   const plan = await assets.resolveInstallPlan({ templateId });
@@ -497,7 +497,7 @@ async function installCatalogTemplate(
 }
 
 async function installRecommendedSource(
-  assets: AssetAdmin,
+  assets: LocalEnvironmentClient,
   axis: RuntimeConfigAIProfileTransferAxis,
 ): Promise<NimiRuntimeModelAssetRecord> {
   if (!axis.source) throw new Error(`${axis.displayLabel}: no portable source recommendation.`);

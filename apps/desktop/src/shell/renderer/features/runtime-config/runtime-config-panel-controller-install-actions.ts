@@ -8,7 +8,7 @@ import {
   type NimiRuntimeLocalInstallPlanDescriptor,
 } from '@nimiplatform/sdk/runtime';
 import { useTranslation } from 'react-i18next';
-import { useRuntimeConfigLocalAssetAdminClient } from './runtime-config-local-model-center-sdk-service';
+import { useRuntimeConfigLocalEnvironmentClient } from './runtime-config-local-environment-sdk-service';
 import type { SetRuntimeConfigBanner } from './runtime-config-panel-controller-utils';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 
@@ -32,7 +32,7 @@ export type UseRuntimeConfigInstallActionsInput = {
 };
 
 export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallActionsInput): RuntimeConfigInstallActions {
-  const runtimeConfigLocalAssetAdminClient = useRuntimeConfigLocalAssetAdminClient();
+  const localEnvironmentClient = useRuntimeConfigLocalEnvironmentClient();
   const { t } = useTranslation();
   const bindings = useDesktopRendererBindings();
   const { setStatusBanner } = input;
@@ -70,7 +70,7 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
     if (!confirmed) {
       return;
     }
-    const asset = await runtimeConfigLocalAssetAdminClient.install(plan.planId, { caller: 'core' });
+    const asset = await localEnvironmentClient.install(plan.planId, { caller: 'core' });
     setStatusBanner({
       kind: 'success',
       message: translateRuntimeLocalText(
@@ -92,7 +92,7 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
     },
   ) => {
     try {
-      const plan = await runtimeConfigLocalAssetAdminClient.resolveInstallPlan({
+      const plan = await localEnvironmentClient.resolveInstallPlan({
         itemId: item.itemId,
         source: item.source,
         templateId: item.templateId,
@@ -133,7 +133,7 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
       throw new Error('templateId is required');
     }
     try {
-      const plan = await runtimeConfigLocalAssetAdminClient.resolveInstallPlan({
+      const plan = await localEnvironmentClient.resolveInstallPlan({
         templateId: normalizedTemplateId,
       });
       await runInstallPlanLifecycle(plan);

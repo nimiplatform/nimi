@@ -7,12 +7,12 @@ import {
   type NimiRuntimeLocalEnvironmentPlan,
   type NimiRuntimeLocalEnvironmentPlanInput,
   type NimiRuntimeLocalEnvironmentPlanDependency,
-  type NimiRuntimeLocalAssetAdminClient,
+  type NimiRuntimeLocalEnvironmentClient,
 } from '@nimiplatform/sdk/runtime';
 import { ConfirmDialog, Surface, cn } from '@nimiplatform/kit/ui';
 
 import { Button } from './runtime-config-primitives.js';
-import { useRuntimeConfigLocalAssetAdminClient } from './runtime-config-local-model-center-sdk-service.js';
+import { useRuntimeConfigLocalEnvironmentClient } from './runtime-config-local-environment-sdk-service.js';
 import { formatBytes } from './runtime-config-model-center-utils.js';
 import {
   resolveRuntimeConfigLocalEnvironmentPlan,
@@ -108,7 +108,7 @@ export function resolveRuntimeConfigLocalCapabilityConfirmationProjection(
 }
 
 export async function submitRuntimeConfigLocalCapabilityEnvironmentPlan(
-  localEnvironment: Pick<NimiRuntimeLocalAssetAdminClient, 'applyEnvironmentPlan'>,
+  localEnvironment: Pick<NimiRuntimeLocalEnvironmentClient, 'applyEnvironmentPlan'>,
   resolution: NimiRuntimeLocalEnvironmentPlanInput,
   plan: NimiRuntimeLocalEnvironmentPlan,
 ) {
@@ -127,7 +127,7 @@ export function RuntimeConfigLocalCapabilityEnvironmentPanel(props: {
   readonly writesDisabled: boolean;
 }) {
   const { t } = useTranslation();
-  const localEnvironment = useRuntimeConfigLocalAssetAdminClient();
+  const localEnvironment = useRuntimeConfigLocalEnvironmentClient();
   const [plans, setPlans] = useState<readonly LocalCapabilityPlan[]>([]);
   const [jobs, setJobs] = useState<readonly NimiRuntimeLocalEnvironmentDependencyJob[]>([]);
   const [loading, setLoading] = useState(true);

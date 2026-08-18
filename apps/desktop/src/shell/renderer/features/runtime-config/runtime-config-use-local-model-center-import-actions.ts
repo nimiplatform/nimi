@@ -5,7 +5,7 @@ import type {
 } from '@nimiplatform/sdk/runtime';
 import { useDesktopRendererCommands } from '../../renderer/binding-context.js';
 import { useTranslation } from 'react-i18next';
-import { useRuntimeConfigLocalAssetAdminClient } from './runtime-config-local-model-center-sdk-service';
+import { useRuntimeConfigLocalEnvironmentClient } from './runtime-config-local-environment-sdk-service';
 import {
   basenameFromRuntimePath,
   type LocalModelCenterProps,
@@ -29,7 +29,7 @@ export function toAssetImportUserMessage(error: unknown): string {
 }
 
 export function useLocalModelCenterImportActions(input: UseLocalModelCenterImportActionsInput) {
-  const runtimeConfigLocalAssetAdminClient = useRuntimeConfigLocalAssetAdminClient();
+  const localEnvironmentClient = useRuntimeConfigLocalEnvironmentClient();
   const commands = useDesktopRendererCommands();
   const { t } = useTranslation();
   const [variantPickerItem, setVariantPickerItem] = useState<NimiRuntimeLocalCatalogItemDescriptor | null>(null);
@@ -57,7 +57,7 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
     setImportingAssetPath(assetPath);
     setAssetImportError('');
     try {
-      const imported = await runtimeConfigLocalAssetAdminClient.importModelAsset({
+      const imported = await localEnvironmentClient.importModelAsset({
         sourcePath: assetPath,
         displayName: basenameFromRuntimePath(assetPath) || undefined,
       }, { caller: 'core' });
@@ -69,7 +69,7 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
     } finally {
       setImportingAssetPath(null);
     }
-  }, [input.onRefreshAssetSections, runtimeConfigLocalAssetAdminClient]);
+  }, [input.onRefreshAssetSections, localEnvironmentClient]);
 
   const importPickedAssetFile = useCallback(async () => {
     setAssetImportError('');
@@ -99,7 +99,7 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
     setVariantList([]);
     setVariantError('');
     setLoadingVariants(true);
-    void runtimeConfigLocalAssetAdminClient.listCatalogVariants(item.repo).then((variants) => {
+    void localEnvironmentClient.listCatalogVariants(item.repo).then((variants) => {
       setVariantList([...variants]);
       setLoadingVariants(false);
     }).catch((error) => {

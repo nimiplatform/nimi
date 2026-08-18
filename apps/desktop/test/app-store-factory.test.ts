@@ -252,7 +252,7 @@ function createCanonicalBindings(input: {
       machineProduct: sdkUnavailable,
       accountProduct: sdkUnavailable,
       connectorAdmin: sdkUnavailable,
-      localAssetAdmin: sdkUnavailable,
+      localEnvironmentRpc: sdkUnavailable,
       localAudit: sdkUnavailable,
       auditAdmin: sdkUnavailable,
       aiExecution: sdkUnavailable,

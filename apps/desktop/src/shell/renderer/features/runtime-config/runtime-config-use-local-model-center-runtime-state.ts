@@ -11,7 +11,7 @@ import {
   type CapabilityOption,
   type LocalModelCenterProps,
 } from './runtime-config-model-center-utils';
-import { useRuntimeConfigLocalAssetAdminClient } from './runtime-config-local-model-center-sdk-service';
+import { useRuntimeConfigLocalEnvironmentClient } from './runtime-config-local-environment-sdk-service';
 import { useLocalModelCenterImportActions } from './runtime-config-use-local-model-center-import-actions';
 import { useLocalModelCenterAssetTasks } from './runtime-config-use-local-model-center-asset-tasks';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
@@ -57,7 +57,7 @@ function runtimeInventoryErrorMessage(error: unknown, fallback: string): string 
 }
 
 export function useLocalModelCenterRuntimeState({ props }: UseLocalModelCenterRuntimeStateInput) {
-  const runtimeConfigLocalAssetAdminClient = useRuntimeConfigLocalAssetAdminClient();
+  const localEnvironmentClient = useRuntimeConfigLocalEnvironmentClient();
   const bindings = useDesktopRendererBindings();
   const { t } = useTranslation();
   const [installing, setInstalling] = useState(false);
@@ -148,7 +148,7 @@ export function useLocalModelCenterRuntimeState({ props }: UseLocalModelCenterRu
     }
     setLoadingCatalog(true);
     try {
-      const rows = await runtimeConfigLocalAssetAdminClient.searchCatalog({
+      const rows = await localEnvironmentClient.searchCatalog({
         query,
         capability: capability === 'all' ? undefined : capability,
         limit: 30,
@@ -174,7 +174,7 @@ export function useLocalModelCenterRuntimeState({ props }: UseLocalModelCenterRu
     const requestId = ++verifiedModelsRequestSeqRef.current;
     setLoadingVerifiedModels(true);
     try {
-      const rows = await runtimeConfigLocalAssetAdminClient.listVerifiedAssets();
+      const rows = await localEnvironmentClient.listVerifiedAssets();
       if (!mountedRef.current || requestId !== verifiedModelsRequestSeqRef.current) {
         return;
       }
@@ -198,7 +198,7 @@ export function useLocalModelCenterRuntimeState({ props }: UseLocalModelCenterRu
     const requestId = ++installedAssetsRequestSeqRef.current;
     setLoadingInstalledAssets(true);
     try {
-      const modelAssetRows = await runtimeConfigLocalAssetAdminClient.listModelAssets();
+      const modelAssetRows = await localEnvironmentClient.listModelAssets();
       if (!mountedRef.current || requestId !== installedAssetsRequestSeqRef.current) {
         return;
       }
@@ -214,13 +214,13 @@ export function useLocalModelCenterRuntimeState({ props }: UseLocalModelCenterRu
         setLoadingInstalledAssets(false);
       }
     }
-  }, [runtimeConfigLocalAssetAdminClient]);
+  }, [localEnvironmentClient]);
 
   const refreshVerifiedAssets = useCallback(async () => {
     const requestId = ++verifiedAssetsRequestSeqRef.current;
     setLoadingVerifiedAssets(true);
     try {
-      const rows = await runtimeConfigLocalAssetAdminClient.listVerifiedAssets();
+      const rows = await localEnvironmentClient.listVerifiedAssets();
       if (!mountedRef.current || requestId !== verifiedAssetsRequestSeqRef.current) {
         return;
       }
@@ -315,7 +315,7 @@ export function useLocalModelCenterRuntimeState({ props }: UseLocalModelCenterRu
   const inspectInstalledAssetRemoval = useCallback(async (modelAssetId: string) => {
     setAssetBusy(true);
     try {
-      const inspection = await runtimeConfigLocalAssetAdminClient.inspectModelAssetRemoval(modelAssetId);
+      const inspection = await localEnvironmentClient.inspectModelAssetRemoval(modelAssetId);
       return [...inspection.referencingLoadoutIds];
     } catch (error) {
       setRuntimeInventoryError('model-asset-action', runtimeInventoryErrorMessage(error, 'Runtime ModelAsset reference inspection failed.'));
@@ -323,12 +323,12 @@ export function useLocalModelCenterRuntimeState({ props }: UseLocalModelCenterRu
     } finally {
       setAssetBusy(false);
     }
-  }, [runtimeConfigLocalAssetAdminClient]);
+  }, [localEnvironmentClient]);
 
   const removeInstalledAsset = useCallback(async (modelAssetId: string) => {
     setAssetBusy(true);
     try {
-      const removal = await runtimeConfigLocalAssetAdminClient.removeModelAsset(modelAssetId, { caller: 'core' });
+      const removal = await localEnvironmentClient.removeModelAsset(modelAssetId, { caller: 'core' });
       setRuntimeInventoryError('model-asset-action', removal.cleanupPending
         ? t('runtimeConfig.localModelCenter.cleanupPending', {
           defaultValue: 'The ModelAsset record was removed, but owned file cleanup is pending and will retry automatically.',
@@ -341,7 +341,7 @@ export function useLocalModelCenterRuntimeState({ props }: UseLocalModelCenterRu
     } finally {
       setAssetBusy(false);
     }
-  }, [refreshAssetSections, runtimeConfigLocalAssetAdminClient, t]);
+  }, [refreshAssetSections, localEnvironmentClient, t]);
 
   const installCatalogQuickPick = useCallback(async (templateId: string) => {
     setInstalling(true);

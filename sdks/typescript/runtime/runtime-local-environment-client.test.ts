@@ -2,21 +2,21 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
-  createNimiRuntimeLocalAssetAdminClient,
+  createNimiRuntimeLocalEnvironmentClient,
   isNimiRuntimeLocalEnvironmentDependencyJobActiveState,
   isNimiRuntimeLocalEnvironmentDependencyJobRetryableState,
-  type NimiRuntimeLocalAssetAdminRpc,
-} from './runtime-local-asset-admin';
+  type NimiRuntimeLocalEnvironmentRpc,
+} from './runtime-local-environment-client';
 import {
   projectNimiRuntimeLocalCatalogItemDescriptor,
   projectNimiRuntimeLocalInstallPlanDescriptor,
   projectNimiRuntimeLocalVerifiedAssetDescriptor,
-} from './runtime-local-asset-admin-projections';
+} from './runtime-local-environment-client-projections';
 import { LocalAssetKind } from '../core-generated/runtime-typed-client';
 
-test('Runtime local client does not expose the retired LocalAsset and local Profile planes', () => {
-  const client = createNimiRuntimeLocalAssetAdminClient({
-    local: {} as NimiRuntimeLocalAssetAdminRpc,
+test('Runtime local environment client does not expose the retired LocalAsset and local Profile planes', () => {
+  const client = createNimiRuntimeLocalEnvironmentClient({
+    local: {} as NimiRuntimeLocalEnvironmentRpc,
   });
   for (const method of [
     'listAssets',

@@ -20,7 +20,7 @@ import {
 } from './runtime-config-runtime-page-ui';
 import { RuntimePageShell } from './runtime-config-page-shell';
 import { OverviewLoadUsageSection } from './runtime-config-overview-load-usage';
-import { useRuntimeConfigLocalAssetAdminClient } from './runtime-config-local-model-center-sdk-service';
+import { useRuntimeConfigLocalEnvironmentClient } from './runtime-config-local-environment-sdk-service';
 
 type OverviewPageProps = {
   model: RuntimeConfigPanelControllerModel;
@@ -95,7 +95,7 @@ function QuickLinkCard({
 export function OverviewPage({ model, state }: OverviewPageProps) {
   const i18n = useDesktopI18nResource();
   const { t } = useTranslation();
-  const modelAssetsClient = useRuntimeConfigLocalAssetAdminClient();
+  const modelAssetsClient = useRuntimeConfigLocalEnvironmentClient();
   const [installedAssetCount, setInstalledAssetCount] = useState<number | null>(null);
 
   useEffect(() => {

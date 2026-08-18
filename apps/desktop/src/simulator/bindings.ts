@@ -200,7 +200,7 @@ export function createDesktopSimulatorBindings(
       machineProduct: simulatorSdkUnadmitted,
       accountProduct: simulatorSdkUnadmitted,
       connectorAdmin: simulatorSdkUnadmitted,
-      localAssetAdmin: simulatorSdkUnadmitted,
+      localEnvironmentRpc: simulatorSdkUnadmitted,
       localAudit: simulatorSdkUnadmitted,
       auditAdmin: simulatorSdkUnadmitted,
       aiExecution: simulatorSdkUnadmitted,

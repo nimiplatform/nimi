@@ -2,19 +2,19 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { createRuntimeConfigCatalogClient } from '../src/shell/renderer/features/runtime-config/runtime-config-catalog-sdk-service.js';
-import { createRuntimeConfigLocalAssetAdminClient } from '../src/shell/renderer/features/runtime-config/runtime-config-local-model-center-sdk-service.js';
+import { createRuntimeConfigLocalEnvironmentClient } from '../src/shell/renderer/features/runtime-config/runtime-config-local-environment-sdk-service.js';
 
-test('local model center defers Runtime client acquisition until an operation runs', async () => {
+test('local environment client defers Runtime RPC acquisition until an operation runs', async () => {
   let acquisitionCount = 0;
-  const client = createRuntimeConfigLocalAssetAdminClient(() => {
+  const client = createRuntimeConfigLocalEnvironmentClient(() => {
     acquisitionCount += 1;
-    throw new Error('DESKTOP_TEST_LOCAL_ASSET_ADMIN_UNAVAILABLE');
+    throw new Error('DESKTOP_TEST_LOCAL_ENVIRONMENT_UNAVAILABLE');
   });
 
   assert.equal(acquisitionCount, 0);
   await assert.rejects(
     client.listModelAssets(),
-    /DESKTOP_TEST_LOCAL_ASSET_ADMIN_UNAVAILABLE/u,
+    /DESKTOP_TEST_LOCAL_ENVIRONMENT_UNAVAILABLE/u,
   );
   assert.equal(acquisitionCount, 1);
 });

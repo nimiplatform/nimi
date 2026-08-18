@@ -17,7 +17,7 @@ import type {
   getDesktopAuditAdminClient,
   getDesktopConnectorAdminClient,
   getDesktopExternalAgentClient,
-  getDesktopLocalAssetAdminClient,
+  getDesktopLocalEnvironmentRpc,
   getDesktopLocalAuditClient,
 } from '../infra/sdk/desktop-nimi-client-session.js';
 import type {
@@ -35,7 +35,7 @@ export interface DesktopRendererSdkPort {
   machineProduct(): NimiDesktopMachineProductRuntimeClient;
   accountProduct(): ReturnType<typeof getDesktopAccountProductClient>;
   connectorAdmin(): ReturnType<typeof getDesktopConnectorAdminClient>;
-  localAssetAdmin(): ReturnType<typeof getDesktopLocalAssetAdminClient>;
+  localEnvironmentRpc(): ReturnType<typeof getDesktopLocalEnvironmentRpc>;
   localAudit(): ReturnType<typeof getDesktopLocalAuditClient>;
   auditAdmin(): ReturnType<typeof getDesktopAuditAdminClient>;
   aiExecution(): ReturnType<typeof getDesktopAiExecutionClient>;

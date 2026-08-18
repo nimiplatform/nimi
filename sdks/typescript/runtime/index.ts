@@ -143,7 +143,7 @@ export * from './external-agent';
 export * from './health-coordinator';
 export * from './local-asset-vocabulary';
 export * from './machine-loadouts.js';
-export * from './runtime-local-asset-admin';
+export * from './runtime-local-environment-client';
 export * from './runtime-local-recommendation';
 export * from './model-catalog';
 export * from './platform-client';

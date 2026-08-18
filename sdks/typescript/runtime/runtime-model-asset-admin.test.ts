@@ -6,9 +6,9 @@ import {
   type RuntimeTypedCallOptions,
 } from '../core-generated/runtime-typed-client';
 import {
-  createNimiRuntimeLocalAssetAdminClient,
-  type NimiRuntimeLocalAssetAdminRpc,
-} from './runtime-local-asset-admin';
+  createNimiRuntimeLocalEnvironmentClient,
+  type NimiRuntimeLocalEnvironmentRpc,
+} from './runtime-local-environment-client';
 
 const modelAsset = {
   modelAssetId: 'model_01',
@@ -53,8 +53,8 @@ test('ModelAsset SDK uses the kind-free canonical Runtime CRUD surface', async (
       calls.push({ method: 'removeModelAsset', request, options });
       return { asset: modelAsset, referencingLoadoutIds: ['loadout_1'], confirmationRequired: !request.force, cleanupPending: request.force };
     },
-  } as unknown as NimiRuntimeLocalAssetAdminRpc;
-  const client = createNimiRuntimeLocalAssetAdminClient({ local: rpc });
+  } as unknown as NimiRuntimeLocalEnvironmentRpc;
+  const client = createNimiRuntimeLocalEnvironmentClient({ local: rpc });
   assert.equal('importAssetFile' in client, false);
   assert.equal('importFile' in client, false);
   assert.equal('importBundle' in client, false);

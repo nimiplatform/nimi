@@ -1,5 +1,5 @@
 import { createNimiError, type JsonObject } from '../types';
-import type { NimiRuntimeLocalDownloadState } from './runtime-local-asset-admin-types';
+import type { NimiRuntimeLocalDownloadState } from './runtime-local-environment-client-types';
 
 const DEFAULT_PAGE_SIZE = 100;
 const DEFAULT_MAX_PAGES = 200;

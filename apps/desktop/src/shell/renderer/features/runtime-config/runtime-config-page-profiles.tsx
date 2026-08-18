@@ -20,7 +20,7 @@ import {
   summarizeDesktopPortableAIProfile,
   type DesktopPortableAIProfileSummary,
 } from './runtime-config-portable-profile.js';
-import { useRuntimeConfigLocalAssetAdminClient } from './runtime-config-local-model-center-sdk-service.js';
+import { useRuntimeConfigLocalEnvironmentClient } from './runtime-config-local-environment-sdk-service.js';
 import {
   executeRuntimeConfigAIProfileTransfer,
   exportRuntimeConfigAIProfileFromLoadouts,
@@ -68,7 +68,7 @@ function PortableProfileApplyPage() {
     [sdk],
   );
   const loadoutsClient = useMemo(() => sdk.machineProduct().local.loadouts, [sdk]);
-  const modelAssetsClient = useRuntimeConfigLocalAssetAdminClient();
+  const modelAssetsClient = useRuntimeConfigLocalEnvironmentClient();
   const profileCatalog = useMemo(() => sdk.accountProduct().profiles, [sdk]);
   const [sourceText, setSourceText] = useState('');
   const [summary, setSummary] = useState<DesktopPortableAIProfileSummary | null>(null);

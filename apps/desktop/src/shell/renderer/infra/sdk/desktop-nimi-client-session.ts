@@ -311,7 +311,7 @@ function assertDesktopRendererConnectorMutation(input: Readonly<{
   });
 }
 
-export function getDesktopLocalAssetAdminClient(): NimiDesktopMachineProductRuntimeClient['local'] {
+export function getDesktopLocalEnvironmentRpc(): NimiDesktopMachineProductRuntimeClient['local'] {
   return getDesktopRuntimeRealmSession().runtimeClients.machineProduct.local;
 }
 

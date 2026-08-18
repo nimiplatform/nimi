@@ -22,16 +22,16 @@ import {
   projectNimiRuntimeLocalTransferProgressEvent,
   projectNimiRuntimeLocalTransferSessionSummary,
   projectNimiRuntimeLocalVerifiedAssetDescriptor,
-} from './runtime-local-asset-admin-projections';
+} from './runtime-local-environment-client-projections';
 import type {
   NimiRuntimeModelAssetRecord,
   NimiRuntimeLocalCatalogSearchInput,
-  NimiRuntimeLocalAssetAdminClient,
-  NimiRuntimeLocalAssetAdminClientOptions,
+  NimiRuntimeLocalEnvironmentClient,
+  NimiRuntimeLocalEnvironmentClientOptions,
   NimiRuntimeLocalEnvironmentPlanInput,
   NimiRuntimeLocalVerifiedAssetDescriptor,
   NimiRuntimeLocalWriteOptions,
-} from './runtime-local-asset-admin-types';
+} from './runtime-local-environment-client-types';
 import {
   assertNimiRuntimeLocalWriteAllowed,
   dedupeBy,
@@ -42,11 +42,11 @@ import {
   requireLocalText,
   stringRecord,
   textList,
-} from './runtime-local-asset-admin-values';
+} from './runtime-local-environment-client-values';
 
 export {
   assertNimiRuntimeLocalWriteAllowed,
-} from './runtime-local-asset-admin-values';
+} from './runtime-local-environment-client-values';
 export {
   isNimiRuntimeLocalEnvironmentDependencyJobActiveState,
   isNimiRuntimeLocalEnvironmentDependencyJobCancelledState,
@@ -69,8 +69,8 @@ export {
   projectNimiRuntimeLocalTransferProgressEvent,
   projectNimiRuntimeLocalTransferSessionSummary,
   projectNimiRuntimeLocalVerifiedAssetDescriptor,
-} from './runtime-local-asset-admin-projections';
-export * from './runtime-local-asset-admin-types';
+} from './runtime-local-environment-client-projections';
+export * from './runtime-local-environment-client-types';
 
 function toGeneratedNimiRuntimeLocalEnvironmentPlanResolution(
   input: NimiRuntimeLocalEnvironmentPlanInput,
@@ -84,9 +84,9 @@ function toGeneratedNimiRuntimeLocalEnvironmentPlanResolution(
 // @nimi-authority: definition.nimi.sdks.feature-clients.local-environment-plane
 // @nimi-authority: rule.nimi.sdks.feature-clients.r063
 // @nimi-authority: rule.nimi.sdks.feature-clients.r064
-export function createNimiRuntimeLocalAssetAdminClient(
-  options: NimiRuntimeLocalAssetAdminClientOptions,
-): NimiRuntimeLocalAssetAdminClient {
+export function createNimiRuntimeLocalEnvironmentClient(
+  options: NimiRuntimeLocalEnvironmentClientOptions,
+): NimiRuntimeLocalEnvironmentClient {
   const resolveLocal = () => (typeof options.local === 'function' ? options.local() : options.local);
   const defaultCallOptions = options.callOptions;
   const callOptions = (writeOptions?: NimiRuntimeLocalWriteOptions): RuntimeTypedCallOptions | undefined => (

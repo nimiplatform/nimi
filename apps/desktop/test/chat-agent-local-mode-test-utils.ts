@@ -365,7 +365,7 @@ function getDesktopTestRendererSdk(): DesktopRendererSdkPort {
     machineProduct: () => runtime,
     accountProduct: () => runtime,
     connectorAdmin: () => runtime.connectors,
-    localAssetAdmin: () => runtime.local,
+    localEnvironmentRpc: () => runtime.local,
     localAudit: () => runtime.local,
     auditAdmin: () => runtime.audit,
     aiExecution: () => ({ ai: runtime.ai }),

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { NimiRuntimeLocalTransferProgressEvent } from '@nimiplatform/sdk/runtime';
 import { emitRuntimeLog } from '@nimiplatform/kit/telemetry';
-import { useRuntimeConfigLocalAssetAdminClient } from './runtime-config-local-model-center-sdk-service';
+import { useRuntimeConfigLocalEnvironmentClient } from './runtime-config-local-environment-sdk-service';
 import {
   PROGRESS_SESSION_LIMIT,
   type ProgressSessionState,
@@ -18,7 +18,7 @@ type UseLocalModelCenterDownloadsInput = {
 };
 
 export function useLocalModelCenterDownloads(input: UseLocalModelCenterDownloadsInput) {
-  const runtimeConfigLocalAssetAdminClient = useRuntimeConfigLocalAssetAdminClient();
+  const localEnvironmentClient = useRuntimeConfigLocalEnvironmentClient();
   const progressCache = useLocalModelCenterProgressCache();
   const bindings = useDesktopRendererBindings();
   const initialProgressBySessionIdRef = useRef<Record<string, ProgressSessionState> | null>(null);
@@ -58,7 +58,7 @@ export function useLocalModelCenterDownloads(input: UseLocalModelCenterDownloads
     let unsubscribe: (() => void) | null = null;
     const effectStartedMs = bindings.clock.now();
 
-    void runtimeConfigLocalAssetAdminClient.listTransfers()
+    void localEnvironmentClient.listTransfers()
       .then((sessions) => {
         if (disposed) {
           return;
@@ -95,7 +95,7 @@ export function useLocalModelCenterDownloads(input: UseLocalModelCenterDownloads
         });
       });
 
-    void runtimeConfigLocalAssetAdminClient.watchTransferProgress((event) => {
+    void localEnvironmentClient.watchTransferProgress((event) => {
       if (disposed) {
         return;
       }
@@ -164,21 +164,21 @@ export function useLocalModelCenterDownloads(input: UseLocalModelCenterDownloads
   const onPauseDownload = useCallback((installSessionId: string) => {
     mergeSessionSummary(
       installSessionId,
-      async () => toProgressEventFromSummary(await runtimeConfigLocalAssetAdminClient.pauseTransfer(installSessionId, { caller: 'core' })),
+      async () => toProgressEventFromSummary(await localEnvironmentClient.pauseTransfer(installSessionId, { caller: 'core' })),
     );
   }, [mergeSessionSummary]);
 
   const onResumeDownload = useCallback((installSessionId: string) => {
     mergeSessionSummary(
       installSessionId,
-      async () => toProgressEventFromSummary(await runtimeConfigLocalAssetAdminClient.resumeTransfer(installSessionId, { caller: 'core' })),
+      async () => toProgressEventFromSummary(await localEnvironmentClient.resumeTransfer(installSessionId, { caller: 'core' })),
     );
   }, [mergeSessionSummary]);
 
   const onCancelDownload = useCallback((installSessionId: string) => {
     mergeSessionSummary(
       installSessionId,
-      async () => toProgressEventFromSummary(await runtimeConfigLocalAssetAdminClient.cancelTransfer(installSessionId, { caller: 'core' })),
+      async () => toProgressEventFromSummary(await localEnvironmentClient.cancelTransfer(installSessionId, { caller: 'core' })),
     );
   }, [mergeSessionSummary]);
 
