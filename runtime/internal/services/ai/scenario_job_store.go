@@ -8,17 +8,6 @@ import (
 	"google.golang.org/grpc/codes"
 )
 
-// Compile-time assertion that SubmitScenarioJob's dispatch terminates in
-// catalog-aware enforcement. The submitScenarioAsyncJob path calls
-// validateScenarioCapability which in turn calls
-// validateCatalogAwareScenarioSupport(ctx, scenarioType, providerType,
-// modelResolved, spec) — the Go method expression below ties that chain
-// to a build-time symbol check on *Service, and
-// gate.runtime-provider.video-capability-block-enforcement asserts the
-// textual presence of the function reference here so future sweeps
-// cannot silently rewire dispatch away from catalog enforcement.
-var _ = (*Service).validateCatalogAwareScenarioSupport
-
 func (s *Service) SubmitScenarioJob(ctx context.Context, req *runtimev1.SubmitScenarioJobRequest) (*runtimev1.SubmitScenarioJobResponse, error) {
 	if req == nil || req.GetHead() == nil || req.GetSpec() == nil {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)

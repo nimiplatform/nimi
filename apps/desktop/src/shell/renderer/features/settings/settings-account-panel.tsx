@@ -122,12 +122,6 @@ export function ProfilePage() {
     setBio(value);
   };
 
-  const refreshCurrentUser = async () => {
-    const latest = await realmSocialData.loadCurrentUser();
-    const updatedUser = parseOptionalJsonObject(latest) ?? null;
-    setAuthSession(updatedUser);
-  };
-
   useEffect(() => {
     if (editVersionRef.current !== appliedEditVersionRef.current) {
       return;

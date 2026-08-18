@@ -252,38 +252,6 @@ func isManagedLoopbackEndpoint(engineName string, endpoint string) bool {
 	)
 }
 
-func attachedLoopbackConfigErrorDetail(
-	engineName string,
-	mode runtimev1.LocalEngineRuntimeMode,
-	endpoint string,
-	profile *runtimev1.LocalDeviceProfile,
-) string {
-	if normalizeRuntimeMode(mode) != runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT {
-		return ""
-	}
-	engineName = strings.ToLower(strings.TrimSpace(engineName))
-	if engineName != "media" && engineName != "speech" {
-		return ""
-	}
-	if !isManagedLoopbackEndpoint(engineName, endpoint) {
-		return ""
-	}
-	classification, detail := classifyManagedEngineSupport(engineName, profile)
-	if classification == localEngineSupportSupportedSupervised {
-		return ""
-	}
-	managedEndpoint := managedDefaultEndpointForEngine(engineName)
-	hostDetail := strings.TrimSpace(detail)
-	if hostDetail == "" {
-		hostDetail = fmt.Sprintf("%s supervised mode is unavailable on this host; configure an attached endpoint instead", engineName)
-	}
-	return fmt.Sprintf(
-		"attached endpoint %s is invalid on this host; %s",
-		managedEndpoint,
-		hostDetail,
-	)
-}
-
 func attachedEndpointRequiredDetailForAsset(
 	engineName string,
 	capabilities []string,

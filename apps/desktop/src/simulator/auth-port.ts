@@ -156,10 +156,6 @@ function text(value: DesktopSimulatorJsonValue | undefined, label: string): stri
   return value;
 }
 
-function runtimeAccountOwned(route: string): never {
-  throw new Error(`Desktop ${route} is owned by RuntimeAccountService`);
-}
-
 function assertLoopbackCallback(redirectUri: string, callbackOrigin?: string): void {
   let redirect: URL;
   try {

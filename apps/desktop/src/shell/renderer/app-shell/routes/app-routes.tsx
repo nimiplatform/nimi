@@ -425,7 +425,6 @@ function DesktopAccountUnavailableScreen() {
 }
 
 export function AppRoutes() {
-  const bindings = useDesktopRendererBindings();
   const bootstrapReady = useAppStore((state) => state.bootstrapReady);
   const bootstrapError = useAppStore((state) => state.bootstrapError);
   const authStatus = useAppStore((state) => state.auth.status);

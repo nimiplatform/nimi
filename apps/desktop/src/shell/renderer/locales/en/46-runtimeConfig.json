@@ -1270,7 +1270,6 @@
     "retry": "Retry",
     "retrying": "Retrying...",
     "reviewNeeded": "Review needed",
-    "unregisteredAssetsAutoImportHint": "Typed folders import automatically when confidence is high; others stay in Review needed.",
     "profileTarget": "Profile target",
     "searchModelsPlaceholder": "Search models by name, repo, or task...",
     "searching": "Searching...",

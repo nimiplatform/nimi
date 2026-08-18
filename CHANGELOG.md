@@ -16,6 +16,8 @@ The format follows Keep a Changelog and Semantic Versioning.
 
 ### Changed
 
+- **Breaking (`@nimiplatform/sdk` 0.x):** Caller-local ScenarioJob abort now reports `OPERATION_ABORTED` without fabricating a Runtime `CANCELED` terminal status; applications may present it as a stopped operation while preserving the distinct reason.
+- Runtime local catalog and install-plan SDK projections now treat an unspecified engine runtime mode as engine-neutral acquisition metadata while continuing to reject unknown declared modes.
 - **Breaking (`@nimiplatform/sdk` 0.x):** AIProfile machine projections now use exact Machine Loadout names (`loadouts`, `loadoutId`, and `NimiAIProfileAuthoringMachineLoadoutProjection`), including the bounded Local App Model Config selection projection. Portable local implementation-configuration intent remains unchanged.
 - **Breaking (`@nimiplatform/sdk` 0.x):** The public Runtime local environment plane is now exposed by `NimiRuntimeLocalEnvironmentClient` and `createNimiRuntimeLocalEnvironmentClient`; the narrower `LocalAssetAdmin` client, types, source modules, and exports were removed without aliases.
 - **Breaking (`@nimiplatform/sdk` 0.x):** ScenarioJob error diagnostics now expose `NimiRuntimeScenarioJobErrorTerminalStatus` and `getNimiRuntimeScenarioJobTerminalStatusFromError`, preserving the existing FAILED/CANCELED/TIMEOUT values without treating the helper as a complete terminal-state projection.
@@ -28,4 +30,6 @@ The format follows Keep a Changelog and Semantic Versioning.
 
 ### Removed
 
+- **Breaking (Runtime/SDK 0.x):** Retired public Local ExecutionHost lifecycle RPCs and generated clients were removed; ExecutionHost supervision remains Runtime-private.
+- Retired Desktop `LOCAL_AI_*` projection codes and unused Runtime voice-job/descriptor reasons were removed without compatibility aliases.
 - obsolete runtime CLI examples (`serve`, `status` legacy form)
