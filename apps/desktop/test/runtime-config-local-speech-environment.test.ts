@@ -93,6 +93,7 @@ test('local environment service submits only the capability contract to Runtime'
     'image.generate',
     'audio.synthesize',
     'audio.transcribe',
+    'voice.create',
   ] as const;
   const requests: unknown[] = [];
 

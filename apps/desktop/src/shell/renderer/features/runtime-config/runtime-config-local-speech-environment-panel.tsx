@@ -25,31 +25,32 @@ import {
 } from './runtime-config-runtime-page-ui.js';
 
 type PendingCapabilityAction = {
-  readonly slice: LocalSpeechSlice;
+  readonly slice: LocalCapabilitySlice;
   readonly plan: NimiRuntimeLocalEnvironmentPlan;
   readonly resolution: NimiRuntimeLocalEnvironmentPlanInput;
 };
 
-type LocalSpeechSlice = 'text' | 'image' | 'tts' | 'stt';
+type LocalCapabilitySlice = 'text' | 'image' | 'tts' | 'stt' | 'voice';
 
 const LOCAL_ENVIRONMENT_CAPABILITIES: readonly {
-  readonly slice: LocalSpeechSlice;
+  readonly slice: LocalCapabilitySlice;
   readonly capabilityContract: RuntimeConfigLocalCapabilityContract;
 }[] = [
   { slice: 'text', capabilityContract: 'text.generate' },
   { slice: 'image', capabilityContract: 'image.generate' },
   { slice: 'tts', capabilityContract: 'audio.synthesize' },
   { slice: 'stt', capabilityContract: 'audio.transcribe' },
+  { slice: 'voice', capabilityContract: 'voice.create' },
 ];
 
-type LocalSpeechPlan = {
-  readonly slice: LocalSpeechSlice;
+type LocalCapabilityPlan = {
+  readonly slice: LocalCapabilitySlice;
   readonly plan: NimiRuntimeLocalEnvironmentPlan;
   readonly resolution: NimiRuntimeLocalEnvironmentPlanInput;
 };
 
-type LocalSpeechError = {
-  readonly slice?: LocalSpeechSlice;
+type LocalCapabilityError = {
+  readonly slice?: LocalCapabilitySlice;
   readonly detail: string;
 };
 
@@ -127,11 +128,11 @@ export function RuntimeConfigLocalSpeechEnvironmentPanel(props: {
 }) {
   const { t } = useTranslation();
   const localEnvironment = useRuntimeConfigLocalAssetAdminClient();
-  const [plans, setPlans] = useState<readonly LocalSpeechPlan[]>([]);
+  const [plans, setPlans] = useState<readonly LocalCapabilityPlan[]>([]);
   const [jobs, setJobs] = useState<readonly NimiRuntimeLocalEnvironmentDependencyJob[]>([]);
   const [loading, setLoading] = useState(true);
   const [busyKey, setBusyKey] = useState('');
-  const [errors, setErrors] = useState<readonly LocalSpeechError[]>([]);
+  const [errors, setErrors] = useState<readonly LocalCapabilityError[]>([]);
   const [pending, setPending] = useState<PendingCapabilityAction | null>(null);
 
   const refresh = useCallback(async (silent = false) => {
@@ -141,8 +142,8 @@ export function RuntimeConfigLocalSpeechEnvironmentPanel(props: {
       const results = await Promise.allSettled(LOCAL_ENVIRONMENT_CAPABILITIES.map(({ capabilityContract }) => (
         resolveRuntimeConfigLocalEnvironmentPlan({ capabilityContract, localEnvironment })
       )));
-      const nextPlans: LocalSpeechPlan[] = [];
-      const nextErrors: LocalSpeechError[] = [];
+      const nextPlans: LocalCapabilityPlan[] = [];
+      const nextErrors: LocalCapabilityError[] = [];
       results.forEach((result, index) => {
         const slice = LOCAL_ENVIRONMENT_CAPABILITIES[index]?.slice;
         if (!slice) return;
@@ -200,7 +201,7 @@ export function RuntimeConfigLocalSpeechEnvironmentPanel(props: {
   }, [localEnvironment, pending, refresh]);
 
   const cancelJobs = useCallback(async (
-    slice: LocalSpeechSlice,
+    slice: LocalCapabilitySlice,
     activeJobs: readonly NimiRuntimeLocalEnvironmentDependencyJob[],
   ) => {
     setBusyKey(`${slice}:cancel`);

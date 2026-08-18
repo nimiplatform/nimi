@@ -103,7 +103,7 @@ func localEnvironmentTargetForDriver(driver capabilitydriver.Driver, host localE
 			consumer = stableDiffusionCUDAConsumerID
 		}
 		return "local-image-native", consumer, true
-	case capabilitydriver.Qwen3TTSDriver:
+	case capabilitydriver.Qwen3TTSDriver, capabilitydriver.Qwen3VoiceCreateDriver:
 		return "local-speech", "speech.qwen3-tts.python", true
 	case capabilitydriver.VoxCPMDriver:
 		return "local-speech", "speech.voxcpm.python", true
