@@ -480,6 +480,47 @@ describe('public Model Config contract', () => {
     expect(document.body.querySelector('[data-nimi-model-picker-source="cloud"]')?.textContent).toContain('Cloud Model');
   });
 
+  it('keeps a persisted Cloud intent configured without inventing Connector ownership', async () => {
+    const listTargets = vi.fn(async () => [{
+      targetId: 'rmc-cloud-model',
+      label: 'Cloud Model',
+      provider: 'provider-test',
+      providerModelTarget: {
+        provider: 'provider-test',
+        providerModelId: 'cloud-model',
+        remoteModelCatalogId: 'rmc-cloud-model',
+      },
+    }]);
+    const node = await renderSurface(vi.fn(async () => undefined), vi.fn(), {
+      initialCapabilityContract: 'text.generate',
+      capabilities: [createNimiCloudAIConfigCapabilityIntent({
+        capabilityContract: 'text.generate',
+        implementation: { implementationId: 'cloud-test', driverId: 'nimillm', driverDialect: 'openai' },
+        providerModelTarget: {
+          provider: 'provider-test',
+          providerModelId: 'cloud-model',
+          remoteModelCatalogId: 'rmc-cloud-model',
+        },
+      })],
+      cloudAIConfig: {
+        listImplementations: vi.fn(async () => []),
+        listTargets,
+        listAuthorizationOptions: async () => ({
+          connectors: [{ connectorId: 'connector-test', label: 'Work account', provider: 'provider-test' }],
+        }),
+      },
+    });
+    await flush();
+    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 50)); });
+
+    expect(listTargets).not.toHaveBeenCalled();
+    const trigger = node.querySelector('[data-testid="model-config-model-trigger:text.generate"]') as HTMLButtonElement;
+    expect(trigger.textContent).toContain('set up');
+    expect(trigger.textContent).not.toContain('setup needed');
+    expect(node.textContent).toContain('Current Nimi account');
+    expect(node.textContent).not.toContain('Work account');
+  });
+
   it('fails closed with no configured Connector and delegates Cloud setup', async () => {
     const onOpenCloudConnectorConfiguration = vi.fn();
     const listTargets = vi.fn(async () => []);

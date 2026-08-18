@@ -663,7 +663,7 @@ function FirstPartyCapabilityIntentEditor(props: CapabilityIntentEditorProps) {
         props.selection,
       )
     : draftChoice?.route === 'cloud'
-      ? exactCloudSelection && selectedConnector ? 'cloud-configured' : 'not-configured'
+      ? exactCloudSelection ? 'cloud-configured' : 'not-configured'
       : 'not-configured';
   const draftBadge = statusBadge(draftPosture, props.copy);
   const routeDisabled = Boolean(props.disabled) || saving || !props.descriptor;
