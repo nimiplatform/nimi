@@ -16,6 +16,11 @@ import {
 import { useAppStore } from '../../app-shell/providers/app-store.js';
 import { RuntimePageShell } from './runtime-config-page-shell.js';
 import { AIProfileAuthoringPage } from './runtime-config-page-profile-authoring.js';
+import { displayRuntimeConfigCapabilityLabel } from './runtime-config-capability-labels.js';
+import {
+  selectRuntimeConfigProfileExportLoadout,
+  summarizeRuntimeConfigProfileDownloads,
+} from './runtime-config-profile-presentation.js';
 import {
   summarizeDesktopPortableAIProfile,
   type DesktopPortableAIProfileSummary,
@@ -303,42 +308,76 @@ function PortableProfileApplyPage() {
     (capability) => capability.route === 'local',
   ).length ?? 0;
   const localGuidanceCount = previewLocalIntentCount;
+  const exportGroups = useMemo(() => {
+    const grouped = new Map<string, NimiMachineLoadout[]>();
+    for (const loadout of availableLoadouts) {
+      const current = grouped.get(loadout.capabilityContract) ?? [];
+      grouped.set(loadout.capabilityContract, [...current, loadout]);
+    }
+    return [...grouped.entries()];
+  }, [availableLoadouts]);
+  const transferDownloadSummary = transferPlan
+    ? summarizeRuntimeConfigProfileDownloads(transferPlan)
+    : null;
+  const transferNeedsAttention = transferResult?.capabilities.some((capability) => (
+    capability.state !== 'committed' || capability.unresolvedSlotIds.length > 0
+  )) ?? false;
 
   return (
     <RuntimePageShell maxWidth="full" className="max-w-[78rem] space-y-4 px-6 py-6">
       <Surface tone="card" className="space-y-3 p-4" data-testid="runtime-portable-profile-loadout-export">
         <div>
-          <h3 className="text-sm font-semibold text-[var(--nimi-text-primary)]">{t('runtimeConfig.profiles.exportLoadoutsTitle', { defaultValue: 'Export Loadouts' })}</h3>
-          <p className="mt-1 text-xs text-[var(--nimi-text-secondary)]">{t('runtimeConfig.profiles.exportLoadoutsDescription', { defaultValue: 'Choose one configured Loadout per capability. Machine ids, bindings, paths, selections, and secrets are stripped.' })}</p>
+          <h3 className="text-sm font-semibold text-[var(--nimi-text-primary)]">{t('runtimeConfig.profiles.exportLoadoutsTitle', { defaultValue: 'Share your current model setup' })}</h3>
+          <p className="mt-1 text-xs text-[var(--nimi-text-secondary)]">{t('runtimeConfig.profiles.exportLoadoutsDescription', { defaultValue: 'Choose one model setup for each use. Private machine paths, account details, and secrets are never included.' })}</p>
         </div>
-        <div className="grid gap-2">
-          {availableLoadouts.map((loadout) => (
-            <label key={loadout.loadoutId} className="flex items-center gap-2 rounded-lg border border-[var(--nimi-border-subtle)] p-2 text-xs">
-              <input
-                type="checkbox"
-                checked={selectedExportIds.includes(loadout.loadoutId)}
-                disabled={loadout.validationState !== 'configured'}
-                onChange={(event) => {
-                  const checked = event.currentTarget.checked;
-                  setSelectedExportIds((current) => checked
-                    ? [...current.filter((id) => id !== loadout.loadoutId), loadout.loadoutId]
-                    : current.filter((id) => id !== loadout.loadoutId));
-                }}
-              />
-              <span className="font-semibold">{loadout.displayName}</span>
-              <span className="text-[var(--nimi-text-muted)]">{loadout.capabilityContract} · {loadout.recipeId}</span>
-            </label>
+        <div className="grid gap-3">
+          {exportGroups.map(([capabilityContract, loadouts]) => (
+            <fieldset key={capabilityContract} className="grid gap-2 rounded-xl border border-[var(--nimi-border-subtle)] p-3">
+              <legend className="px-1 text-xs font-semibold text-[var(--nimi-text-secondary)]">
+                {displayRuntimeConfigCapabilityLabel(capabilityContract, t)}
+              </legend>
+              {loadouts.map((loadout) => (
+                <label key={loadout.loadoutId} className="flex items-start gap-2 rounded-lg px-2 py-1.5 text-xs hover:bg-[var(--nimi-surface-hover)]">
+                  <input
+                    className="mt-0.5"
+                    type="checkbox"
+                    checked={selectedExportIds.includes(loadout.loadoutId)}
+                    disabled={loadout.validationState !== 'configured'}
+                    onChange={(event) => {
+                      const checked = event.currentTarget.checked;
+                      const sameUseIds = new Set(loadouts.map((item) => item.loadoutId));
+                      setSelectedExportIds((current) => selectRuntimeConfigProfileExportLoadout({
+                        currentIds: current,
+                        loadoutId: loadout.loadoutId,
+                        sameUseIds,
+                        checked,
+                      }));
+                    }}
+                  />
+                  <span className="min-w-0">
+                    <span className="block font-semibold text-[var(--nimi-text-primary)]">{loadout.displayName}</span>
+                    {loadout.validationState !== 'configured' ? (
+                      <span className="block text-[var(--nimi-danger-text)]">{t('runtimeConfig.profiles.setupNeedsAttention', { defaultValue: 'Needs attention before it can be shared' })}</span>
+                    ) : null}
+                    <details className="mt-1 text-[var(--nimi-text-muted)]">
+                      <summary className="cursor-pointer">{t('runtimeConfig.profiles.technicalDetails', { defaultValue: 'Technical details' })}</summary>
+                      <div className="mt-1 font-mono">{loadout.capabilityContract} · {loadout.recipeId}</div>
+                    </details>
+                  </span>
+                </label>
+              ))}
+            </fieldset>
           ))}
         </div>
         <Button size="sm" tone="secondary" disabled={busy || selectedExportIds.length === 0} onClick={exportSelectedLoadouts}>
-          {t('runtimeConfig.profiles.exportSelectedLoadouts', { defaultValue: 'Export selected Loadouts' })}
+          {t('runtimeConfig.profiles.exportSelectedLoadouts', { defaultValue: 'Export setup file' })}
         </Button>
       </Surface>
 
       <Surface tone="card" className="space-y-3 p-4" data-testid="runtime-portable-profile-catalog">
         <div>
-          <h3 className="text-sm font-semibold text-[var(--nimi-text-primary)]">{t('runtimeConfig.profiles.savedProfilesTitle', { defaultValue: 'Saved portable Profiles' })}</h3>
-          <p className="mt-1 text-xs text-[var(--nimi-text-secondary)]">{t('runtimeConfig.profiles.savedProfilesDescription', { defaultValue: 'Import Profile writes only this account-scoped document catalog. Loading a saved document has no machine side effects.' })}</p>
+          <h3 className="text-sm font-semibold text-[var(--nimi-text-primary)]">{t('runtimeConfig.profiles.savedProfilesTitle', { defaultValue: 'Saved AI setup files' })}</h3>
+          <p className="mt-1 text-xs text-[var(--nimi-text-secondary)]">{t('runtimeConfig.profiles.savedProfilesDescription', { defaultValue: 'Opening a saved file only prepares a preview. Nothing is downloaded or changed until you confirm.' })}</p>
         </div>
         <div className="flex flex-wrap gap-2">
           {savedProfiles.length === 0 ? <span className="text-xs text-[var(--nimi-text-muted)]">{t('runtimeConfig.profiles.savedProfilesEmpty', { defaultValue: 'No imported Profiles yet.' })}</span> : null}
@@ -353,28 +392,17 @@ function PortableProfileApplyPage() {
       <Surface tone="card" className="space-y-3 p-4" data-testid="runtime-portable-profile-source">
         <div>
           <h3 className="text-sm font-semibold text-[var(--nimi-text-primary)]">
-            {t('runtimeConfig.profiles.portableTitle', { defaultValue: 'Portable AIProfile' })}
+            {t('runtimeConfig.profiles.portableTitle', { defaultValue: 'Import an AI setup file' })}
           </h3>
           <p className="mt-1 text-xs text-[var(--nimi-text-secondary)]">
             {t('runtimeConfig.profiles.portableDescription', {
-              defaultValue: 'Import saves the portable document first. Model acquisition, Loadout Commit, AIConfig Apply, and machine Select remain separate confirmed actions.',
+              defaultValue: 'Choose a setup file, review what this computer needs, then confirm before any model is downloaded or current choice is changed.',
             })}
           </p>
         </div>
-        <textarea
-          aria-label={t('runtimeConfig.profiles.portableJsonLabel', { defaultValue: 'Portable AIProfile JSON' })}
-          value={sourceText}
-          onChange={(event) => clearPreview(event.currentTarget.value)}
-          rows={12}
-          spellCheck={false}
-          placeholder={t('runtimeConfig.profiles.portableJsonPlaceholder', {
-            defaultValue: 'Paste a canonical portable AIProfile JSON document',
-          })}
-          className="w-full rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-field-bg)] p-3 font-mono text-xs text-[var(--nimi-text-primary)] outline-none focus:border-[var(--nimi-field-focus)] focus:ring-2 focus:ring-[var(--nimi-focus-ring-color)]"
-        />
         <div className="flex flex-wrap gap-2">
           <label className="inline-flex min-h-9 cursor-pointer items-center rounded-lg border border-[var(--nimi-border-subtle)] px-3 text-xs font-semibold text-[var(--nimi-text-secondary)]">
-            {t('runtimeConfig.profiles.loadJsonFile', { defaultValue: 'Load JSON file…' })}
+            {t('runtimeConfig.profiles.loadJsonFile', { defaultValue: 'Choose setup file…' })}
             <input
               className="sr-only"
               type="file"
@@ -402,41 +430,78 @@ function PortableProfileApplyPage() {
           >
             {busy
               ? t('runtimeConfig.profiles.previewWorking', { defaultValue: 'Working…' })
-              : t('runtimeConfig.profiles.previewAction', { defaultValue: 'Import Profile' })}
+              : t('runtimeConfig.profiles.previewAction', { defaultValue: 'Check setup file' })}
           </Button>
         </div>
+        <details>
+          <summary className="cursor-pointer text-xs font-semibold text-[var(--nimi-text-secondary)]">
+            {t('runtimeConfig.profiles.pasteJsonAdvanced', { defaultValue: 'Paste JSON instead (advanced)' })}
+          </summary>
+          <textarea
+            aria-label={t('runtimeConfig.profiles.portableJsonLabel', { defaultValue: 'Portable AIProfile JSON' })}
+            value={sourceText}
+            onChange={(event) => clearPreview(event.currentTarget.value)}
+            rows={12}
+            spellCheck={false}
+            placeholder={t('runtimeConfig.profiles.portableJsonPlaceholder', {
+              defaultValue: 'Paste a canonical portable AIProfile JSON document',
+            })}
+            className="mt-2 w-full rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-field-bg)] p-3 font-mono text-xs text-[var(--nimi-text-primary)] outline-none focus:border-[var(--nimi-field-focus)] focus:ring-2 focus:ring-[var(--nimi-focus-ring-color)]"
+          />
+        </details>
       </Surface>
 
-      {transferPlan ? (
+      {transferPlan && !transferResult ? (
         <Surface tone="card" className="space-y-3 p-4" data-testid="runtime-portable-profile-transfer-confirmation">
           <div>
-            <h3 className="text-sm font-semibold">{t('runtimeConfig.profiles.transferConfirmationTitle', { defaultValue: 'Confirm model acquisition and Loadouts' })}</h3>
-            <p className="mt-1 text-xs text-[var(--nimi-text-secondary)]">{t('runtimeConfig.profiles.transferConfirmationBody', { defaultValue: 'Nothing has been downloaded yet. This confirmation covers the listed transfers and any machine-wide change to future Local execution when an existing selected Loadout is committed. It does not select a different Loadout.' })}</p>
+            <h3 className="text-sm font-semibold">
+              {transferDownloadSummary?.kind === 'none'
+                ? t('runtimeConfig.profiles.noDownloadTitle', { defaultValue: 'All required models are already on this computer' })
+                : transferDownloadSummary?.kind === 'unknown'
+                  ? t('runtimeConfig.profiles.unknownDownloadTitle', { defaultValue: '{{count}} model download(s), with some sizes unknown', count: transferDownloadSummary.count })
+                  : t('runtimeConfig.profiles.knownDownloadTitle', { defaultValue: 'Download {{count}} model(s) · {{size}}', count: transferDownloadSummary?.count ?? 0, size: formatBytes(transferDownloadSummary?.totalBytes ?? null, '') })}
+            </h3>
+            <p className="mt-1 text-xs text-[var(--nimi-text-secondary)]">
+              {transferDownloadSummary?.kind === 'none'
+                ? t('runtimeConfig.profiles.noDownloadBody', { defaultValue: 'Continuing will prepare these models for their listed uses. Your current choices will not change until the next confirmation.' })
+                : t('runtimeConfig.profiles.downloadBody', { defaultValue: 'Review the models below. Continuing downloads only the missing files, then prepares each listed use. Your current choices will not change until the next confirmation.' })}
+            </p>
           </div>
           <div className="grid gap-2">
             {transferPlan.capabilities.flatMap((capability) => capability.axes.map((axis) => (
               <div key={`${capability.capabilityContract}:${axis.slotId}`} className="rounded-lg border border-[var(--nimi-border-subtle)] p-2 text-xs" data-axis-state={axis.state}>
-                <div className="font-semibold">{capability.capabilityContract} · {axis.displayLabel}</div>
-                <div className="text-[var(--nimi-text-secondary)]">{axis.state} · {formatBytes(axis.sizeBytes > 0 ? axis.sizeBytes : null, t('runtimeConfig.profiles.unknownSize', { defaultValue: 'unknown size' }))} · {axis.contentId}</div>
-                {axis.source ? (
-                  <div className="font-mono text-[var(--nimi-text-muted)]">{axis.source.repo}@{axis.source.revision}/{axis.source.file}</div>
-                ) : axis.templateId ? (
-                  <div className="font-mono text-[var(--nimi-text-muted)]">catalog:{axis.templateId}</div>
-                ) : null}
-                {axis.reasonCode ? <div className="font-mono text-[var(--nimi-danger-text)]">{axis.reasonCode}</div> : null}
+                <div className="font-semibold">{displayRuntimeConfigCapabilityLabel(capability.capabilityContract, t)} · {axis.displayLabel}</div>
+                <div className={axis.state === 'matched' ? 'text-[var(--nimi-success-text)]' : axis.state === 'download-required' ? 'text-[var(--nimi-text-secondary)]' : 'text-[var(--nimi-danger-text)]'}>
+                  {axis.state === 'matched'
+                    ? t('runtimeConfig.profiles.axisInstalled', { defaultValue: 'Ready on this computer' })
+                    : axis.state === 'download-required'
+                      ? t('runtimeConfig.profiles.axisDownload', { defaultValue: 'Download required · {{size}}', size: formatBytes(axis.sizeBytes > 0 ? axis.sizeBytes : null, t('runtimeConfig.profiles.unknownSize', { defaultValue: 'unknown size' })) })
+                      : t('runtimeConfig.profiles.axisAttention', { defaultValue: 'Needs attention before this use can be configured' })}
+                </div>
+                <details className="mt-1 text-[var(--nimi-text-muted)]">
+                  <summary className="cursor-pointer font-semibold">{t('runtimeConfig.profiles.technicalDetails', { defaultValue: 'Technical details' })}</summary>
+                  <div className="mt-1 font-mono break-all">{axis.state} · {axis.contentId} · {axis.expectedHash}</div>
+                  {axis.source ? (
+                    <div className="font-mono break-all">{axis.source.repo}@{axis.source.revision}/{axis.source.file}</div>
+                  ) : axis.templateId ? (
+                    <div className="font-mono break-all">catalog:{axis.templateId}</div>
+                  ) : null}
+                  {axis.reasonCode ? <div className="font-mono text-[var(--nimi-danger-text)]">{axis.reasonCode}</div> : null}
+                </details>
               </div>
             )))}
             {transferPlan.capabilities.filter((capability) => capability.state === 'upgrade-required').map((capability) => (
-              <InlineAlert key={capability.capabilityContract} tone="danger">{capability.capabilityContract}: {t('runtimeConfig.profiles.recipeUpgradeRequired', { defaultValue: 'This recipe is unknown. Upgrade Nimi before importing this capability.' })}</InlineAlert>
+              <InlineAlert key={capability.capabilityContract} tone="danger">{displayRuntimeConfigCapabilityLabel(capability.capabilityContract, t)}: {t('runtimeConfig.profiles.recipeUpgradeRequired', { defaultValue: 'This setup needs a newer version of Nimi before it can be used.' })}</InlineAlert>
             ))}
           </div>
-          <div className="text-sm font-semibold">{t('runtimeConfig.profiles.totalDownload', { defaultValue: 'Total download: {{size}}', size: formatBytes(transferPlan.totalDownloadBytes, t('runtimeConfig.profiles.unknownSize', { defaultValue: 'unknown size' })) })}</div>
           <div className="flex gap-2">
             <Button size="sm" tone="secondary" disabled={busy} onClick={() => { setTransferPlan(null); setTransferResult(null); }}>
               {t('runtimeConfig.profiles.cancelImport', { defaultValue: 'Cancel' })}
             </Button>
             <Button size="sm" tone="primary" disabled={busy} onClick={() => { void confirmTransfer(); }}>
-              {t('runtimeConfig.profiles.confirmTransfer', { defaultValue: 'Confirm transfer and Loadout impact' })}
+              {transferDownloadSummary?.kind === 'none'
+                ? t('runtimeConfig.profiles.continueExistingModels', { defaultValue: 'Continue with these models' })
+                : t('runtimeConfig.profiles.downloadAndContinue', { defaultValue: 'Download and continue' })}
             </Button>
           </div>
         </Surface>
@@ -444,34 +509,62 @@ function PortableProfileApplyPage() {
 
       {transferResult ? (
         <Surface tone="card" className="space-y-3 p-4" data-testid="runtime-portable-profile-selection-confirmation">
-          <h3 className="text-sm font-semibold">{t('runtimeConfig.profiles.selectionImpactTitle', { defaultValue: 'Confirm machine selection impact' })}</h3>
-          {transferResult.capabilities.map((capability) => (
-            <div key={`${capability.capabilityContract}:${capability.state}`} className="text-xs" data-capability-state={capability.state}>
-              {capability.capabilityContract} · {capability.state}
-              {capability.reasonCode ? ` · ${capability.reasonCode}` : ''}
-              {capability.unresolvedSlotIds.length > 0 ? ` · unresolved: ${capability.unresolvedSlotIds.join(', ')}` : ''}
-            </div>
-          ))}
-          <label className="flex items-center gap-2 text-xs">
-            <input type="checkbox" checked={selectImported} onChange={(event) => setSelectImported(event.currentTarget.checked)} />
-            {t('runtimeConfig.profiles.selectAllImported', { defaultValue: 'Select all newly configured Loadouts (recommended)' })}
-          </label>
-          <Button size="sm" tone="primary" disabled={busy} onClick={() => { void confirmImportedSelection(); }}>
-            {t('runtimeConfig.profiles.confirmSelection', { defaultValue: 'Confirm final selection' })}
-          </Button>
-          {selectionCompleted ? (
+          <h3 className="text-sm font-semibold">
+            {selectionCompleted
+              ? t('runtimeConfig.profiles.selectionCompletedTitle', { defaultValue: 'Your model uses are ready' })
+              : t('runtimeConfig.profiles.selectionImpactTitle', { defaultValue: 'Use these models now?' })}
+          </h3>
+          <div className="grid gap-2">
+            {transferResult.capabilities.map((capability) => (
+              <div key={`${capability.capabilityContract}:${capability.state}`} className="rounded-lg border border-[var(--nimi-border-subtle)] p-2 text-xs" data-capability-state={capability.state}>
+                <div className="font-semibold">{displayRuntimeConfigCapabilityLabel(capability.capabilityContract, t)}</div>
+                <div className={capability.state === 'committed' && capability.unresolvedSlotIds.length === 0 ? 'text-[var(--nimi-success-text)]' : 'text-[var(--nimi-danger-text)]'}>
+                  {capability.state === 'committed' && capability.unresolvedSlotIds.length === 0
+                    ? t('runtimeConfig.profiles.capabilityPrepared', { defaultValue: 'Ready to use' })
+                    : t('runtimeConfig.profiles.capabilityNeedsAttention', { defaultValue: 'Not ready. Continue with the other models, then fix this use in Model Uses.' })}
+                </div>
+                {capability.reasonCode || capability.detail || capability.unresolvedSlotIds.length > 0 ? (
+                  <details className="mt-1 text-[var(--nimi-text-muted)]">
+                    <summary className="cursor-pointer font-semibold">{t('runtimeConfig.profiles.technicalDetails', { defaultValue: 'Technical details' })}</summary>
+                    <div className="mt-1 whitespace-pre-wrap break-all font-mono">{capability.state}{capability.reasonCode ? ` · ${capability.reasonCode}` : ''}{capability.unresolvedSlotIds.length > 0 ? ` · unresolved: ${capability.unresolvedSlotIds.join(', ')}` : ''}{capability.detail ? `\n${capability.detail}` : ''}</div>
+                  </details>
+                ) : null}
+              </div>
+            ))}
+          </div>
+          {!selectionCompleted ? (
+            <>
+              <label className="flex items-center gap-2 text-xs">
+                <input type="checkbox" checked={selectImported} onChange={(event) => setSelectImported(event.currentTarget.checked)} />
+                {t('runtimeConfig.profiles.selectAllImported', { defaultValue: 'Use all ready models for their listed uses (recommended)' })}
+              </label>
+              <Button size="sm" tone="primary" disabled={busy} onClick={() => { void confirmImportedSelection(); }}>
+                {t('runtimeConfig.profiles.confirmSelection', { defaultValue: 'Use these models' })}
+              </Button>
+            </>
+          ) : (
             <Button
               size="sm"
-              tone="secondary"
+              tone="primary"
               disabled={busy}
               onClick={() => {
                 setActiveTab('runtime');
-                runtimeConfigNavigation.openPage('environment');
+                if (transferNeedsAttention) {
+                  runtimeConfigNavigation.focusAction({
+                    page: 'loadouts',
+                    action: 'open-loadouts',
+                    focus: 'runtime-config-action-focus.loadouts',
+                  });
+                } else {
+                  runtimeConfigNavigation.openPage('environment');
+                }
               }}
             >
-              {t('runtimeConfig.profiles.reviewEnvironment', { defaultValue: 'Review Runtime environment confirmation' })}
+              {transferNeedsAttention
+                ? t('runtimeConfig.profiles.fixModelUses', { defaultValue: 'Fix model uses that need attention' })
+                : t('runtimeConfig.profiles.reviewEnvironment', { defaultValue: 'Check this computer and continue' })}
             </Button>
-          ) : null}
+          )}
           {transferResult.capabilities.some((capability) => capability.loadout && capability.loadout.validationState !== 'configured') ? (
             <Button size="sm" tone="secondary" disabled={busy} onClick={() => { void discardUnresolvedLoadouts(); }}>
               {t('runtimeConfig.profiles.discardUnresolved', { defaultValue: 'Discard unresolved Loadouts' })}
@@ -484,26 +577,32 @@ function PortableProfileApplyPage() {
         <Surface tone="card" className="space-y-3 p-4" data-testid="runtime-portable-profile-summary">
           <div>
             <div className="text-sm font-semibold text-[var(--nimi-text-primary)]">{summary.title}</div>
-            <div className="mt-1 font-mono text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-muted)]">{summary.profileId}</div>
+            <div className="mt-1 text-xs text-[var(--nimi-text-secondary)]">{t('runtimeConfig.profiles.summaryCount', { defaultValue: '{{count}} AI use(s)', count: summary.capabilities.length })}</div>
           </div>
           <div className="grid gap-2">
             {summary.capabilities.map((capability) => (
               <div key={capability.capabilityContract} className="rounded-xl border border-[var(--nimi-border-subtle)] p-3 text-xs">
-                <div className="font-semibold text-[var(--nimi-text-primary)]">{capability.capabilityContract}</div>
+                <div className="font-semibold text-[var(--nimi-text-primary)]">{displayRuntimeConfigCapabilityLabel(capability.capabilityContract, t)}</div>
                 <div className="mt-1 text-[var(--nimi-text-secondary)]">
                   {capability.route === 'local'
-                    ? t('runtimeConfig.profiles.intentLocal', { defaultValue: 'Local intent' })
-                    : t('runtimeConfig.profiles.intentCloud', { defaultValue: 'Cloud intent' })}
-                  {capability.requiredFeatures.length > 0
-                    ? ` · ${t('runtimeConfig.profiles.summaryRequiredFeatures', {
-                      defaultValue: 'required features: {{features}}',
-                      features: capability.requiredFeatures.join(', '),
-                    })}`
-                    : ` · ${t('runtimeConfig.profiles.summaryNoRequiredFeatures', { defaultValue: 'no required features' })}`}
-                  {capability.hasDefaults
-                    ? ` · ${t('runtimeConfig.profiles.summaryPortableDefaults', { defaultValue: 'portable defaults included' })}`
-                    : ''}
+                    ? t('runtimeConfig.profiles.intentLocal', { defaultValue: 'Runs on this computer' })
+                    : t('runtimeConfig.profiles.intentCloud', { defaultValue: 'Uses a cloud connection' })}
                 </div>
+                <details className="mt-1 text-[var(--nimi-text-muted)]">
+                  <summary className="cursor-pointer font-semibold">{t('runtimeConfig.profiles.technicalDetails', { defaultValue: 'Technical details' })}</summary>
+                  <div className="mt-1 font-mono break-all">
+                    {capability.capabilityContract} · {summary.profileId}
+                    {capability.requiredFeatures.length > 0
+                      ? ` · ${t('runtimeConfig.profiles.summaryRequiredFeatures', {
+                        defaultValue: 'required features: {{features}}',
+                        features: capability.requiredFeatures.join(', '),
+                      })}`
+                      : ` · ${t('runtimeConfig.profiles.summaryNoRequiredFeatures', { defaultValue: 'no required features' })}`}
+                    {capability.hasDefaults
+                      ? ` · ${t('runtimeConfig.profiles.summaryPortableDefaults', { defaultValue: 'portable defaults included' })}`
+                      : ''}
+                  </div>
+                </details>
               </div>
             ))}
           </div>
@@ -514,12 +613,12 @@ function PortableProfileApplyPage() {
         <Surface tone="card" className="space-y-2 p-4" data-testid="runtime-portable-profile-cloud-guidance">
           <div className="text-sm font-semibold text-[var(--nimi-text-primary)]">
             {t('runtimeConfig.profiles.cloudConfigurationTitle', {
-              defaultValue: 'Cloud execution stays Nimi-owned',
+              defaultValue: 'Cloud models need a connection',
             })}
           </div>
           <p className="m-0 text-xs leading-relaxed text-[var(--nimi-text-secondary)]">
             {t('runtimeConfig.profiles.cloudConfigurationGuidance', {
-              defaultValue: 'Portable AIProfiles carry an exact implementation and provider-model catalog target, but never Connector, account, credential, or secret identity. Confirm Apply to write that target choice into the Nimi Desktop AIConfig. Runtime resolves only the current-account Connector bound by that exact catalog identity.',
+              defaultValue: 'This setup file never includes account details or secrets. Connect the required cloud service before trying a cloud model.',
             })}
           </p>
           <div>
@@ -532,7 +631,7 @@ function PortableProfileApplyPage() {
               tone="secondary"
             >
               {t('runtimeConfig.profiles.openCloudConnectors', {
-                defaultValue: 'Review Cloud Connectors',
+                defaultValue: 'Manage cloud connections',
               })}
             </Button>
           </div>
@@ -543,12 +642,12 @@ function PortableProfileApplyPage() {
         <Surface tone="card" className="space-y-2 p-4" data-testid="runtime-portable-profile-local-guidance">
           <div className="text-sm font-semibold text-[var(--nimi-text-primary)]">
             {t('runtimeConfig.profiles.localSelectionTitle', {
-              defaultValue: 'Local capability selection stays on this machine',
+              defaultValue: 'Choose how local models are used',
             })}
           </div>
           <p className="m-0 text-xs leading-relaxed text-[var(--nimi-text-secondary)]">
             {t('runtimeConfig.profiles.localSelectionGuidance', {
-              defaultValue: 'Local capability intent is written to the App AIConfig. Machine-side Loadout resolution and selection are managed on the Loadouts page. Until a Loadout is selected, Runtime reports an informational selection-required state; this is not an error.',
+              defaultValue: 'Local model choices stay on this computer. You can review or change which model is used for text, images, speech, and other tasks.',
             })}
           </p>
           <div>
@@ -565,7 +664,7 @@ function PortableProfileApplyPage() {
               tone="secondary"
             >
               {t('runtimeConfig.profiles.openLocalConfigurations', {
-                defaultValue: 'Open Loadouts',
+                defaultValue: 'Review model uses',
               })}
             </Button>
           </div>
