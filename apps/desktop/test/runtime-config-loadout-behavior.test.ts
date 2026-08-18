@@ -9,10 +9,13 @@ import type {
   NimiMachineLoadout,
   NimiRuntimeModelAssetRecord,
 } from '@nimiplatform/sdk/runtime';
+import { createNimiError } from '@nimiplatform/sdk/types';
 import { runtimeConfigLoadoutCatalogBadge } from '../src/shell/renderer/features/runtime-config/runtime-config-loadout-catalog-badge.js';
 import {
   recommendedInstallMessage,
   recommendedInstallItems,
+  loadoutAssetLabel,
+  loadoutCapabilityLabelKey,
   runtimeConfigLoadoutUpdateModelAxes,
   runtimeConfigLoadoutErrorMessage,
 } from '../src/shell/renderer/features/runtime-config/runtime-config-page-loadouts.js';
@@ -26,12 +29,40 @@ const rendererDir = path.join(testDir, '..', 'src', 'shell', 'renderer');
 const localePath = (locale: 'en' | 'zh') => path.join(rendererDir, 'locales', locale, '46-runtimeConfig.json');
 
 test('Loadout slot incompatibility preserves the Runtime typed reason', () => {
-  const error = new Error('Loadout is not fully configured against current ModelAsset content');
-  (error as Error & { reasonCode: string }).reasonCode = 'AI_LOADOUT_MODEL_CONTRACT_FAILED';
+  const error = createNimiError({
+    message: 'Loadout is not fully configured against current ModelAsset content',
+    reasonCode: 'AI_LOADOUT_MODEL_CONTRACT_FAILED',
+  });
   assert.equal(
     runtimeConfigLoadoutErrorMessage(error),
     'AI_LOADOUT_MODEL_CONTRACT_FAILED: Loadout is not fully configured against current ModelAsset content',
   );
+});
+
+test('Loadout errors do not infer a reason code from display copy', () => {
+  const untyped = new Error('copied failure detail') as Error & { reasonCode?: string };
+  untyped.reasonCode = 'AI_LOADOUT_MODEL_CONTRACT_FAILED';
+  assert.equal(
+    runtimeConfigLoadoutErrorMessage(untyped),
+    'copied failure detail',
+  );
+});
+
+test('Loadout presentation uses typed capability labels and Runtime catalog titles', () => {
+  assert.equal(loadoutCapabilityLabelKey('text.generate'), 'runtimeConfig.loadouts.capability.textGenerate');
+  assert.equal(loadoutCapabilityLabelKey('voice.create'), 'runtimeConfig.loadouts.capability.voiceCreate');
+  assert.equal(loadoutCapabilityLabelKey('future.capability'), 'runtimeConfig.loadouts.capability.other');
+
+  const asset = {
+    modelAssetId: 'model_internal',
+    contentId: `sha256:${'f'.repeat(64)}`,
+    displayName: 'local.chat.internal-id',
+    entry: 'model.gguf',
+  } as NimiRuntimeModelAssetRecord;
+  assert.equal(loadoutAssetLabel(asset, [{
+    contentId: asset.contentId,
+    title: 'Gemma 4 E2B (Q5_K_M)',
+  }] as never), 'Gemma 4 E2B (Q5_K_M)');
 });
 
 test('single-slot recipes render the recommended combination and install entry only with a recommended variant', async () => {
@@ -102,7 +133,13 @@ test('recommended install confirmation never presents a known subtotal as the to
       variantId: 'unknown-variant',
       installed: false,
     },
-  ] as never, 'Install the recommended models');
+  ] as never, {
+    heading: 'Install the recommended models',
+    installed: 'installed',
+    download: 'download',
+    total: 'Total download',
+    unknownSize: 'unknown size',
+  });
 
   assert.match(message, /Unknown model: unknown-variant · unknown size · download/u);
   assert.match(message, /Total download: unknown size/u);
