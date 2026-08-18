@@ -553,7 +553,7 @@ func ExecuteGeminiTranscribe(
 		"audio_uri":       audioURI,
 		"response":        responsePayload,
 	})
-	ApplyTranscriptionSpecMetadata(artifact, spec, audioURI)
+	ApplyTranscriptionSpecMetadata(artifact, spec)
 	return []*runtimev1.ScenarioArtifact{artifact}, usage, "", nil
 }
 

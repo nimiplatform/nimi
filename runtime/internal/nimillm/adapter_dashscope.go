@@ -325,7 +325,7 @@ func ExecuteDashScopeTranscribe(
 		artifactMeta["extensions"] = scenarioExtensions
 	}
 	artifact := BinaryArtifact(ResolveTranscriptionArtifactMIME(spec), []byte(text), artifactMeta)
-	ApplyTranscriptionSpecMetadata(artifact, spec, audioURI)
+	ApplyTranscriptionSpecMetadata(artifact, spec)
 	return []*runtimev1.ScenarioArtifact{artifact}, usage, "", nil
 }
 

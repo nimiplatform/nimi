@@ -310,7 +310,7 @@ func ExecuteGLMNative(
 			"audio_uri":       audioURI,
 			"extensions":      scenarioExtensionPayloadForScenario(req),
 		})
-		ApplyTranscriptionSpecMetadata(artifact, spec, audioURI)
+		ApplyTranscriptionSpecMetadata(artifact, spec)
 		return []*runtimev1.ScenarioArtifact{artifact}, usage, "", nil
 	default:
 		return nil, nil, "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)

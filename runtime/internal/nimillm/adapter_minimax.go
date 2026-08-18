@@ -203,7 +203,7 @@ func ExecuteMiniMaxTask(
 			"audio_uri":       audioURI,
 			"extensions":      StructToMap(extractScenarioExtensions(req)),
 		})
-		ApplyTranscriptionSpecMetadata(artifact, spec, audioURI)
+		ApplyTranscriptionSpecMetadata(artifact, spec)
 		return []*runtimev1.ScenarioArtifact{artifact}, usage, "", nil
 	}
 

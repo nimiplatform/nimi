@@ -92,3 +92,38 @@ func TestDetachMediaArtifactBodiesRejectsKnownOversizeBeforeStreamAcceptance(t *
 		t.Fatal("known oversize provider body was accepted")
 	}
 }
+
+func TestTranscriptionInputURINeverBecomesOutputArtifactURI(t *testing.T) {
+	requests := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		requests++
+		w.Header().Set("Content-Type", "audio/wav")
+		_, _ = w.Write([]byte("input-audio"))
+	}))
+	defer server.Close()
+
+	artifact := BinaryArtifact("text/plain", []byte("captured transcript"), map[string]any{
+		"audio_uri": server.URL + "/input.wav",
+	})
+	ApplyTranscriptionSpecMetadata(artifact, &runtimev1.SpeechTranscribeScenarioSpec{})
+	ctx := WithMediaAdapterEndpointPolicy(context.Background(), MediaAdapterConfig{AllowLoopbackEndpoint: true})
+	bodies, err := detachMediaArtifactBodies(ctx, []*runtimev1.ScenarioArtifact{artifact})
+	if err != nil {
+		t.Fatalf("detach transcript body: %v", err)
+	}
+	defer func() {
+		if body := bodies[artifact.GetArtifactId()]; body != nil && body.Stream != nil {
+			_ = body.Stream.Close()
+		}
+	}()
+	if requests != 0 {
+		t.Fatalf("transcription input URI was fetched as output custody: requests=%d", requests)
+	}
+	if artifact.GetUri() != "" {
+		t.Fatalf("transcription output retained input URI as body location: %q", artifact.GetUri())
+	}
+	body := bodies[artifact.GetArtifactId()]
+	if body == nil || string(body.Bytes) != "captured transcript" || body.Stream != nil {
+		t.Fatalf("transcript body=%+v", body)
+	}
+}

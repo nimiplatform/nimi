@@ -331,7 +331,7 @@ func (p *CloudProvider) executeGenericMediaWithTarget(
 			metadata["extensions"] = extensions
 		}
 		artifact := BinaryArtifact(ResolveTranscriptionArtifactMIME(spec), []byte(text), metadata)
-		ApplyTranscriptionSpecMetadata(artifact, spec, audioURI)
+		ApplyTranscriptionSpecMetadata(artifact, spec)
 		return []*runtimev1.ScenarioArtifact{artifact}, usage, "", nil
 
 	case runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE:

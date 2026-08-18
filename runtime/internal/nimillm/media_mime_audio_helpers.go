@@ -145,14 +145,12 @@ func ApplyMusicSpecMetadata(artifact *runtimev1.ScenarioArtifact, spec *runtimev
 	}
 }
 
-// ApplyTranscriptionSpecMetadata applies transcription spec metadata (audio
-// URI, speaker count) onto the artifact.
-func ApplyTranscriptionSpecMetadata(artifact *runtimev1.ScenarioArtifact, spec *runtimev1.SpeechTranscribeScenarioSpec, audioURI string) {
+// ApplyTranscriptionSpecMetadata applies transcription result shape metadata.
+// Input audio provenance remains in the artifact metadata; ScenarioArtifact.Uri
+// is reserved for the output artifact body location.
+func ApplyTranscriptionSpecMetadata(artifact *runtimev1.ScenarioArtifact, spec *runtimev1.SpeechTranscribeScenarioSpec) {
 	if artifact == nil || spec == nil {
 		return
-	}
-	if strings.TrimSpace(audioURI) != "" {
-		artifact.Uri = strings.TrimSpace(audioURI)
 	}
 	if spec.GetSpeakerCount() > 0 {
 		artifact.Channels = spec.GetSpeakerCount()

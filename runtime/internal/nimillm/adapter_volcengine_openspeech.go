@@ -118,7 +118,7 @@ func ExecuteBytedanceOpenSpeech(
 				artifactMeta["ws_response"] = wsRaw
 			}
 			artifact := BinaryArtifact(ResolveTranscriptionArtifactMIME(spec), []byte(text), artifactMeta)
-			ApplyTranscriptionSpecMetadata(artifact, spec, audioURI)
+			ApplyTranscriptionSpecMetadata(artifact, spec)
 			return []*runtimev1.ScenarioArtifact{artifact}, nil, "", nil
 		}
 		payload := map[string]any{
@@ -157,7 +157,7 @@ func ExecuteBytedanceOpenSpeech(
 			"response_format": spec.GetResponseFormat(),
 			"extensions":      scenarioExtensions,
 		})
-		ApplyTranscriptionSpecMetadata(artifact, spec, audioURI)
+		ApplyTranscriptionSpecMetadata(artifact, spec)
 		return []*runtimev1.ScenarioArtifact{artifact}, nil, "", nil
 
 	default:
