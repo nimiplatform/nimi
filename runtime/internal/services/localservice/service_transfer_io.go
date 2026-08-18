@@ -26,7 +26,7 @@ func (s *Service) updateTransferProgress(
 	// before bytes start flowing. observeTransferRate records the sample and
 	// returns the windowed rate; speedKnown is false until an honest rate is
 	// established, in which case speed/eta are left absent rather than guessed.
-	speed, speedKnown := s.observeTransferRate(sessionID, maxInt64(bytesReceived, 0), time.Now())
+	speed, speedKnown, rateUpdated := s.observeTransferRate(sessionID, maxInt64(bytesReceived, 0), time.Now())
 	_, _ = s.mutateLocalTransfer(sessionID, false, func(summary *runtimev1.LocalTransferSessionSummary) {
 		// A terminal session must never be resurrected by a late in-flight
 		// progress sample (e.g. a copy/hash callback racing a cancel).
@@ -46,10 +46,10 @@ func (s *Service) updateTransferProgress(
 		}
 		if speedKnown {
 			summary.SpeedBytesPerSec = maxInt64(speed, 0)
-			if summary.GetBytesTotal() > 0 && speed > 0 && summary.GetBytesReceived() < summary.GetBytesTotal() {
-				summary.EtaSeconds = maxInt64((summary.GetBytesTotal()-summary.GetBytesReceived())/speed, 0)
-			} else {
+			if summary.GetBytesTotal() <= 0 || summary.GetBytesReceived() >= summary.GetBytesTotal() {
 				summary.EtaSeconds = 0
+			} else if rateUpdated && speed > 0 {
+				summary.EtaSeconds = maxInt64((summary.GetBytesTotal()-summary.GetBytesReceived())/speed, 0)
 			}
 		} else {
 			summary.SpeedBytesPerSec = 0
@@ -64,22 +64,28 @@ func (s *Service) updateTransferProgress(
 // reaches a terminal state (see mutateLocalTransfer). Access to the tracker
 // map is serialized by s.mu; this runs in its own short critical section
 // before mutateLocalTransfer's own s.mu section — both are non-reentrant.
-func (s *Service) observeTransferRate(sessionID string, bytesReceived int64, now time.Time) (int64, bool) {
+func (s *Service) observeTransferRate(sessionID string, bytesReceived int64, now time.Time) (int64, bool, bool) {
 	key := strings.TrimSpace(sessionID)
 	if key == "" {
-		return 0, false
+		return 0, false, false
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if _, known := s.transfers[key]; !known {
-		return 0, false
+	summary, known := s.transfers[key]
+	if !known {
+		return 0, false, false
+	}
+	state := normalizeTransferState(summary.GetState())
+	if state == localTransferStatePaused || isTerminalTransferState(state) {
+		delete(s.transferRates, key)
+		return 0, false, false
 	}
 	tracker := s.transferRates[key]
 	if tracker == nil {
 		tracker = &transferRateTracker{}
 		s.transferRates[key] = tracker
 	}
-	return tracker.observe(bytesReceived, now)
+	return tracker.observeProjection(bytesReceived, now)
 }
 
 func (s *Service) completeTransfer(

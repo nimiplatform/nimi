@@ -291,6 +291,10 @@ func (s *Service) mutateLocalTransfer(sessionID string, persist bool, mutate fun
 	current.InstallSessionId = previous.GetInstallSessionId()
 	current.SessionKind = normalizeTransferKind(current.GetSessionKind())
 	current.State = normalizeTransferState(current.GetState())
+	if isTerminalTransferState(current.GetState()) {
+		current.SpeedBytesPerSec = 0
+		current.EtaSeconds = 0
+	}
 	current.UpdatedAt = nowISO()
 	s.transfers[key] = cloneLocalTransferSummary(current)
 	if isTerminalTransferState(current.GetState()) {
@@ -491,6 +495,9 @@ func (s *Service) PauseLocalTransfer(_ context.Context, req *runtimev1.PauseLoca
 		}
 		summary.State = localTransferStatePaused
 		summary.Message = "transfer paused"
+		summary.SpeedBytesPerSec = 0
+		summary.EtaSeconds = 0
+		delete(s.transferRates, sessionID)
 	})
 	if persistErr != nil {
 		return nil, localTransferPersistenceError(persistErr)

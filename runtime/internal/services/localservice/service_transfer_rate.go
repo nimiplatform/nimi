@@ -9,6 +9,13 @@ import "time"
 // lifetime average.
 const transferRateWindow = 5 * time.Second
 
+// transferRateProjectionInterval prevents the projected speed from changing
+// at the filedownload chunk callback rate. Byte progress is still published
+// for every callback; the estimator admits at most one new rate sample per
+// second so the effective window is stable and ETA does not amplify
+// sub-second transport jitter.
+const transferRateProjectionInterval = time.Second
+
 // transferRateMaxSamples caps the per-transfer sample ring so the tracker
 // stays bounded regardless of how often the filedownload progress callback
 // fires. Older samples are pruned by age first; this cap is a hard ceiling.
@@ -28,7 +35,9 @@ type transferRateSample struct {
 // when the transfer reaches a terminal state. All access is serialized by
 // Service.mu; the tracker holds no lock of its own.
 type transferRateTracker struct {
-	samples []transferRateSample
+	samples           []transferRateSample
+	lastObservedBytes int64
+	hasLastObserved   bool
 }
 
 // observe records a new cumulative-bytes sample and returns the recent download
@@ -43,17 +52,39 @@ type transferRateTracker struct {
 //
 // `now` is injected so tests can drive a deterministic clock.
 func (t *transferRateTracker) observe(bytesReceived int64, now time.Time) (int64, bool) {
+	speed, known, _ := t.observeProjection(bytesReceived, now)
+	return speed, known
+}
+
+// observeProjection additionally reports whether this observation was
+// admitted as a new projection sample. Callers use that signal to keep ETA on
+// the same cadence as speed while continuing to publish raw byte progress.
+func (t *transferRateTracker) observeProjection(bytesReceived int64, now time.Time) (int64, bool, bool) {
 	if bytesReceived < 0 {
 		bytesReceived = 0
 	}
-	if n := len(t.samples); n > 0 && bytesReceived < t.samples[n-1].bytes {
+	if t.hasLastObserved && bytesReceived < t.lastObservedBytes {
 		// Non-monotonic: resume / phase reuse. Drop the stale window and
 		// restart from this sample so the next rate is honest.
 		t.samples = t.samples[:0]
 	}
+	t.lastObservedBytes = bytesReceived
+	t.hasLastObserved = true
+	if n := len(t.samples); n > 0 {
+		elapsed := now.Sub(t.samples[n-1].at)
+		if elapsed < 0 || elapsed > transferRateWindow {
+			// time.Now carries a monotonic reading in production. Fail closed
+			// for an injected backwards clock or a long observation gap.
+			t.samples = t.samples[:0]
+		} else if elapsed < transferRateProjectionInterval {
+			speed, known := t.rate()
+			return speed, known, false
+		}
+	}
 	t.samples = append(t.samples, transferRateSample{at: now, bytes: bytesReceived})
 	t.prune(now)
-	return t.rate()
+	speed, known := t.rate()
+	return speed, known, true
 }
 
 // prune drops samples older than the sliding window and enforces the hard

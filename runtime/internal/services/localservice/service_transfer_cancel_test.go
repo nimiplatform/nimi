@@ -136,6 +136,86 @@ func TestPauseAndResumeLocalTransferControlsImport(t *testing.T) {
 	}
 }
 
+func TestPauseAndResumeResetTransferRate(t *testing.T) {
+	svc := newTestService(t)
+	transfer := svc.newLocalTransfer(localTransferKindDownload, localTransferMutation{
+		ModelID:          "model_pause_resume_rate",
+		Phase:            "download",
+		State:            localTransferStateRunning,
+		SpeedBytesPerSec: 125,
+		EtaSeconds:       6,
+	})
+	sessionID := transfer.GetInstallSessionId()
+	svc.mu.Lock()
+	svc.transferRates[sessionID] = &transferRateTracker{samples: []transferRateSample{
+		{at: time.Unix(1_700_000_000, 0), bytes: 0},
+		{at: time.Unix(1_700_000_001, 0), bytes: 125},
+	}}
+	svc.mu.Unlock()
+
+	paused, err := svc.PauseLocalTransfer(context.Background(), &runtimev1.PauseLocalTransferRequest{InstallSessionId: sessionID})
+	if err != nil {
+		t.Fatalf("pause transfer: %v", err)
+	}
+	if got := paused.GetTransfer(); got.GetSpeedBytesPerSec() != 0 || got.GetEtaSeconds() != 0 {
+		t.Fatalf("paused transfer retained active rate: speed=%d eta=%d", got.GetSpeedBytesPerSec(), got.GetEtaSeconds())
+	}
+	svc.mu.RLock()
+	_, trackerAfterPause := svc.transferRates[sessionID]
+	svc.mu.RUnlock()
+	if trackerAfterPause {
+		t.Fatal("paused transfer retained estimator samples")
+	}
+
+	resumed, err := svc.ResumeLocalTransfer(context.Background(), &runtimev1.ResumeLocalTransferRequest{InstallSessionId: sessionID})
+	if err != nil {
+		t.Fatalf("resume transfer: %v", err)
+	}
+	if got := resumed.GetTransfer(); got.GetSpeedBytesPerSec() != 0 || got.GetEtaSeconds() != 0 {
+		t.Fatalf("resumed transfer reused stale rate: speed=%d eta=%d", got.GetSpeedBytesPerSec(), got.GetEtaSeconds())
+	}
+}
+
+func TestTerminalTransferStatesClearActiveRate(t *testing.T) {
+	tests := []struct {
+		name   string
+		settle func(*Service, string) error
+	}{
+		{
+			name: "cancelled",
+			settle: func(svc *Service, sessionID string) error {
+				_, err := svc.CancelLocalTransfer(context.Background(), &runtimev1.CancelLocalTransferRequest{InstallSessionId: sessionID})
+				return err
+			},
+		},
+		{
+			name: "failed",
+			settle: func(svc *Service, sessionID string) error {
+				return svc.failTransfer(sessionID, "network failed", true)
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			svc := newTestService(t)
+			transfer := svc.newLocalTransfer(localTransferKindDownload, localTransferMutation{
+				ModelID:          "model_terminal_rate_" + test.name,
+				Phase:            "download",
+				State:            localTransferStateRunning,
+				SpeedBytesPerSec: 125,
+				EtaSeconds:       6,
+			})
+			if err := test.settle(svc, transfer.GetInstallSessionId()); err != nil {
+				t.Fatalf("settle transfer: %v", err)
+			}
+			got := svc.localTransferSummary(transfer.GetInstallSessionId())
+			if got.GetSpeedBytesPerSec() != 0 || got.GetEtaSeconds() != 0 {
+				t.Fatalf("terminal transfer retained active rate: state=%s speed=%d eta=%d", got.GetState(), got.GetSpeedBytesPerSec(), got.GetEtaSeconds())
+			}
+		})
+	}
+}
+
 func TestPauseLocalTransferPersistenceFailureLeavesExecutorRunning(t *testing.T) {
 	svc := newTestService(t)
 	transfer := svc.newLocalTransfer(localTransferKindImport, localTransferMutation{
