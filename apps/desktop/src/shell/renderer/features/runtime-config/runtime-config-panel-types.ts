@@ -1,5 +1,5 @@
 import type {
-  ProviderStatusV11,
+  RuntimeConfigStatusV11,
   RuntimeConfigStateV11,
 } from './runtime-config-state-types';
 import type { RuntimeBridgeDaemonStatus } from '../../bridge';
@@ -12,7 +12,7 @@ import type {
 export type RuntimeConfigPanelControllerModel = {
   state: RuntimeConfigStateV11 | null;
   hydrated: boolean;
-  runtimeStatus: ProviderStatusV11 | null;
+  runtimeStatus: RuntimeConfigStatusV11 | null;
   activePage: RuntimeConfigStateV11['activePage'];
   showCloudApiKey: boolean;
   connectorModelQuery: string;

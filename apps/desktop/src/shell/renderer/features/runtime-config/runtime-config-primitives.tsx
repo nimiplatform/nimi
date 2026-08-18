@@ -18,7 +18,7 @@ import {
 } from '@nimiplatform/kit/ui';
 import {
   statusTextV11,
-  type ProviderStatusV11,
+  type RuntimeConfigStatusV11,
 } from './runtime-config-state-types';
 import {
   useDesktopCardMotion,
@@ -383,7 +383,7 @@ const BADGE_STATUS_TONES: Record<BadgeStatus, 'neutral' | 'success' | 'warning' 
   degraded: 'warning',
 };
 
-export function StatusBadge({ status }: { status: ProviderStatusV11 }) {
+export function StatusBadge({ status }: { status: RuntimeConfigStatusV11 }) {
   return (
     <KitStatusBadge tone={BADGE_STATUS_TONES[status]} shape="dot">
       {statusTextV11(status)}
@@ -405,10 +405,10 @@ export function DaemonStatusBadge({ running }: { running: boolean }) {
 
 export function RuntimeHealthBadge({
   daemonRunning,
-  providerStatus,
+  status,
 }: {
   daemonRunning: boolean;
-  providerStatus: ProviderStatusV11;
+  status: RuntimeConfigStatusV11;
 }) {
   const i18n = useDesktopI18nResource().instance;
   const t = i18n.t.bind(i18n);
@@ -420,8 +420,8 @@ export function RuntimeHealthBadge({
     );
   }
   return (
-    <KitStatusBadge tone={BADGE_STATUS_TONES[providerStatus]} shape="dot">
-      {statusTextV11(providerStatus)}
+    <KitStatusBadge tone={BADGE_STATUS_TONES[status]} shape="dot">
+      {statusTextV11(status)}
     </KitStatusBadge>
   );
 }

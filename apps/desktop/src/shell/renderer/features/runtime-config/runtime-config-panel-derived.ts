@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import {
-  type ProviderStatusV11,
+  type RuntimeConfigStatusV11,
   type RuntimeConfigStateV11,
 } from './runtime-config-state-types';
 import {
@@ -12,7 +12,7 @@ export type RuntimeConfigPanelDerivedModel = {
   selectedConnector: RuntimeConfigStateV11['connectors'][number] | null;
   orderedConnectors: RuntimeConfigStateV11['connectors'];
   filteredConnectorModels: string[];
-  runtimeStatus: ProviderStatusV11 | null;
+  runtimeStatus: RuntimeConfigStatusV11 | null;
 };
 
 export function useRuntimeConfigPanelDerived(input: {
@@ -33,7 +33,7 @@ export function useRuntimeConfigPanelDerived(input: {
     [input.connectorModelQuery, selectedConnector],
   );
 
-  const runtimeStatus: ProviderStatusV11 | null = input.state
+  const runtimeStatus: RuntimeConfigStatusV11 | null = input.state
     ? (input.state.local.status === 'healthy' ? 'healthy' : (selectedConnector?.status || input.state.local.status))
     : null;
 

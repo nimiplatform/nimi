@@ -39,7 +39,7 @@ export type RuntimePageIdV11 =
   | 'cloud'
   | 'environment';
 export type UiModeV11 = 'simple' | 'advanced';
-export type ProviderStatusV11 = NimiRuntimeConfigProviderStatus;
+export type RuntimeConfigStatusV11 = NimiRuntimeConfigProviderStatus;
 export type ApiConnectorScopeV11 = 'user' | 'machine-global' | 'runtime-system';
 export type ApiVendor = string;
 export type ApiConnectorAuthModeV11 = 'api_key' | 'oauth_managed';
@@ -61,7 +61,7 @@ export type RuntimeConfigActionFocus =
   };
 
 export type LocalStateV11 = {
-  status: ProviderStatusV11;
+  status: RuntimeConfigStatusV11;
   lastCheckedAt: string | null;
   lastDetail: string;
 };
@@ -162,7 +162,7 @@ export function normalizeVendorV11(value: unknown): ApiVendor {
   return normalizeNimiRuntimeConfigConnectorVendor(value) as ApiVendor;
 }
 
-export function normalizeStatusV11(value: unknown): ProviderStatusV11 {
+export function normalizeStatusV11(value: unknown): RuntimeConfigStatusV11 {
   return normalizeNimiRuntimeConfigConnectorStatus(value);
 }
 
@@ -170,7 +170,7 @@ export function normalizeConnectorScopeV11(value: unknown): ApiConnectorScopeV11
   return normalizeNimiRuntimeConfigConnectorScope(value) as ApiConnectorScopeV11;
 }
 
-export function statusTextV11(status: ProviderStatusV11): string {
+export function statusTextV11(status: RuntimeConfigStatusV11): string {
   if (status === 'healthy') return 'Healthy';
   if (status === 'degraded') return 'Degraded';
   if (status === 'unreachable') return 'Unreachable';
@@ -178,7 +178,7 @@ export function statusTextV11(status: ProviderStatusV11): string {
   return 'Not checked';
 }
 
-export function statusClassV11(status: ProviderStatusV11): string {
+export function statusClassV11(status: RuntimeConfigStatusV11): string {
   if (status === 'healthy') return 'bg-[color-mix(in_srgb,var(--nimi-status-success)_12%,transparent)] text-[var(--nimi-status-success)]';
   if (status === 'degraded') return 'bg-[color-mix(in_srgb,var(--nimi-status-warning)_12%,transparent)] text-[var(--nimi-status-warning)]';
   if (status === 'unreachable') return 'bg-[color-mix(in_srgb,var(--nimi-status-danger)_12%,transparent)] text-[var(--nimi-status-danger)]';

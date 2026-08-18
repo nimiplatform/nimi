@@ -218,7 +218,7 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
                   {t('runtimeConfig.panel.checkingHealth', { defaultValue: 'Checking Runtime...' })}
                 </span>
               )}
-              <RuntimeHealthBadge daemonRunning={daemonRunning} providerStatus={runtimeStatus} />
+              <RuntimeHealthBadge daemonRunning={daemonRunning} status={runtimeStatus} />
             </div>
           </div>
         </div>

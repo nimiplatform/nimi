@@ -1,4 +1,4 @@
-import type { ProviderStatusV11, RuntimeConfigStateV11 } from './runtime-config-state-types';
+import type { RuntimeConfigStatusV11, RuntimeConfigStateV11 } from './runtime-config-state-types';
 import type { GetRuntimeHealthResponse } from '@nimiplatform/sdk/runtime/wire-types';
 import {
   projectNimiRuntimeHealthSummary,
@@ -16,10 +16,10 @@ type HealthResult = {
 
 export function normalizeRuntimeHealthResult(result: GetRuntimeHealthResponse): {
   health: HealthResult;
-  normalizedStatus: ProviderStatusV11;
+  normalizedStatus: RuntimeConfigStatusV11;
 } {
   const projection = projectNimiRuntimeHealthSummary(result);
-  const normalizedStatus = projection.normalizedStatus as ProviderStatusV11;
+  const normalizedStatus = projection.normalizedStatus as RuntimeConfigStatusV11;
   return {
     health: projection.health,
     normalizedStatus,
@@ -28,7 +28,7 @@ export function normalizeRuntimeHealthResult(result: GetRuntimeHealthResponse): 
 
 export async function checkLocalHealth(sdk: DesktopRendererSdkPort): Promise<{
   health: HealthResult;
-  normalizedStatus: ProviderStatusV11;
+  normalizedStatus: RuntimeConfigStatusV11;
 }> {
   try {
     const snapshot = await sdk.runtimeHealthCoordinator().forceRefresh('local-health-check');
@@ -54,7 +54,7 @@ export async function discoverConnectorModelsAndHealth(input: {
   discovered: string[];
   modelCapabilities: Record<string, string[]>;
   health: HealthResult;
-  normalizedStatus: ProviderStatusV11;
+  normalizedStatus: RuntimeConfigStatusV11;
 }> {
   const endpoint = input.connector.endpoint;
   await input.connectorSdk.sdkTestConnector(input.connector.id);
