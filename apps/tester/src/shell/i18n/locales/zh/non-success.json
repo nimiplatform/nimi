@@ -1,36 +1,36 @@
 {
   "NonSuccess": {
     "title": {
-      "runtimeUnavailable": "Runtime 不可用",
-      "inputInvalid": "请求输入无效",
-      "sdkMethodUnavailable": "SDK 方法不可用",
-      "principalUnauthorized": "Runtime 所有者未授权",
-      "operationAborted": "操作已停止",
-      "runtimeCanceled": "Runtime 生成已取消",
-      "runtimeTimeout": "Runtime 生成已超时",
-      "runtimeCallFailed": "Runtime 调用失败"
+      "runtimeUnavailable": "本地 AI 暂时不可用",
+      "inputInvalid": "请检查输入",
+      "sdkMethodUnavailable": "当前版本暂不支持",
+      "principalUnauthorized": "需要重新连接",
+      "operationAborted": "已停止等待",
+      "runtimeCanceled": "任务已取消",
+      "runtimeTimeout": "任务已超时",
+      "runtimeCallFailed": "生成失败"
     },
     "message": {
       "runtimeUnavailable": "本次请求中 Runtime 不可用。",
       "inputInvalid": "请求需要提供有效的提示词或必填输入后才能运行。",
       "sdkMethodUnavailable": "当前 App 构建中此能力不可用。",
       "principalUnauthorized": "Runtime 拒绝了本次请求的受保护所有者。",
-      "operationAborted": "调用方已停止等待，Runtime 尚未确认终态。",
-      "runtimeCanceled": "本次 Runtime 生成已取消。",
-      "runtimeTimeout": "本次 Runtime 生成已达到终态超时。",
-      "runtimeCallFailed": "Runtime 未能完成本次生成。",
+      "operationAborted": "你已停止等待；后台任务的最终状态仍在确认。",
+      "runtimeCanceled": "这次任务已取消。",
+      "runtimeTimeout": "这次任务已超时。",
+      "runtimeCallFailed": "这次生成未能完成。",
       "fallback": "本次生成未完成。"
     },
     "action": {
-      "runtimeUnavailable": "启动或重新连接 Runtime 后重试。",
+      "runtimeUnavailable": "返回 Desktop 确认本地 AI 已连接，然后重试。",
       "inputInvalid": "检查提示词与必填字段后重新运行。",
-      "sdkMethodUnavailable": "更新 App 或切换到受支持的能力。",
-      "principalUnauthorized": "恢复受保护的 App 会话后重试。",
-      "operationAborted": "需要继续等待结果时，请重新运行此操作。",
+      "sdkMethodUnavailable": "更新 App 后重试。",
+      "principalUnauthorized": "返回 Desktop 重新打开此 App，然后重试。",
+      "operationAborted": "如果仍需要结果，请重新运行。",
       "runtimeCanceled": "准备好后可重新运行此请求。",
-      "runtimeTimeout": "检查超时原因，并在 Runtime 或提供方可完成请求时重试。",
-      "runtimeCallFailed": "查看带类型的 Runtime 错误，解决其原因后重试。",
-      "fallback": "查看 Runtime 诊断详情后重试。"
+      "runtimeTimeout": "稍后重试；如果仍然超时，再展开 Runtime 详情查看原因。",
+      "runtimeCallFailed": "先重试一次；如果仍然失败，再展开 Runtime 详情查看原因。",
+      "fallback": "请重试；如果仍然失败，再展开 Runtime 详情查看原因。"
     },
     "hint": {
       "runtimeUnavailable": "恢复受保护的 Runtime 连接后重试同一请求。",

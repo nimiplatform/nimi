@@ -265,7 +265,8 @@ export function CapabilityRunHistory({
     const intent = getTesterRunIntentLabel(record);
     const source = historySourceLabelForRun(record);
     if (record.status === 'canceled') {
-      return [t('History.canceled'), intent, source, historyFailureReasonForRun(record)].filter(Boolean).join(' / ');
+      const reason = historyFailureReasonForRun(record);
+      return [t(reason === 'operation-aborted' ? 'History.stoppedWaiting' : 'History.canceled'), intent, source, reason].filter(Boolean).join(' / ');
     }
     if (record.status === 'timed-out') {
       return [t('History.timedOut'), intent, source, historyFailureReasonForRun(record)].filter(Boolean).join(' / ');

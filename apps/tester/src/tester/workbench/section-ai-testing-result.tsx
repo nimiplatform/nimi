@@ -4,7 +4,7 @@ import { AlertTriangle, ChevronRight, Copy as CopyIcon, Download as DownloadIcon
 import { useTranslation } from '../../shell/i18n/index.js';
 import type { TesterCapability } from '../tester-capabilities.js';
 import { formatTesterRunTimestamp, getTesterRunConfigParamRows, getTesterRunIntentLabel, getTesterRunPromptControlFacts, getTesterRunResultTags, getTesterRunStatusTone, type TesterRunConfigParamRow, type TesterRunHistoryRecord, type TesterRunHistoryResultSnapshot, type TesterRunPromptControlFact } from '../tester-history.js';
-import { nonSuccessReasonUserAction, nonSuccessReasonUserMessage } from '../tester-non-success.js';
+import { nonSuccessReasonTitle, nonSuccessReasonUserAction, nonSuccessReasonUserMessage } from '../tester-non-success.js';
 import { ArtifactMediaResult, RuntimeDiagnosticsActions, StudioResult, TextStudioOutputBody, downloadTextFile, statusForCapability } from './section-ai-testing-surface.js';
 import type { TextStudioActiveRun } from './section-ai-testing-run.js';
 import { useTesterRendererHost } from '../../renderer/context.js';
@@ -154,11 +154,11 @@ function TextStudioHistoryRecordResult({
   const rendererHost = useTesterRendererHost();
   const { t } = useTranslation();
   const snapshot = record.result;
-  const tags = getTesterRunResultTags(record);
+  const blocked = snapshot && !snapshot.ok ? snapshot : null;
+  const tags = blocked ? [nonSuccessReasonTitle(blocked.reason)] : getTesterRunResultTags(record);
   const intentLabel = getTesterRunIntentLabel(record);
   const toneClass = historyResultToneClass(record);
   const exportText = historyRecordPlainText(record);
-  const blocked = snapshot && !snapshot.ok ? snapshot : null;
   const canExport = !blocked && Boolean(exportText.trim());
   const hasRequestSettings = hasTextStudioRequestSettings(record);
   const [requestSettingsOpen, setRequestSettingsOpen] = useState(false);
@@ -197,7 +197,7 @@ function TextStudioHistoryRecordResult({
       <div className="studio-result__blocked">
         <div className="studio-result__blocked-line">
           <AlertTriangle size={15} aria-hidden="true" />
-          <span>{t('StudioShell.generationFailed')}</span>
+          <span>{nonSuccessReasonTitle(snapshot.reason)}</span>
         </div>
         <p>{nonSuccessReasonUserMessage(snapshot.reason)}</p>
         <p className="studio-result__hint">{nonSuccessReasonUserAction(snapshot.reason)}</p>
@@ -216,7 +216,7 @@ function TextStudioHistoryRecordResult({
       <div className="studio-history-result__head">
         <div className="studio-history-result__line">
           <StatusBadge tone={getTesterRunStatusTone(record.status)} shape="dot">
-            {t(RUN_STATUS_LABEL_KEY[record.status])}
+            {blocked ? nonSuccessReasonTitle(blocked.reason) : t(RUN_STATUS_LABEL_KEY[record.status])}
           </StatusBadge>
           <span className="studio-history-result__title-stack">
             <time dateTime={record.createdAt}>{t('StudioShell.runLabel')} / {formatTesterRunTimestamp(record.createdAt, new Date(rendererHost.clock.now()))}</time>
@@ -300,12 +300,9 @@ function TextStudioHistorySnapshotBody({ snapshot }: { snapshot: Extract<TesterR
   }
   if (snapshot.kind === 'voice-asset') {
     return (
-      <ul className="studio-voice-list">
-        <li>
-          <strong>{snapshot.voiceAssetId}</strong>
-          <span>{snapshot.creationSource} / {snapshot.assetStatus}</span>
-        </li>
-      </ul>
+      <div className="studio-result__rich">
+        <p className="studio-result__plain">{t('StudioShell.voiceAssetSuccess')}</p>
+      </div>
     );
   }
   return (
@@ -346,6 +343,7 @@ export function TextStudioResultState({
   admission,
   intentLabel,
   running,
+  cancelRequested,
   streamingText,
   verboseConsole,
   composer,
@@ -360,6 +358,7 @@ export function TextStudioResultState({
   admission: ReturnType<typeof statusForCapability>;
   intentLabel: string;
   running: boolean;
+  cancelRequested: boolean;
   streamingText: string | null;
   verboseConsole: boolean;
   composer: ReactNode;
@@ -393,6 +392,7 @@ export function TextStudioResultState({
               <StudioResult
                 result={activeRun.result}
                 running={running}
+                cancelRequested={cancelRequested}
                 capability={capability}
                 admission={admission}
                 createdAt={activeRun.createdAt}

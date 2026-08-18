@@ -116,7 +116,7 @@ export function createTesterCapabilityParameterState(): TesterCapabilityParamete
     'video.generate': { mode: 't2v', generateAudio: true },
     'audio.synthesize': {},
     'audio.transcribe': {},
-    'voice.create': { creationSource: 'reference-audio' },
+    'voice.create': { creationSource: 'text-description' },
     'speech.bundle': {},
     'world.generate': {},
   };

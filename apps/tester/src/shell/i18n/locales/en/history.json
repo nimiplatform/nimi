@@ -84,6 +84,7 @@
       "unknown": "Unknown"
     },
     "canceled": "Canceled",
+    "stoppedWaiting": "Stopped waiting",
     "timedOut": "Timed out",
     "failed": "Failed",
     "today": "Today",

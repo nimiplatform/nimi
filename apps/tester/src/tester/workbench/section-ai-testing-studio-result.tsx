@@ -42,12 +42,9 @@ function ReadyBody({ result }: { result: TesterCapabilityRunResult & { ok: true 
   }
   if (output.kind === 'voice-asset') {
     return (
-      <ul className="studio-voice-list">
-        <li>
-          <strong>{output.voiceAssetId}</strong>
-          <span>{output.creationSource} / {output.assetStatus}</span>
-        </li>
-      </ul>
+      <div className="studio-result__rich">
+        <p className="studio-result__plain">{t('StudioShell.voiceAssetSuccess')}</p>
+      </div>
     );
   }
   return (
@@ -172,6 +169,7 @@ function studioResultIntentLabel(result: TesterCapabilityRunResult | null, capab
 export function StudioResult({
   result,
   running,
+  cancelRequested,
   capability,
   admission,
   createdAt,
@@ -186,6 +184,7 @@ export function StudioResult({
 }: {
   result: TesterCapabilityRunResult | null;
   running: boolean;
+  cancelRequested: boolean;
   capability: TesterCapability;
   admission: CapabilityStatus;
   createdAt?: string;
@@ -220,7 +219,7 @@ export function StudioResult({
     : running ? t('Studio.result.statRunning') : t('Studio.result.notRecorded');
   const statusTitleKey = simulated
     ? running ? 'simulatorRunning' : blocked ? 'simulatorBlocked' : ready ? 'simulatorResult' : 'simulatorWaiting'
-    : running ? 'runtimeRunning' : operationAborted ? 'operationAborted' : canceled ? 'runtimeCanceled' : timedOut ? 'runtimeTimedOut' : blocked ? 'runtimeBlocked' : ready ? 'runtimeResult' : 'runtimeWaiting';
+    : cancelRequested ? 'stopping' : running ? 'runtimeRunning' : operationAborted ? 'operationAborted' : canceled ? 'runtimeCanceled' : timedOut ? 'runtimeTimedOut' : blocked ? 'runtimeBlocked' : ready ? 'runtimeResult' : 'runtimeWaiting';
   const statusTitle = t(`Studio.result.status.${statusTitleKey}`);
   const statusTone = blocked || operationAborted || canceled || timedOut ? 'warning' : ready ? 'success' : running ? 'info' : 'neutral';
   useEffect(() => {
@@ -234,20 +233,23 @@ export function StudioResult({
   }
 
   function studioResultStats(fallbackMetric: string): StudioResultStat[] {
-    if (running) return [{ label: t('Studio.result.statStatus'), value: t('Studio.result.statRunning') }];
+    if (running) return [{ label: t('Studio.result.statStatus'), value: t(cancelRequested ? 'Studio.result.statStopping' : 'Studio.result.statRunning') }];
     if (!result) return [{ label: t('Studio.result.statStatus'), value: t('Studio.result.statWaiting') }];
     if (!result.ok) return [{
       label: t('Studio.result.statStatus'),
-      value: t(result.reason === 'runtime-canceled' || result.reason === 'operation-aborted'
-        ? 'Studio.result.statCanceled'
+      value: t(result.reason === 'operation-aborted'
+        ? 'Studio.result.statStopped'
+        : result.reason === 'runtime-canceled'
+          ? 'Studio.result.statCanceled'
         : result.reason === 'runtime-timeout'
           ? 'Studio.result.statTimedOut'
           : 'Studio.result.statBlocked'),
     }];
     const output = result.output;
     if (output.kind === 'text') {
+      const tokenCount = formatStudioTokenCount(output.inputTokens, output.outputTokens, output.totalTokens);
       return [
-        { label: t('Studio.result.statTokens'), value: formatStudioTokenCount(output.inputTokens, output.outputTokens, output.totalTokens) },
+        ...(tokenCount === t('Studio.result.tokensNotCaptured') ? [] : [{ label: t('Studio.result.statTokens'), value: tokenCount }]),
         { label: t('Studio.result.statCharacters'), value: String(output.text.length) },
       ];
     }
@@ -263,13 +265,13 @@ export function StudioResult({
     if (output.kind === 'artifacts') {
       return [
         { label: t('Studio.result.statArtifacts'), value: String(output.artifactCount) },
-        { label: t('Studio.result.statState'), value: output.jobState || t('Studio.result.stateUnknown') },
+        { label: t('Studio.result.statState'), value: output.jobState === 'COMPLETED' ? t('Studio.result.statCompleted') : output.jobState || t('Studio.result.stateUnknown') },
       ];
     }
     if (output.kind === 'voice-asset') {
       return [
-        { label: t('Studio.result.statState'), value: output.assetStatus },
-        { label: t('Studio.result.statResult'), value: output.creationSource },
+        { label: t('Studio.result.statState'), value: t('Studio.result.statAvailable') },
+        { label: t('Studio.result.statResult'), value: t(output.creationSource === 'text-description' ? 'Studio.result.createdFromDescription' : 'Studio.result.createdFromAudio') },
       ];
     }
     return [
@@ -296,13 +298,26 @@ export function StudioResult({
       <div className="studio-result__pending">
         <div className="studio-result__pending-line">
           <Loader2 size={15} aria-hidden="true" className="studio-spin" />
-          <span>{capability.execution === 'standalone-tauri'
+          <span>{cancelRequested
+            ? t('Studio.result.pendingCancel')
+            : capability.execution === 'standalone-tauri'
             ? t('Studio.result.pendingViewer')
             : simulated
               ? t('Studio.result.pendingSimulator')
               : hasStream ? t('Studio.result.pendingStreaming') : t('Studio.result.pendingRuntime')}</span>
         </div>
         {hasStream ? <div className="studio-result__text studio-result__text--stream" aria-live="polite">{streamingText || '...'}</div> : null}
+      </div>
+    );
+  } else if (operationAborted) {
+    body = (
+      <div className="studio-result__blocked">
+        <div className="studio-result__blocked-line">
+          <Clock size={15} aria-hidden="true" />
+          <span>{statusTitle}</span>
+        </div>
+        <p>{nonSuccessReasonUserMessage(operationAborted.reason)}</p>
+        <p className="studio-result__hint">{nonSuccessReasonUserAction(operationAborted.reason)}</p>
       </div>
     );
   } else if (canceled) {
@@ -373,8 +388,8 @@ export function StudioResult({
         </div>
         <div className="studio-result__actions">
           {running && onCancel ? (
-            <Tooltip content={t('StudioShell.cancelGeneration')} placement="top">
-              <IconButton type="button" className="studio-result__action" onClick={onCancel} aria-label={t('StudioShell.cancelGeneration')} icon={<Square size={14} aria-hidden="true" />} />
+            <Tooltip content={t(cancelRequested ? 'StudioShell.cancelRequested' : 'StudioShell.cancelGeneration')} placement="top">
+              <IconButton type="button" className="studio-result__action" onClick={onCancel} disabled={cancelRequested} aria-label={t(cancelRequested ? 'StudioShell.cancelRequested' : 'StudioShell.cancelGeneration')} icon={<Square size={14} aria-hidden="true" />} />
             </Tooltip>
           ) : null}
           {!blocked && !canceled ? (

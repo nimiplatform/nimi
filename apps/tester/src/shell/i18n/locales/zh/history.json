@@ -84,6 +84,7 @@
       "unknown": "未知"
     },
     "canceled": "已取消",
+    "stoppedWaiting": "已停止等待",
     "timedOut": "已超时",
     "failed": "失败",
     "today": "今天",

@@ -1,36 +1,36 @@
 {
   "NonSuccess": {
     "title": {
-      "runtimeUnavailable": "Runtime unavailable",
-      "inputInvalid": "Invalid request input",
-      "sdkMethodUnavailable": "SDK method unavailable",
-      "principalUnauthorized": "Runtime owner unauthorized",
-      "operationAborted": "Operation stopped",
-      "runtimeCanceled": "Runtime generation canceled",
-      "runtimeTimeout": "Runtime generation timed out",
-      "runtimeCallFailed": "Runtime call failed"
+      "runtimeUnavailable": "Local AI is unavailable",
+      "inputInvalid": "Check your input",
+      "sdkMethodUnavailable": "Not supported in this version",
+      "principalUnauthorized": "Reconnect this app",
+      "operationAborted": "Stopped waiting",
+      "runtimeCanceled": "Task canceled",
+      "runtimeTimeout": "Task timed out",
+      "runtimeCallFailed": "Generation failed"
     },
     "message": {
       "runtimeUnavailable": "Runtime is unavailable for this request.",
       "inputInvalid": "The request needs a valid prompt or required input before it can run.",
       "sdkMethodUnavailable": "This capability is not available in the current app build.",
       "principalUnauthorized": "Runtime rejected the protected owner for this request.",
-      "operationAborted": "The caller stopped waiting before Runtime confirmed a terminal state.",
-      "runtimeCanceled": "This Runtime generation was canceled.",
-      "runtimeTimeout": "This Runtime generation reached its terminal timeout.",
-      "runtimeCallFailed": "Runtime could not complete this generation.",
+      "operationAborted": "You stopped waiting; the background task is still confirming its final state.",
+      "runtimeCanceled": "This task was canceled.",
+      "runtimeTimeout": "This task timed out.",
+      "runtimeCallFailed": "This generation could not be completed.",
       "fallback": "The generation did not complete."
     },
     "action": {
-      "runtimeUnavailable": "Start or reconnect Runtime, then try again.",
+      "runtimeUnavailable": "Return to Desktop, confirm Local AI is connected, then try again.",
       "inputInvalid": "Review the prompt and required fields, then run it again.",
-      "sdkMethodUnavailable": "Update the app or switch to a supported capability.",
-      "principalUnauthorized": "Restore the protected App session, then retry.",
-      "operationAborted": "Run the operation again when you want to resume waiting for a result.",
+      "sdkMethodUnavailable": "Update the app, then try again.",
+      "principalUnauthorized": "Return to Desktop, reopen this app, then try again.",
+      "operationAborted": "Run it again if you still need the result.",
       "runtimeCanceled": "Run the request again when you are ready.",
-      "runtimeTimeout": "Review the timeout cause, then retry when the Runtime or provider can complete the request.",
-      "runtimeCallFailed": "Inspect the typed Runtime error, then retry after resolving its cause.",
-      "fallback": "Check Runtime details for diagnostics, then try again."
+      "runtimeTimeout": "Try again later. If it still times out, open Runtime details to find the cause.",
+      "runtimeCallFailed": "Try again once. If it still fails, open Runtime details to find the cause.",
+      "fallback": "Try again. If it still fails, open Runtime details to find the cause."
     },
     "hint": {
       "runtimeUnavailable": "Restore the protected Runtime connection, then retry the same request.",

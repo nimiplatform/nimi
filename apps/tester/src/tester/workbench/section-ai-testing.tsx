@@ -69,6 +69,7 @@ function TextStudioShell({
   ));
   const [context, setContext] = useState('');
   const [running, setRunning] = useState(false);
+  const [cancelRequested, setCancelRequested] = useState(false);
   const [streamingText, setStreamingText] = useState<string | null>(null);
   const [activeRun, setActiveRun] = useState<TextStudioActiveRun | null>(null);
   const [sessionRuns, setSessionRuns] = useState<Record<string, TextStudioActiveRun>>({});
@@ -147,6 +148,7 @@ function TextStudioShell({
     setActiveRun(null);
     setSessionRuns({});
     setRunning(false);
+    setCancelRequested(false);
     setStreamingText(null);
   }, [capability.id, draftPersistence, preset, rendererHost]);
 
@@ -170,6 +172,7 @@ function TextStudioShell({
     };
     setActiveRun(pendingRun);
     setRunning(true);
+    setCancelRequested(false);
     try {
       let result: TesterCapabilityRunResult;
       try {
@@ -242,6 +245,7 @@ function TextStudioShell({
       if (runSeq === runSeqRef.current) {
         if (abortControllerRef.current === abortController) abortControllerRef.current = null;
         setRunning(false);
+        setCancelRequested(false);
         setStreamingText(null);
       }
     }
@@ -352,6 +356,8 @@ function TextStudioShell({
   }
 
   function handleCancel() {
+    if (cancelRequested) return;
+    setCancelRequested(true);
     abortControllerRef.current?.abort('tester-user-canceled');
   }
 
@@ -402,6 +408,7 @@ function TextStudioShell({
                 admission={admission}
                 intentLabel={activeRun.record ? getTesterRunIntentLabel(activeRun.record) : runTarget.intentLabel}
                 running={running}
+                cancelRequested={cancelRequested}
                 streamingText={streamingText}
                 verboseConsole={verboseConsole}
                 composer={composer}

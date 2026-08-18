@@ -788,7 +788,7 @@ export function CapabilityParameterPanel(props: ParameterPanelProps) {
     <section className="studio-parameters" aria-label={t('Studio.parameters.title')}>
       <div className="studio-parameters__head">
         <span>{t('Studio.parameters.presenceHint')}</span>
-        <Button type="button" tone="ghost" size="sm" disabled={props.disabled} onClick={() => props.onChange((props.capabilityId === 'video.generate' ? { mode: 't2v', generateAudio: true } : props.capabilityId === 'voice.create' ? { creationSource: 'reference-audio' } : {}) as never)}>
+        <Button type="button" tone="ghost" size="sm" disabled={props.disabled} onClick={() => props.onChange((props.capabilityId === 'video.generate' ? { mode: 't2v', generateAudio: true } : props.capabilityId === 'voice.create' ? { creationSource: 'text-description' } : {}) as never)}>
           {t('Studio.parameters.reset')}
         </Button>
       </div>
