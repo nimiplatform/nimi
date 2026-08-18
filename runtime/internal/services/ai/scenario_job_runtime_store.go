@@ -38,6 +38,8 @@ const (
 	scenarioJobPersistProgress      scenarioJobPersistenceOperation = "progress"
 	scenarioJobPersistArtifact      scenarioJobPersistenceOperation = "artifact"
 	scenarioJobPersistCancellation  scenarioJobPersistenceOperation = "cancellation"
+	scenarioJobPersistCustodyBegin  scenarioJobPersistenceOperation = "credential-custody-begin"
+	scenarioJobPersistCustodyAbort  scenarioJobPersistenceOperation = "credential-custody-abort"
 	scenarioJobPersistLoad          scenarioJobPersistenceOperation = "load"
 	scenarioJobPersistPrune         scenarioJobPersistenceOperation = "prune"
 )
@@ -83,6 +85,12 @@ type scenarioIdempotencyBinding struct {
 	boundAt time.Time
 }
 
+type scenarioPendingCloudCustody struct {
+	jobID      string
+	ref        string
+	capturedAt time.Time
+}
+
 // @nimi-authority: definition.nimi.runtime.service-operations.scenario-job-plane
 type scenarioJobStore struct {
 	mu                   sync.RWMutex
@@ -90,6 +98,7 @@ type scenarioJobStore struct {
 	jobs                 map[string]*scenarioJobRecord
 	artifactJobs         map[string]string
 	idempotency          map[string]scenarioIdempotencyBinding
+	pendingCloudCustody  map[string]scenarioPendingCloudCustody
 	uploads              map[string]*uploadedArtifactRecord
 	persistenceFailure   func(scenarioJobPersistenceAttempt) error
 	isolationDiagnostics []scenarioJobIsolationDiagnostic
@@ -97,10 +106,11 @@ type scenarioJobStore struct {
 
 func newScenarioJobStore() *scenarioJobStore {
 	return &scenarioJobStore{
-		jobs:         make(map[string]*scenarioJobRecord),
-		artifactJobs: make(map[string]string),
-		idempotency:  make(map[string]scenarioIdempotencyBinding),
-		uploads:      make(map[string]*uploadedArtifactRecord),
+		jobs:                make(map[string]*scenarioJobRecord),
+		artifactJobs:        make(map[string]string),
+		idempotency:         make(map[string]scenarioIdempotencyBinding),
+		pendingCloudCustody: make(map[string]scenarioPendingCloudCustody),
+		uploads:             make(map[string]*uploadedArtifactRecord),
 	}
 }
 
@@ -139,7 +149,7 @@ func (s *scenarioJobStore) createOwnedAndBindAssemblyChecked(
 	idempotencyScope string,
 	resolvedAssembly *localResolvedAssembly,
 ) (*runtimev1.ScenarioJob, bool, error) {
-	return s.createOwnedAndBindCapturedInputsChecked(job, cancel, owner, idempotencyScope, resolvedAssembly, nil)
+	return s.createOwnedAndBindCapturedInputsChecked(job, cancel, owner, idempotencyScope, resolvedAssembly, nil, false)
 }
 
 func (s *scenarioJobStore) createOwnedAndBindCloudAssemblyChecked(
@@ -149,7 +159,7 @@ func (s *scenarioJobStore) createOwnedAndBindCloudAssemblyChecked(
 	idempotencyScope string,
 	cloudAssembly *cloudResolvedAssembly,
 ) (*runtimev1.ScenarioJob, bool, error) {
-	return s.createOwnedAndBindCapturedInputsChecked(job, cancel, owner, idempotencyScope, nil, cloudAssembly)
+	return s.createOwnedAndBindCapturedInputsChecked(job, cancel, owner, idempotencyScope, nil, cloudAssembly, true)
 }
 
 func (s *scenarioJobStore) createOwnedAndBindCapturedInputsChecked(
@@ -159,6 +169,7 @@ func (s *scenarioJobStore) createOwnedAndBindCapturedInputsChecked(
 	idempotencyScope string,
 	resolvedAssembly *localResolvedAssembly,
 	cloudAssembly *cloudResolvedAssembly,
+	consumePendingCloudCustody bool,
 ) (*runtimev1.ScenarioJob, bool, error) {
 	if job == nil {
 		return nil, false, fmt.Errorf("scenario job is required")
@@ -204,6 +215,15 @@ func (s *scenarioJobStore) createOwnedAndBindCapturedInputsChecked(
 	key := strings.TrimSpace(idempotencyScope)
 
 	s.mu.Lock()
+	var pendingCustody scenarioPendingCloudCustody
+	if consumePendingCloudCustody {
+		pendingCustody = s.pendingCloudCustody[id]
+		if strings.TrimSpace(pendingCustody.ref) == "" || capturedCloudAssembly == nil ||
+			pendingCustody.ref != strings.TrimSpace(capturedCloudAssembly.CredentialCustodyRef) {
+			s.mu.Unlock()
+			return nil, false, fmt.Errorf("scenario job %q has no matching durable credential custody obligation", id)
+		}
+	}
 	var previousBinding scenarioIdempotencyBinding
 	var hadPreviousBinding bool
 	operation := scenarioJobPersistCreate
@@ -219,6 +239,9 @@ func (s *scenarioJobStore) createOwnedAndBindCapturedInputsChecked(
 		}
 	}
 	s.jobs[id] = record
+	if consumePendingCloudCustody {
+		delete(s.pendingCloudCustody, id)
+	}
 	s.syncArtifactIndexLocked(id, record)
 	if key != "" {
 		s.idempotency[key] = scenarioIdempotencyBinding{jobID: id, boundAt: nowTime}
@@ -228,6 +251,9 @@ func (s *scenarioJobStore) createOwnedAndBindCapturedInputsChecked(
 	s.pruneLocked(nowTime)
 	if err := s.persistDurableJobsLocked(scenarioJobPersistenceAttempt{Operation: operation, JobID: id, Status: record.job.GetStatus()}); err != nil {
 		s.deleteJobLocked(id)
+		if consumePendingCloudCustody {
+			s.pendingCloudCustody[id] = pendingCustody
+		}
 		if key != "" {
 			if hadPreviousBinding {
 				s.idempotency[key] = previousBinding
@@ -243,6 +269,74 @@ func (s *scenarioJobStore) createOwnedAndBindCapturedInputsChecked(
 	}
 	s.mu.Unlock()
 	return cloneScenarioJob(record.job), true, nil
+}
+
+func (s *scenarioJobStore) beginCloudCredentialCustody(jobID string, ref string) error {
+	if s == nil {
+		return fmt.Errorf("ScenarioJob store is required")
+	}
+	id := strings.TrimSpace(jobID)
+	custodyRef := strings.TrimSpace(ref)
+	if id == "" || custodyRef == "" {
+		return fmt.Errorf("ScenarioJob credential custody identity is required")
+	}
+	now := time.Now().UTC()
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.jobs[id] != nil {
+		return fmt.Errorf("scenario job %q already exists", id)
+	}
+	previous, hadPrevious := s.pendingCloudCustody[id]
+	if hadPrevious && previous.ref != custodyRef {
+		return fmt.Errorf("scenario job %q has another credential custody obligation", id)
+	}
+	s.pendingCloudCustody[id] = scenarioPendingCloudCustody{jobID: id, ref: custodyRef, capturedAt: now}
+	if err := s.persistDurableJobsLocked(scenarioJobPersistenceAttempt{Operation: scenarioJobPersistCustodyBegin, JobID: id}); err != nil {
+		if hadPrevious {
+			s.pendingCloudCustody[id] = previous
+		} else {
+			delete(s.pendingCloudCustody, id)
+		}
+		return fmt.Errorf("persist ScenarioJob credential custody obligation: %w", err)
+	}
+	return nil
+}
+
+func (s *scenarioJobStore) clearPendingCloudCredentialCustody(jobID string, ref string) error {
+	if s == nil {
+		return fmt.Errorf("ScenarioJob store is required")
+	}
+	id := strings.TrimSpace(jobID)
+	custodyRef := strings.TrimSpace(ref)
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	previous, ok := s.pendingCloudCustody[id]
+	if !ok {
+		return nil
+	}
+	if previous.ref != custodyRef {
+		return fmt.Errorf("scenario job %q credential custody obligation does not match", id)
+	}
+	delete(s.pendingCloudCustody, id)
+	if err := s.persistDurableJobsLocked(scenarioJobPersistenceAttempt{Operation: scenarioJobPersistCustodyAbort, JobID: id}); err != nil {
+		s.pendingCloudCustody[id] = previous
+		return fmt.Errorf("persist ScenarioJob credential custody cleanup: %w", err)
+	}
+	return nil
+}
+
+func (s *scenarioJobStore) pendingCloudCredentialCustody() []scenarioPendingCloudCustody {
+	if s == nil {
+		return nil
+	}
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	result := make([]scenarioPendingCloudCustody, 0, len(s.pendingCloudCustody))
+	for _, pending := range s.pendingCloudCustody {
+		result = append(result, pending)
+	}
+	sort.Slice(result, func(i, j int) bool { return result[i].jobID < result[j].jobID })
+	return result
 }
 
 func (s *scenarioJobStore) resolvedAssembly(jobID string) (*localResolvedAssembly, bool) {

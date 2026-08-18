@@ -515,10 +515,23 @@ func TestManagedModelDownloadShutdownRestoresPausedWithStaging(t *testing.T) {
 func TestPausedManagedModelDownloadStaysPausedWhenInstallCallIsCanceled(t *testing.T) {
 	svc := newTestService(t)
 	modelID := "local.test.paused-call-cancel"
-	payload := []byte(strings.Repeat("paused-call-cancel-payload", 4096))
+	payload := append(validTestGGUF(), []byte(strings.Repeat("paused-call-cancel-payload", 4096))...)
 	sum := sha256.Sum256(payload)
 	requestStarted := make(chan struct{})
+	var requests int32
+	var rangeStart int64 = -1
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		attempt := atomic.AddInt32(&requests, 1)
+		if attempt > 1 {
+			if rangeHeader := strings.TrimSpace(r.Header.Get("Range")); rangeHeader != "" {
+				startToken := strings.TrimSuffix(strings.TrimPrefix(rangeHeader, "bytes="), "-")
+				if start, parseErr := strconv.ParseInt(startToken, 10, 64); parseErr == nil {
+					atomic.StoreInt64(&rangeStart, start)
+				}
+			}
+			serveModelWithRange(w, r, payload)
+			return
+		}
 		w.Header().Set("Content-Length", strconv.Itoa(len(payload)))
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write(payload[:4096])
@@ -552,6 +565,29 @@ func TestPausedManagedModelDownloadStaysPausedWhenInstallCallIsCanceled(t *testi
 	paused := svc.localTransferSummary(transfer.GetInstallSessionId())
 	if paused.GetState() != localTransferStatePaused || !paused.GetRetryable() {
 		t.Fatalf("paused transfer after install call cancellation = %+v, want paused/retryable", paused)
+	}
+	response, err := svc.ResumeLocalTransfer(context.Background(), &runtimev1.ResumeLocalTransferRequest{
+		InstallSessionId: transfer.GetInstallSessionId(),
+	})
+	if err != nil {
+		t.Fatalf("resume paused transfer after install call cancellation: %v", err)
+	}
+	if response.GetTransfer().GetState() != localTransferStateRunning {
+		t.Fatalf("resumed transfer = %+v, want running", response.GetTransfer())
+	}
+	deadline := time.Now().Add(5 * time.Second)
+	for time.Now().Before(deadline) {
+		if summary := svc.localTransferSummary(transfer.GetInstallSessionId()); summary.GetState() == localTransferStateCompleted {
+			break
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+	completed := svc.localTransferSummary(transfer.GetInstallSessionId())
+	if completed.GetState() != localTransferStateCompleted {
+		t.Fatalf("resumed transfer did not complete: %+v", completed)
+	}
+	if got := atomic.LoadInt64(&rangeStart); got != paused.GetBytesReceived() {
+		t.Fatalf("resumed transfer Range start = %d, want durable prefix %d", got, paused.GetBytesReceived())
 	}
 }
 

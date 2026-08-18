@@ -131,6 +131,7 @@ func persistPrimaryVoiceScenarioJobForTest(t *testing.T, localStatePath string, 
 		t.Fatal(err)
 	}
 	assembly.CredentialCustodyRef = cloudCredentialCustodyRefForTest(job.GetJobId())
+	beginCloudCredentialCustodyForTest(t, store, job.GetJobId())
 	if created, published, createErr := store.createOwnedAndBindCloudAssemblyChecked(job, func() {}, nil, "", assembly); createErr != nil || !published || created == nil {
 		t.Fatalf("persist primary voice ScenarioJob: job=%#v published=%v err=%v", created, published, createErr)
 	}

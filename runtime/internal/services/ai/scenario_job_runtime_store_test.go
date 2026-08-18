@@ -51,6 +51,7 @@ func TestScenarioJobStoreConcurrentIdempotentCreateReturnsOneCanonicalJob(t *tes
 		jobs[index] = completedScenarioJobForIsolationTest("job-concurrent-" + string(rune('0'+index)))
 		jobs[index].Status = runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED
 		assemblies[index] = cloudAssemblyForIsolationTest(t, jobs[index])
+		beginCloudCredentialCustodyForTest(t, store, jobs[index].GetJobId())
 	}
 	start := make(chan struct{})
 	results := make([]*runtimev1.ScenarioJob, 2)

@@ -63,7 +63,7 @@ func (s *Service) captureImmediateCloudScenarioJob(
 	)
 	if persistErr != nil {
 		cancel()
-		_ = s.releaseCloudCredentialCustody(assembly.CredentialCustodyRef)
+		_ = s.discardPendingCloudCredentialCustody(job.GetJobId(), assembly.CredentialCustodyRef)
 		return nil, nil, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID, persistErr, grpcerr.ReasonOptions{
 			Message: "captured Cloud ResolvedAssembly and ScenarioJob could not be committed atomically",
 		})
@@ -71,7 +71,7 @@ func (s *Service) captureImmediateCloudScenarioJob(
 	if !created || stored == nil || !s.scenarioJobs.startExecution(stored.GetJobId()) {
 		cancel()
 		if !created {
-			_ = s.releaseCloudCredentialCustody(assembly.CredentialCustodyRef)
+			_ = s.discardPendingCloudCredentialCustody(job.GetJobId(), assembly.CredentialCustodyRef)
 		}
 		return nil, nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}

@@ -165,3 +165,39 @@ func TestStreamCancellationTerminalReasonMatchesCanceledStatus(t *testing.T) {
 		})
 	}
 }
+
+func TestCloudStreamDeliveryFailureOutranksAmbientContextCancellation(t *testing.T) {
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	jobID := "cloud-stream-delivery-failure"
+	created := svc.scenarioJobs.create(&runtimev1.ScenarioJob{
+		JobId: jobID,
+		Head: &runtimev1.ScenarioRequestHead{
+			AppId:         "nimi.desktop",
+			SubjectUserId: "user-001",
+		},
+		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,
+		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_STREAM,
+		ModelResolved: "cloud-stream-model",
+		TraceId:       "trace-cloud-stream-delivery",
+		Status:        runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING,
+		ReasonCode:    runtimev1.ReasonCode_ACTION_EXECUTED,
+	}, func() {})
+	if created == nil {
+		t.Fatal("create cloud stream ScenarioJob")
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	svc.finishCloudScenarioJobFailure(
+		ctx,
+		jobID,
+		scenarioStreamDeliveryError(status.Error(codes.Unavailable, "client stream closed")),
+	)
+	terminal, ok := svc.scenarioJobs.get(jobID)
+	if !ok {
+		t.Fatal("get cloud stream ScenarioJob")
+	}
+	if terminal.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED ||
+		terminal.GetReasonCode() != runtimev1.ReasonCode_AI_STREAM_BROKEN {
+		t.Fatalf("cloud stream terminal = status=%s reason=%s", terminal.GetStatus(), terminal.GetReasonCode())
+	}
+}

@@ -107,19 +107,19 @@ func (s *Service) submitScenarioAsyncJob(
 	snapshot, created, persistErr := s.scenarioJobs.createOwnedAndBindCloudAssemblyChecked(job, cancel, localAppJobOwnerFromContext(ctx), idempotencyScope, effective.resolvedAssembly)
 	if persistErr != nil {
 		cancel()
-		_ = s.releaseCloudCredentialCustody(effective.resolvedAssembly.CredentialCustodyRef)
+		_ = s.discardPendingCloudCredentialCustody(jobID, effective.resolvedAssembly.CredentialCustodyRef)
 		return fail(grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID, persistErr, grpcerr.ReasonOptions{
 			Message: "ScenarioJob submission could not be persisted",
 		}))
 	}
 	if snapshot == nil {
 		cancel()
-		_ = s.releaseCloudCredentialCustody(effective.resolvedAssembly.CredentialCustodyRef)
+		_ = s.discardPendingCloudCredentialCustody(jobID, effective.resolvedAssembly.CredentialCustodyRef)
 		return fail(grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID))
 	}
 	if !created {
 		cancel()
-		_ = s.releaseCloudCredentialCustody(effective.resolvedAssembly.CredentialCustodyRef)
+		_ = s.discardPendingCloudCredentialCustody(jobID, effective.resolvedAssembly.CredentialCustodyRef)
 		effective.release()
 		return &runtimev1.SubmitScenarioJobResponse{Job: snapshot}, nil
 	}

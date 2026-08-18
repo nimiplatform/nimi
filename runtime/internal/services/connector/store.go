@@ -391,6 +391,12 @@ func scenarioJobCredentialCustodyRef(jobID string) (string, error) {
 	return scenarioJobCredentialCustodyPrefix + id, nil
 }
 
+// CredentialCustodyRefForJob returns the opaque secret-store identity reserved
+// for one exact ScenarioJob before any credential material is copied.
+func CredentialCustodyRefForJob(jobID string) (string, error) {
+	return scenarioJobCredentialCustodyRef(jobID)
+}
+
 func validateScenarioJobCredentialCustodyRef(ref string) (string, error) {
 	validated, err := sanitizeConnectorID(ref)
 	if err != nil {

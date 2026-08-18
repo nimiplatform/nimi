@@ -197,7 +197,7 @@ func (s *Service) installManagedDownloadedModelWithTransfer(
 	ctx context.Context,
 	spec managedDownloadedModelSpec,
 	restoredTransferID string,
-) (*runtimev1.ModelAssetRecord, error) {
+) (modelAssetResult *runtimev1.ModelAssetRecord, resultErr error) {
 	canonicalSpec, err := canonicalManagedDownloadedModelSpec(spec)
 	if err != nil {
 		return nil, grpcerr.WrapWithReasonCode(
@@ -277,6 +277,13 @@ func (s *Service) installManagedDownloadedModelWithTransfer(
 			return nil, localTransferPersistenceError(persistErr)
 		}
 	}
+	executorControl := s.transferControl(transferID)
+	if executorControl == nil {
+		return nil, fmt.Errorf("managed model transfer %q has no executor control", transferID)
+	}
+	defer func() {
+		s.finishManagedModelDownloadExecutor(transferID, executorControl, resultErr)
+	}()
 	storageID := managedModelAcquisitionStorageID(modelID, transferID)
 	logicalModelID := storageID
 	modelDir, err := resolveRuntimeManagedModelBundleDir(modelsRoot, logicalModelID)

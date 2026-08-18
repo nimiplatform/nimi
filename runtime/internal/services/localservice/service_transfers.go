@@ -651,7 +651,6 @@ func (s *Service) startRestoredManagedModelDownload(
 	go func() {
 		defer s.transferWorkerWG.Done()
 		_, runErr := s.installManagedDownloadedModelWithTransfer(parent, plan.spec, sessionID)
-		s.finishRestoredManagedModelDownload(sessionID, control, runErr)
 		if runErr != nil {
 			s.logger.Debug("restored managed model transfer ended with error",
 				"install_session_id", sessionID,
@@ -662,10 +661,10 @@ func (s *Service) startRestoredManagedModelDownload(
 	return summary, nil
 }
 
-// finishRestoredManagedModelDownload drops only the executor generation that
+// finishManagedModelDownloadExecutor drops only the executor generation that
 // just exited. If an unexpected early return left its session running, it also
 // fails that session closed so no running-without-executor state can persist.
-func (s *Service) finishRestoredManagedModelDownload(sessionID string, control *localTransferControl, runErr error) {
+func (s *Service) finishManagedModelDownloadExecutor(sessionID string, control *localTransferControl, runErr error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.transferControls[sessionID] != control {

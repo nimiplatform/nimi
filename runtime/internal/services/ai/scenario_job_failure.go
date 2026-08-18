@@ -173,7 +173,8 @@ func (s *Service) finishCloudScenarioJobFailure(ctx context.Context, jobID strin
 		jobStatus = runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_TIMEOUT
 		eventType = runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_TIMEOUT
 		reason = runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT
-	case errors.Is(ctx.Err(), context.Canceled) || errors.Is(err, context.Canceled) || status.Code(err) == codes.Canceled:
+	case reason != runtimev1.ReasonCode_AI_STREAM_BROKEN &&
+		(errors.Is(ctx.Err(), context.Canceled) || errors.Is(err, context.Canceled) || status.Code(err) == codes.Canceled):
 		jobStatus = runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED
 		eventType = runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_CANCELED
 		reason = runtimev1.ReasonCode_ACTION_EXECUTED

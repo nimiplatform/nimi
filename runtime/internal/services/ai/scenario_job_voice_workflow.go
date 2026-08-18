@@ -86,17 +86,17 @@ func (s *Service) submitVoiceWorkflowJob(
 	)
 	if persistErr != nil {
 		cancel()
-		_ = s.releaseCloudCredentialCustody(effective.resolvedAssembly.CredentialCustodyRef)
+		_ = s.discardPendingCloudCredentialCustody(job.GetJobId(), effective.resolvedAssembly.CredentialCustodyRef)
 		return nil, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID, persistErr, grpcerr.ReasonOptions{Message: "Cloud voice ScenarioJob submission could not be persisted"})
 	}
 	if stored == nil {
 		cancel()
-		_ = s.releaseCloudCredentialCustody(effective.resolvedAssembly.CredentialCustodyRef)
+		_ = s.discardPendingCloudCredentialCustody(job.GetJobId(), effective.resolvedAssembly.CredentialCustodyRef)
 		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
 	if !created {
 		cancel()
-		_ = s.releaseCloudCredentialCustody(effective.resolvedAssembly.CredentialCustodyRef)
+		_ = s.discardPendingCloudCredentialCustody(job.GetJobId(), effective.resolvedAssembly.CredentialCustodyRef)
 		return &runtimev1.SubmitScenarioJobResponse{Job: stored}, nil
 	}
 	go func() {

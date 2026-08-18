@@ -13,6 +13,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -39,9 +40,10 @@ type scenarioJobIsolationDiagnostic struct {
 }
 
 type scenarioJobDiskRawSnapshot struct {
-	Version     int               `json:"version"`
-	Records     []json.RawMessage `json:"records"`
-	Idempotency []json.RawMessage `json:"idempotency,omitempty"`
+	Version        int               `json:"version"`
+	Records        []json.RawMessage `json:"records"`
+	Idempotency    []json.RawMessage `json:"idempotency,omitempty"`
+	PendingCustody []json.RawMessage `json:"pending_credential_custody,omitempty"`
 }
 
 type scenarioJobQuarantinedRecord struct {
@@ -52,9 +54,10 @@ type scenarioJobQuarantinedRecord struct {
 }
 
 type scenarioJobDiskSnapshot struct {
-	Version     int                               `json:"version"`
-	Records     []scenarioJobDiskRecord           `json:"records"`
-	Idempotency []scenarioJobDiskIdempotencyEntry `json:"idempotency,omitempty"`
+	Version        int                               `json:"version"`
+	Records        []scenarioJobDiskRecord           `json:"records"`
+	Idempotency    []scenarioJobDiskIdempotencyEntry `json:"idempotency,omitempty"`
+	PendingCustody []scenarioJobDiskPendingCustody   `json:"pending_credential_custody,omitempty"`
 }
 
 type scenarioJobDiskRecord struct {
@@ -73,6 +76,12 @@ type scenarioJobDiskIdempotencyEntry struct {
 	ScopeKey string    `json:"scope_key"`
 	JobID    string    `json:"job_id"`
 	BoundAt  time.Time `json:"bound_at"`
+}
+
+type scenarioJobDiskPendingCustody struct {
+	JobID      string    `json:"job_id"`
+	Ref        string    `json:"credential_custody_ref"`
+	CapturedAt time.Time `json:"captured_at"`
 }
 
 // @nimi-authority: rule.nimi.runtime.local-compute.r100
@@ -204,6 +213,38 @@ func (s *scenarioJobStore) loadDurableJobs(prune bool) error {
 		s.publishLocked(record, scenarioJobEventForStatus(job.GetStatus()))
 	}
 
+	seenPendingCustody := make(map[string]struct{}, len(snapshot.PendingCustody))
+	for index, rawPending := range snapshot.PendingCustody {
+		var item scenarioJobDiskPendingCustody
+		rowErr := decodeScenarioJobStrictJSON(rawPending, &item)
+		jobID := strings.TrimSpace(item.JobID)
+		ref := strings.TrimSpace(item.Ref)
+		if rowErr == nil && (jobID == "" || ref == "" || item.CapturedAt.IsZero()) {
+			rowErr = errors.New("pending credential custody has no stable Job, reference, or timestamp")
+		}
+		if rowErr == nil {
+			rowErr = connector.ValidateCredentialCustodyRefForJob(ref, jobID)
+		}
+		if rowErr == nil && s.jobs[jobID] != nil {
+			rowErr = fmt.Errorf("pending credential custody targets published scenario job %q", jobID)
+		}
+		if rowErr == nil {
+			if _, duplicate := seenPendingCustody[jobID]; duplicate {
+				rowErr = fmt.Errorf("duplicate pending credential custody for scenario job %q", jobID)
+			}
+		}
+		if rowErr != nil {
+			quarantined = append(quarantined, scenarioJobQuarantinedRecord{
+				Section: "pending_credential_custody", RecordIndex: index, RecordID: jobID, Reason: rowErr.Error(),
+			})
+			continue
+		}
+		seenPendingCustody[jobID] = struct{}{}
+		s.pendingCloudCustody[jobID] = scenarioPendingCloudCustody{
+			jobID: jobID, ref: ref, capturedAt: item.CapturedAt.UTC(),
+		}
+	}
+
 	seenScopes := make(map[string]struct{}, len(snapshot.Idempotency))
 	for index, rawBinding := range snapshot.Idempotency {
 		var item scenarioJobDiskIdempotencyEntry
@@ -257,7 +298,7 @@ func (s *scenarioJobStore) pruneRecoveredDurableState() error {
 	// (and on a fresh install). Do not recreate an empty active store merely as
 	// a side effect of the post-reconciliation prune phase; the first healthy
 	// Job write will materialize it.
-	if len(s.jobs) == 0 && len(s.idempotency) == 0 {
+	if len(s.jobs) == 0 && len(s.idempotency) == 0 && len(s.pendingCloudCustody) == 0 {
 		if _, err := os.Stat(s.durablePath); errors.Is(err, os.ErrNotExist) {
 			return nil
 		} else if err != nil {
@@ -461,6 +502,23 @@ func (s *scenarioJobStore) persistDurableJobsLocked(attempt scenarioJobPersisten
 	for _, key := range keys {
 		binding := s.idempotency[key]
 		snapshot.Idempotency = append(snapshot.Idempotency, scenarioJobDiskIdempotencyEntry{ScopeKey: key, JobID: binding.jobID, BoundAt: binding.boundAt})
+	}
+	pendingJobIDs := make([]string, 0, len(s.pendingCloudCustody))
+	for jobID := range s.pendingCloudCustody {
+		pendingJobIDs = append(pendingJobIDs, jobID)
+	}
+	sort.Strings(pendingJobIDs)
+	for _, jobID := range pendingJobIDs {
+		pending := s.pendingCloudCustody[jobID]
+		if pending.jobID != jobID || strings.TrimSpace(pending.ref) == "" || pending.capturedAt.IsZero() {
+			return fmt.Errorf("pending credential custody for scenario job %q is invalid", jobID)
+		}
+		if err := connector.ValidateCredentialCustodyRefForJob(pending.ref, jobID); err != nil {
+			return fmt.Errorf("pending credential custody for scenario job %q: %w", jobID, err)
+		}
+		snapshot.PendingCustody = append(snapshot.PendingCustody, scenarioJobDiskPendingCustody{
+			JobID: jobID, Ref: pending.ref, CapturedAt: pending.capturedAt,
+		})
 	}
 	raw, err := json.MarshalIndent(snapshot, "", "  ")
 	if err != nil {

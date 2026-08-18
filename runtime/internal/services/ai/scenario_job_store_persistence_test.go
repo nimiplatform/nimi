@@ -611,7 +611,7 @@ func TestBindCloudCredentialCustodyCapturesConnectorRecordAndSecretFromOneGenera
 	}); err != nil {
 		t.Fatalf("update Connector: %v", err)
 	}
-	svc := &Service{connStore: connectorStore}
+	svc := &Service{scenarioJobs: newScenarioJobStore(), connStore: connectorStore}
 	if err := svc.bindCloudCredentialCustody(job.GetJobId(), assembly); err != nil {
 		t.Fatalf("bind credential custody: %v", err)
 	}
@@ -621,6 +621,63 @@ func TestBindCloudCredentialCustodyCapturesConnectorRecordAndSecretFromOneGenera
 	capturedSecret, err := connectorStore.LoadCredentialCustody(assembly.CredentialCustodyRef)
 	if err != nil || capturedSecret != newSecret {
 		t.Fatalf("captured secret=%q err=%v", capturedSecret, err)
+	}
+}
+
+func TestStartupReleasesCredentialCapturedBeforeJobPublication(t *testing.T) {
+	localStatePath := filepath.Join(t.TempDir(), "local-state.json")
+	store, err := newScenarioJobStoreForLocalStatePath(localStatePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	connectorStore := connector.NewConnectorStoreWithMemorySecrets(t.TempDir())
+	record, err := connectorStore.Create(connector.ConnectorRecord{
+		ConnectorID: "connector-pending-custody", Kind: runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED,
+		OwnerType: runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_REALM_USER, OwnerID: "user-cloud",
+		Provider: "openai", Endpoint: "https://example.test/v1", Status: runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE,
+	}, `{"apiKey":"pending-secret"}`)
+	if err != nil {
+		t.Fatalf("create Connector: %v", err)
+	}
+	job := &runtimev1.ScenarioJob{
+		JobId: "job-pending-custody", Head: &runtimev1.ScenarioRequestHead{AppId: "app.cloud", SubjectUserId: "user-cloud"},
+		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE, ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
+		RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD, TraceId: "trace-pending-custody",
+	}
+	target, err := structpb.NewStruct(map[string]any{
+		"provider": "openai", "providerModelId": "gpt-image-1", "remoteModelCatalogId": "catalog-image",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	assembly, err := newCloudResolvedAssembly(
+		cloudResolvedRequestMedia, "image.generate",
+		&runtimev1.CapabilityImplementationIdentity{ImplementationId: "cloud.image.openai", DriverId: "nimi.runtime.driver.openai", DriverDialect: "provider/media-v1"},
+		target, record, nil, cloudImageRequestForIsolationTest(job), job.GetExecutionMode(), capabilitydriver.CloudMediaStreamNone,
+		job.GetTraceId(), job.GetHead().GetAppId(), job.GetHead().GetSubjectUserId(), nil,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	svc := &Service{scenarioJobs: store, connStore: connectorStore}
+	if err := svc.bindCloudCredentialCustody(job.GetJobId(), assembly); err != nil {
+		t.Fatalf("bind credential custody: %v", err)
+	}
+	custodyRef := assembly.CredentialCustodyRef
+	if captured, err := connectorStore.LoadCredentialCustody(custodyRef); err != nil || captured == "" {
+		t.Fatalf("captured pending credential custody = %q, err=%v", captured, err)
+	}
+
+	reopened, err := newScenarioJobStoreForLocalStatePath(localStatePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	restarted := &Service{scenarioJobs: reopened, connStore: connectorStore}
+	if err := restarted.releaseRecoveredTerminalCloudCredentialCustody(); err != nil {
+		t.Fatalf("reconcile pending credential custody: %v", err)
+	}
+	if captured, err := connectorStore.LoadCredentialCustody(custodyRef); err != nil || captured != "" {
+		t.Fatalf("orphaned pending credential custody = %q, err=%v; want released", captured, err)
 	}
 }
 
@@ -668,6 +725,7 @@ func TestScenarioJobStorePersistsCompletedVoiceResultWithCapturedCloudAssembly(t
 		t.Fatal(err)
 	}
 	assembly.CredentialCustodyRef = cloudCredentialCustodyRefForTest(job.GetJobId())
+	beginCloudCredentialCustodyForTest(t, store, job.GetJobId())
 	created, published, err := store.createOwnedAndBindCloudAssemblyChecked(job, func() {}, nil, "scope-cloud-voice", assembly)
 	if err != nil || created == nil || !published {
 		t.Fatalf("atomic Cloud voice create = %#v published=%v err=%v", created, published, err)
@@ -942,11 +1000,21 @@ func cloudCredentialCustodyRefForTest(jobID string) string {
 	return "scenario-job-credential-" + strings.TrimSpace(jobID)
 }
 
+func beginCloudCredentialCustodyForTest(t *testing.T, store *scenarioJobStore, jobID string) string {
+	t.Helper()
+	ref := cloudCredentialCustodyRefForTest(jobID)
+	if err := store.beginCloudCredentialCustody(jobID, ref); err != nil {
+		t.Fatalf("begin Cloud credential custody for %q: %v", jobID, err)
+	}
+	return ref
+}
+
 func createCompletedCloudScenarioJobForIsolationTest(t *testing.T, store *scenarioJobStore, jobID string) *runtimev1.ScenarioJob {
 	t.Helper()
 	job := completedScenarioJobForIsolationTest(jobID)
 	job.Status = runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED
 	assembly := cloudAssemblyForIsolationTest(t, job)
+	beginCloudCredentialCustodyForTest(t, store, jobID)
 	created, published, err := store.createOwnedAndBindCloudAssemblyChecked(job, func() {}, nil, "", assembly)
 	if err != nil || created == nil || !published {
 		t.Fatalf("healthy Cloud write after isolation = %#v, published=%v err=%v", created, published, err)
