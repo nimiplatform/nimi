@@ -118,21 +118,12 @@ func (s *Service) executeScenarioAsyncJob(
 	}
 }
 
+// @nimi-authority: rule.nimi.runtime.rpc-foundations.r002
 func (s *Service) finishScenarioAsyncJobFailure(ctx context.Context, jobID string, effective *cloudMediaEffectiveInputs, err error) {
 	if existing, ok := s.scenarioJobs.get(jobID); ok && isTerminalScenarioJobStatus(existing.GetStatus()) {
 		return
 	}
 	reasonCode := reasonCodeFromMediaError(err)
-	if s.logger != nil && effective != nil && effective.request != nil {
-		s.logger.Warn("scenario job execution failed",
-			"job_id", jobID,
-			"scenario_type", effective.request.GetScenarioType().String(),
-			"model_resolved", strings.TrimSpace(effective.modelResolved()),
-			"driver_dialect", strings.TrimSpace(effective.mapped.Adapter()),
-			"reason_code", reasonCode.String(),
-			"error", err,
-		)
-	}
 	statusValue := runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED
 	eventType := runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_FAILED
 	if errors.Is(ctx.Err(), context.DeadlineExceeded) || errors.Is(err, context.DeadlineExceeded) || reasonCode == runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT {
@@ -143,10 +134,29 @@ func (s *Service) finishScenarioAsyncJobFailure(ctx context.Context, jobID strin
 		statusValue = runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED
 		eventType = runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_CANCELED
 	}
+	reasonDetail := sanitizeScenarioJobReasonDetail(err, reasonCode)
+	reasonMetadata := scenarioJobReasonMetadata(err, reasonCode)
+	if statusValue == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED {
+		reasonMetadata = nil
+	}
+	if s.logger != nil && effective != nil && effective.request != nil {
+		s.logger.Warn("scenario job execution failed",
+			"source", "runtime",
+			"operation", "scenario_job_execution",
+			"job_id", jobID,
+			"scenario_type", effective.request.GetScenarioType().String(),
+			"model_resolved", strings.TrimSpace(effective.modelResolved()),
+			"driver_dialect", strings.TrimSpace(effective.mapped.Adapter()),
+			"status", statusValue.String(),
+			"reason_code", reasonCode.String(),
+			"trace_id", strings.TrimSpace(effective.traceID),
+			"message", reasonDetail,
+		)
+	}
 	if _, ok, _ := s.transitionScenarioJob(jobID, statusValue, eventType, func(job *runtimev1.ScenarioJob) {
 		job.ReasonCode = reasonCode
-		job.ReasonDetail = sanitizeScenarioJobReasonDetail(err, reasonCode)
-		job.ReasonMetadata = scenarioJobReasonMetadata(err, reasonCode)
+		job.ReasonDetail = reasonDetail
+		job.ReasonMetadata = reasonMetadata
 		job.ProviderJobId = ""
 		job.RetryCount = 0
 		job.NextPollAt = nil

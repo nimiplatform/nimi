@@ -34,16 +34,46 @@ fn normalize_reason_code(value: &str) -> String {
 }
 
 fn sanitize_error_message(message: &str) -> String {
-    message.trim().to_string()
+    let normalized = message.trim();
+    let lowered = normalized.to_ascii_lowercase();
+    if [
+        "authorization:",
+        "authorization=",
+        "bearer ",
+        "api_key=",
+        "api-key=",
+        "apikey=",
+        "access_token=",
+        "refresh_token=",
+        "client_secret=",
+        "password=",
+    ]
+    .iter()
+    .any(|marker| lowered.contains(marker))
+    {
+        return "runtime error detail redacted".to_string();
+    }
+    if lowered.contains("c:\\users\\")
+        || normalized.contains("/Users/")
+        || normalized.contains("/home/")
+        || normalized.contains("/root/")
+    {
+        return "runtime error path redacted".to_string();
+    }
+    normalized.chars().take(2048).collect()
 }
 
 #[derive(Debug, Clone, Default)]
 struct StructuredStatusPayload {
+    message: String,
+}
+
+#[derive(Debug, Clone, Default)]
+struct StructuredErrorInfo {
     reason_code: String,
     action_hint: String,
     trace_id: String,
     retryable: Option<bool>,
-    message: String,
     details: Option<Value>,
 }
 
@@ -108,32 +138,6 @@ fn read_retryable_from_candidates(candidates: &[&serde_json::Value]) -> Option<b
     None
 }
 
-fn sanitize_json_value(value: &Value) -> Value {
-    match value {
-        Value::String(text) => Value::String(sanitize_error_message(text)),
-        Value::Array(items) => Value::Array(items.iter().map(sanitize_json_value).collect()),
-        Value::Object(object) => {
-            let sanitized = object
-                .iter()
-                .map(|(key, value)| (key.clone(), sanitize_json_value(value)))
-                .collect::<Map<String, Value>>();
-            Value::Object(sanitized)
-        }
-        _ => value.clone(),
-    }
-}
-
-fn read_details_from_candidates(candidates: &[&serde_json::Value]) -> Option<Value> {
-    for candidate in candidates {
-        if let Some(value) = candidate.get("details") {
-            if value.is_object() {
-                return Some(sanitize_json_value(value));
-            }
-        }
-    }
-    None
-}
-
 fn parse_structured_status_payload(message: &str) -> Option<StructuredStatusPayload> {
     let trimmed = message.trim();
     if trimmed.is_empty() {
@@ -160,7 +164,6 @@ fn parse_structured_status_payload(message: &str) -> Option<StructuredStatusPayl
     let action_hint = read_string_from_candidates(&candidates, &["actionHint", "action_hint"]);
     let trace_id = read_string_from_candidates(&candidates, &["traceId", "trace_id"]);
     let retryable = read_retryable_from_candidates(&candidates);
-    let details = read_details_from_candidates(&candidates);
     let normalized_message = read_string_from_candidates(&candidates, &["message"]);
     let normalized_message = if normalized_message.is_empty() {
         trimmed.to_string()
@@ -178,115 +181,115 @@ fn parse_structured_status_payload(message: &str) -> Option<StructuredStatusPayl
     }
 
     Some(StructuredStatusPayload {
-        reason_code,
-        action_hint,
-        trace_id,
-        retryable,
         message: normalized_message,
-        details,
     })
 }
 
-fn extract_runtime_reason_code(message: &str) -> Option<String> {
-    let trimmed = message.trim();
-    if trimmed.is_empty() {
-        return None;
-    }
-
-    if trimmed
-        .chars()
-        .all(|ch| ch.is_ascii_uppercase() || ch.is_ascii_digit() || ch == '_')
-    {
-        return Some(trimmed.to_string());
-    }
-
-    if let Some((prefix, _)) = trimmed.split_once(':') {
-        let candidate = prefix.trim();
-        if candidate
-            .chars()
-            .all(|ch| ch.is_ascii_uppercase() || ch.is_ascii_digit() || ch == '_')
-        {
-            return Some(candidate.to_string());
-        }
-    }
-
-    None
-}
-
-fn extract_trace_id_from_status(
-    status: &Status,
-    structured: Option<&StructuredStatusPayload>,
-) -> String {
-    if let Some(value) = structured {
-        if !value.trace_id.trim().is_empty() {
-            return value.trace_id.trim().to_string();
-        }
-    }
-
+fn extract_trace_id_from_status(status: &Status) -> String {
     status
         .metadata()
         .get("x-nimi-trace-id")
         .or_else(|| status.metadata().get("trace-id"))
         .or_else(|| status.metadata().get("x-trace-id"))
         .and_then(|value| value.to_str().ok())
-        .map(|value| value.trim().to_string())
+        .map(str::trim)
+        .filter(|value| {
+            !value.is_empty() && value.len() <= 128 && !value.chars().any(char::is_control)
+        })
+        .map(str::to_string)
         .unwrap_or_default()
 }
 
-fn extract_error_info_details(status: &Status) -> Option<Value> {
+// @nimi-authority: rule.nimi.runtime.rpc-foundations.r005
+fn extract_error_info(status: &Status) -> Option<StructuredErrorInfo> {
     const ERROR_INFO_TYPE_URL: &str = "type.googleapis.com/google.rpc.ErrorInfo";
     const ERROR_INFO_DOMAIN: &str = "nimi.runtime.v1";
+    const PUBLIC_DETAIL_KEYS: [&str; 4] = [
+        "capability",
+        "diagnostic_stage",
+        "failure_stage",
+        "local_development_reason_code",
+    ];
     let details_bytes = status.details();
     if details_bytes.is_empty() {
         return None;
     }
     let decoded = GoogleRpcStatus::decode(details_bytes).ok()?;
-    let mut object = Map::new();
+    if decoded.code != status.code() as i32 {
+        return None;
+    }
+    let mut result: Option<StructuredErrorInfo> = None;
     for detail in decoded.details {
         if detail.type_url.trim() != ERROR_INFO_TYPE_URL {
             continue;
         }
-        let Ok(info) = GoogleRpcErrorInfo::decode(detail.value.as_slice()) else {
-            continue;
-        };
+        let info = GoogleRpcErrorInfo::decode(detail.value.as_slice()).ok()?;
         if info.domain.trim() != ERROR_INFO_DOMAIN {
             continue;
         }
-        for (key, value) in info.metadata {
-            let normalized_key = key.trim();
-            if normalized_key.is_empty()
-                || normalized_key == "action_hint"
-                || normalized_key == "trace_id"
-                || normalized_key == "retryable"
-            {
-                continue;
-            }
-            let normalized_value = sanitize_error_message(value.as_str());
-            if normalized_value.is_empty() {
-                continue;
-            }
-            object.insert(normalized_key.to_string(), Value::String(normalized_value));
+        if result.is_some() || !valid_runtime_reason(info.reason.as_str()) {
+            return None;
         }
+        let action_hint = bounded_metadata_value(&info.metadata, "action_hint", 256)?;
+        let trace_id = bounded_metadata_value(&info.metadata, "trace_id", 128)?;
+        let retryable = match info.metadata.get("retryable") {
+            None => None,
+            Some(value) if value == "true" => Some(true),
+            Some(value) if value == "false" => Some(false),
+            Some(_) => return None,
+        };
+        let mut object = Map::new();
+        for key in PUBLIC_DETAIL_KEYS {
+            let Some(value) = info.metadata.get(key) else {
+                continue;
+            };
+            let normalized = value.trim();
+            if normalized.is_empty()
+                || normalized != value
+                || normalized.len() > 2048
+                || normalized.chars().any(char::is_control)
+            {
+                return None;
+            }
+            object.insert(key.to_string(), Value::String(normalized.to_string()));
+        }
+        result = Some(StructuredErrorInfo {
+            reason_code: info.reason,
+            action_hint,
+            trace_id,
+            retryable,
+            details: (!object.is_empty()).then_some(Value::Object(object)),
+        });
     }
-    if object.is_empty() {
-        None
-    } else {
-        Some(Value::Object(object))
-    }
+    result
 }
 
-fn merge_details(primary: Option<Value>, secondary: Option<Value>) -> Option<Value> {
-    match (primary, secondary) {
-        (None, None) => None,
-        (Some(value), None) | (None, Some(value)) => Some(value),
-        (Some(Value::Object(mut left)), Some(Value::Object(right))) => {
-            for (key, value) in right {
-                left.entry(key).or_insert(value);
-            }
-            Some(Value::Object(left))
-        }
-        (Some(value), Some(_)) => Some(value),
+fn valid_runtime_reason(value: &str) -> bool {
+    if value.is_empty() || value.len() > 128 {
+        return false;
     }
+    let mut chars = value.chars();
+    matches!(chars.next(), Some(first) if first.is_ascii_uppercase())
+        && chars.all(|ch| ch.is_ascii_uppercase() || ch.is_ascii_digit() || ch == '_')
+}
+
+fn bounded_metadata_value(
+    metadata: &HashMap<String, String>,
+    key: &str,
+    max_len: usize,
+) -> Option<String> {
+    let Some(value) = metadata.get(key) else {
+        return Some(String::new());
+    };
+    let normalized = value.trim();
+    if normalized.is_empty()
+        || normalized != value
+        || normalized.len() > max_len
+        || normalized.chars().any(char::is_control)
+    {
+        return None;
+    }
+    Some(normalized.to_string())
 }
 
 fn grpc_code_reason_suffix(code: Code) -> &'static str {
@@ -311,17 +314,9 @@ fn grpc_code_reason_suffix(code: Code) -> &'static str {
     }
 }
 
-fn is_retryable_transport_cancel(
-    status: &Status,
-    structured: Option<&StructuredStatusPayload>,
-) -> bool {
-    if status.code() != Code::Cancelled {
+fn is_retryable_transport_cancel(status: &Status, has_owner_reason: bool) -> bool {
+    if status.code() != Code::Cancelled || has_owner_reason {
         return false;
-    }
-    if let Some(value) = structured {
-        if !value.reason_code.trim().is_empty() {
-            return false;
-        }
     }
     let lowered = sanitize_error_message(status.message()).to_ascii_lowercase();
     lowered.contains("h2 protocol error")
@@ -341,48 +336,33 @@ pub fn bridge_error(code: &str, message: &str) -> String {
 }
 
 pub fn bridge_status_error(status: Status) -> String {
-    let structured = parse_structured_status_payload(status.message());
-    let retryable_transport_cancel = is_retryable_transport_cancel(&status, structured.as_ref());
+    let status_payload = parse_structured_status_payload(status.message());
+    let error_info = extract_error_info(&status);
+    let retryable_transport_cancel = is_retryable_transport_cancel(&status, error_info.is_some());
     let status_message = sanitize_error_message(status.message());
     let retryable_unknown_transport = status.code() == Code::Unknown
         && status_message
             .to_ascii_lowercase()
             .contains("transport error");
-    let structured_reason = structured
-        .as_ref()
-        .map(|value| value.reason_code.trim().to_string())
-        .unwrap_or_default();
-    let extracted_reason = extract_runtime_reason_code(status.message()).unwrap_or_default();
-    let reason_input = if !structured_reason.is_empty() {
-        structured_reason
-    } else if !extracted_reason.is_empty() {
-        extracted_reason
-    } else if status.code() == Code::Ok {
-        "RUNTIME_BRIDGE_UNKNOWN".to_string()
-    } else {
-        String::new()
-    };
-    let reason_code = normalize_reason_code(reason_input.as_str());
     let fallback_reason_code = if retryable_transport_cancel || retryable_unknown_transport {
         "RUNTIME_GRPC_UNAVAILABLE".to_string()
     } else {
         format!("RUNTIME_GRPC_{}", grpc_code_reason_suffix(status.code()))
     };
-    let normalized_reason_code = if reason_code == "RUNTIME_BRIDGE_UNKNOWN" {
-        fallback_reason_code
-    } else {
-        reason_code
-    };
+    let reason_code = error_info
+        .as_ref()
+        .map(|value| value.reason_code.clone())
+        .unwrap_or(fallback_reason_code);
     let retryable_by_status = matches!(
         status.code(),
         Code::Unavailable | Code::DeadlineExceeded | Code::ResourceExhausted | Code::Aborted
     ) || retryable_transport_cancel
         || retryable_unknown_transport;
-    let retryable = structured
+    let retryable = error_info
         .as_ref()
         .and_then(|value| value.retryable)
         .unwrap_or(retryable_by_status);
-    let action_hint = structured
+    let action_hint = error_info
         .as_ref()
         .map(|value| value.action_hint.trim().to_string())
         .filter(|value| !value.is_empty())
@@ -394,19 +374,20 @@ pub fn bridge_status_error(status: Status) -> String {
             }
             .to_string()
         });
-    let trace_id = extract_trace_id_from_status(&status, structured.as_ref());
-    let details = merge_details(
-        structured.as_ref().and_then(|value| value.details.clone()),
-        extract_error_info_details(&status),
-    );
-    let message = structured
+    let trace_id = error_info
+        .as_ref()
+        .map(|value| value.trace_id.trim().to_string())
+        .filter(|value| !value.is_empty())
+        .unwrap_or_else(|| extract_trace_id_from_status(&status));
+    let details = error_info.and_then(|value| value.details);
+    let message = status_payload
         .as_ref()
         .map(|value| value.message.trim().to_string())
         .filter(|value| !value.is_empty())
         .unwrap_or(status_message);
 
     encode(RuntimeBridgeErrorPayload {
-        reason_code: normalized_reason_code,
+        reason_code,
         action_hint,
         trace_id,
         retryable,
@@ -448,14 +429,14 @@ mod tests {
     }
 
     #[test]
-    fn bridge_status_error_uses_runtime_reason_prefix() {
+    fn bridge_status_error_does_not_infer_reason_from_message_prefix() {
         let payload = parse_json(bridge_status_error(Status::new(
             Code::Unavailable,
             "AI_PROVIDER_TIMEOUT: upstream timed out",
         )));
         assert_eq!(
             payload.get("reasonCode").and_then(Value::as_str),
-            Some("AI_PROVIDER_TIMEOUT")
+            Some("RUNTIME_GRPC_UNAVAILABLE")
         );
         assert_eq!(
             payload.get("retryable").and_then(Value::as_bool),
@@ -468,38 +449,38 @@ mod tests {
     }
 
     #[test]
-    fn bridge_status_error_preserves_structured_details() {
+    fn bridge_status_error_does_not_trust_message_details() {
         let payload = parse_json(bridge_status_error(Status::new(
             Code::Unavailable,
-            "{\"reasonCode\":\"AI_PROVIDER_UNAVAILABLE\",\"actionHint\":\"check_provider_endpoint_or_local_runtime_health\",\"message\":\"provider request failed\",\"details\":{\"provider_message\":\"dial tcp 127.0.0.1:8321: connect: connection refused\"}}",
+            "{\"reasonCode\":\"AI_PROVIDER_UNAVAILABLE\",\"actionHint\":\"check_provider_endpoint_or_local_runtime_health\",\"message\":\"provider request failed\",\"details\":{\"provider_message\":\"dial tcp 127.0.0.1:8321: connect: connection refused\",\"operation\":\"scenario_job\"}}",
         )));
         assert_eq!(
             payload.get("reasonCode").and_then(Value::as_str),
-            Some("AI_PROVIDER_UNAVAILABLE")
+            Some("RUNTIME_GRPC_UNAVAILABLE")
         );
-        let details = payload
-            .get("details")
-            .and_then(Value::as_object)
-            .expect("details object");
+        assert!(payload.get("details").is_none());
         assert_eq!(
-            details.get("provider_message").and_then(Value::as_str),
-            Some("dial tcp 127.0.0.1:8321: connect: connection refused")
+            payload.get("message").and_then(Value::as_str),
+            Some("provider request failed")
         );
     }
 
     #[test]
-    fn bridge_status_error_extracts_error_info_metadata_details() {
+    fn bridge_status_error_prioritizes_error_info_and_drops_provider_payload() {
         let rich_status = super::GoogleRpcStatus {
             code: Code::Unavailable as i32,
-            message: "{\"reasonCode\":\"AI_PROVIDER_UNAVAILABLE\",\"actionHint\":\"check_provider_endpoint_or_local_runtime_health\",\"message\":\"provider request failed\"}".to_string(),
+            message: "{\"reasonCode\":\"AI_INPUT_INVALID\",\"actionHint\":\"trust_status_text\",\"message\":\"provider request failed\"}".to_string(),
             details: vec![prost_types::Any {
                 type_url: "type.googleapis.com/google.rpc.ErrorInfo".to_string(),
                 value: super::GoogleRpcErrorInfo {
                     reason: "AI_PROVIDER_UNAVAILABLE".to_string(),
                     domain: "nimi.runtime.v1".to_string(),
                     metadata: HashMap::from([
-                        ("provider_message".to_string(), "dial tcp 127.0.0.1:8321: connect: connection refused".to_string()),
-                        ("action_hint".to_string(), "check_provider_endpoint_or_local_runtime_health".to_string()),
+                        ("provider_message".to_string(), "Authorization: Bearer provider-secret".to_string()),
+                        ("action_hint".to_string(), "check_provider_endpoint".to_string()),
+                        ("trace_id".to_string(), "trace-error-info".to_string()),
+                        ("retryable".to_string(), "true".to_string()),
+                        ("diagnostic_stage".to_string(), "provider_dispatch".to_string()),
                     ]),
                 }
                 .encode_to_vec(),
@@ -508,18 +489,35 @@ mod tests {
         .encode_to_vec();
         let payload = parse_json(bridge_status_error(Status::with_details(
             Code::Unavailable,
-            "{\"reasonCode\":\"AI_PROVIDER_UNAVAILABLE\",\"actionHint\":\"check_provider_endpoint_or_local_runtime_health\",\"message\":\"provider request failed\"}",
+            "{\"reasonCode\":\"AI_INPUT_INVALID\",\"actionHint\":\"trust_status_text\",\"message\":\"provider request failed\"}",
             rich_status.into(),
         )));
+        assert_eq!(
+            payload.get("reasonCode").and_then(Value::as_str),
+            Some("AI_PROVIDER_UNAVAILABLE")
+        );
+        assert_eq!(
+            payload.get("actionHint").and_then(Value::as_str),
+            Some("check_provider_endpoint")
+        );
+        assert_eq!(
+            payload.get("traceId").and_then(Value::as_str),
+            Some("trace-error-info")
+        );
+        assert_eq!(
+            payload.get("retryable").and_then(Value::as_bool),
+            Some(true)
+        );
         let details = payload
             .get("details")
             .and_then(Value::as_object)
             .expect("details object");
         assert_eq!(
-            details.get("provider_message").and_then(Value::as_str),
-            Some("dial tcp 127.0.0.1:8321: connect: connection refused")
+            details.get("diagnostic_stage").and_then(Value::as_str),
+            Some("provider_dispatch")
         );
-        assert!(details.get("action_hint").is_none());
+        assert!(details.get("provider_message").is_none());
+        assert!(!payload.to_string().contains("provider-secret"));
     }
 
     #[test]
@@ -575,19 +573,16 @@ mod tests {
     }
 
     #[test]
-    fn bridge_status_error_extracts_trace_id_from_structured_payload() {
+    fn bridge_status_error_ignores_trace_id_from_status_text() {
         let payload = parse_json(bridge_status_error(Status::new(
             Code::Internal,
             "{\"reasonCode\":\"AI_PROVIDER_TIMEOUT\",\"traceId\":\"trace-structured\",\"retryable\":true}",
         )));
 
-        assert_eq!(
-            payload.get("traceId").and_then(Value::as_str),
-            Some("trace-structured")
-        );
+        assert_eq!(payload.get("traceId").and_then(Value::as_str), Some(""));
         assert_eq!(
             payload.get("reasonCode").and_then(Value::as_str),
-            Some("AI_PROVIDER_TIMEOUT")
+            Some("RUNTIME_GRPC_INTERNAL")
         );
     }
 
@@ -612,35 +607,32 @@ mod tests {
     }
 
     #[test]
-    fn bridge_status_error_accepts_reason_alias_field() {
+    fn bridge_status_error_ignores_reason_alias_in_status_text() {
         let payload = parse_json(bridge_status_error(Status::new(
             Code::Internal,
             "{\"reason\":\"AI_PROVIDER_INTERNAL\",\"actionHint\":\"check_provider_logs\"}",
         )));
         assert_eq!(
             payload.get("reasonCode").and_then(Value::as_str),
-            Some("AI_PROVIDER_INTERNAL")
+            Some("RUNTIME_GRPC_INTERNAL")
         );
         assert_eq!(
             payload.get("actionHint").and_then(Value::as_str),
-            Some("check_provider_logs")
+            Some("check_request_and_app_auth")
         );
     }
 
     #[test]
-    fn bridge_status_error_reads_nested_error_payload() {
+    fn bridge_status_error_ignores_nested_machine_fields_in_status_text() {
         let payload = parse_json(bridge_status_error(Status::new(
             Code::Unavailable,
             "{\"error\":{\"reasonCode\":\"AI_PROVIDER_TIMEOUT\",\"traceId\":\"trace-nested\",\"retryable\":true}}",
         )));
         assert_eq!(
             payload.get("reasonCode").and_then(Value::as_str),
-            Some("AI_PROVIDER_TIMEOUT")
+            Some("RUNTIME_GRPC_UNAVAILABLE")
         );
-        assert_eq!(
-            payload.get("traceId").and_then(Value::as_str),
-            Some("trace-nested")
-        );
+        assert_eq!(payload.get("traceId").and_then(Value::as_str), Some(""));
         assert_eq!(
             payload.get("retryable").and_then(Value::as_bool),
             Some(true)
@@ -648,14 +640,14 @@ mod tests {
     }
 
     #[test]
-    fn bridge_status_error_parses_string_retryable() {
+    fn bridge_status_error_ignores_retryable_in_status_text() {
         let payload = parse_json(bridge_status_error(Status::new(
             Code::PermissionDenied,
             "{\"reasonCode\":\"APP_MODE_SCOPE_FORBIDDEN\",\"retryable\":\"false\"}",
         )));
         assert_eq!(
             payload.get("reasonCode").and_then(Value::as_str),
-            Some("APP_MODE_SCOPE_FORBIDDEN")
+            Some("RUNTIME_GRPC_PERMISSION_DENIED")
         );
         assert_eq!(
             payload.get("retryable").and_then(Value::as_bool),

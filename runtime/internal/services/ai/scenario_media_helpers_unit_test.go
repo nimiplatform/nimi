@@ -375,6 +375,65 @@ func TestMediaRoutingHelpers(t *testing.T) {
 	}
 }
 
+func TestScenarioJobFailureLogPreservesSafeStructuredDiagnostics(t *testing.T) {
+	var logs strings.Builder
+	svc := newTestService(slog.New(slog.NewTextHandler(&logs, nil)))
+	const secret = "provider-secret-marker"
+	effective := &cloudMediaEffectiveInputs{
+		request: &runtimev1.SubmitScenarioJobRequest{
+			ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
+		},
+		traceID: "trace-safe-log",
+	}
+
+	svc.finishScenarioAsyncJobFailure(
+		context.Background(),
+		"missing-job-for-log-test",
+		effective,
+		status.Error(codes.Internal, "Authorization: Bearer "+secret),
+	)
+
+	output := logs.String()
+	if strings.Contains(output, secret) || strings.Contains(output, "Authorization") {
+		t.Fatalf("scenario job failure log leaked provider credential: %s", output)
+	}
+	for _, expected := range []string{"reason_code=AI_PROVIDER_UNAVAILABLE", "trace_id=trace-safe-log", "message=\"provider request failed\""} {
+		if !strings.Contains(output, expected) {
+			t.Fatalf("scenario job failure log missing %q: %s", expected, output)
+		}
+	}
+}
+
+func TestScenarioAsyncJobCancellationClearsFailureMetadata(t *testing.T) {
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	const jobID = "scenario-async-canceled"
+	created := svc.scenarioJobs.create(&runtimev1.ScenarioJob{
+		JobId:        jobID,
+		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
+		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
+		Status:       runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING,
+		TraceId:      "trace-canceled",
+	}, func() {})
+	if created == nil {
+		t.Fatal("create ScenarioJob")
+	}
+	err := grpcerr.WithReasonCodeOptions(codes.Canceled, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, grpcerr.ReasonOptions{
+		ActionHint: "retry_provider_request",
+		Retryable:  testBool(true),
+	})
+	svc.finishScenarioAsyncJobFailure(context.Background(), jobID, nil, err)
+	terminal, ok := svc.scenarioJobs.get(jobID)
+	if !ok {
+		t.Fatal("get canceled ScenarioJob")
+	}
+	if terminal.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED {
+		t.Fatalf("status=%s, want CANCELED", terminal.GetStatus())
+	}
+	if terminal.GetReasonMetadata() != nil {
+		t.Fatalf("canceled ScenarioJob metadata=%v, want nil", terminal.GetReasonMetadata())
+	}
+}
+
 func TestReasonCodeFromMediaErrorAndVoiceRef(t *testing.T) {
 	if got := reasonCodeFromMediaError(nil); got != runtimev1.ReasonCode_ACTION_EXECUTED {
 		t.Fatalf("unexpected nil-error reason: %v", got)

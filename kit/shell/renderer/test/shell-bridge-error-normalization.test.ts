@@ -38,4 +38,27 @@ describe('shell bridge structured error normalization', () => {
     });
   });
 
+  it('scrubs credentials and private paths while preserving safe bridge diagnostics', () => {
+    const error = toShellBridgeNimiError(JSON.stringify({
+      reasonCode: 'RUNTIME_CALL_FAILED',
+      actionHint: 'Authorization: Bearer action-secret',
+      traceId: 'C:\\Users\\alice\\.nimi\\private-trace',
+      message: 'Authorization: Bearer top-secret-token at C:\\Users\\alice\\.nimi\\runtime.log',
+      details: {
+        apiKey: 'sk-secret-value',
+        modelPath: 'C:\\Users\\alice\\.nimi\\models\\private.gguf',
+        operation: 'submitScenarioJob',
+      },
+    }));
+
+    expect(error.message).not.toContain('top-secret-token');
+    expect(String(error.details?.rawMessage)).not.toContain('top-secret-token');
+    expect(String(error.details?.rawMessage)).not.toContain('C:\\Users\\alice');
+    expect(error.actionHint).not.toContain('action-secret');
+    expect(error.traceId).toBe('');
+    expect(error.details?.apiKey).toBe('[REDACTED]');
+    expect(error.details?.modelPath).toBe('[REDACTED_PATH]');
+    expect(error.details?.operation).toBe('submitScenarioJob');
+  });
+
 });

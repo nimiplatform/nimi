@@ -24,7 +24,7 @@ describe('shell bridge Nimi error normalization', () => {
     expect(error.message).toBe('provider timeout');
     expect(error.details?.provider).toBe('test');
     expect(error.details?.userMessage).toBe('AI provider request timed out.');
-    expect(error.details?.rawMessage).toContain('AI_PROVIDER_TIMEOUT');
+    expect(error.details?.rawMessage).toBe('provider timeout');
   });
 
   test('maps shell bridge reason codes before generic fallback', () => {

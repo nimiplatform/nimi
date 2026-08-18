@@ -19,6 +19,7 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
+// @nimi-authority: rule.nimi.runtime.rpc-foundations.r002
 func streamLocalSpeechSynthesizeScenario(s *Service, req *runtimev1.StreamScenarioRequest, stream grpc.ServerStreamingServer[runtimev1.StreamScenarioEvent]) (streamErr error) {
 	capturedRequest := &runtimev1.SubmitScenarioJobRequest{
 		Head:          cloneScenarioHead(req.GetHead()),
@@ -143,14 +144,24 @@ func streamLocalSpeechSynthesizeScenario(s *Service, req *runtimev1.StreamScenar
 		if deliveryCause := deliveryFailure.durableCause(); deliveryCause != nil {
 			cause = deliveryCause
 		}
+		reasonCode := reasonCodeFromStreamError(cause)
 		s.finishLocalSpeechJobFailure(requestCtx, jobID, cause)
 		if s.logger != nil {
-			s.logger.Warn("local speech stream failed", "scenario_type", req.GetScenarioType().String(), "model_resolved", modelResolved, "trace_id", traceID, "error", cause)
+			s.logger.Warn(
+				"local speech stream failed",
+				"source", "runtime",
+				"operation", "local_speech_stream",
+				"scenario_type", req.GetScenarioType().String(),
+				"model_resolved", modelResolved,
+				"trace_id", traceID,
+				"reason_code", reasonCode.String(),
+				"message", sanitizeScenarioJobReasonDetail(cause, reasonCode),
+			)
 		}
 		return send(&runtimev1.StreamScenarioEvent{
 			EventType: runtimev1.StreamEventType_STREAM_EVENT_FAILED,
 			Payload: &runtimev1.StreamScenarioEvent_Failed{Failed: &runtimev1.ScenarioStreamFailed{
-				ReasonCode: reasonCodeFromStreamError(cause),
+				ReasonCode: reasonCode,
 				ActionHint: actionHintFromStreamError(cause),
 			}},
 		})

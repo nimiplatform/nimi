@@ -6,7 +6,7 @@ import {
   NIMI_RUNTIME_REASON_CODES,
   type NimiError,
 } from '@nimiplatform/kit/core/sdk-contract';
-import { parseOptionalJsonObject, type JsonObject } from './types.js';
+import { parseOptionalJsonObject, type JsonObject, type JsonValue } from './types.js';
 
 export type ShellBridgeStructuredError = {
   code?: string;
@@ -89,6 +89,70 @@ const SHELL_BRIDGE_ERROR_PATTERNS: Array<{ pattern: RegExp } & ShellBridgeUserMe
   { pattern: /engine.*failed/i, key: 'BridgeErrors.patterns.localEngineUnavailable', defaultValue: 'Runtime local execution is unavailable. Inspect Runtime diagnostics.' },
   { pattern: /LOCAL_LIFECYCLE_WRITE_DENIED/i, key: 'BridgeErrors.codes.LOCAL_LIFECYCLE_WRITE_DENIED', defaultValue: 'The current source is not allowed to perform local model lifecycle writes.' },
 ];
+
+const REDACTED_BRIDGE_VALUE = '[REDACTED]';
+const REDACTED_BRIDGE_PATH = '[REDACTED_PATH]';
+
+function scrubBridgeErrorText(input: unknown): string {
+  return String(input || '').trim()
+    .replace(/\bBearer\s+[A-Za-z0-9._~+/=-]+/giu, `Bearer ${REDACTED_BRIDGE_VALUE}`)
+    .replace(/\b(authorization|proxy-authorization|api[_-]?key|access[_-]?token|refresh[_-]?token|password|credential|secret)\s*[:=]\s*(?:"[^"]*"|'[^']*'|[^\s,;]+)/giu, `$1=${REDACTED_BRIDGE_VALUE}`)
+    .replace(/\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b/gu, REDACTED_BRIDGE_VALUE)
+    .replace(/([?&](?:access_token|refresh_token|api_key|apikey|token|secret)=)[^&#\s]*/giu, `$1${REDACTED_BRIDGE_VALUE}`)
+    .replace(/\bfile:\/\/\/?[^\s"'<>]+/giu, REDACTED_BRIDGE_PATH)
+    .replace(/\b[A-Za-z]:\\(?:[^\s\\/:*?"<>|]+\\)*[^\s\\/:*?"<>|]*/gu, REDACTED_BRIDGE_PATH)
+    .replace(/\/(?:Users|home|root|tmp|private)(?:\/[^\s"'<>]*)?/gu, REDACTED_BRIDGE_PATH);
+}
+
+function bridgeDetailKeyKind(key: string): 'credential' | 'path' | null {
+  const normalized = key.trim().toLowerCase().replace(/[-_]/gu, '');
+  if (
+    normalized.includes('authorization')
+    || normalized.includes('bearer')
+    || normalized.includes('credential')
+    || normalized.includes('password')
+    || normalized.includes('token')
+    || normalized.includes('secret')
+    || normalized.includes('apikey')
+    || normalized.includes('header')
+    || normalized.includes('providerpayload')
+    || normalized.includes('rawpayload')
+  ) {
+    return 'credential';
+  }
+  if (
+    normalized === 'cwd'
+    || normalized === 'home'
+    || normalized.includes('path')
+    || normalized.includes('filename')
+  ) {
+    return 'path';
+  }
+  return null;
+}
+
+function scrubBridgeDetailValue(value: JsonValue, depth = 0): JsonValue {
+  if (depth >= 6) return '[TRUNCATED]';
+  if (typeof value === 'string') return scrubBridgeErrorText(value);
+  if (Array.isArray(value)) {
+    return value.slice(0, 32).map((entry) => scrubBridgeDetailValue(entry, depth + 1));
+  }
+  if (!value || typeof value !== 'object') return value;
+  const scrubbed: JsonObject = {};
+  for (const [key, entry] of Object.entries(value).slice(0, 48)) {
+    const keyKind = bridgeDetailKeyKind(key);
+    scrubbed[key] = keyKind === 'credential'
+      ? REDACTED_BRIDGE_VALUE
+      : keyKind === 'path'
+        ? REDACTED_BRIDGE_PATH
+        : scrubBridgeDetailValue(entry, depth + 1);
+  }
+  return scrubbed;
+}
+
+function scrubBridgeErrorDetails(details: JsonObject | undefined): JsonObject {
+  return (scrubBridgeDetailValue(details || {}) || {}) as JsonObject;
+}
 
 function asRecord(value: unknown): JsonObject {
   return parseOptionalJsonObject(value) || {};
@@ -197,6 +261,7 @@ export function toShellBridgeUserMessage(error: unknown, options?: ShellBridgeNi
     : projection.defaultValue;
 }
 
+// @nimi-authority: rule.nimi.desktop.shell-ui.r073
 export function toShellBridgeNimiError(error: unknown, options?: ShellBridgeNimiErrorOptions): NimiError {
   const rawMessage = error instanceof Error ? error.message : String(error || '');
   const normalized: NimiError = (() => {
@@ -236,10 +301,16 @@ export function toShellBridgeNimiError(error: unknown, options?: ShellBridgeNimi
     });
   })();
 
+  normalized.message = scrubBridgeErrorText(normalized.message) || normalized.reasonCode;
+  normalized.actionHint = scrubBridgeErrorText(normalized.actionHint) || 'check_runtime_bridge_logs';
+  const originalTraceId = String(normalized.traceId || '').trim();
+  const scrubbedTraceId = scrubBridgeErrorText(originalTraceId);
+  normalized.traceId = scrubbedTraceId === originalTraceId ? scrubbedTraceId : '';
+  const scrubbedDetails = scrubBridgeErrorDetails(normalized.details);
   normalized.details = {
-    ...(normalized.details || {}),
+    ...scrubbedDetails,
     userMessage: toShellBridgeUserMessage(normalized, options),
-    rawMessage: rawMessage || normalized.message,
+    rawMessage: normalized.message,
   };
   return normalized;
 }
