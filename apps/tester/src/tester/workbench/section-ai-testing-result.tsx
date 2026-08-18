@@ -352,6 +352,7 @@ export function TextStudioResultState({
   onCopy,
   onDownload,
   onRegenerate,
+  onCancel,
   onUseAsDraft,
 }: {
   capability: TesterCapability;
@@ -365,6 +366,7 @@ export function TextStudioResultState({
   onCopy: () => void;
   onDownload: () => void;
   onRegenerate: () => void;
+  onCancel?: () => void;
   onUseAsDraft: (record: TesterRunHistoryRecord) => void;
 }) {
   const { t } = useTranslation();
@@ -401,6 +403,7 @@ export function TextStudioResultState({
                 onCopy={onCopy}
                 onDownload={onDownload}
                 onRegenerate={onRegenerate}
+                onCancel={onCancel}
               />
             </>
           ) : activeRun.record ? (

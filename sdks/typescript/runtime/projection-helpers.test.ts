@@ -541,6 +541,37 @@ test('Runtime voice job runner rejects incomplete or cross-owner full VoiceAsset
   }
 });
 
+test('Runtime ScenarioJob abort preserves a typed canceled terminal projection', async () => {
+  const controller = new AbortController();
+  let cancelReason = '';
+  const client: NimiRuntimeScenarioJobClient = {
+    ...createScenarioJobClient([]),
+    async cancelScenarioJob(request) {
+      cancelReason = request.reason;
+      return {};
+    },
+    async *subscribeScenarioJobEvents() {
+      await new Promise(() => undefined);
+    },
+  };
+  const pending = runNimiRuntimeScenarioJob({
+    ai: client,
+    request: createScenarioJobRequest(),
+    signal: controller.signal,
+    abortReason: 'tester-user-canceled',
+  });
+
+  await Promise.resolve();
+  controller.abort('tester-user-canceled');
+
+  await assert.rejects(pending, (error: unknown) => {
+    assert.equal(getNimiRuntimeScenarioJobTerminalStatusFromError(error), ScenarioJobStatus.CANCELED);
+    assert.equal((error as { readonly reasonCode?: unknown }).reasonCode, ReasonCode.RUNTIME_CALL_FAILED);
+    return true;
+  });
+  assert.equal(cancelReason, 'tester-user-canceled');
+});
+
 function createScenarioJobRequest(): NimiRuntimeScenarioJobSubmitRequest {
   return {
     scenarioType: ScenarioType.TEXT_GENERATE,

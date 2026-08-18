@@ -96,6 +96,8 @@ export type TesterCapabilityRunInput = {
   capabilityId: TesterCapabilityId;
   prompt: string;
   scenarioId?: string;
+  /** Cancels an in-flight Runtime ScenarioJob through the SDK job runner. */
+  signal?: AbortSignal;
   /** Optional live-delta callback forwarded to streaming capabilities. */
   onPartial?: (accumulatedText: string) => void;
   /** Optional local media attachments for vision/multimodal text capabilities. */
@@ -289,6 +291,7 @@ export async function runTesterCapability(
           ...(parameters?.mask !== undefined ? { mask: parameters.mask } : {}),
           scenarioId,
           surfaceId: TESTER_RUNTIME_SURFACE_ID,
+          ...(input.signal ? { signal: input.signal, abortReason: 'tester-user-canceled' } : {}),
         });
         return await projectArtifactRunnerResult(capability, result, client);
       }
@@ -307,6 +310,7 @@ export async function runTesterCapability(
           options: videoGenerationOptions(parameters),
           scenarioId,
           surfaceId: TESTER_RUNTIME_SURFACE_ID,
+          ...(input.signal ? { signal: input.signal, abortReason: 'tester-user-canceled' } : {}),
         });
         return await projectArtifactRunnerResult(capability, result, client);
       }
@@ -328,6 +332,7 @@ export async function runTesterCapability(
           ...(parameters?.timingMode !== undefined ? { timingMode: parameters.timingMode } : {}),
           scenarioId,
           surfaceId: TESTER_RUNTIME_SURFACE_ID,
+          ...(input.signal ? { signal: input.signal, abortReason: 'tester-user-canceled' } : {}),
         });
         return await projectArtifactRunnerResult(capability, result, client);
       }
@@ -356,6 +361,7 @@ export async function runTesterCapability(
           ...(parameters?.responseFormat !== undefined ? { responseFormat: parameters.responseFormat } : {}),
           scenarioId,
           surfaceId: TESTER_RUNTIME_SURFACE_ID,
+          ...(input.signal ? { signal: input.signal, abortReason: 'tester-user-canceled' } : {}),
         });
         if (result.ok === false) return projectRunnerNonSuccess(capability, result);
         return {
@@ -437,6 +443,7 @@ export async function runTesterCapability(
             labels: { scenarioId, surfaceId: TESTER_RUNTIME_SURFACE_ID },
             extensions: [],
           },
+          ...(input.signal ? { signal: input.signal, abortReason: 'tester-user-canceled' } : {}),
         });
         const terminalJob = terminalResult.job;
         const resultAsset = terminalResult.asset;

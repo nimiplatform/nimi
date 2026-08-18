@@ -531,6 +531,43 @@ test('Tester adopts every returned video artifact including the requested last f
   assert.deepEqual(adoptionCalls.map((call) => call.artifactId), ['artifact:video', 'artifact:last-frame']);
 });
 
+test('Tester forwards the user cancellation signal to the video ScenarioJob runner', async () => {
+  const { runTesterCapability } = await importTesterRuntime();
+  const controller = new AbortController();
+  let capturedSignal;
+  let capturedAbortReason;
+  const client = fakeLocalAppClient({
+    async adoptArtifact(input) {
+      return {
+        relativePath: input.relativePath,
+        mediaType: 'video/mp4',
+        sizeBytes: 1,
+        sha256: `sha256:${'a'.repeat(64)}`,
+        createdAt: '2026-08-18T00:00:00.000Z',
+        updatedAt: '2026-08-18T00:00:00.000Z',
+      };
+    },
+  });
+  const result = await runTesterCapability({
+    capabilityId: 'video.generate',
+    prompt: 'cancel this video',
+    signal: controller.signal,
+  }, readyRuntimeDependencies(client, {
+    createScenarioJobClient() { return { marker: 'job-client:video.generate' }; },
+    runners: {
+      async videoGenerate(input) {
+        capturedSignal = input.signal;
+        capturedAbortReason = input.abortReason;
+        return artifactRunnerSuccess('video.generate', 'video/mp4', 'data:video/mp4;base64,AQ==');
+      },
+    },
+  }));
+
+  assert.equal(result.ok, true);
+  assert.equal(capturedSignal, controller.signal);
+  assert.equal(capturedAbortReason, 'tester-user-canceled');
+});
+
 test('Tester removes already adopted artifacts when a later artifact adoption fails', async () => {
   const { runTesterCapability } = await importTesterRuntime();
   const adoptionCalls = [];

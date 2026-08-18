@@ -75,6 +75,8 @@ function TextStudioShell({
   const historyPanel = useContext(TesterHistoryPanelContext);
   const historyCollapsed = historyPanel?.collapsed ?? true;
   const runSeqRef = useRef(0);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const expandedHistoryErrorRef = useRef<string | null>(null);
   const attachmentAdapter = useMemo(
     () => createBrowserDataUrlAttachmentAdapter({ idPrefix: 'tester-attachment' }),
     [],
@@ -112,7 +114,14 @@ function TextStudioShell({
       : false;
 
   useEffect(() => {
-    if (historyLoad?.error) historyPanel?.setCollapsed(false);
+    const error = historyLoad?.error ?? null;
+    if (!error) {
+      expandedHistoryErrorRef.current = null;
+      return;
+    }
+    if (expandedHistoryErrorRef.current === error) return;
+    expandedHistoryErrorRef.current = error;
+    historyPanel?.setCollapsed(false);
   }, [historyLoad?.error, historyPanel]);
 
   function updatePrompt(nextPrompt: string) {
@@ -125,6 +134,8 @@ function TextStudioShell({
   }
 
   useEffect(() => {
+    abortControllerRef.current?.abort('tester-capability-changed');
+    abortControllerRef.current = null;
     const draft = rendererHost.app.projection.promptDraft({
       surfaceId: 'ai-capabilities',
       capabilityId: capability.id,
@@ -145,6 +156,8 @@ function TextStudioShell({
     if (!runTarget.canDispatch) return;
     const runSeq = runSeqRef.current + 1;
     runSeqRef.current = runSeq;
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
     const startedAt = rendererHost.clock.now();
     const pendingRun: TextStudioActiveRun = {
       id: `pending-${startedAt}`,
@@ -188,6 +201,7 @@ function TextStudioShell({
             onPartial: isStreaming ? setStreamingText : undefined,
             attachments: supportsMedia ? [...composerState.attachments] : undefined,
             parameters: effectiveCapabilityParameters,
+            signal: abortController.signal,
           });
         }
       } catch (error) {
@@ -226,6 +240,7 @@ function TextStudioShell({
       setActiveRun({ ...pendingRun, error: message });
     } finally {
       if (runSeq === runSeqRef.current) {
+        if (abortControllerRef.current === abortController) abortControllerRef.current = null;
         setRunning(false);
         setStreamingText(null);
       }
@@ -336,6 +351,10 @@ function TextStudioShell({
     setActiveRun(null);
   }
 
+  function handleCancel() {
+    abortControllerRef.current?.abort('tester-user-canceled');
+  }
+
   return (
     <div className={hasActiveRun ? 'studio studio--has-run' : 'studio studio--landing'}>
       <div className="studio__workspace studio__workspace--with-history">
@@ -355,6 +374,7 @@ function TextStudioShell({
                     className="studio-history-toggle"
                     aria-label={t('StudioShell.newRun')}
                     onClick={handleNewRun}
+                    disabled={running}
                     icon={<SquarePen size={17} strokeWidth={1.8} aria-hidden="true" />}
                   />
                 </Tooltip>
@@ -388,6 +408,9 @@ function TextStudioShell({
                 onCopy={handleCopy}
                 onDownload={handleDownload}
                 onRegenerate={() => void run(activeRun.prompt, activeRun.context)}
+                onCancel={profile.resultKind === 'artifacts' || profile.resultKind === 'transcript' || profile.resultKind === 'voice-asset'
+                  ? handleCancel
+                  : undefined}
                 onUseAsDraft={useHistoryRunAsDraft}
               />
             ) : (

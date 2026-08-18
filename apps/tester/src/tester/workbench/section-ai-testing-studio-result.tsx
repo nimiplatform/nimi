@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { EmptyState, IconButton, StatusBadge, Surface, Tooltip } from '@nimiplatform/kit/ui';
-import { AlertTriangle, ChevronRight, Clock, Copy as CopyIcon, Download as DownloadIcon, FileText, Loader2, RefreshCw, Sparkles } from 'lucide-react';
+import { AlertTriangle, ChevronRight, Clock, Copy as CopyIcon, Download as DownloadIcon, FileText, Loader2, RefreshCw, Sparkles, Square } from 'lucide-react';
 import { useTranslation } from '../../shell/i18n/index.js';
 import type { TesterCapability } from '../tester-capabilities.js';
 import { formatTesterRunTimestamp } from '../tester-history.js';
@@ -182,6 +182,7 @@ export function StudioResult({
   onCopy,
   onDownload,
   onRegenerate,
+  onCancel,
 }: {
   result: TesterCapabilityRunResult | null;
   running: boolean;
@@ -195,6 +196,7 @@ export function StudioResult({
   onCopy: () => void;
   onDownload: () => void;
   onRegenerate: () => void;
+  onCancel?: () => void;
 }) {
   const rendererHost = useTesterRendererHost();
   const { t } = useTranslation();
@@ -368,6 +370,11 @@ export function StudioResult({
           </span>
         </div>
         <div className="studio-result__actions">
+          {running && onCancel ? (
+            <Tooltip content={t('StudioShell.cancelGeneration')} placement="top">
+              <IconButton type="button" className="studio-result__action" onClick={onCancel} aria-label={t('StudioShell.cancelGeneration')} icon={<Square size={14} aria-hidden="true" />} />
+            </Tooltip>
+          ) : null}
           {!blocked && !canceled ? (
             <>
               <Tooltip content={t('Common.copy')} placement="top">

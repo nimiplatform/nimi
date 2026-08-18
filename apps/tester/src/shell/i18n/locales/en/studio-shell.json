@@ -23,6 +23,7 @@
     "legacyRecordHint": "This older persisted run record contains only status metadata. Run it again to persist the typed result snapshot.",
     "generationFailed": "Generation could not be completed",
     "generationCanceled": "Generation canceled",
+    "cancelGeneration": "Cancel generation",
     "runtimeDetails": "Runtime details",
     "runLabel": "Run",
     "download": "Download",
