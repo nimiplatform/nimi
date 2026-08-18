@@ -14,9 +14,9 @@ import type {
 } from '../core-generated/runtime-typed-client';
 import { fromNimiRuntimeProtoStruct } from './runtime-agent-values';
 import {
-  normalizeNimiRuntimeLocalEngineRuntimeModeId,
   nimiRuntimeLocalRunnableAssetKindForCapabilities,
   parseNimiRuntimeLocalAssetKindId,
+  parseNimiRuntimeLocalEngineRuntimeModeId,
 } from './local-asset-vocabulary';
 import { projectNimiRuntimeLocalCatalogRecommendation } from './runtime-local-recommendation';
 import type {
@@ -180,6 +180,10 @@ export function projectNimiRuntimeLocalCatalogItemDescriptor(
   if (!kind) {
     throw invalidLocalProjection(`Runtime local catalog item ${value.itemId} has unknown or ambiguous capabilities`);
   }
+  const engineRuntimeMode = parseNimiRuntimeLocalEngineRuntimeModeId(value.engineRuntimeMode);
+  if (!engineRuntimeMode) {
+    throw invalidLocalProjection(`Runtime local catalog item ${value.itemId} has unknown engine runtime mode`);
+  }
   return {
     itemId: normalizeText(value.itemId),
     source: normalizeText(value.source) || 'huggingface',
@@ -191,7 +195,7 @@ export function projectNimiRuntimeLocalCatalogItemDescriptor(
     templateId: normalizeText(value.templateId) || undefined,
     capabilities: textList(value.capabilities),
     engine: normalizeText(value.engine),
-    engineRuntimeMode: normalizeNimiRuntimeLocalEngineRuntimeModeId(value.engineRuntimeMode),
+    engineRuntimeMode,
     installKind: normalizeText(value.installKind),
     installAvailable: Boolean(value.installAvailable),
     endpoint: normalizeText(value.endpoint) || undefined,
@@ -228,6 +232,10 @@ export function projectNimiRuntimeLocalCatalogVariantDescriptor(
 export function projectNimiRuntimeLocalInstallPlanDescriptor(
   value: GeneratedLocalInstallPlanDescriptor,
 ): NimiRuntimeLocalInstallPlanDescriptor {
+  const engineRuntimeMode = parseNimiRuntimeLocalEngineRuntimeModeId(value.engineRuntimeMode);
+  if (!engineRuntimeMode) {
+    throw invalidLocalProjection(`Runtime local install plan ${value.planId} has unknown engine runtime mode`);
+  }
   return {
     planId: normalizeText(value.planId),
     itemId: normalizeText(value.itemId),
@@ -238,7 +246,7 @@ export function projectNimiRuntimeLocalInstallPlanDescriptor(
     revision: normalizeText(value.revision) || 'main',
     capabilities: textList(value.capabilities),
     engine: normalizeText(value.engine),
-    engineRuntimeMode: normalizeNimiRuntimeLocalEngineRuntimeModeId(value.engineRuntimeMode),
+    engineRuntimeMode,
     installKind: normalizeText(value.installKind),
     installAvailable: Boolean(value.installAvailable),
     endpoint: normalizeText(value.endpoint),

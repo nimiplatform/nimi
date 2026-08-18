@@ -69,8 +69,6 @@ var readOnlyMethods = map[string]bool{
 	"/nimi.runtime.v1.RuntimeLocalService/GetProductControlRecord":               true,
 	"/nimi.runtime.v1.RuntimeLocalService/GetProductControlSelectedDataRoot":     true,
 	"/nimi.runtime.v1.RuntimeLocalService/ListLocalAudits":                       true,
-	"/nimi.runtime.v1.RuntimeLocalService/ListEngines":                           true,
-	"/nimi.runtime.v1.RuntimeLocalService/GetEngineStatus":                       true,
 	"/grpc.health.v1.Health/Check":                                               true,
 	"/grpc.health.v1.Health/Watch":                                               true,
 }

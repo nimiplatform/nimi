@@ -2,92 +2,13 @@ package localservice
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"strings"
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/engine"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
-
-// --- Engine RPC tests ---
-
-func TestEngineRPCsReturnFailedPreconditionWithoutManager(t *testing.T) {
-	svc := newTestService(t)
-	ctx := context.Background()
-
-	// ListEngines
-	_, err := svc.ListEngines(ctx, &runtimev1.ListEnginesRequest{})
-	assertGRPCCode(t, err, "ListEngines", codes.FailedPrecondition)
-
-	// EnsureEngine
-	_, err = svc.EnsureEngine(ctx, &runtimev1.EnsureEngineRequest{Engine: "llama"})
-	assertGRPCCode(t, err, "EnsureEngine", codes.FailedPrecondition)
-
-	// StartEngine
-	_, err = svc.StartEngine(ctx, &runtimev1.StartEngineRequest{Engine: "llama"})
-	assertGRPCCode(t, err, "StartEngine", codes.FailedPrecondition)
-
-	// StopEngine
-	_, err = svc.StopEngine(ctx, &runtimev1.StopEngineRequest{Engine: "llama"})
-	assertGRPCCode(t, err, "StopEngine", codes.FailedPrecondition)
-
-	// GetEngineStatus
-	_, err = svc.GetEngineStatus(ctx, &runtimev1.GetEngineStatusRequest{Engine: "llama"})
-	assertGRPCCode(t, err, "GetEngineStatus", codes.FailedPrecondition)
-}
-
-func TestEngineRPCsKeepLlamaHostPrivate(t *testing.T) {
-	mgr := &mockEngineManager{}
-	svc := newTestService(t)
-	svc.SetEngineManager(mgr)
-	ctx := context.Background()
-
-	resp, err := svc.ListEngines(ctx, &runtimev1.ListEnginesRequest{})
-	if err != nil || len(resp.GetEngines()) != 0 {
-		t.Fatalf("ListEngines leaked private llama Host: %+v, %v", resp, err)
-	}
-	for operation, err := range map[string]error{
-		"start": func() error {
-			_, err := svc.StartEngine(ctx, &runtimev1.StartEngineRequest{Engine: "llama"})
-			return err
-		}(),
-		"stop": func() error { _, err := svc.StopEngine(ctx, &runtimev1.StopEngineRequest{Engine: "llama"}); return err }(),
-		"status": func() error {
-			_, err := svc.GetEngineStatus(ctx, &runtimev1.GetEngineStatusRequest{Engine: "llama"})
-			return err
-		}(),
-	} {
-		assertGRPCCode(t, err, operation, codes.FailedPrecondition)
-		assertGRPCReasonCode(t, err, operation, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
-	}
-	if mgr.startCalls != 0 || mgr.stopCalls != 0 {
-		t.Fatalf("private llama RPC touched Host manager: start=%d stop=%d", mgr.startCalls, mgr.stopCalls)
-	}
-}
-
-func TestEngineRPCsRequireEngineName(t *testing.T) {
-	svc := newTestService(t)
-	svc.SetEngineManager(&mockEngineManager{})
-	ctx := context.Background()
-
-	// Empty engine name should return INVALID_ARGUMENT.
-	_, err := svc.EnsureEngine(ctx, &runtimev1.EnsureEngineRequest{Engine: ""})
-	assertGRPCCode(t, err, "EnsureEngine(empty)", codes.InvalidArgument)
-
-	_, err = svc.StartEngine(ctx, &runtimev1.StartEngineRequest{Engine: ""})
-	assertGRPCCode(t, err, "StartEngine(empty)", codes.InvalidArgument)
-
-	_, err = svc.StopEngine(ctx, &runtimev1.StopEngineRequest{Engine: ""})
-	assertGRPCCode(t, err, "StopEngine(empty)", codes.InvalidArgument)
-
-	_, err = svc.GetEngineStatus(ctx, &runtimev1.GetEngineStatusRequest{Engine: ""})
-	assertGRPCCode(t, err, "GetEngineStatus(empty)", codes.InvalidArgument)
-}
 
 // mockEngineManager implements EngineManager for testing with configurable errors.
 type mockEngineManager struct {
@@ -348,20 +269,6 @@ func (m *mockEngineManager) EngineStatus(engineName string) (EngineInfo, error) 
 	}, nil
 }
 
-func assertGRPCCode(t *testing.T, err error, rpc string, wantCode codes.Code) {
-	t.Helper()
-	if err == nil {
-		t.Fatalf("%s: expected error, got nil", rpc)
-	}
-	st, ok := status.FromError(err)
-	if !ok {
-		t.Fatalf("%s: expected gRPC status error, got %T: %v", rpc, err, err)
-	}
-	if st.Code() != wantCode {
-		t.Errorf("%s: expected code %s, got %s (msg: %s)", rpc, wantCode, st.Code(), st.Message())
-	}
-}
-
 func assertGRPCReasonCode(t *testing.T, err error, rpc string, want runtimev1.ReasonCode) {
 	t.Helper()
 	got, ok := grpcerr.ExtractReasonCode(err)
@@ -372,115 +279,3 @@ func assertGRPCReasonCode(t *testing.T, err error, rpc string, want runtimev1.Re
 		t.Fatalf("%s: expected reason code %s, got %s", rpc, want, got)
 	}
 }
-
-func assertNoGRPCReasonCode(t *testing.T, err error, rpc string) {
-	t.Helper()
-	if reason, ok := grpcerr.ExtractReasonCode(err); ok {
-		t.Fatalf("%s: expected no reason code, got %s", rpc, reason)
-	}
-}
-
-// --- Engine RPC success/error tests ---
-
-func TestEngineRPCEnsureEngineFailsClosedToLocalEnvironmentJobControl(t *testing.T) {
-	svc := newTestService(t)
-	svc.SetEngineManager(&mockEngineManager{})
-
-	_, err := svc.EnsureEngine(context.Background(), &runtimev1.EnsureEngineRequest{Engine: "llama"})
-	assertGRPCCode(t, err, "EnsureEngine", codes.FailedPrecondition)
-	assertGRPCReasonCode(t, err, "EnsureEngine", runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
-}
-
-func TestEngineRPCGetEngineStatusNotFound(t *testing.T) {
-	svc := newTestService(t)
-	upstreamErr := errors.New(`engine missing not started at C:\private\models\secret.gguf`)
-	svc.SetEngineManager(&mockEngineManager{
-		statusErr: upstreamErr,
-	})
-
-	_, err := svc.GetEngineStatus(context.Background(), &runtimev1.GetEngineStatusRequest{Engine: "missing"})
-	assertGRPCCode(t, err, "GetEngineStatus(not_found)", codes.NotFound)
-	assertGRPCReasonCode(t, err, "GetEngineStatus(not_found)", runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
-	if !errors.Is(err, upstreamErr) {
-		t.Fatalf("expected engine manager cause to remain available: %v", err)
-	}
-	st := status.Convert(err)
-	if strings.Contains(st.Message(), upstreamErr.Error()) || strings.Contains(st.Message(), `C:\private`) {
-		t.Fatalf("public status leaked engine manager error: %q", st.Message())
-	}
-	metadata, ok := grpcerr.ExtractReasonMetadata(err)
-	if !ok {
-		t.Fatal("expected ErrorInfo metadata")
-	}
-	if _, exists := metadata["detail"]; exists {
-		t.Fatalf("public metadata exposed raw engine detail: %#v", metadata)
-	}
-}
-
-func TestEngineRPCsKeepManagedSpeechHostPrivate(t *testing.T) {
-	svc := newTestService(t)
-	mgr := &mockEngineManager{}
-	svc.SetEngineManager(mgr)
-	ctx := context.Background()
-	for operation, err := range map[string]error{
-		"start": func() error {
-			_, err := svc.StartEngine(ctx, &runtimev1.StartEngineRequest{Engine: "speech"})
-			return err
-		}(),
-		"stop": func() error {
-			_, err := svc.StopEngine(ctx, &runtimev1.StopEngineRequest{Engine: "speech"})
-			return err
-		}(),
-		"status": func() error {
-			_, err := svc.GetEngineStatus(ctx, &runtimev1.GetEngineStatusRequest{Engine: "speech"})
-			return err
-		}(),
-	} {
-		assertGRPCCode(t, err, operation, codes.FailedPrecondition)
-		assertGRPCReasonCode(t, err, operation, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
-	}
-	if mgr.startCalls != 0 || mgr.stopCalls != 0 {
-		t.Fatalf("private speech RPC touched Host manager: start=%d stop=%d", mgr.startCalls, mgr.stopCalls)
-	}
-}
-
-func TestEngineRPCGetEngineStatusUnknownEngine(t *testing.T) {
-	svc := newTestService(t)
-	svc.SetEngineManager(&mockEngineManager{
-		statusErr: fmt.Errorf("unknown engine kind: \"mystery\""),
-	})
-
-	_, err := svc.GetEngineStatus(context.Background(), &runtimev1.GetEngineStatusRequest{Engine: "mystery"})
-	assertGRPCCode(t, err, "GetEngineStatus(unknown_engine)", codes.InvalidArgument)
-	assertGRPCReasonCode(t, err, "GetEngineStatus(unknown_engine)", runtimev1.ReasonCode_AI_INPUT_INVALID)
-}
-
-func TestMapEngineManagerErrorReturnsNilForNilInput(t *testing.T) {
-	if err := mapEngineManagerError("llama", "status", nil); err != nil {
-		t.Fatalf("expected nil passthrough for nil engine error, got %v", err)
-	}
-}
-
-// --- Enum mapping test ---
-
-func TestEngineStatusToProtoMapping(t *testing.T) {
-	tests := []struct {
-		input string
-		want  runtimev1.LocalEngineStatus
-	}{
-		{"stopped", runtimev1.LocalEngineStatus_LOCAL_ENGINE_STATUS_STOPPED},
-		{"starting", runtimev1.LocalEngineStatus_LOCAL_ENGINE_STATUS_STARTING},
-		{"healthy", runtimev1.LocalEngineStatus_LOCAL_ENGINE_STATUS_HEALTHY},
-		{"unhealthy", runtimev1.LocalEngineStatus_LOCAL_ENGINE_STATUS_UNHEALTHY},
-		{"unknown", runtimev1.LocalEngineStatus_LOCAL_ENGINE_STATUS_UNSPECIFIED},
-		{"", runtimev1.LocalEngineStatus_LOCAL_ENGINE_STATUS_UNSPECIFIED},
-	}
-	for _, tt := range tests {
-		got := engineStatusToProto(tt.input)
-		if got != tt.want {
-			t.Errorf("engineStatusToProto(%q) = %s, want %s", tt.input, got, tt.want)
-		}
-	}
-}
-
-// --- State machine exhaustive verification ---

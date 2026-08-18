@@ -236,13 +236,6 @@ export function isNimiRuntimeLocalEngineId(value: unknown): value is NimiRuntime
   return parseNimiRuntimeLocalEngineId(value) !== undefined;
 }
 
-export function normalizeNimiRuntimeLocalAssetKindId(
-  value: unknown,
-  fallback: NimiRuntimeLocalAssetKindId = 'chat',
-): NimiRuntimeLocalAssetKindId {
-  return parseNimiRuntimeLocalAssetKindId(value) ?? fallback;
-}
-
 export function normalizeNimiRuntimeLocalRunnableAssetKindId(
   value: unknown,
   fallback: NimiRuntimeLocalRunnableAssetKindId = 'chat',
@@ -255,13 +248,6 @@ export function normalizeNimiRuntimeLocalEngineId(
   fallback: NimiRuntimeLocalEngineId = 'llama',
 ): NimiRuntimeLocalEngineId {
   return parseNimiRuntimeLocalEngineId(value) ?? fallback;
-}
-
-export function normalizeNimiRuntimeLocalEngineRuntimeModeId(
-  value: unknown,
-  fallback: NimiRuntimeLocalEngineRuntimeModeId = 'attached-endpoint',
-): NimiRuntimeLocalEngineRuntimeModeId {
-  return parseNimiRuntimeLocalEngineRuntimeModeId(value) ?? fallback;
 }
 
 export function formatNimiRuntimeLocalAssetKindLabel(value: unknown): string {

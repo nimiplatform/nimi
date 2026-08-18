@@ -12,7 +12,7 @@ import {
   projectNimiRuntimeLocalInstallPlanDescriptor,
   projectNimiRuntimeLocalVerifiedAssetDescriptor,
 } from './runtime-local-environment-client-projections';
-import { LocalAssetKind } from '../core-generated/runtime-typed-client';
+import { LocalAssetKind, LocalEngineRuntimeMode } from '../core-generated/runtime-typed-client';
 
 test('Runtime local environment client does not expose the retired LocalAsset and local Profile planes', () => {
   const client = createNimiRuntimeLocalEnvironmentClient({
@@ -52,11 +52,23 @@ test('Runtime local projections retain canonical content identity and exact acqu
 
   const catalog = projectNimiRuntimeLocalCatalogItemDescriptor({
     itemId: 'catalog.multi', capabilities: ['text.generate'], totalSizeBytes: '123',
+    engineRuntimeMode: LocalEngineRuntimeMode.SUPERVISED,
   } as never);
   assert.equal(catalog.totalSizeBytes, 123);
 
   const plan = projectNimiRuntimeLocalInstallPlanDescriptor({
     planId: 'plan.multi', capabilities: ['text.generate'], totalSizeBytes: '123',
+    engineRuntimeMode: LocalEngineRuntimeMode.SUPERVISED,
   } as never);
   assert.equal(plan.totalSizeBytes, 123);
+});
+
+test('Runtime local projections reject unspecified engine execution semantics', () => {
+  assert.throws(() => projectNimiRuntimeLocalCatalogItemDescriptor({
+    itemId: 'catalog.unknown-mode', capabilities: ['text.generate'],
+    engineRuntimeMode: LocalEngineRuntimeMode.UNSPECIFIED,
+  } as never), /unknown engine runtime mode/);
+  assert.throws(() => projectNimiRuntimeLocalInstallPlanDescriptor({
+    planId: 'plan.unknown-mode', engineRuntimeMode: LocalEngineRuntimeMode.UNSPECIFIED,
+  } as never), /unknown engine runtime mode/);
 });

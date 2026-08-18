@@ -144,8 +144,6 @@ pub(crate) fn local_app_reason_from_proto(value: i32) -> Option<LocalAppReasonCo
         423 => LocalAppReasonCode::AiVoiceAssetExpired,
         424 => LocalAppReasonCode::AiVoiceAssetScopeForbidden,
         425 => LocalAppReasonCode::AiVoiceTargetModelMismatch,
-        426 => LocalAppReasonCode::AiVoiceJobNotFound,
-        427 => LocalAppReasonCode::AiVoiceJobNotCancellable,
         694 => LocalAppReasonCode::AiConfigInvalid,
         695 => LocalAppReasonCode::AiConfigNotFound,
         696 => LocalAppReasonCode::AiConfigPersistenceUnavailable,
@@ -221,8 +219,6 @@ fn local_app_reason_from_runtime_reason(value: &str) -> Option<LocalAppReasonCod
         "AI_VOICE_ASSET_EXPIRED" => LocalAppReasonCode::AiVoiceAssetExpired,
         "AI_VOICE_ASSET_SCOPE_FORBIDDEN" => LocalAppReasonCode::AiVoiceAssetScopeForbidden,
         "AI_VOICE_TARGET_MODEL_MISMATCH" => LocalAppReasonCode::AiVoiceTargetModelMismatch,
-        "AI_VOICE_JOB_NOT_FOUND" => LocalAppReasonCode::AiVoiceJobNotFound,
-        "AI_VOICE_JOB_NOT_CANCELLABLE" => LocalAppReasonCode::AiVoiceJobNotCancellable,
         "AI_CONFIG_INVALID" => LocalAppReasonCode::AiConfigInvalid,
         "AI_CONFIG_NOT_FOUND" => LocalAppReasonCode::AiConfigNotFound,
         "AI_CONFIG_PERSISTENCE_UNAVAILABLE" => LocalAppReasonCode::AiConfigPersistenceUnavailable,
@@ -436,12 +432,6 @@ mod tests {
                 "AI_VOICE_TARGET_MODEL_MISMATCH",
                 425,
                 "ai-voice-target-model-mismatch",
-            ),
-            ("AI_VOICE_JOB_NOT_FOUND", 426, "ai-voice-job-not-found"),
-            (
-                "AI_VOICE_JOB_NOT_CANCELLABLE",
-                427,
-                "ai-voice-job-not-cancellable",
             ),
         ] {
             assert_eq!(

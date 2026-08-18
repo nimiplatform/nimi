@@ -28,7 +28,6 @@
     "proto/runtime/v1/local_runtime.proto",
     "proto/runtime/v1/local_runtime_asset_catalog.proto",
     "proto/runtime/v1/local_runtime_device_environment.proto",
-    "proto/runtime/v1/local_runtime_engine.proto",
     "proto/runtime/v1/local_runtime_execution_profile.proto",
     "proto/runtime/v1/local_runtime_recommendation.proto",
     "proto/runtime/v1/memory.proto",
@@ -2223,51 +2222,6 @@
           "response_type": "Ack",
           "request_stream": false,
           "response_stream": false
-        },
-        {
-          "name": "ListEngines",
-          "method_id": "/nimi.runtime.v1.RuntimeLocalService/ListEngines",
-          "kind": "unary",
-          "request_type": "ListEnginesRequest",
-          "response_type": "ListEnginesResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
-          "name": "EnsureEngine",
-          "method_id": "/nimi.runtime.v1.RuntimeLocalService/EnsureEngine",
-          "kind": "unary",
-          "request_type": "EnsureEngineRequest",
-          "response_type": "EnsureEngineResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
-          "name": "StartEngine",
-          "method_id": "/nimi.runtime.v1.RuntimeLocalService/StartEngine",
-          "kind": "unary",
-          "request_type": "StartEngineRequest",
-          "response_type": "StartEngineResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
-          "name": "StopEngine",
-          "method_id": "/nimi.runtime.v1.RuntimeLocalService/StopEngine",
-          "kind": "unary",
-          "request_type": "StopEngineRequest",
-          "response_type": "StopEngineResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
-          "name": "GetEngineStatus",
-          "method_id": "/nimi.runtime.v1.RuntimeLocalService/GetEngineStatus",
-          "kind": "unary",
-          "request_type": "GetEngineStatusRequest",
-          "response_type": "GetEngineStatusResponse",
-          "request_stream": false,
-          "response_stream": false
         }
       ]
     },
@@ -2488,9 +2442,7 @@
     "/nimi.runtime.v1.RuntimeLocalService/CommitLoadout",
     "/nimi.runtime.v1.RuntimeLocalService/CompleteProductControlFirstRunDeviceEnvironmentScan",
     "/nimi.runtime.v1.RuntimeLocalService/DeleteLoadout",
-    "/nimi.runtime.v1.RuntimeLocalService/EnsureEngine",
     "/nimi.runtime.v1.RuntimeLocalService/EnsureProductControlRecordCreated",
-    "/nimi.runtime.v1.RuntimeLocalService/GetEngineStatus",
     "/nimi.runtime.v1.RuntimeLocalService/GetLoadout",
     "/nimi.runtime.v1.RuntimeLocalService/GetMachineLoadouts",
     "/nimi.runtime.v1.RuntimeLocalService/GetModelAsset",
@@ -2500,7 +2452,6 @@
     "/nimi.runtime.v1.RuntimeLocalService/ImportModelAsset",
     "/nimi.runtime.v1.RuntimeLocalService/InstallModelFromPlan",
     "/nimi.runtime.v1.RuntimeLocalService/ListCatalogVariants",
-    "/nimi.runtime.v1.RuntimeLocalService/ListEngines",
     "/nimi.runtime.v1.RuntimeLocalService/ListLoadoutRecipes",
     "/nimi.runtime.v1.RuntimeLocalService/ListLocalAudits",
     "/nimi.runtime.v1.RuntimeLocalService/ListLocalEnvironmentDependencyJobs",
@@ -2522,9 +2473,7 @@
     "/nimi.runtime.v1.RuntimeLocalService/SelectLoadout",
     "/nimi.runtime.v1.RuntimeLocalService/SelectProductControlDataRoot",
     "/nimi.runtime.v1.RuntimeLocalService/SetProductControlFirstRunInstallLevel",
-    "/nimi.runtime.v1.RuntimeLocalService/StartEngine",
     "/nimi.runtime.v1.RuntimeLocalService/StartLocalEnvironmentDependencyJob",
-    "/nimi.runtime.v1.RuntimeLocalService/StopEngine",
     "/nimi.runtime.v1.RuntimeLocalService/UpdateLoadout",
     "/nimi.runtime.v1.RuntimeLocalService/WatchLocalTransfers",
     "/nimi.runtime.v1.RuntimeServiceControlService/RequestRuntimeRestart"
@@ -4131,28 +4080,12 @@
       "response_type": "DeleteLoadoutResponse"
     },
     {
-      "method_id": "/nimi.runtime.v1.RuntimeLocalService/EnsureEngine",
-      "service": "RuntimeLocalService",
-      "method": "EnsureEngine",
-      "kind": "unary",
-      "request_type": "EnsureEngineRequest",
-      "response_type": "EnsureEngineResponse"
-    },
-    {
       "method_id": "/nimi.runtime.v1.RuntimeLocalService/EnsureProductControlRecordCreated",
       "service": "RuntimeLocalService",
       "method": "EnsureProductControlRecordCreated",
       "kind": "unary",
       "request_type": "EnsureProductControlRecordCreatedRequest",
       "response_type": "ProductControlProjectionJson"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeLocalService/GetEngineStatus",
-      "service": "RuntimeLocalService",
-      "method": "GetEngineStatus",
-      "kind": "unary",
-      "request_type": "GetEngineStatusRequest",
-      "response_type": "GetEngineStatusResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeLocalService/GetLoadout",
@@ -4225,14 +4158,6 @@
       "kind": "unary",
       "request_type": "ListCatalogVariantsRequest",
       "response_type": "ListCatalogVariantsResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeLocalService/ListEngines",
-      "service": "RuntimeLocalService",
-      "method": "ListEngines",
-      "kind": "unary",
-      "request_type": "ListEnginesRequest",
-      "response_type": "ListEnginesResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeLocalService/ListLoadoutRecipes",
@@ -4403,28 +4328,12 @@
       "response_type": "ProductControlProjectionJson"
     },
     {
-      "method_id": "/nimi.runtime.v1.RuntimeLocalService/StartEngine",
-      "service": "RuntimeLocalService",
-      "method": "StartEngine",
-      "kind": "unary",
-      "request_type": "StartEngineRequest",
-      "response_type": "StartEngineResponse"
-    },
-    {
       "method_id": "/nimi.runtime.v1.RuntimeLocalService/StartLocalEnvironmentDependencyJob",
       "service": "RuntimeLocalService",
       "method": "StartLocalEnvironmentDependencyJob",
       "kind": "unary",
       "request_type": "StartLocalEnvironmentDependencyJobRequest",
       "response_type": "StartLocalEnvironmentDependencyJobResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeLocalService/StopEngine",
-      "service": "RuntimeLocalService",
-      "method": "StopEngine",
-      "kind": "unary",
-      "request_type": "StopEngineRequest",
-      "response_type": "StopEngineResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeLocalService/UpdateLoadout",
@@ -6053,28 +5962,12 @@
       "response_type": "DeleteLoadoutResponse"
     },
     {
-      "method_id": "/nimi.runtime.v1.RuntimeLocalService/EnsureEngine",
-      "service": "RuntimeLocalService",
-      "method": "EnsureEngine",
-      "kind": "unary",
-      "request_type": "EnsureEngineRequest",
-      "response_type": "EnsureEngineResponse"
-    },
-    {
       "method_id": "/nimi.runtime.v1.RuntimeLocalService/EnsureProductControlRecordCreated",
       "service": "RuntimeLocalService",
       "method": "EnsureProductControlRecordCreated",
       "kind": "unary",
       "request_type": "EnsureProductControlRecordCreatedRequest",
       "response_type": "ProductControlProjectionJson"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeLocalService/GetEngineStatus",
-      "service": "RuntimeLocalService",
-      "method": "GetEngineStatus",
-      "kind": "unary",
-      "request_type": "GetEngineStatusRequest",
-      "response_type": "GetEngineStatusResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeLocalService/GetLoadout",
@@ -6147,14 +6040,6 @@
       "kind": "unary",
       "request_type": "ListCatalogVariantsRequest",
       "response_type": "ListCatalogVariantsResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeLocalService/ListEngines",
-      "service": "RuntimeLocalService",
-      "method": "ListEngines",
-      "kind": "unary",
-      "request_type": "ListEnginesRequest",
-      "response_type": "ListEnginesResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeLocalService/ListLoadoutRecipes",
@@ -6325,28 +6210,12 @@
       "response_type": "ProductControlProjectionJson"
     },
     {
-      "method_id": "/nimi.runtime.v1.RuntimeLocalService/StartEngine",
-      "service": "RuntimeLocalService",
-      "method": "StartEngine",
-      "kind": "unary",
-      "request_type": "StartEngineRequest",
-      "response_type": "StartEngineResponse"
-    },
-    {
       "method_id": "/nimi.runtime.v1.RuntimeLocalService/StartLocalEnvironmentDependencyJob",
       "service": "RuntimeLocalService",
       "method": "StartLocalEnvironmentDependencyJob",
       "kind": "unary",
       "request_type": "StartLocalEnvironmentDependencyJobRequest",
       "response_type": "StartLocalEnvironmentDependencyJobResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeLocalService/StopEngine",
-      "service": "RuntimeLocalService",
-      "method": "StopEngine",
-      "kind": "unary",
-      "request_type": "StopEngineRequest",
-      "response_type": "StopEngineResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeLocalService/UpdateLoadout",
@@ -6546,8 +6415,6 @@
       "EnableAutonomyResponse",
       "EndLocalDevelopmentRunRequest",
       "EndLocalDevelopmentRunResponse",
-      "EnsureEngineRequest",
-      "EnsureEngineResponse",
       "EnsureProductControlRecordCreatedRequest",
       "EpisodicMemoryRecord",
       "ErrorInfo",
@@ -6603,8 +6470,6 @@
       "GetDelegatedReplayTraceResponse",
       "GetDeveloperModeStatusRequest",
       "GetDeveloperModeStatusResponse",
-      "GetEngineStatusRequest",
-      "GetEngineStatusResponse",
       "GetIngestTaskRequest",
       "GetIngestTaskResponse",
       "GetKnowledgeBankRequest",
@@ -6710,8 +6575,6 @@
       "ListDelegatedProviderProfilesResponse",
       "ListDesktopAuditEventsRequest",
       "ListDesktopAuditEventsResponse",
-      "ListEnginesRequest",
-      "ListEnginesResponse",
       "ListKnowledgeBanksRequest",
       "ListKnowledgeBanksResponse",
       "ListLinksRequest",
@@ -6819,7 +6682,6 @@
       "LocalDevelopmentProjectProjection",
       "LocalDevelopmentRegistrationProjection",
       "LocalDeviceProfile",
-      "LocalEngineDescriptor",
       "LocalEnvironmentActivationGate",
       "LocalEnvironmentDependencyJob",
       "LocalEnvironmentPlan",
@@ -7057,14 +6919,10 @@
       "SpeechTranscribeResult",
       "SpeechTranscribeScenarioSpec",
       "SpeechTranscriptionAudioSource",
-      "StartEngineRequest",
-      "StartEngineResponse",
       "StartLocalEnvironmentDependencyJobRequest",
       "StartLocalEnvironmentDependencyJobResponse",
       "StatLocalAppAssetRequest",
       "StatLocalAppAssetResponse",
-      "StopEngineRequest",
-      "StopEngineResponse",
       "StreamLocalAppTextTurnEvent",
       "StreamLocalAppTextTurnRequest",
       "StreamScenarioEvent",
@@ -7259,7 +7117,6 @@
       "LocalCapabilityRequirementRole",
       "LocalDevelopmentShellKind",
       "LocalEngineRuntimeMode",
-      "LocalEngineStatus",
       "LocalHostSupportClass",
       "LocalRecommendationBaseline",
       "LocalRecommendationConfidence",
@@ -14266,39 +14123,6 @@
         "source_file": "proto/runtime/v1/development.proto"
       },
       {
-        "name": "EnsureEngineRequest",
-        "fields": [
-          {
-            "name": "engine",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "version",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          }
-        ],
-        "source_file": "proto/runtime/v1/local_runtime_engine.proto"
-      },
-      {
-        "name": "EnsureEngineResponse",
-        "fields": [
-          {
-            "name": "engine",
-            "type": "LocalEngineDescriptor",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          }
-        ],
-        "source_file": "proto/runtime/v1/local_runtime_engine.proto"
-      },
-      {
         "name": "EnsureProductControlRecordCreatedRequest",
         "fields": [],
         "source_file": "proto/runtime/v1/local_runtime.proto"
@@ -15772,32 +15596,6 @@
           }
         ],
         "source_file": "proto/runtime/v1/development.proto"
-      },
-      {
-        "name": "GetEngineStatusRequest",
-        "fields": [
-          {
-            "name": "engine",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          }
-        ],
-        "source_file": "proto/runtime/v1/local_runtime_engine.proto"
-      },
-      {
-        "name": "GetEngineStatusResponse",
-        "fields": [
-          {
-            "name": "engine",
-            "type": "LocalEngineDescriptor",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          }
-        ],
-        "source_file": "proto/runtime/v1/local_runtime_engine.proto"
       },
       {
         "name": "GetIngestTaskRequest",
@@ -18655,24 +18453,6 @@
           }
         ],
         "source_file": "proto/runtime/v1/audit.proto"
-      },
-      {
-        "name": "ListEnginesRequest",
-        "fields": [],
-        "source_file": "proto/runtime/v1/local_runtime_engine.proto"
-      },
-      {
-        "name": "ListEnginesResponse",
-        "fields": [
-          {
-            "name": "engines",
-            "type": "LocalEngineDescriptor",
-            "repeated": true,
-            "optional": false,
-            "number": 1
-          }
-        ],
-        "source_file": "proto/runtime/v1/local_runtime_engine.proto"
       },
       {
         "name": "ListKnowledgeBanksRequest",
@@ -22531,96 +22311,6 @@
           }
         ],
         "source_file": "proto/runtime/v1/local_runtime_device_environment.proto"
-      },
-      {
-        "name": "LocalEngineDescriptor",
-        "fields": [
-          {
-            "name": "engine",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "version",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "endpoint",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "port",
-            "type": "int32",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "status",
-            "type": "LocalEngineStatus",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          },
-          {
-            "name": "pid",
-            "type": "int32",
-            "repeated": false,
-            "optional": false,
-            "number": 6
-          },
-          {
-            "name": "platform",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 7
-          },
-          {
-            "name": "binary_size_bytes",
-            "type": "int64",
-            "repeated": false,
-            "optional": false,
-            "number": 8
-          },
-          {
-            "name": "started_at",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 9
-          },
-          {
-            "name": "last_healthy_at",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 10
-          },
-          {
-            "name": "consecutive_failures",
-            "type": "int32",
-            "repeated": false,
-            "optional": false,
-            "number": 11
-          },
-          {
-            "name": "binary_path",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 12
-          }
-        ],
-        "source_file": "proto/runtime/v1/local_runtime_engine.proto"
       },
       {
         "name": "LocalEnvironmentActivationGate",
@@ -31222,46 +30912,6 @@
         "source_file": "proto/runtime/v1/ai.proto"
       },
       {
-        "name": "StartEngineRequest",
-        "fields": [
-          {
-            "name": "engine",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "port",
-            "type": "int32",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "version",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          }
-        ],
-        "source_file": "proto/runtime/v1/local_runtime_engine.proto"
-      },
-      {
-        "name": "StartEngineResponse",
-        "fields": [
-          {
-            "name": "engine",
-            "type": "LocalEngineDescriptor",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          }
-        ],
-        "source_file": "proto/runtime/v1/local_runtime_engine.proto"
-      },
-      {
         "name": "StartLocalEnvironmentDependencyJobRequest",
         "fields": [
           {
@@ -31354,32 +31004,6 @@
           }
         ],
         "source_file": "proto/runtime/v1/app.proto"
-      },
-      {
-        "name": "StopEngineRequest",
-        "fields": [
-          {
-            "name": "engine",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          }
-        ],
-        "source_file": "proto/runtime/v1/local_runtime_engine.proto"
-      },
-      {
-        "name": "StopEngineResponse",
-        "fields": [
-          {
-            "name": "engine",
-            "type": "LocalEngineDescriptor",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          }
-        ],
-        "source_file": "proto/runtime/v1/local_runtime_engine.proto"
       },
       {
         "name": "StreamLocalAppTextTurnEvent",
@@ -35733,17 +35357,6 @@
         "source_file": "proto/runtime/v1/local_runtime_asset_catalog.proto"
       },
       {
-        "name": "LocalEngineStatus",
-        "values": [
-          "LOCAL_ENGINE_STATUS_UNSPECIFIED",
-          "LOCAL_ENGINE_STATUS_STOPPED",
-          "LOCAL_ENGINE_STATUS_STARTING",
-          "LOCAL_ENGINE_STATUS_HEALTHY",
-          "LOCAL_ENGINE_STATUS_UNHEALTHY"
-        ],
-        "source_file": "proto/runtime/v1/local_runtime_engine.proto"
-      },
-      {
         "name": "LocalHostSupportClass",
         "values": [
           "LOCAL_HOST_SUPPORT_CLASS_UNSPECIFIED",
@@ -36097,8 +35710,6 @@
           "AI_VOICE_ASSET_EXPIRED",
           "AI_VOICE_ASSET_SCOPE_FORBIDDEN",
           "AI_VOICE_TARGET_MODEL_MISMATCH",
-          "AI_VOICE_JOB_NOT_FOUND",
-          "AI_VOICE_JOB_NOT_CANCELLABLE",
           "AI_MODULE_CONFIG_INVALID",
           "AI_MEMORY_EMBEDDING_TARGET_REF_INVALID",
           "APP_MODE_DOMAIN_FORBIDDEN",

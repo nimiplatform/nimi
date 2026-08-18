@@ -1398,21 +1398,6 @@ impl Default for LocalEngineRuntimeMode {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum LocalEngineStatus {
-    LOCALENGINESTATUSUNSPECIFIED,
-    LOCALENGINESTATUSSTOPPED,
-    LOCALENGINESTATUSSTARTING,
-    LOCALENGINESTATUSHEALTHY,
-    LOCALENGINESTATUSUNHEALTHY,
-}
-
-impl Default for LocalEngineStatus {
-    fn default() -> Self {
-        Self::LOCALENGINESTATUSUNSPECIFIED
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum LocalHostSupportClass {
     LOCALHOSTSUPPORTCLASSUNSPECIFIED,
     LOCALHOSTSUPPORTCLASSSUPPORTEDSUPERVISED,
@@ -1857,8 +1842,6 @@ pub enum ReasonCode {
     AIVOICEASSETEXPIRED,
     AIVOICEASSETSCOPEFORBIDDEN,
     AIVOICETARGETMODELMISMATCH,
-    AIVOICEJOBNOTFOUND,
-    AIVOICEJOBNOTCANCELLABLE,
     AIMODULECONFIGINVALID,
     AIMEMORYEMBEDDINGTARGETREFINVALID,
     APPMODEDOMAINFORBIDDEN,
@@ -8609,59 +8592,6 @@ impl EndLocalDevelopmentRunResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct EnsureEngineRequest {
-    pub engine: Option<String>,
-    pub version: Option<String>,
-}
-
-impl EnsureEngineRequest {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.engine { pairs.push(format!("engine={}", value)); }
-        if let Some(value) = &self.version { pairs.push(format!("version={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-
-        out.engine = pairs.get("engine").cloned();
-        out.version = pairs.get("version").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct EnsureEngineResponse {
-    pub engine: Option<Box<LocalEngineDescriptor>>,
-}
-
-impl EnsureEngineResponse {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let pairs: Vec<String> = Vec::new();
-        if self.engine.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode engine"); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let out = Self::default();
-        for key in ["engine"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-        if !pairs.is_empty() {
-            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
-        }
-
-
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct EnsureProductControlRecordCreatedRequest {
 
 }
@@ -10354,56 +10284,6 @@ impl GetDeveloperModeStatusResponse {
         }
 
         out.revision = pairs.get("revision").and_then(|value| value.parse().ok());
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct GetEngineStatusRequest {
-    pub engine: Option<String>,
-}
-
-impl GetEngineStatusRequest {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.engine { pairs.push(format!("engine={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-
-        out.engine = pairs.get("engine").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct GetEngineStatusResponse {
-    pub engine: Option<Box<LocalEngineDescriptor>>,
-}
-
-impl GetEngineStatusResponse {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let pairs: Vec<String> = Vec::new();
-        if self.engine.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode engine"); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let out = Self::default();
-        for key in ["engine"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-        if !pairs.is_empty() {
-            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
-        }
-
-
         out
     }
 }
@@ -13637,53 +13517,6 @@ impl ListDesktopAuditEventsResponse {
         }
 
         out.next_page_token = pairs.get("next_page_token").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct ListEnginesRequest {
-
-}
-
-impl ListEnginesRequest {
-    pub fn to_transport(&self) -> Vec<u8> {
-        Vec::new()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        if !raw.is_empty() {
-            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client received undecodable response payload");
-        }
-        Self::default()
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct ListEnginesResponse {
-    pub engines: Vec<Box<LocalEngineDescriptor>>,
-}
-
-impl ListEnginesResponse {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let pairs: Vec<String> = Vec::new();
-        if !self.engines.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode engines"); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let out = Self::default();
-        for key in ["engines"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-        if !pairs.is_empty() {
-            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
-        }
-
-
         out
     }
 }
@@ -17293,64 +17126,6 @@ impl LocalDeviceProfile {
         out.disk_free_bytes = pairs.get("disk_free_bytes").and_then(|value| value.parse().ok());
         out.total_ram_bytes = pairs.get("total_ram_bytes").and_then(|value| value.parse().ok());
         out.available_ram_bytes = pairs.get("available_ram_bytes").and_then(|value| value.parse().ok());
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct LocalEngineDescriptor {
-    pub engine: Option<String>,
-    pub version: Option<String>,
-    pub endpoint: Option<String>,
-    pub port: Option<i32>,
-    pub status: Option<LocalEngineStatus>,
-    pub pid: Option<i32>,
-    pub platform: Option<String>,
-    pub binary_size_bytes: Option<i64>,
-    pub started_at: Option<String>,
-    pub last_healthy_at: Option<String>,
-    pub consecutive_failures: Option<i32>,
-    pub binary_path: Option<String>,
-}
-
-impl LocalEngineDescriptor {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.engine { pairs.push(format!("engine={}", value)); }
-        if let Some(value) = &self.version { pairs.push(format!("version={}", value)); }
-        if let Some(value) = &self.endpoint { pairs.push(format!("endpoint={}", value)); }
-        if let Some(value) = &self.port { pairs.push(format!("port={}", value)); }
-        if let Some(value) = &self.status { pairs.push(format!("status={:?}", value)); }
-        if let Some(value) = &self.pid { pairs.push(format!("pid={}", value)); }
-        if let Some(value) = &self.platform { pairs.push(format!("platform={}", value)); }
-        if let Some(value) = &self.binary_size_bytes { pairs.push(format!("binary_size_bytes={}", value)); }
-        if let Some(value) = &self.started_at { pairs.push(format!("started_at={}", value)); }
-        if let Some(value) = &self.last_healthy_at { pairs.push(format!("last_healthy_at={}", value)); }
-        if let Some(value) = &self.consecutive_failures { pairs.push(format!("consecutive_failures={}", value)); }
-        if let Some(value) = &self.binary_path { pairs.push(format!("binary_path={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["status"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-
-        out.engine = pairs.get("engine").cloned();
-        out.version = pairs.get("version").cloned();
-        out.endpoint = pairs.get("endpoint").cloned();
-        out.port = pairs.get("port").and_then(|value| value.parse().ok());
-        out.pid = pairs.get("pid").and_then(|value| value.parse().ok());
-        out.platform = pairs.get("platform").cloned();
-        out.binary_size_bytes = pairs.get("binary_size_bytes").and_then(|value| value.parse().ok());
-        out.started_at = pairs.get("started_at").cloned();
-        out.last_healthy_at = pairs.get("last_healthy_at").cloned();
-        out.consecutive_failures = pairs.get("consecutive_failures").and_then(|value| value.parse().ok());
-        out.binary_path = pairs.get("binary_path").cloned();
         out
     }
 }
@@ -25398,62 +25173,6 @@ impl SpeechTranscriptionAudioSource {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct StartEngineRequest {
-    pub engine: Option<String>,
-    pub port: Option<i32>,
-    pub version: Option<String>,
-}
-
-impl StartEngineRequest {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.engine { pairs.push(format!("engine={}", value)); }
-        if let Some(value) = &self.port { pairs.push(format!("port={}", value)); }
-        if let Some(value) = &self.version { pairs.push(format!("version={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-
-        out.engine = pairs.get("engine").cloned();
-        out.port = pairs.get("port").and_then(|value| value.parse().ok());
-        out.version = pairs.get("version").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct StartEngineResponse {
-    pub engine: Option<Box<LocalEngineDescriptor>>,
-}
-
-impl StartEngineResponse {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let pairs: Vec<String> = Vec::new();
-        if self.engine.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode engine"); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let out = Self::default();
-        for key in ["engine"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-        if !pairs.is_empty() {
-            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
-        }
-
-
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct StartLocalEnvironmentDependencyJobRequest {
     pub environment_key: Option<String>,
     pub dependency_family: Option<String>,
@@ -25557,56 +25276,6 @@ impl StatLocalAppAssetResponse {
         let pairs = parse_pairs(raw);
         let out = Self::default();
         for key in ["asset", "reason_code"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-        if !pairs.is_empty() {
-            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
-        }
-
-
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct StopEngineRequest {
-    pub engine: Option<String>,
-}
-
-impl StopEngineRequest {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.engine { pairs.push(format!("engine={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-
-        out.engine = pairs.get("engine").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct StopEngineResponse {
-    pub engine: Option<Box<LocalEngineDescriptor>>,
-}
-
-impl StopEngineResponse {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let pairs: Vec<String> = Vec::new();
-        if self.engine.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode engine"); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let out = Self::default();
-        for key in ["engine"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
             }
@@ -29935,18 +29604,6 @@ impl From<Vec<u8>> for EndLocalDevelopmentRunResponse {
     }
 }
 
-impl From<Vec<u8>> for EnsureEngineRequest {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for EnsureEngineResponse {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
 impl From<Vec<u8>> for EnsureProductControlRecordCreatedRequest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -30272,18 +29929,6 @@ impl From<Vec<u8>> for GetDeveloperModeStatusRequest {
 }
 
 impl From<Vec<u8>> for GetDeveloperModeStatusResponse {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for GetEngineStatusRequest {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for GetEngineStatusResponse {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -30914,18 +30559,6 @@ impl From<Vec<u8>> for ListDesktopAuditEventsRequest {
 }
 
 impl From<Vec<u8>> for ListDesktopAuditEventsResponse {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for ListEnginesRequest {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for ListEnginesResponse {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -31568,12 +31201,6 @@ impl From<Vec<u8>> for LocalDevelopmentRegistrationProjection {
 }
 
 impl From<Vec<u8>> for LocalDeviceProfile {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for LocalEngineDescriptor {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -33001,18 +32628,6 @@ impl From<Vec<u8>> for SpeechTranscriptionAudioSource {
     }
 }
 
-impl From<Vec<u8>> for StartEngineRequest {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for StartEngineResponse {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
 impl From<Vec<u8>> for StartLocalEnvironmentDependencyJobRequest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -33032,18 +32647,6 @@ impl From<Vec<u8>> for StatLocalAppAssetRequest {
 }
 
 impl From<Vec<u8>> for StatLocalAppAssetResponse {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for StopEngineRequest {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for StopEngineResponse {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -35690,16 +35293,6 @@ where
         Ok(DeleteLoadoutResponse::from_transport(&raw))
     }
 
-    pub fn ensure_engine(&self, request: EnsureEngineRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<EnsureEngineResponse, T::Error> {
-        let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/nimi.runtime.v1.RuntimeLocalService/EnsureEngine".to_string(),
-            metadata,
-            body: request.to_transport(),
-            timeout,
-        })?;
-        Ok(EnsureEngineResponse::from_transport(&raw))
-    }
-
     pub fn ensure_product_control_record_created(&self, request: EnsureProductControlRecordCreatedRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ProductControlProjectionJson, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "/nimi.runtime.v1.RuntimeLocalService/EnsureProductControlRecordCreated".to_string(),
@@ -35708,16 +35301,6 @@ where
             timeout,
         })?;
         Ok(ProductControlProjectionJson::from_transport(&raw))
-    }
-
-    pub fn get_engine_status(&self, request: GetEngineStatusRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GetEngineStatusResponse, T::Error> {
-        let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/nimi.runtime.v1.RuntimeLocalService/GetEngineStatus".to_string(),
-            metadata,
-            body: request.to_transport(),
-            timeout,
-        })?;
-        Ok(GetEngineStatusResponse::from_transport(&raw))
     }
 
     pub fn get_loadout(&self, request: GetLoadoutRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GetLoadoutResponse, T::Error> {
@@ -35808,16 +35391,6 @@ where
             timeout,
         })?;
         Ok(ListCatalogVariantsResponse::from_transport(&raw))
-    }
-
-    pub fn list_engines(&self, request: ListEnginesRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ListEnginesResponse, T::Error> {
-        let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/nimi.runtime.v1.RuntimeLocalService/ListEngines".to_string(),
-            metadata,
-            body: request.to_transport(),
-            timeout,
-        })?;
-        Ok(ListEnginesResponse::from_transport(&raw))
     }
 
     pub fn list_loadout_recipes(&self, request: ListLoadoutRecipesRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ListLoadoutRecipesResponse, T::Error> {
@@ -36030,16 +35603,6 @@ where
         Ok(ProductControlProjectionJson::from_transport(&raw))
     }
 
-    pub fn start_engine(&self, request: StartEngineRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<StartEngineResponse, T::Error> {
-        let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/nimi.runtime.v1.RuntimeLocalService/StartEngine".to_string(),
-            metadata,
-            body: request.to_transport(),
-            timeout,
-        })?;
-        Ok(StartEngineResponse::from_transport(&raw))
-    }
-
     pub fn start_local_environment_dependency_job(&self, request: StartLocalEnvironmentDependencyJobRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<StartLocalEnvironmentDependencyJobResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "/nimi.runtime.v1.RuntimeLocalService/StartLocalEnvironmentDependencyJob".to_string(),
@@ -36048,16 +35611,6 @@ where
             timeout,
         })?;
         Ok(StartLocalEnvironmentDependencyJobResponse::from_transport(&raw))
-    }
-
-    pub fn stop_engine(&self, request: StopEngineRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<StopEngineResponse, T::Error> {
-        let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/nimi.runtime.v1.RuntimeLocalService/StopEngine".to_string(),
-            metadata,
-            body: request.to_transport(),
-            timeout,
-        })?;
-        Ok(StopEngineResponse::from_transport(&raw))
     }
 
     pub fn update_loadout(&self, request: UpdateLoadoutRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<UpdateLoadoutResponse, T::Error> {

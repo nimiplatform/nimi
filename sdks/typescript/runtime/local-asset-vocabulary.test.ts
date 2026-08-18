@@ -14,9 +14,9 @@ import {
   compareNimiRuntimeLocalAssetKindForDisplay,
   formatNimiRuntimeLocalAssetKindLabel,
   isNimiRuntimeLocalRunnableAssetKindId,
-  normalizeNimiRuntimeLocalEngineRuntimeModeId,
   normalizeNimiRuntimeLocalRunnableAssetKindId,
   parseNimiRuntimeLocalAssetKindId,
+  parseNimiRuntimeLocalEngineRuntimeModeId,
   parseNimiRuntimeLocalGpuMemoryModelId,
   toNimiRuntimeLocalAssetKindRequestValue,
   toNimiRuntimeLocalEngineRuntimeModeRequestValue,
@@ -63,11 +63,16 @@ describe('Nimi Runtime local asset vocabulary', () => {
     assert.equal(toNimiRuntimeLocalAssetKindRequestValue('tts'), LocalAssetKind.TTS);
     assert.equal(parseNimiRuntimeLocalGpuMemoryModelId(GpuMemoryModel.UNIFIED), 'unified');
     assert.equal(toNimiRuntimeLocalGpuMemoryModelRequestValue('discrete'), GpuMemoryModel.DISCRETE);
-    assert.equal(normalizeNimiRuntimeLocalEngineRuntimeModeId('LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED'), 'supervised');
+    assert.equal(parseNimiRuntimeLocalEngineRuntimeModeId('LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED'), 'supervised');
     assert.equal(
       toNimiRuntimeLocalEngineRuntimeModeRequestValue('attached-endpoint'),
       LocalEngineRuntimeMode.ATTACHED_ENDPOINT,
     );
+  });
+
+  it('does not invent local asset or engine semantics for unknown values', () => {
+    assert.equal(parseNimiRuntimeLocalAssetKindId('LOCAL_ASSET_KIND_UNSPECIFIED'), undefined);
+    assert.equal(parseNimiRuntimeLocalEngineRuntimeModeId('LOCAL_ENGINE_RUNTIME_MODE_UNSPECIFIED'), undefined);
   });
 
   it('normalizes runnable local asset kinds', () => {

@@ -45,7 +45,6 @@ fn generate_runtime_proto_client() {
         "runtime/v1/local_runtime_device_environment.proto",
         "runtime/v1/local_runtime_execution_profile.proto",
         "runtime/v1/local_runtime_recommendation.proto",
-        "runtime/v1/local_runtime_engine.proto",
         "runtime/v1/local_runtime.proto",
         "runtime/v1/knowledge.proto",
         "runtime/v1/app.proto",

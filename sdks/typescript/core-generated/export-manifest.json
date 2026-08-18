@@ -28,7 +28,6 @@
     "proto/runtime/v1/local_runtime.proto",
     "proto/runtime/v1/local_runtime_asset_catalog.proto",
     "proto/runtime/v1/local_runtime_device_environment.proto",
-    "proto/runtime/v1/local_runtime_engine.proto",
     "proto/runtime/v1/local_runtime_execution_profile.proto",
     "proto/runtime/v1/local_runtime_recommendation.proto",
     "proto/runtime/v1/memory.proto",

@@ -584,14 +584,6 @@ export enum ReasonCode {
      */
     AI_VOICE_TARGET_MODEL_MISMATCH = 425,
     /**
-     * @generated from protobuf enum value: AI_VOICE_JOB_NOT_FOUND = 426;
-     */
-    AI_VOICE_JOB_NOT_FOUND = 426,
-    /**
-     * @generated from protobuf enum value: AI_VOICE_JOB_NOT_CANCELLABLE = 427;
-     */
-    AI_VOICE_JOB_NOT_CANCELLABLE = 427,
-    /**
      * MODULE family (430+)
      *
      * @generated from protobuf enum value: AI_MODULE_CONFIG_INVALID = 430;

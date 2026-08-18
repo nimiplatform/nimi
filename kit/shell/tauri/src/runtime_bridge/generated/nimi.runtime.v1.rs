@@ -190,8 +190,6 @@ pub enum ReasonCode {
     AiVoiceAssetExpired = 423,
     AiVoiceAssetScopeForbidden = 424,
     AiVoiceTargetModelMismatch = 425,
-    AiVoiceJobNotFound = 426,
-    AiVoiceJobNotCancellable = 427,
     /// MODULE family (430+)
     AiModuleConfigInvalid = 430,
     /// MEMORY family (444+)
@@ -524,8 +522,6 @@ impl ReasonCode {
             Self::AiVoiceAssetExpired => "AI_VOICE_ASSET_EXPIRED",
             Self::AiVoiceAssetScopeForbidden => "AI_VOICE_ASSET_SCOPE_FORBIDDEN",
             Self::AiVoiceTargetModelMismatch => "AI_VOICE_TARGET_MODEL_MISMATCH",
-            Self::AiVoiceJobNotFound => "AI_VOICE_JOB_NOT_FOUND",
-            Self::AiVoiceJobNotCancellable => "AI_VOICE_JOB_NOT_CANCELLABLE",
             Self::AiModuleConfigInvalid => "AI_MODULE_CONFIG_INVALID",
             Self::AiMemoryEmbeddingTargetRefInvalid => {
                 "AI_MEMORY_EMBEDDING_TARGET_REF_INVALID"
@@ -893,8 +889,6 @@ impl ReasonCode {
             "AI_VOICE_ASSET_EXPIRED" => Some(Self::AiVoiceAssetExpired),
             "AI_VOICE_ASSET_SCOPE_FORBIDDEN" => Some(Self::AiVoiceAssetScopeForbidden),
             "AI_VOICE_TARGET_MODEL_MISMATCH" => Some(Self::AiVoiceTargetModelMismatch),
-            "AI_VOICE_JOB_NOT_FOUND" => Some(Self::AiVoiceJobNotFound),
-            "AI_VOICE_JOB_NOT_CANCELLABLE" => Some(Self::AiVoiceJobNotCancellable),
             "AI_MODULE_CONFIG_INVALID" => Some(Self::AiModuleConfigInvalid),
             "AI_MEMORY_EMBEDDING_TARGET_REF_INVALID" => {
                 Some(Self::AiMemoryEmbeddingTargetRefInvalid)
@@ -8859,121 +8853,6 @@ impl LocalRecommendationFeedSource {
     }
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct LocalEngineDescriptor {
-    #[prost(string, tag = "1")]
-    pub engine: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub version: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub endpoint: ::prost::alloc::string::String,
-    #[prost(int32, tag = "4")]
-    pub port: i32,
-    #[prost(enumeration = "LocalEngineStatus", tag = "5")]
-    pub status: i32,
-    #[prost(int32, tag = "6")]
-    pub pid: i32,
-    #[prost(string, tag = "7")]
-    pub platform: ::prost::alloc::string::String,
-    #[prost(int64, tag = "8")]
-    pub binary_size_bytes: i64,
-    #[prost(string, tag = "9")]
-    pub started_at: ::prost::alloc::string::String,
-    #[prost(string, tag = "10")]
-    pub last_healthy_at: ::prost::alloc::string::String,
-    #[prost(int32, tag = "11")]
-    pub consecutive_failures: i32,
-    #[prost(string, tag = "12")]
-    pub binary_path: ::prost::alloc::string::String,
-}
-#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct ListEnginesRequest {}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct ListEnginesResponse {
-    #[prost(message, repeated, tag = "1")]
-    pub engines: ::prost::alloc::vec::Vec<LocalEngineDescriptor>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct EnsureEngineRequest {
-    #[prost(string, tag = "1")]
-    pub engine: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub version: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct EnsureEngineResponse {
-    #[prost(message, optional, tag = "1")]
-    pub engine: ::core::option::Option<LocalEngineDescriptor>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct StartEngineRequest {
-    #[prost(string, tag = "1")]
-    pub engine: ::prost::alloc::string::String,
-    #[prost(int32, tag = "2")]
-    pub port: i32,
-    #[prost(string, tag = "3")]
-    pub version: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct StartEngineResponse {
-    #[prost(message, optional, tag = "1")]
-    pub engine: ::core::option::Option<LocalEngineDescriptor>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct StopEngineRequest {
-    #[prost(string, tag = "1")]
-    pub engine: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct StopEngineResponse {
-    #[prost(message, optional, tag = "1")]
-    pub engine: ::core::option::Option<LocalEngineDescriptor>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct GetEngineStatusRequest {
-    #[prost(string, tag = "1")]
-    pub engine: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct GetEngineStatusResponse {
-    #[prost(message, optional, tag = "1")]
-    pub engine: ::core::option::Option<LocalEngineDescriptor>,
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum LocalEngineStatus {
-    Unspecified = 0,
-    Stopped = 1,
-    Starting = 2,
-    Healthy = 3,
-    Unhealthy = 4,
-}
-impl LocalEngineStatus {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "LOCAL_ENGINE_STATUS_UNSPECIFIED",
-            Self::Stopped => "LOCAL_ENGINE_STATUS_STOPPED",
-            Self::Starting => "LOCAL_ENGINE_STATUS_STARTING",
-            Self::Healthy => "LOCAL_ENGINE_STATUS_HEALTHY",
-            Self::Unhealthy => "LOCAL_ENGINE_STATUS_UNHEALTHY",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "LOCAL_ENGINE_STATUS_UNSPECIFIED" => Some(Self::Unspecified),
-            "LOCAL_ENGINE_STATUS_STOPPED" => Some(Self::Stopped),
-            "LOCAL_ENGINE_STATUS_STARTING" => Some(Self::Starting),
-            "LOCAL_ENGINE_STATUS_HEALTHY" => Some(Self::Healthy),
-            "LOCAL_ENGINE_STATUS_UNHEALTHY" => Some(Self::Unhealthy),
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ListVerifiedAssetsRequest {
     #[prost(enumeration = "LocalAssetKind", tag = "1")]
     pub kind_filter: i32,
@@ -10895,143 +10774,6 @@ pub mod runtime_local_service_client {
                     GrpcMethod::new(
                         "nimi.runtime.v1.RuntimeLocalService",
                         "AppendRuntimeAudit",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        /// Engine management RPCs (K-LENG-004: SUPERVISED mode)
-        pub async fn list_engines(
-            &mut self,
-            request: impl tonic::IntoRequest<super::ListEnginesRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::ListEnginesResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeLocalService/ListEngines",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new("nimi.runtime.v1.RuntimeLocalService", "ListEngines"),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        pub async fn ensure_engine(
-            &mut self,
-            request: impl tonic::IntoRequest<super::EnsureEngineRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::EnsureEngineResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeLocalService/EnsureEngine",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeLocalService",
-                        "EnsureEngine",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        pub async fn start_engine(
-            &mut self,
-            request: impl tonic::IntoRequest<super::StartEngineRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::StartEngineResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeLocalService/StartEngine",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new("nimi.runtime.v1.RuntimeLocalService", "StartEngine"),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        pub async fn stop_engine(
-            &mut self,
-            request: impl tonic::IntoRequest<super::StopEngineRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::StopEngineResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeLocalService/StopEngine",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new("nimi.runtime.v1.RuntimeLocalService", "StopEngine"),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        pub async fn get_engine_status(
-            &mut self,
-            request: impl tonic::IntoRequest<super::GetEngineStatusRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::GetEngineStatusResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeLocalService/GetEngineStatus",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeLocalService",
-                        "GetEngineStatus",
                     ),
                 );
             self.inner.unary(req, path, codec).await

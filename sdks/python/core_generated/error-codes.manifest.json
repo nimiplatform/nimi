@@ -113,7 +113,6 @@
     "SDK_AI_PROFILE_NOT_FOUND",
     "SDK_AI_REQUIREMENT_INVALID",
     "SDK_AI_REQUIREMENT_SCOPE_MISMATCH",
-    "SDK_AI_RUNTIME_DESCRIPTOR_INVALID",
     "SDK_AI_RUNTIME_REQUIRED",
     "SDK_AI_SCHEDULING_FIELD_REQUIRED",
     "SDK_AI_SCHEDULING_RESOURCE_HINT_INVALID",
@@ -787,11 +786,6 @@
     },
     {
       "name": "SDK_AI_REQUIREMENT_SCOPE_MISMATCH",
-      "family": "SDK_AI",
-      "source_rule": "S-ERROR-003"
-    },
-    {
-      "name": "SDK_AI_RUNTIME_DESCRIPTOR_INVALID",
       "family": "SDK_AI",
       "source_rule": "S-ERROR-003"
     },

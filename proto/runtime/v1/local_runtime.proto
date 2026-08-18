@@ -9,7 +9,6 @@ import "runtime/v1/common.proto";
 import "runtime/v1/capability_configuration.proto";
 import "runtime/v1/local_runtime_asset_catalog.proto";
 import "runtime/v1/local_runtime_device_environment.proto";
-import "runtime/v1/local_runtime_engine.proto";
 import "runtime/v1/local_runtime_execution_profile.proto";
 import "runtime/v1/local_runtime_recommendation.proto";
 
@@ -479,10 +478,4 @@ service RuntimeLocalService {
   rpc AppendInferenceAudit(AppendInferenceAuditRequest) returns (Ack);
   rpc AppendRuntimeAudit(AppendRuntimeAuditRequest) returns (Ack);
 
-  // Engine management RPCs (K-LENG-004: SUPERVISED mode)
-  rpc ListEngines(ListEnginesRequest) returns (ListEnginesResponse);
-  rpc EnsureEngine(EnsureEngineRequest) returns (EnsureEngineResponse);
-  rpc StartEngine(StartEngineRequest) returns (StartEngineResponse);
-  rpc StopEngine(StopEngineRequest) returns (StopEngineResponse);
-  rpc GetEngineStatus(GetEngineStatusRequest) returns (GetEngineStatusResponse);
 }

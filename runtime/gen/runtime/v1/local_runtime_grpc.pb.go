@@ -63,11 +63,6 @@ const (
 	RuntimeLocalService_ListLocalAudits_FullMethodName                                     = "/nimi.runtime.v1.RuntimeLocalService/ListLocalAudits"
 	RuntimeLocalService_AppendInferenceAudit_FullMethodName                                = "/nimi.runtime.v1.RuntimeLocalService/AppendInferenceAudit"
 	RuntimeLocalService_AppendRuntimeAudit_FullMethodName                                  = "/nimi.runtime.v1.RuntimeLocalService/AppendRuntimeAudit"
-	RuntimeLocalService_ListEngines_FullMethodName                                         = "/nimi.runtime.v1.RuntimeLocalService/ListEngines"
-	RuntimeLocalService_EnsureEngine_FullMethodName                                        = "/nimi.runtime.v1.RuntimeLocalService/EnsureEngine"
-	RuntimeLocalService_StartEngine_FullMethodName                                         = "/nimi.runtime.v1.RuntimeLocalService/StartEngine"
-	RuntimeLocalService_StopEngine_FullMethodName                                          = "/nimi.runtime.v1.RuntimeLocalService/StopEngine"
-	RuntimeLocalService_GetEngineStatus_FullMethodName                                     = "/nimi.runtime.v1.RuntimeLocalService/GetEngineStatus"
 )
 
 // RuntimeLocalServiceClient is the client API for RuntimeLocalService service.
@@ -127,12 +122,6 @@ type RuntimeLocalServiceClient interface {
 	ListLocalAudits(ctx context.Context, in *ListLocalAuditsRequest, opts ...grpc.CallOption) (*ListLocalAuditsResponse, error)
 	AppendInferenceAudit(ctx context.Context, in *AppendInferenceAuditRequest, opts ...grpc.CallOption) (*Ack, error)
 	AppendRuntimeAudit(ctx context.Context, in *AppendRuntimeAuditRequest, opts ...grpc.CallOption) (*Ack, error)
-	// Engine management RPCs (K-LENG-004: SUPERVISED mode)
-	ListEngines(ctx context.Context, in *ListEnginesRequest, opts ...grpc.CallOption) (*ListEnginesResponse, error)
-	EnsureEngine(ctx context.Context, in *EnsureEngineRequest, opts ...grpc.CallOption) (*EnsureEngineResponse, error)
-	StartEngine(ctx context.Context, in *StartEngineRequest, opts ...grpc.CallOption) (*StartEngineResponse, error)
-	StopEngine(ctx context.Context, in *StopEngineRequest, opts ...grpc.CallOption) (*StopEngineResponse, error)
-	GetEngineStatus(ctx context.Context, in *GetEngineStatusRequest, opts ...grpc.CallOption) (*GetEngineStatusResponse, error)
 }
 
 type runtimeLocalServiceClient struct {
@@ -592,56 +581,6 @@ func (c *runtimeLocalServiceClient) AppendRuntimeAudit(ctx context.Context, in *
 	return out, nil
 }
 
-func (c *runtimeLocalServiceClient) ListEngines(ctx context.Context, in *ListEnginesRequest, opts ...grpc.CallOption) (*ListEnginesResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ListEnginesResponse)
-	err := c.cc.Invoke(ctx, RuntimeLocalService_ListEngines_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *runtimeLocalServiceClient) EnsureEngine(ctx context.Context, in *EnsureEngineRequest, opts ...grpc.CallOption) (*EnsureEngineResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(EnsureEngineResponse)
-	err := c.cc.Invoke(ctx, RuntimeLocalService_EnsureEngine_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *runtimeLocalServiceClient) StartEngine(ctx context.Context, in *StartEngineRequest, opts ...grpc.CallOption) (*StartEngineResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(StartEngineResponse)
-	err := c.cc.Invoke(ctx, RuntimeLocalService_StartEngine_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *runtimeLocalServiceClient) StopEngine(ctx context.Context, in *StopEngineRequest, opts ...grpc.CallOption) (*StopEngineResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(StopEngineResponse)
-	err := c.cc.Invoke(ctx, RuntimeLocalService_StopEngine_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *runtimeLocalServiceClient) GetEngineStatus(ctx context.Context, in *GetEngineStatusRequest, opts ...grpc.CallOption) (*GetEngineStatusResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(GetEngineStatusResponse)
-	err := c.cc.Invoke(ctx, RuntimeLocalService_GetEngineStatus_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 // RuntimeLocalServiceServer is the server API for RuntimeLocalService service.
 // All implementations should embed UnimplementedRuntimeLocalServiceServer
 // for forward compatibility.
@@ -699,12 +638,6 @@ type RuntimeLocalServiceServer interface {
 	ListLocalAudits(context.Context, *ListLocalAuditsRequest) (*ListLocalAuditsResponse, error)
 	AppendInferenceAudit(context.Context, *AppendInferenceAuditRequest) (*Ack, error)
 	AppendRuntimeAudit(context.Context, *AppendRuntimeAuditRequest) (*Ack, error)
-	// Engine management RPCs (K-LENG-004: SUPERVISED mode)
-	ListEngines(context.Context, *ListEnginesRequest) (*ListEnginesResponse, error)
-	EnsureEngine(context.Context, *EnsureEngineRequest) (*EnsureEngineResponse, error)
-	StartEngine(context.Context, *StartEngineRequest) (*StartEngineResponse, error)
-	StopEngine(context.Context, *StopEngineRequest) (*StopEngineResponse, error)
-	GetEngineStatus(context.Context, *GetEngineStatusRequest) (*GetEngineStatusResponse, error)
 }
 
 // UnimplementedRuntimeLocalServiceServer should be embedded to have
@@ -845,21 +778,6 @@ func (UnimplementedRuntimeLocalServiceServer) AppendInferenceAudit(context.Conte
 }
 func (UnimplementedRuntimeLocalServiceServer) AppendRuntimeAudit(context.Context, *AppendRuntimeAuditRequest) (*Ack, error) {
 	return nil, status.Error(codes.Unimplemented, "method AppendRuntimeAudit not implemented")
-}
-func (UnimplementedRuntimeLocalServiceServer) ListEngines(context.Context, *ListEnginesRequest) (*ListEnginesResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method ListEngines not implemented")
-}
-func (UnimplementedRuntimeLocalServiceServer) EnsureEngine(context.Context, *EnsureEngineRequest) (*EnsureEngineResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method EnsureEngine not implemented")
-}
-func (UnimplementedRuntimeLocalServiceServer) StartEngine(context.Context, *StartEngineRequest) (*StartEngineResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method StartEngine not implemented")
-}
-func (UnimplementedRuntimeLocalServiceServer) StopEngine(context.Context, *StopEngineRequest) (*StopEngineResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method StopEngine not implemented")
-}
-func (UnimplementedRuntimeLocalServiceServer) GetEngineStatus(context.Context, *GetEngineStatusRequest) (*GetEngineStatusResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method GetEngineStatus not implemented")
 }
 func (UnimplementedRuntimeLocalServiceServer) testEmbeddedByValue() {}
 
@@ -1666,96 +1584,6 @@ func _RuntimeLocalService_AppendRuntimeAudit_Handler(srv interface{}, ctx contex
 	return interceptor(ctx, in, info, handler)
 }
 
-func _RuntimeLocalService_ListEngines_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ListEnginesRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RuntimeLocalServiceServer).ListEngines(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: RuntimeLocalService_ListEngines_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeLocalServiceServer).ListEngines(ctx, req.(*ListEnginesRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _RuntimeLocalService_EnsureEngine_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(EnsureEngineRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RuntimeLocalServiceServer).EnsureEngine(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: RuntimeLocalService_EnsureEngine_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeLocalServiceServer).EnsureEngine(ctx, req.(*EnsureEngineRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _RuntimeLocalService_StartEngine_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(StartEngineRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RuntimeLocalServiceServer).StartEngine(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: RuntimeLocalService_StartEngine_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeLocalServiceServer).StartEngine(ctx, req.(*StartEngineRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _RuntimeLocalService_StopEngine_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(StopEngineRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RuntimeLocalServiceServer).StopEngine(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: RuntimeLocalService_StopEngine_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeLocalServiceServer).StopEngine(ctx, req.(*StopEngineRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _RuntimeLocalService_GetEngineStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetEngineStatusRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RuntimeLocalServiceServer).GetEngineStatus(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: RuntimeLocalService_GetEngineStatus_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeLocalServiceServer).GetEngineStatus(ctx, req.(*GetEngineStatusRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 // RuntimeLocalService_ServiceDesc is the grpc.ServiceDesc for RuntimeLocalService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -1934,26 +1762,6 @@ var RuntimeLocalService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "AppendRuntimeAudit",
 			Handler:    _RuntimeLocalService_AppendRuntimeAudit_Handler,
-		},
-		{
-			MethodName: "ListEngines",
-			Handler:    _RuntimeLocalService_ListEngines_Handler,
-		},
-		{
-			MethodName: "EnsureEngine",
-			Handler:    _RuntimeLocalService_EnsureEngine_Handler,
-		},
-		{
-			MethodName: "StartEngine",
-			Handler:    _RuntimeLocalService_StartEngine_Handler,
-		},
-		{
-			MethodName: "StopEngine",
-			Handler:    _RuntimeLocalService_StopEngine_Handler,
-		},
-		{
-			MethodName: "GetEngineStatus",
-			Handler:    _RuntimeLocalService_GetEngineStatus_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

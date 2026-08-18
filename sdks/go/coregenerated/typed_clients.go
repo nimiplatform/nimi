@@ -892,16 +892,6 @@ const (
 	LOCALENGINERUNTIMEMODEATTACHEDENDPOINT LocalEngineRuntimeMode = "LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT"
 )
 
-type LocalEngineStatus string
-
-const (
-	LOCALENGINESTATUSUNSPECIFIED LocalEngineStatus = "LOCAL_ENGINE_STATUS_UNSPECIFIED"
-	LOCALENGINESTATUSSTOPPED LocalEngineStatus = "LOCAL_ENGINE_STATUS_STOPPED"
-	LOCALENGINESTATUSSTARTING LocalEngineStatus = "LOCAL_ENGINE_STATUS_STARTING"
-	LOCALENGINESTATUSHEALTHY LocalEngineStatus = "LOCAL_ENGINE_STATUS_HEALTHY"
-	LOCALENGINESTATUSUNHEALTHY LocalEngineStatus = "LOCAL_ENGINE_STATUS_UNHEALTHY"
-)
-
 type LocalHostSupportClass string
 
 const (
@@ -1233,8 +1223,6 @@ const (
 	AIVOICEASSETEXPIRED ReasonCode = "AI_VOICE_ASSET_EXPIRED"
 	AIVOICEASSETSCOPEFORBIDDEN ReasonCode = "AI_VOICE_ASSET_SCOPE_FORBIDDEN"
 	AIVOICETARGETMODELMISMATCH ReasonCode = "AI_VOICE_TARGET_MODEL_MISMATCH"
-	AIVOICEJOBNOTFOUND ReasonCode = "AI_VOICE_JOB_NOT_FOUND"
-	AIVOICEJOBNOTCANCELLABLE ReasonCode = "AI_VOICE_JOB_NOT_CANCELLABLE"
 	AIMODULECONFIGINVALID ReasonCode = "AI_MODULE_CONFIG_INVALID"
 	AIMEMORYEMBEDDINGTARGETREFINVALID ReasonCode = "AI_MEMORY_EMBEDDING_TARGET_REF_INVALID"
 	APPMODEDOMAINFORBIDDEN ReasonCode = "APP_MODE_DOMAIN_FORBIDDEN"
@@ -3079,15 +3067,6 @@ type EndLocalDevelopmentRunResponse struct {
 	ReasonCode ReasonCode `json:"reason_code,omitempty"`
 }
 
-type EnsureEngineRequest struct {
-	Engine string `json:"engine,omitempty"`
-	Version string `json:"version,omitempty"`
-}
-
-type EnsureEngineResponse struct {
-	Engine *LocalEngineDescriptor `json:"engine,omitempty"`
-}
-
 type EnsureProductControlRecordCreatedRequest struct {
 
 }
@@ -3418,14 +3397,6 @@ type GetDeveloperModeStatusResponse struct {
 	State DeveloperModeState `json:"state,omitempty"`
 	Revision uint64 `json:"revision,omitempty"`
 	ReasonCode ReasonCode `json:"reason_code,omitempty"`
-}
-
-type GetEngineStatusRequest struct {
-	Engine string `json:"engine,omitempty"`
-}
-
-type GetEngineStatusResponse struct {
-	Engine *LocalEngineDescriptor `json:"engine,omitempty"`
 }
 
 type GetIngestTaskRequest struct {
@@ -4066,14 +4037,6 @@ type ListDesktopAuditEventsRequest struct {
 type ListDesktopAuditEventsResponse struct {
 	Events []DesktopAuditEventProjection `json:"events,omitempty"`
 	NextPageToken string `json:"next_page_token,omitempty"`
-}
-
-type ListEnginesRequest struct {
-
-}
-
-type ListEnginesResponse struct {
-	Engines []LocalEngineDescriptor `json:"engines,omitempty"`
 }
 
 type ListKnowledgeBanksRequest struct {
@@ -4860,21 +4823,6 @@ type LocalDeviceProfile struct {
 	Ports []LocalPortAvailability `json:"ports,omitempty"`
 	TotalRamBytes int64 `json:"total_ram_bytes,omitempty"`
 	AvailableRamBytes int64 `json:"available_ram_bytes,omitempty"`
-}
-
-type LocalEngineDescriptor struct {
-	Engine string `json:"engine,omitempty"`
-	Version string `json:"version,omitempty"`
-	Endpoint string `json:"endpoint,omitempty"`
-	Port int32 `json:"port,omitempty"`
-	Status LocalEngineStatus `json:"status,omitempty"`
-	Pid int32 `json:"pid,omitempty"`
-	Platform string `json:"platform,omitempty"`
-	BinarySizeBytes int64 `json:"binary_size_bytes,omitempty"`
-	StartedAt string `json:"started_at,omitempty"`
-	LastHealthyAt string `json:"last_healthy_at,omitempty"`
-	ConsecutiveFailures int32 `json:"consecutive_failures,omitempty"`
-	BinaryPath string `json:"binary_path,omitempty"`
 }
 
 type LocalEnvironmentActivationGate struct {
@@ -6618,16 +6566,6 @@ type SpeechTranscriptionAudioSource struct {
 	AudioChunks *AudioChunks `json:"audio_chunks,omitempty"`
 }
 
-type StartEngineRequest struct {
-	Engine string `json:"engine,omitempty"`
-	Port int32 `json:"port,omitempty"`
-	Version string `json:"version,omitempty"`
-}
-
-type StartEngineResponse struct {
-	Engine *LocalEngineDescriptor `json:"engine,omitempty"`
-}
-
 type StartLocalEnvironmentDependencyJobRequest struct {
 	EnvironmentKey string `json:"environment_key,omitempty"`
 	DependencyFamily string `json:"dependency_family,omitempty"`
@@ -6648,14 +6586,6 @@ type StatLocalAppAssetRequest struct {
 type StatLocalAppAssetResponse struct {
 	Asset *LocalAppAssetRecord `json:"asset,omitempty"`
 	ReasonCode ReasonCode `json:"reason_code,omitempty"`
-}
-
-type StopEngineRequest struct {
-	Engine string `json:"engine,omitempty"`
-}
-
-type StopEngineResponse struct {
-	Engine *LocalEngineDescriptor `json:"engine,omitempty"`
 }
 
 type StreamLocalAppTextTurnEvent struct {
@@ -9054,28 +8984,12 @@ func (c RuntimeTypedClient) DeleteLoadout(ctx context.Context, request DeleteLoa
 	return decodeRuntimeTypedResponse[DeleteLoadoutResponse](raw, "DeleteLoadoutResponse")
 }
 
-func (c RuntimeTypedClient) EnsureEngine(ctx context.Context, request EnsureEngineRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (EnsureEngineResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/EnsureEngine", request, metadata, timeoutMS)
-	if err != nil {
-		return EnsureEngineResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[EnsureEngineResponse](raw, "EnsureEngineResponse")
-}
-
 func (c RuntimeTypedClient) EnsureProductControlRecordCreated(ctx context.Context, request EnsureProductControlRecordCreatedRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ProductControlProjectionJson, error) {
 	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/EnsureProductControlRecordCreated", request, metadata, timeoutMS)
 	if err != nil {
 		return ProductControlProjectionJson{}, err
 	}
 	return decodeRuntimeTypedResponse[ProductControlProjectionJson](raw, "ProductControlProjectionJson")
-}
-
-func (c RuntimeTypedClient) GetEngineStatus(ctx context.Context, request GetEngineStatusRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetEngineStatusResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/GetEngineStatus", request, metadata, timeoutMS)
-	if err != nil {
-		return GetEngineStatusResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[GetEngineStatusResponse](raw, "GetEngineStatusResponse")
 }
 
 func (c RuntimeTypedClient) GetLoadout(ctx context.Context, request GetLoadoutRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetLoadoutResponse, error) {
@@ -9148,14 +9062,6 @@ func (c RuntimeTypedClient) ListCatalogVariants(ctx context.Context, request Lis
 		return ListCatalogVariantsResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[ListCatalogVariantsResponse](raw, "ListCatalogVariantsResponse")
-}
-
-func (c RuntimeTypedClient) ListEngines(ctx context.Context, request ListEnginesRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListEnginesResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/ListEngines", request, metadata, timeoutMS)
-	if err != nil {
-		return ListEnginesResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[ListEnginesResponse](raw, "ListEnginesResponse")
 }
 
 func (c RuntimeTypedClient) ListLoadoutRecipes(ctx context.Context, request ListLoadoutRecipesRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListLoadoutRecipesResponse, error) {
@@ -9326,28 +9232,12 @@ func (c RuntimeTypedClient) SetProductControlFirstRunInstallLevel(ctx context.Co
 	return decodeRuntimeTypedResponse[ProductControlProjectionJson](raw, "ProductControlProjectionJson")
 }
 
-func (c RuntimeTypedClient) StartEngine(ctx context.Context, request StartEngineRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (StartEngineResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/StartEngine", request, metadata, timeoutMS)
-	if err != nil {
-		return StartEngineResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[StartEngineResponse](raw, "StartEngineResponse")
-}
-
 func (c RuntimeTypedClient) StartLocalEnvironmentDependencyJob(ctx context.Context, request StartLocalEnvironmentDependencyJobRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (StartLocalEnvironmentDependencyJobResponse, error) {
 	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/StartLocalEnvironmentDependencyJob", request, metadata, timeoutMS)
 	if err != nil {
 		return StartLocalEnvironmentDependencyJobResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[StartLocalEnvironmentDependencyJobResponse](raw, "StartLocalEnvironmentDependencyJobResponse")
-}
-
-func (c RuntimeTypedClient) StopEngine(ctx context.Context, request StopEngineRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (StopEngineResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/StopEngine", request, metadata, timeoutMS)
-	if err != nil {
-		return StopEngineResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[StopEngineResponse](raw, "StopEngineResponse")
 }
 
 func (c RuntimeTypedClient) UpdateLoadout(ctx context.Context, request UpdateLoadoutRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (UpdateLoadoutResponse, error) {

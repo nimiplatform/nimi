@@ -103,14 +103,6 @@ export enum LocalEngineRuntimeMode {
   ATTACHED_ENDPOINT = 2,
 }
 
-export enum LocalEngineStatus {
-  UNSPECIFIED = 0,
-  STOPPED = 1,
-  STARTING = 2,
-  HEALTHY = 3,
-  UNHEALTHY = 4,
-}
-
 export enum LocalHostSupportClass {
   UNSPECIFIED = 0,
   SUPPORTED_SUPERVISED = 1,

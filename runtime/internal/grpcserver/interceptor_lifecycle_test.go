@@ -210,8 +210,6 @@ func TestUnaryLifecycleInterceptorAllowsConnectorAndEngineReadsWhenStopping(t *t
 		"/nimi.runtime.v1.RuntimeCognitionService/SearchKeyword",
 		"/nimi.runtime.v1.RuntimeCognitionService/SearchHybrid",
 		"/nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages",
-		"/nimi.runtime.v1.RuntimeLocalService/ListEngines",
-		"/nimi.runtime.v1.RuntimeLocalService/GetEngineStatus",
 	} {
 		handlerCalled := false
 		_, err := interceptor(

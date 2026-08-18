@@ -1608,28 +1608,12 @@ RUNTIME_METHODS = [
     "response_type": "DeleteLoadoutResponse"
   },
   {
-    "method_id": "/nimi.runtime.v1.RuntimeLocalService/EnsureEngine",
-    "service": "RuntimeLocalService",
-    "method": "EnsureEngine",
-    "kind": "unary",
-    "request_type": "EnsureEngineRequest",
-    "response_type": "EnsureEngineResponse"
-  },
-  {
     "method_id": "/nimi.runtime.v1.RuntimeLocalService/EnsureProductControlRecordCreated",
     "service": "RuntimeLocalService",
     "method": "EnsureProductControlRecordCreated",
     "kind": "unary",
     "request_type": "EnsureProductControlRecordCreatedRequest",
     "response_type": "ProductControlProjectionJson"
-  },
-  {
-    "method_id": "/nimi.runtime.v1.RuntimeLocalService/GetEngineStatus",
-    "service": "RuntimeLocalService",
-    "method": "GetEngineStatus",
-    "kind": "unary",
-    "request_type": "GetEngineStatusRequest",
-    "response_type": "GetEngineStatusResponse"
   },
   {
     "method_id": "/nimi.runtime.v1.RuntimeLocalService/GetLoadout",
@@ -1702,14 +1686,6 @@ RUNTIME_METHODS = [
     "kind": "unary",
     "request_type": "ListCatalogVariantsRequest",
     "response_type": "ListCatalogVariantsResponse"
-  },
-  {
-    "method_id": "/nimi.runtime.v1.RuntimeLocalService/ListEngines",
-    "service": "RuntimeLocalService",
-    "method": "ListEngines",
-    "kind": "unary",
-    "request_type": "ListEnginesRequest",
-    "response_type": "ListEnginesResponse"
   },
   {
     "method_id": "/nimi.runtime.v1.RuntimeLocalService/ListLoadoutRecipes",
@@ -1880,28 +1856,12 @@ RUNTIME_METHODS = [
     "response_type": "ProductControlProjectionJson"
   },
   {
-    "method_id": "/nimi.runtime.v1.RuntimeLocalService/StartEngine",
-    "service": "RuntimeLocalService",
-    "method": "StartEngine",
-    "kind": "unary",
-    "request_type": "StartEngineRequest",
-    "response_type": "StartEngineResponse"
-  },
-  {
     "method_id": "/nimi.runtime.v1.RuntimeLocalService/StartLocalEnvironmentDependencyJob",
     "service": "RuntimeLocalService",
     "method": "StartLocalEnvironmentDependencyJob",
     "kind": "unary",
     "request_type": "StartLocalEnvironmentDependencyJobRequest",
     "response_type": "StartLocalEnvironmentDependencyJobResponse"
-  },
-  {
-    "method_id": "/nimi.runtime.v1.RuntimeLocalService/StopEngine",
-    "service": "RuntimeLocalService",
-    "method": "StopEngine",
-    "kind": "unary",
-    "request_type": "StopEngineRequest",
-    "response_type": "StopEngineResponse"
   },
   {
     "method_id": "/nimi.runtime.v1.RuntimeLocalService/UpdateLoadout",

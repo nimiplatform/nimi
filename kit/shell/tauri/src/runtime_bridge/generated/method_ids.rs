@@ -112,11 +112,8 @@ pub const RUNTIME_BRIDGE_ALLOWLISTED_METHODS: &[&str] = &[
     "/nimi.runtime.v1.RuntimeExternalAgentService/RevokeExternalAgentToken",
     "/nimi.runtime.v1.RuntimeLocalService/AppendInferenceAudit",
     "/nimi.runtime.v1.RuntimeLocalService/AppendRuntimeAudit",
-    "/nimi.runtime.v1.RuntimeLocalService/EnsureEngine",
-    "/nimi.runtime.v1.RuntimeLocalService/GetEngineStatus",
     "/nimi.runtime.v1.RuntimeLocalService/GetRecommendationFeed",
     "/nimi.runtime.v1.RuntimeLocalService/ListCatalogVariants",
-    "/nimi.runtime.v1.RuntimeLocalService/ListEngines",
     "/nimi.runtime.v1.RuntimeLocalService/ListLocalAudits",
     "/nimi.runtime.v1.RuntimeLocalService/ListLocalEnvironmentSelectedSources",
     "/nimi.runtime.v1.RuntimeLocalService/ListLocalTransfers",
@@ -124,8 +121,6 @@ pub const RUNTIME_BRIDGE_ALLOWLISTED_METHODS: &[&str] = &[
     "/nimi.runtime.v1.RuntimeLocalService/ResolveLocalEnvironmentActivationGate",
     "/nimi.runtime.v1.RuntimeLocalService/ResolveModelInstallPlan",
     "/nimi.runtime.v1.RuntimeLocalService/SearchCatalogModels",
-    "/nimi.runtime.v1.RuntimeLocalService/StartEngine",
-    "/nimi.runtime.v1.RuntimeLocalService/StopEngine",
     "/nimi.runtime.v1.RuntimeLocalService/WatchLocalTransfers",
 ];
 

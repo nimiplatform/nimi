@@ -13,7 +13,6 @@ import {
 import type { JsonObject } from '../types';
 import { fromNimiRuntimeProtoStruct } from './runtime-agent-values';
 import {
-  normalizeNimiRuntimeLocalAssetKindId,
   parseNimiRuntimeLocalAssetKindId,
   toNimiRuntimeLocalAssetKindRequestValue,
   type NimiRuntimeLocalAssetKindId,
@@ -240,7 +239,8 @@ export function projectNimiRuntimeLocalRecommendationFeedItem(
   const preferredEngine = normalizeText(record.preferredEngine);
   const installModelId = normalizeText(installPayload.modelId);
   const installRepo = normalizeText(installPayload.repo);
-  if (!source || !itemId || !repo || !title || !preferredEngine || !installModelId || !installRepo) {
+  const installKind = parseNimiRuntimeLocalAssetKindId(installPayload.kind);
+  if (!source || !itemId || !repo || !title || !preferredEngine || !installModelId || !installRepo || !installKind) {
     return undefined;
   }
   return {
@@ -272,7 +272,7 @@ export function projectNimiRuntimeLocalRecommendationFeedItem(
     actionState: projectNimiRuntimeLocalRecommendationActionState(record.actionState),
     installPayload: {
       modelId: installModelId,
-      kind: normalizeNimiRuntimeLocalAssetKindId(installPayload.kind),
+      kind: installKind,
       repo: installRepo,
       revision: normalizeText(installPayload.revision) || undefined,
       capabilities: Array.isArray(installPayload.capabilities) ? textList(installPayload.capabilities) : undefined,

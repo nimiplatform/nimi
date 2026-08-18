@@ -23,7 +23,6 @@ import type { EndLocalDevelopmentRunRequest, EndLocalDevelopmentRunResponse, Get
 import type { ExternalAgentGatewayStatusRequest, ExternalAgentGatewayStatusResponse, ExternalAgentIssueTokenRequest, ExternalAgentIssueTokenResponse, ExternalAgentListTokensRequest, ExternalAgentListTokensResponse, ExternalAgentRevokeTokenRequest } from "./runtime-protobuf/runtime/v1/external_agent";
 import type { AddLinkRequest, AddLinkResponse, CreateKnowledgeBankRequest, CreateKnowledgeBankResponse, DeleteKnowledgeBankRequest, DeleteKnowledgeBankResponse, DeletePageRequest, DeletePageResponse, GetIngestTaskRequest, GetIngestTaskResponse, GetKnowledgeBankRequest, GetKnowledgeBankResponse, GetPageRequest, GetPageResponse, IngestDocumentRequest, IngestDocumentResponse, ListBacklinksRequest, ListBacklinksResponse, ListKnowledgeBanksRequest, ListKnowledgeBanksResponse, ListLinksRequest, ListLinksResponse, ListPagesRequest, ListPagesResponse, PutPageRequest, PutPageResponse, RemoveLinkRequest, RemoveLinkResponse, SearchHybridRequest, SearchHybridResponse, SearchKeywordRequest, SearchKeywordResponse, TraverseGraphRequest, TraverseGraphResponse } from "./runtime-protobuf/runtime/v1/knowledge";
 import type { AdmitProductControlReadyForUseRequest, AppendInferenceAuditRequest, AppendRuntimeAuditRequest, ApplyLocalEnvironmentPlanRequest, ApplyLocalEnvironmentPlanResponse, CancelLocalEnvironmentDependencyJobRequest, CancelLocalEnvironmentDependencyJobResponse, CancelLocalTransferRequest, CancelLocalTransferResponse, CollectDeviceProfileRequest, CollectDeviceProfileResponse, CompleteProductControlFirstRunDeviceEnvironmentScanRequest, EnsureProductControlRecordCreatedRequest, GetModelAssetRequest, GetModelAssetResponse, GetProductControlRecordRequest, GetProductControlSelectedDataRootRequest, GetRecommendationFeedRequest, GetRecommendationFeedResponse, ImportModelAssetRequest, ImportModelAssetResponse, InstallModelFromPlanRequest, InstallModelFromPlanResponse, ListCatalogVariantsRequest, ListCatalogVariantsResponse, ListLocalAuditsRequest, ListLocalAuditsResponse, ListLocalEnvironmentDependencyJobsRequest, ListLocalEnvironmentDependencyJobsResponse, ListLocalEnvironmentSelectedSourcesRequest, ListLocalEnvironmentSelectedSourcesResponse, ListLocalTransfersRequest, ListLocalTransfersResponse, ListModelAssetsRequest, ListModelAssetsResponse, ListVerifiedAssetsRequest, ListVerifiedAssetsResponse, LocalTransferProgressEvent, PauseLocalTransferRequest, PauseLocalTransferResponse, ProductControlProjectionJson, ReconcileProductControlFirstRunSetupStateRequest, RemoveModelAssetRequest, RemoveModelAssetResponse, RepairLocalEnvironmentDependencyRequest, RepairLocalEnvironmentDependencyResponse, ResolveLocalEnvironmentActivationGateRequest, ResolveLocalEnvironmentActivationGateResponse, ResolveLocalEnvironmentPlanRequest, ResolveLocalEnvironmentPlanResponse, ResolveModelInstallPlanRequest, ResolveModelInstallPlanResponse, ResumeLocalTransferRequest, ResumeLocalTransferResponse, RetryLocalEnvironmentDependencyJobRequest, RetryLocalEnvironmentDependencyJobResponse, SearchCatalogModelsRequest, SearchCatalogModelsResponse, SelectProductControlDataRootRequest, SetProductControlFirstRunInstallLevelRequest, StartLocalEnvironmentDependencyJobRequest, StartLocalEnvironmentDependencyJobResponse, WatchLocalTransfersRequest } from "./runtime-protobuf/runtime/v1/local_runtime";
-import type { EnsureEngineRequest, EnsureEngineResponse, GetEngineStatusRequest, GetEngineStatusResponse, ListEnginesRequest, ListEnginesResponse, StartEngineRequest, StartEngineResponse, StopEngineRequest, StopEngineResponse } from "./runtime-protobuf/runtime/v1/local_runtime_engine";
 import type { CreateBankRequest, CreateBankResponse, DeleteBankRequest, DeleteBankResponse, DeleteMemoryRequest, DeleteMemoryResponse, GetBankRequest, GetBankResponse, HistoryRequest, HistoryResponse, InspectMemoryEmbeddingRuntimeRequest, InspectMemoryEmbeddingRuntimeResponse, ListBanksRequest, ListBanksResponse, MemoryEvent, RecallRequest, RecallResponse, RequestMemoryEmbeddingRuntimeBindRequest, RequestMemoryEmbeddingRuntimeBindResponse, RequestMemoryEmbeddingRuntimeCutoverRequest, RequestMemoryEmbeddingRuntimeCutoverResponse, RetainRequest, RetainResponse, SubscribeMemoryEventsRequest } from "./runtime-protobuf/runtime/v1/memory";
 import type { RequestRuntimeRestartRequest, RequestRuntimeRestartResponse } from "./runtime-protobuf/runtime/v1/runtime_service_control";
 import type { DeleteVoiceAssetRequest, DeleteVoiceAssetResponse, GetVoiceAssetRequest, GetVoiceAssetResponse, ListPresetVoicesRequest, ListPresetVoicesResponse, ListVoiceAssetsRequest, ListVoiceAssetsResponse } from "./runtime-protobuf/runtime/v1/voice";
@@ -59,7 +58,6 @@ export type { AddLinkRequest, AddLinkResponse, CreateKnowledgeBankRequest, Creat
 export type { AdmitProductControlReadyForUseRequest, AppendInferenceAuditRequest, AppendRuntimeAuditRequest, ApplyLocalEnvironmentPlanRequest, ApplyLocalEnvironmentPlanResponse, CancelLocalEnvironmentDependencyJobRequest, CancelLocalEnvironmentDependencyJobResponse, CancelLocalTransferRequest, CancelLocalTransferResponse, CollectDeviceProfileRequest, CollectDeviceProfileResponse, CompleteProductControlFirstRunDeviceEnvironmentScanRequest, EnsureProductControlRecordCreatedRequest, GetModelAssetRequest, GetModelAssetResponse, GetProductControlRecordRequest, GetProductControlSelectedDataRootRequest, GetRecommendationFeedRequest, GetRecommendationFeedResponse, ImportModelAssetRequest, ImportModelAssetResponse, InstallModelFromPlanRequest, InstallModelFromPlanResponse, ListCatalogVariantsRequest, ListCatalogVariantsResponse, ListLocalAuditsRequest, ListLocalAuditsResponse, ListLocalEnvironmentDependencyJobsRequest, ListLocalEnvironmentDependencyJobsResponse, ListLocalEnvironmentSelectedSourcesRequest, ListLocalEnvironmentSelectedSourcesResponse, ListLocalTransfersRequest, ListLocalTransfersResponse, ListModelAssetsRequest, ListModelAssetsResponse, ListVerifiedAssetsRequest, ListVerifiedAssetsResponse, LocalCatalogVariantDescriptor, LocalTransferProgressEvent, LocalTransferSessionSummary, PauseLocalTransferRequest, PauseLocalTransferResponse, ProductControlProjectionJson, ReconcileProductControlFirstRunSetupStateRequest, RemoveModelAssetRequest, RemoveModelAssetResponse, RepairLocalEnvironmentDependencyRequest, RepairLocalEnvironmentDependencyResponse, ResolveLocalEnvironmentActivationGateRequest, ResolveLocalEnvironmentActivationGateResponse, ResolveLocalEnvironmentPlanRequest, ResolveLocalEnvironmentPlanResponse, ResolveModelInstallPlanRequest, ResolveModelInstallPlanResponse, ResumeLocalTransferRequest, ResumeLocalTransferResponse, RetryLocalEnvironmentDependencyJobRequest, RetryLocalEnvironmentDependencyJobResponse, SearchCatalogModelsRequest, SearchCatalogModelsResponse, SelectProductControlDataRootRequest, SetProductControlFirstRunInstallLevelRequest, StartLocalEnvironmentDependencyJobRequest, StartLocalEnvironmentDependencyJobResponse, WatchLocalTransfersRequest } from "./runtime-protobuf/runtime/v1/local_runtime";
 export type { LocalCatalogModelDescriptor, LocalHostRequirements, LocalInstallPlanDescriptor, LocalProviderHints, LocalProviderHintsLlama, LocalProviderHintsMedia, LocalProviderHintsSidecar, LocalProviderHintsSpeech, LocalVerifiedAssetDescriptor, ModelAssetFile, ModelAssetRecord } from "./runtime-protobuf/runtime/v1/local_runtime_asset_catalog";
 export type { LocalDeviceProfile, LocalEnvironmentActivationGate, LocalEnvironmentDependencyJob, LocalEnvironmentPlan, LocalEnvironmentPlanDependency, LocalEnvironmentSelectedSourceRecord, LocalGpuProfile, LocalNpuProfile, LocalPortAvailability, LocalPythonProfile } from "./runtime-protobuf/runtime/v1/local_runtime_device_environment";
-export type { EnsureEngineRequest, EnsureEngineResponse, GetEngineStatusRequest, GetEngineStatusResponse, ListEnginesRequest, ListEnginesResponse, LocalEngineDescriptor, StartEngineRequest, StartEngineResponse, StopEngineRequest, StopEngineResponse } from "./runtime-protobuf/runtime/v1/local_runtime_engine";
 export type { LocalAuditEvent, LocalAuditTimeRange } from "./runtime-protobuf/runtime/v1/local_runtime_execution_profile";
 export type { LocalCatalogRecommendation, LocalRecommendationActionState, LocalRecommendationFeedDescriptor, LocalRecommendationFeedEntryDescriptor, LocalRecommendationFeedItemDescriptor, LocalRecommendationInstallPayload, LocalRecommendationInstalledState } from "./runtime-protobuf/runtime/v1/local_runtime_recommendation";
 export type { AgentCoreBankOwner, AgentDyadicBankOwner, AppPrivateBankOwner, CreateBankRequest, CreateBankResponse, DeleteBankRequest, DeleteBankResponse, DeleteMemoryRequest, DeleteMemoryResponse, EpisodicMemoryRecord, GetBankRequest, GetBankResponse, HistoryRequest, HistoryResponse, InspectMemoryEmbeddingRuntimeRequest, InspectMemoryEmbeddingRuntimeResponse, ListBanksRequest, ListBanksResponse, MemoryBank, MemoryBankLocator, MemoryBankOwnerFilter, MemoryDeletedDetail, MemoryEmbeddingCloudBindingRef, MemoryEmbeddingOperationReadiness, MemoryEmbeddingProfile, MemoryEvent, MemoryHistoryQuery, MemoryInvalidation, MemoryProvenance, MemoryRecallHit, MemoryRecallQuery, MemoryRecord, MemoryRecordInput, MemoryReflectionRequest, MemoryReflectionResult, MemoryReplicationConflict, MemoryReplicationObservedDetail, MemoryReplicationPending, MemoryReplicationState, MemoryReplicationSynced, MemoryRequestContext, NarrativeRecallHit, ObservationalMemoryRecord, PublicMemoryBankLocator, RecallRequest, RecallResponse, RequestMemoryEmbeddingRuntimeBindRequest, RequestMemoryEmbeddingRuntimeBindResponse, RequestMemoryEmbeddingRuntimeCutoverRequest, RequestMemoryEmbeddingRuntimeCutoverResponse, RetainRequest, RetainResponse, SemanticMemoryRecord, SubscribeMemoryEventsRequest, WorkspacePrivateBankOwner, WorldSharedBankOwner } from "./runtime-protobuf/runtime/v1/memory";
@@ -86,7 +84,6 @@ export { DeveloperModeState, LocalDevelopmentShellKind } from "./runtime-protobu
 export { KnowledgeBankScope, KnowledgeIngestTaskStatus } from "./runtime-protobuf/runtime/v1/knowledge";
 export { LocalAssetKind, LocalEngineRuntimeMode, ModelAssetCatalogVerification } from "./runtime-protobuf/runtime/v1/local_runtime_asset_catalog";
 export { GpuMemoryModel } from "./runtime-protobuf/runtime/v1/local_runtime_device_environment";
-export { LocalEngineStatus } from "./runtime-protobuf/runtime/v1/local_runtime_engine";
 export { LocalHostSupportClass, LocalRecommendationBaseline, LocalRecommendationConfidence, LocalRecommendationFeedCacheState, LocalRecommendationFeedCapability, LocalRecommendationFeedSource, LocalRecommendationFormat, LocalRecommendationSource, LocalRecommendationTier } from "./runtime-protobuf/runtime/v1/local_runtime_recommendation";
 export { MemoryBankScope, MemoryCanonicalClass, MemoryDistanceMetric, MemoryEventType, MemoryMigrationPolicy, MemoryRecordKind, MemoryReplicationOutcome } from "./runtime-protobuf/runtime/v1/memory";
 export { VoiceAssetPersistence, VoiceAssetStatus, VoiceCreationSource, VoiceOutputMode, VoicePlaybackState, VoiceReferenceKind } from "./runtime-protobuf/runtime/v1/voice";
@@ -2284,31 +2281,9 @@ export class RuntimeTypedClient {
     });
   }
 
-  async ensureEngine(request: EnsureEngineRequest, options: RuntimeTypedCallOptions = {}): Promise<EnsureEngineResponse> {
-    return this.core.unary<EnsureEngineResponse, EnsureEngineRequest>({
-      methodId: "/nimi.runtime.v1.RuntimeLocalService/EnsureEngine",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
   async ensureProductControlRecordCreated(request: EnsureProductControlRecordCreatedRequest, options: RuntimeTypedCallOptions = {}): Promise<ProductControlProjectionJson> {
     return this.core.unary<ProductControlProjectionJson, EnsureProductControlRecordCreatedRequest>({
       methodId: "/nimi.runtime.v1.RuntimeLocalService/EnsureProductControlRecordCreated",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async getEngineStatus(request: GetEngineStatusRequest, options: RuntimeTypedCallOptions = {}): Promise<GetEngineStatusResponse> {
-    return this.core.unary<GetEngineStatusResponse, GetEngineStatusRequest>({
-      methodId: "/nimi.runtime.v1.RuntimeLocalService/GetEngineStatus",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
@@ -2408,17 +2383,6 @@ export class RuntimeTypedClient {
   async listCatalogVariants(request: ListCatalogVariantsRequest, options: RuntimeTypedCallOptions = {}): Promise<ListCatalogVariantsResponse> {
     return this.core.unary<ListCatalogVariantsResponse, ListCatalogVariantsRequest>({
       methodId: "/nimi.runtime.v1.RuntimeLocalService/ListCatalogVariants",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async listEngines(request: ListEnginesRequest, options: RuntimeTypedCallOptions = {}): Promise<ListEnginesResponse> {
-    return this.core.unary<ListEnginesResponse, ListEnginesRequest>({
-      methodId: "/nimi.runtime.v1.RuntimeLocalService/ListEngines",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
@@ -2658,31 +2622,9 @@ export class RuntimeTypedClient {
     });
   }
 
-  async startEngine(request: StartEngineRequest, options: RuntimeTypedCallOptions = {}): Promise<StartEngineResponse> {
-    return this.core.unary<StartEngineResponse, StartEngineRequest>({
-      methodId: "/nimi.runtime.v1.RuntimeLocalService/StartEngine",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
   async startLocalEnvironmentDependencyJob(request: StartLocalEnvironmentDependencyJobRequest, options: RuntimeTypedCallOptions = {}): Promise<StartLocalEnvironmentDependencyJobResponse> {
     return this.core.unary<StartLocalEnvironmentDependencyJobResponse, StartLocalEnvironmentDependencyJobRequest>({
       methodId: "/nimi.runtime.v1.RuntimeLocalService/StartLocalEnvironmentDependencyJob",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async stopEngine(request: StopEngineRequest, options: RuntimeTypedCallOptions = {}): Promise<StopEngineResponse> {
-    return this.core.unary<StopEngineResponse, StopEngineRequest>({
-      methodId: "/nimi.runtime.v1.RuntimeLocalService/StopEngine",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,

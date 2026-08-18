@@ -120,13 +120,3 @@ methods:
     posture: anonymous_read
   - method_id: /nimi.runtime.v1.RuntimeLocalService/AppendRuntimeAudit
     posture: anonymous_read
-  - method_id: /nimi.runtime.v1.RuntimeLocalService/ListEngines
-    posture: anonymous_read
-  - method_id: /nimi.runtime.v1.RuntimeLocalService/EnsureEngine
-    posture: anonymous_read
-  - method_id: /nimi.runtime.v1.RuntimeLocalService/StartEngine
-    posture: anonymous_read
-  - method_id: /nimi.runtime.v1.RuntimeLocalService/StopEngine
-    posture: anonymous_read
-  - method_id: /nimi.runtime.v1.RuntimeLocalService/GetEngineStatus
-    posture: anonymous_read

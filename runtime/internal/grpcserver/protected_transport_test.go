@@ -65,13 +65,6 @@ func TestProtectedDesktopProductControlAdmitsExactDependencyJobControls(t *testi
 			t.Fatalf("dependency job method %q role = %q allowed=%v", method, role, allowed)
 		}
 	}
-	for _, method := range []string{
-		"/nimi.runtime.v1.RuntimeLocalService/StartEngine",
-	} {
-		if _, allowed := protectedDesktopMethodRole(method); allowed {
-			t.Fatalf("unrelated RuntimeLocalService method %q escaped the exact protected allowlist", method)
-		}
-	}
 }
 
 func TestProtectedDesktopRPCTransportBindsVerifiedConnectionAndGatesAdmittedServices(t *testing.T) {

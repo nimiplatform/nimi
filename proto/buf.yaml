@@ -33,7 +33,6 @@ lint:
       - runtime/v1/local_runtime_device_environment.proto
       - runtime/v1/local_runtime_execution_profile.proto
       - runtime/v1/local_runtime_recommendation.proto
-      - runtime/v1/local_runtime_engine.proto
       - runtime/v1/memory.proto
       - runtime/v1/runtime_service_control.proto
       - runtime/v1/voice.proto

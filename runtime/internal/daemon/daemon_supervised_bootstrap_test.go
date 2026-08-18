@@ -172,11 +172,6 @@ func TestStartSupervisedEnginesInjectsManagerWithoutBootstrappingWhenNoManagedEn
 	if daemon.engineMgr == nil {
 		t.Fatalf("expected daemon engine manager to be available for materializers")
 	}
-	if svc := daemon.grpc.LocalService(); svc != nil {
-		if _, err := svc.ListEngines(context.Background(), &runtimev1.ListEnginesRequest{}); err != nil {
-			t.Fatalf("expected local service engine manager injection: %v", err)
-		}
-	}
 	if snapshot := daemon.state.Snapshot(); snapshot.Status == health.StatusDegraded {
 		t.Fatalf("did not expect degraded state when only supervised bootstrap is skipped: %s", snapshot.Reason)
 	}

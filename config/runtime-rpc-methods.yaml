@@ -177,16 +177,6 @@ services:
         type: unary
       - name: AppendRuntimeAudit
         type: unary
-      - name: ListEngines
-        type: unary
-      - name: EnsureEngine
-        type: unary
-      - name: StartEngine
-        type: unary
-      - name: StopEngine
-        type: unary
-      - name: GetEngineStatus
-        type: unary
       - name: ResolveLocalEnvironmentPlan
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeLocalService/ResolveLocalEnvironmentPlan
