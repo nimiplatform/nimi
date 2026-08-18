@@ -26,7 +26,7 @@
       "inputInvalid": "Review the prompt and required fields, then run it again.",
       "sdkMethodUnavailable": "Update the app, then try again.",
       "principalUnauthorized": "Return to Desktop, reopen this app, then try again.",
-      "operationAborted": "Run it again if you still need the result.",
+      "operationAborted": "Wait a moment, then run it again if you still need the result.",
       "runtimeCanceled": "Run the request again when you are ready.",
       "runtimeTimeout": "Try again later. If it still times out, open Runtime details to find the cause.",
       "runtimeCallFailed": "Try again once. If it still fails, open Runtime details to find the cause.",

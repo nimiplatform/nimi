@@ -26,7 +26,7 @@
       "inputInvalid": "检查提示词与必填字段后重新运行。",
       "sdkMethodUnavailable": "更新 App 后重试。",
       "principalUnauthorized": "返回 Desktop 重新打开此 App，然后重试。",
-      "operationAborted": "如果仍需要结果，请重新运行。",
+      "operationAborted": "如果仍需要结果，请稍等片刻后再重新运行。",
       "runtimeCanceled": "准备好后可重新运行此请求。",
       "runtimeTimeout": "稍后重试；如果仍然超时，再展开 Runtime 详情查看原因。",
       "runtimeCallFailed": "先重试一次；如果仍然失败，再展开 Runtime 详情查看原因。",
