@@ -20,7 +20,7 @@ import {
 } from './tester-history.js';
 import type { TesterAIConfigSummary } from './tester-ai-config.js';
 import type { TesterCapabilityRunResult } from './tester-runtime.js';
-import { capabilityUnavailable } from './tester-unavailable.js';
+import { capabilityNonSuccess } from './tester-non-success.js';
 import {
   clearTesterManagedHistoryScope,
   deleteTesterManagedHistoryRecord,
@@ -396,7 +396,7 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
       } else {
         const managedArtifactResult = shouldPersistTesterArtifactRecord(historyResult);
         if (persistedRun.displayFailure) {
-          setLastResult(capabilityUnavailable(
+          setLastResult(capabilityNonSuccess(
             getTesterCapability(historyResult.capabilityId as TesterCapabilityId),
             persistedRun.displayFailure.reason,
             persistedRun.displayFailure.message,

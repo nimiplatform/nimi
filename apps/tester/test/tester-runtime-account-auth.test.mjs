@@ -626,7 +626,7 @@ test('Tester adopts metadata-only video without reading the source artifact body
   assert.equal(readCalls, 0);
 });
 
-test('Tester reports unavailable when adoption fails and never falls back to artifact read', async () => {
+test('Tester reports non-success when adoption fails and never falls back to artifact read', async () => {
   const { runTesterCapability } = await importTesterRuntime();
   let readCalls = 0;
   const client = fakeLocalAppClient({

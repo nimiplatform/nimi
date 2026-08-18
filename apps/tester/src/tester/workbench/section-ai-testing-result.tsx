@@ -4,7 +4,7 @@ import { AlertTriangle, ChevronRight, Copy as CopyIcon, Download as DownloadIcon
 import { useTranslation } from '../../shell/i18n/index.js';
 import type { TesterCapability } from '../tester-capabilities.js';
 import { formatTesterRunTimestamp, getTesterRunConfigParamRows, getTesterRunIntentLabel, getTesterRunPromptControlFacts, getTesterRunResultTags, getTesterRunStatusTone, type TesterRunConfigParamRow, type TesterRunHistoryRecord, type TesterRunHistoryResultSnapshot, type TesterRunPromptControlFact } from '../tester-history.js';
-import { unavailableReasonUserAction, unavailableReasonUserMessage } from '../tester-unavailable.js';
+import { nonSuccessReasonUserAction, nonSuccessReasonUserMessage } from '../tester-non-success.js';
 import { ArtifactMediaResult, RuntimeDiagnosticsActions, StudioResult, TextStudioOutputBody, downloadTextFile, statusForCapability } from './section-ai-testing-surface.js';
 import type { TextStudioActiveRun } from './section-ai-testing-run.js';
 import { useTesterRendererHost } from '../../renderer/context.js';
@@ -118,7 +118,7 @@ function historyRecordPlainText(record: TesterRunHistoryRecord): string {
   return snapshot.summary;
 }
 
-function historyUnavailableDiagnosticsText(snapshot: Extract<TesterRunHistoryResultSnapshot, { ok: false }>): string {
+function historyNonSuccessDiagnosticsText(snapshot: Extract<TesterRunHistoryResultSnapshot, { ok: false }>): string {
   return [
     `Reason: ${snapshot.reason}`,
     snapshot.missingSurface ? `Missing surface: ${snapshot.missingSurface}` : '',
@@ -192,15 +192,15 @@ function TextStudioHistoryRecordResult({
       </>
     );
   } else if (!snapshot.ok) {
-    const diagnosticsText = historyUnavailableDiagnosticsText(snapshot);
+    const diagnosticsText = historyNonSuccessDiagnosticsText(snapshot);
     body = (
       <div className="studio-result__blocked">
         <div className="studio-result__blocked-line">
           <AlertTriangle size={15} aria-hidden="true" />
           <span>{t('StudioShell.generationFailed')}</span>
         </div>
-        <p>{unavailableReasonUserMessage(snapshot.reason)}</p>
-        <p className="studio-result__hint">{unavailableReasonUserAction(snapshot.reason)}</p>
+        <p>{nonSuccessReasonUserMessage(snapshot.reason)}</p>
+        <p className="studio-result__hint">{nonSuccessReasonUserAction(snapshot.reason)}</p>
         <details className="studio-diag">
           <summary>{t('StudioShell.runtimeDetails')}</summary>
           <RuntimeDiagnosticsActions text={diagnosticsText} filenameBase={record.capabilityId} />

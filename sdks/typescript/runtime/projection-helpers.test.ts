@@ -4,7 +4,7 @@ import test from 'node:test';
 import {
   asNimiRuntimeCallError,
   formatNimiRuntimeErrorDetail,
-  getNimiRuntimeScenarioJobTerminalStatus,
+  getNimiRuntimeScenarioJobTerminalStatusFromError,
   getNimiRuntimeReasonCodeMessage,
   getNimiRuntimeReasonCodeDefaultMessage,
   normalizeNimiRuntimeReasonCode,
@@ -288,7 +288,7 @@ test('Runtime scenario job runner preserves typed terminal status and safe failu
           retryable?: boolean;
           traceId?: string;
         };
-        assert.equal(getNimiRuntimeScenarioJobTerminalStatus(error), expected.status);
+        assert.equal(getNimiRuntimeScenarioJobTerminalStatusFromError(error), expected.status);
         assert.equal(shaped.message, expected.reasonDetail);
         assert.equal(shaped.traceId, 'trace-terminal-1');
         if (expected.reasonMetadata) {

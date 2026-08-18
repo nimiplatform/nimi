@@ -13,12 +13,12 @@ import {
   type ScenarioJob,
 } from '@nimiplatform/kit/core/sdk-contract';
 import {
-  runtimeScenarioJobUnavailableReasonFromError,
-  type RuntimeScenarioJobUnavailableReason,
+  runtimeScenarioJobNonSuccessReasonFromError,
+  type RuntimeScenarioJobNonSuccessReason,
 } from './runtime-diagnostics.js';
 
-export type RuntimeSpeechTranscribeUnavailableReason =
-  | RuntimeScenarioJobUnavailableReason
+export type RuntimeSpeechTranscribeNonSuccessReason =
+  | RuntimeScenarioJobNonSuccessReason
   | 'input-invalid';
 
 export type RuntimeSpeechTranscribeAudioInput =
@@ -46,17 +46,17 @@ export type RuntimeSpeechTranscribeSuccess = {
   };
 };
 
-export type RuntimeSpeechTranscribeUnavailable = {
+export type RuntimeSpeechTranscribeNonSuccess = {
   readonly ok: false;
   readonly capabilityId: 'audio.transcribe';
-  readonly reason: RuntimeSpeechTranscribeUnavailableReason;
+  readonly reason: RuntimeSpeechTranscribeNonSuccessReason;
   readonly message: string;
   readonly error: NimiError;
 };
 
 export type RuntimeSpeechTranscribeResult =
   | RuntimeSpeechTranscribeSuccess
-  | RuntimeSpeechTranscribeUnavailable;
+  | RuntimeSpeechTranscribeNonSuccess;
 
 export type RuntimeSpeechTranscribeRuntime = {
   readonly ai: NimiScenarioJobClient;
@@ -139,7 +139,7 @@ export async function runRuntimeSpeechTranscribe(
     return {
       ok: false,
       capabilityId: 'audio.transcribe',
-      reason: speechUnavailableReasonFromError(error),
+      reason: speechNonSuccessReasonFromError(error),
       message: error.message,
       error,
     };
@@ -205,12 +205,12 @@ function speechJobStatusName(status: ScenarioJobStatus): string {
   return ScenarioJobStatus[status] || String(status);
 }
 
-function speechUnavailableReasonFromError(error: NimiError): RuntimeSpeechTranscribeUnavailableReason {
+function speechNonSuccessReasonFromError(error: NimiError): RuntimeSpeechTranscribeNonSuccessReason {
   const reasonCode = normalizeText(error.reasonCode) || normalizeText(error.code);
   if (reasonCode === ReasonCode.SDK_AI_INPUT_INVALID || reasonCode.startsWith('SDK_GENERATION_')) {
     return 'input-invalid';
   }
-  return runtimeScenarioJobUnavailableReasonFromError(error);
+  return runtimeScenarioJobNonSuccessReasonFromError(error);
 }
 
 function normalizeText(value: unknown): string {

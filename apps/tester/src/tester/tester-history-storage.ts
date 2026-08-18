@@ -69,7 +69,7 @@ function validateHistoryResult(value: unknown, path: string): void {
   requiredString(value.kind, `${path}.kind`);
   requiredString(value.summary, `${path}.summary`);
   if (value.ok === false) {
-    if (value.kind !== 'unavailable') historyPayloadError(`${path}.kind`, 'requires unavailable for a failed result');
+    if (value.kind !== 'non-success') historyPayloadError(`${path}.kind`, 'requires non-success for a failed result');
     if (!['runtime-unavailable', 'input-invalid', 'sdk-method-unavailable', 'principal-unauthorized', 'runtime-canceled', 'runtime-timeout', 'runtime-call-failed'].includes(String(value.reason))) {
       historyPayloadError(`${path}.reason`, 'has an unsupported value');
     }

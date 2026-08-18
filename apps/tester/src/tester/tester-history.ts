@@ -2,7 +2,7 @@ import { getTesterCapability, type TesterCapabilityId } from './tester-capabilit
 import { isJsonObject } from '@nimiplatform/sdk/types';
 import type { TesterCapabilityRunResult, TesterManagedArtifact } from './tester-runtime.js';
 import type { TesterRunTargetSummary } from './tester-run-target.js';
-import type { TesterUnavailableDiagnostics, TesterUnavailableReason } from './tester-unavailable.js';
+import type { TesterNonSuccessDiagnostics, TesterNonSuccessReason } from './tester-non-success.js';
 
 export type TesterRunConfigSnapshot = {
   target: Pick<
@@ -103,13 +103,13 @@ export type TesterRunHistoryResultSnapshot =
     }
   | {
       ok: false;
-      kind: 'unavailable';
+      kind: 'non-success';
       summary: string;
-      reason: TesterUnavailableReason;
+      reason: TesterNonSuccessReason;
       message: string;
       actionHint: string;
       missingSurface?: string;
-      diagnostics?: TesterUnavailableDiagnostics;
+      diagnostics?: TesterNonSuccessDiagnostics;
     };
 
 export type TesterRunHistoryRecord = {
@@ -131,8 +131,8 @@ export type TesterFlatRunRecord = TesterRunHistoryRecord & {
 
 export type TesterRunStatusTone = 'success' | 'warning' | 'danger' | 'info';
 export type TesterRunIntentSource = 'local' | 'cloud' | 'unknown';
-type TesterUnavailableRunResult = Extract<TesterCapabilityRunResult, { ok: false }>;
-type TesterUnavailableHistorySnapshot = Extract<TesterRunHistoryResultSnapshot, { ok: false }>;
+type TesterNonSuccessRunResult = Extract<TesterCapabilityRunResult, { ok: false }>;
+type TesterNonSuccessHistorySnapshot = Extract<TesterRunHistoryResultSnapshot, { ok: false }>;
 export type TesterRunPromptControlFact = {
   label: string;
   value: string;
@@ -243,26 +243,26 @@ function compactBodySummary(value: string): string {
 }
 
 function traceFields(result: TesterCapabilityRunResult): Pick<Extract<TesterRunHistoryResultSnapshot, { ok: true }>, 'traceId' | 'simulated'> {
-  if (isTesterUnavailableRunResult(result)) return {};
+  if (isTesterNonSuccessRunResult(result)) return {};
   return {
     traceId: result.trace?.traceId,
     simulated: result.trace?.simulated,
   };
 }
 
-function isTesterUnavailableRunResult(result: TesterCapabilityRunResult): result is TesterUnavailableRunResult {
+function isTesterNonSuccessRunResult(result: TesterCapabilityRunResult): result is TesterNonSuccessRunResult {
   return result.ok === false;
 }
 
-function isTesterUnavailableHistorySnapshot(result: TesterRunHistoryResultSnapshot): result is TesterUnavailableHistorySnapshot {
+function isTesterNonSuccessHistorySnapshot(result: TesterRunHistoryResultSnapshot): result is TesterNonSuccessHistorySnapshot {
   return result.ok === false;
 }
 
 export function createTesterRunHistoryResultSnapshot(result: TesterCapabilityRunResult): TesterRunHistoryResultSnapshot {
-  if (isTesterUnavailableRunResult(result)) {
+  if (isTesterNonSuccessRunResult(result)) {
     return {
       ok: false,
-      kind: 'unavailable',
+      kind: 'non-success',
       summary: result.message,
       reason: result.reason,
       message: result.message,
@@ -356,7 +356,7 @@ export function createTesterRunHistoryResultSnapshot(result: TesterCapabilityRun
 export function restoreTesterCapabilityRunResult(record: TesterRunHistoryRecord): TesterCapabilityRunResult | null {
   const snapshot = record.result;
   if (!snapshot) return null;
-  if (isTesterUnavailableHistorySnapshot(snapshot)) {
+  if (isTesterNonSuccessHistorySnapshot(snapshot)) {
     return {
       ok: false,
       capabilityId: record.capabilityId,
@@ -601,7 +601,7 @@ export function getTesterRunIntentSource(record: TesterRunHistoryRecord): Tester
 export function getTesterRunMetricSummary(record: TesterRunHistoryRecord): string {
   const result = record.result;
   if (!result) return getTesterRunResultSummary(record);
-  if (isTesterUnavailableHistorySnapshot(result)) return result.reason;
+  if (isTesterNonSuccessHistorySnapshot(result)) return result.reason;
   if (result.kind === 'text') {
     return [
       formatTesterTokenUsage(result.inputTokens, result.outputTokens, result.totalTokens),
@@ -624,7 +624,7 @@ export function getTesterRunMetricSummary(record: TesterRunHistoryRecord): strin
 export function getTesterRunResultTags(record: TesterRunHistoryRecord): string[] {
   const result = record.result;
   if (!result) return [record.status === 'ready' ? 'Runtime' : getTesterRunStatusLabel(record.status)];
-  if (isTesterUnavailableHistorySnapshot(result)) return [result.reason];
+  if (isTesterNonSuccessHistorySnapshot(result)) return [result.reason];
   if (result.kind === 'text') {
     return [
       record.status === 'simulated' ? 'Simulator' : result.streamed ? 'Stream' : 'Runtime',

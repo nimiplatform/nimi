@@ -35,7 +35,7 @@ import type {
   TesterPromptDraftSaveResult,
 } from '../tester/tester-preferences.js';
 import type { TesterCapabilityRunInput, TesterCapabilityRunResult } from '../tester/tester-runtime.js';
-import { capabilityUnavailable } from '../tester/tester-unavailable.js';
+import { capabilityNonSuccess } from '../tester/tester-non-success.js';
 import { defaultTesterPreferences } from '../tester/tester-preferences.js';
 import type {
   ClaimWorldTourViewerLaunchInput,
@@ -490,7 +490,7 @@ function createSdkFacade(context: TesterSimulatorPrepareContext) {
   async function execute(input: TesterCapabilityRunInput): Promise<TesterCapabilityRunResult> {
     const capability = getTesterCapability(input.capabilityId);
     if (input.capabilityId !== 'text.generate') {
-      return capabilityUnavailable(
+      return capabilityNonSuccess(
         capability,
         'sdk-method-unavailable',
         'This capability has no admitted Simulator fixture, State Engine result model, and visible interaction proof.',

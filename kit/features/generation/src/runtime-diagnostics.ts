@@ -2,17 +2,17 @@ import {
   ReasonCode,
   ScenarioJobStatus,
   createNimiError,
-  getNimiRuntimeScenarioJobTerminalStatus,
+  getNimiRuntimeScenarioJobTerminalStatusFromError,
   type NimiError,
 } from '@nimiplatform/kit/core/sdk-contract';
 
-export type RuntimeGenerationUnavailableReason =
+export type RuntimeGenerationNonSuccessReason =
   | 'runtime-call-failed'
   | 'principal-unauthorized'
   | 'sdk-method-unavailable';
 
-export type RuntimeScenarioJobUnavailableReason =
-  | RuntimeGenerationUnavailableReason
+export type RuntimeScenarioJobNonSuccessReason =
+  | RuntimeGenerationNonSuccessReason
   | 'runtime-canceled'
   | 'runtime-timeout';
 
@@ -51,9 +51,9 @@ export function runtimeExecutionUnavailable(
   };
 }
 
-export function runtimeUnavailableReasonFromError(
+export function runtimeGenerationNonSuccessReasonFromError(
   error: unknown,
-): RuntimeGenerationUnavailableReason {
+): RuntimeGenerationNonSuccessReason {
   const reasonCode = errorReasonCode(error);
   return reasonCode === ReasonCode.SDK_RUNTIME_METHOD_UNAVAILABLE
     ? 'sdk-method-unavailable'
@@ -68,17 +68,17 @@ export function runtimeUnavailableReasonFromError(
 
 // @nimi-authority: rule.nimi.sdks.feature-clients.r002
 // @nimi-authority: rule.nimi.desktop.ai-consumption.r059
-export function runtimeScenarioJobUnavailableReasonFromError(
+export function runtimeScenarioJobNonSuccessReasonFromError(
   error: unknown,
-): RuntimeScenarioJobUnavailableReason {
-  const terminalStatus = getNimiRuntimeScenarioJobTerminalStatus(error);
+): RuntimeScenarioJobNonSuccessReason {
+  const terminalStatus = getNimiRuntimeScenarioJobTerminalStatusFromError(error);
   if (terminalStatus === ScenarioJobStatus.CANCELED) {
     return 'runtime-canceled';
   }
   if (terminalStatus === ScenarioJobStatus.TIMEOUT) {
     return 'runtime-timeout';
   }
-  return runtimeUnavailableReasonFromError(error);
+  return runtimeGenerationNonSuccessReasonFromError(error);
 }
 
 export function describeRuntimeGenerationError(

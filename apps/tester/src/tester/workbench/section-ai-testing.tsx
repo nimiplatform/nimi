@@ -9,7 +9,7 @@ import { nonEmptyEmbeddingInputs, summarizeTesterCapabilityParameters, type Test
 import { projectTesterCapabilityParamsForRoute } from '../tester-capability-params.js';
 import { getTesterRunIntentLabel, restoreTesterCapabilityRunResult, type TesterRunConfigSnapshot, type TesterRunHistory, type TesterRunHistoryRecord } from '../tester-history.js';
 import type { TesterCapabilityRunResult, TesterRuntimeInspection } from '../tester-runtime.js';
-import { capabilityUnavailable } from '../tester-unavailable.js';
+import { capabilityNonSuccess } from '../tester-non-success.js';
 import { getCapabilityStudioProfile } from './capability-studio-profiles.js';
 import { CapabilityRunHistory, DrawerErrorBoundary, TesterAiConfigSettingsPanel, downloadTextFile, presetFor, resultPlainText, statusForCapability, type CapabilityStatus, type SectionAITestingProps } from './section-ai-testing-surface.js';
 import { TextStudioComposer, TextStudioStartState } from './section-ai-testing-composer.js';
@@ -191,10 +191,10 @@ function TextStudioShell({
           });
         }
       } catch (error) {
-        result = capabilityUnavailable(
+        result = capabilityNonSuccess(
           capability,
           'runtime-call-failed',
-          error instanceof Error ? error.message : String(error || t('Unavailable.title.runtimeCallFailed')),
+          error instanceof Error ? error.message : String(error || t('NonSuccess.title.runtimeCallFailed')),
         );
       }
       const runConfig = createRunConfigSnapshot({

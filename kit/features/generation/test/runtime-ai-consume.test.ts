@@ -167,7 +167,7 @@ describe('runtime AI consume contract', () => {
     const result = await pending;
 
     expect(result).toMatchObject({ ok: false, capabilityId: 'chat.stream', reason: 'runtime-call-failed' });
-    if (result.ok) throw new Error('expected unavailable result');
+    if (result.ok) throw new Error('expected non-success result');
     expect(isNimiError(result.error)).toBe(true);
     expect(result.message).toMatch(/abort/i);
   });

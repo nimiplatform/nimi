@@ -7,7 +7,7 @@ import { t } from '../shell/i18n/index.js';
 // Copy resolves through the shared i18n t() at call time. The i18n module is
 // import-safe under node:test contract builds (its Vite glob is guarded), so
 // this module stays loadable there and t() falls back to returning keys.
-export type TesterUnavailableReason =
+export type TesterNonSuccessReason =
   | 'runtime-unavailable'
   | 'input-invalid'
   | 'sdk-method-unavailable'
@@ -16,7 +16,7 @@ export type TesterUnavailableReason =
   | 'runtime-timeout'
   | 'runtime-call-failed';
 
-export type TesterUnavailableDiagnostics = {
+export type TesterNonSuccessDiagnostics = {
   reasonCode: string;
   actionHint?: string;
   traceId?: string;
@@ -24,14 +24,14 @@ export type TesterUnavailableDiagnostics = {
   source?: string;
 };
 
-export type TesterUnavailable = {
+export type TesterNonSuccess = {
   ok: false;
   capabilityId: string;
-  reason: TesterUnavailableReason;
+  reason: TesterNonSuccessReason;
   message: string;
   actionHint: string;
   missingSurface?: string;
-  diagnostics?: TesterUnavailableDiagnostics;
+  diagnostics?: TesterNonSuccessDiagnostics;
 };
 
 function reasonKeySegment(reason: string): string {
@@ -55,30 +55,30 @@ function reasonKeySegment(reason: string): string {
   }
 }
 
-export function unavailableReasonTitle(reason: TesterUnavailableReason): string {
-  return t(`Unavailable.title.${reasonKeySegment(reason)}`);
+export function nonSuccessReasonTitle(reason: TesterNonSuccessReason): string {
+  return t(`NonSuccess.title.${reasonKeySegment(reason)}`);
 }
 
-export function unavailableReasonUserMessage(reason: string): string {
+export function nonSuccessReasonUserMessage(reason: string): string {
   const segment = reasonKeySegment(reason);
-  return t(segment ? `Unavailable.message.${segment}` : 'Unavailable.message.fallback');
+  return t(segment ? `NonSuccess.message.${segment}` : 'NonSuccess.message.fallback');
 }
 
-export function unavailableReasonUserAction(reason: string): string {
+export function nonSuccessReasonUserAction(reason: string): string {
   const segment = reasonKeySegment(reason);
-  return t(segment ? `Unavailable.action.${segment}` : 'Unavailable.action.fallback');
+  return t(segment ? `NonSuccess.action.${segment}` : 'NonSuccess.action.fallback');
 }
 
-function actionHintForReason(reason: TesterUnavailableReason): string {
-  return t(`Unavailable.hint.${reasonKeySegment(reason)}`);
+function actionHintForReason(reason: TesterNonSuccessReason): string {
+  return t(`NonSuccess.hint.${reasonKeySegment(reason)}`);
 }
 
-export function capabilityUnavailable(
+export function capabilityNonSuccess(
   capability: TesterCapability,
-  reason: TesterUnavailableReason,
+  reason: TesterNonSuccessReason,
   message: string,
-  diagnostics?: TesterUnavailableDiagnostics,
-): TesterUnavailable {
+  diagnostics?: TesterNonSuccessDiagnostics,
+): TesterNonSuccess {
   return {
     ok: false,
     capabilityId: capability.id,

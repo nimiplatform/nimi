@@ -1,5 +1,5 @@
 {
-  "Unavailable": {
+  "NonSuccess": {
     "title": {
       "runtimeUnavailable": "Runtime 不可用",
       "inputInvalid": "请求输入无效",

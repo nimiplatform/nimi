@@ -11,7 +11,7 @@ import {
   copyArtifactBytesToArrayBuffer,
   scenarioJobStatusLabel,
   scenarioJobStatusToGenerationStatus,
-  runtimeScenarioJobUnavailableReasonFromError,
+  runtimeScenarioJobNonSuccessReasonFromError,
   useRuntimeGenerationPanel,
   type RuntimeGenerationPanelErrorContext,
 } from '../src/runtime.js';
@@ -93,7 +93,7 @@ describe('generation runtime helpers', () => {
       source: 'runtime',
       details: { scenarioJobStatus: status },
     });
-    expect(runtimeScenarioJobUnavailableReasonFromError(error)).toBe(expected);
+    expect(runtimeScenarioJobNonSuccessReasonFromError(error)).toBe(expected);
   });
 
   it('copies artifact bytes into a detached ArrayBuffer', () => {

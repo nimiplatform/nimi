@@ -1,5 +1,5 @@
 {
-  "Unavailable": {
+  "NonSuccess": {
     "title": {
       "runtimeUnavailable": "Runtime unavailable",
       "inputInvalid": "Invalid request input",

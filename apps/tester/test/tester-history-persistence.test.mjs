@@ -186,7 +186,7 @@ test('run history preserves a canceled Runtime outcome without reclassifying it 
       message: 'acceptance cancellation',
       result: {
         ok: false,
-        kind: 'unavailable',
+        kind: 'non-success',
         summary: 'acceptance cancellation',
         reason: 'runtime-canceled',
         message: 'acceptance cancellation',
@@ -212,7 +212,7 @@ test('run history preserves a timed-out Runtime outcome without reclassifying it
       message: 'provider request timed out',
       result: {
         ok: false,
-        kind: 'unavailable',
+        kind: 'non-success',
         summary: 'provider request timed out',
         reason: 'runtime-timeout',
         message: 'provider request timed out',

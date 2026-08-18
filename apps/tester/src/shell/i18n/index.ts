@@ -30,7 +30,7 @@ import enModelConfig from './locales/en/model-config.json' with { type: 'json' }
 import enSettings from './locales/en/settings.json' with { type: 'json' };
 import enStudioShell from './locales/en/studio-shell.json' with { type: 'json' };
 import enStudio from './locales/en/studio.json' with { type: 'json' };
-import enUnavailable from './locales/en/unavailable.json' with { type: 'json' };
+import enNonSuccess from './locales/en/non-success.json' with { type: 'json' };
 import enWorkbenchTop from './locales/en/workbench-top.json' with { type: 'json' };
 import enWorkbench from './locales/en/workbench.json' with { type: 'json' };
 
@@ -42,7 +42,7 @@ import zhModelConfig from './locales/zh/model-config.json' with { type: 'json' }
 import zhSettings from './locales/zh/settings.json' with { type: 'json' };
 import zhStudioShell from './locales/zh/studio-shell.json' with { type: 'json' };
 import zhStudio from './locales/zh/studio.json' with { type: 'json' };
-import zhUnavailable from './locales/zh/unavailable.json' with { type: 'json' };
+import zhNonSuccess from './locales/zh/non-success.json' with { type: 'json' };
 import zhWorkbenchTop from './locales/zh/workbench-top.json' with { type: 'json' };
 import zhWorkbench from './locales/zh/workbench.json' with { type: 'json' };
 
@@ -72,7 +72,7 @@ const RESOURCES: Record<SupportedLocale, LocaleBundle> = {
     enSettings,
     enStudioShell,
     enStudio,
-    enUnavailable,
+    enNonSuccess,
     enWorkbenchTop,
     enWorkbench,
   ]),
@@ -85,7 +85,7 @@ const RESOURCES: Record<SupportedLocale, LocaleBundle> = {
     zhSettings,
     zhStudioShell,
     zhStudio,
-    zhUnavailable,
+    zhNonSuccess,
     zhWorkbenchTop,
     zhWorkbench,
   ]),
@@ -108,7 +108,7 @@ function detectInitialLocale(): SupportedLocale {
 const initialLocale = detectInitialLocale();
 
 // Simulator conformance: this module is reachable from the adapter closure
-// (pure modules like tester-unavailable.ts import t()), so it must not touch
+// (pure modules like tester-non-success.ts import t()), so it must not touch
 // document/window, declare module-scope let/var state, or call module-scope
 // resource factories (create*). It therefore binds the shared default
 // i18next instance instead of owning one — the locale catalog is immutable

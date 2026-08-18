@@ -6,7 +6,7 @@ import {
   runRuntimeSpeechTranscribe,
   runRuntimeVideoGenerate,
   runRuntimeVoiceCatalog,
-  runtimeScenarioJobUnavailableReasonFromError,
+  runtimeScenarioJobNonSuccessReasonFromError,
   type RuntimeAIConsumeRuntime,
   type RuntimeVoiceCatalogRuntime,
 } from '@nimiplatform/kit/features/generation/runtime';
@@ -43,11 +43,11 @@ import {
   type TesterVoiceCreateParameters,
 } from './tester-capability-parameters.js';
 import {
-  capabilityUnavailable,
-  type TesterUnavailable,
-  type TesterUnavailableDiagnostics,
-  type TesterUnavailableReason,
-} from './tester-unavailable.js';
+  capabilityNonSuccess,
+  type TesterNonSuccess,
+  type TesterNonSuccessDiagnostics,
+  type TesterNonSuccessReason,
+} from './tester-non-success.js';
 
 export type TesterTrace = {
   traceId?: string;
@@ -106,7 +106,7 @@ export type TesterCapabilityRunInput = {
   parameters?: TesterCapabilityParameters;
 };
 
-export type TesterCapabilityRunResult = TesterTypedSuccess | TesterUnavailable;
+export type TesterCapabilityRunResult = TesterTypedSuccess | TesterNonSuccess;
 
 export async function inspectRuntimeConnection(): Promise<TesterRuntimeInspection> {
   const projection = await getRuntimePlatformProjection();
@@ -167,7 +167,7 @@ export async function runTesterCapability(
   const capability = getTesterCapability(input.capabilityId);
   const projection = await (dependencies.getRuntimeProjection ?? getRuntimePlatformProjection)();
   if (projection.status !== 'ready') {
-    return capabilityUnavailable(capability, 'runtime-unavailable', projection.message);
+    return capabilityNonSuccess(capability, 'runtime-unavailable', projection.message);
   }
 
   const prompt = input.prompt.trim();
@@ -184,13 +184,13 @@ export async function runTesterCapability(
     || Boolean(transcribeParameters?.audioFile)
     || Boolean(voiceCreateParameters?.referenceAudioFile);
   if (capability.id !== 'speech.bundle' && !prompt && !hasAlternativeInput) {
-    return capabilityUnavailable(capability, 'input-invalid', `${capability.label} requires non-empty input.`);
+    return capabilityNonSuccess(capability, 'input-invalid', `${capability.label} requires non-empty input.`);
   }
   if (transcribeParameters?.audioFile && transcribeParameters.audioFile.sizeBytes > MAX_TESTER_AUDIO_UPLOAD_BYTES) {
-    return capabilityUnavailable(capability, 'input-invalid', 'Speech transcription audio files must not exceed 32 MiB.');
+    return capabilityNonSuccess(capability, 'input-invalid', 'Speech transcription audio files must not exceed 32 MiB.');
   }
   if (capability.id === 'chat.stream' && input.attachments?.length) {
-    return capabilityUnavailable(
+    return capabilityNonSuccess(
       capability,
       'input-invalid',
       'The protected Local App text stream currently accepts text messages only.',
@@ -235,9 +235,9 @@ export async function runTesterCapability(
           surfaceId: TESTER_RUNTIME_SURFACE_ID,
           ...(input.onPartial ? { onPartial: input.onPartial } : {}),
         });
-        if (result.ok === false) return projectRunnerUnavailable(capability, result);
+        if (result.ok === false) return projectRunnerNonSuccess(capability, result);
         if (result.output.kind !== 'text') {
-          return capabilityUnavailable(capability, 'runtime-call-failed', 'Runtime stream returned a non-text output.');
+          return capabilityNonSuccess(capability, 'runtime-call-failed', 'Runtime stream returned a non-text output.');
         }
         return {
           ok: true,
@@ -254,7 +254,7 @@ export async function runTesterCapability(
           inputs: embeddingInputs.length > 0 ? embeddingInputs : [prompt],
         });
         if (result.output.type !== 'text-embed') {
-          return capabilityUnavailable(capability, 'runtime-call-failed', 'Runtime embedding returned an unexpected output type.');
+          return capabilityNonSuccess(capability, 'runtime-call-failed', 'Runtime embedding returned an unexpected output type.');
         }
         const first = result.output.vectors[0] ?? [];
         return {
@@ -336,7 +336,7 @@ export async function runTesterCapability(
         const inferredMimeType = prompt ? audioMimeTypeFromUrl(prompt) : null;
         const mimeType = parameters?.mimeType?.trim() || parameters?.audioFile?.mimeType || inferredMimeType;
         if (!mimeType || (!parameters?.audioFile && !isHttpsUrl(prompt))) {
-          return capabilityUnavailable(
+          return capabilityNonSuccess(
             capability,
             'input-invalid',
             'Speech transcription requires an HTTPS audio URL with a MIME type or a local audio file up to 32 MiB.',
@@ -357,7 +357,7 @@ export async function runTesterCapability(
           scenarioId,
           surfaceId: TESTER_RUNTIME_SURFACE_ID,
         });
-        if (result.ok === false) return projectRunnerUnavailable(capability, result);
+        if (result.ok === false) return projectRunnerNonSuccess(capability, result);
         return {
           ok: true,
           capabilityId: capability.id,
@@ -379,7 +379,7 @@ export async function runTesterCapability(
         if (creationSource === 'reference-audio') {
           const audio = parameters?.referenceAudioFile;
           if (!audio || audio.sizeBytes === 0 || audio.sizeBytes > MAX_TESTER_VOICE_REFERENCE_AUDIO_BYTES || !audio.mimeType.startsWith('audio/')) {
-            return capabilityUnavailable(
+            return capabilityNonSuccess(
               capability,
               'input-invalid',
               'Reference-audio voice creation requires a non-empty audio file up to 20 MiB with an audio MIME type.',
@@ -483,7 +483,7 @@ export async function runTesterCapability(
           appId,
           subjectUserId: LOCAL_APP_OWNER_CORRELATION,
         });
-        if (result.ok === false) return projectRunnerUnavailable(capability, result);
+        if (result.ok === false) return projectRunnerNonSuccess(capability, result);
         return {
           ok: true,
           capabilityId: capability.id,
@@ -501,14 +501,14 @@ export async function runTesterCapability(
         };
       }
       case 'world.generate':
-        return capabilityUnavailable(capability, 'sdk-method-unavailable', 'World Tour runs through its standalone viewer command.');
+        return capabilityNonSuccess(capability, 'sdk-method-unavailable', 'World Tour runs through its standalone viewer command.');
     }
   } catch (error) {
-    return capabilityUnavailable(
+    return capabilityNonSuccess(
       capability,
-      testerUnavailableReason(runtimeScenarioJobUnavailableReasonFromError(error)),
+      testerNonSuccessReason(runtimeScenarioJobNonSuccessReasonFromError(error)),
       testerRuntimeErrorMessage(error),
-      testerUnavailableDiagnostics(error),
+      testerNonSuccessDiagnostics(error),
     );
   }
 }
@@ -708,7 +708,7 @@ async function projectArtifactRunnerResult(
   result: ArtifactRunnerResult,
   client: NimiLocalAppClient,
 ): Promise<TesterCapabilityRunResult> {
-  if (result.ok === false) return projectRunnerUnavailable(capability, result);
+  if (result.ok === false) return projectRunnerNonSuccess(capability, result);
   const artifacts: TesterManagedArtifact[] = [];
   const adoptedPaths: string[] = [];
   try {
@@ -771,19 +771,19 @@ async function managedAssetPath(capabilityId: TesterCapabilityId, jobId: string,
   return `media/${capabilityId.replaceAll('.', '-')}/${token}.asset`;
 }
 
-function projectRunnerUnavailable(
+function projectRunnerNonSuccess(
   capability: TesterCapability,
   result: { readonly ok: false; readonly reason: string; readonly message: string; readonly error?: unknown },
-): TesterUnavailable {
-  return capabilityUnavailable(
+): TesterNonSuccess {
+  return capabilityNonSuccess(
     capability,
-    testerUnavailableReason(result.reason),
+    testerNonSuccessReason(result.reason),
     result.message,
-    testerUnavailableDiagnostics(result.error),
+    testerNonSuccessDiagnostics(result.error),
   );
 }
 
-function testerUnavailableReason(reason: string): TesterUnavailableReason {
+function testerNonSuccessReason(reason: string): TesterNonSuccessReason {
   if (reason === 'input-invalid' || reason === 'sdk-method-unavailable'
     || reason === 'principal-unauthorized' || reason === 'runtime-canceled'
     || reason === 'runtime-timeout') {
@@ -870,7 +870,7 @@ function abortError(): Error {
   return error;
 }
 
-function testerUnavailableDiagnostics(error: unknown): TesterUnavailableDiagnostics | undefined {
+function testerNonSuccessDiagnostics(error: unknown): TesterNonSuccessDiagnostics | undefined {
   if (!error || typeof error !== 'object' || Array.isArray(error)) return undefined;
   const record = error as Record<string, unknown>;
   const reasonCode = typeof record.reasonCode === 'string' ? record.reasonCode.trim() : '';

@@ -11,10 +11,10 @@ import {
 } from '@nimiplatform/kit/core/sdk-contract';
 import {
   describeRuntimeGenerationError,
-  runtimeUnavailableReasonFromError,
+  runtimeGenerationNonSuccessReasonFromError,
 } from './runtime-diagnostics.js';
 
-export type RuntimeVoiceCatalogUnavailableReason =
+export type RuntimeVoiceCatalogNonSuccessReason =
   | 'input-invalid'
   | 'runtime-call-failed'
   | 'principal-unauthorized'
@@ -41,15 +41,15 @@ export type RuntimeVoiceCatalogSuccess = {
   readonly output: RuntimeVoiceCatalogOutput;
 };
 
-export type RuntimeVoiceCatalogUnavailable = {
+export type RuntimeVoiceCatalogNonSuccess = {
   readonly ok: false;
   readonly capabilityId: 'speech.bundle';
-  readonly reason: RuntimeVoiceCatalogUnavailableReason;
+  readonly reason: RuntimeVoiceCatalogNonSuccessReason;
   readonly message: string;
   readonly error: NimiError;
 };
 
-export type RuntimeVoiceCatalogResult = RuntimeVoiceCatalogSuccess | RuntimeVoiceCatalogUnavailable;
+export type RuntimeVoiceCatalogResult = RuntimeVoiceCatalogSuccess | RuntimeVoiceCatalogNonSuccess;
 
 export type RuntimeVoiceCatalogRuntime = {
   readonly ai: {
@@ -82,7 +82,7 @@ export async function runRuntimeVoiceCatalog(
   const appId = exactText(input.appId);
   const subjectUserId = exactText(input.subjectUserId);
   if (!appId || !subjectUserId) {
-    return unavailable('principal-unauthorized', createNimiError({
+    return nonSuccess('principal-unauthorized', createNimiError({
       message: 'Voice reference catalog requires exact App and subject owner identity.',
       code: ReasonCode.PRINCIPAL_UNAUTHORIZED,
       reasonCode: ReasonCode.PRINCIPAL_UNAUTHORIZED,
@@ -93,7 +93,7 @@ export async function runRuntimeVoiceCatalog(
 
   const pageSize = input.pageSize ?? 100;
   if (!Number.isSafeInteger(pageSize) || pageSize <= 0 || pageSize > 200) {
-    return unavailable('input-invalid', createNimiError({
+    return nonSuccess('input-invalid', createNimiError({
       message: 'Voice reference catalog pageSize must be an integer from 1 through 200.',
       code: ReasonCode.SDK_AI_INPUT_INVALID,
       reasonCode: ReasonCode.SDK_AI_INPUT_INVALID,
@@ -104,7 +104,7 @@ export async function runRuntimeVoiceCatalog(
 
   const listVoiceAssets = input.runtime.ai.listVoiceAssets;
   if (typeof listVoiceAssets !== 'function') {
-    return unavailable('sdk-method-unavailable', createNimiError({
+    return nonSuccess('sdk-method-unavailable', createNimiError({
       message: 'Runtime listVoiceAssets SDK surface is unavailable.',
       code: ReasonCode.SDK_RUNTIME_METHOD_UNAVAILABLE,
       reasonCode: ReasonCode.SDK_RUNTIME_METHOD_UNAVAILABLE,
@@ -163,14 +163,14 @@ export async function runRuntimeVoiceCatalog(
       actionHint: 'retry_voice_catalog_lookup',
       source: 'runtime',
     });
-    return unavailable(runtimeUnavailableReasonFromError(nimiError), nimiError);
+    return nonSuccess(runtimeGenerationNonSuccessReasonFromError(nimiError), nimiError);
   }
 }
 
-function unavailable(
-  reason: RuntimeVoiceCatalogUnavailableReason,
+function nonSuccess(
+  reason: RuntimeVoiceCatalogNonSuccessReason,
   error: NimiError,
-): RuntimeVoiceCatalogUnavailable {
+): RuntimeVoiceCatalogNonSuccess {
   return {
     ok: false,
     capabilityId: 'speech.bundle',

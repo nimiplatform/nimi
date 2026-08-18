@@ -27,7 +27,7 @@ import { fromNimiRuntimeProtoStruct } from './runtime-agent-values';
 
 const NIMI_RUNTIME_SCENARIO_JOB_STATUS_DETAIL_KEY = 'scenarioJobStatus';
 
-export type NimiRuntimeScenarioJobFailureStatus =
+export type NimiRuntimeScenarioJobErrorTerminalStatus =
   | ScenarioJobStatus.FAILED
   | ScenarioJobStatus.CANCELED
   | ScenarioJobStatus.TIMEOUT;
@@ -128,9 +128,9 @@ export function isNimiRuntimeScenarioJobTerminalStatus(status: ScenarioJobStatus
 
 // @nimi-authority: rule.nimi.sdks.client-core.r021
 // @nimi-authority: rule.nimi.sdks.feature-clients.r002
-export function getNimiRuntimeScenarioJobTerminalStatus(
+export function getNimiRuntimeScenarioJobTerminalStatusFromError(
   error: unknown,
-): NimiRuntimeScenarioJobFailureStatus | null {
+): NimiRuntimeScenarioJobErrorTerminalStatus | null {
   if (!error || typeof error !== 'object' || Array.isArray(error)) {
     return null;
   }

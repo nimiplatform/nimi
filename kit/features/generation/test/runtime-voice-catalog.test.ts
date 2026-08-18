@@ -70,7 +70,7 @@ describe('Runtime voice reference catalog', () => {
       ok: false,
       reason: 'principal-unauthorized',
     });
-    if (result.ok) throw new Error('expected unavailable result');
+    if (result.ok) throw new Error('expected non-success result');
     expect(isNimiError(result.error)).toBe(true);
     expect(result.error.reasonCode).toBe(ReasonCode.PRINCIPAL_UNAUTHORIZED);
     expect(listVoiceAssets).not.toHaveBeenCalled();
@@ -96,7 +96,7 @@ describe('Runtime voice reference catalog', () => {
       ok: false,
       reason: 'runtime-call-failed',
     });
-    if (result.ok) throw new Error('expected unavailable result');
+    if (result.ok) throw new Error('expected non-success result');
     expect(result.error).toBe(failure);
     expect(result.error.reasonCode).toBe(ReasonCode.RUNTIME_UNAVAILABLE);
   });

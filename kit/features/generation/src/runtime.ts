@@ -17,13 +17,13 @@ export * from './runtime-voice-catalog.js';
 export {
   createRuntimeExecutionUnavailableError,
   describeRuntimeGenerationError,
-  runtimeScenarioJobUnavailableReasonFromError,
-  runtimeUnavailableReasonFromError,
+  runtimeGenerationNonSuccessReasonFromError,
+  runtimeScenarioJobNonSuccessReasonFromError,
 } from './runtime-diagnostics.js';
 export type {
   RuntimeExecutionUnavailable,
-  RuntimeGenerationUnavailableReason,
-  RuntimeScenarioJobUnavailableReason,
+  RuntimeGenerationNonSuccessReason,
+  RuntimeScenarioJobNonSuccessReason,
 } from './runtime-diagnostics.js';
 
 export type RuntimeGenerationMappedStatus =

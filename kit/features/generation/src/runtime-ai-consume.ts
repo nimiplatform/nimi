@@ -10,11 +10,11 @@ import {
   type NimiRuntimeAIScenarioClient,
   type NimiRuntimeEmbeddingScenarioClient,
 } from '@nimiplatform/kit/core/sdk-contract';
-import { runtimeUnavailableReasonFromError } from './runtime-diagnostics.js';
+import { runtimeGenerationNonSuccessReasonFromError } from './runtime-diagnostics.js';
 
 export type RuntimeAIConsumeCapabilityId = 'text.generate' | 'chat.stream' | 'text.embed';
 
-export type RuntimeAIConsumeUnavailableReason =
+export type RuntimeAIConsumeNonSuccessReason =
   | 'input-invalid'
   | 'runtime-call-failed'
   | 'principal-unauthorized'
@@ -52,15 +52,15 @@ export type RuntimeAIConsumeSuccess = {
   readonly trace?: RuntimeAIConsumeTrace;
 };
 
-export type RuntimeAIConsumeUnavailable = {
+export type RuntimeAIConsumeNonSuccess = {
   readonly ok: false;
   readonly capabilityId: RuntimeAIConsumeCapabilityId;
-  readonly reason: RuntimeAIConsumeUnavailableReason;
+  readonly reason: RuntimeAIConsumeNonSuccessReason;
   readonly message: string;
   readonly error: NimiError;
 };
 
-export type RuntimeAIConsumeResult = RuntimeAIConsumeSuccess | RuntimeAIConsumeUnavailable;
+export type RuntimeAIConsumeResult = RuntimeAIConsumeSuccess | RuntimeAIConsumeNonSuccess;
 
 export type RuntimeAIConsumeRuntime = {
   readonly ai: NimiRuntimeAIScenarioClient & NimiRuntimeEmbeddingScenarioClient;
@@ -223,18 +223,18 @@ export async function runRuntimeAIConsumeCapability(
     return {
       ok: false,
       capabilityId: input.capabilityId,
-      reason: runtimeAIConsumeUnavailableReasonFromError(error),
+      reason: runtimeAIConsumeNonSuccessReasonFromError(error),
       message: error.message,
       error,
     };
   }
 }
 
-function runtimeAIConsumeUnavailableReasonFromError(error: NimiError): RuntimeAIConsumeUnavailableReason {
+function runtimeAIConsumeNonSuccessReasonFromError(error: NimiError): RuntimeAIConsumeNonSuccessReason {
   const reasonCode = text(error.reasonCode) || text(error.code);
   return reasonCode === ReasonCode.SDK_AI_INPUT_INVALID
     ? 'input-invalid'
-    : runtimeUnavailableReasonFromError(error);
+    : runtimeGenerationNonSuccessReasonFromError(error);
 }
 
 function runtimeConsumeMetadata(input: RuntimeAIConsumeInput): Record<string, string> {

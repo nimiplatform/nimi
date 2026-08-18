@@ -39,9 +39,10 @@ Discipline.
 - **Breaking (0.x):** Async ScenarioJob generation runners now preserve durable
   cancellation and timeout as the typed `runtime-canceled` and
   `runtime-timeout` outcomes instead of collapsing them into
-  `runtime-call-failed`. Consumers with exhaustive unavailable-reason handling
-  must add `runtime-timeout`; the shared terminal-status mapper is exported for
-  custom runners.
+  `runtime-call-failed`. Generation `ok: false` types and helpers now use the
+  neutral NonSuccess vocabulary, and custom runners can use the exported
+  terminal-status-from-error mapper. `RuntimeExecutionUnavailable` remains the
+  exact SDK-method-unavailable projection.
 - **Breaking (0.x):** Model Config machine-selection projections and navigation
   callbacks now use exact Machine Loadout vocabulary (`loadoutId` and
   `onOpenMachineLoadout`). The former machine-configuration names were removed

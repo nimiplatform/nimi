@@ -268,7 +268,7 @@ describe('runRuntimeVideoGenerate', () => {
       capabilityId: 'video.generate',
       reason: 'principal-unauthorized',
     });
-    if (result.ok) throw new Error('expected unavailable result');
+    if (result.ok) throw new Error('expected non-success result');
     expect(isNimiError(result.error)).toBe(true);
     expect(result.error.reasonCode).toBe(ReasonCode.PRINCIPAL_UNAUTHORIZED);
   });
@@ -283,7 +283,7 @@ describe('runRuntimeVideoGenerate', () => {
       capabilityId: 'video.generate',
       reason: 'input-invalid',
     });
-    if (result.ok) throw new Error('expected unavailable result');
+    if (result.ok) throw new Error('expected non-success result');
     expect(isNimiError(result.error)).toBe(true);
     expect(fake.submitScenarioJob).not.toHaveBeenCalled();
   });
@@ -300,7 +300,7 @@ describe('runRuntimeVideoGenerate', () => {
       capabilityId: 'video.generate',
       reason: 'runtime-call-failed',
     });
-    if (result.ok) throw new Error('expected unavailable result');
+    if (result.ok) throw new Error('expected non-success result');
     expect(result.message).toContain('engine incompatible');
   });
 
@@ -339,7 +339,7 @@ describe('runRuntimeVideoGenerate', () => {
       capabilityId: 'video.generate',
       reason: 'runtime-call-failed',
     });
-    if (result.ok) throw new Error('expected unavailable result');
+    if (result.ok) throw new Error('expected non-success result');
     expect(result.message).toContain('aborted');
     expect(fake.cancelScenarioJob).toHaveBeenCalledTimes(1);
     expect(fake.cancelScenarioJob.mock.calls[0]?.[0]).toMatchObject({

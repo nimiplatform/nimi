@@ -14,12 +14,12 @@ import {
   type ScenarioJob,
 } from '@nimiplatform/kit/core/sdk-contract';
 import {
-  runtimeScenarioJobUnavailableReasonFromError,
-  type RuntimeScenarioJobUnavailableReason,
+  runtimeScenarioJobNonSuccessReasonFromError,
+  type RuntimeScenarioJobNonSuccessReason,
 } from './runtime-diagnostics.js';
 
-export type RuntimeVideoGenerateUnavailableReason =
-  | RuntimeScenarioJobUnavailableReason
+export type RuntimeVideoGenerateNonSuccessReason =
+  | RuntimeScenarioJobNonSuccessReason
   | 'input-invalid';
 
 export type RuntimeVideoGenerateArtifactSummary = {
@@ -54,15 +54,15 @@ export type RuntimeVideoGenerateSuccess = {
   };
 };
 
-export type RuntimeVideoGenerateUnavailable = {
+export type RuntimeVideoGenerateNonSuccess = {
   readonly ok: false;
   readonly capabilityId: 'video.generate';
-  readonly reason: RuntimeVideoGenerateUnavailableReason;
+  readonly reason: RuntimeVideoGenerateNonSuccessReason;
   readonly message: string;
   readonly error: NimiError;
 };
 
-export type RuntimeVideoGenerateResult = RuntimeVideoGenerateSuccess | RuntimeVideoGenerateUnavailable;
+export type RuntimeVideoGenerateResult = RuntimeVideoGenerateSuccess | RuntimeVideoGenerateNonSuccess;
 
 export type RuntimeVideoGenerateRuntime = {
   readonly ai: NimiScenarioJobClient;
@@ -145,7 +145,7 @@ export async function runRuntimeVideoGenerate(
     return {
       ok: false,
       capabilityId: 'video.generate',
-      reason: videoUnavailableReasonFromError(error),
+      reason: videoNonSuccessReasonFromError(error),
       message: error.message,
       error,
     };
@@ -233,12 +233,12 @@ function videoJobStatusName(status: ScenarioJobStatus): string {
   return ScenarioJobStatus[status] || String(status);
 }
 
-function videoUnavailableReasonFromError(error: NimiError): RuntimeVideoGenerateUnavailableReason {
+function videoNonSuccessReasonFromError(error: NimiError): RuntimeVideoGenerateNonSuccessReason {
   const reasonCode = normalizeText(error.reasonCode) || normalizeText(error.code);
   if (reasonCode === ReasonCode.SDK_AI_INPUT_INVALID || reasonCode.startsWith('SDK_GENERATION_')) {
     return 'input-invalid';
   }
-  return runtimeScenarioJobUnavailableReasonFromError(error);
+  return runtimeScenarioJobNonSuccessReasonFromError(error);
 }
 
 function bytesToBase64(bytes: Uint8Array): string {

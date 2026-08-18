@@ -14,12 +14,12 @@ import {
   type ScenarioJob,
 } from '@nimiplatform/kit/core/sdk-contract';
 import {
-  runtimeScenarioJobUnavailableReasonFromError,
-  type RuntimeScenarioJobUnavailableReason,
+  runtimeScenarioJobNonSuccessReasonFromError,
+  type RuntimeScenarioJobNonSuccessReason,
 } from './runtime-diagnostics.js';
 
-export type RuntimeSpeechSynthesizeUnavailableReason =
-  | RuntimeScenarioJobUnavailableReason
+export type RuntimeSpeechSynthesizeNonSuccessReason =
+  | RuntimeScenarioJobNonSuccessReason
   | 'input-invalid';
 
 export type RuntimeSpeechSynthesizeArtifactSummary = {
@@ -54,17 +54,17 @@ export type RuntimeSpeechSynthesizeSuccess = {
   readonly trace?: RuntimeSpeechSynthesizeTrace;
 };
 
-export type RuntimeSpeechSynthesizeUnavailable = {
+export type RuntimeSpeechSynthesizeNonSuccess = {
   readonly ok: false;
   readonly capabilityId: 'audio.synthesize';
-  readonly reason: RuntimeSpeechSynthesizeUnavailableReason;
+  readonly reason: RuntimeSpeechSynthesizeNonSuccessReason;
   readonly message: string;
   readonly error: NimiError;
 };
 
 export type RuntimeSpeechSynthesizeResult =
   | RuntimeSpeechSynthesizeSuccess
-  | RuntimeSpeechSynthesizeUnavailable;
+  | RuntimeSpeechSynthesizeNonSuccess;
 
 export type RuntimeSpeechSynthesizeRuntime = {
   readonly ai: NimiScenarioJobClient;
@@ -153,7 +153,7 @@ export async function runRuntimeSpeechSynthesize(
     return {
       ok: false,
       capabilityId: 'audio.synthesize',
-      reason: speechUnavailableReasonFromError(error),
+      reason: speechNonSuccessReasonFromError(error),
       message: error.message,
       error,
     };
@@ -222,7 +222,7 @@ function speechJobStatusName(status: ScenarioJobStatus): string {
   return ScenarioJobStatus[status] || String(status);
 }
 
-function speechUnavailableReasonFromError(error: NimiError): RuntimeSpeechSynthesizeUnavailableReason {
+function speechNonSuccessReasonFromError(error: NimiError): RuntimeSpeechSynthesizeNonSuccessReason {
   const reasonCode = normalizeText(error.reasonCode) || normalizeText(error.code);
   if (
     reasonCode === ReasonCode.SDK_AI_INPUT_INVALID
@@ -231,7 +231,7 @@ function speechUnavailableReasonFromError(error: NimiError): RuntimeSpeechSynthe
   ) {
     return 'input-invalid';
   }
-  return runtimeScenarioJobUnavailableReasonFromError(error);
+  return runtimeScenarioJobNonSuccessReasonFromError(error);
 }
 
 function bytesToBase64(bytes: Uint8Array): string {

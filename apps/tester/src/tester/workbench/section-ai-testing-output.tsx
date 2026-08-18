@@ -6,7 +6,7 @@ import { useTesterRendererHost } from '../../renderer/context.js';
 import { openNimiLocalAppAssetMediaUrl } from '@nimiplatform/kit/shell/renderer/bridge';
 import type { TesterRendererCommandPort } from '../../renderer/contract.js';
 import type { TesterCapabilityRunResult } from '../tester-runtime.js';
-import { unavailableReasonTitle } from '../tester-unavailable.js';
+import { nonSuccessReasonTitle } from '../tester-non-success.js';
 import {
   STUDIO_ARTIFACT_IMAGE_LOADING,
   hasStudioArtifactMedia,
@@ -64,9 +64,9 @@ export function formatTypedOutput(result: TesterCapabilityRunResult & { ok: true
   }, null, 2);
 }
 
-export function formatUnavailableOutput(result: TesterCapabilityRunResult & { ok: false }): string {
+export function formatNonSuccessOutput(result: TesterCapabilityRunResult & { ok: false }): string {
   return [
-    unavailableReasonTitle(result.reason),
+    nonSuccessReasonTitle(result.reason),
     '',
     `Capability: ${result.capabilityId}`,
     `Reason: ${result.reason}`,
@@ -91,7 +91,7 @@ export function formatUnavailableOutput(result: TesterCapabilityRunResult & { ok
 // results export the fail-closed Runtime diagnostic without converting it into a
 // success state.
 export function resultPlainText(result: TesterCapabilityRunResult): string {
-  if (!result.ok) return formatUnavailableOutput(result);
+  if (!result.ok) return formatNonSuccessOutput(result);
   if (result.output.kind === 'text') return result.output.text;
   if (result.output.kind === 'transcript') return result.output.text;
   return formatTypedOutput(result);

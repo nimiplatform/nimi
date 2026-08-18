@@ -5,10 +5,10 @@ import { useTranslation } from '../../shell/i18n/index.js';
 import type { TesterCapability } from '../tester-capabilities.js';
 import { formatTesterRunTimestamp } from '../tester-history.js';
 import type { TesterCapabilityRunResult } from '../tester-runtime.js';
-import { unavailableReasonUserAction, unavailableReasonUserMessage } from '../tester-unavailable.js';
+import { nonSuccessReasonUserAction, nonSuccessReasonUserMessage } from '../tester-non-success.js';
 import { countStudioWords, getCapabilityStudioProfile, runtimeMethodFor } from './capability-studio-profiles.js';
 import type { CapabilityStatus } from './section-ai-testing-admission.js';
-import { ArtifactMediaResult, RuntimeDiagnosticsActions, formatTypedOutput, formatUnavailableOutput, resultPlainText, TextStudioOutputBody } from './section-ai-testing-output.js';
+import { ArtifactMediaResult, RuntimeDiagnosticsActions, formatTypedOutput, formatNonSuccessOutput, resultPlainText, TextStudioOutputBody } from './section-ai-testing-output.js';
 import { useTesterRendererHost } from '../../renderer/context.js';
 
 // Readable body for a successful typed result (light surface), with structured
@@ -92,7 +92,7 @@ function formatRuntimeDetailsExport({
     lines.push(`Trace: ${result.trace.traceId}`);
   }
   if (result) {
-    lines.push('', result.ok ? 'Output:' : 'Diagnostics:', result.ok ? formatTypedOutput(result) : formatUnavailableOutput(result));
+    lines.push('', result.ok ? 'Output:' : 'Diagnostics:', result.ok ? formatTypedOutput(result) : formatNonSuccessOutput(result));
   }
   if (verboseConsole) {
     lines.push('', `Verbose console: capability ${capability.id}; ${result ? (result.ok ? 'typed success' : `fail-closed ${result.reason}`) : 'no current-session result'}.`);
@@ -112,7 +112,7 @@ function RuntimeDetails({
   verboseConsole: boolean;
 }) {
   const { t } = useTranslation();
-  const diagnosticsText = result && !result.ok ? formatUnavailableOutput(result) : '';
+  const diagnosticsText = result && !result.ok ? formatNonSuccessOutput(result) : '';
   const runtimeDetailsText = formatRuntimeDetailsExport({ capability, result, admission, verboseConsole });
   return (
     <details className="studio-diag">
@@ -308,8 +308,8 @@ export function StudioResult({
           <Clock size={15} aria-hidden="true" />
           <span>{t('StudioShell.generationCanceled')}</span>
         </div>
-        <p>{unavailableReasonUserMessage(canceled.reason)}</p>
-        <p className="studio-result__hint">{unavailableReasonUserAction(canceled.reason)}</p>
+        <p>{nonSuccessReasonUserMessage(canceled.reason)}</p>
+        <p className="studio-result__hint">{nonSuccessReasonUserAction(canceled.reason)}</p>
       </div>
     );
   } else if (timedOut) {
@@ -319,8 +319,8 @@ export function StudioResult({
           <Clock size={15} aria-hidden="true" />
           <span>{statusTitle}</span>
         </div>
-        <p>{unavailableReasonUserMessage(timedOut.reason)}</p>
-        <p className="studio-result__hint">{unavailableReasonUserAction(timedOut.reason)}</p>
+        <p>{nonSuccessReasonUserMessage(timedOut.reason)}</p>
+        <p className="studio-result__hint">{nonSuccessReasonUserAction(timedOut.reason)}</p>
       </div>
     );
   } else if (blocked) {
@@ -330,8 +330,8 @@ export function StudioResult({
           <AlertTriangle size={15} aria-hidden="true" />
           <span>{t('StudioShell.generationFailed')}</span>
         </div>
-        <p>{unavailableReasonUserMessage(blocked.reason)}</p>
-        <p className="studio-result__hint">{unavailableReasonUserAction(blocked.reason)}</p>
+        <p>{nonSuccessReasonUserMessage(blocked.reason)}</p>
+        <p className="studio-result__hint">{nonSuccessReasonUserAction(blocked.reason)}</p>
       </div>
     );
   } else if (ready) {
