@@ -749,7 +749,7 @@ func (s *Service) CancelLocalTransfer(_ context.Context, req *runtimev1.CancelLo
 	if control != nil {
 		_ = control.cancel()
 	}
-	if normalizeTransferKind(summary.GetSessionKind()) == localTransferKindDownload && normalizeTransferState(summary.GetState()) == localTransferStateCancelled {
+	if control == nil && normalizeTransferKind(summary.GetSessionKind()) == localTransferKindDownload && normalizeTransferState(summary.GetState()) == localTransferStateCancelled {
 		s.discardManagedModelDownloadStaging(managedModelAcquisitionStorageID(summary.GetAssetId(), summary.GetInstallSessionId()))
 	}
 	return &runtimev1.CancelLocalTransferResponse{Transfer: summary}, nil

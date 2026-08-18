@@ -7,7 +7,9 @@ import {
   formatBytes,
   formatDownloadPhaseLabel,
   formatEta,
+  formatKnownDownloadSize,
   formatSpeed,
+  isRuntimeInstallCancellation,
   localSpeechReasonSummary,
   planBlockingHint,
   normalizeCapabilityOption,
@@ -19,7 +21,8 @@ import {
   sortProgressSessions,
   type ProgressSessionState,
 } from '../src/shell/renderer/features/runtime-config/runtime-config-model-center-utils';
-import { ReasonCode } from '@nimiplatform/sdk/types';
+import { createNimiError, ReasonCode } from '@nimiplatform/sdk/types';
+import { NIMI_RUNTIME_REASON_CODES } from '@nimiplatform/sdk/runtime';
 
 // ---------------------------------------------------------------------------
 // formatBytes
@@ -74,6 +77,29 @@ describe('formatBytes', () => {
     const result = formatBytes(2 * 1099511627776);
     assert.equal(result, '2.00 TB');
   });
+});
+
+describe('formatKnownDownloadSize', () => {
+  test('formats a positive Runtime-projected total', () => {
+    assert.equal(formatKnownDownloadSize(1610612736, 'size unknown'), '1.50 GB');
+  });
+
+  test('does not present an absent total as zero bytes', () => {
+    assert.equal(formatKnownDownloadSize(undefined, 'size unknown'), 'size unknown');
+    assert.equal(formatKnownDownloadSize(0, 'size unknown'), 'size unknown');
+  });
+});
+
+test('recognizes typed Runtime install cancellation without parsing copy', () => {
+  const error = createNimiError({
+    code: 'REQUEST_CANCELED',
+    message: 'localized text may change',
+    source: 'runtime',
+    reasonCode: NIMI_RUNTIME_REASON_CODES.AI_LOCAL_EXECUTION_CANCELED,
+    retryable: false,
+  });
+  assert.equal(isRuntimeInstallCancellation(error), true);
+  assert.equal(isRuntimeInstallCancellation(new Error('AI_LOCAL_EXECUTION_CANCELED')), false);
 });
 
 // ---------------------------------------------------------------------------

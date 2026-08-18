@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Surface, cn } from '@nimiplatform/kit/ui';
+import { getNimiRuntimeReasonCodeMessage } from '@nimiplatform/sdk/runtime';
 import type {
   NimiRuntimeLocalCatalogVariantDescriptor,
   NimiRuntimeLocalInstallPlanDescriptor,
@@ -18,6 +19,10 @@ import {
 import { TOKEN_PANEL_CARD, tierPillClass } from './runtime-config-runtime-page-ui';
 import { formatBytes } from './runtime-config-model-center-utils';
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
+import {
+  projectRecommendInstallPlanFailure,
+  type RecommendInstallPlanFailure,
+} from './runtime-config-page-recommend-utils';
 
 type RecommendInstallSectionProps = {
   item: NimiRuntimeLocalRecommendationFeedItem;
@@ -39,9 +44,10 @@ type InstallPlanOptions = {
 export type RecommendInstallController = {
   planPreview: NimiRuntimeLocalInstallPlanDescriptor | null;
   planLoading: boolean;
-  planError: string;
+  planError: RecommendInstallPlanFailure | null;
   variants: NimiRuntimeLocalCatalogVariantDescriptor[];
   variantsLoading: boolean;
+  variantsRequested: boolean;
   variantsError: string;
   installing: boolean;
   reviewInstallPlan: (options?: InstallPlanOptions) => Promise<void>;
@@ -77,9 +83,10 @@ export function useRecommendInstallController({
   const localEnvironmentClient = useRuntimeConfigLocalEnvironmentClient();
   const [planPreview, setPlanPreview] = useState<NimiRuntimeLocalInstallPlanDescriptor | null>(null);
   const [planLoading, setPlanLoading] = useState(false);
-  const [planError, setPlanError] = useState('');
+  const [planError, setPlanError] = useState<RecommendInstallPlanFailure | null>(null);
   const [variants, setVariants] = useState<NimiRuntimeLocalCatalogVariantDescriptor[]>([]);
   const [variantsLoading, setVariantsLoading] = useState(false);
+  const [variantsRequested, setVariantsRequested] = useState(false);
   const [variantsError, setVariantsError] = useState('');
   const [installing, setInstalling] = useState(false);
 
@@ -87,13 +94,13 @@ export function useRecommendInstallController({
     options?: InstallPlanOptions,
   ) => {
     setPlanLoading(true);
-    setPlanError('');
+    setPlanError(null);
     try {
       const plan = await localEnvironmentClient.resolveInstallPlan(resolveInstallPlanPayload(item, options));
       setPlanPreview(plan);
     } catch (err) {
       setPlanPreview(null);
-      setPlanError(err instanceof Error ? err.message : String(err || 'Failed to resolve install plan.'));
+      setPlanError(projectRecommendInstallPlanFailure(err));
     } finally {
       setPlanLoading(false);
     }
@@ -101,6 +108,7 @@ export function useRecommendInstallController({
 
   const openVariants = useCallback(async () => {
     setVariantsLoading(true);
+    setVariantsRequested(true);
     setVariantsError('');
     try {
       const rows = await localEnvironmentClient.listCatalogVariants(item.repo);
@@ -133,6 +141,7 @@ export function useRecommendInstallController({
     planError,
     variants,
     variantsLoading,
+    variantsRequested,
     variantsError,
     installing,
     reviewInstallPlan,
@@ -154,6 +163,7 @@ export function RecommendInstallSection({
     planError,
     variants,
     variantsLoading,
+    variantsRequested,
     variantsError,
     installing,
     reviewInstallPlan,
@@ -161,6 +171,25 @@ export function RecommendInstallSection({
     installReviewedPlan,
     openLocalModels,
   } = controller;
+  const installUnavailable = planError?.kind === 'template-unavailable';
+  const reasonEntry = planError?.reasonCode
+    ? getNimiRuntimeReasonCodeMessage(planError.reasonCode)
+    : null;
+  const planErrorMessage = !planError
+    ? ''
+    : installUnavailable
+      ? t('runtimeConfig.recommend.installUnavailable', {
+          defaultValue: 'This recommendation does not have a Runtime-installable version, so no download was started.',
+        })
+      : planError.kind === 'runtime-unavailable'
+        ? t('runtimeConfig.recommend.installRuntimeUnavailable', {
+            defaultValue: 'Runtime is unavailable. Check Runtime, then review the install again.',
+          })
+        : reasonEntry
+          ? t(`BridgeErrors.codes.${reasonEntry.reasonCode}`, { defaultValue: reasonEntry.defaultMessage })
+          : t('runtimeConfig.recommend.installReviewFailed', {
+              defaultValue: 'The install plan could not be reviewed. Try again or choose another model.',
+            });
 
   return (
     <div className="space-y-4">
@@ -170,6 +199,10 @@ export function RecommendInstallSection({
         {item.installedState.installed ? (
           <Button variant="secondary" size="sm" onClick={openLocalModels}>
             {t('runtimeConfig.recommend.openLocalModels', { defaultValue: 'Open in Local Models' })}
+          </Button>
+        ) : installUnavailable ? (
+          <Button size="sm" onClick={openLocalModels}>
+            {t('runtimeConfig.recommend.browseInstallableModels', { defaultValue: 'Browse installable models' })}
           </Button>
         ) : (
           <>
@@ -216,7 +249,20 @@ export function RecommendInstallSection({
             </h4>
           </div>
           {planError ? (
-            <div className="rounded-lg border border-[var(--nimi-status-danger-soft-border)] bg-[var(--nimi-status-danger-soft-bg)] px-3 py-2 text-xs text-[var(--nimi-status-danger-soft-text)]">{planError}</div>
+            <div role="alert" className="rounded-lg border border-[var(--nimi-status-danger-soft-border)] bg-[var(--nimi-status-danger-soft-bg)] px-4 py-3 text-sm text-[var(--nimi-status-danger-soft-text)]">
+              <p>{planErrorMessage}</p>
+              <details className="mt-2 text-xs">
+                <summary className="cursor-pointer font-medium">
+                  {t('runtimeConfig.recommend.technicalDetails', { defaultValue: 'Technical details' })}
+                </summary>
+                <div className="mt-2 space-y-1 font-mono break-all">
+                  {planError.reasonCode ? <p>{planError.reasonCode}</p> : null}
+                  {planError.technicalDetail && planError.technicalDetail !== planError.reasonCode
+                    ? <p>{planError.technicalDetail}</p>
+                    : null}
+                </div>
+              </details>
+            </div>
           ) : null}
           {planPreview ? (
             <div className="space-y-3">
@@ -271,6 +317,11 @@ export function RecommendInstallSection({
 
       {variantsError ? (
         <div className="rounded-lg border border-[var(--nimi-status-danger-soft-border)] bg-[var(--nimi-status-danger-soft-bg)] px-3 py-2 text-xs text-[var(--nimi-status-danger-soft-text)]">{variantsError}</div>
+      ) : null}
+      {variantsRequested && !variantsLoading && !variantsError && variants.length === 0 ? (
+        <div role="status" className="rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] px-4 py-3 text-sm text-[var(--nimi-text-secondary)]">
+          {t('runtimeConfig.recommend.variantsUnavailable', { defaultValue: 'No installable variants were returned for this model.' })}
+        </div>
       ) : null}
       {variants.length > 0 ? (
         <Surface tone="card" padding="none" className={cn(TOKEN_PANEL_CARD, 'p-5')}>

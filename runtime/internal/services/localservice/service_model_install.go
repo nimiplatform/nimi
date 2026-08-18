@@ -294,7 +294,7 @@ func (s *Service) InstallModelFromPlan(ctx context.Context, req *runtimev1.Insta
 		totalSizeBytes:    plan.GetTotalSizeBytes(),
 	})
 	if err != nil {
-		return nil, err
+		return nil, modelInstallRPCError(err)
 	}
 	if record == nil {
 		return nil, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
@@ -302,4 +302,14 @@ func (s *Service) InstallModelFromPlan(ctx context.Context, req *runtimev1.Insta
 		})
 	}
 	return &runtimev1.InstallModelFromPlanResponse{ModelAsset: record}, nil
+}
+
+func modelInstallRPCError(err error) error {
+	if errors.Is(err, errLocalTransferCancelled) {
+		return grpcerr.WrapWithReasonCode(codes.Canceled, runtimev1.ReasonCode_AI_LOCAL_EXECUTION_CANCELED, err, grpcerr.ReasonOptions{
+			Message:    "model install cancelled",
+			ActionHint: "retry_model_install",
+		})
+	}
+	return err
 }

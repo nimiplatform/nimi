@@ -93,10 +93,6 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
     setStatusBanner: setPageFeedback,
   });
 
-  const installActions = useRuntimeConfigInstallActions({
-    setStatusBanner: setPageFeedback,
-  });
-
   const onVaultChanged = useCallback(() => {
     panelState.setVaultVersion((v) => v + 1);
   }, [panelState.setVaultVersion]);
@@ -107,6 +103,15 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
       activePage: pageId,
     }));
   }, [panelState.updateState]);
+
+  const onOpenLoadouts = useCallback(() => {
+    onChangePage('loadouts');
+  }, [onChangePage]);
+
+  const installActions = useRuntimeConfigInstallActions({
+    setStatusBanner: setPageFeedback,
+    onOpenLoadouts,
+  });
 
   useRuntimeConfigPanelEffects({
     bootstrapReady,

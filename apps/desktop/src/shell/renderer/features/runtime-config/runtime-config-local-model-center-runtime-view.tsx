@@ -121,14 +121,6 @@ export function LocalModelCenterRuntimeView(props: LocalModelCenterRuntimeViewPr
           pendingTemplateIds={props.assetPendingTemplateIds}
           onRetryTask={props.onInstallAsset}
         />
-        <LocalModelCenterInstalledAssetsSection
-          modelAssets={props.modelAssets}
-          loadingInstalledAssets={props.loadingInstalledAssets}
-          assetBusy={props.assetBusy}
-          onRefreshAssets={props.onRefreshAssets}
-          onInspectRemoval={props.onInspectRemoval}
-          onRemoveAsset={props.onRemoveAsset}
-        />
         {!props.hasSearchQuery ? (
           <LocalModelCenterQuickPicksSection
             loadingVerifiedModels={props.loadingVerifiedModels}
@@ -138,6 +130,14 @@ export function LocalModelCenterRuntimeView(props: LocalModelCenterRuntimeViewPr
             onInstallCatalogQuickPick={props.onInstallCatalogQuickPick}
           />
         ) : null}
+        <LocalModelCenterInstalledAssetsSection
+          modelAssets={props.modelAssets}
+          loadingInstalledAssets={props.loadingInstalledAssets}
+          assetBusy={props.assetBusy}
+          onRefreshAssets={props.onRefreshAssets}
+          onInspectRemoval={props.onInspectRemoval}
+          onRemoveAsset={props.onRemoveAsset}
+        />
         <LocalModelCenterCatalogCard
           searchQuery={props.searchQuery}
           catalogCapability={props.catalogCapability}

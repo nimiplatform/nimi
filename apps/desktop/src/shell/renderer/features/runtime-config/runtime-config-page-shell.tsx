@@ -1,6 +1,12 @@
 import type { ReactNode } from 'react';
 import { cn } from '@nimiplatform/kit/ui';
 
+export function resetRuntimePageViewport(
+  viewport: Pick<HTMLDivElement, 'scrollTo'> | null,
+): void {
+  viewport?.scrollTo({ top: 0, left: 0 });
+}
+
 const MAX_WIDTH_CLASS: Record<string, string> = {
   '2xl': 'max-w-2xl',
   '3xl': 'max-w-3xl',

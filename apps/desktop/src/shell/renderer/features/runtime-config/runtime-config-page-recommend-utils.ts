@@ -10,6 +10,7 @@ import {
   collectNimiRuntimeLocalRecommendationFeedProviders,
   computeNimiRuntimeLocalRecommendationVramPercentage,
   filterNimiRuntimeLocalRecommendationFeedItems as filterSdkRecommendationFeedItems,
+  formatNimiRuntimeErrorDetail,
   formatNimiRuntimeLocalRecommendationQuantQualityLabel,
   formatNimiRuntimeLocalRecommendationRepoOwner,
   nimiRuntimeLocalRecommendationFeedMatchesQuery,
@@ -24,6 +25,7 @@ import {
   type NimiRuntimeLocalRecommendationFeedCapabilityId,
   type NimiRuntimeLocalRecommendationTierId,
 } from '@nimiplatform/sdk/runtime';
+import { isNimiError } from '@nimiplatform/sdk/types';
 import type { CapabilityV11 } from './runtime-config-state-types';
 import { tierPillClass } from './runtime-config-runtime-page-ui';
 
@@ -32,6 +34,26 @@ export const RECOMMEND_PAGE_CAPABILITIES = NIMI_RUNTIME_LOCAL_RECOMMENDATION_FEE
 export type RecommendPageCapability = NimiRuntimeLocalRecommendationFeedCapabilityId;
 
 export type RecommendTier = NimiRuntimeLocalRecommendationTierId | null;
+
+export type RecommendInstallPlanFailure = {
+  readonly kind: 'template-unavailable' | 'runtime-unavailable' | 'unknown';
+  readonly reasonCode: string;
+  readonly technicalDetail: string;
+};
+
+export function projectRecommendInstallPlanFailure(error: unknown): RecommendInstallPlanFailure {
+  const reasonCode = isNimiError(error) ? error.reasonCode : '';
+  const kind = reasonCode === 'AI_LOCAL_TEMPLATE_NOT_FOUND'
+    ? 'template-unavailable'
+    : reasonCode === 'RUNTIME_UNAVAILABLE' || reasonCode === 'AI_LOCAL_SERVICE_UNAVAILABLE'
+      ? 'runtime-unavailable'
+      : 'unknown';
+  return {
+    kind,
+    reasonCode,
+    technicalDetail: formatNimiRuntimeErrorDetail(error),
+  };
+}
 
 export function recommendationTier(value?: unknown): RecommendTier {
   return parseNimiRuntimeLocalRecommendationTierId(value) ?? null;

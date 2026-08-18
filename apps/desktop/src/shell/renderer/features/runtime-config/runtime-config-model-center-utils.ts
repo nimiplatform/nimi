@@ -5,9 +5,10 @@ import type {
   NimiRuntimeLocalTransferProgressEvent,
   NimiRuntimeLocalInstallPlanDescriptor,
 } from '@nimiplatform/sdk/runtime';
-import { ReasonCode } from '@nimiplatform/sdk/types';
+import { isNimiError, ReasonCode } from '@nimiplatform/sdk/types';
 import {
   getNimiRuntimeReasonCodeMessage,
+  NIMI_RUNTIME_REASON_CODES,
   NIMI_RUNTIME_LOCAL_RUNNABLE_ASSET_KIND_IDS,
   normalizeNimiRuntimeLocalRunnableAssetKindId,
   type NimiRuntimeLocalRunnableAssetKindId,
@@ -101,6 +102,16 @@ export function formatBytes(value: number | undefined): string {
   }
   const precision = unitIndex === 0 ? 0 : unitIndex >= 3 ? 2 : 1;
   return `${next.toFixed(precision)} ${units[unitIndex]}`;
+}
+
+export function formatKnownDownloadSize(value: number | undefined, unknownLabel: string): string {
+  const safe = Number(value);
+  return Number.isFinite(safe) && safe > 0 ? formatBytes(safe) : unknownLabel;
+}
+
+export function isRuntimeInstallCancellation(error: unknown): boolean {
+  return isNimiError(error)
+    && error.reasonCode === NIMI_RUNTIME_REASON_CODES.AI_LOCAL_EXECUTION_CANCELED;
 }
 
 export function formatSpeed(value: number | undefined): string {

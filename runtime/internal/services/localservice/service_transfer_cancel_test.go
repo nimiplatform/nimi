@@ -11,6 +11,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -105,6 +106,54 @@ func TestCancelLocalTransferTripsImportControl(t *testing.T) {
 	}
 	if summary := svc.localTransferSummary(sessionID); summary.GetState() != localTransferStateCancelled {
 		t.Fatalf("state = %q, want cancelled", summary.GetState())
+	}
+}
+
+func TestModelInstallRPCErrorProjectsTransferCancellation(t *testing.T) {
+	err := modelInstallRPCError(errLocalTransferCancelled)
+	if status.Code(err) != codes.Canceled {
+		t.Fatalf("status code = %s, want Canceled", status.Code(err))
+	}
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_LOCAL_EXECUTION_CANCELED {
+		t.Fatalf("reason = %s ok=%v, want AI_LOCAL_EXECUTION_CANCELED", reason, ok)
+	}
+}
+
+func TestCancelLocalTransferLeavesActiveDownloadCleanupToExecutor(t *testing.T) {
+	svc := newTestService(t)
+	transfer := svc.newLocalTransfer(localTransferKindDownload, localTransferMutation{
+		ModelID: "local-download/active-cancel",
+		Phase:   "download",
+		State:   localTransferStateRunning,
+	})
+	sessionID := transfer.GetInstallSessionId()
+	control := svc.transferControl(sessionID)
+	if control == nil {
+		t.Fatal("download transfer must own a cancellation control")
+	}
+	stageDir := managedModelDownloadStageDir(
+		svc.resolvedLocalModelsPath(),
+		managedModelAcquisitionStorageID(transfer.GetAssetId(), sessionID),
+	)
+	partialPath := filepath.Join(stageDir, "model.bin.download")
+	if err := os.MkdirAll(stageDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(partialPath, []byte("partial"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	response, err := svc.CancelLocalTransfer(context.Background(), &runtimev1.CancelLocalTransferRequest{
+		InstallSessionId: sessionID,
+	})
+	if err != nil || response.GetTransfer().GetState() != localTransferStateCancelled {
+		t.Fatalf("CancelLocalTransfer: response=%+v err=%v", response, err)
+	}
+	if err := control.wait(context.Background()); !errors.Is(err, errLocalTransferCancelled) {
+		t.Fatalf("control wait = %v, want errLocalTransferCancelled", err)
+	}
+	if _, err := os.Stat(partialPath); err != nil {
+		t.Fatalf("active cancel removed executor-owned staging: %v", err)
 	}
 }
 

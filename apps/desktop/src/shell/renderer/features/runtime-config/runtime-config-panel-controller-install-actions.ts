@@ -9,6 +9,7 @@ import {
 } from '@nimiplatform/sdk/runtime';
 import { useTranslation } from 'react-i18next';
 import { useRuntimeConfigLocalEnvironmentClient } from './runtime-config-local-environment-sdk-service';
+import { formatKnownDownloadSize, isRuntimeInstallCancellation } from './runtime-config-model-center-utils';
 import type { SetRuntimeConfigBanner } from './runtime-config-panel-controller-utils';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 
@@ -29,13 +30,14 @@ export type RuntimeConfigInstallActions = {
 
 export type UseRuntimeConfigInstallActionsInput = {
   setStatusBanner: SetRuntimeConfigBanner;
+  onOpenLoadouts: () => void;
 };
 
 export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallActionsInput): RuntimeConfigInstallActions {
   const localEnvironmentClient = useRuntimeConfigLocalEnvironmentClient();
   const { t } = useTranslation();
   const bindings = useDesktopRendererBindings();
-  const { setStatusBanner } = input;
+  const { onOpenLoadouts, setStatusBanner } = input;
   const translateRuntimeLocalText = useCallback((
     key: string,
     defaultValue: string,
@@ -61,25 +63,35 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
   ) => {
     assertRuntimeWriteAllowed();
     const installLabel = String(plan.entry || plan.modelId || plan.templateId || 'model asset').trim();
-    const repo = String(plan.repo || '').trim();
-    const revision = String(plan.revision || '').trim();
-    const sourceLabel = repo ? ` from ${repo}${revision ? `@${revision}` : ''}` : '';
+    const sizeLabel = formatKnownDownloadSize(
+      plan.totalSizeBytes,
+      translateRuntimeLocalText('runtimeConfig.local.unknownDownloadSize', 'size unknown'),
+    );
     const confirmed = bindings.app.commands.confirmRuntimeProfileInstall(
-      `Download and install "${installLabel}"${sourceLabel}? No download starts until you confirm.`,
+      translateRuntimeLocalText(
+        'runtimeConfig.local.confirmModelInstall',
+        'Download and install "{{name}}"? Download size: {{size}}. No download starts until you confirm.',
+        { name: installLabel, size: sizeLabel },
+      ),
     );
     if (!confirmed) {
       return;
     }
-    const asset = await localEnvironmentClient.install(plan.planId, { caller: 'core' });
+    await localEnvironmentClient.install(plan.planId, { caller: 'core' });
     setStatusBanner({
       kind: 'success',
       message: translateRuntimeLocalText(
         'runtimeConfig.local.assetInstalled',
-        'Asset installed: {{assetId}}',
-        { assetId: asset.modelAssetId || plan.modelId },
+        '“{{name}}” is installed. Choose what you want to use it for.',
+        { name: installLabel },
       ),
+      actionLabel: translateRuntimeLocalText(
+        'runtimeConfig.local.setModelUse',
+        'Set use',
+      ),
+      onAction: onOpenLoadouts,
     });
-  }, [assertRuntimeWriteAllowed, setStatusBanner]);
+  }, [assertRuntimeWriteAllowed, onOpenLoadouts, setStatusBanner, translateRuntimeLocalText]);
 
   const installCatalogLocalModel = useCallback(async (
     item: NimiRuntimeLocalCatalogItemDescriptor,
@@ -107,6 +119,13 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
       });
       await runInstallPlanLifecycle(plan);
     } catch (error) {
+      if (isRuntimeInstallCancellation(error)) {
+        setStatusBanner({
+          kind: 'info',
+          message: translateRuntimeLocalText('runtimeConfig.local.installCanceled', 'Download canceled.'),
+        });
+        return;
+      }
       setStatusBanner({
         kind: 'error',
         message: `Catalog model install failed: ${error instanceof Error ? error.message : String(error || '')}`,
@@ -119,6 +138,13 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
     try {
       await runInstallPlanLifecycle(plan);
     } catch (error) {
+      if (isRuntimeInstallCancellation(error)) {
+        setStatusBanner({
+          kind: 'info',
+          message: translateRuntimeLocalText('runtimeConfig.local.installCanceled', 'Download canceled.'),
+        });
+        return;
+      }
       setStatusBanner({
         kind: 'error',
         message: `Catalog model install failed: ${error instanceof Error ? error.message : String(error || '')}`,
@@ -138,6 +164,13 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
       });
       await runInstallPlanLifecycle(plan);
     } catch (error) {
+      if (isRuntimeInstallCancellation(error)) {
+        setStatusBanner({
+          kind: 'info',
+          message: translateRuntimeLocalText('runtimeConfig.local.installCanceled', 'Download canceled.'),
+        });
+        return;
+      }
       setStatusBanner({
         kind: 'error',
         message: `Catalog ModelAsset install failed: ${error instanceof Error ? error.message : String(error || '')}`,

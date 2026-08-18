@@ -14,7 +14,9 @@ import {
   quantQualityLabel,
   recommendationTier,
   recommendationTierLabel,
+  projectRecommendInstallPlanFailure,
 } from '../src/shell/renderer/features/runtime-config/runtime-config-page-recommend-utils.js';
+import { createNimiError } from '@nimiplatform/sdk/types';
 
 test('normalizeRecommendPageCapability fails closed for unsupported runtime pages', () => {
   assert.equal(normalizeRecommendPageCapability('tts'), null);
@@ -50,6 +52,27 @@ test('recommendation tier presentation reflects only Runtime-issued tiers', () =
   assert.equal(recommendationTier('invented'), null);
   assert.equal(recommendationTierLabel('recommended'), 'Recommended');
   assert.equal(recommendationTierLabel(null), 'Unscored');
+});
+
+test('install plan failure preserves Runtime truth while routing missing templates to recovery', () => {
+  const failure = projectRecommendInstallPlanFailure(createNimiError({
+    message: 'portable source is not present in the current catalog',
+    reasonCode: 'AI_LOCAL_TEMPLATE_NOT_FOUND',
+    actionHint: 'choose_catalog_model',
+  }));
+
+  assert.equal(failure.kind, 'template-unavailable');
+  assert.equal(failure.reasonCode, 'AI_LOCAL_TEMPLATE_NOT_FOUND');
+  assert.match(failure.technicalDetail, /portable source|AI_LOCAL_TEMPLATE_NOT_FOUND/u);
+});
+
+test('install plan failure does not infer typed state from error copy', () => {
+  const failure = projectRecommendInstallPlanFailure(
+    new Error('AI_LOCAL_TEMPLATE_NOT_FOUND: portable source is not present'),
+  );
+
+  assert.equal(failure.kind, 'unknown');
+  assert.equal(failure.reasonCode, '');
 });
 
 // ---------------------------------------------------------------------------

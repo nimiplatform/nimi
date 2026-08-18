@@ -14,6 +14,7 @@ import { E2E_IDS } from '../../testability/e2e-ids';
 import { RUNTIME_PAGE_META } from './runtime-config-meta-v11';
 import { RUNTIME_SIDEBAR_ITEMS } from './runtime-config-sidebar';
 import { RuntimeHealthBadge } from './runtime-config-primitives';
+import { resetRuntimePageViewport } from './runtime-config-page-shell';
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
 import { useRuntimeConfigPanelController } from './runtime-config-panel-controller';
 
@@ -63,9 +64,15 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
   const { state } = model;
   const [sidebarWidth, setSidebarWidth] = useState(216);
   const containerRef = useRef<HTMLDivElement>(null);
+  const pageViewportRef = useRef<HTMLDivElement>(null);
   const resizePointerIdRef = useRef<number | null>(null);
 
   const daemonRunning = model.runtimeDaemonStatus?.running === true;
+  const activePage = model.activePage;
+
+  useEffect(() => {
+    resetRuntimePageViewport(pageViewportRef.current);
+  }, [activePage]);
 
   const startResize = (event: PointerEvent<HTMLDivElement>) => {
     event.preventDefault();
@@ -144,7 +151,6 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
   }
 
   const runtimeStatus = model.runtimeStatus || state.local.status;
-  const activePage = model.activePage;
   const pageMeta = RUNTIME_PAGE_META[activePage] || RUNTIME_PAGE_META.overview;
   const pageTitle = t(`runtimeConfig.sidebar.${activePage}`, { defaultValue: pageMeta.name });
   const sidebarStyle = { '--runtime-sidebar-width': `${sidebarWidth}px` } as CSSProperties;
@@ -223,7 +229,7 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
           </div>
         </div>
 
-        <ScrollArea className="min-w-0 flex-1" viewportClassName="bg-transparent [&>div]:!block [&>div]:!min-w-0 [&>div]:!w-full [&>div]:!max-w-full" contentClassName="min-w-0 w-full max-w-full overflow-x-hidden">
+        <ScrollArea viewportRef={pageViewportRef} className="min-w-0 flex-1" viewportClassName="bg-transparent [&>div]:!block [&>div]:!min-w-0 [&>div]:!w-full [&>div]:!max-w-full" contentClassName="min-w-0 w-full max-w-full overflow-x-hidden">
           <Suspense fallback={<div className="p-4"><RuntimeSkeletonBlock className="h-64 w-full" /></div>}>
             {activePage === 'overview' && (
               <div data-testid={E2E_IDS.runtimePageRoot('overview')} className="min-w-0">

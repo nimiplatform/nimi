@@ -12,6 +12,7 @@ import {
 import { normalizeStoredStateV11 } from '../src/shell/renderer/features/runtime-config/runtime-config-storage-normalize';
 import { persistRuntimeConfigStateV11 } from '../src/shell/renderer/features/runtime-config/runtime-config-storage-persist';
 import { RUNTIME_SIDEBAR_ITEMS } from '../src/shell/renderer/features/runtime-config/runtime-config-sidebar';
+import { resetRuntimePageViewport } from '../src/shell/renderer/features/runtime-config/runtime-config-page-shell';
 
 // ---------------------------------------------------------------------------
 // normalizePageIdV11
@@ -41,6 +42,17 @@ test('normalizePageIdV11: unknown values fall back to "overview"', () => {
   assert.equal(normalizePageIdV11('knowledge'), 'overview');
   assert.equal(normalizePageIdV11('advanced'), 'overview');
   assert.equal(normalizePageIdV11({}), 'overview');
+});
+
+test('page navigation resets the shared Runtime viewport to the start', () => {
+  let requested: ScrollToOptions | null = null;
+  resetRuntimePageViewport({
+    scrollTo(options: ScrollToOptions) {
+      requested = options;
+    },
+  } as Pick<HTMLDivElement, 'scrollTo'>);
+
+  assert.deepEqual(requested, { top: 0, left: 0 });
 });
 
 // ---------------------------------------------------------------------------
