@@ -22,7 +22,7 @@ func (s *Service) bindCloudCredentialCustody(jobID string, assembly *cloudResolv
 	}
 	record, capturedRef, err := s.connStore.CaptureCredentialCustody(assembly.Connector.ConnectorID, jobID)
 	if err != nil {
-		_ = s.scenarioJobs.clearPendingCloudCredentialCustody(jobID, ref)
+		_ = s.discardPendingCloudCredentialCustody(jobID, ref)
 		return fmt.Errorf("capture Cloud ScenarioJob credential custody: %w", err)
 	}
 	if capturedRef != ref {
@@ -61,20 +61,27 @@ func (s *Service) releaseCloudCredentialCustody(ref string) error {
 }
 
 func (s *Service) releaseCloudCredentialCustodyForJob(jobID string) {
-	if s == nil || s.scenarioJobs == nil {
-		return
-	}
-	assembly, ok := s.scenarioJobs.cloudResolvedAssembly(jobID)
-	if !ok || assembly == nil || strings.TrimSpace(assembly.CredentialCustodyRef) == "" {
-		return
-	}
-	if err := s.releaseCloudCredentialCustody(assembly.CredentialCustodyRef); err != nil {
+	if err := s.releaseCloudCredentialCustodyForJobDurably(jobID); err != nil {
 		s.logScenarioJobPersistenceFailure(
 			"terminal Cloud ScenarioJob credential custody could not be released",
 			"job_id", strings.TrimSpace(jobID),
 			"error", err,
 		)
 	}
+}
+
+func (s *Service) releaseCloudCredentialCustodyForJobDurably(jobID string) error {
+	if s == nil || s.scenarioJobs == nil {
+		return nil
+	}
+	assembly, ok := s.scenarioJobs.cloudResolvedAssembly(jobID)
+	if !ok || assembly == nil || strings.TrimSpace(assembly.CredentialCustodyRef) == "" {
+		return nil
+	}
+	if err := s.releaseCloudCredentialCustody(assembly.CredentialCustodyRef); err != nil {
+		return err
+	}
+	return s.scenarioJobs.clearTerminalCloudCredentialCustody(jobID, assembly.CredentialCustodyRef)
 }
 
 // releaseRecoveredTerminalCloudCredentialCustody closes the crash window
@@ -89,19 +96,19 @@ func (s *Service) releaseRecoveredTerminalCloudCredentialCustody() error {
 		}
 	}
 	s.scenarioJobs.mu.RLock()
-	refs := make([]string, 0)
+	jobIDs := make([]string, 0)
 	for _, record := range s.scenarioJobs.jobs {
 		if record == nil || record.job == nil || record.cloudAssembly == nil ||
 			!isTerminalScenarioJobStatus(record.job.GetStatus()) {
 			continue
 		}
 		if ref := strings.TrimSpace(record.cloudAssembly.CredentialCustodyRef); ref != "" {
-			refs = append(refs, ref)
+			jobIDs = append(jobIDs, strings.TrimSpace(record.job.GetJobId()))
 		}
 	}
 	s.scenarioJobs.mu.RUnlock()
-	for _, ref := range refs {
-		if err := s.releaseCloudCredentialCustody(ref); err != nil {
+	for _, jobID := range jobIDs {
+		if err := s.releaseCloudCredentialCustodyForJobDurably(jobID); err != nil {
 			return fmt.Errorf("release recovered Cloud ScenarioJob credential custody: %w", err)
 		}
 	}

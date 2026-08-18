@@ -269,10 +269,14 @@ func TestCapturedCloudJobExecutesAfterConnectorDeletionWithoutPersistingCredenti
 		}
 	}
 	store.mu.RUnlock()
-	if job == nil || job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED || custodyRef == "" {
+	if job == nil || job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED || custodyRef != "" {
 		t.Fatalf("captured terminal Job=%+v custodyRef=%q", job, custodyRef)
 	}
-	if captured, err := fixture.service.connStore.LoadCredentialCustody(custodyRef); err != nil || captured != "" {
+	expectedRef, err := connector.CredentialCustodyRefForJob(job.GetJobId())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if captured, err := fixture.service.connStore.LoadCredentialCustody(expectedRef); err != nil || captured != "" {
 		t.Fatalf("terminal Job credential custody = %q, err=%v; want released", captured, err)
 	}
 }

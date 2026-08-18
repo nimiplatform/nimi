@@ -31,17 +31,18 @@ const (
 type scenarioJobPersistenceOperation string
 
 const (
-	scenarioJobPersistCreate        scenarioJobPersistenceOperation = "create"
-	scenarioJobPersistCreateAndBind scenarioJobPersistenceOperation = "create-and-bind-idempotency"
-	scenarioJobPersistBind          scenarioJobPersistenceOperation = "bind-idempotency"
-	scenarioJobPersistTransition    scenarioJobPersistenceOperation = "transition"
-	scenarioJobPersistProgress      scenarioJobPersistenceOperation = "progress"
-	scenarioJobPersistArtifact      scenarioJobPersistenceOperation = "artifact"
-	scenarioJobPersistCancellation  scenarioJobPersistenceOperation = "cancellation"
-	scenarioJobPersistCustodyBegin  scenarioJobPersistenceOperation = "credential-custody-begin"
-	scenarioJobPersistCustodyAbort  scenarioJobPersistenceOperation = "credential-custody-abort"
-	scenarioJobPersistLoad          scenarioJobPersistenceOperation = "load"
-	scenarioJobPersistPrune         scenarioJobPersistenceOperation = "prune"
+	scenarioJobPersistCreate         scenarioJobPersistenceOperation = "create"
+	scenarioJobPersistCreateAndBind  scenarioJobPersistenceOperation = "create-and-bind-idempotency"
+	scenarioJobPersistBind           scenarioJobPersistenceOperation = "bind-idempotency"
+	scenarioJobPersistTransition     scenarioJobPersistenceOperation = "transition"
+	scenarioJobPersistProgress       scenarioJobPersistenceOperation = "progress"
+	scenarioJobPersistArtifact       scenarioJobPersistenceOperation = "artifact"
+	scenarioJobPersistCancellation   scenarioJobPersistenceOperation = "cancellation"
+	scenarioJobPersistCustodyBegin   scenarioJobPersistenceOperation = "credential-custody-begin"
+	scenarioJobPersistCustodyAbort   scenarioJobPersistenceOperation = "credential-custody-abort"
+	scenarioJobPersistCustodyRelease scenarioJobPersistenceOperation = "credential-custody-release"
+	scenarioJobPersistLoad           scenarioJobPersistenceOperation = "load"
+	scenarioJobPersistPrune          scenarioJobPersistenceOperation = "prune"
 )
 
 type scenarioJobPersistenceAttempt struct {
@@ -321,6 +322,36 @@ func (s *scenarioJobStore) clearPendingCloudCredentialCustody(jobID string, ref 
 	if err := s.persistDurableJobsLocked(scenarioJobPersistenceAttempt{Operation: scenarioJobPersistCustodyAbort, JobID: id}); err != nil {
 		s.pendingCloudCustody[id] = previous
 		return fmt.Errorf("persist ScenarioJob credential custody cleanup: %w", err)
+	}
+	return nil
+}
+
+func (s *scenarioJobStore) clearTerminalCloudCredentialCustody(jobID string, ref string) error {
+	id := strings.TrimSpace(jobID)
+	custodyRef := strings.TrimSpace(ref)
+	if id == "" || custodyRef == "" {
+		return fmt.Errorf("terminal Cloud credential custody requires a Job and reference")
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	record := s.jobs[id]
+	if record == nil || record.job == nil || record.cloudAssembly == nil {
+		return fmt.Errorf("terminal Cloud credential custody Job %q is unavailable", id)
+	}
+	if !isTerminalScenarioJobStatus(record.job.GetStatus()) {
+		return fmt.Errorf("Cloud credential custody Job %q is not terminal", id)
+	}
+	if strings.TrimSpace(record.cloudAssembly.CredentialCustodyRef) != custodyRef {
+		return fmt.Errorf("terminal Cloud credential custody reference does not match Job %q", id)
+	}
+	record.cloudAssembly.CredentialCustodyRef = ""
+	if err := s.persistDurableJobsLocked(scenarioJobPersistenceAttempt{
+		Operation: scenarioJobPersistCustodyRelease,
+		JobID:     id,
+		Status:    record.job.GetStatus(),
+	}); err != nil {
+		record.cloudAssembly.CredentialCustodyRef = custodyRef
+		return fmt.Errorf("persist terminal Cloud credential custody cleanup for %q: %w", id, err)
 	}
 	return nil
 }
@@ -1232,6 +1263,9 @@ func (s *scenarioJobStore) pruneJobsLocked(now time.Time) {
 			continue
 		}
 		if !isTerminalScenarioJobStatus(record.job.GetStatus()) {
+			continue
+		}
+		if record.cloudAssembly != nil && strings.TrimSpace(record.cloudAssembly.CredentialCustodyRef) != "" {
 			continue
 		}
 		terminalAt := scenarioJobRecordTimestamp(record)

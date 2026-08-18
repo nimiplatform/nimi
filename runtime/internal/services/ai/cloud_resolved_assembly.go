@@ -318,11 +318,17 @@ func validateScenarioJobCapturedInputsPair(job *runtimev1.ScenarioJob, local *lo
 		return err
 	}
 	if cloud != nil {
-		if err := validateCloudResolvedAssembly(cloud); err != nil {
-			return err
-		}
-		if err := connector.ValidateCredentialCustodyRefForJob(cloud.CredentialCustodyRef, job.GetJobId()); err != nil {
-			return fmt.Errorf("Cloud ResolvedAssembly credential custody reference is invalid: %w", err)
+		if isTerminalScenarioJobStatus(job.GetStatus()) && strings.TrimSpace(cloud.CredentialCustodyRef) == "" {
+			if err := validateCloudResolvedAssemblyDraft(cloud); err != nil {
+				return err
+			}
+		} else {
+			if err := validateCloudResolvedAssembly(cloud); err != nil {
+				return err
+			}
+			if err := connector.ValidateCredentialCustodyRefForJob(cloud.CredentialCustodyRef, job.GetJobId()); err != nil {
+				return fmt.Errorf("Cloud ResolvedAssembly credential custody reference is invalid: %w", err)
+			}
 		}
 	}
 	if job.GetRouteDecision() != runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD {

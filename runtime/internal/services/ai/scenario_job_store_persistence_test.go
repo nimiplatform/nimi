@@ -4,10 +4,12 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -20,6 +22,48 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
+
+type committedCredentialWriteErrorStore struct {
+	mu                    sync.Mutex
+	secrets               map[string]string
+	failWritesAfterCommit bool
+	failDeletes           bool
+}
+
+func newCommittedCredentialWriteErrorStore(failDeletes bool) *committedCredentialWriteErrorStore {
+	return &committedCredentialWriteErrorStore{
+		secrets:               make(map[string]string),
+		failWritesAfterCommit: true,
+		failDeletes:           failDeletes,
+	}
+}
+
+func (s *committedCredentialWriteErrorStore) WriteSecret(name string, payload string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.secrets[name] = payload
+	if s.failWritesAfterCommit && strings.HasPrefix(name, "scenario-job-credential-") {
+		return fmt.Errorf("secret committed before store acknowledgement")
+	}
+	return nil
+}
+
+func (s *committedCredentialWriteErrorStore) ReadSecret(name string) (string, bool, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	value, ok := s.secrets[name]
+	return value, ok, nil
+}
+
+func (s *committedCredentialWriteErrorStore) DeleteSecret(name string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.failDeletes && strings.HasPrefix(name, "scenario-job-credential-") {
+		return fmt.Errorf("secret delete unavailable")
+	}
+	delete(s.secrets, name)
+	return nil
+}
 
 func TestScenarioJobStorePersistsJobAndCapturedResolvedAssemblyInOneRecord(t *testing.T) {
 	localStatePath := filepath.Join(t.TempDir(), "local-state.json")
@@ -622,6 +666,194 @@ func TestBindCloudCredentialCustodyCapturesConnectorRecordAndSecretFromOneGenera
 	if err != nil || capturedSecret != newSecret {
 		t.Fatalf("captured secret=%q err=%v", capturedSecret, err)
 	}
+}
+
+func TestBindCloudCredentialCustodyRetainsCleanupObligationAfterAmbiguousStoreFailure(t *testing.T) {
+	for _, testCase := range []struct {
+		name        string
+		failDeletes bool
+	}{
+		{name: "cleanup succeeds"},
+		{name: "cleanup remains pending", failDeletes: true},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			secretStore := newCommittedCredentialWriteErrorStore(testCase.failDeletes)
+			connectorStore := connector.NewConnectorStoreWithSecretStore(t.TempDir(), secretStore)
+			record, err := connectorStore.Create(connector.ConnectorRecord{
+				ConnectorID: "connector-ambiguous-write", Kind: runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED,
+				OwnerType: runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_REALM_USER, OwnerID: "user-cloud",
+				Provider: "openai", Endpoint: "https://example.test/v1", Status: runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE,
+			}, `{"apiKey":"ambiguous-secret"}`)
+			if err != nil {
+				t.Fatalf("create Connector: %v", err)
+			}
+			jobID := "job-ambiguous-custody-" + strings.ReplaceAll(testCase.name, " ", "-")
+			job := &runtimev1.ScenarioJob{
+				JobId: jobID, Head: &runtimev1.ScenarioRequestHead{AppId: "app.cloud", SubjectUserId: "user-cloud"},
+				ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE, ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
+				RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD, TraceId: "trace-ambiguous-custody",
+			}
+			target, err := structpb.NewStruct(map[string]any{
+				"provider": "openai", "providerModelId": "gpt-image-1", "remoteModelCatalogId": "catalog-image",
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			assembly, err := newCloudResolvedAssembly(
+				cloudResolvedRequestMedia, "image.generate",
+				&runtimev1.CapabilityImplementationIdentity{ImplementationId: "cloud.image.openai", DriverId: "nimi.runtime.driver.openai", DriverDialect: "provider/media-v1"},
+				target, record, nil, cloudImageRequestForIsolationTest(job), job.GetExecutionMode(), capabilitydriver.CloudMediaStreamNone,
+				job.GetTraceId(), job.GetHead().GetAppId(), job.GetHead().GetSubjectUserId(), nil,
+			)
+			if err != nil {
+				t.Fatal(err)
+			}
+			store := newScenarioJobStore()
+			svc := &Service{scenarioJobs: store, connStore: connectorStore}
+			if err := svc.bindCloudCredentialCustody(jobID, assembly); err == nil {
+				t.Fatal("ambiguous custody write unexpectedly succeeded")
+			}
+			ref, err := connector.CredentialCustodyRefForJob(jobID)
+			if err != nil {
+				t.Fatal(err)
+			}
+			captured, err := connectorStore.LoadCredentialCustody(ref)
+			if err != nil {
+				t.Fatalf("load captured custody: %v", err)
+			}
+			pending := store.pendingCloudCredentialCustody()
+			if testCase.failDeletes {
+				if captured == "" || len(pending) != 1 || pending[0].jobID != jobID || pending[0].ref != ref {
+					t.Fatalf("failed cleanup lost durable obligation: captured=%q pending=%+v", captured, pending)
+				}
+				return
+			}
+			if captured != "" || len(pending) != 0 {
+				t.Fatalf("successful cleanup left custody residue: captured=%q pending=%+v", captured, pending)
+			}
+		})
+	}
+}
+
+func TestTerminalCloudCredentialCleanupFailurePreventsJobPrune(t *testing.T) {
+	svc, store, connectorStore, _, jobID := newCloudCustodyTerminalTestService(t, true)
+	if _, transitioned, err := svc.transitionScenarioJob(
+		jobID,
+		runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED,
+		runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_COMPLETED,
+		func(job *runtimev1.ScenarioJob) { job.ReasonCode = runtimev1.ReasonCode_ACTION_EXECUTED },
+	); err != nil || !transitioned {
+		t.Fatalf("terminal transition: transitioned=%v err=%v", transitioned, err)
+	}
+	assembly, ok := store.cloudResolvedAssembly(jobID)
+	if !ok || assembly == nil || assembly.CredentialCustodyRef == "" {
+		t.Fatalf("failed cleanup lost custody obligation: %+v visible=%v", assembly, ok)
+	}
+	if captured, err := connectorStore.LoadCredentialCustody(assembly.CredentialCustodyRef); err != nil || captured == "" {
+		t.Fatalf("failed cleanup custody=%q err=%v", captured, err)
+	}
+
+	now := time.Now().UTC()
+	store.mu.Lock()
+	record := store.jobs[jobID]
+	record.terminalAt = now.Add(-scenarioJobRetention - time.Minute)
+	record.updatedAt = record.terminalAt
+	record.job.UpdatedAt = timestamppb.New(record.terminalAt)
+	store.pruneJobsLocked(now)
+	_, retained := store.jobs[jobID]
+	store.mu.Unlock()
+	if !retained {
+		t.Fatal("terminal Job with unresolved credential cleanup was pruned")
+	}
+}
+
+func TestSuccessfulTerminalCloudCredentialCleanupClearsDurableRefBeforePrune(t *testing.T) {
+	svc, store, connectorStore, _, jobID := newCloudCustodyTerminalTestService(t, false)
+	if _, transitioned, err := svc.transitionScenarioJob(
+		jobID,
+		runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED,
+		runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_COMPLETED,
+		func(job *runtimev1.ScenarioJob) { job.ReasonCode = runtimev1.ReasonCode_ACTION_EXECUTED },
+	); err != nil || !transitioned {
+		t.Fatalf("terminal transition: transitioned=%v err=%v", transitioned, err)
+	}
+	assembly, ok := store.cloudResolvedAssembly(jobID)
+	if !ok || assembly == nil {
+		t.Fatalf("terminal Cloud assembly missing: %+v visible=%v", assembly, ok)
+	}
+	if assembly.CredentialCustodyRef != "" {
+		t.Fatalf("successful cleanup retained durable custody ref %q", assembly.CredentialCustodyRef)
+	}
+	ref, err := connector.CredentialCustodyRefForJob(jobID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if captured, err := connectorStore.LoadCredentialCustody(ref); err != nil || captured != "" {
+		t.Fatalf("successful cleanup custody=%q err=%v", captured, err)
+	}
+
+	now := time.Now().UTC()
+	store.mu.Lock()
+	record := store.jobs[jobID]
+	record.terminalAt = now.Add(-scenarioJobRetention - time.Minute)
+	record.updatedAt = record.terminalAt
+	record.job.UpdatedAt = timestamppb.New(record.terminalAt)
+	store.pruneJobsLocked(now)
+	_, retained := store.jobs[jobID]
+	store.mu.Unlock()
+	if retained {
+		t.Fatal("fully cleaned terminal Job was not pruned")
+	}
+}
+
+func newCloudCustodyTerminalTestService(
+	t *testing.T,
+	failDeletes bool,
+) (*Service, *scenarioJobStore, *connector.ConnectorStore, *committedCredentialWriteErrorStore, string) {
+	t.Helper()
+	secretStore := newCommittedCredentialWriteErrorStore(failDeletes)
+	secretStore.failWritesAfterCommit = false
+	connectorStore := connector.NewConnectorStoreWithSecretStore(t.TempDir(), secretStore)
+	record, err := connectorStore.Create(connector.ConnectorRecord{
+		ConnectorID: "connector-terminal-cleanup", Kind: runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED,
+		OwnerType: runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_REALM_USER, OwnerID: "user-cloud",
+		Provider: "openai", Endpoint: "https://example.test/v1", Status: runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE,
+	}, `{"apiKey":"terminal-secret"}`)
+	if err != nil {
+		t.Fatalf("create Connector: %v", err)
+	}
+	jobID := "job-terminal-custody"
+	job := &runtimev1.ScenarioJob{
+		JobId: jobID, Head: &runtimev1.ScenarioRequestHead{AppId: "app.cloud", SubjectUserId: "user-cloud"},
+		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE, ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
+		RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD, ModelResolved: "gpt-image-1",
+		Status: runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED, ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED,
+		TraceId: "trace-terminal-custody",
+	}
+	target, err := structpb.NewStruct(map[string]any{
+		"provider": "openai", "providerModelId": "gpt-image-1", "remoteModelCatalogId": "catalog-image",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	assembly, err := newCloudResolvedAssembly(
+		cloudResolvedRequestMedia, "image.generate",
+		&runtimev1.CapabilityImplementationIdentity{ImplementationId: "cloud.image.openai", DriverId: "nimi.runtime.driver.openai", DriverDialect: "provider/media-v1"},
+		target, record, nil, cloudImageRequestForIsolationTest(job), job.GetExecutionMode(), capabilitydriver.CloudMediaStreamNone,
+		job.GetTraceId(), job.GetHead().GetAppId(), job.GetHead().GetSubjectUserId(), nil,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	store := newScenarioJobStore()
+	svc := &Service{scenarioJobs: store, connStore: connectorStore}
+	if err := svc.bindCloudCredentialCustody(jobID, assembly); err != nil {
+		t.Fatalf("bind credential custody: %v", err)
+	}
+	if created, published, err := store.createOwnedAndBindCloudAssemblyChecked(job, func() {}, nil, "", assembly); err != nil || created == nil || !published {
+		t.Fatalf("create terminal cleanup Job: created=%+v published=%v err=%v", created, published, err)
+	}
+	return svc, store, connectorStore, secretStore, jobID
 }
 
 func TestStartupReleasesCredentialCapturedBeforeJobPublication(t *testing.T) {
