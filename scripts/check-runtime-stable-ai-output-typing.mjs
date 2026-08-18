@@ -38,7 +38,7 @@ const checks = [
     pattern: 'Promise<RuntimePackageMediaCachePutResult \\| null>|return input\\.artifact;|!cached\\?\\.uri',
     paths: [
       'apps/desktop/src/shell/renderer/infra/offline/cache-manager.ts',
-      'apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-local-model-center-sdk-service.ts',
+      'apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-local-environment-sdk-service.ts',
     ],
   },
   {

@@ -66,34 +66,17 @@ describe('shell bridge Nimi error normalization', () => {
     );
   });
 
-  test('maps local runtime security and integrity bridge codes', () => {
-    expect(
-      getShellBridgeUserMessageProjection(
-        new Error('LOCAL_AI_ENDPOINT_NOT_LOOPBACK: endpoint host must be loopback'),
-      ),
-    ).toEqual({
-      key: 'BridgeErrors.codes.LOCAL_AI_ENDPOINT_NOT_LOOPBACK',
-      defaultValue: 'The local runtime endpoint only supports localhost, 127.0.0.1, or [::1].',
-    });
-
-    expect(
-      getShellBridgeUserMessageProjection(
-        new Error('LOCAL_AI_IMPORT_HASH_MISMATCH: hash mismatch for model.gguf'),
-      ),
-    ).toEqual({
-      key: 'BridgeErrors.codes.LOCAL_AI_IMPORT_HASH_MISMATCH',
-      defaultValue: 'Model file verification failed. Confirm the file is intact and try again.',
-    });
-
-    expect(
-      getShellBridgeUserMessageProjection(
-        new Error('LOCAL_AI_MODEL_HASHES_EMPTY: hashes are empty'),
-      ),
-    ).toEqual({
-      key: 'BridgeErrors.codes.LOCAL_AI_MODEL_HASHES_EMPTY',
-      defaultValue: 'The local asset has not completed integrity verification.',
-    });
-
+  test('does not restore retired local asset error semantics from message text', () => {
+    for (const message of [
+      'LOCAL_AI_ENDPOINT_NOT_LOOPBACK: endpoint host must be loopback',
+      'LOCAL_AI_IMPORT_HASH_MISMATCH: hash mismatch for model.gguf',
+      'LOCAL_AI_HF_DOWNLOAD_PAUSED: paused by user',
+    ]) {
+      expect(getShellBridgeUserMessageProjection(new Error(message))).toEqual({
+        key: 'BridgeErrors.generic',
+        defaultValue: 'Operation failed. Please try again later.',
+      });
+    }
     expect(
       getShellBridgeUserMessageProjection(
         new Error('RUNTIME_ROUTE_CAPABILITY_MISMATCH: retired route detail'),

@@ -23,59 +23,6 @@ test('toBridgeNimiError keeps generic fallback for unknown runtime reason', () =
   );
 });
 
-test('toBridgeNimiError maps LOCAL_AI_HF_DOWNLOAD_DISK_FULL reason code', () => {
-  const error = toBridgeNimiError(new Error('LOCAL_AI_HF_DOWNLOAD_DISK_FULL: no space left on device'));
-  assert.equal(error.reasonCode, 'LOCAL_AI_HF_DOWNLOAD_DISK_FULL');
-  assert.equal(
-    String(error.details?.userMessage || ''),
-    'Insufficient disk space. Free up space and try the download again.',
-  );
-});
-
-test('toBridgeNimiError maps LOCAL_AI_IMPORT_ARTIFACT_MANIFEST_FILE_NAME_INVALID reason code', () => {
-  const error = toBridgeNimiError(
-    new Error('LOCAL_AI_IMPORT_ARTIFACT_MANIFEST_FILE_NAME_INVALID: unsupported file'),
-  );
-  assert.equal(error.reasonCode, 'LOCAL_AI_IMPORT_ARTIFACT_MANIFEST_FILE_NAME_INVALID');
-  assert.equal(
-    String(error.details?.userMessage || ''),
-    'Only `asset.manifest.json` manifest files can be imported.',
-  );
-});
-
-test('toBridgeNimiError maps LOCAL_AI_ARTIFACT_ORPHAN_KIND_INVALID reason code', () => {
-  const error = toBridgeNimiError(
-    new Error('LOCAL_AI_ARTIFACT_ORPHAN_KIND_INVALID: unsupported kind'),
-  );
-  assert.equal(error.reasonCode, 'LOCAL_AI_ARTIFACT_ORPHAN_KIND_INVALID');
-  assert.equal(
-    String(error.details?.userMessage || ''),
-    'Please choose a valid dependency asset type.',
-  );
-});
-
-test('toBridgeNimiError maps LOCAL_AI_ARTIFACT_ORPHAN_NOT_FOUND reason code', () => {
-  const error = toBridgeNimiError(
-    new Error('LOCAL_AI_ARTIFACT_ORPHAN_NOT_FOUND: file does not exist'),
-  );
-  assert.equal(error.reasonCode, 'LOCAL_AI_ARTIFACT_ORPHAN_NOT_FOUND');
-  assert.equal(
-    String(error.details?.userMessage || ''),
-    'The dependency asset file to import was not found. Refresh and try again.',
-  );
-});
-
-test('toBridgeNimiError maps LOCAL_AI_FILE_IMPORT_SYMLINK_FORBIDDEN reason code', () => {
-  const error = toBridgeNimiError(
-    new Error('LOCAL_AI_FILE_IMPORT_SYMLINK_FORBIDDEN: refusing symbolic link source: /tmp/model.gguf'),
-  );
-  assert.equal(error.reasonCode, 'LOCAL_AI_FILE_IMPORT_SYMLINK_FORBIDDEN');
-  assert.equal(
-    String(error.details?.userMessage || ''),
-    'Symbolic links are not supported for import. Import the real model file path instead.',
-  );
-});
-
 test('toBridgeNimiError preserves structured payload fields and adds userMessage', () => {
   const error = toBridgeNimiError(JSON.stringify({
     reasonCode: ReasonCode.AI_PROVIDER_TIMEOUT,
@@ -183,25 +130,5 @@ test('toBridgeNimiError maps AI_LOCAL_SPEECH_ENV_INIT_FAILED reason code', () =>
   assert.equal(
     String(error.details?.userMessage || ''),
     'Runtime local speech environment initialization failed. Inspect Runtime diagnostics.',
-  );
-});
-
-test('toBridgeNimiError maps Local Speech diagnostic aliases without Qwen user copy', () => {
-  const pythonError = toBridgeNimiError(
-    new Error('LOCAL_AI_SPEECH_PYTHON_REQUIRED: Python 3.10+ is required for Local Speech'),
-  );
-  assert.equal(pythonError.reasonCode, 'LOCAL_AI_SPEECH_PYTHON_REQUIRED');
-  assert.equal(
-    String(pythonError.details?.userMessage || ''),
-    'Local Speech requires Python 3.10+.',
-  );
-
-  const bootstrapError = toBridgeNimiError(
-    new Error('LOCAL_AI_SPEECH_BOOTSTRAP_FAILED: dependency install failed'),
-  );
-  assert.equal(bootstrapError.reasonCode, 'LOCAL_AI_SPEECH_BOOTSTRAP_FAILED');
-  assert.equal(
-    String(bootstrapError.details?.userMessage || ''),
-    'Local Speech environment setup failed. Please check Python, dependencies, and network access.',
   );
 });
