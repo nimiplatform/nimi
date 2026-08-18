@@ -16,6 +16,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/authn"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
+	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
@@ -531,6 +532,34 @@ func TestNormalizeSubmitScenarioJobOwnerUsesAuthnSubject(t *testing.T) {
 	}
 	if got := anonymous.GetHead().GetSubjectUserId(); got != anonymousScenarioJobOwner {
 		t.Fatalf("anonymous scenario job owner mismatch: got %q", got)
+	}
+}
+
+func TestNormalizeSubmitScenarioJobOwnerUsesProtectedLocalAppAccount(t *testing.T) {
+	req := &runtimev1.SubmitScenarioJobRequest{
+		Head: &runtimev1.ScenarioRequestHead{
+			AppId:         "app.local",
+			SubjectUserId: "request-body-user",
+		},
+		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
+		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
+		Spec:          &runtimev1.ScenarioSpec{},
+	}
+	ctx := accountservice.ContextWithAuthorizedLocalAppDecision(context.Background(), accountservice.LocalAppCallerDecision{
+		AccountID:            "account-local-app",
+		AppID:                "app.local",
+		RegisteredAppSubject: "registered-app-subject",
+	})
+
+	normalized, err := normalizeSubmitScenarioJobOwner(ctx, req)
+	if err != nil {
+		t.Fatalf("normalize protected Local App owner: %v", err)
+	}
+	if got := normalized.GetHead().GetSubjectUserId(); got != "account-local-app" {
+		t.Fatalf("protected Local App ScenarioJob owner = %q, want account-local-app", got)
+	}
+	if got := req.GetHead().GetSubjectUserId(); got != "request-body-user" {
+		t.Fatalf("normalize must not mutate caller request, got %q", got)
 	}
 }
 

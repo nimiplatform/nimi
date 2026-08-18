@@ -50,6 +50,9 @@ func canonicalScenarioJobOwnerWithProvider(ctx context.Context, provider runtime
 	if principal, ok := protectedprincipal.FromContext(ctx); ok {
 		return principal.AccountID, true, nil
 	}
+	if owner := localAppJobOwnerFromContext(ctx); owner.valid() {
+		return owner.AccountID, false, nil
+	}
 	if identity := authn.IdentityFromContext(ctx); identity != nil {
 		subject := strings.TrimSpace(identity.SubjectUserID)
 		if subject == "" {
