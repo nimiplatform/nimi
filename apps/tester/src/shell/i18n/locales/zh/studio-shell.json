@@ -22,6 +22,7 @@
     "hideRequestSettings": "隐藏请求设置",
     "legacyRecordHint": "这条较早的历史记录仅包含状态元数据。重新运行一次即可保存类型化的结果快照。",
     "generationFailed": "生成未能完成",
+    "generationCanceled": "生成已取消",
     "runtimeDetails": "Runtime 详情",
     "runLabel": "运行",
     "download": "下载",
@@ -46,6 +47,7 @@
     "runStatusSimulated": "模拟结果",
     "runStatusUnavailable": "SDK 不可用",
     "runStatusFailed": "失败",
+    "runStatusCanceled": "已取消",
     "runStatusLocalFixture": "本地夹具",
     "worldTourViewerMessage": "已为仅限 Tauri 的本地夹具打开查看器（{{manifestPath}}）；仅为本地夹具记录，无 Runtime 生成或 Runtime 产物。",
     "worldTourViewerOutput": "本地夹具查看器已打开（{{windowLabel}}）。这不是 Runtime 结果或 Runtime 产物。"

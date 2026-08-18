@@ -176,6 +176,32 @@ test('run history persists optional snapshots, reloads them, and retries idempot
   }
 });
 
+test('run history preserves a canceled Runtime outcome without reclassifying it as failed', async () => {
+  const storage = createStorageClient();
+  globalThis.__NIMI_TESTER_HISTORY_STORAGE_CLIENT__ = storage.client;
+  try {
+    await historyStorageModule.appendTesterRunHistory(runRecord('run-canceled', '2026-08-08T08:01:00.000Z', {
+      capabilityId: 'video.generate',
+      status: 'canceled',
+      message: 'acceptance cancellation',
+      result: {
+        ok: false,
+        kind: 'unavailable',
+        summary: 'acceptance cancellation',
+        reason: 'runtime-canceled',
+        message: 'acceptance cancellation',
+        actionHint: 'Run the request again when you are ready.',
+      },
+    }));
+
+    const reloaded = await historyStorageModule.loadTesterRunHistory();
+    assert.equal(reloaded['video.generate'][0].status, 'canceled');
+    assert.equal(reloaded['video.generate'][0].result.reason, 'runtime-canceled');
+  } finally {
+    delete globalThis.__NIMI_TESTER_HISTORY_STORAGE_CLIENT__;
+  }
+});
+
 test('run history preserves every managed artifact from a multi-output video job', async () => {
   const storage = createStorageClient();
   globalThis.__NIMI_TESTER_HISTORY_STORAGE_CLIENT__ = storage.client;

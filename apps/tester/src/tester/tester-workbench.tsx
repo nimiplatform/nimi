@@ -370,7 +370,9 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
             ? 'simulated'
             : historyResult.ok
               ? 'ready'
-              : historyResult.reason === 'runtime-call-failed' ? 'failed' : 'unavailable',
+              : historyResult.reason === 'runtime-canceled'
+                ? 'canceled'
+                : historyResult.reason === 'runtime-call-failed' ? 'failed' : 'unavailable',
         message: historyResult.message,
         createdAt,
         result: createTesterRunHistoryResultSnapshot(historyResult),
@@ -490,6 +492,8 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
           ? 'action:tester-capability-run:recorded'
           : record.status === 'failed'
             ? 'action:tester-capability-run:failed'
+            : record.status === 'canceled'
+              ? 'action:tester-capability-run:canceled'
             : 'action:tester-capability-run:unavailable',
         flowId,
         traceId,

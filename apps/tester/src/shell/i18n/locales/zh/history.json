@@ -18,6 +18,7 @@
         "ready": "Runtime 就绪",
         "simulated": "模拟结果",
         "failed": "失败",
+        "canceled": "已取消",
         "unavailable": "SDK 不可用",
         "localFixture": "本地夹具"
       },
@@ -81,6 +82,7 @@
       "cloud": "云端",
       "unknown": "未知"
     },
+    "canceled": "已取消",
     "failed": "失败",
     "today": "今天",
     "yesterday": "昨天",

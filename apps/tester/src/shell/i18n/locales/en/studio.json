@@ -226,6 +226,7 @@
       "notRecorded": "Not recorded",
       "status": {
         "runtimeRunning": "Runtime running",
+        "runtimeCanceled": "Runtime canceled",
         "runtimeBlocked": "Runtime blocked",
         "runtimeResult": "Runtime result",
         "runtimeWaiting": "Runtime waiting",
@@ -238,6 +239,7 @@
       "statStatus": "Status",
       "statWaiting": "Waiting",
       "statBlocked": "Blocked",
+      "statCanceled": "Canceled",
       "statTokens": "Tokens",
       "statCharacters": "Characters",
       "statArtifacts": "Artifacts",

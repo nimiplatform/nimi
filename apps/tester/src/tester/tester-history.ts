@@ -115,7 +115,7 @@ export type TesterRunHistoryRecord = {
   id: string;
   capabilityId: string;
   prompt: string;
-  status: 'unavailable' | 'ready' | 'simulated' | 'failed' | 'local-fixture';
+  status: 'unavailable' | 'ready' | 'simulated' | 'failed' | 'canceled' | 'local-fixture';
   message: string;
   createdAt: string;
   result?: TesterRunHistoryResultSnapshot;
@@ -168,6 +168,7 @@ export function getTesterRunStatusLabel(status: TesterRunHistoryRecord['status']
   if (status === 'simulated') return 'simulated result';
   if (status === 'unavailable') return 'sdk unavailable';
   if (status === 'failed') return 'failed';
+  if (status === 'canceled') return 'canceled';
   return 'local fixture';
 }
 
@@ -176,6 +177,7 @@ export function getTesterRunStatusTone(status: TesterRunHistoryRecord['status'])
   if (status === 'simulated') return 'info';
   if (status === 'local-fixture') return 'info';
   if (status === 'failed') return 'danger';
+  if (status === 'canceled') return 'warning';
   return 'warning';
 }
 

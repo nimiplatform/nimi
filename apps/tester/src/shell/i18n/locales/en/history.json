@@ -18,6 +18,7 @@
         "ready": "Runtime ready",
         "simulated": "Simulated result",
         "failed": "Failed",
+        "canceled": "Canceled",
         "unavailable": "SDK unavailable",
         "localFixture": "Local fixture"
       },
@@ -81,6 +82,7 @@
       "cloud": "Cloud",
       "unknown": "Unknown"
     },
+    "canceled": "Canceled",
     "failed": "Failed",
     "today": "Today",
     "yesterday": "Yesterday",

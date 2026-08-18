@@ -236,6 +236,30 @@ test('Runtime scenario job runner fails closed on non-completed terminal job', a
   );
 });
 
+test('Runtime scenario job runner preserves a canceled terminal status in the typed error', async () => {
+  const client = createScenarioJobClient([
+    {
+      job: {
+        ...createScenarioJob('job-1', ScenarioJobStatus.CANCELED),
+        reasonCode: RuntimeGeneratedReasonCode.ACTION_EXECUTED,
+        reasonDetail: 'acceptance cancellation',
+      },
+    },
+  ]);
+
+  await assert.rejects(
+    runNimiRuntimeScenarioJob({
+      ai: client,
+      request: createScenarioJobRequest(),
+    }),
+    (error: unknown) => {
+      const shaped = error as { details?: { scenarioJobStatus?: string } };
+      assert.equal(shaped.details?.scenarioJobStatus, 'CANCELED');
+      return true;
+    },
+  );
+});
+
 test('Runtime scenario job runner rejects normal stream close without a terminal event before Get', async () => {
   let gets = 0;
   const client = createScenarioJobClient([

@@ -68,7 +68,7 @@ function validateHistoryResult(value: unknown, path: string): void {
   requiredString(value.summary, `${path}.summary`);
   if (value.ok === false) {
     if (value.kind !== 'unavailable') historyPayloadError(`${path}.kind`, 'requires unavailable for a failed result');
-    if (!['runtime-unavailable', 'input-invalid', 'sdk-method-unavailable', 'principal-unauthorized', 'runtime-call-failed'].includes(String(value.reason))) {
+    if (!['runtime-unavailable', 'input-invalid', 'sdk-method-unavailable', 'principal-unauthorized', 'runtime-canceled', 'runtime-call-failed'].includes(String(value.reason))) {
       historyPayloadError(`${path}.reason`, 'has an unsupported value');
     }
     requiredString(value.message, `${path}.message`);
@@ -186,7 +186,7 @@ function parseHistoryRecord(value: unknown, path: string, capabilityId: string):
     historyPayloadError(`${path}.capabilityId`, `must match ${capabilityId}`);
   }
   requiredString(value.prompt, `${path}.prompt`);
-  if (!['unavailable', 'ready', 'simulated', 'failed', 'local-fixture'].includes(String(value.status))) {
+  if (!['unavailable', 'ready', 'simulated', 'failed', 'canceled', 'local-fixture'].includes(String(value.status))) {
     historyPayloadError(`${path}.status`, 'has an unsupported value');
   }
   requiredString(value.message, `${path}.message`);

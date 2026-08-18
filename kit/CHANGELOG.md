@@ -36,6 +36,10 @@ Discipline.
 
 ### Changed
 
+- Runtime video generation now preserves a durable canceled ScenarioJob as the
+  typed `runtime-canceled` outcome instead of collapsing it into
+  `runtime-call-failed`.
+
 - **Breaking (0.x):** Kit no longer exports the retired Runtime model-root,
   manifest-picker, or LocalAsset-ID reveal helpers. ModelAsset custody and paths
   are Runtime-owned; hosts must use the protected Runtime ModelAsset flows and

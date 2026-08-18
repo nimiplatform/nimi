@@ -22,6 +22,7 @@
     "hideRequestSettings": "Hide request settings",
     "legacyRecordHint": "This older persisted run record contains only status metadata. Run it again to persist the typed result snapshot.",
     "generationFailed": "Generation could not be completed",
+    "generationCanceled": "Generation canceled",
     "runtimeDetails": "Runtime details",
     "runLabel": "Run",
     "download": "Download",
@@ -46,6 +47,7 @@
     "runStatusSimulated": "simulated result",
     "runStatusUnavailable": "sdk unavailable",
     "runStatusFailed": "failed",
+    "runStatusCanceled": "canceled",
     "runStatusLocalFixture": "local fixture",
     "worldTourViewerMessage": "Viewer opened for a Tauri-only local fixture ({{manifestPath}}); local fixture record only, with no runtime generation or runtime artifact.",
     "worldTourViewerOutput": "Local fixture viewer opened ({{windowLabel}}). This is not a runtime result or runtime artifact."

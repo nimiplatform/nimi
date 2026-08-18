@@ -760,7 +760,8 @@ function projectRunnerUnavailable(
 }
 
 function testerUnavailableReason(reason: string): TesterUnavailableReason {
-  if (reason === 'input-invalid' || reason === 'sdk-method-unavailable' || reason === 'principal-unauthorized') {
+  if (reason === 'input-invalid' || reason === 'sdk-method-unavailable'
+    || reason === 'principal-unauthorized' || reason === 'runtime-canceled') {
     return reason;
   }
   return 'runtime-call-failed';

@@ -200,7 +200,8 @@ export function StudioResult({
   const { t } = useTranslation();
   const profile = getCapabilityStudioProfile(capability.id);
   const ready = result?.ok ? result : null;
-  const blocked = result && !result.ok ? result : null;
+  const canceled = result && !result.ok && result.reason === 'runtime-canceled' ? result : null;
+  const blocked = result && !result.ok && result.reason !== 'runtime-canceled' ? result : null;
   const plainText = ready ? resultPlainText(ready) : '';
   const canExport = Boolean(ready && plainText);
   const displayIntentLabel = studioResultIntentLabel(result, capability, intentLabel, t);
@@ -212,9 +213,9 @@ export function StudioResult({
     : running ? t('Studio.result.statRunning') : t('Studio.result.notRecorded');
   const statusTitleKey = simulated
     ? running ? 'simulatorRunning' : blocked ? 'simulatorBlocked' : ready ? 'simulatorResult' : 'simulatorWaiting'
-    : running ? 'runtimeRunning' : blocked ? 'runtimeBlocked' : ready ? 'runtimeResult' : 'runtimeWaiting';
+    : running ? 'runtimeRunning' : canceled ? 'runtimeCanceled' : blocked ? 'runtimeBlocked' : ready ? 'runtimeResult' : 'runtimeWaiting';
   const statusTitle = t(`Studio.result.status.${statusTitleKey}`);
-  const statusTone = blocked ? 'warning' : ready ? 'success' : running ? 'info' : 'neutral';
+  const statusTone = blocked || canceled ? 'warning' : ready ? 'success' : running ? 'info' : 'neutral';
   useEffect(() => {
     if (!hasRequestSettings) setRequestSettingsOpen(false);
   }, [hasRequestSettings]);
@@ -228,7 +229,10 @@ export function StudioResult({
   function studioResultStats(fallbackMetric: string): StudioResultStat[] {
     if (running) return [{ label: t('Studio.result.statStatus'), value: t('Studio.result.statRunning') }];
     if (!result) return [{ label: t('Studio.result.statStatus'), value: t('Studio.result.statWaiting') }];
-    if (!result.ok) return [{ label: t('Studio.result.statStatus'), value: t('Studio.result.statBlocked') }];
+    if (!result.ok) return [{
+      label: t('Studio.result.statStatus'),
+      value: t(result.reason === 'runtime-canceled' ? 'Studio.result.statCanceled' : 'Studio.result.statBlocked'),
+    }];
     const output = result.output;
     if (output.kind === 'text') {
       return [
@@ -290,6 +294,17 @@ export function StudioResult({
         {hasStream ? <div className="studio-result__text studio-result__text--stream" aria-live="polite">{streamingText || '...'}</div> : null}
       </div>
     );
+  } else if (canceled) {
+    body = (
+      <div className="studio-result__blocked">
+        <div className="studio-result__blocked-line">
+          <Clock size={15} aria-hidden="true" />
+          <span>{t('StudioShell.generationCanceled')}</span>
+        </div>
+        <p>{unavailableReasonUserMessage(canceled.reason)}</p>
+        <p className="studio-result__hint">{unavailableReasonUserAction(canceled.reason)}</p>
+      </div>
+    );
   } else if (blocked) {
     body = (
       <div className="studio-result__blocked">
@@ -335,7 +350,7 @@ export function StudioResult({
           </span>
         </div>
         <div className="studio-result__actions">
-          {!blocked ? (
+          {!blocked && !canceled ? (
             <>
               <Tooltip content={t('Common.copy')} placement="top">
                 <IconButton type="button" className="studio-result__action" onClick={onCopy} disabled={!canExport} aria-label={t('StudioShell.copyGeneration')} icon={<CopyIcon size={15} aria-hidden="true" />} />

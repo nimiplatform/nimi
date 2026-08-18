@@ -304,6 +304,9 @@ function ensureCompletedNimiRuntimeScenarioJob(
       reasonCode: runtimeReasonCodeName(job.reasonCode) || 'RUNTIME_SCENARIO_JOB_FAILED',
       actionHint: 'check_runtime_scenario_job',
       source: 'runtime',
+      details: {
+        scenarioJobStatus: ScenarioJobStatus[job.status] || String(job.status),
+      },
     });
   }
 }

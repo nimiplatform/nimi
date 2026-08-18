@@ -12,6 +12,7 @@ export type TesterUnavailableReason =
   | 'input-invalid'
   | 'sdk-method-unavailable'
   | 'principal-unauthorized'
+  | 'runtime-canceled'
   | 'runtime-call-failed';
 
 export type TesterUnavailable = {
@@ -33,6 +34,8 @@ function reasonKeySegment(reason: string): string {
       return 'sdkMethodUnavailable';
     case 'principal-unauthorized':
       return 'principalUnauthorized';
+    case 'runtime-canceled':
+      return 'runtimeCanceled';
     case 'runtime-call-failed':
       return 'runtimeCallFailed';
     default:

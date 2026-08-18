@@ -16,6 +16,7 @@ const RUN_STATUS_LABEL_KEY: Record<TesterRunHistoryRecord['status'], string> = {
   simulated: 'StudioShell.runStatusSimulated',
   unavailable: 'StudioShell.runStatusUnavailable',
   failed: 'StudioShell.runStatusFailed',
+  canceled: 'StudioShell.runStatusCanceled',
   'local-fixture': 'StudioShell.runStatusLocalFixture',
 };
 

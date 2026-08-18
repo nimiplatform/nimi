@@ -304,6 +304,24 @@ describe('runRuntimeVideoGenerate', () => {
     expect(result.message).toContain('engine incompatible');
   });
 
+  it('preserves a canceled terminal job as runtime-canceled', async () => {
+    const fake = fakeScenarioJobClient({
+      events: [videoJobForTest(ScenarioJobStatus.CANCELED, {
+        reasonCode: 1,
+        reasonDetail: 'acceptance cancellation',
+      })],
+    });
+
+    const result = await runRuntimeVideoGenerate(videoInputForTest(fake.client));
+
+    expect(result).toMatchObject({
+      ok: false,
+      capabilityId: 'video.generate',
+      reason: 'runtime-canceled',
+      message: 'acceptance cancellation',
+    });
+  });
+
   it('aborts through the signal, cancels the runtime job, and fails closed', async () => {
     const fake = fakeScenarioJobClient({ neverEndingEvents: true });
     const controller = new AbortController();

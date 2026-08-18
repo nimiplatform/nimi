@@ -52,6 +52,7 @@ const HISTORY_STATUS_OPTIONS: ReadonlyArray<{ id: HistoryStatusFilter; labelKey:
   { id: 'ready', labelKey: 'History.filters.status.ready' },
   { id: 'simulated', labelKey: 'History.filters.status.simulated' },
   { id: 'failed', labelKey: 'History.filters.status.failed' },
+  { id: 'canceled', labelKey: 'History.filters.status.canceled' },
   { id: 'unavailable', labelKey: 'History.filters.status.unavailable' },
   { id: 'local-fixture', labelKey: 'History.filters.status.localFixture' },
 ];
@@ -262,6 +263,9 @@ export function CapabilityRunHistory({
   function historySubtitleForRun(record: TesterRunHistoryRecord): string {
     const intent = getTesterRunIntentLabel(record);
     const source = historySourceLabelForRun(record);
+    if (record.status === 'canceled') {
+      return [t('History.canceled'), intent, source, historyFailureReasonForRun(record)].filter(Boolean).join(' / ');
+    }
     if (isFailureHistoryStatus(record)) {
       return [t('History.failed'), intent, source, historyFailureReasonForRun(record)].filter(Boolean).join(' / ');
     }
