@@ -11,7 +11,7 @@ import { DelegatedCapabilityControlPanel } from './runtime-config-delegated-capa
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
 import { RuntimePageShell } from './runtime-config-page-shell';
 import { RuntimeOverviewTab } from './runtime-config-runtime-overview-tab';
-import { RuntimeConfigLocalSpeechEnvironmentPanel } from './runtime-config-local-speech-environment-panel';
+import { RuntimeConfigLocalCapabilityEnvironmentPanel } from './runtime-config-local-capability-environment-panel.js';
 
 type RuntimeTabKey = 'overview' | 'health' | 'activity' | 'access';
 
@@ -59,7 +59,7 @@ export function RuntimePage({ model }: RuntimePageProps) {
 
       {activeTab === 'overview' ? (
         <>
-          <RuntimeConfigLocalSpeechEnvironmentPanel writesDisabled={model.runtimeWritesDisabled} />
+          <RuntimeConfigLocalCapabilityEnvironmentPanel writesDisabled={model.runtimeWritesDisabled} />
           <RuntimeOverviewTab model={model} />
         </>
       ) : null}

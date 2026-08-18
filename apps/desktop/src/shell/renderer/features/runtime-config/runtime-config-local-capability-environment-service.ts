@@ -15,7 +15,7 @@ export type RuntimeConfigLocalCapabilityContract =
   | 'audio.transcribe'
   | 'voice.create';
 
-export type RuntimeConfigLocalSpeechEnvironmentPlan = {
+export type RuntimeConfigLocalCapabilityEnvironmentPlan = {
   readonly resolution: NimiRuntimeLocalEnvironmentPlanInput;
   readonly plan: NimiRuntimeLocalEnvironmentPlan;
 };
@@ -23,7 +23,7 @@ export type RuntimeConfigLocalSpeechEnvironmentPlan = {
 export async function resolveRuntimeConfigLocalEnvironmentPlan(input: {
   readonly capabilityContract: RuntimeConfigLocalCapabilityContract;
   readonly localEnvironment: LocalEnvironmentPlanReader;
-}): Promise<RuntimeConfigLocalSpeechEnvironmentPlan> {
+}): Promise<RuntimeConfigLocalCapabilityEnvironmentPlan> {
   const resolution: NimiRuntimeLocalEnvironmentPlanInput = {
     capabilityContract: input.capabilityContract,
   };

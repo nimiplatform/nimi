@@ -8,12 +8,12 @@ import type {
 
 import {
   resolveRuntimeConfigLocalEnvironmentPlan,
-} from '../src/shell/renderer/features/runtime-config/runtime-config-local-speech-environment-service.js';
+} from '../src/shell/renderer/features/runtime-config/runtime-config-local-capability-environment-service.js';
 import {
-  canSubmitRuntimeConfigLocalSpeechEnvironmentPlan,
-  resolveRuntimeConfigLocalSpeechConfirmationProjection,
-  submitRuntimeConfigLocalSpeechEnvironmentPlan,
-} from '../src/shell/renderer/features/runtime-config/runtime-config-local-speech-environment-panel.js';
+  canSubmitRuntimeConfigLocalCapabilityEnvironmentPlan,
+  resolveRuntimeConfigLocalCapabilityConfirmationProjection,
+  submitRuntimeConfigLocalCapabilityEnvironmentPlan,
+} from '../src/shell/renderer/features/runtime-config/runtime-config-local-capability-environment-panel.js';
 
 function environmentDependency(input: Partial<NimiRuntimeLocalEnvironmentPlanDependency> & {
   readonly dependencyFamily: string;
@@ -115,20 +115,20 @@ test('local environment service submits only the capability contract to Runtime'
   assert.deepEqual(requests, capabilities.map((capabilityContract) => ({ capabilityContract })));
 });
 
-test('local speech capability setup leaves mixed repair, retry, and start admission to Runtime', () => {
+test('local capability setup leaves mixed repair, retry, and start admission to Runtime', () => {
   const runtime = environmentDependency({ dependencyFamily: 'python-runtime', state: 'repair_required' });
   const profile = environmentDependency({ dependencyFamily: 'python-profile', state: 'failed' });
   const torch = environmentDependency({ dependencyFamily: 'python-torch-wheel', state: 'missing' });
   const failedProfileJob = dependencyJob({ dependency: profile, state: 'failed' });
   const activeTorchJob = dependencyJob({ dependency: torch, state: 'installing' });
 
-  assert.equal(canSubmitRuntimeConfigLocalSpeechEnvironmentPlan(
+  assert.equal(canSubmitRuntimeConfigLocalCapabilityEnvironmentPlan(
     environmentPlan([runtime, profile, torch]),
     [failedProfileJob, activeTorchJob],
   ), true);
 });
 
-test('local speech plan apply visibility binds active jobs to the exact consumer', () => {
+test('local capability plan apply visibility binds active jobs to the exact consumer', () => {
   const tts = environmentDependency({
     dependencyFamily: 'python-runtime',
     dependencyId: 'python-3.12.13-cp312',
@@ -142,11 +142,11 @@ test('local speech plan apply visibility binds active jobs to the exact consumer
   const asrJob = dependencyJob({ dependency: asr, state: 'installing', jobId: 'asr-job', updatedAt: '2026-08-10T00:02:00.000Z' });
   const ttsJob = dependencyJob({ dependency: tts, state: 'installing', jobId: 'tts-job', updatedAt: '2026-08-10T00:01:00.000Z' });
 
-  assert.equal(canSubmitRuntimeConfigLocalSpeechEnvironmentPlan(environmentPlan([tts]), [asrJob]), true);
-  assert.equal(canSubmitRuntimeConfigLocalSpeechEnvironmentPlan(environmentPlan([tts]), [asrJob, ttsJob]), false);
+  assert.equal(canSubmitRuntimeConfigLocalCapabilityEnvironmentPlan(environmentPlan([tts]), [asrJob]), true);
+  assert.equal(canSubmitRuntimeConfigLocalCapabilityEnvironmentPlan(environmentPlan([tts]), [asrJob, ttsJob]), false);
 });
 
-test('local speech plan apply follows current missing state over a historical non-retryable job', () => {
+test('local capability plan apply follows current missing state over a historical non-retryable job', () => {
   const dependency = environmentDependency({
     dependencyFamily: 'python-torch-wheel',
     state: 'missing',
@@ -158,13 +158,13 @@ test('local speech plan apply follows current missing state over a historical no
     recoveryDisposition: 'not_retryable',
   });
 
-  assert.equal(canSubmitRuntimeConfigLocalSpeechEnvironmentPlan(
+  assert.equal(canSubmitRuntimeConfigLocalCapabilityEnvironmentPlan(
     environmentPlan([dependency]),
     [historicalJob],
   ), true);
 });
 
-test('local speech confirmation consumes only Runtime-owned plan facts', () => {
+test('local capability confirmation consumes only Runtime-owned plan facts', () => {
   const ready = environmentDependency({ dependencyFamily: 'python-runtime', state: 'ready_managed', sourceKind: 'managed' });
   const missing = environmentDependency({ dependencyFamily: 'python-profile', state: 'needs_confirmation', sourceKind: 'managed' });
   const optional = environmentDependency({ dependencyFamily: 'optional-diagnostic', state: 'missing', sourceKind: 'unavailable', required: false });
@@ -178,7 +178,7 @@ test('local speech confirmation consumes only Runtime-owned plan facts', () => {
     sourceOwners: ['RuntimeLocalService'],
     noSystemMutation: true,
   };
-  assert.deepEqual(resolveRuntimeConfigLocalSpeechConfirmationProjection(plan), {
+  assert.deepEqual(resolveRuntimeConfigLocalCapabilityConfirmationProjection(plan), {
     families: 'python.runtime, python-profile',
     aggregateSizeKnown: false,
     aggregateSizeBytes: 0,
@@ -188,7 +188,7 @@ test('local speech confirmation consumes only Runtime-owned plan facts', () => {
   });
 });
 
-test('local speech setup fails closed on an incomplete Runtime-owned confirmation projection', () => {
+test('local capability setup fails closed on an incomplete Runtime-owned confirmation projection', () => {
   const dependency = environmentDependency({ dependencyFamily: 'python-runtime', state: 'needs_confirmation' });
   const plan = environmentPlan([dependency]);
   const incompletePlans: readonly NimiRuntimeLocalEnvironmentPlan[] = [
@@ -200,11 +200,11 @@ test('local speech setup fails closed on an incomplete Runtime-owned confirmatio
   ];
 
   for (const incomplete of incompletePlans) {
-    assert.equal(canSubmitRuntimeConfigLocalSpeechEnvironmentPlan(incomplete, []), false);
+    assert.equal(canSubmitRuntimeConfigLocalCapabilityEnvironmentPlan(incomplete, []), false);
   }
 });
 
-test('one confirmed local speech capability action submits one Runtime-owned complete plan', async () => {
+test('one confirmed local capability action submits one Runtime-owned complete plan', async () => {
   const plan = environmentPlan([
     environmentDependency({ dependencyFamily: 'python-runtime', state: 'repair_required' }),
     environmentDependency({ dependencyFamily: 'python-profile', state: 'failed' }),
@@ -215,7 +215,7 @@ test('one confirmed local speech capability action submits one Runtime-owned com
   } as const;
   const calls: unknown[] = [];
 
-  await submitRuntimeConfigLocalSpeechEnvironmentPlan({
+  await submitRuntimeConfigLocalCapabilityEnvironmentPlan({
     async applyEnvironmentPlan(input, options) {
       calls.push([input, options]);
       return { plan, jobs: [] };
