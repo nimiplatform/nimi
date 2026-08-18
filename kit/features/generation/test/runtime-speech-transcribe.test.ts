@@ -123,7 +123,7 @@ describe('runRuntimeSpeechTranscribe', () => {
     }));
     await new Promise((resolve) => setTimeout(resolve, 0));
     controller.abort();
-    expect(await pending).toMatchObject({ ok: false, reason: 'runtime-call-failed' });
+    expect(await pending).toMatchObject({ ok: false, reason: 'runtime-canceled' });
     expect(fake.cancelScenarioJob).toHaveBeenCalledTimes(1);
     expect(fake.cancelScenarioJob.mock.calls[0]?.[0]).toMatchObject({ jobId: 'job-transcribe-1', reason: 'stop transcription' });
   });

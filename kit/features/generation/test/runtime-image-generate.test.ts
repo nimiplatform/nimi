@@ -166,7 +166,7 @@ describe('runRuntimeImageGenerate', () => {
     await new Promise((resolve) => setTimeout(resolve, 0));
     controller.abort();
     const result = await pending;
-    expect(result).toMatchObject({ ok: false, reason: 'runtime-call-failed' });
+    expect(result).toMatchObject({ ok: false, reason: 'runtime-canceled' });
     expect(fake.cancelScenarioJob).toHaveBeenCalledTimes(1);
     expect(fake.cancelScenarioJob.mock.calls[0]?.[0]).toMatchObject({ jobId: 'job-image-1', reason: 'tester abort' });
   });

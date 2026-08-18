@@ -337,10 +337,10 @@ describe('runRuntimeVideoGenerate', () => {
     expect(result).toMatchObject({
       ok: false,
       capabilityId: 'video.generate',
-      reason: 'runtime-call-failed',
+      reason: 'runtime-canceled',
     });
     if (result.ok) throw new Error('expected non-success result');
-    expect(result.message).toContain('aborted');
+    expect(result.message).toContain('canceled by the caller');
     expect(fake.cancelScenarioJob).toHaveBeenCalledTimes(1);
     expect(fake.cancelScenarioJob.mock.calls[0]?.[0]).toMatchObject({
       jobId: 'job-video-1',
