@@ -51,6 +51,31 @@ func TestStableDiffusionInterpretTxt2ImgProjectsRequiredFamilyComposition(t *tes
 	}
 }
 
+func TestStableDiffusionProjectsTextEncoderFromBoundedGGUFMetadata(t *testing.T) {
+	driver := StableDiffusionImageDriver{}
+	requirements, reason := driver.ProjectRecipe("z-image", stableDiffusionPortableForTest(t, map[string]any{"modelFamily": "z-image"}), nil)
+	if reason != success || len(requirements) != 3 {
+		t.Fatalf("ProjectRecipe = requirements=%+v reason=%v", requirements, reason)
+	}
+	contentDigest := strings.Repeat("a", 64)
+	entryDigest := strings.Repeat("b", 64)
+	projection, reason := driver.ProjectModelAssetBinding(ModelAssetBindingInput{
+		RecipeID:    "z-image",
+		Requirement: requirements[1],
+		Binding: &runtimev1.ModelAssetExactBinding{
+			RequirementId: requirements[1].GetRequirementId(), ModelAssetId: "model/text-encoder",
+			VerifiedContentId: "sha256:" + contentDigest, EntrySha256: entryDigest,
+		},
+		Entry: ModelAssetFileFact{
+			RelativePath: "qwen3-text-encoder.gguf", SizeBytes: 1 << 30,
+			FormatProbe: boundedLLMGGUFProbeWithTruncatedTokenizer(t, "qwen3", 262144),
+		},
+	})
+	if reason != success || projection.Descriptor.Family != "qwen" {
+		t.Fatalf("ProjectModelAssetBinding = projection=%+v reason=%v", projection, reason)
+	}
+}
+
 func TestStableDiffusionInterpretInputImageSupportMustMatchPortableDeclaration(t *testing.T) {
 	driver := StableDiffusionImageDriver{}
 	portable := stableDiffusionPortableForTest(t, map[string]any{

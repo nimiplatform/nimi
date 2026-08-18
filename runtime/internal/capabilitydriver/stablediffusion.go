@@ -256,7 +256,16 @@ func (driver StableDiffusionImageDriver) ProjectModelAssetBinding(input ModelAss
 	}
 	switch format {
 	case "gguf":
-		summary, err := ggufmeta.Inspect(bytes.NewReader(input.Entry.FormatProbe))
+		_, familyConstrained := stableDiffusionRequirementConstraintStrings(requirement, "gguf_families")
+		_, architectureConstrained := stableDiffusionRequirementConstraintStrings(requirement, "gguf_architectures")
+		_, architectureFamilyConstrained := stableDiffusionRequirementConstraintStrings(requirement, "gguf_architecture_families")
+		var summary ggufmeta.Summary
+		var err error
+		if !familyConstrained && (architectureConstrained || architectureFamilyConstrained) {
+			summary, err = ggufmeta.InspectLLMMetadata(bytes.NewReader(input.Entry.FormatProbe))
+		} else {
+			summary, err = ggufmeta.Inspect(bytes.NewReader(input.Entry.FormatProbe))
+		}
 		if err != nil {
 			return ModelAssetBindingProjection{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE
 		}
@@ -329,17 +338,22 @@ func stableDiffusionVAETensorContractFamily(contract string, probe []byte) (stri
 	if !ok {
 		return "", false
 	}
-	decoder, decoderOK := tensors["decoder.conv1.weight"]
-	output, outputOK := tensors["decoder.head.2.weight"]
-	if !decoderOK || !outputOK || len(output.Shape) == 0 || output.Shape[0] != 3 {
-		return "", false
-	}
 	switch contract {
 	case "qwen-image-vae-3d":
+		decoder, decoderOK := tensors["decoder.conv1.weight"]
+		output, outputOK := tensors["decoder.head.2.weight"]
+		if !decoderOK || !outputOK || len(output.Shape) == 0 || output.Shape[0] != 3 {
+			return "", false
+		}
 		if len(decoder.Shape) == 5 && len(output.Shape) == 5 && len(decoder.Shape) > 1 && decoder.Shape[1] == 16 {
 			return "qwen-image-vae", true
 		}
 	case "flux1-vae-16ch", "flux2-vae":
+		decoder, decoderOK := tensors["decoder.conv_in.weight"]
+		output, outputOK := tensors["decoder.conv_out.weight"]
+		if !decoderOK || !outputOK || len(output.Shape) == 0 || output.Shape[0] != 3 {
+			return "", false
+		}
 		if len(decoder.Shape) != 4 || len(output.Shape) != 4 || len(decoder.Shape) < 2 {
 			return "", false
 		}

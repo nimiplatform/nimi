@@ -1374,15 +1374,15 @@ func qwenImageVAETestBytes() []byte {
 
 func fluxVAETestBytes() []byte {
 	return safetensorsLoadoutTestBytes(map[string][]int64{
-		"decoder.conv1.weight":  {384, 16, 3, 3},
-		"decoder.head.2.weight": {3, 96, 3, 3},
+		"decoder.conv_in.weight":  {512, 16, 3, 3},
+		"decoder.conv_out.weight": {3, 128, 3, 3},
 	})
 }
 
 func flux2VAETestBytes() []byte {
 	return safetensorsLoadoutTestBytes(map[string][]int64{
-		"decoder.conv1.weight":  {384, 32, 3, 3},
-		"decoder.head.2.weight": {3, 96, 3, 3},
+		"decoder.conv_in.weight":  {512, 32, 3, 3},
+		"decoder.conv_out.weight": {3, 128, 3, 3},
 	})
 }
 
