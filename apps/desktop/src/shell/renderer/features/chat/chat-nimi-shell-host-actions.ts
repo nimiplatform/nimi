@@ -18,6 +18,7 @@ import {
   bundleQueryKey,
   createEmptyBundle,
   THREADS_QUERY_KEY,
+  upsertThreadSummary,
   upsertBundleDraft,
 } from './chat-nimi-shell-core';
 
@@ -202,6 +203,9 @@ export function useAiConversationHostActions(
         messages: [...(current?.messages ?? []), userMessage, assistantMessage],
         draft: null,
       }));
+      input.queryClient.setQueryData<ChatAiThreadSummary[]>(THREADS_QUERY_KEY, (current) => (
+        upsertThreadSummary(Array.isArray(current) ? current : [], updatedThread)
+      ));
       input.setEphemeralThread(null);
       input.currentDraftTextRef.current = '';
       syncAiThreadSelectionState(updatedThread.id);
