@@ -36,9 +36,15 @@ Discipline.
 
 ### Changed
 
-- Runtime video generation now preserves a durable canceled ScenarioJob as the
-  typed `runtime-canceled` outcome instead of collapsing it into
-  `runtime-call-failed`.
+- **Breaking (0.x):** Async ScenarioJob generation runners now preserve durable
+  cancellation and timeout as the typed `runtime-canceled` and
+  `runtime-timeout` outcomes instead of collapsing them into
+  `runtime-call-failed`. Consumers with exhaustive unavailable-reason handling
+  must add `runtime-timeout`; the shared terminal-status mapper is exported for
+  custom runners.
+- Renderer bridge errors retain structured reason, action, trace, and retry
+  fields while scrubbing credentials and private paths from `message`,
+  `details`, and `details.rawMessage`.
 
 - **Breaking (0.x):** Kit no longer exports the retired Runtime model-root,
   manifest-picker, or LocalAsset-ID reveal helpers. ModelAsset custody and paths

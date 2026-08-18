@@ -11,13 +11,14 @@ import {
   type RuntimeTypedCallOptions,
   type ScenarioJob,
 } from '@nimiplatform/kit/core/sdk-contract';
-import { runtimeUnavailableReasonFromError } from './runtime-diagnostics.js';
+import {
+  runtimeScenarioJobUnavailableReasonFromError,
+  type RuntimeScenarioJobUnavailableReason,
+} from './runtime-diagnostics.js';
 
 export type RuntimeImageGenerateUnavailableReason =
-  | 'input-invalid'
-  | 'runtime-call-failed'
-  | 'principal-unauthorized'
-  | 'sdk-method-unavailable';
+  | RuntimeScenarioJobUnavailableReason
+  | 'input-invalid';
 
 export type RuntimeImageGenerateArtifactPreviewSource =
   | 'hosted-uri'
@@ -243,7 +244,7 @@ function imageUnavailableReasonFromError(error: NimiError): RuntimeImageGenerate
   if (reasonCode === ReasonCode.SDK_AI_INPUT_INVALID || reasonCode.startsWith('SDK_GENERATION_')) {
     return 'input-invalid';
   }
-  return runtimeUnavailableReasonFromError(error);
+  return runtimeScenarioJobUnavailableReasonFromError(error);
 }
 
 function bytesToBase64(bytes: Uint8Array): string {

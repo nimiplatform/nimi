@@ -4,12 +4,14 @@ import test from 'node:test';
 import {
   asNimiRuntimeCallError,
   formatNimiRuntimeErrorDetail,
+  getNimiRuntimeScenarioJobTerminalStatus,
   getNimiRuntimeReasonCodeMessage,
   getNimiRuntimeReasonCodeDefaultMessage,
   normalizeNimiRuntimeReasonCode,
   projectNimiRuntimeAuditCallerKindName,
   projectNimiRuntimeUsageWindowName,
   runNimiRuntimeScenarioJob,
+  toNimiRuntimeProtoStruct,
   toNimiRuntimeUserFacingError,
   toNimiRuntimeVoiceReference,
   type NimiRuntimeScenarioJobClient,
@@ -236,28 +238,68 @@ test('Runtime scenario job runner fails closed on non-completed terminal job', a
   );
 });
 
-test('Runtime scenario job runner preserves a canceled terminal status in the typed error', async () => {
-  const client = createScenarioJobClient([
+test('Runtime scenario job runner preserves typed terminal status and safe failure diagnostics', async () => {
+  const cases = [
     {
-      job: {
-        ...createScenarioJob('job-1', ScenarioJobStatus.CANCELED),
-        reasonCode: RuntimeGeneratedReasonCode.ACTION_EXECUTED,
-        reasonDetail: 'acceptance cancellation',
-      },
+      status: ScenarioJobStatus.FAILED,
+      reasonCode: RuntimeGeneratedReasonCode.SESSION_EXPIRED,
+      reasonDetail: 'session expired',
+      reasonMetadata: { action_hint: 'reauthenticate', retryable: false, failure_stage: 'runtime' },
     },
-  ]);
+    {
+      status: ScenarioJobStatus.CANCELED,
+      reasonCode: RuntimeGeneratedReasonCode.ACTION_EXECUTED,
+      reasonDetail: 'acceptance cancellation',
+      reasonMetadata: undefined,
+    },
+    {
+      status: ScenarioJobStatus.TIMEOUT,
+      reasonCode: RuntimeGeneratedReasonCode.AI_PROVIDER_TIMEOUT,
+      reasonDetail: 'provider request timed out',
+      reasonMetadata: { action_hint: 'retry_provider_request', retryable: true },
+    },
+  ] as const;
 
-  await assert.rejects(
-    runNimiRuntimeScenarioJob({
-      ai: client,
-      request: createScenarioJobRequest(),
-    }),
-    (error: unknown) => {
-      const shaped = error as { details?: { scenarioJobStatus?: string } };
-      assert.equal(shaped.details?.scenarioJobStatus, 'CANCELED');
-      return true;
-    },
-  );
+  for (const expected of cases) {
+    const client = createScenarioJobClient([
+      {
+        job: {
+          ...createScenarioJob('job-1', expected.status),
+          reasonCode: expected.reasonCode,
+          reasonDetail: expected.reasonDetail,
+          traceId: 'trace-terminal-1',
+          reasonMetadata: expected.reasonMetadata
+            ? toNimiRuntimeProtoStruct(expected.reasonMetadata)
+            : undefined,
+        },
+      },
+    ]);
+
+    await assert.rejects(
+      runNimiRuntimeScenarioJob({
+        ai: client,
+        request: createScenarioJobRequest(),
+      }),
+      (error: unknown) => {
+        const shaped = error as {
+          actionHint?: string;
+          details?: { reasonMetadata?: unknown };
+          message?: string;
+          retryable?: boolean;
+          traceId?: string;
+        };
+        assert.equal(getNimiRuntimeScenarioJobTerminalStatus(error), expected.status);
+        assert.equal(shaped.message, expected.reasonDetail);
+        assert.equal(shaped.traceId, 'trace-terminal-1');
+        if (expected.reasonMetadata) {
+          assert.equal(shaped.actionHint, expected.reasonMetadata.action_hint);
+          assert.equal(shaped.retryable, expected.reasonMetadata.retryable);
+          assert.deepEqual(shaped.details?.reasonMetadata, expected.reasonMetadata);
+        }
+        return true;
+      },
+    );
+  }
 });
 
 test('Runtime scenario job runner rejects normal stream close without a terminal event before Get', async () => {

@@ -13,14 +13,14 @@ import {
   type RuntimeTypedCallOptions,
   type ScenarioJob,
 } from '@nimiplatform/kit/core/sdk-contract';
-import { runtimeUnavailableReasonFromError } from './runtime-diagnostics.js';
+import {
+  runtimeScenarioJobUnavailableReasonFromError,
+  type RuntimeScenarioJobUnavailableReason,
+} from './runtime-diagnostics.js';
 
 export type RuntimeVideoGenerateUnavailableReason =
-  | 'input-invalid'
-  | 'runtime-canceled'
-  | 'runtime-call-failed'
-  | 'principal-unauthorized'
-  | 'sdk-method-unavailable';
+  | RuntimeScenarioJobUnavailableReason
+  | 'input-invalid';
 
 export type RuntimeVideoGenerateArtifactSummary = {
   readonly artifactId?: string;
@@ -234,14 +234,11 @@ function videoJobStatusName(status: ScenarioJobStatus): string {
 }
 
 function videoUnavailableReasonFromError(error: NimiError): RuntimeVideoGenerateUnavailableReason {
-  if (normalizeText(error.details?.scenarioJobStatus) === 'CANCELED') {
-    return 'runtime-canceled';
-  }
   const reasonCode = normalizeText(error.reasonCode) || normalizeText(error.code);
   if (reasonCode === ReasonCode.SDK_AI_INPUT_INVALID || reasonCode.startsWith('SDK_GENERATION_')) {
     return 'input-invalid';
   }
-  return runtimeUnavailableReasonFromError(error);
+  return runtimeScenarioJobUnavailableReasonFromError(error);
 }
 
 function bytesToBase64(bytes: Uint8Array): string {

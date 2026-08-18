@@ -4,12 +4,14 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   ReasonCode,
   ScenarioJobStatus,
+  createNimiError,
   isNimiError,
 } from '@nimiplatform/kit/core/sdk-contract';
 import {
   copyArtifactBytesToArrayBuffer,
   scenarioJobStatusLabel,
   scenarioJobStatusToGenerationStatus,
+  runtimeScenarioJobUnavailableReasonFromError,
   useRuntimeGenerationPanel,
   type RuntimeGenerationPanelErrorContext,
 } from '../src/runtime.js';
@@ -77,6 +79,21 @@ describe('generation runtime helpers', () => {
     expect(scenarioJobStatusLabel(ScenarioJobStatus.SUBMITTED)).toBe('Submitted to Runtime');
     expect(scenarioJobStatusLabel(ScenarioJobStatus.RUNNING)).toBe('Generating output');
     expect(scenarioJobStatusLabel(999 as ScenarioJobStatus)).toBe('Failed');
+  });
+
+  it.each([
+    ['FAILED', 'runtime-call-failed'],
+    ['CANCELED', 'runtime-canceled'],
+    ['TIMEOUT', 'runtime-timeout'],
+  ] as const)('maps Scenario job %s errors through shared typed diagnostics', (status, expected) => {
+    const error = createNimiError({
+      message: `Runtime job ${status.toLowerCase()}`,
+      reasonCode: ReasonCode.RUNTIME_CALL_FAILED,
+      actionHint: 'inspect_runtime_scenario_job',
+      source: 'runtime',
+      details: { scenarioJobStatus: status },
+    });
+    expect(runtimeScenarioJobUnavailableReasonFromError(error)).toBe(expected);
   });
 
   it('copies artifact bytes into a detached ArrayBuffer', () => {

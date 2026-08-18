@@ -12,13 +12,14 @@ import {
   type RuntimeTypedCallOptions,
   type ScenarioJob,
 } from '@nimiplatform/kit/core/sdk-contract';
-import { runtimeUnavailableReasonFromError } from './runtime-diagnostics.js';
+import {
+  runtimeScenarioJobUnavailableReasonFromError,
+  type RuntimeScenarioJobUnavailableReason,
+} from './runtime-diagnostics.js';
 
 export type RuntimeSpeechTranscribeUnavailableReason =
-  | 'input-invalid'
-  | 'runtime-call-failed'
-  | 'principal-unauthorized'
-  | 'sdk-method-unavailable';
+  | RuntimeScenarioJobUnavailableReason
+  | 'input-invalid';
 
 export type RuntimeSpeechTranscribeAudioInput =
   | { readonly type: 'bytes'; readonly bytes: Uint8Array; readonly mimeType: string }
@@ -209,7 +210,7 @@ function speechUnavailableReasonFromError(error: NimiError): RuntimeSpeechTransc
   if (reasonCode === ReasonCode.SDK_AI_INPUT_INVALID || reasonCode.startsWith('SDK_GENERATION_')) {
     return 'input-invalid';
   }
-  return runtimeUnavailableReasonFromError(error);
+  return runtimeScenarioJobUnavailableReasonFromError(error);
 }
 
 function normalizeText(value: unknown): string {

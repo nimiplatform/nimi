@@ -13,13 +13,14 @@ import {
   type RuntimeTypedCallOptions,
   type ScenarioJob,
 } from '@nimiplatform/kit/core/sdk-contract';
-import { runtimeUnavailableReasonFromError } from './runtime-diagnostics.js';
+import {
+  runtimeScenarioJobUnavailableReasonFromError,
+  type RuntimeScenarioJobUnavailableReason,
+} from './runtime-diagnostics.js';
 
 export type RuntimeSpeechSynthesizeUnavailableReason =
-  | 'input-invalid'
-  | 'runtime-call-failed'
-  | 'principal-unauthorized'
-  | 'sdk-method-unavailable';
+  | RuntimeScenarioJobUnavailableReason
+  | 'input-invalid';
 
 export type RuntimeSpeechSynthesizeArtifactSummary = {
   readonly artifactId?: string;
@@ -230,7 +231,7 @@ function speechUnavailableReasonFromError(error: NimiError): RuntimeSpeechSynthe
   ) {
     return 'input-invalid';
   }
-  return runtimeUnavailableReasonFromError(error);
+  return runtimeScenarioJobUnavailableReasonFromError(error);
 }
 
 function bytesToBase64(bytes: Uint8Array): string {

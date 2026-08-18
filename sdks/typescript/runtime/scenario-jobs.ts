@@ -22,7 +22,15 @@ import {
   type VoiceAsset,
   type VoiceReference,
 } from '../core-generated/runtime-typed-client';
-import { createNimiError, ReasonCode } from '../types';
+import { createNimiError, ReasonCode, type JsonObject } from '../types';
+import { fromNimiRuntimeProtoStruct } from './runtime-agent-values';
+
+const NIMI_RUNTIME_SCENARIO_JOB_STATUS_DETAIL_KEY = 'scenarioJobStatus';
+
+export type NimiRuntimeScenarioJobFailureStatus =
+  | ScenarioJobStatus.FAILED
+  | ScenarioJobStatus.CANCELED
+  | ScenarioJobStatus.TIMEOUT;
 
 export type NimiRuntimeScenarioJob = ScenarioJob;
 export type NimiRuntimeScenarioArtifact = ScenarioArtifact;
@@ -116,6 +124,25 @@ export function isNimiRuntimeScenarioJobTerminalStatus(status: ScenarioJobStatus
     || status === ScenarioJobStatus.FAILED
     || status === ScenarioJobStatus.CANCELED
     || status === ScenarioJobStatus.TIMEOUT;
+}
+
+// @nimi-authority: rule.nimi.sdks.client-core.r021
+// @nimi-authority: rule.nimi.sdks.feature-clients.r002
+export function getNimiRuntimeScenarioJobTerminalStatus(
+  error: unknown,
+): NimiRuntimeScenarioJobFailureStatus | null {
+  if (!error || typeof error !== 'object' || Array.isArray(error)) {
+    return null;
+  }
+  const details = (error as { readonly details?: unknown }).details;
+  if (!details || typeof details !== 'object' || Array.isArray(details)) {
+    return null;
+  }
+  const status = (details as Record<string, unknown>)[NIMI_RUNTIME_SCENARIO_JOB_STATUS_DETAIL_KEY];
+  if (status === 'FAILED') return ScenarioJobStatus.FAILED;
+  if (status === 'CANCELED') return ScenarioJobStatus.CANCELED;
+  if (status === 'TIMEOUT') return ScenarioJobStatus.TIMEOUT;
+  return null;
 }
 
 // @nimi-authority: rule.nimi.sdks.feature-clients.r069
@@ -299,16 +326,43 @@ function ensureCompletedNimiRuntimeScenarioJob(
     });
   }
   if (job.status !== ScenarioJobStatus.COMPLETED) {
+    const reasonMetadata = safeScenarioJobReasonMetadata(job.reasonMetadata);
+    const actionHint = normalizeText(reasonMetadata.action_hint) || 'check_runtime_scenario_job';
+    const retryable = typeof reasonMetadata.retryable === 'boolean'
+      ? reasonMetadata.retryable
+      : false;
     throw createNimiError({
       message: normalizeText(job.reasonDetail) || `Runtime Scenario job ended with status ${String(job.status)}`,
       reasonCode: runtimeReasonCodeName(job.reasonCode) || 'RUNTIME_SCENARIO_JOB_FAILED',
-      actionHint: 'check_runtime_scenario_job',
+      actionHint,
+      traceId: normalizeText(job.traceId),
+      retryable,
       source: 'runtime',
       details: {
-        scenarioJobStatus: ScenarioJobStatus[job.status] || String(job.status),
+        [NIMI_RUNTIME_SCENARIO_JOB_STATUS_DETAIL_KEY]: ScenarioJobStatus[job.status] || String(job.status),
+        ...(Object.keys(reasonMetadata).length > 0 ? { reasonMetadata } : {}),
       },
     });
   }
+}
+
+function safeScenarioJobReasonMetadata(
+  value: NimiRuntimeScenarioJob['reasonMetadata'],
+): JsonObject {
+  const raw = fromNimiRuntimeProtoStruct(value);
+  const actionHint = safeScenarioJobReasonMetadataToken(raw.action_hint);
+  const failureStage = safeScenarioJobReasonMetadataToken(raw.failure_stage);
+  const retryable = typeof raw.retryable === 'boolean' ? raw.retryable : undefined;
+  return {
+    ...(actionHint ? { action_hint: actionHint } : {}),
+    ...(retryable !== undefined ? { retryable } : {}),
+    ...(failureStage ? { failure_stage: failureStage } : {}),
+  };
+}
+
+function safeScenarioJobReasonMetadataToken(value: unknown): string {
+  const token = normalizeText(value);
+  return token.length <= 120 && /^[A-Za-z0-9_.-]+$/u.test(token) ? token : '';
 }
 
 function runtimeReasonCodeName(reasonCode: RuntimeGeneratedReasonCode): string {

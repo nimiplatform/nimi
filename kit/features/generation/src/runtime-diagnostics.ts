@@ -1,6 +1,8 @@
 import {
   ReasonCode,
+  ScenarioJobStatus,
   createNimiError,
+  getNimiRuntimeScenarioJobTerminalStatus,
   type NimiError,
 } from '@nimiplatform/kit/core/sdk-contract';
 
@@ -8,6 +10,11 @@ export type RuntimeGenerationUnavailableReason =
   | 'runtime-call-failed'
   | 'principal-unauthorized'
   | 'sdk-method-unavailable';
+
+export type RuntimeScenarioJobUnavailableReason =
+  | RuntimeGenerationUnavailableReason
+  | 'runtime-canceled'
+  | 'runtime-timeout';
 
 export type RuntimeExecutionUnavailable = {
   readonly reason: 'sdk-method-unavailable';
@@ -57,6 +64,21 @@ export function runtimeUnavailableReasonFromError(
       || reasonCode === ReasonCode.APP_TOKEN_REVOKED
         ? 'principal-unauthorized'
         : 'runtime-call-failed';
+}
+
+// @nimi-authority: rule.nimi.sdks.feature-clients.r002
+// @nimi-authority: rule.nimi.desktop.ai-consumption.r059
+export function runtimeScenarioJobUnavailableReasonFromError(
+  error: unknown,
+): RuntimeScenarioJobUnavailableReason {
+  const terminalStatus = getNimiRuntimeScenarioJobTerminalStatus(error);
+  if (terminalStatus === ScenarioJobStatus.CANCELED) {
+    return 'runtime-canceled';
+  }
+  if (terminalStatus === ScenarioJobStatus.TIMEOUT) {
+    return 'runtime-timeout';
+  }
+  return runtimeUnavailableReasonFromError(error);
 }
 
 export function describeRuntimeGenerationError(

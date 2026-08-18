@@ -99,6 +99,7 @@ export {
   NIMI_RUNTIME_REASON_CODES,
   Runtime,
   createNimiHostRuntimeAgentInspectSurface,
+  getNimiRuntimeScenarioJobTerminalStatus,
   getNimiRuntimeReasonCodeMessage,
   toNimiRuntimeVoiceReference,
 } from '@nimiplatform/sdk/runtime';
