@@ -23,8 +23,10 @@ function requiredString(value: unknown, path: string): string {
   return value;
 }
 
-function optionalString(value: unknown, path: string): void {
-  if (value !== undefined && typeof value !== 'string') historyPayloadError(path, 'requires a string when present');
+function optionalString(value: unknown, path: string): string {
+  if (value === undefined) return '';
+  if (typeof value !== 'string') return historyPayloadError(path, 'requires a string when present');
+  return value;
 }
 
 function nonNegativeNumber(value: unknown, path: string): number {
@@ -68,12 +70,26 @@ function validateHistoryResult(value: unknown, path: string): void {
   requiredString(value.summary, `${path}.summary`);
   if (value.ok === false) {
     if (value.kind !== 'unavailable') historyPayloadError(`${path}.kind`, 'requires unavailable for a failed result');
-    if (!['runtime-unavailable', 'input-invalid', 'sdk-method-unavailable', 'principal-unauthorized', 'runtime-canceled', 'runtime-call-failed'].includes(String(value.reason))) {
+    if (!['runtime-unavailable', 'input-invalid', 'sdk-method-unavailable', 'principal-unauthorized', 'runtime-canceled', 'runtime-timeout', 'runtime-call-failed'].includes(String(value.reason))) {
       historyPayloadError(`${path}.reason`, 'has an unsupported value');
     }
     requiredString(value.message, `${path}.message`);
     requiredString(value.actionHint, `${path}.actionHint`);
     optionalString(value.missingSurface, `${path}.missingSurface`);
+    if (value.diagnostics !== undefined) {
+      if (!isJsonObject(value.diagnostics)) historyPayloadError(`${path}.diagnostics`, 'requires an object');
+      const reasonCode = requiredString(value.diagnostics.reasonCode, `${path}.diagnostics.reasonCode`);
+      if (!/^[A-Z][A-Z0-9_]{0,127}$/u.test(reasonCode)) historyPayloadError(`${path}.diagnostics.reasonCode`, 'is invalid');
+      const actionHint = optionalString(value.diagnostics.actionHint, `${path}.diagnostics.actionHint`);
+      if (actionHint && !/^[A-Za-z0-9_.-]{1,256}$/u.test(actionHint)) historyPayloadError(`${path}.diagnostics.actionHint`, 'is invalid');
+      const traceId = optionalString(value.diagnostics.traceId, `${path}.diagnostics.traceId`);
+      if (traceId && !/^[A-Za-z0-9_.:-]{1,512}$/u.test(traceId)) historyPayloadError(`${path}.diagnostics.traceId`, 'is invalid');
+      const source = optionalString(value.diagnostics.source, `${path}.diagnostics.source`);
+      if (source && !['runtime', 'sdk', 'realm'].includes(source)) historyPayloadError(`${path}.diagnostics.source`, 'is invalid');
+      if (value.diagnostics.retryable !== undefined && typeof value.diagnostics.retryable !== 'boolean') {
+        historyPayloadError(`${path}.diagnostics.retryable`, 'requires a boolean');
+      }
+    }
     return;
   }
   validateTraceFields(value, path);
@@ -186,7 +202,7 @@ function parseHistoryRecord(value: unknown, path: string, capabilityId: string):
     historyPayloadError(`${path}.capabilityId`, `must match ${capabilityId}`);
   }
   requiredString(value.prompt, `${path}.prompt`);
-  if (!['unavailable', 'ready', 'simulated', 'failed', 'canceled', 'local-fixture'].includes(String(value.status))) {
+  if (!['unavailable', 'ready', 'simulated', 'failed', 'canceled', 'timed-out', 'local-fixture'].includes(String(value.status))) {
     historyPayloadError(`${path}.status`, 'has an unsupported value');
   }
   requiredString(value.message, `${path}.message`);

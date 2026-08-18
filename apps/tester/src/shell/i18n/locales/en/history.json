@@ -19,6 +19,7 @@
         "simulated": "Simulated result",
         "failed": "Failed",
         "canceled": "Canceled",
+        "timedOut": "Timed out",
         "unavailable": "SDK unavailable",
         "localFixture": "Local fixture"
       },
@@ -83,6 +84,7 @@
       "unknown": "Unknown"
     },
     "canceled": "Canceled",
+    "timedOut": "Timed out",
     "failed": "Failed",
     "today": "Today",
     "yesterday": "Yesterday",

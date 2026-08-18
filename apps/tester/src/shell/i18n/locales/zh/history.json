@@ -19,6 +19,7 @@
         "simulated": "模拟结果",
         "failed": "失败",
         "canceled": "已取消",
+        "timedOut": "已超时",
         "unavailable": "SDK 不可用",
         "localFixture": "本地夹具"
       },
@@ -83,6 +84,7 @@
       "unknown": "未知"
     },
     "canceled": "已取消",
+    "timedOut": "已超时",
     "failed": "失败",
     "today": "今天",
     "yesterday": "昨天",

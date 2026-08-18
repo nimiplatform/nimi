@@ -227,6 +227,7 @@
       "status": {
         "runtimeRunning": "Runtime 运行中",
         "runtimeCanceled": "Runtime 已取消",
+        "runtimeTimedOut": "Runtime 已超时",
         "runtimeBlocked": "Runtime 受阻",
         "runtimeResult": "Runtime 结果",
         "runtimeWaiting": "等待 Runtime",
@@ -240,6 +241,7 @@
       "statWaiting": "等待中",
       "statBlocked": "受阻",
       "statCanceled": "已取消",
+      "statTimedOut": "已超时",
       "statTokens": "Token",
       "statCharacters": "字符",
       "statArtifacts": "产物",

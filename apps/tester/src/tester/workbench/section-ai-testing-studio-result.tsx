@@ -201,7 +201,10 @@ export function StudioResult({
   const profile = getCapabilityStudioProfile(capability.id);
   const ready = result?.ok ? result : null;
   const canceled = result && !result.ok && result.reason === 'runtime-canceled' ? result : null;
-  const blocked = result && !result.ok && result.reason !== 'runtime-canceled' ? result : null;
+  const timedOut = result && !result.ok && result.reason === 'runtime-timeout' ? result : null;
+  const blocked = result && !result.ok
+    && result.reason !== 'runtime-canceled'
+    && result.reason !== 'runtime-timeout' ? result : null;
   const plainText = ready ? resultPlainText(ready) : '';
   const canExport = Boolean(ready && plainText);
   const displayIntentLabel = studioResultIntentLabel(result, capability, intentLabel, t);
@@ -213,9 +216,9 @@ export function StudioResult({
     : running ? t('Studio.result.statRunning') : t('Studio.result.notRecorded');
   const statusTitleKey = simulated
     ? running ? 'simulatorRunning' : blocked ? 'simulatorBlocked' : ready ? 'simulatorResult' : 'simulatorWaiting'
-    : running ? 'runtimeRunning' : canceled ? 'runtimeCanceled' : blocked ? 'runtimeBlocked' : ready ? 'runtimeResult' : 'runtimeWaiting';
+    : running ? 'runtimeRunning' : canceled ? 'runtimeCanceled' : timedOut ? 'runtimeTimedOut' : blocked ? 'runtimeBlocked' : ready ? 'runtimeResult' : 'runtimeWaiting';
   const statusTitle = t(`Studio.result.status.${statusTitleKey}`);
-  const statusTone = blocked || canceled ? 'warning' : ready ? 'success' : running ? 'info' : 'neutral';
+  const statusTone = blocked || canceled || timedOut ? 'warning' : ready ? 'success' : running ? 'info' : 'neutral';
   useEffect(() => {
     if (!hasRequestSettings) setRequestSettingsOpen(false);
   }, [hasRequestSettings]);
@@ -231,7 +234,11 @@ export function StudioResult({
     if (!result) return [{ label: t('Studio.result.statStatus'), value: t('Studio.result.statWaiting') }];
     if (!result.ok) return [{
       label: t('Studio.result.statStatus'),
-      value: t(result.reason === 'runtime-canceled' ? 'Studio.result.statCanceled' : 'Studio.result.statBlocked'),
+      value: t(result.reason === 'runtime-canceled'
+        ? 'Studio.result.statCanceled'
+        : result.reason === 'runtime-timeout'
+          ? 'Studio.result.statTimedOut'
+          : 'Studio.result.statBlocked'),
     }];
     const output = result.output;
     if (output.kind === 'text') {
@@ -303,6 +310,17 @@ export function StudioResult({
         </div>
         <p>{unavailableReasonUserMessage(canceled.reason)}</p>
         <p className="studio-result__hint">{unavailableReasonUserAction(canceled.reason)}</p>
+      </div>
+    );
+  } else if (timedOut) {
+    body = (
+      <div className="studio-result__blocked">
+        <div className="studio-result__blocked-line">
+          <Clock size={15} aria-hidden="true" />
+          <span>{statusTitle}</span>
+        </div>
+        <p>{unavailableReasonUserMessage(timedOut.reason)}</p>
+        <p className="studio-result__hint">{unavailableReasonUserAction(timedOut.reason)}</p>
       </div>
     );
   } else if (blocked) {

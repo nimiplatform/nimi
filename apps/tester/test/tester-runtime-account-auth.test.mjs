@@ -949,7 +949,11 @@ for (const status of ['failed', 'canceled', 'timeout']) {
     const { runTesterCapability } = await importTesterRuntime();
     const source = 'text-description';
     const submitted = localVoiceJob('submitted', source);
-    const reasonCode = `VOICE_CREATE_${status.toUpperCase()}`;
+    const reasonCode = status === 'canceled'
+      ? 'ACTION_EXECUTED'
+      : status === 'timeout'
+        ? 'AI_PROVIDER_TIMEOUT'
+        : 'AI_PROVIDER_INTERNAL';
     const terminal = localVoiceJob(status, source, {
       reasonCode,
       reasonDetail: `voice terminal ${status}`,
@@ -977,7 +981,11 @@ for (const status of ['failed', 'canceled', 'timeout']) {
       parameters: { creationSource: source, previewText: '你好', language: 'zh', preferredName: 'Nimi voice' },
     }, readyRuntimeDependencies(client));
     assert.equal(result.ok, false);
-    assert.equal(result.reason, 'runtime-call-failed');
+    assert.equal(result.reason, status === 'canceled'
+      ? 'runtime-canceled'
+      : status === 'timeout'
+        ? 'runtime-timeout'
+        : 'runtime-call-failed');
     assert.equal(gets, 0);
     assert.match(result.message, new RegExp(`voice terminal ${status}`, 'u'));
     assert.match(result.message, new RegExp(reasonCode, 'u'));
@@ -1034,7 +1042,7 @@ const TYPED_FAILURE_CASES = [
     }),
   },
   { capabilityId: 'image.generate', prompt: 'image', expectedReason: 'input-invalid', runnerName: 'imageGenerate' },
-  { capabilityId: 'video.generate', prompt: 'video', expectedReason: 'runtime-call-failed', runnerName: 'videoGenerate' },
+  { capabilityId: 'video.generate', prompt: 'video', expectedReason: 'runtime-timeout', runnerName: 'videoGenerate' },
   { capabilityId: 'audio.synthesize', prompt: 'speech', expectedReason: 'principal-unauthorized', runnerName: 'speechSynthesize' },
   { capabilityId: 'audio.transcribe', prompt: 'https://example.test/audio.wav', expectedReason: 'runtime-call-failed', runnerName: 'speechTranscribe' },
   {
@@ -1065,7 +1073,13 @@ for (const failureCase of TYPED_FAILURE_CASES) {
       capabilityId: failureCase.capabilityId,
       reason: failureCase.expectedReason,
       message: `${failureCase.capabilityId} typed failure`,
-      error: { reasonCode: 'TYPED_FAILURE' },
+      error: {
+        reasonCode: 'TYPED_FAILURE',
+        actionHint: 'inspect_typed_failure',
+        traceId: 'trace-typed-failure',
+        retryable: true,
+        source: 'runtime',
+      },
     });
     const dependencies = readyRuntimeDependencies(client, failureCase.runnerName ? {
       createScenarioJobClient() { return {}; },
@@ -1075,5 +1089,14 @@ for (const failureCase of TYPED_FAILURE_CASES) {
     assert.equal(result.ok, false);
     assert.equal(result.reason, failureCase.expectedReason);
     assert.match(result.message, /failed|failure|retry/iu);
+    if (failureCase.runnerName) {
+      assert.deepEqual(result.diagnostics, {
+        reasonCode: 'TYPED_FAILURE',
+        actionHint: 'inspect_typed_failure',
+        traceId: 'trace-typed-failure',
+        retryable: true,
+        source: 'runtime',
+      });
+    }
   });
 }

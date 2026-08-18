@@ -48,6 +48,7 @@
     "runStatusUnavailable": "sdk unavailable",
     "runStatusFailed": "failed",
     "runStatusCanceled": "canceled",
+    "runStatusTimedOut": "timed out",
     "runStatusLocalFixture": "local fixture",
     "worldTourViewerMessage": "Viewer opened for a Tauri-only local fixture ({{manifestPath}}); local fixture record only, with no runtime generation or runtime artifact.",
     "worldTourViewerOutput": "Local fixture viewer opened ({{windowLabel}}). This is not a runtime result or runtime artifact."

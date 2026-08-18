@@ -13,7 +13,16 @@ export type TesterUnavailableReason =
   | 'sdk-method-unavailable'
   | 'principal-unauthorized'
   | 'runtime-canceled'
+  | 'runtime-timeout'
   | 'runtime-call-failed';
+
+export type TesterUnavailableDiagnostics = {
+  reasonCode: string;
+  actionHint?: string;
+  traceId?: string;
+  retryable?: boolean;
+  source?: string;
+};
 
 export type TesterUnavailable = {
   ok: false;
@@ -22,6 +31,7 @@ export type TesterUnavailable = {
   message: string;
   actionHint: string;
   missingSurface?: string;
+  diagnostics?: TesterUnavailableDiagnostics;
 };
 
 function reasonKeySegment(reason: string): string {
@@ -36,6 +46,8 @@ function reasonKeySegment(reason: string): string {
       return 'principalUnauthorized';
     case 'runtime-canceled':
       return 'runtimeCanceled';
+    case 'runtime-timeout':
+      return 'runtimeTimeout';
     case 'runtime-call-failed':
       return 'runtimeCallFailed';
     default:
@@ -65,6 +77,7 @@ export function capabilityUnavailable(
   capability: TesterCapability,
   reason: TesterUnavailableReason,
   message: string,
+  diagnostics?: TesterUnavailableDiagnostics,
 ): TesterUnavailable {
   return {
     ok: false,
@@ -73,5 +86,6 @@ export function capabilityUnavailable(
     message,
     actionHint: actionHintForReason(reason),
     missingSurface: capability.missingSurface,
+    ...(diagnostics ? { diagnostics } : {}),
   };
 }

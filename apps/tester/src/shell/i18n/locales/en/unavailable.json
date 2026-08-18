@@ -6,6 +6,7 @@
       "sdkMethodUnavailable": "SDK method unavailable",
       "principalUnauthorized": "Runtime owner unauthorized",
       "runtimeCanceled": "Runtime generation canceled",
+      "runtimeTimeout": "Runtime generation timed out",
       "runtimeCallFailed": "Runtime call failed"
     },
     "message": {
@@ -14,6 +15,7 @@
       "sdkMethodUnavailable": "This capability is not available in the current app build.",
       "principalUnauthorized": "Runtime rejected the protected owner for this request.",
       "runtimeCanceled": "This Runtime generation was canceled.",
+      "runtimeTimeout": "This Runtime generation reached its terminal timeout.",
       "runtimeCallFailed": "Runtime could not complete this generation.",
       "fallback": "The generation did not complete."
     },
@@ -23,6 +25,7 @@
       "sdkMethodUnavailable": "Update the app or switch to a supported capability.",
       "principalUnauthorized": "Restore the protected App session, then retry.",
       "runtimeCanceled": "Run the request again when you are ready.",
+      "runtimeTimeout": "Review the timeout cause, then retry when the Runtime or provider can complete the request.",
       "runtimeCallFailed": "Inspect the typed Runtime error, then retry after resolving its cause.",
       "fallback": "Check Runtime details for diagnostics, then try again."
     },
@@ -32,6 +35,7 @@
       "sdkMethodUnavailable": "Add an admitted SDK Nimi App execution method. Do not bypass Runtime with app-local REST.",
       "principalUnauthorized": "Runtime rejected the protected owner identity. Restore the admitted App session before retrying.",
       "runtimeCanceled": "Runtime durably canceled this ScenarioJob. Submit a new request only when another run is wanted.",
+      "runtimeTimeout": "Runtime durably timed out this ScenarioJob. Inspect its typed reason and trace before retrying.",
       "runtimeCallFailed": "Runtime returned a typed contract failure. Inspect the verbatim Runtime error without inferring success."
     }
   }

@@ -77,6 +77,12 @@ export function formatUnavailableOutput(result: TesterCapabilityRunResult & { ok
     '',
     'Action:',
     result.actionHint,
+    result.diagnostics ? 'Technical diagnostics:' : '',
+    result.diagnostics?.reasonCode ? `Reason code: ${result.diagnostics.reasonCode}` : '',
+    result.diagnostics?.actionHint ? `Owner action: ${result.diagnostics.actionHint}` : '',
+    result.diagnostics?.traceId ? `Trace: ${result.diagnostics.traceId}` : '',
+    result.diagnostics?.retryable !== undefined ? `Retryable: ${String(result.diagnostics.retryable)}` : '',
+    result.diagnostics?.source ? `Source: ${result.diagnostics.source}` : '',
   ].filter(Boolean).join('\n');
 }
 

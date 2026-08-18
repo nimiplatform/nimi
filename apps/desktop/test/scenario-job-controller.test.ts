@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { ReasonCode } from '@nimiplatform/sdk/types';
+import { ReasonCode, createNimiError } from '@nimiplatform/sdk/types';
 
 // Stub browser globals for Node.js test environment
 if (typeof globalThis.window === 'undefined') {
@@ -318,13 +318,18 @@ test('D-STRM-010: requestCancel with terminal cancel result transitions to termi
   assert.equal(controller.getJobState(TEST_JOB).jobStatus, 'CANCELED');
 });
 
-test('D-STRM-010: requestCancel with AI_MEDIA_JOB_NOT_CANCELLABLE polls for final status', async () => {
+test('D-STRM-010: requestCancel branches on structured AI_MEDIA_JOB_NOT_CANCELLABLE reason', async () => {
   controller.startJobTracking(TEST_JOB);
   controller.feedJobEvent(TEST_JOB, { status: 'RUNNING' });
 
   const deps: JobControllerDeps = {
     pollJob: async () => ({ status: 'COMPLETED', traceId: 'final-trace' }),
-    cancelJob: async () => { throw new Error('AI_MEDIA_JOB_NOT_CANCELLABLE'); },
+    cancelJob: async () => { throw createNimiError({
+      message: 'Runtime reports that the terminal job cannot be canceled.',
+      reasonCode: ReasonCode.AI_MEDIA_JOB_NOT_CANCELLABLE,
+      actionHint: 'read_terminal_job',
+      source: 'runtime',
+    }); },
     fetchArtifacts: async () => [],
   };
 

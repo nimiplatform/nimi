@@ -6,10 +6,13 @@ import {
   runRuntimeSpeechTranscribe,
   runRuntimeVideoGenerate,
   runRuntimeVoiceCatalog,
+  runtimeScenarioJobUnavailableReasonFromError,
   type RuntimeAIConsumeRuntime,
   type RuntimeVoiceCatalogRuntime,
 } from '@nimiplatform/kit/features/generation/runtime';
 import type { NimiRuntimeAIScenarioClient } from '@nimiplatform/sdk/ai';
+import { buildNimiRuntimeScenarioJobIdentity } from '@nimiplatform/sdk/features/generation';
+import { runNimiRuntimeScenarioJob } from '@nimiplatform/sdk/runtime';
 import {
   createNimiLocalAppRuntimeScenarioJobClient,
   type NimiLocalAppClient,
@@ -39,7 +42,12 @@ import {
   type TesterVideoGenerationParameters,
   type TesterVoiceCreateParameters,
 } from './tester-capability-parameters.js';
-import { capabilityUnavailable, type TesterUnavailable, type TesterUnavailableReason } from './tester-unavailable.js';
+import {
+  capabilityUnavailable,
+  type TesterUnavailable,
+  type TesterUnavailableDiagnostics,
+  type TesterUnavailableReason,
+} from './tester-unavailable.js';
 
 export type TesterTrace = {
   traceId?: string;
@@ -378,67 +386,73 @@ export async function runTesterCapability(
             );
           }
         }
-        const submitted = await client.ai.scenarioJobs.submit(creationSource === 'reference-audio'
-          ? {
-              type: 'voice-create',
-              creationSource,
-              referenceAudio: { type: 'bytes', bytes: [...parameters!.referenceAudioFile!.bytes] },
-              referenceAudioMime: parameters!.referenceAudioFile!.mimeType,
-              languageHints: commaSeparatedTokens(parameters?.languageHints),
-              preferredName: parameters?.preferredName?.trim() ?? '',
-              text: prompt,
-            }
-          : {
-              type: 'voice-create',
-              creationSource,
-              instructionText: prompt,
-              previewText: parameters?.previewText?.trim() ?? '',
-              language: parameters?.language?.trim() ?? '',
-              preferredName: parameters?.preferredName?.trim() ?? '',
-            });
-        if (!submitted.job) {
-          throw new Error('Runtime voice.create submission must return a Scenario Job.');
-        }
-        let terminalJob = submitted.job;
-        let observedTerminalEvent = false;
-        const subscription = await client.ai.scenarioJobs.subscribe(terminalJob.jobId);
-        try {
-          for await (const event of subscription) {
-            if (event.job.jobId !== submitted.job.jobId || event.eventType !== event.job.status) {
-              throw new Error('Runtime voice.create Job event did not match the submitted Job.');
-            }
-            terminalJob = event.job;
-            if (isLocalAppJobTerminal(terminalJob.status)) {
-              observedTerminalEvent = true;
-              break;
-            }
-          }
-        } finally {
-          await subscription.cancel().catch(() => undefined);
-        }
-        if (!observedTerminalEvent) {
-          throw new Error('Runtime voice.create Job event stream ended without a terminal event.');
-        }
-        if (terminalJob.status !== 'completed') {
-          throw Object.assign(new Error(terminalJob.reasonDetail || `voice.create ended in ${terminalJob.status}.`), {
-            reasonCode: terminalJob.reasonCode,
-          });
-        }
-        const terminalResult = await client.ai.scenarioJobs.get(terminalJob.jobId);
-        terminalJob = terminalResult.job;
-        if (terminalJob.jobId !== submitted.job.jobId) {
-          throw new Error('Runtime voice.create terminal result did not match the submitted Job.');
-        }
-        if (terminalJob.status !== 'completed') {
-          throw new Error('Runtime voice.create terminal result regressed after a COMPLETED event.');
-        }
+        const identity = buildNimiRuntimeScenarioJobIdentity({
+          appId,
+          capabilityId: 'voice.create',
+          scenarioId,
+        });
+        const terminalResult = await runNimiRuntimeScenarioJob({
+          ai: createTesterScenarioJobClient(client, dependencies),
+          request: {
+            head: undefined,
+            scenarioType: ScenarioType.VOICE_CREATE,
+            executionMode: ExecutionMode.ASYNC_JOB,
+            spec: {
+              spec: creationSource === 'reference-audio'
+                ? {
+                    oneofKind: 'voiceCreate',
+                    voiceCreate: {
+                      targetModelId: '',
+                      source: {
+                        oneofKind: 'referenceAudio',
+                        referenceAudio: {
+                          referenceAudioBytes: parameters!.referenceAudioFile!.bytes,
+                          referenceAudioUri: '',
+                          referenceAudioMime: parameters!.referenceAudioFile!.mimeType,
+                          languageHints: commaSeparatedTokens(parameters?.languageHints),
+                          preferredName: parameters?.preferredName?.trim() ?? '',
+                          text: prompt,
+                        },
+                      },
+                    },
+                  }
+                : {
+                    oneofKind: 'voiceCreate',
+                    voiceCreate: {
+                      targetModelId: '',
+                      source: {
+                        oneofKind: 'textDescription',
+                        textDescription: {
+                          instructionText: prompt,
+                          previewText: parameters?.previewText?.trim() ?? '',
+                          language: parameters?.language?.trim() ?? '',
+                          preferredName: parameters?.preferredName?.trim() ?? '',
+                        },
+                      },
+                    },
+                  },
+            },
+            requestId: identity.requestId,
+            idempotencyKey: identity.idempotencyKey,
+            labels: { scenarioId, surfaceId: TESTER_RUNTIME_SURFACE_ID },
+            extensions: [],
+          },
+        });
+        const terminalJob = terminalResult.job;
         const resultAsset = terminalResult.asset;
         const voiceReference = terminalResult.voiceReference;
-        if (!resultAsset || resultAsset.status !== 'active' || resultAsset.creationSource !== creationSource) {
+        const expectedCreationSource = creationSource === 'reference-audio'
+          ? VoiceCreationSource.REFERENCE_AUDIO
+          : VoiceCreationSource.TEXT_DESCRIPTION;
+        if (!resultAsset || resultAsset.status !== VoiceAssetStatus.ACTIVE
+          || resultAsset.creationSource !== expectedCreationSource) {
           throw new Error('Completed voice.create did not return an ACTIVE VoiceAsset with the requested source.');
         }
-        if (!voiceReference || voiceReference.kind !== 'voice_asset_id'
-          || voiceReference.voiceAssetId !== resultAsset.voiceAssetId) {
+        const returnedVoiceReference = voiceReference?.reference;
+        const returnedVoiceAssetId = returnedVoiceReference?.oneofKind === 'voiceAssetId'
+          ? (returnedVoiceReference as { readonly oneofKind: 'voiceAssetId'; readonly voiceAssetId: string }).voiceAssetId
+          : '';
+        if (!returnedVoiceAssetId || returnedVoiceAssetId !== resultAsset.voiceAssetId) {
           throw new Error('Completed voice.create did not return an exact VoiceAsset reference.');
         }
         const listed = await client.ai.voiceAssets.list({ pageSize: 100 });
@@ -454,11 +468,11 @@ export async function runTesterCapability(
           output: {
             kind: 'voice-asset',
             jobId: terminalJob.jobId,
-            jobState: terminalJob.status,
+            jobState: 'completed',
             voiceAssetId: listedAsset.voiceAssetId,
             creationSource: listedAsset.creationSource,
             assetStatus: listedAsset.status,
-            voiceReference,
+            voiceReference: { kind: 'voice_asset_id', voiceAssetId: resultAsset.voiceAssetId },
           },
           ...(terminalJob.traceId ? { trace: { traceId: terminalJob.traceId } } : {}),
         };
@@ -490,7 +504,12 @@ export async function runTesterCapability(
         return capabilityUnavailable(capability, 'sdk-method-unavailable', 'World Tour runs through its standalone viewer command.');
     }
   } catch (error) {
-    return capabilityUnavailable(capability, 'runtime-call-failed', testerRuntimeErrorMessage(error));
+    return capabilityUnavailable(
+      capability,
+      testerUnavailableReason(runtimeScenarioJobUnavailableReasonFromError(error)),
+      testerRuntimeErrorMessage(error),
+      testerUnavailableDiagnostics(error),
+    );
   }
 }
 
@@ -754,14 +773,20 @@ async function managedAssetPath(capabilityId: TesterCapabilityId, jobId: string,
 
 function projectRunnerUnavailable(
   capability: TesterCapability,
-  result: { readonly ok: false; readonly reason: string; readonly message: string },
+  result: { readonly ok: false; readonly reason: string; readonly message: string; readonly error?: unknown },
 ): TesterUnavailable {
-  return capabilityUnavailable(capability, testerUnavailableReason(result.reason), result.message);
+  return capabilityUnavailable(
+    capability,
+    testerUnavailableReason(result.reason),
+    result.message,
+    testerUnavailableDiagnostics(result.error),
+  );
 }
 
 function testerUnavailableReason(reason: string): TesterUnavailableReason {
   if (reason === 'input-invalid' || reason === 'sdk-method-unavailable'
-    || reason === 'principal-unauthorized' || reason === 'runtime-canceled') {
+    || reason === 'principal-unauthorized' || reason === 'runtime-canceled'
+    || reason === 'runtime-timeout') {
     return reason;
   }
   return 'runtime-call-failed';
@@ -839,14 +864,31 @@ function commaSeparatedTokens(value: string | undefined): string[] {
   return (value ?? '').split(',').map((token) => token.trim()).filter(Boolean);
 }
 
-function isLocalAppJobTerminal(status: string): boolean {
-  return status === 'completed' || status === 'failed' || status === 'canceled' || status === 'timeout';
-}
-
 function abortError(): Error {
   const error = new Error('Aborted');
   error.name = 'AbortError';
   return error;
+}
+
+function testerUnavailableDiagnostics(error: unknown): TesterUnavailableDiagnostics | undefined {
+  if (!error || typeof error !== 'object' || Array.isArray(error)) return undefined;
+  const record = error as Record<string, unknown>;
+  const reasonCode = typeof record.reasonCode === 'string' ? record.reasonCode.trim() : '';
+  if (!/^[A-Z][A-Z0-9_]{0,127}$/u.test(reasonCode)) return undefined;
+  const rawActionHint = typeof record.actionHint === 'string' ? record.actionHint.trim() : '';
+  const actionHint = /^[A-Za-z0-9_.-]{1,256}$/u.test(rawActionHint) ? rawActionHint : '';
+  const rawTraceId = typeof record.traceId === 'string' ? record.traceId.trim() : '';
+  const traceId = /^[A-Za-z0-9_.:-]{1,512}$/u.test(rawTraceId) ? rawTraceId : '';
+  const source = record.source === 'runtime' || record.source === 'sdk' || record.source === 'realm'
+    ? record.source
+    : '';
+  return {
+    reasonCode,
+    ...(actionHint ? { actionHint } : {}),
+    ...(traceId ? { traceId } : {}),
+    ...(typeof record.retryable === 'boolean' ? { retryable: record.retryable } : {}),
+    ...(source ? { source } : {}),
+  };
 }
 
 function testerRuntimeErrorMessage(error: unknown): string {

@@ -67,12 +67,13 @@ type TesterHistoryIssue =
     };
 
 function hasTraceMetadata(result: TesterCapabilityRunResult): boolean {
-  if (!result.ok || !result.trace) return false;
+  if (!result.ok) return Boolean(result.diagnostics?.traceId);
+  if (!result.trace) return false;
   return Boolean(result.trace.traceId || result.trace.simulated);
 }
 
 function getResultTraceId(result: TesterCapabilityRunResult): string | undefined {
-  return result.ok ? result.trace?.traceId : undefined;
+  return result.ok ? result.trace?.traceId : result.diagnostics?.traceId;
 }
 
 export function TesterWorkbench(_props: TesterWorkbenchProps) {
@@ -372,7 +373,9 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
               ? 'ready'
               : historyResult.reason === 'runtime-canceled'
                 ? 'canceled'
-                : historyResult.reason === 'runtime-call-failed' ? 'failed' : 'unavailable',
+                : historyResult.reason === 'runtime-timeout'
+                  ? 'timed-out'
+                  : historyResult.reason === 'runtime-call-failed' ? 'failed' : 'unavailable',
         message: historyResult.message,
         createdAt,
         result: createTesterRunHistoryResultSnapshot(historyResult),
@@ -494,7 +497,9 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
             ? 'action:tester-capability-run:failed'
             : record.status === 'canceled'
               ? 'action:tester-capability-run:canceled'
-            : 'action:tester-capability-run:unavailable',
+              : record.status === 'timed-out'
+                ? 'action:tester-capability-run:timed-out'
+                : 'action:tester-capability-run:unavailable',
         flowId,
         traceId,
         details: {

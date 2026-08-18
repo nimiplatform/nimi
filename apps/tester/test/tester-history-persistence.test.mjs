@@ -202,6 +202,46 @@ test('run history preserves a canceled Runtime outcome without reclassifying it 
   }
 });
 
+test('run history preserves a timed-out Runtime outcome without reclassifying it as failed', async () => {
+  const storage = createStorageClient();
+  globalThis.__NIMI_TESTER_HISTORY_STORAGE_CLIENT__ = storage.client;
+  try {
+    await historyStorageModule.appendTesterRunHistory(runRecord('run-timeout', '2026-08-08T08:02:00.000Z', {
+      capabilityId: 'video.generate',
+      status: 'timed-out',
+      message: 'provider request timed out',
+      result: {
+        ok: false,
+        kind: 'unavailable',
+        summary: 'provider request timed out',
+        reason: 'runtime-timeout',
+        message: 'provider request timed out',
+        actionHint: 'Inspect the typed Runtime reason before retrying.',
+        diagnostics: {
+          reasonCode: 'AI_PROVIDER_TIMEOUT',
+          actionHint: 'retry_provider_request',
+          traceId: 'trace-timeout',
+          retryable: true,
+          source: 'runtime',
+        },
+      },
+    }));
+
+    const reloaded = await historyStorageModule.loadTesterRunHistory();
+    assert.equal(reloaded['video.generate'][0].status, 'timed-out');
+    assert.equal(reloaded['video.generate'][0].result.reason, 'runtime-timeout');
+    assert.deepEqual(reloaded['video.generate'][0].result.diagnostics, {
+      reasonCode: 'AI_PROVIDER_TIMEOUT',
+      actionHint: 'retry_provider_request',
+      traceId: 'trace-timeout',
+      retryable: true,
+      source: 'runtime',
+    });
+  } finally {
+    delete globalThis.__NIMI_TESTER_HISTORY_STORAGE_CLIENT__;
+  }
+});
+
 test('run history preserves every managed artifact from a multi-output video job', async () => {
   const storage = createStorageClient();
   globalThis.__NIMI_TESTER_HISTORY_STORAGE_CLIENT__ = storage.client;

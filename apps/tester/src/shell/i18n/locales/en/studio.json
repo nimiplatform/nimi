@@ -227,6 +227,7 @@
       "status": {
         "runtimeRunning": "Runtime running",
         "runtimeCanceled": "Runtime canceled",
+        "runtimeTimedOut": "Runtime timed out",
         "runtimeBlocked": "Runtime blocked",
         "runtimeResult": "Runtime result",
         "runtimeWaiting": "Runtime waiting",
@@ -240,6 +241,7 @@
       "statWaiting": "Waiting",
       "statBlocked": "Blocked",
       "statCanceled": "Canceled",
+      "statTimedOut": "Timed out",
       "statTokens": "Tokens",
       "statCharacters": "Characters",
       "statArtifacts": "Artifacts",

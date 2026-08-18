@@ -53,6 +53,7 @@ const HISTORY_STATUS_OPTIONS: ReadonlyArray<{ id: HistoryStatusFilter; labelKey:
   { id: 'simulated', labelKey: 'History.filters.status.simulated' },
   { id: 'failed', labelKey: 'History.filters.status.failed' },
   { id: 'canceled', labelKey: 'History.filters.status.canceled' },
+  { id: 'timed-out', labelKey: 'History.filters.status.timedOut' },
   { id: 'unavailable', labelKey: 'History.filters.status.unavailable' },
   { id: 'local-fixture', labelKey: 'History.filters.status.localFixture' },
 ];
@@ -265,6 +266,9 @@ export function CapabilityRunHistory({
     const source = historySourceLabelForRun(record);
     if (record.status === 'canceled') {
       return [t('History.canceled'), intent, source, historyFailureReasonForRun(record)].filter(Boolean).join(' / ');
+    }
+    if (record.status === 'timed-out') {
+      return [t('History.timedOut'), intent, source, historyFailureReasonForRun(record)].filter(Boolean).join(' / ');
     }
     if (isFailureHistoryStatus(record)) {
       return [t('History.failed'), intent, source, historyFailureReasonForRun(record)].filter(Boolean).join(' / ');

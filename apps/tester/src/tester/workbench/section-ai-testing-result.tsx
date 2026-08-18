@@ -17,6 +17,7 @@ const RUN_STATUS_LABEL_KEY: Record<TesterRunHistoryRecord['status'], string> = {
   unavailable: 'StudioShell.runStatusUnavailable',
   failed: 'StudioShell.runStatusFailed',
   canceled: 'StudioShell.runStatusCanceled',
+  'timed-out': 'StudioShell.runStatusTimedOut',
   'local-fixture': 'StudioShell.runStatusLocalFixture',
 };
 
@@ -127,6 +128,12 @@ function historyUnavailableDiagnosticsText(snapshot: Extract<TesterRunHistoryRes
     '',
     'Action:',
     snapshot.actionHint,
+    snapshot.diagnostics ? 'Technical diagnostics:' : '',
+    snapshot.diagnostics?.reasonCode ? `Reason code: ${snapshot.diagnostics.reasonCode}` : '',
+    snapshot.diagnostics?.actionHint ? `Owner action: ${snapshot.diagnostics.actionHint}` : '',
+    snapshot.diagnostics?.traceId ? `Trace: ${snapshot.diagnostics.traceId}` : '',
+    snapshot.diagnostics?.retryable !== undefined ? `Retryable: ${String(snapshot.diagnostics.retryable)}` : '',
+    snapshot.diagnostics?.source ? `Source: ${snapshot.diagnostics.source}` : '',
   ].filter(Boolean).join('\n');
 }
 

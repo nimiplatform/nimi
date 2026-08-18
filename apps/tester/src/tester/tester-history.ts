@@ -2,7 +2,7 @@ import { getTesterCapability, type TesterCapabilityId } from './tester-capabilit
 import { isJsonObject } from '@nimiplatform/sdk/types';
 import type { TesterCapabilityRunResult, TesterManagedArtifact } from './tester-runtime.js';
 import type { TesterRunTargetSummary } from './tester-run-target.js';
-import type { TesterUnavailableReason } from './tester-unavailable.js';
+import type { TesterUnavailableDiagnostics, TesterUnavailableReason } from './tester-unavailable.js';
 
 export type TesterRunConfigSnapshot = {
   target: Pick<
@@ -109,13 +109,14 @@ export type TesterRunHistoryResultSnapshot =
       message: string;
       actionHint: string;
       missingSurface?: string;
+      diagnostics?: TesterUnavailableDiagnostics;
     };
 
 export type TesterRunHistoryRecord = {
   id: string;
   capabilityId: string;
   prompt: string;
-  status: 'unavailable' | 'ready' | 'simulated' | 'failed' | 'canceled' | 'local-fixture';
+  status: 'unavailable' | 'ready' | 'simulated' | 'failed' | 'canceled' | 'timed-out' | 'local-fixture';
   message: string;
   createdAt: string;
   result?: TesterRunHistoryResultSnapshot;
@@ -169,6 +170,7 @@ export function getTesterRunStatusLabel(status: TesterRunHistoryRecord['status']
   if (status === 'unavailable') return 'sdk unavailable';
   if (status === 'failed') return 'failed';
   if (status === 'canceled') return 'canceled';
+  if (status === 'timed-out') return 'timed out';
   return 'local fixture';
 }
 
@@ -178,6 +180,7 @@ export function getTesterRunStatusTone(status: TesterRunHistoryRecord['status'])
   if (status === 'local-fixture') return 'info';
   if (status === 'failed') return 'danger';
   if (status === 'canceled') return 'warning';
+  if (status === 'timed-out') return 'warning';
   return 'warning';
 }
 
@@ -265,6 +268,7 @@ export function createTesterRunHistoryResultSnapshot(result: TesterCapabilityRun
       message: result.message,
       actionHint: result.actionHint,
       missingSurface: result.missingSurface,
+      ...(result.diagnostics ? { diagnostics: { ...result.diagnostics } } : {}),
     };
   }
 
@@ -360,6 +364,7 @@ export function restoreTesterCapabilityRunResult(record: TesterRunHistoryRecord)
       message: snapshot.message,
       actionHint: snapshot.actionHint,
       ...(snapshot.missingSurface ? { missingSurface: snapshot.missingSurface } : {}),
+      ...(snapshot.diagnostics ? { diagnostics: { ...snapshot.diagnostics } } : {}),
     };
   }
 

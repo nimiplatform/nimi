@@ -59,6 +59,13 @@ export type JobControllerDeps = {
 
 type JobListener = (state: ScenarioJobState) => void;
 
+function structuredScenarioJobReasonCode(error: unknown): string {
+  if (!error || typeof error !== 'object' || Array.isArray(error)) return '';
+  const record = error as Record<string, unknown>;
+  const reasonCode = record.reasonCode ?? record.reason_code;
+  return typeof reasonCode === 'string' ? reasonCode.trim() : '';
+}
+
 function emptyJobState(jobId: string): ScenarioJobState {
   return {
     jobId,
@@ -372,8 +379,8 @@ class DesktopScenarioJobController implements ScenarioJobController {
     }
     this.startPollingRecovery(jobId, deps);
   } catch (error) {
-    const reasonCode = error instanceof Error ? error.message : String(error || '');
-    if (reasonCode.includes('AI_MEDIA_JOB_NOT_CANCELLABLE')) {
+    const reasonCode = structuredScenarioJobReasonCode(error);
+    if (reasonCode === 'AI_MEDIA_JOB_NOT_CANCELLABLE') {
       logRendererEvent({
         level: 'warn',
         area: 'scenario-job-controller',

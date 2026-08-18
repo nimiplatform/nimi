@@ -48,6 +48,7 @@
     "runStatusUnavailable": "SDK 不可用",
     "runStatusFailed": "失败",
     "runStatusCanceled": "已取消",
+    "runStatusTimedOut": "已超时",
     "runStatusLocalFixture": "本地夹具",
     "worldTourViewerMessage": "已为仅限 Tauri 的本地夹具打开查看器（{{manifestPath}}）；仅为本地夹具记录，无 Runtime 生成或 Runtime 产物。",
     "worldTourViewerOutput": "本地夹具查看器已打开（{{windowLabel}}）。这不是 Runtime 结果或 Runtime 产物。"

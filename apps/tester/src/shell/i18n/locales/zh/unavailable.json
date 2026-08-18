@@ -6,6 +6,7 @@
       "sdkMethodUnavailable": "SDK 方法不可用",
       "principalUnauthorized": "Runtime 所有者未授权",
       "runtimeCanceled": "Runtime 生成已取消",
+      "runtimeTimeout": "Runtime 生成已超时",
       "runtimeCallFailed": "Runtime 调用失败"
     },
     "message": {
@@ -14,6 +15,7 @@
       "sdkMethodUnavailable": "当前 App 构建中此能力不可用。",
       "principalUnauthorized": "Runtime 拒绝了本次请求的受保护所有者。",
       "runtimeCanceled": "本次 Runtime 生成已取消。",
+      "runtimeTimeout": "本次 Runtime 生成已达到终态超时。",
       "runtimeCallFailed": "Runtime 未能完成本次生成。",
       "fallback": "本次生成未完成。"
     },
@@ -23,6 +25,7 @@
       "sdkMethodUnavailable": "更新 App 或切换到受支持的能力。",
       "principalUnauthorized": "恢复受保护的 App 会话后重试。",
       "runtimeCanceled": "准备好后可重新运行此请求。",
+      "runtimeTimeout": "检查超时原因，并在 Runtime 或提供方可完成请求时重试。",
       "runtimeCallFailed": "查看带类型的 Runtime 错误，解决其原因后重试。",
       "fallback": "查看 Runtime 诊断详情后重试。"
     },
@@ -32,6 +35,7 @@
       "sdkMethodUnavailable": "添加一个已准入的 SDK Nimi App 执行方法。不要用 App 本地 REST 绕过 Runtime。",
       "principalUnauthorized": "Runtime 拒绝了受保护的所有者身份。请先恢复已准入的 App 会话再重试。",
       "runtimeCanceled": "Runtime 已持久化取消此 ScenarioJob。仅在确实需要再次运行时提交新请求。",
+      "runtimeTimeout": "Runtime 已将此 ScenarioJob 记录为超时终态。重试前请检查带类型的原因与追踪信息。",
       "runtimeCallFailed": "Runtime 返回了带类型的契约失败。请查看原始 Runtime 错误，不要推断为成功。"
     }
   }
