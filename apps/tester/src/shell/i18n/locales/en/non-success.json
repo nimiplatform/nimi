@@ -5,6 +5,7 @@
       "inputInvalid": "Invalid request input",
       "sdkMethodUnavailable": "SDK method unavailable",
       "principalUnauthorized": "Runtime owner unauthorized",
+      "operationAborted": "Operation stopped",
       "runtimeCanceled": "Runtime generation canceled",
       "runtimeTimeout": "Runtime generation timed out",
       "runtimeCallFailed": "Runtime call failed"
@@ -14,6 +15,7 @@
       "inputInvalid": "The request needs a valid prompt or required input before it can run.",
       "sdkMethodUnavailable": "This capability is not available in the current app build.",
       "principalUnauthorized": "Runtime rejected the protected owner for this request.",
+      "operationAborted": "The caller stopped waiting before Runtime confirmed a terminal state.",
       "runtimeCanceled": "This Runtime generation was canceled.",
       "runtimeTimeout": "This Runtime generation reached its terminal timeout.",
       "runtimeCallFailed": "Runtime could not complete this generation.",
@@ -24,6 +26,7 @@
       "inputInvalid": "Review the prompt and required fields, then run it again.",
       "sdkMethodUnavailable": "Update the app or switch to a supported capability.",
       "principalUnauthorized": "Restore the protected App session, then retry.",
+      "operationAborted": "Run the operation again when you want to resume waiting for a result.",
       "runtimeCanceled": "Run the request again when you are ready.",
       "runtimeTimeout": "Review the timeout cause, then retry when the Runtime or provider can complete the request.",
       "runtimeCallFailed": "Inspect the typed Runtime error, then retry after resolving its cause.",
@@ -34,6 +37,7 @@
       "inputInvalid": "Supply a valid request body for this capability, then retry.",
       "sdkMethodUnavailable": "Add an admitted SDK Nimi App execution method. Do not bypass Runtime with app-local REST.",
       "principalUnauthorized": "Runtime rejected the protected owner identity. Restore the admitted App session before retrying.",
+      "operationAborted": "The local caller stopped waiting. Inspect the ScenarioJob separately before inferring any Runtime terminal state.",
       "runtimeCanceled": "Runtime durably canceled this ScenarioJob. Submit a new request only when another run is wanted.",
       "runtimeTimeout": "Runtime durably timed out this ScenarioJob. Inspect its typed reason and trace before retrying.",
       "runtimeCallFailed": "Runtime returned a typed contract failure. Inspect the verbatim Runtime error without inferring success."

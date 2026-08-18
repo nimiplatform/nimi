@@ -792,7 +792,8 @@ function projectRunnerNonSuccess(
 
 function testerNonSuccessReason(reason: string): TesterNonSuccessReason {
   if (reason === 'input-invalid' || reason === 'sdk-method-unavailable'
-    || reason === 'principal-unauthorized' || reason === 'runtime-canceled'
+    || reason === 'principal-unauthorized' || reason === 'operation-aborted'
+    || reason === 'runtime-canceled'
     || reason === 'runtime-timeout') {
     return reason;
   }

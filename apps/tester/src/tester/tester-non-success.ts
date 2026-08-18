@@ -12,6 +12,7 @@ export type TesterNonSuccessReason =
   | 'input-invalid'
   | 'sdk-method-unavailable'
   | 'principal-unauthorized'
+  | 'operation-aborted'
   | 'runtime-canceled'
   | 'runtime-timeout'
   | 'runtime-call-failed';
@@ -44,6 +45,8 @@ function reasonKeySegment(reason: string): string {
       return 'sdkMethodUnavailable';
     case 'principal-unauthorized':
       return 'principalUnauthorized';
+    case 'operation-aborted':
+      return 'operationAborted';
     case 'runtime-canceled':
       return 'runtimeCanceled';
     case 'runtime-timeout':

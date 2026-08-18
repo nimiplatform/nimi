@@ -371,7 +371,7 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
             ? 'simulated'
             : historyResult.ok
               ? 'ready'
-              : historyResult.reason === 'runtime-canceled'
+              : historyResult.reason === 'runtime-canceled' || historyResult.reason === 'operation-aborted'
                 ? 'canceled'
                 : historyResult.reason === 'runtime-timeout'
                   ? 'timed-out'

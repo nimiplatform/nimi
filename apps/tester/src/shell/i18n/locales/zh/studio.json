@@ -226,6 +226,7 @@
       "notRecorded": "未记录",
       "status": {
         "runtimeRunning": "Runtime 运行中",
+        "operationAborted": "操作已停止",
         "runtimeCanceled": "Runtime 已取消",
         "runtimeTimedOut": "Runtime 已超时",
         "runtimeBlocked": "Runtime 受阻",

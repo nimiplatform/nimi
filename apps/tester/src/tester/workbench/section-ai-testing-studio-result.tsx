@@ -202,10 +202,12 @@ export function StudioResult({
   const { t } = useTranslation();
   const profile = getCapabilityStudioProfile(capability.id);
   const ready = result?.ok ? result : null;
+  const operationAborted = result && !result.ok && result.reason === 'operation-aborted' ? result : null;
   const canceled = result && !result.ok && result.reason === 'runtime-canceled' ? result : null;
   const timedOut = result && !result.ok && result.reason === 'runtime-timeout' ? result : null;
   const blocked = result && !result.ok
     && result.reason !== 'runtime-canceled'
+    && result.reason !== 'operation-aborted'
     && result.reason !== 'runtime-timeout' ? result : null;
   const plainText = ready ? resultPlainText(ready) : '';
   const canExport = Boolean(ready && plainText);
@@ -218,9 +220,9 @@ export function StudioResult({
     : running ? t('Studio.result.statRunning') : t('Studio.result.notRecorded');
   const statusTitleKey = simulated
     ? running ? 'simulatorRunning' : blocked ? 'simulatorBlocked' : ready ? 'simulatorResult' : 'simulatorWaiting'
-    : running ? 'runtimeRunning' : canceled ? 'runtimeCanceled' : timedOut ? 'runtimeTimedOut' : blocked ? 'runtimeBlocked' : ready ? 'runtimeResult' : 'runtimeWaiting';
+    : running ? 'runtimeRunning' : operationAborted ? 'operationAborted' : canceled ? 'runtimeCanceled' : timedOut ? 'runtimeTimedOut' : blocked ? 'runtimeBlocked' : ready ? 'runtimeResult' : 'runtimeWaiting';
   const statusTitle = t(`Studio.result.status.${statusTitleKey}`);
-  const statusTone = blocked || canceled || timedOut ? 'warning' : ready ? 'success' : running ? 'info' : 'neutral';
+  const statusTone = blocked || operationAborted || canceled || timedOut ? 'warning' : ready ? 'success' : running ? 'info' : 'neutral';
   useEffect(() => {
     if (!hasRequestSettings) setRequestSettingsOpen(false);
   }, [hasRequestSettings]);
@@ -236,7 +238,7 @@ export function StudioResult({
     if (!result) return [{ label: t('Studio.result.statStatus'), value: t('Studio.result.statWaiting') }];
     if (!result.ok) return [{
       label: t('Studio.result.statStatus'),
-      value: t(result.reason === 'runtime-canceled'
+      value: t(result.reason === 'runtime-canceled' || result.reason === 'operation-aborted'
         ? 'Studio.result.statCanceled'
         : result.reason === 'runtime-timeout'
           ? 'Studio.result.statTimedOut'

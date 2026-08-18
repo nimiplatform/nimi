@@ -226,6 +226,7 @@
       "notRecorded": "Not recorded",
       "status": {
         "runtimeRunning": "Runtime running",
+        "operationAborted": "Operation stopped",
         "runtimeCanceled": "Runtime canceled",
         "runtimeTimedOut": "Runtime timed out",
         "runtimeBlocked": "Runtime blocked",

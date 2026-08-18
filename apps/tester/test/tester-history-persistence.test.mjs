@@ -202,6 +202,32 @@ test('run history preserves a canceled Runtime outcome without reclassifying it 
   }
 });
 
+test('run history preserves caller-local operation abort without fabricating Runtime cancellation', async () => {
+  const storage = createStorageClient();
+  globalThis.__NIMI_TESTER_HISTORY_STORAGE_CLIENT__ = storage.client;
+  try {
+    await historyStorageModule.appendTesterRunHistory(runRecord('run-operation-aborted', '2026-08-08T08:01:30.000Z', {
+      capabilityId: 'video.generate',
+      status: 'canceled',
+      message: 'caller stopped waiting',
+      result: {
+        ok: false,
+        kind: 'non-success',
+        summary: 'caller stopped waiting',
+        reason: 'operation-aborted',
+        message: 'caller stopped waiting',
+        actionHint: 'Inspect the ScenarioJob before inferring a terminal state.',
+      },
+    }));
+
+    const reloaded = await historyStorageModule.loadTesterRunHistory();
+    assert.equal(reloaded['video.generate'][0].status, 'canceled');
+    assert.equal(reloaded['video.generate'][0].result.reason, 'operation-aborted');
+  } finally {
+    delete globalThis.__NIMI_TESTER_HISTORY_STORAGE_CLIENT__;
+  }
+});
+
 test('run history preserves a timed-out Runtime outcome without reclassifying it as failed', async () => {
   const storage = createStorageClient();
   globalThis.__NIMI_TESTER_HISTORY_STORAGE_CLIENT__ = storage.client;

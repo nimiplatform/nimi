@@ -568,6 +568,31 @@ test('Tester forwards the user cancellation signal to the video ScenarioJob runn
   assert.equal(capturedAbortReason, 'tester-user-canceled');
 });
 
+test('Tester preserves caller-local operation-aborted without fabricating a Runtime cancellation', async () => {
+  const { runTesterCapability } = await importTesterRuntime();
+  const client = fakeLocalAppClient();
+  const result = await runTesterCapability({
+    capabilityId: 'video.generate',
+    prompt: 'cancel this video',
+  }, readyRuntimeDependencies(client, {
+    createScenarioJobClient() { return { marker: 'job-client:video.generate' }; },
+    runners: {
+      async videoGenerate() {
+        return {
+          ok: false,
+          capabilityId: 'video.generate',
+          reason: 'operation-aborted',
+          message: 'The caller stopped waiting before Runtime confirmed a terminal state.',
+        };
+      },
+    },
+  }));
+
+  assert.equal(result.ok, false);
+  assert.equal(result.reason, 'operation-aborted');
+  assert.notEqual(result.reason, 'runtime-canceled');
+});
+
 test('Tester removes already adopted artifacts when a later artifact adoption fails', async () => {
   const { runTesterCapability } = await importTesterRuntime();
   const adoptionCalls = [];
