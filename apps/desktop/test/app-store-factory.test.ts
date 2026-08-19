@@ -342,6 +342,8 @@ function createCanonicalBindings(input: {
         async startWindowDrag() {},
         async listLocalDevelopmentRegistrations() { return []; },
         async listLocalDevelopmentRuns() { return []; },
+        async startLocalDevelopmentRegistration() { throw new Error('TEST_UNAVAILABLE'); },
+        async stopLocalDevelopmentRun() { throw new Error('TEST_UNAVAILABLE'); },
         async removeLocalDevelopmentRegistration() { throw new Error('TEST_UNAVAILABLE'); },
         async refreshDeveloperMode() { throw new Error('TEST_DEVELOPER_MODE_UNADMITTED'); },
         async setDeveloperMode() { throw new Error('TEST_DEVELOPER_MODE_UNADMITTED'); },

@@ -1,9 +1,8 @@
-// Desktop Apps action projection.
-//
-// The current local-development Apps surface is read-only. Launch remains with
-// the supervised App Tools flow, and public package lifecycle is deferred.
+// Desktop Apps action projection for the current local-development source.
+// Package actions remain absent because local_development never enters the
+// immutable package lifecycle.
 
-export type AppCardActionId = 'details';
+export type AppCardActionId = 'details' | 'launch' | 'stop' | 'remove';
 
 export interface AppCardAction {
   readonly id: AppCardActionId;
@@ -15,7 +14,14 @@ export interface AppCardActionPlan {
 }
 
 const DETAILS: AppCardAction = { id: 'details' };
+const LAUNCH: AppCardAction = { id: 'launch' };
+const STOP: AppCardAction = { id: 'stop' };
+const REMOVE: AppCardAction = { id: 'remove' };
 
-export function actionPlanForLocalDevelopmentEntry(): AppCardActionPlan {
-  return { primary: null, secondary: [DETAILS] };
+export function actionPlanForLocalDevelopmentEntry(runState: string | null): AppCardActionPlan {
+  const active = runState !== null && !['stopped', 'failed', 'build-failed', 'cleanup-failed', 'project-changed', 'registration-unavailable', 'registration-removed'].includes(runState);
+  return {
+    primary: active ? STOP : LAUNCH,
+    secondary: [DETAILS, REMOVE],
+  };
 }

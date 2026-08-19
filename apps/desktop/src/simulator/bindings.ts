@@ -373,6 +373,12 @@ export function createDesktopSimulatorBindings(
         async listLocalDevelopmentRuns() {
           throw new Error('DESKTOP_SIMULATOR_LOCAL_DEVELOPMENT_UNADMITTED');
         },
+        async startLocalDevelopmentRegistration() {
+          throw new Error('DESKTOP_SIMULATOR_LOCAL_DEVELOPMENT_UNADMITTED');
+        },
+        async stopLocalDevelopmentRun() {
+          throw new Error('DESKTOP_SIMULATOR_LOCAL_DEVELOPMENT_UNADMITTED');
+        },
         async removeLocalDevelopmentRegistration() {
           throw new Error('DESKTOP_SIMULATOR_LOCAL_DEVELOPMENT_UNADMITTED');
         },

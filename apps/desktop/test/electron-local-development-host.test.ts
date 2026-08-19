@@ -67,6 +67,7 @@ function activeRun() {
   return {
     plan: plan(),
     supervisorRunId: SUPERVISOR,
+    desktopManaged: false,
     registrationHandle: HANDLE as string | undefined,
     pendingEndRunRegistrationHandle: undefined as string | undefined,
     stopped: false,
@@ -131,6 +132,27 @@ describe('Desktop Electron local-development registration host', () => {
       host.invoke('local_development_registration_remove', { payload: { selector: HANDLE } }),
       /local-development-selector-invalid/u,
     );
+  });
+
+  it('starts a listed project as a Desktop-managed supervised run', async () => {
+    const host = new ElectronLocalDevelopmentHost(control(), '/tmp');
+    const [row] = await host.invoke('local_development_registrations_list', {}) as Array<{ selector: string }>;
+    let captured: readonly unknown[] = [];
+    const commandHost = host as unknown as {
+      startIntent: (...args: readonly unknown[]) => Promise<ReturnType<typeof activeRun>['status']>;
+    };
+    commandHost.startIntent = async (...args) => {
+      captured = args;
+      return activeRun().status;
+    };
+
+    const result = await host.invoke('local_development_registration_start', {
+      payload: { selector: row!.selector },
+    }) as Record<string, unknown>;
+
+    assert.deepEqual(captured, ['example.local-app', '/projects/example', 'electron', undefined, true]);
+    assert.equal(result.state, 'running');
+    assert.equal(result.appId, 'example.local-app');
   });
 
   it('physically rejects retired decision commands', async () => {

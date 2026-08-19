@@ -5,6 +5,17 @@
   "inventoryTitle": "已接入的应用",
   "inventoryDescription": "已注册的本地开发项目会显示其确切项目根目录和原始 App Access 声明。",
   "inventoryCount": "{{count}} 个 App",
+  "sidebar": {
+    "subtitle": "本地开发 App",
+    "searchPlaceholder": "搜索 App 或 App ID",
+    "searchLabel": "搜索已注册 App",
+    "clearSearch": "清除搜索",
+    "listLabel": "已注册 App",
+    "developerHint": "在开发者模式中接入和管理本地项目。",
+    "emptyHint": "打开开发者模式以接入本地项目。",
+    "noResultsTitle": "没有匹配的 App",
+    "noResultsDescription": "请尝试其他名称或 App ID。"
+  },
   "overview": {
     "connected": "已接入",
     "connectedDetail": "当前已连接",
@@ -122,8 +133,16 @@
     "removeLocalAdoption": "移除本地链接",
     "signIn": "登录",
     "deleteAppData": "删除应用数据",
+    "launch": "启动",
+    "stop": "停止",
+    "removeDevelopment": "移除项目",
     "details": "详情",
     "close": "关闭"
+  },
+  "runState": {
+    "running": "运行中",
+    "starting": "启动中",
+    "stopped": "未运行"
   },
   "requirement": {
     "ai": "AI",
@@ -216,6 +235,32 @@
     "detail": "安装失败：{{reasonCode}} {{detail}}"
   },
   "detail": {
+    "backToApps": "返回应用",
+    "tabsLabel": "App 详情",
+    "overviewTab": "概览",
+    "accessTab": "Nimi Access",
+    "developerTab": "开发者信息",
+    "localSummary": "已注册到当前 Nimi Desktop 的本地开发 App。",
+    "aboutTitle": "关于此 App",
+    "aboutDescription": "当前可用于这个本地开发 App 的注册与来源信息。",
+    "registrationState": "注册状态",
+    "runState": "运行状态",
+    "source": "来源",
+    "hostShell": "App Shell",
+    "lastUpdated": "最近更新",
+    "registeredAt": "注册时间",
+    "currentScopeTitle": "本地开发 App",
+    "currentScopeDescription": "此 App 来自当前设备上接入的项目；名称和 App Access 声明由该项目提供。",
+    "accessTitle": "声明的 Nimi Access",
+    "accessDescription": "项目为使用 Nimi 支持的平台能力而声明的访问域。",
+    "accessDeclarationNote": "App Access 是项目声明，不是用户权限、批准或同意设置。",
+    "noAccessTitle": "未声明 App Access",
+    "noAccessDescription": "此项目注册时没有声明任何 App Access 域。",
+    "developerInfoTitle": "开发者信息",
+    "developerInfoDescription": "用于排查此注册的精确本地来源和 generation 信息。",
+    "selectTitle": "选择一个 App",
+    "selectDescription": "从列表中选择已注册 App 以查看详情。",
+    "loadFailedTitle": "无法加载 Apps",
     "publisher": "发布者",
     "trustTier": "信任层级",
     "installState": "安装状态",
@@ -229,7 +274,32 @@
     "cacheRoot": "缓存",
     "tempRoot": "临时"
   },
+  "accessDomain": {
+    "realmData": {
+      "label": "Realm 数据",
+      "description": "声明使用由 Nimi 管理的 Realm 数据操作；App 实际使用该域时再评估访问。"
+    },
+    "runtimeConsume": {
+      "label": "AI 运行时",
+      "description": "声明通过 Nimi Runtime 使用受支持的 AI 能力；可在下方配置模型路由。"
+    },
+    "agentLocal": {
+      "label": "本地 Agent",
+      "description": "声明与 Nimi 暴露的本地 Agent 能力交互。"
+    },
+    "agentConfigure": {
+      "label": "Agent 配置",
+      "description": "声明使用 Nimi 暴露的受支持 Agent 配置能力。"
+    },
+    "unknown": {
+      "label": "未识别的声明",
+      "description": "Nimi 保留此原始值用于开发诊断，不为它附加额外语义。"
+    }
+  },
   "confirm": {
+    "removeDevelopment": {
+      "message": "从 Apps 移除 {{app}}？这会停止当前运行并移除本地开发注册，但不会删除项目文件。"
+    },
     "deleteAppData": {
       "title": "删除应用数据",
       "message": "确定要永久删除 {{app}} 的持久应用数据吗？此操作会移除发布与该应用存储的数据，且不可撤销。",

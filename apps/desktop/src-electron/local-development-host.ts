@@ -44,6 +44,8 @@ const COMMANDS = new Set([
   'local_development_registrations_list',
   'local_development_runs_list',
   'local_development_registration_remove',
+  'local_development_registration_start',
+  'local_development_run_stop',
 ]);
 const HEALTH_MS = 2_000;
 const LAUNCHER_LEASE_MS = 10_000;
@@ -82,6 +84,7 @@ type RunContext = {
   readonly plan: ElectronLocalDevelopmentPlan;
   readonly cdpPort?: number;
   readonly supervisorRunId: string;
+  desktopManaged: boolean;
   registrationHandle?: string;
   pendingEndRunRegistrationHandle?: string;
   buildChild?: ChildProcessWithoutNullStreams;
@@ -187,7 +190,10 @@ export class ElectronLocalDevelopmentHost {
       return [...this.runs.values()].map((run) => projectRun(run.status));
     }
     if (command === 'local_development_registrations_list') return this.listRegistrations();
-    return this.removeRegistration(exactNestedPayload(payload));
+    const exactPayload = exactNestedPayload(payload);
+    if (command === 'local_development_registration_remove') return this.removeRegistration(exactPayload);
+    if (command === 'local_development_registration_start') return this.startRegistration(exactPayload);
+    return this.stopRegistrationRun(exactPayload);
   }
 
   shutdown(): Promise<void> {
@@ -276,6 +282,7 @@ export class ElectronLocalDevelopmentHost {
     projectRoot: string,
     shell: string,
     requestedCdpPort?: number,
+    desktopManaged = false,
   ): Promise<RunStatus> {
     let plan: ElectronLocalDevelopmentPlan;
     try {
@@ -296,7 +303,12 @@ export class ElectronLocalDevelopmentHost {
       if (existing.cdpPort !== requestedCdpPort) {
         throw new Error('local-development-cdp-configuration-conflict');
       }
-      this.touchLauncherLease(existing);
+      if (desktopManaged) {
+        existing.desktopManaged = true;
+        this.clearLauncherLease(existing);
+      } else {
+        this.touchLauncherLease(existing);
+      }
       return existing.status;
     }
     if (requestedCdpPort !== undefined
@@ -308,6 +320,7 @@ export class ElectronLocalDevelopmentHost {
       plan,
       cdpPort: requestedCdpPort,
       supervisorRunId: randomIdentifier(),
+      desktopManaged,
       stopped: false,
       stoppedCleanupComplete: false,
       tearingDown: false,
@@ -335,7 +348,7 @@ export class ElectronLocalDevelopmentHost {
       },
     };
     this.runs.set(runId, run);
-    this.touchLauncherLease(run);
+    if (!desktopManaged) this.touchLauncherLease(run);
     // Registration can legitimately outlive the launcher's short loopback
     // request timeout while Runtime is rebinding. Return the preparing run
     // immediately and let the existing status polling carry that transition.
@@ -415,6 +428,35 @@ export class ElectronLocalDevelopmentHost {
     return { selector: selectorValue, removed: true };
   }
 
+  private async startRegistration(payload: Readonly<Record<string, unknown>>): Promise<ReturnType<typeof projectRun>> {
+    const value = exact(payload, ['selector']);
+    const selectorValue = selector(value.selector, 'dev-project');
+    const registrationHandle = this.registrationSelectors.get(selectorValue);
+    if (!registrationHandle) throw new Error('local-development-registration-not-found');
+    const registration = (await this.control.listRegistrations())
+      .find((candidate) => candidate.registrationHandle === registrationHandle);
+    if (!registration || registration.project.shell !== 'electron') {
+      throw new Error('local-development-registration-not-found');
+    }
+    const status = await this.startIntent(
+      registration.project.appId,
+      registration.project.canonicalProjectRoot,
+      registration.project.shell,
+      undefined,
+      true,
+    );
+    return projectRun(status);
+  }
+
+  private async stopRegistrationRun(payload: Readonly<Record<string, unknown>>): Promise<{ readonly appId: string; readonly stopped: true }> {
+    const value = exact(payload, ['appId']);
+    const appId = text(value.appId);
+    const runs = [...this.runs.values()].filter((run) => run.status.appId === appId && !run.stopped);
+    if (runs.length === 0) throw new Error('local-development-run-not-found');
+    await Promise.all(runs.map((run) => this.stopRun(run, 'stopped')));
+    return { appId, stopped: true };
+  }
+
   private startSupervisor(run: RunContext): void {
     if (run.supervising || run.stopped) return;
     run.supervising = true;
@@ -424,7 +466,7 @@ export class ElectronLocalDevelopmentHost {
   }
 
   private touchLauncherLease(run: RunContext): void {
-    if (run.stopped) return;
+    if (run.stopped || run.desktopManaged) return;
     if (run.launcherLeaseTimer) clearTimeout(run.launcherLeaseTimer);
     run.launcherLeaseTimer = setTimeout(() => {
       run.launcherLeaseTimer = undefined;

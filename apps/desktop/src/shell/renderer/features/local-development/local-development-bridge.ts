@@ -36,6 +36,29 @@ export async function removeLocalDevelopmentRegistration(selector: string): Prom
   }
 }
 
+export async function startLocalDevelopmentRegistration(
+  selector: string,
+): Promise<LocalDevelopmentRun> {
+  const response = await invokeChecked(
+    'local_development_registration_start',
+    { payload: { selector: requireSelector(selector) } },
+    (value) => value,
+  );
+  return parseRun(response);
+}
+
+export async function stopLocalDevelopmentRun(appId: string): Promise<void> {
+  const response = await invokeChecked(
+    'local_development_run_stop',
+    { payload: { appId: requireText(appId) } },
+    (value) => value,
+  );
+  const record = exactRecord(response, ['appId', 'stopped']);
+  if (record.stopped !== true || record.appId !== appId) {
+    throw new Error('Local development stop response is invalid');
+  }
+}
+
 export async function listLocalDevelopmentRuns(): Promise<LocalDevelopmentRun[]> {
   const response = await invokeChecked(
     'local_development_runs_list',

@@ -533,7 +533,7 @@ units:
     kind: rule
     title: P-NAPP-032 local record creation boundary
     modality: must
-    statement: A mutable project enters only through local_development, an immutable package remains unavailable until its opaque-lineage mapping is admitted, and workspace adoption or scanning, file presence, package installation, cloned source, process liveness, app-local specs, aliases, and inventory-only rows cannot create a registered subject, local record, provenance, declaration generation, Desktop launch witness, protected session, or Effective App Access Snapshot.
+    statement: A verified local record is created only by atomic commit of an approved catalog artifact, a user_imported local record only by atomic commit after explicit immutable local-package selection and complete validation, and a local_development record only by Developer-Mode source evaluation and registration; workspace adoption or scanning, file presence, installer execution, cloned source, process liveness, app-local specs, aliases, and inventory-only rows cannot create a registered subject, local record, provenance, declaration generation, Desktop launch witness, protected session, or Effective App Access Snapshot.
     condition: Whenever a local app record or positive local authority is created.
     failure: Deny creation unless the admitted provenance-specific path supplies every required fact.
     relations:
@@ -660,7 +660,15 @@ units:
   - id: definition.nimi.platform.app-ecosystem.immutable-package-seam
     kind: definition
     title: Immutable package integration seam
-    meaning: The immutable package integration seam consists only of opaque immutable_lineage_id, provenance_attestation_refs, provenance_revision, execution_profile_ref, host_executable_digest, and payload_root_digest slots without positive package operations or readiness.
+    meaning: The immutable package integration seam projects only opaque immutable_lineage_id, provenance_attestation_refs, provenance_revision, execution_profile_ref, host_executable_digest, and payload_root_digest into Runtime registration and access truth while the package lifecycle owner separately retains installed release, lifecycle job, progress, rollback, and readiness state.
+  - id: definition.nimi.platform.app-ecosystem.app-local-lifecycle-projection
+    kind: definition
+    title: App local lifecycle projection
+    meaning: An App local lifecycle projection keeps source_class as verified, user_imported, or local_development, package_state as not-installed, installing, installed, updating, repairing, uninstalling, failed, or not-applicable, update_state as not-applicable, unknown, up-to-date, update-available, or check-failed, run_state as stopped, launching, running, stopping, or crashed, the existing negative health_repair_projection, and current typed App access availability as independent axes that never collapse into one ready or normal state.
+  - id: definition.nimi.platform.app-ecosystem.app-lifecycle-job
+    kind: definition
+    title: App package lifecycle job
+    meaning: An App package lifecycle job contains job_id, install, update, repair, or uninstall kind, verified or user_imported source class, an exact candidate or release reference, queued, downloading, reading-local, verifying, verifying-installed, acquiring-missing, staging, committing, stopping-host, removing-package, unregistering, completed, failed, or canceled phase, bytes_completed, nullable bytes_total, bytes, steps, or indeterminate progress basis, started_at, nullable completed_at, nullable terminal result and typed reason, and cancelable, with local_development excluded from package jobs.
   - id: definition.nimi.platform.app-ecosystem.publisher-identity
     kind: definition
     title: Admitted publisher identity
@@ -685,9 +693,9 @@ units:
     kind: rule
     title: P-NAPP-001 catalog authority and package kind
     modality: must
-    statement: The current Third-party App product scope admits only Runtime-owned local_development, while retained Platform catalog, public release, trust-tier, ordinary-user install, update, repair, and user_imported designs remain unavailable until separate lifecycle authority activates them; future catalog presence alone creates no registration, subject, local record, declaration generation, Desktop launch, protected session, Effective App Access Snapshot, runnable truth, or ordinary visibility.
-    condition: Whenever current App scope, future package admission, or local runnable posture is resolved.
-    failure: Reject current non-local-development admission, premature public-lifecycle activation, another package kind, or local authority inferred from future catalog presence or absence.
+    statement: The current Third-party App product scope admits approved ordinary-visible catalog releases through verified installation, explicitly selected immutable local packages through user_imported installation, and mutable projects through local_development; catalog or artifact presence alone creates no registration, subject, local record, declaration generation, Desktop launch, protected session, Effective App Access Snapshot, or runnable truth, and only a successful provenance-specific lifecycle commit may create or update the corresponding local record.
+    condition: Whenever current App scope, package admission, or local runnable posture is resolved.
+    failure: Reject another source class, bypassed provenance-specific admission, or local authority inferred before the successful lifecycle commit.
     relations:
       - type: applies_to
         target: definition.nimi.platform.app-ecosystem.catalog-admission
@@ -785,7 +793,7 @@ units:
     kind: rule
     title: P-NAPP-007 package trust and update boundary
     modality: must
-    statement: Platform owns catalog signature, attestation, and update metadata, package mapping into opaque lineage, attestation, execution-profile, and digest slots remains unavailable until admitted, and updates neither mutate the Runtime-selected source record nor introduce parallel package trust.
+    statement: Platform owns catalog signature, attestation, and update metadata, the package lifecycle owner consumes one immutable descriptor and validated artifact to map the six opaque lineage, attestation, execution-profile, and digest slots, and every update selects and atomically commits a new immutable release without directly mutating Runtime-selected security truth or introducing parallel package trust.
     condition: Whenever verified package trust or update metadata meets local state.
     failure: Deny unmapped package use, selected-source mutation, or parallel trust.
     relations:
@@ -881,9 +889,9 @@ units:
     kind: rule
     title: P-NAPP-013 source is not runnable authority
     modality: must_not
-    statement: Repository ownership, package name, source directory, app-local specification, direct npm or npx, mutable branch or tag, clone, build, run, or installer execution creates immutable local truth, registered subject, declaration generation, Desktop launch witness, protected session, or Effective App Access Snapshot; mutable source uses local_development and immutable import remains unavailable until admitted.
+    statement: Repository ownership, package name, source directory, app-local specification, direct npm or npx, mutable branch or tag, clone, build, run, or installer execution creates immutable local truth, registered subject, declaration generation, Desktop launch witness, protected session, or Effective App Access Snapshot; mutable source uses local_development, an explicit immutable local package uses the user_imported validation and install path, and a catalog package uses the approved verified install path.
     condition: Whenever source presence is interpreted locally.
-    failure: Deny local authority and route mutable source through local_development.
+    failure: Deny local authority and route the source through its exact local_development, user_imported, or verified lifecycle.
     relations:
       - type: applies_to
         target: definition.nimi.platform.app-ecosystem.immutable-package-seam
@@ -893,9 +901,9 @@ units:
     kind: rule
     title: P-NAPP-014 immutable descriptor and digest verification
     modality: must
-    statement: Every catalog version resolves an immutable descriptor with exact app_id, version, source kind and ref, artifact locator, SHA-256, size, signature or provenance ref, Runtime kind and entry, App access declaration, and storage policy, and future mapping downloads only from that source, hashes bytes before unpack, registration, or execution, compares SHA-256, and continues manifest, declaration, Runtime, and storage validation only after a match; these immutable-package checks do not define mutable-project peer proof or Runtime access.
+    statement: Every catalog install or update resolves an immutable descriptor with exact app_id, version, source kind and ref, artifact locator, SHA-256, size, signature or provenance ref, Runtime kind and entry, App access declaration, and storage policy, downloads only from that source or admitted mirror, verifies exact size, SHA-256, signature or provenance, manifest, declaration, Runtime, and storage posture before staging and atomic commit, and an explicit local import reads only the user-selected immutable artifact through the same validation and staging boundary without a download phase; these checks do not define mutable-project peer proof or Runtime access.
     condition: Whenever a catalog version or immutable mapping is admitted.
-    failure: Fail closed before unpacking on missing fields, wrong source, or digest mismatch.
+    failure: Fail closed before staging or commit on missing fields, wrong source, size or digest mismatch, signature or provenance failure, or another unresolved validation.
     relations:
       - type: applies_to
         target: definition.nimi.platform.app-ecosystem.immutable-package-seam
@@ -905,9 +913,9 @@ units:
     kind: rule
     title: P-NAPP-014 descriptor and hash are not package safety
     modality: must_not
-    statement: The descriptor is treated as immutable package format, hostile-byte inspector, or fixed-AppHost authority, enables user_imported installation before admission, or treats hash match alone as safety proof.
+    statement: The descriptor is treated as immutable package format, hostile-byte inspector, or fixed-AppHost authority, a user_imported package bypasses the complete explicit local-import validation lifecycle, or hash match alone is treated as safety proof.
     condition: Whenever descriptor or digest success is interpreted.
-    failure: Keep installation unavailable and require every independent validation.
+    failure: Reject the lifecycle commit and require every independent validation without granting catalog, publisher, trust-tier, or verified posture to user_imported.
     relations:
       - type: applies_to
         target: definition.nimi.platform.app-ecosystem.immutable-package-seam
@@ -955,19 +963,14 @@ units:
         target: definition.nimi.platform.app-ecosystem.release-descriptor
   - id: rule.nimi.platform.app-ecosystem.p-napp-019a
     kind: rule
-    title: P-NAPP-019 opaque immutable seam
-    modality: must
-    statement: The local kernel admits only the six opaque seam slots and keeps size partition, dates, installed version, rollback candidate, active release pointer, install evidence, job, storage root, signer envelope, import, update, promotion, repair, positive operation, and readiness unavailable.
-    condition: Whenever immutable package state is projected before separate admission.
-    failure: Return typed unavailable and reject additional positive state.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.app-ecosystem.immutable-package-seam
+    lifecycle: removed
+    title: Retired P-NAPP-019 immutable package lifecycle non-admission
+    reason: Removed because the current App package lifecycle now admits truthful install, update, repair, uninstall, job, progress, active-release, rollback, and readiness projections while the six-field Runtime identity seam remains separately constrained.
   - id: rule.nimi.platform.app-ecosystem.p-napp-019b
     kind: rule
     title: P-NAPP-019 frozen schema and non-local metadata
     modality: must_not
-    statement: Future package mapping renames, splits, merges, or adds identity-bearing subject, record, declaration generation, launch witness, process, session, or snapshot fields, admits detailed package evidence without separate authority, or interprets catalog version, size, date, or rollback metadata as local package, subject, install, Desktop launch, Runtime access, promotion, or rollback truth.
+    statement: Package mapping renames, splits, merges, or adds identity-bearing subject, record, declaration generation, launch witness, process, session, or snapshot fields, projects lifecycle evidence into the six-field Runtime identity seam, or interprets catalog version, size, date, or rollback metadata alone as local install, Desktop launch, Runtime access, promotion, or rollback truth; the package lifecycle owner may separately retain installed version, active release, rollback candidate, job, progress, install, update, repair, uninstall, and readiness truth only from committed local lifecycle state.
     condition: Whenever package mapping or catalog metadata is projected.
     failure: Reject schema change, undeclared evidence, or inferred local truth.
     relations:
@@ -1027,7 +1030,7 @@ units:
     kind: rule
     title: P-NAPP-024 ordinary signing and non-authority boundary
     modality: must
-    statement: Ordinary-user third-party macOS resolves notarized and Windows resolves signed with no not-applicable or internal-only substitute, while signing fields remain catalog input that creates no package signing identity, registered App subject, record, install, import, update, promotion, launch, ordinary visibility from non-product tracks, package readiness, or new admission_status value and future mapping uses only the opaque seam.
+    statement: Ordinary-user third-party macOS resolves notarized and Windows resolves signed with no not-applicable or internal-only substitute, while signing fields remain catalog input that alone creates no package signing identity, registered App subject, record, install, import, update, promotion, launch, ordinary visibility from non-product tracks, package readiness, or new admission_status value; only complete descriptor, signing, artifact validation, and atomic lifecycle commit creates local installed state, and Runtime registration receives only the six opaque seam facts.
     condition: Whenever ordinary release signing assurance is admitted or projected.
     failure: Return platform_signing_required for insufficient signing and deny every local-positive or enum-extension claim.
     relations:
@@ -1139,7 +1142,7 @@ units:
     kind: rule
     title: P-NAPP-033 catalog track boundary
     modality: must
-    statement: Tracks classify catalog review only, ordinary-release-proof is the sole third-party track, CI descriptors create no runnable truth, local_development is not a catalog track, user_imported is not simulated by a fixture, and positive immutable behavior remains unavailable until admitted.
+    statement: Tracks classify catalog review only, ordinary-release-proof is the sole third-party track, verified positive lifecycle state requires an approved descriptor plus a successful current package lifecycle commit, CI descriptors create no install or runnable truth, local_development is not a catalog track, and user_imported is neither a catalog track nor simulated by a fixture.
     condition: Whenever an admission track is interpreted.
     failure: Reject a non-admitted track or local-positive inference.
     relations:
@@ -1171,16 +1174,9 @@ units:
         target: definition.nimi.platform.app-ecosystem.protected-local-transport
   - id: rule.nimi.platform.app-ecosystem.p-napp-038
     kind: rule
-    title: P-NAPP-038 deferred registry membership cannot activate product behavior
-    modality: must_not
-    statement: Registry membership, a registry row, a release descriptor, trust-tier posture, or package presence creates current catalog admission, ordinary Apps visibility, ordinary-user installation, update, repair, or runnable truth.
-    condition: Until separate lifecycle authority activates the public App lifecycle.
-    failure: Keep every public-lifecycle outcome unavailable and preserve only the explicit local-development flow.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.app-ecosystem.catalog-admission
-      - type: applies_to
-        target: definition.nimi.platform.app-ecosystem.registry-row
+    lifecycle: removed
+    title: Retired P-NAPP-038 public App lifecycle deferral
+    reason: Removed because public catalog visibility and the ordinary install, update, repair, and uninstall lifecycle are current product behavior, while metadata-alone non-authority remains covered by P-NAPP-009.
   - id: rule.nimi.platform.app-ecosystem.p-napp-039
     kind: rule
     title: P-NAPP-039 stable trust-tier transitions
@@ -1195,6 +1191,46 @@ units:
         target: definition.nimi.platform.app-ecosystem.publisher-identity
       - type: applies_to
         target: definition.nimi.platform.app-ecosystem.review-decision
+  - id: rule.nimi.platform.app-ecosystem.p-napp-040a
+    kind: rule
+    title: P-NAPP-040 closed App source entry paths
+    modality: must
+    statement: verified installs use only an approved ordinary-visible catalog descriptor, user_imported installs use only an immutable artifact explicitly selected by the current user and fully validated without receiving catalog trust, and local_development uses only Developer Mode without package install, update, or repair truth; after its exact source lifecycle succeeds, every source shares the canonical registration, declaration, Desktop exact-Host launch, Runtime session, and App operation access seams.
+    condition: Whenever an App enters the local product lifecycle.
+    failure: Reject a source-class alias, bypass, or package-state claim outside its exact entry path.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.app-ecosystem.app-local-lifecycle-projection
+      - type: applies_to
+        target: definition.nimi.platform.app-ecosystem.local-app-provenance
+      - type: supersedes
+        target: rule.nimi.platform.app-ecosystem.p-napp-038
+  - id: rule.nimi.platform.app-ecosystem.p-napp-040b
+    kind: rule
+    title: P-NAPP-040 atomic package lifecycle jobs
+    modality: must
+    statement: At most one package mutation job runs for one App source at a time, download or local read, verification, and staging never change the active release, only one atomic commit changes installed version and Runtime source generation, update or repair failure preserves the prior runnable release, uninstall stops the Host before removing the managed package and registration, cancellation before commit removes only transfer and staging state, and every byte or step progress value comes from observed work without synthetic success or a false one hundred percent.
+    condition: Whenever an install, update, repair, uninstall, or cancellation job runs.
+    failure: Reject concurrent mutation, non-atomic publication, stale-release loss, unrelated deletion, or simulated progress and return the exact failed or canceled job state.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.app-ecosystem.app-lifecycle-job
+      - type: applies_to
+        target: definition.nimi.platform.app-ecosystem.app-local-lifecycle-projection
+      - type: supersedes
+        target: rule.nimi.platform.app-ecosystem.p-napp-019a
+  - id: rule.nimi.platform.app-ecosystem.p-napp-040c
+    kind: rule
+    title: P-NAPP-040 lifecycle owner and state separation
+    modality: must
+    statement: Platform owns catalog, admission, descriptor, publisher, trust, and update metadata, Runtime owns local package jobs, committed installed-release and readiness projections, registered subject, source and declaration generations, session, snapshot, and App operation access, and Desktop owns exact Host launch, run, focus, stop, restart, and process supervision; catalog admitted is not installed, installed is not running, running is not Nimi Access available, transfer complete is not committed, and repair-required is not repaired.
+    condition: Whenever Apps composes discovery, package, Host, health, or access state or dispatches an action.
+    failure: Reject an owner crossing or collapsed state and expose only the exact current projection from each owner.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.app-ecosystem.app-lifecycle-job
+      - type: applies_to
+        target: definition.nimi.platform.app-ecosystem.app-local-lifecycle-projection
   - id: rule.nimi.platform.app-ecosystem.p-perm-018
     kind: rule
     lifecycle: removed
@@ -1520,16 +1556,23 @@ units:
         target: definition.nimi.platform.app-ecosystem.mod-extension-retirement
   - id: rule.nimi.platform.app-ecosystem.p-eco-002
     kind: rule
-    title: P-ECO-002 third-party registry onboarding remains deferred
-    modality: must_not
-    statement: A third-party developer enters the current product through registry onboarding, public admission, trust-tier review, ordinary-user installation, or a registry-bypass alias instead of the explicit local-development flow.
-    condition: Until separate lifecycle authority activates public App distribution and onboarding.
-    failure: Keep public onboarding unavailable and require the current local-development flow.
+    lifecycle: removed
+    title: Retired P-ECO-002 public registry onboarding deferral
+    reason: Removed because canonical third-party registry onboarding, trust-tier review, descriptor admission, publication, and ordinary-user installation are current product behavior.
+  - id: rule.nimi.platform.app-ecosystem.p-eco-002b
+    kind: rule
+    title: P-ECO-002 canonical public registry onboarding
+    modality: must
+    statement: A third-party developer enters the public catalog only through canonical registry submission, immutable candidate review, trust-tier resolution, complete descriptor admission, and publication, while repository presence, an App-local manifest, local_development registration, user_imported installation, or another registry-bypass alias never creates public admission.
+    condition: Whenever a third-party developer or release enters the public catalog.
+    failure: Reject incomplete onboarding or a registry bypass before publication.
     relations:
       - type: applies_to
         target: definition.nimi.platform.app-ecosystem.catalog-admission
       - type: applies_to
         target: definition.nimi.platform.app-ecosystem.registry-row
+      - type: supersedes
+        target: rule.nimi.platform.app-ecosystem.p-eco-002
   - id: rule.nimi.platform.app-ecosystem.p-eco-003
     kind: rule
     title: P-ECO-003 closed trust-tier expansion

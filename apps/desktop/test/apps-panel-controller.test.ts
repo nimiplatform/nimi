@@ -1,15 +1,16 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { runReadOnlyAppsAction } from '../src/shell/renderer/features/apps/apps-panel-controller.js';
+import { assertAppsAction } from '../src/shell/renderer/features/apps/apps-panel-controller.js';
+import { actionPlanForLocalDevelopmentEntry } from '../src/shell/renderer/features/apps/apps-card-actions.js';
 
 describe('Desktop Apps controller action boundary', () => {
-  it('treats details as renderer-only view state', () => {
-    assert.doesNotThrow(() => runReadOnlyAppsAction('details'));
+  it('maps stopped development apps to launch and running apps to stop', () => {
+    assert.equal(actionPlanForLocalDevelopmentEntry(null).primary?.id, 'launch');
+    assert.equal(actionPlanForLocalDevelopmentEntry('running').primary?.id, 'stop');
   });
 
   it('fails closed if an untyped lifecycle action reaches the controller', () => {
-    const unsafe = runReadOnlyAppsAction as unknown as (action: string) => void;
-    assert.throws(() => unsafe('open'), /Unsupported Apps action/);
+    const unsafe = assertAppsAction as unknown as (action: string) => void;
     assert.throws(() => unsafe('install'), /Unsupported Apps action/);
     assert.throws(() => unsafe('update'), /Unsupported Apps action/);
     assert.throws(() => unsafe('repair'), /Unsupported Apps action/);

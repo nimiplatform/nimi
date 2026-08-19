@@ -23,6 +23,8 @@ import {
   listLocalDevelopmentRegistrations,
   listLocalDevelopmentRuns,
   removeLocalDevelopmentRegistration,
+  startLocalDevelopmentRegistration,
+  stopLocalDevelopmentRun,
   localDevelopmentBridgeAvailable,
 } from '../features/local-development/local-development-bridge.js';
 import {
@@ -260,6 +262,8 @@ export function createDesktopProductionBindings(
         },
         listLocalDevelopmentRegistrations,
         listLocalDevelopmentRuns,
+        startLocalDevelopmentRegistration,
+        stopLocalDevelopmentRun,
         removeLocalDevelopmentRegistration,
         refreshDeveloperMode,
         setDeveloperMode,

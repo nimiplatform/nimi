@@ -2,16 +2,22 @@
 //
 // Runtime owns local-development registrations. Desktop preserves the typed
 // projection for presentation and never derives registry, package, install,
-// update, repair, launch, or App Access admission truth.
+// update, repair, run, or App Access admission truth from registration
+// metadata. Host run state is consumed as its own typed projection.
 
-import type { LocalDevelopmentRegistration } from '../local-development/local-development-types.js';
+import type {
+  LocalDevelopmentRegistration,
+  LocalDevelopmentRun,
+} from '../local-development/local-development-types.js';
 
 export interface DesktopAppsProjectionSource {
   listRegistrations(): Promise<readonly LocalDevelopmentRegistration[]>;
+  listRuns(): Promise<readonly LocalDevelopmentRun[]>;
 }
 
 export interface DesktopAppsEntry {
   readonly registration: LocalDevelopmentRegistration;
+  readonly run: LocalDevelopmentRun | null;
 }
 
 export type DesktopAppsPanelProjection =
@@ -22,12 +28,15 @@ export type DesktopAppsPanelProjection =
 export async function projectAppsPanel(
   source: DesktopAppsProjectionSource,
 ): Promise<DesktopAppsPanelProjection> {
-  if (!source || typeof source.listRegistrations !== 'function') {
+  if (!source || typeof source.listRegistrations !== 'function' || typeof source.listRuns !== 'function') {
     return { status: 'error', detail: 'projectAppsPanel: local-development source is required' };
   }
 
   try {
-    const registrations = await source.listRegistrations();
+    const [registrations, runs] = await Promise.all([
+      source.listRegistrations(),
+      source.listRuns(),
+    ]);
     return {
       status: 'loaded',
       entries: [...registrations]
@@ -35,7 +44,10 @@ export async function projectAppsPanel(
           const byUpdatedAt = right.updatedAtUnixMs - left.updatedAtUnixMs;
           return byUpdatedAt || left.appId.localeCompare(right.appId);
         })
-        .map((registration) => ({ registration })),
+        .map((registration) => ({
+          registration,
+          run: runs.find((run) => run.appId === registration.appId) ?? null,
+        })),
     };
   } catch (error) {
     return {

@@ -54,7 +54,7 @@ units:
   - id: definition.nimi.platform.product-lifecycle.home-apps
     kind: definition
     title: Home Apps projection
-    meaning: The current Apps surface is a developer-visible projection of local-development App identity, typed client, Runtime-derived session, registration, and enforcement truth; retained registry, package, public distribution, and ordinary-user lifecycle designs remain unavailable until separate lifecycle authority activates them, and Library and Discovery are lower-level or historical projection names rather than the primary navigation label.
+    meaning: The current Apps surface is the Nimi Home library and discovery projection for admitted catalog releases, committed verified and user-imported packages, Developer-Mode local projects, Runtime registration and access state, and Desktop Host supervision, with Apps retained as the primary navigation label while Library and Discovery remain internal collection modes.
   - id: rule.nimi.platform.product-lifecycle.p-cold-001a
     kind: rule
     title: P-COLD-001 closed cold-start state set
@@ -697,9 +697,9 @@ units:
     kind: rule
     title: P-HOME-009 Apps projection and label
     modality: must
-    statement: Current Apps consumes local-development App identity, typed app-client projection, and Runtime-derived session, registration, and enforcement projection, exposes no public distribution or ordinary-user install, update, or repair flow, and uses Apps as the primary navigation label rather than Library or Discovery.
+    statement: Current Apps consumes admitted Platform catalog and descriptor projections, Runtime-owned install, update, repair, uninstall, package-job, inventory, registration, and access projections, and Desktop-owned launch and process state, adds explicit local-import and Developer-Mode entry paths, and uses Apps as the primary navigation label rather than Library or Discovery.
     condition: When the Apps surface is populated or labeled.
-    failure: Reject an unbacked, public-lifecycle, or noncanonical primary-label projection.
+    failure: Reject an owner-crossing, renderer-authored, missing-lifecycle, or noncanonical primary-label projection.
     relations:
       - type: applies_to
         target: definition.nimi.platform.product-lifecycle.home-apps

@@ -5,6 +5,17 @@
   "inventoryTitle": "Connected apps",
   "inventoryDescription": "Registered local development projects appear here with their exact project roots and raw App Access declarations.",
   "inventoryCount": "{{count}} apps",
+  "sidebar": {
+    "subtitle": "Local development apps",
+    "searchPlaceholder": "Search apps or App ID",
+    "searchLabel": "Search registered apps",
+    "clearSearch": "Clear search",
+    "listLabel": "Registered apps",
+    "developerHint": "Connect and manage local projects in Developer Mode.",
+    "emptyHint": "Open Developer Mode to connect a local project.",
+    "noResultsTitle": "No matching apps",
+    "noResultsDescription": "Try another name or App ID."
+  },
   "overview": {
     "connected": "Connected",
     "connectedDetail": "connected now",
@@ -122,8 +133,16 @@
     "removeLocalAdoption": "Remove local link",
     "signIn": "Sign in",
     "deleteAppData": "Delete App Data",
+    "launch": "Launch",
+    "stop": "Stop",
+    "removeDevelopment": "Remove project",
     "details": "Details",
     "close": "Close"
+  },
+  "runState": {
+    "running": "Running",
+    "starting": "Starting",
+    "stopped": "Not running"
   },
   "requirement": {
     "ai": "AI",
@@ -216,6 +235,32 @@
     "detail": "Install failed: {{reasonCode}} {{detail}}"
   },
   "detail": {
+    "backToApps": "Back to apps",
+    "tabsLabel": "App details",
+    "overviewTab": "Overview",
+    "accessTab": "Nimi Access",
+    "developerTab": "Developer info",
+    "localSummary": "A local development app registered with this Nimi Desktop.",
+    "aboutTitle": "About this app",
+    "aboutDescription": "Registration and source information currently available for this local development app.",
+    "registrationState": "Registration",
+    "runState": "Run state",
+    "source": "Source",
+    "hostShell": "App shell",
+    "lastUpdated": "Last updated",
+    "registeredAt": "Registered",
+    "currentScopeTitle": "Local development app",
+    "currentScopeDescription": "This app comes from a project connected on this device. Its name and App Access declarations are provided by that project.",
+    "accessTitle": "Declared Nimi Access",
+    "accessDescription": "The domains this project declares so Nimi can route supported platform capabilities.",
+    "accessDeclarationNote": "App Access is a project declaration, not a user permission, approval, or consent setting.",
+    "noAccessTitle": "No App Access declared",
+    "noAccessDescription": "This project registered without declaring any App Access domains.",
+    "developerInfoTitle": "Developer information",
+    "developerInfoDescription": "Exact local source and generation details for troubleshooting this registration.",
+    "selectTitle": "Select an app",
+    "selectDescription": "Choose a registered app from the list to inspect its details.",
+    "loadFailedTitle": "Apps could not be loaded",
     "publisher": "Publisher",
     "trustTier": "Trust tier",
     "installState": "Install state",
@@ -229,7 +274,32 @@
     "cacheRoot": "Cache",
     "tempRoot": "Temp"
   },
+  "accessDomain": {
+    "realmData": {
+      "label": "Realm data",
+      "description": "Declares use of Nimi-managed realm data operations. Access is evaluated when the app uses the domain."
+    },
+    "runtimeConsume": {
+      "label": "AI runtime",
+      "description": "Declares use of supported AI capabilities through Nimi Runtime. Model routing can be configured below."
+    },
+    "agentLocal": {
+      "label": "Local agents",
+      "description": "Declares interaction with local agent capabilities exposed by Nimi."
+    },
+    "agentConfigure": {
+      "label": "Agent configuration",
+      "description": "Declares use of supported agent configuration capabilities exposed by Nimi."
+    },
+    "unknown": {
+      "label": "Unrecognized declaration",
+      "description": "Nimi retains this raw value for developer diagnostics without assigning it additional meaning."
+    }
+  },
   "confirm": {
+    "removeDevelopment": {
+      "message": "Remove {{app}} from Apps? This stops its current run and removes the local development registration without deleting project files."
+    },
     "deleteAppData": {
       "title": "Delete app data",
       "message": "Permanently delete the durable app data for {{app}}? This removes the release and the app's stored data. This cannot be undone.",

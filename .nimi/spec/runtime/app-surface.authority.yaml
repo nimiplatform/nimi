@@ -5,7 +5,7 @@ units:
   - id: definition.nimi.runtime.app-surface.app-lifecycle-plane
     kind: definition
     title: Runtime app lifecycle plane
-    meaning: The Runtime app lifecycle plane owns the common per-user canonical registration record, declaration generations, stable Registered App Subject, and protected-session seam used by installed, local-import, and development Apps; Desktop owns the registration workflow, source and declaration evaluation, exact Host launch, and process supervision, while Runtime protected ingress consumes the resulting exact launch witness and owns post-launch peer, current-account, session, snapshot, and operation-admission binding; production package format, installer, update, distribution, marketplace, and review remain outside App access semantics and retain their separate authority.
+    meaning: The Runtime app lifecycle plane owns the common per-user package job, committed installed release and readiness projection, canonical registration record, declaration generations, stable Registered App Subject, and protected-session seam used by verified, user-imported, and development Apps; Desktop owns source selection, exact Host launch, focus, stop, restart, and process supervision, Runtime protected ingress owns post-launch peer, current-account, session, snapshot, and operation-admission binding, Platform owns catalog and release admission, and package format and review remain outside App access semantics.
   - id: definition.nimi.runtime.app-surface.app-messaging-plane
     kind: definition
     title: Runtime internal Agent carrier plane
@@ -13,7 +13,7 @@ units:
   - id: definition.nimi.runtime.app-surface.app-projection-plane
     kind: definition
     title: Runtime app projection plane
-    meaning: The Runtime app projection plane owns current App-private JSON and binary asset storage truth, the protected exact local-app storage operations, and Runtime-custody artifact adoption into the caller's asset namespace; ordinary app health, response-state, support next-action, package-readiness, and account app-inventory projections are deferred and physically absent.
+    meaning: The Runtime app projection plane owns current App-private JSON and binary asset storage truth, protected exact local-app storage operations, Runtime-custody artifact adoption, package jobs and readiness, and the local inventory projection that keeps Platform catalog identity, committed local package state, Desktop Host state, Runtime registration, and current access availability distinct.
   - id: definition.nimi.runtime.app-surface.local-app-principal-record-plane
     kind: definition
     lifecycle: removed
@@ -57,21 +57,21 @@ units:
     reason: Removed because installed and local-import Apps now use the same Runtime registration, declaration, verified launch, and protected-session model as development Apps while installer and distribution details remain separately owned.
   - id: rule.nimi.runtime.app-surface.r004
     kind: rule
-    title: Ordinary lifecycle job projections are deferred
+    title: Ordinary lifecycle jobs are current Runtime truth
     modality: must
-    statement: Ordinary install, update, repair, and uninstall job projections are deferred and physically absent from the current wire, SDK, Runtime, config, tests, and generated surfaces; no placeholder job, dormant stream, synthetic failure, or reserved SDK wrapper represents future behavior.
-    condition: Whenever an ordinary lifecycle job projection is proposed or restored.
-    failure: Reject the projection until new canonical authority admits its complete behavior.
+    statement: Runtime exposes one typed install, update, repair, or uninstall job per active App package mutation through the current wire and SDK, persists its exact observed phase and progress, keeps local_development outside package jobs, and never emits a placeholder, dormant stream, synthetic terminal result, or success before atomic commit.
+    condition: Whenever an ordinary package lifecycle mutation starts, changes, completes, fails, or is canceled.
+    failure: Reject an invalid or concurrent mutation and return the exact current or terminal job without synthetic progress or success.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.app-surface.app-lifecycle-plane
   - id: rule.nimi.runtime.app-surface.r005
     kind: rule
-    title: Ordinary lifecycle event streams are deferred
+    title: Ordinary lifecycle events project committed job transitions
     modality: must
-    statement: Ordinary install, update, repair, and uninstall lifecycle event streams are deferred and physically absent from the current wire, SDK, Runtime, config, tests, and generated surfaces, and no unavailable-event placeholder or synthetic terminal failure is admitted.
-    condition: Whenever an ordinary lifecycle event stream is proposed or restored.
-    failure: Reject the event stream until new canonical authority admits its complete behavior.
+    statement: Runtime lifecycle event streams emit monotonically ordered snapshots only for observed install, update, repair, and uninstall job transitions, include the current job and committed inventory projection needed to reconcile after a missed event, and emit no unavailable-event placeholder, synthetic terminal failure, or renderer-authored state.
+    condition: Whenever a lifecycle subscriber observes or resumes package job changes.
+    failure: Reject an unordered, incomplete, synthetic, or renderer-authored event and require a fresh Runtime projection.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.app-surface.app-lifecycle-plane
@@ -87,21 +87,21 @@ units:
         target: definition.nimi.runtime.app-surface.app-lifecycle-plane
   - id: rule.nimi.runtime.app-surface.r007
     kind: rule
-    title: Ordinary update and promotion are deferred
+    title: Ordinary update atomically selects a new release
     modality: must
-    statement: Ordinary update and imported-to-verified promotion are deferred, and their RPCs, messages, generated clients, SDK facades, Runtime handlers, tests, and configuration restoration inputs are physically absent; no current Registered App Subject or record contract reserves their future semantics, and future admission requires new canonical authority.
-    condition: Whenever ordinary update or promotion is requested, shaped, generated, or restored.
-    failure: Reject the request or restoration attempt without a placeholder, compatibility path, or inferred future contract.
+    statement: A verified update resolves one newer approved descriptor while a user_imported update requires one newly and explicitly selected immutable artifact, both run through validation and staging before one atomic active-release and source-generation commit, and neither silently promotes user_imported to verified nor mutates the Registered App Subject, declaration, session, snapshot, or App access truth.
+    condition: Whenever an ordinary update is requested or committed.
+    failure: Reject an ineligible, unvalidated, non-atomic, or source-class-changing update and preserve the prior installed release.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.app-surface.app-lifecycle-plane
   - id: rule.nimi.runtime.app-surface.r008
     kind: rule
-    title: Ordinary repair and reinstall are deferred
+    title: Ordinary repair and reinstall preserve source truth
     modality: must
-    statement: Ordinary repair and reinstall are deferred, and their RPCs, messages, generated clients, SDK facades, Runtime handlers, tests, and configuration restoration inputs are physically absent; development recovery uses supervised rebuild and restart plus a fresh verified launch and session and never aliases an ordinary repair or reinstall operation.
-    condition: Whenever ordinary repair, reinstall, or development recovery is requested or restored.
-    failure: Reject ordinary repair or reinstall without a placeholder or side effect and keep development recovery on the supervised path.
+    statement: Ordinary repair verifies the committed immutable release and reacquires or rereads only missing or corrupt managed package bytes before atomic recommit, reinstall uses the exact verified descriptor or a newly explicit user_imported artifact, and development recovery remains supervised rebuild and restart with a fresh verified launch and session rather than a package repair alias.
+    condition: Whenever ordinary repair, reinstall, or development recovery is requested.
+    failure: Reject a source-less, unvalidated, cross-source, or non-atomic repair or reinstall, preserve the prior release on failure, and keep development recovery on the supervised path.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.app-surface.app-lifecycle-plane
@@ -382,31 +382,31 @@ units:
         target: definition.nimi.runtime.app-surface.app-projection-plane
   - id: rule.nimi.runtime.app-surface.r045
     kind: rule
-    title: Package readiness is deferred and physically absent
+    title: Package readiness comes from committed lifecycle truth
     modality: must
-    statement: Package readiness is deferred and GetAppPackageReadiness, its request and response messages, readiness enums and projections, generated clients, SDK facade, Runtime handler, tests, and configuration inputs are physically absent; Runtime, Desktop, Kit, SDK, templates, and apps never scan package directories, active pointers, install evidence, or file existence as package truth, and any future package readiness requires new canonical authority and a new wire design.
-    condition: Whenever app package readiness is queried, shaped, generated, or restored.
-    failure: Reject the request or restoration attempt without a typed-unavailable placeholder or positive readiness claim.
+    statement: GetAppPackageReadiness and its SDK projection resolve only from Runtime-owned committed active release, install evidence, current package job, and validated local record state, keep not-installed, in-progress, installed, failed, repair-required, and not-applicable distinct, and never infer positive readiness by scanning package directories, file existence, endpoint reachability, process liveness, or transfer completion.
+    condition: Whenever app package readiness is queried or changed.
+    failure: Return the exact non-positive state when committed evidence is absent or invalid and reject scanned or inferred readiness.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.app-surface.app-projection-plane
   - id: rule.nimi.runtime.app-surface.r046
     kind: rule
-    title: Account app inventory is deferred and physically absent
+    title: Account App inventory preserves owner projections
     modality: must
-    statement: Account app inventory and ordinary visibility-versus-materialization projection are deferred, and GetAccountAppInventory, its record and row messages and enums, generated clients, SDK decoders and facade, Runtime store and handler, tests, and configuration inputs are physically absent; current local-development records never create account entitlement or verified distribution truth.
-    condition: Whenever account app inventory is projected, mutated, generated, or restored.
-    failure: Reject the projection or restoration attempt without creating entitlement truth or a placeholder inventory.
+    statement: GetAccountAppInventory and its SDK projection return the current account's committed verified and user_imported local records plus local_development registration rows while preserving catalog identity, source class, package state, installed version, update state, current lifecycle job, Runtime registration, Desktop Host state, and current access availability as distinct owner fields; local_development never creates entitlement or verified distribution truth.
+    condition: Whenever account App inventory is projected or changed.
+    failure: Reject a merged, source-erasing, entitlement-inferred, renderer-authored, or incomplete inventory row.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.app-surface.app-projection-plane
   - id: rule.nimi.runtime.app-surface.r047
     kind: rule
-    title: Deferred inventory has no alternate read path
+    title: App inventory has one Runtime and SDK read path
     modality: must
-    statement: With account app inventory deferred, Runtime, Desktop, SDK, Kit, templates, and apps expose no inventory file reader, parser, decoder, store, mutation path, fixture, or alternate projection, never read <dataRoot>/accounts/<account-id>/apps/inventory.json as product truth, and never derive account eligibility from current local-development records.
-    condition: Whenever deferred account app inventory is read, generated, or restored.
-    failure: Reject alternate inventory authority and restoration of the removed projection.
+    statement: Runtime is the sole local inventory and package-job truth owner, Desktop and Apps consume it only through the generated SDK projection, no renderer, Kit, template, or App reads or mutates an inventory file, package directory, active pointer, or install evidence directly, and account eligibility is never derived from local-development records.
+    condition: Whenever App inventory or package lifecycle state is read, generated, or mutated.
+    failure: Reject an alternate reader, writer, decoder, store, fixture authority, or eligibility inference.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.app-surface.app-projection-plane

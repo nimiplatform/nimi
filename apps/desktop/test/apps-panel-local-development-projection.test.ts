@@ -37,6 +37,7 @@ describe('Desktop Apps local-development registration projection', () => {
 
     const projection = await projectAppsPanel({
       listRegistrations: async () => [older, newer],
+      listRuns: async () => [],
     });
 
     assert.equal(projection.status, 'loaded');
@@ -51,11 +52,13 @@ describe('Desktop Apps local-development registration projection', () => {
   it('does not require or expose package or access-decision state', async () => {
     const projection = await projectAppsPanel({
       listRegistrations: async () => [registration()],
+      listRuns: async () => [],
     });
 
     assert.equal(projection.status, 'loaded');
     if (projection.status !== 'loaded') return;
-    assert.deepEqual(Object.keys(projection.entries[0] ?? {}), ['registration']);
+    assert.deepEqual(Object.keys(projection.entries[0] ?? {}), ['registration', 'run']);
+    assert.equal(projection.entries[0]?.run, null);
   });
 
   it('surfaces Runtime failure without fabricating entries', async () => {
@@ -63,6 +66,7 @@ describe('Desktop Apps local-development registration projection', () => {
       listRegistrations: async () => {
         throw new Error('fixed Runtime service unavailable');
       },
+      listRuns: async () => [],
     });
     assert.deepEqual(projection, {
       status: 'error',

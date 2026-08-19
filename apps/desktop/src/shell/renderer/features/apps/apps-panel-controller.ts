@@ -1,4 +1,4 @@
-// Renderer controller for the read-only Desktop Apps projection.
+// Renderer controller for the Desktop Apps projection and host-owned run actions.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { AppCardActionId } from './apps-card-actions.js';
@@ -9,6 +9,7 @@ export interface AppsPanelState {
   readonly projection: DesktopAppsPanelProjection | null;
   readonly detailAppId: string | null;
   readonly actionError: string | null;
+  readonly activeAction: Readonly<{ appId: string; action: AppCardActionId }> | null;
 }
 
 export interface AppsPanelActions {
@@ -29,6 +30,10 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps = {}): Apps
   const [projection, setProjection] = useState<DesktopAppsPanelProjection | null>(null);
   const [detailAppId, setDetailAppId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [activeAction, setActiveAction] = useState<Readonly<{
+    appId: string;
+    action: AppCardActionId;
+  }> | null>(null);
   const reloadTokenRef = useRef(0);
 
   const reload = useCallback(async (): Promise<void> => {
@@ -44,18 +49,56 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps = {}): Apps
     };
   }, [reload]);
 
+  useEffect(() => {
+    const interval = window.setInterval(() => void reload(), 2_000);
+    return () => window.clearInterval(interval);
+  }, [reload]);
+
+  useEffect(() => {
+    if (projection?.status !== 'loaded') return;
+    setDetailAppId((currentAppId) => {
+      if (
+        currentAppId
+        && projection.entries.some((entry) => entry.registration.appId === currentAppId)
+      ) {
+        return currentAppId;
+      }
+      return projection.entries[0]?.registration.appId ?? null;
+    });
+  }, [projection]);
+
   const runCardAction = useCallback((appId: string, action: AppCardActionId): void => {
     setActionError(null);
     if (action === 'details') {
       setDetailAppId(appId);
       return;
     }
-    try {
-      runReadOnlyAppsAction(action);
-    } catch (error) {
-      setActionError(error instanceof Error ? error.message : String(error));
+    if (activeAction || projection?.status !== 'loaded') return;
+    const entry = projection.entries.find((candidate) => candidate.registration.appId === appId);
+    if (!entry) {
+      setActionError(`App is no longer available: ${appId}`);
+      return;
     }
-  }, []);
+    setActiveAction({ appId, action });
+    void (async () => {
+      try {
+        if (action === 'launch') {
+          await liveBridge.startRegistration(entry.registration.selector);
+        } else if (action === 'stop') {
+          await liveBridge.stopRun(appId);
+        } else if (action === 'remove') {
+          await liveBridge.removeRegistration(entry.registration.selector);
+        } else {
+          assertAppsAction(action);
+        }
+        await reload();
+      } catch (error) {
+        setActionError(error instanceof Error ? error.message : String(error));
+      } finally {
+        setActiveAction(null);
+      }
+    })();
+  }, [activeAction, liveBridge, projection, reload]);
 
   const retryProjection = useCallback((): void => {
     setProjection(null);
@@ -69,21 +112,13 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps = {}): Apps
     projection,
     detailAppId,
     actionError,
+    activeAction,
     runCardAction,
     retryProjection,
     closeDetail,
   };
 }
 
-export function runReadOnlyAppsAction(
-  action: AppCardActionId,
-): void {
-  switch (action) {
-    case 'details':
-      return;
-    default: {
-      const exhaustive: never = action;
-      throw new Error(`Unsupported Apps action: ${String(exhaustive)}`);
-    }
-  }
+export function assertAppsAction(action: never): never {
+  throw new Error(`Unsupported Apps action: ${String(action)}`);
 }
