@@ -80,8 +80,8 @@ const ICON_ENVIRONMENT = (
 /**
  * Runtime sidebar entries. Catalog-backed discovery and provider overrides
  * are contextual actions inside Local Models and Cloud Connectors.
- * Developer-only surfaces are NOT ordinary entries — they
- * live in the developer-mode-gated Developer Tools tab.
+ * Developer-only local-development operations live in Settings > Developer
+ * and are not Runtime navigation entries.
  */
 export const RUNTIME_SIDEBAR_ITEMS: Array<{
   id: RuntimePageIdV11;

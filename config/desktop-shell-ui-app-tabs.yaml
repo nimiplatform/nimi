@@ -13,7 +13,6 @@ entries:
   - runtime
   - settings
   - support
-  - developer-tools
   - profile
   - source-detail
   - world-detail
@@ -76,12 +75,6 @@ tabs:
     label: Support
     gated_by: null
     source_rule: rule.nimi.desktop.product-surfaces.r022
-
-  - id: developer-tools
-    nav_group: developer
-    label: Developer Tools
-    gated_by: enableDeveloperTools
-    source_rule: D-DEV-001
 
   # Detail tabs (navigated to, not in sidebar)
   - id: profile

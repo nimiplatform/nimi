@@ -1,4 +1,4 @@
-import React, { Suspense, lazy, useEffect, useRef, useState, type MouseEvent, type PropsWithChildren } from 'react';
+import React, { Suspense, lazy, useEffect, useRef, type MouseEvent, type PropsWithChildren } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppStore, useAppStoreApi, type AppTab } from '../providers/app-store';
 import {
@@ -77,23 +77,10 @@ export function MainLayout() {
     bindings.surfaceLifecycle.reportReadyCandidate();
   }, [bindings]);
 
-  const [developerModeEnabled, setDeveloperModeEnabled] = useState(
-    () => bindings.app.projection.developerModeEnabled(),
-  );
   useEffect(
     () => bindings.app.events.connectDesktopOpenIntents(appStore.getState()),
     [appStore, bindings],
   );
-  useEffect(() => {
-    return bindings.app.events.subscribeDeveloperMode((next) => {
-      setDeveloperModeEnabled(next);
-    });
-  }, [bindings]);
-  useEffect(() => {
-    if (!developerModeEnabled && activeTab === 'developer-tools') {
-      setActiveTab('chat');
-    }
-  }, [activeTab, authStatus, developerModeEnabled, setActiveTab]);
 
   useEffect(() => {
     const pending = tabSwitchPending.current;

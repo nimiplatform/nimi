@@ -238,9 +238,9 @@ surfaces:
     exception_policy: none
     testid_required: false
     source_rule: D-SHELL-029
-  - id: developer.operational.panel
-    module: features/developer/developer-tools-panel.tsx
-    role: developer_operational_panel
+  - id: settings.developer.operational.page
+    module: features/settings/settings-developer-page.tsx
+    role: settings_developer_operational_page
     surface_profile: secondary
     density_mode: compact
     exception_policy: none

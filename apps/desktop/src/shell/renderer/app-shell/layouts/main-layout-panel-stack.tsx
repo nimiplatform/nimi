@@ -62,10 +62,6 @@ const HomePanel = lazy(async () => {
   const mod = await import('../../features/home/home-panel');
   return { default: mod.HomePanel };
 });
-const DeveloperToolsPanel = lazy(async () => {
-  const mod = await import('../../features/developer/developer-tools-panel');
-  return { default: mod.DeveloperToolsPanel };
-});
 const PrivacyPolicyView = lazy(async () => {
   const mod = await import('../../features/legal/privacy-policy-view');
   return { default: mod.PrivacyPolicyView };
@@ -77,7 +73,6 @@ const TermsOfServiceView = lazy(async () => {
 
 type MainLayoutPanelStackProps = {
   activeTab: AppTab;
-  developerModeEnabled: boolean;
   exploreActiveSection: ExploreSectionId;
   exploreSearchText: string;
   homeFeedScope: NimiRealmFeedScope;
@@ -116,7 +111,6 @@ function MotionPanelFrame({
 
 export function MainLayoutPanelStack({
   activeTab,
-  developerModeEnabled,
   exploreActiveSection,
   exploreSearchText,
   homeFeedScope,
@@ -218,12 +212,6 @@ export function MainLayoutPanelStack({
         {activeTab === 'world-detail' ? (
           <MotionPanelFrame panelId="world-detail">
             <WorldDetailPanel />
-          </MotionPanelFrame>
-        ) : null}
-
-        {activeTab === 'developer-tools' && developerModeEnabled ? (
-          <MotionPanelFrame panelId="developer-tools">
-            <DeveloperToolsPanel />
           </MotionPanelFrame>
         ) : null}
 

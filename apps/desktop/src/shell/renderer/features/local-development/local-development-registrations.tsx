@@ -82,7 +82,7 @@ export function LocalDevelopmentRegistrations() {
       <section className="mt-8" data-testid="local-development-activity">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <NimiText role="section-title">{t('LocalDevelopment.activity.title')}</NimiText>
+            <NimiText as="h2" role="section-title">{t('LocalDevelopment.activity.title')}</NimiText>
             <NimiText role="helper" className="mt-1 max-w-2xl">
               {t('LocalDevelopment.activity.description')}
             </NimiText>
@@ -131,7 +131,7 @@ export function LocalDevelopmentRegistrations() {
       </section>
 
       <section className="mt-8" data-testid="local-development-registrations">
-        <NimiText role="section-title">{t('LocalDevelopment.management.title')}</NimiText>
+        <NimiText as="h2" role="section-title">{t('LocalDevelopment.management.title')}</NimiText>
         <NimiText role="helper" className="mt-1 max-w-2xl">{t('LocalDevelopment.management.description')}</NimiText>
         {!loading && rows.length === 0 ? (
           <Surface tone="card" material="solid" padding="md" className="mt-3">

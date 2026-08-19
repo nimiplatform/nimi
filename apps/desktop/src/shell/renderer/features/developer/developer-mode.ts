@@ -16,10 +16,6 @@ export function isDeveloperModeEnabled(): boolean {
   return current.state === 'enabled' && current.enabled;
 }
 
-export function isDeveloperToolsEnabled(): boolean {
-  return isDeveloperModeEnabled();
-}
-
 export function subscribeDeveloperMode(onChange: (enabled: boolean) => void): () => void {
   subscribers.add(onChange);
   if (!refreshInFlight && hasElectronInvoke()) {

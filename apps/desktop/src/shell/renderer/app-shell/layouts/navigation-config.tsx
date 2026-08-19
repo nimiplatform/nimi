@@ -134,18 +134,10 @@ const ICON_SUPPORT = (
   </svg>
 );
 
-const ICON_DEVELOPER_TOOLS = (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <polyline points="16 18 22 12 16 6" />
-    <polyline points="8 6 2 12 8 18" />
-  </svg>
-);
-
 // @nimi-authority: rule.nimi.desktop.shell-ui.r008
 export function renderShellNavIcon(icon: string): ReactNode {
   const normalized = String(icon || '').trim().toLowerCase();
   if (normalized === 'home') return ICON_HOME;
-  if (normalized === 'developer-tools' || normalized === 'code' || normalized === 'devtools') return ICON_DEVELOPER_TOOLS;
   if (normalized === 'chat') return ICON_CHAT;
   if (normalized === 'explore') return ICON_EXPLORE;
   if (normalized === 'runtime') return ICON_RUNTIME;

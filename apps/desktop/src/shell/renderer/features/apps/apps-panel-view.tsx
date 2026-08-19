@@ -40,7 +40,7 @@ export function AppsPanelView({
           {t('Apps.error', { detail: projection.detail })}
         </p>
         <Button data-testid="apps-retry-projection" tone="secondary" size="sm" className="self-start" onClick={onRetry}>
-          {t('DeveloperTools.developerModeRetry')}
+          {t('Developer.developerModeRetry')}
         </Button>
       </section>
     );

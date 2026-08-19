@@ -221,7 +221,7 @@ Reuse follows `P-KIT-065`: extend or compose an existing Kit surface when it cov
 Density modes are canonical composition guidance from `nimi-ui-compositions.yaml`. Desktop operational surfaces default to compact density; regular density remains the Kit primitive baseline; expressive density is opt-in for identity/content presentation only.
 
 - **Compact density:** Repeated operational desktop work with high scan efficiency and low visual ceremony.
-  - Use for: Desktop ordinary shell chrome; Chat shell chrome and repeated conversation controls; Settings, runtime configuration, diagnostics, tables, lists, and developer tools; Runtime bootstrap failure, admission failure, repair, blocked, and setup status states; Support diagnostics and accountable progress surfaces.
+  - Use for: Desktop ordinary shell chrome; Chat shell chrome and repeated conversation controls; Settings, runtime configuration, diagnostics, tables, lists, and developer settings; Runtime bootstrap failure, admission failure, repair, blocked, and setup status states; Support diagnostics and accountable progress surfaces.
   - Avoid for: Identity-led profile or world hero moments; Marketing, editorial, or cinematic presentation surfaces.
   - Typography: body `13-14px`, dense-label `12-13px`, caption `11-12px`, section-title `15-16px`, page-title `20-24px`, operational-status-title `18-22px`, banned-operational-classes `text-[30px], text-3xl, text-4xl, text-5xl`.
   - Shape: card-panel-radius `8-12px`, modal-drawer-radius `12-16px`, banned-operational-classes `rounded-3xl`.
@@ -230,7 +230,7 @@ Density modes are canonical composition guidance from `nimi-ui-compositions.yaml
   - Motion: rule `Functional transitions only; no decorative pulse or spin on operational failure, repair, or blocked states.`, banned-status-patterns `pulse, spin, float, decorative dot bounce`.
 - **Regular density:** Default Kit readability for ordinary app pages and shared primitives.
   - Use for: Kit primitive defaults; Standard forms and mixed content panels; Onboarding steps before setup becomes an operational status surface; Help copy and low-density explanatory content.
-  - Avoid for: Desktop high-frequency operational chrome; Runtime bootstrap, repair, blocked, diagnostics, settings, developer tools, and runtime configuration; Identity-led hero or cinematic presentation surfaces.
+  - Avoid for: Desktop high-frequency operational chrome; Runtime bootstrap, repair, blocked, diagnostics, settings, developer settings, and runtime configuration; Identity-led hero or cinematic presentation surfaces.
   - Typography: body `14px`, label `14-15px`, caption `12px`, section-title `16px`, page-title `24px max`.
   - Shape: card-panel-radius `12-16px`, modal-drawer-radius `16-20px`.
   - Spacing: panel-padding `16-24px`, page-content-padding `20-24px`, gap `12-20px`.
@@ -239,7 +239,7 @@ Density modes are canonical composition guidance from `nimi-ui-compositions.yaml
   - Admission: rule `Desktop surfaces must declare regular density at the registered page or composition boundary; baseline or secondary profile alone is not density authority.`.
 - **Expressive density:** Opt-in identity, content, and cinematic presentation moments.
   - Use for: Profile, source, character, and world identity heroes; First-run brand moments before operational setup begins; Explicitly admitted cinematic or ambience surfaces.
-  - Avoid for: Runtime errors; Setup, repair, blocked, diagnostics, settings, developer tools, and runtime configuration; Ordinary shell chrome.
+  - Avoid for: Runtime errors; Setup, repair, blocked, diagnostics, settings, developer settings, and runtime configuration; Ordinary shell chrome.
   - Typography: body `14-16px`, section-title `18-24px`, hero-title `30-48px only when identity or content presentation is the primary task`.
   - Shape: hero-radius `16-24px`, large-media-radius `16-24px`.
   - Spacing: composition-padding `24-40px only when it supports identity composition`.

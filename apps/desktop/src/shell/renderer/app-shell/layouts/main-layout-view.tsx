@@ -90,18 +90,6 @@ export function MainLayoutView(props: MainLayoutViewProps) {
   const coreNavItems = getCoreNavItems();
   const quickNavItems = getQuickNavItems();
   const primaryCoreNavItems = coreNavItems.filter((item) => item.id !== 'home');
-  // D-DEV-002 / D-DEV-007: Developer Mode is the single discoverable switch
-  // for developer / internal surfaces. It is tracked reactively so the gated
-  // surfaces appear / disappear immediately when the user flips it from
-  // Settings.
-  const [developerModeEnabled, setDeveloperModeEnabled] = useState(
-    () => bindings.app.projection.developerModeEnabled(),
-  );
-  useEffect(() => {
-    return bindings.app.events.subscribeDeveloperMode((next) => {
-      setDeveloperModeEnabled(next);
-    });
-  }, [bindings]);
   const [settingsMenuOpen, setSettingsMenuOpen] = useState(false);
   const [settingsMenuPosition, setSettingsMenuPosition] = useState<SettingsMenuAnchorPosition>({
     bottom: 16,
@@ -243,16 +231,6 @@ export function MainLayoutView(props: MainLayoutViewProps) {
     }
     if (itemId === 'support') {
       props.onNav('support');
-      setSettingsMenuOpen(false);
-      return;
-    }
-    if (itemId === 'developer-tools') {
-      // D-DEV-001: reachable only behind admitted Developer Mode. The menu
-      // item is not rendered at all when Developer Mode is off, but guard the
-      // navigation too so a stale click can never reach the surface.
-      if (developerModeEnabled) {
-        props.onNav('developer-tools');
-      }
       setSettingsMenuOpen(false);
       return;
     }
@@ -420,7 +398,6 @@ export function MainLayoutView(props: MainLayoutViewProps) {
 
           <MainLayoutPanelStack
             activeTab={props.activeTab}
-            developerModeEnabled={developerModeEnabled}
             exploreActiveSection={exploreActiveSection}
             exploreSearchText={exploreSearchText}
             homeFeedScope={homeFeedScope}
@@ -453,7 +430,6 @@ export function MainLayoutView(props: MainLayoutViewProps) {
             userAvatarUrl={props.userAvatarUrl}
             displayName={props.displayName}
             userEmail={props.userEmail}
-            developerModeEnabled={developerModeEnabled}
             isItemActive={isSettingsMenuItemActive}
             onOpenItem={openSettingsSubmenuItem}
             onEditProfile={() => {

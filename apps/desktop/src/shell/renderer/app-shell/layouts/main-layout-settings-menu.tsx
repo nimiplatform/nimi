@@ -10,7 +10,6 @@ export type SettingsSubmenuItemId =
   | 'profile'
   | 'settings'
   | 'support'
-  | 'developer-tools'
   | 'logout';
 
 export type SettingsMenuAnchorPosition = {
@@ -22,7 +21,6 @@ const SETTINGS_SUBMENU_ITEMS: Array<{ id: SettingsSubmenuItemId; label: string; 
   { id: 'profile', label: 'Profile', icon: 'profile' },
   { id: 'settings', label: 'Settings', icon: 'settings' },
   { id: 'support', label: 'Support', icon: 'support' },
-  { id: 'developer-tools', label: 'Developer Tools', icon: 'developer-tools' },
   { id: 'logout', label: 'Logout', icon: 'logout' },
 ];
 
@@ -30,7 +28,6 @@ const SETTINGS_SUBMENU_I18N_KEYS: Record<SettingsSubmenuItemId, string> = {
   profile: 'Menu.profile',
   settings: 'Menu.settings',
   support: 'Menu.support',
-  'developer-tools': 'DeveloperTools.navLabel',
   logout: 'Menu.logout',
 };
 
@@ -38,7 +35,6 @@ type MainLayoutSettingsMenuProps = {
   userAvatarUrl?: string | null;
   displayName: string;
   userEmail?: string | null;
-  developerModeEnabled: boolean;
   isItemActive: (itemId: SettingsSubmenuItemId) => boolean;
   onOpenItem: (itemId: SettingsSubmenuItemId) => void;
   onEditProfile: () => void;
@@ -60,7 +56,6 @@ export function MainLayoutSettingsMenu(props: MainLayoutSettingsMenuProps) {
   const items = SETTINGS_SUBMENU_ITEMS.filter((item) => (
     item.id !== 'logout'
     && item.id !== 'profile'
-    && (item.id !== 'developer-tools' || props.developerModeEnabled)
   ));
 
   return (

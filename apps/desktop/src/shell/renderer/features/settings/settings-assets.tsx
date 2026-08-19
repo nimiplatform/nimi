@@ -177,7 +177,7 @@ const BASE_MENU_SECTIONS: SettingsMenuSection[] = [
     label: 'Preferences',
     items: [
       { id: 'notifications', icon: ICON_BELL, title: 'Notifications' },
-      { id: 'performance', icon: ICON_ZAP, title: 'Developer' },
+      { id: 'developer', icon: ICON_ZAP, title: 'Developer' },
     ],
   },
   {

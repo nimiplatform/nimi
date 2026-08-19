@@ -25,7 +25,7 @@ const VISIBLE_SETTINGS_SELECTED_IDS = Object.freeze([
   'privacy',
   'security',
   'notifications',
-  'performance',
+  'developer',
   'data',
   'about-legal',
 ]);

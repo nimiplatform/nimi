@@ -24,8 +24,16 @@ units:
     meaning: The Desktop error boundary converts Desktop-local bridge and operating-system failures and SDK-projected Runtime ReasonCodes into structured NimiError and explicit localized failure presentation while preserving upstream reason, trace, retry, credential-scrubbing, and fail-closed semantics.
   - id: definition.nimi.desktop.shell-ui.developer-tools
     kind: definition
-    title: Desktop Developer Tools surface
-    meaning: The Desktop Developer Tools surface is a default-hidden internal surface reachable only through the single discoverable production Developer Mode and presents separate typed tooling, App Host, and Nimi access facts without creating a Registered App Subject, protected session, Effective App Access Snapshot, or Runtime authority.
+    lifecycle: removed
+    title: Retired Desktop Developer Tools surface
+    reason: Removed because the pre-release Desktop now single-homes Developer Mode control and local-development operations in Settings > Developer while technical diagnostics remain in Support.
+  - id: definition.nimi.desktop.shell-ui.developer-mode-settings
+    kind: definition
+    title: Desktop Developer Mode settings surface
+    meaning: Settings > Developer is the single discoverable Desktop entry for Developer Mode, keeps its enable, disable, and current-state control visible, and presents typed local-development registration, tooling, App Host, and Nimi access facts in the same page only while the mode is enabled without creating a Registered App Subject, protected session, Effective App Access Snapshot, or Runtime authority.
+    relations:
+      - type: supersedes
+        target: definition.nimi.desktop.shell-ui.developer-tools
   - id: definition.nimi.desktop.shell-ui.telemetry
     kind: definition
     title: Desktop renderer telemetry surface
@@ -34,7 +42,7 @@ units:
     kind: rule
     title: Primary navigation and tab groups are closed
     modality: must
-    statement: Desktop ordinary primary navigation is exactly Home, Chat, Characters, Explore, Apps, and Runtime in that order; Settings and Support are secondary, Developer Tools is developer-only, Profile, Source Detail, World Detail, Notification, Gifts, Privacy Policy, and Terms of Service are detail surfaces, World is folded into Explore, and Runtime is never hidden by enableRuntimeTab.
+    statement: Desktop ordinary primary navigation is exactly Home, Chat, Characters, Explore, Apps, and Runtime in that order; Settings and Support are secondary, Profile, Source Detail, World Detail, Notification, Gifts, Privacy Policy, and Terms of Service are detail surfaces, World is folded into Explore, and Runtime is never hidden by enableRuntimeTab.
     condition: Whenever Desktop constructs navigation, tab identity, labels, or route groups.
     failure: Reject missing, extra, reordered, wrongly grouped, or feature-flag-hidden ordinary navigation entries.
     relations:
@@ -126,12 +134,12 @@ units:
     kind: rule
     title: Developer Mode has an in-app entry
     modality: must
-    statement: Desktop provides a discoverable in-app Developer Mode control for source directories, reload posture, and developer diagnostics rather than requiring startup arguments, environment variables, or hidden shortcuts.
+    statement: Desktop provides Settings > Developer as the single discoverable in-app Developer Mode destination for its control and local-development workflow rather than requiring startup arguments, environment variables, hidden shortcuts, or a separate Developer Tools destination, while technical diagnostics remain in Support.
     condition: Whenever a user enters or leaves Desktop developer behavior.
-    failure: Keep developer-only behavior unavailable until the explicit in-app control is used.
+    failure: Keep local-development operations unavailable until the explicit in-app control is used and reject a second developer destination or duplicate diagnostics surface.
     relations:
       - type: applies_to
-        target: definition.nimi.desktop.shell-ui.developer-tools
+        target: definition.nimi.desktop.shell-ui.developer-mode-settings
       - type: applies_to
         target: definition.nimi.desktop.shell-ui.shell-plane
   - id: rule.nimi.desktop.shell-ui.r011
@@ -903,36 +911,24 @@ units:
         target: definition.nimi.desktop.shell-ui.error-boundary
   - id: rule.nimi.desktop.shell-ui.r083
     kind: rule
-    title: Developer Tools is gated and outside primary navigation
-    modality: must
-    statement: Developer Tools is a developer-group surface gated by enableDeveloperTools and the explicit Developer Mode and never appears in ordinary primary navigation or ordinary-user close evidence.
-    condition: Whenever Desktop resolves Developer Tools visibility or navigation.
-    failure: Keep the surface invisible and unreachable until Developer Mode is explicitly active.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.shell-ui.developer-tools
-      - type: applies_to
-        target: definition.nimi.desktop.shell-ui.shell-plane
+    lifecycle: removed
+    title: Retired separate Developer Tools navigation
+    reason: Removed because the pre-release Desktop hard-cuts the separate Developer Tools tab and account-menu destination in favor of the single Settings > Developer workflow.
   - id: rule.nimi.desktop.shell-ui.r084
     kind: rule
-    title: Developer Mode is discoverable and defaults off
+    title: Developer Mode is single-homed, discoverable, and defaults off
     modality: must
-    statement: Desktop exposes enable, disable, and current Developer Mode state in Settings, defaults it off, and never requires environment, argument, or hidden-shortcut entry.
+    statement: Desktop exposes enable, disable, and current Developer Mode state in Settings > Developer, defaults it off, presents local-development registration and activity in that same page only while enabled, exposes no separate Developer Tools route or menu item, and never requires environment, argument, or hidden-shortcut entry.
     condition: Whenever Desktop initializes or changes Developer Mode.
-    failure: Keep developer-only surfaces unavailable until the user explicitly enables the mode in-app.
+    failure: Keep local-development operational content unavailable until the user explicitly enables the mode in-app while keeping the mode control discoverable, and reject a parallel developer destination.
     relations:
       - type: applies_to
-        target: definition.nimi.desktop.shell-ui.developer-tools
+        target: definition.nimi.desktop.shell-ui.developer-mode-settings
   - id: rule.nimi.desktop.shell-ui.r085
     kind: rule
-    title: Developer Tools contains only developer-mode technical content
-    modality: must
-    statement: Developer Tools makes the previously orphaned Developer page reachable only inside Developer Mode, presents separate registration, exact Host, protected-session availability, Nimi access, and official-tooling activity diagnostics, and routes technical diagnostics to Support without creating product authority or ordinary-user dependencies.
-    condition: Whenever Desktop composes the Developer Tools surface.
-    failure: Reject orphan, default-visible, or ordinary-product content and dependencies.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.shell-ui.developer-tools
+    lifecycle: removed
+    title: Retired Developer Tools content composition
+    reason: Removed because local-development activity and registration management now compose directly in Settings > Developer and the obsolete diagnostics handoff item is deleted.
   - id: rule.nimi.desktop.shell-ui.r086
     kind: rule
     title: Direct development carries no protected authority
@@ -942,7 +938,7 @@ units:
     failure: Permit non-protected UI and CDP iteration, return typed access unavailable for protected operations, and require the per-user non-elevated platform adapter through the admitted Desktop and Runtime protected flow.
     relations:
       - type: applies_to
-        target: definition.nimi.desktop.shell-ui.developer-tools
+        target: definition.nimi.desktop.shell-ui.developer-mode-settings
       - type: applies_to
         target: definition.nimi.platform.app-ecosystem.registered-app-subject
       - type: applies_to
@@ -956,7 +952,7 @@ units:
     failure: Reject stale protected access without deleting registration, rotating the stable subject, fabricating durable security posture, or restarting or terminating an otherwise valid exact Host.
     relations:
       - type: applies_to
-        target: definition.nimi.desktop.shell-ui.developer-tools
+        target: definition.nimi.desktop.shell-ui.developer-mode-settings
       - type: applies_to
         target: definition.nimi.platform.core-protocol.effective-app-access-snapshot
   - id: rule.nimi.desktop.shell-ui.r088
@@ -968,19 +964,14 @@ units:
     failure: Reject overflow, toast-only or console-only failure, implicit retry, and pseudo-success.
     relations:
       - type: applies_to
-        target: definition.nimi.desktop.shell-ui.developer-tools
+        target: definition.nimi.desktop.shell-ui.developer-mode-settings
       - type: applies_to
         target: definition.nimi.desktop.shell-ui.error-boundary
   - id: rule.nimi.desktop.shell-ui.r089
     kind: rule
-    title: Developer and internal surfaces default hidden
-    modality: must_not
-    statement: A developer or internal surface is visible or reachable in a default installation or through a default-true feature flag before the admitted Developer Mode is enabled.
-    condition: Whenever Desktop initializes surface visibility.
-    failure: Hide and disable the surface until explicit Developer Mode activation.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.shell-ui.developer-tools
+    lifecycle: removed
+    title: Retired hidden developer surface gate
+    reason: Removed because Settings > Developer remains discoverable by default while only its local-development operational content is gated by Developer Mode.
   - id: rule.nimi.desktop.shell-ui.r090
     kind: rule
     title: Renderer telemetry payload is structured and bounded

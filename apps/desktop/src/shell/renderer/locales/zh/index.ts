@@ -5,7 +5,7 @@ import section3 from './04-Common.json';
 import section4 from './05-Settings.json';
 import section5 from './06-Profile.json';
 import section7 from './08-Notifications.json';
-import section8 from './09-Performance.json';
+import section8 from './09-Developer.json';
 import section10 from './11-Explore.json';
 import section11 from './12-Chat.json';
 import section12 from './13-MessagePane.json';
@@ -44,7 +44,6 @@ import section55 from './56-Apps.json';
 import section56 from './57-FirstRun.json';
 import section57 from './58-Support.json';
 import section58 from './59-Appearance.json';
-import section60 from './61-DeveloperTools.json';
 import section61 from './62-Agents.json';
 import section62 from './63-LocalDevelopment.json';
 import { agentCenterLocaleResources } from '@nimiplatform/kit/features/agent-center/headless';
@@ -59,7 +58,7 @@ const messages = {
   "Settings": section4,
   "Profile": section5,
   "Notifications": section7,
-  "Performance": section8,
+  "Developer": section8,
   "Explore": section10,
   "Chat": section11,
   "MessagePane": section12,
@@ -98,7 +97,6 @@ const messages = {
   "FirstRun": section56,
   "Support": section57,
   "Appearance": section58,
-  "DeveloperTools": section60,
   "Agents": section61,
   "LocalDevelopment": section62,
   "AgentCenter": section64,

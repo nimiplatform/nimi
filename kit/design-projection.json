@@ -3977,7 +3977,7 @@
         "use_for": [
           "Desktop ordinary shell chrome",
           "Chat shell chrome and repeated conversation controls",
-          "Settings, runtime configuration, diagnostics, tables, lists, and developer tools",
+          "Settings, runtime configuration, diagnostics, tables, lists, and developer settings",
           "Runtime bootstrap failure, admission failure, repair, blocked, and setup status states",
           "Support diagnostics and accountable progress surfaces"
         ],
@@ -4056,7 +4056,7 @@
         ],
         "avoid_for": [
           "Desktop high-frequency operational chrome",
-          "Runtime bootstrap, repair, blocked, diagnostics, settings, developer tools, and runtime configuration",
+          "Runtime bootstrap, repair, blocked, diagnostics, settings, developer settings, and runtime configuration",
           "Identity-led hero or cinematic presentation surfaces"
         ],
         "typography": {
@@ -4099,7 +4099,7 @@
         ],
         "avoid_for": [
           "Runtime errors",
-          "Setup, repair, blocked, diagnostics, settings, developer tools, and runtime configuration",
+          "Setup, repair, blocked, diagnostics, settings, developer settings, and runtime configuration",
           "Ordinary shell chrome"
         ],
         "typography": {

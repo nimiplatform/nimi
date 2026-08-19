@@ -65,7 +65,7 @@ export function AppsPanel(): ReactElement {
               projection={projection}
               onCardAction={runCardAction}
               onOpenDeveloperMode={() => {
-                settings.openSection('performance');
+                settings.openSection('developer');
                 setActiveTab('settings');
               }}
               onRetry={retryProjection}

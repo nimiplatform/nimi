@@ -1,24 +1,14 @@
-/**
- * Discoverable Developer Mode toggle (`D-DEV-002`).
- *
- * `D-DEV-002` requires Developer Mode's enable / disable / current-state
- * display to live at a discoverable in-app location — canonically `Settings`.
- * Developer Mode MUST NOT be reachable only through launch parameters,
- * environment variables, or hidden shortcuts. This component is that
- * discoverable entry: a self-contained card that shows the current state and
- * flips it.
- *
- * It writes through the canonical performance-preferences store
- * (`developer-mode.ts` → `settings-storage.ts`) so a single source of truth is
- * preserved; every gated developer surface derives its reachability from that
- * one persisted value.
- */
+/** Runtime-backed Developer Mode control for the single Settings > Developer page. */
 
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 
-export function DeveloperModeToggle() {
+export function DeveloperModeToggle({
+  onEnabledChange,
+}: {
+  onEnabledChange?: (enabled: boolean) => void;
+}) {
   const { t } = useTranslation();
   const bindings = useDesktopRendererBindings();
   const [enabled, setEnabled] = useState(
@@ -33,6 +23,7 @@ export function DeveloperModeToggle() {
   useEffect(() => {
     const unsubscribe = bindings.app.events.subscribeDeveloperMode((next) => {
       setEnabled(next);
+      onEnabledChange?.(next);
     });
     void bindings.app.commands.refreshDeveloperMode()
       .then((projection) => {
@@ -45,7 +36,7 @@ export function DeveloperModeToggle() {
       })
       .finally(() => setBusy(false));
     return unsubscribe;
-  }, [bindings]);
+  }, [bindings, onEnabledChange]);
 
   const toggle = async () => {
     if (busy) return;
@@ -55,6 +46,7 @@ export function DeveloperModeToggle() {
       const projection = await bindings.app.commands.setDeveloperMode(!enabled);
       setUnavailable(projection.state === 'unavailable');
       setEnabled(projection.enabled);
+      onEnabledChange?.(projection.enabled);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : String(cause));
     } finally {
@@ -69,6 +61,7 @@ export function DeveloperModeToggle() {
       const projection = await bindings.app.commands.refreshDeveloperMode();
       setUnavailable(projection.state === 'unavailable');
       setEnabled(projection.enabled);
+      onEnabledChange?.(projection.enabled);
       if (projection.state === 'unavailable') setError(projection.reasonCode);
     } catch (cause) {
       setUnavailable(true);
@@ -87,13 +80,15 @@ export function DeveloperModeToggle() {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0 space-y-1">
           <p className="text-sm font-semibold text-[var(--nimi-text-primary)]">
-            {t('DeveloperTools.developerModeTitle')}
+            {t('Developer.developerModeTitle')}
           </p>
           <p className="max-w-xl text-xs text-[var(--nimi-text-secondary)]">
-            {t('DeveloperTools.developerModeDescription')}
+            {t('Developer.developerModeDescription')}
           </p>
           <p
             data-testid="developer-mode-status"
+            role="status"
+            aria-live="polite"
             className={
               enabled
                 ? 'text-xs font-medium text-[var(--nimi-status-success)]'
@@ -101,14 +96,14 @@ export function DeveloperModeToggle() {
             }
           >
             {busy
-              ? t('DeveloperTools.developerModeStatusLoading')
+              ? t('Developer.developerModeStatusLoading')
               : unavailable
-                ? t('DeveloperTools.developerModeStatusUnavailable')
+                ? t('Developer.developerModeStatusUnavailable')
                 : enabled
-              ? t('DeveloperTools.developerModeStatusOn')
-              : t('DeveloperTools.developerModeStatusOff')}
+              ? t('Developer.developerModeStatusOn')
+              : t('Developer.developerModeStatusOff')}
           </p>
-          {error ? <p className="max-w-xl break-words text-xs text-[var(--nimi-status-danger)]">{error}</p> : null}
+          {error ? <p role="alert" className="max-w-xl break-words text-xs text-[var(--nimi-status-danger)]">{error}</p> : null}
         </div>
         <button
           type="button"
@@ -123,8 +118,8 @@ export function DeveloperModeToggle() {
           }
         >
           {enabled
-            ? t('DeveloperTools.developerModeDisable')
-            : t('DeveloperTools.developerModeEnable')}
+            ? t('Developer.developerModeDisable')
+            : t('Developer.developerModeEnable')}
         </button>
         {unavailable ? (
           <button
@@ -134,7 +129,7 @@ export function DeveloperModeToggle() {
             onClick={() => { void retry(); }}
             className="rounded-lg border border-[var(--nimi-border-subtle)] px-3.5 py-2 text-xs font-medium text-[var(--nimi-text-primary)] disabled:cursor-wait disabled:opacity-70"
           >
-            {t('DeveloperTools.developerModeRetry')}
+            {t('Developer.developerModeRetry')}
           </button>
         ) : null}
       </div>

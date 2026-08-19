@@ -49,7 +49,6 @@ export type AppTab =
   | 'runtime'
   | 'settings'
   | 'support'
-  | 'developer-tools'
   | 'profile'
   | 'source-detail'
   | 'world-detail'

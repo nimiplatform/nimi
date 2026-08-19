@@ -1,7 +1,7 @@
 import { ProfilePage } from './settings-account-panel.js';
 import { AppearancePage } from './settings-appearance-page.js';
 import { NotificationsPage } from './settings-preferences-panel.js';
-import { PerformancePage } from './settings-performance-page.js';
+import { DeveloperPage } from './settings-developer-page.js';
 import { PrivacyPage } from './settings-privacy-page.js';
 import { SecurityPage } from './settings-security-page.js';
 import { DataManagementPage } from './settings-data-management-page.js';
@@ -13,7 +13,7 @@ export {
   PrivacyPage,
   SecurityPage,
   NotificationsPage,
-  PerformancePage,
+  DeveloperPage,
   DataManagementPage,
   AboutLegalPage,
 };
@@ -25,7 +25,7 @@ export function renderSettingsPage(selectedId: string) {
     case 'privacy': return <PrivacyPage />;
     case 'security': return <SecurityPage />;
     case 'notifications': return <NotificationsPage />;
-    case 'performance': return <PerformancePage />;
+    case 'developer': return <DeveloperPage />;
     case 'data': return <DataManagementPage />;
     case 'about-legal': return <AboutLegalPage />;
     default: return <ProfilePage />;

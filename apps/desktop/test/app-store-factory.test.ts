@@ -433,12 +433,12 @@ test('renderer settings ports isolate selection, subscriptions, and preferences 
     reduceMotion: true,
   };
 
-  first.openSection('performance');
+  first.openSection('developer');
   first.persistAppearancePreferences(firstPreferences);
 
-  assert.equal(first.loadSelected('profile'), 'performance');
+  assert.equal(first.loadSelected('profile'), 'developer');
   assert.equal(second.loadSelected('profile'), 'profile');
-  assert.deepEqual(opened, ['performance']);
+  assert.deepEqual(opened, ['developer']);
   assert.deepEqual(first.loadAppearancePreferences(), firstPreferences);
   assert.deepEqual(second.loadAppearancePreferences(), {
     theme: 'system',
@@ -447,7 +447,7 @@ test('renderer settings ports isolate selection, subscriptions, and preferences 
 
   unsubscribe();
   first.openSection('profile');
-  assert.deepEqual(opened, ['performance']);
+  assert.deepEqual(opened, ['developer']);
 });
 
 test('runtime config navigation retains pre-subscription intent and isolates renderer instances', () => {
