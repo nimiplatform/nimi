@@ -326,16 +326,17 @@ async function queryMatchingScenarioJob(
   input: NimiRuntimeScenarioJobRunnerInput,
   jobId: string,
 ): Promise<Awaited<ReturnType<NimiScenarioJobClient['getScenarioJob']>> | undefined> {
+  let response: Awaited<ReturnType<NimiScenarioJobClient['getScenarioJob']>>;
   try {
-    const response = await input.ai.getScenarioJob({ jobId }, input.callOptions);
-    const job = response.job;
-    if (normalizeText(job?.jobId) !== jobId || job?.scenarioType !== input.request.scenarioType) {
-      return undefined;
-    }
-    return response;
+    response = await input.ai.getScenarioJob({ jobId }, input.callOptions);
   } catch {
     return undefined;
   }
+  const job = response.job;
+  if (normalizeText(job?.jobId) !== jobId || job?.scenarioType !== input.request.scenarioType) {
+    throw runtimeScenarioJobResponseError('Runtime Scenario job recovery result does not match the submitted Job');
+  }
+  return response;
 }
 
 function runtimeScenarioJobStreamInterruptedError(jobId: string): Error {

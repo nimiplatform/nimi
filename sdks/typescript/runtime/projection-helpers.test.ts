@@ -620,6 +620,46 @@ test('Runtime ScenarioJob stream interruption performs one bounded terminal look
   assert.equal(queryCount, 1);
 });
 
+test('Runtime ScenarioJob stream recovery rejects a terminal lookup for another Job', async () => {
+  const client: NimiRuntimeScenarioJobClient = {
+    ...createScenarioJobClient([]),
+    async getScenarioJob() {
+      return { job: createScenarioJob('job-other', ScenarioJobStatus.COMPLETED) };
+    },
+  };
+
+  await assert.rejects(
+    runNimiRuntimeScenarioJob({ ai: client, request: createScenarioJobRequest() }),
+    (error: unknown) => (error as { readonly reasonCode?: unknown }).reasonCode
+      === ReasonCode.SDK_RUNTIME_RESPONSE_DECODE_FAILED,
+  );
+});
+
+test('Runtime ScenarioJob abort recovery rejects a lookup for another Job', async () => {
+  const controller = new AbortController();
+  const client: NimiRuntimeScenarioJobClient = {
+    ...createScenarioJobClient([]),
+    async getScenarioJob() {
+      return { job: createScenarioJob('job-other', ScenarioJobStatus.CANCELED) };
+    },
+    async *subscribeScenarioJobEvents() {
+      await new Promise(() => undefined);
+    },
+  };
+  const pending = runNimiRuntimeScenarioJob({
+    ai: client,
+    request: createScenarioJobRequest(),
+    signal: controller.signal,
+  });
+  controller.abort('tester-user-canceled');
+
+  await assert.rejects(
+    pending,
+    (error: unknown) => (error as { readonly reasonCode?: unknown }).reasonCode
+      === ReasonCode.SDK_RUNTIME_RESPONSE_DECODE_FAILED,
+  );
+});
+
 function createScenarioJobRequest(): NimiRuntimeScenarioJobSubmitRequest {
   return {
     scenarioType: ScenarioType.TEXT_GENERATE,
