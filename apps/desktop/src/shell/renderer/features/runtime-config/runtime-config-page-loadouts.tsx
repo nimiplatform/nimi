@@ -48,6 +48,7 @@ type RecommendedInstallItem = {
 type PendingRecommendedInstall = {
   readonly recipe: NimiLoadoutRecipe;
   readonly items: readonly RecommendedInstallItem[];
+  readonly loadout?: NimiMachineLoadout;
 };
 
 export function LoadoutsPage() {
@@ -162,10 +163,10 @@ export function LoadoutsPage() {
     });
   }, [assets, createAxes, displayName, loadoutsClient, run, selectedRecipe]);
 
-  const requestRecommendedInstallForRecipe = useCallback((recipe: NimiLoadoutRecipe) => {
+  const requestRecommendedInstallForRecipe = useCallback((recipe: NimiLoadoutRecipe, loadout?: NimiMachineLoadout) => {
     const items = recommendedInstallItems(recipe, assets, verifiedAssets);
     if (!items.some((item) => !item.installed)) return;
-    setPendingInstall({ recipe, items });
+    setPendingInstall({ recipe, items, ...(loadout ? { loadout } : {}) });
   }, [assets, verifiedAssets]);
 
   const requestRecommendedInstall = useCallback(() => {
@@ -178,13 +179,14 @@ export function LoadoutsPage() {
     if (!pending) return;
     setPendingInstall(null);
     void run(`install:${pending.recipe.recipeId}`, async () => {
-      for (const item of pending.items) {
-        if (item.installed) continue;
-        if (!item.variantId) throw new Error(`${item.displayLabel}: recommended catalog variant is unavailable.`);
-        await installRuntimeConfigCatalogAsset(modelAssetsClient, item.variantId);
-      }
+      await installAndBindRuntimeConfigRecommendedLoadout({
+        ...pending,
+        assets,
+        installCatalogAsset: (templateId) => installRuntimeConfigCatalogAsset(modelAssetsClient, templateId),
+        updateLoadout: (next) => loadoutsClient.update(next, false),
+      });
     });
-  }, [modelAssetsClient, pendingInstall, run]);
+  }, [assets, loadoutsClient, modelAssetsClient, pendingInstall, run]);
 
   const requestSelect = useCallback((loadout: NimiMachineLoadout) => {
     requestImpact({
@@ -290,7 +292,7 @@ export function LoadoutsPage() {
               onSelect={() => requestSelect(loadout)}
               onClear={() => requestClear(loadout)}
               onUpdate={(slotId, modelAssetId) => requestUpdate(loadout, slotId, modelAssetId)}
-              onInstallRecommended={(recipe) => requestRecommendedInstallForRecipe(recipe)}
+              onInstallRecommended={(recipe) => requestRecommendedInstallForRecipe(recipe, loadout)}
               onDelete={() => requestDelete(loadout)}
             />
           ))}
@@ -335,13 +337,17 @@ export function LoadoutsPage() {
         open={pendingInstall !== null}
         title={t('runtimeConfig.loadouts.installRecommendedTitle')}
         message={recommendedInstallMessage(pendingInstall?.items ?? [], {
-          heading: t('runtimeConfig.loadouts.installRecommendedBody'),
+          heading: t(pendingInstall?.loadout
+            ? 'runtimeConfig.loadouts.installRecommendedAndUseBody'
+            : 'runtimeConfig.loadouts.installRecommendedBody'),
           installed: t('runtimeConfig.loadouts.installed'),
           download: t('runtimeConfig.loadouts.downloadAction'),
           total: t('runtimeConfig.loadouts.totalDownload'),
           unknownSize: t('runtimeConfig.loadouts.unknownDownloadSize'),
         })}
-        confirmLabel={t('runtimeConfig.loadouts.installRecommendedConfirm')}
+        confirmLabel={t(pendingInstall?.loadout
+          ? 'runtimeConfig.loadouts.installRecommendedAndUseConfirm'
+          : 'runtimeConfig.loadouts.installRecommendedConfirm')}
         cancelLabel={t('runtimeConfig.loadouts.cancel')}
         confirmTone="primary"
         pending={Boolean(busy)}
@@ -389,6 +395,7 @@ function LoadoutCard(props: {
   readonly onDelete: () => void;
 }) {
   const { t } = useTranslation();
+  const [modelsOpen, setModelsOpen] = useState(false);
   const tone = props.loadout.validationState === 'configured' ? 'success' : props.loadout.validationState === 'blocked' ? 'danger' : 'warning';
   const capabilityLabel = t(loadoutCapabilityLabelKey(props.loadout.capabilityContract), {
     defaultValue: props.loadout.capabilityContract,
@@ -403,10 +410,10 @@ function LoadoutCard(props: {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div><div className="flex flex-wrap gap-2"><h4 className="font-semibold">{props.loadout.displayName}</h4><StatusBadge tone={tone} shape="soft">{t(`runtimeConfig.loadouts.state.${props.loadout.validationState}`)}</StatusBadge>{props.selected ? <StatusBadge tone="info" shape="soft">{t('runtimeConfig.loadouts.selected')}</StatusBadge> : null}</div><p className="mt-1 text-sm text-[var(--nimi-text-muted)]">{capabilityLabel}</p></div>
         <div className="flex gap-2">
-          {props.selected ? <Button size="sm" tone="ghost" disabled={props.busy} onClick={props.onClear}>{t('runtimeConfig.loadouts.clear')}</Button> : props.loadout.validationState === 'configured' ? <Button size="sm" tone="primary" disabled={props.busy} onClick={props.onSelect}>{t('runtimeConfig.loadouts.select')}</Button> : canInstallRecommended && props.recipe ? <Button data-testid={`loadout-install-recommended:${props.loadout.loadoutId}`} size="sm" tone="primary" disabled={props.busy} onClick={() => props.onInstallRecommended(props.recipe!)}>{t('runtimeConfig.loadouts.installRecommended')}</Button> : null}
+          {props.selected ? <Button size="sm" tone="ghost" disabled={props.busy} onClick={props.onClear}>{t('runtimeConfig.loadouts.clear')}</Button> : props.loadout.validationState === 'configured' ? <Button size="sm" tone="primary" disabled={props.busy} onClick={props.onSelect}>{t('runtimeConfig.loadouts.select')}</Button> : canInstallRecommended && props.recipe ? <Button data-testid={`loadout-install-recommended:${props.loadout.loadoutId}`} size="sm" tone="primary" disabled={props.busy} onClick={() => props.onInstallRecommended(props.recipe!)}>{t('runtimeConfig.loadouts.installRecommended')}</Button> : <Button size="sm" tone="primary" disabled={props.busy} onClick={() => setModelsOpen(true)}>{t('runtimeConfig.loadouts.chooseModels')}</Button>}
         </div>
       </div>
-      <details className="rounded-xl border border-[var(--nimi-border-subtle)] px-3 py-2" data-testid="loadout-model-parts-editor">
+      <details open={modelsOpen} onToggle={(event) => setModelsOpen(event.currentTarget.open)} className="rounded-xl border border-[var(--nimi-border-subtle)] px-3 py-2" data-testid="loadout-model-parts-editor">
         <summary className="cursor-pointer text-sm font-medium text-[var(--nimi-text-secondary)]">{t('runtimeConfig.loadouts.changeModels')}</summary>
         <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">{t('runtimeConfig.loadouts.changeModelsDescription')}</p>
         <div className="mt-3 grid gap-3">
@@ -503,6 +510,75 @@ export function runtimeConfigLoadoutUpdateModelAxes(
       ...(axis.modelAssetId ? { modelAssetId: axis.modelAssetId } : {}),
       ...(axis.expectedContentId ? { expectedContentId: axis.expectedContentId } : {}),
     };
+  });
+}
+
+export function runtimeConfigRecommendedLoadoutModelAxes(
+  loadout: Pick<NimiMachineLoadout, 'modelAxes'>,
+  recipe: Pick<NimiLoadoutRecipe, 'slots'>,
+  assets: readonly NimiRuntimeModelAssetRecord[],
+): NimiPrepareLoadoutInput['modelAxes'] {
+  return recipe.slots.map((slot) => {
+    const current = loadout.modelAxes.find((axis) => axis.slotId === slot.slotId);
+    if (current?.modelAssetId) {
+      const currentAsset = assets.find((asset) => asset.modelAssetId === current.modelAssetId);
+      return {
+        slotId: slot.slotId,
+        modelAssetId: current.modelAssetId,
+        ...(currentAsset?.contentId || current.expectedContentId
+          ? { expectedContentId: currentAsset?.contentId || current.expectedContentId }
+          : {}),
+      };
+    }
+    const recommended = slot.recommendedContentIds
+      .map((contentId) => assets.find((asset) => asset.contentId === contentId))
+      .find((asset): asset is NimiRuntimeModelAssetRecord => asset !== undefined);
+    if (recommended) {
+      return {
+        slotId: slot.slotId,
+        modelAssetId: recommended.modelAssetId,
+        expectedContentId: recommended.contentId,
+      };
+    }
+    const expectedContentId = current?.expectedContentId || slot.recommendedContentIds[0];
+    return {
+      slotId: slot.slotId,
+      ...(expectedContentId ? { expectedContentId } : {}),
+    };
+  });
+}
+
+export async function installAndBindRuntimeConfigRecommendedLoadout(input: {
+  readonly items: readonly RecommendedInstallItem[];
+  readonly recipe: NimiLoadoutRecipe;
+  readonly loadout?: NimiMachineLoadout;
+  readonly assets: readonly NimiRuntimeModelAssetRecord[];
+  readonly installCatalogAsset: (templateId: string) => Promise<NimiRuntimeModelAssetRecord>;
+  readonly updateLoadout: (next: NimiPrepareLoadoutInput) => Promise<unknown>;
+}): Promise<void> {
+  const installedAssets: NimiRuntimeModelAssetRecord[] = [];
+  for (const item of input.items) {
+    if (item.installed) {
+      const installed = input.assets.find((asset) => asset.contentId === item.contentId);
+      if (installed) installedAssets.push(installed);
+      continue;
+    }
+    if (!item.variantId) throw new Error(`${item.displayLabel}: recommended catalog variant is unavailable.`);
+    installedAssets.push(await input.installCatalogAsset(item.variantId));
+  }
+  if (!input.loadout) return;
+  const nextAssets = [...input.assets, ...installedAssets.filter((installed) => (
+    !input.assets.some((asset) => asset.modelAssetId === installed.modelAssetId)
+  ))];
+  await input.updateLoadout({
+    loadoutId: input.loadout.loadoutId,
+    capabilityContract: input.loadout.capabilityContract,
+    recipeId: input.loadout.recipeId,
+    options: input.loadout.options,
+    supportedFeatures: input.loadout.supportedFeatures,
+    displayName: input.loadout.displayName,
+    modelAxes: runtimeConfigRecommendedLoadoutModelAxes(input.loadout, input.recipe, nextAssets),
+    provenance: input.loadout.provenance,
   });
 }
 

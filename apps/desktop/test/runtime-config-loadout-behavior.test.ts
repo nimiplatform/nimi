@@ -12,10 +12,12 @@ import type {
 import { createNimiError } from '@nimiplatform/sdk/types';
 import { runtimeConfigLoadoutCatalogBadge } from '../src/shell/renderer/features/runtime-config/runtime-config-loadout-catalog-badge.js';
 import {
+  installAndBindRuntimeConfigRecommendedLoadout,
   recommendedInstallMessage,
   recommendedInstallItems,
   loadoutAssetLabel,
   loadoutCapabilityLabelKey,
+  runtimeConfigRecommendedLoadoutModelAxes,
   runtimeConfigLoadoutUpdateModelAxes,
   runtimeConfigLoadoutErrorMessage,
 } from '../src/shell/renderer/features/runtime-config/runtime-config-page-loadouts.js';
@@ -251,4 +253,90 @@ test('Loadout axis update preserves unresolved and inventory-missing sibling int
       { slotId: 'custom', modelAssetId: 'asset-stale', expectedContentId: staleContentId },
     ],
   );
+});
+
+test('recommended install binds missing axes without replacing custom sibling intent', () => {
+  const mainContentId = `sha256:${'a'.repeat(64)}`;
+  const companionContentId = `sha256:${'b'.repeat(64)}`;
+  const customContentId = `sha256:${'c'.repeat(64)}`;
+  const recipe = {
+    recipeId: 'image.multi',
+    revision: '1',
+    title: 'Image multi',
+    capabilityContract: 'image.generate',
+    implementation: { implementationId: 'local.image', driverId: 'driver.image', driverDialect: 'image/v1' },
+    defaultOptions: {},
+    supportedFeatures: [],
+    slots: [
+      { slotId: 'main', displayLabel: 'Main', recommendedContentIds: [mainContentId], recommendedVariantIds: ['main-v1'], modelContract: {} },
+      { slotId: 'companion', displayLabel: 'Companion', recommendedContentIds: [companionContentId], recommendedVariantIds: ['companion-v1'], modelContract: {} },
+      { slotId: 'custom', displayLabel: 'Custom', recommendedContentIds: [mainContentId], recommendedVariantIds: ['main-v1'], modelContract: {} },
+    ],
+  } as NimiLoadoutRecipe;
+  const loadout = {
+    modelAxes: [
+      { slotId: 'main', displayLabel: 'Main', modelAssetId: '', expectedContentId: mainContentId, recipeCompatible: false, reasons: [] },
+      { slotId: 'custom', displayLabel: 'Custom', modelAssetId: 'asset-custom', expectedContentId: customContentId, recipeCompatible: true, reasons: [] },
+    ],
+  } satisfies Pick<NimiMachineLoadout, 'modelAxes'>;
+  const assets = [
+    { modelAssetId: 'asset-main', contentId: mainContentId },
+    { modelAssetId: 'asset-companion', contentId: companionContentId },
+  ] as NimiRuntimeModelAssetRecord[];
+
+  assert.deepEqual(runtimeConfigRecommendedLoadoutModelAxes(loadout, recipe, assets), [
+    { slotId: 'main', modelAssetId: 'asset-main', expectedContentId: mainContentId },
+    { slotId: 'companion', modelAssetId: 'asset-companion', expectedContentId: companionContentId },
+    { slotId: 'custom', modelAssetId: 'asset-custom', expectedContentId: customContentId },
+  ]);
+});
+
+test('recommended install continues through the formal Loadout update after download', async () => {
+  const contentId = `sha256:${'e'.repeat(64)}`;
+  const recipe = {
+    recipeId: 'text.recommended',
+    revision: '1',
+    title: 'Text recommended',
+    capabilityContract: 'text.generate',
+    implementation: { implementationId: 'local.text', driverId: 'driver.text', driverDialect: 'text/v1' },
+    defaultOptions: {},
+    supportedFeatures: [],
+    slots: [{ slotId: 'model', displayLabel: 'Model', recommendedContentIds: [contentId], recommendedVariantIds: ['text-v1'], modelContract: {} }],
+  } as NimiLoadoutRecipe;
+  const loadout = {
+    loadoutId: 'loadout-text',
+    capabilityContract: 'text.generate',
+    implementation: recipe.implementation,
+    recipeId: recipe.recipeId,
+    recipeRevision: recipe.revision,
+    options: {},
+    modelAxes: [{ slotId: 'model', displayLabel: 'Model', modelAssetId: '', expectedContentId: contentId, recipeCompatible: false, reasons: [] }],
+    recipeCustody: [],
+    supportedFeatures: [],
+    validationState: 'unresolved',
+    reasons: [],
+    displayName: 'Text use',
+    provenance: {},
+    createdAt: '2026-08-19T00:00:00Z',
+    updatedAt: '2026-08-19T00:00:00Z',
+  } as NimiMachineLoadout;
+  const installed = { modelAssetId: 'asset-text', contentId } as NimiRuntimeModelAssetRecord;
+  const updates: unknown[] = [];
+
+  await installAndBindRuntimeConfigRecommendedLoadout({
+    items: [{ slotId: 'model', displayLabel: 'Model', contentId, variantId: 'text-v1', installed: false }],
+    recipe,
+    loadout,
+    assets: [],
+    async installCatalogAsset(templateId) {
+      assert.equal(templateId, 'text-v1');
+      return installed;
+    },
+    async updateLoadout(next) { updates.push(next); },
+  });
+
+  assert.equal(updates.length, 1);
+  assert.deepEqual((updates[0] as { modelAxes: unknown }).modelAxes, [
+    { slotId: 'model', modelAssetId: installed.modelAssetId, expectedContentId: contentId },
+  ]);
 });
