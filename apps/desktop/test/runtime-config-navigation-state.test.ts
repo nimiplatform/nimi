@@ -24,13 +24,16 @@ test('normalizePageIdV11: canonical page ids pass through unchanged', () => {
   assert.equal(normalizePageIdV11('modelMarket'), 'modelMarket');
   assert.equal(normalizePageIdV11('localModels'), 'localModels');
   assert.equal(normalizePageIdV11('loadouts'), 'loadouts');
-  assert.equal(normalizePageIdV11('modelCatalog'), 'modelCatalog');
   assert.equal(normalizePageIdV11('cloud'), 'cloud');
   assert.equal(normalizePageIdV11('environment'), 'environment');
 });
 
 test('normalizePageIdV11: retired "models" section migrates to "localModels"', () => {
   assert.equal(normalizePageIdV11('models'), 'localModels');
+});
+
+test('normalizePageIdV11: retired model catalog page migrates to cloud connectors', () => {
+  assert.equal(normalizePageIdV11('modelCatalog'), 'cloud');
 });
 
 test('normalizePageIdV11: unknown values fall back to "overview"', () => {
@@ -81,12 +84,11 @@ test('ordinary Runtime sidebar lists the expected pages without Mods/developer p
     'modelMarket',
     'localModels',
     'loadouts',
-    'modelCatalog',
     'cloud',
     'environment',
   ]);
   // Retired top-level entries must not survive the T2.4 hard cut; the single
-  // 'models' section is now split into the four model pages above.
+  // 'models' section is now split into task-owned Runtime pages above.
   for (const retired of ['recommend', 'catalog', 'data-management', 'performance', 'local', 'runtime', 'mods', 'mod-developer', 'advanced', 'models', 'localAiConfig']) {
     assert.equal((pageIds as string[]).includes(retired), false, `retired id "${retired}" must not be a top-level section`);
   }

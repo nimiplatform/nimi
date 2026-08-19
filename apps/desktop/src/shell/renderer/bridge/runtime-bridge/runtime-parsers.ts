@@ -38,7 +38,9 @@ export function parseSystemResourceSnapshot(value: unknown): SystemResourceSnaps
     memoryTotalBytes,
     diskUsedBytes,
     diskTotalBytes,
-    temperatureCelsius: parseOptionalNumber(record.temperatureCelsius),
+    temperatureCelsius: record.temperatureCelsius == null
+      ? undefined
+      : parseOptionalNumber(record.temperatureCelsius),
     capturedAtMs,
     source: parseRequiredString(record.source, 'source', 'get_system_resource_snapshot'),
   };

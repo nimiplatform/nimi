@@ -56,7 +56,7 @@ export function EnvironmentDataTab() {
   };
 
   return (
-    <div className="flex min-w-0 flex-col gap-4 px-5 py-4">
+    <div className="flex min-w-0 flex-col gap-4">
       {loadFailed ? (
         <NimiText role="helper">{t('runtimeConfig.environment.dataLoadFailed', { defaultValue: 'Storage information is unavailable.' })}</NimiText>
       ) : null}

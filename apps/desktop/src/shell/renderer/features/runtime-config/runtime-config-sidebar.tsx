@@ -62,13 +62,6 @@ const ICON_LOCAL_AI_CONFIG = (
   </svg>
 );
 
-const ICON_MODEL_CATALOG = (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
-    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
-  </svg>
-);
-
 const ICON_CLOUD = (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M17.5 19a4.5 4.5 0 0 0 .6-8.96A6 6 0 0 0 6.2 8.2 4 4 0 0 0 6 16h11.5z" />
@@ -85,9 +78,8 @@ const ICON_ENVIRONMENT = (
 );
 
 /**
- * Runtime sidebar entries. The former single Models section is split
- * into four first-level pages (model market, local models, local AI
- * Loadouts, model catalog).
+ * Runtime sidebar entries. Catalog-backed discovery and provider overrides
+ * are contextual actions inside Local Models and Cloud Connectors.
  * Developer-only surfaces are NOT ordinary entries — they
  * live in the developer-mode-gated Developer Tools tab.
  */
@@ -126,12 +118,6 @@ export const RUNTIME_SIDEBAR_ITEMS: Array<{
     section: 'Runtime',
     label: 'Loadouts',
     icon: ICON_LOCAL_AI_CONFIG,
-  },
-  {
-    id: 'modelCatalog',
-    section: 'Runtime',
-    label: 'Model Catalog',
-    icon: ICON_MODEL_CATALOG,
   },
   {
     id: 'cloud',

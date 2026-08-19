@@ -1,9 +1,9 @@
 import { lazy, Suspense, useEffect, useRef, useState, type CSSProperties, type PointerEvent } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   ScrollArea,
   SidebarAffordanceChevron,
-  SidebarHeader,
   SidebarItem,
   SidebarResizeHandle,
   SidebarSection,
@@ -11,13 +11,18 @@ import {
   Surface,
 } from '@nimiplatform/kit/ui';
 import { E2E_IDS } from '../../testability/e2e-ids';
-import { RUNTIME_PAGE_META } from './runtime-config-meta-v11';
 import { RUNTIME_SIDEBAR_ITEMS } from './runtime-config-sidebar';
 import { RuntimeHealthBadge } from './runtime-config-primitives';
 import { resetRuntimePageViewport } from './runtime-config-page-shell';
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
 import { useRuntimeConfigPanelController } from './runtime-config-panel-controller';
-import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
+import { useRuntimeConfigLocalEnvironmentClient } from './runtime-config-local-environment-sdk-service';
+import {
+  RECOMMEND_FEED_FRESH_STALE_MS,
+  RECOMMEND_FEED_PAGE_SIZE,
+  normalizeRecommendPageCapability,
+  recommendationFeedQueryKey,
+} from './runtime-config-page-recommend-utils';
 
 const OverviewPage = lazy(async () => ({
   default: (await import('./runtime-config-page-overview')).OverviewPage,
@@ -25,14 +30,13 @@ const OverviewPage = lazy(async () => ({
 const CloudPage = lazy(async () => ({
   default: (await import('./runtime-config-page-cloud')).CloudPage,
 }));
+// Hoisted so the panel can warm the model-market chunk before first open.
+const importRecommendPageModule = () => import('./runtime-config-page-recommend');
 const RecommendPage = lazy(async () => ({
-  default: (await import('./runtime-config-page-recommend')).RecommendPage,
+  default: (await importRecommendPageModule()).RecommendPage,
 }));
 const LocalPage = lazy(async () => ({
   default: (await import('./runtime-config-page-local')).LocalPage,
-}));
-const CatalogPage = lazy(async () => ({
-  default: (await import('./runtime-config-page-catalog')).CatalogPage,
 }));
 const LoadoutsPage = lazy(async () => ({
   default: (await import('./runtime-config-page-loadouts.js')).LoadoutsPage,
@@ -59,11 +63,9 @@ export function RuntimeConfigPanelBody() {
 
 export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControllerModel }) {
   const { t } = useTranslation();
-  const bindings = useDesktopRendererBindings();
   const MIN_SIDEBAR_WIDTH = 192;
   const MAX_SIDEBAR_WIDTH = 340;
   const { model } = props;
-  const { onChangePage } = model;
   const { state } = model;
   const [sidebarWidth, setSidebarWidth] = useState(216);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -72,20 +74,10 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
 
   const daemonRunning = model.runtimeDaemonStatus?.running === true;
   const activePage = model.activePage;
-  const developerModeEnabled = bindings.app.projection.developerModeEnabled();
-  const visibleActivePage = activePage === 'modelCatalog' && !developerModeEnabled
-    ? 'overview'
-    : activePage;
-
-  useEffect(() => {
-    if (!developerModeEnabled && activePage === 'modelCatalog') {
-      onChangePage('overview');
-    }
-  }, [activePage, developerModeEnabled, onChangePage]);
 
   useEffect(() => {
     resetRuntimePageViewport(pageViewportRef.current);
-  }, [visibleActivePage]);
+  }, [activePage]);
 
   const startResize = (event: PointerEvent<HTMLDivElement>) => {
     event.preventDefault();
@@ -110,20 +102,38 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
     }
   };
 
-  // Models action focuses only select their target page now that the former
-  // Models sub-tabs are first-level pages; clear them once navigation applied.
-  // The cloud focus is consumed and cleared by CloudPage itself.
+  // Local Models and Cloud consume their own action focus after applying the
+  // requested UI state. Loadouts only needs page selection, so clear it here.
   const actionFocus = state?.actionFocus;
   const { updateState } = model;
   useEffect(() => {
     if (
-      actionFocus?.focus !== 'runtime-config-action-focus.models-catalog-install'
-      && actionFocus?.focus !== 'runtime-config-action-focus.loadouts'
+      actionFocus?.focus !== 'runtime-config-action-focus.loadouts'
     ) {
       return;
     }
     updateState((prev) => (prev.actionFocus ? { ...prev, actionFocus: null } : prev));
   }, [updateState, actionFocus]);
+
+  // Warm the model market before first open: prefetch the lazy chunk and the
+  // recommendation feed with the same query contract the page itself uses, so
+  // the first tab click renders from memory instead of waiting on RPC + chunk.
+  const queryClient = useQueryClient();
+  const localEnvironmentClient = useRuntimeConfigLocalEnvironmentClient();
+  const recommendCapability = normalizeRecommendPageCapability(state?.activeCapability);
+  useEffect(() => {
+    void importRecommendPageModule();
+    if (!recommendCapability) return;
+    void queryClient.prefetchQuery({
+      queryKey: recommendationFeedQueryKey(recommendCapability),
+      queryFn: () => localEnvironmentClient.getRecommendationFeed({
+        capability: recommendCapability,
+        pageSize: RECOMMEND_FEED_PAGE_SIZE,
+      }),
+      staleTime: RECOMMEND_FEED_FRESH_STALE_MS,
+      gcTime: Infinity,
+    });
+  }, [queryClient, localEnvironmentClient, recommendCapability]);
 
   if (!state) {
     return (
@@ -131,7 +141,7 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
         <aside className="flex max-h-[min(44vh,360px)] w-full shrink-0 flex-col bg-[var(--nimi-surface-card)] px-3 py-2 xl:max-h-none xl:w-[216px]">
           <RuntimeSkeletonBlock className="h-9 w-32 rounded-xl" />
           <div className="mt-3 space-y-2">
-            {Array.from({ length: 8 }).map((_, index) => (
+            {Array.from({ length: 7 }).map((_, index) => (
               <RuntimeSkeletonBlock key={index} className="h-9 w-full" />
             ))}
           </div>
@@ -143,14 +153,7 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
           padding="none"
           className="flex min-h-0 min-w-0 w-full flex-1 flex-col overflow-hidden rounded-xl border-[var(--nimi-border-subtle)] shadow-[var(--nimi-elevation-base)]"
         >
-          <div className="flex h-12 shrink-0 items-center justify-between px-4">
-            <RuntimeSkeletonBlock className="h-8 w-40 rounded-xl" />
-            <div className="flex items-center gap-2">
-              <RuntimeSkeletonBlock className="h-7 w-24 rounded-full" />
-              <RuntimeSkeletonBlock className="h-7 w-20 rounded-full" />
-            </div>
-          </div>
-          <ScrollArea className="min-w-0 flex-1" viewportClassName="bg-transparent" contentClassName="mx-auto min-w-0 w-full max-w-5xl space-y-4 px-4 py-4">
+          <ScrollArea className="min-w-0 flex-1" viewportClassName="bg-transparent" contentClassName="mx-auto min-w-0 w-full max-w-5xl space-y-4 px-4 pb-4 pt-6">
             <RuntimeSkeletonBlock className="h-32 w-full" />
             <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
               <RuntimeSkeletonBlock className="h-44 w-full" />
@@ -164,13 +167,8 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
   }
 
   const runtimeStatus = model.runtimeStatus || state.local.status;
-  const pageMeta = RUNTIME_PAGE_META[visibleActivePage] || RUNTIME_PAGE_META.overview;
-  const pageTitle = t(`runtimeConfig.sidebar.${visibleActivePage}`, { defaultValue: pageMeta.name });
   const sidebarStyle = { '--runtime-sidebar-width': `${sidebarWidth}px` } as CSSProperties;
-  const visibleSidebarItems = RUNTIME_SIDEBAR_ITEMS.filter((item) => (
-    item.id !== 'modelCatalog' || developerModeEnabled
-  ));
-  const sidebarSections = visibleSidebarItems.reduce<Record<string, typeof RUNTIME_SIDEBAR_ITEMS>>((acc, item) => {
+  const sidebarSections = RUNTIME_SIDEBAR_ITEMS.reduce<Record<string, typeof RUNTIME_SIDEBAR_ITEMS>>((acc, item) => {
     if (!acc[item.section]) {
       acc[item.section] = [];
     }
@@ -185,7 +183,18 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
         style={sidebarStyle}
         data-testid={E2E_IDS.panel('runtime-sidebar')}
       >
-        <SidebarHeader title={<h1 className="text-xl font-semibold leading-7 text-[color:var(--nimi-text-primary)]">{t('runtimeConfig.panel.title', { defaultValue: 'Runtime' })}</h1>} className="px-4" />
+        <div className="flex min-h-[var(--nimi-sidebar-header-height)] shrink-0 items-center justify-between gap-2 px-4">
+          <h1 className="text-xl font-semibold leading-7 text-[color:var(--nimi-text-primary)]">{t('runtimeConfig.panel.title', { defaultValue: 'Runtime' })}</h1>
+          <div className="flex items-center gap-2" data-testid={E2E_IDS.panel('runtime-health')}>
+            <RuntimeHealthBadge daemonRunning={daemonRunning} status={runtimeStatus} />
+            {model.checkingHealth && (
+              <span className="flex items-center gap-1.5 text-xs text-[var(--nimi-text-muted)]">
+                <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-[var(--nimi-border-strong)] border-t-transparent" />
+                {t('runtimeConfig.panel.checkingHealth', { defaultValue: 'Checking Runtime...' })}
+              </span>
+            )}
+          </div>
+        </div>
         <ScrollArea className="flex-1" contentClassName="px-2 pb-2 pt-1">
           <div className="space-y-3">
             {Object.entries(sidebarSections).map(([section, items]) => (
@@ -194,7 +203,7 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
                 label={t(RUNTIME_SECTION_LABEL_KEY[section as keyof typeof RUNTIME_SECTION_LABEL_KEY], { defaultValue: section })}
               >
                 {items.map((item) => {
-                  const active = item.id === visibleActivePage;
+                  const active = item.id === activePage;
                   return (
                     <SidebarItem
                       key={`sidebar-${item.id}`}
@@ -230,59 +239,39 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
         padding="none"
         className="flex min-h-0 min-w-0 w-full flex-1 flex-col overflow-hidden rounded-xl border-[var(--nimi-border-subtle)] shadow-[var(--nimi-elevation-base)]"
       >
-        <div className="flex h-12 shrink-0 items-center px-4">
-          <div className="flex w-full items-center justify-between">
-            <h2 className="text-xl font-semibold leading-7 text-[color:var(--nimi-text-primary)]">{pageTitle}</h2>
-            <div className="flex items-center gap-2">
-              {model.checkingHealth && (
-                <span className="flex items-center gap-1.5 text-xs text-[var(--nimi-text-muted)]">
-                  <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-[var(--nimi-border-strong)] border-t-transparent" />
-                  {t('runtimeConfig.panel.checkingHealth', { defaultValue: 'Checking Runtime...' })}
-                </span>
-              )}
-              <RuntimeHealthBadge daemonRunning={daemonRunning} status={runtimeStatus} />
-            </div>
-          </div>
-        </div>
-
-        <ScrollArea viewportRef={pageViewportRef} className="min-w-0 flex-1" viewportClassName="bg-transparent [&>div]:!block [&>div]:!min-w-0 [&>div]:!w-full [&>div]:!max-w-full" contentClassName="min-w-0 w-full max-w-full overflow-x-hidden">
+        <ScrollArea viewportRef={pageViewportRef} className="min-w-0 flex-1" viewportClassName="bg-transparent [&>div]:!block [&>div]:!min-w-0 [&>div]:!w-full [&>div]:!max-w-full" contentClassName="min-w-0 w-full max-w-full overflow-x-hidden pt-6">
           <Suspense fallback={<div className="p-4"><RuntimeSkeletonBlock className="h-64 w-full" /></div>}>
-            {visibleActivePage === 'overview' && (
+            {activePage === 'overview' && (
               <div data-testid={E2E_IDS.runtimePageRoot('overview')} className="min-w-0">
                 <OverviewPage model={model} state={state} />
               </div>
             )}
-            {visibleActivePage === 'profiles' && (
+            {activePage === 'profiles' && (
               <div data-testid={E2E_IDS.runtimePageRoot('profiles')} className="min-w-0">
                 <ProfileCatalogPage />
               </div>
             )}
-            {visibleActivePage === 'modelMarket' && (
+            {activePage === 'modelMarket' && (
               <div data-testid={E2E_IDS.runtimePageRoot('modelMarket')} className="min-w-0">
                 <RecommendPage model={model} state={state} />
               </div>
             )}
-            {visibleActivePage === 'localModels' && (
+            {activePage === 'localModels' && (
               <div data-testid={E2E_IDS.runtimePageRoot('localModels')} className="flex min-h-0 min-w-0 flex-1 flex-col">
                 <LocalPage model={model} state={state} />
               </div>
             )}
-            {visibleActivePage === 'loadouts' && (
+            {activePage === 'loadouts' && (
               <div data-testid={E2E_IDS.runtimePageRoot('loadouts')} className="min-w-0">
-                <LoadoutsPage />
+                <LoadoutsPage onOpenEnvironment={() => model.onChangePage('environment')} />
               </div>
             )}
-            {visibleActivePage === 'modelCatalog' && developerModeEnabled && (
-              <div data-testid={E2E_IDS.runtimePageRoot('modelCatalog')} className="min-w-0">
-                <CatalogPage model={model} state={state} />
-              </div>
-            )}
-            {visibleActivePage === 'cloud' && (
+            {activePage === 'cloud' && (
               <div data-testid={E2E_IDS.runtimePageRoot('cloud')} className="min-w-0">
                 <CloudPage model={model} state={state} />
               </div>
             )}
-            {visibleActivePage === 'environment' && (
+            {activePage === 'environment' && (
               <div data-testid={E2E_IDS.runtimePageRoot('environment')} className="flex min-h-0 min-w-0 flex-1 flex-col">
                 <EnvironmentPage model={model} />
               </div>

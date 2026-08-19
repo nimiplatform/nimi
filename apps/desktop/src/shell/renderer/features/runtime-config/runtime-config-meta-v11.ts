@@ -21,10 +21,6 @@ export const RUNTIME_PAGE_META: Record<RuntimePageIdV11, { name: string; descrip
     name: 'Loadouts',
     description: 'Create and select machine-local execution Loadouts.',
   },
-  modelCatalog: {
-    name: 'Model Catalog',
-    description: 'Inspect the Runtime provider model catalog.',
-  },
   cloud: {
     name: 'Cloud Connectors',
     description: 'Configure API keys and connectors for cloud AI providers.',

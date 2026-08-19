@@ -70,7 +70,7 @@ function resolveRuntimePageForIntent(
   // The SDK contract still targets the retired single "models" section;
   // route it to the page that serves the requested action.
   if (intent.page === 'models') {
-    return intent.action === 'install-model' ? 'modelCatalog' : 'localModels';
+    return 'localModels';
   }
   return 'cloud';
 }
@@ -87,9 +87,9 @@ function runtimeConfigActionFocusForIntent(
   }
   if (intent.page === 'models' && intent.action === 'install-model') {
     return {
-      page: 'modelCatalog',
+      page: 'localModels',
       action: 'install-model',
-      focus: 'runtime-config-action-focus.models-catalog-install',
+      focus: 'runtime-config-action-focus.local-models-discover',
     } as const;
   }
   return null;

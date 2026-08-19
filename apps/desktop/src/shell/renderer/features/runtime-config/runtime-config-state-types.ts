@@ -1,4 +1,5 @@
 import { createNimiClientId } from '@nimiplatform/sdk';
+import type { TFunction } from 'i18next';
 import {
   NIMI_RUNTIME_LOCAL_RUNNABLE_ASSET_KIND_IDS,
   normalizeNimiRuntimeLocalRunnableAssetKindId,
@@ -25,9 +26,9 @@ export type CapabilityV11 = NimiRuntimeLocalRunnableAssetKindId;
 
 export type SourceIdV11 = 'local' | 'cloud';
 /**
- * Runtime top-level pages. The former single `models` section is split
- * into four first-level pages: model market (recommendations), local
- * models, Loadouts, and model catalog.
+ * Runtime top-level pages. Model discovery and catalog-backed installation
+ * stay inside Local Models; provider-scoped catalog overrides are contextual
+ * actions rather than a first-level page.
  */
 export type RuntimePageIdV11 =
   | 'overview'
@@ -35,7 +36,6 @@ export type RuntimePageIdV11 =
   | 'modelMarket'
   | 'localModels'
   | 'loadouts'
-  | 'modelCatalog'
   | 'cloud'
   | 'environment';
 export type UiModeV11 = 'simple' | 'advanced';
@@ -50,9 +50,9 @@ export type RuntimeConfigActionFocus =
     focus: 'runtime-config-action-focus.cloud-connector-draft';
   }
   | {
-    page: 'modelCatalog';
+    page: 'localModels';
     action: 'install-model';
-    focus: 'runtime-config-action-focus.models-catalog-install';
+    focus: 'runtime-config-action-focus.local-models-discover';
   }
   | {
     page: 'loadouts';
@@ -89,10 +89,12 @@ export function normalizeSourceV11(value: unknown): SourceIdV11 {
 }
 
 export function normalizePageIdV11(value: unknown): RuntimePageIdV11 {
-  // Legacy single "models" section from older persisted snapshots migrates
-  // to the Local Models page (its former default sub-tab).
+  // Retired model navigation resolves to the nearest current task owner.
   if (value === 'models') {
     return 'localModels';
+  }
+  if (value === 'modelCatalog') {
+    return 'cloud';
   }
   if (
     value === 'overview'
@@ -100,7 +102,6 @@ export function normalizePageIdV11(value: unknown): RuntimePageIdV11 {
     || value === 'modelMarket'
     || value === 'localModels'
     || value === 'loadouts'
-    || value === 'modelCatalog'
     || value === 'cloud'
     || value === 'environment'
   ) {
@@ -126,14 +127,14 @@ export function normalizeRuntimeConfigActionFocus(value: unknown): RuntimeConfig
     };
   }
   if (
-    record.page === 'modelCatalog'
+    record.page === 'localModels'
     && record.action === 'install-model'
-    && record.focus === 'runtime-config-action-focus.models-catalog-install'
+    && record.focus === 'runtime-config-action-focus.local-models-discover'
   ) {
     return {
-      page: 'modelCatalog',
+      page: 'localModels',
       action: 'install-model',
-      focus: 'runtime-config-action-focus.models-catalog-install',
+      focus: 'runtime-config-action-focus.local-models-discover',
     };
   }
   if (
@@ -176,6 +177,14 @@ export function statusTextV11(status: RuntimeConfigStatusV11): string {
   if (status === 'unreachable') return 'Unreachable';
   if (status === 'unsupported') return 'Unsupported';
   return 'Not checked';
+}
+
+export function localizedStatusTextV11(status: RuntimeConfigStatusV11, t: TFunction): string {
+  if (status === 'healthy') return t('runtimeConfig.common.statusHealthy', { defaultValue: statusTextV11(status) });
+  if (status === 'degraded') return t('runtimeConfig.common.statusDegraded', { defaultValue: statusTextV11(status) });
+  if (status === 'unreachable') return t('runtimeConfig.common.statusUnreachable', { defaultValue: statusTextV11(status) });
+  if (status === 'unsupported') return t('runtimeConfig.common.statusUnsupported', { defaultValue: statusTextV11(status) });
+  return t('runtimeConfig.common.statusNotChecked', { defaultValue: statusTextV11(status) });
 }
 
 export function statusClassV11(status: RuntimeConfigStatusV11): string {
