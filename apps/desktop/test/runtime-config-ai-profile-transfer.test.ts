@@ -11,9 +11,12 @@ import { createNimiError } from '@nimiplatform/sdk/types';
 import {
   executeRuntimeConfigAIProfileTransfer,
   exportRuntimeConfigAIProfileFromLoadouts,
+  isRuntimeConfigAIProfileCapabilityReady,
   planRuntimeConfigAIProfileTransfer,
+  runtimeConfigAIProfileDiscardableLoadouts,
   selectRuntimeConfigAIProfileLoadouts,
 } from '../src/shell/renderer/features/runtime-config/runtime-config-ai-profile-transfer.js';
+import { prepareRuntimeConfigAIProfilePreview } from '../src/shell/renderer/features/runtime-config/runtime-config-ai-profile-preview.js';
 
 const A = `sha256:${'a'.repeat(64)}`;
 const B = `sha256:${'b'.repeat(64)}`;
@@ -143,7 +146,7 @@ function committedLoadout(capability: string, id: string, configured = true): Ni
 
 test('AIProfile plan matches existing content and aggregates only missing downloads with zero actions', async () => {
   const plan = await planRuntimeConfigAIProfileTransfer({
-    profile: loadoutProfile(B),
+    profile: loadoutProfile(B) as never,
     assets: [asset({ id: 'text-model', contentId: A, hash: A })],
     recipes: RECIPES,
     verifiedAssets: VERIFIED,
@@ -156,6 +159,64 @@ test('AIProfile plan matches existing content and aggregates only missing downlo
     plan.capabilities.find((item) => item.capabilityContract === 'text.generate')?.axes[0]?.state,
     'matched',
   );
+});
+
+test('AIProfile preview is read-only before the user confirms the import', async () => {
+  let mutations = 0;
+  const textAsset = asset({ id: 'text-model', contentId: A, hash: A });
+  const imageAsset = asset({ id: 'image-model', contentId: B, hash: B });
+  const preview = await prepareRuntimeConfigAIProfilePreview({
+    profile: loadoutProfile(B),
+    modelAssets: {
+      async listModelAssets() { return [textAsset, imageAsset]; },
+      async listVerifiedAssets() { return VERIFIED; },
+      async install() { mutations += 1; throw new Error('preview must not install'); },
+    } as never,
+    loadouts: {
+      async get() { return { loadouts: [], selections: [] }; },
+      async listRecipes() { return RECIPES; },
+      async commit() { mutations += 1; throw new Error('preview must not commit'); },
+      async select() { mutations += 1; throw new Error('preview must not select'); },
+    } as never,
+  });
+
+  assert.equal(preview.summary.capabilities.length, 2);
+  assert.equal(preview.plan.downloads.length, 0);
+  assert.equal(mutations, 0);
+});
+
+test('AIProfile readiness follows the Runtime Loadout validation state', () => {
+  const configured = {
+    capabilityContract: 'text.generate',
+    state: 'committed' as const,
+    loadout: committedLoadout('text.generate', 'configured'),
+    unresolvedSlotIds: [],
+  };
+  const blocked = {
+    ...configured,
+    loadout: { ...configured.loadout, loadoutId: 'blocked', validationState: 'blocked' as const },
+  };
+  const unresolved = { ...configured, unresolvedSlotIds: ['model'] };
+
+  assert.equal(isRuntimeConfigAIProfileCapabilityReady(configured), true);
+  assert.equal(isRuntimeConfigAIProfileCapabilityReady(blocked), false);
+  assert.equal(isRuntimeConfigAIProfileCapabilityReady(unresolved), false);
+});
+
+test('AIProfile cleanup only includes unfinished Loadouts created by this transfer', () => {
+  const created = { ...committedLoadout('text.generate', 'created', false), validationState: 'blocked' as const };
+  const reused = committedLoadout('image.generate', 'reused', false);
+  const result = {
+    profile: loadoutProfile(B) as never,
+    capabilities: [
+      { capabilityContract: 'text.generate', state: 'committed' as const, loadout: created, unresolvedSlotIds: [], createdByTransfer: true },
+      { capabilityContract: 'image.generate', state: 'committed' as const, loadout: reused, unresolvedSlotIds: ['main'], createdByTransfer: false },
+    ],
+    installedModelAssetIds: [],
+    appAIConfigApplied: true,
+  };
+
+  assert.deepEqual(runtimeConfigAIProfileDiscardableLoadouts(result), [created]);
 });
 
 test('AIProfile plan distinguishes zero downloads from an unknown aggregate size', async () => {
@@ -551,6 +612,7 @@ test('interrupted acquisition keeps a visible unresolved Loadout that the next i
   });
   const interrupted = result.capabilities.find((item) => item.capabilityContract === 'image.generate');
   assert.equal(interrupted?.loadout?.loadoutId, 'draft-image');
+  assert.equal(interrupted?.createdByTransfer, true);
   assert.deepEqual(interrupted?.unresolvedSlotIds, ['main']);
   assert.equal(interrupted?.reasonCode, 'AI_PROFILE_MODEL_ACQUISITION_FAILED');
   assert.equal(prepared.filter((item) => item.capabilityContract === 'image.generate')[1]?.loadoutId, 'draft-image');
@@ -794,6 +856,46 @@ test('reimport prepares an independent candidate instead of mutating the selecte
   assert.deepEqual(confirmations, [false]);
   assert.equal(result.capabilities[0]?.state, 'committed');
   assert.equal(result.capabilities[0]?.loadout?.loadoutId, importedCandidate.loadoutId);
+  assert.equal(result.capabilities[0]?.createdByTransfer, true);
+});
+
+test('reimport marks a reused unselected Loadout as ineligible for transfer cleanup', async () => {
+  const profile = loadoutProfile(B) as unknown as { capabilities: Record<string, unknown> };
+  delete profile.capabilities['image.generate'];
+  const textAsset = asset({ id: 'text-model', contentId: A, hash: A });
+  const existing = {
+    ...committedLoadout('text.generate', 'existing-profile-draft', false),
+    provenance: { source_profile_id: 'profile.transfer.test' },
+  };
+  const plan = await planRuntimeConfigAIProfileTransfer({
+    profile: profile as never,
+    assets: [textAsset],
+    recipes: RECIPES,
+    verifiedAssets: VERIFIED,
+    loadouts: [existing],
+  });
+  const result = await executeRuntimeConfigAIProfileTransfer({
+    plan,
+    assets: {
+      async listModelAssets() { return [textAsset]; },
+      async listVerifiedAssets() { return VERIFIED; },
+      async resolveInstallPlan() { throw new Error('unexpected'); },
+      async install() { throw new Error('unexpected'); },
+    },
+    loadouts: {
+      async listRecipes() { return RECIPES; },
+      async prepare(input: { loadoutId?: string }) {
+        assert.equal(input.loadoutId, existing.loadoutId);
+        return { prepareId: 'prepare:existing-profile-draft' };
+      },
+      async commit() { return existing; },
+      async select() { return null; },
+    } as never,
+    async applyAIProfile() {},
+  });
+
+  assert.equal(result.capabilities[0]?.createdByTransfer, false);
+  assert.deepEqual(runtimeConfigAIProfileDiscardableLoadouts(result), []);
 });
 
 test('multi-file export preserves verified acquisition while manual content stays unresolved', async () => {

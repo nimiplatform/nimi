@@ -56,6 +56,7 @@ export type RuntimeConfigAIProfileTransferCapabilityResult = {
   readonly unresolvedSlotIds: readonly string[];
   readonly reasonCode?: string;
   readonly detail?: string;
+  readonly createdByTransfer?: boolean;
 };
 
 export type RuntimeConfigAIProfileTransferResult = {
@@ -404,6 +405,9 @@ export async function executeRuntimeConfigAIProfileTransfer(input: {
         ...(draftLoadouts.get(capability.capabilityContract)
           ? { loadout: draftLoadouts.get(capability.capabilityContract) }
           : {}),
+        ...(draftLoadouts.has(capability.capabilityContract) && !capability.existingLoadoutId
+          ? { createdByTransfer: true }
+          : {}),
         unresolvedSlotIds: Object.freeze(capability.axes.map((axis) => axis.slotId)),
         reasonCode: failure?.reasonCode ?? 'AI_PROFILE_LOADOUT_DRAFT_FAILED',
         detail: failure?.detail,
@@ -441,6 +445,7 @@ export async function executeRuntimeConfigAIProfileTransfer(input: {
         state: 'committed' as const,
         loadout,
         unresolvedSlotIds: Object.freeze(unresolvedSlotIds),
+        createdByTransfer: !capability.existingLoadoutId,
         ...(unresolvedSlotIds.length > 0 ? { reasonCode: firstAxisReason(capability, failures) } : {}),
       }));
     } catch (error) {
@@ -449,6 +454,9 @@ export async function executeRuntimeConfigAIProfileTransfer(input: {
         state: 'failed' as const,
         ...(draftLoadouts.get(capability.capabilityContract)
           ? { loadout: draftLoadouts.get(capability.capabilityContract) }
+          : {}),
+        ...(draftLoadouts.has(capability.capabilityContract) && !capability.existingLoadoutId
+          ? { createdByTransfer: true }
           : {}),
         unresolvedSlotIds: Object.freeze(unresolvedSlotIds),
         reasonCode: 'AI_PROFILE_LOADOUT_COMMIT_FAILED',
@@ -483,12 +491,38 @@ export async function selectRuntimeConfigAIProfileLoadouts(input: {
 }): Promise<readonly string[]> {
   const selected: string[] = [];
   for (const capability of input.result.capabilities) {
-    if (capability.state !== 'committed' || capability.unresolvedSlotIds.length > 0 ||
-      !capability.loadout || capability.loadout.validationState !== 'configured') continue;
+    if (!isRuntimeConfigAIProfileCapabilityReady(capability) || !capability.loadout) continue;
     await input.loadouts.select(capability.capabilityContract, capability.loadout.loadoutId, true);
     selected.push(capability.loadout.loadoutId);
   }
   return Object.freeze(selected);
+}
+
+export function isRuntimeConfigAIProfileCapabilityReady(
+  capability: RuntimeConfigAIProfileTransferCapabilityResult,
+): boolean {
+  return capability.state === 'committed'
+    && capability.unresolvedSlotIds.length === 0
+    && capability.loadout?.validationState === 'configured';
+}
+
+export function runtimeConfigAIProfileTransferNeedsAttention(
+  result: RuntimeConfigAIProfileTransferResult | null | undefined,
+): boolean {
+  return result?.capabilities.some((capability) => !isRuntimeConfigAIProfileCapabilityReady(capability)) ?? false;
+}
+
+export function runtimeConfigAIProfileDiscardableLoadouts(
+  result: RuntimeConfigAIProfileTransferResult | null | undefined,
+): readonly NimiMachineLoadout[] {
+  if (!result) return Object.freeze([]);
+  return Object.freeze(result.capabilities.flatMap((capability) => (
+    capability.createdByTransfer === true
+      && capability.loadout
+      && capability.loadout.validationState !== 'configured'
+      ? [capability.loadout]
+      : []
+  )));
 }
 
 async function installCatalogTemplate(

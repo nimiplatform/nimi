@@ -8,7 +8,7 @@ import type {
   NimiMachineLoadout,
   NimiRuntimeModelAssetRecord,
 } from '@nimiplatform/sdk/runtime';
-import { Button, InlineAlert, PillTabs, Surface } from '@nimiplatform/kit/ui';
+import { Button, ConfirmDialog, InlineAlert, PillTabs, Surface } from '@nimiplatform/kit/ui';
 import {
   useDesktopRendererCommands,
   useDesktopRendererSdk,
@@ -22,18 +22,21 @@ import {
   summarizeRuntimeConfigProfileDownloads,
 } from './runtime-config-profile-presentation.js';
 import {
-  summarizeDesktopPortableAIProfile,
   type DesktopPortableAIProfileSummary,
 } from './runtime-config-portable-profile.js';
 import { useRuntimeConfigLocalEnvironmentClient } from './runtime-config-local-environment-sdk-service.js';
 import {
   executeRuntimeConfigAIProfileTransfer,
   exportRuntimeConfigAIProfileFromLoadouts,
+  isRuntimeConfigAIProfileCapabilityReady,
   planRuntimeConfigAIProfileTransfer,
+  runtimeConfigAIProfileDiscardableLoadouts,
+  runtimeConfigAIProfileTransferNeedsAttention,
   selectRuntimeConfigAIProfileLoadouts,
   type RuntimeConfigAIProfileTransferPlan,
   type RuntimeConfigAIProfileTransferResult,
 } from './runtime-config-ai-profile-transfer.js';
+import { prepareRuntimeConfigAIProfilePreview } from './runtime-config-ai-profile-preview.js';
 
 type ProfileFeedback = {
   readonly tone: 'info' | 'success' | 'danger';
@@ -86,6 +89,7 @@ function PortableProfileApplyPage() {
   const [transferResult, setTransferResult] = useState<RuntimeConfigAIProfileTransferResult | null>(null);
   const [selectImported, setSelectImported] = useState(true);
   const [selectionDecisionCompleted, setSelectionDecisionCompleted] = useState(false);
+  const [discardConfirmationOpen, setDiscardConfirmationOpen] = useState(false);
   const [feedback, setFeedback] = useState<ProfileFeedback>({
     tone: 'info',
     message: t('runtimeConfig.profiles.feedbackInitial', {
@@ -128,48 +132,21 @@ function PortableProfileApplyPage() {
   const previewSource = async () => {
     setBusy(true);
     try {
-      const nextSummary = summarizeDesktopPortableAIProfile(sourceText);
-      const imported = await profileCatalog.import(sourceText);
-      setSavedProfiles((current) => Object.freeze([
-        ...current.filter((item) => item.source.profileId !== imported.source.profileId),
-        imported,
-      ].sort((left, right) => left.source.profileId.localeCompare(right.source.profileId))));
+      const { summary: nextSummary, plan: nextTransferPlan } = await prepareRuntimeConfigAIProfilePreview({
+        profile: sourceText,
+        modelAssets: modelAssetsClient,
+        loadouts: loadoutsClient,
+      });
       setSummary(nextSummary);
-      try {
-        const [assets, recipes, verifiedAssets, machine] = await Promise.all([
-          modelAssetsClient.listModelAssets(),
-          loadoutsClient.listRecipes(),
-          modelAssetsClient.listVerifiedAssets(),
-          loadoutsClient.get(),
-        ]);
-        const nextTransferPlan = await planRuntimeConfigAIProfileTransfer({
-          profile: sourceText,
-          assets,
-          recipes,
-          verifiedAssets,
-          loadouts: machine.loadouts,
-          selectedLoadoutIds: machine.selections.map((selection) => selection.loadoutId),
-        });
-        setTransferPlan(nextTransferPlan);
-        setTransferResult(null);
-        setFeedback({
-          tone: 'info',
-          message: t('runtimeConfig.profiles.feedbackPreviewReady', {
-            defaultValue: 'Saved {{count}} portable capability intent(s). Review the one confirmation page before any transfer or configuration write.',
-            count: nextSummary.capabilities.length,
-          }),
-        });
-      } catch (error) {
-        setTransferPlan(null);
-        setTransferResult(null);
-        setFeedback({
-          tone: 'info',
-          message: t('runtimeConfig.profiles.feedbackPlanFailed', {
-            defaultValue: 'The portable document is saved, but this machine could not prepare its transfer preview yet.',
-          }),
-          technicalDetail: errorMessage(error),
-        });
-      }
+      setTransferPlan(nextTransferPlan);
+      setTransferResult(null);
+      setFeedback({
+        tone: 'info',
+        message: t('runtimeConfig.profiles.feedbackPreviewReady', {
+          defaultValue: 'Checked {{count}} AI use(s). Review the confirmation page; nothing has been saved, downloaded, or changed yet.',
+          count: nextSummary.capabilities.length,
+        }),
+      });
     } catch (error) {
       setSummary(null);
       setTransferPlan(null);
@@ -189,6 +166,11 @@ function PortableProfileApplyPage() {
     if (!transferPlan) return;
     setBusy(true);
     try {
+      const imported = await profileCatalog.import(transferPlan.profile);
+      setSavedProfiles((current) => Object.freeze([
+        ...current.filter((item) => item.source.profileId !== imported.source.profileId),
+        imported,
+      ].sort((left, right) => left.source.profileId.localeCompare(right.source.profileId))));
       const result = await executeRuntimeConfigAIProfileTransfer({
         plan: transferPlan,
         assets: modelAssetsClient,
@@ -248,7 +230,7 @@ function PortableProfileApplyPage() {
         : [];
       setSelectionDecisionCompleted(true);
       setFeedback({
-        tone: 'success',
+        tone: selectImported && selected.length === 0 ? 'info' : 'success',
         message: selectImported
           ? selected.length > 0
             ? t('runtimeConfig.profiles.selectionComplete', { defaultValue: 'Selected {{count}} configured Loadout(s). Review the existing Runtime environment confirmation before first local execution.', count: selected.length })
@@ -267,20 +249,17 @@ function PortableProfileApplyPage() {
   };
 
   const discardUnresolvedLoadouts = async () => {
-    if (!transferResult) return;
+    const discardable = runtimeConfigAIProfileDiscardableLoadouts(transferResult);
+    if (discardable.length === 0) return;
     setBusy(true);
     try {
-      const unresolved = transferResult.capabilities.flatMap((capability) => (
-        capability.loadout && capability.loadout.validationState !== 'configured'
-          ? [capability.loadout]
-          : []
-      ));
-      for (const loadout of unresolved) await loadoutsClient.delete(loadout.loadoutId, false);
+      for (const loadout of discardable) await loadoutsClient.delete(loadout.loadoutId, false);
       setTransferResult(null);
       setSelectionDecisionCompleted(false);
+      setDiscardConfirmationOpen(false);
       setFeedback({
         tone: 'success',
-        message: t('runtimeConfig.profiles.unresolvedDiscarded', { defaultValue: 'Discarded {{count}} unresolved imported Loadout(s). Downloaded ModelAssets remain in the pool.', count: unresolved.length }),
+        message: t('runtimeConfig.profiles.unresolvedDiscarded', { defaultValue: 'Removed {{count}} unfinished model setup(s) created by this import. Downloaded models remain available.', count: discardable.length }),
       });
     } catch (error) {
       setFeedback({ tone: 'danger', message: t('runtimeConfig.profiles.discardFailed', { defaultValue: 'Unresolved imported Loadouts could not be discarded.' }), technicalDetail: errorMessage(error) });
@@ -324,9 +303,8 @@ function PortableProfileApplyPage() {
   const transferDownloadSummary = transferPlan
     ? summarizeRuntimeConfigProfileDownloads(transferPlan)
     : null;
-  const transferNeedsAttention = transferResult?.capabilities.some((capability) => (
-    capability.state !== 'committed' || capability.unresolvedSlotIds.length > 0
-  )) ?? false;
+  const transferNeedsAttention = runtimeConfigAIProfileTransferNeedsAttention(transferResult);
+  const discardableLoadouts = runtimeConfigAIProfileDiscardableLoadouts(transferResult);
 
   return (
     <RuntimePageShell maxWidth="full" className="max-w-[78rem] space-y-4 px-6 py-6">
@@ -475,22 +453,25 @@ function PortableProfileApplyPage() {
               : t('runtimeConfig.profiles.selectionImpactTitle', { defaultValue: 'Use these models now?' })}
           </h3>
           <div className="grid gap-2">
-            {transferResult.capabilities.map((capability) => (
+            {transferResult.capabilities.map((capability) => {
+              const ready = isRuntimeConfigAIProfileCapabilityReady(capability);
+              return (
               <div key={`${capability.capabilityContract}:${capability.state}`} className="rounded-lg border border-[var(--nimi-border-subtle)] p-2 text-xs" data-capability-state={capability.state}>
                 <div className="font-semibold">{displayRuntimeConfigCapabilityLabel(capability.capabilityContract, t)}</div>
-                <div className={capability.state === 'committed' && capability.unresolvedSlotIds.length === 0 ? 'text-[var(--nimi-success-text)]' : 'text-[var(--nimi-danger-text)]'}>
-                  {capability.state === 'committed' && capability.unresolvedSlotIds.length === 0
+                <div className={ready ? 'text-[var(--nimi-success-text)]' : 'text-[var(--nimi-danger-text)]'}>
+                  {ready
                     ? t('runtimeConfig.profiles.capabilityPrepared', { defaultValue: 'Ready to use' })
                     : t('runtimeConfig.profiles.capabilityNeedsAttention', { defaultValue: 'Not ready. Continue with the other models, then fix this use in Model Uses.' })}
                 </div>
-                {capability.reasonCode || capability.detail || capability.unresolvedSlotIds.length > 0 ? (
+                {capability.reasonCode || capability.detail || capability.unresolvedSlotIds.length > 0 || capability.loadout?.validationState !== 'configured' ? (
                   <details className="mt-1 text-[var(--nimi-text-muted)]">
                     <summary className="cursor-pointer font-semibold">{t('runtimeConfig.profiles.technicalDetails', { defaultValue: 'Technical details' })}</summary>
-                    <div className="mt-1 whitespace-pre-wrap break-all font-mono">{capability.state}{capability.reasonCode ? ` · ${capability.reasonCode}` : ''}{capability.unresolvedSlotIds.length > 0 ? ` · unresolved: ${capability.unresolvedSlotIds.join(', ')}` : ''}{capability.detail ? `\n${capability.detail}` : ''}</div>
+                    <div className="mt-1 whitespace-pre-wrap break-all font-mono">{capability.state}{capability.loadout ? ` · ${capability.loadout.validationState}` : ''}{capability.reasonCode ? ` · ${capability.reasonCode}` : ''}{capability.unresolvedSlotIds.length > 0 ? ` · unresolved: ${capability.unresolvedSlotIds.join(', ')}` : ''}{capability.loadout?.reasons.length ? ` · ${capability.loadout.reasons.join(', ')}` : ''}{capability.detail ? `\n${capability.detail}` : ''}</div>
                   </details>
                 ) : null}
               </div>
-            ))}
+              );
+            })}
           </div>
           {!selectionDecisionCompleted ? (
             <>
@@ -527,13 +508,28 @@ function PortableProfileApplyPage() {
                 : t('runtimeConfig.profiles.reviewEnvironment', { defaultValue: 'Check this computer and continue' })}
             </Button>
           )}
-          {transferResult.capabilities.some((capability) => capability.loadout && capability.loadout.validationState !== 'configured') ? (
-            <Button size="sm" tone="secondary" disabled={busy} onClick={() => { void discardUnresolvedLoadouts(); }}>
-              {t('runtimeConfig.profiles.discardUnresolved', { defaultValue: 'Discard unresolved Loadouts' })}
+          {discardableLoadouts.length > 0 ? (
+            <Button size="sm" tone="secondary" disabled={busy} onClick={() => setDiscardConfirmationOpen(true)}>
+              {t('runtimeConfig.profiles.discardUnresolved', { defaultValue: 'Remove unfinished imported setups' })}
             </Button>
           ) : null}
         </Surface>
       ) : null}
+
+      <ConfirmDialog
+        open={discardConfirmationOpen}
+        title={t('runtimeConfig.profiles.discardConfirmTitle', { defaultValue: 'Remove unfinished model setups?' })}
+        message={t('runtimeConfig.profiles.discardConfirmBody', {
+          defaultValue: 'This removes {{count}} unfinished setup(s) created by this import. Previously saved setups and downloaded models are kept.',
+          count: discardableLoadouts.length,
+        })}
+        confirmLabel={t('runtimeConfig.profiles.discardConfirmAction', { defaultValue: 'Remove unfinished setups' })}
+        cancelLabel={t('Common.cancel', { defaultValue: 'Cancel' })}
+        confirmTone="danger"
+        pending={busy}
+        onConfirm={() => { void discardUnresolvedLoadouts(); }}
+        onClose={() => setDiscardConfirmationOpen(false)}
+      />
 
       {summary ? (
         <Surface tone="card" className="space-y-3 p-4" data-testid="runtime-portable-profile-summary">
