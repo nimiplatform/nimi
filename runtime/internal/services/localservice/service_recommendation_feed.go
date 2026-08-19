@@ -21,7 +21,8 @@ const (
 	modelIndexCacheFile        = "model-index-feed-cache.json"
 	modelIndexDefaultPageSize  = 40
 	modelIndexMaxPageSize      = 80
-	modelIndexFetchTimeout     = 15 * time.Second
+	modelIndexFetchTimeout     = 5 * time.Second
+	modelIndexFreshWindow      = 6 * time.Hour
 	recommendationBytesPerGiB  = 1024 * 1024 * 1024
 	reasonBaselineImageDefault = "baseline_image_default_v1"
 	reasonBaselineVideoDefault = "baseline_video_default_v1"
@@ -120,9 +121,15 @@ type hostSupportDescriptor struct {
 func (s *Service) GetRecommendationFeed(ctx context.Context, req *runtimev1.GetRecommendationFeedRequest) (*runtimev1.GetRecommendationFeedResponse, error) {
 	capability := normalizeRecommendationFeedCapability(req.GetCapability())
 	pageSize := normalizeRecommendationFeedPageSize(req.GetPageSize())
-	deviceProfile := collectDeviceProfile()
+	deviceProfile := s.deviceProfileSnapshot()
 	installedAssets := s.installedModelAssetsSnapshot()
 	cache := s.loadModelIndexCache()
+	if cached, ok := cache.Feeds[capability]; ok && modelIndexCacheFresh(cache.FetchedAt) {
+		s.triggerModelIndexBackgroundRefresh(ctx, capability, pageSize)
+		return &runtimev1.GetRecommendationFeedResponse{
+			Feed: materializeRecommendationFeed(&cached, runtimev1.LocalRecommendationFeedCacheState_LOCAL_RECOMMENDATION_FEED_CACHE_STATE_FRESH, capability, deviceProfile, installedAssets, s.verified),
+		}, nil
+	}
 	feed, cacheState := s.resolveRecommendationRemoteFeed(ctx, capability, pageSize, cache)
 	if feed == nil {
 		return &runtimev1.GetRecommendationFeedResponse{
@@ -283,17 +290,67 @@ func (s *Service) saveModelIndexCache(cache modelIndexCacheRecord) error {
 }
 
 func (s *Service) resolveRecommendationRemoteFeed(ctx context.Context, capability string, pageSize int, cache modelIndexCacheRecord) (*remoteLeaderboardResponse, runtimev1.LocalRecommendationFeedCacheState) {
-	baseURL := strings.TrimRight(strings.TrimSpace(os.Getenv(modelIndexBaseURLEnv)), "/")
-	if baseURL == "" {
-		baseURL = defaultModelIndexBaseURL
-	}
-	if feed, err := fetchRecommendationLeaderboard(ctx, baseURL, capability, pageSize); err == nil && feed != nil {
+	if feed, err := fetchRecommendationLeaderboard(ctx, modelIndexBaseURL(), capability, pageSize); err == nil && feed != nil {
 		return feed, runtimev1.LocalRecommendationFeedCacheState_LOCAL_RECOMMENDATION_FEED_CACHE_STATE_FRESH
 	}
 	if cached, ok := cache.Feeds[capability]; ok {
 		return &cached, runtimev1.LocalRecommendationFeedCacheState_LOCAL_RECOMMENDATION_FEED_CACHE_STATE_STALE
 	}
 	return nil, runtimev1.LocalRecommendationFeedCacheState_LOCAL_RECOMMENDATION_FEED_CACHE_STATE_EMPTY
+}
+
+func modelIndexBaseURL() string {
+	baseURL := strings.TrimRight(strings.TrimSpace(os.Getenv(modelIndexBaseURLEnv)), "/")
+	if baseURL == "" {
+		return defaultModelIndexBaseURL
+	}
+	return baseURL
+}
+
+// modelIndexCacheFresh reports whether the disk cache was fetched within
+// modelIndexFreshWindow and can therefore be served directly as FRESH.
+func modelIndexCacheFresh(fetchedAt string) bool {
+	parsed, err := time.Parse(time.RFC3339Nano, strings.TrimSpace(fetchedAt))
+	if err != nil {
+		return false
+	}
+	return time.Since(parsed) < modelIndexFreshWindow
+}
+
+// triggerModelIndexBackgroundRefresh starts a single-flight asynchronous
+// refresh of the cached model-index feed for capability. At most one
+// background refresh per capability runs at a time.
+func (s *Service) triggerModelIndexBackgroundRefresh(ctx context.Context, capability string, pageSize int) {
+	s.modelIndexRefreshMu.Lock()
+	if s.modelIndexRefreshInFlight[capability] {
+		s.modelIndexRefreshMu.Unlock()
+		return
+	}
+	s.modelIndexRefreshInFlight[capability] = true
+	s.modelIndexRefreshMu.Unlock()
+	refreshCtx := context.WithoutCancel(ctx)
+	go func() {
+		defer func() {
+			s.modelIndexRefreshMu.Lock()
+			delete(s.modelIndexRefreshInFlight, capability)
+			s.modelIndexRefreshMu.Unlock()
+		}()
+		s.refreshModelIndexCache(refreshCtx, capability, pageSize)
+	}()
+}
+
+func (s *Service) refreshModelIndexCache(ctx context.Context, capability string, pageSize int) {
+	feed, err := fetchRecommendationLeaderboard(ctx, modelIndexBaseURL(), capability, pageSize)
+	if err != nil || feed == nil {
+		return
+	}
+	cache := s.loadModelIndexCache()
+	if cache.Feeds == nil {
+		cache.Feeds = make(map[string]remoteLeaderboardResponse)
+	}
+	cache.FetchedAt = nowISO()
+	cache.Feeds[capability] = *feed
+	_ = s.saveModelIndexCache(cache)
 }
 
 func fetchRecommendationLeaderboard(ctx context.Context, baseURL string, capability string, pageSize int) (feedResponse *remoteLeaderboardResponse, err error) {

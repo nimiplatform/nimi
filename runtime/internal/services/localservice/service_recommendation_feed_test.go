@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -171,6 +173,204 @@ func TestRecommendationHostSupportUsesManagedEngineAuthority(t *testing.T) {
 	}
 	if speech.detail == "" {
 		t.Fatalf("speech host support should project managed-engine detail")
+	}
+}
+
+func TestRecommendationFeedServesFreshCacheWithoutSyncFetch(t *testing.T) {
+	svc := newTestService(t)
+	if err := svc.saveModelIndexCache(modelIndexCacheRecord{
+		FetchedAt: nowISO(),
+		Feeds: map[string]remoteLeaderboardResponse{
+			"chat": {
+				SchemaVersion: "2.0.0",
+				GeneratedAt:   "2026-05-27T00:00:00Z",
+				Capability:    "chat",
+				Page:          1,
+				PageSize:      1,
+				Total:         1,
+				Items: []remoteModelEntry{
+					recommendationChatItem("repo/cached", "Cached", "cached-Q4_K_M.gguf", 4*1024*1024*1024),
+				},
+			},
+		},
+	}); err != nil {
+		t.Fatalf("save cache: %v", err)
+	}
+	var requests atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		requests.Add(1)
+		writeRecommendationFeed(t, w, remoteLeaderboardResponse{
+			SchemaVersion: "2.0.0",
+			GeneratedAt:   "2026-05-28T00:00:00Z",
+			Capability:    "chat",
+			Page:          1,
+			PageSize:      1,
+			Total:         1,
+			Items: []remoteModelEntry{
+				recommendationChatItem("repo/remote", "Remote", "remote-Q4_K_M.gguf", 4*1024*1024*1024),
+			},
+		})
+	}))
+	defer server.Close()
+	t.Setenv(modelIndexBaseURLEnv, server.URL)
+
+	resp, err := svc.GetRecommendationFeed(context.Background(), &runtimev1.GetRecommendationFeedRequest{Capability: "chat"})
+	if err != nil {
+		t.Fatalf("get recommendation feed: %v", err)
+	}
+	feed := resp.GetFeed()
+	if feed.GetCacheState() != runtimev1.LocalRecommendationFeedCacheState_LOCAL_RECOMMENDATION_FEED_CACHE_STATE_FRESH {
+		t.Fatalf("cache state = %s", feed.GetCacheState())
+	}
+	if len(feed.GetItems()) != 1 || feed.GetItems()[0].GetRepo() != "repo/cached" {
+		t.Fatalf("expected cached feed items, got %#v", feed.GetItems())
+	}
+
+	deadline := time.Now().Add(5 * time.Second)
+	for {
+		cache := svc.loadModelIndexCache()
+		if entry, ok := cache.Feeds["chat"]; ok && len(entry.Items) == 1 && entry.Items[0].Repo == "repo/remote" {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("background refresh did not persist refreshed cache (requests = %d)", requests.Load())
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	if requests.Load() != 1 {
+		t.Fatalf("expected exactly one background refresh request, got %d", requests.Load())
+	}
+}
+
+func TestRecommendationFeedFetchesWhenCacheExpired(t *testing.T) {
+	svc := newTestService(t)
+	expired := time.Now().UTC().Add(-(modelIndexFreshWindow + time.Hour)).Format(time.RFC3339Nano)
+	if err := svc.saveModelIndexCache(modelIndexCacheRecord{
+		FetchedAt: expired,
+		Feeds: map[string]remoteLeaderboardResponse{
+			"chat": {
+				SchemaVersion: "2.0.0",
+				GeneratedAt:   "2026-05-27T00:00:00Z",
+				Capability:    "chat",
+				Page:          1,
+				PageSize:      1,
+				Total:         1,
+				Items: []remoteModelEntry{
+					recommendationChatItem("repo/cached", "Cached", "cached-Q4_K_M.gguf", 4*1024*1024*1024),
+				},
+			},
+		},
+	}); err != nil {
+		t.Fatalf("save cache: %v", err)
+	}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		writeRecommendationFeed(t, w, remoteLeaderboardResponse{
+			SchemaVersion: "2.0.0",
+			GeneratedAt:   "2026-05-28T00:00:00Z",
+			Capability:    "chat",
+			Page:          1,
+			PageSize:      1,
+			Total:         1,
+			Items: []remoteModelEntry{
+				recommendationChatItem("repo/remote", "Remote", "remote-Q4_K_M.gguf", 4*1024*1024*1024),
+			},
+		})
+	}))
+	defer server.Close()
+	t.Setenv(modelIndexBaseURLEnv, server.URL)
+
+	resp, err := svc.GetRecommendationFeed(context.Background(), &runtimev1.GetRecommendationFeedRequest{Capability: "chat"})
+	if err != nil {
+		t.Fatalf("get recommendation feed: %v", err)
+	}
+	feed := resp.GetFeed()
+	if feed.GetCacheState() != runtimev1.LocalRecommendationFeedCacheState_LOCAL_RECOMMENDATION_FEED_CACHE_STATE_FRESH {
+		t.Fatalf("cache state = %s", feed.GetCacheState())
+	}
+	if len(feed.GetItems()) != 1 || feed.GetItems()[0].GetRepo() != "repo/remote" {
+		t.Fatalf("expected network feed items, got %#v", feed.GetItems())
+	}
+}
+
+func TestRecommendationFeedBackgroundRefreshSingleFlight(t *testing.T) {
+	svc := newTestService(t)
+	if err := svc.saveModelIndexCache(modelIndexCacheRecord{
+		FetchedAt: nowISO(),
+		Feeds: map[string]remoteLeaderboardResponse{
+			"chat": {
+				SchemaVersion: "2.0.0",
+				GeneratedAt:   "2026-05-27T00:00:00Z",
+				Capability:    "chat",
+				Page:          1,
+				PageSize:      1,
+				Total:         1,
+				Items: []remoteModelEntry{
+					recommendationChatItem("repo/cached", "Cached", "cached-Q4_K_M.gguf", 4*1024*1024*1024),
+				},
+			},
+		},
+	}); err != nil {
+		t.Fatalf("save cache: %v", err)
+	}
+	release := make(chan struct{})
+	var requests atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		requests.Add(1)
+		<-release
+		writeRecommendationFeed(t, w, remoteLeaderboardResponse{
+			SchemaVersion: "2.0.0",
+			GeneratedAt:   "2026-05-28T00:00:00Z",
+			Capability:    "chat",
+			Page:          1,
+			PageSize:      1,
+			Total:         1,
+			Items: []remoteModelEntry{
+				recommendationChatItem("repo/remote", "Remote", "remote-Q4_K_M.gguf", 4*1024*1024*1024),
+			},
+		})
+	}))
+	defer server.Close()
+	t.Setenv(modelIndexBaseURLEnv, server.URL)
+
+	for i := 0; i < 2; i++ {
+		if _, err := svc.GetRecommendationFeed(context.Background(), &runtimev1.GetRecommendationFeedRequest{Capability: "chat"}); err != nil {
+			t.Fatalf("get recommendation feed: %v", err)
+		}
+	}
+	deadline := time.Now().Add(5 * time.Second)
+	for requests.Load() == 0 && time.Now().Before(deadline) {
+		time.Sleep(10 * time.Millisecond)
+	}
+	close(release)
+	if got := requests.Load(); got != 1 {
+		t.Fatalf("expected single-flight background refresh, got %d requests", got)
+	}
+	for time.Now().Before(deadline) {
+		svc.modelIndexRefreshMu.Lock()
+		inFlight := svc.modelIndexRefreshInFlight["chat"]
+		svc.modelIndexRefreshMu.Unlock()
+		if !inFlight {
+			return
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	t.Fatalf("background refresh did not finish")
+}
+
+func TestDeviceProfileSnapshotCachesWithinTTL(t *testing.T) {
+	svc := newTestService(t)
+	first := svc.deviceProfileSnapshot()
+	if first == nil {
+		t.Fatalf("expected device profile")
+	}
+	if second := svc.deviceProfileSnapshot(); second != first {
+		t.Fatalf("expected cached device profile within TTL")
+	}
+	svc.deviceProfileMu.Lock()
+	svc.deviceProfileCachedAt = time.Now().Add(-(deviceProfileCacheTTL + time.Minute))
+	svc.deviceProfileMu.Unlock()
+	if third := svc.deviceProfileSnapshot(); third == first {
+		t.Fatalf("expected re-probe after TTL expiry")
 	}
 }
 

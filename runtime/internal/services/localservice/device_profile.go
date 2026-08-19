@@ -47,6 +47,26 @@ var (
 	}
 )
 
+// deviceProfileCacheTTL bounds how long a collected device profile is reused
+// before the host is re-probed.
+const deviceProfileCacheTTL = 10 * time.Minute
+
+// deviceProfileSnapshot returns the cached device profile while it is younger
+// than deviceProfileCacheTTL, otherwise re-probes the host. Probing shells out
+// to nvidia-smi and python interpreters, so repeated feed RPCs must not pay
+// that cost on every call.
+func (s *Service) deviceProfileSnapshot() *runtimev1.LocalDeviceProfile {
+	s.deviceProfileMu.Lock()
+	defer s.deviceProfileMu.Unlock()
+	if s.deviceProfileCached != nil && time.Since(s.deviceProfileCachedAt) < deviceProfileCacheTTL {
+		return s.deviceProfileCached
+	}
+	profile := collectDeviceProfile()
+	s.deviceProfileCached = profile
+	s.deviceProfileCachedAt = time.Now()
+	return profile
+}
+
 func collectDeviceProfile(extraPorts ...int32) *runtimev1.LocalDeviceProfile {
 	// K-DEV-006: default probe ports are the K-LENG-005 engine default ports.
 	// Source them from the runtime engine default configs (the same authoritative

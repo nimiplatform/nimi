@@ -130,6 +130,11 @@ type Service struct {
 	entryFileSHA256              func(string) (string, error)
 	adoptResolvedModelImports    bool
 	managedPortAvailable         func(int) bool
+	modelIndexRefreshMu          sync.Mutex
+	modelIndexRefreshInFlight    map[string]bool
+	deviceProfileMu              sync.Mutex
+	deviceProfileCached          *runtimev1.LocalDeviceProfile
+	deviceProfileCachedAt        time.Time
 }
 
 type entryHashCacheState struct {
@@ -275,6 +280,7 @@ func newService(logger *slog.Logger, store *auditlog.Store, stateStorePath strin
 		entryFileSHA256:              computeFileSHA256,
 		adoptResolvedModelImports:    mode.adoptResolvedModelImports,
 		managedPortAvailable:         loopbackPortAvailable,
+		modelIndexRefreshInFlight:    make(map[string]bool),
 	}
 	jobCtx, jobCancel := context.WithCancel(context.Background())
 	svc.jobLifetimeCtx = jobCtx
