@@ -17,6 +17,7 @@ import { RuntimeHealthBadge } from './runtime-config-primitives';
 import { resetRuntimePageViewport } from './runtime-config-page-shell';
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
 import { useRuntimeConfigPanelController } from './runtime-config-panel-controller';
+import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 
 const OverviewPage = lazy(async () => ({
   default: (await import('./runtime-config-page-overview')).OverviewPage,
@@ -58,9 +59,11 @@ export function RuntimeConfigPanelBody() {
 
 export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControllerModel }) {
   const { t } = useTranslation();
+  const bindings = useDesktopRendererBindings();
   const MIN_SIDEBAR_WIDTH = 192;
   const MAX_SIDEBAR_WIDTH = 340;
   const { model } = props;
+  const { onChangePage } = model;
   const { state } = model;
   const [sidebarWidth, setSidebarWidth] = useState(216);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -69,10 +72,20 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
 
   const daemonRunning = model.runtimeDaemonStatus?.running === true;
   const activePage = model.activePage;
+  const developerModeEnabled = bindings.app.projection.developerModeEnabled();
+  const visibleActivePage = activePage === 'modelCatalog' && !developerModeEnabled
+    ? 'overview'
+    : activePage;
+
+  useEffect(() => {
+    if (!developerModeEnabled && activePage === 'modelCatalog') {
+      onChangePage('overview');
+    }
+  }, [activePage, developerModeEnabled, onChangePage]);
 
   useEffect(() => {
     resetRuntimePageViewport(pageViewportRef.current);
-  }, [activePage]);
+  }, [visibleActivePage]);
 
   const startResize = (event: PointerEvent<HTMLDivElement>) => {
     event.preventDefault();
@@ -151,10 +164,13 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
   }
 
   const runtimeStatus = model.runtimeStatus || state.local.status;
-  const pageMeta = RUNTIME_PAGE_META[activePage] || RUNTIME_PAGE_META.overview;
-  const pageTitle = t(`runtimeConfig.sidebar.${activePage}`, { defaultValue: pageMeta.name });
+  const pageMeta = RUNTIME_PAGE_META[visibleActivePage] || RUNTIME_PAGE_META.overview;
+  const pageTitle = t(`runtimeConfig.sidebar.${visibleActivePage}`, { defaultValue: pageMeta.name });
   const sidebarStyle = { '--runtime-sidebar-width': `${sidebarWidth}px` } as CSSProperties;
-  const sidebarSections = RUNTIME_SIDEBAR_ITEMS.reduce<Record<string, typeof RUNTIME_SIDEBAR_ITEMS>>((acc, item) => {
+  const visibleSidebarItems = RUNTIME_SIDEBAR_ITEMS.filter((item) => (
+    item.id !== 'modelCatalog' || developerModeEnabled
+  ));
+  const sidebarSections = visibleSidebarItems.reduce<Record<string, typeof RUNTIME_SIDEBAR_ITEMS>>((acc, item) => {
     if (!acc[item.section]) {
       acc[item.section] = [];
     }
@@ -178,7 +194,7 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
                 label={t(RUNTIME_SECTION_LABEL_KEY[section as keyof typeof RUNTIME_SECTION_LABEL_KEY], { defaultValue: section })}
               >
                 {items.map((item) => {
-                  const active = item.id === activePage;
+                  const active = item.id === visibleActivePage;
                   return (
                     <SidebarItem
                       key={`sidebar-${item.id}`}
@@ -231,42 +247,42 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
 
         <ScrollArea viewportRef={pageViewportRef} className="min-w-0 flex-1" viewportClassName="bg-transparent [&>div]:!block [&>div]:!min-w-0 [&>div]:!w-full [&>div]:!max-w-full" contentClassName="min-w-0 w-full max-w-full overflow-x-hidden">
           <Suspense fallback={<div className="p-4"><RuntimeSkeletonBlock className="h-64 w-full" /></div>}>
-            {activePage === 'overview' && (
+            {visibleActivePage === 'overview' && (
               <div data-testid={E2E_IDS.runtimePageRoot('overview')} className="min-w-0">
                 <OverviewPage model={model} state={state} />
               </div>
             )}
-            {activePage === 'profiles' && (
+            {visibleActivePage === 'profiles' && (
               <div data-testid={E2E_IDS.runtimePageRoot('profiles')} className="min-w-0">
                 <ProfileCatalogPage />
               </div>
             )}
-            {activePage === 'modelMarket' && (
+            {visibleActivePage === 'modelMarket' && (
               <div data-testid={E2E_IDS.runtimePageRoot('modelMarket')} className="min-w-0">
                 <RecommendPage model={model} state={state} />
               </div>
             )}
-            {activePage === 'localModels' && (
+            {visibleActivePage === 'localModels' && (
               <div data-testid={E2E_IDS.runtimePageRoot('localModels')} className="flex min-h-0 min-w-0 flex-1 flex-col">
                 <LocalPage model={model} state={state} />
               </div>
             )}
-            {activePage === 'loadouts' && (
+            {visibleActivePage === 'loadouts' && (
               <div data-testid={E2E_IDS.runtimePageRoot('loadouts')} className="min-w-0">
                 <LoadoutsPage />
               </div>
             )}
-            {activePage === 'modelCatalog' && (
+            {visibleActivePage === 'modelCatalog' && developerModeEnabled && (
               <div data-testid={E2E_IDS.runtimePageRoot('modelCatalog')} className="min-w-0">
                 <CatalogPage model={model} state={state} />
               </div>
             )}
-            {activePage === 'cloud' && (
+            {visibleActivePage === 'cloud' && (
               <div data-testid={E2E_IDS.runtimePageRoot('cloud')} className="min-w-0">
                 <CloudPage model={model} state={state} />
               </div>
             )}
-            {activePage === 'environment' && (
+            {visibleActivePage === 'environment' && (
               <div data-testid={E2E_IDS.runtimePageRoot('environment')} className="flex min-h-0 min-w-0 flex-1 flex-col">
                 <EnvironmentPage model={model} />
               </div>

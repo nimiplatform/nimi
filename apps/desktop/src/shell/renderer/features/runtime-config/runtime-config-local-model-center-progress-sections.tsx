@@ -24,6 +24,7 @@ type ActiveDownloadsSectionProps = {
   onPause: (installSessionId: string) => void;
   onResume: (installSessionId: string) => void;
   onCancel: (installSessionId: string) => void;
+  onDismiss: (installSessionId: string) => void;
 };
 
 function LocalModelCenterActiveDownloadsSection(props: ActiveDownloadsSectionProps) {
@@ -44,6 +45,7 @@ function LocalModelCenterActiveDownloadsSection(props: ActiveDownloadsSectionPro
         const isRunning = event.state === 'running';
         const isPaused = event.state === 'paused';
         const isFailed = event.state === 'failed';
+        const isCancelled = event.state === 'cancelled';
         const canPause = event.state === 'queued' || isRunning;
         const canResume = isPaused || (isFailed && event.retryable);
         const canCancel = event.state !== 'completed' && event.state !== 'cancelled';
@@ -85,6 +87,16 @@ function LocalModelCenterActiveDownloadsSection(props: ActiveDownloadsSectionPro
               }`}>
                 {downloadStateLabel(event.state)}
               </span>
+              {isFailed || isCancelled ? (
+                <button
+                  type="button"
+                  aria-label={i18n.t('runtimeConfig.localModelCenter.dismissTransfer', { defaultValue: 'Dismiss transfer' })}
+                  className="ml-1 rounded-md px-1.5 py-0.5 text-xs text-[var(--nimi-text-muted)] hover:bg-[var(--nimi-surface-hover)] hover:text-[var(--nimi-text-secondary)]"
+                  onClick={() => props.onDismiss(event.installSessionId)}
+                >
+                  {'\u00d7'}
+                </button>
+              ) : null}
             </div>
             {typeof event.bytesTotal === 'number' && event.bytesTotal > 0 ? (
               <div className="mb-2">
@@ -144,6 +156,7 @@ function LocalModelCenterActiveImportsSection(props: ActiveImportsSectionProps) 
         const isRunning = event.state === 'running';
         const isPaused = event.state === 'paused';
         const isFailed = event.state === 'failed';
+        const isCancelled = event.state === 'cancelled';
         const canCancel = event.state === 'queued' || isRunning || isPaused;
         const phaseLabel = formatImportPhaseLabel(event.phase);
         const progressMeta = event.phase === 'register'
@@ -178,9 +191,10 @@ function LocalModelCenterActiveImportsSection(props: ActiveImportsSectionProps) 
               }`}>
                 {downloadStateLabel(event.state)}
               </span>
-              {isFailed ? (
+              {isFailed || isCancelled ? (
                 <button
                   type="button"
+                  aria-label={i18n.t('runtimeConfig.localModelCenter.dismissTransfer', { defaultValue: 'Dismiss transfer' })}
                   className="ml-1 rounded-md px-1.5 py-0.5 text-xs text-[var(--nimi-text-muted)] hover:bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))] hover:text-[var(--nimi-text-secondary)]"
                   onClick={() => props.onDismiss(event.installSessionId)}
                 >

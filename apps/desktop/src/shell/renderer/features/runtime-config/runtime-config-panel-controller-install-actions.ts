@@ -33,6 +33,22 @@ export type UseRuntimeConfigInstallActionsInput = {
   onOpenLoadouts: () => void;
 };
 
+export function runtimeConfigInstallConfirmationMessage(input: {
+  readonly name: string;
+  readonly size: string;
+  readonly warnings: readonly string[];
+  readonly translate: (key: string, defaultValue: string, options?: Record<string, unknown>) => string;
+}): string {
+  const base = input.translate(
+    'runtimeConfig.local.confirmModelInstall',
+    'Download and install “{{name}}”? Download size: {{size}}. No download starts until you confirm.',
+    { name: input.name, size: input.size },
+  );
+  const warnings = input.warnings.map((warning) => warning.trim()).filter(Boolean);
+  if (warnings.length === 0) return base;
+  return `${base}\n\n${input.translate('runtimeConfig.local.installWarnings', 'Before continuing:')}\n${warnings.map((warning) => `• ${warning}`).join('\n')}`;
+}
+
 export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallActionsInput): RuntimeConfigInstallActions {
   const localEnvironmentClient = useRuntimeConfigLocalEnvironmentClient();
   const { t } = useTranslation();
@@ -67,13 +83,12 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
       plan.totalSizeBytes,
       translateRuntimeLocalText('runtimeConfig.local.unknownDownloadSize', 'size unknown'),
     );
-    const confirmed = bindings.app.commands.confirmRuntimeProfileInstall(
-      translateRuntimeLocalText(
-        'runtimeConfig.local.confirmModelInstall',
-        'Download and install "{{name}}"? Download size: {{size}}. No download starts until you confirm.',
-        { name: installLabel, size: sizeLabel },
-      ),
-    );
+    const confirmed = bindings.app.commands.confirmRuntimeProfileInstall(runtimeConfigInstallConfirmationMessage({
+      name: installLabel,
+      size: sizeLabel,
+      warnings: plan.warnings,
+      translate: translateRuntimeLocalText,
+    }));
     if (!confirmed) {
       return;
     }

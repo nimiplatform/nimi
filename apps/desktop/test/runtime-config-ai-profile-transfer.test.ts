@@ -731,7 +731,7 @@ test('content-only axis commits as unresolved and becomes matched on a later inv
   );
 });
 
-test('confirmed Profile transfer carries Prepare machine impact into a selected Loadout Commit', async () => {
+test('reimport prepares an independent candidate instead of mutating the selected Loadout', async () => {
   const profile = loadoutProfile(B) as unknown as {
     capabilities: Record<string, unknown>;
   };
@@ -747,8 +747,15 @@ test('confirmed Profile transfer carries Prepare machine impact into a selected 
     recipes: RECIPES,
     verifiedAssets: VERIFIED,
     loadouts: [selectedLoadout],
+    selectedLoadoutIds: [selectedLoadout.loadoutId],
   });
+  assert.equal(plan.capabilities[0]?.existingLoadoutId, undefined);
   const confirmations: boolean[] = [];
+  const preparedLoadoutIds: Array<string | undefined> = [];
+  const importedCandidate = {
+    ...committedLoadout('text.generate', 'imported-profile-candidate'),
+    provenance: { source_profile_id: 'profile.transfer.test' },
+  };
   const result = await executeRuntimeConfigAIProfileTransfer({
     plan,
     assets: {
@@ -759,23 +766,23 @@ test('confirmed Profile transfer carries Prepare machine impact into a selected 
     },
     loadouts: {
       async listRecipes() { return RECIPES; },
-      async prepare() {
+      async prepare(input: { loadoutId?: string }) {
+        preparedLoadoutIds.push(input.loadoutId);
         return {
-          prepareId: 'prepare:selected-profile-loadout',
-          proposedLoadout: selectedLoadout,
+          prepareId: 'prepare:imported-profile-candidate',
+          proposedLoadout: importedCandidate,
           expiresAt: '2026-08-17T01:00:00Z',
           impact: {
             capabilityContract: 'text.generate',
-            loadoutId: selectedLoadout.loadoutId,
-            changesFutureLocalExecution: true,
-            confirmationRequired: true,
+            loadoutId: importedCandidate.loadoutId,
+            changesFutureLocalExecution: false,
+            confirmationRequired: false,
           },
         };
       },
       async commit(_prepareId: string, confirmedMachineImpact = false) {
         confirmations.push(confirmedMachineImpact);
-        if (!confirmedMachineImpact) throw new Error('AI_LOADOUT_CONFIRMATION_REQUIRED');
-        return selectedLoadout;
+        return importedCandidate;
       },
       async select() { return null; },
     } as never,
@@ -783,8 +790,10 @@ test('confirmed Profile transfer carries Prepare machine impact into a selected 
     async applyAIProfile() {},
   });
 
-  assert.deepEqual(confirmations, [true]);
+  assert.deepEqual(preparedLoadoutIds, [undefined]);
+  assert.deepEqual(confirmations, [false]);
   assert.equal(result.capabilities[0]?.state, 'committed');
+  assert.equal(result.capabilities[0]?.loadout?.loadoutId, importedCandidate.loadoutId);
 });
 
 test('multi-file export preserves verified acquisition while manual content stays unresolved', async () => {

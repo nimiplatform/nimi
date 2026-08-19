@@ -85,7 +85,7 @@ function PortableProfileApplyPage() {
   const [transferPlan, setTransferPlan] = useState<RuntimeConfigAIProfileTransferPlan | null>(null);
   const [transferResult, setTransferResult] = useState<RuntimeConfigAIProfileTransferResult | null>(null);
   const [selectImported, setSelectImported] = useState(true);
-  const [selectionCompleted, setSelectionCompleted] = useState(false);
+  const [selectionDecisionCompleted, setSelectionDecisionCompleted] = useState(false);
   const [feedback, setFeedback] = useState<ProfileFeedback>({
     tone: 'info',
     message: t('runtimeConfig.profiles.feedbackInitial', {
@@ -98,7 +98,8 @@ function PortableProfileApplyPage() {
     setSummary(null);
     setTransferPlan(null);
     setTransferResult(null);
-    setSelectionCompleted(false);
+    setSelectImported(true);
+    setSelectionDecisionCompleted(false);
   };
 
   useEffect(() => {
@@ -147,6 +148,7 @@ function PortableProfileApplyPage() {
           recipes,
           verifiedAssets,
           loadouts: machine.loadouts,
+          selectedLoadoutIds: machine.selections.map((selection) => selection.loadoutId),
         });
         setTransferPlan(nextTransferPlan);
         setTransferResult(null);
@@ -195,7 +197,7 @@ function PortableProfileApplyPage() {
         applyAIProfile: (profile) => profileClient.apply(profile),
       });
       setTransferResult(result);
-      setSelectionCompleted(false);
+      setSelectionDecisionCompleted(false);
       try {
         const [assets, recipes, verifiedAssets, machine] = await Promise.all([
           modelAssetsClient.listModelAssets(),
@@ -209,6 +211,7 @@ function PortableProfileApplyPage() {
           recipes,
           verifiedAssets,
           loadouts: machine.loadouts,
+          selectedLoadoutIds: machine.selections.map((selection) => selection.loadoutId),
         }));
       } catch {
         // Do not leave a stale pre-transfer plan available for retry. The
@@ -243,11 +246,13 @@ function PortableProfileApplyPage() {
       const selected = selectImported
         ? await selectRuntimeConfigAIProfileLoadouts({ result: transferResult, loadouts: loadoutsClient })
         : [];
-      setSelectionCompleted(selectImported && selected.length > 0);
+      setSelectionDecisionCompleted(true);
       setFeedback({
         tone: 'success',
         message: selectImported
-          ? t('runtimeConfig.profiles.selectionComplete', { defaultValue: 'Selected {{count}} configured Loadout(s). Review the existing Runtime environment confirmation before first local execution.', count: selected.length })
+          ? selected.length > 0
+            ? t('runtimeConfig.profiles.selectionComplete', { defaultValue: 'Selected {{count}} configured Loadout(s). Review the existing Runtime environment confirmation before first local execution.', count: selected.length })
+            : t('runtimeConfig.profiles.selectionNoneReady', { defaultValue: 'No imported model was ready to select. Fix the listed model uses to continue.' })
           : t('runtimeConfig.profiles.selectionSkipped', { defaultValue: 'Import completed without changing machine selection. The committed Loadouts remain available.' }),
       });
       const [machine, assets] = await Promise.all([loadoutsClient.get(), modelAssetsClient.listModelAssets()]);
@@ -272,7 +277,7 @@ function PortableProfileApplyPage() {
       ));
       for (const loadout of unresolved) await loadoutsClient.delete(loadout.loadoutId, false);
       setTransferResult(null);
-      setSelectionCompleted(false);
+      setSelectionDecisionCompleted(false);
       setFeedback({
         tone: 'success',
         message: t('runtimeConfig.profiles.unresolvedDiscarded', { defaultValue: 'Discarded {{count}} unresolved imported Loadout(s). Downloaded ModelAssets remain in the pool.', count: unresolved.length }),
@@ -325,70 +330,6 @@ function PortableProfileApplyPage() {
 
   return (
     <RuntimePageShell maxWidth="full" className="max-w-[78rem] space-y-4 px-6 py-6">
-      <Surface tone="card" className="space-y-3 p-4" data-testid="runtime-portable-profile-loadout-export">
-        <div>
-          <h3 className="text-sm font-semibold text-[var(--nimi-text-primary)]">{t('runtimeConfig.profiles.exportLoadoutsTitle', { defaultValue: 'Share your current model setup' })}</h3>
-          <p className="mt-1 text-xs text-[var(--nimi-text-secondary)]">{t('runtimeConfig.profiles.exportLoadoutsDescription', { defaultValue: 'Choose one model setup for each use. Private machine paths, account details, and secrets are never included.' })}</p>
-        </div>
-        <div className="grid gap-3">
-          {exportGroups.map(([capabilityContract, loadouts]) => (
-            <fieldset key={capabilityContract} className="grid gap-2 rounded-xl border border-[var(--nimi-border-subtle)] p-3">
-              <legend className="px-1 text-xs font-semibold text-[var(--nimi-text-secondary)]">
-                {displayRuntimeConfigCapabilityLabel(capabilityContract, t)}
-              </legend>
-              {loadouts.map((loadout) => (
-                <label key={loadout.loadoutId} className="flex items-start gap-2 rounded-lg px-2 py-1.5 text-xs hover:bg-[var(--nimi-surface-hover)]">
-                  <input
-                    className="mt-0.5"
-                    type="checkbox"
-                    checked={selectedExportIds.includes(loadout.loadoutId)}
-                    disabled={loadout.validationState !== 'configured'}
-                    onChange={(event) => {
-                      const checked = event.currentTarget.checked;
-                      const sameUseIds = new Set(loadouts.map((item) => item.loadoutId));
-                      setSelectedExportIds((current) => selectRuntimeConfigProfileExportLoadout({
-                        currentIds: current,
-                        loadoutId: loadout.loadoutId,
-                        sameUseIds,
-                        checked,
-                      }));
-                    }}
-                  />
-                  <span className="min-w-0">
-                    <span className="block font-semibold text-[var(--nimi-text-primary)]">{loadout.displayName}</span>
-                    {loadout.validationState !== 'configured' ? (
-                      <span className="block text-[var(--nimi-danger-text)]">{t('runtimeConfig.profiles.setupNeedsAttention', { defaultValue: 'Needs attention before it can be shared' })}</span>
-                    ) : null}
-                    <details className="mt-1 text-[var(--nimi-text-muted)]">
-                      <summary className="cursor-pointer">{t('runtimeConfig.profiles.technicalDetails', { defaultValue: 'Technical details' })}</summary>
-                      <div className="mt-1 font-mono">{loadout.capabilityContract} · {loadout.recipeId}</div>
-                    </details>
-                  </span>
-                </label>
-              ))}
-            </fieldset>
-          ))}
-        </div>
-        <Button size="sm" tone="secondary" disabled={busy || selectedExportIds.length === 0} onClick={exportSelectedLoadouts}>
-          {t('runtimeConfig.profiles.exportSelectedLoadouts', { defaultValue: 'Export setup file' })}
-        </Button>
-      </Surface>
-
-      <Surface tone="card" className="space-y-3 p-4" data-testid="runtime-portable-profile-catalog">
-        <div>
-          <h3 className="text-sm font-semibold text-[var(--nimi-text-primary)]">{t('runtimeConfig.profiles.savedProfilesTitle', { defaultValue: 'Saved AI setup files' })}</h3>
-          <p className="mt-1 text-xs text-[var(--nimi-text-secondary)]">{t('runtimeConfig.profiles.savedProfilesDescription', { defaultValue: 'Opening a saved file only prepares a preview. Nothing is downloaded or changed until you confirm.' })}</p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {savedProfiles.length === 0 ? <span className="text-xs text-[var(--nimi-text-muted)]">{t('runtimeConfig.profiles.savedProfilesEmpty', { defaultValue: 'No imported Profiles yet.' })}</span> : null}
-          {savedProfiles.map((profile) => (
-            <Button key={profile.source.profileId} size="sm" tone="secondary" disabled={busy} onClick={() => clearPreview(profile.artifactJson)}>
-              {profile.source.title}
-            </Button>
-          ))}
-        </div>
-      </Surface>
-
       <Surface tone="card" className="space-y-3 p-4" data-testid="runtime-portable-profile-source">
         <div>
           <h3 className="text-sm font-semibold text-[var(--nimi-text-primary)]">
@@ -451,6 +392,21 @@ function PortableProfileApplyPage() {
         </details>
       </Surface>
 
+      <Surface tone="card" className="space-y-3 p-4" data-testid="runtime-portable-profile-catalog">
+        <div>
+          <h3 className="text-sm font-semibold text-[var(--nimi-text-primary)]">{t('runtimeConfig.profiles.savedProfilesTitle', { defaultValue: 'Saved AI setup files' })}</h3>
+          <p className="mt-1 text-xs text-[var(--nimi-text-secondary)]">{t('runtimeConfig.profiles.savedProfilesDescription', { defaultValue: 'Opening a saved file only prepares a preview. Nothing is downloaded or changed until you confirm.' })}</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {savedProfiles.length === 0 ? <span className="text-xs text-[var(--nimi-text-muted)]">{t('runtimeConfig.profiles.savedProfilesEmpty', { defaultValue: 'No imported Profiles yet.' })}</span> : null}
+          {savedProfiles.map((profile) => (
+            <Button key={profile.source.profileId} size="sm" tone="secondary" disabled={busy} onClick={() => clearPreview(profile.artifactJson)}>
+              {profile.source.title}
+            </Button>
+          ))}
+        </div>
+      </Surface>
+
       {transferPlan && !transferResult ? (
         <Surface tone="card" className="space-y-3 p-4" data-testid="runtime-portable-profile-transfer-confirmation">
           <div>
@@ -510,8 +466,12 @@ function PortableProfileApplyPage() {
       {transferResult ? (
         <Surface tone="card" className="space-y-3 p-4" data-testid="runtime-portable-profile-selection-confirmation">
           <h3 className="text-sm font-semibold">
-            {selectionCompleted
-              ? t('runtimeConfig.profiles.selectionCompletedTitle', { defaultValue: 'Your model uses are ready' })
+            {selectionDecisionCompleted
+              ? transferNeedsAttention
+                ? t('runtimeConfig.profiles.selectionNeedsAttentionTitle', { defaultValue: 'Some model uses need attention' })
+                : selectImported
+                  ? t('runtimeConfig.profiles.selectionCompletedTitle', { defaultValue: 'Your model uses are ready' })
+                  : t('runtimeConfig.profiles.selectionKeptTitle', { defaultValue: 'Current model choices kept' })
               : t('runtimeConfig.profiles.selectionImpactTitle', { defaultValue: 'Use these models now?' })}
           </h3>
           <div className="grid gap-2">
@@ -532,14 +492,16 @@ function PortableProfileApplyPage() {
               </div>
             ))}
           </div>
-          {!selectionCompleted ? (
+          {!selectionDecisionCompleted ? (
             <>
               <label className="flex items-center gap-2 text-xs">
                 <input type="checkbox" checked={selectImported} onChange={(event) => setSelectImported(event.currentTarget.checked)} />
                 {t('runtimeConfig.profiles.selectAllImported', { defaultValue: 'Use all ready models for their listed uses (recommended)' })}
               </label>
               <Button size="sm" tone="primary" disabled={busy} onClick={() => { void confirmImportedSelection(); }}>
-                {t('runtimeConfig.profiles.confirmSelection', { defaultValue: 'Use these models' })}
+                {selectImported
+                  ? t('runtimeConfig.profiles.confirmSelection', { defaultValue: 'Use these models' })
+                  : t('runtimeConfig.profiles.keepCurrentSelection', { defaultValue: 'Keep current choices' })}
               </Button>
             </>
           ) : (
@@ -670,6 +632,55 @@ function PortableProfileApplyPage() {
           </div>
         </Surface>
       ) : null}
+
+      <details className="rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-4" data-testid="runtime-portable-profile-loadout-export">
+        <summary className="cursor-pointer text-sm font-semibold text-[var(--nimi-text-primary)]">
+          {t('runtimeConfig.profiles.exportLoadoutsTitle', { defaultValue: 'Share your current model setup' })}
+        </summary>
+        <p className="mt-2 text-xs text-[var(--nimi-text-secondary)]">{t('runtimeConfig.profiles.exportLoadoutsDescription', { defaultValue: 'Choose one model setup for each use. Private machine paths, account details, and secrets are never included.' })}</p>
+        <div className="mt-3 grid gap-3">
+          {exportGroups.map(([capabilityContract, loadouts]) => (
+            <fieldset key={capabilityContract} className="grid gap-2 rounded-xl border border-[var(--nimi-border-subtle)] p-3">
+              <legend className="px-1 text-xs font-semibold text-[var(--nimi-text-secondary)]">
+                {displayRuntimeConfigCapabilityLabel(capabilityContract, t)}
+              </legend>
+              {loadouts.map((loadout) => (
+                <label key={loadout.loadoutId} className="flex items-start gap-2 rounded-lg px-2 py-1.5 text-xs hover:bg-[var(--nimi-surface-hover)]">
+                  <input
+                    className="mt-0.5"
+                    type="checkbox"
+                    checked={selectedExportIds.includes(loadout.loadoutId)}
+                    disabled={loadout.validationState !== 'configured'}
+                    onChange={(event) => {
+                      const checked = event.currentTarget.checked;
+                      const sameUseIds = new Set(loadouts.map((item) => item.loadoutId));
+                      setSelectedExportIds((current) => selectRuntimeConfigProfileExportLoadout({
+                        currentIds: current,
+                        loadoutId: loadout.loadoutId,
+                        sameUseIds,
+                        checked,
+                      }));
+                    }}
+                  />
+                  <span className="min-w-0">
+                    <span className="block font-semibold text-[var(--nimi-text-primary)]">{loadout.displayName}</span>
+                    {loadout.validationState !== 'configured' ? (
+                      <span className="block text-[var(--nimi-danger-text)]">{t('runtimeConfig.profiles.setupNeedsAttention', { defaultValue: 'Needs attention before it can be shared' })}</span>
+                    ) : null}
+                    <details className="mt-1 text-[var(--nimi-text-muted)]">
+                      <summary className="cursor-pointer">{t('runtimeConfig.profiles.technicalDetails', { defaultValue: 'Technical details' })}</summary>
+                      <div className="mt-1 font-mono">{loadout.capabilityContract} · {loadout.recipeId}</div>
+                    </details>
+                  </span>
+                </label>
+              ))}
+            </fieldset>
+          ))}
+        </div>
+        <Button className="mt-3" size="sm" tone="secondary" disabled={busy || selectedExportIds.length === 0} onClick={exportSelectedLoadouts}>
+          {t('runtimeConfig.profiles.exportSelectedLoadouts', { defaultValue: 'Export setup file' })}
+        </Button>
+      </details>
 
       <InlineAlert tone={feedback.tone}>{feedback.message}</InlineAlert>
       {feedback.technicalDetail ? (

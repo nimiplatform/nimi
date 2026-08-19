@@ -9,6 +9,7 @@ import {
   type NimiRuntimeLocalEnvironmentPlanDependency,
   type NimiRuntimeLocalEnvironmentClient,
 } from '@nimiplatform/sdk/runtime';
+import { extractNimiErrorFields } from '@nimiplatform/sdk/types';
 import { ConfirmDialog, Surface, cn } from '@nimiplatform/kit/ui';
 
 import { Button } from './runtime-config-primitives.js';
@@ -54,6 +55,7 @@ type LocalCapabilityPlan = {
 type LocalCapabilityError = {
   readonly slice?: LocalCapabilitySlice;
   readonly detail: string;
+  readonly reasonCode: string;
 };
 
 function latestDependencyJob(
@@ -152,8 +154,21 @@ function errorDetail(error: unknown): string {
   return error instanceof Error ? error.message : String(error || 'LOCAL_CAPABILITY_ENVIRONMENT_UNAVAILABLE');
 }
 
+function capabilityError(error: unknown, slice?: LocalCapabilitySlice): LocalCapabilityError {
+  return {
+    ...(slice ? { slice } : {}),
+    detail: errorDetail(error),
+    reasonCode: extractNimiErrorFields(error).reasonCode || '',
+  };
+}
+
+export function isRuntimeConfigLocalCapabilitySelectionMissing(error: unknown): boolean {
+  return extractNimiErrorFields(error).reasonCode === 'AI_LOCAL_SELECTION_NOT_FOUND';
+}
+
 export function RuntimeConfigLocalCapabilityEnvironmentPanel(props: {
   readonly writesDisabled: boolean;
+  readonly onOpenLoadouts: () => void;
 }) {
   const { t } = useTranslation();
   const setActiveTab = useAppStore((state) => state.setActiveTab);
@@ -181,10 +196,7 @@ export function RuntimeConfigLocalCapabilityEnvironmentPanel(props: {
           nextPlans.push({ slice, plan: result.value.plan, resolution: result.value.resolution });
           return;
         }
-        const detail = errorDetail(result.reason);
-        if (!detail.endsWith('_SELECTION_NOT_FOUND')) {
-          nextErrors.push({ slice, detail });
-        }
+        nextErrors.push(capabilityError(result.reason, slice));
       });
       const environmentKeys = new Set(
         nextPlans.flatMap(({ plan: nextPlan }) => nextPlan.dependencies.map((dependency) => dependency.environmentKey)),
@@ -197,7 +209,7 @@ export function RuntimeConfigLocalCapabilityEnvironmentPanel(props: {
     } catch (nextError) {
       setPlans([]);
       setJobs([]);
-      setErrors([{ detail: errorDetail(nextError) }]);
+      setErrors([capabilityError(nextError)]);
     } finally {
       if (!silent) setLoading(false);
     }
@@ -224,7 +236,7 @@ export function RuntimeConfigLocalCapabilityEnvironmentPanel(props: {
       setPending(null);
       await refresh(true);
     } catch (nextError) {
-      setErrors([{ slice: pending.slice, detail: errorDetail(nextError) }]);
+      setErrors([capabilityError(nextError, pending.slice)]);
     } finally {
       setBusyKey('');
     }
@@ -242,11 +254,11 @@ export function RuntimeConfigLocalCapabilityEnvironmentPanel(props: {
       )));
       await refresh(true);
       const failures = results.flatMap((result) => (
-        result.status === 'rejected' ? [{ slice, detail: errorDetail(result.reason) }] : []
+        result.status === 'rejected' ? [capabilityError(result.reason, slice)] : []
       ));
       if (failures.length > 0) setErrors(failures);
     } catch (nextError) {
-      setErrors([{ slice, detail: errorDetail(nextError) }]);
+      setErrors([capabilityError(nextError, slice)]);
     } finally {
       setBusyKey('');
     }
@@ -257,6 +269,7 @@ export function RuntimeConfigLocalCapabilityEnvironmentPanel(props: {
     presentation: projectRuntimeConfigLocalCapabilityEnvironmentState(item.plan, jobs),
   }));
   const readyCount = planPresentations.filter((item) => item.presentation.state === 'ready').length;
+  const capabilityCount = LOCAL_ENVIRONMENT_CAPABILITIES.length;
   const textReady = planPresentations.some((item) => item.slice === 'text' && item.presentation.state === 'ready');
 
   return (
@@ -274,11 +287,11 @@ export function RuntimeConfigLocalCapabilityEnvironmentPanel(props: {
             <p className={cn('mt-1 text-xs', TOKEN_TEXT_MUTED)}>
               {t('runtimeConfig.environment.localCapabilityDescription')}
             </p>
-            {!loading && planPresentations.length > 0 ? (
-              <p className={cn('mt-2 text-xs font-semibold', readyCount === planPresentations.length ? 'text-[var(--nimi-status-success)]' : TOKEN_TEXT_MUTED)}>
-                {readyCount === planPresentations.length
+            {!loading ? (
+              <p className={cn('mt-2 text-xs font-semibold', readyCount === capabilityCount ? 'text-[var(--nimi-status-success)]' : TOKEN_TEXT_MUTED)}>
+                {readyCount === capabilityCount
                   ? t('runtimeConfig.environment.localCapabilityAllReady', { count: readyCount })
-                  : t('runtimeConfig.environment.localCapabilityReadyCount', { ready: readyCount, total: planPresentations.length })}
+                  : t('runtimeConfig.environment.localCapabilityReadyCount', { ready: readyCount, total: capabilityCount })}
               </p>
             ) : null}
           </div>
@@ -296,22 +309,39 @@ export function RuntimeConfigLocalCapabilityEnvironmentPanel(props: {
           </div>
         </div>
 
-        {errors.map((failure) => (
+        {errors.map((failure) => {
+          const selectionMissing = failure.reasonCode === 'AI_LOCAL_SELECTION_NOT_FOUND';
+          return (
           <div
             key={`${failure.slice || 'capability'}:${failure.detail}`}
-            className="mt-4 rounded-lg border border-[color-mix(in_srgb,var(--nimi-status-danger)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_8%,transparent)] px-3 py-2 text-xs text-[var(--nimi-status-danger)]"
+            className={cn(
+              'mt-4 rounded-lg border px-3 py-2 text-xs',
+              selectionMissing
+                ? 'border-[color-mix(in_srgb,var(--nimi-status-warning)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-warning)_8%,transparent)] text-[var(--nimi-text-primary)]'
+                : 'border-[color-mix(in_srgb,var(--nimi-status-danger)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_8%,transparent)] text-[var(--nimi-status-danger)]',
+            )}
           >
             <div className="font-semibold">
-              {t('runtimeConfig.environment.localCapabilityUnavailable', {
+              {t(selectionMissing
+                ? 'runtimeConfig.environment.localCapabilitySelectionMissing'
+                : 'runtimeConfig.environment.localCapabilityUnavailable', {
                 capability: failure.slice ? t(`runtimeConfig.environment.localCapability${failure.slice.toUpperCase()}`) : t('runtimeConfig.environment.localCapabilityLabel'),
               })}
             </div>
+            {selectionMissing ? (
+              <div className="mt-2">
+                <Button size="sm" onClick={props.onOpenLoadouts}>
+                  {t('runtimeConfig.environment.localCapabilityChooseModel')}
+                </Button>
+              </div>
+            ) : null}
             <details className="mt-1">
               <summary className="cursor-pointer font-semibold">{t('runtimeConfig.environment.localCapabilityTechnicalDetails')}</summary>
               <div className="mt-1 whitespace-pre-wrap break-all font-mono">{failure.detail}</div>
             </details>
           </div>
-        ))}
+          );
+        })}
 
         {!loading && plans.length === 0 && errors.length === 0 ? (
           <div className={cn('mt-4 text-xs', TOKEN_TEXT_MUTED)}>

@@ -5,16 +5,27 @@ import type {
   NimiRuntimeLocalEnvironmentPlan,
   NimiRuntimeLocalEnvironmentPlanDependency,
 } from '@nimiplatform/sdk/runtime';
+import { createNimiError } from '@nimiplatform/sdk/types';
 
 import {
   resolveRuntimeConfigLocalEnvironmentPlan,
 } from '../src/shell/renderer/features/runtime-config/runtime-config-local-capability-environment-service.js';
 import {
   canSubmitRuntimeConfigLocalCapabilityEnvironmentPlan,
+  isRuntimeConfigLocalCapabilitySelectionMissing,
   projectRuntimeConfigLocalCapabilityEnvironmentState,
   resolveRuntimeConfigLocalCapabilityConfirmationProjection,
   submitRuntimeConfigLocalCapabilityEnvironmentPlan,
 } from '../src/shell/renderer/features/runtime-config/runtime-config-local-capability-environment-panel.js';
+
+test('missing local model selection is recognized from the typed Runtime reason', () => {
+  assert.equal(isRuntimeConfigLocalCapabilitySelectionMissing(createNimiError({
+    message: 'No selection',
+    reasonCode: 'AI_LOCAL_SELECTION_NOT_FOUND',
+    source: 'runtime',
+  })), true);
+  assert.equal(isRuntimeConfigLocalCapabilitySelectionMissing(new Error('AI_LOCAL_SELECTION_NOT_FOUND')), false);
+});
 
 function environmentDependency(input: Partial<NimiRuntimeLocalEnvironmentPlanDependency> & {
   readonly dependencyFamily: string;

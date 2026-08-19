@@ -147,6 +147,7 @@ export async function planRuntimeConfigAIProfileTransfer(input: {
   readonly recipes: readonly NimiLoadoutRecipe[];
   readonly verifiedAssets: readonly NimiRuntimeLocalVerifiedAssetDescriptor[];
   readonly loadouts?: readonly NimiMachineLoadout[];
+  readonly selectedLoadoutIds?: readonly string[];
 }): Promise<RuntimeConfigAIProfileTransferPlan> {
   const profile = parseNimiPortableAIProfile(input.profile);
   const assetsByContent = new Map(input.assets.map((asset) => [asset.contentId, asset]));
@@ -154,9 +155,11 @@ export async function planRuntimeConfigAIProfileTransfer(input: {
   for (const [capabilityContract, capability] of Object.entries(profile.capabilities)) {
     if (capability.route !== 'local' || !capability.loadout) continue;
     const recipe = input.recipes.find((item) => item.recipeId === capability.loadout?.recipeId);
+    const selectedLoadoutIds = new Set(input.selectedLoadoutIds ?? []);
     const existingLoadout = [...(input.loadouts ?? [])]
       .filter((loadout) => loadout.capabilityContract === capabilityContract)
       .filter((loadout) => textFact(loadout.provenance.source_profile_id) === profile.profileId)
+      .filter((loadout) => !selectedLoadoutIds.has(loadout.loadoutId))
       .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))[0];
     const existingLoadoutId = existingLoadout?.loadoutId;
     if (!recipe || recipe.capabilityContract !== capabilityContract ||

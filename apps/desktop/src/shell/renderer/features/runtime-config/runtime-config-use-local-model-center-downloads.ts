@@ -204,6 +204,7 @@ export function useLocalModelCenterDownloads(input: UseLocalModelCenterDownloads
         || event.state === 'running'
         || event.state === 'paused'
         || event.state === 'failed'
+        || event.state === 'cancelled'
       ))
       .slice(0, PROGRESS_SESSION_LIMIT),
     [progressBySessionId],
@@ -218,6 +219,7 @@ export function useLocalModelCenterDownloads(input: UseLocalModelCenterDownloads
         || event.state === 'running'
         || event.state === 'paused'
         || event.state === 'failed'
+        || event.state === 'cancelled'
       ))
       .slice(0, PROGRESS_SESSION_LIMIT),
     [progressBySessionId],

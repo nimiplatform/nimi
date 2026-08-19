@@ -108,6 +108,7 @@ export function LocalModelCenterRuntimeView(props: LocalModelCenterRuntimeViewPr
           onPause={props.onPauseDownload}
           onResume={props.onResumeDownload}
           onCancel={props.onCancelDownload}
+          onDismiss={props.onDismissSession}
         />
         <LocalModelCenterActiveImportsSection
           imports={props.imports}

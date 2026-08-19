@@ -59,7 +59,10 @@ export function RuntimePage({ model }: RuntimePageProps) {
 
       {activeTab === 'overview' ? (
         <>
-          <RuntimeConfigLocalCapabilityEnvironmentPanel writesDisabled={model.runtimeWritesDisabled} />
+          <RuntimeConfigLocalCapabilityEnvironmentPanel
+            writesDisabled={model.runtimeWritesDisabled}
+            onOpenLoadouts={() => model.onChangePage('loadouts')}
+          />
           <details className="rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-4 text-xs text-[var(--nimi-text-secondary)]">
             <summary className="cursor-pointer font-semibold text-[var(--nimi-text-primary)]">
               {t('runtimeConfig.environment.runtimeTechnicalStatus', { defaultValue: 'Runtime technical status' })}

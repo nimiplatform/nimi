@@ -406,20 +406,24 @@ function LoadoutCard(props: {
           {props.selected ? <Button size="sm" tone="ghost" disabled={props.busy} onClick={props.onClear}>{t('runtimeConfig.loadouts.clear')}</Button> : props.loadout.validationState === 'configured' ? <Button size="sm" tone="primary" disabled={props.busy} onClick={props.onSelect}>{t('runtimeConfig.loadouts.select')}</Button> : canInstallRecommended && props.recipe ? <Button data-testid={`loadout-install-recommended:${props.loadout.loadoutId}`} size="sm" tone="primary" disabled={props.busy} onClick={() => props.onInstallRecommended(props.recipe!)}>{t('runtimeConfig.loadouts.installRecommended')}</Button> : null}
         </div>
       </div>
-      <div className="grid gap-3">
-        {props.loadout.modelAxes.map((axis) => {
-          const asset = props.assets.find((item) => item.modelAssetId === axis.modelAssetId);
-          const slot = props.recipe?.slots.find((item) => item.slotId === axis.slotId);
-          const custom = Boolean(asset && slot && !slot.recommendedContentIds.includes(asset.contentId));
-          const error = props.axisErrors[`${props.loadout.loadoutId}:${axis.slotId}`];
-          return (
-            <div key={axis.slotId} className="grid gap-3 rounded-xl border border-[var(--nimi-border-subtle)] p-3 md:grid-cols-[1fr_1.5fr] md:items-end">
-              <div><div className="flex items-center gap-2 text-sm font-medium"><span>{axis.displayLabel}</span>{custom ? <StatusBadge tone="info" shape="soft">{t('runtimeConfig.loadouts.customModel')}</StatusBadge> : null}</div><div className="mt-1 text-xs text-[var(--nimi-text-muted)]">{asset ? loadoutAssetLabel(asset, props.verifiedAssets) : axis.modelAssetId || t('runtimeConfig.loadouts.unresolved')}</div>{error ? <p className="mt-2 text-xs text-[var(--nimi-status-danger)]">{t('runtimeConfig.loadouts.incompatibleSummary')}</p> : null}</div>
-              <SelectField value={props.draft.modelAssetIds[axis.slotId] ?? ''} options={props.assets.map((item) => { const incompatibility = props.candidateErrors[`${props.loadout.loadoutId}:${axis.slotId}:${item.modelAssetId}`]; const label = loadoutAssetLabel(item, props.verifiedAssets); return { value: item.modelAssetId, label: incompatibility ? `${label} · ${t('runtimeConfig.loadouts.incompatibleOption')}` : label }; })} onValueChange={(modelAssetId) => { props.onDraft({ ...props.draft, modelAssetIds: { ...props.draft.modelAssetIds, [axis.slotId]: modelAssetId } }); props.onUpdate(axis.slotId, modelAssetId); }} disabled={props.busy} />
-            </div>
-          );
-        })}
-      </div>
+      <details className="rounded-xl border border-[var(--nimi-border-subtle)] px-3 py-2" data-testid="loadout-model-parts-editor">
+        <summary className="cursor-pointer text-sm font-medium text-[var(--nimi-text-secondary)]">{t('runtimeConfig.loadouts.changeModels')}</summary>
+        <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">{t('runtimeConfig.loadouts.changeModelsDescription')}</p>
+        <div className="mt-3 grid gap-3">
+          {props.loadout.modelAxes.map((axis) => {
+            const asset = props.assets.find((item) => item.modelAssetId === axis.modelAssetId);
+            const slot = props.recipe?.slots.find((item) => item.slotId === axis.slotId);
+            const custom = Boolean(asset && slot && !slot.recommendedContentIds.includes(asset.contentId));
+            const error = props.axisErrors[`${props.loadout.loadoutId}:${axis.slotId}`];
+            return (
+              <div key={axis.slotId} className="grid gap-3 rounded-xl border border-[var(--nimi-border-subtle)] p-3 md:grid-cols-[1fr_1.5fr] md:items-end">
+                <div><div className="flex items-center gap-2 text-sm font-medium"><span>{axis.displayLabel}</span>{custom ? <StatusBadge tone="info" shape="soft">{t('runtimeConfig.loadouts.customModel')}</StatusBadge> : null}</div><div className="mt-1 text-xs text-[var(--nimi-text-muted)]">{asset ? loadoutAssetLabel(asset, props.verifiedAssets) : axis.modelAssetId || t('runtimeConfig.loadouts.unresolved')}</div>{error ? <p className="mt-2 text-xs text-[var(--nimi-status-danger)]">{t('runtimeConfig.loadouts.incompatibleSummary')}</p> : null}</div>
+                <SelectField value={props.draft.modelAssetIds[axis.slotId] ?? ''} options={props.assets.map((item) => { const incompatibility = props.candidateErrors[`${props.loadout.loadoutId}:${axis.slotId}:${item.modelAssetId}`]; const label = loadoutAssetLabel(item, props.verifiedAssets); return { value: item.modelAssetId, label: incompatibility ? `${label} · ${t('runtimeConfig.loadouts.incompatibleOption')}` : label }; })} onValueChange={(modelAssetId) => { props.onDraft({ ...props.draft, modelAssetIds: { ...props.draft.modelAssetIds, [axis.slotId]: modelAssetId } }); props.onUpdate(axis.slotId, modelAssetId); }} disabled={props.busy} />
+              </div>
+            );
+          })}
+        </div>
+      </details>
       <details className="rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-subtle)] px-3 py-2 text-xs text-[var(--nimi-text-muted)]" data-testid="loadout-execution-supply">
         <summary className="cursor-pointer font-medium text-[var(--nimi-text-secondary)]">{t('runtimeConfig.loadouts.technicalDetails')}</summary>
         <div className="mt-3 grid gap-3">
