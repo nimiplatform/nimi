@@ -26,6 +26,7 @@ import { createNimiError, ReasonCode, type JsonObject } from '../types';
 import { fromNimiRuntimeProtoStruct } from './runtime-agent-values';
 
 const NIMI_RUNTIME_SCENARIO_JOB_STATUS_DETAIL_KEY = 'scenarioJobStatus';
+export const NIMI_RUNTIME_SCENARIO_JOB_STREAM_INTERRUPTED_REASON = 'SDK_RUNTIME_SCENARIO_JOB_STREAM_INTERRUPTED';
 
 export type NimiRuntimeScenarioJobErrorTerminalStatus =
   | ScenarioJobStatus.FAILED
@@ -168,6 +169,7 @@ export async function runNimiRuntimeScenarioJob(
 
   let terminalJob = submitted;
   let observedTerminalEvent = false;
+  let recoveredTerminalResponse: Awaited<ReturnType<NimiScenarioJobClient['getScenarioJob']>> | undefined;
   if (submitted) {
     input.onJobUpdate?.(submitted);
   }
@@ -199,18 +201,38 @@ export async function runNimiRuntimeScenarioJob(
     }
   } catch (error) {
     if (input.signal?.aborted) {
-      throw abortedNimiRuntimeScenarioJobError();
+      const refreshed = await queryMatchingScenarioJob(input, jobId);
+      if (refreshed?.job && isNimiRuntimeScenarioJobTerminalStatus(refreshed.job.status)) {
+        terminalJob = refreshed.job;
+        recoveredTerminalResponse = refreshed;
+        observedTerminalEvent = true;
+        input.onJobUpdate?.(refreshed.job);
+        ensureCompletedNimiRuntimeScenarioJob(refreshed.job);
+      } else {
+        throw abortedNimiRuntimeScenarioJobError(jobId);
+      }
+    } else {
+      throw error;
     }
-    throw error;
   }
 
-  throwIfAborted(input.signal);
+  if (!observedTerminalEvent) {
+    throwIfAborted(input.signal);
+  }
   if (!observedTerminalEvent || !terminalJob || !isNimiRuntimeScenarioJobTerminalStatus(terminalJob.status)) {
-    throw runtimeScenarioJobResponseError('Runtime Scenario job event stream ended without a terminal event');
+    const refreshed = await queryMatchingScenarioJob(input, jobId);
+    if (!refreshed?.job || !isNimiRuntimeScenarioJobTerminalStatus(refreshed.job.status)) {
+      throw runtimeScenarioJobStreamInterruptedError(jobId);
+    }
+    terminalJob = refreshed.job;
+    recoveredTerminalResponse = refreshed;
+    observedTerminalEvent = true;
+    input.onJobUpdate?.(refreshed.job);
   }
   ensureCompletedNimiRuntimeScenarioJob(terminalJob);
   const eventStatus = terminalJob?.status;
-  const terminalResponse = await input.ai.getScenarioJob({ jobId }, input.callOptions);
+  const terminalResponse = recoveredTerminalResponse
+    ?? await input.ai.getScenarioJob({ jobId }, input.callOptions);
   terminalJob = terminalResponse.job;
   if (normalizeText(terminalJob?.jobId) !== jobId || terminalJob?.scenarioType !== input.request.scenarioType) {
     throw runtimeScenarioJobResponseError('Runtime Scenario job terminal result does not match the submitted Job');
@@ -300,6 +322,33 @@ function runtimeScenarioJobResponseError(message: string): Error {
   });
 }
 
+async function queryMatchingScenarioJob(
+  input: NimiRuntimeScenarioJobRunnerInput,
+  jobId: string,
+): Promise<Awaited<ReturnType<NimiScenarioJobClient['getScenarioJob']>> | undefined> {
+  try {
+    const response = await input.ai.getScenarioJob({ jobId }, input.callOptions);
+    const job = response.job;
+    if (normalizeText(job?.jobId) !== jobId || job?.scenarioType !== input.request.scenarioType) {
+      return undefined;
+    }
+    return response;
+  } catch {
+    return undefined;
+  }
+}
+
+function runtimeScenarioJobStreamInterruptedError(jobId: string): Error {
+  return createNimiError({
+    message: 'The Runtime Scenario job event stream ended before a terminal state could be confirmed.',
+    reasonCode: NIMI_RUNTIME_SCENARIO_JOB_STREAM_INTERRUPTED_REASON,
+    actionHint: 'query_runtime_scenario_job',
+    retryable: true,
+    source: 'sdk',
+    details: { jobId },
+  });
+}
+
 async function cancelNimiRuntimeScenarioJob(
   input: NimiRuntimeScenarioJobRunnerInput,
   jobId: string,
@@ -375,13 +424,14 @@ function throwIfAborted(signal: AbortSignal | undefined): void {
   }
 }
 
-function abortedNimiRuntimeScenarioJobError(): Error {
+function abortedNimiRuntimeScenarioJobError(jobId?: string): Error {
   return createNimiError({
-    message: 'The caller stopped waiting for the Runtime Scenario job.',
+    message: 'The caller requested cancellation, but the Runtime Scenario job terminal state is not confirmed yet.',
     reasonCode: ReasonCode.OPERATION_ABORTED,
-    actionHint: 'inspect_runtime_scenario_job_if_needed',
+    actionHint: 'query_runtime_scenario_job',
     retryable: false,
     source: 'sdk',
+    ...(jobId ? { details: { jobId } } : {}),
   });
 }
 

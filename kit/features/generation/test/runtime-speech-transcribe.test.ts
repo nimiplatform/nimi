@@ -27,12 +27,18 @@ const transcriptArtifact: NimiRuntimeScenarioArtifact = {
   sizeBytes: '12', durationMs: '0', fps: 0, width: 0, height: 0, sampleRateHz: 0, channels: 0,
 };
 
-function fakeClient(config: { submitError?: unknown; neverEndingEvents?: boolean } = {}) {
+function fakeClient(config: {
+  submitError?: unknown;
+  neverEndingEvents?: boolean;
+  lookupJob?: ScenarioJob;
+} = {}) {
   const submitScenarioJob = vi.fn<NimiRuntimeScenarioJobClient['submitScenarioJob']>(async () => {
     if (config.submitError) throw config.submitError;
     return { job: transcriptionJob(ScenarioJobStatus.RUNNING) };
   });
-  const getScenarioJob = vi.fn<NimiRuntimeScenarioJobClient['getScenarioJob']>(async () => ({ job: transcriptionJob(ScenarioJobStatus.COMPLETED) }));
+  const getScenarioJob = vi.fn<NimiRuntimeScenarioJobClient['getScenarioJob']>(async () => ({
+    job: config.lookupJob ?? transcriptionJob(ScenarioJobStatus.COMPLETED),
+  }));
   const cancelScenarioJob = vi.fn<NimiRuntimeScenarioJobClient['cancelScenarioJob']>(async () => ({}));
   const subscribeScenarioJobEvents = vi.fn<NimiRuntimeScenarioJobClient['subscribeScenarioJobEvents']>(() => ({
     [Symbol.asyncIterator]() {
@@ -116,7 +122,10 @@ describe('runRuntimeSpeechTranscribe', () => {
   });
 
   it('aborts and cancels the runtime job', async () => {
-    const fake = fakeClient({ neverEndingEvents: true });
+    const fake = fakeClient({
+      neverEndingEvents: true,
+      lookupJob: transcriptionJob(ScenarioJobStatus.RUNNING),
+    });
     const controller = new AbortController();
     const pending = runRuntimeSpeechTranscribe(input(fake.client, {
       signal: controller.signal, abortReason: 'stop transcription',

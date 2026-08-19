@@ -15,7 +15,8 @@ export type RuntimeScenarioJobNonSuccessReason =
   | RuntimeGenerationNonSuccessReason
   | 'operation-aborted'
   | 'runtime-canceled'
-  | 'runtime-timeout';
+  | 'runtime-timeout'
+  | 'stream-interrupted';
 
 export type RuntimeExecutionUnavailable = {
   readonly reason: 'sdk-method-unavailable';
@@ -81,6 +82,9 @@ export function runtimeScenarioJobNonSuccessReasonFromError(
   }
   if (errorReasonCode(error) === ReasonCode.OPERATION_ABORTED) {
     return 'operation-aborted';
+  }
+  if (errorReasonCode(error) === 'SDK_RUNTIME_SCENARIO_JOB_STREAM_INTERRUPTED') {
+    return 'stream-interrupted';
   }
   return runtimeGenerationNonSuccessReasonFromError(error);
 }

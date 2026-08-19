@@ -15,6 +15,7 @@ export type TesterNonSuccessReason =
   | 'operation-aborted'
   | 'runtime-canceled'
   | 'runtime-timeout'
+  | 'stream-interrupted'
   | 'runtime-call-failed';
 
 export type TesterNonSuccessDiagnostics = {
@@ -51,6 +52,8 @@ function reasonKeySegment(reason: string): string {
       return 'runtimeCanceled';
     case 'runtime-timeout':
       return 'runtimeTimeout';
+    case 'stream-interrupted':
+      return 'streamInterrupted';
     case 'runtime-call-failed':
       return 'runtimeCallFailed';
     default:

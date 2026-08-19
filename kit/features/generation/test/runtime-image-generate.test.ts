@@ -52,13 +52,14 @@ function fakeClient(config: {
   artifacts?: readonly NimiRuntimeScenarioArtifact[];
   submitError?: unknown;
   neverEndingEvents?: boolean;
+  lookupJob?: ScenarioJob;
 }) {
   const submitScenarioJob = vi.fn<NimiRuntimeScenarioJobClient['submitScenarioJob']>(async () => {
     if (config.submitError) throw config.submitError;
     return { job: imageJob(ScenarioJobStatus.RUNNING) };
   });
   const getScenarioJob = vi.fn<NimiRuntimeScenarioJobClient['getScenarioJob']>(async () => ({
-    job: config.events?.at(-1) ?? imageJob(ScenarioJobStatus.COMPLETED),
+    job: config.lookupJob ?? config.events?.at(-1) ?? imageJob(ScenarioJobStatus.COMPLETED),
   }));
   const cancelScenarioJob = vi.fn<NimiRuntimeScenarioJobClient['cancelScenarioJob']>(async () => ({}));
   const subscribeScenarioJobEvents = vi.fn<NimiRuntimeScenarioJobClient['subscribeScenarioJobEvents']>(() => ({
@@ -160,7 +161,10 @@ describe('runRuntimeImageGenerate', () => {
   });
 
   it('aborts, cancels the job, and fails closed', async () => {
-    const fake = fakeClient({ neverEndingEvents: true });
+    const fake = fakeClient({
+      neverEndingEvents: true,
+      lookupJob: imageJob(ScenarioJobStatus.RUNNING),
+    });
     const controller = new AbortController();
     const pending = runRuntimeImageGenerate(input(fake.client, { signal: controller.signal, abortReason: 'tester abort' }));
     await new Promise((resolve) => setTimeout(resolve, 0));

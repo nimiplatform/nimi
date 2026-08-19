@@ -794,7 +794,8 @@ function testerNonSuccessReason(reason: string): TesterNonSuccessReason {
   if (reason === 'input-invalid' || reason === 'sdk-method-unavailable'
     || reason === 'principal-unauthorized' || reason === 'operation-aborted'
     || reason === 'runtime-canceled'
-    || reason === 'runtime-timeout') {
+    || reason === 'runtime-timeout'
+    || reason === 'stream-interrupted') {
     return reason;
   }
   return 'runtime-call-failed';

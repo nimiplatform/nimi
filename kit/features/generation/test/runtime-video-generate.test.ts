@@ -76,6 +76,7 @@ type FakeClientConfig = {
   readonly artifacts?: readonly NimiRuntimeScenarioArtifact[];
   readonly submitError?: unknown;
   readonly neverEndingEvents?: boolean;
+  readonly lookupJob?: ScenarioJob;
 };
 
 function fakeScenarioJobClient(config: FakeClientConfig) {
@@ -84,7 +85,7 @@ function fakeScenarioJobClient(config: FakeClientConfig) {
     return { job: config.submitJob ?? videoJobForTest(ScenarioJobStatus.RUNNING) };
   });
   const getScenarioJob = vi.fn<NimiRuntimeScenarioJobClient['getScenarioJob']>(async () => ({
-    job: config.events?.[config.events.length - 1] ?? config.submitJob ?? videoJobForTest(ScenarioJobStatus.COMPLETED),
+    job: config.lookupJob ?? config.events?.[config.events.length - 1] ?? config.submitJob ?? videoJobForTest(ScenarioJobStatus.COMPLETED),
   }));
   const cancelScenarioJob = vi.fn<NimiRuntimeScenarioJobClient['cancelScenarioJob']>(async () => ({}));
   const subscribeScenarioJobEvents = vi.fn<NimiRuntimeScenarioJobClient['subscribeScenarioJobEvents']>((_) => ({
@@ -323,7 +324,10 @@ describe('runRuntimeVideoGenerate', () => {
   });
 
   it('aborts through the signal, cancels the runtime job, and fails closed', async () => {
-    const fake = fakeScenarioJobClient({ neverEndingEvents: true });
+    const fake = fakeScenarioJobClient({
+      neverEndingEvents: true,
+      lookupJob: videoJobForTest(ScenarioJobStatus.RUNNING),
+    });
     const controller = new AbortController();
     const pending = runRuntimeVideoGenerate(videoInputForTest(fake.client, {
       signal: controller.signal,
@@ -340,7 +344,7 @@ describe('runRuntimeVideoGenerate', () => {
       reason: 'operation-aborted',
     });
     if (result.ok) throw new Error('expected non-success result');
-    expect(result.message).toContain('caller stopped waiting');
+    expect(result.message).toContain('terminal state is not confirmed');
     expect(fake.cancelScenarioJob).toHaveBeenCalledTimes(1);
     expect(fake.cancelScenarioJob.mock.calls[0]?.[0]).toMatchObject({
       jobId: 'job-video-1',

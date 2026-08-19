@@ -35,12 +35,15 @@ function fakeClient(config: {
   artifacts?: readonly NimiRuntimeScenarioArtifact[];
   submitError?: unknown;
   neverEndingEvents?: boolean;
+  lookupJob?: ScenarioJob;
 }) {
   const submitScenarioJob = vi.fn<NimiRuntimeScenarioJobClient['submitScenarioJob']>(async () => {
     if (config.submitError) throw config.submitError;
     return { job: speechJob(ScenarioJobStatus.RUNNING) };
   });
-  const getScenarioJob = vi.fn<NimiRuntimeScenarioJobClient['getScenarioJob']>(async () => ({ job: speechJob(ScenarioJobStatus.COMPLETED) }));
+  const getScenarioJob = vi.fn<NimiRuntimeScenarioJobClient['getScenarioJob']>(async () => ({
+    job: config.lookupJob ?? speechJob(ScenarioJobStatus.COMPLETED),
+  }));
   const cancelScenarioJob = vi.fn<NimiRuntimeScenarioJobClient['cancelScenarioJob']>(async () => ({}));
   const subscribeScenarioJobEvents = vi.fn<NimiRuntimeScenarioJobClient['subscribeScenarioJobEvents']>(() => ({
     [Symbol.asyncIterator]() {
@@ -138,7 +141,10 @@ describe('runRuntimeSpeechSynthesize', () => {
   });
 
   it('aborts and cancels the runtime job', async () => {
-    const fake = fakeClient({ neverEndingEvents: true });
+    const fake = fakeClient({
+      neverEndingEvents: true,
+      lookupJob: speechJob(ScenarioJobStatus.RUNNING),
+    });
     const controller = new AbortController();
     const pending = runRuntimeSpeechSynthesize(input(fake.client, { signal: controller.signal, abortReason: 'stop speech' }));
     await new Promise((resolve) => setTimeout(resolve, 0));

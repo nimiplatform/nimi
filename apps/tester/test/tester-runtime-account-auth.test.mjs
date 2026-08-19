@@ -980,7 +980,7 @@ test('Tester voice.create submits a text description through the same canonical 
   assert.equal(result.output.creationSource, source);
 });
 
-test('Tester voice.create fails closed when the Job stream ends before a terminal event', async () => {
+test('Tester voice.create reports an interrupted Job stream after one bounded terminal lookup', async () => {
   const { runTesterCapability } = await importTesterRuntime();
   const source = 'text-description';
   const submitted = localVoiceJob('submitted', source);
@@ -993,7 +993,7 @@ test('Tester voice.create fails closed when the Job stream ends before a termina
     },
     async getScenarioJob() {
       gets += 1;
-      throw new Error('terminal Get must not run without a terminal event');
+      throw new Error('terminal lookup unavailable');
     },
   });
   const result = await runTesterCapability({
@@ -1002,8 +1002,9 @@ test('Tester voice.create fails closed when the Job stream ends before a termina
     parameters: { creationSource: source, previewText: '你好', language: 'zh', preferredName: 'Nimi voice' },
   }, readyRuntimeDependencies(client));
   assert.equal(result.ok, false);
-  assert.equal(gets, 0);
-  assert.match(result.message, /without a terminal event/i);
+  assert.equal(gets, 1);
+  assert.equal(result.reason, 'stream-interrupted');
+  assert.match(result.message, /terminal state could be confirmed/i);
 });
 
 for (const status of ['failed', 'canceled', 'timeout']) {

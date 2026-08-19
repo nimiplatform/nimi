@@ -5,9 +5,10 @@
       "inputInvalid": "Check your input",
       "sdkMethodUnavailable": "Not supported in this version",
       "principalUnauthorized": "Reconnect this app",
-      "operationAborted": "Stopped waiting",
+      "operationAborted": "Cancellation pending",
       "runtimeCanceled": "Task canceled",
       "runtimeTimeout": "Task timed out",
+      "streamInterrupted": "Result stream interrupted",
       "runtimeCallFailed": "Generation failed"
     },
     "message": {
@@ -15,9 +16,10 @@
       "inputInvalid": "The request needs a valid prompt or required input before it can run.",
       "sdkMethodUnavailable": "This capability is not available in the current app build.",
       "principalUnauthorized": "Runtime rejected the protected owner for this request.",
-      "operationAborted": "You stopped waiting; the background task is still confirming its final state.",
+      "operationAborted": "A cancellation was requested, but Runtime has not confirmed the task's final state yet.",
       "runtimeCanceled": "This task was canceled.",
       "runtimeTimeout": "This task timed out.",
+      "streamInterrupted": "The live result connection ended before Runtime confirmed a final state.",
       "runtimeCallFailed": "This generation could not be completed.",
       "fallback": "The generation did not complete."
     },
@@ -26,9 +28,10 @@
       "inputInvalid": "Review the prompt and required fields, then run it again.",
       "sdkMethodUnavailable": "Update the app, then try again.",
       "principalUnauthorized": "Return to Desktop, reopen this app, then try again.",
-      "operationAborted": "Wait a moment, then run it again if you still need the result.",
+      "operationAborted": "Check the task status before starting another run.",
       "runtimeCanceled": "Run the request again when you are ready.",
       "runtimeTimeout": "Try again later. If it still times out, open Runtime details to find the cause.",
+      "streamInterrupted": "Check the task status; retry only after confirming it did not complete.",
       "runtimeCallFailed": "Try again once. If it still fails, open Runtime details to find the cause.",
       "fallback": "Try again. If it still fails, open Runtime details to find the cause."
     },
@@ -37,9 +40,10 @@
       "inputInvalid": "Supply a valid request body for this capability, then retry.",
       "sdkMethodUnavailable": "Add an admitted SDK Nimi App execution method. Do not bypass Runtime with app-local REST.",
       "principalUnauthorized": "Runtime rejected the protected owner identity. Restore the admitted App session before retrying.",
-      "operationAborted": "The local caller stopped waiting. Inspect the ScenarioJob separately before inferring any Runtime terminal state.",
+      "operationAborted": "The SDK requested cancellation, but Runtime did not return a terminal state during the bounded follow-up lookup.",
       "runtimeCanceled": "Runtime durably canceled this ScenarioJob. Submit a new request only when another run is wanted.",
       "runtimeTimeout": "Runtime durably timed out this ScenarioJob. Inspect its typed reason and trace before retrying.",
+      "streamInterrupted": "The event stream ended without a terminal event and the bounded Runtime Job lookup remained non-terminal or unavailable.",
       "runtimeCallFailed": "Runtime returned a typed contract failure. Inspect the verbatim Runtime error without inferring success."
     }
   }

@@ -302,7 +302,7 @@ test('Runtime scenario job runner preserves typed terminal status and safe failu
   }
 });
 
-test('Runtime scenario job runner rejects normal stream close without a terminal event before Get', async () => {
+test('Runtime scenario job runner recovers a terminal result after a normal stream close', async () => {
   let gets = 0;
   const client = createScenarioJobClient([
     { job: createScenarioJob('job-1', ScenarioJobStatus.RUNNING) },
@@ -315,14 +315,9 @@ test('Runtime scenario job runner rejects normal stream close without a terminal
     },
   };
 
-  await assert.rejects(
-    runNimiRuntimeScenarioJob({ ai: guarded, request: createScenarioJobRequest() }),
-    (error: unknown) => {
-      assert.equal((error as { code?: string }).code, 'SDK_RUNTIME_RESPONSE_DECODE_FAILED');
-      return true;
-    },
-  );
-  assert.equal(gets, 0);
+  const result = await runNimiRuntimeScenarioJob({ ai: guarded, request: createScenarioJobRequest() });
+  assert.equal(result.job.status, ScenarioJobStatus.COMPLETED);
+  assert.equal(gets, 1);
 });
 
 test('Runtime scenario job runner rejects mismatched terminal event type before Get', async () => {
@@ -541,14 +536,24 @@ test('Runtime voice job runner rejects incomplete or cross-owner full VoiceAsset
   }
 });
 
-test('Runtime ScenarioJob abort remains caller-local until Runtime reports a terminal job', async () => {
+test('Runtime ScenarioJob abort requests cancellation and reports the Runtime terminal state when available', async () => {
   const controller = new AbortController();
   let cancelReason = '';
+  let queryCount = 0;
   const client: NimiRuntimeScenarioJobClient = {
     ...createScenarioJobClient([]),
     async cancelScenarioJob(request) {
       cancelReason = request.reason;
       return {};
+    },
+    async getScenarioJob() {
+      queryCount += 1;
+      return {
+        job: {
+          ...createScenarioJob('job-1', ScenarioJobStatus.CANCELED),
+          reasonDetail: 'Canceled by user',
+        },
+      };
     },
     async *subscribeScenarioJobEvents() {
       await new Promise(() => undefined);
@@ -565,11 +570,54 @@ test('Runtime ScenarioJob abort remains caller-local until Runtime reports a ter
   controller.abort('tester-user-canceled');
 
   await assert.rejects(pending, (error: unknown) => {
-    assert.equal(getNimiRuntimeScenarioJobTerminalStatusFromError(error), null);
-    assert.equal((error as { readonly reasonCode?: unknown }).reasonCode, ReasonCode.OPERATION_ABORTED);
+    assert.equal(getNimiRuntimeScenarioJobTerminalStatusFromError(error), ScenarioJobStatus.CANCELED);
     return true;
   });
   assert.equal(cancelReason, 'tester-user-canceled');
+  assert.equal(queryCount, 1);
+});
+
+test('Runtime ScenarioJob abort preserves a Runtime completion that won the cancellation race', async () => {
+  const controller = new AbortController();
+  const completedJob = createScenarioJob('job-1', ScenarioJobStatus.COMPLETED);
+  const client: NimiRuntimeScenarioJobClient = {
+    ...createScenarioJobClient([]),
+    async getScenarioJob() {
+      return { job: completedJob };
+    },
+    async *subscribeScenarioJobEvents() {
+      await new Promise(() => undefined);
+    },
+  };
+
+  const pending = runNimiRuntimeScenarioJob({
+    ai: client,
+    request: createScenarioJobRequest(),
+    signal: controller.signal,
+  });
+  controller.abort('tester-user-canceled');
+
+  const result = await pending;
+  assert.equal(result.job.status, ScenarioJobStatus.COMPLETED);
+});
+
+test('Runtime ScenarioJob stream interruption performs one bounded terminal lookup', async () => {
+  let queryCount = 0;
+  const runningJob = createScenarioJob('job-1', ScenarioJobStatus.RUNNING);
+  const client: NimiRuntimeScenarioJobClient = {
+    ...createScenarioJobClient([]),
+    async getScenarioJob() {
+      queryCount += 1;
+      return { job: runningJob };
+    },
+  };
+
+  await assert.rejects(
+    runNimiRuntimeScenarioJob({ ai: client, request: createScenarioJobRequest() }),
+    (error: unknown) => (error as { readonly reasonCode?: unknown }).reasonCode
+      === 'SDK_RUNTIME_SCENARIO_JOB_STREAM_INTERRUPTED',
+  );
+  assert.equal(queryCount, 1);
 });
 
 function createScenarioJobRequest(): NimiRuntimeScenarioJobSubmitRequest {
