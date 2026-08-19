@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { type NimiRuntimeLocalVerifiedAssetDescriptor } from '@nimiplatform/sdk/runtime';
 import { PROGRESS_RETENTION_MS, type LocalModelCenterProps } from './runtime-config-model-center-utils';
 import {
@@ -14,6 +15,7 @@ export function useLocalModelCenterAssetTasks(input: {
   verifiedAssetsByTemplateId: Map<string, NimiRuntimeLocalVerifiedAssetDescriptor>;
 }) {
   const bindings = useDesktopRendererBindings();
+  const { t } = useTranslation();
   const [assetPendingTemplateIds, setAssetPendingTemplateIds] = useState<string[]>([]);
   const [assetTasks, setAssetTasks] = useState<AssetTaskEntry[]>([]);
 
@@ -68,6 +70,14 @@ export function useLocalModelCenterAssetTasks(input: {
     assetPendingTemplateIds.includes(String(templateId || '').trim())
   ), [assetPendingTemplateIds]);
 
+  const dismissAssetTask = useCallback((templateId: string) => {
+    const normalized = String(templateId || '').trim();
+    if (!normalized) {
+      return;
+    }
+    setAssetTasks((prev) => prev.filter((task) => task.templateId !== normalized));
+  }, []);
+
   const installCatalogAsset = useCallback(async (templateId: string) => {
     const normalizedTemplateId = String(templateId || '').trim();
     if (!normalizedTemplateId) {
@@ -78,7 +88,7 @@ export function useLocalModelCenterAssetTasks(input: {
     try {
       await input.onInstallCatalogAsset(normalizedTemplateId);
       await input.onInstalled();
-      upsertAssetTask(normalizedTemplateId, 'running', 'Asset install queued.');
+      upsertAssetTask(normalizedTemplateId, 'running', t('runtimeConfig.localModelCenter.assetInstallQueued', { defaultValue: 'Asset install queued.' }));
     } catch (error: unknown) {
       upsertAssetTask(
         normalizedTemplateId,
@@ -89,10 +99,11 @@ export function useLocalModelCenterAssetTasks(input: {
     } finally {
       markAssetPending(normalizedTemplateId, false);
     }
-  }, [input, markAssetPending, upsertAssetTask]);
+  }, [input, markAssetPending, upsertAssetTask, t]);
 
   return {
     assetPendingTemplateIds,
+    dismissAssetTask,
     installCatalogAsset,
     isAssetPending,
     visibleAssetTasks,

@@ -185,10 +185,7 @@ export function AIProfileAuthoringView(props: AIProfileAuthoringViewProps) {
   const exportReady = model?.exportArtifact !== null && model !== null;
 
   return (
-    <RuntimePageShell
-      maxWidth="full"
-      className="max-w-[96rem] space-y-4 px-6 py-6"
-    >
+    <RuntimePageShell>
       <Surface
         tone="card"
         className="space-y-4 p-5"

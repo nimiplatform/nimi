@@ -1,3 +1,4 @@
+import type { RefObject } from 'react';
 import { useDesktopI18nResource } from '../../i18n/i18n-context';
 import type {
   NimiRuntimeLocalCatalogVariantDescriptor,
@@ -13,6 +14,7 @@ import {
 } from './runtime-config-model-center-utils';
 import {
   DownloadIcon,
+  localizedAssetKindLabel,
   ModelIcon,
   RecommendationDetailList,
   RecommendationDiagnosticsPanel,
@@ -25,7 +27,8 @@ import {
 } from './runtime-config-local-model-center-helpers';
 import { CatalogVariantPicker, VerifiedModelSearchRow } from './runtime-config-local-model-center-catalog-elements';
 
-type CatalogCardProps = {
+type DiscoveryCardProps = {
+  searchInputRef?: RefObject<HTMLInputElement | null>;
   searchQuery: string;
   catalogCapability: 'all' | CapabilityOption;
   loadingCatalog: boolean;
@@ -37,21 +40,24 @@ type CatalogCardProps = {
   variantList: NimiRuntimeLocalCatalogVariantDescriptor[];
   variantError: string;
   loadingVariants: boolean;
+  isCatalogAssetInstalled: (assetId: string) => boolean;
   selectedCatalogCapability: (item: NimiRuntimeLocalCatalogItemDescriptor) => CapabilityOption;
   onSearchQueryChange: (value: string) => void;
   onCatalogCapabilityChange: (value: 'all' | CapabilityOption) => void;
   onInstallCatalogQuickPick: (templateId: string) => void;
   onToggleVariantPicker: (item: NimiRuntimeLocalCatalogItemDescriptor) => void;
   onCloseVariantPicker: () => void;
-  onCatalogCapabilityOverrideChange: (itemId: string, capability: CapabilityOption) => void;
   onInstallCatalogVariant: (item: NimiRuntimeLocalCatalogItemDescriptor, variantFilename: string) => void;
   onLoadMoreCatalog: () => void;
   installing: boolean;
+  runtimeWritesDisabled: boolean;
 };
 
-export function LocalModelCenterCatalogCard(props: CatalogCardProps) {
+export function LocalModelDiscoveryCard(props: DiscoveryCardProps) {
   const i18n = useDesktopI18nResource().instance;
   const t = i18n.t.bind(i18n);
+  const verifiedAssetIds = new Set(props.verifiedModels.map((item) => item.assetId.trim().toLowerCase()));
+  const dedupedCatalogItems = props.catalogItems.filter((item) => !verifiedAssetIds.has(item.modelId.trim().toLowerCase()));
   return (
     <Surface tone="card" material="solid" padding="none" className="overflow-visible rounded-2xl shadow-[var(--nimi-elevation-raised)] ring-1 ring-[var(--nimi-border-subtle)]">
       <div className="border-b border-[color-mix(in_srgb,var(--nimi-border-subtle)_72%,transparent)] px-5 py-4">
@@ -60,13 +66,14 @@ export function LocalModelCenterCatalogCard(props: CatalogCardProps) {
             <SearchIcon className="h-4 w-4" />
           </div>
           <h3 className="text-sm font-semibold text-[var(--nimi-text-primary)]">
-            {i18n.t('runtimeConfig.localModelCenter.modelCatalog', { defaultValue: 'Model Catalog' })}
+            {i18n.t('runtimeConfig.localModelCenter.findModelsToInstall', { defaultValue: 'Find models to install' })}
           </h3>
         </div>
         <div className="flex gap-3">
           <div className="relative flex-1">
             <SearchIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]" />
             <input
+              ref={props.searchInputRef}
               type="text"
               value={props.searchQuery}
               onChange={(event) => props.onSearchQueryChange(event.target.value)}
@@ -83,11 +90,31 @@ export function LocalModelCenterCatalogCard(props: CatalogCardProps) {
                 value: 'all',
                 label: i18n.t('runtimeConfig.localModelCenter.allCapabilities', { defaultValue: 'All Capabilities' }),
               },
-              ...CAPABILITY_OPTIONS.map((capability) => ({ value: capability, label: capability })),
+              ...CAPABILITY_OPTIONS.map((capability) => ({ value: capability, label: localizedAssetKindLabel(capability, t) })),
             ]}
           />
         </div>
       </div>
+
+      {!props.hasSearchQuery ? (
+        <div className="border-t border-[var(--nimi-border-subtle)]">
+          <p className="px-4 pt-3 text-xs text-[var(--nimi-text-muted)]">
+            {i18n.t('runtimeConfig.localModelCenter.typeToSearchMore', { defaultValue: 'Type to search for more models' })}
+          </p>
+          <div className="mt-1 divide-y divide-[var(--nimi-border-subtle)]">
+            {props.verifiedModels.slice(0, 5).map((item) => (
+              <VerifiedModelSearchRow
+                key={item.templateId}
+                item={item}
+                installing={props.installing}
+                installed={props.isCatalogAssetInstalled(item.assetId)}
+                runtimeWritesDisabled={props.runtimeWritesDisabled}
+                onInstallCatalogQuickPick={props.onInstallCatalogQuickPick}
+              />
+            ))}
+          </div>
+        </div>
+      ) : null}
 
       {props.hasSearchQuery ? (
         <div className="border-t border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_60%,transparent)]">
@@ -102,10 +129,12 @@ export function LocalModelCenterCatalogCard(props: CatalogCardProps) {
                 key={item.templateId}
                 item={item}
                 installing={props.installing}
+                installed={props.isCatalogAssetInstalled(item.assetId)}
+                runtimeWritesDisabled={props.runtimeWritesDisabled}
                 onInstallCatalogQuickPick={props.onInstallCatalogQuickPick}
               />
             ))}
-            {props.catalogItems.slice(0, props.catalogDisplayCount).map((item) => (
+            {dedupedCatalogItems.slice(0, props.catalogDisplayCount).map((item) => (
               <div key={item.itemId}>
                 <div className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))]">
                   <ModelIcon engine={item.engine} />
@@ -113,12 +142,14 @@ export function LocalModelCenterCatalogCard(props: CatalogCardProps) {
                     <div className="flex items-center gap-2">
                       <span className="truncate text-sm font-medium text-[var(--nimi-text-primary)]">{item.title || item.modelId}</span>
                       <span className="rounded bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))] px-1.5 py-0.5 text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-muted)]">{item.engine}</span>
-                      <span className="rounded bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)] px-1.5 py-0.5 text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-action-primary-bg)]">
-                        {i18n.t('runtimeConfig.localModelCenter.huggingFace', { defaultValue: 'Hugging Face' })}
-                      </span>
+                      {item.source === 'huggingface' ? (
+                        <span className="rounded bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)] px-1.5 py-0.5 text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-action-primary-bg)]">
+                          {i18n.t('runtimeConfig.localModelCenter.huggingFace', { defaultValue: 'Hugging Face' })}
+                        </span>
+                      ) : null}
                       {item.recommendation ? (
                         <span className={`rounded px-1.5 py-0.5 text-[length:var(--nimi-type-caption-size)] ${recommendationTierClass(item.recommendation.tier)}`}>
-                          {recommendationTierLabel(item.recommendation.tier)}
+                          {recommendationTierLabel(item.recommendation.tier, t)}
                         </span>
                       ) : null}
                     </div>
@@ -142,17 +173,17 @@ export function LocalModelCenterCatalogCard(props: CatalogCardProps) {
                     <div className="mt-1 flex flex-wrap gap-1">
                       {(item.capabilities.length > 0 ? item.capabilities : ['chat']).map((capability) => (
                         <span key={`${item.itemId}-${capability}`} className="rounded border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))] px-1.5 py-0.5 text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-secondary)]">
-                          {capability}
+                          {t(`runtimeConfig.localModelCenter.kindLabels.${capability}`, { defaultValue: capability })}
                         </span>
                       ))}
                       {item.recommendation?.hostSupportClass ? (
                         <span className="rounded border border-[color-mix(in_srgb,var(--nimi-status-info)_22%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-info)_12%,transparent)] px-1.5 py-0.5 text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-status-info)]">
-                          {recommendationHostSupportLabel(item.recommendation.hostSupportClass)}
+                          {recommendationHostSupportLabel(item.recommendation.hostSupportClass, t)}
                         </span>
                       ) : null}
                       {item.recommendation?.confidence ? (
                         <span className="rounded border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-1.5 py-0.5 text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-muted)]">
-                          {recommendationConfidenceLabel(item.recommendation.confidence)}
+                          {recommendationConfidenceLabel(item.recommendation.confidence, t)}
                         </span>
                       ) : null}
                     </div>
@@ -165,7 +196,7 @@ export function LocalModelCenterCatalogCard(props: CatalogCardProps) {
                   <Button
                     size="sm"
                     onClick={() => props.onToggleVariantPicker(item)}
-                    disabled={!item.installAvailable || props.installing}
+                    disabled={!item.installAvailable || props.installing || props.runtimeWritesDisabled}
                   >
                     <DownloadIcon className="h-3.5 w-3.5" />
                     {i18n.t('runtimeConfig.localModelCenter.install', { defaultValue: 'Install' })}
@@ -179,8 +210,8 @@ export function LocalModelCenterCatalogCard(props: CatalogCardProps) {
                     loadingVariants={props.loadingVariants}
                     selectedCapability={props.selectedCatalogCapability(item)}
                     installing={props.installing}
+                    runtimeWritesDisabled={props.runtimeWritesDisabled}
                     onClose={props.onCloseVariantPicker}
-                    onCapabilityChange={(capability) => props.onCatalogCapabilityOverrideChange(item.itemId, capability)}
                     onInstallVariant={(filename) => props.onInstallCatalogVariant(item, filename)}
                   />
                 ) : null}

@@ -339,7 +339,7 @@ export function RecommendInstallSection({
                 </div>
                 {variant.recommendation?.tier ? (
                   <span className={`shrink-0 rounded-full px-2 py-0.5 text-[length:var(--nimi-type-caption-size)] font-medium ${tierPillClass(variant.recommendation.tier)}`}>
-                    {recommendationTierLabel(variant.recommendation.tier)}
+                    {recommendationTierLabel(variant.recommendation.tier, t)}
                   </span>
                 ) : null}
                 <Button

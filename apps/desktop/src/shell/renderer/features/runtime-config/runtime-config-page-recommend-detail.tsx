@@ -25,6 +25,7 @@ import {
   formatRepoOwnerFromRepo,
   recommendationTier,
   recommendationTierColorClass,
+  recommendationTierI18nKey,
   recommendationTierLabel,
 } from './runtime-config-page-recommend-utils';
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
@@ -62,7 +63,7 @@ export function RecommendDetailPage({ item, totalVramBytes, model, onBack }: Rec
   const hfUrl = buildHuggingFaceUrl(item.repo);
 
   return (
-    <div className="mx-auto max-w-4xl space-y-8 p-6">
+    <div className="mx-auto max-w-5xl space-y-4 px-4 pb-4">
       {/* Back navigation */}
       <button
         type="button"
@@ -80,7 +81,7 @@ export function RecommendDetailPage({ item, totalVramBytes, model, onBack }: Rec
             <ModelIcon engine={item.preferredEngine} />
           </div>
           <div className="min-w-0 flex-1">
-            <h1 className="text-2xl font-bold text-[var(--nimi-text-primary)]">{item.title}</h1>
+            <h1 className="text-xl font-semibold text-[var(--nimi-text-primary)]">{item.title}</h1>
 
             {/* License sub-line */}
             {license ? (
@@ -124,7 +125,7 @@ export function RecommendDetailPage({ item, totalVramBytes, model, onBack }: Rec
           {/* Runtime recommendation (top-right) */}
           <div className="shrink-0">
             <span className={`inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-bold ${recommendationTierColorClass(tier)}`}>
-              {recommendationTierLabel(tier)}
+              {t(`runtimeConfig.recommend.${recommendationTierI18nKey(tier)}`, { defaultValue: recommendationTierLabel(tier) })}
             </span>
           </div>
         </div>
@@ -141,11 +142,6 @@ export function RecommendDetailPage({ item, totalVramBytes, model, onBack }: Rec
         {item.lastModified ? (
           <StatBlock label={t('runtimeConfig.recommend.detailStatReleased', { defaultValue: 'Released' })} value={i18n.formatRelativeTime(item.lastModified)} />
         ) : null}
-        <StatBlock
-          label={t('runtimeConfig.recommend.detailStatContext', { defaultValue: 'Context' })}
-          value="\u2014"
-          title={t('runtimeConfig.recommend.ctxLenPending', { defaultValue: 'Context length \u2014 data pending' })}
-        />
       </div>
 
       {/* ── Use Cases ─────────────────────────────────────────────────── */}
@@ -214,10 +210,6 @@ export function RecommendDetailPage({ item, totalVramBytes, model, onBack }: Rec
             label={t('runtimeConfig.recommend.specUpdated', { defaultValue: 'Updated' })}
             value={item.lastModified ? i18n.formatRelativeTime(item.lastModified) : '\u2014'}
           />
-          <SpecRow
-            label={t('runtimeConfig.recommend.detailSpecContext', { defaultValue: 'Context' })}
-            value="\u2014"
-          />
         </div>
       </div>
 
@@ -277,6 +269,8 @@ function StatBlock({ label, value, title }: { label: string; value: string; titl
 }
 
 function SpecRow({ label, value }: { label: string; value: string }) {
+  // Hide empty fields instead of rendering an em-dash placeholder.
+  if (!value || value === '\u2014') return null;
   return (
     <div>
       <span className="text-xs font-medium text-[var(--nimi-text-muted)]">{label}</span>

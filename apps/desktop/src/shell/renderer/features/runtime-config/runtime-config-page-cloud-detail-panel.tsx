@@ -37,6 +37,7 @@ type CloudConnectorDetailPanelProps = {
   canEditVendor: boolean;
   canSaveToken: boolean;
   canStartCodexOAuth: boolean;
+  canManageCatalogOverrides: boolean;
   codexOAuthBusy: boolean;
   codexOAuthPending: CodexOAuthPendingState | null;
   connectorConfigurationLocked: boolean;
@@ -48,6 +49,7 @@ type CloudConnectorDetailPanelProps = {
   isSystemOwned: boolean;
   model: RuntimeConfigPanelControllerModel;
   onAcquireCodexOAuth: () => void;
+  onManageCatalogOverrides: () => void;
   onCommitConnectorLabelDraft: () => void;
   onConnectorLabelDraftChange: (label: string) => void;
   onChangeConnectorAuthOption: (nextValue: string) => void;
@@ -75,6 +77,7 @@ export function CloudConnectorDetailPanel(props: CloudConnectorDetailPanelProps)
     canEditVendor,
     canSaveToken,
     canStartCodexOAuth,
+    canManageCatalogOverrides,
     codexOAuthBusy,
     codexOAuthPending,
     connectorConfigurationLocked,
@@ -244,6 +247,15 @@ export function CloudConnectorDetailPanel(props: CloudConnectorDetailPanelProps)
                   {codexOAuthBusy
                     ? t('runtimeConfig.cloud.codexOauthSigningIn', { defaultValue: 'Waiting for Codex...' })
                     : t('runtimeConfig.cloud.codexOauthStart', { defaultValue: 'Sign in with Codex' })}
+                </Button>
+              ) : null}
+              {canManageCatalogOverrides ? (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={props.onManageCatalogOverrides}
+                >
+                  {t('runtimeConfig.catalogOverrides.manage', { defaultValue: 'Manage custom models' })}
                 </Button>
               ) : null}
               <div className="flex-1" />

@@ -10,8 +10,6 @@ import {
   NIMI_RUNTIME_LOCAL_PASSIVE_ASSET_KIND_IDS,
   buildNimiRuntimeLocalRecommendationDetailItems,
   formatNimiRuntimeLocalRecommendationBaselineLabel,
-  formatNimiRuntimeLocalRecommendationConfidenceLabel,
-  formatNimiRuntimeLocalRecommendationHostSupportLabel,
   formatNimiRuntimeLocalRecommendationReasonLabel,
   formatNimiRuntimeLocalAssetKindLabel,
   summarizeNimiRuntimeLocalCatalogRecommendation,
@@ -85,10 +83,10 @@ export function isAssetTaskTerminal(state: AssetTaskState): boolean {
   return state === 'completed' || state === 'failed';
 }
 
-export function assetTaskStatusLabel(state: AssetTaskState): string {
-  if (state === 'running') return 'Installing';
-  if (state === 'completed') return 'Installed';
-  return 'Failed';
+export function assetTaskStatusLabel(state: AssetTaskState, t: TFunction): string {
+  if (state === 'running') return t('runtimeConfig.localModelCenter.assetTaskState.running', { defaultValue: 'Installing' });
+  if (state === 'completed') return t('runtimeConfig.localModelCenter.assetTaskState.completed', { defaultValue: 'Installed' });
+  return t('runtimeConfig.localModelCenter.assetTaskState.failed', { defaultValue: 'Failed' });
 }
 
 export function formatLastCheckedAgo(
@@ -112,12 +110,12 @@ export function formatLastCheckedAgo(
   });
 }
 
-export function recommendationTierLabel(value?: NimiRuntimeLocalCatalogRecommendation['tier']): string {
-  if (value === 'recommended') return 'Recommended';
-  if (value === 'runnable') return 'Runnable';
-  if (value === 'tight') return 'Tight';
-  if (value === 'not_recommended') return 'Not Recommended';
-  return 'Needs Review';
+export function recommendationTierLabel(value: NimiRuntimeLocalCatalogRecommendation['tier'] | undefined, t: TFunction): string {
+  if (value === 'recommended') return t('runtimeConfig.localModelCenter.tierLabels.recommended', { defaultValue: 'Recommended' });
+  if (value === 'runnable') return t('runtimeConfig.localModelCenter.tierLabels.runnable', { defaultValue: 'Runnable' });
+  if (value === 'tight') return t('runtimeConfig.localModelCenter.tierLabels.tight', { defaultValue: 'Tight' });
+  if (value === 'not_recommended') return t('runtimeConfig.localModelCenter.tierLabels.not_recommended', { defaultValue: 'Not Recommended' });
+  return t('runtimeConfig.localModelCenter.tierLabels.needs_review', { defaultValue: 'Needs Review' });
 }
 
 export function recommendationTierClass(value?: NimiRuntimeLocalCatalogRecommendation['tier']): string {
@@ -127,15 +125,23 @@ export function recommendationTierClass(value?: NimiRuntimeLocalCatalogRecommend
 }
 
 export function recommendationHostSupportLabel(
-  value?: NimiRuntimeLocalCatalogRecommendation['hostSupportClass'],
+  value: NimiRuntimeLocalCatalogRecommendation['hostSupportClass'] | undefined,
+  t: TFunction,
 ): string {
-  return formatNimiRuntimeLocalRecommendationHostSupportLabel(value);
+  if (value === 'supported_supervised') return t('runtimeConfig.localModelCenter.hostSupportLabels.supported_supervised', { defaultValue: 'Managed' });
+  if (value === 'attached_only') return t('runtimeConfig.localModelCenter.hostSupportLabels.attached_only', { defaultValue: 'Attached Only' });
+  if (value === 'unsupported') return t('runtimeConfig.localModelCenter.hostSupportLabels.unsupported', { defaultValue: 'Unsupported' });
+  return t('runtimeConfig.localModelCenter.hostSupportLabels.unknown', { defaultValue: 'Host Unknown' });
 }
 
 export function recommendationConfidenceLabel(
-  value?: NimiRuntimeLocalCatalogRecommendation['confidence'],
+  value: NimiRuntimeLocalCatalogRecommendation['confidence'] | undefined,
+  t: TFunction,
 ): string {
-  return formatNimiRuntimeLocalRecommendationConfidenceLabel(value);
+  if (value === 'high') return t('runtimeConfig.localModelCenter.highConfidence', { defaultValue: 'High confidence' });
+  if (value === 'medium') return t('runtimeConfig.localModelCenter.mediumConfidence', { defaultValue: 'Medium confidence' });
+  if (value === 'low') return t('runtimeConfig.localModelCenter.lowConfidence', { defaultValue: 'Low confidence' });
+  return t('runtimeConfig.localModelCenter.unscoredConfidence', { defaultValue: 'Unscored' });
 }
 
 export function recommendationBaselineLabel(

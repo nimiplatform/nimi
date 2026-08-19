@@ -34,7 +34,7 @@ export function runtimeInventoryErrorFromSlots(errors: RuntimeInventoryErrors): 
     || '';
 }
 
-function catalogAssetLookupKey(value: unknown): string {
+export function catalogAssetLookupKey(value: unknown): string {
   return typeof value === 'string' ? value.trim().toLowerCase() : '';
 }
 
@@ -179,7 +179,7 @@ export function useLocalModelCenterRuntimeState({ props }: UseLocalModelCenterRu
         return;
       }
       setVerifiedModels(rows.filter((item) => (
-        isNimiRuntimeLocalRunnableAssetKindId(item.kind) && !isRunnableAssetInstalled(item.assetId)
+        isNimiRuntimeLocalRunnableAssetKindId(item.kind)
       )).slice(0, 5));
       setRuntimeInventoryError('verified-models', '');
     } catch (error) {
@@ -192,7 +192,7 @@ export function useLocalModelCenterRuntimeState({ props }: UseLocalModelCenterRu
         setLoadingVerifiedModels(false);
       }
     }
-  }, [isRunnableAssetInstalled]);
+  }, []);
 
   const refreshInstalledAssets = useCallback(async () => {
     const requestId = ++installedAssetsRequestSeqRef.current;
@@ -303,6 +303,7 @@ export function useLocalModelCenterRuntimeState({ props }: UseLocalModelCenterRu
 
   const {
     assetPendingTemplateIds,
+    dismissAssetTask,
     installCatalogAsset,
     isAssetPending,
     visibleAssetTasks,
@@ -331,7 +332,7 @@ export function useLocalModelCenterRuntimeState({ props }: UseLocalModelCenterRu
       const removal = await localEnvironmentClient.removeModelAsset(modelAssetId, { caller: 'core' });
       setRuntimeInventoryError('model-asset-action', removal.cleanupPending
         ? t('runtimeConfig.localModelCenter.cleanupPending', {
-          defaultValue: 'The ModelAsset record was removed, but owned file cleanup is pending and will retry automatically.',
+          defaultValue: 'The model was removed; some files are pending cleanup and will retry automatically.',
         })
         : '');
       await refreshAssetSections();
@@ -375,8 +376,11 @@ export function useLocalModelCenterRuntimeState({ props }: UseLocalModelCenterRu
 
   return {
     activeDownloads: importActions.activeDownloads, activeImports: importActions.activeImports,
+    terminalDownloads: importActions.terminalDownloads, terminalImports: importActions.terminalImports,
     assetBusy, assetPendingTemplateIds,
     assetImportError: importActions.assetImportError,
+    dismissAssetImportError: importActions.dismissAssetImportError,
+    dismissAssetTask,
     catalogCapability, catalogDisplayCount, catalogItems,
     closeVariantPicker: importActions.closeVariantPicker,
     deferredSearchQuery, filteredModelAssets,

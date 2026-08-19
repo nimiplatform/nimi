@@ -6,6 +6,7 @@ import type {
   NimiRuntimeLocalInstallPlanDescriptor,
 } from '@nimiplatform/sdk/runtime';
 import { isNimiError, ReasonCode } from '@nimiplatform/sdk/types';
+import type { TFunction } from 'i18next';
 import {
   getNimiRuntimeReasonCodeMessage,
   NIMI_RUNTIME_REASON_CODES,
@@ -17,8 +18,11 @@ import type { RuntimeConfigStateV11 } from './runtime-config-state-types';
 
 export type LocalModelCenterProps = {
   state: RuntimeConfigStateV11;
-  checkingHealth: boolean;
-  onHealthCheck: () => Promise<void>;
+  runtimeWritesDisabled: boolean;
+  openDiscoverRequest: boolean;
+  onOpenDiscoverRequestConsumed: () => void;
+  showCatalogOverridesAction: boolean;
+  onOpenCatalogOverrides: () => void;
   onInstallCatalogItem: (
     item: NimiRuntimeLocalCatalogItemDescriptor,
     options?: {
@@ -81,13 +85,13 @@ export function toProgressEventFromSummary(
   };
 }
 
-export function downloadStateLabel(state: NimiRuntimeLocalDownloadState): string {
-  if (state === 'queued') return 'Queued';
-  if (state === 'running') return 'Running';
-  if (state === 'paused') return 'Paused';
-  if (state === 'failed') return 'Failed';
-  if (state === 'completed') return 'Completed';
-  return 'Cancelled';
+export function downloadStateLabel(state: NimiRuntimeLocalDownloadState, t: TFunction): string {
+  if (state === 'queued') return t('runtimeConfig.localModelCenter.downloadState.queued', { defaultValue: 'Queued' });
+  if (state === 'running') return t('runtimeConfig.localModelCenter.downloadState.running', { defaultValue: 'Running' });
+  if (state === 'paused') return t('runtimeConfig.localModelCenter.downloadState.paused', { defaultValue: 'Paused' });
+  if (state === 'failed') return t('runtimeConfig.localModelCenter.downloadState.failed', { defaultValue: 'Failed' });
+  if (state === 'completed') return t('runtimeConfig.localModelCenter.downloadState.completed', { defaultValue: 'Completed' });
+  return t('runtimeConfig.localModelCenter.downloadState.cancelled', { defaultValue: 'Cancelled' });
 }
 
 export function formatBytes(value: number | undefined): string {
@@ -129,21 +133,21 @@ export function formatEta(seconds: number | undefined): string {
   return `${minutes}m ${remain}s`;
 }
 
-export function formatDownloadPhaseLabel(phase: string | undefined): string {
+export function formatDownloadPhaseLabel(phase: string | undefined, t: TFunction): string {
   const normalized = String(phase || '').trim().toLowerCase();
-  if (normalized === 'verify') return 'Verifying';
-  if (normalized === 'upsert') return 'Finalizing';
-  if (normalized === 'download') return 'Downloading';
-  return normalized || 'Preparing';
+  if (normalized === 'verify') return t('runtimeConfig.localModelCenter.downloadPhase.verify', { defaultValue: 'Verifying' });
+  if (normalized === 'upsert') return t('runtimeConfig.localModelCenter.downloadPhase.upsert', { defaultValue: 'Finalizing' });
+  if (normalized === 'download') return t('runtimeConfig.localModelCenter.downloadPhase.download', { defaultValue: 'Downloading' });
+  return normalized || t('runtimeConfig.localModelCenter.downloadPhase.preparing', { defaultValue: 'Preparing' });
 }
 
-export function formatImportPhaseLabel(phase: string | undefined): string {
+export function formatImportPhaseLabel(phase: string | undefined, t: TFunction): string {
   const normalized = String(phase || '').trim().toLowerCase();
-  if (normalized === 'copy') return 'Copying';
-  if (normalized === 'move') return 'Moving';
-  if (normalized === 'manifest') return 'Writing manifest';
-  if (normalized === 'register' || normalized === 'upsert') return 'Registering';
-  return normalized || 'Preparing';
+  if (normalized === 'copy') return t('runtimeConfig.localModelCenter.importPhase.copy', { defaultValue: 'Copying' });
+  if (normalized === 'move') return t('runtimeConfig.localModelCenter.importPhase.move', { defaultValue: 'Moving' });
+  if (normalized === 'manifest') return t('runtimeConfig.localModelCenter.importPhase.manifest', { defaultValue: 'Writing manifest' });
+  if (normalized === 'register' || normalized === 'upsert') return t('runtimeConfig.localModelCenter.importPhase.register', { defaultValue: 'Registering' });
+  return normalized || t('runtimeConfig.localModelCenter.importPhase.preparing', { defaultValue: 'Preparing' });
 }
 
 export function normalizeCapabilityOption(value: string | undefined): CapabilityOption {
@@ -280,4 +284,33 @@ export function sortProgressSessions(
     }
     return right.event.installSessionId.localeCompare(left.event.installSessionId);
   });
+}
+
+// Split one transfer kind into the active list (queued/running/paused, capped
+// at PROGRESS_SESSION_LIMIT) and the terminal history (failed/cancelled, most
+// recent first). The cap applies to active entries only so terminal history can
+// never squeeze live cards out of the list. Completed sessions are not
+// displayed in either bucket.
+export function partitionTransferSessionsByDisplayState(
+  sessions: Record<string, ProgressSessionState>,
+  sessionKind: NimiRuntimeLocalTransferProgressEvent['sessionKind'],
+): { active: NimiRuntimeLocalTransferProgressEvent[]; terminal: NimiRuntimeLocalTransferProgressEvent[] } {
+  const activeSessions: ProgressSessionState[] = [];
+  const terminalSessions: ProgressSessionState[] = [];
+  for (const item of sortProgressSessions(sessions)) {
+    if (item.event.sessionKind !== sessionKind) {
+      continue;
+    }
+    const state = item.event.state;
+    if (state === 'queued' || state === 'running' || state === 'paused') {
+      activeSessions.push(item);
+    } else if (state === 'failed' || state === 'cancelled') {
+      terminalSessions.push(item);
+    }
+  }
+  terminalSessions.sort((left, right) => right.updatedAtMs - left.updatedAtMs);
+  return {
+    active: activeSessions.slice(0, PROGRESS_SESSION_LIMIT).map((item) => item.event),
+    terminal: terminalSessions.map((item) => item.event),
+  };
 }

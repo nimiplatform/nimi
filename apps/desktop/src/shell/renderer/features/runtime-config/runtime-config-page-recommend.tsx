@@ -12,6 +12,8 @@ import type { RuntimeConfigStateV11 } from './runtime-config-state-types';
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
 import { TOKEN_PANEL_CARD } from './runtime-config-runtime-page-ui';
 import {
+  RECOMMEND_FEED_FRESH_STALE_MS,
+  RECOMMEND_FEED_PAGE_SIZE,
   RECOMMEND_PAGE_CAPABILITIES,
   applyFilters,
   collectUniqueLicenses,
@@ -19,17 +21,22 @@ import {
   emptyFilters,
   normalizeRecommendPageCapability,
   recommendationFeedCacheSummary,
+  recommendationFeedQueryKey,
+  sortRecommendationFeedItems,
   type RecommendFilters,
   type RecommendPageCapability,
+  type RecommendSortId,
 } from './runtime-config-page-recommend-utils';
 import {
+  CapabilityTabs,
   DeviceProfileBar,
   FilterChip,
-  ModelRow,
+  ModelCard,
+  ProviderChipRow,
   SelectChip,
 } from './runtime-config-page-recommend-sections';
 import { RecommendDetailPage } from './runtime-config-page-recommend-detail';
-import { RuntimePageShell } from './runtime-config-page-shell';
+import { RuntimePageHeader, RuntimePageShell } from './runtime-config-page-shell';
 
 type RecommendPageProps = {
   model: RuntimeConfigPanelControllerModel;
@@ -49,13 +56,13 @@ export function RecommendPage({ model, state }: RecommendPageProps) {
   // placeholderData: keepPreviousData so UI renders instantly on capability switch
   // ---------------------------------------------------------------------------
   const feedQuery = useQuery<NimiRuntimeLocalRecommendationFeed<NimiRuntimeLocalDeviceProfile>, Error>({
-    queryKey: ['recommendation-feed', capability],
+    queryKey: recommendationFeedQueryKey(capability ?? 'chat'),
     queryFn: () => {
       if (!capability) throw new Error('Recommendation feed capability is not admitted.');
-      return localEnvironmentClient.getRecommendationFeed({ capability, pageSize: 48 });
+      return localEnvironmentClient.getRecommendationFeed({ capability, pageSize: RECOMMEND_FEED_PAGE_SIZE });
     },
     enabled: capability !== null,
-    staleTime: (query) => query.state.data?.cacheState === 'fresh' ? 24 * 60 * 60 * 1000 : 0,
+    staleTime: (query) => query.state.data?.cacheState === 'fresh' ? RECOMMEND_FEED_FRESH_STALE_MS : 0,
     gcTime: Infinity,
     refetchOnWindowFocus: false,
     refetchOnMount: true,
@@ -70,9 +77,11 @@ export function RecommendPage({ model, state }: RecommendPageProps) {
   const refreshFeed = useCallback(() => { void feedQuery.refetch(); }, [feedQuery]);
 
   // ---------------------------------------------------------------------------
-  // Filter state. Filtering preserves Runtime feed order.
+  // Filter state. Filtering preserves Runtime feed order; sorting is applied
+  // on top of the filtered result in renderer memory.
   // ---------------------------------------------------------------------------
   const [filters, setFilters] = useState<RecommendFilters>(emptyFilters);
+  const [sort, setSort] = useState<RecommendSortId>('recommended');
   const deferredQuery = useDeferredValue(filters.query);
 
   // ---------------------------------------------------------------------------
@@ -85,7 +94,10 @@ export function RecommendPage({ model, state }: RecommendPageProps) {
   // ---------------------------------------------------------------------------
   const allItems = feed?.items || [];
   const effectiveFilters = useMemo(() => ({ ...filters, query: deferredQuery }), [filters, deferredQuery]);
-  const visibleItems = useMemo(() => applyFilters(allItems, effectiveFilters), [allItems, effectiveFilters]);
+  const visibleItems = useMemo(
+    () => sortRecommendationFeedItems(applyFilters(allItems, effectiveFilters), sort),
+    [allItems, effectiveFilters, sort],
+  );
   const uniqueProviders = useMemo(() => collectUniqueProviders(allItems), [allItems]);
   const uniqueLicenses = useMemo(() => collectUniqueLicenses(allItems), [allItems]);
   const cacheState = recommendationFeedCacheSummary(feed);
@@ -104,6 +116,10 @@ export function RecommendPage({ model, state }: RecommendPageProps) {
     });
   }, []);
 
+  const clearProviders = useCallback(() => {
+    setFilters((prev) => ({ ...prev, providers: new Set() }));
+  }, []);
+
   const toggleLicense = useCallback((license: string) => {
     setFilters((prev) => {
       const next = new Set(prev.licenses);
@@ -116,9 +132,21 @@ export function RecommendPage({ model, state }: RecommendPageProps) {
     model.updateState((prev) => ({ ...prev, activeCapability: next }));
   }, [model]);
 
+  const capabilityOptions = useMemo(() => RECOMMEND_PAGE_CAPABILITIES.map((value) => ({
+    value,
+    label: t(`runtimeConfig.recommend.capability.${value}`, { defaultValue: value.charAt(0).toUpperCase() + value.slice(1) }),
+  })), [t]);
+
+  const sortOptions = useMemo(() => ([
+    { value: 'recommended', label: t('runtimeConfig.recommend.sortRecommended', { defaultValue: 'Best fit' }) },
+    { value: 'downloads', label: t('runtimeConfig.recommend.sortDownloads', { defaultValue: 'Most downloads' }) },
+    { value: 'size', label: t('runtimeConfig.recommend.sortSmallest', { defaultValue: 'Smallest size' }) },
+  ]), [t]);
+
   if (!capability) {
     return (
       <RuntimePageShell className="space-y-4">
+        <RuntimePageHeader title={t('runtimeConfig.sidebar.modelMarket')} />
         <InlineAlert tone="warning" className="px-4 py-3">
           {t('runtimeConfig.recommend.unsupportedCapability', {
             defaultValue: 'This capability has no recommendation feed. Choose Chat, Image, or Video.',
@@ -131,10 +159,7 @@ export function RecommendPage({ model, state }: RecommendPageProps) {
             const next = normalizeRecommendPageCapability(value);
             if (next) setActiveCapability(next);
           }}
-          options={RECOMMEND_PAGE_CAPABILITIES.map((value) => ({
-            value,
-            label: value.charAt(0).toUpperCase() + value.slice(1),
-          }))}
+          options={capabilityOptions}
         />
       </RuntimePageShell>
     );
@@ -158,7 +183,8 @@ export function RecommendPage({ model, state }: RecommendPageProps) {
   // List view
   // ---------------------------------------------------------------------------
   return (
-    <RuntimePageShell className="space-y-4">
+    <RuntimePageShell>
+      <RuntimePageHeader title={t('runtimeConfig.sidebar.modelMarket')} />
       {/* Hero: Device Profile Bar */}
       {feed ? (
         <DeviceProfileBar
@@ -180,6 +206,16 @@ export function RecommendPage({ model, state }: RecommendPageProps) {
 
       {/* Filter Bar — always visible so the page feels instant */}
       <div className="flex flex-wrap items-center gap-2">
+        {/* Capability segmented tabs */}
+        <CapabilityTabs
+          options={capabilityOptions}
+          value={capability}
+          onChange={(value) => {
+            const next = normalizeRecommendPageCapability(value);
+            if (next) setActiveCapability(next);
+          }}
+        />
+
         {/* Search */}
         <SearchField
           value={filters.query}
@@ -188,27 +224,16 @@ export function RecommendPage({ model, state }: RecommendPageProps) {
           className="min-w-0 flex-1"
         />
 
-        {/* Capability (Task) */}
+        {/* Sort */}
         <SelectChip
-          label={t('runtimeConfig.recommend.capabilityLabel', { defaultValue: 'Task' })}
-          value={capability}
+          label={t('runtimeConfig.recommend.sortLabel', { defaultValue: 'Sort' })}
+          value={sort}
           onChange={(value) => {
-            const next = normalizeRecommendPageCapability(value);
-            if (next) setActiveCapability(next);
+            if (value === 'recommended' || value === 'downloads' || value === 'size') setSort(value);
           }}
-          contentClassName="w-40 overflow-hidden p-0"
-          options={RECOMMEND_PAGE_CAPABILITIES.map((v) => ({ value: v, label: v.charAt(0).toUpperCase() + v.slice(1) }))}
+          contentClassName="w-44 overflow-hidden p-0"
+          options={sortOptions}
         />
-
-        {/* Provider filter */}
-        {uniqueProviders.length > 0 ? (
-          <FilterChip
-            label={t('runtimeConfig.recommend.providerFilter', { defaultValue: 'Provider' })}
-            options={uniqueProviders}
-            selected={filters.providers}
-            onToggle={toggleProvider}
-          />
-        ) : null}
 
         {/* License filter */}
         {uniqueLicenses.length > 0 ? (
@@ -223,10 +248,23 @@ export function RecommendPage({ model, state }: RecommendPageProps) {
         {/* Result count */}
         {!loading ? (
           <span className="text-xs text-[var(--nimi-text-muted)]">
-            {visibleItems.length}/{allItems.length}
+            {visibleItems.length === allItems.length
+              ? t('runtimeConfig.recommend.countTotal', { count: allItems.length, defaultValue: '{{count}} models' })
+              : t('runtimeConfig.recommend.countFiltered', { visible: visibleItems.length, total: allItems.length, defaultValue: '{{visible}} of {{total}} models' })}
           </span>
         ) : null}
       </div>
+
+      {/* Provider chips — one horizontally scrollable row */}
+      {uniqueProviders.length > 0 ? (
+        <ProviderChipRow
+          allLabel={t('runtimeConfig.recommend.providersAll', { defaultValue: 'All' })}
+          options={uniqueProviders}
+          selected={filters.providers}
+          onToggle={toggleProvider}
+          onClear={clearProviders}
+        />
+      ) : null}
 
       {/* Stale notice */}
       {cacheState === 'stale' ? (
@@ -254,37 +292,26 @@ export function RecommendPage({ model, state }: RecommendPageProps) {
         </Surface>
       ) : null}
 
-      {/* Column headers — show during loading too so the page feels populated */}
-      {visibleItems.length > 0 || loading ? (
-        <div className="flex items-center gap-3 px-4 text-[length:var(--nimi-type-caption-size)] font-medium uppercase tracking-wider text-[var(--nimi-text-muted)]">
-          <span className="min-w-0 flex-1">{t('runtimeConfig.recommend.colModel', { defaultValue: 'Model' })}</span>
-          <span className="hidden w-20 shrink-0 text-center md:block">{t('runtimeConfig.recommend.colLicense', { defaultValue: 'License' })}</span>
-          <span className="hidden w-16 shrink-0 text-right md:block">{t('runtimeConfig.recommend.colSize', { defaultValue: 'Size' })}</span>
-          <span className="hidden w-20 shrink-0 text-center md:block">{t('runtimeConfig.recommend.colVram', { defaultValue: 'VRAM' })}</span>
-          <span className="w-28 shrink-0 text-right">{t('runtimeConfig.recommend.colRecommendation', { defaultValue: 'Recommendation' })}</span>
-          <span className="w-4 shrink-0" /> {/* arrow */}
-        </div>
-      ) : null}
-
-      {/* Model rows */}
-      <div className="space-y-2">
+      {/* Model cards — two-column grid on wide screens */}
+      <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
         {loading && visibleItems.length === 0 ? (
-          Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="flex animate-pulse items-center gap-3 rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] px-4 py-3">
-              <div className="min-w-0 flex-1 space-y-2">
-                <div className="h-4 w-48 rounded bg-[var(--nimi-surface-card)]" />
-                <div className="h-3 w-32 rounded bg-[var(--nimi-surface-card)]" />
+          Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="flex animate-pulse flex-col gap-2.5 rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] px-4 py-3.5">
+              <div className="flex items-start justify-between gap-2">
+                <div className="h-4 w-2/3 rounded bg-[var(--nimi-surface-card)]" />
+                <div className="h-6 w-20 rounded-full bg-[var(--nimi-surface-card)]" />
               </div>
-              <div className="hidden w-20 md:block"><div className="mx-auto h-3 w-14 rounded bg-[var(--nimi-surface-card)]" /></div>
-              <div className="hidden w-16 md:block"><div className="ml-auto h-3 w-10 rounded bg-[var(--nimi-surface-card)]" /></div>
-              <div className="hidden w-20 md:block"><div className="mx-auto h-3 w-12 rounded bg-[var(--nimi-surface-card)]" /></div>
-              <div className="w-28"><div className="ml-auto h-6 w-16 rounded-full bg-[var(--nimi-surface-card)]" /></div>
-              <div className="w-4" />
+              <div className="h-3 w-1/3 rounded bg-[var(--nimi-surface-card)]" />
+              <div className="flex gap-1.5">
+                <div className="h-5 w-14 rounded-full bg-[var(--nimi-surface-card)]" />
+                <div className="h-5 w-14 rounded-full bg-[var(--nimi-surface-card)]" />
+              </div>
+              <div className="h-3 w-full rounded bg-[var(--nimi-surface-card)]" />
             </div>
           ))
         ) : null}
         {visibleItems.map((item) => (
-          <ModelRow
+          <ModelCard
             key={item.itemId}
             item={item}
             totalVramBytes={totalVramBytes}

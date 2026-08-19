@@ -1,5 +1,5 @@
 import { useDesktopI18nResource } from '../../i18n/i18n-context';
-import { useMemo, useState, type KeyboardEvent, type ReactNode } from 'react';
+import { useId, useMemo, useState, type FocusEventHandler, type KeyboardEvent, type ReactNode } from 'react';
 import { motion } from 'motion/react';
 
 
@@ -17,7 +17,7 @@ import {
   cn,
 } from '@nimiplatform/kit/ui';
 import {
-  statusTextV11,
+  localizedStatusTextV11,
   type RuntimeConfigStatusV11,
 } from './runtime-config-state-types';
 import {
@@ -94,6 +94,9 @@ export function Input({
   placeholder,
   type = 'text',
   disabled,
+  required,
+  error,
+  onBlur,
 }: {
   label?: string;
   value: string;
@@ -101,17 +104,33 @@ export function Input({
   placeholder?: string;
   type?: string;
   disabled?: boolean;
+  required?: boolean;
+  error?: string;
+  onBlur?: FocusEventHandler<HTMLInputElement>;
 }) {
+  const inputId = useId();
+  const errorId = `${inputId}-error`;
   return (
     <div>
-      {label ? <label className="mb-1.5 block text-sm font-medium text-[var(--nimi-text-secondary)]">{label}</label> : null}
+      {label ? (
+        <label htmlFor={inputId} className="mb-1.5 block text-sm font-medium text-[var(--nimi-text-secondary)]">
+          {label}
+          {required ? <span aria-hidden="true" className="ml-1 after:content-['*']" /> : null}
+        </label>
+      ) : null}
       <TextField
+        id={inputId}
         type={type}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         disabled={disabled}
+        required={required}
+        aria-invalid={Boolean(error)}
+        aria-describedby={error ? errorId : undefined}
+        onBlur={onBlur}
       />
+      {error ? <p id={errorId} className="mt-1.5 text-xs text-[var(--nimi-status-danger)]">{error}</p> : null}
     </div>
   );
 }
@@ -384,9 +403,11 @@ const BADGE_STATUS_TONES: Record<BadgeStatus, 'neutral' | 'success' | 'warning' 
 };
 
 export function StatusBadge({ status }: { status: RuntimeConfigStatusV11 }) {
+  const i18n = useDesktopI18nResource().instance;
+  const t = i18n.t.bind(i18n);
   return (
     <KitStatusBadge tone={BADGE_STATUS_TONES[status]} shape="dot">
-      {statusTextV11(status)}
+      {localizedStatusTextV11(status, t)}
     </KitStatusBadge>
   );
 }
@@ -421,7 +442,7 @@ export function RuntimeHealthBadge({
   }
   return (
     <KitStatusBadge tone={BADGE_STATUS_TONES[status]} shape="dot">
-      {statusTextV11(status)}
+      {localizedStatusTextV11(status, t)}
     </KitStatusBadge>
   );
 }

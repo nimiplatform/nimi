@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test, { describe } from 'node:test';
+import type { TFunction } from 'i18next';
 
 import {
   assetUnhealthyReasonSummary,
@@ -11,6 +12,7 @@ import {
   formatSpeed,
   isRuntimeInstallCancellation,
   localSpeechReasonSummary,
+  partitionTransferSessionsByDisplayState,
   planBlockingHint,
   normalizeCapabilityOption,
   HIGHLIGHT_CLEAR_MS,
@@ -23,6 +25,10 @@ import {
 } from '../src/shell/renderer/features/runtime-config/runtime-config-model-center-utils';
 import { createNimiError, ReasonCode } from '@nimiplatform/sdk/types';
 import { NIMI_RUNTIME_REASON_CODES } from '@nimiplatform/sdk/runtime';
+
+const testTranslate = ((_: string, options?: { defaultValue?: string }) => (
+  options?.defaultValue ?? ''
+)) as TFunction;
 
 // ---------------------------------------------------------------------------
 // formatBytes
@@ -228,19 +234,19 @@ describe('formatEta', () => {
 
 describe('formatDownloadPhaseLabel', () => {
   test('download → Downloading', () => {
-    assert.equal(formatDownloadPhaseLabel('download'), 'Downloading');
+    assert.equal(formatDownloadPhaseLabel('download', testTranslate), 'Downloading');
   });
 
   test('verify → Verifying', () => {
-    assert.equal(formatDownloadPhaseLabel('verify'), 'Verifying');
+    assert.equal(formatDownloadPhaseLabel('verify', testTranslate), 'Verifying');
   });
 
   test('upsert → Finalizing', () => {
-    assert.equal(formatDownloadPhaseLabel('upsert'), 'Finalizing');
+    assert.equal(formatDownloadPhaseLabel('upsert', testTranslate), 'Finalizing');
   });
 
   test('unknown phase falls back to normalized text', () => {
-    assert.equal(formatDownloadPhaseLabel('queued'), 'queued');
+    assert.equal(formatDownloadPhaseLabel('queued', testTranslate), 'queued');
   });
 });
 
@@ -436,6 +442,99 @@ describe('sortProgressSessions', () => {
     const result = sortProgressSessions(sessions).map((item) => item.event.installSessionId);
 
     assert.deepEqual(result, ['newer', 'older']);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// partitionTransferSessionsByDisplayState
+// ---------------------------------------------------------------------------
+
+describe('partitionTransferSessionsByDisplayState', () => {
+  const makeState = (
+    installSessionId: string,
+    sessionKind: 'download' | 'import',
+    state: 'queued' | 'running' | 'paused' | 'failed' | 'completed' | 'cancelled',
+    createdAtMs: number,
+    updatedAtMs: number,
+  ): ProgressSessionState => ({
+    event: {
+      installSessionId,
+      modelId: installSessionId,
+      sessionKind,
+      phase: 'download' as const,
+      state,
+      reasonCode: undefined,
+      retryable: state === 'failed',
+      done: state === 'completed' || state === 'failed' || state === 'cancelled',
+      success: state === 'completed',
+      bytesReceived: 100,
+      bytesTotal: 200,
+      speedBytesPerSec: 50,
+      etaSeconds: 2,
+      message: '',
+    },
+    createdAtMs,
+    updatedAtMs,
+  });
+
+  test('splits active and terminal sessions for the requested kind only', () => {
+    const sessions = {
+      dRun: makeState('d-run', 'download', 'running', 1000, 5000),
+      dFail: makeState('d-fail', 'download', 'failed', 2000, 6000),
+      iRun: makeState('i-run', 'import', 'running', 3000, 7000),
+      iCancel: makeState('i-cancel', 'import', 'cancelled', 4000, 8000),
+    };
+
+    const downloads = partitionTransferSessionsByDisplayState(sessions, 'download');
+    assert.deepEqual(downloads.active.map((event) => event.installSessionId), ['d-run']);
+    assert.deepEqual(downloads.terminal.map((event) => event.installSessionId), ['d-fail']);
+
+    const imports = partitionTransferSessionsByDisplayState(sessions, 'import');
+    assert.deepEqual(imports.active.map((event) => event.installSessionId), ['i-run']);
+    assert.deepEqual(imports.terminal.map((event) => event.installSessionId), ['i-cancel']);
+  });
+
+  test('terminal history never squeezes active sessions out of the limit', () => {
+    const sessions: Record<string, ProgressSessionState> = {};
+    for (let index = 0; index < PROGRESS_SESSION_LIMIT + 2; index += 1) {
+      const id = `active-${index}`;
+      sessions[id] = makeState(id, 'download', 'running', 1000 + index, 1000 + index);
+    }
+    for (let index = 0; index < PROGRESS_SESSION_LIMIT + 4; index += 1) {
+      const id = `failed-${index}`;
+      sessions[id] = makeState(id, 'download', 'failed', 5000 + index, 5000 + index);
+    }
+
+    const result = partitionTransferSessionsByDisplayState(sessions, 'download');
+
+    assert.equal(result.active.length, PROGRESS_SESSION_LIMIT);
+    assert.ok(result.active.every((event) => event.state === 'running'));
+    assert.equal(result.terminal.length, PROGRESS_SESSION_LIMIT + 4);
+    assert.ok(result.terminal.every((event) => event.state === 'failed'));
+  });
+
+  test('orders terminal history by latest update descending', () => {
+    const sessions = {
+      older: makeState('older', 'download', 'failed', 1000, 3000),
+      newer: makeState('newer', 'download', 'cancelled', 2000, 9000),
+      middle: makeState('middle', 'download', 'failed', 3000, 6000),
+    };
+
+    const result = partitionTransferSessionsByDisplayState(sessions, 'download');
+
+    assert.deepEqual(result.terminal.map((event) => event.installSessionId), ['newer', 'middle', 'older']);
+  });
+
+  test('completed sessions are excluded from both buckets', () => {
+    const sessions = {
+      done: makeState('done', 'download', 'completed', 1000, 9000),
+      running: makeState('running', 'download', 'running', 2000, 2000),
+    };
+
+    const result = partitionTransferSessionsByDisplayState(sessions, 'download');
+
+    assert.deepEqual(result.active.map((event) => event.installSessionId), ['running']);
+    assert.deepEqual(result.terminal, []);
   });
 });
 

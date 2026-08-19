@@ -39,9 +39,15 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
   const [importingAssetPath, setImportingAssetPath] = useState<string | null>(null);
   const [assetImportError, setAssetImportError] = useState('');
 
+  const dismissAssetImportError = useCallback(() => {
+    setAssetImportError('');
+  }, []);
+
   const {
     activeDownloads,
     activeImports,
+    terminalDownloads,
+    terminalImports,
     onPauseDownload,
     onResumeDownload,
     onCancelDownload,
@@ -133,11 +139,14 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
   return {
     activeDownloads,
     activeImports,
+    terminalDownloads,
+    terminalImports,
     closeVariantPicker,
     importAssetFromPath,
     importPickedAssetFile,
     importPickedAssetDirectory,
     assetImportError,
+    dismissAssetImportError,
     importingAssetPath,
     installCatalogVariant,
     loadingVariants,

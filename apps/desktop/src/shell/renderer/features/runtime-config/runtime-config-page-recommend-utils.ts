@@ -33,6 +33,20 @@ export const RECOMMEND_PAGE_CAPABILITIES = NIMI_RUNTIME_LOCAL_RECOMMENDATION_FEE
 
 export type RecommendPageCapability = NimiRuntimeLocalRecommendationFeedCapabilityId;
 
+// ---------------------------------------------------------------------------
+// Feed query contract — shared by the page query and the panel-level prefetch
+// so both resolve the same cache entry with the same freshness semantics.
+// ---------------------------------------------------------------------------
+
+export const RECOMMEND_FEED_PAGE_SIZE = 48;
+export const RECOMMEND_FEED_FRESH_STALE_MS = 24 * 60 * 60 * 1000;
+
+export function recommendationFeedQueryKey(
+  capability: RecommendPageCapability,
+): readonly ['recommendation-feed', RecommendPageCapability] {
+  return ['recommendation-feed', capability] as const;
+}
+
 export type RecommendTier = NimiRuntimeLocalRecommendationTierId | null;
 
 export type RecommendInstallPlanFailure = {
@@ -65,6 +79,15 @@ export function recommendationTierLabel(tier: RecommendTier): string {
   if (tier === 'tight') return 'Tight';
   if (tier === 'not_recommended') return 'Not Recommended';
   return 'Unscored';
+}
+
+// i18n key suffix under runtimeConfig.recommend.* for a Runtime-issued tier.
+export function recommendationTierI18nKey(tier: RecommendTier): string {
+  if (tier === 'recommended') return 'tierRecommended';
+  if (tier === 'runnable') return 'tierRunnable';
+  if (tier === 'tight') return 'tierTight';
+  if (tier === 'not_recommended') return 'tierNotRecommended';
+  return 'tierUnscored';
 }
 
 export function recommendationTierColorClass(tier: RecommendTier): string {
@@ -105,11 +128,46 @@ export function primaryEntrySize(item: NimiRuntimeLocalRecommendationFeedItem): 
   return selectNimiRuntimeLocalRecommendationPrimaryEntrySize(item);
 }
 
+// Name of the entry the size helpers score against (recommended entry first).
+export function primaryEntryName(item: NimiRuntimeLocalRecommendationFeedItem): string {
+  const recommended = String(item.recommendation?.recommendedEntry || '').trim();
+  if (recommended) return recommended;
+  return String(item.entries[0]?.entry || '').trim();
+}
+
 export function computeVramPercentage(
   modelSizeBytes: number,
   totalVramBytes?: number,
 ): number | null {
   return computeNimiRuntimeLocalRecommendationVramPercentage(modelSizeBytes, totalVramBytes);
+}
+
+// ---------------------------------------------------------------------------
+// VRAM fit fallback — only used when Runtime issued no tier for an item
+// ---------------------------------------------------------------------------
+
+export type RecommendFitId = 'smooth' | 'runnable' | 'tight' | 'insufficient';
+
+export function vramFitTier(pct: number | null): RecommendFitId | null {
+  if (pct === null) return null;
+  if (pct <= 60) return 'smooth';
+  if (pct <= 85) return 'runnable';
+  if (pct <= 100) return 'tight';
+  return 'insufficient';
+}
+
+export function vramFitI18nKey(fit: RecommendFitId): string {
+  if (fit === 'smooth') return 'fitSmooth';
+  if (fit === 'runnable') return 'fitRunnable';
+  if (fit === 'tight') return 'fitTight';
+  return 'fitInsufficient';
+}
+
+export function vramFitColorClass(fit: RecommendFitId): string {
+  if (fit === 'smooth') return 'bg-[var(--nimi-status-success-soft-bg)] text-[var(--nimi-status-success-soft-text)]';
+  if (fit === 'runnable') return 'bg-[var(--nimi-status-info-soft-bg)] text-[var(--nimi-status-info-soft-text)]';
+  if (fit === 'tight') return 'bg-[var(--nimi-status-warning-soft-bg)] text-[var(--nimi-status-warning-soft-text)]';
+  return 'bg-[var(--nimi-status-danger-soft-bg)] text-[var(--nimi-status-danger-soft-text)]';
 }
 
 export function vramPercentageColorClass(pct: number | null): string {
@@ -211,4 +269,30 @@ export function recommendationFeedCacheSummary(
   feed: NimiRuntimeLocalRecommendationFeed | null,
 ): 'fresh' | 'stale' | 'empty' {
   return summarizeNimiRuntimeLocalRecommendationFeedCacheState(feed);
+}
+
+// ---------------------------------------------------------------------------
+// Sorting — renderer-local ordering on top of the filtered feed items.
+// 'recommended' preserves the Runtime feed order.
+// ---------------------------------------------------------------------------
+
+export type RecommendSortId = 'recommended' | 'downloads' | 'size';
+
+export function sortRecommendationFeedItems(
+  items: readonly NimiRuntimeLocalRecommendationFeedItem[],
+  sort: RecommendSortId,
+): NimiRuntimeLocalRecommendationFeedItem[] {
+  if (sort === 'recommended') return [...items];
+  const sorted = [...items];
+  if (sort === 'downloads') {
+    sorted.sort((a, b) => (b.downloads ?? 0) - (a.downloads ?? 0));
+    return sorted;
+  }
+  sorted.sort((a, b) => {
+    const sizeA = primaryEntrySize(a);
+    const sizeB = primaryEntrySize(b);
+    // Unknown sizes sink to the end instead of sorting as "smallest".
+    return (sizeA > 0 ? sizeA : Number.MAX_SAFE_INTEGER) - (sizeB > 0 ? sizeB : Number.MAX_SAFE_INTEGER);
+  });
+  return sorted;
 }

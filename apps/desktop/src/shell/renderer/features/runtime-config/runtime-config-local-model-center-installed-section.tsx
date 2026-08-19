@@ -13,6 +13,7 @@ type InstalledAssetsSectionProps = {
   modelAssets: NimiRuntimeModelAssetRecord[];
   loadingInstalledAssets: boolean;
   assetBusy: boolean;
+  runtimeWritesDisabled: boolean;
   onRefreshAssets: () => void;
   onInspectRemoval: (modelAssetId: string) => Promise<string[]>;
   onRemoveAsset: (modelAssetId: string) => Promise<void>;
@@ -47,13 +48,13 @@ export function LocalModelCenterInstalledAssetsSection(props: InstalledAssetsSec
             <PackageIcon className="h-4 w-4" />
           </div>
           <h3 className="text-sm font-semibold text-[var(--nimi-text-primary)]">
-            {t('runtimeConfig.localModelCenter.modelAssets', { defaultValue: 'Model Assets' })}
+            {t('runtimeConfig.localModelCenter.myModels', { defaultValue: 'My Models' })}
           </h3>
           <span className="rounded-full bg-[color-mix(in_srgb,var(--nimi-status-success)_14%,transparent)] px-2.5 py-0.5 text-xs font-medium text-[var(--nimi-status-success)]">
             {props.modelAssets.length}
           </span>
           <span className="text-xs text-[var(--nimi-text-muted)]" data-testid="runtime-model-asset-pool-size">
-            {t('runtimeConfig.localModelCenter.poolCapacity', { defaultValue: 'Pool capacity' })}: {formatBytes(poolSizeBytes)}
+            {t('runtimeConfig.localModelCenter.poolCapacity', { defaultValue: 'Used' })}: {formatBytes(poolSizeBytes)}
           </span>
         </div>
         <button
@@ -75,10 +76,10 @@ export function LocalModelCenterInstalledAssetsSection(props: InstalledAssetsSec
         <div className="px-5 py-8 text-center">
           <FolderOpenIcon className="mx-auto mb-3 h-6 w-6 text-[var(--nimi-text-muted)]" />
           <h4 className="text-sm font-medium text-[var(--nimi-text-primary)]">
-            {t('runtimeConfig.localModelCenter.noModelAssets', { defaultValue: 'No Model Assets' })}
+            {t('runtimeConfig.localModelCenter.noInstalledModels', { defaultValue: 'No models installed' })}
           </h4>
           <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">
-            {t('runtimeConfig.localModelCenter.noModelAssetsDescription', { defaultValue: 'Import a model file or directory. Type and engine are resolved later by a Loadout.' })}
+            {t('runtimeConfig.localModelCenter.noModelAssetsDescription', { defaultValue: 'Install a model from the recommendations above, or import your own model files.' })}
           </p>
         </div>
       ) : (
@@ -109,23 +110,9 @@ export function LocalModelCenterInstalledAssetsSection(props: InstalledAssetsSec
                           ? t('runtimeConfig.localModelCenter.contentVerified', { defaultValue: 'Content verified' })
                           : t('runtimeConfig.localModelCenter.contentUnverified', { defaultValue: 'Content unverified' })}
                       </span>
-                      <span className={`rounded px-1.5 py-0.5 text-[length:var(--nimi-type-caption-size)] ${asset.catalogVerified ? 'bg-[var(--nimi-status-success-soft-bg)] text-[var(--nimi-status-success-soft-text)]' : 'bg-[var(--nimi-status-neutral-soft-bg)] text-[var(--nimi-status-neutral-soft-text)]'}`}>
-                        {catalogVerificationLabel}
-                      </span>
-                      {asset.unclassified ? (
-                        <span className="rounded bg-[var(--nimi-status-warning-soft-bg)] px-1.5 py-0.5 text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-status-warning-soft-text)]">
-                          {t('runtimeConfig.localModelCenter.unclassified', { defaultValue: 'Unclassified' })}
-                        </span>
-                      ) : null}
-                      {asset.duplicateContent ? (
-                        <span className="rounded bg-[var(--nimi-status-neutral-soft-bg)] px-1.5 py-0.5 text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-status-neutral-soft-text)]">
-                          {t('runtimeConfig.localModelCenter.duplicateContent', { defaultValue: 'Duplicate content' })}
-                        </span>
-                      ) : null}
                     </div>
-                    <p className="mt-1 truncate font-mono text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-muted)]" title={asset.contentId}>{asset.contentId}</p>
                     <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">
-                      {asset.files.length} {t('runtimeConfig.localModelCenter.files', { defaultValue: 'files' })} · {formatBytes(asset.totalSizeBytes)} · {asset.entry}
+                      {asset.files.length} {t('runtimeConfig.localModelCenter.files', { defaultValue: 'files' })} · {formatBytes(asset.totalSizeBytes)}
                     </p>
                     {asset.containsNonExecutableCode ? (
                       <p className="mt-2 text-xs text-[var(--nimi-status-warning)]">
@@ -147,7 +134,7 @@ export function LocalModelCenterInstalledAssetsSection(props: InstalledAssetsSec
                     <button
                       type="button"
                       onClick={() => requestRemove(asset.modelAssetId)}
-                      disabled={props.assetBusy || confirmationVisible}
+                      disabled={props.assetBusy || confirmationVisible || props.runtimeWritesDisabled}
                       className="rounded-lg p-1.5 text-[var(--nimi-status-danger)] disabled:opacity-50"
                       title={t('runtimeConfig.localModelCenter.remove', { defaultValue: 'Remove' })}
                     >
@@ -157,10 +144,32 @@ export function LocalModelCenterInstalledAssetsSection(props: InstalledAssetsSec
                 </div>
                 {detailsVisible ? (
                   <div className="mt-3 rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-subtle)] px-4 py-3" data-testid="runtime-model-asset-details">
-                    <dl className="grid gap-2 text-xs sm:grid-cols-2">
+                    <p className="text-xs font-semibold text-[var(--nimi-text-muted)]">
+                      {t('runtimeConfig.localModelCenter.developerInfo', { defaultValue: 'Developer Info' })}
+                    </p>
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <span className={`rounded px-1.5 py-0.5 text-[length:var(--nimi-type-caption-size)] ${asset.catalogVerified ? 'bg-[var(--nimi-status-success-soft-bg)] text-[var(--nimi-status-success-soft-text)]' : 'bg-[var(--nimi-status-neutral-soft-bg)] text-[var(--nimi-status-neutral-soft-text)]'}`}>
+                        {catalogVerificationLabel}
+                      </span>
+                      {asset.unclassified ? (
+                        <span className="rounded bg-[var(--nimi-status-warning-soft-bg)] px-1.5 py-0.5 text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-status-warning-soft-text)]">
+                          {t('runtimeConfig.localModelCenter.unclassified', { defaultValue: 'Unclassified' })}
+                        </span>
+                      ) : null}
+                      {asset.duplicateContent ? (
+                        <span className="rounded bg-[var(--nimi-status-neutral-soft-bg)] px-1.5 py-0.5 text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-status-neutral-soft-text)]">
+                          {t('runtimeConfig.localModelCenter.duplicateContent', { defaultValue: 'Duplicate content' })}
+                        </span>
+                      ) : null}
+                    </div>
+                    <dl className="mt-3 grid gap-2 text-xs sm:grid-cols-2">
                       <div>
                         <dt className="text-[var(--nimi-text-muted)]">{t('runtimeConfig.localModelCenter.modelAssetId', { defaultValue: 'ModelAsset ID' })}</dt>
                         <dd className="break-all font-mono text-[var(--nimi-text-primary)]">{asset.modelAssetId}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-[var(--nimi-text-muted)]">{t('runtimeConfig.localModelCenter.contentId', { defaultValue: 'Content ID' })}</dt>
+                        <dd className="break-all font-mono text-[var(--nimi-text-primary)]">{asset.contentId}</dd>
                       </div>
                       <div>
                         <dt className="text-[var(--nimi-text-muted)]">{t('runtimeConfig.localModelCenter.provenance', { defaultValue: 'Provenance' })}</dt>
@@ -199,7 +208,7 @@ export function LocalModelCenterInstalledAssetsSection(props: InstalledAssetsSec
                 {confirmationVisible ? (
                   <div className="mt-3 rounded-xl border border-[color-mix(in_srgb,var(--nimi-status-danger)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_8%,transparent)] px-4 py-3">
                     <p className="text-xs text-[var(--nimi-status-danger)]">
-                      {t('runtimeConfig.localModelCenter.confirmRemoveModelAsset', { defaultValue: 'Remove this ModelAsset and its owned files?' })}
+                      {t('runtimeConfig.localModelCenter.confirmRemoveModelAsset', { defaultValue: 'Remove this model? Its disk space will be freed.' })}
                       {removeReferences.length > 0
                         ? ` ${t('runtimeConfig.localModelCenter.removeAssetReferences', { defaultValue: 'Referenced by Loadouts: {{references}}.', references: removeReferences.join(', ') })}`
                         : ''}

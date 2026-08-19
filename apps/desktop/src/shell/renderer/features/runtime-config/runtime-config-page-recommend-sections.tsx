@@ -9,20 +9,21 @@ import { Button } from './runtime-config-primitives';
 import { formatBytes } from './runtime-config-model-center-utils';
 import {
   computeVramPercentage,
-  licenseColorClass,
   parseParamsFromTitle,
   parseLicenseShort,
+  parseQuantLevelFromEntry,
   formatRepoOwnerFromRepo,
+  primaryEntryName,
   primaryEntrySize,
   recommendationTier,
   recommendationTierColorClass,
+  recommendationTierI18nKey,
   recommendationTierLabel,
+  vramFitColorClass,
+  vramFitI18nKey,
+  vramFitTier,
   vramPercentageColorClass,
 } from './runtime-config-page-recommend-utils';
-
-function formatSizeLabel(sizeBytes: number): string {
-  return sizeBytes > 0 ? formatBytes(sizeBytes) : '\u2014';
-}
 
 // ---------------------------------------------------------------------------
 // DeviceProfileBar — compact horizontal hardware summary
@@ -281,94 +282,202 @@ export function SelectChip({
 }
 
 // ---------------------------------------------------------------------------
-// ModelRow — compact table-like row
+// CapabilityTabs — segmented control for the feed capability (chat/image/video)
 // ---------------------------------------------------------------------------
 
-export type ModelRowProps = {
+export function CapabilityTabs({
+  options,
+  value,
+  onChange,
+}: {
+  options: { value: string; label: string }[];
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <div className="inline-flex shrink-0 items-center gap-0.5 rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] p-0.5">
+      {options.map((option) => {
+        const active = option.value === value;
+        return (
+          <button
+            key={option.value}
+            type="button"
+            aria-pressed={active}
+            onClick={() => onChange(option.value)}
+            className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${
+              active
+                ? 'bg-[var(--nimi-surface-card)] text-[var(--nimi-action-primary-bg)] shadow-[var(--nimi-elevation-base)]'
+                : 'text-[var(--nimi-text-muted)] hover:text-[var(--nimi-text-secondary)]'
+            }`}
+          >
+            {option.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// ProviderChipRow — horizontally scrollable toggle chips
+// ---------------------------------------------------------------------------
+
+export function ProviderChipRow({
+  allLabel,
+  options,
+  selected,
+  onToggle,
+  onClear,
+}: {
+  allLabel: string;
+  options: string[];
+  selected: Set<string>;
+  onToggle: (value: string) => void;
+  onClear: () => void;
+}) {
+  const chipClass = (active: boolean) => `inline-flex shrink-0 items-center rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+    active
+      ? 'border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_32%,transparent)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)] text-[var(--nimi-action-primary-bg)]'
+      : 'border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] text-[var(--nimi-text-secondary)] hover:border-[var(--nimi-border-strong)]'
+  }`;
+  return (
+    <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5">
+      <button type="button" className={chipClass(selected.size === 0)} onClick={onClear}>
+        {allLabel}
+      </button>
+      {options.map((option) => (
+        <button
+          key={option}
+          type="button"
+          aria-pressed={selected.has(option)}
+          className={chipClass(selected.has(option))}
+          onClick={() => onToggle(option)}
+        >
+          {option}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// ModelCard — card-based list item (replaces the former table row)
+// ---------------------------------------------------------------------------
+
+export type ModelCardProps = {
   item: NimiRuntimeLocalRecommendationFeedItem;
   totalVramBytes?: number;
   onSelect: () => void;
 };
 
-export function ModelRow({ item, totalVramBytes, onSelect }: ModelRowProps) {
+export function ModelCard({ item, totalVramBytes, onSelect }: ModelCardProps) {
   const i18n = useDesktopI18nResource();
   const { t } = useTranslation();
   const recommendation = item.recommendation;
   const tier = recommendationTier(recommendation?.tier);
   const params = parseParamsFromTitle(item.title);
   const license = parseLicenseShort(item.installPayload.license);
+  const quant = parseQuantLevelFromEntry(primaryEntryName(item));
   const sizeBytes = primaryEntrySize(item);
   const vramPct = computeVramPercentage(sizeBytes, totalVramBytes);
-  const lastMod = item.lastModified ? i18n.formatRelativeTime(item.lastModified) : '—';
+  const lastMod = item.lastModified ? i18n.formatRelativeTime(item.lastModified) : '';
+
+  // Fit badge: prefer the Runtime-issued tier; fall back to a VRAM-based fit
+  // band only when Runtime scored nothing. No data → no badge.
+  const fit = tier ? null : vramFitTier(vramPct);
+  const badgeLabel = tier
+    ? t(`runtimeConfig.recommend.${recommendationTierI18nKey(tier)}`, { defaultValue: recommendationTierLabel(tier) })
+    : fit
+      ? t(`runtimeConfig.recommend.${vramFitI18nKey(fit)}`, { defaultValue: fit })
+      : '';
+  const badgeClass = tier ? recommendationTierColorClass(tier) : fit ? vramFitColorClass(fit) : '';
+
+  const metaLabels: string[] = [];
+  if (params) metaLabels.push(params);
+  if (quant) metaLabels.push(quant);
+  if (sizeBytes > 0) metaLabels.push(formatBytes(sizeBytes));
+  if (item.downloads) metaLabels.push(t('runtimeConfig.recommend.downloads', { count: item.downloads, defaultValue: '{{count}} downloads' }));
+  if (typeof item.likes === 'number') metaLabels.push(t('runtimeConfig.recommend.likes', { count: item.likes, defaultValue: '{{count}} likes' }));
+  if (license) metaLabels.push(license);
 
   return (
     <button
       type="button"
       onClick={onSelect}
-      className="group flex w-full items-center gap-3 rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-4 py-3 text-left shadow-[var(--nimi-elevation-base)] transition-all hover:border-[var(--nimi-border-strong)] hover:shadow-[var(--nimi-elevation-raised)]"
+      className="group flex w-full flex-col gap-2 rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-4 py-3.5 text-left shadow-[var(--nimi-elevation-base)] transition-all hover:border-[var(--nimi-border-strong)] hover:bg-[var(--nimi-action-ghost-hover)] hover:shadow-[var(--nimi-elevation-raised)]"
     >
-      {/* Name + params + badges */}
-      <div className="min-w-0 flex-1">
+      {/* Header: name + org, fit badge + chevron on the right */}
+      <div className="flex items-start gap-2">
+        <div className="min-w-0 flex-1">
+          <span className="line-clamp-2 text-sm font-semibold leading-5 text-[var(--nimi-text-primary)]">{item.title}</span>
+          <div className="mt-0.5 flex items-center gap-2 text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-muted)]">
+            <span>{formatRepoOwnerFromRepo(item.repo)}</span>
+            {lastMod ? (
+              <>
+                <span>·</span>
+                <span>{lastMod}</span>
+              </>
+            ) : null}
+          </div>
+        </div>
+        <div className="flex shrink-0 items-center gap-1.5 pt-0.5">
+          {badgeLabel ? (
+            <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[length:var(--nimi-type-caption-size)] font-semibold ${badgeClass}`}>
+              {badgeLabel}
+            </span>
+          ) : null}
+          <svg
+            className="h-4 w-4 text-[var(--nimi-text-muted)] transition-transform group-hover:translate-x-0.5 group-hover:text-[var(--nimi-text-secondary)]"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            <polyline points="9 18 15 12 9 6" />
+          </svg>
+        </div>
+      </div>
+
+      {/* Capability tags + state badges */}
+      {(item.capabilities.length > 0 || item.verified || item.installedState.installed) ? (
         <div className="flex flex-wrap items-center gap-1.5">
-          <span className="truncate text-sm font-semibold text-[var(--nimi-text-primary)]">{item.title}</span>
-          {params ? <span className="rounded bg-[var(--nimi-surface-panel)] px-1.5 py-0.5 text-[length:var(--nimi-type-caption-size)] font-medium text-[var(--nimi-text-muted)]">{params}</span> : null}
+          {item.capabilities.map((cap) => (
+            <span key={cap} className="rounded-full bg-[var(--nimi-status-info-soft-bg)] px-2 py-0.5 text-[length:var(--nimi-type-caption-size)] font-medium text-[var(--nimi-status-info-soft-text)]">{cap}</span>
+          ))}
           {item.verified ? (
-            <span className="rounded-full bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_16%,transparent)] px-1.5 py-0.5 text-[length:var(--nimi-type-caption-size)] font-medium text-[var(--nimi-action-primary-bg)]">
+            <span className="rounded-full bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_16%,transparent)] px-2 py-0.5 text-[length:var(--nimi-type-caption-size)] font-medium text-[var(--nimi-action-primary-bg)]">
               {t('runtimeConfig.recommend.verified', { defaultValue: 'Verified' })}
             </span>
           ) : null}
           {item.installedState.installed ? (
-            <span className="rounded-full bg-[var(--nimi-status-success-soft-bg)] px-1.5 py-0.5 text-[length:var(--nimi-type-caption-size)] font-medium text-[var(--nimi-status-success-soft-text)]">
+            <span className="rounded-full bg-[var(--nimi-status-success-soft-bg)] px-2 py-0.5 text-[length:var(--nimi-type-caption-size)] font-medium text-[var(--nimi-status-success-soft-text)]">
               {t('runtimeConfig.recommend.installedState', { defaultValue: 'Installed' })}
             </span>
           ) : null}
         </div>
-        <div className="mt-0.5 flex items-center gap-2 text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-muted)]">
-          <span>{formatRepoOwnerFromRepo(item.repo)}</span>
-          <span>·</span>
-          <span>{lastMod}</span>
+      ) : null}
+
+      {/* Structured meta labels — empty values are never rendered */}
+      {metaLabels.length > 0 ? (
+        <div className="flex flex-wrap items-center gap-1.5">
+          {metaLabels.map((label) => (
+            <span key={label} className="rounded bg-[var(--nimi-surface-panel)] px-1.5 py-0.5 text-[length:var(--nimi-type-caption-size)] font-medium text-[var(--nimi-text-muted)]">{label}</span>
+          ))}
         </div>
-      </div>
+      ) : null}
 
-      {/* License */}
-      <div className="hidden w-20 shrink-0 text-center md:block">
-        {license ? (
-          <span className={`inline-block rounded-full border px-2 py-0.5 text-[length:var(--nimi-type-caption-size)] font-medium ${licenseColorClass(license)}`}>{license}</span>
-        ) : <span className="text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-muted)]">—</span>}
-      </div>
-
-      {/* Size */}
-      <div className="hidden w-16 shrink-0 text-right md:block">
-        <span className="text-xs font-medium text-[var(--nimi-text-secondary)]">{formatSizeLabel(sizeBytes)}</span>
-      </div>
-
-      {/* VRAM % */}
-      <div className="hidden w-20 shrink-0 md:block">
-        <div className="flex items-center gap-1.5">
-          <ProgressIndicator value={Math.min(vramPct ?? 0, 100)} className="min-w-0 flex-1" />
-          <span className={`text-[length:var(--nimi-type-caption-size)] font-medium ${vramPercentageColorClass(vramPct)}`}>
-            {vramPct !== null ? `${vramPct}%` : '—'}
+      {/* VRAM usage bar — hidden without size or VRAM data */}
+      {vramPct !== null ? (
+        <div className="flex items-center gap-2">
+          <span className="shrink-0 text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-muted)]">
+            {t('runtimeConfig.recommend.vramUsageLabel', { defaultValue: 'VRAM usage' })}
+          </span>
+          <ProgressIndicator value={Math.min(vramPct, 100)} className="min-w-0 flex-1" />
+          <span className={`shrink-0 text-[length:var(--nimi-type-caption-size)] font-medium ${vramPercentageColorClass(vramPct)}`}>
+            {vramPct}%
           </span>
         </div>
-      </div>
-
-      {/* Runtime recommendation */}
-      <div className="w-28 shrink-0 text-right">
-        <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[length:var(--nimi-type-caption-size)] font-semibold ${recommendationTierColorClass(tier)}`}>
-          {recommendationTierLabel(tier)}
-        </span>
-      </div>
-
-      {/* Arrow right */}
-      <svg
-        className="h-4 w-4 shrink-0 text-[var(--nimi-text-muted)] transition-transform group-hover:translate-x-0.5"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-      >
-        <polyline points="9 18 15 12 9 6" />
-      </svg>
+      ) : null}
     </button>
   );
 }

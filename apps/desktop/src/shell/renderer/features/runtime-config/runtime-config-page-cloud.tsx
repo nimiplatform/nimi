@@ -12,7 +12,7 @@ import { connectorAuthProfileForId, defaultConnectorAuthOptionForProvider, listC
 import { useRuntimeConfigConnectorSdk } from './runtime-config-connector-sdk-context.js';
 import { addConnectorToState, removeConnectorFromState, replaceConnectorsInState, updateConnectorField } from './runtime-config-connector-actions';
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
-import { RuntimePageShell } from './runtime-config-page-shell';
+import { RuntimePageHeader, RuntimePageShell } from './runtime-config-page-shell';
 import {
   acquireCodexManagedCredential,
   createCodexOAuthConnectorOperationSnapshot,
@@ -22,7 +22,7 @@ import {
 import { BoltIcon, Button, PlusIcon } from './runtime-config-page-cloud-primitives';
 import { CloudConnectorListPanel } from './runtime-config-page-cloud-connector-list';
 import { CloudConnectorDetailPanel } from './runtime-config-page-cloud-detail-panel';
-import { SectionTitle } from './runtime-config-primitives';
+import { CatalogOverridesDrawer } from './runtime-config-catalog-overrides-drawer';
 type CloudPageProps = { model: RuntimeConfigPanelControllerModel; state: RuntimeConfigStateV11 };
 const PROVIDER_CATALOG_ERROR_LABEL = 'Load provider catalog failed';
 const CONNECTORS_LOAD_ERROR_LABEL = 'Load connectors failed';
@@ -48,6 +48,7 @@ export function CloudPage({ model, state }: CloudPageProps) {
   const [deletingConnectorId, setDeletingConnectorId] = useState('');
   const [codexOAuthPending, setCodexOAuthPending] = useState<CodexOAuthPendingState | null>(null);
   const [codexOAuthBusy, setCodexOAuthBusy] = useState(false);
+  const [catalogOverrideProviderId, setCatalogOverrideProviderId] = useState('');
   const codexOAuthAbortRef = useRef<AbortController | null>(null);
   const codexOAuthGenerationRef = useRef(0);
   const connectorsRef = useRef(state.connectors);
@@ -131,6 +132,10 @@ export function CloudPage({ model, state }: CloudPageProps) {
     () => providerCatalog.find((entry) => entry.provider === selectedConnector?.provider) || null,
     [providerCatalog, selectedConnector?.provider],
   );
+  const developerModeEnabled = bindings.app.projection.developerModeEnabled();
+  const canManageCatalogOverrides = developerModeEnabled
+    && Boolean(selectedConnector?.provider)
+    && selectedProviderCatalogEntry?.inventoryMode !== 'dynamic_endpoint';
   const managedProviderCatalog = useMemo(
     () => providerCatalog.filter((entry) => entry.managedSupported && entry.provider !== 'local'),
     [providerCatalog],
@@ -557,33 +562,32 @@ export function CloudPage({ model, state }: CloudPageProps) {
   };
   return (
     <RuntimePageShell className="space-y-4">
-      {/* Top bar: actions */}
-      <div className="flex items-center justify-between gap-3">
-        <SectionTitle>
-          {t('runtimeConfig.cloud.connectors')}
-        </SectionTitle>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={() => { void onAddConnector().catch((e) => reportError('Add connector failed', e)); }}
-            icon={<PlusIcon />}
-          >
-            {t('runtimeConfig.cloud.addConnector', { defaultValue: 'Add' })}
-          </Button>
-          <Button
-            variant="secondary"
-            size="sm"
-            disabled={model.testingConnector || !selectedConnector}
-            onClick={() => void model.testSelectedConnector()}
-            icon={<BoltIcon className="text-[var(--nimi-action-primary-bg)]" />}
-          >
-            {model.testingConnector
-              ? t('runtimeConfig.cloud.testing', { defaultValue: 'Testing...' })
-              : t('runtimeConfig.cloud.testConnector', { defaultValue: 'Test' })}
-          </Button>
-        </div>
-      </div>
+      <RuntimePageHeader
+        title={t('runtimeConfig.sidebar.cloud')}
+        actions={(
+          <>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => { void onAddConnector().catch((e) => reportError('Add connector failed', e)); }}
+              icon={<PlusIcon />}
+            >
+              {t('runtimeConfig.cloud.addConnector', { defaultValue: 'Add' })}
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={model.testingConnector || !selectedConnector}
+              onClick={() => void model.testSelectedConnector()}
+              icon={<BoltIcon className="text-[var(--nimi-action-primary-bg)]" />}
+            >
+              {model.testingConnector
+                ? t('runtimeConfig.cloud.testing', { defaultValue: 'Testing...' })
+                : t('runtimeConfig.cloud.testConnector', { defaultValue: 'Test' })}
+            </Button>
+          </>
+        )}
+      />
       {/* Split panel: connector list (left) + config (right) */}
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
         <CloudConnectorListPanel
@@ -601,6 +605,7 @@ export function CloudPage({ model, state }: CloudPageProps) {
           canEditVendor={canEditVendor}
           canSaveToken={canSaveToken}
           canStartCodexOAuth={canStartCodexOAuth}
+          canManageCatalogOverrides={canManageCatalogOverrides}
           codexOAuthBusy={codexOAuthBusy}
           codexOAuthPending={codexOAuthPending}
           connectorConfigurationLocked={codexOAuthBusy}
@@ -612,6 +617,7 @@ export function CloudPage({ model, state }: CloudPageProps) {
           isSystemOwned={isSystemOwned}
           model={model}
           onAcquireCodexOAuth={onAcquireCodexOAuth}
+          onManageCatalogOverrides={() => setCatalogOverrideProviderId(selectedConnector?.provider || '')}
           onCommitConnectorLabelDraft={commitConnectorLabelDraft}
           onConnectorLabelDraftChange={(label) => {
             if (!codexOAuthBusy) setConnectorLabelDraft(label);
@@ -633,6 +639,11 @@ export function CloudPage({ model, state }: CloudPageProps) {
           vendorOptions={vendorOptions}
         />
       </div>
+      <CatalogOverridesDrawer
+        open={Boolean(catalogOverrideProviderId)}
+        providerId={catalogOverrideProviderId}
+        onClose={() => setCatalogOverrideProviderId('')}
+      />
     </RuntimePageShell>
   );
 }

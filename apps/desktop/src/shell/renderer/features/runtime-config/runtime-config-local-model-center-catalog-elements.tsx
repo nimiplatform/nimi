@@ -6,14 +6,14 @@ import type {
   NimiRuntimeLocalVerifiedAssetDescriptor,
 } from '@nimiplatform/sdk/runtime';
 
-import { Button, RuntimeSelect } from './runtime-config-primitives';
+import { Button } from './runtime-config-primitives';
 import {
-  CAPABILITY_OPTIONS,
   type CapabilityOption,
   formatBytes,
 } from './runtime-config-model-center-utils';
 import {
   DownloadIcon,
+  localizedAssetKindLabel,
   RecommendationDetailList,
   RecommendationDiagnosticsPanel,
   StarIcon,
@@ -25,6 +25,8 @@ import {
 export function VerifiedModelSearchRow(props: {
   item: NimiRuntimeLocalVerifiedAssetDescriptor;
   installing: boolean;
+  installed?: boolean;
+  runtimeWritesDisabled: boolean;
   onInstallCatalogQuickPick: (templateId: string) => void;
 }) {
   const i18n = useDesktopI18nResource().instance;
@@ -48,14 +50,20 @@ export function VerifiedModelSearchRow(props: {
         <p className="truncate text-xs text-[var(--nimi-text-muted)]">{props.item.assetId}</p>
         {props.item.description ? <p className="mt-0.5 line-clamp-1 text-xs text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]">{props.item.description}</p> : null}
       </div>
-      <Button
-        size="sm"
-        onClick={() => props.onInstallCatalogQuickPick(props.item.templateId)}
-        disabled={props.installing}
-      >
-        <DownloadIcon className="h-3.5 w-3.5" />
-        {i18n.t('runtimeConfig.localModelCenter.install', { defaultValue: 'Install' })}
-      </Button>
+      {props.installed ? (
+        <Button size="sm" variant="secondary" disabled>
+          {i18n.t('runtimeConfig.localModelCenter.installed', { defaultValue: 'Installed' })}
+        </Button>
+      ) : (
+        <Button
+          size="sm"
+          onClick={() => props.onInstallCatalogQuickPick(props.item.templateId)}
+          disabled={props.installing || props.runtimeWritesDisabled}
+        >
+          <DownloadIcon className="h-3.5 w-3.5" />
+          {i18n.t('runtimeConfig.localModelCenter.install', { defaultValue: 'Install' })}
+        </Button>
+      )}
     </div>
   );
 }
@@ -67,12 +75,18 @@ export function CatalogVariantPicker(props: {
   loadingVariants: boolean;
   selectedCapability: CapabilityOption;
   installing: boolean;
+  runtimeWritesDisabled: boolean;
   onClose: () => void;
-  onCapabilityChange: (capability: CapabilityOption) => void;
   onInstallVariant: (filename: string) => void;
 }) {
   const i18n = useDesktopI18nResource().instance;
   const t = i18n.t.bind(i18n);
+  const engineLabel = String(props.item.engine || '').trim()
+    || t('runtimeConfig.localModelCenter.runtimeCatalogDefault', { defaultValue: 'Runtime catalog default' });
+  const orderedVariants = [
+    ...props.variantList.filter((variant) => variant.recommendation?.tier === 'recommended'),
+    ...props.variantList.filter((variant) => variant.recommendation?.tier !== 'recommended'),
+  ];
   return (
     <div className="bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))]/80 px-4 pb-3">
       <div className="overflow-hidden rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)]">
@@ -85,34 +99,13 @@ export function CatalogVariantPicker(props: {
           </button>
         </div>
         <div className="border-b border-[color-mix(in_srgb,var(--nimi-border-subtle)_72%,transparent)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_6%,var(--nimi-surface-panel))] px-3 py-3">
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div>
-              <p className="mb-1.5 text-[length:var(--nimi-type-caption-size)] font-semibold uppercase tracking-wide text-[var(--nimi-text-muted)]">
-                {i18n.t('runtimeConfig.localModelCenter.capability', { defaultValue: 'Capability' })}
-              </p>
-              <RuntimeSelect
-                value={props.selectedCapability}
-                onChange={(next) => props.onCapabilityChange((next || 'chat') as CapabilityOption)}
-                className="w-full"
-                options={CAPABILITY_OPTIONS.map((capability) => ({ value: capability, label: capability }))}
-              />
-              <p className="mt-1 text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-muted)]">
-                {i18n.t('runtimeConfig.localModelCenter.detectedValue', {
-                  value: (props.item.capabilities.length > 0 ? props.item.capabilities : ['chat']).join(', '),
-                  defaultValue: 'Detected: {{value}}',
-                })}
-              </p>
-            </div>
-            <div>
-              <p className="mb-1.5 text-[length:var(--nimi-type-caption-size)] font-semibold uppercase tracking-wide text-[var(--nimi-text-muted)]">
-                {i18n.t('runtimeConfig.localModelCenter.engine', { defaultValue: 'Engine' })}
-              </p>
-              <p className="rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-3 py-2 text-xs text-[var(--nimi-text-secondary)]">
-                {String(props.item.engine || '').trim()
-                  || i18n.t('runtimeConfig.localModelCenter.runtimeCatalogDefault', { defaultValue: 'Runtime catalog default' })}
-              </p>
-            </div>
-          </div>
+          <p className="text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-muted)]">
+            {t('runtimeConfig.localModelCenter.variantSpecSummary', {
+              capability: localizedAssetKindLabel(props.selectedCapability, t),
+              engine: engineLabel,
+              defaultValue: 'Capability: {{capability}} · Engine: {{engine}}',
+            })}
+          </p>
         </div>
         {props.loadingVariants ? (
           <div className="px-3 py-4 text-center">
@@ -133,11 +126,11 @@ export function CatalogVariantPicker(props: {
           </div>
         ) : (
           <ScrollArea className="max-h-48 divide-y divide-[var(--nimi-border-subtle)]" viewportClassName="max-h-48">
-            {props.variantList.map((variant) => (
+            {orderedVariants.map((variant) => (
               <button
                 key={variant.filename}
                 type="button"
-                disabled={props.installing}
+                disabled={props.installing || props.runtimeWritesDisabled}
                 onClick={() => props.onInstallVariant(variant.filename)}
                 className="flex w-full items-center justify-between px-3 py-2 text-left hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)] disabled:opacity-50"
               >
@@ -146,7 +139,7 @@ export function CatalogVariantPicker(props: {
                     <span className="truncate text-xs font-medium text-[var(--nimi-text-primary)]">{variant.filename}</span>
                     {variant.recommendation ? (
                       <span className={`rounded px-1.5 py-0.5 text-[length:var(--nimi-type-caption-size)] ${recommendationTierClass(variant.recommendation.tier)}`}>
-                        {recommendationTierLabel(variant.recommendation.tier)}
+                        {recommendationTierLabel(variant.recommendation.tier, t)}
                       </span>
                     ) : null}
                   </div>

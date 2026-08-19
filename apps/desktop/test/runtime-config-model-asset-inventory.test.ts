@@ -47,7 +47,7 @@ test('ModelAsset inventory does not project execution environment readiness', ()
     } as never),
   )));
 
-  assert.match(markup, /Model Assets/);
+  assert.match(markup, /My Models/);
   assert.match(markup, /Image Model/);
   assert.match(markup, /Content verified/);
   assert.doesNotMatch(markup, /Runtime unsupported|Set Up Runtime|local-image-native/iu);

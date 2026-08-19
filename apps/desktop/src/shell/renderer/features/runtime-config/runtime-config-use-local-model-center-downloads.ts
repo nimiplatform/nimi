@@ -3,12 +3,11 @@ import type { NimiRuntimeLocalTransferProgressEvent } from '@nimiplatform/sdk/ru
 import { emitRuntimeLog } from '@nimiplatform/kit/telemetry';
 import { useRuntimeConfigLocalEnvironmentClient } from './runtime-config-local-environment-sdk-service';
 import {
-  PROGRESS_SESSION_LIMIT,
+  partitionTransferSessionsByDisplayState,
   type ProgressSessionState,
   toProgressEventFromSummary,
   parseTimestamp,
   pruneProgressSessions,
-  sortProgressSessions,
 } from './runtime-config-model-center-utils';
 import { useLocalModelCenterProgressCache } from './runtime-config-local-model-center-progress-context.js';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
@@ -196,32 +195,22 @@ export function useLocalModelCenterDownloads(input: UseLocalModelCenterDownloads
   }, []);
 
   const activeDownloads = useMemo(
-    () => sortProgressSessions(progressBySessionId)
-      .map((item) => item.event)
-      .filter((event) => event.sessionKind === 'download')
-      .filter((event) => (
-        event.state === 'queued'
-        || event.state === 'running'
-        || event.state === 'paused'
-        || event.state === 'failed'
-        || event.state === 'cancelled'
-      ))
-      .slice(0, PROGRESS_SESSION_LIMIT),
+    () => partitionTransferSessionsByDisplayState(progressBySessionId, 'download').active,
+    [progressBySessionId],
+  );
+
+  const terminalDownloads = useMemo(
+    () => partitionTransferSessionsByDisplayState(progressBySessionId, 'download').terminal,
     [progressBySessionId],
   );
 
   const activeImports = useMemo(
-    () => sortProgressSessions(progressBySessionId)
-      .map((item) => item.event)
-      .filter((event) => event.sessionKind === 'import')
-      .filter((event) => (
-        event.state === 'queued'
-        || event.state === 'running'
-        || event.state === 'paused'
-        || event.state === 'failed'
-        || event.state === 'cancelled'
-      ))
-      .slice(0, PROGRESS_SESSION_LIMIT),
+    () => partitionTransferSessionsByDisplayState(progressBySessionId, 'import').active,
+    [progressBySessionId],
+  );
+
+  const terminalImports = useMemo(
+    () => partitionTransferSessionsByDisplayState(progressBySessionId, 'import').terminal,
     [progressBySessionId],
   );
 
@@ -232,6 +221,8 @@ export function useLocalModelCenterDownloads(input: UseLocalModelCenterDownloads
   return {
     activeDownloads,
     activeImports,
+    terminalDownloads,
+    terminalImports,
     getLatestProgressEvent,
     onPauseDownload,
     onResumeDownload,
