@@ -204,7 +204,7 @@ export function AgentsPanelView(props: AgentsPanelViewProps) {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex shrink-0 flex-wrap items-end gap-3 px-6 pb-3 pt-5">
+      <div className="mx-auto flex w-full max-w-6xl shrink-0 flex-wrap items-end gap-3 px-6 pb-3 pt-5">
         <div className="min-w-0">
           <h1 className="text-lg font-semibold text-[var(--nimi-text-primary)]">
             {t('Agents.title', { defaultValue: 'My Characters' })}
@@ -227,7 +227,7 @@ export function AgentsPanelView(props: AgentsPanelViewProps) {
         </div>
       </div>
       <ScrollArea className="min-h-0 flex-1" viewportClassName="px-6 pb-6 pt-1">
-        {body}
+        <div className="mx-auto w-full max-w-6xl">{body}</div>
       </ScrollArea>
     </div>
   );

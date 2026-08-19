@@ -123,8 +123,8 @@ export function ExploreView(props: ExploreViewProps) {
     ? t('World.searchPlaceholder', { defaultValue: 'Search worlds, themes, personas...' })
     : t('Explore.searchPlaceholder', { defaultValue: 'Search personas by name/handle...' });
   const sectionHeader = (
-    <div className={`shrink-0 pb-3 ${props.activeSection === 'worlds' ? 'px-3 pt-4 sm:px-5' : ''}`}>
-      <div className={props.activeSection === 'worlds' ? 'mx-auto w-full max-w-[min(100%,1390px)]' : 'mx-auto w-full max-w-6xl'}>
+    <div className="shrink-0 pb-3">
+      <div className="mx-auto w-full max-w-6xl">
         <ExploreSectionNav
           active={props.activeSection}
           onSelect={props.onSectionChange}
@@ -174,9 +174,7 @@ export function ExploreView(props: ExploreViewProps) {
   return (
     <div
       data-testid={E2E_IDS.panel('explore')}
-      className={props.activeSection === 'worlds'
-        ? 'flex min-h-0 flex-1 flex-col'
-        : 'flex min-h-0 flex-1 flex-col px-5 pb-5 pt-4'}
+      className="flex min-h-0 flex-1 flex-col px-5 pb-5 pt-4"
     >
       {sectionHeader}
       {/* Scrollable section content */}
@@ -185,7 +183,7 @@ export function ExploreView(props: ExploreViewProps) {
         className="min-h-0 flex-1"
         viewportClassName="bg-transparent"
         contentClassName={props.activeSection === 'worlds'
-          ? 'min-w-0 w-full max-w-full overflow-x-hidden px-3 py-4 sm:px-5 sm:py-5'
+          ? 'mx-auto min-w-0 w-full max-w-6xl overflow-x-hidden px-1 py-5'
           : 'mx-auto w-full max-w-6xl px-1 py-5'}
         viewportRef={feedScrollRef}
       >

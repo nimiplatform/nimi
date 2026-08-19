@@ -23,18 +23,12 @@ const WORLD_ATLAS_SHELL_COLUMNS_STYLE: WorldAtlasShellColumnsStyle = {
 
 export function WorldsLoadingSkeleton({ embedded = false }: { embedded?: boolean }) {
   const content = (
-    <div className="mx-auto min-w-0 w-full max-w-[min(100%,1390px)]" style={WORLD_EXPLORER_THEME.root}>
+    <div className="mx-auto min-w-0 w-full" style={WORLD_EXPLORER_THEME.root}>
       <div
         className="grid min-w-0 items-start gap-[18px] min-[1180px]:[grid-template-columns:var(--world-atlas-shell-columns)]"
         style={WORLD_ATLAS_SHELL_COLUMNS_STYLE}
       >
-        <Surface
-          tone="panel"
-          material="glass-regular"
-          padding="none"
-          className="min-w-0 max-w-full rounded-[32px] p-4 sm:p-5 xl:p-6"
-          style={WORLD_EXPLORER_THEME.discoveryPanel}
-        >
+        <div className="min-w-0 max-w-full">
           <LoadingSkeleton lines={2} className="max-w-md" />
           <Surface tone="panel" material="solid" padding="sm" className="mt-5 h-14 rounded-[24px]" style={WORLD_EXPLORER_THEME.weakBlock} />
           <div className="mt-6 grid min-w-0 gap-6">
@@ -47,7 +41,7 @@ export function WorldsLoadingSkeleton({ embedded = false }: { embedded?: boolean
               ))}
             </div>
           </div>
-        </Surface>
+        </div>
         <Surface tone="panel" material="solid" padding="md" className="h-[720px] rounded-[32px]" style={WORLD_EXPLORER_THEME.panel}>
           <LoadingSkeleton lines={5} />
         </Surface>
@@ -125,7 +119,7 @@ export function WorldCatalogContent({
   const content = (
     <div
       data-testid="world-atlas-glass-layout"
-      className="mx-auto min-w-0 w-full max-w-[min(100%,1390px)]"
+      className="mx-auto min-w-0 w-full"
       style={WORLD_EXPLORER_THEME.root}
     >
       <div
@@ -135,15 +129,9 @@ export function WorldCatalogContent({
         ].join(' ')}
         style={selectedWorld ? WORLD_ATLAS_SHELL_COLUMNS_STYLE : undefined}
       >
-        <Surface
-          as="section"
+        <section
           data-testid="world-atlas-discovery-panel"
-          tone="panel"
-          material="glass-regular"
-          elevation="floating"
-          padding="none"
-          className="min-w-0 max-w-full rounded-[32px] p-4 sm:p-5 xl:p-6"
-          style={WORLD_EXPLORER_THEME.discoveryPanel}
+          className="min-w-0 max-w-full"
         >
           <header className="mb-5 flex min-w-0 flex-wrap items-end justify-between gap-4">
             <div className="min-w-0">
@@ -267,7 +255,7 @@ export function WorldCatalogContent({
               ) : null}
             </section>
           </main>
-        </Surface>
+        </section>
         {selectedWorld ? (
           <SelectedWorldPanel
             world={selectedWorld}

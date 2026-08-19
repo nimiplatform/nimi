@@ -443,12 +443,16 @@ export function MainLayoutView(props: MainLayoutViewProps) {
           initial="initial"
           animate="animate"
           exit="exit"
+          className="fixed z-[11010]"
+          style={{
+            bottom: settingsMenuPosition.bottom,
+            left: settingsMenuPosition.left,
+          }}
         >
           <MainLayoutSettingsMenu
             userAvatarUrl={props.userAvatarUrl}
             displayName={props.displayName}
             userEmail={props.userEmail}
-            anchorPosition={settingsMenuPosition}
             developerModeEnabled={developerModeEnabled}
             isItemActive={isSettingsMenuItemActive}
             onOpenItem={openSettingsSubmenuItem}

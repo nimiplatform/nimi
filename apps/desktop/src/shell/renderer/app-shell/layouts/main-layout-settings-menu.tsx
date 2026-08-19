@@ -1,5 +1,4 @@
 import { useTranslation } from 'react-i18next';
-import type { CSSProperties } from 'react';
 import { ScrollArea, Surface } from '@nimiplatform/kit/ui';
 import { motion } from 'motion/react';
 import { EntityAvatar } from '../../components/entity-avatar.js';
@@ -39,7 +38,6 @@ type MainLayoutSettingsMenuProps = {
   userAvatarUrl?: string | null;
   displayName: string;
   userEmail?: string | null;
-  anchorPosition: SettingsMenuAnchorPosition;
   developerModeEnabled: boolean;
   isItemActive: (itemId: SettingsSubmenuItemId) => boolean;
   onOpenItem: (itemId: SettingsSubmenuItemId) => void;
@@ -59,10 +57,6 @@ function MenuChevron() {
 export function MainLayoutSettingsMenu(props: MainLayoutSettingsMenuProps) {
   const { t } = useTranslation();
   const interactiveMotion = useDesktopInteractiveMotion();
-  const anchorStyle: CSSProperties = {
-    bottom: props.anchorPosition.bottom,
-    left: props.anchorPosition.left,
-  };
   const items = SETTINGS_SUBMENU_ITEMS.filter((item) => (
     item.id !== 'logout'
     && item.id !== 'profile'
@@ -70,7 +64,7 @@ export function MainLayoutSettingsMenu(props: MainLayoutSettingsMenuProps) {
   ));
 
   return (
-    <div className="fixed z-[11010]" style={anchorStyle}>
+    <>
       <Surface tone="overlay" material="glass-thick" padding="none" className={`flex max-h-[calc(100cqh-100px)] w-64 flex-col overflow-hidden py-2 ${SHELL_CHROME_OVERLAY_CLASS}`}>
         <div className="flex items-center gap-3 px-4 py-3">
           <EntityAvatar imageUrl={props.userAvatarUrl} name={props.displayName} kind="human" sizeClassName="h-10 w-10" textClassName="text-sm font-semibold" />
@@ -159,6 +153,6 @@ export function MainLayoutSettingsMenu(props: MainLayoutSettingsMenuProps) {
           </div>
         </ScrollArea>
       </Surface>
-    </div>
+    </>
   );
 }
