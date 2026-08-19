@@ -220,6 +220,9 @@ func (s *Service) finishLocalVideoJobFailure(ctx context.Context, jobID string, 
 	if existing, ok := s.scenarioJobs.get(jobID); ok && isTerminalScenarioJobStatus(existing.GetStatus()) {
 		return
 	}
+	if s.logger != nil {
+		s.logger.Warn("local video scenario job failed", "job_id", jobID, "error", err)
+	}
 	jobStatus := runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED
 	eventType := runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_FAILED
 	reason, ok := grpcerr.ExtractReasonCode(err)
