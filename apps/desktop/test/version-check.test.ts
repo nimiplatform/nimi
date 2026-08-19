@@ -60,6 +60,21 @@ test('D-IPC-009: missing version → warn severity, ok=true', () => {
   assert.equal(result.daemonVersion, null);
 });
 
+test('source lifecycle treats its intentionally absent release version as not applicable', () => {
+  const events: Array<{ level: string; message: string }> = [];
+  const result = checkRuntimeDaemonVersion(undefined, desktopVersion, {
+    expectedMissing: true,
+    logEvent: (event) => events.push({ level: event.level, message: event.message }),
+  });
+  assert.equal(result.ok, true);
+  assert.equal(result.severity, 'none');
+  assert.equal(result.daemonVersion, null);
+  assert.deepEqual(events, [{
+    level: 'info',
+    message: 'phase:version-check:daemon-version-not-applicable',
+  }]);
+});
+
 test('D-IPC-009: major mismatch → fatal severity, ok=false', () => {
   const result = checkRuntimeDaemonVersion('1.0.0', desktopVersion);
   assert.equal(result.ok, false);
@@ -107,6 +122,12 @@ test('D-IPC-009: packaged desktop treats missing daemon version as fatal in stri
   const result = checkRuntimeDaemonVersion(undefined, desktopVersion, { strictExactMatch: true });
   assert.equal(result.ok, false);
   assert.equal(result.severity, 'fatal');
+  const explicitlyExpected = checkRuntimeDaemonVersion(undefined, desktopVersion, {
+    strictExactMatch: true,
+    expectedMissing: true,
+  });
+  assert.equal(explicitlyExpected.ok, false);
+  assert.equal(explicitlyExpected.severity, 'fatal');
 });
 
 test('D-IPC-009: packaged desktop treats unparseable daemon version as fatal in strict mode', () => {

@@ -277,6 +277,7 @@ export type RuntimeDaemonVersionCheckResult = {
 
 export type RuntimeDaemonVersionCheckOptions = {
   strictExactMatch?: boolean;
+  expectedMissing?: boolean;
   logEvent?: BootstrapLogEventSink;
 };
 
@@ -315,6 +316,20 @@ export function checkRuntimeDaemonVersion(
   const strictExactMatch = options.strictExactMatch === true;
 
   if (!daemonVersion) {
+    if (options.expectedMissing === true && !strictExactMatch) {
+      emitVersionCheckEvent(options.logEvent, {
+        level: 'info',
+        message: 'phase:version-check:daemon-version-not-applicable',
+        details: { appVersion, strictExactMatch },
+      });
+      return {
+        ok: true,
+        daemonVersion: null,
+        appVersion,
+        severity: 'none',
+        message: 'Daemon version negotiation is not applicable to this launch mode',
+      };
+    }
     emitVersionCheckEvent(options.logEvent, {
       level: strictExactMatch ? 'error' : 'warn',
       message: strictExactMatch

@@ -102,6 +102,119 @@ fn desktop_runtime_session_cache() -> &'static AsyncMutex<Option<Arc<VerifiedDes
     DESKTOP_RUNTIME_SESSION.get_or_init(|| AsyncMutex::new(None))
 }
 
+async fn invalidate_exact_desktop_runtime_session(failed: &Arc<VerifiedDesktopRuntimeSession>) {
+    let mut slot = desktop_runtime_session_cache().lock().await;
+    if take_matching_cached_session(&mut slot, failed).is_some() {
+        diagnose_desktop_session("exact-session-invalidated");
+    }
+}
+
+fn take_matching_cached_session<T>(slot: &mut Option<Arc<T>>, failed: &Arc<T>) -> Option<Arc<T>> {
+    if slot
+        .as_ref()
+        .is_some_and(|current| Arc::ptr_eq(current, failed))
+    {
+        slot.take()
+    } else {
+        None
+    }
+}
+
+#[cfg(all(test, feature = "windows-source-local-development"))]
+mod source_runtime_session_cache_tests {
+    use super::{take_matching_cached_session, validate_before_caching_source_session};
+    use std::sync::Arc;
+    use tokio::sync::{Mutex, Notify};
+
+    #[test]
+    fn failed_session_eviction_is_scoped_to_the_exact_cached_session() {
+        let failed = Arc::new("failed");
+        let mut slot = Some(failed.clone());
+
+        let removed = take_matching_cached_session(&mut slot, &failed)
+            .expect("the failed cached session must be removed");
+        assert!(Arc::ptr_eq(&removed, &failed));
+        assert!(slot.is_none());
+
+        let replacement = Arc::new("replacement");
+        slot = Some(replacement.clone());
+        assert!(take_matching_cached_session(&mut slot, &failed).is_none());
+        assert!(slot
+            .as_ref()
+            .is_some_and(|current| Arc::ptr_eq(current, &replacement)));
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn canceled_source_validation_leaves_no_cached_session() {
+        let cached = Arc::new("cached");
+        let slot = Arc::new(Mutex::new(Some(cached)));
+        let started = Arc::new(Notify::new());
+        let task = tokio::spawn({
+            let slot = slot.clone();
+            let started = started.clone();
+            async move {
+                validate_before_caching_source_session(&slot, |_session| async move {
+                    started.notify_one();
+                    std::future::pending::<Result<Arc<&'static str>, ()>>().await
+                })
+                .await
+            }
+        });
+        started.notified().await;
+
+        task.abort();
+        let _ = task.await;
+        assert!(slot.lock().await.is_none());
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn successful_source_validation_commits_only_the_validated_session() {
+        let previous = Arc::new("previous");
+        let replacement = Arc::new("replacement");
+        let slot = Mutex::new(Some(previous.clone()));
+
+        let validated = validate_before_caching_source_session(&slot, {
+            let replacement = replacement.clone();
+            move |cached| async move {
+                assert!(cached
+                    .as_ref()
+                    .is_some_and(|session| Arc::ptr_eq(session, &previous)));
+                Ok::<_, ()>(replacement)
+            }
+        })
+        .await
+        .expect("validation must succeed");
+
+        assert!(Arc::ptr_eq(&validated, &replacement));
+        assert!(slot
+            .lock()
+            .await
+            .as_ref()
+            .is_some_and(|session| Arc::ptr_eq(session, &replacement)));
+    }
+}
+
+#[cfg(feature = "windows-source-local-development")]
+async fn validate_before_caching_source_session<T, E, F, Fut>(
+    slot: &AsyncMutex<Option<Arc<T>>>,
+    validate: F,
+) -> Result<Arc<T>, E>
+where
+    T: Send + Sync,
+    F: FnOnce(Option<Arc<T>>) -> Fut,
+    Fut: Future<Output = Result<Arc<T>, E>>,
+{
+    // Move the candidate out before validation. If the caller times out and
+    // cancels this future, both the candidate and lock guard are dropped while
+    // the cache remains empty, so a one-shot connector cannot be retained in a
+    // half-validated state.
+    let mut slot = slot.lock().await;
+    let candidate = slot.take();
+    let validated = validate(candidate).await?;
+    *slot = Some(validated.clone());
+    Ok(validated)
+}
+
 fn development_process_registry() -> SupervisedDevelopmentRegistry {
     #[cfg(feature = "windows-source-local-development")]
     {
@@ -121,6 +234,10 @@ impl WindowsDesktopControl {
 }
 
 impl NimiDesktopControl for WindowsDesktopControl {
+    fn invalidate_cached_transport(&self) -> Pin<Box<dyn Future<Output = ()> + Send + '_>> {
+        Box::pin(invalidate_exact_desktop_runtime_session(&self.session))
+    }
+
     fn invoke_bundled_avatar(
         &self,
         request: BundledAvatarRuntimeRequest,
@@ -539,15 +656,6 @@ async fn open_verified_desktop_control(
     }
     let session = shared_verified_desktop_runtime_session().await?;
     let development_processes = development_process_registry();
-    #[cfg(feature = "windows-source-local-development")]
-    {
-        rebind_supervised_development_processes(
-            session.channel.clone(),
-            development_processes.clone(),
-        )
-        .await?;
-        verify_source_local_development_runtime_readiness(session.channel.clone()).await?;
-    }
     Ok(Box::new(WindowsDesktopControl {
         session,
         development_processes,
@@ -689,33 +797,41 @@ async fn open_source_runtime_pipe(name: &str) -> Result<NamedPipeClient, Protect
 
 async fn shared_verified_desktop_runtime_session(
 ) -> Result<Arc<VerifiedDesktopRuntimeSession>, ProtectedCarrierError> {
-    let mut slot = desktop_runtime_session_cache().lock().await;
-    if let Some(session) = slot.as_ref() {
-        #[cfg(feature = "windows-source-local-development")]
-        if !session._runtime_peer.running() {
-            diagnose_desktop_session("cached-runtime-peer-exited");
-            slot.take();
-        } else {
-            return Ok(session.clone());
-        }
-        #[cfg(not(feature = "windows-source-local-development"))]
-        return Ok(session.clone());
-    }
-
-    let (channel, runtime_peer) =
-        open_verified_runtime_channel(RUNTIME_PROTECTED_PIPE_NAME).await?;
     #[cfg(feature = "windows-source-local-development")]
     {
-        diagnose_desktop_session("opened-direct");
-        let session = Arc::new(VerifiedDesktopRuntimeSession {
-            channel,
-            _runtime_peer: runtime_peer,
-        });
-        *slot = Some(session.clone());
-        return Ok(session);
+        return validate_before_caching_source_session(
+            desktop_runtime_session_cache(),
+            |cached| async move {
+                let session = match cached {
+                    Some(session) if session._runtime_peer.running() => session,
+                    Some(_) => {
+                        diagnose_desktop_session("cached-runtime-peer-exited");
+                        open_source_desktop_runtime_session().await?
+                    }
+                    None => open_source_desktop_runtime_session().await?,
+                };
+                let development_processes = development_process_registry();
+                rebind_supervised_development_processes(
+                    session.channel.clone(),
+                    development_processes,
+                )
+                .await?;
+                verify_source_local_development_runtime_readiness(session.channel.clone()).await?;
+                diagnose_desktop_session("source-session-validated");
+                Ok(session)
+            },
+        )
+        .await;
     }
     #[cfg(not(feature = "windows-source-local-development"))]
     {
+        let mut slot = desktop_runtime_session_cache().lock().await;
+        if let Some(session) = slot.as_ref() {
+            return Ok(session.clone());
+        }
+
+        let (channel, runtime_peer) =
+            open_verified_runtime_channel(RUNTIME_PROTECTED_PIPE_NAME).await?;
         diagnose_desktop_session("open-desktop-session-started");
         let mut auth = RuntimeAuthServiceClient::new(channel.clone());
         let opened = auth
@@ -753,6 +869,18 @@ async fn shared_verified_desktop_runtime_session(
         *slot = Some(session.clone());
         Ok(session)
     }
+}
+
+#[cfg(feature = "windows-source-local-development")]
+async fn open_source_desktop_runtime_session(
+) -> Result<Arc<VerifiedDesktopRuntimeSession>, ProtectedCarrierError> {
+    let (channel, runtime_peer) =
+        open_verified_runtime_channel(RUNTIME_PROTECTED_PIPE_NAME).await?;
+    diagnose_desktop_session("opened-direct");
+    Ok(Arc::new(VerifiedDesktopRuntimeSession {
+        channel,
+        _runtime_peer: runtime_peer,
+    }))
 }
 
 fn diagnose_desktop_session(stage: &str) {

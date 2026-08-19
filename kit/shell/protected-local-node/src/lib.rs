@@ -800,8 +800,7 @@ pub async fn fixed_runtime_service_restart() -> NativeJsonOutcome {
         account_events::close_all_account_event_streams().await;
         bundled_avatar_streams::close_all_bundled_avatar_streams().await;
         first_party_streams::close_all_first_party_product_streams().await;
-        #[cfg(target_os = "windows")]
-        nimi_shell_protected_local::invalidate_verified_desktop_runtime_channel().await;
+        control.invalidate_cached_transport().await;
         match result {
             Ok(outcome) => NativeJsonOutcome::success(project_runtime_service_action(outcome)),
             Err(error) => NativeJsonOutcome::protected_error(error),
@@ -1160,12 +1159,14 @@ async fn clear_desktop_control(control: &Arc<dyn NimiDesktopControl>) {
     // A delayed failure from a stale pre-restart control must not invalidate a
     // newer verified session already installed by another caller.
     if removed {
+        // Remove only this control's lower carrier session. A validation retry
+        // may already have installed a replacement while stale stream cleanup
+        // was settling, so a process-global cache clear is not safe here.
+        control.invalidate_cached_transport().await;
         cancel_active_and_clear_completed_first_party_unaries().await;
-        account_events::close_all_account_event_streams().await;
-        bundled_avatar_streams::close_all_bundled_avatar_streams().await;
-        first_party_streams::close_all_first_party_product_streams().await;
-        #[cfg(target_os = "windows")]
-        nimi_shell_protected_local::invalidate_verified_desktop_runtime_channel().await;
+        account_events::close_account_event_streams_for_control(control).await;
+        bundled_avatar_streams::close_bundled_avatar_streams_for_control(control).await;
+        first_party_streams::close_first_party_product_streams_for_control(control).await;
     }
 }
 

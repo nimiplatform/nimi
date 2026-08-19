@@ -29,7 +29,7 @@ export type RuntimeDefaults = {
 export type RuntimeBridgeDaemonStatus = {
   running: boolean;
   managed: boolean;
-  launchMode: 'RUNTIME' | 'RELEASE' | 'INVALID';
+  launchMode: 'SOURCE' | 'RUNTIME' | 'RELEASE' | 'INVALID';
   grpcAddr: string;
   pid?: number;
   version?: string;
@@ -134,7 +134,7 @@ export function parseRuntimeBridgeDaemonStatus(value: unknown): RuntimeBridgeDae
   const record = assertBridgeRecord(value, 'nimi.shell.runtimeLifecycle.status returned invalid payload');
   const launchModeRaw = String(record.launchMode || '').trim().toUpperCase();
   const launchMode: RuntimeBridgeDaemonStatus['launchMode'] =
-    launchModeRaw === 'RUNTIME' || launchModeRaw === 'RELEASE'
+    launchModeRaw === 'SOURCE' || launchModeRaw === 'RUNTIME' || launchModeRaw === 'RELEASE'
       ? launchModeRaw
       : 'INVALID';
   return {

@@ -285,6 +285,17 @@ describe('runtime bridge daemon command payloads', () => {
       version: '0.1.0',
       debugLogPath: '/tmp/runtime.log',
     });
+    expect(parseRuntimeBridgeDaemonStatus({
+      running: true,
+      managed: false,
+      launchMode: 'source',
+      grpcAddr: 'protected-local://source-current-user-desktop',
+    })).toEqual({
+      running: true,
+      managed: false,
+      launchMode: 'SOURCE',
+      grpcAddr: 'protected-local://source-current-user-desktop',
+    });
   });
 
   it('parses daemon config get and set results through Kit instead of app-local schemas', () => {

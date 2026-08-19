@@ -28,13 +28,34 @@ struct FirstPartyProductStream {
 }
 
 type SharedStream = Arc<FirstPartyProductStream>;
-type Registry = HashMap<String, Option<SharedStream>>;
+enum StreamSlot {
+    Opening(Weak<dyn NimiDesktopControl>),
+    Open(SharedStream),
+}
+type Registry = HashMap<String, StreamSlot>;
 const MAX_FIRST_PARTY_PRODUCT_STREAMS: usize = 16;
 static STREAMS: OnceLock<Mutex<Registry>> = OnceLock::new();
 static COUNTER: AtomicU64 = AtomicU64::new(1);
 
 fn streams() -> &'static Mutex<Registry> {
     STREAMS.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
+fn slot_belongs_to_control(slot: &StreamSlot, control: &Arc<dyn NimiDesktopControl>) -> bool {
+    let candidate = match slot {
+        StreamSlot::Opening(control) => control,
+        StreamSlot::Open(stream) => &stream.control,
+    };
+    candidate
+        .upgrade()
+        .is_some_and(|candidate| Arc::ptr_eq(&candidate, control))
+}
+
+fn opened_stream(slot: StreamSlot) -> Option<SharedStream> {
+    match slot {
+        StreamSlot::Opening(_) => None,
+        StreamSlot::Open(stream) => Some(stream),
+    }
 }
 
 async fn close_stream(stream: SharedStream) {
@@ -47,9 +68,34 @@ pub(super) async fn close_all_first_party_product_streams() -> usize {
     let count = registry.len();
     let active = registry
         .drain()
-        .filter_map(|(_, stream)| stream)
+        .filter_map(|(_, slot)| opened_stream(slot))
         .collect::<Vec<_>>();
     drop(registry);
+    for stream in active {
+        close_stream(stream).await;
+    }
+    count
+}
+
+pub(super) async fn close_first_party_product_streams_for_control(
+    control: &Arc<dyn NimiDesktopControl>,
+) -> usize {
+    let (count, active) = {
+        let mut registry = streams().lock().await;
+        let mut count = 0;
+        let mut active = Vec::new();
+        registry.retain(|_, slot| {
+            if !slot_belongs_to_control(slot, control) {
+                return true;
+            }
+            count += 1;
+            if let StreamSlot::Open(stream) = slot {
+                active.push(stream.clone());
+            }
+            false
+        });
+        (count, active)
+    };
     for stream in active {
         close_stream(stream).await;
     }
@@ -123,12 +169,23 @@ where
         "first-party-product-{}",
         COUNTER.fetch_add(1, Ordering::Relaxed)
     );
+    let current = super::DESKTOP_CONTROL.lock().await;
+    if !current
+        .as_ref()
+        .is_some_and(|candidate| Arc::ptr_eq(candidate, &control))
+    {
+        return NativeJsonOutcome::host_reason("runtime-service-unavailable", true);
+    }
     let mut registry = streams().lock().await;
     if registry.len() >= MAX_FIRST_PARTY_PRODUCT_STREAMS {
         return NativeJsonOutcome::host_reason("resource-exhausted", false);
     }
-    registry.insert(stream_id.clone(), None);
+    registry.insert(
+        stream_id.clone(),
+        StreamSlot::Opening(Arc::downgrade(&control)),
+    );
     drop(registry);
+    drop(current);
     let receiver = match open(control.clone(), input.request_bytes.to_vec(), timeout).await {
         Ok(receiver) => receiver,
         Err(error) => {
@@ -148,10 +205,10 @@ where
         control: Arc::downgrade(&control),
     });
     let mut registry = streams().lock().await;
-    let Some(slot) = registry.get_mut(stream_id.as_str()) else {
+    let Some(slot @ StreamSlot::Opening(_)) = registry.get_mut(stream_id.as_str()) else {
         return NativeJsonOutcome::host_reason("runtime-service-untrusted", false);
     };
-    *slot = Some(stream);
+    *slot = StreamSlot::Open(stream);
     NativeJsonOutcome::success(json!({ "streamId": stream_id }))
 }
 
@@ -164,7 +221,10 @@ pub async fn desktop_first_party_product_stream_next(
         .lock()
         .await
         .get(stream_id.as_str())
-        .and_then(Clone::clone);
+        .and_then(|slot| match slot {
+            StreamSlot::Opening(_) => None,
+            StreamSlot::Open(stream) => Some(stream.clone()),
+        });
     let Some(stream) = stream else {
         return next_error("not-found", false);
     };
@@ -215,7 +275,7 @@ pub async fn desktop_first_party_product_stream_close(
         .lock()
         .await
         .remove(input.stream_id.as_str())
-        .flatten();
+        .and_then(opened_stream);
     let closed = stream.is_some();
     if let Some(stream) = stream {
         close_stream(stream).await;

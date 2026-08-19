@@ -26,13 +26,34 @@ struct BundledAvatarStream {
 }
 
 type SharedStream = Arc<BundledAvatarStream>;
-type Registry = HashMap<String, Option<SharedStream>>;
+enum StreamSlot {
+    Opening(Weak<dyn NimiDesktopControl>),
+    Open(SharedStream),
+}
+type Registry = HashMap<String, StreamSlot>;
 const MAX_BUNDLED_AVATAR_STREAMS: usize = 8;
 static STREAMS: OnceLock<Mutex<Registry>> = OnceLock::new();
 static COUNTER: AtomicU64 = AtomicU64::new(1);
 
 fn streams() -> &'static Mutex<Registry> {
     STREAMS.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
+fn slot_belongs_to_control(slot: &StreamSlot, control: &Arc<dyn NimiDesktopControl>) -> bool {
+    let candidate = match slot {
+        StreamSlot::Opening(control) => control,
+        StreamSlot::Open(stream) => &stream.control,
+    };
+    candidate
+        .upgrade()
+        .is_some_and(|candidate| Arc::ptr_eq(&candidate, control))
+}
+
+fn opened_stream(slot: StreamSlot) -> Option<SharedStream> {
+    match slot {
+        StreamSlot::Opening(_) => None,
+        StreamSlot::Open(stream) => Some(stream),
+    }
 }
 
 async fn close_stream(stream: SharedStream) {
@@ -46,7 +67,7 @@ pub(super) async fn close_all_bundled_avatar_streams() -> usize {
         let registered = registry.len();
         let active = registry
             .drain()
-            .filter_map(|(_, stream)| stream)
+            .filter_map(|(_, slot)| opened_stream(slot))
             .collect::<Vec<_>>();
         drop(registry);
         for stream in active {
@@ -54,6 +75,31 @@ pub(super) async fn close_all_bundled_avatar_streams() -> usize {
         }
         registered
     };
+    registered
+}
+
+pub(super) async fn close_bundled_avatar_streams_for_control(
+    control: &Arc<dyn NimiDesktopControl>,
+) -> usize {
+    let (registered, active) = {
+        let mut registry = streams().lock().await;
+        let mut registered = 0;
+        let mut active = Vec::new();
+        registry.retain(|_, slot| {
+            if !slot_belongs_to_control(slot, control) {
+                return true;
+            }
+            registered += 1;
+            if let StreamSlot::Open(stream) = slot {
+                active.push(stream.clone());
+            }
+            false
+        });
+        (registered, active)
+    };
+    for stream in active {
+        close_stream(stream).await;
+    }
     registered
 }
 
@@ -72,12 +118,23 @@ pub async fn desktop_bundled_avatar_stream_open(
         Err(error) => return NativeJsonOutcome::host_error(error),
     };
     let stream_id = format!("bundled-avatar-{}", COUNTER.fetch_add(1, Ordering::Relaxed));
+    let current = super::DESKTOP_CONTROL.lock().await;
+    if !current
+        .as_ref()
+        .is_some_and(|candidate| Arc::ptr_eq(candidate, &control))
+    {
+        return NativeJsonOutcome::host_reason("runtime-service-unavailable", true);
+    }
     let mut registry = streams().lock().await;
     if registry.len() >= MAX_BUNDLED_AVATAR_STREAMS {
         return NativeJsonOutcome::host_reason("resource-exhausted", false);
     }
-    registry.insert(stream_id.clone(), None);
+    registry.insert(
+        stream_id.clone(),
+        StreamSlot::Opening(Arc::downgrade(&control)),
+    );
     drop(registry);
+    drop(current);
     let receiver = match control
         .open_bundled_avatar_stream(BundledAvatarRuntimeRequest {
             method_id: input.method_id,
@@ -104,10 +161,10 @@ pub async fn desktop_bundled_avatar_stream_open(
         control: Arc::downgrade(&control),
     });
     let mut registry = streams().lock().await;
-    let Some(slot) = registry.get_mut(stream_id.as_str()) else {
+    let Some(slot @ StreamSlot::Opening(_)) = registry.get_mut(stream_id.as_str()) else {
         return NativeJsonOutcome::host_reason("runtime-service-untrusted", false);
     };
-    *slot = Some(stream);
+    *slot = StreamSlot::Open(stream);
     NativeJsonOutcome::success(json!({ "streamId": stream_id }))
 }
 
@@ -120,7 +177,10 @@ pub async fn desktop_bundled_avatar_stream_next(
         .lock()
         .await
         .get(stream_id.as_str())
-        .and_then(Clone::clone);
+        .and_then(|slot| match slot {
+            StreamSlot::Opening(_) => None,
+            StreamSlot::Open(stream) => Some(stream.clone()),
+        });
     let Some(stream) = stream else {
         return next_error("not-found", false);
     };
@@ -171,7 +231,7 @@ pub async fn desktop_bundled_avatar_stream_close(
         .lock()
         .await
         .remove(input.stream_id.as_str())
-        .flatten();
+        .and_then(opened_stream);
     let closed = stream.is_some();
     if let Some(stream) = stream {
         close_stream(stream).await;

@@ -1,6 +1,6 @@
 use napi_derive::napi;
 use nimi_shell_protected_local::{
-    DesktopAccountSessionEventReceiver, DesktopAccountSessionEventsRequest,
+    DesktopAccountSessionEventReceiver, DesktopAccountSessionEventsRequest, NimiDesktopControl,
 };
 use serde_json::json;
 use std::{
@@ -21,11 +21,15 @@ use super::{
 struct AccountEventStream {
     receiver: Mutex<Option<DesktopAccountSessionEventReceiver>>,
     close_tx: watch::Sender<bool>,
-    control: Option<Weak<dyn nimi_shell_protected_local::NimiDesktopControl>>,
+    control: Option<Weak<dyn NimiDesktopControl>>,
 }
 
 type SharedAccountEventStream = Arc<AccountEventStream>;
-type AccountEventStreamRegistry = HashMap<String, Option<SharedAccountEventStream>>;
+enum AccountEventStreamSlot {
+    Opening(Option<Weak<dyn NimiDesktopControl>>),
+    Open(SharedAccountEventStream),
+}
+type AccountEventStreamRegistry = HashMap<String, AccountEventStreamSlot>;
 const MAX_ACCOUNT_EVENT_STREAMS: usize = 4;
 static ACCOUNT_EVENT_STREAMS: OnceLock<Mutex<AccountEventStreamRegistry>> = OnceLock::new();
 static ACCOUNT_EVENT_STREAM_COUNTER: AtomicU64 = AtomicU64::new(1);
@@ -34,12 +38,36 @@ fn account_event_streams() -> &'static Mutex<AccountEventStreamRegistry> {
     ACCOUNT_EVENT_STREAMS.get_or_init(|| Mutex::new(HashMap::new()))
 }
 
-fn reserve_stream_slot(registry: &mut AccountEventStreamRegistry, stream_id: String) -> bool {
+fn reserve_stream_slot(
+    registry: &mut AccountEventStreamRegistry,
+    stream_id: String,
+    control: Option<Weak<dyn NimiDesktopControl>>,
+) -> bool {
     if registry.len() >= MAX_ACCOUNT_EVENT_STREAMS || registry.contains_key(stream_id.as_str()) {
         return false;
     }
-    registry.insert(stream_id, None);
+    registry.insert(stream_id, AccountEventStreamSlot::Opening(control));
     true
+}
+
+fn slot_belongs_to_control(
+    slot: &AccountEventStreamSlot,
+    control: &Arc<dyn NimiDesktopControl>,
+) -> bool {
+    let candidate = match slot {
+        AccountEventStreamSlot::Opening(control) => control.as_ref(),
+        AccountEventStreamSlot::Open(stream) => stream.control.as_ref(),
+    };
+    candidate
+        .and_then(Weak::upgrade)
+        .is_some_and(|candidate| Arc::ptr_eq(&candidate, control))
+}
+
+fn opened_stream(slot: AccountEventStreamSlot) -> Option<SharedAccountEventStream> {
+    match slot {
+        AccountEventStreamSlot::Opening(_) => None,
+        AccountEventStreamSlot::Open(stream) => Some(stream),
+    }
 }
 
 async fn close_account_event_stream(stream: SharedAccountEventStream) {
@@ -56,8 +84,33 @@ pub(super) async fn close_all_account_event_streams() -> usize {
         let registered = registry.len();
         let streams = registry
             .drain()
-            .filter_map(|(_, stream)| stream)
+            .filter_map(|(_, slot)| opened_stream(slot))
             .collect::<Vec<_>>();
+        (registered, streams)
+    };
+    for stream in streams {
+        close_account_event_stream(stream).await;
+    }
+    registered
+}
+
+pub(super) async fn close_account_event_streams_for_control(
+    control: &Arc<dyn NimiDesktopControl>,
+) -> usize {
+    let (registered, streams) = {
+        let mut registry = account_event_streams().lock().await;
+        let mut registered = 0;
+        let mut streams = Vec::new();
+        registry.retain(|_, slot| {
+            if !slot_belongs_to_control(slot, control) {
+                return true;
+            }
+            registered += 1;
+            if let AccountEventStreamSlot::Open(stream) = slot {
+                streams.push(stream.clone());
+            }
+            false
+        });
         (registered, streams)
     };
     for stream in streams {
@@ -84,11 +137,27 @@ pub async fn desktop_account_session_events_open(
         "account-session-{}",
         ACCOUNT_EVENT_STREAM_COUNTER.fetch_add(1, Ordering::Relaxed)
     );
+    // Reserve the opening against the exact still-current control. The lock
+    // order matches transport cleanup (control, then stream registry), so a
+    // concurrent retirement either sees and removes this placeholder or wins
+    // before it can be inserted.
+    let current = super::DESKTOP_CONTROL.lock().await;
+    if !current
+        .as_ref()
+        .is_some_and(|candidate| Arc::ptr_eq(candidate, &control))
+    {
+        return NativeJsonOutcome::host_reason("runtime-service-unavailable", true);
+    }
     let mut registry = account_event_streams().lock().await;
-    if !reserve_stream_slot(&mut registry, stream_id.clone()) {
+    if !reserve_stream_slot(
+        &mut registry,
+        stream_id.clone(),
+        Some(Arc::downgrade(&control)),
+    ) {
         return NativeJsonOutcome::host_reason("runtime-service-untrusted", false);
     }
     drop(registry);
+    drop(current);
     let receiver = match control
         .open_account_session_events(DesktopAccountSessionEventsRequest { after_sequence })
         .await
@@ -110,10 +179,11 @@ pub async fn desktop_account_session_events_open(
         control: Some(Arc::downgrade(&control)),
     });
     let mut registry = account_event_streams().lock().await;
-    let Some(slot) = registry.get_mut(stream_id.as_str()) else {
+    let Some(slot @ AccountEventStreamSlot::Opening(_)) = registry.get_mut(stream_id.as_str())
+    else {
         return NativeJsonOutcome::host_reason("runtime-service-untrusted", false);
     };
-    *slot = Some(stream);
+    *slot = AccountEventStreamSlot::Open(stream);
     drop(registry);
     NativeJsonOutcome::success(json!({ "streamId": stream_id }))
 }
@@ -130,7 +200,10 @@ pub async fn desktop_account_session_events_next(
         .lock()
         .await
         .get(stream_id)
-        .and_then(Clone::clone);
+        .and_then(|slot| match slot {
+            AccountEventStreamSlot::Opening(_) => None,
+            AccountEventStreamSlot::Open(stream) => Some(stream.clone()),
+        });
     let Some(stream) = stream else {
         return NativeJsonOutcome::host_reason("not-found", false);
     };
@@ -183,7 +256,7 @@ pub async fn desktop_account_session_events_close(
         .lock()
         .await
         .remove(stream_id)
-        .flatten();
+        .and_then(opened_stream);
     let closed = stream.is_some();
     if let Some(stream) = stream {
         close_account_event_stream(stream).await;
@@ -225,7 +298,7 @@ mod tests {
         let (close_tx, _) = watch::channel(false);
         account_event_streams().lock().await.insert(
             stream_id.clone(),
-            Some(Arc::new(AccountEventStream {
+            AccountEventStreamSlot::Open(Arc::new(AccountEventStream {
                 receiver: Mutex::new(Some(receiver)),
                 close_tx,
                 control: None,
@@ -271,13 +344,16 @@ mod tests {
         registry.clear();
         registry.insert(
             stream_id,
-            Some(Arc::new(AccountEventStream {
+            AccountEventStreamSlot::Open(Arc::new(AccountEventStream {
                 receiver: Mutex::new(Some(receiver)),
                 close_tx,
                 control: None,
             })),
         );
-        registry.insert("account-session-reserved".to_string(), None);
+        registry.insert(
+            "account-session-reserved".to_string(),
+            AccountEventStreamSlot::Opening(None),
+        );
         drop(registry);
 
         assert_eq!(close_all_account_event_streams().await, 2);
@@ -291,12 +367,14 @@ mod tests {
         for index in 0..MAX_ACCOUNT_EVENT_STREAMS {
             assert!(reserve_stream_slot(
                 &mut registry,
-                format!("account-session-{index}")
+                format!("account-session-{index}"),
+                None,
             ));
         }
         assert!(!reserve_stream_slot(
             &mut registry,
-            "account-session-overflow".to_string()
+            "account-session-overflow".to_string(),
+            None,
         ));
     }
 

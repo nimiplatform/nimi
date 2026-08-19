@@ -578,6 +578,13 @@ pub type LocalAppConversationSubscriptionReceiver =
 /// The handle carries only explicit typed operations and cannot proxy an
 /// arbitrary method id, request bytes, endpoint, or portable credential.
 pub trait NimiDesktopControl: Send + Sync {
+    /// Invalidates only the carrier cache entry owned by this exact
+    /// connection-bound control. Implementations without a shared transport
+    /// cache may keep the default no-op.
+    fn invalidate_cached_transport(&self) -> Pin<Box<dyn Future<Output = ()> + Send + '_>> {
+        Box::pin(async {})
+    }
+
     fn invoke_bundled_avatar(
         &self,
         request: BundledAvatarRuntimeRequest,

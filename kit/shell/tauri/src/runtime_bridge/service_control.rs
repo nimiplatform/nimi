@@ -3,9 +3,7 @@ use nimi_shell_protected_local::LinuxUnixSocketCarrier;
 #[cfg(target_os = "macos")]
 use nimi_shell_protected_local::MacOsUnixSocketCarrier;
 #[cfg(target_os = "windows")]
-use nimi_shell_protected_local::{
-    invalidate_verified_desktop_runtime_channel, WindowsNamedPipeCarrier,
-};
+use nimi_shell_protected_local::WindowsNamedPipeCarrier;
 use nimi_shell_protected_local::{
     DesktopAccountActionRequest, DesktopAccountBeginLoginRequest, DesktopAccountBeginLoginResponse,
     DesktopAccountCompleteLoginRequest, DesktopAccountMutationResponse,
@@ -625,8 +623,7 @@ async fn clear_desktop_control_if_same(control: Arc<dyn NimiDesktopControl>) {
     });
     if cleared {
         super::channel_pool::invalidate_channel();
-        #[cfg(target_os = "windows")]
-        invalidate_verified_desktop_runtime_channel().await;
+        control.invalidate_cached_transport().await;
     }
     drop(control);
 }
@@ -640,8 +637,9 @@ async fn clear_desktop_control() {
         .get()
         .and_then(|slot| slot.lock().ok())
         .and_then(|mut slot| slot.take());
-    #[cfg(target_os = "windows")]
-    invalidate_verified_desktop_runtime_channel().await;
+    if let Some(control) = removed.as_ref() {
+        control.invalidate_cached_transport().await;
+    }
     drop(removed);
 }
 

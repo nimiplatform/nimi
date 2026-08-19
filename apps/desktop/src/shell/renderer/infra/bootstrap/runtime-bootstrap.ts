@@ -282,6 +282,7 @@ function startBootstrapRuntime(lifecycle: DesktopRendererLifecyclePort): Promise
       DESKTOP_VERSION_FALLBACK,
       {
         strictExactMatch: daemonStatus.launchMode === 'RELEASE' && !runtimeUnavailable,
+        expectedMissing: daemonStatus.launchMode === 'SOURCE',
         logEvent: logRendererEvent,
       },
     );
