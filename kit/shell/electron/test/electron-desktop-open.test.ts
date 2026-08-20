@@ -247,7 +247,7 @@ describe('Electron Desktop Open Intent host client', () => {
       let postedRequestId = '';
       const ipcMain = new FakeIpcMain();
       registerNimiElectronRuntimeBridge({
-        appId: 'nimi.tester',
+        appId: 'acme.widget',
         runtimeEndpoint: '127.0.0.1:46371',
         allowedOrigins: ['http://localhost:1430'],
         ipcMain,
@@ -298,7 +298,7 @@ describe('Electron Desktop Open Intent host client', () => {
     await withTempDir('desktop-open-missing', async (dir) => {
       const ipcMain = new FakeIpcMain();
       registerNimiElectronRuntimeBridge({
-        appId: 'nimi.tester',
+        appId: 'acme.widget',
         runtimeEndpoint: '127.0.0.1:46371',
         allowedOrigins: ['http://localhost:1430'],
         ipcMain,
@@ -339,7 +339,7 @@ describe('Electron Desktop Open Intent host client', () => {
       });
       const ipcMain = new FakeIpcMain();
       registerNimiElectronRuntimeBridge({
-        appId: 'nimi.tester',
+        appId: 'acme.widget',
         runtimeEndpoint: '127.0.0.1:46371',
         allowedOrigins: ['http://localhost:1430'],
         ipcMain,
@@ -394,7 +394,7 @@ describe('Electron Desktop Open Intent host client', () => {
       try {
         const ipcMain = new FakeIpcMain();
         registerNimiElectronRuntimeBridge({
-          appId: 'nimi.tester',
+          appId: 'acme.widget',
           runtimeEndpoint: '127.0.0.1:46371',
           allowedOrigins: ['http://localhost:1430'],
           ipcMain,
@@ -438,7 +438,7 @@ describe('Electron Desktop Open Intent host client', () => {
       });
       const ipcMain = new FakeIpcMain();
       registerNimiElectronRuntimeBridge({
-        appId: 'nimi.tester',
+        appId: 'acme.widget',
         runtimeEndpoint: '127.0.0.1:46371',
         allowedOrigins: ['http://localhost:1430'],
         ipcMain,
@@ -483,7 +483,7 @@ describe('Electron Desktop Open Intent host client', () => {
       let readAttempted = false;
       const ipcMain = new FakeIpcMain();
       registerNimiElectronRuntimeBridge({
-        appId: 'nimi.tester',
+        appId: 'acme.widget',
         runtimeEndpoint: '127.0.0.1:46371',
         allowedOrigins: ['http://localhost:1430'],
         ipcMain,
@@ -523,7 +523,7 @@ describe('Electron Desktop Open Intent host client', () => {
       await writeFile(descriptorPath, '{"schemaVersion":1,"token":"desktop-open-token"', 'utf8');
       const ipcMain = new FakeIpcMain();
       registerNimiElectronRuntimeBridge({
-        appId: 'nimi.tester',
+        appId: 'acme.widget',
         runtimeEndpoint: '127.0.0.1:46371',
         allowedOrigins: ['http://localhost:1430'],
         ipcMain,
@@ -557,7 +557,7 @@ describe('Electron Desktop Open Intent host client', () => {
   it('returns invalid for malformed renderer requestId before descriptor access', async () => {
     const ipcMain = new FakeIpcMain();
     registerNimiElectronRuntimeBridge({
-      appId: 'nimi.tester',
+      appId: 'acme.widget',
       runtimeEndpoint: '127.0.0.1:46371',
       allowedOrigins: ['http://localhost:1430'],
       ipcMain,

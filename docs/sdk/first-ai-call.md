@@ -91,7 +91,7 @@ For repository development:
 ```bash
 pnpm --filter @nimiplatform/sdk test
 pnpm --filter @nimiplatform/examples check
-pnpm --filter @nimiplatform/tester test
+pnpm --filter @nimiplatform/lab test
 ```
 
 For an App repository, run `nimi doctor`, the App's validation commands, and one App-owned generation call with the exact configured App identity.
@@ -102,5 +102,5 @@ For an App repository, run `nimi doctor`, the App's validation commands, and one
 - [`sdks/typescript/core/ai/config.ts`](https://github.com/nimiplatform/nimi/blob/main/sdks/typescript/core/ai/config.ts)
 - [`sdks/typescript/runtime/config-projections.ts`](https://github.com/nimiplatform/nimi/blob/main/sdks/typescript/runtime/config-projections.ts)
 - [`sdks/typescript/root-client.ts`](https://github.com/nimiplatform/nimi/blob/main/sdks/typescript/root-client.ts)
-- [`apps/tester/src/tester/tester-run-target.ts`](https://github.com/nimiplatform/nimi/blob/main/apps/tester/src/tester/tester-run-target.ts)
-- [`apps/tester/src/tester/tester-runtime.ts`](https://github.com/nimiplatform/nimi/blob/main/apps/tester/src/tester/tester-runtime.ts)
+- [`apps/lab/src/lab/lab-run-target.ts`](https://github.com/nimiplatform/nimi/blob/main/apps/lab/src/lab/lab-run-target.ts)
+- [`apps/lab/src/lab/lab-runtime.ts`](https://github.com/nimiplatform/nimi/blob/main/apps/lab/src/lab/lab-runtime.ts)

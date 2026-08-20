@@ -5,6 +5,7 @@ import { createAppScaffold } from './app-scaffold.mjs';
 import { doctorApp, initApp, updateApp } from './app-doctor-update.mjs';
 export { runDevShell } from '../scripts/dev-shell.mjs';
 export { validateSimulatorAppSource } from './simulator-conformance.mjs';
+export { APP_SCAFFOLD_FEATURE_IDS } from './app-scaffold-capabilities.mjs';
 
 const SDK_VERSION = '^0.6.0';
 const NIMICODING_VERSION = '0.5.0';
@@ -97,7 +98,7 @@ function runNimicodingSync(targetDir, mode) {
     throw new Error(`Unsupported nimicoding sync mode: ${mode}`);
   }
   const flag = mode === 'apply' ? '--apply' : '--check';
-  const pnpmArgs = ['exec', 'nimicoding', 'sync', flag, '--json'];
+  const pnpmArgs = ['--silent', 'exec', 'nimicoding', 'sync', flag, '--json'];
   const command =
     process.platform === 'win32'
       ? { binary: 'cmd.exe', args: ['/d', '/c', 'corepack', 'pnpm', ...pnpmArgs] }
@@ -133,6 +134,7 @@ export function createApp(cwd, options = {}) {
       title: options.title,
       packageName: options.packageName,
       author: options.author,
+      features: options.features,
     },
     versions: appScaffoldVersions(),
     createFileTree,

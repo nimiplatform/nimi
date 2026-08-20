@@ -75,8 +75,8 @@ assert(appClient instanceof NimiAppClient);
 assert.equal((await appClient.list())[0].appId, 'nimi.example-app');
 assert.equal((await appClient.status('nimi.example-app')).launchReadiness, 'ready');
 
-const scopeRef = createAppScopeRef({ appId: 'tester.app', surfaceId: 'settings' });
-assert.equal(scopeRef.ownerId, 'tester.app');
+const scopeRef = createAppScopeRef({ appId: 'acme.widget', surfaceId: 'settings' });
+assert.equal(scopeRef.ownerId, 'acme.widget');
 assert.equal('PermissionClient' in appModule, false);
 assert.equal('createPermissionClient' in appModule, false);
 `);
@@ -115,7 +115,7 @@ const appClient: NimiAppClient = createNimiAppClient({
   async get() { return entry; },
   async status() { return status; },
 });
-const scopeRef: NimiAppScopeRef = createAppScopeRef({ appId: 'tester.app', surfaceId: 'settings' });
+const scopeRef: NimiAppScopeRef = createAppScopeRef({ appId: 'acme.widget', surfaceId: 'settings' });
 void appClient;
 void scopeRef;
 `);

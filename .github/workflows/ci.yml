@@ -25,7 +25,7 @@ jobs:
       desktop_web_changed: ${{ steps.detect.outputs.desktop_web_changed }}
       kit_native_changed: ${{ steps.detect.outputs.kit_native_changed }}
       avatar_native_changed: ${{ steps.detect.outputs.avatar_native_changed }}
-      tester_native_changed: ${{ steps.detect.outputs.tester_native_changed }}
+      lab_native_changed: ${{ steps.detect.outputs.lab_native_changed }}
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -55,7 +55,7 @@ jobs:
               echo "desktop_web_changed=true"
               echo "kit_native_changed=true"
               echo "avatar_native_changed=true"
-              echo "tester_native_changed=true"
+              echo "lab_native_changed=true"
             } >> "${GITHUB_OUTPUT}"
             exit 0
           fi
@@ -87,7 +87,7 @@ jobs:
           desktop_web_changed=false
           kit_native_changed=false
           avatar_native_changed=false
-          tester_native_changed=false
+          lab_native_changed=false
 
           docs_regex='^(docs/|examples/|README\.md$|CHANGELOG\.md$)'
           shared_regex='^(scripts/|package\.json$|pnpm-workspace\.yaml$|pnpm-lock\.yaml$|\.github/workflows/|\.gitignore$|\.editorconfig$)'
@@ -132,18 +132,18 @@ jobs:
             if [[ "${file}" =~ ^kit/shell/(capabilities|protected-local|protected-local-node|tauri)/ ]]; then
               kit_native_changed=true
               avatar_native_changed=true
-              tester_native_changed=true
+              lab_native_changed=true
             fi
             if [[ "${file}" =~ ^apps/avatar/src-tauri/ ]]; then
               avatar_native_changed=true
             fi
-            if [[ "${file}" =~ ^apps/tester/src-tauri/ ]]; then
-              tester_native_changed=true
+            if [[ "${file}" =~ ^apps/lab/src-tauri/ ]]; then
+              lab_native_changed=true
             fi
             if [[ "${file}" =~ ${native_ci_regex} ]]; then
               kit_native_changed=true
               avatar_native_changed=true
-              tester_native_changed=true
+              lab_native_changed=true
             fi
           done < /tmp/nimi_changed_files.txt
 
@@ -175,7 +175,7 @@ jobs:
             echo "desktop_web_changed=${desktop_web_changed}"
             echo "kit_native_changed=${kit_native_changed}"
             echo "avatar_native_changed=${avatar_native_changed}"
-            echo "tester_native_changed=${tester_native_changed}"
+            echo "lab_native_changed=${lab_native_changed}"
           } >> "${GITHUB_OUTPUT}"
 
   docs-contract:
@@ -352,9 +352,9 @@ jobs:
       - name: Test Avatar native crate
         run: pnpm test:avatar:native
 
-  tester-native-tests:
+  lab-native-tests:
     needs: changes
-    if: needs.changes.outputs.tester_native_changed == 'true'
+    if: needs.changes.outputs.lab_native_changed == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -380,8 +380,8 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
 
-      - name: Test Tester native crate
-        run: pnpm test:tester:native
+      - name: Test Nimi Lab native crate
+        run: pnpm test:lab:native
 
   sdk-quality:
     needs: changes

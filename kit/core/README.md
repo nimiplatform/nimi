@@ -32,7 +32,7 @@ presentation helpers.
 
 ## Current Consumers
 - `desktop`
-- `tester`
+- `lab`
 - `web`
 
 ## Verification

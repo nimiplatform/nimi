@@ -15,8 +15,8 @@ import {
 import { validateSimulatorScenario } from '../../build/config.mjs';
 import { desktopSimulatorBehavior } from '../../../desktop/src/simulator/behavior.ts';
 import { simulatorConformanceFixture as desktopFixture } from '../../../desktop/src/simulator/fixture.ts';
-import { testerSimulatorBehavior } from '../../../tester/src/simulator/behavior.ts';
-import { simulatorConformanceFixture as testerFixture } from '../../../tester/src/simulator/fixture.ts';
+import { labSimulatorBehavior } from '../../../lab/src/simulator/behavior.ts';
+import { simulatorConformanceFixture as labFixture } from '../../../lab/src/simulator/fixture.ts';
 import { zhiyuSimulatorBehavior } from '../../../zhiyu/src/simulator/behavior.ts';
 import { simulatorConformanceFixture as zhiyuFixture } from '../../../zhiyu/src/simulator/fixture.ts';
 
@@ -25,7 +25,7 @@ const SHELL = { kind: 'shell', moduleId: null, instanceId: null };
 
 const MODULES = [
   { moduleId: 'desktop', orderingKey: 0, fixture: desktopFixture, behavior: desktopSimulatorBehavior },
-  { moduleId: 'tester', orderingKey: 1, fixture: testerFixture, behavior: testerSimulatorBehavior },
+  { moduleId: 'lab', orderingKey: 1, fixture: labFixture, behavior: labSimulatorBehavior },
   { moduleId: 'zhiyu', orderingKey: 2, fixture: zhiyuFixture, behavior: zhiyuSimulatorBehavior },
 ];
 
@@ -112,7 +112,7 @@ test('session.persona.share commits the persona to ecosystem, shell product, and
   const beforeRevision = engine.getCommitted().revision;
   const result = await engine.acceptCommand(
     'simulator.interaction.emit',
-    interactionEnvelope(instanceIds.desktop, 'session.persona.share', PERSONA, ['zhiyu', 'tester']),
+    interactionEnvelope(instanceIds.desktop, 'session.persona.share', PERSONA, ['zhiyu', 'lab']),
     { kind: 'instance', moduleId: 'desktop', instanceId: instanceIds.desktop },
   );
   assert.equal(result.ok, true);
@@ -136,20 +136,20 @@ test('session.persona.share commits the persona to ecosystem, shell product, and
   assert.equal(entry.result, 'committed');
 
   const zhiyu = engine.projectInstance(instanceIds.zhiyu);
-  const tester = engine.projectInstance(instanceIds.tester);
+  const lab = engine.projectInstance(instanceIds.lab);
   assert.equal(zhiyu.ok, true);
-  assert.equal(tester.ok, true);
+  assert.equal(lab.ok, true);
   assert.equal(zhiyu.value.personaReference.persona.displayName, '林澈');
-  assert.equal(tester.value.personaReference.persona.displayName, '林澈');
+  assert.equal(lab.value.personaReference.persona.displayName, '林澈');
   assert.equal(zhiyu.value.personaReference.persona.accountId, 'sim-account-linche');
   // The ecosystem reference projection stays untouched.
   assert.equal(zhiyu.value.ecosystemReference, null);
-  assert.equal(tester.value.ecosystemReference, null);
+  assert.equal(lab.value.ecosystemReference, null);
 
   const committedRevision = engine.getCommitted().revision;
   const duplicate = await engine.acceptCommand(
     'simulator.interaction.emit',
-    interactionEnvelope(instanceIds.desktop, 'session.persona.share', PERSONA, ['zhiyu', 'tester']),
+    interactionEnvelope(instanceIds.desktop, 'session.persona.share', PERSONA, ['zhiyu', 'lab']),
     { kind: 'instance', moduleId: 'desktop', instanceId: instanceIds.desktop },
   );
   assert.equal(duplicate.ok, true);

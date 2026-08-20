@@ -69,8 +69,8 @@ const personaShareInteraction: SimulatorInteractionDeclaration = {
   targets: Object.freeze([
     Object.freeze({ moduleId: 'zhiyu', commandType: 'zhiyu.persona.project' }),
     Object.freeze({
-      moduleId: 'tester',
-      commandType: 'tester.persona.observe',
+      moduleId: 'lab',
+      commandType: 'lab.persona.observe',
       afterEventType: 'zhiyu.persona.projected',
     }),
   ]),
@@ -117,7 +117,7 @@ const personaShareInteraction: SimulatorInteractionDeclaration = {
         ledger: Object.freeze([Object.freeze({
           kind: 'delegation' as const,
           title: `身份共享 · ${persona.displayName}`,
-          detail: '模拟生态：Desktop 完成模拟登录，居民身份以只读投影共享给 Zhiyu 与 Tester。',
+          detail: '模拟生态：Desktop 完成模拟登录，居民身份以只读投影共享给 Zhiyu 与 Lab。',
           actors: Object.freeze([persona.displayName, 'Desktop', '生态共享']),
           result: 'committed' as const,
         })]),

@@ -103,4 +103,4 @@ pnpm run doctor
 - [`kit/README.md`](https://github.com/nimiplatform/nimi/blob/main/kit/README.md)
 - [`kit/package.json`](https://github.com/nimiplatform/nimi/blob/main/kit/package.json)
 - [`.nimi/spec/platform/ui-design-system.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/ui-design-system.authority.yaml)
-- [`apps/tester/src/tester/tester-ai-config-store.ts`](https://github.com/nimiplatform/nimi/blob/main/apps/tester/src/tester/tester-ai-config-store.ts)
+- [`apps/lab/src/lab/lab-ai-config-store.ts`](https://github.com/nimiplatform/nimi/blob/main/apps/lab/src/lab/lab-ai-config-store.ts)

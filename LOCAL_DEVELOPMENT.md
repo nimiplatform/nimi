@@ -19,7 +19,7 @@
 |---|---|---|
 | `pnpm dev:desktop [--cdp]` | Windows/macOS 日常 Electron UI、main、preload 与显式 loopback CDP 迭代 | Windows 使用已安装 fixed service；macOS workspace Electron 明确不可用 |
 | `pnpm dev:zhiyu [--cdp]` | 由已运行的 Desktop supervisor 启动 Zhiyu Electron App | 取决于当前受保护 Desktop/Runtime |
-| `pnpm dev:tester [--cdp]` | 由已运行的 Desktop supervisor 启动 Tester Electron App | 取决于当前受保护 Desktop/Runtime |
+| `pnpm dev:lab [--cdp]` | 由已运行的 Desktop supervisor 启动 Nimi Lab Electron App | 取决于当前受保护 Desktop/Runtime |
 | `pnpm dev:avatar [--cdp]` | 启动 avatar-only Desktop Electron carrier；与普通 Desktop dev 实例互斥 | 取决于 Avatar launch binding |
 | `pnpm dev:avatar --tauri` | 显式启动 Avatar Tauri carrier；不支持 CDP | 取决于 Avatar launch binding |
 | `pnpm dev:runtime` | Windows/macOS 构建并更新健康的已安装 fixed service | 可用 |
@@ -28,18 +28,18 @@
 | `nimi-app dev --shell electron` | 由 Desktop supervisor 启动第三方 Electron App | 取决于当前受保护 Desktop/Runtime |
 
 根目录 `dev:<app>` 默认使用 Electron。CDP 默认关闭；`--cdp` 显式开启并使用
-互不重复的仓库默认值：Desktop `9333`、Zhiyu `9334`、Tester `9335`、Avatar
+互不重复的仓库默认值：Desktop `9333`、Zhiyu `9334`、Nimi Lab `9335`、Avatar
 `9336`。需要覆盖时直接使用 `--cdp=<port>`，例如：
 
 ```bash
 pnpm dev:zhiyu --cdp
-pnpm dev:tester --cdp=19468
+pnpm dev:lab --cdp=19468
 ```
 
-Zhiyu 与 Tester 不会自行启动第二个 Desktop；先运行并登录 Desktop，再运行对应
+Zhiyu 与 Nimi Lab 不会自行启动第二个 Desktop；先运行并登录 Desktop，再运行对应
 命令。Avatar Electron 使用 avatar-only Desktop carrier，不能与普通
 `pnpm dev:desktop` 并行。只有 Avatar 提供显式 `--tauri`；Tauri 不是 Desktop、
-Zhiyu 或 Tester 的本地开发载体，且 `--tauri` 不能与 `--cdp` 组合。
+Zhiyu 或 Nimi Lab 的本地开发载体，且 `--tauri` 不能与 `--cdp` 组合。
 
 ## Windows
 
@@ -124,12 +124,12 @@ Control 只来自显式 destructive reset。
 | 第三方 App renderer | Desktop supervisor 保持 renderer 与 host 生命周期绑定 |
 | 第三方 App `src-electron` | supervisor 防抖构建并替换 host |
 | Runtime Go | Windows/macOS 均用 `pnpm dev:runtime` 更新健康的已安装 fixed service |
-| SDK/Kit | Desktop 开发 carrier 自动 ensure 并持续 watch；无需由 Zhiyu/Tester 重建 |
+| SDK/Kit | Desktop 开发 carrier 自动 ensure 并持续 watch；无需由 Zhiyu/Nimi Lab 重建 |
 
 `pnpm dev:desktop` 会在构建自身 Electron host 前启动 SDK/Kit canonical watcher，
 等待共享 `dist` 可用且新鲜后再启动 renderer。已有 freshness stamp 且源码未变化时
 不会重复构建。avatar-only Electron carrier 复用同一个 Desktop 入口，因此遵循相同
-规则；Zhiyu 与 Tester 的 `build:electron` 只校验并消费这份产物。
+规则；Zhiyu 与 Nimi Lab 的 `build:electron` 只校验并消费这份产物。
 
 仅在不启动 Desktop、单独迭代 SDK/Kit 时使用根命令
 `pnpm dev:prepare:watch`；不要与 Desktop 托管的 watcher 并行运行。

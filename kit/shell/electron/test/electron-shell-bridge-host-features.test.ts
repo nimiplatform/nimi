@@ -91,7 +91,7 @@ describe('registerNimiElectronRuntimeBridge', () => {
     }, async () => {
       const ipcMain = new FakeIpcMain();
       registerNimiElectronRuntimeBridge({
-        appId: 'nimi.tester',
+        appId: 'acme.widget',
         runtimeEndpoint: '127.0.0.1:46371',
         allowedOrigins: ['http://localhost:1430'],
         ipcMain,
@@ -168,7 +168,7 @@ describe('registerNimiElectronRuntimeBridge', () => {
   it('implements host-owned local-agent identity and trusted Runtime caller projection', async () => {
     const ipcMain = new FakeIpcMain();
     registerNimiElectronRuntimeBridge({
-      appId: 'nimi.tester',
+      appId: 'acme.widget',
       runtimeEndpoint: '127.0.0.1:46371',
       allowedOrigins: ['http://localhost:1430'],
       ipcMain,
@@ -202,8 +202,8 @@ describe('registerNimiElectronRuntimeBridge', () => {
       command: NIMI_STANDARD_SHELL_COMMANDS['local-agent.runtimeTrustedCaller'],
       payload: {},
     })).resolves.toEqual({
-      appId: 'nimi.tester',
-      appInstanceId: 'nimi.tester.local-first-party',
+      appId: 'acme.widget',
+      appInstanceId: 'acme.widget.local-first-party',
       deviceId: 'local-first-party-device',
       mode: 1,
       scopes: [],
@@ -221,7 +221,7 @@ describe('registerNimiElectronRuntimeBridge', () => {
   it('rejects app-authored localAgentRef values derived from owner and runtime source identity', async () => {
     const ipcMain = new FakeIpcMain();
     registerNimiElectronRuntimeBridge({
-      appId: 'nimi.tester',
+      appId: 'acme.widget',
       runtimeEndpoint: '127.0.0.1:46371',
       allowedOrigins: ['http://localhost:1430'],
       ipcMain,
@@ -251,7 +251,7 @@ describe('registerNimiElectronRuntimeBridge', () => {
   it('implements diagnostics renderer entry probe from the Electron host event', async () => {
     const ipcMain = new FakeIpcMain();
     registerNimiElectronRuntimeBridge({
-      appId: 'nimi.tester',
+      appId: 'acme.widget',
       runtimeEndpoint: '127.0.0.1:46371',
       allowedOrigins: ['http://localhost:1430'],
       ipcMain,
@@ -273,7 +273,7 @@ describe('registerNimiElectronRuntimeBridge', () => {
     })).resolves.toEqual({
       ok: true,
       source: 'electron',
-      appId: 'nimi.tester',
+      appId: 'acme.widget',
       stage: 'renderer-bootstrap',
       origin: 'http://localhost:1430',
       url: 'http://localhost:1430/#/settings',
@@ -285,7 +285,7 @@ describe('registerNimiElectronRuntimeBridge', () => {
     const openedUrls: string[] = [];
     const ipcMain = new FakeIpcMain();
     registerNimiElectronRuntimeBridge({
-      appId: 'nimi.tester',
+      appId: 'acme.widget',
       runtimeEndpoint: '127.0.0.1:46371',
       allowedOrigins: ['http://localhost:1430'],
       ipcMain,
@@ -320,7 +320,7 @@ describe('registerNimiElectronRuntimeBridge', () => {
     const openedUrls: string[] = [];
     const ipcMain = new FakeIpcMain();
     registerNimiElectronRuntimeBridge({
-      appId: 'nimi.tester',
+      appId: 'acme.widget',
       runtimeEndpoint: '127.0.0.1:46371',
       allowedOrigins: ['http://localhost:1430'],
       ipcMain,
@@ -362,7 +362,7 @@ describe('registerNimiElectronRuntimeBridge', () => {
     const port = await findFreePort();
     const ipcMain = new FakeIpcMain();
     registerNimiElectronRuntimeBridge({
-      appId: 'nimi.tester',
+      appId: 'acme.widget',
       runtimeEndpoint: '127.0.0.1:46371',
       allowedOrigins: ['http://localhost:1430'],
       ipcMain,
@@ -421,7 +421,7 @@ describe('registerNimiElectronRuntimeBridge', () => {
 
     const ipcMain = new FakeIpcMain();
     registerNimiElectronRuntimeBridge({
-      appId: 'nimi.tester',
+      appId: 'acme.widget',
       runtimeEndpoint: '127.0.0.1:46371',
       allowedOrigins: ['http://localhost:1430'],
       ipcMain,
@@ -505,7 +505,7 @@ describe('registerNimiElectronRuntimeBridge', () => {
     const calls: string[] = [];
     const ipcMain = new FakeIpcMain();
     registerNimiElectronRuntimeBridge({
-      appId: 'nimi.tester',
+      appId: 'acme.widget',
       runtimeEndpoint: '127.0.0.1:46371',
       allowedOrigins: ['http://localhost:1430'],
       ipcMain,
@@ -568,7 +568,7 @@ describe('registerNimiElectronRuntimeBridge', () => {
   it('fails closed when standard shell UI callbacks are not installed', async () => {
     const ipcMain = new FakeIpcMain();
     registerNimiElectronRuntimeBridge({
-      appId: 'nimi.tester',
+      appId: 'acme.widget',
       runtimeEndpoint: '127.0.0.1:46371',
       allowedOrigins: ['http://localhost:1430'],
       ipcMain,
@@ -597,7 +597,7 @@ describe('registerNimiElectronRuntimeBridge', () => {
   it('implements AI Profile lookup through the standard factory catalog projection', async () => {
     const ipcMain = new FakeIpcMain();
     registerNimiElectronRuntimeBridge({
-      appId: 'nimi.tester',
+      appId: 'acme.widget',
       runtimeEndpoint: '127.0.0.1:46371',
       allowedOrigins: ['http://localhost:1430'],
       ipcMain,
@@ -630,7 +630,7 @@ describe('registerNimiElectronRuntimeBridge', () => {
   it('implements Platform projection lookup through the standard projection builders', async () => {
     const ipcMain = new FakeIpcMain();
     registerNimiElectronRuntimeBridge({
-      appId: 'nimi.tester',
+      appId: 'acme.widget',
       runtimeEndpoint: '127.0.0.1:46371',
       allowedOrigins: ['http://localhost:1430'],
       ipcMain,

@@ -66,7 +66,7 @@ relates to the rest of the platform.
 | SDK | [SDK](/sdk/) and [First AI Call](/sdk/first-ai-call) | The app-facing access boundary and first Runtime-backed text generation path |
 | App Tools | [Create A Nimi App](/start/create-an-app) | App authoring scaffold commands and local checks |
 | Kit | [Platform Kit](/platform/kit/) | Shared UI, shell, auth, telemetry, AI capability configuration, and feature modules |
-| Tester / Nimi Lab | [Use Tester As A Reference App](/start/use-tester-as-reference) | Reference app scripts, Runtime auth, Kit, AIConfig, and fail-closed states |
+| Nimi Lab | [Use Nimi Lab](/start/use-nimi-lab) | Capability integration scripts, Runtime auth, Kit, AIConfig, and fail-closed states |
 | Desktop | [Desktop](/desktop/) | The native first-party shell |
 | Web Mode | [Web Mode](/desktop/web-mode) | The constrained browser projection |
 | Realm | [Realm](/realm/) | Semantic truth, world state, world history |

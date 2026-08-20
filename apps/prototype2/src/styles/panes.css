@@ -185,10 +185,10 @@
 .spine-glyph-zhiyu i:nth-child(2) { width: 18px; }
 .spine-glyph-zhiyu i:nth-child(3) { width: 10px; }
 
-.spine-glyph-tester { color: var(--mod-tester); }
-.spine-glyph-tester i:nth-child(1) { height: 7px; }
-.spine-glyph-tester i:nth-child(2) { height: 16px; }
-.spine-glyph-tester i:nth-child(3) { height: 10px; }
+.spine-glyph-lab { color: var(--mod-lab); }
+.spine-glyph-lab i:nth-child(1) { height: 7px; }
+.spine-glyph-lab i:nth-child(2) { height: 16px; }
+.spine-glyph-lab i:nth-child(3) { height: 10px; }
 
 .spine-glyph-lines {
   display: flex;
@@ -955,7 +955,7 @@
 
 .cradle-module-row[data-mod='desktop'] { --glyph-accent: var(--mod-desktop); }
 .cradle-module-row[data-mod='zhiyu'] { --glyph-accent: var(--mod-zhiyu); }
-.cradle-module-row[data-mod='tester'] { --glyph-accent: var(--mod-tester); }
+.cradle-module-row[data-mod='lab'] { --glyph-accent: var(--mod-lab); }
 
 .cradle-module-row[data-mod='desktop'] .cradle-glyph i { width: 5px; }
 .cradle-module-row[data-mod='desktop'] .cradle-glyph i:nth-child(1) { height: 9px; }
@@ -967,10 +967,10 @@
 .cradle-module-row[data-mod='zhiyu'] .cradle-glyph i:nth-child(2) { width: 26px; }
 .cradle-module-row[data-mod='zhiyu'] .cradle-glyph i:nth-child(3) { width: 13px; }
 
-.cradle-module-row[data-mod='tester'] .cradle-glyph i { width: 5px; }
-.cradle-module-row[data-mod='tester'] .cradle-glyph i:nth-child(1) { height: 8px; }
-.cradle-module-row[data-mod='tester'] .cradle-glyph i:nth-child(2) { height: 21px; }
-.cradle-module-row[data-mod='tester'] .cradle-glyph i:nth-child(3) { height: 12px; }
+.cradle-module-row[data-mod='lab'] .cradle-glyph i { width: 5px; }
+.cradle-module-row[data-mod='lab'] .cradle-glyph i:nth-child(1) { height: 8px; }
+.cradle-module-row[data-mod='lab'] .cradle-glyph i:nth-child(2) { height: 21px; }
+.cradle-module-row[data-mod='lab'] .cradle-glyph i:nth-child(3) { height: 12px; }
 
 .cradle-module-main {
   flex: 1;
@@ -1067,7 +1067,7 @@
 
 .grant-party[data-tone='desktop'] { --party-accent: var(--mod-desktop); }
 .grant-party[data-tone='zhiyu'] { --party-accent: var(--mod-zhiyu); }
-.grant-party[data-tone='tester'] { --party-accent: var(--mod-tester); }
+.grant-party[data-tone='lab'] { --party-accent: var(--mod-lab); }
 .grant-party[data-tone='eco'] { --party-accent: #7dd3a8; }
 
 .grant-party-icon {
@@ -2485,9 +2485,9 @@
   box-shadow: 0 0 8px color-mix(in srgb, var(--mod-zhiyu) 55%, transparent);
 }
 
-.app-rail-btn[data-mod='tester']::before {
-  background: var(--mod-tester);
-  box-shadow: 0 0 8px color-mix(in srgb, var(--mod-tester) 55%, transparent);
+.app-rail-btn[data-mod='lab']::before {
+  background: var(--mod-lab);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--mod-lab) 55%, transparent);
 }
 
 /* — Pane head actions (e.g. 领域 pane → apps page entry) — */

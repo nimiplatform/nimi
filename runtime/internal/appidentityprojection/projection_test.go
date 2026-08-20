@@ -19,7 +19,7 @@ func TestLoadRepositoryProjectionSelectsOnlyLocalFirstPartyApps(t *testing.T) {
 			t.Fatalf("%s was not projected as local-first-party", appID)
 		}
 	}
-	for _, appID := range []string{"nimi.desktop", "nimi.web", "nimi.tester"} {
+	for _, appID := range []string{"nimi.desktop", "nimi.web", "nimi.lab"} {
 		if projection.IsLocalFirstParty(appID) {
 			t.Fatalf("%s must not be projected as local-first-party", appID)
 		}

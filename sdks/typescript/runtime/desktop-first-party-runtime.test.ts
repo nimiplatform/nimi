@@ -30,11 +30,11 @@ test('Desktop account product binds AIConfig to one explicit admitted App owner'
     transport,
   });
 
-  const managed = clients.accountProduct.appAIConfig('nimi.tester');
+  const managed = clients.accountProduct.appAIConfig('acme.widget');
   const existing = await managed.get();
   assert.equal(existing.owner?.owner.oneofKind, 'app');
   if (existing.owner?.owner.oneofKind === 'app') {
-    assert.equal(existing.owner.owner.app.appId, 'nimi.tester');
+    assert.equal(existing.owner.owner.app.appId, 'acme.widget');
   }
 
   const localIntent: AIConfigCapabilityIntent = {
@@ -46,7 +46,7 @@ test('Desktop account product binds AIConfig to one explicit admitted App owner'
   assert.equal(overwritten.capabilities[0]?.capabilityContract, 'text.generate');
   assert.equal(overwritten.owner?.owner.oneofKind, 'app');
   if (overwritten.owner?.owner.oneofKind === 'app') {
-    assert.equal(overwritten.owner.owner.app.appId, 'nimi.tester');
+    assert.equal(overwritten.owner.owner.app.appId, 'acme.widget');
   }
 
   assert.deepEqual(calls.map((call) => call.methodId), [

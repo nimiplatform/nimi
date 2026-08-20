@@ -1,0 +1,38 @@
+schema: nimi.simulator.module/v1
+module_id: lab
+composition:
+  factory_entry: src/renderer/factory.tsx
+  factory_export: labCanonicalRendererFactory
+  style_entry: src/renderer/styles.css
+renderer:
+  entry: src/simulator/renderer.ts
+  export: labSimulatorRenderer
+  adapter_entry: src/simulator/adapter.ts
+  adapter_export: labSimulatorAdapterFactory
+  surfaces:
+    - id: main
+      factory_surface: main
+      label: Nimi Lab
+      initial_route: /
+requires:
+  kit_capabilities: []
+  sdk_methods:
+    - nimi.ai.generateText
+  simulator_commands:
+    - lab.action.record
+    - lab.asset.adopt
+    - lab.asset.move
+    - lab.asset.remove
+    - lab.asset.write
+    - lab.capability.execute
+    - lab.ecosystem.observe
+    - lab.history.append
+    - lab.image-history.append
+    - lab.image-history.clear
+    - lab.image-history.remove
+    - lab.persona.observe
+    - lab.prompt.save
+    - lab.run.allocate
+  simulator_events: []
+fixtures:
+  conformance: src/simulator/fixture.ts

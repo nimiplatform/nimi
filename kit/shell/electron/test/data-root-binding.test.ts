@@ -29,7 +29,7 @@ function registerBindingBridge(input: {
 }): FakeIpcMain {
   const ipcMain = new FakeIpcMain();
   registerNimiElectronRuntimeBridge({
-    appId: 'nimi.tester',
+    appId: 'acme.widget',
     runtimeEndpoint: '127.0.0.1:46371',
     allowedOrigins: ['http://localhost:1430'],
     ipcMain,
@@ -50,7 +50,7 @@ function appStorageResponseBytes(input: {
 }): Uint8Array {
   return GetAppStorageResponse.toBinary(GetAppStorageResponse.create({
     projection: {
-      appId: 'nimi.tester',
+      appId: 'acme.widget',
       state: input.state,
       durableDataRoot: input.durableDataRoot,
     },
@@ -114,15 +114,15 @@ describe('Electron standard data root binding', () => {
         expect(input).toMatchObject({
           command: NIMI_STANDARD_SHELL_COMMANDS['storage.writeJson'],
           methodId: GET_APP_STORAGE_METHOD_ID,
-          appId: 'nimi.tester',
+          appId: 'acme.widget',
           runtimeEndpoint: '127.0.0.1:46371',
         });
         trustedMetadataCalls += 1;
         return {
           metadata: {
-            participantId: 'nimi.tester',
+            participantId: 'acme.widget',
             callerKind: 'local-first-party-app',
-            callerId: 'nimi.tester.local-first-party',
+            callerId: 'acme.widget.local-first-party',
           },
           appSession: {
             sessionId: 'session-id',
@@ -133,15 +133,15 @@ describe('Electron standard data root binding', () => {
       const client: RuntimeGrpcBridgeClient = {
         unary: async (request) => {
           expect(request.methodId).toBe(GET_APP_STORAGE_METHOD_ID);
-          expect(GetAppStorageRequest.fromBinary(request.requestBytes).appId).toBe('nimi.tester');
+          expect(GetAppStorageRequest.fromBinary(request.requestBytes).appId).toBe('acme.widget');
           expect(request.metadata).toMatchObject({
             'x-nimi-protocol-version': '1.0.0',
             'x-nimi-participant-protocol-version': '1.0.0',
-            'x-nimi-participant-id': 'nimi.tester',
+            'x-nimi-participant-id': 'acme.widget',
             'x-nimi-domain': 'runtime.rpc',
-            'x-nimi-app-id': 'nimi.tester',
+            'x-nimi-app-id': 'acme.widget',
             'x-nimi-caller-kind': 'local-first-party-app',
-            'x-nimi-caller-id': 'nimi.tester.local-first-party',
+            'x-nimi-caller-id': 'acme.widget.local-first-party',
             'x-nimi-session-id': 'session-id',
             'x-nimi-session-token': 'session-token',
           });

@@ -198,27 +198,6 @@ body {
   letter-spacing: 0;
 }
 
-.tester-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.tester-json {
-  max-height: 260px;
-  overflow: auto;
-  margin: 0;
-  padding: 12px;
-  border: 1px solid var(--nimi-border-subtle);
-  border-radius: 12px;
-  background: color-mix(in srgb, var(--nimi-surface-canvas) 82%, transparent);
-  color: var(--nimi-text-secondary);
-  font-size: 12px;
-  line-height: 1.45;
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-
 .world-tour-viewer-hero {
   min-height: 150px;
 }

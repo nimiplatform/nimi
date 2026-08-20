@@ -1,0 +1,12 @@
+app_id: nimi.lab
+display_name: Nimi Lab
+profile: standalone
+manifest_role: submitted-input
+app_access:
+  - realm.data
+  - runtime.consume
+  - agent.local
+  - agent.configure
+local_development:
+  electron:
+    renderer_origin: http://127.0.0.1:1468

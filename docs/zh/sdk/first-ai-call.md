@@ -91,7 +91,7 @@ Local 与 Cloud 意图使用同一种调用形状。Runtime 在执行时评估�
 ```bash
 pnpm --filter @nimiplatform/sdk test
 pnpm --filter @nimiplatform/examples check
-pnpm --filter @nimiplatform/tester test
+pnpm --filter @nimiplatform/lab test
 ```
 
 在 App 仓库中，依次运行 `nimi doctor`、App 自己的验证命令，再用准确的已配置 App 身份发起一次生成调用。
@@ -102,5 +102,5 @@ pnpm --filter @nimiplatform/tester test
 - [`sdks/typescript/core/ai/config.ts`](https://github.com/nimiplatform/nimi/blob/main/sdks/typescript/core/ai/config.ts)
 - [`sdks/typescript/runtime/config-projections.ts`](https://github.com/nimiplatform/nimi/blob/main/sdks/typescript/runtime/config-projections.ts)
 - [`sdks/typescript/root-client.ts`](https://github.com/nimiplatform/nimi/blob/main/sdks/typescript/root-client.ts)
-- [`apps/tester/src/tester/tester-run-target.ts`](https://github.com/nimiplatform/nimi/blob/main/apps/tester/src/tester/tester-run-target.ts)
-- [`apps/tester/src/tester/tester-runtime.ts`](https://github.com/nimiplatform/nimi/blob/main/apps/tester/src/tester/tester-runtime.ts)
+- [`apps/lab/src/lab/lab-run-target.ts`](https://github.com/nimiplatform/nimi/blob/main/apps/lab/src/lab/lab-run-target.ts)
+- [`apps/lab/src/lab/lab-runtime.ts`](https://github.com/nimiplatform/nimi/blob/main/apps/lab/src/lab/lab-runtime.ts)

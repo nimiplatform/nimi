@@ -13,12 +13,12 @@ import {
 } from '../src/shell/renderer/features/chat/chat-nimi-app-ai-config.js';
 
 test('Desktop App AIConfig cache identity preserves one exact appId', () => {
-  assert.deepEqual(desktopNimiAppAIConfigQueryKey('tester.local-app'), [
+  assert.deepEqual(desktopNimiAppAIConfigQueryKey('acme.widget'), [
     'app-ai-config',
-    'tester.local-app',
+    'acme.widget',
   ]);
   assert.throws(() => desktopNimiAppAIConfigQueryKey(''));
-  assert.throws(() => desktopNimiAppAIConfigQueryKey(' tester.local-app '));
+  assert.throws(() => desktopNimiAppAIConfigQueryKey(' acme.widget '));
 });
 
 test('Nimi Chat locates canonical text intent without owning its construction', () => {

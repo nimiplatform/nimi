@@ -12,7 +12,7 @@ describe('Electron Runtime error classification', () => {
   it('preserves Runtime permission denied failures instead of reporting daemon unavailable', async () => {
     const ipcMain = new FakeIpcMain();
     registerNimiElectronRuntimeBridge({
-      appId: 'nimi.tester',
+      appId: 'acme.widget',
       runtimeEndpoint: '127.0.0.1:46371',
       allowedOrigins: ['http://localhost:1430'],
       ipcMain,
@@ -50,7 +50,7 @@ describe('Electron Runtime error classification', () => {
   it('preserves Runtime unauthenticated failures instead of reporting daemon unavailable', async () => {
     const ipcMain = new FakeIpcMain();
     registerNimiElectronRuntimeBridge({
-      appId: 'nimi.tester',
+      appId: 'acme.widget',
       runtimeEndpoint: '127.0.0.1:46371',
       allowedOrigins: ['http://localhost:1430'],
       ipcMain,

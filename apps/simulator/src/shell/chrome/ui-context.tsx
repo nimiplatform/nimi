@@ -157,7 +157,7 @@ interface SpawnSlot {
 }
 
 function spawnSlots(moduleId: string, vw: number, vh: number): readonly SpawnSlot[] {
-  if (!['desktop', 'tester', 'zhiyu'].includes(moduleId)) return [];
+  if (!['desktop', 'lab', 'zhiyu'].includes(moduleId)) return [];
   const compact = vw <= 720 || vh <= 760;
   const w = compact
     ? Math.max(280, vw - 96)

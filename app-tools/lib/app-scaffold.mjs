@@ -3,15 +3,15 @@ import { createHash } from 'node:crypto';
 import { readAppSourceFile, resolveAppSource } from '../scripts/sync-app-source.mjs';
 import { loadDefaultStarterSource, readDefaultStarterSourceFile } from './app-scaffold-default-source.mjs';
 import { normalizeAppAccessItems } from './app-access-declaration.mjs';
+import { resolveAppScaffoldFeatures } from './app-scaffold-capabilities.mjs';
 import {
   SUPPORTED_APP_SCAFFOLD_PROFILES,
   buildDefaultStarterFiles,
-  isTesterReferenceProfile,
 } from './app-scaffold-profiles.mjs';
 export { SUPPORTED_APP_SCAFFOLD_PROFILES };
 const DEFAULT_APP_ID = 'my-nimi-app';
 const DEFAULT_APP_TITLE = 'My Nimi App';
-export const SCAFFOLD_VERSION = '2026-08-03.app-access-declaration-v1';
+export const SCAFFOLD_VERSION = '2026-08-20.capability-selection-v1';
 export const SCAFFOLD_STATE_DIR = '.nimi/app-scaffold';
 export const SCAFFOLD_INTENT_PATH = `${SCAFFOLD_STATE_DIR}/intent.json`;
 export const SCAFFOLD_LOCK_PATH = `${SCAFFOLD_STATE_DIR}/lock.json`;
@@ -31,45 +31,6 @@ const GENERATED_GITIGNORE = [
 ].join('\n');
 const MINIMAL_TAURI_ICON_PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR4nGNgAAIAAAUAAXpeqz8AAAAASUVORK5CYII=', 'base64');
 const MINIMAL_TAURI_ICON_ICO = Buffer.from('AAABAAEAAQEAAAEAIABEAAAAFgAAAIlQTkcNChoKAAAADUlIRFIAAAABAAAAAQgGAAAAHxXEiQAAAAtJREFUeJxjYAACAAAFAAF6Xqs/AAAAAElFTkSuQmCC', 'base64');
-
-function normalizeScaffoldOmissions(input) {
-  const source = Array.isArray(input) ? input : [];
-  const seen = new Set();
-  for (const raw of source) {
-    const value = String(raw || '').trim().replaceAll('\\', '/');
-    if (!value || value.startsWith('/') || value.includes('..')) {
-      throw new Error(`Invalid scaffold omission path: ${String(raw || 'missing')}`);
-    }
-    seen.add(value);
-  }
-  return normalizePathList(seen);
-}
-
-function wildcardPatternToRegExp(pattern) {
-  let source = '^';
-  for (let index = 0; index < pattern.length; index += 1) {
-    const char = pattern[index];
-    if (char === '*' && pattern[index + 1] === '*') {
-      source += '.*';
-      index += 1;
-    } else if (char === '*') {
-      source += '[^/]*';
-    } else {
-      source += char.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    }
-  }
-  return new RegExp(`${source}$`);
-}
-
-export function isScaffoldOmittedPath(relativePath, omissions = [], matched = null) {
-  for (const pattern of omissions || []) {
-    if (relativePath === pattern || (pattern.includes('*') && wildcardPatternToRegExp(pattern).test(relativePath))) {
-      matched?.add(pattern);
-      return true;
-    }
-  }
-  return false;
-}
 
 const CI_WORKFLOW = [
   'name: local-development-check',
@@ -202,8 +163,9 @@ function deriveScaffoldDevPort(appId) {
   return 1430 + hash;
 }
 
-function buildAppIdentity(profile, appId, appTitle, packageName, author = '', accentPack = 'nimi-accent', appAccessItems = undefined, scaffoldOmissions = undefined) {
+function buildAppIdentity(profile, appId, appTitle, packageName, author = '', accentPack = 'nimi-accent', features = undefined) {
   const resolvedPackageName = packageName || packageSafeName(appId);
+  const capabilityResolution = resolveAppScaffoldFeatures(features);
   return {
     appId,
     appTitle,
@@ -214,8 +176,9 @@ function buildAppIdentity(profile, appId, appTitle, packageName, author = '', ac
     appSlug: appSlugFromAppId(appId),
     rendererEntryId: `${appSlugFromAppId(appId)}-app`,
     accentPack: String(accentPack || '').trim() || 'nimi-accent',
-    appAccessItems: normalizeAppAccessItems(appAccessItems),
-    scaffoldOmissions: normalizeScaffoldOmissions(scaffoldOmissions),
+    features: capabilityResolution.featureIds,
+    appAccessItems: normalizeAppAccessItems(capabilityResolution.appAccessItems),
+    capabilityResolution,
     devPort: deriveScaffoldDevPort(appId),
     author: String(author || '').trim(),
   };
@@ -238,6 +201,9 @@ function buildPackageJson(profile, versions, identity) {
     publishConfig: {
       access: 'public',
     },
+    pnpm: {
+      onlyBuiltDependencies: ['electron', 'esbuild', 'protobufjs'],
+    },
     scripts: {
       dev: 'nimi-app dev --shell electron',
       'dev:renderer': `vite --host 127.0.0.1 --port ${identity.devPort} --strictPort`,
@@ -248,6 +214,7 @@ function buildPackageJson(profile, versions, identity) {
       build: 'tsc --noEmit && vite build',
       'build:electron': 'tsc -p tsconfig.electron.json && node scripts/bundle-electron-preload.mjs',
       'build:shell': 'tauri build',
+      postinstall: 'install-electron --no',
       check: 'pnpm run doctor && pnpm run validate',
       validate: 'node scripts/validate.mjs',
       doctor: 'nimi-app doctor',
@@ -262,6 +229,7 @@ function buildPackageJson(profile, versions, identity) {
       react: versions.reactVersion,
       'react-dom': versions.reactDomVersion,
       'react-i18next': versions.reactI18nextVersion,
+      ...identity.capabilityResolution.npmDependencies,
     },
     devDependencies: {
       '@nimiplatform/app-tools': profile === 'workspace-app' ? 'workspace:*' : versions.appToolsVersion,
@@ -374,25 +342,35 @@ function buildDefaultStarterTemplateFiles(identity, profile, versions) {
   });
 }
 
-function buildTesterReferenceSnapshotFiles(identity, profile, versions) {
+function buildCapabilitySliceFiles(identity, profile, versions) {
+  if (identity.capabilityResolution.capabilities.length === 0) return [];
   const { baseDir, manifest } = loadAppSource();
   const target = targetIdentityMap(identity);
-  const matchedOmissions = new Set();
-  const snapshotOmissions = identity.scaffoldOmissions;
-  const files = manifest.files.filter((entry) => entry.path !== 'nimi.app.yaml' && !isScaffoldOmittedPath(entry.path, snapshotOmissions, matchedOmissions));
-  const unmatchedOmissions = snapshotOmissions.filter((pattern) => !matchedOmissions.has(pattern));
-  if (unmatchedOmissions.length > 0) {
-    throw new Error(`Scaffold omissions did not match reference app paths: ${unmatchedOmissions.join(', ')}`);
+  const outputPaths = new Set();
+  const files = [];
+  for (const capability of identity.capabilityResolution.capabilities) {
+    const sourcePrefix = `${capability.sourceRoot}/`;
+    const selected = manifest.files.filter((entry) => entry.path.startsWith(sourcePrefix));
+    if (selected.length === 0) {
+      throw new Error(`Scaffold capability source is empty: ${capability.id}`);
+    }
+    for (const entry of selected) {
+      const suffix = entry.path.slice(sourcePrefix.length);
+      const outputPath = `${capability.targetRoot}/${suffix}`;
+      if (outputPaths.has(outputPath)) {
+        throw new Error(`Scaffold capability output collision: ${outputPath}`);
+      }
+      outputPaths.add(outputPath);
+      const raw = readAppSourceFile(baseDir, entry.path);
+      const identityApplied = applyIdentityReplacement(raw, manifest, target);
+      files.push({
+        path: outputPath,
+        content: applyProfileSeam(outputPath, identityApplied, profile, versions, manifest, identity),
+        mutationClass: 'app-owned product code',
+      });
+    }
   }
-  return files.map((entry) => {
-    const raw = readAppSourceFile(baseDir, entry.path);
-    const identityApplied = applyIdentityReplacement(raw, manifest, target);
-    return {
-      path: entry.path,
-      content: applyProfileSeam(entry.path, identityApplied, profile, versions, manifest, identity),
-      mutationClass: entry.class,
-    };
-  });
+  return files.sort((left, right) => left.path.localeCompare(right.path));
 }
 
 function buildStructuredFiles(identity, profile, versions) {
@@ -433,7 +411,7 @@ function buildStructuredFiles(identity, profile, versions) {
 
 function buildScaffoldIntent(identity, versions) {
   return {
-    intentVersion: 1,
+    intentVersion: 2,
     scaffoldVersion: SCAFFOLD_VERSION,
     initRequired: true,
     initCommand: 'pnpm exec nimi-app init',
@@ -446,10 +424,10 @@ function buildScaffoldIntent(identity, versions) {
     cargoPackageName: identity.cargoPackageName,
     tauriIdentifier: identity.tauriIdentifier,
     accentPack: identity.accentPack,
+    features: identity.features,
     appAccessItems: identity.appAccessItems,
-    scaffoldOmissions: identity.scaffoldOmissions,
     devPort: identity.devPort,
-    dependencyMatrix: buildDependencyMatrix(identity.profile, versions),
+    dependencyMatrix: buildDependencyMatrix(identity.profile, versions, identity.capabilityResolution),
     semantics: {
       role: 'app-scaffold-init-input',
       authority: 'app-tools-orchestration-input-not-platform-admission',
@@ -469,10 +447,9 @@ function buildScaffoldIntentFile(identity, versions) {
 function buildScaffoldFiles(identity, versions) {
   return [
     ...buildStructuredFiles(identity, identity.profile, versions),
-    ...(isTesterReferenceProfile(identity.profile)
-      ? buildTesterReferenceSnapshotFiles(identity, identity.profile, versions)
-      : buildDefaultStarterTemplateFiles(identity, identity.profile, versions)),
+    ...buildDefaultStarterTemplateFiles(identity, identity.profile, versions),
     ...buildDefaultStarterFiles(identity),
+    ...buildCapabilitySliceFiles(identity, identity.profile, versions),
   ];
 }
 
@@ -484,7 +461,7 @@ export function hashScaffoldContent(content) {
   return createHash('sha256').update(content).digest('hex');
 }
 
-function buildDependencyMatrix(profile, versions) {
+function buildDependencyMatrix(profile, versions, capabilityResolution) {
   return {
     npm: {
       '@nimiplatform/app-tools': profile === 'workspace-app' ? 'workspace:*' : versions.appToolsVersion,
@@ -507,6 +484,7 @@ function buildDependencyMatrix(profile, versions) {
       electron: versions.electronVersion,
       esbuild: versions.esbuildVersion,
       yaml: versions.yamlVersion,
+      ...capabilityResolution.npmDependencies,
     },
     cargo: {
       'nimi-shell-tauri': profile === 'workspace-app'
@@ -551,7 +529,7 @@ function buildScaffoldLock(identity, versions, files) {
   }
 
   return {
-    lockVersion: 1,
+    lockVersion: 2,
     scaffoldVersion: SCAFFOLD_VERSION,
     profile: identity.profile,
     appId: identity.appId,
@@ -562,7 +540,7 @@ function buildScaffoldLock(identity, versions, files) {
     tauriIdentifier: identity.tauriIdentifier,
     accentPack: identity.accentPack,
     appAccessItems: identity.appAccessItems,
-    scaffoldOmissions: identity.scaffoldOmissions,
+    features: identity.features,
     appIdentity: {
       appId: identity.appId,
       appTitle: identity.appTitle,
@@ -571,8 +549,8 @@ function buildScaffoldLock(identity, versions, files) {
       cargoPackageName: identity.cargoPackageName,
       tauriIdentifier: identity.tauriIdentifier,
       accentPack: identity.accentPack,
+      features: identity.features,
       appAccessItems: identity.appAccessItems,
-      scaffoldOmissions: identity.scaffoldOmissions,
       identityRole: 'scaffold-generated-authoring-input',
     },
     managedFileTaxonomy: {
@@ -582,7 +560,7 @@ function buildScaffoldLock(identity, versions, files) {
     },
     managedFileHashes,
     appOwnedInitialHashes,
-    dependencyMatrix: buildDependencyMatrix(identity.profile, versions),
+    dependencyMatrix: buildDependencyMatrix(identity.profile, versions, identity.capabilityResolution),
     semantics: {
       initRole: 'developer-scaffold-initialization-after-install',
       nimicodingProjectionOwner: '@nimiplatform/nimi-coding',
@@ -591,12 +569,13 @@ function buildScaffoldLock(identity, versions, files) {
       doctorAndUpdateRole: 'developer-scaffold-check-only',
       lockfilePolicy: LOCKFILE_POLICY,
       ignoredVerificationArtifacts: ['dist/'],
+      capabilityComposition: 'base-plus-selected-dependency-closure',
     },
   };
 }
 
-export function buildAppScaffoldSnapshot({ profile, versions, appId, appTitle, packageName, author, accentPack, appAccessItems, scaffoldOmissions }) {
-  const identity = buildAppIdentity(profile, appId, appTitle, packageName, author, accentPack, appAccessItems, scaffoldOmissions);
+export function buildAppScaffoldSnapshot({ profile, versions, appId, appTitle, packageName, author, accentPack, features }) {
+  const identity = buildAppIdentity(profile, appId, appTitle, packageName, author, accentPack, features);
   const createFiles = [
     ...buildScaffoldFiles(identity, versions),
     buildScaffoldIntentFile(identity, versions),
@@ -622,6 +601,7 @@ export function buildAppScaffoldSnapshot({ profile, versions, appId, appTitle, p
     packageAuthor: identity.author || null,
     cargoPackageName: identity.cargoPackageName,
     tauriIdentifier: identity.tauriIdentifier,
+    features: identity.features,
     files: allFiles,
     createFiles,
     initFiles,
@@ -632,7 +612,7 @@ export function buildAppScaffoldSnapshot({ profile, versions, appId, appTitle, p
 }
 
 export function buildAppScaffoldSnapshotFromIntent({ intent, versions }) {
-  if (intent?.intentVersion !== 1) {
+  if (intent?.intentVersion !== 2) {
     throw new Error(`Unsupported scaffold intent version: ${String(intent?.intentVersion || 'missing')}`);
   }
   if (intent?.scaffoldVersion !== SCAFFOLD_VERSION) {
@@ -649,8 +629,7 @@ export function buildAppScaffoldSnapshotFromIntent({ intent, versions }) {
     packageName: intent.packageName,
     author: intent.packageAuthor || '',
     accentPack: intent.accentPack || 'nimi-accent',
-    appAccessItems: intent.appAccessItems || intent.appIdentity?.appAccessItems,
-    scaffoldOmissions: intent.scaffoldOmissions || intent.appIdentity?.scaffoldOmissions,
+    features: intent.features,
   });
 }
 
@@ -664,7 +643,7 @@ export function createAppScaffold(input) {
   const targetDir = path.resolve(cwd, String(options.dir || '').trim() || appId);
   ensureDirEmptyOrMissing(targetDir);
   input.mkdirSync(targetDir, { recursive: true });
-  const snapshot = buildAppScaffoldSnapshot({ profile, versions, appId, appTitle, packageName, author });
+  const snapshot = buildAppScaffoldSnapshot({ profile, versions, appId, appTitle, packageName, author, features: options.features });
   createFileTree(targetDir, snapshot.createFiles);
   process.stdout.write(`[nimi-app] created ${profile} app scaffold at ${targetDir}\n`);
   process.stdout.write('[nimi-app] next: pnpm install && pnpm run init\n');

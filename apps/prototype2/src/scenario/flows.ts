@@ -1,7 +1,7 @@
 /* Canonical cross-App flows (product-level mock).
  *
  * These mirror the three interaction classes from the design discussion:
- *   1. data sharing   — Desktop writes a shared footprint; Tester observes it
+ *   1. data sharing   — Desktop writes a shared footprint; Lab observes it
  *   2. intent handoff — a world is carried into Zhiyu as a new route/topic
  *   3. Runtime-mediated — one LocalAgent context is projected across apps
  *
@@ -58,13 +58,13 @@ export const FLOWS: Record<string, FlowDef> = {
       { type: 'footprint', worldId: 'echo-vale', note: '重返回声谷 · 准备第三段回声' },
       {
         type: 'notice',
-        moduleId: 'tester',
+        moduleId: 'lab',
         text: '世界巡游观察到一条新足迹 · 回声谷',
       },
       {
         type: 'toast',
         title: '足迹已提交 · 回声谷',
-        detail: 'Desktop → 生态共享 · Tester 的世界巡游可见',
+        detail: 'Desktop → 生态共享 · Lab 的世界巡游可见',
       },
       {
         type: 'agent', status: 'observing', location: 'desktop',

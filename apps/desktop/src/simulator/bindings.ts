@@ -306,7 +306,7 @@ export function createDesktopSimulatorBindings(
           const result = await context.interactions.emit({
             protocol: 'nimi.simulator.interaction/v1',
             interactionId: `${context.instanceId}:ecosystem:${interactionSequence}`,
-            targets: ['zhiyu', 'tester'],
+            targets: ['zhiyu', 'lab'],
             type: 'ecosystem.reference.publish',
             payload: {},
           });

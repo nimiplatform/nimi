@@ -228,7 +228,7 @@ test('the Simulator owns exactly one React root and App surfaces render as porta
 });
 
 test('the app rail uses each selected first-party app logo and keeps an honest fallback', () => {
-  for (const moduleId of ['desktop', 'zhiyu', 'tester']) {
+  for (const moduleId of ['desktop', 'zhiyu', 'lab']) {
     const markup = renderToStaticMarkup(h(AppLogo, { moduleId, size: 'rail' }));
     assert.match(markup, new RegExp(`data-logo-module="${moduleId}"`, 'u'));
     assert.match(markup, /<img/u);
@@ -257,12 +257,12 @@ test('the home applications tile uses each selected first-party App logo', () =>
     moduleCount: 3,
     modules: [
       { moduleId: 'desktop', surfaces: [{ id: 'main', label: 'Nimi Desktop' }] },
-      { moduleId: 'tester', surfaces: [{ id: 'main', label: 'Nimi Lab' }] },
+      { moduleId: 'lab', surfaces: [{ id: 'main', label: 'Nimi Lab' }] },
       { moduleId: 'zhiyu', surfaces: [{ id: 'main', label: '织羽 Zhiyu' }] },
     ],
   });
 
-  for (const moduleId of ['desktop', 'tester', 'zhiyu']) {
+  for (const moduleId of ['desktop', 'lab', 'zhiyu']) {
     assert.match(
       markup,
       new RegExp(`data-logo-module="${moduleId}" data-logo-size="home"`, 'u'),
@@ -272,7 +272,7 @@ test('the home applications tile uses each selected first-party App logo', () =>
 });
 
 test('each App window title bar uses the App-owned logo instead of a generic accent', () => {
-  for (const moduleId of ['desktop', 'zhiyu', 'tester']) {
+  for (const moduleId of ['desktop', 'zhiyu', 'lab']) {
     const markup = renderToStaticMarkup(h(AppLogo, { moduleId, size: 'window' }));
     assert.match(markup, new RegExp(`data-logo-module="${moduleId}"`, 'u'));
     assert.match(markup, /data-logo-size="window"/u);

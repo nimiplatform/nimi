@@ -55,7 +55,7 @@ describe('kit renderer telemetry', () => {
     expect(toRendererLogMessage('capability-run')).toBe('action:capability-run');
     expect(toRendererLogMessage('phase:ready')).toBe('phase:ready');
     expect(toRendererLogMessage('')).toBe('action:renderer-log:empty-message');
-    expect(createRendererFlowId('tester-capability-run')).toMatch(/^tester-capability-run-[0-9a-f]+$/);
+    expect(createRendererFlowId('widget-capability-run')).toMatch(/^widget-capability-run-[0-9a-f]+$/);
   });
 
   test('sanitizes sensitive payload details recursively', () => {
@@ -94,8 +94,8 @@ describe('kit renderer telemetry', () => {
 
     await emitRendererLog({
       level: 'info',
-      area: 'tester',
-      message: 'action:tester-run-recorded',
+      area: 'widget',
+      message: 'action:widget-run-recorded',
       flowId: 'flow-1',
       details: {
         capabilityId: 'text.generate',

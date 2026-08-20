@@ -80,7 +80,7 @@ describe('Desktop-supervised bundled Avatar host profile', () => {
 
   it('rejects bundled Avatar registration outside the Desktop host', () => {
     expect(() => registerNimiElectronRuntimeBridge({
-      appId: 'nimi.tester',
+      appId: 'acme.widget',
       runtimeEndpoint: 'protected-local-app',
       allowedOrigins: ['http://127.0.0.1:1421'],
       allowedRendererUrls: ['http://127.0.0.1:1421/'],

@@ -926,7 +926,7 @@ units:
     kind: rule
     title: Terminal jobs carry typed dispositions
     modality: must
-    statement: Terminal dependency jobs project typed reason code and recovery disposition fields in addition to bounded diagnostic detail, failure detail stays human and debug context that SDK, Desktop, tester, and app consumers never parse to decide retry, auto-recovery, repair, or setup-state transitions, Runtime owns the classification of interrupted, manual-retry, repair-required, unsupported, and not-retryable outcomes, and local transfer records appear only as progress or diagnostic detail never targeting materializer commands, creating selected source records, or projecting readiness.
+    statement: Terminal dependency jobs project typed reason code and recovery disposition fields in addition to bounded diagnostic detail, failure detail stays human and debug context that SDK, Desktop, Nimi Lab, and app consumers never parse to decide retry, auto-recovery, repair, or setup-state transitions, Runtime owns the classification of interrupted, manual-retry, repair-required, unsupported, and not-retryable outcomes, and local transfer records appear only as progress or diagnostic detail never targeting materializer commands, creating selected source records, or projecting readiness.
     condition: Whenever a dependency job terminates or transfer detail is projected.
     failure: Reject untyped terminals, consumer-parsed failure text, and transfer-driven readiness.
     relations:

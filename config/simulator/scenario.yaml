@@ -191,7 +191,7 @@ module_data:
         initialStatus: ready_for_use
       aiConfig:
         runtimeStatus: unavailable
-  - module_id: tester
+  - module_id: lab
     data:
       generatedText: Nimi connects apps through one shared, simulated ecosystem state.
       textModel:
@@ -239,12 +239,12 @@ launch:
     module_id: desktop
     surface_id: main
     activate: true
-  - launch_id: tester-primary
-    module_id: tester
+  - launch_id: lab-primary
+    module_id: lab
     surface_id: main
     activate: true
-  - launch_id: tester-secondary
-    module_id: tester
+  - launch_id: lab-secondary
+    module_id: lab
     surface_id: main
     activate: true
   - launch_id: zhiyu-primary

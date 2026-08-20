@@ -1,4 +1,4 @@
-# Derived build artifact: verbatim snapshot of apps/tester baked at pack time
-# (prepack) by scripts/sync-app-source.mjs. apps/tester is the single source.
+# Derived build artifact: admitted capability slices from apps/lab, baked at
+# pack time (prepack) by scripts/sync-app-source.mjs.
 templates/app-source/
 templates/app-source.manifest.json

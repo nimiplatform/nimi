@@ -155,6 +155,51 @@ describe('Desktop Electron local-development registration host', () => {
     assert.equal(result.appId, 'example.local-app');
   });
 
+  it('projects only the latest run for an App', async () => {
+    const host = new ElectronLocalDevelopmentHost(control(), '/tmp');
+    const oldRun = activeRun();
+    oldRun.status.runId = 'dev-run-old';
+    oldRun.status.state = 'launcher-disconnected';
+    oldRun.stopped = true;
+    oldRun.stoppedCleanupComplete = true;
+    const currentRun = activeRun();
+    currentRun.status.runId = 'dev-run-current';
+    const internal = host as unknown as { runs: Map<string, ReturnType<typeof activeRun>> };
+    internal.runs.set(oldRun.status.runId, oldRun);
+    internal.runs.set(currentRun.status.runId, currentRun);
+
+    const runs = await host.invoke('local_development_runs_list', {}) as Array<Record<string, unknown>>;
+
+    assert.equal(runs.length, 1);
+    assert.equal(runs[0]?.appId, 'example.local-app');
+    assert.equal(runs[0]?.state, 'running');
+  });
+
+  it('treats stop as idempotent when a known run became terminal after projection', async () => {
+    let terminateCalls = 0;
+    let endRunCalls = 0;
+    const host = new ElectronLocalDevelopmentHost(control({
+      terminateHost: async () => { terminateCalls += 1; },
+      endRun: async () => { endRunCalls += 1; },
+    }), '/tmp');
+    const stoppedRun = activeRun();
+    stoppedRun.status.state = 'launcher-disconnected';
+    stoppedRun.stopped = true;
+    stoppedRun.stoppedCleanupComplete = true;
+    const internal = host as unknown as { runs: Map<string, ReturnType<typeof activeRun>> };
+    internal.runs.set(stoppedRun.status.runId, stoppedRun);
+
+    assert.deepEqual(await host.invoke('local_development_run_stop', {
+      payload: { appId: 'example.local-app' },
+    }), { appId: 'example.local-app', stopped: true });
+    assert.equal(terminateCalls, 0);
+    assert.equal(endRunCalls, 0);
+    await assert.rejects(
+      host.invoke('local_development_run_stop', { payload: { appId: 'missing.local-app' } }),
+      /local-development-run-not-found/u,
+    );
+  });
+
   it('physically rejects retired decision commands', async () => {
     const host = new ElectronLocalDevelopmentHost(control(), '/tmp');
     await assert.rejects(

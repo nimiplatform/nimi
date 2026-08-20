@@ -66,7 +66,7 @@ describe('registerNimiElectronRuntimeBridge', () => {
     };
     const ipcMain = new FakeIpcMain();
     const registered = registerNimiElectronRuntimeBridge({
-      appId: 'nimi.tester',
+      appId: 'acme.widget',
       runtimeEndpoint: '127.0.0.1:46371',
       allowedOrigins: ['http://localhost:1430'],
       ipcMain,
@@ -140,7 +140,7 @@ describe('registerNimiElectronRuntimeBridge', () => {
     };
     const ipcMain = new FakeIpcMain();
     registerNimiElectronRuntimeBridge({
-      appId: 'nimi.tester',
+      appId: 'acme.widget',
       runtimeEndpoint: '127.0.0.1:46371',
       allowedOrigins: ['http://localhost:1430'],
       ipcMain,
@@ -149,7 +149,7 @@ describe('registerNimiElectronRuntimeBridge', () => {
         metadata: {
           extra: {
             'x-nimi-source-host': 'unit-test-trusted-metadata-provider',
-            'x-nimi-app-instance-id': 'nimi.tester.desktop-shell',
+            'x-nimi-app-instance-id': 'acme.widget.desktop-shell',
           },
         },
         authorization: 'Bearer trusted-portable-token',
@@ -176,7 +176,7 @@ describe('registerNimiElectronRuntimeBridge', () => {
     expect([...capturedBytes]).toEqual([1, 2, 3]);
     expect(capturedMetadata).toMatchObject({
       'x-nimi-protocol-version': '1.0.0',
-      'x-nimi-app-id': 'nimi.tester',
+      'x-nimi-app-id': 'acme.widget',
       'x-nimi-caller-kind': 'third-party-app',
       'x-nimi-session-id': 'session-id',
       'x-nimi-session-token': 'session-token',
@@ -187,7 +187,7 @@ describe('registerNimiElectronRuntimeBridge', () => {
     expect(capturedMetadata['x-nimi-idempotency-key']).toMatch(/^bridge-_nimi\.runtime\.v1\.RuntimeAppService_GetAppStorage-\d+-\d+$/);
     expect(capturedMetadata['x-nimi-custom']).toBe('custom-value');
     expect(capturedMetadata['x-nimi-source-host']).toBe('unit-test-trusted-metadata-provider');
-    expect(capturedMetadata['x-nimi-app-instance-id']).toBe('nimi.tester.desktop-shell');
+    expect(capturedMetadata['x-nimi-app-instance-id']).toBe('acme.widget.desktop-shell');
     expect([...fromBase64(response.responseBytesBase64)]).toEqual([4, 5, 6]);
     expect(response.responseMetadata['x-nimi-runtime-version']).toBe('0.5.0');
   });
@@ -196,7 +196,7 @@ describe('registerNimiElectronRuntimeBridge', () => {
     let unaryCalls = 0;
     const ipcMain = new FakeIpcMain();
     registerNimiElectronRuntimeBridge({
-      appId: 'nimi.tester',
+      appId: 'acme.widget',
       runtimeEndpoint: '127.0.0.1:46371',
       allowedOrigins: ['http://localhost:1430'],
       ipcMain,
@@ -239,7 +239,7 @@ describe('registerNimiElectronRuntimeBridge', () => {
     let streamCalls = 0;
     const ipcMain = new FakeIpcMain();
     registerNimiElectronRuntimeBridge({
-      appId: 'nimi.tester',
+      appId: 'acme.widget',
       runtimeEndpoint: '127.0.0.1:46371',
       allowedOrigins: ['http://localhost:1430'],
       ipcMain,
@@ -602,17 +602,17 @@ describe('registerNimiElectronRuntimeBridge', () => {
     };
     const ipcMain = new FakeIpcMain();
     registerNimiElectronRuntimeBridge({
-      appId: 'nimi.tester',
+      appId: 'acme.widget',
       runtimeEndpoint: '127.0.0.1:46371',
       allowedOrigins: ['http://localhost:1430'],
       ipcMain,
       createGrpcClient: async () => fakeClient,
       trustedRuntimeMetadataProvider: async () => ({
         metadata: {
-          participantId: 'nimi.tester',
+          participantId: 'acme.widget',
           callerKind: 'test-host',
-          callerId: 'nimi.tester.shell',
-          surfaceId: 'tester.runtime',
+          callerId: 'acme.widget.shell',
+          surfaceId: 'widget.runtime',
         },
       }),
     });
@@ -629,10 +629,10 @@ describe('registerNimiElectronRuntimeBridge', () => {
     });
 
     expect(capturedMetadata).toMatchObject({
-      'x-nimi-participant-id': 'nimi.tester',
+      'x-nimi-participant-id': 'acme.widget',
       'x-nimi-caller-kind': 'test-host',
-      'x-nimi-caller-id': 'nimi.tester.shell',
-      'x-nimi-surface-id': 'tester.runtime',
+      'x-nimi-caller-id': 'acme.widget.shell',
+      'x-nimi-surface-id': 'widget.runtime',
     });
   });
 
@@ -657,7 +657,7 @@ describe('registerNimiElectronRuntimeBridge', () => {
     const ipcMain = new FakeIpcMain();
     const { event } = createInvokeEvent();
     registerNimiElectronRuntimeBridge({
-      appId: 'nimi.tester',
+      appId: 'acme.widget',
       runtimeEndpoint: '127.0.0.1:46371',
       allowedOrigins: ['http://localhost:1430'],
       ipcMain,
@@ -696,7 +696,7 @@ describe('registerNimiElectronRuntimeBridge', () => {
   it('fails closed for disallowed renderer origins and daemon lifecycle ownership', async () => {
     const ipcMain = new FakeIpcMain();
     registerNimiElectronRuntimeBridge({
-      appId: 'nimi.tester',
+      appId: 'acme.widget',
       runtimeEndpoint: '127.0.0.1:46371',
       allowedOrigins: ['http://localhost:1430'],
       ipcMain,
@@ -726,7 +726,7 @@ describe('registerNimiElectronRuntimeBridge', () => {
   it('does not treat wildcard origins as an explicit renderer allowlist', async () => {
     const ipcMain = new FakeIpcMain();
     registerNimiElectronRuntimeBridge({
-      appId: 'nimi.tester',
+      appId: 'acme.widget',
       runtimeEndpoint: '127.0.0.1:46371',
       allowedOrigins: ['*'],
       ipcMain,

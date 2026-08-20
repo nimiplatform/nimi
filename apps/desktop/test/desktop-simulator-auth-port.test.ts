@@ -425,7 +425,7 @@ test('Desktop Simulator projection boots authenticated and drives logout plus Ru
   const shares = engine.emittedInteractions().filter((entry) => entry.type === 'session.persona.share');
   assert.equal(shares.length, 1);
   assert.equal(shares[0]?.interactionId, 'sim-persona-sim-user-linche');
-  assert.deepEqual(shares[0]?.targets, ['zhiyu', 'tester']);
+  assert.deepEqual(shares[0]?.targets, ['zhiyu', 'lab']);
   assert.equal((shares[0]?.payload as JsonRecord).displayName, '林澈');
   assert.equal((shares[0]?.payload as JsonRecord).accountId, 'sim-account-linche');
 });

@@ -193,7 +193,7 @@ export const SCENARIO: Scenario = {
     {
       id: 'm3',
       who: 'agent',
-      text: '对，集市的回声商贩。我建议先把回声谷收录进你的生态足迹，这样 Tester 的世界巡游也能看到它。',
+      text: '对，集市的回声商贩。我建议先把回声谷收录进你的生态足迹，这样 Lab 的世界巡游也能看到它。',
       at: 'T+00:07',
     },
     {

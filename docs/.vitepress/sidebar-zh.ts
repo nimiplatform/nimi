@@ -298,7 +298,7 @@ export const sidebarZh: DefaultTheme.Sidebar = {
         { text: '用户画像', link: '/zh/start/personas' },
         { text: '安装与可用性', link: '/zh/start/install' },
         { text: '创建 Nimi App', link: '/zh/start/create-an-app' },
-        { text: '把 Tester 当作参考 App', link: '/zh/start/use-tester-as-reference' },
+        { text: '使用 Nimi Lab', link: '/zh/start/use-nimi-lab' },
         { text: '故障排查', link: '/zh/start/troubleshooting' },
       ],
     },

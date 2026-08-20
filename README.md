@@ -110,7 +110,7 @@ app, not the platform itself.
 | [`apps/desktop/`](apps/desktop/) | Native first-party shell — agent chat, local AI, knowledge, voice |
 | [`apps/web/`](apps/web/) | Browser projection of public Desktop surfaces |
 | [`apps/avatar/`](apps/avatar/) | Live2D embodied carrier for Nimi agents (floating desktop avatar) |
-| [`apps/tester/`](apps/tester/) | Nimi Lab developer reference app for SDK, Kit, app-tools, Runtime auth, and AI capability lanes |
+| [`apps/lab/`](apps/lab/) | Nimi Lab capability integration and incubation app for SDK, Kit, app-tools, Runtime auth, and AI capability lanes |
 | [`apps/install-gateway/`](apps/install-gateway/) | Cloudflare Worker for release distribution |
 
 ## What's Installable Today
@@ -174,8 +174,8 @@ organized by product.
 | How a TypeScript app makes its first Runtime AI call | [docs/sdk/first-ai-call.md](docs/sdk/first-ai-call.md) |
 | How apps reuse shared UI, shell, auth, model config, and feature modules | [docs/platform/kit/use-kit-in-app.md](docs/platform/kit/use-kit-in-app.md), [kit/README.md](kit/README.md) |
 | How to create a Nimi App scaffold | [docs/start/create-an-app.md](docs/start/create-an-app.md) |
-| How to study the reference app | [docs/start/use-tester-as-reference.md](docs/start/use-tester-as-reference.md) |
-| How to interpret Runtime, SDK, Tester, and scaffold failures | [docs/start/troubleshooting.md](docs/start/troubleshooting.md) |
+| How to work with Nimi Lab | [docs/start/use-nimi-lab.md](docs/start/use-nimi-lab.md) |
+| How to interpret Runtime, SDK, Nimi Lab, and scaffold failures | [docs/start/troubleshooting.md](docs/start/troubleshooting.md) |
 | Why Desktop and Web are not equivalent | [docs/desktop/index.md](docs/desktop/index.md) |
 | Where world truth and history live | [docs/realm/index.md](docs/realm/index.md) |
 | How embodied AI presentation is scoped | [docs/avatar/index.md](docs/avatar/index.md) |
@@ -205,7 +205,7 @@ original Chinese content, not sentence-by-sentence translation.
 | `kit/` | Cross-app design system, auth, telemetry, and feature modules |
 | `app-tools/` | Public app-authoring CLI (`nimi-app`) and scaffold templates |
 | `proto/` | Protocol Buffers and gRPC definitions |
-| `apps/` | Active apps and references (Desktop, Web, Avatar, Tester/Nimi Lab, install gateway) |
+| `apps/` | Active apps (Desktop, Web, Avatar, Nimi Lab, install gateway) |
 | `nimi-cognition/` | Cognition implementation workspace |
 | `docs/` | Public documentation source (VitePress) |
 | `examples/` | SDK / runtime / app scaffold templates |

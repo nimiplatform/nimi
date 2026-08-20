@@ -298,7 +298,7 @@ export const sidebarEn: DefaultTheme.Sidebar = {
         { text: 'Personas', link: '/start/personas' },
         { text: 'Installation And Availability', link: '/start/install' },
         { text: 'Create A Nimi App', link: '/start/create-an-app' },
-        { text: 'Use Tester As Reference', link: '/start/use-tester-as-reference' },
+        { text: 'Use Nimi Lab', link: '/start/use-nimi-lab' },
         { text: 'Troubleshooting', link: '/start/troubleshooting' },
       ],
     },

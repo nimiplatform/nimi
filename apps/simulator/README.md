@@ -23,7 +23,7 @@ pnpm --filter @nimiplatform/simulator test:integration
 
 ## Current presentation
 
-- The tracked Scenario launches two independent instances of Desktop, Tester,
+- The tracked Scenario launches two independent instances of Desktop, Lab,
   and Zhiyu. The Shell keeps a persistent simulated-data disclosure visible
   outside App-owned surfaces.
 - `src/shell/chrome/**` provides the lunar Field, draggable App surfaces,

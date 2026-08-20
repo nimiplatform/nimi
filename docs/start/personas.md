@@ -47,10 +47,10 @@ You want to build an app on Nimi using the SDK.
    public app boundary before importing SDK modules.
 4. [Platform → Use Kit In An App](/platform/kit/use-kit-in-app) — reuse shared
    UI, shell, auth, telemetry, AIConfig composition, and feature surfaces.
-5. [Start → Use Tester As A Reference App](/start/use-tester-as-reference) —
-   study the concrete reference app and app-tools source template.
+5. [Start → Use Nimi Lab](/start/use-nimi-lab) — study the capability
+   integration App and the slices admitted by App Tools.
 6. [Start → Troubleshooting](/start/troubleshooting) — interpret Runtime, SDK,
-   Tester, and scaffold failures.
+   Nimi Lab, and scaffold failures.
 
 ## AI Agent Integrator
 

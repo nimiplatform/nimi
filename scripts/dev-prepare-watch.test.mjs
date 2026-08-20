@@ -203,7 +203,7 @@ test('freshness ignores native binding outputs just like watch classification', 
 test('Desktop owns dev surface preparation while supervised Apps only consume it', () => {
   const packageJson = (relativePath) => JSON.parse(readFileSync(path.join(repoRoot, relativePath), 'utf8'));
   const desktop = packageJson('apps/desktop/package.json');
-  const tester = packageJson('apps/tester/package.json');
+  const lab = packageJson('apps/lab/package.json');
   const zhiyu = packageJson('apps/zhiyu/package.json');
   const avatar = packageJson('apps/avatar/package.json');
   const desktopDevRunner = readFileSync(
@@ -219,14 +219,14 @@ test('Desktop owns dev surface preparation while supervised Apps only consume it
   assert.match(desktopDevRunner, /build:electron:prepared/u);
 
   assert.equal(
-    tester.scripts['build:electron'],
-    'node ../../scripts/build-supervised-app-electron.mjs --consumer tester',
+    lab.scripts['build:electron'],
+    'node ../../scripts/build-supervised-app-electron.mjs --consumer lab',
   );
   assert.equal(
     zhiyu.scripts['build:electron'],
     'node ../../scripts/build-supervised-app-electron.mjs --consumer zhiyu',
   );
-  for (const command of [tester.scripts['build:electron'], zhiyu.scripts['build:electron']]) {
+  for (const command of [lab.scripts['build:electron'], zhiyu.scripts['build:electron']]) {
     assert.doesNotMatch(command, /build:(?:sdk|kit)|prepare:workspace-surfaces/u);
   }
   assert.equal(

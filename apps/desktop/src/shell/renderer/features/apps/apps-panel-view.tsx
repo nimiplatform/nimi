@@ -15,7 +15,10 @@ import {
   SidebarShell,
   Surface,
 } from '@nimiplatform/kit/ui';
-import type { AppCardActionId } from './apps-card-actions.js';
+import {
+  isLocalDevelopmentRunActive,
+  type AppCardActionId,
+} from './apps-card-actions.js';
 import { AppsDetailView } from './apps-detail-view.js';
 import type { DesktopAppsEntry, DesktopAppsPanelProjection } from './apps-panel-projection.js';
 
@@ -285,7 +288,7 @@ function RunStateLabel({ entry }: { readonly entry: DesktopAppsEntry }): ReactEl
       </span>
     );
   }
-  if (!['stopped', 'failed', 'build-failed', 'cleanup-failed', 'project-changed', 'registration-unavailable', 'registration-removed'].includes(state)) {
+  if (isLocalDevelopmentRunActive(state)) {
     return (
       <span data-testid={`apps-entry-${entry.registration.appId}-state`} className="inline-flex items-center gap-1 text-[11px] font-medium text-[var(--nimi-action-primary-bg)]">
         <LoaderCircle className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />

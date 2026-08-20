@@ -13,8 +13,8 @@ export const DEV_APP_DEFINITIONS = Object.freeze({
     defaultCdpPort: 9334,
     supportsTauri: false,
   }),
-  tester: Object.freeze({
-    packageName: '@nimiplatform/tester',
+  lab: Object.freeze({
+    packageName: '@nimiplatform/lab',
     defaultCdpPort: 9335,
     supportsTauri: false,
   }),
@@ -234,7 +234,7 @@ function requireDefinition(appName) {
   if (!definition) {
     throw launchError(
       'dev-app-unknown',
-      `Unknown development app: ${String(appName || '(missing)')}. Expected desktop, zhiyu, tester, or avatar.`,
+      `Unknown development app: ${String(appName || '(missing)')}. Expected desktop, zhiyu, lab, or avatar.`,
     );
   }
   return definition;

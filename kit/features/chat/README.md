@@ -67,7 +67,7 @@ Authoritative parity fixtures live in `kit/features/chat/test/conversation-shell
 ## Current Consumers
 - `desktop`
   Uses `chat/headless`, `chat/realm`, and `chat/ui` surfaces for human chat composer wiring, realtime helpers, timeline rendering, stream status, and thread shell.
-- `tester`
+- `lab`
   Uses `chat/runtime` for the Runtime-backed `chat.stream` capability flow and accumulated stream snapshot projection.
 
 ## Verification

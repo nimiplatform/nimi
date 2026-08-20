@@ -295,7 +295,7 @@ export function createDesktopSimulatorAuthSessionPort(
     void context.interactions.emit({
       protocol: 'nimi.simulator.interaction/v1',
       interactionId: `sim-persona-${persona.userId}`,
-      targets: ['zhiyu', 'tester'],
+      targets: ['zhiyu', 'lab'],
       type: 'session.persona.share',
       payload: { ...persona },
     }).then((result) => {

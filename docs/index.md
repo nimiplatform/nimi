@@ -30,7 +30,7 @@ and app-authoring entry points are documented from public package surfaces.
 - Reading paths that move from the platform model into Runtime, SDK,
   Desktop, Realm, Avatar, and Nimi Coding.
 - Developer paths for creating a Nimi App, making a first Runtime-backed AI
-  call, using Kit, studying Tester, and handling common fail-closed states.
+  call, using Kit, working with Nimi Lab, and handling common fail-closed states.
 - A glossary of cross-domain vocabulary used across all pages.
 
 ## The Three Layers Readers Should Keep Separate
@@ -78,8 +78,8 @@ your head than to mix together.
 | How to create a Nimi App scaffold | [Create A Nimi App](/start/create-an-app) |
 | How a TypeScript app makes its first Runtime AI call | [First AI Call](/sdk/first-ai-call) |
 | How apps reuse Kit surfaces | [Use Kit In An App](/platform/kit/use-kit-in-app) |
-| How to study the reference app | [Use Tester As A Reference App](/start/use-tester-as-reference) |
-| How to interpret Runtime, SDK, Tester, and scaffold failures | [Troubleshooting](/start/troubleshooting) |
+| How to work with the capability lab | [Use Nimi Lab](/start/use-nimi-lab) |
+| How to interpret Runtime, SDK, Nimi Lab, and scaffold failures | [Troubleshooting](/start/troubleshooting) |
 | How AI execution is governed | [Runtime](/runtime/) |
 | How apps integrate without crossing private boundaries | [SDK](/sdk/) |
 | Why Desktop and Web are not equivalent | [Desktop](/desktop/) |

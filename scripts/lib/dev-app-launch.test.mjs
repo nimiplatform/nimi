@@ -22,7 +22,7 @@ test('development apps have stable non-conflicting default CDP ports', () => {
     {
       desktop: 9333,
       zhiyu: 9334,
-      tester: 9335,
+      lab: 9335,
       avatar: 9336,
     },
   );
@@ -117,7 +117,7 @@ test('only Avatar admits the explicit Tauri carrier and never combines it with C
     (error) => error.reasonCode === 'dev-app-tauri-cdp-unsupported',
   );
   assert.throws(
-    () => resolveDevAppLaunch('tester', ['--tauri']),
+    () => resolveDevAppLaunch('lab', ['--tauri']),
     (error) => error.reasonCode === 'dev-app-carrier-unsupported',
   );
   assert.throws(
@@ -162,9 +162,9 @@ test('root package commands route canonical and explicit Electron names through 
   const packageDocument = JSON.parse(readFileSync(path.join(repoRoot, 'package.json'), 'utf8'));
   assert.equal(packageDocument.scripts['dev:desktop'], 'node scripts/dev-app.mjs desktop');
   assert.equal(packageDocument.scripts['dev:zhiyu'], 'node scripts/dev-app.mjs zhiyu');
-  assert.equal(packageDocument.scripts['dev:tester'], 'node scripts/dev-app.mjs tester');
+  assert.equal(packageDocument.scripts['dev:lab'], 'node scripts/dev-app.mjs lab');
   assert.equal(packageDocument.scripts['dev:avatar'], 'node scripts/dev-app.mjs avatar');
-  for (const appName of ['desktop', 'zhiyu', 'tester', 'avatar']) {
+  for (const appName of ['desktop', 'zhiyu', 'lab', 'avatar']) {
     assert.equal(
       packageDocument.scripts[`dev:electron:${appName}`],
       `node scripts/dev-app.mjs ${appName} --electron`,

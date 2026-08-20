@@ -94,8 +94,8 @@ test('current Simulator config selects the three workspace Apps without reposito
         icon: 'src/shell/renderer/assets/logo.png',
       },
       {
-        module_id: 'tester',
-        root: 'apps/tester',
+        module_id: 'lab',
+        root: 'apps/lab',
         icon: 'src-tauri/icons/icon.png',
       },
       {
@@ -115,7 +115,7 @@ test('Shell App logos consume only selected-source generated inputs', () => {
     'utf8',
   );
   assert.match(source, /simulatorSelectedModuleLogos/u);
-  assert.doesNotMatch(source, /apps\/(?:desktop|tester|zhiyu)|\.\.\/\.\.\/\.\.\/\.\.\//u);
+  assert.doesNotMatch(source, /apps\/(?:desktop|lab|zhiyu)|\.\.\/\.\.\/\.\.\/\.\.\//u);
 });
 
 test('Scenario validation keeps launch/state structure and rejects removed readiness policy', () => {

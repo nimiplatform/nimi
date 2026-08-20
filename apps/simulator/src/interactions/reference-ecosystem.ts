@@ -9,8 +9,8 @@ const referenceInteraction: SimulatorInteractionDeclaration = {
   targets: Object.freeze([
     Object.freeze({ moduleId: 'zhiyu', commandType: 'zhiyu.ecosystem.project' }),
     Object.freeze({
-      moduleId: 'tester',
-      commandType: 'tester.ecosystem.observe',
+      moduleId: 'lab',
+      commandType: 'lab.ecosystem.observe',
       afterEventType: 'zhiyu.ecosystem.projected',
     }),
   ]),

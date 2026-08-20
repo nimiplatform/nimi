@@ -105,7 +105,7 @@ test('NimiClient carries no third-party access workflow surface', () => {
     async *serverStream() {},
   };
   const client = createNimiClient({
-    appId: 'tester.app',
+    appId: 'acme.widget',
     runtime: { transport: runtimeTransport },
     realm: { transport: realmTransport },
   });

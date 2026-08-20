@@ -36,7 +36,7 @@ func TestExecuteScenarioTextGenerateUsesExactPrivateProviderModelID(t *testing.T
 	ctx := withCloudScenarioTestIntent(fixture.context, "text.generate", fixture.targetRef)
 	resp, err := fixture.service.ExecuteScenario(ctx, &runtimev1.ExecuteScenarioRequest{
 		Head: &runtimev1.ScenarioRequestHead{
-			AppId:         "nimi.tester",
+			AppId:         "acme.widget",
 			SubjectUserId: "user-001",
 			TimeoutMs:     30_000,
 		},

@@ -1,13 +1,6 @@
-export const SUPPORTED_APP_SCAFFOLD_PROFILES = ['standalone', 'workspace-app', 'tester-reference'];
-
-export function isTesterReferenceProfile(profile) {
-  return profile === 'tester-reference';
-}
+export const SUPPORTED_APP_SCAFFOLD_PROFILES = ['standalone', 'workspace-app'];
 
 export function buildDefaultStarterFiles(identity) {
-  if (isTesterReferenceProfile(identity.profile)) {
-    return [];
-  }
   return [
     {
       path: 'src/main.tsx',
@@ -18,6 +11,11 @@ export function buildDefaultStarterFiles(identity) {
       path: 'src/shell/routes/product-area.tsx',
       content: renderDefaultProductArea(identity),
       mutationClass: 'app-owned product code',
+    },
+    {
+      path: 'src/shell/routes/selected-capabilities.tsx',
+      content: renderSelectedCapabilities(identity.capabilityResolution),
+      mutationClass: 'scaffold-managed glue',
     },
     {
       path: 'src-tauri/src/main.rs',
@@ -156,6 +154,7 @@ function renderDefaultProductArea(identity) {
     "import { useEffect, useState } from 'react';",
     "import { Button, InlineAlert, Surface } from '@nimiplatform/kit/ui';",
     "import { DemoSurfaces } from './demo-surfaces.js';",
+    "import { SelectedCapabilities } from './selected-capabilities.js';",
     "import { getRuntimePlatformProjection } from '../auth/runtime-platform.js';",
     '',
     'export function NimiStarterSurface() {',
@@ -193,12 +192,33 @@ function renderDefaultProductArea(identity) {
     '        </InlineAlert>',
     '      </Surface>',
     '      <DemoSurfaces />',
+    '      <SelectedCapabilities />',
     '    </main>',
     '  );',
     '}',
     '',
     'export function ProductArea() {',
     '  return <NimiStarterSurface />;',
+    '}',
+    '',
+  ].join('\n');
+}
+
+function renderSelectedCapabilities(resolution) {
+  const imports = [];
+  const surfaces = [];
+  for (const capability of resolution.capabilities) {
+    const relativeTarget = capability.targetRoot.replace(/^src\//, '../../');
+    imports.push(`import { ${capability.componentExport} } from '${relativeTarget}/index.js';`);
+    surfaces.push(`      <${capability.componentExport} />`);
+  }
+  return [
+    ...imports,
+    ...(imports.length > 0 ? [''] : []),
+    'export function SelectedCapabilities() {',
+    ...(surfaces.length > 0
+      ? ['  return (', '    <section className="grid gap-4" data-testid="selected-capabilities">', ...surfaces, '    </section>', '  );']
+      : ['  return null;']),
     '}',
     '',
   ].join('\n');

@@ -5,12 +5,12 @@ import { FlickTracker, startFlick } from './flick';
 import { railIconCenter } from './AppRail';
 import { DesktopMain } from '../modules/DesktopMain';
 import { ZhiyuMain } from '../modules/ZhiyuMain';
-import { TesterMain } from '../modules/TesterMain';
+import { LabMain } from '../modules/LabMain';
 
 const SURFACES: Record<SimWindow['moduleId'], (win: SimWindow) => ReactNode> = {
   desktop: (win) => <DesktopMain win={win} />,
   zhiyu: (win) => <ZhiyuMain win={win} />,
-  tester: (win) => <TesterMain win={win} />,
+  lab: (win) => <LabMain win={win} />,
 };
 
 function WindowFrame({ win }: { win: SimWindow }) {

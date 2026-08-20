@@ -22,7 +22,7 @@ const VALID_PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC
 function registerAgentCenterBridge(standardShellHost: NimiElectronStandardShellHost): FakeIpcMain {
   const ipcMain = new FakeIpcMain();
   registerNimiElectronRuntimeBridge({
-    appId: 'nimi.tester',
+    appId: 'acme.widget',
     runtimeEndpoint: '127.0.0.1:46371',
     allowedOrigins: ['http://localhost:1430'],
     ipcMain,

@@ -187,7 +187,9 @@ export class ElectronLocalDevelopmentHost {
   async invoke(command: string, payload: Readonly<Record<string, unknown>>): Promise<unknown> {
     if (!COMMANDS.has(command)) throw new Error('local-development-command-unavailable');
     if (command === 'local_development_runs_list') {
-      return [...this.runs.values()].map((run) => projectRun(run.status));
+      const latestByAppId = new Map<string, RunContext>();
+      for (const run of this.runs.values()) latestByAppId.set(run.status.appId, run);
+      return [...latestByAppId.values()].map((run) => projectRun(run.status));
     }
     if (command === 'local_development_registrations_list') return this.listRegistrations();
     const exactPayload = exactNestedPayload(payload);
@@ -451,9 +453,10 @@ export class ElectronLocalDevelopmentHost {
   private async stopRegistrationRun(payload: Readonly<Record<string, unknown>>): Promise<{ readonly appId: string; readonly stopped: true }> {
     const value = exact(payload, ['appId']);
     const appId = text(value.appId);
-    const runs = [...this.runs.values()].filter((run) => run.status.appId === appId && !run.stopped);
-    if (runs.length === 0) throw new Error('local-development-run-not-found');
-    await Promise.all(runs.map((run) => this.stopRun(run, 'stopped')));
+    const matchingRuns = [...this.runs.values()].filter((run) => run.status.appId === appId);
+    if (matchingRuns.length === 0) throw new Error('local-development-run-not-found');
+    const stoppableRuns = matchingRuns.filter((run) => !run.stopped || !run.stoppedCleanupComplete);
+    await Promise.all(stoppableRuns.map((run) => this.stopRun(run, 'stopped')));
     return { appId, stopped: true };
   }
 

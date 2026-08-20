@@ -10,7 +10,7 @@ const baselinePath = path.join(scriptDir, 'bundle-size-baseline.json');
 const TARGET_DIR_CANDIDATES = {
   desktop: ['apps/desktop', 'desktop'],
   web: ['apps/web', 'web'],
-  tester: ['apps/tester'],
+  lab: ['apps/lab'],
 };
 
 function formatBytes(bytes) {
@@ -110,7 +110,7 @@ async function main() {
   const minReductionPercent = Number(baseline.minimumReductionPercent || 20);
   const targets = baseline.targets || {};
   const failures = [];
-  const targetNames = ['desktop', 'web', 'tester'].filter((targetName) => Object.hasOwn(targets, targetName));
+  const targetNames = ['desktop', 'web', 'lab'].filter((targetName) => Object.hasOwn(targets, targetName));
 
   for (const targetName of targetNames) {
     const targetBaseline = targets[targetName];

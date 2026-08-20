@@ -217,16 +217,16 @@ for (const row of rows) {
   }
 }
 
-const testerRow = rows.find((row) => row?.source_root === 'apps/tester');
-if (testerRow) {
-  const testerAppId = String(testerRow.canonical_app_id || '').trim();
-  const testerTauri = expectedNativeBundleIdentifier(testerAppId);
+const labRow = rows.find((row) => row?.source_root === 'apps/lab');
+if (labRow) {
+  const labAppId = String(labRow.canonical_app_id || '').trim();
+  const labTauri = expectedNativeBundleIdentifier(labAppId);
   const syncSource = readText('app-tools/scripts/sync-app-source.mjs');
-  if (!syncSource.includes(`appId: '${testerAppId}'`)) {
-    fail('app-tools/scripts/sync-app-source.mjs: SOURCE_IDENTITY.appId must match apps/tester canonical_app_id');
+  if (!syncSource.includes(`appId: '${labAppId}'`)) {
+    fail('app-tools/scripts/sync-app-source.mjs: SOURCE_IDENTITY.appId must match apps/lab canonical_app_id');
   }
-  if (!syncSource.includes(`tauriIdentifier: '${testerTauri}'`)) {
-    fail('app-tools/scripts/sync-app-source.mjs: SOURCE_IDENTITY.tauriIdentifier must match derived tester Tauri identifier');
+  if (!syncSource.includes(`tauriIdentifier: '${labTauri}'`)) {
+    fail('app-tools/scripts/sync-app-source.mjs: SOURCE_IDENTITY.tauriIdentifier must match derived Lab Tauri identifier');
   }
 }
 

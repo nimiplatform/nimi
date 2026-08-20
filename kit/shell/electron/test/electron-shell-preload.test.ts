@@ -161,7 +161,7 @@ describe('installNimiElectronRuntimeBridge', () => {
   it('preserves host retryability through the real preload invoke path', async () => {
     const ipcMain = new FakeIpcMain();
     const registration = registerNimiElectronRuntimeBridge({
-      appId: 'nimi.tester',
+      appId: 'acme.widget',
       runtimeEndpoint: '127.0.0.1:46371',
       allowedOrigins: ['http://localhost:1430'],
       ipcMain,

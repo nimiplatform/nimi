@@ -38,13 +38,12 @@ pnpm run doctor
 | `pnpm run update` | 刷新 scaffold-managed glue，同时保留 app-owned product code |
 | `pnpm run local-audit` | 本地 pre-submission evidence，不是 platform admission |
 
-## Reference App
+## Nimi Lab
 
-`apps/tester/` 是 Nimi Lab developer reference app。它展示 Runtime authenticated shell、Kit workbench surfaces、AI capability lanes、app-owned history storage 和 local acceptance checks。它可供 SDK、Kit、app-tools 与 Runtime auth integration 参考，但不是 platform admission truth。
-阅读路径见 [把 Tester 当作 Reference App 使用](/zh/start/use-tester-as-reference)。
+`apps/lab/` 是 Nimi 的本地能力集成与孵化 App。它展示 Runtime authenticated shell、Kit workbench surfaces、AI capability lanes、app-owned history storage 和 local acceptance checks。完整 Lab 不是脚手架契约；App Tools 只开放明确收录的能力切片。阅读路径见 [使用 Nimi Lab](/zh/start/use-nimi-lab)。
 
 ## 来源依据
 
 - [`app-tools/README.md`](https://github.com/nimiplatform/nimi/blob/main/app-tools/README.md)
-- [`apps/tester/README.md`](https://github.com/nimiplatform/nimi/blob/main/apps/tester/README.md)
+- [`apps/lab/README.md`](https://github.com/nimiplatform/nimi/blob/main/apps/lab/README.md)
 - [`.nimi/spec/platform/app-ecosystem.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/app-ecosystem.authority.yaml)

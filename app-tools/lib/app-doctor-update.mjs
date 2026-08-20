@@ -5,7 +5,6 @@ import {
   buildAppScaffoldSnapshot,
   buildAppScaffoldSnapshotFromIntent,
   hashScaffoldContent,
-  isScaffoldOmittedPath,
   SCAFFOLD_INTENT_PATH,
   SCAFFOLD_LOCK_PATH,
   SCAFFOLD_VERSION,
@@ -133,6 +132,9 @@ function readIntent(targetDir) {
 }
 
 function assertSupportedLock(lock) {
+  if (lock?.lockVersion !== 2) {
+    throw new Error(`Unsupported scaffold lock version: ${String(lock?.lockVersion || 'missing')}`);
+  }
   if (lock?.scaffoldVersion !== SCAFFOLD_VERSION) {
     throw new Error(`Unsupported scaffold version: ${String(lock?.scaffoldVersion || 'missing')}`);
   }
@@ -170,6 +172,12 @@ function assertSameJson(actual, expected, label) {
 
 function expectedSnapshotFromLock(lock, versions, intent = null) {
   assertSupportedLock(lock);
+  if (intent) {
+    buildAppScaffoldSnapshotFromIntent({ intent, versions });
+  }
+  if (intent && stableStringify(intent.features) !== stableStringify(lock.features)) {
+    throw new Error('Scaffold feature selection is immutable; create a fresh scaffold for a different feature closure');
+  }
   return buildAppScaffoldSnapshot({
     profile: lock.profile,
     versions,
@@ -178,8 +186,7 @@ function expectedSnapshotFromLock(lock, versions, intent = null) {
     packageName: lock.packageName,
     author: lock.packageAuthor || '',
     accentPack: lock.accentPack || lock.appIdentity?.accentPack || 'nimi-accent',
-    appAccessItems: intent?.appAccessItems || lock.appAccessItems || lock.appIdentity?.appAccessItems,
-    scaffoldOmissions: intent?.scaffoldOmissions || lock.scaffoldOmissions || lock.appIdentity?.scaffoldOmissions,
+    features: intent?.features ?? lock.features ?? lock.appIdentity?.features,
   });
 }
 
@@ -195,8 +202,8 @@ function ensureLockMatchesCurrentGenerator(lock, snapshot) {
   assertSameJson(lock.cargoPackageName, snapshot.lock.cargoPackageName, 'Cargo package name');
   assertSameJson(lock.tauriIdentifier, snapshot.lock.tauriIdentifier, 'Tauri identifier');
   assertSameJson(lock.accentPack, snapshot.lock.accentPack, 'Accent pack');
+  assertSameJson(lock.features, snapshot.lock.features, 'Scaffold features');
   assertSameJson(lock.appAccessItems, snapshot.lock.appAccessItems, 'App access items');
-  assertSameJson(lock.scaffoldOmissions, snapshot.lock.scaffoldOmissions, 'Scaffold omissions');
   assertSameJson(lock.managedFileTaxonomy, snapshot.lock.managedFileTaxonomy, 'Managed file taxonomy');
   assertSameJson(lock.dependencyMatrix, snapshot.lock.dependencyMatrix, 'Dependency matrix');
   assertSameJson(lock.managedFileHashes, snapshot.lock.managedFileHashes, 'Managed file hashes');
@@ -329,10 +336,6 @@ function scanForbiddenPatterns(targetDir, profile, selectedLabels = null) {
     'renderer or app storage of protected material',
     'environment custody of protected material',
   ]);
-  const testerReferenceAllowedLabels = new Set([
-    'renderer launch binding custody',
-    'forbidden installed-app shell capability',
-  ]);
   for (const filePath of collectTextFiles(targetDir)) {
     const relativePath = path.relative(targetDir, filePath).split(path.sep).join('/');
     const text = readFileSync(filePath, 'utf8');
@@ -351,9 +354,6 @@ function scanForbiddenPatterns(targetDir, profile, selectedLabels = null) {
         continue;
       }
       if (isTestFile && testFileAllowedLabels.has(label)) {
-        continue;
-      }
-      if (profile === 'tester-reference' && testerReferenceAllowedLabels.has(label)) {
         continue;
       }
       if (pattern.test(text)) {
@@ -516,7 +516,8 @@ function validateDoctorState(targetDir, versions, runners = {}) {
     return validateExistingSubmittedApp(targetDir);
   }
   const lock = readLock(targetDir);
-  const snapshot = expectedSnapshotFromLock(lock, versions);
+  const intent = existsSync(path.join(targetDir, SCAFFOLD_INTENT_PATH)) ? readIntent(targetDir) : null;
+  const snapshot = expectedSnapshotFromLock(lock, versions, intent);
   ensureLockMatchesCurrentGenerator(lock, snapshot);
   assertRequiredSupportFiles(targetDir, snapshot);
   assertProjectConfiguration(targetDir);
@@ -586,6 +587,7 @@ export function initApp(cwd, options = {}, versions, runners = {}) {
     scaffoldVersion: snapshot.lock.scaffoldVersion,
     profile: snapshot.lock.profile,
     appId: snapshot.lock.appId,
+    features: snapshot.lock.features,
     initializedFiles: snapshot.initFiles.length,
     nimicodingSync: nimicoding?.summary || null,
   };
@@ -618,6 +620,7 @@ export function doctorApp(cwd, options = {}, versions, runners = {}) {
     scaffoldVersion: result.lock?.scaffoldVersion ?? null,
     profile: result.lock?.profile ?? result.profile,
     appId: result.lock?.appId ?? result.appId,
+    features: result.lock?.features ?? [],
     checkedManagedFiles: result.lock ? Object.keys(result.lock.managedFileHashes || {}).length : 0,
     checkedExistingFiles: result.managed === false ? result.checkedFiles : 0,
   };
@@ -647,17 +650,11 @@ function assertNoClassificationConflict(lock, snapshot) {
     if (current?.owner === 'managed' && current.class === entry.class) {
       continue;
     }
-    if (isScaffoldOmittedPath(relativePath, snapshot.lock.scaffoldOmissions)) {
-      continue;
-    }
     throw new Error(`Scaffold classification conflict: ${relativePath}`);
   }
   for (const [relativePath, entry] of Object.entries(lock.appOwnedInitialHashes || {})) {
     const current = currentClasses.get(relativePath);
     if (current?.owner === 'app-owned' && current.class === entry.class) {
-      continue;
-    }
-    if (isScaffoldOmittedPath(relativePath, snapshot.lock.scaffoldOmissions)) {
       continue;
     }
     throw new Error(`Scaffold classification conflict: ${relativePath}`);
@@ -701,6 +698,7 @@ export function updateApp(cwd, options = {}, versions, runners = {}) {
     scaffoldVersion: snapshot.lock.scaffoldVersion,
     profile: snapshot.lock.profile,
     appId: snapshot.lock.appId,
+    features: snapshot.lock.features,
     refreshedManagedFiles: Object.keys(snapshot.lock.managedFileHashes).length,
   };
   if (options.json) {

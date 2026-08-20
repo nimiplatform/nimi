@@ -4,6 +4,12 @@ Profile: `standalone`
 
 This repository is a local-development Nimi App authoring scaffold. `nimi.app.yaml` carries the app identity and App Access domain declaration used by the supervised development path. Development commands do not constitute product acceptance.
 
+Its source is composed from the generic base plus the dependency closure of the
+features selected at creation time. The selected feature IDs and derived App
+Access items are recorded in `.nimi/app-scaffold/intent.json`; feature code is
+generated under `src/capabilities/**`. An empty selection remains a base-only
+App.
+
 ## Development
 
 ```bash

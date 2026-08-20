@@ -17,9 +17,23 @@ const DETAILS: AppCardAction = { id: 'details' };
 const LAUNCH: AppCardAction = { id: 'launch' };
 const STOP: AppCardAction = { id: 'stop' };
 const REMOVE: AppCardAction = { id: 'remove' };
+const TERMINAL_RUN_STATES = new Set([
+  'stopped',
+  'failed',
+  'build-failed',
+  'cleanup-failed',
+  'project-changed',
+  'registration-unavailable',
+  'registration-removed',
+  'launcher-disconnected',
+]);
+
+export function isLocalDevelopmentRunActive(runState: string | null): boolean {
+  return runState !== null && !TERMINAL_RUN_STATES.has(runState);
+}
 
 export function actionPlanForLocalDevelopmentEntry(runState: string | null): AppCardActionPlan {
-  const active = runState !== null && !['stopped', 'failed', 'build-failed', 'cleanup-failed', 'project-changed', 'registration-unavailable', 'registration-removed'].includes(runState);
+  const active = isLocalDevelopmentRunActive(runState);
   return {
     primary: active ? STOP : LAUNCH,
     secondary: [DETAILS, REMOVE],

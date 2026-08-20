@@ -5,14 +5,14 @@ import { createSimulatorStateEngine } from '../../src/state-engine/engine.ts';
 import { simulatorReferenceInteractionCatalog } from '../../src/interactions/reference-ecosystem.ts';
 import { desktopSimulatorBehavior } from '../../../desktop/src/simulator/behavior.ts';
 import { simulatorConformanceFixture as desktopFixture } from '../../../desktop/src/simulator/fixture.ts';
-import { testerSimulatorBehavior } from '../../../tester/src/simulator/behavior.ts';
-import { simulatorConformanceFixture as testerFixture } from '../../../tester/src/simulator/fixture.ts';
+import { labSimulatorBehavior } from '../../../lab/src/simulator/behavior.ts';
+import { simulatorConformanceFixture as labFixture } from '../../../lab/src/simulator/fixture.ts';
 import { zhiyuSimulatorBehavior } from '../../../zhiyu/src/simulator/behavior.ts';
 import { simulatorConformanceFixture as zhiyuFixture } from '../../../zhiyu/src/simulator/fixture.ts';
 
 const MODULES = [
   { moduleId: 'desktop', orderingKey: 0, fixture: desktopFixture, behavior: desktopSimulatorBehavior },
-  { moduleId: 'tester', orderingKey: 1, fixture: testerFixture, behavior: testerSimulatorBehavior },
+  { moduleId: 'lab', orderingKey: 1, fixture: labFixture, behavior: labSimulatorBehavior },
   { moduleId: 'zhiyu', orderingKey: 2, fixture: zhiyuFixture, behavior: zhiyuSimulatorBehavior },
 ];
 const SCENARIO = {
@@ -72,7 +72,7 @@ function referenceEnvelope(instanceId, overrides = {}) {
     protocol: 'nimi.simulator.interaction/v1',
     interactionId: `${instanceId}:ecosystem:1`,
     source: { moduleId: 'desktop', instanceId },
-    targets: ['zhiyu', 'tester'],
+    targets: ['zhiyu', 'lab'],
     type: 'ecosystem.reference.publish',
     payload: {},
     ...overrides,
@@ -91,18 +91,18 @@ async function runReferenceInteraction() {
   assert.equal(result.value.ecosystemRevision, beforeRevision + 1);
   assert.equal(engine.getCommitted().revision, beforeRevision + 3);
   const zhiyu = engine.projectInstance(instanceIds.zhiyu);
-  const tester = engine.projectInstance(instanceIds.tester);
+  const lab = engine.projectInstance(instanceIds.lab);
   assert.equal(zhiyu.ok, true);
-  assert.equal(tester.ok, true);
+  assert.equal(lab.ok, true);
   assert.equal(zhiyu.value.ecosystemReference.ecosystemRevision, result.value.ecosystemRevision);
-  assert.equal(tester.value.ecosystemReference.ecosystemRevision, result.value.ecosystemRevision);
+  assert.equal(lab.value.ecosystemReference.ecosystemRevision, result.value.ecosystemRevision);
   return {
     result: result.value,
     revision: engine.getCommitted().revision,
   };
 }
 
-test('Desktop interaction commits its ecosystem transaction before ordered Zhiyu and Tester stages', async () => {
+test('Desktop interaction commits its ecosystem transaction before ordered Zhiyu and Lab stages', async () => {
   const first = await runReferenceInteraction();
   assert.equal(first.revision, first.result.ecosystemRevision + 2);
   assert.deepEqual(Object.keys(first.result).sort(), ['ecosystemRevision', 'eventId', 'interactionId']);
@@ -131,9 +131,9 @@ test('an unrelated same-type Zhiyu event cannot advance the interaction continua
   unsubscribe();
   assert.equal(result.ok, true);
   assert.equal(inserted, true);
-  const tester = engine.projectInstance(instanceIds.tester);
-  assert.equal(tester.ok, true);
-  assert.equal(tester.value.ecosystemReference.interactionId, result.value.interactionId);
+  const lab = engine.projectInstance(instanceIds.lab);
+  assert.equal(lab.ok, true);
+  assert.equal(lab.value.ecosystemReference.interactionId, result.value.interactionId);
 });
 
 test('missing or closed targets fail deterministically without state or event changes', async () => {
@@ -182,7 +182,7 @@ test('unsupported interaction and malformed targets are typed failures with no p
   assert.equal(unsupported.error.code, 'SIMULATOR_UNSUPPORTED');
   const malformed = await engine.acceptCommand(
     'simulator.interaction.emit',
-    referenceEnvelope(instanceIds.desktop, { targets: ['tester', 'zhiyu'] }),
+    referenceEnvelope(instanceIds.desktop, { targets: ['lab', 'zhiyu'] }),
     issuer,
   );
   assert.equal(malformed.ok, false);
@@ -221,8 +221,8 @@ for (const [name, emittedEvents] of [
     assert.equal(result.ok, true);
     assert.deepEqual(Object.keys(result.value).sort(), ['ecosystemRevision', 'eventId', 'interactionId']);
     assert.equal(engine.phase, 'terminal');
-    const tester = engine.projectInstance(instanceIds.tester);
-    assert.equal(tester.ok, true);
-    assert.equal(tester.value.ecosystemReference, null);
+    const lab = engine.projectInstance(instanceIds.lab);
+    assert.equal(lab.ok, true);
+    assert.equal(lab.value.ecosystemReference, null);
   });
 }

@@ -48,7 +48,7 @@ test('Apps page focuses the latest live window and opens only a standby App', as
     moduleCount: 2,
     modules: [
       { moduleId: 'desktop', surfaces: [{ id: 'main', label: 'Nimi Desktop' }] },
-      { moduleId: 'tester', surfaces: [{ id: 'main', label: 'Nimi Lab' }] },
+      { moduleId: 'lab', surfaces: [{ id: 'main', label: 'Nimi Lab' }] },
     ],
     instances: [
       {
@@ -134,12 +134,12 @@ test('Apps page focuses the latest live window and opens only a standby App', as
 
     await act(async () => currentUi?.setAppsPageOpen(true));
     const standbyCard = container.querySelector<HTMLButtonElement>(
-      'button[aria-label="tester · 打开应用"]',
+      'button[aria-label="lab · 打开应用"]',
     );
     assert.ok(standbyCard);
     await act(async () => standbyCard.click());
 
-    assert.deepEqual(openCalls, [['tester', 'main']]);
+    assert.deepEqual(openCalls, [['lab', 'main']]);
     assert.equal(currentUi?.appsPageOpen, false);
   } finally {
     await act(async () => root.unmount());

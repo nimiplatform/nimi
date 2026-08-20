@@ -17,7 +17,7 @@ Nimi 作为一个开放世界平台，内含多个核心组件，共同支撑 Ch
 - 阐述 Nimi 为何选择围绕“世界”而非“聊天”来构建产品模型。
 - 明确划分并定义各权威域对不同类型真相的归属权。
 - 提供从平台模型逐步深入至 Runtime、SDK、桌面端、Realm、Avatar 以及 Nimi Coding 的系统性阅读路径。
-- 提供创建 Nimi App、第一次 Runtime-backed AI 调用、使用 Kit、参考 Tester，以及理解常见 fail-closed 状态的开发者路径。
+- 提供创建 Nimi App、第一次 Runtime-backed AI 调用、使用 Kit、使用 Nimi Lab，以及理解常见 fail-closed 状态的开发者路径。
 - 汇总跨领域通用的术语表。
 
 ## 三层视角
@@ -59,8 +59,8 @@ Nimi 平台在架构上可划分为三个层次。分层视角有助于清晰理
 | 如何创建 Nimi App scaffold | [创建 Nimi App](/zh/start/create-an-app) |
 | TypeScript App 如何发起第一次 Runtime AI 调用 | [第一次 AI 调用](/zh/sdk/first-ai-call) |
 | App 如何复用 Kit surface | [在 App 中使用 Kit](/zh/platform/kit/use-kit-in-app) |
-| 如何研究 reference app | [把 Tester 当作 Reference App 使用](/zh/start/use-tester-as-reference) |
-| 如何理解 Runtime、SDK、Tester 和 scaffold 失败 | [故障排查](/zh/start/troubleshooting) |
+| 如何使用能力实验 App | [使用 Nimi Lab](/zh/start/use-nimi-lab) |
+| 如何理解 Runtime、SDK、Nimi Lab 和 scaffold 失败 | [故障排查](/zh/start/troubleshooting) |
 | AI 执行如何治理 | [Runtime](/zh/runtime/) |
 | App 如何在不跨私有边界的前提下接入 | [SDK](/zh/sdk/) |
 | 为什么桌面端与网页端不等价 | [桌面端](/zh/desktop/) |

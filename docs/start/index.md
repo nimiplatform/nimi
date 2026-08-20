@@ -14,7 +14,7 @@ If you are creating an app, start with
 [Create A Nimi App](/start/create-an-app) before reading the deeper SDK,
 Runtime, and Kit sections.
 
-If an SDK call, Tester lane, or generated app scaffold fails, use
+If an SDK call, Nimi Lab lane, or generated App scaffold fails, use
 [Troubleshooting](/start/troubleshooting) to map the visible error to the
 public surface that owns it.
 
@@ -67,8 +67,8 @@ If the immediate task is one Runtime-backed text generation call from a
 TypeScript app, use [First AI Call](/sdk/first-ai-call) after Runtime is
 running.
 
-For a concrete reference app, read
-[Use Tester As A Reference App](/start/use-tester-as-reference). For shared UI,
+For a concrete capability integration app, read
+[Use Nimi Lab](/start/use-nimi-lab). For shared UI,
 auth, shell, telemetry, and AIConfig composition, read
 [Use Kit In An App](/platform/kit/use-kit-in-app).
 
@@ -107,7 +107,7 @@ first walkthrough:
    modules, and independent adapter packages, not by importing private
    internals.
 4. Read [Create A Nimi App](/start/create-an-app),
-    [Use Tester As A Reference App](/start/use-tester-as-reference), and
+    [Use Nimi Lab](/start/use-nimi-lab), and
     [Use Kit In An App](/platform/kit/use-kit-in-app) before writing app-local
     shell, AI capability configuration, or shared UI code.
 5. Keep [Troubleshooting](/start/troubleshooting) open while wiring Runtime,

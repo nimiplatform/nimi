@@ -35,7 +35,7 @@ func TestGetAppStorageMaterializesOnlyPrivateDataRoots(t *testing.T) {
 	dataRoot := t.TempDir()
 	svc := New(testLogger(), WithAppStorageDataRoot(dataRoot), WithSessionValidator(allowingAppSessionValidator{}))
 
-	resp, err := svc.GetAppStorage(context.Background(), &runtimev1.GetAppStorageRequest{AppId: "dev.nimi.tester"})
+	resp, err := svc.GetAppStorage(context.Background(), &runtimev1.GetAppStorageRequest{AppId: "acme.widget"})
 	if err != nil {
 		t.Fatalf("GetAppStorage: %v", err)
 	}
@@ -52,14 +52,14 @@ func TestGetAppStorageMaterializesOnlyPrivateDataRoots(t *testing.T) {
 			t.Fatalf("expected directory root %s", root)
 		}
 	}
-	if want := filepath.Join(dataRoot, "apps", "dev.nimi.tester", "data"); projection.GetDurableDataRoot() != want {
+	if want := filepath.Join(dataRoot, "apps", "acme.widget", "data"); projection.GetDurableDataRoot() != want {
 		t.Fatalf("durable data root = %q, want %q", projection.GetDurableDataRoot(), want)
 	}
 }
 
 func TestGetAppStorageFailsClosedWithoutDataRoot(t *testing.T) {
 	svc := New(testLogger(), WithSessionValidator(allowingAppSessionValidator{}))
-	resp, err := svc.GetAppStorage(context.Background(), &runtimev1.GetAppStorageRequest{AppId: "dev.nimi.tester"})
+	resp, err := svc.GetAppStorage(context.Background(), &runtimev1.GetAppStorageRequest{AppId: "acme.widget"})
 	if err != nil {
 		t.Fatalf("GetAppStorage: %v", err)
 	}

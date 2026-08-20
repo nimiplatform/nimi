@@ -73,7 +73,7 @@ export function DesktopMain({ win }: { win: SimWindow }) {
               </button>
             </div>
             <p className="cradle-note dim">
-              「收录」会经你已授权的「生态足迹写入」提交一条跨应用可见的足迹；Tester 的世界巡游会观察到它。
+              「收录」会经你已授权的「生态足迹写入」提交一条跨应用可见的足迹；Lab 的世界巡游会观察到它。
             </p>
           </div>
         </div>

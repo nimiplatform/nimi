@@ -50,7 +50,7 @@
   /* module accents on glass */
   --mod-desktop: #eab0c2;
   --mod-zhiyu: #a4c6ae;
-  --mod-tester: #e6bd8a;
+  --mod-lab: #e6bd8a;
 
   /* — Clear acrylic glass (prototype-local override of kit materials) — */
   --nimi-material-glass-thin-bg: rgba(232, 224, 228, 0.08);

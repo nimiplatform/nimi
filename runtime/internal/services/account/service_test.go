@@ -209,10 +209,10 @@ func desktopAccountControlContext(t *testing.T) context.Context {
 	return protectedDesktopAccountContext(t)
 }
 
-func testerCaller() *runtimev1.AccountCaller {
+func localFirstPartyAppCaller() *runtimev1.AccountCaller {
 	return &runtimev1.AccountCaller{
-		AppId:         "nimi.tester",
-		AppInstanceId: "nimi.tester.local-first-party",
+		AppId:         "acme.widget",
+		AppInstanceId: "acme.widget.local-first-party",
 		DeviceId:      "local-first-party-device",
 		Mode:          runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_LOCAL_FIRST_PARTY_APP,
 	}
@@ -449,19 +449,19 @@ func TestCompleteLoginFailsClosedForStateNonceReplayAndExpiry(t *testing.T) {
 
 func TestRegisteredLocalFirstPartyAppReadsSingleActiveAccountProjection(t *testing.T) {
 	custody := &memoryCustody{}
-	svc := newHarnessService(t, custody, WithAppRegistry(testAppRegistry(t, firstPartyCaller(), testerCaller())))
+	svc := newHarnessService(t, custody, WithAppRegistry(testAppRegistry(t, firstPartyCaller(), localFirstPartyAppCaller())))
 	completeLogin(t, svc)
 
 	status, err := svc.GetAccountSessionStatus(context.Background(), &runtimev1.GetAccountSessionStatusRequest{
-		Caller: testerCaller(),
+		Caller: localFirstPartyAppCaller(),
 	})
 	if err != nil {
-		t.Fatalf("tester GetAccountSessionStatus: %v", err)
+		t.Fatalf("local first-party App GetAccountSessionStatus: %v", err)
 	}
 	if status.GetReasonCode() != runtimev1.ReasonCode_ACTION_EXECUTED ||
 		accountStatusState(status) != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED ||
 		accountStatusProjection(status).GetAccountId() != "acct-1" {
-		t.Fatalf("registered tester caller should read the Runtime single active account projection: %+v", status)
+		t.Fatalf("registered local first-party App caller should read the Runtime single active account projection: %+v", status)
 	}
 
 }

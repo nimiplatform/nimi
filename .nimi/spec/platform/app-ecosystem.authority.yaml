@@ -1342,6 +1342,10 @@ units:
     kind: definition
     title: Scaffold authoring and custody boundary
     meaning: App Tools owns Scaffold creation, tool-owned initialization, local development launch, SDK and demand-driven Kit integration, Simulator preview and checks, and Nimi Home host glue for the current Desktop-hosted Third-party Local App flow while the App owns product logic and private data and Runtime owns protected identity, session, authorization, Realm mediation, and credentials.
+  - id: definition.nimi.platform.app-ecosystem.nimi-lab
+    kind: definition
+    title: Nimi Lab full-capability development App
+    meaning: Nimi Lab is the local-development-only hand-authored full-capability integration, testing, and incubation Nimi App. It composes owner-admitted SDK and demand-driven Kit surfaces over Runtime and Realm without owning their semantics, authorization, registry, admission, release, or permission truth; it distinguishes scaffoldable capability slices from Lab-only diagnostics, fixtures, Simulator integration, and incubation surfaces, and Lab inclusion alone creates no scaffold or public capability promise.
   - id: definition.nimi.platform.app-ecosystem.ecosystem-economy-boundary
     kind: definition
     title: Ecosystem economy non-admission boundary
@@ -1534,10 +1538,44 @@ units:
     kind: rule
     title: P-SCAF-018 synchronization preserves app custody
     modality: must
-    statement: Scaffold synchronization keeps the official launcher reference deterministic, never overwrites app-owned product files, and applies the same launcher, Kit, and Runtime boundary to tester and external app consumers.
+    statement: Scaffold synchronization keeps the official launcher reference deterministic, never overwrites app-owned product files, and applies the same launcher, Kit, and Runtime boundary to Nimi Lab and external app consumers.
     condition: Whenever launcher glue is synchronized or consumed.
     failure: Reject non-deterministic glue, product-file overwrite, or consumer-specific authority bypass.
     relations:
+      - type: applies_to
+        target: definition.nimi.platform.app-ecosystem.scaffold-custody
+  - id: rule.nimi.platform.app-ecosystem.p-scaf-019a
+    kind: rule
+    title: P-SCAF-019 Nimi Lab canonical identity hard cut
+    modality: must
+    statement: The canonical local-development identity is Nimi Lab at apps/lab with package @nimiplatform/lab, app_id nimi.lab, native identifier ai.nimi.apps.nimi.lab, and Lab-owned source and Simulator namespaces; Tester, apps/tester, @nimiplatform/tester, nimi.tester, tester-reference, and tester-owned namespace forms are losing internal pre-release vocabulary removed without alias, dual path, compatibility read, or migration.
+    condition: Whenever the Lab App, its source, native shell, Simulator module, or scaffold source is identified.
+    failure: Reject a mixed, aliased, migrated, or losing Lab identity and require the canonical Nimi Lab identity.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.app-ecosystem.nimi-lab
+  - id: rule.nimi.platform.app-ecosystem.p-scaf-019b
+    kind: rule
+    title: P-SCAF-019 Lab inclusion and scaffold selection boundary
+    modality: must
+    statement: App Tools keeps topology profile and capability selection orthogonal, exposes only explicitly catalogued scaffoldable Nimi Lab slices backed by admitted owner surfaces, and never infers scaffold or public availability from inclusion in the full Lab composition; Lab-only diagnostics, fixtures, Simulator integration, and incubation surfaces remain excluded.
+    condition: Whenever a Nimi Lab capability is considered for scaffold selection or generation.
+    failure: Reject implicit feature admission, a Lab-as-profile path, or inclusion of a Lab-only surface in scaffold output.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.app-ecosystem.nimi-lab
+      - type: applies_to
+        target: definition.nimi.platform.app-ecosystem.scaffold-custody
+  - id: rule.nimi.platform.app-ecosystem.p-scaf-019c
+    kind: rule
+    title: P-SCAF-019 positive capability closure generation
+    modality: must
+    statement: nimi-app create positively composes the generic base with the selected catalog feature dependency closure, includes only that closure's source, route, dependency, and App access inputs, expands all to the current catalog's exact ordered feature set at creation, and records the expanded set in scaffold intent and lock state without copying the full Lab and deleting omissions.
+    condition: Whenever capability selection is resolved or scaffold source is generated.
+    failure: Abort before producing a completed scaffold on an unknown feature, dependency cycle, path collision, non-selected input, Lab-only input, or non-deterministic expansion.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.app-ecosystem.nimi-lab
       - type: applies_to
         target: definition.nimi.platform.app-ecosystem.scaffold-custody
   - id: rule.nimi.platform.app-ecosystem.p-eco-001

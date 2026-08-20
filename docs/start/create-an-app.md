@@ -51,16 +51,16 @@ read [Use Kit In An App](/platform/kit/use-kit-in-app).
 | `pnpm run update` | Refresh scaffold-managed glue while preserving app-owned product code |
 | `pnpm run local-audit` | Local pre-submission evidence, not platform admission |
 
-## Reference App
+## Nimi Lab
 
-`apps/tester/` is the Nimi Lab developer reference app. It shows a Runtime
-authenticated shell, Kit workbench surfaces, AI capability lanes, app-owned
-history storage, and local acceptance checks. Treat it as a reference for SDK,
-Kit, app-tools, and Runtime auth integration, not as platform admission truth.
-For a reading map, see [Use Tester As A Reference App](/start/use-tester-as-reference).
+`apps/lab/` is Nimi's local capability integration and incubation App. It shows
+a Runtime-authenticated shell, Kit workbench surfaces, AI capability lanes,
+app-owned history storage, and local acceptance checks. Its full composition is
+not a scaffold contract: App Tools exposes only explicitly admitted capability
+slices. For a reading map, see [Use Nimi Lab](/start/use-nimi-lab).
 
 ## Source Basis
 
 - [`app-tools/README.md`](https://github.com/nimiplatform/nimi/blob/main/app-tools/README.md)
-- [`apps/tester/README.md`](https://github.com/nimiplatform/nimi/blob/main/apps/tester/README.md)
+- [`apps/lab/README.md`](https://github.com/nimiplatform/nimi/blob/main/apps/lab/README.md)
 - [`.nimi/spec/platform/app-ecosystem.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/app-ecosystem.authority.yaml)

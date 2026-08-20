@@ -5,7 +5,7 @@ import { useProductPresentation } from './product-presentation.tsx';
 export const GRANT_PARTY_TONES: Record<string, string> = {
   Desktop: 'desktop',
   Zhiyu: 'zhiyu',
-  Tester: 'tester',
+  Lab: 'lab',
 };
 
 interface GrantReceiptProps {

@@ -23,7 +23,7 @@ test('Runtime config connector projection normalizes draft and connector evidenc
     vendor: 'tester',
     provider: 'tester',
     authMode: 'api_key',
-    endpoint: 'https://tester.invalid/v1///',
+    endpoint: 'https://example.invalid/v1///',
     scope: 'user',
     hasCredential: true,
     isSystemOwned: false,
@@ -40,7 +40,7 @@ test('Runtime config connector projection normalizes draft and connector evidenc
     },
   });
 
-  assert.equal(normalized.endpoint, 'https://tester.invalid/v1');
+  assert.equal(normalized.endpoint, 'https://example.invalid/v1');
   assert.deepEqual(normalized.models, ['tester-text', 'tester-image']);
   assert.deepEqual(normalized.modelCapabilities, {
     'tester-text': ['text.generate'],

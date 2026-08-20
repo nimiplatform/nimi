@@ -5,7 +5,7 @@ import { useSim } from '../engine/SimContext';
 export const GRANT_PARTY_TONES: Record<string, string> = {
   Desktop: 'desktop',
   Zhiyu: 'zhiyu',
-  Tester: 'tester',
+  Lab: 'lab',
 };
 
 interface GrantReceiptProps {

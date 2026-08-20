@@ -409,7 +409,7 @@ importers:
         specifier: 2.9.0
         version: 2.9.0
 
-  apps/tester:
+  apps/lab:
     dependencies:
       '@nimiplatform/kit':
         specifier: workspace:*

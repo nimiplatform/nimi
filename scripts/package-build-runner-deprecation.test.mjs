@@ -98,7 +98,7 @@ test('root build holds the workspace surface lock across consumer builds', () =>
   );
   assert.equal(
     packageJson.scripts['build:prepared'],
-    'pnpm build:install-gateway && pnpm --filter @nimiplatform/desktop build && pnpm --filter @nimiplatform/web build && pnpm --filter @nimiplatform/tester build',
+    'pnpm build:install-gateway && pnpm --filter @nimiplatform/desktop build && pnpm --filter @nimiplatform/web build && pnpm --filter @nimiplatform/lab build',
   );
 });
 

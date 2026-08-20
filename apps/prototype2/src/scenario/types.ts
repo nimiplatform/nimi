@@ -6,7 +6,7 @@
  * here; everything below is deterministic mock content for the demo shell.
  */
 
-export type ModuleId = 'desktop' | 'zhiyu' | 'tester';
+export type ModuleId = 'desktop' | 'zhiyu' | 'lab';
 
 export type AgentStatus = 'idle' | 'observing' | 'migrating' | 'acting';
 

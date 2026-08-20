@@ -30,14 +30,14 @@ export const MODULES: Record<ModuleId, ModuleMeta> = {
     desc: '面向长文本的应用自有 AI 会话空间。',
     accent: 'var(--mod-zhiyu)',
   },
-  tester: {
-    id: 'tester',
-    name: 'Tester',
-    en: 'Nimi Tester',
+  lab: {
+    id: 'lab',
+    name: 'Lab',
+    en: 'Nimi Lab',
     tag: '工作台 · main',
     desc: '生态能力的验证工作台与世界巡游观察窗。',
-    accent: 'var(--mod-tester)',
+    accent: 'var(--mod-lab)',
   },
 };
 
-export const MODULE_ORDER: ModuleId[] = ['desktop', 'zhiyu', 'tester'];
+export const MODULE_ORDER: ModuleId[] = ['desktop', 'zhiyu', 'lab'];

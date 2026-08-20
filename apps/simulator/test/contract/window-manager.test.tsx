@@ -34,26 +34,26 @@ test('window chrome does not render internal instance identifiers', () => {
 test('App surfaces project their z order onto the shared front-to-back depth stack', () => {
   const windows = {
     desktop: { x: 100, y: 80, w: 900, h: 700, z: 11, minimized: false },
-    tester: { x: 100, y: 80, w: 900, h: 700, z: 12, minimized: false },
+    lab: { x: 100, y: 80, w: 900, h: 700, z: 12, minimized: false },
     zhiyu: { x: 100, y: 80, w: 900, h: 700, z: 13, minimized: false },
   };
 
   assert.deepEqual(
     projectSurfaceDepths(
-      [{ instanceId: 'desktop' }, { instanceId: 'tester' }, { instanceId: 'zhiyu' }],
+      [{ instanceId: 'desktop' }, { instanceId: 'lab' }, { instanceId: 'zhiyu' }],
       windows,
     ),
     [
       { instanceId: 'zhiyu', depth: 0, state: 'focus' },
-      { instanceId: 'tester', depth: 1, state: 'depth-1' },
+      { instanceId: 'lab', depth: 1, state: 'depth-1' },
       { instanceId: 'desktop', depth: 2, state: 'depth-2' },
     ],
   );
 
   assert.deepEqual(
     projectSurfaceDepths(
-      [{ instanceId: 'desktop' }, { instanceId: 'tester' }, { instanceId: 'zhiyu' }],
-      { ...windows, tester: { ...windows.tester, minimized: true } },
+      [{ instanceId: 'desktop' }, { instanceId: 'lab' }, { instanceId: 'zhiyu' }],
+      { ...windows, lab: { ...windows.lab, minimized: true } },
     ),
     [
       { instanceId: 'zhiyu', depth: 0, state: 'focus' },
@@ -63,10 +63,10 @@ test('App surfaces project their z order onto the shared front-to-back depth sta
 
   assert.deepEqual(
     projectSurfaceDepths(
-      [{ instanceId: 'desktop' }, { instanceId: 'tester' }, { instanceId: 'zhiyu' }],
+      [{ instanceId: 'desktop' }, { instanceId: 'lab' }, { instanceId: 'zhiyu' }],
       {
         desktop: { ...windows.desktop, minimized: true },
-        tester: { ...windows.tester, minimized: true },
+        lab: { ...windows.lab, minimized: true },
         zhiyu: { ...windows.zhiyu, minimized: true },
       },
     ),

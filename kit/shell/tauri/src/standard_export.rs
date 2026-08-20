@@ -2,7 +2,7 @@
 //
 // Saves a user-facing export artifact into the user's Downloads directory
 // (dirs::download_dir, falling back to the home directory), never
-// overwriting existing files. Semantics extracted from the tester app's
+// overwriting existing files. Semantics extracted from Nimi Lab's
 // export path: sanitized filenames, unique output paths, fail-closed on
 // empty payloads.
 

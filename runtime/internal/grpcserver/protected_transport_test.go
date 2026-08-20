@@ -399,17 +399,17 @@ func TestDesktopAccountProductAIConfigBindsExactAdmittedAppOwner(t *testing.T) {
 	admissionCalls := 0
 	interceptor := newUnaryProtectedDesktopTransportInterceptor(manager, provider, func(_ context.Context, appID string) bool {
 		admissionCalls++
-		return appID == "nimi.tester"
+		return appID == "acme.widget"
 	})
 	request := &runtimev1.GetAppAIConfigRequest{Owner: &runtimev1.AIConfigOwner{
-		Owner: &runtimev1.AIConfigOwner_App{App: &runtimev1.AIConfigAppOwner{AppId: "nimi.tester"}},
+		Owner: &runtimev1.AIConfigOwner_App{App: &runtimev1.AIConfigAppOwner{AppId: "acme.widget"}},
 	}}
 	reached := false
 	_, err := interceptor(ctx, request, &grpc.UnaryServerInfo{
 		FullMethod: "/nimi.runtime.v1.RuntimeAiService/GetAppAIConfig",
 	}, func(callContext context.Context, _ any) (any, error) {
 		reached = true
-		if appID, ok := protectedprincipal.AuthorizedAppOwnerDecisionFromContext(callContext); !ok || appID != "nimi.tester" {
+		if appID, ok := protectedprincipal.AuthorizedAppOwnerDecisionFromContext(callContext); !ok || appID != "acme.widget" {
 			t.Fatalf("authorized App owner decision = %q, %v", appID, ok)
 		}
 		return &runtimev1.GetAppAIConfigResponse{}, nil

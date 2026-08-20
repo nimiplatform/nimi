@@ -63,7 +63,7 @@ class StubAppTransport implements NimiAppTransport {
   }
 }
 
-const scopeRef: NimiAppScopeRef = { kind: 'app', ownerId: 'tester.app', surfaceId: 'settings' };
+const scopeRef: NimiAppScopeRef = { kind: 'app', ownerId: 'acme.widget', surfaceId: 'settings' };
 
 describe('vNext app surface', () => {
   it('contains no third-party access workflow exports', () => {
@@ -71,7 +71,7 @@ describe('vNext app surface', () => {
       Object.keys(appSurface).filter((key) => key.toLowerCase().includes('permission')),
       [],
     );
-    assert.deepEqual(createAppScopeRef({ appId: 'tester.app', surfaceId: 'settings' }), scopeRef);
+    assert.deepEqual(createAppScopeRef({ appId: 'acme.widget', surfaceId: 'settings' }), scopeRef);
   });
 
   it('exposes read projections without package lifecycle methods', async () => {

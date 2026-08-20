@@ -1,6 +1,6 @@
 # Nimi App 接入故障排查
 
-当 Nimi App、SDK 调用、Tester lane 或本地 Runtime 命令在生成完成前失败时，先看这页。这里聚焦第三方 App 作者能通过公开表面处理的问题。
+当 Nimi App、SDK 调用、Nimi Lab lane 或本地 Runtime 命令在生成完成前失败时，先看这页。这里聚焦第三方 App 作者能通过公开表面处理的问题。
 
 ## 先检查 Runtime
 
@@ -54,9 +54,9 @@ SDK 会在 dispatch 前失败。不要通过 App 代码直接调用 Runtime 私�
 
 能力意图不会解析成请求侧 model、route、connector、target reference 或 fallback。实际调用返回 authorization、feature support 或 execution error 时，保留 typed Runtime failure 和诊断信息；不要在 App 代码中拼出另一个 target。
 
-## Tester Unavailable Reasons
+## Nimi Lab Unavailable Reasons
 
-Tester 会显示 typed unavailable state，而不是把所有失败都归为 SDK method 缺失。
+Nimi Lab 会显示 typed unavailable state，而不是把所有失败都归为 SDK method 缺失。
 
 | Reason | 含义 | 处理 |
 | --- | --- | --- |
@@ -84,7 +84,7 @@ pnpm run check
 - 不要在外部 App 中导入 `runtime/internal/**` 或 `apps/**` 实现文件。
 - 不要用 app-local REST 绕过 Runtime 来执行 AI。
 - 不要在 app-owned product code 中硬编码 provider/model 标识。
-- 不要把 Tester unavailable reason 当作成功状态。它就是可行动的失败状态。
+- 不要把 Nimi Lab unavailable reason 当作成功状态。它就是可行动的失败状态。
 
 ## 来源依据
 
@@ -92,5 +92,5 @@ pnpm run check
 - [`sdks/typescript/root-client.ts`](https://github.com/nimiplatform/nimi/blob/main/sdks/typescript/root-client.ts)
 - [`sdks/typescript/core/ai/capability-configuration.ts`](https://github.com/nimiplatform/nimi/blob/main/sdks/typescript/core/ai/capability-configuration.ts)
 - [`sdks/typescript/core/ai/runtime-model.ts`](https://github.com/nimiplatform/nimi/blob/main/sdks/typescript/core/ai/runtime-model.ts)
-- [`apps/tester/src/tester/tester-unavailable.ts`](https://github.com/nimiplatform/nimi/blob/main/apps/tester/src/tester/tester-unavailable.ts)
+- [`apps/lab/src/lab/lab-non-success.ts`](https://github.com/nimiplatform/nimi/blob/main/apps/lab/src/lab/lab-non-success.ts)
 - [`app-tools/README.md`](https://github.com/nimiplatform/nimi/blob/main/app-tools/README.md)

@@ -37,7 +37,7 @@ describe('registerNimiElectronRuntimeBridge', () => {
   it('hardcuts generic Runtime config commands', async () => {
     const ipcMain = new FakeIpcMain();
     registerNimiElectronRuntimeBridge({
-      appId: 'nimi.tester',
+      appId: 'acme.widget',
       runtimeEndpoint: '127.0.0.1:46371',
       allowedOrigins: ['http://localhost:1430'],
       ipcMain,
@@ -69,7 +69,7 @@ describe('registerNimiElectronRuntimeBridge', () => {
   it('hard-cuts retired renderer auth-session commands', async () => {
     const ipcMain = new FakeIpcMain();
     registerNimiElectronRuntimeBridge({
-      appId: 'nimi.tester',
+      appId: 'acme.widget',
       runtimeEndpoint: '127.0.0.1:46371',
       allowedOrigins: ['http://localhost:1430'],
       ipcMain,
@@ -178,7 +178,7 @@ describe('registerNimiElectronRuntimeBridge', () => {
   it('fails closed when external daemon status probe cannot reach Runtime', async () => {
     const ipcMain = new FakeIpcMain();
     registerNimiElectronRuntimeBridge({
-      appId: 'nimi.tester',
+      appId: 'acme.widget',
       runtimeEndpoint: '127.0.0.1:46371',
       allowedOrigins: ['http://localhost:1430'],
       ipcMain,
@@ -207,7 +207,7 @@ describe('registerNimiElectronRuntimeBridge', () => {
   it('fails closed when external daemon status cannot initialize a Runtime client', async () => {
     const ipcMain = new FakeIpcMain();
     registerNimiElectronRuntimeBridge({
-      appId: 'nimi.tester',
+      appId: 'acme.widget',
       runtimeEndpoint: '127.0.0.1:46371',
       allowedOrigins: ['http://localhost:1430'],
       ipcMain,
@@ -231,7 +231,7 @@ describe('registerNimiElectronRuntimeBridge', () => {
     const ipcMain = new FakeIpcMain();
     const unaryRequests: ElectronRuntimeBridgeUnaryRequest[] = [];
     registerNimiElectronRuntimeBridge({
-      appId: 'nimi.tester',
+      appId: 'acme.widget',
       runtimeEndpoint: '127.0.0.1:46371',
       allowedOrigins: ['http://localhost:1430'],
       ipcMain,

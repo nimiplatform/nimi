@@ -2,12 +2,14 @@
 
 import process from 'node:process';
 import {
+  APP_SCAFFOLD_FEATURE_IDS,
   createApp,
   doctorAppScaffold,
   initAppScaffold,
   runDevShell,
   updateAppScaffold,
 } from '../lib/index.mjs';
+import { createInterface } from 'node:readline/promises';
 
 function parseArgs(argv) {
   const [command = '', ...rest] = argv;
@@ -17,11 +19,13 @@ function parseArgs(argv) {
   let title = '';
   let packageName = '';
   let author = '';
+  let features;
   let shell = '';
   let cdpPort;
   let cdpPortSeen = false;
   let conformance = '';
   let json = false;
+  let featuresSeen = false;
   for (let index = 0; index < rest.length; index += 1) {
     if (rest[index] === '--') {
       continue;
@@ -53,6 +57,17 @@ function parseArgs(argv) {
     }
     if (rest[index] === '--author') {
       author = String(rest[index + 1] || '').trim();
+      index += 1;
+      continue;
+    }
+    if (rest[index] === '--features') {
+      if (featuresSeen) throw new Error('Duplicate option: --features');
+      if (rest[index + 1] === undefined || String(rest[index + 1]).startsWith('--')) {
+        throw new Error('--features requires a value');
+      }
+      featuresSeen = true;
+      features = String(rest[index + 1]).trim();
+      if (!features) throw new Error('--features requires a non-empty value');
       index += 1;
       continue;
     }
@@ -90,6 +105,7 @@ function parseArgs(argv) {
     title,
     packageName,
     author,
+    features,
     shell,
     cdpPort,
     conformance,
@@ -101,7 +117,7 @@ function printUsage() {
   process.stdout.write(
     [
       'Usage:',
-      '  nimi-app create [--dir path] [--profile standalone|workspace-app|tester-reference] [--app-id id] [--title title] [--package-name name] [--author author]',
+      '  nimi-app create [--dir path] [--profile standalone|workspace-app] [--features ids|all] [--app-id id] [--title title] [--package-name name] [--author author]',
       '  nimi-app init [--dir path] [--json]',
       '  nimi-app doctor [--dir path] [--json]',
       '  nimi-app doctor [--dir path] --conformance simulator',
@@ -110,6 +126,16 @@ function printUsage() {
       '',
     ].join('\n'),
   );
+}
+
+async function promptForFeatures() {
+  const prompt = createInterface({ input: process.stdin, output: process.stdout });
+  try {
+    process.stdout.write(`Available features: ${APP_SCAFFOLD_FEATURE_IDS.join(', ')}\n`);
+    return (await prompt.question('Features (comma-separated, blank for base only): ')).trim();
+  } finally {
+    prompt.close();
+  }
 }
 
 let parsedArgs = null;
@@ -123,6 +149,7 @@ try {
     title,
     packageName,
     author,
+    features: parsedFeatures,
     shell,
     cdpPort,
     conformance,
@@ -137,14 +164,23 @@ try {
   }
   switch (command) {
     case 'create':
-      createApp(process.cwd(), {
-        dir,
-        profile,
-        appId,
-        title,
-        packageName,
-        author,
-      });
+      {
+        const features = parsedFeatures === undefined
+          && APP_SCAFFOLD_FEATURE_IDS.length > 0
+          && process.stdin.isTTY
+          && process.stdout.isTTY
+          ? await promptForFeatures()
+          : parsedFeatures;
+        createApp(process.cwd(), {
+          dir,
+          profile,
+          appId,
+          title,
+          packageName,
+          author,
+          features,
+        });
+      }
       break;
     case 'init':
       initAppScaffold(process.cwd(), {

@@ -40,11 +40,15 @@ authorization is not listing admission, a production release, installed-app
 truth, signing status, or a permission grant. Paths not run in the current
 development environment remain `NOT-VERIFIED`.
 
-When `--profile tester-reference` is used, the generator emits the explicit
-non-first-party developer reference tester product surface: Runtime-authenticated
-shell, Nimi Kit glass workbench, typed AI capability lanes, app-owned history
-storage, and standalone world-tour viewer commands. This reference app is
-opt-in only; app id values never switch the scaffold profile.
+Profiles control dependency topology only: `standalone` uses public package
+versions, while `workspace-app` uses workspace and repository-local dependency
+links. Feature selection is independent of the profile. The current admitted
+catalog contains `kit-recipes`, extracted from the real Nimi Lab UI Recipes
+surface. `--features all` currently expands to that exact one-item catalog; it
+does not copy the full Lab. AI consume, Realm, Local Agent, diagnostics, and
+other Lab surfaces remain non-selectable until their own real Lab journey and
+generated-App closure are complete. The full Lab App is not a scaffold profile
+or template; implementation presence in `apps/lab` is not admission.
 
 `nimi-app doctor` verifies scaffold init/lock state, managed glue, package-owned
 projections, dependency alignment, and forbidden shortcut patterns in a source
@@ -65,7 +69,7 @@ pnpm add @nimiplatform/sdk @nimiplatform/kit
 ## Commands
 
 ```bash
-nimi-app create [--dir path] [--profile standalone|workspace-app|tester-reference] [--app-id id] [--title title] [--package-name name] [--author author]
+nimi-app create [--dir path] [--profile standalone|workspace-app] [--features ids|all] [--app-id id] [--title title] [--package-name name] [--author author]
 nimi-app dev [--dir path] [--shell electron] [--cdp-port 1024..65535]
 nimi-app init [--dir path] [--json]
 nimi-app doctor [--dir path] [--json]

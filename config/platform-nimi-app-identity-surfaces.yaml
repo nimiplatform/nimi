@@ -88,21 +88,21 @@ apps:
     product_status: first-party-nimi-app
     source_rule: P-NAPP-012
 
-  - source_root: apps/tester
-    product_surface: scaffold-reference-tester-app
-    canonical_app_id: nimi.tester
-    sdk_app_id: nimi.tester
-    runtime_app_id: nimi.tester
+  - source_root: apps/lab
+    product_surface: nimi-lab
+    canonical_app_id: nimi.lab
+    sdk_app_id: nimi.lab
+    runtime_app_id: nimi.lab
     runtime_caller_mode: local-app
     principal_posture: isolated_local_development
     development_integration_profile:
       trust_class: local_development
       shipped_identity_inheritance: forbidden
     native_shell: tauri
-    native_bundle_identifier: ai.nimi.apps.nimi.tester
+    native_bundle_identifier: ai.nimi.apps.nimi.lab
     native_bundle_identifier_required: true
-    npm_package: "@nimiplatform/tester"
-    product_status: developer-test-reference
+    npm_package: "@nimiplatform/lab"
+    product_status: local-development-nimi-app
     source_rule: P-NAPP-012
 
   - source_root: apps/zhiyu

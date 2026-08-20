@@ -27,7 +27,7 @@ export function Lens() {
     () => [
       { id: 'desktop', label: '打开 Desktop', hint: '宿主桌面 · main', run: () => openApp('desktop') },
       { id: 'zhiyu', label: '打开 织羽 Zhiyu', hint: 'AI 写作空间 · main', run: () => openApp('zhiyu') },
-      { id: 'tester', label: '打开 Tester', hint: '工作台 · main', run: () => openApp('tester') },
+      { id: 'lab', label: '打开 Lab', hint: '工作台 · main', run: () => openApp('lab') },
       { id: 'home', label: '回到基座', hint: 'cradle', run: goHome },
       { id: 'ledger', label: '交互账本', hint: 'ledger', run: toggleLedger },
       {

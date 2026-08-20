@@ -28,7 +28,7 @@ function registerFileSurfaceBridge(standardShellHost: NimiElectronStandardShellH
       ? { allowAllStandardShellCommands: true, ...standardShellHost }
       : undefined;
   registerNimiElectronRuntimeBridge({
-    appId: 'nimi.tester',
+    appId: 'acme.widget',
     runtimeEndpoint: '127.0.0.1:46371',
     allowedOrigins: ['http://localhost:1430'],
     ipcMain,

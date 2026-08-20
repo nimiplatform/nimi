@@ -1,6 +1,6 @@
 # Troubleshooting Nimi App Integration
 
-Use this page when a Nimi App, SDK call, Tester lane, or local Runtime command
+Use this page when a Nimi App, SDK call, Nimi Lab lane, or local Runtime command
 fails before a generation completes. It focuses on failures a third-party app
 author can act on from the public surfaces.
 
@@ -66,9 +66,9 @@ target reference, or fallback. If the actual call returns an authorization,
 feature-support, or execution error, preserve the typed Runtime failure and its
 diagnostics. Do not synthesize another target in App code.
 
-## Tester Unavailable Reasons
+## Nimi Lab Unavailable Reasons
 
-Tester intentionally displays typed unavailable states instead of treating every
+Nimi Lab intentionally displays typed unavailable states instead of treating every
 failure as a missing SDK method.
 
 | Reason | What it means | Action |
@@ -101,7 +101,7 @@ scaffold-managed files and keep app-owned product code separate.
   external app.
 - Do not bypass Runtime with app-local REST for AI execution.
 - Do not hardcode provider/model identifiers in app-owned product code.
-- Do not treat a Tester unavailable reason as success. It is the actionable
+- Do not treat a Nimi Lab unavailable reason as success. It is the actionable
   failure state.
 
 ## Source Basis
@@ -110,5 +110,5 @@ scaffold-managed files and keep app-owned product code separate.
 - [`sdks/typescript/root-client.ts`](https://github.com/nimiplatform/nimi/blob/main/sdks/typescript/root-client.ts)
 - [`sdks/typescript/core/ai/capability-configuration.ts`](https://github.com/nimiplatform/nimi/blob/main/sdks/typescript/core/ai/capability-configuration.ts)
 - [`sdks/typescript/core/ai/runtime-model.ts`](https://github.com/nimiplatform/nimi/blob/main/sdks/typescript/core/ai/runtime-model.ts)
-- [`apps/tester/src/tester/tester-unavailable.ts`](https://github.com/nimiplatform/nimi/blob/main/apps/tester/src/tester/tester-unavailable.ts)
+- [`apps/lab/src/lab/lab-non-success.ts`](https://github.com/nimiplatform/nimi/blob/main/apps/lab/src/lab/lab-non-success.ts)
 - [`app-tools/README.md`](https://github.com/nimiplatform/nimi/blob/main/app-tools/README.md)

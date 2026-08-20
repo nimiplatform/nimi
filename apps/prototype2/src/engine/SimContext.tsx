@@ -103,13 +103,13 @@ type Action =
 const SPAWN: Record<ModuleId, { x: number; y: number }> = {
   desktop: { x: 150, y: 96 },
   zhiyu: { x: 340, y: 148 },
-  tester: { x: 540, y: 208 },
+  lab: { x: 540, y: 208 },
 };
 
 export const SPAWN_SIZE: Record<ModuleId, { w: number; h: number }> = {
   desktop: { w: 720, h: 520 },
   zhiyu: { w: 640, h: 500 },
-  tester: { w: 600, h: 470 },
+  lab: { w: 600, h: 470 },
 };
 
 /** Default constellation for the cradle panes (fractions of the viewport). */

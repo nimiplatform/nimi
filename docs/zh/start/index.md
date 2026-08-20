@@ -2,7 +2,7 @@
 
 请选择适合您当前角色的阅读路径。每条路径均从平台模型出发，逐步深入至相应的技术实现。
 
-如需查看针对特定受众的详细路径，请参阅 [用户画像](/zh/start/personas)。了解已开放安装的组件及其获取方式，请参阅 [安装与可用性](/zh/start/install)。如果你要创建 App，从 [创建 Nimi App](/zh/start/create-an-app) 开始。如果 SDK 调用、Tester lane 或生成的 App scaffold 失败，用 [故障排查](/zh/start/troubleshooting) 将可见错误映射到负责它的公开表面。
+如需查看针对特定受众的详细路径，请参阅 [用户画像](/zh/start/personas)。了解已开放安装的组件及其获取方式，请参阅 [安装与可用性](/zh/start/install)。如果你要创建 App，从 [创建 Nimi App](/zh/start/create-an-app) 开始。如果 SDK 调用、Nimi Lab lane 或生成的 App scaffold 失败，用 [故障排查](/zh/start/troubleshooting) 将可见错误映射到负责它的公开表面。
 
 ## 首次接触 Nimi
 
@@ -34,7 +34,7 @@
 
 如果眼前任务只是从 TypeScript App 发起一次 Runtime-backed 文本生成，在 Runtime 已运行后读 [第一次 AI 调用](/zh/sdk/first-ai-call)。
 
-如果需要一个具体 reference app，读 [把 Tester 当作 Reference App 使用](/zh/start/use-tester-as-reference)。共享 UI、auth、shell、telemetry 与 AIConfig composition 先读 [在 App 中使用 Kit](/zh/platform/kit/use-kit-in-app)。
+如果需要一个具体的能力集成 App，读 [使用 Nimi Lab](/zh/start/use-nimi-lab)。共享 UI、auth、shell、telemetry 与 AIConfig composition 先读 [在 App 中使用 Kit](/zh/platform/kit/use-kit-in-app)。
 
 如果本地运行、SDK 调用或 app-tools scaffold check 失败，先读 [故障排查](/zh/start/troubleshooting)，再决定是否修改 App 代码。
 
@@ -55,7 +55,7 @@ Nimi Coding 作为独立于宿主环境的 canonical-authority 工具，已作�
 1. 阅读 [平台](/zh/platform/)，确立“世界”而非“会话”是平台核心运转对象的基础认知。
 2. 阅读 [Runtime](/zh/runtime/)，理解 Provider 调度、LocalAgent、Conversation、Memory、Knowledge、流式传输及多模态产物等逻辑均由 Runtime 契约统筹，而非应用代码。
 3. 阅读 [SDK](/zh/sdk/)，掌握如何通过 root `@nimiplatform/sdk` client、`@nimiplatform/sdk/runtime`、`@nimiplatform/sdk/realm`、feature module 与独立 adapter package 合规消费底层能力，避免直接导入私有模块。
-4. 写 app-local shell、AI capability configuration 或共享 UI 前，阅读 [创建 Nimi App](/zh/start/create-an-app)、[把 Tester 当作 Reference App 使用](/zh/start/use-tester-as-reference) 和 [在 App 中使用 Kit](/zh/platform/kit/use-kit-in-app)。
+4. 写 app-local shell、AI capability configuration 或共享 UI 前，阅读 [创建 Nimi App](/zh/start/create-an-app)、[使用 Nimi Lab](/zh/start/use-nimi-lab) 和 [在 App 中使用 Kit](/zh/platform/kit/use-kit-in-app)。
 5. Runtime、SDK、AIConfig 或 scaffold check 失败时，保持 [故障排查](/zh/start/troubleshooting) 打开。
 6. 阅读 [桌面端](/zh/desktop/) 与 [Web 模式](/zh/desktop/web-mode)，明晰两种呈现形态的能力边界差异，以评估其对应用分发计划的影响。
 7. 准备进行代码贡献时，阅读 [Nimi Coding](/zh/nimicoding/)。处理高风险变更或跨模块重构时，需遵循此标准工作流。

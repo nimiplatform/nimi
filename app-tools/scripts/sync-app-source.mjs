@@ -1,14 +1,14 @@
 #!/usr/bin/env node
 
-// apps/tester is the hand-authored reference Nimi App. This module bakes
+// apps/lab is the hand-authored full-capability development Nimi App. This module bakes
 // its source snapshot into templates/app-source/** so the published
-// @nimiplatform/app-tools tarball can materialize the explicit tester-reference
+// @nimiplatform/app-tools tarball can materialize admitted capability slices
 // profile and reuse reviewed shell/auth glue for default starter profiles.
 //
 // The snapshot is a derived build artifact (gitignored, like dist/):
 //   --apply           materialize templates/app-source/** + manifest (prepack)
 //   resolveAppSource  the generator's source resolver — prefers a baked
-//                     snapshot, else reads the live apps/tester tree, so in the
+//                     snapshot, else reads the live apps/lab tree, so in the
 //                     monorepo there is exactly one copy and no build step.
 
 import {
@@ -22,12 +22,16 @@ import {
 } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { APP_SCAFFOLD_CAPABILITY_CATALOG } from '../lib/app-scaffold-capabilities.mjs';
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const APP_TOOLS_ROOT = path.resolve(SCRIPT_DIR, '..');
-const SOURCE_APP_DIR = path.resolve(APP_TOOLS_ROOT, '../apps/tester');
+const SOURCE_APP_DIR = path.resolve(APP_TOOLS_ROOT, '../apps/lab');
 const SNAPSHOT_DIR = path.resolve(APP_TOOLS_ROOT, 'templates/app-source');
 const MANIFEST_PATH = path.resolve(APP_TOOLS_ROOT, 'templates/app-source.manifest.json');
+const CAPABILITY_SOURCE_ROOTS = Object.freeze(
+  Object.values(APP_SCAFFOLD_CAPABILITY_CATALOG).map((capability) => capability.sourceRoot),
+);
 
 // Directories never copied into the snapshot: build output, generated Tauri
 // schema/icon assets, dependency state, and host-projection truth that init
@@ -57,17 +61,17 @@ const STRUCTURED_FILE_PATHS = new Set([
   'src-tauri/Cargo.lock',
 ]);
 
-// The reference app's concrete identity literals. The generator string-replaces
+// Nimi Lab's concrete identity literals. The generator string-replaces
 // these with the target app identity at create time. Ordered longest-first so a
 // shorter literal can never partially rewrite a longer one.
 const SOURCE_IDENTITY = {
-  tauriIdentifier: 'ai.nimi.apps.nimi.tester',
-  packageName: '@nimiplatform/tester',
-  cargoPackageName: 'nimiapp-tester-shell',
-  appId: 'nimi.tester',
+  tauriIdentifier: 'ai.nimi.apps.nimi.lab',
+  packageName: '@nimiplatform/lab',
+  cargoPackageName: 'nimiapp-lab-shell',
+  appId: 'nimi.lab',
   appTitle: 'Nimi Lab',
-  appSlug: 'nimi-tester',
-  rendererEntryId: 'tester-app',
+  appSlug: 'nimi-lab',
+  rendererEntryId: 'lab-app',
   accentPack: 'nimi-accent',
   devPort: '1468',
 };
@@ -92,7 +96,7 @@ function isAppOwnedProductCode(relativePath) {
   if (relativePath === 'src/dev-preview.tsx' || relativePath === 'dev-preview.html') {
     return true;
   }
-  if (relativePath.startsWith('src/tester/')) {
+  if (relativePath.startsWith('src/lab/')) {
     return true;
   }
   if (relativePath === 'src-tauri/src/world_tour.rs') {
@@ -130,14 +134,20 @@ function collectSnapshotFiles(sourceDir) {
       files.push(relativePath);
     }
   };
-  walk(sourceDir, '');
+  for (const sourceRoot of CAPABILITY_SOURCE_ROOTS) {
+    const absoluteRoot = path.join(sourceDir, sourceRoot);
+    if (!existsSync(absoluteRoot)) {
+      throw new Error(`Scaffold capability source missing: ${sourceRoot}`);
+    }
+    walk(absoluteRoot, sourceRoot);
+  }
   return files.sort((left, right) => left.localeCompare(right));
 }
 
 function buildManifest(files) {
   return {
     manifestVersion: 1,
-    sourceApp: 'apps/tester',
+    sourceApp: 'apps/lab',
     sourceIdentity: SOURCE_IDENTITY,
     identityReplacementOrder: IDENTITY_REPLACEMENT_ORDER,
     files: files.map((relativePath) => ({
@@ -153,7 +163,7 @@ function jsonFile(value) {
 
 function applySnapshot() {
   if (!existsSync(SOURCE_APP_DIR)) {
-    throw new Error(`Reference app source missing: ${SOURCE_APP_DIR}`);
+    throw new Error(`Nimi Lab source missing: ${SOURCE_APP_DIR}`);
   }
   const files = collectSnapshotFiles(SOURCE_APP_DIR);
   rmSync(SNAPSHOT_DIR, { recursive: true, force: true });
@@ -167,9 +177,9 @@ function applySnapshot() {
   return files;
 }
 
-// Source resolver used by the generator. In the monorepo it reads apps/tester
+// Source resolver used by the generator. In the monorepo it reads apps/lab
 // live so scaffold checks exercise the second consumer directly.
-// Published tarballs fall back to the baked snapshot because apps/tester is not
+// Published tarballs fall back to the baked snapshot because apps/lab is not
 // present.
 function resolveAppSource() {
   if (existsSync(SOURCE_APP_DIR)) {
@@ -184,7 +194,7 @@ function resolveAppSource() {
       manifest: JSON.parse(readFileSync(MANIFEST_PATH, 'utf8')),
     };
   }
-  throw new Error(`No baked app-source snapshot and reference app missing: ${SOURCE_APP_DIR}`);
+  throw new Error(`No baked app-source snapshot and Nimi Lab source missing: ${SOURCE_APP_DIR}`);
 }
 
 function readAppSourceFile(baseDir, relativePath) {
@@ -193,6 +203,7 @@ function readAppSourceFile(baseDir, relativePath) {
 
 export {
   APP_TOOLS_ROOT,
+  CAPABILITY_SOURCE_ROOTS,
   IDENTITY_REPLACEMENT_ORDER,
   MANIFEST_PATH,
   SNAPSHOT_DIR,
@@ -213,7 +224,7 @@ function main(argv) {
     process.exit(1);
   }
   const files = applySnapshot();
-  process.stdout.write(`[sync-app-source] baked ${files.length} files from apps/tester into templates/app-source\n`);
+  process.stdout.write(`[sync-app-source] baked ${files.length} files from apps/lab into templates/app-source\n`);
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
