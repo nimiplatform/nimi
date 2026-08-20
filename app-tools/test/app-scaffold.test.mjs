@@ -400,7 +400,7 @@ test('standalone scaffold creates a generic starter with rewritten identity', ()
 });
 
 test('standalone scaffold base remains empty while the public catalog exposes the admitted features', () => {
-  assert.deepEqual(SUPPORTED_APP_SCAFFOLD_PROFILES, ['standalone', 'workspace-app']);
+  assert.deepEqual(SUPPORTED_APP_SCAFFOLD_PROFILES, ['standalone']);
   assert.deepEqual(APP_SCAFFOLD_FEATURE_IDS, [
     'studio-create',
     'studio-media',
@@ -583,20 +583,20 @@ test('generated app grants the Tauri event capability streaming needs', () => {
   }
 });
 
-test('workspace-app scaffold uses workspace + path deps without product authority', () => {
-  const generated = scaffold('workspace-app');
+test('standalone scaffold always uses public dependency declarations', () => {
+  const generated = scaffold('standalone');
   try {
     const packageJson = JSON.parse(generated.read('package.json'));
-    assert.equal(packageJson.dependencies['@nimiplatform/sdk'], 'workspace:*');
-    assert.equal(packageJson.dependencies['@nimiplatform/kit'], 'workspace:*');
-    assert.equal(packageJson.devDependencies['@nimiplatform/app-tools'], 'workspace:*');
+    assert.equal(packageJson.dependencies['@nimiplatform/sdk'], versions.sdkVersion);
+    assert.equal(packageJson.dependencies['@nimiplatform/kit'], versions.kitVersion);
+    assert.equal(packageJson.devDependencies['@nimiplatform/app-tools'], versions.appToolsVersion);
     assert.equal(packageJson.devDependencies['@nimiplatform/nimi-coding'], versions.nimicodingVersion);
     assert.equal(packageJson.devDependencies.yaml, versions.yamlVersion);
-    assert.match(generated.read('src-tauri/Cargo.toml'), /nimi-shell-tauri = \{ path = "\.\.\/\.\.\/\.\.\/kit\/shell\/tauri" \}/);
+    assert.match(generated.read('src-tauri/Cargo.toml'), /nimi-shell-tauri = "0\.1\.0"/);
     assert.doesNotMatch(generated.read('vite.config.ts'), /repoRoot|path\.join\(repoRoot|\.\.\/\.\.\/kit|kit\/ui\/src/);
-    assert.match(generated.read('nimi.app.yaml'), /profile: workspace-app/);
-    assert.match(generated.read('src/shell/auth/app-identity.ts'), /scaffoldProfile = "workspace-app"/);
-    assert.match(generated.read('README.md'), /Profile: `workspace-app`/);
+    assert.match(generated.read('nimi.app.yaml'), /profile: standalone/);
+    assert.match(generated.read('src/shell/auth/app-identity.ts'), /scaffoldProfile = "standalone"/);
+    assert.match(generated.read('README.md'), /Profile: `standalone`/);
     assertTauriIconSupport(generated);
   } finally {
     generated.cleanup();
@@ -639,9 +639,8 @@ test('cli help projects the current registry lifecycle and honest workflow witho
     'nimi-app doctor [--dir path] [--conformance simulator] [--json]',
     '--author person-or-team',
     'identity-neutral Lab-derived workbench-core',
-    'standalone: public registry package versions only',
-    'workspace-app: a direct apps/* package',
-    'A passing workspace journey is not standalone evidence.',
+    'standalone: any empty target directory using public registry package versions only.',
+    'Nimi workspace paths, local tarballs, downgrades, and private validation topology are never public create modes.',
     'App-owned: workbench-core and selected module product code',
     'Scaffold-managed: carrier, identity, manifest/native wiring, and generated composition glue.',
     'nimi-app create -> pnpm install -> pnpm run init -> pnpm run doctor -> pnpm run build -> pnpm dev',
@@ -649,6 +648,7 @@ test('cli help projects the current registry lifecycle and honest workflow witho
   ]) {
     assert.match(help, new RegExp(expected.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   }
+  assert.doesNotMatch(help, /workspace-app|direct apps\/\*/u);
 
   const readme = readFileSync(path.join(testDir, '..', 'README.md'), 'utf8');
   const starterReadme = readFileSync(path.join(testDir, '..', 'templates', 'default-starter', 'README.md'), 'utf8');
@@ -658,8 +658,8 @@ test('cli help projects the current registry lifecycle and honest workflow witho
     assert.doesNotMatch(content, /conformance simulator|Simulator/u);
   }
   assert.match(readme, /author.*person.*team/isu);
-  assert.match(readme, /standalone[\s\S]*public npm and Cargo registry versions/u);
-  assert.match(readme, /passing workspace journey does not prove standalone/u);
+  assert.match(readme, /third-party[\s\S]*npm and Cargo dependencies[\s\S]*public registry versions/iu);
+  assert.match(readme, /non-public validation topology[\s\S]*not a public profile/u);
   assert.match(starterReadme, /App-owned product code/u);
   assert.match(starterAgents, /create -> dependency install -> init -> doctor\/build -> Desktop-supervised dev/u);
   for (const content of [readme, starterReadme]) {
@@ -766,7 +766,7 @@ test('create accepts package author and scoped npm package metadata', () => {
 test('create accepts equivalent TTY-answer and flag input through one canonical resolver', () => {
   const raw = {
     dir: 'apps/studio-canvas',
-    profile: 'workspace-app',
+    profile: 'standalone',
     appId: 'studio.canvas',
     title: 'Studio: Canvas #1',
     packageName: '@studio/canvas',
@@ -850,7 +850,7 @@ test('create rejects declared workspace renderer port collisions before target m
     mkdirSync(path.join(tempRoot, 'kit', 'shell', 'tauri'), { recursive: true });
     const initial = resolveAppCreatePlan(tempRoot, {
       dir: target,
-      profile: 'workspace-app',
+      profile: 'standalone',
       appId: 'collision.app',
       title: 'Collision App',
       packageName: 'collision-app',
@@ -866,7 +866,7 @@ test('create rejects declared workspace renderer port collisions before target m
     assert.throws(
       () => resolveAppCreatePlan(tempRoot, {
         dir: target,
-        profile: 'workspace-app',
+        profile: 'standalone',
         appId: 'collision.app',
         title: 'Collision App',
         packageName: 'collision-app',
@@ -879,50 +879,37 @@ test('create rejects declared workspace renderer port collisions before target m
   }
 });
 
-test('workspace-app scaffold CLI fails closed outside membership and derives its Cargo path', () => {
-  const noWorkspace = mkdtempSync(path.join(os.tmpdir(), 'nimi-app-scaffold-no-workspace-'));
+test('standalone scaffold CLI accepts arbitrary repositories and hard-cuts workspace-app', () => {
+  const thirdPartyRepo = mkdtempSync(path.join(os.tmpdir(), 'nimi-app-third-party-repo-'));
   try {
-    const missingTarget = path.join(noWorkspace, 'apps', 'missing');
-    const missing = runNimiApp(['create', '--dir', missingTarget, '--profile', 'workspace-app'], noWorkspace);
-    assert.notEqual(missing.status, 0);
-    assert.match(missing.stderr, /must belong to a Nimi pnpm workspace/);
-    assert.equal(existsSync(missingTarget), false);
+    const target = path.join(thirdPartyRepo, 'packages', 'third-party-app');
+    const created = runNimiApp([
+      'create', '--dir', target, '--profile', 'standalone',
+      '--app-id', 'third.party', '--title', 'Third Party', '--package-name', 'third-party',
+    ], thirdPartyRepo);
+    assert.equal(created.status, 0, created.stderr);
+    const packageJson = JSON.parse(readFileSync(path.join(target, 'package.json'), 'utf8'));
+    assert.equal(packageJson.dependencies['@nimiplatform/sdk'], '^0.6.0');
+    assert.equal(packageJson.dependencies['@nimiplatform/kit'], '^0.3.0');
+    assert.equal(packageJson.devDependencies['@nimiplatform/app-tools'], '^0.2.0');
+    assert.match(readFileSync(path.join(target, 'src-tauri', 'Cargo.toml'), 'utf8'), /nimi-shell-tauri = "0\.1\.0"/);
   } finally {
-    rmSync(noWorkspace, { recursive: true, force: true });
+    rmSync(thirdPartyRepo, { recursive: true, force: true });
   }
 
-  const workspace = mkdtempSync(path.join(os.tmpdir(), 'nimi-app-scaffold-workspace-topology-'));
+  const retired = mkdtempSync(path.join(os.tmpdir(), 'nimi-app-retired-workspace-profile-'));
   try {
-    writeFileSync(path.join(workspace, 'pnpm-workspace.yaml'), [
-      'packages:',
-      "  - 'apps/*'",
-      "  - 'kit'",
-      "  - 'app-tools'",
-      "  - 'sdks/typescript'",
-      '',
-    ].join('\n'));
-    mkdirSync(path.join(workspace, 'kit', 'shell', 'tauri'), { recursive: true });
-    const outsideTarget = path.join(workspace, 'packages', 'outside');
-    const outside = runNimiApp(['create', '--dir', outsideTarget, '--profile', 'workspace-app'], workspace);
-    assert.notEqual(outside.status, 0);
-    assert.match(outside.stderr, /direct apps\/\* workspace package/);
-    assert.equal(existsSync(outsideTarget), false);
-
-    const target = path.join(workspace, 'apps', 'inside');
-    const created = runNimiApp([
-      'create', '--dir', target, '--profile', 'workspace-app',
-      '--app-id', 'workspace.inside', '--title', 'Workspace Inside', '--package-name', 'workspace-inside',
-    ], workspace);
-    assert.equal(created.status, 0, created.stderr);
-    assert.match(readFileSync(path.join(target, 'src-tauri', 'Cargo.toml'), 'utf8'), /path = "\.\.\/\.\.\/\.\.\/kit\/shell\/tauri"/);
-    const intent = JSON.parse(readFileSync(path.join(target, SCAFFOLD_INTENT_PATH), 'utf8'));
-    assert.deepEqual(intent.dependencyMatrix.cargo['nimi-shell-tauri'], { path: '../../../kit/shell/tauri' });
+    const target = path.join(retired, 'app');
+    const result = runNimiApp(['create', '--dir', target, '--profile', 'workspace-app'], retired);
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /Unsupported app scaffold profile: workspace-app/);
+    assert.equal(existsSync(target), false);
   } finally {
-    rmSync(workspace, { recursive: true, force: true });
+    rmSync(retired, { recursive: true, force: true });
   }
 });
 
-test('phase 7 candidate high-level plan preserves public workspace topology and fails external targets prewrite', () => {
+test('candidate high-level plan reuses standalone output without exposing a workspace profile', () => {
   const workspace = mkdtempSync(path.join(os.tmpdir(), 'nimi-app-candidate-workspace-plan-'));
   const target = path.join(workspace, 'apps', 'candidate');
   try {
@@ -934,10 +921,9 @@ test('phase 7 candidate high-level plan preserves public workspace topology and 
       "  - 'sdks/typescript'",
       '',
     ].join('\n'));
-    mkdirSync(path.join(workspace, 'kit', 'shell', 'tauri'), { recursive: true });
     const options = {
       dir: target,
-      profile: 'workspace-app',
+      profile: 'standalone',
       appId: 'candidate.workspace',
       title: 'Candidate Workspace',
       packageName: 'candidate-workspace',
@@ -949,11 +935,8 @@ test('phase 7 candidate high-level plan preserves public workspace topology and 
     });
     assert.deepEqual(candidatePlan.preview.topology, publicPlan.preview.topology);
     assert.equal(candidatePlan.resolvedInput.targetDir, target);
-    assert.equal(candidatePlan.preview.profile, 'workspace-app');
-    assert.deepEqual(
-      candidatePlan.preview.cargoDependencies['nimi-shell-tauri'],
-      { path: '../../../kit/shell/tauri' },
-    );
+    assert.equal(candidatePlan.preview.profile, 'standalone');
+    assert.equal(candidatePlan.preview.cargoDependencies['nimi-shell-tauri'], '0.1.0');
     assert.equal(candidatePlan.preview.identity.devPort, publicPlan.preview.identity.devPort);
     assert.deepEqual(candidatePlan.preview.directFeatures, ['studio-create']);
     assert.equal(existsSync(target), false);
@@ -975,16 +958,15 @@ test('phase 7 candidate high-level plan preserves public workspace topology and 
     assert.equal(existsSync(target), false);
 
     const outsideTarget = path.join(workspace, 'packages', 'outside');
-    assert.throws(
-      () => resolveCandidateAppCreatePlan(workspace, {
-        ...options,
-        dir: outsideTarget,
-        appId: 'candidate.outside',
-        packageName: 'candidate-outside',
-        features: ['studio-create'],
-      }),
-      /direct apps\/\* workspace package/,
-    );
+    const outsidePlan = resolveCandidateAppCreatePlan(workspace, {
+      ...options,
+      dir: outsideTarget,
+      appId: 'candidate.outside',
+      packageName: 'candidate-outside',
+      features: ['studio-create'],
+    });
+    assert.equal(outsidePlan.preview.profile, 'standalone');
+    assert.equal(outsidePlan.resolvedInput.targetDir, outsideTarget);
     assert.equal(existsSync(outsideTarget), false);
   } finally {
     rmSync(workspace, { recursive: true, force: true });
@@ -1557,6 +1539,30 @@ test('unsupported previous app scaffold lock and intent fail closed', () => {
     );
   } finally {
     legacyIntent.cleanup();
+  }
+
+  const retiredProfile = cliScaffold('standalone');
+  try {
+    const intentPath = path.join(retiredProfile.target, '.nimi/app-scaffold/intent.json');
+    const lockPath = path.join(retiredProfile.target, '.nimi/app-scaffold/lock.json');
+    const intent = JSON.parse(retiredProfile.read('.nimi/app-scaffold/intent.json'));
+    const lock = JSON.parse(retiredProfile.read('.nimi/app-scaffold/lock.json'));
+    const managedPath = path.join(retiredProfile.target, 'src/scaffold/generated/navigation.ts');
+    const managedBefore = readFileSync(managedPath, 'utf8');
+    intent.profile = 'workspace-app';
+    lock.profile = 'workspace-app';
+    writeFileSync(intentPath, `${JSON.stringify(intent, null, 2)}\n`);
+    writeFileSync(lockPath, `${JSON.stringify(lock, null, 2)}\n`);
+    const result = runNimiApp(['update', '--dir', retiredProfile.target], retiredProfile.tempRoot, { env: retiredProfile.env });
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /Unsupported scaffold profile: workspace-app/);
+    assert.equal(readFileSync(managedPath, 'utf8'), managedBefore);
+    assert.throws(
+      () => buildAppScaffoldSnapshotFromIntent({ intent, versions }),
+      /Unsupported scaffold profile: workspace-app/,
+    );
+  } finally {
+    retiredProfile.cleanup();
   }
 });
 
@@ -2143,7 +2149,7 @@ test('generated scaffold mechanically excludes forbidden shortcuts', () => {
 });
 
 test('default profiles generate local-app carrier boundaries without Lab-only or fixture truth', () => {
-  for (const profile of ['standalone', 'workspace-app']) {
+  for (const profile of SUPPORTED_APP_SCAFFOLD_PROFILES) {
     const generated = scaffold(profile);
     try {
       const runtimePlatform = generated.read('src/shell/auth/runtime-platform.ts');

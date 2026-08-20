@@ -51,12 +51,9 @@ pnpm dev -- --cdp-port 9334
 
 The port is loopback-only and CDP stays disabled when omitted. Direct Electron or Tauri development launches are not substitutes for the Desktop-supervised journey.
 
-## Profile evidence
+## Third-party topology evidence
 
-- A `standalone` project must resolve only the exact public npm and Cargo registry versions in its manifests. Workspace paths, local path overrides, tarballs, downgrades, and workspace links are not valid substitutes.
-- A `workspace-app` project must remain a direct `apps/*` package in the supported Nimi workspace and use its exact workspace dependency topology.
-
-A passing workspace build or launch does not prove standalone.
+This standalone third-party project must resolve only the exact public npm and Cargo registry versions in its manifests. Workspace paths, local path overrides, tarballs, downgrades, and workspace links are not valid substitutes. A private Nimi-workspace validation run does not prove standalone.
 
 ## Product boundary
 

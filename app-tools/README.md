@@ -33,7 +33,7 @@ The generated base is the identity-neutral, Lab-derived `workbench-core` with an
 
 ## Create
 
-The interactive wizard and flags use the same resolver and generator. The canonical identity inputs are App ID, Display Name, package name, optional `author`, profile, and features. `author` is the only authoring metadata field and may name either a person or a team; there is no separate team field.
+The interactive wizard and flags use the same resolver and generator. The canonical identity inputs are App ID, Display Name, package name, optional `author`, and features. `author` is the only authoring metadata field and may name either a person or a team; there is no separate team field. Public creation is standalone-only for third-party repositories.
 
 Run `node app-tools/bin/nimi-app.mjs create` in a TTY for the keyboard-driven wizard. It validates each field, prints the complete resolved preview, requires confirmation, and accepts `:cancel` before materialization. For non-interactive automation, pass explicit flags and optional `--json`; non-TTY execution never opens prompts and the canonical resolver applies only its documented defaults.
 
@@ -51,14 +51,11 @@ Add `--features <admitted-id,...>` only for IDs currently listed as admitted by 
 
 After the requested identity, topology, module closure, ownership, and dependency projections validate, `create` writes source and `.nimi/app-scaffold/intent.json`. It does not install dependencies or run lifecycle commands.
 
-## Profiles
+## Third-party topology
 
-`standalone` and `workspace-app` change dependency topology only; they do not change product scope or admission.
+Public `create` is standalone-only: the target may be any empty or missing directory in a third-party repository, and generated npm and Cargo dependencies use only their declared public registry versions. Public-registry publication is a prerequisite. Workspace paths, local path overrides, tarballs, downgrades, and workspace links are not standalone evidence.
 
-- `standalone` uses only the exact public npm and Cargo registry versions declared by the generated project. Public-registry publication is a prerequisite. Workspace paths, local path overrides, tarballs, downgrades, and workspace links are not standalone evidence.
-- `workspace-app` must be a direct `apps/*` child in the Nimi workspace and uses the exact supported workspace dependencies and repository Cargo path.
-
-A passing workspace journey does not prove standalone. If a required version is not public, standalone remains externally blocked and `NOT-VERIFIED` rather than being replaced by a local substitute.
+Pre-publication Nimi-workspace checks may exercise the same candidate resolver and generated files as a bounded non-public validation topology. They are not a public profile, generated intent variant, or substitute for standalone acceptance. If a required version is not public, standalone remains externally blocked and `NOT-VERIFIED`.
 
 ## Required lifecycle order
 
@@ -66,7 +63,7 @@ Run the real workflow in this order:
 
 ```bash
 # 1. create
-node app-tools/bin/nimi-app.mjs create --dir path/to/app --profile standalone
+node app-tools/bin/nimi-app.mjs create --dir path/to/app
 
 # 2. install
 cd path/to/app
@@ -118,5 +115,5 @@ After the relevant package versions are public, the installed CLI form is:
 
 ```bash
 pnpm dlx --package @nimiplatform/app-tools nimi-app --help
-pnpm dlx --package @nimiplatform/app-tools nimi-app create --profile standalone
+pnpm dlx --package @nimiplatform/app-tools nimi-app create
 ```

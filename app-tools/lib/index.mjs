@@ -174,10 +174,7 @@ function resolveAppCreatePlanWith(cwd, options, resolveInput, buildPlan) {
   const resolvedInput = resolveInput({ cwd, options });
   ensureDirEmptyOrMissing(resolvedInput.targetDir);
   const topology = resolveCreateTopology(resolvedInput);
-  const versions = {
-    ...appScaffoldVersions(),
-    ...(topology.workspaceCargoPath ? { workspaceCargoPath: topology.workspaceCargoPath } : {}),
-  };
+  const versions = appScaffoldVersions();
   const plan = buildPlan({ cwd, options, versions, topology });
   assertNoDeclaredWorkspacePortCollision(topology.workspaceRoot, plan);
   return plan;
@@ -211,62 +208,9 @@ function isPathInside(parentDir, targetDir) {
   return relative !== '' && !relative.startsWith('..') && !path.isAbsolute(relative);
 }
 
-function readWorkspacePackages(workspaceRoot) {
-  const manifestPath = path.join(workspaceRoot, 'pnpm-workspace.yaml');
-  let manifest;
-  try {
-    manifest = parseYaml(readFileSync(manifestPath, 'utf8'));
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    throw new Error(`Cannot read workspace membership from ${manifestPath}: ${message}`);
-  }
-  if (!Array.isArray(manifest?.packages)) {
-    throw new Error(`Workspace package membership is missing from ${manifestPath}`);
-  }
-  return manifest.packages.map((entry) => String(entry).replaceAll('\\', '/'));
-}
-
 function resolveCreateTopology(resolvedInput) {
   const workspaceRoot = findWorkspaceRoot(path.dirname(resolvedInput.targetDir));
-  if (resolvedInput.profile !== 'workspace-app') {
-    return Object.freeze({ profile: 'standalone', workspaceRoot });
-  }
-  if (!workspaceRoot) {
-    throw new Error('workspace-app target must belong to a Nimi pnpm workspace');
-  }
-  const packages = readWorkspacePackages(workspaceRoot);
-  for (const requiredMembership of ['apps/*', 'kit', 'app-tools', 'sdks/typescript']) {
-    if (!packages.includes(requiredMembership)) {
-      throw new Error(`workspace-app requires workspace membership ${requiredMembership}`);
-    }
-  }
-  const appsRoot = path.join(workspaceRoot, 'apps');
-  const relativeTarget = path.relative(appsRoot, resolvedInput.targetDir);
-  if (
-    !relativeTarget
-    || relativeTarget.startsWith('..')
-    || path.isAbsolute(relativeTarget)
-    || relativeTarget.includes(path.sep)
-  ) {
-    throw new Error('workspace-app target must be a direct apps/* workspace package');
-  }
-  const cargoTarget = path.join(workspaceRoot, 'kit', 'shell', 'tauri');
-  if (!existsSync(cargoTarget) || !statSync(cargoTarget).isDirectory()) {
-    throw new Error(`workspace-app Cargo dependency target is unavailable: ${cargoTarget}`);
-  }
-  const workspaceCargoPath = path.relative(
-    path.join(resolvedInput.targetDir, 'src-tauri'),
-    cargoTarget,
-  ).replaceAll('\\', '/');
-  if (!workspaceCargoPath || path.isAbsolute(workspaceCargoPath)) {
-    throw new Error('workspace-app Cargo dependency path could not be derived');
-  }
-  return Object.freeze({
-    profile: 'workspace-app',
-    workspaceRoot,
-    appsRoot,
-    workspaceCargoPath,
-  });
+  return Object.freeze({ profile: 'standalone', workspaceRoot });
 }
 
 function assertNoDeclaredWorkspacePortCollision(workspaceRoot, plan) {

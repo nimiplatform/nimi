@@ -1,4 +1,4 @@
-export const SUPPORTED_APP_SCAFFOLD_PROFILES = ['standalone', 'workspace-app'];
+export const SUPPORTED_APP_SCAFFOLD_PROFILES = ['standalone'];
 
 export function buildDefaultStarterFiles(identity) {
   return [

@@ -339,7 +339,7 @@ function buildPackageJson(profile, versions, identity) {
     },
     dependencies,
     devDependencies: {
-      '@nimiplatform/app-tools': profile === 'workspace-app' ? 'workspace:*' : versions.appToolsVersion,
+      '@nimiplatform/app-tools': versions.appToolsVersion,
       '@nimiplatform/nimi-coding': versions.nimicodingVersion,
       '@tailwindcss/vite': versions.tailwindcssViteVersion,
       '@tauri-apps/cli': versions.tauriCliVersion,
@@ -363,8 +363,8 @@ function buildPackageJson(profile, versions, identity) {
 
 function buildRuntimeDependencies(profile, versions, capabilityResolution) {
   const dependencies = {
-    '@nimiplatform/sdk': profile === 'workspace-app' ? 'workspace:*' : versions.sdkVersion,
-    '@nimiplatform/kit': profile === 'workspace-app' ? 'workspace:*' : versions.kitVersion,
+    '@nimiplatform/sdk': versions.sdkVersion,
+    '@nimiplatform/kit': versions.kitVersion,
     react: versions.reactVersion,
     'react-dom': versions.reactDomVersion,
   };
@@ -391,9 +391,7 @@ function resolveScaffoldVersionReference(value, versions, dependencyName) {
 
 function buildCargoDependencies(profile, versions, capabilityResolution) {
   const dependencies = {
-    'nimi-shell-tauri': profile === 'workspace-app'
-      ? { path: versions.workspaceCargoPath || '../../../kit/shell/tauri' }
-      : versions.nimiShellTauriVersion,
+    'nimi-shell-tauri': versions.nimiShellTauriVersion,
     tauri: { version: '2', features: [] },
     serde: { version: '1', features: ['derive'] },
     serde_json: '1',
@@ -413,9 +411,6 @@ function buildCargoDependencies(profile, versions, capabilityResolution) {
 }
 
 function cargoShellDependencyLine(profile, versions) {
-  if (profile === 'workspace-app') {
-    return `nimi-shell-tauri = { path = ${JSON.stringify(versions.workspaceCargoPath || '../../../kit/shell/tauri')} }`;
-  }
   return `nimi-shell-tauri = ${JSON.stringify(versions.nimiShellTauriVersion)}`;
 }
 
@@ -631,7 +626,7 @@ function applyProfileSeam(relativePath, content, profile, versions, manifest, id
     return renderCargoManifest(content, profile, versions, identity.capabilityResolution);
   }
   if (relativePath === 'README.md') {
-    return content.replace(/Profile: `(?:standalone|workspace-app)`/, `Profile: \`${profile}\``);
+    return content.replace(/Profile: `standalone`/, `Profile: \`${profile}\``);
   }
   return content;
 }
@@ -887,7 +882,7 @@ export function hashScaffoldContent(content) {
 function buildDependencyMatrix(profile, versions, capabilityResolution) {
   return {
     npm: {
-      '@nimiplatform/app-tools': profile === 'workspace-app' ? 'workspace:*' : versions.appToolsVersion,
+      '@nimiplatform/app-tools': versions.appToolsVersion,
       '@nimiplatform/nimi-coding': versions.nimicodingVersion,
       ...buildRuntimeDependencies(profile, versions, capabilityResolution),
       typescript: versions.typescriptVersion,

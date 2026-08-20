@@ -122,7 +122,7 @@ function printUsage() {
       'Nimi App scaffolding',
       '',
       'Usage:',
-      '  nimi-app create [--dir path] [--profile standalone|workspace-app] [--features admitted-ids|all] [--app-id id] [--title title] [--package-name name] [--author person-or-team] [--json]',
+      '  nimi-app create [--dir path] [--profile standalone] [--features admitted-ids|all] [--app-id id] [--title title] [--package-name name] [--author person-or-team] [--json]',
       '  nimi-app init [--dir path] [--json]',
       '  nimi-app doctor [--dir path] [--conformance simulator] [--json]',
       '  nimi-app update [--dir path] [--json]',
@@ -143,10 +143,9 @@ function printUsage() {
       '  AI features resolve the internal ai-studio-core once; it cannot be selected directly.',
       '  Generated Apps exclude Lab-only Settings/account, App Access diagnostics, Realm/Agent probes, World Tour, and native/diagnostic surfaces.',
       '',
-      'Profiles:',
-      '  standalone: public registry package versions only; no workspace paths, local tarballs, or downgrades.',
-      '  workspace-app: a direct apps/* package in the Nimi workspace with exact workspace dependencies.',
-      '  A passing workspace journey is not standalone evidence.',
+      'Third-party topology:',
+      '  standalone: any empty target directory using public registry package versions only.',
+      '  Nimi workspace paths, local tarballs, downgrades, and private validation topology are never public create modes.',
       '',
       'Ownership:',
       '  App-owned: workbench-core and selected module product code under src/capabilities/**.',
@@ -197,7 +196,6 @@ async function collectCreateInput(cwd, initial) {
     if (!raw.title) await ask({ key: 'title', label: 'Display Name', fallback: 'My Nimi App' });
     if (!raw.packageName) await ask({ key: 'packageName', label: 'Package name', fallback: defaultPackageName(raw.appId) });
     if (!initial.providedOptions.includes('author')) await ask({ key: 'author', label: 'Author (person or team)', optional: true });
-    if (!raw.profile) await ask({ key: 'profile', label: 'Profile: standalone or workspace-app', fallback: 'standalone' });
     if (raw.features === undefined) {
       process.stdout.write(`Available features: ${APP_SCAFFOLD_FEATURE_IDS.join(', ') || '(none)'}\n`);
       await ask({ key: 'features', label: 'Features (comma-separated, blank for base only)', optional: true });

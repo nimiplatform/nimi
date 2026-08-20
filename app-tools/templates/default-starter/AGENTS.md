@@ -16,9 +16,9 @@
 - Use `@nimiplatform/kit` for reusable controls, layout, accessibility, tokens, and interaction patterns; keep app CSS and composition product-specific.
 - Keep the base free of Lab-only product behavior. Feature implementations enter generated output only through the app-tools module registry and public admitted `--features` selection. Internal modules such as `ai-studio-core` enter only through dependency closure and are never selected directly.
 - Keep Lab-only Settings/account, App Access diagnostics, Realm/Agent probes, World Tour, and native or diagnostic surfaces outside generated product composition.
-- Preserve ownership: doctor/update may refresh scaffold-managed files but must not overwrite app-owned workbench or module code. Identity, profile, and direct feature selection are immutable; create a fresh scaffold to change them.
+- Preserve ownership: doctor/update may refresh scaffold-managed files but must not overwrite app-owned workbench or module code. Identity and direct feature selection are immutable; create a fresh scaffold to change them.
 - Preserve lifecycle order: `create -> dependency install -> init -> doctor/build -> Desktop-supervised dev`. Never run `init`, `doctor`, or `update` before dependencies are installed.
-- `standalone` uses public registry versions only; do not substitute workspace paths, local overrides, tarballs, or downgrades. A workspace result is not standalone evidence.
+- This third-party scaffold uses public registry versions only; do not substitute workspace paths, local overrides, tarballs, or downgrades. A private workspace-validation result is not standalone evidence.
 - Use the scaffold-managed Kit Electron app-host bridge for supervised local development. Treat `nimi-shell-tauri` glue, where present, as bounded independent OS integration only, never a second local-development carrier, authority, App registration, admission, model-routing, or token-custody surface.
 - Do not add provider/model hardcoding, compatibility dual-writes, pseudo-success, Runtime internals, generated private clients, or Desktop product source.
 - Before durable storage, native commands, private calls, or registries, inspect the nearest contract and current consumer; ask only if multiple semantic owners remain plausible.
