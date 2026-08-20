@@ -1,5 +1,7 @@
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-scaf-019c
 
+import semver from 'semver';
+
 function frozenSourceMapping(sourceRoot, targetRoot = sourceRoot) {
   return Object.freeze({ sourceRoot, targetRoot });
 }
@@ -217,7 +219,10 @@ function dependencyValuesEqual(left, right) {
 }
 
 export function validateAppScaffoldCargoDependencyValue(value, label) {
-  if (typeof value === 'string' && value && value === value.trim()) return;
+  if (typeof value === 'string') {
+    if (isCargoRegistryVersionRequirement(value)) return;
+    throw new Error(`App scaffold module Cargo dependency must use a public registry version: ${label}`);
+  }
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     throw new Error(`App scaffold module Cargo dependency is invalid: ${label}`);
   }
@@ -226,28 +231,72 @@ export function validateAppScaffoldCargoDependencyValue(value, label) {
   if (entries.length === 0) throw new Error(`App scaffold module Cargo dependency is empty: ${label}`);
   for (const [key, field] of entries) {
     if (!allowed.has(key)) throw new Error(`App scaffold module Cargo dependency field is invalid: ${label}.${key}`);
-    if ((key === 'version' || key === 'package') && typeof field === 'string' && field && field === field.trim()) continue;
+    if (key === 'version' && typeof field === 'string') {
+      if (!isCargoRegistryVersionRequirement(field)) {
+        throw new Error(`App scaffold module Cargo dependency must use a public registry version: ${label}.${key}`);
+      }
+      continue;
+    }
+    if (key === 'package' && typeof field === 'string') {
+      if (!/^[A-Za-z0-9][A-Za-z0-9_-]*$/u.test(field)) {
+        throw new Error(`App scaffold module Cargo dependency package name is invalid: ${label}.${key}`);
+      }
+      continue;
+    }
     if (key === 'features' && Array.isArray(field) && field.every((item) => typeof item === 'string' && item && item === item.trim())) continue;
     if ((key === 'default-features' || key === 'optional') && typeof field === 'boolean') continue;
     throw new Error(`App scaffold module Cargo dependency value has the wrong type: ${label}.${key}`);
   }
+  if (!Object.hasOwn(value, 'version')) {
+    throw new Error(`App scaffold module Cargo registry dependency version is missing: ${label}`);
+  }
 }
 
 function assertPublicNpmDependencyVersion(value, label) {
+  if (typeof value === 'string' && /^\$versions\.[A-Za-z][A-Za-z0-9]*$/u.test(value)) return;
+  validateAppScaffoldNpmRegistryVersion(value, label);
+}
+
+export function validateAppScaffoldNpmRegistryVersion(value, label) {
   const normalized = String(value || '').trim();
   if (!normalized || normalized !== value) {
     throw new Error(`App scaffold module npm dependency is invalid: ${label}`);
   }
-  if (
-    /^(?:workspace|file|link|portal|patch|git(?:\+[^:]*)?|https?|ssh|github|gitlab|bitbucket):/iu.test(normalized)
-    || /^[./\\]/u.test(normalized)
-    || /^[A-Za-z]:[\\/]/u.test(normalized)
-    || /^[^@\s]+@[^:\s]+:/u.test(normalized)
-    || /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+(?:#.*)?$/u.test(normalized)
-    || /\.tgz(?:$|[?#])/iu.test(normalized)
-  ) {
-    throw new Error(`App scaffold module npm dependency must use a public registry version: ${label}`);
-  }
+  if (isNpmRegistryVersionSelector(normalized)) return;
+  const alias = normalized.match(/^npm:((?:@[a-z0-9][a-z0-9._-]*\/)?[a-z0-9][a-z0-9._-]*)@(.+)$/u);
+  if (alias && isNpmRegistryVersionSelector(alias[2])) return;
+  throw new Error(`App scaffold module npm dependency must use a public registry version: ${label}`);
+}
+
+function isNpmRegistryVersionSelector(value) {
+  if (semver.validRange(value, { loose: false }) !== null) return true;
+  return /^[A-Za-z0-9][A-Za-z0-9._-]*$/u.test(value);
+}
+
+const CARGO_NUMERIC_IDENTIFIER = '(?:0|[1-9][0-9]*)';
+const CARGO_PRERELEASE_IDENTIFIER = '[0-9A-Za-z-]+';
+const CARGO_PRERELEASE = `(?:-${CARGO_PRERELEASE_IDENTIFIER}(?:\\.${CARGO_PRERELEASE_IDENTIFIER})*)?`;
+const CARGO_BUILD = `(?:\\+${CARGO_PRERELEASE_IDENTIFIER}(?:\\.${CARGO_PRERELEASE_IDENTIFIER})*)?`;
+const CARGO_VERSION = new RegExp(
+  `^(?:\\*|${CARGO_NUMERIC_IDENTIFIER}|${CARGO_NUMERIC_IDENTIFIER}\\.\\*|${CARGO_NUMERIC_IDENTIFIER}\\.${CARGO_NUMERIC_IDENTIFIER}|${CARGO_NUMERIC_IDENTIFIER}\\.${CARGO_NUMERIC_IDENTIFIER}\\.\\*|${CARGO_NUMERIC_IDENTIFIER}\\.${CARGO_NUMERIC_IDENTIFIER}\\.${CARGO_NUMERIC_IDENTIFIER}${CARGO_PRERELEASE}${CARGO_BUILD})$`,
+  'u',
+);
+
+function isCargoRegistryVersionRequirement(value) {
+  if (typeof value !== 'string' || !value || value !== value.trim()) return false;
+  const comparators = value.split(',').map((entry) => entry.trim());
+  if (comparators.length === 0 || comparators.some((entry) => !entry)) return false;
+  return comparators.every((entry) => {
+    const match = entry.match(/^(\^|~|>=|<=|>|<|=)?\s*(.+)$/u);
+    if (!match || !isCargoVersionToken(match[2])) return false;
+    return !(match[1] && match[2].includes('*'));
+  });
+}
+
+function isCargoVersionToken(value) {
+  if (!CARGO_VERSION.test(value)) return false;
+  if (value.includes('*') || value.split(/[+-]/u, 1)[0].split('.').length < 3) return true;
+  return semver.valid(value, { loose: false }) !== null;
 }
 
 function assertProductEntry(id, entry) {

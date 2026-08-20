@@ -13,6 +13,7 @@ import {
   resolveAppScaffoldFeatures,
   resolveAppScaffoldIntentFeatures,
   validateAppScaffoldCargoDependencyValue,
+  validateAppScaffoldNpmRegistryVersion,
 } from './app-scaffold-capabilities.mjs';
 import {
   SUPPORTED_APP_SCAFFOLD_PROFILES,
@@ -311,6 +312,25 @@ export function resolveAppScaffoldCandidateCreateInput(input) {
 
 function buildPackageJson(profile, versions, identity) {
   const dependencies = buildRuntimeDependencies(profile, versions, identity.capabilityResolution);
+  const devDependencies = {
+    '@nimiplatform/app-tools': versions.appToolsVersion,
+    '@nimiplatform/nimi-coding': versions.nimicodingVersion,
+    '@tailwindcss/vite': versions.tailwindcssViteVersion,
+    '@tauri-apps/cli': versions.tauriCliVersion,
+    '@types/node': versions.nodeTypesVersion,
+    '@types/react': versions.reactTypesVersion,
+    '@types/react-dom': versions.reactDomTypesVersion,
+    '@vitejs/plugin-react': versions.viteReactPluginVersion,
+    electron: versions.electronVersion,
+    esbuild: versions.esbuildVersion,
+    tailwindcss: versions.tailwindcssVersion,
+    typescript: versions.typescriptVersion,
+    vite: versions.viteVersion,
+    yaml: versions.yamlVersion,
+  };
+  for (const [name, version] of Object.entries(devDependencies)) {
+    validateAppScaffoldNpmRegistryVersion(version, name);
+  }
   const packageJson = {
     name: identity.packageName,
     private: false,
@@ -339,22 +359,7 @@ function buildPackageJson(profile, versions, identity) {
       update: 'nimi-app update',
     },
     dependencies,
-    devDependencies: {
-      '@nimiplatform/app-tools': versions.appToolsVersion,
-      '@nimiplatform/nimi-coding': versions.nimicodingVersion,
-      '@tailwindcss/vite': versions.tailwindcssViteVersion,
-      '@tauri-apps/cli': versions.tauriCliVersion,
-      '@types/node': versions.nodeTypesVersion,
-      '@types/react': versions.reactTypesVersion,
-      '@types/react-dom': versions.reactDomTypesVersion,
-      '@vitejs/plugin-react': versions.viteReactPluginVersion,
-      electron: versions.electronVersion,
-      esbuild: versions.esbuildVersion,
-      tailwindcss: versions.tailwindcssVersion,
-      typescript: versions.typescriptVersion,
-      vite: versions.viteVersion,
-      yaml: versions.yamlVersion,
-    },
+    devDependencies,
   };
   if (identity.author) {
     packageJson.author = identity.author;
@@ -369,6 +374,9 @@ function buildRuntimeDependencies(profile, versions, capabilityResolution) {
     react: versions.reactVersion,
     'react-dom': versions.reactDomVersion,
   };
+  for (const [name, version] of Object.entries(dependencies)) {
+    validateAppScaffoldNpmRegistryVersion(version, name);
+  }
   for (const [name, version] of Object.entries(capabilityResolution.npmDependencies)) {
     const resolvedVersion = resolveScaffoldVersionReference(version, versions, name);
     if (Object.hasOwn(dependencies, name) && dependencies[name] !== resolvedVersion) {
@@ -382,11 +390,11 @@ function buildRuntimeDependencies(profile, versions, capabilityResolution) {
 function resolveScaffoldVersionReference(value, versions, dependencyName) {
   if (typeof value !== 'string') throw new Error(`Invalid npm dependency version for ${dependencyName}`);
   const match = value.match(/^\$versions\.([A-Za-z][A-Za-z0-9]*)$/u);
-  if (!match) return value;
-  const resolved = versions[match[1]];
+  const resolved = match ? versions[match[1]] : value;
   if (typeof resolved !== 'string' || !resolved.trim()) {
-    throw new Error(`Missing scaffold version source for ${dependencyName}: ${match[1]}`);
+    throw new Error(`Missing scaffold version source for ${dependencyName}: ${match?.[1] ?? 'inline'}`);
   }
+  validateAppScaffoldNpmRegistryVersion(resolved, dependencyName);
   return resolved;
 }
 

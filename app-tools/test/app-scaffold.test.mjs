@@ -32,6 +32,7 @@ import {
   resolveAppScaffoldCandidateFeatures,
   resolveAppScaffoldFeatures,
   resolveAppScaffoldIntentFeatures,
+  validateAppScaffoldCargoDependencyValue,
   validateAppScaffoldModuleRegistry,
 } from '../lib/app-scaffold-capabilities.mjs';
 import { initApp } from '../lib/app-doctor-update.mjs';
@@ -1462,13 +1463,37 @@ test('phase 7 Cargo dependency objects compare structurally and render non-empty
     }),
     /npm dependency must use a public registry version: alpha:local/,
   );
-  for (const spec of ['github:owner/repo', 'gitlab:owner/repo', 'git@github.com:owner/repo.git', 'owner/repo', 'ssh://git@example.test/repo.git']) {
+  for (const spec of [
+    'github:owner/repo',
+    'gitlab:owner/repo',
+    'git@github.com:owner/repo.git',
+    'owner/repo',
+    'ssh://git@example.test/repo.git',
+    '~/local-package',
+    'not a version',
+    'ftp://example.test/package',
+    'registry.example.test/owner/package',
+  ]) {
     assert.throws(
       () => resolveAppScaffoldCandidateFeatures(['alpha'], {
         alpha: { ...moduleEntry('alpha', 10, {}), npmDependencies: { vcs: spec } },
       }),
       /npm dependency must use a public registry version: alpha:vcs/,
     );
+  }
+  for (const spec of ['^1.2.3', '>=1 <2', 'latest', 'npm:@scope/renamed-package@~2.1.0']) {
+    assert.doesNotThrow(() => resolveAppScaffoldCandidateFeatures(['alpha'], {
+      alpha: { ...moduleEntry('alpha', 10, {}), npmDependencies: { registry: spec } },
+    }));
+  }
+  for (const spec of ['../crate', 'not a version', 'git://example.test/repo']) {
+    assert.throws(
+      () => validateAppScaffoldCargoDependencyValue(spec, 'invalid-string'),
+      /Cargo dependency must use a public registry version: invalid-string/,
+    );
+  }
+  for (const spec of ['0.1.0', '^1.2.3', '~1.2', '>=1.2.3, <2', '1.*']) {
+    assert.doesNotThrow(() => validateAppScaffoldCargoDependencyValue(spec, 'valid-string'));
   }
   for (const descriptor of [
     { version: ['1'] },
