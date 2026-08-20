@@ -198,6 +198,9 @@ func markLocalEnvironmentPlanReadyForTest(t *testing.T, svc *Service, req localE
 		acceleratorPlane = "cuda"
 	}
 	for _, dep := range plan.Dependencies {
+		if dep.State == localEnvironmentStateUnsupported {
+			continue
+		}
 		var pythonProfileIdentity engine.PythonDependencyProfileIdentity
 		sourceKind := localEnvironmentSourceManaged
 		if dep.DependencyFamily == localEnvironmentFamilyPythonRuntime || dep.DependencyFamily == localEnvironmentFamilyPythonUV {

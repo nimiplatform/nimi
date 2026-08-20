@@ -120,12 +120,17 @@ type Processor struct {
 	ffprobePath string
 }
 
-// PinnedCodecDependencyDir is the exact media-codec dependency install
-// directory expected under the managed dependencies root. It pins
-// BtbN/FFmpeg-Builds tag autobuild-2026-08-06-13-39, asset
-// ffmpeg-n8.1.2-34-g9b6c8969e0-win64-gpl-8.1.zip
-// (sha256 ca516dbc913758d927256bc91050b0d50decd56bf8e4963a1375d666f7fcda05).
-const PinnedCodecDependencyDir = "media-codec/ffmpeg-n8.1.2-34-g9b6c8969e0-win64-gpl-8.1/bin"
+const (
+	// PinnedWindowsCodecDependencyDir pins BtbN/FFmpeg-Builds tag
+	// autobuild-2026-08-06-13-39, asset
+	// ffmpeg-n8.1.2-34-g9b6c8969e0-win64-gpl-8.1.zip
+	// (sha256 ca516dbc913758d927256bc91050b0d50decd56bf8e4963a1375d666f7fcda05).
+	PinnedWindowsCodecDependencyDir = "media-codec/ffmpeg-n8.1.2-34-g9b6c8969e0-win64-gpl-8.1/bin"
+
+	// PinnedDarwinARM64CodecDependencyDir is the exact source-development
+	// install directory for the admitted macOS arm64 FFmpeg 8.0.1 toolchain.
+	PinnedDarwinARM64CodecDependencyDir = "media-codec/ffmpeg-8.0.1-darwin-arm64/bin"
+)
 
 // NewFromDependenciesRoot resolves the pinned codec executables under the
 // managed dependencies root and fails closed when they are absent.
@@ -134,12 +139,29 @@ func NewFromDependenciesRoot(dependenciesRoot string) (*Processor, error) {
 	if root == "" {
 		return nil, &Error{Kind: FailureUnavailable, Op: "resolve codec dependency", Err: fmt.Errorf("dependencies root is empty")}
 	}
-	suffix := ""
-	if runtime.GOOS == "windows" {
-		suffix = ".exe"
+	ffmpegPath, ffprobePath, err := codecExecutablePaths(root, runtime.GOOS, runtime.GOARCH)
+	if err != nil {
+		return nil, err
 	}
-	base := filepath.Join(root, filepath.FromSlash(PinnedCodecDependencyDir))
-	return New(filepath.Join(base, "ffmpeg"+suffix), filepath.Join(base, "ffprobe"+suffix))
+	return New(ffmpegPath, ffprobePath)
+}
+
+func codecExecutablePaths(dependenciesRoot string, goos string, goarch string) (string, string, error) {
+	var dependencyDir, suffix string
+	switch strings.ToLower(strings.TrimSpace(goos)) + "/" + strings.ToLower(strings.TrimSpace(goarch)) {
+	case "windows/amd64":
+		dependencyDir, suffix = PinnedWindowsCodecDependencyDir, ".exe"
+	case "darwin/arm64":
+		dependencyDir = PinnedDarwinARM64CodecDependencyDir
+	default:
+		return "", "", &Error{
+			Kind: FailureUnavailable,
+			Op:   "resolve codec dependency",
+			Err:  fmt.Errorf("no pinned video codec dependency is available for %s/%s", goos, goarch),
+		}
+	}
+	base := filepath.Join(dependenciesRoot, filepath.FromSlash(dependencyDir))
+	return filepath.Join(base, "ffmpeg"+suffix), filepath.Join(base, "ffprobe"+suffix), nil
 }
 
 // New validates both executable paths and fails closed when codec tooling is

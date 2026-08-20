@@ -157,7 +157,7 @@ func TestLocalEnvironmentRPCProjectsReadySourcesAndGate(t *testing.T) {
 	}
 	expectedSourceIDs := map[string]bool{}
 	for _, dep := range planResp.GetPlan().GetDependencies() {
-		if dep.GetConsumerScope() == req.ConsumerID {
+		if dep.GetConsumerScope() == req.ConsumerID && dep.GetSelectedSourceRecordId() != "" {
 			expectedSourceIDs[dep.GetSelectedSourceRecordId()] = true
 		}
 	}

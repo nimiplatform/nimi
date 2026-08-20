@@ -1087,7 +1087,8 @@ func TestListLoadoutRecipesProjectsSpeechCatalogAndCustody(t *testing.T) {
 		capabilitydriver.StableDiffusionVideoVAERequirementID,
 		capabilitydriver.StableDiffusionAudioVAERequirementID,
 	} {
-		if video[0].GetSlots()[index].GetSlotId() != slotID || len(video[0].GetSlots()[index].GetRecommendedContentIds()) != 1 {
+		slot := video[0].GetSlots()[index]
+		if slot.GetSlotId() != slotID || len(slot.GetRecommendedContentIds()) != len(slot.GetRecommendedVariantIds()) || len(slot.GetRecommendedContentIds()) > 1 {
 			t.Fatalf("video slot[%d] = %+v", index, video[0].GetSlots()[index])
 		}
 	}

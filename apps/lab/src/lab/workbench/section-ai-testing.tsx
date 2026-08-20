@@ -14,6 +14,7 @@ import { getCapabilityStudioProfile } from './capability-studio-profiles.js';
 import { CapabilityRunHistory, DrawerErrorBoundary, LabAiConfigSettingsPanel, downloadTextFile, presetFor, resultPlainText, statusForCapability, type CapabilityStatus, type SectionAITestingProps } from './section-ai-testing-surface.js';
 import { TextStudioComposer, TextStudioStartState } from './section-ai-testing-composer.js';
 import { CapabilityParameterPanel } from './section-ai-testing-parameters.js';
+import { hasLabCapabilityRunInput } from './section-ai-testing-input.js';
 import { TextStudioResultState } from './section-ai-testing-result.js';
 import { canConfigureRunTarget, createRunConfigSnapshot, effectiveTextStudioPromptStyle, textStudioDirectiveForTarget, textStudioRunTargetIntentSummary, textStudioRuntimePrompt, useLabRunTargetSummary, type TextStudioActiveRun } from './section-ai-testing-run.js';
 import { LabCapabilityParameterContext, LabHistoryLoadContext, LabHistoryPanelContext } from './workbench-context.js';
@@ -154,7 +155,7 @@ function TextStudioShell({
 
   async function run(nextPrompt = prompt, nextContext = context) {
     const displayPrompt = nextPrompt.trim();
-    if (requiresPrompt && !displayPrompt) return;
+    if (!hasLabCapabilityRunInput({ requiresPrompt, prompt: displayPrompt, hasAlternativeInput })) return;
     if (!runTarget.canDispatch) return;
     const runSeq = runSeqRef.current + 1;
     runSeqRef.current = runSeq;

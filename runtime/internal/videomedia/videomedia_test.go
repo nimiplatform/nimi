@@ -36,6 +36,46 @@ func TestNewFailsClosedForUnavailableExecutables(t *testing.T) {
 	}
 }
 
+func TestCodecExecutablePathsArePinnedPerAdmittedPlatform(t *testing.T) {
+	root := filepath.Join(t.TempDir(), "dependencies")
+	tests := []struct {
+		name        string
+		goos        string
+		goarch      string
+		dependency  string
+		ffmpegName  string
+		ffprobeName string
+	}{
+		{
+			name: "Windows amd64", goos: "windows", goarch: "amd64",
+			dependency: PinnedWindowsCodecDependencyDir, ffmpegName: "ffmpeg.exe", ffprobeName: "ffprobe.exe",
+		},
+		{
+			name: "macOS arm64", goos: "darwin", goarch: "arm64",
+			dependency: PinnedDarwinARM64CodecDependencyDir, ffmpegName: "ffmpeg", ffprobeName: "ffprobe",
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			ffmpeg, ffprobe, err := codecExecutablePaths(root, test.goos, test.goarch)
+			if err != nil {
+				t.Fatalf("codecExecutablePaths: %v", err)
+			}
+			base := filepath.Join(root, filepath.FromSlash(test.dependency))
+			if ffmpeg != filepath.Join(base, test.ffmpegName) || ffprobe != filepath.Join(base, test.ffprobeName) {
+				t.Fatalf("paths = %q, %q", ffmpeg, ffprobe)
+			}
+		})
+	}
+}
+
+func TestCodecExecutablePathsRejectUnsupportedPlatform(t *testing.T) {
+	ffmpeg, ffprobe, err := codecExecutablePaths(t.TempDir(), "linux", "amd64")
+	if err == nil || ffmpeg != "" || ffprobe != "" || FailureKindOf(err) != FailureUnavailable {
+		t.Fatalf("codecExecutablePaths() = ffmpeg=%q ffprobe=%q error=%v kind=%q", ffmpeg, ffprobe, err, FailureKindOf(err))
+	}
+}
+
 func TestEncodeMapsNonzeroCodecProcessFailure(t *testing.T) {
 	executable, err := os.Executable()
 	if err != nil {

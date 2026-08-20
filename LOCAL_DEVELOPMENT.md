@@ -6,7 +6,8 @@
 
 本地开发保留真实产品安全边界：
 
-- Runtime 只能由平台固定服务承载；
+- Runtime source development 只能由独立的当前用户 supervisor 承载；fixed-service
+  验收使用单独的固定服务命令；
 - Desktop 只通过受保护的 Desktop control carrier 访问 Runtime；
 - 第三方 App 只由 Desktop supervisor 启动；
 - renderer 不持有 bearer、Runtime endpoint、principal、grant、lease 或 session；
@@ -17,13 +18,14 @@
 
 | 路径 | 用途 | 受保护 Runtime |
 |---|---|---|
-| `pnpm dev:desktop [--cdp]` | Windows/macOS 日常 Electron UI、main、preload 与显式 loopback CDP 迭代 | Windows 使用已安装 fixed service；macOS workspace Electron 明确不可用 |
+| `pnpm dev:desktop [--cdp]` | Windows/macOS 日常 Electron UI、main、preload 与显式 loopback CDP 迭代；先启动 source Runtime | 使用当前用户 source Runtime |
 | `pnpm dev:zhiyu [--cdp]` | 由已运行的 Desktop supervisor 启动 Zhiyu Electron App | 取决于当前受保护 Desktop/Runtime |
 | `pnpm dev:lab [--cdp]` | 由已运行的 Desktop supervisor 启动 Nimi Lab Electron App | 取决于当前受保护 Desktop/Runtime |
 | `pnpm dev:avatar [--cdp]` | 启动 avatar-only Desktop Electron carrier；与普通 Desktop dev 实例互斥 | 取决于 Avatar launch binding |
 | `pnpm dev:avatar --tauri` | 显式启动 Avatar Tauri carrier；不支持 CDP | 取决于 Avatar launch binding |
-| `pnpm dev:runtime` | Windows/macOS 构建并更新健康的已安装 fixed service | 可用 |
-| `pnpm dev:runtime -- --install` | macOS 首次安装固定 ad-hoc development candidate | 可用 |
+| `pnpm dev:runtime` | Windows x64/macOS arm64 构建并启动独立的当前用户 source Runtime supervisor；终端必须保持运行 | source development |
+| `pnpm accept:runtime:fixed-service` | Windows/macOS 构建并验收 fixed-service candidate | fixed-service acceptance |
+| `pnpm accept:runtime:fixed-service -- --install` | macOS 首次安装固定 ad-hoc development candidate | fixed-service acceptance |
 | `pnpm dev:macos:desktop:installed` | macOS 启动 renderer 与已安装的 `/Applications/Nimi Dev.app` | 可用 |
 | `nimi-app dev --shell electron` | 由 Desktop supervisor 启动第三方 Electron App | 取决于当前受保护 Desktop/Runtime |
 
@@ -46,41 +48,44 @@ Zhiyu 或 Nimi Lab 的本地开发载体，且 `--tauri` 不能与 `--cdp` 组�
 建议顺序：
 
 1. 启动 Realm 与 Web。
-2. 运行 `pnpm dev:runtime`，更新并检查已安装的 `NimiRuntime` fixed service。
-3. 运行 `pnpm dev:desktop`。
+2. 在独立终端运行 `pnpm dev:runtime`，启动当前用户 source Runtime supervisor。
+3. 保持 Runtime 终端运行，另开终端运行 `pnpm dev:desktop`。
 4. 在 Desktop 中登录、开启 Developer Mode。
 5. 在目标 App 目录运行 `pnpm dev`。
 
-`pnpm dev:runtime` 不接受 data-root、candidate、profile 或 trust override。已有
-Windows protected-local schema 与当前 schema 不一致时，使用一次性、非产品化的
-精确 protected-state reset 后重新安装；不实现兼容读、自动迁移或 dual schema。
+`pnpm dev:runtime` 不接受 data-root、candidate、profile、trust override 或 fixed-service
+操作参数。fixed-service 的更新与验收使用 `pnpm accept:runtime:fixed-service`。已有
+Windows protected-local schema 与当前 schema 不一致时，使用一次性、非产品化的精确
+protected-state reset 后重新安装；不实现兼容读、自动迁移或 dual schema。
 
 ## macOS
 
 ### 普通 Electron 迭代
 
 ```bash
+pnpm dev:runtime
 pnpm dev:desktop
 pnpm dev:desktop --cdp
 ```
 
-该命令使用 workspace Electron，适合 UI、main、preload 与 loopback CDP。它不是
-已安装的固定 carrier，所有 protected operation 必须返回 typed unavailable。
+第一个命令启动独立的当前用户 source Runtime supervisor，并一直占用终端；随后另开
+终端启动 workspace Electron。该组合适合 Runtime、UI、main、preload 与 loopback
+CDP 的真实本地迭代。
 
 ### 固定 ad-hoc development candidate
 
 ```bash
-pnpm dev:runtime -- --status
-pnpm dev:runtime -- --install
-pnpm dev:runtime
+pnpm accept:runtime:fixed-service -- --status
+pnpm accept:runtime:fixed-service -- --install
+pnpm accept:runtime:fixed-service
 NIMI_DESKTOP_DEV_CDP_PORT=9333 pnpm dev:macos:desktop:installed
 ```
 
 `--install` 只用于 `absent` 状态的首次安装。此后无参数
-`pnpm dev:runtime` 与 Windows 一样是日常更新入口：先构建完整候选，经 sudo 授权后替换
-当前健康安装，并检查新 Runtime 回到 `running/healthy`。更新前状态不是健康
-`present` 时不会猜测性修复。日常更新保留已验证的 `_nimiruntimedev` principal、
-protected state 与 Keychain namespace；只有显式 `--uninstall` 才删除这些安装状态。
+`pnpm accept:runtime:fixed-service` 是 fixed-service 更新入口：先构建完整候选，经 sudo
+授权后替换当前健康安装，并检查新 Runtime 回到 `running/healthy`。更新前状态不是健康
+`present` 时不会猜测性修复。更新保留已验证的 `_nimiruntimedev` principal、protected
+state 与 Keychain namespace；只有显式 `--uninstall` 才删除这些安装状态。
 
 macOS development candidate 的边界是固定的：
 
@@ -98,7 +103,7 @@ Apple certificate、Team ID 或 notarization，也不形成 production readiness
 出现 `partial` 时先检查 status 报告的精确固定路径，再显式运行：
 
 ```bash
-pnpm dev:runtime -- --uninstall
+pnpm accept:runtime:fixed-service -- --uninstall
 ```
 
 随后从 `absent` 做一次 fresh install。不要增加 FreshCarrier、signed-trial、
@@ -120,10 +125,10 @@ Control 只来自显式 destructive reset。
 | 修改对象 | 动作 |
 |---|---|
 | Desktop renderer | Vite HMR |
-| Desktop Electron main/preload | workspace 路径自动重建；macOS protected 路径运行 `pnpm dev:runtime` 更新 |
+| Desktop Electron main/preload | workspace 路径自动重建；fixed-service 路径运行 `pnpm accept:runtime:fixed-service` 更新 |
 | 第三方 App renderer | Desktop supervisor 保持 renderer 与 host 生命周期绑定 |
 | 第三方 App `src-electron` | supervisor 防抖构建并替换 host |
-| Runtime Go | Windows/macOS 均用 `pnpm dev:runtime` 更新健康的已安装 fixed service |
+| Runtime Go | Windows/macOS source development 均重启 `pnpm dev:runtime`；fixed-service 验收使用 `pnpm accept:runtime:fixed-service` |
 | SDK/Kit | Desktop 开发 carrier 自动 ensure 并持续 watch；无需由 Zhiyu/Nimi Lab 重建 |
 
 `pnpm dev:desktop` 会在构建自身 Electron host 前启动 SDK/Kit canonical watcher，

@@ -167,7 +167,3 @@ func modelAssetQuarantineEntryCount(t *testing.T, storePath string) int {
 	}
 	return len(entries)
 }
-
-func modelAssetStorePayloadContainsID(payload []byte, id string) bool {
-	return id != "" && bytes.Contains(payload, []byte(id))
-}

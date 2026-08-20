@@ -910,6 +910,10 @@ func modelAssetListContainsID(assets []*runtimev1.ModelAssetRecord, id string) b
 	return false
 }
 
+func modelAssetStorePayloadContainsID(payload []byte, id string) bool {
+	return id != "" && bytes.Contains(payload, []byte(id))
+}
+
 func importModelAssetForTest(t *testing.T, svc *Service, sourcePath string, displayName string) *runtimev1.ModelAssetRecord {
 	t.Helper()
 	source, err := inspectModelAssetSource(sourcePath, displayName)

@@ -5,6 +5,7 @@ import type { BrowserDataUrlAttachment } from '@nimiplatform/kit/features/chat/h
 import { useTranslation } from '../../shell/i18n/index.js';
 import type { LabCapability } from '../lab-capabilities.js';
 import { getCapabilityStudioProfile } from './capability-studio-profiles.js';
+import { hasLabCapabilityRunInput } from './section-ai-testing-input.js';
 
 function IntentSummaryChip({
   label,
@@ -91,7 +92,7 @@ export function TextStudioComposer({
   const supportsContext = requiresPrompt && capability.id !== 'audio.transcribe';
   const [contextOpen, setContextOpen] = useState(false);
   const [parametersOpen, setParametersOpen] = useState(false);
-  const promptReady = !requiresPrompt || Boolean(prompt.trim()) || hasAlternativeInput;
+  const promptReady = hasLabCapabilityRunInput({ requiresPrompt, prompt, hasAlternativeInput });
   const intentConfigAction = !canDispatch && canConfigureIntent;
   const generateDisabled = running || !promptReady || (!canDispatch && !canConfigureIntent);
   const generateLabel = running
