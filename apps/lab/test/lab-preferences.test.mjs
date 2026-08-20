@@ -22,16 +22,29 @@ const storageJsonOutput = ts.transpileModule(storageJsonSource, {
   },
 }).outputText;
 const storageJsonModuleUrl = `data:text/javascript;base64,${Buffer.from(storageJsonOutput).toString('base64')}`;
+const promptDraftSource = read('src/ai-studio-core/prompt-drafts.ts');
+const promptDraftOutput = ts.transpileModule(promptDraftSource, {
+  compilerOptions: {
+    module: ts.ModuleKind.ES2022,
+    target: ts.ScriptTarget.ES2022,
+  },
+}).outputText;
+const promptDraftModuleUrl = `data:text/javascript;base64,${Buffer.from(promptDraftOutput).toString('base64')}`;
 const { outputText } = ts.transpileModule(source, {
   compilerOptions: {
     module: ts.ModuleKind.ES2022,
     target: ts.ScriptTarget.ES2022,
   },
 });
-const rewrittenOutput = outputText.replace(
-  /from\s+['"]@nimiplatform\/kit\/core\/storage-json['"]/g,
-  `from ${JSON.stringify(storageJsonModuleUrl)}`,
-);
+const rewrittenOutput = outputText
+  .replace(
+    /from\s+['"]@nimiplatform\/kit\/core\/storage-json['"]/g,
+    `from ${JSON.stringify(storageJsonModuleUrl)}`,
+  )
+  .replace(
+    /from\s+['"]\.\.\/ai-studio-core\/prompt-drafts\.js['"]/g,
+    `from ${JSON.stringify(promptDraftModuleUrl)}`,
+  );
 const moduleUrl = `data:text/javascript;base64,${Buffer.from(rewrittenOutput).toString('base64')}`;
 const preferencesModule = await import(moduleUrl);
 
@@ -191,6 +204,10 @@ test('prompt drafts use versioned localStorage and fail closed to presets', () =
   const loaded = loadLabPromptDraft(key, true, storage);
   assert.equal(loaded.prompt, 'draft body');
   assert.equal(loaded.status.state, 'ready');
+
+  const emptied = saveLabPromptDraft(key, '', true, storage);
+  assert.equal(emptied.status.state, 'ready');
+  assert.equal(loadLabPromptDraft(key, true, storage).prompt, '');
 
   storage.setItem(LAB_PROMPT_DRAFTS_STORAGE_KEY, '{bad json');
   const corrupt = loadLabPromptDraft(key, true, storage);

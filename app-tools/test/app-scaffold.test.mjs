@@ -609,11 +609,13 @@ test('cli standalone scaffold uses current public dependency version sources', (
     const packageJson = JSON.parse(generated.read('package.json'));
     const lock = JSON.parse(generated.read('.nimi/app-scaffold/lock.json'));
     const appToolsPackageJson = JSON.parse(readFileSync(path.join(testDir, '..', 'package.json'), 'utf8'));
+    const rootPackageJson = JSON.parse(readFileSync(path.join(testDir, '..', '..', 'package.json'), 'utf8'));
     const expectedAppToolsVersion = `^${appToolsPackageJson.version}`;
+    const expectedNimicodingVersion = rootPackageJson.devDependencies['@nimiplatform/nimi-coding'];
     assert.equal(packageJson.dependencies['@nimiplatform/sdk'], '^0.6.0');
     assert.equal(packageJson.dependencies['@nimiplatform/kit'], '^0.3.0');
     assert.equal(packageJson.devDependencies['@nimiplatform/app-tools'], expectedAppToolsVersion);
-    assert.equal(packageJson.devDependencies['@nimiplatform/nimi-coding'], '0.5.0');
+    assert.equal(packageJson.devDependencies['@nimiplatform/nimi-coding'], expectedNimicodingVersion);
     assert.equal(packageJson.devDependencies.yaml, '^2.9.0');
     assert.equal(lock.dependencyMatrix.npm['@nimiplatform/sdk'], '^0.6.0');
     assert.equal(lock.dependencyMatrix.npm['@nimiplatform/app-tools'], expectedAppToolsVersion);
@@ -833,7 +835,7 @@ test('create rejects every reserved Nimi Lab identity before target materializat
   }
 });
 
-test('create rejects declared workspace renderer port collisions before target materialization', () => {
+test('create accepts third-party workspaces without reading unrelated sibling App manifests', () => {
   const tempRoot = mkdtempSync(path.join(os.tmpdir(), 'nimi-app-scaffold-port-collision-'));
   const existingDir = path.join(tempRoot, 'apps', 'existing');
   const target = path.join(tempRoot, 'apps', 'new-app');
@@ -848,31 +850,22 @@ test('create rejects declared workspace renderer port collisions before target m
     ].join('\n'));
     mkdirSync(existingDir, { recursive: true });
     mkdirSync(path.join(tempRoot, 'kit', 'shell', 'tauri'), { recursive: true });
-    const initial = resolveAppCreatePlan(tempRoot, {
+    writeFileSync(path.join(existingDir, 'nimi.app.yaml'), [
+      'app_id: existing.app',
+      'display_name: Existing App',
+      'local_development:',
+      '  electron:',
+      '    renderer_origin: not-a-url',
+      '',
+    ].join('\n'));
+    const plan = resolveAppCreatePlan(tempRoot, {
       dir: target,
       profile: 'standalone',
       appId: 'collision.app',
       title: 'Collision App',
       packageName: 'collision-app',
     });
-    writeFileSync(path.join(existingDir, 'nimi.app.yaml'), [
-      'app_id: existing.app',
-      'display_name: Existing App',
-      'local_development:',
-      '  electron:',
-      `    renderer_origin: http://127.0.0.1:${initial.preview.identity.devPort}`,
-      '',
-    ].join('\n'));
-    assert.throws(
-      () => resolveAppCreatePlan(tempRoot, {
-        dir: target,
-        profile: 'standalone',
-        appId: 'collision.app',
-        title: 'Collision App',
-        packageName: 'collision-app',
-      }),
-      /Declared renderer port collision/,
-    );
+    assert.deepEqual(plan.preview.topology, { profile: 'standalone' });
     assert.equal(existsSync(target), false);
   } finally {
     rmSync(tempRoot, { recursive: true, force: true });
@@ -933,6 +926,7 @@ test('candidate high-level plan reuses standalone output without exposing a work
       ...options,
       features: ['studio-create'],
     });
+    assert.deepEqual(candidatePlan.preview.topology, { profile: 'standalone' });
     assert.deepEqual(candidatePlan.preview.topology, publicPlan.preview.topology);
     assert.equal(candidatePlan.resolvedInput.targetDir, target);
     assert.equal(candidatePlan.preview.profile, 'standalone');
@@ -951,10 +945,8 @@ test('candidate high-level plan reuses standalone output without exposing a work
       `    renderer_origin: http://127.0.0.1:${candidatePlan.preview.identity.devPort}`,
       '',
     ].join('\n'));
-    assert.throws(
-      () => resolveCandidateAppCreatePlan(workspace, { ...options, features: ['studio-create'] }),
-      /Declared renderer port collision/,
-    );
+    const repeatedCandidatePlan = resolveCandidateAppCreatePlan(workspace, { ...options, features: ['studio-create'] });
+    assert.deepEqual(repeatedCandidatePlan.preview.topology, { profile: 'standalone' });
     assert.equal(existsSync(target), false);
 
     const outsideTarget = path.join(workspace, 'packages', 'outside');
@@ -1173,8 +1165,13 @@ test('create accepts candidate studio-create as one shared AI Studio route with 
     'runStudioCapability',
     'createStudioNonSuccess',
     'createStudioRunTargetSummary',
+    'createEmptyStudioPromptDraftStore',
     'loadStudioAIConfig',
+    'parseStudioPromptDraftStore',
+    'projectStudioManagedHistory',
+    'readStudioPromptDraft',
     'subscribeStudioAIConfigRefresh',
+    'updateStudioPromptDraftStore',
     'useAIStudioWorkspaceController',
     'ModelConfigAIConfigSurface',
     'openDesktopIntent',
@@ -1190,6 +1187,7 @@ test('create accepts candidate studio-create as one shared AI Studio route with 
     assert.match(host, new RegExp(expected.replaceAll('.', '\\.')));
   }
   assert.doesNotMatch(host, /apps\/lab|nimi\.lab|lab-|WorldTour|Simulator/);
+  assert.doesNotMatch(host, /type PromptDraftStore|if \(enabled && prompt\)|mediaHistory\.push\(/);
   assert.match(host, /_STORAGE_JSON_NOT_FOUND/);
   assert.match(host, /_LOCAL_ASSET_NOT_FOUND/);
   assert.match(host, /section: 'ai-models'/);
@@ -1446,9 +1444,22 @@ test('phase 7 Cargo dependency objects compare structurally and render non-empty
     renderCargoDependencyValue(expected, 'shared'),
     '{ default-features = false, features = ["derive", "serde"], optional = true, version = "1.2.3" }',
   );
-  const escaped = renderCargoDependencyValue({ path: '../crate\nwith"quote' }, 'escaped');
-  assert.equal(escaped, '{ path = "../crate\\nwith\\"quote" }');
-  assert.doesNotMatch(escaped, /\n/u);
+  assert.throws(
+    () => renderCargoDependencyValue({ path: '../crate' }, 'local'),
+    /Invalid Cargo dependency field: local\.path/,
+  );
+  assert.throws(
+    () => resolveAppScaffoldCandidateFeatures(['alpha'], {
+      alpha: moduleEntry('alpha', 10, { local: { path: '../crate' } }),
+    }),
+    /Cargo dependency field is invalid: alpha:local\.path/,
+  );
+  assert.throws(
+    () => resolveAppScaffoldCandidateFeatures(['alpha'], {
+      alpha: { ...moduleEntry('alpha', 10, {}), npmDependencies: { local: 'workspace:*' } },
+    }),
+    /npm dependency must use a public registry version: alpha:local/,
+  );
   assert.throws(
     () => resolveAppScaffoldCandidateFeatures(['alpha', 'beta'], {
       alpha: moduleEntry('alpha', 10, { shared: { version: '1' } }),

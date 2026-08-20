@@ -4,12 +4,7 @@ import type { NimiLocalAppArtifactImageMime } from '@nimiplatform/sdk/app';
 import type { StudioCapabilityRunInput, StudioCapabilityRunResult } from './runtime-types.js';
 import type { StudioCapabilityDescriptor } from './module-registration.js';
 import type { StudioRunTargetSummary } from './history.js';
-
-export type StudioPromptDraftKey = {
-  readonly surfaceId: 'ai-capabilities';
-  readonly capabilityId: string;
-  readonly scenarioId: string;
-};
+import type { StudioPromptDraftKey } from './prompt-drafts.js';
 
 export type StudioHostCommandResult<TValue extends object = Record<string, never>> =
   | { readonly ok: true; readonly value?: TValue }

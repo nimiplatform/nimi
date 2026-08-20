@@ -421,7 +421,7 @@ export function renderCargoDependencyValue(value, label) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     throw new Error(`Invalid Cargo dependency descriptor: ${label}`);
   }
-  const allowedKeys = new Set(['version', 'path', 'package', 'features', 'default-features', 'optional']);
+  const allowedKeys = new Set(['version', 'package', 'features', 'default-features', 'optional']);
   const fields = [];
   for (const key of Object.keys(value).sort()) {
     if (!allowedKeys.has(key)) throw new Error(`Invalid Cargo dependency field: ${label}.${key}`);

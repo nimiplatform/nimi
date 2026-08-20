@@ -221,7 +221,7 @@ function assertCargoDependencyValue(value, label) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     throw new Error(`App scaffold module Cargo dependency is invalid: ${label}`);
   }
-  const allowed = new Set(['version', 'path', 'package', 'features', 'default-features', 'optional']);
+  const allowed = new Set(['version', 'package', 'features', 'default-features', 'optional']);
   const entries = Object.entries(value);
   if (entries.length === 0) throw new Error(`App scaffold module Cargo dependency is empty: ${label}`);
   for (const [key, field] of entries) {
@@ -230,6 +230,21 @@ function assertCargoDependencyValue(value, label) {
     if (typeof field === 'boolean') continue;
     if (Array.isArray(field) && field.every((item) => typeof item === 'string' && item && item === item.trim())) continue;
     throw new Error(`App scaffold module Cargo dependency value is invalid: ${label}.${key}`);
+  }
+}
+
+function assertPublicNpmDependencyVersion(value, label) {
+  const normalized = String(value || '').trim();
+  if (!normalized || normalized !== value) {
+    throw new Error(`App scaffold module npm dependency is invalid: ${label}`);
+  }
+  if (
+    /^(?:workspace|file|link|portal|patch|git(?:\+[^:]*)?|https?):/iu.test(normalized)
+    || /^[./\\]/u.test(normalized)
+    || /^[A-Za-z]:[\\/]/u.test(normalized)
+    || /\.tgz(?:$|[?#])/iu.test(normalized)
+  ) {
+    throw new Error(`App scaffold module npm dependency must use a public registry version: ${label}`);
   }
 }
 
@@ -328,6 +343,7 @@ function assertModuleEntry(id, entry, registry) {
     if (!name || name !== name.trim() || typeof version !== 'string' || !version.trim()) {
       throw new Error(`App scaffold module npm dependency is invalid: ${id}: ${name || 'missing'}`);
     }
+    assertPublicNpmDependencyVersion(version, `${id}:${name}`);
   }
   for (const [name, value] of Object.entries(entry.cargoDependencies)) {
     if (!name || name !== name.trim() || value === undefined || value === null) {

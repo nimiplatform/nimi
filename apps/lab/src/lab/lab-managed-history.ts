@@ -1,5 +1,5 @@
 import type { LabImageHistoryRecord } from './lab-image-history.js';
-import type { StudioRunHistory } from '../ai-studio-core/index.js';
+import { projectStudioManagedHistory, type StudioRunHistory } from '../ai-studio-core/index.js';
 
 export type LabManagedHistoryOutcome = {
   readonly completed: number;
@@ -25,77 +25,20 @@ export async function reconcileLabManagedHistoryProjection(
   imageHistory: readonly LabImageHistoryRecord[],
   statAsset: (relativePath: string) => Promise<unknown>,
 ): Promise<{ readonly runHistory: StudioRunHistory; readonly imageHistory: readonly LabImageHistoryRecord[] }> {
-  const storedByID = new Map(imageHistory.map((record) => [record.id, record]));
-  const projected: LabImageHistoryRecord[] = [];
-  const projectedIDs = new Set<string>();
-  for (const record of Object.values(runHistory).flat()) {
-    if (record.result?.ok !== true || record.result.kind !== 'artifacts') continue;
-    const artifacts = record.result.artifacts?.length
-      ? record.result.artifacts
-      : record.result.firstArtifact ? [record.result.firstArtifact] : [];
-    for (const [index, artifact] of artifacts.entries()) {
-      if (!artifact.relativePath) continue;
-      const id = index === 0 ? record.id : `${record.id}:${index}`;
-      const stored = storedByID.get(id);
-      projected.push({
-        ...stored,
-        id,
-        runId: record.id,
-        kind: 'runtime-media',
-        capabilityId: record.capabilityId,
-        title: artifact.displayName || artifact.relativePath || record.result.jobId || record.capabilityId,
-        status: 'ready',
-        createdAt: record.createdAt,
-        artifactCount: record.result.artifactCount,
-        artifactLabel: artifact.displayName || artifact.relativePath,
-        relativePath: artifact.relativePath,
-        ...(artifact.mediaType ? { mediaType: artifact.mediaType } : {}),
-        sizeBytes: artifact.sizeBytes,
-        sha256: artifact.sha256,
-        jobId: record.result.jobId,
-        jobState: record.result.jobState,
-        message: record.message,
-        traceState: record.result.traceId ? 'captured' : 'not-captured',
-        ...(record.result.traceId ? { traceId: record.result.traceId } : {}),
-      });
-      projectedIDs.add(id);
-    }
-  }
-  for (const stored of imageHistory) {
-    if (!projectedIDs.has(stored.id)) projected.push(stored);
-  }
-
-  const availability = new Map<string, boolean>();
-  await Promise.all([...new Set(projected
-    .filter((record) => record.status === 'ready' && record.kind === 'runtime-media')
-    .map((record) => record.relativePath)
-    .filter((relativePath): relativePath is string => Boolean(relativePath)))]
-    .map(async (relativePath) => {
+  const projection = await projectStudioManagedHistory({
+    runHistory,
+    existingMediaHistory: imageHistory,
+    retainUnprojectedMedia: true,
+    inspectArtifact: async (artifact) => {
       try {
-        await statAsset(relativePath);
-        availability.set(relativePath, true);
+        await statAsset(artifact.relativePath);
+        return { status: 'ready' };
       } catch {
-        availability.set(relativePath, false);
+        return { status: 'unavailable' };
       }
-    }));
-
-  const unavailableRunIDs = new Set<string>();
-  const honestImageHistory = projected.map((record) => {
-    if (record.status !== 'ready' || !record.relativePath || availability.get(record.relativePath) !== false) {
-      return record;
-    }
-    unavailableRunIDs.add(record.runId || record.id);
-    return { ...record, status: 'unavailable' as const };
+    },
   });
-  const honestRunHistory = Object.fromEntries(Object.entries(runHistory).map(([capabilityId, records]) => [
-    capabilityId,
-    records.map((record) => (
-      unavailableRunIDs.has(record.id) && record.status === 'ready'
-        ? { ...record, status: 'unavailable' as const }
-        : record
-    )),
-  ]));
-  return { runHistory: honestRunHistory, imageHistory: honestImageHistory };
+  return { runHistory: projection.runHistory, imageHistory: projection.mediaHistory };
 }
 
 export async function deleteLabManagedHistoryRecord(

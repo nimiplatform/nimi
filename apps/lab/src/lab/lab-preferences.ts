@@ -4,13 +4,22 @@ import {
   resolveBrowserStorage,
   writeStorageJsonTo,
 } from '@nimiplatform/kit/core/storage-json';
+import {
+  STUDIO_PROMPT_DRAFTS_SCHEMA_VERSION,
+  createEmptyStudioPromptDraftStore,
+  parseStudioPromptDraftStore,
+  readStudioPromptDraft,
+  updateStudioPromptDraftStore,
+  type StudioPromptDraftKey,
+  type StudioPromptDraftStore,
+} from '../ai-studio-core/prompt-drafts.js';
 
 export const LAB_PREFERENCES_STORAGE_KEY = 'nimiapp-lab:workbench-preferences:v1';
 export const LAB_PREFERENCES_SCHEMA_VERSION = 1;
 export const LAB_PROMPT_DRAFTS_STORAGE_KEY = 'nimiapp-lab:prompt-drafts:v1';
-export const LAB_PROMPT_DRAFTS_SCHEMA_VERSION = 1;
+export const LAB_PROMPT_DRAFTS_SCHEMA_VERSION = STUDIO_PROMPT_DRAFTS_SCHEMA_VERSION;
 
-export type LabPromptDraftSurfaceId = 'app-lab' | 'ai-capabilities';
+export type LabPromptDraftSurfaceId = StudioPromptDraftKey['surfaceId'];
 
 export type LabHistoryPanelScope = 'capability' | 'all' | 'media';
 
@@ -48,16 +57,9 @@ type PreferenceLoadResult = {
   status: LabPreferenceStoreStatus;
 };
 
-export type LabPromptDraftKey = {
-  surfaceId: LabPromptDraftSurfaceId;
-  capabilityId: string;
-  scenarioId: string;
-};
+export type LabPromptDraftKey = StudioPromptDraftKey;
 
-export type LabPromptDraftStore = {
-  schemaVersion: typeof LAB_PROMPT_DRAFTS_SCHEMA_VERSION;
-  drafts: Record<string, string>;
-};
+export type LabPromptDraftStore = StudioPromptDraftStore;
 
 export type LabPromptDraftStoreState =
   | 'ready'
@@ -184,36 +186,12 @@ function parseLabPreferences(value: unknown): LabPreferences {
   };
 }
 
-function makePromptDraftId(key: LabPromptDraftKey): string {
-  return `${key.surfaceId}:${key.capabilityId}:${key.scenarioId}`;
-}
-
 function defaultLabPromptDraftStore(): LabPromptDraftStore {
-  return {
-    schemaVersion: LAB_PROMPT_DRAFTS_SCHEMA_VERSION,
-    drafts: {},
-  };
+  return createEmptyStudioPromptDraftStore();
 }
 
 function parseLabPromptDraftStore(value: unknown): LabPromptDraftStore {
-  const parsed = value as Partial<LabPromptDraftStore>;
-  if (
-    parsed.schemaVersion !== LAB_PROMPT_DRAFTS_SCHEMA_VERSION
-    || !parsed.drafts
-    || typeof parsed.drafts !== 'object'
-    || Array.isArray(parsed.drafts)
-  ) {
-    throw new Error('Stored prompt draft schema is invalid.');
-  }
-  for (const [draftId, prompt] of Object.entries(parsed.drafts)) {
-    if (typeof draftId !== 'string' || typeof prompt !== 'string') {
-      throw new Error('Stored prompt draft entry is invalid.');
-    }
-  }
-  return {
-    schemaVersion: LAB_PROMPT_DRAFTS_SCHEMA_VERSION,
-    drafts: { ...parsed.drafts },
-  };
+  return parseStudioPromptDraftStore(value);
 }
 
 function loadLabPromptDraftStore(storage: Storage): {
@@ -343,7 +321,7 @@ export function loadLabPromptDraft(
   try {
     const { store, status } = loadLabPromptDraftStore(storage);
     return {
-      prompt: store.drafts[makePromptDraftId(key)] ?? null,
+      prompt: readStudioPromptDraft(store, key, enabled),
       status,
     };
   } catch (error) {
@@ -377,13 +355,7 @@ export function saveLabPromptDraft(
 
   try {
     const { store } = loadLabPromptDraftStore(storage);
-    const next: LabPromptDraftStore = {
-      schemaVersion: LAB_PROMPT_DRAFTS_SCHEMA_VERSION,
-      drafts: {
-        ...store.drafts,
-        [makePromptDraftId(key)]: prompt,
-      },
-    };
+    const next = updateStudioPromptDraftStore(store, key, prompt, enabled);
     const write = writeStorageJsonTo(storage, LAB_PROMPT_DRAFTS_STORAGE_KEY, next);
     if (write.state !== 'saved') {
       throw new Error(write.error || `Prompt draft storage ${write.state}.`);

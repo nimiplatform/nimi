@@ -1,7 +1,6 @@
-import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
-import { parse as parseYaml } from 'yaml';
 import {
   buildAppScaffoldCandidateCreatePlan,
   buildAppScaffoldCreatePlan,
@@ -16,7 +15,7 @@ export { validateSimulatorAppSource } from './simulator-conformance.mjs';
 export { APP_SCAFFOLD_FEATURE_IDS } from './app-scaffold-capabilities.mjs';
 
 const SDK_VERSION = '^0.6.0';
-const NIMICODING_VERSION = '0.5.0';
+const NIMICODING_VERSION = '0.6.1';
 const KIT_VERSION = '^0.3.0';
 const REACT_VERSION = '^19.1.0';
 const REACT_DOM_VERSION = '^19.1.0';
@@ -173,10 +172,9 @@ export function resolveCandidateAppCreatePlan(cwd, options = {}) {
 function resolveAppCreatePlanWith(cwd, options, resolveInput, buildPlan) {
   const resolvedInput = resolveInput({ cwd, options });
   ensureDirEmptyOrMissing(resolvedInput.targetDir);
-  const topology = resolveCreateTopology(resolvedInput);
+  const topology = resolveCreateTopology();
   const versions = appScaffoldVersions();
   const plan = buildPlan({ cwd, options, versions, topology });
-  assertNoDeclaredWorkspacePortCollision(topology.workspaceRoot, plan);
   return plan;
 }
 
@@ -193,56 +191,8 @@ export function createCandidateApp(cwd, options = {}) {
   });
 }
 
-function findWorkspaceRoot(startDir) {
-  let current = path.resolve(startDir);
-  for (;;) {
-    if (existsSync(path.join(current, 'pnpm-workspace.yaml'))) return current;
-    const parent = path.dirname(current);
-    if (parent === current) return null;
-    current = parent;
-  }
-}
-
-function isPathInside(parentDir, targetDir) {
-  const relative = path.relative(parentDir, targetDir);
-  return relative !== '' && !relative.startsWith('..') && !path.isAbsolute(relative);
-}
-
-function resolveCreateTopology(resolvedInput) {
-  const workspaceRoot = findWorkspaceRoot(path.dirname(resolvedInput.targetDir));
-  return Object.freeze({ profile: 'standalone', workspaceRoot });
-}
-
-function assertNoDeclaredWorkspacePortCollision(workspaceRoot, plan) {
-  if (!workspaceRoot) return;
-  const appsRoot = path.join(workspaceRoot, 'apps');
-  if (!isPathInside(appsRoot, plan.resolvedInput.targetDir)) return;
-  if (!existsSync(appsRoot)) return;
-  const selectedPort = plan.preview.identity.devPort;
-  for (const entry of readdirSync(appsRoot)) {
-    const appDir = path.join(appsRoot, entry);
-    if (!statSync(appDir).isDirectory() || path.resolve(appDir) === path.resolve(plan.resolvedInput.targetDir)) continue;
-    const manifestPath = path.join(appDir, 'nimi.app.yaml');
-    if (!existsSync(manifestPath)) continue;
-    let manifest;
-    try {
-      manifest = parseYaml(readFileSync(manifestPath, 'utf8'));
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      throw new Error(`Cannot validate declared renderer ports from ${manifestPath}: ${message}`);
-    }
-    const origin = manifest?.local_development?.electron?.renderer_origin;
-    if (typeof origin !== 'string') continue;
-    let declaredPort;
-    try {
-      declaredPort = Number(new URL(origin).port);
-    } catch {
-      throw new Error(`Invalid declared renderer origin in ${manifestPath}: ${origin}`);
-    }
-    if (declaredPort === selectedPort) {
-      throw new Error(`Declared renderer port collision: ${selectedPort} is already owned by ${manifestPath}`);
-    }
-  }
+function resolveCreateTopology() {
+  return Object.freeze({ profile: 'standalone' });
 }
 
 export function doctorAppScaffold(cwd, options = {}) {

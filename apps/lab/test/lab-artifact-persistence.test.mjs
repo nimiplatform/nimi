@@ -20,9 +20,21 @@ const {
   shouldPersistLabArtifactRecord,
 } = await import(moduleUrl);
 const historyActionsSource = readFileSync(path.join(root, 'src/lab/lab-managed-history.ts'), 'utf8');
+const sdkTypesStubUrl = `data:text/javascript;base64,${Buffer.from('export const isJsonObject = (value) => Boolean(value) && typeof value === "object" && !Array.isArray(value);').toString('base64')}`;
+const sharedHistorySource = readFileSync(path.join(root, 'src/ai-studio-core/history.ts'), 'utf8');
+const sharedHistoryOutput = ts.transpileModule(sharedHistorySource, {
+  compilerOptions: { module: ts.ModuleKind.ES2022, target: ts.ScriptTarget.ES2022 },
+}).outputText.replace(
+  /from\s+['"]@nimiplatform\/sdk\/types['"]/g,
+  `from ${JSON.stringify(sdkTypesStubUrl)}`,
+);
+const sharedHistoryUrl = `data:text/javascript;base64,${Buffer.from(sharedHistoryOutput).toString('base64')}`;
 const historyActionsOutput = ts.transpileModule(historyActionsSource, {
   compilerOptions: { module: ts.ModuleKind.ES2022, target: ts.ScriptTarget.ES2022 },
-}).outputText;
+}).outputText.replace(
+  /from\s+['"]\.\.\/ai-studio-core\/index\.js['"]/g,
+  `from ${JSON.stringify(sharedHistoryUrl)}`,
+);
 const historyActionsUrl = `data:text/javascript;base64,${Buffer.from(historyActionsOutput).toString('base64')}`;
 const {
   clearLabManagedHistoryScope,

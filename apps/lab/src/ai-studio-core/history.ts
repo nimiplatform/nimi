@@ -6,6 +6,7 @@ import type {
   StudioNonSuccessReason,
 } from './runtime-types.js';
 import type { StudioRunTargetSource } from './parameters.js';
+import type { StudioMediaHistoryRecord } from './contexts.js';
 
 export type StudioRunTargetSnapshot = {
   readonly capabilityId: string;
@@ -136,6 +137,87 @@ export type StudioRunHistoryRecord = {
 };
 
 export type StudioRunHistory = Record<string, StudioRunHistoryRecord[]>;
+
+export type StudioManagedArtifactInspection = {
+  readonly status: 'ready' | 'unavailable';
+  readonly message?: string;
+};
+
+export async function projectStudioManagedHistory(input: {
+  readonly runHistory: StudioRunHistory;
+  readonly existingMediaHistory?: readonly StudioMediaHistoryRecord[];
+  readonly retainUnprojectedMedia?: boolean;
+  readonly resolveCapabilityLabel?: StudioCapabilityLabelResolver;
+  readonly inspectArtifact: (
+    artifact: StudioManagedArtifact,
+    record: StudioRunHistoryRecord,
+  ) => Promise<StudioManagedArtifactInspection>;
+}): Promise<{
+  readonly runHistory: StudioRunHistory;
+  readonly mediaHistory: readonly StudioMediaHistoryRecord[];
+}> {
+  const existingMediaHistory = input.existingMediaHistory ?? [];
+  const storedByID = new Map(existingMediaHistory.map((record) => [record.id, record]));
+  const projectedIDs = new Set<string>();
+  const mediaHistory: StudioMediaHistoryRecord[] = [];
+  const projectedRunHistory: StudioRunHistory = {};
+
+  for (const [capabilityId, records] of Object.entries(input.runHistory)) {
+    const projectedRecords: StudioRunHistoryRecord[] = [];
+    for (const record of records) {
+      const result = record.result;
+      let projectedRecord = record;
+      let unavailableReason = '';
+      if (result?.ok === true && result.kind === 'artifacts') {
+        const artifacts = result.artifacts?.length
+          ? result.artifacts
+          : result.firstArtifact ? [result.firstArtifact] : [];
+        for (const [index, artifact] of artifacts.entries()) {
+          const id = index === 0 ? record.id : `${record.id}:${index}`;
+          const inspection = await input.inspectArtifact(artifact, record);
+          const message = inspection.message ?? record.message;
+          if (inspection.status === 'unavailable' && !unavailableReason) unavailableReason = message;
+          const capabilityLabel = input.resolveCapabilityLabel?.(record.capabilityId) || undefined;
+          mediaHistory.push({
+            ...storedByID.get(id),
+            id,
+            runId: record.id,
+            kind: 'runtime-media',
+            capabilityId: record.capabilityId,
+            ...(capabilityLabel ? { capabilityLabel } : {}),
+            title: artifact.displayName || artifact.relativePath || result.jobId || record.capabilityId,
+            status: inspection.status,
+            createdAt: record.createdAt,
+            artifactCount: result.artifactCount,
+            artifactLabel: artifact.displayName || artifact.relativePath,
+            relativePath: artifact.relativePath,
+            ...(artifact.mediaType ? { mediaType: artifact.mediaType } : {}),
+            sizeBytes: artifact.sizeBytes,
+            sha256: artifact.sha256,
+            jobId: result.jobId,
+            jobState: result.jobState,
+            message,
+            traceState: result.traceId ? 'captured' : 'not-captured',
+            ...(result.traceId ? { traceId: result.traceId } : {}),
+          });
+          projectedIDs.add(id);
+        }
+      }
+      if (unavailableReason && record.status === 'ready') {
+        projectedRecord = { ...record, status: 'unavailable', message: unavailableReason };
+      }
+      projectedRecords.push(projectedRecord);
+    }
+    projectedRunHistory[capabilityId] = projectedRecords;
+  }
+
+  if (input.retainUnprojectedMedia) {
+    for (const stored of existingMediaHistory) {
+      if (!projectedIDs.has(stored.id)) mediaHistory.push(stored);
+    }
+  }
+  return { runHistory: projectedRunHistory, mediaHistory };
+}
 
 export type StudioFlatRunRecord = StudioRunHistoryRecord & {
   capabilityLabel: string;

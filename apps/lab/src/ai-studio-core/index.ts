@@ -77,12 +77,14 @@ export {
   getStudioRunResultTags,
   getStudioRunStatusLabel,
   getStudioRunStatusTone,
+  projectStudioManagedHistory,
   restoreStudioCapabilityRunResult,
   studioCapabilityResultHasTrace,
   studioCapabilityResultTraceId,
   studioRunHistoryStatus,
   type StudioCapabilityLabelResolver,
   type StudioFlatRunRecord,
+  type StudioManagedArtifactInspection,
   type StudioRunConfigParamRow,
   type StudioRunConfigSnapshot,
   type StudioRunHistory,
@@ -153,11 +155,20 @@ export {
   type StudioRuntimeRunnerSet,
 } from './runtime.js';
 export {
+  STUDIO_PROMPT_DRAFTS_SCHEMA_VERSION,
+  createEmptyStudioPromptDraftStore,
+  parseStudioPromptDraftStore,
+  readStudioPromptDraft,
+  studioPromptDraftId,
+  updateStudioPromptDraftStore,
+  type StudioPromptDraftKey,
+  type StudioPromptDraftStore,
+} from './prompt-drafts.js';
+export {
   AIStudioHostProvider,
   useAIStudioHost,
   type AIStudioHostPort,
   type StudioHostCommandResult,
-  type StudioPromptDraftKey,
 } from './host-context.js';
 export { SectionAITesting } from './section-ai-testing.js';
 export type { SectionAITestingProps, StudioAIConfigPanelRenderInput } from './section-ai-testing-surface.js';
