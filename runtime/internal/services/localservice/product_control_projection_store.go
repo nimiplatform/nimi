@@ -174,7 +174,7 @@ var retiredNimiDataRootDirectories = []string{
 	"tmp",
 }
 
-// verifyProductControlSelectedDataRoot re-evaluates the owner-selected path
+// verifyProductControlSelectedDataRoot re-evaluates the user-selected path
 // without mutating either the durable record or the filesystem. Before any
 // first-run setup advances beyond root selection, an invalid selection can safely return to the
 // Storage phase. Once selection is no longer allowed, the same failure is a
@@ -187,7 +187,7 @@ func verifyProductControlSelectedDataRoot(record *productControlRecord, security
 	if err := verifyNimiDataRootLayout(dataRootPath, security); err == nil {
 		return "", ""
 	} else {
-		message := fmt.Sprintf("Runtime owner verification rejected selected nimi_data (%s): %v", dataRootPath, err)
+		message := fmt.Sprintf("Runtime verification rejected selected nimi_data (%s): %v", dataRootPath, err)
 		if ensureProductControlDataRootSelectionAllowed(record) == nil {
 			return productControlStateDataRootMissing, message
 		}
@@ -197,7 +197,7 @@ func verifyProductControlSelectedDataRoot(record *productControlRecord, security
 
 func verifyNimiDataRootLayout(root string, security ProductControlDataRootSecurityBinding) error {
 	if err := validateProductControlDataRootPlatform(filepath.Clean(root), security); err != nil {
-		return fmt.Errorf("data root security validation failed: %w", err)
+		return fmt.Errorf("data root path and access validation failed: %w", err)
 	}
 	info, err := os.Stat(root)
 	if err != nil {
@@ -956,6 +956,69 @@ func ensureNimiDataRootLayout(root string, security ProductControlDataRootSecuri
 	if err := verifyNimiDataRootLayout(root, security); err != nil {
 		return fmt.Errorf("verify created nimi_data layout: %w", err)
 	}
+	if err := verifyNimiDataRootMutationAccess(root); err != nil {
+		return fmt.Errorf("verify Runtime create, read, and write access: %w", err)
+	}
+	return nil
+}
+
+func verifyNimiDataRootMutationAccess(root string) error {
+	directories := make([]string, 0, len(nimiDataRootRequiredDirectories)+1)
+	directories = append(directories, root)
+	for _, dir := range nimiDataRootRequiredDirectories {
+		directories = append(directories, filepath.Join(root, dir))
+	}
+	for _, directory := range directories {
+		if err := verifyNimiDataRootDirectoryAccess(directory); err != nil {
+			return fmt.Errorf("directory %s: %w", directory, err)
+		}
+	}
+	return nil
+}
+
+func verifyNimiDataRootDirectoryAccess(directory string) (resultErr error) {
+	probe, err := os.CreateTemp(directory, ".nimi-runtime-access-*.tmp")
+	if err != nil {
+		return fmt.Errorf("create Runtime access probe: %w", err)
+	}
+	probePath := probe.Name()
+	closed := false
+	defer func() {
+		if !closed {
+			if closeErr := probe.Close(); resultErr == nil && closeErr != nil {
+				resultErr = fmt.Errorf("close Runtime access probe: %w", closeErr)
+			}
+		}
+		if probePath != "" {
+			if removeErr := os.Remove(probePath); resultErr == nil && removeErr != nil && !errors.Is(removeErr, os.ErrNotExist) {
+				resultErr = fmt.Errorf("remove Runtime access probe: %w", removeErr)
+			}
+		}
+	}()
+
+	payload := []byte("nimi-runtime-data-root-access")
+	if _, err := probe.Write(payload); err != nil {
+		return fmt.Errorf("write Runtime access probe: %w", err)
+	}
+	if err := probe.Sync(); err != nil {
+		return fmt.Errorf("sync Runtime access probe: %w", err)
+	}
+	if err := probe.Close(); err != nil {
+		return fmt.Errorf("close Runtime access probe: %w", err)
+	}
+	closed = true
+
+	readBack, err := os.ReadFile(probePath)
+	if err != nil {
+		return fmt.Errorf("read Runtime access probe: %w", err)
+	}
+	if !bytes.Equal(readBack, payload) {
+		return errors.New("Runtime access probe content changed during read-back")
+	}
+	if err := os.Remove(probePath); err != nil {
+		return fmt.Errorf("remove Runtime access probe: %w", err)
+	}
+	probePath = ""
 	return nil
 }
 

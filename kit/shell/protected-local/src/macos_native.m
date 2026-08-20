@@ -193,10 +193,11 @@ static int nimi_inspect_fixed_runtime_acl(const char *path, uid_t expected_owner
     *exact = 0;
     struct stat info;
     if (lstat(path, &info) != 0) return errno == 0 ? EIO : errno;
-    int owner_is_admitted = info.st_uid == expected_owner ||
+    int is_data_directory = policy == NIMI_MACOS_ACL_DATA_DIRECTORY;
+    int owner_is_admitted = is_data_directory || info.st_uid == expected_owner ||
         (policy == NIMI_MACOS_ACL_MODIFY_FILE && info.st_uid == runtime_owner);
     if (S_ISLNK(info.st_mode) || !owner_is_admitted ||
-        (info.st_mode & (S_IWGRP | S_IWOTH)) != 0) {
+        (!is_data_directory && (info.st_mode & (S_IWGRP | S_IWOTH)) != 0)) {
         return EACCES;
     }
     acl_permset_mask_t expected_permissions = 0;
@@ -228,11 +229,13 @@ static int nimi_inspect_fixed_runtime_acl(const char *path, uid_t expected_owner
         if (status != 0) break;
         status = nimi_acl_entry_matches_uuid(entry, runtime_uuid, &matches_runtime);
         if (status != 0) break;
-        status = nimi_acl_entry_is_broad_group(entry, &broad_group);
-        if (status != 0) break;
-        if (broad_group && (permissions & NIMI_MACOS_ACL_BROAD_MUTATION_MASK) != 0) {
-            status = EACCES;
-            break;
+        if (!is_data_directory) {
+            status = nimi_acl_entry_is_broad_group(entry, &broad_group);
+            if (status != 0) break;
+            if (broad_group && (permissions & NIMI_MACOS_ACL_BROAD_MUTATION_MASK) != 0) {
+                status = EACCES;
+                break;
+            }
         }
         if (matches_runtime) {
             matching_entries++;
@@ -395,7 +398,7 @@ int nimi_macos_prepare_fixed_runtime_path_acl(const char *path, int policy) {
 
     struct stat info;
     if (lstat(path, &info) != 0) return errno == 0 ? EIO : errno;
-    if (info.st_uid == runtime_uid) return EACCES;
+    if (policy != NIMI_MACOS_ACL_DATA_DIRECTORY && info.st_uid == runtime_uid) return EACCES;
     acl_permset_mask_t expected_permissions = 0;
     uint32_t expected_flags = 0;
     status = nimi_acl_policy(policy, info.st_mode, &expected_permissions, &expected_flags);

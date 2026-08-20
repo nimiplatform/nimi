@@ -17,6 +17,30 @@ type ProductControlWorkflowProps = {
   readonly onProjectionChange: (projection: NimiProductControlRecordProjection) => void;
 };
 
+type FirstRunTranslate = (
+  key: string,
+  options: { readonly defaultValue: string },
+) => string;
+
+export function productControlDataRootErrorMessage(
+  error: unknown,
+  translate: FirstRunTranslate,
+): string {
+  const reasonCode = error && typeof error === 'object' && 'reasonCode' in error
+    ? String(error.reasonCode || '').trim()
+    : '';
+  if (reasonCode === 'invalid-payload') {
+    return translate('FirstRun.errors.dataRootUnavailable', {
+      defaultValue: 'This folder cannot be used for nimi_data. Choose an absolute non-root folder that Nimi can create and write data in.',
+    });
+  }
+  return error instanceof Error
+    ? error.message
+    : translate('FirstRun.errors.dataRootRecordFailed', {
+        defaultValue: 'Failed to record nimi_data.',
+      });
+}
+
 // @nimi-authority: rule.nimi.platform.product-lifecycle.p-cold-014b
 export function ProductControlWorkflow(props: ProductControlWorkflowProps): ReactElement {
   const { t } = useTranslation();
@@ -93,11 +117,7 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
     try {
       notifyProjectionChange(await firstRun.selectDataRoot(candidate));
     } catch (nextError) {
-      setActionError(nextError instanceof Error
-        ? nextError.message
-        : t('FirstRun.errors.dataRootRecordFailed', {
-            defaultValue: 'Failed to record nimi_data.',
-          }));
+      setActionError(productControlDataRootErrorMessage(nextError, t));
     } finally {
       setPendingAction(null);
     }
@@ -112,11 +132,7 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
       setPickedPath(picked);
       notifyProjectionChange(await firstRun.selectDataRoot(picked));
     } catch (nextError) {
-      setActionError(nextError instanceof Error
-        ? nextError.message
-        : t('FirstRun.errors.dataRootRecordFailed', {
-            defaultValue: 'Failed to record nimi_data.',
-          }));
+      setActionError(productControlDataRootErrorMessage(nextError, t));
     } finally {
       setPendingAction(null);
     }

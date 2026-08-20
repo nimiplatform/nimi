@@ -40,11 +40,11 @@ func validateProductControlRootPlatform(root string, security ProductControlData
 	return validateWindowsPerUserDirectoryACL(root, interactiveUserSID)
 }
 
+// @nimi-authority: rule.nimi.platform.product-lifecycle.p-cold-013b
 // validateProductControlDataRootPlatform rejects reparse traversal before a
-// Product Control-selected path is admitted as Runtime data storage. When the
-// protected principal binding is present, it also verifies the interactive
-// user owner and the one exact inheritable fixed-service ACE prepared by the
-// native Desktop host.
+// Product Control-selected path is admitted as Runtime data storage. Existing
+// owner and sharing ACLs remain user-controlled. Fixed-service topology only
+// verifies the one exact inheritable service ACE prepared by the native host.
 func validateProductControlDataRootPlatform(root string, security ProductControlDataRootSecurityBinding) error {
 	volumeRoot := filepath.VolumeName(root) + string(filepath.Separator)
 	if volumeRoot == string(filepath.Separator) || !strings.HasPrefix(root, volumeRoot) {
@@ -79,7 +79,7 @@ func validateProductControlDataRootPlatform(root string, security ProductControl
 		if interactiveUserSID == "" || !strings.EqualFold(interactiveUserSID, runtimeServiceSID) {
 			return fmt.Errorf("per-user data root requires one current-user SID")
 		}
-		return validateWindowsPerUserDirectoryACL(root, interactiveUserSID)
+		return nil
 	}
 	if interactiveUserSID == "" && runtimeServiceSID == "" {
 		return nil
@@ -87,14 +87,10 @@ func validateProductControlDataRootPlatform(root string, security ProductControl
 	if interactiveUserSID == "" || runtimeServiceSID == "" {
 		return fmt.Errorf("data root security validation requires both interactive-user and Runtime service SIDs")
 	}
-	return validateWindowsProductControlDataRootACL(root, interactiveUserSID, runtimeServiceSID)
+	return validateWindowsProductControlDataRootACL(root, runtimeServiceSID)
 }
 
-func validateWindowsProductControlDataRootACL(root string, interactiveUserSID string, runtimeServiceSID string) error {
-	expectedOwner, err := windows.StringToSid(interactiveUserSID)
-	if err != nil {
-		return fmt.Errorf("parse verified interactive-user SID: %w", err)
-	}
+func validateWindowsProductControlDataRootACL(root string, runtimeServiceSID string) error {
 	expectedService, err := windows.StringToSid(runtimeServiceSID)
 	if err != nil {
 		return fmt.Errorf("parse verified Runtime service SID: %w", err)
@@ -102,17 +98,13 @@ func validateWindowsProductControlDataRootACL(root string, interactiveUserSID st
 	descriptor, err := windows.GetNamedSecurityInfo(
 		root,
 		windows.SE_FILE_OBJECT,
-		windows.OWNER_SECURITY_INFORMATION|windows.DACL_SECURITY_INFORMATION,
+		windows.DACL_SECURITY_INFORMATION,
 	)
 	if err != nil {
-		return fmt.Errorf("read data root owner and ACL: %w", err)
+		return fmt.Errorf("read data root ACL: %w", err)
 	}
 	if descriptor == nil {
-		return fmt.Errorf("read data root owner and ACL: security descriptor is unavailable")
-	}
-	owner, _, err := descriptor.Owner()
-	if err != nil || owner == nil || !windows.EqualSid(owner, expectedOwner) {
-		return fmt.Errorf("data root owner does not match the verified interactive user")
+		return fmt.Errorf("read data root ACL: security descriptor is unavailable")
 	}
 	dacl, _, err := descriptor.DACL()
 	if err != nil {
@@ -134,11 +126,6 @@ func validateWindowsProductControlDataRootACL(root string, interactiveUserSID st
 			continue
 		}
 		entrySID := (*windows.SID)(unsafe.Pointer(&ace.SidStart))
-		if ace.Header.AceType == windows.ACCESS_ALLOWED_ACE_TYPE &&
-			isWindowsProductControlBroadPrincipal(entrySID) &&
-			uint32(ace.Mask)&windowsProductControlBroadMutationAccess != 0 {
-			return fmt.Errorf("data root DACL grants write authority to a broad principal")
-		}
 		if !windows.EqualSid(entrySID, expectedService) {
 			continue
 		}

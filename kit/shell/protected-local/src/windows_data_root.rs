@@ -497,21 +497,7 @@ fn prepare_fixed_runtime_data_root_with<F>(
 where
     F: FnOnce(&Path) -> Result<(), FixedRuntimeDataRootError>,
 {
-    with_current_process_user_sid(|expected_owner| {
-        prepare_fixed_runtime_data_root_with_owner(path, expected_owner, grant)
-    })
-}
-
-fn prepare_fixed_runtime_data_root_with_owner<F>(
-    path: &Path,
-    expected_owner: PSID,
-    grant: F,
-) -> Result<(), FixedRuntimeDataRootError>
-where
-    F: FnOnce(&Path) -> Result<(), FixedRuntimeDataRootError>,
-{
     validate_selected_root(path)?;
-    validate_selected_root_owner(path, expected_owner)?;
     if fixed_runtime_service_acl_is_exact(path)? {
         return Ok(());
     }
@@ -519,8 +505,9 @@ where
 }
 
 /// Prepares a user-selected Windows data-plane root for the fixed production
-/// Runtime service. Source D2 instead requires a direct current-user-owned
-/// directory and performs no privileged or cross-principal ACL mutation.
+/// Runtime service while preserving the directory's existing owner and sharing
+/// ACL. Source D2 performs no privileged or cross-principal ACL mutation.
+// @nimi-authority: rule.nimi.platform.product-lifecycle.p-cold-013b
 #[cfg(not(feature = "windows-source-local-development"))]
 pub fn prepare_fixed_runtime_data_root(path: &Path) -> Result<(), FixedRuntimeDataRootError> {
     prepare_fixed_runtime_data_root_with(path, grant_fixed_runtime_service_acl)
@@ -528,10 +515,7 @@ pub fn prepare_fixed_runtime_data_root(path: &Path) -> Result<(), FixedRuntimeDa
 
 #[cfg(feature = "windows-source-local-development")]
 pub fn prepare_fixed_runtime_data_root(path: &Path) -> Result<(), FixedRuntimeDataRootError> {
-    with_current_process_user_sid(|expected_owner| {
-        validate_selected_root(path)?;
-        validate_selected_root_owner(path, expected_owner)
-    })
+    validate_selected_root(path)
 }
 
 /// Prepares the fixed interactive-user `~/.nimi` control directory for atomic
@@ -626,39 +610,29 @@ mod tests {
     }
 
     #[test]
-    fn owner_mismatch_fails_before_acl_mutation() {
+    fn data_root_preparation_has_no_interactive_owner_precondition() {
         let nonce = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .expect("system time")
             .as_nanos();
         let root = std::env::temp_dir().join(format!(
-            "nimi-fixed-runtime-data-root-owner-{}-{nonce}",
+            "nimi-fixed-runtime-data-root-user-choice-{}-{nonce}",
             std::process::id()
         ));
-        fs::create_dir_all(&root).expect("create owner fixture");
-
-        let wrong_owner_wide = wide_null(std::ffi::OsStr::new("S-1-5-80-1-2-3-4-5"));
-        let mut wrong_owner: PSID = null_mut();
-        // SAFETY: wrong_owner_wide is nul-terminated and wrong_owner is valid
-        // writable output storage.
-        assert_ne!(
-            unsafe { ConvertStringSidToSidW(wrong_owner_wide.as_ptr(), &mut wrong_owner) },
-            0,
-            "parse fixed mismatched owner SID"
-        );
-        let _wrong_owner_allocation =
-            LocalAllocation::new(wrong_owner).expect("own fixed mismatched owner SID");
+        fs::create_dir_all(&root).expect("create user-selected fixture");
 
         let mutation_called = std::cell::Cell::new(false);
-        let result = prepare_fixed_runtime_data_root_with_owner(&root, wrong_owner, |_| {
+        let result = prepare_fixed_runtime_data_root_with(&root, |_| {
             mutation_called.set(true);
             Ok(())
         });
-        fs::remove_dir_all(&root).expect("remove owner fixture");
+        fs::remove_dir_all(&root).expect("remove user-selected fixture");
 
-        let error = result.expect_err("mismatched owner must fail closed");
-        assert_eq!(error.stage(), "validate-selected-root-owner");
-        assert!(!mutation_called.get(), "ACL mutation owner was invoked");
+        result.expect("user-selected directory owner must not block data-root preparation");
+        assert!(
+            mutation_called.get(),
+            "fixed-service ACL grant was not requested"
+        );
     }
 
     #[test]

@@ -44,6 +44,28 @@ func setProductControlHomeForTest(t *testing.T) string {
 	return home
 }
 
+func TestNimiDataRootDirectoryAccessProbeReadsBackAndCleansUp(t *testing.T) {
+	root := t.TempDir()
+	if err := verifyNimiDataRootDirectoryAccess(root); err != nil {
+		t.Fatalf("verify data-root directory access: %v", err)
+	}
+	entries, err := os.ReadDir(root)
+	if err != nil {
+		t.Fatalf("read probed directory: %v", err)
+	}
+	if len(entries) != 0 {
+		t.Fatalf("Runtime access probe left artifacts behind: %+v", entries)
+	}
+}
+
+func TestNimiDataRootDirectoryAccessProbeRejectsMissingDirectory(t *testing.T) {
+	missing := filepath.Join(t.TempDir(), "missing")
+	err := verifyNimiDataRootDirectoryAccess(missing)
+	if err == nil || !strings.Contains(err.Error(), "create Runtime access probe") {
+		t.Fatalf("missing-directory access probe error = %v", err)
+	}
+}
+
 func TestRuntimeProductControlCreatesAndSelectsDataRoot(t *testing.T) {
 	home := setProductControlHomeForTest(t)
 	service := newTestService(t)
@@ -167,7 +189,7 @@ func TestRuntimeProductControlMissingConfigurableDataRootReturnsToStorage(t *tes
 	if recovered.State != productControlStateDataRootMissing || recovered.Record == nil || recovered.Record.State != productControlStateDataRootSelected || recovered.Record.DataRoot != nil {
 		t.Fatalf("missing configurable projection = %+v", recovered)
 	}
-	if recovered.Error == nil || !strings.Contains(*recovered.Error, "owner verification rejected") {
+	if recovered.Error == nil || !strings.Contains(*recovered.Error, "Runtime verification rejected") {
 		t.Fatalf("missing configurable projection error = %v", recovered.Error)
 	}
 
@@ -225,7 +247,7 @@ func TestRuntimeProductControlMissingReadyDataRootRequiresRepair(t *testing.T) {
 	if repair.State != productControlStateRepairRequired || repair.Record == nil || repair.Record.State != productControlStateReadyForUse {
 		t.Fatalf("missing ready data-root projection = %+v", repair)
 	}
-	if repair.Error == nil || !strings.Contains(*repair.Error, "owner verification rejected") {
+	if repair.Error == nil || !strings.Contains(*repair.Error, "Runtime verification rejected") {
 		t.Fatalf("missing ready data-root projection error = %v", repair.Error)
 	}
 	if _, err := service.SelectProductControlDataRoot(context.Background(), &runtimev1.SelectProductControlDataRootRequest{DataRoot: filepath.Join(home, "forbidden-replacement")}); err == nil {

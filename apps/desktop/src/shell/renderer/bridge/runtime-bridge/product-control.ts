@@ -13,7 +13,7 @@ import {
   type NimiProductControlSelectedDataRootProjection,
 } from '@nimiplatform/sdk/runtime';
 import { ReasonCode } from '@nimiplatform/sdk/types';
-import { restartRuntimeBridge } from './runtime-daemon';
+import { getRuntimeBridgeStatus, restartRuntimeBridge } from './runtime-daemon';
 
 export type {
   NimiProductControlRecord,
@@ -61,6 +61,10 @@ export async function selectProductDataRoot(dataRoot: string): Promise<NimiProdu
       payload: { dataRoot },
     }, parseNimiProductControlRecordProjection);
     if (selected.configMutation?.reasonCode === ReasonCode.CONFIG_RESTART_REQUIRED) {
+      const status = await getRuntimeBridgeStatus();
+      if (status.launchMode === 'SOURCE') {
+        return selected;
+      }
       await restartRuntimeBridge();
       return getProductControlRecord();
     }

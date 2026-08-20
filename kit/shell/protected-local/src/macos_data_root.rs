@@ -195,9 +195,10 @@ fn prepare_directory(
 }
 
 /// Prepares a user-selected macOS data-plane root for the active Runtime
-/// custody profile. Production grants only the fixed service account its
-/// inheritable modify ACE. Source local development instead preserves the
-/// single current-user boundary and never requests a service-account ACL.
+/// custody profile while preserving the directory's existing owner and sharing
+/// policy. Production adds only the fixed service account's inheritable modify
+/// ACE. Source local development never requests a service-account ACL.
+// @nimi-authority: rule.nimi.platform.product-lifecycle.p-cold-010a
 pub fn prepare_fixed_runtime_data_root(path: &Path) -> Result<(), FixedRuntimeDataRootError> {
     #[cfg(feature = "macos-source-local-development")]
     {
@@ -256,25 +257,12 @@ fn prepare_source_local_development_data_root(
     validate_directory_chain(&root, false, "validate-selected-root")?;
 
     // SAFETY: identity queries are read-only and bind this preparation to the
-    // exact non-root Desktop user that also owns the source Runtime.
+    // exact non-root Desktop user that also runs the source Runtime.
     let uid = unsafe { libc::geteuid() };
     if uid == 0 || unsafe { libc::getuid() } != uid {
         return Err(FixedRuntimeDataRootError::new(
             "validate-selected-root",
             "source local development requires one non-root current user",
-        ));
-    }
-    let metadata = fs::symlink_metadata(&root).map_err(|error| {
-        FixedRuntimeDataRootError::new("inspect-selected-root", error.to_string())
-    })?;
-    if !metadata.is_dir()
-        || metadata.file_type().is_symlink()
-        || metadata.uid() != uid
-        || metadata.mode() & 0o022 != 0
-    {
-        return Err(FixedRuntimeDataRootError::new(
-            "inspect-selected-root",
-            "source local development data root must be a direct current-user directory without group or world write access",
         ));
     }
     Ok(())
@@ -438,7 +426,7 @@ mod tests {
 
     #[cfg(feature = "macos-source-local-development")]
     #[test]
-    fn source_selected_root_is_current_user_owned_without_fixed_service_acl() {
+    fn source_selected_root_preserves_user_selected_sharing_mode() {
         let root = fixture("source-selected");
         let selected = root.join("selected");
         fs::create_dir(&selected).expect("create selected root");
@@ -465,9 +453,15 @@ mod tests {
 
         fs::set_permissions(&selected, fs::Permissions::from_mode(0o775))
             .expect("make selected root group-writable");
-        let error = prepare_fixed_runtime_data_root(&selected)
-            .expect_err("group-writable source selected root must fail");
-        assert_eq!(error.stage(), "inspect-selected-root");
+        prepare_fixed_runtime_data_root(&selected)
+            .expect("group-writable source selected root must remain admitted");
+        assert_eq!(
+            fs::symlink_metadata(&selected)
+                .expect("selected metadata after shared-mode admission")
+                .mode()
+                & 0o777,
+            0o775
+        );
         fs::remove_dir_all(&root).expect("remove fixture");
     }
 
@@ -516,15 +510,22 @@ mod tests {
 
     #[cfg(feature = "macos-local-development")]
     #[test]
-    fn writable_group_or_other_root_is_rejected() {
+    fn writable_group_or_other_root_is_preserved() {
         let root = fixture("broad-mode");
         let selected = root.join("selected");
         fs::create_dir(&selected).expect("create selected root");
         fs::set_permissions(&selected, fs::Permissions::from_mode(0o775))
             .expect("widen selected root mode");
-        let error = prepare_fixed_runtime_data_root(&selected)
-            .expect_err("group-writable selected root must fail");
-        assert_eq!(error.stage(), "prepare-service-root-acl");
+        prepare_fixed_runtime_data_root(&selected)
+            .expect("group-writable selected root must remain admitted");
+        validate_native_acl(&selected, ACL_DATA_DIRECTORY);
+        assert_eq!(
+            fs::symlink_metadata(&selected)
+                .expect("selected metadata after fixed-service ACL preparation")
+                .mode()
+                & 0o777,
+            0o775
+        );
         fs::remove_dir_all(&root).expect("remove fixture");
     }
 }

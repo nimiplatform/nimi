@@ -17,7 +17,7 @@ func TestMacOSProductControlDataRootSecurityValidatesExactRuntimeACL(t *testing.
 	if err := os.Mkdir(root, 0o700); err != nil {
 		t.Fatal(err)
 	}
-	_, serviceUID := macOSTestRuntimeServiceIdentity(t)
+	serviceName, serviceUID := macOSTestRuntimeServiceIdentity(t)
 	entries := []macOSACLEntry{{
 		identifier:     serviceUID,
 		identifierType: macOSACLIdentityUser,
@@ -25,8 +25,7 @@ func TestMacOSProductControlDataRootSecurityValidatesExactRuntimeACL(t *testing.
 		permissions:    macOSProductControlModifyPermissions,
 		flags:          macOSACLFileInherit | macOSACLDirectoryInherit,
 	}}
-	if err := validateMacOSDirectoryACLState(
-		0o700,
+	if err := validateMacOSRuntimeACLEntryState(
 		entries,
 		serviceUID,
 		macOSProductControlModifyPermissions,
@@ -35,8 +34,7 @@ func TestMacOSProductControlDataRootSecurityValidatesExactRuntimeACL(t *testing.
 		t.Fatalf("exact Runtime ACL state rejected: %v", err)
 	}
 	entries[0].flags |= macOSACLInherited
-	if err := validateMacOSDirectoryACLState(
-		0o700,
+	if err := validateMacOSRuntimeACLEntryState(
 		entries,
 		serviceUID,
 		macOSProductControlModifyPermissions,
@@ -49,9 +47,9 @@ func TestMacOSProductControlDataRootSecurityValidatesExactRuntimeACL(t *testing.
 		InteractiveUserUID: uint32(os.Getuid()) + 1,
 		RuntimeServiceUID:  serviceUID,
 	}
-	if err := validateProductControlDataRootPlatform(root, binding); err == nil ||
-		!strings.Contains(err.Error(), "verified interactive user") {
-		t.Fatalf("wrong selected-root owner error = %v", err)
+	installMacOSTestACLEntry(t, root, "user:"+serviceName+" allow "+macOSTestModifyPermissions+",file_inherit,directory_inherit")
+	if err := validateProductControlDataRootPlatform(root, binding); err != nil {
+		t.Fatalf("user-selected data root was rejected because its owner differs: %v", err)
 	}
 }
 
@@ -90,7 +88,7 @@ func TestMacOSProductControlDataRootSecurityRejectsSymlinkAndWrongInheritance(t 
 	})
 }
 
-func TestMacOSProductControlDataRootSecurityRejectsBroadWritablePrincipal(t *testing.T) {
+func TestMacOSProductControlDataRootSecurityAllowsUserSelectedBroadWritablePrincipal(t *testing.T) {
 	root := filepath.Join(t.TempDir(), "nimi-data")
 	if err := os.Mkdir(root, 0o700); err != nil {
 		t.Fatal(err)
@@ -103,8 +101,8 @@ func TestMacOSProductControlDataRootSecurityRejectsBroadWritablePrincipal(t *tes
 		InteractiveUserUID: uint32(os.Getuid()),
 		RuntimeServiceUID:  serviceUID,
 	})
-	if err == nil || !strings.Contains(err.Error(), "broad principal") {
-		t.Fatalf("broad writable principal error = %v", err)
+	if err != nil {
+		t.Fatalf("user-selected sharing ACL was rejected: %v", err)
 	}
 }
 

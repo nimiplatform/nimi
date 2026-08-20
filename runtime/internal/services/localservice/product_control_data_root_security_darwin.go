@@ -219,8 +219,9 @@ func validateProductControlRootPlatform(root string, security ProductControlData
 	)
 }
 
+// @nimi-authority: rule.nimi.platform.product-lifecycle.p-cold-010a
 func validateProductControlDataRootPlatform(root string, security ProductControlDataRootSecurityBinding) error {
-	info, err := validateMacOSDirectDirectoryChain(root)
+	_, err := validateMacOSDirectDirectoryChain(root)
 	if err != nil {
 		return err
 	}
@@ -230,12 +231,6 @@ func validateProductControlDataRootPlatform(root string, security ProductControl
 		if interactiveUserUID == 0 || runtimeServiceUID != interactiveUserUID || interactiveUserUID != uint32(os.Geteuid()) {
 			return fmt.Errorf("per-user data root requires one current-user UID")
 		}
-		if err := validateMacOSDirectoryOwner(info, interactiveUserUID); err != nil {
-			return err
-		}
-		if info.Mode().Perm()&0o022 != 0 {
-			return fmt.Errorf("per-user data root is group/world writable")
-		}
 		return nil
 	}
 	if interactiveUserUID == 0 && runtimeServiceUID == 0 {
@@ -244,15 +239,29 @@ func validateProductControlDataRootPlatform(root string, security ProductControl
 	if interactiveUserUID == 0 || runtimeServiceUID == 0 || interactiveUserUID == runtimeServiceUID {
 		return fmt.Errorf("data root security validation requires distinct interactive-user and Runtime service UIDs")
 	}
-	if err := validateMacOSDirectoryOwner(info, interactiveUserUID); err != nil {
-		return fmt.Errorf("data root %w", err)
-	}
-	return validateMacOSDirectoryACL(
+	return validateMacOSDataRootRuntimeACL(
 		root,
-		info,
 		runtimeServiceUID,
 		macOSProductControlModifyPermissions,
 		macOSACLFileInherit|macOSACLDirectoryInherit,
+	)
+}
+
+func validateMacOSDataRootRuntimeACL(
+	path string,
+	runtimeServiceUID uint32,
+	expectedPermissions uint64,
+	expectedFlags uint32,
+) error {
+	entries, err := readMacOSACLEntries(path)
+	if err != nil {
+		return fmt.Errorf("read data root ACL: %w", err)
+	}
+	return validateMacOSRuntimeACLEntryState(
+		entries,
+		runtimeServiceUID,
+		expectedPermissions,
+		expectedFlags,
 	)
 }
 
@@ -335,8 +344,6 @@ func validateMacOSDirectoryACLState(
 	if mode.Perm()&0o022 != 0 {
 		return fmt.Errorf("directory grants write authority through broad POSIX mode bits")
 	}
-	matchingRuntimeEntries := 0
-	exactRuntimeEntry := false
 	for _, entry := range entries {
 		if entry.tagType == macOSACLAllow &&
 			entry.identifierType == macOSACLIdentityGroup &&
@@ -344,6 +351,19 @@ func validateMacOSDirectoryACLState(
 			entry.permissions&macOSProductControlBroadMutationPermissions != 0 {
 			return fmt.Errorf("directory ACL grants write authority to a broad principal")
 		}
+	}
+	return validateMacOSRuntimeACLEntryState(entries, runtimeServiceUID, expectedPermissions, expectedFlags)
+}
+
+func validateMacOSRuntimeACLEntryState(
+	entries []macOSACLEntry,
+	runtimeServiceUID uint32,
+	expectedPermissions uint64,
+	expectedFlags uint32,
+) error {
+	matchingRuntimeEntries := 0
+	exactRuntimeEntry := false
+	for _, entry := range entries {
 		if entry.identifierType != macOSACLIdentityUser || entry.identifier != runtimeServiceUID {
 			continue
 		}

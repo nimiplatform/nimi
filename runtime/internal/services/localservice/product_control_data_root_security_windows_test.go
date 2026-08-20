@@ -36,7 +36,7 @@ func TestProductControlDataRootSecurityRejectsReparseAncestor(t *testing.T) {
 	}
 }
 
-func TestProductControlDataRootSecurityValidatesOwnerAndExactServiceSID(t *testing.T) {
+func TestProductControlDataRootSecurityValidatesExactServiceSIDWithoutOwningTheDirectory(t *testing.T) {
 	root := filepath.Join(t.TempDir(), "nimi-data")
 	if err := os.MkdirAll(root, 0o700); err != nil {
 		t.Fatal(err)
@@ -104,9 +104,8 @@ func TestProductControlDataRootSecurityValidatesOwnerAndExactServiceSID(t *testi
 	}
 	binding.RuntimeServiceSID = windowsTestRuntimeServiceSID
 	binding.InteractiveUserSID = "S-1-5-18"
-	if err := validateProductControlDataRootPlatform(root, binding); err == nil ||
-		!strings.Contains(err.Error(), "verified interactive user") {
-		t.Fatalf("wrong owner SID error = %v", err)
+	if err := validateProductControlDataRootPlatform(root, binding); err != nil {
+		t.Fatalf("user-selected data root was rejected because its owner differs: %v", err)
 	}
 }
 
@@ -143,7 +142,7 @@ func TestProductControlDataRootSecurityRejectsServiceFullControl(t *testing.T) {
 	}
 }
 
-func TestProductControlDataRootSecurityRejectsBroadWritablePrincipals(t *testing.T) {
+func TestProductControlDataRootSecurityAllowsUserSelectedBroadWritablePrincipals(t *testing.T) {
 	tests := []struct {
 		name       string
 		sid        string
@@ -197,9 +196,8 @@ func TestProductControlDataRootSecurityRejectsBroadWritablePrincipals(t *testing
 				InteractiveUserSID: tokenUser.User.Sid.String(),
 				RuntimeServiceSID:  windowsTestRuntimeServiceSID,
 			}
-			if err := validateProductControlDataRootPlatform(root, binding); err == nil ||
-				!strings.Contains(err.Error(), "broad principal") {
-				t.Fatalf("broad writable principal was not rejected: %v", err)
+			if err := validateProductControlDataRootPlatform(root, binding); err != nil {
+				t.Fatalf("user-selected sharing ACL was rejected: %v", err)
 			}
 		})
 	}

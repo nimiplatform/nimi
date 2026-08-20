@@ -66,6 +66,7 @@
     "dataRootMissing": "Choose a folder for Nimi before continuing.",
     "dataRootPickFailed": "Failed to open the folder picker.",
     "dataRootRecordFailed": "Failed to record nimi_data.",
+    "dataRootUnavailable": "This folder cannot be used for nimi_data. Choose an absolute non-root folder that Nimi can create and write data in.",
     "finalizationRequestFailed": "Failed to validate Product Control setup."
   }
 }

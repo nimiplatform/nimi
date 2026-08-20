@@ -5,6 +5,7 @@ import { NIMI_STANDARD_SHELL_COMMANDS } from '@nimiplatform/kit/shell/capabiliti
 import {
   getProductControlRecord,
   pickProductDataRootDirectory,
+  selectProductDataRoot,
 } from '../src/shell/renderer/bridge/runtime-bridge/product-control';
 
 type DesktopBridgeTestWindow = {
@@ -120,4 +121,107 @@ test('product-control record reads the Electron shell projection', async () => {
     command: 'product_control_record_get',
     payload: {},
   }]);
+});
+
+test('source Runtime data-root selection preserves the committed projection without requesting an unavailable restart', async () => {
+  const calls: Array<{ command: string; payload: unknown }> = [];
+  await withStandardShellInvoke(async (command, payload) => {
+    calls.push({ command, payload });
+    if (command === 'product_control_record_select_data_root') {
+      return {
+        path: 'C:/Users/test/.nimi/nimi.json',
+        exists: true,
+        state: 'data_root_selected',
+        record: null,
+        error: null,
+        configMutation: {
+          disposition: 'restart_required',
+          reasonCode: 'CONFIG_RESTART_REQUIRED',
+          actionHint: 'request_typed_runtime_restart',
+        },
+      };
+    }
+    if (command === NIMI_STANDARD_SHELL_COMMANDS['runtime-lifecycle.status']) {
+      return {
+        running: true,
+        managed: false,
+        launchMode: 'SOURCE',
+        grpcAddr: 'nimi-runtime-source-local',
+      };
+    }
+    throw new Error(`unexpected command: ${command}`);
+  }, async () => {
+    const selected = await selectProductDataRoot('C:/Users/test/nimi-data');
+    assert.equal(selected.state, 'data_root_selected');
+    assert.equal(selected.configMutation?.reasonCode, 'CONFIG_RESTART_REQUIRED');
+  });
+
+  assert.deepEqual(calls, [
+    {
+      command: 'product_control_record_select_data_root',
+      payload: { payload: { dataRoot: 'C:/Users/test/nimi-data' } },
+    },
+    {
+      command: NIMI_STANDARD_SHELL_COMMANDS['runtime-lifecycle.status'],
+      payload: {},
+    },
+  ]);
+});
+
+test('managed Runtime data-root selection still performs the required typed restart and refresh', async () => {
+  const calls: Array<{ command: string; payload: unknown }> = [];
+  await withStandardShellInvoke(async (command, payload) => {
+    calls.push({ command, payload });
+    if (command === 'product_control_record_select_data_root') {
+      return {
+        path: 'C:/Users/test/.nimi/nimi.json',
+        exists: true,
+        state: 'data_root_selected',
+        record: null,
+        error: null,
+        configMutation: {
+          disposition: 'restart_required',
+          reasonCode: 'CONFIG_RESTART_REQUIRED',
+          actionHint: 'request_typed_runtime_restart',
+        },
+      };
+    }
+    if (command === NIMI_STANDARD_SHELL_COMMANDS['runtime-lifecycle.status']) {
+      return {
+        running: true,
+        managed: true,
+        launchMode: 'RUNTIME',
+        grpcAddr: 'nimi-runtime-fixed',
+      };
+    }
+    if (command === NIMI_STANDARD_SHELL_COMMANDS['runtime-lifecycle.restart']) {
+      return {
+        running: true,
+        managed: true,
+        launchMode: 'RUNTIME',
+        grpcAddr: 'nimi-runtime-fixed',
+      };
+    }
+    if (command === 'product_control_record_get') {
+      return {
+        path: 'C:/Users/test/.nimi/nimi.json',
+        exists: true,
+        state: 'data_root_selected',
+        record: null,
+        error: null,
+      };
+    }
+    throw new Error(`unexpected command: ${command}`);
+  }, async () => {
+    const selected = await selectProductDataRoot('D:/nimi-data');
+    assert.equal(selected.state, 'data_root_selected');
+    assert.equal(selected.configMutation, null);
+  });
+
+  assert.deepEqual(calls.map(({ command }) => command), [
+    'product_control_record_select_data_root',
+    NIMI_STANDARD_SHELL_COMMANDS['runtime-lifecycle.status'],
+    NIMI_STANDARD_SHELL_COMMANDS['runtime-lifecycle.restart'],
+    'product_control_record_get',
+  ]);
 });

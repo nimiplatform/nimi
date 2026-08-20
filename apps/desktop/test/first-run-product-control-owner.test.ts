@@ -7,7 +7,10 @@ import type {
   NimiProductControlRecordProjection,
   NimiProductControlState,
 } from '@nimiplatform/sdk/runtime';
-import { ProductControlWorkflow } from '../src/shell/renderer/first-run/product-control-workflow.js';
+import {
+  ProductControlWorkflow,
+  productControlDataRootErrorMessage,
+} from '../src/shell/renderer/first-run/product-control-workflow.js';
 import { createUnavailableDesktopFirstRunPort } from '../src/shell/renderer/renderer/first-run-port.js';
 import { createDesktopProductionFirstRunPort } from '../src/shell/renderer/renderer/production-first-run-port.js';
 
@@ -92,4 +95,18 @@ test('repair and blocked copy names only Product Control prerequisites', () => {
   assert.match(repair, /Product Control/);
   assert.match(blocked, /Product Control/);
   assert.doesNotMatch(`${repair} ${blocked}`, /AIProfile|AIConfig|local model|materialization/i);
+});
+
+test('data-root validation errors explain actual path and write requirements', () => {
+  const error = Object.assign(new Error('Operation failed. Please try again later.'), {
+    reasonCode: 'invalid-payload',
+  });
+  const message = productControlDataRootErrorMessage(
+    error,
+    (_key, options) => options.defaultValue,
+  );
+  assert.match(message, /absolute non-root folder/);
+  assert.match(message, /create and write data/);
+  assert.doesNotMatch(message, /owned by your account|other users cannot modify/i);
+  assert.doesNotMatch(message, /try again later/i);
 });

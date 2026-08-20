@@ -66,6 +66,7 @@
     "dataRootMissing": "请先为 Nimi 选择一个文件夹再继续。",
     "dataRootPickFailed": "打开文件夹选择器失败。",
     "dataRootRecordFailed": "记录 nimi_data 失败。",
+    "dataRootUnavailable": "无法将此文件夹用作 nimi_data。请选择一个绝对路径、非磁盘根目录且 Nimi 能创建并写入数据的文件夹。",
     "finalizationRequestFailed": "验证产品控制设置失败。"
   }
 }

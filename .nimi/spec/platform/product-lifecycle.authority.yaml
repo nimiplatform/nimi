@@ -13,7 +13,7 @@ units:
   - id: definition.nimi.platform.product-lifecycle.nimi-data-root
     kind: definition
     title: User-selected nimi_data root
-    meaning: The nimi_data root is the one user-selected writable large-data-plane directory recorded by the canonical product-control record; it cannot be a filesystem or volume root, and its managed content remains partitioned by the applicable Runtime, account, and registered App subject owners without making any physical App partition layout product authority.
+    meaning: The nimi_data root is the one user-selected writable large-data-plane directory recorded by the canonical product-control record; it cannot be a filesystem or volume root, its existing filesystem ownership and sharing policy remains user-controlled and does not gate Product Control when the active Runtime can create, read, and write required content, and its managed content remains partitioned by the applicable Runtime, account, and registered App subject owners without making any physical App partition layout product authority.
   - id: definition.nimi.platform.product-lifecycle.first-run-lifecycle
     kind: definition
     title: First-run product lifecycle
@@ -166,7 +166,7 @@ units:
     kind: rule
     title: P-COLD-010 data-root selection precedes heavy mutation
     modality: must
-    statement: First run records an absolute ordinary non-volume-root user-selected nimi_data directory in canonical dataRoot.path, rejects Windows drive roots, UNC share roots, extended-path volume roots, the POSIX filesystem root, and equivalent volume roots while admitting ordinary absolute subdirectories, and verifies writability and required root-directory creation before heavy download, dependency installation, app-package installation, model materialization, or environment setup begins.
+    statement: First run records an absolute ordinary non-volume-root user-selected nimi_data directory in canonical dataRoot.path, rejects Windows drive roots, UNC share roots, extended-path volume roots, the POSIX filesystem root, and equivalent volume roots while admitting ordinary absolute subdirectories, and verifies actual Runtime create, read, and write access plus required root-directory creation before heavy download, dependency installation, app-package installation, model materialization, or environment setup begins; filesystem ownership identity, group or broad-principal write access, and the user's selected sharing policy do not reject an otherwise usable directory.
     condition: Before the first heavy first-run mutation.
     failure: Block the mutation and remain in a non-ready data-root state.
     relations:
@@ -249,7 +249,7 @@ units:
     kind: rule
     title: P-COLD-013 service-owned Runtime configuration
     modality: must
-    statement: Production Runtime private configuration remains in service-owned protected state, the protected Home Host Contract carries only the canonical product-control data-root selection, Runtime independently validates account scope, ownership, and access, and protected state stores only derived references, managed roots, verification evidence, and audit without exposing physical paths or becoming a second product-control record; platform-specific protection mechanisms remain owner implementation.
+    statement: Production Runtime private configuration remains in service-owned protected state, the protected Home Host Contract carries only the canonical product-control data-root selection, Runtime independently validates canonical scope, direct-path integrity, and actual access, and protected state stores only derived references, managed roots, verification evidence, and audit without exposing physical paths or becoming a second product-control record; platform-specific protection mechanisms remain owner implementation.
     condition: When product control configures the Runtime data root.
     failure: Reject the update unless the canonical selection, protected operation, independent verification, and private-state boundary hold; on protected-state disagreement enter repair or fail closed without selecting or overriding dataRoot.path.
     relations:
@@ -259,11 +259,11 @@ units:
         target: definition.nimi.platform.product-lifecycle.runtime-service-configuration
   - id: rule.nimi.platform.product-lifecycle.p-cold-013b
     kind: rule
-    title: P-COLD-013 Windows data-root access security
+    title: P-COLD-013 Windows data-root user choice and Runtime access
     modality: must
-    statement: On Windows, first run preserves the user's ownership of the selected Nimi data root, grants only the minimum Runtime access needed for that selected tree, rejects substituted or unsafe roots, and requires independent Runtime identity, ownership, scope, and integrity verification before configuration or mutation.
+    statement: On Windows, first run preserves the user-selected Nimi data root and its existing owner and sharing ACL, adds only the minimum fixed Runtime service access needed for that selected tree when the active topology requires it, rejects substituted, volume-root, reparse, or unusable roots, and independently verifies Runtime identity, direct-path integrity, and actual create, read, and write access before configuration or mutation; an owner mismatch or broad user or group grant alone never blocks the selected data root.
     condition: When Windows first run prepares service access to selected nimi_data.
-    failure: Fail closed to setup or repair before configuration or mutation when identity, ownership, scope, root integrity, least privilege, or Runtime verification fails.
+    failure: Fail closed to setup or repair before configuration or mutation only when Runtime identity, canonical scope, root integrity, topology-required service access, or actual Runtime access verification fails.
     relations:
       - type: applies_to
         target: definition.nimi.platform.product-lifecycle.nimi-data-root
@@ -273,9 +273,9 @@ units:
     kind: rule
     title: P-COLD-013 no alternate Runtime configuration truth
     modality: must_not
-    statement: A renderer, broad service or user grant, test-only principal, retired record, cache, environment, request, imported configuration, credential, protected Runtime state, or evidence becomes Runtime private configuration truth or independently selects or overrides the canonical data root.
+    statement: A renderer, test-only principal, retired record, cache, environment, request, imported configuration, credential, protected Runtime state, or evidence becomes Runtime private configuration truth or independently selects or overrides the canonical data root; the existing owner and sharing ACL of the user-selected directory remains data-plane policy and is not alternate configuration truth.
     condition: When production Runtime configuration or selected-root access is established or repaired.
-    failure: Reject the source, grant, selection, or override; preserve the canonical product-control record as the selection authority and enter explicit repair or fail closed on disagreement.
+    failure: Reject the unauthorized source, selection, or override; preserve the canonical product-control record as the selection authority and enter explicit repair or fail closed on disagreement.
     relations:
       - type: applies_to
         target: definition.nimi.platform.product-lifecycle.runtime-service-configuration
@@ -1209,7 +1209,7 @@ units:
     kind: rule
     title: P-COLD-014 data_root_missing transition closure from first-run-state-machine
     modality: must
-    statement: The data_root_missing state is entered only when product control exists without a valid nimi_data root, permits only folder choice, storage-role review, and confirmation, exits only after absolute writable selection, exact service-principal access preparation, independent Runtime verification, canonical recording, and required-directory creation, and presents copy no weaker than Choose where Nimi stores models, apps, and large local data.
+    statement: The data_root_missing state is entered only when product control exists without a valid nimi_data root, permits only folder choice, storage-role review, and confirmation, exits only after absolute writable selection, topology-required service-principal access addition that preserves existing directory permissions, independent Runtime direct-path and actual-access verification, canonical recording, and required-directory creation, and presents copy no weaker than Choose where Nimi stores models, apps, and large local data.
     condition: Whenever first run evaluates or renders data_root_missing.
     failure: Reject any other entry, action, exit, or weaker copy and remain data_root_missing.
     relations:
