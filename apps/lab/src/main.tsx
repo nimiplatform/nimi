@@ -31,7 +31,7 @@ const App = lazy(async () => {
 });
 
 const rendererRoot = document.getElementById('root') as HTMLElement;
-rendererRoot.classList.add('nimi-ui-module--lab');
+rendererRoot.classList.add('nimi-workbench-host', 'nimi-ui-module--lab');
 const overlayRoot = document.createElement('div');
 overlayRoot.id = 'lab-production-overlays';
 overlayRoot.classList.add('nimi-ui-module--lab');

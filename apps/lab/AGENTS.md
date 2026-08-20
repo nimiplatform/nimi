@@ -17,7 +17,6 @@
 - All user-visible copy in `src/lab/**` and product shell surfaces goes through `src/shell/i18n/index.js` (`useTranslation` in components, bare `t()` in pure modules); never import `react-i18next` directly.
 - Locale bundles live in `src/shell/i18n/locales/{en,zh}/*.json`, one top-level section object per file (e.g. `studio.json` → `"Studio"`); new section files must be registered in `src/shell/i18n/index.ts` and mirrored in both locales (`test/i18n-parity.test.mjs` enforces key parity).
 - Static data modules store i18n keys (e.g. `labelKey`) and translate at render time; prompts/directives sent to Runtime and UI Recipes gallery copy stay English.
-- `src/shell/i18n/index.ts` is reachable from the simulator adapter closure: no `document`/`window`, no module-scope `let`/`var`, no module-scope resource factories (`create*`, `new` except whitelisted `Intl.DateTimeFormat`). DOM language sync lives in `src/shell/i18n/document-lang.ts`, imported only by entry points.
 
 ## Verification Commands
 - Run the focused test, then `pnpm --filter @nimiplatform/lab test` and `pnpm --filter @nimiplatform/lab run validate`.

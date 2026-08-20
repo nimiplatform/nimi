@@ -1,167 +1,41 @@
 import type { NimiPortableAppAIConfig } from '@nimiplatform/sdk/ai';
 
-import type {
-  LabCapability,
-  LabCapabilityId,
-} from './lab-capabilities.js';
-import { getLabCapabilityContract } from './lab-capabilities.js';
-import { CAPABILITY_TO_SECTION } from './lab-capability-sections.js';
-import {
-  findLabCapabilityIntent,
-  labCloudIntentHasExactTarget,
-} from './lab-ai-config-store.js';
-import type { LabRuntimeInspection } from './lab-runtime.js';
+import type { StudioRunTargetStatus, StudioRunTargetSummary } from '../ai-studio-core/history.js';
+import type { StudioCapabilityDescriptor } from '../ai-studio-core/module-registration.js';
+import { createStudioRunTargetSummary } from '../ai-studio-core/run-target.js';
+import type { StudioRuntimeInspection } from '../ai-studio-core/runtime-types.js';
 
-export type LabRunTargetStatus =
-  | 'checking'
-  | 'configured'
-  | 'blocked'
-  | 'tauri-only'
-  | 'sdk-gap'
-  | 'not-admitted';
-export type LabRunTargetSource = 'local' | 'cloud' | 'unknown' | 'local-fixture';
+export type LabRunTargetStatus = StudioRunTargetStatus;
+export type LabRunTargetSource = StudioRunTargetSummary['source'];
 export type LabRunTargetParamRecord = Readonly<Record<string, unknown>>;
-
-export type LabRunTargetSummary = {
-  capabilityId: LabCapabilityId;
-  capabilityContract: string | null;
-  section: string;
-  status: LabRunTargetStatus;
-  source: LabRunTargetSource;
-  intentLabel: string;
-  detail: string;
-  canDispatch: boolean;
-  params: LabRunTargetParamRecord;
-  paramsSummary: readonly string[];
-  profileOrigin: null;
-};
+export type LabRunTargetSummary = StudioRunTargetSummary;
 
 export function createLabRunTargetSummary(input: {
-  capability: LabCapability;
-  runtime: LabRuntimeInspection | null;
-  config: NimiPortableAppAIConfig | null;
-  configState?: 'loading' | 'loaded' | 'failed';
-  configError?: string | null;
-  standaloneTauriAvailable?: boolean;
+  readonly capability: StudioCapabilityDescriptor;
+  readonly runtime: StudioRuntimeInspection | null;
+  readonly config: NimiPortableAppAIConfig | null;
+  readonly configState?: 'loading' | 'loaded' | 'failed';
+  readonly configError?: string | null;
+  readonly standaloneTauriAvailable?: boolean;
 }): LabRunTargetSummary {
-  const { capability, runtime, config } = input;
-  const section = CAPABILITY_TO_SECTION[capability.id];
-  const capabilityContract = capability.capabilityContract
-    ?? getLabCapabilityContract(capability.id)
-    ?? (capability.id === 'text.generate' ? 'text.generate' : null);
-  const base = {
-    capabilityId: capability.id,
-    capabilityContract,
-    section,
+  if (input.capability.execution !== 'standalone-tauri') {
+    return createStudioRunTargetSummary(input);
+  }
+
+  const canDispatch = input.standaloneTauriAvailable === true;
+  return {
+    capabilityId: input.capability.id,
+    capabilityContract: null,
+    section: input.capability.section,
+    status: 'tauri-only',
+    source: 'local',
+    intentLabel: 'Local fixture',
+    detail: canDispatch
+      ? 'This lane opens the standalone Tauri viewer and does not use Runtime AI configuration.'
+      : 'This lane requires the standalone Tauri shell; the current shell cannot open its viewer.',
+    canDispatch,
     params: {},
     paramsSummary: [],
     profileOrigin: null,
-  } as const;
-
-  if (capability.execution === 'standalone-tauri') {
-    const canDispatch = input.standaloneTauriAvailable === true;
-    return {
-      ...base,
-      status: 'tauri-only',
-      source: 'local-fixture',
-      intentLabel: 'Local fixture',
-      detail: canDispatch
-        ? 'This lane opens the standalone Tauri viewer and does not use Runtime AI configuration.'
-        : 'This lane requires the standalone Tauri shell; the current shell cannot open its viewer.',
-      canDispatch,
-    };
-  }
-  if (capability.execution === 'typed-unavailable' || !capabilityContract) {
-    return {
-      ...base,
-      status: 'sdk-gap',
-      source: 'unknown',
-      intentLabel: 'Capability unavailable',
-      detail: capability.missingSurface || 'No admitted typed SDK method is available for this capability.',
-      canDispatch: false,
-    };
-  }
-  if (!runtime) {
-    return {
-      ...base,
-      status: 'checking',
-      source: 'unknown',
-      intentLabel: 'Checking configuration',
-      detail: 'Reading the current App AIConfig and Runtime connection.',
-      canDispatch: false,
-    };
-  }
-  if (runtime.status !== 'connected' && runtime.status !== 'simulated') {
-    return {
-      ...base,
-      status: 'not-admitted',
-      source: 'unknown',
-      intentLabel: 'Runtime unavailable',
-      detail: runtime.detail,
-      canDispatch: false,
-    };
-  }
-  if (input.configState === 'loading') {
-    return {
-      ...base,
-      status: 'checking',
-      source: 'unknown',
-      intentLabel: 'Reading App AIConfig',
-      detail: 'Reading the current Runtime-owned App AIConfig.',
-      canDispatch: false,
-    };
-  }
-  if (input.configState === 'failed') {
-    return {
-      ...base,
-      status: 'blocked',
-      source: 'unknown',
-      intentLabel: 'AIConfig unavailable',
-      detail: input.configError || 'The current App AIConfig could not be read.',
-      canDispatch: false,
-    };
-  }
-
-  const intent = findLabCapabilityIntent(config, capabilityContract);
-  if (!intent) {
-    return {
-      ...base,
-      status: 'blocked',
-      source: 'unknown',
-      intentLabel: 'Not configured',
-      detail: 'This App AIConfig has no intent for the capability. Configure this App in Nimi Desktop.',
-      canDispatch: false,
-    };
-  }
-  const intentSelection = intent.route;
-  if (intentSelection.oneofKind === 'local') {
-    return {
-      ...base,
-      status: 'configured',
-      source: 'local',
-      intentLabel: 'Local',
-      detail: 'The App owner selected Local intent. Runtime chooses and validates the implementation when execution begins.',
-      canDispatch: true,
-    };
-  }
-  if (intentSelection.oneofKind === 'cloud' && 'cloud' in intentSelection
-    && labCloudIntentHasExactTarget(intent)) {
-    return {
-      ...base,
-      status: 'configured',
-      source: 'cloud',
-      intentLabel: 'Cloud',
-      detail: 'Nimi-owned App configuration selects the Cloud intent, and Runtime resolves the current-account execution route.',
-      canDispatch: true,
-    };
-  }
-
-  return {
-    ...base,
-    status: 'blocked',
-    source: 'unknown',
-    intentLabel: 'Invalid configuration',
-    detail: 'The capability has no supported Local or Cloud intent.',
-    canDispatch: false,
   };
 }

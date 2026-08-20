@@ -20,7 +20,6 @@
     "blockedLabel": "Blocked",
     "mismatchLabel": "Feature mismatch",
     "runtimeConnected": "Connected to Runtime",
-    "runtimeSimulated": "Simulator only",
     "runtimeUnavailable": "Runtime unavailable",
     "headerDescription": "This is the read-only App AI configuration resolved for Nimi Lab. Nimi Desktop owns all changes.",
     "footerNote": "Open this exact App in Nimi Desktop to change its capability configuration."

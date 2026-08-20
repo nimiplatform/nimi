@@ -1,13 +1,8 @@
 {
   "Common": {
     "loading": "Loading…",
-    "retry": "Retry",
-    "close": "Close",
     "cancel": "Cancel",
     "save": "Save",
-    "copy": "Copy",
-    "copied": "Copied",
-    "copyFailed": "Copy failed",
     "language": "Language",
     "languageEnglish": "English",
     "languageChinese": "中文"

@@ -1,7 +1,7 @@
 import type { JsonValue } from '@nimiplatform/kit/shell/renderer/bridge';
 import { isJsonObject } from '@nimiplatform/sdk/types';
 
-import type { LabRunHistory, LabRunHistoryRecord } from './lab-history.js';
+import type { StudioRunHistory, StudioRunHistoryRecord } from '../ai-studio-core/index.js';
 import {
   normalizeLabStandardStorageJsonValue,
   readLabStandardStorageJson,
@@ -42,9 +42,6 @@ function optionalNonNegativeNumber(value: unknown, path: string): void {
 
 function validateTraceFields(value: Record<string, JsonValue>, path: string): void {
   optionalString(value.traceId, `${path}.traceId`);
-  if (value.simulated !== undefined && typeof value.simulated !== 'boolean') {
-    historyPayloadError(`${path}.simulated`, 'requires a boolean when present');
-  }
 }
 
 function validateManagedArtifact(value: unknown, path: string): void {
@@ -195,14 +192,14 @@ function validateRunConfig(value: unknown, path: string): void {
   optionalString(value.traceId, `${path}.traceId`);
 }
 
-function parseHistoryRecord(value: unknown, path: string, capabilityId: string): LabRunHistoryRecord {
+function parseHistoryRecord(value: unknown, path: string, capabilityId: string): StudioRunHistoryRecord {
   if (!isJsonObject(value)) historyPayloadError(path, 'requires an object');
   requiredString(value.id, `${path}.id`);
   if (requiredString(value.capabilityId, `${path}.capabilityId`) !== capabilityId) {
     historyPayloadError(`${path}.capabilityId`, `must match ${capabilityId}`);
   }
   requiredString(value.prompt, `${path}.prompt`);
-  if (!['unavailable', 'ready', 'simulated', 'failed', 'canceled', 'timed-out', 'local-fixture'].includes(String(value.status))) {
+  if (!['unavailable', 'ready', 'failed', 'canceled', 'timed-out', 'local-fixture'].includes(String(value.status))) {
     historyPayloadError(`${path}.status`, 'has an unsupported value');
   }
   requiredString(value.message, `${path}.message`);
@@ -210,15 +207,15 @@ function parseHistoryRecord(value: unknown, path: string, capabilityId: string):
   if (Number.isNaN(new Date(createdAt).valueOf())) historyPayloadError(`${path}.createdAt`, 'requires a valid timestamp');
   if (value.result !== undefined) validateHistoryResult(value.result, `${path}.result`);
   if (value.runConfig !== undefined) validateRunConfig(value.runConfig, `${path}.runConfig`);
-  return value as unknown as LabRunHistoryRecord;
+  return value as unknown as StudioRunHistoryRecord;
 }
 
-function parseHistory(value: JsonValue | undefined): LabRunHistory {
+function parseHistory(value: JsonValue | undefined): StudioRunHistory {
   if (value === undefined) return {};
   if (!isJsonObject(value)) {
     throw new Error('Lab run history payload must be an object.');
   }
-  const history: LabRunHistory = {};
+  const history: StudioRunHistory = {};
   for (const [capabilityId, entries] of Object.entries(value)) {
     if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/u.test(capabilityId)) {
       historyPayloadError('$', `contains an invalid capability id ${capabilityId}`);
@@ -234,12 +231,12 @@ function parseHistory(value: JsonValue | undefined): LabRunHistory {
   return history;
 }
 
-function allHistoryRecords(history: LabRunHistory): LabRunHistoryRecord[] {
+function allHistoryRecords(history: StudioRunHistory): StudioRunHistoryRecord[] {
   return Object.values(history).flatMap((records) => records);
 }
 
-function historyFromRecords(records: readonly LabRunHistoryRecord[]): LabRunHistory {
-  const history: LabRunHistory = {};
+function historyFromRecords(records: readonly StudioRunHistoryRecord[]): StudioRunHistory {
+  const history: StudioRunHistory = {};
   for (const record of records) {
     const existing = Object.hasOwn(history, record.capabilityId) ? history[record.capabilityId] ?? [] : [];
     Object.defineProperty(history, record.capabilityId, {
@@ -252,12 +249,12 @@ function historyFromRecords(records: readonly LabRunHistoryRecord[]): LabRunHist
   return history;
 }
 
-function serializedHistoryBytes(history: LabRunHistory): number {
+function serializedHistoryBytes(history: StudioRunHistory): number {
   const json = JSON.stringify(normalizeLabStandardStorageJsonValue(history));
   return new TextEncoder().encode(json).byteLength;
 }
 
-function boundedHistoryWithRecord(history: LabRunHistory, record: LabRunHistoryRecord): LabRunHistory {
+function boundedHistoryWithRecord(history: StudioRunHistory, record: StudioRunHistoryRecord): StudioRunHistory {
   const perCapabilityCounts = new Map<string, number>();
   const candidates = [
     record,
@@ -290,15 +287,15 @@ function enqueueHistoryMutation<T>(operation: () => Promise<T>): Promise<T> {
   return result;
 }
 
-export async function loadLabRunHistory(): Promise<LabRunHistory> {
+export async function loadLabRunHistory(): Promise<StudioRunHistory> {
   return parseHistory(await readLabStandardStorageJson(LAB_RUN_HISTORY_STORAGE_PATH));
 }
 
-export async function saveLabRunHistory(history: LabRunHistory): Promise<void> {
+export async function saveLabRunHistory(history: StudioRunHistory): Promise<void> {
   await writeLabStandardStorageJson(LAB_RUN_HISTORY_STORAGE_PATH, history);
 }
 
-export async function appendLabRunHistory(record: LabRunHistoryRecord): Promise<LabRunHistory> {
+export async function appendLabRunHistory(record: StudioRunHistoryRecord): Promise<StudioRunHistory> {
   return enqueueHistoryMutation(async () => {
     const history = await loadLabRunHistory();
     const next = boundedHistoryWithRecord(history, record);
@@ -307,7 +304,7 @@ export async function appendLabRunHistory(record: LabRunHistoryRecord): Promise<
   });
 }
 
-export async function removeLabRunHistoryRecord(recordId: string): Promise<LabRunHistory> {
+export async function removeLabRunHistoryRecord(recordId: string): Promise<StudioRunHistory> {
   return enqueueHistoryMutation(async () => {
     const history = await loadLabRunHistory();
     const retained = allHistoryRecords(history).filter((existing) => existing.id !== recordId);
@@ -317,10 +314,10 @@ export async function removeLabRunHistoryRecord(recordId: string): Promise<LabRu
   });
 }
 
-export async function clearLabRunHistory(capabilityId?: string): Promise<LabRunHistory> {
+export async function clearLabRunHistory(capabilityId?: string): Promise<StudioRunHistory> {
   return enqueueHistoryMutation(async () => {
     if (!capabilityId) {
-      const next: LabRunHistory = {};
+      const next: StudioRunHistory = {};
       await saveLabRunHistory(next);
       return next;
     }

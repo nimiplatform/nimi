@@ -11,7 +11,7 @@ const root = path.resolve(import.meta.dirname, '..');
 const buildDir = mkdtempSync(path.join(tmpdir(), 'nimi-lab-run-input-'));
 
 await build({
-  entryPoints: [path.join(root, 'src/lab/workbench/section-ai-testing-input.ts')],
+  entryPoints: [path.join(root, 'src/ai-studio-core/section-ai-testing-input.ts')],
   outfile: path.join(buildDir, 'section-ai-testing-input.mjs'),
   bundle: true,
   platform: 'node',
@@ -21,7 +21,7 @@ await build({
   logLevel: 'silent',
 });
 
-const { hasLabCapabilityRunInput } = await import(
+const { hasStudioCapabilityRunInput } = await import(
   pathToFileURL(path.join(buildDir, 'section-ai-testing-input.mjs')).href
 );
 
@@ -30,7 +30,7 @@ test.after(async () => {
 });
 
 test('file-backed capability runs do not require placeholder text', () => {
-  assert.equal(hasLabCapabilityRunInput({
+  assert.equal(hasStudioCapabilityRunInput({
     requiresPrompt: true,
     prompt: '   ',
     hasAlternativeInput: true,
@@ -38,17 +38,17 @@ test('file-backed capability runs do not require placeholder text', () => {
 });
 
 test('prompt-backed capability runs still require a real input', () => {
-  assert.equal(hasLabCapabilityRunInput({
+  assert.equal(hasStudioCapabilityRunInput({
     requiresPrompt: true,
     prompt: '   ',
     hasAlternativeInput: false,
   }), false);
-  assert.equal(hasLabCapabilityRunInput({
+  assert.equal(hasStudioCapabilityRunInput({
     requiresPrompt: true,
     prompt: 'Generate a result.',
     hasAlternativeInput: false,
   }), true);
-  assert.equal(hasLabCapabilityRunInput({
+  assert.equal(hasStudioCapabilityRunInput({
     requiresPrompt: false,
     prompt: '',
     hasAlternativeInput: false,

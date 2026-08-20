@@ -1,30 +1,30 @@
 import type { LabImageHistoryRecord } from './lab-image-history.js';
-import type { LabRunHistory } from './lab-history.js';
+import type { StudioRunHistory } from '../ai-studio-core/index.js';
 
 export type LabManagedHistoryOutcome = {
   readonly completed: number;
   readonly skipped: number;
   readonly failed: number;
-  readonly runHistory: LabRunHistory;
+  readonly runHistory: StudioRunHistory;
   readonly imageHistory: readonly LabImageHistoryRecord[];
   readonly issues: readonly { readonly runId: string; readonly step: 'asset' | 'history'; readonly message: string }[];
 };
 
 export type LabManagedHistoryPort = {
-  readonly loadRunHistory: () => Promise<LabRunHistory>;
+  readonly loadRunHistory: () => Promise<StudioRunHistory>;
   readonly loadImageHistory: () => Promise<readonly LabImageHistoryRecord[]>;
   readonly removeAsset: (relativePath: string) => Promise<{ readonly removed: boolean }>;
-  readonly removeRunHistory: (runId: string) => Promise<LabRunHistory>;
+  readonly removeRunHistory: (runId: string) => Promise<StudioRunHistory>;
   readonly removeImageHistory: (runId: string) => Promise<readonly LabImageHistoryRecord[]>;
-  readonly clearRunHistory: (capabilityId?: string) => Promise<LabRunHistory>;
+  readonly clearRunHistory: (capabilityId?: string) => Promise<StudioRunHistory>;
   readonly clearImageHistory: (capabilityId?: string) => Promise<readonly LabImageHistoryRecord[]>;
 };
 
 export async function reconcileLabManagedHistoryProjection(
-  runHistory: LabRunHistory,
+  runHistory: StudioRunHistory,
   imageHistory: readonly LabImageHistoryRecord[],
   statAsset: (relativePath: string) => Promise<unknown>,
-): Promise<{ readonly runHistory: LabRunHistory; readonly imageHistory: readonly LabImageHistoryRecord[] }> {
+): Promise<{ readonly runHistory: StudioRunHistory; readonly imageHistory: readonly LabImageHistoryRecord[] }> {
   const storedByID = new Map(imageHistory.map((record) => [record.id, record]));
   const projected: LabImageHistoryRecord[] = [];
   const projectedIDs = new Set<string>();
@@ -178,7 +178,7 @@ async function removeManagedAssets(port: LabManagedHistoryPort, relativePaths: r
   return failures;
 }
 
-function managedAssetPaths(runHistory: LabRunHistory, records: readonly LabImageHistoryRecord[], runId: string): string[] {
+function managedAssetPaths(runHistory: StudioRunHistory, records: readonly LabImageHistoryRecord[], runId: string): string[] {
   const paths = records
     .filter((record) => (record.runId || record.id) === runId)
     .map((record) => record.relativePath)
@@ -198,7 +198,7 @@ function outcome(
   completed: number,
   skipped: number,
   failed: number,
-  runHistory: LabRunHistory,
+  runHistory: StudioRunHistory,
   imageHistory: readonly LabImageHistoryRecord[],
   issues: readonly { readonly runId: string; readonly step: 'asset' | 'history'; readonly message: string }[],
 ): LabManagedHistoryOutcome {

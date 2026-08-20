@@ -20,7 +20,6 @@
     "blockedLabel": "受阻",
     "mismatchLabel": "功能不匹配",
     "runtimeConnected": "已连接 Runtime",
-    "runtimeSimulated": "仅 Simulator",
     "runtimeUnavailable": "Runtime 不可用",
     "headerDescription": "这里仅展示 Nimi Lab 当前解析到的 App AI 配置；所有变更均由 Nimi Desktop 管理。",
     "footerNote": "如需修改能力配置，请在 Nimi Desktop 中打开此 App。"

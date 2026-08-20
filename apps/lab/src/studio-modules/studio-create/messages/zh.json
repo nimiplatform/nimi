@@ -1,0 +1,67 @@
+{
+  "Capabilities": {
+    "textGenerate": {
+      "label": "文本工作室",
+      "summary": "提示词 → text.generate 能力契约 → 类型化 Runtime 结果。"
+    },
+    "chatStream": {
+      "label": "聊天流",
+      "summary": "会话轮次 → 受保护的 text.generate 流 → 增量类型化 Runtime 结果。"
+    },
+    "textEmbed": {
+      "label": "向量嵌入",
+      "summary": "输入字符串 → 受保护的 scenario.execute text.embed → 类型化向量结果。"
+    }
+  },
+  "Studio": {
+    "profiles": {
+      "textGenerate": {
+        "inputTitle": "测试文本生成",
+        "inputPlaceholder": "描述你想让 Nimi 写的内容…",
+        "primaryLabel": "生成文本",
+        "primaryRunningLabel": "生成中…",
+        "emptyTitle": "等待生成",
+        "emptyHint": "生成的文本会显示在这里。",
+        "footnote": "你的请求会发送到 Runtime 以生成内容。"
+      },
+      "chatStream": {
+        "inputTitle": "测试聊天流式输出",
+        "inputPlaceholder": "输入一条消息让 Nimi 继续…",
+        "primaryLabel": "流式回复",
+        "primaryRunningLabel": "流式输出中…",
+        "emptyTitle": "等待流式输出",
+        "emptyHint": "来自 Runtime 的流式 token 会实时显示在这里。",
+        "footnote": "增量数据实时来自 Runtime；本地不做任何伪造。"
+      },
+      "textEmbed": {
+        "inputTitle": "测试向量嵌入",
+        "inputPlaceholder": "输入要转换为嵌入向量的文本…",
+        "primaryLabel": "生成嵌入",
+        "primaryRunningLabel": "嵌入生成中…",
+        "emptyTitle": "等待嵌入",
+        "emptyHint": "生成完成后，Runtime 结果会显示在这里。",
+        "footnote": "需要时可在诊断中查看 Runtime 技术输出。"
+      }
+    },
+    "composer": {
+      "textGeneratePlaceholder": "让 Nimi 起草、改写、总结或组织一些内容……"
+    },
+    "parameters": {
+      "stopPlaceholder": "每行一个停止序列",
+      "embeddingInput": "嵌入输入 {{index}}",
+      "embeddingInputPlaceholder": "要生成嵌入的文本",
+      "addInput": "添加输入",
+      "removeInput": "移除输入 {{index}}",
+      "fields": {
+        "inputs": "嵌入输入",
+        "temperature": "Temperature",
+        "topP": "Top P",
+        "maxTokens": "最大 Token 数",
+        "topK": "Top K",
+        "presencePenalty": "存在惩罚",
+        "frequencyPenalty": "频率惩罚",
+        "stop": "停止序列"
+      }
+    }
+  }
+}

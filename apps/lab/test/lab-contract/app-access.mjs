@@ -436,3 +436,11 @@ test('workbench mounts the App Access page on its own view', async () => {
   const context = readFileSync(path.join(root, 'src', 'lab', 'workbench', 'workbench-context.ts'), 'utf8');
   assert.match(context, /\{ kind: 'app-access' \}/u);
 });
+
+test('Lab consumes the shared AI Studio controller instead of owning a parallel Section state tree', () => {
+  const source = readFileSync(path.join(root, 'src', 'lab', 'lab-workbench.tsx'), 'utf8');
+  assert.match(source, /useAIStudioWorkspaceController\s*\(/u);
+  assert.match(source, /<LabAIStudioWorkspace/u);
+  assert.doesNotMatch(source, /<SectionAITesting/u);
+  assert.doesNotMatch(source, /StudioHistoryPanelContext\.Provider/u);
+});

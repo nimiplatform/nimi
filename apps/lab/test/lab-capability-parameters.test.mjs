@@ -11,7 +11,7 @@ const root = path.resolve(import.meta.dirname, '..');
 const buildDir = mkdtempSync(path.join(tmpdir(), 'nimi-lab-capability-parameters-'));
 
 await build({
-  entryPoints: [path.join(root, 'src/lab/lab-capability-parameters.ts')],
+  entryPoints: [path.join(root, 'src/lab/lab-studio-composition.ts')],
   outfile: path.join(buildDir, 'lab-capability-parameters.mjs'),
   bundle: true,
   platform: 'node',
@@ -21,7 +21,7 @@ await build({
   logLevel: 'silent',
 });
 
-const { createLabCapabilityParameterState } = await import(
+const { labStudioComposition } = await import(
   pathToFileURL(path.join(buildDir, 'lab-capability-parameters.mjs')).href
 );
 
@@ -30,7 +30,7 @@ test.after(async () => {
 });
 
 test('voice creation starts on the text-description path shown by the primary composer', () => {
-  assert.deepEqual(createLabCapabilityParameterState()['voice.create'], {
+  assert.deepEqual(labStudioComposition.createInitialParameterState()['voice.create'], {
     creationSource: 'text-description',
   });
 });

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { NimiPortableAppAIConfig } from '@nimiplatform/sdk/ai';
+import type { StudioRuntimeInspection } from '../../ai-studio-core/index.js';
 import {
   ModelConfigAIConfigSurface,
   type ModelConfigCopy,
@@ -8,14 +9,13 @@ import {
 import { openDesktopIntent } from '@nimiplatform/kit/shell/renderer/bridge';
 import { StatusBadge } from '@nimiplatform/kit/ui';
 
-import { useTranslation } from '../../shell/i18n/index.js';
 import { useLabRendererHost } from '../../renderer/context.js';
+import { useTranslation } from '../../shell/i18n/index.js';
 import { appId } from '../../shell/auth/app-identity.js';
 import {
   labCapabilities,
   labModelConfigCapabilityContracts,
 } from '../lab-capabilities.js';
-import type { LabRuntimeInspection } from '../lab-runtime.js';
 import {
   loadLabAIConfig,
   projectLabAIConfigCapabilities,
@@ -23,7 +23,7 @@ import {
 } from '../lab-ai-config-store.js';
 
 type LabAiConfigSettingsPanelProps = {
-  runtime: LabRuntimeInspection | null;
+  runtime: StudioRuntimeInspection | null;
   capabilityId: string;
 };
 
@@ -109,9 +109,7 @@ export function LabAiConfigSettingsPanel({
 
   const runtimeLabel = runtime?.status === 'connected'
     ? t('ModelConfig.runtimeConnected')
-    : runtime?.status === 'simulated'
-      ? t('ModelConfig.runtimeSimulated')
-      : t('ModelConfig.runtimeUnavailable');
+    : t('ModelConfig.runtimeUnavailable');
 
   return (
     <section className="flex h-full min-h-0 flex-col" aria-label={t('ModelConfig.drawerDescription')}>

@@ -16,7 +16,7 @@ function LabMainSurface(props: { readonly bindings: LabCanonicalRendererBindings
     <LabRendererProvider bindings={props.bindings}>
       <TooltipProvider>
         <div
-          className="nimi-ui-module--lab"
+          className="lab-main-surface"
           data-nimi-semantic-id="lab-main-root"
         >
           <AmbientBackground

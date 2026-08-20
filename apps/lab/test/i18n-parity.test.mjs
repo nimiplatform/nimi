@@ -1,45 +1,89 @@
-// i18n locale parity guard: the en and zh bundles under
-// src/shell/i18n/locales/<locale>/*.json must expose identical flattened key
-// sets, so no section copy can drift between languages.
 import assert from 'node:assert/strict';
-import { readdirSync, readFileSync } from 'node:fs';
+import { mkdtempSync, readdirSync, readFileSync } from 'node:fs';
+import { rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 import test from 'node:test';
+import { build } from 'esbuild';
 
 const root = path.resolve(import.meta.dirname, '..');
-const localesRoot = path.join(root, 'src/shell/i18n/locales');
+const buildDir = mkdtempSync(path.join(tmpdir(), 'nimi-ai-studio-messages-'));
+
+await build({
+  entryPoints: {
+    core: path.join(root, 'src/ai-studio-core/messages/index.ts'),
+    create: path.join(root, 'src/studio-modules/studio-create/messages/index.ts'),
+    media: path.join(root, 'src/studio-modules/studio-media/messages/index.ts'),
+    voice: path.join(root, 'src/studio-modules/studio-voice/messages/index.ts'),
+  },
+  outdir: buildDir,
+  bundle: true,
+  platform: 'node',
+  format: 'esm',
+  target: 'es2022',
+  outExtension: { '.js': '.mjs' },
+  sourcemap: false,
+  logLevel: 'silent',
+});
+
+const [coreMessages, createMessages, mediaMessages, voiceMessages] = await Promise.all(
+  ['core', 'create', 'media', 'voice'].map((name) => import(pathToFileURL(path.join(buildDir, `${name}.mjs`)).href)),
+);
+
+test.after(async () => {
+  await rm(buildDir, { recursive: true, force: true });
+});
+
+function labOnlyBundles(locale) {
+  const localeDir = path.join(root, 'src/shell/i18n/locales', locale);
+  return readdirSync(localeDir)
+    .filter((name) => name.endsWith('.json'))
+    .sort()
+    .map((name) => JSON.parse(readFileSync(path.join(localeDir, name), 'utf8')));
+}
 
 function loadMergedBundle(locale) {
-  const dir = path.join(localesRoot, locale);
-  const merged = {};
-  for (const file of readdirSync(dir).filter((name) => name.endsWith('.json')).sort()) {
-    const parsed = JSON.parse(readFileSync(path.join(dir, file), 'utf8'));
-    for (const [section, entries] of Object.entries(parsed)) {
-      if (Object.hasOwn(merged, section)) {
-        throw new Error(`i18n ${locale}: section "${section}" declared by more than one locale file`);
-      }
-      merged[section] = entries;
-    }
-  }
-  return merged;
+  return coreMessages.mergeAIStudioMessageBundles([
+    coreMessages.aiStudioCoreMessageBundles[locale],
+    createMessages.studioCreateMessageBundles[locale],
+    mediaMessages.studioMediaMessageBundles[locale],
+    voiceMessages.studioVoiceMessageBundles[locale],
+    ...labOnlyBundles(locale),
+  ]);
 }
 
 function flattenKeys(value, prefix = '') {
-  if (value === null || typeof value !== 'object' || Array.isArray(value)) {
-    return [prefix];
-  }
-  return Object.entries(value).flatMap(([key, child]) =>
-    flattenKeys(child, prefix ? `${prefix}.${key}` : key));
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) return [prefix];
+  return Object.entries(value).flatMap(([key, child]) => flattenKeys(child, prefix ? `${prefix}.${key}` : key));
 }
 
-test('i18n en/zh locale key parity', () => {
+test('i18n en/zh locale key parity and single physical message ownership', () => {
   const enKeys = new Set(flattenKeys(loadMergedBundle('en')));
   const zhKeys = new Set(flattenKeys(loadMergedBundle('zh')));
-  const missingInZh = [...enKeys].filter((key) => !zhKeys.has(key)).sort();
-  const missingInEn = [...zhKeys].filter((key) => !enKeys.has(key)).sort();
   assert.deepEqual(
-    { missingInZh, missingInEn },
+    {
+      missingInZh: [...enKeys].filter((key) => !zhKeys.has(key)).sort(),
+      missingInEn: [...zhKeys].filter((key) => !enKeys.has(key)).sort(),
+    },
     { missingInZh: [], missingInEn: [] },
-    'en and zh locale bundles must declare identical key sets',
   );
+  assert.throws(
+    () => coreMessages.mergeAIStudioMessageBundles([
+      { Example: { leaf: 'first' } },
+      { Example: { leaf: 'second' } },
+    ]),
+    /Duplicate i18n message owner: Example\.leaf/,
+  );
+});
+
+test('selected generated composition imports only core plus selected module messages', () => {
+  const createOnly = coreMessages.mergeAIStudioMessageBundles([
+    coreMessages.aiStudioCoreMessageBundles.en,
+    createMessages.studioCreateMessageBundles.en,
+  ]);
+  assert.equal(createOnly.Capabilities.textGenerate.label, 'Text Studio');
+  assert.equal(Object.hasOwn(createOnly.Capabilities, 'imageGenerate'), false);
+  assert.equal(Object.hasOwn(createOnly.Capabilities, 'audioSynthesize'), false);
+  assert.equal(Object.hasOwn(coreMessages.aiStudioCoreMessageBundles.en, 'Capabilities'), false);
 });

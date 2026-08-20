@@ -11,7 +11,7 @@
 // Resource bundles are assembled from `locales/<locale>/*.json`: each file
 // contributes its top-level section object (e.g. studio.json →
 // { "Studio": { ... } }). Imports are explicit (no import.meta.glob) because
-// the simulator conformance build forbids glob module discovery; register new
+// register new
 // section files in the lists below.
 
 import i18nextCore from 'i18next';
@@ -25,24 +25,23 @@ import {
 import enAppAccess from './locales/en/app-access.json' with { type: 'json' };
 import enAuth from './locales/en/auth.json' with { type: 'json' };
 import enCommon from './locales/en/common.json' with { type: 'json' };
-import enHistory from './locales/en/history.json' with { type: 'json' };
 import enModelConfig from './locales/en/model-config.json' with { type: 'json' };
 import enSettings from './locales/en/settings.json' with { type: 'json' };
-import enStudioShell from './locales/en/studio-shell.json' with { type: 'json' };
-import enStudio from './locales/en/studio.json' with { type: 'json' };
-import enNonSuccess from './locales/en/non-success.json' with { type: 'json' };
 import enWorkbenchTop from './locales/en/workbench-top.json' with { type: 'json' };
 import enWorkbench from './locales/en/workbench.json' with { type: 'json' };
+import {
+  aiStudioCoreMessageBundles,
+  mergeAIStudioMessageBundles,
+} from '../../ai-studio-core/messages/index.js';
+import { studioCreateMessageBundles } from '../../studio-modules/studio-create/messages/index.js';
+import { studioMediaMessageBundles } from '../../studio-modules/studio-media/messages/index.js';
+import { studioVoiceMessageBundles } from '../../studio-modules/studio-voice/messages/index.js';
 
 import zhAppAccess from './locales/zh/app-access.json' with { type: 'json' };
 import zhAuth from './locales/zh/auth.json' with { type: 'json' };
 import zhCommon from './locales/zh/common.json' with { type: 'json' };
-import zhHistory from './locales/zh/history.json' with { type: 'json' };
 import zhModelConfig from './locales/zh/model-config.json' with { type: 'json' };
 import zhSettings from './locales/zh/settings.json' with { type: 'json' };
-import zhStudioShell from './locales/zh/studio-shell.json' with { type: 'json' };
-import zhStudio from './locales/zh/studio.json' with { type: 'json' };
-import zhNonSuccess from './locales/zh/non-success.json' with { type: 'json' };
 import zhWorkbenchTop from './locales/zh/workbench-top.json' with { type: 'json' };
 import zhWorkbench from './locales/zh/workbench.json' with { type: 'json' };
 
@@ -52,40 +51,30 @@ export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number];
 export const LOCALE_STORAGE_KEY = 'nimi.lab.locale';
 export const I18N_NAMESPACE = 'translation';
 
-type LocaleBundle = Record<string, unknown>;
-
-function mergeLocaleModules(modules: LocaleBundle[]): LocaleBundle {
-  const merged: LocaleBundle = {};
-  for (const mod of modules) {
-    Object.assign(merged, mod);
-  }
-  return merged;
-}
-
-const RESOURCES: Record<SupportedLocale, LocaleBundle> = {
-  en: mergeLocaleModules([
+const RESOURCES: Record<SupportedLocale, Record<string, unknown>> = {
+  en: mergeAIStudioMessageBundles([
+    aiStudioCoreMessageBundles.en,
+    studioCreateMessageBundles.en,
+    studioMediaMessageBundles.en,
+    studioVoiceMessageBundles.en,
     enAppAccess,
     enAuth,
     enCommon,
-    enHistory,
     enModelConfig,
     enSettings,
-    enStudioShell,
-    enStudio,
-    enNonSuccess,
     enWorkbenchTop,
     enWorkbench,
   ]),
-  zh: mergeLocaleModules([
+  zh: mergeAIStudioMessageBundles([
+    aiStudioCoreMessageBundles.zh,
+    studioCreateMessageBundles.zh,
+    studioMediaMessageBundles.zh,
+    studioVoiceMessageBundles.zh,
     zhAppAccess,
     zhAuth,
     zhCommon,
-    zhHistory,
     zhModelConfig,
     zhSettings,
-    zhStudioShell,
-    zhStudio,
-    zhNonSuccess,
     zhWorkbenchTop,
     zhWorkbench,
   ]),
@@ -107,7 +96,6 @@ function detectInitialLocale(): SupportedLocale {
 
 const initialLocale = detectInitialLocale();
 
-// Simulator conformance: this module is reachable from the adapter closure
 // (pure modules like lab-non-success.ts import t()), so it must not touch
 // document/window, declare module-scope let/var state, or call module-scope
 // resource factories (create*). It therefore binds the shared default

@@ -1,0 +1,99 @@
+{
+  "Capabilities": {
+    "audioSynthesize": {
+      "label": "Speech Synthesis",
+      "summary": "Text → audio.synthesize Scenario Job → typed audio artifact result."
+    },
+    "audioTranscribe": {
+      "label": "Speech Transcribe",
+      "summary": "Audio URL → audio.transcribe Scenario Job → typed transcript result."
+    },
+    "voiceCreate": {
+      "label": "Voice Create",
+      "summary": "Reference audio or text description → voice.create Scenario Job → reusable VoiceAsset."
+    },
+    "speechBundle": {
+      "label": "Speech Bundle",
+      "summary": "Inspect owner-scoped voice references through the protected Runtime voice catalog."
+    }
+  },
+  "Studio": {
+    "profiles": {
+      "audioSynthesize": {
+        "inputTitle": "Test speech synthesis",
+        "inputPlaceholder": "Enter the text to synthesize into speech…",
+        "primaryLabel": "Synthesize speech",
+        "primaryRunningLabel": "Synthesizing…",
+        "emptyTitle": "Waiting for audio",
+        "emptyHint": "The synthesized audio will appear here once the job returns.",
+        "footnote": "The runtime returns audio artifacts from the TTS job."
+      },
+      "audioTranscribe": {
+        "inputTitle": "Test speech transcription",
+        "inputPlaceholder": "https://… pointing at the audio asset",
+        "primaryLabel": "Transcribe audio",
+        "primaryRunningLabel": "Transcribing…",
+        "emptyTitle": "Waiting for transcript",
+        "emptyHint": "The transcript text will appear here once the job returns.",
+        "footnote": "Provide an HTTPS URL or a local audio file up to 32 MiB; the runtime returns the transcript."
+      },
+      "voiceCreate": {
+        "inputTitle": "Create a reusable voice",
+        "inputPlaceholder": "Describe the voice, or provide the transcript spoken in the reference audio…",
+        "primaryLabel": "Create voice",
+        "primaryRunningLabel": "Creating…",
+        "emptyTitle": "Waiting for voice creation",
+        "emptyHint": "The Runtime VoiceAsset will appear here once the job completes.",
+        "footnote": "Choose reference audio or text description; Runtime selects the configured voice.create implementation."
+      },
+      "speechBundle": {
+        "inputTitle": "Test voice catalog",
+        "inputPlaceholder": "",
+        "inputNote": "No input required — this lists the runtime voice catalog.",
+        "primaryLabel": "List voices",
+        "primaryRunningLabel": "Loading…",
+        "emptyTitle": "Waiting for catalog",
+        "emptyHint": "Available runtime voices will appear here.",
+        "footnote": "Exercises the typed audio.synthesize voice catalog surface."
+      }
+    },
+    "parameters": {
+      "voicePreset": "Preset voice",
+      "voiceAsset": "Local voice asset",
+      "selectVoiceAsset": "Select a local voice asset",
+      "noVoiceAssets": "No local voice assets",
+      "chooseAudioFile": "Choose audio file",
+      "removeFile": "Remove",
+      "audioFileTooLarge": "Audio files must not exceed 32 MiB.",
+      "voiceReferenceFileTooLarge": "Reference audio must be non-empty and not exceed 20 MiB.",
+      "voiceReferenceMimeUnsupported": "Choose a file with an audio MIME type.",
+      "voiceSourceReferenceAudio": "Reference audio",
+      "voiceSourceTextDescription": "Text description",
+      "fields": {
+        "voiceSource": "Voice source",
+        "voicePreset": "Preset voice ID",
+        "voiceAsset": "Local voice asset",
+        "language": "Language",
+        "audioFormat": "Audio format",
+        "sampleRateHz": "Sample rate (Hz)",
+        "speed": "Speed",
+        "pitch": "Pitch",
+        "volume": "Volume",
+        "emotion": "Emotion",
+        "timingMode": "Timing mode",
+        "audioFile": "Local audio file",
+        "mimeType": "MIME type",
+        "timestamps": "Timestamps",
+        "diarization": "Diarization",
+        "speakerCount": "Speaker count",
+        "transcriptionPrompt": "Transcription prompt",
+        "responseFormat": "Response format",
+        "creationSource": "Creation source",
+        "referenceAudioFile": "Reference audio",
+        "languageHints": "Language hints",
+        "preferredName": "Preferred name",
+        "previewText": "Preview text"
+      }
+    }
+  }
+}

@@ -11,7 +11,7 @@ const root = path.resolve(import.meta.dirname, '..');
 const buildDir = mkdtempSync(path.join(tmpdir(), 'nimi-lab-capability-params-'));
 
 await build({
-  entryPoints: [path.join(root, 'src/lab/lab-capability-params.ts')],
+  entryPoints: [path.join(root, 'src/lab/lab-studio-composition.ts')],
   outfile: path.join(buildDir, 'lab-capability-params.mjs'),
   bundle: true,
   platform: 'node',
@@ -21,7 +21,7 @@ await build({
   logLevel: 'silent',
 });
 
-const { getLabCapabilityParamPresentation, projectLabCapabilityParamsForRoute } = await import(
+const { labStudioComposition } = await import(
   pathToFileURL(path.join(buildDir, 'lab-capability-params.mjs')).href
 );
 
@@ -31,9 +31,13 @@ test.after(async () => {
 
 function states(capabilityId, source) {
   return new Map(
-    getLabCapabilityParamPresentation(capabilityId, source)
+    labStudioComposition.getCapability(capabilityId).parameters.presentation(source)
       .map((item) => [item.field, item]),
   );
+}
+
+function project(capabilityId, source, parameters) {
+  return labStudioComposition.getCapability(capabilityId).parameters.project(source, parameters);
 }
 
 test('Local video disables Cloud-only fields and presents fps as fixed 24', () => {
@@ -65,13 +69,13 @@ test('Local text preserves admitted fields and image exposes only artifact custo
   assert.deepEqual(cloudImage.get('referenceImageArtifactId'), {
     field: 'referenceImageArtifactId', state: 'disabled', unavailableBecause: 'route',
   });
-  assert.deepEqual(projectLabCapabilityParamsForRoute('image.generate', 'cloud', {
+  assert.deepEqual(project('image.generate', 'cloud', {
     referenceImage: 'https://example.test/reference.png',
     referenceImageArtifactId: 'artifact-image-source-1',
   }), {
     referenceImage: 'https://example.test/reference.png',
   });
-  assert.deepEqual(projectLabCapabilityParamsForRoute('image.generate', 'local', {
+  assert.deepEqual(project('image.generate', 'local', {
     referenceImage: 'https://example.test/reference.png',
     referenceImageArtifactId: 'artifact-image-source-1',
     mask: 'https://example.test/mask.png',
@@ -89,7 +93,7 @@ test('Local synthesis exposes only preset voice references until Runtime owns vo
     state: 'disabled',
     unavailableBecause: 'route',
   });
-  assert.deepEqual(projectLabCapabilityParamsForRoute('audio.synthesize', 'local', {
+  assert.deepEqual(project('audio.synthesize', 'local', {
     voiceKind: 'asset',
     voicePreset: 'vivian',
     voiceAssetId: 'voice-asset-1',
@@ -109,7 +113,7 @@ test('Local transcription admits its supported inputs and drops unsupported opti
   for (const field of ['timestamps', 'diarization', 'speakerCount', 'prompt']) {
     assert.equal(local.get(field)?.state, 'disabled', `audio.transcribe.${field}`);
   }
-  assert.deepEqual(projectLabCapabilityParamsForRoute('audio.transcribe', 'local', {
+  assert.deepEqual(project('audio.transcribe', 'local', {
     audioFile: { name: 'sample.wav' },
     mimeType: 'audio/wav',
     language: 'en',
@@ -168,7 +172,7 @@ test('presentation recomputes immediately from the selected route', () => {
 });
 
 test('request projection drops disabled drafts and applies fixed route values', () => {
-  assert.deepEqual(projectLabCapabilityParamsForRoute('video.generate', 'local', {
+  assert.deepEqual(project('video.generate', 'local', {
     resolution: '512x288',
     fps: 30,
     cameraFixed: true,
@@ -177,7 +181,7 @@ test('request projection drops disabled drafts and applies fixed route values', 
     resolution: '512x288',
     fps: 24,
   });
-  assert.deepEqual(projectLabCapabilityParamsForRoute('video.generate', 'cloud', {
+  assert.deepEqual(project('video.generate', 'cloud', {
     fps: 30,
     cameraFixed: true,
     serviceTier: 'priority',
@@ -185,7 +189,7 @@ test('request projection drops disabled drafts and applies fixed route values', 
     fps: 30,
     cameraFixed: true,
   });
-  assert.deepEqual(projectLabCapabilityParamsForRoute('text.generate', 'local', {
+  assert.deepEqual(project('text.generate', 'local', {
     topK: 40,
     stop: ['END'],
   }), {

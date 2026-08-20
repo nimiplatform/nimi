@@ -4,42 +4,6 @@
     "uiRecipes": "UI Recipes"
   },
   "Capabilities": {
-    "textGenerate": {
-      "label": "Text Studio",
-      "summary": "Prompt → text.generate CapabilityContract → typed Runtime result."
-    },
-    "chatStream": {
-      "label": "Chat Stream",
-      "summary": "Conversation turn → protected text.generate stream → incremental typed Runtime result."
-    },
-    "textEmbed": {
-      "label": "Embeddings",
-      "summary": "Input string → protected scenario.execute text.embed → typed vector result."
-    },
-    "imageGenerate": {
-      "label": "Image Generate",
-      "summary": "Prompt → image.generate Scenario Job → typed artifact preview result."
-    },
-    "videoGenerate": {
-      "label": "Video Generate",
-      "summary": "Prompt → video.generate Scenario Job → typed artifact preview result."
-    },
-    "audioSynthesize": {
-      "label": "Speech Synthesis",
-      "summary": "Text → audio.synthesize Scenario Job → typed audio artifact result."
-    },
-    "audioTranscribe": {
-      "label": "Speech Transcribe",
-      "summary": "Audio URL → audio.transcribe Scenario Job → typed transcript result."
-    },
-    "voiceCreate": {
-      "label": "Voice Create",
-      "summary": "Reference audio or text description → voice.create Scenario Job → reusable VoiceAsset."
-    },
-    "speechBundle": {
-      "label": "Speech Bundle",
-      "summary": "Inspect owner-scoped voice references through the protected Runtime voice catalog."
-    },
     "worldGenerate": {
       "label": "World Tour",
       "summary": "Standalone Tauri viewer launch via app-owned open_world_tour_window command."
@@ -57,5 +21,38 @@
     "savePreset": "Save preset",
     "presetSaved": "Preset saved: {{path}}",
     "presetSaveFailed": "Failed to save preset."
+  },
+  "History": {
+    "filters": {
+      "status": {
+        "localFixture": "Local fixture"
+      }
+    }
+  },
+  "Studio": {
+    "profiles": {
+      "worldGenerate": {
+        "inputTitle": "Open world tour",
+        "inputPlaceholder": "",
+        "inputNote": "Opens a standalone Tauri window for the local world fixture.",
+        "primaryLabel": "Open viewer",
+        "primaryRunningLabel": "Opening…",
+        "emptyTitle": "Viewer idle",
+        "emptyHint": "Open the viewer to record a local fixture run. No runtime artifact is implied.",
+        "footnote": "Opens the standalone Tauri viewer for a local fixture; this is not a runtime artifact."
+      }
+    },
+    "admission": {
+      "tauriOnlyDetail": "Standalone viewer fixture. It can write a local run record, but it is not a runtime artifact."
+    },
+    "result": {
+      "pendingViewer": "Opening viewer fixture..."
+    }
+  },
+  "StudioShell": {
+    "statusTauriOnly": "Tauri only",
+    "runStatusLocalFixture": "local fixture",
+    "worldTourViewerMessage": "Viewer opened for a Tauri-only local fixture ({{manifestPath}}); local fixture record only, with no runtime generation or runtime artifact.",
+    "worldTourViewerOutput": "Local fixture viewer opened ({{windowLabel}}). This is not a runtime result or runtime artifact."
   }
 }

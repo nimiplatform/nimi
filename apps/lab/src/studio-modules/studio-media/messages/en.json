@@ -1,0 +1,68 @@
+{
+  "Capabilities": {
+    "imageGenerate": {
+      "label": "Image Generate",
+      "summary": "Prompt → image.generate Scenario Job → typed artifact preview result."
+    },
+    "videoGenerate": {
+      "label": "Video Generate",
+      "summary": "Prompt → video.generate Scenario Job → typed artifact preview result."
+    }
+  },
+  "Studio": {
+    "profiles": {
+      "imageGenerate": {
+        "inputTitle": "Test image generation",
+        "inputPlaceholder": "Describe the image you want the runtime to render…",
+        "primaryLabel": "Generate image",
+        "primaryRunningLabel": "Generating…",
+        "emptyTitle": "Waiting for render",
+        "emptyHint": "The generated image will appear here once the job returns.",
+        "footnote": "The runtime queues a render job and returns typed artifacts."
+      },
+      "videoGenerate": {
+        "inputTitle": "Test video generation",
+        "inputPlaceholder": "Describe the short clip you want to generate…",
+        "primaryLabel": "Generate video",
+        "primaryRunningLabel": "Generating…",
+        "emptyTitle": "Waiting for render",
+        "emptyHint": "The generated clip will appear here once the job returns.",
+        "footnote": "Text-to-video runs as a runtime job; typed artifacts are returned."
+      }
+    },
+    "parameters": {
+      "videoModeT2v": "Text to video",
+      "videoModeReference": "Single reference image",
+      "chooseImageFile": "Choose and upload image",
+      "clearReferenceImage": "Clear reference image",
+      "uploadingImage": "Uploading image…",
+      "imageFileTooLarge": "Image files must be non-empty and not exceed 32 MiB.",
+      "imageFileMimeUnsupported": "Choose a PNG, JPEG, WebP, or GIF image.",
+      "fields": {
+        "negativePrompt": "Negative prompt",
+        "count": "Count",
+        "size": "Size",
+        "aspectRatio": "Aspect ratio",
+        "quality": "Quality",
+        "style": "Style",
+        "referenceImage": "Reference image URL",
+        "mask": "Mask URL",
+        "mode": "Mode",
+        "referenceArtifactId": "Reference artifact ID",
+        "referenceImageFile": "Local reference image",
+        "resolution": "Resolution",
+        "frames": "Frames",
+        "generateAudio": "Generate audio",
+        "ratio": "Ratio",
+        "durationSec": "Duration (seconds)",
+        "fps": "FPS",
+        "cameraFixed": "Fixed camera",
+        "watermark": "Watermark",
+        "draft": "Draft",
+        "returnLastFrame": "Return last frame",
+        "serviceTier": "Service tier",
+        "executionExpiresAfterSec": "Execution expiry (seconds)"
+      }
+    }
+  }
+}

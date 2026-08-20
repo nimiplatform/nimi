@@ -1,4 +1,15 @@
-import type { LabCapability } from './lab-capabilities.js';
+import type {
+  StudioNonSuccess,
+  StudioNonSuccessDiagnostics,
+  StudioNonSuccessReason,
+  StudioRuntimeCapabilityDescriptor,
+} from '../ai-studio-core/runtime-types.js';
+import {
+  createStudioNonSuccess,
+  studioNonSuccessReasonTitle,
+  studioNonSuccessReasonUserAction,
+  studioNonSuccessReasonUserMessage,
+} from '../ai-studio-core/non-success-presentation.js';
 import { t } from '../shell/i18n/index.js';
 
 // App-owned presentation categories for typed SDK/Runtime failures. They never
@@ -7,91 +18,23 @@ import { t } from '../shell/i18n/index.js';
 // Copy resolves through the shared i18n t() at call time. The i18n module is
 // import-safe under node:test contract builds (its Vite glob is guarded), so
 // this module stays loadable there and t() falls back to returning keys.
-export type LabNonSuccessReason =
-  | 'runtime-unavailable'
-  | 'input-invalid'
-  | 'sdk-method-unavailable'
-  | 'principal-unauthorized'
-  | 'operation-aborted'
-  | 'runtime-canceled'
-  | 'runtime-timeout'
-  | 'stream-interrupted'
-  | 'runtime-call-failed';
-
-export type LabNonSuccessDiagnostics = {
-  reasonCode: string;
-  actionHint?: string;
-  traceId?: string;
-  retryable?: boolean;
-  source?: string;
-};
-
-export type LabNonSuccess = {
-  ok: false;
-  capabilityId: string;
-  reason: LabNonSuccessReason;
-  message: string;
-  actionHint: string;
-  missingSurface?: string;
-  diagnostics?: LabNonSuccessDiagnostics;
-};
-
-function reasonKeySegment(reason: string): string {
-  switch (reason) {
-    case 'runtime-unavailable':
-      return 'runtimeUnavailable';
-    case 'input-invalid':
-      return 'inputInvalid';
-    case 'sdk-method-unavailable':
-      return 'sdkMethodUnavailable';
-    case 'principal-unauthorized':
-      return 'principalUnauthorized';
-    case 'operation-aborted':
-      return 'operationAborted';
-    case 'runtime-canceled':
-      return 'runtimeCanceled';
-    case 'runtime-timeout':
-      return 'runtimeTimeout';
-    case 'stream-interrupted':
-      return 'streamInterrupted';
-    case 'runtime-call-failed':
-      return 'runtimeCallFailed';
-    default:
-      return '';
-  }
-}
-
-export function nonSuccessReasonTitle(reason: LabNonSuccessReason): string {
-  return t(`NonSuccess.title.${reasonKeySegment(reason)}`);
+export function nonSuccessReasonTitle(reason: StudioNonSuccessReason): string {
+  return studioNonSuccessReasonTitle(reason, t);
 }
 
 export function nonSuccessReasonUserMessage(reason: string): string {
-  const segment = reasonKeySegment(reason);
-  return t(segment ? `NonSuccess.message.${segment}` : 'NonSuccess.message.fallback');
+  return studioNonSuccessReasonUserMessage(reason, t);
 }
 
 export function nonSuccessReasonUserAction(reason: string): string {
-  const segment = reasonKeySegment(reason);
-  return t(segment ? `NonSuccess.action.${segment}` : 'NonSuccess.action.fallback');
-}
-
-function actionHintForReason(reason: LabNonSuccessReason): string {
-  return t(`NonSuccess.hint.${reasonKeySegment(reason)}`);
+  return studioNonSuccessReasonUserAction(reason, t);
 }
 
 export function capabilityNonSuccess(
-  capability: LabCapability,
-  reason: LabNonSuccessReason,
+  capability: StudioRuntimeCapabilityDescriptor,
+  reason: StudioNonSuccessReason,
   message: string,
-  diagnostics?: LabNonSuccessDiagnostics,
-): LabNonSuccess {
-  return {
-    ok: false,
-    capabilityId: capability.id,
-    reason,
-    message,
-    actionHint: actionHintForReason(reason),
-    missingSurface: capability.missingSurface,
-    ...(diagnostics ? { diagnostics } : {}),
-  };
+  diagnostics?: StudioNonSuccessDiagnostics,
+): StudioNonSuccess {
+  return createStudioNonSuccess(capability, reason, message, t, diagnostics);
 }

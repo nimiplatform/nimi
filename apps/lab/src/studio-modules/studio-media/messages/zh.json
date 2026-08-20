@@ -1,0 +1,68 @@
+{
+  "Capabilities": {
+    "imageGenerate": {
+      "label": "图像生成",
+      "summary": "提示词 → image.generate 场景任务 → 类型化产物预览结果。"
+    },
+    "videoGenerate": {
+      "label": "视频生成",
+      "summary": "提示词 → video.generate 场景任务 → 类型化产物预览结果。"
+    }
+  },
+  "Studio": {
+    "profiles": {
+      "imageGenerate": {
+        "inputTitle": "测试图像生成",
+        "inputPlaceholder": "描述你希望 Runtime 渲染的图像…",
+        "primaryLabel": "生成图像",
+        "primaryRunningLabel": "生成中…",
+        "emptyTitle": "等待渲染",
+        "emptyHint": "任务返回后，生成的图像会显示在这里。",
+        "footnote": "Runtime 会排队一个渲染任务并返回类型化产物。"
+      },
+      "videoGenerate": {
+        "inputTitle": "测试视频生成",
+        "inputPlaceholder": "描述你想生成的短片…",
+        "primaryLabel": "生成视频",
+        "primaryRunningLabel": "生成中…",
+        "emptyTitle": "等待渲染",
+        "emptyHint": "任务返回后，生成的短片会显示在这里。",
+        "footnote": "文生视频以 Runtime 任务运行；返回类型化产物。"
+      }
+    },
+    "parameters": {
+      "videoModeT2v": "文生视频",
+      "videoModeReference": "单参考图",
+      "chooseImageFile": "选择并上传图片",
+      "clearReferenceImage": "清除参考图片",
+      "uploadingImage": "正在上传图片…",
+      "imageFileTooLarge": "图片文件必须非空且不超过 32 MiB。",
+      "imageFileMimeUnsupported": "请选择 PNG、JPEG、WebP 或 GIF 图片。",
+      "fields": {
+        "negativePrompt": "负向提示词",
+        "count": "数量",
+        "size": "尺寸",
+        "aspectRatio": "宽高比",
+        "quality": "质量",
+        "style": "风格",
+        "referenceImage": "参考图 URL",
+        "mask": "蒙版 URL",
+        "mode": "模式",
+        "referenceArtifactId": "参考产物 ID",
+        "referenceImageFile": "本地参考图片",
+        "resolution": "分辨率",
+        "frames": "帧数",
+        "generateAudio": "生成音频",
+        "ratio": "画面比例",
+        "durationSec": "时长（秒）",
+        "fps": "帧率",
+        "cameraFixed": "固定镜头",
+        "watermark": "水印",
+        "draft": "草稿模式",
+        "returnLastFrame": "返回末帧",
+        "serviceTier": "服务等级",
+        "executionExpiresAfterSec": "执行过期时间（秒）"
+      }
+    }
+  }
+}

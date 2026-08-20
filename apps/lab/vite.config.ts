@@ -1,14 +1,11 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
-import { validateSimulatorAppSource } from '@nimiplatform/app-tools/simulator-conformance';
-import { createSimulatorCssProfileVitePlugin } from '@nimiplatform/app-tools/simulator-css-profile';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '../..');
-const labSource = validateSimulatorAppSource(__dirname);
 
 function manualChunks(id: string) {
   const normalized = id.replaceAll('\\', '/');
@@ -74,11 +71,6 @@ function manualChunks(id: string) {
 export default defineConfig({
   base: './',
   plugins: [
-    createSimulatorCssProfileVitePlugin({
-      compilerRoot: __dirname,
-      foundationEntry: path.join(__dirname, 'src/styles.css'),
-      apps: [{ rootDir: __dirname, style: labSource.style }],
-    }),
     react(),
     tailwindcss(),
   ],

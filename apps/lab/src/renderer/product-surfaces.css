@@ -1,6 +1,4 @@
 @scope (.nimi-ui-module--lab) {
-  .runtime-check-screen,
-  .runtime-unavailable-screen,
   .runtime-login-screen {
     min-height: 100cqh;
     position: relative;
@@ -81,13 +79,6 @@
     background: var(--nimi-surface-card);
   }
 
-  .runtime-check-screen,
-  .runtime-unavailable-screen {
-    display: grid;
-    place-items: center;
-    padding: 24px;
-  }
-
   .runtime-login-alert {
     position: absolute;
     right: 24px;
@@ -96,58 +87,9 @@
     max-width: min(420px, calc(100cqw - 48px));
   }
 
-  .runtime-alert-copy {
-    display: grid;
-    gap: 4px;
-    min-width: 0;
-  }
-
-  .runtime-alert-copy strong,
-  .runtime-alert-copy span {
-    min-width: 0;
-  }
-
-  .runtime-unavailable-panel {
-    width: min(560px, 100%);
-    display: grid;
-    gap: 18px;
-  }
-
-  .runtime-unavailable-heading {
-    display: grid;
-    gap: 10px;
-  }
-
-  .runtime-unavailable-heading h1,
   .product-hero h1 {
     margin: 0;
     letter-spacing: 0;
-  }
-
-  .runtime-action-hint {
-    margin: 0;
-    color: var(--nimi-text-secondary);
-    font-size: 13px;
-  }
-
-  /* Scaffold-managed frame: full-bleed canvas hosting a kit AmbientBackground
-     backdrop behind the product area. No app-chrome header / side-panel. */
-  .app-shell {
-    position: relative;
-    /* Fixed viewport shell (Nimi Desktop parity: h-screen + overflow-hidden on the
-       AmbientBackground root). overflow:clip CLIPS the decorative mesh halos
-       (which extend ~100px past the root via bottom:-100) so they never create a
-       document-level scrollbar / empty band below the shell, and unlike hidden it
-       cannot be programmatically scrolled by focus/scroll anchoring. Content
-       scrolls internally in the workbench content area, not at the page level. */
-    height: 100%;
-    overflow: clip;
-    display: flex;
-    flex-direction: column;
-    isolation: isolate;
-    /* The ambient mesh root sits over the kit canvas surface so the frosted glass
-       cards read with real depth, not over flat white. */
-    background: var(--nimi-surface-canvas);
   }
 
   .product-area {
@@ -250,7 +192,7 @@
     max-width: 760px;
   }
 
-  @container nimi-ui-module-lab-surface (max-width: 640px) {
+  @container nimi-workbench-surface (max-width: 640px) {
     .product-hero {
       display: grid;
       padding: 20px;

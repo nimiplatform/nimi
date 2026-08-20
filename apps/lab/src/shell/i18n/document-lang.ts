@@ -1,6 +1,6 @@
 // Document-language synchronization for the lab i18n module.
 // Kept out of i18n/index.ts because that module is reachable from the
-// simulator adapter closure, which forbids document/window access. Only
+// non-DOM localization modules. Only
 // renderer entry points (main.tsx, dev-preview.tsx) import this installer.
 
 import { getCurrentLocale, i18n, toDocumentLang } from './index.js';

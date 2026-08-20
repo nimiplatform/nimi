@@ -1,0 +1,99 @@
+{
+  "Capabilities": {
+    "audioSynthesize": {
+      "label": "语音合成",
+      "summary": "文本 → audio.synthesize 场景任务 → 类型化音频产物结果。"
+    },
+    "audioTranscribe": {
+      "label": "语音转写",
+      "summary": "音频 URL → audio.transcribe 场景任务 → 类型化转写结果。"
+    },
+    "voiceCreate": {
+      "label": "创建语音",
+      "summary": "参考音频或文本描述 → voice.create 场景任务 → 可复用 VoiceAsset。"
+    },
+    "speechBundle": {
+      "label": "语音包",
+      "summary": "通过受保护的 Runtime 语音目录查看所有者范围内的语音引用。"
+    }
+  },
+  "Studio": {
+    "profiles": {
+      "audioSynthesize": {
+        "inputTitle": "测试语音合成",
+        "inputPlaceholder": "输入要合成为语音的文本…",
+        "primaryLabel": "合成语音",
+        "primaryRunningLabel": "合成中…",
+        "emptyTitle": "等待音频",
+        "emptyHint": "任务返回后，合成的音频会显示在这里。",
+        "footnote": "Runtime 从 TTS 任务返回音频产物。"
+      },
+      "audioTranscribe": {
+        "inputTitle": "测试语音转写",
+        "inputPlaceholder": "指向音频资源的 https://… 链接",
+        "primaryLabel": "转写音频",
+        "primaryRunningLabel": "转写中…",
+        "emptyTitle": "等待转写",
+        "emptyHint": "任务返回后，转写文本会显示在这里。",
+        "footnote": "提供 HTTPS URL 或不超过 32 MiB 的本地音频文件；Runtime 返回转写文本。"
+      },
+      "voiceCreate": {
+        "inputTitle": "创建可复用语音",
+        "inputPlaceholder": "描述目标语音，或填写参考音频中说出的文本…",
+        "primaryLabel": "创建语音",
+        "primaryRunningLabel": "创建中…",
+        "emptyTitle": "等待创建语音",
+        "emptyHint": "任务完成后，Runtime VoiceAsset 会显示在这里。",
+        "footnote": "选择参考音频或文本描述；Runtime 使用已配置的 voice.create 实现。"
+      },
+      "speechBundle": {
+        "inputTitle": "测试语音目录",
+        "inputPlaceholder": "",
+        "inputNote": "无需输入 —— 这里列出 Runtime 语音目录。",
+        "primaryLabel": "列出语音",
+        "primaryRunningLabel": "加载中…",
+        "emptyTitle": "等待目录",
+        "emptyHint": "可用的 Runtime 语音会显示在这里。",
+        "footnote": "调用类型化的 audio.synthesize 语音目录能力。"
+      }
+    },
+    "parameters": {
+      "voicePreset": "预设语音",
+      "voiceAsset": "本地语音资产",
+      "selectVoiceAsset": "选择本地语音资产",
+      "noVoiceAssets": "没有本地语音资产",
+      "chooseAudioFile": "选择音频文件",
+      "removeFile": "移除",
+      "audioFileTooLarge": "音频文件不得超过 32 MiB。",
+      "voiceReferenceFileTooLarge": "参考音频必须非空且不得超过 20 MiB。",
+      "voiceReferenceMimeUnsupported": "请选择具有音频 MIME 类型的文件。",
+      "voiceSourceReferenceAudio": "参考音频",
+      "voiceSourceTextDescription": "文本描述",
+      "fields": {
+        "voiceSource": "语音来源",
+        "voicePreset": "预设语音 ID",
+        "voiceAsset": "本地语音资产",
+        "language": "语言",
+        "audioFormat": "音频格式",
+        "sampleRateHz": "采样率（Hz）",
+        "speed": "语速",
+        "pitch": "音高",
+        "volume": "音量",
+        "emotion": "情绪",
+        "timingMode": "时间标记模式",
+        "audioFile": "本地音频文件",
+        "mimeType": "MIME 类型",
+        "timestamps": "时间戳",
+        "diarization": "说话人分离",
+        "speakerCount": "说话人数",
+        "transcriptionPrompt": "转写提示词",
+        "responseFormat": "响应格式",
+        "creationSource": "创建来源",
+        "referenceAudioFile": "参考音频",
+        "languageHints": "语言提示",
+        "preferredName": "语音名称",
+        "previewText": "预览文本"
+      }
+    }
+  }
+}

@@ -20,6 +20,7 @@ import type {
 } from '@nimiplatform/kit/shell/renderer/host';
 
 import type { RuntimePlatformProjection } from '../shell/auth/runtime-platform.js';
+import type { StudioCapabilityRunInput, StudioCapabilityRunResult } from '../ai-studio-core/runtime-types.js';
 import type { LabAIConfigSummary } from '../lab/lab-ai-config.js';
 import type { LabImageHistoryRecord } from '../lab/lab-image-history.js';
 import type {
@@ -29,8 +30,7 @@ import type {
   LabPreferences,
 } from '../lab/lab-preferences.js';
 import type { LabConversationJourneyResult } from '../lab/local-app-conversation-journey.js';
-import type { LabCapabilityRunInput, LabCapabilityRunResult } from '../lab/lab-runtime.js';
-import type { LabRunHistory, LabRunHistoryRecord } from '../lab/lab-history.js';
+import type { StudioRunHistory, StudioRunHistoryRecord } from '../ai-studio-core/index.js';
 import type {
   ClaimWorldTourViewerLaunchInput,
   OpenWorldTourWindowInput,
@@ -52,7 +52,7 @@ export interface LabPersonaReferenceProjection {
 export interface LabRendererProjectionPort {
   runtimePlatform(): Promise<RuntimePlatformProjection>;
   aiConfigSummary(): Promise<LabAIConfigSummary>;
-  runHistory(): Promise<LabRunHistory>;
+  runHistory(): Promise<StudioRunHistory>;
   imageHistory(): Promise<readonly LabImageHistoryRecord[]>;
   ecosystemReference(): LabEcosystemReferenceProjection | null;
   personaReference(): LabPersonaReferenceProjection | null;
@@ -62,9 +62,9 @@ export interface LabRendererProjectionPort {
 
 export interface LabRendererCommandPort {
   nextRunIdentity(): Promise<{ readonly runId: string; readonly createdAt: string }>;
-  appendRunHistory(record: LabRunHistoryRecord): Promise<LabRunHistory>;
-  removeRunHistory(recordId: string): Promise<LabRunHistory>;
-  clearRunHistory(input: { readonly capabilityId?: string }): Promise<LabRunHistory>;
+  appendRunHistory(record: StudioRunHistoryRecord): Promise<StudioRunHistory>;
+  removeRunHistory(recordId: string): Promise<StudioRunHistory>;
+  clearRunHistory(input: { readonly capabilityId?: string }): Promise<StudioRunHistory>;
   appendImageHistory(record: LabImageHistoryRecord): Promise<readonly LabImageHistoryRecord[]>;
   removeImageHistory(runId: string): Promise<readonly LabImageHistoryRecord[]>;
   clearImageHistory(input: { readonly capabilityId?: string }): Promise<readonly LabImageHistoryRecord[]>;
@@ -90,7 +90,7 @@ export interface LabRendererEventPort {
 }
 
 export interface LabRendererSdkPort {
-  runCapability(input: LabCapabilityRunInput): Promise<LabCapabilityRunResult>;
+  runCapability(input: StudioCapabilityRunInput): Promise<StudioCapabilityRunResult>;
   listLocalAppVoiceAssets(): Promise<readonly {
     readonly voiceAssetId: string;
     readonly creationSource: string;

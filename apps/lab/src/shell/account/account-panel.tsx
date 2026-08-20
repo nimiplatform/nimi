@@ -14,7 +14,6 @@ type NimiLabAccountMenuProps = {
 // runtime-platform projections carry i18n message keys; session-ended keys map
 // to the account-menu specific explanation, everything else resolves via t().
 // Frozen array: module-scope constructed resources (new Set/Map) are forbidden
-// by simulator conformance.
 const sessionEndedMessageKeys = Object.freeze([
   'Auth.runtime.messages.revoked',
   'Auth.runtime.messages.accountChanged',
@@ -44,7 +43,6 @@ export function NimiLabAccountMenu({ onOpenSettings }: NimiLabAccountMenuProps) 
   const refreshAccountUser = useCallback(async () => {
     const projection = await rendererHost.app.projection.runtimePlatform();
     if (projection.status !== 'ready') {
-      // Simulator fixtures may carry a literal `message` without a `messageKey`.
       throw new Error(projection.messageKey || projection.message || 'Auth.account.sessionUnavailable');
     }
     setLocalAppSessionReady(true);

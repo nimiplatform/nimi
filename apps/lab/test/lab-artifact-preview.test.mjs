@@ -11,7 +11,7 @@ const root = path.resolve(import.meta.dirname, '..');
 const buildDir = mkdtempSync(path.join(tmpdir(), 'nimi-lab-artifact-preview-'));
 
 await build({
-  entryPoints: [path.join(root, 'src/lab/workbench/section-ai-testing-artifact-preview.ts')],
+  entryPoints: [path.join(root, 'src/ai-studio-core/section-ai-testing-artifact-preview.ts')],
   outfile: path.join(buildDir, 'artifact-preview.mjs'),
   bundle: true,
   platform: 'node',

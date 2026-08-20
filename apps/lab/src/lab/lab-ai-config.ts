@@ -1,7 +1,8 @@
-import { inspectRuntimeConnection, type LabRuntimeInspection } from './lab-runtime.js';
+import type { StudioRuntimeInspection } from '../ai-studio-core/runtime-types.js';
+import { inspectRuntimeConnection } from './lab-runtime.js';
 
 export type LabAIConfigSummary = {
-  runtime: LabRuntimeInspection;
+  runtime: StudioRuntimeInspection;
 };
 
 export async function loadLabAIConfigSummary(): Promise<LabAIConfigSummary> {

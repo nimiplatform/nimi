@@ -1,0 +1,67 @@
+{
+  "Capabilities": {
+    "textGenerate": {
+      "label": "Text Studio",
+      "summary": "Prompt → text.generate CapabilityContract → typed Runtime result."
+    },
+    "chatStream": {
+      "label": "Chat Stream",
+      "summary": "Conversation turn → protected text.generate stream → incremental typed Runtime result."
+    },
+    "textEmbed": {
+      "label": "Embeddings",
+      "summary": "Input string → protected scenario.execute text.embed → typed vector result."
+    }
+  },
+  "Studio": {
+    "profiles": {
+      "textGenerate": {
+        "inputTitle": "Test text generation",
+        "inputPlaceholder": "Describe what you want Nimi to write…",
+        "primaryLabel": "Generate text",
+        "primaryRunningLabel": "Generating…",
+        "emptyTitle": "Waiting for generation",
+        "emptyHint": "Your generated text will appear here.",
+        "footnote": "Your request will be sent to the runtime to generate content."
+      },
+      "chatStream": {
+        "inputTitle": "Test chat streaming",
+        "inputPlaceholder": "Type a message for Nimi to continue…",
+        "primaryLabel": "Stream reply",
+        "primaryRunningLabel": "Streaming…",
+        "emptyTitle": "Waiting for stream",
+        "emptyHint": "Streamed tokens will appear here as they arrive from the runtime.",
+        "footnote": "Deltas stream live from the runtime; nothing is fabricated locally."
+      },
+      "textEmbed": {
+        "inputTitle": "Test embeddings",
+        "inputPlaceholder": "Enter the text to convert into an embedding vector…",
+        "primaryLabel": "Generate embedding",
+        "primaryRunningLabel": "Embedding…",
+        "emptyTitle": "Waiting for embedding",
+        "emptyHint": "The runtime result will appear here after generation.",
+        "footnote": "Runtime technical output is available in diagnostics when needed."
+      }
+    },
+    "composer": {
+      "textGeneratePlaceholder": "Ask Nimi to draft, rewrite, summarize, or structure something..."
+    },
+    "parameters": {
+      "stopPlaceholder": "One stop sequence per line",
+      "embeddingInput": "Embedding input {{index}}",
+      "embeddingInputPlaceholder": "Text to embed",
+      "addInput": "Add input",
+      "removeInput": "Remove input {{index}}",
+      "fields": {
+        "inputs": "Embedding inputs",
+        "temperature": "Temperature",
+        "topP": "Top P",
+        "maxTokens": "Max tokens",
+        "topK": "Top K",
+        "presencePenalty": "Presence penalty",
+        "frequencyPenalty": "Frequency penalty",
+        "stop": "Stop sequences"
+      }
+    }
+  }
+}

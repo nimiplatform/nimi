@@ -120,15 +120,11 @@ test('lab mounts the shared third-party App AIConfig surface as read-only with a
   assert.doesNotMatch(source, /cloudAIConfig|ModelPicker|provider picker/iu);
 });
 
-test('lab renderer and Simulator expose App AIConfig projection without a write port', () => {
+test('lab renderer exposes App AIConfig projection without a write port', () => {
   const sources = [
     'src/renderer/contract.ts',
     'src/renderer/production-bindings.ts',
     'src/lab/lab-ai-config-store.ts',
-    'src/simulator/bindings.ts',
-    'src/simulator/behavior.ts',
-    'src/simulator/fixture.ts',
-    'nimi.simulator.yaml',
   ].map((relative) => readFileSync(path.join(root, relative), 'utf8')).join('\n');
   assert.doesNotMatch(sources, /lab\.ai-config\.update|overwriteLabAIConfig|toLabPortableAIConfigCapabilities/u);
   assert.doesNotMatch(sources, /aiConfig\s*:\s*\{[\s\S]{0,240}?overwrite\s*\(/u);
@@ -146,7 +142,7 @@ test('lab keeps an unconfigured capability blocked even when Runtime is connecte
   const { createLabRunTargetSummary } = await importBehaviorModule('lab/lab-run-target.js');
   const target = createLabRunTargetSummary({
     capability: {
-      id: 'text.generate', label: 'Text Studio', group: 'text', summary: '', surface: '', execution: 'runtime-sdk',
+      id: 'text.generate', label: 'Text Studio', group: 'text', section: 'chat', summary: '', surface: '', execution: 'runtime-sdk', capabilityContract: 'text.generate',
     },
     runtime: { status: 'connected', mode: 'electron-local-app', detail: 'connected' },
     config: null,
@@ -160,7 +156,7 @@ test('lab never presents an App AIConfig transport failure as unconfigured', asy
   const { createLabRunTargetSummary } = await importBehaviorModule('lab/lab-run-target.js');
   const target = createLabRunTargetSummary({
     capability: {
-      id: 'text.generate', label: 'Text Studio', group: 'text', summary: '', surface: '', execution: 'runtime-sdk',
+      id: 'text.generate', label: 'Text Studio', group: 'text', section: 'chat', summary: '', surface: '', execution: 'runtime-sdk', capabilityContract: 'text.generate',
     },
     runtime: { status: 'connected', mode: 'electron-local-app', detail: 'connected' },
     config: null,
@@ -177,7 +173,7 @@ test('lab presents Local intent while leaving implementation selection to Runtim
   const { createLabRunTargetSummary } = await importBehaviorModule('lab/lab-run-target.js');
   const target = createLabRunTargetSummary({
     capability: {
-      id: 'text.generate', label: 'Text Studio', group: 'text', summary: '', surface: '', execution: 'runtime-sdk',
+      id: 'text.generate', label: 'Text Studio', group: 'text', section: 'chat', summary: '', surface: '', execution: 'runtime-sdk', capabilityContract: 'text.generate',
     },
     runtime: { status: 'connected', mode: 'electron-local-app', detail: 'connected' },
     config: config(localIntent('text.generate')),
@@ -191,7 +187,7 @@ test('lab presents Local intent while leaving implementation selection to Runtim
 
   const imageTarget = createLabRunTargetSummary({
     capability: {
-      id: 'image.generate', label: 'Image Generate', group: 'media', summary: '', surface: '', execution: 'runtime-sdk', capabilityContract: 'image.generate',
+      id: 'image.generate', label: 'Image Generate', group: 'media', section: 'image', summary: '', surface: '', execution: 'runtime-sdk', capabilityContract: 'image.generate',
     },
     runtime: { status: 'connected', mode: 'electron-local-app', detail: 'connected' },
     config: config(localIntent('image.generate')),
@@ -204,7 +200,7 @@ test('lab presents Local intent while leaving implementation selection to Runtim
 test('lab keeps current-account Connector resolution Runtime-owned while allowing Cloud execution', async () => {
   const { createLabRunTargetSummary } = await importBehaviorModule('lab/lab-run-target.js');
   const capability = {
-    id: 'image.generate', label: 'Image Generate', group: 'media', summary: '', surface: '', execution: 'runtime-sdk', capabilityContract: 'image.generate',
+    id: 'image.generate', label: 'Image Generate', group: 'media', section: 'image', summary: '', surface: '', execution: 'runtime-sdk', capabilityContract: 'image.generate',
   };
   const runtime = { status: 'connected', mode: 'electron-local-app', detail: 'connected' };
   const cloudIntent = {
@@ -251,7 +247,7 @@ test('lab keeps current-account Connector resolution Runtime-owned while allowin
 test('lab dispatches the standalone World Tour only from a Tauri shell', async () => {
   const { createLabRunTargetSummary } = await importBehaviorModule('lab/lab-run-target.js');
   const capability = {
-    id: 'world.generate', label: 'World Tour', group: 'world', summary: '', surface: '', execution: 'standalone-tauri',
+    id: 'world.generate', label: 'World Tour', group: 'world', section: 'world', summary: '', surface: '', execution: 'standalone-tauri',
   };
   const electron = createLabRunTargetSummary({
     capability,
@@ -270,24 +266,8 @@ test('lab dispatches the standalone World Tour only from a Tauri shell', async (
   assert.equal(tauri.canDispatch, true);
 });
 
-test('lab Simulator uses the same exact App owner shape without claiming Runtime readiness', async () => {
-  const { createLabRunTargetSummary } = await importBehaviorModule('lab/lab-run-target.js');
-  const target = createLabRunTargetSummary({
-    capability: {
-      id: 'text.generate', label: 'Text Studio', group: 'text', summary: '', surface: '', execution: 'runtime-sdk',
-    },
-    runtime: {
-      status: 'simulated', mode: 'simulated', detail: 'No Runtime connection exists.',
-    },
-    config: config(localIntent('text.generate')),
-  });
-  assert.equal(target.status, 'configured');
-  assert.equal(target.source, 'local');
-  assert.equal(target.canDispatch, true);
-});
-
 test('lab run history presents only the configured capability intent', async () => {
-  const { getLabRunIntentLabel, getLabRunIntentSource } = await importBehaviorModule('lab/lab-history.js');
+  const { getStudioRunIntentLabel, getStudioRunIntentSource } = await importBehaviorModule('ai-studio-core/history.js');
   const record = {
     id: 'run-local-intent',
     capabilityId: 'text.generate',
@@ -311,6 +291,6 @@ test('lab run history presents only the configured capability intent', async () 
       promptControls: { contextAttached: false, attachmentCount: 0 },
     },
   };
-  assert.equal(getLabRunIntentSource(record), 'local');
-  assert.equal(getLabRunIntentLabel(record), 'Local');
+  assert.equal(getStudioRunIntentSource(record), 'local');
+  assert.equal(getStudioRunIntentLabel(record), 'Local');
 });
