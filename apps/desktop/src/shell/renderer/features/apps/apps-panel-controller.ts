@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { AppCardActionId } from './apps-card-actions.js';
+import { resolveDetailAppId } from './apps-card-fields.js';
 import { createDesktopAppsLiveBridge } from './apps-live-bridge.js';
 import { projectAppsPanel, type DesktopAppsPanelProjection } from './apps-panel-projection.js';
 
@@ -56,15 +57,9 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps = {}): Apps
 
   useEffect(() => {
     if (projection?.status !== 'loaded') return;
-    setDetailAppId((currentAppId) => {
-      if (
-        currentAppId
-        && projection.entries.some((entry) => entry.registration.appId === currentAppId)
-      ) {
-        return currentAppId;
-      }
-      return projection.entries[0]?.registration.appId ?? null;
-    });
+    // `null` detail id is the library view; the controller only clears a
+    // selection whose entry actually disappeared and never auto-selects.
+    setDetailAppId((currentAppId) => resolveDetailAppId(projection.entries, currentAppId));
   }, [projection]);
 
   const runCardAction = useCallback((appId: string, action: AppCardActionId): void => {

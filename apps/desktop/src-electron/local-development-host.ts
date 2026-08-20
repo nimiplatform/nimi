@@ -1,5 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import { watch, type FSWatcher } from 'node:fs';
+import { open } from 'node:fs/promises';
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import path from 'node:path';
 import type { ChildProcessWithoutNullStreams } from 'node:child_process';
@@ -46,7 +47,10 @@ const COMMANDS = new Set([
   'local_development_registration_remove',
   'local_development_registration_start',
   'local_development_run_stop',
+  'local_development_project_readme',
 ]);
+const PROJECT_README_CANDIDATES = ['README.md', 'README.zh-CN.md', 'README.zh.md', 'readme.md'] as const;
+const PROJECT_README_MAX_BYTES = 96 * 1024;
 const HEALTH_MS = 2_000;
 const LAUNCHER_LEASE_MS = 10_000;
 const REBUILD_DEBOUNCE_MS = 450;
@@ -195,6 +199,7 @@ export class ElectronLocalDevelopmentHost {
     const exactPayload = exactNestedPayload(payload);
     if (command === 'local_development_registration_remove') return this.removeRegistration(exactPayload);
     if (command === 'local_development_registration_start') return this.startRegistration(exactPayload);
+    if (command === 'local_development_project_readme') return this.readProjectReadme(exactPayload);
     return this.stopRegistrationRun(exactPayload);
   }
 
@@ -413,6 +418,47 @@ export class ElectronLocalDevelopmentHost {
       this.registrationSelectors.set(selectorValue, registration.registrationHandle);
       return projectRegistration(selectorValue, registration);
     });
+  }
+
+  // The project README is presentation content for the Apps detail surface,
+  // never runnable truth; reads stay bounded and inside the registered root.
+  private async readProjectReadme(payload: Readonly<Record<string, unknown>>): Promise<{
+    readonly selector: string;
+    readonly content: string | null;
+    readonly fileName: string | null;
+  }> {
+    const value = exact(payload, ['selector']);
+    const selectorValue = selector(value.selector, 'dev-project');
+    const registrationHandle = this.registrationSelectors.get(selectorValue);
+    if (!registrationHandle) throw new Error('local-development-registration-not-found');
+    const registration = (await this.control.listRegistrations())
+      .find((candidate) => candidate.registrationHandle === registrationHandle);
+    if (!registration || registration.project.shell !== 'electron') {
+      throw new Error('local-development-registration-not-found');
+    }
+    const projectRoot = registration.project.canonicalProjectRoot;
+    for (const fileName of PROJECT_README_CANDIDATES) {
+      try {
+        const handle = await open(path.join(projectRoot, fileName), 'r');
+        try {
+          const stat = await handle.stat();
+          if (!stat.isFile()) continue;
+          const size = Math.min(stat.size, PROJECT_README_MAX_BYTES);
+          const buffer = Buffer.alloc(size);
+          const { bytesRead } = await handle.read(buffer, 0, size, 0);
+          return {
+            selector: selectorValue,
+            content: buffer.subarray(0, bytesRead).toString('utf8'),
+            fileName,
+          };
+        } finally {
+          await handle.close();
+        }
+      } catch {
+        // Missing or unreadable candidate: try the next conventional name.
+      }
+    }
+    return { selector: selectorValue, content: null, fileName: null };
   }
 
   private async removeRegistration(payload: Readonly<Record<string, unknown>>): Promise<{ readonly selector: string; readonly removed: true }> {

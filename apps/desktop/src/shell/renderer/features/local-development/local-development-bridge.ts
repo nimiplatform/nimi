@@ -69,6 +69,35 @@ export async function listLocalDevelopmentRuns(): Promise<LocalDevelopmentRun[]>
   return response.map(parseRun);
 }
 
+export type LocalDevelopmentProjectReadme = {
+  readonly content: string | null;
+  readonly fileName: string | null;
+};
+
+export async function readLocalDevelopmentProjectReadme(
+  selector: string,
+): Promise<LocalDevelopmentProjectReadme> {
+  const response = await invokeChecked(
+    'local_development_project_readme',
+    { payload: { selector: requireSelector(selector) } },
+    (value) => value,
+  );
+  const record = exactRecord(response, ['content', 'fileName', 'selector']);
+  if (record.selector !== selector) throw new Error('Local development readme response is invalid');
+  return {
+    content: requireReadmeText(record.content),
+    fileName: record.fileName === null ? null : requireText(record.fileName),
+  };
+}
+
+function requireReadmeText(value: unknown): string | null {
+  if (value === null) return null;
+  if (typeof value !== 'string' || value.length > 131_072) {
+    throw new Error('Local development readme response is invalid');
+  }
+  return value;
+}
+
 function parseRegistration(value: unknown): LocalDevelopmentRegistration {
   const record = exactRecord(value, [
     'appAccess',

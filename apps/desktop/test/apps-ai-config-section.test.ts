@@ -97,7 +97,7 @@ test('Apps detail mounts the Nimi-owned first-party surface with the exact app i
   ]);
 
   assert.match(detailSource, /appsAIConfigCapabilityContracts\(registration\.appAccess\)/u);
-  assert.match(detailSource, /DetailTabButton id="ai-models"/u);
+  assert.match(detailSource, /aiModelsAvailable \? \[\{ value: 'ai-models'/u);
   assert.match(detailSource, /requestedSection === 'ai-models' && aiModelsAvailable/u);
   assert.match(detailSource, /activeTab === 'ai-models'[\s\S]*AppsAIConfigSection/u);
   const accessPanelStart = detailSource.indexOf("activeTab === 'access'");

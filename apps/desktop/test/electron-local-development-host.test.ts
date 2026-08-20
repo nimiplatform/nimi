@@ -1,4 +1,7 @@
 import assert from 'node:assert/strict';
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
 import { describe, it } from 'node:test';
 import type {
   NimiElectronLocalDevelopmentControl,
@@ -507,5 +510,74 @@ describe('Desktop Electron local-development registration host', () => {
     });
     assert.deepEqual(seen, [SUPERVISOR]);
     assert.notEqual(SUPERVISOR, HANDLE);
+  });
+});
+
+describe('Desktop local-development project README', () => {
+  it('returns the bounded README content for a registered project', async () => {
+    const projectRoot = await mkdtemp(path.join(os.tmpdir(), 'nimi-readme-test-'));
+    try {
+      await writeFile(path.join(projectRoot, 'README.md'), '# Example App\n\nHello from the project.\n', 'utf8');
+      const appControl = control({
+        listRegistrations: async () => [registration({
+          project: {
+            appId: 'example.local-app',
+            displayName: 'Example Local App',
+            canonicalProjectRoot: projectRoot,
+            canonicalManifestPath: path.join(projectRoot, 'nimi.app.yaml'),
+            shell: 'electron',
+            appAccess: [],
+            sourceGeneration: 3,
+            declarationGeneration: 4,
+          },
+        })],
+      });
+      const host = new ElectronLocalDevelopmentHost(appControl, '/tmp');
+      const [row] = await host.invoke('local_development_registrations_list', {}) as Array<{ selector: string }>;
+      const result = await host.invoke('local_development_project_readme', {
+        payload: { selector: row!.selector },
+      }) as { selector: string; content: string | null; fileName: string | null };
+      assert.equal(result.selector, row!.selector);
+      assert.equal(result.fileName, 'README.md');
+      assert.ok(result.content?.includes('Hello from the project.'));
+    } finally {
+      await rm(projectRoot, { recursive: true, force: true });
+    }
+  });
+
+  it('returns null content when no conventional README exists', async () => {
+    const projectRoot = await mkdtemp(path.join(os.tmpdir(), 'nimi-readme-test-'));
+    try {
+      const appControl = control({
+        listRegistrations: async () => [registration({
+          project: {
+            appId: 'example.local-app',
+            displayName: 'Example Local App',
+            canonicalProjectRoot: projectRoot,
+            canonicalManifestPath: path.join(projectRoot, 'nimi.app.yaml'),
+            shell: 'electron',
+            appAccess: [],
+            sourceGeneration: 3,
+            declarationGeneration: 4,
+          },
+        })],
+      });
+      const host = new ElectronLocalDevelopmentHost(appControl, '/tmp');
+      const [row] = await host.invoke('local_development_registrations_list', {}) as Array<{ selector: string }>;
+      const result = await host.invoke('local_development_project_readme', {
+        payload: { selector: row!.selector },
+      }) as { selector: string; content: string | null; fileName: string | null };
+      assert.deepEqual(result, { selector: row!.selector, content: null, fileName: null });
+    } finally {
+      await rm(projectRoot, { recursive: true, force: true });
+    }
+  });
+
+  it('fails closed for an unknown readme selector', async () => {
+    const host = new ElectronLocalDevelopmentHost(control(), '/tmp');
+    await assert.rejects(
+      host.invoke('local_development_project_readme', { payload: { selector: 'dev-project-unknown' } }),
+      /local-development-registration-not-found/u,
+    );
   });
 });

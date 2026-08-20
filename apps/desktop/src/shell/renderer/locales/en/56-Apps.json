@@ -22,6 +22,22 @@
     "accessDeclarations": "App Access declarations",
     "accessDeclarationsDetail": "declared by projects"
   },
+  "library": {
+    "sortLabel": "Sort apps",
+    "sortUpdated": "Recently updated",
+    "sortName": "Name",
+    "sortActivity": "Running first",
+    "runningGroupTitle": "Running",
+    "allGroupTitle": "All apps",
+    "backToLibrary": "Back to Apps",
+    "connectLocalTitle": "Connect a local project",
+    "cardMenuLabel": "App actions"
+  },
+  "sourceBadge": {
+    "localDevelopment": "Local development",
+    "userImported": "Imported",
+    "verified": "Nimi certified"
+  },
   "listTitle": "App list",
   "listDescription": "Filter registered apps by whether they declare App Access domains.",
   "filter": {
@@ -265,6 +281,15 @@
     "noAccessDescription": "This project registered without declaring any App Access domains.",
     "developerInfoTitle": "Developer information",
     "developerInfoDescription": "Exact local source and generation details for troubleshooting this registration.",
+    "moreActions": "More actions",
+    "copyAppId": "Copy App ID",
+    "appIdCopied": "Copied",
+    "runCardTitle": "Run status",
+    "readmeEmptyTitle": "No README yet",
+    "readmeEmptyDescription": "Add a README.md to the project root and it will appear here.",
+    "runDiagnosticsDescription": "Latest supervised run detail reported by the Desktop host.",
+    "runMessage": "Message",
+    "runReasonCode": "Reason code",
     "selectTitle": "Select an app",
     "selectDescription": "Choose a registered app from the list to inspect its details.",
     "loadFailedTitle": "Apps could not be loaded",
@@ -305,7 +330,9 @@
   },
   "confirm": {
     "removeDevelopment": {
-      "message": "Remove {{app}} from Apps? This stops its current run and removes the local development registration without deleting project files."
+      "title": "Remove local project",
+      "message": "Remove {{app}} from Apps? This stops its current run and removes the local development registration without deleting project files.",
+      "confirm": "Remove project"
     },
     "deleteAppData": {
       "title": "Delete app data",

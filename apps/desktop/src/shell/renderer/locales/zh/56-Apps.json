@@ -22,6 +22,22 @@
     "accessDeclarations": "App Access 声明",
     "accessDeclarationsDetail": "由项目声明"
   },
+  "library": {
+    "sortLabel": "排序方式",
+    "sortUpdated": "最近更新",
+    "sortName": "名称",
+    "sortActivity": "运行优先",
+    "runningGroupTitle": "正在运行",
+    "allGroupTitle": "全部 App",
+    "backToLibrary": "返回应用库",
+    "connectLocalTitle": "接入本地项目",
+    "cardMenuLabel": "App 操作"
+  },
+  "sourceBadge": {
+    "localDevelopment": "本地开发",
+    "userImported": "本地导入",
+    "verified": "Nimi 认证"
+  },
   "listTitle": "应用列表",
   "listDescription": "按是否声明 App Access 域筛选已注册应用。",
   "filter": {
@@ -265,6 +281,15 @@
     "noAccessDescription": "此项目注册时没有声明任何 App Access 域。",
     "developerInfoTitle": "开发者信息",
     "developerInfoDescription": "用于排查此注册的精确本地来源和 generation 信息。",
+    "moreActions": "更多操作",
+    "copyAppId": "复制 App ID",
+    "appIdCopied": "已复制",
+    "runCardTitle": "运行状态",
+    "readmeEmptyTitle": "暂无 README",
+    "readmeEmptyDescription": "在项目根目录添加 README.md 后，它会显示在这里。",
+    "runDiagnosticsDescription": "Desktop 宿主报告的最近一次受监督运行详情。",
+    "runMessage": "消息",
+    "runReasonCode": "原因码",
     "selectTitle": "选择一个 App",
     "selectDescription": "从列表中选择已注册 App 以查看详情。",
     "loadFailedTitle": "无法加载 Apps",
@@ -305,7 +330,9 @@
   },
   "confirm": {
     "removeDevelopment": {
-      "message": "从 Apps 移除 {{app}}？这会停止当前运行并移除本地开发注册，但不会删除项目文件。"
+      "title": "移除本地项目",
+      "message": "从 Apps 移除 {{app}}？这会停止当前运行并移除本地开发注册，但不会删除项目文件。",
+      "confirm": "移除项目"
     },
     "deleteAppData": {
       "title": "删除应用数据",
