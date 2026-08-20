@@ -256,6 +256,15 @@ export type StudioHistoryPolicyMutationOutcome<TProjection> = {
   readonly issues: readonly StudioHistoryPolicyMutationIssue[];
 };
 
+export function studioHistoryClearOutcomeTone(outcome: {
+  readonly skipped: number;
+  readonly failed: number;
+}): 'success' | 'warning' | 'danger' {
+  if (outcome.failed > 0) return 'danger';
+  if (outcome.skipped > 0) return 'warning';
+  return 'success';
+}
+
 export type StudioHistoryMutationSubject = {
   readonly id: string;
   readonly capabilityId: string;

@@ -79,7 +79,7 @@
     "clearRecordsOnly": "仅记录",
     "clearRecordsAndAssets": "记录和资产",
     "clearedRecordsOnly": "历史已清空，托管资产已保留",
-    "clearOutcome": "清理完成：{{completed}}；跳过：{{skipped}}；失败：{{failed}}",
+    "clearOutcome": "清理结果：完成 {{completed}}；跳过 {{skipped}}；失败 {{failed}}",
     "clearFailed": "清空失败，请重试",
     "linkedRunMissing": "关联的运行记录已被淘汰",
     "emptyMedia": "还没有媒体记录",

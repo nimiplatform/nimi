@@ -79,7 +79,7 @@
     "clearRecordsOnly": "Records only",
     "clearRecordsAndAssets": "Records + assets",
     "clearedRecordsOnly": "History cleared; managed assets retained",
-    "clearOutcome": "Clear completed: {{completed}}; skipped: {{skipped}}; failed: {{failed}}",
+    "clearOutcome": "Clear result: {{completed}} completed; {{skipped}} skipped; {{failed}} failed",
     "clearFailed": "Clear failed, please retry",
     "linkedRunMissing": "The linked run record is no longer retained",
     "emptyMedia": "No media records yet",

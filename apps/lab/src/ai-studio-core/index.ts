@@ -75,6 +75,7 @@ export {
   parseStudioRunHistory,
   removeStudioHistoryWithPolicy,
   removeStudioRunHistoryRecord,
+  studioHistoryClearOutcomeTone,
   studioHistoryArtifactPaths,
   studioHistoryFromRecords,
   type StudioHistoryPolicyMutationIssue,

@@ -447,6 +447,44 @@ test('managed history projection never reports Ready after managed bytes are mis
   assert.match(mismatch.imageHistory[0].message, /verification failed/);
 });
 
+test('retained media-only projection applies the shared managed artifact verification policy', async () => {
+  const retainedMedia = [{
+    id: 'orphan-media',
+    runId: 'orphan-media',
+    kind: 'runtime-media',
+    capabilityId: 'image.generate',
+    title: 'Orphan media',
+    status: 'ready',
+    createdAt: '2026-08-11T00:00:00.000Z',
+    relativePath: 'media/orphan.asset',
+    sizeBytes: 10,
+    sha256: `sha256:${'4'.repeat(64)}`,
+  }];
+  let statCalls = 0;
+  const missing = await reconcileLabManagedHistoryProjection({}, retainedMedia, async () => {
+    statCalls += 1;
+    throw new Error('not found');
+  });
+  assert.equal(statCalls, 1);
+  assert.equal(missing.imageHistory[0].status, 'unavailable');
+  assert.match(missing.imageHistory[0].message, /is unavailable/);
+
+  const mismatch = await reconcileLabManagedHistoryProjection(
+    {},
+    retainedMedia,
+    async () => ({ sizeBytes: 9, sha256: `sha256:${'4'.repeat(64)}` }),
+  );
+  assert.equal(mismatch.imageHistory[0].status, 'unavailable');
+  assert.match(mismatch.imageHistory[0].message, /verification failed/);
+
+  const ready = await reconcileLabManagedHistoryProjection(
+    {},
+    retainedMedia,
+    async () => ({ sizeBytes: 10, sha256: `sha256:${'4'.repeat(64)}` }),
+  );
+  assert.equal(ready.imageHistory[0].status, 'ready');
+});
+
 test('scoped record-plus-asset clear reports completed, skipped, and failed-shaped outcomes after reload', async () => {
   const state = managedHistoryPort();
   state.failingAssets.add('media/two.asset');

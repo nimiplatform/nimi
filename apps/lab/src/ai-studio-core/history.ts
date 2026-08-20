@@ -138,6 +138,31 @@ export type StudioRunHistoryRecord = {
 
 export type StudioRunHistory = Record<string, StudioRunHistoryRecord[]>;
 
+async function verifyStudioManagedArtifact(
+  statArtifact: (
+    artifact: StudioManagedArtifact,
+    record: StudioRunHistoryRecord,
+  ) => Promise<{ readonly sha256: string; readonly sizeBytes: number }>,
+  artifact: StudioManagedArtifact,
+  record: StudioRunHistoryRecord,
+): Promise<{ readonly status: 'ready' | 'unavailable'; readonly message: string }> {
+  try {
+    const stored = await statArtifact(artifact, record);
+    if (stored.sha256 !== artifact.sha256 || stored.sizeBytes !== artifact.sizeBytes) {
+      return {
+        status: 'unavailable',
+        message: `Managed artifact verification failed: ${artifact.relativePath}`,
+      };
+    }
+    return { status: 'ready', message: record.message };
+  } catch {
+    return {
+      status: 'unavailable',
+      message: `Managed artifact is unavailable: ${artifact.relativePath}`,
+    };
+  }
+}
+
 export async function projectStudioManagedHistory(input: {
   readonly runHistory: StudioRunHistory;
   readonly existingMediaHistory?: readonly StudioMediaHistoryRecord[];
@@ -169,18 +194,8 @@ export async function projectStudioManagedHistory(input: {
           : result.firstArtifact ? [result.firstArtifact] : [];
         for (const [index, artifact] of artifacts.entries()) {
           const id = index === 0 ? record.id : `${record.id}:${index}`;
-          let status: 'ready' | 'unavailable' = 'ready';
-          let message = record.message;
-          try {
-            const stored = await input.statArtifact(artifact, record);
-            if (stored.sha256 !== artifact.sha256 || stored.sizeBytes !== artifact.sizeBytes) {
-              status = 'unavailable';
-              message = `Managed artifact verification failed: ${artifact.relativePath}`;
-            }
-          } catch {
-            status = 'unavailable';
-            message = `Managed artifact is unavailable: ${artifact.relativePath}`;
-          }
+          const verification = await verifyStudioManagedArtifact(input.statArtifact, artifact, record);
+          const { status, message } = verification;
           if (status === 'unavailable' && !unavailableReason) unavailableReason = message;
           const capabilityLabel = input.resolveCapabilityLabel?.(record.capabilityId) || undefined;
           mediaHistory.push({
@@ -218,7 +233,36 @@ export async function projectStudioManagedHistory(input: {
 
   if (input.retainUnprojectedMedia) {
     for (const stored of existingMediaHistory) {
-      if (!projectedIDs.has(stored.id)) mediaHistory.push(stored);
+      if (projectedIDs.has(stored.id)) continue;
+      if (stored.kind !== 'runtime-media') {
+        mediaHistory.push(stored);
+        continue;
+      }
+      if (!stored.relativePath || stored.sizeBytes === undefined || !stored.sha256) {
+        mediaHistory.push({
+          ...stored,
+          status: 'unavailable',
+          message: `Managed artifact metadata is unavailable: ${stored.relativePath || stored.id}`,
+        });
+        continue;
+      }
+      const artifact: StudioManagedArtifact = {
+        relativePath: stored.relativePath,
+        ...(stored.mediaType ? { mediaType: stored.mediaType } : {}),
+        sizeBytes: stored.sizeBytes,
+        sha256: stored.sha256,
+        ...(stored.artifactLabel ? { displayName: stored.artifactLabel } : {}),
+        previewSource: 'managed-asset',
+      };
+      const verification = await verifyStudioManagedArtifact(input.statArtifact, artifact, {
+        id: stored.runId || stored.id,
+        capabilityId: stored.capabilityId,
+        prompt: '',
+        status: stored.status,
+        message: stored.message || '',
+        createdAt: stored.createdAt,
+      });
+      mediaHistory.push({ ...stored, status: verification.status, message: verification.message });
     }
   }
   return { runHistory: projectedRunHistory, mediaHistory };

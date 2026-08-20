@@ -147,6 +147,12 @@ test('shared history policy enforces global count and byte bounds', () => {
   );
 });
 
+test('shared clear outcome tone never presents skipped or failed work as success', () => {
+  assert.equal(historyPolicyModule.studioHistoryClearOutcomeTone({ skipped: 0, failed: 0 }), 'success');
+  assert.equal(historyPolicyModule.studioHistoryClearOutcomeTone({ skipped: 1, failed: 0 }), 'warning');
+  assert.equal(historyPolicyModule.studioHistoryClearOutcomeTone({ skipped: 0, failed: 1 }), 'danger');
+});
+
 test('shared history codec rejects malformed nested result and run config', () => {
   const base = runRecord('run-malformed', '2026-01-01T00:00:00.000Z');
   assert.throws(

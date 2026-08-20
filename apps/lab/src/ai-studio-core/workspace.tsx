@@ -19,6 +19,7 @@ import {
   type StudioRunHistory,
   type StudioRunHistoryRecord,
 } from './history.js';
+import { studioHistoryClearOutcomeTone } from './history-policy.js';
 import type { StudioCapabilityRegistration } from './module-registration.js';
 import { createStudioNonSuccess } from './non-success-presentation.js';
 import type { StudioParameterState } from './parameters.js';
@@ -190,13 +191,17 @@ export function useAIStudioWorkspaceController({
       try {
         const outcome = await historyRepository.clear(capabilityId, deleteAssets);
         setProjection(outcome.projection);
-        nimiToast.success(deleteAssets
+        const message = deleteAssets
           ? translate('History.clearOutcome', {
               completed: outcome.completed,
               skipped: outcome.skipped,
               failed: outcome.failed,
             })
-          : translate('History.clearedRecordsOnly'));
+          : translate(outcome.failed > 0 || outcome.skipped > 0
+            ? 'History.clearFailed'
+            : 'History.clearedRecordsOnly');
+        const tone = studioHistoryClearOutcomeTone(outcome);
+        nimiToast[tone](message);
       } catch {
         await refreshHistory();
         nimiToast.danger(translate('History.clearFailed'));
