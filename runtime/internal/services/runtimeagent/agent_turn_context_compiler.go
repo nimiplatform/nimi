@@ -33,7 +33,10 @@ func compileAgentTurnContext(input agentTurnContextCompileInput) (*agentTurnCont
 		capacity.Summary = projectAgentTurnContextCapacityFailure(input, lanes, budget.Manifest, toolCount)
 		return nil, capacity
 	}
-	prompt := buildAgentTurnProviderPrompt(lanes)
+	prompt, err := buildAgentTurnProviderPrompt(lanes)
+	if err != nil {
+		return nil, fmt.Errorf("build agent turn provider prompt: %w", err)
+	}
 	contextContentHash, err := hashAgentTurnContextContent(lanes)
 	if err != nil {
 		return nil, fmt.Errorf("hash agent turn semantic context: %w", err)
@@ -312,24 +315,41 @@ func appendAgentTurnRuntimeInputs(items map[agentTurnContextLaneID][]agentTurnCo
 	return capabilityDigest, toolCount, nil
 }
 
-func buildAgentTurnProviderPrompt(lanes []agentTurnContextLane) agentTurnProviderPrompt {
+func buildAgentTurnProviderPrompt(lanes []agentTurnContextLane) (agentTurnProviderPrompt, error) {
 	prompt := agentTurnProviderPrompt{Messages: make([]agentTurnProviderMessage, 0)}
 	var outputContractMessages []agentTurnProviderMessage
 	for _, lane := range lanes {
 		if lane.LaneID == agentTurnContextLaneOutputContract {
 			for _, item := range lane.Items {
-				outputContractMessages = append(outputContractMessages, agentTurnContextProviderMessagesForItem(item)...)
+				if !item.Included {
+					continue
+				}
+				if len(outputContractMessages) != 0 || len(item.Segments) != 1 || item.Segments[0].Role != "system" || strings.TrimSpace(item.Segments[0].Content) == "" || len(item.Media) != 0 {
+					return agentTurnProviderPrompt{}, fmt.Errorf("output contract lane must project exactly one Runtime instruction")
+				}
+				outputContractMessages = append(outputContractMessages, agentTurnProviderMessage{
+					Role:    "user",
+					Content: strings.TrimSpace(item.Segments[0].Content),
+				})
 			}
 			continue
 		}
 		if lane.LaneID == agentTurnContextLaneCurrentUserTurn {
-			prompt.Messages = append(prompt.Messages, outputContractMessages...)
+			if len(outputContractMessages) != 1 {
+				return agentTurnProviderPrompt{}, fmt.Errorf("output contract Runtime instruction is required")
+			}
 		}
 		for _, item := range lane.Items {
 			prompt.Messages = append(prompt.Messages, agentTurnContextProviderMessagesForItem(item)...)
 		}
+		if lane.LaneID == agentTurnContextLaneCurrentUserTurn {
+			prompt.Messages = append(prompt.Messages, outputContractMessages...)
+		}
 	}
-	return prompt
+	if len(outputContractMessages) != 1 {
+		return agentTurnProviderPrompt{}, fmt.Errorf("output contract Runtime instruction is required")
+	}
+	return prompt, nil
 }
 
 func buildAgentTurnContextLaneManifest(lanes []agentTurnContextLane) ([]agentTurnContextLaneManifestV1, error) {

@@ -33,27 +33,27 @@ func NewAIBackedPublicChatTurnExecutor(ai publicChatScenarioStreamer) PublicChat
 }
 
 const publicChatAPMLOutputContractPromptTemplate = `Runtime APML contract:
-- Return APML only; start <message id="message-0">, put reply/cues inside <message>, and close it. No Markdown, JSON, fences, <think>, or prose.
-- Text-only: <message id="message-0">reply text</message>. Never self-close <message>.
-- Optional cues (omit if unsure): never top-level; at most one each; <emotion>%s</emotion>; <activity>%s</activity>. "focused" is activity, never emotion.
+- Output APML only. Begin exactly <message id="message-0">; no Markdown, JSON, fences, <think>, or other prose.
+- Text: <message id="message-0">reply text</message>. Never self-close <message>; all reply text stays inside <message>.
+- Optional inside <message>, at most one each (omit if unsure): <emotion>%s</emotion>; <activity>%s</activity>. "focused" is activity, not emotion.
 - Voice: <action id="action-0" kind="voice"><prompt-payload kind="voice"><prompt-text>voice prompt</prompt-text></prompt-payload></action>.
 %s
 - Follow-up: <time-hook id="hook-0"><delay-ms>600000</delay-ms><effect kind="follow-up-turn"><prompt-text>instruction</prompt-text></effect></time-hook>.
-- Order: message first, then only action, time-hook, or event-hook siblings. Close every tag.`
+- Message first; then action/time-hook/event-hook siblings; close all tags. FINAL: reply ONLY as <message id="message-0">reply text</message> unless a sibling is required.`
 
-const publicChatImageActionAvailablePrompt = `- Image output; all reply text stays in message, with no text between/after tags: <message id="message-0">Creating it.</message><action id="action-0" kind="image"><prompt-payload kind="image"><prompt-text>generation prompt</prompt-text></prompt-payload></action>.
+const publicChatImageActionAvailablePrompt = `- Image; all reply text stays in message, with no text between/after tags: <message id="message-0">Creating it.</message><action id="action-0" kind="image"><prompt-payload kind="image"><prompt-text>generation prompt</prompt-text></prompt-payload></action>.
 - If the user asks to create, draw, generate, send, or show an image/photo/picture/avatar/selfie/visual, include exactly one sibling <action kind="image"> after the message.
-- For an agent photo/avatar/selfie request, create a representative or stylized visual prompt; do not claim a missing physical body to skip it.`
+- For an agent photo/avatar/selfie request, use a representative or stylized prompt.`
 
 // publicChatImageActionNotConfiguredPrompt is the truthful K-AGCORE-148 copy
 // for the `not_configured` state: no committed image.generate binding exists.
-const publicChatImageActionNotConfiguredPrompt = `- Image: image generation is not configured. Do not output <action kind="image">. If asked for an image/photo/picture/avatar/selfie/visual, say it needs a configured image route.`
+const publicChatImageActionNotConfiguredPrompt = `- Image: image generation is not configured. Do not output <action kind="image">; say a configured image route is required.`
 
 // publicChatImageActionRouteUnavailablePrompt is the truthful K-AGCORE-148
 // copy for the `unavailable` state: a committed image binding exists but its
 // route is currently not usable. Telling the model the route is unconfigured
 // when a committed binding exists is not admitted.
-const publicChatImageActionRouteUnavailablePrompt = `- Image route is configured but currently unavailable. Do not output <action kind="image">. If asked for an image/photo/picture/avatar/selfie/visual, say the configured route is unavailable and retry later.`
+const publicChatImageActionRouteUnavailablePrompt = `- Image route unavailable: Do not output <action kind="image">; say to retry later.`
 
 func publicChatAPMLOutputContractPrompt(actions publicChatAvailableActions) string {
 	var imagePrompt string

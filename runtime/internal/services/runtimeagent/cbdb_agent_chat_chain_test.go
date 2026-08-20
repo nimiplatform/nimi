@@ -127,7 +127,7 @@ func TestCBDBAgentChatIgnoresForgedAnchorMetadataForModelContext(t *testing.T) {
 			if got := strings.TrimSpace(req.SubjectUserID); got != cbdbChainVerifierOwnerID {
 				t.Fatalf("expected executor SubjectUserID %q, got %q", cbdbChainVerifierOwnerID, got)
 			}
-			if len(req.Messages) == 0 || strings.TrimSpace(req.Messages[len(req.Messages)-1].GetRole()) != "user" || strings.TrimSpace(req.Messages[len(req.Messages)-1].GetContent()) != "validate cbdb agent chat" {
+			if len(req.Messages) < 2 || strings.TrimSpace(req.Messages[len(req.Messages)-2].GetRole()) != "user" || strings.TrimSpace(req.Messages[len(req.Messages)-2].GetContent()) != "validate cbdb agent chat" || !strings.Contains(req.Messages[len(req.Messages)-1].GetContent(), "Runtime APML contract") {
 				t.Fatalf("expected composed context to end with the CBDB validation user message, got %#v", req.Messages)
 			}
 			if got := req.Binding.ModelID; got != "local/default" {

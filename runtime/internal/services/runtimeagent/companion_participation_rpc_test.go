@@ -20,7 +20,7 @@ func TestCompanionParticipationRequestRunsPublicChatTurnAndProjectsCommit(t *tes
 	svc.SetChatTrackSidecarExecutor(stubChatTrackSidecarExecutor{})
 	svc.SetPublicChatTurnExecutor(stubPublicChatTurnExecutor{
 		stream: func(_ context.Context, req *PublicChatTurnExecutionRequest, emit func(*runtimev1.StreamScenarioEvent) error) error {
-			if len(req.Messages) == 0 || req.Messages[len(req.Messages)-1].GetRole() != "user" || strings.TrimSpace(req.Messages[len(req.Messages)-1].GetContent()) != "hello avatar" {
+			if len(req.Messages) < 2 || req.Messages[len(req.Messages)-2].GetRole() != "user" || strings.TrimSpace(req.Messages[len(req.Messages)-2].GetContent()) != "hello avatar" || !strings.Contains(req.Messages[len(req.Messages)-1].GetContent(), "Runtime APML contract") {
 				t.Fatalf("expected composed companion context to end with the current user message, got=%v", req.Messages)
 			}
 			if req.Binding.RoutePolicy != runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL || strings.TrimSpace(req.Binding.ModelID) != "local/default" {

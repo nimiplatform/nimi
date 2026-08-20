@@ -375,10 +375,10 @@ func TestPublicChatFollowUpRecoversAfterRestart(t *testing.T) {
 			case 1:
 				envelope = publicChatStructuredEnvelopeWithFollowUpAPML("message-1", "persist me", "action-recover", "resume after restart", 200)
 			case 2:
-				if got := strings.TrimSpace(req.SystemPrompt); strings.Contains(got, "resume after restart") {
+				if got := strings.TrimSpace(req.SystemPrompt); got != "" {
 					t.Fatalf("follow-up instruction must not own a special system prompt path, got=%q", got)
 				}
-				if len(req.Messages) == 0 || req.Messages[len(req.Messages)-1].GetRole() != "user" || req.Messages[len(req.Messages)-1].GetContent() != "Runtime-admitted follow-up instruction: resume after restart" {
+				if len(req.Messages) < 2 || req.Messages[len(req.Messages)-2].GetRole() != "user" || req.Messages[len(req.Messages)-2].GetContent() != "Runtime-admitted follow-up instruction: resume after restart" || !strings.Contains(req.Messages[len(req.Messages)-1].GetContent(), "Runtime APML contract") {
 					t.Fatalf("expected composed context to end with the Runtime-admitted follow-up instruction, got=%v", req.Messages)
 				}
 				envelope = publicChatStructuredEnvelopeAPML("message-2", "recovered follow up")

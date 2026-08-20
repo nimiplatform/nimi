@@ -597,6 +597,36 @@ func TestLocalTextStreamEmitsStartedDeltasAndRealUsage(t *testing.T) {
 	}
 }
 
+func TestLocalTextResolvedAssemblyRehydratesPublicChatShapedRequest(t *testing.T) {
+	svc := newTestService(nil)
+	svc.SetLocalExecutionResolver(&mutableLocalExecutionResolver{projection: selectedTextExecutionForTest(t, "config-public-chat", "public-chat.gguf")})
+	svc.SetLocalTextExecutionHost(&localTextHostStub{
+		streamDeltas: []localexecution.TextDelta{{Text: "public chat reply"}},
+		result: localexecution.TextResult{
+			Text: "public chat reply", FinishReason: runtimev1.FinishReason_FINISH_REASON_STOP,
+		},
+	})
+	executeRequest := localTextExecuteRequestForTest()
+	spec := executeRequest.GetSpec().GetTextGenerate()
+	spec.SystemPrompt = "<runtime-agent-context>You are the selected Runtime Agent.</runtime-agent-context> Reply concisely."
+	spec.MaxTokens = proto.Int32(512)
+	spec.Reasoning = &runtimev1.ReasoningConfig{
+		Mode:      runtimev1.ReasoningMode_REASONING_MODE_OFF,
+		TraceMode: runtimev1.ReasoningTraceMode_REASONING_TRACE_MODE_HIDE,
+	}
+	stream := &mockScenarioEventStream{ctx: localTextIntentContext(context.Background(), nil)}
+	request := &runtimev1.StreamScenarioRequest{
+		Head: executeRequest.GetHead(), ScenarioType: executeRequest.GetScenarioType(),
+		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_STREAM, Spec: executeRequest.GetSpec(),
+	}
+	if err := svc.StreamScenario(request, stream); err != nil {
+		t.Fatalf("StreamScenario public-chat request: %v", err)
+	}
+	if completed := stream.events[len(stream.events)-1].GetCompleted(); completed == nil {
+		t.Fatalf("public-chat shaped stream did not complete: %+v", stream.events)
+	}
+}
+
 func TestLocalTextStreamFailureEmitsTypedTerminalEvent(t *testing.T) {
 	svc := newTestService(nil)
 	svc.SetLocalExecutionResolver(&mutableLocalExecutionResolver{projection: selectedTextExecutionForTest(t, "config-stream-failure", "stream-failure.gguf")})

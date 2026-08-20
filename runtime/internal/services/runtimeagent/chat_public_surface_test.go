@@ -3,7 +3,6 @@ package runtimeagent
 import (
 	"bytes"
 	"context"
-	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -226,24 +225,12 @@ func publicChatScenarioSystemPromptForImageConfig(
 	if streamer.request == nil || streamer.request.GetSpec().GetTextGenerate() == nil {
 		t.Fatalf("expected captured text generate stream request")
 	}
-	var composed strings.Builder
 	for _, message := range streamer.request.GetSpec().GetTextGenerate().GetInput() {
-		if message.GetRole() == "system" {
-			for _, line := range strings.Split(message.GetContent(), "\n") {
-				encoded, found := strings.CutPrefix(line, "content_json_string=")
-				if !found {
-					continue
-				}
-				decoded, err := strconv.Unquote(encoded)
-				if err != nil {
-					t.Fatalf("decode typed context item: %v", err)
-				}
-				composed.WriteString(decoded)
-				composed.WriteByte('\n')
-			}
+		if message.GetRole() == "user" && strings.Contains(message.GetContent(), "Runtime APML contract") {
+			return message.GetContent()
 		}
 	}
-	return composed.String()
+	return ""
 }
 
 type stubChatTrackSidecarExecutor struct {

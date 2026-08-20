@@ -608,11 +608,21 @@ func selectedLocalExecutionFromResolvedAssembly(assembly *localResolvedAssembly)
 }
 
 func validateRehydratedResolvedAssemblyPlan(captured, reprojected *localResolvedAssembly) error {
-	if captured == nil || reprojected == nil ||
-		!reflect.DeepEqual(captured.Request, reprojected.Request) ||
-		!reflect.DeepEqual(captured.LoadPlan, reprojected.LoadPlan) ||
-		!reflect.DeepEqual(captured.ProcessIdentity, reprojected.ProcessIdentity) {
-		return fmt.Errorf("rehydrated local ResolvedAssembly request, load, or process plan differs from the captured contract")
+	if captured == nil || reprojected == nil {
+		return fmt.Errorf("rehydrated local ResolvedAssembly is missing")
+	}
+	differing := make([]string, 0, 3)
+	if !reflect.DeepEqual(captured.Request, reprojected.Request) {
+		differing = append(differing, "request")
+	}
+	if !reflect.DeepEqual(captured.LoadPlan, reprojected.LoadPlan) {
+		differing = append(differing, "load_plan")
+	}
+	if !reflect.DeepEqual(captured.ProcessIdentity, reprojected.ProcessIdentity) {
+		differing = append(differing, "process_identity")
+	}
+	if len(differing) > 0 {
+		return fmt.Errorf("rehydrated local ResolvedAssembly differs from the captured contract: %s", strings.Join(differing, ","))
 	}
 	return nil
 }
@@ -681,12 +691,14 @@ func cloneLocalResolvedAssembly(input *localResolvedAssembly) (*localResolvedAss
 	if input == nil {
 		return nil, nil
 	}
-	raw, err := json.Marshal(input)
-	if err != nil {
+	var encoded bytes.Buffer
+	encoder := json.NewEncoder(&encoded)
+	encoder.SetEscapeHTML(false)
+	if err := encoder.Encode(input); err != nil {
 		return nil, err
 	}
 	var cloned localResolvedAssembly
-	if err := decodeScenarioJobStrictJSON(raw, &cloned); err != nil {
+	if err := decodeScenarioJobStrictJSON(encoded.Bytes(), &cloned); err != nil {
 		return nil, err
 	}
 	return &cloned, nil

@@ -29,7 +29,6 @@ func TestAgentTurnContextProviderSequencePlacesOutputContractBeforeCurrentTurn(t
 	}
 	for _, laneID := range []agentTurnContextLaneID{
 		agentTurnContextLaneRuntimePolicy,
-		agentTurnContextLaneOutputContract,
 		agentTurnContextLaneSourceIdentity,
 		agentTurnContextLaneSourceBehavior,
 		agentTurnContextLaneWorldContext,
@@ -57,6 +56,7 @@ func TestAgentTurnContextProviderSequencePlacesOutputContractBeforeCurrentTurn(t
 		}
 	}
 	var historyAssistantIndex = -1
+	var outputContractIndex = -1
 	var currentUserIndex = -1
 	for index, message := range compiled.ProviderPrompt.Messages {
 		if message.Role == "assistant" && message.Content == "This is the canonical fixture world." {
@@ -65,13 +65,15 @@ func TestAgentTurnContextProviderSequencePlacesOutputContractBeforeCurrentTurn(t
 		if message.Role == "user" && message.Content == "Continue from our prior conversation." {
 			currentUserIndex = index
 		}
+		if message.Role == "user" && strings.Contains(message.Content, `Return one strict <message id="message-0">`) {
+			outputContractIndex = index
+		}
 	}
-	outputContractIndex := positions[agentTurnContextLaneOutputContract]
 	if historyAssistantIndex < 0 || currentUserIndex < 0 ||
 		positions[agentTurnContextLaneCapabilityContext] <= historyAssistantIndex ||
-		outputContractIndex <= positions[agentTurnContextLaneCapabilityContext] ||
-		currentUserIndex != outputContractIndex+1 ||
-		currentUserIndex != len(compiled.ProviderPrompt.Messages)-1 {
+		currentUserIndex <= positions[agentTurnContextLaneCapabilityContext] ||
+		outputContractIndex != currentUserIndex+1 ||
+		outputContractIndex != len(compiled.ProviderPrompt.Messages)-1 {
 		t.Fatalf("provider history/capability/output-contract/current order is invalid: history=%d capability=%d outputContract=%d current=%d total=%d", historyAssistantIndex, positions[agentTurnContextLaneCapabilityContext], outputContractIndex, currentUserIndex, len(compiled.ProviderPrompt.Messages))
 	}
 }

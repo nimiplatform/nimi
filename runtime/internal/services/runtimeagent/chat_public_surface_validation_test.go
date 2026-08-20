@@ -597,7 +597,7 @@ func TestPublicChatFollowUpRunsInsideRuntime(t *testing.T) {
 				if got := strings.TrimSpace(req.SystemPrompt); got != "" {
 					t.Fatalf("follow-up must not use a parallel system prompt path, got=%q", got)
 				}
-				if len(req.Messages) < 3 || req.Messages[len(req.Messages)-1].GetRole() != "user" || req.Messages[len(req.Messages)-1].GetContent() != "Runtime-admitted follow-up instruction: continue naturally" {
+				if len(req.Messages) < 4 || req.Messages[len(req.Messages)-2].GetRole() != "user" || req.Messages[len(req.Messages)-2].GetContent() != "Runtime-admitted follow-up instruction: continue naturally" || !strings.Contains(req.Messages[len(req.Messages)-1].GetContent(), "Runtime APML contract") {
 					t.Fatalf("expected follow-up context to end with the Runtime-admitted instruction, got=%v", req.Messages)
 				}
 				priorAssistantObserved := false
