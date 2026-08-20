@@ -72,14 +72,6 @@
       "class": "scaffold-managed glue"
     },
     {
-      "path": "src/shell/auth/auth-gate.tsx",
-      "class": "scaffold-managed glue"
-    },
-    {
-      "path": "src/shell/auth/auth-i18n.ts",
-      "class": "scaffold-managed glue"
-    },
-    {
       "path": "src/shell/auth/local-app-client.ts",
       "class": "scaffold-managed glue"
     },
@@ -88,15 +80,11 @@
       "class": "scaffold-managed glue"
     },
     {
-      "path": "src/shell/auth/runtime-unavailable-page.tsx",
-      "class": "scaffold-managed glue"
-    },
-    {
       "path": "src/shell/authenticated-shell.tsx",
       "class": "scaffold-managed glue"
     },
     {
-      "path": "src/shell/routes/demo-surfaces.tsx",
+      "path": "src/shell/workbench-target-adapter.ts",
       "class": "scaffold-managed glue"
     },
     {

@@ -1,95 +1,122 @@
 # @nimiplatform/app-tools
 
-Public app-authoring CLI for Nimi App projects.
+`@nimiplatform/app-tools` is the canonical CLI for creating and maintaining local-development Nimi App source projects. It generates a positive composition:
+
+```text
+identity-neutral Lab-derived workbench-core
++ selected admitted coarse features
++ internal dependency closure
++ generated target glue
+```
+
+It does not copy the full Nimi Lab and remove files, hide unselected products behind runtime flags, or create platform admission, permission, listing, release, install, or update truth.
+
+## Current catalog
+
+Run the checked-in CLI to see the current lifecycle projection:
 
 ```bash
+node app-tools/bin/nimi-app.mjs --help
+```
+
+The help output is generated from the single module registry. Only entries shown under `Admitted features` may be passed to public `create`; `--features all` expands only that exact ordered set. Entries shown as candidates are not publicly selectable, and internal modules are never directly selectable. When the admitted set is empty, `all` fails closed.
+
+The coarse inventory is:
+
+- `studio-create`: Create — text generation, chat stream, and embeddings.
+- `studio-media`: Media — image and video generation.
+- `studio-voice`: Voice — synthesis, transcription, voice creation, and speech bundle.
+- `kit-recipes`: UI Recipes.
+- `ai-studio-core`: internal shared composer, configuration, history, artifact, loading, error, and result product code used once by selected AI features.
+
+The generated base is the identity-neutral, Lab-derived `workbench-core` with an empty module registry and target adapter. Lab-only Settings/account, App Access diagnostics, Realm/Agent probes, World Tour, and native or diagnostic surfaces do not enter generated Apps.
+
+## Create
+
+The interactive wizard and flags use the same resolver and generator. The canonical identity inputs are App ID, Display Name, package name, optional `author`, profile, and features. `author` is the only authoring metadata field and may name either a person or a team; there is no separate team field.
+
+Run `node app-tools/bin/nimi-app.mjs create` in a TTY for the keyboard-driven wizard. It validates each field, prints the complete resolved preview, requires confirmation, and accepts `:cancel` before materialization. For non-interactive automation, pass explicit flags and optional `--json`; non-TTY execution never opens prompts and the canonical resolver applies only its documented defaults.
+
+```bash
+node app-tools/bin/nimi-app.mjs create \
+  --dir path/to/app \
+  --profile standalone \
+  --app-id example.app \
+  --title "Example App" \
+  --package-name example-app \
+  --author "Example Team"
+```
+
+Add `--features <admitted-id,...>` only for IDs currently listed as admitted by `--help`. `--features all` is admitted-only, not the complete candidate inventory and not the full Lab.
+
+After the requested identity, topology, module closure, ownership, and dependency projections validate, `create` writes source and `.nimi/app-scaffold/intent.json`. It does not install dependencies or run lifecycle commands.
+
+## Profiles
+
+`standalone` and `workspace-app` change dependency topology only; they do not change product scope or admission.
+
+- `standalone` uses only the exact public npm and Cargo registry versions declared by the generated project. Public-registry publication is a prerequisite. Workspace paths, local path overrides, tarballs, downgrades, and workspace links are not standalone evidence.
+- `workspace-app` must be a direct `apps/*` child in the Nimi workspace and uses the exact supported workspace dependencies and repository Cargo path.
+
+A passing workspace journey does not prove standalone. If a required version is not public, standalone remains externally blocked and `NOT-VERIFIED` rather than being replaced by a local substitute.
+
+## Required lifecycle order
+
+Run the real workflow in this order:
+
+```bash
+# 1. create
+node app-tools/bin/nimi-app.mjs create --dir path/to/app --profile standalone
+
+# 2. install
+cd path/to/app
+pnpm install
+
+# 3. initialize the supported projection
+pnpm run init
+
+# 4. inspect, build, and launch
+pnpm run doctor
+pnpm run build
+pnpm run build:electron
+pnpm dev
+```
+
+`init`, `doctor`, and `update` must run only after dependency installation. `init` invokes the pinned project-local `nimicoding sync --apply` and writes the exact-version scaffold lock. Package installation itself does not mutate `.nimi/**`.
+
+`doctor` checks supported intent/lock state, managed glue, package-owned projections, dependency alignment, ownership, and forbidden shortcut patterns. `update` refreshes only scaffold-managed output for the same immutable identity and feature selection. Neither command overwrites app-owned product code.
+
+## Ownership
+
+- App-owned: the shared `workbench-core`, selected product modules under `src/capabilities/**`, and product edits made by the App author.
+- Scaffold-managed: carrier/auth wiring, identity, manifests, bounded native glue, project tooling, and `src/scaffold/generated/**` composition files.
+- Package-owned projection: `.nimi/{config,contracts,methodology}/**`, written by the pinned `nimicoding` package during explicit initialization.
+
+The generator validates exact, case-folded, file/directory-prefix, view, navigation, style, asset, dependency, and ownership collisions before creating a target. A filesystem failure after writing begins is reported with the exact residual target; it is not described as transactionally atomic.
+
+## Development
+
+`pnpm dev` enters the official Desktop-supervised Electron launcher. The explicit equivalent is:
+
+```bash
+pnpm dev:shell -- --shell electron
+```
+
+For an explicit local UI observation run:
+
+```bash
+pnpm dev -- --cdp-port 9334
+```
+
+The CDP port is loopback-only and disabled when omitted. Nimi Desktop owns the renderer and native-host lifecycle. Runtime credentials, protected session material, permission grants, and installed-App truth do not enter the project or renderer.
+
+## Acceptance status
+
+Creating a tree, printing help, passing focused tests, or observing CDP reachability does not prove product acceptance. Until real install, init, doctor, build, Electron build, Desktop-supervised launch, and principal interactions have run for the required matrix, those paths remain `NOT-VERIFIED`. Implementation and release acceptance must not be reported as PASS from this documentation alone.
+
+After the relevant package versions are public, the installed CLI form is:
+
+```bash
+pnpm dlx --package @nimiplatform/app-tools nimi-app --help
 pnpm dlx --package @nimiplatform/app-tools nimi-app create --profile standalone
-pnpm dlx --package @nimiplatform/app-tools nimi-app init --dir path/to/app
-pnpm dlx --package @nimiplatform/app-tools nimi-app doctor --dir path/to/app
-pnpm dlx --package @nimiplatform/app-tools nimi-app update --dir path/to/app
-```
-
-`nimi-app create` emits an Electron-supervised local-development app-authoring scaffold. The
-generated project is designed to install its own dependencies with
-`pnpm install`, initialize with `pnpm run init`, run with `pnpm dev`, run local
-checks, and remain directly usable without
-hand-editing scaffold-managed glue.
-
-`nimi-app init` is the explicit post-install activation step. It runs the
-pinned local `nimicoding sync --apply` projection for `.nimi/{config,contracts,methodology}/**`
-and writes app-scaffold lock state. It does not use
-`npx` or mutate `.nimi/**` from package install side effects.
-
-`pnpm dev` enters the official `nimi-app dev` launcher and selects Electron.
-`pnpm dev:shell -- --shell electron` is the explicit equivalent. Windows and
-macOS accept only the Desktop-supervised Electron carrier; Tauri is not an
-admitted local-development path. Nimi Desktop shows the canonical project, app
-identity, shell, current account, and requested capabilities. The user may
-allow only this run, remember the project, or deny.
-Desktop then owns the dev server and native host lifecycle; ordinary direct
-shell launches remain untrusted.
-
-Remembered authorization is bound to the canonical project, app id, shell,
-account, and capability fingerprint. Renderer HMR and Desktop-controlled native
-host rebuilds do not prompt again. App id, project root, shell, account, or
-capability expansion requires a new decision. Runtime credentials and protected
-session material never enter the project, terminal, or renderer. The current
-local-development surface admits only typed Runtime artifact reads requested in
-`nimi.app.yaml`; other protected surfaces remain fail-closed. Local-development
-authorization is not listing admission, a production release, installed-app
-truth, signing status, or a permission grant. Paths not run in the current
-development environment remain `NOT-VERIFIED`.
-
-Profiles control dependency topology only: `standalone` uses public package
-versions, while `workspace-app` uses workspace and repository-local dependency
-links. Feature selection is independent of the profile. The current admitted
-catalog contains `kit-recipes`, extracted from the real Nimi Lab UI Recipes
-surface. `--features all` currently expands to that exact one-item catalog; it
-does not copy the full Lab. AI consume, Realm, Local Agent, diagnostics, and
-other Lab surfaces remain non-selectable until their own real Lab journey and
-generated-App closure are complete. The full Lab App is not a scaffold profile
-or template; implementation presence in `apps/lab` is not admission.
-
-`nimi-app doctor` verifies scaffold init/lock state, managed glue, package-owned
-projections, dependency alignment, and forbidden shortcut patterns in a source
-checkout. `nimi-app update` refreshes scaffold-managed files while preserving
-app-owned product code.
-
-The CLI does not create public admission truth, permission grants, registry
-visibility, release descriptors, or installed-app update truth. Platform review
-owns those outcomes.
-
-## Install
-
-```bash
-pnpm add -D @nimiplatform/app-tools
-pnpm add @nimiplatform/sdk @nimiplatform/kit
-```
-
-## Commands
-
-```bash
-nimi-app create [--dir path] [--profile standalone|workspace-app] [--features ids|all] [--app-id id] [--title title] [--package-name name] [--author author]
-nimi-app dev [--dir path] [--shell electron] [--cdp-port 1024..65535]
-nimi-app init [--dir path] [--json]
-nimi-app doctor [--dir path] [--json]
-nimi-app doctor [--dir path] --conformance simulator
-nimi-app update [--dir path] [--json]
-```
-
-`dev --cdp-port <port>` asks the Desktop supervisor to expose that App's
-Electron DevTools protocol on `127.0.0.1` for the current run. The option is
-explicit and development-only; omitting it keeps CDP disabled.
-
-`doctor --conformance simulator` validates the current closed
-`nimi.simulator.module/v1` input, canonical renderer-factory reachability,
-Simulator renderer/Adapter/fixture source, canonical style namespace, forbidden
-closure imports, and scoped CSS inputs. It emits an ordinary log and
-exit code. It neither selects the App nor certifies the product, artifact,
-release, or Nimi App admission.
-
-Inside this monorepo, use the repo-local binary:
-
-```bash
-node ../../app-tools/bin/nimi-app.mjs create --profile standalone
 ```

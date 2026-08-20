@@ -2,35 +2,68 @@
 
 Profile: `standalone`
 
-This repository is a local-development Nimi App authoring scaffold. `nimi.app.yaml` carries the app identity and App Access domain declaration used by the supervised development path. Development commands do not constitute product acceptance.
+This is a local-development Nimi App source project created from the identity-neutral, Lab-derived `workbench-core` plus the exact selected module dependency closure and generated target glue. It is a positive composition, not a full Lab copy, runtime-hidden feature set, or release/admission record.
 
-Its source is composed from the generic base plus the dependency closure of the
-features selected at creation time. The selected feature IDs and derived App
-Access items are recorded in `.nimi/app-scaffold/intent.json`; feature code is
-generated under `src/capabilities/**`. An empty selection remains a base-only
-App.
+The canonical identity, direct feature selection, resolved modules, App Access declaration, dependency projection, and ownership inputs are recorded in `.nimi/app-scaffold/intent.json`. Selected product modules live under `src/capabilities/**`.
 
-## Development
+## Ownership
+
+- App-owned product code: `src/workbench-core/**`, selected `src/capabilities/**`, and App-author product edits.
+- Scaffold-managed code: carrier/auth wiring, identity, manifests, bounded native integration, project tooling, and `src/scaffold/generated/**`.
+- Package-owned projection: `.nimi/{config,contracts,methodology}/**`, created by the pinned local `nimicoding` package during explicit initialization.
+
+`doctor` and `update` may inspect or refresh scaffold-managed output, but they do not overwrite app-owned skeleton or module code. Changing identity, profile, or feature selection requires a fresh scaffold.
+
+## Required workflow
+
+`create` has already completed for this source tree. Continue in this order:
 
 ```bash
+# 1. install dependencies
 pnpm install
+
+# 2. initialize package-owned projection and scaffold lock
 pnpm run init
-pnpm dev
-pnpm run validate
+
+# 3. inspect and build
 pnpm run doctor
-pnpm run update
+pnpm run validate
+pnpm run build
+pnpm run build:electron
+
+# 4. launch through the Desktop supervisor
+pnpm dev
 ```
 
-`init` runs the pinned local `nimicoding sync --apply` projection and writes app-scaffold lock state. It is explicit after install; package installation does not mutate `.nimi/**` by itself.
+Run `init`, `doctor`, and `update` only after dependency installation. Installation alone does not mutate `.nimi/**`. If managed output later needs refresh, run `pnpm run update` only in an installed project, then rerun doctor and the affected build.
 
-`dev` enters the official Nimi local-development launcher and selects Electron. `pnpm dev:shell -- --shell electron` is the explicit equivalent. Windows and macOS accept only the Desktop-supervised Electron carrier; Tauri is not an admitted local-development path. Keep Nimi Desktop open with Developer Mode enabled. Desktop registers and launches the canonical project without creating access authority or requiring an account.
+`pnpm dev` selects the official Desktop-supervised Electron carrier. The explicit equivalent is:
 
-For explicit local UI inspection, `pnpm dev -- --cdp-port 9334` asks the
-Desktop supervisor to expose this run's Electron DevTools protocol on
-`127.0.0.1:9334`. CDP is disabled when the option is omitted.
+```bash
+pnpm dev:shell -- --shell electron
+```
 
-Desktop owns the dev server and native host lifecycle. Renderer HMR and Desktop-controlled native rebuilds reuse the same registered App subject while source and declaration generations advance when their inputs change. Direct shell launches remain untrusted, and the app never receives Runtime credentials or protected session material. Protected operations stay typed unavailable until Runtime establishes a fresh account-bound App session. Local-development registration is not Nimi listing admission, install truth, a production release, signing evidence, or operation authority.
+For an explicit local CDP observation run:
 
-`doctor` and `update` are developer scaffold checks for this source repository. They do not update an installed app, publish admission truth, create release descriptors, or admit protected operations.
+```bash
+pnpm dev -- --cdp-port 9334
+```
 
-Public distribution, listing, release descriptors, ordinary visibility, install truth, and protected App Access ingress are deferred platform contracts. This scaffold neither generates nor validates their inputs or outcomes.
+The port is loopback-only and CDP stays disabled when omitted. Direct Electron or Tauri development launches are not substitutes for the Desktop-supervised journey.
+
+## Profile evidence
+
+- A `standalone` project must resolve only the exact public npm and Cargo registry versions in its manifests. Workspace paths, local path overrides, tarballs, downgrades, and workspace links are not valid substitutes.
+- A `workspace-app` project must remain a direct `apps/*` package in the supported Nimi workspace and use its exact workspace dependency topology.
+
+A passing workspace build or launch does not prove standalone.
+
+## Product boundary
+
+AI selections share the internal `ai-studio-core` once; it is dependency-only and not a direct public selection. Unselected modules are absent from source and navigation. Lab-only Settings/account, App Access diagnostics, Realm/Agent probes, World Tour, and native or diagnostic surfaces are not part of this generated App.
+
+Runtime, Realm, admission, listing, permission, install, and release truth remain platform-owned. The project never stores Runtime credentials or protected session material and does not create permission grants.
+
+## Acceptance status
+
+This README does not certify the generated App. Install, init, doctor, build, Electron build, Desktop-supervised launch, responsive/accessibility states, and selected-module interactions remain `NOT-VERIFIED` until they are actually run. Focused tests or CDP visibility alone are not implementation or release acceptance.

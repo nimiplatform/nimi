@@ -2,10 +2,10 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSy
 import path from 'node:path';
 import { parse as parseYaml } from 'yaml';
 import {
-  buildAppScaffoldSnapshot,
   buildAppScaffoldSnapshotFromIntent,
   hashScaffoldContent,
   SCAFFOLD_INTENT_PATH,
+  SCAFFOLD_LOCK_VERSION,
   SCAFFOLD_LOCK_PATH,
   SCAFFOLD_VERSION,
   SUPPORTED_APP_SCAFFOLD_PROFILES,
@@ -132,7 +132,7 @@ function readIntent(targetDir) {
 }
 
 function assertSupportedLock(lock) {
-  if (lock?.lockVersion !== 2) {
+  if (lock?.lockVersion !== SCAFFOLD_LOCK_VERSION) {
     throw new Error(`Unsupported scaffold lock version: ${String(lock?.lockVersion || 'missing')}`);
   }
   if (lock?.scaffoldVersion !== SCAFFOLD_VERSION) {
@@ -170,24 +170,21 @@ function assertSameJson(actual, expected, label) {
   }
 }
 
-function expectedSnapshotFromLock(lock, versions, intent = null) {
+function expectedSnapshotFromLock(lock, versions, intent, targetDir, options = {}) {
   assertSupportedLock(lock);
-  if (intent) {
-    buildAppScaffoldSnapshotFromIntent({ intent, versions });
+  if (!intent) {
+    throw new Error(`Missing scaffold init intent: ${SCAFFOLD_INTENT_PATH}`);
   }
-  if (intent && stableStringify(intent.features) !== stableStringify(lock.features)) {
+  const snapshot = buildAppScaffoldSnapshotFromIntent({
+    intent,
+    versions,
+    targetDir,
+    allowDerivedAppAccessDrift: options.allowDerivedAppAccessDrift === true,
+  });
+  if (stableStringify(intent.directFeatures) !== stableStringify(lock.directFeatures)) {
     throw new Error('Scaffold feature selection is immutable; create a fresh scaffold for a different feature closure');
   }
-  return buildAppScaffoldSnapshot({
-    profile: lock.profile,
-    versions,
-    appId: lock.appId,
-    appTitle: lock.appTitle,
-    packageName: lock.packageName,
-    author: lock.packageAuthor || '',
-    accentPack: lock.accentPack || lock.appIdentity?.accentPack || 'nimi-accent',
-    features: intent?.features ?? lock.features ?? lock.appIdentity?.features,
-  });
+  return snapshot;
 }
 
 function readContentForHash(filePath) {
@@ -203,6 +200,13 @@ function ensureLockMatchesCurrentGenerator(lock, snapshot) {
   assertSameJson(lock.tauriIdentifier, snapshot.lock.tauriIdentifier, 'Tauri identifier');
   assertSameJson(lock.accentPack, snapshot.lock.accentPack, 'Accent pack');
   assertSameJson(lock.features, snapshot.lock.features, 'Scaffold features');
+  assertSameJson(lock.directFeatures, snapshot.lock.directFeatures, 'Direct scaffold features');
+  assertSameJson(lock.resolvedModules, snapshot.lock.resolvedModules, 'Resolved scaffold modules');
+  assertSameJson(lock.resolvedViews, snapshot.lock.resolvedViews, 'Resolved scaffold views');
+  assertSameJson(lock.resolvedNavigation, snapshot.lock.resolvedNavigation, 'Resolved scaffold navigation');
+  assertSameJson(lock.resolvedStyles, snapshot.lock.resolvedStyles, 'Resolved scaffold styles');
+  assertSameJson(lock.resolvedAssets, snapshot.lock.resolvedAssets, 'Resolved scaffold assets');
+  assertSameJson(lock.hostAdapterContracts, snapshot.lock.hostAdapterContracts, 'Scaffold host adapter contracts');
   assertSameJson(lock.appAccessItems, snapshot.lock.appAccessItems, 'App access items');
   assertSameJson(lock.managedFileTaxonomy, snapshot.lock.managedFileTaxonomy, 'Managed file taxonomy');
   assertSameJson(lock.dependencyMatrix, snapshot.lock.dependencyMatrix, 'Dependency matrix');
@@ -516,8 +520,8 @@ function validateDoctorState(targetDir, versions, runners = {}) {
     return validateExistingSubmittedApp(targetDir);
   }
   const lock = readLock(targetDir);
-  const intent = existsSync(path.join(targetDir, SCAFFOLD_INTENT_PATH)) ? readIntent(targetDir) : null;
-  const snapshot = expectedSnapshotFromLock(lock, versions, intent);
+  const intent = readIntent(targetDir);
+  const snapshot = expectedSnapshotFromLock(lock, versions, intent, targetDir);
   ensureLockMatchesCurrentGenerator(lock, snapshot);
   assertRequiredSupportFiles(targetDir, snapshot);
   assertProjectConfiguration(targetDir);
@@ -571,7 +575,7 @@ function validateExistingSubmittedApp(targetDir) {
 export function initApp(cwd, options = {}, versions, runners = {}) {
   const targetDir = resolveTargetDir(cwd, options);
   const intent = readIntent(targetDir);
-  const snapshot = buildAppScaffoldSnapshotFromIntent({ intent, versions });
+  const snapshot = buildAppScaffoldSnapshotFromIntent({ intent, versions, targetDir });
   if (!runners?.runNimicodingSync) {
     throw new Error('Missing nimicoding sync runner');
   }
@@ -670,8 +674,8 @@ function writeScaffoldFile(targetDir, file) {
 export function updateApp(cwd, options = {}, versions, runners = {}) {
   const targetDir = resolveTargetDir(cwd, options);
   const lock = readLock(targetDir);
-  const intent = existsSync(path.join(targetDir, SCAFFOLD_INTENT_PATH)) ? readIntent(targetDir) : null;
-  const snapshot = expectedSnapshotFromLock(lock, versions, intent);
+  const intent = readIntent(targetDir);
+  const snapshot = expectedSnapshotFromLock(lock, versions, intent, targetDir, { allowDerivedAppAccessDrift: true });
   assertNoClassificationConflict(lock, snapshot);
   if (!runners?.runNimicodingSync) {
     throw new Error('Missing nimicoding sync runner');

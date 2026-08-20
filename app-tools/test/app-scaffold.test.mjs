@@ -5,20 +5,37 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
+import { parse as parseYaml } from 'yaml';
 
 import { APP_ACCESS_DOMAINS, resolveAppAccessDeclaration } from '../lib/app-access-declaration.mjs';
 import {
+  assertIdentityNeutralProductSource,
+  buildAppScaffoldCandidateCreatePlan,
+  buildAppScaffoldCandidateSnapshot,
+  buildAppScaffoldSnapshot,
   buildAppScaffoldSnapshotFromIntent,
   createAppScaffold,
+  createAppScaffoldCandidate,
+  renderCargoDependencyValue,
+  resolveAppScaffoldCreateInput,
+  SCAFFOLD_INTENT_PATH,
+  SCAFFOLD_INTENT_VERSION,
+  SCAFFOLD_LOCK_PATH,
+  SCAFFOLD_LOCK_VERSION,
   SCAFFOLD_VERSION,
   SUPPORTED_APP_SCAFFOLD_PROFILES,
+  validateScaffoldFileOwnership,
 } from '../lib/app-scaffold.mjs';
 import {
+  APP_SCAFFOLD_MODULE_REGISTRY,
   APP_SCAFFOLD_FEATURE_IDS,
+  resolveAppScaffoldCandidateFeatures,
   resolveAppScaffoldFeatures,
-  validateAppScaffoldCapabilityCatalog,
+  resolveAppScaffoldIntentFeatures,
+  validateAppScaffoldModuleRegistry,
 } from '../lib/app-scaffold-capabilities.mjs';
 import { initApp } from '../lib/app-doctor-update.mjs';
+import { resolveAppCreatePlan, resolveCandidateAppCreatePlan } from '../lib/index.mjs';
 import { resolveAppSource } from '../scripts/sync-app-source.mjs';
 
 const testDir = path.dirname(fileURLToPath(import.meta.url));
@@ -32,17 +49,14 @@ const versions = {
   reactVersion: '19.0.0',
   reactDomVersion: '19.0.0',
   i18nextVersion: '25.0.0',
-  reactI18nextVersion: '16.0.0',
   lucideReactVersion: '0.577.0',
   nodeTypesVersion: '24.0.0',
   reactTypesVersion: '19.0.0',
   reactDomTypesVersion: '19.0.0',
-  threeTypesVersion: '0.184.0',
   viteVersion: '7.0.0',
   viteReactPluginVersion: '5.0.0',
   tailwindcssVersion: '4.0.0',
   tailwindcssViteVersion: '4.0.0',
-  tauriApiVersion: '2.0.0',
   tauriCliVersion: '2.0.0-cli',
   nimiShellTauriVersion: '0.1.0',
   electronVersion: '42.0.0-electron',
@@ -120,6 +134,17 @@ function scaffold(profile, options = {}) {
       rmSync(tempRoot, { recursive: true, force: true });
     },
   };
+}
+
+function candidateSnapshot(features) {
+  return buildAppScaffoldCandidateSnapshot({
+    profile: 'standalone',
+    versions,
+    appId: 'candidate.target',
+    appTitle: 'Candidate Target',
+    packageName: 'candidate-target',
+    features,
+  });
 }
 
 function assertGeneratedPathMissing(generated, relativePath) {
@@ -265,9 +290,11 @@ test('standalone scaffold creates a generic starter with rewritten identity', ()
     assert.equal(packageJson.publishConfig.access, 'public');
     assert.equal(packageJson.dependencies['@nimiplatform/sdk'], versions.sdkVersion);
     assert.equal(packageJson.dependencies['@nimiplatform/kit'], versions.kitVersion);
-    assert.equal(packageJson.dependencies['lucide-react'], versions.lucideReactVersion);
+    for (const dependency of ['i18next', 'lucide-react', 'react-i18next', '@tauri-apps/api']) {
+      assert.equal(Object.hasOwn(packageJson.dependencies, dependency), false);
+    }
     assert.equal(packageJson.devDependencies['@nimiplatform/app-tools'], versions.appToolsVersion);
-    assert.equal(packageJson.devDependencies['@types/three'], versions.threeTypesVersion);
+    assert.equal(Object.hasOwn(packageJson.devDependencies, '@types/three'), false);
     assert.equal(packageJson.devDependencies.yaml, versions.yamlVersion);
     assert.match(packageJson.scripts['dev:renderer'], /^vite --host 127\.0\.0\.1 --port \d+ --strictPort$/);
     const devPort = devPortFromScript(packageJson.scripts['dev:renderer']);
@@ -280,7 +307,7 @@ test('standalone scaffold creates a generic starter with rewritten identity', ()
     // Identity is rewritten everywhere; no Nimi Lab source identity leaks through.
     assert.match(generated.read('nimi.app.yaml'), /app_id: acme\.widget/);
     assert.match(generated.read('nimi.app.yaml'), /profile: standalone/);
-    assert.match(generated.read('src/shell/auth/app-identity.ts'), /appId = 'acme\.widget'/);
+    assert.match(generated.read('src/shell/auth/app-identity.ts'), /appId = "acme\.widget"/);
     assert.match(generated.read('src/shell/auth/runtime-platform.ts'), /import \{ appId \} from '\.\/app-identity\.js'/);
     const tauri = JSON.parse(generated.read('src-tauri/tauri.conf.json'));
     assert.equal(tauri.identifier, 'ai.nimi.apps.acme.widget');
@@ -310,14 +337,18 @@ test('standalone scaffold creates a generic starter with rewritten identity', ()
     }
 
     // Default profiles are generic starters. Lab-only product code is never copied.
-    assert.match(generated.read('src/shell/routes/product-area.tsx'), /NimiStarterSurface/);
+    assert.match(generated.read('src/shell/routes/product-area.tsx'), /WorkbenchCore/);
+    assert.match(generated.read('src/shell/routes/product-area.tsx'), /WorkbenchEmptyState/);
     assert.doesNotMatch(generated.read('src/shell/routes/product-area.tsx'), /LabWorkbench|WorldTourViewerRoute/);
+    assert.doesNotMatch(generated.read('src/shell/routes/product-area.tsx'), /DemoSurfaces|Kit Demo/);
     assert.match(generated.read('src/main.tsx'), /entry:acme-widget-app/);
     assert.doesNotMatch(generated.read('vite.config.ts'), /repoRoot|path\.join\(repoRoot|\.\.\/\.\.\/kit|kit\/ui\/src/);
     assert.match(generated.read('vite.config.ts'), /cacheDir: '\.vite'/);
     assert.doesNotMatch(generated.read('src-tauri/src/main.rs'), /lab_storage|world_tour|lab_/);
     assertGeneratedPathMissing(generated, 'src/lab');
     assertGeneratedPathMissing(generated, 'src/capabilities');
+    assertGeneratedPathExists(generated, 'src/workbench-core/workbench-core.tsx');
+    assertGeneratedPathExists(generated, 'src/workbench-core/runtime-gate.tsx');
     assertGeneratedPathMissing(generated, 'src/shell/ai');
     assertGeneratedPathMissing(generated, 'src/shell/routes/settings.tsx');
     assertGeneratedPathMissing(generated, 'src/shell/routes/settings');
@@ -334,6 +365,7 @@ test('standalone scaffold creates a generic starter with rewritten identity', ()
     const lock = generated.lock();
     const appOwned = lock.managedFileTaxonomy.appOwnedProductCode;
     assert.ok(appOwned.includes('src/shell/routes/product-area.tsx'));
+    assert.ok(appOwned.includes('src/workbench-core/workbench-core.tsx'));
     assert.equal(appOwned.some((file) => file.startsWith('src/lab/')), false);
     assert.equal(appOwned.some((file) => file.startsWith('src/capabilities/')), false);
     assert.equal(appOwned.some((file) => file.startsWith('src/shell/ai/')), false);
@@ -345,10 +377,12 @@ test('standalone scaffold creates a generic starter with rewritten identity', ()
     assert.match(electronMain, /isAllowedElectronRendererUrl\(url, allowedRendererUrls\)/);
     assert.equal(electronMain.match(/\[rendererUrl\]/g)?.length, 1);
     assert.match(electronMain, /registerNimiElectronAppAssetProtocolScheme\(protocol\)/);
+    assert.match(electronMain, /app\.setAppUserModelId\(NATIVE_BUNDLE_IDENTIFIER\)/);
     assert.doesNotMatch(electronMain, /onProtectedSessionFailure/);
     assert.doesNotMatch(electronMain, /runtimeEndpoint|sessionProof|launchTicket/);
     assert.match(generated.read('src-tauri/src/main.rs'), /RuntimeBridgeLocalAppHost::platform_default\(\)/);
-    assert.equal(lock.managedFileHashes['src/shell/auth/auth-gate.tsx'].class, 'scaffold-managed glue');
+    assert.equal(lock.managedFileHashes['src/shell/workbench-target-adapter.ts'].class, 'scaffold-managed glue');
+    assert.equal(Object.hasOwn(lock.managedFileHashes, 'src/shell/auth/auth-gate.tsx'), false);
     assert.equal(lock.managedFileHashes['package.json'].class, 'scaffold-managed glue');
     assert.equal(lock.managedFileHashes['.github/workflows/ci.yml'].class, 'scaffold-managed glue');
     assert.equal(Object.hasOwn(lock.managedFileHashes, 'src/lab/lab-workbench.tsx'), false);
@@ -365,48 +399,62 @@ test('standalone scaffold creates a generic starter with rewritten identity', ()
   }
 });
 
-test('standalone scaffold base contains no capability slices and records v2 empty selection', () => {
+test('standalone scaffold base remains empty while the public catalog exposes the admitted features', () => {
   assert.deepEqual(SUPPORTED_APP_SCAFFOLD_PROFILES, ['standalone', 'workspace-app']);
-  assert.deepEqual(APP_SCAFFOLD_FEATURE_IDS, ['kit-recipes']);
+  assert.deepEqual(APP_SCAFFOLD_FEATURE_IDS, [
+    'studio-create',
+    'studio-media',
+    'studio-voice',
+    'kit-recipes',
+  ]);
   const generated = scaffold('standalone');
   try {
     assertGeneratedPathMissing(generated, 'src/capabilities');
-    assert.match(generated.read('src/shell/routes/selected-capabilities.tsx'), /return null/);
+    assertGeneratedPathMissing(generated, 'src/scaffold/generated/host-adapters.tsx');
+    assert.equal(generated.read('src/scaffold/generated/module-styles.css'), '');
+    assert.match(generated.read('src/scaffold/generated/navigation.ts'), /generatedInitialViewId = generatedNavigationGroups\[0\]\?\.items\[0\]\?\.id \?\? null/);
+    for (const relativePath of [
+      'src/scaffold/generated/capability-registry.ts',
+      'src/scaffold/generated/runtime-registry.ts',
+      'src/scaffold/generated/route-registry.tsx',
+      'src/scaffold/generated/navigation.ts',
+      'src/scaffold/generated/module-styles.css',
+    ]) {
+      assert.doesNotMatch(generated.read(relativePath), /from ['"].*(?:ai-studio-core|studio-create|studio-media|studio-voice)/);
+    }
     assert.match(generated.read('nimi.app.yaml'), /^app_access: \[\]$/m);
     const intent = JSON.parse(generated.read('.nimi/app-scaffold/intent.json'));
     const lock = generated.lock();
-    assert.equal(intent.intentVersion, 2);
-    assert.equal(lock.lockVersion, 2);
+    assert.equal(intent.intentVersion, SCAFFOLD_INTENT_VERSION);
+    assert.equal(lock.lockVersion, SCAFFOLD_LOCK_VERSION);
     assert.equal(intent.scaffoldVersion, SCAFFOLD_VERSION);
     assert.equal(lock.scaffoldVersion, SCAFFOLD_VERSION);
     assert.deepEqual(intent.features, []);
+    assert.deepEqual(intent.directFeatures, []);
+    assert.deepEqual(intent.resolvedModules, []);
     assert.deepEqual(lock.features, []);
+    assert.deepEqual(lock.directFeatures, []);
+    assert.deepEqual(lock.resolvedModules, []);
     assert.deepEqual(lock.appAccessItems, []);
   } finally {
     generated.cleanup();
   }
 });
 
-test('standalone scaffold composes the admitted real Lab Kit recipes slice', () => {
-  const generated = scaffold('standalone', { features: 'kit-recipes' });
-  try {
-    assert.deepEqual(generated.lock().features, ['kit-recipes']);
-    assert.deepEqual(generated.lock().appAccessItems, []);
-    assertGeneratedPathExists(generated, 'src/capabilities/kit-recipes/index.tsx');
-    assertGeneratedPathExists(generated, 'src/capabilities/kit-recipes/gallery.tsx');
-    assertGeneratedPathExists(generated, 'src/capabilities/kit-recipes/kit-component-gallery-recipes.tsx');
-    assert.match(
-      generated.read('src/shell/routes/selected-capabilities.tsx'),
-      /import \{ KitRecipesCapability \} from '\.\.\/\.\.\/capabilities\/kit-recipes\/index\.js';/,
-    );
-    assert.match(generated.read('src/capabilities/kit-recipes/gallery.tsx'), /UI Recipes/);
-    assert.doesNotMatch(generated.read('src/capabilities/kit-recipes/gallery.tsx'), /useLabRendererHost/);
-  } finally {
-    generated.cleanup();
+test('standalone scaffold exposes every admitted feature while keeping internal modules private', () => {
+  assert.deepEqual(
+    resolveAppScaffoldFeatures('all').directFeatureIds,
+    ['studio-create', 'studio-media', 'studio-voice', 'kit-recipes'],
+  );
+  for (const featureId of APP_SCAFFOLD_FEATURE_IDS) {
+    assert.deepEqual(resolveAppScaffoldFeatures(featureId).directFeatureIds, [featureId]);
   }
-
   assert.throws(
-    () => scaffold('standalone', { features: 'ai-consume' }),
+    () => resolveAppScaffoldFeatures('ai-studio-core'),
+    /App scaffold internal module cannot be selected directly/,
+  );
+  assert.throws(
+    () => resolveAppScaffoldFeatures('ai-consume'),
     /Unknown app scaffold feature: ai-consume/,
   );
 });
@@ -439,7 +487,7 @@ test('app id maps losslessly to the Tauri bundle identifier', () => {
   });
   try {
     assert.match(generated.read('nimi.app.yaml'), /app_id: acme-widget/);
-    assert.match(generated.read('src/shell/auth/app-identity.ts'), /appId = 'acme-widget'/);
+    assert.match(generated.read('src/shell/auth/app-identity.ts'), /appId = "acme-widget"/);
     const tauri = JSON.parse(generated.read('src-tauri/tauri.conf.json'));
     assert.equal(tauri.identifier, 'ai.nimi.apps.acme-widget');
   } finally {
@@ -547,6 +595,8 @@ test('workspace-app scaffold uses workspace + path deps without product authorit
     assert.match(generated.read('src-tauri/Cargo.toml'), /nimi-shell-tauri = \{ path = "\.\.\/\.\.\/\.\.\/kit\/shell\/tauri" \}/);
     assert.doesNotMatch(generated.read('vite.config.ts'), /repoRoot|path\.join\(repoRoot|\.\.\/\.\.\/kit|kit\/ui\/src/);
     assert.match(generated.read('nimi.app.yaml'), /profile: workspace-app/);
+    assert.match(generated.read('src/shell/auth/app-identity.ts'), /scaffoldProfile = "workspace-app"/);
+    assert.match(generated.read('README.md'), /Profile: `workspace-app`/);
     assertTauriIconSupport(generated);
   } finally {
     generated.cleanup();
@@ -573,7 +623,59 @@ test('cli standalone scaffold uses current public dependency version sources', (
   }
 });
 
-test('cli standalone scaffold expands all to the admitted catalog order', () => {
+test('cli help projects the current registry lifecycle and honest workflow without running lifecycle commands', () => {
+  const result = runNimiApp(['--help'], testDir);
+  assert.equal(result.status, 0, result.stderr);
+  const help = result.stdout;
+  for (const expected of [
+    'Admitted features: studio-create (Create), studio-media (Media), studio-voice (Voice), kit-recipes (UI Recipes)',
+    'studio-create (Create)',
+    'studio-media (Media)',
+    'studio-voice (Voice)',
+    'kit-recipes (UI Recipes)',
+    'Candidate features (not public-selectable): (none)',
+    'Internal modules (dependency-only): ai-studio-core',
+    '--features all expands in order to: studio-create, studio-media, studio-voice, kit-recipes',
+    'nimi-app doctor [--dir path] [--conformance simulator] [--json]',
+    '--author person-or-team',
+    'identity-neutral Lab-derived workbench-core',
+    'standalone: public registry package versions only',
+    'workspace-app: a direct apps/* package',
+    'A passing workspace journey is not standalone evidence.',
+    'App-owned: workbench-core and selected module product code',
+    'Scaffold-managed: carrier, identity, manifest/native wiring, and generated composition glue.',
+    'nimi-app create -> pnpm install -> pnpm run init -> pnpm run doctor -> pnpm run build -> pnpm dev',
+    'remain NOT-VERIFIED',
+  ]) {
+    assert.match(help, new RegExp(expected.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  }
+
+  const readme = readFileSync(path.join(testDir, '..', 'README.md'), 'utf8');
+  const starterReadme = readFileSync(path.join(testDir, '..', 'templates', 'default-starter', 'README.md'), 'utf8');
+  const starterAgents = readFileSync(path.join(testDir, '..', 'templates', 'default-starter', 'AGENTS.md'), 'utf8');
+  for (const content of [readme, starterReadme, starterAgents]) {
+    assert.match(content, /NOT-VERIFIED/u);
+    assert.doesNotMatch(content, /conformance simulator|Simulator/u);
+  }
+  assert.match(readme, /author.*person.*team/isu);
+  assert.match(readme, /standalone[\s\S]*public npm and Cargo registry versions/u);
+  assert.match(readme, /passing workspace journey does not prove standalone/u);
+  assert.match(starterReadme, /App-owned product code/u);
+  assert.match(starterAgents, /create -> dependency install -> init -> doctor\/build -> Desktop-supervised dev/u);
+  for (const content of [readme, starterReadme]) {
+    const installAt = content.indexOf('pnpm install');
+    const initAt = content.indexOf('pnpm run init');
+    const doctorAt = content.indexOf('pnpm run doctor');
+    const buildAt = content.indexOf('pnpm run build');
+    const devAt = content.indexOf('pnpm dev');
+    assert.ok(installAt > -1 && installAt < initAt, 'install must be documented before init');
+    assert.ok(initAt < doctorAt, 'init must be documented before doctor');
+    assert.ok(doctorAt < buildAt, 'doctor must be documented before build');
+    assert.ok(buildAt < devAt, 'build must be documented before dev');
+  }
+});
+
+test('cli standalone scaffold expands all to the admitted ordered set', () => {
   const tempRoot = mkdtempSync(path.join(os.tmpdir(), 'nimi-app-scaffold-all-'));
   const target = path.join(tempRoot, 'app');
   try {
@@ -581,15 +683,26 @@ test('cli standalone scaffold expands all to the admitted catalog order', () => 
       'create', '--dir', target, '--profile', 'standalone', '--features', 'all',
     ], tempRoot);
     assert.equal(result.status, 0, result.stderr);
-    const intent = JSON.parse(readFileSync(path.join(target, '.nimi/app-scaffold/intent.json'), 'utf8'));
-    assert.deepEqual(intent.features, ['kit-recipes']);
-    assertGeneratedPathExists({ target }, 'src/capabilities/kit-recipes/index.tsx');
+    const intent = JSON.parse(readFileSync(path.join(target, SCAFFOLD_INTENT_PATH), 'utf8'));
+    assert.deepEqual(intent.directFeatures, [
+      'studio-create',
+      'studio-media',
+      'studio-voice',
+      'kit-recipes',
+    ]);
+    assert.deepEqual(intent.resolvedModules, [
+      'ai-studio-core',
+      'studio-create',
+      'studio-media',
+      'studio-voice',
+      'kit-recipes',
+    ]);
   } finally {
     rmSync(tempRoot, { recursive: true, force: true });
   }
 });
 
-test('create accepts explicit identity and rewrites every Nimi Lab source identity literal', () => {
+test('create accepts explicit identity through structured carrier surfaces and canonical lock state', () => {
   const tempRoot = mkdtempSync(path.join(os.tmpdir(), 'nimi-app-scaffold-identity-'));
   const target = path.join(tempRoot, 'app');
   const env = fakePnpmEnv(tempRoot);
@@ -612,7 +725,7 @@ test('create accepts explicit identity and rewrites every Nimi Lab source identi
     assert.equal(intent.appId, 'studio.canvas');
 
     assert.match(readFileSync(path.join(target, 'nimi.app.yaml'), 'utf8'), /app_id: studio\.canvas/);
-    assert.match(readFileSync(path.join(target, 'src/shell/auth/app-identity.ts'), 'utf8'), /appId = 'studio\.canvas'/);
+    assert.match(readFileSync(path.join(target, 'src/shell/auth/app-identity.ts'), 'utf8'), /appId = "studio\.canvas"/);
     assert.match(readFileSync(path.join(target, 'src-tauri/Cargo.toml'), 'utf8'), /name = "studio-canvas-shell"/);
 
     const doctor = runNimiApp(['doctor', '--dir', target], tempRoot, { env });
@@ -647,6 +760,234 @@ test('create accepts package author and scoped npm package metadata', () => {
     assert.equal(doctor.status, 0, doctor.stderr);
   } finally {
     rmSync(tempRoot, { recursive: true, force: true });
+  }
+});
+
+test('create accepts equivalent TTY-answer and flag input through one canonical resolver', () => {
+  const raw = {
+    dir: 'apps/studio-canvas',
+    profile: 'workspace-app',
+    appId: 'studio.canvas',
+    title: 'Studio: Canvas #1',
+    packageName: '@studio/canvas',
+    author: 'Studio Team',
+    features: '',
+  };
+  const ttyResolved = resolveAppScaffoldCreateInput({ cwd: 'D:/repo', options: { ...raw } });
+  const flagsResolved = resolveAppScaffoldCreateInput({ cwd: 'D:/repo', options: { ...raw } });
+  assert.deepEqual(ttyResolved, flagsResolved);
+  assert.deepEqual(ttyResolved.directFeatures, []);
+  assert.deepEqual(ttyResolved.resolvedModules, []);
+});
+
+test('create accepts safely serialized Display Name and one person-or-team author field', () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), 'nimi-app-scaffold-safe-identity-'));
+  const target = path.join(tempRoot, 'app');
+  const displayName = 'Studio: Canvas # "Prime" & <One>';
+  try {
+    const result = runNimiApp([
+      'create', '--dir', target, '--profile', 'standalone',
+      '--app-id', 'studio.canvas', '--title', displayName,
+      '--package-name', '@studio/canvas', '--author', 'Studio Team',
+    ], tempRoot);
+    assert.equal(result.status, 0, result.stderr);
+    const manifest = parseYaml(readFileSync(path.join(target, 'nimi.app.yaml'), 'utf8'));
+    const tauri = JSON.parse(readFileSync(path.join(target, 'src-tauri/tauri.conf.json'), 'utf8'));
+    const packageJson = JSON.parse(readFileSync(path.join(target, 'package.json'), 'utf8'));
+    const identityModule = readFileSync(path.join(target, 'src/shell/auth/app-identity.ts'), 'utf8');
+    const intent = JSON.parse(readFileSync(path.join(target, '.nimi/app-scaffold/intent.json'), 'utf8'));
+    assert.equal(manifest.display_name, displayName);
+    assert.equal(tauri.productName, displayName);
+    assert.equal(tauri.app.windows[0].title, displayName);
+    assert.equal(packageJson.author, 'Studio Team');
+    assert.match(identityModule, new RegExp(`appTitle = ${JSON.stringify(displayName).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`));
+    assert.equal(intent.appIdentity.displayName, displayName);
+    assert.equal(intent.appIdentity.nativeBundleIdentifier, 'ai.nimi.apps.studio.canvas');
+    assert.equal(Object.hasOwn(intent, 'team'), false);
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true });
+  }
+});
+
+test('create rejects every reserved Nimi Lab identity before target materialization', () => {
+  const cases = [
+    { appId: 'nimi.lab', title: 'Example App', packageName: 'example-app' },
+    { appId: 'example.app', title: 'Nimi Lab', packageName: 'example-app' },
+    { appId: 'example.app', title: 'Example App', packageName: '@nimiplatform/lab' },
+    { appId: 'example.app', title: 'Example App', packageName: 'nimiapp-lab' },
+  ];
+  for (const [index, identity] of cases.entries()) {
+    const events = [];
+    assert.throws(
+      () => createAppScaffold({
+        cwd: os.tmpdir(),
+        options: { dir: `reserved-lab-${index}`, profile: 'standalone', ...identity },
+        versions,
+        createFileTree: () => events.push('write'),
+        ensureDirEmptyOrMissing: () => events.push('ensure'),
+        mkdirSync: () => events.push('mkdir'),
+      }),
+      /Nimi Lab canonical identity is reserved/,
+    );
+    assert.deepEqual(events, []);
+  }
+});
+
+test('create rejects declared workspace renderer port collisions before target materialization', () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), 'nimi-app-scaffold-port-collision-'));
+  const existingDir = path.join(tempRoot, 'apps', 'existing');
+  const target = path.join(tempRoot, 'apps', 'new-app');
+  try {
+    writeFileSync(path.join(tempRoot, 'pnpm-workspace.yaml'), [
+      'packages:',
+      "  - 'apps/*'",
+      "  - 'kit'",
+      "  - 'app-tools'",
+      "  - 'sdks/typescript'",
+      '',
+    ].join('\n'));
+    mkdirSync(existingDir, { recursive: true });
+    mkdirSync(path.join(tempRoot, 'kit', 'shell', 'tauri'), { recursive: true });
+    const initial = resolveAppCreatePlan(tempRoot, {
+      dir: target,
+      profile: 'workspace-app',
+      appId: 'collision.app',
+      title: 'Collision App',
+      packageName: 'collision-app',
+    });
+    writeFileSync(path.join(existingDir, 'nimi.app.yaml'), [
+      'app_id: existing.app',
+      'display_name: Existing App',
+      'local_development:',
+      '  electron:',
+      `    renderer_origin: http://127.0.0.1:${initial.preview.identity.devPort}`,
+      '',
+    ].join('\n'));
+    assert.throws(
+      () => resolveAppCreatePlan(tempRoot, {
+        dir: target,
+        profile: 'workspace-app',
+        appId: 'collision.app',
+        title: 'Collision App',
+        packageName: 'collision-app',
+      }),
+      /Declared renderer port collision/,
+    );
+    assert.equal(existsSync(target), false);
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true });
+  }
+});
+
+test('workspace-app scaffold CLI fails closed outside membership and derives its Cargo path', () => {
+  const noWorkspace = mkdtempSync(path.join(os.tmpdir(), 'nimi-app-scaffold-no-workspace-'));
+  try {
+    const missingTarget = path.join(noWorkspace, 'apps', 'missing');
+    const missing = runNimiApp(['create', '--dir', missingTarget, '--profile', 'workspace-app'], noWorkspace);
+    assert.notEqual(missing.status, 0);
+    assert.match(missing.stderr, /must belong to a Nimi pnpm workspace/);
+    assert.equal(existsSync(missingTarget), false);
+  } finally {
+    rmSync(noWorkspace, { recursive: true, force: true });
+  }
+
+  const workspace = mkdtempSync(path.join(os.tmpdir(), 'nimi-app-scaffold-workspace-topology-'));
+  try {
+    writeFileSync(path.join(workspace, 'pnpm-workspace.yaml'), [
+      'packages:',
+      "  - 'apps/*'",
+      "  - 'kit'",
+      "  - 'app-tools'",
+      "  - 'sdks/typescript'",
+      '',
+    ].join('\n'));
+    mkdirSync(path.join(workspace, 'kit', 'shell', 'tauri'), { recursive: true });
+    const outsideTarget = path.join(workspace, 'packages', 'outside');
+    const outside = runNimiApp(['create', '--dir', outsideTarget, '--profile', 'workspace-app'], workspace);
+    assert.notEqual(outside.status, 0);
+    assert.match(outside.stderr, /direct apps\/\* workspace package/);
+    assert.equal(existsSync(outsideTarget), false);
+
+    const target = path.join(workspace, 'apps', 'inside');
+    const created = runNimiApp([
+      'create', '--dir', target, '--profile', 'workspace-app',
+      '--app-id', 'workspace.inside', '--title', 'Workspace Inside', '--package-name', 'workspace-inside',
+    ], workspace);
+    assert.equal(created.status, 0, created.stderr);
+    assert.match(readFileSync(path.join(target, 'src-tauri', 'Cargo.toml'), 'utf8'), /path = "\.\.\/\.\.\/\.\.\/kit\/shell\/tauri"/);
+    const intent = JSON.parse(readFileSync(path.join(target, SCAFFOLD_INTENT_PATH), 'utf8'));
+    assert.deepEqual(intent.dependencyMatrix.cargo['nimi-shell-tauri'], { path: '../../../kit/shell/tauri' });
+  } finally {
+    rmSync(workspace, { recursive: true, force: true });
+  }
+});
+
+test('phase 7 candidate high-level plan preserves public workspace topology and fails external targets prewrite', () => {
+  const workspace = mkdtempSync(path.join(os.tmpdir(), 'nimi-app-candidate-workspace-plan-'));
+  const target = path.join(workspace, 'apps', 'candidate');
+  try {
+    writeFileSync(path.join(workspace, 'pnpm-workspace.yaml'), [
+      'packages:',
+      "  - 'apps/*'",
+      "  - 'kit'",
+      "  - 'app-tools'",
+      "  - 'sdks/typescript'",
+      '',
+    ].join('\n'));
+    mkdirSync(path.join(workspace, 'kit', 'shell', 'tauri'), { recursive: true });
+    const options = {
+      dir: target,
+      profile: 'workspace-app',
+      appId: 'candidate.workspace',
+      title: 'Candidate Workspace',
+      packageName: 'candidate-workspace',
+    };
+    const publicPlan = resolveAppCreatePlan(workspace, options);
+    const candidatePlan = resolveCandidateAppCreatePlan(workspace, {
+      ...options,
+      features: ['studio-create'],
+    });
+    assert.deepEqual(candidatePlan.preview.topology, publicPlan.preview.topology);
+    assert.equal(candidatePlan.resolvedInput.targetDir, target);
+    assert.equal(candidatePlan.preview.profile, 'workspace-app');
+    assert.deepEqual(
+      candidatePlan.preview.cargoDependencies['nimi-shell-tauri'],
+      { path: '../../../kit/shell/tauri' },
+    );
+    assert.equal(candidatePlan.preview.identity.devPort, publicPlan.preview.identity.devPort);
+    assert.deepEqual(candidatePlan.preview.directFeatures, ['studio-create']);
+    assert.equal(existsSync(target), false);
+
+    const existing = path.join(workspace, 'apps', 'existing');
+    mkdirSync(existing, { recursive: true });
+    writeFileSync(path.join(existing, 'nimi.app.yaml'), [
+      'app_id: existing.app',
+      'display_name: Existing App',
+      'local_development:',
+      '  electron:',
+      `    renderer_origin: http://127.0.0.1:${candidatePlan.preview.identity.devPort}`,
+      '',
+    ].join('\n'));
+    assert.throws(
+      () => resolveCandidateAppCreatePlan(workspace, { ...options, features: ['studio-create'] }),
+      /Declared renderer port collision/,
+    );
+    assert.equal(existsSync(target), false);
+
+    const outsideTarget = path.join(workspace, 'packages', 'outside');
+    assert.throws(
+      () => resolveCandidateAppCreatePlan(workspace, {
+        ...options,
+        dir: outsideTarget,
+        appId: 'candidate.outside',
+        packageName: 'candidate-outside',
+        features: ['studio-create'],
+      }),
+      /direct apps\/\* workspace package/,
+    );
+    assert.equal(existsSync(outsideTarget), false);
+  } finally {
+    rmSync(workspace, { recursive: true, force: true });
   }
 });
 
@@ -693,16 +1034,18 @@ test('unsupported app scaffold profiles, including the retired reference profile
 test('create rejects unknown and invalid feature selections', () => {
   const cases = [
     { features: 'future-capability', pattern: /Unknown app scaffold feature: future-capability/ },
+    { features: 'ai-studio-core', pattern: /App scaffold internal module cannot be selected directly/ },
     { features: 'all,ai-consume', pattern: /Feature selection "all" cannot be combined with explicit feature ids/ },
   ];
   const tempRoot = mkdtempSync(path.join(os.tmpdir(), 'nimi-app-feature-rejection-'));
   try {
     for (const [index, testCase] of cases.entries()) {
+      const target = path.join(tempRoot, `app-${index}`);
       assert.throws(
         () => createAppScaffold({
           cwd: tempRoot,
           options: {
-            dir: path.join(tempRoot, `app-${index}`),
+            dir: target,
             profile: 'standalone',
             features: testCase.features,
           },
@@ -713,71 +1056,488 @@ test('create rejects unknown and invalid feature selections', () => {
         }),
         testCase.pattern,
       );
+      assert.equal(existsSync(target), false, 'prevalidation failure must not materialize the target');
     }
   } finally {
     rmSync(tempRoot, { recursive: true, force: true });
   }
 });
 
-test('create deduplicates explicit features and records canonical catalog order', () => {
-  const generated = scaffold('standalone', { features: 'kit-recipes,kit-recipes' });
-  try {
-    assert.deepEqual(generated.lock().features, ['kit-recipes']);
-    assert.deepEqual(
-      JSON.parse(generated.read('.nimi/app-scaffold/intent.json')).features,
-      ['kit-recipes'],
-    );
-  } finally {
-    generated.cleanup();
+test('create accepts the admitted registry and keeps candidate validation on the same de-duplicating resolver', () => {
+  assert.equal(APP_SCAFFOLD_MODULE_REGISTRY['ai-studio-core'].kind, 'internal');
+  assert.equal(Object.hasOwn(APP_SCAFFOLD_MODULE_REGISTRY['ai-studio-core'], 'lifecycle'), false);
+  for (const id of ['studio-create', 'studio-media', 'studio-voice', 'kit-recipes']) {
+    assert.equal(APP_SCAFFOLD_MODULE_REGISTRY[id].kind, 'feature');
+    assert.equal(APP_SCAFFOLD_MODULE_REGISTRY[id].lifecycle, 'admitted');
+  }
+  assert.deepEqual(
+    Object.fromEntries(Object.entries(APP_SCAFFOLD_MODULE_REGISTRY).map(([id, module]) => (
+      [id, module.sourceMappings.map((mapping) => mapping.targetRoot)]
+    ))),
+    {
+      'ai-studio-core': ['src/capabilities/ai-studio-core'],
+      'studio-create': ['src/capabilities/studio-create'],
+      'studio-media': ['src/capabilities/studio-media'],
+      'studio-voice': ['src/capabilities/studio-voice'],
+      'kit-recipes': ['src/capabilities/kit-recipes'],
+    },
+  );
+
+  const create = resolveAppScaffoldCandidateFeatures(['studio-create']);
+  assert.deepEqual(create.directFeatureIds, ['studio-create']);
+  assert.deepEqual(create.resolvedFeatureIds, ['studio-create']);
+  assert.deepEqual(create.resolvedModuleIds, ['ai-studio-core', 'studio-create']);
+  assert.deepEqual(create.appAccessItems, ['runtime.consume']);
+  assert.deepEqual(resolveAppScaffoldFeatures('studio-create'), create);
+
+  const multi = resolveAppScaffoldCandidateFeatures([
+    'studio-media',
+    'studio-create',
+    'studio-media',
+  ]);
+  assert.deepEqual(multi.directFeatureIds, ['studio-create', 'studio-media']);
+  assert.deepEqual(multi.resolvedFeatureIds, ['studio-create', 'studio-media']);
+  assert.deepEqual(multi.resolvedModuleIds, ['ai-studio-core', 'studio-create', 'studio-media']);
+  assert.equal(multi.resolvedModuleIds.filter((id) => id === 'ai-studio-core').length, 1);
+  assert.deepEqual(multi.appAccessItems, ['runtime.consume']);
+
+  const kit = resolveAppScaffoldCandidateFeatures(['kit-recipes']);
+  assert.deepEqual(kit.directFeatureIds, ['kit-recipes']);
+  assert.deepEqual(kit.resolvedFeatureIds, ['kit-recipes']);
+  assert.deepEqual(kit.resolvedModuleIds, ['kit-recipes']);
+  assert.deepEqual(kit.appAccessItems, []);
+
+  assert.throws(
+    () => resolveAppScaffoldCandidateFeatures('studio-create'),
+    /explicit feature id array/,
+  );
+  assert.throws(
+    () => resolveAppScaffoldCandidateFeatures(['all']),
+    /does not accept "all"/,
+  );
+  assert.throws(
+    () => resolveAppScaffoldCandidateFeatures(['ai-studio-core']),
+    /internal module cannot be selected directly/,
+  );
+  assert.throws(
+    () => resolveAppScaffoldCandidateFeatures(['unknown']),
+    /Unknown app scaffold feature: unknown/,
+  );
+});
+
+test('create accepts public post-admission output that exactly matches candidate materialization', () => {
+  const selections = [
+    ['studio-create'],
+    ['studio-media'],
+    ['studio-voice'],
+    ['kit-recipes'],
+    ['studio-create', 'studio-media'],
+    ['studio-create', 'studio-media', 'studio-voice', 'kit-recipes'],
+  ];
+  for (const [index, features] of selections.entries()) {
+    const input = {
+      profile: 'standalone',
+      versions,
+      appId: `post-admission-${index}`,
+      appTitle: `Post Admission ${index}`,
+      packageName: `post-admission-${index}`,
+    };
+    const candidate = buildAppScaffoldCandidateSnapshot({ ...input, features });
+    const publicSnapshot = buildAppScaffoldSnapshot({
+      ...input,
+      features: index === selections.length - 1 ? 'all' : features,
+    });
+    assert.deepEqual(publicSnapshot.createFiles, candidate.createFiles);
+    assert.deepEqual(publicSnapshot.lock, candidate.lock);
   }
 });
 
-test('create rejects catalog dependency cycles and target collisions', () => {
-  const capability = (id, requires, targetRoot) => ({
-    id,
-    label: id,
-    requires,
-    appAccessItems: [],
-    sourceRoot: `src/lab/capabilities/${id}`,
-    targetRoot,
-    componentExport: `${id.replaceAll('-', '')}Component`,
-    npmDependencies: {},
-  });
-  const cycleCatalog = {
-    alpha: capability('alpha', ['beta'], 'src/capabilities/alpha'),
-    beta: capability('beta', ['alpha'], 'src/capabilities/beta'),
-  };
-  assert.throws(
-    () => resolveAppScaffoldFeatures('alpha', cycleCatalog),
-    /Capability dependency cycle: alpha -> beta -> alpha/,
-  );
-  assert.deepEqual(
-    resolveAppScaffoldFeatures(['alpha', 'alpha'], {
-      alpha: capability('alpha', [], 'src/capabilities/alpha'),
-    }).featureIds,
-    ['alpha'],
-  );
+test('create accepts candidate studio-create as one shared AI Studio route with target-only host wiring', () => {
+  const snapshot = candidateSnapshot(['studio-create']);
+  const read = (relativePath) => snapshot.filesByPath.get(relativePath)?.content ?? '';
+  const packageJson = JSON.parse(read('package.json'));
+  assert.equal(packageJson.dependencies.i18next, versions.i18nextVersion);
+  assert.equal(packageJson.dependencies['lucide-react'], versions.lucideReactVersion);
+  assert.equal(Object.hasOwn(packageJson.dependencies, 'react-i18next'), false);
+  for (const relativePath of [
+    'src/scaffold/generated/capability-registry.ts',
+    'src/scaffold/generated/runtime-registry.ts',
+    'src/scaffold/generated/route-registry.tsx',
+    'src/scaffold/generated/navigation.ts',
+    'src/scaffold/generated/module-styles.css',
+    'src/scaffold/generated/i18n.ts',
+    'src/scaffold/generated/host-adapters.tsx',
+  ]) {
+    assert.ok(snapshot.filesByPath.has(relativePath), `${relativePath} must be generated`);
+  }
+  assert.match(read('src/scaffold/generated/capability-registry.ts'), /from '\.\.\/\.\.\/capabilities\/ai-studio-core\/index\.js'/);
+  assert.match(read('src/scaffold/generated/capability-registry.ts'), /studioCreateModule, studioCreateMessageBundles/);
+  assert.doesNotMatch(read('src/scaffold/generated/capability-registry.ts'), /studioMediaModule|studioVoiceModule/);
+  assert.match(read('src/scaffold/generated/runtime-registry.ts'), /studioCreateRuntimeHandlers/);
+  assert.match(read('src/scaffold/generated/route-registry.tsx'), /content = <GeneratedAIStudioRoute capabilityId=\{activeViewId\}/);
+  assert.equal(read('src/scaffold/generated/route-registry.tsx').match(/GeneratedAIStudioRoute/g)?.length, 2);
+  assert.match(read('src/scaffold/generated/route-registry.tsx'), /export function GeneratedModuleHost/);
+  assert.match(read('src/scaffold/generated/route-registry.tsx'), /<GeneratedAIStudioHost onSelectCapability=\{onSelectView\}>\{children\}/);
+  assert.match(read('src/scaffold/generated/route-registry.tsx'), /tabIndex=\{-1\}/);
+  assert.match(read('src/shell/routes/product-area.tsx'), /VIEW_STORAGE_KEY/);
+  assert.match(read('src/shell/routes/product-area.tsx'), /<GeneratedModuleHost onSelectView=\{selectView\}>/);
+  assert.match(read('src/scaffold/generated/navigation.ts'), /translateGeneratedMessage\(registration\.descriptor\.labelKey\)/);
+  assert.match(read('src/scaffold/generated/i18n.ts'), /generatedAIStudioMessageBundles/);
+  assert.match(read('src/scaffold/generated/module-styles.css'), /capabilities\/ai-studio-core\/ai-studio-core\.css/);
 
-  const collisionCatalog = {
-    alpha: capability('alpha', [], 'src/capabilities/shared'),
-    beta: capability('beta', [], 'src/capabilities/shared/nested'),
-  };
+  const host = read('src/scaffold/generated/host-adapters.tsx');
+  for (const expected of [
+    'AIStudioWorkspace',
+    'runStudioCapability',
+    'createStudioNonSuccess',
+    'createStudioRunTargetSummary',
+    'loadStudioAIConfig',
+    'subscribeStudioAIConfigRefresh',
+    'useAIStudioWorkspaceController',
+    'ModelConfigAIConfigSurface',
+    'openDesktopIntent',
+    'getNimiLocalAppClient',
+    'storage.readJson',
+    'storage.writeJson',
+    'storage.assets.remove',
+    'storage.assets.stat',
+    'ai.voiceAssets.list',
+    'ai.artifacts.upload',
+    'navigator.clipboard.writeText',
+  ]) {
+    assert.match(host, new RegExp(expected.replaceAll('.', '\\.')));
+  }
+  assert.doesNotMatch(host, /apps\/lab|nimi\.lab|lab-|WorldTour|Simulator/);
+  assert.match(host, /_STORAGE_JSON_NOT_FOUND/);
+  assert.match(host, /_LOCAL_ASSET_NOT_FOUND/);
+  assert.match(host, /section: 'ai-models'/);
+  assert.match(host, /renderAIConfigPanel=\{\(input\) => <GeneratedAIConfigPanel/);
+  assert.match(host, /load: loadVerifiedHistory/);
+  assert.match(host, /persist: persistHistory/);
+  assert.match(host, /appendRecord,/);
+  assert.match(host, /cleanupArtifacts,/);
+  assert.match(host, /loadPanelPreferences,/);
+  assert.match(host, /savePanelPreferences,/);
+  assert.match(host, /status: 'unavailable'/);
+  assert.match(host, /remainingCleanupPaths: cleanup\.remainingCleanupPaths/);
+  assert.match(host, /displayFailure: \{ reason: 'runtime-call-failed'/);
+  assert.match(host, /controller=\{controller\}/);
+  assert.doesNotMatch(host, /historyRepository=\{historyRepository\}/);
+  assert.match(read('src/shell/App.tsx'), /<NimiToaster \/>/);
+});
+
+test('create accepts candidate multi in module order with one AI Studio plus an independent Kit view', () => {
+  const snapshot = candidateSnapshot(['studio-create', 'studio-media', 'studio-voice', 'kit-recipes']);
+  const read = (relativePath) => snapshot.filesByPath.get(relativePath)?.content ?? '';
+  const capabilityRegistry = read('src/scaffold/generated/capability-registry.ts');
+  assert.ok(capabilityRegistry.indexOf('studioCreateModule') < capabilityRegistry.indexOf('studioMediaModule'));
+  assert.ok(capabilityRegistry.indexOf('studioMediaModule') < capabilityRegistry.indexOf('studioVoiceModule'));
+  assert.equal(capabilityRegistry.match(/aiStudioCoreMessageBundles/g)?.length, 3);
+  const runtimeRegistry = read('src/scaffold/generated/runtime-registry.ts');
+  assert.ok(runtimeRegistry.indexOf('studioCreateRuntimeHandlers') < runtimeRegistry.indexOf('studioMediaRuntimeHandlers'));
+  assert.ok(runtimeRegistry.indexOf('studioMediaRuntimeHandlers') < runtimeRegistry.indexOf('studioVoiceRuntimeHandlers'));
+  const routeRegistry = read('src/scaffold/generated/route-registry.tsx');
+  assert.equal(routeRegistry.match(/content = <GeneratedAIStudioRoute/g)?.length, 1);
+  assert.match(routeRegistry, /content = <KitRecipesCapability exampleAppId=\{appId\} \/>/);
+  const navigation = read('src/scaffold/generated/navigation.ts');
+  assert.ok(navigation.indexOf('generatedAIStudioModules.map') < navigation.indexOf('id: "kit-recipes"'));
+});
+
+test('create accepts candidate Kit-only output without AI source imports or an AI host adapter', () => {
+  const snapshot = candidateSnapshot(['kit-recipes']);
+  const packageJson = JSON.parse(snapshot.filesByPath.get('package.json').content);
+  assert.equal(packageJson.dependencies['lucide-react'], versions.lucideReactVersion);
+  assert.equal(Object.hasOwn(packageJson.dependencies, 'i18next'), false);
+  assert.equal(snapshot.filesByPath.has('src/scaffold/generated/host-adapters.tsx'), false);
+  assert.equal(snapshot.filesByPath.has('src/scaffold/generated/i18n.ts'), false);
+  for (const relativePath of [
+    'src/scaffold/generated/capability-registry.ts',
+    'src/scaffold/generated/runtime-registry.ts',
+    'src/scaffold/generated/route-registry.tsx',
+    'src/scaffold/generated/navigation.ts',
+    'src/scaffold/generated/module-styles.css',
+  ]) {
+    const content = snapshot.filesByPath.get(relativePath)?.content ?? '';
+    assert.doesNotMatch(content, /from ['"].*(?:ai-studio-core|studio-create|studio-media|studio-voice)/);
+  }
+  assert.equal(snapshot.filesByPath.get('src/scaffold/generated/module-styles.css')?.content, '');
+  assert.match(snapshot.filesByPath.get('src/scaffold/generated/route-registry.tsx')?.content ?? '', /KitRecipesCapability/);
+});
+
+test('phase 7 candidate product imports map wholly into capabilities and reject Lab source residue prewrite', () => {
+  const snapshot = buildAppScaffoldCandidateSnapshot({
+    profile: 'standalone',
+    versions,
+    appId: 'candidate.closure',
+    appTitle: 'Candidate Closure',
+    packageName: 'candidate-closure',
+    features: ['studio-create', 'studio-media', 'studio-voice', 'kit-recipes'],
+  });
+  const productFiles = snapshot.createFiles.filter((file) => file.path.startsWith('src/capabilities/'));
+  assert.ok(productFiles.length > 0);
+  const importPattern = /\b(?:from|import)\s*(?:\(\s*)?['"](\.\.?\/[^'"]+)['"]/gu;
+  for (const file of productFiles) {
+    assert.doesNotMatch(file.content, /apps\/lab|src\/ai-studio-core|src\/studio-modules|nimi\.lab|Nimi Lab|Lab-only/);
+    for (const match of file.content.matchAll(importPattern)) {
+      const resolved = path.posix.normalize(path.posix.join(path.posix.dirname(file.path), match[1]));
+      assert.match(resolved, /^src\/capabilities\//, `${file.path}: ${match[1]} -> ${resolved}`);
+    }
+  }
+
+  const manifest = resolveAppSource({ resolvedModuleIds: ['kit-recipes'] }).manifest;
+  for (const [field, content] of [
+    ['appId', 'export const owner = "nimi.lab";'],
+    ['appTitle', 'export const title = "Nimi Lab";'],
+    ['tauriIdentifier', 'export const native = "ai.nimi.apps.nimi.lab";'],
+  ]) {
+    assert.throws(
+      () => assertIdentityNeutralProductSource('src/capabilities/test.ts', content, manifest),
+      new RegExp(`reserved Lab identity: src/capabilities/test\\.ts: ${field}`),
+    );
+  }
   assert.throws(
-    () => validateAppScaffoldCapabilityCatalog(collisionCatalog),
-    /Capability target collision: alpha and beta/,
+    () => assertIdentityNeutralProductSource(
+      'src/capabilities/test.ts',
+      'export const ownership = "Lab-only diagnostics";',
+      manifest,
+    ),
+    /Lab-only marker: src\/capabilities\/test\.ts/,
   );
 });
 
-test('unsupported app scaffold v1 lock and intent fail closed', () => {
+test('create accepts only canonical existing-intent feature order after admission', () => {
+  const resolved = resolveAppScaffoldIntentFeatures(['studio-create', 'studio-media']);
+  assert.deepEqual(resolved.resolvedModuleIds, ['ai-studio-core', 'studio-create', 'studio-media']);
+  assert.throws(
+    () => resolveAppScaffoldIntentFeatures(['studio-media', 'studio-create']),
+    /must be canonical registry order/,
+  );
+  assert.throws(
+    () => resolveAppScaffoldIntentFeatures(['studio-create', 'studio-create']),
+    /must be canonical registry order/,
+  );
+  assert.throws(
+    () => resolveAppScaffoldIntentFeatures([' studio-create']),
+    /canonical feature id array/,
+  );
+  assert.throws(
+    () => resolveAppScaffoldIntentFeatures(['ai-studio-core']),
+    /internal module cannot be selected directly/,
+  );
+
+  const selected = buildAppScaffoldSnapshot({
+    profile: 'standalone',
+    versions,
+    appId: 'candidate.intent',
+    appTitle: 'Candidate Intent',
+    packageName: 'candidate-intent',
+    features: ['kit-recipes'],
+  });
+  const intent = JSON.parse(selected.filesByPath.get(SCAFFOLD_INTENT_PATH).content);
+  const rebuilt = buildAppScaffoldSnapshotFromIntent({ intent, versions });
+  assert.deepEqual(rebuilt.lock.directFeatures, ['kit-recipes']);
+  assert.deepEqual(rebuilt.lock.resolvedModules, ['kit-recipes']);
+  assert.ok(rebuilt.filesByPath.has('src/capabilities/kit-recipes/index.tsx'));
+  assert.equal(rebuilt.filesByPath.has('src/product-modules/kit-recipes/index.tsx'), false);
+});
+
+test('create rejects catalog dependency cycles and target collisions', () => {
+  const capability = (id, requires, targetRoot, order, lifecycle = 'candidate') => ({
+    id,
+    kind: 'feature',
+    lifecycle,
+    order,
+    label: id,
+    requires,
+    appAccessItems: [],
+    sourceMappings: [{ sourceRoot: `src/modules/${id}`, targetRoot }],
+    npmDependencies: {},
+    cargoDependencies: {},
+    hostAdapterContract: 'test-host-v1',
+    views: [`${id}.view`],
+    navigation: [`${id}.view`],
+    styles: [],
+    assets: [],
+    productEntry: { kind: 'component', modulePath: `src/modules/${id}/index.tsx`, componentExport: 'TestComponent' },
+  });
+  const cycleCatalog = {
+    alpha: capability('alpha', ['beta'], 'src/capabilities/alpha', 10),
+    beta: capability('beta', ['alpha'], 'src/capabilities/beta', 20),
+  };
+  assert.throws(
+    () => resolveAppScaffoldCandidateFeatures(['alpha'], cycleCatalog),
+    /App scaffold module dependency cycle: alpha -> beta -> alpha/,
+  );
+
+  const admittedCatalog = {
+    alpha: capability('alpha', [], 'src/capabilities/alpha', 10, 'admitted'),
+    beta: capability('beta', [], 'src/capabilities/beta', 20, 'admitted'),
+  };
+  assert.deepEqual(
+    resolveAppScaffoldFeatures('all', admittedCatalog).directFeatureIds,
+    ['alpha', 'beta'],
+  );
+  assert.deepEqual(
+    resolveAppScaffoldFeatures(['beta', 'alpha', 'beta'], admittedCatalog).directFeatureIds,
+    ['alpha', 'beta'],
+  );
+
+  const collisionCatalog = {
+    alpha: capability('alpha', [], 'src/capabilities/shared', 10),
+    beta: capability('beta', [], 'src/capabilities/shared/nested', 20),
+  };
+  assert.throws(
+    () => validateAppScaffoldModuleRegistry(collisionCatalog),
+    /App scaffold module target collision: alpha and beta/,
+  );
+});
+
+test('phase 7 file ownership rejects exact case-folded and file-prefix collisions', () => {
+  const owned = (pathValue, ownerId) => ({
+    path: pathValue,
+    content: '',
+    mutationClass: 'app-owned product code',
+    ownerKind: 'module',
+    ownerId,
+  });
+  assert.throws(
+    () => validateScaffoldFileOwnership([
+      owned('src/capabilities/shared.ts', 'alpha'),
+      owned('src/capabilities/shared.ts', 'beta'),
+    ]),
+    /ownership collision: src\/capabilities\/shared\.ts and src\/capabilities\/shared\.ts: module\/alpha and module\/beta/,
+  );
+  assert.throws(
+    () => validateScaffoldFileOwnership([
+      owned('src/capabilities/Feature.ts', 'alpha'),
+      owned('src/capabilities/feature.ts', 'beta'),
+    ]),
+    /ownership collision: src\/capabilities\/Feature\.ts and src\/capabilities\/feature\.ts: module\/alpha and module\/beta/,
+  );
+  assert.throws(
+    () => validateScaffoldFileOwnership([
+      owned('src/capabilities/feature', 'alpha'),
+      owned('src/capabilities/feature/index.ts', 'beta'),
+    ]),
+    /file\/directory prefix collision: src\/capabilities\/feature: module\/alpha and module\/beta/,
+  );
+});
+
+test('phase 7 Cargo dependency objects compare structurally and render non-empty safe TOML', () => {
+  const moduleEntry = (id, order, cargoDependencies) => ({
+    id,
+    kind: 'feature',
+    lifecycle: 'candidate',
+    order,
+    label: id,
+    requires: [],
+    sourceMappings: [{ sourceRoot: `src/modules/${id}`, targetRoot: `src/capabilities/${id}` }],
+    appAccessItems: [],
+    npmDependencies: {},
+    cargoDependencies,
+    hostAdapterContract: 'test-host-v1',
+    views: [`${id}.view`],
+    navigation: [`${id}.view`],
+    styles: [],
+    assets: [],
+    productEntry: {
+      kind: 'component',
+      modulePath: `src/modules/${id}/index.tsx`,
+      componentExport: 'TestComponent',
+    },
+  });
+  const expected = {
+    version: '1.2.3',
+    features: ['derive', 'serde'],
+    'default-features': false,
+    optional: true,
+  };
+  const registry = {
+    alpha: moduleEntry('alpha', 10, { shared: expected }),
+    beta: moduleEntry('beta', 20, {
+      shared: { optional: true, features: ['derive', 'serde'], version: '1.2.3', 'default-features': false },
+    }),
+  };
+  const resolved = resolveAppScaffoldCandidateFeatures(['alpha', 'beta'], registry);
+  assert.deepEqual(resolved.cargoDependencies.shared, expected);
+  assert.equal(
+    renderCargoDependencyValue(expected, 'shared'),
+    '{ default-features = false, features = ["derive", "serde"], optional = true, version = "1.2.3" }',
+  );
+  const escaped = renderCargoDependencyValue({ path: '../crate\nwith"quote' }, 'escaped');
+  assert.equal(escaped, '{ path = "../crate\\nwith\\"quote" }');
+  assert.doesNotMatch(escaped, /\n/u);
+  assert.throws(
+    () => resolveAppScaffoldCandidateFeatures(['alpha', 'beta'], {
+      alpha: moduleEntry('alpha', 10, { shared: { version: '1' } }),
+      beta: moduleEntry('beta', 20, { shared: { version: '2' } }),
+    }),
+    /Cargo dependency version collision for shared/,
+  );
+  assert.throws(() => renderCargoDependencyValue({}, 'empty'), /Invalid empty Cargo dependency descriptor/);
+  assert.throws(
+    () => renderCargoDependencyValue({ git: 'https://example.test/repo' }, 'unsafe'),
+    /Invalid Cargo dependency field: unsafe\.git/,
+  );
+  assert.throws(
+    () => renderCargoDependencyValue({ features: ['derive', ''] }, 'bad-features'),
+    /Invalid Cargo dependency value: bad-features\.features/,
+  );
+});
+
+test('phase 7 candidate materialization reports the exact residual target after filesystem failure', () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), 'nimi-app-candidate-residual-'));
+  const target = path.join(tempRoot, 'candidate');
+  const options = {
+    dir: target,
+    profile: 'standalone',
+    appId: 'candidate.residual',
+    title: 'Candidate Residual',
+    packageName: 'candidate-residual',
+    features: ['studio-create'],
+    silent: true,
+  };
+  try {
+    const plan = buildAppScaffoldCandidateCreatePlan({ cwd: tempRoot, options, versions });
+    let failure;
+    try {
+      createAppScaffoldCandidate({
+        cwd: tempRoot,
+        options,
+        versions,
+        plan,
+        ensureDirEmptyOrMissing: () => {},
+        mkdirSync,
+        createFileTree(targetDir) {
+          writeFileSync(path.join(targetDir, 'partial-write.txt'), 'residual');
+          throw new Error('controlled-filesystem-failure');
+        },
+      });
+    } catch (error) {
+      failure = error;
+    }
+    assert.ok(failure instanceof Error);
+    assert.equal(
+      failure.message,
+      `Scaffold materialization failed; inspect the exact residual target ${target}: controlled-filesystem-failure`,
+    );
+    assert.equal(existsSync(target), true);
+    assert.equal(readFileSync(path.join(target, 'partial-write.txt'), 'utf8'), 'residual');
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true });
+  }
+});
+
+test('unsupported previous app scaffold lock and intent fail closed', () => {
   const legacyLock = cliScaffold('standalone');
   try {
     const lockPath = path.join(legacyLock.target, '.nimi/app-scaffold/lock.json');
     const lock = JSON.parse(legacyLock.read('.nimi/app-scaffold/lock.json'));
-    lock.lockVersion = 1;
+    lock.lockVersion = 2;
     writeFileSync(lockPath, `${JSON.stringify(lock, null, 2)}\n`);
     const result = runNimiApp(['doctor', '--dir', legacyLock.target], legacyLock.tempRoot, { env: legacyLock.env });
     assert.notEqual(result.status, 0);
-    assert.match(result.stderr, /Unsupported scaffold lock version: 1/);
+    assert.match(result.stderr, /Unsupported scaffold lock version: 2/);
   } finally {
     legacyLock.cleanup();
   }
@@ -786,14 +1546,14 @@ test('unsupported app scaffold v1 lock and intent fail closed', () => {
   try {
     const intentPath = path.join(legacyIntent.target, '.nimi/app-scaffold/intent.json');
     const intent = JSON.parse(legacyIntent.read('.nimi/app-scaffold/intent.json'));
-    intent.intentVersion = 1;
+    intent.intentVersion = 2;
     writeFileSync(intentPath, `${JSON.stringify(intent, null, 2)}\n`);
     const result = runNimiApp(['update', '--dir', legacyIntent.target], legacyIntent.tempRoot, { env: legacyIntent.env });
     assert.notEqual(result.status, 0);
-    assert.match(result.stderr, /Unsupported scaffold intent version: 1/);
+    assert.match(result.stderr, /Unsupported scaffold intent version: 2/);
     assert.throws(
       () => buildAppScaffoldSnapshotFromIntent({ intent, versions }),
-      /Unsupported scaffold intent version: 1/,
+      /Unsupported scaffold intent version: 2/,
     );
   } finally {
     legacyIntent.cleanup();
@@ -867,8 +1627,46 @@ test('create may target an otherwise empty git root but refuses other non-empty 
     result = runNimiApp(['create', '--dir', ordinaryNonEmpty, '--profile', 'standalone'], tempRoot);
     assert.notEqual(result.status, 0);
     assert.match(result.stderr, /Refusing to scaffold into non-empty directory/);
+    assert.doesNotMatch(result.stdout, /resolved create preview/);
+    assert.equal(readFileSync(path.join(ordinaryNonEmpty, 'README.md'), 'utf8'), 'existing readme\n');
   } finally {
     rmSync(tempRoot, { recursive: true, force: true });
+  }
+});
+
+test('update rejects missing or incomplete current intent before projection or managed writes', () => {
+  const incomplete = mkdtempSync(path.join(os.tmpdir(), 'nimi-app-scaffold-incomplete-intent-'));
+  const incompleteTarget = path.join(incomplete, 'app');
+  const incompleteEnv = fakePnpmEnv(incomplete);
+  try {
+    const created = runNimiApp(['create', '--dir', incompleteTarget, '--profile', 'standalone'], incomplete, { env: incompleteEnv });
+    assert.equal(created.status, 0, created.stderr);
+    const intentPath = path.join(incompleteTarget, SCAFFOLD_INTENT_PATH);
+    const intent = JSON.parse(readFileSync(intentPath, 'utf8'));
+    delete intent.resolvedModules;
+    writeFileSync(intentPath, `${JSON.stringify(intent, null, 2)}\n`);
+    const init = runNimiApp(['init', '--dir', incompleteTarget], incomplete, { env: incompleteEnv });
+    assert.notEqual(init.status, 0);
+    assert.match(init.stderr, /canonical resolved intent/);
+    assert.equal(existsSync(path.join(incompleteTarget, SCAFFOLD_LOCK_PATH)), false);
+    assert.equal(existsSync(path.join(incompleteTarget, '.nimi', 'methodology')), false);
+  } finally {
+    rmSync(incomplete, { recursive: true, force: true });
+  }
+
+  const generated = cliScaffold('standalone');
+  try {
+    const intentPath = path.join(generated.target, SCAFFOLD_INTENT_PATH);
+    const managedPath = path.join(generated.target, 'src', 'shell', 'auth', 'app-identity.ts');
+    rmSync(intentPath);
+    writeFileSync(managedPath, '// existing managed drift must not be overwritten\n');
+    const update = runNimiApp(['update', '--dir', generated.target], generated.tempRoot, { env: generated.env });
+    assert.notEqual(update.status, 0);
+    assert.match(update.stderr, /Missing scaffold init intent/);
+    assert.equal(existsSync(intentPath), false);
+    assert.equal(readFileSync(managedPath, 'utf8'), '// existing managed drift must not be overwritten\n');
+  } finally {
+    generated.cleanup();
   }
 });
 
@@ -878,8 +1676,8 @@ test('doctor fails closed on managed drift and update preserves app-owned produc
     let result = runNimiApp(['doctor', '--dir', generated.target], generated.tempRoot, { env: generated.env });
     assert.equal(result.status, 0, result.stderr);
 
-    const authGatePath = path.join(generated.target, 'src/shell/auth/auth-gate.tsx');
-    writeFileSync(authGatePath, `${generated.read('src/shell/auth/auth-gate.tsx')}\n// drift\n`);
+    const targetAdapterPath = path.join(generated.target, 'src/shell/workbench-target-adapter.ts');
+    writeFileSync(targetAdapterPath, `${generated.read('src/shell/workbench-target-adapter.ts')}\n// drift\n`);
     result = runNimiApp(['doctor', '--dir', generated.target], generated.tempRoot, { env: generated.env });
     assert.notEqual(result.status, 0);
     assert.match(result.stderr, /Managed scaffold drift detected/);
@@ -900,7 +1698,33 @@ test('doctor fails closed on managed drift and update preserves app-owned produc
     result = runNimiApp(['doctor', '--dir', generated.target], generated.tempRoot, { env: generated.env });
     assert.equal(result.status, 0, result.stderr);
     assert.equal(generated.read('src/shell/routes/product-area.tsx'), productEdit);
-    assert.doesNotMatch(generated.read('src/shell/auth/auth-gate.tsx'), /\/\/ drift/);
+    assert.doesNotMatch(generated.read('src/shell/workbench-target-adapter.ts'), /\/\/ drift/);
+  } finally {
+    generated.cleanup();
+  }
+});
+
+test('phase 7 doctor rejects tampered resolved ownership projections in the scaffold lock', () => {
+  const generated = cliScaffold('standalone');
+  try {
+    const lockPath = path.join(generated.target, SCAFFOLD_LOCK_PATH);
+    const original = JSON.parse(generated.read(SCAFFOLD_LOCK_PATH));
+    const cases = [
+      ['resolvedViews', 'Resolved scaffold views'],
+      ['resolvedNavigation', 'Resolved scaffold navigation'],
+      ['resolvedStyles', 'Resolved scaffold styles'],
+      ['resolvedAssets', 'Resolved scaffold assets'],
+      ['hostAdapterContracts', 'Scaffold host adapter contracts'],
+    ];
+    for (const [field, label] of cases) {
+      const tampered = structuredClone(original);
+      tampered[field] = [...tampered[field], `tampered-${field}`];
+      writeFileSync(lockPath, `${JSON.stringify(tampered, null, 2)}\n`);
+      const result = runNimiApp(['doctor', '--dir', generated.target], generated.tempRoot, { env: generated.env });
+      assert.notEqual(result.status, 0, `${field} tamper unexpectedly passed`);
+      assert.match(result.stderr, new RegExp(`${label} does not match current scaffold generator`));
+      writeFileSync(lockPath, `${JSON.stringify(original, null, 2)}\n`);
+    }
   } finally {
     generated.cleanup();
   }
@@ -1188,7 +2012,7 @@ test('update fails closed on unsupported locks and classification conflicts', ()
   }
 });
 
-test('app source resolves only scaffoldable slices from live Nimi Lab and is packaged via prepack', () => {
+test('app source resolves only scaffoldable slices: neutral skeleton and admitted roots from live Nimi Lab and packaged prepack', () => {
   const packageJson = JSON.parse(readFileSync(path.join(testDir, '..', 'package.json'), 'utf8'));
   // The snapshot is a gitignored build artifact baked into the tarball at pack.
   assert.ok(packageJson.files.includes('templates'));
@@ -1202,29 +2026,84 @@ test('app source resolves only scaffoldable slices from live Nimi Lab and is pac
     'node scripts/sync-app-source.mjs --apply',
   );
 
-  // In the monorepo there is no baked snapshot; the generator reads only admitted slices from apps/lab.
+  // In the monorepo there is no baked snapshot; prepack reads the neutral
+  // skeleton plus the exact admitted positive source inventory from apps/lab.
   const { baseDir, manifest } = resolveAppSource();
   assert.match(baseDir, /apps[/\\]lab$/);
+  assert.equal(manifest.manifestVersion, 2);
   assert.equal(manifest.sourceApp, 'apps/lab');
+  assert.deepEqual(manifest.resolvedModules, [
+    'ai-studio-core',
+    'studio-create',
+    'studio-media',
+    'studio-voice',
+    'kit-recipes',
+  ]);
   assert.equal(manifest.sourceIdentity.appId, 'nimi.lab');
   assert.equal(manifest.sourceIdentity.packageName, '@nimiplatform/lab');
   assert.equal(manifest.sourceIdentity.tauriIdentifier, 'ai.nimi.apps.nimi.lab');
   assert.equal(manifest.sourceIdentity.cargoPackageName, 'nimiapp-lab-shell');
   assert.equal(manifest.sourceIdentity.rendererEntryId, 'lab-app');
   assert.equal(manifest.sourceIdentity.appTitle, 'Nimi Lab');
-  assert.deepEqual(
-    manifest.files.map((entry) => entry.path),
-    [
-      'src/lab/capabilities/kit-recipes/gallery.tsx',
-      'src/lab/capabilities/kit-recipes/index.tsx',
-      'src/lab/capabilities/kit-recipes/kit-component-gallery-data-recipes.tsx',
-      'src/lab/capabilities/kit-recipes/kit-component-gallery-demos.tsx',
-      'src/lab/capabilities/kit-recipes/kit-component-gallery-recipes.tsx',
-      'src/lab/capabilities/kit-recipes/kit-component-gallery-surface.tsx',
-    ],
-  );
+  for (const expected of [
+    'src/workbench-core/empty-state.tsx',
+    'src/workbench-core/index.ts',
+    'src/workbench-core/runtime-gate.tsx',
+    'src/workbench-core/workbench-core.css',
+    'src/workbench-core/workbench-core.tsx',
+    'src/ai-studio-core/index.ts',
+    'src/studio-modules/studio-create/index.ts',
+    'src/studio-modules/studio-media/index.ts',
+    'src/studio-modules/studio-voice/index.ts',
+    'src/product-modules/kit-recipes/index.tsx',
+  ]) {
+    assert.ok(manifest.files.some((entry) => entry.path === expected), expected);
+  }
   assert.ok(manifest.files.every((entry) => entry.class === 'app-owned product code'));
-  assert.deepEqual(APP_SCAFFOLD_FEATURE_IDS, ['kit-recipes']);
+  assert.deepEqual(APP_SCAFFOLD_FEATURE_IDS, [
+    'studio-create',
+    'studio-media',
+    'studio-voice',
+    'kit-recipes',
+  ]);
+
+  const candidate = resolveAppScaffoldCandidateFeatures(['studio-create']);
+  const candidateSource = resolveAppSource({ resolvedModuleIds: candidate.resolvedModuleIds });
+  assert.deepEqual(candidateSource.manifest.resolvedModules, ['ai-studio-core', 'studio-create']);
+  assert.ok(candidateSource.manifest.files.some((entry) => entry.path === 'src/ai-studio-core/index.ts'));
+  assert.ok(candidateSource.manifest.files.some((entry) => entry.path === 'src/studio-modules/studio-create/index.ts'));
+  assert.equal(candidateSource.manifest.files.some((entry) => entry.path.startsWith('src/studio-modules/studio-media/')), false);
+  assert.equal(candidateSource.manifest.files.some((entry) => entry.path.startsWith('src/studio-modules/studio-voice/')), false);
+  assert.equal(candidateSource.manifest.files.some((entry) => entry.path.startsWith('src/product-modules/kit-recipes/')), false);
+  assert.ok(candidateSource.manifest.files.every((entry) => entry.class === 'app-owned product code'));
+
+  const fullCandidate = resolveAppScaffoldCandidateFeatures([
+    'studio-create',
+    'studio-media',
+    'studio-voice',
+    'kit-recipes',
+  ]);
+  const fullCandidateSource = resolveAppSource({ resolvedModuleIds: fullCandidate.resolvedModuleIds });
+  assert.deepEqual(fullCandidateSource.manifest.resolvedModules, [
+    'ai-studio-core',
+    'studio-create',
+    'studio-media',
+    'studio-voice',
+    'kit-recipes',
+  ]);
+  for (const root of [
+    'src/ai-studio-core/',
+    'src/studio-modules/studio-create/',
+    'src/studio-modules/studio-media/',
+    'src/studio-modules/studio-voice/',
+    'src/product-modules/kit-recipes/',
+  ]) {
+    assert.ok(fullCandidateSource.manifest.files.some((entry) => entry.path.startsWith(root)), root);
+  }
+  assert.throws(
+    () => resolveAppSource({ resolvedModuleIds: ['studio-create'] }),
+    /source module closure is missing dependency: studio-create -> ai-studio-core/,
+  );
 });
 
 test('generated scaffold mechanically excludes forbidden shortcuts', () => {
@@ -1234,8 +2113,9 @@ test('generated scaffold mechanically excludes forbidden shortcuts', () => {
     assert.match(generated.read('.gitignore'), /^\.nimi\/local\/$/m);
     const joined = [
       'src/shell/auth/runtime-platform.ts',
-      'src/shell/auth/auth-gate.tsx',
-      'src/shell/routes/demo-surfaces.tsx',
+      'src/shell/workbench-target-adapter.ts',
+      'src/shell/routes/product-area.tsx',
+      'src/workbench-core/runtime-gate.tsx',
       'README.md',
       'SECURITY.md',
       'nimi.app.yaml',
@@ -1268,9 +2148,10 @@ test('default profiles generate local-app carrier boundaries without Lab-only or
     try {
       const runtimePlatform = generated.read('src/shell/auth/runtime-platform.ts');
       const localAppClient = generated.read('src/shell/auth/local-app-client.ts');
-      const authGate = generated.read('src/shell/auth/auth-gate.tsx');
+      const targetAdapter = generated.read('src/shell/workbench-target-adapter.ts');
+      const runtimeGate = generated.read('src/workbench-core/runtime-gate.tsx');
       const main = generated.read('src/main.tsx');
-      const joined = [runtimePlatform, localAppClient, authGate, main].join('\n');
+      const joined = [runtimePlatform, localAppClient, targetAdapter, runtimeGate, main].join('\n');
 
       assert.doesNotMatch(runtimePlatform, /developer-registered-local-app|developerRegistration/, `${profile} must not retain developer registration`);
       assert.match(runtimePlatform, /'local-app'/, `${profile} keeps the final local-app mode`);
@@ -1278,6 +2159,8 @@ test('default profiles generate local-app carrier boundaries without Lab-only or
       assert.match(localAppClient, /createNimiClient/, `${profile} must consume the SDK local-app owner surface`);
       assert.match(localAppClient, /createNimiLocalAppStandardShellSurface/, `${profile} must compose the Kit local-app shell`);
       assert.match(runtimePlatform, /!status\.sessionBound/, `${profile} must require a bound local-app session without conflating permissions`);
+      assert.match(targetAdapter, /resolveTargetRuntimeGate/, `${profile} must keep Runtime wiring in the target adapter`);
+      assert.match(runtimeGate, /WorkbenchRuntimeGate/, `${profile} must consume the shared visible gate`);
       assert.doesNotMatch(runtimePlatform, /createNimiClient|RuntimeOptions|runtime\.account|runtime\.ai|bootstrapArtifact/i, `${profile} must keep non-carrier operations absent`);
 
     } finally {

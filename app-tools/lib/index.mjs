@@ -1,7 +1,15 @@
-import { existsSync, mkdirSync, readdirSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
-import { createAppScaffold } from './app-scaffold.mjs';
+import { parse as parseYaml } from 'yaml';
+import {
+  buildAppScaffoldCandidateCreatePlan,
+  buildAppScaffoldCreatePlan,
+  createAppScaffold,
+  createAppScaffoldCandidate,
+  resolveAppScaffoldCandidateCreateInput,
+  resolveAppScaffoldCreateInput,
+} from './app-scaffold.mjs';
 import { doctorApp, initApp, updateApp } from './app-doctor-update.mjs';
 export { runDevShell } from '../scripts/dev-shell.mjs';
 export { validateSimulatorAppSource } from './simulator-conformance.mjs';
@@ -13,19 +21,16 @@ const KIT_VERSION = '^0.3.0';
 const REACT_VERSION = '^19.1.0';
 const REACT_DOM_VERSION = '^19.1.0';
 const I18NEXT_VERSION = '^25.8.18';
-const REACT_I18NEXT_VERSION = '^16.5.8';
 const LUCIDE_REACT_VERSION = '^0.577.0';
 const TYPESCRIPT_VERSION = '^5.9.3';
 const TSX_VERSION = '^4.21.0';
 const NODE_TYPES_VERSION = '^24.10.1';
 const REACT_TYPES_VERSION = '^19.2.14';
 const REACT_DOM_TYPES_VERSION = '^19.2.3';
-const THREE_TYPES_VERSION = '^0.184.1';
 const VITE_VERSION = '^7.2.4';
 const VITE_REACT_PLUGIN_VERSION = '^5.1.1';
 const TAILWINDCSS_VERSION = '^4.3.0';
 const TAILWINDCSS_VITE_VERSION = '^4.3.0';
-const TAURI_API_VERSION = '^2.9.1';
 const TAURI_CLI_VERSION = '^2.11.2';
 const YAML_VERSION = '^2.9.0';
 const NIMI_SHELL_TAURI_VERSION = '0.1.0';
@@ -71,19 +76,16 @@ export function appScaffoldVersions() {
     reactVersion: REACT_VERSION,
     reactDomVersion: REACT_DOM_VERSION,
     i18nextVersion: I18NEXT_VERSION,
-    reactI18nextVersion: REACT_I18NEXT_VERSION,
     lucideReactVersion: LUCIDE_REACT_VERSION,
     tsxVersion: TSX_VERSION,
     typescriptVersion: TYPESCRIPT_VERSION,
     nodeTypesVersion: NODE_TYPES_VERSION,
     reactTypesVersion: REACT_TYPES_VERSION,
     reactDomTypesVersion: REACT_DOM_TYPES_VERSION,
-    threeTypesVersion: THREE_TYPES_VERSION,
     viteVersion: VITE_VERSION,
     viteReactPluginVersion: VITE_REACT_PLUGIN_VERSION,
     tailwindcssVersion: TAILWINDCSS_VERSION,
     tailwindcssViteVersion: TAILWINDCSS_VITE_VERSION,
-    tauriApiVersion: TAURI_API_VERSION,
     tauriCliVersion: TAURI_CLI_VERSION,
     yamlVersion: YAML_VERSION,
     nimiShellTauriVersion: NIMI_SHELL_TAURI_VERSION,
@@ -124,7 +126,8 @@ function appToolRunners() {
 }
 
 export function createApp(cwd, options = {}) {
-  createAppScaffold({
+  const plan = options.plan || resolveAppCreatePlan(cwd, options);
+  return createAppScaffold({
     cwd,
     options: {
       dir: options.dir,
@@ -135,12 +138,167 @@ export function createApp(cwd, options = {}) {
       packageName: options.packageName,
       author: options.author,
       features: options.features,
+      silent: options.silent,
     },
     versions: appScaffoldVersions(),
     createFileTree,
     ensureDirEmptyOrMissing,
     mkdirSync,
+    plan,
   });
+}
+
+export function resolveAppCreateInput(cwd, options = {}) {
+  return resolveAppScaffoldCreateInput({ cwd, options });
+}
+
+export function resolveAppCreatePlan(cwd, options = {}) {
+  return resolveAppCreatePlanWith(
+    cwd,
+    options,
+    resolveAppScaffoldCreateInput,
+    buildAppScaffoldCreatePlan,
+  );
+}
+
+export function resolveCandidateAppCreatePlan(cwd, options = {}) {
+  return resolveAppCreatePlanWith(
+    cwd,
+    options,
+    resolveAppScaffoldCandidateCreateInput,
+    buildAppScaffoldCandidateCreatePlan,
+  );
+}
+
+function resolveAppCreatePlanWith(cwd, options, resolveInput, buildPlan) {
+  const resolvedInput = resolveInput({ cwd, options });
+  ensureDirEmptyOrMissing(resolvedInput.targetDir);
+  const topology = resolveCreateTopology(resolvedInput);
+  const versions = {
+    ...appScaffoldVersions(),
+    ...(topology.workspaceCargoPath ? { workspaceCargoPath: topology.workspaceCargoPath } : {}),
+  };
+  const plan = buildPlan({ cwd, options, versions, topology });
+  assertNoDeclaredWorkspacePortCollision(topology.workspaceRoot, plan);
+  return plan;
+}
+
+export function createCandidateApp(cwd, options = {}) {
+  const plan = options.plan || resolveCandidateAppCreatePlan(cwd, options);
+  return createAppScaffoldCandidate({
+    cwd,
+    options,
+    versions: appScaffoldVersions(),
+    createFileTree,
+    ensureDirEmptyOrMissing,
+    mkdirSync,
+    plan,
+  });
+}
+
+function findWorkspaceRoot(startDir) {
+  let current = path.resolve(startDir);
+  for (;;) {
+    if (existsSync(path.join(current, 'pnpm-workspace.yaml'))) return current;
+    const parent = path.dirname(current);
+    if (parent === current) return null;
+    current = parent;
+  }
+}
+
+function isPathInside(parentDir, targetDir) {
+  const relative = path.relative(parentDir, targetDir);
+  return relative !== '' && !relative.startsWith('..') && !path.isAbsolute(relative);
+}
+
+function readWorkspacePackages(workspaceRoot) {
+  const manifestPath = path.join(workspaceRoot, 'pnpm-workspace.yaml');
+  let manifest;
+  try {
+    manifest = parseYaml(readFileSync(manifestPath, 'utf8'));
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`Cannot read workspace membership from ${manifestPath}: ${message}`);
+  }
+  if (!Array.isArray(manifest?.packages)) {
+    throw new Error(`Workspace package membership is missing from ${manifestPath}`);
+  }
+  return manifest.packages.map((entry) => String(entry).replaceAll('\\', '/'));
+}
+
+function resolveCreateTopology(resolvedInput) {
+  const workspaceRoot = findWorkspaceRoot(path.dirname(resolvedInput.targetDir));
+  if (resolvedInput.profile !== 'workspace-app') {
+    return Object.freeze({ profile: 'standalone', workspaceRoot });
+  }
+  if (!workspaceRoot) {
+    throw new Error('workspace-app target must belong to a Nimi pnpm workspace');
+  }
+  const packages = readWorkspacePackages(workspaceRoot);
+  for (const requiredMembership of ['apps/*', 'kit', 'app-tools', 'sdks/typescript']) {
+    if (!packages.includes(requiredMembership)) {
+      throw new Error(`workspace-app requires workspace membership ${requiredMembership}`);
+    }
+  }
+  const appsRoot = path.join(workspaceRoot, 'apps');
+  const relativeTarget = path.relative(appsRoot, resolvedInput.targetDir);
+  if (
+    !relativeTarget
+    || relativeTarget.startsWith('..')
+    || path.isAbsolute(relativeTarget)
+    || relativeTarget.includes(path.sep)
+  ) {
+    throw new Error('workspace-app target must be a direct apps/* workspace package');
+  }
+  const cargoTarget = path.join(workspaceRoot, 'kit', 'shell', 'tauri');
+  if (!existsSync(cargoTarget) || !statSync(cargoTarget).isDirectory()) {
+    throw new Error(`workspace-app Cargo dependency target is unavailable: ${cargoTarget}`);
+  }
+  const workspaceCargoPath = path.relative(
+    path.join(resolvedInput.targetDir, 'src-tauri'),
+    cargoTarget,
+  ).replaceAll('\\', '/');
+  if (!workspaceCargoPath || path.isAbsolute(workspaceCargoPath)) {
+    throw new Error('workspace-app Cargo dependency path could not be derived');
+  }
+  return Object.freeze({
+    profile: 'workspace-app',
+    workspaceRoot,
+    appsRoot,
+    workspaceCargoPath,
+  });
+}
+
+function assertNoDeclaredWorkspacePortCollision(workspaceRoot, plan) {
+  if (!workspaceRoot) return;
+  const appsRoot = path.join(workspaceRoot, 'apps');
+  if (!isPathInside(appsRoot, plan.resolvedInput.targetDir)) return;
+  if (!existsSync(appsRoot)) return;
+  const selectedPort = plan.preview.identity.devPort;
+  for (const entry of readdirSync(appsRoot)) {
+    const appDir = path.join(appsRoot, entry);
+    if (!statSync(appDir).isDirectory() || path.resolve(appDir) === path.resolve(plan.resolvedInput.targetDir)) continue;
+    const manifestPath = path.join(appDir, 'nimi.app.yaml');
+    if (!existsSync(manifestPath)) continue;
+    let manifest;
+    try {
+      manifest = parseYaml(readFileSync(manifestPath, 'utf8'));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(`Cannot validate declared renderer ports from ${manifestPath}: ${message}`);
+    }
+    const origin = manifest?.local_development?.electron?.renderer_origin;
+    if (typeof origin !== 'string') continue;
+    let declaredPort;
+    try {
+      declaredPort = Number(new URL(origin).port);
+    } catch {
+      throw new Error(`Invalid declared renderer origin in ${manifestPath}: ${origin}`);
+    }
+    if (declaredPort === selectedPort) {
+      throw new Error(`Declared renderer port collision: ${selectedPort} is already owned by ${manifestPath}`);
+    }
+  }
 }
 
 export function doctorAppScaffold(cwd, options = {}) {
