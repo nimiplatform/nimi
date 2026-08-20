@@ -416,11 +416,14 @@ function buildCargoDependencies(profile, versions, capabilityResolution) {
     }
     dependencies[name] = value;
   }
+  for (const [name, value] of Object.entries(dependencies)) {
+    validateAppScaffoldCargoDependencyValue(value, name);
+  }
   return dependencies;
 }
 
 function cargoShellDependencyLine(profile, versions) {
-  return `nimi-shell-tauri = ${JSON.stringify(versions.nimiShellTauriVersion)}`;
+  return `nimi-shell-tauri = ${renderCargoDependencyValue(versions.nimiShellTauriVersion, 'nimi-shell-tauri')}`;
 }
 
 export function renderCargoDependencyValue(value, label) {
@@ -496,7 +499,7 @@ function targetIdentityMap(identity) {
 }
 
 function applyIdentityReplacement(content, manifest, target) {
-  let rendered = content;
+  const replacements = new Map();
   for (const field of manifest.identityReplacementOrder) {
     if (field === 'rendererEntryId') {
       continue;
@@ -506,14 +509,23 @@ function applyIdentityReplacement(content, manifest, target) {
     if (from === undefined || to === undefined) {
       throw new Error(`Identity replacement field missing: ${field}`);
     }
-    rendered = rendered.split(from).join(to);
+    // The starter intentionally shares some literals (for example packageName
+    // and appSlug). The manifest order owns that ambiguity; replacement stays
+    // single-pass so the selected target value is never processed again.
+    if (replacements.has(from)) continue;
+    replacements.set(from, to);
   }
   const sourceEntryId = manifest.sourceIdentity.rendererEntryId;
   const targetEntryId = target.rendererEntryId;
   if (sourceEntryId && targetEntryId) {
-    rendered = rendered.split(`entry:${sourceEntryId}`).join(`entry:${targetEntryId}`);
+    replacements.set(`entry:${sourceEntryId}`, `entry:${targetEntryId}`);
   }
-  return rendered;
+  const pattern = [...replacements.keys()]
+    .sort((left, right) => right.length - left.length || left.localeCompare(right))
+    .map((value) => value.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&'))
+    .join('|');
+  if (!pattern) return content;
+  return content.replace(new RegExp(pattern, 'gu'), (value) => replacements.get(value));
 }
 
 export function assertIdentityNeutralProductSource(relativePath, content, manifest) {

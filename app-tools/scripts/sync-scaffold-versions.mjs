@@ -4,6 +4,8 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { validateAppScaffoldCargoDependencyValue } from '../lib/app-scaffold-capabilities.mjs';
+
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const APP_TOOLS_ROOT = path.resolve(SCRIPT_DIR, '..');
 const REPO_ROOT = path.resolve(APP_TOOLS_ROOT, '..');
@@ -30,7 +32,9 @@ function nimiShellTauriVersion() {
     throw new Error('Scaffold version source is invalid: kit/shell/tauri package name');
   }
   const match = cargo.match(/^version\s*=\s*"([^"]+)"\s*$/mu);
-  return requiredString(match?.[1], 'kit/shell/tauri.version');
+  const version = requiredString(match?.[1], 'kit/shell/tauri.version');
+  validateAppScaffoldCargoDependencyValue(version, 'kit/shell/tauri.version');
+  return version;
 }
 
 export function buildScaffoldVersionProjection() {

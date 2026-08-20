@@ -496,6 +496,23 @@ test('app id maps losslessly to the Tauri bundle identifier', () => {
   }
 });
 
+test('identity replacement never reprocesses target values containing starter literals', () => {
+  const generated = scaffold('standalone', {
+    appId: 'acme.widget2',
+    title: 'Acme Widget2',
+    packageName: 'acme-widget2',
+  });
+  try {
+    assert.equal(generated.lock().appIdentity.cargoPackageName, 'acme-widget2-shell');
+    assert.match(generated.read('src-tauri/Cargo.toml'), /^name = "acme-widget2-shell"$/m);
+    assert.doesNotMatch(generated.read('src-tauri/Cargo.toml'), /acme-widget222-shell/);
+    assert.match(generated.read('README.md'), /Acme Widget2/);
+    assert.doesNotMatch(generated.read('README.md'), /Acme Widget22/);
+  } finally {
+    generated.cleanup();
+  }
+});
+
 test('app id rejects lossy underscore identity', () => {
   const tempRoot = mkdtempSync(path.join(os.tmpdir(), 'nimi-app-scaffold-invalid-app-id-'));
   try {
@@ -1495,6 +1512,17 @@ test('phase 7 Cargo dependency objects compare structurally and render non-empty
   for (const spec of ['0.1.0', '^1.2.3', '~1.2', '>=1.2.3, <2', '1.*']) {
     assert.doesNotThrow(() => validateAppScaffoldCargoDependencyValue(spec, 'valid-string'));
   }
+  assert.throws(
+    () => buildAppScaffoldCandidateSnapshot({
+      profile: 'standalone',
+      versions: { ...versions, nimiShellTauriVersion: '../crate' },
+      appId: 'invalid.base-cargo',
+      appTitle: 'Invalid Base Cargo',
+      packageName: 'invalid-base-cargo',
+      features: [],
+    }),
+    /Cargo dependency must use a public registry version: nimi-shell-tauri/,
+  );
   for (const descriptor of [
     { version: ['1'] },
     { optional: 'false' },
