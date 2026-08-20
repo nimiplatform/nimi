@@ -29,11 +29,23 @@ const sharedHistoryOutput = ts.transpileModule(sharedHistorySource, {
   `from ${JSON.stringify(sdkTypesStubUrl)}`,
 );
 const sharedHistoryUrl = `data:text/javascript;base64,${Buffer.from(sharedHistoryOutput).toString('base64')}`;
+const sharedHistoryPolicySource = readFileSync(path.join(root, 'src/ai-studio-core/history-policy.ts'), 'utf8');
+const sharedHistoryPolicyOutput = ts.transpileModule(sharedHistoryPolicySource, {
+  compilerOptions: { module: ts.ModuleKind.ES2022, target: ts.ScriptTarget.ES2022 },
+}).outputText.replace(
+  /from\s+['"]@nimiplatform\/sdk\/types['"]/g,
+  `from ${JSON.stringify(sdkTypesStubUrl)}`,
+);
+const sharedHistoryPolicyUrl = `data:text/javascript;base64,${Buffer.from(sharedHistoryPolicyOutput).toString('base64')}`;
+const sharedHistoryFacadeUrl = `data:text/javascript;base64,${Buffer.from([
+  `export * from ${JSON.stringify(sharedHistoryUrl)};`,
+  `export * from ${JSON.stringify(sharedHistoryPolicyUrl)};`,
+].join('\n')).toString('base64')}`;
 const historyActionsOutput = ts.transpileModule(historyActionsSource, {
   compilerOptions: { module: ts.ModuleKind.ES2022, target: ts.ScriptTarget.ES2022 },
 }).outputText.replace(
   /from\s+['"]\.\.\/ai-studio-core\/index\.js['"]/g,
-  `from ${JSON.stringify(sharedHistoryUrl)}`,
+  `from ${JSON.stringify(sharedHistoryFacadeUrl)}`,
 );
 const historyActionsUrl = `data:text/javascript;base64,${Buffer.from(historyActionsOutput).toString('base64')}`;
 const {
@@ -381,7 +393,9 @@ test('managed history projection restores every canonical artifact after a parti
   const projection = await reconcileLabManagedHistoryProjection(
     runHistory,
     partialImageHistory,
-    async () => ({}),
+    async (relativePath) => relativePath.endsWith('last-frame.asset')
+      ? { sizeBytes: 5, sha256: `sha256:${'2'.repeat(64)}` }
+      : { sizeBytes: 10, sha256: `sha256:${'1'.repeat(64)}` },
   );
 
   assert.deepEqual(
@@ -422,6 +436,15 @@ test('managed history projection never reports Ready after managed bytes are mis
 
   assert.equal(projection.runHistory['image.generate'][0].status, 'unavailable');
   assert.equal(projection.imageHistory[0].status, 'unavailable');
+
+  const mismatch = await reconcileLabManagedHistoryProjection(
+    runHistory,
+    [],
+    async () => ({ sizeBytes: 9, sha256: `sha256:${'3'.repeat(64)}` }),
+  );
+  assert.equal(mismatch.runHistory['image.generate'][0].status, 'unavailable');
+  assert.equal(mismatch.imageHistory[0].status, 'unavailable');
+  assert.match(mismatch.imageHistory[0].message, /verification failed/);
 });
 
 test('scoped record-plus-asset clear reports completed, skipped, and failed-shaped outcomes after reload', async () => {

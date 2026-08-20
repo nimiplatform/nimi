@@ -37,8 +37,11 @@ function compileModule(relativePath, replacements) {
 const standardStorageModuleUrl = compileModule('src/lab/lab-standard-storage.ts', [
   ['../shell/local-app-runtime-platform.js', clientModuleUrl],
 ]);
-const historyStorageModuleUrl = compileModule('src/lab/lab-history-storage.ts', [
+const historyPolicyModuleUrl = compileModule('src/ai-studio-core/history-policy.ts', [
   ['@nimiplatform/sdk/types', jsonTypesModuleUrl],
+]);
+const historyStorageModuleUrl = compileModule('src/lab/lab-history-storage.ts', [
+  ['../ai-studio-core/index.js', historyPolicyModuleUrl],
   ['./lab-standard-storage.js', standardStorageModuleUrl],
 ]);
 const imageHistoryModuleUrl = compileModule('src/lab/lab-image-history.ts', [
@@ -46,6 +49,7 @@ const imageHistoryModuleUrl = compileModule('src/lab/lab-image-history.ts', [
   ['./lab-standard-storage.js', standardStorageModuleUrl],
 ]);
 const standardStorageModule = await import(standardStorageModuleUrl);
+const historyPolicyModule = await import(historyPolicyModuleUrl);
 const historyStorageModule = await import(historyStorageModuleUrl);
 const imageHistoryModule = await import(imageHistoryModuleUrl);
 
@@ -118,6 +122,70 @@ function runRecord(id, createdAt, overrides = {}) {
     ...overrides,
   };
 }
+
+test('shared history policy enforces global count and byte bounds', () => {
+  let history = {};
+  for (let index = 0; index < 161; index += 1) {
+    history = historyPolicyModule.boundStudioRunHistoryWithRecord(history, runRecord(
+      `run-${index}`,
+      new Date(Date.UTC(2026, 0, 1, 0, 0, index)).toISOString(),
+      { capabilityId: `capability.${index}` },
+    ));
+  }
+  const records = historyPolicyModule.flattenStudioHistoryRecords(history);
+  assert.equal(records.length, 160);
+  assert.equal(records.some((record) => record.id === 'run-160'), true);
+  assert.equal(records.some((record) => record.id === 'run-0'), false);
+
+  assert.throws(
+    () => historyPolicyModule.boundStudioRunHistoryWithRecord({}, runRecord(
+      'oversized',
+      '2026-01-01T00:00:00.000Z',
+      { prompt: 'x'.repeat(241 * 1024) },
+    )),
+    /exceeds the storage document limit/,
+  );
+});
+
+test('shared history codec rejects malformed nested result and run config', () => {
+  const base = runRecord('run-malformed', '2026-01-01T00:00:00.000Z');
+  assert.throws(
+    () => historyPolicyModule.parseStudioRunHistory({
+      'text.generate': [{ ...base, result: { ...base.result, charCount: 'invalid' } }],
+    }),
+    /charCount/,
+  );
+  assert.throws(
+    () => historyPolicyModule.parseStudioRunHistory({
+      'text.generate': [{ ...base, runConfig: { ...base.runConfig, promptControls: { contextAttached: true, attachmentCount: 'invalid' } } }],
+    }),
+    /attachmentCount/,
+  );
+  assert.throws(
+    () => historyPolicyModule.parseStudioRunHistory({
+      'text.generate': [{
+        ...base,
+        result: {
+          ok: false,
+          kind: 'non-success',
+          summary: 'failed',
+          reason: 'runtime-call-failed',
+          message: 'failed',
+          actionHint: 'retry',
+          diagnostics: { reasonCode: 'lowercase-is-not-canonical', retryable: 'yes' },
+        },
+      }],
+    }),
+    /diagnostics\.reasonCode/,
+  );
+});
+
+test('shared history grouping does not inherit object prototype capability entries', () => {
+  const record = runRecord('run-constructor', '2026-01-01T00:00:00.000Z', { capabilityId: 'constructor' });
+  const history = historyPolicyModule.studioHistoryFromRecords([record]);
+  assert.equal(Object.hasOwn(history, 'constructor'), true);
+  assert.deepEqual(history.constructor, [record]);
+});
 
 function assertNoUndefined(value, path = '$') {
   assert.notEqual(value, undefined, `${path} must not be undefined`);

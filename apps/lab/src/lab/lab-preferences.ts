@@ -13,6 +13,10 @@ import {
   type StudioPromptDraftKey,
   type StudioPromptDraftStore,
 } from '../ai-studio-core/prompt-drafts.js';
+import {
+  DEFAULT_AI_STUDIO_HISTORY_PANEL_PREFERENCES,
+  parseAIStudioHistoryPanelPreferences,
+} from '../ai-studio-core/history-policy.js';
 
 export const LAB_PREFERENCES_STORAGE_KEY = 'nimiapp-lab:workbench-preferences:v1';
 export const LAB_PREFERENCES_SCHEMA_VERSION = 1;
@@ -108,11 +112,7 @@ function defaultDraftStatus(
 }
 
 export function defaultLabHistoryPanelPreferences(): LabHistoryPanelPreferences {
-  return {
-    collapsed: true,
-    scope: 'capability',
-    hideFailures: false,
-  };
+  return { ...DEFAULT_AI_STUDIO_HISTORY_PANEL_PREFERENCES };
 }
 
 export function defaultLabPreferences(): LabPreferences {
@@ -151,19 +151,12 @@ function getLocalPreferenceStorage(): Storage | null {
   return resolveBrowserStorage('local');
 }
 
-const LAB_HISTORY_PANEL_SCOPES: readonly LabHistoryPanelScope[] = ['capability', 'all', 'media'];
-
 function parseHistoryPanelPreferences(value: unknown): LabHistoryPanelPreferences {
-  const defaults = defaultLabHistoryPanelPreferences();
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return defaults;
-  const parsed = value as Partial<LabHistoryPanelPreferences>;
-  return {
-    collapsed: typeof parsed.collapsed === 'boolean' ? parsed.collapsed : defaults.collapsed,
-    scope: LAB_HISTORY_PANEL_SCOPES.includes(parsed.scope as LabHistoryPanelScope)
-      ? parsed.scope as LabHistoryPanelScope
-      : defaults.scope,
-    hideFailures: typeof parsed.hideFailures === 'boolean' ? parsed.hideFailures : defaults.hideFailures,
-  };
+  try {
+    return parseAIStudioHistoryPanelPreferences(value);
+  } catch {
+    return defaultLabHistoryPanelPreferences();
+  }
 }
 
 function parseLabPreferences(value: unknown): LabPreferences {

@@ -62,6 +62,25 @@ export {
   createStudioRunTargetSummary,
 } from './run-target.js';
 export {
+  DEFAULT_AI_STUDIO_HISTORY_PANEL_PREFERENCES,
+  STUDIO_HISTORY_LIMIT_BYTES,
+  STUDIO_HISTORY_LIMIT_PER_CAPABILITY,
+  STUDIO_HISTORY_LIMIT_TOTAL_RECORDS,
+  boundStudioRunHistoryWithRecord,
+  cleanupStudioHistoryArtifacts,
+  clearStudioRunHistory,
+  clearStudioHistoryWithPolicy,
+  flattenStudioHistoryRecords,
+  parseAIStudioHistoryPanelPreferences,
+  parseStudioRunHistory,
+  removeStudioHistoryWithPolicy,
+  removeStudioRunHistoryRecord,
+  studioHistoryArtifactPaths,
+  studioHistoryFromRecords,
+  type StudioHistoryPolicyMutationIssue,
+  type StudioHistoryPolicyMutationOutcome,
+} from './history-policy.js';
+export {
   createStudioRunHistoryRecord,
   createStudioRunHistoryResultSnapshot,
   flattenStudioRunHistory,
@@ -84,7 +103,6 @@ export {
   studioRunHistoryStatus,
   type StudioCapabilityLabelResolver,
   type StudioFlatRunRecord,
-  type StudioManagedArtifactInspection,
   type StudioRunConfigParamRow,
   type StudioRunConfigSnapshot,
   type StudioRunHistory,

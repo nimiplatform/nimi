@@ -30,6 +30,18 @@ const promptDraftOutput = ts.transpileModule(promptDraftSource, {
   },
 }).outputText;
 const promptDraftModuleUrl = `data:text/javascript;base64,${Buffer.from(promptDraftOutput).toString('base64')}`;
+const sdkTypesStubUrl = `data:text/javascript;base64,${Buffer.from('export const isJsonObject = (value) => Boolean(value) && typeof value === "object" && !Array.isArray(value);').toString('base64')}`;
+const historyPolicySource = read('src/ai-studio-core/history-policy.ts');
+const historyPolicyOutput = ts.transpileModule(historyPolicySource, {
+  compilerOptions: {
+    module: ts.ModuleKind.ES2022,
+    target: ts.ScriptTarget.ES2022,
+  },
+}).outputText.replace(
+  /from\s+['"]@nimiplatform\/sdk\/types['"]/g,
+  `from ${JSON.stringify(sdkTypesStubUrl)}`,
+);
+const historyPolicyModuleUrl = `data:text/javascript;base64,${Buffer.from(historyPolicyOutput).toString('base64')}`;
 const { outputText } = ts.transpileModule(source, {
   compilerOptions: {
     module: ts.ModuleKind.ES2022,
@@ -44,6 +56,10 @@ const rewrittenOutput = outputText
   .replace(
     /from\s+['"]\.\.\/ai-studio-core\/prompt-drafts\.js['"]/g,
     `from ${JSON.stringify(promptDraftModuleUrl)}`,
+  )
+  .replace(
+    /from\s+['"]\.\.\/ai-studio-core\/history-policy\.js['"]/g,
+    `from ${JSON.stringify(historyPolicyModuleUrl)}`,
   );
 const moduleUrl = `data:text/javascript;base64,${Buffer.from(rewrittenOutput).toString('base64')}`;
 const preferencesModule = await import(moduleUrl);

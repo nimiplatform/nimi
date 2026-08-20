@@ -138,20 +138,15 @@ export type StudioRunHistoryRecord = {
 
 export type StudioRunHistory = Record<string, StudioRunHistoryRecord[]>;
 
-export type StudioManagedArtifactInspection = {
-  readonly status: 'ready' | 'unavailable';
-  readonly message?: string;
-};
-
 export async function projectStudioManagedHistory(input: {
   readonly runHistory: StudioRunHistory;
   readonly existingMediaHistory?: readonly StudioMediaHistoryRecord[];
   readonly retainUnprojectedMedia?: boolean;
   readonly resolveCapabilityLabel?: StudioCapabilityLabelResolver;
-  readonly inspectArtifact: (
+  readonly statArtifact: (
     artifact: StudioManagedArtifact,
     record: StudioRunHistoryRecord,
-  ) => Promise<StudioManagedArtifactInspection>;
+  ) => Promise<{ readonly sha256: string; readonly sizeBytes: number }>;
 }): Promise<{
   readonly runHistory: StudioRunHistory;
   readonly mediaHistory: readonly StudioMediaHistoryRecord[];
@@ -174,9 +169,19 @@ export async function projectStudioManagedHistory(input: {
           : result.firstArtifact ? [result.firstArtifact] : [];
         for (const [index, artifact] of artifacts.entries()) {
           const id = index === 0 ? record.id : `${record.id}:${index}`;
-          const inspection = await input.inspectArtifact(artifact, record);
-          const message = inspection.message ?? record.message;
-          if (inspection.status === 'unavailable' && !unavailableReason) unavailableReason = message;
+          let status: 'ready' | 'unavailable' = 'ready';
+          let message = record.message;
+          try {
+            const stored = await input.statArtifact(artifact, record);
+            if (stored.sha256 !== artifact.sha256 || stored.sizeBytes !== artifact.sizeBytes) {
+              status = 'unavailable';
+              message = `Managed artifact verification failed: ${artifact.relativePath}`;
+            }
+          } catch {
+            status = 'unavailable';
+            message = `Managed artifact is unavailable: ${artifact.relativePath}`;
+          }
+          if (status === 'unavailable' && !unavailableReason) unavailableReason = message;
           const capabilityLabel = input.resolveCapabilityLabel?.(record.capabilityId) || undefined;
           mediaHistory.push({
             ...storedByID.get(id),
@@ -186,7 +191,7 @@ export async function projectStudioManagedHistory(input: {
             capabilityId: record.capabilityId,
             ...(capabilityLabel ? { capabilityLabel } : {}),
             title: artifact.displayName || artifact.relativePath || result.jobId || record.capabilityId,
-            status: inspection.status,
+            status,
             createdAt: record.createdAt,
             artifactCount: result.artifactCount,
             artifactLabel: artifact.displayName || artifact.relativePath,
