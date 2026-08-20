@@ -96,7 +96,7 @@ export function DialogDemo() {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent onClose={() => setOpen(false)}>
           <DialogHeader><DialogTitle>Apply AIProfile</DialogTitle></DialogHeader>
-          <DialogBody>Review the NimiAIConfig diff before applying it to this capability.</DialogBody>
+          <DialogBody>Review the AIConfig intent diff before applying it to this capability.</DialogBody>
         </DialogContent>
       </Dialog>
     </>

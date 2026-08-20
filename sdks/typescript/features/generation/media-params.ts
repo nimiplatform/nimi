@@ -69,7 +69,7 @@ function optionalFiniteNumber(
   if (!raw || raw.toLowerCase() === 'default' || raw.toLowerCase() === 'auto') return undefined;
   const parsed = Number(raw);
   if (!Number.isFinite(parsed)) {
-    throw mediaParamError(capabilityId, `NimiAIConfig selectedParams.${fieldName} must be a finite number.`);
+    throw mediaParamError(capabilityId, `Generation parameter ${fieldName} must be a finite number.`);
   }
   return parsed;
 }
@@ -82,7 +82,7 @@ function optionalPositiveInteger(
   const parsed = optionalFiniteNumber(capabilityId, value, fieldName);
   if (parsed === undefined) return undefined;
   if (!Number.isInteger(parsed) || parsed <= 0) {
-    throw mediaParamError(capabilityId, `NimiAIConfig selectedParams.${fieldName} must be a positive integer.`);
+    throw mediaParamError(capabilityId, `Generation parameter ${fieldName} must be a positive integer.`);
   }
   return parsed;
 }
@@ -95,7 +95,7 @@ function optionalPositiveNumber(
   const parsed = optionalFiniteNumber(capabilityId, value, fieldName);
   if (parsed === undefined) return undefined;
   if (parsed <= 0) {
-    throw mediaParamError(capabilityId, `NimiAIConfig selectedParams.${fieldName} must be greater than zero.`);
+    throw mediaParamError(capabilityId, `Generation parameter ${fieldName} must be greater than zero.`);
   }
   return parsed;
 }
@@ -107,7 +107,7 @@ function optionalImageSize(value: unknown): string | undefined {
   if (/^\d+x\d+$/u.test(normalized) || /^[234]k$/u.test(normalized)) {
     return normalized;
   }
-  throw mediaParamError('image.generate', 'NimiAIConfig selectedParams.size must use WIDTHxHEIGHT, 2k, 3k, or 4k format.');
+  throw mediaParamError('image.generate', 'Generation parameter size must use WIDTHxHEIGHT, 2k, 3k, or 4k format.');
 }
 
 function optionalImageResponseFormat(value: unknown): string | undefined {
@@ -117,7 +117,7 @@ function optionalImageResponseFormat(value: unknown): string | undefined {
   if (normalized === 'base64' || normalized === 'b64_json' || normalized === 'url') {
     return normalized;
   }
-  throw mediaParamError('image.generate', `NimiAIConfig selectedParams.responseFormat is not supported: ${text}.`);
+  throw mediaParamError('image.generate', `Generation parameter responseFormat is not supported: ${text}.`);
 }
 
 function optionalImageIntegerString(
@@ -128,7 +128,7 @@ function optionalImageIntegerString(
   const text = optionalDefaultText(value, extraSentinels);
   if (!text) return undefined;
   if (!/^-?\d+$/u.test(text)) {
-    throw mediaParamError('image.generate', `NimiAIConfig selectedParams.${fieldName} must be an integer.`);
+    throw mediaParamError('image.generate', `Generation parameter ${fieldName} must be an integer.`);
   }
   return text;
 }
@@ -138,7 +138,7 @@ function optionalImageStringList(value: unknown, fieldName: string): readonly st
   if (Array.isArray(value)) {
     const out = value.map(optionalText).filter(Boolean);
     if (out.length !== value.length) {
-      throw mediaParamError('image.generate', `NimiAIConfig selectedParams.${fieldName} must contain only non-empty strings.`);
+      throw mediaParamError('image.generate', `Generation parameter ${fieldName} must contain only non-empty strings.`);
     }
     return out;
   }
@@ -167,7 +167,7 @@ function optionalImageSampler(value: unknown): string | undefined {
   };
   const sampler = aliases[normalized];
   if (sampler) return sampler;
-  throw mediaParamError('image.generate', `NimiAIConfig selectedParams.sampler is not supported: ${text}.`);
+  throw mediaParamError('image.generate', `Generation parameter sampler is not supported: ${text}.`);
 }
 
 function optionalImageScheduler(value: unknown): string | undefined {
@@ -188,7 +188,7 @@ function optionalImageScheduler(value: unknown): string | undefined {
     'bong_tangent',
   ]);
   if (allowed.has(normalized)) return normalized;
-  throw mediaParamError('image.generate', `NimiAIConfig selectedParams.scheduler is not supported: ${text}.`);
+  throw mediaParamError('image.generate', `Generation parameter scheduler is not supported: ${text}.`);
 }
 
 export function coerceNimiImageGenerationParams(
@@ -232,7 +232,7 @@ export function coerceNimiVideoGenerationParams(
 ): NimiVideoGenerationCoercedParams {
   const mode = optionalText(params.mode) || 't2v';
   if (!['t2v', 'i2v-first-frame', 'i2v-first-last', 'i2v-reference'].includes(mode)) {
-    throw mediaParamError('video.generate', `NimiAIConfig selectedParams.mode is not supported: ${mode}.`);
+    throw mediaParamError('video.generate', `Generation parameter mode is not supported: ${mode}.`);
   }
   const durationSec = optionalFiniteNumber('video.generate', params.durationSec ?? params.duration_sec, 'durationSec');
   const fps = optionalPositiveInteger('video.generate', params.fps, 'fps');

@@ -8,7 +8,7 @@ import {
   mimeTypeForNimiAudioUrl,
 } from './index';
 
-test('image selectedParams coerce runtime media fields and provider options', () => {
+test('image generation parameters coerce runtime media fields and provider options', () => {
   const params = coerceNimiImageGenerationParams({
     size: '1024x768',
     response_format: 'b64_json',
@@ -36,14 +36,14 @@ test('image selectedParams coerce runtime media fields and provider options', ()
   });
 });
 
-test('image selectedParams reject unsupported sampler instead of dropping it', () => {
+test('image generation parameters reject unsupported sampler instead of dropping it', () => {
   assert.throws(
     () => coerceNimiImageGenerationParams({ sampler: 'surprise-me' }),
-    /selectedParams\.sampler is not supported/,
+    /Generation parameter sampler is not supported/,
   );
 });
 
-test('video and transcription selectedParams coerce timeout and typed options', () => {
+test('video and transcription generation parameters coerce timeout and typed options', () => {
   const video = coerceNimiVideoGenerationParams({
     mode: 'i2v-reference',
     durationSec: '4.5',
