@@ -4,7 +4,6 @@ import { useTranslation } from 'react-i18next';
 import { ScrollArea } from '@nimiplatform/kit/ui';
 import type { WorldCharacter } from './world-detail-types.js';
 import { characterMeta, formatNum } from './world-detail-template-model';
-import { PAPER, PAPER_RADIUS, PAPER_SERIF } from './world-detail-paper-model';
 import { worldDetailPaperContentFrameStyle } from './world-detail-layout.js';
 import {
   IconChat,
@@ -47,9 +46,9 @@ function groupCaption(group: PeopleGroup, t: ReturnType<typeof useTranslation>['
 }
 
 const tierBadgeTone: Record<WorldCharacter['importance'], { bg: string; color: string }> = {
-  PRIMARY: { bg: PAPER.greenSoftBg, color: PAPER.green },
-  SECONDARY: { bg: 'rgba(150,120,60,.14)', color: '#8a6a2f' },
-  BACKGROUND: { bg: 'rgba(120,108,80,.12)', color: PAPER.muted },
+  PRIMARY: { bg: 'color-mix(in srgb, var(--nimi-action-primary-bg) 14%, transparent)', color: 'var(--nimi-action-primary-bg)' },
+  SECONDARY: { bg: 'var(--nimi-status-warning-soft-bg)', color: 'var(--nimi-status-warning-soft-text)' },
+  BACKGROUND: { bg: 'var(--nimi-status-neutral-soft-bg)', color: 'var(--nimi-text-muted)' },
 };
 
 const PEOPLE_GALLERY_SHELL_TITLEBAR_HEIGHT_PX = 56;
@@ -74,9 +73,9 @@ function PeopleCard({
   const connectable = character.relation?.state === 'connectable';
   const tier = tierBadgeTone[character.importance];
   const cardStyle: CSSProperties = {
-    background: PAPER.cardSoft,
-    border: `1px solid ${PAPER.borderSoft}`,
-    borderRadius: PAPER_RADIUS.md,
+    background: 'var(--nimi-surface-panel)',
+    border: '1px solid var(--nimi-border-subtle)',
+    borderRadius: 'var(--nimi-radius-md)',
     padding: 15,
     display: 'flex',
     flexDirection: 'column',
@@ -105,12 +104,12 @@ function PeopleCard({
                 defaultValue: `Open ${character.name} profile`,
               })}
               onClick={() => (onViewCharacter ? onViewCharacter(character) : onSelect(character.id))}
-              style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: PAPER_SERIF, fontSize: 16, fontWeight: 700, color: PAPER.inkStrong, maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+              style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontSize: 16, fontWeight: 700, color: 'var(--nimi-text-primary)', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
             >
               {character.name}
             </button>
           </div>
-          <div style={{ fontSize: 12, color: PAPER.bodySoft, lineHeight: 1.5, marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <div style={{ fontSize: 12, color: 'var(--nimi-text-secondary)', lineHeight: 1.5, marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {characterMeta(character)}
           </div>
         </div>
@@ -121,9 +120,9 @@ function PeopleCard({
           {t(`WorldDetail.paper.gallery.tier.${character.importance}.label`)}
         </span>
         {typeof vitality === 'number' && vitality > 0 ? (
-          <span style={{ fontSize: 11.5, color: PAPER.faint }}>
+          <span style={{ fontSize: 11.5, color: 'var(--nimi-text-muted)' }}>
             {t('WorldDetail.paper.characters.vitality')}{' '}
-            <span style={{ fontFamily: PAPER_SERIF, fontWeight: 700, color: PAPER.ink }}>{formatNum(Math.round(vitality))}</span>
+            <span style={{ fontWeight: 700, color: 'var(--nimi-text-primary)' }}>{formatNum(Math.round(vitality))}</span>
           </span>
         ) : null}
       </div>
@@ -136,15 +135,15 @@ function PeopleCard({
           style={{
             ...paperPrimaryButton,
             flex: 1,
-            background: connectable ? PAPER.green : 'rgba(120,108,80,.18)',
-            color: connectable ? '#f6f2e7' : PAPER.muted,
+            background: connectable ? 'var(--nimi-action-primary-bg)' : 'var(--nimi-border-subtle)',
+            color: connectable ? 'var(--nimi-action-primary-text)' : 'var(--nimi-text-muted)',
             cursor: connectable ? 'pointer' : 'default',
           }}
         >
           {relationLabel(character, t)}
         </button>
         <button type="button" onClick={() => onSelect(character.id)} style={{ ...paperGhostButton, flex: 1 }}>
-          <IconChat size={14} color={PAPER.ink} strokeWidth={1.7} />
+          <IconChat size={14} color="var(--nimi-text-primary)" strokeWidth={1.7} />
           {t('WorldDetail.paper.characters.chat')}
         </button>
       </div>
@@ -163,7 +162,7 @@ function GroupBySwitch({
 }) {
   const { t } = useTranslation();
   return (
-    <div style={{ display: 'inline-flex', gap: 4, padding: 4, borderRadius: 999, background: 'rgba(120,108,80,.1)', border: `1px solid ${PAPER.borderSoft}` }}>
+    <div style={{ display: 'inline-flex', gap: 4, padding: 4, borderRadius: 999, background: 'var(--nimi-surface-panel)', border: '1px solid var(--nimi-border-subtle)' }}>
       {axes.map((axis) => {
         const isActive = axis === active;
         return (
@@ -179,9 +178,9 @@ function GroupBySwitch({
               borderRadius: 999,
               border: 'none',
               cursor: 'pointer',
-              background: isActive ? PAPER.green : 'transparent',
-              color: isActive ? '#f6f2e7' : PAPER.bodySoft,
-              boxShadow: isActive ? '0 3px 9px rgba(29,95,67,.24)' : 'none',
+              background: isActive ? 'var(--nimi-action-primary-bg)' : 'transparent',
+              color: isActive ? 'var(--nimi-action-primary-text)' : 'var(--nimi-text-secondary)',
+              boxShadow: isActive ? 'var(--nimi-elevation-raised)' : 'none',
             }}
           >
             {t(`WorldDetail.paper.gallery.groupBy.${axis}`)}
@@ -279,23 +278,23 @@ function PeopleArchiveShell({
         minHeight: modal ? undefined : PEOPLE_ARCHIVE_PANEL_MIN_HEIGHT_PX,
         display: 'flex',
         flexDirection: 'column',
-        background: PAPER.card,
-        border: `1px solid ${PAPER.border}`,
-        borderRadius: PAPER_RADIUS.xl,
-        boxShadow: modal ? '0 28px 80px rgba(38,32,23,.34)' : PAPER.cardShadowStrong,
+        background: 'var(--nimi-surface-card)',
+        border: '1px solid var(--nimi-border-subtle)',
+        borderRadius: 'var(--nimi-radius-xl)',
+        boxShadow: 'var(--nimi-elevation-raised)',
         overflow: 'hidden',
       }}
     >
-      <div style={{ padding: '22px 26px 16px', borderBottom: `1px solid ${PAPER.divider}` }}>
+      <div style={{ padding: '22px 26px 16px', borderBottom: '1px solid var(--nimi-border-subtle)' }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
           <div style={{ minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-              <span style={{ width: 4, height: 20, borderRadius: 2, background: PAPER.green, flexShrink: 0 }} />
-              <h2 style={{ margin: 0, fontFamily: PAPER_SERIF, fontSize: 22, fontWeight: 700, color: PAPER.inkStrong }}>
+              <span style={{ width: 4, height: 20, borderRadius: 2, background: 'var(--nimi-action-primary-bg)', flexShrink: 0 }} />
+              <h2 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: 'var(--nimi-text-primary)' }}>
                 {title}
               </h2>
             </div>
-            <p style={{ margin: '8px 0 0', fontSize: 13, color: PAPER.bodySoft, lineHeight: 1.6 }}>
+            <p style={{ margin: '8px 0 0', fontSize: 13, color: 'var(--nimi-text-secondary)', lineHeight: 1.6 }}>
               {subtitle}
             </p>
           </div>
@@ -303,7 +302,7 @@ function PeopleArchiveShell({
             <button
               type="button"
               onClick={onAction}
-              style={{ flexShrink: 0, fontFamily: 'inherit', fontSize: 12.5, fontWeight: 600, padding: '7px 14px', borderRadius: 999, border: `1px solid ${PAPER.borderSoft}`, background: PAPER.cardSoft, color: PAPER.bodySoft, cursor: 'pointer' }}
+              style={{ flexShrink: 0, fontFamily: 'inherit', fontSize: 12.5, fontWeight: 600, padding: '7px 14px', borderRadius: 999, border: '1px solid var(--nimi-border-subtle)', background: 'var(--nimi-surface-panel)', color: 'var(--nimi-text-secondary)', cursor: 'pointer' }}
             >
               {actionLabel}
             </button>
@@ -322,11 +321,11 @@ function PeopleArchiveShell({
                 width: '100%',
                 fontFamily: 'inherit',
                 fontSize: 13,
-                color: PAPER.ink,
+                color: 'var(--nimi-text-primary)',
                 padding: '9px 14px',
                 borderRadius: 999,
-                border: `1px solid ${PAPER.borderSoft}`,
-                background: PAPER.cardSoft,
+                border: '1px solid var(--nimi-border-subtle)',
+                background: 'var(--nimi-surface-panel)',
                 outline: 'none',
               }}
             />
@@ -336,8 +335,8 @@ function PeopleArchiveShell({
 
       <ScrollArea className="min-h-0 flex-1" viewportClassName="px-6 py-5">
         {groups.length === 0 ? (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, padding: '60px 20px', color: PAPER.bodySoft }}>
-            <IconUsers size={30} color={PAPER.faint} strokeWidth={1.5} />
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, padding: '60px 20px', color: 'var(--nimi-text-secondary)' }}>
+            <IconUsers size={30} color="var(--nimi-text-muted)" strokeWidth={1.5} />
             <span style={{ fontSize: 13.5 }}>{t('WorldDetail.paper.gallery.empty')}</span>
           </div>
         ) : (
@@ -345,13 +344,13 @@ function PeopleArchiveShell({
             {groups.map((group) => (
               <div key={`${group.kind}-${group.id}`}>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
-                  <h3 style={{ margin: 0, fontFamily: PAPER_SERIF, fontSize: 17, fontWeight: 700, color: PAPER.inkStrong }}>
+                  <h3 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: 'var(--nimi-text-primary)' }}>
                     {groupTitle(group, t)}
                   </h3>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: PAPER.green, padding: '1px 9px', borderRadius: 999, background: PAPER.greenSoftBg }}>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--nimi-action-primary-bg)', padding: '1px 9px', borderRadius: 999, background: 'color-mix(in srgb, var(--nimi-action-primary-bg) 14%, transparent)' }}>
                     {t('WorldDetail.paper.gallery.count', { count: group.characters.length })}
                   </span>
-                  <span style={{ fontSize: 12, color: PAPER.faint }}>{groupCaption(group, t)}</span>
+                  <span style={{ fontSize: 12, color: 'var(--nimi-text-muted)' }}>{groupCaption(group, t)}</span>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(248px,1fr))', gap: 13 }}>
                   {group.characters.map((character) => (
@@ -370,8 +369,8 @@ function PeopleArchiveShell({
         )}
       </ScrollArea>
 
-      <div style={{ padding: '12px 26px', borderTop: `1px solid ${PAPER.divider}`, display: 'flex', alignItems: 'center', gap: 7, fontSize: 12, color: PAPER.faint }}>
-        <IconChevron size={13} color={PAPER.faint} />
+      <div style={{ padding: '12px 26px', borderTop: '1px solid var(--nimi-border-subtle)', display: 'flex', alignItems: 'center', gap: 7, fontSize: 12, color: 'var(--nimi-text-muted)' }}>
+        <IconChevron size={13} color="var(--nimi-text-muted)" />
         {t('WorldDetail.paper.gallery.footerHint')}
       </div>
     </section>
@@ -403,7 +402,7 @@ function PeopleArchiveShell({
         aria-label={t('WorldDetail.paper.gallery.close')}
         onClick={onAction}
         className="nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)]"
-        style={{ position: 'absolute', inset: 0, border: 0, background: 'rgba(38,32,23,.5)', cursor: 'default' }}
+        style={{ position: 'absolute', inset: 0, border: 0, background: 'var(--nimi-overlay-backdrop)', cursor: 'default' }}
       />
       {panel}
     </div>
@@ -441,10 +440,10 @@ export function WorldPeopleArchivePage({
         <button
           type="button"
           onClick={onBack}
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 7, marginBottom: 14, fontFamily: 'inherit', fontSize: 13, fontWeight: 600, color: PAPER.green, border: `1px solid ${PAPER.borderSoft}`, borderRadius: 999, background: PAPER.card, padding: '8px 13px', cursor: 'pointer', boxShadow: PAPER.cardShadow }}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 7, marginBottom: 14, fontFamily: 'inherit', fontSize: 13, fontWeight: 600, color: 'var(--nimi-action-primary-bg)', border: '1px solid var(--nimi-border-subtle)', borderRadius: 999, background: 'var(--nimi-surface-card)', padding: '8px 13px', cursor: 'pointer', boxShadow: 'var(--nimi-elevation-base)' }}
         >
           <span style={{ transform: 'rotate(180deg)', display: 'inline-flex' }}>
-            <IconChevron size={13} color={PAPER.green} />
+            <IconChevron size={13} color="var(--nimi-action-primary-bg)" />
           </span>
           {t('WorldDetail.paper.gallery.backToWorld')}
         </button>

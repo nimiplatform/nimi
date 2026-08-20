@@ -8,9 +8,6 @@ import {
   type WorldLoreEntry,
 } from './world-detail-lore-library';
 import {
-  PAPER,
-  PAPER_RADIUS,
-  PAPER_SERIF,
   type PaperMetric,
   type PaperPath,
   formatNum,
@@ -32,7 +29,7 @@ import {
   PaperViewAll,
 } from './world-detail-paper-primitives';
 
-const WARM_PANEL_BG = 'linear-gradient(135deg, color-mix(in srgb, var(--nimi-surface-panel) 72%, #e4d6ba), color-mix(in srgb, var(--nimi-action-primary-bg) 12%, #d6c4a3))';
+const WARM_PANEL_BG = 'var(--nimi-surface-panel)';
 
 /** Localized connect-state label for the paper surface (mirrors relation state). */
 function paperRelationLabel(character: WorldCharacter, t: ReturnType<typeof useTranslation>['t']): string {
@@ -61,9 +58,9 @@ function PaperCardSurface({
       interactive={interactive}
       className={cn(paperCardClassName, className)}
       style={{
-        background: PAPER.cardSoft,
-        borderColor: PAPER.borderSoft,
-        borderRadius: PAPER_RADIUS.md,
+        background: 'var(--nimi-surface-panel)',
+        borderColor: 'var(--nimi-border-subtle)',
+        borderRadius: 'var(--nimi-radius-md)',
         boxShadow: 'none',
       }}
     >
@@ -77,10 +74,10 @@ function PaperCardSurface({
 // ---------------------------------------------------------------------------
 
 const METRIC_ICON: Record<PaperMetric['key'], ReactNode> = {
-  people: <IconUsers size={22} color={PAPER.ink} strokeWidth={1.5} />,
-  materials: <IconBook size={22} color={PAPER.ink} strokeWidth={1.5} />,
-  scenes: <IconScene size={22} color={PAPER.ink} strokeWidth={1.5} />,
-  events: <IconCompass size={22} color={PAPER.ink} strokeWidth={1.5} />,
+  people: <IconUsers size={22} color="var(--nimi-text-primary)" strokeWidth={1.5} />,
+  materials: <IconBook size={22} color="var(--nimi-text-primary)" strokeWidth={1.5} />,
+  scenes: <IconScene size={22} color="var(--nimi-text-primary)" strokeWidth={1.5} />,
+  events: <IconCompass size={22} color="var(--nimi-text-primary)" strokeWidth={1.5} />,
 };
 
 export function PaperMetricStrip({ metrics }: { metrics: readonly PaperMetric[] }) {
@@ -94,10 +91,10 @@ export function PaperMetricStrip({ metrics }: { metrics: readonly PaperMetric[] 
       padding="none"
       className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] p-1.5"
       style={{
-        background: PAPER.card,
-        borderColor: PAPER.border,
-        borderRadius: PAPER_RADIUS.lg,
-        boxShadow: PAPER.cardShadow,
+        background: 'var(--nimi-surface-card)',
+        borderColor: 'var(--nimi-border-subtle)',
+        borderRadius: 'var(--nimi-radius-lg)',
+        boxShadow: 'var(--nimi-elevation-base)',
       }}
     >
       {metrics.map((metric, index) => (
@@ -111,7 +108,7 @@ export function PaperMetricStrip({ metrics }: { metrics: readonly PaperMetric[] 
             <span
               aria-hidden="true"
               className="inline-flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-[var(--nimi-radius-md)]"
-              style={{ background: PAPER.avatarGradient, color: PAPER.ink }}
+              style={{ background: 'color-mix(in srgb, var(--nimi-action-primary-bg) 10%, var(--nimi-surface-panel))', color: 'var(--nimi-text-primary)' }}
             >
               {METRIC_ICON[metric.key]}
             </span>
@@ -163,8 +160,8 @@ export function PaperPathsSection({
             onClick={() => onEnterPath(path)}
             className="relative flex min-h-[200px] flex-col justify-end overflow-hidden text-left"
             style={{
-              borderRadius: PAPER_RADIUS.md,
-              borderColor: PAPER.borderSoft,
+              borderRadius: 'var(--nimi-radius-md)',
+              borderColor: 'var(--nimi-border-subtle)',
               background: WARM_PANEL_BG,
             }}
           >
@@ -176,30 +173,29 @@ export function PaperPathsSection({
                 width: 30,
                 height: 30,
                 borderRadius: '50%',
-                background: PAPER.green,
-                color: '#f6f2e7',
+                background: 'var(--nimi-action-primary-bg)',
+                color: 'var(--nimi-action-primary-text)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontFamily: PAPER_SERIF,
                 fontWeight: 700,
                 fontSize: 15,
-                boxShadow: '0 3px 8px rgba(0,0,0,.2)',
+                boxShadow: 'var(--nimi-elevation-raised)',
               }}
             >
               {index + 1}
             </div>
-            <div style={{ position: 'relative', padding: '34px 16px 16px', background: 'linear-gradient(to top,#fbf8f1 58%,rgba(251,248,241,.85) 78%,rgba(251,248,241,0))' }}>
-              <div style={{ fontFamily: PAPER_SERIF, fontSize: 16, fontWeight: 700, color: PAPER.inkStrong, marginBottom: 5 }}>
+            <div style={{ position: 'relative', padding: '34px 16px 16px', background: 'linear-gradient(to top, var(--nimi-surface-card) 58%, color-mix(in srgb, var(--nimi-surface-card) 85%, transparent) 78%, transparent)' }}>
+              <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--nimi-text-primary)', marginBottom: 5 }}>
                 {path.key === 'lead' && path.leadName
                   ? t('WorldDetail.paper.paths.lead.titleNamed', { name: path.leadName })
                   : t(`WorldDetail.paper.paths.${path.key}.title`)}
               </div>
-              <p style={{ margin: 0, fontSize: 12.5, lineHeight: 1.6, color: PAPER.bodySoft }}>
+              <p style={{ margin: 0, fontSize: 12.5, lineHeight: 1.6, color: 'var(--nimi-text-secondary)' }}>
                 {t(`WorldDetail.paper.paths.${path.key}.desc`)}
               </p>
               <span aria-hidden="true" style={{ display: 'inline-flex', marginTop: 13 }}>
-                <IconArrow size={15} color={PAPER.green} />
+                <IconArrow size={15} color="var(--nimi-action-primary-bg)" />
               </span>
             </div>
           </Surface>
@@ -225,11 +221,11 @@ function characterStatRow(character: WorldCharacter, t: ReturnType<typeof useTra
     return null;
   }
   return (
-    <div style={{ display: 'flex', gap: 18, margin: '14px 0 13px', padding: '10px 0', borderTop: `1px solid ${PAPER.borderInner}`, borderBottom: `1px solid ${PAPER.borderInner}` }}>
+    <div style={{ display: 'flex', gap: 18, margin: '14px 0 13px', padding: '10px 0', borderTop: '1px solid var(--nimi-border-subtle)', borderBottom: '1px solid var(--nimi-border-subtle)' }}>
       {stats.map((stat) => (
         <div key={stat.label}>
-          <span style={{ fontSize: 11, color: PAPER.faint }}>{stat.label} </span>
-          <span style={{ fontFamily: PAPER_SERIF, fontSize: 15, fontWeight: 700, color: PAPER.ink }}>{stat.value}</span>
+          <span style={{ fontSize: 11, color: 'var(--nimi-text-muted)' }}>{stat.label} </span>
+          <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--nimi-text-primary)' }}>{stat.value}</span>
         </div>
       ))}
     </div>
@@ -264,7 +260,7 @@ export function PaperCharactersSection({
       {loading ? (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(232px,1fr))', gap: 13 }}>
           {Array.from({ length: 4 }).map((_, index) => (
-            <div key={index} style={{ height: 150, borderRadius: 14, background: 'rgba(255,255,255,0.5)' }} className="animate-pulse" />
+            <div key={index} style={{ height: 150, borderRadius: 14, background: 'color-mix(in srgb, var(--nimi-surface-card) 60%, transparent)' }} className="animate-pulse" />
           ))}
         </div>
       ) : featured.length === 0 ? (
@@ -298,12 +294,12 @@ export function PaperCharactersSection({
                           defaultValue: `Open ${character.name} profile`,
                         })}
                         onClick={() => (onViewCharacter ? onViewCharacter(character) : onSelect(character.id))}
-                        style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: PAPER_SERIF, fontSize: 17, fontWeight: 700, color: PAPER.inkStrong, maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                        style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontSize: 17, fontWeight: 700, color: 'var(--nimi-text-primary)', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
                       >
                         {character.name}
                       </button>
                     </div>
-                    <NimiText as="div" role="helper" className="mt-1 truncate" style={{ color: PAPER.bodySoft }}>
+                    <NimiText as="div" role="helper" className="mt-1 truncate" style={{ color: 'var(--nimi-text-secondary)' }}>
                       {characterMeta(character)}
                     </NimiText>
                   </div>
@@ -319,9 +315,9 @@ export function PaperCharactersSection({
                     onClick={() => onMaterializeSource?.(character)}
                     className="flex-1"
                     style={{
-                      background: connectable ? PAPER.green : 'rgba(120,108,80,.18)',
-                      borderColor: connectable ? PAPER.green : 'rgba(120,108,80,.18)',
-                      color: connectable ? '#f6f2e7' : PAPER.muted,
+                      background: connectable ? 'var(--nimi-action-primary-bg)' : 'var(--nimi-border-subtle)',
+                      borderColor: connectable ? 'var(--nimi-action-primary-bg)' : 'var(--nimi-border-subtle)',
+                      color: connectable ? 'var(--nimi-action-primary-text)' : 'var(--nimi-text-muted)',
                       cursor: connectable ? 'pointer' : 'default',
                     }}
                   >
@@ -342,12 +338,12 @@ export function PaperCharactersSection({
 // ---------------------------------------------------------------------------
 
 const LORE_OVERVIEW_ICON: Record<WorldLoreEntry['icon'], ReactNode> = {
-  rule: <IconScrollText size={19} color={PAPER.green} strokeWidth={1.75} />,
-  institution: <IconStamp size={19} color={PAPER.green} strokeWidth={1.75} />,
-  pathway: <IconMilestone size={19} color={PAPER.green} strokeWidth={1.75} />,
-  system: <IconLayers size={19} color={PAPER.green} strokeWidth={1.75} />,
-  taboo: <IconShield size={19} color={PAPER.green} strokeWidth={1.75} />,
-  language: <IconLanguages size={19} color={PAPER.green} strokeWidth={1.75} />,
+  rule: <IconScrollText size={19} color="var(--nimi-action-primary-bg)" strokeWidth={1.75} />,
+  institution: <IconStamp size={19} color="var(--nimi-action-primary-bg)" strokeWidth={1.75} />,
+  pathway: <IconMilestone size={19} color="var(--nimi-action-primary-bg)" strokeWidth={1.75} />,
+  system: <IconLayers size={19} color="var(--nimi-action-primary-bg)" strokeWidth={1.75} />,
+  taboo: <IconShield size={19} color="var(--nimi-action-primary-bg)" strokeWidth={1.75} />,
+  language: <IconLanguages size={19} color="var(--nimi-action-primary-bg)" strokeWidth={1.75} />,
 };
 
 function PaperLoreOverviewCard({ entry }: { entry: WorldLoreEntry }) {
@@ -363,14 +359,14 @@ function PaperLoreOverviewCard({ entry }: { entry: WorldLoreEntry }) {
             height: 36,
             flex: '0 0 auto',
             borderRadius: 'var(--nimi-radius-sm)',
-            background: PAPER.greenSoftBg,
-            border: `1px solid ${PAPER.avatarBorder}`,
+            background: 'color-mix(in srgb, var(--nimi-action-primary-bg) 14%, transparent)',
+            border: '1px solid var(--nimi-border-subtle)',
           }}
         >
           {LORE_OVERVIEW_ICON[entry.icon]}
         </span>
         <div style={{ minWidth: 0, flex: 1 }}>
-          <h3 style={{ margin: 0, fontFamily: PAPER_SERIF, fontSize: 18, lineHeight: 1.28, fontWeight: 900, color: PAPER.inkStrong }}>
+          <h3 style={{ margin: 0, fontSize: 18, lineHeight: 1.28, fontWeight: 900, color: 'var(--nimi-text-primary)' }}>
             {entry.title}
           </h3>
         </div>
@@ -401,7 +397,7 @@ export function PaperLoreOverviewSection({
       {loading ? (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 13 }}>
           {Array.from({ length: 2 }).map((_, index) => (
-            <div key={index} style={{ height: 70, borderRadius: 14, background: 'rgba(255,255,255,0.5)' }} className="animate-pulse" />
+            <div key={index} style={{ height: 70, borderRadius: 14, background: 'color-mix(in srgb, var(--nimi-surface-card) 60%, transparent)' }} className="animate-pulse" />
           ))}
         </div>
       ) : (
@@ -438,7 +434,7 @@ export function PaperTimelineSection({
       {loading ? (
         <div style={{ display: 'grid', gap: 12 }}>
           {Array.from({ length: 3 }).map((_, index) => (
-            <div key={index} style={{ height: 64, borderRadius: 12, background: 'rgba(255,255,255,0.5)' }} className="animate-pulse" />
+            <div key={index} style={{ height: 64, borderRadius: 12, background: 'color-mix(in srgb, var(--nimi-surface-card) 60%, transparent)' }} className="animate-pulse" />
           ))}
         </div>
       ) : items.length === 0 ? (
@@ -450,15 +446,15 @@ export function PaperTimelineSection({
           {items.map((item, index) => (
             <div key={item.id} style={{ display: 'flex', gap: 16 }}>
               <div style={{ position: 'relative', width: 13, flexShrink: 0, display: 'flex', justifyContent: 'center' }}>
-                {index < items.length - 1 ? <div style={{ position: 'absolute', top: 8, bottom: 0, width: 2, background: '#e6ddca' }} /> : null}
-                <div style={{ position: 'relative', width: 11, height: 11, borderRadius: '50%', marginTop: 6, background: PAPER.green, border: `2px solid ${PAPER.card}`, boxShadow: '0 0 0 3px rgba(29,95,67,.12)' }} />
+                {index < items.length - 1 ? <div style={{ position: 'absolute', top: 8, bottom: 0, width: 2, background: 'var(--nimi-border-subtle)' }} /> : null}
+                <div style={{ position: 'relative', width: 11, height: 11, borderRadius: '50%', marginTop: 6, background: 'var(--nimi-action-primary-bg)', border: '2px solid var(--nimi-surface-card)', boxShadow: '0 0 0 3px color-mix(in srgb, var(--nimi-action-primary-bg) 18%, transparent)' }} />
               </div>
               <div style={{ flex: 1, paddingBottom: 20, minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 11, flexWrap: 'wrap' }}>
-                  <span style={{ fontFamily: PAPER_SERIF, fontSize: 19, fontWeight: 700, color: PAPER.green }}>{item.time}</span>
-                  <span style={{ fontFamily: PAPER_SERIF, fontSize: 16, fontWeight: 700, color: PAPER.inkStrong }}>{item.title}</span>
+                  <span style={{ fontSize: 19, fontWeight: 700, color: 'var(--nimi-action-primary-bg)' }}>{item.time}</span>
+                  <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--nimi-text-primary)' }}>{item.title}</span>
                 </div>
-                <p style={{ margin: '5px 0 0', fontSize: 13.5, lineHeight: 1.7, color: PAPER.bodySoft, maxWidth: 620 }}>{item.summary || item.description}</p>
+                <p style={{ margin: '5px 0 0', fontSize: 13.5, lineHeight: 1.7, color: 'var(--nimi-text-secondary)', maxWidth: 620 }}>{item.summary || item.description}</p>
               </div>
             </div>
           ))}
@@ -516,23 +512,23 @@ export function PaperScenesSection({
                 onClick={() => onSelectScene(scene.id)}
                 className="grid min-h-[300px] grid-rows-[120px_1fr] overflow-hidden text-left"
                 style={{
-                  background: PAPER.cardSoft,
-                  borderColor: PAPER.borderSoft,
-                  borderRadius: PAPER_RADIUS.md,
+                  background: 'var(--nimi-surface-panel)',
+                  borderColor: 'var(--nimi-border-subtle)',
+                  borderRadius: 'var(--nimi-radius-md)',
                   boxShadow: 'none',
                 }}
               >
                 <div style={{ background: highlightRef ? `url(${highlightRef.uri}) center/cover no-repeat` : WARM_PANEL_BG }} />
                 <div style={{ padding: '15px 16px 16px', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-                  <div style={{ fontFamily: PAPER_SERIF, fontSize: 18, lineHeight: 1.35, fontWeight: 700, color: PAPER.inkStrong }}>
+                  <div style={{ fontSize: 18, lineHeight: 1.35, fontWeight: 700, color: 'var(--nimi-text-primary)' }}>
                     {scene.name}
                   </div>
-                  <p style={{ margin: '9px 0 15px', fontSize: 12.5, lineHeight: 1.65, color: PAPER.bodySoft }}>
+                  <p style={{ margin: '9px 0 15px', fontSize: 12.5, lineHeight: 1.65, color: 'var(--nimi-text-secondary)' }}>
                     {scene.description || t('WorldDetail.glass.scenes.defaultContext')}
                   </p>
-                  <span style={{ marginTop: 'auto', display: 'inline-flex', alignItems: 'center', gap: 6, color: PAPER.green, fontSize: 12.5, fontWeight: 800 }}>
+                  <span style={{ marginTop: 'auto', display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--nimi-action-primary-bg)', fontSize: 12.5, fontWeight: 800 }}>
                     {t('WorldDetail.paper.scenes.enter')}
-                    <IconArrow size={13} color={PAPER.green} />
+                    <IconArrow size={13} color="var(--nimi-action-primary-bg)" />
                   </span>
                 </div>
               </Surface>

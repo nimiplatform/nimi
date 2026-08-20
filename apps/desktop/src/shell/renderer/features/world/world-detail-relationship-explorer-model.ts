@@ -2,7 +2,6 @@ import type { CSSProperties } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { WorldRelationshipEvidenceCharacterBucket, WorldRelationshipEvidenceKind } from './world-detail-relationship-model.js';
 import type { WorldCharacter } from './world-detail-types.js';
-import { PAPER, PAPER_RADIUS } from './world-detail-paper-model.js';
 
 export type PeopleFilterKey = 'all' | 'literati' | 'academy';
 export type RelationFilterKey = 'all' | WorldRelationshipEvidenceKind;
@@ -57,71 +56,70 @@ const GRAPH_VIEWBOX_BOUNDS: GraphRect = { left: 0, right: 1000, top: 0, bottom: 
 const CENTER_GRAPH_CARD_BOUNDS: GraphCardBounds = { halfWidth: 88, halfHeight: 88 };
 const TARGET_GRAPH_CARD_BOUNDS: GraphCardBounds = { halfWidth: 96, halfHeight: 48 };
 
+const STATUS_THEME_TOKENS = {
+  success: {
+    accent: 'var(--nimi-status-success)',
+    border: 'var(--nimi-status-success-soft-border)',
+    softBg: 'var(--nimi-status-success-soft-bg)',
+    ink: 'var(--nimi-status-success-soft-text)',
+  },
+  info: {
+    accent: 'var(--nimi-status-info)',
+    border: 'var(--nimi-status-info-soft-border)',
+    softBg: 'var(--nimi-status-info-soft-bg)',
+    ink: 'var(--nimi-status-info-soft-text)',
+  },
+  neutral: {
+    accent: 'var(--nimi-status-neutral)',
+    border: 'var(--nimi-status-neutral-soft-border)',
+    softBg: 'var(--nimi-status-neutral-soft-bg)',
+    ink: 'var(--nimi-status-neutral-soft-text)',
+  },
+  warning: {
+    accent: 'var(--nimi-status-warning)',
+    border: 'var(--nimi-status-warning-soft-border)',
+    softBg: 'var(--nimi-status-warning-soft-bg)',
+    ink: 'var(--nimi-status-warning-soft-text)',
+  },
+  danger: {
+    accent: 'var(--nimi-status-danger)',
+    border: 'var(--nimi-status-danger-soft-border)',
+    softBg: 'var(--nimi-status-danger-soft-bg)',
+    ink: 'var(--nimi-status-danger-soft-text)',
+  },
+  indigo: {
+    accent: 'var(--nimi-color-indigo)',
+    border: 'color-mix(in srgb, var(--nimi-color-indigo) 26%, transparent)',
+    softBg: 'color-mix(in srgb, var(--nimi-color-indigo) 14%, transparent)',
+    ink: 'var(--nimi-color-indigo)',
+  },
+  primary: {
+    accent: 'var(--nimi-action-primary-bg)',
+    border: 'color-mix(in srgb, var(--nimi-action-primary-bg) 26%, transparent)',
+    softBg: 'color-mix(in srgb, var(--nimi-action-primary-bg) 14%, transparent)',
+    ink: 'var(--nimi-action-primary-bg)',
+  },
+} as const;
+
+type StatusThemeTokenSet = (typeof STATUS_THEME_TOKENS)[keyof typeof STATUS_THEME_TOKENS];
+
+function kindThemeFrom(tokens: StatusThemeTokenSet, dash: string): RelationshipKindTheme {
+  return {
+    ...tokens,
+    cardBg: `linear-gradient(135deg, var(--nimi-surface-card), ${tokens.softBg})`,
+    dash,
+  };
+}
+
 const KIND_THEMES: Record<WorldRelationshipEvidenceKind, RelationshipKindTheme> = {
-  kinship: {
-    accent: '#2c8a54',
-    border: '#98caa5',
-    softBg: 'rgba(232,247,235,.92)',
-    cardBg: 'linear-gradient(135deg, rgba(246,253,247,.98), rgba(235,248,238,.92))',
-    ink: '#17603c',
-    dash: '5 6',
-  },
-  association: {
-    accent: '#4d7edb',
-    border: '#93b5ee',
-    softBg: 'rgba(235,243,255,.92)',
-    cardBg: 'linear-gradient(135deg, rgba(248,251,255,.98), rgba(236,244,255,.92))',
-    ink: '#2f62c0',
-    dash: '4 6',
-  },
-  office: {
-    accent: '#c28419',
-    border: '#e2bf73',
-    softBg: 'rgba(255,247,228,.94)',
-    cardBg: 'linear-gradient(135deg, rgba(255,252,243,.98), rgba(255,244,221,.92))',
-    ink: '#9b650f',
-    dash: '4 6',
-  },
-  text: {
-    accent: '#7c4ed1',
-    border: '#b99ae6',
-    softBg: 'rgba(246,239,255,.94)',
-    cardBg: 'linear-gradient(135deg, rgba(253,250,255,.98), rgba(246,238,255,.92))',
-    ink: '#6b39bf',
-    dash: '4 6',
-  },
-  entry: {
-    accent: '#bd7b21',
-    border: '#dfb46f',
-    softBg: 'rgba(255,246,231,.94)',
-    cardBg: 'linear-gradient(135deg, rgba(255,252,246,.98), rgba(255,242,221,.92))',
-    ink: '#9c5f14',
-    dash: '4 6',
-  },
-  address: {
-    accent: '#278b87',
-    border: '#8bc8c4',
-    softBg: 'rgba(232,249,247,.94)',
-    cardBg: 'linear-gradient(135deg, rgba(248,255,254,.98), rgba(232,248,246,.92))',
-    ink: '#17706c',
-    dash: '4 6',
-  },
-  status: {
-    accent: '#68736f',
-    border: '#b7c0bb',
-    softBg: 'rgba(243,246,243,.94)',
-    cardBg: 'linear-gradient(135deg, rgba(253,253,250,.98), rgba(240,244,240,.92))',
-    ink: '#515c58',
-    dash: '3 6',
-  },
-  topic: {
-    accent: '#8c7742',
-    border: '#cdbd8d',
-    softBg: 'rgba(249,244,229,.94)',
-    cardBg: 'linear-gradient(135deg, rgba(255,253,247,.98), rgba(247,239,218,.92))',
-    ink: '#76602e',
-    dash: '3 6',
-  },
+  kinship: kindThemeFrom(STATUS_THEME_TOKENS.success, '5 6'),
+  association: kindThemeFrom(STATUS_THEME_TOKENS.info, '4 6'),
+  office: kindThemeFrom(STATUS_THEME_TOKENS.warning, '4 6'),
+  text: kindThemeFrom(STATUS_THEME_TOKENS.indigo, '4 6'),
+  entry: kindThemeFrom(STATUS_THEME_TOKENS.danger, '4 6'),
+  address: kindThemeFrom(STATUS_THEME_TOKENS.primary, '4 6'),
+  status: kindThemeFrom(STATUS_THEME_TOKENS.neutral, '3 6'),
+  topic: kindThemeFrom(STATUS_THEME_TOKENS.neutral, '3 6'),
 };
 
 export const KIND_ORDER: readonly WorldRelationshipEvidenceKind[] = [
@@ -139,18 +137,18 @@ export const RELATION_FILTER_KEYS: readonly RelationFilterKey[] = ['all', ...KIN
 
 export function panelStyle(): CSSProperties {
   return {
-    background: PAPER.card,
-    border: `1px solid ${PAPER.border}`,
-    borderRadius: PAPER_RADIUS.lg,
-    boxShadow: PAPER.cardShadow,
+    background: 'var(--nimi-surface-card)',
+    border: '1px solid var(--nimi-border-subtle)',
+    borderRadius: 'var(--nimi-radius-lg)',
+    boxShadow: 'var(--nimi-elevation-base)',
   };
 }
 
 export function softPanelStyle(): CSSProperties {
   return {
-    background: PAPER.cardSoft,
-    border: `1px solid ${PAPER.borderSoft}`,
-    borderRadius: PAPER_RADIUS.md,
+    background: 'var(--nimi-surface-panel)',
+    border: '1px solid var(--nimi-border-subtle)',
+    borderRadius: 'var(--nimi-radius-md)',
   };
 }
 
@@ -159,9 +157,9 @@ export function toolButtonStyle(active = false): CSSProperties {
     width: 30,
     height: 30,
     borderRadius: 999,
-    border: `1px solid ${active ? PAPER.green : PAPER.border}`,
-    background: active ? PAPER.green : 'rgba(255,252,244,.86)',
-    color: active ? '#f6f2e7' : PAPER.muted,
+    border: `1px solid ${active ? 'var(--nimi-action-primary-bg)' : 'var(--nimi-border-subtle)'}`,
+    background: active ? 'var(--nimi-action-primary-bg)' : 'var(--nimi-surface-card)',
+    color: active ? 'var(--nimi-action-primary-text)' : 'var(--nimi-text-muted)',
     display: 'inline-flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -172,9 +170,9 @@ export function toolButtonStyle(active = false): CSSProperties {
 
 export function filterChipStyle(active: boolean): CSSProperties {
   return {
-    border: `1px solid ${active ? PAPER.green : PAPER.border}`,
-    background: active ? PAPER.green : PAPER.card,
-    color: active ? '#f6f2e7' : PAPER.muted,
+    border: `1px solid ${active ? 'var(--nimi-action-primary-bg)' : 'var(--nimi-border-subtle)'}`,
+    background: active ? 'var(--nimi-action-primary-bg)' : 'var(--nimi-surface-card)',
+    color: active ? 'var(--nimi-action-primary-text)' : 'var(--nimi-text-muted)',
     borderRadius: 999,
     cursor: 'pointer',
     fontFamily: 'inherit',
@@ -191,11 +189,11 @@ export function relationshipKindTheme(kind: WorldRelationshipEvidenceKind): Rela
 
 export function storyFilterChipStyle(active: boolean, kind: RelationFilterKey): CSSProperties {
   const theme = kind === 'all' ? null : relationshipKindTheme(kind);
-  const accent = theme?.accent ?? PAPER.green;
+  const accent = theme?.accent ?? 'var(--nimi-action-primary-bg)';
   return {
-    border: `1px solid ${active ? accent : PAPER.borderSoft}`,
-    background: active ? accent : 'rgba(255,253,248,.9)',
-    color: active ? '#fffaf0' : PAPER.muted,
+    border: `1px solid ${active ? accent : 'var(--nimi-border-subtle)'}`,
+    background: active ? accent : 'var(--nimi-surface-card)',
+    color: active ? 'var(--nimi-text-inverse)' : 'var(--nimi-text-muted)',
     borderRadius: 999,
     cursor: 'pointer',
     fontFamily: 'inherit',
@@ -203,7 +201,7 @@ export function storyFilterChipStyle(active: boolean, kind: RelationFilterKey): 
     fontWeight: 850,
     padding: '7px 16px',
     whiteSpace: 'nowrap',
-    boxShadow: active ? '0 7px 16px rgba(64,55,36,.11)' : 'none',
+    boxShadow: active ? 'var(--nimi-elevation-base)' : 'none',
   };
 }
 

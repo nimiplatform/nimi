@@ -8,7 +8,7 @@ import type {
 import type { CharacterProfileRelationshipProjection } from '../realm-source/character-source-profile-projection.js';
 import { simplifySourceDetailChineseText as simplifyDisplayText } from './source-detail-simplified-chinese.js';
 import { uniqueStrings } from './source-detail-world-character-labels.js';
-import { relationKindLabel, relationshipTheme } from './source-detail-world-character-theme.js';
+import { allRelationshipsTheme, relationKindLabel, relationshipTheme } from './source-detail-world-character-theme.js';
 
 type RelationshipMapItem = {
   id: string;
@@ -223,19 +223,19 @@ export function WorldCharacterRelationshipCluesSection({ source }: { source: Sou
   return (
     <section
       data-testid="world-character-relationship-clues-section"
-      className="rounded-[18px] border border-[#e7dfce] bg-[#fbf8f1] p-5 shadow-[0_8px_22px_rgba(60,50,30,.06)]"
+      className="rounded-[18px] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-5 shadow-[var(--nimi-elevation-base)]"
     >
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <span className="grid h-7 w-7 place-items-center rounded-[8px] bg-[#eef5ef] text-[#1d5f43]">
+            <span className="grid h-7 w-7 place-items-center rounded-[8px] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_14%,transparent)] text-[var(--nimi-action-primary-bg)]">
               <Network size={15} strokeWidth={2.2} />
             </span>
-            <h2 className="text-xl font-semibold text-[#262017]">
+            <h2 className="text-xl font-semibold text-[var(--nimi-text-primary)]">
               {t('SourceDetail.worldCharacter.relationshipTitle', { defaultValue: 'Relationship clues' })}
             </h2>
           </div>
-          <p className="mt-1 text-sm leading-6 text-[#7a7060]">
+          <p className="mt-1 text-sm leading-6 text-[var(--nimi-text-muted)]">
             {t('SourceDetail.worldCharacter.relationshipSummary', {
               name: simplifyDisplayText(source.displayName),
               kinds: focusLabels.join('、'),
@@ -247,7 +247,7 @@ export function WorldCharacterRelationshipCluesSection({ source }: { source: Sou
           {relationTypes.map((type) => {
             const theme = relationshipTheme(type);
             return (
-              <span key={type} className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#6f6556]">
+              <span key={type} className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--nimi-text-muted)]">
                 <span style={{ background: theme.accent }} className="h-2 w-2 rounded-full" />
                 {relationKindLabel(type, t)}
               </span>
@@ -258,9 +258,9 @@ export function WorldCharacterRelationshipCluesSection({ source }: { source: Sou
 
       <div
         data-testid="world-character-relationship-map"
-        className="relative mt-5 min-h-[330px] overflow-hidden rounded-[18px] border border-[#e9e1d0] bg-[#fffdf8] p-4"
+        className="relative mt-5 min-h-[330px] overflow-hidden rounded-[18px] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] p-4"
         style={{
-          background: 'radial-gradient(circle at 50% 50%, rgba(238,245,239,.92) 0, rgba(255,253,248,.96) 42%, rgba(251,248,241,.98) 100%)',
+          background: 'radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--nimi-action-primary-bg) 14%, transparent) 0, var(--nimi-surface-panel) 42%, var(--nimi-surface-panel) 100%)',
         }}
       >
         <svg
@@ -307,7 +307,7 @@ export function WorldCharacterRelationshipCluesSection({ source }: { source: Sou
           );
         })}
 
-        <div className="absolute left-1/2 top-1/2 z-20 grid h-24 w-24 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border-[6px] border-[#e4ebdf] bg-[#1f6844] px-3 text-center text-lg font-semibold leading-6 text-[#fffaf0] shadow-[0_12px_28px_rgba(31,104,68,.22)]">
+        <div className="absolute left-1/2 top-1/2 z-20 grid h-24 w-24 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border-[6px] border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_26%,transparent)] bg-[var(--nimi-action-primary-bg)] px-3 text-center text-lg font-semibold leading-6 text-[var(--nimi-text-inverse)] shadow-[var(--nimi-elevation-raised)]">
           <span className="max-w-full break-words">{simplifyDisplayText(source.displayName)}</span>
         </div>
 
@@ -346,7 +346,7 @@ export function WorldCharacterRelationshipCluesSection({ source }: { source: Sou
       <div className="mt-4 flex flex-wrap gap-2">
         {['all', ...relationTypes].map((type) => {
           const active = activeType === type;
-          const theme = type === 'all' ? relationshipTheme('kinship') : relationshipTheme(type);
+          const theme = type === 'all' ? allRelationshipsTheme() : relationshipTheme(type);
           return (
             <button
               key={type}
@@ -354,11 +354,13 @@ export function WorldCharacterRelationshipCluesSection({ source }: { source: Sou
               aria-pressed={active}
               onClick={() => setActiveType(type)}
               style={{
-                background: active ? theme.accent : '#fffdf8',
-                borderColor: active ? theme.accent : '#e9e1d0',
-                color: active ? '#fffaf0' : '#6f6556',
+                background: active ? theme.accent : 'var(--nimi-surface-panel)',
+                borderColor: active ? theme.accent : 'var(--nimi-border-subtle)',
+                color: active
+                  ? (type === 'all' ? 'var(--nimi-action-primary-text)' : 'var(--nimi-text-inverse)')
+                  : 'var(--nimi-text-muted)',
               }}
-              className="rounded-full border px-4 py-1.5 text-xs font-semibold transition hover:border-[#1d5f43]"
+              className="rounded-full border px-4 py-1.5 text-xs font-semibold transition hover:border-[var(--nimi-action-primary-bg)]"
             >
               {type === 'all'
                 ? t('SourceDetail.worldCharacter.relationshipAll', { defaultValue: 'All' })
@@ -387,7 +389,7 @@ export function WorldCharacterRelationshipCluesSection({ source }: { source: Sou
                     <RelationshipTargetIcon type={item.type} size={15} strokeWidth={2.2} />
                   </span>
                   <div className="min-w-0">
-                    <h3 className="text-sm font-semibold leading-6 text-[#262017]">{item.evidenceText}</h3>
+                    <h3 className="text-sm font-semibold leading-6 text-[var(--nimi-text-primary)]">{item.evidenceText}</h3>
                   </div>
                 </div>
                 <span

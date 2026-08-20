@@ -43,7 +43,7 @@ export function DetailHero({
             inset: 0,
             display: 'grid',
             placeItems: 'center',
-            color: 'rgba(255,255,255,0.20)',
+            color: 'color-mix(in srgb, var(--nimi-text-inverse) 20%, transparent)',
             fontSize: 150,
             fontWeight: 950,
           }}
@@ -60,10 +60,7 @@ export function DetailHero({
               icon={<IconArrowLeft />}
               tone="ghost"
               size="md"
-              className="h-[42px] w-[42px] border border-white/25 bg-[rgba(8,23,36,0.36)] text-[#8ff0d0] hover:bg-[rgba(8,23,36,0.48)]"
-              style={{
-                borderColor: 'rgba(255,255,255,0.24)',
-              }}
+              className="h-[42px] w-[42px] border border-white/25 bg-[var(--nimi-overlay-backdrop)] text-[var(--nimi-text-inverse)] hover:bg-[var(--nimi-scrim-modal)]"
             />
           ) : null}
         </div>
@@ -77,12 +74,7 @@ export function DetailHero({
               aria-pressed={worldFollowed}
               onClick={() => onFollowWorld(world)}
               leadingIcon={<Heart aria-hidden="true" size={15} fill={worldFollowed ? 'currentColor' : 'none'} strokeWidth={1.9} />}
-              className="h-[38px] min-h-0 px-[18px] font-extrabold text-[#eafff6]"
-              style={{
-                border: worldFollowed ? '1px solid rgba(143,240,208,0.85)' : '1px solid rgba(143,240,208,0.5)',
-                background: worldFollowed ? 'rgba(29,95,67,0.95)' : 'rgba(29,95,67,0.82)',
-                color: '#eafff6',
-              }}
+              className="h-[38px] min-h-0 px-[18px] font-extrabold"
             >
               {worldFollowed ? t('WorldDetail.paper.rail.followingWorld') : t('WorldDetail.paper.rail.followWorld')}
             </Button>
@@ -103,14 +95,14 @@ export function DetailHero({
         }}
       >
         <Seal name={world.name} imageUrl={world.iconUrl} size={72} />
-        <div style={{ minWidth: 0, color: '#ffffff' }}>
-          <NimiText as="div" role="caption" className="mb-3 uppercase text-[#8ff0d0]" style={{ letterSpacing: 1.6, fontWeight: 950 }}>
+        <div style={{ minWidth: 0, color: 'var(--nimi-text-inverse)' }}>
+          <NimiText as="div" role="caption" className="mb-3 uppercase text-[var(--nimi-action-primary-bg)]" style={{ letterSpacing: 1.6, fontWeight: 950 }}>
             {world.tagline || world.motto || t('WorldDetail.glass.publicSettingBackground')}
           </NimiText>
-          <NimiText as="h1" role="page-title" className="m-0 text-[40px] leading-none text-white" style={{ fontWeight: 950, letterSpacing: 0 }}>
+          <NimiText as="h1" role="page-title" className="m-0 text-[40px] leading-none text-[var(--nimi-text-inverse)]" style={{ fontWeight: 950, letterSpacing: 0 }}>
             {world.name}
           </NimiText>
-          <NimiText as="p" role="body" className="mt-3 max-w-[740px] text-white/90" style={{ fontWeight: 650 }}>
+          <NimiText as="p" role="body" className="mt-3 max-w-[740px]" style={{ fontWeight: 650, color: 'color-mix(in srgb, var(--nimi-text-inverse) 90%, transparent)' }}>
             {worldSummary(world)}
           </NimiText>
         </div>

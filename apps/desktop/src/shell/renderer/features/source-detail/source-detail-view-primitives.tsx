@@ -4,12 +4,12 @@ export function ScoreProgressBar({ score = 0 }: { score?: number }) {
   const percentage = Math.min(100, Math.max(0, score));
 
   return (
-    <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+    <div className="flex-1 h-2 bg-[var(--nimi-status-neutral-soft-bg)] rounded-full overflow-hidden">
       <div
         className="h-full rounded-full"
         style={{
           width: `${percentage}%`,
-          background: 'linear-gradient(90deg, #ff6b6b, #feca57, #48dbfb, #ff9ff3, #54a0ff)',
+          background: 'linear-gradient(90deg, var(--nimi-action-primary-bg), var(--nimi-color-indigo))',
         }}
       />
     </div>

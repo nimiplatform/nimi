@@ -1,6 +1,6 @@
 import type { CSSProperties } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ScrollArea, Tooltip, TooltipProvider } from '@nimiplatform/kit/ui';
+import { Button, ScrollArea, Tooltip, TooltipProvider } from '@nimiplatform/kit/ui';
 import { ArrowLeft, CirclePlus, MessageCircle } from 'lucide-react';
 import { EntityAvatar } from '../../components/entity-avatar.js';
 import { toSafeBackgroundImage } from '../explore/explore-background-image.js';
@@ -63,14 +63,14 @@ function WorldCharacterIdentityCoordinates({ source }: { source: SourceDetailDat
 
   return (
     <div data-testid="world-character-identity-coordinates" className="mt-5">
-      <h3 className="text-sm font-semibold text-[#262017]">
+      <h3 className="text-sm font-semibold text-[var(--nimi-text-primary)]">
         {t('SourceDetail.worldCharacter.identityCoordinatesTitle', { defaultValue: 'Identity coordinates' })}
       </h3>
       <div className="mt-3 grid gap-3 md:grid-cols-2">
         {coordinates.map((item) => (
-          <div key={item.label} className="rounded-[12px] border border-[#e9e1d0] bg-[#fffdf8] px-4 py-3">
-            <p className="text-[11px] font-semibold uppercase tracking-normal text-[#7a7060]">{item.label}</p>
-            <p className="mt-1 text-sm font-semibold leading-6 text-[#262017]">{simplifyDisplayText(item.value)}</p>
+          <div key={item.label} className="rounded-[12px] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] px-4 py-3">
+            <p className="text-[11px] font-semibold uppercase tracking-normal text-[var(--nimi-text-muted)]">{item.label}</p>
+            <p className="mt-1 text-sm font-semibold leading-6 text-[var(--nimi-text-primary)]">{simplifyDisplayText(item.value)}</p>
           </div>
         ))}
       </div>
@@ -81,13 +81,13 @@ function WorldCharacterIdentityCoordinates({ source }: { source: SourceDetailDat
 function WorldCharacterWorksSection({ source }: { source: SourceDetailData }) {
   const { t } = useTranslation();
   return (
-    <section data-testid="world-character-works-section" className="rounded-[18px] border border-[#e7dfce] bg-[#fbf8f1] p-5 shadow-[0_8px_22px_rgba(60,50,30,.06)]">
+    <section data-testid="world-character-works-section" className="rounded-[18px] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-5 shadow-[var(--nimi-elevation-base)]">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h2 className="text-xl font-semibold text-[#262017]">
+          <h2 className="text-xl font-semibold text-[var(--nimi-text-primary)]">
             {t('SourceDetail.works.title', { defaultValue: 'Works collections' })}
           </h2>
-          <p className="mt-1 text-sm leading-6 text-[#7a7060]">
+          <p className="mt-1 text-sm leading-6 text-[var(--nimi-text-muted)]">
             {source.works.length > 0
               ? t('SourceDetail.works.count', {
                   count: source.works.length,
@@ -98,7 +98,7 @@ function WorldCharacterWorksSection({ source }: { source: SourceDetailData }) {
                 })}
           </p>
         </div>
-        <span className="rounded-full bg-[#eef5ef] px-3 py-1 text-xs font-semibold text-[#1d5f43]">
+        <span className="rounded-full bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_14%,transparent)] px-3 py-1 text-xs font-semibold text-[var(--nimi-action-primary-bg)]">
           {t('SourceDetail.works.badge', { defaultValue: 'Texts' })}
         </span>
       </div>
@@ -106,20 +106,20 @@ function WorldCharacterWorksSection({ source }: { source: SourceDetailData }) {
       {source.works.length > 0 ? (
         <div className="mt-4 grid gap-3 md:grid-cols-2">
           {source.works.map((work) => (
-            <article key={work.id} className="rounded-[14px] border border-[#e9e1d0] bg-[#fffdf8] p-4">
+            <article key={work.id} className="rounded-[14px] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] p-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <h3 className="truncate text-base font-semibold text-[#262017]">{simplifyDisplayText(work.title)}</h3>
+                  <h3 className="truncate text-base font-semibold text-[var(--nimi-text-primary)]">{simplifyDisplayText(work.title)}</h3>
                   {work.romanizedTitle ? (
-                    <p className="mt-1 text-xs text-[#7a7060]">{simplifyDisplayText(work.romanizedTitle)}</p>
+                    <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">{simplifyDisplayText(work.romanizedTitle)}</p>
                   ) : null}
                   {work.timeLabel ? (
-                    <p className="mt-1 text-xs font-semibold text-[#1d5f43]">{simplifyDisplayText(work.timeLabel)}</p>
+                    <p className="mt-1 text-xs font-semibold text-[var(--nimi-action-primary-bg)]">{simplifyDisplayText(work.timeLabel)}</p>
                   ) : null}
                 </div>
               </div>
               {work.summary ? (
-                <p className="mt-3 text-sm leading-6 text-[#7a7060]">{simplifyDisplayText(work.summary)}</p>
+                <p className="mt-3 text-sm leading-6 text-[var(--nimi-text-muted)]">{simplifyDisplayText(work.summary)}</p>
               ) : null}
             </article>
           ))}
@@ -143,9 +143,9 @@ function WorldCharacterMilestoneCard({
     color: theme.ink,
   };
   return (
-    <div className={compact ? 'min-w-0 rounded-[12px] border border-[#eadfca] bg-[#fffaf0] px-3 py-2' : 'min-w-0 rounded-[14px] border border-[#e9e1d0] bg-[#fffdf8] p-4'}>
+    <div className={compact ? 'min-w-0 rounded-[12px] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] px-3 py-2' : 'min-w-0 rounded-[14px] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] p-4'}>
       <div className="flex min-w-0 flex-wrap items-center gap-2">
-        <h3 className={compact ? 'text-sm font-semibold leading-6 text-[#3a2b18]' : 'text-sm font-semibold leading-6 text-[#262017]'}>
+        <h3 className={compact ? 'text-sm font-semibold leading-6 text-[var(--nimi-text-primary)]' : 'text-sm font-semibold leading-6 text-[var(--nimi-text-primary)]'}>
           {simplifyDisplayText(milestone.title)}
         </h3>
         <span style={badgeStyle} className="rounded-full px-2 py-0.5 text-[11px] font-semibold">
@@ -153,7 +153,7 @@ function WorldCharacterMilestoneCard({
         </span>
       </div>
       {milestone.summary && milestone.summary !== milestone.title ? (
-        <p className={compact ? 'mt-0.5 text-sm leading-6 text-[#7a7060]' : 'mt-1 text-sm leading-6 text-[#7a7060]'}>
+        <p className={compact ? 'mt-0.5 text-sm leading-6 text-[var(--nimi-text-muted)]' : 'mt-1 text-sm leading-6 text-[var(--nimi-text-muted)]'}>
           {simplifyDisplayText(milestone.summary)}
         </p>
       ) : null}
@@ -170,10 +170,10 @@ function WorldCharacterSecondaryClues({
     return null;
   }
   return (
-    <div className="mt-3 grid gap-2 border-t border-[#eee3ce] pt-3">
+    <div className="mt-3 grid gap-2 border-t border-[var(--nimi-border-subtle)] pt-3">
       {clues.map((clue) => (
         <div key={clue.id} data-testid="world-character-biography-secondary-clue" className="grid grid-cols-[4px_minmax(0,1fr)] gap-3">
-          <span aria-hidden="true" className="mt-3 h-1.5 w-1.5 rounded-full bg-[#c9973c]" />
+          <span aria-hidden="true" className="mt-3 h-1.5 w-1.5 rounded-full bg-[var(--nimi-status-warning)]" />
           <WorldCharacterMilestoneCard milestone={clue} compact />
         </div>
       ))}
@@ -194,9 +194,9 @@ function WorldCharacterClueList({
   return (
     <div
       data-testid={isAllClueList ? 'world-character-biography-clue-list' : 'world-character-biography-unmatched-clues'}
-      className={`${isAllClueList ? '' : 'ml-[7.75rem] max-[620px]:ml-0'} grid gap-2 rounded-[14px] border border-dashed border-[#decda8] bg-[#fffaf0] p-3`}
+      className={`${isAllClueList ? '' : 'ml-[7.75rem] max-[620px]:ml-0'} grid gap-2 rounded-[14px] border border-dashed border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] p-3`}
     >
-      <p className="text-xs font-semibold text-[#8b641d]">{title}</p>
+      <p className="text-xs font-semibold text-[var(--nimi-status-warning-soft-text)]">{title}</p>
       <div className="grid gap-2">
         {section.clues.map((clue) => (
           <WorldCharacterMilestoneCard key={clue.id} milestone={clue} compact />
@@ -220,13 +220,13 @@ function WorldCharacterMilestonesSection({ source }: { source: SourceDetailData 
   }
 
   return (
-    <section data-testid="world-character-milestones-section" className="rounded-[18px] border border-[#e7dfce] bg-[#fbf8f1] p-5 shadow-[0_8px_22px_rgba(60,50,30,.06)]">
-      <h2 className="text-xl font-semibold text-[#262017]">
+    <section data-testid="world-character-milestones-section" className="rounded-[18px] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-5 shadow-[var(--nimi-elevation-base)]">
+      <h2 className="text-xl font-semibold text-[var(--nimi-text-primary)]">
         {t('SourceDetail.worldCharacter.milestonesTitle', { defaultValue: 'Life milestones' })}
       </h2>
       <div data-testid="world-character-milestones-timeline" className="relative mt-5 grid gap-3">
         {sections.some((section) => section.kind === 'primary') ? (
-          <div aria-hidden="true" className="absolute bottom-4 left-[5.75rem] top-4 w-px bg-[#ddd2ba] max-[620px]:left-[4.65rem]" />
+          <div aria-hidden="true" className="absolute bottom-4 left-[5.75rem] top-4 w-px bg-[var(--nimi-border-subtle)] max-[620px]:left-[4.65rem]" />
         ) : null}
         {sections.map((section) => {
           if (section.kind === 'clueList') {
@@ -234,8 +234,8 @@ function WorldCharacterMilestonesSection({ source }: { source: SourceDetailData 
           }
           const theme = milestoneTheme(section.milestone);
           const dotStyle: CSSProperties = {
-            background: section.milestone.derived ? theme.accent : '#eef5ef',
-            color: section.milestone.derived ? '#fffaf0' : '#1d5f43',
+            background: section.milestone.derived ? theme.accent : 'color-mix(in srgb, var(--nimi-action-primary-bg) 14%, transparent)',
+            color: section.milestone.derived ? 'var(--nimi-text-inverse)' : 'var(--nimi-action-primary-bg)',
           };
           return (
             <article
@@ -245,7 +245,7 @@ function WorldCharacterMilestonesSection({ source }: { source: SourceDetailData 
             >
               <div className="pt-3 text-right">
                 {section.milestone.timeLabel ? (
-                  <span className="block text-sm font-semibold tabular-nums text-[#1d5f43]">
+                  <span className="block text-sm font-semibold tabular-nums text-[var(--nimi-action-primary-bg)]">
                     {simplifyDisplayText(section.milestone.timeLabel)}
                   </span>
                 ) : null}
@@ -254,7 +254,7 @@ function WorldCharacterMilestonesSection({ source }: { source: SourceDetailData 
                 <span
                   data-testid="world-character-biography-marker"
                   style={dotStyle}
-                  className="grid h-7 w-7 place-items-center rounded-full text-[11px] font-semibold shadow-[0_0_0_4px_#fbf8f1]"
+                  className="grid h-7 w-7 place-items-center rounded-full text-[11px] font-semibold shadow-[0_0_0_4px_var(--nimi-surface-card)]"
                 >
                   {biographicalTimelineMarker(section.milestone)}
                 </span>
@@ -392,8 +392,8 @@ function WorldCharacterConversationSection({
     .slice(0, 8);
 
   return (
-    <section data-testid="world-character-ask-section" className="rounded-[18px] border border-[#e7dfce] bg-[#fbf8f1] p-5 shadow-[0_8px_22px_rgba(60,50,30,.06)]">
-      <h2 className="text-lg font-semibold text-[#262017]">
+    <section data-testid="world-character-ask-section" className="rounded-[18px] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-5 shadow-[var(--nimi-elevation-base)]">
+      <h2 className="text-lg font-semibold text-[var(--nimi-text-primary)]">
         {t('SourceDetail.worldCharacter.talkTitle', { defaultValue: 'You can ask them' })}
       </h2>
       {questions.length > 0 ? (
@@ -405,14 +405,14 @@ function WorldCharacterConversationSection({
               data-testid="world-character-question"
               onClick={() => onStartChat?.(question)}
               disabled={disabled || !onStartChat}
-              className="rounded-[12px] bg-[#eef5ef] px-3 py-2 text-left text-xs font-semibold leading-5 text-[#1d5f43] transition hover:bg-[#e0eee6] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1d5f43] disabled:cursor-default disabled:opacity-60"
+              className="rounded-[12px] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_14%,transparent)] px-3 py-2 text-left text-xs font-semibold leading-5 text-[var(--nimi-action-primary-bg)] transition hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_22%,transparent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--nimi-action-primary-bg)] disabled:cursor-default disabled:opacity-60"
             >
               {question}
             </button>
           ))}
         </div>
       ) : (
-        <p className="mt-2 text-sm leading-6 text-[#7a7060]">
+        <p className="mt-2 text-sm leading-6 text-[var(--nimi-text-muted)]">
           {t('SourceDetail.worldCharacter.noAnchors', { defaultValue: 'No suggested questions are available yet.' })}
         </p>
       )}
@@ -470,14 +470,14 @@ function WorldCharacterOpeningLine({
               type="button"
               data-testid="world-character-speech-profile-trigger"
               aria-label={hoverText}
-              className="mt-[5px] inline-flex h-[14px] w-[14px] shrink-0 items-center justify-center rounded-full border border-[#c9dccf] bg-[#fffdf8] text-[8px] font-semibold leading-none text-[#1d5f43] shadow-[0_1px_2px_rgba(34,26,18,.05)] transition hover:border-[#1d5f43] hover:bg-[#eef5ef] hover:text-[#0a7a4a]"
+              className="mt-[5px] inline-flex h-[14px] w-[14px] shrink-0 items-center justify-center rounded-full border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_26%,transparent)] bg-[var(--nimi-surface-card)] text-[8px] font-semibold leading-none text-[var(--nimi-action-primary-bg)] shadow-[var(--nimi-elevation-base)] transition hover:border-[var(--nimi-action-primary-bg)] hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_14%,transparent)] hover:text-[var(--nimi-action-primary-bg)]"
             >
               i
             </button>
           </Tooltip>
         </TooltipProvider>
       ) : null}
-      <p className="min-w-0 text-sm leading-6 text-[#4a4336]">{openingLine}</p>
+      <p className="min-w-0 text-sm leading-6 text-[var(--nimi-text-secondary)]">{openingLine}</p>
     </div>
   );
 }
@@ -493,19 +493,19 @@ function WorldCharacterMediaSection({ source }: { source: SourceDetailData }) {
   }
 
   return (
-    <section data-testid="world-character-media-section" className="rounded-[18px] border border-[#e7dfce] bg-[#fbf8f1] p-5 shadow-[0_8px_22px_rgba(60,50,30,.06)]">
-      <h2 className="text-lg font-semibold text-[#262017]">
+    <section data-testid="world-character-media-section" className="rounded-[18px] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-5 shadow-[var(--nimi-elevation-base)]">
+      <h2 className="text-lg font-semibold text-[var(--nimi-text-primary)]">
         {t('SourceDetail.worldCharacter.mediaTitle', { defaultValue: 'Look and voice' })}
       </h2>
 
       <div
         data-testid="world-character-media-frame"
-        className="mx-auto mt-4 w-full max-w-[320px] overflow-hidden rounded-[14px] border border-[#e9e1d0] bg-[#fffdf8] p-2"
+        className="mx-auto mt-4 w-full max-w-[320px] overflow-hidden rounded-[14px] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] p-2"
       >
         {referenceImageUrl ? (
           <div
             data-testid="world-character-reference-image"
-            className="flex aspect-[2/3] w-full items-center justify-center overflow-hidden rounded-[10px] bg-[#fffdf8]"
+            className="flex aspect-[2/3] w-full items-center justify-center overflow-hidden rounded-[10px] bg-[var(--nimi-surface-card)]"
           >
             <img
               src={referenceImageUrl}
@@ -579,13 +579,13 @@ export function CharacterSourceDetailPage(props: CharacterSourceDetailPageProps)
         contentClassName="mx-auto max-w-[1180px] px-5 py-6"
       >
         <div className="grid gap-5">
-          <section data-nimi-density="expressive" className="overflow-hidden rounded-[24px] border border-[#e8eae7] bg-white shadow-[0_10px_30px_rgba(30,41,38,.10)]">
+          <section data-nimi-density="expressive" className="overflow-hidden rounded-[24px] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] shadow-[var(--nimi-elevation-raised)]">
             <div
               data-testid="world-character-hero-banner"
               className="relative h-[280px] max-[720px]:h-[190px]"
               style={{
                 backgroundImage: bannerImage
-                  ?? 'linear-gradient(105deg, #8ec9f2 0%, #f6e7a2 24%, #f6b8d4 46%, #b9a3f2 66%, #96d8bb 86%, #eef2ea 100%)',
+                  ?? 'var(--nimi-surface-hero)',
                 backgroundSize: 'cover',
                 backgroundPosition: 'center 20%',
               }}
@@ -595,7 +595,7 @@ export function CharacterSourceDetailPage(props: CharacterSourceDetailPageProps)
                 data-testid="world-character-back-button"
                 onClick={props.onBack}
                 aria-label={t('Common.back', { defaultValue: 'Back' })}
-                className="absolute left-6 top-6 z-10 inline-flex h-10 w-10 items-center justify-center rounded-full border border-[var(--nimi-material-glass-thin-border)] bg-[var(--nimi-material-glass-thin-bg)] text-[#33423b] shadow-[0_10px_24px_rgba(30,41,38,.10)] nimi-material-glass-thin backdrop-blur-[var(--nimi-backdrop-blur-thin)] transition hover:bg-white/86 hover:text-[#1f6844]"
+                className="absolute left-6 top-6 z-10 inline-flex h-10 w-10 items-center justify-center rounded-full border border-[var(--nimi-material-glass-thin-border)] bg-[var(--nimi-material-glass-thin-bg)] text-[var(--nimi-text-primary)] shadow-[var(--nimi-elevation-raised)] nimi-material-glass-thin backdrop-blur-[var(--nimi-backdrop-blur-thin)] transition hover:bg-white/86 hover:text-[var(--nimi-action-primary-bg)]"
               >
                 <ArrowLeft aria-hidden className="h-[18px] w-[18px]" strokeWidth={2.2} />
               </button>
@@ -606,8 +606,8 @@ export function CharacterSourceDetailPage(props: CharacterSourceDetailPageProps)
                 <div className="min-w-0 max-w-[560px]">
                   <div
                     data-testid="world-character-hero-avatar"
-                    className="relative -mt-[54px] h-[108px] w-[108px] overflow-hidden rounded-full bg-white"
-                    style={{ boxShadow: '0 0 0 4px #ffffff, 0 10px 24px rgba(32,52,45,.16)' }}
+                    className="relative -mt-[54px] h-[108px] w-[108px] overflow-hidden rounded-full bg-[var(--nimi-surface-card)]"
+                    style={{ boxShadow: '0 0 0 4px var(--nimi-surface-card), var(--nimi-elevation-raised)' }}
                   >
                     <EntityAvatar
                       imageUrl={source.avatarUrl}
@@ -616,25 +616,25 @@ export function CharacterSourceDetailPage(props: CharacterSourceDetailPageProps)
                       shape="circle"
                       sizeClassName="h-full w-full"
                       radiusClassName="rounded-full"
-                      fallbackClassName="bg-[#e7f2ec] text-[#1d7a4f]"
+                      fallbackClassName="bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,var(--nimi-surface-panel))] text-[var(--nimi-text-primary)]"
                       textClassName="text-3xl font-semibold"
                     />
                   </div>
                   <div data-testid="world-character-hero-title-row" className="mt-4 flex flex-wrap items-center gap-4">
-                    <h1 className="text-[44px] font-bold leading-[1.04] tracking-normal text-[#1b211d] max-[900px]:text-[38px] max-[620px]:text-[34px]">
+                    <h1 className="text-[44px] font-bold leading-[1.04] tracking-normal text-[var(--nimi-text-primary)] max-[900px]:text-[38px] max-[620px]:text-[34px]">
                       {simplifyDisplayText(source.displayName)}
                     </h1>
                     {dynastyLabel ? (
                       <span
                         data-testid="world-character-hero-dynasty-badge"
-                        className="shrink-0 rounded-[10px] border border-[#bad6c5] bg-[#f2faf4] px-3 py-1 text-[15px] font-semibold leading-5 text-[#2c8758]"
+                        className="shrink-0 rounded-[10px] border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_26%,transparent)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)] px-3 py-1 text-[15px] font-semibold leading-5 text-[var(--nimi-action-primary-bg)]"
                       >
                         {simplifyDisplayText(dynastyLabel)}
                       </span>
                     ) : null}
                   </div>
                   {heroDescription ? (
-                    <p data-testid="world-character-hero-description" className="mt-3 text-[16px] font-medium leading-6 text-[#4f5c55]">
+                    <p data-testid="world-character-hero-description" className="mt-3 text-[16px] font-medium leading-6 text-[var(--nimi-text-secondary)]">
                       {simplifyDisplayText(heroDescription)}
                     </p>
                   ) : null}
@@ -648,35 +648,37 @@ export function CharacterSourceDetailPage(props: CharacterSourceDetailPageProps)
                     >
                       {statItems.map(({ key, count, label }) => (
                         <div key={key} className="min-w-0 text-center">
-                          <p className="text-[22px] font-bold leading-7 tabular-nums text-[#20342d]">{count}</p>
-                          <p className="mt-1 text-sm font-medium leading-5 text-[#5b6763]">{label}</p>
+                          <p className="text-[22px] font-bold leading-7 tabular-nums text-[var(--nimi-text-primary)]">{count}</p>
+                          <p className="mt-1 text-sm font-medium leading-5 text-[var(--nimi-text-muted)]">{label}</p>
                         </div>
                       ))}
                     </div>
                   ) : null}
                   <div data-testid="world-character-hero-actions" className="flex flex-wrap items-center justify-end gap-3 max-[720px]:justify-start">
                     {canStartChat ? (
-                      <button
+                      <Button
                         type="button"
+                        tone="primary"
+                        size="lg"
                         onClick={() => props.onStartChat?.()}
                         disabled={!props.onStartChat}
-                        className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-[#078a55] px-6 text-[15px] font-semibold text-white shadow-[0_10px_24px_rgba(7,138,85,.24)] transition hover:bg-[#067a4c] disabled:cursor-default disabled:opacity-60"
                       >
                         <MessageCircle aria-hidden className="h-[16px] w-[16px]" strokeWidth={2.2} />
                         {t('SourceDetail.worldCharacter.chatNow', { defaultValue: 'Chat now' })}
-                      </button>
+                      </Button>
                     ) : (
-                      <button
+                      <Button
                         type="button"
+                        tone="secondary"
+                        size="lg"
                         onClick={props.onPrimaryAction}
                         disabled={primaryAction.disabled}
                         data-source-state={source.sourceState}
                         data-primary-action={primaryAction.action}
-                        className="inline-flex h-11 items-center justify-center gap-2 rounded-full border border-[#d7dcd8] bg-white px-6 text-[15px] font-semibold text-[#1d5f43] shadow-[0_6px_16px_rgba(34,26,18,.06)] transition hover:border-[#1d5f43] disabled:cursor-default disabled:opacity-60"
                       >
                         <CirclePlus aria-hidden className="h-[16px] w-[16px]" strokeWidth={2.2} />
                         {worldCharacterPrimaryActionLabel(primaryAction, t)}
-                      </button>
+                      </Button>
                     )}
                   </div>
                 </div>
@@ -686,23 +688,23 @@ export function CharacterSourceDetailPage(props: CharacterSourceDetailPageProps)
 
           <div className="grid grid-cols-[minmax(0,1fr)_330px] gap-5 max-[980px]:grid-cols-1">
             <main className="grid min-w-0 gap-5">
-              <section className="rounded-[18px] border border-[#e7dfce] bg-[#fbf8f1] p-5 shadow-[0_8px_22px_rgba(60,50,30,.06)]">
+              <section className="rounded-[18px] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-5 shadow-[var(--nimi-elevation-base)]">
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <h2 className="text-xl font-semibold text-[#262017]">{t('SourceDetail.worldCharacter.overviewTitle', { defaultValue: 'Character overview' })}</h2>
+                    <h2 className="text-xl font-semibold text-[var(--nimi-text-primary)]">{t('SourceDetail.worldCharacter.overviewTitle', { defaultValue: 'Character overview' })}</h2>
                   </div>
                   {source.worldId ? (
                     <button
                       type="button"
                       onClick={props.onOpenWorld}
-                      className="rounded-[10px] border border-[#d6c9ac] bg-[#fffdf8] px-3 py-2 text-xs font-semibold text-[#1d5f43]"
+                      className="rounded-[10px] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] px-3 py-2 text-xs font-semibold text-[var(--nimi-action-primary-bg)]"
                     >
                       {t('SourceDetail.openWorld', { defaultValue: 'Open World' })}
                     </button>
                   ) : null}
                 </div>
                 {source.entity?.summary ? (
-                  <p className="mt-4 text-sm leading-7 text-[#4a4336]">{simplifyDisplayText(source.entity.summary)}</p>
+                  <p className="mt-4 text-sm leading-7 text-[var(--nimi-text-secondary)]">{simplifyDisplayText(source.entity.summary)}</p>
                 ) : null}
                 <WorldCharacterIdentityCoordinates source={source} />
               </section>

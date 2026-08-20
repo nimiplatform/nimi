@@ -18,7 +18,6 @@ import {
   ScrollText,
   Users,
 } from 'lucide-react';
-import { PAPER, PAPER_RADIUS, PAPER_SERIF } from './world-detail-paper-model';
 import { worldInitial } from './world-list-atoms';
 
 type IconProps = { size?: number; color?: string; strokeWidth?: number };
@@ -87,7 +86,7 @@ export function IconChevron(props: IconProps) {
   return kitIcon(ChevronRight, props);
 }
 
-/** Warm rice-paper avatar with a serif initial, used across the paper surface. */
+/** Avatar with a soft accent-tinted fallback, used across the world detail surface. */
 export function PaperAvatar({
   name,
   imageUrl,
@@ -106,9 +105,8 @@ export function PaperAvatar({
         width: size,
         height: size,
         borderRadius: radius,
-        border: `1.5px solid ${PAPER.avatarBorder}`,
-        boxShadow: 'inset 0 -6px 14px rgba(90,80,56,.16)',
-        background: PAPER.avatarGradient,
+        border: '1.5px solid var(--nimi-border-subtle)',
+        background: 'color-mix(in srgb, var(--nimi-action-primary-bg) 10%, var(--nimi-surface-panel))',
       }}
     >
       <Avatar
@@ -122,10 +120,9 @@ export function PaperAvatar({
           <span
             style={{
               paddingBottom: Math.round(size * 0.1),
-              fontFamily: PAPER_SERIF,
               fontSize: Math.round(size * 0.42),
               fontWeight: 700,
-              color: PAPER.ink,
+              color: 'var(--nimi-text-primary)',
             }}
           >
             {worldInitial(name)}
@@ -136,7 +133,7 @@ export function PaperAvatar({
   );
 }
 
-/** Card section shell with the green tick + serif heading + "view all" action. */
+/** Card section shell with the accent tick + section heading + "view all" action. */
 export function PaperSection({
   id,
   testId,
@@ -163,20 +160,20 @@ export function PaperSection({
       data-testid={testId}
       className="min-w-0 scroll-mt-20 p-6"
       style={{
-        background: PAPER.card,
-        borderColor: PAPER.border,
-        borderRadius: PAPER_RADIUS.lg,
-        boxShadow: PAPER.cardShadow,
+        background: 'var(--nimi-surface-card)',
+        borderColor: 'var(--nimi-border-subtle)',
+        borderRadius: 'var(--nimi-radius-lg)',
+        boxShadow: 'var(--nimi-elevation-base)',
       }}
     >
       <div className="mb-1 flex items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2">
-          <span aria-hidden="true" className="h-[18px] w-1 shrink-0 rounded-[var(--nimi-radius-sm)]" style={{ background: PAPER.green }} />
+          <span aria-hidden="true" className="h-[18px] w-1 shrink-0 rounded-[var(--nimi-radius-sm)]" style={{ background: 'var(--nimi-action-primary-bg)' }} />
           <NimiText
             as="h2"
             role="section-title"
             className="truncate text-xl font-bold"
-            style={{ color: PAPER.inkStrong, fontFamily: PAPER_SERIF }}
+            style={{ color: 'var(--nimi-text-primary)' }}
           >
             {title}
           </NimiText>
@@ -184,7 +181,7 @@ export function PaperSection({
         {action ? <div className="shrink-0">{action}</div> : null}
       </div>
       {subtitle ? (
-        <NimiText role="helper" className="mb-4" style={{ color: PAPER.faint }}>
+        <NimiText role="helper" className="mb-4" style={{ color: 'var(--nimi-text-muted)' }}>
           {subtitle}
         </NimiText>
       ) : null}
@@ -201,7 +198,7 @@ export function PaperViewAll({ label, onClick }: { label: string; onClick?: () =
       size="sm"
       trailingIcon={<IconChevron size={14} color="currentColor" />}
       className="min-h-0 px-0 py-0 hover:bg-transparent"
-      style={{ color: PAPER.green }}
+      style={{ color: 'var(--nimi-action-primary-bg)' }}
     >
       {label}
     </Button>
@@ -210,17 +207,17 @@ export function PaperViewAll({ label, onClick }: { label: string; onClick?: () =
 
 export function PaperTag({
   children,
-  tone = 'green',
+  tone = 'accent',
 }: {
   children: ReactNode;
-  tone?: 'green' | 'neutral';
+  tone?: 'accent' | 'neutral';
 }) {
-  const palette = tone === 'green'
-    ? { color: PAPER.green, background: PAPER.greenSoftBg }
-    : { color: PAPER.muted, background: 'color-mix(in srgb, var(--nimi-text-muted) 10%, transparent)' };
+  const palette = tone === 'accent'
+    ? { color: 'var(--nimi-action-primary-bg)', background: 'color-mix(in srgb, var(--nimi-action-primary-bg) 14%, transparent)' }
+    : { color: 'var(--nimi-text-muted)', background: 'color-mix(in srgb, var(--nimi-text-muted) 10%, transparent)' };
   return (
     <StatusBadge
-      tone={tone === 'green' ? 'success' : 'neutral'}
+      tone="neutral"
       shape="soft"
       className="whitespace-nowrap px-2 py-0 text-[10.5px] font-semibold"
       style={{
@@ -241,9 +238,9 @@ export const paperPrimaryButton: CSSProperties = {
   fontSize: 'var(--nimi-type-body-sm-size)',
   fontWeight: 'var(--nimi-type-label-weight)',
   padding: '8px 15px',
-  borderRadius: 'var(--nimi-radius-sm)',
+  borderRadius: 'var(--nimi-radius-action)',
   border: 'none',
-  background: PAPER.green,
+  background: 'var(--nimi-action-primary-bg)',
   color: 'var(--nimi-action-primary-text)',
   cursor: 'pointer',
 };
@@ -257,10 +254,10 @@ export const paperGhostButton: CSSProperties = {
   fontSize: 'var(--nimi-type-body-sm-size)',
   fontWeight: 'var(--nimi-type-label-weight)',
   padding: 8,
-  borderRadius: 'var(--nimi-radius-sm)',
-  border: `1px solid ${PAPER.borderSoft}`,
-  background: PAPER.card,
-  color: PAPER.ink,
+  borderRadius: 'var(--nimi-radius-action)',
+  border: '1px solid var(--nimi-border-subtle)',
+  background: 'var(--nimi-surface-card)',
+  color: 'var(--nimi-text-primary)',
   cursor: 'pointer',
 };
 
@@ -285,9 +282,9 @@ export function PaperIconButton({
       size="sm"
       className={cn('h-8 w-8', className)}
       style={{
-        color: PAPER.ink,
-        borderColor: PAPER.borderSoft,
-        background: PAPER.card,
+        color: 'var(--nimi-text-primary)',
+        borderColor: 'var(--nimi-border-subtle)',
+        background: 'var(--nimi-surface-card)',
       }}
     />
   );

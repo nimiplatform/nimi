@@ -2,12 +2,7 @@ import { useMemo } from 'react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { NimiText, Surface } from '@nimiplatform/kit/ui';
-import {
-  PAPER,
-  PAPER_RADIUS,
-  PAPER_SERIF,
-  formatNum,
-} from './world-detail-paper-model.js';
+import { formatNum } from './world-detail-paper-model.js';
 import { worldDetailPaperContentFrameStyle } from './world-detail-layout.js';
 import {
   IconChevron,
@@ -231,10 +226,10 @@ function groupResourceReferences(
 }
 
 const RESOURCE_REFERENCE_ICON = {
-  ready: <IconLayers size={15} color={PAPER.green} strokeWidth={1.8} />,
-  external: <IconFile size={15} color={PAPER.green} strokeWidth={1.8} />,
-  registered: <IconLayers size={15} color={PAPER.green} strokeWidth={1.8} />,
-  planned: <IconShield size={15} color={PAPER.green} strokeWidth={1.8} />,
+  ready: <IconLayers size={15} color="var(--nimi-action-primary-bg)" strokeWidth={1.8} />,
+  external: <IconFile size={15} color="var(--nimi-action-primary-bg)" strokeWidth={1.8} />,
+  registered: <IconLayers size={15} color="var(--nimi-action-primary-bg)" strokeWidth={1.8} />,
+  planned: <IconShield size={15} color="var(--nimi-action-primary-bg)" strokeWidth={1.8} />,
 } satisfies Record<WorldResourceReferenceStatus, ReactNode>;
 
 function referenceRoleTitle(entry: WorldResourceReferenceEntry, t: ReturnType<typeof useTranslation>['t']): string {
@@ -264,8 +259,8 @@ function ReferenceMetaRow({ label, value }: { label: string; value?: string | nu
         lineHeight: 1.55,
       }}
     >
-      <span style={{ color: PAPER.faint }}>{label}</span>
-      <span style={{ minWidth: 0, color: PAPER.ink, overflowWrap: 'anywhere' }}>{value}</span>
+      <span style={{ color: 'var(--nimi-text-muted)' }}>{label}</span>
+      <span style={{ minWidth: 0, color: 'var(--nimi-text-primary)', overflowWrap: 'anywhere' }}>{value}</span>
     </div>
   );
 }
@@ -284,9 +279,9 @@ function WorldResourceReferenceCard({ entry }: { entry: WorldResourceReferenceEn
       data-testid="world-detail-resource-reference-entry"
       className="min-w-0 p-4"
       style={{
-        background: PAPER.cardSoft,
-        borderColor: PAPER.borderSoft,
-        borderRadius: PAPER_RADIUS.md,
+        background: 'var(--nimi-surface-panel)',
+        borderColor: 'var(--nimi-border-subtle)',
+        borderRadius: 'var(--nimi-radius-md)',
         boxShadow: 'none',
       }}
     >
@@ -298,21 +293,21 @@ function WorldResourceReferenceCard({ entry }: { entry: WorldResourceReferenceEn
             placeItems: 'center',
             width: 30,
             height: 30,
-            borderRadius: PAPER_RADIUS.md,
-            background: PAPER.greenSoftBg,
+            borderRadius: 'var(--nimi-radius-md)',
+            background: 'color-mix(in srgb, var(--nimi-action-primary-bg) 14%, transparent)',
           }}
         >
           {RESOURCE_REFERENCE_ICON[entry.status]}
         </span>
         <PaperTag>{statusCopy}</PaperTag>
       </div>
-      <h3 style={{ margin: '0 0 8px', fontFamily: PAPER_SERIF, fontSize: 18, lineHeight: 1.28, fontWeight: 900, color: PAPER.inkStrong }}>
+      <h3 style={{ margin: '0 0 8px', fontSize: 18, lineHeight: 1.28, fontWeight: 900, color: 'var(--nimi-text-primary)' }}>
         {title}
       </h3>
-      <p style={{ margin: '0 0 14px', fontSize: 13, lineHeight: 1.65, color: PAPER.muted }}>
+      <p style={{ margin: '0 0 14px', fontSize: 13, lineHeight: 1.65, color: 'var(--nimi-text-muted)' }}>
         {entry.kind === 'intent' && entry.body ? entry.body : description}
       </p>
-      <div style={{ display: 'grid', gap: 7, paddingTop: 12, borderTop: `1px solid ${PAPER.borderInner}` }}>
+      <div style={{ display: 'grid', gap: 7, paddingTop: 12, borderTop: '1px solid var(--nimi-border-subtle)' }}>
         <ReferenceMetaRow
           label={t('WorldDetail.paper.resourceReferences.field.usage')}
           value={t(`WorldDetail.paper.resourceReferences.role.${entry.role}`, {
@@ -355,13 +350,13 @@ function WorldResourceReferenceCard({ entry }: { entry: WorldResourceReferenceEn
             marginTop: 12,
             fontSize: 12.5,
             fontWeight: 800,
-            color: PAPER.green,
+            color: 'var(--nimi-action-primary-bg)',
             textDecoration: 'none',
             overflowWrap: 'anywhere',
           }}
         >
           {t('WorldDetail.paper.resourceReferences.action.openAsset')}
-          <IconChevron size={12} color={PAPER.green} />
+          <IconChevron size={12} color="var(--nimi-action-primary-bg)" />
         </a>
       ) : null}
     </Surface>
@@ -383,14 +378,14 @@ function WorldResourceReferenceGroup({
     <section data-testid={`world-detail-resource-reference-group-${kind}`} style={{ display: 'grid', gap: 12 }}>
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
         <div>
-          <h2 style={{ margin: 0, fontFamily: PAPER_SERIF, fontSize: 20, fontWeight: 900, color: PAPER.inkStrong }}>
+          <h2 style={{ margin: 0, fontSize: 20, fontWeight: 900, color: 'var(--nimi-text-primary)' }}>
             {t(`WorldDetail.paper.resourceReferences.group.${kind}.title`)}
           </h2>
-          <p style={{ margin: '5px 0 0', fontSize: 12.5, lineHeight: 1.6, color: PAPER.faint }}>
+          <p style={{ margin: '5px 0 0', fontSize: 12.5, lineHeight: 1.6, color: 'var(--nimi-text-muted)' }}>
             {t(`WorldDetail.paper.resourceReferences.group.${kind}.subtitle`)}
           </p>
         </div>
-        <span style={{ fontSize: 12, fontWeight: 800, color: PAPER.green }}>
+        <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--nimi-action-primary-bg)' }}>
           {formatNum(entries.length)} {t('WorldDetail.paper.resourceReferences.records')}
         </span>
       </div>
@@ -430,10 +425,10 @@ export function WorldResourceReferencesPage({
         <button
           type="button"
           onClick={onBack}
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 7, marginBottom: 14, fontFamily: 'inherit', fontSize: 13, fontWeight: 600, color: PAPER.green, border: `1px solid ${PAPER.borderSoft}`, borderRadius: 999, background: PAPER.card, padding: '8px 13px', cursor: 'pointer', boxShadow: PAPER.cardShadow }}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 7, marginBottom: 14, fontFamily: 'inherit', fontSize: 13, fontWeight: 600, color: 'var(--nimi-action-primary-bg)', border: '1px solid var(--nimi-border-subtle)', borderRadius: 999, background: 'var(--nimi-surface-card)', padding: '8px 13px', cursor: 'pointer', boxShadow: 'var(--nimi-elevation-base)' }}
         >
           <span style={{ transform: 'rotate(180deg)', display: 'inline-flex' }}>
-            <IconChevron size={13} color={PAPER.green} />
+            <IconChevron size={13} color="var(--nimi-action-primary-bg)" />
           </span>
           {t('WorldDetail.paper.gallery.backToWorld')}
         </button>
@@ -446,32 +441,32 @@ export function WorldResourceReferencesPage({
           padding="none"
           className="mb-4 min-w-0 p-6"
           style={{
-            background: PAPER.card,
-            borderColor: PAPER.border,
-            borderRadius: PAPER_RADIUS.xl,
-            boxShadow: PAPER.cardShadowStrong,
+            background: 'var(--nimi-surface-card)',
+            borderColor: 'var(--nimi-border-subtle)',
+            borderRadius: 'var(--nimi-radius-xl)',
+            boxShadow: 'var(--nimi-elevation-raised)',
           }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 18, alignItems: 'flex-start', flexWrap: 'wrap' }}>
             <div style={{ minWidth: 0, flex: '1 1 520px' }}>
-              <NimiText as="div" role="caption" className="mb-2 font-semibold" style={{ color: PAPER.green }}>
+              <NimiText as="div" role="caption" className="mb-2 font-semibold" style={{ color: 'var(--nimi-action-primary-bg)' }}>
                 {world.name}
               </NimiText>
-              <h1 style={{ margin: 0, fontFamily: PAPER_SERIF, fontSize: 34, lineHeight: 1.12, fontWeight: 950, color: PAPER.inkStrong }}>
+              <h1 style={{ margin: 0, fontSize: 34, lineHeight: 1.12, fontWeight: 950, color: 'var(--nimi-text-primary)' }}>
                 {t('WorldDetail.paper.resourceReferences.title')}
               </h1>
-              <p style={{ margin: '12px 0 0', maxWidth: 760, fontSize: 13.5, lineHeight: 1.75, color: PAPER.muted }}>
+              <p style={{ margin: '12px 0 0', maxWidth: 760, fontSize: 13.5, lineHeight: 1.75, color: 'var(--nimi-text-muted)' }}>
                 {t('WorldDetail.paper.resourceReferences.subtitle')}
               </p>
-              <p style={{ margin: '8px 0 0', maxWidth: 760, fontSize: 12.5, lineHeight: 1.65, color: PAPER.faint }}>
+              <p style={{ margin: '8px 0 0', maxWidth: 760, fontSize: 12.5, lineHeight: 1.65, color: 'var(--nimi-text-muted)' }}>
                 {t('WorldDetail.paper.resourceReferences.readerHint')}
               </p>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(104px,1fr))', gap: 8, width: 'min(100%, 380px)', minWidth: 0 }}>
               {(['usable', 'registered', 'planned'] as const).map((key) => (
-                <div key={key} style={{ border: `1px solid ${PAPER.borderSoft}`, borderRadius: PAPER_RADIUS.md, background: 'rgba(255,253,248,.68)', padding: '11px 12px' }}>
-                  <div style={{ fontFamily: PAPER_SERIF, fontSize: 22, lineHeight: 1, fontWeight: 900, color: PAPER.inkStrong }}>{formatNum(summary[key])}</div>
-                  <div style={{ marginTop: 6, fontSize: 11.5, color: PAPER.faint }}>{t(`WorldDetail.paper.resourceReferences.summary.${key}`)}</div>
+                <div key={key} style={{ border: '1px solid var(--nimi-border-subtle)', borderRadius: 'var(--nimi-radius-md)', background: 'var(--nimi-surface-panel)', padding: '11px 12px' }}>
+                  <div style={{ fontSize: 22, lineHeight: 1, fontWeight: 900, color: 'var(--nimi-text-primary)' }}>{formatNum(summary[key])}</div>
+                  <div style={{ marginTop: 6, fontSize: 11.5, color: 'var(--nimi-text-muted)' }}>{t(`WorldDetail.paper.resourceReferences.summary.${key}`)}</div>
                 </div>
               ))}
             </div>
@@ -486,13 +481,13 @@ export function WorldResourceReferencesPage({
             padding="none"
             className="p-5"
             style={{
-              background: PAPER.card,
-              borderColor: PAPER.border,
-              borderRadius: PAPER_RADIUS.lg,
-              boxShadow: PAPER.cardShadow,
+              background: 'var(--nimi-surface-card)',
+              borderColor: 'var(--nimi-border-subtle)',
+              borderRadius: 'var(--nimi-radius-lg)',
+              boxShadow: 'var(--nimi-elevation-base)',
             }}
           >
-            <p style={{ margin: 0, fontSize: 13, lineHeight: 1.65, color: PAPER.faint }}>
+            <p style={{ margin: 0, fontSize: 13, lineHeight: 1.65, color: 'var(--nimi-text-muted)' }}>
               {t('WorldDetail.paper.resourceReferences.empty')}
             </p>
           </Surface>
@@ -500,7 +495,7 @@ export function WorldResourceReferencesPage({
           <div style={{ display: 'grid', gap: 22 }}>
             <WorldResourceReferenceGroup kind="material" entries={groups.material} />
             <WorldResourceReferenceGroup kind="intent" entries={groups.intent} />
-            <p style={{ margin: '-4px 0 0', fontSize: 12, lineHeight: 1.65, color: PAPER.faint }}>
+            <p style={{ margin: '-4px 0 0', fontSize: 12, lineHeight: 1.65, color: 'var(--nimi-text-muted)' }}>
               {t('WorldDetail.paper.resourceReferences.ownershipNote')}
             </p>
           </div>

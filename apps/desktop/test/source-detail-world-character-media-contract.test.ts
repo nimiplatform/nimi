@@ -248,7 +248,7 @@ test('world character detail renders reference image and voice sample controls',
   assert.doesNotMatch(speechProfileTriggerTag, /\bh-5\b|\bw-5\b|text-\[9px\]|text-\[12px\]/);
   assert.match(speechProfileTriggerTag, /rounded-full/);
   assert.match(speechProfileTriggerTag, /border/);
-  assert.match(speechProfileTriggerTag, /bg-\[#fffdf8\]/);
+  assert.match(speechProfileTriggerTag, /bg-\[var\(--nimi-surface-card\)\]/);
   assert.doesNotMatch(speechProfileTriggerTag, /\bitalic\b/);
   assert.doesNotMatch(speechProfileTriggerTag, /\stitle=/);
   assert.doesNotMatch(markup, />Greeting<\/p>/);

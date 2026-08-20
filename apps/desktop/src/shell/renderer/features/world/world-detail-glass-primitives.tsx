@@ -6,13 +6,13 @@ import { worldInitial } from './world-list-atoms';
 export const GLASS_STYLE: CSSProperties = {
   background: 'var(--nimi-material-glass-regular-bg)',
   border: '1px solid var(--nimi-material-glass-regular-border)',
-  boxShadow: '0 18px 48px rgba(54,80,125,0.08)',
+  boxShadow: 'var(--nimi-elevation-floating)',
 };
 
 export const GLASS_STRONG_STYLE: CSSProperties = {
   background: 'var(--nimi-material-glass-thick-bg)',
   border: '1px solid var(--nimi-material-glass-thick-border)',
-  boxShadow: '0 24px 58px rgba(54,80,125,0.10)',
+  boxShadow: 'var(--nimi-elevation-floating)',
 };
 
 export const GLASS_SURFACE_CLASS = 'nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)]';
@@ -50,7 +50,7 @@ export function GlassButton({
       icon={children}
       tone="ghost"
       size="md"
-      className="h-[38px] w-[38px] border border-white/30 bg-[rgba(23,45,70,0.34)] text-white hover:bg-[rgba(23,45,70,0.48)] hover:text-white"
+      className="h-[38px] w-[38px] border border-white/30 bg-[var(--nimi-overlay-backdrop)] text-[var(--nimi-text-inverse)] hover:bg-[var(--nimi-scrim-modal)] hover:text-[var(--nimi-text-inverse)]"
     />
   );
 }
@@ -64,24 +64,24 @@ export function Pill({
 }) {
   const styleByTone: Record<'neutral' | 'mint' | 'blue' | 'violet', CSSProperties> = {
     neutral: {
-      color: '#475569',
-      background: 'rgba(148,163,184,0.12)',
-      borderColor: 'rgba(148,163,184,0.12)',
+      color: 'var(--nimi-status-neutral-soft-text)',
+      background: 'var(--nimi-status-neutral-soft-bg)',
+      borderColor: 'var(--nimi-status-neutral-soft-border)',
     },
     mint: {
-      color: '#12876d',
-      background: 'rgba(69,208,170,0.16)',
-      borderColor: 'rgba(69,208,170,0.12)',
+      color: 'var(--nimi-status-success-soft-text)',
+      background: 'var(--nimi-status-success-soft-bg)',
+      borderColor: 'var(--nimi-status-success-soft-border)',
     },
     blue: {
-      color: '#3466d7',
-      background: 'rgba(76,125,245,0.14)',
-      borderColor: 'rgba(76,125,245,0.12)',
+      color: 'var(--nimi-status-info-soft-text)',
+      background: 'var(--nimi-status-info-soft-bg)',
+      borderColor: 'var(--nimi-status-info-soft-border)',
     },
     violet: {
-      color: '#6e52d9',
-      background: 'rgba(138,120,255,0.14)',
-      borderColor: 'rgba(138,120,255,0.12)',
+      color: 'var(--nimi-color-indigo)',
+      background: 'color-mix(in srgb, var(--nimi-color-indigo) 14%, transparent)',
+      borderColor: 'color-mix(in srgb, var(--nimi-color-indigo) 22%, transparent)',
     },
   };
   return (
@@ -129,8 +129,8 @@ export function Seal({
         fontWeight: 900,
         background: displayImage
           ? `url(${displayImage}) center/cover no-repeat`
-          : 'linear-gradient(135deg, #67d8c2, #4c7df5)',
-        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.48), 0 12px 28px rgba(54,80,125,0.16)',
+          : 'linear-gradient(135deg, var(--nimi-action-primary-bg), var(--nimi-color-indigo))',
+        boxShadow: 'var(--nimi-elevation-raised)',
       }}
     >
       <Avatar
@@ -173,7 +173,7 @@ export function SectionCard({
       data-testid={testId}
       style={{
         ...GLASS_STYLE,
-        borderRadius: 20,
+        borderRadius: 'var(--nimi-radius-xl)',
         padding: 20,
         minWidth: 0,
         ...style,
@@ -181,8 +181,8 @@ export function SectionCard({
     >
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 14, marginBottom: 16 }}>
         <div style={{ minWidth: 0 }}>
-          <h2 style={{ margin: 0, color: '#111827', fontSize: 16, fontWeight: 950, letterSpacing: 0 }}>{title}</h2>
-          {subtitle ? <p style={{ margin: '5px 0 0', color: '#64748b', fontSize: 12, lineHeight: 1.5, fontWeight: 650 }}>{subtitle}</p> : null}
+          <h2 style={{ margin: 0, color: 'var(--nimi-text-primary)', fontSize: 16, fontWeight: 950, letterSpacing: 0 }}>{title}</h2>
+          {subtitle ? <p style={{ margin: '5px 0 0', color: 'var(--nimi-text-secondary)', fontSize: 12, lineHeight: 1.5, fontWeight: 650 }}>{subtitle}</p> : null}
         </div>
         {action ? <div style={{ flex: '0 0 auto' }}>{action}</div> : null}
       </div>
@@ -193,13 +193,13 @@ export function SectionCard({
 
 export function InfoTile({ label, value }: { label: string; value: ReactNode }) {
   return (
-    <div style={{ borderRadius: 14, padding: 14, minWidth: 0, background: 'rgba(255,255,255,0.46)', border: '1px solid rgba(113,132,158,0.10)' }}>
-      <div style={{ color: '#111827', fontSize: 13, fontWeight: 950, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value}</div>
-      <div style={{ color: '#7a8799', fontSize: 10, fontWeight: 850, textTransform: 'uppercase', marginTop: 5 }}>{label}</div>
+    <div style={{ borderRadius: 'var(--nimi-radius-md)', padding: 14, minWidth: 0, background: 'color-mix(in srgb, var(--nimi-surface-card) 62%, transparent)', border: '1px solid var(--nimi-border-subtle)' }}>
+      <div style={{ color: 'var(--nimi-text-primary)', fontSize: 13, fontWeight: 950, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value}</div>
+      <div style={{ color: 'var(--nimi-text-muted)', fontSize: 10, fontWeight: 850, textTransform: 'uppercase', marginTop: 5 }}>{label}</div>
     </div>
   );
 }
 
 export function PanelTitle({ title }: { title: string }) {
-  return <h3 style={{ margin: 0, color: '#111827', fontSize: 14, fontWeight: 950, letterSpacing: 0 }}>{title}</h3>;
+  return <h3 style={{ margin: 0, color: 'var(--nimi-text-primary)', fontSize: 14, fontWeight: 950, letterSpacing: 0 }}>{title}</h3>;
 }

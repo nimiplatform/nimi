@@ -4,12 +4,12 @@ import {
   worldDetailPaperContentFrameStyle,
 } from './world-detail-layout.js';
 
-// Paper-layout loading skeletons for the world detail root page and its
-// subpages (relationship explorer / people archive / lore library). Block
-// tones follow the paper surface family so the pulse reads as unfilled paper
-// cards rather than a foreign overlay.
-const SKELETON_CARD = '#fbf8f1';
-const SKELETON_SOFT = 'rgba(255,255,255,0.55)';
+// Loading skeletons for the world detail root page and its subpages
+// (relationship explorer / people archive / lore library). Block tones resolve
+// through Nimi surface tokens so the pulse reads as unfilled cards rather than
+// a foreign overlay.
+const SKELETON_CARD = 'var(--nimi-surface-card)';
+const SKELETON_SOFT = 'color-mix(in srgb, var(--nimi-surface-card) 60%, transparent)';
 
 function SkeletonBlock({
   height,

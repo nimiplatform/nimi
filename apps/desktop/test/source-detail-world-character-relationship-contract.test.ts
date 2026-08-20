@@ -62,7 +62,7 @@ test('world character relationship map keeps factual clue text out of graph node
   assert.doesNotMatch(mapMarkup, /墓志铭由刘智所作/);
   assert.doesNotMatch(markup, /墓誌銘|劉智/);
   assert.doesNotMatch(mapMarkup, /truncate text-xs leading-4 opacity-75/);
-  assert.match(markup, /<h3 class="text-sm font-semibold leading-6 text-\[#262017\]">墓志铭由刘智所作<\/h3>/);
+  assert.match(markup, /<h3 class="text-sm font-semibold leading-6 text-\[var\(--nimi-text-primary\)\]">墓志铭由刘智所作<\/h3>/);
 });
 
 test('world character relationship map renders posted address clues with location icons', () => {

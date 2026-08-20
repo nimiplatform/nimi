@@ -2,12 +2,7 @@ import { useMemo } from 'react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { NimiText, Surface } from '@nimiplatform/kit/ui';
-import {
-  PAPER,
-  PAPER_RADIUS,
-  PAPER_SERIF,
-  formatNum,
-} from './world-detail-paper-model.js';
+import { formatNum } from './world-detail-paper-model.js';
 import { worldDetailPaperContentFrameStyle } from './world-detail-layout.js';
 import {
   IconChevron,
@@ -177,10 +172,10 @@ export function groupWorldLoreEntries(entries: readonly WorldLoreEntry[]): Recor
 }
 
 const LORE_KIND_ICON = {
-  rule: <IconFile size={15} color={PAPER.green} strokeWidth={1.8} />,
-  system: <IconLayers size={15} color={PAPER.green} strokeWidth={1.8} />,
-  taboo: <IconShield size={15} color={PAPER.green} strokeWidth={1.8} />,
-  language: <IconFile size={15} color={PAPER.green} strokeWidth={1.8} />,
+  rule: <IconFile size={15} color="var(--nimi-action-primary-bg)" strokeWidth={1.8} />,
+  system: <IconLayers size={15} color="var(--nimi-action-primary-bg)" strokeWidth={1.8} />,
+  taboo: <IconShield size={15} color="var(--nimi-action-primary-bg)" strokeWidth={1.8} />,
+  language: <IconFile size={15} color="var(--nimi-action-primary-bg)" strokeWidth={1.8} />,
 } satisfies Record<WorldLoreKind, ReactNode>;
 
 function WorldLoreEntryCard({ entry }: { entry: WorldLoreEntry }) {
@@ -194,9 +189,9 @@ function WorldLoreEntryCard({ entry }: { entry: WorldLoreEntry }) {
       data-testid="world-detail-lore-entry"
       className="min-w-0 p-4"
       style={{
-        background: PAPER.cardSoft,
-        borderColor: PAPER.borderSoft,
-        borderRadius: PAPER_RADIUS.md,
+        background: 'var(--nimi-surface-panel)',
+        borderColor: 'var(--nimi-border-subtle)',
+        borderRadius: 'var(--nimi-radius-md)',
         boxShadow: 'none',
       }}
     >
@@ -208,25 +203,25 @@ function WorldLoreEntryCard({ entry }: { entry: WorldLoreEntry }) {
             placeItems: 'center',
             width: 30,
             height: 30,
-            borderRadius: PAPER_RADIUS.md,
-            background: PAPER.greenSoftBg,
+            borderRadius: 'var(--nimi-radius-md)',
+            background: 'color-mix(in srgb, var(--nimi-action-primary-bg) 14%, transparent)',
           }}
         >
           {LORE_KIND_ICON[entry.kind]}
         </span>
         <PaperTag>{t(`WorldDetail.paper.loreLibrary.kind.${entry.kind}`)}</PaperTag>
       </div>
-      <h3 style={{ margin: '0 0 7px', fontFamily: PAPER_SERIF, fontSize: 17, lineHeight: 1.3, fontWeight: 900, color: PAPER.inkStrong }}>
+      <h3 style={{ margin: '0 0 7px', fontSize: 17, lineHeight: 1.3, fontWeight: 900, color: 'var(--nimi-text-primary)' }}>
         {entry.title}
       </h3>
-      <p style={{ margin: 0, fontSize: 13, lineHeight: 1.7, color: PAPER.muted }}>
+      <p style={{ margin: 0, fontSize: 13, lineHeight: 1.7, color: 'var(--nimi-text-muted)' }}>
         {entry.body}
       </p>
       {entry.details.length > 0 ? (
-        <div style={{ display: 'grid', gap: 7, marginTop: 13, paddingTop: 12, borderTop: `1px solid ${PAPER.borderInner}` }}>
+        <div style={{ display: 'grid', gap: 7, marginTop: 13, paddingTop: 12, borderTop: '1px solid var(--nimi-border-subtle)' }}>
           {entry.details.map((detail) => (
-            <div key={detail} style={{ display: 'grid', gridTemplateColumns: '14px 1fr', gap: 7, alignItems: 'start', fontSize: 12.5, lineHeight: 1.55, color: PAPER.bodySoft }}>
-              <span aria-hidden="true" style={{ width: 5, height: 5, marginTop: 7, borderRadius: '50%', background: PAPER.green }} />
+            <div key={detail} style={{ display: 'grid', gridTemplateColumns: '14px 1fr', gap: 7, alignItems: 'start', fontSize: 12.5, lineHeight: 1.55, color: 'var(--nimi-text-secondary)' }}>
+              <span aria-hidden="true" style={{ width: 5, height: 5, marginTop: 7, borderRadius: '50%', background: 'var(--nimi-action-primary-bg)' }} />
               <span>{detail}</span>
             </div>
           ))}
@@ -251,14 +246,14 @@ function WorldLoreGroup({
     <section data-testid={`world-detail-lore-group-${kind}`} style={{ display: 'grid', gap: 12 }}>
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
         <div>
-          <h2 style={{ margin: 0, fontFamily: PAPER_SERIF, fontSize: 20, fontWeight: 900, color: PAPER.inkStrong }}>
+          <h2 style={{ margin: 0, fontSize: 20, fontWeight: 900, color: 'var(--nimi-text-primary)' }}>
             {t(`WorldDetail.paper.loreLibrary.group.${kind}.title`)}
           </h2>
-          <p style={{ margin: '5px 0 0', fontSize: 12.5, lineHeight: 1.6, color: PAPER.faint }}>
+          <p style={{ margin: '5px 0 0', fontSize: 12.5, lineHeight: 1.6, color: 'var(--nimi-text-muted)' }}>
             {t(`WorldDetail.paper.loreLibrary.group.${kind}.subtitle`)}
           </p>
         </div>
-        <span style={{ fontSize: 12, fontWeight: 800, color: PAPER.green }}>
+        <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--nimi-action-primary-bg)' }}>
           {formatNum(entries.length)} {t('WorldDetail.paper.loreLibrary.records')}
         </span>
       </div>
@@ -293,10 +288,10 @@ export function WorldLoreLibraryPage({
         <button
           type="button"
           onClick={onBack}
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 7, marginBottom: 14, fontFamily: 'inherit', fontSize: 13, fontWeight: 600, color: PAPER.green, border: `1px solid ${PAPER.borderSoft}`, borderRadius: 999, background: PAPER.card, padding: '8px 13px', cursor: 'pointer', boxShadow: PAPER.cardShadow }}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 7, marginBottom: 14, fontFamily: 'inherit', fontSize: 13, fontWeight: 600, color: 'var(--nimi-action-primary-bg)', border: '1px solid var(--nimi-border-subtle)', borderRadius: 999, background: 'var(--nimi-surface-card)', padding: '8px 13px', cursor: 'pointer', boxShadow: 'var(--nimi-elevation-base)' }}
         >
           <span style={{ transform: 'rotate(180deg)', display: 'inline-flex' }}>
-            <IconChevron size={13} color={PAPER.green} />
+            <IconChevron size={13} color="var(--nimi-action-primary-bg)" />
           </span>
           {t('WorldDetail.paper.gallery.backToWorld')}
         </button>
@@ -309,29 +304,29 @@ export function WorldLoreLibraryPage({
           padding="none"
           className="mb-4 min-w-0 p-6"
           style={{
-            background: PAPER.card,
-            borderColor: PAPER.border,
-            borderRadius: PAPER_RADIUS.xl,
-            boxShadow: PAPER.cardShadowStrong,
+            background: 'var(--nimi-surface-card)',
+            borderColor: 'var(--nimi-border-subtle)',
+            borderRadius: 'var(--nimi-radius-xl)',
+            boxShadow: 'var(--nimi-elevation-raised)',
           }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 18, alignItems: 'flex-start', flexWrap: 'wrap' }}>
             <div style={{ minWidth: 0, flex: '1 1 520px' }}>
-              <NimiText as="div" role="caption" className="mb-2 font-semibold" style={{ color: PAPER.green }}>
+              <NimiText as="div" role="caption" className="mb-2 font-semibold" style={{ color: 'var(--nimi-action-primary-bg)' }}>
                 {world.name}
               </NimiText>
-              <h1 style={{ margin: 0, fontFamily: PAPER_SERIF, fontSize: 34, lineHeight: 1.12, fontWeight: 950, color: PAPER.inkStrong }}>
+              <h1 style={{ margin: 0, fontSize: 34, lineHeight: 1.12, fontWeight: 950, color: 'var(--nimi-text-primary)' }}>
                 {t('WorldDetail.paper.loreLibrary.title')}
               </h1>
-              <p style={{ margin: '12px 0 0', maxWidth: 760, fontSize: 13.5, lineHeight: 1.75, color: PAPER.muted }}>
+              <p style={{ margin: '12px 0 0', maxWidth: 760, fontSize: 13.5, lineHeight: 1.75, color: 'var(--nimi-text-muted)' }}>
                 {t('WorldDetail.paper.loreLibrary.subtitle')}
               </p>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(82px,1fr))', gap: 8, minWidth: 188 }}>
               {(['rule', 'system', 'taboo', 'language'] as const).map((kind) => (
-                <div key={kind} style={{ border: `1px solid ${PAPER.borderSoft}`, borderRadius: PAPER_RADIUS.md, background: 'rgba(255,253,248,.68)', padding: '11px 12px' }}>
-                  <div style={{ fontFamily: PAPER_SERIF, fontSize: 22, lineHeight: 1, fontWeight: 900, color: PAPER.inkStrong }}>{formatNum(groups[kind].length)}</div>
-                  <div style={{ marginTop: 6, fontSize: 11.5, color: PAPER.faint }}>{t(`WorldDetail.paper.loreLibrary.kind.${kind}`)}</div>
+                <div key={kind} style={{ border: '1px solid var(--nimi-border-subtle)', borderRadius: 'var(--nimi-radius-md)', background: 'var(--nimi-surface-panel)', padding: '11px 12px' }}>
+                  <div style={{ fontSize: 22, lineHeight: 1, fontWeight: 900, color: 'var(--nimi-text-primary)' }}>{formatNum(groups[kind].length)}</div>
+                  <div style={{ marginTop: 6, fontSize: 11.5, color: 'var(--nimi-text-muted)' }}>{t(`WorldDetail.paper.loreLibrary.kind.${kind}`)}</div>
                 </div>
               ))}
             </div>
@@ -346,13 +341,13 @@ export function WorldLoreLibraryPage({
             padding="none"
             className="p-5"
             style={{
-              background: PAPER.card,
-              borderColor: PAPER.border,
-              borderRadius: PAPER_RADIUS.lg,
-              boxShadow: PAPER.cardShadow,
+              background: 'var(--nimi-surface-card)',
+              borderColor: 'var(--nimi-border-subtle)',
+              borderRadius: 'var(--nimi-radius-lg)',
+              boxShadow: 'var(--nimi-elevation-base)',
             }}
           >
-            <p style={{ margin: 0, fontSize: 13, lineHeight: 1.65, color: PAPER.faint }}>
+            <p style={{ margin: 0, fontSize: 13, lineHeight: 1.65, color: 'var(--nimi-text-muted)' }}>
               {t('WorldDetail.paper.loreLibrary.empty')}
             </p>
           </Surface>
