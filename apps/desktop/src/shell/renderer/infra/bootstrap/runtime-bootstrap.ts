@@ -32,6 +32,7 @@ import {
   type DesktopRuntimeTransport,
 } from '../sdk/desktop-nimi-client-session';
 import type { DesktopRendererLifecyclePort } from '../../renderer/lifecycle-port.js';
+import { retrySourceRuntimeTransport } from '../../../shared/source-runtime-retry';
 
 
 let bootstrapPromise: Promise<void> | null = null;
@@ -193,7 +194,20 @@ function startBootstrapRuntime(lifecycle: DesktopRendererLifecyclePort): Promise
 
     const defaults = await desktopBridge.getRuntimeDefaults();
     lifecycle.setRuntimeDefaults(defaults);
-    let daemonStatus = await desktopBridge.getRuntimeBridgeStatus();
+    let daemonStatus = await retrySourceRuntimeTransport(
+      () => desktopBridge.getRuntimeBridgeStatus(),
+      {
+        onRetry: ({ attempt, reasonCode, retryDelayMs }) => {
+          logRendererEvent({
+            level: 'warn',
+            area: 'renderer-bootstrap',
+            message: 'phase:runtime-status:retry',
+            flowId,
+            details: { attempt, reasonCode, retryDelayMs },
+          });
+        },
+      },
+    );
     let runtimeUnavailable = runtimeDaemonUnavailable(daemonStatus);
     if (desktopBridge.hasElectronInvoke() && runtimeUnavailable) {
       try {

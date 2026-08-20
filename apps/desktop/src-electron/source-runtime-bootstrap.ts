@@ -1,3 +1,9 @@
+import {
+  retrySourceRuntimeTransport,
+  sourceRuntimeFailureReason,
+  type SourceRuntimeRetryOptions,
+} from '../src/shell/shared/source-runtime-retry.js';
+
 export const SOURCE_RUNTIME_START_COMMAND = 'pnpm dev:runtime';
 
 export type DesktopSourceRuntimeStatusProbe = {
@@ -18,9 +24,10 @@ export class DesktopSourceRuntimeUnavailableError extends Error {
 
 export async function requireDesktopSourceRuntime(
   probe: DesktopSourceRuntimeStatusProbe,
+  retryOptions: SourceRuntimeRetryOptions = {},
 ): Promise<void> {
   try {
-    await probe.probe();
+    await retrySourceRuntimeTransport(() => probe.probe(), retryOptions);
   } catch (error) {
     throw new DesktopSourceRuntimeUnavailableError(error);
   }
@@ -31,12 +38,5 @@ export function sourceRuntimeBootstrapFailureMessage(failureCode: string): strin
 }
 
 function runtimeFailureReason(error: unknown): string {
-  if (!error || typeof error !== 'object') return 'runtime-service-error-unclassified';
-  for (const key of ['reasonCode', 'code', 'message'] as const) {
-    const value = (error as Readonly<Record<string, unknown>>)[key];
-    if (typeof value === 'string' && /^[A-Za-z][A-Za-z0-9_-]{0,127}$/u.test(value)) {
-      return value;
-    }
-  }
-  return 'runtime-service-error-unclassified';
+  return sourceRuntimeFailureReason(error);
 }

@@ -87,22 +87,9 @@ func (listener *MacOSVerifiedDesktopListener) acceptVerified(ctx context.Context
 		if err := ctx.Err(); err != nil {
 			return nil, err
 		}
-		listener.mu.Lock()
-		if listener.closed {
-			listener.mu.Unlock()
+		if listener.isClosed() {
 			return nil, net.ErrClosed
 		}
-		if listener.active != nil {
-			done := listener.activeDone
-			listener.mu.Unlock()
-			select {
-			case <-done:
-				continue
-			case <-ctx.Done():
-				return nil, ctx.Err()
-			}
-		}
-		listener.mu.Unlock()
 		raw, err := listener.raw.AcceptUnix()
 		if err != nil {
 			if listener.isClosed() {
@@ -135,25 +122,49 @@ func (listener *MacOSVerifiedDesktopListener) acceptVerified(ctx context.Context
 			continue
 		}
 		verified := &macOSVerifiedDesktopNetConn{Conn: raw, connection: desktopConnection, listener: listener}
-		if !listener.activate(verified) {
+		replaced, activated := listener.activate(verified)
+		if !activated {
 			desktopConnection.Revoke()
 			_ = raw.Close()
-			return nil, net.ErrClosed
+			continue
+		}
+		if replaced != nil {
+			replaced.connection.Revoke()
+			_ = replaced.closeTransport()
 		}
 		desktopConnection.onRevoke(func() { _ = verified.closeTransport() })
 		return verified, nil
 	}
 }
 
-func (listener *MacOSVerifiedDesktopListener) activate(connection *macOSVerifiedDesktopNetConn) bool {
+func (listener *MacOSVerifiedDesktopListener) activate(connection *macOSVerifiedDesktopNetConn) (*macOSVerifiedDesktopNetConn, bool) {
 	listener.mu.Lock()
 	defer listener.mu.Unlock()
-	if listener.closed || listener.active != nil {
-		return false
+	if listener.closed || connection == nil || connection.connection == nil {
+		return nil, false
+	}
+	previous := listener.active
+	// A failed HTTP/2 channel can remain open at the Unix socket layer. Admit
+	// replacement only after the new connection independently verifies as the
+	// exact same OS process; a different Desktop process never displaces it.
+	if previous != nil && !sameMacOSDesktopPeer(previous, connection) {
+		return nil, false
+	}
+	if listener.activeDone != nil {
+		close(listener.activeDone)
 	}
 	listener.active = connection
 	listener.activeDone = make(chan struct{})
-	return true
+	return previous, true
+}
+
+func sameMacOSDesktopPeer(left, right *macOSVerifiedDesktopNetConn) bool {
+	if left == nil || right == nil || left.connection == nil || right.connection == nil {
+		return false
+	}
+	leftPeer, leftOK := left.connection.DirectDesktopPeer()
+	rightPeer, rightOK := right.connection.DirectDesktopPeer()
+	return leftOK && rightOK && leftPeer == rightPeer
 }
 
 func (listener *MacOSVerifiedDesktopListener) release(connection *macOSVerifiedDesktopNetConn) {

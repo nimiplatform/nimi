@@ -18,15 +18,40 @@ test('Desktop source bootstrap requires one successful protected Runtime probe',
   assert.equal(probes, 1);
 });
 
+test('Desktop source bootstrap retries a retryable protected Runtime transport failure', async () => {
+  let probes = 0;
+  const delays: number[] = [];
+  await requireDesktopSourceRuntime({
+    probe: async () => {
+      probes += 1;
+      if (probes < 3) {
+        throw Object.assign(new Error('runtime-service-unavailable'), {
+          reasonCode: 'runtime-service-unavailable',
+          details: { retryable: true },
+        });
+      }
+      return { enabled: true };
+    },
+  }, {
+    retryDelaysMs: [10, 20],
+    sleep: async (delayMs) => { delays.push(delayMs); },
+  });
+  assert.equal(probes, 3);
+  assert.deepEqual(delays, [10, 20]);
+});
+
 test('Desktop source bootstrap fails closed and points only to the independent Runtime owner', async () => {
   const runtimeFailure = Object.assign(new Error('runtime-service-unavailable'), {
     reasonCode: 'runtime-service-unavailable',
+    details: { retryable: true },
   });
   await assert.rejects(
     requireDesktopSourceRuntime({
       probe: async () => {
         throw runtimeFailure;
       },
+    }, {
+      retryDelaysMs: [],
     }),
     (error: unknown) => {
       assert.ok(error instanceof DesktopSourceRuntimeUnavailableError);
