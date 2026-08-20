@@ -216,7 +216,7 @@ function dependencyValuesEqual(left, right) {
   return JSON.stringify(canonicalDependencyValue(left)) === JSON.stringify(canonicalDependencyValue(right));
 }
 
-function assertCargoDependencyValue(value, label) {
+export function validateAppScaffoldCargoDependencyValue(value, label) {
   if (typeof value === 'string' && value && value === value.trim()) return;
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     throw new Error(`App scaffold module Cargo dependency is invalid: ${label}`);
@@ -226,10 +226,10 @@ function assertCargoDependencyValue(value, label) {
   if (entries.length === 0) throw new Error(`App scaffold module Cargo dependency is empty: ${label}`);
   for (const [key, field] of entries) {
     if (!allowed.has(key)) throw new Error(`App scaffold module Cargo dependency field is invalid: ${label}.${key}`);
-    if (typeof field === 'string' && field && field === field.trim()) continue;
-    if (typeof field === 'boolean') continue;
-    if (Array.isArray(field) && field.every((item) => typeof item === 'string' && item && item === item.trim())) continue;
-    throw new Error(`App scaffold module Cargo dependency value is invalid: ${label}.${key}`);
+    if ((key === 'version' || key === 'package') && typeof field === 'string' && field && field === field.trim()) continue;
+    if (key === 'features' && Array.isArray(field) && field.every((item) => typeof item === 'string' && item && item === item.trim())) continue;
+    if ((key === 'default-features' || key === 'optional') && typeof field === 'boolean') continue;
+    throw new Error(`App scaffold module Cargo dependency value has the wrong type: ${label}.${key}`);
   }
 }
 
@@ -239,9 +239,11 @@ function assertPublicNpmDependencyVersion(value, label) {
     throw new Error(`App scaffold module npm dependency is invalid: ${label}`);
   }
   if (
-    /^(?:workspace|file|link|portal|patch|git(?:\+[^:]*)?|https?):/iu.test(normalized)
+    /^(?:workspace|file|link|portal|patch|git(?:\+[^:]*)?|https?|ssh|github|gitlab|bitbucket):/iu.test(normalized)
     || /^[./\\]/u.test(normalized)
     || /^[A-Za-z]:[\\/]/u.test(normalized)
+    || /^[^@\s]+@[^:\s]+:/u.test(normalized)
+    || /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+(?:#.*)?$/u.test(normalized)
     || /\.tgz(?:$|[?#])/iu.test(normalized)
   ) {
     throw new Error(`App scaffold module npm dependency must use a public registry version: ${label}`);
@@ -349,7 +351,7 @@ function assertModuleEntry(id, entry, registry) {
     if (!name || name !== name.trim() || value === undefined || value === null) {
       throw new Error(`App scaffold module Cargo dependency is invalid: ${id}: ${name || 'missing'}`);
     }
-    assertCargoDependencyValue(value, `${id}:${name}`);
+    validateAppScaffoldCargoDependencyValue(value, `${id}:${name}`);
   }
   if (typeof entry.hostAdapterContract !== 'string' || !entry.hostAdapterContract.trim()) {
     throw new Error(`App scaffold module hostAdapterContract is missing: ${id}`);

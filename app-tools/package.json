@@ -13,6 +13,32 @@
     "access": "public",
     "provenance": true
   },
+  "nimiScaffoldVersions": {
+    "sdkVersion": "^0.6.0",
+    "appToolsVersion": "^0.2.0",
+    "nimicodingVersion": "0.6.1",
+    "aiSdkVersion": "^6.0.85",
+    "kitVersion": "^0.3.0",
+    "reactVersion": "^19.1.0",
+    "reactDomVersion": "^19.1.0",
+    "i18nextVersion": "^25.8.18",
+    "lucideReactVersion": "^0.577.0",
+    "tsxVersion": "^4.21.0",
+    "typescriptVersion": "^5.9.3",
+    "nodeTypesVersion": "^24.10.1",
+    "reactTypesVersion": "^19.2.14",
+    "reactDomTypesVersion": "^19.2.3",
+    "viteVersion": "^7.2.4",
+    "viteReactPluginVersion": "^5.1.1",
+    "tailwindcssVersion": "^4.3.0",
+    "tailwindcssViteVersion": "^4.3.0",
+    "tauriCliVersion": "^2.11.2",
+    "yamlVersion": "^2.9.0",
+    "nimiShellTauriVersion": "0.1.0",
+    "electronVersion": "^42.5.0",
+    "esbuildVersion": "^0.28.0",
+    "packageManager": "pnpm@10.32.1"
+  },
   "bin": {
     "nimi-app": "./bin/nimi-app.mjs"
   },
@@ -21,11 +47,12 @@
     "./simulator-css-profile": "./lib/simulator-css-profile.mjs"
   },
   "scripts": {
-    "build": "node scripts/sync-app-source.mjs --apply",
+    "build": "node scripts/sync-scaffold-versions.mjs --apply && node scripts/sync-app-source.mjs --apply",
+    "sync:versions": "node scripts/sync-scaffold-versions.mjs --apply",
     "sync:app-source": "node scripts/sync-app-source.mjs --apply",
-    "prepack": "node scripts/sync-app-source.mjs --apply",
-    "prepublishOnly": "node scripts/sync-app-source.mjs --apply",
-    "test": "node ../scripts/with-workspace-surfaces.mjs -- node --test test/simulator-conformance.test.mjs test/dev-shell.test.mjs && node ../scripts/with-workspace-surfaces.mjs -- node --test test/app-scaffold.test.mjs",
+    "prepack": "pnpm run build",
+    "prepublishOnly": "pnpm run build",
+    "test": "node scripts/sync-scaffold-versions.mjs --check && node ../scripts/with-workspace-surfaces.mjs -- node --test test/simulator-conformance.test.mjs test/dev-shell.test.mjs && node ../scripts/with-workspace-surfaces.mjs -- node --test test/app-scaffold.test.mjs",
     "test:full": "node ../scripts/with-workspace-surfaces.mjs -- node --test --test-name-pattern=\"^(update regenerates|update rejects|unsupported previous app scaffold lock|doctor fails closed on a missing scaffold lock|doctor fails closed on provider/model hardcoding|doctor fails closed on app-owned Realm permission grant shortcuts|doctor fails closed on installed-app custody bypasses|doctor requires official Desktop-supervised development scripts|update fails closed on unsupported locks and classification conflicts|app source resolves only scaffoldable slices)\" test/app-scaffold.test.mjs"
   },
   "files": [

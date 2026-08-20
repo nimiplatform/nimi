@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readdirSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import {
@@ -14,30 +14,15 @@ export { runDevShell } from '../scripts/dev-shell.mjs';
 export { validateSimulatorAppSource } from './simulator-conformance.mjs';
 export { APP_SCAFFOLD_FEATURE_IDS } from './app-scaffold-capabilities.mjs';
 
-const SDK_VERSION = '^0.6.0';
-const NIMICODING_VERSION = '0.6.1';
-const KIT_VERSION = '^0.3.0';
-const REACT_VERSION = '^19.1.0';
-const REACT_DOM_VERSION = '^19.1.0';
-const I18NEXT_VERSION = '^25.8.18';
-const LUCIDE_REACT_VERSION = '^0.577.0';
-const TYPESCRIPT_VERSION = '^5.9.3';
-const TSX_VERSION = '^4.21.0';
-const NODE_TYPES_VERSION = '^24.10.1';
-const REACT_TYPES_VERSION = '^19.2.14';
-const REACT_DOM_TYPES_VERSION = '^19.2.3';
-const VITE_VERSION = '^7.2.4';
-const VITE_REACT_PLUGIN_VERSION = '^5.1.1';
-const TAILWINDCSS_VERSION = '^4.3.0';
-const TAILWINDCSS_VITE_VERSION = '^4.3.0';
-const TAURI_CLI_VERSION = '^2.11.2';
-const YAML_VERSION = '^2.9.0';
-const NIMI_SHELL_TAURI_VERSION = '0.1.0';
-const AI_SDK_VERSION = '^6.0.85';
-const APP_TOOLS_VERSION = '^0.2.0';
-const ELECTRON_VERSION = '^42.5.0';
-const ESBUILD_VERSION = '^0.28.0';
-const PACKAGE_MANAGER = 'pnpm@10.32.1';
+const APP_TOOLS_PACKAGE_MANIFEST = JSON.parse(
+  readFileSync(new URL('../package.json', import.meta.url), 'utf8'),
+);
+if (!APP_TOOLS_PACKAGE_MANIFEST.nimiScaffoldVersions
+  || typeof APP_TOOLS_PACKAGE_MANIFEST.nimiScaffoldVersions !== 'object'
+  || Array.isArray(APP_TOOLS_PACKAGE_MANIFEST.nimiScaffoldVersions)) {
+  throw new Error('app-tools package manifest is missing nimiScaffoldVersions');
+}
+const SCAFFOLD_VERSIONS = Object.freeze({ ...APP_TOOLS_PACKAGE_MANIFEST.nimiScaffoldVersions });
 
 function ensureDirEmptyOrMissing(targetDir) {
   if (!existsSync(targetDir)) {
@@ -66,32 +51,7 @@ function createFileTree(baseDir, files) {
 }
 
 export function appScaffoldVersions() {
-  return {
-    sdkVersion: SDK_VERSION,
-    appToolsVersion: APP_TOOLS_VERSION,
-    nimicodingVersion: NIMICODING_VERSION,
-    aiSdkVersion: AI_SDK_VERSION,
-    kitVersion: KIT_VERSION,
-    reactVersion: REACT_VERSION,
-    reactDomVersion: REACT_DOM_VERSION,
-    i18nextVersion: I18NEXT_VERSION,
-    lucideReactVersion: LUCIDE_REACT_VERSION,
-    tsxVersion: TSX_VERSION,
-    typescriptVersion: TYPESCRIPT_VERSION,
-    nodeTypesVersion: NODE_TYPES_VERSION,
-    reactTypesVersion: REACT_TYPES_VERSION,
-    reactDomTypesVersion: REACT_DOM_TYPES_VERSION,
-    viteVersion: VITE_VERSION,
-    viteReactPluginVersion: VITE_REACT_PLUGIN_VERSION,
-    tailwindcssVersion: TAILWINDCSS_VERSION,
-    tailwindcssViteVersion: TAILWINDCSS_VITE_VERSION,
-    tauriCliVersion: TAURI_CLI_VERSION,
-    yamlVersion: YAML_VERSION,
-    nimiShellTauriVersion: NIMI_SHELL_TAURI_VERSION,
-    electronVersion: ELECTRON_VERSION,
-    esbuildVersion: ESBUILD_VERSION,
-    packageManager: PACKAGE_MANAGER,
-  };
+  return { ...SCAFFOLD_VERSIONS };
 }
 
 function runNimicodingSync(targetDir, mode) {

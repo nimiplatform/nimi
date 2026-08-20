@@ -611,7 +611,8 @@ test('cli standalone scaffold uses current public dependency version sources', (
     const appToolsPackageJson = JSON.parse(readFileSync(path.join(testDir, '..', 'package.json'), 'utf8'));
     const rootPackageJson = JSON.parse(readFileSync(path.join(testDir, '..', '..', 'package.json'), 'utf8'));
     const expectedAppToolsVersion = `^${appToolsPackageJson.version}`;
-    const expectedNimicodingVersion = rootPackageJson.devDependencies['@nimiplatform/nimi-coding'];
+    const expectedNimicodingVersion = appToolsPackageJson.nimiScaffoldVersions.nimicodingVersion;
+    assert.equal(expectedNimicodingVersion, rootPackageJson.devDependencies['@nimiplatform/nimi-coding']);
     assert.equal(packageJson.dependencies['@nimiplatform/sdk'], '^0.6.0');
     assert.equal(packageJson.dependencies['@nimiplatform/kit'], '^0.3.0');
     assert.equal(packageJson.devDependencies['@nimiplatform/app-tools'], expectedAppToolsVersion);
@@ -1188,6 +1189,7 @@ test('create accepts candidate studio-create as one shared AI Studio route with 
   }
   assert.doesNotMatch(host, /apps\/lab|nimi\.lab|lab-|WorldTour|Simulator/);
   assert.doesNotMatch(host, /type PromptDraftStore|if \(enabled && prompt\)|mediaHistory\.push\(/);
+  assert.doesNotMatch(host, /HISTORY_LIMIT_PER_CAPABILITY|function parseHistory|DEFAULT_HISTORY_PANEL|stored\.sha256/);
   assert.match(host, /_STORAGE_JSON_NOT_FOUND/);
   assert.match(host, /_LOCAL_ASSET_NOT_FOUND/);
   assert.match(host, /section: 'ai-models'/);
@@ -1446,7 +1448,7 @@ test('phase 7 Cargo dependency objects compare structurally and render non-empty
   );
   assert.throws(
     () => renderCargoDependencyValue({ path: '../crate' }, 'local'),
-    /Invalid Cargo dependency field: local\.path/,
+    /Cargo dependency field is invalid: local\.path/,
   );
   assert.throws(
     () => resolveAppScaffoldCandidateFeatures(['alpha'], {
@@ -1460,6 +1462,27 @@ test('phase 7 Cargo dependency objects compare structurally and render non-empty
     }),
     /npm dependency must use a public registry version: alpha:local/,
   );
+  for (const spec of ['github:owner/repo', 'gitlab:owner/repo', 'git@github.com:owner/repo.git', 'owner/repo', 'ssh://git@example.test/repo.git']) {
+    assert.throws(
+      () => resolveAppScaffoldCandidateFeatures(['alpha'], {
+        alpha: { ...moduleEntry('alpha', 10, {}), npmDependencies: { vcs: spec } },
+      }),
+      /npm dependency must use a public registry version: alpha:vcs/,
+    );
+  }
+  for (const descriptor of [
+    { version: ['1'] },
+    { optional: 'false' },
+    { features: true },
+    { package: false },
+  ]) {
+    assert.throws(
+      () => resolveAppScaffoldCandidateFeatures(['alpha'], {
+        alpha: moduleEntry('alpha', 10, { invalid: descriptor }),
+      }),
+      /Cargo dependency value has the wrong type: alpha:invalid/,
+    );
+  }
   assert.throws(
     () => resolveAppScaffoldCandidateFeatures(['alpha', 'beta'], {
       alpha: moduleEntry('alpha', 10, { shared: { version: '1' } }),
@@ -1467,14 +1490,14 @@ test('phase 7 Cargo dependency objects compare structurally and render non-empty
     }),
     /Cargo dependency version collision for shared/,
   );
-  assert.throws(() => renderCargoDependencyValue({}, 'empty'), /Invalid empty Cargo dependency descriptor/);
+  assert.throws(() => renderCargoDependencyValue({}, 'empty'), /Cargo dependency is empty: empty/);
   assert.throws(
     () => renderCargoDependencyValue({ git: 'https://example.test/repo' }, 'unsafe'),
-    /Invalid Cargo dependency field: unsafe\.git/,
+    /Cargo dependency field is invalid: unsafe\.git/,
   );
   assert.throws(
     () => renderCargoDependencyValue({ features: ['derive', ''] }, 'bad-features'),
-    /Invalid Cargo dependency value: bad-features\.features/,
+    /Cargo dependency value has the wrong type: bad-features\.features/,
   );
 });
 
@@ -2031,16 +2054,14 @@ test('update fails closed on unsupported locks and classification conflicts', ()
 
 test('app source resolves only scaffoldable slices: neutral skeleton and admitted roots from live Nimi Lab and packaged prepack', () => {
   const packageJson = JSON.parse(readFileSync(path.join(testDir, '..', 'package.json'), 'utf8'));
-  // The snapshot is a gitignored build artifact baked into the tarball at pack.
+  // The version projection and snapshot are release artifacts refreshed at pack.
   assert.ok(packageJson.files.includes('templates'));
   assert.ok(packageJson.files.includes('scripts'));
+  assert.equal(packageJson.scripts.prepack, 'pnpm run build');
+  assert.equal(packageJson.scripts.prepublishOnly, 'pnpm run build');
   assert.equal(
-    packageJson.scripts.prepack,
-    'node scripts/sync-app-source.mjs --apply',
-  );
-  assert.equal(
-    packageJson.scripts.prepublishOnly,
-    'node scripts/sync-app-source.mjs --apply',
+    packageJson.scripts.build,
+    'node scripts/sync-scaffold-versions.mjs --apply && node scripts/sync-app-source.mjs --apply',
   );
 
   // In the monorepo there is no baked snapshot; prepack reads the neutral

@@ -55,6 +55,8 @@ After the requested identity, topology, module closure, ownership, and dependenc
 
 Public `create` is standalone-only: the target may be any empty or missing directory in a third-party repository, and generated npm and Cargo dependencies use only their declared public registry versions. Public-registry publication is a prerequisite. Workspace paths, local path overrides, tarballs, downgrades, and workspace links are not standalone evidence.
 
+The published app-tools `package.json` field `nimiScaffoldVersions` is the single release projection for every generated dependency version; generator code does not carry a second version table. The app-tools build derives Nimi-owned package, CLI, Cargo, and package-manager versions from their canonical repository manifests before prepack.
+
 Pre-publication Nimi-workspace checks may exercise the same candidate resolver and generated files as a bounded non-public validation topology. They are not a public profile, generated intent variant, or substitute for standalone acceptance. If a required version is not public, standalone remains externally blocked and `NOT-VERIFIED`.
 
 ## Required lifecycle order

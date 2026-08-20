@@ -12,6 +12,7 @@ import {
   resolveAppScaffoldCandidateFeatures,
   resolveAppScaffoldFeatures,
   resolveAppScaffoldIntentFeatures,
+  validateAppScaffoldCargoDependencyValue,
 } from './app-scaffold-capabilities.mjs';
 import {
   SUPPORTED_APP_SCAFFOLD_PROFILES,
@@ -415,16 +416,15 @@ function cargoShellDependencyLine(profile, versions) {
 }
 
 export function renderCargoDependencyValue(value, label) {
+  validateAppScaffoldCargoDependencyValue(value, label);
   if (typeof value === 'string' && value.trim() === value && value) {
     return JSON.stringify(value);
   }
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     throw new Error(`Invalid Cargo dependency descriptor: ${label}`);
   }
-  const allowedKeys = new Set(['version', 'package', 'features', 'default-features', 'optional']);
   const fields = [];
   for (const key of Object.keys(value).sort()) {
-    if (!allowedKeys.has(key)) throw new Error(`Invalid Cargo dependency field: ${label}.${key}`);
     const field = value[key];
     if (typeof field === 'string' && field.trim() === field && field) {
       fields.push(`${key} = ${JSON.stringify(field)}`);
