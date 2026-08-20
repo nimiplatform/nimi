@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 use std::future::Future;
-use std::path::{Path, PathBuf};
+use std::path::{Component, Path, PathBuf};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use prost_types::Timestamp;
@@ -127,6 +127,7 @@ pub(crate) async fn register_project(
     registration_projection(
         response.registration.ok_or_else(untrusted)?,
         Some(request.shell_kind),
+        ProjectPathState::RequireCurrentSource,
     )
 }
 
@@ -142,7 +143,13 @@ pub(crate) async fn list_registrations(
     response
         .registrations
         .into_iter()
-        .map(|registration| registration_projection(registration, None))
+        .map(|registration| {
+            registration_projection(
+                registration,
+                None,
+                ProjectPathState::PreserveStoredProjection,
+            )
+        })
         .collect()
 }
 
@@ -303,9 +310,19 @@ pub(crate) async fn end_run(
     require_success_reason(response.reason_code)
 }
 
+// Listing preserves Runtime-owned registration metadata even when one mutable
+// source has moved; current-source checks remain mandatory before registration
+// or launch so a stale row stays inspectable and removable without being runnable.
+#[derive(Clone, Copy)]
+enum ProjectPathState {
+    RequireCurrentSource,
+    PreserveStoredProjection,
+}
+
 fn registration_projection(
     registration: LocalDevelopmentRegistrationProjection,
     expected_shell: Option<LocalDevelopmentShellKind>,
+    path_state: ProjectPathState,
 ) -> Result<LocalDevelopmentRegistration, NimiHostError> {
     require_success_reason(registration.reason_code)?;
     let registered_at_unix_ms = required_timestamp_ms(registration.registered_at)?;
@@ -315,15 +332,17 @@ fn registration_projection(
     }
     Ok(LocalDevelopmentRegistration {
         registration_handle: required_identifier(registration.registration_handle)?,
-        project: project_projection(registration.project, expected_shell)?,
+        project: project_projection(registration.project, expected_shell, path_state)?,
         registered_at_unix_ms,
         updated_at_unix_ms,
     })
 }
 
+// @nimi-authority: rule.nimi.platform.app-ecosystem.p-appacc-001
 fn project_projection(
     project: Option<LocalDevelopmentProjectProjection>,
     expected_shell: Option<LocalDevelopmentShellKind>,
+    path_state: ProjectPathState,
 ) -> Result<LocalDevelopmentProject, NimiHostError> {
     let project = project.ok_or_else(untrusted)?;
     if project.trust_class != LOCAL_DEVELOPMENT_TRUST_CLASS
@@ -336,8 +355,16 @@ fn project_projection(
     if expected_shell.is_some_and(|expected| expected != shell_kind) {
         return Err(untrusted());
     }
-    let canonical_project_root = canonical_directory(Path::new(&project.canonical_project_root))?;
-    let canonical_manifest_path = canonical_file(Path::new(&project.canonical_manifest_path))?;
+    let (canonical_project_root, canonical_manifest_path) = match path_state {
+        ProjectPathState::RequireCurrentSource => (
+            canonical_directory(Path::new(&project.canonical_project_root))?,
+            canonical_file(Path::new(&project.canonical_manifest_path))?,
+        ),
+        ProjectPathState::PreserveStoredProjection => (
+            stored_canonical_path(Path::new(&project.canonical_project_root))?,
+            stored_canonical_path(Path::new(&project.canonical_manifest_path))?,
+        ),
+    };
     if !canonical_manifest_path.starts_with(&canonical_project_root) {
         return Err(untrusted());
     }
@@ -404,6 +431,17 @@ fn required_text(value: String) -> Result<String, NimiHostError> {
 
 fn path_text(path: &Path) -> Result<String, NimiHostError> {
     path.to_str().map(str::to_string).ok_or_else(untrusted)
+}
+
+fn stored_canonical_path(path: &Path) -> Result<PathBuf, NimiHostError> {
+    if !path.is_absolute()
+        || path
+            .components()
+            .any(|component| matches!(component, Component::CurDir | Component::ParentDir))
+    {
+        return Err(untrusted());
+    }
+    Ok(path.to_path_buf())
 }
 
 fn canonical_file(path: &Path) -> Result<PathBuf, NimiHostError> {
@@ -504,6 +542,50 @@ mod tests {
                 state: DeveloperModeState::Enabled,
                 revision: 2
             }
+        );
+    }
+
+    #[test]
+    fn registration_list_preserves_a_stale_project_projection() {
+        let project_root = std::env::temp_dir().join(format!(
+            "nimi-stale-local-development-{}-{}",
+            std::process::id(),
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        let manifest_path = project_root.join("nimi.app.yaml");
+        let projection = LocalDevelopmentProjectProjection {
+            app_id: "example.local-app".to_string(),
+            display_name: "Example Local App".to_string(),
+            canonical_project_root: project_root.to_string_lossy().into_owned(),
+            canonical_manifest_path: manifest_path.to_string_lossy().into_owned(),
+            shell_kind: LocalDevelopmentShellKind::Electron.proto_value(),
+            app_access: vec!["realm.data".to_string()],
+            trust_class: LOCAL_DEVELOPMENT_TRUST_CLASS.to_string(),
+            source_generation: 1,
+            declaration_generation: 1,
+        };
+
+        let listed = project_projection(
+            Some(projection.clone()),
+            None,
+            ProjectPathState::PreserveStoredProjection,
+        )
+        .expect("stale registrations remain listable and removable");
+        assert_eq!(listed.canonical_project_root, project_root);
+        assert_eq!(listed.canonical_manifest_path, manifest_path);
+
+        let error = project_projection(
+            Some(projection),
+            Some(LocalDevelopmentShellKind::Electron),
+            ProjectPathState::RequireCurrentSource,
+        )
+        .expect_err("registration must still validate the current source");
+        assert_eq!(
+            error.reason_code(),
+            NimiHostErrorReasonCode::LocalDevelopmentProjectChanged
         );
     }
 

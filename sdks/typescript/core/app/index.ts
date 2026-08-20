@@ -31,6 +31,7 @@ export type {
   NimiDesktopOpenAgentsIntent,
   NimiDesktopOpenAgentsView,
   NimiDesktopOpenAppsIntent,
+  NimiDesktopOpenAppsSection,
   NimiDesktopOpenExploreIntent,
   NimiDesktopOpenExploreProductIntent,
   NimiDesktopOpenExploreSection,

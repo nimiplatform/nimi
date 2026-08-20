@@ -196,6 +196,32 @@ fn standard_desktop_open_golden_vectors_match_platform_table() {
     }
 }
 
+#[test]
+fn standard_desktop_open_apps_section_requires_an_app_and_exact_section() {
+    let missing_app = compose_envelope_for_source(
+        "nimi.tauri",
+        json!({ "intent": { "kind": "open-apps", "section": "ai-models" } }),
+    )
+    .expect_err("an Apps section without appId must fail closed");
+    assert_eq!(missing_app.reason_code(), "desktop-open-intent-invalid");
+
+    let unsupported_section = compose_envelope_for_source(
+        "nimi.tauri",
+        json!({
+            "intent": {
+                "kind": "open-apps",
+                "appId": "nimi.example",
+                "section": "access",
+            }
+        }),
+    )
+    .expect_err("only the AI models Apps section is admitted");
+    assert_eq!(
+        unsupported_section.reason_code(),
+        "desktop-open-target-unsupported"
+    );
+}
+
 fn read_golden_vectors() -> GoldenVectorTable {
     let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("../../../scripts/testdata/desktop-open-intent-golden-vectors.yaml");

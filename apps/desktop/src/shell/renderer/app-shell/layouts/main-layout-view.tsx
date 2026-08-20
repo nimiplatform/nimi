@@ -69,7 +69,6 @@ export function MainLayoutView(props: MainLayoutViewProps) {
   const titlebarFrame = resolveMainLayoutTitlebarFrame(titlebarDragEnabled);
   const titlebarTopInsetClass = titlebarFrame.topInsetClass;
   const shellContentTopPaddingClass = titlebarFrame.contentTopPaddingClass;
-  const selectedProfileId = useAppStore((state) => state.selectedProfileId);
   const profileDetailOverlayOpen = useAppStore((state) => state.profileDetailOverlayOpen);
   const authUser = useAppStore((state) => state.auth.user);
   const exploreActiveSection = useAppStore((state) => state.exploreActiveSection);
@@ -112,7 +111,6 @@ export function MainLayoutView(props: MainLayoutViewProps) {
 
   const hidePrimaryRail = shouldHideMainLayoutPrimaryRail({
     activeTab: props.activeTab,
-    selectedProfileId,
     profileDetailOverlayOpen,
   });
   const windowFocused = useWindowFocused(

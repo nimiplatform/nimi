@@ -1,5 +1,10 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import {
+  createNimiLocalAIConfigCapabilityIntent,
+  runtimeAIConfigStructToJson,
+  type NimiCapabilityAIConfigIntent,
+} from '@nimiplatform/sdk/ai';
 import {
   CANONICAL_CAPABILITY_IDS,
 } from '@nimiplatform/kit/core/runtime-capabilities';
@@ -8,6 +13,7 @@ import {
   type ModelConfigCopy,
   type ModelConfigLocalSelectionProjection,
 } from '@nimiplatform/kit/features/model-config';
+import { Button, InlineAlert } from '@nimiplatform/kit/ui';
 import { useAppStore } from '../../app-shell/providers/app-store';
 import {
   useDesktopRendererCommands,
@@ -81,6 +87,42 @@ function unavailableLocalSelections(): readonly ModelConfigLocalSelectionProject
     supportedFeatures: [],
     reasons: [],
   }));
+}
+
+// @nimi-authority: rule.nimi.platform.ui-design-system.p-model-config-001
+export function buildAppsOneClickLocalAIConfig(
+  capabilityContracts: readonly string[],
+  currentCapabilities: readonly NimiCapabilityAIConfigIntent[],
+  localSelections: readonly ModelConfigLocalSelectionProjection[],
+): readonly NimiCapabilityAIConfigIntent[] | null {
+  const orderedContracts = [...new Set(capabilityContracts)];
+  const requestedContracts = new Set(orderedContracts);
+  const selectedLocalContracts = new Set(
+    localSelections
+      .filter((selection) => (
+        selection.state === 'selected'
+        && requestedContracts.has(selection.capabilityContract)
+      ))
+      .map((selection) => selection.capabilityContract),
+  );
+  if (selectedLocalContracts.size === 0) return null;
+
+  const currentByContract = new Map(
+    currentCapabilities.map((capability) => [capability.capabilityContract, capability]),
+  );
+  const configured = orderedContracts.flatMap((capabilityContract) => {
+    const current = currentByContract.get(capabilityContract);
+    if (!selectedLocalContracts.has(capabilityContract)) return current ? [current] : [];
+    const defaults = runtimeAIConfigStructToJson(current?.defaults);
+    return [createNimiLocalAIConfigCapabilityIntent({
+      capabilityContract,
+      requiredFeatures: current?.requiredFeatures ?? [],
+      ...(Object.keys(defaults).length > 0 ? { defaults } : {}),
+    })];
+  });
+  return configured.concat(
+    currentCapabilities.filter((capability) => !requestedContracts.has(capability.capabilityContract)),
+  );
 }
 
 function useAppsModelConfigCopy(appDisplayName: string): ModelConfigCopy {
@@ -244,6 +286,7 @@ export function AppsAIConfigSection({
   appId,
   appDisplayName,
 }: AppsAIConfigSectionProps) {
+  const { t } = useTranslation();
   const runtimeConfigNavigation = useDesktopRendererCommands().runtimeConfigNavigation;
   const sdk = useDesktopRendererSdk();
   const cloudAIConfig = useMemo(() => createDesktopCloudAIConfigModule(sdk), [sdk]);
@@ -252,10 +295,23 @@ export function AppsAIConfigSection({
   const machineSelections = useDesktopNimiMachineLocalSelections();
   const overwriteAppAIConfig = useOverwriteDesktopNimiAppAIConfig(appId);
   const copy = useAppsModelConfigCopy(appDisplayName);
+  const [oneClickError, setOneClickError] = useState<string | null>(null);
 
   const localSelections = useMemo<readonly ModelConfigLocalSelectionProjection[]>(() => (
     machineSelections.data ?? unavailableLocalSelections()
   ), [machineSelections.data]);
+  const hasSelectedLocalModels = localSelections.some((selection) => selection.state === 'selected');
+  const oneClickCapabilities = useMemo(() => (
+    appAIConfig.isSuccess && machineSelections.isSuccess
+      ? buildAppsOneClickLocalAIConfig(
+          CANONICAL_CAPABILITY_IDS,
+          appAIConfig.data?.capabilities ?? [],
+          localSelections,
+        )
+      : null
+  ), [appAIConfig.data?.capabilities, appAIConfig.isSuccess, localSelections, machineSelections.isSuccess]);
+
+  useEffect(() => setOneClickError(null), [appId]);
 
   const openMachineLoadout = useCallback(() => {
     setActiveTab('runtime');
@@ -275,6 +331,24 @@ export function AppsAIConfigSection({
     });
   }, [runtimeConfigNavigation, setActiveTab]);
 
+  const applyLocalModels = useCallback(async () => {
+    if (!oneClickCapabilities || overwriteAppAIConfig.isPending) return;
+    setOneClickError(null);
+    try {
+      await overwriteAppAIConfig.mutateAsync(oneClickCapabilities);
+    } catch {
+      setOneClickError(t('Apps.aiConfig.oneClickFailed'));
+    }
+  }, [oneClickCapabilities, overwriteAppAIConfig, t]);
+
+  const oneClickHint = machineSelections.isPending
+    ? t('Apps.aiConfig.oneClickLoading')
+    : machineSelections.isError
+      ? t('Apps.aiConfig.oneClickUnavailable')
+      : !hasSelectedLocalModels
+        ? t('Apps.aiConfig.oneClickNoLocalModels')
+        : t('Apps.aiConfig.oneClickHint');
+
   return (
     <section data-testid={`apps-ai-config-${appId}`}>
       <ModelConfigAIConfigSurface
@@ -287,6 +361,7 @@ export function AppsAIConfigSection({
         loadError={appAIConfig.isError ? copy.loadFailed : null}
         onRetry={() => { void appAIConfig.refetch(); }}
         onOverwrite={async (capabilities) => {
+          setOneClickError(null);
           await overwriteAppAIConfig.mutateAsync(capabilities);
         }}
         onOpenMachineLoadout={openMachineLoadout}
@@ -296,6 +371,26 @@ export function AppsAIConfigSection({
           technicalDetail: error instanceof Error ? error.message : String(error || ''),
         })}
         copy={copy}
+        headerSlot={(
+          <div className="space-y-2">
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-[var(--nimi-radius-md)] bg-[var(--nimi-surface-panel)] px-3 py-2.5">
+              <p className="m-0 min-w-0 flex-1 text-xs leading-5 text-[var(--nimi-text-secondary)]">
+                {oneClickHint}
+              </p>
+              <Button
+                data-testid="apps-ai-config-one-click-local"
+                size="sm"
+                tone="secondary"
+                loading={overwriteAppAIConfig.isPending}
+                disabled={!oneClickCapabilities || overwriteAppAIConfig.isPending}
+                onClick={() => { void applyLocalModels(); }}
+              >
+                {t('Apps.aiConfig.oneClickLabel')}
+              </Button>
+            </div>
+            {oneClickError ? <InlineAlert tone="danger">{oneClickError}</InlineAlert> : null}
+          </div>
+        )}
       />
     </section>
   );

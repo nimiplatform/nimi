@@ -132,6 +132,7 @@ export function LabAiConfigSettingsPanel({
               intent: {
                 kind: 'open-apps',
                 appId,
+                section: 'ai-models',
               },
             });
           }}

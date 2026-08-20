@@ -173,6 +173,12 @@
     "cloudImpactConfirmation": "I understand {{app}} requests may leave this machine, use account {{account}}, and incur provider cost.",
     "loadFailed": "This app's AI configuration could not be loaded from Runtime.",
     "saveFailed": "Runtime could not save this app's AI configuration.",
+    "oneClickLabel": "Configure in one click",
+    "oneClickHint": "Use the local models selected on this device. Capabilities without a local model stay unchanged.",
+    "oneClickLoading": "Reading the local models on this device.",
+    "oneClickUnavailable": "Local models could not be read, so no configuration was changed.",
+    "oneClickNoLocalModels": "No local models are available for one-click configuration on this device.",
+    "oneClickFailed": "The app could not be configured with local models.",
     "capability": {
       "audioSynthesize": {
         "label": "Speech synthesis",
@@ -239,6 +245,7 @@
     "tabsLabel": "App details",
     "overviewTab": "Overview",
     "accessTab": "Nimi Access",
+    "aiModelsTab": "AI models",
     "developerTab": "Developer info",
     "localSummary": "A local development app registered with this Nimi Desktop.",
     "aboutTitle": "About this app",
@@ -281,7 +288,7 @@
     },
     "runtimeConsume": {
       "label": "AI runtime",
-      "description": "Declares use of supported AI capabilities through Nimi Runtime. Model routing can be configured below."
+      "description": "Declares use of supported AI capabilities through Nimi Runtime. Model routing can be configured on the AI models tab."
     },
     "agentLocal": {
       "label": "Local agents",

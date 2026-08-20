@@ -681,11 +681,11 @@ units:
         target: definition.nimi.desktop.shell-ui.home-shell
   - id: rule.nimi.desktop.shell-ui.r061
     kind: rule
-    title: Apps Open targets cannot fabricate or launch
+    title: Apps Open targets select admitted detail surfaces without launch
     modality: must
-    statement: The Apps surface target opens Apps without launch, app-selection additionally selects an existing projected app when appId resolves, and missing or unknown appId never launches or fabricates inventory.
+    statement: The Apps surface target opens Apps without launch, app-selection additionally selects an existing projected App when appId resolves, and the only optional app-selection section is ai-models, which opens that App's Nimi-owned AIConfig tab only when runtime.consume is declared; a section without appId, a missing or unknown appId, unavailable ai-models, or any other section never launches or fabricates inventory.
     condition: Whenever Desktop applies an Apps Open target.
-    failure: Open only the Apps surface or return an explicit target failure without app launch.
+    failure: Open only the admitted Apps surface and exact projected App detail target or return an explicit target failure without app launch.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.shell-ui.home-shell

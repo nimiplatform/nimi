@@ -111,7 +111,7 @@ test('lab mounts the shared third-party App AIConfig surface as read-only with a
   assert.match(source, /initialCapabilityContract=\{capabilityId\}/u);
   assert.match(source, /rendererHost\.sdk\.modelConfig\.localSelections\(\)/u);
   assert.match(source, /onOpenOwnerConfiguration/u);
-  assert.match(source, /kind: 'open-apps'[\s\S]*appId/u);
+  assert.match(source, /kind: 'open-apps'[\s\S]*appId[\s\S]*section: 'ai-models'/u);
   assert.match(
     source,
     /return subscribeLabAIConfigOwnerRefresh\([\s\S]{0,240}?window,[\s\S]{0,80}?document/u,

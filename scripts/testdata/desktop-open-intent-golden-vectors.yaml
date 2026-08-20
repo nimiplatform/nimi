@@ -18,6 +18,7 @@ entries:
   - agents-inventory
   - apps-surface
   - apps-selection
+  - apps-ai-models
   - settings-profile
   - source-app-missing
   - unknown-field-authorization
@@ -168,6 +169,16 @@ accepted:
       intent:
         kind: open-apps
         appId: nimi.example
+  - id: apps-ai-models
+    envelope:
+      schemaVersion: 1
+      sourceApp: nimi.example
+      sourceHost: electron-standard-shell
+      requestId: desktop-open-20260708-0015
+      intent:
+        kind: open-apps
+        appId: nimi.example
+        section: ai-models
   - id: settings-profile
     envelope:
       schemaVersion: 1

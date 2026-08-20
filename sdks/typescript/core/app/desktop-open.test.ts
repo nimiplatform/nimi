@@ -105,6 +105,13 @@ const acceptedVectors: readonly NimiDesktopOpenIntentEnvelope[] = [
   },
   {
     schemaVersion: 1,
+    sourceApp: 'nimi.example',
+    sourceHost: 'electron-standard-shell',
+    requestId: 'desktop-open-20260708-0015',
+    intent: { kind: 'open-apps', appId: 'nimi.example', section: 'ai-models' },
+  },
+  {
+    schemaVersion: 1,
     sourceApp: 'nimi.test-launcher',
     sourceHost: 'electron-standard-shell',
     requestId: 'desktop-open-20260708-0008',
@@ -138,6 +145,24 @@ describe('Desktop Open Intent SDK parser', () => {
     assertRejects(
       { ...acceptedVectors[0], intent: { kind: 'open-apps', appId: 'nimi..bad' } },
       'desktop-open-intent-invalid',
+    );
+  });
+
+  it('admits only the exact App AI models section with an appId', () => {
+    assert.deepEqual(
+      parseNimiDesktopOpenIntentEnvelope({
+        ...acceptedVectors[0],
+        intent: { kind: 'open-apps', appId: 'nimi.example', section: 'ai-models' },
+      }).intent,
+      { kind: 'open-apps', appId: 'nimi.example', section: 'ai-models' },
+    );
+    assertRejects(
+      { ...acceptedVectors[0], intent: { kind: 'open-apps', section: 'ai-models' } },
+      'desktop-open-intent-invalid',
+    );
+    assertRejects(
+      { ...acceptedVectors[0], intent: { kind: 'open-apps', appId: 'nimi.example', section: 'access' } },
+      'desktop-open-target-unsupported',
     );
   });
 

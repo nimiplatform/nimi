@@ -6,6 +6,7 @@ import {
   type ReactElement,
 } from 'react';
 import { useTranslation } from 'react-i18next';
+import type { NimiDesktopOpenAppsSection } from '@nimiplatform/kit/core/desktop-open';
 import { Box, CheckCircle2, Code2, LoaderCircle, Play, SearchX } from 'lucide-react';
 import {
   Button,
@@ -27,6 +28,8 @@ import type { DesktopAppsEntry, DesktopAppsPanelProjection } from './apps-panel-
 export interface AppsPanelViewProps {
   readonly projection: DesktopAppsPanelProjection | null;
   readonly selectedAppId: string | null;
+  readonly requestedDetailSection: NimiDesktopOpenAppsSection | null;
+  readonly requestedDetailNavigationRevision: number;
   readonly onCardAction: (appId: string, action: AppCardActionId) => void;
   readonly onBack: () => void;
   readonly onOpenDeveloperMode: () => void;
@@ -38,6 +41,8 @@ export interface AppsPanelViewProps {
 export function AppsPanelView({
   projection,
   selectedAppId,
+  requestedDetailSection,
+  requestedDetailNavigationRevision,
   onCardAction,
   onBack,
   onOpenDeveloperMode,
@@ -164,6 +169,8 @@ export function AppsPanelView({
         ) : selectedEntry ? (
           <AppsDetailView
             entry={selectedEntry}
+            requestedSection={requestedDetailSection}
+            requestedNavigationRevision={requestedDetailNavigationRevision}
             onBack={onBack}
             onAction={(action) => onCardAction(selectedEntry.registration.appId, action)}
             activeAction={activeAction?.appId === selectedEntry.registration.appId ? activeAction.action : null}

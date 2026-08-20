@@ -99,6 +99,8 @@ type UiSlice = Pick<AppStoreState,
   | 'exploreActiveSection'
   | 'exploreSearchText'
   | 'appsDetailAppId'
+  | 'appsDetailSection'
+  | 'appsDetailNavigationRevision'
   | 'profileDetailOverlayOpen'
   | 'chatProfilePanelTarget'
   | 'offlineTier'
@@ -165,6 +167,8 @@ export function createUiSlice(
     exploreActiveSection: 'worlds' as ExploreSectionId,
     exploreSearchText: '',
     appsDetailAppId: null,
+    appsDetailSection: null,
+    appsDetailNavigationRevision: 0,
     profileDetailOverlayOpen: false,
     chatProfilePanelTarget: null,
     offlineTier: 'L0' as OfflineTier,
@@ -273,9 +277,13 @@ export function createUiSlice(
     setSelectedGiftTransactionId: (giftTransactionId) => set({ selectedGiftTransactionId: giftTransactionId }),
     setExploreActiveSection: (section) => set({ exploreActiveSection: section }),
     setExploreSearchText: (text) => set({ exploreSearchText: String(text || '') }),
-    setAppsDetailAppId: (appId) => {
+    setAppsDetailAppId: (appId, section = null) => {
       const normalizedAppId = String(appId || '').trim();
-      set({ appsDetailAppId: normalizedAppId || null });
+      set((state) => ({
+        appsDetailAppId: normalizedAppId || null,
+        appsDetailSection: normalizedAppId ? section : null,
+        appsDetailNavigationRevision: state.appsDetailNavigationRevision + 1,
+      }));
     },
     setProfileDetailOverlayOpen: (open) => set({ profileDetailOverlayOpen: open }),
     setChatProfilePanelTarget: (target) => set({ chatProfilePanelTarget: target }),

@@ -52,7 +52,7 @@ export function applyDesktopOpenIntentToAppStore(
       return;
     }
     case 'open-apps': {
-      store.setAppsDetailAppId(intent.appId ?? null);
+      store.setAppsDetailAppId(intent.appId ?? null, intent.section ?? null);
       store.setActiveTab('apps');
       return;
     }

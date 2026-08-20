@@ -25,7 +25,7 @@ describe('renderer desktop-open bridge', () => {
 
     await expect(openDesktopIntent({
       requestId: 'desktop-open-20260708-renderer',
-      intent: { kind: 'open-apps' },
+      intent: { kind: 'open-apps', appId: 'nimi.example', section: 'ai-models' },
     })).resolves.toEqual({
       status: 'accepted',
       confirmation: 'desktop-accepted',
@@ -39,7 +39,7 @@ describe('renderer desktop-open bridge', () => {
       payload: {
         payload: {
           requestId: 'desktop-open-20260708-renderer',
-          intent: { kind: 'open-apps' },
+          intent: { kind: 'open-apps', appId: 'nimi.example', section: 'ai-models' },
         },
       },
     }]);

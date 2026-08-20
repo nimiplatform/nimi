@@ -173,6 +173,12 @@
     "cloudImpactConfirmation": "我了解 {{app}} 的请求可能离开此设备、使用账户 {{account}}，并产生服务商费用。",
     "loadFailed": "无法从 Runtime 加载此 App 的 AI 配置。",
     "saveFailed": "Runtime 无法保存此 App 的 AI 配置。",
+    "oneClickLabel": "一键配置",
+    "oneClickHint": "直接采用当前设备已选择的本地模型；没有本地模型的能力保持不变。",
+    "oneClickLoading": "正在读取当前设备的本地模型。",
+    "oneClickUnavailable": "无法读取当前设备的本地模型，未进行配置。",
+    "oneClickNoLocalModels": "当前设备没有可用于一键配置的本地模型。",
+    "oneClickFailed": "无法使用本地模型完成一键配置。",
     "capability": {
       "audioSynthesize": {
         "label": "语音合成",
@@ -239,6 +245,7 @@
     "tabsLabel": "App 详情",
     "overviewTab": "概览",
     "accessTab": "Nimi Access",
+    "aiModelsTab": "AI 模型",
     "developerTab": "开发者信息",
     "localSummary": "已注册到当前 Nimi Desktop 的本地开发 App。",
     "aboutTitle": "关于此 App",
@@ -281,7 +288,7 @@
     },
     "runtimeConsume": {
       "label": "AI 运行时",
-      "description": "声明通过 Nimi Runtime 使用受支持的 AI 能力；可在下方配置模型路由。"
+      "description": "声明通过 Nimi Runtime 使用受支持的 AI 能力；可在 AI 模型标签页配置模型路由。"
     },
     "agentLocal": {
       "label": "本地 Agent",

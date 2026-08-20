@@ -33,6 +33,9 @@ export type NimiDesktopOpenRuntimeConfigAction = 'add-connector' | 'install-mode
 export type NimiDesktopOpenSettingsSection = 'profile';
 export type NimiDesktopOpenAgentsView = 'inventory';
 
+// @nimi-authority: rule.nimi.desktop.shell-ui.r061
+export type NimiDesktopOpenAppsSection = 'ai-models';
+
 export type NimiDesktopOpenExploreIntent = {
   readonly kind: 'open-explore';
   readonly section: NimiDesktopOpenExploreSection;
@@ -54,6 +57,7 @@ export type NimiDesktopOpenAgentsIntent = {
 export type NimiDesktopOpenAppsIntent = {
   readonly kind: 'open-apps';
   readonly appId?: string;
+  readonly section?: NimiDesktopOpenAppsSection;
 };
 
 export type NimiDesktopOpenSettingsIntent = {
@@ -327,11 +331,19 @@ function parseAgentsIntent(record: Record<string, unknown>): NimiDesktopOpenAgen
 }
 
 function parseAppsIntent(record: Record<string, unknown>): NimiDesktopOpenAppsIntent {
-  assertAllowedFields(record, ['kind', 'appId'], 'DesktopOpenIntent apps intent');
+  assertAllowedFields(record, ['kind', 'appId', 'section'], 'DesktopOpenIntent apps intent');
   const appId = record.appId === undefined ? undefined : parseAppId(record.appId, 'intent.appId');
+  const section = parseOptionalString(record.section, 'intent.section');
+  if (section !== undefined && section !== 'ai-models') {
+    throw unsupported(`DesktopOpenIntent apps section is not admitted: ${section}.`, 'intent.section');
+  }
+  if (section && !appId) {
+    throw invalid('DesktopOpenIntent apps section requires an exact appId.', 'intent.appId');
+  }
   return {
     kind: 'open-apps',
     ...(appId ? { appId } : {}),
+    ...(section ? { section } : {}),
   };
 }
 

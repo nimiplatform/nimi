@@ -6,6 +6,7 @@ import type {
   ConversationViewMode,
 } from '@nimiplatform/kit/features/chat/headless';
 import type { OfflineTier } from '@nimiplatform/kit/core/offline-coordinator';
+import type { NimiDesktopOpenAppsSection } from '@nimiplatform/kit/core/desktop-open';
 import type {
   NimiConversationSelection,
   AgentComposerPrefill,
@@ -117,6 +118,8 @@ export type AppStoreState = {
   exploreActiveSection: ExploreSectionId;
   exploreSearchText: string;
   appsDetailAppId: string | null;
+  appsDetailSection: NimiDesktopOpenAppsSection | null;
+  appsDetailNavigationRevision: number;
   profileDetailOverlayOpen: boolean;
   chatProfilePanelTarget: 'self' | 'other' | null;
   offlineTier: OfflineTier;
@@ -153,7 +156,10 @@ export type AppStoreState = {
   setSelectedGiftTransactionId: (giftTransactionId: string | null) => void;
   setExploreActiveSection: (section: ExploreSectionId) => void;
   setExploreSearchText: (text: string) => void;
-  setAppsDetailAppId: (appId: string | null) => void;
+  setAppsDetailAppId: (
+    appId: string | null,
+    section?: NimiDesktopOpenAppsSection | null,
+  ) => void;
   setProfileDetailOverlayOpen: (open: boolean) => void;
   setChatProfilePanelTarget: (target: 'self' | 'other' | null) => void;
   navigateToProfile: (profileId: string) => void;

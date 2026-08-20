@@ -7,6 +7,8 @@ import { AppsPanelView } from './apps-panel-view.js';
 export function AppsPanel(): ReactElement {
   const settings = useDesktopRendererCommands().settings;
   const requestedDetailAppId = useAppStore((state) => state.appsDetailAppId);
+  const requestedDetailSection = useAppStore((state) => state.appsDetailSection);
+  const requestedDetailNavigationRevision = useAppStore((state) => state.appsDetailNavigationRevision);
   const setAppsDetailAppId = useAppStore((state) => state.setAppsDetailAppId);
   const setActiveTab = useAppStore((state) => state.setActiveTab);
   const controller = useAppsPanelController();
@@ -24,13 +26,15 @@ export function AppsPanel(): ReactElement {
     if (requestedDetailAppId) {
       runCardAction(requestedDetailAppId, 'details');
     }
-  }, [requestedDetailAppId, runCardAction]);
+  }, [requestedDetailAppId, requestedDetailNavigationRevision, runCardAction]);
 
   return (
     <div data-testid="apps-panel" className="flex min-h-0 flex-1 flex-col">
       <AppsPanelView
         projection={projection}
         selectedAppId={detailAppId}
+        requestedDetailSection={requestedDetailAppId === detailAppId ? requestedDetailSection : null}
+        requestedDetailNavigationRevision={requestedDetailNavigationRevision}
         onCardAction={runCardAction}
         onBack={() => {
           setAppsDetailAppId(null);

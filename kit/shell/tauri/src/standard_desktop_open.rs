@@ -397,16 +397,30 @@ fn parse_agents_intent(
 fn parse_apps_intent(
     record: &serde_json::Map<String, Value>,
 ) -> Result<Value, DesktopOpenIntentHostParseError> {
-    assert_allowed_fields(record, &["kind", "appId"], "apps intent")?;
+    assert_allowed_fields(record, &["kind", "appId", "section"], "apps intent")?;
     let app_id = optional_string(record.get("appId"), "intent.appId")?;
     if let Some(value) = &app_id {
         if value.len() > 96 || !is_valid_app_id(value) {
             return Err(invalid_parse("DesktopOpenIntent appId is invalid"));
         }
     }
+    let section = optional_string(record.get("section"), "intent.section")?;
+    if section.as_deref().is_some_and(|value| value != "ai-models") {
+        return Err(unsupported_parse(
+            "DesktopOpenIntent apps section is not admitted",
+        ));
+    }
+    if section.is_some() && app_id.is_none() {
+        return Err(invalid_parse(
+            "DesktopOpenIntent apps section requires an exact appId",
+        ));
+    }
     let mut output = json!({ "kind": "open-apps" });
     if let Some(value) = app_id {
         output["appId"] = Value::String(value);
+    }
+    if let Some(value) = section {
+        output["section"] = Value::String(value);
     }
     Ok(output)
 }

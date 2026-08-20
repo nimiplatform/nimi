@@ -1,5 +1,6 @@
 import { useEffect, useState, type KeyboardEvent, type ReactElement, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import type { NimiDesktopOpenAppsSection } from '@nimiplatform/kit/core/desktop-open';
 import {
   ArrowLeft,
   Box,
@@ -24,8 +25,9 @@ import {
 } from './apps-card-actions.js';
 
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-appacc-001
+// @nimi-authority: rule.nimi.desktop.shell-ui.r061
 
-type AppsDetailTab = 'overview' | 'access' | 'developer';
+type AppsDetailTab = 'overview' | 'access' | 'ai-models' | 'developer';
 
 const APP_ACCESS_COPY_KEYS = Object.freeze({
   'realm.data': 'realmData',
@@ -36,20 +38,32 @@ const APP_ACCESS_COPY_KEYS = Object.freeze({
 
 export interface AppsDetailViewProps {
   readonly entry: DesktopAppsEntry;
+  readonly requestedSection: NimiDesktopOpenAppsSection | null;
+  readonly requestedNavigationRevision: number;
   readonly onBack: () => void;
   readonly onAction: (action: AppCardActionId) => void;
   readonly activeAction: AppCardActionId | null;
 }
 
-export function AppsDetailView({ entry, onBack, onAction, activeAction }: AppsDetailViewProps): ReactElement {
+export function AppsDetailView({
+  entry,
+  requestedSection,
+  requestedNavigationRevision,
+  onBack,
+  onAction,
+  activeAction,
+}: AppsDetailViewProps): ReactElement {
   const { t, i18n } = useTranslation();
   const [activeTab, setActiveTab] = useState<AppsDetailTab>('overview');
   const { registration } = entry;
   const aiConfigCapabilityContracts = appsAIConfigCapabilityContracts(registration.appAccess);
+  const aiModelsAvailable = aiConfigCapabilityContracts.length > 0;
   const actionPlan = actionPlanForLocalDevelopmentEntry(entry.run?.state ?? null);
   const runState = entry.run?.state ?? 'stopped';
 
-  useEffect(() => setActiveTab('overview'), [registration.appId]);
+  useEffect(() => {
+    setActiveTab(requestedSection === 'ai-models' && aiModelsAvailable ? 'ai-models' : 'overview');
+  }, [aiModelsAvailable, registration.appId, requestedNavigationRevision, requestedSection]);
 
   const registeredAt = formatTimestamp(registration.registeredAtUnixMs, i18n.language);
   const updatedAt = formatTimestamp(registration.updatedAtUnixMs, i18n.language);
@@ -132,6 +146,9 @@ export function AppsDetailView({ entry, onBack, onAction, activeAction }: AppsDe
         <div role="tablist" aria-label={t('Apps.detail.tabsLabel')} className="mt-5 flex min-w-0 gap-1 overflow-x-auto">
           <DetailTabButton id="overview" activeTab={activeTab} onSelect={setActiveTab} label={t('Apps.detail.overviewTab')} />
           <DetailTabButton id="access" activeTab={activeTab} onSelect={setActiveTab} label={t('Apps.detail.accessTab')} />
+          {aiModelsAvailable ? (
+            <DetailTabButton id="ai-models" activeTab={activeTab} onSelect={setActiveTab} label={t('Apps.detail.aiModelsTab')} />
+          ) : null}
           <DetailTabButton id="developer" activeTab={activeTab} onSelect={setActiveTab} label={t('Apps.detail.developerTab')} />
         </div>
       </header>
@@ -199,15 +216,15 @@ export function AppsDetailView({ entry, onBack, onAction, activeAction }: AppsDe
                 )}
               </div>
             </DetailSection>
+          </div>
+        ) : null}
 
-            {aiConfigCapabilityContracts.length > 0 ? (
-              <div className="border-t border-[var(--nimi-border-subtle)] pt-6">
-                <AppsAIConfigSection
-                  appId={registration.appId}
-                  appDisplayName={registration.displayName}
-                />
-              </div>
-            ) : null}
+        {activeTab === 'ai-models' && aiModelsAvailable ? (
+          <div role="tabpanel" id="apps-detail-panel-ai-models" aria-labelledby="apps-detail-tab-ai-models" tabIndex={0} className="outline-none">
+            <AppsAIConfigSection
+              appId={registration.appId}
+              appDisplayName={registration.displayName}
+            />
           </div>
         ) : null}
 

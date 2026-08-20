@@ -30,6 +30,7 @@ type DesktopOpenTarget = {
     query?: string;
     page?: string;
     appId?: string;
+    appsSection?: string;
   };
 };
 
@@ -47,6 +48,8 @@ const DESKTOP_OPEN_TARGETS: readonly DesktopOpenTarget[] = [
   { rowId: 'target.agents-inventory', intent: { kind: 'open-agents', view: 'inventory' }, expected: { activeTab: 'agents' } },
   { rowId: 'target.apps-surface', intent: { kind: 'open-apps' }, expected: { activeTab: 'apps' } },
   { rowId: 'target.app-selection', intent: { kind: 'open-apps', appId: 'nimi.example' }, expected: { activeTab: 'apps', appId: 'nimi.example' } },
+  { rowId: 'target.app-ai-models', intent: { kind: 'open-apps', appId: 'nimi.example', section: 'ai-models' }, expected: { activeTab: 'apps', appId: 'nimi.example', appsSection: 'ai-models' } },
+
   { rowId: 'target.settings-profile', intent: { kind: 'open-settings', section: 'profile' }, expected: { activeTab: 'settings', section: 'profile' } },
 ];
 
@@ -106,6 +109,8 @@ test.beforeEach(() => {
     exploreActiveSection: 'worlds',
     exploreSearchText: '',
     appsDetailAppId: null,
+    appsDetailSection: null,
+    appsDetailNavigationRevision: 0,
   });
 });
 
@@ -160,8 +165,9 @@ for (const target of DESKTOP_OPEN_TARGETS) {
       }
     }
 
-    if (target.rowId === 'target.app-selection') {
-      assert.equal(appState.appsDetailAppId, target.expected.appId);
+    if (target.expected.activeTab === 'apps') {
+      assert.equal(appState.appsDetailAppId, target.expected.appId ?? null);
+      assert.equal(appState.appsDetailSection, target.expected.appsSection ?? null);
     }
 
     if (target.rowId === 'target.settings-profile') {
@@ -235,8 +241,11 @@ test('Desktop Open Intent maps settings profile and app details to owned surface
   applyDesktopOpenIntentToAppStore({
     kind: 'open-apps',
     appId: 'nimi.notes',
+    section: 'ai-models',
   });
   const state = productionAppStore.getState();
   assert.equal(state.activeTab, 'apps');
   assert.equal(state.appsDetailAppId, 'nimi.notes');
+  assert.equal(state.appsDetailSection, 'ai-models');
+  assert.equal(state.appsDetailNavigationRevision, 1);
 });
