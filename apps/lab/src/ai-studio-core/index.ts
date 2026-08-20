@@ -79,6 +79,7 @@ export {
   studioHistoryFromRecords,
   type StudioHistoryPolicyMutationIssue,
   type StudioHistoryPolicyMutationOutcome,
+  type StudioHistoryMutationSubject,
 } from './history-policy.js';
 export {
   createStudioRunHistoryRecord,

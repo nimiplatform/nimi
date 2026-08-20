@@ -4,6 +4,7 @@ import {
   projectStudioManagedHistory,
   removeStudioHistoryWithPolicy,
   studioHistoryArtifactPaths,
+  type StudioHistoryMutationSubject,
   type StudioRunHistory,
   type StudioRunHistoryRecord,
 } from '../ai-studio-core/index.js';
@@ -51,6 +52,7 @@ export async function deleteLabManagedHistoryRecord(
     history: storedRuns,
     recordId: runId,
     deleteAssets: deleteAsset,
+    additionalSubjects: labMediaOnlyMutationSubjects(storedRuns, storedMedia),
     removeArtifact: port.removeAsset,
     resolveArtifactPaths: (record) => labManagedArtifactPaths(record, storedMedia),
     commit: async (_next, removed) => {
@@ -77,6 +79,7 @@ export async function clearLabManagedHistoryScope(
     history: storedRuns,
     capabilityId,
     deleteAssets,
+    additionalSubjects: labMediaOnlyMutationSubjects(storedRuns, storedMedia),
     removeArtifact: port.removeAsset,
     resolveArtifactPaths: (record) => labManagedArtifactPaths(record, storedMedia),
     commit: async (_next, removed) => {
@@ -106,6 +109,32 @@ function labManagedArtifactPaths(record: StudioRunHistoryRecord, records: readon
   paths.push(...studioHistoryArtifactPaths(record));
   return [...new Set(paths)]
     .sort((left, right) => left.localeCompare(right));
+}
+
+function labMediaOnlyMutationSubjects(
+  runHistory: StudioRunHistory,
+  records: readonly LabImageHistoryRecord[],
+): StudioHistoryMutationSubject[] {
+  const runOwnedIDs = new Set(Object.values(runHistory).flat().map((record) => record.id));
+  const subjects = new Map<string, { capabilityId: string; artifactPaths: string[] }>();
+  for (const record of records) {
+    const id = record.runId || record.id;
+    if (runOwnedIDs.has(id)) continue;
+    const existing = subjects.get(id);
+    if (existing && existing.capabilityId !== record.capabilityId) {
+      throw new Error(`Lab retained media history has conflicting capability ownership: ${id}`);
+    }
+    const subject = existing ?? { capabilityId: record.capabilityId, artifactPaths: [] };
+    if (record.relativePath) subject.artifactPaths.push(record.relativePath);
+    subjects.set(id, subject);
+  }
+  return [...subjects.entries()]
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([id, subject]) => ({
+      id,
+      capabilityId: subject.capabilityId,
+      artifactPaths: [...new Set(subject.artifactPaths)].sort((left, right) => left.localeCompare(right)),
+    }));
 }
 
 function labManagedHistoryOutcome(

@@ -457,3 +457,37 @@ test('scoped record-plus-asset clear reports completed, skipped, and failed-shap
   assert.equal(outcome.imageHistory.some((record) => record.runId === 'run-1'), false);
   assert.equal(outcome.imageHistory.some((record) => record.runId === 'run-2'), true);
 });
+
+test('retained media-only history deletes its row and managed asset through the shared policy', async () => {
+  const state = managedHistoryPort({
+    runHistory: {},
+    imageHistory: [{
+      id: 'orphan',
+      runId: 'orphan',
+      capabilityId: 'image.generate',
+      relativePath: 'media/orphan.asset',
+    }],
+    assets: ['media/orphan.asset'],
+  });
+  const outcome = await deleteLabManagedHistoryRecord(state.port, 'orphan', true);
+  assert.deepEqual({ completed: outcome.completed, skipped: outcome.skipped, failed: outcome.failed }, { completed: 1, skipped: 0, failed: 0 });
+  assert.deepEqual(outcome.imageHistory, []);
+  assert.deepEqual([...state.assets], []);
+});
+
+test('retained media-only clear preserves failed assets and reports them as skipped', async () => {
+  const state = managedHistoryPort({
+    runHistory: {},
+    imageHistory: [
+      { id: 'orphan-1', runId: 'orphan-1', capabilityId: 'image.generate', relativePath: 'media/orphan-1.asset' },
+      { id: 'orphan-2', runId: 'orphan-2', capabilityId: 'image.generate', relativePath: 'media/orphan-2.asset' },
+    ],
+    assets: ['media/orphan-1.asset', 'media/orphan-2.asset'],
+  });
+  state.failingAssets.add('media/orphan-2.asset');
+  const outcome = await clearLabManagedHistoryScope(state.port, 'image.generate', true);
+  assert.deepEqual({ completed: outcome.completed, skipped: outcome.skipped, failed: outcome.failed }, { completed: 1, skipped: 1, failed: 0 });
+  assert.deepEqual(outcome.imageHistory.map((record) => record.runId), ['orphan-2']);
+  assert.deepEqual([...state.assets], ['media/orphan-2.asset']);
+  assert.deepEqual(outcome.issues.map((issue) => [issue.runId, issue.step]), [['orphan-2', 'asset']]);
+});

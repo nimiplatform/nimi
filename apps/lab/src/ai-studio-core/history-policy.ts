@@ -256,6 +256,12 @@ export type StudioHistoryPolicyMutationOutcome<TProjection> = {
   readonly issues: readonly StudioHistoryPolicyMutationIssue[];
 };
 
+export type StudioHistoryMutationSubject = {
+  readonly id: string;
+  readonly capabilityId: string;
+  readonly artifactPaths: readonly string[];
+};
+
 export function studioHistoryArtifactPaths(record: StudioRunHistoryRecord): string[] {
   const result = record.result;
   if (!result || result.ok === false || result.kind !== 'artifacts') return [];
@@ -284,41 +290,60 @@ export async function cleanupStudioHistoryArtifacts(input: {
 
 type StudioHistoryMutationPolicyPort<TProjection> = {
   readonly deleteAssets: boolean;
+  readonly additionalSubjects?: readonly StudioHistoryMutationSubject[];
   readonly removeArtifact: (relativePath: string) => Promise<unknown>;
   readonly isNotFound?: (error: unknown) => boolean;
   readonly resolveArtifactPaths?: (record: StudioRunHistoryRecord) => readonly string[];
   readonly commit: (
     next: StudioRunHistory,
-    removed: readonly StudioRunHistoryRecord[],
+    removed: readonly StudioHistoryMutationSubject[],
   ) => Promise<void>;
   readonly project: (history: StudioRunHistory) => Promise<TProjection>;
 };
 
 function mutationIssue(
-  record: StudioRunHistoryRecord,
+  subject: StudioHistoryMutationSubject,
   step: 'asset' | 'history',
   message: string,
 ): StudioHistoryPolicyMutationIssue {
-  return { runId: record.id, step, message: message || 'History mutation failed.' };
+  return { runId: subject.id, step, message: message || 'History mutation failed.' };
 }
 
-function resolvedArtifactPaths(
-  input: StudioHistoryMutationPolicyPort<unknown>,
-  record: StudioRunHistoryRecord,
-): readonly string[] {
-  return input.resolveArtifactPaths?.(record) ?? studioHistoryArtifactPaths(record);
+function mutationSubjects<TProjection>(
+  input: StudioHistoryMutationPolicyPort<TProjection>,
+  history: StudioRunHistory,
+): StudioHistoryMutationSubject[] {
+  const subjects = flattenStudioHistoryRecords(history).map((record) => ({
+    id: record.id,
+    capabilityId: record.capabilityId,
+    artifactPaths: input.resolveArtifactPaths?.(record) ?? studioHistoryArtifactPaths(record),
+  }));
+  const runOwnedIDs = new Set(subjects.map((subject) => subject.id));
+  for (const subject of input.additionalSubjects ?? []) {
+    if (!subject.id || !subject.capabilityId || !Array.isArray(subject.artifactPaths)) {
+      throw new Error('AI Studio history mutation subject is invalid.');
+    }
+    if (subject.artifactPaths.some((relativePath) => typeof relativePath !== 'string' || !relativePath)) {
+      throw new Error(`AI Studio history mutation subject has an invalid artifact path: ${subject.id}`);
+    }
+    if (!runOwnedIDs.has(subject.id)) {
+      subjects.push(subject);
+      runOwnedIDs.add(subject.id);
+    }
+  }
+  return subjects;
 }
 
 export async function removeStudioHistoryWithPolicy<TProjection>(input: {
   readonly history: StudioRunHistory;
   readonly recordId: string;
 } & StudioHistoryMutationPolicyPort<TProjection>): Promise<StudioHistoryPolicyMutationOutcome<TProjection>> {
-  const removed = flattenStudioHistoryRecords(input.history).filter((record) => record.id === input.recordId);
+  const removed = mutationSubjects(input, input.history).filter((subject) => subject.id === input.recordId);
   const currentProjection = await input.project(input.history);
   if (removed.length === 0) return { completed: 0, skipped: 1, failed: 0, projection: currentProjection, issues: [] };
   if (input.deleteAssets) {
     const cleanup = await cleanupStudioHistoryArtifacts({
-      relativePaths: removed.flatMap((record) => resolvedArtifactPaths(input, record)),
+      relativePaths: removed.flatMap((subject) => subject.artifactPaths),
       removeArtifact: input.removeArtifact,
       isNotFound: input.isNotFound,
     });
@@ -329,7 +354,7 @@ export async function removeStudioHistoryWithPolicy<TProjection>(input: {
         skipped: removed.length,
         failed: 0,
         projection: currentProjection,
-        issues: removed.map((record) => mutationIssue(record, 'asset', message)),
+        issues: removed.map((subject) => mutationIssue(subject, 'asset', message)),
       };
     }
   }
@@ -344,7 +369,7 @@ export async function removeStudioHistoryWithPolicy<TProjection>(input: {
       skipped: 0,
       failed: removed.length,
       projection: await input.project(input.history),
-      issues: removed.map((record) => mutationIssue(record, 'history', message)),
+      issues: removed.map((subject) => mutationIssue(subject, 'history', message)),
     };
   }
 }
@@ -353,8 +378,8 @@ export async function clearStudioHistoryWithPolicy<TProjection>(input: {
   readonly history: StudioRunHistory;
   readonly capabilityId: string | null;
 } & StudioHistoryMutationPolicyPort<TProjection>): Promise<StudioHistoryPolicyMutationOutcome<TProjection>> {
-  const removed = flattenStudioHistoryRecords(input.history).filter((record) => (
-    input.capabilityId === null || record.capabilityId === input.capabilityId
+  const removed = mutationSubjects(input, input.history).filter((subject) => (
+    input.capabilityId === null || subject.capabilityId === input.capabilityId
   ));
   if (!input.deleteAssets) {
     const next = clearStudioRunHistory(input.history, input.capabilityId);
@@ -368,7 +393,7 @@ export async function clearStudioHistoryWithPolicy<TProjection>(input: {
         skipped: 0,
         failed: removed.length || 1,
         projection: await input.project(input.history),
-        issues: removed.map((record) => mutationIssue(record, 'history', message)),
+        issues: removed.map((subject) => mutationIssue(subject, 'history', message)),
       };
     }
   }
@@ -378,25 +403,25 @@ export async function clearStudioHistoryWithPolicy<TProjection>(input: {
   let skipped = 0;
   let failed = 0;
   const issues: StudioHistoryPolicyMutationIssue[] = [];
-  for (const record of removed) {
+  for (const subject of removed) {
     const cleanup = await cleanupStudioHistoryArtifacts({
-      relativePaths: resolvedArtifactPaths(input, record),
+      relativePaths: subject.artifactPaths,
       removeArtifact: input.removeArtifact,
       isNotFound: input.isNotFound,
     });
     if (cleanup.failures.length > 0) {
       skipped += 1;
-      issues.push(mutationIssue(record, 'asset', cleanup.failures.join('; ')));
+      issues.push(mutationIssue(subject, 'asset', cleanup.failures.join('; ')));
       continue;
     }
-    const next = removeStudioRunHistoryRecord(history, record.id);
+    const next = removeStudioRunHistoryRecord(history, subject.id);
     try {
-      await input.commit(next, [record]);
+      await input.commit(next, [subject]);
       history = next;
       completed += 1;
     } catch (error) {
       failed += 1;
-      issues.push(mutationIssue(record, 'history', error instanceof Error ? error.message : String(error)));
+      issues.push(mutationIssue(subject, 'history', error instanceof Error ? error.message : String(error)));
     }
   }
   return { completed, skipped, failed, projection: await input.project(history), issues };
