@@ -289,6 +289,13 @@ export type NimiLocalAppWorldCoreListInput = {
   readonly visibility?: 'private' | 'unlisted' | 'public' | 'system';
 };
 
+export type NimiLocalAppPersonaCharacterListOwnedInput = {
+  readonly worldId?: string;
+  readonly visibility?: 'private' | 'unlisted' | 'public';
+  readonly afterId?: string;
+  readonly take?: number;
+};
+
 export type NimiLocalAppConversationScopeInput = {
   readonly agentHandle: string;
   readonly conversationAnchorId: string;
@@ -378,6 +385,12 @@ export type NimiLocalAppStandardShellSurface = {
       readonly list: (input?: NimiLocalAppWorldCoreListInput) => Promise<readonly JsonObject[]>;
       readonly create: (input: unknown) => Promise<JsonObject>;
     };
+    readonly personaCharacter: {
+      readonly listOwned: (input?: NimiLocalAppPersonaCharacterListOwnedInput) => Promise<readonly JsonObject[]>;
+      readonly getOwned: (personaCharacterId: string) => Promise<JsonObject>;
+      readonly create: (input: JsonObject) => Promise<JsonObject>;
+      readonly replace: (input: JsonObject) => Promise<JsonObject>;
+    };
   };
   readonly agents: {
     readonly listReferences: () => Promise<readonly NimiLocalAppAgentReference[]>;
@@ -438,6 +451,12 @@ export function createNimiLocalAppStandardShellSurface(): NimiLocalAppStandardSh
       worldCore: {
         list: listNimiLocalAppWorldCores,
         create: createNimiLocalAppWorldCore,
+      },
+      personaCharacter: {
+        listOwned: listNimiLocalAppOwnedPersonaCharacters,
+        getOwned: getNimiLocalAppOwnedPersonaCharacter,
+        create: createNimiLocalAppPersonaCharacter,
+        replace: replaceNimiLocalAppPersonaCharacter,
       },
     },
     agents: {
@@ -707,6 +726,76 @@ export function createNimiLocalAppWorldCore(input: unknown): Promise<JsonObject>
     { payload: record },
     (value) => Object.freeze(parseSafeProjection(value, command)),
   );
+}
+
+export function listNimiLocalAppOwnedPersonaCharacters(
+  input: NimiLocalAppPersonaCharacterListOwnedInput = {},
+): Promise<readonly JsonObject[]> {
+  const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.realmPersonaCharacterListOwned'];
+  assertAllowedInputKeys(input, ['worldId', 'visibility', 'afterId', 'take'], [], command);
+  const payload: JsonObject = {};
+  if (input.worldId !== undefined) payload.worldId = requiredText(input.worldId, 'worldId', command, MAX_IDENTIFIER_LENGTH);
+  if (input.visibility !== undefined) payload.visibility = personaWritableVisibility(input.visibility, command);
+  if (input.afterId !== undefined) payload.afterId = requiredText(input.afterId, 'afterId', command, MAX_IDENTIFIER_LENGTH);
+  if (input.take !== undefined) payload.take = boundedSafeInteger(input.take, 'take', command, 1, 500);
+  return invokeChecked(command, { payload }, (value) => {
+    if (!Array.isArray(value) || value.length > 500) throw new Error(`${command}: result must be a bounded array`);
+    return Object.freeze(value.map((entry) => parseOpaquePersonaProjection(entry, command)));
+  });
+}
+
+export function getNimiLocalAppOwnedPersonaCharacter(personaCharacterId: string): Promise<JsonObject> {
+  const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.realmPersonaCharacterGetOwned'];
+  return invokeChecked(
+    command,
+    { payload: { personaCharacterId: requiredText(personaCharacterId, 'personaCharacterId', command, MAX_IDENTIFIER_LENGTH) } },
+    (value) => parseOpaquePersonaProjection(value, command),
+  );
+}
+
+export function createNimiLocalAppPersonaCharacter(input: JsonObject): Promise<JsonObject> {
+  const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.realmPersonaCharacterCreate'];
+  const payload = personaCharacterWriteInput(input, false, command);
+  return invokeChecked(command, { payload }, (value) => parseOpaquePersonaProjection(value, command));
+}
+
+export function replaceNimiLocalAppPersonaCharacter(input: JsonObject): Promise<JsonObject> {
+  const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.realmPersonaCharacterReplace'];
+  const payload = personaCharacterWriteInput(input, true, command);
+  return invokeChecked(command, { payload }, (value) => parseOpaquePersonaProjection(value, command));
+}
+
+function personaCharacterWriteInput(input: JsonObject, replace: boolean, command: string): JsonObject {
+  const record = assertRecord(input, `${command}: input must be an object`);
+  const keys = replace
+    ? ['personaCharacterId', 'baseContentHash', 'worldId', 'visibility', 'origin', 'profile']
+    : ['worldId', 'visibility', 'origin', 'profile'];
+  assertAllowedInputKeys(record, keys, keys, command);
+  requiredText(record.worldId, 'worldId', command, MAX_IDENTIFIER_LENGTH);
+  personaWritableVisibility(record.visibility, command);
+  if (!record.origin || typeof record.origin !== 'object' || Array.isArray(record.origin)
+    || !record.profile || typeof record.profile !== 'object' || Array.isArray(record.profile)) {
+    throw invalidInput(command, 'origin and profile must be objects');
+  }
+  if (replace) {
+    requiredText(record.personaCharacterId, 'personaCharacterId', command, MAX_IDENTIFIER_LENGTH);
+    if (typeof record.baseContentHash !== 'string' || !/^[a-f0-9]{64}$/u.test(record.baseContentHash)) {
+      throw invalidInput(command, 'baseContentHash is invalid');
+    }
+  }
+  validateStorageJsonValue(record, command);
+  if (new TextEncoder().encode(JSON.stringify(record)).byteLength > MAX_WORLD_CORE_REQUEST_BYTES) {
+    throw new BridgeError('PersonaCharacter request is too large', command, {
+      code: 'request-too-large', reasonCode: 'request-too-large', actionHint: 'reduce_persona_character_request', source: 'renderer',
+    });
+  }
+  return { ...record } as JsonObject;
+}
+
+function parseOpaquePersonaProjection(value: unknown, command: string): JsonObject {
+  const record = assertRecord(value, `${command}: PersonaCharacter result must be an object`);
+  validateStorageJsonValue(record, command);
+  return Object.freeze(record);
 }
 
 export function listNimiLocalAppAgentReferences(): Promise<readonly NimiLocalAppAgentReference[]> {
@@ -2311,6 +2400,13 @@ function assertAllowedInputKeys(
 
 function worldVisibility(value: unknown, command: string): 'private' | 'unlisted' | 'public' | 'system' {
   if (value !== 'private' && value !== 'unlisted' && value !== 'public' && value !== 'system') {
+    throw invalidInput(command, 'visibility is invalid');
+  }
+  return value;
+}
+
+function personaWritableVisibility(value: unknown, command: string): 'private' | 'unlisted' | 'public' {
+  if (value !== 'private' && value !== 'unlisted' && value !== 'public') {
     throw invalidInput(command, 'visibility is invalid');
   }
   return value;

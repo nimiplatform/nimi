@@ -10,12 +10,15 @@ use nimi_shell_protected_local::{
     LocalAppAssetListResult, LocalAppAssetMoveRequest, LocalAppAssetRange,
     LocalAppAssetReadReceiver, LocalAppAssetReadRequest, LocalAppAssetRecord,
     LocalAppAssetRemoveRequest, LocalAppAssetRemoveResult, LocalAppAssetStatRequest,
-    LocalAppAssetWriteRequest, LocalAppOperationError, LocalAppReasonCode,
+    LocalAppAssetWriteRequest, LocalAppOperationError, LocalAppPersonaCharacterCreateRequest,
+    LocalAppPersonaCharacterGetOwnedRequest, LocalAppPersonaCharacterListOwnedRequest,
+    LocalAppPersonaCharacterReplaceRequest, LocalAppReasonCode,
     LocalAppScenarioUploadArtifactRequest, LocalAppSessionStatus,
     LocalAppSharedAgentAIConfigOverwriteRequest, LocalAppStorageDocument,
     LocalAppStorageReadRequest, LocalAppStorageRemoveRequest, LocalAppStorageRemoveResult,
     LocalAppStorageWriteRequest, LocalAppTextCandidateRequest, LocalAppTextCandidateResult,
-    NimiLocalAppCarrier, NimiLocalAppSession,
+    LocalAppWorldCoreCreateRequest, LocalAppWorldCoreListRequest, NimiLocalAppCarrier,
+    NimiLocalAppSession,
 };
 use std::{
     collections::HashMap,
@@ -153,6 +156,90 @@ impl RuntimeBridgeLocalAppHost {
     ) -> Result<serde_json::Value, LocalAppOperationError> {
         let session = self.current_or_open_session().await?;
         match session.model_config_local_selections_get().await {
+            Ok(value) => Ok(value),
+            Err(error) => {
+                self.clear_on_transport_failure(&session, &error).await;
+                Err(error)
+            }
+        }
+    }
+
+    pub async fn world_core_list(
+        &self,
+        request: LocalAppWorldCoreListRequest,
+    ) -> Result<serde_json::Value, LocalAppOperationError> {
+        let session = self.current_or_open_session().await?;
+        match session.realm_world_core_list(request).await {
+            Ok(value) => Ok(value),
+            Err(error) => {
+                self.clear_on_transport_failure(&session, &error).await;
+                Err(error)
+            }
+        }
+    }
+
+    pub async fn world_core_create(
+        &self,
+        request: LocalAppWorldCoreCreateRequest,
+    ) -> Result<serde_json::Value, LocalAppOperationError> {
+        let session = self.current_or_open_session().await?;
+        match session.realm_world_core_create(request).await {
+            Ok(value) => Ok(value),
+            Err(error) => {
+                self.clear_on_transport_failure(&session, &error).await;
+                Err(error)
+            }
+        }
+    }
+
+    pub async fn persona_character_list_owned(
+        &self,
+        request: LocalAppPersonaCharacterListOwnedRequest,
+    ) -> Result<serde_json::Value, LocalAppOperationError> {
+        let session = self.current_or_open_session().await?;
+        match session.realm_persona_character_list_owned(request).await {
+            Ok(value) => Ok(value),
+            Err(error) => {
+                self.clear_on_transport_failure(&session, &error).await;
+                Err(error)
+            }
+        }
+    }
+
+    pub async fn persona_character_get_owned(
+        &self,
+        request: LocalAppPersonaCharacterGetOwnedRequest,
+    ) -> Result<serde_json::Value, LocalAppOperationError> {
+        let session = self.current_or_open_session().await?;
+        match session.realm_persona_character_get_owned(request).await {
+            Ok(value) => Ok(value),
+            Err(error) => {
+                self.clear_on_transport_failure(&session, &error).await;
+                Err(error)
+            }
+        }
+    }
+
+    pub async fn persona_character_create(
+        &self,
+        request: LocalAppPersonaCharacterCreateRequest,
+    ) -> Result<serde_json::Value, LocalAppOperationError> {
+        let session = self.current_or_open_session().await?;
+        match session.realm_persona_character_create(request).await {
+            Ok(value) => Ok(value),
+            Err(error) => {
+                self.clear_on_transport_failure(&session, &error).await;
+                Err(error)
+            }
+        }
+    }
+
+    pub async fn persona_character_replace(
+        &self,
+        request: LocalAppPersonaCharacterReplaceRequest,
+    ) -> Result<serde_json::Value, LocalAppOperationError> {
+        let session = self.current_or_open_session().await?;
+        match session.realm_persona_character_replace(request).await {
             Ok(value) => Ok(value),
             Err(error) => {
                 self.clear_on_transport_failure(&session, &error).await;

@@ -2,6 +2,7 @@ import { loadNimiElectronProtectedLocalPackage } from './protected-local-binding
 
 const WINDOWS_X64_BINDING_PACKAGE = '@nimiplatform/kit-protected-local-win32-x64';
 const MACOS_ARM64_BINDING_PACKAGE = '@nimiplatform/kit-protected-local-darwin-arm64';
+const MAX_PERSONA_REQUEST_BYTES = 2 * 1024 * 1024;
 
 const LOCAL_APP_BINDING_METHODS = [
   'localAppSessionStatus',
@@ -24,6 +25,10 @@ const LOCAL_APP_BINDING_METHODS = [
   'localAppVoiceAssetsList',
   'localAppRealmWorldCoreList',
   'localAppRealmWorldCoreCreate',
+  'localAppRealmPersonaCharacterListOwned',
+  'localAppRealmPersonaCharacterGetOwned',
+  'localAppRealmPersonaCharacterCreate',
+  'localAppRealmPersonaCharacterReplace',
   'localAppAgentReferenceList',
   'localAppStorageReadJson',
   'localAppStorageWriteJson',
@@ -104,6 +109,18 @@ const ADMITTED_REASON_CODES: ReadonlySet<string> = new Set([
   'local-app-access-denied',
   'local-app-operation-unsupported',
   'local-app-owner-unavailable',
+  'capability-unavailable',
+  'invalid-input',
+  'session-invalid',
+  'access-denied',
+  'owner-authority-missing',
+  'content-conflict',
+  'realm-unavailable',
+  'rate-limited',
+  'upstream-failed',
+  'contract-invalid',
+  'request-too-large',
+  'response-too-large',
   'ai-config-invalid',
   'ai-config-not-found',
   'ai-config-persistence-unavailable',
@@ -218,6 +235,10 @@ export type NimiElectronProtectedLocalBinding = {
   readonly localAppVoiceAssetsList: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppRealmWorldCoreList: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppRealmWorldCoreCreate: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppRealmPersonaCharacterListOwned: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppRealmPersonaCharacterGetOwned: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppRealmPersonaCharacterCreate: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppRealmPersonaCharacterReplace: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppAgentReferenceList: () => Promise<NativeLocalAppOutcome>;
   readonly localAppStorageReadJson: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppStorageWriteJson: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
@@ -270,6 +291,10 @@ export type NimiElectronLocalAppHost = {
   readonly voiceAssetsList: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly realmWorldCoreList: (input: NimiElectronLocalAppRecord) => Promise<readonly NimiElectronLocalAppRecord[]>;
   readonly realmWorldCoreCreate: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly realmPersonaCharacterListOwned: (input: NimiElectronLocalAppRecord) => Promise<readonly NimiElectronLocalAppRecord[]>;
+  readonly realmPersonaCharacterGetOwned: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly realmPersonaCharacterCreate: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly realmPersonaCharacterReplace: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly agentReferenceList: () => Promise<readonly NimiElectronLocalAppRecord[]>;
   readonly storageReadJson: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly storageWriteJson: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
@@ -550,6 +575,30 @@ class ElectronLocalAppHost implements NimiElectronLocalAppHost {
     return invokeWorldCore(() => this.binding.localAppRealmWorldCoreCreate({ body: input }));
   }
 
+  realmPersonaCharacterListOwned(input: NimiElectronLocalAppRecord): Promise<readonly NimiElectronLocalAppRecord[]> {
+    validatePersonaCharacterListInput(input);
+    return invokePersonaCharacterList(() => this.binding.localAppRealmPersonaCharacterListOwned(input));
+  }
+
+  realmPersonaCharacterGetOwned(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    if (!hasExactKeys(input, ['personaCharacterId'])) throw untrustedRuntimeError();
+    exactText(input.personaCharacterId);
+    return invokePersonaCharacter(() => this.binding.localAppRealmPersonaCharacterGetOwned(input));
+  }
+
+  realmPersonaCharacterCreate(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    validatePersonaCharacterWriteInput(input, false);
+    return invokePersonaCharacter(() => this.binding.localAppRealmPersonaCharacterCreate({ body: input }));
+  }
+
+  realmPersonaCharacterReplace(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    const personaCharacterId = exactText(input.personaCharacterId);
+    const body = input.body;
+    if (!isPlainRecord(body)) throw untrustedRuntimeError();
+    validatePersonaCharacterWriteInput({ personaCharacterId, ...body }, true);
+    return invokePersonaCharacter(() => this.binding.localAppRealmPersonaCharacterReplace({ personaCharacterId, body }));
+  }
+
   agentReferenceList(): Promise<readonly NimiElectronLocalAppRecord[]> {
     return invokeAgentReferenceList(() => this.binding.localAppAgentReferenceList());
   }
@@ -762,6 +811,22 @@ class LazyElectronLocalAppHost implements NimiElectronLocalAppHost {
 
   realmWorldCoreCreate(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
     return this.resolve().realmWorldCoreCreate(input);
+  }
+
+  realmPersonaCharacterListOwned(input: NimiElectronLocalAppRecord): Promise<readonly NimiElectronLocalAppRecord[]> {
+    return this.resolve().realmPersonaCharacterListOwned(input);
+  }
+
+  realmPersonaCharacterGetOwned(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return this.resolve().realmPersonaCharacterGetOwned(input);
+  }
+
+  realmPersonaCharacterCreate(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return this.resolve().realmPersonaCharacterCreate(input);
+  }
+
+  realmPersonaCharacterReplace(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return this.resolve().realmPersonaCharacterReplace(input);
   }
 
   agentReferenceList(): Promise<readonly NimiElectronLocalAppRecord[]> {
@@ -1428,6 +1493,65 @@ function validateWorldCore(value: unknown): NimiElectronLocalAppRecord {
   validateJsonValue(value);
   validateProjectionValue(value);
   return Object.freeze({ ...value }) as NimiElectronLocalAppRecord;
+}
+
+async function invokePersonaCharacterList(
+  call: () => Promise<NativeLocalAppOutcome>,
+): Promise<readonly NimiElectronLocalAppRecord[]> {
+  const value = await invoke(call);
+  if (!Array.isArray(value) || value.length > 500) throw untrustedRuntimeError();
+  return Object.freeze(value.map(validatePersonaCharacter));
+}
+
+async function invokePersonaCharacter(
+  call: () => Promise<NativeLocalAppOutcome>,
+): Promise<NimiElectronLocalAppRecord> {
+  return validatePersonaCharacter(await invoke(call));
+}
+
+function validatePersonaCharacter(value: unknown): NimiElectronLocalAppRecord {
+  if (!isPlainRecord(value)) throw untrustedRuntimeError();
+  validateJsonValue(value);
+  return Object.freeze({ ...value }) as NimiElectronLocalAppRecord;
+}
+
+function validatePersonaCharacterWriteInput(value: unknown, replace: boolean): void {
+  if (!isPlainRecord(value)) throw untrustedRuntimeError();
+  const keys = replace
+    ? ['personaCharacterId', 'baseContentHash', 'worldId', 'visibility', 'origin', 'profile']
+    : ['worldId', 'visibility', 'origin', 'profile'];
+  if (!hasExactKeys(value, keys)) throw untrustedRuntimeError();
+  exactText(value.worldId);
+  if (!isPersonaWritableVisibility(value.visibility) || !isPlainRecord(value.origin) || !isPlainRecord(value.profile)) {
+    throw untrustedRuntimeError();
+  }
+  if (Object.hasOwn(value.profile, 'profileHash') || Object.hasOwn(value.profile, 'profileCoverage')) {
+    throw untrustedRuntimeError();
+  }
+  if (replace && (typeof value.baseContentHash !== 'string' || !/^[a-f0-9]{64}$/u.test(value.baseContentHash))) {
+    throw untrustedRuntimeError();
+  }
+  if (replace) exactText(value.personaCharacterId);
+  validateJsonValue(value);
+  if (Buffer.byteLength(JSON.stringify(value), 'utf8') > MAX_PERSONA_REQUEST_BYTES) {
+    throw new NimiElectronLocalAppHostError('request-too-large', false);
+  }
+}
+
+function validatePersonaCharacterListInput(value: NimiElectronLocalAppRecord): void {
+  if (Object.keys(value).some((key) => !['worldId', 'visibility', 'afterId', 'take'].includes(key))) {
+    throw untrustedRuntimeError();
+  }
+  if (value.worldId !== undefined) exactText(value.worldId);
+  if (value.afterId !== undefined) exactText(value.afterId);
+  if (value.visibility !== undefined && !isPersonaWritableVisibility(value.visibility)) throw untrustedRuntimeError();
+  if (value.take !== undefined && (typeof value.take !== 'number' || !Number.isSafeInteger(value.take) || value.take < 1 || value.take > 500)) {
+    throw untrustedRuntimeError();
+  }
+}
+
+function isPersonaWritableVisibility(value: unknown): value is 'private' | 'unlisted' | 'public' {
+  return value === 'private' || value === 'unlisted' || value === 'public';
 }
 
 async function invokeStorageDocument(call: () => Promise<NativeLocalAppOutcome>): Promise<NimiElectronLocalAppRecord> {

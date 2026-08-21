@@ -65,6 +65,10 @@ const COMMAND_METHODS = new Map<string, RendererLocalAppHostMethod>([
   [AIC_COMMANDS.voiceAssetsList, 'voiceAssetsList'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.realmWorldCoreList'], 'realmWorldCoreList'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.realmWorldCoreCreate'], 'realmWorldCoreCreate'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.realmPersonaCharacterListOwned'], 'realmPersonaCharacterListOwned'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.realmPersonaCharacterGetOwned'], 'realmPersonaCharacterGetOwned'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.realmPersonaCharacterCreate'], 'realmPersonaCharacterCreate'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.realmPersonaCharacterReplace'], 'realmPersonaCharacterReplace'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentReferenceList'], 'agentReferenceList'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationOpen'], 'conversationOpen'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationSendTurn'], 'conversationSendTurn'],
@@ -294,6 +298,28 @@ function validatePayload(
       if (payload.visibility !== undefined) worldVisibility(payload.visibility, command);
       validateJsonValue(payload, command, 2 * 1024 * 1024);
       return payload as NimiElectronLocalAppRecord;
+    case 'realmPersonaCharacterListOwned': {
+      assertAllowedKeys(payload, ['worldId', 'visibility', 'afterId', 'take'], [], command);
+      const result: Record<string, NimiElectronLocalAppRecord[string]> = {};
+      if (payload.worldId !== undefined) result.worldId = requiredText(payload.worldId, 'worldId', command, MAX_IDENTIFIER_LENGTH);
+      if (payload.visibility !== undefined) result.visibility = personaWritableVisibility(payload.visibility, command);
+      if (payload.afterId !== undefined) result.afterId = requiredText(payload.afterId, 'afterId', command, MAX_IDENTIFIER_LENGTH);
+      if (payload.take !== undefined) result.take = boundedSafeInteger(payload.take, 'take', command, 1, 500);
+      return result;
+    }
+    case 'realmPersonaCharacterGetOwned':
+      return identifiers(payload, ['personaCharacterId'], command);
+    case 'realmPersonaCharacterCreate':
+      validatePersonaCharacterWrite(payload, false, command);
+      return payload as NimiElectronLocalAppRecord;
+    case 'realmPersonaCharacterReplace': {
+      validatePersonaCharacterWrite(payload, true, command);
+      const { personaCharacterId, ...body } = payload;
+      return {
+        personaCharacterId: requiredText(personaCharacterId, 'personaCharacterId', command, MAX_IDENTIFIER_LENGTH),
+        body: body as NimiElectronLocalAppRecord,
+      };
+    }
     case 'conversationOpen':
       return identifiers(payload, ['agentHandle'], command);
     case 'conversationSendTurn': {
@@ -970,6 +996,13 @@ function worldVisibility(value: unknown, command: string): 'private' | 'unlisted
   return value;
 }
 
+function personaWritableVisibility(value: unknown, command: string): 'private' | 'unlisted' | 'public' {
+  if (value !== 'private' && value !== 'unlisted' && value !== 'public') {
+    throw invalidPayload(command, 'visibility is invalid');
+  }
+  return value;
+}
+
 function requiredText(value: unknown, field: string, command: string, maxLength: number): string {
   const normalized = typeof value === 'string' ? value.trim() : '';
   if (!normalized || normalized !== value || normalized.length > maxLength) {
@@ -1132,6 +1165,18 @@ function mapHostError(error: NimiElectronLocalAppHostError, command: string): Ni
 
 function standardCode(reasonCode: string) {
   switch (reasonCode) {
+    case 'capability-unavailable': return 'capability-unavailable' as const;
+    case 'invalid-input': return 'invalid-input' as const;
+    case 'session-invalid': return 'session-invalid' as const;
+    case 'access-denied': return 'access-denied' as const;
+    case 'owner-authority-missing': return 'owner-authority-missing' as const;
+    case 'content-conflict': return 'content-conflict' as const;
+    case 'realm-unavailable': return 'realm-unavailable' as const;
+    case 'rate-limited': return 'rate-limited' as const;
+    case 'upstream-failed': return 'upstream-failed' as const;
+    case 'contract-invalid': return 'contract-invalid' as const;
+    case 'request-too-large': return 'request-too-large' as const;
+    case 'response-too-large': return 'response-too-large' as const;
     case 'protected-carrier-required': return 'protected-carrier-required' as const;
     case 'runtime-service-unavailable': return 'runtime-service-unavailable' as const;
     case 'runtime-service-untrusted': return 'runtime-service-untrusted' as const;
@@ -1154,6 +1199,32 @@ function standardCode(reasonCode: string) {
     case 'resource-exhausted': return 'resource-exhausted' as const;
     default: return 'runtime-permission-denied' as const;
   }
+}
+
+function validatePersonaCharacterWrite(
+  payload: Readonly<Record<string, unknown>>,
+  replace: boolean,
+  command: string,
+): void {
+  const allowed = replace
+    ? ['personaCharacterId', 'baseContentHash', 'worldId', 'visibility', 'origin', 'profile']
+    : ['worldId', 'visibility', 'origin', 'profile'];
+  assertAllowedKeys(payload, allowed, allowed, command);
+  if (replace) {
+    requiredText(payload.personaCharacterId, 'personaCharacterId', command, MAX_IDENTIFIER_LENGTH);
+    if (typeof payload.baseContentHash !== 'string' || !/^[a-f0-9]{64}$/u.test(payload.baseContentHash)) {
+      throw invalidPayload(command, 'baseContentHash is invalid');
+    }
+  }
+  requiredText(payload.worldId, 'worldId', command, MAX_IDENTIFIER_LENGTH);
+  personaWritableVisibility(payload.visibility, command);
+  if (!isPlainRecord(payload.origin) || !isPlainRecord(payload.profile)) {
+    throw invalidPayload(command, 'origin and profile must be objects');
+  }
+  if (Object.hasOwn(payload.profile, 'profileHash') || Object.hasOwn(payload.profile, 'profileCoverage')) {
+    throw invalidPayload(command, 'profile contains output-only fields');
+  }
+  validateJsonValue(payload, command, 2 * 1024 * 1024);
 }
 
 function actionHint(reasonCode: string): string {

@@ -33,6 +33,17 @@ export type NimiStandardShellNegativeState =
   | 'account-changed'
   | 'runtime-restarted'
   | 'revoked'
+  | 'invalid-input'
+  | 'session-invalid'
+  | 'access-denied'
+  | 'owner-authority-missing'
+  | 'content-conflict'
+  | 'realm-unavailable'
+  | 'rate-limited'
+  | 'upstream-failed'
+  | 'contract-invalid'
+  | 'request-too-large'
+  | 'response-too-large'
   | 'already-exists'
   | 'object-too-large'
   | 'invalid-range'
@@ -181,6 +192,10 @@ export const NIMI_STANDARD_SHELL_CAPABILITIES = [
       { id: 'voiceAssetsList', command: 'nimi.shell.localApp.voiceAssetsList', negativeStates: ['protected-carrier-required', 'runtime-service-unavailable', 'runtime-service-untrusted', 'runtime-service-error-unclassified', 'runtime-unauthenticated', 'runtime-permission-denied', 'process-replaced', 'account-changed', 'runtime-restarted', 'invalid-payload', 'resource-exhausted', 'host-internal-error'] },
       { id: 'realmWorldCoreList', command: 'nimi.shell.localApp.realmWorldCoreList', negativeStates: ['protected-carrier-required', 'runtime-service-unavailable', 'runtime-service-untrusted', 'runtime-service-error-unclassified', 'runtime-unauthenticated', 'runtime-permission-denied', 'invalid-payload', 'resource-exhausted', 'host-internal-error'] },
       { id: 'realmWorldCoreCreate', command: 'nimi.shell.localApp.realmWorldCoreCreate', negativeStates: ['protected-carrier-required', 'runtime-service-unavailable', 'runtime-service-untrusted', 'runtime-service-error-unclassified', 'runtime-unauthenticated', 'runtime-permission-denied', 'invalid-payload', 'not-found', 'resource-exhausted', 'host-internal-error'] },
+      { id: 'realmPersonaCharacterListOwned', command: 'nimi.shell.localApp.realmPersonaCharacterListOwned', negativeStates: ['protected-carrier-required', 'capability-unavailable', 'invalid-input', 'session-invalid', 'access-denied', 'owner-authority-missing', 'realm-unavailable', 'rate-limited', 'upstream-failed', 'contract-invalid', 'response-too-large', 'host-internal-error'] },
+      { id: 'realmPersonaCharacterGetOwned', command: 'nimi.shell.localApp.realmPersonaCharacterGetOwned', negativeStates: ['protected-carrier-required', 'capability-unavailable', 'invalid-input', 'session-invalid', 'access-denied', 'owner-authority-missing', 'not-found', 'realm-unavailable', 'rate-limited', 'upstream-failed', 'contract-invalid', 'response-too-large', 'host-internal-error'] },
+      { id: 'realmPersonaCharacterCreate', command: 'nimi.shell.localApp.realmPersonaCharacterCreate', negativeStates: ['protected-carrier-required', 'capability-unavailable', 'invalid-input', 'session-invalid', 'access-denied', 'owner-authority-missing', 'not-found', 'realm-unavailable', 'rate-limited', 'upstream-failed', 'contract-invalid', 'request-too-large', 'response-too-large', 'host-internal-error'] },
+      { id: 'realmPersonaCharacterReplace', command: 'nimi.shell.localApp.realmPersonaCharacterReplace', negativeStates: ['protected-carrier-required', 'capability-unavailable', 'invalid-input', 'session-invalid', 'access-denied', 'owner-authority-missing', 'not-found', 'content-conflict', 'realm-unavailable', 'rate-limited', 'upstream-failed', 'contract-invalid', 'request-too-large', 'response-too-large', 'host-internal-error'] },
       { id: 'agentReferenceList', command: 'nimi.shell.localApp.agentReferenceList', negativeStates: ['protected-carrier-required', 'runtime-service-unavailable', 'runtime-service-untrusted', 'runtime-service-error-unclassified', 'runtime-unauthenticated', 'process-replaced', 'account-changed', 'runtime-restarted', 'runtime-permission-denied', 'resource-exhausted', 'host-internal-error'] },
       { id: 'conversationOpen', command: 'nimi.shell.localApp.conversationOpen', negativeStates: ['protected-carrier-required', 'runtime-service-unavailable', 'runtime-service-untrusted', 'runtime-service-error-unclassified', 'runtime-unauthenticated', 'process-replaced', 'account-changed', 'runtime-restarted', 'invalid-payload', 'resource-exhausted', 'host-internal-error'] },
       { id: 'conversationSendTurn', command: 'nimi.shell.localApp.conversationSendTurn', negativeStates: ['protected-carrier-required', 'runtime-service-unavailable', 'runtime-service-untrusted', 'runtime-service-error-unclassified', 'runtime-unauthenticated', 'process-replaced', 'account-changed', 'runtime-restarted', 'invalid-payload', 'resource-exhausted', 'host-internal-error'] },
@@ -313,6 +328,10 @@ const LOCAL_APP_ALLOWED_OPERATIONS = [
   'local-app.agentCommitPresentation',
   'local-app.realmWorldCoreList',
   'local-app.realmWorldCoreCreate',
+  'local-app.realmPersonaCharacterListOwned',
+  'local-app.realmPersonaCharacterGetOwned',
+  'local-app.realmPersonaCharacterCreate',
+  'local-app.realmPersonaCharacterReplace',
   'storage.readJson',
   'storage.writeJson',
   'storage.removeJson',

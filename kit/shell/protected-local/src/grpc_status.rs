@@ -1,3 +1,4 @@
+use crate::generated::{AccountReasonCode, ReasonCode};
 use crate::{LocalAppOperationError, LocalAppReasonCode, NimiHostError, NimiHostErrorReasonCode};
 use prost::Message;
 use std::collections::{BTreeMap, HashMap};
@@ -166,6 +167,45 @@ pub(crate) fn local_app_reason_from_proto(value: i32) -> Option<LocalAppReasonCo
         666 => LocalAppReasonCode::RuntimeServiceUntrusted,
         300 => LocalAppReasonCode::RuntimeUnauthenticated,
         503 => LocalAppReasonCode::RuntimeAccessDenied,
+        _ => return None,
+    })
+}
+
+pub(crate) fn local_app_persona_reason_from_realm_response(
+    reason_code: i32,
+    account_reason_code: i32,
+) -> Option<LocalAppReasonCode> {
+    let reason = ReasonCode::try_from(reason_code).ok()?;
+    let account_reason = AccountReasonCode::try_from(account_reason_code).ok()?;
+    Some(match reason {
+        ReasonCode::LocalAppOperationUnavailable | ReasonCode::LocalAppOperationUnsupported => {
+            LocalAppReasonCode::CapabilityUnavailable
+        }
+        ReasonCode::ProtocolEnvelopeInvalid | ReasonCode::RealmRequestRejected => {
+            LocalAppReasonCode::InvalidInput
+        }
+        ReasonCode::AppMessagePayloadTooLarge => LocalAppReasonCode::RequestTooLarge,
+        ReasonCode::AuthTokenInvalid
+        | ReasonCode::ProtectedLocalBootEpochMismatch
+        | ReasonCode::LocalAppProcessMismatch
+        | ReasonCode::LocalAppSessionRevoked
+        | ReasonCode::LocalAppAccountChanged
+        | ReasonCode::LocalAppSnapshotUnavailable => LocalAppReasonCode::SessionInvalid,
+        ReasonCode::PrincipalUnauthorized
+        | ReasonCode::AppScopeForbidden
+        | ReasonCode::LocalAppAccessDenied => LocalAppReasonCode::PersonaAccessDenied,
+        ReasonCode::LocalAppOwnerUnavailable => LocalAppReasonCode::OwnerAuthorityMissing,
+        ReasonCode::RealmNotFound => LocalAppReasonCode::NotFound,
+        ReasonCode::RealmConflict => LocalAppReasonCode::ContentConflict,
+        ReasonCode::RealmRateLimited => LocalAppReasonCode::RateLimited,
+        ReasonCode::RealmContractInvalid
+            if account_reason == AccountReasonCode::BrokerResponseTooLarge =>
+        {
+            LocalAppReasonCode::ResponseTooLarge
+        }
+        ReasonCode::RealmContractInvalid => LocalAppReasonCode::ContractInvalid,
+        ReasonCode::RealmUnavailable => LocalAppReasonCode::RealmUnavailable,
+        ReasonCode::RealmOperationFailed => LocalAppReasonCode::UpstreamFailed,
         _ => return None,
     })
 }
@@ -388,6 +428,31 @@ mod tests {
             );
             assert_eq!(local_app_reason_from_proto(proto_reason), Some(expected));
         }
+    }
+
+    #[test]
+    fn persona_realm_failures_use_generated_reason_enums() {
+        assert_eq!(
+            local_app_persona_reason_from_realm_response(
+                ReasonCode::RealmConflict as i32,
+                AccountReasonCode::BrokerConflict as i32,
+            ),
+            Some(LocalAppReasonCode::ContentConflict)
+        );
+        assert_eq!(
+            local_app_persona_reason_from_realm_response(
+                ReasonCode::RealmContractInvalid as i32,
+                AccountReasonCode::BrokerResponseTooLarge as i32,
+            ),
+            Some(LocalAppReasonCode::ResponseTooLarge)
+        );
+        assert_eq!(
+            local_app_persona_reason_from_realm_response(
+                ReasonCode::AppMessagePayloadTooLarge as i32,
+                AccountReasonCode::BrokerRequestInvalid as i32,
+            ),
+            Some(LocalAppReasonCode::RequestTooLarge)
+        );
     }
 
     #[test]

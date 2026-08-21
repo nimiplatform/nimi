@@ -36,6 +36,17 @@ error_envelope:
     - details
   codes:
     - capability-unavailable
+    - invalid-input
+    - session-invalid
+    - access-denied
+    - owner-authority-missing
+    - content-conflict
+    - realm-unavailable
+    - rate-limited
+    - upstream-failed
+    - contract-invalid
+    - request-too-large
+    - response-too-large
     - protected-carrier-required
     - runtime-service-unavailable
     - runtime-service-untrusted
@@ -258,6 +269,10 @@ capability_sets:
       - local-app.agentCommitPresentation
       - local-app.realmWorldCoreList
       - local-app.realmWorldCoreCreate
+      - local-app.realmPersonaCharacterListOwned
+      - local-app.realmPersonaCharacterGetOwned
+      - local-app.realmPersonaCharacterCreate
+      - local-app.realmPersonaCharacterReplace
       - storage.readJson
       - storage.writeJson
       - storage.removeJson
@@ -405,6 +420,38 @@ local_app_operation_contract:
       operation_id: realm.world_core.create
       request_fields: [core, id, origin, visibility]
       response_fields: [worldCore]
+      transport_boundary: exact_runtime_account_unary
+      effect_boundary: write
+      owner: runtime_account_service
+    realmPersonaCharacterListOwned:
+      command: local-app.realmPersonaCharacterListOwned
+      operation_id: realm.persona-character.list-owned
+      request_fields: [worldId, visibility, afterId, take]
+      response_fields: [personaCharacters]
+      transport_boundary: exact_runtime_account_unary
+      effect_boundary: read
+      owner: runtime_account_service
+    realmPersonaCharacterGetOwned:
+      command: local-app.realmPersonaCharacterGetOwned
+      operation_id: realm.persona-character.get-owned
+      request_fields: [personaCharacterId]
+      response_fields: [personaCharacter]
+      transport_boundary: exact_runtime_account_unary
+      effect_boundary: read
+      owner: runtime_account_service
+    realmPersonaCharacterCreate:
+      command: local-app.realmPersonaCharacterCreate
+      operation_id: realm.persona-character.create
+      request_fields: [worldId, visibility, origin, profile]
+      response_fields: [personaCharacter]
+      transport_boundary: exact_runtime_account_unary
+      effect_boundary: write
+      owner: runtime_account_service
+    realmPersonaCharacterReplace:
+      command: local-app.realmPersonaCharacterReplace
+      operation_id: realm.persona-character.replace
+      request_fields: [personaCharacterId, baseContentHash, worldId, visibility, origin, profile]
+      response_fields: [personaCharacter]
       transport_boundary: exact_runtime_account_unary
       effect_boundary: write
       owner: runtime_account_service
@@ -869,6 +916,18 @@ capabilities:
       - id: realmWorldCoreCreate
         command: nimi.shell.localApp.realmWorldCoreCreate
         negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, invalid-payload, not-found, resource-exhausted, host-internal-error]
+      - id: realmPersonaCharacterListOwned
+        command: nimi.shell.localApp.realmPersonaCharacterListOwned
+        negative_states: [protected-carrier-required, capability-unavailable, invalid-input, session-invalid, access-denied, owner-authority-missing, realm-unavailable, rate-limited, upstream-failed, contract-invalid, response-too-large, host-internal-error]
+      - id: realmPersonaCharacterGetOwned
+        command: nimi.shell.localApp.realmPersonaCharacterGetOwned
+        negative_states: [protected-carrier-required, capability-unavailable, invalid-input, session-invalid, access-denied, owner-authority-missing, not-found, realm-unavailable, rate-limited, upstream-failed, contract-invalid, response-too-large, host-internal-error]
+      - id: realmPersonaCharacterCreate
+        command: nimi.shell.localApp.realmPersonaCharacterCreate
+        negative_states: [protected-carrier-required, capability-unavailable, invalid-input, session-invalid, access-denied, owner-authority-missing, not-found, realm-unavailable, rate-limited, upstream-failed, contract-invalid, request-too-large, response-too-large, host-internal-error]
+      - id: realmPersonaCharacterReplace
+        command: nimi.shell.localApp.realmPersonaCharacterReplace
+        negative_states: [protected-carrier-required, capability-unavailable, invalid-input, session-invalid, access-denied, owner-authority-missing, not-found, content-conflict, realm-unavailable, rate-limited, upstream-failed, contract-invalid, request-too-large, response-too-large, host-internal-error]
       - id: agentReferenceList
         command: nimi.shell.localApp.agentReferenceList
         negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, resource-exhausted, host-internal-error]

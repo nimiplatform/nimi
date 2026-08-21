@@ -222,6 +222,30 @@ pub struct NativeWorldCoreCreateInput {
 }
 
 #[napi(object)]
+pub struct NativePersonaCharacterListOwnedInput {
+    pub world_id: Option<String>,
+    pub visibility: Option<String>,
+    pub after_id: Option<String>,
+    pub take: Option<u32>,
+}
+
+#[napi(object)]
+pub struct NativePersonaCharacterGetOwnedInput {
+    pub persona_character_id: String,
+}
+
+#[napi(object)]
+pub struct NativePersonaCharacterCreateInput {
+    pub body: JsonValue,
+}
+
+#[napi(object)]
+pub struct NativePersonaCharacterReplaceInput {
+    pub persona_character_id: String,
+    pub body: JsonValue,
+}
+
+#[napi(object)]
 pub struct NativeStorageReadInput {
     pub relative_path: String,
 }

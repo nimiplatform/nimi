@@ -71,6 +71,38 @@ describe('Electron protected local-app host', () => {
     ]);
   });
 
+  it('forwards exact owner PersonaCharacter envelopes without duplicating the SDK projection', async () => {
+    const calls: Array<{ method: string; input?: unknown }> = [];
+    const host = createNimiElectronLocalAppHostForBinding(binding(calls));
+    await expect(host.realmPersonaCharacterListOwned({ worldId: 'world-1', visibility: 'private', afterId: 'persona-0', take: 50 }))
+      .resolves.toEqual([personaProjection()]);
+    await expect(host.realmPersonaCharacterGetOwned({ personaCharacterId: 'persona-1' }))
+      .resolves.toEqual(personaProjection());
+    await expect(host.realmPersonaCharacterCreate({ worldId: 'world-1', visibility: 'private', origin: { kind: 'manual' }, profile: personaProfileInput() }))
+      .resolves.toEqual(personaProjection());
+    await expect(host.realmPersonaCharacterReplace({ personaCharacterId: 'persona-1', body: { baseContentHash: 'a'.repeat(64), worldId: 'world-1', visibility: 'private', origin: { kind: 'manual' }, profile: personaProfileInput() } }))
+      .resolves.toEqual(personaProjection());
+    expect(calls.map(({ method }) => method)).toEqual([
+      'localAppRealmPersonaCharacterListOwned',
+      'localAppRealmPersonaCharacterGetOwned',
+      'localAppRealmPersonaCharacterCreate',
+      'localAppRealmPersonaCharacterReplace',
+    ]);
+
+    const opaque = binding([]);
+    opaque.localAppRealmPersonaCharacterGetOwned = async () => ({
+      status: 'ok', value: { ...personaProjection(), profile: { token: 'product-token', narrative: 'opaque.jwt.value' } },
+    });
+    await expect(createNimiElectronLocalAppHostForBinding(opaque).realmPersonaCharacterGetOwned({ personaCharacterId: 'persona-1' }))
+      .resolves.toMatchObject({ profile: { token: 'product-token' } });
+    await expect(host.realmPersonaCharacterCreate({
+      worldId: 'world-1', visibility: 'private', origin: { kind: 'forge' },
+      profile: { token: 'product-token', authoring: { extensions: { future: { fields: { secret: 'story' } } } } },
+    })).resolves.toEqual(personaProjection());
+    expect(() => host.realmPersonaCharacterCreate({ worldId: 'world-1', visibility: 'system', origin: {}, profile: {} }))
+      .toThrow(expect.objectContaining({ reasonCode: 'runtime-service-untrusted' }));
+  });
+
   it('forwards the exact Agent configuration payloads and restore projection', async () => {
     const calls: Array<{ method: string; input?: unknown }> = [];
     const host = createNimiElectronLocalAppHostForBinding(binding(calls));
@@ -452,6 +484,10 @@ function binding(calls: Array<{ method: string; input?: unknown }>) {
     localAppVoiceAssetsList: record('localAppVoiceAssetsList', { assets: [], nextPageToken: '' }),
     localAppRealmWorldCoreList: record('localAppRealmWorldCoreList', [{ id: 'world-1', visibility: 'private' }]),
     localAppRealmWorldCoreCreate: record('localAppRealmWorldCoreCreate', { id: 'world-2', visibility: 'private' }),
+    localAppRealmPersonaCharacterListOwned: record('localAppRealmPersonaCharacterListOwned', [personaProjection()]),
+    localAppRealmPersonaCharacterGetOwned: record('localAppRealmPersonaCharacterGetOwned', personaProjection()),
+    localAppRealmPersonaCharacterCreate: record('localAppRealmPersonaCharacterCreate', personaProjection()),
+    localAppRealmPersonaCharacterReplace: record('localAppRealmPersonaCharacterReplace', personaProjection()),
     localAppAgentReferenceList: record('localAppAgentReferenceList', [{
       agentHandle: 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
       displayName: 'Agent One',
@@ -512,6 +548,49 @@ function binding(calls: Array<{ method: string; input?: unknown }>) {
     localAppConversationSnapshot: record('localAppConversationSnapshot', {
       conversationAnchorId: 'anchor-1', activeTurnId: null, messages: [], truncatedBefore: false,
     }),
+  };
+}
+
+function personaProjection() {
+  return {
+    id: 'persona-1', worldId: 'world-1', schemaVersion: 'realm.persona-character-core/v1',
+    contentHash: 'a'.repeat(64), contentRevision: 1, sourceHash: 'b'.repeat(64), visibility: 'private',
+    origin: { kind: 'manual' },
+    profile: {
+      ...personaProfileInput(),
+      profileHash: 'c'.repeat(64),
+      profileCoverage: {
+        manifestSchemaVersion: 'realm.character-profile-coverage/v1',
+        requiredSections: [], optionalSections: [], requiredRefs: [], optionalRefs: [], diagnostics: [],
+        aggregateStatus: 'complete', profileCoverageHash: 'd'.repeat(64),
+      },
+    },
+    validity: { status: 'valid', issues: [] },
+    materializationReadiness: { status: 'ready', blockers: [] },
+    createdAt: '2026-08-21T00:00:00.000Z', updatedAt: '2026-08-21T00:00:00.000Z',
+  };
+}
+
+function personaProfileInput() {
+  return {
+    profileSchemaVersion: 'realm.character-profile-core/v1',
+    identity: { name: 'Persona', summary: 'line one\nline two' },
+    presentation: { displayName: 'Persona' },
+    narrative: { summary: 'Narrative' },
+    interactionProfile: { interactionModes: [] },
+    assets: {
+      resourceRefs: [], intents: [],
+      externalRefs: [{ refId: 'avatar', kind: 'image', uri: 'https://cdn.example/avatar.png?size=large' }],
+    },
+    authoring: {
+      source: 'test',
+      extensions: {
+        'works.nimi.role-setting': {
+          extensionSchemaVersion: 'role-setting/v1', namespace: 'works.nimi.role-setting', productSemantic: true,
+          fields: { endpoint: 'story-chapter', route: 'east-road' },
+        },
+      },
+    },
   };
 }
 

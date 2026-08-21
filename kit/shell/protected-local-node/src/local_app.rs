@@ -789,6 +789,66 @@ pub async fn local_app_realm_world_core_create(
     .await
 }
 
+#[napi(js_name = "localAppRealmPersonaCharacterListOwned")]
+pub async fn local_app_realm_persona_character_list_owned(
+    input: NativePersonaCharacterListOwnedInput,
+) -> NativeJsonOutcome {
+    invoke_agent(|session| async move {
+        session
+            .realm_persona_character_list_owned(LocalAppPersonaCharacterListOwnedRequest {
+                world_id: input.world_id,
+                visibility: input.visibility,
+                after_id: input.after_id,
+                take: input.take,
+            })
+            .await
+    })
+    .await
+}
+
+#[napi(js_name = "localAppRealmPersonaCharacterGetOwned")]
+pub async fn local_app_realm_persona_character_get_owned(
+    input: NativePersonaCharacterGetOwnedInput,
+) -> NativeJsonOutcome {
+    invoke_agent(|session| async move {
+        session
+            .realm_persona_character_get_owned(LocalAppPersonaCharacterGetOwnedRequest {
+                persona_character_id: input.persona_character_id,
+            })
+            .await
+    })
+    .await
+}
+
+#[napi(js_name = "localAppRealmPersonaCharacterCreate")]
+pub async fn local_app_realm_persona_character_create(
+    input: NativePersonaCharacterCreateInput,
+) -> NativeJsonOutcome {
+    invoke_agent(|session| async move {
+        session
+            .realm_persona_character_create(LocalAppPersonaCharacterCreateRequest {
+                body: input.body,
+            })
+            .await
+    })
+    .await
+}
+
+#[napi(js_name = "localAppRealmPersonaCharacterReplace")]
+pub async fn local_app_realm_persona_character_replace(
+    input: NativePersonaCharacterReplaceInput,
+) -> NativeJsonOutcome {
+    invoke_agent(|session| async move {
+        session
+            .realm_persona_character_replace(LocalAppPersonaCharacterReplaceRequest {
+                persona_character_id: input.persona_character_id,
+                body: input.body,
+            })
+            .await
+    })
+    .await
+}
+
 #[napi(js_name = "localAppAgentReferenceList")]
 pub async fn local_app_agent_reference_list() -> NativeJsonOutcome {
     invoke_agent(|session| async move {

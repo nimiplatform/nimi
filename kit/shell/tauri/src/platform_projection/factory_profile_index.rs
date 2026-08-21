@@ -329,7 +329,10 @@ mod tests {
             "capabilities",
             "applicableScopes",
         ] {
-            assert!(profile.contains_key(field), "missing projected field {field}");
+            assert!(
+                profile.contains_key(field),
+                "missing projected field {field}"
+            );
         }
         let parsed: FactoryProfileIndexRecord = serde_json::from_str(&raw).expect("deserialize");
         assert_eq!(record, parsed);

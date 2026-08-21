@@ -29,6 +29,12 @@ describe('renderer local-app standard-shell surface', () => {
       ['local-app.agentPresentationSnapshot', 'local_app_agent_presentation_snapshot'],
       ['local-app.agentCommitPresentation', 'local_app_agent_commit_presentation'],
       ['local-app.artifactUpload', 'local_app_artifact_upload'],
+      ['local-app.realmWorldCoreList', 'local_app_realm_world_core_list'],
+      ['local-app.realmWorldCoreCreate', 'local_app_realm_world_core_create'],
+      ['local-app.realmPersonaCharacterListOwned', 'local_app_persona_character_list_owned'],
+      ['local-app.realmPersonaCharacterGetOwned', 'local_app_persona_character_get_owned'],
+      ['local-app.realmPersonaCharacterCreate', 'local_app_persona_character_create'],
+      ['local-app.realmPersonaCharacterReplace', 'local_app_persona_character_replace'],
     ] as const;
     for (const [operation, command] of mappings) {
       expect(resolveTauriStandardCommand(NIMI_STANDARD_SHELL_COMMANDS[operation])).toBe(command);
@@ -489,6 +495,67 @@ describe('renderer local-app standard-shell surface', () => {
       },
     ]);
     expect(JSON.stringify(invocations)).not.toMatch(/methodId|realmBaseUrl|caller|authorization/u);
+  });
+
+  it('projects exact owner PersonaCharacter commands and rejects caller authority fields', async () => {
+    const invocations: Array<{ command: string; payload: unknown }> = [];
+    const profileInput = {
+      profileSchemaVersion: 'realm.character-profile-core/v1',
+      identity: { name: 'Persona', summary: 'line one\nline two' },
+      presentation: { displayName: 'Persona' },
+      narrative: { summary: 'Narrative' },
+      interactionProfile: { interactionModes: [] },
+      assets: {
+        resourceRefs: [], intents: [],
+        externalRefs: [{ refId: 'avatar', kind: 'image', uri: 'https://cdn.example/avatar.png?size=large' }],
+      },
+      authoring: {
+        source: 'test',
+        extensions: {
+          'works.nimi.role-setting': {
+            extensionSchemaVersion: 'role-setting/v1', namespace: 'works.nimi.role-setting', productSemantic: true,
+            fields: { endpoint: 'story-chapter', route: 'east-road' },
+          },
+        },
+      },
+    };
+    const persona = {
+      id: 'persona-1', worldId: 'world-1', schemaVersion: 'realm.persona-character-core/v1',
+      contentHash: 'a'.repeat(64), contentRevision: 1, sourceHash: 'b'.repeat(64), visibility: 'private',
+      origin: { kind: 'manual' },
+      profile: {
+        ...profileInput,
+        profileHash: 'c'.repeat(64),
+        profileCoverage: {
+          manifestSchemaVersion: 'realm.character-profile-coverage/v1',
+          requiredSections: [], optionalSections: [], requiredRefs: [], optionalRefs: [], diagnostics: [],
+          aggregateStatus: 'complete', profileCoverageHash: 'd'.repeat(64),
+        },
+      },
+      validity: { status: 'valid', issues: [] }, materializationReadiness: { status: 'ready', blockers: [] },
+      createdAt: '2026-08-21T00:00:00.000Z', updatedAt: '2026-08-21T00:00:00.000Z',
+    };
+    (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
+      invoke: async (command: string, payload: unknown) => {
+        invocations.push({ command, payload });
+        return command.endsWith('ListOwned') ? [persona] : persona;
+      },
+      listen: () => () => {},
+    };
+    const owner = createNimiLocalAppStandardShellSurface().realm.personaCharacter;
+    await expect(owner.listOwned({ worldId: 'world-1', visibility: 'private', afterId: 'persona-0', take: 50 })).resolves.toEqual([persona]);
+    await expect(owner.getOwned('persona-1')).resolves.toEqual(persona);
+    await expect(owner.create({ worldId: 'world-1', visibility: 'private', origin: { kind: 'manual' }, profile: profileInput })).resolves.toEqual(persona);
+    await expect(owner.replace({ personaCharacterId: 'persona-1', baseContentHash: 'a'.repeat(64), worldId: 'world-1', visibility: 'private', origin: { kind: 'manual' }, profile: profileInput })).resolves.toEqual(persona);
+    expect(() => owner.listOwned({ scope: 'owned' } as never)).toThrow();
+    expect(() => owner.create({ worldId: 'world-1', visibility: 'private', origin: { kind: 'manual' }, profile: profileInput, ownerAccountId: 'acct-1' } as never)).toThrow();
+    await expect(owner.create({ worldId: 'world-1', visibility: 'private', origin: { kind: 'forge' }, profile: { token: 'product-token' } } as never)).resolves.toEqual(persona);
+    expect(JSON.stringify(invocations)).not.toMatch(/ownerAccountId|methodId|realmBaseUrl|authorization/u);
+
+    expect(invocations[0]).toEqual({
+      command: 'nimi.shell.localApp.realmPersonaCharacterListOwned',
+      payload: { payload: { worldId: 'world-1', visibility: 'private', afterId: 'persona-0', take: 50 } },
+    });
   });
 
   it('sends turn interrupt with only the opaque handle and conversation anchor', async () => {

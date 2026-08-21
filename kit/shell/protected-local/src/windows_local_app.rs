@@ -1,6 +1,7 @@
 mod agent_configure;
 mod app_ai_config;
 mod conversation;
+mod realm_persona_character;
 mod realm_world_core;
 mod reference;
 mod scenario;
@@ -42,8 +43,10 @@ use crate::{
     LocalAppConversationSendResult, LocalAppConversationSnapshot,
     LocalAppConversationSnapshotRequest, LocalAppConversationSubscribeRequest,
     LocalAppConversationSubscriptionReceiver, LocalAppCurrentUserDisplay,
-    LocalAppCurrentUserStatus, LocalAppOperationError, LocalAppReasonCode,
-    LocalAppScenarioCancelRequest, LocalAppScenarioExecuteRequest, LocalAppScenarioGetRequest,
+    LocalAppCurrentUserStatus, LocalAppOperationError, LocalAppPersonaCharacterCreateRequest,
+    LocalAppPersonaCharacterGetOwnedRequest, LocalAppPersonaCharacterListOwnedRequest,
+    LocalAppPersonaCharacterReplaceRequest, LocalAppReasonCode, LocalAppScenarioCancelRequest,
+    LocalAppScenarioExecuteRequest, LocalAppScenarioGetRequest,
     LocalAppScenarioJobSubscribeRequest, LocalAppScenarioListVoiceAssetsRequest,
     LocalAppScenarioReadArtifactRequest, LocalAppScenarioStreamReceiver,
     LocalAppScenarioSubmitRequest, LocalAppScenarioUploadArtifactRequest, LocalAppSessionState,
@@ -360,6 +363,50 @@ impl NimiLocalAppSession for PlatformLocalAppSession {
         Box::pin(async move {
             let _operation = self.operation_gate.read().await;
             realm_world_core::create(self.checked_channel()?, request).await
+        })
+    }
+
+    fn realm_persona_character_list_owned(
+        &self,
+        request: LocalAppPersonaCharacterListOwnedRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
+    {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            realm_persona_character::list_owned(self.checked_channel()?, request).await
+        })
+    }
+
+    fn realm_persona_character_get_owned(
+        &self,
+        request: LocalAppPersonaCharacterGetOwnedRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
+    {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            realm_persona_character::get_owned(self.checked_channel()?, request).await
+        })
+    }
+
+    fn realm_persona_character_create(
+        &self,
+        request: LocalAppPersonaCharacterCreateRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
+    {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            realm_persona_character::create(self.checked_channel()?, request).await
+        })
+    }
+
+    fn realm_persona_character_replace(
+        &self,
+        request: LocalAppPersonaCharacterReplaceRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
+    {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            realm_persona_character::replace(self.checked_channel()?, request).await
         })
     }
 

@@ -76,6 +76,18 @@ pub enum LocalAppReasonCode {
     OwnerUnavailable,
     CurrentUserDisplayUnavailable,
     OperationUnavailable,
+    CapabilityUnavailable,
+    InvalidInput,
+    SessionInvalid,
+    PersonaAccessDenied,
+    OwnerAuthorityMissing,
+    ContentConflict,
+    RealmUnavailable,
+    RateLimited,
+    UpstreamFailed,
+    ContractInvalid,
+    RequestTooLarge,
+    ResponseTooLarge,
     InvalidPayload,
     InvalidPath,
     NotFound,
@@ -145,6 +157,18 @@ impl LocalAppReasonCode {
             Self::OwnerUnavailable => "local-app-owner-unavailable",
             Self::CurrentUserDisplayUnavailable => "current-user-display-unavailable",
             Self::OperationUnavailable => "local-app-operation-unavailable",
+            Self::CapabilityUnavailable => "capability-unavailable",
+            Self::InvalidInput => "invalid-input",
+            Self::SessionInvalid => "session-invalid",
+            Self::PersonaAccessDenied => "access-denied",
+            Self::OwnerAuthorityMissing => "owner-authority-missing",
+            Self::ContentConflict => "content-conflict",
+            Self::RealmUnavailable => "realm-unavailable",
+            Self::RateLimited => "rate-limited",
+            Self::UpstreamFailed => "upstream-failed",
+            Self::ContractInvalid => "contract-invalid",
+            Self::RequestTooLarge => "request-too-large",
+            Self::ResponseTooLarge => "response-too-large",
             Self::InvalidPayload => "invalid-payload",
             Self::InvalidPath => "invalid-path",
             Self::NotFound => "not-found",
@@ -428,6 +452,30 @@ pub struct LocalAppWorldCoreListRequest {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct LocalAppWorldCoreCreateRequest {
+    pub body: JsonValue,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct LocalAppPersonaCharacterListOwnedRequest {
+    pub world_id: Option<String>,
+    pub visibility: Option<String>,
+    pub after_id: Option<String>,
+    pub take: Option<u32>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LocalAppPersonaCharacterGetOwnedRequest {
+    pub persona_character_id: String,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct LocalAppPersonaCharacterCreateRequest {
+    pub body: JsonValue,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct LocalAppPersonaCharacterReplaceRequest {
+    pub persona_character_id: String,
     pub body: JsonValue,
 }
 
@@ -894,6 +942,26 @@ pub trait NimiLocalAppSession: Send + Sync {
     fn realm_world_core_create(
         &self,
         request: LocalAppWorldCoreCreateRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+
+    fn realm_persona_character_list_owned(
+        &self,
+        request: LocalAppPersonaCharacterListOwnedRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+
+    fn realm_persona_character_get_owned(
+        &self,
+        request: LocalAppPersonaCharacterGetOwnedRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+
+    fn realm_persona_character_create(
+        &self,
+        request: LocalAppPersonaCharacterCreateRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+
+    fn realm_persona_character_replace(
+        &self,
+        request: LocalAppPersonaCharacterReplaceRequest,
     ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
 
     fn storage_read_json(

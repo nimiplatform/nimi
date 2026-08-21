@@ -27,6 +27,17 @@ pub const STANDARD_SHELL_CAPABILITY_IDS: &[&str] = &[
 
 pub const STANDARD_SHELL_ERROR_CODES: &[&str] = &[
     "capability-unavailable",
+    "invalid-input",
+    "session-invalid",
+    "access-denied",
+    "owner-authority-missing",
+    "content-conflict",
+    "realm-unavailable",
+    "rate-limited",
+    "upstream-failed",
+    "contract-invalid",
+    "request-too-large",
+    "response-too-large",
     "protected-carrier-required",
     "runtime-service-unavailable",
     "runtime-service-untrusted",

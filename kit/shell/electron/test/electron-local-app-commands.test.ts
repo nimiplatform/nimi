@@ -376,6 +376,68 @@ describe('Electron local-app standard-shell operations', () => {
     })).rejects.toMatchObject({ code: 'invalid-payload' });
   });
 
+  it('routes only the four exact owner PersonaCharacter operations', async () => {
+    const ipcMain = new FakeIpcMain();
+    const calls: unknown[] = [];
+    registerBridge(ipcMain, calls);
+    const create = { worldId: 'world-1', visibility: 'private', origin: { kind: 'manual' }, profile: {} };
+    const replace = { personaCharacterId: 'persona-1', baseContentHash: 'a'.repeat(64), ...create };
+    await invokeBridge(ipcMain, createInvokeEvent().event, {
+      command: NIMI_STANDARD_SHELL_COMMANDS['local-app.realmPersonaCharacterListOwned'],
+      payload: { payload: { worldId: 'world-1', visibility: 'private', afterId: 'persona-0', take: 50 } },
+    });
+    await invokeBridge(ipcMain, createInvokeEvent().event, {
+      command: NIMI_STANDARD_SHELL_COMMANDS['local-app.realmPersonaCharacterGetOwned'],
+      payload: { payload: { personaCharacterId: 'persona-1' } },
+    });
+    await invokeBridge(ipcMain, createInvokeEvent().event, {
+      command: NIMI_STANDARD_SHELL_COMMANDS['local-app.realmPersonaCharacterCreate'],
+      payload: { payload: create },
+    });
+    await invokeBridge(ipcMain, createInvokeEvent().event, {
+      command: NIMI_STANDARD_SHELL_COMMANDS['local-app.realmPersonaCharacterReplace'],
+      payload: { payload: replace },
+    });
+    expect(calls).toEqual([
+      ['realmPersonaCharacterListOwned', { worldId: 'world-1', visibility: 'private', afterId: 'persona-0', take: 50 }],
+      ['realmPersonaCharacterGetOwned', { personaCharacterId: 'persona-1' }],
+      ['realmPersonaCharacterCreate', create],
+      ['realmPersonaCharacterReplace', {
+        personaCharacterId: 'persona-1',
+        body: { baseContentHash: 'a'.repeat(64), worldId: 'world-1', visibility: 'private', origin: { kind: 'manual' }, profile: {} },
+      }],
+    ]);
+    for (const forbidden of [
+      { scope: 'owned' },
+      { methodId: 'WorldCoreController_listPersonaCharacters' },
+      { token: 'secret' },
+    ]) {
+      await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
+        command: NIMI_STANDARD_SHELL_COMMANDS['local-app.realmPersonaCharacterListOwned'],
+        payload: { payload: forbidden },
+      })).rejects.toMatchObject({ code: 'invalid-payload' });
+    }
+  });
+
+  it('keeps PersonaCharacter canonical reason and standard-shell code identical', async () => {
+    for (const reasonCode of [
+      'capability-unavailable', 'invalid-input', 'session-invalid', 'access-denied',
+      'owner-authority-missing', 'not-found', 'content-conflict', 'realm-unavailable',
+      'rate-limited', 'upstream-failed', 'contract-invalid', 'request-too-large', 'response-too-large',
+    ]) {
+      const host = {
+        realmPersonaCharacterGetOwned: async () => {
+          throw new NimiElectronLocalAppHostError(reasonCode, false);
+        },
+      } as never;
+      await expect(dispatchElectronLocalAppCommand({
+        host,
+        command: NIMI_STANDARD_SHELL_COMMANDS['local-app.realmPersonaCharacterGetOwned'],
+        payload: { personaCharacterId: 'persona-1' },
+      })).rejects.toMatchObject({ code: reasonCode, reasonCode });
+    }
+  });
+
   it('routes the exact minimal Agent reference catalog', async () => {
     const ipcMain = new FakeIpcMain();
     const calls: unknown[] = [];
@@ -704,6 +766,22 @@ function localAppHost(calls: unknown[]) {
     realmWorldCoreCreate: async (input: unknown) => {
       calls.push(['realmWorldCoreCreate', input]);
       return { id: 'world-2' };
+    },
+    realmPersonaCharacterListOwned: async (input: unknown) => {
+      calls.push(['realmPersonaCharacterListOwned', input]);
+      return [];
+    },
+    realmPersonaCharacterGetOwned: async (input: unknown) => {
+      calls.push(['realmPersonaCharacterGetOwned', input]);
+      return {};
+    },
+    realmPersonaCharacterCreate: async (input: unknown) => {
+      calls.push(['realmPersonaCharacterCreate', input]);
+      return {};
+    },
+    realmPersonaCharacterReplace: async (input: unknown) => {
+      calls.push(['realmPersonaCharacterReplace', input]);
+      return {};
     },
     storageReadJson: async (input: unknown) => { calls.push(['storageReadJson', input]); return { value: { version: 1 }, sizeBytes: 13 }; },
     storageWriteJson: async (input: unknown) => { calls.push(['storageWriteJson', input]); return { value: { version: 2 }, sizeBytes: 13 }; },
