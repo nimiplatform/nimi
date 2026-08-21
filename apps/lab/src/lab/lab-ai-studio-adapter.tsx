@@ -50,7 +50,6 @@ export function LabAIStudioAdapter({ children }: { readonly children: ReactNode 
         savePromptDraft: (key, prompt, enabled) => rendererHost.app.commands.savePromptDraft(key, prompt, enabled),
         copyText: (text) => rendererHost.app.commands.copyText(text),
         exportText: (input) => rendererHost.app.commands.exportText(input),
-        exportArtifact: (input) => rendererHost.app.commands.exportArtifact(input),
       },
     },
     sdk: {
@@ -78,6 +77,7 @@ export function LabAIStudioAdapter({ children }: { readonly children: ReactNode 
       aiConfig: {
         get: () => loadLabAIConfig(rendererHost.sdk.aiConfig),
       },
+      revealLocalAppAsset: (relativePath) => rendererHost.sdk.storage.assets.reveal(relativePath),
     },
   }), [i18n.language, rendererHost, t]);
   return <AIStudioHostProvider value={value}>{children}</AIStudioHostProvider>;

@@ -1,6 +1,7 @@
 import {
   runRuntimeAIConsumeCapability,
   runRuntimeImageGenerate,
+  runRuntimeMusicGenerate,
   runRuntimeSpeechSynthesize,
   runRuntimeSpeechTranscribe,
   runRuntimeVideoGenerate,
@@ -31,6 +32,7 @@ import {
 export type StudioRuntimeRunnerSet = {
   readonly aiConsume: typeof runRuntimeAIConsumeCapability;
   readonly imageGenerate: typeof runRuntimeImageGenerate;
+  readonly musicGenerate: typeof runRuntimeMusicGenerate;
   readonly videoGenerate: typeof runRuntimeVideoGenerate;
   readonly speechSynthesize: typeof runRuntimeSpeechSynthesize;
   readonly speechTranscribe: typeof runRuntimeSpeechTranscribe;
@@ -82,6 +84,7 @@ export type StudioCapabilityRuntimeOrchestrator = {
 export const DEFAULT_STUDIO_RUNTIME_RUNNERS: StudioRuntimeRunnerSet = Object.freeze({
   aiConsume: runRuntimeAIConsumeCapability,
   imageGenerate: runRuntimeImageGenerate,
+  musicGenerate: runRuntimeMusicGenerate,
   videoGenerate: runRuntimeVideoGenerate,
   speechSynthesize: runRuntimeSpeechSynthesize,
   speechTranscribe: runRuntimeSpeechTranscribe,
@@ -151,6 +154,7 @@ export function createStudioScenarioJobClient(context: StudioCapabilityRuntimeCo
 
 type ArtifactRunnerResult = Awaited<ReturnType<
   | typeof runRuntimeImageGenerate
+  | typeof runRuntimeMusicGenerate
   | typeof runRuntimeVideoGenerate
   | typeof runRuntimeSpeechSynthesize
 >>;

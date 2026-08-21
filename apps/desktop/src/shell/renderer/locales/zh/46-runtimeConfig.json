@@ -212,6 +212,7 @@
       "audioTranscribe": "语音转文字",
       "voiceCreate": "声音创建",
       "videoGenerate": "视频生成",
+      "musicGenerate": "音乐生成",
       "other": "其他本地 AI 能力"
     }
   },
@@ -236,6 +237,7 @@
     "localCapabilityTTS": "语音合成",
     "localCapabilitySTT": "语音转文字",
     "localCapabilityVOICE": "声音创建",
+    "localCapabilityMUSIC": "音乐生成",
     "localCapabilitySliceTitle": "本地执行 · {{capability}}",
     "localCapabilityNotConfigured": "尚未为受支持的本地 AI 用途选择模型。",
     "localCapabilityLoading": "正在加载...",
@@ -1155,6 +1157,7 @@
     "audioTranscribe": "语音转写",
     "imageGenerate": "图像生成",
     "videoGenerate": "视频生成",
+    "musicGenerate": "音乐生成",
     "voiceCreate": "声音创建"
   },
   "common": {
@@ -1530,6 +1533,7 @@
       "tts": "语音合成",
       "stt": "语音识别",
       "embedding": "文本嵌入",
+      "music": "音乐",
       "vae": "VAE",
       "clip": "CLIP",
       "lora": "LoRA",
@@ -1542,6 +1546,7 @@
       "embedding": "文本嵌入",
       "imageGenerate": "图像生成",
       "videoGenerate": "视频生成",
+      "musicGenerate": "音乐生成",
       "tts": "语音合成",
       "stt": "语音识别",
       "voiceCreate": "创建语音"

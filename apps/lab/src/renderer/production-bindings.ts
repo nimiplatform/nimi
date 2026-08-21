@@ -88,14 +88,6 @@ function productionRoutePort(): LabRendererRoutePort {
   });
 }
 
-async function saveRemoteArtifact(filename: string, url: string): Promise<{ readonly filename: string }> {
-  const response = await fetch(url);
-  if (!response.ok) throw new Error(`Runtime artifact download failed (${response.status})`);
-  const blob = await response.blob();
-  const saved = await saveLabExport({ filename, mimeType: blob.type || undefined, body: blob });
-  return { filename: saved.filename };
-}
-
 function hostSuccess<TValue>(value: TValue): NimiRendererHostResult<TValue> {
   return { ok: true, value };
 }
@@ -224,13 +216,6 @@ export function createLabProductionBindings(
               body: input.body,
             });
             return hostSuccess({ filename: saved.filename });
-          } catch {
-            return hostFailure<{ readonly filename: string }>('host-unavailable');
-          }
-        },
-        async exportArtifact(input: { readonly filename: string; readonly url: string }) {
-          try {
-            return hostSuccess(await saveRemoteArtifact(input.filename, input.url));
           } catch {
             return hostFailure<{ readonly filename: string }>('host-unavailable');
           }

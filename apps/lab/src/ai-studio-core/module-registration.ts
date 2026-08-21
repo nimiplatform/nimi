@@ -39,7 +39,7 @@ export type StudioCapabilityDescriptor<TCapabilityId extends string = string> = 
   readonly label: string;
   readonly labelKey: string;
   readonly group: 'text' | 'media' | 'audio' | 'world';
-  readonly section: 'chat' | 'embed' | 'image' | 'video' | 'tts' | 'stt' | 'voice' | 'world';
+  readonly section: 'chat' | 'embed' | 'image' | 'video' | 'music' | 'tts' | 'stt' | 'voice' | 'world';
   readonly summary: string;
   readonly summaryKey: string;
   readonly surface: string;

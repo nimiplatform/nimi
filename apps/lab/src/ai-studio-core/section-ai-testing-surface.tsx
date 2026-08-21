@@ -13,8 +13,6 @@ export {
   ArtifactMediaResult,
   RuntimeDiagnosticsActions,
   TextStudioOutputBody,
-  artifactExtension,
-  downloadArtifactUrl,
   downloadTextFile,
   hasPreviewableArtifact,
   resultPlainText,

@@ -1,4 +1,4 @@
-export type StudioMediaCapabilityId = 'image.generate' | 'video.generate';
+export type StudioMediaCapabilityId = 'image.generate' | 'video.generate' | 'music.generate';
 
 export const studioMediaDescriptors = Object.freeze([
   {
@@ -12,5 +12,11 @@ export const studioMediaDescriptors = Object.freeze([
     section: 'video',
     summary: 'Prompt → video.generate Scenario Job → typed artifact preview result.', summaryKey: 'Capabilities.videoGenerate.summary',
     surface: 'kit.runRuntimeVideoGenerate → sdk.localApp.ai.scenarioJobs + artifacts', execution: 'runtime-sdk', capabilityContract: 'video.generate',
+  },
+  {
+    id: 'music.generate', label: 'Music Generate', labelKey: 'Capabilities.musicGenerate.label', group: 'media',
+    section: 'music',
+    summary: 'Prompt + lyrics → protected music.generate Scenario Job → adopted WAV.', summaryKey: 'Capabilities.musicGenerate.summary',
+    surface: 'kit.runRuntimeMusicGenerate → sdk.localApp.ai.scenarioJobs + artifact adoption', execution: 'runtime-sdk', capabilityContract: 'music.generate',
   },
 ] as const);

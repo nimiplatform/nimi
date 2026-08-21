@@ -182,6 +182,8 @@
     "download": "Download",
     "copyGeneration": "Copy generation",
     "downloadGeneration": "Download generation",
+    "revealAsset": "Show in folder",
+    "revealGeneration": "Show generated file in folder",
     "regenerate": "Regenerate",
     "newRun": "New run",
     "useAsDraft": "Use as draft",

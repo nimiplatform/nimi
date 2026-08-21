@@ -60,6 +60,7 @@ const CAPABILITY_ORDER = [
   'audio.transcribe',
   'voice.create',
   'video.generate',
+  'music.generate',
 ];
 
 function capabilitySortIndex(capabilityContract: string): number {
@@ -958,6 +959,7 @@ export function loadoutCapabilityLabelKey(capabilityContract: string): string {
     case 'audio.transcribe': return 'runtimeConfig.loadouts.capability.audioTranscribe';
     case 'voice.create': return 'runtimeConfig.loadouts.capability.voiceCreate';
     case 'video.generate': return 'runtimeConfig.loadouts.capability.videoGenerate';
+    case 'music.generate': return 'runtimeConfig.loadouts.capability.musicGenerate';
     default: return 'runtimeConfig.loadouts.capability.other';
   }
 }

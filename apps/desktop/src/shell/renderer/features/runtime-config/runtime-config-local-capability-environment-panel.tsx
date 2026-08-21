@@ -33,6 +33,7 @@ const LOCAL_ENVIRONMENT_CAPABILITIES = [
   { slice: 'tts', capabilityContract: 'audio.synthesize' },
   { slice: 'stt', capabilityContract: 'audio.transcribe' },
   { slice: 'voice', capabilityContract: 'voice.create' },
+  { slice: 'music', capabilityContract: 'music.generate' },
 ] as const satisfies readonly {
   readonly slice: string;
   readonly capabilityContract: RuntimeConfigLocalCapabilityContract;

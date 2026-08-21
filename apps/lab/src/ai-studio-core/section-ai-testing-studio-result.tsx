@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { EmptyState, IconButton, StatusBadge, Surface, Tooltip } from '@nimiplatform/kit/ui';
-import { AlertTriangle, ChevronRight, Clock, Copy as CopyIcon, Download as DownloadIcon, FileText, Loader2, RefreshCw, Sparkles, Square } from 'lucide-react';
+import { AlertTriangle, ChevronRight, Clock, Copy as CopyIcon, Download as DownloadIcon, FileText, FolderOpen, Loader2, RefreshCw, Sparkles, Square } from 'lucide-react';
 import { useAIStudioHost } from './host-context.js';
 import type { StudioCapabilityRunResult } from './runtime-types.js';
 import type { StudioCapabilityDescriptor, StudioCapabilityRegistration } from './module-registration.js';
@@ -214,6 +214,7 @@ export function StudioResult({
     && result.reason !== 'runtime-timeout' ? result : null;
   const plainText = ready ? resultPlainText(ready, t) : '';
   const canExport = Boolean(ready && plainText);
+  const revealsManagedAsset = ready?.output.kind === 'artifacts';
   const displayIntentLabel = studioResultIntentLabel(result, capability, intentLabel, t);
   const [requestSettingsOpen, setRequestSettingsOpen] = useState(false);
   const hasRequestSettings = Boolean(requestSettings);
@@ -396,8 +397,8 @@ export function StudioResult({
               <Tooltip content={t('Common.copy')} placement="top">
                 <IconButton type="button" className="studio-result__action" onClick={onCopy} disabled={!canExport} aria-label={t('StudioShell.copyGeneration')} icon={<CopyIcon size={15} aria-hidden="true" />} />
               </Tooltip>
-              <Tooltip content={t('StudioShell.download')} placement="top">
-                <IconButton type="button" className="studio-result__action" onClick={onDownload} disabled={!canExport} aria-label={t('StudioShell.downloadGeneration')} icon={<DownloadIcon size={15} aria-hidden="true" />} />
+              <Tooltip content={t(revealsManagedAsset ? 'StudioShell.revealAsset' : 'StudioShell.download')} placement="top">
+                <IconButton type="button" className="studio-result__action" onClick={onDownload} disabled={!canExport} aria-label={t(revealsManagedAsset ? 'StudioShell.revealGeneration' : 'StudioShell.downloadGeneration')} icon={revealsManagedAsset ? <FolderOpen size={15} aria-hidden="true" /> : <DownloadIcon size={15} aria-hidden="true" />} />
               </Tooltip>
             </>
           ) : null}

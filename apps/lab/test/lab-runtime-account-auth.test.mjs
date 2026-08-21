@@ -386,6 +386,7 @@ function artifactRunnerSuccess(capabilityId, mimeType, previewUrl, previewSource
 const MEDIA_HAPPY_CASES = [
   ['image.generate', 'imageGenerate', 'image/png', 'data:image/png;base64,AQ=='],
   ['video.generate', 'videoGenerate', 'video/mp4', 'data:video/mp4;base64,AQ=='],
+  ['music.generate', 'musicGenerate', 'audio/wav', 'data:audio/wav;base64,AQ=='],
   ['audio.synthesize', 'speechSynthesize', 'audio/mpeg', 'data:audio/mpeg;base64,AQ=='],
 ];
 
@@ -396,8 +397,11 @@ for (const [capabilityId, runnerName, mimeType, previewUrl] of MEDIA_HAPPY_CASES
     const client = fakeLocalAppClient({
       async adoptArtifact(input) {
         adoptionCalls.push(input);
+        const extension = new Map([
+          ['image/png', '.png'], ['video/mp4', '.mp4'], ['audio/wav', '.wav'], ['audio/mpeg', '.mp3'],
+        ]).get(mimeType) ?? '.bin';
         return {
-          relativePath: input.relativePath,
+          relativePath: input.relativePath.replace(/\.asset$/u, extension),
           mediaType: mimeType,
           sizeBytes: 33 * 1024 * 1024,
           sha256: `sha256:${'a'.repeat(64)}`,
@@ -412,7 +416,9 @@ for (const [capabilityId, runnerName, mimeType, previewUrl] of MEDIA_HAPPY_CASES
       ? { negativePrompt: 'no fog', count: 2, size: '768x512', seed: 0, aspectRatio: '3:2', quality: 'hd', style: 'natural', referenceImageArtifactId: 'artifact-reference', mask: 'https://example.test/mask.png' }
       : capabilityId === 'video.generate'
         ? { mode: 'i2v-reference', referenceArtifactId: 'artifact-reference', negativePrompt: 'no shake', resolution: '720p', frames: 49, seed: 0, generateAudio: false, ratio: '16:9', durationSec: 2, fps: 24, cameraFixed: false, watermark: true, draft: false, returnLastFrame: true, serviceTier: 'standard', executionExpiresAfterSec: 60 }
-        : { voiceKind: 'preset', voicePreset: 'voice-preset', language: 'en', audioFormat: 'mp3', sampleRateHz: 0, speed: 0, pitch: 0, volume: 0, emotion: 'calm', timingMode: 'word' };
+        : capabilityId === 'music.generate'
+          ? { lyrics: '[Verse]\nCity lights are waking.' }
+          : { voiceKind: 'preset', voicePreset: 'voice-preset', language: 'en', audioFormat: 'mp3', sampleRateHz: 0, speed: 0, pitch: 0, volume: 0, emotion: 'calm', timingMode: 'word' };
     const result = await runLabCapability({ capabilityId, prompt: `run ${capabilityId}`, scenarioId: 'scenario-1', parameters }, readyRuntimeDependencies(client, {
       createScenarioJobClient(ai) {
         assert.equal(ai, client.ai);
@@ -434,15 +440,17 @@ for (const [capabilityId, runnerName, mimeType, previewUrl] of MEDIA_HAPPY_CASES
     assert.equal(result.output.firstArtifact.mediaType, mimeType);
     assert.equal(result.output.firstArtifact.sizeBytes, 33 * 1024 * 1024);
     assert.equal(result.output.firstArtifact.sha256, `sha256:${'a'.repeat(64)}`);
-    assert.match(result.output.firstArtifact.relativePath, new RegExp(`^media/${capabilityId.replaceAll('.', '-')}/[0-9a-f]{64}\\.asset$`, 'u'));
+    const extension = new Map([
+      ['image/png', 'png'], ['video/mp4', 'mp4'], ['audio/wav', 'wav'], ['audio/mpeg', 'mp3'],
+    ]).get(mimeType) ?? 'bin';
+    assert.match(result.output.firstArtifact.relativePath, new RegExp(`^media/${capabilityId.replaceAll('.', '-')}/[0-9a-f]{64}\\.${extension}$`, 'u'));
     assert.equal(result.output.firstArtifact.previewSource, 'managed-asset');
     assert.equal('artifactId' in result.output.firstArtifact, false);
     assert.equal('url' in result.output.firstArtifact, false);
-    assert.deepEqual(adoptionCalls, [{
-      artifactId: `artifact:${capabilityId}`,
-      relativePath: result.output.firstArtifact.relativePath,
-      overwrite: false,
-    }]);
+    assert.equal(adoptionCalls.length, 1);
+    assert.equal(adoptionCalls[0].artifactId, `artifact:${capabilityId}`);
+    assert.match(adoptionCalls[0].relativePath, new RegExp(`^media/${capabilityId.replaceAll('.', '-')}/[0-9a-f]{64}\\.asset$`, 'u'));
+    assert.equal(adoptionCalls[0].overwrite, false);
     assert.equal(calls.length, 1);
     if (capabilityId === 'image.generate') {
       assert.equal(calls[0].negativePrompt, 'no fog');
@@ -459,6 +467,9 @@ for (const [capabilityId, runnerName, mimeType, previewUrl] of MEDIA_HAPPY_CASES
         cameraFixed: false, watermark: true, generateAudio: false, draft: false,
         serviceTier: 'standard', executionExpiresAfterSec: 60, returnLastFrame: true,
       });
+    } else if (capabilityId === 'music.generate') {
+      assert.equal(calls[0].prompt, 'run music.generate');
+      assert.equal(calls[0].lyrics, '[Verse]\nCity lights are waking.');
     } else {
       assert.deepEqual(calls[0].voiceRef, { kind: 'preset_voice_id', presetVoiceId: 'voice-preset' });
       assert.equal(calls[0].sampleRateHz, 0);

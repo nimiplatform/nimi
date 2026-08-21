@@ -249,19 +249,19 @@ function TextStudioShell({
       });
   }
 
-  function handleDownload() {
+  async function handleDownload() {
     if (!currentResult) return;
-    const stamp = new Date(rendererHost.clock.now()).toISOString().replace(/[:.]/g, '-');
     if (currentResult.ok && currentResult.output.kind === 'artifacts') {
-      const metadata = resultPlainText(currentResult, t);
-      if (metadata) {
-        void downloadTextFile(rendererHost.app.commands, `${capability.id}-${stamp}-artifact-metadata.txt`, metadata);
+      const artifact = currentResult.output.firstArtifact;
+      if (artifact?.relativePath) {
+        await rendererHost.sdk.revealLocalAppAsset(artifact.relativePath);
       }
       return;
     }
+    const stamp = new Date(rendererHost.clock.now()).toISOString().replace(/[:.]/g, '-');
     const text = resultPlainText(currentResult, t);
     if (!text) return;
-    void downloadTextFile(rendererHost.app.commands, `${capability.id}-${stamp}.txt`, text);
+    await downloadTextFile(rendererHost.app.commands, `${capability.id}-${stamp}.txt`, text);
   }
 
   // Selecting a history record is a read-only preview: it never writes the

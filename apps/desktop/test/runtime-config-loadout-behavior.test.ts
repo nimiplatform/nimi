@@ -53,6 +53,7 @@ test('Loadout errors do not infer a reason code from display copy', () => {
 test('Loadout presentation uses typed capability labels and Runtime catalog titles', () => {
   assert.equal(loadoutCapabilityLabelKey('text.generate'), 'runtimeConfig.loadouts.capability.textGenerate');
   assert.equal(loadoutCapabilityLabelKey('voice.create'), 'runtimeConfig.loadouts.capability.voiceCreate');
+  assert.equal(loadoutCapabilityLabelKey('music.generate'), 'runtimeConfig.loadouts.capability.musicGenerate');
   assert.equal(loadoutCapabilityLabelKey('future.capability'), 'runtimeConfig.loadouts.capability.other');
 
   const asset = {

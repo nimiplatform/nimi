@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import { IconButton, nimiToast, StatusBadge, Tooltip } from '@nimiplatform/kit/ui';
-import { AlertTriangle, ChevronRight, Copy as CopyIcon, Download as DownloadIcon, FileText, MessageSquare, RefreshCw, SlidersHorizontal, SquarePen } from 'lucide-react';
+import { AlertTriangle, ChevronRight, Copy as CopyIcon, Download as DownloadIcon, FileText, FolderOpen, MessageSquare, RefreshCw, SlidersHorizontal, SquarePen } from 'lucide-react';
 import { useAIStudioHost } from './host-context.js';
 import type { StudioCapabilityRegistration } from './module-registration.js';
 import { formatStudioRunTimestamp, getStudioRunConfigParamRows, getStudioRunIntentLabel, getStudioRunPromptControlFacts, getStudioRunResultTags, getStudioRunStatusTone, type StudioRunConfigParamRow, type StudioRunHistoryRecord, type StudioRunHistoryResultSnapshot, type StudioRunPromptControlFact } from './history.js';
@@ -146,7 +146,11 @@ function TextStudioHistoryRecordResult({
   const intentLabel = getStudioRunIntentLabel(record);
   const toneClass = historyResultToneClass(record);
   const exportText = historyRecordPlainText(record);
-  const canExport = !blocked && Boolean(exportText.trim());
+  const managedArtifact = snapshot?.ok && snapshot.kind === 'artifacts'
+    ? snapshot.artifacts?.[0] ?? snapshot.firstArtifact
+    : undefined;
+  const revealsManagedAsset = Boolean(managedArtifact?.relativePath);
+  const canExport = !blocked && (revealsManagedAsset || Boolean(exportText.trim()));
   const hasRequestSettings = hasTextStudioRequestSettings(record);
   const [requestSettingsOpen, setRequestSettingsOpen] = useState(false);
   function handleCopy() {
@@ -164,6 +168,10 @@ function TextStudioHistoryRecordResult({
       });
   }
   function handleDownload() {
+    if (managedArtifact?.relativePath) {
+      void rendererHost.sdk.revealLocalAppAsset(managedArtifact.relativePath);
+      return;
+    }
     const stamp = record.createdAt.replace(/[:.]/g, '-');
     if (!exportText.trim()) return;
     void downloadTextFile(rendererHost.app.commands, `${record.capabilityId}-${stamp}.txt`, exportText);
@@ -215,8 +223,8 @@ function TextStudioHistoryRecordResult({
               <Tooltip content={t('Common.copy')} placement="top">
                 <IconButton type="button" className="studio-result__action" onClick={handleCopy} disabled={!canExport} aria-label={t('StudioShell.copyGeneration')} icon={<CopyIcon size={16} aria-hidden="true" />} />
               </Tooltip>
-              <Tooltip content={t('StudioShell.download')} placement="top">
-                <IconButton type="button" className="studio-result__action" onClick={handleDownload} disabled={!canExport} aria-label={t('StudioShell.downloadGeneration')} icon={<DownloadIcon size={16} aria-hidden="true" />} />
+              <Tooltip content={t(revealsManagedAsset ? 'StudioShell.revealAsset' : 'StudioShell.download')} placement="top">
+                <IconButton type="button" className="studio-result__action" onClick={handleDownload} disabled={!canExport} aria-label={t(revealsManagedAsset ? 'StudioShell.revealGeneration' : 'StudioShell.downloadGeneration')} icon={revealsManagedAsset ? <FolderOpen size={16} aria-hidden="true" /> : <DownloadIcon size={16} aria-hidden="true" />} />
               </Tooltip>
             </>
           ) : null}

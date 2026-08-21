@@ -182,6 +182,8 @@
     "download": "下载",
     "copyGeneration": "复制生成结果",
     "downloadGeneration": "下载生成结果",
+    "revealAsset": "在文件夹中显示",
+    "revealGeneration": "在文件夹中显示生成文件",
     "regenerate": "重新生成",
     "newRun": "新建运行",
     "useAsDraft": "用作草稿",

@@ -6,6 +6,7 @@ import {
 } from '../../ai-studio-core/runtime.js';
 import type {
   StudioImageGenerationParameters,
+  StudioMusicGenerationParameters,
   StudioVideoGenerationParameters,
 } from './parameters.js';
 
@@ -14,6 +15,7 @@ import type {
 export const studioMediaRuntimeHandlers: StudioCapabilityRuntimeHandlers = Object.freeze({
   'image.generate': runImageGenerate,
   'video.generate': runVideoGenerate,
+  'music.generate': runMusicGenerate,
 });
 
 async function runImageGenerate(context: StudioCapabilityRuntimeContext) {
@@ -39,6 +41,22 @@ async function runImageGenerate(context: StudioCapabilityRuntimeContext) {
       signal: context.input.signal,
       abortReason: context.host.abortReason,
     } : {}),
+  });
+  return projectStudioArtifactRunnerResult(context, result);
+}
+
+async function runMusicGenerate(context: StudioCapabilityRuntimeContext) {
+  const parameters = context.input.parameters as StudioMusicGenerationParameters | undefined;
+  const lyrics = parameters?.lyrics?.trim() ?? '';
+  if (!context.prompt || !lyrics) return inputRequired(context);
+  const result = await context.host.runners.musicGenerate({
+    runtime: { ai: createStudioScenarioJobClient(context) },
+    appId: context.host.appId,
+    prompt: context.prompt,
+    lyrics,
+    scenarioId: context.scenarioId,
+    surfaceId: context.host.surfaceId,
+    ...(context.input.signal ? { signal: context.input.signal, abortReason: context.host.abortReason } : {}),
   });
   return projectStudioArtifactRunnerResult(context, result);
 }

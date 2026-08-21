@@ -14,7 +14,8 @@ export type RuntimeConfigLocalCapabilityContract =
   | 'video.generate'
   | 'audio.synthesize'
   | 'audio.transcribe'
-  | 'voice.create';
+  | 'voice.create'
+  | 'music.generate';
 
 export type RuntimeConfigLocalCapabilityEnvironmentPlan = {
   readonly resolution: NimiRuntimeLocalEnvironmentPlanInput;

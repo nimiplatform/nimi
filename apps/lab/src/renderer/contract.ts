@@ -72,7 +72,6 @@ export interface LabRendererCommandPort {
   savePromptDraft(key: LabPromptDraftKey, prompt: string, enabled: boolean): Promise<LabPromptDraftSaveResult>;
   copyText(text: string): Promise<NimiRendererHostResult<{ readonly copied: boolean }>>;
   exportText(input: { readonly filename: string; readonly body: string }): Promise<NimiRendererHostResult<{ readonly filename: string }>>;
-  exportArtifact(input: { readonly filename: string; readonly url: string }): Promise<NimiRendererHostResult<{ readonly filename: string }>>;
   resolveWorldTourFixture(input: ResolveWorldTourFixtureInput): Promise<ResolvedWorldTourFixture>;
   openWorldTourWindow(input: OpenWorldTourWindowInput): Promise<OpenWorldTourWindowResponse>;
   claimWorldTourViewerLaunch(input: ClaimWorldTourViewerLaunchInput): Promise<ResolvedWorldTourFixture>;

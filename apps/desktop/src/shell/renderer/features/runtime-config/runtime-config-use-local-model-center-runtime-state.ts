@@ -46,6 +46,40 @@ export function modelAssetCatalogLookupKeys(asset: NimiRuntimeModelAssetRecord):
   ].map(catalogAssetLookupKey).filter(Boolean))];
 }
 
+export function filterVerifiedModelsForSearch(
+  models: readonly NimiRuntimeLocalVerifiedAssetDescriptor[],
+  query: string,
+): NimiRuntimeLocalVerifiedAssetDescriptor[] {
+  const normalized = query.trim().toLowerCase();
+  if (!normalized) return [...models];
+  const terms = normalized.split(/[\s._-]+/u).filter(Boolean);
+  return models.filter((model) => {
+    const facts = [
+      model.assetId,
+      model.title,
+      model.description,
+      model.kind,
+      model.repo,
+      ...(model.capabilities ?? []),
+      ...(model.tags ?? []),
+    ].join(' ').toLowerCase();
+    return terms.every((term) => facts.includes(term));
+  });
+}
+
+export function filterModelAssetsForSearch(
+  assets: readonly NimiRuntimeModelAssetRecord[],
+  query: string,
+): NimiRuntimeModelAssetRecord[] {
+  const normalized = query.trim().toLowerCase();
+  if (!normalized) return [...assets];
+  const terms = normalized.split(/[\s._-]+/u).filter(Boolean);
+  return assets.filter((asset) => {
+    const facts = [asset.modelAssetId, asset.displayName, asset.entry, asset.contentId].join(' ').toLowerCase();
+    return terms.every((term) => facts.includes(term));
+  });
+}
+
 function runtimeInventoryErrorMessage(error: unknown, fallback: string): string {
   if (error instanceof Error && error.message.trim()) {
     return error.message.trim();
@@ -180,7 +214,7 @@ export function useLocalModelCenterRuntimeState({ props }: UseLocalModelCenterRu
       }
       setVerifiedModels(rows.filter((item) => (
         isNimiRuntimeLocalRunnableAssetKindId(item.kind)
-      )).slice(0, 5));
+      )));
       setRuntimeInventoryError('verified-models', '');
     } catch (error) {
       if (!mountedRef.current || requestId !== verifiedModelsRequestSeqRef.current) {
@@ -281,15 +315,13 @@ export function useLocalModelCenterRuntimeState({ props }: UseLocalModelCenterRu
     return candidates;
   }, [deferredSearchQuery, installedCatalogAssetsById, verifiedAssets]);
 
+  const visibleVerifiedModels = useMemo(
+    () => filterVerifiedModelsForSearch(verifiedModels, deferredSearchQuery),
+    [deferredSearchQuery, verifiedModels],
+  );
+
   const filteredModelAssets = useMemo(() => {
-    const query = deferredSearchQuery.trim().toLowerCase();
-    if (!query) return modelAssets;
-    return modelAssets.filter((asset) => (
-      asset.modelAssetId.toLowerCase().includes(query)
-      || asset.displayName.toLowerCase().includes(query)
-      || asset.entry.toLowerCase().includes(query)
-      || asset.contentId.toLowerCase().includes(query)
-    ));
+    return filterModelAssetsForSearch(modelAssets, deferredSearchQuery);
   }, [deferredSearchQuery, modelAssets]);
 
   const verifiedAssetsByTemplateId = useMemo(
@@ -405,6 +437,6 @@ export function useLocalModelCenterRuntimeState({ props }: UseLocalModelCenterRu
     importPickedAssetDirectory: importActions.importPickedAssetDirectory,
     variantError: importActions.variantError, variantList: importActions.variantList,
     variantPickerItem: importActions.variantPickerItem,
-    verifiedModels, visibleAssetTasks, visibleVerifiedAssets,
+    verifiedModels: visibleVerifiedModels, visibleAssetTasks, visibleVerifiedAssets,
   };
 }

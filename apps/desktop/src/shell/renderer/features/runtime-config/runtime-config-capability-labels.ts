@@ -24,5 +24,8 @@ export function displayRuntimeConfigCapabilityLabel(
   if (capabilityContract === 'voice.create') {
     return t('runtimeConfig.capabilityLabels.voiceCreate');
   }
+  if (capabilityContract === 'music.generate') {
+    return t('runtimeConfig.capabilityLabels.musicGenerate');
+  }
   return capabilityContract;
 }

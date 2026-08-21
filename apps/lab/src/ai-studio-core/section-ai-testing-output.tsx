@@ -289,23 +289,3 @@ export async function downloadTextFile(
 ) {
   await commands.exportText({ filename, body });
 }
-
-// File extension for a saved media artifact, derived from its MIME subtype.
-export function artifactExtension(mimeType?: string): string {
-  const subtype = (mimeType || '').split('/')[1]?.split(';')[0]?.trim();
-  if (!subtype) return 'bin';
-  if (subtype === 'jpeg') return 'jpg';
-  if (subtype === 'mpeg') return 'mp3';
-  if (subtype === 'quicktime') return 'mov';
-  return subtype;
-}
-
-// Save a runtime media artifact (image / audio / video) to disk. Works for both
-// inline data URLs and hosted URLs by streaming the resource through a Blob.
-export async function downloadArtifactUrl(
-  commands: ReturnType<typeof useAIStudioHost>['app']['commands'],
-  filename: string,
-  url: string,
-) {
-  await commands.exportArtifact({ filename, url });
-}

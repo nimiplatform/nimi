@@ -14,6 +14,10 @@ test('install confirmation includes every Runtime warning before download starts
     name: 'Video model',
     size: '24 GB',
     warnings: ['Requires 24 GB VRAM', 'Some download sizes are unknown'],
+    repository: 'audio-cpp/MiniMax-Music3-GGUF',
+    revision: '2a19a42dd84d9ab9411316977ff3c9fd143ab214',
+    license: 'MiniMax-Music3 Community License',
+    fileCount: 15,
     translate,
   });
 
@@ -21,4 +25,7 @@ test('install confirmation includes every Runtime warning before download starts
   assert.match(message, /24 GB/u);
   assert.match(message, /Requires 24 GB VRAM/u);
   assert.match(message, /Some download sizes are unknown/u);
+  assert.match(message, /audio-cpp\/MiniMax-Music3-GGUF@2a19a42dd84d9ab9411316977ff3c9fd143ab214/u);
+  assert.match(message, /MiniMax-Music3 Community License/u);
+  assert.match(message, /Files: 15/u);
 });

@@ -46,6 +46,10 @@ export function runtimeConfigInstallConfirmationMessage(input: {
   readonly name: string;
   readonly size: string;
   readonly warnings: readonly string[];
+  readonly repository: string;
+  readonly revision: string;
+  readonly license: string;
+  readonly fileCount: number;
   readonly translate: (key: string, defaultValue: string, options?: Record<string, unknown>) => string;
 }): string {
   const base = input.translate(
@@ -54,8 +58,11 @@ export function runtimeConfigInstallConfirmationMessage(input: {
     { name: input.name, size: input.size },
   );
   const warnings = input.warnings.map((warning) => warning.trim()).filter(Boolean);
-  if (warnings.length === 0) return base;
-  return `${base}\n\n${input.translate('runtimeConfig.local.installWarnings', 'Before continuing:')}\n${warnings.map((warning) => `• ${warning}`).join('\n')}`;
+  const source = `${input.translate('runtimeConfig.local.installSource', 'Source')}: ${input.repository}@${input.revision}`;
+  const license = `${input.translate('runtimeConfig.local.installLicense', 'License')}: ${input.license}`;
+  const files = `${input.translate('runtimeConfig.local.installFiles', 'Files')}: ${input.fileCount}`;
+  const warningBlock = warnings.length === 0 ? '' : `\n${input.translate('runtimeConfig.local.installWarnings', 'Before continuing:')}\n${warnings.map((warning) => `• ${warning}`).join('\n')}`;
+  return `${base}\n\n${source}\n${license}\n${files}${warningBlock}`;
 }
 
 export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallActionsInput): UseRuntimeConfigInstallActionsResult {
@@ -116,6 +123,10 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
       name: installLabel,
       size: sizeLabel,
       warnings: plan.warnings,
+      repository: plan.repo,
+      revision: plan.revision,
+      license: plan.license,
+      fileCount: plan.files.length,
       translate: translateRuntimeLocalText,
     }));
     if (!confirmed) {

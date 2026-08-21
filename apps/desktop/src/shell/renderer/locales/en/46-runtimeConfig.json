@@ -212,6 +212,7 @@
       "audioTranscribe": "Speech to text",
       "voiceCreate": "Voice creation",
       "videoGenerate": "Video generation",
+      "musicGenerate": "Music generation",
       "other": "Other local AI capability"
     }
   },
@@ -236,6 +237,7 @@
     "localCapabilityTTS": "Speech synthesis",
     "localCapabilitySTT": "Speech to text",
     "localCapabilityVOICE": "Voice creation",
+    "localCapabilityMUSIC": "Music generation",
     "localCapabilitySliceTitle": "Local execution · {{capability}}",
     "localCapabilityNotConfigured": "No model is selected for a supported local AI use yet.",
     "localCapabilityLoading": "Loading...",
@@ -1155,6 +1157,7 @@
     "audioTranscribe": "Speech transcription",
     "imageGenerate": "Image generation",
     "videoGenerate": "Video generation",
+    "musicGenerate": "Music generation",
     "voiceCreate": "Voice creation"
   },
   "common": {
@@ -1530,6 +1533,7 @@
       "tts": "TTS",
       "stt": "STT",
       "embedding": "Embedding",
+      "music": "Music",
       "vae": "VAE",
       "clip": "CLIP",
       "lora": "LoRA",
@@ -1542,6 +1546,7 @@
       "embedding": "Text Embedding",
       "imageGenerate": "Image Generation",
       "videoGenerate": "Video Generation",
+      "musicGenerate": "Music Generation",
       "tts": "Speech Synthesis",
       "stt": "Speech Recognition",
       "voiceCreate": "Voice Creation"

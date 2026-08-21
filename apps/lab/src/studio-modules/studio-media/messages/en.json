@@ -7,6 +7,10 @@
     "videoGenerate": {
       "label": "Video Generate",
       "summary": "Prompt → video.generate Scenario Job → typed artifact preview result."
+    },
+    "musicGenerate": {
+      "label": "Music Generate",
+      "summary": "Prompt and lyrics → protected music.generate Scenario Job → adopted WAV."
     }
   },
   "Studio": {
@@ -28,6 +32,15 @@
         "emptyTitle": "Waiting for render",
         "emptyHint": "The generated clip will appear here once the job returns.",
         "footnote": "Text-to-video runs as a runtime job; typed artifacts are returned."
+      },
+      "musicGenerate": {
+        "inputTitle": "Test music generation",
+        "inputPlaceholder": "Describe the song, genre, instrumentation, and vocal style…",
+        "primaryLabel": "Generate music",
+        "primaryRunningLabel": "Generating…",
+        "emptyTitle": "Waiting for music",
+        "emptyHint": "The Runtime-custodied WAV will be adopted here after the job completes.",
+        "footnote": "Progress is unavailable for MiniMax-Music3 Preview; cancel stops the active CLI process."
       }
     },
     "parameters": {
@@ -61,7 +74,8 @@
         "draft": "Draft",
         "returnLastFrame": "Return last frame",
         "serviceTier": "Service tier",
-        "executionExpiresAfterSec": "Execution expiry (seconds)"
+        "executionExpiresAfterSec": "Execution expiry (seconds)",
+        "lyrics": "Lyrics"
       }
     }
   }

@@ -36,7 +36,6 @@ export type AIStudioHostPort = {
       readonly savePromptDraft: (key: StudioPromptDraftKey, prompt: string, enabled: boolean) => Promise<unknown>;
       readonly copyText: (text: string) => Promise<StudioHostCommandResult<{ readonly copied: boolean }>>;
       readonly exportText: (input: { readonly filename: string; readonly body: string }) => Promise<unknown>;
-      readonly exportArtifact: (input: { readonly filename: string; readonly url: string }) => Promise<unknown>;
     };
   };
   readonly sdk: {
@@ -57,6 +56,7 @@ export type AIStudioHostPort = {
     readonly aiConfig: {
       readonly get: () => Promise<NimiPortableAppAIConfig | null>;
     };
+    readonly revealLocalAppAsset: (relativePath: string) => Promise<{ readonly revealed: true }>;
   };
 };
 

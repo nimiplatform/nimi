@@ -39,6 +39,10 @@ export type StudioVideoGenerationParameters = {
   executionExpiresAfterSec?: number;
 };
 
+export type StudioMusicGenerationParameters = {
+  lyrics?: string;
+};
+
 const LOCAL_APP_UNAVAILABLE = Object.freeze({
   local: UNSUPPORTED_STUDIO_PARAMETER,
   cloud: UNSUPPORTED_STUDIO_PARAMETER,
@@ -82,4 +86,9 @@ export const studioVideoGenerateParameters = defineStudioParameters<StudioVideoG
     serviceTier: LOCAL_APP_UNAVAILABLE,
     executionExpiresAfterSec: LOCAL_APP_UNAVAILABLE,
   },
+});
+
+export const studioMusicGenerateParameters = defineStudioParameters<StudioMusicGenerationParameters>({
+  initial: () => ({ lyrics: '[Verse]\n\n[Chorus]\n' }),
+  routeMatrix: { lyrics: LOCAL_ONLY_STUDIO_PARAMETER },
 });

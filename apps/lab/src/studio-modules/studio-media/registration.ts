@@ -1,7 +1,7 @@
-import { Image as ImageIcon, Video } from 'lucide-react';
+import { Image as ImageIcon, Music2, Video } from 'lucide-react';
 import type { AIStudioModuleRegistration } from '../../ai-studio-core/module-registration.js';
 import { studioMediaDescriptors, type StudioMediaCapabilityId } from './descriptors.js';
-import { studioImageGenerateParameters, studioVideoGenerateParameters } from './parameters.js';
+import { studioImageGenerateParameters, studioMusicGenerateParameters, studioVideoGenerateParameters } from './parameters.js';
 import { StudioMediaParameterPanel } from './parameter-panel.js';
 
 export const studioMediaModule = Object.freeze({
@@ -27,6 +27,17 @@ export const studioMediaModule = Object.freeze({
       preset: { id: 'clip-sample', label: 'Clip sample', prompt: 'Create a short inspection clip for a Nimi App glass UI workflow.' },
       runtimeMethod: 'kit.generation.runRuntimeVideoGenerate',
       parameters: studioVideoGenerateParameters,
+      parameterPanel: StudioMediaParameterPanel,
+    },
+    {
+      descriptor: studioMediaDescriptors[2],
+      icon: Music2,
+      profile: {
+        studioTag: 'Music', inputTitleKey: 'Studio.profiles.musicGenerate.inputTitle', inputPlaceholderKey: 'Studio.profiles.musicGenerate.inputPlaceholder', inputKind: 'prompt', supportsAttachments: false, controls: [], primaryLabelKey: 'Studio.profiles.musicGenerate.primaryLabel', primaryRunningLabelKey: 'Studio.profiles.musicGenerate.primaryRunningLabel', resultTitle: 'Generated music', emptyTitleKey: 'Studio.profiles.musicGenerate.emptyTitle', emptyHintKey: 'Studio.profiles.musicGenerate.emptyHint', resultKind: 'artifacts', footnoteKey: 'Studio.profiles.musicGenerate.footnote',
+      },
+      preset: { id: 'music-sample', label: 'Music sample', prompt: 'Upbeat synth-pop with bright arpeggios, driving drums, and a soaring female vocal.' },
+      runtimeMethod: 'kit.generation.runRuntimeMusicGenerate',
+      parameters: studioMusicGenerateParameters,
       parameterPanel: StudioMediaParameterPanel,
     },
   ],

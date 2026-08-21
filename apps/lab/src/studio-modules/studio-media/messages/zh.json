@@ -7,6 +7,10 @@
     "videoGenerate": {
       "label": "视频生成",
       "summary": "提示词 → video.generate 场景任务 → 类型化产物预览结果。"
+    },
+    "musicGenerate": {
+      "label": "音乐生成",
+      "summary": "提示词与歌词 → 受保护 music.generate 场景任务 → 采用 WAV。"
     }
   },
   "Studio": {
@@ -28,6 +32,15 @@
         "emptyTitle": "等待渲染",
         "emptyHint": "任务返回后，生成的短片会显示在这里。",
         "footnote": "文生视频以 Runtime 任务运行；返回类型化产物。"
+      },
+      "musicGenerate": {
+        "inputTitle": "测试音乐生成",
+        "inputPlaceholder": "描述歌曲、流派、配器与演唱风格…",
+        "primaryLabel": "生成音乐",
+        "primaryRunningLabel": "生成中…",
+        "emptyTitle": "等待音乐",
+        "emptyHint": "任务完成后会在此采用 Runtime 托管的 WAV。",
+        "footnote": "MiniMax-Music3 Preview 暂无可信进度；取消会终止当前 CLI 进程。"
       }
     },
     "parameters": {
@@ -61,7 +74,8 @@
         "draft": "草稿模式",
         "returnLastFrame": "返回末帧",
         "serviceTier": "服务等级",
-        "executionExpiresAfterSec": "执行过期时间（秒）"
+        "executionExpiresAfterSec": "执行过期时间（秒）",
+        "lyrics": "歌词"
       }
     }
   }
