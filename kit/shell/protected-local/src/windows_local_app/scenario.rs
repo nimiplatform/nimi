@@ -15,13 +15,13 @@ use crate::generated::{
     ExecuteLocalAppScenarioRequest as ProtoExecuteRequest,
     GetLocalAppScenarioJobRequest as ProtoGetJobRequest,
     ListLocalAppVoiceAssetsRequest as ProtoListVoiceAssetsRequest,
-    LocalAppImageGenerateScenarioSpec, LocalAppScenarioArtifact, LocalAppScenarioJob,
-    LocalAppScenarioJobEvent, LocalAppSpeechSynthesizeJobSpec, LocalAppSpeechTranscribeJobSpec,
-    LocalAppTextEmbedScenarioSpec, LocalAppTextTurnFailed, LocalAppVideoGenerateJobSpec,
-    LocalAppVideoGenerationOptions, LocalAppVoiceAsset, LocalAppVoiceCreateJobSpec,
-    ReadLocalAppArtifactRequest as ProtoReadArtifactRequest, ScenarioJobEventType,
-    ScenarioJobStatus, ScenarioType, SpeechTimingMode, SpeechTranscriptionAudioSource,
-    StreamLocalAppTextTurnRequest as ProtoTextTurnRequest,
+    LocalAppImageGenerateScenarioSpec, LocalAppMusicGenerateJobSpec, LocalAppScenarioArtifact,
+    LocalAppScenarioJob, LocalAppScenarioJobEvent, LocalAppSpeechSynthesizeJobSpec,
+    LocalAppSpeechTranscribeJobSpec, LocalAppTextEmbedScenarioSpec, LocalAppTextTurnFailed,
+    LocalAppVideoGenerateJobSpec, LocalAppVideoGenerationOptions, LocalAppVoiceAsset,
+    LocalAppVoiceCreateJobSpec, ReadLocalAppArtifactRequest as ProtoReadArtifactRequest,
+    ScenarioJobEventType, ScenarioJobStatus, ScenarioType, SpeechTimingMode,
+    SpeechTranscriptionAudioSource, StreamLocalAppTextTurnRequest as ProtoTextTurnRequest,
     SubmitLocalAppScenarioJobRequest as ProtoSubmitJobRequest,
     SubscribeLocalAppScenarioJobEventsRequest,
     UploadLocalAppArtifactRequest as ProtoUploadArtifactRequest, VideoContentArtifactRef,
@@ -101,7 +101,10 @@ pub(super) async fn submit_job(
     request: LocalAppScenarioSubmitRequest,
 ) -> Result<JsonValue, LocalAppOperationError> {
     let spec = parse_job_spec(request.spec)?;
-    let mut grpc_request = Request::new(ProtoSubmitJobRequest { spec: Some(spec) });
+    let mut grpc_request = Request::new(ProtoSubmitJobRequest {
+        spec: Some(spec),
+        timeout_ms: request.timeout_ms,
+    });
     grpc_request.set_timeout(std::time::Duration::from_secs(UNARY_TIMEOUT_SECONDS));
     let response = RuntimeAiServiceClient::new(channel)
         .submit_local_app_scenario_job(grpc_request)
@@ -368,8 +371,19 @@ fn parse_job_spec(value: JsonValue) -> Result<JobSpec, LocalAppOperationError> {
             &object,
         )?)),
         "voice-create" => Ok(JobSpec::VoiceCreate(parse_voice_create_spec(&object)?)),
+        "music-generate" => Ok(JobSpec::MusicGenerate(parse_music_spec(&object)?)),
         _ => Err(invalid_payload()),
     }
+}
+
+fn parse_music_spec(
+    object: &Map<String, JsonValue>,
+) -> Result<LocalAppMusicGenerateJobSpec, LocalAppOperationError> {
+    exact_keys(object, &["type", "prompt", "lyrics"])?;
+    Ok(LocalAppMusicGenerateJobSpec {
+        prompt: required_text_field(object, "prompt", MAX_PROMPT_BYTES)?,
+        lyrics: required_text_field(object, "lyrics", MAX_PROMPT_BYTES)?,
+    })
 }
 
 fn parse_image_spec(
@@ -857,6 +871,7 @@ fn project_job(job: LocalAppScenarioJob) -> Result<JsonValue, LocalAppOperationE
         ScenarioType::SpeechSynthesize => "speech-synthesize",
         ScenarioType::SpeechTranscribe => "speech-transcribe",
         ScenarioType::VoiceCreate => "voice-create",
+        ScenarioType::MusicGenerate => "music-generate",
         _ => return Err(untrusted()),
     };
     let status = match ScenarioJobStatus::try_from(job.status).map_err(|_| untrusted())? {
@@ -1507,7 +1522,48 @@ mod tests {
         };
         assert!(project_job(job.clone()).is_ok());
         job.scenario_type = ScenarioType::MusicGenerate as i32;
-        assert!(project_job(job).is_err());
+        assert!(project_job(job).is_ok());
+
+        assert!(parse_job_spec(json!({
+            "type": "music-generate",
+            "prompt": "bright synth-pop",
+            "lyrics": "[Verse]\nCity lights are waking."
+        }))
+        .is_ok());
+        assert!(parse_job_spec(json!({
+            "type": "music-generate",
+            "prompt": "bright synth-pop",
+            "lyrics": "[Verse]\nCity lights are waking.",
+            "model": "forbidden"
+        }))
+        .is_err());
+    }
+
+    #[test]
+    fn music_running_job_event_projects_through_the_protected_stream_contract() {
+        let timestamp = prost_types::Timestamp {
+            seconds: 1_800_000_000,
+            nanos: 0,
+        };
+        let job = LocalAppScenarioJob {
+            job_id: "job-music-1".to_string(),
+            scenario_type: ScenarioType::MusicGenerate as i32,
+            status: ScenarioJobStatus::Running as i32,
+            reason_code: crate::generated::ReasonCode::ActionExecuted as i32,
+            trace_id: "trace-music-1".to_string(),
+            created_at: Some(timestamp.clone()),
+            updated_at: Some(timestamp.clone()),
+            ..Default::default()
+        };
+        let event = LocalAppScenarioJobEvent {
+            event_type: ScenarioJobEventType::ScenarioJobEventRunning as i32,
+            sequence: 1,
+            trace_id: "trace-music-1".to_string(),
+            timestamp: Some(timestamp),
+            job: Some(job),
+        };
+
+        assert!(project_job_event(event).is_ok());
     }
 
     #[test]

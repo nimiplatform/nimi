@@ -66,6 +66,7 @@ export const TAURI_STANDARD_COMMAND_ALIASES: Readonly<Record<string, string>> = 
   [NIMI_STANDARD_SHELL_COMMANDS['storage.assetReadClose']]: 'local_app_asset_read_close',
   [NIMI_STANDARD_SHELL_COMMANDS['storage.assetRemove']]: 'local_app_asset_remove',
   [NIMI_STANDARD_SHELL_COMMANDS['storage.assetMove']]: 'local_app_asset_move',
+  [NIMI_STANDARD_SHELL_COMMANDS['storage.assetReveal']]: 'local_app_asset_reveal',
   [NIMI_STANDARD_SHELL_COMMANDS['storage.assetAdopt']]: 'local_app_asset_adopt',
   [NIMI_STANDARD_SHELL_COMMANDS['oauth.openExternalUrl']]: 'open_external_url',
   [NIMI_STANDARD_SHELL_COMMANDS['oauth.listenForCode']]: 'oauth_listen_for_code',

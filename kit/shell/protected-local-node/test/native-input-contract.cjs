@@ -87,6 +87,7 @@ async function main() {
     'localAppScenarioJobSubscribe',
     'localAppScenarioJobStreamNext',
     'localAppScenarioJobStreamClose',
+    'localAppAssetReveal',
   ]) {
     assert.equal(typeof addon[name], 'function', `${name} export is missing`);
   }

@@ -102,6 +102,7 @@ export {
   getNimiRuntimeScenarioJobTerminalStatusFromError,
   getNimiRuntimeReasonCodeMessage,
   toNimiRuntimeVoiceReference,
+  runNimiRuntimeScenarioJob,
 } from '@nimiplatform/sdk/runtime';
 export {
   NIMI_RUNTIME_AGENT_RESOLVED_STATUS_CUE_MOODS,
@@ -139,6 +140,7 @@ export type {
   NimiScenarioJobClient,
   NimiRuntimeScenarioJob,
   NimiRuntimeScenarioJobClient,
+  NimiProtectedLocalScenarioJobClient,
   NimiRuntimeScenarioJobResult,
   NimiRuntimeSpeechVoiceReference,
   RuntimeLocalAgentIdentityInput,
@@ -232,6 +234,7 @@ export type {
   ListVoiceAssetsResponse,
   RuntimeTypedCallOptions,
   ScenarioJob,
+  SubmitScenarioJobRequest,
 } from '@nimiplatform/sdk/runtime/generated';
 export {
   AccountReasonCode,

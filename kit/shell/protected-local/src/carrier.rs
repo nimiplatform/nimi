@@ -99,6 +99,7 @@ pub enum LocalAppReasonCode {
     IntegrityFailure,
     ArtifactUnavailable,
     Canceled,
+    HostInternalError,
 }
 
 impl LocalAppReasonCode {
@@ -180,6 +181,7 @@ impl LocalAppReasonCode {
             Self::IntegrityFailure => "integrity-failure",
             Self::ArtifactUnavailable => "artifact-unavailable",
             Self::Canceled => "canceled",
+            Self::HostInternalError => "host-internal-error",
         }
     }
 }
@@ -295,6 +297,7 @@ pub struct LocalAppScenarioExecuteRequest {
 #[derive(Clone, Debug, PartialEq)]
 pub struct LocalAppScenarioSubmitRequest {
     pub spec: JsonValue,
+    pub timeout_ms: i32,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -435,6 +438,17 @@ pub struct LocalAppAssetMoveRequest {
     pub from_relative_path: String,
     pub to_relative_path: String,
     pub overwrite: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LocalAppAssetRevealRequest {
+    pub relative_path: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LocalAppAssetRevealTarget {
+    pub asset: LocalAppAssetRecord,
+    pub absolute_path: String,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -1050,6 +1064,17 @@ pub trait NimiLocalAppSession: Send + Sync {
         request: LocalAppAssetMoveRequest,
     ) -> Pin<
         Box<dyn Future<Output = Result<LocalAppAssetRecord, LocalAppOperationError>> + Send + '_>,
+    >;
+
+    fn storage_asset_reveal(
+        &self,
+        request: LocalAppAssetRevealRequest,
+    ) -> Pin<
+        Box<
+            dyn Future<Output = Result<LocalAppAssetRevealTarget, LocalAppOperationError>>
+                + Send
+                + '_,
+        >,
     >;
 
     fn storage_asset_adopt(

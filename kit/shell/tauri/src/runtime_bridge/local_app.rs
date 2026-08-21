@@ -9,8 +9,9 @@ use nimi_shell_protected_local::{
     LocalAppAgentUpdateAutonomyRequest, LocalAppAssetAdoptRequest, LocalAppAssetListRequest,
     LocalAppAssetListResult, LocalAppAssetMoveRequest, LocalAppAssetRange,
     LocalAppAssetReadReceiver, LocalAppAssetReadRequest, LocalAppAssetRecord,
-    LocalAppAssetRemoveRequest, LocalAppAssetRemoveResult, LocalAppAssetStatRequest,
-    LocalAppAssetWriteRequest, LocalAppOperationError, LocalAppPersonaCharacterCreateRequest,
+    LocalAppAssetRemoveRequest, LocalAppAssetRemoveResult, LocalAppAssetRevealRequest,
+    LocalAppAssetRevealTarget, LocalAppAssetStatRequest, LocalAppAssetWriteRequest,
+    LocalAppOperationError, LocalAppPersonaCharacterCreateRequest,
     LocalAppPersonaCharacterGetOwnedRequest, LocalAppPersonaCharacterListOwnedRequest,
     LocalAppPersonaCharacterReplaceRequest, LocalAppReasonCode,
     LocalAppScenarioUploadArtifactRequest, LocalAppSessionStatus,
@@ -583,6 +584,20 @@ impl RuntimeBridgeLocalAppHost {
     ) -> Result<LocalAppAssetRecord, LocalAppOperationError> {
         let session = self.current_or_open_session().await?;
         match session.storage_asset_move(request).await {
+            Ok(value) => Ok(value),
+            Err(error) => {
+                self.clear_on_transport_failure(&session, &error).await;
+                Err(error)
+            }
+        }
+    }
+
+    pub async fn storage_asset_reveal(
+        &self,
+        request: LocalAppAssetRevealRequest,
+    ) -> Result<LocalAppAssetRevealTarget, LocalAppOperationError> {
+        let session = self.current_or_open_session().await?;
+        match session.storage_asset_reveal(request).await {
             Ok(value) => Ok(value),
             Err(error) => {
                 self.clear_on_transport_failure(&session, &error).await;

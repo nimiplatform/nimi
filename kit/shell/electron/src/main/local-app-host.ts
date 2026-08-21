@@ -44,6 +44,7 @@ const LOCAL_APP_BINDING_METHODS = [
   'localAppAssetReadClose',
   'localAppAssetRemove',
   'localAppAssetMove',
+  'localAppAssetReveal',
   'localAppAssetAdopt',
   'localAppConversationOpen',
   'localAppConversationSendTurn',
@@ -135,6 +136,7 @@ const ADMITTED_REASON_CODES: ReadonlySet<string> = new Set([
   'integrity-failure',
   'artifact-unavailable',
   'canceled',
+  'host-internal-error',
 ] as const);
 
 const ADMITTED_REASON_METADATA_KEYS: ReadonlySet<string> = new Set([
@@ -254,6 +256,7 @@ export type NimiElectronProtectedLocalBinding = {
   readonly localAppAssetReadClose: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppAssetRemove: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppAssetMove: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppAssetReveal: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppAssetAdopt: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppConversationOpen: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppConversationSendTurn: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
@@ -310,6 +313,7 @@ export type NimiElectronLocalAppHost = {
   readonly assetReadClose: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly assetRemove: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly assetMove: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly assetReveal: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly assetAdopt: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly conversationOpen: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly conversationSendTurn: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
@@ -665,6 +669,10 @@ class ElectronLocalAppHost implements NimiElectronLocalAppHost {
     return invokeAssetRecord(() => this.binding.localAppAssetMove(input));
   }
 
+  assetReveal(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return invokeExactBooleanRecord(() => this.binding.localAppAssetReveal(input), 'revealed');
+  }
+
   assetAdopt(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
     return invokeAssetRecord(() => this.binding.localAppAssetAdopt(input));
   }
@@ -856,6 +864,7 @@ class LazyElectronLocalAppHost implements NimiElectronLocalAppHost {
   assetReadClose(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> { return this.resolve().assetReadClose(input); }
   assetRemove(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> { return this.resolve().assetRemove(input); }
   assetMove(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> { return this.resolve().assetMove(input); }
+  assetReveal(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> { return this.resolve().assetReveal(input); }
   assetAdopt(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> { return this.resolve().assetAdopt(input); }
 
   conversationOpen(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
@@ -1219,7 +1228,14 @@ function validateScenarioJob(value: unknown): NimiElectronLocalAppRecord {
     'progressTotalSteps', 'reasonCode', 'reasonDetail', 'artifacts', 'traceId',
     'createdAt', 'updatedAt', 'transcriptionText',
   ])) throw untrustedRuntimeError();
-  const scenarioTypes = ['image-generate', 'video-generate', 'speech-synthesize', 'speech-transcribe', 'voice-create'];
+  const scenarioTypes = [
+    'image-generate',
+    'video-generate',
+    'speech-synthesize',
+    'speech-transcribe',
+    'voice-create',
+    'music-generate',
+  ];
   const statuses = ['submitted', 'queued', 'running', 'completed', 'failed', 'canceled', 'timeout'];
   if (!scenarioTypes.includes(String(value.scenarioType)) || !statuses.includes(String(value.status))) {
     throw untrustedRuntimeError();

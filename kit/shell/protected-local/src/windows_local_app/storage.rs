@@ -9,16 +9,17 @@ use crate::generated::{
     ListLocalAppAssetsRequest, LocalAppAssetRange as ProtoAssetRange,
     LocalAppAssetRecord as ProtoAssetRecord, MoveLocalAppAssetRequest, ReadLocalAppAssetRequest,
     ReadLocalAppStorageJsonRequest, RemoveLocalAppAssetRequest, RemoveLocalAppStorageJsonRequest,
-    RemoveLocalAppStorageJsonResponse, StatLocalAppAssetRequest, WriteLocalAppAssetMetadata,
-    WriteLocalAppAssetRequest, WriteLocalAppStorageJsonRequest,
+    RemoveLocalAppStorageJsonResponse, RevealLocalAppAssetRequest, StatLocalAppAssetRequest,
+    WriteLocalAppAssetMetadata, WriteLocalAppAssetRequest, WriteLocalAppStorageJsonRequest,
 };
 use crate::grpc_status::local_app_error_from_status;
 use crate::{
     LocalAppAssetAdoptRequest, LocalAppAssetListRequest, LocalAppAssetListResult,
     LocalAppAssetMoveRequest, LocalAppAssetRange, LocalAppAssetReadRequest,
     LocalAppAssetReadResult, LocalAppAssetRecord, LocalAppAssetRemoveRequest,
-    LocalAppAssetRemoveResult, LocalAppAssetStatRequest, LocalAppAssetWriteReceiver,
-    LocalAppAssetWriteRequest, LocalAppOperationError, LocalAppReasonCode, LocalAppStorageDocument,
+    LocalAppAssetRemoveResult, LocalAppAssetRevealRequest, LocalAppAssetRevealTarget,
+    LocalAppAssetStatRequest, LocalAppAssetWriteReceiver, LocalAppAssetWriteRequest,
+    LocalAppOperationError, LocalAppReasonCode, LocalAppStorageDocument,
     LocalAppStorageReadRequest, LocalAppStorageRemoveRequest, LocalAppStorageRemoveResult,
     LocalAppStorageWriteRequest,
 };
@@ -302,6 +303,30 @@ pub(super) async fn move_local_app_asset(
         return Err(untrusted());
     }
     validate_asset_record(response.asset)
+}
+
+pub(super) async fn reveal_local_app_asset(
+    channel: Channel,
+    request: LocalAppAssetRevealRequest,
+) -> Result<LocalAppAssetRevealTarget, LocalAppOperationError> {
+    validate_asset_path(&request.relative_path)?;
+    let response = RuntimeAppServiceClient::new(channel)
+        .reveal_local_app_asset(RevealLocalAppAssetRequest {
+            relative_path: request.relative_path,
+        })
+        .await
+        .map_err(local_app_error_from_status)?
+        .into_inner();
+    if response.reason_code != ACTION_EXECUTED
+        || response.absolute_path.is_empty()
+        || !std::path::Path::new(&response.absolute_path).is_absolute()
+    {
+        return Err(untrusted());
+    }
+    Ok(LocalAppAssetRevealTarget {
+        asset: validate_asset_record(response.asset)?,
+        absolute_path: response.absolute_path,
+    })
 }
 
 pub(super) async fn adopt_local_app_artifact(

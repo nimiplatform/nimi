@@ -310,6 +310,7 @@ describe('Electron protected local-app host', () => {
     await expect(host.artifactUpload({ bytes: [1, 2], mimeType: 'image/png' })).resolves.toEqual({
       artifactId: 'artifact-upload-1', mimeType: 'image/png', sizeBytes: 2,
     });
+    await expect(host.assetReveal({ relativePath: 'media/run.wav' })).resolves.toEqual({ revealed: true });
     expect(calls.find(({ method }) => method === 'localAppArtifactUpload')?.input).toEqual({
       bytes: Buffer.from([1, 2]), mimeType: 'image/png',
     });
@@ -413,6 +414,33 @@ describe('Electron protected local-app host', () => {
       await expect(host.scenarioJobStreamNext({ streamId: 'scenario-job-1' }))
         .resolves.toEqual({ completed: false, event });
     }
+  });
+
+  it('accepts the protected Music Job stream projection', async () => {
+    const event = {
+      eventType: 'running',
+      sequence: '1',
+      traceId: 'trace-music-1',
+      timestamp: { seconds: '1786170000', nanos: 1 },
+      job: scenarioJobProjection({
+        scenarioType: 'music-generate',
+        status: 'running',
+        progressPercent: 0,
+        progressCurrentStep: 0,
+        progressTotalSteps: 0,
+      }),
+    };
+    const candidate = {
+      ...binding([]),
+      localAppScenarioJobStreamNext: async () => ({
+        status: 'ok' as const,
+        value: { completed: false, event },
+      }),
+    };
+
+    await expect(createNimiElectronLocalAppHostForBinding(candidate)
+      .scenarioJobStreamNext({ streamId: 'scenario-job-music-1' }))
+      .resolves.toEqual({ completed: false, event });
   });
 
   it('resolves only independently admitted fixed native binding package identities', () => {
@@ -538,6 +566,7 @@ function binding(calls: Array<{ method: string; input?: unknown }>) {
     localAppAssetReadClose: record('localAppAssetReadClose', { closed: true }),
     localAppAssetRemove: record('localAppAssetRemove', { removed: true }),
     localAppAssetMove: record('localAppAssetMove', assetProjection()),
+    localAppAssetReveal: record('localAppAssetReveal', { revealed: true }),
     localAppAssetAdopt: record('localAppAssetAdopt', assetProjection()),
     localAppConversationOpen: record('localAppConversationOpen', { conversationAnchorId: 'anchor-1', activeTurnId: null }),
     localAppConversationSendTurn: record('localAppConversationSendTurn', { turnId: 'turn-1' }),

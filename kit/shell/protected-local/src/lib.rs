@@ -1,6 +1,10 @@
 #![deny(unsafe_code)]
 
 mod adapters;
+mod asset_reveal;
+#[cfg(target_os = "windows")]
+#[allow(unsafe_code)]
+mod windows_asset_reveal;
 mod bundled_avatar;
 mod carrier;
 mod desktop_account;
@@ -93,6 +97,7 @@ pub use adapters::MacOsLocalAppCarrier;
 pub use adapters::{
     LinuxLocalAppCarrier, LinuxUnixSocketCarrier, WindowsLocalAppCarrier, WindowsNamedPipeCarrier,
 };
+pub use asset_reveal::reveal_local_app_asset_target;
 pub use bundled_avatar::{
     BundledAvatarRuntimeError, BundledAvatarRuntimeRequest, BundledAvatarRuntimeResponse,
     BundledAvatarRuntimeStreamReceiver,
@@ -103,10 +108,11 @@ pub use carrier::{
     LocalAppAssetListRequest, LocalAppAssetListResult, LocalAppAssetMoveRequest,
     LocalAppAssetRange, LocalAppAssetReadReceiver, LocalAppAssetReadRequest,
     LocalAppAssetReadResult, LocalAppAssetRecord, LocalAppAssetRemoveRequest,
-    LocalAppAssetRemoveResult, LocalAppAssetStatRequest, LocalAppAssetWriteReceiver,
-    LocalAppAssetWriteRequest, LocalAppConversationEvent, LocalAppConversationEventKind,
-    LocalAppConversationInterruptRequest, LocalAppConversationInterruptResult,
-    LocalAppConversationMessage, LocalAppConversationMessageRole, LocalAppConversationOpenRequest,
+    LocalAppAssetRemoveResult, LocalAppAssetRevealRequest, LocalAppAssetRevealTarget,
+    LocalAppAssetStatRequest, LocalAppAssetWriteReceiver, LocalAppAssetWriteRequest,
+    LocalAppConversationEvent, LocalAppConversationEventKind, LocalAppConversationInterruptRequest,
+    LocalAppConversationInterruptResult, LocalAppConversationMessage,
+    LocalAppConversationMessageRole, LocalAppConversationOpenRequest,
     LocalAppConversationOpenResult, LocalAppConversationSendRequest,
     LocalAppConversationSendResult, LocalAppConversationSnapshot,
     LocalAppConversationSnapshotRequest, LocalAppConversationSubscribeRequest,

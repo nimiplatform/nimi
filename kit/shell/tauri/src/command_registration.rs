@@ -168,6 +168,11 @@ pub const LOCAL_APP_COMMANDS: &[ShellCommandDescriptor] = &[
         boundary: ShellCommandBoundary::LocalApp,
     },
     ShellCommandDescriptor {
+        command_name: "local_app_asset_reveal",
+        rust_path: "nimi_shell_tauri::capabilities::local_app::local_app_asset_reveal",
+        boundary: ShellCommandBoundary::LocalApp,
+    },
+    ShellCommandDescriptor {
         command_name: "local_app_asset_adopt",
         rust_path: "nimi_shell_tauri::capabilities::local_app::local_app_asset_adopt",
         boundary: ShellCommandBoundary::LocalApp,
@@ -567,6 +572,7 @@ macro_rules! nimi_shell_tauri_local_app_standard_shell_handler {
             $crate::capabilities::local_app::local_app_asset_read_close,
             $crate::capabilities::local_app::local_app_asset_remove,
             $crate::capabilities::local_app::local_app_asset_move,
+            $crate::capabilities::local_app::local_app_asset_reveal,
             $crate::capabilities::local_app::local_app_asset_adopt,
             $crate::capabilities::storage::storage_read_json,
             $crate::capabilities::storage::storage_write_json,

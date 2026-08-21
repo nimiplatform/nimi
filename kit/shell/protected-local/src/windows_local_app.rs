@@ -36,11 +36,11 @@ use crate::{
     LocalAppAgentUpdateAutonomyRequest, LocalAppAssetAdoptRequest, LocalAppAssetListRequest,
     LocalAppAssetListResult, LocalAppAssetMoveRequest, LocalAppAssetReadRequest,
     LocalAppAssetReadResult, LocalAppAssetRecord, LocalAppAssetRemoveRequest,
-    LocalAppAssetRemoveResult, LocalAppAssetStatRequest, LocalAppAssetWriteReceiver,
-    LocalAppAssetWriteRequest, LocalAppConversationInterruptRequest,
-    LocalAppConversationInterruptResult, LocalAppConversationOpenRequest,
-    LocalAppConversationOpenResult, LocalAppConversationSendRequest,
-    LocalAppConversationSendResult, LocalAppConversationSnapshot,
+    LocalAppAssetRemoveResult, LocalAppAssetRevealRequest, LocalAppAssetRevealTarget,
+    LocalAppAssetStatRequest, LocalAppAssetWriteReceiver, LocalAppAssetWriteRequest,
+    LocalAppConversationInterruptRequest, LocalAppConversationInterruptResult,
+    LocalAppConversationOpenRequest, LocalAppConversationOpenResult,
+    LocalAppConversationSendRequest, LocalAppConversationSendResult, LocalAppConversationSnapshot,
     LocalAppConversationSnapshotRequest, LocalAppConversationSubscribeRequest,
     LocalAppConversationSubscriptionReceiver, LocalAppCurrentUserDisplay,
     LocalAppCurrentUserStatus, LocalAppOperationError, LocalAppPersonaCharacterCreateRequest,
@@ -540,6 +540,22 @@ impl NimiLocalAppSession for PlatformLocalAppSession {
         Box::pin(async move {
             let _operation = self.operation_gate.read().await;
             storage::move_local_app_asset(self.checked_channel()?, request).await
+        })
+    }
+
+    fn storage_asset_reveal(
+        &self,
+        request: LocalAppAssetRevealRequest,
+    ) -> Pin<
+        Box<
+            dyn Future<Output = Result<LocalAppAssetRevealTarget, LocalAppOperationError>>
+                + Send
+                + '_,
+        >,
+    > {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            storage::reveal_local_app_asset(self.checked_channel()?, request).await
         })
     }
 

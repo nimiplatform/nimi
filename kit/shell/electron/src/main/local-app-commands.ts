@@ -95,6 +95,7 @@ const COMMAND_METHODS = new Map<string, RendererLocalAppHostMethod>([
   [NIMI_STANDARD_SHELL_COMMANDS['storage.assetReadClose'], 'assetReadClose'],
   [NIMI_STANDARD_SHELL_COMMANDS['storage.assetRemove'], 'assetRemove'],
   [NIMI_STANDARD_SHELL_COMMANDS['storage.assetMove'], 'assetMove'],
+  [NIMI_STANDARD_SHELL_COMMANDS['storage.assetReveal'], 'assetReveal'],
   [NIMI_STANDARD_SHELL_COMMANDS['storage.assetAdopt'], 'assetAdopt'],
 ]);
 
@@ -133,6 +134,7 @@ export async function dispatchElectronLocalAppCommand(input: {
     if (method === 'assetReadClose') return await input.host.assetReadClose(payload);
     if (method === 'assetRemove') return await input.host.assetRemove(payload);
     if (method === 'assetMove') return await input.host.assetMove(payload);
+    if (method === 'assetReveal') return await input.host.assetReveal(payload);
     if (method === 'assetAdopt') return await input.host.assetAdopt(payload);
     if (method === 'textTurnSubscribe' || method === 'scenarioJobSubscribe') {
       const streams = activeScenarioStreams(input.host);
@@ -224,10 +226,16 @@ function validatePayload(
       }
       return textCandidatePayload(payload, command);
     case 'scenarioExecute':
-    case 'scenarioJobSubmit':
       assertExactKeys(payload, ['spec'], command);
-      validateScenarioSpec(payload.spec, command, method === 'scenarioExecute');
+      validateScenarioSpec(payload.spec, command, true);
       return { spec: payload.spec as NimiElectronLocalAppRecord[string] };
+    case 'scenarioJobSubmit':
+      assertExactKeys(payload, ['spec', 'timeoutMs'], command);
+      validateScenarioSpec(payload.spec, command, false);
+      return {
+        spec: payload.spec as NimiElectronLocalAppRecord[string],
+        timeoutMs: boundedSafeInteger(payload.timeoutMs, 'timeoutMs', command, 0, 2_147_483_647),
+      };
     case 'scenarioJobGet':
       return identifiers(payload, ['jobId'], command);
     case 'scenarioJobCancel': {
@@ -384,6 +392,7 @@ function validatePayload(
       return { ...storagePathPayload({ relativePath: payload.relativePath }, command), value: payload.value as NimiElectronLocalAppRecord[string] };
     case 'assetStat':
     case 'assetRemove':
+    case 'assetReveal':
       return assetPathPayload(payload, command);
     case 'assetList': {
       assertExactKeys(payload, ['prefix', 'cursor', 'pageSize'], command);
@@ -532,8 +541,15 @@ function validateScenarioSpec(value: unknown, command: string, execute: boolean)
     case 'speech-synthesize': validateSpeechSynthesizeSpec(value, command); return;
     case 'speech-transcribe': validateSpeechTranscribeSpec(value, command); return;
     case 'voice-create': validateVoiceCreateSpec(value, command); return;
+    case 'music-generate': validateMusicSpec(value, command); return;
     default: throw invalidPayload(command, 'job scenario type is invalid');
   }
+}
+
+function validateMusicSpec(value: Record<string, unknown>, command: string): void {
+  assertExactKeys(value, ['type', 'prompt', 'lyrics'], command);
+  requiredUtf8Text(value.prompt, 'prompt', command, 32 * 1024);
+  requiredUtf8Text(value.lyrics, 'lyrics', command, 32 * 1024);
 }
 
 function validateImageSpec(value: Record<string, unknown>, command: string): void {

@@ -220,7 +220,7 @@ describe('renderer local-app standard-shell surface', () => {
     expect(invocations).toEqual([
       {
         command: NIMI_STANDARD_SHELL_COMMANDS['local-app.scenarioJobSubmit'],
-        payload: { payload: { spec } },
+        payload: { payload: { spec, timeoutMs: 0 } },
       },
       {
         command: NIMI_STANDARD_SHELL_COMMANDS['local-app.scenarioJobGet'],
@@ -318,6 +318,26 @@ describe('renderer local-app standard-shell surface', () => {
     const received = [];
     for await (const event of subscription) received.push(event);
     expect(received).toEqual(events);
+  });
+
+  it('projects the protected Music Job case through the renderer bridge', async () => {
+    const job = {
+      jobId: 'job-music-1', scenarioType: 'music-generate', status: 'submitted',
+      progressPercent: 0, progressCurrentStep: 0, progressTotalSteps: 0,
+      reasonCode: 'ACTION_EXECUTED', reasonDetail: '', artifacts: [], traceId: 'trace-music-1',
+      createdAt: null, updatedAt: null, transcriptionText: '',
+    } as const;
+    (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
+      invoke: async (command: string) => {
+        if (command === NIMI_STANDARD_SHELL_COMMANDS['local-app.scenarioJobSubmit']) return { job };
+        throw new Error(`unexpected command ${command}`);
+      },
+      listen: () => () => {},
+    };
+    const surface = createNimiLocalAppStandardShellSurface().ai;
+    await expect(surface.scenarioJobs.submit({
+      type: 'music-generate', prompt: 'bright synth-pop', lyrics: '[Verse]\nCity lights.',
+    })).resolves.toEqual({ job });
   });
 
   it('projects the exact minimal Agent reference catalog', async () => {
@@ -717,6 +737,7 @@ describe('renderer local-app standard-shell surface', () => {
         if (command.endsWith('assetWriteCommit')) return asset;
         if (command.endsWith('assetWriteAbort')) return { aborted: true };
         if (command.endsWith('assetStat')) return asset;
+        if (command.endsWith('assetReveal')) return { revealed: true };
         if (command.endsWith('assetList')) return { assets: [asset], nextCursor: '' };
         if (command.endsWith('assetReadOpen')) return {
           streamId: 'read-1', asset: { ...asset, sizeBytes: 4 }, range: { offset: 0, length: 4, totalSize: 4 },
@@ -750,6 +771,7 @@ describe('renderer local-app standard-shell surface', () => {
     const maximumPath = `${'a'.repeat(255)}/${'b'.repeat(255)}/${'c'.repeat(255)}/${'d'.repeat(254)}/e`;
     await expect(assets.stat(unicodePath)).resolves.toEqual(asset);
     await expect(assets.stat(maximumPath)).resolves.toEqual(asset);
+    await expect(assets.reveal(unicodePath)).resolves.toEqual({ revealed: true });
     await expect(assets.list({ prefix: '媒体/', pageSize: 500 })).resolves.toEqual({ assets: [asset], nextCursor: '' });
     expect(() => assets.stat('媒体/e\u0301.wav')).toThrow(/relativePath is invalid/u);
     expect(() => assets.stat(`${maximumPath}x`)).toThrow(/relativePath is invalid/u);

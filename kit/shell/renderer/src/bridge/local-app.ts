@@ -189,7 +189,12 @@ export type NimiLocalAppScenarioJobSpec =
       readonly type: 'voice-create'; readonly creationSource: 'text-description';
       readonly instructionText: string; readonly previewText: string;
       readonly language: string; readonly preferredName: string;
-    };
+    }
+  | { readonly type: 'music-generate'; readonly prompt: string; readonly lyrics: string };
+
+export type NimiLocalAppScenarioJobSubmitOptions = {
+  readonly timeoutMs?: number;
+};
 
 export type NimiLocalAppScenarioTimestamp = { readonly seconds: string; readonly nanos: number };
 export type NimiLocalAppScenarioArtifact = {
@@ -199,7 +204,7 @@ export type NimiLocalAppScenarioArtifact = {
 };
 export type NimiLocalAppScenarioJob = {
   readonly jobId: string;
-  readonly scenarioType: 'image-generate' | 'video-generate' | 'speech-synthesize' | 'speech-transcribe' | 'voice-create';
+  readonly scenarioType: 'image-generate' | 'video-generate' | 'speech-synthesize' | 'speech-transcribe' | 'voice-create' | 'music-generate';
   readonly status: 'submitted' | 'queued' | 'running' | 'completed' | 'failed' | 'canceled' | 'timeout';
   readonly progressPercent: number; readonly progressCurrentStep: number; readonly progressTotalSteps: number;
   readonly reasonCode: string; readonly reasonDetail: string;
@@ -276,6 +281,7 @@ export type NimiLocalAppAssetShell = {
   readonly read: (input: { readonly relativePath: string; readonly offset?: number; readonly length?: number }) => Promise<NimiLocalAppAssetReadResult>;
   readonly remove: (relativePath: string) => Promise<NimiLocalAppStorageRemoveResult>;
   readonly move: (input: { readonly from: string; readonly to: string; readonly overwrite?: boolean }) => Promise<NimiLocalAppAssetRecord>;
+  readonly reveal: (relativePath: string) => Promise<{ readonly revealed: true }>;
   readonly adoptArtifact: (input: { readonly artifactId: string; readonly relativePath: string; readonly overwrite?: boolean }) => Promise<NimiLocalAppAssetRecord>;
 };
 
@@ -355,7 +361,10 @@ export type NimiLocalAppStandardShellSurface = {
       readonly execute: (spec: NimiLocalAppScenarioExecuteSpec) => Promise<NimiLocalAppScenarioExecuteResult>;
     };
     readonly scenarioJobs: {
-      readonly submit: (spec: NimiLocalAppScenarioJobSpec) => Promise<NimiLocalAppScenarioJobSubmitResult>;
+      readonly submit: (
+        spec: NimiLocalAppScenarioJobSpec,
+        options?: NimiLocalAppScenarioJobSubmitOptions,
+      ) => Promise<NimiLocalAppScenarioJobSubmitResult>;
       readonly get: (jobId: string) => Promise<NimiLocalAppScenarioJobGetResult>;
       readonly subscribe: (jobId: string) => Promise<NimiLocalAppStream<NimiLocalAppScenarioJobEvent>>;
       readonly cancel: (jobId: string, reason?: string) => Promise<{ readonly job: NimiLocalAppScenarioJob }>;
@@ -602,9 +611,14 @@ export function executeNimiLocalAppScenario(
 
 export function submitNimiLocalAppScenarioJob(
   spec: NimiLocalAppScenarioJobSpec,
+  options: NimiLocalAppScenarioJobSubmitOptions = {},
 ): Promise<NimiLocalAppScenarioJobSubmitResult> {
   const command = AIC_COMMANDS.scenarioJobSubmit;
-  return invokeChecked(command, { payload: { spec: canonicalScenarioSpec(spec, command) } },
+  const timeoutMs = options.timeoutMs ?? 0;
+  return invokeChecked(command, { payload: {
+    spec: canonicalScenarioSpec(spec, command),
+    timeoutMs: boundedSafeInteger(timeoutMs, 'timeoutMs', command, 0, 2_147_483_647),
+  } },
     (value) => parseScenarioJobSubmit(value, command));
 }
 
@@ -1046,6 +1060,7 @@ export function createNimiLocalAppAssetShell(): NimiLocalAppAssetShell {
     read: readNimiLocalAppAsset,
     remove: removeNimiLocalAppAsset,
     move: moveNimiLocalAppAsset,
+    reveal: revealNimiLocalAppAsset,
     adoptArtifact: adoptNimiLocalAppArtifact,
   });
 }
@@ -1141,6 +1156,15 @@ export function moveNimiLocalAppAsset(input: { readonly from: string; readonly t
   return invokeChecked(command, { payload: { fromRelativePath: canonicalAssetPath(input.from, command),
     toRelativePath: canonicalAssetPath(input.to, command), overwrite: input.overwrite ?? false } },
   (value) => parseAssetRecord(value, command));
+}
+
+export function revealNimiLocalAppAsset(relativePath: string): Promise<{ readonly revealed: true }> {
+  const command = NIMI_STANDARD_SHELL_COMMANDS['storage.assetReveal'];
+  return invokeChecked(command, { payload: { relativePath: canonicalAssetPath(relativePath, command) } }, (value) => {
+    const result = parseBooleanResult(value, 'revealed', command);
+    if (result.revealed !== true) throw new Error(`${command}: reveal did not complete`);
+    return Object.freeze({ revealed: true as const });
+  });
 }
 
 export function adoptNimiLocalAppArtifact(input: { readonly artifactId: string; readonly relativePath: string; readonly overwrite?: boolean }): Promise<NimiLocalAppAssetRecord> {
@@ -1321,7 +1345,7 @@ function parseScenarioJob(value: unknown, command: string): NimiLocalAppScenario
     'progressTotalSteps', 'reasonCode', 'reasonDetail', 'artifacts', 'traceId',
     'createdAt', 'updatedAt', 'transcriptionText',
   ], command, 'scenario Job');
-  if (!['image-generate', 'video-generate', 'speech-synthesize', 'speech-transcribe', 'voice-create'].includes(String(record.scenarioType))
+  if (!['image-generate', 'video-generate', 'speech-synthesize', 'speech-transcribe', 'voice-create', 'music-generate'].includes(String(record.scenarioType))
     || !['submitted', 'queued', 'running', 'completed', 'failed', 'canceled', 'timeout'].includes(String(record.status))) {
     throw new Error(`${command}: Job enum is invalid`);
   }

@@ -405,6 +405,9 @@ pub enum ReasonCode {
     AiLoadoutPersistenceUnavailable = 722,
     AiLoadoutNotConfigured = 723,
     AiLoadoutCatalogSchemaInvalid = 724,
+    /// Native local execution exhausted device or host memory. This is distinct
+    /// from an ordinary inference failure and never triggers model substitution.
+    AiLocalExecutionOutOfMemory = 725,
 }
 impl ReasonCode {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -755,6 +758,7 @@ impl ReasonCode {
             Self::AiLoadoutPersistenceUnavailable => "AI_LOADOUT_PERSISTENCE_UNAVAILABLE",
             Self::AiLoadoutNotConfigured => "AI_LOADOUT_NOT_CONFIGURED",
             Self::AiLoadoutCatalogSchemaInvalid => "AI_LOADOUT_CATALOG_SCHEMA_INVALID",
+            Self::AiLocalExecutionOutOfMemory => "AI_LOCAL_EXECUTION_OUT_OF_MEMORY",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -1174,6 +1178,7 @@ impl ReasonCode {
             "AI_LOADOUT_CATALOG_SCHEMA_INVALID" => {
                 Some(Self::AiLoadoutCatalogSchemaInvalid)
             }
+            "AI_LOCAL_EXECUTION_OUT_OF_MEMORY" => Some(Self::AiLocalExecutionOutOfMemory),
             _ => None,
         }
     }
@@ -5408,11 +5413,22 @@ pub mod local_app_voice_create_job_spec {
         TextDescription(super::VoiceT2vInput),
     }
 }
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppMusicGenerateJobSpec {
+    #[prost(string, tag = "1")]
+    pub prompt: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub lyrics: ::prost::alloc::string::String,
+}
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct SubmitLocalAppScenarioJobRequest {
+    /// Canonical Job deadline in milliseconds. Zero keeps Runtime's
+    /// capability-owned default; no other ScenarioRequestHead field is exposed.
+    #[prost(int32, tag = "9")]
+    pub timeout_ms: i32,
     #[prost(
         oneof = "submit_local_app_scenario_job_request::Spec",
-        tags = "1, 2, 3, 4, 7"
+        tags = "1, 2, 3, 4, 7, 8"
     )]
     pub spec: ::core::option::Option<submit_local_app_scenario_job_request::Spec>,
 }
@@ -5430,6 +5446,8 @@ pub mod submit_local_app_scenario_job_request {
         SpeechTranscribe(super::LocalAppSpeechTranscribeJobSpec),
         #[prost(message, tag = "7")]
         VoiceCreate(super::LocalAppVoiceCreateJobSpec),
+        #[prost(message, tag = "8")]
+        MusicGenerate(super::LocalAppMusicGenerateJobSpec),
     }
 }
 /// Trimmed Job projection for Local App consumption: status, progress, typed
@@ -7954,6 +7972,8 @@ pub struct LocalCatalogModelDescriptor {
     pub host_requirements: ::core::option::Option<LocalHostRequirements>,
     #[prost(int64, tag = "27")]
     pub total_size_bytes: i64,
+    #[prost(string, tag = "28")]
+    pub source_provenance: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct LocalInstallPlanDescriptor {
@@ -8004,6 +8024,8 @@ pub struct LocalInstallPlanDescriptor {
     pub engine_config: ::core::option::Option<::prost_types::Struct>,
     #[prost(int64, tag = "22")]
     pub total_size_bytes: i64,
+    #[prost(string, tag = "23")]
+    pub source_provenance: ::prost::alloc::string::String,
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
@@ -8016,6 +8038,7 @@ pub enum LocalAssetKind {
     Tts = 4,
     Stt = 5,
     Embedding = 6,
+    Music = 7,
     /// Passive kinds
     Vae = 10,
     Clip = 11,
@@ -8037,6 +8060,7 @@ impl LocalAssetKind {
             Self::Tts => "LOCAL_ASSET_KIND_TTS",
             Self::Stt => "LOCAL_ASSET_KIND_STT",
             Self::Embedding => "LOCAL_ASSET_KIND_EMBEDDING",
+            Self::Music => "LOCAL_ASSET_KIND_MUSIC",
             Self::Vae => "LOCAL_ASSET_KIND_VAE",
             Self::Clip => "LOCAL_ASSET_KIND_CLIP",
             Self::Lora => "LOCAL_ASSET_KIND_LORA",
@@ -8054,6 +8078,7 @@ impl LocalAssetKind {
             "LOCAL_ASSET_KIND_TTS" => Some(Self::Tts),
             "LOCAL_ASSET_KIND_STT" => Some(Self::Stt),
             "LOCAL_ASSET_KIND_EMBEDDING" => Some(Self::Embedding),
+            "LOCAL_ASSET_KIND_MUSIC" => Some(Self::Music),
             "LOCAL_ASSET_KIND_VAE" => Some(Self::Vae),
             "LOCAL_ASSET_KIND_CLIP" => Some(Self::Clip),
             "LOCAL_ASSET_KIND_LORA" => Some(Self::Lora),
@@ -11681,6 +11706,23 @@ pub struct MoveLocalAppAssetResponse {
     #[prost(enumeration = "ReasonCode", tag = "2")]
     pub reason_code: i32,
 }
+/// Purpose-specific host-only reveal. The renderer and SDK supply only the
+/// canonical App-relative path and never receive absolute_path; the native
+/// protected Host consumes it inside the reveal call and returns only success.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RevealLocalAppAssetRequest {
+    #[prost(string, tag = "1")]
+    pub relative_path: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RevealLocalAppAssetResponse {
+    #[prost(message, optional, tag = "1")]
+    pub asset: ::core::option::Option<LocalAppAssetRecord>,
+    #[prost(string, tag = "2")]
+    pub absolute_path: ::prost::alloc::string::String,
+    #[prost(enumeration = "ReasonCode", tag = "3")]
+    pub reason_code: i32,
+}
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct AdoptLocalAppArtifactRequest {
     #[prost(string, tag = "1")]
@@ -12253,6 +12295,35 @@ pub mod runtime_app_service_client {
                     GrpcMethod::new(
                         "nimi.runtime.v1.RuntimeAppService",
                         "MoveLocalAppAsset",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn reveal_local_app_asset(
+            &mut self,
+            request: impl tonic::IntoRequest<super::RevealLocalAppAssetRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::RevealLocalAppAssetResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAppService/RevealLocalAppAsset",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAppService",
+                        "RevealLocalAppAsset",
                     ),
                 );
             self.inner.unary(req, path, codec).await

@@ -852,6 +852,14 @@ pub mod local_app {
     }
 
     #[tauri::command]
+    pub async fn local_app_asset_reveal(
+        host: tauri::State<'_, crate::runtime_bridge::RuntimeBridgeLocalAppHost>,
+        payload: serde_json::Value,
+    ) -> Result<serde_json::Value, String> {
+        crate::standard_local_app::asset_reveal_for_host(host.inner(), payload).await
+    }
+
+    #[tauri::command]
     pub async fn local_app_asset_adopt(
         host: tauri::State<'_, crate::runtime_bridge::RuntimeBridgeLocalAppHost>,
         payload: serde_json::Value,

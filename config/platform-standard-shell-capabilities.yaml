@@ -287,6 +287,7 @@ capability_sets:
       - storage.assetReadClose
       - storage.assetRemove
       - storage.assetMove
+      - storage.assetReveal
       - storage.assetAdopt
       - storage.assetMediaOpen
       - storage.assetMediaRevoke
@@ -406,6 +407,15 @@ local_app_operation_contract:
       operation_id: app_storage.json.remove
       request_fields: [relativePath]
       response_fields: [removed]
+      owner: runtime_app_service
+    storageAssetReveal:
+      command: storage.assetReveal
+      operation_id: runtime.app-storage.asset.reveal
+      request_fields: [relativePath]
+      response_fields: [revealed]
+      transport_boundary: exact_protected_native_host
+      effect_boundary: os_file_manager_reveal
+      typed_failures: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, process-replaced, account-changed, runtime-restarted, invalid-path, not-found, integrity-failure, host-internal-error]
       owner: runtime_app_service
     realmWorldCoreList:
       command: local-app.realmWorldCoreList
@@ -836,6 +846,9 @@ capabilities:
       - id: assetMove
         command: nimi.shell.storage.assetMove
         negative_states: [capability-unavailable, invalid-path, already-exists, not-found, invalid-payload]
+      - id: assetReveal
+        command: nimi.shell.storage.assetReveal
+        negative_states: [capability-unavailable, invalid-path, not-found, integrity-failure, host-internal-error, invalid-payload]
       - id: assetAdopt
         command: nimi.shell.storage.assetAdopt
         negative_states: [capability-unavailable, invalid-path, already-exists, artifact-unavailable, resource-exhausted, canceled, invalid-payload]

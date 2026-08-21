@@ -2,8 +2,8 @@ use nimi_shell_protected_local::{
     LocalAppAgentCommitPresentationRequest, LocalAppAgentHandleRequest,
     LocalAppAgentUpdateAutonomyRequest, LocalAppAssetAdoptRequest, LocalAppAssetListRequest,
     LocalAppAssetMoveRequest, LocalAppAssetReadRequest, LocalAppAssetRecord,
-    LocalAppAssetRemoveRequest, LocalAppAssetStatRequest, LocalAppAssetWriteRequest,
-    LocalAppOperationError, LocalAppPersonaCharacterCreateRequest,
+    LocalAppAssetRemoveRequest, LocalAppAssetRevealRequest, LocalAppAssetStatRequest,
+    LocalAppAssetWriteRequest, LocalAppOperationError, LocalAppPersonaCharacterCreateRequest,
     LocalAppPersonaCharacterGetOwnedRequest, LocalAppPersonaCharacterListOwnedRequest,
     LocalAppPersonaCharacterReplaceRequest, LocalAppScenarioUploadArtifactRequest,
     LocalAppSessionStatus, LocalAppSharedAgentAIConfigOverwriteRequest, LocalAppStorageReadRequest,
@@ -871,6 +871,26 @@ pub async fn asset_move_for_host(
         .await
         .map_err(map_local_app_error)?;
     Ok(project_asset_record(asset))
+}
+
+pub async fn asset_reveal_for_host(
+    host: &RuntimeBridgeLocalAppHost,
+    payload: Value,
+) -> Result<Value, String> {
+    let payload: LocalAppStorageReadPayload = parse_payload(payload, "local_app_asset_reveal")?;
+    let target = host
+        .storage_asset_reveal(LocalAppAssetRevealRequest {
+            relative_path: payload.relative_path,
+        })
+        .await
+        .map_err(map_local_app_error)?;
+    tokio::task::spawn_blocking(move || {
+        nimi_shell_protected_local::reveal_local_app_asset_target(target)
+    })
+    .await
+    .map_err(|_| "host-internal-error".to_string())?
+    .map_err(map_local_app_error)?;
+    Ok(json!({ "revealed": true }))
 }
 
 pub async fn asset_adopt_for_host(

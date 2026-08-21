@@ -490,10 +490,7 @@ fn parse_bridge_result(
             let applied_target = required_result_string(record.get("appliedTarget"))?;
             if !matches!(
                 applied_target.as_str(),
-                "open-explore"
-                    | "open-runtime-config"
-                    | "open-apps"
-                    | "open-settings"
+                "open-explore" | "open-runtime-config" | "open-apps" | "open-settings"
             ) {
                 return Err("desktop-open-intent-invalid");
             }

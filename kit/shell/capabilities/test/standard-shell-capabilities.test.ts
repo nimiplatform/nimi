@@ -227,6 +227,7 @@ describe('standard shell capabilities', () => {
       'storage.assetReadClose',
       'storage.assetRemove',
       'storage.assetMove',
+      'storage.assetReveal',
       'storage.assetAdopt',
       'storage.assetMediaOpen',
       'storage.assetMediaRevoke',

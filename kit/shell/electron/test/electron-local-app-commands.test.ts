@@ -118,7 +118,7 @@ describe('Electron local-app standard-shell operations', () => {
         type: 'speech-synthesize', text: 'hello', language: '', audioFormat: '',
         sampleRateHz: 0, speed: 4, pitch: -24, volume: 4, emotion: '',
         voiceRef: null, timingMode: 'none', voiceRenderHints: null,
-      } },
+      }, timeoutMs: 0 },
     });
     expect(calls[0]).toEqual(['textGenerateCandidate', {
       messages: [{ role: 'user', text: 'hello' }],
@@ -134,7 +134,7 @@ describe('Electron local-app standard-shell operations', () => {
       payload: { spec: {
         type: 'speech-synthesize', text: 'hello', language: '', audioFormat: '',
         pitch: -24.1, emotion: '', voiceRef: null, timingMode: 'none', voiceRenderHints: null,
-      } },
+      }, timeoutMs: 0 },
     })).rejects.toMatchObject({ reasonCode: 'invalid-payload' });
   });
 
@@ -148,16 +148,16 @@ describe('Electron local-app standard-shell operations', () => {
     };
     for (const seed of [Number.MIN_SAFE_INTEGER, Number.MAX_SAFE_INTEGER]) {
       await expect(dispatchElectronLocalAppCommand({
-        host: localAppHost(calls), command, payload: { spec: { ...spec, seed } },
+        host: localAppHost(calls), command, payload: { spec: { ...spec, seed }, timeoutMs: 0 },
       })).resolves.toEqual({ job: null, asset: null });
     }
     expect(calls).toEqual([
-      ['scenarioJobSubmit', { spec: { ...spec, seed: Number.MIN_SAFE_INTEGER } }],
-      ['scenarioJobSubmit', { spec: { ...spec, seed: Number.MAX_SAFE_INTEGER } }],
+      ['scenarioJobSubmit', { spec: { ...spec, seed: Number.MIN_SAFE_INTEGER }, timeoutMs: 0 }],
+      ['scenarioJobSubmit', { spec: { ...spec, seed: Number.MAX_SAFE_INTEGER }, timeoutMs: 0 }],
     ]);
     for (const seed of [Number.MIN_SAFE_INTEGER - 1, Number.MAX_SAFE_INTEGER + 1]) {
       await expect(dispatchElectronLocalAppCommand({
-        host: localAppHost(calls), command, payload: { spec: { ...spec, seed } },
+        host: localAppHost(calls), command, payload: { spec: { ...spec, seed }, timeoutMs: 0 },
       })).rejects.toMatchObject({ reasonCode: 'invalid-payload' });
     }
     expect(calls).toHaveLength(2);
@@ -174,23 +174,26 @@ describe('Electron local-app standard-shell operations', () => {
     };
 
     await expect(dispatchElectronLocalAppCommand({
-      host: localAppHost(calls), command, payload: { spec },
+      host: localAppHost(calls), command, payload: { spec, timeoutMs: 0 },
     })).resolves.toEqual({ job: null, asset: null });
-    expect(calls).toEqual([['scenarioJobSubmit', { spec }]]);
+    expect(calls).toEqual([['scenarioJobSubmit', { spec, timeoutMs: 0 }]]);
 
     await expect(dispatchElectronLocalAppCommand({
       host: localAppHost(calls), command, payload: {
         spec: { ...spec, referenceImages: ['https://example.com/reference.png'] },
+        timeoutMs: 0,
       },
     })).rejects.toMatchObject({ reasonCode: 'invalid-payload' });
     await expect(dispatchElectronLocalAppCommand({
       host: localAppHost(calls), command, payload: {
         spec: { ...spec, referenceImageArtifactId: ' artifact-image-source-1' },
+        timeoutMs: 0,
       },
     })).rejects.toMatchObject({ reasonCode: 'invalid-payload' });
     await expect(dispatchElectronLocalAppCommand({
       host: localAppHost(calls), command, payload: {
         spec: { ...spec, referenceImageArtifactId: 'artifact\u007fimage-source-1' },
+        timeoutMs: 0,
       },
     })).rejects.toMatchObject({ reasonCode: 'invalid-payload' });
     expect(calls).toHaveLength(1);
@@ -205,12 +208,12 @@ describe('Electron local-app standard-shell operations', () => {
     };
 
     await expect(dispatchElectronLocalAppCommand({
-      host: localAppHost(calls), command, payload: { spec },
+      host: localAppHost(calls), command, payload: { spec, timeoutMs: 0 },
     })).resolves.toEqual({ job: null, asset: null });
-    expect(calls).toEqual([['scenarioJobSubmit', { spec }]]);
+    expect(calls).toEqual([['scenarioJobSubmit', { spec, timeoutMs: 0 }]]);
     await expect(dispatchElectronLocalAppCommand({
       host: localAppHost(calls), command,
-      payload: { spec: { ...spec, options: { ...spec.options, seed: 4_294_967_296 } } },
+      payload: { spec: { ...spec, options: { ...spec.options, seed: 4_294_967_296 } }, timeoutMs: 0 },
     })).rejects.toMatchObject({ reasonCode: 'invalid-payload' });
   });
 
@@ -240,7 +243,7 @@ describe('Electron local-app standard-shell operations', () => {
         type: 'speech-synthesize', text: 'hello', language: '', audioFormat: '', emotion: '',
         voiceRef: { type: 'voice-asset', id: 'voice-asset-1' },
         timingMode: 'none', voiceRenderHints: null,
-      } } },
+      }, timeoutMs: 0 } },
     })).rejects.toMatchObject({
       code: 'invalid-payload',
       reasonCode: 'ai-voice-target-model-mismatch',
@@ -264,12 +267,12 @@ describe('Electron local-app standard-shell operations', () => {
 
     for (const spec of [referenceAudio, textDescription]) {
       await expect(dispatchElectronLocalAppCommand({
-        host: localAppHost(calls), command, payload: { spec },
+        host: localAppHost(calls), command, payload: { spec, timeoutMs: 0 },
       })).resolves.toEqual({ job: null, asset: null });
     }
     expect(calls).toEqual([
-      ['scenarioJobSubmit', { spec: referenceAudio }],
-      ['scenarioJobSubmit', { spec: textDescription }],
+      ['scenarioJobSubmit', { spec: referenceAudio, timeoutMs: 0 }],
+      ['scenarioJobSubmit', { spec: textDescription, timeoutMs: 0 }],
     ]);
 
     for (const spec of [
@@ -278,7 +281,7 @@ describe('Electron local-app standard-shell operations', () => {
       { ...referenceAudio, creationSource: 'text-description' },
     ]) {
       await expect(dispatchElectronLocalAppCommand({
-        host: localAppHost(calls), command, payload: { spec },
+        host: localAppHost(calls), command, payload: { spec, timeoutMs: 0 },
       })).rejects.toMatchObject({ reasonCode: 'invalid-payload' });
     }
     expect(calls).toHaveLength(2);
@@ -301,14 +304,14 @@ describe('Electron local-app standard-shell operations', () => {
     await expect(dispatchElectronLocalAppCommand({
       host: localAppHost(calls),
       command,
-      payload: { spec },
+      payload: { spec, timeoutMs: 0 },
     })).resolves.toEqual({ job: null, asset: null });
     expect(calls).toHaveLength(1);
     expect((calls[0] as [string, { spec: typeof spec }])[1].spec.audioSource.bytes).toBe(bytes);
 
     bytes.push(0);
     await expect(dispatchElectronLocalAppCommand({
-      host: localAppHost(calls), command, payload: { spec },
+      host: localAppHost(calls), command, payload: { spec, timeoutMs: 0 },
     })).rejects.toMatchObject({
       reasonCode: 'invalid-payload',
       message: expect.stringContaining('inline bytes are invalid'),
@@ -645,6 +648,12 @@ describe('Electron local-app standard-shell operations', () => {
     }]);
 
     await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
+      command: NIMI_STANDARD_SHELL_COMMANDS['storage.assetReveal'],
+      payload: { payload: { relativePath: 'media/music/run.wav' } },
+    })).resolves.toEqual({ revealed: true });
+    expect(calls).toContainEqual(['assetReveal', { relativePath: 'media/music/run.wav' }]);
+
+    await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
       command: NIMI_STANDARD_SHELL_COMMANDS['storage.readJson'],
       payload: { payload: { relativePath: '../escape.json' } },
     })).rejects.toMatchObject({ code: 'invalid-payload', reasonCode: 'invalid-payload' });
@@ -786,6 +795,7 @@ function localAppHost(calls: unknown[]) {
     storageReadJson: async (input: unknown) => { calls.push(['storageReadJson', input]); return { value: { version: 1 }, sizeBytes: 13 }; },
     storageWriteJson: async (input: unknown) => { calls.push(['storageWriteJson', input]); return { value: { version: 2 }, sizeBytes: 13 }; },
     storageRemoveJson: async (input: unknown) => { calls.push(['storageRemoveJson', input]); return { removed: true }; },
+    assetReveal: async (input: unknown) => { calls.push(['assetReveal', input]); return { revealed: true }; },
     agentReferenceList: async () => {
       calls.push(['agentReferenceList']);
       return [{

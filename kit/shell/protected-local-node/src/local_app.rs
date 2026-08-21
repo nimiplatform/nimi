@@ -134,10 +134,24 @@ pub async fn local_app_scenario_execute(input: NativeScenarioSpecInput) -> Nativ
 }
 
 #[napi(js_name = "localAppScenarioJobSubmit")]
-pub async fn local_app_scenario_job_submit(input: NativeScenarioSpecInput) -> NativeJsonOutcome {
+pub async fn local_app_scenario_job_submit(
+    input: NativeScenarioJobSubmitInput,
+) -> NativeJsonOutcome {
+    let timeout_ms = match optional_native_i32(Some(input.timeout_ms)) {
+        Ok(Some(value)) if value >= 0 => value,
+        _ => {
+            return NativeJsonOutcome::error(LocalAppOperationError::new(
+                LocalAppReasonCode::InvalidPayload,
+                false,
+            ));
+        }
+    };
     invoke_agent(|session| async move {
         session
-            .submit_scenario_job(LocalAppScenarioSubmitRequest { spec: input.spec })
+            .submit_scenario_job(LocalAppScenarioSubmitRequest {
+                spec: input.spec,
+                timeout_ms,
+            })
             .await
     })
     .await
@@ -481,6 +495,39 @@ pub async fn local_app_asset_move(input: NativeAssetMoveInput) -> NativeJsonOutc
             .await
     })
     .await
+}
+
+// @nimi-authority: rule.nimi.platform.ui-design-system.p-kit-044
+#[napi(js_name = "localAppAssetReveal")]
+pub async fn local_app_asset_reveal(input: NativeStorageReadInput) -> NativeJsonOutcome {
+    let session = match current_or_open_session().await {
+        Ok(value) => value,
+        Err(error) => return NativeJsonOutcome::error(error),
+    };
+    let target = match session
+        .storage_asset_reveal(LocalAppAssetRevealRequest {
+            relative_path: input.relative_path,
+        })
+        .await
+    {
+        Ok(value) => value,
+        Err(error) => {
+            clear_session_on_transport_failure(&session, &error).await;
+            return NativeJsonOutcome::error(error);
+        }
+    };
+    match tokio::task::spawn_blocking(move || {
+        nimi_shell_protected_local::reveal_local_app_asset_target(target)
+    })
+    .await
+    {
+        Ok(Ok(())) => NativeJsonOutcome::success(json!({ "revealed": true })),
+        Ok(Err(error)) => NativeJsonOutcome::error(error),
+        Err(_) => NativeJsonOutcome::error(LocalAppOperationError::new(
+            LocalAppReasonCode::HostInternalError,
+            false,
+        )),
+    }
 }
 
 #[napi(js_name = "localAppAssetAdopt")]

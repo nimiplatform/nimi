@@ -51,6 +51,7 @@ const FINAL_LOCAL_APP_OPERATIONS = [
   'storage.assetReadClose',
   'storage.assetRemove',
   'storage.assetMove',
+  'storage.assetReveal',
   'storage.assetAdopt',
   'storage.assetMediaOpen',
   'storage.assetMediaRevoke',

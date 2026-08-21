@@ -9,6 +9,7 @@ import { createRuntimeExecutionUnavailableError } from './runtime-diagnostics.js
 
 export * from './runtime-ai-consume.js';
 export * from './runtime-image-generate.js';
+export * from './runtime-music-generate.js';
 export * from './runtime-identity.js';
 export * from './runtime-speech-synthesize.js';
 export * from './runtime-speech-transcribe.js';
