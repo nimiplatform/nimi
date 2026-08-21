@@ -21,6 +21,12 @@ export type SelectFieldChangeEvent = {
 
 export type SelectFieldProps = {
   tone?: FieldTone;
+  /**
+   * Options with an empty-string `value` are dropped before render: Radix
+   * Select reserves `''` for clearing the selection and showing the
+   * placeholder. Use a non-empty sentinel value instead. A `console.warn`
+   * fires in non-production builds when such an option is supplied.
+   */
   options: SelectFieldOption[];
   value?: string;
   defaultValue?: string;
@@ -99,6 +105,14 @@ export const SelectField = forwardRef<HTMLButtonElement, SelectFieldProps>(funct
 ) {
   // Radix reserves the empty string for clearing selection and showing the placeholder.
   const safeOptions = options.filter((option) => option.value !== '');
+
+  React.useEffect(() => {
+    if (process.env.NODE_ENV !== 'production' && options.length !== safeOptions.length) {
+      console.warn(
+        'SelectField: options with an empty-string `value` were dropped — Radix Select reserves the empty string for clearing the selection. Use a non-empty sentinel value instead.',
+      );
+    }
+  }, [options, safeOptions.length]);
   const controlledValueLabel = value === undefined
     ? undefined
     : safeOptions.find((option) => option.value === value)?.label;
@@ -158,7 +172,7 @@ export const SelectField = forwardRef<HTMLButtonElement, SelectFieldProps>(funct
       >
         <SelectPrimitive.Value
           placeholder={placeholder}
-          className="min-w-0 flex-1 truncate text-sm"
+          className="min-w-0 flex-1 truncate text-[length:var(--nimi-type-body-size)]"
         >
           {controlledValueLabel ?? null}
         </SelectPrimitive.Value>
@@ -202,7 +216,7 @@ export const SelectField = forwardRef<HTMLButtonElement, SelectFieldProps>(funct
                       value={option.value}
                       disabled={option.disabled}
                       className={cn(
-                        'relative flex min-h-9 cursor-pointer select-none items-center rounded-[var(--nimi-radius-sm)] py-2 pr-8 pl-3 text-sm text-[var(--nimi-text-primary)] outline-none',
+                        'relative flex min-h-9 cursor-pointer select-none items-center rounded-[var(--nimi-radius-sm)] py-2 pr-8 pl-3 text-[length:var(--nimi-type-body-size)] text-[var(--nimi-text-primary)] outline-none',
                         'data-[highlighted]:bg-[var(--nimi-action-ghost-hover)] data-[highlighted]:text-[var(--nimi-text-primary)]',
                         'data-[state=checked]:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)]',
                         'data-[disabled]:pointer-events-none data-[disabled]:opacity-[var(--nimi-opacity-disabled)]',

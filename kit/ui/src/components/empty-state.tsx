@@ -2,7 +2,9 @@ import React, { type HTMLAttributes, type ReactNode } from 'react';
 import { cn } from '../design-tokens.js';
 import { Surface } from './surface.js';
 
-type EmptyStateProps = HTMLAttributes<HTMLDivElement> & {
+// HTMLAttributes.title is `string`; Omit it so the `title` slot keeps its
+// intended ReactNode width instead of narrowing to string.
+type EmptyStateProps = Omit<HTMLAttributes<HTMLDivElement>, 'title'> & {
   icon?: ReactNode;
   title: ReactNode;
   description?: ReactNode;

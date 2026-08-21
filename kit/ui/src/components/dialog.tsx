@@ -40,7 +40,9 @@ type DialogContentProps = {
   overlayClassName?: string;
   children?: ReactNode;
   style?: CSSProperties;
+  /** @deprecated Use `'data-testid'` instead. When both are passed, `'data-testid'` wins. */
   dataTestId?: string;
+  'data-testid'?: string;
 };
 
 export function DialogContent({
@@ -50,11 +52,30 @@ export function DialogContent({
   children,
   style,
   dataTestId,
+  'data-testid': dataTestIdKebab,
 }: DialogContentProps) {
   const open = useContext(DialogPresenceContext);
   const reducedMotion = useNimiReducedMotion();
   const panelMotion = nimiOverlayPanelMotion({ kind: 'dialog', reducedMotion });
   const backdropMotion = nimiOverlayBackdropMotion({ reducedMotion });
+  const focusReturnTargetRef = React.useRef<HTMLElement | null>(null);
+  const resolvedDataTestId = dataTestIdKebab ?? dataTestId;
+
+  // Same focus contract as OverlayShell: the previously focused element is
+  // captured on open and restored on close, while Radix performs its default
+  // initial focus (first focusable child, else the content container).
+  const handleOpenAutoFocus = () => {
+    const activeElement = document.activeElement;
+    focusReturnTargetRef.current = activeElement instanceof HTMLElement ? activeElement : null;
+  };
+
+  const handleCloseAutoFocus = (event: Event) => {
+    const focusReturnTarget = focusReturnTargetRef.current;
+    focusReturnTargetRef.current = null;
+    if (!focusReturnTarget?.isConnected || focusReturnTarget.matches(':disabled')) return;
+    event.preventDefault();
+    focusReturnTarget.focus({ preventScroll: true });
+  };
 
   return (
     <AnimatePresence>
@@ -70,11 +91,12 @@ export function DialogContent({
             />
           </DialogPrimitive.Overlay>
           <DialogPrimitive.Content asChild forceMount
-            onOpenAutoFocus={(e) => e.preventDefault()}
+            onOpenAutoFocus={handleOpenAutoFocus}
+            onCloseAutoFocus={handleCloseAutoFocus}
             onEscapeKeyDown={() => onClose?.()}
           >
             <motion.div
-              data-testid={dataTestId}
+              data-testid={resolvedDataTestId}
               className={cn(
                 'nimi-overlay-panel nimi-overlay-panel--dialog fixed top-1/2 left-1/2 z-[var(--nimi-z-dialog)] -translate-x-1/2 -translate-y-1/2 rounded-[var(--nimi-radius-lg)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-overlay)] shadow-[var(--nimi-elevation-modal)] w-full max-w-md',
                 className,
@@ -117,21 +139,42 @@ export const DialogClose = DialogPrimitive.Close;
 
 type OverlayShellKind = 'dialog' | 'drawer' | 'popover';
 
-export type OverlayShellSize = 'S' | 'M' | 'L' | 'XL' | 'full';
+export type OverlayShellCanonicalSize = 'sm' | 'md' | 'lg' | 'xl' | 'full';
+
+/** @deprecated Legacy uppercase sizes; use the lowercase forms (`'S'`→`'sm'`, `'M'`→`'md'`, `'L'`→`'lg'`, `'XL'`→`'xl'`). */
+export type OverlayShellLegacySize = 'S' | 'M' | 'L' | 'XL';
+
+export type OverlayShellSize = OverlayShellCanonicalSize | OverlayShellLegacySize;
+
+const OVERLAY_SHELL_SIZE_NORMALIZE: Record<OverlayShellSize, OverlayShellCanonicalSize> = {
+  sm: 'sm',
+  md: 'md',
+  lg: 'lg',
+  xl: 'xl',
+  full: 'full',
+  S: 'sm',
+  M: 'md',
+  L: 'lg',
+  XL: 'xl',
+};
 
 export const OVERLAY_SHELL_SIZE_WIDTH: Record<OverlayShellSize, string> = {
+  sm: '480px',
+  md: '720px',
+  lg: '960px',
+  xl: '1120px',
+  full: 'calc(100vw - 32px)',
   S: '480px',
   M: '720px',
   L: '960px',
   XL: '1120px',
-  full: 'calc(100vw - 32px)',
 };
 
-const OVERLAY_SHELL_SIZE_CLASS: Record<OverlayShellSize, string> = {
-  S: 'nimi-overlay-panel--size-s',
-  M: 'nimi-overlay-panel--size-m',
-  L: 'nimi-overlay-panel--size-l',
-  XL: 'nimi-overlay-panel--size-xl',
+const OVERLAY_SHELL_SIZE_CLASS: Record<OverlayShellCanonicalSize, string> = {
+  sm: 'nimi-overlay-panel--size-s',
+  md: 'nimi-overlay-panel--size-m',
+  lg: 'nimi-overlay-panel--size-l',
+  xl: 'nimi-overlay-panel--size-xl',
   full: 'nimi-overlay-panel--size-full',
 };
 
@@ -153,7 +196,9 @@ type OverlayShellProps = {
   panelStyle?: CSSProperties;
   contentClassName?: string;
   children?: ReactNode;
+  /** @deprecated Use `'data-testid'` instead. When both are passed, `'data-testid'` wins. */
   dataTestId?: string;
+  'data-testid'?: string;
 };
 
 // @nimi-authority: rule.nimi.platform.ui-design-system.p-design-013a
@@ -175,6 +220,7 @@ export function OverlayShell({
   contentClassName,
   children,
   dataTestId,
+  'data-testid': dataTestIdKebab,
 }: OverlayShellProps) {
   const focusReturnTargetRef = React.useRef<HTMLElement | null>(null);
   const reducedMotion = useNimiReducedMotion();
@@ -216,12 +262,13 @@ export function OverlayShell({
     ? 'top-0 right-0 left-auto h-full translate-x-0 translate-y-0 max-w-sm rounded-l-[var(--nimi-radius-lg)] rounded-r-none'
     : '';
 
-  const hasSize = size !== undefined;
-  const sizeClass = hasSize ? OVERLAY_SHELL_SIZE_CLASS[size] : '';
+  const canonicalSize = size === undefined ? undefined : OVERLAY_SHELL_SIZE_NORMALIZE[size];
+  const hasSize = canonicalSize !== undefined;
+  const sizeClass = hasSize ? OVERLAY_SHELL_SIZE_CLASS[canonicalSize] : '';
   const defaultWidthClass = hasSize ? '' : 'max-w-md';
 
   const mergedPanelStyle: CSSProperties | undefined = hasSize
-    ? { width: OVERLAY_SHELL_SIZE_WIDTH[size], maxWidth: OVERLAY_SHELL_MAX_WIDTH, ...panelStyle }
+    ? { width: OVERLAY_SHELL_SIZE_WIDTH[canonicalSize], maxWidth: OVERLAY_SHELL_MAX_WIDTH, ...panelStyle }
     : panelStyle;
 
   const hasSidebar = sidebar !== undefined;
@@ -293,7 +340,7 @@ export function OverlayShell({
               onInteractOutside={closeOnBackdrop ? undefined : (e) => e.preventDefault()}
             >
               <motion.div
-                data-testid={dataTestId}
+                data-testid={dataTestIdKebab ?? dataTestId}
                 className={cn(
                   'nimi-overlay-panel fixed top-1/2 left-1/2 z-[var(--nimi-z-dialog)] -translate-x-1/2 -translate-y-1/2 rounded-[var(--nimi-radius-lg)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-overlay)] shadow-[var(--nimi-elevation-modal)] w-full',
                   defaultWidthClass,

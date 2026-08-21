@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, type ReactNode } from 'react';
 import * as TooltipPrimitive from '@radix-ui/react-tooltip';
+import { FOCUS_RING_CLASS_NAME } from '../a11y/focus.js';
 import { cn } from '../design-tokens.js';
 import {
   AnimatePresence,
@@ -43,6 +44,58 @@ function MotionTooltipBubble({
   );
 }
 
+type TooltipTriggerElementProps = {
+  className?: string;
+  tabIndex?: number;
+  href?: string;
+  disabled?: boolean;
+  'aria-label'?: string;
+  'aria-labelledby'?: string;
+};
+
+function tooltipTriggerChild(children: ReactNode, className?: string) {
+  if (React.isValidElement<TooltipTriggerElementProps>(children) && children.type !== React.Fragment) {
+    if (children.props.disabled === true) {
+      return (
+        <span
+          tabIndex={0}
+          role="button"
+          aria-disabled="true"
+          aria-label={children.props['aria-label']}
+          aria-labelledby={children.props['aria-labelledby']}
+          className={cn('inline-flex items-center justify-center', FOCUS_RING_CLASS_NAME, className)}
+        >
+          {React.cloneElement(children, {
+            className: cn('pointer-events-none', children.props.className),
+            tabIndex: -1,
+          })}
+        </span>
+      );
+    }
+    const nativeType = typeof children.type === 'string' ? children.type : null;
+    const nativeInteractive = nativeType === 'button'
+      || nativeType === 'input'
+      || nativeType === 'select'
+      || nativeType === 'textarea'
+      || (nativeType === 'a' && Boolean(children.props.href));
+    const addKeyboardFocus = Boolean(nativeType) && !nativeInteractive && children.props.tabIndex === undefined;
+    return React.cloneElement(children, {
+      className: cn(
+        'inline-flex items-center justify-center',
+        addKeyboardFocus && FOCUS_RING_CLASS_NAME,
+        children.props.className,
+        className,
+      ),
+      tabIndex: addKeyboardFocus ? 0 : children.props.tabIndex,
+    });
+  }
+  return (
+    <span tabIndex={0} className={cn('inline-flex items-center justify-center', FOCUS_RING_CLASS_NAME, className)}>
+      {children}
+    </span>
+  );
+}
+
 type TooltipProps = {
   children: ReactNode;
   content: ReactNode;
@@ -77,9 +130,7 @@ export function Tooltip({
     >
       <TooltipPresenceContext.Provider value={actualOpen}>
         <TooltipPrimitive.Trigger asChild>
-          <span className={cn('inline-flex items-center justify-center', className)}>
-            {children}
-          </span>
+          {tooltipTriggerChild(children, className)}
         </TooltipPrimitive.Trigger>
         <AnimatePresence>
           {actualOpen ? (
@@ -102,7 +153,7 @@ export function Tooltip({
 export function TooltipTrigger({ children, className }: { children: ReactNode; className?: string }) {
   return (
     <TooltipPrimitive.Trigger asChild>
-      <span className={cn('inline-flex', className)}>{children}</span>
+      {tooltipTriggerChild(children, className)}
     </TooltipPrimitive.Trigger>
   );
 }

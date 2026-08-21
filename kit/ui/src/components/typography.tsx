@@ -11,6 +11,7 @@ const defaultElementByRole: Record<TypographyRole, ElementType> = {
   helper: 'p',
   label: 'span',
   caption: 'span',
+  overline: 'span',
 };
 
 // P-DESIGN-016: every role applies its token-driven letter-spacing and,
@@ -26,6 +27,9 @@ export const typographyVariants = cva('nimi-text min-w-0 [font-optical-sizing:au
       helper: 'nimi-text--helper text-[length:var(--nimi-type-body-sm-size)] leading-[var(--nimi-type-body-sm-line-height)] font-normal tracking-[var(--nimi-type-body-sm-letter-spacing)] text-[var(--nimi-text-muted)] [:lang(zh)]:leading-[var(--nimi-type-body-sm-cjk-line-height)] [:lang(zh)]:tracking-[var(--nimi-type-body-sm-cjk-letter-spacing)]',
       label: 'nimi-text--label text-[length:var(--nimi-type-label-size)] leading-[var(--nimi-type-label-line-height)] font-medium tracking-[var(--nimi-type-label-letter-spacing)] text-[var(--nimi-text-secondary)] [:lang(zh)]:leading-[var(--nimi-type-label-cjk-line-height)]',
       caption: 'nimi-text--caption text-[length:var(--nimi-type-caption-size)] leading-[var(--nimi-type-caption-line-height)] font-medium tracking-[var(--nimi-type-caption-letter-spacing)] text-[var(--nimi-text-muted)] [:lang(zh)]:leading-[var(--nimi-type-caption-cjk-line-height)]',
+      // overline ships no CJK token variants in the generated themes, so the
+      // role applies the base scale only (no :lang(zh) overrides to sync).
+      overline: 'nimi-text--overline text-[length:var(--nimi-type-overline-size)] leading-[var(--nimi-type-overline-line-height)] font-[var(--nimi-type-overline-weight)] tracking-[var(--nimi-type-overline-letter-spacing)] text-[var(--nimi-text-muted)]',
       'hero-title': 'nimi-text--hero-title text-[length:var(--nimi-type-hero-title-size)] leading-[var(--nimi-type-hero-title-line-height)] font-[var(--nimi-type-hero-title-weight)] tracking-[var(--nimi-type-hero-title-letter-spacing)] [:lang(zh)]:leading-[var(--nimi-type-hero-title-cjk-line-height)] [:lang(zh)]:tracking-[var(--nimi-type-hero-title-cjk-letter-spacing)]',
     },
   },

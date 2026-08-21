@@ -43,9 +43,10 @@ export type TypographyRole =
   | 'body'
   | 'helper'
   | 'label'
-  | 'caption';
+  | 'caption'
+  | 'overline';
 export type NimiDensity = 'compact' | 'regular' | 'expressive';
-export type FeedbackTone = 'neutral' | 'success' | 'warning' | 'danger' | 'info';
+export type FeedbackTone = StatusTone;
 
 export const NIMI_DESIGN_PACK_IDS = DESIGN_PACK_IDS;
 export const NIMI_THEME_SCHEME_PACK_IDS = FOUNDATION_SCHEME_IDS;

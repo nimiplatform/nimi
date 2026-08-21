@@ -1,5 +1,6 @@
 import React, { forwardRef, useState, type ButtonHTMLAttributes, type ReactNode } from 'react';
 import { cn } from '../design-tokens.js';
+import { FOCUS_RING_CLASS_NAME } from '../a11y/focus.js';
 
 export type DashedAddButtonShape = 'tile' | 'row' | 'thumb' | 'dropzone';
 
@@ -12,10 +13,10 @@ type DashedAddButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'child
 };
 
 const SHAPE_LAYOUT: Record<DashedAddButtonShape, string> = {
-  tile: 'flex h-24 w-full flex-col items-center justify-center gap-1.5 rounded-2xl',
-  row: 'flex w-full items-center justify-center gap-2 rounded-xl py-3 text-[13px] font-medium',
-  thumb: 'flex h-14 w-14 flex-col items-center justify-center gap-0.5 rounded-xl',
-  dropzone: 'flex w-full flex-col items-center justify-center gap-2 rounded-2xl py-10',
+  tile: 'flex h-24 w-full flex-col items-center justify-center gap-1.5 rounded-[var(--nimi-radius-lg)]',
+  row: 'flex w-full items-center justify-center gap-2 rounded-[var(--nimi-radius-md)] py-3 text-[length:var(--nimi-type-body-sm-size)] font-medium',
+  thumb: 'flex h-14 w-14 flex-col items-center justify-center gap-0.5 rounded-[var(--nimi-radius-md)]',
+  dropzone: 'flex w-full flex-col items-center justify-center gap-2 rounded-[var(--nimi-radius-lg)] py-10',
 };
 
 const SHAPE_ICON_SIZE: Record<DashedAddButtonShape, number> = {
@@ -36,7 +37,7 @@ function PlusIcon({ size, active }: { size: number; active: boolean }) {
       strokeWidth="1.5"
       strokeLinecap="round"
       aria-hidden="true"
-      className="transition-transform duration-300"
+      className="transition-transform duration-[var(--nimi-motion-slow)]"
       style={{ transform: active ? 'scale(1.15) rotate(90deg)' : 'scale(1) rotate(0deg)' }}
     >
       <path d="M12 5v14M5 12h14" />
@@ -79,6 +80,7 @@ export const DashedAddButton = forwardRef<HTMLButtonElement, DashedAddButtonProp
       data-active={isActive || undefined}
       className={cn(
         'nimi-dashed-add-button group border-2 border-dashed transition-colors',
+        FOCUS_RING_CLASS_NAME,
         SHAPE_LAYOUT[shape],
         isActive
           ? 'border-[var(--nimi-action-primary-bg)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_8%,var(--nimi-surface-card))] text-[var(--nimi-action-primary-bg)]'
@@ -93,17 +95,17 @@ export const DashedAddButton = forwardRef<HTMLButtonElement, DashedAddButtonProp
         <span
           className={cn(
             'text-center',
-            shape === 'tile' && 'px-1 text-[12px]',
-            shape === 'row' && 'text-[13px] font-medium',
-            shape === 'thumb' && 'text-[11px]',
-            shape === 'dropzone' && 'text-[14px] font-medium text-[var(--nimi-text-primary)]',
+            shape === 'tile' && 'px-1 text-[length:var(--nimi-type-caption-size)]',
+            shape === 'row' && 'text-[length:var(--nimi-type-body-sm-size)] font-medium',
+            shape === 'thumb' && 'text-[length:var(--nimi-type-overline-size)]',
+            shape === 'dropzone' && 'text-[length:var(--nimi-type-body-size)] font-medium text-[var(--nimi-text-primary)]',
           )}
         >
           {label}
         </span>
       ) : null}
       {description ? (
-        <span className="text-center text-[13px] text-[var(--nimi-text-muted)]">{description}</span>
+        <span className="text-center text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-muted)]">{description}</span>
       ) : null}
     </button>
   );

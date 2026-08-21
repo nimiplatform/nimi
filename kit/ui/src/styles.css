@@ -37,11 +37,7 @@
   --nimi-accent: var(--nimi-action-primary-bg);
   --nimi-accent-hover: var(--nimi-action-primary-bg-hover);
   --nimi-accent-soft: color-mix(in srgb, var(--nimi-action-primary-bg) 14%, transparent);
-  --nimi-accent-onAccent: #062a33;
-}
-
-[data-nimi-scheme="dark"] {
-  --nimi-accent-onAccent: #062028;
+  --nimi-accent-onAccent: var(--nimi-action-primary-text);
 }
 
 html,

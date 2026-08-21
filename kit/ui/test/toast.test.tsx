@@ -117,7 +117,9 @@ test('NimiToaster portals tone chrome, role, content, and icon into body', async
 
   const viewport = document.body.querySelector('.nimi-toast-viewport');
   expect(viewport).toBeTruthy();
-  expect(viewport?.getAttribute('aria-live')).toBe('polite');
+  // No viewport-level live region: per-item role="status"/"alert" already
+  // announces; both would double-announce every toast.
+  expect(viewport?.getAttribute('aria-live')).toBeNull();
 
   const toast = document.body.querySelector('.nimi-toast') as HTMLElement;
   expect(toast.className).toContain('nimi-toast--danger');
@@ -276,4 +278,13 @@ test('reduced motion renders through the fade branch without errors', async () =
   });
   const toast = document.body.querySelector('.nimi-toast--info');
   expect(toast?.textContent).toContain('calm update');
+});
+
+test('dismissLabel overrides the toast close button accessible name', async () => {
+  await mountToaster(<NimiToaster dismissLabel="关闭通知" />);
+
+  act(() => {
+    nimiToast.info('localized');
+  });
+  expect(document.body.querySelector('.nimi-toast__close')?.getAttribute('aria-label')).toBe('关闭通知');
 });

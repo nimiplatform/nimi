@@ -8,9 +8,9 @@ const avatarVariants = cva(
   {
     variants: {
       size: {
-        sm: 'h-[var(--nimi-sizing-avatar-sm)] w-[var(--nimi-sizing-avatar-sm)] text-xs',
-        md: 'h-[var(--nimi-sizing-avatar-md)] w-[var(--nimi-sizing-avatar-md)] text-sm',
-        lg: 'h-[var(--nimi-sizing-avatar-lg)] w-[var(--nimi-sizing-avatar-lg)] text-base',
+        sm: 'h-[var(--nimi-sizing-avatar-sm)] w-[var(--nimi-sizing-avatar-sm)] text-[length:var(--nimi-type-caption-size)]',
+        md: 'h-[var(--nimi-sizing-avatar-md)] w-[var(--nimi-sizing-avatar-md)] text-[length:var(--nimi-type-body-size)]',
+        lg: 'h-[var(--nimi-sizing-avatar-lg)] w-[var(--nimi-sizing-avatar-lg)] text-[length:var(--nimi-type-section-title-size)]',
       },
       shape: {
         circle: 'rounded-full',

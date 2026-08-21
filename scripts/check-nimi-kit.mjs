@@ -158,7 +158,8 @@ for (const absPath of sourceFiles) {
       !isTestOrTooling
       && (target === '@nimiplatform/sdk' || target.startsWith('@nimiplatform/sdk/'))
       && fileRel !== 'kit/core/src/sdk-contract.ts'
-      && !fileRel.startsWith('kit/shell/electron/')
+      && fileRel !== 'kit/shell/electron/src/main/data-root-binding.ts'
+      && fileRel !== 'kit/shell/electron/src/main/runtime-bridge-protocol.ts'
     ) {
       fail(`${fileRel}: SDK imports must route through kit/core/src/sdk-contract.ts (${target})`);
     }

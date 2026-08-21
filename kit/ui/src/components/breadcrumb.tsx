@@ -1,6 +1,7 @@
 import { ChevronRight } from 'lucide-react';
 import { type ReactNode } from 'react';
 import { cn } from '../design-tokens.js';
+import { FOCUS_RING_CLASS_NAME } from '../a11y/focus.js';
 
 export type BreadcrumbItem = {
   id: string;
@@ -22,15 +23,15 @@ export function Breadcrumb({
 }: BreadcrumbProps) {
   return (
     <nav className={cn('nimi-breadcrumb min-w-0', className)} aria-label={ariaLabel}>
-      <ol className="flex min-w-0 flex-wrap items-center gap-1 text-sm">
+      <ol className="flex min-w-0 flex-wrap items-center gap-1 text-[length:var(--nimi-type-body-size)]">
         {items.map((item, index) => {
           const isLast = index === items.length - 1;
           const content = item.href ? (
-            <a className="nimi-breadcrumb__link rounded-[var(--nimi-radius-sm)] px-1 text-[var(--nimi-text-secondary)] hover:text-[var(--nimi-text-primary)]" href={item.href} onClick={item.onClick}>
+            <a className={cn('nimi-breadcrumb__link rounded-[var(--nimi-radius-sm)] px-1 text-[var(--nimi-text-secondary)] hover:text-[var(--nimi-text-primary)]', FOCUS_RING_CLASS_NAME)} href={item.href} onClick={item.onClick}>
               {item.label}
             </a>
           ) : item.onClick && !isLast ? (
-            <button type="button" className="nimi-breadcrumb__link rounded-[var(--nimi-radius-sm)] px-1 text-[var(--nimi-text-secondary)] hover:text-[var(--nimi-text-primary)]" onClick={item.onClick}>
+            <button type="button" className={cn('nimi-breadcrumb__link rounded-[var(--nimi-radius-sm)] px-1 text-[var(--nimi-text-secondary)] hover:text-[var(--nimi-text-primary)]', FOCUS_RING_CLASS_NAME)} onClick={item.onClick}>
               {item.label}
             </button>
           ) : (

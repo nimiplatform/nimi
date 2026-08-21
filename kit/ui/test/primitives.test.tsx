@@ -539,6 +539,113 @@ test('toggle primitive is a local button switch without Radix ref state', async 
   expect(changes).toEqual([true]);
 });
 
+test('number stepper step buttons keep default labels, accept overrides, and carry the focus ring', () => {
+  const html = renderToStaticMarkup(
+    <div>
+      <NumberStepper value={2} onValueChange={() => {}} ariaLabel="Worlds" />
+      <NumberStepper
+        value={2}
+        onValueChange={() => {}}
+        ariaLabel="Worlds"
+        decreaseLabel="减少世界数量"
+        increaseLabel="增加世界数量"
+      />
+    </div>,
+  );
+
+  expect(html).toMatch(/aria-label="Decrease Worlds"/);
+  expect(html).toMatch(/aria-label="Increase Worlds"/);
+  expect(html).toMatch(/aria-label="减少世界数量"/);
+  expect(html).toMatch(/aria-label="增加世界数量"/);
+  expect(hasClass(html, 'focus-visible:outline-none')).toBe(true);
+});
+
+test('tooltip trigger is keyboard focusable and focus opens the tooltip', async () => {
+  container = document.createElement('div');
+  document.body.appendChild(container);
+  root = createRoot(container);
+
+  await act(async () => {
+    root?.render(
+      <TooltipProvider delayDuration={0}>
+        <Tooltip content="Keyboard hint">
+          <span>target</span>
+        </Tooltip>
+      </TooltipProvider>,
+    );
+    await flush();
+  });
+
+  const trigger = container.querySelector('[tabindex="0"]') as HTMLElement | null;
+  expect(trigger).toBeTruthy();
+  expect(trigger?.className).toContain('focus-visible:ring');
+  expect(document.body.querySelector('[role="tooltip"]')).toBeNull();
+
+  await act(async () => {
+    trigger?.focus();
+    await flush();
+    await flush();
+  });
+
+  const tooltip = document.body.querySelector('[role="tooltip"]');
+  expect(tooltip?.textContent).toContain('Keyboard hint');
+});
+
+test('tooltip uses an interactive child as the only keyboard stop', async () => {
+  container = document.createElement('div');
+  document.body.appendChild(container);
+  root = createRoot(container);
+
+  await act(async () => {
+    root?.render(
+      <TooltipProvider delayDuration={0}>
+        <Tooltip content="Action hint">
+          <button type="button">Action</button>
+        </Tooltip>
+      </TooltipProvider>,
+    );
+    await flush();
+  });
+
+  const buttons = container.querySelectorAll('button');
+  expect(buttons).toHaveLength(1);
+  expect(container.querySelectorAll('[tabindex="0"]')).toHaveLength(0);
+  expect(buttons[0]?.textContent).toBe('Action');
+});
+
+test('tooltip gives a disabled action one wrapper focus stop and exposes its hint', async () => {
+  container = document.createElement('div');
+  document.body.appendChild(container);
+  root = createRoot(container);
+
+  await act(async () => {
+    root?.render(
+      <TooltipProvider delayDuration={0}>
+        <Tooltip content="Add a compatible account first">
+          <IconButton disabled aria-label="Add friend" icon={<span aria-hidden>+</span>} />
+        </Tooltip>
+      </TooltipProvider>,
+    );
+    await flush();
+  });
+
+  const trigger = container.querySelector('[role="button"][aria-disabled="true"]') as HTMLElement | null;
+  const disabledButton = container.querySelector('button:disabled');
+  expect(trigger?.getAttribute('tabindex')).toBe('0');
+  expect(trigger?.getAttribute('aria-label')).toBe('Add friend');
+  expect(trigger?.className).toContain('focus-visible:ring');
+  expect(disabledButton?.getAttribute('tabindex')).toBe('-1');
+  expect(disabledButton?.className).toContain('pointer-events-none');
+
+  await act(async () => {
+    trigger?.focus();
+    await flush();
+    await flush();
+  });
+
+  expect(document.body.querySelector('[role="tooltip"]')?.textContent).toContain('Add a compatible account first');
+});
+
 test('confirm dialog uses governed overlay and action primitives', async () => {
   container = document.createElement('div');
   document.body.appendChild(container);
@@ -570,6 +677,41 @@ test('confirm dialog uses governed overlay and action primitives', async () => {
   expect(hasClass(html, 'nimi-overlay-title')).toBe(true);
   expect(hasClass(html, 'nimi-overlay-footer')).toBe(true);
   expect(hasClass(html, 'nimi-action--danger')).toBe(true);
+});
+
+test('confirm dialog loading state renders spinner, aria-busy, and disabled', async () => {
+  container = document.createElement('div');
+  document.body.appendChild(container);
+  root = createRoot(container);
+
+  await act(async () => {
+    root?.render(
+      <ConfirmDialog
+        open
+        title="Delete this world?"
+        message="This action cannot be undone."
+        confirmLabel="Delete"
+        loading
+        pendingLabel="Deleting"
+        onConfirm={() => {}}
+        onClose={() => {}}
+      />,
+    );
+    await flush();
+  });
+
+  const html = document.body.innerHTML;
+  expect(html).toMatch(/Deleting/);
+  expect(hasClass(html, 'nimi-action__spinner')).toBe(true);
+  expect(hasClass(html, 'nimi-action--loading')).toBe(true);
+  expect(html).toMatch(/aria-busy="true"/);
+
+  const confirmButton = document.body.querySelector('.nimi-action--danger');
+  expect(confirmButton).toBeTruthy();
+  expect((confirmButton as HTMLButtonElement).disabled).toBe(true);
+  const cancelButton = Array.from(document.body.querySelectorAll('button'))
+    .find((button) => button.textContent === 'Cancel');
+  expect(cancelButton?.disabled).toBe(true);
 });
 
 test('theme provider applies semantic accent pack and scheme without app truth', async () => {

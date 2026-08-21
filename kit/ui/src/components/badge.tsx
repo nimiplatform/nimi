@@ -3,7 +3,7 @@ import { cva } from 'class-variance-authority';
 import { cn, type StatusBadgeShape, type StatusTone } from '../design-tokens.js';
 
 const badgeVariants = cva(
-  'nimi-status-badge inline-flex items-center gap-1.5 rounded-full text-xs font-medium',
+  'nimi-status-badge inline-flex items-center gap-1.5 rounded-full text-[length:var(--nimi-type-caption-size)] font-medium',
   {
     variants: {
       tone: {

@@ -1,5 +1,6 @@
 import React, { type ReactNode } from 'react';
 import { cn } from '../design-tokens.js';
+import { FOCUS_RING_CLASS_NAME } from '../a11y/focus.js';
 import { Avatar } from './avatar.js';
 import { Surface } from './surface.js';
 
@@ -50,7 +51,8 @@ function AccountPanelItemButton({ item }: { item: AccountPanelItem }) {
       aria-current={item.active ? 'page' : undefined}
       onClick={item.onSelect}
       className={cn(
-        'nimi-account-panel__item flex min-h-11 w-full min-w-0 items-center gap-3 rounded-[var(--nimi-radius-md)] px-3 text-left text-[length:var(--nimi-type-label-size)] font-semibold text-[var(--nimi-text-secondary)] transition-colors duration-[var(--nimi-motion-fast)] hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-text-primary)] focus-visible:outline-none focus-visible:ring-[length:var(--nimi-focus-ring-width)] focus-visible:ring-[var(--nimi-focus-ring-color)] disabled:cursor-not-allowed disabled:opacity-[var(--nimi-opacity-disabled)]',
+        'nimi-account-panel__item flex min-h-11 w-full min-w-0 items-center gap-3 rounded-[var(--nimi-radius-md)] px-3 text-left text-[length:var(--nimi-type-label-size)] font-semibold text-[var(--nimi-text-secondary)] transition-colors duration-[var(--nimi-motion-fast)] hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-text-primary)] disabled:cursor-not-allowed disabled:opacity-[var(--nimi-opacity-disabled)]',
+        FOCUS_RING_CLASS_NAME,
         item.active && 'nimi-account-panel__item--active bg-[var(--nimi-surface-active)] text-[var(--nimi-action-primary-bg)]',
         item.tone === 'danger' && 'nimi-account-panel__item--danger text-[var(--nimi-status-danger)] hover:bg-[var(--nimi-status-danger-soft-bg)] hover:text-[var(--nimi-status-danger)]',
       )}
@@ -115,11 +117,14 @@ export function AccountPanel({
         {actionLabel ? (
           <button
             type="button"
-            className="nimi-account-panel__action inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--nimi-radius-full)] text-[var(--nimi-text-secondary)] transition-colors hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-text-primary)] focus-visible:outline-none focus-visible:ring-[length:var(--nimi-focus-ring-width)] focus-visible:ring-[var(--nimi-focus-ring-color)]"
+            className={cn(
+              'nimi-account-panel__action inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--nimi-radius-full)] text-[var(--nimi-text-secondary)] transition-colors hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-text-primary)]',
+              FOCUS_RING_CLASS_NAME,
+            )}
             aria-label={actionLabel}
             onClick={onAction}
           >
-            {actionIcon ?? <span className="text-[12px] font-semibold">Edit</span>}
+            {actionIcon ?? <span className="text-[length:var(--nimi-type-caption-size)] font-semibold">{actionLabel}</span>}
           </button>
         ) : null}
       </header>

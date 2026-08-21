@@ -2,6 +2,7 @@ import { forwardRef, type AnchorHTMLAttributes, type ReactNode } from 'react';
 import { Slot, Slottable } from '@radix-ui/react-slot';
 import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '../design-tokens.js';
+import { NimiText } from './typography.js';
 
 const layoutVariants = cva(
   'nimi-page-detail-layout mx-auto min-h-full px-6 pb-6 pt-[72px]',
@@ -45,9 +46,9 @@ export function PageDetailLayout({
         <div className="nimi-page-detail-layout__back-row mb-3 flex items-center gap-2">{back}</div>
       ) : null}
       <header className="nimi-page-detail-layout__header mb-5 flex flex-wrap items-end justify-between gap-4">
-        <h1 className="nimi-page-detail-layout__title m-0 text-[36px] font-bold leading-[1.1] text-[var(--nimi-text-primary)]">
+        <NimiText role="page-title" className="nimi-page-detail-layout__title m-0">
           {title}
-        </h1>
+        </NimiText>
         {actions ? (
           <div className="nimi-page-detail-layout__actions flex shrink-0 flex-wrap items-center gap-2">
             {actions}
@@ -76,7 +77,7 @@ export const BackLink = forwardRef<HTMLAnchorElement, BackLinkProps>(function Ba
     <Comp
       ref={ref}
       className={cn(
-        'nimi-back-link inline-flex items-center gap-1.5 text-[14px] text-[var(--nimi-text-muted)] hover:underline',
+        'nimi-back-link inline-flex items-center gap-1.5 text-[length:var(--nimi-type-body-size)] text-[var(--nimi-text-muted)] hover:underline',
         className,
       )}
       {...rest}

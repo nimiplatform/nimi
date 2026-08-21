@@ -1,5 +1,6 @@
 import React from 'react';
 import { cn } from '../design-tokens.js';
+import { FOCUS_RING_CLASS_NAME } from '../a11y/focus.js';
 
 type NumberStepperProps = {
   value: number;
@@ -10,6 +11,10 @@ type NumberStepperProps = {
   ariaLabel: string;
   className?: string;
   disabled?: boolean;
+  /** Accessible label for the decrement button. Defaults to `Decrease ${ariaLabel}`. */
+  decreaseLabel?: string;
+  /** Accessible label for the increment button. Defaults to `Increase ${ariaLabel}`. */
+  increaseLabel?: string;
 };
 
 export function NumberStepper({
@@ -21,6 +26,8 @@ export function NumberStepper({
   ariaLabel,
   className,
   disabled = false,
+  decreaseLabel,
+  increaseLabel,
 }: NumberStepperProps) {
   const clamp = (next: number) => Math.min(max ?? next, Math.max(min ?? next, next));
   const decrementDisabled = disabled || (min !== undefined && value <= min);
@@ -30,8 +37,11 @@ export function NumberStepper({
     <div className={cn('nimi-number-stepper inline-flex min-h-[var(--nimi-sizing-field-md-height)] items-center overflow-hidden rounded-[var(--nimi-radius-field)] border border-[var(--nimi-field-border)] bg-[var(--nimi-field-bg)] text-[var(--nimi-field-text)]', className)}>
       <button
         type="button"
-        className="nimi-number-stepper__button inline-flex h-full min-w-9 items-center justify-center border-r border-[var(--nimi-border-subtle)] text-[var(--nimi-text-secondary)] transition-colors duration-[var(--nimi-motion-fast)] hover:bg-[var(--nimi-action-ghost-hover)] disabled:cursor-not-allowed disabled:opacity-[var(--nimi-opacity-disabled)]"
-        aria-label={`Decrease ${ariaLabel}`}
+        className={cn(
+          'nimi-number-stepper__button inline-flex h-full min-w-9 items-center justify-center border-r border-[var(--nimi-border-subtle)] text-[var(--nimi-text-secondary)] transition-colors duration-[var(--nimi-motion-fast)] hover:bg-[var(--nimi-action-ghost-hover)] disabled:cursor-not-allowed disabled:opacity-[var(--nimi-opacity-disabled)]',
+          FOCUS_RING_CLASS_NAME,
+        )}
+        aria-label={decreaseLabel ?? `Decrease ${ariaLabel}`}
         disabled={decrementDisabled}
         onClick={() => onValueChange(clamp(value - step))}
       >
@@ -42,8 +52,11 @@ export function NumberStepper({
       </output>
       <button
         type="button"
-        className="nimi-number-stepper__button inline-flex h-full min-w-9 items-center justify-center border-l border-[var(--nimi-border-subtle)] text-[var(--nimi-text-secondary)] transition-colors duration-[var(--nimi-motion-fast)] hover:bg-[var(--nimi-action-ghost-hover)] disabled:cursor-not-allowed disabled:opacity-[var(--nimi-opacity-disabled)]"
-        aria-label={`Increase ${ariaLabel}`}
+        className={cn(
+          'nimi-number-stepper__button inline-flex h-full min-w-9 items-center justify-center border-l border-[var(--nimi-border-subtle)] text-[var(--nimi-text-secondary)] transition-colors duration-[var(--nimi-motion-fast)] hover:bg-[var(--nimi-action-ghost-hover)] disabled:cursor-not-allowed disabled:opacity-[var(--nimi-opacity-disabled)]',
+          FOCUS_RING_CLASS_NAME,
+        )}
+        aria-label={increaseLabel ?? `Increase ${ariaLabel}`}
         disabled={incrementDisabled}
         onClick={() => onValueChange(clamp(value + step))}
       >

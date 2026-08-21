@@ -100,6 +100,7 @@ export default defineConfig({
       { find: '@nimiplatform/sdk/app', replacement: path.resolve(__dirname, '../../sdks/typescript/core/app/index.ts') },
       { find: '@nimiplatform/sdk/ai', replacement: path.resolve(__dirname, '../../sdks/typescript/core/ai/index.ts') },
       { find: '@nimiplatform/sdk', replacement: path.resolve(__dirname, '../../sdks/typescript/index.ts') },
+      { find: '@nimiplatform/kit/ui/a11y', replacement: path.resolve(__dirname, './src/a11y/index.ts') },
       { find: '@nimiplatform/kit/ui', replacement: path.resolve(__dirname, './src/index.ts') },
       { find: '@nimiplatform/kit/features/chat', replacement: path.resolve(__dirname, '../features/chat/src') },
       { find: '@nimiplatform/kit/features/generation', replacement: path.resolve(__dirname, '../features/generation/src') },

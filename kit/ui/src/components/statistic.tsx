@@ -10,7 +10,8 @@ export type StatisticProps = {
   suffix?: ReactNode;
   helper?: ReactNode;
   trend?: StatisticTrend;
-  tone?: StatusTone | 'brand';
+  /** Accent tone is `'primary'`; `'brand'` is a deprecated alias for it. */
+  tone?: StatusTone | 'primary' | 'brand';
   className?: string;
 };
 
@@ -20,14 +21,19 @@ const trendMark: Record<StatisticTrend, string> = {
   flat: '=',
 };
 
-const toneClass: Record<NonNullable<StatisticProps['tone']>, string> = {
-  brand: 'text-[var(--nimi-action-primary-bg)]',
+const toneClass: Record<StatusTone | 'primary', string> = {
+  primary: 'text-[var(--nimi-action-primary-bg)]',
   neutral: 'text-[var(--nimi-text-secondary)]',
   success: 'text-[var(--nimi-status-success)]',
   warning: 'text-[var(--nimi-status-warning)]',
   danger: 'text-[var(--nimi-status-danger)]',
   info: 'text-[var(--nimi-status-info)]',
 };
+
+// @deprecated legacy tone alias: 'brand' → 'primary'.
+function normalizeStatisticTone(tone: NonNullable<StatisticProps['tone']>): StatusTone | 'primary' {
+  return tone === 'brand' ? 'primary' : tone;
+}
 
 export function Statistic({
   label,
@@ -44,7 +50,7 @@ export function Statistic({
       <span className="nimi-statistic__label truncate text-[length:var(--nimi-type-caption-size)] font-semibold uppercase tracking-[var(--nimi-type-label-letter-spacing)] text-[var(--nimi-text-muted)]">
         {label}
       </span>
-      <span className={cn('nimi-statistic__value flex min-w-0 items-baseline gap-1 text-2xl font-bold tracking-normal', toneClass[tone])}>
+      <span className={cn('nimi-statistic__value flex min-w-0 items-baseline gap-1 text-[length:var(--nimi-type-page-title-size)] font-bold tracking-normal', toneClass[normalizeStatisticTone(tone)])}>
         {trend ? <span className="nimi-statistic__trend text-[length:var(--nimi-type-body-sm-size)]" aria-hidden="true">{trendMark[trend]}</span> : null}
         {prefix ? <span className="nimi-statistic__prefix text-[length:var(--nimi-type-body-size)]">{prefix}</span> : null}
         <span className="truncate">{value}</span>

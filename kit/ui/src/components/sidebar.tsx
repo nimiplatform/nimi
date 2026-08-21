@@ -1,6 +1,7 @@
 import React, { createElement, useEffect, useRef, useState, type CSSProperties, type ComponentPropsWithoutRef, type ElementType, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react';
 import { IconButton } from './button.js';
 import { cn, type SidebarItemKind } from '../design-tokens.js';
+import { FOCUS_RING_CLASS_NAME } from '../a11y/focus.js';
 
 const SEARCH_ICON = (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -62,7 +63,10 @@ export function SidebarHeader(props: { title: ReactNode; className?: string }) {
 
 type SidebarSearchProps = {
   value: string;
-  onChange: (value: string) => void;
+  /** Called with the next query string. Preferred over `onChange`. */
+  onValueChange?: (value: string) => void;
+  /** @deprecated Use `onValueChange` instead. When both are passed, `onValueChange` wins. */
+  onChange?: (value: string) => void;
   placeholder: string;
   ariaLabel?: string;
   onClear?: () => void;
@@ -74,6 +78,7 @@ type SidebarSearchProps = {
 
 export function SidebarSearch({
   value,
+  onValueChange,
   onChange,
   placeholder,
   ariaLabel,
@@ -139,9 +144,15 @@ export function SidebarSearch({
             <span className="shrink-0 text-[var(--nimi-text-muted)]">{SEARCH_ICON}</span>
             <input
               ref={inputRef}
-              className="nimi-sidebar-search__field ml-1 min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-[var(--nimi-field-placeholder)]"
+              className="nimi-sidebar-search__field ml-1 min-w-0 flex-1 bg-transparent text-[length:var(--nimi-type-body-size)] outline-none placeholder:text-[var(--nimi-field-placeholder)]"
               value={value}
-              onChange={(event) => onChange(event.target.value)}
+              onChange={(event) => {
+                if (onValueChange) {
+                  onValueChange(event.target.value);
+                } else {
+                  onChange?.(event.target.value);
+                }
+              }}
               onBlur={handleBlur}
               onKeyDown={handleKeyDown}
               placeholder={placeholder}
@@ -205,7 +216,8 @@ export function SidebarItem({
       type={type}
       aria-current={active ? 'page' : undefined}
       className={cn(
-        'nimi-sidebar-item flex w-full items-center gap-2 rounded-[var(--nimi-radius-sidebar-item)] px-2 min-h-[var(--nimi-sizing-sidebar-item-height)] text-left text-sm transition-[background-color,color] duration-[var(--nimi-motion-fast)] ease-[var(--nimi-motion-ease-standard)] active:bg-[var(--nimi-sidebar-item-active)] cursor-pointer',
+        'nimi-sidebar-item flex w-full items-center gap-2 rounded-[var(--nimi-radius-sidebar-item)] px-2 min-h-[var(--nimi-sizing-sidebar-item-height)] text-left text-[length:var(--nimi-type-body-size)] transition-[background-color,color] duration-[var(--nimi-motion-fast)] ease-[var(--nimi-motion-ease-standard)] active:bg-[var(--nimi-sidebar-item-active)] cursor-pointer',
+        FOCUS_RING_CLASS_NAME,
         `nimi-sidebar-item--${kind}`,
         active
           ? 'nimi-sidebar-item--active bg-[var(--nimi-sidebar-item-active)] text-[var(--nimi-text-primary)] font-medium'
@@ -217,7 +229,7 @@ export function SidebarItem({
       {icon ? <span className="inline-flex shrink-0 items-center justify-center">{icon}</span> : null}
       <span className="min-w-0 flex-1">
         <span className="nimi-sidebar-item__title block truncate">{label}</span>
-        {description ? <span className="nimi-sidebar-item__description block truncate text-xs text-[var(--nimi-text-muted)]">{description}</span> : null}
+        {description ? <span className="nimi-sidebar-item__description block truncate text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-muted)]">{description}</span> : null}
       </span>
       {trailing ? <span className="nimi-sidebar-affordance shrink-0">{trailing}</span> : null}
     </button>
@@ -252,7 +264,7 @@ export function SidebarResizeHandle({
 export function SidebarAffordanceBadge(props: { children: ReactNode; className?: string }) {
   return (
     <span className={cn(
-      'nimi-sidebar-affordance--badge inline-flex items-center justify-center rounded-full px-2 py-0.5 text-xs leading-none font-medium',
+      'nimi-sidebar-affordance--badge inline-flex items-center justify-center rounded-full px-2 py-0.5 text-[length:var(--nimi-type-caption-size)] leading-none font-medium',
       'bg-[color-mix(in_srgb,var(--nimi-text-muted)_14%,transparent)] text-[var(--nimi-text-secondary)]',
       props.className,
     )}>

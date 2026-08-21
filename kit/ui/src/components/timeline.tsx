@@ -18,12 +18,20 @@ export function Timeline({ children, className }: TimelineProps) {
   );
 }
 
-export type TimelineDotTone = 'brand' | StatusTone;
+/** Accent tone is `'primary'`; `'brand'` is a deprecated alias for it. */
+export type TimelineDotTone = 'primary' | 'brand' | StatusTone;
 export type TimelineDotVariant = 'solid' | 'dashed' | 'ring';
 export type TimelineGroupVariant = 'past' | 'future';
 
-const dotToneBorderClass: Record<TimelineDotTone, string> = {
-  brand: 'border-[var(--nimi-action-primary-bg)]',
+type TimelineDotCanonicalTone = 'primary' | StatusTone;
+
+// @deprecated legacy tone alias: 'brand' → 'primary'.
+function normalizeTimelineDotTone(tone: TimelineDotTone): TimelineDotCanonicalTone {
+  return tone === 'brand' ? 'primary' : tone;
+}
+
+const dotToneBorderClass: Record<TimelineDotCanonicalTone, string> = {
+  primary: 'border-[var(--nimi-action-primary-bg)]',
   neutral: 'border-[var(--nimi-status-neutral)]',
   success: 'border-[var(--nimi-status-success)]',
   warning: 'border-[var(--nimi-status-warning)]',
@@ -31,8 +39,8 @@ const dotToneBorderClass: Record<TimelineDotTone, string> = {
   info: 'border-[var(--nimi-status-info)]',
 };
 
-const dotToneFillClass: Record<TimelineDotTone, string> = {
-  brand: 'bg-[var(--nimi-action-primary-bg)]',
+const dotToneFillClass: Record<TimelineDotCanonicalTone, string> = {
+  primary: 'bg-[var(--nimi-action-primary-bg)]',
   neutral: 'bg-[var(--nimi-status-neutral)]',
   success: 'bg-[var(--nimi-status-success)]',
   warning: 'bg-[var(--nimi-status-warning)]',
@@ -57,13 +65,14 @@ export function TimelineGroup({
   secondaryLabel,
   variant = 'past',
   dotVariant,
-  tone = 'brand',
+  tone = 'primary',
   isLast = false,
   children,
   className,
 }: TimelineGroupProps) {
   const effectiveDotVariant: TimelineDotVariant =
     dotVariant ?? (variant === 'future' ? 'dashed' : 'solid');
+  const canonicalTone = normalizeTimelineDotTone(tone);
   return (
     <div
       className={cn(
@@ -82,29 +91,29 @@ export function TimelineGroup({
           effectiveDotVariant !== 'ring' &&
             'bg-[var(--nimi-surface-card)] shadow-[0_0_0_3px_var(--nimi-surface-card)]',
           effectiveDotVariant === 'solid' &&
-            cn('nimi-timeline-group__dot--solid border-2 border-solid', dotToneBorderClass[tone]),
+            cn('nimi-timeline-group__dot--solid border-2 border-solid', dotToneBorderClass[canonicalTone]),
           effectiveDotVariant === 'dashed' &&
-            cn('nimi-timeline-group__dot--dashed border-[1.5px] border-dashed', dotToneBorderClass[tone]),
+            cn('nimi-timeline-group__dot--dashed border-[1.5px] border-dashed', dotToneBorderClass[canonicalTone]),
           effectiveDotVariant === 'ring' &&
-            cn('border-2 border-solid bg-[var(--nimi-surface-card)]', dotToneBorderClass[tone]),
+            cn('border-2 border-solid bg-[var(--nimi-surface-card)]', dotToneBorderClass[canonicalTone]),
         )}
       >
         {effectiveDotVariant === 'ring' ? (
           <span
             aria-hidden="true"
-            className={cn('nimi-timeline-group__dot-core h-1.5 w-1.5 rounded-full', dotToneFillClass[tone])}
+            className={cn('nimi-timeline-group__dot-core h-1.5 w-1.5 rounded-full', dotToneFillClass[canonicalTone])}
           />
         ) : null}
       </span>
       {date || secondaryLabel ? (
         <div className="nimi-timeline-group__header mb-2.5 flex items-baseline gap-2">
           {date ? (
-            <span className="nimi-timeline-group__date text-[13px] font-semibold text-[var(--nimi-text-primary)]">
+            <span className="nimi-timeline-group__date text-[length:var(--nimi-type-body-sm-size)] font-semibold text-[var(--nimi-text-primary)]">
               {date}
             </span>
           ) : null}
           {secondaryLabel ? (
-            <span className="nimi-timeline-group__secondary font-mono text-[11px] text-[var(--nimi-text-muted)]">
+            <span className="nimi-timeline-group__secondary font-mono text-[length:var(--nimi-type-overline-size)] text-[var(--nimi-text-muted)]">
               {secondaryLabel}
             </span>
           ) : null}
@@ -126,7 +135,7 @@ export function TimelineDivider({ label, className }: TimelineDividerProps) {
       role="separator"
       aria-label={typeof label === 'string' ? label : undefined}
       className={cn(
-        'nimi-timeline-divider mb-[18px] mt-[6px] flex items-center gap-3 text-[11px] uppercase tracking-[0.08em] text-[var(--nimi-text-muted)]',
+        'nimi-timeline-divider mb-[18px] mt-[6px] flex items-center gap-3 text-[length:var(--nimi-type-overline-size)] uppercase tracking-[var(--nimi-type-overline-letter-spacing)] text-[var(--nimi-text-muted)]',
         className,
       )}
     >

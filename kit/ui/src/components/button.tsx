@@ -9,7 +9,7 @@ import { FOCUS_RING_CLASS_NAME } from '../a11y/focus.js';
 // @nimi-authority: rule.nimi.platform.ui-design-system.p-design-027b
 export const buttonVariants = cva(
   // P-DESIGN-012/027: token-driven color transitions only, instant pressed
-  // feedback on pointer-down; no hover elevation lifts, no transition-all.
+  // feedback on pointer-down; no hover elevation lifts or catch-all transitions.
   'nimi-action inline-flex max-w-full shrink-0 items-center justify-center gap-2 whitespace-nowrap border font-semibold tracking-[var(--nimi-type-label-letter-spacing)] rounded-[var(--nimi-radius-action)] transition-[background-color,border-color,color,box-shadow,transform] duration-[var(--nimi-motion-fast)] ease-[var(--nimi-motion-ease-standard)] active:scale-[var(--nimi-motion-pressed-scale)] cursor-pointer disabled:cursor-not-allowed disabled:opacity-[var(--nimi-opacity-disabled)]',
   {
     variants: {

@@ -1,5 +1,6 @@
 import React, { type ReactNode } from 'react';
 import { cn } from '../design-tokens.js';
+import { FOCUS_RING_CLASS_NAME } from '../a11y/focus.js';
 
 export type NimiTabItem = {
   value: string;
@@ -34,7 +35,8 @@ export function NimiTabs({
             aria-selected={selected}
             disabled={item.disabled}
             className={cn(
-              'nimi-tabs__tab relative inline-flex min-h-9 min-w-0 items-center justify-center px-3 text-[length:var(--nimi-type-body-sm-size)] font-medium text-[var(--nimi-text-muted)] transition-colors duration-[var(--nimi-motion-fast)] focus-visible:outline-none focus-visible:ring-[length:var(--nimi-focus-ring-width)] focus-visible:ring-[var(--nimi-focus-ring-color)] disabled:cursor-not-allowed disabled:opacity-[var(--nimi-opacity-disabled)]',
+              'nimi-tabs__tab relative inline-flex min-h-9 min-w-0 items-center justify-center px-3 text-[length:var(--nimi-type-body-sm-size)] font-medium text-[var(--nimi-text-muted)] transition-colors duration-[var(--nimi-motion-fast)] disabled:cursor-not-allowed disabled:opacity-[var(--nimi-opacity-disabled)]',
+              FOCUS_RING_CLASS_NAME,
               selected && 'nimi-tabs__tab--active text-[var(--nimi-text-primary)] after:absolute after:right-2 after:bottom-0 after:left-2 after:h-[2px] after:rounded-full after:bg-[var(--nimi-action-primary-bg)]',
             )}
             onClick={() => {

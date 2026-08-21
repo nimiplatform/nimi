@@ -17,6 +17,7 @@ import {
 } from 'react';
 import { createPortal } from 'react-dom';
 import { Calendar } from 'lucide-react';
+import { FOCUS_RING_CLASS_NAME } from '../a11y/focus.js';
 
 const DEFAULT_MIN_YEAR = 1900;
 const ITEM_H = 28;
@@ -291,24 +292,77 @@ function DrumColumn({
   );
 }
 
+/**
+ * Text copy used by the DatePicker panel and field affordances.
+ *
+ * The `labels` props accept a `Partial<DatePickerLabels>`; omitted keys keep
+ * the built-in Chinese defaults below, so existing consumers see no visual
+ * change.
+ */
+export interface DatePickerLabels {
+  /** Panel title shown above the wheel columns. Default `日期`. */
+  panelTitle: string;
+  /** Header above the year wheel. Default `年`. */
+  yearHeader: string;
+  /** Header above the month wheel. Default `月`. */
+  monthHeader: string;
+  /** Header above the day wheel. Default `日`. */
+  dayHeader: string;
+  /** aria-label of the year wheel column. Default `年份`. */
+  yearWheelAriaLabel: string;
+  /** aria-label of the month wheel column. Default `月份`. */
+  monthWheelAriaLabel: string;
+  /** aria-label of the day wheel column. Default `日期`. */
+  dayWheelAriaLabel: string;
+  /** Footer button jumping the draft selection to today. Default `今天`. */
+  todayButton: string;
+  /** Footer button clearing the current value. Default `清除`. */
+  clearButton: string;
+  /** Footer button committing the draft selection. Default `确定`. */
+  confirmButton: string;
+  /** aria-label of the in-field clear button. Default `清除日期`. */
+  clearValueAriaLabel: string;
+}
+
+const DEFAULT_LABELS: DatePickerLabels = {
+  panelTitle: '日期',
+  yearHeader: '年',
+  monthHeader: '月',
+  dayHeader: '日',
+  yearWheelAriaLabel: '年份',
+  monthWheelAriaLabel: '月份',
+  dayWheelAriaLabel: '日期',
+  todayButton: '今天',
+  clearButton: '清除',
+  confirmButton: '确定',
+  clearValueAriaLabel: '清除日期',
+};
+
+function resolveLabels(labels?: Partial<DatePickerLabels>): DatePickerLabels {
+  return labels ? { ...DEFAULT_LABELS, ...labels } : DEFAULT_LABELS;
+}
+
 export interface DatePickerPanelProps {
   readonly anchorRef: RefObject<HTMLDivElement | null>;
   readonly open: boolean;
   readonly value: string;
   readonly maxDate: Date | null;
   readonly minYear?: number;
+  /** Copy overrides; omitted keys keep the built-in Chinese defaults. */
+  readonly labels?: Partial<DatePickerLabels>;
   readonly onChange: (value: string) => void;
   readonly onClear?: () => void;
   readonly onClose?: () => void;
 }
 
 export const DatePickerPanel = forwardRef<HTMLDivElement, DatePickerPanelProps>(function DatePickerPanel(
-  { anchorRef, open, value, maxDate, minYear = DEFAULT_MIN_YEAR, onChange, onClear, onClose },
+  { anchorRef, open, value, maxDate, minYear = DEFAULT_MIN_YEAR, labels, onChange, onClear, onClose },
   ref,
 ) {
   const effectiveMax = maxDate ?? todayAtNoon();
   const effectiveMaxKey = formatDateValue(effectiveMax);
   const maxYear = effectiveMax.getFullYear();
+  const text = resolveLabels(labels);
   const [pos, setPos] = useState<PanelPosition | null>(null);
   const [draft, setDraft] = useState(() => selectionFromValue(value, minYear, effectiveMax));
 
@@ -336,7 +390,7 @@ export const DatePickerPanel = forwardRef<HTMLDivElement, DatePickerPanelProps>(
   return (
     <div
       ref={ref}
-      className="nimi-date-picker-panel fixed z-[120] rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-overlay)] p-3.5 shadow-[var(--nimi-elevation-floating)] text-[var(--nimi-text-primary)] box-border"
+      className="nimi-date-picker-panel fixed z-[var(--nimi-z-popover)] rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-overlay)] p-3.5 shadow-[var(--nimi-elevation-floating)] text-[var(--nimi-text-primary)] box-border"
       onClick={(event) => event.stopPropagation()}
       onMouseDown={(event) => event.stopPropagation()}
       style={{
@@ -351,15 +405,15 @@ export const DatePickerPanel = forwardRef<HTMLDivElement, DatePickerPanelProps>(
       }}
     >
       <div className="flex items-center justify-between gap-3 px-0.5 pb-3">
-        <span className="text-[13px] font-semibold text-[var(--nimi-text-secondary)]">日期</span>
-        <span className="min-w-0 truncate font-mono text-[13px] text-[var(--nimi-action-primary-bg)]">
+        <span className="text-[length:var(--nimi-type-body-sm-size)] font-semibold text-[var(--nimi-text-secondary)]">{text.panelTitle}</span>
+        <span className="min-w-0 truncate font-mono text-[length:var(--nimi-type-mono-size)] text-[var(--nimi-action-primary-bg)]">
           {formatDateDisplay(commitValue)}
         </span>
       </div>
-      <div className="grid grid-cols-3 px-3.5 pb-2 text-center text-[11px] font-semibold text-[var(--nimi-text-muted)]">
-        <span>年</span>
-        <span>月</span>
-        <span>日</span>
+      <div className="grid grid-cols-3 px-3.5 pb-2 text-center text-[length:var(--nimi-type-overline-size)] font-semibold text-[var(--nimi-text-muted)]">
+        <span>{text.yearHeader}</span>
+        <span>{text.monthHeader}</span>
+        <span>{text.dayHeader}</span>
       </div>
       <div className="relative overflow-hidden rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-overlay)]">
         <div
@@ -370,7 +424,7 @@ export const DatePickerPanel = forwardRef<HTMLDivElement, DatePickerPanelProps>(
             items={years(minYear, maxYear)}
             selected={draft.year}
             onSelect={(year) => setDraft((prev) => normalizeSelection({ ...prev, year }, minYear, effectiveMax))}
-            label="年份"
+            label={text.yearWheelAriaLabel}
             renderValue={(year) => String(year)}
           />
           <div className="relative z-[6] my-[18px] w-px bg-[var(--nimi-border-subtle)]" />
@@ -378,7 +432,7 @@ export const DatePickerPanel = forwardRef<HTMLDivElement, DatePickerPanelProps>(
             items={monthItems}
             selected={draft.month}
             onSelect={(month) => setDraft((prev) => normalizeSelection({ ...prev, month }, minYear, effectiveMax))}
-            label="月份"
+            label={text.monthWheelAriaLabel}
             renderValue={pad2}
           />
           <div className="relative z-[6] my-[18px] w-px bg-[var(--nimi-border-subtle)]" />
@@ -386,7 +440,7 @@ export const DatePickerPanel = forwardRef<HTMLDivElement, DatePickerPanelProps>(
             items={dayItems}
             selected={draft.day}
             onSelect={(day) => setDraft((prev) => normalizeSelection({ ...prev, day }, minYear, effectiveMax))}
-            label="日期"
+            label={text.dayWheelAriaLabel}
             renderValue={pad2}
           />
         </div>
@@ -395,18 +449,18 @@ export const DatePickerPanel = forwardRef<HTMLDivElement, DatePickerPanelProps>(
         <button
           type="button"
           onClick={() => setDraft(selectionFromValue(formatDateValue(todayAtNoon()), minYear, effectiveMax))}
-          className="rounded-lg bg-transparent px-2.5 py-1.5 text-[13px] font-medium text-[var(--nimi-action-primary-bg)] transition-colors hover:bg-[var(--nimi-action-ghost-hover)]"
+          className={`rounded-lg bg-transparent px-2.5 py-1.5 text-[length:var(--nimi-type-body-sm-size)] font-medium text-[var(--nimi-action-primary-bg)] transition-colors hover:bg-[var(--nimi-action-ghost-hover)] ${FOCUS_RING_CLASS_NAME}`}
         >
-          今天
+          {text.todayButton}
         </button>
         <div className="flex items-center gap-1.5">
           {onClear && value ? (
             <button
               type="button"
               onClick={onClear}
-              className="rounded-lg bg-transparent px-2.5 py-1.5 text-[13px] font-medium text-[var(--nimi-text-muted)] transition-colors hover:bg-[var(--nimi-action-ghost-hover)]"
+              className={`rounded-lg bg-transparent px-2.5 py-1.5 text-[length:var(--nimi-type-body-sm-size)] font-medium text-[var(--nimi-text-muted)] transition-colors hover:bg-[var(--nimi-action-ghost-hover)] ${FOCUS_RING_CLASS_NAME}`}
             >
-              清除
+              {text.clearButton}
             </button>
           ) : null}
           <button
@@ -415,9 +469,9 @@ export const DatePickerPanel = forwardRef<HTMLDivElement, DatePickerPanelProps>(
               onChange(commitValue);
               onClose?.();
             }}
-            className="rounded-lg bg-[var(--nimi-action-primary-bg)] px-3.5 py-2 text-[13px] font-semibold text-[var(--nimi-action-primary-text)] transition-colors hover:bg-[var(--nimi-action-primary-bg-hover)]"
+            className={`rounded-lg bg-[var(--nimi-action-primary-bg)] px-3.5 py-2 text-[length:var(--nimi-type-body-sm-size)] font-semibold text-[var(--nimi-action-primary-text)] transition-colors hover:bg-[var(--nimi-action-primary-bg-hover)] ${FOCUS_RING_CLASS_NAME}`}
           >
-            确定
+            {text.confirmButton}
           </button>
         </div>
       </div>
@@ -425,31 +479,45 @@ export const DatePickerPanel = forwardRef<HTMLDivElement, DatePickerPanelProps>(
   );
 });
 
+export type DatePickerCanonicalSize = 'sm' | 'md';
+
+/** @deprecated Legacy DatePicker sizes; use `'sm'`/`'md'` (`'small'`→`'sm'`, `'normal'`→`'md'`). */
+export type DatePickerLegacySize = 'small' | 'normal';
+
+export type DatePickerSize = DatePickerCanonicalSize | DatePickerLegacySize;
+
 export interface DatePickerProps {
   readonly id?: string;
   readonly value: string;
-  readonly onChange: (value: string) => void;
+  /** Called with the committed `YYYY-MM-DD` value (or `''` when cleared). Preferred over `onChange`. */
+  readonly onValueChange?: (value: string) => void;
+  /** @deprecated Use `onValueChange` instead. When both are passed, `onValueChange` wins. */
+  readonly onChange?: (value: string) => void;
   readonly placeholder?: string;
   readonly className?: string;
   readonly style?: CSSProperties;
-  readonly size?: 'normal' | 'small';
+  readonly size?: DatePickerSize;
   readonly allowClear?: boolean;
   readonly maxDate?: string;
   readonly minYear?: number;
+  /** Copy overrides; omitted keys keep the built-in Chinese defaults. */
+  readonly labels?: Partial<DatePickerLabels>;
   readonly autoOpenNonce?: number;
 }
 
 export function DatePicker({
   id,
   value,
+  onValueChange,
   onChange,
   placeholder = '',
   className = '',
   style,
-  size = 'normal',
+  size = 'md',
   allowClear = false,
   maxDate,
   minYear = DEFAULT_MIN_YEAR,
+  labels,
   autoOpenNonce,
 }: DatePickerProps) {
   const [open, setOpen] = useState(false);
@@ -457,12 +525,19 @@ export function DatePicker({
   const parsedMax = maxDate ? parseDateValue(maxDate) : null;
   const wrapRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const text = resolveLabels(labels);
 
   useEffect(() => {
     if (!mounted || open) return;
     const timer = setTimeout(() => setMounted(false), 220);
     return () => clearTimeout(timer);
   }, [mounted, open]);
+
+  const closePanel = useCallback(() => {
+    setOpen(false);
+    inputRef.current?.focus();
+  }, []);
 
   useEffect(() => {
     if (!mounted) return;
@@ -473,12 +548,21 @@ export function DatePicker({
         panelRef.current &&
         !panelRef.current.contains(event.target as Node)
       ) {
-        setOpen(false);
+        closePanel();
       }
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
-  }, [mounted]);
+  }, [mounted, closePanel]);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (event: globalThis.KeyboardEvent) => {
+      if (event.key === 'Escape') closePanel();
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [open, closePanel]);
 
   const openPanel = () => {
     setMounted(true);
@@ -491,7 +575,7 @@ export function DatePicker({
   }, [autoOpenNonce]);
 
   const toggle = () => {
-    if (open) setOpen(false);
+    if (open) closePanel();
     else openPanel();
   };
 
@@ -501,38 +585,48 @@ export function DatePicker({
   };
 
   const hasClear = allowClear && Boolean(value);
+  const canonicalSize: DatePickerCanonicalSize =
+    size === 'small' ? 'sm' : size === 'normal' ? 'md' : size;
+  const handleValueChange = (next: string) => {
+    if (onValueChange) {
+      onValueChange(next);
+    } else {
+      onChange?.(next);
+    }
+  };
   const sizeClass =
-    size === 'small'
-      ? `pl-2.5 ${hasClear ? 'pr-14' : 'pr-8'} py-1.5 text-[14px]`
-      : `pl-3 ${hasClear ? 'pr-16' : 'pr-9'} py-2 text-[14px]`;
+    canonicalSize === 'sm'
+      ? `pl-2.5 ${hasClear ? 'pr-14' : 'pr-8'} py-1.5 text-[length:var(--nimi-type-body-size)]`
+      : `pl-3 ${hasClear ? 'pr-16' : 'pr-9'} py-2 text-[length:var(--nimi-type-body-size)]`;
 
   return (
     <div ref={wrapRef} className="relative">
       <div className="group/field relative flex items-center cursor-pointer" onClick={handleTriggerClick}>
         <input
+          ref={inputRef}
           type="text"
           id={id}
           readOnly
           value={formatDateDisplay(value)}
           placeholder={placeholder}
-          className={`w-full rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-field-bg)] ${sizeClass} cursor-pointer outline-none transition-shadow focus:ring-2 focus:ring-[var(--nimi-ring)] ${className}`}
+          className={`w-full rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-field-bg)] ${sizeClass} cursor-pointer outline-none transition-shadow focus:ring-[length:var(--nimi-focus-ring-width)] focus:ring-[var(--nimi-focus-ring-color)] ${className}`}
           style={style}
         />
-        <div className={`absolute right-2 flex items-center gap-1 ${size === 'small' ? 'text-[13px]' : ''}`}>
+        <div className={`absolute right-2 flex items-center gap-1 ${canonicalSize === 'sm' ? 'text-[length:var(--nimi-type-body-sm-size)]' : ''}`}>
           {allowClear && value ? (
             <button
               type="button"
               onClick={(event) => {
                 event.stopPropagation();
-                onChange('');
-                setOpen(false);
+                handleValueChange('');
+                closePanel();
               }}
-              className="flex h-5 w-5 items-center justify-center rounded-full text-[var(--nimi-text-muted)] transition-colors hover:bg-[var(--nimi-action-ghost-hover)]"
-              aria-label="清除日期"
+              className={`flex h-5 w-5 items-center justify-center rounded-full text-[var(--nimi-text-muted)] transition-colors hover:bg-[var(--nimi-action-ghost-hover)] ${FOCUS_RING_CLASS_NAME}`}
+              aria-label={text.clearValueAriaLabel}
             >
               <svg
-                width={size === 'small' ? 12 : 13}
-                height={size === 'small' ? 12 : 13}
+                width={canonicalSize === 'sm' ? 12 : 13}
+                height={canonicalSize === 'sm' ? 12 : 13}
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
@@ -545,10 +639,10 @@ export function DatePicker({
             </button>
           ) : null}
           <Calendar
-            size={size === 'small' ? 14 : 16}
+            size={canonicalSize === 'sm' ? 14 : 16}
             strokeWidth={1.5}
             className={`transition-colors ${
-              open ? 'text-[var(--nimi-text-primary)]' : 'text-gray-400 group-focus-within/field:text-[var(--nimi-text-primary)]'
+              open ? 'text-[var(--nimi-text-primary)]' : 'text-[var(--nimi-text-muted)] group-focus-within/field:text-[var(--nimi-text-primary)]'
             }`}
           />
         </div>
@@ -564,18 +658,19 @@ export function DatePicker({
             minYear={minYear}
             onChange={(next) => {
               const clamped = clampToMax(parseDateValue(next), parsedMax);
-              onChange(formatDateValue(clamped));
-              setOpen(false);
+              handleValueChange(formatDateValue(clamped));
+              closePanel();
             }}
             onClear={
               allowClear
                 ? () => {
-                    onChange('');
-                    setOpen(false);
+                    handleValueChange('');
+                    closePanel();
                   }
                 : undefined
             }
-            onClose={() => setOpen(false)}
+            onClose={closePanel}
+            labels={text}
           />,
           document.body,
         )}

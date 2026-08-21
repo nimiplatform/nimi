@@ -27,10 +27,10 @@ const statusTone: Record<StepStatus, StatusTone | 'brand'> = {
 const dotClass: Record<StatusTone | 'brand', string> = {
   brand: 'border-[var(--nimi-action-primary-bg)] bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)]',
   neutral: 'border-[var(--nimi-border-strong)] bg-[var(--nimi-surface-card)] text-[var(--nimi-text-muted)]',
-  success: 'border-[var(--nimi-status-success)] bg-[var(--nimi-status-success)] text-white',
-  warning: 'border-[var(--nimi-status-warning)] bg-[var(--nimi-status-warning)] text-white',
-  danger: 'border-[var(--nimi-status-danger)] bg-[var(--nimi-status-danger)] text-white',
-  info: 'border-[var(--nimi-status-info)] bg-[var(--nimi-status-info)] text-white',
+  success: 'border-[var(--nimi-status-success)] bg-[var(--nimi-status-success)] text-[var(--nimi-action-primary-text)]',
+  warning: 'border-[var(--nimi-status-warning)] bg-[var(--nimi-status-warning)] text-[var(--nimi-action-primary-text)]',
+  danger: 'border-[var(--nimi-status-danger)] bg-[var(--nimi-status-danger)] text-[var(--nimi-action-primary-text)]',
+  info: 'border-[var(--nimi-status-info)] bg-[var(--nimi-status-info)] text-[var(--nimi-action-primary-text)]',
 };
 
 export function Steps({ items, ariaLabel, className }: StepsProps) {
@@ -40,16 +40,16 @@ export function Steps({ items, ariaLabel, className }: StepsProps) {
         const status = item.status ?? 'pending';
         const tone = statusTone[status];
         return (
-          <li key={item.id} className="nimi-steps__item grid grid-cols-[28px_minmax(0,1fr)] gap-3">
+          <li key={item.id} aria-current={status === 'current' ? 'step' : undefined} className="nimi-steps__item grid grid-cols-[28px_minmax(0,1fr)] gap-3">
             <span className="relative grid justify-items-center">
-              <span className={cn('nimi-steps__dot z-10 grid h-7 w-7 place-items-center rounded-full border text-xs font-bold', dotClass[tone])}>
+              <span className={cn('nimi-steps__dot z-10 grid h-7 w-7 place-items-center rounded-full border text-[length:var(--nimi-type-caption-size)] font-bold', dotClass[tone])}>
                 {status === 'complete' ? <Check size={14} aria-hidden="true" /> : index + 1}
               </span>
               {index < items.length - 1 ? <span className="nimi-steps__connector absolute top-7 h-[calc(100%+12px)] w-px bg-[var(--nimi-border-subtle)]" aria-hidden="true" /> : null}
             </span>
             <span className="nimi-steps__body grid min-w-0 gap-1 pb-2">
-              <span className="nimi-steps__title text-sm font-semibold text-[var(--nimi-text-primary)]">{item.title}</span>
-              {item.description ? <span className="nimi-steps__description text-xs text-[var(--nimi-text-secondary)]">{item.description}</span> : null}
+              <span className="nimi-steps__title text-[length:var(--nimi-type-body-size)] font-semibold text-[var(--nimi-text-primary)]">{item.title}</span>
+              {item.description ? <span className="nimi-steps__description text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-secondary)]">{item.description}</span> : null}
             </span>
           </li>
         );

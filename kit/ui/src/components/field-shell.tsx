@@ -23,11 +23,18 @@ export function FieldShell({
   const messageId = message ? `${generatedId}-message` : undefined;
   const describedBy = [descriptionId, messageId].filter(Boolean).join(' ') || undefined;
 
+  // Label association: the cloned control keeps a caller-provided id;
+  // otherwise a generated one is injected so the label's htmlFor resolves.
+  const controlId = label
+    ? (children.props.id as string | undefined) ?? `${generatedId}-control`
+    : undefined;
+
   return (
     <div className={cn('nimi-field-shell flex min-w-0 flex-col gap-1.5', className)}>
-      {label ? <label className="nimi-field-shell__label text-[length:var(--nimi-type-label-size)] font-medium text-[var(--nimi-text-secondary)]">{label}</label> : null}
+      {label ? <label htmlFor={controlId} className="nimi-field-shell__label text-[length:var(--nimi-type-label-size)] font-medium text-[var(--nimi-text-secondary)]">{label}</label> : null}
       {description ? <div id={descriptionId} className="nimi-field-shell__description text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-muted)]">{description}</div> : null}
       {React.cloneElement(children, {
+        ...(controlId ? { id: controlId } : null),
         'aria-describedby': [children.props['aria-describedby'], describedBy].filter(Boolean).join(' ') || undefined,
       })}
       {message ? (

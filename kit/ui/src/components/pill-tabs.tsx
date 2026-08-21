@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState, type ReactNode } from 'react';
 import { cn } from '../design-tokens.js';
+import { FOCUS_RING_CLASS_NAME } from '../a11y/focus.js';
 import { Surface } from './surface.js';
 
 export type PillTabItem = {
@@ -24,10 +25,10 @@ const SIZE_TAB: Record<PillTabsSize, string> = {
   md: 'min-h-9 px-5 text-[length:var(--nimi-type-label-size)]',
 };
 
-// Eased slide for the active pill — matches the overlay-tier motion token so
-// the indicator glides rather than snapping between segments.
+// Eased slide for the active pill — shared slow duration + standard easing
+// motion tokens so the indicator glides rather than snapping between segments.
 const INDICATOR_TRANSITION =
-  'transform var(--nimi-motion-slow) cubic-bezier(0.4, 0, 0.2, 1), width var(--nimi-motion-slow) cubic-bezier(0.4, 0, 0.2, 1)';
+  'transform var(--nimi-motion-slow) var(--nimi-motion-ease-standard), width var(--nimi-motion-slow) var(--nimi-motion-ease-standard)';
 
 /**
  * Pill-shaped tab selector with a sliding active indicator. The indicator is
@@ -109,7 +110,8 @@ export function PillTabs({
               if (!item.disabled) onValueChange(item.value);
             }}
             className={cn(
-              'nimi-pill-tabs__tab relative z-[1] inline-flex min-w-0 items-center justify-center rounded-full font-medium whitespace-nowrap transition-colors duration-[var(--nimi-motion-fast)] focus-visible:outline-none focus-visible:ring-[length:var(--nimi-focus-ring-width)] focus-visible:ring-[var(--nimi-focus-ring-color)] disabled:cursor-not-allowed disabled:opacity-[var(--nimi-opacity-disabled)]',
+              'nimi-pill-tabs__tab relative z-[1] inline-flex min-w-0 items-center justify-center rounded-full font-medium whitespace-nowrap transition-colors duration-[var(--nimi-motion-fast)] disabled:cursor-not-allowed disabled:opacity-[var(--nimi-opacity-disabled)]',
+              FOCUS_RING_CLASS_NAME,
               SIZE_TAB[size],
               selected
                 ? 'nimi-pill-tabs__tab--active text-[var(--nimi-action-primary-text)]'

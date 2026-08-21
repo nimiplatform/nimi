@@ -53,7 +53,7 @@ const TONE_ICONS: Record<NimiToastTone, LucideIcon> = {
   info: Info,
 };
 
-function NimiToastItem({ record }: { record: NimiToastRecord }) {
+function NimiToastItem({ record, dismissLabel }: { record: NimiToastRecord; dismissLabel: string }) {
   const reducedMotion = useNimiReducedMotion();
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const startedAtRef = useRef(0);
@@ -142,7 +142,7 @@ function NimiToastItem({ record }: { record: NimiToastRecord }) {
       <button
         type="button"
         className="nimi-toast__close inline-flex shrink-0 items-center justify-center opacity-70 hover:opacity-100"
-        aria-label="Dismiss"
+        aria-label={dismissLabel}
         onClick={() => nimiToast.dismiss(record.id)}
       >
         <X size={14} aria-hidden />
@@ -163,7 +163,14 @@ const SERVER_SNAPSHOT: readonly NimiToastRecord[] = [];
  * Toast viewport host. Mount once near the app root; toasts raised through
  * `nimiToast` / `useNimiToast()` before mount render immediately after.
  */
-export function NimiToaster({ position = 'bottom-right' }: { position?: NimiToastPosition }) {
+export function NimiToaster({
+  position = 'bottom-right',
+  dismissLabel = 'Dismiss',
+}: {
+  position?: NimiToastPosition;
+  /** Accessible label for each toast's close button. Defaults to `Dismiss`. */
+  dismissLabel?: string;
+}) {
   const toasts = useSyncExternalStore(
     subscribeNimiToasts,
     getNimiToastSnapshot,
@@ -178,11 +185,13 @@ export function NimiToaster({ position = 'bottom-right' }: { position?: NimiToas
         'nimi-toast-viewport pointer-events-none fixed z-[var(--nimi-z-toast)] flex w-[min(360px,calc(100vw-2rem))] flex-col gap-2',
         TOAST_POSITION_CLASSES[position],
       )}
-      aria-live="polite"
+      // No aria-live here: each toast item already carries role="status" /
+      // role="alert" with implicit live regions, and a second live viewport
+      // would announce every toast twice.
     >
       <AnimatePresence>
         {toasts.map((record) => (
-          <NimiToastItem key={record.id} record={record} />
+          <NimiToastItem key={record.id} record={record} dismissLabel={dismissLabel} />
         ))}
       </AnimatePresence>
     </div>,
