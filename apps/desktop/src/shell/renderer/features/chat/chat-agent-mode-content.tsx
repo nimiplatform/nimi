@@ -122,15 +122,7 @@ export function ChatAgentModeContent({
       onCloseSettings={onCloseSettings}
       className="relative"
       sceneBackground={sceneBackground}
-      settingsSheetEyebrow={host.settingsDrawerTitle || t('Chat.agentCenterTitle', { defaultValue: 'Agent Center' })}
-      settingsSheetTitle={host.settingsDrawerSubtitle || host.characterData?.name || selectedTarget?.title}
-      settingsSheetSubtitle={selectedTarget?.handle ? `~${selectedTarget.handle}` : null}
-      settingsSheetWorld={host.settingsDrawerWorld ?? null}
-      settingsSheetAvatarUrl={host.characterData?.avatarUrl ?? selectedTarget?.avatarUrl ?? null}
-      settingsSheetAvatarFallback={host.characterData?.avatarFallback ?? selectedTarget?.avatarFallback ?? undefined}
-      settingsSheetAvatarAlt={host.characterData?.name ?? selectedTarget?.title}
-      settingsSheetBodyClassName="px-3 py-3"
-      settingsSheetHideHeader
+      settingsSheetBare
     />
   );
 }

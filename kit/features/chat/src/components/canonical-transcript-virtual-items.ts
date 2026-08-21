@@ -86,14 +86,19 @@ export function buildCanonicalTranscriptVirtualItems(
   for (const group of groups) {
     const isFocused = group.groupIndex === focusGroupIndex;
     for (const item of group.items) {
-      const messageDate = new Date(item.message.createdAt);
-      if (!lastDate || !isSameDay(lastDate, messageDate)) {
-        items.push({
-          type: 'date',
-          key: `date-${item.message.id}`,
-          label: formatDateLabel(item.message.createdAt, formatDateLabelOverride),
-        });
-        lastDate = messageDate;
+      // Messages without a parseable timestamp (e.g. snapshot projections that
+      // do not carry times) must not emit an empty separator before every item.
+      const messageTime = Date.parse(item.message.createdAt);
+      if (Number.isFinite(messageTime)) {
+        const messageDate = new Date(messageTime);
+        if (!lastDate || !isSameDay(lastDate, messageDate)) {
+          items.push({
+            type: 'date',
+            key: `date-${item.message.id}`,
+            label: formatDateLabel(item.message.createdAt, formatDateLabelOverride),
+          });
+          lastDate = messageDate;
+        }
       }
       items.push({ type: 'message', key: item.message.id, item, focused: isFocused, isGroupStart: item.isGroupStart });
     }

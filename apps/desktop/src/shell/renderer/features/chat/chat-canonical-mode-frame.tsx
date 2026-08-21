@@ -16,7 +16,10 @@ import type {
 } from '@nimiplatform/kit/features/chat/components/canonical-transcript-view';
 import { useAppStore } from '../../app-shell/providers/app-store';
 import type { DesktopConversationModeHost } from './chat-shared-mode-host-types';
-import { CHAT_COMPOSER_RAIL_RESERVE_CLASS } from './chat-shared-content-layout';
+import {
+  CHAT_COMPOSER_RAIL_RESERVE_CLASS,
+  CHAT_SIDE_SHEET_RAIL_RESERVE_CLASS,
+} from './chat-shared-content-layout';
 import { ChatSideSheet } from './chat-shared-side-sheet';
 
 export type ChatCanonicalModeFrameProps = {
@@ -42,6 +45,9 @@ export type ChatCanonicalModeFrameProps = {
   settingsSheetAvatarAlt?: string;
   settingsSheetBodyClassName?: string;
   settingsSheetHideHeader?: boolean;
+  /** The owner surface (e.g. Agent Center) renders its own full-height card chrome;
+   *  skip the side-sheet card wrapper so the content is not nested in a second card. */
+  settingsSheetBare?: boolean;
   transcriptPropsOverride?: Omit<CanonicalTranscriptViewProps, 'messages'>;
   stagePanelPropsOverride?: Omit<
     CanonicalStagePanelProps,
@@ -153,22 +159,31 @@ export function ChatCanonicalModeFrame(props: ChatCanonicalModeFrameProps) {
       />
       {props.afterShell}
       {shouldRenderSettings ? (
-        <ChatSideSheet
-          sheetKey="settings"
-          eyebrow={props.settingsSheetEyebrow}
-          title={props.settingsSheetTitle ?? props.host.settingsDrawerTitle ?? props.selectedTarget?.title ?? 'Settings'}
-          subtitle={props.settingsSheetSubtitle ?? props.host.settingsDrawerSubtitle ?? props.host.characterData?.name ?? null}
-          world={props.settingsSheetWorld ?? props.host.settingsDrawerWorld ?? null}
-          avatarUrl={props.settingsSheetAvatarUrl}
-          avatarFallback={props.settingsSheetAvatarFallback}
-          avatarAlt={props.settingsSheetAvatarAlt}
-          hideHeader={props.settingsSheetHideHeader}
-          onClose={props.onCloseSettings}
-        >
-          <div className={props.settingsSheetBodyClassName || 'px-3 py-3'}>
+        props.settingsSheetBare ? (
+          <aside
+            className={cn(CHAT_SIDE_SHEET_RAIL_RESERVE_CLASS, 'flex min-h-0 w-[min(500px,calc(100cqw-96px))] shrink-0')}
+            data-chat-shared-side-sheet="settings"
+          >
             {settingsContent}
-          </div>
-        </ChatSideSheet>
+          </aside>
+        ) : (
+          <ChatSideSheet
+            sheetKey="settings"
+            eyebrow={props.settingsSheetEyebrow}
+            title={props.settingsSheetTitle ?? props.host.settingsDrawerTitle ?? props.selectedTarget?.title ?? 'Settings'}
+            subtitle={props.settingsSheetSubtitle ?? props.host.settingsDrawerSubtitle ?? props.host.characterData?.name ?? null}
+            world={props.settingsSheetWorld ?? props.host.settingsDrawerWorld ?? null}
+            avatarUrl={props.settingsSheetAvatarUrl}
+            avatarFallback={props.settingsSheetAvatarFallback}
+            avatarAlt={props.settingsSheetAvatarAlt}
+            hideHeader={props.settingsSheetHideHeader}
+            onClose={props.onCloseSettings}
+          >
+            <div className={props.settingsSheetBodyClassName || 'px-3 py-3'}>
+              {settingsContent}
+            </div>
+          </ChatSideSheet>
+        )
       ) : null}
     </div>
   );

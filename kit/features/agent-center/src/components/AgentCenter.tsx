@@ -413,7 +413,7 @@ function AgentCenterChromeHeader(props: {
     const identity = props.identity;
     const fallback = agentCenterAvatarFallback(identity, props.copy.avatarFallback);
     return (
-      <header className="flex min-w-0 items-start justify-between gap-3">
+      <header className="flex min-w-0 shrink-0 items-start justify-between gap-3">
         <div className="flex min-w-0 items-start gap-3">
           <span className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-[18px] border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_35%,transparent)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_12%,transparent)] text-lg font-semibold text-[var(--nimi-action-primary-bg)] shadow-[0_0_0_3px_var(--nimi-surface-active)]">
             {identity.avatarUrl ? (
@@ -445,7 +445,7 @@ function AgentCenterChromeHeader(props: {
     );
   }
   return (
-    <header className="flex min-w-0 items-start justify-between gap-3">
+    <header className="flex min-w-0 shrink-0 items-start justify-between gap-3">
       <div className="min-w-0">
         <h1 className="m-0 text-[length:var(--nimi-type-page-title-size)] font-semibold leading-[1.2] text-[var(--nimi-text-primary)]">{props.copy.title}</h1>
         <p className={cnAgentCenter(
@@ -530,10 +530,10 @@ export function AgentCenter(props: AgentCenterProps) {
     <section
       aria-label={chromeCopy.title}
       className={cnAgentCenter(
-        'grid min-w-0 max-w-full text-[var(--nimi-text-primary)]',
+        'min-w-0 max-w-full text-[var(--nimi-text-primary)]',
         chrome === 'standalone'
-          ? 'gap-4 rounded-[18px] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-4 shadow-[var(--nimi-elevation-raised)]'
-          : 'gap-3',
+          ? 'flex h-full min-h-0 flex-1 flex-col gap-4 rounded-[18px] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-4 shadow-[var(--nimi-elevation-raised)]'
+          : 'grid gap-3',
       )}
       data-chat-agent-center="true"
     >
@@ -618,7 +618,10 @@ export function AgentCenter(props: AgentCenterProps) {
       </nav>
       <div
         aria-labelledby={`agent-center-tab-${activeSection}`}
-        className="min-w-0"
+        className={cnAgentCenter(
+          'min-w-0',
+          chrome === 'standalone' && 'min-h-0 flex-1 overflow-y-auto',
+        )}
         id={`agent-center-panel-${activeSection}`}
         role="tabpanel"
       >

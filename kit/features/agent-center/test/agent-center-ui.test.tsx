@@ -180,7 +180,13 @@ describe('AgentCenter UI session contract', () => {
       />,
     );
     await flush();
-    expect(node.querySelector('[data-chat-agent-center="true"]')).not.toBeNull();
+    const surface = node.querySelector('[data-chat-agent-center="true"]') as HTMLElement;
+    expect(surface).not.toBeNull();
+    expect(surface.className).toContain('h-full');
+    expect(surface.className).toContain('flex-col');
+    const panel = node.querySelector('[role="tabpanel"]') as HTMLElement;
+    expect(panel.className).toContain('flex-1');
+    expect(panel.className).toContain('overflow-y-auto');
     expect(node.textContent).toContain('Nimi');
   });
 
