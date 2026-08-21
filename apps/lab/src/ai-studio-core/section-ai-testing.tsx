@@ -478,7 +478,7 @@ export function SectionAITesting({
         onClose={() => setConfigOpen(false)}
       >
         <DrawerErrorBoundary onClose={() => setConfigOpen(false)} translate={t}>
-          <Suspense fallback={<div className="p-5"><LoadingSkeleton lines={4} /></div>}>
+          <Suspense fallback={<div className="p-5"><LoadingSkeleton lines={4} label={t('Common.loading')} /></div>}>
             {renderAIConfigPanel({ runtime, capabilityId: capability.capabilityContract ?? capability.id })}
           </Suspense>
         </DrawerErrorBoundary>

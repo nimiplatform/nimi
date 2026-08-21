@@ -226,16 +226,17 @@ export const DATA_RECIPES: Recipe[] = [
     stage: (
       <div className="kit-stack" style={{ width: '100%' }}>
         <ProgressIndicator value={72} showValue />
-        <LoadingSkeleton lines={3} />
+        <LoadingSkeleton lines={3} label="Loading content…" />
       </div>
     ),
     snippet: `<div className="kit-stack" style={{ width: '100%' }}>
   <ProgressIndicator value={72} showValue />
-  <LoadingSkeleton lines={3} />
+  <LoadingSkeleton lines={3} label="Loading content…" />
 </div>`,
     props: [
       { name: 'value', desc: '0-100 progress percentage' },
       { name: 'lines', desc: 'LoadingSkeleton row count' },
+      { name: 'label', desc: 'localized loading text announced to assistive technology' },
     ],
   },
   {

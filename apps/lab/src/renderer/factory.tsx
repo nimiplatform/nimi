@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef } from 'react';
-import { AmbientBackground, TooltipProvider } from '@nimiplatform/kit/ui';
+import { AmbientBackground, NimiThemeProvider, TooltipProvider } from '@nimiplatform/kit/ui';
 
 import { ProductArea } from '../shell/routes/product-area.js';
 import { LabRendererProvider } from './context.js';
@@ -14,20 +14,22 @@ function LabMainSurface(props: { readonly bindings: LabCanonicalRendererBindings
   }, [props.bindings]);
   return (
     <LabRendererProvider bindings={props.bindings}>
-      <TooltipProvider>
-        <div
-          className="lab-main-surface"
-          data-nimi-semantic-id="lab-main-root"
-        >
-          <AmbientBackground
-            variant="mesh"
-            className="app-shell"
-            data-testid="nimi-app-shell"
+      <NimiThemeProvider accentPack="nimi-accent" defaultScheme="light">
+        <TooltipProvider>
+          <div
+            className="lab-main-surface"
+            data-nimi-semantic-id="lab-main-root"
           >
-            <ProductArea />
-          </AmbientBackground>
-        </div>
-      </TooltipProvider>
+            <AmbientBackground
+              variant="mesh"
+              className="app-shell"
+              data-testid="nimi-app-shell"
+            >
+              <ProductArea />
+            </AmbientBackground>
+          </div>
+        </TooltipProvider>
+      </NimiThemeProvider>
     </LabRendererProvider>
   );
 }

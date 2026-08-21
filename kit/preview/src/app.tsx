@@ -269,7 +269,7 @@ function FeedbackSection() {
       </Card>
       <Card title="Progress / skeleton / empty">
         <ProgressIndicator value={62} aria-label="progress" />
-        <LoadingSkeleton className="h-4 w-2/3" />
+        <LoadingSkeleton className="h-4 w-2/3" label="Loading preview…" />
         <EmptyState title="No runs yet" description="Start a generation to see history here." />
       </Card>
     </Section>

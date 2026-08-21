@@ -352,7 +352,6 @@ export function ZhiyuAgentChatSurface({
                     onOpenSettings={openBehaviorConfig}
                   />
                 )}
-                layout="stacked"
                 className="zhiyu-chat-canvas__canonical-composer"
               />
                 </div>

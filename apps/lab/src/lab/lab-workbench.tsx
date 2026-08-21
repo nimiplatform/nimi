@@ -204,9 +204,10 @@ export function LabWorkbench(_props: LabWorkbenchProps) {
 }
 
 function LoadingFallback() {
+  const { t } = useTranslation();
   return (
     <div className="flex h-full items-center justify-center p-6">
-      <LoadingSkeleton lines={4} className="w-full max-w-md" />
+      <LoadingSkeleton lines={4} className="w-full max-w-md" label={t('Common.loading')} />
     </div>
   );
 }
