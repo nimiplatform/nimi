@@ -4,7 +4,12 @@
 // cached, or simulated here: each probe walks SDK → bridge → carrier → Runtime.
 // Pure module (no React) so node:test can cover the orchestration.
 
-import type { NimiLocalAppAgentReference, NimiLocalAppClient } from '@nimiplatform/sdk/app';
+import type {
+  NimiLocalAppAgentReference,
+  NimiLocalAppClient,
+  NimiLocalAppPersonaCharacter,
+  NimiLocalAppPersonaCharacterProfileInput,
+} from '@nimiplatform/sdk/app';
 
 import {
   runLabConversationInterruptJourney,
@@ -191,6 +196,155 @@ export async function runWorldCreateProbe(client: AppAccessClientPort): Promise<
   }
 }
 
+export async function runPersonaOwnerListProbe(client: AppAccessClientPort): Promise<AppAccessProbeOutcome> {
+  try {
+    const page = await client.realm.personaCharacter.listOwned({ take: 50 });
+    const selected = page.items[0];
+    if (!selected) return pass('Owner PersonaCharacter list is empty', ['canonical empty list returned']);
+    const detail = await client.realm.personaCharacter.getOwned(selected.id);
+    if (detail.id !== selected.id || detail.contentHash !== selected.contentHash) {
+      throw Object.assign(new Error('persona-owner-detail-mismatch'), { reasonCode: 'persona-owner-detail-mismatch' });
+    }
+    return pass('Owner PersonaCharacters listed and read', [
+      `${page.items.length} owner PersonaCharacter(s) returned · next page ${page.nextAfterId ? 'available' : 'none'}`,
+      `${truncateOpaque(detail.id)} · revision ${detail.contentRevision} · hash ${truncateOpaque(detail.contentHash)}`,
+      'owner identity, credential material, and Realm endpoint exposure: none',
+    ]);
+  } catch (error) {
+    return fail(error);
+  }
+}
+
+export async function runPersonaOwnerCreateReplaceConflictProbe(client: AppAccessClientPort): Promise<AppAccessProbeOutcome> {
+  try {
+    const worlds = await client.realm.worldCore.list({ take: 10, visibility: 'private' });
+    const world = worlds[0];
+    if (!world) throw Object.assign(new Error('persona-owner-world-required'), { reasonCode: 'persona-owner-world-required' });
+    const marker = createLabPersonaMarker();
+    const created = await client.realm.personaCharacter.create({
+      worldId: world.id,
+      visibility: 'private',
+      origin: { kind: 'manual' },
+      profile: labPersonaProfile(marker),
+    });
+    const detail = await client.realm.personaCharacter.getOwned(created.id);
+    if (detail.contentHash !== created.contentHash || detail.contentRevision !== created.contentRevision) {
+      throw Object.assign(new Error('persona-owner-create-detail-mismatch'), { reasonCode: 'persona-owner-create-detail-mismatch' });
+    }
+    if (detail.visibility === 'system') {
+      throw Object.assign(new Error('persona-owner-system-write-forbidden'), { reasonCode: 'contract-invalid' });
+    }
+    const replaced = await client.realm.personaCharacter.replace({
+      personaCharacterId: detail.id,
+      baseContentHash: detail.contentHash,
+      worldId: detail.worldId,
+      visibility: detail.visibility,
+      origin: detail.origin,
+      profile: {
+        ...client.realm.personaCharacter.toProfileInput(detail.profile),
+        narrative: {
+          ...detail.profile.narrative,
+          summary: `${detail.profile.narrative.summary} · replaced ${new Date().toISOString()}`,
+        },
+      },
+    });
+    if (replaced.contentHash === detail.contentHash || replaced.contentRevision === detail.contentRevision) {
+      throw Object.assign(new Error('persona-owner-replace-did-not-advance'), { reasonCode: 'persona-owner-replace-did-not-advance' });
+    }
+    if (replaced.visibility === 'system') {
+      throw Object.assign(new Error('persona-owner-system-write-forbidden'), { reasonCode: 'contract-invalid' });
+    }
+    const writableVisibility = replaced.visibility;
+    await requireRejection(
+      () => client.realm.personaCharacter.replace({
+        personaCharacterId: replaced.id,
+        baseContentHash: detail.contentHash,
+        worldId: replaced.worldId,
+        visibility: writableVisibility,
+        origin: replaced.origin,
+        profile: client.realm.personaCharacter.toProfileInput(replaced.profile),
+      }),
+      'content-conflict',
+    );
+    return pass('Persistent owner PersonaCharacter create/replace flow completed', [
+      `handle ${marker.handle} · id ${truncateOpaque(replaced.id)}`,
+      `revision ${detail.contentRevision} → ${replaced.contentRevision}`,
+      `hash ${truncateOpaque(detail.contentHash)} → ${truncateOpaque(replaced.contentHash)}`,
+      'stale baseContentHash rejected as content-conflict',
+      'test Persona persists because delete is not admitted',
+    ]);
+  } catch (error) {
+    return fail(error);
+  }
+}
+
+export async function runPersonaOwnerPersistenceProbe(client: AppAccessClientPort): Promise<AppAccessProbeOutcome> {
+  try {
+    const persisted = await findPersistentLabPersona(client);
+    if (!persisted) throw Object.assign(new Error('persona-owner-persistent-test-not-found'), { reasonCode: 'not-found' });
+    const detail = await client.realm.personaCharacter.getOwned(persisted.id);
+    return pass('Persistent owner PersonaCharacter recovered', [
+      `handle ${detail.profile.identity.handle ?? 'missing'} · id ${truncateOpaque(detail.id)}`,
+      `revision ${detail.contentRevision} · hash ${truncateOpaque(detail.contentHash)}`,
+      'reload or Desktop/Lab restart uses listOwned/getOwned; no local login or fixture path',
+    ]);
+  } catch (error) {
+    return fail(error);
+  }
+}
+
+async function findPersistentLabPersona(
+  client: AppAccessClientPort,
+): Promise<NimiLocalAppPersonaCharacter | undefined> {
+  let afterId: string | undefined;
+  const seenCursors = new Set<string>();
+  for (;;) {
+    const page = await client.realm.personaCharacter.listOwned({
+      take: 500,
+      ...(afterId === undefined ? {} : { afterId }),
+    });
+    const persisted = page.items.find((persona) => (
+      persona.profile.authoring.source === 'nimi.lab.realm-app-access'
+      && persona.profile.identity.handle?.startsWith('nimi-lab-') === true
+    ));
+    if (persisted) return persisted;
+    if (!page.nextAfterId) return undefined;
+    if (page.nextAfterId === afterId || seenCursors.has(page.nextAfterId)) {
+      throw Object.assign(new Error('persona-owner-pagination-did-not-advance'), { reasonCode: 'contract-invalid' });
+    }
+    seenCursors.add(page.nextAfterId);
+    afterId = page.nextAfterId;
+  }
+}
+
+function labPersonaProfile(marker: { readonly ulid: string; readonly handle: string }): NimiLocalAppPersonaCharacterProfileInput {
+  const displayName = `Nimi Lab Persistent Test ${marker.ulid}`;
+  return {
+    profileSchemaVersion: 'realm.character-profile-core/v1',
+    identity: { name: displayName, summary: 'Persistent private PersonaCharacter created by the Nimi Lab Realm App Access reference.', handle: marker.handle },
+    presentation: { displayName, shortBio: 'Nimi Lab persistent owner-capability acceptance data.' },
+    narrative: { summary: 'Nimi Lab owner PersonaCharacter acceptance.', traits: ['persistent-test'] },
+    interactionProfile: { interactionModes: [], greeting: 'Hello from the Nimi Lab owner capability reference.' },
+    assets: { resourceRefs: [], intents: [] },
+    authoring: { source: 'nimi.lab.realm-app-access', notes: [`persistent-test:${marker.ulid}`] },
+  };
+}
+
+function createLabPersonaMarker(): { readonly ulid: string; readonly handle: string } {
+  const alphabet = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
+  let time = Date.now();
+  let encodedTime = '';
+  for (let index = 0; index < 10; index += 1) {
+    encodedTime = alphabet[time % 32]! + encodedTime;
+    time = Math.floor(time / 32);
+  }
+  const random = crypto.getRandomValues(new Uint8Array(16));
+  let encodedRandom = '';
+  for (let index = 0; index < 16; index += 1) encodedRandom += alphabet[random[index]! % 32];
+  const ulid = `${encodedTime}${encodedRandom}`;
+  return { ulid, handle: `nimi-lab-${ulid.toLowerCase()}` };
+}
+
 export async function runTextGenerationProbe(client: AppAccessClientPort): Promise<AppAccessProbeOutcome> {
   try {
     const result = await client.ai.text.generateCandidate({
@@ -280,6 +434,9 @@ export async function runAppAccessProbe(
     case 'storage-boundary': return runStorageBoundaryProbe(input.client);
     case 'world-list': return runWorldListProbe(input.client);
     case 'world-create': return runWorldCreateProbe(input.client);
+    case 'persona-owner-list': return runPersonaOwnerListProbe(input.client);
+    case 'persona-owner-create-replace': return runPersonaOwnerCreateReplaceConflictProbe(input.client);
+    case 'persona-owner-persistence': return runPersonaOwnerPersistenceProbe(input.client);
     case 'text-generation': return runTextGenerationProbe(input.client);
     case 'agent-references': {
       const run = await runAgentReferencesProbe(input.client);

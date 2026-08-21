@@ -46,7 +46,14 @@ function storagePort(initial = {}) {
 function clientPort(overrides = {}) {
   return {
     storage: storagePort(),
-    realm: { worldCore: { async list() { return []; }, async create() { throw rejected('not-configured'); } } },
+    realm: {
+      worldCore: { async list() { return []; }, async create() { throw rejected('not-configured'); } },
+      personaCharacter: {
+        async listOwned() { return { items: [] }; }, async getOwned() { throw rejected('not-found'); },
+        async create() { throw rejected('not-configured'); }, async replace() { throw rejected('not-configured'); },
+        toProfileInput(profile) { const { profileHash, profileCoverage, ...input } = profile; return input; },
+      },
+    },
     ai: { text: { async generateCandidate() { throw rejected('not-configured'); } } },
     agents: { async listReferences() { return []; } },
     conversation: {},
@@ -68,7 +75,7 @@ test('app-access catalog is complete, consistent, and campaign-free', async () =
 
   const probeIds = appAccessProbes.map((probe) => probe.id);
   assert.equal(new Set(probeIds).size, probeIds.length, 'probe ids must be unique');
-  assert.equal(probeIds.length, 8);
+  assert.equal(probeIds.length, 11);
   assert.deepEqual(Object.keys(appAccessProbeById).sort(), [...probeIds].sort());
 
   const grouped = appAccessGroups.flatMap((group) => group.probes);
@@ -103,7 +110,7 @@ test('app-access catalog is complete, consistent, and campaign-free', async () =
 test('app-access page copy keeps machine codes out of primary text', async () => {
   const { appAccessProbes, appAccessPageCopy, appAccessFailureCopy } = await catalogModule();
   for (const probe of appAccessProbes) {
-    for (const text of [probe.titleKey, probe.provesKey, probe.runningKey, probe.gate?.guidanceKey ?? '']) {
+    for (const text of [probe.titleKey, probe.provesKey, probe.requiresKey ?? '', probe.runningKey, probe.gate?.guidanceKey ?? '']) {
       assert.doesNotMatch(text, /\b[A-Z]{3,}_[A-Z0-9_]+\b/u, `no typed reason in primary copy: ${text}`);
       assert.doesNotMatch(text, /imp[45]/iu);
       if (text) assert.match(text, /^AppAccess\./u, `copy is an AppAccess i18n key: ${text}`);
@@ -194,9 +201,17 @@ test('app-access run plans follow dependency order', async () => {
   const { planGroupRun, planRunAll } = await stateModule();
   assert.deepEqual(planGroupRun('ai-consumption'), ['text-generation']);
   assert.deepEqual(planGroupRun('agent-conversation'), ['agent-references', 'agent-conversation', 'agent-interrupt']);
+  assert.deepEqual(
+    planGroupRun('realm'),
+    ['world-list', 'persona-owner-list'],
+    'bulk Realm runs contain only read probes without external fixture prerequisites',
+  );
   const all = planRunAll();
   assert.equal(all.length, 8);
   assert.equal(new Set(all).size, 8);
+  assert.ok(!all.includes('world-create'), 'run-all excludes explicitly confirmed persistent WorldCore writes');
+  assert.ok(!all.includes('persona-owner-create-replace'), 'run-all excludes explicitly confirmed persistent PersonaCharacter writes');
+  assert.ok(!all.includes('persona-owner-persistence'), 'run-all excludes read-back checks that require a prior confirmed fixture');
   assert.ok(all.indexOf('agent-references') < all.indexOf('agent-conversation'));
   assert.ok(all.indexOf('agent-conversation') < all.indexOf('agent-interrupt'));
 });
@@ -310,6 +325,110 @@ test('world create probe verifies list read-back and truncates opaque ids', asyn
   assert.ok(!facts.includes(worldId), 'full world id never shown');
   assert.match(facts, /home-world handoff value ready/u);
   assert.match(facts, /Agent owner not invoked/u);
+});
+
+test('PersonaCharacter owner probes cover list, create, replace, conflict, and persistence without owner leakage', async () => {
+  const {
+    runPersonaOwnerListProbe,
+    runPersonaOwnerCreateReplaceConflictProbe,
+    runPersonaOwnerPersistenceProbe,
+  } = await probesModule();
+  let current = null;
+  const personaCharacter = {
+    async listOwned() { return { items: current ? [current] : [] }; },
+    async getOwned(id) {
+      if (!current || current.id !== id) throw rejected('not-found');
+      return current;
+    },
+    async create(input) {
+      current = {
+        id: 'persona_0123456789abcdef0123456789abcdef',
+        worldId: input.worldId,
+        schemaVersion: 'realm.persona-character-core/v1',
+        contentHash: 'a'.repeat(64), contentRevision: 1, sourceHash: 'b'.repeat(64),
+        visibility: input.visibility, origin: input.origin, profile: {
+          ...input.profile,
+          profileHash: 'd'.repeat(64),
+          profileCoverage: {
+            manifestSchemaVersion: 'realm.character-profile-coverage/v1', requiredSections: [], optionalSections: [],
+            requiredRefs: [], optionalRefs: [], diagnostics: [], aggregateStatus: 'complete', profileCoverageHash: 'e'.repeat(64),
+          },
+        },
+        validity: { status: 'valid', issues: [] }, materializationReadiness: { status: 'ready', blockers: [] },
+        createdAt: '2026-08-21T00:00:00Z', updatedAt: '2026-08-21T00:00:00Z',
+      };
+      return current;
+    },
+    async replace(input) {
+      if (!current || input.personaCharacterId !== current.id) throw rejected('not-found');
+      if (input.baseContentHash !== current.contentHash) throw rejected('content-conflict');
+      current = { ...current, contentHash: 'c'.repeat(64), contentRevision: 2, profile: {
+        ...input.profile,
+        profileHash: 'f'.repeat(64),
+        profileCoverage: current.profile.profileCoverage,
+      } };
+      return current;
+    },
+    toProfileInput(profile) { const { profileHash, profileCoverage, ...input } = profile; return input; },
+  };
+  const client = clientPort({
+    realm: {
+      worldCore: { async list() { return [{ id: 'world-1' }]; }, async create() { throw rejected('unexpected'); } },
+      personaCharacter,
+    },
+  });
+
+  const empty = await runPersonaOwnerListProbe(client);
+  assert.equal(empty.ok, true);
+  assert.match(empty.headline, /empty/u);
+
+  const flow = await runPersonaOwnerCreateReplaceConflictProbe(client);
+  assert.equal(flow.ok, true);
+  assert.match(flow.facts.join(' '), /content-conflict/u);
+  assert.match(current.profile.identity.handle, /^nimi-lab-[0-9a-z]+$/u);
+  assert.doesNotMatch(JSON.stringify(flow), /ownerAccountId|token|realmBaseUrl/u);
+
+  const listed = await runPersonaOwnerListProbe(client);
+  assert.equal(listed.ok, true);
+  const persisted = await runPersonaOwnerPersistenceProbe(client);
+  assert.equal(persisted.ok, true);
+  assert.match(persisted.facts.join(' '), /revision 2/u);
+});
+
+test('PersonaCharacter persistence probe follows nextAfterId beyond the first 500 rows', async () => {
+  const { runPersonaOwnerPersistenceProbe } = await probesModule();
+  const calls = [];
+  const target = {
+    id: 'persona-target', contentRevision: 7, contentHash: 'a'.repeat(64),
+    profile: {
+      identity: { handle: 'nimi-lab-target' },
+      authoring: { source: 'nimi.lab.realm-app-access' },
+    },
+  };
+  const decoys = Array.from({ length: 500 }, (_, index) => ({
+    id: `persona-${String(index).padStart(3, '0')}`,
+    profile: { identity: { handle: `other-${index}` }, authoring: { source: 'other' } },
+  }));
+  const personaCharacter = {
+    async listOwned(input) {
+      calls.push(input);
+      return input.afterId
+        ? { items: [target] }
+        : { items: decoys, nextAfterId: 'persona-499' };
+    },
+    async getOwned(id) { assert.equal(id, target.id); return target; },
+    async create() { throw rejected('unexpected'); },
+    async replace() { throw rejected('unexpected'); },
+    toProfileInput(profile) { return profile; },
+  };
+  const outcome = await runPersonaOwnerPersistenceProbe(clientPort({
+    realm: {
+      worldCore: { async list() { return []; }, async create() { throw rejected('unexpected'); } },
+      personaCharacter,
+    },
+  }));
+  assert.equal(outcome.ok, true);
+  assert.deepEqual(calls, [{ take: 500 }, { take: 500, afterId: 'persona-499' }]);
 });
 
 test('agent references probe returns references and reports the empty case honestly', async () => {

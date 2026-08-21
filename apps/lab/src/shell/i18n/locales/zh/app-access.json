@@ -17,6 +17,20 @@
       "agentSelectAriaLabel": "当前激活的 Agent",
       "agentSelectPlaceholder": "无激活的 Agent"
     },
+    "confirmPersistentWorld": {
+      "title": "创建持久测试 WorldCore？",
+      "message": "此操作将在你的 Realm 中创建一个有明确标记的 private 测试 WorldCore。由于 delete 未 admission，该记录在探针完成后仍会保留在当前账户中。分组运行和运行全部会跳过此操作。",
+      "confirm": "创建持久测试数据",
+      "cancel": "取消",
+      "running": "正在创建测试数据…"
+    },
+    "confirmPersistentPersona": {
+      "title": "创建持久测试 PersonaCharacter？",
+      "message": "此操作将在你的 Realm 中创建并替换一个有明确标记的 private 测试 PersonaCharacter。由于 delete 未 admission，该记录在探针完成后仍会保留在当前账户中。分组运行和运行全部会跳过此操作。",
+      "confirm": "创建持久测试数据",
+      "cancel": "取消",
+      "running": "正在创建测试数据…"
+    },
     "sessionStates": {
       "sessionBound": "会话已绑定",
       "actionRequired": "需要操作 — 请检查 Nimi Desktop",
@@ -58,7 +72,7 @@
       },
       "realm": {
         "title": "Realm 数据",
-        "blurb": "声明式 Realm 数据访问：列出并创建 WorldCore。"
+        "blurb": "声明式 Realm 数据访问：列出/创建 WorldCore，并执行 owner PersonaCharacter 的 list/get/create/replace；delete 未 admission。"
       },
       "aiConsumption": {
         "title": "AI 消费",
@@ -87,7 +101,25 @@
       "worldCreate": {
         "title": "WorldCore 创建与回读",
         "proves": "通过 App Realm owner 创建的 WorldCore 回读时身份与内容哈希一致。",
+        "requires": "将创建一个明确标记、且因未 admission delete 而持久保留的 private 测试 WorldCore。仅在明确确认后运行。",
         "running": "正在创建 WorldCore 并验证回读…"
+      },
+      "personaOwnerList": {
+        "title": "Owner PersonaCharacter 列表与详情",
+        "proves": "listOwned 返回支持 afterId/take 续页的有界 owner page，getOwned 返回选中 PersonaCharacter 的安全投影。",
+        "running": "正在列出并读取 owner PersonaCharacter…"
+      },
+      "personaOwnerCreateReplace": {
+        "title": "持久 PersonaCharacter 创建、替换与冲突",
+        "proves": "App 创建一个 private owner PersonaCharacter，使用最新哈希替换，并得到 stale hash 的 typed conflict。",
+        "requires": "将创建一个明确标记、且因未 admission delete 而持久保留的 private 测试 PersonaCharacter。仅在明确确认后运行。",
+        "running": "正在创建并替换持久测试 PersonaCharacter…"
+      },
+      "personaOwnerPersistence": {
+        "title": "PersonaCharacter 持久化回读",
+        "proves": "reload 或 restart 后，通过 listOwned 与 getOwned 回读此前的 Nimi Lab 测试 PersonaCharacter。",
+        "requires": "需要此账户中已有由显式确认创建探针生成的持久 Nimi Lab 测试 PersonaCharacter。请在 reload 或 restart 后直接运行此只读检查。",
+        "running": "正在回读持久 owner PersonaCharacter…"
       },
       "textGeneration": {
         "title": "已配置的文本生成",

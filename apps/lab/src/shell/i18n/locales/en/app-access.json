@@ -17,6 +17,20 @@
       "agentSelectAriaLabel": "Current active Agent",
       "agentSelectPlaceholder": "No active Agent"
     },
+    "confirmPersistentWorld": {
+      "title": "Create a persistent test WorldCore?",
+      "message": "This creates one clearly marked private test WorldCore in your Realm. Delete is not admitted, so the record will remain in this account after the probe completes. Group and run-all actions skip this operation.",
+      "confirm": "Create persistent test data",
+      "cancel": "Cancel",
+      "running": "Creating test data…"
+    },
+    "confirmPersistentPersona": {
+      "title": "Create a persistent test PersonaCharacter?",
+      "message": "This creates and replaces one clearly marked private test PersonaCharacter in your Realm. Delete is not admitted, so the record will remain in this account after the probe completes. Group and run-all actions skip this operation.",
+      "confirm": "Create persistent test data",
+      "cancel": "Cancel",
+      "running": "Creating test data…"
+    },
     "sessionStates": {
       "sessionBound": "Session bound",
       "actionRequired": "Action required — check Nimi Desktop",
@@ -58,7 +72,7 @@
       },
       "realm": {
         "title": "Realm Data",
-        "blurb": "Declared Realm data access: list and create WorldCores."
+        "blurb": "Declared Realm data access: list/create WorldCores and owner PersonaCharacter list/get/create/replace; delete is not admitted."
       },
       "aiConsumption": {
         "title": "AI Consumption",
@@ -87,7 +101,25 @@
       "worldCreate": {
         "title": "WorldCore create & read-back",
         "proves": "A WorldCore created through the App Realm owner reads back with matching identity and content hash.",
+        "requires": "Creates a clearly marked private test WorldCore that persists because delete is not admitted. Run only after explicit confirmation.",
         "running": "Creating a WorldCore and verifying the read-back…"
+      },
+      "personaOwnerList": {
+        "title": "Owner PersonaCharacter list & detail",
+        "proves": "listOwned returns a bounded owner page with afterId/take continuation, and getOwned returns the selected safe PersonaCharacter projection.",
+        "running": "Listing and reading owner PersonaCharacters…"
+      },
+      "personaOwnerCreateReplace": {
+        "title": "Persistent PersonaCharacter create, replace & conflict",
+        "proves": "The App creates one private owner PersonaCharacter, replaces it with the latest hash, and receives a typed stale-hash conflict.",
+        "requires": "Creates a clearly marked private test PersonaCharacter that persists because delete is not admitted. Run only after explicit confirmation.",
+        "running": "Creating and replacing the persistent test PersonaCharacter…"
+      },
+      "personaOwnerPersistence": {
+        "title": "PersonaCharacter persistence read-back",
+        "proves": "A prior Nimi Lab test PersonaCharacter is recovered through listOwned and getOwned after reload or restart.",
+        "requires": "Requires a persistent Nimi Lab test PersonaCharacter created by the explicitly confirmed create probe in this account. Run this read-only check directly after reload or restart.",
+        "running": "Recovering the persistent owner PersonaCharacter…"
       },
       "textGeneration": {
         "title": "Configured text generation",

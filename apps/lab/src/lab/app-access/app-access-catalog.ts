@@ -17,6 +17,9 @@ export type AppAccessProbeId =
   | 'storage-isolation'
   | 'world-list'
   | 'world-create'
+  | 'persona-owner-list'
+  | 'persona-owner-create-replace'
+  | 'persona-owner-persistence'
   | 'text-generation'
   | 'agent-references'
   | 'agent-conversation'
@@ -31,6 +34,10 @@ export type AppAccessProbeDefinition = {
   readonly titleKey: string;
   readonly provesKey: string;
   readonly requiresKey?: string;
+  /** Must only run from an explicit, per-operation confirmation. Group and run-all plans exclude it. */
+  readonly requiresExplicitConfirmation?: boolean;
+  /** Read-only diagnostic with a prerequisite that bulk plans cannot establish safely. */
+  readonly excludeFromAutomaticPlans?: boolean;
   readonly runningKey: string;
   readonly gate?: {
     readonly kind: AppAccessProbeGateKind;
@@ -56,6 +63,8 @@ const probe = (
   keySegment: string,
   extra?: {
     readonly requiresKey?: string;
+    readonly requiresExplicitConfirmation?: boolean;
+    readonly excludeFromAutomaticPlans?: boolean;
     readonly gate?: AppAccessProbeDefinition['gate'];
   },
 ): AppAccessProbeDefinition => ({
@@ -65,6 +74,8 @@ const probe = (
   provesKey: `AppAccess.probes.${keySegment}.proves`,
   runningKey: `AppAccess.probes.${keySegment}.running`,
   requiresKey: extra?.requiresKey,
+  requiresExplicitConfirmation: extra?.requiresExplicitConfirmation,
+  excludeFromAutomaticPlans: extra?.excludeFromAutomaticPlans,
   gate: extra?.gate,
   testId: `app-access-probe-${id}`,
   runTestId: `app-access-run-${id}`,
@@ -74,7 +85,19 @@ const probe = (
 export const appAccessProbes: readonly AppAccessProbeDefinition[] = [
   probe('storage-isolation', 'storage', 'storageIsolation'),
   probe('world-list', 'realm', 'worldList'),
-  probe('world-create', 'realm', 'worldCreate'),
+  probe('world-create', 'realm', 'worldCreate', {
+    requiresKey: 'AppAccess.probes.worldCreate.requires',
+    requiresExplicitConfirmation: true,
+  }),
+  probe('persona-owner-list', 'realm', 'personaOwnerList'),
+  probe('persona-owner-create-replace', 'realm', 'personaOwnerCreateReplace', {
+    requiresKey: 'AppAccess.probes.personaOwnerCreateReplace.requires',
+    requiresExplicitConfirmation: true,
+  }),
+  probe('persona-owner-persistence', 'realm', 'personaOwnerPersistence', {
+    requiresKey: 'AppAccess.probes.personaOwnerPersistence.requires',
+    excludeFromAutomaticPlans: true,
+  }),
   probe('text-generation', 'ai-consumption', 'textGeneration'),
   probe('agent-references', 'agent-conversation', 'agentReferences'),
   probe('agent-conversation', 'agent-conversation', 'agentConversation', {
@@ -113,7 +136,7 @@ export const appAccessGroups: readonly AppAccessGroupDefinition[] = [
     id: 'realm',
     titleKey: 'AppAccess.groups.realm.title',
     blurbKey: 'AppAccess.groups.realm.blurb',
-    probes: ['world-list', 'world-create'],
+    probes: ['world-list', 'world-create', 'persona-owner-list', 'persona-owner-create-replace', 'persona-owner-persistence'],
     testId: 'app-access-group-realm',
     runTestId: 'app-access-run-group-realm',
   },

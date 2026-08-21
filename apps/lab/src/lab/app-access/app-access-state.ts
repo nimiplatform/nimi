@@ -107,11 +107,17 @@ export function resolveProbeGate(
   }
 }
 
+function isAutomaticProbe(id: AppAccessProbeId): boolean {
+  const definition = appAccessProbeById[id];
+  return definition.requiresExplicitConfirmation !== true
+    && definition.excludeFromAutomaticPlans !== true;
+}
+
 export function planGroupRun(groupId: AppAccessGroupId): readonly AppAccessProbeId[] {
   const group = appAccessGroups.find((candidate) => candidate.id === groupId);
-  return group ? group.probes : [];
+  return group ? group.probes.filter(isAutomaticProbe) : [];
 }
 
 export function planRunAll(): readonly AppAccessProbeId[] {
-  return appAccessGroups.flatMap((group) => group.probes);
+  return appAccessGroups.flatMap((group) => group.probes.filter(isAutomaticProbe));
 }

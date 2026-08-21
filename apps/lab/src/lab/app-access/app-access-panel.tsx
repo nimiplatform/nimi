@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { RefreshCw } from 'lucide-react';
-import { Button, InlineAlert, SelectField, StatusBadge } from '@nimiplatform/kit/ui';
+import { Button, ConfirmDialog, InlineAlert, SelectField, StatusBadge } from '@nimiplatform/kit/ui';
 import type { NimiLocalAppAgentReference } from '@nimiplatform/sdk/app';
 
 import { getLabLocalAppClient } from '../../shell/local-app-runtime-platform.js';
@@ -9,6 +9,7 @@ import {
   appAccessGroups,
   appAccessPageCopy,
   appAccessPageIds,
+  appAccessProbeById,
   type AppAccessGroupId,
   type AppAccessProbeId,
 } from './app-access-catalog.js';
@@ -74,6 +75,8 @@ export function AppAccessPanel() {
   const [agentReferences, setAgentReferences] = useState<readonly NimiLocalAppAgentReference[]>([]);
   const [selectedAgentHandle, setSelectedAgentHandle] = useState('');
   const [runningGroup, setRunningGroup] = useState<AppAccessGroupId | 'all' | null>(null);
+  const [explicitProbe, setExplicitProbe] = useState<AppAccessProbeId | null>(null);
+  const [explicitProbeRunning, setExplicitProbeRunning] = useState(false);
 
   // Refs mirror the latest committed values so sequential group/run-all loops
   // read fresh state synchronously instead of waiting for re-renders.
@@ -222,8 +225,27 @@ export function AppAccessPanel() {
     return outcome.ok;
   }, [gateContext, updateProbeStates]);
 
-  // Group runs walk the group's probes in dependency order and stop on the
-  // first failure; run-all continues with the next group after a failure.
+  const requestProbeRun = useCallback((id: AppAccessProbeId) => {
+    if (appAccessProbeById[id].requiresExplicitConfirmation) {
+      setExplicitProbe(id);
+      return;
+    }
+    void runProbe(id);
+  }, [runProbe]);
+
+  const confirmExplicitProbe = useCallback(async () => {
+    if (!explicitProbe || explicitProbeRunning) return;
+    setExplicitProbeRunning(true);
+    try {
+      await runProbe(explicitProbe);
+      setExplicitProbe(null);
+    } finally {
+      setExplicitProbeRunning(false);
+    }
+  }, [explicitProbe, explicitProbeRunning, runProbe]);
+
+  // Automatic plans walk probes in dependency order but deliberately omit
+  // operations that require a per-run confirmation.
   const runGroup = useCallback(async (groupId: AppAccessGroupId) => {
     if (runningGroup) return;
     setRunningGroup(groupId);
@@ -245,7 +267,7 @@ export function AppAccessPanel() {
     try {
       await refreshSession();
       for (const group of appAccessGroups) {
-        for (const id of group.probes) {
+        for (const id of planGroupRun(group.id)) {
           const gate = resolveProbeGate(id, probeStatesRef.current, gateContext());
           if (!gate.runnable) continue;
           const ok = await runProbe(id);
@@ -267,6 +289,9 @@ export function AppAccessPanel() {
     agentReferenceSelected: agentReferences.some((reference) => reference.agentHandle === selectedAgentHandle),
   };
   const gateFor = (id: AppAccessProbeId) => resolveProbeGate(id, probeStates, currentGateContext);
+  const explicitConfirmationCopy = explicitProbe === 'world-create'
+    ? 'AppAccess.confirmPersistentWorld'
+    : 'AppAccess.confirmPersistentPersona';
 
   const renderExtras = (id: AppAccessProbeId) => {
     if (id === 'agent-references') {
@@ -341,11 +366,26 @@ export function AppAccessPanel() {
           states={probeStates}
           gateFor={gateFor}
           groupRunning={runningGroup !== null}
-          onRunProbe={(id) => void runProbe(id)}
+          onRunProbe={requestProbeRun}
           onRunGroup={() => void runGroup(group.id)}
           renderExtras={renderExtras}
         />
       ))}
+
+      <ConfirmDialog
+        open={explicitProbe !== null}
+        title={t(`${explicitConfirmationCopy}.title`)}
+        message={t(`${explicitConfirmationCopy}.message`)}
+        confirmLabel={t(`${explicitConfirmationCopy}.confirm`)}
+        cancelLabel={t(`${explicitConfirmationCopy}.cancel`)}
+        confirmTone="danger"
+        loading={explicitProbeRunning}
+        pendingLabel={t(`${explicitConfirmationCopy}.running`)}
+        onConfirm={() => void confirmExplicitProbe()}
+        onClose={() => {
+          if (!explicitProbeRunning) setExplicitProbe(null);
+        }}
+      />
     </section>
   );
 }
