@@ -93,8 +93,8 @@ export const APP_SCAFFOLD_MODULE_REGISTRY = Object.freeze({
     npmDependencies: {},
     cargoDependencies: {},
     hostAdapterContract: 'ai-studio-host-v1',
-    views: ['image.generate', 'video.generate'],
-    navigation: ['image.generate', 'video.generate'],
+    views: ['image.generate', 'video.generate', 'music.generate'],
+    navigation: ['image.generate', 'video.generate', 'music.generate'],
     styles: [],
     assets: [],
     productEntry: Object.freeze({

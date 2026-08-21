@@ -1221,6 +1221,8 @@ test('create accepts candidate studio-create as one shared AI Studio route with 
   assert.match(host, /cleanupArtifacts,/);
   assert.match(host, /loadPanelPreferences,/);
   assert.match(host, /savePanelPreferences,/);
+  assert.match(host, /revealLocalAppAsset: \(relativePath\) => getNimiLocalAppClient\(\)\.storage\.assets\.reveal\(relativePath\)/);
+  assert.doesNotMatch(host, /exportArtifact/);
   assert.match(host, /status: 'unavailable'/);
   assert.match(host, /remainingCleanupPaths: cleanup\.remainingCleanupPaths/);
   assert.match(host, /displayFailure: \{ reason: 'runtime-call-failed'/);
@@ -1239,6 +1241,8 @@ test('create accepts candidate multi in module order with one AI Studio plus an 
   const runtimeRegistry = read('src/scaffold/generated/runtime-registry.ts');
   assert.ok(runtimeRegistry.indexOf('studioCreateRuntimeHandlers') < runtimeRegistry.indexOf('studioMediaRuntimeHandlers'));
   assert.ok(runtimeRegistry.indexOf('studioMediaRuntimeHandlers') < runtimeRegistry.indexOf('studioVoiceRuntimeHandlers'));
+  assert.ok(snapshot.lock.resolvedViews.includes('music.generate'));
+  assert.ok(snapshot.lock.resolvedNavigation.includes('music.generate'));
   const routeRegistry = read('src/scaffold/generated/route-registry.tsx');
   assert.equal(routeRegistry.match(/content = <GeneratedAIStudioRoute/g)?.length, 1);
   assert.match(routeRegistry, /content = <KitRecipesCapability exampleAppId=\{appId\} \/>/);
