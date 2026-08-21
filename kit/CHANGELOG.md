@@ -98,6 +98,11 @@ Discipline.
 
 ### Changed
 
+- **Breaking (0.x):** Desktop Open removes the `open-agents` target together
+  with `NimiDesktopOpenAgentsIntent` and `NimiDesktopOpenAgentsView`. Character
+  and partner catalog entry now uses `open-explore` with `section: 'personas'`
+  and the admitted `discover-personas` or `select-partner` product intent; the
+  retired target is rejected rather than aliased or redirected.
 - `Tooltip` keeps enabled interactive children as the sole focus target and
   supplies a single keyboard-focusable disabled-action wrapper when the native
   control cannot receive hover or focus, preserving access to disabled reasons.

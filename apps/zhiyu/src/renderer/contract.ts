@@ -49,7 +49,7 @@ export interface ZhiyuRendererProjectionPort {
 export interface ZhiyuRendererCommandPort {
   allocateTurnRequestId(): Promise<string>;
   runTurn(input: ZhiyuRuntimeAgentChatTurnInput): Promise<ZhiyuRuntimeAgentChatTurnResult>;
-  openDesktopAgentConfig(): Promise<void>;
+  openDesktopPersonaCatalog(): Promise<void>;
   openDesktopSelectPartner(): Promise<ZhiyuDesktopOpenActionResult>;
   launchAvatar(input: {
     readonly evidence: ZhiyuEvidence;

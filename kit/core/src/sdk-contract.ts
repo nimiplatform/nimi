@@ -282,8 +282,6 @@ export {
 export type {
   ComposeNimiDesktopOpenIntentEnvelopeInput,
   NimiDesktopOpenAcceptedResult,
-  NimiDesktopOpenAgentsIntent,
-  NimiDesktopOpenAgentsView,
   NimiDesktopOpenAppsIntent,
   NimiDesktopOpenAppsSection,
   NimiDesktopOpenExploreIntent,

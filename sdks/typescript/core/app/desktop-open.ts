@@ -31,7 +31,6 @@ export type NimiDesktopOpenExploreProductIntent =
 export type NimiDesktopOpenRuntimeConfigPage = 'cloud' | 'models';
 export type NimiDesktopOpenRuntimeConfigAction = 'add-connector' | 'install-model';
 export type NimiDesktopOpenSettingsSection = 'profile';
-export type NimiDesktopOpenAgentsView = 'inventory';
 
 // @nimi-authority: rule.nimi.desktop.shell-ui.r061
 export type NimiDesktopOpenAppsSection = 'ai-models';
@@ -49,11 +48,6 @@ export type NimiDesktopOpenRuntimeConfigIntent = {
   readonly action: NimiDesktopOpenRuntimeConfigAction;
 };
 
-export type NimiDesktopOpenAgentsIntent = {
-  readonly kind: 'open-agents';
-  readonly view: NimiDesktopOpenAgentsView;
-};
-
 export type NimiDesktopOpenAppsIntent = {
   readonly kind: 'open-apps';
   readonly appId?: string;
@@ -68,7 +62,6 @@ export type NimiDesktopOpenSettingsIntent = {
 export type NimiDesktopOpenIntent =
   | NimiDesktopOpenExploreIntent
   | NimiDesktopOpenRuntimeConfigIntent
-  | NimiDesktopOpenAgentsIntent
   | NimiDesktopOpenAppsIntent
   | NimiDesktopOpenSettingsIntent;
 
@@ -261,8 +254,6 @@ export function parseNimiDesktopOpenIntent(value: unknown): NimiDesktopOpenInten
       return parseExploreIntent(record);
     case 'open-runtime-config':
       return parseRuntimeConfigIntent(record);
-    case 'open-agents':
-      return parseAgentsIntent(record);
     case 'open-apps':
       return parseAppsIntent(record);
     case 'open-settings':
@@ -321,15 +312,6 @@ function parseRuntimeConfigIntent(record: Record<string, unknown>): NimiDesktopO
   throw unsupported(`DesktopOpenIntent runtime config target is not admitted: ${page}.${action}.`, 'intent.action');
 }
 
-function parseAgentsIntent(record: Record<string, unknown>): NimiDesktopOpenAgentsIntent {
-  assertAllowedFields(record, ['kind', 'view'], 'DesktopOpenIntent agents intent');
-  const view = requireString(record.view, 'intent.view');
-  if (view !== 'inventory') {
-    throw unsupported(`DesktopOpenIntent agents view is not admitted: ${view}.`, 'intent.view');
-  }
-  return { kind: 'open-agents', view };
-}
-
 function parseAppsIntent(record: Record<string, unknown>): NimiDesktopOpenAppsIntent {
   assertAllowedFields(record, ['kind', 'appId', 'section'], 'DesktopOpenIntent apps intent');
   const appId = record.appId === undefined ? undefined : parseAppId(record.appId, 'intent.appId');
@@ -361,7 +343,6 @@ function parseIntentKind(value: unknown, field: string): NimiDesktopOpenIntentKi
   if (
     kind === 'open-explore'
     || kind === 'open-runtime-config'
-    || kind === 'open-agents'
     || kind === 'open-apps'
     || kind === 'open-settings'
   ) {

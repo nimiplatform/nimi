@@ -23,7 +23,7 @@ import { launchZhiyuAvatar } from '../shell/avatar/avatar-launch-handoff.js';
 import { probeZhiyuRuntimeAccountStatus } from '../shell/auth/runtime-account-status.js';
 import { getZhiyuLocalAppClient } from '../shell/auth/runtime-platform.js';
 import {
-  requestZhiyuDesktopOpenAgentConfig,
+  requestZhiyuDesktopOpenPersonaCatalog,
   requestZhiyuDesktopOpenSelectPartner,
 } from '../shell/desktop-open/desktop-open-action.js';
 import { probeZhiyuRuntimeStatus } from '../shell/runtime/runtime-status.js';
@@ -104,8 +104,8 @@ export function createZhiyuProductionBindings(
           return createZhiyuProductionTurnRequestId();
         },
         runTurn: runZhiyuAgentChatTurn,
-        async openDesktopAgentConfig() {
-          await requestZhiyuDesktopOpenAgentConfig();
+        async openDesktopPersonaCatalog() {
+          await requestZhiyuDesktopOpenPersonaCatalog();
         },
         openDesktopSelectPartner: requestZhiyuDesktopOpenSelectPartner,
         launchAvatar: ({ evidence, action }: Parameters<ZhiyuCanonicalRendererBindings['app']['commands']['launchAvatar']>[0]) => launchZhiyuAvatar({ evidence, action }),

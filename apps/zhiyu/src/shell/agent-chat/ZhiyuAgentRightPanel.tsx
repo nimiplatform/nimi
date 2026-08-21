@@ -26,7 +26,7 @@ type RightAgentPanelProps = {
   readonly activeTab: AgentPanelTab;
   readonly onActiveTabChange: (tab: AgentPanelTab) => void;
   readonly onClose: () => void;
-  readonly onOpenDesktopAgentConfig: () => void;
+  readonly onOpenDesktopPersonaCatalog: () => void;
   readonly onAvatarLaunch?: () => void;
   readonly session: AgentCenterSession | null;
 };
@@ -94,7 +94,7 @@ export function RightAgentPanel(props: RightAgentPanelProps) {
         onSectionChange={props.onActiveTabChange}
         placementActions={{
           close: props.onClose,
-          openRuntimeSettings: props.onOpenDesktopAgentConfig,
+          openRuntimeSettings: props.onOpenDesktopPersonaCatalog,
           launchAvatar: props.onAvatarLaunch,
         }}
         session={props.session}
@@ -120,11 +120,11 @@ export function RightAgentPanel(props: RightAgentPanelProps) {
           </p>
           <button
             type="button"
-            data-zhiyu-agent-center-unavailable-action="desktop-open-agent-config"
-            data-zhiyu-desktop-open-action="desktop_open_agent_config"
-            onClick={props.onOpenDesktopAgentConfig}
+            data-zhiyu-agent-center-unavailable-action="desktop-open-persona-catalog"
+            data-zhiyu-desktop-open-action="desktop_open_persona_catalog"
+            onClick={props.onOpenDesktopPersonaCatalog}
           >
-            在 Nimi Desktop 中打开伙伴设置
+            在 Nimi Desktop 中浏览伙伴目录
           </button>
         </section>
       )}

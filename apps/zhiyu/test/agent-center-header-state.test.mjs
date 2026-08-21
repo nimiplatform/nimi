@@ -69,7 +69,7 @@ test('Zhiyu Agent Center panel renders the Manager Session without caller postur
       activeTab: 'overview',
       onActiveTabChange() {},
       onClose() {},
-      onOpenDesktopAgentConfig() {},
+      onOpenDesktopPersonaCatalog() {},
       session: { getSnapshot: () => ({ availability: { updateModelSettings: { state: 'unavailable', reason: 'reserved-not-admitted' } } }) },
     });
   });
@@ -104,12 +104,12 @@ test('Zhiyu Agent Center panel fails closed with a typed unavailable state when 
     activeTab: 'overview',
     onActiveTabChange() {},
     onClose() {},
-    onOpenDesktopAgentConfig() {},
+    onOpenDesktopPersonaCatalog() {},
     session: null,
   });
   assert.match(html, /data-zhiyu-agent-center-unavailable="protected-app-access-unavailable"/);
   assert.match(html, /data-zhiyu-agent-center-unavailable-close="true"/);
-  assert.match(html, /data-zhiyu-desktop-open-action="desktop_open_agent_config"/);
+  assert.match(html, /data-zhiyu-desktop-open-action="desktop_open_persona_catalog"/);
   assert.doesNotMatch(html, /data-test-chrome/);
 });
 

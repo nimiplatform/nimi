@@ -296,7 +296,6 @@ fn parse_desktop_open_intent(value: Value) -> Result<Value, DesktopOpenIntentHos
     match kind.as_str() {
         "open-explore" => parse_explore_intent(record),
         "open-runtime-config" => parse_runtime_config_intent(record),
-        "open-agents" => parse_agents_intent(record),
         "open-apps" => parse_apps_intent(record),
         "open-settings" => parse_settings_intent(record),
         "open-url" => Err(invalid_parse(
@@ -375,22 +374,6 @@ fn parse_runtime_config_intent(
         "kind": "open-runtime-config",
         "page": page,
         "action": action,
-    }))
-}
-
-fn parse_agents_intent(
-    record: &serde_json::Map<String, Value>,
-) -> Result<Value, DesktopOpenIntentHostParseError> {
-    assert_allowed_fields(record, &["kind", "view"], "agents intent")?;
-    let view = required_string(record.get("view"), "intent.view")?;
-    if view != "inventory" {
-        return Err(unsupported_parse(
-            "DesktopOpenIntent agents view is not admitted",
-        ));
-    }
-    Ok(json!({
-        "kind": "open-agents",
-        "view": view,
     }))
 }
 
@@ -509,7 +492,6 @@ fn parse_bridge_result(
                 applied_target.as_str(),
                 "open-explore"
                     | "open-runtime-config"
-                    | "open-agents"
                     | "open-apps"
                     | "open-settings"
             ) {

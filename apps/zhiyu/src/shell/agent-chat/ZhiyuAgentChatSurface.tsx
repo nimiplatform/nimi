@@ -60,7 +60,7 @@ export type ZhiyuAgentChatSurfaceProps = {
   readonly onSubmit: (text: string) => Promise<void> | void;
   readonly onStopChat: () => void;
   readonly onSelectLocalAgent: (agentHandle: string) => void;
-  readonly onDesktopOpenAgentConfig: () => Promise<void> | void;
+  readonly onDesktopOpenPersonaCatalog: () => Promise<void> | void;
   readonly onDesktopOpenSelectPartner: () => Promise<ZhiyuDesktopOpenActionResult> | ZhiyuDesktopOpenActionResult;
   readonly onAvatarLaunch?: () => void;
   readonly onAvatarManage?: () => void;
@@ -78,7 +78,7 @@ export function ZhiyuAgentChatSurface({
   onSubmit,
   onStopChat,
   onSelectLocalAgent,
-  onDesktopOpenAgentConfig,
+  onDesktopOpenPersonaCatalog,
   onDesktopOpenSelectPartner,
   onAvatarLaunch,
 }: ZhiyuAgentChatSurfaceProps) {
@@ -382,7 +382,7 @@ export function ZhiyuAgentChatSurface({
             activeTab={activeAgentTab}
             onActiveTabChange={setActiveAgentTab}
             onClose={() => setRightPanelMode('closed')}
-            onOpenDesktopAgentConfig={() => { void onDesktopOpenAgentConfig(); }}
+            onOpenDesktopPersonaCatalog={() => { void onDesktopOpenPersonaCatalog(); }}
             onAvatarLaunch={onAvatarLaunch}
             session={agentCenterSession}
           />

@@ -287,13 +287,9 @@ fn rejected_golden_case(id: &str) -> Option<(&'static str, serde_json::Value)> {
             "nimi.tauri",
             json!({ "intent": { "kind": "open-settings", "section": "developer-tools" } }),
         ),
-        "agent-center-target-v1" => (
+        "retired-agents-target-v1" => (
             "nimi.tauri",
-            json!({ "intent": { "kind": "open-agents", "view": "agent-center" } }),
-        ),
-        "agent-center-local-agent-ref-v1" => (
-            "nimi.tauri",
-            json!({ "intent": { "kind": "open-agents", "view": "agent-center", "localAgentRef": "agent-local-1" } }),
+            json!({ "intent": { "kind": "open-agents", "view": "inventory" } }),
         ),
         "runtime-profiles-manage-profile-v1" => (
             "nimi.tauri",

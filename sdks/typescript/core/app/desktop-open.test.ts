@@ -86,13 +86,6 @@ const acceptedVectors: readonly NimiDesktopOpenIntentEnvelope[] = [
     schemaVersion: 1,
     sourceApp: 'nimi.test-launcher',
     sourceHost: 'electron-standard-shell',
-    requestId: 'desktop-open-20260708-0005',
-    intent: { kind: 'open-agents', view: 'inventory' },
-  },
-  {
-    schemaVersion: 1,
-    sourceApp: 'nimi.test-launcher',
-    sourceHost: 'electron-standard-shell',
     requestId: 'desktop-open-20260708-0006',
     intent: { kind: 'open-apps' },
   },
@@ -255,7 +248,7 @@ describe('Desktop Open Intent SDK parser', () => {
     assertRejects(
       {
         ...acceptedVectors[0],
-        intent: { kind: 'open-agents', view: 'agent-center' },
+        intent: { kind: 'open-agents', view: 'inventory' },
       },
       'desktop-open-target-unsupported',
     );

@@ -483,7 +483,7 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
       onSubmit={handleSubmit}
       onStopChat={handleStopChat}
       onSelectLocalAgent={handleSelectLocalAgent}
-      onDesktopOpenAgentConfig={bindings.app.commands.openDesktopAgentConfig}
+      onDesktopOpenPersonaCatalog={bindings.app.commands.openDesktopPersonaCatalog}
       onDesktopOpenSelectPartner={bindings.app.commands.openDesktopSelectPartner}
       onAvatarLaunch={() => {
         void handleAvatarLaunch();

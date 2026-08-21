@@ -514,7 +514,7 @@ export function createZhiyuSimulatorBindings(
             diagnostics: null,
           };
         },
-        async openDesktopAgentConfig(): Promise<void> {
+        async openDesktopPersonaCatalog(): Promise<void> {
           return undefined;
         },
         async openDesktopSelectPartner(): ReturnType<ZhiyuCanonicalRendererBindings['app']['commands']['openDesktopSelectPartner']> {

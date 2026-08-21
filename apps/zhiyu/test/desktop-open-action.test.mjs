@@ -16,15 +16,15 @@ test.after(async () => {
   }
 });
 
-test('Zhiyu agent config entry deep-links the Desktop Agent center', async () => {
+test('Zhiyu persona catalog entry opens Explore Personas', async () => {
   const module = await importDesktopOpenActionModule();
   const calls = [];
-  const result = await module.requestZhiyuDesktopOpenAgentConfig(async (request) => {
+  const result = await module.requestZhiyuDesktopOpenPersonaCatalog(async (request) => {
     calls.push(request);
     return { status: 'accepted', bridgeId: 'desktop-open-config', requestId: 'desktop-open-config-request' };
   });
   assert.equal(result.status, 'accepted');
-  assert.deepEqual(calls, [{ intent: { kind: 'open-agents', view: 'inventory' } }]);
+  assert.deepEqual(calls, [{ intent: { kind: 'open-explore', section: 'personas', productIntent: 'discover-personas' } }]);
 });
 
 test('Zhiyu desktop_open_select_partner sends the standard DesktopOpenIntent', async () => {

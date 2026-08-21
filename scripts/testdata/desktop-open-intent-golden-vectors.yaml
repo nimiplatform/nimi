@@ -15,7 +15,6 @@ entries:
   - runtime-cloud-add-connector
   - runtime-models-install-model
   - explore-personas-search
-  - agents-inventory
   - apps-surface
   - apps-selection
   - apps-ai-models
@@ -31,8 +30,7 @@ entries:
   - invalid-app-id
   - invalid-query-too-long
   - developer-tools-settings-target-v1
-  - agent-center-target-v1
-  - agent-center-local-agent-ref-v1
+  - retired-agents-target-v1
   - runtime-profiles-manage-profile-v1
   - runtime-advanced-inspect-runtime-v1
   - os-scheme-url
@@ -143,15 +141,6 @@ accepted:
         kind: open-explore
         section: personas
         query: mentor
-  - id: agents-inventory
-    envelope:
-      schemaVersion: 1
-      sourceApp: nimi.test-launcher
-      sourceHost: electron-standard-shell
-      requestId: desktop-open-20260708-0005
-      intent:
-        kind: open-agents
-        view: inventory
   - id: apps-surface
     envelope:
       schemaVersion: 1
@@ -211,10 +200,8 @@ rejected:
     reasonCode: desktop-open-intent-invalid
   - id: developer-tools-settings-target-v1
     reasonCode: desktop-open-target-unsupported
-  - id: agent-center-target-v1
+  - id: retired-agents-target-v1
     reasonCode: desktop-open-target-unsupported
-  - id: agent-center-local-agent-ref-v1
-    reasonCode: desktop-open-intent-invalid
   - id: runtime-profiles-manage-profile-v1
     reasonCode: desktop-open-target-unsupported
   - id: runtime-advanced-inspect-runtime-v1
