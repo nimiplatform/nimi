@@ -22,7 +22,7 @@
   "peerDependencies": {
     "@ai-sdk/provider": "^3.0.0",
     "@mastra/core": "^1.41.0",
-    "@nimiplatform/sdk": "^0.6.0"
+    "@nimiplatform/sdk": "^0.7.0"
   },
   "devDependencies": {
     "@ai-sdk/provider": "3.0.10",

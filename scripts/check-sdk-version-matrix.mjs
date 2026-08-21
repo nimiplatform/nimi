@@ -176,18 +176,15 @@ async function main() {
     );
   }
 
-  const appToolsSource = await fs.readFile(path.join(repoRoot, 'app-tools/lib/index.mjs'), 'utf8');
-  const sdkVersionMatch = appToolsSource.match(/const SDK_VERSION = '([^']+)';/);
-  const kitVersionMatch = appToolsSource.match(/const KIT_VERSION = '([^']+)';/);
-  const appToolsVersionMatch = appToolsSource.match(/const APP_TOOLS_VERSION = '([^']+)';/);
-  if (!sdkVersionMatch || sdkVersionMatch[1] !== expectedSdkRange) {
-    violations.push(`app-tools/lib/index.mjs SDK_VERSION must be "${expectedSdkRange}"`);
+  const scaffoldVersions = packageVersions.get('@nimiplatform/app-tools')?.pkg?.nimiScaffoldVersions;
+  if (scaffoldVersions?.sdkVersion !== expectedSdkRange) {
+    violations.push(`app-tools/package.json nimiScaffoldVersions.sdkVersion must be "${expectedSdkRange}"`);
   }
-  if (!kitVersionMatch || kitVersionMatch[1] !== expectedKitRange) {
-    violations.push(`app-tools/lib/index.mjs KIT_VERSION must be "${expectedKitRange}"`);
+  if (scaffoldVersions?.kitVersion !== expectedKitRange) {
+    violations.push(`app-tools/package.json nimiScaffoldVersions.kitVersion must be "${expectedKitRange}"`);
   }
-  if (!appToolsVersionMatch || appToolsVersionMatch[1] !== expectedAppToolsRange) {
-    violations.push(`app-tools/lib/index.mjs APP_TOOLS_VERSION must be "${expectedAppToolsRange}"`);
+  if (scaffoldVersions?.appToolsVersion !== expectedAppToolsRange) {
+    violations.push(`app-tools/package.json nimiScaffoldVersions.appToolsVersion must be "${expectedAppToolsRange}"`);
   }
 
   if (sdkPackage?.version) {

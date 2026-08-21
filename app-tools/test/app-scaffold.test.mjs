@@ -629,14 +629,16 @@ test('cli standalone scaffold uses current public dependency version sources', (
     const appToolsPackageJson = JSON.parse(readFileSync(path.join(testDir, '..', 'package.json'), 'utf8'));
     const rootPackageJson = JSON.parse(readFileSync(path.join(testDir, '..', '..', 'package.json'), 'utf8'));
     const expectedAppToolsVersion = `^${appToolsPackageJson.version}`;
+    const expectedSdkVersion = appToolsPackageJson.nimiScaffoldVersions.sdkVersion;
+    const expectedKitVersion = appToolsPackageJson.nimiScaffoldVersions.kitVersion;
     const expectedNimicodingVersion = appToolsPackageJson.nimiScaffoldVersions.nimicodingVersion;
     assert.equal(expectedNimicodingVersion, rootPackageJson.devDependencies['@nimiplatform/nimi-coding']);
-    assert.equal(packageJson.dependencies['@nimiplatform/sdk'], '^0.6.0');
-    assert.equal(packageJson.dependencies['@nimiplatform/kit'], '^0.3.0');
+    assert.equal(packageJson.dependencies['@nimiplatform/sdk'], expectedSdkVersion);
+    assert.equal(packageJson.dependencies['@nimiplatform/kit'], expectedKitVersion);
     assert.equal(packageJson.devDependencies['@nimiplatform/app-tools'], expectedAppToolsVersion);
     assert.equal(packageJson.devDependencies['@nimiplatform/nimi-coding'], expectedNimicodingVersion);
     assert.equal(packageJson.devDependencies.yaml, '^2.9.0');
-    assert.equal(lock.dependencyMatrix.npm['@nimiplatform/sdk'], '^0.6.0');
+    assert.equal(lock.dependencyMatrix.npm['@nimiplatform/sdk'], expectedSdkVersion);
     assert.equal(lock.dependencyMatrix.npm['@nimiplatform/app-tools'], expectedAppToolsVersion);
     assert.equal(lock.dependencyMatrix.npm.yaml, '^2.9.0');
   } finally {
@@ -901,8 +903,9 @@ test('standalone scaffold CLI accepts arbitrary repositories and hard-cuts works
     ], thirdPartyRepo);
     assert.equal(created.status, 0, created.stderr);
     const packageJson = JSON.parse(readFileSync(path.join(target, 'package.json'), 'utf8'));
-    assert.equal(packageJson.dependencies['@nimiplatform/sdk'], '^0.6.0');
-    assert.equal(packageJson.dependencies['@nimiplatform/kit'], '^0.3.0');
+    const scaffoldVersions = JSON.parse(readFileSync(path.join(testDir, '..', 'package.json'), 'utf8')).nimiScaffoldVersions;
+    assert.equal(packageJson.dependencies['@nimiplatform/sdk'], scaffoldVersions.sdkVersion);
+    assert.equal(packageJson.dependencies['@nimiplatform/kit'], scaffoldVersions.kitVersion);
     assert.equal(packageJson.devDependencies['@nimiplatform/app-tools'], '^0.2.0');
     assert.match(readFileSync(path.join(target, 'src-tauri', 'Cargo.toml'), 'utf8'), /nimi-shell-tauri = "0\.1\.0"/);
   } finally {

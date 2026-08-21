@@ -11,6 +11,15 @@ Discipline.
 
 ### Added
 
+- `ConfirmDialog` accepts a `loading` prop for the async submission state. The
+  confirm button now forwards it to the shared Button `loading` behavior,
+  rendering a spinner with `aria-busy` and disabled semantics. While submission
+  is active, cancel, backdrop, and Escape dismissal are disabled as well, so an
+  unavailable cancellation is not presented as an interactive action.
+- The protected Local App standard shell and `@nimiplatform/sdk/app` expose the
+  exact owner-scoped PersonaCharacter `listOwned`, `getOwned`, `create`, and
+  `replace` operations with Runtime owner mediation, closed safe DTOs, typed
+  sanitized failures, and no generic Realm or credential surface.
 - Generation runners expose the bounded text/chat sampling set, batch text
   embeddings, video artifact references, and speech synthesis timing mode while
   preserving explicit optional scalar zero values on Runtime requests.
@@ -33,9 +42,69 @@ Discipline.
   Driver-owned effective request defaults. Empty fields can explain the active
   on-device engine default without writing that value into App or Agent
   AIConfig intent.
+- The shared `DatePicker` and `DatePickerPanel` accept an optional `labels`
+  prop (a `Partial<DatePickerLabels>`) that overrides panel and field copy.
+  Omitted keys keep the built-in Chinese defaults, so existing consumers
+  render unchanged.
+- `NumberStepper` accepts optional `decreaseLabel` / `increaseLabel` props
+  and `NimiToaster` an optional `dismissLabel` prop, so hosts can localize
+  the step-button and toast close-button accessible names. Defaults keep the
+  previous English copy. The `AccountPanel` action button now falls back to
+  the `actionLabel` text instead of a hardcoded `Edit` when no `actionIcon`
+  is given. All three are non-breaking minor additions; existing consumers
+  render unchanged.
+- Chat surfaces accept an optional `copy` prop (`ChatCopy`, resolved by
+  `resolveChatCopy` against `DEFAULT_CHAT_COPY`) covering the previously
+  hardcoded English strings across the canonical target pane, character
+  rail, stage panel, message bubble, stream status, markdown renderer,
+  composer, and thread list. `CanonicalConversationShell` now forwards that
+  copy through its built-in target, character, stage, and transcript surfaces,
+  including typing announcements/actions, relationship states, and Markdown
+  code-copy controls. `RealmChatTimeline` and `AppAiChatPanel` accept `emptyStateLabel`, and
+  `CanonicalTranscriptView` accepts `emptyActionLabel`. Defaults keep the
+  previous English copy.
+- Avatar surfaces accept an optional `labels` prop
+  (`AvatarPhaseLabelOverrides`) for viewport/stage phase copy, with
+  `resolveAvatarPhaseLabel`, `DEFAULT_AVATAR_PHASE_LABELS`, and the
+  `AvatarPhaseLabels` types exported from `avatar/ui`, `avatar/vrm`, and
+  `avatar/live2d`. Missing or failed media now falls back to a shared
+  placeholder surface. Lazy VRM/Live2D viewports are guarded by an error
+  boundary with an explicit failure state, retry action, localized failure
+  labels, and an optional host error callback instead of silently replacing a
+  renderer failure with an ordinary placeholder. Failure controls use a compact
+  layout in small and medium circular stages so retry remains visible and
+  operable inside the clipped frame.
+- Generation panels accept optional `dismissErrorLabel` and `getStatusLabel`
+  props so hosts can localize the error-dismiss accessible name and the
+  status vocabulary instead of rendering raw English enum values. Submitted
+  and queued statuses now receive their semantic info/warning tones.
+- Commerce exposes `DEFAULT_COMMERCE_COPY`, collecting the default English
+  labels of the gift surfaces into one reviewable constant. `SendGiftDialog`
+  now renders its existing `closeLabel` contract as a visible title action and
+  announces catalog loading, catalog failure, and send failure states through
+  shared status/alert semantics.
+- Agent Center locale catalogs add `AgentCenter.appearance.revisionLabel`,
+  `voiceKindPreset`, `voiceKindAsset`, and the loading-state announcement in
+  both English and Chinese.
+- `LoadingSkeleton` accepts a localized `label`; when supplied it exposes a
+  polite status announcement, while unlabeled decorative skeletons remain
+  hidden from assistive technology.
+- Kit primitives complete the API vocabulary convergence: `TypographyRole`
+  gains `'overline'`; `Toggle`, `DatePicker`, and `SidebarSearch` accept
+  `onValueChange`; `OverlayShell` and `DialogContent` accept a
+  `'data-testid'` prop; `OverlayShellSize` and `DatePickerSize` accept
+  lowercase canonical members (`'sm'|'md'|'lg'|'xl'` and `'sm'|'md'`);
+  `Statistic` and `Timeline` tones accept `'primary'`.
 
 ### Changed
 
+- `Tooltip` keeps enabled interactive children as the sole focus target and
+  supplies a single keyboard-focusable disabled-action wrapper when the native
+  control cannot receive hover or focus, preserving access to disabled reasons.
+- `ConfirmDialog` deprecates the `pending` prop in favor of `loading`. `pending`
+  remains as a compatible alias that maps to the Button `loading` state, so
+  existing callers keep working while gaining the spinner and `aria-busy`
+  affordances; migrate to `loading` to silence the deprecation.
 - **Breaking (0.x):** Async ScenarioJob generation runners now distinguish a
   caller-local `operation-aborted` outcome from Runtime-observed durable
   `runtime-canceled` and `runtime-timeout` terminals instead of collapsing
@@ -259,6 +328,107 @@ Discipline.
   surfaces, tester studio chrome, landing mint scale). The desktop
   design-contract gate now forbids both the current and legacy raw
   brand hexes.
+- **Breaking (0.x):** `ChatMarkdownRendererProps.appearance` no longer
+  accepts `'relay'`. The relay branch referenced app-private token
+  classes that Kit does not define and had no production consumer; use
+  the default `'canonical'` appearance.
+- **Breaking (0.x):** Agent Center removes the no-op `layout` and `density`
+  props and their inert data attributes. Consumers should remove both props;
+  Agent Center owns one stacked regular-density composition.
+- **Breaking (0.x):** Agent Center removes the unused
+  `AgentCenterAppearanceCopy` export and 100 orphaned appearance catalog keys
+  left behind by the retired diagnostic/setup UI. Consumers should use the
+  canonical `AgentCenterI18n` key seam for the remaining appearance surface.
+- Chat deprecates the legacy `ConversationShell` family
+  (`ConversationShell`, `ConversationSidebarShell`,
+  `ConversationStageLayout`, `ConversationTargetRail`,
+  `ConversationThreadList`, `ConversationTranscriptShell`,
+  `ConversationModeSwitcher`, and their prop types) in favor of the
+  canonical conversation shell family; the exports remain functional.
+- Agent Center replaces its private control set with shared Kit
+  primitives (Button, Toggle, SelectField, ConfirmDialog,
+  ProgressIndicator, InlineAlert, StatusBadge), moves its accent from a
+  hardcoded emerald palette to the brand action-primary and status
+  tokens, adds arrow-key roaming to the section tabs and the behavior
+  radiogroup, and gates the appearance live view on the module's own
+  committed-readiness predicate.
+- Avatar viewport `badgeLabel` resolvers now return the phase id when no
+  action cue is present, with copy rendered through
+  `resolveAvatarPhaseLabel` at the UI layer; the idle phase label is unified
+  to `'Idle'`, and the VRM/Live2D placeholder surfaces share a single
+  implementation.
+- **Breaking (0.x):** Avatar removes unused `accentColor` and `glowColor`
+  fields from the VRM/Live2D viewport-state projections and deletes their
+  unrendered hardcoded emotion palette. Consumers should derive any visual
+  treatment from admitted theme tokens at the rendering boundary.
+- Chat bubble geometry (corner radius, text size, max width) is unified
+  across the canonical, realm-timeline, stream-status, and app-AI
+  surfaces; message timestamps use a shared 24-hour `formatMessageTime`
+  helper; the image preview overlay uses the standard dialog z-layer
+  instead of hardcoded `z-[1000]`/`z-[1001]` overrides; composer errors
+  render through `InlineAlert`; legacy `bg-mint-*` classes that no theme
+  defines are replaced with success status tokens; the settings toggle
+  row exposes `role="switch"`/`aria-checked`; and the closed canonical
+  drawer/right sidebar are `inert` and close on Escape.
+- Model Picker route tabs render through `SegmentedControl` (radio
+  semantics), Generation progress through `ProgressIndicator`, Model
+  Config loading through `LoadingSkeleton`, and Send Gift dialog
+  geometry through the standard `size="S"` overlay title/footer.
+  `panelClassName` no longer implies the legacy `max-w-sm rounded-3xl`
+  overrides.
+- Kit primitive vocabulary deprecations (all aliases remain functional):
+  `Toggle.onChange`, `DatePicker.onChange`, and `SidebarSearch.onChange`
+  in favor of `onValueChange`; the uppercase `OverlayShellSize` members
+  (`'S'|'M'|'L'|'XL'`) and DatePicker `'normal'|'small'` sizes in favor of
+  lowercase canonical members; the `Statistic`/`Timeline` tone value
+  `'brand'` in favor of `'primary'`; and the `dataTestId` prop in favor of
+  `'data-testid'`. `FeedbackTone` is now an alias of `StatusTone`.
+- **Breaking (0.x):** Agent Center appearance catalogs drop the unused
+  `AgentCenter.appearance.enableLabel` and
+  `AgentCenter.appearance.disableLabel` keys together with the matching
+  `AgentCenterAppearanceCopy` fields; the autoplay control is now a shared
+  Toggle. Hosts referencing those keys must remove them.
+- Chat, Agent Center, and Avatar surfaces now render from
+  surface/text/status/elevation tokens instead of hardcoded light-palette
+  classes, hex fallbacks, and literal shadows, so
+  `applyNimiTheme({ scheme: 'dark' })` now reaches those surfaces.
+  Hardcoded brand gradients, inline `backdrop-blur` material fills, literal
+  durations/easings, and off-scale font sizes/radii in those modules were
+  migrated to the corresponding Kit tokens and `Surface` materials in the
+  same pass.
+
+### Fixed
+
+- Shared kit primitives now consistently expose the standard token-driven
+  focus ring. `Toggle`, `NumberStepper` step buttons, `SidebarItem`,
+  `Pagination` page buttons, `DashedAddButton`, `FieldTrigger`, and
+  `Breadcrumb` links/buttons gained `FOCUS_RING_CLASS_NAME`, and the
+  hand-written simplified rings in `ActionMenu`, `NimiTabs`,
+  `SegmentedControl`, `PillTabs`, and `AccountPanel` items/action were
+  replaced with the same constant so ring width, color, and offset all come
+  from the `--nimi-focus-ring-*` tokens. `Tooltip` and `TooltipTrigger`
+  wrapper spans are now keyboard focusable (`tabIndex=0`), so keyboard users
+  can open tooltips by focusing the trigger; hover behavior is unchanged.
+- `DatePicker` closes on Escape and returns focus to its trigger, its panel
+  uses the popover z-layer token instead of `z-[120]`, and its focus ring
+  references the valid `--nimi-focus-ring-*` tokens instead of the
+  nonexistent `--nimi-ring`.
+- Model Config capability-defaults numeric fields no longer swallow decimal
+  points or minus signs while typing: intermediate drafts like `0.` or `-`
+  stay in the field, only complete valid numbers commit, integer fields
+  reject fractional input, and blurring an invalid draft restores the last
+  valid value.
+- `EmptyState` accepts a ReactNode `title` (the HTML attribute intersection
+  no longer narrows it to string); `FieldShell` links its label to the
+  wrapped control with `htmlFor`/`id`; `Steps` marks the current step with
+  `aria-current="step"`; `DialogContent` restores initial focus into the
+  dialog and returns focus on close, matching `OverlayShell`; the Toast
+  viewport no longer double-announces items (its duplicate `aria-live` is
+  removed); `LoadingSkeleton` is `aria-hidden` instead of announcing an
+  empty live region; and `SelectField` warns in development when an option
+  with an empty-string value is dropped (a Radix limitation).
+- The canonical target pane focus ring references the valid
+  `--nimi-focus-ring-color` token instead of the nonexistent `--nimi-ring`.
 
 ### Changed (pre-existing entries)
 

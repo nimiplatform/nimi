@@ -14,11 +14,11 @@
     "provenance": true
   },
   "nimiScaffoldVersions": {
-    "sdkVersion": "^0.6.0",
+    "sdkVersion": "^0.7.0",
     "appToolsVersion": "^0.2.0",
     "nimicodingVersion": "0.6.1",
     "aiSdkVersion": "^6.0.85",
-    "kitVersion": "^0.3.0",
+    "kitVersion": "^0.4.0",
     "reactVersion": "^19.1.0",
     "reactDomVersion": "^19.1.0",
     "i18nextVersion": "^25.8.18",
