@@ -1,9 +1,11 @@
 import {
   ExecutionMode,
   ReasonCode,
+  ScenarioJobStatus,
   ScenarioType,
   asNimiError,
   buildNimiRuntimeScenarioJobIdentity,
+  createNimiError,
   runNimiRuntimeScenarioJob,
   type NimiError,
   type NimiProtectedLocalScenarioJobClient,
@@ -82,7 +84,7 @@ export async function runRuntimeMusicGenerate(input: RuntimeMusicGenerateInput):
       ok: true,
       capabilityId: 'music.generate',
       message: 'Runtime music.generate completed with 1 artifact.',
-      output: { kind: 'music-artifacts', jobId: result.job.jobId, jobStatus: String(result.job.status), artifactCount: 1, firstArtifact: projected, artifacts: [projected] },
+      output: { kind: 'music-artifacts', jobId: result.job.jobId, jobStatus: musicJobStatusName(result.job.status), artifactCount: 1, firstArtifact: projected, artifacts: [projected] },
       trace: { ...(result.traceId ? { traceId: result.traceId } : {}), ...(result.job.modelResolved ? { modelResolved: result.job.modelResolved } : {}) },
     };
   } catch (cause) {
@@ -94,8 +96,20 @@ export async function runRuntimeMusicGenerate(input: RuntimeMusicGenerateInput):
 
 function requireMusicText(value: unknown, field: string): string {
   const text = normalizeText(value);
-  if (!text || new TextEncoder().encode(text).byteLength > 32 * 1024) throw new Error(`music ${field} is invalid`);
+  if (!text || new TextEncoder().encode(text).byteLength > 32 * 1024) {
+    throw createNimiError({
+      message: `music ${field} is invalid`,
+      code: ReasonCode.SDK_AI_INPUT_INVALID,
+      reasonCode: ReasonCode.SDK_AI_INPUT_INVALID,
+      actionHint: `provide_music_${field}`,
+      source: 'sdk',
+    });
+  }
   return text;
+}
+
+function musicJobStatusName(status: ScenarioJobStatus): string {
+  return ScenarioJobStatus[status] || String(status);
 }
 
 function normalizeText(value: unknown): string { return typeof value === 'string' ? value.trim() : ''; }

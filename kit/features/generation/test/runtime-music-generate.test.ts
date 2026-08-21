@@ -31,10 +31,21 @@ describe('runRuntimeMusicGenerate', () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.output.firstArtifact).toMatchObject({ artifactId: 'artifact-music-1', mimeType: 'audio/wav', sampleRateHz: 44100, channels: 2 });
+    expect(result.output.jobStatus).toBe('COMPLETED');
     const request = submitScenarioJob.mock.calls[0]?.[0];
     expect(request?.scenarioType).toBe(ScenarioType.MUSIC_GENERATE);
     expect(request?.executionMode).toBe(ExecutionMode.ASYNC_JOB);
     expect(request?.extensions).toEqual([]);
     expect(request?.spec?.spec).toEqual({ oneofKind: 'musicGenerate', musicGenerate: { prompt: 'bright synth-pop', negativePrompt: '', lyrics: '[Verse]\nCity lights are waking.', style: '', title: '', durationSeconds: 0, instrumental: false } });
+  });
+
+  it('returns typed input-invalid before contacting Runtime for empty music input', async () => {
+    const { client, submitScenarioJob } = protectedMusicClient();
+    const result = await runRuntimeMusicGenerate({ runtime: { ai: client }, appId: 'app.test', prompt: '', lyrics: '[Verse]\nLyrics', scenarioId: 'music-invalid', surfaceId: 'lab' });
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.reason).toBe('input-invalid');
+    expect(result.error.reasonCode).toBe('SDK_AI_INPUT_INVALID');
+    expect(submitScenarioJob).not.toHaveBeenCalled();
   });
 });
