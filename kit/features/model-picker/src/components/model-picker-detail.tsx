@@ -32,7 +32,7 @@ export function ModelPickerDetail<TCandidate>({ state, className, emptyMessage =
         <div className="mt-4 grid gap-2 sm:grid-cols-2">
           {rows.map((row) => (
             <div key={`${title}-${row.label}`} className="rounded-[var(--nimi-radius-md)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] p-3">
-              <p className="m-0 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--nimi-text-muted)]">{row.label}</p>
+              <p className="m-0 nimi-type-overline uppercase text-[var(--nimi-text-muted)]">{row.label}</p>
               <p className="m-0 mt-1 break-all text-sm text-[var(--nimi-text-primary)]">{row.value}</p>
             </div>
           ))}

@@ -1,3 +1,4 @@
+import { useId, useState } from 'react';
 import type { NimiJsonObject } from '@nimiplatform/kit/core/sdk-contract';
 import { SelectField, TextareaField, TextField } from '@nimiplatform/kit/ui';
 import {
@@ -56,6 +57,52 @@ function displayValue(source: Readonly<Record<string, unknown>>, field: Capabili
   return source[field.key];
 }
 
+// Complete base-10 literal only; intermediate typing states such as "-", "0.",
+// or "1e" intentionally fail so they stay draft-only until committed or blurred.
+const COMPLETE_NUMBER_PATTERN = /^[+-]?(?:\d+(?:\.\d+)?|\.\d+)(?:[eE][+-]?\d+)?$/;
+
+function parseNumericDraft(kind: 'number' | 'integer', raw: string): number | undefined | null {
+  const trimmed = raw.trim();
+  if (!trimmed) return undefined;
+  if (!COMPLETE_NUMBER_PATTERN.test(trimmed)) return null;
+  const parsed = Number(trimmed);
+  if (!Number.isFinite(parsed)) return null;
+  if (kind === 'integer' && !Number.isInteger(parsed)) return null;
+  return parsed;
+}
+
+function NumericDefaultField(props: {
+  readonly controlId: string;
+  readonly parameterPath: string;
+  readonly kind: 'number' | 'integer';
+  readonly value: unknown;
+  readonly placeholder: string;
+  readonly disabled?: boolean;
+  readonly onCommit: (next: number | undefined) => void;
+}) {
+  // draft === null mirrors the committed prop value; a string means the user is editing.
+  const [draft, setDraft] = useState<string | null>(null);
+  const committed = typeof props.value === 'number' ? String(props.value) : '';
+  return (
+    <TextField
+      id={props.controlId}
+      aria-label={props.parameterPath}
+      type="number"
+      step={props.kind === 'integer' ? 1 : 'any'}
+      value={draft ?? committed}
+      placeholder={props.placeholder}
+      disabled={props.disabled}
+      onChange={(event) => {
+        const raw = event.currentTarget.value;
+        setDraft(raw);
+        const next = parseNumericDraft(props.kind, raw);
+        if (next !== null) props.onCommit(next);
+      }}
+      onBlur={() => setDraft(null)}
+    />
+  );
+}
+
 function DefaultFieldControl(props: {
   readonly field: CapabilityDefaultField;
   readonly source: Readonly<Record<string, unknown>>;
@@ -67,6 +114,7 @@ function DefaultFieldControl(props: {
   readonly effectiveDefaults?: Readonly<Record<string, string>> | null;
   readonly disabled?: boolean;
 }) {
+  const controlId = useId();
   const path = [...props.path, props.field.key];
   const parameterPath = path.join('.');
   const value = displayValue(props.source, props.field);
@@ -87,7 +135,7 @@ function DefaultFieldControl(props: {
         className="col-span-full grid min-w-0 grid-cols-1 gap-3 rounded-[var(--nimi-radius-sm)] border border-[var(--nimi-border-subtle)] p-3 sm:grid-cols-2"
         data-nimi-default-parameter-group={parameterPath}
       >
-        <legend className="px-1 font-mono text-[11px] font-semibold text-[var(--nimi-text-secondary)]">
+        <legend className="px-1 font-mono text-[length:var(--nimi-type-overline-size)] font-semibold text-[var(--nimi-text-secondary)]">
           {props.field.key}
         </legend>
         {(props.field.fields || []).map((field) => (
@@ -112,6 +160,7 @@ function DefaultFieldControl(props: {
   if (props.field.kind === 'boolean') {
     control = (
       <SelectField
+        id={controlId}
         aria-label={parameterPath}
         value={typeof value === 'boolean' ? String(value) : 'unset'}
         disabled={props.disabled}
@@ -126,6 +175,7 @@ function DefaultFieldControl(props: {
   } else if (props.field.kind === 'string-list') {
     control = (
       <TextareaField
+        id={controlId}
         aria-label={parameterPath}
         value={Array.isArray(value) ? value.join('\n') : ''}
         placeholder={props.route === null || (props.route === 'local' && !effectiveValue)
@@ -142,45 +192,45 @@ function DefaultFieldControl(props: {
         }}
       />
     );
+  } else if (props.field.kind === 'number' || props.field.kind === 'integer') {
+    control = (
+      <NumericDefaultField
+        controlId={controlId}
+        parameterPath={parameterPath}
+        kind={props.field.kind}
+        value={value}
+        placeholder={unsetPlaceholder}
+        disabled={props.disabled}
+        onCommit={update}
+      />
+    );
   } else {
-    const numeric = props.field.kind === 'number' || props.field.kind === 'integer';
     control = (
       <TextField
+        id={controlId}
         aria-label={parameterPath}
-        type={numeric ? 'number' : 'text'}
-        step={props.field.kind === 'integer' ? 1 : numeric ? 'any' : undefined}
-        value={numeric && typeof value === 'number' ? String(value) : typeof value === 'string' ? value : ''}
+        type="text"
+        value={typeof value === 'string' ? value : ''}
         placeholder={unsetPlaceholder}
         disabled={props.disabled}
         onChange={(event) => {
           const raw = event.currentTarget.value;
-          if (!raw.trim()) {
-            update(undefined);
-            return;
-          }
-          if (!numeric) {
-            update(raw);
-            return;
-          }
-          const parsed = Number(raw);
-          if (Number.isFinite(parsed) && (props.field.kind !== 'integer' || Number.isInteger(parsed))) {
-            update(parsed);
-          }
+          update(raw.trim() ? raw : undefined);
         }}
       />
     );
   }
 
   return (
-    <label
+    <div
       className="grid min-w-0 gap-1.5 text-xs text-[var(--nimi-text-primary)]"
       data-nimi-default-parameter={parameterPath}
     >
-      <span className="font-mono text-[11px] font-semibold text-[var(--nimi-text-secondary)]">
+      <label htmlFor={controlId} className="font-mono text-[length:var(--nimi-type-overline-size)] font-semibold text-[var(--nimi-text-secondary)]">
         {props.field.key}
-      </span>
+      </label>
       {control}
-    </label>
+    </div>
   );
 }
 
@@ -201,7 +251,7 @@ export function CapabilityDefaultsEditor(props: CapabilityDefaultsEditorProps) {
         </span>
       </summary>
       <div className="space-y-3 border-t border-[var(--nimi-border-subtle)] p-3">
-        <p className="m-0 text-[11px] leading-relaxed text-[var(--nimi-text-muted)]">{props.copy.hint}</p>
+        <p className="m-0 text-[length:var(--nimi-type-overline-size)] leading-relaxed text-[var(--nimi-text-muted)]">{props.copy.hint}</p>
         <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2">
           {fields.map((field) => (
             <DefaultFieldControl

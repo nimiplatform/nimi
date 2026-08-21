@@ -20,9 +20,9 @@ export function CanonicalTypingBubble({
         <div className="lc-typing-bubble px-4 py-3">
           <div className="lc-typing-row flex items-center gap-3">
             <div className="flex items-center gap-1.5" aria-hidden>
-              <span className="lc-typing-dot h-2.5 w-2.5 rounded-full" style={{ animation: 'typing-dot-bounce 1.15s ease-in-out 0ms infinite' }} />
-              <span className="lc-typing-dot h-2.5 w-2.5 rounded-full" style={{ animation: 'typing-dot-bounce 1.15s ease-in-out 120ms infinite' }} />
-              <span className="lc-typing-dot h-2.5 w-2.5 rounded-full" style={{ animation: 'typing-dot-bounce 1.15s ease-in-out 240ms infinite' }} />
+              <span className="lc-typing-dot h-2.5 w-2.5 rounded-full" style={{ animation: 'typing-dot-bounce var(--nimi-motion-ambient) var(--nimi-motion-ease-standard) infinite' }} />
+              <span className="lc-typing-dot h-2.5 w-2.5 rounded-full" style={{ animation: 'typing-dot-bounce var(--nimi-motion-ambient) var(--nimi-motion-ease-standard) var(--nimi-motion-fast) infinite' }} />
+              <span className="lc-typing-dot h-2.5 w-2.5 rounded-full" style={{ animation: 'typing-dot-bounce var(--nimi-motion-ambient) var(--nimi-motion-ease-standard) var(--nimi-motion-base) infinite' }} />
             </div>
             <span className="lc-typing-label text-sm font-medium">
               {thinkingLabel}
@@ -31,7 +31,7 @@ export function CanonicalTypingBubble({
               <button
                 type="button"
                 onClick={onStop}
-                className="ml-1 inline-flex h-6 w-6 items-center justify-center rounded-full border border-slate-200/80 bg-white text-slate-400 shadow-sm transition-all duration-150 hover:border-red-300 hover:bg-red-50 hover:text-red-500 hover:shadow-md active:scale-95"
+                className="ml-1 inline-flex h-6 w-6 items-center justify-center rounded-full border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] text-[var(--nimi-text-muted)] shadow-sm transition-[background-color,border-color,color,box-shadow,transform] duration-[var(--nimi-motion-fast)] ease-[var(--nimi-motion-ease-standard)] hover:border-[var(--nimi-status-danger-soft-border)] hover:bg-[var(--nimi-status-danger-soft-bg)] hover:text-[var(--nimi-status-danger)] hover:shadow-md active:scale-[var(--nimi-motion-pressed-scale)]"
                 aria-label={stopLabel}
                 title={stopLabel}
               >

@@ -175,16 +175,12 @@ describe('AgentCenter UI session contract', () => {
     const node = render(
       <AgentCenter
         chrome="standalone"
-        density="compact"
         identity={{ displayName: 'Nimi', avatarFallback: 'N' }}
-        layout="split"
         session={session}
       />,
     );
     await flush();
     expect(node.querySelector('[data-chat-agent-center="true"]')).not.toBeNull();
-    expect(node.querySelector('[data-agent-center-density="compact"]')).not.toBeNull();
-    expect(node.querySelector('[data-agent-center-layout="split"]')).not.toBeNull();
     expect(node.textContent).toContain('Nimi');
   });
 
@@ -231,6 +227,28 @@ describe('AgentCenter UI session contract', () => {
     expect(changes).toEqual(['behavior']);
     expect(node.querySelector('#agent-center-panel-behavior')).not.toBeNull();
     expect(node.innerHTML).not.toMatch(/carrier|permission-posture|posture-group/u);
+  });
+
+  it('roams section tabs with arrow keys using roving tabindex', async () => {
+    const session = await sessionFor();
+    const node = render(<AgentCenter session={session} />);
+    await flush();
+    const overview = node.querySelector('#agent-center-tab-overview') as HTMLButtonElement;
+    expect(overview).toBeTruthy();
+    act(() => { overview.focus(); });
+    act(() => {
+      overview.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }));
+    });
+    const appearance = node.querySelector('#agent-center-tab-appearance') as HTMLButtonElement;
+    expect(document.activeElement).toBe(appearance);
+    expect(appearance.tabIndex).toBe(0);
+    expect(overview.tabIndex).toBe(-1);
+    expect(node.querySelector('#agent-center-panel-appearance')).not.toBeNull();
+    act(() => {
+      appearance.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true, cancelable: true }));
+    });
+    expect(document.activeElement).toBe(overview);
+    expect(node.querySelector('#agent-center-panel-overview')).not.toBeNull();
   });
 
   it('renders the needs-grant request entry, invokes it, and keeps reserved posture on wait', async () => {

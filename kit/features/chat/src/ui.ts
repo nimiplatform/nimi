@@ -1,5 +1,7 @@
 export { ChatComposer } from './components/chat-composer.js';
 export type { ChatComposerProps } from './components/chat-composer.js';
+export { DEFAULT_CHAT_COPY, resolveChatCopy } from './copy.js';
+export type { ChatCopy } from './copy.js';
 export { ChatMarkdownRenderer } from './components/chat-markdown-renderer.js';
 export type { ChatMarkdownRendererProps } from './components/chat-markdown-renderer.js';
 export {

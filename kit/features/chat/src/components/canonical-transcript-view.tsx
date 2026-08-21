@@ -1,5 +1,6 @@
 import { useCallback, useLayoutEffect, useRef, type ReactNode, type UIEvent } from 'react';
 import { cn } from '@nimiplatform/kit/ui';
+import { resolveChatCopy, type ChatCopy } from '../copy.js';
 import type {
   CanonicalMessageAccessorySlot,
   CanonicalMessageAvatarSlot,
@@ -23,6 +24,8 @@ export { buildCanonicalTranscriptGroups } from '../headless/transcript-groups.js
 
 export type CanonicalTranscriptViewProps = {
   messages: readonly ConversationCanonicalMessage[];
+  /** Copy forwarded to canonical message bubbles. */
+  copy?: ChatCopy;
   dataTestId?: string;
   activeConversationId?: string | null;
   loading?: boolean;
@@ -37,6 +40,8 @@ export type CanonicalTranscriptViewProps = {
   emptyEyebrow?: string;
   emptyTitle?: string;
   emptyDescription?: string;
+  /** Label for the empty-state call-to-action shown when `onSeedFirstTurn` is set. */
+  emptyActionLabel?: string;
   emptyStateVariant?: 'default' | 'compact';
   historyIntro?: string | null;
   /** Non-blocking banner rendered above the message list (does not replace messages). */
@@ -68,20 +73,22 @@ export type CanonicalTranscriptViewProps = {
 
 export function CanonicalTranscriptView({
   messages,
+  copy,
   dataTestId,
   activeConversationId = null,
   loading = false,
   error = null,
   pendingFirstBeat = false,
-  pendingAgentRoleLabel = 'Assistant pending',
-  pendingThinkingLabel = 'Thinking...',
-  pendingStopLabel = 'Stop generating',
+  pendingAgentRoleLabel,
+  pendingThinkingLabel,
+  pendingStopLabel,
   agentAvatarUrl = null,
-  agentName = 'Assistant',
+  agentName,
   loadingLabel = 'Loading conversation...',
   emptyEyebrow = 'This Moment',
   emptyTitle = 'Start the first turn',
   emptyDescription = 'The transcript stays empty until the first exchange is created.',
+  emptyActionLabel = 'Start the conversation',
   emptyStateVariant = 'default',
   historyIntro = null,
   bannerContent,
@@ -107,6 +114,11 @@ export function CanonicalTranscriptView({
   onIntentReturnToStage,
   onStopGenerating,
 }: CanonicalTranscriptViewProps) {
+  const copyResolved = resolveChatCopy(copy);
+  const resolvedPendingAgentRoleLabel = pendingAgentRoleLabel ?? copyResolved.typingAgentRoleLabel;
+  const resolvedPendingThinkingLabel = pendingThinkingLabel ?? copyResolved.typingThinkingLabel;
+  const resolvedPendingStopLabel = pendingStopLabel ?? copyResolved.typingStopLabel;
+  const resolvedAgentName = agentName ?? copyResolved.bubbleAssistantLabel;
   const scrollRootRef = useRef<HTMLDivElement | null>(null);
   const contentRootRef = useRef<HTMLDivElement | null>(null);
   const downwardIntentRef = useRef({ distance: 0, lastAt: 0 });
@@ -279,16 +291,16 @@ export function CanonicalTranscriptView({
           data-canonical-transcript-width={widthClassName}
         >
         {loading ? (
-          <div className="rounded-[30px] border border-white/80 bg-[linear-gradient(135deg,rgba(255,255,255,0.96),rgba(237,247,247,0.86))] px-6 py-6 shadow-[0_24px_60px_rgba(15,23,42,0.08)]">
-            <div className="h-4 w-28 rounded-full bg-slate-200/80" />
-            <div className="mt-4 h-24 w-full rounded-[24px] bg-slate-100/90" />
-            <div className="mt-4 h-24 w-full rounded-[24px] bg-slate-100/90" />
-            <p className="mt-4 text-sm text-slate-500">{loadingLabel}</p>
+          <div className="rounded-[var(--nimi-radius-xl)] border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_92%,transparent)] px-6 py-6 shadow-[var(--nimi-elevation-floating)]">
+            <div className="h-4 w-28 animate-pulse rounded-full bg-[var(--nimi-surface-active)]" />
+            <div className="mt-4 h-24 w-full animate-pulse rounded-[var(--nimi-radius-xl)] bg-[color-mix(in_srgb,var(--nimi-surface-active)_70%,transparent)]" />
+            <div className="mt-4 h-24 w-full animate-pulse rounded-[var(--nimi-radius-xl)] bg-[color-mix(in_srgb,var(--nimi-surface-active)_70%,transparent)]" />
+            <p className="mt-4 text-sm text-[var(--nimi-text-muted)]">{loadingLabel}</p>
           </div>
         ) : null}
 
         {error ? (
-          <div className="flex min-h-[320px] items-center justify-center rounded-[30px] border border-red-200 bg-red-50/70 px-6 py-7 text-center text-sm text-red-600 shadow-[0_20px_52px_rgba(239,68,68,0.08)]">
+          <div className="flex min-h-[320px] items-center justify-center rounded-[var(--nimi-radius-xl)] border border-[color-mix(in_srgb,var(--nimi-status-danger)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_10%,var(--nimi-surface-card))] px-6 py-7 text-center text-sm text-[var(--nimi-status-danger)] shadow-[0_20px_52px_color-mix(in_srgb,var(--nimi-status-danger)_8%,transparent)]">
             {error}
           </div>
         ) : null}
@@ -300,27 +312,27 @@ export function CanonicalTranscriptView({
         {!loading && !error && showEmptyState ? (
           <section
             className={cn(
-              'border border-white/80 bg-[linear-gradient(135deg,rgba(255,255,255,0.96),rgba(239,247,247,0.88))] shadow-[0_20px_52px_rgba(15,23,42,0.08)]',
+              'border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_92%,transparent)] shadow-[var(--nimi-elevation-floating)]',
               compactEmptyState
-                ? 'mr-auto max-w-[620px] rounded-[22px] border-white/65 bg-[linear-gradient(135deg,rgba(255,255,255,0.84),rgba(244,248,248,0.68))] px-5 py-4 text-left shadow-[0_12px_26px_rgba(15,23,42,0.05)]'
-                : 'rounded-[30px] px-6 py-7 text-center',
+                ? 'mr-auto max-w-[620px] rounded-[var(--nimi-radius-xl)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_80%,transparent)] px-5 py-4 text-left shadow-[var(--nimi-elevation-raised)]'
+                : 'rounded-[var(--nimi-radius-xl)] px-6 py-7 text-center',
             )}
           >
             <p className={cn(
               'font-semibold uppercase tracking-[0.2em] text-[var(--nimi-action-primary-bg)]/70',
-              compactEmptyState ? 'text-[9px]' : 'text-[11px]',
+              'text-[length:var(--nimi-type-overline-size)]',
             )}>
               {emptyEyebrow}
             </p>
             <h2 className={cn(
-              'mt-3 font-black tracking-tight text-slate-950',
-              compactEmptyState ? 'text-[20px]' : 'text-[30px]',
+              'mt-3 font-black tracking-tight text-[var(--nimi-text-primary)]',
+              compactEmptyState ? 'text-[length:var(--nimi-type-page-title-size)]' : 'text-[length:var(--nimi-type-hero-title-size)]',
             )}>
               {emptyTitle}
             </h2>
             <p className={cn(
-              'mt-3 text-slate-600',
-              compactEmptyState ? 'max-w-[520px] text-[14px] leading-6 text-slate-500' : 'mx-auto max-w-xl text-sm leading-7',
+              'mt-3 text-[var(--nimi-text-secondary)]',
+              compactEmptyState ? 'max-w-[520px] text-[length:var(--nimi-type-body-size)] leading-6 text-[var(--nimi-text-muted)]' : 'mx-auto max-w-xl text-sm leading-7',
             )}>
               {emptyDescription}
             </p>
@@ -329,18 +341,18 @@ export function CanonicalTranscriptView({
                 type="button"
                 onClick={onSeedFirstTurn}
                 className={cn(
-                  'mt-5 inline-flex h-11 items-center rounded-full bg-gradient-to-br from-sky-400 via-cyan-400 to-sky-500 px-5 text-sm font-semibold text-white shadow-[0_18px_36px_color-mix(in_srgb,var(--nimi-action-primary-bg)_30%,transparent)] transition-[box-shadow,transform] duration-[var(--nimi-motion-fast)] ease-[var(--nimi-motion-ease-standard)] active:scale-[var(--nimi-motion-pressed-scale)] hover:shadow-[0_22px_44px_color-mix(in_srgb,var(--nimi-action-primary-bg)_40%,transparent)]',
+                  'mt-5 inline-flex h-11 items-center rounded-full bg-[var(--nimi-action-primary-bg)] px-5 text-sm font-semibold text-[var(--nimi-action-primary-text)] shadow-[0_18px_36px_color-mix(in_srgb,var(--nimi-action-primary-bg)_30%,transparent)] transition-[box-shadow,transform] duration-[var(--nimi-motion-fast)] ease-[var(--nimi-motion-ease-standard)] active:scale-[var(--nimi-motion-pressed-scale)] hover:bg-[var(--nimi-action-primary-bg-hover)] hover:shadow-[0_22px_44px_color-mix(in_srgb,var(--nimi-action-primary-bg)_40%,transparent)]',
                   compactEmptyState ? 'self-start' : '',
                 )}
               >
-                Start the conversation
+                {emptyActionLabel}
               </button>
             ) : null}
           </section>
         ) : null}
 
         {!loading && !error && messages.length > 0 && historyIntro ? (
-          <div className="rounded-full border border-white/80 bg-white/72 px-4 py-2 text-center text-[11px] font-medium text-slate-500">
+          <div className="rounded-full border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_80%,transparent)] px-4 py-2 text-center text-[length:var(--nimi-type-overline-size)] font-medium text-[var(--nimi-text-muted)]">
             {historyIntro}
           </div>
         ) : null}
@@ -352,6 +364,7 @@ export function CanonicalTranscriptView({
           <TranscriptMessageGroups
             messages={messages}
             scrollRef={scrollRootRef}
+            copy={copy}
             renderMessageContent={renderMessageContent}
             renderMessageAvatar={renderMessageAvatar}
             renderMessageAccessory={renderMessageAccessory}
@@ -366,11 +379,11 @@ export function CanonicalTranscriptView({
             {pendingFirstBeat ? (
               <div className="py-1">
                 <CanonicalTypingBubble
-                  agentName={agentName}
-                  agentRoleLabel={pendingAgentRoleLabel}
-                  thinkingLabel={pendingThinkingLabel}
+                  agentName={resolvedAgentName}
+                  agentRoleLabel={resolvedPendingAgentRoleLabel}
+                  thinkingLabel={resolvedPendingThinkingLabel}
                   onStop={onStopGenerating}
-                  stopLabel={pendingStopLabel}
+                  stopLabel={resolvedPendingStopLabel}
                 />
               </div>
             ) : null}

@@ -553,4 +553,20 @@ describe('public Model Config contract', () => {
     act(() => { configure.click(); });
     expect(onOpenCloudConnectorConfiguration).toHaveBeenCalledTimes(1);
   });
+
+  it('applies the kit focus ring to capability grid and machine loadout link buttons', async () => {
+    const node = await renderSurface(vi.fn(async () => undefined));
+    const capability = node.querySelector(
+      '[data-nimi-model-config-capability="text.generate"]',
+    ) as HTMLButtonElement;
+    expect(capability.className).toContain('focus-visible:ring');
+
+    act(() => { capability.click(); });
+    await flush();
+
+    const openMachine = Array.from(node.querySelectorAll('button'))
+      .find((button) => button.textContent?.trim() === 'Open on-device models') as HTMLButtonElement;
+    expect(openMachine).toBeTruthy();
+    expect(openMachine.className).toContain('focus-visible:ring');
+  });
 });

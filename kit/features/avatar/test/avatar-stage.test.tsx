@@ -56,4 +56,74 @@ describe('avatar stage product markup', () => {
     expect(markup).toMatch(/truncate/u);
     expect(markup).toMatch(/等待授权/u);
   });
+
+  it('shows the unified Idle default label and honors injected label overrides', () => {
+    const snapshot = {
+      presentation: {
+        backendKind: 'sprite2d' as const,
+        avatarAssetRef: 'desktop-avatar://resource-3/avatar.png',
+      },
+      interaction: {
+        phase: 'idle' as const,
+      },
+    };
+
+    const defaultMarkup = renderToStaticMarkup(
+      <AvatarStage snapshot={snapshot} label="Companion" fallbackLabel="C" size="sm" />,
+    );
+    expect(defaultMarkup).toMatch(/>Idle</u);
+    expect(defaultMarkup).not.toMatch(/Ready/u);
+
+    const localizedMarkup = renderToStaticMarkup(
+      <AvatarStage snapshot={snapshot} label="Companion" fallbackLabel="C" size="sm" labels={{ idle: '待命' }} />,
+    );
+    expect(localizedMarkup).toMatch(/待命/u);
+  });
+
+  it('renders the avatar frame through the kit glass material surface', () => {
+    const markup = renderToStaticMarkup(
+      <AvatarStage
+        snapshot={{
+          presentation: {
+            backendKind: 'sprite2d',
+            avatarAssetRef: 'desktop-avatar://resource-4/avatar.png',
+          },
+          interaction: {
+            phase: 'idle',
+          },
+        }}
+        label="Companion"
+        fallbackLabel="C"
+        size="md"
+      />,
+    );
+
+    expect(markup).toContain('data-nimi-material="glass-chrome"');
+    expect(markup).not.toMatch(/backdrop-blur-sm/u);
+    expect(markup).not.toMatch(/bg-white\/86/u);
+  });
+
+  it('derives tone aura and ring colors from admitted status tokens', () => {
+    const markup = renderToStaticMarkup(
+      <AvatarStage
+        snapshot={{
+          presentation: {
+            backendKind: 'sprite2d',
+            avatarAssetRef: 'desktop-avatar://resource-5/avatar.png',
+          },
+          interaction: {
+            phase: 'idle',
+            emotion: 'neutral',
+          },
+        }}
+        label="Companion"
+        fallbackLabel="C"
+        size="md"
+      />,
+    );
+
+    expect(markup).toContain('var(--nimi-status-success)');
+    expect(markup).not.toMatch(/rgba\(52, 211, 153/u);
+    expect(markup).not.toMatch(/rgba\(16, 185, 129/u);
+  });
 });

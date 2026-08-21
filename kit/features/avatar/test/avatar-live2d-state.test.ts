@@ -47,10 +47,9 @@ describe('avatar live2d state helpers', () => {
 
     expect(state.assetLabel).toBe('Airi Live2D');
     expect(state.motionSpeed).toBeCloseTo(1.52);
-    expect(state.accentColor).toBe('#38bdf8');
   });
 
-  it('uses canonical mood to change Live2D motion pacing beyond palette-only styling', () => {
+  it('uses canonical mood to change Live2D motion pacing', () => {
     const playful = resolveAvatarLive2dViewportState({
       label: 'Airi',
       assetRef: 'desktop-avatar://resource-live2d/airi.model3.json',
@@ -93,7 +92,5 @@ describe('avatar live2d state helpers', () => {
     }, { assetLabel: 'Airi Live2D' });
 
     expect(playful.motionSpeed).toBeGreaterThan(calm.motionSpeed);
-    expect(playful.accentColor).toBe('#f59e0b');
-    expect(calm.accentColor).toBe('#2dd4bf');
   });
 });

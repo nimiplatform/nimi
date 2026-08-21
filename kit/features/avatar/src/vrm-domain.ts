@@ -79,6 +79,11 @@ export type AvatarVrmViewportState = {
   headFollowY: number;
   eyeFollowX: number;
   eyeFollowY: number;
+  /**
+   * Display cue for viewport badges: the interaction `actionCue` when present,
+   * otherwise the phase id. UI layers map the phase id to text through
+   * `resolveAvatarPhaseLabel` (injectable label map, English by default).
+   */
   badgeLabel: string;
   assetLabel: string;
   motionSpeed: number;
@@ -93,8 +98,6 @@ export type AvatarVrmViewportState = {
   mouthOpen: number;
   eyeOpen: number;
   blinkSpeed: number;
-  accentColor: string;
-  glowColor: string;
 };
 
 function clampUnit(value: number | null | undefined): number {
@@ -111,46 +114,6 @@ function clampSignedUnit(value: number | null | undefined): number {
   return Math.max(-1, Math.min(value, 1));
 }
 
-function phaseLabel(
-  phase: AvatarVrmViewportRenderInput['snapshot']['interaction']['phase'],
-): string {
-  switch (phase) {
-    case 'thinking':
-      return 'Thinking';
-    case 'listening':
-      return 'Listening';
-    case 'speaking':
-      return 'Speaking';
-    case 'transitioning':
-      return 'Transitioning';
-    case 'idle':
-    default:
-      return 'Ready';
-  }
-}
-
-function resolvePalette(
-  emotion: AvatarVrmViewportState['emotion'],
-): Pick<AvatarVrmViewportState, 'accentColor' | 'glowColor'> {
-  switch (emotion) {
-    case 'joy':
-      return { accentColor: '#fb7185', glowColor: '#fecdd3' };
-    case 'focus':
-      return { accentColor: '#38bdf8', glowColor: '#bae6fd' };
-    case 'calm':
-      return { accentColor: '#2dd4bf', glowColor: '#99f6e4' };
-    case 'playful':
-      return { accentColor: '#f59e0b', glowColor: '#fde68a' };
-    case 'concerned':
-      return { accentColor: '#a78bfa', glowColor: '#ddd6fe' };
-    case 'surprised':
-      return { accentColor: '#f97316', glowColor: '#fdba74' };
-    case 'neutral':
-    default:
-      return { accentColor: '#0ea5e9', glowColor: '#bfdbfe' };
-  }
-}
-
 export function resolveAvatarVrmViewportState(
   input: AvatarVrmViewportRenderInput,
   attention?: AvatarAttentionState | null,
@@ -158,7 +121,6 @@ export function resolveAvatarVrmViewportState(
   const phase = input.snapshot.interaction.phase;
   const emotion = input.snapshot.interaction.emotion || 'neutral';
   const amplitude = clampUnit(input.snapshot.interaction.amplitude);
-  const palette = resolvePalette(emotion);
   const attentionWeight = !attention?.active
     ? 0
     : attention.attentionBoost === 'engaged'
@@ -202,7 +164,7 @@ export function resolveAvatarVrmViewportState(
     headFollowY,
     eyeFollowX,
     eyeFollowY,
-    badgeLabel: input.snapshot.interaction.actionCue || phaseLabel(phase),
+    badgeLabel: input.snapshot.interaction.actionCue || phase,
     assetLabel,
     motionSpeed: posture.motionSpeed,
     sparklesSpeed: posture.sparklesSpeed,
@@ -216,7 +178,5 @@ export function resolveAvatarVrmViewportState(
     mouthOpen: posture.mouthOpen,
     eyeOpen: posture.eyeOpen,
     blinkSpeed: posture.blinkSpeed,
-    accentColor: palette.accentColor,
-    glowColor: palette.glowColor,
   };
 }

@@ -1,12 +1,23 @@
-import { Suspense, lazy, type CSSProperties, type ComponentType, type ReactNode } from 'react';
+import { Suspense, lazy, useMemo, useState, type CSSProperties, type ComponentType, type ErrorInfo, type ReactNode } from 'react';
 
 import { cn } from '@nimiplatform/kit/ui';
 
+import { AvatarViewportFailureSurface, renderAvatarPlaceholderSurface } from './placeholder-surface.js';
+import { AvatarViewportErrorBoundary } from './viewport-error-boundary.js';
 import type {
   AvatarStageBackendRenderer,
   AvatarStageRendererContext,
   AvatarStageSnapshot,
 } from './types.js';
+export { formatAvatarVrmAssetLabel } from './asset-label.js';
+export {
+  DEFAULT_AVATAR_PHASE_LABELS,
+  resolveAvatarPhaseLabel,
+} from './phase-label.js';
+export type {
+  AvatarPhaseLabelOverrides,
+  AvatarPhaseLabels,
+} from './phase-label.js';
 export type {
   AvatarAttentionState,
   AvatarVrmExpressionWeights,
@@ -80,17 +91,11 @@ export type LoadAvatarVrmViewportComponent = () => Promise<{
 export type CreateLazyVrmAvatarRendererOptions = {
   loadViewport: LoadAvatarVrmViewportComponent;
   loadingFallback?: ReactNode;
+  viewportErrorLabel?: string;
+  retryViewportLabel?: string;
+  onViewportError?: (error: Error, info: ErrorInfo) => void;
   className?: string;
 };
-
-export function formatAvatarVrmAssetLabel(value: string): string {
-  const normalized = value.trim();
-  if (!normalized) {
-    return '';
-  }
-  const segments = normalized.split('/');
-  return segments[segments.length - 1] || normalized;
-}
 
 export function createAvatarVrmViewportRenderInput(
   context: AvatarStageRendererContext,
@@ -108,26 +113,6 @@ export function createAvatarVrmViewportRenderInput(
   };
 }
 
-function renderDefaultVrmSurface(context: AvatarStageRendererContext): ReactNode {
-  return (
-    <div className="relative flex h-full w-full items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.98),rgba(226,232,240,0.95)_55%,rgba(203,213,225,0.85))]">
-      {context.renderer.posterUrl ? (
-        <img
-          src={context.renderer.posterUrl}
-          alt={context.label}
-          className="absolute inset-0 h-full w-full object-cover opacity-30"
-        />
-      ) : null}
-      <span className="absolute inset-[16%] rounded-full border border-white/70 bg-[radial-gradient(circle,rgba(255,255,255,0.92),rgba(226,232,240,0.7))]" />
-      <span className="absolute inset-x-[30%] bottom-[18%] top-[24%] rounded-[999px_999px_40%_40%] border border-slate-400/25 bg-[linear-gradient(180deg,rgba(255,255,255,0.86),rgba(226,232,240,0.58))] shadow-[0_18px_36px_rgba(15,23,42,0.08)]" />
-      <span className="absolute inset-x-[23%] top-[14%] h-[42%] rounded-[50%_50%_42%_42%] border border-slate-400/25 bg-[linear-gradient(180deg,rgba(255,255,255,0.95),rgba(226,232,240,0.72))]" />
-      <span className="absolute bottom-3 rounded-full border border-white/70 bg-slate-900/84 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-white">
-        {formatAvatarVrmAssetLabel(context.snapshot.presentation.avatarAssetRef) || 'avatar.vrm'}
-      </span>
-    </div>
-  );
-}
-
 export function createVrmAvatarRenderer(
   options: CreateVrmAvatarRendererOptions = {},
 ): AvatarStageBackendRenderer {
@@ -143,22 +128,44 @@ export function createVrmAvatarRenderer(
         </div>
       );
     }
-    return renderDefaultVrmSurface(context);
+    return renderAvatarPlaceholderSurface(context);
   };
+}
+
+function LazyVrmAvatarSurface({
+  context,
+  options,
+}: {
+  context: AvatarStageRendererContext;
+  options: CreateLazyVrmAvatarRendererOptions;
+}) {
+  const [attempt, setAttempt] = useState(0);
+  const LazyViewport = useMemo(() => lazy(options.loadViewport), [attempt, options.loadViewport]);
+  const viewportInput = createAvatarVrmViewportRenderInput(context);
+  return (
+    <div className={cn('relative flex h-full w-full items-center justify-center overflow-hidden', options.className)}>
+      <AvatarViewportErrorBoundary
+        resetKey={`${context.snapshot.presentation.avatarAssetRef}:${attempt}`}
+        onError={options.onViewportError}
+        fallback={(
+          <AvatarViewportFailureSurface
+            context={context}
+            errorLabel={options.viewportErrorLabel}
+            retryLabel={options.retryViewportLabel}
+            onRetry={() => setAttempt((current) => current + 1)}
+          />
+        )}
+      >
+        <Suspense fallback={options.loadingFallback ?? renderAvatarPlaceholderSurface(context)}>
+          <LazyViewport input={viewportInput} />
+        </Suspense>
+      </AvatarViewportErrorBoundary>
+    </div>
+  );
 }
 
 export function createLazyVrmAvatarRenderer(
   options: CreateLazyVrmAvatarRendererOptions,
 ): AvatarStageBackendRenderer {
-  const LazyViewport = lazy(options.loadViewport);
-  return (context) => {
-    const viewportInput = createAvatarVrmViewportRenderInput(context);
-    return (
-      <div className={cn('relative flex h-full w-full items-center justify-center overflow-hidden', options.className)}>
-        <Suspense fallback={options.loadingFallback ?? renderDefaultVrmSurface(context)}>
-          <LazyViewport input={viewportInput} />
-        </Suspense>
-      </div>
-    );
-  };
+  return (context) => <LazyVrmAvatarSurface context={context} options={options} />;
 }

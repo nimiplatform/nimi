@@ -1,13 +1,24 @@
-import { Suspense, lazy, type ComponentType, type ReactNode } from 'react';
+import { Suspense, lazy, useMemo, useState, type ComponentType, type ErrorInfo, type ReactNode } from 'react';
 
 import { cn } from '@nimiplatform/kit/ui';
 
+import { formatAvatarVrmAssetLabel } from './asset-label.js';
+import { AvatarViewportFailureSurface, renderAvatarPlaceholderSurface } from './placeholder-surface.js';
 import type { AvatarStageBackendRenderer, AvatarStageRendererContext } from './types.js';
+import { AvatarViewportErrorBoundary } from './viewport-error-boundary.js';
 import {
   createAvatarVrmViewportRenderInput,
-  formatAvatarVrmAssetLabel,
   type AvatarVrmViewportRenderInput,
 } from './vrm.js';
+
+export {
+  DEFAULT_AVATAR_PHASE_LABELS,
+  resolveAvatarPhaseLabel,
+} from './phase-label.js';
+export type {
+  AvatarPhaseLabelOverrides,
+  AvatarPhaseLabels,
+} from './phase-label.js';
 
 export type AvatarLive2dFramingIntent = 'auto' | 'full-body' | 'bottom-companion' | 'head-shoulders';
 
@@ -34,11 +45,14 @@ export type AvatarLive2dViewportState = {
   phase: AvatarLive2dViewportRenderInput['snapshot']['interaction']['phase'];
   emotion: NonNullable<AvatarLive2dViewportRenderInput['snapshot']['interaction']['emotion']> | 'neutral';
   amplitude: number;
+  /**
+   * Display cue for viewport badges: the interaction `actionCue` when present,
+   * otherwise the phase id. UI layers map the phase id to text through
+   * `resolveAvatarPhaseLabel` (injectable label map, English by default).
+   */
   badgeLabel: string;
   assetLabel: string;
   motionSpeed: number;
-  accentColor: string;
-  glowColor: string;
 };
 
 export type AvatarLive2dMotionSelection = {
@@ -74,6 +88,9 @@ export type LoadAvatarLive2dViewportComponent = () => Promise<{
 export type CreateLazyLive2dAvatarRendererOptions = {
   loadViewport: LoadAvatarLive2dViewportComponent;
   loadingFallback?: ReactNode;
+  viewportErrorLabel?: string;
+  retryViewportLabel?: string;
+  onViewportError?: (error: Error, info: ErrorInfo) => void;
   className?: string;
 };
 
@@ -95,46 +112,6 @@ function easeToward(current: number, target: number, response: number, deltaTime
   const dt = clampDeltaTimeSeconds(deltaTimeSeconds);
   const alpha = 1 - Math.exp(-Math.max(response, 0.001) * dt);
   return current + (target - current) * alpha;
-}
-
-function phaseLabel(
-  phase: AvatarLive2dViewportRenderInput['snapshot']['interaction']['phase'],
-): string {
-  switch (phase) {
-    case 'thinking':
-      return 'Thinking';
-    case 'listening':
-      return 'Listening';
-    case 'speaking':
-      return 'Speaking';
-    case 'transitioning':
-      return 'Transitioning';
-    case 'idle':
-    default:
-      return 'Ready';
-  }
-}
-
-function resolvePalette(
-  emotion: AvatarLive2dViewportState['emotion'],
-): Pick<AvatarLive2dViewportState, 'accentColor' | 'glowColor'> {
-  switch (emotion) {
-    case 'joy':
-      return { accentColor: '#fb7185', glowColor: '#fecdd3' };
-    case 'focus':
-      return { accentColor: '#38bdf8', glowColor: '#bae6fd' };
-    case 'calm':
-      return { accentColor: '#2dd4bf', glowColor: '#99f6e4' };
-    case 'playful':
-      return { accentColor: '#f59e0b', glowColor: '#fde68a' };
-    case 'concerned':
-      return { accentColor: '#8b5cf6', glowColor: '#ddd6fe' };
-    case 'surprised':
-      return { accentColor: '#f97316', glowColor: '#fdba74' };
-    case 'neutral':
-    default:
-      return { accentColor: '#0ea5e9', glowColor: '#bfdbfe' };
-  }
 }
 
 function resolveEmotionMotionKeywords(
@@ -229,44 +206,46 @@ function hasStrongVerticalLayout(layout: ReadonlyMap<string, number>): boolean {
     || layout.has('Bottom');
 }
 
-function renderDefaultLive2dSurface(context: AvatarStageRendererContext): ReactNode {
-  return (
-    <div className="relative flex h-full w-full items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.98),rgba(226,232,240,0.94)_55%,rgba(203,213,225,0.84))]">
-      {context.renderer.posterUrl ? (
-        <img
-          src={context.renderer.posterUrl}
-          alt={context.label}
-          className="absolute inset-0 h-full w-full object-cover opacity-34"
-        />
-      ) : null}
-      <span className="absolute inset-[14%] rounded-[42%] border border-white/80 bg-[radial-gradient(circle,rgba(255,255,255,0.92),rgba(219,234,254,0.42))] shadow-[0_18px_40px_rgba(15,23,42,0.08)]" />
-      <span className="absolute inset-x-[28%] top-[16%] h-[44%] rounded-[44%_44%_38%_38%] border border-cyan-200/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.94),rgba(224,242,254,0.72))]" />
-      <span className="absolute inset-x-[24%] bottom-[16%] top-[42%] rounded-[999px_999px_34%_34%] border border-sky-200/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.88),rgba(224,242,254,0.54))]" />
-      <span className="absolute bottom-3 rounded-full border border-white/80 bg-slate-900/84 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-white">
-        {formatAvatarVrmAssetLabel(context.snapshot.presentation.avatarAssetRef) || 'avatar'}
-      </span>
-    </div>
-  );
+export function createLive2dAvatarRenderer(): AvatarStageBackendRenderer {
+  return renderAvatarPlaceholderSurface;
 }
 
-export function createLive2dAvatarRenderer(): AvatarStageBackendRenderer {
-  return renderDefaultLive2dSurface;
+function LazyLive2dAvatarSurface({
+  context,
+  options,
+}: {
+  context: AvatarStageRendererContext;
+  options: CreateLazyLive2dAvatarRendererOptions;
+}) {
+  const [attempt, setAttempt] = useState(0);
+  const LazyViewport = useMemo(() => lazy(options.loadViewport), [attempt, options.loadViewport]);
+  const viewportInput = createAvatarVrmViewportRenderInput(context);
+  return (
+    <div className={cn('relative flex h-full w-full items-center justify-center overflow-hidden', options.className)}>
+      <AvatarViewportErrorBoundary
+        resetKey={`${context.snapshot.presentation.avatarAssetRef}:${attempt}`}
+        onError={options.onViewportError}
+        fallback={(
+          <AvatarViewportFailureSurface
+            context={context}
+            errorLabel={options.viewportErrorLabel}
+            retryLabel={options.retryViewportLabel}
+            onRetry={() => setAttempt((current) => current + 1)}
+          />
+        )}
+      >
+        <Suspense fallback={options.loadingFallback ?? renderAvatarPlaceholderSurface(context)}>
+          <LazyViewport input={viewportInput} />
+        </Suspense>
+      </AvatarViewportErrorBoundary>
+    </div>
+  );
 }
 
 export function createLazyLive2dAvatarRenderer(
   options: CreateLazyLive2dAvatarRendererOptions,
 ): AvatarStageBackendRenderer {
-  const LazyViewport = lazy(options.loadViewport);
-  return (context) => {
-    const viewportInput = createAvatarVrmViewportRenderInput(context);
-    return (
-      <div className={cn('relative flex h-full w-full items-center justify-center overflow-hidden', options.className)}>
-        <Suspense fallback={options.loadingFallback ?? renderDefaultLive2dSurface(context)}>
-          <LazyViewport input={viewportInput} />
-        </Suspense>
-      </div>
-    );
-  };
+  return (context) => <LazyLive2dAvatarSurface context={context} options={options} />;
 }
 
 export function resolveAvatarLive2dFramingPolicy(
@@ -386,7 +365,6 @@ export function resolveAvatarLive2dViewportState(
   const phase = input.snapshot.interaction.phase;
   const emotion = input.snapshot.interaction.emotion || 'neutral';
   const amplitude = clampUnit(input.snapshot.interaction.amplitude);
-  const palette = resolvePalette(emotion);
   const emotionProfile = resolveEmotionMotionProfile(emotion);
 
   const baseMotionSpeed = phase === 'speaking'
@@ -401,11 +379,9 @@ export function resolveAvatarLive2dViewportState(
     phase,
     emotion,
     amplitude,
-    badgeLabel: input.snapshot.interaction.actionCue || phaseLabel(phase),
+    badgeLabel: input.snapshot.interaction.actionCue || phase,
     assetLabel: source?.assetLabel || formatAvatarVrmAssetLabel(input.assetRef) || 'avatar.model3.json',
     motionSpeed: Math.max(0.2, baseMotionSpeed + emotionProfile.motionSpeedOffset),
-    accentColor: palette.accentColor,
-    glowColor: palette.glowColor,
   };
 }
 

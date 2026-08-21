@@ -1,5 +1,5 @@
-import type { CSSProperties, ReactNode } from 'react';
-import { cn } from '@nimiplatform/kit/ui';
+import { useState, type CSSProperties, type ReactNode } from 'react';
+import { cn, Surface } from '@nimiplatform/kit/ui';
 import {
   inferAvatarEmotionFromPhase,
   inferAvatarToneFromEmotion,
@@ -7,15 +7,22 @@ import {
   resolveAvatarStageRendererModel,
 } from '../headless.js';
 import { createLive2dAvatarRenderer } from '../live2d.js';
+import {
+  resolveAvatarPhaseLabel,
+  type AvatarPhaseLabelOverrides,
+} from '../phase-label.js';
 import { createVrmAvatarRenderer } from '../vrm.js';
 import type {
   AvatarBackendKind,
   AvatarStageBackendRenderer,
+  AvatarStageRendererContext,
   AvatarStageRendererRegistry,
   AvatarStageSize,
   AvatarStageSnapshot,
   AvatarStageTone,
 } from '../types.js';
+
+export type { AvatarPhaseLabelOverrides };
 
 export type AvatarStageProps = {
   snapshot: AvatarStageSnapshot;
@@ -30,38 +37,38 @@ export type AvatarStageProps = {
   style?: CSSProperties;
   fallback?: ReactNode;
   renderers?: AvatarStageRendererRegistry;
+  labels?: AvatarPhaseLabelOverrides;
 };
 
-const TONE_STYLES: Record<AvatarStageTone, { aura: string; ring: string; border: string; badge: string }> = {
+// aura/ring derive from the admitted --nimi-status-* tokens via color-mix
+// (tone semantics: mint→success, sky→info, amber→warning, rose→danger,
+// slate→neutral); per-tone alpha tuning is preserved. `badge` uses the
+// admitted --nimi-status-*-soft-* trio, mirroring kit/ui InlineAlert.
+const TONE_STYLES: Record<AvatarStageTone, { aura: string; ring: string; badge: string }> = {
   mint: {
-    aura: 'rgba(52, 211, 153, 0.28)',
-    ring: 'rgba(16, 185, 129, 0.30)',
-    border: 'rgba(255,255,255,0.84)',
-    badge: 'border-emerald-200/80 bg-white/90 text-emerald-800',
+    aura: 'color-mix(in srgb, var(--nimi-status-success) 28%, transparent)',
+    ring: 'color-mix(in srgb, var(--nimi-status-success) 30%, transparent)',
+    badge: 'border-[var(--nimi-status-success-soft-border)] bg-[var(--nimi-status-success-soft-bg)] text-[color:var(--nimi-status-success-soft-text)]',
   },
   sky: {
-    aura: 'rgba(56, 189, 248, 0.26)',
-    ring: 'rgba(14, 165, 233, 0.30)',
-    border: 'rgba(255,255,255,0.84)',
-    badge: 'border-sky-200/80 bg-white/90 text-sky-800',
+    aura: 'color-mix(in srgb, var(--nimi-status-info) 26%, transparent)',
+    ring: 'color-mix(in srgb, var(--nimi-status-info) 30%, transparent)',
+    badge: 'border-[var(--nimi-status-info-soft-border)] bg-[var(--nimi-status-info-soft-bg)] text-[color:var(--nimi-status-info-soft-text)]',
   },
   amber: {
-    aura: 'rgba(251, 191, 36, 0.28)',
-    ring: 'rgba(245, 158, 11, 0.30)',
-    border: 'rgba(255,255,255,0.84)',
-    badge: 'border-amber-200/80 bg-white/90 text-amber-800',
+    aura: 'color-mix(in srgb, var(--nimi-status-warning) 28%, transparent)',
+    ring: 'color-mix(in srgb, var(--nimi-status-warning) 30%, transparent)',
+    badge: 'border-[var(--nimi-status-warning-soft-border)] bg-[var(--nimi-status-warning-soft-bg)] text-[color:var(--nimi-status-warning-soft-text)]',
   },
   rose: {
-    aura: 'rgba(251, 113, 133, 0.24)',
-    ring: 'rgba(244, 63, 94, 0.28)',
-    border: 'rgba(255,255,255,0.84)',
-    badge: 'border-rose-200/80 bg-white/90 text-rose-800',
+    aura: 'color-mix(in srgb, var(--nimi-status-danger) 24%, transparent)',
+    ring: 'color-mix(in srgb, var(--nimi-status-danger) 28%, transparent)',
+    badge: 'border-[var(--nimi-status-danger-soft-border)] bg-[var(--nimi-status-danger-soft-bg)] text-[color:var(--nimi-status-danger-soft-text)]',
   },
   slate: {
-    aura: 'rgba(148, 163, 184, 0.22)',
-    ring: 'rgba(100, 116, 139, 0.28)',
-    border: 'rgba(255,255,255,0.84)',
-    badge: 'border-slate-200/80 bg-white/90 text-slate-700',
+    aura: 'color-mix(in srgb, var(--nimi-status-neutral) 22%, transparent)',
+    ring: 'color-mix(in srgb, var(--nimi-status-neutral) 28%, transparent)',
+    badge: 'border-[var(--nimi-status-neutral-soft-border)] bg-[var(--nimi-status-neutral-soft-bg)] text-[color:var(--nimi-status-neutral-soft-text)]',
   },
 };
 
@@ -70,13 +77,13 @@ const SIZE_CLASSES: Record<NonNullable<AvatarStageProps['size']>, { frame: strin
     frame: 'h-24 w-24',
     avatar: 'lg',
     title: 'text-xs',
-    badge: 'px-2.5 py-1 text-[10px]',
+    badge: 'px-2.5 py-1 text-[length:var(--nimi-type-overline-size)]',
   },
   md: {
     frame: 'h-28 w-28',
     avatar: 'lg',
     title: 'text-sm',
-    badge: 'px-3 py-1.5 text-[11px]',
+    badge: 'px-3 py-1.5 text-[length:var(--nimi-type-overline-size)]',
   },
   lg: {
     frame: 'h-44 w-44',
@@ -86,27 +93,13 @@ const SIZE_CLASSES: Record<NonNullable<AvatarStageProps['size']>, { frame: strin
   },
 };
 
-function phaseLabel(phase: AvatarStageSnapshot['interaction']['phase']): string {
-  switch (phase) {
-    case 'thinking':
-      return 'Thinking';
-    case 'listening':
-      return 'Listening';
-    case 'speaking':
-      return 'Speaking';
-    case 'transitioning':
-      return 'Transitioning';
-    case 'idle':
-    default:
-      return 'Idle';
-  }
-}
-
-function renderStaticMediaSurface(context: Parameters<AvatarStageBackendRenderer>[0]): ReactNode {
+function StaticMediaSurface({ context }: { context: AvatarStageRendererContext }) {
   const imageUrl = context.renderer.mediaUrl || context.renderer.posterUrl;
+  const [failedUrl, setFailedUrl] = useState<string | null>(null);
+  const mediaFailed = imageUrl !== null && failedUrl === imageUrl;
   return (
-    <div className="relative flex h-full w-full items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.98),rgba(226,232,240,0.94)_55%,rgba(203,213,225,0.84))]">
-      {context.renderer.kind === 'video' && imageUrl ? (
+    <div className="relative flex h-full w-full items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_30%_20%,var(--nimi-surface-card),var(--nimi-surface-panel)_55%,var(--nimi-surface-canvas))]">
+      {context.renderer.kind === 'video' && imageUrl && !mediaFailed ? (
         <video
           src={imageUrl}
           className="absolute inset-0 h-full w-full object-cover"
@@ -114,18 +107,25 @@ function renderStaticMediaSurface(context: Parameters<AvatarStageBackendRenderer
           loop
           playsInline
           autoPlay
+          aria-hidden="true"
+          onError={() => setFailedUrl(imageUrl)}
         />
-      ) : imageUrl ? (
+      ) : imageUrl && !mediaFailed ? (
         <img
           src={imageUrl}
           alt={context.label}
           className="absolute inset-0 h-full w-full object-cover"
+          onError={() => setFailedUrl(imageUrl)}
         />
       ) : (
-        <span className="text-2xl font-semibold text-slate-500">{context.fallback}</span>
+        <span className="text-2xl font-semibold text-[color:var(--nimi-text-muted)]">{context.fallback}</span>
       )}
     </div>
   );
+}
+
+function renderStaticMediaSurface(context: AvatarStageRendererContext): ReactNode {
+  return <StaticMediaSurface context={context} />;
 }
 
 const DEFAULT_RENDERERS: Record<AvatarBackendKind, AvatarStageBackendRenderer> = {
@@ -149,6 +149,7 @@ export function AvatarStage({
   style,
   fallback = null,
   renderers,
+  labels,
 }: AvatarStageProps) {
   const emotion = snapshot.interaction.emotion ?? inferAvatarEmotionFromPhase(snapshot.interaction.phase);
   const resolvedTone = tone ?? inferAvatarToneFromEmotion(emotion);
@@ -166,7 +167,7 @@ export function AvatarStage({
   const amplitude = typeof snapshot.interaction.amplitude === 'number' ? Math.max(0, Math.min(snapshot.interaction.amplitude, 1)) : 0;
   const phase = snapshot.interaction.phase;
   const speakingScale = phase === 'speaking' || renderer.prefersMotion ? 1 + amplitude * 0.06 : 1;
-  const badgeLabel = statusLabel ?? snapshot.interaction.actionCue ?? phaseLabel(phase);
+  const badgeLabel = statusLabel ?? snapshot.interaction.actionCue ?? resolveAvatarPhaseLabel(phase, labels);
   const resolvedFallback = fallback ?? (((fallbackLabel || label).trim().charAt(0).toUpperCase()) || '?');
 
   return (
@@ -181,13 +182,15 @@ export function AvatarStage({
       data-avatar-renderer={renderer.kind}
     >
       <span
-        className="pointer-events-none absolute inset-[-24px] rounded-full blur-3xl transition-all duration-300"
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-[-24px] rounded-full"
         style={{ background: `radial-gradient(circle, ${toneStyle.aura}, transparent 68%)` }}
       />
       <span
+        aria-hidden="true"
         className={cn(
-          'pointer-events-none absolute inset-[-10px] rounded-full border transition-all duration-300',
-          phase === 'thinking' || phase === 'listening' || phase === 'speaking' ? 'animate-pulse' : '',
+          'pointer-events-none absolute inset-[-10px] rounded-full border transition-[opacity,transform] duration-[var(--nimi-motion-slow)] ease-[var(--nimi-motion-ease-standard)]',
+          phase === 'thinking' || phase === 'listening' || phase === 'speaking' ? 'animate-pulse motion-reduce:animate-none' : '',
         )}
         style={{
           borderColor: toneStyle.ring,
@@ -197,6 +200,7 @@ export function AvatarStage({
       />
       {(phase === 'listening' || phase === 'speaking') ? (
         <span
+          aria-hidden="true"
           className="pointer-events-none absolute inset-[-18px] rounded-full border"
           style={{
             borderColor: toneStyle.ring,
@@ -205,13 +209,16 @@ export function AvatarStage({
           }}
         />
       ) : null}
-      <div
+      <Surface
+        tone="card"
+        elevation="floating"
+        padding="none"
+        material="glass-chrome"
         className={cn(
-          'relative flex items-center justify-center overflow-hidden rounded-full border bg-white/86 shadow-[0_18px_48px_rgba(15,23,42,0.12)] backdrop-blur-sm transition-all duration-300',
+          'relative flex items-center justify-center overflow-hidden rounded-full',
           sizeClass.frame,
         )}
         style={{
-          borderColor: toneStyle.border,
           transform: `scale(${speakingScale})`,
         }}
       >
@@ -224,17 +231,17 @@ export function AvatarStage({
           frameClassName: sizeClass.frame,
           style,
         })}
-      </div>
+      </Surface>
       {showStatusBadge && badgeLabel ? (
         <span
           data-avatar-stage-status-badge="true"
           className={cn(
-            'absolute bottom-[-10px] left-1/2 inline-flex max-w-[calc(100%+2rem)] min-w-0 -translate-x-1/2 items-center gap-1.5 whitespace-nowrap rounded-full border font-semibold shadow-[0_10px_24px_rgba(15,23,42,0.08)]',
+            'absolute bottom-[-10px] left-1/2 inline-flex max-w-[calc(100%+2rem)] min-w-0 -translate-x-1/2 items-center gap-1.5 whitespace-nowrap rounded-full border font-semibold shadow-[0_10px_24px_color-mix(in_srgb,var(--nimi-text-primary)_8%,transparent)]',
             toneStyle.badge,
             sizeClass.badge,
           )}
         >
-          <span className={cn('inline-block h-2 w-2 shrink-0 rounded-full bg-current opacity-70', phase === 'thinking' || phase === 'speaking' ? 'animate-pulse' : '')} />
+          <span className={cn('inline-block h-2 w-2 shrink-0 rounded-full bg-current opacity-70', phase === 'thinking' || phase === 'speaking' ? 'animate-pulse motion-reduce:animate-none' : '')} />
           <span data-avatar-stage-status-label="true" className={cn(sizeClass.title, 'min-w-0 truncate leading-none')}>{badgeLabel}</span>
         </span>
       ) : null}

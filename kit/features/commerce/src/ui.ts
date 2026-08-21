@@ -6,3 +6,4 @@ export { GiftInboxList } from './components/gift-inbox-list.js';
 export type { GiftInboxListProps } from './components/gift-inbox-list.js';
 export { GiftInboxDetail } from './components/gift-inbox-detail.js';
 export type { GiftInboxDetailProps } from './components/gift-inbox-detail.js';
+export { DEFAULT_COMMERCE_COPY } from './copy.js';

@@ -55,6 +55,7 @@ describe('public Model Picker contract', () => {
 
     const candidate = Array.from(document.body.querySelectorAll('[data-nimi-model-picker="true"] button'))
       .find((button) => button.textContent?.includes('Model B')) as HTMLButtonElement;
+    expect(candidate.className).toContain('focus-visible:ring');
     act(() => { candidate.click(); });
     expect(confirm.disabled).toBe(false);
     await act(async () => { confirm.click(); await Promise.resolve(); });
@@ -100,5 +101,54 @@ describe('public Model Picker contract', () => {
       .find((button) => button.textContent?.trim() === 'Use selection') as HTMLButtonElement;
     expect(confirm.disabled).toBe(true);
     expect(onConfirm).not.toHaveBeenCalled();
+  });
+
+  it('exposes focus ring and aria-pressed selection state on route candidates', async () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+    await act(async () => {
+      root?.render(
+        <ModelPickerDialog
+          open
+          presentation="route"
+          title="Choose model"
+          initialSourceFilter="local"
+          sourceOptions={['local', 'cloud']}
+          adapter={{
+            listCandidates: async () => [
+              { id: 'a', label: 'Model A', source: 'local' },
+              { id: 'b', label: 'Model B', source: 'local' },
+            ],
+            getId: (candidate) => candidate.id,
+            getTitle: (candidate) => candidate.label,
+            getSource: (candidate) => candidate.source,
+          }}
+          onClose={vi.fn()}
+          onConfirm={vi.fn()}
+        />,
+      );
+      await Promise.resolve();
+    });
+    await flush();
+
+    const localTab = Array.from(document.body.querySelectorAll('button'))
+      .find((button) => button.textContent?.trim() === 'local') as HTMLButtonElement;
+    expect(localTab.className).toContain('focus-visible:ring');
+
+    const tabGroup = document.body.querySelector('[role="radiogroup"]');
+    expect(tabGroup).toBeTruthy();
+    expect(localTab.getAttribute('role')).toBe('radio');
+    expect(localTab.getAttribute('aria-checked')).toBe('true');
+
+    const rowA = document.body.querySelector('[data-nimi-model-picker-candidate="a"]') as HTMLButtonElement;
+    const rowB = document.body.querySelector('[data-nimi-model-picker-candidate="b"]') as HTMLButtonElement;
+    expect(rowA.className).toContain('focus-visible:ring');
+    expect(rowA.getAttribute('aria-pressed')).toBe('false');
+    expect(rowB.getAttribute('aria-pressed')).toBe('false');
+
+    act(() => { rowB.click(); });
+    expect(rowB.getAttribute('aria-pressed')).toBe('true');
+    expect(rowA.getAttribute('aria-pressed')).toBe('false');
   });
 });

@@ -69,6 +69,7 @@ describe('AgentCenter committed appearance surface', () => {
     expect(markup).toContain('data-agent-center-default-voice="bound"');
     expect(markup).toContain('data-agent-center-default-voice-reference="voice_asset_id:voice-song-lian"');
     expect(markup).toContain('data-agent-center-avatar-autoplay="enabled"');
-    expect(markup).toContain('Disable');
+    expect(markup).toContain('role="switch"');
+    expect(markup).toContain('aria-checked="true"');
   });
 });

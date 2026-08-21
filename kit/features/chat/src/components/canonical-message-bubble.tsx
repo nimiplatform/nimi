@@ -1,6 +1,14 @@
 import { Component, Suspense, lazy, memo, useCallback, useEffect, useState, type CSSProperties, type ReactNode } from 'react';
 import { Dialog, DialogContent, DialogTitle, IconButton, cn } from '@nimiplatform/kit/ui';
 import type { ConversationCanonicalMessage } from '../types.js';
+import { resolveChatCopy, type ChatCopy } from '../copy.js';
+import {
+  CHAT_BUBBLE_MAX_WIDTH_CLASSNAME,
+  CHAT_BUBBLE_MEDIA_MAX_WIDTH_CLASSNAME,
+  CHAT_BUBBLE_TEXT_CLASSNAME,
+  chatBubbleShapeStyle,
+} from '../bubble-styles.js';
+import { formatMessageTime } from '../utils/message-time.js';
 import { hasRpContent } from '../utils/rp-content-parser.js';
 
 export type CanonicalBubbleDisplayContext = 'transcript' | 'stage';
@@ -36,7 +44,7 @@ function createLazyImportError(label: string, error: unknown): Error {
 }
 
 function PlainTextMessageContent({ content }: { content: string }) {
-  return <p className="my-2 whitespace-pre-wrap text-sm leading-[1.7] text-gray-900">{content}</p>;
+  return <p className="my-2 whitespace-pre-wrap text-sm leading-[1.7] text-[var(--nimi-text-primary)]">{content}</p>;
 }
 
 type LazyMessageContentBoundaryProps = {
@@ -70,12 +78,12 @@ class LazyMessageContentBoundary extends Component<LazyMessageContentBoundaryPro
   }
 }
 
-function MarkdownMessageContent({ content }: { content: string }) {
+function MarkdownMessageContent({ content, copy }: { content: string; copy: Required<ChatCopy> }) {
   const fallback = <PlainTextMessageContent content={content} />;
   return (
     <LazyMessageContentBoundary resetKey={`markdown:${content}`} fallback={fallback}>
       <Suspense fallback={fallback}>
-        <ChatMarkdownRenderer content={content} appearance="canonical" />
+        <ChatMarkdownRenderer content={content} appearance="canonical" copy={copy} />
       </Suspense>
     </LazyMessageContentBoundary>
   );
@@ -92,18 +100,9 @@ function RpMessageContent({ content }: { content: string }) {
   );
 }
 
-function bubbleShapeFor(role: ConversationCanonicalMessage['role'], position: CanonicalMessageBubbleProps['position']): BubbleShape {
-  const R = 22; // large corner radius
-  const S = 6;  // small directional corner radius
+function bubbleShapeFor(role: ConversationCanonicalMessage['role']): BubbleShape {
   const isUser = role === 'user' || role === 'human';
-
-  // CSS border-radius order: top-left / top-right / bottom-right / bottom-left
-  if (isUser) {
-    // User: bottom-right is the directional corner
-    return { className: '', style: { borderRadius: `${R}px ${R}px ${S}px ${R}px` } };
-  }
-  // Agent: bottom-left is the directional corner
-  return { className: '', style: { borderRadius: `${R}px ${R}px ${R}px ${S}px` } };
+  return { className: '', style: chatBubbleShapeStyle(isUser ? 'user' : 'agent') };
 }
 
 function entryAnimationFor(message: ConversationCanonicalMessage): string {
@@ -185,17 +184,17 @@ function formatTimestamp(value: string | undefined): string {
   if (Number.isNaN(date.getTime())) {
     return value;
   }
-  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  return formatMessageTime(date);
 }
 
-function resolveBubbleLabel(message: ConversationCanonicalMessage): string {
+function resolveBubbleLabel(message: ConversationCanonicalMessage, copy: Required<ChatCopy>): string {
   if (message.role === 'user' || message.role === 'human') {
-    return message.senderName || 'You';
+    return message.senderName || copy.bubbleUserLabel;
   }
-  return message.senderName || 'Assistant';
+  return message.senderName || copy.bubbleAssistantLabel;
 }
 
-function resolveMessageAvatar(message: ConversationCanonicalMessage): ReactNode {
+function resolveMessageAvatar(message: ConversationCanonicalMessage, copy: Required<ChatCopy>): ReactNode {
   const isUser = message.role === 'user' || message.role === 'human';
   const initial = (String(message.senderName || (isUser ? 'U' : 'A')).trim().charAt(0) || (isUser ? 'U' : 'A')).toUpperCase();
   const avatarUrl = message.senderAvatarUrl || null;
@@ -203,17 +202,17 @@ function resolveMessageAvatar(message: ConversationCanonicalMessage): ReactNode 
     return (
       <img
         src={avatarUrl}
-        alt={message.senderName || resolveBubbleLabel(message)}
-        className="h-8 w-8 shrink-0 rounded-full object-cover ring-1 ring-black/5"
+        alt={message.senderName || resolveBubbleLabel(message, copy)}
+        className="h-8 w-8 shrink-0 rounded-full object-cover ring-1 ring-[color-mix(in_srgb,var(--nimi-text-primary)_8%,transparent)]"
       />
     );
   }
   return (
     <div
       className={cn(
-        'flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold ring-1 ring-black/5',
+        'flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold ring-1 ring-[color-mix(in_srgb,var(--nimi-text-primary)_8%,transparent)]',
         isUser
-          ? 'bg-slate-700 text-white'
+          ? 'bg-[var(--nimi-text-primary)] text-[var(--nimi-text-inverse)]'
           : 'bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)]',
       )}
     >
@@ -231,17 +230,19 @@ function VoiceBubbleContent(props: {
 }) {
   return (
     <button type="button" onClick={props.onPlay} onContextMenu={props.onContextMenu} className="flex items-center gap-3 text-left">
-      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/20">
+      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--nimi-text-primary)_16%,transparent)]">
         {props.isPlaying ? '⏸' : '▶'}
       </span>
       <div className="flex items-end gap-[3px]">
         {[0, 1, 2, 3, 4].map((i) => (
           <span
             key={`bar-${i}`}
-            className="w-[3px] rounded-full bg-current"
+            className="chat-voice-bar w-[3px] rounded-full bg-current"
             style={{
               height: props.isPlaying ? undefined : '4px',
-              animation: props.isPlaying ? `voice-bar 1.2s ease-in-out ${i * 0.15}s infinite` : 'none',
+              animation: props.isPlaying
+                ? `voice-bar var(--nimi-motion-ambient) var(--nimi-motion-ease-standard) calc(var(--nimi-motion-fast) * ${i}) infinite`
+                : 'none',
               minHeight: '4px',
             }}
           />
@@ -261,6 +262,8 @@ export type CanonicalMessageBubbleProps = {
   showTimestamp?: boolean;
   position?: 'single' | 'start' | 'middle' | 'end';
   displayContext?: CanonicalBubbleDisplayContext;
+  /** Optional copy overrides merged over the default English strings. */
+  copy?: ChatCopy;
   voicePlayingMessageId?: string | null;
   isVoiceTranscriptVisible?: boolean;
   /**
@@ -283,6 +286,7 @@ export const CanonicalMessageBubble = memo(function CanonicalMessageBubble({
   showTimestamp = true,
   position = 'single',
   displayContext = 'transcript',
+  copy,
   voicePlayingMessageId = null,
   isVoiceTranscriptVisible = false,
   disableRpContent = false,
@@ -290,6 +294,7 @@ export const CanonicalMessageBubble = memo(function CanonicalMessageBubble({
   onVoiceContextMenu,
   onMessageContextMenu,
 }: CanonicalMessageBubbleProps) {
+  const copyResolved = resolveChatCopy(copy);
   const isUser = message.role === 'user' || message.role === 'human';
   const isVoice = message.kind === 'voice';
   const isImage = message.kind === 'image';
@@ -299,7 +304,7 @@ export const CanonicalMessageBubble = memo(function CanonicalMessageBubble({
   const isStreaming = message.kind === 'streaming';
   const isPlaying = isVoice && voicePlayingMessageId === message.id;
   const isMediaCard = isImage || isVideo || isImagePending || isVideoPending;
-  const bubbleShape = bubbleShapeFor(message.role, position);
+  const bubbleShape = bubbleShapeFor(message.role);
   const animationName = entryAnimationFor(message);
   const animationDelayMs = Math.min(Math.max(Number((message.metadata as Record<string, unknown> | undefined)?.beatIndex || 0), 0) * 90, 320);
   const [imagePreviewOpen, setImagePreviewOpen] = useState(false);
@@ -335,8 +340,8 @@ export const CanonicalMessageBubble = memo(function CanonicalMessageBubble({
   const mediaContainerClassName = isMediaCard
     ? displayContext === 'stage'
       ? 'max-w-full'
-      : 'max-w-[78%]'
-    : 'max-w-[72%]';
+      : CHAT_BUBBLE_MEDIA_MAX_WIDTH_CLASSNAME
+    : CHAT_BUBBLE_MAX_WIDTH_CLASSNAME;
 
   const closeImagePreview = useCallback(() => {
     setImagePreviewOpen(false);
@@ -353,7 +358,7 @@ export const CanonicalMessageBubble = memo(function CanonicalMessageBubble({
   }, [message.id, mediaUri]);
 
   const resolvedAvatar = avatar === undefined
-    ? (showAvatar ? resolveMessageAvatar(message) : <span className="h-8 w-8 shrink-0" aria-hidden />)
+    ? (showAvatar ? resolveMessageAvatar(message, copyResolved) : <span className="h-8 w-8 shrink-0" aria-hidden />)
     : avatar;
 
   const time = formatTimestamp(message.createdAt);
@@ -364,8 +369,8 @@ export const CanonicalMessageBubble = memo(function CanonicalMessageBubble({
           isPlaying={isPlaying}
           onPlay={() => onPlayVoiceMessage?.(message)}
           onContextMenu={onVoiceContextMenu ? (event) => onVoiceContextMenu(message, event) : undefined}
-          playingLabel="Playing voice"
-          idleLabel="Voice message"
+          playingLabel={copyResolved.bubbleVoicePlayingLabel}
+          idleLabel={copyResolved.bubbleVoiceMessageLabel}
         />
       ) : isImagePending || isVideoPending ? (
         <div className="space-y-3">
@@ -373,9 +378,9 @@ export const CanonicalMessageBubble = memo(function CanonicalMessageBubble({
             className={`lc-media-skeleton rounded-[22px] ${displayContext === 'stage' ? 'mx-0' : 'h-[220px] w-[min(420px,70vw)]'}`}
             style={stageMediaFrameStyle}
           />
-          <div className="flex items-center gap-2 text-xs text-gray-600">
-            <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-gray-300 border-t-[var(--nimi-action-primary-bg)]" />
-            <span>{message.text || (isImagePending ? 'Generating image…' : 'Generating video…')}</span>
+          <div className="flex items-center gap-2 text-xs text-[var(--nimi-text-secondary)]">
+            <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-[var(--nimi-border-strong)] border-t-[var(--nimi-action-primary-bg)]" />
+            <span>{message.text || (isImagePending ? copyResolved.bubbleGeneratingImageLabel : copyResolved.bubbleGeneratingVideoLabel)}</span>
           </div>
         </div>
       ) : isImage ? (
@@ -383,7 +388,7 @@ export const CanonicalMessageBubble = memo(function CanonicalMessageBubble({
           <button
             type="button"
             onClick={handleOpenImagePreview}
-            aria-label="Open image preview"
+            aria-label={copyResolved.bubbleOpenImagePreviewLabel}
             className={`group block overflow-hidden ${displayContext === 'stage'
               ? 'bg-[radial-gradient(circle_at_center,_rgba(248,250,252,0.98),_rgba(226,232,240,0.84))]'
               : 'bg-gray-50'}`}
@@ -391,8 +396,8 @@ export const CanonicalMessageBubble = memo(function CanonicalMessageBubble({
           >
             <img
               src={mediaUri}
-              alt={message.text || 'Image'}
-              className={`transition-transform duration-300 group-hover:scale-[1.02] ${displayContext === 'stage'
+              alt={message.text || copyResolved.bubbleImageLabel}
+              className={`transition-transform duration-[var(--nimi-motion-slow)] group-hover:scale-[1.02] ${displayContext === 'stage'
                 ? 'h-full w-full object-contain'
                 : 'max-h-[360px] w-full object-cover'}`}
               loading="lazy"
@@ -407,7 +412,7 @@ export const CanonicalMessageBubble = memo(function CanonicalMessageBubble({
             />
           </button>
         ) : (
-          <p className="text-xs italic opacity-70">{String(metadata.mediaError || 'Image unavailable')}</p>
+          <p className="text-xs italic opacity-70">{String(metadata.mediaError || copyResolved.bubbleImageUnavailableLabel)}</p>
         )
       ) : isVideo ? (
         mediaUri && !videoLoadError ? (
@@ -430,20 +435,20 @@ export const CanonicalMessageBubble = memo(function CanonicalMessageBubble({
             onError={() => setVideoLoadError(true)}
           />
         ) : (
-          <p className="text-xs italic opacity-70">{String(metadata.mediaError || 'Video unavailable')}</p>
+          <p className="text-xs italic opacity-70">{String(metadata.mediaError || copyResolved.bubbleVideoUnavailableLabel)}</p>
         )
       ) : isStreaming ? (
         <div className={`space-y-1 ${message.text ? '' : 'italic opacity-70'}`}>
-          {message.text ? <MarkdownMessageContent content={message.text} /> : 'Streaming…'}
+          {message.text ? <MarkdownMessageContent content={message.text} copy={copyResolved} /> : copyResolved.bubbleStreamingLabel}
           <span className="inline-block animate-pulse text-[var(--nimi-action-primary-bg)]">|</span>
         </div>
       ) : !disableRpContent && hasRpContent(message.text) ? (
         <RpMessageContent content={message.text} />
       ) : (
-        <MarkdownMessageContent content={message.text} />
+        <MarkdownMessageContent content={message.text} copy={copyResolved} />
       )}
       {isVoice && isVoiceTranscriptVisible && transcriptText ? (
-        <div className="mt-2 border-t border-gray-200/30 pt-2 text-xs opacity-80">
+        <div className="mt-2 border-t border-[var(--nimi-border-subtle)] pt-2 text-xs opacity-80">
           {transcriptText}
         </div>
       ) : null}
@@ -454,7 +459,7 @@ export const CanonicalMessageBubble = memo(function CanonicalMessageBubble({
     <>
       <div
         className={cn('chat-msg-entry group flex gap-2', isUser ? 'flex-row-reverse' : 'flex-row')}
-        style={{ animation: `${animationName} 0.32s cubic-bezier(0.2, 0.7, 0.2, 1) ${animationDelayMs}ms both` }}
+        style={{ animation: `${animationName} var(--nimi-motion-slow) var(--nimi-motion-ease-standard) ${animationDelayMs}ms both` }}
       >
         {resolvedAvatar}
         <div
@@ -465,12 +470,12 @@ export const CanonicalMessageBubble = memo(function CanonicalMessageBubble({
             <div
               className={cn(
                 bubbleShape.className,
-                'text-sm leading-[1.6]',
+                CHAT_BUBBLE_TEXT_CLASSNAME,
                 isMediaCard
-                  ? 'overflow-hidden border border-gray-200 bg-white'
+                  ? 'overflow-hidden border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)]'
                   : isUser
                     ? 'bg-[var(--nimi-action-primary-bg)] border border-[var(--nimi-action-primary-bg-hover)] px-4 py-2 text-[var(--nimi-action-primary-text)] [&_*]:!text-inherit'
-                    : 'border border-white/70 bg-white/80 px-4 py-2 text-slate-800 shadow-[0_4px_16px_rgba(15,23,42,0.05)]',
+                    : 'border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_80%,transparent)] px-4 py-2 text-[var(--nimi-text-primary)] shadow-[var(--nimi-elevation-base)]',
               )}
               style={bubbleShape.style}
             >
@@ -481,7 +486,7 @@ export const CanonicalMessageBubble = memo(function CanonicalMessageBubble({
             <div
               data-canonical-message-timestamp="true"
               className={cn(
-                'mt-1 text-[11px] leading-4 text-slate-400 opacity-0 transition-opacity duration-150 group-hover:opacity-100',
+                'mt-1 text-[length:var(--nimi-type-overline-size)] leading-4 text-[var(--nimi-text-muted)] opacity-0 transition-opacity duration-[var(--nimi-motion-fast)] group-hover:opacity-100 group-focus-within:opacity-100',
                 isUser ? 'text-right' : 'text-left',
               )}
             >
@@ -495,18 +500,18 @@ export const CanonicalMessageBubble = memo(function CanonicalMessageBubble({
       <Dialog open={imagePreviewOpen && Boolean(mediaUri)} onOpenChange={(open) => { if (!open) closeImagePreview(); }}>
         <DialogContent
           onClose={closeImagePreview}
-          overlayClassName="z-[1000] bg-black/70"
-          className="z-[1001] flex max-h-[calc(100vh-3rem)] max-w-[calc(100vw-3rem)] items-start justify-center border-0 bg-transparent p-0 shadow-none"
+          overlayClassName="bg-black/70"
+          className="flex max-h-[calc(100vh-3rem)] max-w-[calc(100vw-3rem)] items-start justify-center border-0 bg-transparent p-0 shadow-none"
         >
-          <DialogTitle className="sr-only">Image preview</DialogTitle>
+          <DialogTitle className="sr-only">{copyResolved.bubbleImagePreviewTitle}</DialogTitle>
           <IconButton
             onClick={closeImagePreview}
             className="absolute right-3 top-3 z-[1] h-10 w-10 rounded-full bg-black/60 text-2xl text-white shadow-lg hover:bg-black/75 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
-            aria-label="Close image preview"
+            aria-label={copyResolved.bubbleCloseImagePreviewLabel}
             icon={<span aria-hidden>×</span>}
           />
           {mediaUri ? (
-            <img src={mediaUri} alt={message.text || 'Image'} className="max-h-[calc(100vh-3rem)] max-w-[calc(100vw-3rem)] rounded-2xl object-contain shadow-2xl" />
+            <img src={mediaUri} alt={message.text || copyResolved.bubbleImageLabel} className="max-h-[calc(100vh-3rem)] max-w-[calc(100vw-3rem)] rounded-2xl object-contain shadow-2xl" />
           ) : null}
         </DialogContent>
       </Dialog>

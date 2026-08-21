@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Button, InlineAlert } from '@nimiplatform/kit/ui';
 import { translateAgentCenter } from '../i18n.js';
 import type {
   AgentCenterActionAvailability,
@@ -6,7 +7,6 @@ import type {
   AgentCenterProductAction,
   AgentCenterSession,
 } from '../types.js';
-import { AgentButton, Notice } from './AgentCenterPrimitives.js';
 
 const REASON_COPY = {
   'needs-grant': 'Permission is required for this action.',
@@ -59,7 +59,7 @@ export function AgentCenterProductActionNotice(props: {
     }
   };
   return (
-    <Notice tone="warn">
+    <InlineAlert tone="warning">
       <div
         className="grid min-w-0 gap-2"
         data-agent-center-action={props.action}
@@ -69,17 +69,18 @@ export function AgentCenterProductActionNotice(props: {
       >
         <span>{reasonLabel}</span>
         {nextStep === 'wait' ? <span>{nextStepLabel}</span> : (
-          <AgentButton
-            dataAttrs={{ 'data-agent-center-next-step-action': nextStep }}
+          <Button
+            data-agent-center-next-step-action={nextStep}
             disabled={busy}
             onClick={() => { void invokeNextStep(); }}
-            variant="accent"
+            size="sm"
+            tone="primary"
           >
             {nextStepLabel}
-          </AgentButton>
+          </Button>
         )}
         {failure ? <span aria-live="polite">{failure}</span> : null}
       </div>
-    </Notice>
+    </InlineAlert>
   );
 }

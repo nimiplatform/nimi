@@ -1,6 +1,7 @@
 import { memo, useCallback, useMemo, type MouseEvent, type RefObject } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { cn } from '@nimiplatform/kit/ui';
+import type { ChatCopy } from '../copy.js';
 import type {
   CanonicalMessageAccessorySlot,
   CanonicalMessageAvatarSlot,
@@ -20,6 +21,7 @@ const VIRTUALIZATION_THRESHOLD = 30;
 type TranscriptMessageGroupsProps = {
   messages: readonly ConversationCanonicalMessage[];
   scrollRef: RefObject<HTMLElement | null>;
+  copy?: ChatCopy;
   renderMessageContent?: CanonicalMessageContentSlot;
   renderMessageAvatar?: CanonicalMessageAvatarSlot;
   renderMessageAccessory?: CanonicalMessageAccessorySlot;
@@ -35,11 +37,11 @@ type TranscriptMessageGroupsProps = {
 function DateSeparatorRow({ label }: { label: string }) {
   return (
     <div className="flex items-center gap-3 py-2">
-      <div className="h-px flex-1 bg-slate-200/70" />
-      <span className="shrink-0 rounded-full border border-white/80 bg-white/72 px-3 py-1 text-[11px] font-medium text-slate-500">
+      <div className="h-px flex-1 bg-[var(--nimi-border-subtle)]" />
+      <span className="shrink-0 rounded-full border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_72%,transparent)] px-3 py-1 text-[length:var(--nimi-type-overline-size)] font-medium text-[var(--nimi-text-muted)]">
         {label}
       </span>
-      <div className="h-px flex-1 bg-slate-200/70" />
+      <div className="h-px flex-1 bg-[var(--nimi-border-subtle)]" />
     </div>
   );
 }
@@ -65,10 +67,10 @@ function renderMessageItem(
           data-canonical-sender-label="true"
           data-canonical-sender-kind={virtualItem.item.message.senderKind || 'unknown'}
           className={cn(
-            'pl-10 text-[11px] font-medium tracking-[0.01em]',
+            'pl-10 text-[length:var(--nimi-type-overline-size)] font-medium tracking-[0.01em]',
             virtualItem.item.message.senderKind === 'agent' || virtualItem.item.message.senderKind === 'source'
-              ? 'text-violet-600'
-              : 'text-slate-500',
+              ? 'text-[var(--nimi-color-indigo)]'
+              : 'text-[var(--nimi-text-muted)]',
           )}
         >
           {senderName}
@@ -87,6 +89,7 @@ function renderMessageItem(
         showTimestamp={virtualItem.item.showTimestamp}
         position={virtualItem.item.position}
         displayContext="transcript"
+        copy={props.copy}
         voicePlayingMessageId={props.voicePlayingMessageId}
         isVoiceTranscriptVisible={props.isVoiceTranscriptVisible?.(virtualItem.item.message)}
         disableRpContent={props.disableRpContent}

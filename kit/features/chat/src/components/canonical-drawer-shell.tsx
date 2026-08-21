@@ -1,5 +1,5 @@
 import { IconButton, SidebarShell, cn } from '@nimiplatform/kit/ui';
-import type { ReactNode } from 'react';
+import { useEffect, type ReactNode } from 'react';
 
 export type CanonicalDrawerShellProps = {
   open: boolean;
@@ -18,11 +18,27 @@ export function CanonicalDrawerShell({
   widthClassName = 'w-[360px] max-w-[92vw]',
   children,
 }: CanonicalDrawerShellProps) {
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [open, onClose]);
+
   return (
     <SidebarShell
       as="div"
+      inert={!open}
       className={cn(
-        'absolute inset-y-0 right-0 z-30 rounded-none border-y-0 border-r-0 bg-[var(--nimi-sidebar-canvas)] shadow-[var(--nimi-elevation-floating)] transition-transform duration-[var(--nimi-motion-slow)] ease-[cubic-bezier(0.2,0.7,0.2,1)]',
+        'absolute inset-y-0 right-0 z-30 rounded-none border-y-0 border-r-0 bg-[var(--nimi-sidebar-canvas)] shadow-[var(--nimi-elevation-floating)] transition-transform duration-[var(--nimi-motion-slow)] ease-[var(--nimi-motion-ease-standard)]',
         widthClassName,
         open ? 'translate-x-0' : 'pointer-events-none translate-x-full',
       )}

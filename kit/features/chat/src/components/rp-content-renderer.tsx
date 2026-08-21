@@ -8,7 +8,7 @@ export type RpContentRendererProps = {
 };
 
 const NARRATION_CLASS: Record<NonNullable<RpContentRendererProps['appearance']>, string> = {
-  canonical: 'my-2 whitespace-pre-wrap text-[0.92em] italic leading-[1.7] text-gray-500',
+  canonical: 'my-2 whitespace-pre-wrap text-[0.92em] italic leading-[1.7] text-[var(--nimi-text-muted)]',
 };
 
 function NarrationSegment(props: { text: string; appearance: NonNullable<RpContentRendererProps['appearance']> }) {

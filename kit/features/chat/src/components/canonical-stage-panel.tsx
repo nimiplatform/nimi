@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useRef, type ReactNode, type RefObject } from 'react';
+import { Surface } from '@nimiplatform/kit/ui';
 import type {
   CanonicalMessageAccessorySlot,
   CanonicalMessageAvatarSlot,
@@ -7,6 +8,7 @@ import type {
   ConversationCanonicalMessage,
   ConversationCharacterData,
 } from '../types.js';
+import { resolveChatCopy, type ChatCopy } from '../copy.js';
 import { CanonicalMessageBubble } from './canonical-message-bubble.js';
 import { CanonicalTypingBubble } from './canonical-typing-bubble.js';
 import { CANONICAL_STAGE_SURFACE_WIDTH_CLASS } from './canonical-conversation-pane.js';
@@ -119,6 +121,8 @@ export type CanonicalStagePanelProps = {
   renderMessageAccessory?: CanonicalMessageAccessorySlot;
   agentAvatarUrl?: string | null;
   agentName?: string;
+  /** Optional copy overrides merged over the default English strings. */
+  copy?: ChatCopy;
   voicePlayingMessageId?: string | null;
   isVoiceTranscriptVisible?: (message: ConversationCanonicalMessage) => boolean;
   disableRpContent?: boolean;
@@ -152,6 +156,7 @@ function toStageRenderContext(
 }
 
 export function CanonicalStagePanel(props: CanonicalStagePanelProps) {
+  const copy = resolveChatCopy(props.copy);
   const upwardIntentRef = useRef({ distance: 0, lastAt: 0 });
   const slice = useMemo(() => resolveStageConversationSlice({
     messages: props.messages,
@@ -163,8 +168,8 @@ export function CanonicalStagePanel(props: CanonicalStagePanelProps) {
   const widthClassName = props.widthClassName || CANONICAL_STAGE_SURFACE_WIDTH_CLASS;
   const stageBackgroundStyle = resolveConversationThemeBackgroundStyle({
     theme,
-    fallbackBackground: 'linear-gradient(180deg, rgba(255,255,255,0.82), rgba(255,255,255,0.90))',
-    overlay: 'linear-gradient(180deg, rgba(255,255,255,0.76), rgba(255,255,255,0.90))',
+    fallbackBackground: 'linear-gradient(180deg, color-mix(in srgb, var(--nimi-surface-card) 82%, transparent), color-mix(in srgb, var(--nimi-surface-card) 90%, transparent))',
+    overlay: 'linear-gradient(180deg, color-mix(in srgb, var(--nimi-surface-card) 76%, transparent), color-mix(in srgb, var(--nimi-surface-card) 90%, transparent))',
   });
 
   const handleWheelCapture = useCallback((event: React.WheelEvent<HTMLDivElement>) => {
@@ -206,35 +211,41 @@ export function CanonicalStagePanel(props: CanonicalStagePanelProps) {
           className={`w-full ${widthClassName}`}
           data-canonical-stage-width={widthClassName}
         >
-          <div className="w-full rounded-[30px] border border-[var(--nimi-action-primary-bg)]/15 bg-[linear-gradient(180deg,rgba(255,255,255,0.97),rgba(248,250,252,0.92))] p-4 shadow-[0_24px_60px_rgba(15,23,42,0.08)] backdrop-blur-xl">
+          <Surface
+            material="glass-thick"
+            tone="card"
+            elevation="floating"
+            padding="none"
+            className="w-full rounded-[var(--nimi-radius-xl)] border-[var(--nimi-action-primary-bg)]/15 p-4"
+          >
             <div className="mb-3 flex items-center justify-between gap-3 px-2">
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--nimi-action-primary-bg)]/70">
-                  Moment
+                <p className="text-[length:var(--nimi-type-overline-size)] font-semibold uppercase tracking-[0.22em] text-[var(--nimi-action-primary-bg)]/70">
+                  {copy.stageMomentEyebrow}
                 </p>
-                <p className="mt-1 text-xs text-slate-500">
+                <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">
                   {totalBeats > 0
-                    ? `${totalBeats} beat${totalBeats === 1 ? '' : 's'} in focus`
-                    : 'Send a message to begin'}
+                    ? copy.stageBeatsInFocusLabel(totalBeats)
+                    : copy.stageBeginHintLabel}
                 </p>
               </div>
             </div>
 
             <div
               data-canonical-stage-scroll-root="true"
-              className="max-h-[72vh] overflow-y-auto overscroll-contain rounded-[24px] border border-slate-200/75 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.95))] px-4 py-4 backdrop-blur-sm"
+              className="max-h-[72vh] overflow-y-auto overscroll-contain rounded-[var(--nimi-radius-xl)] border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_96%,transparent)] px-4 py-4"
             >
               {props.content ? (
                 props.content
               ) : showEmptyState ? (
                 <div className="flex min-h-[180px] flex-col items-center justify-center gap-3 px-6 text-center">
-                  <div className="h-14 w-14 rounded-full bg-[radial-gradient(circle,_rgba(94,234,212,0.28),_rgba(255,255,255,0.96))] shadow-[0_14px_28px_rgba(20,184,166,0.18)]" />
+                  <div className="h-14 w-14 rounded-full bg-[radial-gradient(circle,_color-mix(in_srgb,var(--nimi-status-success)_28%,transparent),_color-mix(in_srgb,var(--nimi-surface-card)_96%,transparent))] shadow-[0_14px_28px_color-mix(in_srgb,var(--nimi-status-success)_18%,transparent)]" />
                   <div className="space-y-1">
-                    <p className="text-sm font-semibold text-slate-800">
-                      Waiting for the first exchange
+                    <p className="text-sm font-semibold text-[var(--nimi-text-primary)]">
+                      {copy.stageEmptyTitle}
                     </p>
-                    <p className="text-sm leading-6 text-slate-500">
-                      The stage keeps the current turn in focus before the full history takes over.
+                    <p className="text-sm leading-6 text-[var(--nimi-text-muted)]">
+                      {copy.stageEmptyDescription}
                     </p>
                   </div>
                 </div>
@@ -260,6 +271,7 @@ export function CanonicalStagePanel(props: CanonicalStagePanelProps) {
                       showTimestamp={index === slice.userMessages.length - 1}
                       position={slice.userMessages.length <= 1 ? 'single' : index === 0 ? 'start' : index === slice.userMessages.length - 1 ? 'end' : 'middle'}
                       displayContext="stage"
+                      copy={copy}
                       voicePlayingMessageId={props.voicePlayingMessageId}
                       isVoiceTranscriptVisible={props.isVoiceTranscriptVisible?.(message)}
                       disableRpContent={props.disableRpContent}
@@ -288,6 +300,7 @@ export function CanonicalStagePanel(props: CanonicalStagePanelProps) {
                       showTimestamp={index === slice.assistantMessages.length - 1}
                       position={slice.assistantMessages.length <= 1 ? 'single' : index === 0 ? 'start' : index === slice.assistantMessages.length - 1 ? 'end' : 'middle'}
                       displayContext="stage"
+                      copy={copy}
                       voicePlayingMessageId={props.voicePlayingMessageId}
                       isVoiceTranscriptVisible={props.isVoiceTranscriptVisible?.(message)}
                       disableRpContent={props.disableRpContent}
@@ -299,16 +312,16 @@ export function CanonicalStagePanel(props: CanonicalStagePanelProps) {
                   {slice.pendingFirstBeat ? (
                     <CanonicalTypingBubble
                       agentAvatarUrl={props.agentAvatarUrl}
-                      agentName={props.agentName || props.characterData?.name || 'Assistant'}
-                      agentRoleLabel={props.pendingAgentRoleLabel || 'Assistant pending'}
-                      thinkingLabel={props.pendingThinkingLabel || 'Thinking...'}
+                      agentName={props.agentName || props.characterData?.name || copy.bubbleAssistantLabel}
+                      agentRoleLabel={props.pendingAgentRoleLabel || copy.typingAgentRoleLabel}
+                      thinkingLabel={props.pendingThinkingLabel || copy.typingThinkingLabel}
                     />
                   ) : null}
                   {props.footerContent}
                 </div>
               )}
             </div>
-          </div>
+          </Surface>
         </div>
       </div>
     </div>

@@ -2,6 +2,11 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { cn } from '@nimiplatform/kit/ui';
 import type { ConversationMode } from '../types.js';
 
+/**
+ * @deprecated Legacy conversation shell family. The canonical shell
+ * (`CanonicalConversationShell`) is the UI truth source for shared chat
+ * surfaces; mode entry is owned by the canonical target pane and shell.
+ */
 export type ConversationModeOption = {
   mode: ConversationMode;
   label: string;
@@ -9,6 +14,11 @@ export type ConversationModeOption = {
   countBadge?: string | number | null;
 };
 
+/**
+ * @deprecated Legacy conversation shell family. The canonical shell
+ * (`CanonicalConversationShell`) is the UI truth source for shared chat
+ * surfaces; mode entry is owned by the canonical target pane and shell.
+ */
 export type ConversationModeSwitcherProps = {
   modes: readonly ConversationModeOption[];
   activeMode: ConversationMode;
@@ -42,6 +52,11 @@ const MODE_ICONS: Record<ConversationMode, React.ReactNode> = {
   ),
 };
 
+/**
+ * @deprecated Legacy conversation shell family. The canonical shell
+ * (`CanonicalConversationShell`) is the UI truth source for shared chat
+ * surfaces; mode entry is owned by the canonical target pane and shell.
+ */
 export function ConversationModeSwitcher({
   modes,
   activeMode,
@@ -50,9 +65,16 @@ export function ConversationModeSwitcher({
 }: ConversationModeSwitcherProps) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const itemRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const activeOption = modes.find((m) => m.mode === activeMode);
 
-  const close = useCallback(() => setOpen(false), []);
+  const close = useCallback((restoreFocus = false) => {
+    setOpen(false);
+    if (restoreFocus) {
+      triggerRef.current?.focus();
+    }
+  }, []);
 
   useEffect(() => {
     if (!open) return;
@@ -65,23 +87,63 @@ export function ConversationModeSwitcher({
     return () => document.removeEventListener('mousedown', handler);
   }, [open, close]);
 
+  // Move focus into the menu when it opens.
+  useEffect(() => {
+    if (!open) return;
+    const firstEnabledIndex = modes.findIndex((option) => !option.disabled);
+    if (firstEnabledIndex >= 0) {
+      itemRefs.current[firstEnabledIndex]?.focus();
+    }
+  }, [open, modes]);
+
+  const handleKeyDown = useCallback((event: React.KeyboardEvent) => {
+    if (event.key === 'Escape') {
+      if (!open) return;
+      event.preventDefault();
+      event.stopPropagation();
+      close(true);
+      return;
+    }
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      event.preventDefault();
+      if (!open) {
+        setOpen(true);
+        return;
+      }
+      const enabledIndexes = modes
+        .map((option, index) => (option.disabled ? -1 : index))
+        .filter((index) => index >= 0);
+      if (enabledIndexes.length === 0) return;
+      const currentIndex = itemRefs.current.findIndex((el) => el === document.activeElement);
+      const currentPosition = enabledIndexes.indexOf(currentIndex);
+      const delta = event.key === 'ArrowDown' ? 1 : -1;
+      const nextPosition = currentPosition === -1
+        ? (delta === 1 ? 0 : enabledIndexes.length - 1)
+        : (currentPosition + delta + enabledIndexes.length) % enabledIndexes.length;
+      itemRefs.current[enabledIndexes[nextPosition]!]?.focus();
+    }
+  }, [open, modes, close]);
+
   if (modes.length <= 1) {
     return null;
   }
 
   return (
-    <div ref={ref} className={cn('relative', className)}>
+    <div ref={ref} className={cn('relative', className)} onKeyDown={handleKeyDown}>
       {/* trigger button */}
       <button
+        ref={triggerRef}
         type="button"
         onClick={() => setOpen(!open)}
+        aria-haspopup="menu"
+        aria-expanded={open}
         className={cn(
           'inline-flex h-10 w-10 items-center justify-center rounded-full',
-          'border border-slate-200/80 bg-white/90 text-slate-700',
-          'shadow-[0_2px_8px_rgba(15,23,42,0.05)]',
-          'transition-all duration-150',
-          'hover:-translate-y-px hover:border-[var(--nimi-action-primary-bg)]/50 hover:text-[var(--nimi-action-primary-bg)] hover:shadow-[0_8px_18px_rgba(15,23,42,0.08)]',
-          'active:scale-[0.985]',
+          'border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,transparent)] text-[var(--nimi-text-secondary)]',
+          'shadow-[var(--nimi-elevation-base)]',
+          'transition-[background-color,border-color,color,box-shadow,transform] duration-[var(--nimi-motion-fast)] ease-[var(--nimi-motion-ease-standard)]',
+          'hover:border-[var(--nimi-action-primary-bg)]/50 hover:text-[var(--nimi-action-primary-bg)] hover:shadow-[var(--nimi-elevation-raised)]',
+          'active:scale-[var(--nimi-motion-pressed-scale)]',
         )}
         aria-label={`Current mode: ${activeOption?.label || activeMode}`}
       >
@@ -91,29 +153,35 @@ export function ConversationModeSwitcher({
       {/* dropdown */}
       {open ? (
         <div
+          role="menu"
+          aria-orientation="vertical"
           className={cn(
-            'absolute left-0 top-full z-50 mt-2 min-w-[180px]',
-            'rounded-xl border border-slate-200/60 bg-white/95 py-1.5',
-            'shadow-[0_12px_36px_rgba(15,23,42,0.1)] backdrop-blur-lg',
+            'absolute left-0 top-full z-[var(--nimi-z-popover)] mt-2 min-w-[180px]',
+            'rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-overlay)] py-1.5',
+            'shadow-[var(--nimi-elevation-floating)]',
             'conv-animate-fade-in',
           )}
         >
-          {modes.map((option) => {
+          {modes.map((option, index) => {
             const active = option.mode === activeMode;
             return (
               <button
                 key={option.mode}
+                ref={(el) => {
+                  itemRefs.current[index] = el;
+                }}
                 type="button"
+                role="menuitem"
                 disabled={option.disabled}
                 onClick={() => {
                   onModeChange?.(option.mode);
-                  close();
+                  close(true);
                 }}
                 className={cn(
-                  'flex w-full items-center gap-3 px-4 py-2.5 text-left text-[13px] transition-colors',
+                  'flex w-full items-center gap-3 px-4 py-2.5 text-left text-[length:var(--nimi-type-body-sm-size)] transition-colors',
                   active
                     ? 'bg-[var(--nimi-surface-active)] font-semibold text-[var(--nimi-action-primary-bg)]'
-                    : 'text-slate-700 hover:bg-slate-50',
+                    : 'text-[var(--nimi-text-secondary)] hover:bg-[var(--nimi-surface-panel)]',
                   option.disabled && 'pointer-events-none opacity-40',
                 )}
               >
@@ -123,8 +191,8 @@ export function ConversationModeSwitcher({
                 <span className="flex-1">{option.label}</span>
                 {option.countBadge != null && option.countBadge !== '' ? (
                   <span className={cn(
-                    'inline-flex min-w-[18px] items-center justify-center rounded-full px-1 text-[10px] font-semibold',
-                    active ? 'bg-[var(--nimi-surface-active)] text-[var(--nimi-action-primary-bg)]' : 'bg-slate-100 text-slate-500',
+                    'inline-flex min-w-[18px] items-center justify-center rounded-full px-1 text-[length:var(--nimi-type-overline-size)] font-semibold',
+                    active ? 'bg-[var(--nimi-surface-active)] text-[var(--nimi-action-primary-bg)]' : 'bg-[var(--nimi-surface-panel)] text-[var(--nimi-text-muted)]',
                   )}>
                     {option.countBadge}
                   </span>

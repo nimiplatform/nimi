@@ -1,5 +1,6 @@
 import { Suspense, lazy, useCallback, useLayoutEffect, useMemo, useRef, useState, type MutableRefObject, type ReactNode } from 'react';
 import { cn } from '@nimiplatform/kit/ui';
+import { resolveChatCopy, type ChatCopy } from '../copy.js';
 import type {
   ConversationCanonicalMessage,
   ConversationCharacterData,
@@ -74,6 +75,8 @@ export type CanonicalConversationShellRenderContext = {
 export type CanonicalConversationShellProps = {
   className?: string;
   chrome?: 'card' | 'transparent';
+  /** Copy forwarded through all built-in canonical chat surfaces. */
+  copy?: ChatCopy;
   sourceFilter: ConversationSourceFilter;
   availableSources?: readonly ConversationSourceKind[];
   targets: readonly ConversationTargetSummary[];
@@ -91,6 +94,8 @@ export type CanonicalConversationShellProps = {
   messages?: readonly ConversationCanonicalMessage[];
   pendingFirstBeat?: boolean;
   transcriptProps?: Omit<CanonicalTranscriptViewProps, 'messages'>;
+  /** Localized label for the hidden-target-pane empty selection state. */
+  noSelectionLabel?: string;
   stagePanelProps?: Omit<
     CanonicalStagePanelProps,
     'messages' | 'characterData' | 'anchorViewportRef' | 'cardAnchorOffsetPx' | 'onIntentOpenHistory'
@@ -128,6 +133,7 @@ export type CanonicalConversationShellProps = {
 
 // @nimi-authority: rule.nimi.platform.ui-design-system.p-kit-061
 export function CanonicalConversationShell(props: CanonicalConversationShellProps) {
+  const copy = resolveChatCopy(props.copy);
   const [internalSettingsOpen, setInternalSettingsOpen] = useState(false);
   const [internalProfileOpen, setInternalProfileOpen] = useState(false);
   const avatarAnchorRef = useRef<HTMLButtonElement | null>(null);
@@ -234,7 +240,7 @@ export function CanonicalConversationShell(props: CanonicalConversationShellProp
         'conversation-root relative flex min-h-0 w-full flex-1 overflow-hidden',
         props.chrome === 'transparent'
           ? 'rounded-none bg-transparent'
-          : 'rounded-2xl bg-[radial-gradient(circle_at_top,_rgba(16,185,129,0.14),_transparent_38%),linear-gradient(180deg,_rgba(248,250,252,0.98),_rgba(241,245,249,0.94))]',
+          : 'rounded-2xl bg-[radial-gradient(circle_at_top,_color-mix(in_srgb,var(--nimi-status-success)_14%,transparent),_transparent_38%),linear-gradient(180deg,_color-mix(in_srgb,var(--nimi-surface-canvas)_98%,transparent),_color-mix(in_srgb,var(--nimi-surface-canvas)_94%,transparent))]',
         props.className,
       )}
       data-conversation-shell="canonical"
@@ -265,8 +271,8 @@ export function CanonicalConversationShell(props: CanonicalConversationShellProp
           </>
         ) : !props.selectedTarget ? (
           props.hideTargetPane ? (
-            <div className="flex min-h-0 flex-1 items-center justify-center text-sm text-slate-400">
-              Select a conversation from the sidebar
+            <div className="flex min-h-0 flex-1 items-center justify-center text-sm text-[var(--nimi-text-muted)]">
+              {props.noSelectionLabel ?? 'Select a conversation from the sidebar'}
             </div>
           ) : (
             <CanonicalTargetPane
@@ -277,6 +283,7 @@ export function CanonicalConversationShell(props: CanonicalConversationShellProp
               onSourceFilterChange={props.onSourceFilterChange}
               onSelectTarget={props.onSelectTarget}
               renderTargetMeta={props.renderTargetMeta}
+              copy={props.copy}
             />
           )
         ) : (
@@ -288,6 +295,7 @@ export function CanonicalConversationShell(props: CanonicalConversationShellProp
                   characterData={props.characterData}
                   avatarAnchorRef={avatarAnchorRef}
                   hideBackButton={props.hideTargetPane}
+                  copy={props.copy}
                   onBackToTargets={() => {
                     props.onSelectTarget(null);
                     closeTransientPanels();
@@ -318,6 +326,7 @@ export function CanonicalConversationShell(props: CanonicalConversationShellProp
               stagePanel={(
                 <Suspense fallback={<div className="flex min-h-0 flex-1" />}>
                   <CanonicalStagePanel
+                    copy={props.copy}
                     {...props.stagePanelProps}
                     characterData={props.characterData}
                     messages={messages}
@@ -331,6 +340,7 @@ export function CanonicalConversationShell(props: CanonicalConversationShellProp
               transcript={(
                 <CanonicalTranscriptView
                   messages={messages}
+                  copy={props.copy}
                   pendingFirstBeat={props.pendingFirstBeat}
                   activeConversationId={props.selectedTarget.canonicalSessionId || props.selectedTarget.id}
                   /* Stage mode shelved — do not auto-switch back */
@@ -346,9 +356,9 @@ export function CanonicalConversationShell(props: CanonicalConversationShellProp
 
       <button
         type="button"
-        aria-label="Dismiss overlay"
+        aria-label={copy.shellDismissOverlayLabel}
         className={cn(
-          'absolute inset-0 z-20 bg-slate-900/28 transition-opacity duration-200',
+          'absolute inset-0 z-20 bg-[var(--nimi-overlay-backdrop)] transition-opacity duration-[var(--nimi-motion-base)]',
           overlayVisible ? 'opacity-100' : 'pointer-events-none opacity-0',
         )}
         tabIndex={overlayVisible ? 0 : -1}

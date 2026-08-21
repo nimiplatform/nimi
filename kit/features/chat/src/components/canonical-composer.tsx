@@ -73,13 +73,13 @@ export function CanonicalComposer<TAttachment = never>({
         data-canonical-composer-responsive-floor="320"
       >
         {runtimeHint ? (
-          <div className="mb-3 rounded-2xl border border-amber-200/80 bg-amber-50/90 px-4 py-2 text-sm text-amber-800 shadow-[0_12px_24px_rgba(217,119,6,0.08)]">
+          <div className="mb-3 rounded-2xl border border-[var(--nimi-status-warning-soft-border)] bg-[var(--nimi-status-warning-soft-bg)] px-4 py-2 text-sm text-[var(--nimi-status-warning)] shadow-[0_12px_24px_color-mix(in_srgb,var(--nimi-status-warning)_14%,transparent)]">
             {runtimeHint}
           </div>
         ) : null}
 
         <div>
-          <ConversationComposerShell className={cn(mode === 'chat' ? 'rounded-[24px] shadow-[0_18px_42px_rgba(15,23,42,0.06)] transition-[box-shadow,border-color] duration-200 focus-within:border-[var(--nimi-field-focus)] focus-within:shadow-[0_22px_48px_rgba(15,23,42,0.10)]' : '')}>
+          <ConversationComposerShell className={cn(mode === 'chat' ? 'rounded-[var(--nimi-radius-xl)] transition-[box-shadow,border-color] duration-[var(--nimi-motion-base)] focus-within:border-[var(--nimi-field-focus)]' : '')}>
             <ChatComposer
               adapter={adapter}
               initialText={initialText}

@@ -1,11 +1,17 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { cn } from '@nimiplatform/kit/ui';
+import { cn, EmptyState } from '@nimiplatform/kit/ui';
 import {
   getRealmChatTimelineDisplayModel,
   resolveRealmChatMediaUrl,
   type RealmChatTimelineDisplayModel,
   type RealmChatTimelineMessage,
 } from '../realm.js';
+import {
+  CHAT_BUBBLE_MAX_WIDTH_CLASSNAME,
+  CHAT_BUBBLE_TEXT_CLASSNAME,
+  chatBubbleShapeStyle,
+} from '../bubble-styles.js';
+import { formatMessageTime } from '../utils/message-time.js';
 
 export type RealmChatTimelineAvatarRenderInput = {
   message: RealmChatTimelineMessage;
@@ -44,6 +50,8 @@ export type RealmChatTimelineProps = {
   realmBaseUrl?: string;
   resolveMediaSource?: RealmChatTimelineMediaResolver;
   emptyState?: ReactNode;
+  /** Title used by the default empty state when `emptyState` is not provided. */
+  emptyStateLabel?: string;
   emptyMessageLabel?: string;
   imageMessageLabel?: string;
   videoMessageLabel?: string;
@@ -101,11 +109,7 @@ function formatTimestamp(isoString: string, yesterdayLabel: string): string {
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const messageDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
   const diffDays = Math.round((today.getTime() - messageDay.getTime()) / 86400000);
-  const timeText = new Intl.DateTimeFormat(undefined, {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  }).format(date);
+  const timeText = formatMessageTime(date);
 
   if (diffDays === 0) {
     return timeText;
@@ -260,7 +264,8 @@ export function RealmChatTimeline({
   currentUserId,
   realmBaseUrl = '',
   resolveMediaSource,
-  emptyState = <p className="text-center text-sm text-[var(--nimi-text-muted)]">No messages</p>,
+  emptyState,
+  emptyStateLabel = 'No messages',
   emptyMessageLabel = 'Empty message',
   imageMessageLabel = 'Image',
   videoMessageLabel = 'Video',
@@ -280,7 +285,7 @@ export function RealmChatTimeline({
   renderGiftMessage,
 }: RealmChatTimelineProps) {
   if (messages.length === 0) {
-    return <>{emptyState}</>;
+    return <>{emptyState ?? <EmptyState title={emptyStateLabel} />}</>;
   }
 
   return (
@@ -299,7 +304,7 @@ export function RealmChatTimeline({
             <div key={message.id || message.clientMessageId || index}>
               {showTimestamp && timestampLabel ? (
                 <div className="my-6 flex items-center justify-center">
-                  <span className="rounded-full bg-[var(--nimi-surface-panel)] px-3 py-1 text-[11px] font-medium text-[var(--nimi-text-muted)]">{timestampLabel}</span>
+                  <span className="rounded-full bg-[var(--nimi-surface-panel)] px-3 py-1 text-[length:var(--nimi-type-overline-size)] font-medium text-[var(--nimi-text-muted)]">{timestampLabel}</span>
                 </div>
               ) : null}
               <div
@@ -311,10 +316,11 @@ export function RealmChatTimeline({
                 )}
               >
                 {renderAvatar ? renderAvatar({ message, display, isMe, index }) : null}
-                <div className={cn('max-w-[75%]', isMe && 'text-right')}>
+                <div className={cn(CHAT_BUBBLE_MAX_WIDTH_CLASSNAME, isMe && 'text-right')}>
                   <div
                     className={cn(
-                      'inline-block rounded-[18px] text-[15px] leading-snug',
+                      'inline-block',
+                      CHAT_BUBBLE_TEXT_CLASSNAME,
                       display.isMediaMessage || display.isGiftMessage
                         ? 'overflow-hidden bg-transparent p-0 text-[var(--nimi-text-primary)]'
                         : isMe
@@ -323,6 +329,7 @@ export function RealmChatTimeline({
                       bubbleClassName,
                       isMe ? userBubbleClassName : otherBubbleClassName,
                     )}
+                    style={chatBubbleShapeStyle(isMe ? 'user' : 'agent')}
                   >
                     {display.isGiftMessage && renderGiftMessage ? (
                       renderGiftMessage({ message, display, isMe, index })
@@ -336,7 +343,7 @@ export function RealmChatTimeline({
                             resolveMediaSource={resolveMediaSource}
                           />
                           {display.isUploadingMedia ? (
-                            <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--nimi-surface-overlay)_65%,transparent)] backdrop-blur-[1px]">
+                            <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--nimi-surface-overlay)_65%,transparent)]">
                               <span className="h-10 w-10 animate-spin rounded-full border-[3px] border-[color-mix(in_srgb,var(--nimi-surface-overlay)_70%,transparent)] border-t-[var(--nimi-action-primary-bg)] shadow-sm" />
                             </div>
                           ) : null}
@@ -369,7 +376,7 @@ export function RealmChatTimeline({
                   {display.showDeliveryState ? (
                     <div
                       className={cn(
-                        'mt-1 px-1 text-[11px]',
+                        'mt-1 px-1 text-[length:var(--nimi-type-overline-size)]',
                         isMe ? 'text-right' : 'text-left',
                         display.deliveryState === 'failed'
                           ? 'text-[var(--nimi-status-danger)]'

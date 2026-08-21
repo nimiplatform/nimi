@@ -1,6 +1,7 @@
 import { PlayCircle, Settings, X } from 'lucide-react';
-import { useMemo, useState } from 'react';
-import { LoadingSkeleton } from '@nimiplatform/kit/ui';
+import { useMemo, useState, type KeyboardEvent } from 'react';
+import { Button, IconButton, InlineAlert, LoadingSkeleton } from '@nimiplatform/kit/ui';
+import { FOCUS_RING_CLASS_NAME } from '@nimiplatform/kit/ui/a11y';
 import { CANONICAL_CAPABILITY_CATALOG } from '@nimiplatform/kit/core/runtime-capabilities';
 import { AGENT_CENTER_SECTION_LABELS } from '../sections.js';
 import {
@@ -27,12 +28,10 @@ import { AgentCenterBehaviorSection } from './AgentCenterBehaviorSection.js';
 import { AgentCenterCognitionSection } from './AgentCenterCognitionSection.js';
 import { AgentCenterAIConfigSection } from './AgentCenterAIConfigSection.js';
 import {
-  AgentButton,
   Card,
   ChecklistItem,
   Kv,
   KvGrid,
-  Notice,
   ProgressHero,
   SECTION_ICONS,
   SectionHeader,
@@ -208,7 +207,7 @@ function AgentCenterOverview({
         title={setup.remaining === 0 ? copy.readyTitle : copy.attentionTitle}
       />
       <div>
-        <h3 className="mb-2 mt-1 text-[13px] font-semibold text-slate-950">{copy.checklistTitle}</h3>
+        <h3 className="mb-2 mt-1 text-[length:var(--nimi-type-body-sm-size)] font-semibold text-[var(--nimi-text-primary)]">{copy.checklistTitle}</h3>
         <Card>
           {checklist.map((item, index) => (
             <ChecklistItem
@@ -232,8 +231,8 @@ function AgentCenterOverview({
           data-agent-center-source-context-status={state.sourceContext.status}
         >
           <span className="grid min-w-0 flex-1 gap-1">
-            <span className="text-[13px] font-semibold tracking-tight text-slate-950">{copy.sourceContextTitle}</span>
-            <span className="text-[12.5px] leading-[1.5] text-slate-600">{sourceContext.description}</span>
+            <span className="text-[length:var(--nimi-type-body-sm-size)] font-semibold tracking-tight text-[var(--nimi-text-primary)]">{copy.sourceContextTitle}</span>
+            <span className="text-[length:var(--nimi-type-body-sm-size)] leading-[1.5] text-[var(--nimi-text-secondary)]">{sourceContext.description}</span>
           </span>
           <StatusPill label={sourceContext.label} tone={sourceContext.tone} />
         </div>
@@ -376,19 +375,29 @@ function AgentCenterChromeActions(props: {
   return (
     <div className="flex shrink-0 items-center gap-1.5" data-agent-center-chrome-actions="true">
       {props.actions?.openRuntimeSettings ? (
-        <AgentButton ariaLabel={props.copy.openRuntimeSettingsLabel} className="h-9 w-9 px-0" onClick={props.actions.openRuntimeSettings} variant="default">
-          <Settings aria-hidden="true" className="h-4 w-4" />
-        </AgentButton>
+        <IconButton
+          aria-label={props.copy.openRuntimeSettingsLabel}
+          icon={<Settings aria-hidden="true" className="h-4 w-4" />}
+          onClick={props.actions.openRuntimeSettings}
+          tone="secondary"
+        />
       ) : null}
       {props.actions?.launchAvatar ? (
-        <AgentButton ariaLabel={props.copy.launchAvatarLabel} className="h-9 w-9 px-0" onClick={props.actions.launchAvatar} variant="default">
-          <PlayCircle aria-hidden="true" className="h-4 w-4" />
-        </AgentButton>
+        <IconButton
+          aria-label={props.copy.launchAvatarLabel}
+          icon={<PlayCircle aria-hidden="true" className="h-4 w-4" />}
+          onClick={props.actions.launchAvatar}
+          tone="secondary"
+        />
       ) : null}
       {props.actions?.close ? (
-        <AgentButton ariaLabel={props.copy.closeLabel} className="h-9 w-9 px-0 shadow-[0_8px_18px_rgba(15,23,42,0.08)]" onClick={props.actions.close} variant="default">
-          <X aria-hidden="true" className="h-4 w-4" />
-        </AgentButton>
+        <IconButton
+          aria-label={props.copy.closeLabel}
+          className="shadow-[var(--nimi-elevation-base)]"
+          icon={<X aria-hidden="true" className="h-4 w-4" />}
+          onClick={props.actions.close}
+          tone="secondary"
+        />
       ) : null}
     </div>
   );
@@ -406,7 +415,7 @@ function AgentCenterChromeHeader(props: {
     return (
       <header className="flex min-w-0 items-start justify-between gap-3">
         <div className="flex min-w-0 items-start gap-3">
-          <span className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-[18px] border border-emerald-300/70 bg-emerald-500/15 text-lg font-semibold text-emerald-950 shadow-[0_0_0_3px_rgba(168,85,247,0.22)]">
+          <span className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-[18px] border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_35%,transparent)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_12%,transparent)] text-lg font-semibold text-[var(--nimi-action-primary-bg)] shadow-[0_0_0_3px_var(--nimi-surface-active)]">
             {identity.avatarUrl ? (
               <img
                 alt=""
@@ -416,15 +425,15 @@ function AgentCenterChromeHeader(props: {
             ) : fallback}
           </span>
           <div className="min-w-0 pt-1">
-            <span className="mb-0.5 block text-[10.5px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+            <span className="mb-0.5 block text-[length:var(--nimi-type-overline-size)] font-semibold uppercase tracking-[0.16em] text-[var(--nimi-text-muted)]">
               {props.copy.eyebrow}
             </span>
-            <h1 className="m-0 truncate text-[16px] font-semibold leading-[1.25] text-slate-950">
+            <h1 className="m-0 truncate text-[length:var(--nimi-type-section-title-size)] font-semibold leading-[1.25] text-[var(--nimi-text-primary)]">
               {identity.displayName}
             </h1>
             <div className="mt-1 flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1">
               {identity.badgeLabel ? (
-                <em className="inline-flex max-w-full shrink-0 rounded-full border border-violet-300/60 bg-violet-500/10 px-2 py-px text-[10.5px] font-semibold not-italic text-violet-700">
+                <em className="inline-flex max-w-full shrink-0 rounded-full border border-[var(--nimi-status-neutral-soft-border)] bg-[var(--nimi-status-neutral-soft-bg)] px-2 py-px text-[length:var(--nimi-type-overline-size)] font-semibold not-italic text-[var(--nimi-status-neutral-soft-text)]">
                   {identity.badgeLabel}
                 </em>
               ) : null}
@@ -438,14 +447,14 @@ function AgentCenterChromeHeader(props: {
   return (
     <header className="flex min-w-0 items-start justify-between gap-3">
       <div className="min-w-0">
-        <h1 className="m-0 text-[20px] font-semibold leading-[1.2] text-slate-950">{props.copy.title}</h1>
+        <h1 className="m-0 text-[length:var(--nimi-type-page-title-size)] font-semibold leading-[1.2] text-[var(--nimi-text-primary)]">{props.copy.title}</h1>
         <p className={cnAgentCenter(
-          'm-0 mt-1.5 text-[13px] leading-[1.45]',
-          props.state.statusTone === 'ready' && 'text-emerald-700',
-          props.state.statusTone === 'attention' && 'text-amber-700',
-          props.state.statusTone === 'failed' && 'text-red-700',
-          props.state.statusTone === 'loading' && 'text-sky-700',
-          props.state.statusTone === 'disabled' && 'text-slate-500',
+          'm-0 mt-1.5 text-[length:var(--nimi-type-body-sm-size)] leading-[1.45]',
+          props.state.statusTone === 'ready' && 'text-[var(--nimi-status-success-soft-text)]',
+          props.state.statusTone === 'attention' && 'text-[var(--nimi-status-warning-soft-text)]',
+          props.state.statusTone === 'failed' && 'text-[var(--nimi-status-danger-soft-text)]',
+          props.state.statusTone === 'loading' && 'text-[var(--nimi-status-info-soft-text)]',
+          props.state.statusTone === 'disabled' && 'text-[var(--nimi-text-muted)]',
         )}>
           {props.state.baseTextConfigured ? props.copy.textConfiguredLabel : props.state.baseTextConfigurationDetail}
         </p>
@@ -492,18 +501,40 @@ export function AgentCenter(props: AgentCenterProps) {
     }
     props.onSectionChange?.(section);
   };
+  // Roving tabindex is already in place below; this wires the keyboard half of
+  // the tabs pattern (automatic activation, per WAI-ARIA tabs with a live
+  // tabpanel that is cheap to swap).
+  const handleTabListKeyDown = (event: KeyboardEvent<HTMLElement>) => {
+    const sections = state.sections;
+    if (sections.length === 0) return;
+    const currentIndex = sections.indexOf(activeSection);
+    let nextIndex: number | null = null;
+    if (event.key === 'ArrowRight') {
+      nextIndex = currentIndex < 0 ? 0 : (currentIndex + 1) % sections.length;
+    } else if (event.key === 'ArrowLeft') {
+      nextIndex = currentIndex < 0 ? sections.length - 1 : (currentIndex - 1 + sections.length) % sections.length;
+    } else if (event.key === 'Home') {
+      nextIndex = 0;
+    } else if (event.key === 'End') {
+      nextIndex = sections.length - 1;
+    }
+    if (nextIndex === null) return;
+    event.preventDefault();
+    const nextSection = sections[nextIndex];
+    if (!nextSection) return;
+    setSection(nextSection);
+    event.currentTarget.querySelector<HTMLElement>(`#agent-center-tab-${nextSection}`)?.focus();
+  };
 
   return (
     <section
       aria-label={chromeCopy.title}
       className={cnAgentCenter(
-        'grid min-w-0 max-w-full text-slate-950',
+        'grid min-w-0 max-w-full text-[var(--nimi-text-primary)]',
         chrome === 'standalone'
-          ? 'gap-4 rounded-[18px] border border-slate-200/80 bg-white/80 p-4 shadow-[0_16px_34px_rgba(15,23,42,0.05)]'
+          ? 'gap-4 rounded-[18px] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-4 shadow-[var(--nimi-elevation-raised)]'
           : 'gap-3',
       )}
-      data-agent-center-density={props.density || 'regular'}
-      data-agent-center-layout={props.layout || 'stacked'}
       data-chat-agent-center="true"
     >
       {chrome === 'standalone' ? (
@@ -515,19 +546,23 @@ export function AgentCenter(props: AgentCenterProps) {
         />
       ) : null}
       {store.snapshot.error ? (
-        <Notice tone="warn">
-          <div className="flex min-w-0 items-center justify-between gap-3" data-agent-center-load-error="true">
-            <span>{store.snapshot.error}</span>
-            <AgentButton onClick={() => { void store.refresh(); }}>
+        <InlineAlert
+          action={(
+            <Button onClick={() => { void store.refresh(); }} size="sm" tone="secondary">
               {translateAgentCenter(props.i18n, 'AgentCenter.error.retry', agentCenterEnCatalog["AgentCenter.error.retry"])}
-            </AgentButton>
-          </div>
-        </Notice>
+            </Button>
+          )}
+          data-agent-center-load-error="true"
+          tone="danger"
+        >
+          {store.snapshot.error}
+        </InlineAlert>
       ) : null}
       <nav
         aria-label={chromeCopy.navLabel}
         className="flex shrink-0 items-center gap-1 overflow-x-auto px-1.5 pb-1 pt-2.5"
         data-agent-center-nav-style="desktop-dynamic-expand"
+        onKeyDown={handleTabListKeyDown}
         role="tablist"
       >
         {state.sections.map((section) => {
@@ -540,36 +575,27 @@ export function AgentCenter(props: AgentCenterProps) {
               aria-label={sectionLabels[section]}
               aria-selected={selected}
               className={cnAgentCenter(
-                'group relative flex h-9 min-w-[36px] shrink-0 items-center rounded-[12px] text-[12px] font-medium',
-                'transition-[width,background-color,color,padding] duration-300 ease-[cubic-bezier(0.32,0.72,0.0,1)]',
-                'outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/70',
+                'group relative flex h-9 min-w-[36px] shrink-0 items-center rounded-[12px] text-[length:var(--nimi-type-caption-size)] font-medium',
+                'transition-[width,background-color,color,padding] duration-[var(--nimi-motion-slow)] ease-[var(--nimi-motion-ease-emphasized)]',
+                FOCUS_RING_CLASS_NAME,
                 selected
-                  ? 'bg-emerald-500/15 px-3 text-emerald-800 max-[420px]:w-9 max-[420px]:justify-center max-[420px]:px-0'
+                  ? 'bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_12%,transparent)] px-3 text-[var(--nimi-action-primary-bg)] max-[420px]:w-9 max-[420px]:justify-center max-[420px]:px-0'
                   : badge
-                    ? 'w-[48px] justify-center px-0 text-slate-500 hover:bg-slate-100 hover:text-slate-900'
-                    : 'w-9 justify-center px-0 text-slate-500 hover:bg-slate-100 hover:text-slate-900',
+                    ? 'w-[48px] justify-center px-0 text-[var(--nimi-text-secondary)] hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-text-primary)]'
+                    : 'w-9 justify-center px-0 text-[var(--nimi-text-secondary)] hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-text-primary)]',
               )}
               data-testid={`chat-agent-center-section:${section}`}
               id={`agent-center-tab-${section}`}
               key={section}
               onClick={() => setSection(section)}
               role="tab"
-              style={{
-                outline: 'none',
-                ...(selected
-                  ? {
-                    backgroundColor: 'rgba(16, 185, 129, 0.12)',
-                    color: '#065f46',
-                  }
-                  : {}),
-              }}
               tabIndex={selected ? 0 : -1}
               type="button"
             >
               <Icon aria-hidden="true" className="h-[18px] w-[18px] shrink-0" />
               <span
                 className={cnAgentCenter(
-                  'overflow-hidden whitespace-nowrap transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0.0,1)] max-[420px]:hidden',
+                  'overflow-hidden whitespace-nowrap transition-[max-width,opacity,margin-left] duration-[var(--nimi-motion-slow)] ease-[var(--nimi-motion-ease-emphasized)] max-[420px]:hidden',
                   selected ? 'ml-2 max-w-[160px] opacity-100 max-[420px]:ml-0 max-[420px]:max-w-0 max-[420px]:opacity-0' : 'ml-0 max-w-0 opacity-0',
                 )}
               >
@@ -579,7 +605,7 @@ export function AgentCenter(props: AgentCenterProps) {
                 <span
                   aria-hidden="true"
                   className={cnAgentCenter(
-                    'pointer-events-none grid h-[18px] min-w-[18px] place-items-center rounded-full bg-red-500 px-1 text-[10px] font-semibold leading-none text-white shadow-sm ring-2 ring-white',
+                    'pointer-events-none grid h-[18px] min-w-[18px] place-items-center rounded-full bg-[var(--nimi-status-danger)] px-1 text-[length:var(--nimi-type-overline-size)] font-semibold leading-none text-white shadow-sm ring-2 ring-[var(--nimi-surface-card)]',
                     selected ? 'ml-1.5 shrink-0' : 'ml-1 shrink-0',
                   )}
                 >
@@ -590,16 +616,15 @@ export function AgentCenter(props: AgentCenterProps) {
           );
         })}
       </nav>
-      {store.snapshot.phase === 'loading' ? (
-        <LoadingSkeleton data-agent-center-loading="true" lines={3} />
-      ) : null}
       <div
         aria-labelledby={`agent-center-tab-${activeSection}`}
         className="min-w-0"
         id={`agent-center-panel-${activeSection}`}
         role="tabpanel"
       >
-        {activeSection === 'overview'
+        {store.snapshot.phase === 'loading' ? (
+          <LoadingSkeleton data-agent-center-loading="true" lines={3} label={chromeCopy.loadingLabel} />
+        ) : activeSection === 'overview'
           ? (
             <AgentCenterOverview
               copy={overviewCopy}

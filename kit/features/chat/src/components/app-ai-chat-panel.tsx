@@ -1,9 +1,13 @@
 import { useState, type KeyboardEvent, type ReactNode } from 'react';
-import { Button, Surface, TextareaField, cn } from '@nimiplatform/kit/ui';
+import { Button, EmptyState, Surface, TextareaField, cn } from '@nimiplatform/kit/ui';
 import type {
   AppAiChatSessionMessage,
   UseAppAiChatSessionResult,
 } from '../runtime.js';
+import {
+  CHAT_BUBBLE_MAX_WIDTH_CLASSNAME,
+  chatBubbleShapeStyle,
+} from '../bubble-styles.js';
 
 export type AppAiChatPanelProps = {
   session: UseAppAiChatSessionResult;
@@ -16,6 +20,8 @@ export type AppAiChatPanelProps = {
   cancelLabel?: string;
   resetLabel?: string;
   emptyState?: ReactNode;
+  /** Title used by the default empty state when `emptyState` is not provided. */
+  emptyStateLabel?: string;
   actions?: ReactNode;
   onReset?: () => void;
   showMessageStatus?: boolean;
@@ -54,7 +60,8 @@ export function AppAiChatPanel({
   streamingLabel = 'Streaming...',
   cancelLabel = 'Cancel',
   resetLabel = 'Reset',
-  emptyState = <p className="py-8 text-center text-sm text-[color:var(--nimi-text-muted)]">No messages yet</p>,
+  emptyState,
+  emptyStateLabel = 'No messages yet',
   actions,
   onReset,
   showMessageStatus = true,
@@ -109,7 +116,7 @@ export function AppAiChatPanel({
       </div>
 
       <div className={`overflow-auto p-4 ${resolvedMessagesClassName}`}>
-        {messages.length === 0 ? emptyState : (
+        {messages.length === 0 ? (emptyState ?? <EmptyState title={emptyStateLabel} />) : (
           <div className={cn('space-y-3', messageListClassName)}>
             {messages.map((message, index) => {
               if (renderMessage) {
@@ -127,25 +134,26 @@ export function AppAiChatPanel({
                     message.role === 'user' ? userMessageRowClassName : assistantMessageRowClassName,
                   )}
                 >
-                  <div className="max-w-[80%]">
+                  <div className={CHAT_BUBBLE_MAX_WIDTH_CLASSNAME}>
                     <div
                       className={cn(
-                        'rounded-2xl px-3 py-2 text-sm',
+                        'px-3 py-2 text-sm',
                         message.role === 'user'
-                          ? 'bg-[color:var(--nimi-text-primary)] text-[color:var(--nimi-surface-base)]'
+                          ? 'bg-[color:var(--nimi-action-primary-bg)] text-[color:var(--nimi-action-primary-text)]'
                           : 'bg-[color:var(--nimi-surface-card)] text-[color:var(--nimi-text-primary)]',
                         messageBubbleClassName,
                         message.role === 'user'
                           ? userMessageBubbleClassName
                           : assistantMessageBubbleClassName,
                       )}
+                      style={chatBubbleShapeStyle(message.role === 'user' ? 'user' : 'agent')}
                     >
                       {message.content}
                     </div>
                     {statusText ? (
                       <div
                         className={cn(
-                          'mt-1 px-1 text-[11px] text-[color:var(--nimi-text-muted)]',
+                          'mt-1 px-1 text-[length:var(--nimi-type-overline-size)] text-[color:var(--nimi-text-muted)]',
                           message.role === 'user' ? 'text-right' : 'text-left',
                           messageStatusClassName,
                         )}

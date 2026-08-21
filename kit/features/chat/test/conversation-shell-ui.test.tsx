@@ -12,6 +12,7 @@ import {
 } from '../src/components/canonical-conversation-pane.js';
 import {
   CanonicalConversationShell,
+  CanonicalDrawerShell,
   CanonicalRightSidebar,
   CanonicalRuntimeInspectSidebar,
   CanonicalStagePanel,
@@ -739,4 +740,103 @@ describe('conversation shell ui', () => {
 	    expect(container.querySelector('[data-test-scene-background="true"]')).not.toBeNull();
 	    expect(container.textContent).toContain('Scene Background');
 	  });
+
+  it('closes the canonical drawer on Escape and keeps it inert while closed', async () => {
+    const onClose = vi.fn();
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+
+    await act(async () => {
+      root?.render(
+        <CanonicalDrawerShell open onClose={onClose} title="Settings">
+          <button type="button">Focusable action</button>
+        </CanonicalDrawerShell>,
+      );
+      await flush();
+    });
+
+    const openDrawer = container.querySelector('[data-canonical-drawer-shell="true"]');
+    expect(openDrawer?.hasAttribute('inert')).toBe(false);
+    expect(openDrawer?.getAttribute('aria-hidden')).toBe('false');
+
+    await act(async () => {
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+      await flush();
+    });
+    expect(onClose).toHaveBeenCalledTimes(1);
+
+    onClose.mockClear();
+    await act(async () => {
+      root?.render(
+        <CanonicalDrawerShell open={false} onClose={onClose} title="Settings">
+          <button type="button">Focusable action</button>
+        </CanonicalDrawerShell>,
+      );
+      await flush();
+    });
+
+    const closedDrawer = container.querySelector('[data-canonical-drawer-shell="true"]');
+    expect(closedDrawer?.hasAttribute('inert')).toBe(true);
+    expect(closedDrawer?.getAttribute('aria-hidden')).toBe('true');
+
+    await act(async () => {
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+      await flush();
+    });
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it('keeps the prewarmed closed right sidebar inert and closes it on Escape when open', async () => {
+    const onClose = vi.fn();
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+
+    await act(async () => {
+      root?.render(
+        <CanonicalRightSidebar
+          open={false}
+          content={<button type="button">Inspect action</button>}
+          onClose={onClose}
+          prewarmDelayMs={10}
+        />,
+      );
+      await flush();
+    });
+
+    await act(async () => {
+      await new Promise((resolve) => {
+        setTimeout(resolve, 30);
+      });
+      await flush();
+    });
+
+    const closedSidebar = container.querySelector('[data-canonical-right-sidebar="true"]');
+    expect(container.textContent).toContain('Inspect action');
+    expect(closedSidebar?.hasAttribute('inert')).toBe(true);
+    expect(closedSidebar?.getAttribute('aria-hidden')).toBe('true');
+
+    await act(async () => {
+      root?.render(
+        <CanonicalRightSidebar
+          open
+          content={<button type="button">Inspect action</button>}
+          onClose={onClose}
+          prewarmDelayMs={10}
+        />,
+      );
+      await flush();
+    });
+
+    const openSidebar = container.querySelector('[data-canonical-right-sidebar="true"]');
+    expect(openSidebar?.hasAttribute('inert')).toBe(false);
+    expect(openSidebar?.getAttribute('aria-hidden')).toBe('false');
+
+    await act(async () => {
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+      await flush();
+    });
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
 });

@@ -59,6 +59,7 @@ export type AgentCenterChromeCopy = Partial<{
   readonly textConfiguredLabel: string;
   readonly avatarFallback: string;
   readonly projectionLoadFailed: string;
+  readonly loadingLabel: string;
 }>;
 
 export type AgentCenterProgressCopy = Partial<{
@@ -575,117 +576,6 @@ export interface AgentCenterRuntimePresentationProfileMutationResult {
   readonly committedRevision: string;
 }
 
-export type AgentCenterAppearanceCopy = Partial<{
-  readonly appearanceTitle: string;
-  readonly appearanceDescription: string;
-  readonly avatarCardTitle: string;
-  readonly avatarUnsetTitle: string;
-  readonly avatarUnsetDescription: string;
-  readonly importLive2dButton: string;
-  readonly importVrmButton: string;
-  readonly supportedFormatsLabel: string;
-  readonly viewSupportedFormats: string;
-  readonly currentAvatarPrefix: string;
-  readonly assetImported: string;
-  readonly avatarReadyHint: string;
-  readonly avatarSetupHint: string;
-  readonly avatarMissingTitle: string;
-  readonly avatarImportPrimary: string;
-  readonly blockedScopeTitle: string;
-  readonly blockedScopeDescription: string;
-  readonly blockedScopeHint: string;
-  readonly blockedBridgeTitle: string;
-  readonly blockedBridgeDescription: string;
-  readonly blockedBridgeHint: string;
-  readonly blockedGenericTitle: string;
-  readonly blockedGenericDescription: string;
-  readonly blockedGenericHint: string;
-  readonly continueSetup: string;
-  readonly changeAvatar: string;
-  readonly progressTitle: string;
-  readonly progressCompleteLabel: string;
-  readonly stepAssetTitle: string;
-  readonly stepAssetReady: string;
-  readonly stepAssetMissing: string;
-  readonly stepValidationTitle: string;
-  readonly stepValidationReady: string;
-  readonly stepValidationMissing: string;
-  readonly stepSidecarTitle: string;
-  readonly stepSidecarReady: string;
-  readonly stepSidecarPending: string;
-  readonly stepDisplayTitle: string;
-  readonly stepDisplayReady: string;
-  readonly stepDisplayPending: string;
-  readonly doneLabel: string;
-  readonly pendingLabel: string;
-  readonly notStartedLabel: string;
-  readonly selectSidecar: string;
-  readonly assetManagementTitle: string;
-  readonly importLive2dTitle: string;
-  readonly importLive2dSubtitle: string;
-  readonly live2dImported: string;
-  readonly importVrmTitle: string;
-  readonly importVrmSubtitle: string;
-  readonly importOtherFormat: string;
-  readonly removeAvatar: string;
-  readonly chatBackgroundTitle: string;
-  readonly chatBackgroundDescription: string;
-  readonly backgroundUnset: string;
-  readonly backgroundReady: string;
-  readonly backgroundReferenceLabel: string;
-  readonly uploadBackground: string;
-  readonly clearBackground: string;
-  /** @deprecated The unsupported recommended-background affordance was removed. */
-  readonly chooseRecommendedBackground: string;
-  readonly defaultVoiceTitle: string;
-  readonly defaultVoiceDescription: string;
-  readonly defaultVoiceUnset: string;
-  readonly technicalDetailsTitle: string;
-  readonly technicalDetailsDescription: string;
-  readonly diagnosticsEvidenceTitle: string;
-  readonly selectedAssetLabel: string;
-  readonly validationLabel: string;
-  readonly capabilityProfileLabel: string;
-  readonly live2dManifestLabel: string;
-  readonly linkedLabel: string;
-  readonly pendingEvidenceLabel: string;
-  readonly missingLabel: string;
-  readonly avatarAutoplayLabel: string;
-  readonly avatarAutoplayDescription: string;
-  readonly enableLabel: string;
-  readonly disableLabel: string;
-  readonly voiceArtifactsLabel: string;
-  readonly voiceArtifactsDescription: string;
-  readonly cleanupLabel: string;
-  readonly cleaningLabel: string;
-  readonly appearanceUpdateFailed: string;
-  readonly live2dStatusProbeRequired: string;
-  readonly live2dStatusNotAdmitted: string;
-  readonly live2dStatusEffectPending: string;
-  readonly live2dStatusChecking: string;
-  readonly live2dStatusReady: string;
-  readonly live2dStatusPending: string;
-  readonly live2dStatusMissing: string;
-  readonly live2dStatusBlocked: string;
-  readonly live2dPreviewOutputLabel: string;
-  readonly live2dModelFramingLabel: string;
-  readonly live2dRenderPolicyLabel: string;
-  readonly live2dExpressionInventoryLabel: string;
-  readonly live2dAdapterManifestEvidenceLabel: string;
-  readonly live2dEvidenceRequired: string;
-  readonly live2dPreviewReadyDetail: string;
-  readonly live2dCalibrationPendingDetail: string;
-  readonly live2dEmotionReadyDetail: string;
-  readonly live2dBackendRequiredDetail: string;
-  readonly live2dExternalSidecarSelected: string;
-  readonly live2dEmbeddedManifestSelected: string;
-  readonly live2dNoAdapterManifestSelected: string;
-  readonly evidenceRefLabel: string;
-  readonly calibrationRefLabel: string;
-  readonly custodyNotice: string;
-  readonly adapterUnavailableFormat: string;
-}>;
-
 export type AgentCenterBehaviorCopy = Partial<{
   readonly eyebrow: string;
   readonly title: string;
@@ -846,8 +736,6 @@ export interface AgentCenterProps {
   readonly placementActions?: AgentCenterPlacementActions;
   readonly identity?: AgentCenterIdentityProjection | null;
   readonly chrome?: 'standalone' | 'embedded';
-  readonly layout?: 'stacked' | 'split';
-  readonly density?: 'compact' | 'regular';
 }
 
 export interface AgentCenterSharedAIConfigModule {

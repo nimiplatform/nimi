@@ -1,5 +1,7 @@
 import { Button, StatusBadge, Surface, cn } from '@nimiplatform/kit/ui';
+import { FOCUS_RING_CLASS_NAME } from '@nimiplatform/kit/ui/a11y';
 import { GiftStatusBadge } from './gift-status-badge.js';
+import { DEFAULT_COMMERCE_COPY } from '../copy.js';
 import type { CommerceGiftStatus, CommerceGiftSummary } from '../types.js';
 
 export type GiftInboxListProps = {
@@ -31,15 +33,15 @@ export function GiftInboxList({
   getStatusLabel,
   sparkAmountLabel,
   fromSenderLabel,
-  unknownGiftLabel = 'Gift',
-  loadingLabel = 'Loading received gifts...',
-  emptyLabel = 'No received gifts yet',
-  refreshLabel = 'Refresh',
+  unknownGiftLabel = DEFAULT_COMMERCE_COPY.giftInboxList.unknownGiftLabel,
+  loadingLabel = DEFAULT_COMMERCE_COPY.giftInboxList.loadingLabel,
+  emptyLabel = DEFAULT_COMMERCE_COPY.giftInboxList.emptyLabel,
+  refreshLabel = DEFAULT_COMMERCE_COPY.giftInboxList.refreshLabel,
   className,
 }: GiftInboxListProps) {
   if (loading) {
     return (
-      <Surface tone="card" className={cn('rounded-[28px] p-8 text-center text-sm text-[var(--nimi-text-muted)]', className)}>
+      <Surface tone="card" className={cn('rounded-[var(--nimi-radius-xl)] p-8 text-center text-sm text-[var(--nimi-text-muted)]', className)}>
         <div className="mx-auto mb-3 h-8 w-8 animate-spin rounded-full border-2 border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_20%,transparent)] border-t-[var(--nimi-action-primary-bg)]" />
         {loadingLabel}
       </Surface>
@@ -51,7 +53,7 @@ export function GiftInboxList({
       <Surface
         tone="card"
         className={cn(
-          'rounded-[28px] border-[color-mix(in_srgb,var(--nimi-status-danger)_30%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_8%,var(--nimi-surface-card))] p-8 text-center text-sm text-[var(--nimi-status-danger)]',
+          'rounded-[var(--nimi-radius-xl)] border-[color-mix(in_srgb,var(--nimi-status-danger)_30%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_8%,var(--nimi-surface-card))] p-8 text-center text-sm text-[var(--nimi-status-danger)]',
           className,
         )}
       >
@@ -67,7 +69,7 @@ export function GiftInboxList({
 
   if (items.length === 0) {
     return (
-      <Surface tone="card" className={cn('rounded-[28px] p-8 text-center text-sm text-[var(--nimi-text-muted)]', className)}>
+      <Surface tone="card" className={cn('rounded-[var(--nimi-radius-xl)] p-8 text-center text-sm text-[var(--nimi-text-muted)]', className)}>
         {emptyLabel}
       </Surface>
     );
@@ -88,9 +90,9 @@ export function GiftInboxList({
             onClick={() => {
               onSelect(item.id);
             }}
-            className="flex w-full items-start gap-4 rounded-[28px] p-5 text-left transition-transform hover:-translate-y-0.5"
+            className={cn('flex w-full items-start gap-4 rounded-[var(--nimi-radius-xl)] p-5 text-left transition-colors hover:border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_30%,var(--nimi-border-subtle))]', FOCUS_RING_CLASS_NAME)}
           >
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-3xl bg-[color-mix(in_srgb,var(--nimi-status-warning)_15%,transparent)] text-3xl">
+            <div aria-hidden="true" className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[var(--nimi-radius-xl)] bg-[color-mix(in_srgb,var(--nimi-status-warning)_15%,transparent)] text-3xl">
               {item.gift?.emoji || '🎁'}
             </div>
             <div className="min-w-0 flex-1">

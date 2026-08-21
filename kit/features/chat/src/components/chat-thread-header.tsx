@@ -26,14 +26,14 @@ export function ChatThreadHeader({
           onClick={onTitleClick}
           aria-label={titleAriaLabel}
           className={cn(
-            'text-[15px] font-semibold text-[var(--nimi-text-primary)] transition-colors hover:text-[var(--nimi-text-secondary)]',
+            'text-[length:var(--nimi-type-label-size)] font-semibold text-[var(--nimi-text-primary)] transition-colors hover:text-[var(--nimi-text-secondary)]',
             titleClassName,
           )}
         >
           {title}
         </button>
       ) : (
-        <div className={cn('text-[15px] font-semibold text-[var(--nimi-text-primary)]', titleClassName)}>
+        <div className={cn('text-[length:var(--nimi-type-label-size)] font-semibold text-[var(--nimi-text-primary)]', titleClassName)}>
           {title}
         </div>
       )}

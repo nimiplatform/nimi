@@ -7,12 +7,13 @@ import {
   type MouseEvent,
   type ReactNode,
 } from 'react';
-import { cn } from '@nimiplatform/kit/ui';
+import { cn, EmptyState } from '@nimiplatform/kit/ui';
 import type {
   ConversationSourceFilter,
   ConversationSourceKind,
   ConversationTargetSummary,
 } from '../types.js';
+import { resolveChatCopy, type ChatCopy } from '../copy.js';
 
 export const CANONICAL_SOURCE_LABELS: Record<ConversationSourceFilter, string> = {
   all: 'All',
@@ -205,9 +206,12 @@ export type CanonicalTargetPaneProps = {
   onSourceFilterChange?: (filter: ConversationSourceFilter) => void;
   onSelectTarget: (targetId: string | null) => void;
   renderTargetMeta?: (target: ConversationTargetSummary) => ReactNode;
+  /** Optional copy overrides merged over the default English strings. */
+  copy?: ChatCopy;
 };
 
 export function CanonicalTargetPane(props: CanonicalTargetPaneProps) {
+  const copy = resolveChatCopy(props.copy);
   const [transitioningTargetId, setTransitioningTargetId] = useState<string | null>(null);
   const transitionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const stageViewportRef = useRef<HTMLDivElement | null>(null);
@@ -380,10 +384,10 @@ export function CanonicalTargetPane(props: CanonicalTargetPaneProps) {
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_color-mix(in_srgb,var(--nimi-ambient-mesh-color-1)_60%,transparent),_transparent_30%),radial-gradient(circle_at_bottom_right,_color-mix(in_srgb,var(--nimi-ambient-mesh-color-2)_50%,transparent),_transparent_28%),linear-gradient(180deg,_var(--nimi-ambient-mesh-base-start),_var(--nimi-ambient-mesh-base-end))]" />
 
       <div className={cn(
-        'relative z-10 flex min-h-0 flex-1 flex-col px-6 pb-6 pt-6 transition-opacity duration-200',
+        'relative z-10 flex min-h-0 flex-1 flex-col px-6 pb-6 pt-6 transition-opacity duration-[var(--nimi-motion-base)]',
         transitioningTargetId ? 'opacity-0' : 'opacity-100',
       )}>
-        <div className="relative min-h-0 flex-1 overflow-hidden rounded-[34px] border border-[color-mix(in_srgb,var(--nimi-border-subtle)_80%,transparent)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_44%,transparent)] shadow-[0_8px_28px_color-mix(in_srgb,var(--nimi-text-primary)_6%,transparent)]">
+        <div className="relative min-h-0 flex-1 overflow-hidden rounded-[var(--nimi-radius-xl)] border border-[color-mix(in_srgb,var(--nimi-border-subtle)_80%,transparent)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_44%,transparent)] shadow-[0_8px_28px_color-mix(in_srgb,var(--nimi-text-primary)_6%,transparent)]">
           <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-24 bg-[linear-gradient(180deg,color-mix(in_srgb,var(--nimi-surface-card)_42%,transparent),transparent)]" />
           <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-20 bg-[linear-gradient(0deg,color-mix(in_srgb,var(--nimi-surface-card)_42%,transparent),transparent)]" />
 
@@ -404,20 +408,19 @@ export function CanonicalTargetPane(props: CanonicalTargetPaneProps) {
           >
             {props.loadingTargets ? (
               <div className="flex h-full min-h-[360px] items-center justify-center">
-                <div className="max-w-md rounded-[28px] border border-[color-mix(in_srgb,var(--nimi-border-subtle)_85%,transparent)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_82%,transparent)] px-6 py-8 text-center shadow-[0_20px_52px_color-mix(in_srgb,var(--nimi-text-primary)_8%,transparent)]">
-                  <p className="text-lg font-semibold text-[var(--nimi-text-primary)]">Loading targets...</p>
+                <div className="max-w-md rounded-[var(--nimi-radius-xl)] border border-[color-mix(in_srgb,var(--nimi-border-subtle)_85%,transparent)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_82%,transparent)] px-6 py-8 text-center shadow-[0_20px_52px_color-mix(in_srgb,var(--nimi-text-primary)_8%,transparent)]">
+                  <p className="text-lg font-semibold text-[var(--nimi-text-primary)]">{copy.targetPaneLoadingLabel}</p>
                 </div>
               </div>
             ) : null}
 
             {!props.loadingTargets && props.targets.length === 0 ? (
               <div className="flex h-full min-h-[360px] items-center justify-center">
-                <div className="max-w-md rounded-[28px] border border-dashed border-[color-mix(in_srgb,var(--nimi-border-subtle)_85%,transparent)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_82%,transparent)] px-6 py-8 text-center shadow-[0_20px_52px_color-mix(in_srgb,var(--nimi-text-primary)_8%,transparent)]">
-                  <p className="text-lg font-semibold text-[var(--nimi-text-primary)]">No targets available</p>
-                  <p className="mt-3 text-sm leading-6 text-[var(--nimi-text-secondary)]">
-                    Change the source filter or wait until a compatible conversation target appears.
-                  </p>
-                </div>
+                <EmptyState
+                  className="max-w-md border-dashed"
+                  title={copy.targetPaneEmptyTitle}
+                  description={copy.targetPaneEmptyDescription}
+                />
               </div>
             ) : null}
 
@@ -429,9 +432,6 @@ export function CanonicalTargetPane(props: CanonicalTargetPaneProps) {
                     return null;
                   }
                   const palette = resolveBubblePalette(target);
-                  const bubbleSeed = hashSeed(target.id || `${target.title}-${index}`);
-                  const floatDuration = 5.6 + ((bubbleSeed % 4) * 0.5);
-                  const floatDelay = (bubbleSeed % 7) * 160;
                   const onlineState = resolveOnlineBadgeState(target.isOnline);
                   const unreadBadge = resolveUnreadBadge(target.unreadCount);
                   const meta = props.renderTargetMeta?.(target);
@@ -446,21 +446,20 @@ export function CanonicalTargetPane(props: CanonicalTargetPaneProps) {
                         width: `${layout.size + 24}px`,
                         height: `${layout.size + LABEL_HEIGHT + 24}px`,
                         zIndex: layout.zIndex,
-                        animation: `lc-bubble-float ${floatDuration}s ease-in-out ${floatDelay}ms infinite`,
                       }}
                     >
                       <div
                         className="h-full w-full"
                         style={{
                           transform: `scale(${FISHEYE_IDLE_SCALE})`,
-                          transition: 'transform 180ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 200ms ease',
+                          transition: 'transform var(--nimi-motion-base) var(--nimi-motion-ease-emphasized), opacity var(--nimi-motion-base) var(--nimi-motion-ease-standard)',
                           willChange: 'transform',
                         }}
                       >
                         <button
                           type="button"
                           onClick={() => handleSelectTarget(target.id)}
-                          className="group relative flex items-center justify-center rounded-full outline-none focus-visible:ring-4 focus-visible:ring-[color-mix(in_srgb,var(--nimi-focus-ring)_40%,transparent)]"
+                          className="group relative flex items-center justify-center rounded-full outline-none focus-visible:ring-4 focus-visible:ring-[color-mix(in_srgb,var(--nimi-focus-ring-color)_60%,transparent)]"
                           style={{
                             width: `${layout.size}px`,
                             height: `${layout.size}px`,
@@ -469,14 +468,14 @@ export function CanonicalTargetPane(props: CanonicalTargetPaneProps) {
                           title={typeof meta === 'string' ? meta : undefined}
                         >
                           <span
-                            className="pointer-events-none absolute inset-[-10px] rounded-full opacity-70 transition-[opacity,transform] duration-200 ease-out group-hover:opacity-100 group-hover:scale-[1.05] group-focus-visible:opacity-100"
+                            className="pointer-events-none absolute inset-[-10px] rounded-full opacity-70 transition-[opacity,transform] duration-[var(--nimi-motion-base)] ease-out group-hover:opacity-100 group-hover:scale-[1.05] group-focus-visible:opacity-100"
                             style={{
                               background: `radial-gradient(circle, ${palette.accentSoft} 0%, transparent 68%)`,
                             }}
                           />
                           <span
                             className={cn(
-                              'pointer-events-none absolute inset-[-3px] rounded-full border transition-[opacity,transform,box-shadow] duration-200 ease-out',
+                              'pointer-events-none absolute inset-[-3px] rounded-full border transition-[opacity,transform,box-shadow] duration-[var(--nimi-motion-base)] ease-out',
                               unreadBadge ? 'animate-pulse' : '',
                             )}
                             style={{
@@ -507,7 +506,7 @@ export function CanonicalTargetPane(props: CanonicalTargetPaneProps) {
                             />
                           ) : null}
                           {unreadBadge ? (
-                            <span className="absolute -right-2 top-2 inline-flex h-7 min-w-[28px] items-center justify-center rounded-full bg-[var(--nimi-text-primary)] px-2 text-[11px] font-bold text-[var(--nimi-text-inverse)] shadow-[0_10px_20px_color-mix(in_srgb,var(--nimi-text-primary)_20%,transparent)]">
+                            <span className="absolute -right-2 top-2 inline-flex h-7 min-w-[28px] items-center justify-center rounded-full bg-[var(--nimi-text-primary)] px-2 text-[length:var(--nimi-type-overline-size)] font-bold text-[var(--nimi-text-inverse)] shadow-[0_10px_20px_color-mix(in_srgb,var(--nimi-text-primary)_20%,transparent)]">
                               {unreadBadge}
                             </span>
                           ) : null}

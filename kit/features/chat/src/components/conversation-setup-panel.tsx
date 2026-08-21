@@ -32,28 +32,28 @@ export function ConversationSetupPanel({
     <div
       className={cn(
         'flex max-w-xl flex-col gap-5 rounded-2xl p-7',
-        'bg-gradient-to-br from-white/95 to-slate-50/90',
-        'ring-1 ring-slate-200/40',
-        'shadow-[0_20px_52px_rgba(15,23,42,0.06)]',
+        'bg-[linear-gradient(135deg,color-mix(in_srgb,var(--nimi-surface-card)_95%,transparent),color-mix(in_srgb,var(--nimi-surface-panel)_90%,transparent))]',
+        'ring-1 ring-[var(--nimi-border-subtle)]',
+        'shadow-[var(--nimi-elevation-floating)]',
         className,
       )}
     >
       <div className="space-y-2">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400">
+        <p className="text-[length:var(--nimi-type-overline-size)] font-semibold uppercase tracking-[0.2em] text-[var(--nimi-text-muted)]">
           {state.status === 'unavailable' ? 'Unavailable' : 'Setup Required'}
         </p>
-        <h2 className="text-lg font-semibold text-slate-900">
+        <h2 className="text-lg font-semibold text-[var(--nimi-text-primary)]">
           {title || 'Conversation setup is incomplete.'}
         </h2>
         {description ? (
-          <div className="text-sm text-slate-500">{description}</div>
+          <div className="text-sm text-[var(--nimi-text-muted)]">{description}</div>
         ) : null}
       </div>
       {state.issues.length > 0 ? (
-        <div className="space-y-2 rounded-xl bg-slate-50/80 p-4 ring-1 ring-slate-200/40">
+        <div className="space-y-2 rounded-xl bg-[color-mix(in_srgb,var(--nimi-surface-panel)_80%,transparent)] p-4 ring-1 ring-[var(--nimi-border-subtle)]">
           {state.issues.map((issue) => (
-            <div key={issue.code} className="text-sm text-slate-500">
-              <span className="font-medium text-slate-700">{issue.code}</span>
+            <div key={issue.code} className="text-sm text-[var(--nimi-text-muted)]">
+              <span className="font-medium text-[var(--nimi-text-secondary)]">{issue.code}</span>
               {issue.detail ? `: ${issue.detail}` : null}
             </div>
           ))}
@@ -68,9 +68,9 @@ export function ConversationSetupPanel({
               'rounded-full px-5 py-2.5 text-sm font-medium text-[var(--nimi-action-primary-text)]',
               'bg-[var(--nimi-action-primary-bg)]',
               'shadow-[0_8px_20px_color-mix(in_srgb,var(--nimi-action-primary-bg)_25%,transparent)]',
-              'transition-all duration-150',
-              'hover:bg-[var(--nimi-action-primary-bg-hover)] hover:shadow-[0_12px_28px_color-mix(in_srgb,var(--nimi-action-primary-bg)_35%,transparent)] hover:-translate-y-px',
-              'active:scale-[0.98]',
+              'transition-[background-color,box-shadow,transform] duration-[var(--nimi-motion-fast)] ease-[var(--nimi-motion-ease-standard)]',
+              'hover:bg-[var(--nimi-action-primary-bg-hover)] hover:shadow-[0_12px_28px_color-mix(in_srgb,var(--nimi-action-primary-bg)_35%,transparent)]',
+              'active:scale-[var(--nimi-motion-pressed-scale)]',
             )}
           >
             {resolveActionLabel?.(state.primaryAction) || defaultActionLabel(state.primaryAction)}

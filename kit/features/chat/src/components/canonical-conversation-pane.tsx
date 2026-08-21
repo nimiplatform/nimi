@@ -64,7 +64,7 @@ export function CanonicalConversationPane(props: CanonicalConversationPaneProps)
     ? { background: 'transparent' }
     : resolveConversationThemeBackgroundStyle({
       theme: props.characterData?.theme,
-      fallbackBackground: 'linear-gradient(180deg, rgba(255,255,255,0.84), rgba(255,255,255,0.92))',
+      fallbackBackground: 'linear-gradient(180deg, color-mix(in srgb, var(--nimi-surface-card) 84%, transparent), color-mix(in srgb, var(--nimi-surface-card) 92%, transparent))',
     });
   const anchoredSurfaceVisible = Boolean(
     props.anchoredSurface?.content
@@ -85,7 +85,7 @@ export function CanonicalConversationPane(props: CanonicalConversationPaneProps)
             </div>
           </div>
         ) : null}
-        <div key={props.viewMode} className="flex min-h-0 flex-1 flex-col animate-[conv-fade-in_280ms_ease-out]">
+        <div key={props.viewMode} className="flex min-h-0 flex-1 flex-col animate-[conv-fade-in_var(--nimi-motion-slow)_ease-out]">
           {props.viewMode === 'stage' ? props.stagePanel : (
             <div className="relative flex min-h-0 flex-1 flex-col" data-canonical-conversation-scene="true">
               <div

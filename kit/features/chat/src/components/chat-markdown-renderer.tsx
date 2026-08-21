@@ -3,10 +3,13 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import type { Components } from 'react-markdown';
 import { cn } from '@nimiplatform/kit/ui';
+import { resolveChatCopy, type ChatCopy } from '../copy.js';
 
 export type ChatMarkdownRendererProps = {
   content: string;
-  appearance?: 'canonical' | 'relay';
+  appearance?: 'canonical';
+  /** Optional copy overrides merged over the default English strings. */
+  copy?: ChatCopy;
 };
 
 type ChatMarkdownAppearance = NonNullable<ChatMarkdownRendererProps['appearance']>;
@@ -54,72 +57,39 @@ type MarkdownCodeProps = ComponentPropsWithoutRef<'code'> & {
 
 const APPEARANCE_CONFIG: Record<ChatMarkdownAppearance, AppearanceConfig> = {
   canonical: {
-    wrapperClassName: 'space-y-0 text-sm leading-[1.6] text-gray-900',
+    wrapperClassName: 'space-y-0 text-sm leading-[1.6] text-[var(--nimi-text-primary)]',
     headingClassNames: {
-      1: 'mt-5 mb-2 text-lg font-semibold tracking-tight text-gray-950',
-      2: 'mt-4 mb-2 text-base font-semibold tracking-tight text-gray-950',
-      3: 'mt-4 mb-1 text-[15px] font-semibold text-gray-950',
-      4: 'mt-3 mb-1 text-[14px] font-semibold text-gray-950',
-      5: 'mt-3 mb-1 text-[13px] font-semibold uppercase tracking-wide text-gray-900',
-      6: 'mt-3 mb-1 text-[12px] font-semibold uppercase tracking-wide text-gray-700',
+      1: 'mt-5 mb-2 text-lg font-semibold tracking-tight text-[var(--nimi-text-primary)]',
+      2: 'mt-4 mb-2 text-base font-semibold tracking-tight text-[var(--nimi-text-primary)]',
+      3: 'mt-4 mb-1 text-[length:var(--nimi-type-label-size)] font-semibold text-[var(--nimi-text-primary)]',
+      4: 'mt-3 mb-1 text-[length:var(--nimi-type-body-size)] font-semibold text-[var(--nimi-text-primary)]',
+      5: 'mt-3 mb-1 text-[length:var(--nimi-type-body-sm-size)] font-semibold uppercase tracking-wide text-[var(--nimi-text-primary)]',
+      6: 'mt-3 mb-1 text-[length:var(--nimi-type-caption-size)] font-semibold uppercase tracking-wide text-[var(--nimi-text-secondary)]',
     },
-    paragraphClassName: 'my-2 whitespace-pre-wrap text-sm leading-[1.7] text-gray-900',
-    inlineCodeClassName: 'rounded bg-gray-100 px-1 py-0.5 font-mono text-[0.85em] text-gray-900',
+    paragraphClassName: 'my-2 whitespace-pre-wrap text-sm leading-[1.7] text-[var(--nimi-text-primary)]',
+    inlineCodeClassName: 'rounded bg-[var(--nimi-surface-panel)] px-1 py-0.5 font-mono text-[0.85em] text-[var(--nimi-text-primary)]',
     linkClassName: 'underline decoration-[var(--nimi-action-primary-bg)]/70 underline-offset-2 text-[var(--nimi-action-primary-bg)]',
-    blockquoteClassName: 'my-2 border-l-2 border-[var(--nimi-action-primary-bg)]/40 pl-3 text-[13px] text-gray-700',
-    listClassName: 'my-2 list-disc space-y-1 pl-5 text-sm leading-[1.7] text-gray-900',
-    orderedListClassName: 'my-2 list-decimal space-y-1 pl-5 text-sm leading-[1.7] text-gray-900',
-    hrClassName: 'my-4 border-gray-200',
+    blockquoteClassName: 'my-2 border-l-2 border-[var(--nimi-action-primary-bg)]/40 pl-3 text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-secondary)]',
+    listClassName: 'my-2 list-disc space-y-1 pl-5 text-sm leading-[1.7] text-[var(--nimi-text-primary)]',
+    orderedListClassName: 'my-2 list-decimal space-y-1 pl-5 text-sm leading-[1.7] text-[var(--nimi-text-primary)]',
+    hrClassName: 'my-4 border-[var(--nimi-border-subtle)]',
     tableContainerClassName: 'my-3 overflow-x-auto',
-    tableClassName: 'w-full border-collapse text-left text-[13px] text-gray-900',
-    theadClassName: 'border-b border-gray-200 text-gray-600',
-    tbodyClassName: '[&>tr:nth-child(even)]:bg-gray-50/80',
-    trClassName: 'border-b border-gray-100',
+    tableClassName: 'w-full border-collapse text-left text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-primary)]',
+    theadClassName: 'border-b border-[var(--nimi-border-subtle)] text-[var(--nimi-text-secondary)]',
+    tbodyClassName: '[&>tr:nth-child(even)]:bg-[color-mix(in_srgb,var(--nimi-surface-panel)_80%,transparent)]',
+    trClassName: 'border-b border-[var(--nimi-border-subtle)]',
     thClassName: 'px-3 py-2 font-semibold',
     tdClassName: 'px-3 py-2 align-top',
-    codeBlockShellClassName: 'my-3 overflow-hidden rounded-[12px] bg-gray-950',
-    codeBlockHeaderClassName: 'flex items-center justify-between px-4 py-2 text-[11px]',
+    // Intentional always-dark code surface: keeps syntax contrast in both schemes.
+    codeBlockShellClassName: 'my-3 overflow-hidden rounded-[var(--nimi-radius-md)] bg-gray-950',
+    codeBlockHeaderClassName: 'flex items-center justify-between px-4 py-2 text-[length:var(--nimi-type-overline-size)]',
     codeBlockLanguageClassName: 'font-medium uppercase tracking-wider text-gray-400',
-    codeBlockActionClassName: 'flex items-center gap-1 text-gray-400 transition-colors duration-150 hover:text-gray-100',
+    codeBlockActionClassName: 'flex items-center gap-1 text-gray-400 transition-colors duration-[var(--nimi-motion-fast)] hover:text-gray-100',
     codeBlockCopiedClassName: 'text-[var(--nimi-status-success)]',
     codeBlockBodyClassName: 'overflow-x-auto px-4 pb-3',
-    codeBlockLineNumberClassName: 'w-[1%] whitespace-nowrap pr-4 text-right align-top font-mono text-[13px] leading-[1.6] select-none text-gray-500',
-    codeBlockLineClassName: 'whitespace-pre font-mono text-[13px] leading-[1.6] text-gray-100',
-    codeBlockFooterClassName: 'flex w-full items-center justify-center gap-1 border-t border-gray-800 py-2 text-[11px] text-gray-400 transition-colors duration-150 hover:text-gray-100',
-  },
-  relay: {
-    wrapperClassName: 'space-y-0 text-[15px] leading-relaxed text-[color:var(--nimi-text-primary)]',
-    headingClassNames: {
-      1: 'mt-8 mb-3 text-[20px] font-semibold leading-[1.3] text-text-primary',
-      2: 'mt-6 mb-2 text-[17px] font-semibold leading-[1.3] text-text-primary',
-      3: 'mt-5 mb-2 text-[15px] font-semibold leading-[1.3] text-text-primary',
-      4: 'mt-4 mb-2 text-[14px] font-semibold leading-[1.35] text-text-primary',
-      5: 'mt-4 mb-1 text-[13px] font-semibold uppercase tracking-wide text-text-primary',
-      6: 'mt-4 mb-1 text-[12px] font-semibold uppercase tracking-wide text-text-secondary',
-    },
-    paragraphClassName: 'my-3 text-[15px] leading-[1.7] text-[color:var(--nimi-text-primary)]',
-    inlineCodeClassName: 'rounded bg-bg-user-msg px-1.5 py-0.5 font-mono text-[13.5px] font-medium',
-    linkClassName: 'text-accent hover:underline',
-    blockquoteClassName: 'my-3 border-l-[3px] border-accent pl-4 text-text-secondary',
-    listClassName: 'my-3 list-disc space-y-1.5 pl-6 text-[15px] leading-[1.7]',
-    orderedListClassName: 'my-3 list-decimal space-y-1.5 pl-6 text-[15px] leading-[1.7]',
-    hrClassName: 'my-6 border-border-subtle',
-    tableContainerClassName: 'my-3 overflow-x-auto',
-    tableClassName: 'w-full text-sm',
-    theadClassName: 'border-b border-border-subtle text-left text-text-secondary',
-    tbodyClassName: '[&>tr:nth-child(even)]:bg-bg-surface',
-    trClassName: 'border-b border-border-subtle',
-    thClassName: 'px-3 py-2 text-[13px] font-medium',
-    tdClassName: 'px-3 py-2 text-[13px]',
-    codeBlockShellClassName: 'my-3 overflow-hidden rounded-[10px]',
-    codeBlockHeaderClassName: 'flex items-center justify-between px-4 py-2 text-[11px]',
-    codeBlockLanguageClassName: 'font-medium uppercase tracking-wider text-text-secondary',
-    codeBlockActionClassName: 'flex items-center gap-1 text-text-secondary transition-colors duration-150 hover:text-text-primary',
-    codeBlockCopiedClassName: 'text-success',
-    codeBlockBodyClassName: 'overflow-x-auto px-4 pb-3',
-    codeBlockLineNumberClassName: 'w-[1%] whitespace-nowrap pr-4 text-right align-top font-mono text-[13.5px] leading-[1.6] select-none text-text-secondary',
-    codeBlockLineClassName: 'whitespace-pre font-mono text-[13.5px] leading-[1.6] text-text-primary',
-    codeBlockFooterClassName: 'flex w-full items-center justify-center gap-1 border-t border-border-subtle py-2 text-[11px] text-text-secondary transition-colors duration-150 hover:text-text-primary',
+    codeBlockLineNumberClassName: 'w-[1%] whitespace-nowrap pr-4 text-right align-top font-mono text-[length:var(--nimi-type-mono-size)] leading-[1.6] select-none text-gray-500',
+    codeBlockLineClassName: 'whitespace-pre font-mono text-[length:var(--nimi-type-mono-size)] leading-[1.6] text-gray-100',
+    codeBlockFooterClassName: 'flex w-full items-center justify-center gap-1 border-t border-gray-800 py-2 text-[length:var(--nimi-type-overline-size)] text-gray-400 transition-colors duration-[var(--nimi-motion-fast)] hover:text-gray-100',
   },
 };
 
@@ -174,6 +144,7 @@ function Heading(props: {
 
 function CodeBlock(props: {
   appearance: ChatMarkdownAppearance;
+  copy: Required<ChatCopy>;
   language?: string;
   children: string;
 }) {
@@ -198,17 +169,14 @@ function CodeBlock(props: {
   const visibleLines = expanded ? lines : lines.slice(0, 20);
 
   return (
-    <div
-      className={config.codeBlockShellClassName}
-      style={props.appearance === 'relay' ? { backgroundColor: '#161616' } : undefined}
-    >
+    <div className={config.codeBlockShellClassName}>
       <div className={config.codeBlockHeaderClassName}>
         <span className={config.codeBlockLanguageClassName}>
           {props.language || 'code'}
         </span>
         <button type="button" onClick={handleCopy} className={config.codeBlockActionClassName}>
           <span className={copied ? config.codeBlockCopiedClassName : undefined}>
-            {copied ? 'Copied!' : 'Copy'}
+            {copied ? props.copy.markdownCopiedLabel : props.copy.markdownCopyLabel}
           </span>
         </button>
       </div>
@@ -237,7 +205,7 @@ function CodeBlock(props: {
   );
 }
 
-function createMarkdownComponents(appearance: ChatMarkdownAppearance): Components {
+function createMarkdownComponents(appearance: ChatMarkdownAppearance, copy: Required<ChatCopy>): Components {
   const config = APPEARANCE_CONFIG[appearance];
   const renderHeading = (level: 1 | 2 | 3 | 4 | 5 | 6) => (
     ((props: MarkdownChildrenProps) => <Heading level={level} appearance={appearance}>{props.children}</Heading>) as NonNullable<Components['h1']>
@@ -272,7 +240,7 @@ function createMarkdownComponents(appearance: ChatMarkdownAppearance): Component
     const languageMatch = /language-([a-z0-9_-]+)/i.exec(props.className || '');
     if (languageMatch || content.includes('\n')) {
       return (
-        <CodeBlock appearance={appearance} language={languageMatch?.[1]} children={content} />
+        <CodeBlock appearance={appearance} copy={copy} language={languageMatch?.[1]} children={content} />
       );
     }
     return (
@@ -339,13 +307,14 @@ function createMarkdownComponents(appearance: ChatMarkdownAppearance): Component
 
 export function ChatMarkdownRenderer(props: ChatMarkdownRendererProps) {
   const appearance = props.appearance || 'canonical';
+  const copy = useMemo(() => resolveChatCopy(props.copy), [props.copy]);
   const normalizedContent = useMemo(
     () => normalizeMarkdownContent(props.content),
     [props.content],
   );
   const components = useMemo(
-    () => createMarkdownComponents(appearance),
-    [appearance],
+    () => createMarkdownComponents(appearance, copy),
+    [appearance, copy],
   );
 
   return (

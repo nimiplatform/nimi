@@ -13,10 +13,12 @@ import {
   Button,
   Checkbox,
   InlineAlert,
+  LoadingSkeleton,
   SelectField,
   StatusBadge,
   cn,
 } from '@nimiplatform/kit/ui';
+import { FOCUS_RING_CLASS_NAME } from '@nimiplatform/kit/ui/a11y';
 import {
   ModelPickerDialog,
   ModelSelectorTrigger,
@@ -291,7 +293,7 @@ function CapabilityIcon(props: { readonly descriptor?: CanonicalCapabilityDescri
       : 'bg-[var(--nimi-surface-panel)] text-[var(--nimi-text-muted)]';
   return (
     <span className={cn('grid h-9 w-9 shrink-0 place-items-center rounded-[10px]', toneClass)}>
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <path d={capabilityIconPath(props.descriptor?.section)} />
       </svg>
     </span>
@@ -346,16 +348,16 @@ export function ModelConfigAIConfigSurface(props: ModelConfigAIConfigSurfaceProp
               type="button"
               onClick={() => setActiveContract(null)}
               aria-label={copy.backLabel}
-              className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-[var(--nimi-radius-sm)] px-2 text-xs font-medium text-[var(--nimi-text-secondary)] transition-colors hover:bg-[var(--nimi-surface-panel)] hover:text-[var(--nimi-text-primary)]"
+              className={cn('inline-flex h-8 shrink-0 items-center gap-1.5 rounded-[var(--nimi-radius-sm)] px-2 text-xs font-medium text-[var(--nimi-text-secondary)] transition-colors hover:bg-[var(--nimi-surface-panel)] hover:text-[var(--nimi-text-primary)]', FOCUS_RING_CLASS_NAME)}
             >
-              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m15 19-7-7 7-7" /></svg>
+              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m15 19-7-7 7-7" /></svg>
               <span>{copy.backLabel}</span>
             </button>
-            <h2 id={props.titleId} className="m-0 min-w-0 flex-1 truncate text-[15px] font-semibold tracking-tight text-[var(--nimi-text-primary)]">
+            <h2 id={props.titleId} className="m-0 min-w-0 flex-1 truncate text-[length:var(--nimi-type-label-size)] font-semibold tracking-tight text-[var(--nimi-text-primary)]">
               {copy.detailTitle(descriptorLabel(activeEntry.contract, activeEntry.descriptor, copy))}
             </h2>
             {activeEntry.badge.tone === 'success' ? null : (
-              <StatusBadge tone={activeEntry.badge.tone} className="shrink-0 text-[10px]">{activeEntry.badge.label}</StatusBadge>
+              <StatusBadge tone={activeEntry.badge.tone} className="shrink-0 text-[length:var(--nimi-type-overline-size)]">{activeEntry.badge.label}</StatusBadge>
             )}
           </div>
           <CapabilityIntentEditor
@@ -379,7 +381,7 @@ export function ModelConfigAIConfigSurface(props: ModelConfigAIConfigSurfaceProp
       ) : (
         <div className="space-y-4">
           <div className="flex min-w-0 items-baseline justify-between gap-4">
-            <h2 id={props.titleId} className="m-0 text-[14px] font-semibold tracking-tight text-[var(--nimi-text-primary)]">{copy.title}</h2>
+            <h2 id={props.titleId} className="m-0 text-[length:var(--nimi-type-body-size)] font-semibold tracking-tight text-[var(--nimi-text-primary)]">{copy.title}</h2>
             <div className="flex shrink-0 items-center gap-1.5 text-xs text-[var(--nimi-text-secondary)]">
               <span className={cn('h-1.5 w-1.5 rounded-[var(--nimi-radius-full)]', statusDotClass(aggregateBadge.tone))} />
               <span>{aggregateBadge.label}</span>
@@ -392,7 +394,7 @@ export function ModelConfigAIConfigSurface(props: ModelConfigAIConfigSurfaceProp
               {props.onRetry ? <Button size="sm" tone="secondary" onClick={props.onRetry}>{copy.retryLabel}</Button> : null}
             </div>
           ) : null}
-          {props.loading ? <div className="text-xs text-[var(--nimi-text-muted)]">…</div> : null}
+          {props.loading ? <LoadingSkeleton lines={2} label={copy.modelPickerLoadingLabel} /> : null}
 
           {!props.loading && !props.loadError ? (
             <div className="space-y-2" data-nimi-model-config-capability-grid="true">
@@ -403,6 +405,7 @@ export function ModelConfigAIConfigSurface(props: ModelConfigAIConfigSurfaceProp
                   onClick={() => setActiveContract(entry.contract)}
                   className={cn(
                     'flex w-full min-w-0 items-center gap-3 rounded-[var(--nimi-radius-md)] border p-3 text-left transition-colors',
+                    FOCUS_RING_CLASS_NAME,
                     entry.badge.tone === 'warning'
                       ? 'border-[color-mix(in_srgb,var(--nimi-status-warning)_35%,var(--nimi-border-subtle))] bg-[color-mix(in_srgb,var(--nimi-status-warning)_5%,var(--nimi-surface-card))] hover:border-[var(--nimi-status-warning)]'
                       : 'border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] hover:border-[var(--nimi-border-strong)]',
@@ -411,11 +414,11 @@ export function ModelConfigAIConfigSurface(props: ModelConfigAIConfigSurfaceProp
                 >
                   <CapabilityIcon descriptor={entry.descriptor} tone={entry.badge.tone} />
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[13px] font-semibold text-[var(--nimi-text-primary)]">
+                    <span className="block truncate text-[length:var(--nimi-type-body-sm-size)] font-semibold text-[var(--nimi-text-primary)]">
                       {descriptorLabel(entry.contract, entry.descriptor, copy)}
                     </span>
                     <span className={cn(
-                      'mt-1 flex items-center gap-1.5 truncate text-[11.5px]',
+                      'mt-1 flex items-center gap-1.5 truncate text-[length:var(--nimi-type-caption-size)]',
                       entry.badge.tone === 'success'
                         ? 'text-[var(--nimi-status-success)]'
                         : entry.badge.tone === 'warning'
@@ -472,7 +475,7 @@ function ThirdPartyCapabilityIntentView(props: CapabilityIntentEditorProps) {
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
             <div className="text-xs font-semibold text-[var(--nimi-text-primary)]">{props.copy.activeModelLabel}</div>
-            <p className="m-0 mt-1 truncate text-[11px] text-[var(--nimi-text-muted)]">
+            <p className="m-0 mt-1 truncate text-[length:var(--nimi-type-overline-size)] text-[var(--nimi-text-muted)]">
               {capabilitySummary(props.currentIntent, props.selection, props.descriptor, props.copy)}
             </p>
           </div>
@@ -680,10 +683,10 @@ function FirstPartyCapabilityIntentEditor(props: CapabilityIntentEditorProps) {
 
       <div className="grid min-w-0 gap-2">
         <div className="grid min-w-0 gap-0.5">
-          <span className="truncate text-[10.5px] font-semibold uppercase tracking-[0.14em] text-[var(--nimi-text-muted)]">
+          <span className="truncate nimi-type-overline uppercase text-[var(--nimi-text-muted)]">
             {props.copy.activeModelLabel}
           </span>
-          <span className="truncate text-[11px] font-medium text-[var(--nimi-text-muted)]">
+          <span className="truncate text-[length:var(--nimi-type-overline-size)] font-medium text-[var(--nimi-text-muted)]">
             {props.copy.activeModelHint}
           </span>
         </div>
@@ -793,7 +796,7 @@ function FirstPartyCapabilityIntentEditor(props: CapabilityIntentEditorProps) {
                   </div>
                 )}
                 {authorization.connectors.length > 0 && !pickerConnectorId ? (
-                  <p className="m-0 text-[11px] text-[var(--nimi-text-muted)]">{props.copy.cloudConnectorSelectionRequired}</p>
+                  <p className="m-0 text-[length:var(--nimi-type-overline-size)] text-[var(--nimi-text-muted)]">{props.copy.cloudConnectorSelectionRequired}</p>
                 ) : null}
               </div>
             );
@@ -830,7 +833,7 @@ function FirstPartyCapabilityIntentEditor(props: CapabilityIntentEditorProps) {
         <div className="space-y-3 rounded-[var(--nimi-radius-md)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] p-3" data-nimi-model-config-cloud="true">
           <div>
             <div className="text-xs font-semibold text-[var(--nimi-text-primary)]">{props.copy.cloudAuthorizationLabel}</div>
-            <p className="m-0 mt-1 text-[11px] leading-relaxed text-[var(--nimi-text-muted)]">{props.copy.cloudAuthorizationSeparation}</p>
+            <p className="m-0 mt-1 text-[length:var(--nimi-type-overline-size)] leading-relaxed text-[var(--nimi-text-muted)]">{props.copy.cloudAuthorizationSeparation}</p>
           </div>
           {cloudError ? <InlineAlert tone="warning">{cloudError}</InlineAlert> : null}
           <InlineAlert tone="info">
@@ -876,7 +879,7 @@ function FirstPartyCapabilityIntentEditor(props: CapabilityIntentEditorProps) {
           {saveFailure.technicalDetail ? (
             <details className="rounded-[var(--nimi-radius-md)] border border-[var(--nimi-border-subtle)] p-2 text-xs text-[var(--nimi-text-secondary)]">
               <summary className="cursor-pointer font-semibold">{props.copy.technicalDetailsLabel}</summary>
-              <pre className="mt-2 whitespace-pre-wrap break-words font-mono text-[11px]">{saveFailure.technicalDetail}</pre>
+              <pre className="mt-2 whitespace-pre-wrap break-words font-mono text-[length:var(--nimi-type-overline-size)]">{saveFailure.technicalDetail}</pre>
             </details>
           ) : null}
         </div>
@@ -918,9 +921,9 @@ function LocalSelectionSummary(props: {
   }
   return (
     <div className="flex min-w-0 items-start justify-between gap-3">
-      <p className={cn('m-0 min-w-0 text-[11px] leading-relaxed', toneClass)}>{message}</p>
+      <p className={cn('m-0 min-w-0 text-[length:var(--nimi-type-overline-size)] leading-relaxed', toneClass)}>{message}</p>
       {props.onOpenMachineLoadout ? (
-        <button type="button" onClick={props.onOpenMachineLoadout} className="shrink-0 text-[11px] font-medium text-[var(--nimi-action-primary-bg)] hover:underline">
+        <button type="button" onClick={props.onOpenMachineLoadout} className={cn('shrink-0 text-[length:var(--nimi-type-overline-size)] font-medium text-[var(--nimi-action-primary-bg)] hover:underline', FOCUS_RING_CLASS_NAME)}>
           {props.copy.openMachineLabel}
         </button>
       ) : null}

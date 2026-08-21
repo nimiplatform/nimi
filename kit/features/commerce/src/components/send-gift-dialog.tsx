@@ -2,10 +2,13 @@ import type { ReactNode } from 'react';
 import {
   Button,
   IconButton,
+  InlineAlert,
   OverlayShell,
   StatusBadge,
   TextareaField,
 } from '@nimiplatform/kit/ui';
+import { FOCUS_RING_CLASS_NAME } from '@nimiplatform/kit/ui/a11y';
+import { DEFAULT_COMMERCE_COPY } from '../copy.js';
 import type { CommerceGiftRecipient } from '../types.js';
 import type { UseSendGiftDialogResult } from '../hooks/use-send-gift-dialog.js';
 
@@ -59,21 +62,21 @@ export function SendGiftDialog({
   panelClassName,
   contentClassName,
   renderRecipientAvatar,
-  title = 'Send Gift',
-  closeLabel = 'Close',
-  selectGiftLabel = 'Select Gift',
-  sparkCostLabel = 'Spark Cost',
-  sparkUnitLabel = 'SPARK',
-  loadingCatalogLabel = 'Loading gifts...',
-  loadCatalogFailedLabel = 'Failed to load gifts.',
-  retryLoadCatalogLabel = 'Retry',
-  emptyCatalogLabel = 'No gifts available',
-  emptyCatalogDescription = 'Gift catalog is currently unavailable.',
-  messageLabel = 'Message (Optional)',
-  messagePlaceholder = 'Add a nice message...',
-  recipientOnlyLabel = 'Only recipient can see',
-  sendGiftLabel = 'Send Gift',
-  sendingLabel = 'Sending...',
+  title = DEFAULT_COMMERCE_COPY.sendGiftDialog.title,
+  closeLabel = DEFAULT_COMMERCE_COPY.sendGiftDialog.closeLabel,
+  selectGiftLabel = DEFAULT_COMMERCE_COPY.sendGiftDialog.selectGiftLabel,
+  sparkCostLabel = DEFAULT_COMMERCE_COPY.sendGiftDialog.sparkCostLabel,
+  sparkUnitLabel = DEFAULT_COMMERCE_COPY.sendGiftDialog.sparkUnitLabel,
+  loadingCatalogLabel = DEFAULT_COMMERCE_COPY.sendGiftDialog.loadingCatalogLabel,
+  loadCatalogFailedLabel = DEFAULT_COMMERCE_COPY.sendGiftDialog.loadCatalogFailedLabel,
+  retryLoadCatalogLabel = DEFAULT_COMMERCE_COPY.sendGiftDialog.retryLoadCatalogLabel,
+  emptyCatalogLabel = DEFAULT_COMMERCE_COPY.sendGiftDialog.emptyCatalogLabel,
+  emptyCatalogDescription = DEFAULT_COMMERCE_COPY.sendGiftDialog.emptyCatalogDescription,
+  messageLabel = DEFAULT_COMMERCE_COPY.sendGiftDialog.messageLabel,
+  messagePlaceholder = DEFAULT_COMMERCE_COPY.sendGiftDialog.messagePlaceholder,
+  recipientOnlyLabel = DEFAULT_COMMERCE_COPY.sendGiftDialog.recipientOnlyLabel,
+  sendGiftLabel = DEFAULT_COMMERCE_COPY.sendGiftDialog.sendGiftLabel,
+  sendingLabel = DEFAULT_COMMERCE_COPY.sendGiftDialog.sendingLabel,
 }: SendGiftDialogProps) {
   if (!open) {
     return null;
@@ -85,20 +88,61 @@ export function SendGiftDialog({
     <OverlayShell
       open={open}
       kind="dialog"
-      onClose={onClose}
+      size="S"
+      onClose={state.sending ? undefined : onClose}
       dataTestId={dataTestId}
-      panelClassName={`max-w-sm rounded-3xl ${panelClassName || ''}`.trim()}
-      contentClassName={`px-6 pb-6 pt-0 ${contentClassName || ''}`.trim()}
+      panelClassName={panelClassName}
+      contentClassName={contentClassName}
       title={(
-        <div className="flex items-center justify-between px-1">
-          <h2 className="text-lg font-semibold text-[var(--nimi-text-primary)]">{title}</h2>
+        <div className="flex items-center justify-between gap-4">
+          <span>{title}</span>
           <IconButton
-            icon={<CloseIcon className="h-5 w-5" />}
+            type="button"
+            size="sm"
+            disabled={state.sending}
             onClick={onClose}
             aria-label={closeLabel}
-            className="h-8 w-8 text-[var(--nimi-text-muted)] transition hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-text-secondary)]"
+            icon={(
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+                <path d="M18 6 6 18M6 6l12 12" />
+              </svg>
+            )}
           />
         </div>
+      )}
+      footer={(
+        <Button
+          tone="primary"
+          onClick={() => {
+            void state.handleSend().then((didSend) => {
+              if (didSend) {
+                onClose();
+              }
+            });
+          }}
+          disabled={!state.canSend}
+          fullWidth
+          className="rounded-[var(--nimi-radius-lg)] py-3.5"
+        >
+          {state.sending ? (
+            <>
+              <LoadingSpinner className="h-4 w-4" />
+              {sendingLabel}
+            </>
+          ) : state.selectedGift ? (
+            <>
+              <span>{sendGiftLabel}</span>
+              <span className="opacity-60">|</span>
+              <span>{sparkCostLabelText} {sparkUnitLabel}</span>
+              <SendIcon className="h-4 w-4" />
+            </>
+          ) : (
+            <>
+              {sendGiftLabel}
+              <SendIcon className="h-4 w-4" />
+            </>
+          )}
+        </Button>
       )}
     >
       <div className="flex flex-col items-center pb-6">
@@ -121,7 +165,7 @@ export function SendGiftDialog({
         <p className="text-sm text-[var(--nimi-text-muted)]">{recipient.handle || ''}</p>
       </div>
 
-      <div className="rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-5">
+      <div className="rounded-[var(--nimi-radius-lg)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-5">
         <div className="mb-4 flex items-center justify-between gap-3">
           <div>
             <p className="text-sm font-semibold text-[var(--nimi-text-primary)]">{selectGiftLabel}</p>
@@ -134,34 +178,41 @@ export function SendGiftDialog({
         </div>
 
         {state.catalogLoading ? (
-          <div className="flex items-center justify-center gap-3 rounded-2xl border border-dashed border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] px-4 py-8 text-sm text-[var(--nimi-text-muted)]">
+          <div
+            role="status"
+            aria-live="polite"
+            className="flex items-center justify-center gap-3 rounded-[var(--nimi-radius-lg)] border border-dashed border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] px-4 py-8 text-sm text-[var(--nimi-text-muted)]"
+          >
             <LoadingSpinner className="h-4 w-4 text-[var(--nimi-status-success)]" />
             <span>{loadingCatalogLabel}</span>
           </div>
         ) : null}
 
         {state.catalogError ? (
-          <div className="rounded-2xl border border-[color-mix(in_srgb,var(--nimi-status-danger)_30%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_8%,transparent)] p-4">
-            <p className="text-sm font-medium text-[var(--nimi-status-danger)]">
-              {state.catalogError || loadCatalogFailedLabel}
-            </p>
-            <Button
-              type="button"
-              tone="secondary"
-              size="sm"
-              onClick={() => {
-                state.clearError();
-                void state.refreshCatalog();
-              }}
-              className="mt-3 rounded-full"
-            >
-              {retryLoadCatalogLabel}
-            </Button>
-          </div>
+          <InlineAlert
+            tone="danger"
+            className="rounded-[var(--nimi-radius-lg)] p-4"
+            action={(
+              <Button
+                type="button"
+                tone="secondary"
+                size="sm"
+                onClick={() => {
+                  state.clearError();
+                  void state.refreshCatalog();
+                }}
+                className="rounded-full"
+              >
+                {retryLoadCatalogLabel}
+              </Button>
+            )}
+          >
+            {state.catalogError || loadCatalogFailedLabel}
+          </InlineAlert>
         ) : null}
 
         {state.isCatalogEmpty ? (
-          <div className="rounded-2xl border border-dashed border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] px-4 py-8 text-center">
+          <div className="rounded-[var(--nimi-radius-lg)] border border-dashed border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] px-4 py-8 text-center">
             <p className="text-sm font-semibold text-[var(--nimi-text-primary)]">{emptyCatalogLabel}</p>
             <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">
               {emptyCatalogDescription}
@@ -175,21 +226,23 @@ export function SendGiftDialog({
               <button
                 key={gift.id}
                 type="button"
+                aria-pressed={gift.id === state.selectedGiftId}
+                disabled={state.sending}
                 onClick={() => {
                   state.setSelectedGiftId(gift.id);
                   state.clearError();
                 }}
-                className={`rounded-2xl border-2 bg-[var(--nimi-surface-panel)] px-3 py-4 text-left transition ${
+                className={`rounded-[var(--nimi-radius-lg)] border-2 bg-[var(--nimi-surface-panel)] px-3 py-4 text-left transition ${FOCUS_RING_CLASS_NAME} ${
                   gift.id === state.selectedGiftId
-                    ? 'border-[var(--nimi-action-primary-bg)] shadow-[0_0_0_4px_color-mix(in_srgb,var(--nimi-action-primary-bg)_12%,transparent)]'
+                    ? 'border-[var(--nimi-action-primary-bg)] ring-4 ring-[color-mix(in_srgb,var(--nimi-action-primary-bg)_12%,transparent)]'
                     : 'border-transparent hover:border-[var(--nimi-border-subtle)]'
                 }`}
               >
                 <div className="flex justify-center">
                   {gift.iconUrl ? (
-                    <img src={gift.iconUrl} alt={gift.name} className="h-10 w-10 rounded-xl object-cover" />
+                    <img src={gift.iconUrl} alt={gift.name} className="h-10 w-10 rounded-[var(--nimi-radius-md)] object-cover" />
                   ) : (
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--nimi-status-success)_15%,transparent)] text-2xl">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-[var(--nimi-radius-md)] bg-[color-mix(in_srgb,var(--nimi-status-success)_15%,transparent)] text-2xl">
                       {gift.emoji}
                     </div>
                   )}
@@ -205,15 +258,18 @@ export function SendGiftDialog({
       </div>
 
       <div className="mt-6">
-        <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-[var(--nimi-text-muted)]">
+        <span className="mb-2 block nimi-type-overline uppercase text-[var(--nimi-text-muted)]">
           {messageLabel}
-        </label>
+        </span>
         <TextareaField
           value={state.message}
-          onChange={(event) => state.setMessage(event.target.value.slice(0, 200))}
+          onChange={(event) => state.setMessage(event.target.value)}
           rows={3}
+          maxLength={200}
+          disabled={state.sending}
+          aria-label={messageLabel}
           placeholder={messagePlaceholder}
-          className="rounded-2xl"
+          className="rounded-[var(--nimi-radius-lg)]"
           textareaClassName="resize-none px-4 py-3 text-sm"
         />
         <div className="mt-2 flex items-center gap-1.5 text-xs text-[var(--nimi-text-muted)]">
@@ -223,43 +279,10 @@ export function SendGiftDialog({
       </div>
 
       {state.error ? (
-        <div className="mt-4 rounded-xl border border-[color-mix(in_srgb,var(--nimi-status-danger)_30%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_8%,transparent)] px-4 py-3 text-sm text-[var(--nimi-status-danger)]">
+        <InlineAlert tone="danger" className="mt-4">
           {state.error}
-        </div>
+        </InlineAlert>
       ) : null}
-
-      <Button
-        tone="primary"
-        onClick={() => {
-          void state.handleSend().then((didSend) => {
-            if (didSend) {
-              onClose();
-            }
-          });
-        }}
-        disabled={!state.canSend}
-        fullWidth
-        className="mt-6 rounded-2xl py-3.5"
-      >
-        {state.sending ? (
-          <>
-            <LoadingSpinner className="h-4 w-4" />
-            {sendingLabel}
-          </>
-        ) : state.selectedGift ? (
-          <>
-            <span>{sendGiftLabel}</span>
-            <span className="opacity-60">|</span>
-            <span>{sparkCostLabelText} {sparkUnitLabel}</span>
-            <SendIcon className="h-4 w-4" />
-          </>
-        ) : (
-          <>
-            {sendGiftLabel}
-            <SendIcon className="h-4 w-4" />
-          </>
-        )}
-      </Button>
     </OverlayShell>
   );
 }
@@ -268,15 +291,6 @@ function SparkIcon({ className = '' }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
-    </svg>
-  );
-}
-
-function CloseIcon({ className = '' }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="18" y1="6" x2="6" y2="18" />
-      <line x1="6" y1="6" x2="18" y2="18" />
     </svg>
   );
 }
@@ -301,7 +315,7 @@ function SendIcon({ className = '' }: { className?: string }) {
 
 function LoadingSpinner({ className = '' }: { className?: string }) {
   return (
-    <svg className={`animate-spin ${className}`} viewBox="0 0 24 24" fill="none">
+    <svg className={`animate-spin ${className}`} viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
     </svg>

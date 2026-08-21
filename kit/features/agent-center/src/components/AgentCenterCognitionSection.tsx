@@ -116,17 +116,17 @@ export function AgentCenterCognitionSection({ session, snapshot, i18n }: AgentCe
       >
         <div data-agent-center-cognition-current="true">
           <Card className="p-4">
-            <h3 className="m-0 text-[15px] font-semibold leading-[1.35] text-slate-950">
+            <h3 className="m-0 text-[length:var(--nimi-type-label-size)] font-semibold leading-[1.35] text-[var(--nimi-text-primary)]">
               {translateAgentCenter(i18n, 'AgentCenter.cognition.current.title', agentCenterEnCatalog["AgentCenter.cognition.current.title"])}
             </h3>
             <div className="mt-4 grid min-w-0 justify-items-center text-center">
-              <div className="relative grid h-[82px] w-[140px] place-items-center text-violet-300">
+              <div className="relative grid h-[82px] w-[140px] place-items-center text-[var(--nimi-text-muted)]">
                 <Cloud aria-hidden="true" className="h-11 w-11 opacity-80" strokeWidth={1.8} />
-                <span aria-hidden="true" className="absolute left-7 top-4 h-2 w-2 rounded-full bg-violet-300/75" />
-                <span aria-hidden="true" className="absolute right-7 top-10 h-2.5 w-2.5 rounded-full bg-violet-300/75" />
-                <span aria-hidden="true" className="absolute left-12 top-1 text-[22px] leading-none text-violet-300/70">*</span>
+                <span aria-hidden="true" className="absolute left-7 top-4 h-2 w-2 rounded-full bg-[color-mix(in_srgb,var(--nimi-text-muted)_75%,transparent)]" />
+                <span aria-hidden="true" className="absolute right-7 top-10 h-2.5 w-2.5 rounded-full bg-[color-mix(in_srgb,var(--nimi-text-muted)_75%,transparent)]" />
+                <span aria-hidden="true" className="absolute left-12 top-1 text-[length:var(--nimi-type-page-title-size)] leading-none text-[color-mix(in_srgb,var(--nimi-text-muted)_70%,transparent)]">*</span>
               </div>
-              <strong className="text-[16px] font-semibold leading-[1.35] text-slate-950">
+              <strong className="text-[length:var(--nimi-type-section-title-size)] font-semibold leading-[1.35] text-[var(--nimi-text-primary)]">
                 {hasProjection
                   ? translateAgentCenter(i18n, 'AgentCenter.cognition.current.available', agentCenterEnCatalog["AgentCenter.cognition.current.available"])
                   : translateAgentCenter(i18n, 'AgentCenter.cognition.current.empty', agentCenterEnCatalog["AgentCenter.cognition.current.empty"])}
@@ -157,7 +157,7 @@ export function AgentCenterCognitionSection({ session, snapshot, i18n }: AgentCe
 
         <div data-agent-center-cognition-memory="true">
           <Card className="p-4">
-            <h3 className="m-0 text-[15px] font-semibold leading-[1.35] text-slate-950">
+            <h3 className="m-0 text-[length:var(--nimi-type-label-size)] font-semibold leading-[1.35] text-[var(--nimi-text-primary)]">
               {translateAgentCenter(i18n, 'AgentCenter.cognition.recentMemory.title', agentCenterEnCatalog["AgentCenter.cognition.recentMemory.title"])}
             </h3>
             <div
@@ -167,21 +167,21 @@ export function AgentCenterCognitionSection({ session, snapshot, i18n }: AgentCe
             >
               {cognition.recentCanonicalMemoryCount > 0 ? (
                 <div
-                  className="min-w-0 rounded-[12px] border border-slate-200 bg-white/90 p-3.5"
+                  className="min-w-0 rounded-[12px] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-3.5"
                   data-agent-center-cognition-memory-count={cognition.recentCanonicalMemoryCount}
                   role="listitem"
                 >
-                  <div className="min-w-0 text-[13px] font-semibold leading-[1.55] text-slate-950">
+                  <div className="min-w-0 text-[length:var(--nimi-type-body-sm-size)] font-semibold leading-[1.55] text-[var(--nimi-text-primary)]">
                     {cognition.recentCanonicalMemoryCount}
                   </div>
                 </div>
               ) : (
-                <div className="flex min-w-0 items-center gap-3 rounded-[12px] border border-violet-200/60 bg-violet-50/45 p-3.5">
-                  <span className="grid h-11 w-11 shrink-0 place-items-center rounded-[14px] bg-violet-100/70 text-violet-400">
+                <div className="flex min-w-0 items-center gap-3 rounded-[12px] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] p-3.5">
+                  <span className="grid h-11 w-11 shrink-0 place-items-center rounded-[14px] bg-[var(--nimi-status-neutral-soft-bg)] text-[var(--nimi-status-neutral-soft-text)]">
                     <FileText aria-hidden="true" className="h-5 w-5" />
                   </span>
                   <div className="min-w-0">
-                    <div className="text-[13.5px] font-semibold leading-[1.4] text-slate-950">
+                    <div className="text-[length:var(--nimi-type-body-size)] font-semibold leading-[1.4] text-[var(--nimi-text-primary)]">
                       {translateAgentCenter(i18n, 'AgentCenter.cognition.recentMemory.empty', agentCenterEnCatalog["AgentCenter.cognition.recentMemory.empty"])}
                     </div>
                   </div>
@@ -198,9 +198,9 @@ export function AgentCenterCognitionSection({ session, snapshot, i18n }: AgentCe
 type CognitionMetricTone = 'emerald' | 'rose' | 'violet';
 
 const COGNITION_METRIC_TONE_CLASS: Record<CognitionMetricTone, string> = {
-  emerald: 'bg-emerald-50 text-emerald-700',
-  rose: 'bg-rose-50 text-rose-600',
-  violet: 'bg-violet-50 text-violet-600',
+  emerald: 'bg-[var(--nimi-status-success-soft-bg)] text-[var(--nimi-status-success-soft-text)]',
+  rose: 'bg-[var(--nimi-status-danger-soft-bg)] text-[var(--nimi-status-danger-soft-text)]',
+  violet: 'bg-[var(--nimi-status-info-soft-bg)] text-[var(--nimi-status-info-soft-text)]',
 };
 
 function CognitionMetric(props: {
@@ -211,7 +211,7 @@ function CognitionMetric(props: {
 }) {
   const Icon = props.icon;
   return (
-    <div className="flex min-w-0 items-center gap-3 rounded-[12px] border border-slate-200/90 bg-white/95 px-3 py-3">
+    <div className="flex min-w-0 items-center gap-3 rounded-[12px] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-3 py-3">
       <span className={cnAgentCenter(
         'grid h-9 w-9 shrink-0 place-items-center rounded-[12px]',
         COGNITION_METRIC_TONE_CLASS[props.tone],
@@ -219,8 +219,8 @@ function CognitionMetric(props: {
         <Icon aria-hidden="true" className="h-[18px] w-[18px]" />
       </span>
       <span className="grid min-w-0 gap-0.5">
-        <span className="min-w-0 truncate text-[12px] font-semibold leading-[1.35] text-slate-500">{props.label}</span>
-        <strong className="min-w-0 truncate text-[13.5px] font-semibold leading-[1.35] text-slate-950">{props.value}</strong>
+        <span className="min-w-0 truncate text-[length:var(--nimi-type-caption-size)] font-semibold leading-[1.35] text-[var(--nimi-text-muted)]">{props.label}</span>
+        <strong className="min-w-0 truncate text-[length:var(--nimi-type-body-size)] font-semibold leading-[1.35] text-[var(--nimi-text-primary)]">{props.value}</strong>
       </span>
     </div>
   );

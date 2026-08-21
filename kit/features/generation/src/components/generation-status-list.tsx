@@ -1,18 +1,22 @@
 import type { ReactNode } from 'react';
-import { Surface } from '@nimiplatform/kit/ui';
-import type { GenerationRunItem } from '../types.js';
+import { ProgressIndicator, Surface } from '@nimiplatform/kit/ui';
+import type { GenerationRunItem, GenerationRunStatus } from '../types.js';
 
 export type GenerationStatusListProps = {
   items: readonly GenerationRunItem[];
   className?: string;
   renderStatusExtra?: (item: GenerationRunItem) => ReactNode;
+  /** Host-injected status label mapping; defaults to the raw status id (English enum). */
+  getStatusLabel?: (status: GenerationRunStatus) => string;
 };
+
+const defaultGetStatusLabel = (status: GenerationRunStatus): string => status;
 
 function statusTone(status: string) {
   if (status === 'completed') return 'text-[color:var(--nimi-status-success)]';
   if (status === 'failed') return 'text-[color:var(--nimi-status-danger)]';
-  if (status === 'running') return 'text-[color:var(--nimi-status-info)]';
-  if (status === 'pending' || status === 'timeout') return 'text-[color:var(--nimi-status-warning)]';
+  if (status === 'running' || status === 'submitted') return 'text-[color:var(--nimi-status-info)]';
+  if (status === 'pending' || status === 'queued' || status === 'timeout') return 'text-[color:var(--nimi-status-warning)]';
   return 'text-[color:var(--nimi-text-muted)]';
 }
 
@@ -20,6 +24,7 @@ export function GenerationStatusList({
   items,
   className,
   renderStatusExtra,
+  getStatusLabel = defaultGetStatusLabel,
 }: GenerationStatusListProps) {
   if (items.length === 0) {
     return null;
@@ -29,21 +34,16 @@ export function GenerationStatusList({
     <div className={className}>
       <div className="space-y-2">
         {items.map((item) => (
-          <div key={item.runId} className="rounded-xl border border-[color:var(--nimi-border-subtle)] bg-[color:var(--nimi-surface-card)] px-3 py-2 text-xs">
+          <div key={item.runId} className="rounded-[var(--nimi-radius-md)] border border-[color:var(--nimi-border-subtle)] bg-[color:var(--nimi-surface-card)] px-3 py-2 text-xs">
             <div className="flex items-center justify-between gap-3">
               <span className="text-[color:var(--nimi-text-secondary)]">{item.label}</span>
-              <span className={`font-medium ${statusTone(item.status)}`}>{item.status}</span>
+              <span className={`font-medium ${statusTone(item.status)}`}>{getStatusLabel(item.status)}</span>
             </div>
             {item.progressValue !== undefined ? (
               <div className="mt-2">
-                <div className="h-1.5 overflow-hidden rounded-full bg-[color:var(--nimi-border-subtle)]">
-                  <div
-                    className="h-full rounded-full bg-[color:var(--nimi-action-primary-bg)] transition-[width]"
-                    style={{ width: `${Math.max(0, Math.min(item.progressValue, 100))}%` }}
-                  />
-                </div>
+                <ProgressIndicator value={item.progressValue} />
                 {item.progressLabel ? (
-                  <p className="mt-1 text-[10px] text-[color:var(--nimi-text-muted)]">{item.progressLabel}</p>
+                  <p className="mt-1 text-[length:var(--nimi-type-overline-size)] text-[color:var(--nimi-text-muted)]">{item.progressLabel}</p>
                 ) : null}
               </div>
             ) : null}
@@ -62,6 +62,7 @@ export function GenerationStatusToast({
   items,
   className,
   renderStatusExtra,
+  getStatusLabel,
 }: GenerationStatusListProps) {
   if (items.length === 0) {
     return null;
@@ -69,7 +70,7 @@ export function GenerationStatusToast({
 
   return (
     <Surface tone="panel" className={className}>
-      <GenerationStatusList items={items} renderStatusExtra={renderStatusExtra} />
+      <GenerationStatusList items={items} renderStatusExtra={renderStatusExtra} getStatusLabel={getStatusLabel} />
     </Surface>
   );
 }

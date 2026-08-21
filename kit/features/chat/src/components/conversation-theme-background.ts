@@ -29,7 +29,7 @@ export function resolveConversationThemeBackgroundStyle(input: {
   const safeBackgroundImage = toSafeBackgroundImage(input.theme?.appBackdropImageUrl || null);
   if (safeBackgroundImage) {
     return {
-      backgroundImage: `${input.overlay || 'linear-gradient(180deg, rgba(255,255,255,0.78), rgba(255,255,255,0.88))'}, ${safeBackgroundImage}`,
+      backgroundImage: `${input.overlay || 'linear-gradient(180deg, color-mix(in srgb, var(--nimi-surface-card) 78%, transparent), color-mix(in srgb, var(--nimi-surface-card) 88%, transparent))'}, ${safeBackgroundImage}`,
       backgroundSize: 'cover',
       backgroundPosition: 'center bottom',
       backgroundRepeat: 'no-repeat',

@@ -108,10 +108,25 @@ export function CanonicalRightSidebar({
     };
   }, [open, prewarm, prewarmDelayMs, shouldRenderSidebar]);
 
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [open, onClose]);
+
   return (
     <>
       <div
-        className="absolute inset-y-0 right-0 z-30 h-full shrink-0 overflow-hidden transition-[width,opacity,transform] duration-300 ease-[cubic-bezier(0.2,0.7,0.2,1)]"
+        className="absolute inset-y-0 right-0 z-30 h-full shrink-0 overflow-hidden transition-[width,opacity,transform] duration-[var(--nimi-motion-slow)] ease-[var(--nimi-motion-ease-standard)]"
         style={{
           width: open ? `${widthPx}px` : '0px',
           opacity: open ? 1 : 0,
@@ -120,6 +135,7 @@ export function CanonicalRightSidebar({
           willChange: 'width, opacity, transform',
         }}
         aria-hidden={!open}
+        inert={!open}
         data-canonical-right-sidebar="true"
       >
         <SidebarShell
@@ -129,7 +145,7 @@ export function CanonicalRightSidebar({
           data-canonical-right-sidebar-shell="true"
         >
           {shouldRenderSidebar ? (
-            <div className={`h-full transition-opacity duration-300 ${open ? 'opacity-100 delay-75' : 'opacity-0'}`}>
+            <div className={`h-full transition-opacity duration-[var(--nimi-motion-slow)] ${open ? 'opacity-100 delay-75' : 'opacity-0'}`}>
               <CanonicalRightSidebarBoundary
                 resetKey={resetKey}
                 title={fallbackTitle}

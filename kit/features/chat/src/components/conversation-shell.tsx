@@ -65,15 +65,15 @@ function HeaderIconButton(props: {
       disabled={props.disabled}
       className={cn(
         'inline-flex h-10 w-10 items-center justify-center rounded-full',
-        'shadow-[0_2px_8px_rgba(15,23,42,0.05)]',
-        'transition-all duration-150',
-        'active:scale-[0.985]',
+        'shadow-[var(--nimi-elevation-base)]',
+        'transition-[background-color,border-color,color,box-shadow,transform,opacity] duration-[var(--nimi-motion-fast)] ease-[var(--nimi-motion-ease-standard)]',
+        'active:scale-[var(--nimi-motion-pressed-scale)]',
         props.active
           ? 'border border-[var(--nimi-action-primary-bg)] bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)] shadow-[0_4px_12px_color-mix(in_srgb,var(--nimi-action-primary-bg)_20%,transparent)]'
-          : 'border border-slate-200/80 bg-white/90 text-slate-700',
+          : 'border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,transparent)] text-[var(--nimi-text-secondary)]',
         props.disabled
           ? 'cursor-not-allowed opacity-50'
-          : 'hover:-translate-y-px hover:border-[var(--nimi-action-primary-bg)]/50 hover:text-[var(--nimi-action-primary-bg)] hover:shadow-[0_8px_18px_rgba(15,23,42,0.08)]',
+          : 'hover:border-[var(--nimi-action-primary-bg)]/50 hover:text-[var(--nimi-action-primary-bg)] hover:shadow-[var(--nimi-elevation-raised)]',
         props.active && !props.disabled
           ? 'hover:bg-[var(--nimi-action-primary-bg-hover)] hover:text-[var(--nimi-action-primary-text)] hover:border-[var(--nimi-action-primary-bg-hover)]'
           : '',
@@ -84,6 +84,10 @@ function HeaderIconButton(props: {
   );
 }
 
+/**
+ * @deprecated Legacy conversation shell family. Use `CanonicalConversationShell`,
+ * the UI truth source for shared chat surfaces, instead.
+ */
 export type ConversationShellProps = {
   viewModel: ConversationShellViewModel;
   /** Character data for the left rail. */
@@ -123,10 +127,10 @@ export type ConversationShellProps = {
 function defaultEmptyState(): ReactNode {
   return (
     <div className="flex h-full min-h-[320px] flex-col items-center justify-center gap-3 text-center">
-      <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--nimi-action-primary-bg)]/70">
+      <div className="text-[length:var(--nimi-type-overline-size)] font-semibold uppercase tracking-[0.2em] text-[var(--nimi-action-primary-bg)]/70">
         This Moment
       </div>
-      <p className="text-sm text-slate-500">
+      <p className="text-sm text-[var(--nimi-text-muted)]">
         The current turn plays here first.
       </p>
     </div>
@@ -202,6 +206,10 @@ function renderTranscriptSurface(input: {
   );
 }
 
+/**
+ * @deprecated Legacy conversation shell family. Use `CanonicalConversationShell`,
+ * the UI truth source for shared chat surfaces, instead.
+ */
 export function ConversationShell({
   viewModel,
   characterData,

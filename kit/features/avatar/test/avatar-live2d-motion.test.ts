@@ -64,8 +64,6 @@ describe('avatar live2d motion helpers', () => {
         badgeLabel: 'Speaking',
         assetLabel: 'Fixture',
         motionSpeed: 1.5,
-        accentColor: '#000',
-        glowColor: '#fff',
       },
     });
 
@@ -88,8 +86,6 @@ describe('avatar live2d motion helpers', () => {
         badgeLabel: 'Surprised',
         assetLabel: 'Fixture',
         motionSpeed: 0.66,
-        accentColor: '#000',
-        glowColor: '#fff',
       },
     });
     const concerned = resolveAvatarLive2dRenderMotionPose({
@@ -104,8 +100,6 @@ describe('avatar live2d motion helpers', () => {
         badgeLabel: 'Concerned',
         assetLabel: 'Fixture',
         motionSpeed: 0.48,
-        accentColor: '#000',
-        glowColor: '#fff',
       },
     });
 

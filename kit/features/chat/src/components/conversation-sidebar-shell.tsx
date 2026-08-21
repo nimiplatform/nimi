@@ -2,6 +2,11 @@ import type { ReactNode } from 'react';
 import { cn } from '@nimiplatform/kit/ui';
 import type { ConversationCharacterBadge } from '../types.js';
 
+/**
+ * @deprecated Legacy conversation shell family. The canonical shell
+ * (`CanonicalConversationShell`) is the UI truth source for shared chat
+ * surfaces; use `CanonicalCharacterRail` or `CanonicalRightSidebar` instead.
+ */
 export type ConversationSidebarShellProps = {
   /** Avatar image URL. Falls back to `avatarFallback` initial. */
   avatarUrl?: string | null;
@@ -21,13 +26,18 @@ export type ConversationSidebarShellProps = {
 };
 
 const BADGE_VARIANT_CLASSES: Record<ConversationCharacterBadge['variant'], string> = {
-  default: 'border-slate-200 bg-slate-50 text-slate-600',
+  default: 'border-[var(--nimi-status-neutral-soft-border)] bg-[var(--nimi-status-neutral-soft-bg)] text-[var(--nimi-status-neutral-soft-text)]',
   online: 'border-[var(--nimi-status-success-soft-border)] bg-[var(--nimi-status-success-soft-bg)] text-[var(--nimi-status-success-soft-text)]',
-  busy: 'border-amber-200 bg-amber-50 text-amber-700',
-  warm: 'border-rose-200 bg-rose-50 text-rose-700',
-  new: 'border-sky-200 bg-sky-50 text-sky-700',
+  busy: 'border-[var(--nimi-status-warning-soft-border)] bg-[var(--nimi-status-warning-soft-bg)] text-[var(--nimi-status-warning-soft-text)]',
+  warm: 'border-[var(--nimi-status-danger-soft-border)] bg-[var(--nimi-status-danger-soft-bg)] text-[var(--nimi-status-danger-soft-text)]',
+  new: 'border-[var(--nimi-status-info-soft-border)] bg-[var(--nimi-status-info-soft-bg)] text-[var(--nimi-status-info-soft-text)]',
 };
 
+/**
+ * @deprecated Legacy conversation shell family. The canonical shell
+ * (`CanonicalConversationShell`) is the UI truth source for shared chat
+ * surfaces; use `CanonicalCharacterRail` or `CanonicalRightSidebar` instead.
+ */
 export function ConversationSidebarShell({
   avatarUrl,
   avatarFallback,
@@ -44,30 +54,30 @@ export function ConversationSidebarShell({
     <aside
       className={cn(
         'relative flex min-h-0 w-full shrink-0 flex-col overflow-hidden',
-        'border-r border-white/70',
-        'bg-[linear-gradient(180deg,rgba(250,252,252,0.98),rgba(244,247,248,0.96))]',
+        'border-r border-[var(--nimi-border-subtle)]',
+        'bg-[linear-gradient(180deg,color-mix(in_srgb,var(--nimi-surface-panel)_98%,transparent),color-mix(in_srgb,var(--nimi-surface-panel)_96%,transparent))]',
         className,
       )}
     >
-      {/* decorative blur orbs */}
-      <div className="pointer-events-none absolute left-[-64px] top-[-52px] h-48 w-48 rounded-full bg-[var(--nimi-action-primary-bg)]/10 blur-3xl" />
-      <div className="pointer-events-none absolute bottom-16 right-[-56px] h-56 w-56 rounded-full bg-sky-100/70 blur-3xl" />
+      {/* decorative radial orbs */}
+      <div className="pointer-events-none absolute left-[-64px] top-[-52px] h-48 w-48 rounded-full bg-[radial-gradient(circle,color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)_0%,transparent_70%)]" />
+      <div className="pointer-events-none absolute bottom-16 right-[-56px] h-56 w-56 rounded-full bg-[radial-gradient(circle,color-mix(in_srgb,var(--nimi-action-primary-bg)_16%,transparent)_0%,transparent_70%)]" />
 
       {/* main content */}
       <div className="relative z-10 flex min-h-0 flex-1 flex-col px-5 pb-5 pt-4">
         {/* avatar */}
         <div className="flex min-h-0 flex-1 items-center justify-center pb-8">
-          <div className="group relative rounded-full outline-none transition-transform duration-300 hover:scale-[1.02]">
+          <div className="group relative rounded-full outline-none transition-transform duration-[var(--nimi-motion-slow)] hover:scale-[1.02]">
             {/* aura glow */}
-            <div className="absolute inset-[-28px] rounded-full bg-[var(--nimi-action-primary-bg)]/10 opacity-75 blur-3xl" />
+            <div className="absolute inset-[-28px] rounded-full bg-[radial-gradient(circle,color-mix(in_srgb,var(--nimi-action-primary-bg)_12%,transparent)_0%,transparent_70%)] opacity-75" />
             {/* border ring */}
-            <div className="absolute inset-[-12px] rounded-full border border-white/75 shadow-[0_22px_56px_color-mix(in_srgb,var(--nimi-action-primary-bg)_30%,transparent)]" />
+            <div className="absolute inset-[-12px] rounded-full border border-[var(--nimi-border-subtle)] shadow-[0_22px_56px_color-mix(in_srgb,var(--nimi-action-primary-bg)_30%,transparent)]" />
             {/* avatar frame */}
             <div
               className={cn(
                 'relative flex h-40 w-40 items-center justify-center overflow-hidden rounded-full',
-                'border border-white/90 bg-white/82',
-                'shadow-[0_24px_60px_rgba(15,23,42,0.12)]',
+                'border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_82%,transparent)]',
+                'shadow-[var(--nimi-elevation-floating)]',
               )}
             >
               {avatarUrl ? (
@@ -88,17 +98,17 @@ export function ConversationSidebarShell({
         {/* info */}
         <div className="shrink-0 text-center">
           {name ? (
-            <h1 className="text-[34px] font-black leading-none tracking-tight text-slate-950">
+            <h1 className="text-[length:var(--nimi-type-hero-title-size)] font-black leading-none tracking-tight text-[var(--nimi-text-primary)]">
               {name}
             </h1>
           ) : null}
           {handle ? (
-            <p className="mt-1.5 text-sm font-medium text-slate-500">
+            <p className="mt-1.5 text-sm font-medium text-[var(--nimi-text-muted)]">
               {handle}
             </p>
           ) : null}
           {bio ? (
-            <p className="mt-3 line-clamp-3 min-h-[72px] text-sm leading-6 text-slate-500">
+            <p className="mt-3 line-clamp-3 min-h-[72px] text-sm leading-6 text-[var(--nimi-text-muted)]">
               {bio}
             </p>
           ) : null}
@@ -112,7 +122,7 @@ export function ConversationSidebarShell({
                 key={badge.label}
                 className={cn(
                   'inline-flex items-center gap-2 rounded-full border px-3.5 py-2 text-xs font-semibold',
-                  'shadow-[0_10px_24px_rgba(15,23,42,0.05)]',
+                  'shadow-[var(--nimi-elevation-raised)]',
                   BADGE_VARIANT_CLASSES[badge.variant],
                 )}
               >

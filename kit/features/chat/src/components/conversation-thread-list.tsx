@@ -1,7 +1,13 @@
-import { ScrollArea, cn } from '@nimiplatform/kit/ui';
+import { EmptyState, ScrollArea, cn } from '@nimiplatform/kit/ui';
 import type { ReactNode } from 'react';
 import type { ConversationThreadSummary } from '../types.js';
+import { resolveChatCopy, type ChatCopy } from '../copy.js';
 
+/**
+ * @deprecated Legacy conversation shell family. The canonical shell
+ * (`CanonicalConversationShell`) is the UI truth source for shared chat
+ * surfaces; conversation entry lists are owned by the canonical target pane.
+ */
 export type ConversationThreadListProps = {
   threads: readonly ConversationThreadSummary[];
   activeThreadId?: string | null;
@@ -9,8 +15,15 @@ export type ConversationThreadListProps = {
   emptyState?: ReactNode;
   renderMeta?: (thread: ConversationThreadSummary) => ReactNode;
   className?: string;
+  /** Optional copy overrides merged over the default English strings. */
+  copy?: ChatCopy;
 };
 
+/**
+ * @deprecated Legacy conversation shell family. The canonical shell
+ * (`CanonicalConversationShell`) is the UI truth source for shared chat
+ * surfaces; conversation entry lists are owned by the canonical target pane.
+ */
 export function ConversationThreadList({
   threads,
   activeThreadId,
@@ -18,11 +31,13 @@ export function ConversationThreadList({
   emptyState,
   renderMeta,
   className,
+  copy,
 }: ConversationThreadListProps) {
+  const copyResolved = resolveChatCopy(copy);
   if (threads.length === 0) {
     return (
-      <div className={cn('px-2 py-6 text-center text-sm text-slate-400', className)}>
-        {emptyState || 'No conversations yet.'}
+      <div className={cn('px-2 py-2', className)}>
+        {emptyState ?? <EmptyState title={copyResolved.threadListEmptyTitle} />}
       </div>
     );
   }
@@ -37,10 +52,10 @@ export function ConversationThreadList({
               key={thread.id}
               type="button"
               className={cn(
-                'w-full rounded-xl px-3 py-2.5 text-left transition-colors duration-100',
+                'w-full rounded-xl px-3 py-2.5 text-left transition-colors duration-[var(--nimi-motion-fast)]',
                 active
-                  ? 'bg-white/90 shadow-sm ring-1 ring-slate-200/60'
-                  : 'hover:bg-slate-50/80',
+                  ? 'bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,transparent)] shadow-sm ring-1 ring-[var(--nimi-border-subtle)]'
+                  : 'hover:bg-[color-mix(in_srgb,var(--nimi-surface-panel)_80%,transparent)]',
               )}
               onClick={() => onSelectThread?.(thread.id)}
             >
@@ -48,27 +63,27 @@ export function ConversationThreadList({
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1.5">
                     <p className={cn(
-                      'truncate text-[13px]',
-                      active ? 'font-semibold text-slate-900' : 'font-medium text-slate-700',
+                      'truncate text-[length:var(--nimi-type-body-sm-size)]',
+                      active ? 'font-semibold text-[var(--nimi-text-primary)]' : 'font-medium text-[var(--nimi-text-secondary)]',
                     )}>
                       {thread.title}
                     </p>
                     {thread.unreadCount > 0 ? (
-                      <span className="inline-flex min-w-[18px] items-center justify-center rounded-full bg-[var(--nimi-surface-active)] px-1 text-[10px] font-semibold text-[var(--nimi-action-primary-bg)]">
+                      <span className="inline-flex min-w-[18px] items-center justify-center rounded-full bg-[var(--nimi-surface-active)] px-1 text-[length:var(--nimi-type-overline-size)] font-semibold text-[var(--nimi-action-primary-bg)]">
                         {thread.unreadCount}
                       </span>
                     ) : null}
                   </div>
-                  <p className="mt-0.5 line-clamp-1 text-[12px] text-slate-400">
+                  <p className="mt-0.5 line-clamp-1 text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-muted)]">
                     {thread.previewText || 'No preview yet.'}
                   </p>
                 </div>
-                <div className="shrink-0 pt-0.5 text-[10px] text-slate-400">
+                <div className="shrink-0 pt-0.5 text-[length:var(--nimi-type-overline-size)] text-[var(--nimi-text-muted)]">
                   {thread.updatedAt}
                 </div>
               </div>
               {renderMeta ? (
-                <div className="mt-1.5 text-[11px] text-slate-400">
+                <div className="mt-1.5 text-[length:var(--nimi-type-overline-size)] text-[var(--nimi-text-muted)]">
                   {renderMeta(thread)}
                 </div>
               ) : null}

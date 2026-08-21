@@ -23,9 +23,11 @@ function flush() {
 function Harness({
   statusItems,
   submit,
+  dismissErrorLabel,
 }: {
   statusItems: readonly GenerationRunItem[];
   submit: () => Promise<void> | void;
+  dismissErrorLabel?: string;
 }) {
   const state = useGenerationPanel({
     adapter: { submit },
@@ -40,6 +42,7 @@ function Harness({
       controls={<div>Controls</div>}
       submitLabel="Run"
       statusItems={statusItems}
+      dismissErrorLabel={dismissErrorLabel}
     />
   );
 }
@@ -79,6 +82,10 @@ describe('GenerationPanel', () => {
     expect(container.textContent).toContain('Owner-driven execution unavailable');
     expect(container.textContent).toContain('Queued');
     expect(container.textContent).toContain('running');
+
+    const progress = container.querySelector('[role="progressbar"]') as HTMLElement;
+    expect(progress).toBeTruthy();
+    expect(progress.getAttribute('aria-valuenow')).toBe('50');
   });
 
   it('submits when trigger event fires', async () => {
@@ -117,5 +124,99 @@ describe('GenerationPanel', () => {
     expect(container.textContent).toContain('Failed');
     expect(container.textContent).toContain('failed');
     expect(container.textContent).toContain('boom');
+  });
+
+  it('renders the error dismiss button with the kit focus ring and clears the error', async () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+
+    await act(async () => {
+      root?.render(
+        <Harness
+          submit={async () => { throw new Error('boom'); }}
+          statusItems={[]}
+        />,
+      );
+      await flush();
+    });
+
+    await act(async () => {
+      window.dispatchEvent(new Event('test-generation-trigger'));
+      await flush();
+    });
+
+    const dismiss = container.querySelector('button[aria-label="Dismiss generation error"]') as HTMLButtonElement;
+    expect(dismiss).toBeTruthy();
+    expect(dismiss.className).toContain('focus-visible:ring');
+
+    await act(async () => {
+      dismiss.click();
+      await flush();
+    });
+    expect(container.querySelector('button[aria-label="Dismiss generation error"]')).toBeNull();
+  });
+
+  it('accepts a host-injected dismiss error label', async () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+
+    await act(async () => {
+      root?.render(
+        <Harness
+          submit={async () => { throw new Error('boom'); }}
+          statusItems={[]}
+          dismissErrorLabel="关闭错误"
+        />,
+      );
+      await flush();
+    });
+
+    await act(async () => {
+      window.dispatchEvent(new Event('test-generation-trigger'));
+      await flush();
+    });
+
+    expect(container.querySelector('button[aria-label="关闭错误"]')).toBeTruthy();
+  });
+
+  it('uses semantic tones for submitted and queued host statuses', async () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+
+    await act(async () => {
+      root?.render(
+        <GenerationStatusToast
+          items={[
+            { runId: 'submitted', status: 'submitted', label: 'Job A' },
+            { runId: 'queued', status: 'queued', label: 'Job B' },
+          ]}
+        />,
+      );
+      await flush();
+    });
+
+    expect(Array.from(container.querySelectorAll('span')).find((node) => node.textContent === 'submitted')?.className).toContain('status-info');
+    expect(Array.from(container.querySelectorAll('span')).find((node) => node.textContent === 'queued')?.className).toContain('status-warning');
+  });
+
+  it('maps status labels through the host-injected getStatusLabel', async () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+
+    await act(async () => {
+      root?.render(
+        <GenerationStatusToast
+          items={[{ runId: 'job-3', status: 'running', label: 'Job' }]}
+          getStatusLabel={(status) => `status:${status}`}
+        />,
+      );
+      await flush();
+    });
+
+    expect(container.textContent).toContain('status:running');
   });
 });

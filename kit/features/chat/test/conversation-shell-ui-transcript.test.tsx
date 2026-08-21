@@ -108,6 +108,50 @@ it('keeps the transcript scroll root inside the content column and reserves bott
     expect(container.querySelector('[data-test-composer="true"]')).not.toBeNull();
   });
 
+  it('forwards shell copy to transcript message bubbles', async () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+    const target = {
+      id: 'agent:localized',
+      source: 'agent' as const,
+      canonicalSessionId: 'session-localized',
+      title: 'Localized Agent',
+      avatarFallback: 'L',
+    };
+
+    await act(async () => {
+      root?.render(
+        <CanonicalConversationShell
+          sourceFilter="all"
+          targets={[target]}
+          selectedTargetId={target.id}
+          selectedTarget={target}
+          onSelectTarget={() => undefined}
+          viewMode="chat"
+          onViewModeChange={() => undefined}
+          hideTargetPane
+          hideCharacterRail
+          copy={{ bubbleImageUnavailableLabel: '图片不可用' }}
+          messages={[{
+            id: 'image-failed',
+            sessionId: 'session-localized',
+            targetId: target.id,
+            source: 'agent',
+            role: 'assistant',
+            text: '',
+            createdAt: '2026-04-05T00:00:00.000Z',
+            kind: 'image',
+          }]}
+        />,
+      );
+      await flush();
+      await flush();
+    });
+
+    expect(container.textContent).toContain('图片不可用');
+  });
+
   it('renders canonical setup state before target landing', async () => {
     container = document.createElement('div');
     document.body.appendChild(container);
@@ -211,6 +255,58 @@ it('keeps the transcript scroll root inside the content column and reserves bott
     expect(container.textContent).toContain('This is an open weight \uFF08open weights\uFF09 model.');
   });
 
+  it('forwards shell copy to pending typing and stop controls', async () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+    const target = {
+      id: 'ai:nimi',
+      source: 'ai' as const,
+      canonicalSessionId: 'session-ai',
+      title: 'Nimi',
+      avatarFallback: 'N',
+    };
+
+    await act(async () => {
+      root?.render(
+        <CanonicalConversationShell
+          sourceFilter="all"
+          targets={[target]}
+          selectedTargetId={target.id}
+          selectedTarget={target}
+          onSelectTarget={() => undefined}
+          viewMode="chat"
+          onViewModeChange={() => undefined}
+          hideTargetPane
+          hideCharacterRail
+          pendingFirstBeat
+          copy={{
+            typingAgentRoleLabel: '助手正在回复',
+            typingThinkingLabel: '正在思考…',
+            typingStopLabel: '停止生成',
+          }}
+          messages={[{
+            id: 'user-pending',
+            sessionId: 'session-ai',
+            targetId: target.id,
+            source: 'ai',
+            role: 'user',
+            text: '你好',
+            createdAt: '2026-04-05T00:00:00.000Z',
+            kind: 'text',
+          }]}
+          transcriptProps={{ onStopGenerating: () => undefined }}
+        />,
+      );
+      await flush();
+    });
+
+    const status = container.querySelector('[role="status"]');
+    expect(status?.getAttribute('aria-label')).toBe('助手正在回复');
+    expect(status?.textContent).toContain('正在思考…');
+    expect(container.querySelector('button[aria-label="停止生成"]')).toBeTruthy();
+  });
+
   it('uses host-provided pending typing copy in transcript view', async () => {
     container = document.createElement('div');
     document.body.appendChild(container);
@@ -240,6 +336,33 @@ it('keeps the transcript scroll root inside the content column and reserves bott
     expect(container.textContent).toContain('正在思考...');
     expect(container.textContent).not.toContain('Thinking');
     expect(container.querySelector('[role="status"]')?.getAttribute('aria-label')).toBe('伙伴正在回复');
+  });
+
+  it('localizes relationship state through shared chat copy', async () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+
+    await act(async () => {
+      root?.render(
+        <CanonicalCharacterRail
+          selectedTarget={{
+            id: 'agent:ren',
+            source: 'agent',
+            canonicalSessionId: 'session-ren',
+            title: 'Ren',
+            avatarFallback: 'R',
+          }}
+          characterData={{ name: 'Ren', relationshipState: 'warm' }}
+          copy={{ characterRailRelationshipWarmLabel: '亲近' }}
+          onBackToTargets={() => undefined}
+        />,
+      );
+      await flush();
+    });
+
+    expect(container.querySelector('[data-canonical-relationship-badge="true"]')?.textContent).toContain('亲近');
+    expect(container.querySelector('[data-canonical-relationship-badge="true"]')?.textContent).not.toContain('Warm');
   });
 
 	  it('renders group sender labels and avatar slots from canonical transcript props', async () => {
@@ -541,6 +664,34 @@ it('keeps the transcript scroll root inside the content column and reserves bott
     expect(transcriptRoot.scrollTop).toBe(960);
   });
 
+  it('forwards transcript copy to markdown code actions', async () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+
+    await act(async () => {
+      root?.render(
+        <CanonicalTranscriptView
+          copy={{ markdownCopyLabel: '复制代码', markdownCopiedLabel: '已复制' }}
+          messages={[{
+            id: 'code-1',
+            sessionId: 'session-ai',
+            targetId: 'ai:nimi',
+            source: 'ai',
+            role: 'assistant',
+            text: '```ts\nconst ready = true;\n```',
+            createdAt: '2026-04-05T00:00:00.000Z',
+            kind: 'text',
+          }]}
+        />,
+      );
+      await flush();
+      await flush();
+    });
+
+    expect(container.querySelector('button')?.textContent).toContain('复制代码');
+  });
+
   it('renders shared markdown headings in canonical transcript and stage panels', async () => {
     container = document.createElement('div');
     document.body.appendChild(container);
@@ -599,7 +750,7 @@ it('keeps the transcript scroll root inside the content column and reserves bott
     expect(container.textContent).toContain('这是一段代码。 ### 不应变成标题');
   });
 
-  it('renders relay markdown appearance with code copy controls, collapse toggle, and tables', async () => {
+  it('renders canonical markdown appearance with code copy controls, collapse toggle, and tables', async () => {
     container = document.createElement('div');
     document.body.appendChild(container);
     root = createRoot(container);
@@ -616,7 +767,7 @@ it('keeps the transcript scroll root inside the content column and reserves bott
     ].join('\n');
 
     await act(async () => {
-      root?.render(<ChatMarkdownRenderer content={markdown} appearance="relay" />);
+      root?.render(<ChatMarkdownRenderer content={markdown} appearance="canonical" />);
       await flush();
     });
 

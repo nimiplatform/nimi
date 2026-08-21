@@ -13,11 +13,11 @@ export function CanonicalSettingsSegmentButton(props: {
       disabled={props.disabled}
       onClick={props.onClick}
       className={cn(
-        'rounded-full px-4 py-2 text-[13px] font-semibold transition-colors',
+        'rounded-full px-4 py-2 text-[length:var(--nimi-type-body-sm-size)] font-semibold transition-colors',
         props.active
           ? 'bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)] shadow-[0_10px_24px_color-mix(in_srgb,var(--nimi-action-primary-bg)_22%,transparent)]'
-          : 'bg-white text-slate-600 hover:bg-slate-50',
-        props.disabled ? 'cursor-not-allowed opacity-55 hover:bg-white' : '',
+          : 'bg-[var(--nimi-surface-card)] text-[var(--nimi-text-secondary)] hover:bg-[var(--nimi-surface-panel)]',
+        props.disabled ? 'cursor-not-allowed opacity-55 hover:bg-[var(--nimi-surface-card)]' : '',
       )}
     >
       {props.children}
@@ -35,22 +35,24 @@ export function CanonicalSettingsToggleRow(props: {
   return (
     <button
       type="button"
+      role="switch"
+      aria-checked={props.checked}
       disabled={props.disabled}
       onClick={() => props.onChange?.(!props.checked)}
       className={cn(
-        'flex w-full items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left transition-colors',
+        'flex w-full items-center justify-between gap-3 rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-4 py-3 text-left transition-colors focus-visible:ring-[length:var(--nimi-focus-ring-width)] focus-visible:ring-[color:var(--nimi-focus-ring-color)]',
         props.disabled
           ? 'cursor-not-allowed opacity-65'
           : 'hover:border-[var(--nimi-action-primary-bg)]/30 hover:bg-[var(--nimi-action-ghost-hover)]',
       )}
     >
       <div>
-        <p className="text-[13px] font-semibold text-slate-900">{props.label}</p>
-        <p className="mt-0.5 text-[11px] text-slate-400">{props.hint}</p>
+        <p className="text-[length:var(--nimi-type-body-sm-size)] font-semibold text-[var(--nimi-text-primary)]">{props.label}</p>
+        <p className="mt-0.5 text-[length:var(--nimi-type-overline-size)] text-[var(--nimi-text-muted)]">{props.hint}</p>
       </div>
       <span className={cn(
         'inline-flex h-7 w-12 shrink-0 items-center rounded-full p-1 transition-colors',
-        props.checked ? 'justify-end bg-[var(--nimi-action-primary-bg)]' : 'justify-start bg-gray-200',
+        props.checked ? 'justify-end bg-[var(--nimi-action-primary-bg)]' : 'justify-start bg-[var(--nimi-toggle-off-bg)]',
       )}>
         <span className="h-5 w-5 rounded-full bg-white shadow-sm" />
       </span>
@@ -71,14 +73,14 @@ export function CanonicalSettingsCollapsibleSection(props: {
   children: ReactNode;
 }) {
   return (
-    <div className="mt-2 rounded-xl border border-slate-200/80 bg-slate-50/70">
+    <div className="mt-2 rounded-xl border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-panel)_70%,transparent)]">
       <button
         type="button"
         onClick={props.onToggle}
-        className="flex h-10 w-full items-center justify-between px-3 text-left text-xs font-semibold text-slate-500 transition-colors hover:text-slate-700"
+        className="flex h-10 w-full items-center justify-between px-3 text-left text-xs font-semibold text-[var(--nimi-text-secondary)] transition-colors hover:text-[var(--nimi-text-primary)]"
       >
         <span>{props.title}</span>
-        <span className={cn('text-slate-400 transition-transform duration-200', props.open ? 'rotate-180' : '')}>
+        <span className={cn('text-[var(--nimi-text-muted)] transition-transform duration-[var(--nimi-motion-base)]', props.open ? 'rotate-180' : '')}>
           {CHEVRON_ICON}
         </span>
       </button>

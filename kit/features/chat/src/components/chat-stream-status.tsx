@@ -1,5 +1,11 @@
 import type { ReactNode } from 'react';
 import { cn } from '@nimiplatform/kit/ui';
+import { resolveChatCopy, type ChatCopy } from '../copy.js';
+import {
+  CHAT_BUBBLE_MAX_WIDTH_CLASSNAME,
+  CHAT_BUBBLE_TEXT_CLASSNAME,
+  chatBubbleShapeStyle,
+} from '../bubble-styles.js';
 
 export type ChatStreamStatusProps = {
   partialText?: string | null;
@@ -14,6 +20,8 @@ export type ChatStreamStatusProps = {
   emptyStreamingFallback?: ReactNode;
   interruptedSuffix?: ReactNode;
   reasoningLabel?: ReactNode;
+  /** Optional copy overrides merged over the default English strings. */
+  copy?: ChatCopy;
 };
 
 function DefaultLoadingIndicator() {
@@ -39,20 +47,25 @@ export function ChatStreamStatus({
   emptyStreamingFallback,
   interruptedSuffix,
   reasoningLabel = 'Thought process',
+  copy,
 }: ChatStreamStatusProps) {
+  const copyResolved = resolveChatCopy(copy);
   const resolvedEmptyStreamingFallback = emptyStreamingFallback ?? loadingIndicator;
   const resolvedInterruptedSuffix = interruptedSuffix ?? (
-    <span className="ml-1 text-xs text-[var(--nimi-status-danger)]">[Interrupted]</span>
+    <span className="ml-1 text-xs text-[var(--nimi-status-danger)]">{copyResolved.streamInterruptedLabel}</span>
   );
 
   return (
     <div className={cn('flex gap-2', className)}>
       {avatar}
-      <div className="max-w-[75%]">
-        <div className={cn(
-          'inline-block rounded-[18px] bg-[var(--nimi-surface-card)] px-4 py-2.5 text-[15px] leading-snug text-[var(--nimi-text-primary)]',
-          bubbleClassName,
-        )}
+      <div className={CHAT_BUBBLE_MAX_WIDTH_CLASSNAME}>
+        <div
+          className={cn(
+            'inline-block bg-[var(--nimi-surface-card)] px-4 py-2.5 text-[var(--nimi-text-primary)]',
+            CHAT_BUBBLE_TEXT_CLASSNAME,
+            bubbleClassName,
+          )}
+          style={chatBubbleShapeStyle('agent')}
         >
           {reasoningText ? (
             <details className="mb-3 rounded-2xl border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_80%,white)] px-3 py-2">

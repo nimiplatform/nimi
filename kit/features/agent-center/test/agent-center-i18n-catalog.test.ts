@@ -47,7 +47,7 @@ describe('Agent Center canonical i18n catalogs', () => {
   it('covers every literal component key in English and ships matching Chinese keys', () => {
     const enKeys = Object.keys(agentCenterEnCatalog).sort();
     const zhKeys = Object.keys(agentCenterZhCatalog).sort();
-    expect(enKeys).toHaveLength(370);
+    expect(enKeys).toHaveLength(272);
     expect(zhKeys).toEqual(enKeys);
     expect(literalCatalogKeys().filter((key) => !(key in agentCenterEnCatalog))).toEqual([]);
 
@@ -56,7 +56,6 @@ describe('Agent Center canonical i18n catalogs', () => {
       AgentCenterProgressCopy: 'AgentCenter.progress.',
       AgentCenterOverviewCopy: 'AgentCenter.overview.',
       AgentCenterAdvancedCopy: 'AgentCenter.advanced.',
-      AgentCenterAppearanceCopy: 'AgentCenter.appearance.',
       AgentCenterBehaviorCopy: 'AgentCenter.behavior.',
     } as const;
     for (const [typeName, prefix] of Object.entries(copyNamespaces)) {

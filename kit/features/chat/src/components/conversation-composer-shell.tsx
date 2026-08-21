@@ -1,5 +1,5 @@
 import React, { type CSSProperties, type ReactNode } from 'react';
-import { cn } from '@nimiplatform/kit/ui';
+import { Surface, cn } from '@nimiplatform/kit/ui';
 
 export type ConversationComposerShellProps = {
   children: ReactNode;
@@ -22,18 +22,19 @@ export function ConversationComposerShell({
     : { height: typeof height === 'number' ? `${height}px` : height };
 
   return (
-    <div
+    <Surface
+      material="glass-chrome"
+      tone="card"
+      elevation="floating"
+      padding="none"
       className={cn(
-        'shrink-0 rounded-[28px]',
-        'border border-white/90 bg-[color-mix(in_srgb,var(--nimi-surface-card)_96%,transparent)]',
-        'shadow-[0_24px_50px_rgba(15,23,42,0.08)]',
-        'backdrop-blur-xl',
+        'shrink-0 rounded-[var(--nimi-radius-xl)]',
         'px-2.5 py-1.5',
         className,
       )}
       style={style}
     >
       {children}
-    </div>
+    </Surface>
   );
 }

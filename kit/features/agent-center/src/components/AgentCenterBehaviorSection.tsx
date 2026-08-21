@@ -1,9 +1,18 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type KeyboardEvent } from 'react';
 import {
   Check,
   ChevronRight,
   Info,
 } from 'lucide-react';
+import {
+  Button,
+  InlineAlert,
+  ProgressIndicator,
+  StatusBadge,
+  Toggle,
+  type FeedbackTone,
+} from '@nimiplatform/kit/ui';
+import { FOCUS_RING_CLASS_NAME } from '@nimiplatform/kit/ui/a11y';
 import { translateAgentCenter } from '../i18n.js';
 import { getAgentCenterCatalogRecord } from '../locales/index.js';
 import type {
@@ -14,9 +23,7 @@ import type {
   AgentCenterSnapshot,
 } from '../types.js';
 import {
-  AgentButton,
   Card,
-  Notice,
   SectionHeader,
   SectionShell,
   agentCenterInputClassName,
@@ -33,6 +40,11 @@ export interface AgentCenterBehaviorSectionProps {
 }
 
 const DEFAULT_BEHAVIOR_COPY = getAgentCenterCatalogRecord('AgentCenter.behavior.') as Required<AgentCenterBehaviorCopy>;
+
+type MutationStatus = {
+  readonly text: string;
+  readonly tone: FeedbackTone;
+};
 
 function normalizeError(error: unknown, labels: Required<AgentCenterBehaviorCopy>): string {
   return error instanceof Error && error.message ? error.message : labels.unavailableLabel;
@@ -80,8 +92,8 @@ function ModeSignalMark({
             bar === 3 && 'h-[14px]',
             bar === 4 && 'h-[18px]',
             bar <= activeBars
-              ? selected ? 'bg-emerald-500' : 'bg-slate-500'
-              : selected ? 'bg-emerald-200' : 'bg-slate-200',
+              ? selected ? 'bg-[var(--nimi-action-primary-bg)]' : 'bg-[var(--nimi-text-muted)]'
+              : selected ? 'bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_25%,transparent)]' : 'bg-[var(--nimi-surface-active)]',
           )}
           key={bar}
         />
@@ -109,7 +121,7 @@ export function AgentCenterBehaviorSection({ session, snapshot, i18n }: AgentCen
   );
   const [dailyTokenBudget, setDailyTokenBudget] = useState(String(autonomy.dailyTokenBudget ?? 0));
   const [maxTokensPerHook, setMaxTokensPerHook] = useState(String(autonomy.maxTokensPerHook ?? 0));
-  const [mutationStatus, setMutationStatus] = useState('');
+  const [mutationStatus, setMutationStatus] = useState<MutationStatus | null>(null);
   const [budgetEditing, setBudgetEditing] = useState(false);
 
   useEffect(() => {
@@ -164,7 +176,7 @@ export function AgentCenterBehaviorSection({ session, snapshot, i18n }: AgentCen
     readonly maxTokensPerHook: number;
   }>) => {
     if (!mutationAvailable) {
-      setMutationStatus(autonomy.disabledReason || labels.unavailableLabel);
+      setMutationStatus({ text: autonomy.disabledReason || labels.unavailableLabel, tone: 'danger' });
       return;
     }
 
@@ -187,7 +199,7 @@ export function AgentCenterBehaviorSection({ session, snapshot, i18n }: AgentCen
     setMode(nextMode);
     setDailyTokenBudget(String(nextDailyBudget));
     setMaxTokensPerHook(String(nextPerHookBudget));
-    setMutationStatus(labels.savingLabel);
+    setMutationStatus({ text: labels.savingLabel, tone: 'info' });
 
     try {
       if (!autonomy.revision) {
@@ -205,14 +217,35 @@ export function AgentCenterBehaviorSection({ session, snapshot, i18n }: AgentCen
       setMode((committed.mode || nextMode) as AgentCenterAutonomyMode);
       setDailyTokenBudget(String(committed.dailyTokenBudget ?? nextDailyBudget));
       setMaxTokensPerHook(String(committed.maxTokensPerHook ?? nextPerHookBudget));
-      setMutationStatus(labels.savedLabel);
+      setMutationStatus({ text: labels.savedLabel, tone: 'success' });
     } catch (error: unknown) {
       setEnabled(previous.enabled);
       setMode(previous.mode);
       setDailyTokenBudget(previous.dailyTokenBudget);
       setMaxTokensPerHook(previous.maxTokensPerHook);
-      setMutationStatus(normalizeError(error, labels));
+      setMutationStatus({ text: normalizeError(error, labels), tone: 'danger' });
     }
+  };
+
+  // WAI-ARIA radiogroup roaming: arrow keys move focus and selection together
+  // (automatic activation matches the click-to-commit model of this section).
+  const handleModeKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (!mutationAvailable) return;
+    const currentIndex = modeOptions.findIndex((option) => option.id === mode);
+    let nextIndex: number | null = null;
+    if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
+      nextIndex = (currentIndex + 1) % modeOptions.length;
+    } else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
+      nextIndex = (currentIndex - 1 + modeOptions.length) % modeOptions.length;
+    }
+    if (nextIndex === null) return;
+    event.preventDefault();
+    const next = modeOptions[nextIndex];
+    if (!next) return;
+    void commit({ mode: next.id });
+    event.currentTarget
+      .querySelector<HTMLElement>(`[data-agent-center-behavior-mode="${next.id}"]`)
+      ?.focus();
   };
 
   return (
@@ -229,60 +262,45 @@ export function AgentCenterBehaviorSection({ session, snapshot, i18n }: AgentCen
       </div>
 
       {!mutationAvailable ? (
-        <Notice tone="warn">
+        <InlineAlert tone="warning">
           <span data-agent-center-action="updateAutonomy" data-agent-center-action-state={availability.state}>
             {disabledNotice}
           </span>
-        </Notice>
+        </InlineAlert>
       ) : null}
 
-      <Card className="rounded-[14px] border-slate-200/80 bg-white/95 shadow-[0_10px_26px_rgba(15,23,42,0.04)]">
+      <Card className="rounded-[14px] border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] shadow-[var(--nimi-elevation-base)]">
         <div className="flex min-w-0 items-center justify-between gap-4 px-4 py-4">
           <div className="grid min-w-0 gap-1">
-            <span className="text-[15px] font-semibold leading-[1.35] text-slate-950">{labels.enableTitle}</span>
-            <span className="text-[12.5px] leading-[1.45] text-slate-500">{labels.enableDescription}</span>
+            <span className="text-[length:var(--nimi-type-label-size)] font-semibold leading-[1.35] text-[var(--nimi-text-primary)]">{labels.enableTitle}</span>
+            <span className="text-[length:var(--nimi-type-body-sm-size)] leading-[1.45] text-[var(--nimi-text-muted)]">{labels.enableDescription}</span>
           </div>
           <div className="grid shrink-0 justify-items-end gap-2">
-            <label
-              className={cnAgentCenter(
-                'relative inline-flex h-[30px] w-[58px] shrink-0 items-center rounded-full border-2 border-transparent transition-colors',
-                enabled ? 'bg-emerald-600' : 'bg-slate-300',
-                !mutationAvailable && 'opacity-55',
-              )}
-            >
-              <input
-                aria-label={labels.enableTitle}
+            <span className="inline-flex" data-agent-center-proactive-toggle="true">
+              <Toggle
+                ariaLabel={labels.enableTitle}
                 checked={enabled}
-                className="absolute inset-0 h-full w-full cursor-pointer opacity-0 disabled:cursor-not-allowed"
-                data-agent-center-proactive-toggle="true"
                 disabled={!mutationAvailable}
-                onChange={(event) => {
-                  void commit({ enabled: event.currentTarget.checked });
+                onChange={(next) => {
+                  void commit({ enabled: next });
                 }}
-                role="switch"
-                type="checkbox"
               />
-              <span
-                aria-hidden="true"
-                className={cnAgentCenter(
-                  'h-[24px] w-[24px] rounded-full bg-white shadow-[0_3px_8px_rgba(15,23,42,0.22)] transition-transform',
-                  enabled ? 'translate-x-[28px]' : 'translate-x-[2px]',
-                )}
-              />
-            </label>
-            <span className={cnAgentCenter(
-              'rounded-full px-2 py-1 text-[11.5px] font-semibold leading-none',
-              enabled ? 'bg-emerald-500/10 text-emerald-700' : 'bg-slate-500/10 text-slate-600',
-            )}>
-              {enabled ? labels.enabledStatus : labels.disabledStatus}
             </span>
+            <StatusBadge tone={enabled ? 'success' : 'neutral'}>
+              {enabled ? labels.enabledStatus : labels.disabledStatus}
+            </StatusBadge>
           </div>
         </div>
       </Card>
 
-      <Card className="rounded-[14px] border-slate-200/80 bg-white/95 p-3.5 shadow-[0_10px_26px_rgba(15,23,42,0.04)]">
-        <h3 className="m-0 mb-2.5 text-[15px] font-semibold leading-[1.35] text-slate-950">{labels.modeTitle}</h3>
-        <div aria-label={labels.modeTitle} className="grid grid-cols-1 gap-2 sm:grid-cols-2" role="radiogroup">
+      <Card className="rounded-[14px] border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-3.5 shadow-[var(--nimi-elevation-base)]">
+        <h3 className="m-0 mb-2.5 text-[length:var(--nimi-type-label-size)] font-semibold leading-[1.35] text-[var(--nimi-text-primary)]">{labels.modeTitle}</h3>
+        <div
+          aria-label={labels.modeTitle}
+          className="grid grid-cols-1 gap-2 sm:grid-cols-2"
+          onKeyDown={handleModeKeyDown}
+          role="radiogroup"
+        >
           {modeOptions.map((option) => {
             const selected = mode === option.id;
             return (
@@ -291,9 +309,10 @@ export function AgentCenterBehaviorSection({ session, snapshot, i18n }: AgentCen
                 className={cnAgentCenter(
                   'relative flex min-h-[72px] min-w-0 items-center gap-3 rounded-[12px] border p-3 text-left transition-colors',
                   'disabled:cursor-not-allowed disabled:opacity-55',
+                  FOCUS_RING_CLASS_NAME,
                   selected
-                    ? 'border-emerald-300 bg-emerald-50/70 text-emerald-800 shadow-[0_0_0_1px_rgba(16,185,129,0.12)]'
-                    : 'border-slate-200/90 bg-white text-slate-900 hover:border-emerald-200 hover:bg-emerald-50/30',
+                    ? 'border-[var(--nimi-action-primary-bg)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_7%,transparent)] text-[var(--nimi-action-primary-bg)] shadow-[0_0_0_1px_color-mix(in_srgb,var(--nimi-action-primary-bg)_12%,transparent)]'
+                    : 'border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] text-[var(--nimi-text-primary)] hover:border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_35%,transparent)] hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_4%,transparent)]',
                 )}
                 data-agent-center-behavior-mode={option.id}
                 disabled={!mutationAvailable}
@@ -302,17 +321,18 @@ export function AgentCenterBehaviorSection({ session, snapshot, i18n }: AgentCen
                   void commit({ mode: option.id });
                 }}
                 role="radio"
+                tabIndex={selected ? 0 : -1}
                 type="button"
               >
                 <ModeSignalMark mode={option.id} selected={selected} />
                 <span className="grid min-w-0 gap-0.5">
-                  <span className="truncate text-[14px] font-semibold leading-[1.25]">{option.title}</span>
-                  <span className={cnAgentCenter('text-[12.5px] leading-[1.35]', selected ? 'text-emerald-700/80' : 'text-slate-500')}>
+                  <span className="truncate text-[length:var(--nimi-type-body-size)] font-semibold leading-[1.25]">{option.title}</span>
+                  <span className={cnAgentCenter('text-[length:var(--nimi-type-body-sm-size)] leading-[1.35]', selected ? 'text-[color-mix(in_srgb,var(--nimi-action-primary-bg)_80%,transparent)]' : 'text-[var(--nimi-text-muted)]')}>
                     {option.description}
                   </span>
                 </span>
                 {selected ? (
-                  <span className="absolute right-3 top-1/2 grid h-6 w-6 -translate-y-1/2 place-items-center rounded-full bg-emerald-500 text-white">
+                  <span className="absolute right-3 top-1/2 grid h-6 w-6 -translate-y-1/2 place-items-center rounded-full bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)]">
                     <Check aria-hidden="true" className="h-3.5 w-3.5" />
                   </span>
                 ) : null}
@@ -322,60 +342,61 @@ export function AgentCenterBehaviorSection({ session, snapshot, i18n }: AgentCen
         </div>
       </Card>
 
-      <Card className="rounded-[14px] border-slate-200/80 bg-white/95 shadow-[0_10px_26px_rgba(15,23,42,0.04)]">
+      <Card className="rounded-[14px] border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] shadow-[var(--nimi-elevation-base)]">
         <div className="px-4 pb-3 pt-4">
           <div className="mb-1 flex min-w-0 items-center gap-1.5">
-            <h3 className="m-0 min-w-0 text-[15px] font-semibold leading-[1.35] text-slate-950">{labels.budgetTitle}</h3>
-            <Info aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+            <h3 className="m-0 min-w-0 text-[length:var(--nimi-type-label-size)] font-semibold leading-[1.35] text-[var(--nimi-text-primary)]">{labels.budgetTitle}</h3>
+            <Info aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-[var(--nimi-text-muted)]" />
           </div>
-          <p className="m-0 text-[12.5px] leading-[1.45] text-slate-500">{labels.budgetDescription}</p>
+          <p className="m-0 text-[length:var(--nimi-type-body-sm-size)] leading-[1.45] text-[var(--nimi-text-muted)]">{labels.budgetDescription}</p>
         </div>
-        <div className="mx-4 mb-0 overflow-hidden rounded-[12px] border border-slate-200/90">
+        <div className="mx-4 mb-0 overflow-hidden rounded-[12px] border border-[var(--nimi-border-subtle)]">
           <div className="px-4 py-3.5">
             <div className="mb-2 flex min-w-0 items-end justify-between gap-3">
               <div className="min-w-0">
-                <div className="text-[12px] font-semibold text-slate-500">{labels.todayUsedLabel}</div>
-                <div className="mt-0.5 text-[18px] font-semibold leading-none text-slate-950 tabular-nums">
+                <div className="text-[length:var(--nimi-type-caption-size)] font-semibold text-[var(--nimi-text-muted)]">{labels.todayUsedLabel}</div>
+                <div className="mt-0.5 text-[length:var(--nimi-type-section-title-size)] font-semibold leading-none text-[var(--nimi-text-primary)] tabular-nums">
                   {usedTokens}
-                  <span className="text-[14px] text-slate-400"> / {dailyLimit} {labels.tokensUnit}</span>
+                  <span className="text-[length:var(--nimi-type-body-size)] text-[var(--nimi-text-muted)]"> / {dailyLimit} {labels.tokensUnit}</span>
                 </div>
               </div>
-              <div className="shrink-0 text-[13px] font-medium text-slate-500">
+              <div className="shrink-0 text-[length:var(--nimi-type-body-sm-size)] font-medium text-[var(--nimi-text-muted)]">
                 {labels.approxPrefix} {percent}%
               </div>
             </div>
-            <div className="h-2 overflow-hidden rounded-full bg-slate-200/75">
-              <div
-                className="h-full rounded-full bg-emerald-500"
-                data-agent-center-budget-progress="true"
-                style={{ width: `${percent}%` }}
-              />
-            </div>
+            <ProgressIndicator
+              data-agent-center-budget-progress="true"
+              max={100}
+              value={percent}
+            />
           </div>
-          <div className="grid border-t border-slate-200/90 sm:grid-cols-2">
-            <div className="border-b border-slate-200/90 px-4 py-3 sm:border-b-0 sm:border-r">
-              <div className="text-[12px] font-semibold text-slate-500">{labels.dailyLimitLabel}</div>
-              <div className="mt-0.5 text-[13px] font-semibold text-slate-600 tabular-nums">{dailyLimit} {labels.tokensUnit}</div>
+          <div className="grid border-t border-[var(--nimi-border-subtle)] sm:grid-cols-2">
+            <div className="border-b border-[var(--nimi-border-subtle)] px-4 py-3 sm:border-b-0 sm:border-r">
+              <div className="text-[length:var(--nimi-type-caption-size)] font-semibold text-[var(--nimi-text-muted)]">{labels.dailyLimitLabel}</div>
+              <div className="mt-0.5 text-[length:var(--nimi-type-body-sm-size)] font-semibold text-[var(--nimi-text-secondary)] tabular-nums">{dailyLimit} {labels.tokensUnit}</div>
             </div>
             <div className="px-4 py-3">
-              <div className="text-[12px] font-semibold text-slate-500">{labels.singleLimitLabel}</div>
-              <div className="mt-0.5 text-[13px] font-semibold text-slate-600 tabular-nums">{singleLimit} {labels.tokensUnit}</div>
+              <div className="text-[length:var(--nimi-type-caption-size)] font-semibold text-[var(--nimi-text-muted)]">{labels.singleLimitLabel}</div>
+              <div className="mt-0.5 text-[length:var(--nimi-type-body-sm-size)] font-semibold text-[var(--nimi-text-secondary)] tabular-nums">{singleLimit} {labels.tokensUnit}</div>
             </div>
           </div>
           <button
             aria-expanded={budgetEditing}
-            className="flex min-h-[44px] w-full min-w-0 items-center justify-between gap-3 border-t border-slate-200/90 px-4 py-3 text-left text-[13px] font-semibold text-emerald-700 transition-colors hover:bg-emerald-50/40 disabled:cursor-not-allowed disabled:opacity-55"
+            className={cnAgentCenter(
+              'flex min-h-[44px] w-full min-w-0 items-center justify-between gap-3 border-t border-[var(--nimi-border-subtle)] px-4 py-3 text-left text-[length:var(--nimi-type-body-sm-size)] font-semibold text-[var(--nimi-action-primary-bg)] transition-colors hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_5%,transparent)] disabled:cursor-not-allowed disabled:opacity-55',
+              FOCUS_RING_CLASS_NAME,
+            )}
             data-agent-center-budget-adjust="true"
             disabled={!mutationAvailable}
             onClick={() => setBudgetEditing((value) => !value)}
             type="button"
           >
             <span className="min-w-0 truncate">{labels.adjustLimitLabel}</span>
-            <ChevronRight aria-hidden="true" className={cnAgentCenter('h-4 w-4 shrink-0 text-slate-400 transition-transform', budgetEditing && 'rotate-90')} />
+            <ChevronRight aria-hidden="true" className={cnAgentCenter('h-4 w-4 shrink-0 text-[var(--nimi-text-muted)] transition-transform', budgetEditing && 'rotate-90')} />
           </button>
           {budgetEditing ? (
-            <div className="grid min-w-0 gap-2.5 border-t border-slate-200/90 bg-slate-50/70 p-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
-              <label className="grid min-w-0 gap-1.5 text-[12px] font-medium text-slate-600">
+            <div className="grid min-w-0 gap-2.5 border-t border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] p-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
+              <label className="grid min-w-0 gap-1.5 text-[length:var(--nimi-type-caption-size)] font-medium text-[var(--nimi-text-secondary)]">
                 <span>{labels.dailyLimitLabel}</span>
                 <input
                   aria-label={labels.dailyLimitLabel}
@@ -387,7 +408,7 @@ export function AgentCenterBehaviorSection({ session, snapshot, i18n }: AgentCen
                   value={dailyTokenBudget}
                 />
               </label>
-              <label className="grid min-w-0 gap-1.5 text-[12px] font-medium text-slate-600">
+              <label className="grid min-w-0 gap-1.5 text-[length:var(--nimi-type-caption-size)] font-medium text-[var(--nimi-text-secondary)]">
                 <span>{labels.singleLimitLabel}</span>
                 <input
                   aria-label={labels.singleLimitLabel}
@@ -399,9 +420,9 @@ export function AgentCenterBehaviorSection({ session, snapshot, i18n }: AgentCen
                   value={maxTokensPerHook}
                 />
               </label>
-              <AgentButton
+              <Button
                 className="self-end"
-                dataAttrs={{ 'data-agent-center-autonomy-apply': 'true' }}
+                data-agent-center-autonomy-apply="true"
                 disabled={!mutationAvailable}
                 onClick={() => {
                   void commit({
@@ -409,17 +430,20 @@ export function AgentCenterBehaviorSection({ session, snapshot, i18n }: AgentCen
                     maxTokensPerHook: normalizeNonNegative(maxTokensPerHook),
                   });
                 }}
-                variant="accent"
+                size="sm"
+                tone="primary"
               >
                 {labels.applyLimitLabel}
-              </AgentButton>
+              </Button>
             </div>
           ) : null}
         </div>
         <div className="h-4" />
       </Card>
       {mutationStatus ? (
-        <Notice ariaLive="polite">{mutationStatus}</Notice>
+        <InlineAlert tone={mutationStatus.tone}>
+          {mutationStatus.text}
+        </InlineAlert>
       ) : null}
     </SectionShell>
   );

@@ -1,15 +1,23 @@
 import { Box, CheckCircle2, FolderOpen, Image as ImageIcon, RotateCcw } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import {
+  Button,
+  ConfirmDialog,
+  InlineAlert,
+  SelectField,
+  Toggle,
+  type FeedbackTone,
+} from '@nimiplatform/kit/ui';
+import { isAgentCenterCommittedAppearanceReady } from '../appearance-render-readiness.js';
 import { translateAgentCenter } from '../i18n.js';
+import { agentCenterEnCatalog, getAgentCenterCatalogRecord } from '../locales/index.js';
 import type {
   AgentCenterI18n,
   AgentCenterSession,
   AgentCenterSnapshot,
 } from '../types.js';
 import {
-  AgentButton,
   Card,
-  Notice,
   SectionHeader,
   SectionShell,
 } from './AgentCenterPrimitives.js';
@@ -27,28 +35,28 @@ type OperationState =
   | { readonly state: 'saving' | 'saved' | 'render-failed' | 'restoring' | 'restored'; readonly message: string }
   | { readonly state: 'validation-failed'; readonly message: string; readonly reasonCode: string };
 
-const EN = {
-  title: 'Appearance',
-  description: 'Replace the committed Avatar appearance. The live view always reflects committed Runtime truth.',
-  current: 'Current committed appearance',
-  empty: 'No Avatar appearance is configured.',
-  liveView: 'Committed effect',
-  replaceLive2d: 'Choose Live2D package',
-  replaceVrm: 'Choose VRM file',
-  warningTitle: 'Replace current appearance?',
-  warning: 'After choosing a new Avatar file, it will immediately replace the current appearance. A failure will not change the current appearance.',
-  confirm: 'Choose file and replace',
-  cancel: 'Cancel',
-  saving: 'Saving appearance…',
-  saved: 'Appearance saved.',
-  savedRenderFailed: 'Saved, but currently unable to render.',
-  validationFailed: 'The file was rejected; the current appearance was not changed.',
-  restore: 'Restore previous appearance',
-  restoring: 'Restoring previous appearance…',
-  restored: 'Previous appearance restored as a new commit.',
-  noRenderer: 'No embedded preview is running. Launch Avatar to view the committed appearance.',
-  rendererUnavailable: 'The embedded Avatar preview is currently unavailable. The committed profile is unchanged.',
-} as const;
+const OPERATION_NOTICE_TONE: Record<OperationState['state'], FeedbackTone> = {
+  idle: 'neutral',
+  saving: 'info',
+  saved: 'success',
+  'render-failed': 'warning',
+  restoring: 'info',
+  restored: 'success',
+  'validation-failed': 'danger',
+};
+
+type AutoSaveCatalogKey = Extract<
+  keyof typeof agentCenterEnCatalog,
+  `AgentCenter.appearance.autoSave.${string}`
+>;
+type StripAutoSavePrefix<T extends string> = T extends `AgentCenter.appearance.autoSave.${infer Key}`
+  ? Key
+  : never;
+type AutoSaveCopy = Readonly<Record<StripAutoSavePrefix<AutoSaveCatalogKey>, string>>;
+
+const AUTOSAVE_COPY_DEFAULTS = getAgentCenterCatalogRecord(
+  'AgentCenter.appearance.autoSave.',
+) as AutoSaveCopy;
 
 function message(error: unknown): { message: string; reasonCode: string } {
   if (error && typeof error === 'object') {
@@ -70,35 +78,43 @@ export function AgentCenterAppearanceSection({ session, snapshot, i18n }: AgentC
   const availability = snapshot.availability.replaceAppearance;
   const [pendingKind, setPendingKind] = useState<PendingKind>(null);
   const [operation, setOperation] = useState<OperationState>({ state: 'idle', message: '' });
-  const copy = useMemo(() => Object.fromEntries(Object.entries(EN).map(([key, fallback]) => [
-    key,
-    translateAgentCenter(i18n, `AgentCenter.appearance.autoSave.${key}`, fallback),
-  ])) as Record<keyof typeof EN, string>, [i18n]);
+  const copy = useMemo(() => Object.fromEntries(
+    Object.entries(AUTOSAVE_COPY_DEFAULTS).map(([key, fallback]) => [
+      key,
+      translateAgentCenter(i18n, `AgentCenter.appearance.autoSave.${key}`, fallback),
+    ]),
+  ) as AutoSaveCopy, [i18n]);
   const voiceCopy = useMemo(() => ({
-    defaultVoiceTitle: translateAgentCenter(i18n, 'AgentCenter.appearance.defaultVoiceTitle', 'Default voice'),
+    defaultVoiceTitle: translateAgentCenter(i18n, 'AgentCenter.appearance.defaultVoiceTitle', agentCenterEnCatalog['AgentCenter.appearance.defaultVoiceTitle']),
     defaultVoiceDescription: translateAgentCenter(
       i18n,
       'AgentCenter.appearance.defaultVoiceDescription',
-      'Choose the Runtime-owned default voice for this Agent.',
+      agentCenterEnCatalog['AgentCenter.appearance.defaultVoiceDescription'],
     ),
-    defaultVoiceUnset: translateAgentCenter(i18n, 'AgentCenter.appearance.defaultVoiceUnset', 'Not configured'),
-    avatarAutoplayLabel: translateAgentCenter(i18n, 'AgentCenter.appearance.avatarAutoplayLabel', 'Avatar autoplay'),
+    defaultVoiceUnset: translateAgentCenter(i18n, 'AgentCenter.appearance.defaultVoiceUnset', agentCenterEnCatalog['AgentCenter.appearance.defaultVoiceUnset']),
+    avatarAutoplayLabel: translateAgentCenter(i18n, 'AgentCenter.appearance.avatarAutoplayLabel', agentCenterEnCatalog['AgentCenter.appearance.avatarAutoplayLabel']),
     avatarAutoplayDescription: translateAgentCenter(
       i18n,
       'AgentCenter.appearance.avatarAutoplayDescription',
-      'Automatically play committed voice output through the Avatar.',
+      agentCenterEnCatalog['AgentCenter.appearance.avatarAutoplayDescription'],
     ),
-    enableLabel: translateAgentCenter(i18n, 'AgentCenter.appearance.enableLabel', 'Enable'),
-    disableLabel: translateAgentCenter(i18n, 'AgentCenter.appearance.disableLabel', 'Disable'),
-    catalogLabel: translateAgentCenter(i18n, 'AgentCenter.appearance.voiceCatalogLabel', 'Runtime voice catalog'),
+    catalogLabel: translateAgentCenter(i18n, 'AgentCenter.appearance.voiceCatalogLabel', agentCenterEnCatalog['AgentCenter.appearance.voiceCatalogLabel']),
     catalogDescription: translateAgentCenter(
       i18n,
       'AgentCenter.appearance.voiceCatalogDescription',
-      'Machine TTS configuration selects the engine. This setting selects this Agent’s default voice.',
+      agentCenterEnCatalog['AgentCenter.appearance.voiceCatalogDescription'],
     ),
-    catalogUnavailable: translateAgentCenter(i18n, 'AgentCenter.appearance.voiceCatalogUnavailable', 'Runtime voice catalog is unavailable.'),
-    catalogEmpty: translateAgentCenter(i18n, 'AgentCenter.appearance.voiceCatalogEmpty', 'No voice is available for the selected machine TTS configuration.'),
-    retryLabel: translateAgentCenter(i18n, 'AgentCenter.appearance.retryLabel', 'Retry'),
+    catalogUnavailable: translateAgentCenter(i18n, 'AgentCenter.appearance.voiceCatalogUnavailable', agentCenterEnCatalog['AgentCenter.appearance.voiceCatalogUnavailable']),
+    catalogEmpty: translateAgentCenter(i18n, 'AgentCenter.appearance.voiceCatalogEmpty', agentCenterEnCatalog['AgentCenter.appearance.voiceCatalogEmpty']),
+    retryLabel: translateAgentCenter(i18n, 'AgentCenter.appearance.retryLabel', agentCenterEnCatalog['AgentCenter.appearance.retryLabel']),
+    revisionLabel: (revision: string) => translateAgentCenter(
+      i18n,
+      'AgentCenter.appearance.revisionLabel',
+      agentCenterEnCatalog['AgentCenter.appearance.revisionLabel'],
+      { revision },
+    ),
+    voiceKindPreset: translateAgentCenter(i18n, 'AgentCenter.appearance.voiceKindPreset', agentCenterEnCatalog['AgentCenter.appearance.voiceKindPreset']),
+    voiceKindAsset: translateAgentCenter(i18n, 'AgentCenter.appearance.voiceKindAsset', agentCenterEnCatalog['AgentCenter.appearance.voiceKindAsset']),
   }), [i18n]);
   const actionAvailable = availability.state === 'available';
   const canReplace = actionAvailable && Boolean(session.appearance.replaceAvatar);
@@ -147,11 +163,11 @@ export function AgentCenterAppearanceSection({ session, snapshot, i18n }: AgentC
       setOperation({ state: 'validation-failed', reasonCode: failure.reasonCode, message: failure.message });
     }
   };
-  const toggleAutoplay = async () => {
+  const toggleAutoplay = async (next: boolean) => {
     if (!session.appearance.setAvatarAutoplay) return;
     setOperation({ state: 'saving', message: copy.saving });
     try {
-      await session.appearance.setAvatarAutoplay(!appearance.avatarAutoplay);
+      await session.appearance.setAvatarAutoplay(next);
       setOperation({ state: 'saved', message: copy.saved });
     } catch (error) {
       const failure = message(error);
@@ -173,6 +189,7 @@ export function AgentCenterAppearanceSection({ session, snapshot, i18n }: AgentC
     && appearance.renderUnavailableReasonCode === 'preview-not-running';
   const renderFailed = appearance.renderState === 'failed'
     || (appearance.renderState === 'unavailable' && !previewNotRunning);
+  const committedPreviewReady = isAgentCenterCommittedAppearanceReady(appearance);
 
   return (
     <SectionShell labelledBy="agent-center-appearance-title">
@@ -186,131 +203,147 @@ export function AgentCenterAppearanceSection({ session, snapshot, i18n }: AgentC
         />
       ) : null}
       <div className="grid gap-3" data-agent-center-appearance-surface="committed-effect">
-        <Card className="border-slate-200/80 bg-white p-4 shadow-[0_10px_24px_rgba(15,23,42,0.04)]">
-          <h3 className="m-0 text-[15px] font-semibold text-slate-950">{copy.current}</h3>
+        <Card className="border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-4 shadow-[var(--nimi-elevation-base)]">
+          <h3 className="m-0 text-[length:var(--nimi-type-label-size)] font-semibold text-[var(--nimi-text-primary)]">{copy.current}</h3>
           <div className="mt-3 grid gap-4 sm:grid-cols-[minmax(150px,0.78fr)_minmax(0,1fr)]">
             <div
-              className="relative grid min-h-[184px] place-items-center overflow-hidden rounded-[14px] border border-emerald-100 bg-emerald-50/35"
+              className="relative grid min-h-[184px] place-items-center overflow-hidden rounded-[14px] border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_15%,transparent)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_5%,transparent)]"
               data-agent-center-appearance-live-view={appearance.renderState || 'empty'}
             >
-              {appearance.renderState === 'ready' && appearance.renderImageRef ? (
+              {committedPreviewReady && appearance.renderImageRef ? (
                 <img alt={copy.liveView} className="max-h-[176px] max-w-full object-contain" src={appearance.renderImageRef} />
               ) : (
-                <div className="grid max-w-[180px] gap-2 text-center text-[11px] leading-4 text-slate-500">
-                  <ImageIcon aria-hidden="true" className="mx-auto h-10 w-10 text-emerald-300" />
+                <div className="grid max-w-[180px] gap-2 text-center text-[length:var(--nimi-type-overline-size)] leading-4 text-[var(--nimi-text-muted)]">
+                  <ImageIcon aria-hidden="true" className="mx-auto h-10 w-10 text-[color-mix(in_srgb,var(--nimi-action-primary-bg)_40%,transparent)]" />
                   <span>{appearance.avatarAssetRef
                     ? (previewNotRunning ? copy.noRenderer : renderFailed ? copy.rendererUnavailable : copy.noRenderer)
                     : copy.empty}</span>
                 </div>
               )}
-              <span className="absolute bottom-3 rounded-full bg-white/85 px-2 py-1 text-[10px] font-semibold text-emerald-700">
+              <span className="absolute bottom-3 rounded-full bg-[var(--nimi-surface-card)] px-2 py-1 text-[length:var(--nimi-type-overline-size)] font-semibold text-[var(--nimi-action-primary-bg)]">
                 {copy.liveView}
               </span>
             </div>
             <div className="flex min-w-0 flex-col justify-center gap-3">
               {appearance.avatarAssetRef ? (
                 <div className="grid gap-1">
-                  <span className="inline-flex items-center gap-2 text-[13px] font-semibold text-emerald-700">
+                  <span className="inline-flex items-center gap-2 text-[length:var(--nimi-type-body-sm-size)] font-semibold text-[var(--nimi-action-primary-bg)]">
                     <CheckCircle2 className="h-4 w-4" /> {appearance.backendKind?.toUpperCase()}
                   </span>
-                  <span className="truncate font-mono text-[11px] text-slate-500" title={appearance.avatarAssetRef}>{appearance.avatarAssetRef}</span>
-                  <span className="text-[11px] text-slate-400">revision {appearance.presentationRevision || '—'}</span>
+                  <span className="truncate font-mono text-[length:var(--nimi-type-overline-size)] text-[var(--nimi-text-muted)]" title={appearance.avatarAssetRef}>{appearance.avatarAssetRef}</span>
+                  <span className="text-[length:var(--nimi-type-overline-size)] text-[var(--nimi-text-muted)]">{voiceCopy.revisionLabel(appearance.presentationRevision || '—')}</span>
                 </div>
-              ) : <p className="m-0 text-[12px] text-slate-500">{copy.empty}</p>}
-              <AgentButton disabled={!canReplace || operation.state === 'saving'} onClick={() => choose('live2d')}>
-                <FolderOpen className="h-4 w-4" /> {copy.replaceLive2d}
-              </AgentButton>
-              <AgentButton disabled={!canReplace || operation.state === 'saving'} onClick={() => choose('vrm')}>
-                <Box className="h-4 w-4" /> {copy.replaceVrm}
-              </AgentButton>
+              ) : <p className="m-0 text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-muted)]">{copy.empty}</p>}
+              <Button
+                disabled={!canReplace || operation.state === 'saving'}
+                leadingIcon={<FolderOpen aria-hidden="true" className="h-4 w-4" />}
+                onClick={() => choose('live2d')}
+                size="sm"
+                tone="secondary"
+              >
+                {copy.replaceLive2d}
+              </Button>
+              <Button
+                disabled={!canReplace || operation.state === 'saving'}
+                leadingIcon={<Box aria-hidden="true" className="h-4 w-4" />}
+                onClick={() => choose('vrm')}
+                size="sm"
+                tone="secondary"
+              >
+                {copy.replaceVrm}
+              </Button>
               {(operation.state === 'render-failed' || (appearance.avatarAssetRef && renderFailed))
                 && canRestore ? (
-                <AgentButton onClick={() => void restore()}>
-                  <RotateCcw className="h-4 w-4" /> {copy.restore}
-                </AgentButton>
+                <Button
+                  leadingIcon={<RotateCcw aria-hidden="true" className="h-4 w-4" />}
+                  onClick={() => void restore()}
+                  size="sm"
+                  tone="secondary"
+                >
+                  {copy.restore}
+                </Button>
               ) : null}
             </div>
           </div>
         </Card>
 
         <Card
-          className="grid gap-4 border-slate-200/80 bg-white p-4 shadow-[0_10px_24px_rgba(15,23,42,0.04)]"
+          className="grid gap-4 border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-4 shadow-[var(--nimi-elevation-base)]"
         >
           <div
             className="grid gap-1"
             data-agent-center-default-voice={hasDefaultVoice ? 'bound' : 'unset'}
           >
-            <h3 className="m-0 text-[15px] font-semibold text-slate-950">{voiceCopy.defaultVoiceTitle}</h3>
-            <p className="m-0 text-[11px] leading-5 text-slate-500">{voiceCopy.defaultVoiceDescription}</p>
-            <label className="mt-2 grid gap-1 text-[12px] font-semibold text-slate-700">
-              <span>{voiceCopy.catalogLabel}</span>
-              <select
+            <h3 className="m-0 text-[length:var(--nimi-type-label-size)] font-semibold text-[var(--nimi-text-primary)]">{voiceCopy.defaultVoiceTitle}</h3>
+            <p className="m-0 text-[length:var(--nimi-type-overline-size)] leading-5 text-[var(--nimi-text-muted)]">{voiceCopy.defaultVoiceDescription}</p>
+            <div
+              className="mt-2 grid gap-1"
+              data-agent-center-default-voice-reference={appearance.defaultVoiceReference || ''}
+            >
+              <span className="text-[length:var(--nimi-type-caption-size)] font-semibold text-[var(--nimi-text-secondary)]">{voiceCopy.catalogLabel}</span>
+              <SelectField
                 aria-label={voiceCopy.catalogLabel}
-                className="min-h-10 rounded-lg border border-slate-200 bg-white px-3 text-[13px] text-slate-800 outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
-                data-agent-center-default-voice-reference={appearance.defaultVoiceReference || ''}
                 disabled={!canSetDefaultVoice || operation.state === 'saving'}
-                onChange={(event) => void setDefaultVoice(event.currentTarget.value)}
+                onValueChange={(reference) => void setDefaultVoice(reference)}
+                options={voiceOptions.map((voice) => ({
+                  value: voice.reference,
+                  label: `${voice.name} · ${voice.kind === 'preset_voice_id' ? voiceCopy.voiceKindPreset : voiceCopy.voiceKindAsset}`,
+                }))}
+                placeholder={voiceCopy.defaultVoiceUnset}
                 value={appearance.defaultVoiceReference || ''}
-              >
-                {!hasDefaultVoice ? <option value="">{voiceCopy.defaultVoiceUnset}</option> : null}
-                {voiceOptions.map((voice) => (
-                  <option key={voice.reference} value={voice.reference}>
-                    {voice.name} · {voice.kind === 'preset_voice_id' ? 'Preset' : 'Voice asset'}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <p className="m-0 text-[11px] leading-5 text-slate-500">{voiceCopy.catalogDescription}</p>
+              />
+            </div>
+            <p className="m-0 text-[length:var(--nimi-type-overline-size)] leading-5 text-[var(--nimi-text-muted)]">{voiceCopy.catalogDescription}</p>
             {voiceCatalog?.state === 'ready' && voiceOptions.length === 0 ? (
-              <Notice tone="warn">{voiceCopy.catalogEmpty}</Notice>
+              <InlineAlert tone="warning">{voiceCopy.catalogEmpty}</InlineAlert>
             ) : null}
             {voiceCatalog?.state === 'unavailable' ? (
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="text-[11px] text-amber-700">{voiceCopy.catalogUnavailable}</span>
-                <AgentButton onClick={() => void session.refresh()}>{voiceCopy.retryLabel}</AgentButton>
+                <span className="text-[length:var(--nimi-type-overline-size)] text-[var(--nimi-status-warning-soft-text)]">{voiceCopy.catalogUnavailable}</span>
+                <Button onClick={() => void session.refresh()} size="sm" tone="secondary">{voiceCopy.retryLabel}</Button>
               </div>
             ) : null}
           </div>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="grid gap-1">
-              <span className="text-[13px] font-semibold text-slate-800">{voiceCopy.avatarAutoplayLabel}</span>
-              <span className="text-[11px] leading-5 text-slate-500">{voiceCopy.avatarAutoplayDescription}</span>
+              <span className="text-[length:var(--nimi-type-body-sm-size)] font-semibold text-[var(--nimi-text-primary)]">{voiceCopy.avatarAutoplayLabel}</span>
+              <span className="text-[length:var(--nimi-type-overline-size)] leading-5 text-[var(--nimi-text-muted)]">{voiceCopy.avatarAutoplayDescription}</span>
             </div>
-            <AgentButton
-              dataAttrs={{
-                'data-agent-center-avatar-autoplay': appearance.avatarAutoplay ? 'enabled' : 'disabled',
-              }}
-              disabled={!canToggleAutoplay || operation.state === 'saving'}
-              onClick={() => void toggleAutoplay()}
+            <span
+              className="inline-flex"
+              data-agent-center-avatar-autoplay={appearance.avatarAutoplay ? 'enabled' : 'disabled'}
             >
-              {appearance.avatarAutoplay ? voiceCopy.disableLabel : voiceCopy.enableLabel}
-            </AgentButton>
+              <Toggle
+                ariaLabel={voiceCopy.avatarAutoplayLabel}
+                checked={appearance.avatarAutoplay === true}
+                disabled={!canToggleAutoplay || operation.state === 'saving'}
+                onChange={(next) => void toggleAutoplay(next)}
+              />
+            </span>
           </div>
         </Card>
 
         {appearance.avatarAssetRef && renderFailed ? (
-          <Notice tone="warn"><strong>{copy.savedRenderFailed}</strong> {copy.rendererUnavailable}</Notice>
+          <InlineAlert tone="warning"><strong>{copy.savedRenderFailed}</strong> {copy.rendererUnavailable}</InlineAlert>
         ) : null}
         {operation.message ? (
-          <Notice ariaLive="polite" tone={operation.state === 'validation-failed' || operation.state === 'render-failed' ? 'warn' : 'info'}>
+          <InlineAlert tone={OPERATION_NOTICE_TONE[operation.state]}>
             <span data-agent-center-appearance-operation={operation.state}>{operation.message}</span>
             {operation.state === 'validation-failed' ? <span data-agent-center-validation-reason={operation.reasonCode} /> : null}
-          </Notice>
+          </InlineAlert>
         ) : null}
       </div>
 
-      {pendingKind ? (
-        <div aria-modal="true" className="fixed inset-0 z-50 grid place-items-center bg-slate-950/35 p-5" role="dialog">
-          <Card className="w-full max-w-md border-slate-200 bg-white p-5 shadow-xl">
-            <h3 className="m-0 text-[16px] font-semibold text-slate-950">{copy.warningTitle}</h3>
-            <p className="mt-3 text-[13px] leading-6 text-slate-600">{copy.warning}</p>
-            <div className="mt-5 flex justify-end gap-2">
-              <AgentButton onClick={() => setPendingKind(null)}>{copy.cancel}</AgentButton>
-              <AgentButton onClick={() => void replace()} variant="accent">{copy.confirm}</AgentButton>
-            </div>
-          </Card>
-        </div>
-      ) : null}
+      <ConfirmDialog
+        cancelLabel={copy.cancel}
+        confirmLabel={copy.confirm}
+        confirmTone="primary"
+        message={copy.warning}
+        onClose={() => setPendingKind(null)}
+        onConfirm={() => { void replace(); }}
+        open={pendingKind !== null}
+        title={copy.warningTitle}
+      />
     </SectionShell>
   );
 }

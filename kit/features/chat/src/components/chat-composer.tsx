@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState, type ReactNode, type CompositionEvent } from 'react';
-import { cn } from '@nimiplatform/kit/ui';
+import { cn, InlineAlert } from '@nimiplatform/kit/ui';
 import { useChatComposer, type UseChatComposerOptions } from '../hooks/use-chat-composer.js';
+import { resolveChatCopy, type ChatCopy } from '../copy.js';
 import type {
   ChatComposerAttachmentsSlot,
   ChatComposerLayout,
@@ -50,6 +51,8 @@ export type ChatComposerProps<TAttachment = never> = UseChatComposerOptions<TAtt
   /** Optional slot rendered at the leading edge of the input controls row (before the voice button). */
   leadingSlot?: ReactNode;
   layout?: ChatComposerLayout;
+  /** Optional copy overrides merged over the default English strings. */
+  copy?: ChatCopy;
 };
 
 export function ChatComposer<TAttachment = never>({
@@ -66,9 +69,11 @@ export function ChatComposer<TAttachment = never>({
   mediaActions,
   leadingSlot,
   layout = 'inline',
+  copy,
   ...options
 }: ChatComposerProps<TAttachment>) {
   const state = useChatComposer(options);
+  const copyResolved = resolveChatCopy(copy);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const lastHeightRef = useRef(MIN_TEXTAREA_HEIGHT);
   const [showMediaActions, setShowMediaActions] = useState(false);
@@ -118,7 +123,7 @@ export function ChatComposer<TAttachment = never>({
           return (
             <div
               key={key}
-              className="flex min-w-[152px] max-w-[220px] items-center gap-3 rounded-2xl border border-slate-200/80 bg-white/90 px-3 py-3 shadow-[0_8px_24px_rgba(15,23,42,0.05)]"
+              className="flex min-w-[152px] max-w-[220px] items-center gap-3 rounded-2xl border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,transparent)] px-3 py-3 shadow-[var(--nimi-elevation-raised)]"
             >
               {previewUrl && kind === 'image' ? (
                 <img
@@ -127,23 +132,23 @@ export function ChatComposer<TAttachment = never>({
                   className="h-12 w-12 rounded-xl object-cover"
                 />
               ) : (
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-100 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--nimi-surface-panel)] text-[length:var(--nimi-type-overline-size)] font-semibold uppercase tracking-[0.08em] text-[var(--nimi-text-muted)]">
                   {kind === 'video' ? 'VID' : 'FILE'}
                 </div>
               )}
               <div className="min-w-0 flex-1">
                 {label ? (
-                  <div className="truncate text-sm font-medium text-slate-800">{label}</div>
+                  <div className="truncate text-sm font-medium text-[var(--nimi-text-primary)]">{label}</div>
                 ) : null}
                 {secondaryLabel ? (
-                  <div className="truncate text-xs text-slate-500">{secondaryLabel}</div>
+                  <div className="truncate text-xs text-[var(--nimi-text-muted)]">{secondaryLabel}</div>
                 ) : null}
               </div>
               <button
                 type="button"
                 onClick={() => state.removeAttachment(index)}
-                className="rounded-full p-1 text-slate-400 transition-colors hover:text-slate-700"
-                aria-label={`remove-attachment-${index + 1}`}
+                className="rounded-full p-1 text-[var(--nimi-text-muted)] transition-colors hover:text-[var(--nimi-text-secondary)]"
+                aria-label={`Remove attachment ${label || index + 1}`}
               >
                 ×
               </button>
@@ -178,13 +183,13 @@ export function ChatComposer<TAttachment = never>({
       className={cn(
         'min-h-[36px] max-h-32 min-w-0 flex-1 resize-none overflow-y-hidden',
         isStacked
-          ? 'w-full rounded-[24px] border-0 bg-transparent px-2.5 py-2 text-[13px] leading-5 shadow-none'
-          : 'rounded-[20px] border border-slate-200 bg-white px-4 py-3 text-sm',
-        'text-slate-900 outline-none',
-        'transition-colors duration-200',
-        'placeholder:text-slate-400',
+          ? 'w-full rounded-[var(--nimi-radius-xl)] border-0 bg-transparent px-2.5 py-2 text-[length:var(--nimi-type-body-sm-size)] leading-5 shadow-none'
+          : 'rounded-[var(--nimi-radius-xl)] border border-[var(--nimi-field-border)] bg-[var(--nimi-field-bg)] px-4 py-3 text-sm',
+        'text-[var(--nimi-field-text)] outline-none',
+        'transition-colors duration-[var(--nimi-motion-base)]',
+        'placeholder:text-[var(--nimi-field-placeholder)]',
         isStacked ? 'focus:ring-0' : 'focus:border-[var(--nimi-field-focus)]',
-        isStacked ? 'disabled:bg-transparent' : 'disabled:bg-slate-100',
+        isStacked ? 'disabled:bg-transparent' : 'disabled:bg-[var(--nimi-surface-panel)]',
       )}
       placeholder={placeholder}
       aria-label={placeholder}
@@ -205,11 +210,11 @@ export function ChatComposer<TAttachment = never>({
       aria-label={sendLabel}
       data-chat-composer-send="true"
       className={cn(
-        'flex shrink-0 items-center justify-center text-white transition-all duration-150',
+        'flex shrink-0 items-center justify-center transition-[background-color,color,box-shadow,transform,opacity] duration-[var(--nimi-motion-fast)] ease-[var(--nimi-motion-ease-standard)]',
         isStacked
-          ? 'h-8 w-8 rounded-full bg-slate-200/80 text-slate-400 enabled:bg-[var(--nimi-action-primary-bg)] enabled:text-[var(--nimi-action-primary-text)] enabled:shadow-[0_8px_20px_color-mix(in_srgb,var(--nimi-action-primary-bg)_28%,transparent)] enabled:hover:bg-[var(--nimi-action-primary-bg-hover)] enabled:hover:shadow-[0_12px_24px_color-mix(in_srgb,var(--nimi-action-primary-bg)_34%,transparent)]'
-          : 'h-12 w-12 rounded-[20px] bg-gradient-to-br from-sky-400 via-cyan-400 to-sky-500 shadow-[0_18px_36px_color-mix(in_srgb,var(--nimi-action-primary-bg)_30%,transparent)] transition-[box-shadow,transform] duration-[var(--nimi-motion-fast)] ease-[var(--nimi-motion-ease-standard)] active:scale-[var(--nimi-motion-pressed-scale)] hover:shadow-[0_22px_44px_color-mix(in_srgb,var(--nimi-action-primary-bg)_40%,transparent)] disabled:opacity-40 disabled:shadow-none disabled:hover:translate-y-0 disabled:hover:bg-inherit',
-        'active:scale-[0.92]',
+          ? 'h-8 w-8 rounded-full bg-[var(--nimi-surface-panel)] text-[var(--nimi-text-muted)] enabled:bg-[var(--nimi-action-primary-bg)] enabled:text-[var(--nimi-action-primary-text)] enabled:shadow-[0_8px_20px_color-mix(in_srgb,var(--nimi-action-primary-bg)_28%,transparent)] enabled:hover:bg-[var(--nimi-action-primary-bg-hover)] enabled:hover:shadow-[0_12px_24px_color-mix(in_srgb,var(--nimi-action-primary-bg)_34%,transparent)]'
+          : 'h-12 w-12 rounded-[var(--nimi-radius-xl)] bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)] shadow-[0_18px_36px_color-mix(in_srgb,var(--nimi-action-primary-bg)_30%,transparent)] transition-[box-shadow,transform] duration-[var(--nimi-motion-fast)] ease-[var(--nimi-motion-ease-standard)] active:scale-[var(--nimi-motion-pressed-scale)] enabled:hover:bg-[var(--nimi-action-primary-bg-hover)] enabled:hover:shadow-[0_22px_44px_color-mix(in_srgb,var(--nimi-action-primary-bg)_40%,transparent)] disabled:opacity-40 disabled:shadow-none disabled:hover:translate-y-0',
+        'active:scale-[var(--nimi-motion-pressed-scale)]',
       )}
     >
       {ICON_SEND}
@@ -221,6 +226,7 @@ export function ChatComposer<TAttachment = never>({
       voiceState={voiceState}
       disabled={options.disabled || state.isSubmitting}
       compact={isStacked}
+      cancelLabel={copyResolved.composerCancelLabel}
     />
   ) : null;
   const hasStackedLeadingActions = Boolean(voiceButtonNode || toolbarSlot);
@@ -240,10 +246,10 @@ export function ChatComposer<TAttachment = never>({
       className={cn(
         'flex shrink-0 items-center justify-center transition-colors',
         isStacked
-          ? 'h-8 w-8 rounded-full border border-transparent bg-transparent text-slate-500 hover:bg-slate-900/[0.06] hover:text-slate-700'
-          : 'h-11 w-11 rounded-2xl border border-slate-200/80 bg-white/90 text-slate-600 hover:border-[var(--nimi-action-primary-bg)]/50 hover:text-[var(--nimi-action-primary-bg)]',
-        showMediaActions ? 'border border-sky-200 bg-sky-50 text-sky-700' : '',
-        'disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-slate-200/80 disabled:hover:text-slate-500',
+          ? 'h-8 w-8 rounded-full border border-transparent bg-transparent text-[var(--nimi-text-muted)] hover:bg-[color-mix(in_srgb,var(--nimi-text-primary)_6%,transparent)] hover:text-[var(--nimi-text-secondary)]'
+          : 'h-11 w-11 rounded-2xl border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,transparent)] text-[var(--nimi-text-secondary)] hover:border-[var(--nimi-action-primary-bg)]/50 hover:text-[var(--nimi-action-primary-bg)]',
+        showMediaActions ? 'border border-[var(--nimi-action-primary-bg)]/50 bg-[var(--nimi-action-ghost-hover)] text-[var(--nimi-action-primary-bg)]' : '',
+        'disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-[var(--nimi-border-subtle)] disabled:hover:text-[var(--nimi-text-muted)]',
       )}
       title={attachLabel}
     >
@@ -284,7 +290,7 @@ export function ChatComposer<TAttachment = never>({
                   action.onAction();
                   setShowMediaActions(false);
                 }}
-                className="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-[11px] font-semibold text-sky-700 transition-colors hover:bg-sky-100"
+                className="rounded-full border border-[var(--nimi-action-primary-bg)]/40 bg-[var(--nimi-action-ghost-hover)] px-3 py-1 text-[length:var(--nimi-type-overline-size)] font-semibold text-[var(--nimi-action-primary-bg)] transition-colors hover:bg-[var(--nimi-surface-active)]"
               >
                 {action.label}
               </button>
@@ -324,7 +330,7 @@ export function ChatComposer<TAttachment = never>({
                 {hasMeta ? (
                   <div
                     data-chat-composer-toolbar-meta="true"
-                    className="flex min-w-[88px] flex-1 items-center gap-2 text-[11px] text-slate-400"
+                    className="flex min-w-[88px] flex-1 items-center gap-2 text-[length:var(--nimi-type-overline-size)] text-[var(--nimi-text-muted)]"
                   >
                     {intentLabel ? <span className="min-w-0 truncate">{intentLabel}</span> : null}
                     {sendHint ? <span className="min-w-0 truncate">{sendHint}</span> : null}
@@ -351,14 +357,14 @@ export function ChatComposer<TAttachment = never>({
             <div className="flex items-end gap-2.5">
               {leadingSlot ? <div className="flex items-end">{leadingSlot}</div> : null}
               {voiceState ? (
-                <VoiceButton voiceState={voiceState} disabled={options.disabled || state.isSubmitting} />
+                <VoiceButton voiceState={voiceState} disabled={options.disabled || state.isSubmitting} cancelLabel={copyResolved.composerCancelLabel} />
               ) : (
                 <button
                   type="button"
                   disabled
                   className={cn(
                     'flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl',
-                    'border border-slate-200 bg-slate-100 text-slate-400',
+                    'border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] text-[var(--nimi-text-muted)]',
                   )}
                   title="Voice input"
                 >
@@ -372,7 +378,7 @@ export function ChatComposer<TAttachment = never>({
                   disabled
                   className={cn(
                     'flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl',
-                    'border border-slate-200 bg-slate-100 text-slate-400',
+                    'border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] text-[var(--nimi-text-muted)]',
                   )}
                   title={attachLabel}
                 >
@@ -382,7 +388,7 @@ export function ChatComposer<TAttachment = never>({
               {sendButtonNode}
             </div>
             {intentLabel || sendHint ? (
-              <div className="mt-1.5 flex items-center justify-end gap-3 px-1 text-[11px] text-slate-400">
+              <div className="mt-1.5 flex items-center justify-end gap-3 px-1 text-[length:var(--nimi-type-overline-size)] text-[var(--nimi-text-muted)]">
                 {intentLabel ? <span>{intentLabel}</span> : null}
                 {sendHint ? <span>{sendHint}</span> : null}
               </div>
@@ -392,9 +398,9 @@ export function ChatComposer<TAttachment = never>({
 
         {/* error */}
         {state.error ? (
-          <div className="mt-2 rounded-xl bg-red-50 px-3 py-2 text-xs text-red-600">
+          <InlineAlert tone="danger" className="mt-2 text-xs">
             {state.error}
-          </div>
+          </InlineAlert>
         ) : null}
       </form>
     </div>
@@ -415,10 +421,12 @@ function VoiceButton({
   voiceState,
   disabled,
   compact = false,
+  cancelLabel = 'Cancel',
 }: {
   voiceState: ChatComposerVoiceState;
   disabled?: boolean;
   compact?: boolean;
+  cancelLabel?: string;
 }) {
   const { status, onToggle, onCancel } = voiceState;
   const isRecording = status === 'recording';
@@ -435,14 +443,14 @@ function VoiceButton({
           'flex shrink-0 items-center justify-center transition-colors',
           compact ? 'h-8 w-8 rounded-full' : 'h-11 w-11 rounded-2xl',
           isRecording
-            ? 'border border-rose-200/80 bg-gradient-to-b from-rose-50 to-white text-rose-600 shadow-[0_4px_12px_rgba(244,63,94,0.12)]'
+            ? 'border border-[var(--nimi-status-danger-soft-border)] bg-[var(--nimi-status-danger-soft-bg)] text-[var(--nimi-status-danger)] shadow-[0_4px_12px_color-mix(in_srgb,var(--nimi-status-danger)_16%,transparent)]'
             : isTranscribing
-              ? 'border border-amber-200 bg-amber-50 text-amber-600'
+              ? 'border border-[var(--nimi-status-warning-soft-border)] bg-[var(--nimi-status-warning-soft-bg)] text-[var(--nimi-status-warning)]'
               : isFailed
-                ? 'border border-amber-200 bg-amber-50 text-amber-600'
+                ? 'border border-[var(--nimi-status-warning-soft-border)] bg-[var(--nimi-status-warning-soft-bg)] text-[var(--nimi-status-warning)]'
                 : compact
-                  ? 'border border-transparent bg-transparent text-slate-500 hover:bg-slate-900/[0.06] hover:text-slate-700'
-                  : 'border border-slate-200/80 bg-white/90 text-slate-600 hover:border-[var(--nimi-action-primary-bg)]/50 hover:text-[var(--nimi-action-primary-bg)]',
+                  ? 'border border-transparent bg-transparent text-[var(--nimi-text-muted)] hover:bg-[color-mix(in_srgb,var(--nimi-text-primary)_6%,transparent)] hover:text-[var(--nimi-text-secondary)]'
+                  : 'border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,transparent)] text-[var(--nimi-text-secondary)] hover:border-[var(--nimi-action-primary-bg)]/50 hover:text-[var(--nimi-action-primary-bg)]',
         )}
         title={isRecording ? 'Stop recording' : isTranscribing ? 'Transcribing…' : 'Voice input'}
       >
@@ -453,9 +461,9 @@ function VoiceButton({
           type="button"
           onClick={onCancel}
           aria-label={isTranscribing ? 'Cancel transcription' : 'Cancel recording'}
-          className="rounded-2xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-600 transition-colors hover:bg-slate-50"
+          className="rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-3 py-2 text-xs font-medium text-[var(--nimi-text-secondary)] transition-colors hover:bg-[var(--nimi-surface-panel)]"
         >
-          Cancel
+          {cancelLabel}
         </button>
       ) : null}
     </div>

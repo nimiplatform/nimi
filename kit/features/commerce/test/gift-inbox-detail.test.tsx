@@ -77,6 +77,10 @@ describe('GiftInboxDetail', () => {
 
     const textarea = document.body.querySelector('textarea');
     expect(textarea).toBeTruthy();
+    const rejectLabel = document.body.querySelector('label[for]') as HTMLLabelElement;
+    expect(rejectLabel).toBeTruthy();
+    expect(textarea?.id).toBeTruthy();
+    expect(rejectLabel.getAttribute('for')).toBe(textarea?.id);
 
     await act(async () => {
       if (textarea instanceof HTMLTextAreaElement) {
