@@ -850,3 +850,19 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.sdks.feature-clients.package-plane
+  - id: rule.nimi.sdks.feature-clients.r104
+    kind: rule
+    title: Local App PersonaCharacter owner client is exact
+    modality: must
+    statement: The host-injected App client exposes exactly realm.personaCharacter.listOwned, getOwned, create, replace, and the non-transport toProfileInput helper from the canonical owner PersonaCharacter App contract; listOwned admits optional worldId, writable visibility, afterId, and integer take from one through five hundred, defaults take to fifty, and returns a frozen page with items plus nextAfterId only when the returned item count equals take. The client validates exact closed top-level write inputs, requires baseContentHash for replace, forbids output-only profileHash and profileCoverage in write profiles, keeps stable HTTPS externalRefs display-safe, performs the single complete consumer projection after transport, and exposes only the canonical sanitized failure reasons. It accepts no caller authority carrier for account, ownerAccountId, scope, AppOperationId, AppAccess domain, Realm method, endpoint, header, caller class, session, snapshot, or generic Realm facade; it treats nested profile and extension fields as Realm-owned non-authoritative product content and does not reproduce origin dependency, extension registry, canonicalization, coverage, or hash semantics or reject opaque fields by token, secret, classification, provider, model, route, or JWT-shaped lexical guesses.
+    condition: Whenever a Local App lists, reads, creates, or replaces an owner PersonaCharacter through the SDK.
+    failure: Fail closed before transport on absent or extra transport methods, invalid top-level input, malformed pagination, output-only profile fields, malformed baseContentHash, unsafe externalRefs, or oversized request and fail closed after transport on missing, extra, malformed, unsafe, owner-bearing, or oversized projection fields without returning raw Realm material or a direct SDK fallback.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.app-operation-contract
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.persona-character-owner-app-contract
+      - type: applies_to
+        target: definition.nimi.sdks.feature-clients.app-client-plane
+      - type: applies_to
+        target: definition.nimi.sdks.realm-consumer.character-profile-projection

@@ -330,3 +330,17 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.runtime.protected-session.account-session-plane
+  - id: rule.nimi.runtime.protected-session.r032
+    kind: rule
+    title: Owner PersonaCharacter access is session derived
+    modality: must
+    statement: Runtime classifies each of the four owner PersonaCharacter App operations through the canonical contract, requires fresh realm.data snapshot coverage, derives the current account and Registered App Subject only from the protected session, fixes list scope to owned while forwarding only optional worldId, writable visibility, afterId, and take from one through five hundred, validates list and get owner identity and create and replace response owner identity through the Realm Account broker, removes only the known top-level ownerAccountId after comparison and before the App boundary, and maps bounded Realm and contract failures to the canonical sanitized PersonaCharacter App failure set without exposing account, credential, Realm URL, raw body, header, method selector, or internal authorization state. Runtime does not preflight replace, recompute canonical hashes or coverage, mirror the Forge schema or extension registry, or lexically interpret opaque profile and extension product content; Realm PUT remains the atomic owner and baseContentHash admission.
+    condition: Whenever Runtime handles an owner PersonaCharacter App operation.
+    failure: Deny the operation before mutation when session, snapshot, domain coverage, exact ingress, pagination, baseContentHash, request bounds, or Realm owner admission is unavailable; classify absent current owner context as owner-authority-missing or session-invalid, malformed or missing upstream ownerAccountId as contract-invalid, and a foreign owner mismatch as access-denied, and reject the whole positive projection when ownership, top-level projection, external display safety, or response bounds are invalid.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.persona-character-owner-app-contract
+      - type: applies_to
+        target: definition.nimi.runtime.protected-session.account-session-plane
+      - type: applies_to
+        target: definition.nimi.runtime.protected-session.rpc-plane
