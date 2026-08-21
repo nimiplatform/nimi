@@ -43,6 +43,11 @@ import {
   type NimiLocalAppAssetsShell,
 } from './local-app-runtime-platform-assets.js';
 import {
+  createNimiLocalAppPersonaCharacterClient,
+  type NimiLocalAppPersonaCharacterClient,
+  type NimiLocalAppPersonaCharacterShell,
+} from './local-app-runtime-platform-persona-character.js';
+import {
   asRecord,
   assertExactKeys,
   assertExactMethodNamespace,
@@ -62,6 +67,12 @@ export type {
 export {
   createNimiLocalAppRuntimeScenarioJobClient,
 } from './local-app-runtime-platform-ai.js';
+export {
+  projectNimiLocalAppPersonaCharacter,
+  projectNimiLocalAppPersonaCharacterList,
+  toNimiLocalAppPersonaCharacterProfileInput,
+  validateNimiLocalAppPersonaCharacterWriteInput,
+} from './local-app-runtime-platform-persona-character.js';
 export type {
   NimiLocalAppAIConsumptionClient,
   NimiLocalAppAIConsumptionShell,
@@ -133,6 +144,29 @@ export type {
   NimiLocalAppAssetsClient,
   NimiLocalAppAssetsShell,
 } from './local-app-runtime-platform-assets.js';
+export type {
+  NimiLocalAppPersonaCharacter,
+  NimiLocalAppPersonaCharacterAssetIntent,
+  NimiLocalAppPersonaCharacterClient,
+  NimiLocalAppPersonaCharacterCreateInput,
+  NimiLocalAppPersonaCharacterDiagnostic,
+  NimiLocalAppPersonaCharacterExternalRef,
+  NimiLocalAppPersonaCharacterExtension,
+  NimiLocalAppPersonaCharacterFailureReason,
+  NimiLocalAppPersonaCharacterListOwnedInput,
+  NimiLocalAppPersonaCharacterListOwnedPage,
+  NimiLocalAppPersonaCharacterOrigin,
+  NimiLocalAppPersonaCharacterProfile,
+  NimiLocalAppPersonaCharacterProfileCoverage,
+  NimiLocalAppPersonaCharacterProfileCoverageRef,
+  NimiLocalAppPersonaCharacterProfileCoverageSection,
+  NimiLocalAppPersonaCharacterProfileInput,
+  NimiLocalAppPersonaCharacterReplaceInput,
+  NimiLocalAppPersonaCharacterResourceRef,
+  NimiLocalAppPersonaCharacterShell,
+  NimiLocalAppPersonaCharacterVisibility,
+  NimiLocalAppPersonaCharacterWritableVisibility,
+} from './local-app-runtime-platform-persona-character.js';
 
 export type NimiAppAuthMode = 'local-first-party-app' | 'local-app';
 
@@ -243,6 +277,7 @@ export type NimiLocalAppStandardShell = {
       readonly list: (input?: NimiLocalAppWorldCoreListInput) => Promise<unknown>;
       readonly create: (input: unknown) => Promise<unknown>;
     };
+    readonly personaCharacter: NimiLocalAppPersonaCharacterShell;
   };
   readonly agents: NimiLocalAppAgentReferencesShell;
   readonly conversation: NimiLocalAppConversationShell;
@@ -294,6 +329,7 @@ export type NimiLocalAppClient = {
         input: RealmModel<'CreateWorldCoreDto'>,
       ) => Promise<RealmModel<'WorldCoreDto'>>;
     };
+    readonly personaCharacter: NimiLocalAppPersonaCharacterClient;
   };
   readonly agents: NimiLocalAppAgentReferencesClient;
   readonly agentConfigure: NimiLocalAppAgentConfigureClient;
@@ -350,7 +386,7 @@ export function createNimiLocalAppClient(
   }
   assertExactMethodNamespace(storage.assets, ['stat', 'list', 'write', 'read', 'remove', 'move', 'adoptArtifact'], 'storage.assets');
   const realm = asRecord(standardShell.realm);
-  if (!realm || Object.keys(realm).length !== 1 || !Object.hasOwn(realm, 'worldCore')) {
+  if (!realm || Object.keys(realm).sort().join('|') !== ['personaCharacter', 'worldCore'].sort().join('|')) {
     return localAppError(
       'Host-injected local-app standardShell realm namespace is invalid.',
       'SDK_LOCAL_APP_CARRIER_REQUIRED',
@@ -358,6 +394,7 @@ export function createNimiLocalAppClient(
     );
   }
   assertExactMethodNamespace(realm.worldCore, ['list', 'create'], 'realm.worldCore');
+  assertExactMethodNamespace(realm.personaCharacter, ['listOwned', 'getOwned', 'create', 'replace'], 'realm.personaCharacter');
   assertExactMethodNamespace(standardShell.agents, ['listReferences'], 'agents');
   assertExactMethodNamespace(standardShell.conversation, ['open', 'send', 'interruptTurn', 'subscribe', 'snapshot'], 'conversation');
   const agentConfigure = asRecord(standardShell.agentConfigure);
@@ -394,7 +431,10 @@ export function createNimiLocalAppClient(
       ...createNimiAppRuntimeStorageClient(standardShell.storage),
       assets: createNimiLocalAppAssetsClient(standardShell.storage.assets),
     }),
-    realm: Object.freeze({ worldCore: createWorldCoreClient(standardShell.realm.worldCore) }),
+    realm: Object.freeze({
+      worldCore: createWorldCoreClient(standardShell.realm.worldCore),
+      personaCharacter: createNimiLocalAppPersonaCharacterClient(standardShell.realm.personaCharacter),
+    }),
     agents: createNimiLocalAppAgentReferencesClient(standardShell.agents),
     conversation: createNimiLocalAppConversationClient(standardShell.conversation),
     agentConfigure: createNimiLocalAppAgentConfigureClient(standardShell.agentConfigure),

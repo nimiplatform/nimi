@@ -163,7 +163,6 @@ const localAppStandardShell: NimiLocalAppStandardShell = {
   },
   aiConfig: {
     async get() { return {}; },
-    async overwrite() { return {}; },
   },
   modelConfig: { localSelections: unavailableCarrier },
   storage: {
@@ -184,6 +183,12 @@ const localAppStandardShell: NimiLocalAppStandardShell = {
     worldCore: {
       async list() { return []; },
       async create() { return {}; },
+    },
+    personaCharacter: {
+      async listOwned() { return []; },
+      async getOwned() { return {}; },
+      async create() { return {}; },
+      async replace() { return {}; },
     },
   },
   agents: {

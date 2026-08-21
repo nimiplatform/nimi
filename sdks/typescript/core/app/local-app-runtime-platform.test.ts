@@ -82,7 +82,15 @@ function standardShell(operationCalls: string[]): NimiLocalAppStandardShell {
         adoptArtifact: touched('storage.assets.adoptArtifact'),
       },
     },
-    realm: { worldCore: { list: touched('realm.worldCore.list'), create: touched('realm.worldCore.create') } },
+    realm: {
+      worldCore: { list: touched('realm.worldCore.list'), create: touched('realm.worldCore.create') },
+      personaCharacter: {
+        listOwned: touched('realm.personaCharacter.listOwned'),
+        getOwned: touched('realm.personaCharacter.getOwned'),
+        create: touched('realm.personaCharacter.create'),
+        replace: touched('realm.personaCharacter.replace'),
+      },
+    },
     agents: { listReferences: touched('agents.listReferences') },
     conversation: {
       open: touched('conversation.open'),
@@ -529,7 +537,7 @@ test('WorldCore list accepts the exact owner DTO and rejects raw or credential-a
   const base = standardShell([]);
   const exact: NimiLocalAppStandardShell = {
     ...base,
-    realm: { worldCore: { ...base.realm.worldCore, list: async () => [world] } },
+    realm: { ...base.realm, worldCore: { ...base.realm.worldCore, list: async () => [world] } },
   };
   const listed = await createNimiLocalAppClient({ standardShell: exact }).realm.worldCore.list();
   assert.equal(listed[0]?.id, 'world-1');
@@ -540,7 +548,7 @@ test('WorldCore list accepts the exact owner DTO and rejects raw or credential-a
   ]) {
     const shell: NimiLocalAppStandardShell = {
       ...base,
-      realm: { worldCore: { ...base.realm.worldCore, list: async () => [malformed] } },
+      realm: { ...base.realm, worldCore: { ...base.realm.worldCore, list: async () => [malformed] } },
     };
     await assert.rejects(
       () => createNimiLocalAppClient({ standardShell: shell }).realm.worldCore.list(),
