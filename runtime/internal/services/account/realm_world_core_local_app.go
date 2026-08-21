@@ -7,12 +7,20 @@ import (
 	"io"
 	"math"
 	"net/url"
+	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/jsonstrict"
 	"google.golang.org/protobuf/proto"
+)
+
+var (
+	localAppCredentialQueryParameterPattern   = regexp.MustCompile(`(?i)^(?:x-amz-.+|x-goog-.+|access[_-]?token|token|api[_-]?key|apikey|key|secret|sig(?:nature)?|credential|expires?|policy|auth(?:orization)?|awsaccesskeyid|googleaccessid)$`)
+	localAppEncodedCredentialSeparatorPattern = regexp.MustCompile(`(?i)(?:%3f|%26|%23)(?:x-amz-[^=&%#]+|x-goog-[^=&%#]+|access[_-]?token|token|api[_-]?key|apikey|key|secret|sig(?:nature)?|credential|expires?|policy|auth(?:orization)?|awsaccesskeyid|googleaccessid)=`)
+	localAppResourceSchemePattern             = regexp.MustCompile(`(?i)^[a-z][a-z0-9+.-]*:`)
 )
 
 const (
@@ -100,6 +108,10 @@ func sanitizeLocalAppWorldCoreFailure(response *runtimev1.InvokeRealmUnaryRespon
 	return projected
 }
 
+func sanitizeLocalAppRealmFailure(response *runtimev1.InvokeRealmUnaryResponse) *runtimev1.InvokeRealmUnaryResponse {
+	return sanitizeLocalAppWorldCoreFailure(response)
+}
+
 func localAppWorldCoreContractFailure(response *runtimev1.InvokeRealmUnaryResponse) *runtimev1.InvokeRealmUnaryResponse {
 	status := int32(0)
 	if response != nil {
@@ -141,10 +153,30 @@ func (validation *worldCoreDTOValidation) origin(value any, depth int) bool {
 	object, ok := validation.object(value, depth,
 		[]string{"kind", "parentCharacterId", "parentWorldId", "sourceContentHash", "sourceId", "sourceVersion"},
 		[]string{"kind"})
-	if !ok || !oneOfText(object["kind"], "manual", "forge", "worldCharacterDerivation", "import", "system") {
+	kind, kindOK := object["kind"].(string)
+	if !ok || !kindOK || !oneOfText(kind, "manual", "forge", "worldCharacterDerivation", "import", "system") {
 		return false
 	}
-	return optionalTextFields(object, 512, "parentCharacterId", "parentWorldId", "sourceContentHash", "sourceId", "sourceVersion")
+	for _, key := range []string{"parentCharacterId", "parentWorldId", "sourceContentHash", "sourceId", "sourceVersion"} {
+		if value, exists := object[key]; exists && key != "sourceContentHash" && !worldCoreProfileText(value, false, 512) {
+			return false
+		}
+	}
+	requiredByKind := map[string][]string{
+		"manual": {}, "forge": {"sourceId", "sourceVersion", "sourceContentHash"},
+		"worldCharacterDerivation": {"parentWorldId", "parentCharacterId", "sourceContentHash"},
+		"import":                   {"sourceId", "sourceContentHash"}, "system": {"sourceId"},
+	}
+	for _, key := range requiredByKind[kind] {
+		if key == "sourceContentHash" {
+			if !localAppPersonaHash(object[key]) {
+				return false
+			}
+		} else if !worldCoreProfileText(object[key], true, 512) {
+			return false
+		}
+	}
+	return object["sourceContentHash"] == nil || localAppPersonaHash(object["sourceContentHash"])
 }
 
 func (validation *worldCoreDTOValidation) core(value any, depth int) bool {
@@ -300,7 +332,7 @@ func (validation *worldCoreDTOValidation) assets(value any, depth int) bool {
 
 func (validation *worldCoreDTOValidation) resourceRef(value any, depth int) bool {
 	object, ok := validation.object(value, depth, []string{"kind", "label", "purpose", "refId"}, []string{"refId", "kind"})
-	return ok && text(object["refId"], true, 512) && text(object["kind"], true, 512) && optionalTextFields(object, 4_096, "label", "purpose")
+	return ok && stableWorldCoreResourceRef(object["refId"]) && text(object["kind"], true, 512) && optionalTextFields(object, 4_096, "label", "purpose")
 }
 
 func (validation *worldCoreDTOValidation) intent(value any, depth int) bool {
@@ -456,6 +488,22 @@ func text(value any, nonempty bool, maximum int) bool {
 	return !nonempty || len(textValue) > 0
 }
 
+func worldCoreProfileText(value any, nonempty bool, maximum int) bool {
+	textValue, ok := value.(string)
+	if !ok || len([]byte(textValue)) > maximum || strings.ContainsRune(textValue, '\x00') {
+		return false
+	}
+	return !nonempty || strings.TrimSpace(textValue) != ""
+}
+
+func stableWorldCoreResourceRef(value any) bool {
+	textValue, ok := value.(string)
+	if !ok || strings.TrimSpace(textValue) == "" || strings.ContainsAny(textValue, "?&#") {
+		return false
+	}
+	return !localAppResourceSchemePattern.MatchString(textValue)
+}
+
 func oneOfText(value any, admitted ...string) bool {
 	textValue, ok := value.(string)
 	if !ok {
@@ -478,6 +526,15 @@ func number(value any) bool {
 	return err == nil && !math.IsInf(parsed, 0) && !math.IsNaN(parsed)
 }
 
+func nonnegativeInteger(value any) bool {
+	numberValue, ok := value.(json.Number)
+	if !ok {
+		return false
+	}
+	parsed, err := strconv.ParseInt(numberValue.String(), 10, 64)
+	return err == nil && parsed >= 0
+}
+
 func timestamp(value any) bool {
 	textValue, ok := value.(string)
 	if !ok || len(textValue) > 128 {
@@ -489,10 +546,24 @@ func timestamp(value any) bool {
 
 func safeWorldCoreExternalURI(value any) bool {
 	textValue, ok := value.(string)
-	if !ok || len(textValue) == 0 || len(textValue) > 2_048 {
+	if !ok || len(textValue) == 0 {
 		return false
 	}
 	parsed, err := url.Parse(textValue)
-	return err == nil && parsed.Scheme == "https" && parsed.Hostname() != "" && parsed.User == nil &&
-		parsed.RawQuery == "" && !parsed.ForceQuery && parsed.Fragment == "" && parsed.RawFragment == ""
+	if err != nil || parsed.Scheme != "https" || parsed.Hostname() == "" || parsed.User != nil || parsed.Fragment != "" || parsed.RawFragment != "" {
+		return false
+	}
+	if localAppEncodedCredentialSeparatorPattern.MatchString(textValue) {
+		return false
+	}
+	query, err := url.ParseQuery(parsed.RawQuery)
+	if err != nil {
+		return false
+	}
+	for key := range query {
+		if localAppCredentialQueryParameterPattern.MatchString(key) {
+			return false
+		}
+	}
+	return true
 }

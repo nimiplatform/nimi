@@ -40,6 +40,10 @@ const (
 	LocalAppOperationArtifactAdoptToStorage  = localappop.OperationArtifactAdoptToStorage
 	LocalAppOperationRealmWorldCoreList      = localappop.OperationRealmWorldCoreList
 	LocalAppOperationRealmWorldCoreCreate    = localappop.OperationRealmWorldCoreCreate
+	LocalAppOperationPersonaListOwned        = localappop.OperationRealmPersonaCharacterListOwned
+	LocalAppOperationPersonaGetOwned         = localappop.OperationRealmPersonaCharacterGetOwned
+	LocalAppOperationPersonaCreate           = localappop.OperationRealmPersonaCharacterCreate
+	LocalAppOperationPersonaReplace          = localappop.OperationRealmPersonaCharacterReplace
 	LocalAppOperationAppAIConfigRead         = localappop.OperationAppAIConfigGet
 	LocalAppOperationTextCandidateGenerate   = localappop.OperationTextCandidateGenerate
 	LocalAppOperationTextTurnStream          = localappop.OperationTextTurnStream

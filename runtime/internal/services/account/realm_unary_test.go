@@ -26,8 +26,8 @@ func TestRealmBrokerOperationSetContainsExactDesktopProductVocabulary(t *testing
 		"WorldPublicController_getWorldDetailWithCharacters": {method: http.MethodGet, path: "/api/world/by-id/{worldId}/detail-with-characters"},
 		"WorldPublicController_listWorlds":                   {method: http.MethodGet, path: "/api/world"},
 	}
-	if len(realmBrokerOperations) != 77 {
-		t.Fatalf("Realm broker operation count = %d, want 77", len(realmBrokerOperations))
+	if len(realmBrokerOperations) != 79 {
+		t.Fatalf("Realm broker operation count = %d, want 79", len(realmBrokerOperations))
 	}
 	for operationID, want := range expectedSourceReadiness {
 		operation, ok := realmBrokerOperations[operationID]
@@ -38,11 +38,21 @@ func TestRealmBrokerOperationSetContainsExactDesktopProductVocabulary(t *testing
 			t.Fatalf("%s route = %s %s, want %s %s", operationID, operation.method, operation.path, want.method, want.path)
 		}
 		if operationID == "WorldCoreController_listPersonaCharacters" {
-			if operation.authorizationProfile != realmBrokerProtectedBundledAvatarSourceReadinessProfile ||
+			if operation.authorizationProfile != realmBrokerProtectedLocalAppPersonaCharacterOwnerProfile ||
+				len(operation.allowedCallerModes) != 3 ||
+				!operation.admitsCallerMode(runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_DESKTOP_SHELL) ||
+				!operation.admitsCallerMode(runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_AVATAR_NATIVE_HOST) ||
+				!operation.admitsCallerMode(runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_LOCAL_APP) {
+				t.Fatalf("%s must admit the exact Desktop, protected bundled Avatar, and Local App callers: %+v", operationID, operation)
+			}
+			continue
+		}
+		if operationID == "WorldCoreController_getPersonaCharacter" {
+			if operation.authorizationProfile != realmBrokerProtectedLocalAppPersonaCharacterOwnerProfile ||
 				len(operation.allowedCallerModes) != 2 ||
 				!operation.admitsCallerMode(runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_DESKTOP_SHELL) ||
-				!operation.admitsCallerMode(runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_AVATAR_NATIVE_HOST) {
-				t.Fatalf("%s must admit the exact Desktop and protected bundled Avatar source-readiness callers: %+v", operationID, operation)
+				!operation.admitsCallerMode(runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_LOCAL_APP) {
+				t.Fatalf("%s must admit the exact Desktop and Local App callers: %+v", operationID, operation)
 			}
 			continue
 		}
@@ -66,6 +76,21 @@ func TestRealmBrokerOperationSetContainsExactDesktopProductVocabulary(t *testing
 			!operation.admitsCallerMode(runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_LOCAL_APP) ||
 			operation.admitsCallerMode(runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_DESKTOP_SHELL) {
 			t.Fatalf("%s must admit only the exact protected Local App profile: %+v", operationID, operation)
+		}
+	}
+	for operationID, method := range map[string]string{
+		"WorldCoreController_createPersonaCharacter":  http.MethodPost,
+		"WorldCoreController_replacePersonaCharacter": http.MethodPut,
+	} {
+		operation, ok := realmBrokerOperations[operationID]
+		if !ok {
+			t.Fatalf("protected Local App PersonaCharacter broker operation missing: %s", operationID)
+		}
+		if operation.method != method || operation.authorizationProfile != realmBrokerProtectedLocalAppPersonaCharacterOwnerProfile ||
+			len(operation.allowedCallerModes) != 1 ||
+			!operation.admitsCallerMode(runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_LOCAL_APP) ||
+			operation.admitsCallerMode(runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_DESKTOP_SHELL) {
+			t.Fatalf("%s must admit only the exact protected Local App PersonaCharacter owner profile: %+v", operationID, operation)
 		}
 	}
 }

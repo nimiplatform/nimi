@@ -33,7 +33,8 @@ func TestLocalAppSessionInvalidationAndSameHostRebind(t *testing.T) {
 	if err := fixture.service.AdmitLocalAppIngress(ctx, localappop.IngressStorageJSONRead); err != nil {
 		t.Fatalf("Base admission with present empty snapshot: %v", err)
 	}
-	assertLocalAppReason(t, fixture.service.AdmitLocalAppIngress(ctx, localappop.IngressRealmWorldCoreList), runtimev1.ReasonCode_LOCAL_APP_ACCESS_DENIED)
+	assertLocalAppReason(t, fixture.service.AdmitLocalAppIngress(ctx, localappop.IngressRealmWorldCoreList), runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
+	assertLocalAppReason(t, fixture.service.AdmitLocalAppIngress(ctx, localappop.IngressRealmPersonaCharacterReplace), runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
 
 	fixture.registrationInput.RawDeclaration = []string{"realm.data"}
 	updated, err := fixture.kernel.Registrations().RegisterDevelopment(ctx, fixture.registrationInput)
@@ -56,6 +57,9 @@ func TestLocalAppSessionInvalidationAndSameHostRebind(t *testing.T) {
 	}
 	if err := fixture.service.AdmitLocalAppIngress(ctx, localappop.IngressRealmWorldCoreList); err != nil {
 		t.Fatalf("rebound realm.data admission: %v", err)
+	}
+	if err := fixture.service.AdmitLocalAppIngress(ctx, localappop.IngressRealmPersonaCharacterReplace); err != nil {
+		t.Fatalf("rebound realm.data PersonaCharacter admission: %v", err)
 	}
 
 	fixture.registrationInput.SourceDigest = "source-digest-2"
@@ -197,6 +201,10 @@ func TestLocalAppSessionOwnerHandoffContainsOnlyRuntimeDerivedAdmission(t *testi
 			operation: accountservice.LocalAppOperationRealmWorldCoreList,
 			class:     localappop.AuthorityClassAppAccess, capability: "realm.world-core.list",
 		},
+		localappop.IngressRealmPersonaCharacterReplace: {
+			operation: accountservice.LocalAppOperationPersonaReplace,
+			class:     localappop.AuthorityClassAppAccess, capability: localappop.AppOperationIDPersonaReplace,
+		},
 		localappop.IngressConversationOpen: {
 			operation: accountservice.LocalAppOperationOpenConversation,
 			class:     localappop.AuthorityClassAppAccess, capability: "agent.local",
@@ -251,7 +259,7 @@ func TestLocalAppSessionAgentConfigureRequiresIndependentDeclarationDomain(t *te
 		assertLocalAppReason(
 			t,
 			localOnly.service.AdmitLocalAppIngress(localOnly.context, ingress),
-			runtimev1.ReasonCode_LOCAL_APP_ACCESS_DENIED,
+			runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE,
 		)
 	}
 
@@ -265,7 +273,7 @@ func TestLocalAppSessionAgentConfigureRequiresIndependentDeclarationDomain(t *te
 	assertLocalAppReason(
 		t,
 		configureOnly.service.AdmitLocalAppIngress(configureOnly.context, localappop.IngressConversationOpen),
-		runtimev1.ReasonCode_LOCAL_APP_ACCESS_DENIED,
+		runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE,
 	)
 }
 
@@ -319,7 +327,7 @@ func TestLocalAppSessionScenarioConsumptionFamilyAuthorization(t *testing.T) {
 		assertLocalAppReason(
 			t,
 			denied.service.AdmitLocalAppIngress(denied.context, ingress),
-			runtimev1.ReasonCode_LOCAL_APP_ACCESS_DENIED,
+			runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE,
 		)
 	}
 }

@@ -262,6 +262,14 @@ func (s *Service) AuthorizeLocalAppIngress(ctx context.Context, ingress localapp
 		capability = "realm.world-core.list"
 	case localappop.OperationRealmWorldCoreCreate:
 		capability = "realm.world-core.create"
+	case localappop.OperationRealmPersonaCharacterListOwned:
+		capability = localappop.AppOperationIDPersonaListOwned
+	case localappop.OperationRealmPersonaCharacterGetOwned:
+		capability = localappop.AppOperationIDPersonaGetOwned
+	case localappop.OperationRealmPersonaCharacterCreate:
+		capability = localappop.AppOperationIDPersonaCreate
+	case localappop.OperationRealmPersonaCharacterReplace:
+		capability = localappop.AppOperationIDPersonaReplace
 	case localappop.OperationTextCandidateGenerate:
 		capability = localappop.AppOperationIDTextCandidateGenerate
 	case localappop.OperationTextTurnStream:
@@ -330,7 +338,9 @@ func localAppIngressError(err error) error {
 		return localDevelopmentFailure(codes.Unauthenticated, runtimev1.ReasonCode_LOCAL_APP_SESSION_REVOKED)
 	case errors.Is(err, localappop.ErrSnapshotMissing):
 		return localDevelopmentFailure(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_SNAPSHOT_UNAVAILABLE)
-	case errors.Is(err, localappop.ErrDomainUncovered), errors.Is(err, localappop.ErrCallerAssertion):
+	case errors.Is(err, localappop.ErrDomainUncovered):
+		return localDevelopmentFailure(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
+	case errors.Is(err, localappop.ErrCallerAssertion):
 		return localDevelopmentFailure(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_ACCESS_DENIED)
 	case errors.Is(err, localappop.ErrOperationUnknown), errors.Is(err, localappop.ErrContractInvalid):
 		return localDevelopmentFailure(codes.Unimplemented, runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNSUPPORTED)

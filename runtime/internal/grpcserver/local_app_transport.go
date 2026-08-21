@@ -367,6 +367,14 @@ func protectedLocalAppUnaryIngress(method string, request any) localappop.Ingres
 			return localappop.IngressRealmWorldCoreList
 		case "WorldCoreController_createWorldCore":
 			return localappop.IngressRealmWorldCoreCreate
+		case "WorldCoreController_listPersonaCharacters":
+			return localappop.IngressRealmPersonaCharacterListOwned
+		case "WorldCoreController_getPersonaCharacter":
+			return localappop.IngressRealmPersonaCharacterGetOwned
+		case "WorldCoreController_createPersonaCharacter":
+			return localappop.IngressRealmPersonaCharacterCreate
+		case "WorldCoreController_replacePersonaCharacter":
+			return localappop.IngressRealmPersonaCharacterReplace
 		default:
 			return localappop.IngressUnknown
 		}
@@ -419,6 +427,14 @@ func protectedLocalAppOwnerEnabled(method string, request any, ingress localappo
 			return realmRequest.GetMethodId() == "WorldCoreController_listWorldCores"
 		case localappop.IngressRealmWorldCoreCreate:
 			return realmRequest.GetMethodId() == "WorldCoreController_createWorldCore"
+		case localappop.IngressRealmPersonaCharacterListOwned:
+			return realmRequest.GetMethodId() == "WorldCoreController_listPersonaCharacters"
+		case localappop.IngressRealmPersonaCharacterGetOwned:
+			return realmRequest.GetMethodId() == "WorldCoreController_getPersonaCharacter"
+		case localappop.IngressRealmPersonaCharacterCreate:
+			return realmRequest.GetMethodId() == "WorldCoreController_createPersonaCharacter"
+		case localappop.IngressRealmPersonaCharacterReplace:
+			return realmRequest.GetMethodId() == "WorldCoreController_replacePersonaCharacter"
 		default:
 			return false
 		}

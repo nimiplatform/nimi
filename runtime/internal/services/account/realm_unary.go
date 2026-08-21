@@ -23,6 +23,8 @@ const (
 	realmUnaryRequestJSONMaxSize = 2 * 1024 * 1024
 )
 
+var errRealmUnaryRequestTooLarge = errors.New("realm request JSON exceeds the admitted bound")
+
 type realmUnaryOperation struct {
 	method                 string
 	path                   string
@@ -73,7 +75,9 @@ func (s *Service) InvokeRealmUnary(ctx context.Context, req *runtimev1.InvokeRea
 	}
 	caller := req.GetCaller()
 	localAppOperation := LocalAppOperation(0)
-	if localAppDecision, protectedLocalApp := AuthorizedLocalAppDecisionFromContext(ctx); protectedLocalApp {
+	localAppDecision := LocalAppCallerDecision{}
+	if decision, protectedLocalApp := AuthorizedLocalAppDecisionFromContext(ctx); protectedLocalApp {
+		localAppDecision = decision
 		localAppOperation = localAppDecision.Operation
 		expectedMethodID, admitted := localAppRealmMethodID(localAppDecision.Operation)
 		if !admitted || methodID != expectedMethodID || !operation.admitsProtectedLocalAppCaller() {
@@ -92,7 +96,7 @@ func (s *Service) InvokeRealmUnary(ctx context.Context, req *runtimev1.InvokeRea
 	}
 	projectFailure := func(response *runtimev1.InvokeRealmUnaryResponse) *runtimev1.InvokeRealmUnaryResponse {
 		if localAppOperation != 0 {
-			return sanitizeLocalAppWorldCoreFailure(response)
+			return sanitizeLocalAppRealmFailure(response)
 		}
 		return response
 	}
@@ -113,10 +117,24 @@ func (s *Service) InvokeRealmUnary(ctx context.Context, req *runtimev1.InvokeRea
 
 	parsedRequest, err := parseRealmUnaryRequest(req.GetRequestJson())
 	if err != nil {
+		if errors.Is(err, errRealmUnaryRequestTooLarge) {
+			return projectFailure(realmUnaryFailure(runtimev1.ReasonCode_APP_MESSAGE_PAYLOAD_TOO_LARGE, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_REQUEST_INVALID, "Realm request exceeds the admitted bound", 0)), nil
+		}
 		return projectFailure(realmUnaryFailure(runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_REQUEST_INVALID, err.Error(), 0)), nil
 	}
-	if err := validateRealmUnaryRequestShape(operation, parsedRequest); err != nil {
-		return projectFailure(realmUnaryFailure(runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_REQUEST_INVALID, err.Error(), 0)), nil
+	var requestShapeErr error
+	if isLocalAppPersonaCharacterOperation(localAppOperation) {
+		requestShapeErr = validateRealmUnaryRequestShapeForOpaqueProductContent(operation, parsedRequest)
+	} else {
+		requestShapeErr = validateRealmUnaryRequestShape(operation, parsedRequest)
+	}
+	if requestShapeErr != nil {
+		return projectFailure(realmUnaryFailure(runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_REQUEST_INVALID, requestShapeErr.Error(), 0)), nil
+	}
+	if localAppOperation != 0 {
+		if err := validateLocalAppPersonaCharacterRequest(localAppOperation, parsedRequest); err != nil {
+			return projectFailure(realmUnaryFailure(runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_REQUEST_INVALID, "Local App PersonaCharacter request is invalid", 0)), nil
+		}
 	}
 	targetURL, err := buildRealmUnaryURL(realmBaseURL, operation, parsedRequest)
 	if err != nil {
@@ -172,16 +190,27 @@ func (s *Service) InvokeRealmUnary(ctx context.Context, req *runtimev1.InvokeRea
 			return projectFailure(realmUnaryFailure(runtimev1.ReasonCode_AUTH_TOKEN_INVALID, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_AUTH_INVALID, "Realm rejected the refreshed account session", result.status)), nil
 		}
 	}
-	projected := projectRealmUnaryHTTPResult(result)
+	var projected *runtimev1.InvokeRealmUnaryResponse
+	if isLocalAppPersonaCharacterOperation(localAppOperation) {
+		projected = projectRealmUnaryHTTPResultForOpaquePersona(result)
+	} else if isRealmPersonaCharacterMethodID(methodID) && result.status >= http.StatusOK && result.status < http.StatusMultipleChoices {
+		projected = projectRealmUnaryHTTPResultForOpaquePersonaSuccess(result)
+	} else {
+		projected = projectRealmUnaryHTTPResult(result)
+	}
 	if localAppOperation != 0 {
 		if !projected.GetAccepted() {
-			return sanitizeLocalAppWorldCoreFailure(projected), nil
+			return sanitizeLocalAppRealmFailure(projected), nil
 		}
 		switch localAppOperation {
 		case LocalAppOperationRealmWorldCoreList:
 			return projectLocalAppWorldCoreListResponse(projected), nil
 		case LocalAppOperationRealmWorldCoreCreate:
 			return projectLocalAppWorldCoreCreateResponse(projected), nil
+		case LocalAppOperationPersonaListOwned:
+			return projectLocalAppPersonaCharacterListResponse(projected, localAppDecision.AccountID), nil
+		case LocalAppOperationPersonaGetOwned, LocalAppOperationPersonaCreate, LocalAppOperationPersonaReplace:
+			return projectLocalAppPersonaCharacterResponse(projected, localAppDecision.AccountID), nil
 		}
 	}
 	return projected, nil
@@ -193,8 +222,36 @@ func localAppRealmMethodID(operation LocalAppOperation) (string, bool) {
 		return "WorldCoreController_listWorldCores", true
 	case LocalAppOperationRealmWorldCoreCreate:
 		return "WorldCoreController_createWorldCore", true
+	case LocalAppOperationPersonaListOwned:
+		return "WorldCoreController_listPersonaCharacters", true
+	case LocalAppOperationPersonaGetOwned:
+		return "WorldCoreController_getPersonaCharacter", true
+	case LocalAppOperationPersonaCreate:
+		return "WorldCoreController_createPersonaCharacter", true
+	case LocalAppOperationPersonaReplace:
+		return "WorldCoreController_replacePersonaCharacter", true
 	default:
 		return "", false
+	}
+}
+
+func isLocalAppPersonaCharacterOperation(operation LocalAppOperation) bool {
+	switch operation {
+	case LocalAppOperationPersonaListOwned, LocalAppOperationPersonaGetOwned,
+		LocalAppOperationPersonaCreate, LocalAppOperationPersonaReplace:
+		return true
+	default:
+		return false
+	}
+}
+
+func isRealmPersonaCharacterMethodID(methodID string) bool {
+	switch methodID {
+	case "WorldCoreController_listPersonaCharacters", "WorldCoreController_getPersonaCharacter",
+		"WorldCoreController_createPersonaCharacter", "WorldCoreController_replacePersonaCharacter":
+		return true
+	default:
+		return false
 	}
 }
 
@@ -240,8 +297,25 @@ func (s *Service) doRealmUnaryHTTP(
 }
 
 func projectRealmUnaryHTTPResult(result realmUnaryHTTPResult) *runtimev1.InvokeRealmUnaryResponse {
-	if err := scanRealmBrokerResponseForCredentials(result.header, result.body); err != nil {
+	return projectRealmUnaryHTTPResultWithCredentialBodyScanner(result, scanRealmBrokerResponseBodyForCredentials)
+}
+
+func projectRealmUnaryHTTPResultForOpaquePersona(result realmUnaryHTTPResult) *runtimev1.InvokeRealmUnaryResponse {
+	return projectRealmUnaryHTTPResultWithCredentialBodyScanner(result, nil)
+}
+
+func projectRealmUnaryHTTPResultForOpaquePersonaSuccess(result realmUnaryHTTPResult) *runtimev1.InvokeRealmUnaryResponse {
+	return projectRealmUnaryHTTPResultWithCredentialBodyScanner(result, scanRealmPersonaSuccessTopLevelForCredentials)
+}
+
+func projectRealmUnaryHTTPResultWithCredentialBodyScanner(result realmUnaryHTTPResult, scanBody func([]byte) error) *runtimev1.InvokeRealmUnaryResponse {
+	if err := scanRealmBrokerResponseHeadersForCredentials(result.header); err != nil {
 		return realmUnaryFailure(runtimev1.ReasonCode_REALM_CONTRACT_INVALID, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_CREDENTIAL_RESPONSE_FORBIDDEN, err.Error(), result.status)
+	}
+	if scanBody != nil {
+		if err := scanBody(result.body); err != nil {
+			return realmUnaryFailure(runtimev1.ReasonCode_REALM_CONTRACT_INVALID, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_CREDENTIAL_RESPONSE_FORBIDDEN, err.Error(), result.status)
+		}
 	}
 	if json.Valid(result.body) && jsonstrict.RejectDuplicateKeys(result.body) != nil {
 		return realmUnaryFailure(runtimev1.ReasonCode_REALM_CONTRACT_INVALID, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_CONTRACT_FAILED, "Realm response violates the JSON contract", result.status)
@@ -373,8 +447,11 @@ func canonicalRealmUnaryBaseURL(value string) (string, error) {
 }
 
 func parseRealmUnaryRequest(raw string) (realmUnaryRequestJSON, error) {
-	if strings.TrimSpace(raw) == "" || len(raw) > realmUnaryRequestJSONMaxSize {
-		return realmUnaryRequestJSON{}, fmt.Errorf("realm request JSON is missing or exceeds the admitted bound")
+	if strings.TrimSpace(raw) == "" {
+		return realmUnaryRequestJSON{}, fmt.Errorf("realm request JSON is missing")
+	}
+	if len(raw) > realmUnaryRequestJSONMaxSize {
+		return realmUnaryRequestJSON{}, errRealmUnaryRequestTooLarge
 	}
 	var parsed realmUnaryRequestJSON
 	if err := jsonstrict.Decode([]byte(raw), &parsed); err != nil {

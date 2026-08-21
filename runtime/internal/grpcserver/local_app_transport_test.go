@@ -178,6 +178,25 @@ func TestProtectedLocalAppRealmListAndCreateDispatchToExactOwners(t *testing.T) 
 	if err != nil || !createCalled || admission.ingress != localappop.IngressRealmWorldCoreCreate {
 		t.Fatalf("Realm create = called:%v admission:%+v error:%v", createCalled, admission, err)
 	}
+
+	for methodID, ingress := range map[string]localappop.Ingress{
+		"WorldCoreController_listPersonaCharacters":   localappop.IngressRealmPersonaCharacterListOwned,
+		"WorldCoreController_getPersonaCharacter":     localappop.IngressRealmPersonaCharacterGetOwned,
+		"WorldCoreController_createPersonaCharacter":  localappop.IngressRealmPersonaCharacterCreate,
+		"WorldCoreController_replacePersonaCharacter": localappop.IngressRealmPersonaCharacterReplace,
+	} {
+		t.Run(methodID, func(t *testing.T) {
+			called := false
+			request := &runtimev1.InvokeRealmUnaryRequest{MethodId: methodID, RequestJson: `{"path":{},"query":{}}`}
+			_, err := newUnaryProtectedLocalAppTransportInterceptor(admission)(ctx, request, &grpc.UnaryServerInfo{FullMethod: protectedInvokeRealmUnaryMethod}, func(context.Context, any) (any, error) {
+				called = true
+				return &runtimev1.InvokeRealmUnaryResponse{Accepted: true}, nil
+			})
+			if err != nil || !called || admission.ingress != ingress {
+				t.Fatalf("PersonaCharacter owner operation = called:%v admission:%+v error:%v", called, admission, err)
+			}
+		})
+	}
 }
 
 func TestProtectedLocalAppCallerAssertionScannerHandlesRepeatedMessages(t *testing.T) {

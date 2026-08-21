@@ -39,10 +39,31 @@ const desktopProductAuthorizationProfiles = new Set([
 const bundledAvatarSourceReadinessAuthorizationProfile = 'protected_bundled_avatar_source_readiness';
 const bundledAvatarRealmOperationID = 'WorldCoreController_listPersonaCharacters';
 const localAppWorldCoreAuthorizationProfile = 'protected_local_app_world_core';
+const localAppPersonaCharacterOwnerAuthorizationProfile = 'protected_local_app_persona_character_owner';
 const localAppWorldCoreOperationIDs = new Set([
   'WorldCoreController_listWorldCores',
   'WorldCoreController_createWorldCore',
 ]);
+const localAppPersonaCharacterOwnerOperationIDs = new Set([
+  'WorldCoreController_listPersonaCharacters',
+  'WorldCoreController_getPersonaCharacter',
+  'WorldCoreController_createPersonaCharacter',
+  'WorldCoreController_replacePersonaCharacter',
+]);
+
+function expectedPersonaCharacterCallerModes(operationID) {
+  switch (operationID) {
+    case 'WorldCoreController_listPersonaCharacters':
+      return [desktopCallerMode, bundledAvatarCallerMode, localAppCallerMode];
+    case 'WorldCoreController_getPersonaCharacter':
+      return [desktopCallerMode, localAppCallerMode];
+    case 'WorldCoreController_createPersonaCharacter':
+    case 'WorldCoreController_replacePersonaCharacter':
+      return [localAppCallerMode];
+    default:
+      fail(`unknown PersonaCharacter owner operation ${operationID}`);
+  }
+}
 
 function fail(message) {
   throw new Error(`realm broker policy generation failed: ${message}`);
@@ -103,7 +124,10 @@ function renderPolicy(operations) {
     }
     const bundledAvatarOperation = operation.operation_id === bundledAvatarRealmOperationID;
     const localAppWorldCoreOperation = localAppWorldCoreOperationIDs.has(operation.operation_id);
-    const admittedAuthorizationProfiles = bundledAvatarOperation
+    const localAppPersonaCharacterOwnerOperation = localAppPersonaCharacterOwnerOperationIDs.has(operation.operation_id);
+    const admittedAuthorizationProfiles = localAppPersonaCharacterOwnerOperation
+      ? new Set([localAppPersonaCharacterOwnerAuthorizationProfile])
+      : bundledAvatarOperation
       ? new Set([bundledAvatarSourceReadinessAuthorizationProfile])
       : localAppWorldCoreOperation
         ? new Set([localAppWorldCoreAuthorizationProfile])
@@ -118,7 +142,9 @@ function renderPolicy(operations) {
       fail(`${operation.operation_id} response_max_bytes must be a positive integer`);
     }
     const callerModes = operation.allowed_runtime_caller_modes;
-    const expectedCallerModes = bundledAvatarOperation
+    const expectedCallerModes = localAppPersonaCharacterOwnerOperation
+      ? expectedPersonaCharacterCallerModes(operation.operation_id)
+      : bundledAvatarOperation
       ? [desktopCallerMode, bundledAvatarCallerMode]
       : localAppWorldCoreOperation
         ? [localAppCallerMode]
@@ -154,7 +180,9 @@ function renderPolicy(operations) {
 function renderSDKPolicy(operations) {
   const sourceReadinessRows = operations
     .filter((operation) => operation.authorization_profile === desktopSourceReadinessAuthorizationProfile
-      || operation.authorization_profile === bundledAvatarSourceReadinessAuthorizationProfile)
+      || operation.authorization_profile === bundledAvatarSourceReadinessAuthorizationProfile
+      || (operation.authorization_profile === localAppPersonaCharacterOwnerAuthorizationProfile
+        && operation.allowed_runtime_caller_modes.includes(desktopCallerMode)))
     .map((operation) => `  ${quoted(operation.operation_id)},`).join('\n');
   const productRows = operations
     .filter((operation) => operation.allowed_runtime_caller_modes.includes(desktopCallerMode))

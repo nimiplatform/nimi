@@ -25,6 +25,13 @@ var realmBrokerCredentialKeys = map[string]struct{}{
 }
 
 func scanRealmBrokerResponseForCredentials(headers http.Header, body []byte) error {
+	if err := scanRealmBrokerResponseHeadersForCredentials(headers); err != nil {
+		return err
+	}
+	return scanRealmBrokerResponseBodyForCredentials(body)
+}
+
+func scanRealmBrokerResponseHeadersForCredentials(headers http.Header) error {
 	for key, values := range headers {
 		normalized := normalizeRealmBrokerCredentialKey(key)
 		if _, forbidden := realmBrokerCredentialKeys[normalized]; forbidden || normalized == "setcookie" {
@@ -36,6 +43,10 @@ func scanRealmBrokerResponseForCredentials(headers http.Header, body []byte) err
 			}
 		}
 	}
+	return nil
+}
+
+func scanRealmBrokerResponseBodyForCredentials(body []byte) error {
 	var decoded any
 	if err := json.Unmarshal(body, &decoded); err != nil {
 		if scanMalformedRealmBrokerBodyForCredentials(body) {
@@ -45,6 +56,38 @@ func scanRealmBrokerResponseForCredentials(headers http.Header, body []byte) err
 	}
 	if scanRealmBrokerJSONValue(decoded) {
 		return fmt.Errorf("credential-like Realm broker response is forbidden")
+	}
+	return nil
+}
+
+func scanRealmPersonaSuccessTopLevelForCredentials(body []byte) error {
+	var decoded any
+	if err := json.Unmarshal(body, &decoded); err != nil {
+		return nil
+	}
+	check := func(value any) bool {
+		object, ok := value.(map[string]any)
+		if !ok {
+			return false
+		}
+		for key := range object {
+			normalized := normalizeRealmBrokerCredentialKey(key)
+			if _, forbidden := realmBrokerCredentialKeys[normalized]; forbidden || normalized == "token" {
+				return true
+			}
+		}
+		return false
+	}
+	if values, ok := decoded.([]any); ok {
+		for _, value := range values {
+			if check(value) {
+				return fmt.Errorf("credential-bearing Persona response field is forbidden")
+			}
+		}
+		return nil
+	}
+	if check(decoded) {
+		return fmt.Errorf("credential-bearing Persona response field is forbidden")
 	}
 	return nil
 }

@@ -38,6 +38,10 @@ const (
 	AppOperationIDStorageAssetRemove = "runtime.app-storage.asset.remove"
 	AppOperationIDStorageAssetMove   = "runtime.app-storage.asset.move"
 	AppOperationIDArtifactAdopt      = "runtime.ai.artifact.adopt-to-app-storage"
+	AppOperationIDPersonaListOwned   = "realm.persona-character.list-owned"
+	AppOperationIDPersonaGetOwned    = "realm.persona-character.get-owned"
+	AppOperationIDPersonaCreate      = "realm.persona-character.create"
+	AppOperationIDPersonaReplace     = "realm.persona-character.replace"
 )
 
 // Canonical operation identifiers for the scenario-consumption operation
@@ -70,6 +74,10 @@ const (
 	IngressAppAIConfigGet
 	IngressRealmWorldCoreList
 	IngressRealmWorldCoreCreate
+	IngressRealmPersonaCharacterListOwned
+	IngressRealmPersonaCharacterGetOwned
+	IngressRealmPersonaCharacterCreate
+	IngressRealmPersonaCharacterReplace
 	IngressTextCandidateGenerate
 	IngressTextTurnStream
 	IngressScenarioExecute
@@ -109,6 +117,10 @@ const (
 	OperationAppAIConfigGet
 	OperationRealmWorldCoreList
 	OperationRealmWorldCoreCreate
+	OperationRealmPersonaCharacterListOwned
+	OperationRealmPersonaCharacterGetOwned
+	OperationRealmPersonaCharacterCreate
+	OperationRealmPersonaCharacterReplace
 	OperationTextCandidateGenerate
 	OperationTextTurnStream
 	OperationScenarioExecute
@@ -160,6 +172,10 @@ var canonicalAppOperationContract = [...]contractRow{
 	{IngressAppAIConfigGet, OperationAppAIConfigGet, "runtime.ai.app-config.get", AuthorityClassBase, ""},
 	{IngressRealmWorldCoreList, OperationRealmWorldCoreList, "realm.world-core.list", AuthorityClassAppAccess, "realm.data"},
 	{IngressRealmWorldCoreCreate, OperationRealmWorldCoreCreate, "realm.world-core.create", AuthorityClassAppAccess, "realm.data"},
+	{IngressRealmPersonaCharacterListOwned, OperationRealmPersonaCharacterListOwned, AppOperationIDPersonaListOwned, AuthorityClassAppAccess, "realm.data"},
+	{IngressRealmPersonaCharacterGetOwned, OperationRealmPersonaCharacterGetOwned, AppOperationIDPersonaGetOwned, AuthorityClassAppAccess, "realm.data"},
+	{IngressRealmPersonaCharacterCreate, OperationRealmPersonaCharacterCreate, AppOperationIDPersonaCreate, AuthorityClassAppAccess, "realm.data"},
+	{IngressRealmPersonaCharacterReplace, OperationRealmPersonaCharacterReplace, AppOperationIDPersonaReplace, AuthorityClassAppAccess, "realm.data"},
 	{IngressTextCandidateGenerate, OperationTextCandidateGenerate, AppOperationIDTextCandidateGenerate, AuthorityClassAppAccess, "runtime.consume"},
 	{IngressTextTurnStream, OperationTextTurnStream, AppOperationIDTextTurnStream, AuthorityClassAppAccess, "runtime.consume"},
 	{IngressScenarioExecute, OperationScenarioExecute, AppOperationIDScenarioExecute, AuthorityClassAppAccess, "runtime.consume"},
@@ -230,7 +246,7 @@ func IsSupportedDomain(value string) bool {
 
 func validateContractRows(rows []contractRow) error {
 	if len(rows) != len(canonicalAppOperationContract) {
-		return fmt.Errorf("%w: expected thirty-five rows", ErrContractInvalid)
+		return fmt.Errorf("%w: expected thirty-nine rows", ErrContractInvalid)
 	}
 	seenIngress := make(map[Ingress]struct{}, len(rows))
 	seenOperation := make(map[Operation]struct{}, len(rows))

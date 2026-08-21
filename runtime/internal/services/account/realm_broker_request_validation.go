@@ -9,6 +9,14 @@ import (
 )
 
 func validateRealmUnaryRequestShape(operation realmUnaryOperation, request realmUnaryRequestJSON) error {
+	return validateRealmUnaryRequestShapeWithBodyPolicy(operation, request, true)
+}
+
+func validateRealmUnaryRequestShapeForOpaqueProductContent(operation realmUnaryOperation, request realmUnaryRequestJSON) error {
+	return validateRealmUnaryRequestShapeWithBodyPolicy(operation, request, false)
+}
+
+func validateRealmUnaryRequestShapeWithBodyPolicy(operation realmUnaryOperation, request realmUnaryRequestJSON, scanBody bool) error {
 	for required := range operation.requiredPathParameters {
 		value, exists := request.Path[required]
 		if !exists || strings.TrimSpace(fmt.Sprint(value)) == "" || fmt.Sprint(value) == "<nil>" {
@@ -48,7 +56,7 @@ func validateRealmUnaryRequestShape(operation realmUnaryOperation, request realm
 		if err := jsonstrict.Decode(request.Body, &body); err != nil {
 			return fmt.Errorf("realm operation request body JSON is invalid")
 		}
-		if scanRealmBrokerJSONValue(body) {
+		if scanBody && scanRealmBrokerJSONValue(body) {
 			return fmt.Errorf("credential-like Realm broker request is forbidden")
 		}
 	}

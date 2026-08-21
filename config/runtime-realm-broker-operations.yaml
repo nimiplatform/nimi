@@ -6,6 +6,7 @@ table_family: protocol_surface
 owner: runtime
 protocol_id: runtime_realm_broker_operations
 surfaces:
+  - WorldCoreController_createPersonaCharacter
   - WorldCoreController_createWorldCore
   - WorldCoreController_discoverPersonaCharacters
   - WorldCoreController_getPersonaCharacter
@@ -14,6 +15,7 @@ surfaces:
   - WorldCoreController_listPersonaCharacters
   - WorldCoreController_listWorldCores
   - WorldCoreController_listWorldRelationships
+  - WorldCoreController_replacePersonaCharacter
   - WorldPublicController_getCharacterSource
   - WorldPublicController_getWorld
   - WorldPublicController_getWorldDetailWithCharacters
@@ -90,7 +92,7 @@ generic_proxy: forbidden
 unlisted_operation_disposition: deny_broker_operation_not_admitted
 description: >
   Exact RuntimeAccountService.InvokeRealmUnary admission for protected
-  Desktop product journeys and the two Desktop-supervised Local App WorldCore
+  Desktop product journeys and the six Desktop-supervised Local App realm.data
   operations. Every row requires either the verified protected Desktop account
   host, the fixed independent bundled Avatar native-host profile, or the
   verified Local App carrier with a current Runtime-derived operation decision, plus the current
@@ -122,6 +124,7 @@ operation_schema:
     - protected_desktop_sensitive
     - protected_desktop_commerce
     - protected_local_app_world_core
+    - protected_local_app_persona_character_owner
   credential_response_policy_values:
     - forbidden
 
@@ -176,6 +179,35 @@ policy_templates:
     response_max_bytes: 1048576
     credential_response_policy: forbidden
     source_rule: K-ACCSVC-023
+  local_app_persona_character_owner: &local_app_persona_character_owner
+    authorization_profile: protected_local_app_persona_character_owner
+    allowed_runtime_caller_modes: [ACCOUNT_CALLER_MODE_LOCAL_APP]
+    protected_transport_ref: /nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary
+    realm_base_policy: runtime-configured-canonical-exact
+    response_max_bytes: 1048576
+    credential_response_policy: forbidden
+    source_rule: K-ACCSVC-023
+  desktop_and_local_app_persona_character_owner: &desktop_and_local_app_persona_character_owner
+    authorization_profile: protected_local_app_persona_character_owner
+    allowed_runtime_caller_modes:
+      - ACCOUNT_CALLER_MODE_DESKTOP_SHELL
+      - ACCOUNT_CALLER_MODE_LOCAL_APP
+    protected_transport_ref: /nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary
+    realm_base_policy: runtime-configured-canonical-exact
+    response_max_bytes: 1048576
+    credential_response_policy: forbidden
+    source_rule: K-ACCSVC-023
+  desktop_avatar_and_local_app_persona_character_owner: &desktop_avatar_and_local_app_persona_character_owner
+    authorization_profile: protected_local_app_persona_character_owner
+    allowed_runtime_caller_modes:
+      - ACCOUNT_CALLER_MODE_DESKTOP_SHELL
+      - ACCOUNT_CALLER_MODE_AVATAR_NATIVE_HOST
+      - ACCOUNT_CALLER_MODE_LOCAL_APP
+    protected_transport_ref: /nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary
+    realm_base_policy: runtime-configured-canonical-exact
+    response_max_bytes: 1048576
+    credential_response_policy: forbidden
+    source_rule: K-ACCSVC-023
 operations:
   - <<: *local_app_world_core
     operation_id: WorldCoreController_listWorldCores
@@ -201,9 +233,17 @@ operations:
     request_schema_ref: realm-openapi://operation/WorldPublicController_getCharacterSource/request
     response_schema_ref: realm-openapi://operation/WorldPublicController_getCharacterSource/response
 
-  - <<: *desktop_source_read
+  - <<: *local_app_persona_character_owner
+    operation_id: WorldCoreController_createPersonaCharacter
+    authority_ref: .nimi/spec/platform/core-protocol.authority.yaml#rule.nimi.platform.core-protocol.p-proto-048
+    http_method: POST
+    path_template: /api/realm/core/persona-characters
+    request_schema_ref: realm-openapi://operation/WorldCoreController_createPersonaCharacter/request
+    response_schema_ref: realm-openapi://operation/WorldCoreController_createPersonaCharacter/response
+
+  - <<: *desktop_and_local_app_persona_character_owner
     operation_id: WorldCoreController_getPersonaCharacter
-    authority_ref: realm:spec/realm/core.authority.yaml#rule.realm.core.r007
+    authority_ref: .nimi/spec/platform/core-protocol.authority.yaml#rule.nimi.platform.core-protocol.p-proto-048
     http_method: GET
     path_template: /api/realm/core/persona-characters/by-id/{personaCharacterId}
     request_schema_ref: realm-openapi://operation/WorldCoreController_getPersonaCharacter/request
@@ -225,13 +265,21 @@ operations:
     request_schema_ref: realm-openapi://operation/WorldCoreController_getWorldEntity/request
     response_schema_ref: realm-openapi://operation/WorldCoreController_getWorldEntity/response
 
-  - <<: *desktop_and_bundled_avatar_source_read
+  - <<: *desktop_avatar_and_local_app_persona_character_owner
     operation_id: WorldCoreController_listPersonaCharacters
-    authority_ref: realm:spec/realm/core.authority.yaml#rule.realm.core.r007
+    authority_ref: .nimi/spec/platform/core-protocol.authority.yaml#rule.nimi.platform.core-protocol.p-proto-048
     http_method: GET
     path_template: /api/realm/core/persona-characters
     request_schema_ref: realm-openapi://operation/WorldCoreController_listPersonaCharacters/request
     response_schema_ref: realm-openapi://operation/WorldCoreController_listPersonaCharacters/response
+
+  - <<: *local_app_persona_character_owner
+    operation_id: WorldCoreController_replacePersonaCharacter
+    authority_ref: .nimi/spec/platform/core-protocol.authority.yaml#rule.nimi.platform.core-protocol.p-proto-048
+    http_method: PUT
+    path_template: /api/realm/core/persona-characters/by-id/{personaCharacterId}
+    request_schema_ref: realm-openapi://operation/WorldCoreController_replacePersonaCharacter/request
+    response_schema_ref: realm-openapi://operation/WorldCoreController_replacePersonaCharacter/response
 
   - <<: *desktop_source_read
     operation_id: WorldCoreController_discoverPersonaCharacters
