@@ -1661,7 +1661,7 @@ units:
   - id: definition.nimi.platform.core-protocol.desktop-open-target
     kind: definition
     title: P-DOPEN closed target kind
-    meaning: A Desktop Open target kind is exactly open-explore, open-runtime-config, open-agents, open-apps, or open-settings, while target-specific values remain owned by the referenced Desktop target catalog.
+    meaning: A Desktop Open target kind is exactly open-explore, open-runtime-config, open-apps, or open-settings, while target-specific values remain owned by the referenced Desktop target catalog; PersonaCharacter catalog requests use open-explore with the Desktop-owned personas section rather than a separate character or agent target.
   - id: definition.nimi.platform.core-protocol.desktop-open-envelope
     kind: definition
     title: P-DOPEN closed intent envelope
@@ -1856,7 +1856,7 @@ units:
     kind: rule
     title: P-DOPEN-003 closed target kinds and Desktop ownership
     modality: must
-    statement: Desktop Open accepts only the five closed target kinds and resolves target-specific enum values from the referenced Desktop catalog without duplicating Desktop information-architecture truth in Platform.
+    statement: Desktop Open accepts only the four closed target kinds and resolves target-specific enum values from the referenced Desktop catalog without duplicating Desktop information-architecture truth in Platform; open-agents is retired rather than aliased or redirected.
     condition: Whenever a Desktop Open target is admitted or interpreted.
     failure: Return desktop-open-target-unsupported for an unknown target and reject Platform-owned target-specific values.
     relations:

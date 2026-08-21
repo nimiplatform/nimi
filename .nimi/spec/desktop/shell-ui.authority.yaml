@@ -42,7 +42,7 @@ units:
     kind: rule
     title: Primary navigation and tab groups are closed
     modality: must
-    statement: Desktop ordinary primary navigation is exactly Home, Chat, Characters, Explore, Apps, and Runtime in that order; Settings and Support are secondary, Profile, Source Detail, World Detail, Notification, Gifts, Privacy Policy, and Terms of Service are detail surfaces, World is folded into Explore, and Runtime is never hidden by enableRuntimeTab.
+    statement: Desktop ordinary primary navigation is exactly Home, Chat, Explore, Apps, and Runtime in that order; Settings and Support are secondary, Profile, Source Detail, World Detail, Notification, Gifts, Privacy Policy, and Terms of Service are detail surfaces, World and PersonaCharacter catalog browsing are folded into Explore, and Runtime is never hidden by enableRuntimeTab.
     condition: Whenever Desktop constructs navigation, tab identity, labels, or route groups.
     failure: Reject missing, extra, reordered, wrongly grouped, or feature-flag-hidden ordinary navigation entries.
     relations:
@@ -50,11 +50,11 @@ units:
         target: definition.nimi.desktop.shell-ui.shell-plane
   - id: rule.nimi.desktop.shell-ui.r002
     kind: rule
-    title: Characters projects Runtime LocalAgent inventory only
+    title: Explore Personas replaces the Characters primary surface
     modality: must
-    statement: The Characters primary surface projects Runtime source-materialized active LocalAgents available to the current account and routes selection to the existing Source Detail dossier without renderer-local LocalAgent truth.
-    condition: Whenever Desktop lists or opens a Character.
-    failure: Keep the surface unavailable or empty according to the typed Runtime projection rather than inventing a LocalAgent row.
+    statement: Desktop has no separate Characters tab or route; Explore Personas is the sole ordinary primary catalog for PersonaCharacter sources, consumes typed Realm source cards plus bounded Runtime or SDK source-context status, and routes selection to the existing Source Detail dossier without renderer-local LocalAgent inventory truth.
+    condition: Whenever Desktop lists or opens a PersonaCharacter source or constructs ordinary primary navigation.
+    failure: Reject a separate Characters surface, a renderer-local LocalAgent catalog or guessed source state, and any PersonaCharacter catalog path outside Explore Personas and Source Detail.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.shell-ui.shell-plane
