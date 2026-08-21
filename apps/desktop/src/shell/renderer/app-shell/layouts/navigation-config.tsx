@@ -157,10 +157,10 @@ export function renderShellNavIcon(icon: string): ReactNode {
 
 // @nimi-authority: definition.nimi.desktop.shell-ui.shell-plane
 // @nimi-authority: rule.nimi.desktop.shell-ui.r001
+// @nimi-authority: rule.nimi.desktop.shell-ui.r001
 const BASE_CORE_NAV_ITEMS: NavItem[] = [
   { id: 'home', label: 'Home', icon: renderShellNavIcon('home') },
   { id: 'chat', label: 'Chat', icon: renderShellNavIcon('chat') },
-  { id: 'agents', label: 'Characters', icon: renderShellNavIcon('agents') },
   { id: 'explore', label: 'Explore', icon: renderShellNavIcon('explore') },
   { id: 'apps', label: 'Apps', icon: renderShellNavIcon('apps') },
   { id: 'runtime', label: 'Runtime', icon: renderShellNavIcon('runtime') },
@@ -205,7 +205,7 @@ export function NavLink({
             ? 'font-semibold text-[var(--nimi-text-primary)]'
             : 'text-[var(--nimi-text-secondary)] hover:text-[var(--nimi-text-primary)]'
         } ${collapsed
-          ? `mx-auto h-12 w-12 justify-center ${SHELL_CHROME_INTERACTIVE_RADIUS_CLASS}`
+          ? `mx-auto h-11 w-11 justify-center ${SHELL_CHROME_INTERACTIVE_RADIUS_CLASS}`
           : `w-full gap-3 ${SHELL_CHROME_INTERACTIVE_RADIUS_CLASS} px-3 py-2.5`
         } ${active
           ? 'ring-1 ring-inset ring-[color-mix(in_srgb,var(--nimi-action-primary-bg)_24%,transparent)]'
@@ -253,13 +253,5 @@ export function NavLink({
     >
       {button}
     </Tooltip>
-  );
-}
-
-export function SectionLabel({ children }: { children: ReactNode }) {
-  return (
-    <p className="px-3 text-[10px] font-semibold uppercase tracking-[0.6px] text-gray-500">
-      {children}
-    </p>
   );
 }

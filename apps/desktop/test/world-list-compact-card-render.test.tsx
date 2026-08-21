@@ -7,7 +7,6 @@ import { renderToStaticMarkup } from 'react-dom/server';
 (globalThis as { React?: typeof React }).React = React;
 
 import { changeLocale, initI18n } from '../src/shell/renderer/i18n';
-import { AtlasCategoryTabs } from '../src/shell/renderer/features/world/world-list-catalog-controls';
 import { CompactWorldCard } from '../src/shell/renderer/features/world/world-list-compact-card';
 import type { WorldListItem } from '../src/shell/renderer/features/world/world-list-model';
 
@@ -79,9 +78,7 @@ test('compact world card renders only dynasty tags without public/source metadat
   const markup = renderToStaticMarkup(
     React.createElement(CompactWorldCard, {
       world,
-      selected: false,
       view: 'grid',
-      onSelect: () => {},
       onOpen: () => {},
     }),
   );
@@ -112,9 +109,7 @@ test('compact world card suppresses non-era preview badges derived from world id
           },
         },
       },
-      selected: false,
       view: 'grid',
-      onSelect: () => {},
       onOpen: () => {},
     }),
   );
@@ -122,32 +117,4 @@ test('compact world card suppresses non-era preview badges derived from world id
   assert.match(markup, /Song Continuum/);
   assert.doesNotMatch(markup, /Song Continuum Foundation/);
   assert.doesNotMatch(markup, />Foundation<\/span>/);
-});
-
-test('world atlas category toolbar does not render the extra more action', () => {
-  const markup = renderToStaticMarkup(
-    React.createElement(AtlasCategoryTabs, {
-      active: 'all',
-      onChange: () => {},
-      followedCount: 3,
-      view: 'grid',
-      onViewChange: () => {},
-      sort: 'active',
-      onSortChange: () => {},
-    }),
-  );
-
-  assert.match(markup, /全部世界/);
-  assert.match(markup, /已关注/);
-  assert.match(markup, /趋势/);
-  assert.match(markup, /最新/);
-  assert.match(markup, /视图模式/);
-  assert.match(markup, /排序世界/);
-  assert.doesNotMatch(markup, /奇幻/);
-  assert.doesNotMatch(markup, /科幻/);
-  assert.doesNotMatch(markup, /自然/);
-  assert.doesNotMatch(markup, /蒸汽朋克/);
-  assert.doesNotMatch(markup, /悬疑/);
-  assert.doesNotMatch(markup, /动画/);
-  assert.doesNotMatch(markup, /更多/);
 });

@@ -6,7 +6,6 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { createRealmExploreData } from './data/realm-explore-data';
 import { createRealmWorldData } from '../world/data/realm-world-data.js';
 import { useAppStore } from '../../app-shell/providers/app-store';
-import type { WorldDetailNavigationOptions } from '../../app-shell/providers/store-types';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 
 import { emitFeedbackToast } from '../../ui/feedback/emit-feedback-toast';
@@ -20,10 +19,8 @@ import type { PostCardAuthorProfileTarget } from '../home/post-card';
 import { parsePersonaSources } from './explore-persona-source-projection';
 import {
   fetchWorldListItems,
-  worldPrimaryDisplayDetailQueryKey,
   worldListQueryKey,
 } from '../world/world-detail-queries.js';
-import type { WorldCharacter } from '../world/world-detail-types.js';
 import {
   characterSourceMaterializationFailureMessage,
   characterSourceRefKey,
@@ -65,7 +62,6 @@ export function ExplorePanel(props: ExplorePanelProps) {
   const bootstrapReady = useAppStore((state) => state.bootstrapReady);
   const authStatus = useAppStore((state) => state.auth.status);
   const ownerUserId = useAppStore((state) => String(state.auth.user?.id || '').trim());
-  const navigateToWorld = useAppStore((state) => state.navigateToWorld);
   const navigateToSourceDetail = useAppStore((state) => state.navigateToSourceDetail);
   const setActiveTab = useAppStore((state) => state.setActiveTab);
   const setChatMode = useAppStore((state) => state.setChatMode);
@@ -101,6 +97,7 @@ export function ExplorePanel(props: ExplorePanelProps) {
       return realmExploreData.loadExplorePersonas({ tag, query, limit: PAGE_SIZE });
     },
     enabled: bootstrapReady,
+    placeholderData: (previousData) => previousData,
   });
 
   const personaSourceBase = useMemo(
@@ -267,24 +264,6 @@ export function ExplorePanel(props: ExplorePanelProps) {
     [],
   );
 
-  const onWorldOpen = useCallback(
-    (worldId: string, options?: WorldDetailNavigationOptions) => {
-      if (options) {
-        navigateToWorld(worldId, options);
-        return;
-      }
-      navigateToWorld(worldId);
-    },
-    [navigateToWorld],
-  );
-
-  const onWorldCharacterOpen = useCallback(
-    (sourceRef: CharacterSourceRefV3) => {
-      navigateToSourceDetail(sourceRef);
-    },
-    [navigateToSourceDetail],
-  );
-
   const onPostAuthorOpen = useCallback(
     (target: PostCardAuthorProfileTarget) => {
       if (target.kind === 'character') {
@@ -295,37 +274,6 @@ export function ExplorePanel(props: ExplorePanelProps) {
     },
     [navigateToSourceDetail],
   );
-
-  const onWorldCharacterMaterialize = useCallback(async (character: WorldCharacter) => {
-    try {
-      const target = await materializeCharacterSourceLaunchTarget({
-        ...character,
-        displayName: character.name,
-        sourceWorldId: character.sourceRef.worldId,
-        sourceKind: character.sourceRef.kind,
-        sourceId: character.sourceRef.id,
-        sourceHash: character.sourceRef.sourceHash,
-      }, ownerUserId, i18n.t, bindings.sdk);
-      await ensureRuntimeAgentExists(target, bindings.sdk, ownerUserId);
-      await queryClient.invalidateQueries({
-        queryKey: worldPrimaryDisplayDetailQueryKey(character.sourceRef.worldId),
-        exact: true,
-      });
-      await queryClient.invalidateQueries({ queryKey: localAgentListQueryKey(ownerUserId), exact: true });
-      setFeedback({
-        kind: 'success',
-        message: i18n.t('World.atlas.preview.people.materializedFeedback', {
-          name: character.name,
-          defaultValue: '{{name}} is now available as a local agent.',
-        }),
-      });
-    } catch (error) {
-      setFeedback({
-        kind: 'error',
-        message: characterSourceMaterializationFailureMessage(error, i18n.t),
-      });
-    }
-  }, [bindings, ownerUserId, queryClient]);
 
   const onPersonaSourceOpen = useCallback(
     (sourceRef: CharacterSourceRefV3) => {
@@ -350,15 +298,16 @@ export function ExplorePanel(props: ExplorePanelProps) {
         fetchPostPage={fetchPostPage}
         postFeedKey={postFeedKey}
         onPostDelete={() => setRefreshKey((k) => k + 1)}
-        loading={personaSourcesQuery.isPending}
+        personaLoading={personaSourcesQuery.isPending}
+        personaError={personaSourcesQuery.isError}
+        onRetryPersonas={() => {
+          void personaSourcesQuery.refetch();
+        }}
         onToggleCategory={onToggleCategory}
         onPersonaSourceManage={onPersonaSourceManage}
         onPersonaSourceSendGift={onPersonaSourceSendGift}
         onPersonaSourceOpen={onPersonaSourceOpen}
         onPostAuthorOpen={onPostAuthorOpen}
-        onWorldOpen={onWorldOpen}
-        onWorldCharacterOpen={onWorldCharacterOpen}
-        onWorldCharacterMaterialize={onWorldCharacterMaterialize}
       />
       <SendGiftModal
         open={giftModalOpen}

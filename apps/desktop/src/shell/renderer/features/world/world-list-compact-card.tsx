@@ -8,18 +8,14 @@ import type { WorldListItem } from './world-list-model';
 
 export function CompactWorldCard({
   world,
-  selected,
   view,
-  onSelect,
   onOpen,
   followed = false,
   followAvailable = false,
   onToggleFollow,
 }: {
   world: WorldListItem;
-  selected: boolean;
   view: ViewMode;
-  onSelect: () => void;
   onOpen: () => void;
   followed?: boolean;
   followAvailable?: boolean;
@@ -35,13 +31,10 @@ export function CompactWorldCard({
       material="solid"
       elevation="base"
       padding="sm"
-      className={[
-        'relative min-h-[112px] min-w-0 max-w-full rounded-[20px] transition duration-200 hover:-translate-y-0.5',
-        selected ? 'world-card--selected' : '',
-      ].join(' ')}
+      className="relative min-h-[112px] min-w-0 max-w-full rounded-[20px] transition duration-200 hover:-translate-y-0.5"
       style={{
-        ...(selected ? WORLD_EXPLORER_THEME.selectedCard : WORLD_EXPLORER_THEME.card),
-        boxShadow: selected ? WORLD_EXPLORER_SHADOWS.selected : WORLD_EXPLORER_SHADOWS.card,
+        ...WORLD_EXPLORER_THEME.card,
+        boxShadow: WORLD_EXPLORER_SHADOWS.card,
       }}
     >
       {onToggleFollow ? (
@@ -66,11 +59,9 @@ export function CompactWorldCard({
       ) : null}
       <button
         type="button"
-        aria-pressed={selected}
         className="grid w-full min-w-0 cursor-pointer items-center gap-4 border-0 bg-transparent p-0 pr-8 text-left"
         style={{ gridTemplateColumns: listMode ? '86px minmax(0,1fr)' : '86px minmax(0,1fr)' }}
-        onClick={onSelect}
-        onDoubleClick={onOpen}
+        onClick={onOpen}
       >
         <WorldCover world={world} variant="thumb" className={listMode ? 'h-[86px]' : ''} />
         <span className="grid min-w-0 gap-1.5">

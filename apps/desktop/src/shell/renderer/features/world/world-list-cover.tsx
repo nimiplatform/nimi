@@ -3,7 +3,7 @@ import { WORLD_ABSTRACT_COVER_BACKGROUNDS, WORLD_EXPLORER_THEME } from './world-
 import type { WorldListItem } from './world-list-model';
 
 type WorldCoverTone = keyof typeof WORLD_ABSTRACT_COVER_BACKGROUNDS;
-type WorldCoverVariant = 'thumb' | 'featured' | 'panel';
+type WorldCoverVariant = 'thumb' | 'featured' | 'panel' | 'row' | 'banner';
 
 function worldCoverTone(world: WorldListItem): WorldCoverTone {
   const haystack = [
@@ -48,6 +48,8 @@ const variantClassName: Record<WorldCoverVariant, string> = {
   thumb: 'relative block h-[86px] w-[86px] shrink-0 overflow-hidden rounded-[16px]',
   featured: 'absolute inset-0 block overflow-hidden rounded-[18px]',
   panel: 'relative block h-[232px] shrink-0 overflow-hidden rounded-[24px]',
+  row: 'relative block h-10 w-10 shrink-0 overflow-hidden rounded-[12px]',
+  banner: 'relative block h-[220px] w-full shrink-0 overflow-hidden sm:h-[280px]',
 };
 
 export function WorldCover({

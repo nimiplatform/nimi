@@ -47,10 +47,6 @@ export function applyDesktopOpenIntentToAppStore(
       store.setActiveTab('runtime');
       return;
     }
-    case 'open-agents': {
-      store.setActiveTab('agents');
-      return;
-    }
     case 'open-apps': {
       store.setAppsDetailAppId(intent.appId ?? null, intent.section ?? null);
       store.setActiveTab('apps');

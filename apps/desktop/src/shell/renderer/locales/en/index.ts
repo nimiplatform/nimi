@@ -44,7 +44,6 @@ import section55 from './56-Apps.json';
 import section56 from './57-FirstRun.json';
 import section57 from './58-Support.json';
 import section58 from './59-Appearance.json';
-import section61 from './62-Agents.json';
 import section62 from './63-LocalDevelopment.json';
 import { agentCenterLocaleResources } from '@nimiplatform/kit/features/agent-center/headless';
 
@@ -97,7 +96,6 @@ const messages = {
   "FirstRun": section56,
   "Support": section57,
   "Appearance": section58,
-  "Agents": section61,
   "LocalDevelopment": section62,
   "AgentCenter": section64,
 };

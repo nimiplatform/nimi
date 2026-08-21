@@ -333,7 +333,6 @@ function createCanonicalBindings(input: {
         async openAccountManagement() { throw new Error('unavailable'); },
         async writeClipboardText() {},
         exportRuntimeAuditJson() {},
-        confirmRuntimeProfileInstall() { return false; },
         async pickLocalRuntimeAssetFile() { return null; },
         async pickLocalRuntimeAssetDirectory() { return null; },
         async revealLocalRuntimeAssetsRootFolder() {},

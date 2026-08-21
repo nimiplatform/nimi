@@ -45,7 +45,6 @@ const DESKTOP_OPEN_TARGETS: readonly DesktopOpenTarget[] = [
   { rowId: 'target.explore-search', intent: { kind: 'open-explore', section: 'personas', query: 'mentor' }, expected: { activeTab: 'explore', section: 'personas', query: 'mentor' } },
   { rowId: 'target.runtime-connector', intent: { kind: 'open-runtime-config', page: 'cloud', action: 'add-connector' }, expected: { activeTab: 'runtime', page: 'cloud' } },
   { rowId: 'target.runtime-model', intent: { kind: 'open-runtime-config', page: 'models', action: 'install-model' }, expected: { activeTab: 'runtime', page: 'localModels' } },
-  { rowId: 'target.agents-inventory', intent: { kind: 'open-agents', view: 'inventory' }, expected: { activeTab: 'agents' } },
   { rowId: 'target.apps-surface', intent: { kind: 'open-apps' }, expected: { activeTab: 'apps' } },
   { rowId: 'target.app-selection', intent: { kind: 'open-apps', appId: 'nimi.example' }, expected: { activeTab: 'apps', appId: 'nimi.example' } },
   { rowId: 'target.app-ai-models', intent: { kind: 'open-apps', appId: 'nimi.example', section: 'ai-models' }, expected: { activeTab: 'apps', appId: 'nimi.example', appsSection: 'ai-models' } },

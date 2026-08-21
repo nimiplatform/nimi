@@ -9,8 +9,8 @@ import {
   readCharacterSourceRefV3,
 } from '../realm-source/realm-source-identity.js';
 
-// The Characters tab (D-SHELL-001 `agents`) projects runtime ListAgents
-// authority: source-materialized LocalAgents owned by the signed-in account.
+// Projects runtime ListAgents authority: source-materialized LocalAgents
+// owned by the signed-in account. Shared by chat, explore, and source-detail.
 // It never persists a renderer-local agent registry.
 export type LocalAgentListItem = {
   localAgentRef: string;

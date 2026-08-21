@@ -1,29 +1,8 @@
 import { formatNum } from './world-list-atoms';
 import { isMainWorld, type WorldListItem } from './world-list-model';
 
-export type CategoryId = 'all' | 'followed' | 'trending' | 'new' | 'fantasy' | 'sci-fi' | 'nature' | 'steampunk' | 'mystery' | 'anime';
 export type SortId = 'active' | 'recent' | 'alpha' | 'sources';
 export type ViewMode = 'grid' | 'list';
-
-export const CATEGORY_TABS: readonly { id: CategoryId; label: string }[] = [
-  { id: 'all', label: 'All Worlds' },
-  { id: 'followed', label: 'Followed' },
-  { id: 'trending', label: 'Trending' },
-  { id: 'new', label: 'New' },
-  { id: 'fantasy', label: 'Fantasy' },
-  { id: 'sci-fi', label: 'Sci-Fi' },
-  { id: 'nature', label: 'Nature' },
-  { id: 'steampunk', label: 'Steampunk' },
-  { id: 'mystery', label: 'Mystery' },
-  { id: 'anime', label: 'Anime' },
-] as const;
-
-export const WORLD_ATLAS_VISIBLE_CATEGORY_TABS: readonly { id: CategoryId; label: string }[] = CATEGORY_TABS.filter((category) => (
-  category.id === 'all'
-  || category.id === 'followed'
-  || category.id === 'trending'
-  || category.id === 'new'
-));
 
 const WORLD_MEDIA_PLACEHOLDER = 'var(--nimi-surface-hero)';
 
@@ -56,6 +35,14 @@ export function sortWorlds(list: WorldListItem[], sort: SortId): WorldListItem[]
   return arr;
 }
 
+// Followed worlds pin to the top of the rail (WeChat-style sticky); the
+// active sort still applies within the pinned and unpinned groups.
+export function pinFollowedFirst(list: WorldListItem[], isFollowed: (worldId: string) => boolean): WorldListItem[] {
+  const pinned = list.filter((world) => isFollowed(world.id));
+  const rest = list.filter((world) => !isFollowed(world.id));
+  return [...pinned, ...rest];
+}
+
 export function sourceCount(world: WorldListItem): number {
   return world.characterCount + world.personaCount;
 }
@@ -76,18 +63,6 @@ export function matchesQuery(world: WorldListItem, q: string): boolean {
     .join(' ')
     .toLowerCase();
   return haystack.includes(q.toLowerCase());
-}
-
-export function categoryMatches(world: WorldListItem, category: CategoryId): boolean {
-  if (category === 'all' || category === 'trending' || category === 'new') {
-    return true;
-  }
-  const needle = category.replace('-', ' ');
-  const tags = [world.genre, world.era, ...world.themes]
-    .filter((item): item is string => Boolean(item))
-    .join(' ')
-    .toLowerCase();
-  return tags.includes(needle);
 }
 
 function normalizeWorldDisplayTag(value: string | null | undefined): string | null {
