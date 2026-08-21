@@ -31,6 +31,7 @@ const (
 	RuntimeAppService_ReadLocalAppAsset_FullMethodName         = "/nimi.runtime.v1.RuntimeAppService/ReadLocalAppAsset"
 	RuntimeAppService_RemoveLocalAppAsset_FullMethodName       = "/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppAsset"
 	RuntimeAppService_MoveLocalAppAsset_FullMethodName         = "/nimi.runtime.v1.RuntimeAppService/MoveLocalAppAsset"
+	RuntimeAppService_RevealLocalAppAsset_FullMethodName       = "/nimi.runtime.v1.RuntimeAppService/RevealLocalAppAsset"
 	RuntimeAppService_AdoptLocalAppArtifact_FullMethodName     = "/nimi.runtime.v1.RuntimeAppService/AdoptLocalAppArtifact"
 	RuntimeAppService_PrepareLocalAppLaunch_FullMethodName     = "/nimi.runtime.v1.RuntimeAppService/PrepareLocalAppLaunch"
 	RuntimeAppService_BindLocalAppProcess_FullMethodName       = "/nimi.runtime.v1.RuntimeAppService/BindLocalAppProcess"
@@ -53,6 +54,7 @@ type RuntimeAppServiceClient interface {
 	ReadLocalAppAsset(ctx context.Context, in *ReadLocalAppAssetRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ReadLocalAppAssetResponse], error)
 	RemoveLocalAppAsset(ctx context.Context, in *RemoveLocalAppAssetRequest, opts ...grpc.CallOption) (*RemoveLocalAppAssetResponse, error)
 	MoveLocalAppAsset(ctx context.Context, in *MoveLocalAppAssetRequest, opts ...grpc.CallOption) (*MoveLocalAppAssetResponse, error)
+	RevealLocalAppAsset(ctx context.Context, in *RevealLocalAppAssetRequest, opts ...grpc.CallOption) (*RevealLocalAppAssetResponse, error)
 	AdoptLocalAppArtifact(ctx context.Context, in *AdoptLocalAppArtifactRequest, opts ...grpc.CallOption) (*AdoptLocalAppArtifactResponse, error)
 	PrepareLocalAppLaunch(ctx context.Context, in *PrepareLocalAppLaunchRequest, opts ...grpc.CallOption) (*PrepareLocalAppLaunchResponse, error)
 	BindLocalAppProcess(ctx context.Context, in *BindLocalAppProcessRequest, opts ...grpc.CallOption) (*BindLocalAppProcessResponse, error)
@@ -208,6 +210,16 @@ func (c *runtimeAppServiceClient) MoveLocalAppAsset(ctx context.Context, in *Mov
 	return out, nil
 }
 
+func (c *runtimeAppServiceClient) RevealLocalAppAsset(ctx context.Context, in *RevealLocalAppAssetRequest, opts ...grpc.CallOption) (*RevealLocalAppAssetResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RevealLocalAppAssetResponse)
+	err := c.cc.Invoke(ctx, RuntimeAppService_RevealLocalAppAsset_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *runtimeAppServiceClient) AdoptLocalAppArtifact(ctx context.Context, in *AdoptLocalAppArtifactRequest, opts ...grpc.CallOption) (*AdoptLocalAppArtifactResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(AdoptLocalAppArtifactResponse)
@@ -264,6 +276,7 @@ type RuntimeAppServiceServer interface {
 	ReadLocalAppAsset(*ReadLocalAppAssetRequest, grpc.ServerStreamingServer[ReadLocalAppAssetResponse]) error
 	RemoveLocalAppAsset(context.Context, *RemoveLocalAppAssetRequest) (*RemoveLocalAppAssetResponse, error)
 	MoveLocalAppAsset(context.Context, *MoveLocalAppAssetRequest) (*MoveLocalAppAssetResponse, error)
+	RevealLocalAppAsset(context.Context, *RevealLocalAppAssetRequest) (*RevealLocalAppAssetResponse, error)
 	AdoptLocalAppArtifact(context.Context, *AdoptLocalAppArtifactRequest) (*AdoptLocalAppArtifactResponse, error)
 	PrepareLocalAppLaunch(context.Context, *PrepareLocalAppLaunchRequest) (*PrepareLocalAppLaunchResponse, error)
 	BindLocalAppProcess(context.Context, *BindLocalAppProcessRequest) (*BindLocalAppProcessResponse, error)
@@ -312,6 +325,9 @@ func (UnimplementedRuntimeAppServiceServer) RemoveLocalAppAsset(context.Context,
 }
 func (UnimplementedRuntimeAppServiceServer) MoveLocalAppAsset(context.Context, *MoveLocalAppAssetRequest) (*MoveLocalAppAssetResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method MoveLocalAppAsset not implemented")
+}
+func (UnimplementedRuntimeAppServiceServer) RevealLocalAppAsset(context.Context, *RevealLocalAppAssetRequest) (*RevealLocalAppAssetResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RevealLocalAppAsset not implemented")
 }
 func (UnimplementedRuntimeAppServiceServer) AdoptLocalAppArtifact(context.Context, *AdoptLocalAppArtifactRequest) (*AdoptLocalAppArtifactResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method AdoptLocalAppArtifact not implemented")
@@ -536,6 +552,24 @@ func _RuntimeAppService_MoveLocalAppAsset_Handler(srv interface{}, ctx context.C
 	return interceptor(ctx, in, info, handler)
 }
 
+func _RuntimeAppService_RevealLocalAppAsset_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RevealLocalAppAssetRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAppServiceServer).RevealLocalAppAsset(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAppService_RevealLocalAppAsset_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAppServiceServer).RevealLocalAppAsset(ctx, req.(*RevealLocalAppAssetRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _RuntimeAppService_AdoptLocalAppArtifact_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(AdoptLocalAppArtifactRequest)
 	if err := dec(in); err != nil {
@@ -650,6 +684,10 @@ var RuntimeAppService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "MoveLocalAppAsset",
 			Handler:    _RuntimeAppService_MoveLocalAppAsset_Handler,
+		},
+		{
+			MethodName: "RevealLocalAppAsset",
+			Handler:    _RuntimeAppService_RevealLocalAppAsset_Handler,
 		},
 		{
 			MethodName: "AdoptLocalAppArtifact",

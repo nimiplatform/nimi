@@ -904,6 +904,14 @@ RUNTIME_METHODS = [
     "response_type": "RemoveLocalAppStorageJsonResponse"
   },
   {
+    "method_id": "/nimi.runtime.v1.RuntimeAppService/RevealLocalAppAsset",
+    "service": "RuntimeAppService",
+    "method": "RevealLocalAppAsset",
+    "kind": "unary",
+    "request_type": "RevealLocalAppAssetRequest",
+    "response_type": "RevealLocalAppAssetResponse"
+  },
+  {
     "method_id": "/nimi.runtime.v1.RuntimeAppService/SendAppMessage",
     "service": "RuntimeAppService",
     "method": "SendAppMessage",

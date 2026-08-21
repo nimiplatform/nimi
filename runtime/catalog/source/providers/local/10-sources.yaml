@@ -11,6 +11,10 @@ sources:
     url: https://huggingface.co/Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice
     retrieved_at: 2026-04-17
     note: Default local plain TTS checkpoint for first-wave local admission.
+  - source_id: qwen3_tts_audio_cpp_gguf_modelcard
+    url: https://huggingface.co/audio-cpp/audio.cpp-gguf/tree/7e9a59c8aee65253851b91b7b9b8e206544ef1a6/Qwen3-TTS-12Hz-1.7B-CustomVoice-GGUF
+    retrieved_at: 2026-08-21
+    note: Exact standalone Q8_0 GGUF used only by the explicit audio.cpp Qwen3-TTS implementation.
   - source_id: qwen3_tts_base_modelcard
     url: https://huggingface.co/Qwen/Qwen3-TTS-12Hz-0.6B-Base
     retrieved_at: 2026-04-17
@@ -67,6 +71,10 @@ sources:
     url: https://huggingface.co/leejet/MiniMax-H3-GGUF/tree/d31b8066b4f7c036e7d10d5685567f8f54c8be54
     retrieved_at: 2026-08-16
     note: Engine-compatible MiniMax-H3 FL2VA, Ref2VA, and combined Qwen3-VL GGUF artifacts.
+  - source_id: minimax_music3_audio_cpp_gguf_modelcard
+    url: https://huggingface.co/audio-cpp/MiniMax-Music3-GGUF/tree/2a19a42dd84d9ab9411316977ff3c9fd143ab214
+    retrieved_at: 2026-08-21
+    note: Exact Q4/Q8/Q4 MiniMax-Music3 GGUF bundle admitted for audio.cpp release-0.6.1.
   - source_id: minimax_h3_comfy_modelcard
     url: https://huggingface.co/Comfy-Org/MiniMax-H3/tree/d07f69bc8fa09c9717e1e47180034f9322e0e54d
     retrieved_at: 2026-08-16

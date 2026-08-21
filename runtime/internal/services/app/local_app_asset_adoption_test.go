@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"io"
+	"os"
 	"path/filepath"
 	"testing"
 	"time"
@@ -110,6 +111,40 @@ func TestLocalAppArtifactAdoptionUnavailableClassHasNoOracleOrTargetMutation(t *
 		&runtimev1.AdoptLocalAppArtifactRequest{ArtifactId: "missing", RelativePath: "denied.bin"},
 	)
 	assertAdoptionReason(t, err, codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
+}
+
+func TestLocalAppArtifactAdoptionDerivesRealExtensionFromVerifiedMIME(t *testing.T) {
+	artifacts := runtimeartifact.NewMemoryStore()
+	payload := []byte("RIFF....WAVEpayload")
+	if err := artifacts.Put("music-wav", runtimeartifact.ArtifactRecord{
+		Bytes: payload, MimeType: "audio/wav",
+		Owner: &runtimeartifact.ArtifactOwner{SubjectUserID: "account-a", RegisteredAppSubject: "subject-a", AppID: "producer"},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	service := newTestService(WithAppStorageDataRoot(t.TempDir()), WithLocalDevelopmentAuthority(nil, nil, nil, artifacts))
+	response, err := service.AdoptLocalAppArtifact(
+		localAppAdoptionTestContext(context.Background(), "account-a", "subject-a", "runtime.consume"),
+		&runtimev1.AdoptLocalAppArtifactRequest{ArtifactId: "music-wav", RelativePath: "media/music/run.asset"},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if response.GetAsset().GetRelativePath() != "media/music/run.wav" {
+		t.Fatalf("adopted path=%q", response.GetAsset().GetRelativePath())
+	}
+	store, err := service.localAppAssets()
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, target, err := store.ResolveRevealTarget(context.Background(), appstorage.ManagedOwner{AccountID: "account-a", RegisteredAppSubject: "subject-a"}, "media/music/run.wav")
+	if err != nil {
+		t.Fatal(err)
+	}
+	materialized, err := os.ReadFile(target)
+	if err != nil || filepath.Ext(target) != ".wav" || !bytes.Equal(materialized, payload) {
+		t.Fatalf("target=%q payload=%q err=%v", target, materialized, err)
+	}
 }
 
 func TestLocalAppArtifactAdoptionCancelQuotaAndIntegrityLeaveNoTarget(t *testing.T) {

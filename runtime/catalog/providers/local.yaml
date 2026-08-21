@@ -150,6 +150,96 @@ models:
     voice_set_id: local:local_qwen3_tts_customvoice_dynamic_voice_set
     voice_discovery_mode: dynamic_user_scoped
     voice_ref_kinds: *a1
+  - model_id: qwen3-tts-audio-cpp-local
+    provider: local
+    model_type: tts
+    updated_at: 2026-08-21
+    capabilities:
+      - audio.synthesize
+    pricing:
+      unit: request
+      input: "0"
+      output: "0"
+      currency: none
+      as_of: 2026-03-18
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://huggingface.co/audio-cpp/audio.cpp-gguf/tree/7e9a59c8aee65253851b91b7b9b8e206544ef1a6/Qwen3-TTS-12Hz-1.7B-CustomVoice-GGUF
+      retrieved_at: 2026-08-21
+      note: Exact standalone Q8_0 GGUF used only by the explicit audio.cpp Qwen3-TTS implementation.
+    family: qwen3-tts-customvoice
+    voice_set_id: local:qwen3-tts-audio-cpp-v1
+    voice_discovery_mode: static_catalog
+    voice_ref_kinds: &a2
+      - preset_voice_id
+    install:
+      repo: audio-cpp/audio.cpp-gguf
+      revision: 7e9a59c8aee65253851b91b7b9b8e206544ef1a6
+      install_kind: verified-hf-multi-file
+      entry: Qwen3-TTS-12Hz-1.7B-CustomVoice-GGUF/qwen3-tts-12hz-1.7b-customvoice-q8_0.gguf
+      artifact_roles:
+        - tts_model
+      license: Apache-2.0
+      provenance: Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice converted by audio-cpp
+      preferred_engine: audio-cpp
+    variants:
+      - variant_id: local.tts.qwen3-tts-customvoice-1.7b.audio-cpp.q8-0.cuda
+        quant: Q8_0
+        entry: Qwen3-TTS-12Hz-1.7B-CustomVoice-GGUF/qwen3-tts-12hz-1.7b-customvoice-q8_0.gguf
+        files:
+          - Qwen3-TTS-12Hz-1.7B-CustomVoice-GGUF/qwen3-tts-12hz-1.7b-customvoice-q8_0.gguf
+        hashes:
+          Qwen3-TTS-12Hz-1.7B-CustomVoice-GGUF/qwen3-tts-12hz-1.7b-customvoice-q8_0.gguf: sha256:3cfaac8e9f13554f6daea3c5e0c53fede71ef5500cbaae7445e5fc3a5bb12e72
+        total_size_bytes: 2817044064
+        host_requirement:
+          accelerator: cuda
+          min_ram_bytes: 8589934592
+          min_vram_bytes: 8589934592
+    fitness:
+      param_count: 1700000000
+      context_length: 8192
+  - model_id: local/qwen3-tts-audio-cpp
+    provider: local
+    model_type: tts
+    updated_at: 2026-08-21
+    capabilities:
+      - audio.synthesize
+    pricing:
+      unit: request
+      input: "0"
+      output: "0"
+      currency: none
+      as_of: 2026-03-18
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://huggingface.co/audio-cpp/audio.cpp-gguf/tree/7e9a59c8aee65253851b91b7b9b8e206544ef1a6/Qwen3-TTS-12Hz-1.7B-CustomVoice-GGUF
+      retrieved_at: 2026-08-21
+      note: Exact standalone Q8_0 GGUF used only by the explicit audio.cpp Qwen3-TTS implementation.
+    family: qwen3-tts-customvoice
+    voice_set_id: local:qwen3-tts-audio-cpp-v1
+    voice_discovery_mode: static_catalog
+    voice_ref_kinds: *a2
+  - model_id: speech/qwen3tts-audio-cpp
+    provider: local
+    model_type: tts
+    updated_at: 2026-08-21
+    capabilities:
+      - audio.synthesize
+    pricing:
+      unit: request
+      input: "0"
+      output: "0"
+      currency: none
+      as_of: 2026-03-18
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://huggingface.co/audio-cpp/audio.cpp-gguf/tree/7e9a59c8aee65253851b91b7b9b8e206544ef1a6/Qwen3-TTS-12Hz-1.7B-CustomVoice-GGUF
+      retrieved_at: 2026-08-21
+      note: Exact standalone Q8_0 GGUF used only by the explicit audio.cpp Qwen3-TTS implementation.
+    family: qwen3-tts-customvoice
+    voice_set_id: local:qwen3-tts-audio-cpp-v1
+    voice_discovery_mode: static_catalog
+    voice_ref_kinds: *a2
   - model_id: qwen3-tts-base-local
     provider: local
     model_type: tts
@@ -172,7 +262,7 @@ models:
       - input.audio
     voice_set_id: local:local_qwen3_tts_base_dynamic_voice_set
     voice_discovery_mode: dynamic_user_scoped
-    voice_ref_kinds: &a2
+    voice_ref_kinds: &a3
       - provider_voice_ref
     install:
       repo: Qwen/Qwen3-TTS-12Hz-0.6B-Base
@@ -242,7 +332,7 @@ models:
       - input.audio
     voice_set_id: local:local_qwen3_tts_base_dynamic_voice_set
     voice_discovery_mode: dynamic_user_scoped
-    voice_ref_kinds: *a2
+    voice_ref_kinds: *a3
   - model_id: speech/qwen3tts-base
     provider: local
     model_type: tts
@@ -265,7 +355,7 @@ models:
       - input.audio
     voice_set_id: local:local_qwen3_tts_base_dynamic_voice_set
     voice_discovery_mode: dynamic_user_scoped
-    voice_ref_kinds: *a2
+    voice_ref_kinds: *a3
   - model_id: Qwen/Qwen3-TTS-12Hz-0.6B-Base
     provider: local
     model_type: tts
@@ -288,7 +378,7 @@ models:
       - input.audio
     voice_set_id: local:local_qwen3_tts_base_dynamic_voice_set
     voice_discovery_mode: dynamic_user_scoped
-    voice_ref_kinds: *a2
+    voice_ref_kinds: *a3
   - model_id: qwen3-tts-voicedesign-local
     provider: local
     model_type: tts
@@ -311,7 +401,7 @@ models:
       - input.text
     voice_set_id: local:local_qwen3_tts_voicedesign_dynamic_voice_set
     voice_discovery_mode: dynamic_user_scoped
-    voice_ref_kinds: &a3
+    voice_ref_kinds: &a4
       - provider_voice_ref
     install:
       repo: Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign
@@ -381,7 +471,7 @@ models:
       - input.text
     voice_set_id: local:local_qwen3_tts_voicedesign_dynamic_voice_set
     voice_discovery_mode: dynamic_user_scoped
-    voice_ref_kinds: *a3
+    voice_ref_kinds: *a4
   - model_id: speech/qwen3tts-design
     provider: local
     model_type: tts
@@ -404,7 +494,7 @@ models:
       - input.text
     voice_set_id: local:local_qwen3_tts_voicedesign_dynamic_voice_set
     voice_discovery_mode: dynamic_user_scoped
-    voice_ref_kinds: *a3
+    voice_ref_kinds: *a4
   - model_id: Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign
     provider: local
     model_type: tts
@@ -427,7 +517,7 @@ models:
       - input.text
     voice_set_id: local:local_qwen3_tts_voicedesign_dynamic_voice_set
     voice_discovery_mode: dynamic_user_scoped
-    voice_ref_kinds: *a3
+    voice_ref_kinds: *a4
   - model_id: cosyvoice2-local
     provider: local
     model_type: tts
@@ -917,7 +1007,7 @@ models:
       url: https://huggingface.co/nomic-ai/nomic-embed-text-v1.5
       retrieved_at: 2026-06-08
       note: Nomic Embed Text v1.5 model card declaring 8192 context and 768 native embedding dimension.
-    embedding: &a4
+    embedding: &a5
       dimension: 768
     install:
       repo: nomic-ai/nomic-embed-text-v1.5-GGUF
@@ -959,7 +1049,7 @@ models:
       url: https://huggingface.co/nomic-ai/nomic-embed-text-v1.5
       retrieved_at: 2026-06-08
       note: Nomic Embed Text v1.5 model card declaring 8192 context and 768 native embedding dimension.
-    embedding: *a4
+    embedding: *a5
   - model_id: llama/nomic-embed-text
     provider: local
     model_type: embedding
@@ -977,7 +1067,7 @@ models:
       url: https://huggingface.co/nomic-ai/nomic-embed-text-v1.5
       retrieved_at: 2026-06-08
       note: Nomic Embed Text v1.5 model card declaring 8192 context and 768 native embedding dimension.
-    embedding: *a4
+    embedding: *a5
   - model_id: whisper-large-v3-local
     provider: local
     model_type: stt
@@ -1046,7 +1136,7 @@ models:
       url: https://huggingface.co/Qwen/Qwen3-ASR-0.6B
       retrieved_at: 2026-04-17
       note: Default local STT checkpoint for first-wave local admission.
-    transcription: &a5
+    transcription: &a6
       tiers:
         - core_transcript
       response_formats:
@@ -1107,7 +1197,7 @@ models:
       url: https://huggingface.co/Qwen/Qwen3-ASR-0.6B
       retrieved_at: 2026-04-17
       note: Default local STT checkpoint for first-wave local admission.
-    transcription: *a5
+    transcription: *a6
   - model_id: speech/qwen3asr
     provider: local
     model_type: stt
@@ -1125,7 +1215,7 @@ models:
       url: https://huggingface.co/Qwen/Qwen3-ASR-0.6B
       retrieved_at: 2026-04-17
       note: Default local STT checkpoint for first-wave local admission.
-    transcription: *a5
+    transcription: *a6
   - model_id: Qwen/Qwen3-ASR-0.6B
     provider: local
     model_type: stt
@@ -1143,7 +1233,7 @@ models:
       url: https://huggingface.co/Qwen/Qwen3-ASR-0.6B
       retrieved_at: 2026-04-17
       note: Default local STT checkpoint for first-wave local admission.
-    transcription: *a5
+    transcription: *a6
   - model_id: qwen3-asr-transformers-0.6b-local
     provider: local
     model_type: stt
@@ -1161,7 +1251,7 @@ models:
       url: https://huggingface.co/Qwen/Qwen3-ASR-0.6B-hf
       retrieved_at: 2026-08-09
       note: Transformers-native Qwen3-ASR 0.6B checkpoint and recommended lower-resource option.
-    transcription: &a6
+    transcription: &a7
       tiers:
         - core_transcript
       response_formats:
@@ -1220,7 +1310,7 @@ models:
       url: https://huggingface.co/Qwen/Qwen3-ASR-0.6B-hf
       retrieved_at: 2026-08-09
       note: Transformers-native Qwen3-ASR 0.6B checkpoint and recommended lower-resource option.
-    transcription: *a6
+    transcription: *a7
   - model_id: speech/qwen3asr-transformers-0.6b
     provider: local
     model_type: stt
@@ -1238,7 +1328,7 @@ models:
       url: https://huggingface.co/Qwen/Qwen3-ASR-0.6B-hf
       retrieved_at: 2026-08-09
       note: Transformers-native Qwen3-ASR 0.6B checkpoint and recommended lower-resource option.
-    transcription: *a6
+    transcription: *a7
   - model_id: Qwen/Qwen3-ASR-0.6B-hf
     provider: local
     model_type: stt
@@ -1256,7 +1346,7 @@ models:
       url: https://huggingface.co/Qwen/Qwen3-ASR-0.6B-hf
       retrieved_at: 2026-08-09
       note: Transformers-native Qwen3-ASR 0.6B checkpoint and recommended lower-resource option.
-    transcription: *a6
+    transcription: *a7
   - model_id: qwen3-asr-transformers-1.7b-local
     provider: local
     model_type: stt
@@ -1274,7 +1364,7 @@ models:
       url: https://huggingface.co/Qwen/Qwen3-ASR-1.7B-hf
       retrieved_at: 2026-08-09
       note: Transformers-native Qwen3-ASR 1.7B checkpoint and explicit higher-resource option.
-    transcription: &a7
+    transcription: &a8
       tiers:
         - core_transcript
       response_formats:
@@ -1333,7 +1423,7 @@ models:
       url: https://huggingface.co/Qwen/Qwen3-ASR-1.7B-hf
       retrieved_at: 2026-08-09
       note: Transformers-native Qwen3-ASR 1.7B checkpoint and explicit higher-resource option.
-    transcription: *a7
+    transcription: *a8
   - model_id: speech/qwen3asr-transformers-1.7b
     provider: local
     model_type: stt
@@ -1351,7 +1441,7 @@ models:
       url: https://huggingface.co/Qwen/Qwen3-ASR-1.7B-hf
       retrieved_at: 2026-08-09
       note: Transformers-native Qwen3-ASR 1.7B checkpoint and explicit higher-resource option.
-    transcription: *a7
+    transcription: *a8
   - model_id: Qwen/Qwen3-ASR-1.7B-hf
     provider: local
     model_type: stt
@@ -1369,7 +1459,7 @@ models:
       url: https://huggingface.co/Qwen/Qwen3-ASR-1.7B-hf
       retrieved_at: 2026-08-09
       note: Transformers-native Qwen3-ASR 1.7B checkpoint and explicit higher-resource option.
-    transcription: *a7
+    transcription: *a8
   - model_id: asset-image-vae-z-image-ae-f16-cuda
     provider: local
     model_type: vae
@@ -1819,7 +1909,7 @@ models:
     features:
       - input.image
       - input.mask
-    image_request_options: &a8
+    image_request_options: &a9
       response_formats:
         - b64_json
         - url
@@ -1852,7 +1942,7 @@ models:
     features:
       - input.image
       - input.mask
-    image_request_options: *a8
+    image_request_options: *a9
   - model_id: media/flux.1-schnell
     provider: local
     model_type: image
@@ -1873,7 +1963,7 @@ models:
     features:
       - input.image
       - input.mask
-    image_request_options: *a8
+    image_request_options: *a9
   - model_id: z-image-turbo-local
     provider: local
     model_type: image
@@ -2134,7 +2224,7 @@ models:
       retrieved_at: 2026-08-16
       note: Engine-compatible Ideogram4 main and unconditional GGUF artifacts pinned to one immutable revision.
     family: ideogram4
-    image_request_options: &a9
+    image_request_options: &a10
       response_formats:
         - b64_json
         - url
@@ -2189,7 +2279,7 @@ models:
       retrieved_at: 2026-08-16
       note: Engine-compatible Ideogram4 main and unconditional GGUF artifacts pinned to one immutable revision.
     family: ideogram4
-    image_request_options: *a9
+    image_request_options: *a10
   - model_id: ideogram4-qwen3-vl-8b-encoder-local
     provider: local
     model_type: chat
@@ -2447,7 +2537,7 @@ models:
     features:
       - input.image
     family: minimax-h3
-    video_generation: &a10
+    video_generation: &a11
       modes:
         - i2v_first_frame
       input_roles:
@@ -2521,7 +2611,7 @@ models:
     features:
       - input.image
     family: minimax-h3
-    video_generation: *a10
+    video_generation: *a11
   - model_id: minimax-h3-qwen3-vl-32b-encoder-local
     provider: local
     model_type: chat
@@ -2601,7 +2691,7 @@ models:
       note: Official Diffusers Wan text-to-video and image-to-video pipeline documentation.
     features:
       - input.image
-    video_generation: &a11
+    video_generation: &a12
       modes:
         - t2v
         - i2v_first_frame
@@ -2642,7 +2732,7 @@ models:
       note: Official Diffusers Wan text-to-video and image-to-video pipeline documentation.
     features:
       - input.image
-    video_generation: *a11
+    video_generation: *a12
   - model_id: media/wan2.1-video
     provider: local
     model_type: video
@@ -2662,7 +2752,7 @@ models:
       note: Official Diffusers Wan text-to-video and image-to-video pipeline documentation.
     features:
       - input.image
-    video_generation: *a11
+    video_generation: *a12
   - model_id: ace-step-local
     provider: local
     model_type: music
@@ -2714,6 +2804,78 @@ models:
       url: https://github.com/QwenLM/Qwen3-TTS
       retrieved_at: 2026-03-05
       note: Open-source Qwen3-TTS repository and examples.
+  - model_id: minimax-music3-audio-cpp-local
+    provider: local
+    model_type: music
+    updated_at: 2026-08-21
+    capabilities:
+      - music.generate
+    pricing:
+      unit: request
+      input: "0"
+      output: "0"
+      currency: none
+      as_of: 2026-03-18
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://huggingface.co/audio-cpp/MiniMax-Music3-GGUF/tree/2a19a42dd84d9ab9411316977ff3c9fd143ab214
+      retrieved_at: 2026-08-21
+      note: Exact Q4/Q8/Q4 MiniMax-Music3 GGUF bundle admitted for audio.cpp release-0.6.1.
+    family: minimax-music3
+    install:
+      repo: audio-cpp/MiniMax-Music3-GGUF
+      revision: 2a19a42dd84d9ab9411316977ff3c9fd143ab214
+      install_kind: verified-hf-multi-file
+      entry: language_model_q4_0.gguf
+      artifact_roles:
+        - music_model
+      license: MiniMax-Music3 Community License
+      provenance: MiniMaxAI/MiniMax-Music3@fbdf52fbaaca799592917417eb05f1899f1255ec converted by audio-cpp
+      preferred_engine: audio-cpp
+    variants:
+      - variant_id: local.music.minimax-music3.audio-cpp.q4-q8-q4.cuda
+        quant: Q4_0/Q8_0/Q4_0
+        entry: language_model_q4_0.gguf
+        files:
+          - LICENSE
+          - README.md
+          - config.json
+          - config/condition_encoder.json
+          - config/language_model.json
+          - config/rvq_depth_decoder.json
+          - config/transformer.json
+          - config/vocoder.json
+          - tokenizer/tokenizer.json
+          - tokenizer/tokenizer_config.json
+          - condition_encoder.gguf
+          - language_model_q4_0.gguf
+          - rvq_depth_decoder_q8_0.gguf
+          - transformer_q4_0.gguf
+          - vocoder.gguf
+        hashes:
+          LICENSE: sha256:b21d12df2adae59dad3fcf80c1d81492654c662342f497d9a9770198c9317e58
+          README.md: sha256:2312de69aaf240ac06f5453897ac932edae30b1bb186c791c955c6064c3c9259
+          config.json: sha256:1ffcff67d916d5519d1ef9a36853232ee6bcb7e14a936623c4e85559f5dce106
+          config/condition_encoder.json: sha256:1cdea3f36506719128ae4a29cdfff74b1134e607eb4a504ce6d810568fac8263
+          config/language_model.json: sha256:34ded58fcd5e8181557f1417e76af9f3e95109a5ce113a4771fd16f8625b53c0
+          config/rvq_depth_decoder.json: sha256:b38c7f72d4b2fa8667442071f9e4a63ca5a7b5d0859e5e64ee7f79c4bc64520c
+          config/transformer.json: sha256:f60856be934127a8b8223510aff2e38a9efd8bbdbc230c3d3339b96e2cb12f00
+          config/vocoder.json: sha256:4161afd07ba7d5b949e29c8a7a005592259fba73e9110b6ece9dfd38d3489eac
+          tokenizer/tokenizer.json: sha256:b1537fa9e59a537276ecbc2e12d0438edff635a1f4a4948e679774b5feb3e610
+          tokenizer/tokenizer_config.json: sha256:1689852cc9c45010de040c8302a8acdc0d2c4c6c740dd7e9dd0a8c704e16eada
+          condition_encoder.gguf: sha256:7f9414097b1f6ad154dae08ed69ce88fd0db6d7fd422f4d1a847216ca28ba1bf
+          language_model_q4_0.gguf: sha256:6f621dd636320403c03e9f755b3e2047f5754d055e0fcc6c0c444ae52ffbfa90
+          rvq_depth_decoder_q8_0.gguf: sha256:d5b7495fb1a7845abfeab13df829510de442fd4ea0fd55467fe9895fe8ec5db6
+          transformer_q4_0.gguf: sha256:18d3b2461a2988f59e197ccf05dc3931663099290b42443baa2a30e4fd15e506
+          vocoder.gguf: sha256:0a768b596516678fc850da1aff36556b8bc6bafcb7b42bc7ba7cb46cb9927a42
+        total_size_bytes: 8446107540
+        host_requirement:
+          accelerator: cuda
+          min_ram_bytes: 17179869184
+          min_vram_bytes: 12884901888
+    fitness:
+      param_count: 8600000000
+      context_length: 5000
   - model_id: musicgen-local
     provider: local
     model_type: music
@@ -2851,6 +3013,29 @@ models:
       retrieved_at: 2026-03-13
       note: Stable Audio Open announcement and positioning.
 voices:
+  - voice_id: Vivian
+    voice_set_id: local:qwen3-tts-audio-cpp-v1
+    provider: local
+    name: Vivian
+    langs:
+      - zh
+      - en
+      - de
+      - it
+      - pt
+      - es
+      - ja
+      - ko
+      - fr
+      - ru
+    model_ids:
+      - qwen3-tts-audio-cpp-local
+      - local/qwen3-tts-audio-cpp
+      - speech/qwen3tts-audio-cpp
+    source_ref:
+      url: https://huggingface.co/audio-cpp/audio.cpp-gguf/tree/7e9a59c8aee65253851b91b7b9b8e206544ef1a6/Qwen3-TTS-12Hz-1.7B-CustomVoice-GGUF
+      retrieved_at: 2026-08-21
+      note: Exact standalone Q8_0 GGUF used only by the explicit audio.cpp Qwen3-TTS implementation.
   - voice_id: en_US-lessac-medium
     voice_set_id: local:piper-defaults-v1
     provider: local
@@ -3373,6 +3558,27 @@ loadout_recipes:
         model_contract:
           format: safetensors
           artifact_role: tts_model
+  - recipe_id: qwen3-tts-customvoice.audio-cpp.v1
+    revision: "1"
+    title: Qwen3 TTS CustomVoice audio.cpp synthesis
+    capability_contract: audio.synthesize
+    implementation_id: local.audio.synthesize.qwen3-tts.audio-cpp
+    driver_id: nimi.runtime.driver.audio-cpp.qwen3-tts
+    driver_dialect: audio.cpp/qwen3-tts-customvoice/audio-synthesize/v1
+    default_options: {}
+    supported_features: []
+    custody: []
+    slot_metadata:
+      - slot_id: tts.model
+        display_label: Qwen3-TTS CustomVoice 1.7B Q8_0 GGUF
+        recommended_variant_ids:
+          - local.tts.qwen3-tts-customvoice-1.7b.audio-cpp.q8-0.cuda
+        recommended_content_ids:
+          - sha256:3cfaac8e9f13554f6daea3c5e0c53fede71ef5500cbaae7445e5fc3a5bb12e72
+        model_contract:
+          format: gguf
+          architecture: qwen3_tts
+          artifact_role: tts_model
   - recipe_id: qwen3-tts-base
     revision: "1"
     title: Qwen3 TTS Base synthesis
@@ -3650,6 +3856,26 @@ loadout_recipes:
         model_contract:
           format: safetensors
           tensor_contract: minimax-h3-audio-vae
+  - recipe_id: minimax-music3.audio-cpp.v1
+    revision: "1"
+    title: MiniMax-Music3 audio.cpp music generation
+    capability_contract: music.generate
+    implementation_id: local.music.generate.minimax-music3.audio-cpp
+    driver_id: nimi.runtime.driver.audio-cpp.minimax-music3
+    driver_dialect: audio.cpp/minimax-music3/music-generate/v1
+    default_options: {}
+    supported_features: []
+    slot_metadata:
+      - slot_id: music.bundle
+        display_label: MiniMax-Music3 Q4/Q8/Q4 bundle
+        recommended_variant_ids:
+          - local.music.minimax-music3.audio-cpp.q4-q8-q4.cuda
+        recommended_content_ids:
+          - sha256:8a5968a86caff38d531a7b2d19ddbdc270dd38cb3395b66bc8386bf554c29353
+        model_contract:
+          format: gguf-bundle
+          model_family: minimax-music3
+          artifact_role: music_model
   - recipe_id: qwen-image
     revision: "1"
     title: Qwen Image generation

@@ -10,7 +10,8 @@ export type NimiRuntimeLocalRunnableAssetKindId =
   | 'video'
   | 'tts'
   | 'stt'
-  | 'embedding';
+  | 'embedding'
+  | 'music';
 
 export type NimiRuntimeLocalPassiveAssetKindId =
   | 'vae'
@@ -34,6 +35,7 @@ const NIMI_RUNTIME_LOCAL_RUNNABLE_ASSET_KIND_PAIRS = [
   [LocalAssetKind.TTS, 'tts'],
   [LocalAssetKind.STT, 'stt'],
   [LocalAssetKind.EMBEDDING, 'embedding'],
+  [LocalAssetKind.MUSIC, 'music'],
 ] as const satisfies readonly (readonly [
   LocalAssetKind,
   NimiRuntimeLocalRunnableAssetKindId,
@@ -101,6 +103,7 @@ export const NIMI_RUNTIME_LOCAL_ASSET_KIND_LABELS = Object.freeze({
   tts: 'TTS',
   stt: 'STT',
   embedding: 'Embedding',
+  music: 'Music',
   vae: 'VAE',
   clip: 'CLIP',
   lora: 'LoRA',
@@ -116,7 +119,7 @@ const CANONICAL_CAPABILITY_TO_ASSET_KIND = {
   'audio.synthesize': 'tts',
   'audio.transcribe': 'stt',
   'voice.create': 'tts',
-  'music.generate': 'auxiliary',
+  'music.generate': 'music',
 } as const satisfies Partial<Record<string, NimiRuntimeLocalAssetKindId>>;
 
 export function parseNimiRuntimeLocalAssetKindId(value: unknown): NimiRuntimeLocalAssetKindId | undefined {

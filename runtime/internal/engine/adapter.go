@@ -57,7 +57,7 @@ func (a *ServiceAdapter) EnsureEngine(ctx context.Context, engineName string, ve
 }
 
 func (a *ServiceAdapter) EnsureEngineBinaryDependency(ctx context.Context, engineName string, version string) (EngineBinaryDependencyStatus, error) {
-	cfg, err := resolveEngineConfig(engineName, version, 0)
+	cfg, err := resolveEngineBinaryDependencyConfig(engineName, version)
 	if err != nil {
 		return EngineBinaryDependencyStatus{}, err
 	}
@@ -191,6 +191,22 @@ func resolveEngineConfig(engineName string, version string, port int) (EngineCon
 	return cfg, nil
 }
 
+func resolveEngineBinaryDependencyConfig(engineName string, version string) (EngineConfig, error) {
+	var cfg EngineConfig
+	switch strings.ToLower(strings.TrimSpace(engineName)) {
+	case "llama":
+		cfg = DefaultLlamaConfig()
+	case "audio-cpp":
+		cfg = DefaultAudioCppConfig()
+	default:
+		return EngineConfig{}, fmt.Errorf("engine binary dependency is not admitted for %q", engineName)
+	}
+	if version != "" {
+		cfg.Version = version
+	}
+	return cfg, nil
+}
+
 func parseEngineKind(name string) (EngineKind, error) {
 	switch strings.ToLower(strings.TrimSpace(name)) {
 	case "llama":
@@ -218,6 +234,8 @@ func publicEngineName(kind EngineKind) string {
 		return "managed-image-backend"
 	case EngineSpeech:
 		return "speech"
+	case EngineAudioCPP:
+		return "audio-cpp"
 	case EngineKind("sidecar"):
 		return "sidecar"
 	default:

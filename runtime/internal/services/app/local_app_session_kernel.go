@@ -251,7 +251,8 @@ func (s *Service) AuthorizeLocalAppIngress(ctx context.Context, ingress localapp
 		localappop.OperationStorageAssetWrite,
 		localappop.OperationStorageAssetRead,
 		localappop.OperationStorageAssetRemove,
-		localappop.OperationStorageAssetMove:
+		localappop.OperationStorageAssetMove,
+		localappop.OperationStorageAssetReveal:
 		capability = appstorage.LocalAppPrivateStorageEntitlement
 	case localappop.OperationArtifactAdoptToStorage:
 		capability = "runtime.consume"

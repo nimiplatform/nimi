@@ -696,7 +696,7 @@ export function selectionProfileModelID(selectionProfiles, profileID) {
 }
 
 const localInstallKinds = new Set(['binary', 'weights', 'verified-hf-multi-file']);
-const localPreferredEngines = new Set(['llama', 'media', 'speech', 'sidecar']);
+const localPreferredEngines = new Set(['llama', 'media', 'speech', 'sidecar', 'audio-cpp']);
 const localAccelerators = new Set(['cpu', 'metal', 'cuda']);
 
 function normalizeInt(value, label) {
@@ -848,7 +848,7 @@ function normalizeLocalInstall(install, label, { passive = false } = {}) {
       throw new Error(`${label} is passive and must not declare install.preferred_engine`);
     }
   } else if (!localPreferredEngines.has(preferredEngine)) {
-    throw new Error(`${label} install.preferred_engine must be llama|media|speech|sidecar, got: ${preferredEngine}`);
+    throw new Error(`${label} install.preferred_engine must be llama|media|speech|sidecar|audio-cpp, got: ${preferredEngine}`);
   }
   const out = {
     repo,
@@ -857,6 +857,14 @@ function normalizeLocalInstall(install, label, { passive = false } = {}) {
     entry,
     artifact_roles: artifactRoles,
   };
+  const license = normalizeString(install.license);
+  if (license) {
+    out.license = license;
+  }
+  const provenance = normalizeString(install.provenance);
+  if (provenance) {
+    out.provenance = provenance;
+  }
   if (!passive) {
     out.preferred_engine = preferredEngine;
   }

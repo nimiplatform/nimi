@@ -41,6 +41,8 @@ type Daemon struct {
 	auditStore              *auditlog.Store
 	engineMgr               *engine.Manager
 	imageExecutionHost      *engine.ImageExecutionHost
+	audioCppExecutionHost   *engine.AudioCppExecutionHost
+	audioCppSpeechHost      *engine.AudioCppSpeechExecutionHost
 	videoExecutionHost      *engine.VideoExecutionHost
 	newEngineManager        func(logger *slog.Logger, roots engine.ManagedRoots, onState engine.StateChangeFunc) (*engine.Manager, error)
 	startEngineFn           func(ctx context.Context, kind engine.EngineKind, version string, port int, envKey string) error
@@ -540,6 +542,16 @@ func (d *Daemon) stopSupervisedEngines(reason string) {
 				d.logger.Warn("stop image execution host failed", "error", err)
 			}
 		}
+		if d.audioCppExecutionHost != nil {
+			if err := d.audioCppExecutionHost.Stop(); err != nil {
+				d.logger.Warn("stop audio.cpp execution host failed", "error", err)
+			}
+		}
+		if d.audioCppSpeechHost != nil {
+			if err := d.audioCppSpeechHost.Stop(); err != nil {
+				d.logger.Warn("stop audio.cpp speech execution host failed", "error", err)
+			}
+		}
 		if d.videoExecutionHost != nil {
 			if err := d.videoExecutionHost.Stop(); err != nil {
 				d.logger.Warn("stop video execution host failed", "error", err)
@@ -677,12 +689,17 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 			PackageSource: strings.TrimSpace(d.cfg.EngineManagedImageBackendSource),
 		})
 		aiSvc.SetLocalImageExecutionHost(d.imageExecutionHost)
+		d.audioCppExecutionHost = engine.NewAudioCppExecutionHost(d.logger)
+		aiSvc.SetLocalMusicExecutionHost(d.audioCppExecutionHost)
 		d.videoExecutionHost = engine.NewVideoExecutionHost(mgr, d.logger, engine.VideoExecutionHostConfig{
 			PackageSource: strings.TrimSpace(d.cfg.EngineManagedImageBackendSource),
 		})
 		aiSvc.SetLocalVideoExecutionHost(d.videoExecutionHost)
 		if svc != nil {
-			aiSvc.SetLocalSpeechExecutionHost(engine.NewSpeechExecutionHost(svc, d.cfg.EngineSpeechPort, 0))
+			speechHost := engine.NewSpeechExecutionHost(svc, d.cfg.EngineSpeechPort, 0)
+			d.audioCppSpeechHost = engine.NewAudioCppSpeechExecutionHost(d.logger)
+			speechHost.SetAudioCppExecutionHost(d.audioCppSpeechHost)
+			aiSvc.SetLocalSpeechExecutionHost(speechHost)
 		}
 		if videoMedia, err := videomedia.NewFromDependenciesRoot(engineRoots.Dependencies); err != nil {
 			// Local video submits fail closed with a typed unavailable reason

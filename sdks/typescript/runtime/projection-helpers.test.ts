@@ -61,6 +61,10 @@ test('Runtime reason message projection normalizes generated enum values and SDK
     'Local AI execution was canceled.',
   );
   assert.equal(
+    getNimiRuntimeReasonCodeMessage(RuntimeGeneratedReasonCode.AI_LOCAL_EXECUTION_OUT_OF_MEMORY)?.defaultMessage,
+    'Local AI execution ran out of memory.',
+  );
+  assert.equal(
     getNimiRuntimeReasonCodeMessage(RuntimeGeneratedReasonCode.AI_LOCAL_MODEL_UNAVAILABLE)?.defaultMessage,
     'Runtime local execution is unavailable.',
   );
@@ -544,16 +548,16 @@ test('Runtime ScenarioJob abort requests cancellation and reports the Runtime te
     ...createScenarioJobClient([]),
     async cancelScenarioJob(request) {
       cancelReason = request.reason;
-      return {};
-    },
-    async getScenarioJob() {
-      queryCount += 1;
       return {
         job: {
           ...createScenarioJob('job-1', ScenarioJobStatus.CANCELED),
           reasonDetail: 'Canceled by user',
         },
       };
+    },
+    async getScenarioJob() {
+      queryCount += 1;
+      return { job: createScenarioJob('job-1', ScenarioJobStatus.RUNNING) };
     },
     async *subscribeScenarioJobEvents() {
       await new Promise(() => undefined);
@@ -574,7 +578,7 @@ test('Runtime ScenarioJob abort requests cancellation and reports the Runtime te
     return true;
   });
   assert.equal(cancelReason, 'tester-user-canceled');
-  assert.equal(queryCount, 1);
+  assert.equal(queryCount, 0);
 });
 
 test('Runtime ScenarioJob abort preserves a Runtime completion that won the cancellation race', async () => {
@@ -599,6 +603,50 @@ test('Runtime ScenarioJob abort preserves a Runtime completion that won the canc
 
   const result = await pending;
   assert.equal(result.job.status, ScenarioJobStatus.COMPLETED);
+});
+
+test('Runtime ScenarioJob abort waits for the terminal event when cancel initially remains running', async () => {
+  const controller = new AbortController();
+  let releaseCancellation!: () => void;
+  const cancellationRequested = new Promise<void>((resolve) => {
+    releaseCancellation = resolve;
+  });
+  let queryCount = 0;
+  const client: NimiRuntimeScenarioJobClient = {
+    ...createScenarioJobClient([]),
+    async cancelScenarioJob() {
+      releaseCancellation();
+      return { job: createScenarioJob('job-1', ScenarioJobStatus.RUNNING) };
+    },
+    async getScenarioJob() {
+      queryCount += 1;
+      return { job: createScenarioJob('job-1', ScenarioJobStatus.RUNNING) };
+    },
+    async *subscribeScenarioJobEvents() {
+      await cancellationRequested;
+      const job = createScenarioJob('job-1', ScenarioJobStatus.CANCELED);
+      yield {
+        eventType: scenarioJobEventTypeForStatus(job.status),
+        sequence: '1',
+        traceId: 'trace-1',
+        job,
+      };
+    },
+  };
+  const pending = runNimiRuntimeScenarioJob({
+    ai: client,
+    request: createScenarioJobRequest(),
+    signal: controller.signal,
+  });
+
+  await Promise.resolve();
+  controller.abort('tester-user-canceled');
+
+  await assert.rejects(pending, (error: unknown) => {
+    assert.equal(getNimiRuntimeScenarioJobTerminalStatusFromError(error), ScenarioJobStatus.CANCELED);
+    return true;
+  });
+  assert.equal(queryCount, 1);
 });
 
 test('Runtime ScenarioJob stream interruption performs one bounded terminal lookup', async () => {

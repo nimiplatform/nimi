@@ -30,6 +30,17 @@ type ExactBinding struct {
 	EntrySHA256       string
 }
 
+type ExactDependencySource struct {
+	DependencyFamily       string
+	DependencyID           string
+	ConsumerScope          string
+	SelectedSourceRecordID string
+	CanonicalRoot          string
+	Version                string
+	VerifiedArtifacts      []string
+	Hashes                 map[string]string
+}
+
 // SelectedLocalExecution is the all-or-nothing execution projection for one
 // machine selection. Configured is true for every successful resolution;
 // incomplete configurations return a typed error instead of a partial value.
@@ -47,6 +58,7 @@ type SelectedLocalExecution struct {
 	ModelContextWindowTokens uint64
 	Requirements             []*runtimev1.LocalCapabilityRequirement
 	ExactBindings            []ExactBinding
+	ExactDependencySources   []ExactDependencySource
 	SupportedFeatures        []string
 	// ExecutionTarget is the exact Runtime-private local target captured from
 	// the selected verified asset occurrence. It is used for cross-capability
@@ -159,6 +171,24 @@ type ImageExecutionHost interface {
 	ExecuteImage(context.Context, *capabilitydriver.ImageInvocationPlan, ImageExecutionStartFunc, ImageArtifactFunc, ImageProgressFunc) (ImageResult, error)
 }
 
+type MusicExecutionStartFunc func() error
+
+// MusicResult contains only factual staging-WAV output. Runtime Scenario Job
+// validation and artifact custody remain above this seam.
+type MusicResult struct {
+	StagingWAVPath string
+	SizeBytes      int64
+	SampleRate     int
+	Channels       int
+	BitsPerSample  int
+	DurationMS     int64
+	ComputeMS      int64
+}
+
+type MusicExecutionHost interface {
+	ExecuteMusic(context.Context, *capabilitydriver.MusicInvocationPlan, MusicExecutionStartFunc) (MusicResult, error)
+}
+
 // VideoExecutionStage reports factual private Host work after the video lease
 // is acquired. Encoding is separate because raw AV production precedes public
 // artifact encoding/muxing.
@@ -221,11 +251,13 @@ type VideoExecutionHost interface {
 }
 
 type SpeechSynthesisResult struct {
-	AudioBytes []byte
-	AudioBody  io.ReadCloser
-	SizeBytes  int64
-	MIMEType   string
-	Usage      *runtimev1.UsageStats
+	AudioBytes     []byte
+	AudioBody      io.ReadCloser
+	StagingWAVPath string
+	SizeBytes      int64
+	MIMEType       string
+	ComputeMS      int64
+	Usage          *runtimev1.UsageStats
 }
 
 type SpeechTranscriptionResult struct {
@@ -247,7 +279,7 @@ type SpeechExecutionStartFunc func() error
 // plans to the Runtime-supervised loopback Host. It never discovers assets or decides
 // route, machine selection, implementation identity, or fallback.
 type SpeechExecutionHost interface {
-	ExecuteSpeechSynthesis(context.Context, *capabilitydriver.SpeechSynthesizeInvocationPlan, SpeechExecutionStartFunc) (SpeechSynthesisResult, error)
+	ExecuteSpeechSynthesis(context.Context, capabilitydriver.SpeechSynthesizePlan, SpeechExecutionStartFunc) (SpeechSynthesisResult, error)
 	ExecuteSpeechTranscription(context.Context, *capabilitydriver.SpeechTranscribeInvocationPlan, SpeechExecutionStartFunc) (SpeechTranscriptionResult, error)
 	ExecuteVoiceCreate(context.Context, *capabilitydriver.VoiceCreateInvocationPlan, SpeechExecutionStartFunc) (VoiceCreateResult, error)
 }
@@ -258,7 +290,9 @@ const (
 	FailureLoad            FailureKind = "load"
 	FailureContentMismatch FailureKind = "content_mismatch"
 	FailureInference       FailureKind = "inference"
+	FailureOutOfMemory     FailureKind = "out_of_memory"
 	FailureCanceled        FailureKind = "cancel"
+	FailureTimeout         FailureKind = "timeout"
 	FailureProcessCrash    FailureKind = "process_crash"
 )
 

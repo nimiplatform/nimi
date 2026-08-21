@@ -1088,7 +1088,7 @@ units:
     kind: rule
     title: P-NAPP-027 storage authority classes
     modality: must
-    statement: The calling App's mediated partition is reachable for JSON only through runtime.app-storage.json.read, runtime.app-storage.json.write, and runtime.app-storage.json.remove and for binary assets only through the six Base operations runtime.app-storage.asset.stat, runtime.app-storage.asset.list, runtime.app-storage.asset.write, runtime.app-storage.asset.read, runtime.app-storage.asset.remove, and runtime.app-storage.asset.move; every call requires a fresh session, Runtime-derived current account and Registered App Subject, canonical relative path or bounded prefix, type and integrity validation, the independent JSON or asset quota policy, and filesystem safety, while cross-owner and destructive retained-data access is excluded and App-owned OS storage remains outside Nimi protected-operation semantics.
+    statement: The calling App's mediated partition is reachable for JSON only through runtime.app-storage.json.read, runtime.app-storage.json.write, and runtime.app-storage.json.remove and for binary assets only through the seven Base operations runtime.app-storage.asset.stat, runtime.app-storage.asset.list, runtime.app-storage.asset.write, runtime.app-storage.asset.read, runtime.app-storage.asset.remove, runtime.app-storage.asset.move, and runtime.app-storage.asset.reveal; reveal accepts only one canonical App-relative committed asset path, revalidates the Runtime-derived owner, existence, metadata, and integrity, and permits only the verified native Host to reveal the exact payload file in the OS file manager without returning its absolute path; every call requires a fresh session, Runtime-derived current account and Registered App Subject, canonical relative path or bounded prefix, type and integrity validation, the independent JSON or asset quota policy, and filesystem safety, while cross-owner and destructive retained-data access is excluded and App-owned OS storage remains outside Nimi protected-operation semantics.
     condition: Whenever either storage posture is authorized.
     failure: Deny access outside the exact Base operation and storage boundary or any raw account or credential exposure without treating App-owned OS storage as Nimi-mediated.
     relations:
@@ -1635,7 +1635,7 @@ units:
     kind: rule
     title: P-ECO-005 future world and game app boundary
     modality: must
-    statement: A future world or game App remains only a registry candidate, and any cross-world or cross-game flow requires a separate owner-complete authority cut and typed projection while retaining source App, target App, and canonical App owner references on the Realm audit surface; it cannot widen the current four AppAccess domains or thirty-nine operations through registry, review, trust inheritance, or raw sharing.
+    statement: A future world or game App remains only a registry candidate, and any cross-world or cross-game flow requires a separate owner-complete authority cut and typed projection while retaining source App, target App, and canonical App owner references on the Realm audit surface; it cannot widen the current four AppAccess domains or forty operations through registry, review, trust inheritance, or raw sharing.
     condition: Whenever a world or game app class or cross-app flow is proposed.
     failure: Deny admission or data flow without the separate owner authority, projection, audit reference, and trust-tier boundary.
     relations:

@@ -3,10 +3,55 @@ package localservice
 import (
 	"context"
 	"errors"
+	"path/filepath"
 	"strings"
 
 	"github.com/nimiplatform/nimi/runtime/internal/engine"
 )
+
+func (s *Service) executeNativeAudioCPPEnvironmentDependencyJob(ctx context.Context, job localEnvironmentDependencyJobState, report localEnvironmentDependencyJobProgressReporter) (localEnvironmentDependencyJobResult, error) {
+	consumer := strings.TrimSpace(job.ConsumerScope)
+	if strings.TrimSpace(job.DependencyID) != "audio.cpp.package" || (consumer != audioCppCUDAConsumerID && consumer != audioCppQwen3TTSCUDAConsumerID) {
+		return localEnvironmentDependencyJobResult{
+			State:           localEnvironmentStateUnsupported,
+			SourceKind:      localEnvironmentSourceUnavailable,
+			AuditReasonCode: "LOCAL_ENVIRONMENT_DEPENDENCY_UNSUPPORTED",
+		}, nil
+	}
+	mgr := s.engineManagerOrNil()
+	if mgr == nil {
+		return localEnvironmentDependencyJobResult{}, errors.New("runtime engine manager unavailable")
+	}
+	reportLocalEnvironmentJobProgress(report, localEnvironmentStateDownloading)
+	status, err := mgr.EnsureEngineBinaryDependency(localEnvironmentEngineDownloadProgressContext(ctx, report), "audio-cpp", engine.AudioCppPackageVersion)
+	if err != nil {
+		return localEnvironmentDependencyJobResult{}, err
+	}
+	reportLocalEnvironmentJobProgress(report, localEnvironmentStateVerifying)
+	if strings.TrimSpace(status.BinaryPath) == "" || !strings.EqualFold(strings.TrimSpace(status.SHA256), engine.AudioCppPackageArchiveSHA256) {
+		return localEnvironmentDependencyJobResult{
+			State:           localEnvironmentStateRepairRequired,
+			SourceKind:      localEnvironmentSourceManaged,
+			AuditReasonCode: "LOCAL_ENVIRONMENT_DEPENDENCY_REPAIR_REQUIRED",
+		}, nil
+	}
+	return localEnvironmentDependencyJobResult{
+		State:         localEnvironmentStateReadyManaged,
+		SourceKind:    localEnvironmentSourceManaged,
+		CanonicalRoot: filepath.Dir(strings.TrimSpace(status.BinaryPath)),
+		Version:       "release-" + engine.AudioCppPackageVersion + "@" + engine.AudioCppPackageCommit,
+		CompatibilityEvidence: []string{
+			strings.TrimSpace(status.Detail),
+			"asset=" + engine.AudioCppPackageAssetName,
+			"archive_sha256=" + engine.AudioCppPackageArchiveSHA256,
+			"accelerator_plane=cuda13",
+		},
+		VerifiedArtifacts: normalizeStringSlice([]string{strings.TrimSpace(status.BinaryPath)}),
+		Hashes:            map[string]string{"archive_sha256": engine.AudioCppPackageArchiveSHA256},
+		SelectedConsumers: audioCppSelectedConsumers(),
+		AuditReasonCode:   "LOCAL_ENVIRONMENT_DEPENDENCY_READY_MANAGED",
+	}, nil
+}
 
 func (s *Service) executeNativeLlamaEnvironmentDependencyJob(ctx context.Context, job localEnvironmentDependencyJobState, report localEnvironmentDependencyJobProgressReporter) (localEnvironmentDependencyJobResult, error) {
 	if strings.TrimSpace(job.DependencyID) != "llama.cpp.package" {

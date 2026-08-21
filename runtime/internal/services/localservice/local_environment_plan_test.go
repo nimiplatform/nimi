@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/engine"
 )
 
@@ -461,6 +462,87 @@ func TestResolveLocalEnvironmentPlanNativeImageExcludesPythonManagedFamilies(t *
 	}
 	assertLocalEnvironmentFamily(t, plan, localEnvironmentFamilyNativeSDCPP)
 	assertLocalEnvironmentFamily(t, plan, localEnvironmentFamilyCUDA)
+}
+
+func TestResolveLocalEnvironmentPlanAudioCppRequiresNativePackageAndCUDA13Only(t *testing.T) {
+	svc := newLocalEnvironmentTestService(t)
+	defer func() { svc.Close() }()
+	svc.SetEngineManager(&mockEngineManager{})
+
+	plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
+		PackID:          "local-music-native",
+		ConsumerScope:   "audio.cpp.cuda",
+		HostProfile:     localEnvironmentNvidiaProfile(),
+		RuntimeDataRoot: filepath.Join(t.TempDir(), "runtime-data"),
+	})
+
+	if plan.State != localEnvironmentStateNeedsConfirmation {
+		t.Fatalf("audio.cpp plan state = %q, want needs_confirmation: %+v", plan.State, plan)
+	}
+	audioPackage := findLocalEnvironmentDependency(t, plan, "native-engine-package.audio-cpp")
+	if !audioPackage.Required || audioPackage.DependencyID != "audio.cpp.package" {
+		t.Fatalf("audio.cpp package dependency = %+v, want required exact package", audioPackage)
+	}
+	cuda13 := findLocalEnvironmentDependency(t, plan, localEnvironmentFamilyCUDA)
+	if !cuda13.Required || cuda13.DependencyID != "nvidia-cuda13-user-space-runtime" {
+		t.Fatalf("audio.cpp CUDA dependency = %+v, want required exact CUDA 13 runtime", cuda13)
+	}
+	for _, family := range []string{
+		localEnvironmentFamilyPythonUV,
+		localEnvironmentFamilyPythonRuntime,
+		localEnvironmentFamilyPythonVenv,
+		localEnvironmentFamilyPythonPackageSet,
+		localEnvironmentFamilyPythonTorchWheel,
+	} {
+		if deps := planDependenciesByFamily(plan, family); len(deps) != 0 {
+			t.Fatalf("audio.cpp plan must not include Python family %s, got %+v", family, deps)
+		}
+	}
+}
+
+func TestSelectedMusicExecutionCapturesBothExactSelectedSources(t *testing.T) {
+	svc := newLocalEnvironmentTestService(t)
+	defer func() { svc.Close() }()
+	records := []localEnvironmentSelectedSourceRecordState{
+		{RecordID: "selected-audio", EnvironmentKey: "audio-env", DependencyFamily: localEnvironmentFamilyNativeAudioCPP, DependencyID: "audio.cpp.package", CanonicalRoot: filepath.Join(t.TempDir(), "audio-cpp"), VerifiedArtifacts: []string{"audiocpp_cli.exe"}, SelectedConsumers: audioCppSelectedConsumers()},
+		{RecordID: "selected-cuda13", EnvironmentKey: "cuda13-env", DependencyFamily: localEnvironmentFamilyCUDA, DependencyID: cuda13UserSpaceRuntimeDependencyID, CanonicalRoot: filepath.Join(t.TempDir(), "cuda13"), VerifiedArtifacts: []string{"cublas64_13.dll", "cublasLt64_13.dll", "cufft64_12.dll"}, SelectedConsumers: audioCppSelectedConsumers()},
+	}
+	for _, record := range records {
+		record = verifiedSelectedSourceRecordForTest(record)
+		writeSelectedSourceLocalArtifactsForTest(t, record)
+		svc.upsertLocalEnvironmentSelectedSourceRecord(record)
+	}
+	musicIdentity := (&capabilitydriver.Identity{ImplementationID: capabilitydriver.MiniMaxMusic3ImplementationID, DriverID: capabilitydriver.MiniMaxMusic3DriverID, DriverDialect: capabilitydriver.MiniMaxMusic3DriverDialect}).Proto()
+	sources, err := svc.resolveSelectedLocalExecutionDependencySources(capabilitydriver.MiniMaxMusic3CapabilityContract, musicIdentity)
+	if err != nil {
+		t.Fatalf("resolve dependency sources: %v", err)
+	}
+	if len(sources) != 2 || sources[0].DependencyID != "audio.cpp.package" || sources[1].DependencyID != cuda13UserSpaceRuntimeDependencyID || sources[0].SelectedSourceRecordID == sources[1].SelectedSourceRecordID {
+		t.Fatalf("captured selected sources = %+v", sources)
+	}
+	qwenIdentity := (&capabilitydriver.Identity{ImplementationID: capabilitydriver.Qwen3TTSAudioCppImplementationID, DriverID: capabilitydriver.Qwen3TTSAudioCppDriverID, DriverDialect: capabilitydriver.Qwen3TTSAudioCppDriverDialect}).Proto()
+	qwenSources, err := svc.resolveSelectedLocalExecutionDependencySources(capabilitydriver.AudioSynthesizeContract, qwenIdentity)
+	if err != nil || len(qwenSources) != 2 || qwenSources[0].SelectedSourceRecordID != sources[0].SelectedSourceRecordID || qwenSources[1].SelectedSourceRecordID != sources[1].SelectedSourceRecordID || qwenSources[0].ConsumerScope != audioCppQwen3TTSCUDAConsumerID {
+		t.Fatalf("Qwen selected sources=%+v err=%v", qwenSources, err)
+	}
+}
+
+func TestQwenAudioCppEnvironmentPlanUsesSameNativeSourcesWithoutPython(t *testing.T) {
+	svc := newLocalEnvironmentTestService(t)
+	defer func() { svc.Close() }()
+	svc.SetEngineManager(&mockEngineManager{})
+	plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{PackID: "local-speech-native", ConsumerScope: audioCppQwen3TTSCUDAConsumerID, HostProfile: localEnvironmentNvidiaProfile(), RuntimeDataRoot: filepath.Join(t.TempDir(), "runtime-data")})
+	if dep := findLocalEnvironmentDependency(t, plan, localEnvironmentFamilyNativeAudioCPP); !dep.Required || dep.DependencyID != "audio.cpp.package" {
+		t.Fatalf("Qwen audio.cpp package dependency=%+v", dep)
+	}
+	if dep := findLocalEnvironmentDependency(t, plan, localEnvironmentFamilyCUDA); !dep.Required || dep.DependencyID != cuda13UserSpaceRuntimeDependencyID {
+		t.Fatalf("Qwen CUDA13 dependency=%+v", dep)
+	}
+	for _, family := range []string{localEnvironmentFamilyPythonUV, localEnvironmentFamilyPythonRuntime, localEnvironmentFamilyPythonVenv, localEnvironmentFamilyPythonPackageSet, localEnvironmentFamilyPythonTorchWheel} {
+		if deps := planDependenciesByFamily(plan, family); len(deps) != 0 {
+			t.Fatalf("Qwen audio.cpp plan includes Python family %s: %+v", family, deps)
+		}
+	}
 }
 
 func TestResolveLocalEnvironmentPlanIncludesTextAndOptionalCUDA(t *testing.T) {

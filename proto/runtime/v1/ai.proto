@@ -672,6 +672,11 @@ message LocalAppVoiceCreateJobSpec {
   }
 }
 
+message LocalAppMusicGenerateJobSpec {
+  string prompt = 1;
+  string lyrics = 2;
+}
+
 message SubmitLocalAppScenarioJobRequest {
   oneof spec {
     LocalAppImageGenerateScenarioSpec image_generate = 1;
@@ -679,7 +684,11 @@ message SubmitLocalAppScenarioJobRequest {
     LocalAppSpeechSynthesizeJobSpec speech_synthesize = 3;
     LocalAppSpeechTranscribeJobSpec speech_transcribe = 4;
     LocalAppVoiceCreateJobSpec voice_create = 7;
+    LocalAppMusicGenerateJobSpec music_generate = 8;
   }
+  // Canonical Job deadline in milliseconds. Zero keeps Runtime's
+  // capability-owned default; no other ScenarioRequestHead field is exposed.
+  int32 timeout_ms = 9;
   reserved 5, 6;
   reserved "voice_clone", "voice_design";
 }

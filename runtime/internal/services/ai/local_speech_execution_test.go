@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -28,7 +29,7 @@ import (
 
 type localSpeechHostStub struct {
 	mu                 sync.Mutex
-	synthesizePlan     *capabilitydriver.SpeechSynthesizeInvocationPlan
+	synthesizePlan     capabilitydriver.SpeechSynthesizePlan
 	transcribePlan     *capabilitydriver.SpeechTranscribeInvocationPlan
 	voiceCreatePlan    *capabilitydriver.VoiceCreateInvocationPlan
 	entered            chan struct{}
@@ -38,6 +39,7 @@ type localSpeechHostStub struct {
 	cancelRelease      chan struct{}
 	calls              chan string
 	synthesisResult    *localexecution.SpeechSynthesisResult
+	synthesisResultFn  func(capabilitydriver.SpeechSynthesizePlan) (localexecution.SpeechSynthesisResult, error)
 	voiceCreateResult  *localexecution.VoiceCreateResult
 	preStartErr        error
 }
@@ -60,7 +62,7 @@ func (host *localSpeechHostStub) ExecuteVoiceCreate(ctx context.Context, plan *c
 	return localexecution.VoiceCreateResult{ProviderVoiceRef: "local-voice-handle"}, nil
 }
 
-func (host *localSpeechHostStub) ExecuteSpeechSynthesis(ctx context.Context, plan *capabilitydriver.SpeechSynthesizeInvocationPlan, onStart localexecution.SpeechExecutionStartFunc) (localexecution.SpeechSynthesisResult, error) {
+func (host *localSpeechHostStub) ExecuteSpeechSynthesis(ctx context.Context, plan capabilitydriver.SpeechSynthesizePlan, onStart localexecution.SpeechExecutionStartFunc) (localexecution.SpeechSynthesisResult, error) {
 	if host.preStartErr != nil {
 		return localexecution.SpeechSynthesisResult{}, host.preStartErr
 	}
@@ -96,6 +98,9 @@ func (host *localSpeechHostStub) ExecuteSpeechSynthesis(ctx context.Context, pla
 	}
 	if host.synthesisResult != nil {
 		return *host.synthesisResult, nil
+	}
+	if host.synthesisResultFn != nil {
+		return host.synthesisResultFn(plan)
 	}
 	return localexecution.SpeechSynthesisResult{
 		AudioBytes: []byte("RIFF-local-speech"),
@@ -447,6 +452,97 @@ func (host *localSpeechHostStub) ExecuteSpeechTranscription(ctx context.Context,
 		}
 	}
 	return localexecution.SpeechTranscriptionResult{Text: "captured transcript", Usage: &runtimev1.UsageStats{InputTokens: 2, OutputTokens: 3, ComputeMs: 4}}, nil
+}
+
+func TestQwen3TTSAudioCppSpeechWAVValidationIsCapabilitySpecific(t *testing.T) {
+	root := t.TempDir()
+	validPath := filepath.Join(root, "valid.wav")
+	plan := localQwen3TTSAudioCppPlanForTest(t, validPath)
+	if err := writeLocalMusicTestWAV(validPath, 24000, 1, 1); err != nil {
+		t.Fatal(err)
+	}
+	validated, err := validateLocalQwen3TTSAudioCppWAV(localexecution.SpeechSynthesisResult{StagingWAVPath: validPath}, plan)
+	if err != nil || validated.SampleRate != 24000 || validated.Channels != 1 || validated.Bits != 16 {
+		t.Fatalf("valid Qwen WAV=%+v err=%v", validated, err)
+	}
+	invalidPath := filepath.Join(root, "music-format.wav")
+	invalidPlan := localQwen3TTSAudioCppPlanForTest(t, invalidPath)
+	if err := writeLocalMusicTestWAV(invalidPath, 44100, 2, 1); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := validateLocalQwen3TTSAudioCppWAV(localexecution.SpeechSynthesisResult{StagingWAVPath: invalidPath}, invalidPlan); err == nil {
+		t.Fatal("Music WAV format was admitted by the Qwen Speech contract")
+	}
+}
+
+func TestQwen3TTSAudioCppScenarioJobUsesSpeechWaistAndRuntimeCustody(t *testing.T) {
+	svc := newTestService(nil)
+	svc.localSpeechStagingRoot = t.TempDir()
+	selected := selectedQwen3TTSAudioCppExecutionForTest(t)
+	svc.SetLocalExecutionResolver(&mutableLocalExecutionResolver{projection: selected})
+	host := &localSpeechHostStub{synthesisResultFn: func(plan capabilitydriver.SpeechSynthesizePlan) (localexecution.SpeechSynthesisResult, error) {
+		exact, ok := plan.(*capabilitydriver.Qwen3TTSAudioCppInvocationPlan)
+		if !ok {
+			return localexecution.SpeechSynthesisResult{}, fmt.Errorf("unexpected plan %T", plan)
+		}
+		if err := writeLocalMusicTestWAV(exact.StagingWAVPath(), 24000, 1, 1); err != nil {
+			return localexecution.SpeechSynthesisResult{}, err
+		}
+		return localexecution.SpeechSynthesisResult{StagingWAVPath: exact.StagingWAVPath(), SizeBytes: 48044, MIMEType: "audio/wav", ComputeMS: 17}, nil
+	}}
+	svc.SetLocalSpeechExecutionHost(host)
+	ctx := executionintent.WithIntent(scenarioJobUserContext("app.local", "anonymous"), executionintent.Intent{CapabilityContract: capabilitydriver.AudioSynthesizeContract, Route: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL})
+	response, err := svc.SubmitScenarioJob(ctx, &runtimev1.SubmitScenarioJobRequest{Head: &runtimev1.ScenarioRequestHead{AppId: "app.local", SubjectUserId: "anonymous"}, ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE, ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB, Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_SpeechSynthesize{SpeechSynthesize: &runtimev1.SpeechSynthesizeScenarioSpec{Text: "Hello from the audio.cpp reference.", VoiceRef: &runtimev1.VoiceReference{Kind: runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_PRESET, Reference: &runtimev1.VoiceReference_PresetVoiceId{PresetVoiceId: capabilitydriver.Qwen3TTSAudioCppPresetVoiceVivian}}, Language: "en", AudioFormat: "wav"}}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	job := waitLocalSpeechJobTerminal(t, svc, response.GetJob().GetJobId())
+	if job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED || len(job.GetArtifacts()) != 1 {
+		t.Fatalf("Qwen audio.cpp Job=%+v", job)
+	}
+	artifact := job.GetArtifacts()[0]
+	if artifact.GetMimeType() != "audio/wav" || artifact.GetSampleRateHz() != 24000 || artifact.GetChannels() != 1 || artifact.GetDurationMs() != 1000 || artifact.GetSizeBytes() != 48044 || artifact.GetSha256() == "" || job.GetUsage().GetComputeMs() != 17 {
+		t.Fatalf("Qwen audio.cpp artifact=%+v usage=%+v", artifact, job.GetUsage())
+	}
+	host.mu.Lock()
+	captured, ok := host.synthesizePlan.(*capabilitydriver.Qwen3TTSAudioCppInvocationPlan)
+	host.mu.Unlock()
+	if !ok || captured.AudioCppSelectedSourceRecordID() != "selected-audio" || captured.CUDA13SelectedSourceRecordID() != "selected-cuda13" {
+		t.Fatalf("captured Qwen audio.cpp plan=%+v", captured)
+	}
+	if _, err := os.Stat(captured.StagingWAVPath()); !os.IsNotExist(err) {
+		t.Fatalf("Qwen staging cleanup err=%v", err)
+	}
+}
+
+func localQwen3TTSAudioCppPlanForTest(t *testing.T, stagingPath string) *capabilitydriver.Qwen3TTSAudioCppInvocationPlan {
+	t.Helper()
+	root := t.TempDir()
+	plan, err := (capabilitydriver.Qwen3TTSAudioCppDriver{}).PlanQwen3TTSAudioCppInvocation(capabilitydriver.Qwen3TTSAudioCppInvocationInput{LoadoutID: "loadout", RecipeID: capabilitydriver.Qwen3TTSAudioCppRecipeID, ExactBindings: []capabilitydriver.InvocationExactBinding{{RequirementID: capabilitydriver.Qwen3TTSAudioCppModelRequirementID, ModelAssetID: "model", AbsolutePath: filepath.Join(root, capabilitydriver.Qwen3TTSAudioCppModelRelativePath), BundleDir: root, DeclaredFiles: []string{capabilitydriver.Qwen3TTSAudioCppModelRelativePath}, VerifiedContentID: capabilitydriver.Qwen3TTSAudioCppVerifiedContentID, EntrySHA256: capabilitydriver.Qwen3TTSAudioCppVerifiedContentID}}, Package: capabilitydriver.AudioCppRuntimePackageInput{AudioCppPackageID: capabilitydriver.AudioCppWindowsCUDA13PackageID, AudioCppSelectedSourceRecordID: "package-source", AudioCppRoot: filepath.Join(root, "package"), AudioCppExecutablePath: filepath.Join(root, "package", "audiocpp_cli.exe"), CUDA13DependencyID: capabilitydriver.AudioCppCUDA13RuntimeDependencyID, CUDA13SelectedSourceRecordID: "cuda-source", CUDA13Root: filepath.Join(root, "cuda")}, Request: &runtimev1.SpeechSynthesizeScenarioSpec{Text: "hello", VoiceRef: &runtimev1.VoiceReference{Kind: runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_PRESET, Reference: &runtimev1.VoiceReference_PresetVoiceId{PresetVoiceId: capabilitydriver.Qwen3TTSAudioCppPresetVoiceVivian}}, Language: "en", AudioFormat: "wav"}, StagingWAVPath: stagingPath})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return plan
+}
+
+func selectedQwen3TTSAudioCppExecutionForTest(t *testing.T) *localexecution.SelectedLocalExecution {
+	t.Helper()
+	driver := capabilitydriver.Qwen3TTSAudioCppDriver{}
+	requirements, reason := driver.Interpret(capabilitydriver.InterpretInput{RecipeID: capabilitydriver.Qwen3TTSAudioCppRecipeID})
+	if reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED || len(requirements) != 1 {
+		t.Fatalf("Qwen audio.cpp requirements=%+v reason=%v", requirements, reason)
+	}
+	root := t.TempDir()
+	modelPath := filepath.Join(root, capabilitydriver.Qwen3TTSAudioCppModelRelativePath)
+	if err := os.MkdirAll(filepath.Dir(modelPath), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(modelPath, []byte("GGUF"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	audioRoot := filepath.Join(root, "audio-cpp")
+	cudaRoot := filepath.Join(root, "cuda13")
+	return &localexecution.SelectedLocalExecution{LoadoutID: "loadout-qwen-audio-cpp", CapabilityContract: capabilitydriver.AudioSynthesizeContract, DisplayName: "Qwen3-TTS audio.cpp", RecipeID: capabilitydriver.Qwen3TTSAudioCppRecipeID, RecipeRevision: "1", DriverIdentity: (&capabilitydriver.Identity{ImplementationID: capabilitydriver.Qwen3TTSAudioCppImplementationID, DriverID: capabilitydriver.Qwen3TTSAudioCppDriverID, DriverDialect: capabilitydriver.Qwen3TTSAudioCppDriverDialect}).Proto(), PortableConfig: &structpb.Struct{}, Requirements: requirements, ExactBindings: []localexecution.ExactBinding{{RequirementID: capabilitydriver.Qwen3TTSAudioCppModelRequirementID, RequirementRole: runtimev1.LocalCapabilityRequirementRole_LOCAL_CAPABILITY_REQUIREMENT_ROLE_MAIN, ModelAssetID: "model-qwen-audio-cpp", AbsolutePath: modelPath, BundleDir: root, DeclaredFiles: []string{capabilitydriver.Qwen3TTSAudioCppModelRelativePath}, VerifiedContentID: capabilitydriver.Qwen3TTSAudioCppVerifiedContentID, EntrySHA256: strings.TrimPrefix(capabilitydriver.Qwen3TTSAudioCppVerifiedContentID, "sha256:")}}, ExactDependencySources: []localexecution.ExactDependencySource{{DependencyFamily: "native-engine-package.audio-cpp", DependencyID: "audio.cpp.package", ConsumerScope: "audio.cpp.qwen3-tts.cuda", SelectedSourceRecordID: "selected-audio", CanonicalRoot: audioRoot, Version: "release-0.6.1", VerifiedArtifacts: []string{filepath.Join(audioRoot, "audiocpp_cli.exe")}}, {DependencyFamily: "accelerator.cuda.runtime", DependencyID: capabilitydriver.AudioCppCUDA13RuntimeDependencyID, ConsumerScope: "audio.cpp.qwen3-tts.cuda", SelectedSourceRecordID: "selected-cuda13", CanonicalRoot: cudaRoot, Version: "cuda_major=13"}}, Configured: true}
 }
 
 func TestLocalSpeechWithoutMachineSelectionFailsClosed(t *testing.T) {

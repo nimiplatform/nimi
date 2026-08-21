@@ -4,6 +4,13 @@ language_profiles:
   voxcpm2_v1: [ar, my, zh, da, nl, en, fi, fr, de, el, he, hi, id, it, ja, km, ko, lo, ms, no, pl, pt, ru, es, sw, sv, tl, th, tr, vi]
 
 voice_sets:
+  - voice_set_id: qwen3-tts-audio-cpp-v1
+    langs_ref: short_v1
+    source_ids: [qwen3_tts_audio_cpp_gguf_modelcard]
+    voices:
+      - voice_id: Vivian
+        name: Vivian
+        langs_ref: short_v1
   - voice_set_id: piper-defaults-v1
     langs_ref: short_v1
     source_ids: [piper_repo]

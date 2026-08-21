@@ -7,9 +7,16 @@ import (
 )
 
 const (
-	cudaUserSpaceRuntimeDependencyID = engine.NVIDIACUDAUserSpaceRuntimeDependencyID
-	stableDiffusionCUDAConsumerID    = "stable-diffusion.cpp.cuda"
+	cudaUserSpaceRuntimeDependencyID   = engine.NVIDIACUDAUserSpaceRuntimeDependencyID
+	cuda13UserSpaceRuntimeDependencyID = engine.NVIDIACUDA13UserSpaceRuntimeDependencyID
+	stableDiffusionCUDAConsumerID      = "stable-diffusion.cpp.cuda"
+	audioCppCUDAConsumerID             = "audio.cpp.cuda"
+	audioCppQwen3TTSCUDAConsumerID     = "audio.cpp.qwen3-tts.cuda"
 )
+
+func audioCppSelectedConsumers() []string {
+	return []string{audioCppCUDAConsumerID, audioCppQwen3TTSCUDAConsumerID}
+}
 
 func normalizeLocalRuntimeDependencyID(raw string) string {
 	trimmed := strings.ToLower(strings.TrimSpace(raw))

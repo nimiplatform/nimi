@@ -1622,6 +1622,19 @@ export interface LocalAppVoiceCreateJobSpec {
     };
 }
 /**
+ * @generated from protobuf message nimi.runtime.v1.LocalAppMusicGenerateJobSpec
+ */
+export interface LocalAppMusicGenerateJobSpec {
+    /**
+     * @generated from protobuf field: string prompt = 1
+     */
+    prompt: string;
+    /**
+     * @generated from protobuf field: string lyrics = 2
+     */
+    lyrics: string;
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.SubmitLocalAppScenarioJobRequest
  */
 export interface SubmitLocalAppScenarioJobRequest {
@@ -1659,8 +1672,21 @@ export interface SubmitLocalAppScenarioJobRequest {
          */
         voiceCreate: LocalAppVoiceCreateJobSpec;
     } | {
+        oneofKind: "musicGenerate";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.LocalAppMusicGenerateJobSpec music_generate = 8
+         */
+        musicGenerate: LocalAppMusicGenerateJobSpec;
+    } | {
         oneofKind: undefined;
     };
+    /**
+     * Canonical Job deadline in milliseconds. Zero keeps Runtime's
+     * capability-owned default; no other ScenarioRequestHead field is exposed.
+     *
+     * @generated from protobuf field: int32 timeout_ms = 9
+     */
+    timeoutMs: number;
 }
 /**
  * Trimmed Job projection for Local App consumption: status, progress, typed
@@ -8121,6 +8147,61 @@ class LocalAppVoiceCreateJobSpec$Type extends MessageType<LocalAppVoiceCreateJob
  */
 export const LocalAppVoiceCreateJobSpec = new LocalAppVoiceCreateJobSpec$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class LocalAppMusicGenerateJobSpec$Type extends MessageType<LocalAppMusicGenerateJobSpec> {
+    constructor() {
+        super("nimi.runtime.v1.LocalAppMusicGenerateJobSpec", [
+            { no: 1, name: "prompt", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "lyrics", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<LocalAppMusicGenerateJobSpec>): LocalAppMusicGenerateJobSpec {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.prompt = "";
+        message.lyrics = "";
+        if (value !== undefined)
+            reflectionMergePartial<LocalAppMusicGenerateJobSpec>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAppMusicGenerateJobSpec): LocalAppMusicGenerateJobSpec {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string prompt */ 1:
+                    message.prompt = reader.string();
+                    break;
+                case /* string lyrics */ 2:
+                    message.lyrics = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LocalAppMusicGenerateJobSpec, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string prompt = 1; */
+        if (message.prompt !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.prompt);
+        /* string lyrics = 2; */
+        if (message.lyrics !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.lyrics);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalAppMusicGenerateJobSpec
+ */
+export const LocalAppMusicGenerateJobSpec = new LocalAppMusicGenerateJobSpec$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class SubmitLocalAppScenarioJobRequest$Type extends MessageType<SubmitLocalAppScenarioJobRequest> {
     constructor() {
         super("nimi.runtime.v1.SubmitLocalAppScenarioJobRequest", [
@@ -8128,12 +8209,15 @@ class SubmitLocalAppScenarioJobRequest$Type extends MessageType<SubmitLocalAppSc
             { no: 2, name: "video_generate", kind: "message", oneof: "spec", T: () => LocalAppVideoGenerateJobSpec },
             { no: 3, name: "speech_synthesize", kind: "message", oneof: "spec", T: () => LocalAppSpeechSynthesizeJobSpec },
             { no: 4, name: "speech_transcribe", kind: "message", oneof: "spec", T: () => LocalAppSpeechTranscribeJobSpec },
-            { no: 7, name: "voice_create", kind: "message", oneof: "spec", T: () => LocalAppVoiceCreateJobSpec }
+            { no: 7, name: "voice_create", kind: "message", oneof: "spec", T: () => LocalAppVoiceCreateJobSpec },
+            { no: 8, name: "music_generate", kind: "message", oneof: "spec", T: () => LocalAppMusicGenerateJobSpec },
+            { no: 9, name: "timeout_ms", kind: "scalar", T: 5 /*ScalarType.INT32*/ }
         ]);
     }
     create(value?: PartialMessage<SubmitLocalAppScenarioJobRequest>): SubmitLocalAppScenarioJobRequest {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.spec = { oneofKind: undefined };
+        message.timeoutMs = 0;
         if (value !== undefined)
             reflectionMergePartial<SubmitLocalAppScenarioJobRequest>(this, message, value);
         return message;
@@ -8173,6 +8257,15 @@ class SubmitLocalAppScenarioJobRequest$Type extends MessageType<SubmitLocalAppSc
                         voiceCreate: LocalAppVoiceCreateJobSpec.internalBinaryRead(reader, reader.uint32(), options, (message.spec as any).voiceCreate)
                     };
                     break;
+                case /* nimi.runtime.v1.LocalAppMusicGenerateJobSpec music_generate */ 8:
+                    message.spec = {
+                        oneofKind: "musicGenerate",
+                        musicGenerate: LocalAppMusicGenerateJobSpec.internalBinaryRead(reader, reader.uint32(), options, (message.spec as any).musicGenerate)
+                    };
+                    break;
+                case /* int32 timeout_ms */ 9:
+                    message.timeoutMs = reader.int32();
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -8200,6 +8293,12 @@ class SubmitLocalAppScenarioJobRequest$Type extends MessageType<SubmitLocalAppSc
         /* nimi.runtime.v1.LocalAppVoiceCreateJobSpec voice_create = 7; */
         if (message.spec.oneofKind === "voiceCreate")
             LocalAppVoiceCreateJobSpec.internalBinaryWrite(message.spec.voiceCreate, writer.tag(7, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.LocalAppMusicGenerateJobSpec music_generate = 8; */
+        if (message.spec.oneofKind === "musicGenerate")
+            LocalAppMusicGenerateJobSpec.internalBinaryWrite(message.spec.musicGenerate, writer.tag(8, WireType.LengthDelimited).fork(), options).join();
+        /* int32 timeout_ms = 9; */
+        if (message.timeoutMs !== 0)
+            writer.tag(9, WireType.Varint).int32(message.timeoutMs);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

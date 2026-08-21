@@ -146,6 +146,8 @@ func stableScenarioJobReasonDetail(reasonCode runtimev1.ReasonCode) string {
 		return "local execution canceled"
 	case runtimev1.ReasonCode_AI_LOCAL_EXECUTION_PROCESS_CRASHED:
 		return "local execution process crashed"
+	case runtimev1.ReasonCode_AI_LOCAL_EXECUTION_OUT_OF_MEMORY:
+		return "local execution ran out of memory"
 	case runtimev1.ReasonCode_AI_STREAM_BROKEN:
 		return "stream delivery failed"
 	case runtimev1.ReasonCode_AI_INPUT_INVALID,

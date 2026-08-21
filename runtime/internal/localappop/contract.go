@@ -37,6 +37,7 @@ const (
 	AppOperationIDStorageAssetRead   = "runtime.app-storage.asset.read"
 	AppOperationIDStorageAssetRemove = "runtime.app-storage.asset.remove"
 	AppOperationIDStorageAssetMove   = "runtime.app-storage.asset.move"
+	AppOperationIDStorageAssetReveal = "runtime.app-storage.asset.reveal"
 	AppOperationIDArtifactAdopt      = "runtime.ai.artifact.adopt-to-app-storage"
 	AppOperationIDPersonaListOwned   = "realm.persona-character.list-owned"
 	AppOperationIDPersonaGetOwned    = "realm.persona-character.get-owned"
@@ -70,6 +71,7 @@ const (
 	IngressStorageAssetRead
 	IngressStorageAssetRemove
 	IngressStorageAssetMove
+	IngressStorageAssetReveal
 	IngressArtifactAdoptToStorage
 	IngressAppAIConfigGet
 	IngressRealmWorldCoreList
@@ -113,6 +115,7 @@ const (
 	OperationStorageAssetRead
 	OperationStorageAssetRemove
 	OperationStorageAssetMove
+	OperationStorageAssetReveal
 	OperationArtifactAdoptToStorage
 	OperationAppAIConfigGet
 	OperationRealmWorldCoreList
@@ -168,6 +171,7 @@ var canonicalAppOperationContract = [...]contractRow{
 	{IngressStorageAssetRead, OperationStorageAssetRead, AppOperationIDStorageAssetRead, AuthorityClassBase, ""},
 	{IngressStorageAssetRemove, OperationStorageAssetRemove, AppOperationIDStorageAssetRemove, AuthorityClassBase, ""},
 	{IngressStorageAssetMove, OperationStorageAssetMove, AppOperationIDStorageAssetMove, AuthorityClassBase, ""},
+	{IngressStorageAssetReveal, OperationStorageAssetReveal, AppOperationIDStorageAssetReveal, AuthorityClassBase, ""},
 	{IngressArtifactAdoptToStorage, OperationArtifactAdoptToStorage, AppOperationIDArtifactAdopt, AuthorityClassAppAccess, "runtime.consume"},
 	{IngressAppAIConfigGet, OperationAppAIConfigGet, "runtime.ai.app-config.get", AuthorityClassBase, ""},
 	{IngressRealmWorldCoreList, OperationRealmWorldCoreList, "realm.world-core.list", AuthorityClassAppAccess, "realm.data"},

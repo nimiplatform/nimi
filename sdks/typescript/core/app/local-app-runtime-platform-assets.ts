@@ -36,6 +36,7 @@ export type NimiLocalAppAssetsShell = {
   readonly read: (input: { readonly relativePath: string; readonly offset?: number; readonly length?: number }) => Promise<unknown>;
   readonly remove: (relativePath: string) => Promise<unknown>;
   readonly move: (input: { readonly from: string; readonly to: string; readonly overwrite?: boolean }) => Promise<unknown>;
+  readonly reveal: (relativePath: string) => Promise<unknown>;
   readonly adoptArtifact: (input: { readonly artifactId: string; readonly relativePath: string; readonly overwrite?: boolean }) => Promise<unknown>;
 };
 
@@ -46,6 +47,7 @@ export type NimiLocalAppAssetsClient = {
   readonly read: (input: { readonly relativePath: string; readonly offset?: number; readonly length?: number }) => Promise<NimiLocalAppAssetReadResult>;
   readonly remove: (relativePath: string) => Promise<{ readonly removed: boolean }>;
   readonly move: (input: { readonly from: string; readonly to: string; readonly overwrite?: boolean }) => Promise<NimiLocalAppAssetRecord>;
+  readonly reveal: (relativePath: string) => Promise<{ readonly revealed: true }>;
   readonly adoptArtifact: (input: { readonly artifactId: string; readonly relativePath: string; readonly overwrite?: boolean }) => Promise<NimiLocalAppAssetRecord>;
 };
 
@@ -82,6 +84,7 @@ export function createNimiLocalAppAssetsClient(shell: NimiLocalAppAssetsShell): 
       const overwrite = optionalBoolean(input.overwrite, 'overwrite');
       return projectAssetRecord(await shell.move({ from: assetPath(input.from), to: assetPath(input.to), ...(overwrite === undefined ? {} : { overwrite }) }));
     },
+    reveal: async (relativePath) => projectReveal(await shell.reveal(assetPath(relativePath))),
     adoptArtifact: async (input) => {
       allowedKeys(input, ['artifactId', 'relativePath', 'overwrite'], ['artifactId', 'relativePath']);
       const artifactId = exactText(input.artifactId, 512, 'artifactId');
@@ -156,6 +159,13 @@ function projectRemove(value: unknown): { readonly removed: boolean } {
   assertExactProjectionKeys(record, ['removed'], 'asset remove');
   if (typeof record.removed !== 'boolean') return localAppProjectionError('asset remove');
   return Object.freeze({ removed: record.removed });
+}
+
+function projectReveal(value: unknown): { readonly revealed: true } {
+  const record = asRecord(value);
+  assertExactProjectionKeys(record, ['revealed'], 'asset reveal');
+  if (record.revealed !== true) return localAppProjectionError('asset reveal');
+  return Object.freeze({ revealed: true });
 }
 
 function assetBody(value: unknown): NimiLocalAppAssetBody {

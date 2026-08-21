@@ -12,6 +12,8 @@ entries:
   - packs_4
   - packs_5
   - packs_6
+  - packs_7
+  - packs_8
   - pack selection may be explicit or derived from an admitted capability
     consumer
   - pack selection must resolve a Runtime-owned local environment plan before
@@ -123,6 +125,22 @@ packs:
       - media.video-python.cuda
     cloud_only_impact: none
 
+  - pack_id: local-music-native
+    product_label: Local music native
+    owner: runtime_local_environment_plan
+    user_entrypoints:
+      - local_model_install
+      - local_compute_setup
+    capabilities:
+      - music.generate
+    required_dependency_families:
+      - native-engine-package.audio-cpp
+      - accelerator.cuda.runtime
+    optional_dependency_families: []
+    consumers:
+      - audio.cpp.cuda
+    cloud_only_impact: none
+
   - pack_id: local-speech
     product_label: Local speech
     owner: runtime_local_environment_plan
@@ -141,6 +159,22 @@ packs:
     consumers:
       - speech.qwen3-asr.python
       - speech.qwen3-tts.python
+    cloud_only_impact: none
+
+  - pack_id: local-speech-native
+    product_label: Local speech (audio.cpp)
+    owner: runtime_local_environment_plan
+    user_entrypoints:
+      - local_model_install
+      - local_compute_setup
+    capabilities:
+      - audio.synthesize
+    required_dependency_families:
+      - native-engine-package.audio-cpp
+      - accelerator.cuda.runtime
+    optional_dependency_families: []
+    consumers:
+      - audio.cpp.qwen3-tts.cuda
     cloud_only_impact: none
 
   - pack_id: local-gpu-support

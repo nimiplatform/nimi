@@ -45,6 +45,7 @@ export enum LocalAssetKind {
   TTS = 4,
   STT = 5,
   EMBEDDING = 6,
+  MUSIC = 7,
   VAE = 10,
   CLIP = 11,
   LORA = 12,

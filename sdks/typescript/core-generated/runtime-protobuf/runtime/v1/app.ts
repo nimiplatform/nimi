@@ -559,6 +559,36 @@ export interface MoveLocalAppAssetResponse {
     reasonCode: ReasonCode;
 }
 /**
+ * Purpose-specific host-only reveal. The renderer and SDK supply only the
+ * canonical App-relative path and never receive absolute_path; the native
+ * protected Host consumes it inside the reveal call and returns only success.
+ *
+ * @generated from protobuf message nimi.runtime.v1.RevealLocalAppAssetRequest
+ */
+export interface RevealLocalAppAssetRequest {
+    /**
+     * @generated from protobuf field: string relative_path = 1
+     */
+    relativePath: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.RevealLocalAppAssetResponse
+ */
+export interface RevealLocalAppAssetResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalAppAssetRecord asset = 1
+     */
+    asset?: LocalAppAssetRecord;
+    /**
+     * @generated from protobuf field: string absolute_path = 2
+     */
+    absolutePath: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 3
+     */
+    reasonCode: ReasonCode;
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.AdoptLocalAppArtifactRequest
  */
 export interface AdoptLocalAppArtifactRequest {
@@ -2576,6 +2606,115 @@ class MoveLocalAppAssetResponse$Type extends MessageType<MoveLocalAppAssetRespon
  * @generated MessageType for protobuf message nimi.runtime.v1.MoveLocalAppAssetResponse
  */
 export const MoveLocalAppAssetResponse = new MoveLocalAppAssetResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class RevealLocalAppAssetRequest$Type extends MessageType<RevealLocalAppAssetRequest> {
+    constructor() {
+        super("nimi.runtime.v1.RevealLocalAppAssetRequest", [
+            { no: 1, name: "relative_path", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<RevealLocalAppAssetRequest>): RevealLocalAppAssetRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.relativePath = "";
+        if (value !== undefined)
+            reflectionMergePartial<RevealLocalAppAssetRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: RevealLocalAppAssetRequest): RevealLocalAppAssetRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string relative_path */ 1:
+                    message.relativePath = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: RevealLocalAppAssetRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string relative_path = 1; */
+        if (message.relativePath !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.relativePath);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.RevealLocalAppAssetRequest
+ */
+export const RevealLocalAppAssetRequest = new RevealLocalAppAssetRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class RevealLocalAppAssetResponse$Type extends MessageType<RevealLocalAppAssetResponse> {
+    constructor() {
+        super("nimi.runtime.v1.RevealLocalAppAssetResponse", [
+            { no: 1, name: "asset", kind: "message", T: () => LocalAppAssetRecord },
+            { no: 2, name: "absolute_path", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] }
+        ]);
+    }
+    create(value?: PartialMessage<RevealLocalAppAssetResponse>): RevealLocalAppAssetResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.absolutePath = "";
+        message.reasonCode = 0;
+        if (value !== undefined)
+            reflectionMergePartial<RevealLocalAppAssetResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: RevealLocalAppAssetResponse): RevealLocalAppAssetResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.LocalAppAssetRecord asset */ 1:
+                    message.asset = LocalAppAssetRecord.internalBinaryRead(reader, reader.uint32(), options, message.asset);
+                    break;
+                case /* string absolute_path */ 2:
+                    message.absolutePath = reader.string();
+                    break;
+                case /* nimi.runtime.v1.ReasonCode reason_code */ 3:
+                    message.reasonCode = reader.int32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: RevealLocalAppAssetResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.LocalAppAssetRecord asset = 1; */
+        if (message.asset)
+            LocalAppAssetRecord.internalBinaryWrite(message.asset, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* string absolute_path = 2; */
+        if (message.absolutePath !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.absolutePath);
+        /* nimi.runtime.v1.ReasonCode reason_code = 3; */
+        if (message.reasonCode !== 0)
+            writer.tag(3, WireType.Varint).int32(message.reasonCode);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.RevealLocalAppAssetResponse
+ */
+export const RevealLocalAppAssetResponse = new RevealLocalAppAssetResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class AdoptLocalAppArtifactRequest$Type extends MessageType<AdoptLocalAppArtifactRequest> {
     constructor() {

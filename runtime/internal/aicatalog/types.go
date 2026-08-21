@@ -195,6 +195,8 @@ type LocalPlaneVariant struct {
 type LocalPlaneInstall struct {
 	Repo            string   `yaml:"repo" json:"repo"`
 	Revision        string   `yaml:"revision" json:"revision"`
+	License         string   `yaml:"license,omitempty" json:"license,omitempty"`
+	Provenance      string   `yaml:"provenance,omitempty" json:"provenance,omitempty"`
 	InstallKind     string   `yaml:"install_kind" json:"install_kind"`
 	Entry           string   `yaml:"entry" json:"entry"`
 	ArtifactRoles   []string `yaml:"artifact_roles" json:"artifact_roles"`

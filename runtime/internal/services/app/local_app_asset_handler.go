@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"math"
+	"path"
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -202,6 +203,28 @@ func (s *Service) MoveLocalAppAsset(ctx context.Context, req *runtimev1.MoveLoca
 	return &runtimev1.MoveLocalAppAssetResponse{Asset: projectLocalAppAsset(record), ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED}, nil
 }
 
+// @nimi-authority: rule.nimi.platform.core-protocol.p-proto-046
+func (s *Service) RevealLocalAppAsset(ctx context.Context, req *runtimev1.RevealLocalAppAssetRequest) (*runtimev1.RevealLocalAppAssetResponse, error) {
+	decision, err := s.localAppStorageDecision(ctx, accountservice.LocalAppOperationStorageAssetReveal)
+	if err != nil {
+		return nil, err
+	}
+	if req == nil {
+		return nil, localAppAssetFailure(appstorage.ErrAssetPathInvalid)
+	}
+	store, err := s.localAppAssets()
+	if err != nil {
+		return nil, localAppAssetFailure(err)
+	}
+	record, absolutePath, err := store.ResolveRevealTarget(ctx, localAppAssetOwner(decision), req.GetRelativePath())
+	if err != nil {
+		return nil, localAppAssetFailure(err)
+	}
+	return &runtimev1.RevealLocalAppAssetResponse{
+		Asset: projectLocalAppAsset(record), AbsolutePath: absolutePath, ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED,
+	}, nil
+}
+
 func (s *Service) AdoptLocalAppArtifact(ctx context.Context, req *runtimev1.AdoptLocalAppArtifactRequest) (*runtimev1.AdoptLocalAppArtifactResponse, error) {
 	decision, err := s.localAppArtifactAdoptionDecision(ctx)
 	if err != nil {
@@ -226,7 +249,12 @@ func (s *Service) AdoptLocalAppArtifact(ctx context.Context, req *runtimev1.Adop
 	if err != nil {
 		return nil, localAppArtifactUnavailable()
 	}
-	record, err := store.Adopt(ctx, localAppAssetOwner(decision), req.GetRelativePath(), req.GetOverwrite(), appstorage.VerifiedAssetInput{
+	targetPath, err := adoptedAssetTargetPath(req.GetRelativePath(), source.Record.MimeType)
+	if err != nil {
+		_ = source.Body.Close()
+		return nil, localAppAssetFailure(err)
+	}
+	record, err := store.Adopt(ctx, localAppAssetOwner(decision), targetPath, req.GetOverwrite(), appstorage.VerifiedAssetInput{
 		MediaType: source.Record.MimeType,
 		SizeBytes: source.Record.SizeBytes,
 		SHA256:    source.Record.ContentSHA256,
@@ -239,6 +267,45 @@ func (s *Service) AdoptLocalAppArtifact(ctx context.Context, req *runtimev1.Adop
 		return nil, localAppAssetFailure(err)
 	}
 	return &runtimev1.AdoptLocalAppArtifactResponse{Asset: projectLocalAppAsset(record), ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED}, nil
+}
+
+func adoptedAssetTargetPath(relativePath string, mediaType string) (string, error) {
+	normalized, err := appstorage.NormalizeAssetRelativePath(relativePath)
+	if err != nil {
+		return "", err
+	}
+	extension := adoptedAssetExtension(mediaType)
+	base := strings.TrimSuffix(normalized, path.Ext(normalized))
+	return appstorage.NormalizeAssetRelativePath(base + extension)
+}
+
+func adoptedAssetExtension(mediaType string) string {
+	switch strings.ToLower(strings.TrimSpace(mediaType)) {
+	case "audio/wav", "audio/x-wav":
+		return ".wav"
+	case "audio/mpeg":
+		return ".mp3"
+	case "audio/ogg":
+		return ".ogg"
+	case "image/png":
+		return ".png"
+	case "image/jpeg":
+		return ".jpg"
+	case "image/webp":
+		return ".webp"
+	case "image/gif":
+		return ".gif"
+	case "video/mp4":
+		return ".mp4"
+	case "video/webm":
+		return ".webm"
+	case "application/json":
+		return ".json"
+	case "text/plain":
+		return ".txt"
+	default:
+		return ".bin"
+	}
 }
 
 func (s *Service) localAppArtifactAdoptionDecision(ctx context.Context) (accountservice.LocalAppCallerDecision, error) {

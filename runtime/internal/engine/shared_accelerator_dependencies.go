@@ -9,7 +9,10 @@ import (
 	"strings"
 )
 
-const NVIDIACUDAUserSpaceRuntimeDependencyID = "nvidia-cuda-user-space-runtime"
+const (
+	NVIDIACUDAUserSpaceRuntimeDependencyID   = "nvidia-cuda-user-space-runtime"
+	NVIDIACUDA13UserSpaceRuntimeDependencyID = "nvidia-cuda13-user-space-runtime"
+)
 
 type SharedAcceleratorDependencyState string
 
@@ -24,6 +27,7 @@ const (
 
 type SharedAcceleratorDependencyStatus struct {
 	DependencyID           string
+	Version                string
 	HostProfileID          string
 	ConsumerID             string
 	State                  SharedAcceleratorDependencyState
@@ -56,25 +60,72 @@ var nvidiaCUDAUserSpaceRuntimeManagedSource = sharedAcceleratorDependencyManaged
 	InstallDirName: NVIDIACUDAUserSpaceRuntimeDependencyID,
 }
 
+var nvidiaCUDA13UserSpaceRuntimeRequiredArtifacts = []string{
+	"cublas64_13.dll",
+	"cublasLt64_13.dll",
+	"cufft64_12.dll",
+}
+
+var nvidiaCUDA13UserSpaceRuntimeManagedSource = sharedAcceleratorDependencyManagedSource{
+	SourceID:       "audiocpp-0.6.1-cuda13-win-x64-runtime",
+	ArchiveURL:     "https://github.com/0xShug0/audio.cpp/releases/download/release-0.6.1/audiocpp-windows-cuda-runtime.zip",
+	ArchiveSHA256:  "4104167de457dd3d20bd6e2de172c41f84cd15d0b3e8835649849710a863d10d",
+	ReleaseVersion: "release-0.6.1",
+	ReleaseAsset:   "audiocpp-windows-cuda-runtime.zip",
+	InstallDirName: NVIDIACUDA13UserSpaceRuntimeDependencyID,
+}
+
+type sharedAcceleratorDependencySpec struct {
+	DependencyID      string
+	Version           string
+	RequiredArtifacts []string
+	ManagedSource     sharedAcceleratorDependencyManagedSource
+}
+
 func NormalizeSharedAcceleratorDependencyID(raw string) string {
 	trimmed := strings.ToLower(strings.TrimSpace(raw))
 	switch trimmed {
 	case "", "cuda-user-space-runtime", NVIDIACUDAUserSpaceRuntimeDependencyID:
 		return NVIDIACUDAUserSpaceRuntimeDependencyID
+	case NVIDIACUDA13UserSpaceRuntimeDependencyID:
+		return NVIDIACUDA13UserSpaceRuntimeDependencyID
 	default:
 		return trimmed
 	}
 }
 
+func sharedAcceleratorDependencySpecForID(raw string) (sharedAcceleratorDependencySpec, bool) {
+	switch NormalizeSharedAcceleratorDependencyID(raw) {
+	case NVIDIACUDAUserSpaceRuntimeDependencyID:
+		return sharedAcceleratorDependencySpec{
+			DependencyID:      NVIDIACUDAUserSpaceRuntimeDependencyID,
+			Version:           "cuda_major=12",
+			RequiredArtifacts: append([]string(nil), nvidiaCUDAUserSpaceRuntimeRequiredArtifacts...),
+			ManagedSource:     nvidiaCUDAUserSpaceRuntimeManagedSource,
+		}, true
+	case NVIDIACUDA13UserSpaceRuntimeDependencyID:
+		return sharedAcceleratorDependencySpec{
+			DependencyID:      NVIDIACUDA13UserSpaceRuntimeDependencyID,
+			Version:           "cuda_major=13;audio.cpp=release-0.6.1",
+			RequiredArtifacts: append([]string(nil), nvidiaCUDA13UserSpaceRuntimeRequiredArtifacts...),
+			ManagedSource:     nvidiaCUDA13UserSpaceRuntimeManagedSource,
+		}, true
+	default:
+		return sharedAcceleratorDependencySpec{}, false
+	}
+}
+
 func (m *Manager) ResolveSharedAcceleratorDependency(dependencyID string, consumerID string) SharedAcceleratorDependencyStatus {
 	normalizedID := NormalizeSharedAcceleratorDependencyID(dependencyID)
+	spec, supported := sharedAcceleratorDependencySpecForID(normalizedID)
 	status := SharedAcceleratorDependencyStatus{
 		DependencyID:      normalizedID,
+		Version:           spec.Version,
 		HostProfileID:     currentHostAcceleratorProfileID(),
 		ConsumerID:        strings.TrimSpace(consumerID),
-		RequiredArtifacts: append([]string(nil), nvidiaCUDAUserSpaceRuntimeRequiredArtifacts...),
+		RequiredArtifacts: append([]string(nil), spec.RequiredArtifacts...),
 	}
-	if normalizedID != NVIDIACUDAUserSpaceRuntimeDependencyID {
+	if !supported {
 		status.State = SharedAcceleratorDependencyUnsupported
 		status.Source = "unavailable"
 		status.Detail = "unsupported shared accelerator dependency"
@@ -86,7 +137,7 @@ func (m *Manager) ResolveSharedAcceleratorDependency(dependencyID string, consum
 		status.Detail = "host accelerator profile does not admit Windows NVIDIA CUDA dependency"
 		return status
 	}
-	if systemRoot, ok, detail := verifiedSystemNVIDIACUDARuntimeRoot(); ok {
+	if systemRoot, ok, detail := verifiedSystemNVIDIACUDARuntimeRootForSpec(spec); ok {
 		status.State = SharedAcceleratorDependencyReadySystem
 		status.Source = "compatible_system"
 		status.CanonicalRoot = systemRoot
@@ -99,7 +150,7 @@ func (m *Manager) ResolveSharedAcceleratorDependency(dependencyID string, consum
 	m.mu.RLock()
 	dependenciesPath := strings.TrimSpace(m.sharedAcceleratorDependenciesPath)
 	m.mu.RUnlock()
-	canonicalRoot, ready, repairDetail := verifiedManagedNVIDIACUDARuntimeRoot(dependenciesPath)
+	canonicalRoot, ready, repairDetail := verifiedManagedNVIDIACUDARuntimeRootForSpec(dependenciesPath, spec)
 	if ready {
 		status.State = SharedAcceleratorDependencyReadyManaged
 		status.Source = "runtime_managed"
@@ -136,7 +187,8 @@ func (m *Manager) EnsureSharedAcceleratorDependency(ctx context.Context, depende
 		return status, fmt.Errorf("%s", strings.TrimSpace(status.Detail))
 	}
 	normalizedID := NormalizeSharedAcceleratorDependencyID(dependencyID)
-	if normalizedID != NVIDIACUDAUserSpaceRuntimeDependencyID {
+	spec, supported := sharedAcceleratorDependencySpecForID(normalizedID)
+	if !supported {
 		return status, fmt.Errorf("unsupported shared accelerator dependency %q", dependencyID)
 	}
 	m.mu.RLock()
@@ -145,7 +197,7 @@ func (m *Manager) EnsureSharedAcceleratorDependency(ctx context.Context, depende
 	if strings.TrimSpace(dependenciesPath) == "" {
 		return status, fmt.Errorf("shared accelerator dependency root is required")
 	}
-	if err := installManagedNVIDIACUDAUserSpaceRuntime(ctx, dependenciesPath, nvidiaCUDAUserSpaceRuntimeManagedSource); err != nil {
+	if err := installManagedNVIDIACUDAUserSpaceRuntime(ctx, dependenciesPath, spec.ManagedSource, spec.RequiredArtifacts); err != nil {
 		status.State = SharedAcceleratorDependencyFailed
 		status.Detail = err.Error()
 		return status, err
@@ -188,10 +240,15 @@ func selectedAcceleratorDependencySourceRecordID(dependencyID string, hostProfil
 }
 
 func verifiedManagedNVIDIACUDARuntimeRoot(dependenciesPath string) (string, bool, string) {
+	spec, _ := sharedAcceleratorDependencySpecForID(NVIDIACUDAUserSpaceRuntimeDependencyID)
+	return verifiedManagedNVIDIACUDARuntimeRootForSpec(dependenciesPath, spec)
+}
+
+func verifiedManagedNVIDIACUDARuntimeRootForSpec(dependenciesPath string, spec sharedAcceleratorDependencySpec) (string, bool, string) {
 	if strings.TrimSpace(dependenciesPath) == "" {
 		return "", false, ""
 	}
-	root, err := filepath.Abs(filepath.Clean(filepath.Join(dependenciesPath, nvidiaCUDAUserSpaceRuntimeManagedSource.InstallDirName)))
+	root, err := filepath.Abs(filepath.Clean(filepath.Join(dependenciesPath, spec.ManagedSource.InstallDirName)))
 	if err != nil {
 		return "", false, fmt.Sprintf("canonicalize managed CUDA dependency root: %v", err)
 	}
@@ -201,7 +258,7 @@ func verifiedManagedNVIDIACUDARuntimeRoot(dependenciesPath string) (string, bool
 		}
 		return root, false, fmt.Sprintf("stat managed CUDA dependency root: %v", err)
 	}
-	for _, artifact := range nvidiaCUDAUserSpaceRuntimeRequiredArtifacts {
+	for _, artifact := range spec.RequiredArtifacts {
 		if ok, err := artifactExistsCaseInsensitive(root, artifact); err != nil {
 			return root, false, fmt.Sprintf("verify managed CUDA artifact %s: %v", artifact, err)
 		} else if !ok {
@@ -212,11 +269,16 @@ func verifiedManagedNVIDIACUDARuntimeRoot(dependenciesPath string) (string, bool
 }
 
 func verifiedSystemNVIDIACUDARuntimeRoot() (string, bool, string) {
+	spec, _ := sharedAcceleratorDependencySpecForID(NVIDIACUDAUserSpaceRuntimeDependencyID)
+	return verifiedSystemNVIDIACUDARuntimeRootForSpec(spec)
+}
+
+func verifiedSystemNVIDIACUDARuntimeRootForSpec(spec sharedAcceleratorDependencySpec) (string, bool, string) {
 	if currentGOOS() != "windows" {
 		return "", false, ""
 	}
 	for _, root := range systemNVIDIACUDARuntimeCandidates() {
-		if canonicalRoot, ok := verifiedNVIDIACUDARuntimeRoot(root); ok {
+		if canonicalRoot, ok := verifiedNVIDIACUDARuntimeRootForArtifacts(root, spec.RequiredArtifacts); ok {
 			return canonicalRoot, false, "system CUDA user-space runtime candidates exist but runtime lacks admitted version, driver compatibility, and source identity proof"
 		}
 	}
@@ -271,11 +333,15 @@ func systemNVIDIACUDARuntimeCandidates() []string {
 }
 
 func verifiedNVIDIACUDARuntimeRoot(root string) (string, bool) {
+	return verifiedNVIDIACUDARuntimeRootForArtifacts(root, nvidiaCUDAUserSpaceRuntimeRequiredArtifacts)
+}
+
+func verifiedNVIDIACUDARuntimeRootForArtifacts(root string, requiredArtifacts []string) (string, bool) {
 	canonicalRoot, err := filepath.Abs(filepath.Clean(strings.TrimSpace(root)))
 	if err != nil || canonicalRoot == "" {
 		return "", false
 	}
-	for _, artifact := range nvidiaCUDAUserSpaceRuntimeRequiredArtifacts {
+	for _, artifact := range requiredArtifacts {
 		if ok, err := artifactExistsCaseInsensitive(canonicalRoot, artifact); err != nil || !ok {
 			return canonicalRoot, false
 		}
@@ -299,7 +365,7 @@ func artifactExistsCaseInsensitive(root string, artifactName string) (bool, erro
 	return false, nil
 }
 
-func installManagedNVIDIACUDAUserSpaceRuntime(ctx context.Context, dependenciesPath string, source sharedAcceleratorDependencyManagedSource) error {
+func installManagedNVIDIACUDAUserSpaceRuntime(ctx context.Context, dependenciesPath string, source sharedAcceleratorDependencyManagedSource, requiredArtifacts []string) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
@@ -359,7 +425,7 @@ func installManagedNVIDIACUDAUserSpaceRuntime(ctx context.Context, dependenciesP
 	if err := ctx.Err(); err != nil {
 		return err
 	}
-	for _, artifact := range nvidiaCUDAUserSpaceRuntimeRequiredArtifacts {
+	for _, artifact := range requiredArtifacts {
 		if ok, err := artifactExistsCaseInsensitive(stagedDir, artifact); err != nil {
 			return fmt.Errorf("verify managed CUDA artifact %s: %w", artifact, err)
 		} else if !ok {

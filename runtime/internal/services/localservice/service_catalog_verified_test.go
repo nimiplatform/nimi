@@ -6,7 +6,18 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	catalog "github.com/nimiplatform/nimi/runtime/internal/aicatalog"
+	"google.golang.org/protobuf/types/known/structpb"
 )
+
+func TestDefaultCatalogPreservesVerifiedSourceProvenance(t *testing.T) {
+	metadata, _ := structpb.NewStruct(map[string]any{"provenance": "upstream/model converted by exact-owner"})
+	items := defaultCatalogFromVerified([]*runtimev1.LocalVerifiedAssetDescriptor{{
+		TemplateId: "local.test.model", AssetId: "local.test.model", Metadata: metadata,
+	}})
+	if len(items) != 1 || items[0].GetSourceProvenance() != "upstream/model converted by exact-owner" {
+		t.Fatalf("catalog source provenance = %+v", items)
+	}
+}
 
 func TestProjectVerifiedVoxCPMAssetCarriesCanonicalFamilyAndPrivateBackend(t *testing.T) {
 	row := catalog.ModelEntry{

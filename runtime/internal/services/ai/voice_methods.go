@@ -535,7 +535,7 @@ func (s *Service) listSelectedLocalPresetVoices(
 	if reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED || driver == nil {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_DRIVER_UNAVAILABLE)
 	}
-	speechDriver, ok := driver.(capabilitydriver.SpeechSynthesizeInvocationDriver)
+	speechDriver, ok := driver.(capabilitydriver.SpeechPresetVoiceDriver)
 	if !ok {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_DRIVER_UNAVAILABLE)
 	}

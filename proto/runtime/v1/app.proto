@@ -231,6 +231,19 @@ message MoveLocalAppAssetResponse {
   ReasonCode reason_code = 2;
 }
 
+// Purpose-specific host-only reveal. The renderer and SDK supply only the
+// canonical App-relative path and never receive absolute_path; the native
+// protected Host consumes it inside the reveal call and returns only success.
+message RevealLocalAppAssetRequest {
+  string relative_path = 1;
+}
+
+message RevealLocalAppAssetResponse {
+  LocalAppAssetRecord asset = 1;
+  string absolute_path = 2;
+  ReasonCode reason_code = 3;
+}
+
 message AdoptLocalAppArtifactRequest {
   string artifact_id = 1;
   string relative_path = 2;
@@ -299,6 +312,7 @@ service RuntimeAppService {
   rpc ReadLocalAppAsset(ReadLocalAppAssetRequest) returns (stream ReadLocalAppAssetResponse);
   rpc RemoveLocalAppAsset(RemoveLocalAppAssetRequest) returns (RemoveLocalAppAssetResponse);
   rpc MoveLocalAppAsset(MoveLocalAppAssetRequest) returns (MoveLocalAppAssetResponse);
+  rpc RevealLocalAppAsset(RevealLocalAppAssetRequest) returns (RevealLocalAppAssetResponse);
   rpc AdoptLocalAppArtifact(AdoptLocalAppArtifactRequest) returns (AdoptLocalAppArtifactResponse);
   rpc PrepareLocalAppLaunch(PrepareLocalAppLaunchRequest) returns (PrepareLocalAppLaunchResponse);
   rpc BindLocalAppProcess(BindLocalAppProcessRequest) returns (BindLocalAppProcessResponse);

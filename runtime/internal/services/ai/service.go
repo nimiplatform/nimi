@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -67,11 +68,15 @@ type Service struct {
 	localExecution                         localexecution.Resolver
 	localTextHost                          localexecution.TextExecutionHost
 	localImageHost                         localexecution.ImageExecutionHost
+	localMusicHost                         localexecution.MusicExecutionHost
 	localVideoHost                         localexecution.VideoExecutionHost
 	localSpeechHost                        localexecution.SpeechExecutionHost
 	localImageJobOrder                     localMediaSubmissionOrder
+	localMusicJobOrder                     localMediaSubmissionOrder
 	localVideoJobOrder                     localMediaSubmissionOrder
 	localSpeechJobOrder                    localSpeechSubmissionOrder
+	localMusicStagingRoot                  string
+	localSpeechStagingRoot                 string
 	localVideoMedia                        videomedia.Pipeline
 	capabilityDrivers                      *capabilitydriver.Registry
 	cloudTextDrivers                       *capabilitydriver.CloudTextRegistry
@@ -157,6 +162,10 @@ func newService(logger *slog.Logger, auditStore *auditlog.Store, connStore *conn
 		return nil, fmt.Errorf("init scenario job store: %w", err)
 	}
 	svc.scenarioJobs = scenarioJobs
+	if localStatePath := strings.TrimSpace(daemonCfg.LocalStatePath); localStatePath != "" {
+		svc.localMusicStagingRoot = filepath.Join(filepath.Dir(localStatePath), "music-staging")
+		svc.localSpeechStagingRoot = filepath.Join(filepath.Dir(localStatePath), "speech-staging")
+	}
 	// Provider-persistent voice publication spans the VoiceAsset content store
 	// and the primary ScenarioJob owner. Reconcile its private pending records
 	// only after both durable stores have loaded, and before the Service becomes
@@ -286,6 +295,12 @@ func (s *Service) SetLocalTextExecutionHost(host localexecution.TextExecutionHos
 func (s *Service) SetLocalImageExecutionHost(host localexecution.ImageExecutionHost) {
 	if s != nil {
 		s.localImageHost = host
+	}
+}
+
+func (s *Service) SetLocalMusicExecutionHost(host localexecution.MusicExecutionHost) {
+	if s != nil {
+		s.localMusicHost = host
 	}
 }
 

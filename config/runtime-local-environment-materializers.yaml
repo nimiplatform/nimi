@@ -16,6 +16,7 @@ rows:
   - registry_8
   - registry_9
   - registry_10
+  - registry_11
   - every dependency family in local-environment-dependencies.yaml must either
     have one registry entry or an explicit exclusion before implementation
     admission
@@ -87,6 +88,21 @@ registry:
       - command_line_backend_installer
       - package_directory_presence
       - transfer_completion
+
+  - materializer_id: materializer.native-engine-package.audio-cpp
+    dependency_family: native-engine-package.audio-cpp
+    owner: RuntimeLocalService
+    admission_state: spec_aligned
+    source_manifest_ref: runtime-engine-audio-cpp-package-source
+    verification_evidence_ref: native-engine-package-evidence
+    confirmation_policy: first_network_materialization
+    selected_source_promotion: ready_managed_after_verification
+    repair_policy: lock_activation_until_reverified
+    forbidden_readiness_inputs:
+      - engine_startup_branch
+      - package_directory_presence
+      - transfer_completion
+      - path_precedence_only
 
   - materializer_id: materializer.python.tool.uv
     dependency_family: python.tool.uv

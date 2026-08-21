@@ -912,6 +912,14 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "RemoveLocalAppStorageJsonResponse",
     },
     RuntimeMethodDescriptor {
+        method_id: "/nimi.runtime.v1.RuntimeAppService/RevealLocalAppAsset",
+        service: "RuntimeAppService",
+        method: "RevealLocalAppAsset",
+        kind: "unary",
+        request_type: "RevealLocalAppAssetRequest",
+        response_type: "RevealLocalAppAssetResponse",
+    },
+    RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeAppService/SendAppMessage",
         service: "RuntimeAppService",
         method: "SendAppMessage",

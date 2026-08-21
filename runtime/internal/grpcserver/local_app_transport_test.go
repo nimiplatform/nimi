@@ -314,6 +314,7 @@ func TestProtectedLocalAppAssetCRUDDispatchesOnlyExactIngress(t *testing.T) {
 		{protectedListLocalAppAssetsMethod, &runtimev1.ListLocalAppAssetsRequest{}, localappop.IngressStorageAssetList},
 		{protectedRemoveLocalAppAssetMethod, &runtimev1.RemoveLocalAppAssetRequest{}, localappop.IngressStorageAssetRemove},
 		{protectedMoveLocalAppAssetMethod, &runtimev1.MoveLocalAppAssetRequest{}, localappop.IngressStorageAssetMove},
+		{protectedRevealLocalAppAssetMethod, &runtimev1.RevealLocalAppAssetRequest{}, localappop.IngressStorageAssetReveal},
 		{protectedAdoptLocalAppArtifactMethod, &runtimev1.AdoptLocalAppArtifactRequest{}, localappop.IngressArtifactAdoptToStorage},
 	}
 	for _, test := range unary {

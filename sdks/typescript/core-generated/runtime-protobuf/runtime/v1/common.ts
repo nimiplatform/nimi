@@ -1322,7 +1322,14 @@ export enum ReasonCode {
     /**
      * @generated from protobuf enum value: AI_LOADOUT_CATALOG_SCHEMA_INVALID = 724;
      */
-    AI_LOADOUT_CATALOG_SCHEMA_INVALID = 724
+    AI_LOADOUT_CATALOG_SCHEMA_INVALID = 724,
+    /**
+     * Native local execution exhausted device or host memory. This is distinct
+     * from an ordinary inference failure and never triggers model substitution.
+     *
+     * @generated from protobuf enum value: AI_LOCAL_EXECUTION_OUT_OF_MEMORY = 725;
+     */
+    AI_LOCAL_EXECUTION_OUT_OF_MEMORY = 725
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.ExternalPrincipalType

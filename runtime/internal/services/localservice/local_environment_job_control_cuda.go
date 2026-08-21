@@ -9,7 +9,8 @@ import (
 )
 
 func (s *Service) executeCUDAEnvironmentDependencyJob(ctx context.Context, job localEnvironmentDependencyJobState, report localEnvironmentDependencyJobProgressReporter) (localEnvironmentDependencyJobResult, error) {
-	if normalizeLocalRuntimeDependencyID(job.DependencyID) != cudaUserSpaceRuntimeDependencyID {
+	dependencyID := normalizeLocalRuntimeDependencyID(job.DependencyID)
+	if dependencyID != cudaUserSpaceRuntimeDependencyID && dependencyID != cuda13UserSpaceRuntimeDependencyID {
 		return localEnvironmentDependencyJobResult{
 			State:           localEnvironmentStateUnsupported,
 			SourceKind:      localEnvironmentSourceUnavailable,
@@ -21,7 +22,7 @@ func (s *Service) executeCUDAEnvironmentDependencyJob(ctx context.Context, job l
 		return localEnvironmentDependencyJobResult{}, errors.New("runtime engine manager unavailable")
 	}
 	reportLocalEnvironmentJobProgress(report, localEnvironmentStateDownloading)
-	status, err := mgr.EnsureSharedAcceleratorDependency(localEnvironmentEngineDownloadProgressContext(ctx, report), cudaUserSpaceRuntimeDependencyID)
+	status, err := mgr.EnsureSharedAcceleratorDependency(localEnvironmentEngineDownloadProgressContext(ctx, report), dependencyID)
 	if err != nil {
 		return localEnvironmentDependencyJobResult{}, err
 	}
@@ -41,6 +42,8 @@ func cudaSelectedConsumer(environmentKey string) string {
 		"media.diffusers.cuda",
 		"media.video-python.cuda",
 		"llama.cpp.cuda",
+		audioCppCUDAConsumerID,
+		audioCppQwen3TTSCUDAConsumerID,
 		"desktop.local-model-center",
 	} {
 		if strings.Contains(environmentKey, "|"+consumer) {
@@ -51,17 +54,21 @@ func cudaSelectedConsumer(environmentKey string) string {
 }
 
 func localEnvironmentDependencyJobResultFromSharedAcceleratorStatus(status engine.SharedAcceleratorDependencyStatus) localEnvironmentDependencyJobResult {
+	selectedConsumers := normalizeStringSlice([]string{status.ConsumerID})
+	if status.DependencyID == cuda13UserSpaceRuntimeDependencyID && (status.ConsumerID == audioCppCUDAConsumerID || status.ConsumerID == audioCppQwen3TTSCUDAConsumerID) {
+		selectedConsumers = audioCppSelectedConsumers()
+	}
 	switch status.State {
 	case engine.SharedAcceleratorDependencyReadySystem:
 		return localEnvironmentDependencyJobResult{
 			State:                 localEnvironmentStateReadySystem,
 			SourceKind:            localEnvironmentSourceSystem,
 			CanonicalRoot:         strings.TrimSpace(status.CanonicalRoot),
-			Version:               "cuda_major=12",
+			Version:               strings.TrimSpace(status.Version),
 			CompatibilityEvidence: []string{strings.TrimSpace(status.Detail)},
 			VerifiedArtifacts:     normalizeStringSlice(status.RequiredArtifacts),
 			Hashes:                map[string]string{"required_artifact_set": shortHash(strings.Join(normalizeStringSlice(status.RequiredArtifacts), "|"))},
-			SelectedConsumers:     normalizeStringSlice([]string{status.ConsumerID}),
+			SelectedConsumers:     selectedConsumers,
 			AuditReasonCode:       "LOCAL_ENVIRONMENT_DEPENDENCY_READY_SYSTEM",
 		}
 	case engine.SharedAcceleratorDependencyReadyManaged:
@@ -69,11 +76,11 @@ func localEnvironmentDependencyJobResultFromSharedAcceleratorStatus(status engin
 			State:                 localEnvironmentStateReadyManaged,
 			SourceKind:            localEnvironmentSourceManaged,
 			CanonicalRoot:         strings.TrimSpace(status.CanonicalRoot),
-			Version:               "cuda_major=12",
+			Version:               strings.TrimSpace(status.Version),
 			CompatibilityEvidence: []string{strings.TrimSpace(status.Detail)},
 			VerifiedArtifacts:     normalizeStringSlice(status.RequiredArtifacts),
 			Hashes:                map[string]string{"required_artifact_set": shortHash(strings.Join(normalizeStringSlice(status.RequiredArtifacts), "|"))},
-			SelectedConsumers:     normalizeStringSlice([]string{status.ConsumerID}),
+			SelectedConsumers:     selectedConsumers,
 			AuditReasonCode:       "LOCAL_ENVIRONMENT_DEPENDENCY_READY_MANAGED",
 		}
 	case engine.SharedAcceleratorDependencyRepairRequired:

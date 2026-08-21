@@ -220,7 +220,7 @@ func (s *Service) prepareLocalEnvironmentPlanApplyActions(plan localEnvironmentP
 		case localEnvironmentStateFailed, localEnvironmentStateCancelled:
 			if hasJob &&
 				strings.TrimSpace(job.State) == localEnvironmentStateFailed &&
-				dep.DependencyFamily == localEnvironmentFamilyNativeSDCPP &&
+				(dep.DependencyFamily == localEnvironmentFamilyNativeSDCPP || dep.DependencyFamily == localEnvironmentFamilyNativeAudioCPP) &&
 				strings.TrimSpace(job.SelectedSourceRecordID) == "" &&
 				localEnvironmentCUDAConsumerScopeRequiresRuntime(dep.ConsumerScope) {
 				if _, ready, _ := s.readySelectedSourceForFamilyAndConsumer(localEnvironmentFamilyCUDA, dep.ConsumerScope); ready {
@@ -299,6 +299,7 @@ func localEnvironmentDependencyFamilyHasMaterializer(family string) bool {
 	case localEnvironmentFamilyCUDA,
 		localEnvironmentFamilyNativeLlama,
 		localEnvironmentFamilyNativeSDCPP,
+		localEnvironmentFamilyNativeAudioCPP,
 		localEnvironmentFamilyPythonUV,
 		localEnvironmentFamilyPythonRuntime,
 		localEnvironmentFamilyPythonVenv,
@@ -466,6 +467,8 @@ func (s *Service) localEnvironmentDependencyJobExecutor(family string) localEnvi
 		return s.executeNativeLlamaEnvironmentDependencyJob
 	case localEnvironmentFamilyNativeSDCPP:
 		return s.executeNativeSDCPPEnvironmentDependencyJob
+	case localEnvironmentFamilyNativeAudioCPP:
+		return s.executeNativeAudioCPPEnvironmentDependencyJob
 	case localEnvironmentFamilyPythonUV:
 		return s.executePythonUVEnvironmentDependencyJob
 	case localEnvironmentFamilyPythonRuntime:

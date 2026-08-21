@@ -33,6 +33,7 @@ const (
 	LocalAssetKind_LOCAL_ASSET_KIND_TTS       LocalAssetKind = 4
 	LocalAssetKind_LOCAL_ASSET_KIND_STT       LocalAssetKind = 5
 	LocalAssetKind_LOCAL_ASSET_KIND_EMBEDDING LocalAssetKind = 6
+	LocalAssetKind_LOCAL_ASSET_KIND_MUSIC     LocalAssetKind = 7
 	// Passive kinds
 	LocalAssetKind_LOCAL_ASSET_KIND_VAE        LocalAssetKind = 10
 	LocalAssetKind_LOCAL_ASSET_KIND_CLIP       LocalAssetKind = 11
@@ -51,6 +52,7 @@ var (
 		4:  "LOCAL_ASSET_KIND_TTS",
 		5:  "LOCAL_ASSET_KIND_STT",
 		6:  "LOCAL_ASSET_KIND_EMBEDDING",
+		7:  "LOCAL_ASSET_KIND_MUSIC",
 		10: "LOCAL_ASSET_KIND_VAE",
 		11: "LOCAL_ASSET_KIND_CLIP",
 		12: "LOCAL_ASSET_KIND_LORA",
@@ -65,6 +67,7 @@ var (
 		"LOCAL_ASSET_KIND_TTS":         4,
 		"LOCAL_ASSET_KIND_STT":         5,
 		"LOCAL_ASSET_KIND_EMBEDDING":   6,
+		"LOCAL_ASSET_KIND_MUSIC":       7,
 		"LOCAL_ASSET_KIND_VAE":         10,
 		"LOCAL_ASSET_KIND_CLIP":        11,
 		"LOCAL_ASSET_KIND_LORA":        12,
@@ -1161,6 +1164,7 @@ type LocalCatalogModelDescriptor struct {
 	EngineConfig      *structpb.Struct       `protobuf:"bytes,25,opt,name=engine_config,json=engineConfig,proto3" json:"engine_config,omitempty"`
 	HostRequirements  *LocalHostRequirements `protobuf:"bytes,26,opt,name=host_requirements,json=hostRequirements,proto3" json:"host_requirements,omitempty"`
 	TotalSizeBytes    int64                  `protobuf:"varint,27,opt,name=total_size_bytes,json=totalSizeBytes,proto3" json:"total_size_bytes,omitempty"`
+	SourceProvenance  string                 `protobuf:"bytes,28,opt,name=source_provenance,json=sourceProvenance,proto3" json:"source_provenance,omitempty"`
 	unknownFields     protoimpl.UnknownFields
 	sizeCache         protoimpl.SizeCache
 }
@@ -1384,6 +1388,13 @@ func (x *LocalCatalogModelDescriptor) GetTotalSizeBytes() int64 {
 	return 0
 }
 
+func (x *LocalCatalogModelDescriptor) GetSourceProvenance() string {
+	if x != nil {
+		return x.SourceProvenance
+	}
+	return ""
+}
+
 type LocalInstallPlanDescriptor struct {
 	state             protoimpl.MessageState `protogen:"open.v1"`
 	PlanId            string                 `protobuf:"bytes,1,opt,name=plan_id,json=planId,proto3" json:"plan_id,omitempty"`
@@ -1408,6 +1419,7 @@ type LocalInstallPlanDescriptor struct {
 	ReasonCode        string                 `protobuf:"bytes,20,opt,name=reason_code,json=reasonCode,proto3" json:"reason_code,omitempty"`
 	EngineConfig      *structpb.Struct       `protobuf:"bytes,21,opt,name=engine_config,json=engineConfig,proto3" json:"engine_config,omitempty"`
 	TotalSizeBytes    int64                  `protobuf:"varint,22,opt,name=total_size_bytes,json=totalSizeBytes,proto3" json:"total_size_bytes,omitempty"`
+	SourceProvenance  string                 `protobuf:"bytes,23,opt,name=source_provenance,json=sourceProvenance,proto3" json:"source_provenance,omitempty"`
 	unknownFields     protoimpl.UnknownFields
 	sizeCache         protoimpl.SizeCache
 }
@@ -1596,6 +1608,13 @@ func (x *LocalInstallPlanDescriptor) GetTotalSizeBytes() int64 {
 	return 0
 }
 
+func (x *LocalInstallPlanDescriptor) GetSourceProvenance() string {
+	if x != nil {
+		return x.SourceProvenance
+	}
+	return ""
+}
+
 var File_runtime_v1_local_runtime_asset_catalog_proto protoreflect.FileDescriptor
 
 const file_runtime_v1_local_runtime_asset_catalog_proto_rawDesc = "" +
@@ -1706,7 +1725,7 @@ const file_runtime_v1_local_runtime_asset_catalog_proto_rawDesc = "" +
 	"\n" +
 	"ExtraEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xd8\b\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x85\t\n" +
 	"\x1bLocalCatalogModelDescriptor\x12\x17\n" +
 	"\aitem_id\x18\x01 \x01(\tR\x06itemId\x12\x16\n" +
 	"\x06source\x18\x02 \x01(\tR\x06source\x12\x14\n" +
@@ -1736,10 +1755,11 @@ const file_runtime_v1_local_runtime_asset_catalog_proto_rawDesc = "" +
 	"\bverified\x18\x18 \x01(\bR\bverified\x12<\n" +
 	"\rengine_config\x18\x19 \x01(\v2\x17.google.protobuf.StructR\fengineConfig\x12S\n" +
 	"\x11host_requirements\x18\x1a \x01(\v2&.nimi.runtime.v1.LocalHostRequirementsR\x10hostRequirements\x12(\n" +
-	"\x10total_size_bytes\x18\x1b \x01(\x03R\x0etotalSizeBytes\x1a9\n" +
+	"\x10total_size_bytes\x18\x1b \x01(\x03R\x0etotalSizeBytes\x12+\n" +
+	"\x11source_provenance\x18\x1c \x01(\tR\x10sourceProvenance\x1a9\n" +
 	"\vHashesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x96\a\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xc3\a\n" +
 	"\x1aLocalInstallPlanDescriptor\x12\x17\n" +
 	"\aplan_id\x18\x01 \x01(\tR\x06planId\x12\x17\n" +
 	"\aitem_id\x18\x02 \x01(\tR\x06itemId\x12\x16\n" +
@@ -1765,10 +1785,11 @@ const file_runtime_v1_local_runtime_asset_catalog_proto_rawDesc = "" +
 	"\vreason_code\x18\x14 \x01(\tR\n" +
 	"reasonCode\x12<\n" +
 	"\rengine_config\x18\x15 \x01(\v2\x17.google.protobuf.StructR\fengineConfig\x12(\n" +
-	"\x10total_size_bytes\x18\x16 \x01(\x03R\x0etotalSizeBytes\x1a9\n" +
+	"\x10total_size_bytes\x18\x16 \x01(\x03R\x0etotalSizeBytes\x12+\n" +
+	"\x11source_provenance\x18\x17 \x01(\tR\x10sourceProvenance\x1a9\n" +
 	"\vHashesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01*\xea\x02\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01*\x86\x03\n" +
 	"\x0eLocalAssetKind\x12 \n" +
 	"\x1cLOCAL_ASSET_KIND_UNSPECIFIED\x10\x00\x12\x19\n" +
 	"\x15LOCAL_ASSET_KIND_CHAT\x10\x01\x12\x1a\n" +
@@ -1776,7 +1797,8 @@ const file_runtime_v1_local_runtime_asset_catalog_proto_rawDesc = "" +
 	"\x16LOCAL_ASSET_KIND_VIDEO\x10\x03\x12\x18\n" +
 	"\x14LOCAL_ASSET_KIND_TTS\x10\x04\x12\x18\n" +
 	"\x14LOCAL_ASSET_KIND_STT\x10\x05\x12\x1e\n" +
-	"\x1aLOCAL_ASSET_KIND_EMBEDDING\x10\x06\x12\x18\n" +
+	"\x1aLOCAL_ASSET_KIND_EMBEDDING\x10\x06\x12\x1a\n" +
+	"\x16LOCAL_ASSET_KIND_MUSIC\x10\a\x12\x18\n" +
 	"\x14LOCAL_ASSET_KIND_VAE\x10\n" +
 	"\x12\x19\n" +
 	"\x15LOCAL_ASSET_KIND_CLIP\x10\v\x12\x19\n" +

@@ -7,6 +7,7 @@ owner: runtime
 catalog_id: runtime_shared_accelerator_dependencies
 entries:
   - dependencies_1
+  - dependencies_2
 
 # Accelerator-specific projection of canonical Runtime local environment
 # dependency authority. The canonical cross-family dependency graph, source
@@ -99,4 +100,58 @@ dependencies:
       - failed
       - unsupported
       - cancelled
+    selected_source_record_ref: selected-source-record-schema.yaml#accelerator.cuda.runtime
+
+  - dependency_id: nvidia-cuda13-user-space-runtime
+    canonical_family_ref: accelerator.cuda.runtime
+    dependency_family: accelerator
+    accelerator_plane: cuda
+    host_profile_refs:
+      - windows-amd64-nvidia-cuda
+    canonical_source_policy_ref: local-environment-dependencies.yaml#accelerator.cuda.runtime
+    source_policy_projection: system-first-managed-fallback
+    source_candidates:
+      - source_kind: system
+        priority: 1
+        admission: positive_compatibility_proof_required
+      - source_kind: managed
+        priority: 2
+        admission: explicit_confirmation_before_first_network_materialization
+      - source_kind: unavailable
+        priority: 3
+        admission: fail_closed
+    version_constraints:
+      cuda_major: 13
+      driver_compatibility: driver_580_or_newer
+      consumer_abi: audio.cpp-release-0.6.1
+    required_artifacts:
+      - cublas64_13.dll
+      - cublasLt64_13.dll
+      - cufft64_12.dll
+    managed_sources:
+      - source_id: audiocpp-0.6.1-cuda13-win-x64-runtime
+        source_owner: runtime_shared_dependency_source
+        release_owner: 0xShug0/audio.cpp
+        release_tag_ref: release-0.6.1
+        archive_name: audiocpp-windows-cuda-runtime.zip
+        archive_url: https://github.com/0xShug0/audio.cpp/releases/download/release-0.6.1/audiocpp-windows-cuda-runtime.zip
+        archive_bytes: 575505446
+        archive_sha256: 4104167de457dd3d20bd6e2de172c41f84cd15d0b3e8835649849710a863d10d
+        package_format: direct_archive
+        stage_policy: staged_extract_verify_atomic_promote
+        product_state: supported
+    verification_owner: runtime_local_environment_plan
+    activation_policy:
+      env: path_prepend_process_only
+      persistent_path_mutation: forbidden
+      shell_profile_mutation: forbidden
+      machine_or_user_cuda_mutation: forbidden
+    repair_policy:
+      missing_artifact: repair_required
+      hash_mismatch: failed
+      incompatible_driver: failed
+      corrupt_selected_source: repair_required
+      activation_during_repair: forbidden
+      automatic_reinstall_without_allowed_confirmation: forbidden
+    canonical_job_state_ref: local-environment-job-states.yaml
     selected_source_record_ref: selected-source-record-schema.yaml#accelerator.cuda.runtime

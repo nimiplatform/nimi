@@ -6,16 +6,18 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
-	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"hash"
 	"io"
 	"io/fs"
 	"mime"
 	"os"
+	"path"
 	"path/filepath"
+	"runtime"
 	"sort"
 	"strings"
 	"sync"
@@ -32,9 +34,8 @@ const (
 	AssetDefaultMinFreeBytes    = int64(1024 * 1024 * 1024)
 	AssetDefaultActiveStreams   = 16
 
-	assetObjectName       = "object.asset"
-	assetFooterMagic      = "NIMIAS01"
-	assetFooterTrailerLen = 12
+	assetMetadataStream   = ":nimi.asset"
+	assetMetadataSuffix   = ".nimi-meta"
 	assetMaxMetadataBytes = 16 * 1024
 )
 
@@ -228,11 +229,11 @@ func (store *AssetStore) write(
 	if err != nil {
 		return AssetRecord{}, err
 	}
-	target, err := encodedLogicalPath(objectsRoot, normalizedPath, assetObjectName)
+	target, err := assetObjectPath(objectsRoot, normalizedPath)
 	if err != nil {
 		return AssetRecord{}, err
 	}
-	existing, existingErr := store.readRecord(ctx, objectsRoot, target)
+	existing, existingErr := store.readRecord(ctx, objectsRoot, normalizedPath)
 	if existingErr == nil && !overwrite {
 		return AssetRecord{}, ErrAssetAlreadyExists
 	}
@@ -250,6 +251,7 @@ func (store *AssetStore) write(
 		_ = candidate.Close()
 		if !committed {
 			_ = os.Remove(candidatePath)
+			_ = removeAssetMetadata(candidatePath)
 		}
 	}()
 	if err := candidate.Chmod(0o600); err != nil {
@@ -273,14 +275,14 @@ func (store *AssetStore) write(
 		MediaType: normalizedMedia, SizeBytes: sizeBytes,
 		SHA256: observedDigest, CreatedAt: createdAt, ModifiedAt: now,
 	}
-	if err := appendAssetFooter(candidate, metadata); err != nil {
-		return AssetRecord{}, err
-	}
 	if err := candidate.Sync(); err != nil {
 		return AssetRecord{}, ErrAssetUnavailable
 	}
 	if err := candidate.Close(); err != nil {
 		return AssetRecord{}, ErrAssetUnavailable
+	}
+	if err := writeAssetMetadata(candidatePath, metadata); err != nil {
+		return AssetRecord{}, err
 	}
 
 	state.quotaMu.Lock()
@@ -307,8 +309,8 @@ func (store *AssetStore) write(
 	if _, err := ensureManagedParent(objectsRoot, target, true); err != nil {
 		return AssetRecord{}, ErrAssetUnavailable
 	}
-	if err := replaceLocalAppJSONFile(candidatePath, target); err != nil {
-		return AssetRecord{}, ErrAssetUnavailable
+	if err := commitAssetCandidate(candidatePath, target); err != nil {
+		return AssetRecord{}, fmt.Errorf("%w: commit asset payload: %v", ErrAssetUnavailable, err)
 	}
 	committed = true
 	return metadata.public(normalizedPath), nil
@@ -324,11 +326,7 @@ func (store *AssetStore) Stat(ctx context.Context, owner ManagedOwner, relativeP
 		return AssetRecord{}, err
 	}
 	objectsRoot := filepath.Join(ownerRoot, "assets", "objects")
-	target, err := encodedLogicalPath(objectsRoot, normalizedPath, assetObjectName)
-	if err != nil {
-		return AssetRecord{}, err
-	}
-	return store.readRecord(ctx, objectsRoot, target)
+	return store.readRecord(ctx, objectsRoot, normalizedPath)
 }
 
 func (store *AssetStore) Open(ctx context.Context, owner ManagedOwner, relativePath string) (*AssetSource, error) {
@@ -345,7 +343,7 @@ func (store *AssetStore) Open(ctx context.Context, owner ManagedOwner, relativeP
 		return nil, err
 	}
 	objectsRoot := filepath.Join(ownerRoot, "assets", "objects")
-	target, err := encodedLogicalPath(objectsRoot, normalizedPath, assetObjectName)
+	target, err := assetObjectPath(objectsRoot, normalizedPath)
 	if err != nil {
 		releaseAssetStream(state)
 		return nil, err
@@ -360,6 +358,29 @@ func (store *AssetStore) Open(ctx context.Context, owner ManagedOwner, relativeP
 		release: func() { releaseAssetStream(state) },
 	}
 	return &AssetSource{Record: metadata.public(normalizedPath), Body: body}, nil
+}
+
+// ResolveRevealTarget fully verifies one owner-bound committed asset and
+// returns its host-private physical payload path. Callers must never project
+// the absolute path outside the native protected Host operation.
+func (store *AssetStore) ResolveRevealTarget(ctx context.Context, owner ManagedOwner, relativePath string) (AssetRecord, string, error) {
+	source, err := store.Open(ctx, owner, relativePath)
+	if err != nil {
+		return AssetRecord{}, "", err
+	}
+	record := source.Record
+	if err := source.Body.Close(); err != nil {
+		return AssetRecord{}, "", ErrAssetUnavailable
+	}
+	ownerRoot, _, err := managedOwnerRoot(store.dataRoot, owner)
+	if err != nil {
+		return AssetRecord{}, "", err
+	}
+	target, err := assetObjectPath(filepath.Join(ownerRoot, "assets", "objects"), record.RelativePath)
+	if err != nil || !filepath.IsAbs(target) {
+		return AssetRecord{}, "", ErrAssetUnavailable
+	}
+	return record, target, nil
 }
 
 func (store *AssetStore) List(ctx context.Context, owner ManagedOwner, prefix string, cursor string, pageSize int) (AssetListPage, error) {
@@ -422,16 +443,16 @@ func (store *AssetStore) Remove(ctx context.Context, owner ManagedOwner, relativ
 	state.quotaMu.Lock()
 	defer state.quotaMu.Unlock()
 	objectsRoot := filepath.Join(ownerRoot, "assets", "objects")
-	target, err := encodedLogicalPath(objectsRoot, normalizedPath, assetObjectName)
+	target, err := assetObjectPath(objectsRoot, normalizedPath)
 	if err != nil {
 		return false, err
 	}
-	if _, err := store.readRecord(ctx, objectsRoot, target); errors.Is(err, ErrAssetNotFound) {
+	if _, err := store.readRecord(ctx, objectsRoot, normalizedPath); errors.Is(err, ErrAssetNotFound) {
 		return false, nil
 	} else if err != nil {
 		return false, err
 	}
-	if err := os.Remove(target); err != nil {
+	if err := removeAssetPayload(target); err != nil {
 		return false, ErrAssetUnavailable
 	}
 	removeEmptyAssetParents(objectsRoot, filepath.Dir(target))
@@ -457,13 +478,13 @@ func (store *AssetStore) Move(ctx context.Context, owner ManagedOwner, from stri
 	state.quotaMu.Lock()
 	defer state.quotaMu.Unlock()
 	objectsRoot := filepath.Join(ownerRoot, "assets", "objects")
-	fromTarget, _ := encodedLogicalPath(objectsRoot, fromPath, assetObjectName)
-	toTarget, _ := encodedLogicalPath(objectsRoot, toPath, assetObjectName)
-	record, err := store.readRecord(ctx, objectsRoot, fromTarget)
+	fromTarget, _ := assetObjectPath(objectsRoot, fromPath)
+	toTarget, _ := assetObjectPath(objectsRoot, toPath)
+	record, err := store.readRecord(ctx, objectsRoot, fromPath)
 	if err != nil {
 		return AssetRecord{}, err
 	}
-	if _, targetErr := store.readRecord(ctx, objectsRoot, toTarget); targetErr == nil && !overwrite {
+	if _, targetErr := store.readRecord(ctx, objectsRoot, toPath); targetErr == nil && !overwrite {
 		return AssetRecord{}, ErrAssetAlreadyExists
 	} else if targetErr != nil && !errors.Is(targetErr, ErrAssetNotFound) {
 		return AssetRecord{}, targetErr
@@ -471,7 +492,7 @@ func (store *AssetStore) Move(ctx context.Context, owner ManagedOwner, from stri
 	if _, err := ensureManagedParent(objectsRoot, toTarget, true); err != nil {
 		return AssetRecord{}, ErrAssetUnavailable
 	}
-	if err := replaceLocalAppJSONFile(fromTarget, toTarget); err != nil {
+	if err := moveAssetPayload(fromTarget, toTarget); err != nil {
 		return AssetRecord{}, ErrAssetUnavailable
 	}
 	removeEmptyAssetParents(objectsRoot, filepath.Dir(fromTarget))
@@ -582,15 +603,35 @@ func (store *AssetStore) cleanupAbandonedCandidates() error {
 	})
 }
 
-func (store *AssetStore) readRecord(ctx context.Context, objectsRoot string, target string) (AssetRecord, error) {
+func assetObjectPath(objectsRoot string, relativePath string) (string, error) {
+	normalized, err := NormalizeAssetRelativePath(relativePath)
+	if err != nil {
+		return "", err
+	}
+	payloadName := path.Base(normalized)
+	payload, err := encodedLogicalPath(objectsRoot, normalized, payloadName)
+	if err != nil {
+		return "", err
+	}
+	return payload, nil
+}
+
+func assetMetadataPath(payloadPath string) string {
+	if runtime.GOOS == "windows" {
+		return payloadPath + assetMetadataStream
+	}
+	return payloadPath + assetMetadataSuffix
+}
+
+func (store *AssetStore) readRecord(ctx context.Context, objectsRoot string, relativePath string) (AssetRecord, error) {
+	target, err := assetObjectPath(objectsRoot, relativePath)
+	if err != nil {
+		return AssetRecord{}, err
+	}
 	if _, err := ensureManagedParent(objectsRoot, target, false); err != nil {
 		return AssetRecord{}, ErrAssetUnavailable
 	} else if _, statErr := os.Lstat(target); errors.Is(statErr, os.ErrNotExist) {
 		return AssetRecord{}, ErrAssetNotFound
-	}
-	logical, err := decodeLogicalPath(objectsRoot, target, assetObjectName)
-	if err != nil {
-		return AssetRecord{}, ErrAssetCorrupt
 	}
 	file, metadata, err := openAssetMetadata(target)
 	if err != nil {
@@ -599,7 +640,8 @@ func (store *AssetStore) readRecord(ctx context.Context, objectsRoot string, tar
 	if closeErr := file.Close(); closeErr != nil {
 		return AssetRecord{}, ErrAssetUnavailable
 	}
-	return metadata.public(logical), nil
+	normalized, _ := NormalizeAssetRelativePath(relativePath)
+	return metadata.public(normalized), nil
 }
 
 func openAndVerifyAsset(ctx context.Context, target string) (*os.File, assetDiskMetadata, error) {
@@ -621,13 +663,13 @@ func openAndVerifyAsset(ctx context.Context, target string) (*os.File, assetDisk
 	return file, metadata, nil
 }
 
-// openAssetMetadata validates the self-contained committed record without
-// reading its payload. Stat and list therefore remain metadata operations;
-// body integrity is verified by Open before any read metadata is emitted.
+// openAssetMetadata validates committed metadata separate from payload bytes
+// shape without hashing the payload. Stat and list remain metadata operations;
+// body integrity is verified by Open before read metadata is emitted.
 func openAssetMetadata(target string) (*os.File, assetDiskMetadata, error) {
 	linkInfo, linkErr := os.Lstat(target)
 	if errors.Is(linkErr, os.ErrNotExist) {
-		return nil, assetDiskMetadata{}, ErrAssetNotFound
+		return nil, assetDiskMetadata{}, fmt.Errorf("%w: payload file missing", ErrAssetNotFound)
 	}
 	if linkErr != nil || linkInfo.Mode()&os.ModeSymlink != 0 || !linkInfo.Mode().IsRegular() {
 		return nil, assetDiskMetadata{}, ErrAssetCorrupt
@@ -644,24 +686,18 @@ func openAssetMetadata(target string) (*os.File, assetDiskMetadata, error) {
 		return nil, assetDiskMetadata{}, result
 	}
 	info, err := file.Stat()
-	if err != nil || !info.Mode().IsRegular() || info.Size() < assetFooterTrailerLen {
+	if err != nil || !info.Mode().IsRegular() {
 		return fail(ErrAssetCorrupt)
 	}
-	trailer := make([]byte, assetFooterTrailerLen)
-	if _, err := file.ReadAt(trailer, info.Size()-assetFooterTrailerLen); err != nil || string(trailer[4:]) != assetFooterMagic {
-		return fail(ErrAssetCorrupt)
+	metadataBytes, err := os.ReadFile(assetMetadataPath(target))
+	if errors.Is(err, os.ErrNotExist) {
+		return fail(fmt.Errorf("%w: asset metadata missing", ErrAssetNotFound))
 	}
-	metadataSize := int64(binary.BigEndian.Uint32(trailer[:4]))
-	if metadataSize <= 0 || metadataSize > assetMaxMetadataBytes || metadataSize+assetFooterTrailerLen > info.Size() {
-		return fail(ErrAssetCorrupt)
-	}
-	metadataBytes := make([]byte, metadataSize)
-	metadataOffset := info.Size() - assetFooterTrailerLen - metadataSize
-	if _, err := file.ReadAt(metadataBytes, metadataOffset); err != nil {
+	if err != nil || len(metadataBytes) == 0 || len(metadataBytes) > assetMaxMetadataBytes {
 		return fail(ErrAssetCorrupt)
 	}
 	var metadata assetDiskMetadata
-	if err := json.Unmarshal(metadataBytes, &metadata); err != nil || metadata.SizeBytes != metadataOffset ||
+	if err := json.Unmarshal(metadataBytes, &metadata); err != nil || metadata.SizeBytes != info.Size() ||
 		metadata.SizeBytes < 0 || metadata.SHA256 == "" || metadata.CreatedAt.IsZero() || metadata.ModifiedAt.IsZero() {
 		return fail(ErrAssetCorrupt)
 	}
@@ -674,6 +710,54 @@ func openAssetMetadata(target string) (*os.File, assetDiskMetadata, error) {
 		return fail(ErrAssetCorrupt)
 	}
 	return file, metadata, nil
+}
+
+func writeAssetMetadata(payloadPath string, metadata assetDiskMetadata) error {
+	encoded, err := json.Marshal(metadata)
+	if err != nil || len(encoded) == 0 || len(encoded) > assetMaxMetadataBytes {
+		return ErrAssetUnavailable
+	}
+	if err := os.WriteFile(assetMetadataPath(payloadPath), encoded, 0o600); err != nil {
+		return ErrAssetUnavailable
+	}
+	return nil
+}
+
+func removeAssetMetadata(payloadPath string) error {
+	err := os.Remove(assetMetadataPath(payloadPath))
+	if errors.Is(err, os.ErrNotExist) {
+		return nil
+	}
+	return err
+}
+
+func commitAssetCandidate(source string, target string) error {
+	if err := replaceLocalAppJSONFile(source, target); err != nil {
+		return err
+	}
+	if runtime.GOOS == "windows" {
+		return nil
+	}
+	return replaceLocalAppJSONFile(assetMetadataPath(source), assetMetadataPath(target))
+}
+
+func removeAssetPayload(target string) error {
+	if runtime.GOOS != "windows" {
+		if err := removeAssetMetadata(target); err != nil {
+			return err
+		}
+	}
+	return os.Remove(target)
+}
+
+func moveAssetPayload(source string, target string) error {
+	if err := replaceLocalAppJSONFile(source, target); err != nil {
+		return err
+	}
+	if runtime.GOOS == "windows" {
+		return nil
+	}
+	return replaceLocalAppJSONFile(assetMetadataPath(source), assetMetadataPath(target))
 }
 
 func (store *AssetStore) listRecords(ctx context.Context, objectsRoot string, prefix string) ([]AssetRecord, error) {
@@ -696,17 +780,23 @@ func (store *AssetStore) listRecords(ctx context.Context, objectsRoot string, pr
 		if entry.Type()&os.ModeSymlink != 0 {
 			return ErrAssetCorrupt
 		}
-		if entry.IsDir() || entry.Name() != assetObjectName {
+		if entry.IsDir() || runtime.GOOS != "windows" && strings.HasSuffix(entry.Name(), assetMetadataSuffix) {
 			return nil
 		}
-		logical, err := decodeLogicalPath(objectsRoot, current, assetObjectName)
+		logical, err := decodeLogicalPath(objectsRoot, current, entry.Name())
 		if err != nil {
 			return ErrAssetCorrupt
+		}
+		if path.Base(logical) != entry.Name() {
+			// Pre-cut self-contained object.asset files and unrelated files are
+			// not current committed payloads and never become live compatibility
+			// truth. Exact path lookup also treats them as absent.
+			return nil
 		}
 		if prefix != "" && logical != prefix && !(strings.HasSuffix(prefix, "/") && strings.HasPrefix(logical, prefix)) {
 			return nil
 		}
-		record, err := store.readRecord(ctx, objectsRoot, current)
+		record, err := store.readRecord(ctx, objectsRoot, logical)
 		if errors.Is(err, ErrAssetNotFound) {
 			return nil
 		}
@@ -779,23 +869,6 @@ func copyAssetReader(ctx context.Context, destination io.Writer, hasher hash.Has
 			return total, readErr
 		}
 	}
-}
-
-func appendAssetFooter(file *os.File, metadata assetDiskMetadata) error {
-	encoded, err := json.Marshal(metadata)
-	if err != nil || len(encoded) == 0 || len(encoded) > assetMaxMetadataBytes {
-		return ErrAssetUnavailable
-	}
-	if _, err := file.Write(encoded); err != nil {
-		return ErrAssetUnavailable
-	}
-	trailer := make([]byte, assetFooterTrailerLen)
-	binary.BigEndian.PutUint32(trailer[:4], uint32(len(encoded)))
-	copy(trailer[4:], assetFooterMagic)
-	if _, err := file.Write(trailer); err != nil {
-		return ErrAssetUnavailable
-	}
-	return nil
 }
 
 func (metadata assetDiskMetadata) public(relativePath string) AssetRecord {
@@ -886,5 +959,17 @@ func (store *AssetStore) debugObjectPath(owner ManagedOwner, relativePath string
 	if err != nil {
 		return "", err
 	}
-	return encodedLogicalPath(filepath.Join(ownerRoot, "assets", "objects"), relativePath, assetObjectName)
+	return assetObjectPath(filepath.Join(ownerRoot, "assets", "objects"), relativePath)
+}
+
+func (store *AssetStore) debugMetadataPath(owner ManagedOwner, relativePath string) (string, error) {
+	ownerRoot, _, err := managedOwnerRoot(store.dataRoot, owner)
+	if err != nil {
+		return "", err
+	}
+	payload, err := assetObjectPath(filepath.Join(ownerRoot, "assets", "objects"), relativePath)
+	if err != nil {
+		return "", err
+	}
+	return assetMetadataPath(payload), nil
 }

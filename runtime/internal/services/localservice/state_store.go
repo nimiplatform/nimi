@@ -76,6 +76,7 @@ type localStateManagedModelDownloadSpec struct {
 	Entry             string                   `json:"entry"`
 	Files             []string                 `json:"files"`
 	License           string                   `json:"license,omitempty"`
+	SourceProvenance  string                   `json:"sourceProvenance,omitempty"`
 	Repo              string                   `json:"repo"`
 	Revision          string                   `json:"revision"`
 	Hashes            map[string]string        `json:"hashes"`

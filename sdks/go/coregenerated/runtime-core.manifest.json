@@ -1087,6 +1087,15 @@
           "response_stream": false
         },
         {
+          "name": "RevealLocalAppAsset",
+          "method_id": "/nimi.runtime.v1.RuntimeAppService/RevealLocalAppAsset",
+          "kind": "unary",
+          "request_type": "RevealLocalAppAssetRequest",
+          "response_type": "RevealLocalAppAssetResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
           "name": "AdoptLocalAppArtifact",
           "method_id": "/nimi.runtime.v1.RuntimeAppService/AdoptLocalAppArtifact",
           "kind": "unary",
@@ -2354,6 +2363,7 @@
     "/nimi.runtime.v1.RuntimeAppService/RebindLocalAppProcess",
     "/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppAsset",
     "/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppStorageJson",
+    "/nimi.runtime.v1.RuntimeAppService/RevealLocalAppAsset",
     "/nimi.runtime.v1.RuntimeAppService/SendAppMessage",
     "/nimi.runtime.v1.RuntimeAppService/StatLocalAppAsset",
     "/nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages",
@@ -3374,6 +3384,14 @@
       "kind": "unary",
       "request_type": "RemoveLocalAppStorageJsonRequest",
       "response_type": "RemoveLocalAppStorageJsonResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAppService/RevealLocalAppAsset",
+      "service": "RuntimeAppService",
+      "method": "RevealLocalAppAsset",
+      "kind": "unary",
+      "request_type": "RevealLocalAppAssetRequest",
+      "response_type": "RevealLocalAppAssetResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAppService/SendAppMessage",
@@ -5258,6 +5276,14 @@
       "response_type": "RemoveLocalAppStorageJsonResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAppService/RevealLocalAppAsset",
+      "service": "RuntimeAppService",
+      "method": "RevealLocalAppAsset",
+      "kind": "unary",
+      "request_type": "RevealLocalAppAssetRequest",
+      "response_type": "RevealLocalAppAssetResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAppService/SendAppMessage",
       "service": "RuntimeAppService",
       "method": "SendAppMessage",
@@ -6657,6 +6683,7 @@
       "LocalAppConversationTurnStarted",
       "LocalAppImageGenerateOutput",
       "LocalAppImageGenerateScenarioSpec",
+      "LocalAppMusicGenerateJobSpec",
       "LocalAppScenarioArtifact",
       "LocalAppScenarioJob",
       "LocalAppScenarioJobEvent",
@@ -6869,6 +6896,8 @@
       "RetainResponse",
       "RetryLocalEnvironmentDependencyJobRequest",
       "RetryLocalEnvironmentDependencyJobResponse",
+      "RevealLocalAppAssetRequest",
+      "RevealLocalAppAssetResponse",
       "RevokeExternalPrincipalSessionRequest",
       "RevokeSessionRequest",
       "RevokeWorkspaceBindingRequest",
@@ -20972,6 +21001,26 @@
         "source_file": "proto/runtime/v1/ai.proto"
       },
       {
+        "name": "LocalAppMusicGenerateJobSpec",
+        "fields": [
+          {
+            "name": "prompt",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "lyrics",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
         "name": "LocalAppScenarioArtifact",
         "fields": [
           {
@@ -22005,6 +22054,13 @@
             "repeated": false,
             "optional": false,
             "number": 27
+          },
+          {
+            "name": "source_provenance",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 28
           }
         ],
         "source_file": "proto/runtime/v1/local_runtime_asset_catalog.proto"
@@ -23086,6 +23142,13 @@
             "repeated": false,
             "optional": false,
             "number": 22
+          },
+          {
+            "name": "source_provenance",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 23
           }
         ],
         "source_file": "proto/runtime/v1/local_runtime_asset_catalog.proto"
@@ -29086,6 +29149,46 @@
         "source_file": "proto/runtime/v1/local_runtime.proto"
       },
       {
+        "name": "RevealLocalAppAssetRequest",
+        "fields": [
+          {
+            "name": "relative_path",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
+        "name": "RevealLocalAppAssetResponse",
+        "fields": [
+          {
+            "name": "asset",
+            "type": "LocalAppAssetRecord",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "absolute_path",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "reason_code",
+            "type": "ReasonCode",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
         "name": "RevokeExternalPrincipalSessionRequest",
         "fields": [
           {
@@ -31384,6 +31487,20 @@
             "repeated": false,
             "optional": false,
             "number": 7
+          },
+          {
+            "name": "music_generate",
+            "type": "LocalAppMusicGenerateJobSpec",
+            "repeated": false,
+            "optional": false,
+            "number": 8
+          },
+          {
+            "name": "timeout_ms",
+            "type": "int32",
+            "repeated": false,
+            "optional": false,
+            "number": 9
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -35276,6 +35393,7 @@
           "LOCAL_ASSET_KIND_TTS",
           "LOCAL_ASSET_KIND_STT",
           "LOCAL_ASSET_KIND_EMBEDDING",
+          "LOCAL_ASSET_KIND_MUSIC",
           "LOCAL_ASSET_KIND_VAE",
           "LOCAL_ASSET_KIND_CLIP",
           "LOCAL_ASSET_KIND_LORA",
@@ -35876,7 +35994,8 @@
           "AI_LOADOUT_CONFIRMATION_REQUIRED",
           "AI_LOADOUT_PERSISTENCE_UNAVAILABLE",
           "AI_LOADOUT_NOT_CONFIGURED",
-          "AI_LOADOUT_CATALOG_SCHEMA_INVALID"
+          "AI_LOADOUT_CATALOG_SCHEMA_INVALID",
+          "AI_LOCAL_EXECUTION_OUT_OF_MEMORY"
         ],
         "source_file": "proto/runtime/v1/common.proto"
       },

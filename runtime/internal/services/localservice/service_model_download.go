@@ -57,6 +57,7 @@ type managedDownloadedModelSpec struct {
 	entry             string
 	files             []string
 	license           string
+	sourceProvenance  string
 	repo              string
 	revision          string
 	hashes            map[string]string
@@ -438,6 +439,12 @@ func (s *Service) installManagedDownloadedModelWithTransfer(
 		"source_revision": defaultString(strings.TrimSpace(spec.revision), "main"),
 		"distribution":    "directory",
 	}
+	if license := strings.TrimSpace(spec.license); license != "" {
+		provenance["license"] = license
+	}
+	if sourceProvenance := strings.TrimSpace(spec.sourceProvenance); sourceProvenance != "" {
+		provenance["source_provenance"] = sourceProvenance
+	}
 	if catalogAssetID := strings.TrimSpace(spec.catalogAssetID); catalogAssetID != "" {
 		provenance["source_kind"] = "catalog_install"
 		provenance["catalog_asset_id"] = catalogAssetID
@@ -541,6 +548,7 @@ func canonicalManagedDownloadedModelSpec(input managedDownloadedModelSpec) (mana
 		capabilities:      normalizeAssetCapabilities(input.capabilities),
 		engine:            strings.TrimSpace(input.engine),
 		license:           strings.TrimSpace(input.license),
+		sourceProvenance:  strings.TrimSpace(input.sourceProvenance),
 		repo:              strings.TrimSpace(input.repo),
 		revision:          defaultString(strings.TrimSpace(input.revision), "main"),
 		hashes:            make(map[string]string),
@@ -609,6 +617,7 @@ func cloneManagedDownloadedModelSpec(input managedDownloadedModelSpec) managedDo
 		entry:             input.entry,
 		files:             append([]string(nil), input.files...),
 		license:           input.license,
+		sourceProvenance:  input.sourceProvenance,
 		repo:              input.repo,
 		revision:          input.revision,
 		hashes:            cloneStringMap(input.hashes),
@@ -629,6 +638,7 @@ func localStateManagedDownloadSpec(input managedDownloadedModelSpec) *localState
 		Entry:             input.entry,
 		Files:             append([]string(nil), input.files...),
 		License:           input.license,
+		SourceProvenance:  input.sourceProvenance,
 		Repo:              input.repo,
 		Revision:          input.revision,
 		Hashes:            cloneStringMap(input.hashes),
@@ -652,6 +662,7 @@ func managedDownloadedModelSpecFromLocalState(input *localStateManagedModelDownl
 		entry:             input.Entry,
 		files:             append([]string(nil), input.Files...),
 		license:           input.License,
+		sourceProvenance:  input.SourceProvenance,
 		repo:              input.Repo,
 		revision:          input.Revision,
 		hashes:            cloneStringMap(input.Hashes),

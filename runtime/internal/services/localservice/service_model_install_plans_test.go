@@ -59,19 +59,21 @@ func TestModelInstallPlanOwnerKeyKeepsUnprotectedContextFallback(t *testing.T) {
 func TestHeldModelInstallPlanPreservesCatalogTotalSize(t *testing.T) {
 	svc := newTestService(t)
 	const totalSizeBytes int64 = 9_876_543_210
+	const sourceProvenance = "upstream/model converted by exact-owner"
 	svc.mu.Lock()
 	svc.catalog = []*runtimev1.LocalCatalogModelDescriptor{{
-		ItemId:         "catalog.total-size",
-		Source:         "verified",
-		TemplateId:     "local.total-size",
-		ModelId:        "local/total-size",
-		Repo:           "test/total-size",
-		Revision:       "revision",
-		Capabilities:   []string{"text.generate"},
-		Entry:          "model.gguf",
-		Files:          []string{"model.gguf"},
-		Hashes:         map[string]string{"model.gguf": "sha256:" + strings.Repeat("a", 64)},
-		TotalSizeBytes: totalSizeBytes,
+		ItemId:           "catalog.total-size",
+		Source:           "verified",
+		TemplateId:       "local.total-size",
+		ModelId:          "local/total-size",
+		Repo:             "test/total-size",
+		Revision:         "revision",
+		Capabilities:     []string{"text.generate"},
+		Entry:            "model.gguf",
+		Files:            []string{"model.gguf"},
+		Hashes:           map[string]string{"model.gguf": "sha256:" + strings.Repeat("a", 64)},
+		TotalSizeBytes:   totalSizeBytes,
+		SourceProvenance: sourceProvenance,
 	}}
 	svc.mu.Unlock()
 
@@ -84,12 +86,18 @@ func TestHeldModelInstallPlanPreservesCatalogTotalSize(t *testing.T) {
 	if got := resolved.GetPlan().GetTotalSizeBytes(); got != totalSizeBytes {
 		t.Fatalf("resolved total size=%d, want %d", got, totalSizeBytes)
 	}
+	if got := resolved.GetPlan().GetSourceProvenance(); got != sourceProvenance {
+		t.Fatalf("resolved source provenance=%q, want %q", got, sourceProvenance)
+	}
 	held, err := svc.takeModelInstallPlan(context.Background(), resolved.GetPlan().GetPlanId())
 	if err != nil {
 		t.Fatalf("take held total-size plan: %v", err)
 	}
 	if got := held.GetTotalSizeBytes(); got != totalSizeBytes {
 		t.Fatalf("held total size=%d, want %d", got, totalSizeBytes)
+	}
+	if got := held.GetSourceProvenance(); got != sourceProvenance {
+		t.Fatalf("held source provenance=%q, want %q", got, sourceProvenance)
 	}
 }
 

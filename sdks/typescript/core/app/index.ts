@@ -145,6 +145,7 @@ export type {
   NimiLocalAppScenarioJob,
   NimiLocalAppScenarioJobEvent,
   NimiLocalAppScenarioJobSpec,
+  NimiLocalAppScenarioJobSubmitOptions,
   NimiLocalAppScenarioJobSubmitResult,
   NimiLocalAppScenarioTimestamp,
   NimiLocalAppSubscription,

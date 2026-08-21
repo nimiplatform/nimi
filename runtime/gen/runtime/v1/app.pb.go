@@ -1962,6 +1962,113 @@ func (x *MoveLocalAppAssetResponse) GetReasonCode() ReasonCode {
 	return ReasonCode_REASON_CODE_UNSPECIFIED
 }
 
+// Purpose-specific host-only reveal. The renderer and SDK supply only the
+// canonical App-relative path and never receive absolute_path; the native
+// protected Host consumes it inside the reveal call and returns only success.
+type RevealLocalAppAssetRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	RelativePath  string                 `protobuf:"bytes,1,opt,name=relative_path,json=relativePath,proto3" json:"relative_path,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RevealLocalAppAssetRequest) Reset() {
+	*x = RevealLocalAppAssetRequest{}
+	mi := &file_runtime_v1_app_proto_msgTypes[29]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RevealLocalAppAssetRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RevealLocalAppAssetRequest) ProtoMessage() {}
+
+func (x *RevealLocalAppAssetRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_app_proto_msgTypes[29]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RevealLocalAppAssetRequest.ProtoReflect.Descriptor instead.
+func (*RevealLocalAppAssetRequest) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_app_proto_rawDescGZIP(), []int{29}
+}
+
+func (x *RevealLocalAppAssetRequest) GetRelativePath() string {
+	if x != nil {
+		return x.RelativePath
+	}
+	return ""
+}
+
+type RevealLocalAppAssetResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Asset         *LocalAppAssetRecord   `protobuf:"bytes,1,opt,name=asset,proto3" json:"asset,omitempty"`
+	AbsolutePath  string                 `protobuf:"bytes,2,opt,name=absolute_path,json=absolutePath,proto3" json:"absolute_path,omitempty"`
+	ReasonCode    ReasonCode             `protobuf:"varint,3,opt,name=reason_code,json=reasonCode,proto3,enum=nimi.runtime.v1.ReasonCode" json:"reason_code,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RevealLocalAppAssetResponse) Reset() {
+	*x = RevealLocalAppAssetResponse{}
+	mi := &file_runtime_v1_app_proto_msgTypes[30]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RevealLocalAppAssetResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RevealLocalAppAssetResponse) ProtoMessage() {}
+
+func (x *RevealLocalAppAssetResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_app_proto_msgTypes[30]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RevealLocalAppAssetResponse.ProtoReflect.Descriptor instead.
+func (*RevealLocalAppAssetResponse) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_app_proto_rawDescGZIP(), []int{30}
+}
+
+func (x *RevealLocalAppAssetResponse) GetAsset() *LocalAppAssetRecord {
+	if x != nil {
+		return x.Asset
+	}
+	return nil
+}
+
+func (x *RevealLocalAppAssetResponse) GetAbsolutePath() string {
+	if x != nil {
+		return x.AbsolutePath
+	}
+	return ""
+}
+
+func (x *RevealLocalAppAssetResponse) GetReasonCode() ReasonCode {
+	if x != nil {
+		return x.ReasonCode
+	}
+	return ReasonCode_REASON_CODE_UNSPECIFIED
+}
+
 type AdoptLocalAppArtifactRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	ArtifactId    string                 `protobuf:"bytes,1,opt,name=artifact_id,json=artifactId,proto3" json:"artifact_id,omitempty"`
@@ -1973,7 +2080,7 @@ type AdoptLocalAppArtifactRequest struct {
 
 func (x *AdoptLocalAppArtifactRequest) Reset() {
 	*x = AdoptLocalAppArtifactRequest{}
-	mi := &file_runtime_v1_app_proto_msgTypes[29]
+	mi := &file_runtime_v1_app_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1985,7 +2092,7 @@ func (x *AdoptLocalAppArtifactRequest) String() string {
 func (*AdoptLocalAppArtifactRequest) ProtoMessage() {}
 
 func (x *AdoptLocalAppArtifactRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_app_proto_msgTypes[29]
+	mi := &file_runtime_v1_app_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1998,7 +2105,7 @@ func (x *AdoptLocalAppArtifactRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AdoptLocalAppArtifactRequest.ProtoReflect.Descriptor instead.
 func (*AdoptLocalAppArtifactRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_app_proto_rawDescGZIP(), []int{29}
+	return file_runtime_v1_app_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *AdoptLocalAppArtifactRequest) GetArtifactId() string {
@@ -2032,7 +2139,7 @@ type AdoptLocalAppArtifactResponse struct {
 
 func (x *AdoptLocalAppArtifactResponse) Reset() {
 	*x = AdoptLocalAppArtifactResponse{}
-	mi := &file_runtime_v1_app_proto_msgTypes[30]
+	mi := &file_runtime_v1_app_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2044,7 +2151,7 @@ func (x *AdoptLocalAppArtifactResponse) String() string {
 func (*AdoptLocalAppArtifactResponse) ProtoMessage() {}
 
 func (x *AdoptLocalAppArtifactResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_app_proto_msgTypes[30]
+	mi := &file_runtime_v1_app_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2057,7 +2164,7 @@ func (x *AdoptLocalAppArtifactResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AdoptLocalAppArtifactResponse.ProtoReflect.Descriptor instead.
 func (*AdoptLocalAppArtifactResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_app_proto_rawDescGZIP(), []int{30}
+	return file_runtime_v1_app_proto_rawDescGZIP(), []int{32}
 }
 
 func (x *AdoptLocalAppArtifactResponse) GetAsset() *LocalAppAssetRecord {
@@ -2088,7 +2195,7 @@ type PrepareLocalAppLaunchRequest struct {
 
 func (x *PrepareLocalAppLaunchRequest) Reset() {
 	*x = PrepareLocalAppLaunchRequest{}
-	mi := &file_runtime_v1_app_proto_msgTypes[31]
+	mi := &file_runtime_v1_app_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2100,7 +2207,7 @@ func (x *PrepareLocalAppLaunchRequest) String() string {
 func (*PrepareLocalAppLaunchRequest) ProtoMessage() {}
 
 func (x *PrepareLocalAppLaunchRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_app_proto_msgTypes[31]
+	mi := &file_runtime_v1_app_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2113,7 +2220,7 @@ func (x *PrepareLocalAppLaunchRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PrepareLocalAppLaunchRequest.ProtoReflect.Descriptor instead.
 func (*PrepareLocalAppLaunchRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_app_proto_rawDescGZIP(), []int{31}
+	return file_runtime_v1_app_proto_rawDescGZIP(), []int{33}
 }
 
 func (x *PrepareLocalAppLaunchRequest) GetLocalAppHandle() []byte {
@@ -2141,7 +2248,7 @@ type PrepareLocalAppLaunchResponse struct {
 
 func (x *PrepareLocalAppLaunchResponse) Reset() {
 	*x = PrepareLocalAppLaunchResponse{}
-	mi := &file_runtime_v1_app_proto_msgTypes[32]
+	mi := &file_runtime_v1_app_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2153,7 +2260,7 @@ func (x *PrepareLocalAppLaunchResponse) String() string {
 func (*PrepareLocalAppLaunchResponse) ProtoMessage() {}
 
 func (x *PrepareLocalAppLaunchResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_app_proto_msgTypes[32]
+	mi := &file_runtime_v1_app_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2166,7 +2273,7 @@ func (x *PrepareLocalAppLaunchResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PrepareLocalAppLaunchResponse.ProtoReflect.Descriptor instead.
 func (*PrepareLocalAppLaunchResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_app_proto_rawDescGZIP(), []int{32}
+	return file_runtime_v1_app_proto_rawDescGZIP(), []int{34}
 }
 
 func (x *PrepareLocalAppLaunchResponse) GetLaunchId() []byte {
@@ -2200,7 +2307,7 @@ type BindLocalAppProcessRequest struct {
 
 func (x *BindLocalAppProcessRequest) Reset() {
 	*x = BindLocalAppProcessRequest{}
-	mi := &file_runtime_v1_app_proto_msgTypes[33]
+	mi := &file_runtime_v1_app_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2212,7 +2319,7 @@ func (x *BindLocalAppProcessRequest) String() string {
 func (*BindLocalAppProcessRequest) ProtoMessage() {}
 
 func (x *BindLocalAppProcessRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_app_proto_msgTypes[33]
+	mi := &file_runtime_v1_app_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2225,7 +2332,7 @@ func (x *BindLocalAppProcessRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BindLocalAppProcessRequest.ProtoReflect.Descriptor instead.
 func (*BindLocalAppProcessRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_app_proto_rawDescGZIP(), []int{33}
+	return file_runtime_v1_app_proto_rawDescGZIP(), []int{35}
 }
 
 func (x *BindLocalAppProcessRequest) GetLaunchId() []byte {
@@ -2253,7 +2360,7 @@ type BindLocalAppProcessResponse struct {
 
 func (x *BindLocalAppProcessResponse) Reset() {
 	*x = BindLocalAppProcessResponse{}
-	mi := &file_runtime_v1_app_proto_msgTypes[34]
+	mi := &file_runtime_v1_app_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2265,7 +2372,7 @@ func (x *BindLocalAppProcessResponse) String() string {
 func (*BindLocalAppProcessResponse) ProtoMessage() {}
 
 func (x *BindLocalAppProcessResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_app_proto_msgTypes[34]
+	mi := &file_runtime_v1_app_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2278,7 +2385,7 @@ func (x *BindLocalAppProcessResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BindLocalAppProcessResponse.ProtoReflect.Descriptor instead.
 func (*BindLocalAppProcessResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_app_proto_rawDescGZIP(), []int{34}
+	return file_runtime_v1_app_proto_rawDescGZIP(), []int{36}
 }
 
 func (x *BindLocalAppProcessResponse) GetLaunchId() []byte {
@@ -2316,7 +2423,7 @@ type RebindLocalAppProcessRequest struct {
 
 func (x *RebindLocalAppProcessRequest) Reset() {
 	*x = RebindLocalAppProcessRequest{}
-	mi := &file_runtime_v1_app_proto_msgTypes[35]
+	mi := &file_runtime_v1_app_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2328,7 +2435,7 @@ func (x *RebindLocalAppProcessRequest) String() string {
 func (*RebindLocalAppProcessRequest) ProtoMessage() {}
 
 func (x *RebindLocalAppProcessRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_app_proto_msgTypes[35]
+	mi := &file_runtime_v1_app_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2341,7 +2448,7 @@ func (x *RebindLocalAppProcessRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RebindLocalAppProcessRequest.ProtoReflect.Descriptor instead.
 func (*RebindLocalAppProcessRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_app_proto_rawDescGZIP(), []int{35}
+	return file_runtime_v1_app_proto_rawDescGZIP(), []int{37}
 }
 
 func (x *RebindLocalAppProcessRequest) GetLaunchId() []byte {
@@ -2369,7 +2476,7 @@ type RebindLocalAppProcessResponse struct {
 
 func (x *RebindLocalAppProcessResponse) Reset() {
 	*x = RebindLocalAppProcessResponse{}
-	mi := &file_runtime_v1_app_proto_msgTypes[36]
+	mi := &file_runtime_v1_app_proto_msgTypes[38]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2381,7 +2488,7 @@ func (x *RebindLocalAppProcessResponse) String() string {
 func (*RebindLocalAppProcessResponse) ProtoMessage() {}
 
 func (x *RebindLocalAppProcessResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_app_proto_msgTypes[36]
+	mi := &file_runtime_v1_app_proto_msgTypes[38]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2394,7 +2501,7 @@ func (x *RebindLocalAppProcessResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RebindLocalAppProcessResponse.ProtoReflect.Descriptor instead.
 func (*RebindLocalAppProcessResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_app_proto_rawDescGZIP(), []int{36}
+	return file_runtime_v1_app_proto_rawDescGZIP(), []int{38}
 }
 
 func (x *RebindLocalAppProcessResponse) GetLaunchId() []byte {
@@ -2579,6 +2686,13 @@ const file_runtime_v1_app_proto_rawDesc = "" +
 	"\x19MoveLocalAppAssetResponse\x12:\n" +
 	"\x05asset\x18\x01 \x01(\v2$.nimi.runtime.v1.LocalAppAssetRecordR\x05asset\x12<\n" +
 	"\vreason_code\x18\x02 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
+	"reasonCode\"A\n" +
+	"\x1aRevealLocalAppAssetRequest\x12#\n" +
+	"\rrelative_path\x18\x01 \x01(\tR\frelativePath\"\xbc\x01\n" +
+	"\x1bRevealLocalAppAssetResponse\x12:\n" +
+	"\x05asset\x18\x01 \x01(\v2$.nimi.runtime.v1.LocalAppAssetRecordR\x05asset\x12#\n" +
+	"\rabsolute_path\x18\x02 \x01(\tR\fabsolutePath\x12<\n" +
+	"\vreason_code\x18\x03 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
 	"reasonCode\"\x82\x01\n" +
 	"\x1cAdoptLocalAppArtifactRequest\x12\x1f\n" +
 	"\vartifact_id\x18\x01 \x01(\tR\n" +
@@ -2622,7 +2736,7 @@ const file_runtime_v1_app_proto_rawDesc = "" +
 	"\x1dAPP_STORAGE_STATE_UNSPECIFIED\x10\x00\x12\x1b\n" +
 	"\x17APP_STORAGE_STATE_READY\x10\x01\x12%\n" +
 	"!APP_STORAGE_STATE_REPAIR_REQUIRED\x10\x03\x12)\n" +
-	"%APP_STORAGE_STATE_STORAGE_UNAVAILABLE\x10\x04\"\x04\b\x02\x10\x02*\"APP_STORAGE_STATE_INSTALL_REQUIRED2\xb6\x0e\n" +
+	"%APP_STORAGE_STATE_STORAGE_UNAVAILABLE\x10\x04\"\x04\b\x02\x10\x02*\"APP_STORAGE_STATE_INSTALL_REQUIRED2\xa8\x0f\n" +
 	"\x11RuntimeAppService\x12a\n" +
 	"\x0eSendAppMessage\x12&.nimi.runtime.v1.SendAppMessageRequest\x1a'.nimi.runtime.v1.SendAppMessageResponse\x12h\n" +
 	"\x14SubscribeAppMessages\x12,.nimi.runtime.v1.SubscribeAppMessagesRequest\x1a .nimi.runtime.v1.AppMessageEvent0\x01\x12^\n" +
@@ -2635,7 +2749,8 @@ const file_runtime_v1_app_proto_rawDesc = "" +
 	"\x12WriteLocalAppAsset\x12*.nimi.runtime.v1.WriteLocalAppAssetRequest\x1a+.nimi.runtime.v1.WriteLocalAppAssetResponse(\x01\x12l\n" +
 	"\x11ReadLocalAppAsset\x12).nimi.runtime.v1.ReadLocalAppAssetRequest\x1a*.nimi.runtime.v1.ReadLocalAppAssetResponse0\x01\x12p\n" +
 	"\x13RemoveLocalAppAsset\x12+.nimi.runtime.v1.RemoveLocalAppAssetRequest\x1a,.nimi.runtime.v1.RemoveLocalAppAssetResponse\x12j\n" +
-	"\x11MoveLocalAppAsset\x12).nimi.runtime.v1.MoveLocalAppAssetRequest\x1a*.nimi.runtime.v1.MoveLocalAppAssetResponse\x12v\n" +
+	"\x11MoveLocalAppAsset\x12).nimi.runtime.v1.MoveLocalAppAssetRequest\x1a*.nimi.runtime.v1.MoveLocalAppAssetResponse\x12p\n" +
+	"\x13RevealLocalAppAsset\x12+.nimi.runtime.v1.RevealLocalAppAssetRequest\x1a,.nimi.runtime.v1.RevealLocalAppAssetResponse\x12v\n" +
 	"\x15AdoptLocalAppArtifact\x12-.nimi.runtime.v1.AdoptLocalAppArtifactRequest\x1a..nimi.runtime.v1.AdoptLocalAppArtifactResponse\x12v\n" +
 	"\x15PrepareLocalAppLaunch\x12-.nimi.runtime.v1.PrepareLocalAppLaunchRequest\x1a..nimi.runtime.v1.PrepareLocalAppLaunchResponse\x12p\n" +
 	"\x13BindLocalAppProcess\x12+.nimi.runtime.v1.BindLocalAppProcessRequest\x1a,.nimi.runtime.v1.BindLocalAppProcessResponse\x12v\n" +
@@ -2654,7 +2769,7 @@ func file_runtime_v1_app_proto_rawDescGZIP() []byte {
 }
 
 var file_runtime_v1_app_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_runtime_v1_app_proto_msgTypes = make([]protoimpl.MessageInfo, 37)
+var file_runtime_v1_app_proto_msgTypes = make([]protoimpl.MessageInfo, 39)
 var file_runtime_v1_app_proto_goTypes = []any{
 	(AppMessageEventType)(0),                  // 0: nimi.runtime.v1.AppMessageEventType
 	(AppStorageState)(0),                      // 1: nimi.runtime.v1.AppStorageState
@@ -2687,91 +2802,97 @@ var file_runtime_v1_app_proto_goTypes = []any{
 	(*RemoveLocalAppAssetResponse)(nil),       // 28: nimi.runtime.v1.RemoveLocalAppAssetResponse
 	(*MoveLocalAppAssetRequest)(nil),          // 29: nimi.runtime.v1.MoveLocalAppAssetRequest
 	(*MoveLocalAppAssetResponse)(nil),         // 30: nimi.runtime.v1.MoveLocalAppAssetResponse
-	(*AdoptLocalAppArtifactRequest)(nil),      // 31: nimi.runtime.v1.AdoptLocalAppArtifactRequest
-	(*AdoptLocalAppArtifactResponse)(nil),     // 32: nimi.runtime.v1.AdoptLocalAppArtifactResponse
-	(*PrepareLocalAppLaunchRequest)(nil),      // 33: nimi.runtime.v1.PrepareLocalAppLaunchRequest
-	(*PrepareLocalAppLaunchResponse)(nil),     // 34: nimi.runtime.v1.PrepareLocalAppLaunchResponse
-	(*BindLocalAppProcessRequest)(nil),        // 35: nimi.runtime.v1.BindLocalAppProcessRequest
-	(*BindLocalAppProcessResponse)(nil),       // 36: nimi.runtime.v1.BindLocalAppProcessResponse
-	(*RebindLocalAppProcessRequest)(nil),      // 37: nimi.runtime.v1.RebindLocalAppProcessRequest
-	(*RebindLocalAppProcessResponse)(nil),     // 38: nimi.runtime.v1.RebindLocalAppProcessResponse
-	(*structpb.Struct)(nil),                   // 39: google.protobuf.Struct
-	(ReasonCode)(0),                           // 40: nimi.runtime.v1.ReasonCode
-	(*timestamppb.Timestamp)(nil),             // 41: google.protobuf.Timestamp
+	(*RevealLocalAppAssetRequest)(nil),        // 31: nimi.runtime.v1.RevealLocalAppAssetRequest
+	(*RevealLocalAppAssetResponse)(nil),       // 32: nimi.runtime.v1.RevealLocalAppAssetResponse
+	(*AdoptLocalAppArtifactRequest)(nil),      // 33: nimi.runtime.v1.AdoptLocalAppArtifactRequest
+	(*AdoptLocalAppArtifactResponse)(nil),     // 34: nimi.runtime.v1.AdoptLocalAppArtifactResponse
+	(*PrepareLocalAppLaunchRequest)(nil),      // 35: nimi.runtime.v1.PrepareLocalAppLaunchRequest
+	(*PrepareLocalAppLaunchResponse)(nil),     // 36: nimi.runtime.v1.PrepareLocalAppLaunchResponse
+	(*BindLocalAppProcessRequest)(nil),        // 37: nimi.runtime.v1.BindLocalAppProcessRequest
+	(*BindLocalAppProcessResponse)(nil),       // 38: nimi.runtime.v1.BindLocalAppProcessResponse
+	(*RebindLocalAppProcessRequest)(nil),      // 39: nimi.runtime.v1.RebindLocalAppProcessRequest
+	(*RebindLocalAppProcessResponse)(nil),     // 40: nimi.runtime.v1.RebindLocalAppProcessResponse
+	(*structpb.Struct)(nil),                   // 41: google.protobuf.Struct
+	(ReasonCode)(0),                           // 42: nimi.runtime.v1.ReasonCode
+	(*timestamppb.Timestamp)(nil),             // 43: google.protobuf.Timestamp
 }
 var file_runtime_v1_app_proto_depIdxs = []int32{
-	39, // 0: nimi.runtime.v1.SendAppMessageRequest.payload:type_name -> google.protobuf.Struct
-	40, // 1: nimi.runtime.v1.SendAppMessageResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	41, // 0: nimi.runtime.v1.SendAppMessageRequest.payload:type_name -> google.protobuf.Struct
+	42, // 1: nimi.runtime.v1.SendAppMessageResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
 	0,  // 2: nimi.runtime.v1.AppMessageEvent.event_type:type_name -> nimi.runtime.v1.AppMessageEventType
-	39, // 3: nimi.runtime.v1.AppMessageEvent.payload:type_name -> google.protobuf.Struct
-	40, // 4: nimi.runtime.v1.AppMessageEvent.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	41, // 5: nimi.runtime.v1.AppMessageEvent.timestamp:type_name -> google.protobuf.Timestamp
+	41, // 3: nimi.runtime.v1.AppMessageEvent.payload:type_name -> google.protobuf.Struct
+	42, // 4: nimi.runtime.v1.AppMessageEvent.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	43, // 5: nimi.runtime.v1.AppMessageEvent.timestamp:type_name -> google.protobuf.Timestamp
 	1,  // 6: nimi.runtime.v1.AppStorageProjection.state:type_name -> nimi.runtime.v1.AppStorageState
-	40, // 7: nimi.runtime.v1.AppStorageProjection.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	42, // 7: nimi.runtime.v1.AppStorageProjection.reason_code:type_name -> nimi.runtime.v1.ReasonCode
 	6,  // 8: nimi.runtime.v1.GetAppStorageResponse.projection:type_name -> nimi.runtime.v1.AppStorageProjection
-	40, // 9: nimi.runtime.v1.ReadLocalAppStorageJsonResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	40, // 10: nimi.runtime.v1.WriteLocalAppStorageJsonResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	40, // 11: nimi.runtime.v1.RemoveLocalAppStorageJsonResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	41, // 12: nimi.runtime.v1.LocalAppAssetRecord.created_at:type_name -> google.protobuf.Timestamp
-	41, // 13: nimi.runtime.v1.LocalAppAssetRecord.updated_at:type_name -> google.protobuf.Timestamp
+	42, // 9: nimi.runtime.v1.ReadLocalAppStorageJsonResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	42, // 10: nimi.runtime.v1.WriteLocalAppStorageJsonResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	42, // 11: nimi.runtime.v1.RemoveLocalAppStorageJsonResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	43, // 12: nimi.runtime.v1.LocalAppAssetRecord.created_at:type_name -> google.protobuf.Timestamp
+	43, // 13: nimi.runtime.v1.LocalAppAssetRecord.updated_at:type_name -> google.protobuf.Timestamp
 	15, // 14: nimi.runtime.v1.StatLocalAppAssetResponse.asset:type_name -> nimi.runtime.v1.LocalAppAssetRecord
-	40, // 15: nimi.runtime.v1.StatLocalAppAssetResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	42, // 15: nimi.runtime.v1.StatLocalAppAssetResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
 	15, // 16: nimi.runtime.v1.ListLocalAppAssetsResponse.assets:type_name -> nimi.runtime.v1.LocalAppAssetRecord
-	40, // 17: nimi.runtime.v1.ListLocalAppAssetsResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	42, // 17: nimi.runtime.v1.ListLocalAppAssetsResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
 	20, // 18: nimi.runtime.v1.WriteLocalAppAssetRequest.metadata:type_name -> nimi.runtime.v1.WriteLocalAppAssetMetadata
 	15, // 19: nimi.runtime.v1.WriteLocalAppAssetResponse.asset:type_name -> nimi.runtime.v1.LocalAppAssetRecord
-	40, // 20: nimi.runtime.v1.WriteLocalAppAssetResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	42, // 20: nimi.runtime.v1.WriteLocalAppAssetResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
 	15, // 21: nimi.runtime.v1.ReadLocalAppAssetMetadata.asset:type_name -> nimi.runtime.v1.LocalAppAssetRecord
 	24, // 22: nimi.runtime.v1.ReadLocalAppAssetMetadata.range:type_name -> nimi.runtime.v1.LocalAppAssetRange
 	25, // 23: nimi.runtime.v1.ReadLocalAppAssetResponse.metadata:type_name -> nimi.runtime.v1.ReadLocalAppAssetMetadata
-	40, // 24: nimi.runtime.v1.RemoveLocalAppAssetResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	42, // 24: nimi.runtime.v1.RemoveLocalAppAssetResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
 	15, // 25: nimi.runtime.v1.MoveLocalAppAssetResponse.asset:type_name -> nimi.runtime.v1.LocalAppAssetRecord
-	40, // 26: nimi.runtime.v1.MoveLocalAppAssetResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	15, // 27: nimi.runtime.v1.AdoptLocalAppArtifactResponse.asset:type_name -> nimi.runtime.v1.LocalAppAssetRecord
-	40, // 28: nimi.runtime.v1.AdoptLocalAppArtifactResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	41, // 29: nimi.runtime.v1.PrepareLocalAppLaunchResponse.bind_deadline:type_name -> google.protobuf.Timestamp
-	40, // 30: nimi.runtime.v1.PrepareLocalAppLaunchResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	41, // 31: nimi.runtime.v1.BindLocalAppProcessResponse.bind_deadline:type_name -> google.protobuf.Timestamp
-	40, // 32: nimi.runtime.v1.BindLocalAppProcessResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	41, // 33: nimi.runtime.v1.RebindLocalAppProcessResponse.bind_deadline:type_name -> google.protobuf.Timestamp
-	40, // 34: nimi.runtime.v1.RebindLocalAppProcessResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	2,  // 35: nimi.runtime.v1.RuntimeAppService.SendAppMessage:input_type -> nimi.runtime.v1.SendAppMessageRequest
-	4,  // 36: nimi.runtime.v1.RuntimeAppService.SubscribeAppMessages:input_type -> nimi.runtime.v1.SubscribeAppMessagesRequest
-	7,  // 37: nimi.runtime.v1.RuntimeAppService.GetAppStorage:input_type -> nimi.runtime.v1.GetAppStorageRequest
-	9,  // 38: nimi.runtime.v1.RuntimeAppService.ReadLocalAppStorageJson:input_type -> nimi.runtime.v1.ReadLocalAppStorageJsonRequest
-	11, // 39: nimi.runtime.v1.RuntimeAppService.WriteLocalAppStorageJson:input_type -> nimi.runtime.v1.WriteLocalAppStorageJsonRequest
-	13, // 40: nimi.runtime.v1.RuntimeAppService.RemoveLocalAppStorageJson:input_type -> nimi.runtime.v1.RemoveLocalAppStorageJsonRequest
-	16, // 41: nimi.runtime.v1.RuntimeAppService.StatLocalAppAsset:input_type -> nimi.runtime.v1.StatLocalAppAssetRequest
-	18, // 42: nimi.runtime.v1.RuntimeAppService.ListLocalAppAssets:input_type -> nimi.runtime.v1.ListLocalAppAssetsRequest
-	21, // 43: nimi.runtime.v1.RuntimeAppService.WriteLocalAppAsset:input_type -> nimi.runtime.v1.WriteLocalAppAssetRequest
-	23, // 44: nimi.runtime.v1.RuntimeAppService.ReadLocalAppAsset:input_type -> nimi.runtime.v1.ReadLocalAppAssetRequest
-	27, // 45: nimi.runtime.v1.RuntimeAppService.RemoveLocalAppAsset:input_type -> nimi.runtime.v1.RemoveLocalAppAssetRequest
-	29, // 46: nimi.runtime.v1.RuntimeAppService.MoveLocalAppAsset:input_type -> nimi.runtime.v1.MoveLocalAppAssetRequest
-	31, // 47: nimi.runtime.v1.RuntimeAppService.AdoptLocalAppArtifact:input_type -> nimi.runtime.v1.AdoptLocalAppArtifactRequest
-	33, // 48: nimi.runtime.v1.RuntimeAppService.PrepareLocalAppLaunch:input_type -> nimi.runtime.v1.PrepareLocalAppLaunchRequest
-	35, // 49: nimi.runtime.v1.RuntimeAppService.BindLocalAppProcess:input_type -> nimi.runtime.v1.BindLocalAppProcessRequest
-	37, // 50: nimi.runtime.v1.RuntimeAppService.RebindLocalAppProcess:input_type -> nimi.runtime.v1.RebindLocalAppProcessRequest
-	3,  // 51: nimi.runtime.v1.RuntimeAppService.SendAppMessage:output_type -> nimi.runtime.v1.SendAppMessageResponse
-	5,  // 52: nimi.runtime.v1.RuntimeAppService.SubscribeAppMessages:output_type -> nimi.runtime.v1.AppMessageEvent
-	8,  // 53: nimi.runtime.v1.RuntimeAppService.GetAppStorage:output_type -> nimi.runtime.v1.GetAppStorageResponse
-	10, // 54: nimi.runtime.v1.RuntimeAppService.ReadLocalAppStorageJson:output_type -> nimi.runtime.v1.ReadLocalAppStorageJsonResponse
-	12, // 55: nimi.runtime.v1.RuntimeAppService.WriteLocalAppStorageJson:output_type -> nimi.runtime.v1.WriteLocalAppStorageJsonResponse
-	14, // 56: nimi.runtime.v1.RuntimeAppService.RemoveLocalAppStorageJson:output_type -> nimi.runtime.v1.RemoveLocalAppStorageJsonResponse
-	17, // 57: nimi.runtime.v1.RuntimeAppService.StatLocalAppAsset:output_type -> nimi.runtime.v1.StatLocalAppAssetResponse
-	19, // 58: nimi.runtime.v1.RuntimeAppService.ListLocalAppAssets:output_type -> nimi.runtime.v1.ListLocalAppAssetsResponse
-	22, // 59: nimi.runtime.v1.RuntimeAppService.WriteLocalAppAsset:output_type -> nimi.runtime.v1.WriteLocalAppAssetResponse
-	26, // 60: nimi.runtime.v1.RuntimeAppService.ReadLocalAppAsset:output_type -> nimi.runtime.v1.ReadLocalAppAssetResponse
-	28, // 61: nimi.runtime.v1.RuntimeAppService.RemoveLocalAppAsset:output_type -> nimi.runtime.v1.RemoveLocalAppAssetResponse
-	30, // 62: nimi.runtime.v1.RuntimeAppService.MoveLocalAppAsset:output_type -> nimi.runtime.v1.MoveLocalAppAssetResponse
-	32, // 63: nimi.runtime.v1.RuntimeAppService.AdoptLocalAppArtifact:output_type -> nimi.runtime.v1.AdoptLocalAppArtifactResponse
-	34, // 64: nimi.runtime.v1.RuntimeAppService.PrepareLocalAppLaunch:output_type -> nimi.runtime.v1.PrepareLocalAppLaunchResponse
-	36, // 65: nimi.runtime.v1.RuntimeAppService.BindLocalAppProcess:output_type -> nimi.runtime.v1.BindLocalAppProcessResponse
-	38, // 66: nimi.runtime.v1.RuntimeAppService.RebindLocalAppProcess:output_type -> nimi.runtime.v1.RebindLocalAppProcessResponse
-	51, // [51:67] is the sub-list for method output_type
-	35, // [35:51] is the sub-list for method input_type
-	35, // [35:35] is the sub-list for extension type_name
-	35, // [35:35] is the sub-list for extension extendee
-	0,  // [0:35] is the sub-list for field type_name
+	42, // 26: nimi.runtime.v1.MoveLocalAppAssetResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	15, // 27: nimi.runtime.v1.RevealLocalAppAssetResponse.asset:type_name -> nimi.runtime.v1.LocalAppAssetRecord
+	42, // 28: nimi.runtime.v1.RevealLocalAppAssetResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	15, // 29: nimi.runtime.v1.AdoptLocalAppArtifactResponse.asset:type_name -> nimi.runtime.v1.LocalAppAssetRecord
+	42, // 30: nimi.runtime.v1.AdoptLocalAppArtifactResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	43, // 31: nimi.runtime.v1.PrepareLocalAppLaunchResponse.bind_deadline:type_name -> google.protobuf.Timestamp
+	42, // 32: nimi.runtime.v1.PrepareLocalAppLaunchResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	43, // 33: nimi.runtime.v1.BindLocalAppProcessResponse.bind_deadline:type_name -> google.protobuf.Timestamp
+	42, // 34: nimi.runtime.v1.BindLocalAppProcessResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	43, // 35: nimi.runtime.v1.RebindLocalAppProcessResponse.bind_deadline:type_name -> google.protobuf.Timestamp
+	42, // 36: nimi.runtime.v1.RebindLocalAppProcessResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	2,  // 37: nimi.runtime.v1.RuntimeAppService.SendAppMessage:input_type -> nimi.runtime.v1.SendAppMessageRequest
+	4,  // 38: nimi.runtime.v1.RuntimeAppService.SubscribeAppMessages:input_type -> nimi.runtime.v1.SubscribeAppMessagesRequest
+	7,  // 39: nimi.runtime.v1.RuntimeAppService.GetAppStorage:input_type -> nimi.runtime.v1.GetAppStorageRequest
+	9,  // 40: nimi.runtime.v1.RuntimeAppService.ReadLocalAppStorageJson:input_type -> nimi.runtime.v1.ReadLocalAppStorageJsonRequest
+	11, // 41: nimi.runtime.v1.RuntimeAppService.WriteLocalAppStorageJson:input_type -> nimi.runtime.v1.WriteLocalAppStorageJsonRequest
+	13, // 42: nimi.runtime.v1.RuntimeAppService.RemoveLocalAppStorageJson:input_type -> nimi.runtime.v1.RemoveLocalAppStorageJsonRequest
+	16, // 43: nimi.runtime.v1.RuntimeAppService.StatLocalAppAsset:input_type -> nimi.runtime.v1.StatLocalAppAssetRequest
+	18, // 44: nimi.runtime.v1.RuntimeAppService.ListLocalAppAssets:input_type -> nimi.runtime.v1.ListLocalAppAssetsRequest
+	21, // 45: nimi.runtime.v1.RuntimeAppService.WriteLocalAppAsset:input_type -> nimi.runtime.v1.WriteLocalAppAssetRequest
+	23, // 46: nimi.runtime.v1.RuntimeAppService.ReadLocalAppAsset:input_type -> nimi.runtime.v1.ReadLocalAppAssetRequest
+	27, // 47: nimi.runtime.v1.RuntimeAppService.RemoveLocalAppAsset:input_type -> nimi.runtime.v1.RemoveLocalAppAssetRequest
+	29, // 48: nimi.runtime.v1.RuntimeAppService.MoveLocalAppAsset:input_type -> nimi.runtime.v1.MoveLocalAppAssetRequest
+	31, // 49: nimi.runtime.v1.RuntimeAppService.RevealLocalAppAsset:input_type -> nimi.runtime.v1.RevealLocalAppAssetRequest
+	33, // 50: nimi.runtime.v1.RuntimeAppService.AdoptLocalAppArtifact:input_type -> nimi.runtime.v1.AdoptLocalAppArtifactRequest
+	35, // 51: nimi.runtime.v1.RuntimeAppService.PrepareLocalAppLaunch:input_type -> nimi.runtime.v1.PrepareLocalAppLaunchRequest
+	37, // 52: nimi.runtime.v1.RuntimeAppService.BindLocalAppProcess:input_type -> nimi.runtime.v1.BindLocalAppProcessRequest
+	39, // 53: nimi.runtime.v1.RuntimeAppService.RebindLocalAppProcess:input_type -> nimi.runtime.v1.RebindLocalAppProcessRequest
+	3,  // 54: nimi.runtime.v1.RuntimeAppService.SendAppMessage:output_type -> nimi.runtime.v1.SendAppMessageResponse
+	5,  // 55: nimi.runtime.v1.RuntimeAppService.SubscribeAppMessages:output_type -> nimi.runtime.v1.AppMessageEvent
+	8,  // 56: nimi.runtime.v1.RuntimeAppService.GetAppStorage:output_type -> nimi.runtime.v1.GetAppStorageResponse
+	10, // 57: nimi.runtime.v1.RuntimeAppService.ReadLocalAppStorageJson:output_type -> nimi.runtime.v1.ReadLocalAppStorageJsonResponse
+	12, // 58: nimi.runtime.v1.RuntimeAppService.WriteLocalAppStorageJson:output_type -> nimi.runtime.v1.WriteLocalAppStorageJsonResponse
+	14, // 59: nimi.runtime.v1.RuntimeAppService.RemoveLocalAppStorageJson:output_type -> nimi.runtime.v1.RemoveLocalAppStorageJsonResponse
+	17, // 60: nimi.runtime.v1.RuntimeAppService.StatLocalAppAsset:output_type -> nimi.runtime.v1.StatLocalAppAssetResponse
+	19, // 61: nimi.runtime.v1.RuntimeAppService.ListLocalAppAssets:output_type -> nimi.runtime.v1.ListLocalAppAssetsResponse
+	22, // 62: nimi.runtime.v1.RuntimeAppService.WriteLocalAppAsset:output_type -> nimi.runtime.v1.WriteLocalAppAssetResponse
+	26, // 63: nimi.runtime.v1.RuntimeAppService.ReadLocalAppAsset:output_type -> nimi.runtime.v1.ReadLocalAppAssetResponse
+	28, // 64: nimi.runtime.v1.RuntimeAppService.RemoveLocalAppAsset:output_type -> nimi.runtime.v1.RemoveLocalAppAssetResponse
+	30, // 65: nimi.runtime.v1.RuntimeAppService.MoveLocalAppAsset:output_type -> nimi.runtime.v1.MoveLocalAppAssetResponse
+	32, // 66: nimi.runtime.v1.RuntimeAppService.RevealLocalAppAsset:output_type -> nimi.runtime.v1.RevealLocalAppAssetResponse
+	34, // 67: nimi.runtime.v1.RuntimeAppService.AdoptLocalAppArtifact:output_type -> nimi.runtime.v1.AdoptLocalAppArtifactResponse
+	36, // 68: nimi.runtime.v1.RuntimeAppService.PrepareLocalAppLaunch:output_type -> nimi.runtime.v1.PrepareLocalAppLaunchResponse
+	38, // 69: nimi.runtime.v1.RuntimeAppService.BindLocalAppProcess:output_type -> nimi.runtime.v1.BindLocalAppProcessResponse
+	40, // 70: nimi.runtime.v1.RuntimeAppService.RebindLocalAppProcess:output_type -> nimi.runtime.v1.RebindLocalAppProcessResponse
+	54, // [54:71] is the sub-list for method output_type
+	37, // [37:54] is the sub-list for method input_type
+	37, // [37:37] is the sub-list for extension type_name
+	37, // [37:37] is the sub-list for extension extendee
+	0,  // [0:37] is the sub-list for field type_name
 }
 
 func init() { file_runtime_v1_app_proto_init() }
@@ -2795,7 +2916,7 @@ func file_runtime_v1_app_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_runtime_v1_app_proto_rawDesc), len(file_runtime_v1_app_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   37,
+			NumMessages:   39,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

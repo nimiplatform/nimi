@@ -37,6 +37,7 @@ const (
 	LocalAppOperationStorageAssetRead        = localappop.OperationStorageAssetRead
 	LocalAppOperationStorageAssetRemove      = localappop.OperationStorageAssetRemove
 	LocalAppOperationStorageAssetMove        = localappop.OperationStorageAssetMove
+	LocalAppOperationStorageAssetReveal      = localappop.OperationStorageAssetReveal
 	LocalAppOperationArtifactAdoptToStorage  = localappop.OperationArtifactAdoptToStorage
 	LocalAppOperationRealmWorldCoreList      = localappop.OperationRealmWorldCoreList
 	LocalAppOperationRealmWorldCoreCreate    = localappop.OperationRealmWorldCoreCreate

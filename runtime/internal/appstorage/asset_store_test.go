@@ -71,18 +71,18 @@ func TestNormalizeAssetRelativePathAndEncodingArePortableAndCollisionProof(t *te
 		}
 	}
 	root := t.TempDir()
-	upper, err := encodedLogicalPath(root, "Images/Café.png", assetObjectName)
+	upper, err := encodedLogicalPath(root, "Images/Café.png", "payload.bin")
 	if err != nil {
 		t.Fatal(err)
 	}
-	lower, err := encodedLogicalPath(root, "images/café.png", assetObjectName)
+	lower, err := encodedLogicalPath(root, "images/café.png", "payload.bin")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if upper == lower {
 		t.Fatal("case-distinct logical paths collided physically")
 	}
-	if decoded, err := decodeLogicalPath(root, upper, assetObjectName); err != nil || decoded != "Images/Café.png" {
+	if decoded, err := decodeLogicalPath(root, upper, "payload.bin"); err != nil || decoded != "Images/Café.png" {
 		t.Fatalf("decode=%q err=%v", decoded, err)
 	}
 }
@@ -336,10 +336,13 @@ func TestAssetRestartReconcilesCommittedTruthAndCorruptionFailsClosed(t *testing
 	if err != nil {
 		t.Fatal(err)
 	}
+	if page, listErr := reopened.List(context.Background(), owner, "", "", 10); listErr != nil || len(page.Assets) != 1 {
+		t.Fatalf("restart list=%+v err=%v", page, listErr)
+	}
 	if _, err := reopened.Write(context.Background(), owner, "two.bin", "application/octet-stream", false, io.NopCloser(strings.NewReader("1"))); !errors.Is(err, ErrAssetQuota) {
 		t.Fatalf("restart did not reconcile object quota: %v", err)
 	}
-	target, err := reopened.debugObjectPath(owner, "one.bin")
+	target, err := reopened.debugMetadataPath(owner, "one.bin")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -390,6 +393,29 @@ func TestAssetOpenVerifiesPayloadIntegrityWhileStatRemainsMetadataOnly(t *testin
 	}
 	if _, err := store.Open(context.Background(), owner, "media.bin"); !errors.Is(err, ErrAssetCorrupt) {
 		t.Fatalf("payload-corrupt Open err=%v", err)
+	}
+}
+
+func TestAssetRevealTargetIsTheSingleRealExtensionPayload(t *testing.T) {
+	owner := assetTestOwner("account-1", "subject-1")
+	store, err := NewAssetStore(t.TempDir(), assetTestPolicy())
+	if err != nil {
+		t.Fatal(err)
+	}
+	payload := []byte("RIFF....WAVEpayload")
+	if _, err := store.Write(context.Background(), owner, "media/music/run.wav", "audio/wav", false, io.NopCloser(bytes.NewReader(payload))); err != nil {
+		t.Fatal(err)
+	}
+	record, target, err := store.ResolveRevealTarget(context.Background(), owner, "media/music/run.wav")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if record.MediaType != "audio/wav" || filepath.Base(target) != "run.wav" || filepath.Ext(target) != ".wav" {
+		t.Fatalf("reveal record=%+v target=%q", record, target)
+	}
+	materialized, err := os.ReadFile(target)
+	if err != nil || !bytes.Equal(materialized, payload) {
+		t.Fatalf("materialized payload=%q err=%v", materialized, err)
 	}
 }
 

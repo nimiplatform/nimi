@@ -18,6 +18,8 @@ rows:
   - consumers_10
   - consumers_11
   - consumers_12
+  - consumers_13
+  - consumers_14
   - consumer declarations are table truth; engine-local installers must not add
     hidden dependencies
   - Python pipelines must prove uv, Python runtime, venv, package-set, and Torch
@@ -141,6 +143,56 @@ consumers:
         - ready_managed
       fail_closed_reasons:
         - engine_package_missing
+        - selected_source_record_missing
+
+  - consumer_id: audio.cpp.cuda
+    consumer_kind: native_engine_package_variant
+    engine: audio
+    backend_family: audio-cpp
+    pack_refs:
+      - local-music-native
+    dependency_families:
+      - native-engine-package.audio-cpp
+      - accelerator.cuda.runtime
+    dependency_ids:
+      - audio.cpp.package
+      - nvidia-cuda13-user-space-runtime
+    version_constraints:
+      cuda_major: 13
+      package_abi: audio.cpp-release-0.6.1
+    activation_gate:
+      required_states:
+        - ready_system
+        - ready_managed
+      fail_closed_reasons:
+        - engine_package_missing
+        - accelerator_runtime_missing
+        - accelerator_runtime_unconfirmed
+        - selected_source_record_missing
+
+  - consumer_id: audio.cpp.qwen3-tts.cuda
+    consumer_kind: native_engine_package_variant
+    engine: audio
+    backend_family: audio-cpp
+    pack_refs:
+      - local-speech-native
+    dependency_families:
+      - native-engine-package.audio-cpp
+      - accelerator.cuda.runtime
+    dependency_ids:
+      - audio.cpp.package
+      - nvidia-cuda13-user-space-runtime
+    version_constraints:
+      cuda_major: 13
+      package_abi: audio.cpp-release-0.6.1
+    activation_gate:
+      required_states:
+        - ready_system
+        - ready_managed
+      fail_closed_reasons:
+        - engine_package_missing
+        - accelerator_runtime_missing
+        - accelerator_runtime_unconfirmed
         - selected_source_record_missing
 
   - consumer_id: stable-diffusion.cpp.metal

@@ -48,6 +48,28 @@ func TestLoadoutPrepareCommitSelectAndResolveGemmaModelAsset(t *testing.T) {
 	}
 }
 
+func TestMusic3CatalogRecommendationMatchesDriverContentIdentity(t *testing.T) {
+	svc := newLoadoutTestService(t, t.TempDir())
+	recipe, ok := svc.localProviderCatalog.LoadoutRecipe(capabilitydriver.MiniMaxMusic3RecipeID)
+	if !ok || len(recipe.SlotMetadata) != 1 || len(recipe.SlotMetadata[0].RecommendedContentIDs) != 1 {
+		t.Fatalf("Music3 recipe recommendation = %+v", recipe)
+	}
+	if got := recipe.SlotMetadata[0].RecommendedContentIDs[0]; got != capabilitydriver.MiniMaxMusic3VerifiedContentID {
+		t.Fatalf("Music3 recommendation content ID = %q, Driver expects %q", got, capabilitydriver.MiniMaxMusic3VerifiedContentID)
+	}
+}
+
+func TestQwen3TTSAudioCppCatalogRecommendationMatchesDriverContentIdentity(t *testing.T) {
+	svc := newLoadoutTestService(t, t.TempDir())
+	recipe, ok := svc.localProviderCatalog.LoadoutRecipe(capabilitydriver.Qwen3TTSAudioCppRecipeID)
+	if !ok || len(recipe.SlotMetadata) != 1 || len(recipe.SlotMetadata[0].RecommendedContentIDs) != 1 {
+		t.Fatalf("Qwen3-TTS audio.cpp recipe recommendation = %+v", recipe)
+	}
+	if got := recipe.SlotMetadata[0].RecommendedContentIDs[0]; got != capabilitydriver.Qwen3TTSAudioCppVerifiedContentID {
+		t.Fatalf("Qwen3-TTS audio.cpp recommendation content ID = %q, Driver expects %q", got, capabilitydriver.Qwen3TTSAudioCppVerifiedContentID)
+	}
+}
+
 func TestPrepareLoadoutExplicitContentOnlyAxisSuppressesReceiverRecommendation(t *testing.T) {
 	svc := newLoadoutTestService(t, t.TempDir())
 	recipe, ok := svc.localProviderCatalog.LoadoutRecipe(capabilitydriver.LlamaGemma4E2BRecipeID)
@@ -1055,8 +1077,8 @@ func TestListLoadoutRecipesProjectsSpeechCatalogAndCustody(t *testing.T) {
 	}
 
 	all := list("")
-	if len(all) != 16 {
-		t.Fatalf("all Loadout recipes = %d, want 16", len(all))
+	if len(all) != 18 {
+		t.Fatalf("all Loadout recipes = %d, want 18", len(all))
 	}
 	byID := make(map[string]*runtimev1.LoadoutRecipeDescriptor, len(all))
 	for _, recipe := range all {
@@ -1092,14 +1114,20 @@ func TestListLoadoutRecipesProjectsSpeechCatalogAndCustody(t *testing.T) {
 			t.Fatalf("video slot[%d] = %+v", index, video[0].GetSlots()[index])
 		}
 	}
+	music := list(capabilitydriver.MiniMaxMusic3CapabilityContract)
+	if len(music) != 1 || music[0].GetRecipeId() != capabilitydriver.MiniMaxMusic3RecipeID ||
+		music[0].GetImplementation().GetImplementationId() != capabilitydriver.MiniMaxMusic3ImplementationID ||
+		len(music[0].GetSlots()) != 1 || music[0].GetSlots()[0].GetSlotId() != capabilitydriver.MiniMaxMusic3RequirementID {
+		t.Fatalf("music recipes = %+v", music)
+	}
 
 	synthesize := list(capabilitydriver.AudioSynthesizeContract)
 	transcribe := list(capabilitydriver.AudioTranscribeContract)
 	voiceCreate := list(capabilitydriver.VoiceCreateContract)
-	if len(synthesize) != 4 || len(transcribe) != 2 || len(voiceCreate) != 2 {
-		t.Fatalf("speech capability filters = synthesize:%d transcribe:%d voice.create:%d, want 4/2/2", len(synthesize), len(transcribe), len(voiceCreate))
+	if len(synthesize) != 5 || len(transcribe) != 2 || len(voiceCreate) != 2 {
+		t.Fatalf("speech capability filters = synthesize:%d transcribe:%d voice.create:%d, want 5/2/2", len(synthesize), len(transcribe), len(voiceCreate))
 	}
-	for _, recipeID := range []string{"voxcpm2", "qwen3-tts-customvoice", "qwen3-tts-base", "qwen3-tts-voicedesign"} {
+	for _, recipeID := range []string{"voxcpm2", "qwen3-tts-customvoice", capabilitydriver.Qwen3TTSAudioCppRecipeID, "qwen3-tts-base", "qwen3-tts-voicedesign"} {
 		recipe := byID[recipeID]
 		wantRevision := "1"
 		if recipeID == capabilitydriver.VoxCPMRecipeID {
@@ -1108,6 +1136,10 @@ func TestListLoadoutRecipesProjectsSpeechCatalogAndCustody(t *testing.T) {
 		if recipe == nil || recipe.GetRevision() != wantRevision || recipe.GetCapabilityContract() != capabilitydriver.AudioSynthesizeContract || len(recipe.GetSlots()) != 1 || recipe.GetSlots()[0].GetSlotId() != "tts.model" || len(recipe.GetSupportedFeatures()) != 0 || len(recipe.GetDefaultOptions().GetFields()) != 0 {
 			t.Fatalf("synthesis recipe %q = %+v", recipeID, recipe)
 		}
+	}
+	qwenAudioCpp := byID[capabilitydriver.Qwen3TTSAudioCppRecipeID]
+	if qwenAudioCpp.GetImplementation().GetImplementationId() != capabilitydriver.Qwen3TTSAudioCppImplementationID || qwenAudioCpp.GetImplementation().GetDriverId() != capabilitydriver.Qwen3TTSAudioCppDriverID || len(qwenAudioCpp.GetSlots()[0].GetRecommendedContentIds()) != 1 || qwenAudioCpp.GetSlots()[0].GetRecommendedContentIds()[0] != capabilitydriver.Qwen3TTSAudioCppVerifiedContentID {
+		t.Fatalf("Qwen audio.cpp recipe = %+v", qwenAudioCpp)
 	}
 	for _, recipeID := range []string{"qwen3-asr", "qwen3-asr-transformers"} {
 		recipe := byID[recipeID]
@@ -1152,7 +1184,7 @@ func TestListLoadoutRecipesProjectsSpeechCatalogAndCustody(t *testing.T) {
 	default:
 		t.Fatalf("VoxCPM host-projected recommendation = %v", gotRecommendation)
 	}
-	for _, recipeID := range []string{"voxcpm2", "qwen3-tts-customvoice", "qwen3-tts-base", "qwen3-tts-voicedesign", capabilitydriver.Qwen3VoiceCloneRecipeID, capabilitydriver.Qwen3VoiceDesignRecipeID, "qwen3-asr", "qwen3-asr-transformers"} {
+	for _, recipeID := range []string{"voxcpm2", "qwen3-tts-customvoice", capabilitydriver.Qwen3TTSAudioCppRecipeID, "qwen3-tts-base", "qwen3-tts-voicedesign", capabilitydriver.Qwen3VoiceCloneRecipeID, capabilitydriver.Qwen3VoiceDesignRecipeID, "qwen3-asr", "qwen3-asr-transformers"} {
 		if len(byID[recipeID].GetCustody()) != 0 {
 			t.Fatalf("recipe %q unexpectedly projects custody", recipeID)
 		}

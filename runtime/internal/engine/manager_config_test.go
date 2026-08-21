@@ -491,6 +491,7 @@ func TestParseEngineKind(t *testing.T) {
 		{"managed-image-backend", engineManagedImageBackend, false},
 		{"media-diffusers-backend", engineManagedImageBackend, false},
 		{"speech", EngineSpeech, false},
+		{"audio-cpp", "", true},
 		{"sidecar", EngineKind("sidecar"), false},
 		{"media.diffusers", "", true},
 		{"unknown", "", true},
@@ -609,6 +610,26 @@ func TestResolveEngineConfigOverrides(t *testing.T) {
 	}
 	if cfg2.Port != 9999 {
 		t.Errorf("expected overridden port 9999, got %d", cfg2.Port)
+	}
+}
+
+func TestAudioCppIsAdmittedOnlyAsBinaryDependency(t *testing.T) {
+	if _, err := resolveEngineConfig("audio-cpp", "", 0); err == nil {
+		t.Fatal("generic supervised lifecycle accepted audio.cpp CLI")
+	}
+	cfg, err := resolveEngineBinaryDependencyConfig("audio-cpp", AudioCppPackageVersion)
+	if err != nil {
+		t.Fatalf("resolve audio.cpp binary dependency: %v", err)
+	}
+	if cfg.Kind != EngineAudioCPP || cfg.Version != AudioCppPackageVersion {
+		t.Fatalf("audio.cpp binary dependency config = %#v", cfg)
+	}
+	mgr, err := NewManager(nil, testManagedRoots(t), nil)
+	if err != nil {
+		t.Fatalf("new manager: %v", err)
+	}
+	if _, err := mgr.EnsureEngine(context.Background(), cfg); err == nil {
+		t.Fatal("generic Manager.EnsureEngine accepted audio.cpp CLI")
 	}
 }
 

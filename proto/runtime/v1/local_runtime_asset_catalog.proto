@@ -18,6 +18,7 @@ enum LocalAssetKind {
   LOCAL_ASSET_KIND_TTS        = 4;
   LOCAL_ASSET_KIND_STT        = 5;
   LOCAL_ASSET_KIND_EMBEDDING  = 6;
+  LOCAL_ASSET_KIND_MUSIC      = 7;
 
   // Passive kinds
   LOCAL_ASSET_KIND_VAE        = 10;
@@ -183,6 +184,7 @@ message LocalCatalogModelDescriptor {
   google.protobuf.Struct engine_config  = 25;
   LocalHostRequirements host_requirements = 26;
   int64 total_size_bytes               = 27;
+  string source_provenance             = 28;
 }
 
 message LocalInstallPlanDescriptor {
@@ -208,4 +210,5 @@ message LocalInstallPlanDescriptor {
   string reason_code                          = 20;
   google.protobuf.Struct engine_config        = 21;
   int64 total_size_bytes                      = 22;
+  string source_provenance                    = 23;
 }

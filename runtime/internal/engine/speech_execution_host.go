@@ -19,10 +19,17 @@ import (
 // this Host supplies only the configured loopback endpoint.
 type SpeechExecutionHost struct {
 	materializer SpeechExecutionHostMaterializer
+	audioCppHost localexecution.SpeechExecutionHost
 	port         int
 	timeout      time.Duration
 	lease        speechExecutionLease
 	poisoned     error
+}
+
+func (host *SpeechExecutionHost) SetAudioCppExecutionHost(audioCppHost localexecution.SpeechExecutionHost) {
+	if host != nil {
+		host.audioCppHost = audioCppHost
+	}
 }
 
 type speechExecutionLease struct {
@@ -75,7 +82,13 @@ func NewSpeechExecutionHost(materializer SpeechExecutionHostMaterializer, port i
 	return &SpeechExecutionHost{materializer: materializer, port: port, timeout: timeout}
 }
 
-func (host *SpeechExecutionHost) ExecuteSpeechSynthesis(ctx context.Context, plan *capabilitydriver.SpeechSynthesizeInvocationPlan, onStart localexecution.SpeechExecutionStartFunc) (localexecution.SpeechSynthesisResult, error) {
+func (host *SpeechExecutionHost) ExecuteSpeechSynthesis(ctx context.Context, plan capabilitydriver.SpeechSynthesizePlan, onStart localexecution.SpeechExecutionStartFunc) (localexecution.SpeechSynthesisResult, error) {
+	if plan != nil && plan.DriverID() == capabilitydriver.Qwen3TTSAudioCppDriverID {
+		if host == nil || host.audioCppHost == nil {
+			return localexecution.SpeechSynthesisResult{}, speechHostError(localexecution.FailureLoad, fmt.Errorf("Qwen3-TTS audio.cpp execution host is unavailable"))
+		}
+		return host.audioCppHost.ExecuteSpeechSynthesis(ctx, plan, onStart)
+	}
 	if host == nil || host.materializer == nil || plan == nil || strings.TrimSpace(plan.ModelAssetID()) == "" || len(plan.ModelFiles()) != 1 {
 		return localexecution.SpeechSynthesisResult{}, speechHostError(localexecution.FailureLoad, fmt.Errorf("local speech synthesis host is unavailable"))
 	}

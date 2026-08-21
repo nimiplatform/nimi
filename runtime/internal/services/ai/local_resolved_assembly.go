@@ -21,20 +21,21 @@ import (
 const localResolvedAssemblyVersion = 1
 
 type localResolvedAssembly struct {
-	Version            int                                  `json:"version"`
-	LoadoutID          string                               `json:"loadout_id"`
-	CapabilityContract string                               `json:"capability_contract"`
-	RecipeID           string                               `json:"recipe_id"`
-	RecipeRevision     string                               `json:"recipe_revision"`
-	DriverIdentity     localResolvedAssemblyDriverIdentity  `json:"driver_identity"`
-	PortableConfig     json.RawMessage                      `json:"portable_config,omitempty"`
-	Requirements       []json.RawMessage                    `json:"requirements,omitempty"`
-	ModelAxes          []localResolvedAssemblyModelAxis     `json:"model_axes"`
-	RecipeCustody      []json.RawMessage                    `json:"recipe_custody,omitempty"`
-	SupportedFeatures  []string                             `json:"supported_features,omitempty"`
-	Request            localResolvedAssemblyRequest         `json:"request"`
-	LoadPlan           localResolvedAssemblyLoadPlan        `json:"load_plan"`
-	ProcessIdentity    localResolvedAssemblyProcessIdentity `json:"process_identity"`
+	Version            int                                     `json:"version"`
+	LoadoutID          string                                  `json:"loadout_id"`
+	CapabilityContract string                                  `json:"capability_contract"`
+	RecipeID           string                                  `json:"recipe_id"`
+	RecipeRevision     string                                  `json:"recipe_revision"`
+	DriverIdentity     localResolvedAssemblyDriverIdentity     `json:"driver_identity"`
+	PortableConfig     json.RawMessage                         `json:"portable_config,omitempty"`
+	Requirements       []json.RawMessage                       `json:"requirements,omitempty"`
+	ModelAxes          []localResolvedAssemblyModelAxis        `json:"model_axes"`
+	DependencySources  []localResolvedAssemblyDependencySource `json:"dependency_sources,omitempty"`
+	RecipeCustody      []json.RawMessage                       `json:"recipe_custody,omitempty"`
+	SupportedFeatures  []string                                `json:"supported_features,omitempty"`
+	Request            localResolvedAssemblyRequest            `json:"request"`
+	LoadPlan           localResolvedAssemblyLoadPlan           `json:"load_plan"`
+	ProcessIdentity    localResolvedAssemblyProcessIdentity    `json:"process_identity"`
 }
 
 type localResolvedAssemblyDriverIdentity struct {
@@ -54,6 +55,17 @@ type localResolvedAssemblyModelAxis struct {
 	DeclaredFiles     []string                                 `json:"declared_files,omitempty"`
 	VerifiedContentID string                                   `json:"verified_content_id"`
 	EntrySHA256       string                                   `json:"entry_sha256"`
+}
+
+type localResolvedAssemblyDependencySource struct {
+	DependencyFamily       string            `json:"dependency_family"`
+	DependencyID           string            `json:"dependency_id"`
+	ConsumerScope          string            `json:"consumer_scope"`
+	SelectedSourceRecordID string            `json:"selected_source_record_id"`
+	CanonicalRoot          string            `json:"canonical_root"`
+	Version                string            `json:"version,omitempty"`
+	VerifiedArtifacts      []string          `json:"verified_artifacts,omitempty"`
+	Hashes                 map[string]string `json:"hashes,omitempty"`
 }
 
 type localResolvedAssemblyRequest struct {
@@ -77,6 +89,33 @@ type localResolvedAssemblyLoadPlan struct {
 	Speech *localResolvedAssemblySpeechPlan `json:"speech,omitempty"`
 	Image  *localResolvedAssemblyImagePlan  `json:"image,omitempty"`
 	Video  *localResolvedAssemblyVideoPlan  `json:"video,omitempty"`
+	Music  *localResolvedAssemblyMusicPlan  `json:"music,omitempty"`
+}
+
+type localResolvedAssemblyMusicPlan struct {
+	ProcessKey                     string  `json:"process_key"`
+	AudioCppPackageID              string  `json:"audio_cpp_package_id"`
+	AudioCppSelectedSourceRecordID string  `json:"audio_cpp_selected_source_record_id"`
+	AudioCppRoot                   string  `json:"audio_cpp_root"`
+	AudioCppExecutablePath         string  `json:"audio_cpp_executable_path"`
+	CUDA13DependencyID             string  `json:"cuda13_dependency_id"`
+	CUDA13SelectedSourceRecordID   string  `json:"cuda13_selected_source_record_id"`
+	CUDA13Root                     string  `json:"cuda13_root"`
+	ModelRoot                      string  `json:"model_root"`
+	LanguageModelPath              string  `json:"language_model_path"`
+	RVQDepthDecoderPath            string  `json:"rvq_depth_decoder_path"`
+	FlowTransformerPath            string  `json:"flow_transformer_path"`
+	DurationBudgetSeconds          int     `json:"duration_budget_seconds"`
+	NumInferenceSteps              int     `json:"num_inference_steps"`
+	GuidanceScale                  float64 `json:"guidance_scale"`
+	ARGuidanceScale                float64 `json:"ar_guidance_scale"`
+	TopK                           int     `json:"top_k"`
+	Seed                           uint64  `json:"seed"`
+	MemorySaver                    bool    `json:"memory_saver"`
+	StagingWAVPath                 string  `json:"staging_wav_path"`
+	ExpectedSampleRate             int     `json:"expected_sample_rate"`
+	ExpectedChannels               int     `json:"expected_channels"`
+	ExpectedBitsPerSample          int     `json:"expected_bits_per_sample"`
 }
 
 type localResolvedAssemblyInvocationBinding struct {
@@ -110,10 +149,38 @@ type localResolvedAssemblyEmbedPlan struct {
 }
 
 type localResolvedAssemblySpeechPlan struct {
-	Operation    string                                   `json:"operation"`
-	DriverID     string                                   `json:"driver_id"`
-	ModelAssetID string                                   `json:"model_asset_id"`
-	ModelFiles   []localResolvedAssemblyInvocationBinding `json:"model_files"`
+	Operation        string                                     `json:"operation"`
+	DriverID         string                                     `json:"driver_id"`
+	ModelAssetID     string                                     `json:"model_asset_id"`
+	ModelFiles       []localResolvedAssemblyInvocationBinding   `json:"model_files"`
+	Qwen3TTSAudioCpp *localResolvedAssemblyQwen3TTSAudioCppPlan `json:"qwen3_tts_audio_cpp,omitempty"`
+}
+
+type localResolvedAssemblyQwen3TTSAudioCppPlan struct {
+	ProcessKey                     string  `json:"process_key"`
+	AudioCppPackageID              string  `json:"audio_cpp_package_id"`
+	AudioCppSelectedSourceRecordID string  `json:"audio_cpp_selected_source_record_id"`
+	AudioCppRoot                   string  `json:"audio_cpp_root"`
+	AudioCppExecutablePath         string  `json:"audio_cpp_executable_path"`
+	CUDA13DependencyID             string  `json:"cuda13_dependency_id"`
+	CUDA13SelectedSourceRecordID   string  `json:"cuda13_selected_source_record_id"`
+	CUDA13Root                     string  `json:"cuda13_root"`
+	ModelPath                      string  `json:"model_path"`
+	Speaker                        string  `json:"speaker"`
+	Language                       string  `json:"language,omitempty"`
+	DoSample                       bool    `json:"do_sample"`
+	Temperature                    float64 `json:"temperature"`
+	TopK                           int     `json:"top_k"`
+	TopP                           float64 `json:"top_p"`
+	RepetitionPenalty              float64 `json:"repetition_penalty"`
+	MaxTokens                      int     `json:"max_tokens"`
+	TextChunkSize                  int     `json:"text_chunk_size"`
+	Seed                           uint64  `json:"seed"`
+	MemorySaver                    bool    `json:"memory_saver"`
+	StagingWAVPath                 string  `json:"staging_wav_path"`
+	ExpectedSampleRate             int     `json:"expected_sample_rate"`
+	ExpectedChannels               int     `json:"expected_channels"`
+	ExpectedBitsPerSample          int     `json:"expected_bits_per_sample"`
 }
 
 type localResolvedAssemblyImageModelFile struct {
@@ -344,6 +411,28 @@ func newLocalResolvedAssembly(selected *localexecution.SelectedLocalExecution, r
 		}
 		assembly.RecipeCustody = append(assembly.RecipeCustody, raw)
 	}
+	for _, source := range selected.ExactDependencySources {
+		hashes := make(map[string]string, len(source.Hashes))
+		for key, value := range source.Hashes {
+			hashes[key] = value
+		}
+		assembly.DependencySources = append(assembly.DependencySources, localResolvedAssemblyDependencySource{DependencyFamily: strings.TrimSpace(source.DependencyFamily), DependencyID: strings.TrimSpace(source.DependencyID), ConsumerScope: strings.TrimSpace(source.ConsumerScope), SelectedSourceRecordID: strings.TrimSpace(source.SelectedSourceRecordID), CanonicalRoot: strings.TrimSpace(source.CanonicalRoot), Version: strings.TrimSpace(source.Version), VerifiedArtifacts: append([]string(nil), source.VerifiedArtifacts...), Hashes: hashes})
+	}
+	return assembly, nil
+}
+
+func localResolvedAssemblyForMusic(selected *localexecution.SelectedLocalExecution, request *runtimev1.MusicGenerateScenarioSpec, plan *capabilitydriver.MusicInvocationPlan) (*localResolvedAssembly, error) {
+	raw, err := protojson.Marshal(request)
+	if err != nil {
+		return nil, err
+	}
+	assembly, err := newLocalResolvedAssembly(selected, "music.generate", raw)
+	if err != nil {
+		return nil, err
+	}
+	sampleRate, channels, bits := plan.ExpectedWAVFormat()
+	assembly.LoadPlan = localResolvedAssemblyLoadPlan{Kind: "music", Music: &localResolvedAssemblyMusicPlan{ProcessKey: plan.ProcessKey(), AudioCppPackageID: plan.AudioCppPackageID(), AudioCppSelectedSourceRecordID: plan.AudioCppSelectedSourceRecordID(), AudioCppRoot: plan.AudioCppRoot(), AudioCppExecutablePath: plan.AudioCppExecutablePath(), CUDA13DependencyID: plan.CUDA13DependencyID(), CUDA13SelectedSourceRecordID: plan.CUDA13SelectedSourceRecordID(), CUDA13Root: plan.CUDA13Root(), ModelRoot: plan.ModelRoot(), LanguageModelPath: plan.LanguageModelPath(), RVQDepthDecoderPath: plan.RVQDepthDecoderPath(), FlowTransformerPath: plan.FlowTransformerPath(), DurationBudgetSeconds: plan.DurationBudgetSeconds(), NumInferenceSteps: plan.NumInferenceSteps(), GuidanceScale: plan.GuidanceScale(), ARGuidanceScale: plan.ARGuidanceScale(), TopK: plan.TopK(), Seed: plan.Seed(), MemorySaver: plan.MemorySaver(), StagingWAVPath: plan.StagingWAVPath(), ExpectedSampleRate: sampleRate, ExpectedChannels: channels, ExpectedBitsPerSample: bits}}
+	assembly.ProcessIdentity.ProcessKey = plan.ProcessKey()
 	return assembly, nil
 }
 
@@ -387,7 +476,7 @@ func localResolvedAssemblyForEmbed(selected *localexecution.SelectedLocalExecuti
 	return assembly, nil
 }
 
-func localResolvedAssemblyForSpeech(selected *localexecution.SelectedLocalExecution, synthesize *capabilitydriver.SpeechSynthesizeInvocationPlan, transcribe *capabilitydriver.SpeechTranscribeInvocationPlan) (*localResolvedAssembly, error) {
+func localResolvedAssemblyForSpeech(selected *localexecution.SelectedLocalExecution, synthesize capabilitydriver.SpeechSynthesizePlan, transcribe *capabilitydriver.SpeechTranscribeInvocationPlan) (*localResolvedAssembly, error) {
 	var request proto.Message
 	plan := &localResolvedAssemblySpeechPlan{}
 	var binaryInput []byte
@@ -399,6 +488,11 @@ func localResolvedAssemblyForSpeech(selected *localexecution.SelectedLocalExecut
 		plan.DriverID = synthesize.DriverID()
 		plan.ModelAssetID = synthesize.ModelAssetID()
 		plan.ModelFiles = resolvedAssemblyInvocationBindings(synthesize.ModelFiles())
+		if exact, ok := synthesize.(*capabilitydriver.Qwen3TTSAudioCppInvocationPlan); ok {
+			doSample, temperature, topK, topP, repetition := exact.Sampling()
+			sampleRate, channels, bits := exact.ExpectedWAVFormat()
+			plan.Qwen3TTSAudioCpp = &localResolvedAssemblyQwen3TTSAudioCppPlan{ProcessKey: exact.ProcessKey(), AudioCppPackageID: exact.AudioCppPackageID(), AudioCppSelectedSourceRecordID: exact.AudioCppSelectedSourceRecordID(), AudioCppRoot: exact.AudioCppRoot(), AudioCppExecutablePath: exact.AudioCppExecutablePath(), CUDA13DependencyID: exact.CUDA13DependencyID(), CUDA13SelectedSourceRecordID: exact.CUDA13SelectedSourceRecordID(), CUDA13Root: exact.CUDA13Root(), ModelPath: exact.ModelPath(), Speaker: exact.Speaker(), Language: exact.Language(), DoSample: doSample, Temperature: temperature, TopK: topK, TopP: topP, RepetitionPenalty: repetition, MaxTokens: exact.MaxTokens(), TextChunkSize: exact.TextChunkSize(), Seed: exact.Seed(), MemorySaver: exact.MemorySaver(), StagingWAVPath: exact.StagingWAVPath(), ExpectedSampleRate: sampleRate, ExpectedChannels: channels, ExpectedBitsPerSample: bits}
+		}
 	case transcribe != nil:
 		request = transcribe.Request()
 		plan.Operation = "transcribe"
@@ -423,6 +517,9 @@ func localResolvedAssemblyForSpeech(selected *localexecution.SelectedLocalExecut
 	assembly.LoadPlan = localResolvedAssemblyLoadPlan{Kind: "speech", Speech: plan}
 	assembly.ProcessIdentity.DriverID = plan.DriverID
 	assembly.ProcessIdentity.ModelAssetID = plan.ModelAssetID
+	if plan.Qwen3TTSAudioCpp != nil {
+		assembly.ProcessIdentity.ProcessKey = plan.Qwen3TTSAudioCpp.ProcessKey
+	}
 	return assembly, nil
 }
 
@@ -604,6 +701,13 @@ func selectedLocalExecutionFromResolvedAssembly(assembly *localResolvedAssembly)
 			EntrySHA256:       axis.EntrySHA256,
 		})
 	}
+	for _, source := range assembly.DependencySources {
+		hashes := make(map[string]string, len(source.Hashes))
+		for key, value := range source.Hashes {
+			hashes[key] = value
+		}
+		selected.ExactDependencySources = append(selected.ExactDependencySources, localexecution.ExactDependencySource{DependencyFamily: source.DependencyFamily, DependencyID: source.DependencyID, ConsumerScope: source.ConsumerScope, SelectedSourceRecordID: source.SelectedSourceRecordID, CanonicalRoot: source.CanonicalRoot, Version: source.Version, VerifiedArtifacts: append([]string(nil), source.VerifiedArtifacts...), Hashes: hashes})
+	}
 	return selected
 }
 
@@ -673,6 +777,12 @@ func validateLocalResolvedAssembly(assembly *localResolvedAssembly) error {
 		if operation := strings.TrimSpace(assembly.LoadPlan.Speech.Operation); operation != "synthesize" && operation != "transcribe" && operation != "voice.create" {
 			return fmt.Errorf("local ResolvedAssembly speech operation %q is unsupported", operation)
 		}
+		if assembly.DriverIdentity.DriverID == capabilitydriver.Qwen3TTSAudioCppDriverID {
+			plan := assembly.LoadPlan.Speech.Qwen3TTSAudioCpp
+			if plan == nil || strings.TrimSpace(plan.ProcessKey) == "" || strings.TrimSpace(plan.AudioCppSelectedSourceRecordID) == "" || strings.TrimSpace(plan.CUDA13SelectedSourceRecordID) == "" || strings.TrimSpace(plan.StagingWAVPath) == "" {
+				return fmt.Errorf("local Qwen3-TTS audio.cpp ResolvedAssembly plan is incomplete")
+			}
+		}
 	case "image":
 		if assembly.LoadPlan.Image == nil || strings.TrimSpace(assembly.LoadPlan.Image.ProcessKey) == "" || strings.TrimSpace(assembly.LoadPlan.Image.Request.Kind) == "" {
 			return fmt.Errorf("local ResolvedAssembly image load plan is incomplete")
@@ -680,6 +790,10 @@ func validateLocalResolvedAssembly(assembly *localResolvedAssembly) error {
 	case "video":
 		if assembly.LoadPlan.Video == nil || strings.TrimSpace(assembly.LoadPlan.Video.ProcessKey) == "" {
 			return fmt.Errorf("local ResolvedAssembly video load plan is incomplete")
+		}
+	case "music":
+		if assembly.LoadPlan.Music == nil || strings.TrimSpace(assembly.LoadPlan.Music.ProcessKey) == "" || strings.TrimSpace(assembly.LoadPlan.Music.AudioCppSelectedSourceRecordID) == "" || strings.TrimSpace(assembly.LoadPlan.Music.CUDA13SelectedSourceRecordID) == "" || strings.TrimSpace(assembly.LoadPlan.Music.StagingWAVPath) == "" {
+			return fmt.Errorf("local ResolvedAssembly music load plan is incomplete")
 		}
 	default:
 		return fmt.Errorf("local ResolvedAssembly load plan kind %q is unsupported", assembly.LoadPlan.Kind)

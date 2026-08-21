@@ -92,6 +92,45 @@ models:
       - speech/qwen3tts
       - Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice
 
+  - model_id: qwen3-tts-audio-cpp-local
+    family: qwen3-tts-customvoice
+    updated_at: 2026-08-21
+    capabilities: [audio.synthesize]
+    source_ids: [qwen3_tts_audio_cpp_gguf_modelcard]
+    voice:
+      discovery_mode: static_catalog
+      voice_set_ref: qwen3-tts-audio-cpp-v1
+      supports_voice_ref_kinds: [preset_voice_id]
+      langs_ref: short_v1
+    install:
+      repo: audio-cpp/audio.cpp-gguf
+      revision: 7e9a59c8aee65253851b91b7b9b8e206544ef1a6
+      license: Apache-2.0
+      provenance: Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice converted by audio-cpp
+      install_kind: verified-hf-multi-file
+      entry: Qwen3-TTS-12Hz-1.7B-CustomVoice-GGUF/qwen3-tts-12hz-1.7b-customvoice-q8_0.gguf
+      artifact_roles: [tts_model]
+      preferred_engine: audio-cpp
+    variants:
+      - variant_id: local.tts.qwen3-tts-customvoice-1.7b.audio-cpp.q8-0.cuda
+        quant: Q8_0
+        entry: Qwen3-TTS-12Hz-1.7B-CustomVoice-GGUF/qwen3-tts-12hz-1.7b-customvoice-q8_0.gguf
+        files:
+          - Qwen3-TTS-12Hz-1.7B-CustomVoice-GGUF/qwen3-tts-12hz-1.7b-customvoice-q8_0.gguf
+        hashes:
+          Qwen3-TTS-12Hz-1.7B-CustomVoice-GGUF/qwen3-tts-12hz-1.7b-customvoice-q8_0.gguf: sha256:3cfaac8e9f13554f6daea3c5e0c53fede71ef5500cbaae7445e5fc3a5bb12e72
+        total_size_bytes: 2817044064
+        host_requirement:
+          accelerator: cuda
+          min_ram_bytes: 8589934592
+          min_vram_bytes: 8589934592
+    fitness:
+      param_count: 1700000000
+      context_length: 8192
+    aliases:
+      - local/qwen3-tts-audio-cpp
+      - speech/qwen3tts-audio-cpp
+
   - model_id: qwen3-tts-base-local
     updated_at: 2026-08-12
     capabilities: [audio.synthesize, voice.create]

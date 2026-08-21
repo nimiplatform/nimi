@@ -79,6 +79,7 @@ function standardShell(operationCalls: string[]): NimiLocalAppStandardShell {
         read: touched('storage.assets.read'),
         remove: touched('storage.assets.remove'),
         move: touched('storage.assets.move'),
+        reveal: touched('storage.assets.reveal'),
         adoptArtifact: touched('storage.assets.adoptArtifact'),
       },
     },
@@ -148,7 +149,7 @@ test('local-app client hard-cuts the access workflow namespace', () => {
   assert.deepEqual(Object.keys(client.agentConfigure.presentation).sort(), ['commit', 'snapshot']);
   assert.deepEqual(Object.keys(client.storage).sort(), ['assets', 'readJson', 'removeJson', 'writeJson']);
   assert.deepEqual(Object.keys(client.storage.assets).sort(), [
-    'adoptArtifact', 'list', 'move', 'read', 'remove', 'stat', 'write',
+    'adoptArtifact', 'list', 'move', 'read', 'remove', 'reveal', 'stat', 'write',
   ]);
 });
 
@@ -189,6 +190,7 @@ test('local-app managed assets preserve incremental bodies, cancellation, and ex
         },
         async remove(relativePath) { calls.push(['remove', relativePath]); return { removed: true }; },
         async move(input) { calls.push(['move', input]); return { ...asset, relativePath: input.to }; },
+        async reveal(relativePath) { calls.push(['reveal', relativePath]); return { revealed: true }; },
         async adoptArtifact(input) { calls.push(['adopt', input]); return { ...asset, relativePath: input.relativePath }; },
       },
     },
@@ -217,10 +219,12 @@ test('local-app managed assets preserve incremental bodies, cancellation, and ex
   await assets.stat(unicodePath);
   await assets.stat(maximumPath);
   await assets.list({ prefix: '媒体/', pageSize: 500 });
-  assert.deepEqual(calls.slice(-3), [
+  assert.deepEqual(await assets.reveal(unicodePath), { revealed: true });
+  assert.deepEqual(calls.slice(-4), [
     ['stat', unicodePath],
     ['stat', maximumPath],
     ['list', { prefix: '媒体/', pageSize: 500 }],
+    ['reveal', unicodePath],
   ]);
   await assert.rejects(() => assets.stat('媒体/e\u0301.wav'), { reasonCode: 'SDK_LOCAL_APP_ASSET_INPUT_INVALID' });
   await assert.rejects(() => assets.stat(`${maximumPath}x`), { reasonCode: 'SDK_LOCAL_APP_ASSET_INPUT_INVALID' });
@@ -782,6 +786,46 @@ test('local-app video jobs admit only the canonical seed range', async () => {
       ...spec,
       options: { ...spec.options, seed: 4_294_967_296 },
     }),
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_LOCAL_APP_INPUT_INVALID',
+  );
+});
+
+test('local-app Music adapter exposes only prompt and lyrics through the protected async carrier', async () => {
+  const calls: unknown[] = [];
+  const base = standardShell([]);
+  const job = {
+    jobId: 'job-music-1', scenarioType: 'music-generate' as const, status: 'submitted' as const,
+    progressPercent: 0, progressCurrentStep: 0, progressTotalSteps: 0,
+    reasonCode: '', reasonDetail: '', artifacts: [], traceId: 'trace-music-1',
+    createdAt: null, updatedAt: null, transcriptionText: '',
+  };
+  const client = createNimiLocalAppClient({
+    standardShell: {
+      ...base,
+      ai: {
+        ...base.ai,
+        scenarioJobs: {
+          ...base.ai.scenarioJobs,
+          async submit(spec, options) { calls.push([spec, options]); return { job }; },
+        },
+      },
+    },
+  });
+  const adapter = createNimiLocalAppRuntimeScenarioJobClient(client.ai);
+  const request: SubmitScenarioJobRequest = {
+    head: { appId: 'nimi.lab', subjectUserId: '', timeoutMs: 5_000 },
+    scenarioType: ScenarioType.MUSIC_GENERATE,
+    executionMode: ExecutionMode.ASYNC_JOB,
+    spec: { spec: { oneofKind: 'musicGenerate', musicGenerate: { prompt: 'bright synth-pop', negativePrompt: '', lyrics: '[Verse]\nCity lights.', style: '', title: '', durationSeconds: 0, instrumental: false } } },
+    requestId: 'request-music', idempotencyKey: 'idempotency-music', labels: {}, extensions: [],
+  };
+  await adapter.submitScenarioJob(request);
+  assert.deepEqual(calls, [[
+    { type: 'music-generate', prompt: 'bright synth-pop', lyrics: '[Verse]\nCity lights.' },
+    { timeoutMs: 5_000 },
+  ]]);
+  await assert.rejects(
+    () => adapter.submitScenarioJob({ ...request, spec: { spec: { oneofKind: 'musicGenerate', musicGenerate: { ...request.spec!.spec!.musicGenerate, durationSeconds: 20 } } } }),
     (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_LOCAL_APP_INPUT_INVALID',
   );
 });

@@ -472,6 +472,10 @@ func localExecutionError(err error) error {
 	options := grpcerr.ReasonOptions{Metadata: map[string]string{"execution_phase": string(kind)}}
 	retryable := false
 	switch kind {
+	case localexecution.FailureTimeout:
+		options.ActionHint = "request_timed_out"
+		options.Retryable = &retryable
+		return grpcerr.WrapWithReasonCode(codes.DeadlineExceeded, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT, err, options)
 	case localexecution.FailureCanceled:
 		options.ActionHint = "request_canceled"
 		options.Retryable = &retryable
@@ -489,6 +493,10 @@ func localExecutionError(err error) error {
 		options.ActionHint = "retry_after_local_execution_host_restart"
 		options.Retryable = &retryable
 		return grpcerr.WrapWithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_LOCAL_EXECUTION_PROCESS_CRASHED, err, options)
+	case localexecution.FailureOutOfMemory:
+		options.ActionHint = "reduce_local_execution_memory_requirement"
+		options.Retryable = &retryable
+		return grpcerr.WrapWithReasonCode(codes.ResourceExhausted, runtimev1.ReasonCode_AI_LOCAL_EXECUTION_OUT_OF_MEMORY, err, options)
 	default:
 		retryable = true
 		options.ActionHint = "retry_or_adjust_request"

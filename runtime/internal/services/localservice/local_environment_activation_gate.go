@@ -114,8 +114,7 @@ func (s *Service) resolveLocalEnvironmentCUDAProjection(dep localEnvironmentPlan
 	if dep.SelectedSourceRecordID != "" {
 		return dep
 	}
-	status := s.resolveSharedCUDADependencyStatus(consumerID)
-	dep.DependencyID = cudaUserSpaceRuntimeDependencyID
+	status := s.resolveSharedCUDADependencyStatusForID(dep.DependencyID, consumerID)
 	dep.CanonicalRoot = strings.TrimSpace(status.CanonicalRoot)
 	dep.Detail = strings.TrimSpace(status.Detail)
 	dep.ReasonCode = localEnvironmentActivationDependencyReason(string(status.State))
@@ -262,6 +261,10 @@ func localEnvironmentConsumerRequirementByID(consumerID string) (localEnvironmen
 		return localEnvironmentConsumerRequirement{ConsumerID: strings.TrimSpace(consumerID), PackID: "local-text"}, true
 	case "stable-diffusion.cpp.cpu", "stable-diffusion.cpp.metal", stableDiffusionCUDAConsumerID:
 		return localEnvironmentConsumerRequirement{ConsumerID: strings.TrimSpace(consumerID), PackID: "local-image-native"}, true
+	case audioCppCUDAConsumerID:
+		return localEnvironmentConsumerRequirement{ConsumerID: strings.TrimSpace(consumerID), PackID: "local-music-native"}, true
+	case audioCppQwen3TTSCUDAConsumerID:
+		return localEnvironmentConsumerRequirement{ConsumerID: strings.TrimSpace(consumerID), PackID: "local-speech-native"}, true
 	case "media.diffusers.cpu", "media.diffusers.cuda":
 		return localEnvironmentConsumerRequirement{ConsumerID: strings.TrimSpace(consumerID), PackID: "local-image-python"}, true
 	case "media.video-python.cpu", "media.video-python.cuda":

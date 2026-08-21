@@ -300,6 +300,32 @@ type ImageInvocationInput struct {
 	Inputs            []ImageResolvedInput
 }
 
+// AudioCppRuntimePackageInput is the capability-neutral selected-source pair
+// captured before Job publication. Exact Drivers freeze it into their own
+// immutable capability plans; it carries no model, request, or route facts.
+type AudioCppRuntimePackageInput struct {
+	AudioCppPackageID              string
+	AudioCppSelectedSourceRecordID string
+	AudioCppRoot                   string
+	AudioCppExecutablePath         string
+	CUDA13DependencyID             string
+	CUDA13SelectedSourceRecordID   string
+	CUDA13Root                     string
+}
+
+type MusicRuntimePackageInput = AudioCppRuntimePackageInput
+
+type MusicInvocationInput struct {
+	LoadoutID      string
+	RecipeID       string
+	PortableConfig *structpb.Struct
+	ExactBindings  []InvocationExactBinding
+	Package        MusicRuntimePackageInput
+	Request        *runtimev1.MusicGenerateScenarioSpec
+	Extensions     []*runtimev1.ScenarioExtension
+	StagingWAVPath string
+}
+
 // VideoInputRole classifies already-resolved media handles. The Driver never
 // parses a URL or opens an input path.
 type VideoInputRole string
@@ -781,6 +807,202 @@ type ImageInvocationDriver interface {
 	PlanImageInvocation(input ImageInvocationInput) (*ImageInvocationPlan, error)
 }
 
+// MusicInvocationPlan is the immutable closed MiniMax-Music3 Driver/Host seam.
+type MusicInvocationPlan struct {
+	processKey                     string
+	loadoutID                      string
+	recipeID                       string
+	driverIdentity                 Identity
+	modelBinding                   InvocationExactBinding
+	modelRoot                      string
+	languageModelPath              string
+	rvqDepthDecoderPath            string
+	flowTransformerPath            string
+	audioCppPackageID              string
+	audioCppSelectedSourceRecordID string
+	audioCppRoot                   string
+	audioCppExecutablePath         string
+	cuda13DependencyID             string
+	cuda13SelectedSourceRecordID   string
+	cuda13Root                     string
+	prompt                         string
+	lyrics                         string
+	durationBudgetSeconds          int
+	numInferenceSteps              int
+	guidanceScale                  float64
+	arGuidanceScale                float64
+	topK                           int
+	seed                           uint64
+	memorySaver                    bool
+	stagingWAVPath                 string
+	expectedSampleRate             int
+	expectedChannels               int
+	expectedBitsPerSample          int
+}
+
+func (p *MusicInvocationPlan) ProcessKey() string {
+	if p == nil {
+		return ""
+	}
+	return p.processKey
+}
+func (p *MusicInvocationPlan) LoadoutID() string {
+	if p == nil {
+		return ""
+	}
+	return p.loadoutID
+}
+func (p *MusicInvocationPlan) RecipeID() string {
+	if p == nil {
+		return ""
+	}
+	return p.recipeID
+}
+func (p *MusicInvocationPlan) DriverIdentity() Identity {
+	if p == nil {
+		return Identity{}
+	}
+	return p.driverIdentity
+}
+func (p *MusicInvocationPlan) ModelBinding() InvocationExactBinding {
+	if p == nil {
+		return InvocationExactBinding{}
+	}
+	return cloneInvocationExactBindings([]InvocationExactBinding{p.modelBinding})[0]
+}
+func (p *MusicInvocationPlan) ModelRoot() string {
+	if p == nil {
+		return ""
+	}
+	return p.modelRoot
+}
+func (p *MusicInvocationPlan) LanguageModelPath() string {
+	if p == nil {
+		return ""
+	}
+	return p.languageModelPath
+}
+func (p *MusicInvocationPlan) RVQDepthDecoderPath() string {
+	if p == nil {
+		return ""
+	}
+	return p.rvqDepthDecoderPath
+}
+func (p *MusicInvocationPlan) FlowTransformerPath() string {
+	if p == nil {
+		return ""
+	}
+	return p.flowTransformerPath
+}
+func (p *MusicInvocationPlan) AudioCppPackageID() string {
+	if p == nil {
+		return ""
+	}
+	return p.audioCppPackageID
+}
+func (p *MusicInvocationPlan) AudioCppSelectedSourceRecordID() string {
+	if p == nil {
+		return ""
+	}
+	return p.audioCppSelectedSourceRecordID
+}
+func (p *MusicInvocationPlan) AudioCppRoot() string {
+	if p == nil {
+		return ""
+	}
+	return p.audioCppRoot
+}
+func (p *MusicInvocationPlan) AudioCppExecutablePath() string {
+	if p == nil {
+		return ""
+	}
+	return p.audioCppExecutablePath
+}
+func (p *MusicInvocationPlan) CUDA13DependencyID() string {
+	if p == nil {
+		return ""
+	}
+	return p.cuda13DependencyID
+}
+func (p *MusicInvocationPlan) CUDA13SelectedSourceRecordID() string {
+	if p == nil {
+		return ""
+	}
+	return p.cuda13SelectedSourceRecordID
+}
+func (p *MusicInvocationPlan) CUDA13Root() string {
+	if p == nil {
+		return ""
+	}
+	return p.cuda13Root
+}
+func (p *MusicInvocationPlan) Prompt() string {
+	if p == nil {
+		return ""
+	}
+	return p.prompt
+}
+func (p *MusicInvocationPlan) Lyrics() string {
+	if p == nil {
+		return ""
+	}
+	return p.lyrics
+}
+func (p *MusicInvocationPlan) DurationBudgetSeconds() int {
+	if p == nil {
+		return 0
+	}
+	return p.durationBudgetSeconds
+}
+func (p *MusicInvocationPlan) NumInferenceSteps() int {
+	if p == nil {
+		return 0
+	}
+	return p.numInferenceSteps
+}
+func (p *MusicInvocationPlan) GuidanceScale() float64 {
+	if p == nil {
+		return 0
+	}
+	return p.guidanceScale
+}
+func (p *MusicInvocationPlan) ARGuidanceScale() float64 {
+	if p == nil {
+		return 0
+	}
+	return p.arGuidanceScale
+}
+func (p *MusicInvocationPlan) TopK() int {
+	if p == nil {
+		return 0
+	}
+	return p.topK
+}
+func (p *MusicInvocationPlan) Seed() uint64 {
+	if p == nil {
+		return 0
+	}
+	return p.seed
+}
+func (p *MusicInvocationPlan) MemorySaver() bool { return p != nil && p.memorySaver }
+func (p *MusicInvocationPlan) StagingWAVPath() string {
+	if p == nil {
+		return ""
+	}
+	return p.stagingWAVPath
+}
+func (p *MusicInvocationPlan) ExpectedWAVFormat() (int, int, int) {
+	if p == nil {
+		return 0, 0, 0
+	}
+	return p.expectedSampleRate, p.expectedChannels, p.expectedBitsPerSample
+}
+
+type MusicInvocationDriver interface {
+	Driver
+	PlanMusicInvocation(MusicInvocationInput) (*MusicInvocationPlan, error)
+}
+
 // VideoConditioningMode is the exact stable-diffusion.cpp H3 route selected at
 // admission. No execution-time fallback is permitted.
 type VideoConditioningMode string
@@ -1095,10 +1317,12 @@ func NewProductionRegistry() *Registry {
 		{CapabilityContract: StableDiffusionCapabilityContract, Identity: Identity{ImplementationID: StableDiffusionImplementationID, DriverID: StableDiffusionDriverID, DriverDialect: StableDiffusionDriverDialect}}:                     StableDiffusionImageDriver{},
 		{CapabilityContract: StableDiffusionVideoCapabilityContract, Identity: Identity{ImplementationID: StableDiffusionVideoImplementationID, DriverID: StableDiffusionVideoDriverID, DriverDialect: StableDiffusionVideoDriverDialect}}: StableDiffusionVideoDriver{},
 		{CapabilityContract: AudioSynthesizeContract, Identity: Identity{ImplementationID: Qwen3TTSImplementationID, DriverID: Qwen3TTSDriverID, DriverDialect: Qwen3TTSDriverDialect}}:                                                    Qwen3TTSDriver{},
+		{CapabilityContract: AudioSynthesizeContract, Identity: Identity{ImplementationID: Qwen3TTSAudioCppImplementationID, DriverID: Qwen3TTSAudioCppDriverID, DriverDialect: Qwen3TTSAudioCppDriverDialect}}:                            Qwen3TTSAudioCppDriver{},
 		{CapabilityContract: AudioSynthesizeContract, Identity: Identity{ImplementationID: VoxCPMImplementationID, DriverID: VoxCPMDriverID, DriverDialect: VoxCPMDriverDialect}}:                                                          VoxCPMDriver{},
 		{CapabilityContract: VoiceCreateContract, Identity: Identity{ImplementationID: Qwen3VoiceCreateImplementationID, DriverID: Qwen3TTSDriverID, DriverDialect: Qwen3VoiceCreateDriverDialect}}:                                        Qwen3VoiceCreateDriver{},
 		{CapabilityContract: AudioTranscribeContract, Identity: Identity{ImplementationID: Qwen3ASRImplementationID, DriverID: Qwen3ASRDriverID, DriverDialect: Qwen3ASRDriverDialect}}:                                                    Qwen3ASRDriver{},
 		{CapabilityContract: AudioTranscribeContract, Identity: Identity{ImplementationID: Qwen3ASRTransformersImplementationID, DriverID: Qwen3ASRTransformersDriverID, DriverDialect: Qwen3ASRTransformersDriverDialect}}:                Qwen3ASRTransformersDriver{},
+		{CapabilityContract: MiniMaxMusic3CapabilityContract, Identity: Identity{ImplementationID: MiniMaxMusic3ImplementationID, DriverID: MiniMaxMusic3DriverID, DriverDialect: MiniMaxMusic3DriverDialect}}:                             MiniMaxMusic3AudioCppDriver{},
 	})
 	if err != nil {
 		panic(err)

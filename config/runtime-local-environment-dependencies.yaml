@@ -16,6 +16,7 @@ entries:
   - dependency_families_8
   - dependency_families_9
   - dependency_families_10
+  - dependency_families_11
   - dependency families are resolved by Runtime local environment plan before
     activation
   - precisely pinned managed uv 0.11.8, exact Python, venv, package sets, and
@@ -155,6 +156,35 @@ dependency_families:
     activation_env_delta: process_env_only
     materializer_ref: materializer.native-engine-package.stablediffusion-ggml
     source_manifest_ref: managed-image-backend-package-source
+    verification_evidence_ref: native-engine-package-evidence
+    required_proof:
+      - declared_package_source
+      - archive_hash
+      - canonical_root
+      - executable_artifact
+      - selected_source_record
+
+  - family_id: native-engine-package.audio-cpp
+    owner: runtime_local_environment_plan
+    dependency_kind: native_engine_package
+    environment_key_fields:
+      - engine_id
+      - backend_family
+      - package_variant
+      - platform_tuple
+      - runtime_data_root
+    source_policy: declared-managed-package-only
+    source_candidates:
+      - source_kind: managed
+        priority: 1
+        admission: explicit_confirmation_before_first_network_materialization
+      - source_kind: unavailable
+        priority: 2
+        admission: fail_closed
+    managed_root: environments
+    activation_env_delta: process_env_only
+    materializer_ref: materializer.native-engine-package.audio-cpp
+    source_manifest_ref: runtime-engine-audio-cpp-package-source
     verification_evidence_ref: native-engine-package-evidence
     required_proof:
       - declared_package_source

@@ -126,6 +126,9 @@ func projectVerifiedAssetDescriptor(
 		"min_ram_bytes":  variant.HostRequirement.MinRAMBytes,
 		"min_vram_bytes": variant.HostRequirement.MinVRAMBytes,
 	}
+	if provenance := strings.TrimSpace(install.Provenance); provenance != "" {
+		metadataValues["provenance"] = provenance
+	}
 	if family != "" {
 		metadataValues["family"] = family
 		if !passive {
@@ -149,6 +152,7 @@ func projectVerifiedAssetDescriptor(
 		Engine:           engine,
 		Entry:            strings.TrimSpace(variant.Entry),
 		Files:            append([]string(nil), variant.Files...),
+		License:          strings.TrimSpace(install.License),
 		Repo:             repo,
 		Revision:         revision,
 		Hashes:           hashes,
@@ -182,6 +186,8 @@ func verifiedAssetTags(capabilities []string, quant string) []string {
 			tags = append(tags, "image")
 		case "video.generate":
 			tags = append(tags, "video")
+		case "music.generate":
+			tags = append(tags, "music")
 		}
 	}
 	if quant := strings.TrimSpace(quant); quant != "" {

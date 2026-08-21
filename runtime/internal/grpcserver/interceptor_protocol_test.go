@@ -318,6 +318,7 @@ func generatedRuntimeFullMethods() []string {
 func isKnownReadOperation(operation string) bool {
 	switch operation {
 	case "OpenCompanionParticipationReplay",
+		"RevealLocalAppAsset",
 		"ResolveAvatarLiveInstanceBinding",
 		"ResolveLocalEnvironmentPlan",
 		"ResolveModelInstallPlan":

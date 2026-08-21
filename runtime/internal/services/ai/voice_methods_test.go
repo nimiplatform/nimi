@@ -78,6 +78,21 @@ func TestListPresetVoicesUsesSelectedLocalSpeechConfigurationWithoutTargetRef(t 
 	}
 }
 
+func TestListPresetVoicesUsesExactQwenAudioCppBinding(t *testing.T) {
+	service := newTestService(nil)
+	service.SetLocalExecutionResolver(&mutableLocalExecutionResolver{projection: selectedQwen3TTSAudioCppExecutionForTest(t)})
+	if err := service.aiConfigStore.Overwrite(context.Background(), "user-1", appAIConfig("nimi.desktop", localAppAIConfigIntent(capabilitydriver.AudioSynthesizeContract))); err != nil {
+		t.Fatal(err)
+	}
+	response, err := service.ListPresetVoices(scenarioJobUserContext("nimi.desktop", "user-1"), &runtimev1.ListPresetVoicesRequest{AppId: "nimi.desktop", SubjectUserId: "user-1"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if response.GetModelResolved() != "model-qwen-audio-cpp" || len(response.GetVoices()) != 1 || response.GetVoices()[0].GetVoiceId() != capabilitydriver.Qwen3TTSAudioCppPresetVoiceVivian {
+		t.Fatalf("Qwen audio.cpp voices=%+v model=%q", response.GetVoices(), response.GetModelResolved())
+	}
+}
+
 type staticProvider struct {
 	route runtimev1.RoutePolicy
 }

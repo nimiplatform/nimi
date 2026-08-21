@@ -28,6 +28,7 @@ var publicTransportBlockedMethods = map[string]runtimev1.ReasonCode{
 	"/nimi.runtime.v1.RuntimeAppService/WriteLocalAppStorageJson":                    runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
 	"/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppStorageJson":                   runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
 	"/nimi.runtime.v1.RuntimeAppService/StatLocalAppAsset":                           runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
+	"/nimi.runtime.v1.RuntimeAppService/RevealLocalAppAsset":                         runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
 	"/nimi.runtime.v1.RuntimeAppService/ListLocalAppAssets":                          runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
 	"/nimi.runtime.v1.RuntimeAppService/WriteLocalAppAsset":                          runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
 	"/nimi.runtime.v1.RuntimeAppService/ReadLocalAppAsset":                           runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,

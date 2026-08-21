@@ -40,16 +40,17 @@ func TestInstallManagedDownloadedModelCreatesContentOnlyModelAsset(t *testing.T)
 	svc.hfDownloadBaseURL = server.URL
 
 	record, err := svc.installManagedDownloadedModel(context.Background(), managedDownloadedModelSpec{
-		modelID:      "local/qwen3-embedding-8b",
-		kind:         runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED,
-		capabilities: []string{"text.embed"},
-		engine:       "llama",
-		entry:        "Qwen3-Embedding-8B-Q4_K_M.gguf",
-		files:        []string{"Qwen3-Embedding-8B-Q4_K_M.gguf"},
-		license:      "apache-2.0",
-		repo:         "Qwen/Qwen3-Embedding-8B-GGUF",
-		revision:     "main",
-		hashes:       map[string]string{"Qwen3-Embedding-8B-Q4_K_M.gguf": "sha256:" + hex.EncodeToString(sum[:])},
+		modelID:          "local/qwen3-embedding-8b",
+		kind:             runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED,
+		capabilities:     []string{"text.embed"},
+		engine:           "llama",
+		entry:            "Qwen3-Embedding-8B-Q4_K_M.gguf",
+		files:            []string{"Qwen3-Embedding-8B-Q4_K_M.gguf"},
+		license:          "apache-2.0",
+		sourceProvenance: "Qwen/Qwen3-Embedding-8B converted by example-owner",
+		repo:             "Qwen/Qwen3-Embedding-8B-GGUF",
+		revision:         "main",
+		hashes:           map[string]string{"Qwen3-Embedding-8B-Q4_K_M.gguf": "sha256:" + hex.EncodeToString(sum[:])},
 	})
 	if err != nil {
 		t.Fatalf("installManagedDownloadedModel: %v", err)
@@ -60,13 +61,19 @@ func TestInstallManagedDownloadedModelCreatesContentOnlyModelAsset(t *testing.T)
 	if got := record.GetFiles(); len(got) != 1 || got[0].GetRelativePath() != "Qwen3-Embedding-8B-Q4_K_M.gguf" {
 		t.Fatalf("record files mismatch: %#v", got)
 	}
+	if got := record.GetProvenance().GetFields()["license"].GetStringValue(); got != "apache-2.0" {
+		t.Fatalf("record license provenance = %q", got)
+	}
+	if got := record.GetProvenance().GetFields()["source_provenance"].GetStringValue(); got != "Qwen/Qwen3-Embedding-8B converted by example-owner" {
+		t.Fatalf("record source provenance = %q", got)
+	}
 
 	manifestPath := filepath.Join(svc.modelAssetDirectories[record.GetModelAssetId()], localAssetManifestFileName)
 	raw, err := os.ReadFile(manifestPath)
 	if err != nil {
 		t.Fatalf("read manifest: %v", err)
 	}
-	if bytes.Contains(raw, []byte(`"kind"`)) || !bytes.Contains(raw, []byte(`"model_asset_id"`)) || !bytes.Contains(raw, []byte(`"content_id"`)) {
+	if bytes.Contains(raw, []byte(`"kind"`)) || !bytes.Contains(raw, []byte(`"model_asset_id"`)) || !bytes.Contains(raw, []byte(`"content_id"`)) || !bytes.Contains(raw, []byte(`"license": "apache-2.0"`)) || !bytes.Contains(raw, []byte(`"source_provenance": "Qwen/Qwen3-Embedding-8B converted by example-owner"`)) {
 		t.Fatalf("managed download did not hard-cut to a content-only ModelAsset manifest: %s", string(raw))
 	}
 	if len(svc.modelAssets) != 1 {
@@ -956,6 +963,7 @@ func TestResumeRestoredManagedModelDownloadRebuildsExecutorAndRangePrefix(t *tes
 		entry:             descriptor.GetEntry(),
 		files:             append([]string(nil), descriptor.GetFiles()...),
 		license:           descriptor.GetLicense(),
+		sourceProvenance:  "test catalog conversion provenance",
 		repo:              descriptor.GetRepo(),
 		revision:          descriptor.GetRevision(),
 		hashes:            cloneStringMap(descriptor.GetHashes()),
@@ -1062,6 +1070,9 @@ func TestResumeRestoredManagedModelDownloadRebuildsExecutorAndRangePrefix(t *tes
 	restored.mu.RUnlock()
 	if record == nil {
 		t.Fatal("resumed transfer did not commit the installed ModelAsset record")
+	}
+	if got := record.GetProvenance().GetFields()["source_provenance"].GetStringValue(); got != "test catalog conversion provenance" {
+		t.Fatalf("resumed ModelAsset source provenance = %q", got)
 	}
 	if len(restored.modelAssets) != 1 {
 		t.Fatalf("resumed ModelAsset inventory count = %d, want 1", len(restored.modelAssets))

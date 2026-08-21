@@ -42,6 +42,7 @@ func (s *Service) SubmitLocalAppScenarioJob(ctx context.Context, req *runtimev1.
 		return nil, err
 	}
 	head := localAppScenarioHead(decision)
+	head.TimeoutMs = req.GetTimeoutMs()
 	submitCtx := ctx
 	if scenarioType == runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE {
 		capturedCtx, intent, err := s.captureScenarioExecutionIntent(ctx, head, scenarioTargetCapability(scenarioType))
@@ -205,7 +206,8 @@ func projectLocalAppScenarioJob(job *runtimev1.ScenarioJob) (*runtimev1.LocalApp
 		runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE,
 		runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE,
 		runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE,
-		runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE:
+		runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE,
+		runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE:
 	default:
 		return invalid()
 	}
@@ -346,9 +348,24 @@ func validateLocalAppScenarioJobRequest(req *runtimev1.SubmitLocalAppScenarioJob
 		return &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_VoiceCreate{
 			VoiceCreate: creation,
 		}}, runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE, nil
+	case *runtimev1.SubmitLocalAppScenarioJobRequest_MusicGenerate:
+		music, err := validateLocalAppMusicGenerateJobSpec(spec.MusicGenerate)
+		if err != nil {
+			return nil, runtimev1.ScenarioType_SCENARIO_TYPE_UNSPECIFIED, err
+		}
+		return &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_MusicGenerate{MusicGenerate: music}}, runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE, nil
 	default:
 		return nil, runtimev1.ScenarioType_SCENARIO_TYPE_UNSPECIFIED, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
+}
+
+func validateLocalAppMusicGenerateJobSpec(spec *runtimev1.LocalAppMusicGenerateJobSpec) (*runtimev1.MusicGenerateScenarioSpec, error) {
+	if spec == nil || strings.TrimSpace(spec.GetPrompt()) == "" || strings.TrimSpace(spec.GetLyrics()) == "" ||
+		!localAppOptionalExactText(spec.GetPrompt(), maxLocalAppScenarioPromptBytes) ||
+		!localAppOptionalExactText(spec.GetLyrics(), maxLocalAppScenarioPromptBytes) {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+	}
+	return &runtimev1.MusicGenerateScenarioSpec{Prompt: spec.GetPrompt(), Lyrics: spec.GetLyrics()}, nil
 }
 
 func validateLocalAppVideoGenerateJobSpec(spec *runtimev1.LocalAppVideoGenerateJobSpec) (*runtimev1.VideoGenerateScenarioSpec, error) {

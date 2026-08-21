@@ -491,6 +491,10 @@ export interface LocalCatalogModelDescriptor {
      * @generated from protobuf field: int64 total_size_bytes = 27
      */
     totalSizeBytes: string;
+    /**
+     * @generated from protobuf field: string source_provenance = 28
+     */
+    sourceProvenance: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.LocalInstallPlanDescriptor
@@ -586,6 +590,10 @@ export interface LocalInstallPlanDescriptor {
      * @generated from protobuf field: int64 total_size_bytes = 22
      */
     totalSizeBytes: string;
+    /**
+     * @generated from protobuf field: string source_provenance = 23
+     */
+    sourceProvenance: string;
 }
 // === Asset Kind & Status (unified from Model + Artifact) ===
 
@@ -623,6 +631,10 @@ export enum LocalAssetKind {
      * @generated from protobuf enum value: LOCAL_ASSET_KIND_EMBEDDING = 6;
      */
     EMBEDDING = 6,
+    /**
+     * @generated from protobuf enum value: LOCAL_ASSET_KIND_MUSIC = 7;
+     */
+    MUSIC = 7,
     /**
      * Passive kinds
      *
@@ -1694,7 +1706,8 @@ class LocalCatalogModelDescriptor$Type extends MessageType<LocalCatalogModelDesc
             { no: 24, name: "verified", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
             { no: 25, name: "engine_config", kind: "message", T: () => Struct },
             { no: 26, name: "host_requirements", kind: "message", T: () => LocalHostRequirements },
-            { no: 27, name: "total_size_bytes", kind: "scalar", T: 3 /*ScalarType.INT64*/ }
+            { no: 27, name: "total_size_bytes", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
+            { no: 28, name: "source_provenance", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<LocalCatalogModelDescriptor>): LocalCatalogModelDescriptor {
@@ -1723,6 +1736,7 @@ class LocalCatalogModelDescriptor$Type extends MessageType<LocalCatalogModelDesc
         message.lastModified = "";
         message.verified = false;
         message.totalSizeBytes = "0";
+        message.sourceProvenance = "";
         if (value !== undefined)
             reflectionMergePartial<LocalCatalogModelDescriptor>(this, message, value);
         return message;
@@ -1812,6 +1826,9 @@ class LocalCatalogModelDescriptor$Type extends MessageType<LocalCatalogModelDesc
                     break;
                 case /* int64 total_size_bytes */ 27:
                     message.totalSizeBytes = reader.int64().toString();
+                    break;
+                case /* string source_provenance */ 28:
+                    message.sourceProvenance = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1922,6 +1939,9 @@ class LocalCatalogModelDescriptor$Type extends MessageType<LocalCatalogModelDesc
         /* int64 total_size_bytes = 27; */
         if (message.totalSizeBytes !== "0")
             writer.tag(27, WireType.Varint).int64(message.totalSizeBytes);
+        /* string source_provenance = 28; */
+        if (message.sourceProvenance !== "")
+            writer.tag(28, WireType.LengthDelimited).string(message.sourceProvenance);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -1957,7 +1977,8 @@ class LocalInstallPlanDescriptor$Type extends MessageType<LocalInstallPlanDescri
             { no: 19, name: "warnings", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
             { no: 20, name: "reason_code", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 21, name: "engine_config", kind: "message", T: () => Struct },
-            { no: 22, name: "total_size_bytes", kind: "scalar", T: 3 /*ScalarType.INT64*/ }
+            { no: 22, name: "total_size_bytes", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
+            { no: 23, name: "source_provenance", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<LocalInstallPlanDescriptor>): LocalInstallPlanDescriptor {
@@ -1982,6 +2003,7 @@ class LocalInstallPlanDescriptor$Type extends MessageType<LocalInstallPlanDescri
         message.warnings = [];
         message.reasonCode = "";
         message.totalSizeBytes = "0";
+        message.sourceProvenance = "";
         if (value !== undefined)
             reflectionMergePartial<LocalInstallPlanDescriptor>(this, message, value);
         return message;
@@ -2056,6 +2078,9 @@ class LocalInstallPlanDescriptor$Type extends MessageType<LocalInstallPlanDescri
                     break;
                 case /* int64 total_size_bytes */ 22:
                     message.totalSizeBytes = reader.int64().toString();
+                    break;
+                case /* string source_provenance */ 23:
+                    message.sourceProvenance = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -2151,6 +2176,9 @@ class LocalInstallPlanDescriptor$Type extends MessageType<LocalInstallPlanDescri
         /* int64 total_size_bytes = 22; */
         if (message.totalSizeBytes !== "0")
             writer.tag(22, WireType.Varint).int64(message.totalSizeBytes);
+        /* string source_provenance = 23; */
+        if (message.sourceProvenance !== "")
+            writer.tag(23, WireType.LengthDelimited).string(message.sourceProvenance);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

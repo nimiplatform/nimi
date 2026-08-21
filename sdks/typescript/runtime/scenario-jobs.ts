@@ -4,6 +4,7 @@ import {
   ScenarioJobEventType,
   ScenarioType,
   type CancelScenarioJobRequest,
+  type CancelScenarioJobResponse,
   type GetScenarioArtifactsRequest,
   type GetScenarioArtifactsResponse,
   type GetScenarioJobRequest,
@@ -60,7 +61,7 @@ export interface NimiRuntimeScenarioJobClient {
   cancelScenarioJob(
     request: CancelScenarioJobRequest,
     options?: RuntimeTypedCallOptions,
-  ): Promise<unknown>;
+  ): Promise<CancelScenarioJobResponse>;
   subscribeScenarioJobEvents(
     request: { readonly jobId: string },
     options?: RuntimeTypedCallOptions,
@@ -170,6 +171,9 @@ export async function runNimiRuntimeScenarioJob(
   let terminalJob = submitted;
   let observedTerminalEvent = false;
   let recoveredTerminalResponse: Awaited<ReturnType<NimiScenarioJobClient['getScenarioJob']>> | undefined;
+  let cancellationResponse: CancelScenarioJobResponse | undefined;
+  let cancellationRecoveryResponse: Awaited<ReturnType<NimiScenarioJobClient['getScenarioJob']>> | undefined;
+  let cancellationRequested = false;
   if (submitted) {
     input.onJobUpdate?.(submitted);
   }
@@ -178,9 +182,22 @@ export async function runNimiRuntimeScenarioJob(
     const events = input.ai.subscribeScenarioJobEvents({ jobId }, input.callOptions);
     const iterator = events[Symbol.asyncIterator]();
     while (true) {
-      const next = await nextWithAbort(iterator, input.signal, async () => {
-        await cancelNimiRuntimeScenarioJob(input, jobId);
-      });
+      const next = cancellationRequested
+        ? await iterator.next()
+        : await nextWithAbort(iterator, input.signal, async () => {
+            cancellationRequested = true;
+            cancellationResponse = await cancelNimiRuntimeScenarioJob(input, jobId);
+            if (cancellationResponse?.job
+              && isNimiRuntimeScenarioJobTerminalStatus(cancellationResponse.job.status)) {
+              return true;
+            }
+            const refreshed = await queryMatchingScenarioJob(input, jobId);
+            cancellationRecoveryResponse = refreshed;
+            if (refreshed?.job && isNimiRuntimeScenarioJobTerminalStatus(refreshed.job.status)) {
+              return true;
+            }
+            return false;
+          });
       if (next.done) {
         break;
       }
@@ -201,7 +218,16 @@ export async function runNimiRuntimeScenarioJob(
     }
   } catch (error) {
     if (input.signal?.aborted) {
-      const refreshed = await queryMatchingScenarioJob(input, jobId);
+      const cancellationJob = cancellationRecoveryResponse?.job ?? cancellationResponse?.job;
+      if (cancellationJob
+        && (normalizeText(cancellationJob.jobId) !== jobId
+          || cancellationJob.scenarioType !== input.request.scenarioType)) {
+        throw runtimeScenarioJobResponseError('Runtime Scenario job cancellation result does not match the submitted Job');
+      }
+      const refreshed = cancellationRecoveryResponse
+        ?? (cancellationJob && isNimiRuntimeScenarioJobTerminalStatus(cancellationJob.status)
+          ? { job: cancellationJob }
+          : await queryMatchingScenarioJob(input, jobId));
       if (refreshed?.job && isNimiRuntimeScenarioJobTerminalStatus(refreshed.job.status)) {
         terminalJob = refreshed.job;
         recoveredTerminalResponse = refreshed;
@@ -353,14 +379,15 @@ function runtimeScenarioJobStreamInterruptedError(jobId: string): Error {
 async function cancelNimiRuntimeScenarioJob(
   input: NimiRuntimeScenarioJobRunnerInput,
   jobId: string,
-): Promise<void> {
+): Promise<CancelScenarioJobResponse | undefined> {
   try {
-    await input.ai.cancelScenarioJob({
+    return await input.ai.cancelScenarioJob({
       jobId,
       reason: input.abortReason || 'aborted_by_abort_signal',
     }, withNimiRuntimeIdempotencyMetadata(input.callOptions, `cancel:${input.request.idempotencyKey}:${jobId}`));
   } catch {
     // Preserve the original abort/error path; Runtime remains job authority.
+    return undefined;
   }
 }
 
@@ -439,38 +466,84 @@ function abortedNimiRuntimeScenarioJobError(jobId?: string): Error {
 function nextWithAbort<T>(
   iterator: AsyncIterator<T>,
   signal: AbortSignal | undefined,
-  onAbort: () => Promise<void>,
+  onAbort: () => Promise<boolean>,
 ): Promise<IteratorResult<T>> {
   if (!signal) {
     return iterator.next();
   }
   if (signal.aborted) {
-    return onAbort().then(() => Promise.reject(abortedNimiRuntimeScenarioJobError()));
+    return onAbort().then((terminal) => terminal
+      ? Promise.reject(abortedNimiRuntimeScenarioJobError())
+      : iterator.next());
   }
   return new Promise((resolve, reject) => {
     let settled = false;
+    let aborting = false;
+    let cancellationComplete = false;
+    let pendingResult: IteratorResult<T> | undefined;
+    let pendingError: unknown;
+    let hasPendingError = false;
     const cleanup = () => {
       signal.removeEventListener('abort', abort);
     };
+    const finishPending = () => {
+      if (settled || !cancellationComplete) return;
+      if (hasPendingError) {
+        settled = true;
+        reject(pendingError);
+      } else if (pendingResult) {
+        settled = true;
+        resolve(pendingResult);
+      } else {
+        // Cancellation is acknowledged but no terminal event won the same
+        // race. Do not leave an aborted caller waiting on an unbounded stream.
+        settled = true;
+        reject(abortedNimiRuntimeScenarioJobError());
+      }
+    };
     const abort = () => {
       if (settled) return;
-      settled = true;
+      aborting = true;
       cleanup();
       onAbort().then(
-        () => reject(abortedNimiRuntimeScenarioJobError()),
-        (error) => reject(error),
+        (terminal) => {
+          if (settled) return;
+          if (terminal) {
+            settled = true;
+            reject(abortedNimiRuntimeScenarioJobError());
+          } else {
+            cancellationComplete = true;
+            queueMicrotask(finishPending);
+          }
+        },
+        (error) => {
+          if (settled) return;
+          settled = true;
+          reject(error);
+        },
       );
     };
     signal.addEventListener('abort', abort, { once: true });
     iterator.next().then(
       (result) => {
         if (settled) return;
+        if (aborting) {
+          pendingResult = result;
+          finishPending();
+          return;
+        }
         settled = true;
         cleanup();
         resolve(result);
       },
       (error) => {
         if (settled) return;
+        if (aborting) {
+          pendingError = error;
+          hasPendingError = true;
+          finishPending();
+          return;
+        }
         settled = true;
         cleanup();
         reject(error);

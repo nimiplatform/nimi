@@ -105,6 +105,24 @@ loadout_recipes:
         model_contract:
           format: safetensors
           artifact_role: tts_model
+  - recipe_id: qwen3-tts-customvoice.audio-cpp.v1
+    revision: "1"
+    title: Qwen3 TTS CustomVoice audio.cpp synthesis
+    capability_contract: audio.synthesize
+    implementation_id: local.audio.synthesize.qwen3-tts.audio-cpp
+    driver_id: nimi.runtime.driver.audio-cpp.qwen3-tts
+    driver_dialect: audio.cpp/qwen3-tts-customvoice/audio-synthesize/v1
+    default_options: {}
+    supported_features: []
+    custody: []
+    slot_metadata:
+      - slot_id: tts.model
+        display_label: Qwen3-TTS CustomVoice 1.7B Q8_0 GGUF
+        recommended_variant_ids: [local.tts.qwen3-tts-customvoice-1.7b.audio-cpp.q8-0.cuda]
+        model_contract:
+          format: gguf
+          architecture: qwen3_tts
+          artifact_role: tts_model
   - recipe_id: qwen3-tts-base
     revision: "1"
     title: Qwen3 TTS Base synthesis
@@ -327,6 +345,23 @@ loadout_recipes:
         model_contract:
           format: safetensors
           tensor_contract: minimax-h3-audio-vae
+  - recipe_id: minimax-music3.audio-cpp.v1
+    revision: "1"
+    title: MiniMax-Music3 audio.cpp music generation
+    capability_contract: music.generate
+    implementation_id: local.music.generate.minimax-music3.audio-cpp
+    driver_id: nimi.runtime.driver.audio-cpp.minimax-music3
+    driver_dialect: audio.cpp/minimax-music3/music-generate/v1
+    default_options: {}
+    supported_features: []
+    slot_metadata:
+      - slot_id: music.bundle
+        display_label: MiniMax-Music3 Q4/Q8/Q4 bundle
+        recommended_variant_ids: [local.music.minimax-music3.audio-cpp.q4-q8-q4.cuda]
+        model_contract:
+          format: gguf-bundle
+          model_family: minimax-music3
+          artifact_role: music_model
   - recipe_id: qwen-image
     revision: "1"
     title: Qwen Image generation

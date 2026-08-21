@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"io"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -40,6 +41,13 @@ func TestProtectedLocalAppAssetCRUDStreamingRangeAndOwnerIsolation(t *testing.T)
 	if err != nil || stat.GetAsset().GetSha256() != write.response.GetAsset().GetSha256() {
 		t.Fatalf("stat=%+v err=%v", stat, err)
 	}
+	reveal, err := service.RevealLocalAppAsset(
+		localAppAssetTestContext(accountservice.LocalAppOperationStorageAssetReveal, "account-a", "subject-a"),
+		&runtimev1.RevealLocalAppAssetRequest{RelativePath: "media/run.bin"},
+	)
+	if err != nil || !filepath.IsAbs(reveal.GetAbsolutePath()) || filepath.Base(reveal.GetAbsolutePath()) != "run.bin" || reveal.GetAsset().GetSha256() != stat.GetAsset().GetSha256() {
+		t.Fatalf("reveal=%+v err=%v", reveal, err)
+	}
 
 	list, err := service.ListLocalAppAssets(
 		localAppAssetTestContext(accountservice.LocalAppOperationStorageAssetList, "account-a", "subject-a"),
@@ -69,6 +77,13 @@ func TestProtectedLocalAppAssetCRUDStreamingRangeAndOwnerIsolation(t *testing.T)
 		)
 		if status.Code(err) != codes.NotFound {
 			t.Fatalf("foreign owner (%s,%s) err=%v", foreign.account, foreign.subject, err)
+		}
+		_, err = service.RevealLocalAppAsset(
+			localAppAssetTestContext(accountservice.LocalAppOperationStorageAssetReveal, foreign.account, foreign.subject),
+			&runtimev1.RevealLocalAppAssetRequest{RelativePath: "media/run.bin"},
+		)
+		if status.Code(err) != codes.NotFound {
+			t.Fatalf("foreign reveal owner (%s,%s) err=%v", foreign.account, foreign.subject, err)
 		}
 	}
 

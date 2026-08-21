@@ -33,6 +33,7 @@ describe('Nimi Runtime local asset vocabulary', () => {
       'tts',
       'stt',
       'embedding',
+      'music',
     ]);
     assert.deepEqual(NIMI_RUNTIME_LOCAL_PASSIVE_ASSET_KIND_IDS, [
       'vae',
@@ -48,6 +49,7 @@ describe('Nimi Runtime local asset vocabulary', () => {
       'tts',
       'stt',
       'embedding',
+      'music',
       'vae',
       'clip',
       'lora',
@@ -61,6 +63,8 @@ describe('Nimi Runtime local asset vocabulary', () => {
     assert.equal(parseNimiRuntimeLocalAssetKindId(LocalAssetKind.CONTROLNET), 'controlnet');
     assert.equal(parseNimiRuntimeLocalAssetKindId('LOCAL_ASSET_KIND_IMAGE'), 'image');
     assert.equal(toNimiRuntimeLocalAssetKindRequestValue('tts'), LocalAssetKind.TTS);
+    assert.equal(parseNimiRuntimeLocalAssetKindId(LocalAssetKind.MUSIC), 'music');
+    assert.equal(toNimiRuntimeLocalAssetKindRequestValue('music'), LocalAssetKind.MUSIC);
     assert.equal(parseNimiRuntimeLocalGpuMemoryModelId(GpuMemoryModel.UNIFIED), 'unified');
     assert.equal(toNimiRuntimeLocalGpuMemoryModelRequestValue('discrete'), GpuMemoryModel.DISCRETE);
     assert.equal(parseNimiRuntimeLocalEngineRuntimeModeId('LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED'), 'supervised');
@@ -87,6 +91,7 @@ describe('Nimi Runtime local asset vocabulary', () => {
 
   it('maps canonical capabilities to runnable asset kinds', () => {
     assert.equal(nimiRuntimeLocalRunnableAssetKindForCapabilities(['image.generate']), 'image');
+    assert.equal(nimiRuntimeLocalRunnableAssetKindForCapabilities(['music.generate']), 'music');
     assert.equal(nimiRuntimeLocalRunnableAssetKindForCapabilities(['unknown']), undefined);
     assert.equal(nimiRuntimeLocalRunnableAssetKindForCapabilities(['text.generate', 'text.embed']), undefined);
     assert.equal(nimiRuntimeLocalRunnableAssetKindForCapabilities(['vision']), undefined);

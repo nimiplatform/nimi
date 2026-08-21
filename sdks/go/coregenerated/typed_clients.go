@@ -820,6 +820,7 @@ const (
 	LOCALASSETKINDTTS LocalAssetKind = "LOCAL_ASSET_KIND_TTS"
 	LOCALASSETKINDSTT LocalAssetKind = "LOCAL_ASSET_KIND_STT"
 	LOCALASSETKINDEMBEDDING LocalAssetKind = "LOCAL_ASSET_KIND_EMBEDDING"
+	LOCALASSETKINDMUSIC LocalAssetKind = "LOCAL_ASSET_KIND_MUSIC"
 	LOCALASSETKINDVAE LocalAssetKind = "LOCAL_ASSET_KIND_VAE"
 	LOCALASSETKINDCLIP LocalAssetKind = "LOCAL_ASSET_KIND_CLIP"
 	LOCALASSETKINDLORA LocalAssetKind = "LOCAL_ASSET_KIND_LORA"
@@ -1390,6 +1391,7 @@ const (
 	AILOADOUTPERSISTENCEUNAVAILABLE ReasonCode = "AI_LOADOUT_PERSISTENCE_UNAVAILABLE"
 	AILOADOUTNOTCONFIGURED ReasonCode = "AI_LOADOUT_NOT_CONFIGURED"
 	AILOADOUTCATALOGSCHEMAINVALID ReasonCode = "AI_LOADOUT_CATALOG_SCHEMA_INVALID"
+	AILOCALEXECUTIONOUTOFMEMORY ReasonCode = "AI_LOCAL_EXECUTION_OUT_OF_MEMORY"
 )
 
 type ReasoningMode string
@@ -4580,6 +4582,11 @@ type LocalAppImageGenerateScenarioSpec struct {
 	ReferenceImageArtifactId string `json:"reference_image_artifact_id,omitempty"`
 }
 
+type LocalAppMusicGenerateJobSpec struct {
+	Prompt string `json:"prompt,omitempty"`
+	Lyrics string `json:"lyrics,omitempty"`
+}
+
 type LocalAppScenarioArtifact struct {
 	ArtifactId string `json:"artifact_id,omitempty"`
 	MimeType string `json:"mime_type,omitempty"`
@@ -4769,6 +4776,7 @@ type LocalCatalogModelDescriptor struct {
 	EngineConfig map[string]any `json:"engine_config,omitempty"`
 	HostRequirements *LocalHostRequirements `json:"host_requirements,omitempty"`
 	TotalSizeBytes int64 `json:"total_size_bytes,omitempty"`
+	SourceProvenance string `json:"source_provenance,omitempty"`
 }
 
 type LocalCatalogRecommendation struct {
@@ -4951,6 +4959,7 @@ type LocalInstallPlanDescriptor struct {
 	ReasonCode string `json:"reason_code,omitempty"`
 	EngineConfig map[string]any `json:"engine_config,omitempty"`
 	TotalSizeBytes int64 `json:"total_size_bytes,omitempty"`
+	SourceProvenance string `json:"source_provenance,omitempty"`
 }
 
 type LocalNpuProfile struct {
@@ -6198,6 +6207,16 @@ type RetryLocalEnvironmentDependencyJobResponse struct {
 	Job *LocalEnvironmentDependencyJob `json:"job,omitempty"`
 }
 
+type RevealLocalAppAssetRequest struct {
+	RelativePath string `json:"relative_path,omitempty"`
+}
+
+type RevealLocalAppAssetResponse struct {
+	Asset *LocalAppAssetRecord `json:"asset,omitempty"`
+	AbsolutePath string `json:"absolute_path,omitempty"`
+	ReasonCode ReasonCode `json:"reason_code,omitempty"`
+}
+
 type RevokeExternalPrincipalSessionRequest struct {
 	ExternalSessionId string `json:"external_session_id,omitempty"`
 }
@@ -6660,6 +6679,8 @@ type SubmitLocalAppScenarioJobRequest struct {
 	SpeechSynthesize *LocalAppSpeechSynthesizeJobSpec `json:"speech_synthesize,omitempty"`
 	SpeechTranscribe *LocalAppSpeechTranscribeJobSpec `json:"speech_transcribe,omitempty"`
 	VoiceCreate *LocalAppVoiceCreateJobSpec `json:"voice_create,omitempty"`
+	MusicGenerate *LocalAppMusicGenerateJobSpec `json:"music_generate,omitempty"`
+	TimeoutMs int32 `json:"timeout_ms,omitempty"`
 }
 
 type SubmitLocalAppScenarioJobResponse struct {
@@ -8282,6 +8303,14 @@ func (c RuntimeTypedClient) RemoveLocalAppStorageJson(ctx context.Context, reque
 		return RemoveLocalAppStorageJsonResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[RemoveLocalAppStorageJsonResponse](raw, "RemoveLocalAppStorageJsonResponse")
+}
+
+func (c RuntimeTypedClient) RevealLocalAppAsset(ctx context.Context, request RevealLocalAppAssetRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RevealLocalAppAssetResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAppService/RevealLocalAppAsset", request, metadata, timeoutMS)
+	if err != nil {
+		return RevealLocalAppAssetResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[RevealLocalAppAssetResponse](raw, "RevealLocalAppAssetResponse")
 }
 
 func (c RuntimeTypedClient) SendAppMessage(ctx context.Context, request SendAppMessageRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (SendAppMessageResponse, error) {

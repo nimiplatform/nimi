@@ -13,7 +13,8 @@ func isRunnableKind(k runtimev1.LocalAssetKind) bool {
 		runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VIDEO,
 		runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_TTS,
 		runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_STT,
-		runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_EMBEDDING:
+		runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_EMBEDDING,
+		runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_MUSIC:
 		return true
 	default:
 		return false
@@ -71,6 +72,8 @@ func inferAssetKindFromCapabilities(capabilities []string) runtimev1.LocalAssetK
 			kind = runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE
 		case "video.generate":
 			kind = runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VIDEO
+		case "music.generate":
+			kind = runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_MUSIC
 		case "audio.synthesize", "voice.create":
 			kind = runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_TTS
 		case "audio.transcribe":

@@ -28,6 +28,7 @@ const (
 	localEnvironmentFamilyCUDA             = "accelerator.cuda.runtime"
 	localEnvironmentFamilyNativeLlama      = "native-engine-package.llama"
 	localEnvironmentFamilyNativeSDCPP      = "native-engine-package.stablediffusion-ggml"
+	localEnvironmentFamilyNativeAudioCPP   = "native-engine-package.audio-cpp"
 	localEnvironmentFamilyPythonUV         = "python.tool.uv"
 	localEnvironmentFamilyPythonRuntime    = "python.runtime"
 	localEnvironmentFamilyPythonVenv       = "python.venv"
@@ -103,6 +104,10 @@ func localEnvironmentTargetForDriver(driver capabilitydriver.Driver, host localE
 			consumer = stableDiffusionCUDAConsumerID
 		}
 		return "local-image-native", consumer, true
+	case capabilitydriver.MiniMaxMusic3AudioCppDriver:
+		return "local-music-native", audioCppCUDAConsumerID, true
+	case capabilitydriver.Qwen3TTSAudioCppDriver:
+		return "local-speech-native", audioCppQwen3TTSCUDAConsumerID, true
 	case capabilitydriver.Qwen3TTSDriver, capabilitydriver.Qwen3VoiceCreateDriver:
 		return "local-speech", "speech.qwen3-tts.python", true
 	case capabilitydriver.VoxCPMDriver:
@@ -280,7 +285,7 @@ func localEnvironmentDependencyStorageCategory(family string) string {
 	switch family {
 	case localEnvironmentFamilyCUDA, localEnvironmentFamilyPythonUV, localEnvironmentFamilyPythonTorchWheel:
 		return "dependencies"
-	case localEnvironmentFamilyNativeLlama, localEnvironmentFamilyNativeSDCPP,
+	case localEnvironmentFamilyNativeLlama, localEnvironmentFamilyNativeSDCPP, localEnvironmentFamilyNativeAudioCPP,
 		localEnvironmentFamilyPythonRuntime, localEnvironmentFamilyPythonVenv, localEnvironmentFamilyPythonPackageSet:
 		return "environments"
 	default:
@@ -615,7 +620,7 @@ func localEnvironmentDependencyConsumerScope(def localComputePackDefinition, fam
 func localEnvironmentCUDAConsumerScopeRequiresRuntime(consumerScope string) bool {
 	trimmed := strings.TrimSpace(consumerScope)
 	switch trimmed {
-	case "llama.cpp.cuda", stableDiffusionCUDAConsumerID, "media.diffusers.cuda", "media.video-python.cuda":
+	case "llama.cpp.cuda", stableDiffusionCUDAConsumerID, audioCppCUDAConsumerID, audioCppQwen3TTSCUDAConsumerID, "media.diffusers.cuda", "media.video-python.cuda":
 		return true
 	default:
 		return strings.HasPrefix(trimmed, "speech.") && strings.HasSuffix(trimmed, ".cuda")
@@ -673,6 +678,13 @@ func localComputePackDefinitions() []localComputePackDefinition {
 			CloudOnlyImpact:            "none",
 		},
 		{
+			PackID:                     "local-music-native",
+			ProductLabel:               "Local music native",
+			RequiredDependencyFamilies: []string{localEnvironmentFamilyNativeAudioCPP, localEnvironmentFamilyCUDA},
+			OptionalDependencyFamilies: []string{},
+			CloudOnlyImpact:            "none",
+		},
+		{
 			PackID:       "local-image-python",
 			ProductLabel: "Local image Python workflows",
 			RequiredDependencyFamilies: []string{
@@ -706,6 +718,13 @@ func localComputePackDefinitions() []localComputePackDefinition {
 			CloudOnlyImpact:            "none",
 		},
 		{
+			PackID:                     "local-speech-native",
+			ProductLabel:               "Local speech (audio.cpp)",
+			RequiredDependencyFamilies: []string{localEnvironmentFamilyNativeAudioCPP, localEnvironmentFamilyCUDA},
+			OptionalDependencyFamilies: []string{},
+			CloudOnlyImpact:            "none",
+		},
+		{
 			PackID:                     "local-gpu-support",
 			ProductLabel:               "Local GPU support",
 			RequiredDependencyFamilies: []string{localEnvironmentFamilyCUDA},
@@ -718,11 +737,16 @@ func localComputePackDefinitions() []localComputePackDefinition {
 func defaultLocalEnvironmentDependencyID(packID string, family string) string {
 	switch family {
 	case localEnvironmentFamilyCUDA:
+		if packID == "local-music-native" || packID == "local-speech-native" {
+			return cuda13UserSpaceRuntimeDependencyID
+		}
 		return cudaUserSpaceRuntimeDependencyID
 	case localEnvironmentFamilyNativeLlama:
 		return "llama.cpp.package"
 	case localEnvironmentFamilyNativeSDCPP:
 		return "stable-diffusion.cpp.package"
+	case localEnvironmentFamilyNativeAudioCPP:
+		return "audio.cpp.package"
 	case localEnvironmentFamilyPythonUV:
 		return "uv"
 	case localEnvironmentFamilyPythonRuntime:

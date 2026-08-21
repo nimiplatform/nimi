@@ -12,9 +12,10 @@ const defaultLlamaVersion = "b8645"
 type EngineKind string
 
 const (
-	EngineLlama  EngineKind = "llama"
-	EngineMedia  EngineKind = "media"
-	EngineSpeech EngineKind = "speech"
+	EngineLlama    EngineKind = "llama"
+	EngineMedia    EngineKind = "media"
+	EngineSpeech   EngineKind = "speech"
+	EngineAudioCPP EngineKind = "audio-cpp"
 
 	engineManagedImageBackend EngineKind = "managed-image-backend"
 )
@@ -314,6 +315,17 @@ func DefaultMediaConfig() EngineConfig {
 		MaxRestarts:      5,
 		RestartBaseDelay: 2 * time.Second,
 		ShutdownTimeout:  10 * time.Second,
+	}
+}
+
+// DefaultAudioCppConfig identifies the exact Runtime-materialized official
+// audio.cpp CLI package. It is a per-Job process substrate, not a supervised
+// resident service.
+func DefaultAudioCppConfig() EngineConfig {
+	return EngineConfig{
+		Kind:            EngineAudioCPP,
+		Version:         AudioCppPackageVersion,
+		ShutdownTimeout: 10 * time.Second,
 	}
 }
 

@@ -405,6 +405,10 @@ enum ReasonCode {
   AI_LOADOUT_NOT_CONFIGURED = 723;
   AI_LOADOUT_CATALOG_SCHEMA_INVALID = 724;
 
+  // Native local execution exhausted device or host memory. This is distinct
+  // from an ordinary inference failure and never triggers model substitution.
+  AI_LOCAL_EXECUTION_OUT_OF_MEMORY = 725;
+
   // Reserved: old values of renumbered codes.
   // 104=APP_SCOPE_FORBIDDEN→503, 106=APP_SCOPE_REVOKED→504,
   // 115=APP_MODE_DOMAIN_FORBIDDEN→500, 116=APP_MODE_SCOPE_FORBIDDEN→501,

@@ -1284,6 +1284,7 @@ pub enum LocalAssetKind {
     LOCALASSETKINDTTS,
     LOCALASSETKINDSTT,
     LOCALASSETKINDEMBEDDING,
+    LOCALASSETKINDMUSIC,
     LOCALASSETKINDVAE,
     LOCALASSETKINDCLIP,
     LOCALASSETKINDLORA,
@@ -2009,6 +2010,7 @@ pub enum ReasonCode {
     AILOADOUTPERSISTENCEUNAVAILABLE,
     AILOADOUTNOTCONFIGURED,
     AILOADOUTCATALOGSCHEMAINVALID,
+    AILOCALEXECUTIONOUTOFMEMORY,
 }
 
 impl Default for ReasonCode {
@@ -16106,6 +16108,30 @@ impl LocalAppImageGenerateScenarioSpec {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppMusicGenerateJobSpec {
+    pub prompt: Option<String>,
+    pub lyrics: Option<String>,
+}
+
+impl LocalAppMusicGenerateJobSpec {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.prompt { pairs.push(format!("prompt={}", value)); }
+        if let Some(value) = &self.lyrics { pairs.push(format!("lyrics={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+
+        out.prompt = pairs.get("prompt").cloned();
+        out.lyrics = pairs.get("lyrics").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct LocalAppScenarioArtifact {
     pub artifact_id: Option<String>,
     pub mime_type: Option<String>,
@@ -16847,6 +16873,7 @@ pub struct LocalCatalogModelDescriptor {
     pub engine_config: Option<BTreeMap<String, String>>,
     pub host_requirements: Option<Box<LocalHostRequirements>>,
     pub total_size_bytes: Option<i64>,
+    pub source_provenance: Option<String>,
 }
 
 impl LocalCatalogModelDescriptor {
@@ -16879,6 +16906,7 @@ impl LocalCatalogModelDescriptor {
         if self.engine_config.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode engine_config"); }
         if self.host_requirements.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode host_requirements"); }
         if let Some(value) = &self.total_size_bytes { pairs.push(format!("total_size_bytes={}", value)); }
+        if let Some(value) = &self.source_provenance { pairs.push(format!("source_provenance={}", value)); }
         pairs.join(";").into_bytes()
     }
 
@@ -16913,6 +16941,7 @@ impl LocalCatalogModelDescriptor {
         out.last_modified = pairs.get("last_modified").cloned();
         out.verified = pairs.get("verified").and_then(|value| value.parse().ok());
         out.total_size_bytes = pairs.get("total_size_bytes").and_then(|value| value.parse().ok());
+        out.source_provenance = pairs.get("source_provenance").cloned();
         out
     }
 }
@@ -17541,6 +17570,7 @@ pub struct LocalInstallPlanDescriptor {
     pub reason_code: Option<String>,
     pub engine_config: Option<BTreeMap<String, String>>,
     pub total_size_bytes: Option<i64>,
+    pub source_provenance: Option<String>,
 }
 
 impl LocalInstallPlanDescriptor {
@@ -17568,6 +17598,7 @@ impl LocalInstallPlanDescriptor {
         if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={}", value)); }
         if self.engine_config.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode engine_config"); }
         if let Some(value) = &self.total_size_bytes { pairs.push(format!("total_size_bytes={}", value)); }
+        if let Some(value) = &self.source_provenance { pairs.push(format!("source_provenance={}", value)); }
         pairs.join(";").into_bytes()
     }
 
@@ -17598,6 +17629,7 @@ impl LocalInstallPlanDescriptor {
         out.warnings = parse_repeated_string(raw, "warnings");
         out.reason_code = pairs.get("reason_code").cloned();
         out.total_size_bytes = pairs.get("total_size_bytes").and_then(|value| value.parse().ok());
+        out.source_provenance = pairs.get("source_provenance").cloned();
         out
     }
 }
@@ -23492,6 +23524,57 @@ impl RetryLocalEnvironmentDependencyJobResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct RevealLocalAppAssetRequest {
+    pub relative_path: Option<String>,
+}
+
+impl RevealLocalAppAssetRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.relative_path { pairs.push(format!("relative_path={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+
+        out.relative_path = pairs.get("relative_path").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RevealLocalAppAssetResponse {
+    pub asset: Option<Box<LocalAppAssetRecord>>,
+    pub absolute_path: Option<String>,
+    pub reason_code: Option<ReasonCode>,
+}
+
+impl RevealLocalAppAssetResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if self.asset.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode asset"); }
+        if let Some(value) = &self.absolute_path { pairs.push(format!("absolute_path={}", value)); }
+        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["asset", "reason_code"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.absolute_path = pairs.get("absolute_path").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct RevokeExternalPrincipalSessionRequest {
     pub external_session_id: Option<String>,
 }
@@ -25594,32 +25677,33 @@ pub struct SubmitLocalAppScenarioJobRequest {
     pub speech_synthesize: Option<Box<LocalAppSpeechSynthesizeJobSpec>>,
     pub speech_transcribe: Option<Box<LocalAppSpeechTranscribeJobSpec>>,
     pub voice_create: Option<Box<LocalAppVoiceCreateJobSpec>>,
+    pub music_generate: Option<Box<LocalAppMusicGenerateJobSpec>>,
+    pub timeout_ms: Option<i32>,
 }
 
 impl SubmitLocalAppScenarioJobRequest {
     pub fn to_transport(&self) -> Vec<u8> {
-        let pairs: Vec<String> = Vec::new();
+        let mut pairs: Vec<String> = Vec::new();
         if self.image_generate.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode image_generate"); }
         if self.video_generate.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode video_generate"); }
         if self.speech_synthesize.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode speech_synthesize"); }
         if self.speech_transcribe.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode speech_transcribe"); }
         if self.voice_create.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode voice_create"); }
+        if self.music_generate.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode music_generate"); }
+        if let Some(value) = &self.timeout_ms { pairs.push(format!("timeout_ms={}", value)); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let out = Self::default();
-        for key in ["image_generate", "video_generate", "speech_synthesize", "speech_transcribe", "voice_create"] {
+        let mut out = Self::default();
+        for key in ["image_generate", "video_generate", "speech_synthesize", "speech_transcribe", "voice_create", "music_generate"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
             }
         }
-        if !pairs.is_empty() {
-            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
-        }
 
-
+        out.timeout_ms = pairs.get("timeout_ms").and_then(|value| value.parse().ok());
         out
     }
 }
@@ -31056,6 +31140,12 @@ impl From<Vec<u8>> for LocalAppImageGenerateScenarioSpec {
     }
 }
 
+impl From<Vec<u8>> for LocalAppMusicGenerateJobSpec {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
 impl From<Vec<u8>> for LocalAppScenarioArtifact {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -32323,6 +32413,18 @@ impl From<Vec<u8>> for RetryLocalEnvironmentDependencyJobRequest {
 }
 
 impl From<Vec<u8>> for RetryLocalEnvironmentDependencyJobResponse {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for RevealLocalAppAssetRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for RevealLocalAppAssetResponse {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -34405,6 +34507,16 @@ where
             timeout,
         })?;
         Ok(RemoveLocalAppStorageJsonResponse::from_transport(&raw))
+    }
+
+    pub fn reveal_local_app_asset(&self, request: RevealLocalAppAssetRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RevealLocalAppAssetResponse, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/nimi.runtime.v1.RuntimeAppService/RevealLocalAppAsset".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(RevealLocalAppAssetResponse::from_transport(&raw))
     }
 
     pub fn send_app_message(&self, request: SendAppMessageRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<SendAppMessageResponse, T::Error> {

@@ -32,6 +32,7 @@ const (
 	protectedReadLocalAppAssetMethod         = "/nimi.runtime.v1.RuntimeAppService/ReadLocalAppAsset"
 	protectedRemoveLocalAppAssetMethod       = "/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppAsset"
 	protectedMoveLocalAppAssetMethod         = "/nimi.runtime.v1.RuntimeAppService/MoveLocalAppAsset"
+	protectedRevealLocalAppAssetMethod       = "/nimi.runtime.v1.RuntimeAppService/RevealLocalAppAsset"
 	protectedAdoptLocalAppArtifactMethod     = "/nimi.runtime.v1.RuntimeAppService/AdoptLocalAppArtifact"
 	protectedAgentReferenceListMethod        = "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentReferences"
 	protectedOpenConversationMethod          = "/nimi.runtime.v1.RuntimeAgentService/OpenLocalAppConversation"
@@ -84,6 +85,7 @@ var protectedLocalAppUnaryMethodPolicies = map[string]protectedLocalAppMethodPol
 	protectedListLocalAppAssetsMethod:        localAppSessionMethodPolicy(),
 	protectedRemoveLocalAppAssetMethod:       localAppSessionMethodPolicy(),
 	protectedMoveLocalAppAssetMethod:         localAppSessionMethodPolicy(),
+	protectedRevealLocalAppAssetMethod:       localAppSessionMethodPolicy(),
 	protectedAdoptLocalAppArtifactMethod:     localAppSessionMethodPolicy(),
 	protectedAgentReferenceListMethod:        localAppSessionMethodPolicy(),
 	protectedOpenConversationMethod:          localAppSessionMethodPolicy(),
@@ -329,6 +331,8 @@ func protectedLocalAppUnaryIngress(method string, request any) localappop.Ingres
 		return localappop.IngressStorageJSONRemove
 	case protectedStatLocalAppAssetMethod:
 		return localappop.IngressStorageAssetStat
+	case protectedRevealLocalAppAssetMethod:
+		return localappop.IngressStorageAssetReveal
 	case protectedListLocalAppAssetsMethod:
 		return localappop.IngressStorageAssetList
 	case protectedRemoveLocalAppAssetMethod:
@@ -406,7 +410,7 @@ func protectedLocalAppUnaryIngress(method string, request any) localappop.Ingres
 func protectedLocalAppOwnerEnabled(method string, request any, ingress localappop.Ingress) bool {
 	switch method {
 	case protectedReadLocalAppStorageJSONMethod, protectedWriteLocalAppStorageJSONMethod, protectedRemoveLocalAppStorageJSONMethod,
-		protectedStatLocalAppAssetMethod, protectedListLocalAppAssetsMethod, protectedRemoveLocalAppAssetMethod, protectedMoveLocalAppAssetMethod,
+		protectedStatLocalAppAssetMethod, protectedListLocalAppAssetsMethod, protectedRemoveLocalAppAssetMethod, protectedMoveLocalAppAssetMethod, protectedRevealLocalAppAssetMethod,
 		protectedAdoptLocalAppArtifactMethod,
 		protectedGetAppAIConfigMethod, protectedGetMachineLoadoutsMethod, protectedGenerateTextCandidateMethod,
 		protectedExecuteLocalAppScenarioMethod, protectedSubmitScenarioJobMethod, protectedGetScenarioJobMethod, protectedCancelScenarioJobMethod,

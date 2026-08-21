@@ -144,7 +144,16 @@ export type NimiLocalAppScenarioJobSpec =
       readonly previewText: string;
       readonly language: string;
       readonly preferredName: string;
+    }
+  | {
+      readonly type: 'music-generate';
+      readonly prompt: string;
+      readonly lyrics: string;
     };
+
+export type NimiLocalAppScenarioJobSubmitOptions = {
+  readonly timeoutMs?: number;
+};
 
 export type NimiLocalAppScenarioTimestamp = {
   readonly seconds: string;
@@ -166,7 +175,7 @@ export type NimiLocalAppScenarioArtifact = {
 
 export type NimiLocalAppScenarioJob = {
   readonly jobId: string;
-  readonly scenarioType: 'image-generate' | 'video-generate' | 'speech-synthesize' | 'speech-transcribe' | 'voice-create';
+  readonly scenarioType: 'image-generate' | 'video-generate' | 'speech-synthesize' | 'speech-transcribe' | 'voice-create' | 'music-generate';
   readonly status: 'submitted' | 'queued' | 'running' | 'completed' | 'failed' | 'canceled' | 'timeout';
   readonly progressPercent: number;
   readonly progressCurrentStep: number;
@@ -240,7 +249,10 @@ export type NimiLocalAppAIConsumptionShell = {
     readonly execute: (spec: NimiLocalAppScenarioExecuteSpec) => Promise<unknown>;
   };
   readonly scenarioJobs: {
-    readonly submit: (spec: NimiLocalAppScenarioJobSpec) => Promise<unknown>;
+    readonly submit: (
+      spec: NimiLocalAppScenarioJobSpec,
+      options?: NimiLocalAppScenarioJobSubmitOptions,
+    ) => Promise<unknown>;
     readonly get: (jobId: string) => Promise<unknown>;
     readonly subscribe: (jobId: string) => Promise<NimiLocalAppShellStream<unknown>>;
     readonly cancel: (jobId: string, reason?: string) => Promise<unknown>;
@@ -262,7 +274,10 @@ export type NimiLocalAppAIConsumptionClient = {
     readonly execute: (spec: NimiLocalAppScenarioExecuteSpec) => Promise<NimiLocalAppScenarioExecuteResult>;
   };
   readonly scenarioJobs: {
-    readonly submit: (spec: NimiLocalAppScenarioJobSpec) => Promise<NimiLocalAppScenarioJobSubmitResult>;
+    readonly submit: (
+      spec: NimiLocalAppScenarioJobSpec,
+      options?: NimiLocalAppScenarioJobSubmitOptions,
+    ) => Promise<NimiLocalAppScenarioJobSubmitResult>;
     readonly get: (jobId: string) => Promise<NimiLocalAppScenarioJobGetResult>;
     readonly subscribe: (jobId: string) => Promise<NimiLocalAppSubscription<NimiLocalAppScenarioJobEvent>>;
     readonly cancel: (jobId: string, reason?: string) => Promise<{ readonly job: NimiLocalAppScenarioJob }>;
@@ -308,8 +323,11 @@ export function createNimiLocalAppAIConsumptionClient(
       ),
     }),
     scenarioJobs: Object.freeze({
-      submit: async (spec) => projectScenarioJobSubmit(
-        await shell.scenarioJobs.submit(validateScenarioSpec(spec, false)),
+      submit: async (spec, options = {}) => projectScenarioJobSubmit(
+        await shell.scenarioJobs.submit(
+          validateScenarioSpec(spec, false),
+          validateScenarioJobSubmitOptions(options),
+        ),
       ),
       get: async (jobId) => projectScenarioJobGet(
         await shell.scenarioJobs.get(boundedIdentifier(jobId, 'jobId')),
@@ -369,7 +387,9 @@ export function createNimiLocalAppRuntimeScenarioJobClient(
     terminalVoiceAssetProjection: 'protected-local',
     async submitScenarioJob(request) {
       const spec = localJobSpecFromRuntimeRequest(request);
-      const result = await ai.scenarioJobs.submit(spec);
+      const result = await ai.scenarioJobs.submit(spec, {
+        timeoutMs: boundedInteger(request.head?.timeoutMs ?? 0, 'Scenario Job timeoutMs', 0, 2_147_483_647),
+      });
       return {
         job: runtimeJobFromLocal(result.job),
       };
@@ -518,10 +538,25 @@ function validateScenarioSpec<T extends NimiLocalAppScenarioExecuteSpec | NimiLo
       if (execute) invalidAIInput('voice-create is not a synchronous spec');
       validateVoiceCreateSpec(record);
       break;
+    case 'music-generate':
+      if (execute) invalidAIInput('music-generate is not a synchronous spec');
+      assertExactKeys(record, ['type', 'prompt', 'lyrics'], 'music spec');
+      boundedContent(record.prompt, 'music prompt', 32 * 1024);
+      boundedContent(record.lyrics, 'music lyrics', 32 * 1024);
+      break;
     default:
       invalidAIInput('scenario type is invalid');
   }
   return spec;
+}
+
+function validateScenarioJobSubmitOptions(
+  options: NimiLocalAppScenarioJobSubmitOptions,
+): NimiLocalAppScenarioJobSubmitOptions {
+  assertExactKeys(options, ['timeoutMs'], 'Scenario Job submit options');
+  return Object.freeze({
+    timeoutMs: boundedInteger(options.timeoutMs ?? 0, 'Scenario Job timeoutMs', 0, 2_147_483_647),
+  });
 }
 
 function validateVideoSpec(record: Record<string, unknown>): void {
@@ -852,7 +887,7 @@ function projectVoiceAssetsList(value: unknown): { readonly assets: readonly Nim
   return Object.freeze({ assets: Object.freeze(record.assets.map(projectVoiceAsset)), nextPageToken: record.nextPageToken });
 }
 
-const LOCAL_SCENARIO_TYPES = ['image-generate', 'video-generate', 'speech-synthesize', 'speech-transcribe', 'voice-create'] as const;
+const LOCAL_SCENARIO_TYPES = ['image-generate', 'video-generate', 'speech-synthesize', 'speech-transcribe', 'voice-create', 'music-generate'] as const;
 const LOCAL_JOB_STATUSES = ['submitted', 'queued', 'running', 'completed', 'failed', 'canceled', 'timeout'] as const;
 
 function localJobSpecFromRuntimeRequest(request: SubmitScenarioJobRequest): NimiLocalAppScenarioJobSpec {
@@ -913,6 +948,13 @@ function localJobSpecFromRuntimeRequest(request: SubmitScenarioJobRequest): Nimi
       }
       return adapterInputError('voice create source is invalid');
     }
+    case 'musicGenerate':
+      requireScenarioType(request, ScenarioType.MUSIC_GENERATE);
+      if (spec.musicGenerate.negativePrompt || spec.musicGenerate.style || spec.musicGenerate.title
+        || spec.musicGenerate.durationSeconds !== 0 || spec.musicGenerate.instrumental) {
+        return adapterInputError('unsupported MiniMax-Music3 fields are unavailable to Local Apps');
+      }
+      return validateScenarioSpec({ type: 'music-generate', prompt: spec.musicGenerate.prompt, lyrics: spec.musicGenerate.lyrics }, false);
     default:
       return adapterInputError(`Scenario type ${spec.oneofKind} is unavailable to Local Apps`);
   }
@@ -1031,12 +1073,13 @@ function runtimeOutput(type: NimiLocalAppScenarioJob['scenarioType'], artifacts:
       if (!transcriptionText.trim() || utf8Length(transcriptionText) > MAX_RESULT_BYTES) localAppProjectionError('speech transcription text');
       return { output: { oneofKind: 'speechTranscribe', speechTranscribe: { text: transcriptionText, artifacts } } };
     }
+    case 'music-generate': return { output: { oneofKind: 'musicGenerate', musicGenerate: { artifacts } } };
     default: return undefined;
   }
 }
 
 function runtimeScenarioType(type: NimiLocalAppScenarioJob['scenarioType']): ScenarioType {
-  return ({ 'image-generate': ScenarioType.IMAGE_GENERATE, 'video-generate': ScenarioType.VIDEO_GENERATE, 'speech-synthesize': ScenarioType.SPEECH_SYNTHESIZE, 'speech-transcribe': ScenarioType.SPEECH_TRANSCRIBE, 'voice-create': ScenarioType.VOICE_CREATE })[type];
+  return ({ 'image-generate': ScenarioType.IMAGE_GENERATE, 'video-generate': ScenarioType.VIDEO_GENERATE, 'speech-synthesize': ScenarioType.SPEECH_SYNTHESIZE, 'speech-transcribe': ScenarioType.SPEECH_TRANSCRIBE, 'voice-create': ScenarioType.VOICE_CREATE, 'music-generate': ScenarioType.MUSIC_GENERATE })[type];
 }
 
 function runtimeJobStatus(status: NimiLocalAppScenarioJob['status']): ScenarioJobStatus {

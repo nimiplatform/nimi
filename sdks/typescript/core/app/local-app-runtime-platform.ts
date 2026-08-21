@@ -85,6 +85,7 @@ export type {
   NimiLocalAppScenarioJob,
   NimiLocalAppScenarioJobEvent,
   NimiLocalAppScenarioJobSpec,
+  NimiLocalAppScenarioJobSubmitOptions,
   NimiLocalAppScenarioJobSubmitResult,
   NimiLocalAppScenarioTimestamp,
   NimiLocalAppSubscription,
@@ -384,7 +385,7 @@ export function createNimiLocalAppClient(
   if (typeof storage.readJson !== 'function' || typeof storage.writeJson !== 'function' || typeof storage.removeJson !== 'function') {
     return localAppError('Host-injected local-app standardShell storage namespace is invalid.', 'SDK_LOCAL_APP_CARRIER_REQUIRED', 'use_host_injected_standard_shell');
   }
-  assertExactMethodNamespace(storage.assets, ['stat', 'list', 'write', 'read', 'remove', 'move', 'adoptArtifact'], 'storage.assets');
+  assertExactMethodNamespace(storage.assets, ['stat', 'list', 'write', 'read', 'remove', 'move', 'reveal', 'adoptArtifact'], 'storage.assets');
   const realm = asRecord(standardShell.realm);
   if (!realm || Object.keys(realm).sort().join('|') !== ['personaCharacter', 'worldCore'].sort().join('|')) {
     return localAppError(

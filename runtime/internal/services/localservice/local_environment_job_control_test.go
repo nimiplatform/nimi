@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -16,6 +17,17 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
+
+func TestAudioCppEnvironmentRefsMatchDeclaredMaterializer(t *testing.T) {
+	job := localEnvironmentDependencyJobState{DependencyFamily: localEnvironmentFamilyNativeAudioCPP, DependencyID: "audio.cpp.package", EnvironmentKey: "audio.cpp@0.6.1"}
+	result := localEnvironmentDependencyJobResult{SourceKind: "managed", CanonicalRoot: `C:\runtime\audio-cpp`, Version: "0.6.1"}
+	if got := localEnvironmentSourceManifestRef(job, result); !strings.HasPrefix(got, "runtime-engine-audio-cpp-package-source#") {
+		t.Fatalf("audio.cpp source manifest ref = %q", got)
+	}
+	if got := localEnvironmentVerificationEvidenceRef(job, result); !strings.HasPrefix(got, "native-engine-package-evidence#") {
+		t.Fatalf("audio.cpp verification evidence ref = %q", got)
+	}
+}
 
 // awaitLocalEnvironmentDependencyJobTerminal polls a dependency job (started via
 // an async Start/Retry/Repair RPC) until its background goroutine drives it to a
@@ -304,6 +316,39 @@ func TestPrepareLocalEnvironmentPlanApplyRestartsFailedNativeSDCPPAfterCUDAReady
 	}
 	if len(actions) != 1 || actions[0].Kind != localEnvironmentPlanApplyStart {
 		t.Fatalf("native backend recovery actions = %+v, want one fresh start admission", actions)
+	}
+}
+
+func TestPrepareLocalEnvironmentPlanApplyRestartsFailedNativeAudioCPPAfterCUDAReady(t *testing.T) {
+	svc := newTestService(t)
+	consumer := audioCppCUDAConsumerID
+	plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
+		PackID: "local-music-native", ConsumerScope: consumer,
+		HostProfile: localEnvironmentNvidiaProfile(), RuntimeDataRoot: filepath.Join(t.TempDir(), "runtime-data"),
+	})
+	dependency := findLocalEnvironmentDependency(t, plan, localEnvironmentFamilyNativeAudioCPP)
+	dependency.State = localEnvironmentStateFailed
+	upsertReadyPythonPrerequisiteForTest(t, svc, localEnvironmentSelectedSourceRecordState{
+		DependencyFamily: localEnvironmentFamilyCUDA, DependencyID: cuda13UserSpaceRuntimeDependencyID,
+		EnvironmentKey: "accelerator.cuda.runtime|ready-after-audio-cpp-failure", SourceKind: localEnvironmentSourceManaged,
+		SelectedConsumers: []string{consumer},
+	})
+	svc.rememberLocalEnvironmentPlanDependencyContracts([]localEnvironmentPlanDependency{dependency})
+	svc.mu.Lock()
+	svc.localEnvironmentDependencyJobs["failed-audio-cpp-package"] = localEnvironmentDependencyJobState{
+		JobID: "failed-audio-cpp-package", EnvironmentKey: dependency.EnvironmentKey,
+		DependencyFamily: dependency.DependencyFamily, DependencyID: dependency.DependencyID,
+		ConsumerScope: consumer, State: localEnvironmentStateFailed, SourceKind: localEnvironmentSourceManaged,
+		Retryable: false, RecoveryDisposition: localEnvironmentJobRecoveryNotRetryable,
+		UpdatedAt: "2026-08-21T00:00:00Z",
+	}
+	svc.mu.Unlock()
+	actions, err := svc.prepareLocalEnvironmentPlanApplyActions(localEnvironmentPlan{Dependencies: []localEnvironmentPlanDependency{dependency}})
+	if err != nil {
+		t.Fatalf("prepareLocalEnvironmentPlanApplyActions: %v", err)
+	}
+	if len(actions) != 1 || actions[0].Kind != localEnvironmentPlanApplyStart {
+		t.Fatalf("native audio.cpp recovery actions = %+v, want one explicit fresh start", actions)
 	}
 }
 
@@ -1010,6 +1055,91 @@ func TestStartNativeSDCPPDependencyJobPromotesWindowsRuntimeWrapperSelectedSourc
 		!stringSliceContains(source.CompatibilityEvidence, "package_format=direct_archive") ||
 		!stringSliceContains(source.CompatibilityEvidence, "launch_mode=runtime_wrapper") {
 		t.Fatalf("selected source is not canonical Windows runtime-wrapper evidence: %+v", source)
+	}
+}
+
+func TestStartNativeAudioCppDependencyJobPromotesExactOfficialCLISelectedSource(t *testing.T) {
+	svc := newTestService(t)
+	plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
+		PackID:          "local-music-native",
+		ConsumerScope:   audioCppCUDAConsumerID,
+		HostProfile:     localEnvironmentNvidiaProfile(),
+		RuntimeDataRoot: filepath.Join(t.TempDir(), "runtime-data"),
+	})
+	dep := findLocalEnvironmentDependency(t, plan, localEnvironmentFamilyNativeAudioCPP)
+	svc.SetEngineManager(&mockEngineManager{engineBinaryDependencyStatus: &engine.EngineBinaryDependencyStatus{
+		Engine:           "audio-cpp",
+		Version:          engine.AudioCppPackageVersion,
+		BinaryPath:       `C:\nimi\runtime\audio-cpp\0.6.1\audiocpp_cli.exe`,
+		BinarySizeBytes:  146693632,
+		SHA256:           engine.AudioCppPackageArchiveSHA256,
+		Platform:         "windows/amd64",
+		AssetName:        engine.AudioCppPackageAssetName,
+		AcceleratorPlane: "cuda13",
+		Detail:           "audio.cpp release-0.6.1 official CLI package verified and promoted",
+	}})
+
+	resp, err := svc.StartLocalEnvironmentDependencyJob(context.Background(), &runtimev1.StartLocalEnvironmentDependencyJobRequest{
+		EnvironmentKey:   dep.EnvironmentKey,
+		DependencyFamily: dep.DependencyFamily,
+		DependencyId:     dep.DependencyID,
+		ConsumerScope:    dep.ConsumerScope,
+		SourceKind:       dep.SourceKind,
+		Confirmed:        true,
+	})
+	if err != nil {
+		t.Fatalf("StartLocalEnvironmentDependencyJob: %v", err)
+	}
+	job := awaitLocalEnvironmentDependencyJobTerminal(t, svc, resp.GetJob().GetJobId())
+	if job.GetState() != localEnvironmentStateReadyManaged {
+		t.Fatalf("job state = %q, want ready_managed", job.GetState())
+	}
+	source, ok := svc.localEnvironmentSelectedSourceRecord(job.GetEnvironmentKey())
+	if !ok {
+		t.Fatal("expected audio.cpp selected source record")
+	}
+	if source.DependencyFamily != localEnvironmentFamilyNativeAudioCPP || source.DependencyID != "audio.cpp.package" ||
+		!reflect.DeepEqual(source.SelectedConsumers, audioCppSelectedConsumers()) ||
+		source.Hashes["archive_sha256"] != engine.AudioCppPackageArchiveSHA256 {
+		t.Fatalf("audio.cpp selected source = %+v", source)
+	}
+}
+
+func TestStartCUDA13DependencyJobPromotesIndependentAudioCppSelectedSource(t *testing.T) {
+	svc := newTestService(t)
+	plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
+		PackID:          "local-music-native",
+		ConsumerScope:   audioCppCUDAConsumerID,
+		HostProfile:     localEnvironmentNvidiaProfile(),
+		RuntimeDataRoot: filepath.Join(t.TempDir(), "runtime-data"),
+	})
+	dep := findLocalEnvironmentDependency(t, plan, localEnvironmentFamilyCUDA)
+	svc.SetEngineManager(&mockEngineManager{sharedAcceleratorDependencyStatus: &engine.SharedAcceleratorDependencyStatus{
+		DependencyID:      engine.NVIDIACUDA13UserSpaceRuntimeDependencyID,
+		Version:           "cuda_major=13;audio.cpp=release-0.6.1",
+		CanonicalRoot:     `C:\nimi\runtime\accelerator-dependencies\nvidia-cuda13-user-space-runtime`,
+		Detail:            "nvidia_cuda_user_space_runtime state=ready_managed source=runtime_managed cuda_major=13",
+		RequiredArtifacts: []string{"cublas64_13.dll", "cublasLt64_13.dll", "cufft64_12.dll"},
+	}})
+
+	resp, err := svc.StartLocalEnvironmentDependencyJob(context.Background(), &runtimev1.StartLocalEnvironmentDependencyJobRequest{
+		EnvironmentKey:   dep.EnvironmentKey,
+		DependencyFamily: dep.DependencyFamily,
+		DependencyId:     dep.DependencyID,
+		ConsumerScope:    dep.ConsumerScope,
+		SourceKind:       dep.SourceKind,
+		Confirmed:        true,
+	})
+	if err != nil {
+		t.Fatalf("StartLocalEnvironmentDependencyJob: %v", err)
+	}
+	job := awaitLocalEnvironmentDependencyJobTerminal(t, svc, resp.GetJob().GetJobId())
+	if job.GetState() != localEnvironmentStateReadyManaged || job.GetDependencyId() != cuda13UserSpaceRuntimeDependencyID {
+		t.Fatalf("CUDA 13 job = %+v", job)
+	}
+	source, ok := svc.localEnvironmentSelectedSourceRecord(job.GetEnvironmentKey())
+	if !ok || source.DependencyID != cuda13UserSpaceRuntimeDependencyID || source.Version != "cuda_major=13;audio.cpp=release-0.6.1" || !reflect.DeepEqual(source.SelectedConsumers, audioCppSelectedConsumers()) {
+		t.Fatalf("CUDA 13 selected source = %+v, ok=%v", source, ok)
 	}
 }
 

@@ -615,3 +615,21 @@ func TestProjectLocalAppScenarioJobFailsClosedOnOwnerOnlyShapes(t *testing.T) {
 		t.Fatalf("job projection = %+v", projected)
 	}
 }
+
+func TestProjectLocalAppScenarioJobAdmitsCompletedMusicArtifact(t *testing.T) {
+	projected, err := projectLocalAppScenarioJob(&runtimev1.ScenarioJob{
+		JobId: "job-music", ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE,
+		Status: runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED, ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED,
+		TraceId: "trace-music", Artifacts: []*runtimev1.ScenarioArtifact{{
+			ArtifactId: "artifact-music", MimeType: "audio/wav", SizeBytes: 3530796,
+			Sha256:     "75b32ec1ad1fd80bccb8fb020a726616394412e81ffa3229fd60fcaa98a60db2",
+			DurationMs: 20015, SampleRateHz: 44100, Channels: 2,
+		}},
+	})
+	if err != nil {
+		t.Fatalf("project completed Music Job: %v", err)
+	}
+	if projected.GetScenarioType() != runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE || len(projected.GetArtifacts()) != 1 || projected.GetArtifacts()[0].GetMimeType() != "audio/wav" {
+		t.Fatalf("Music Job projection = %+v", projected)
+	}
+}

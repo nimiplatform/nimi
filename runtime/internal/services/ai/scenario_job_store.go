@@ -34,6 +34,7 @@ func (s *Service) SubmitScenarioJob(ctx context.Context, req *runtimev1.SubmitSc
 	}
 	localImage := req.GetScenarioType() == runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE && intent.IsLocal()
 	localVideo := req.GetScenarioType() == runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE && intent.IsLocal()
+	localMusic := req.GetScenarioType() == runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE && intent.IsLocal()
 	localSpeech := (req.GetScenarioType() == runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE ||
 		req.GetScenarioType() == runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE) && intent.IsLocal()
 	ignored, err := classifyScenarioExtensions(req.GetScenarioType(), req.GetExtensions())
@@ -67,8 +68,13 @@ func (s *Service) SubmitScenarioJob(ctx context.Context, req *runtimev1.SubmitSc
 		}
 		return s.submitScenarioAsyncJob(ctx, req, mode, ignored)
 
+	case runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE:
+		if localMusic {
+			return s.submitLocalMusicScenarioJob(ctx, req, mode, ignored)
+		}
+		return s.submitScenarioAsyncJob(ctx, req, mode, ignored)
+
 	case
-		runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE,
 		runtimev1.ScenarioType_SCENARIO_TYPE_WORLD_GENERATE:
 		return s.submitScenarioAsyncJob(ctx, req, mode, ignored)
 	default:

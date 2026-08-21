@@ -8,17 +8,21 @@ import (
 )
 
 func (s *Service) resolveSharedCUDADependencyStatus(consumerID string) engine.SharedAcceleratorDependencyStatus {
+	return s.resolveSharedCUDADependencyStatusForID(cudaUserSpaceRuntimeDependencyID, consumerID)
+}
+
+func (s *Service) resolveSharedCUDADependencyStatusForID(dependencyID string, consumerID string) engine.SharedAcceleratorDependencyStatus {
 	mgr := s.engineManagerOrNil()
 	if mgr == nil {
 		return engine.SharedAcceleratorDependencyStatus{
-			DependencyID: engine.NVIDIACUDAUserSpaceRuntimeDependencyID,
+			DependencyID: strings.TrimSpace(dependencyID),
 			ConsumerID:   strings.TrimSpace(consumerID),
 			State:        engine.SharedAcceleratorDependencyUnsupported,
 			Source:       "unavailable",
 			Detail:       "runtime engine manager unavailable",
 		}
 	}
-	return mgr.ResolveSharedAcceleratorDependency(engine.NVIDIACUDAUserSpaceRuntimeDependencyID, strings.TrimSpace(consumerID))
+	return mgr.ResolveSharedAcceleratorDependency(strings.TrimSpace(dependencyID), strings.TrimSpace(consumerID))
 }
 
 func sharedCUDADependencyBlocksActivation(status engine.SharedAcceleratorDependencyStatus) bool {

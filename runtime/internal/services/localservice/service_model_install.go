@@ -98,6 +98,7 @@ func (s *Service) ResolveModelInstallPlan(ctx context.Context, req *runtimev1.Re
 			ReasonCode:        "ACTION_EXECUTED",
 			EngineConfig:      nil,
 			TotalSizeBytes:    catalogItem.GetTotalSizeBytes(),
+			SourceProvenance:  catalogItem.GetSourceProvenance(),
 		}
 		evaluateCatalogModelAcquisitionPlan(plan)
 		s.mu.Lock()
@@ -288,6 +289,7 @@ func (s *Service) InstallModelFromPlan(ctx context.Context, req *runtimev1.Insta
 		entry:             plan.GetEntry(),
 		files:             append([]string(nil), plan.GetFiles()...),
 		license:           plan.GetLicense(),
+		sourceProvenance:  plan.GetSourceProvenance(),
 		repo:              plan.GetRepo(),
 		revision:          plan.GetRevision(),
 		hashes:            cloneStringMap(plan.GetHashes()),

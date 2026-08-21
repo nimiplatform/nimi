@@ -911,6 +911,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "RemoveLocalAppStorageJsonResponse"
   },
   {
+    "methodId": "/nimi.runtime.v1.RuntimeAppService/RevealLocalAppAsset",
+    "service": "RuntimeAppService",
+    "method": "RevealLocalAppAsset",
+    "kind": "unary",
+    "requestType": "RevealLocalAppAssetRequest",
+    "responseType": "RevealLocalAppAssetResponse"
+  },
+  {
     "methodId": "/nimi.runtime.v1.RuntimeAppService/SendAppMessage",
     "service": "RuntimeAppService",
     "method": "SendAppMessage",

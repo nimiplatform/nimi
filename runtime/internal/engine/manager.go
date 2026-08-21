@@ -252,6 +252,8 @@ func (m *Manager) EnsureEngineBinaryDependency(ctx context.Context, cfg EngineCo
 			AcceleratorPlane: strings.TrimSpace(entry.AcceleratorPlane),
 			Detail:           "llama engine package verified from Runtime registry",
 		}, nil
+	case EngineAudioCPP:
+		return m.ensureAudioCppBinaryDependency(ctx, cfg)
 	default:
 		return EngineBinaryDependencyStatus{}, fmt.Errorf("engine binary dependency is not admitted for %s", cfg.Kind)
 	}

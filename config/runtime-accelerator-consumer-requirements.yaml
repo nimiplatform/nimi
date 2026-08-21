@@ -9,6 +9,8 @@ entries:
   - consumers_1
   - consumers_2
   - consumers_3
+  - consumers_4
+  - consumers_5
 
 # Accelerator-specific projection of canonical local environment consumer
 # requirements. The canonical cross-family consumer graph is
@@ -104,6 +106,78 @@ consumers:
     canonical_consumer_ref: local-environment-consumer-requirements.yaml#media.diffusers.cuda
     version_constraints:
       cuda_major: 12
+    activation_gate:
+      required_dependency_states:
+        - ready_system
+        - ready_managed
+    fallback_policy:
+      fallback_variants: []
+      fallback_requires_explicit_runtime_policy: true
+    health_projection:
+      ready: ready
+      materializable_requires_confirmation: blocked_needs_confirmation
+      queued: blocked_materializing
+      downloading: blocked_materializing
+      verifying: blocked_materializing
+      installing: blocked_materializing
+      repair_required: blocked_repair_required
+      failed: blocked_setup_failed
+      unsupported: unsupported
+      cancelled: blocked_cancelled
+    audit_fields:
+      - selected_source_record_id
+      - selected_package_variant
+
+  - consumer_id: audio.cpp.cuda
+    consumer_kind: native_engine_package_variant
+    engine: audio
+    backend_family: audio-cpp
+    package_variant: audiocpp-windows-cuda-balance-26dcb5c4
+    capability_refs:
+      - music.generate
+    accelerator_plane: cuda
+    dependency_ids:
+      - nvidia-cuda13-user-space-runtime
+    canonical_consumer_ref: local-environment-consumer-requirements.yaml#audio.cpp.cuda
+    version_constraints:
+      cuda_major: 13
+      package_abi: audio.cpp-release-0.6.1
+    activation_gate:
+      required_dependency_states:
+        - ready_system
+        - ready_managed
+    fallback_policy:
+      fallback_variants: []
+      fallback_requires_explicit_runtime_policy: true
+    health_projection:
+      ready: ready
+      materializable_requires_confirmation: blocked_needs_confirmation
+      queued: blocked_materializing
+      downloading: blocked_materializing
+      verifying: blocked_materializing
+      installing: blocked_materializing
+      repair_required: blocked_repair_required
+      failed: blocked_setup_failed
+      unsupported: unsupported
+      cancelled: blocked_cancelled
+    audit_fields:
+      - selected_source_record_id
+      - selected_package_variant
+
+  - consumer_id: audio.cpp.qwen3-tts.cuda
+    consumer_kind: native_engine_package_variant
+    engine: audio
+    backend_family: audio-cpp
+    package_variant: audiocpp-windows-cuda-balance-26dcb5c4
+    capability_refs:
+      - audio.synthesize
+    accelerator_plane: cuda
+    dependency_ids:
+      - nvidia-cuda13-user-space-runtime
+    canonical_consumer_ref: local-environment-consumer-requirements.yaml#audio.cpp.qwen3-tts.cuda
+    version_constraints:
+      cuda_major: 13
+      package_abi: audio.cpp-release-0.6.1
     activation_gate:
       required_dependency_states:
         - ready_system

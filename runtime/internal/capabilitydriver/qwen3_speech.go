@@ -80,6 +80,16 @@ type SpeechSynthesizeInvocationPlan struct {
 	request      *runtimev1.SpeechSynthesizeScenarioSpec
 }
 
+// SpeechSynthesizePlan is the capability-shaped immutable waist shared by
+// explicit speech implementations. It exposes no Engine selector or generic
+// option map; each Driver retains its own concrete closed plan type.
+type SpeechSynthesizePlan interface {
+	DriverID() string
+	ModelAssetID() string
+	ModelFiles() []InvocationExactBinding
+	Request() *runtimev1.SpeechSynthesizeScenarioSpec
+}
+
 func (p *SpeechSynthesizeInvocationPlan) DriverID() string {
 	if p == nil {
 		return ""
@@ -221,9 +231,13 @@ func (p *SpeechTranscribeInvocationPlan) MIMEType() string {
 	return p.mimeType
 }
 
-type SpeechSynthesizeInvocationDriver interface {
+type SpeechPresetVoiceDriver interface {
 	Driver
 	ListPresetVoices([]InvocationExactBinding) ([]SpeechPresetVoice, error)
+}
+
+type SpeechSynthesizeInvocationDriver interface {
+	SpeechPresetVoiceDriver
 	PlanSpeechSynthesizeInvocation(SpeechSynthesizeInvocationInput) (*SpeechSynthesizeInvocationPlan, error)
 	SpeechStreamMode() SpeechStreamMode
 }

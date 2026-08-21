@@ -29,6 +29,7 @@ func TestCanonicalAppOperationContractIsExactUniqueAndExplicit(t *testing.T) {
 		{id: "runtime.app-storage.asset.read", class: AuthorityClassBase},
 		{id: "runtime.app-storage.asset.remove", class: AuthorityClassBase},
 		{id: "runtime.app-storage.asset.move", class: AuthorityClassBase},
+		{id: "runtime.app-storage.asset.reveal", class: AuthorityClassBase},
 		{id: "runtime.ai.artifact.adopt-to-app-storage", class: AuthorityClassAppAccess, domain: "runtime.consume"},
 		{id: "runtime.ai.app-config.get", class: AuthorityClassBase},
 		{id: "realm.world-core.list", class: AuthorityClassAppAccess, domain: "realm.data"},

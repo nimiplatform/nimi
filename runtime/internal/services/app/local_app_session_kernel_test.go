@@ -344,6 +344,7 @@ func TestLocalAppSessionAssetStorageBaseAuthorization(t *testing.T) {
 		localappop.IngressStorageAssetRead:   accountservice.LocalAppOperationStorageAssetRead,
 		localappop.IngressStorageAssetRemove: accountservice.LocalAppOperationStorageAssetRemove,
 		localappop.IngressStorageAssetMove:   accountservice.LocalAppOperationStorageAssetMove,
+		localappop.IngressStorageAssetReveal: accountservice.LocalAppOperationStorageAssetReveal,
 	} {
 		authorized, err := fixture.service.AuthorizeLocalAppIngress(fixture.context, ingress)
 		if err != nil {
