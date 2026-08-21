@@ -18,7 +18,7 @@ import {
   ProfileDetailLoadingState,
 } from './profile-detail-view-content-shell.js';
 import { emitFeedbackToast } from '../../ui/feedback/emit-feedback-toast';
-import { RemoveFriendConfirmDialog } from './profile-detail-dialogs.js';
+import { BlockUserConfirmDialog, RemoveFriendConfirmDialog } from './profile-detail-dialogs.js';
 import {
   isPrivateProfileAccessError,
   toRestrictedHumanProfileData,
@@ -69,6 +69,8 @@ export function ProfileDetailModal(props: ProfileDetailModalProps) {
   const setFeedback = emitFeedbackToast;
   const [removeConfirmOpen, setRemoveConfirmOpen] = useState(false);
   const [removeMutationPending, setRemoveMutationPending] = useState(false);
+  const [blockConfirmOpen, setBlockConfirmOpen] = useState(false);
+  const [blockMutationPending, setBlockMutationPending] = useState(false);
 
   useEffect(() => {
     if (!props.open) {
@@ -192,7 +194,10 @@ export function ProfileDetailModal(props: ProfileDetailModalProps) {
         queryClient.invalidateQueries({ queryKey: ['user-profile'], exact: false }),
         queryClient.invalidateQueries({ queryKey: ['human-profile-detail'], exact: false }),
       ]);
-      setFeedback(null);
+      setFeedback({
+        kind: 'success',
+        message: t('Relationship.addContactSuccess', { defaultValue: 'Friend request sent.' }),
+      });
     } catch (error) {
       setFeedback({
         kind: 'error',
@@ -207,7 +212,11 @@ export function ProfileDetailModal(props: ProfileDetailModalProps) {
     if (!profile) {
       return;
     }
+    if (blockMutationPending) {
+      return;
+    }
     try {
+      setBlockMutationPending(true);
       await realmSocialData.blockUser({
         id: profile.id,
         displayName: profile.displayName,
@@ -218,7 +227,11 @@ export function ProfileDetailModal(props: ProfileDetailModalProps) {
         queryClient.invalidateQueries({ queryKey: ['contacts'], exact: false }),
         queryClient.invalidateQueries({ queryKey: ['human-profile-detail'], exact: false }),
       ]);
-      setFeedback(null);
+      setFeedback({
+        kind: 'success',
+        message: t('Relationship.blockUserSuccess', { defaultValue: 'User blocked.' }),
+      });
+      setBlockConfirmOpen(false);
       props.onClose();
     } catch (error) {
       setFeedback({
@@ -227,8 +240,10 @@ export function ProfileDetailModal(props: ProfileDetailModalProps) {
           ? error.message
           : t('Relationship.blockUserFailed', { defaultValue: 'Failed to block user' }),
       });
+    } finally {
+      setBlockMutationPending(false);
     }
-  }, [profile, props, queryClient, t]);
+  }, [profile, props, queryClient, blockMutationPending, t]);
 
   const handleRemove = useCallback(async () => {
     if (!profile) {
@@ -245,7 +260,10 @@ export function ProfileDetailModal(props: ProfileDetailModalProps) {
         queryClient.invalidateQueries({ queryKey: ['chats'], exact: false }),
         queryClient.invalidateQueries({ queryKey: ['human-profile-detail'], exact: false }),
       ]);
-      setFeedback(null);
+      setFeedback({
+        kind: 'success',
+        message: t('Relationship.removeFriendSuccess', { defaultValue: 'Friend removed.' }),
+      });
       setRemoveConfirmOpen(false);
       props.onClose();
     } catch (error) {
@@ -271,8 +289,8 @@ export function ProfileDetailModal(props: ProfileDetailModalProps) {
         kind="dialog"
         onClose={props.onClose}
         dataTestId={E2E_IDS.profileDetailModal}
-        className="nimi-material-glass-thin bg-slate-950/45 backdrop-blur-[var(--nimi-backdrop-blur-thin)]"
-        panelClassName="h-[calc(100cqh-88px)] max-w-none overflow-hidden rounded-[28px] border border-white/70 bg-[#f6fafb] shadow-[0_32px_100px_rgba(15,23,42,0.28)]"
+        className="nimi-material-glass-thin bg-[var(--nimi-scrim-modal)] backdrop-blur-[var(--nimi-backdrop-blur-thin)]"
+        panelClassName="h-[calc(100cqh-88px)] max-w-none overflow-hidden rounded-[var(--nimi-radius-xl)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-canvas)] shadow-[var(--nimi-elevation-floating)]"
         panelStyle={{ width: 'min(1180px, calc(100cqw - 88px))', maxHeight: 'calc(100cqh - 88px)' }}
         contentClassName="relative h-full min-h-0 p-0"
       >
@@ -283,7 +301,7 @@ export function ProfileDetailModal(props: ProfileDetailModalProps) {
           data-testid={E2E_IDS.profileDetailModalClose}
           onClick={props.onClose}
           aria-label={t('Common.close', { defaultValue: 'Close' })}
-          className="absolute right-5 top-5 z-30 inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/70 bg-white/90 text-slate-600 shadow-[0_14px_34px_rgba(15,23,42,0.14)] transition-[background-color,border-color,color,transform] duration-[var(--nimi-motion-fast)] ease-[var(--nimi-motion-ease-standard)] hover:border-[var(--nimi-action-primary-bg)]/55 hover:bg-white hover:text-[var(--nimi-action-primary-bg-hover)] active:scale-[var(--nimi-motion-pressed-scale)]"
+          className="absolute right-5 top-5 z-30 inline-flex h-10 w-10 items-center justify-center rounded-full border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,transparent)] text-[var(--nimi-text-secondary)] shadow-[var(--nimi-elevation-raised)] transition-[background-color,border-color,color,transform] duration-[var(--nimi-motion-fast)] ease-[var(--nimi-motion-ease-standard)] hover:border-[var(--nimi-action-primary-bg)]/55 hover:bg-[var(--nimi-surface-card)] hover:text-[var(--nimi-action-primary-bg-hover)] active:scale-[var(--nimi-motion-pressed-scale)]"
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d="M18 6 6 18" />
@@ -306,9 +324,7 @@ export function ProfileDetailModal(props: ProfileDetailModalProps) {
                 void handleAddFriend();
               } : undefined}
               onSendGift={profile.accessState === 'restricted' ? () => {} : () => setGiftModalOpen(true)}
-              onBlock={!isBlockedProfile ? () => {
-                void handleBlock();
-              } : undefined}
+              onBlock={!isBlockedProfile ? () => setBlockConfirmOpen(true) : undefined}
               onRemove={!isBlockedProfile && profile.isFriend ? () => setRemoveConfirmOpen(true) : undefined}
               showMessageButton={
                 !isBlockedProfile
@@ -316,7 +332,7 @@ export function ProfileDetailModal(props: ProfileDetailModalProps) {
               }
             />
           ) : profileQuery.isError ? (
-            <div className="flex h-full items-center justify-center bg-white">
+            <div className="flex h-full items-center justify-center bg-[var(--nimi-surface-canvas)]">
               <ProfileDetailErrorState
                 backLabel={t('Common.back')}
                 label={t('ProfileView.error')}
@@ -324,7 +340,7 @@ export function ProfileDetailModal(props: ProfileDetailModalProps) {
               />
             </div>
           ) : (
-            <div className="flex h-full items-center justify-center bg-white">
+            <div className="flex h-full items-center justify-center bg-[var(--nimi-surface-canvas)]">
               <ProfileDetailLoadingState label={t('ProfileView.loading')} />
             </div>
           )}
@@ -357,6 +373,21 @@ export function ProfileDetailModal(props: ProfileDetailModalProps) {
           onCancel={() => {
             if (!removeMutationPending) {
               setRemoveConfirmOpen(false);
+            }
+          }}
+        />
+      ) : null}
+
+      {profile && blockConfirmOpen ? (
+        <BlockUserConfirmDialog
+          contact={profile}
+          pending={blockMutationPending}
+          onConfirm={() => {
+            void handleBlock();
+          }}
+          onCancel={() => {
+            if (!blockMutationPending) {
+              setBlockConfirmOpen(false);
             }
           }}
         />

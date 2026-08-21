@@ -24,6 +24,10 @@ import {
 } from './profile-model.js';
 import { toFriendContact, type ContactRecord } from '../relationship/relationship-model';
 import { emitFeedbackToast } from '../../ui/feedback/emit-feedback-toast';
+import {
+  BlockUserConfirmDialog,
+  RemoveFriendConfirmDialog,
+} from '../relationship/profile-detail-dialogs.js';
 import { parseOptionalJsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
 import { useRealmHumanChatData } from '../chat/data/realm-human-chat-data-context.js';
 
@@ -51,6 +55,10 @@ export function ProfilePanel() {
   const setRuntimeFields = useAppStore((state) => state.setRuntimeFields);
   const queryClient = useQueryClient();
   const [giftModalOpen, setGiftModalOpen] = useState(false);
+  const [removeConfirmOpen, setRemoveConfirmOpen] = useState(false);
+  const [removeMutationPending, setRemoveMutationPending] = useState(false);
+  const [blockConfirmOpen, setBlockConfirmOpen] = useState(false);
+  const [blockMutationPending, setBlockMutationPending] = useState(false);
   const setFeedback = emitFeedbackToast;
   const profileScrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -156,7 +164,10 @@ export function ProfilePanel() {
         queryClient.invalidateQueries({ queryKey: ['contacts'], exact: false }),
         queryClient.invalidateQueries({ queryKey: ['user-profile'], exact: false }),
       ]);
-      setFeedback(null);
+      setFeedback({
+        kind: 'success',
+        message: i18n.t('Relationship.addContactSuccess', { defaultValue: 'Friend request sent.' }),
+      });
     } catch (error) {
       setFeedback({
         kind: 'error',
@@ -169,7 +180,11 @@ export function ProfilePanel() {
     if (!profile) {
       return;
     }
+    if (blockMutationPending) {
+      return;
+    }
     try {
+      setBlockMutationPending(true);
       await realmSocialData.blockUser({
         id: profile.id,
         displayName: profile.displayName,
@@ -181,13 +196,19 @@ export function ProfilePanel() {
         queryClient.invalidateQueries({ queryKey: ['contacts'], exact: false }),
         queryClient.invalidateQueries({ queryKey: ['user-profile'], exact: false }),
       ]);
-      setFeedback(null);
+      setFeedback({
+        kind: 'success',
+        message: i18n.t('Relationship.blockUserSuccess', { defaultValue: 'User blocked.' }),
+      });
+      setBlockConfirmOpen(false);
       navigateBack();
     } catch (error) {
       setFeedback({
         kind: 'error',
         message: toErrorMessage(error, i18n.t('Relationship.blockUserFailed', { defaultValue: 'Failed to block user' })),
       });
+    } finally {
+      setBlockMutationPending(false);
     }
   };
 
@@ -195,72 +216,72 @@ export function ProfilePanel() {
     if (!profile) {
       return;
     }
+    if (removeMutationPending) {
+      return;
+    }
     try {
+      setRemoveMutationPending(true);
       await realmSocialData.removeFriend(profile.id);
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['contacts'], exact: false }),
         queryClient.invalidateQueries({ queryKey: ['chats'], exact: false }),
         queryClient.invalidateQueries({ queryKey: ['user-profile'], exact: false }),
       ]);
-      setFeedback(null);
+      setFeedback({
+        kind: 'success',
+        message: i18n.t('Relationship.removeFriendSuccess', { defaultValue: 'Friend removed.' }),
+      });
+      setRemoveConfirmOpen(false);
       navigateBack();
     } catch (error) {
       setFeedback({
         kind: 'error',
         message: toErrorMessage(error, i18n.t('Relationship.removeFriendFailed', { defaultValue: 'Failed to remove friend' })),
       });
+    } finally {
+      setRemoveMutationPending(false);
     }
   };
 
+  // Save feedback stays inline (the controller surfaces errors via saveError),
+  // matching the Settings > Profile inline-feedback pattern — no toast here.
   const onSaveOwnProfile = async (draft: EditableProfileDraft) => {
-    try {
-      const nextDisplayName = draft.displayName.trim();
-      if (!nextDisplayName) {
-        throw new Error(i18n.t('Profile.displayNameRequired', { defaultValue: 'Display name is required' }));
-      }
-
-      const toArray = (value: string) =>
-        value
-          .split(',')
-          .map((item) => item.trim())
-          .filter(Boolean);
-
-      const updated = await realmSocialData.updateUserProfile({
-        displayName: nextDisplayName,
-        avatarUrl: draft.avatarUrl.trim() || null,
-        bio: draft.bio.trim() || null,
-        city: draft.city.trim() || null,
-        countryCode: draft.countryCode.trim() || null,
-        gender: draft.gender.trim() || null,
-        languages: toArray(draft.languages),
-        tags: toArray(draft.tags),
-      });
-
-      const updatedUser = parseOptionalJsonObject(updated) ?? {};
-      const updatedAuthUser = {
-        ...updated,
-        ...updatedUser,
-        avatarUrl: typeof updated.avatarUrl === 'string'
-          ? updated.avatarUrl
-          : draft.avatarUrl.trim() || null,
-      };
-
-      setAuthSession(updatedAuthUser);
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['user-profile'] }),
-        queryClient.invalidateQueries({ queryKey: ['contacts'] }),
-      ]);
-      setFeedback({
-        kind: 'success',
-        message: i18n.t('Profile.updateSuccess', { defaultValue: 'Profile updated' }),
-      });
-    } catch (error) {
-      setFeedback({
-        kind: 'error',
-        message: toErrorMessage(error, i18n.t('Profile.updateError', { defaultValue: 'Failed to update profile' })),
-      });
-      throw error;
+    const nextDisplayName = draft.displayName.trim();
+    if (!nextDisplayName) {
+      throw new Error(i18n.t('Profile.displayNameRequired', { defaultValue: 'Display name is required' }));
     }
+
+    const toArray = (value: string) =>
+      value
+        .split(',')
+        .map((item) => item.trim())
+        .filter(Boolean);
+
+    const updated = await realmSocialData.updateUserProfile({
+      displayName: nextDisplayName,
+      avatarUrl: draft.avatarUrl.trim() || null,
+      bio: draft.bio.trim() || null,
+      city: draft.city.trim() || null,
+      countryCode: draft.countryCode.trim() || null,
+      gender: draft.gender.trim() || null,
+      languages: toArray(draft.languages),
+      tags: toArray(draft.tags),
+    });
+
+    const updatedUser = parseOptionalJsonObject(updated) ?? {};
+    const updatedAuthUser = {
+      ...updated,
+      ...updatedUser,
+      avatarUrl: typeof updated.avatarUrl === 'string'
+        ? updated.avatarUrl
+        : draft.avatarUrl.trim() || null,
+    };
+
+    setAuthSession(updatedAuthUser);
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['user-profile'] }),
+      queryClient.invalidateQueries({ queryKey: ['contacts'] }),
+    ]);
   };
 
   if (loading) {
@@ -270,7 +291,7 @@ export function ProfilePanel() {
           tone="panel"
           material="glass-regular"
           padding="none"
-          className="flex flex-1 items-center justify-center rounded-[2rem] border-white/60 shadow-[0_18px_44px_rgba(15,23,42,0.06)]"
+          className="flex flex-1 items-center justify-center rounded-[2rem] border-[var(--nimi-border-subtle)] shadow-[0_18px_44px_rgba(15,23,42,0.06)]"
         >
           <ProfileDetailLoadingState label={i18n.t('ProfileView.loading')} />
         </Surface>
@@ -285,7 +306,7 @@ export function ProfilePanel() {
           tone="panel"
           material="glass-regular"
           padding="none"
-          className="flex flex-1 items-center justify-center rounded-[2rem] border-white/60 shadow-[0_18px_44px_rgba(15,23,42,0.06)]"
+          className="flex flex-1 items-center justify-center rounded-[2rem] border-[var(--nimi-border-subtle)] shadow-[0_18px_44px_rgba(15,23,42,0.06)]"
         >
           <ProfileDetailErrorState
             backLabel={i18n.t('Common.back')}
@@ -304,7 +325,7 @@ export function ProfilePanel() {
           tone="panel"
           material="glass-regular"
           padding="none"
-          className="flex flex-1 items-center justify-center rounded-[2rem] border-white/60 text-sm text-[var(--nimi-text-secondary)] shadow-[0_18px_44px_rgba(15,23,42,0.06)]"
+          className="flex flex-1 items-center justify-center rounded-[2rem] border-[var(--nimi-border-subtle)] text-sm text-[var(--nimi-text-secondary)] shadow-[0_18px_44px_rgba(15,23,42,0.06)]"
         >
           {i18n.t('Profile.noProfileDataAvailable', { defaultValue: 'No profile data available' })}
         </Surface>
@@ -324,7 +345,7 @@ export function ProfilePanel() {
           tone="panel"
           material="glass-regular"
           padding="none"
-          className="min-h-full overflow-hidden rounded-[2rem] border-white/60 shadow-[0_22px_52px_rgba(15,23,42,0.08)]"
+          className="min-h-full overflow-hidden rounded-[2rem] border-[var(--nimi-border-subtle)] shadow-[0_22px_52px_rgba(15,23,42,0.08)]"
         >
           <ProfileDetailView
             profile={profile}
@@ -342,12 +363,8 @@ export function ProfilePanel() {
               void onAddFriend();
             } : undefined}
             onSendGift={() => setGiftModalOpen(true)}
-            onBlock={!isOwnProfile && !isBlockedProfile ? () => {
-              void onBlockProfile();
-            } : undefined}
-            onRemove={!isOwnProfile && !isBlockedProfile && profile.isFriend ? () => {
-              void onRemoveProfile();
-            } : undefined}
+            onBlock={!isOwnProfile && !isBlockedProfile ? () => setBlockConfirmOpen(true) : undefined}
+            onRemove={!isOwnProfile && !isBlockedProfile && profile.isFriend ? () => setRemoveConfirmOpen(true) : undefined}
             showMessageButton={!isOwnProfile && !isBlockedProfile}
             onSaveProfile={isOwnProfile ? onSaveOwnProfile : undefined}
           />
@@ -365,6 +382,34 @@ export function ProfilePanel() {
           setFeedback(null);
         }}
       />
+      {profile && removeConfirmOpen ? (
+        <RemoveFriendConfirmDialog
+          contact={profile}
+          pending={removeMutationPending}
+          onConfirm={() => {
+            void onRemoveProfile();
+          }}
+          onCancel={() => {
+            if (!removeMutationPending) {
+              setRemoveConfirmOpen(false);
+            }
+          }}
+        />
+      ) : null}
+      {profile && blockConfirmOpen ? (
+        <BlockUserConfirmDialog
+          contact={profile}
+          pending={blockMutationPending}
+          onConfirm={() => {
+            void onBlockProfile();
+          }}
+          onCancel={() => {
+            if (!blockMutationPending) {
+              setBlockConfirmOpen(false);
+            }
+          }}
+        />
+      ) : null}
     </div>
   );
 }

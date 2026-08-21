@@ -37,7 +37,6 @@ export function useCountUp(value: number): number {
     });
     return () => controls.stop();
     // `display` is intentionally captured as the animation start value only.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value, reduced]);
   return display;
 }

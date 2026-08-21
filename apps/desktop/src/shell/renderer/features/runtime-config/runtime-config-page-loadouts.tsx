@@ -23,9 +23,9 @@ import {
   StatusBadge,
   Surface,
   TextField,
-  nimiToast,
 } from '@nimiplatform/kit/ui';
 import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
+import { emitFeedbackToast } from '../../ui/feedback/emit-feedback-toast.js';
 import {
   installRuntimeConfigCatalogAsset,
   useRuntimeConfigLocalEnvironmentClient,
@@ -226,7 +226,7 @@ export function LoadoutsPage(props: { readonly onOpenEnvironment?: () => void })
     try {
       await action();
       await refresh();
-      nimiToast.success(t('runtimeConfig.loadouts.saved'));
+      emitFeedbackToast({ kind: 'success', message: t('runtimeConfig.loadouts.saved') });
     } catch (error) {
       const message = errorMessage(error);
       setTechnicalError(message);
@@ -413,7 +413,7 @@ export function LoadoutsPage(props: { readonly onOpenEnvironment?: () => void })
           </details>
         </InlineAlert>
       ) : null}
-      {loading ? <LoadingSkeleton lines={5} /> : capabilities.length > 0 ? (
+      {loading ? <LoadingSkeleton lines={5} label={t('Common.loading', { defaultValue: 'Loading…' })} /> : capabilities.length > 0 ? (
         <div className="grid gap-4" data-testid="machine-loadouts-list">
           <PillTabs
             size="sm"

@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useRef, useState, type CSSProperties, type P
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
 import {
+  ConfirmDialog,
   ScrollArea,
   SidebarAffordanceChevron,
   SidebarItem,
@@ -279,6 +280,17 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
           </Suspense>
         </ScrollArea>
       </Surface>
+
+      <ConfirmDialog
+        open={model.installConfirmation !== null}
+        title={t('runtimeConfig.local.confirmInstallTitle', { defaultValue: 'Install model' })}
+        message={<span className="whitespace-pre-wrap">{model.installConfirmation?.message ?? ''}</span>}
+        confirmLabel={t('runtimeConfig.local.confirmInstallConfirm', { defaultValue: 'Install' })}
+        cancelLabel={t('runtimeConfig.local.confirmInstallCancel', { defaultValue: 'Cancel' })}
+        confirmTone="primary"
+        onConfirm={() => model.resolveInstallConfirmation(true)}
+        onClose={() => model.resolveInstallConfirmation(false)}
+      />
     </div>
   );
 }

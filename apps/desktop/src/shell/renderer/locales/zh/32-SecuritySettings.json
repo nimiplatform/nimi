@@ -9,5 +9,6 @@
   "activeSessionsTitle": "当前会话",
   "activeSessionsDescription": "此设备上由 Runtime 管理的会话",
   "thisDevice": "此设备",
-  "currentSession": "当前"
+  "currentSession": "当前",
+  "accountManagementUnavailable": "账号管理页面不可用"
 }

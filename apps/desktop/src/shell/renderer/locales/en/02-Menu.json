@@ -5,5 +5,11 @@
   "termsOfService": "Terms of Service",
   "privacyPolicy": "Privacy Policy",
   "logout": "Log Out",
-  "switchAccount": "Switch account"
+  "switchAccount": "Switch account",
+  "logoutConfirmTitle": "Log out?",
+  "logoutConfirmBody": "You will need to sign in again to continue using Nimi.",
+  "logoutConfirmAction": "Log Out",
+  "switchAccountConfirmTitle": "Switch account?",
+  "switchAccountConfirmBody": "You will be signed out of the current account and returned to the sign-in screen.",
+  "switchAccountConfirmAction": "Switch account"
 }

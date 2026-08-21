@@ -30,13 +30,13 @@ function PostSkeleton() {
   return (
     <AppCardSurface kind="promoted-glass" as="div" className="animate-pulse p-5">
       <div className="flex items-start gap-3">
-        <div className="h-10 w-10 rounded-full bg-gray-200" />
+        <div className="h-10 w-10 rounded-full bg-[color-mix(in_srgb,var(--nimi-surface-active)_80%,transparent)]" />
         <div className="flex-1 space-y-2">
-          <div className="h-4 w-24 rounded bg-gray-200" />
-          <div className="h-3 w-20 rounded bg-gray-100" />
+          <div className="h-4 w-24 rounded bg-[color-mix(in_srgb,var(--nimi-surface-active)_80%,transparent)]" />
+          <div className="h-3 w-20 rounded bg-[color-mix(in_srgb,var(--nimi-surface-active)_64%,transparent)]" />
         </div>
       </div>
-      <div className="mt-4 h-56 rounded-2xl bg-gray-100" />
+      <div className="mt-4 h-56 rounded-2xl bg-[color-mix(in_srgb,var(--nimi-surface-active)_64%,transparent)]" />
     </AppCardSurface>
   );
 }
@@ -176,7 +176,7 @@ export function PostsTab({ profileId, layout = 'grid', blockedContent = false }:
 
   if (loadError && posts.length === 0) {
     return (
-      <AppCardSurface kind="operational-solid" as="div" className="p-4 text-sm text-red-700">
+      <AppCardSurface kind="operational-solid" as="div" className="p-4 text-sm text-[var(--nimi-status-danger)]">
         <p>{loadError}</p>
         <CompactAction tone="danger" onClick={() => { void fetchPosts(null); }} className="mt-3">
           {t('Common.retry')}
@@ -187,8 +187,8 @@ export function PostsTab({ profileId, layout = 'grid', blockedContent = false }:
 
   if (posts.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-16 text-sm text-gray-400">
-        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="mb-3 text-gray-300">
+      <div className="flex flex-col items-center justify-center py-16 text-sm text-[var(--nimi-text-muted)]">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="mb-3 text-[var(--nimi-text-muted)]">
           <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
           <polyline points="14 2 14 8 20 8" />
         </svg>

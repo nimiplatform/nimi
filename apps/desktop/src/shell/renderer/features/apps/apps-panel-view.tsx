@@ -36,7 +36,7 @@ import type { AppCardActionId } from './apps-card-actions.js';
 import {
   appRunVisualState,
   filterAppsEntries,
-  isEntryRunActive,
+  pinRunningAppsFirst,
   sortAppsEntries,
   type AppsSortId,
 } from './apps-card-fields.js';
@@ -87,12 +87,8 @@ export function AppsPanelView({
 
   const loadedEntries = projection?.status === 'loaded' ? projection.entries : [];
   const visibleEntries = useMemo(
-    () => sortAppsEntries(filterAppsEntries(loadedEntries, searchQuery), sortId),
+    () => pinRunningAppsFirst(sortAppsEntries(filterAppsEntries(loadedEntries, searchQuery), sortId)),
     [loadedEntries, searchQuery, sortId],
-  );
-  const runningEntries = useMemo(
-    () => visibleEntries.filter(isEntryRunActive),
-    [visibleEntries],
   );
   const selectedEntry = loadedEntries.find(
     (entry) => entry.registration.appId === selectedAppId,
@@ -124,7 +120,6 @@ export function AppsPanelView({
       <AppsRail
         projection={projection}
         visibleEntries={visibleEntries}
-        runningEntries={runningEntries}
         selectedAppId={selectedAppId}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
@@ -178,7 +173,6 @@ export function AppsPanelView({
 function AppsRail({
   projection,
   visibleEntries,
-  runningEntries,
   selectedAppId,
   searchQuery,
   onSearchChange,
@@ -191,7 +185,6 @@ function AppsRail({
 }: {
   readonly projection: DesktopAppsPanelProjection | null;
   readonly visibleEntries: readonly DesktopAppsEntry[];
-  readonly runningEntries: readonly DesktopAppsEntry[];
   readonly selectedAppId: string | null;
   readonly searchQuery: string;
   readonly onSearchChange: (value: string) => void;
@@ -203,7 +196,6 @@ function AppsRail({
   readonly onRetry: () => void;
 }): ReactElement {
   const { t } = useTranslation();
-  const hasGroups = runningEntries.length > 0;
   return (
     <SidebarShell className="hidden w-[248px] lg:flex" data-testid="apps-sidebar">
       <div className="flex min-h-[var(--nimi-sidebar-header-height)] shrink-0 items-center justify-between gap-3 px-4">
@@ -278,42 +270,18 @@ function AppsRail({
           </div>
         ) : (
           <div data-app-rail-list>
-            {hasGroups ? (
-              <section data-testid="apps-running-group">
-                <h3 className="px-2 pb-1 pt-1 text-[11px] font-bold uppercase tracking-wide text-[color:var(--nimi-text-muted)]">
-                  {t('Apps.library.runningGroupTitle')}
-                </h3>
-                <div className="space-y-0.5">
-                  {runningEntries.map((entry) => (
-                    <RailAppRow
-                      key={`running-${entry.registration.selector}`}
-                      entry={entry}
-                      active={entry.registration.appId === selectedAppId}
-                      onOpen={() => onCardAction(entry.registration.appId, 'details')}
-                    />
-                  ))}
-                </div>
-              </section>
-            ) : null}
-            <section>
-              {hasGroups ? (
-                <h3 className="px-2 pb-1 pt-3 text-[11px] font-bold uppercase tracking-wide text-[color:var(--nimi-text-muted)]">
-                  {t('Apps.library.allGroupTitle')}
-                </h3>
-              ) : null}
-              <div className="space-y-0.5">
-                {visibleEntries.map((entry, index) => (
-                  <RailAppRow
-                    key={entry.registration.selector}
-                    entry={entry}
-                    active={entry.registration.appId === selectedAppId}
-                    tabIndex={entry.registration.appId === selectedAppId || (!selectedAppId && index === 0) ? 0 : -1}
-                    onOpen={() => onCardAction(entry.registration.appId, 'details')}
-                    onKeyDown={handleRailKeyDown}
-                  />
-                ))}
-              </div>
-            </section>
+            <div className="space-y-0.5">
+              {visibleEntries.map((entry, index) => (
+                <RailAppRow
+                  key={entry.registration.selector}
+                  entry={entry}
+                  active={entry.registration.appId === selectedAppId}
+                  tabIndex={entry.registration.appId === selectedAppId || (!selectedAppId && index === 0) ? 0 : -1}
+                  onOpen={() => onCardAction(entry.registration.appId, 'details')}
+                  onKeyDown={handleRailKeyDown}
+                />
+              ))}
+            </div>
           </div>
         )}
       </ScrollArea>

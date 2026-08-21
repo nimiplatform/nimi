@@ -13,7 +13,7 @@
 
 import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Surface } from '@nimiplatform/kit/ui';
+import { OverlayShell } from '@nimiplatform/kit/ui';
 import {
   SUPPORT_DEGRADED_REACHABLE_SECTIONS,
   SUPPORT_SECTION_LABEL_KEY,
@@ -35,7 +35,8 @@ function renderDegradedSection(
 /**
  * The trigger button + overlay shown in a degraded gate. Renders nothing
  * intrusive when closed — just a button. When opened it presents the
- * degraded-reachable Support sub-areas in a modal overlay.
+ * degraded-reachable Support sub-areas in a modal dialog whose chrome
+ * (ESC, focus trap, aria) comes from the kit `OverlayShell`.
  */
 export function SupportDegradedEntry() {
   const { t } = useTranslation();
@@ -45,6 +46,29 @@ export function SupportDegradedEntry() {
   const navigate = useCallback((next: SupportSectionId) => {
     setSection(next);
   }, []);
+
+  const sidebar = (
+    <div className="flex flex-col gap-1">
+      {SUPPORT_DEGRADED_REACHABLE_SECTIONS.map((sectionId) => {
+        const active = section === sectionId;
+        return (
+          <button
+            key={sectionId}
+            type="button"
+            data-testid={`support-degraded-nav:${sectionId}`}
+            onClick={() => navigate(sectionId)}
+            className={
+              active
+                ? 'rounded-lg bg-[var(--nimi-action-primary-bg)] px-3 py-1.5 text-left text-xs font-medium text-[var(--nimi-action-primary-text)]'
+                : 'rounded-lg px-3 py-1.5 text-left text-xs font-medium text-[var(--nimi-text-secondary)] hover:text-[var(--nimi-text-primary)]'
+            }
+          >
+            {t(SUPPORT_SECTION_LABEL_KEY[sectionId])}
+          </button>
+        );
+      })}
+    </div>
+  );
 
   return (
     <>
@@ -57,53 +81,31 @@ export function SupportDegradedEntry() {
         {t('Support.degradedEntryButton')}
       </button>
 
-      {open ? (
-        <div
-          data-testid="support-degraded-overlay"
-          className="fixed inset-0 z-[12000] flex items-center justify-center bg-[color-mix(in_srgb,var(--nimi-surface-canvas)_70%,transparent)] p-6"
-        >
-          <Surface
-            tone="panel"
-            material="glass-regular"
-            padding="none"
-            className="flex max-h-[88vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl"
-          >
-            <div className="flex items-center justify-between border-b border-[var(--nimi-border-subtle)] px-5 py-3">
-              <div className="flex items-center gap-2">
-                {SUPPORT_DEGRADED_REACHABLE_SECTIONS.map((sectionId) => {
-                  const active = section === sectionId;
-                  return (
-                    <button
-                      key={sectionId}
-                      type="button"
-                      data-testid={`support-degraded-nav:${sectionId}`}
-                      onClick={() => navigate(sectionId)}
-                      className={
-                        active
-                          ? 'rounded-lg bg-[var(--nimi-action-primary-bg)] px-3 py-1.5 text-xs font-medium text-[var(--nimi-action-primary-fg)]'
-                          : 'rounded-lg px-3 py-1.5 text-xs font-medium text-[var(--nimi-text-secondary)] hover:text-[var(--nimi-text-primary)]'
-                      }
-                    >
-                      {t(SUPPORT_SECTION_LABEL_KEY[sectionId])}
-                    </button>
-                  );
-                })}
-              </div>
-              <button
-                type="button"
-                data-testid="support-degraded-overlay-close"
-                onClick={() => setOpen(false)}
-                className="rounded-lg px-2 py-1 text-xs text-[var(--nimi-text-secondary)] hover:text-[var(--nimi-text-primary)]"
-              >
-                {t('Support.degradedEntryClose')}
-              </button>
-            </div>
-            <div className="flex min-h-0 flex-1 flex-col">
-              {renderDegradedSection(section === 'repair' ? 'repair' : 'recovery', navigate)}
-            </div>
-          </Surface>
-        </div>
-      ) : null}
+      <OverlayShell
+        open={open}
+        kind="dialog"
+        size="M"
+        onClose={() => setOpen(false)}
+        title={t('Support.surfaceTitle')}
+        sidebar={sidebar}
+        dataTestId="support-degraded-overlay"
+        panelClassName="flex max-h-[88vh] flex-col overflow-hidden"
+        contentClassName="flex min-h-0 flex-1 flex-col overflow-hidden px-0 py-0"
+        footer={(
+          <div className="flex justify-end">
+            <button
+              type="button"
+              data-testid="support-degraded-overlay-close"
+              onClick={() => setOpen(false)}
+              className="rounded-lg px-2 py-1 text-xs text-[var(--nimi-text-secondary)] hover:text-[var(--nimi-text-primary)]"
+            >
+              {t('Support.degradedEntryClose')}
+            </button>
+          </div>
+        )}
+      >
+        {renderDegradedSection(section === 'repair' ? 'repair' : 'recovery', navigate)}
+      </OverlayShell>
     </>
   );
 }

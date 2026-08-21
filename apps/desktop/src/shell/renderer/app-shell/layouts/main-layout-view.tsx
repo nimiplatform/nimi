@@ -6,7 +6,7 @@ import { loadNimiRealmNotificationUnreadCount } from '@nimiplatform/sdk/realm';
 import { AnimatePresence, motion } from 'motion/react';
 import { useAppStore, type AppTab, type AuthStatus } from '../providers/app-store';
 import { EntityAvatar } from '../../components/entity-avatar.js';
-import { AmbientBackground, NimiToaster, ScrollArea, Tooltip } from '@nimiplatform/kit/ui';
+import { AmbientBackground, ConfirmDialog, NimiToaster, ScrollArea, Tooltip } from '@nimiplatform/kit/ui';
 import {
   notificationQueryKeys,
   resolveNotificationIdentityRef,
@@ -90,6 +90,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
   const quickNavItems = getQuickNavItems();
   const primaryCoreNavItems = coreNavItems.filter((item) => item.id !== 'home');
   const [settingsMenuOpen, setSettingsMenuOpen] = useState(false);
+  const [pendingAccountAction, setPendingAccountAction] = useState<'logout' | 'switch-account' | null>(null);
   const [settingsMenuPosition, setSettingsMenuPosition] = useState<SettingsMenuAnchorPosition>({
     bottom: 16,
     left: 84,
@@ -233,7 +234,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
       return;
     }
     if (itemId === 'logout') {
-      props.onLogout();
+      setPendingAccountAction('logout');
       setSettingsMenuOpen(false);
     }
   };
@@ -281,7 +282,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
         {hidePrimaryRail || isAnonymousShell ? null : (
           <aside
             data-testid={E2E_IDS.shellSidebarRail}
-            className={`flex h-full shrink-0 flex-col transition-[width] duration-200 ${sidebarWidthClass}`}
+            className={`flex h-full shrink-0 flex-col ${sidebarWidthClass}`}
           >
             <div className="flex h-16 shrink-0 items-center justify-center">
               <Tooltip
@@ -343,7 +344,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
                   whileHover={interactiveMotion.whileHover}
                   whileTap={interactiveMotion.whileTap}
                   transition={interactiveMotion.transition}
-                  className={`relative flex h-10 w-10 items-center justify-center transition-colors ${SHELL_CHROME_INTERACTIVE_RADIUS_CLASS} ${
+                  className={`relative flex h-11 w-11 items-center justify-center transition-colors ${SHELL_CHROME_INTERACTIVE_RADIUS_CLASS} ${
                     props.activeTab === 'notification'
                       ? 'text-[var(--nimi-action-primary-bg)]'
                       : 'text-[var(--nimi-text-secondary)] hover:text-[var(--nimi-text-primary)]'
@@ -356,11 +357,11 @@ export function MainLayoutView(props: MainLayoutViewProps) {
                   </svg>
                   {unreadCount > 0 ? (
                     unreadCount > 1 ? (
-                      <span className="absolute -right-1 -top-1 flex min-w-[16px] items-center justify-center rounded-full border-2 border-[color:var(--nimi-surface-canvas)] bg-red-500 px-1 text-[10px] leading-[14px] text-white">
+                      <span className="absolute -right-1 -top-1 flex min-w-[16px] items-center justify-center rounded-full border-2 border-[color:var(--nimi-surface-canvas)] bg-[var(--nimi-status-danger)] px-1 text-[10px] leading-[14px] text-white">
                         {unreadBadge}
                       </span>
                     ) : (
-                      <span className="absolute right-1 top-1.5 h-2 w-2 rounded-full border-2 border-[color:var(--nimi-surface-canvas)] bg-red-500" />
+                      <span className="absolute right-1 top-1.5 h-2 w-2 rounded-full border-2 border-[color:var(--nimi-surface-canvas)] bg-[var(--nimi-status-danger)]" />
                     )
                   ) : null}
                 </motion.button>
@@ -370,7 +371,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
                 placement="right"
                 contentClassName={SHELL_CHROME_TOOLTIP_CLASS}
               >
-                <div ref={settingsTriggerRef} className="flex h-9 items-center">
+                <div ref={settingsTriggerRef} className="flex h-11 items-center">
                   <motion.button
                     type="button"
                     data-testid="desktop-account-menu-trigger"
@@ -378,7 +379,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
                     whileHover={interactiveMotion.whileHover}
                     whileTap={interactiveMotion.whileTap}
                     transition={interactiveMotion.transition}
-                    className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border border-black/5 bg-white p-0 text-[var(--nimi-text-primary)] shadow-[0_2px_8px_rgba(0,0,0,0.04)] transition-transform duration-150 hover:scale-[1.03]"
+                    className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border border-black/5 bg-white p-0 text-[var(--nimi-text-primary)] shadow-[0_2px_8px_rgba(0,0,0,0.04)] transition-transform duration-150 hover:scale-[1.03]"
                     aria-label={t('Common.openAccountMenu')}
                     aria-expanded={settingsMenuOpen}
                   >
@@ -436,17 +437,42 @@ export function MainLayoutView(props: MainLayoutViewProps) {
               setSettingsMenuOpen(false);
             }}
             onSwitchAccount={() => {
-              props.onSwitchAccount();
+              setPendingAccountAction('switch-account');
               setSettingsMenuOpen(false);
             }}
             onLogout={() => {
-              props.onLogout();
+              setPendingAccountAction('logout');
               setSettingsMenuOpen(false);
             }}
           />
         </motion.div>
       ) : null}
       </AnimatePresence>
+
+      <ConfirmDialog
+        open={pendingAccountAction !== null}
+        title={pendingAccountAction === 'switch-account'
+          ? t('Menu.switchAccountConfirmTitle', { defaultValue: 'Switch account?' })
+          : t('Menu.logoutConfirmTitle', { defaultValue: 'Log out?' })}
+        message={pendingAccountAction === 'switch-account'
+          ? t('Menu.switchAccountConfirmBody', { defaultValue: 'You will be signed out of the current account and returned to the sign-in screen.' })
+          : t('Menu.logoutConfirmBody', { defaultValue: 'You will need to sign in again to continue using Nimi.' })}
+        confirmLabel={pendingAccountAction === 'switch-account'
+          ? t('Menu.switchAccountConfirmAction', { defaultValue: 'Switch account' })
+          : t('Menu.logoutConfirmAction', { defaultValue: 'Log Out' })}
+        cancelLabel={t('Common.cancel', { defaultValue: 'Cancel' })}
+        confirmTone="primary"
+        onConfirm={() => {
+          const action = pendingAccountAction;
+          setPendingAccountAction(null);
+          if (action === 'switch-account') {
+            props.onSwitchAccount();
+          } else if (action === 'logout') {
+            props.onLogout();
+          }
+        }}
+        onClose={() => setPendingAccountAction(null)}
+      />
     </AmbientBackground>
   );
 }

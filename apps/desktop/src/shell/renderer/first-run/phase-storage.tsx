@@ -130,7 +130,7 @@ export function PhaseStorage(props: PhaseStorageProps): ReactElement {
         <Button
           type="button"
           tone="primary"
-          className="rounded-full px-6"
+          className="rounded-md px-6"
           data-testid="first-run-storage-continue"
           disabled={props.busy || !hasPath}
           onClick={props.onContinue}

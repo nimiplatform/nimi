@@ -1,28 +1,8 @@
-import { AppCardSurface, cn, CompactAction } from '@nimiplatform/kit/ui';
+import { AppCardSurface, cn, CompactAction, EmptyState } from '@nimiplatform/kit/ui';
 import type { ConversationThreadSummary } from '@nimiplatform/kit/features/chat/headless';
 import { useTranslation } from 'react-i18next';
-import { useDesktopRendererBindings } from '../../renderer/binding-context';
+import { useDesktopI18nResource } from '../../i18n/i18n-context.js';
 import { ChatSideSheet } from './chat-shared-side-sheet';
-
-export function formatChatThreadRelativeTime(dateStr: string, nowMs: number): string {
-  const date = new Date(dateStr);
-  if (Number.isNaN(date.getTime())) {
-    return dateStr;
-  }
-  const diffMs = nowMs - date.getTime();
-  const diffSec = Math.floor(diffMs / 1000);
-  const diffMin = Math.floor(diffSec / 60);
-  const diffHour = Math.floor(diffMin / 60);
-  const diffDay = Math.floor(diffHour / 24);
-  const diffWeek = Math.floor(diffDay / 7);
-  const diffMonth = Math.floor(diffDay / 30);
-  if (diffMin < 1) return 'just now';
-  if (diffMin < 60) return `${diffMin}m`;
-  if (diffHour < 24) return `${diffHour}h`;
-  if (diffDay < 7) return `${diffDay}d`;
-  if (diffWeek < 5) return `${diffWeek}w`;
-  return `${diffMonth}mo`;
-}
 
 export type ChatNimiThreadListSheetProps = {
   threads: readonly ConversationThreadSummary[];
@@ -39,13 +19,12 @@ function SessionThreadItem({
   thread,
   active,
   onSelect,
-  nowMs,
 }: {
   thread: ConversationThreadSummary;
   active: boolean;
   onSelect: () => void;
-  nowMs: number;
 }) {
+  const i18n = useDesktopI18nResource();
   return (
     <AppCardSurface
       kind="operational-solid"
@@ -63,14 +42,14 @@ function SessionThreadItem({
             <p
               className={cn(
                 'truncate text-[13px]',
-                active ? 'font-semibold text-slate-900' : 'font-medium text-slate-700',
+                active ? 'font-semibold text-[var(--nimi-text-primary)]' : 'font-medium text-[var(--nimi-text-secondary)]',
               )}
             >
               {thread.title}
             </p>
           </div>
-          <div className="shrink-0 pt-0.5 pr-1 text-[10px] text-slate-400">
-            {formatChatThreadRelativeTime(thread.updatedAt, nowMs)}
+          <div className="shrink-0 pt-0.5 pr-1 text-[10px] text-[var(--nimi-text-muted)]">
+            {i18n.formatRelativeTime(thread.updatedAt)}
           </div>
         </div>
       </button>
@@ -79,9 +58,7 @@ function SessionThreadItem({
 }
 
 export function ChatNimiThreadListSheet(props: ChatNimiThreadListSheetProps) {
-  const bindings = useDesktopRendererBindings();
   const { t } = useTranslation();
-  const nowMs = bindings.clock.now();
 
   return (
     <ChatSideSheet
@@ -106,15 +83,21 @@ export function ChatNimiThreadListSheet(props: ChatNimiThreadListSheetProps) {
       )}
     >
       <div className="px-4 py-4">
-        <p className="text-xs leading-5 text-slate-500">
+        <p className="text-xs leading-5 text-[var(--nimi-text-secondary)]">
           {props.description || t('Chat.nimiTranscriptEmpty', { defaultValue: 'Send a message to start this conversation.' })}
         </p>
       </div>
       {props.threads.length === 0 ? (
-        <div className="flex min-h-full flex-col items-center justify-center gap-2 px-4 py-8 text-center">
-          <p className="text-sm font-medium text-slate-500">{t('Chat.noConversationsYet', { defaultValue: 'No conversations yet' })}</p>
-          <p className="text-xs text-slate-400">{t('Chat.startNewConversation', { defaultValue: 'Start a new conversation above' })}</p>
-        </div>
+        <EmptyState
+          className="mx-4 my-4"
+          icon={(
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+            </svg>
+          )}
+          title={t('Chat.noConversationsYet', { defaultValue: 'No conversations yet' })}
+          description={t('Chat.startNewConversation', { defaultValue: 'Start a new conversation above' })}
+        />
       ) : (
         <div className="flex flex-col gap-1.5 px-3 py-3">
           {props.threads.map((thread) => (
@@ -123,7 +106,6 @@ export function ChatNimiThreadListSheet(props: ChatNimiThreadListSheetProps) {
               thread={thread}
               active={thread.id === props.activeThreadId}
               onSelect={() => props.onSelectThread(thread.id)}
-              nowMs={nowMs}
             />
           ))}
         </div>

@@ -1,6 +1,6 @@
 import { useMemo, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, NimiText, Statistic, Surface, cn } from '@nimiplatform/kit/ui';
+import { Button, EmptyState, NimiText, Statistic, Surface, cn } from '@nimiplatform/kit/ui';
 import type { WorldAssetExternalRef, WorldCharacter, WorldHistoryBundle, WorldSceneItem, WorldSemanticData } from './world-detail-types.js';
 import { characterMeta, sceneImageRef } from './world-detail-template-model';
 import {
@@ -264,9 +264,7 @@ export function PaperCharactersSection({
           ))}
         </div>
       ) : featured.length === 0 ? (
-        <PaperCardSurface className="p-5 text-[length:var(--nimi-type-body-sm-size)]" >
-          {t('WorldDetail.paper.characters.empty')}
-        </PaperCardSurface>
+        <EmptyState title={t('WorldDetail.paper.characters.empty')} />
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(232px,1fr))', gap: 13 }}>
           {featured.map((character) => {
@@ -438,9 +436,7 @@ export function PaperTimelineSection({
           ))}
         </div>
       ) : items.length === 0 ? (
-        <PaperCardSurface className="p-5 text-[length:var(--nimi-type-body-sm-size)]">
-          {t('WorldDetail.paper.timeline.empty')}
-        </PaperCardSurface>
+        <EmptyState title={t('WorldDetail.paper.timeline.empty')} />
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           {items.map((item, index) => (
@@ -491,9 +487,7 @@ export function PaperScenesSection({
       action={<PaperViewAll label={t('WorldDetail.paper.viewAll')} onClick={onGoScenes} />}
     >
       {scenes.length === 0 ? (
-        <PaperCardSurface className="p-5 text-[length:var(--nimi-type-body-sm-size)]">
-          {t('WorldDetail.paper.scenes.empty')}
-        </PaperCardSurface>
+        <EmptyState title={t('WorldDetail.paper.scenes.empty')} />
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 13 }}>
           {scenes.slice(0, 4).map((scene, index) => {

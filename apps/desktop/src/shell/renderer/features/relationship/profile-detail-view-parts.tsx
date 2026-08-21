@@ -1,6 +1,10 @@
 import type { ReactNode } from 'react';
 import type { HumanProfileData } from '../profile/profile-model';
 
+// Shared tooltip chrome for the profile detail top bar; matches the kit
+// tooltip bubble surface tokens so it stays readable in both themes.
+export const TOPBAR_TOOLTIP_CLASS = 'rounded-full border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-overlay)] px-3 py-1.5 text-xs font-semibold text-[var(--nimi-text-primary)] shadow-[var(--nimi-elevation-floating)]';
+
 export type EditableProfileDraft = {
   displayName: string;
   avatarUrl: string;
@@ -33,13 +37,13 @@ export function EditableField(input: {
 }) {
   return (
     <label className="block">
-      <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">{input.label}</span>
+      <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--nimi-text-muted)]">{input.label}</span>
       <input
         type="text"
         value={input.value}
         onChange={(event) => input.onChange(event.target.value)}
         placeholder={input.placeholder}
-        className="mt-1.5 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-[var(--nimi-action-primary-bg)] focus:ring-4 focus:ring-[var(--nimi-action-primary-bg)]/10"
+        className="mt-1.5 w-full rounded-2xl border border-[var(--nimi-field-border)] bg-[var(--nimi-field-bg)] px-4 py-3 text-sm text-[var(--nimi-field-text)] outline-none transition focus:border-[var(--nimi-action-primary-bg)] focus:ring-4 focus:ring-[var(--nimi-action-primary-bg)]/10"
       />
     </label>
   );
@@ -54,8 +58,8 @@ export function InlineMeta({
 }) {
   return (
     <div className="flex items-center gap-2.5">
-      <span className="shrink-0 text-[#94A3B8]">{icon}</span>
-      <div className="min-w-0 text-[13px] leading-6 text-[#7C8AA5]">{value}</div>
+      <span className="shrink-0 text-[var(--nimi-text-muted)]">{icon}</span>
+      <div className="min-w-0 text-[13px] leading-6 text-[var(--nimi-text-secondary)]">{value}</div>
     </div>
   );
 }
@@ -63,8 +67,8 @@ export function InlineMeta({
 export function StatTile({ label, value }: { label: string; value: number }) {
   return (
     <div className="text-center">
-      <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#94A3B8]">{label}</div>
-      <div className="mt-1.5 text-[28px] font-semibold leading-none tracking-[-0.04em] text-[#1A1A1B]">{value}</div>
+      <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--nimi-text-muted)]">{label}</div>
+      <div className="mt-1.5 text-[28px] font-semibold leading-none tracking-[-0.04em] text-[var(--nimi-text-primary)]">{value}</div>
     </div>
   );
 }
@@ -109,79 +113,7 @@ export function SpinnerIcon({ className = '' }: { className?: string }) {
 }
 
 export function StatDivider() {
-  return <span className="mt-4 h-9 w-px justify-self-center bg-[linear-gradient(180deg,rgba(148,163,184,0)_0%,rgba(148,163,184,0.35)_50%,rgba(148,163,184,0)_100%)]" />;
-}
-
-export function ActionPill({
-  label,
-  icon,
-  variant,
-  onClick,
-}: {
-  label: string;
-  icon: ReactNode;
-  variant: 'primary' | 'secondary';
-  onClick: () => void;
-}) {
-  const className = variant === 'primary'
-    ? 'border-transparent bg-slate-900 text-white hover:bg-slate-800'
-    : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50';
-
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`inline-flex items-center gap-2 rounded-full border px-4 py-2.5 text-sm font-semibold transition ${className}`}
-    >
-      {icon}
-      {label}
-    </button>
-  );
-}
-
-export function IconButton({
-  icon,
-  label,
-  onClick,
-  disabled = false,
-}: {
-  icon: ReactNode;
-  label: string;
-  onClick: () => void;
-  disabled?: boolean;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      aria-label={label}
-      className={`inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200/80 bg-white/80 shadow-[0_8px_20px_rgba(15,23,42,0.05)] transition ${
-        disabled
-          ? 'cursor-not-allowed text-slate-300 opacity-70'
-          : 'text-slate-700 hover:border-[var(--nimi-action-primary-bg)]/45 hover:bg-[var(--nimi-action-primary-bg)]/12 hover:text-[var(--nimi-action-primary-bg-hover)] active:scale-[var(--nimi-motion-pressed-scale)]'
-      }`}
-    >
-      {icon}
-    </button>
-  );
-}
-
-export function SideInfoRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-[20px] bg-slate-50 px-4 py-3">
-      <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">{label}</div>
-      <div className="mt-1 text-sm text-slate-700">{value}</div>
-    </div>
-  );
-}
-
-export function StatusBadge({ children, active = false }: { children: ReactNode; active?: boolean }) {
-  return (
-    <span className={`rounded-full px-3 py-1.5 text-xs font-semibold ${active ? 'bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_12%,transparent)] text-[var(--nimi-action-primary-bg-hover)]' : 'bg-slate-100 text-slate-600'}`}>
-      {children}
-    </span>
-  );
+  return <span className="mt-4 h-9 w-px justify-self-center bg-[linear-gradient(180deg,color-mix(in_srgb,var(--nimi-text-muted)_0%,transparent)_0%,color-mix(in_srgb,var(--nimi-text-muted)_35%,transparent)_50%,color-mix(in_srgb,var(--nimi-text-muted)_0%,transparent)_100%)]" />;
 }
 
 export function AlertIcon({ className = '' }: { className?: string }) {

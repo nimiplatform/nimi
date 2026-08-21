@@ -16,5 +16,17 @@
   "uploadFile": "Upload file",
   "removeAttachment": "Remove attachment",
   "uploadFailed": "Upload failed",
-  "unsupportedFileType": "Unsupported file type, please upload an image or video"
+  "unsupportedFileType": "Unsupported file type, please upload an image or video",
+  "scenarioJobStatusSubmitted": "Submitted",
+  "scenarioJobStatusQueued": "Queued",
+  "scenarioJobStatusRunning": "Processing",
+  "scenarioJobStatusCompleted": "Completed",
+  "scenarioJobStatusFailed": "Failed",
+  "scenarioJobStatusCanceled": "Cancelled",
+  "scenarioJobStatusTimeout": "Timed out",
+  "scenarioJobStatusUnknown": "Unknown",
+  "scenarioJobOverlayRecovering": "Reconnecting…",
+  "scenarioJobOverlayCancelling": "Cancelling…",
+  "scenarioJobOverlayFetchingArtifacts": "Processing results…",
+  "scenarioJobOverlayRecoveryTimeout": "Job status unknown; refresh later"
 }

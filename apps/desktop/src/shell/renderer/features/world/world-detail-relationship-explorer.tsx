@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { ReactNode } from 'react';
+import { EmptyState } from '@nimiplatform/kit/ui';
 import {
   buildWorldRelationshipEvidenceGraph,
   type WorldRelationshipEvidenceCharacterBucket,
@@ -260,7 +261,7 @@ function PeoplePanel({
               );
             })}
           </div>
-        ) : <p style={{ margin: '20px 12px', fontSize: 12.5, color: 'var(--nimi-text-muted)' }}>{t('WorldDetail.paper.relationshipExplorer.peopleList.empty')}</p>}
+        ) : <EmptyState title={t('WorldDetail.paper.relationshipExplorer.peopleList.empty')} style={{ margin: '20px 12px' }} />}
       </div>
     </aside>
   );
@@ -399,7 +400,7 @@ function ProfileSummary({
               </button>
             ))}
           </div>
-        ) : <p style={{ margin: 0, fontSize: 12.5, color: 'var(--nimi-text-muted)' }}>{t('WorldDetail.paper.relationshipExplorer.clueList.empty')}</p>}
+        ) : <EmptyState title={t('WorldDetail.paper.relationshipExplorer.clueList.empty')} />}
       </div>
     </>
   );

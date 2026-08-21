@@ -1,5 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import type { RefObject } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useDesktopI18nResource } from '../../i18n/i18n-context.js';
 import type { InlineFeedbackState } from '../../ui/feedback/inline-feedback';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
@@ -24,11 +23,11 @@ export type UsePostCardUiResult = {
   showDeleteConfirm: boolean;
   isBlocking: boolean;
   isDeleting: boolean;
-  menuButtonRef: RefObject<HTMLButtonElement | null>;
   setIsLiked: (next: boolean) => void;
   setIsFriend: (next: boolean) => void;
   setIsSendGiftOpen: (next: boolean) => void;
   setShowAddFriendModal: (next: boolean) => void;
+  setShowPostMenu: (next: boolean) => void;
   setShowBlockConfirm: (next: boolean) => void;
   setShowReportModal: (next: boolean) => void;
   setShowEditVisibilityModal: (next: boolean) => void;
@@ -36,7 +35,6 @@ export type UsePostCardUiResult = {
   setIsBlocking: (next: boolean) => void;
   setIsDeleting: (next: boolean) => void;
   toggleLike: () => void;
-  togglePostMenu: () => void;
   openAddFriendModal: () => boolean;
   openGiftModal: () => boolean;
   openEditPost: () => void;
@@ -62,7 +60,6 @@ export function usePostCardUi(input: UsePostCardUiInput): UsePostCardUiResult {
   const [isBlocking, setIsBlocking] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const menuButtonRef = useRef<HTMLButtonElement>(null);
   const [deferredActions] = useState(() => new Set<{ cancel: (() => void) | null }>());
 
   useEffect(() => () => {
@@ -83,24 +80,11 @@ export function usePostCardUi(input: UsePostCardUiInput): UsePostCardUiResult {
     });
   }, [bindings.clock, deferredActions, setFeedback]);
 
-  useEffect(() => {
-    if (!showPostMenu) {
-      return;
-    }
-    const handleClickOutside = (event: MouseEvent) => {
-      if (!menuButtonRef.current?.contains(event.target as Node)) {
-        setShowPostMenu(false);
-      }
-    };
-    return bindings.app.events.subscribeDocumentClick(handleClickOutside);
-  }, [bindings.app.events, showPostMenu]);
-
+  // The post menu is a kit Popover owned by PostCardArticle: outside-click and
+  // ESC dismissal flow through its onOpenChange into setShowPostMenu, so no
+  // document-level click subscription is needed here.
   const toggleLike = useCallback(() => {
     setIsLiked((prev) => !prev);
-  }, []);
-
-  const togglePostMenu = useCallback(() => {
-    setShowPostMenu((prev) => !prev);
   }, []);
 
   const openAddFriendModal = useCallback(() => {
@@ -159,11 +143,11 @@ export function usePostCardUi(input: UsePostCardUiInput): UsePostCardUiResult {
     showDeleteConfirm,
     isBlocking,
     isDeleting,
-    menuButtonRef,
     setIsLiked,
     setIsFriend,
     setIsSendGiftOpen,
     setShowAddFriendModal,
+    setShowPostMenu,
     setShowBlockConfirm,
     setShowReportModal,
     setShowEditVisibilityModal,
@@ -171,7 +155,6 @@ export function usePostCardUi(input: UsePostCardUiInput): UsePostCardUiResult {
     setIsBlocking,
     setIsDeleting,
     toggleLike,
-    togglePostMenu,
     openAddFriendModal,
     openGiftModal,
     openEditPost,

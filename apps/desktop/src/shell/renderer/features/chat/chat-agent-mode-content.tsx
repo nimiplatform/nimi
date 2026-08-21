@@ -3,6 +3,7 @@ import {
   type ConversationSetupAction,
   type ConversationTargetSummary,
 } from '@nimiplatform/kit/features/chat/headless';
+import { useTranslation } from 'react-i18next';
 import { useAppStore } from '../../app-shell/providers/app-store';
 import { useAgentConversationModeHost } from './chat-agent-shell-adapter';
 import { ChatAgentSceneBackground } from './chat-agent-scene-background';
@@ -25,6 +26,7 @@ export function ChatAgentModeContent({
   onSetupAction,
   onSelectTarget,
 }: ChatAgentModeContentProps) {
+  const { t } = useTranslation();
   const [diagnosticsSectionVisible, setDiagnosticsSectionVisible] = useState(false);
   const authStatus = useAppStore((state) => state.auth.status);
   const runtimeFields = useAppStore((state) => state.runtimeFields);
@@ -85,7 +87,7 @@ export function ChatAgentModeContent({
         id: selectedTargetId,
         source: 'agent' as const,
         canonicalSessionId: host.activeThreadId || selectedTargetId,
-        title: host.characterData.name || 'Agent',
+        title: host.characterData.name || t('Chat.agentGenericIdentity', { defaultValue: 'Partner' }),
         handle: host.characterData.handle || null,
         bio: null,
         avatarUrl: host.characterData.avatarUrl || null,
@@ -98,7 +100,7 @@ export function ChatAgentModeContent({
         metadata: {},
       };
     },
-    [allTargets, host.activeThreadId, host.characterData, selectedTargetId],
+    [allTargets, host.activeThreadId, host.characterData, selectedTargetId, t],
   );
 
   const sceneBackground = selectedTarget ? (
@@ -120,7 +122,7 @@ export function ChatAgentModeContent({
       onCloseSettings={onCloseSettings}
       className="relative"
       sceneBackground={sceneBackground}
-      settingsSheetEyebrow={host.settingsDrawerTitle || 'Agent Center'}
+      settingsSheetEyebrow={host.settingsDrawerTitle || t('Chat.agentCenterTitle', { defaultValue: 'Agent Center' })}
       settingsSheetTitle={host.settingsDrawerSubtitle || host.characterData?.name || selectedTarget?.title}
       settingsSheetSubtitle={selectedTarget?.handle ? `~${selectedTarget.handle}` : null}
       settingsSheetWorld={host.settingsDrawerWorld ?? null}

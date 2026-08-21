@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Button, IconButton, OverlayShell } from '@nimiplatform/kit/ui';
 import { useTranslation } from 'react-i18next';
 
 type VisibilityValue = 'PUBLIC' | 'FRIENDS' | 'PRIVATE';
@@ -30,66 +31,78 @@ export function EditVisibilityModal(props: {
   ];
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center">
-      <div className="absolute inset-0 bg-[var(--nimi-scrim-modal)]" onClick={props.onClose} />
-      <div className="relative mx-4 w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
-        <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-gray-900">
+    <OverlayShell
+      open
+      kind="dialog"
+      onClose={props.pending ? undefined : props.onClose}
+      title={(
+        <div className="flex items-center justify-between gap-4">
+          <h2 className="text-base font-semibold text-[var(--nimi-text-primary)]">
             {t('Home.editPostVisibility', { defaultValue: 'Edit Post Visibility' })}
-          </h3>
-          <button
-            type="button"
-            onClick={props.onClose}
-            className="rounded-full p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
-          >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
-          </button>
-        </div>
-
-        <div className="mb-6 space-y-2">
-          {options.map((option) => (
-            <button
-              key={option.value}
-              type="button"
-              onClick={() => setSelectedVisibility(option.value)}
-              className={`w-full rounded-xl border px-4 py-3 text-left transition-colors ${
-                selectedVisibility === option.value
-                  ? 'border-mint-500 bg-mint-50'
-                  : 'border-gray-200 bg-white hover:border-gray-300'
-              }`}
-            >
-              <p className="text-sm font-semibold text-gray-900">{option.title}</p>
-              <p className="text-xs text-gray-500">{option.description}</p>
-            </button>
-          ))}
-        </div>
-
-        <div className="flex gap-3">
-          <button
-            type="button"
-            onClick={props.onClose}
+          </h2>
+          <IconButton
+            icon={(
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            )}
+            size="sm"
             disabled={props.pending}
-            className="flex-1 rounded-xl bg-gray-100 px-4 py-2.5 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-200 disabled:opacity-60"
-          >
+            onClick={props.onClose}
+            aria-label={t('Home.close', { defaultValue: 'Close' })}
+          />
+        </div>
+      )}
+      footer={(
+        <div className="flex items-center gap-3">
+          <Button tone="secondary" fullWidth onClick={props.onClose} disabled={props.pending}>
             {t('Common.cancel', { defaultValue: 'Cancel' })}
-          </button>
-          <button
-            type="button"
+          </Button>
+          <Button
+            tone="primary"
+            fullWidth
             onClick={() => {
               void props.onSubmit(selectedVisibility);
             }}
             disabled={props.pending || selectedVisibility === props.currentVisibility}
-            className="flex-1 rounded-xl bg-[var(--nimi-action-primary-bg)] px-4 py-2.5 text-sm font-semibold text-[var(--nimi-action-primary-text)] transition-colors hover:bg-[var(--nimi-action-primary-bg-hover)] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {props.pending
               ? t('runtimeConfig.cloud.saving', { defaultValue: 'Saving...' })
               : t('Home.save', { defaultValue: 'Save' })}
-          </button>
+          </Button>
         </div>
-      </div>
-    </div>
+      )}
+    >
+      <fieldset disabled={props.pending} className="space-y-2 py-2">
+        <legend className="sr-only">
+          {t('Home.editPostVisibility', { defaultValue: 'Edit Post Visibility' })}
+        </legend>
+        {options.map((option) => {
+          const checked = selectedVisibility === option.value;
+          return (
+            <label
+              key={option.value}
+              className={`block w-full cursor-pointer rounded-xl border px-4 py-3 text-left transition-colors focus-within:ring-2 focus-within:ring-[var(--nimi-focus-ring-color)] ${
+                checked
+                  ? 'border-[var(--nimi-action-primary-bg)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,var(--nimi-surface-card))]'
+                  : 'border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] hover:border-[var(--nimi-action-primary-bg)]'
+              }`}
+            >
+              <input
+                type="radio"
+                name="post-visibility"
+                value={option.value}
+                checked={checked}
+                onChange={() => setSelectedVisibility(option.value)}
+                className="sr-only"
+              />
+              <span className="block text-sm font-semibold text-[var(--nimi-text-primary)]">{option.title}</span>
+              <span className="block text-xs text-[var(--nimi-text-muted)]">{option.description}</span>
+            </label>
+          );
+        })}
+      </fieldset>
+    </OverlayShell>
   );
 }

@@ -27,8 +27,6 @@
     "sortUpdated": "最近更新",
     "sortName": "名称",
     "sortActivity": "运行优先",
-    "runningGroupTitle": "正在运行",
-    "allGroupTitle": "全部 App",
     "backToLibrary": "返回应用库",
     "connectLocalTitle": "接入本地项目",
     "cardMenuLabel": "App 操作"

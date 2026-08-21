@@ -230,7 +230,7 @@ export function DelegatedCapabilityControlPanel() {
                 </div>
                 <div className="mt-2 space-y-1">
                   {(replayTrace.stages || []).map((stage, index) => (
-                    <div key={`${stage.kind}-${stage.stageId || index}`} className="rounded-md bg-[var(--nimi-bg-muted)] px-2 py-1">
+                    <div key={`${stage.kind}-${stage.stageId || index}`} className="rounded-md bg-[var(--nimi-surface-panel)] px-2 py-1">
                       <div className={TOKEN_TEXT_PRIMARY}>{stage.state || stage.stageId}</div>
                       <div className={TOKEN_TEXT_MUTED}>{stage.redactedSummary || stage.reasonCode}</div>
                     </div>

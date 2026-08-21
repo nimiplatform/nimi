@@ -60,7 +60,7 @@ function HumanMediaMessageCard(props: {
   const isUser = props.message.role === 'human' || props.message.role === 'user';
 
   return (
-    <div className={`overflow-hidden rounded-[24px] border shadow-[0_8px_22px_rgba(15,23,42,0.08)] ${isUser ? 'border-[var(--nimi-action-primary-bg)]/40 bg-white/96' : 'border-white/80 bg-white/95'}`}>
+    <div className={`overflow-hidden rounded-[24px] border shadow-[0_8px_22px_rgba(15,23,42,0.08)] ${isUser ? 'border-[var(--nimi-action-primary-bg)]/40 bg-[color-mix(in_srgb,var(--nimi-surface-card)_96%,transparent)]' : 'border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_95%,transparent)]'}`}>
       {props.message.kind === 'video' ? (
         <div className="relative h-52 w-[min(22rem,72vw)] overflow-hidden bg-slate-950">
           {mediaUrl ? (
@@ -81,17 +81,17 @@ function HumanMediaMessageCard(props: {
           className="block max-h-[22rem] w-[min(22rem,72vw)] object-cover"
         />
       ) : (
-        <div className="flex h-52 w-[min(22rem,72vw)] items-center justify-center bg-slate-100 text-sm text-slate-500">
+        <div className="flex h-52 w-[min(22rem,72vw)] items-center justify-center bg-[var(--nimi-surface-panel)] text-sm text-[var(--nimi-text-muted)]">
           {mediaLabel}
         </div>
       )}
       <div className="space-y-1 px-4 py-3">
-        <p className="text-sm font-medium text-slate-900">{mediaLabel}</p>
+        <p className="text-sm font-medium text-[var(--nimi-text-primary)]">{mediaLabel}</p>
         {display?.isUploadingMedia ? (
-          <p className="text-xs text-slate-500">{props.uploadingLabel}</p>
+          <p className="text-xs text-[var(--nimi-text-muted)]">{props.uploadingLabel}</p>
         ) : null}
         {props.message.error ? (
-          <p className="text-xs text-red-500">{props.message.error}</p>
+          <p className="text-xs text-[var(--nimi-status-danger)]">{props.message.error}</p>
         ) : null}
       </div>
     </div>
@@ -130,7 +130,7 @@ function HumanStreamFooter(props: {
                 streamController.cancelStream(props.selectedChatId);
               }
             }}
-            className="rounded-md border border-gray-200 bg-white px-2.5 py-1 text-xs text-gray-500 transition hover:bg-gray-50 hover:text-gray-700"
+            className="rounded-md border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-2.5 py-1 text-xs text-[var(--nimi-text-muted)] transition hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-text-secondary)]"
           >
             {t('ChatTimeline.stopGenerating', 'Stop generating')}
           </button>
@@ -154,7 +154,7 @@ function HumanStreamFooter(props: {
             textClassName="text-xs font-medium"
           />
         )}
-        interruptedSuffix={<span className="ml-1 text-xs text-red-400">[{t('ChatTimeline.streamInterrupted', 'Response interrupted')}]</span>}
+        interruptedSuffix={<span className="ml-1 text-xs text-[var(--nimi-status-danger)]">[{t('ChatTimeline.streamInterrupted', 'Response interrupted')}]</span>}
       />
     );
   }
@@ -230,7 +230,7 @@ function useHumanMessageRenderers(input: {
       return undefined;
     }
     return (
-      <div className={`mt-1 text-[10px] ${message.error ? 'text-red-500' : 'text-slate-400'} ${message.role === 'human' || message.role === 'user' ? 'text-right' : 'text-left'}`}>
+      <div className={`mt-1 text-[10px] ${message.error ? 'text-[var(--nimi-status-danger)]' : 'text-[var(--nimi-text-muted)]'} ${message.role === 'human' || message.role === 'user' ? 'text-right' : 'text-left'}`}>
         {message.error || t('ChatTimeline.queuedLocally')}
       </div>
     );
@@ -306,6 +306,7 @@ function createHumanCanonicalTranscriptProps(input: {
     dataTestId: E2E_IDS.messageTimeline,
     activeConversationId: input.model.selectedChatId,
     loading: input.model.messagesQuery.isPending,
+    loadingLabel: input.t('MessagePane.loadingConversation', { defaultValue: 'Loading conversation…' }),
     error: input.model.messagesQuery.isError ? input.t('ChatTimeline.messageLoadError') : null,
     emptyEyebrow: input.t('MessagePane.welcomeEyebrow', { defaultValue: 'Welcome' }),
     emptyTitle: input.t('MessagePane.welcomeTitle', {

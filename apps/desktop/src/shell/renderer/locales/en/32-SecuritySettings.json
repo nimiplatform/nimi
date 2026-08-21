@@ -9,5 +9,6 @@
   "activeSessionsTitle": "Active Sessions",
   "activeSessionsDescription": "Runtime-managed sessions on this device",
   "thisDevice": "This Device",
-  "currentSession": "Current"
+  "currentSession": "Current",
+  "accountManagementUnavailable": "Account management page is unavailable"
 }

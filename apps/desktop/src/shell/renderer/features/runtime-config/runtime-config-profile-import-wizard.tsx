@@ -111,7 +111,6 @@ export function ProfileImportWizard(props: ProfileImportWizardProps) {
   // A saved-profile apply opens the wizard straight on the preview step.
   useEffect(() => {
     if (props.initialSourceText) void previewSource(props.initialSourceText);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleSourceFile = (file: File) => {

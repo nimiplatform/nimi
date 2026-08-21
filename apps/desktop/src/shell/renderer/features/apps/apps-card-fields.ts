@@ -138,6 +138,18 @@ export function sortAppsEntries(
 }
 
 /**
+ * Running apps pin to the top of the library ordering (WeChat-style sticky);
+ * the active sort still applies within the running and stopped groups.
+ */
+export function pinRunningAppsFirst(
+  entries: readonly DesktopAppsEntry[],
+): readonly DesktopAppsEntry[] {
+  const running = entries.filter(isEntryRunActive);
+  const stopped = entries.filter((entry) => !isEntryRunActive(entry));
+  return [...running, ...stopped];
+}
+
+/**
  * The detail surface only exists while its entry is projected. `null` means
  * the library view; the controller never fabricates a fallback selection.
  */

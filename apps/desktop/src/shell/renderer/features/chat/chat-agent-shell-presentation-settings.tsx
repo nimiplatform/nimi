@@ -65,7 +65,6 @@ export function AgentConversationSettingsContent({ input }: AgentConversationSet
     <AgentCenter
       activeSection={activeSection}
       chrome="standalone"
-      density="compact"
       identity={input.activeTarget ? {
         displayName: input.activeTarget.displayName,
         avatarUrl: input.activeTarget.avatarUrl,

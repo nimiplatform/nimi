@@ -330,6 +330,9 @@
   },
   "local": {
     "confirmModelInstall": "确认下载并安装“{{name}}”？下载量：{{size}}。确认前不会开始下载。",
+    "confirmInstallTitle": "安装模型",
+    "confirmInstallConfirm": "安装",
+    "confirmInstallCancel": "取消",
     "installWarnings": "继续前请注意：",
     "installCanceled": "下载已取消。",
     "unknownDownloadSize": "大小未知",
@@ -1194,6 +1197,8 @@
     "revoke": "撤销",
     "revokeTokenFailed": "撤销 Token 失败",
     "revokeThisToken": "撤销此 Token",
+    "revokeConfirmTitle": "吊销外部 Agent 令牌",
+    "revokeConfirmMessage": "确定吊销令牌 {{tokenId}} 吗？吊销立即生效，使用该令牌的外部 Agent 将立即失去访问权限，且无法撤销。",
     "noTokensIssued": "尚未签发 Token。",
     "loadingStatus": "加载中...",
     "gatewayUnavailable": "网关不可用",

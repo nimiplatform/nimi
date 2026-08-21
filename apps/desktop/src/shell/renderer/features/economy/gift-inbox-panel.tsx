@@ -38,7 +38,7 @@ function formatGiftDate(input: string | null | undefined, i18n: DesktopI18nResou
   });
 }
 
-function getUserDisplayName(user: { displayName?: string | null; handle?: string | null } | null | undefined): string {
+function getUserDisplayName(user: { displayName?: string | null; handle?: string | null } | null | undefined, unknownLabel: string): string {
   const displayName = String(user?.displayName || '').trim();
   if (displayName) {
     return displayName;
@@ -47,7 +47,7 @@ function getUserDisplayName(user: { displayName?: string | null; handle?: string
   if (handle) {
     return handle;
   }
-  return 'Unknown';
+  return unknownLabel;
 }
 
 function getStatusLabel(t: ReturnType<typeof useTranslation>['t'], status: CommerceGiftStatus): string {
@@ -87,6 +87,7 @@ export function GiftInboxPanel() {
   const selectedGiftTransactionId = useAppStore((state) => state.selectedGiftTransactionId);
   const setSelectedGiftTransactionId = useAppStore((state) => state.setSelectedGiftTransactionId);
   const setFeedback = emitFeedbackToast;
+  const unknownUserLabel = t('Common.unknown', { defaultValue: 'Unknown' });
   const giftService = useMemo(
     () => createRealmCommerceGiftService({ generated: sdk.realm().generated }),
     [sdk],
@@ -141,7 +142,7 @@ export function GiftInboxPanel() {
 
   if (authStatus !== 'authenticated') {
     return (
-      <div className="flex min-h-0 flex-1 items-center justify-center bg-[#F5F7FA] text-sm text-gray-500">
+      <div className="flex min-h-0 flex-1 items-center justify-center bg-[var(--nimi-surface-canvas)] text-sm text-[var(--nimi-text-muted)]">
         {t('GiftInbox.loginRequired', { defaultValue: 'Please log in to view gifts' })}
       </div>
     );
@@ -150,12 +151,12 @@ export function GiftInboxPanel() {
   if (selectedGiftTransactionId) {
     if (detailLoading) {
       return (
-        <div className="flex min-h-0 flex-1 flex-col bg-[#F5F7FA]">
-          <div className="flex h-16 shrink-0 items-center gap-3 bg-white px-6">
+        <div className="flex min-h-0 flex-1 flex-col bg-[var(--nimi-surface-canvas)]">
+          <div className="flex h-16 shrink-0 items-center gap-3 border-b border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] px-6">
             <button
               type="button"
               onClick={navigateBack}
-              className="rounded-full border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50"
+              className="rounded-full border border-[var(--nimi-border-subtle)] px-3 py-1.5 text-sm font-medium text-[var(--nimi-text-secondary)] transition-colors hover:bg-[var(--nimi-action-ghost-hover)]"
             >
               {t('Common.back', { defaultValue: 'Back' })}
             </button>
@@ -163,7 +164,7 @@ export function GiftInboxPanel() {
               {t('GiftInbox.title', { defaultValue: 'Gifts' })}
             </h1>
           </div>
-          <div className="flex flex-1 items-center justify-center text-sm text-gray-400">
+          <div className="flex flex-1 items-center justify-center text-sm text-[var(--nimi-text-muted)]">
             {t('GiftInbox.loadingDetail', { defaultValue: 'Loading gift details...' })}
           </div>
         </div>
@@ -172,12 +173,12 @@ export function GiftInboxPanel() {
 
     if (detailError || !selectedGift) {
       return (
-        <div className="flex min-h-0 flex-1 flex-col bg-[#F5F7FA]">
-          <div className="flex h-16 shrink-0 items-center gap-3 bg-white px-6">
+        <div className="flex min-h-0 flex-1 flex-col bg-[var(--nimi-surface-canvas)]">
+          <div className="flex h-16 shrink-0 items-center gap-3 border-b border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] px-6">
             <button
               type="button"
               onClick={navigateBack}
-              className="rounded-full border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50"
+              className="rounded-full border border-[var(--nimi-border-subtle)] px-3 py-1.5 text-sm font-medium text-[var(--nimi-text-secondary)] transition-colors hover:bg-[var(--nimi-action-ghost-hover)]"
             >
               {t('Common.back', { defaultValue: 'Back' })}
             </button>
@@ -185,14 +186,14 @@ export function GiftInboxPanel() {
               {t('GiftInbox.title', { defaultValue: 'Gifts' })}
             </h1>
           </div>
-          <div className="flex flex-1 flex-col items-center justify-center gap-3 text-sm text-red-600">
+          <div className="flex flex-1 flex-col items-center justify-center gap-3 text-sm text-[var(--nimi-status-danger)]">
             <span>{detailError || t('GiftInbox.detailError', { defaultValue: 'Failed to load gift details' })}</span>
             <button
               type="button"
               onClick={() => {
                 void refreshDetail();
               }}
-              className="rounded-xl bg-white px-4 py-2 font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
+              className="rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-4 py-2 font-medium text-[var(--nimi-text-secondary)] shadow-sm transition-colors hover:bg-[var(--nimi-action-ghost-hover)]"
             >
               {t('NotificationPanel.refresh', { defaultValue: 'Refresh' })}
             </button>
@@ -202,12 +203,12 @@ export function GiftInboxPanel() {
     }
 
     return (
-      <div className="flex min-h-0 flex-1 flex-col bg-[#F5F7FA]">
-        <div className="flex h-16 shrink-0 items-center gap-3 bg-white px-6">
+      <div className="flex min-h-0 flex-1 flex-col bg-[var(--nimi-surface-canvas)]">
+        <div className="flex h-16 shrink-0 items-center gap-3 border-b border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] px-6">
           <button
             type="button"
             onClick={navigateBack}
-            className="rounded-full border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50"
+            className="rounded-full border border-[var(--nimi-border-subtle)] px-3 py-1.5 text-sm font-medium text-[var(--nimi-text-secondary)] transition-colors hover:bg-[var(--nimi-action-ghost-hover)]"
           >
             {t('Common.back', { defaultValue: 'Back' })}
           </button>
@@ -215,7 +216,7 @@ export function GiftInboxPanel() {
             <h1 className={`nimi-type-page-title text-[color:var(--nimi-text-primary)]`}>
               {t('GiftInbox.title', { defaultValue: 'Gifts' })}
             </h1>
-            <p className="text-xs text-gray-400">
+            <p className="text-xs text-[var(--nimi-text-muted)]">
               {t('GiftInbox.detailSubtitle', { defaultValue: 'Transaction detail' })}
             </p>
           </div>
@@ -240,15 +241,15 @@ export function GiftInboxPanel() {
             renderPartyAvatar={(party) => (
               <EntityAvatar
                 imageUrl={party?.avatarUrl || null}
-                name={getUserDisplayName(party)}
+                name={getUserDisplayName(party, unknownUserLabel)}
                 kind={party?.isSource ? 'source' : 'human'}
                 sizeClassName="h-11 w-11"
-                className={party?.isSource ? undefined : 'ring-2 ring-white'}
+                className={party?.isSource ? undefined : 'ring-2 ring-[var(--nimi-surface-card)]'}
                 textClassName="text-sm font-semibold"
               />
             )}
             formatDate={(value) => formatGiftDate(value, i18n)}
-            getPartyDisplayName={getUserDisplayName}
+            getPartyDisplayName={(party) => getUserDisplayName(party, unknownUserLabel)}
             getStatusLabel={(status) => getStatusLabel(t, status)}
             sparkAmountLabel={(amount) => t('GiftInbox.sparkAmount', {
               amount,
@@ -293,12 +294,12 @@ export function GiftInboxPanel() {
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col bg-[#F5F7FA]">
-      <div className="flex h-16 shrink-0 items-center gap-3 bg-white px-6">
+    <div className="flex min-h-0 flex-1 flex-col bg-[var(--nimi-surface-canvas)]">
+      <div className="flex h-16 shrink-0 items-center gap-3 border-b border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] px-6">
         <button
           type="button"
           onClick={navigateBack}
-          className="rounded-full border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50"
+          className="rounded-full border border-[var(--nimi-border-subtle)] px-3 py-1.5 text-sm font-medium text-[var(--nimi-text-secondary)] transition-colors hover:bg-[var(--nimi-action-ghost-hover)]"
         >
           {t('Common.back', { defaultValue: 'Back' })}
         </button>
@@ -306,7 +307,7 @@ export function GiftInboxPanel() {
           <h1 className={`nimi-type-page-title text-[color:var(--nimi-text-primary)]`}>
             {t('GiftInbox.title', { defaultValue: 'Gifts' })}
           </h1>
-          <p className="text-xs text-gray-400">
+          <p className="text-xs text-[var(--nimi-text-muted)]">
             {t('GiftInbox.listSubtitle', { defaultValue: 'Received gift history' })}
           </p>
         </div>
@@ -324,7 +325,7 @@ export function GiftInboxPanel() {
             setSelectedGiftTransactionId(giftTransactionId);
           }}
           formatDate={(value) => formatGiftDate(value, i18n)}
-          getSenderDisplayName={(item) => getUserDisplayName(item.sender)}
+          getSenderDisplayName={(item) => getUserDisplayName(item.sender, unknownUserLabel)}
           getStatusLabel={(status) => getStatusLabel(t, status)}
           sparkAmountLabel={(amount) => t('GiftInbox.sparkAmount', {
             amount,

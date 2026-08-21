@@ -1,5 +1,4 @@
 import { type ComponentProps, type ReactNode } from 'react';
-import { useTranslation } from 'react-i18next';
 import { motion } from 'motion/react';
 import {
   AppCardSurface,
@@ -15,7 +14,6 @@ import { InlineFeedback, type InlineFeedbackState } from '../../ui/feedback/inli
 import {
   useDesktopCardMotion,
   useDesktopInteractiveMotion,
-  useDesktopReducedMotion,
 } from '../../ui/motion/desktop-motion';
 
 type AppCardSurfaceStyle = ComponentProps<typeof AppCardSurface>['style'];
@@ -193,7 +191,7 @@ export function InfoRow({ label, value, highlight }: { label: string; value: str
       <span
         className={cn(
           'text-[length:var(--nimi-type-body-size)] font-medium',
-          highlight ? 'text-mint-600' : 'text-[var(--nimi-text-primary)]',
+          highlight ? 'text-[var(--nimi-action-primary-bg)]' : 'text-[var(--nimi-text-primary)]',
         )}
       >
         {value}
@@ -242,45 +240,6 @@ export function Button({
         {children}
       </KitButton>
     </motion.span>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/*  SaveFooter — composition using local Button wrapper               */
-/* ------------------------------------------------------------------ */
-
-export function SaveFooter({
-  onCancel,
-  onSave,
-  saving,
-  showCancel = true,
-  disabled = false,
-}: {
-  onCancel?: () => void;
-  onSave?: () => void;
-  saving?: boolean;
-  showCancel?: boolean;
-  disabled?: boolean;
-}) {
-  const { t } = useTranslation();
-  const reducedMotion = useDesktopReducedMotion();
-  return (
-    <motion.div
-      layout
-      initial={{ opacity: reducedMotion ? 1 : 0, y: reducedMotion ? 0 : 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: reducedMotion ? 0 : 0.2, ease: [0.2, 0, 0, 1] }}
-      className="flex shrink-0 items-center justify-end gap-3 border-t border-[color:var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_92%,white)] px-6 py-4"
-    >
-      {showCancel ? (
-        <Button variant="secondary" onClick={onCancel}>
-          {t('Common.cancel')}
-        </Button>
-      ) : null}
-      <Button variant="primary" onClick={onSave} disabled={saving || disabled}>
-        {saving ? t('Common.saving') : t('Common.saveChanges')}
-      </Button>
-    </motion.div>
   );
 }
 

@@ -1,15 +1,29 @@
 // First-Run Wizard Chrome — the shared full-window onboarding takeover frame.
 //
-// Every phase and terminal screen renders inside this chrome: a soft diagonal
-// light gradient background, the letter-spaced uppercase "NIMI" wordmark, the
-// Support pill, the slim step indicator, and the single centered
+// Every phase and terminal screen renders inside this chrome: the token-driven
+// ambient mesh gradient background, the letter-spaced uppercase "NIMI"
+// wordmark, the Support pill, the slim step indicator, and the single centered
 // white card. The chrome owns no product-control state; it only places the
 // Product Control content the workflow hands it.
 
-import type { ReactElement, ReactNode } from 'react';
+import type { CSSProperties, ReactElement, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { NIMI_FIRST_RUN_PHASES, type NimiFirstRunPhase } from '@nimiplatform/sdk/runtime';
 import { SupportDegradedEntry } from '../features/support/support-degraded-entry.js';
+
+// Mirrors the kit AmbientBackground mesh base gradient through the shared
+// ambient tokens instead of hardcoded colors. (AmbientBackground itself is
+// not importable here: the desktop node:test pipeline compiles kit/ui source
+// with classic JSX, which that component does not survive.)
+const MESH_BACKGROUND_STYLE: CSSProperties = {
+  background: [
+    'radial-gradient(ellipse at 0% 0%, var(--nimi-ambient-mesh-color-1) 0%, transparent 50%)',
+    'radial-gradient(ellipse at 100% 0%, var(--nimi-ambient-mesh-color-2) 0%, transparent 50%)',
+    'radial-gradient(ellipse at 100% 100%, var(--nimi-ambient-mesh-color-3) 0%, transparent 50%)',
+    'radial-gradient(ellipse at 0% 100%, var(--nimi-ambient-mesh-color-4) 0%, transparent 50%)',
+    'linear-gradient(135deg, var(--nimi-ambient-mesh-base-start) 0%, var(--nimi-ambient-mesh-base-end) 100%)',
+  ].join(', '),
+};
 
 const STEP_LABEL_KEYS: Record<NimiFirstRunPhase, string> = {
   storage: 'FirstRun.steps.storage',
@@ -39,13 +53,17 @@ export function FirstRunWizardChrome(props: FirstRunWizardChromeProps): ReactEle
   return (
     <div
       data-testid="first-run-wizard-chrome"
-      className="relative flex min-h-full w-full flex-col overflow-hidden bg-[linear-gradient(135deg,#e8f1fb_0%,#eef0fb_48%,#f2ecfb_100%)] text-[var(--nimi-text-primary)]"
+      className="relative flex min-h-full w-full flex-col overflow-hidden text-[var(--nimi-text-primary)]"
+      style={MESH_BACKGROUND_STYLE}
     >
       <style>{`
         @keyframes nimi-first-run-spin { to { transform: rotate(360deg); } }
         .nimi-first-run-spin { transform-origin: 12px 12px; animation: nimi-first-run-spin 0.9s linear infinite; }
         @keyframes nimi-first-run-pulse { 0%,100% { opacity: 0.55; } 50% { opacity: 1; } }
         .nimi-first-run-pulse { animation: nimi-first-run-pulse 1.6s ease-in-out infinite; }
+        @media (prefers-reduced-motion: reduce) {
+          .nimi-first-run-spin, .nimi-first-run-pulse { animation: none; }
+        }
       `}</style>
 
       {/* Top chrome row: wordmark + Support pill. */}

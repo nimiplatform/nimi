@@ -23,13 +23,13 @@ export function RejectGiftDialog(props: RejectGiftDialogProps) {
       open
       kind="dialog"
       onClose={props.pending ? undefined : props.onCancel}
-      title={<h2 className="text-lg font-bold text-gray-900">{props.title}</h2>}
+      title={<h2 className="text-lg font-bold text-[var(--nimi-text-primary)]">{props.title}</h2>}
       footer={(
         <div className="flex items-center justify-end gap-2">
           <Button tone="secondary" onClick={props.onCancel} disabled={props.pending}>
             {props.cancelLabel}
           </Button>
-          <Button tone="primary" onClick={props.onSubmit} disabled={props.pending} className="bg-red-500 hover:bg-red-600">
+          <Button tone="danger" onClick={props.onSubmit} disabled={props.pending}>
             {props.pending ? props.pendingLabel : props.confirmLabel}
           </Button>
         </div>
@@ -37,8 +37,8 @@ export function RejectGiftDialog(props: RejectGiftDialogProps) {
       dataTestId={E2E_IDS.notificationRejectGiftDialog}
       panelClassName="w-full max-w-md"
     >
-      <p className="text-sm text-gray-600">{props.description}</p>
-      <label className="mt-4 block text-xs font-medium text-gray-600" htmlFor="gift-reject-reason">
+      <p className="text-sm text-[var(--nimi-text-secondary)]">{props.description}</p>
+      <label className="mt-4 block text-xs font-medium text-[var(--nimi-text-secondary)]" htmlFor="gift-reject-reason">
         {props.reasonLabel}
       </label>
       <textarea
@@ -48,7 +48,7 @@ export function RejectGiftDialog(props: RejectGiftDialogProps) {
         rows={3}
         maxLength={160}
         placeholder={props.reasonPlaceholder}
-        className="mt-1 w-full resize-none rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700 outline-none focus:border-mint-300 focus:ring-2 focus:ring-mint-100"
+        className="mt-1 w-full resize-none rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] px-4 py-3 text-sm text-[var(--nimi-text-primary)] outline-none focus:border-[var(--nimi-action-primary-bg)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--nimi-action-primary-bg)_12%,transparent)]"
         aria-label={props.reasonLabel}
         data-actor-name={props.actorName}
       />

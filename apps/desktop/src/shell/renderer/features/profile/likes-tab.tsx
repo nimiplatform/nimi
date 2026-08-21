@@ -29,13 +29,13 @@ function LikeSkeleton() {
   return (
     <AppCardSurface kind="promoted-glass" as="div" className="animate-pulse p-5">
       <div className="flex items-start gap-3">
-        <div className="h-10 w-10 rounded-full bg-gray-200" />
+        <div className="h-10 w-10 rounded-full bg-[color-mix(in_srgb,var(--nimi-surface-active)_80%,transparent)]" />
         <div className="flex-1 space-y-2">
-          <div className="h-4 w-24 rounded bg-gray-200" />
-          <div className="h-3 w-20 rounded bg-gray-100" />
+          <div className="h-4 w-24 rounded bg-[color-mix(in_srgb,var(--nimi-surface-active)_80%,transparent)]" />
+          <div className="h-3 w-20 rounded bg-[color-mix(in_srgb,var(--nimi-surface-active)_64%,transparent)]" />
         </div>
       </div>
-      <div className="mt-4 h-52 rounded-2xl bg-gray-100" />
+      <div className="mt-4 h-52 rounded-2xl bg-[color-mix(in_srgb,var(--nimi-surface-active)_64%,transparent)]" />
     </AppCardSurface>
   );
 }
@@ -152,10 +152,10 @@ export function LikesTab({ profileId, layout = 'grid' }: LikesTabProps) {
 
   if (loadError && likedPosts.length === 0) {
     return (
-      <AppCardSurface kind="operational-solid" as="div" className="p-4 text-sm text-red-700">
+      <AppCardSurface kind="operational-solid" as="div" className="p-4 text-sm text-[var(--nimi-status-danger)]">
         <p>{loadError}</p>
         <CompactAction tone="danger" onClick={() => { void fetchLiked(null); }} className="mt-3">
-          Retry
+          {t('Common.retry', { defaultValue: 'Retry' })}
         </CompactAction>
       </AppCardSurface>
     );
@@ -163,11 +163,11 @@ export function LikesTab({ profileId, layout = 'grid' }: LikesTabProps) {
 
   if (likedPosts.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-16 text-sm text-gray-400">
-        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="mb-3 text-gray-300">
+      <div className="flex flex-col items-center justify-center py-16 text-sm text-[var(--nimi-text-muted)]">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="mb-3 text-[var(--nimi-text-muted)]">
           <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
         </svg>
-        No liked posts yet
+        {t('Profile.noLikedPosts', { defaultValue: 'No liked posts yet' })}
       </div>
     );
   }
@@ -178,7 +178,7 @@ export function LikesTab({ profileId, layout = 'grid' }: LikesTabProps) {
       loadError={loadError}
       loadingMore={loadingMore}
       loadMoreRef={loadMoreRef}
-      retryLabel="Retry"
+      retryLabel={t('Common.retry', { defaultValue: 'Retry' })}
       skeleton={<LikeSkeleton />}
       onRetryLoadMore={() => { void fetchLiked(cursor); }}
       layout={layout}

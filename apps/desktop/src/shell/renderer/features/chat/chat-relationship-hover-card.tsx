@@ -159,7 +159,7 @@ export function RelationshipHoverCard({
       role="button"
       tabIndex={0}
       aria-label={activationLabel}
-      className="nimi-material-glass-chrome group fixed z-[9999] w-[min(430px,calc(100cqw-96px))] overflow-hidden rounded-[22px] border border-white/75 bg-white/82 px-5 py-4 text-left shadow-[0_22px_70px_rgba(80,95,130,0.2)] backdrop-blur-[var(--nimi-backdrop-blur-chrome)] transition duration-200 hover:border-white hover:bg-white/88 hover:shadow-[0_24px_76px_rgba(80,95,130,0.24)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)]"
+      className="nimi-material-glass-chrome group fixed z-[9999] w-[min(430px,calc(100cqw-96px))] overflow-hidden rounded-[22px] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-overlay)] px-5 py-4 text-left shadow-[0_22px_70px_rgba(80,95,130,0.2)] backdrop-blur-[var(--nimi-backdrop-blur-chrome)] transition duration-200 hover:border-[var(--nimi-border-strong)] hover:shadow-[0_24px_76px_rgba(80,95,130,0.24)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)]"
       style={{ top: pos.top, right: pos.right, transform: 'translateY(-50%)' }}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
@@ -178,12 +178,12 @@ export function RelationshipHoverCard({
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex min-w-0 items-center gap-2">
-            <h3 className="min-w-0 truncate text-[16px] font-semibold leading-6 tracking-normal text-slate-950">
+            <h3 className="min-w-0 truncate text-[16px] font-semibold leading-6 tracking-normal text-[var(--nimi-text-primary)]">
               {target.title}
             </h3>
             {isLocalAgent ? (
               <span
-                className="inline-flex shrink-0 items-center gap-1 rounded-full bg-violet-100 px-1.5 py-0.5 text-[10px] font-medium leading-4 text-violet-700"
+                className="inline-flex shrink-0 items-center gap-1 rounded-full bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_12%,var(--nimi-surface-card))] px-1.5 py-0.5 text-[10px] font-medium leading-4 text-[var(--nimi-action-primary-bg)]"
                 aria-label={sourcePillLabel}
                 title={sourcePillLabel}
               >
@@ -192,11 +192,11 @@ export function RelationshipHoverCard({
               </span>
             ) : null}
           </div>
-          <div className="mt-0.5 truncate text-[12px] font-normal leading-4 text-slate-500">
+          <div className="mt-0.5 truncate text-[12px] font-normal leading-4 text-[var(--nimi-text-muted)]">
             {identity}
           </div>
-          <div className="mt-3 flex min-w-0 items-center gap-1.5 text-[12px] leading-4 text-slate-500">
-            <span className="shrink-0 font-medium text-slate-600">
+          <div className="mt-3 flex min-w-0 items-center gap-1.5 text-[12px] leading-4 text-[var(--nimi-text-muted)]">
+            <span className="shrink-0 font-medium text-[var(--nimi-text-secondary)]">
               {t('Chat.hoverCardLast', { defaultValue: 'Last:' })}
             </span>
             <span className="min-w-0 flex-1 truncate">{preview}</span>

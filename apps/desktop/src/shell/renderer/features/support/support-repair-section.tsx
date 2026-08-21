@@ -18,7 +18,7 @@ import {
   type NimiDataCleanupPlan,
 } from '../../renderer/support-repair-port.js';
 import { useDesktopRendererCommands } from '../../renderer/binding-context.js';
-import { useTypedProjection as useSupportProjection } from '@nimiplatform/kit/ui';
+import { Button, useTypedProjection as useSupportProjection } from '@nimiplatform/kit/ui';
 import {
   NIMI_PRODUCT_CONTROL_RECOVERY_STATE_COPY_KEY,
   isNimiProductControlRepairRoutedState,
@@ -132,7 +132,7 @@ export function SupportRepairSection(props: { onNavigateToRecovery: () => void }
             type="button"
             data-testid="support-repair-open-recovery"
             onClick={props.onNavigateToRecovery}
-            className="mt-4 inline-flex items-center rounded-lg bg-[var(--nimi-action-primary-bg)] px-3 py-2 text-xs font-medium text-[var(--nimi-action-primary-fg)] transition hover:bg-[var(--nimi-action-primary-bg-hover)]"
+            className="mt-4 inline-flex items-center rounded-lg bg-[var(--nimi-action-primary-bg)] px-3 py-2 text-xs font-medium text-[var(--nimi-action-primary-text)] transition hover:bg-[var(--nimi-action-primary-bg-hover)]"
           >
             {t('Support.repairOpenRecovery')}
           </button>
@@ -300,15 +300,16 @@ function SupportDataRootCleanupCard(props: {
                   />
                 </div>
               ) : null}
-              <button
-                type="button"
+              <Button
+                tone="danger"
+                size="sm"
                 data-testid="support-repair-cleanup-execute-button"
                 disabled={busy}
                 onClick={() => { void handleExecute(); }}
-                className="mt-3 inline-flex items-center rounded-lg bg-[var(--nimi-status-danger)] px-3 py-2 text-xs font-medium text-white transition disabled:opacity-50"
+                className="mt-3 self-start"
               >
                 {t('Support.repairCleanupExecuteButton')}
-              </button>
+              </Button>
             </>
           )}
         </div>

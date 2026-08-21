@@ -32,7 +32,9 @@ import { createRealmWorldData } from './data/realm-world-data.js';
 
 type WorldDetailProps = {
   world: WorldListItem;
-  onBack: () => void;
+  // Embedded surfaces (e.g. the Explore worlds rail+detail layout) omit onBack;
+  // the detail templates hide the hero back control when it is absent.
+  onBack?: () => void;
   initialSubpage?: 'people-archive' | 'relationship-explorer' | null;
 };
 
@@ -224,7 +226,9 @@ export function WorldDetail({ world, onBack, initialSubpage }: WorldDetailProps)
       await ensureRuntimeAgentExists(target, bindings.sdk, ownerUserId);
       setFeedback({
         kind: 'success',
-        message: `${character.name} is ready as your partner.`,
+        message: i18n.t('Explore.characterSourceMaterializedFeedback', {
+          defaultValue: 'Local agent created on this device.',
+        }),
       });
     } catch (error) {
       const message = characterSourceMaterializationFailureMessage(error, i18n.t);

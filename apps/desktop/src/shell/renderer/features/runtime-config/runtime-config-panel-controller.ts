@@ -206,6 +206,8 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
     installCatalogLocalModel: installActions.installCatalogLocalModel,
     installResolvedModelPlan: installActions.installResolvedModelPlan,
     installCatalogModelAsset: installActions.installCatalogModelAsset,
+    installConfirmation: installActions.installConfirmation,
+    resolveInstallConfirmation: installActions.resolveInstallConfirmation,
     refreshRuntimeDaemonStatus: daemon.refreshRuntimeDaemonStatus,
     startRuntimeDaemon: daemon.startRuntimeDaemon,
     restartRuntimeDaemon: daemon.restartRuntimeDaemon,

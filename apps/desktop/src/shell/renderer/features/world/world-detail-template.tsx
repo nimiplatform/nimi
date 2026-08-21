@@ -125,13 +125,13 @@ function WorldDetailErrorState({ onBack }: { onBack?: () => void }) {
         <button
           type="button"
           onClick={onBack}
-          className="absolute left-6 top-6 flex h-10 w-10 items-center justify-center rounded-full border border-[var(--nimi-action-primary-bg)]/20 bg-white/70 text-[var(--nimi-action-primary-bg-hover)] transition-[background-color,border-color,transform] duration-[var(--nimi-motion-fast)] ease-[var(--nimi-motion-ease-standard)] hover:border-[var(--nimi-action-primary-bg)]/40 hover:bg-white/90 active:scale-[var(--nimi-motion-pressed-scale)]"
+          className="absolute left-6 top-6 flex h-10 w-10 items-center justify-center rounded-full border border-[var(--nimi-action-primary-bg)]/20 bg-[color-mix(in_srgb,var(--nimi-surface-card)_70%,transparent)] text-[var(--nimi-action-primary-bg-hover)] transition-[background-color,border-color,transform] duration-[var(--nimi-motion-fast)] ease-[var(--nimi-motion-ease-standard)] hover:border-[var(--nimi-action-primary-bg)]/40 hover:bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,transparent)] active:scale-[var(--nimi-motion-pressed-scale)]"
           aria-label={t('WorldDetail.glass.backToAtlas')}
         >
           <IconArrowLeft />
         </button>
       ) : null}
-      <span className="text-sm text-red-500">{t('WorldDetail.error')}</span>
+      <span className="text-sm text-[var(--nimi-status-danger)]">{t('WorldDetail.error')}</span>
     </div>
   );
 }

@@ -7,6 +7,7 @@ import {
   PageShell,
   Section,
 } from './settings-layout-components.js';
+import { ShieldIcon } from './settings-assets.js';
 
 function FileTextIcon({ className = '' }: { className?: string }) {
   return (
@@ -16,14 +17,6 @@ function FileTextIcon({ className = '' }: { className?: string }) {
       <path d="M16 13H8" />
       <path d="M16 17H8" />
       <path d="M10 9H8" />
-    </svg>
-  );
-}
-
-function ShieldIcon({ className = '' }: { className?: string }) {
-  return (
-    <svg className={className} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" />
     </svg>
   );
 }
@@ -52,7 +45,7 @@ function LegalDocumentCard({
   return (
     <Card className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
       <div className="flex min-w-0 items-start gap-4">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--nimi-radius-md)] bg-mint-100 text-mint-600">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--nimi-radius-md)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_12%,transparent)] text-[var(--nimi-action-primary-bg)]">
           {icon}
         </div>
         <div className="min-w-0">

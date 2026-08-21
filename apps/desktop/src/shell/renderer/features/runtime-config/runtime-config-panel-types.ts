@@ -8,6 +8,7 @@ import type {
   NimiRuntimeLocalCatalogItemDescriptor,
   NimiRuntimeLocalInstallPlanDescriptor,
 } from '@nimiplatform/sdk/runtime';
+import type { RuntimeConfigInstallConfirmationRequest } from './runtime-config-panel-controller-install-actions';
 
 export type RuntimeConfigPanelControllerModel = {
   state: RuntimeConfigStateV11 | null;
@@ -47,6 +48,8 @@ export type RuntimeConfigPanelControllerModel = {
   ) => Promise<void>;
   installResolvedModelPlan: (plan: NimiRuntimeLocalInstallPlanDescriptor) => Promise<void>;
   installCatalogModelAsset: (templateId: string) => Promise<void>;
+  installConfirmation: RuntimeConfigInstallConfirmationRequest | null;
+  resolveInstallConfirmation: (confirmed: boolean) => void;
   refreshRuntimeDaemonStatus: () => Promise<void>;
   startRuntimeDaemon: () => Promise<void>;
   restartRuntimeDaemon: () => Promise<void>;

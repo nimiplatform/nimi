@@ -8,7 +8,7 @@ type SourceDetailViewProps = {
   stats?: { friendsCount: number; postsCount: number; likesCount: number } | null;
   loading: boolean;
   error: boolean;
-  onBack: () => void;
+  onBack?: () => void;
   onOpenWorld: () => void;
   onPrimaryAction: () => void;
   onStartChat?: (initialComposerText?: string) => void;
@@ -24,14 +24,16 @@ export function SourceDetailView(props: SourceDetailViewProps) {
   if (props.error) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-3">
-        <p className="text-sm text-red-600">{t('SourceDetail.error')}</p>
-        <button
-          type="button"
-          onClick={props.onBack}
-          className="rounded-[10px] bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200"
-        >
-          {t('Common.back')}
-        </button>
+        <p className="text-sm text-[var(--nimi-status-danger)]">{t('SourceDetail.error')}</p>
+        {props.onBack ? (
+          <button
+            type="button"
+            onClick={props.onBack}
+            className="rounded-[10px] bg-[var(--nimi-surface-panel)] px-4 py-2 text-sm font-medium text-[var(--nimi-text-secondary)] hover:bg-[var(--nimi-surface-active)]"
+          >
+            {t('Common.back')}
+          </button>
+        ) : null}
       </div>
     );
   }

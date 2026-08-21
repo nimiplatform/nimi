@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { EntityAvatar } from '../../components/entity-avatar.js';
-import { ScrollArea } from '@nimiplatform/kit/ui';
+import { OverlayShell, ScrollArea } from '@nimiplatform/kit/ui';
 import { joinParts } from './world-detail-primitives.js';
 import type { WorldCharacter } from './world-detail-types.js';
 
@@ -31,34 +31,34 @@ export function WorldCharacterQuickSheet({
     ? Math.round(voiceSample.durationSec)
     : null;
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center bg-[var(--nimi-scrim-modal)] px-5 py-6">
-      <button
-        type="button"
-        className="absolute inset-0"
-        aria-label={t('WorldDetail.xianxia.v2.characters.quickSheetClose')}
-        onClick={onClose}
-      />
-      <div className="relative flex items-center justify-center">
-        <section className="relative z-10 w-full max-w-[620px] max-h-[calc(100cqh-3rem)] overflow-hidden rounded-[28px] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-overlay)] shadow-[var(--nimi-elevation-floating)]">
-          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[var(--nimi-action-primary-bg)]/50 to-transparent" />
-          <ScrollArea className="max-h-[calc(100cqh-3rem-2px)]" viewportClassName="px-6 pb-6 pt-5">
-            <div className="mb-5 flex items-start justify-between gap-4">
-              <div>
-                <div className="text-xs uppercase tracking-[0.16em] text-[var(--nimi-text-muted)]">
-                  {t('WorldDetail.xianxia.v2.characters.quickSheetTitle')}
-                </div>
-                <h3 className="mt-2 text-2xl font-semibold text-[var(--nimi-text-primary)]">{character.name}</h3>
-                <div className="mt-1 text-sm text-[var(--nimi-action-primary-bg)]">{character.handle}</div>
-              </div>
-              <button
-                type="button"
-                onClick={onClose}
-                className="rounded-full border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-3 py-1.5 text-xs text-[var(--nimi-text-secondary)] transition-colors hover:border-[var(--nimi-action-primary-bg)] hover:text-[var(--nimi-text-primary)]"
-              >
-                {t('WorldDetail.xianxia.v2.characters.quickSheetClose')}
-              </button>
+    <OverlayShell
+      open
+      kind="dialog"
+      onClose={onClose}
+      panelStyle={{ maxWidth: 620, maxHeight: 'calc(100vh - 3rem)' }}
+      panelClassName="flex flex-col overflow-hidden"
+      contentClassName="flex min-h-0 flex-1 flex-col px-0 py-0"
+      title={(
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <div className="text-xs uppercase tracking-[0.16em] text-[var(--nimi-text-muted)]">
+              {t('WorldDetail.xianxia.v2.characters.quickSheetTitle')}
             </div>
-
+            <h3 className="mt-2 text-2xl font-semibold text-[var(--nimi-text-primary)]">{character.name}</h3>
+            <div className="mt-1 text-sm text-[var(--nimi-action-primary-bg)]">{character.handle}</div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-full border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-3 py-1.5 text-xs text-[var(--nimi-text-secondary)] transition-colors hover:border-[var(--nimi-action-primary-bg)] hover:text-[var(--nimi-text-primary)]"
+          >
+            {t('WorldDetail.xianxia.v2.characters.quickSheetClose')}
+          </button>
+        </div>
+      )}
+    >
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[var(--nimi-action-primary-bg)]/50 to-transparent" />
+      <ScrollArea className="min-h-0 flex-1" contentClassName="px-6 pb-6 pt-3">
             {profileCoverUrl ? (
               <div data-testid="world-character-profile-cover" className="mb-5 overflow-hidden rounded-[20px] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)]">
                 <img
@@ -173,8 +173,6 @@ export function WorldCharacterQuickSheet({
               </div>
             ) : null}
           </ScrollArea>
-        </section>
-      </div>
-    </div>
+    </OverlayShell>
   );
 }

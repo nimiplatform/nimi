@@ -1,7 +1,7 @@
-import { Suspense, lazy, type MutableRefObject, type RefObject, type ReactNode } from 'react';
+import { Suspense, lazy, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import { NimiTabs } from '@nimiplatform/kit/ui';
 import type { HumanProfileTab } from '../profile/profile-model';
-import type { ProfileDetailViewController } from './profile-detail-view-controller.js';
 import { ProfileDetailTabFallback } from './profile-detail-view-content-shell.js';
 
 const PROFILE_DETAIL_TABS: HumanProfileTab[] = ['Posts', 'Collections', 'Likes', 'Gifts'];
@@ -90,9 +90,6 @@ type ProfileDetailTabsProps = {
   isOwnProfile?: boolean;
   onSetActiveTab: (tab: HumanProfileTab) => void;
   profileId: string;
-  tabButtonRefs: MutableRefObject<ProfileDetailViewController['tabButtonRefs']['current']>;
-  tabIndicator: ProfileDetailViewController['tabIndicator'];
-  tabListRef: RefObject<HTMLDivElement | null>;
   visitedTabs: HumanProfileTab[];
 };
 
@@ -102,42 +99,13 @@ export function ProfileDetailTabs(props: ProfileDetailTabsProps) {
 
   return (
     <>
-      <div className="px-1">
-        <div
-          ref={props.tabListRef}
-          className="relative flex flex-wrap gap-6 border-b border-slate-200/70 pb-2"
-        >
-          {tabs.map((tab) => (
-            <button
-              key={tab}
-              ref={(node) => {
-                props.tabButtonRefs.current[tab] = node;
-              }}
-              type="button"
-              onClick={() => props.onSetActiveTab(tab)}
-              className="relative px-0 py-2 transition-all duration-300"
-            >
-              <span className="invisible block text-[15px] font-semibold">
-                {getProfileDetailTabLabel(t, tab)}
-              </span>
-              <span
-                className={`absolute inset-0 flex items-center justify-center text-sm transition-all duration-300 ${
-                  props.activeTab === tab
-                    ? 'text-[15px] font-semibold text-slate-950'
-                    : 'font-normal text-slate-500 hover:text-slate-800'
-                }`}
-              >
-                {getProfileDetailTabLabel(t, tab)}
-              </span>
-            </button>
-          ))}
-          <span
-            aria-hidden
-            className="pointer-events-none absolute bottom-0 h-[3px] rounded-full bg-[linear-gradient(90deg,#49c9a5_0%,#1f9bab_100%)] shadow-[0_1px_8px_rgba(73,201,165,0.24)] transition-[left,width] duration-300 ease-out"
-            style={{ left: `${props.tabIndicator.left}px`, width: `${props.tabIndicator.width}px` }}
-          />
-        </div>
-      </div>
+      <NimiTabs
+        className="mx-1"
+        items={tabs.map((tab) => ({ value: tab, label: getProfileDetailTabLabel(t, tab) }))}
+        value={props.activeTab}
+        onValueChange={(value) => props.onSetActiveTab(value as HumanProfileTab)}
+        ariaLabel={t('Profile.tabsLabel', { defaultValue: 'Profile tabs' })}
+      />
       <div className="px-1 pt-4">
         {tabs.map((tab) => (
           renderTabPanel(props.activeTab, Boolean(props.isBlockedProfile), props.profileId, tab, props.visitedTabs)

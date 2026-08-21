@@ -3,11 +3,14 @@
   "acceptRequestFailed": "Failed to accept friend request",
   "addContact": "Add Contact",
   "addContactFailed": "Failed to add contact",
+  "addContactSuccess": "Friend request sent.",
   "sourceBadge": "Source",
   "createLocalAgent": "Become my partner",
   "sourceMaterializationRequiredForChat": "Become partners with this character before opening chat.",
   "bio": "Bio",
   "blockUserFailed": "Failed to block user",
+  "blockUserSuccess": "User blocked.",
+  "blockUserConfirmMessage": "Block {{name}}? They will be moved to your Blocked list and won't be able to contact you.",
   "changePhoto": "Change Photo",
   "chat": "Chat",
   "city": "City",
@@ -29,6 +32,7 @@
   "removeFriendConfirmMessagePrefix": "Remove",
   "removeFriendConfirmMessageSuffix": "This will remove them from your friends list.",
   "removeFriendFailed": "Failed to remove friend",
+  "removeFriendSuccess": "Friend removed.",
   "tags": "Tags",
   "tagsPlaceholder": "creator, traveler, world-native"
 }

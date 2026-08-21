@@ -5,6 +5,7 @@ import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-t
 import { LocalModelCenter } from './runtime-config-local-model-center';
 import { CatalogOverridesDrawer } from './runtime-config-catalog-overrides-drawer';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
+import { InlineFeedback } from '../../ui/feedback/inline-feedback';
 
 type LocalPageProps = {
   model: RuntimeConfigPanelControllerModel;
@@ -19,12 +20,11 @@ export function LocalPage({ model, state }: LocalPageProps) {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       {model.runtimeWritesDisabled ? (
-        <div className="border-b border-[color-mix(in_srgb,var(--nimi-status-warning)_30%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-warning)_10%,var(--nimi-surface-card))] px-4 py-3 text-sm text-[var(--nimi-status-warning)]">
-          <p className="font-medium">{t('RuntimeConfigLocal.runtimeUnavailableTitle')}</p>
-          <p className="mt-1 text-xs text-[color-mix(in_srgb,var(--nimi-status-warning)_80%,var(--nimi-text-secondary))]">
-            {t('RuntimeConfigLocal.runtimeUnavailableBody')}
-          </p>
-        </div>
+        <InlineFeedback
+          className="mx-4 mt-4"
+          title={t('RuntimeConfigLocal.runtimeUnavailableTitle')}
+          feedback={{ kind: 'warning', message: t('RuntimeConfigLocal.runtimeUnavailableBody') }}
+        />
       ) : null}
       <LocalModelCenter
         state={state}

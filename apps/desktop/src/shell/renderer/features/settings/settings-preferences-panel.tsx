@@ -16,15 +16,13 @@ import {
   StatusBadge,
   ToggleRow,
 } from './settings-layout-components.js';
+import { InfoIcon, MailIcon, MonitorIcon } from './settings-assets.js';
 import {
   AlertCircleIcon,
   AtSignIcon,
   BellIcon,
   GiftIcon,
   HeartIcon,
-  InfoIcon,
-  MailIcon,
-  MonitorIcon,
   UserPlusIcon,
 } from './settings-preferences-panel-parts.js';
 
@@ -388,7 +386,7 @@ export function NotificationsPage() {
       {/* SSOT Note */}
       <Card>
         <div className="flex gap-3">
-          <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--nimi-radius-md)] text-mint-600">
+          <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--nimi-radius-md)] text-[var(--nimi-action-primary-bg)]">
             <InfoIcon className="h-5 w-5" />
           </span>
           <div className="min-w-0">

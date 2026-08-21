@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ScrollArea } from '@nimiplatform/kit/ui';
+import { EmptyState, ScrollArea } from '@nimiplatform/kit/ui';
 import type { WorldCharacter } from './world-detail-types.js';
 import { characterMeta, formatNum } from './world-detail-template-model';
 import { worldDetailPaperContentFrameStyle } from './world-detail-layout.js';
@@ -335,10 +335,11 @@ function PeopleArchiveShell({
 
       <ScrollArea className="min-h-0 flex-1" viewportClassName="px-6 py-5">
         {groups.length === 0 ? (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, padding: '60px 20px', color: 'var(--nimi-text-secondary)' }}>
-            <IconUsers size={30} color="var(--nimi-text-muted)" strokeWidth={1.5} />
-            <span style={{ fontSize: 13.5 }}>{t('WorldDetail.paper.gallery.empty')}</span>
-          </div>
+          <EmptyState
+            icon={<IconUsers size={30} color="var(--nimi-text-muted)" strokeWidth={1.5} />}
+            title={t('WorldDetail.paper.gallery.empty')}
+            style={{ margin: '36px 20px' }}
+          />
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 26 }}>
             {groups.map((group) => (

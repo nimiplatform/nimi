@@ -29,7 +29,9 @@ import { composeWorldCharacterMilestones } from './source-detail-world-character
 type CharacterSourceDetailPageProps = {
   source: SourceDetailData;
   stats?: { friendsCount: number; postsCount: number; likesCount: number } | null;
-  onBack: () => void;
+  // Embedded hosts (e.g. the Explore persona rail+detail layout) omit onBack;
+  // the hero back control is hidden when it is absent.
+  onBack?: () => void;
   onOpenWorld: () => void;
   onPrimaryAction: () => void;
   onStartChat?: (initialComposerText?: string) => void;
@@ -590,15 +592,17 @@ export function CharacterSourceDetailPage(props: CharacterSourceDetailPageProps)
                 backgroundPosition: 'center 20%',
               }}
             >
-              <button
-                type="button"
-                data-testid="world-character-back-button"
-                onClick={props.onBack}
-                aria-label={t('Common.back', { defaultValue: 'Back' })}
-                className="absolute left-6 top-6 z-10 inline-flex h-10 w-10 items-center justify-center rounded-full border border-[var(--nimi-material-glass-thin-border)] bg-[var(--nimi-material-glass-thin-bg)] text-[var(--nimi-text-primary)] shadow-[var(--nimi-elevation-raised)] nimi-material-glass-thin backdrop-blur-[var(--nimi-backdrop-blur-thin)] transition hover:bg-white/86 hover:text-[var(--nimi-action-primary-bg)]"
-              >
-                <ArrowLeft aria-hidden className="h-[18px] w-[18px]" strokeWidth={2.2} />
-              </button>
+              {props.onBack ? (
+                <button
+                  type="button"
+                  data-testid="world-character-back-button"
+                  onClick={props.onBack}
+                  aria-label={t('Common.back', { defaultValue: 'Back' })}
+                  className="absolute left-6 top-6 z-10 inline-flex h-10 w-10 items-center justify-center rounded-full border border-[var(--nimi-material-glass-thin-border)] bg-[var(--nimi-material-glass-thin-bg)] text-[var(--nimi-text-primary)] shadow-[var(--nimi-elevation-raised)] nimi-material-glass-thin backdrop-blur-[var(--nimi-backdrop-blur-thin)] transition hover:bg-white/86 hover:text-[var(--nimi-action-primary-bg)]"
+                >
+                  <ArrowLeft aria-hidden className="h-[18px] w-[18px]" strokeWidth={2.2} />
+                </button>
+              ) : null}
             </div>
 
             <div className="px-9 pb-7 max-[720px]:px-5">

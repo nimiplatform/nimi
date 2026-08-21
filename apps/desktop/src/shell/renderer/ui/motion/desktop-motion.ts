@@ -86,6 +86,11 @@ export const DESKTOP_PANEL_VARIANTS: Variants = {
     opacity: reduced ? 1 : 0,
     y: reduced ? 0 : -6,
     filter: reduced ? 'none' : 'blur(4px)',
+    // Overlay the container instead of staying in the flex flow, so an
+    // exiting panel never splits height with an already-visible panel
+    // (e.g. the keep-alive runtime tab).
+    position: 'absolute',
+    inset: 0,
     transition: timedTransition(NIMI_MOTION_DURATIONS_MS.fast, reduced),
   }),
 };

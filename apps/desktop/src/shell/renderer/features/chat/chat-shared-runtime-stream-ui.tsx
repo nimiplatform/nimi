@@ -250,7 +250,7 @@ export function RuntimeAgentDebugMessageAccessory(props: {
                 event.stopPropagation();
                 handleCopy();
               }}
-              className="rounded-lg border border-[var(--nimi-border-subtle)] px-2 py-1 text-[10px] font-semibold text-[var(--nimi-text-secondary)] transition hover:bg-white"
+              className="rounded-lg border border-[var(--nimi-border-subtle)] px-2 py-1 text-[10px] font-semibold text-[var(--nimi-text-secondary)] transition hover:bg-[var(--nimi-surface-card)]"
             >
               {copied ? props.copiedLabel : props.copyLabel}
             </button>
@@ -414,7 +414,7 @@ export function RuntimeStreamFooter(props: {
       <button
         type="button"
         onClick={() => streamController.cancelStream(props.chatId)}
-        className="ml-2 inline-flex h-6 w-6 items-center justify-center rounded-full border border-slate-200/80 bg-white text-slate-400 shadow-sm transition-all duration-150 hover:border-red-300 hover:bg-red-50 hover:text-red-500 hover:shadow-md active:scale-95"
+        className="ml-2 inline-flex h-6 w-6 items-center justify-center rounded-full border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] text-[var(--nimi-text-muted)] shadow-sm transition-all duration-150 hover:border-[var(--nimi-status-danger-soft-border)] hover:bg-[var(--nimi-status-danger-soft-bg)] hover:text-[var(--nimi-status-danger)] hover:shadow-md active:scale-95"
         aria-label={props.stopLabel}
         title={props.stopLabel}
       >
@@ -442,7 +442,7 @@ export function RuntimeStreamFooter(props: {
         reasoningText={props.streamState.partialReasoningText}
         reasoningLabel={props.reasoningLabel}
         errorMessage={props.streamState.errorMessage}
-        interruptedSuffix={<span className="ml-1 text-xs text-red-400">[{props.interruptedLabel}]</span>}
+        interruptedSuffix={<span className="ml-1 text-xs text-[var(--nimi-status-danger)]">[{props.interruptedLabel}]</span>}
       />
     );
   }

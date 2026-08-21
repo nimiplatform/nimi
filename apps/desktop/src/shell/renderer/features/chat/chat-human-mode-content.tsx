@@ -3,6 +3,7 @@ import {
   type ConversationSetupAction,
   type ConversationTargetSummary,
 } from '@nimiplatform/kit/features/chat/headless';
+import { useTranslation } from 'react-i18next';
 import { useAppStore } from '../../app-shell/providers/app-store';
 import { useHumanConversationModeHost } from './chat-human-adapter';
 import { ChatCanonicalModeFrame } from './chat-canonical-mode-frame';
@@ -22,6 +23,7 @@ export function ChatHumanModeContent({
   onSetupAction,
   onSelectTarget,
 }: ChatHumanModeContentProps) {
+  const { t } = useTranslation();
   const authStatus = useAppStore((state) => state.auth.status);
   const selectedChatId = useAppStore((state) => state.selectedChatId);
   const setSelectedChatId = useAppStore((state) => state.setSelectedChatId);
@@ -81,7 +83,7 @@ export function ChatHumanModeContent({
       onSetupAction={onSetupAction}
       settingsOpen={settingsOpen}
       onCloseSettings={onCloseSettings}
-      settingsSheetTitle={host.settingsDrawerTitle || 'Settings'}
+      settingsSheetTitle={host.settingsDrawerTitle || t('Chat.settingsTitle', { defaultValue: 'Settings' })}
       settingsSheetSubtitle={host.settingsDrawerSubtitle || host.characterData?.name || selectedTarget?.title}
     />
   );

@@ -18,11 +18,10 @@ import {
 } from './settings-layout-components.js';
 import {
   GlobeIcon,
-  InfoIcon,
-  MailIcon,
   UserIcon,
   ZapIcon,
 } from './settings-privacy-controls.js';
+import { InfoIcon, MailIcon } from './settings-assets.js';
 
 type UpdateUserSettingsDto = RealmModel<'UpdateUserSettingsDto'>;
 type UserSettingsDto = RealmModel<'UserSettingsDto'>;
@@ -281,9 +280,12 @@ export function PrivacyPage() {
         title={t('PrivacySettings.pageTitle')}
         description={t('PrivacySettings.pageDescription')}
       >
-        <NimiText role="body" className="px-1 py-6 text-center">
-          {t('PrivacySettings.loading')}
-        </NimiText>
+        <Card>
+          <div className="flex items-center gap-3">
+            <GlobeIcon className="h-5 w-5 text-[var(--nimi-text-muted)]" />
+            <NimiText role="body">{t('PrivacySettings.loading')}</NimiText>
+          </div>
+        </Card>
       </PageShell>
     );
   }

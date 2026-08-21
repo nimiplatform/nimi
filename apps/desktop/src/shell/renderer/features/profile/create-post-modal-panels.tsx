@@ -31,11 +31,11 @@ export function EmojiPickerPanel(input: {
       closeOnBackdrop={false}
       dataTestId={E2E_IDS.createPostEmojiPanel}
       className="pointer-events-none bg-transparent p-0"
-      panelClassName="emoji-panel pointer-events-auto fixed max-w-none w-[320px] overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-[0_8px_32px_rgba(0,0,0,0.15)]"
+      panelClassName="emoji-panel pointer-events-auto fixed max-w-none w-[320px] overflow-hidden rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-overlay)] shadow-[0_8px_32px_rgba(0,0,0,0.15)]"
       panelStyle={{ left: input.position.left, top: input.position.top, transform: 'none' }}
       contentClassName="p-0"
     >
-      <div className="relative border-b border-gray-100">
+      <div className="relative border-b border-[var(--nimi-border-subtle)]">
         <div className="flex items-center gap-1 px-2 py-2">
           <div className="flex min-w-0 flex-1 items-center gap-1 overflow-hidden">
             {input.categories.map((category) => (
@@ -45,11 +45,11 @@ export function EmojiPickerPanel(input: {
                 onClick={() => input.setActiveEmojiCategory(category.originalIndex)}
                 className={`flex-shrink-0 rounded-full px-2.5 py-1.5 text-[11px] font-medium transition-colors ${
                   input.activeEmojiCategory === category.originalIndex
-                    ? 'bg-[#0066CC] text-white'
-                    : 'text-gray-500 hover:bg-gray-100'
+                    ? 'bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)]'
+                    : 'text-[var(--nimi-text-muted)] hover:bg-[var(--nimi-action-ghost-hover)]'
                 }`}
               >
-                {category.name}
+                {i18n.t(`Profile.CreatePost.emojiCategory.${category.name.toLowerCase()}`, { defaultValue: category.name })}
               </button>
             ))}
           </div>
@@ -57,7 +57,7 @@ export function EmojiPickerPanel(input: {
             <button
               type="button"
               onClick={() => input.setEmojiPage(input.emojiCategoryPage === 0 ? input.emojiCategoryPage + 1 : input.emojiCategoryPage - 1)}
-              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[var(--nimi-text-muted)] transition-colors hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-text-secondary)]"
               aria-label={input.emojiCategoryPage === 0
                 ? i18n.t('ChatTimeline.nextPage', { defaultValue: 'Next page' })
                 : i18n.t('ChatTimeline.previousPage', { defaultValue: 'Previous page' })}
@@ -76,7 +76,7 @@ export function EmojiPickerPanel(input: {
               key={`${emoji}-${index}`}
               type="button"
               onClick={() => input.insertEmoji(emoji)}
-              className="flex h-8 w-8 items-center justify-center rounded-lg text-xl transition-colors hover:bg-gray-100"
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-xl transition-colors hover:bg-[var(--nimi-action-ghost-hover)]"
             >
               {emoji}
             </button>
@@ -110,13 +110,13 @@ export function LocationPickerPanel(input: {
       closeOnBackdrop={false}
       dataTestId={E2E_IDS.createPostLocationPanel}
       className="pointer-events-none bg-transparent p-0"
-      panelClassName="location-panel pointer-events-auto fixed max-w-none w-[320px] overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-[0_8px_32px_rgba(0,0,0,0.15)]"
+      panelClassName="location-panel pointer-events-auto fixed max-w-none w-[320px] overflow-hidden rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-overlay)] shadow-[0_8px_32px_rgba(0,0,0,0.15)]"
       panelStyle={{ left: input.position.left, top: input.position.top, transform: 'none' }}
       contentClassName="p-0"
     >
-      <div className="border-b border-gray-100 p-3">
+      <div className="border-b border-[var(--nimi-border-subtle)] p-3">
         <div className="relative">
-          <svg className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--nimi-text-muted)]" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="11" cy="11" r="8" />
             <line x1="21" y1="21" x2="16.65" y2="16.65" />
           </svg>
@@ -125,13 +125,13 @@ export function LocationPickerPanel(input: {
             placeholder={i18n.t('Profile.CreatePost.searchLocationPlaceholder', { defaultValue: 'Search location...' })}
             value={input.locationSearch}
             onChange={(event) => input.setLocationSearch(event.target.value)}
-            className="w-full rounded-lg border border-gray-200 py-2 pl-9 pr-3 text-sm focus:border-[var(--nimi-action-primary-bg)] focus:outline-none focus:ring-1 focus:ring-[var(--nimi-action-primary-bg)]"
+            className="w-full rounded-lg border border-[var(--nimi-field-border)] bg-[var(--nimi-field-bg)] py-2 pl-9 pr-3 text-sm text-[var(--nimi-field-text)] focus:border-[var(--nimi-action-primary-bg)] focus:outline-none focus:ring-1 focus:ring-[var(--nimi-action-primary-bg)]"
           />
         </div>
       </div>
       <ScrollArea className="max-h-48" viewportClassName="max-h-48" contentClassName="py-2">
         {input.loadingLocations ? (
-          <div className="px-3 py-4 text-center text-sm text-gray-500">
+          <div className="px-3 py-4 text-center text-sm text-[var(--nimi-text-muted)]">
             {i18n.t('Profile.CreatePost.loadingLocations', { defaultValue: 'Loading locations...' })}
           </div>
         ) : input.filteredLocations.length > 0 ? (
@@ -140,7 +140,7 @@ export function LocationPickerPanel(input: {
               key={locationItem.id}
               type="button"
               onClick={() => input.selectLocation(locationItem)}
-              className="flex w-full items-start gap-3 px-3 py-2.5 transition hover:bg-gray-50"
+              className="flex w-full items-start gap-3 px-3 py-2.5 transition hover:bg-[var(--nimi-action-ghost-hover)]"
             >
               <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--nimi-action-primary-bg)]/10 text-[var(--nimi-action-primary-bg)]">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -149,8 +149,8 @@ export function LocationPickerPanel(input: {
                 </svg>
               </div>
               <div className="min-w-0 flex-1 text-left">
-                <p className="truncate text-sm font-medium text-gray-900">{locationItem.name}</p>
-                <p className="truncate text-xs text-gray-500">{locationItem.address}</p>
+                <p className="truncate text-sm font-medium text-[var(--nimi-text-primary)]">{locationItem.name}</p>
+                <p className="truncate text-xs text-[var(--nimi-text-muted)]">{locationItem.address}</p>
               </div>
               {input.selectedLocation?.id === locationItem.id ? (
                 <svg className="mt-1 h-4 w-4 text-[var(--nimi-action-primary-bg)]" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -160,7 +160,7 @@ export function LocationPickerPanel(input: {
             </button>
           ))
         ) : (
-          <div className="px-3 py-4 text-center text-sm text-gray-500">
+          <div className="px-3 py-4 text-center text-sm text-[var(--nimi-text-muted)]">
             {input.availableLocations.length > 0
               ? i18n.t('Profile.CreatePost.noLocationsFound', { defaultValue: 'No locations found' })
               : i18n.t('Profile.CreatePost.noWorldsAvailable', { defaultValue: 'No worlds available' })}
@@ -192,13 +192,13 @@ export function TagPickerPanel(input: {
       closeOnBackdrop={false}
       dataTestId={E2E_IDS.createPostTagPanel}
       className="pointer-events-none bg-transparent p-0"
-      panelClassName="tag-panel pointer-events-auto fixed max-w-none w-[280px] overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-[0_8px_32px_rgba(0,0,0,0.15)]"
+      panelClassName="tag-panel pointer-events-auto fixed max-w-none w-[280px] overflow-hidden rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-overlay)] shadow-[0_8px_32px_rgba(0,0,0,0.15)]"
       panelStyle={{ left: input.position.left, top: input.position.top, transform: 'none' }}
       contentClassName="p-0"
     >
-      <div className="border-b border-gray-100 p-3">
+      <div className="border-b border-[var(--nimi-border-subtle)] p-3">
         <div className="relative">
-          <svg className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--nimi-text-muted)]" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="11" cy="11" r="8" />
             <line x1="21" y1="21" x2="16.65" y2="16.65" />
           </svg>
@@ -212,7 +212,7 @@ export function TagPickerPanel(input: {
                 input.insertTag(input.tagSearch.trim());
               }
             }}
-            className="w-full rounded-lg border border-gray-200 py-2 pl-9 pr-3 text-sm focus:border-[var(--nimi-action-primary-bg)] focus:outline-none focus:ring-1 focus:ring-[var(--nimi-action-primary-bg)]"
+            className="w-full rounded-lg border border-[var(--nimi-field-border)] bg-[var(--nimi-field-bg)] py-2 pl-9 pr-3 text-sm text-[var(--nimi-field-text)] focus:border-[var(--nimi-action-primary-bg)] focus:outline-none focus:ring-1 focus:ring-[var(--nimi-action-primary-bg)]"
           />
         </div>
       </div>
@@ -224,7 +224,7 @@ export function TagPickerPanel(input: {
                 key={tag}
                 type="button"
                 onClick={() => input.insertTag(tag)}
-                className="flex w-full items-center gap-3 px-3 py-2.5 transition hover:bg-gray-50"
+                className="flex w-full items-center gap-3 px-3 py-2.5 transition hover:bg-[var(--nimi-action-ghost-hover)]"
               >
                 <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--nimi-action-primary-bg)]/10 text-[var(--nimi-action-primary-bg)]">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -233,7 +233,7 @@ export function TagPickerPanel(input: {
                   </svg>
                 </div>
                 <div className="min-w-0 flex-1 text-left">
-                  <p className="truncate text-sm font-medium text-gray-900">#{tag}</p>
+                  <p className="truncate text-sm font-medium text-[var(--nimi-text-primary)]">#{tag}</p>
                 </div>
                 {input.tags.includes(tag) ? (
                   <svg className="h-4 w-4 text-[var(--nimi-action-primary-bg)]" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -249,7 +249,7 @@ export function TagPickerPanel(input: {
           <button
             type="button"
             onClick={() => input.insertTag(input.tagSearch.trim())}
-            className="flex w-full items-center gap-3 border-t border-gray-100 px-3 py-2.5 transition hover:bg-[var(--nimi-action-primary-bg)]/10"
+            className="flex w-full items-center gap-3 border-t border-[var(--nimi-border-subtle)] px-3 py-2.5 transition hover:bg-[var(--nimi-action-primary-bg)]/10"
           >
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--nimi-action-primary-bg)]/10 text-[var(--nimi-action-primary-bg)]">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -269,7 +269,7 @@ export function TagPickerPanel(input: {
         ) : null}
 
         {!input.tagSearch.trim() && input.filteredTags.length === 0 ? (
-          <div className="px-3 py-4 text-center text-sm text-gray-500">
+          <div className="px-3 py-4 text-center text-sm text-[var(--nimi-text-muted)]">
             {i18n.t('Profile.CreatePost.typeToSearchOrCreateTag', { defaultValue: 'Type to search or create a new tag' })}
           </div>
         ) : null}

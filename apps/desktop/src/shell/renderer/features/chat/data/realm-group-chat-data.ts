@@ -12,6 +12,7 @@ import {
 import type { RealmModel } from '@nimiplatform/sdk/realm/generated';
 import type { DesktopRendererSdkPort } from '../../../renderer/sdk-port.js';
 import { createNimiClientId, type JsonObject } from '@nimiplatform/sdk/types';
+import { i18n } from '../../../i18n/index.js';
 
 type GroupChatViewDto = RealmModel<'GroupChatViewDto'>;
 type ListGroupChatsResultDto = RealmModel<'ListGroupChatsResultDto'>;
@@ -29,6 +30,13 @@ function createStableClientId(prefix: string): string {
   return createNimiClientId(prefix);
 }
 
+function groupChatFallbackMessage(key: string, defaultValue: string): string {
+  const translated = i18n.t(key, { defaultValue });
+  return typeof translated === 'string' && translated.trim().length > 0
+    ? translated
+    : defaultValue;
+}
+
 export async function loadGroupChatList(
   callApi: RealmGroupChatApiCaller,
   emitRealmGroupChatError: RealmGroupChatErrorEmitter,
@@ -37,7 +45,7 @@ export async function loadGroupChatList(
   try {
     const result = await callApi(
       (realm) => listNimiRealmGroupChats(realm, limit),
-      '加载群组列表失败',
+      groupChatFallbackMessage('Chat.groupLoadListFailed', 'Failed to load groups'),
     );
     return result;
   } catch (error) {
@@ -54,7 +62,7 @@ export async function loadGroupChat(
   try {
     const result = await callApi(
       (realm) => loadNimiRealmGroupChat(realm, chatId),
-      '加载群组详情失败',
+      groupChatFallbackMessage('Chat.groupLoadDetailFailed', 'Failed to load group details'),
     );
     return result;
   } catch (error) {
@@ -72,7 +80,7 @@ export async function loadGroupChatMessages(
   try {
     const result = await callApi(
       (realm) => loadNimiRealmGroupMessages(realm, chatId, limit),
-      '加载群组消息失败',
+      groupChatFallbackMessage('Chat.groupLoadMessagesFailed', 'Failed to load group messages'),
     );
     return result;
   } catch (error) {
@@ -95,7 +103,7 @@ export async function sendGroupChatMessage(
         chatId,
         createNimiRealmGroupTextMessageInput(content, clientMessageId),
       ),
-      '发送群组消息失败',
+      groupChatFallbackMessage('Chat.groupSendMessageFailed', 'Failed to send group message'),
     );
     return message;
   } catch (error) {
@@ -132,7 +140,7 @@ export async function createGroupChat(
         participantIds,
         text: initialMessage || undefined,
       }),
-      '创建群组失败',
+      groupChatFallbackMessage('Chat.createGroupError', 'Failed to create group'),
     );
     return result;
   } catch (error) {
@@ -156,7 +164,7 @@ export async function syncGroupChatEvents(
   try {
     const result = await callApi(
       (realm) => syncNimiRealmGroupEvents(realm, chatId, normalizedAfterSeq, normalizedLimit),
-      '同步群组事件失败',
+      groupChatFallbackMessage('Chat.groupSyncEventsFailed', 'Failed to sync group events'),
     );
     return result;
   } catch (error) {

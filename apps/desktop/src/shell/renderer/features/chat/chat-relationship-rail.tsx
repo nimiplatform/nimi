@@ -175,7 +175,7 @@ function RelationshipAvatar({
 
           {/* Unread badge */}
           {unread ? (
-            <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white shadow-sm">
+            <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[var(--nimi-status-danger)] px-1 text-[10px] font-bold text-white shadow-sm">
               {unread > 99 ? '99+' : unread}
             </span>
           ) : null}
@@ -202,7 +202,7 @@ function RelationshipAvatar({
 // ---------------------------------------------------------------------------
 
 function SidebarSeparator() {
-  return <div className="mx-auto my-1.5 h-px w-7 rounded-full bg-slate-200/80" />;
+  return <div className="mx-auto my-1.5 h-px w-7 rounded-full bg-[var(--nimi-border-subtle)]" />;
 }
 
 // ---------------------------------------------------------------------------

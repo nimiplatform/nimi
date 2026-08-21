@@ -234,7 +234,7 @@ export function CreatePostModal({ open, onClose, onComplete, onUploadStart, init
     setError(null);
 
     if (file.size > MAX_FILE_SIZE) {
-      setError('File size exceeds 100MB limit');
+      setError(t('Profile.CreatePost.fileTooLarge', { defaultValue: 'File size exceeds 100MB limit' }));
       return;
     }
 
@@ -242,7 +242,7 @@ export function CreatePostModal({ open, onClose, onComplete, onUploadStart, init
     const isVideo = ACCEPTED_VIDEO_TYPES.includes(file.type);
 
     if (!isImage && !isVideo) {
-      setError('Unsupported file type. Use PNG, JPEG, GIF, WebP, MP4, or MOV.');
+      setError(t('Profile.CreatePost.unsupportedFileType', { defaultValue: 'Unsupported file type. Use PNG, JPEG, GIF, WebP, MP4, or MOV.' }));
       return;
     }
 
@@ -254,7 +254,7 @@ export function CreatePostModal({ open, onClose, onComplete, onUploadStart, init
       previewUrl: URL.createObjectURL(file),
       type: isImage ? 'image' : 'video',
     });
-  }, [selectedFile]);
+  }, [selectedFile, t]);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -325,7 +325,9 @@ export function CreatePostModal({ open, onClose, onComplete, onUploadStart, init
         const upload = await uploadNimiRealmResourceFile(sdk.realm(), {
           kind: activeAttachment.type === 'image' ? 'image' : 'video',
           file: activeAttachment.file,
-          failureMessage: activeAttachment.type === 'image' ? 'Image upload failed' : 'Video upload failed',
+          failureMessage: activeAttachment.type === 'image'
+            ? t('Profile.CreatePost.imageUploadFailed', { defaultValue: 'Image upload failed' })
+            : t('Profile.CreatePost.videoUploadFailed', { defaultValue: 'Video upload failed' }),
         });
         resourceId = upload.resourceId;
       } else {
@@ -362,7 +364,7 @@ export function CreatePostModal({ open, onClose, onComplete, onUploadStart, init
       });
       onComplete({ success: false, mode: isEditMode ? 'edit' : 'create' });
     }
-  }, [selectedFile, selectedAttachmentRef, onUploadStart, handleClose, caption, tags, initialPost, onComplete, isEditMode]);
+  }, [selectedFile, selectedAttachmentRef, onUploadStart, handleClose, caption, tags, initialPost, onComplete, isEditMode, t]);
 
   if (!open) return null;
 
@@ -376,7 +378,7 @@ export function CreatePostModal({ open, onClose, onComplete, onUploadStart, init
       contentClassName="p-0"
     >
       <div
-        className="relative flex max-h-[90vh] w-full flex-col overflow-hidden bg-white shadow-xl"
+        className="relative flex max-h-[90vh] w-full flex-col overflow-hidden bg-[var(--nimi-surface-card)] shadow-xl"
         onClick={() => {
           closeAllPanels();
         }}
@@ -417,7 +419,7 @@ export function CreatePostModal({ open, onClose, onComplete, onUploadStart, init
         />
 
         {error ? (
-          <div className="mt-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">{error}</div>
+          <div className="mt-4 rounded-lg bg-[color-mix(in_srgb,var(--nimi-status-danger)_10%,var(--nimi-surface-card))] px-4 py-3 text-sm text-[var(--nimi-status-danger)]">{error}</div>
         ) : null}
 
         <CreatePostModalFooter
@@ -427,6 +429,7 @@ export function CreatePostModal({ open, onClose, onComplete, onUploadStart, init
           isEditMode={isEditMode}
           onClose={handleClose}
           onSubmit={() => { void handleSubmit(); }}
+          t={t}
         />
       </div>
 

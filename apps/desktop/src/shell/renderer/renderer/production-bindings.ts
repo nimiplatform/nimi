@@ -241,7 +241,6 @@ export function createDesktopProductionBindings(
           anchor.click();
           URL.revokeObjectURL(url);
         },
-        confirmRuntimeProfileInstall: (message: string) => window.confirm(message),
         pickLocalRuntimeAssetFile,
         pickLocalRuntimeAssetDirectory,
         revealLocalRuntimeAssetsRootFolder,

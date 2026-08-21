@@ -16,6 +16,7 @@ import {
   PageShell,
   Section,
 } from './settings-layout-components.js';
+import { LogOutIcon, TrashIcon } from './settings-assets.js';
 import type { InlineFeedbackState } from '../../ui/feedback/inline-feedback';
 
 type StorageSnapshot = {
@@ -178,7 +179,7 @@ export function DataManagementPage() {
           <div className="mt-4 rounded-[var(--nimi-radius-md)] bg-[var(--nimi-surface-panel)] p-4">
             <div className="h-2.5 w-full overflow-hidden rounded-full bg-[var(--nimi-surface-active)]">
               <div
-                className="h-full rounded-full bg-mint-500 transition-all duration-500 ease-out"
+                className="h-full rounded-full bg-[var(--nimi-action-primary-bg)] transition-all duration-500 ease-out"
                 style={{ width: `${usagePercent}%` }}
               />
             </div>
@@ -292,31 +293,12 @@ export function DataManagementPage() {
 }
 
 // Icons
-function TrashIcon({ className = '' }: { className?: string }) {
-  return (
-    <svg className={className} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="3 6 5 6 21 6" />
-      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-    </svg>
-  );
-}
-
 function AlertTriangleIcon({ className = '' }: { className?: string }) {
   return (
     <svg className={className} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
       <path d="M12 9v4" />
       <path d="M12 17h.01" />
-    </svg>
-  );
-}
-
-function LogOutIcon({ className = '' }: { className?: string }) {
-  return (
-    <svg className={className} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-      <polyline points="16 17 21 12 16 7" />
-      <line x1="21" y1="12" x2="9" y2="12" />
     </svg>
   );
 }

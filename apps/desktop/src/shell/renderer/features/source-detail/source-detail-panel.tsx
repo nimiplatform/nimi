@@ -29,14 +29,25 @@ import {
 import { SourceDetailView } from './source-detail-view.js';
 import { emitFeedbackToast } from '../../ui/feedback/emit-feedback-toast';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
+import type { CharacterSourceRefV3 } from '../realm-source/realm-source-identity.js';
 
-export function SourceDetailPanel() {
+export function SourceDetailPanel({
+  sourceRef: sourceRefProp,
+  onBack,
+}: {
+  // Embedded hosts (e.g. the Explore persona rail+detail layout) pass an
+  // explicit sourceRef; the standalone panel falls back to the store-driven
+  // selection. Pass onBack=null to hide the back control when embedded.
+  sourceRef?: CharacterSourceRefV3 | null;
+  onBack?: (() => void) | null;
+} = {}) {
   const bindings = useDesktopRendererBindings();
   const i18n = useDesktopI18nResource().instance;
   const queryClient = useQueryClient();
   const authStatus = useAppStore((state) => state.auth.status);
   const ownerUserId = useAppStore((state) => String(state.auth.user?.id || '').trim());
-  const selectedSourceRef = useAppStore((state) => state.selectedSourceRef);
+  const storeSelectedSourceRef = useAppStore((state) => state.selectedSourceRef);
+  const selectedSourceRef = sourceRefProp === undefined ? storeSelectedSourceRef : sourceRefProp;
   const navigateBack = useAppStore((state) => state.navigateBack);
   const navigateToWorld = useAppStore((state) => state.navigateToWorld);
   const setActiveTab = useAppStore((state) => state.setActiveTab);
@@ -197,7 +208,7 @@ export function SourceDetailPanel() {
 
   if (!selectedSourceRef) {
     return (
-      <div className="flex flex-1 items-center justify-center text-sm text-gray-500">
+      <div className="flex flex-1 items-center justify-center text-sm text-[var(--nimi-text-muted)]">
         {i18n.t('SourceDetail.noSourceSelected', { defaultValue: 'No source selected' })}
       </div>
     );
@@ -205,7 +216,7 @@ export function SourceDetailPanel() {
 
   if (!source && !profileQuery.isPending && !profileQuery.isError) {
     return (
-      <div className="flex flex-1 items-center justify-center text-sm text-gray-500">
+      <div className="flex flex-1 items-center justify-center text-sm text-[var(--nimi-text-muted)]">
         {i18n.t('SourceDetail.noSourceDataAvailable', { defaultValue: 'No source data available' })}
       </div>
     );
@@ -218,7 +229,7 @@ export function SourceDetailPanel() {
         stats={stats}
         loading={profileQuery.isPending}
         error={profileQuery.isError}
-        onBack={navigateBack}
+        onBack={onBack === null ? undefined : (onBack ?? navigateBack)}
         onOpenWorld={() => {
           if (!source?.worldId) {
             return;

@@ -3,11 +3,14 @@
   "acceptRequestFailed": "接受好友请求失败",
   "addContact": "添加联系人",
   "addContactFailed": "添加联系人失败",
+  "addContactSuccess": "好友请求已发送。",
   "sourceBadge": "Source",
   "createLocalAgent": "成为我的伙伴",
   "sourceMaterializationRequiredForChat": "请先与此角色建立伙伴关系，再打开聊天。",
   "bio": "简介",
   "blockUserFailed": "屏蔽用户失败",
+  "blockUserSuccess": "已屏蔽该用户。",
+  "blockUserConfirmMessage": "确定要屏蔽 {{name}} 吗？对方会被移入你的黑名单，并且无法再联系你。",
   "changePhoto": "更换头像",
   "chat": "聊天",
   "city": "城市",
@@ -29,6 +32,7 @@
   "removeFriendConfirmMessagePrefix": "移除",
   "removeFriendConfirmMessageSuffix": "这会将对方从你的好友列表中移除。",
   "removeFriendFailed": "移除好友失败",
+  "removeFriendSuccess": "已移除好友。",
   "tags": "标签",
   "tagsPlaceholder": "创作者、旅行者、世界原住民"
 }

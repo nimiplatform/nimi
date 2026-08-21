@@ -125,7 +125,7 @@ export function SettingsPanelBody() {
                   active={active}
                   data-testid={`settings-nav:${item.id}`}
                   onClick={() => handleSelect(item.id)}
-                  icon={<span className={active ? 'text-mint-600' : 'text-gray-400'}>{item.icon}</span>}
+                  icon={<span className={active ? 'text-[var(--nimi-action-primary-bg)]' : 'text-[var(--nimi-text-muted)]'}>{item.icon}</span>}
                   label={itemTitle}
                   trailing={active ? <SidebarAffordanceChevron /> : undefined}
                 />

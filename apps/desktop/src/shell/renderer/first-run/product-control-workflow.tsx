@@ -9,6 +9,7 @@ import {
 
 import { FirstRunWizardChrome } from './first-run-wizard-chrome.js';
 import { ProductControlWorkflowScreen } from './product-control-workflow-screen.js';
+import { InlineFeedback } from '../ui/feedback/inline-feedback.js';
 import type { DesktopRendererFirstRunPort } from '../renderer/first-run-port.js';
 
 type ProductControlWorkflowProps = {
@@ -164,12 +165,10 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
     >
       <FirstRunWizardChrome activePhase={screen.kind === 'phase' ? screen.phase : null}>
         {screen.kind === 'phase' && error ? (
-          <p
-            data-testid="product-first-run-error"
-            className="mb-5 rounded-lg border border-[color-mix(in_srgb,var(--nimi-status-danger)_24%,white)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_10%,white)] px-3 py-2 text-sm text-[var(--nimi-status-danger)]"
-          >
-            {error}
-          </p>
+          <InlineFeedback
+            className="mb-5"
+            feedback={{ kind: 'error', message: error }}
+          />
         ) : null}
         <ProductControlWorkflowScreen
           busy={busy}

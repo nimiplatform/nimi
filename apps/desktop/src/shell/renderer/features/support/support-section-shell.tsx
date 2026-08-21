@@ -18,7 +18,7 @@ export function SupportSectionShell(props: {
   children: ReactNode;
 }) {
   return (
-    <ScrollArea className="flex-1" contentClassName="mx-auto w-full max-w-3xl px-6 py-6">
+    <ScrollArea className="flex-1" contentClassName="w-full max-w-4xl px-5 py-5">
       <div data-testid={props.testId} className="flex flex-col gap-6">
         <header className="flex flex-col gap-1">
           <h2 className="nimi-type-page-title text-[color:var(--nimi-text-primary)]">{props.title}</h2>

@@ -45,7 +45,7 @@ function HumanAttachmentStrip(props: {
               className="block h-20 w-20 rounded-xl object-cover"
             />
           ) : (
-            <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-[0_6px_20px_rgba(15,23,42,0.08)]">
+            <div className="overflow-hidden rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] shadow-[0_6px_20px_rgba(15,23,42,0.08)]">
               <div className="relative h-24 w-40 overflow-hidden bg-gray-900">
                 <video
                   src={attachment.previewUrl}
@@ -56,8 +56,8 @@ function HumanAttachmentStrip(props: {
                 />
               </div>
               <div className="w-40 px-3 py-2">
-                <p className="truncate text-[12px] font-medium leading-4 text-gray-900">{attachment.name}</p>
-                <p className="mt-1 text-[11px] leading-4 text-gray-500">{formatPendingAttachmentSize(attachment.file.size)}</p>
+                <p className="truncate text-[12px] font-medium leading-4 text-[var(--nimi-text-primary)]">{attachment.name}</p>
+                <p className="mt-1 text-[11px] leading-4 text-[var(--nimi-text-muted)]">{formatPendingAttachmentSize(attachment.file.size)}</p>
               </div>
             </div>
           )}

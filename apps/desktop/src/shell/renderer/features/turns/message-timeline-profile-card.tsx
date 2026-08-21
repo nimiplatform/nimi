@@ -35,7 +35,10 @@ export function ChatProfileCard({
     aboutRows.push({
       key: 'joined',
       icon: <CalendarIcon className="h-3.5 w-3.5" />,
-      label: `Joined ${formatProfileDate(profileData.createdAt, i18n.formatDate)}`,
+      label: t('ChatProfile.joinedOn', {
+        date: formatProfileDate(profileData.createdAt, i18n.formatDate),
+        defaultValue: 'Joined {{date}}',
+      }),
     });
   }
 
@@ -68,7 +71,7 @@ export function ChatProfileCard({
       <button
         type="button"
         onClick={onClose}
-        className="absolute left-0 top-0 flex h-9 w-9 items-center justify-center rounded-full text-[#7e8a9f] transition hover:bg-[#f2f6f5] hover:text-[var(--nimi-action-primary-bg)]"
+        className="absolute left-0 top-0 flex h-9 w-9 items-center justify-center rounded-full text-[var(--nimi-text-secondary)] transition hover:bg-[var(--nimi-surface-active)] hover:text-[var(--nimi-action-primary-bg)]"
         aria-label={t('ChatTimeline.closeProfileSidebar')}
       >
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -91,27 +94,27 @@ export function ChatProfileCard({
           ) : null}
         </div>
 
-        <h2 className="mt-3 text-base font-semibold tracking-tight text-gray-800">
+        <h2 className="mt-3 text-base font-semibold tracking-tight text-[var(--nimi-text-primary)]">
           {profileData.displayName}
         </h2>
-        <p className="text-xs text-gray-500">{profileData.handle}</p>
+        <p className="text-xs text-[var(--nimi-text-muted)]">{profileData.handle}</p>
 
         <span className="mt-2 inline-flex items-center rounded-full bg-[var(--nimi-action-primary-bg)]/10 px-2.5 py-0.5 text-xs font-medium text-[var(--nimi-action-primary-bg)]">
           {t('ChatTimeline.human')}
         </span>
 
         {profileData.bio ? (
-          <p className="mt-2 text-center text-xs leading-relaxed text-gray-600 line-clamp-3">{profileData.bio}</p>
+          <p className="mt-2 text-center text-xs leading-relaxed text-[var(--nimi-text-secondary)] line-clamp-3">{profileData.bio}</p>
         ) : null}
 
         <div className="mt-3 flex items-center gap-6">
           <div className="text-center">
-            <p className="text-base font-bold text-gray-800">{friendCount}</p>
-            <p className="text-[11px] text-gray-500">{t('ProfileView.friends')}</p>
+            <p className="text-base font-bold text-[var(--nimi-text-primary)]">{friendCount}</p>
+            <p className="text-[11px] text-[var(--nimi-text-muted)]">{t('ProfileView.friends')}</p>
           </div>
           <div className="text-center">
-            <p className="text-base font-bold text-gray-800">{postCount}</p>
-            <p className="text-[11px] text-gray-500">{t('ProfileView.posts')}</p>
+            <p className="text-base font-bold text-[var(--nimi-text-primary)]">{postCount}</p>
+            <p className="text-[11px] text-[var(--nimi-text-muted)]">{t('ProfileView.posts')}</p>
           </div>
         </div>
 
@@ -150,7 +153,7 @@ function ProfileActionButton(input: {
   variant?: 'solid' | 'outline';
 }) {
   const buttonClassName = input.variant === 'outline'
-    ? 'border-2 border-[var(--nimi-action-primary-bg)] bg-white text-[var(--nimi-action-primary-bg)] hover:border-[var(--nimi-action-primary-bg-hover)] hover:text-[var(--nimi-action-primary-bg-hover)]'
+    ? 'border-2 border-[var(--nimi-action-primary-bg)] bg-[var(--nimi-surface-card)] text-[var(--nimi-action-primary-bg)] hover:border-[var(--nimi-action-primary-bg-hover)] hover:text-[var(--nimi-action-primary-bg-hover)]'
     : 'bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)] hover:bg-[var(--nimi-action-primary-bg-hover)]';
 
   return (
@@ -174,7 +177,7 @@ function AboutRow({ icon, label }: { icon: ReactNode; label: string }) {
       <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--nimi-action-primary-bg)]/10 text-[var(--nimi-action-primary-bg)]">
         {icon}
       </span>
-      <span className="truncate text-gray-600">{label}</span>
+      <span className="truncate text-[var(--nimi-text-secondary)]">{label}</span>
     </div>
   );
 }

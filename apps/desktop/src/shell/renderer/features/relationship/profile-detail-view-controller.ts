@@ -1,4 +1,4 @@
-import { type ChangeEvent, type RefObject, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { type ChangeEvent, type RefObject, useEffect, useRef, useState } from 'react';
 import { uploadNimiRealmResourceFile } from '@nimiplatform/sdk/realm';
 import { useTranslation } from 'react-i18next';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
@@ -30,11 +30,6 @@ export type ProfileDetailViewProps = {
   onSaveProfile?: (draft: EditableProfileDraft) => Promise<void>;
 };
 
-type TabIndicator = {
-  left: number;
-  width: number;
-};
-
 export const ACCEPTED_AVATAR_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'];
 
 const DEFAULT_TAB: HumanProfileTab = 'Posts';
@@ -52,34 +47,10 @@ export function useProfileDetailViewController(props: ProfileDetailViewProps, re
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [visitedTabs, setVisitedTabs] = useState<HumanProfileTab[]>([DEFAULT_TAB]);
   const [draft, setDraft] = useState<EditableProfileDraft>(() => buildEditableDraft(props.profile));
-  const [tabIndicator, setTabIndicator] = useState<TabIndicator>({ left: 0, width: 24 });
-  const menuRef = useRef<HTMLDivElement>(null);
-  const menuButtonRef = useRef<HTMLButtonElement>(null);
-  const tabListRef = useRef<HTMLDivElement>(null);
-  const tabButtonRefs = useRef<Partial<Record<HumanProfileTab, HTMLButtonElement | null>>>({});
   const internalScrollContainerRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = props.externalScrollContainerRef ?? internalScrollContainerRef;
   const usesExternalScrollContainer = Boolean(props.externalScrollContainerRef);
   const avatarInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (!showMenu) {
-      return;
-    }
-
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        menuRef.current
-        && !menuRef.current.contains(event.target as Node)
-        && menuButtonRef.current
-        && !menuButtonRef.current.contains(event.target as Node)
-      ) {
-        setShowMenu(false);
-      }
-    };
-
-    return bindings.app.events.subscribeDocumentMouseDown(handleClickOutside);
-  }, [bindings, showMenu]);
 
   useEffect(() => {
     setDraft(buildEditableDraft(props.profile));
@@ -93,23 +64,6 @@ export function useProfileDetailViewController(props: ProfileDetailViewProps, re
   useEffect(() => {
     setVisitedTabs((current) => (current.includes(activeTab) ? current : [...current, activeTab]));
   }, [activeTab]);
-
-  useLayoutEffect(() => {
-    const updateIndicator = () => {
-      const activeButton = tabButtonRefs.current[activeTab];
-      const tabList = tabListRef.current;
-      if (!activeButton || !tabList) {
-        return;
-      }
-
-      const compactWidth = Math.min(28, Math.max(20, activeButton.offsetWidth - 22));
-      const left = activeButton.offsetLeft + ((activeButton.offsetWidth - compactWidth) / 2);
-      setTabIndicator({ left, width: compactWidth });
-    };
-
-    updateIndicator();
-    return bindings.app.events.subscribeWindowResize(updateIndicator);
-  }, [activeTab, bindings]);
 
   useEffect(() => {
     const container = scrollContainerRef.current;
@@ -214,8 +168,6 @@ export function useProfileDetailViewController(props: ProfileDetailViewProps, re
     isEditing,
     isSaving,
     isUploadingAvatar,
-    menuButtonRef,
-    menuRef,
     saveError,
     scrollContainerRef,
     scrollToTop,
@@ -224,9 +176,6 @@ export function useProfileDetailViewController(props: ProfileDetailViewProps, re
     setShowMenu,
     showMenu,
     showScrollTop,
-    tabButtonRefs,
-    tabIndicator,
-    tabListRef,
     toggleEditing,
     usesExternalScrollContainer,
     visitedTabs,

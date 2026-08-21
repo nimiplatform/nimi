@@ -97,6 +97,7 @@
   "reportDetailsPlaceholder": "请补充更多举报说明...",
   "reportPost": "举报帖子",
   "reportPrompt": "你为什么要举报 {{name}} 的这条帖子？",
+  "reportReasonLabel": "举报理由",
   "reportSubmitted": "举报已提交",
   "reportSubmitFailed": "提交举报失败",
   "reportReasons": {
@@ -114,6 +115,8 @@
   "unknownError": "未知错误",
   "updateLikeFailed": "更新点赞状态失败",
   "visibilityFriendsDescription": "仅你的好友可以看到这条帖子。",
+  "visibilityFriendsOnly": "仅好友可见",
   "visibilityPrivateDescription": "只有你自己可以看到这条帖子。",
+  "visibilityPrivateOnly": "仅自己可见",
   "visibilityPublicDescription": "任何人都可以看到这条帖子。"
 }

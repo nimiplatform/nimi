@@ -4,7 +4,7 @@ import {
   createNimiRuntimeExternalAgentAccessSurface,
   type NimiExternalAgentTokenLedgerRecord,
 } from '@nimiplatform/sdk/runtime';
-import { SegmentedControl, Surface, cn } from '@nimiplatform/kit/ui';
+import { ConfirmDialog, SegmentedControl, Surface, cn } from '@nimiplatform/kit/ui';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 import { Button } from './runtime-config-primitives';
 import {
@@ -60,6 +60,7 @@ export function ExternalAgentAccessPanel() {
   const [filter, setFilter] = useState<TokenFilter>('all');
   const [showIssueForm, setShowIssueForm] = useState(false);
   const [expandedTokenId, setExpandedTokenId] = useState<string>('');
+  const [pendingRevokeTokenId, setPendingRevokeTokenId] = useState('');
   const tokenMutationInFlightRef = useRef(false);
   const copiedResetCancelRef = useRef<(() => void) | null>(null);
 
@@ -161,6 +162,15 @@ export function ExternalAgentAccessPanel() {
   const handleRevokeToken = (targetTokenId?: string) => {
     const resolvedTokenId = String(targetTokenId || tokenId).trim();
     if (!resolvedTokenId || !tokenActionPlaneIsAvailable()) {
+      return;
+    }
+    setPendingRevokeTokenId(resolvedTokenId);
+  };
+
+  const confirmRevokeToken = () => {
+    const resolvedTokenId = pendingRevokeTokenId;
+    setPendingRevokeTokenId('');
+    if (!resolvedTokenId) {
       return;
     }
     tokenMutationInFlightRef.current = true;
@@ -425,6 +435,21 @@ export function ExternalAgentAccessPanel() {
           />
         </Surface>
       </section>
+
+      <ConfirmDialog
+        open={pendingRevokeTokenId !== ''}
+        title={t('runtimeConfig.eaa.revokeConfirmTitle', { defaultValue: 'Revoke external agent token' })}
+        message={t('runtimeConfig.eaa.revokeConfirmMessage', {
+          defaultValue: 'Revoke token {{tokenId}}? Revocation takes effect immediately and the external agent using it loses access. This cannot be undone.',
+          tokenId: pendingRevokeTokenId,
+        })}
+        confirmLabel={t('runtimeConfig.eaa.revoke', { defaultValue: 'Revoke' })}
+        cancelLabel={t('runtimeConfig.eaa.cancel', { defaultValue: 'Cancel' })}
+        confirmTone="danger"
+        pending={busy}
+        onConfirm={confirmRevokeToken}
+        onClose={() => setPendingRevokeTokenId('')}
+      />
     </>
   );
 }

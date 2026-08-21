@@ -71,7 +71,7 @@ export function SupportRecoverySection(props: { onNavigateToRepair: () => void }
             type="button"
             data-testid="support-recovery-open-repair"
             onClick={props.onNavigateToRepair}
-            className="inline-flex items-center rounded-lg bg-[var(--nimi-action-primary-bg)] px-3 py-2 text-xs font-medium text-[var(--nimi-action-primary-fg)] transition hover:bg-[var(--nimi-action-primary-bg-hover)]"
+            className="inline-flex items-center rounded-lg bg-[var(--nimi-action-primary-bg)] px-3 py-2 text-xs font-medium text-[var(--nimi-action-primary-text)] transition hover:bg-[var(--nimi-action-primary-bg-hover)]"
           >
             {t('Support.recoveryOpenRepair')}
           </button>
@@ -118,7 +118,7 @@ export function SupportRecoverySection(props: { onNavigateToRepair: () => void }
             type="button"
             data-testid="support-recovery-open-repair"
             onClick={props.onNavigateToRepair}
-            className="inline-flex items-center rounded-lg bg-[var(--nimi-action-primary-bg)] px-3 py-2 text-xs font-medium text-[var(--nimi-action-primary-fg)] transition hover:bg-[var(--nimi-action-primary-bg-hover)]"
+            className="inline-flex items-center rounded-lg bg-[var(--nimi-action-primary-bg)] px-3 py-2 text-xs font-medium text-[var(--nimi-action-primary-text)] transition hover:bg-[var(--nimi-action-primary-bg-hover)]"
           >
             {t('Support.recoveryOpenRepair')}
           </button>

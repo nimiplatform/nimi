@@ -172,106 +172,6 @@
 }
 
 @scope (.nimi-ui-module--desktop) {
-/* ---- Chrome-style tab primitive ---- */
-
-.chrome-tab {
-  --nimi-ui-module-desktop-tab-bg: rgba(255, 255, 255, 0.24);
-  --nimi-ui-module-desktop-tab-hover-bg: rgba(255, 255, 255, 0.38);
-  --nimi-ui-module-desktop-tab-active-bg: color-mix(in srgb, var(--nimi-action-primary-bg) 12%, white);
-  --nimi-ui-module-desktop-tab-color: var(--nimi-text-secondary);
-  --nimi-ui-module-desktop-tab-active-color: var(--nimi-text-primary);
-  position: relative;
-  display: inline-flex;
-  align-items: flex-end;
-  justify-content: center;
-  border: 0;
-  background: transparent;
-  padding: 0;
-  color: inherit;
-}
-
-.chrome-tab__body {
-  position: relative;
-  display: inline-flex;
-  min-width: 0;
-  align-items: center;
-  gap: 8px;
-  height: 34px;
-  padding: 0 14px 0 22px;
-  background: var(--nimi-ui-module-desktop-tab-bg);
-  color: var(--nimi-ui-module-desktop-tab-color);
-  border: 1px solid rgba(255, 255, 255, 0.45);
-  border-radius: 999px;
-  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04);
-  transition: background-color 180ms ease, color 180ms ease, box-shadow 180ms ease, border-color 180ms ease, padding-right 180ms ease;
-}
-
-.chrome-tab:hover .chrome-tab__body {
-  background: var(--nimi-ui-module-desktop-tab-hover-bg);
-  border-color: rgba(255, 255, 255, 0.58);
-  padding-right: 32px;
-}
-
-.chrome-tab.active .chrome-tab__body {
-  background: var(--nimi-ui-module-desktop-tab-active-bg);
-  border-color: color-mix(in srgb, var(--nimi-action-primary-bg) 22%, white);
-  color: var(--nimi-ui-module-desktop-tab-active-color);
-  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
-}
-
-
-.chrome-tab__leading,
-.chrome-tab__trailing {
-  display: inline-flex;
-  flex: 0 0 auto;
-  align-items: center;
-  justify-content: center;
-}
-
-.chrome-tab__title {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.chrome-tab__close {
-  position: absolute;
-  right: 10px;
-  top: 50%;
-  transform: translateY(-50%) scale(0.72);
-  display: inline-flex;
-  height: 16px;
-  width: 16px;
-  flex: 0 0 auto;
-  align-items: center;
-  justify-content: center;
-  border-radius: 999px;
-  color: inherit;
-  opacity: 0;
-  pointer-events: none;
-  transition: background-color 180ms ease, opacity 180ms ease, transform 180ms ease;
-}
-
-.chrome-tab:hover .chrome-tab__close {
-  opacity: 0.72;
-  pointer-events: auto;
-  transform: translateY(-50%) scale(1);
-}
-
-.chrome-tab:not(.active):hover .chrome-tab__close {
-  color: var(--nimi-text-primary);
-}
-
-.chrome-tab__close:hover {
-  background: rgba(15, 23, 42, 0.08);
-  opacity: 1;
-}
-
-.chrome-tab:not(.active) .chrome-tab__close:hover {
-  background: rgba(15, 23, 42, 0.18);
-}
-
 /* ---- World list pulse dot ---- */
 .desktop-world-pulse-dot {
   width: 6px;
@@ -290,4 +190,26 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .nimi-ui-module--desktop .desktop-world-pulse-dot { animation: none; }
+}
+
+/* ---- Reduced motion ----
+   Stop CSS loops outright rather than compressing infinite animations into an
+   extremely short cycle. Motion overlays still receive the preference through
+   MotionConfig and resolve to their reduced cross-fade variants. */
+:root[data-nimi-reduced-motion='true'] *,
+:root[data-nimi-reduced-motion='true'] *::before,
+:root[data-nimi-reduced-motion='true'] *::after {
+  transition-duration: 0.01ms !important;
+  transition-delay: 0s !important;
+  animation: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nimi-ui-module--desktop *,
+  .nimi-ui-module--desktop *::before,
+  .nimi-ui-module--desktop *::after {
+    transition-duration: 0.01ms !important;
+    transition-delay: 0s !important;
+    animation: none !important;
+  }
 }

@@ -200,7 +200,7 @@ export function AgentManualVoicePlaybackButton(props: {
       disabled={disabled}
       aria-label={label}
       title={label}
-      className="mt-2 inline-flex h-7 w-7 items-center justify-center rounded-full border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_86%,white)] text-[var(--nimi-text-secondary)] transition hover:bg-white disabled:cursor-wait disabled:opacity-60"
+      className="mt-2 inline-flex h-7 w-7 items-center justify-center rounded-full border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_86%,white)] text-[var(--nimi-text-secondary)] transition hover:bg-[var(--nimi-surface-card)] disabled:cursor-wait disabled:opacity-60"
     >
       {status === 'playing' ? (
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

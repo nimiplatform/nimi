@@ -331,8 +331,11 @@ export function useHumanConversationModeHost(
       setSelectedChatId(threadId);
       setChatProfilePanelTarget(null);
     },
-    transcriptProps: selectedChatId ? transcriptProps : undefined,
-    stagePanelProps: selectedChatId ? stagePanelProps : undefined,
+    // Always pass transcript/stage props: the shell can render the transcript
+    // while a selected target's chat is still resolving (selectedChatId null),
+    // and undefined props would surface the kit English default empty state.
+    transcriptProps,
+    stagePanelProps,
     profileContent: profileContent,
     rightSidebarContent: rightSidebarContent,
     rightSidebarOverlayMenu: rightSidebarOverlayMenu,

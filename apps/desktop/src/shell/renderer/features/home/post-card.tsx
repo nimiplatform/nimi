@@ -304,7 +304,7 @@ export function PostCard(input: PostCardProps) {
   }, [actionAdapter, onDelete, post.id, ui]);
 
   const handleEditPost = useCallback(() => {
-    ui.togglePostMenu();
+    ui.setShowPostMenu(false);
     if (!canEditPostAttachment) {
       setFeedback({
         kind: 'error',
@@ -388,14 +388,13 @@ export function PostCard(input: PostCardProps) {
         isLiked={ui.isLiked}
         isLikePending={isLikePending}
         showPostMenu={ui.showPostMenu}
-        menuButtonRef={ui.menuButtonRef}
         firstMediaType={firstMediaType}
         firstMediaUrl={firstMediaUrl}
         firstMediaThumbnail={firstMediaThumbnail}
         videoSource={videoSource}
         onOpenAuthorProfile={openAuthorProfile}
         onOpenAddFriendModal={ui.openAddFriendModal}
-        onTogglePostMenu={ui.togglePostMenu}
+        onPostMenuOpenChange={ui.setShowPostMenu}
         onOpenEditPost={handleEditPost}
         onOpenEditVisibility={ui.openEditPost}
         onOpenDeleteConfirm={ui.openDeleteConfirm}

@@ -27,8 +27,6 @@
     "sortUpdated": "Recently updated",
     "sortName": "Name",
     "sortActivity": "Running first",
-    "runningGroupTitle": "Running",
-    "allGroupTitle": "All apps",
     "backToLibrary": "Back to Apps",
     "connectLocalTitle": "Connect a local project",
     "cardMenuLabel": "App actions"

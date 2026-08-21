@@ -22,20 +22,20 @@ export function LegalDocumentView(props: { documentKey: 'terms' | 'privacy' }) {
 
   return (
     <ScrollArea
-      className="flex min-h-0 flex-1 flex-col bg-gray-50"
-      viewportClassName="bg-gray-50"
+      className="flex min-h-0 flex-1 flex-col bg-[var(--nimi-surface-canvas)]"
+      viewportClassName="bg-[var(--nimi-surface-canvas)]"
       contentClassName="mx-auto max-w-3xl px-6 py-10"
     >
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">{content.title}</h1>
-          <p className="mt-2 text-sm text-gray-500">{content.lastUpdatedLabel}: {content.lastUpdated}</p>
-          <p className="mt-4 text-sm leading-relaxed text-gray-600">{content.description}</p>
+          <h1 className="text-3xl font-bold text-[var(--nimi-text-primary)]">{content.title}</h1>
+          <p className="mt-2 text-sm text-[var(--nimi-text-muted)]">{content.lastUpdatedLabel}: {content.lastUpdated}</p>
+          <p className="mt-4 text-sm leading-relaxed text-[var(--nimi-text-secondary)]">{content.description}</p>
         </div>
 
-        <div className="space-y-8 text-sm leading-relaxed text-gray-700">
+        <div className="space-y-8 text-sm leading-relaxed text-[var(--nimi-text-secondary)]">
           {content.sections.map((section, index) => (
             <section key={`${props.documentKey}-${index}`}>
-              <h2 className="mb-3 text-lg font-semibold text-gray-900">{section.title}</h2>
+              <h2 className="mb-3 text-lg font-semibold text-[var(--nimi-text-primary)]">{section.title}</h2>
               {section.paragraphs?.map((paragraph, paragraphIndex) => (
                 <p key={paragraphIndex} className={paragraphIndex > 0 ? 'mt-2' : ''}>
                   {paragraph}
@@ -52,7 +52,7 @@ export function LegalDocumentView(props: { documentKey: 'terms' | 'privacy' }) {
           ))}
         </div>
 
-        <div className="mt-12 border-t border-gray-200 pt-8 text-center text-xs text-gray-400">
+        <div className="mt-12 border-t border-[var(--nimi-border-subtle)] pt-8 text-center text-xs text-[var(--nimi-text-muted)]">
           <p>{content.footer}</p>
         </div>
     </ScrollArea>

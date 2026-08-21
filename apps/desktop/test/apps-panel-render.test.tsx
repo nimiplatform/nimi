@@ -135,16 +135,26 @@ test('Apps library renders cover grid cards with resolved zh copy', async () => 
   assert.equal(markup.includes('Apps.sourceBadge.'), false, 'no raw i18n keys');
 });
 
-test('Apps library groups running apps in the rail', async () => {
+test('Apps rail pins running apps first without group sections', async () => {
   await initI18n();
   await changeLocale('zh');
-  const running = entry({}, 'running');
+  const running = entry({ updatedAtUnixMs: 1_721_000_000_000 }, 'running');
+  const stopped = entry({
+    selector: 'dev-project-zhiyu',
+    appId: 'nimi.zhiyu',
+    displayName: '织羽 Zhiyu',
+    updatedAtUnixMs: 1_999_000_000_000,
+  });
   const markup = renderView(baseProps({
-    projection: { status: 'loaded', entries: [running, ENTRIES[1]!] },
+    projection: { status: 'loaded', entries: [stopped, running] },
   }));
-  assert.ok(markup.includes('data-testid="apps-running-group"'), 'expected running group');
-  assert.ok(markup.includes('正在运行'), 'expected group title');
+  assert.ok(!markup.includes('data-testid="apps-running-group"'), 'no running group section');
+  assert.ok(!markup.includes('正在运行'), 'no group title copy');
   assert.ok(markup.includes('运行中'), 'expected running status copy');
+  const runningIndex = markup.indexOf('data-testid="apps-rail-entry-nimi.lab"');
+  const stoppedIndex = markup.indexOf('data-testid="apps-rail-entry-nimi.zhiyu"');
+  assert.ok(runningIndex !== -1 && stoppedIndex !== -1, 'expected both rail rows');
+  assert.ok(runningIndex < stoppedIndex, 'running app pinned before the stopped app');
 });
 
 test('Apps detail mode renders the header, tabs, and README surface', async () => {

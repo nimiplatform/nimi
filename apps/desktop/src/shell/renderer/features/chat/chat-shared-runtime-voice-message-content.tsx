@@ -175,7 +175,7 @@ export function RuntimeVoiceMessageContent(props: {
         <button
           type="button"
           onClick={toggleTranscript}
-          className="rounded-full border border-[var(--nimi-border-subtle)] px-3 py-1 text-[11px] font-medium text-[var(--nimi-text-secondary)] transition hover:bg-white"
+          className="rounded-full border border-[var(--nimi-border-subtle)] px-3 py-1 text-[11px] font-medium text-[var(--nimi-text-secondary)] transition hover:bg-[var(--nimi-surface-card)]"
         >
           {transcriptVisible ? props.hideTranscriptLabel : props.showTranscriptLabel}
         </button>

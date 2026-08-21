@@ -1,7 +1,13 @@
 import { useDesktopI18nResource } from '../../i18n/i18n-context';
-import type { ReactNode, RefObject } from 'react';
 import type { RealmModel } from '@nimiplatform/sdk/realm/generated';
-import { AppCardSurface } from '@nimiplatform/kit/ui';
+import {
+  ActionMenu,
+  AppCardSurface,
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+  type NimiMenuItem,
+} from '@nimiplatform/kit/ui';
 import { EntityAvatar } from '../../components/entity-avatar.js';
 import { E2E_IDS } from '../../testability/e2e-ids';
 import { ChatIcon, GiftIcon, HeartIcon } from './icons';
@@ -26,14 +32,13 @@ export type PostCardArticleProps = {
   isLiked: boolean;
   isLikePending?: boolean;
   showPostMenu: boolean;
-  menuButtonRef: RefObject<HTMLButtonElement | null>;
   firstMediaType: MediaDisplayKind | null;
   firstMediaUrl?: string;
   firstMediaThumbnail?: string;
   videoSource: VideoPlaybackSource | null;
   onOpenAuthorProfile: () => void;
   onOpenAddFriendModal: () => void;
-  onTogglePostMenu: () => void;
+  onPostMenuOpenChange: (open: boolean) => void;
   onOpenEditPost: () => void;
   onOpenEditVisibility: () => void;
   onOpenDeleteConfirm: () => void;
@@ -52,6 +57,45 @@ export function PostCardArticle(props: PostCardArticleProps) {
   const authorHandle = props.authorHandle || '';
   const SHOW_AVATAR_STATUS_INDICATOR = false;
   const isRecent = i18nResource.now() - new Date(props.post.createdAt).getTime() < 3600000; // 1 hour
+  const postMenuLabel = i18n.t('Home.postMenu', { defaultValue: 'Post menu' });
+  const postMenuItems: NimiMenuItem[] = props.isOwnPost
+    ? [
+      ...(props.canEditPost !== false ? [{
+        id: 'edit',
+        label: i18n.t('Home.edit', { defaultValue: 'Edit' }),
+        icon: <EditIcon className="h-4 w-4" />,
+        onSelect: props.onOpenEditPost,
+      }] : []),
+      ...(props.canEditVisibility !== false ? [{
+        id: 'edit-visibility',
+        label: i18n.t('Home.modifyVisibility', { defaultValue: 'Modify visibility' }),
+        icon: <EyeIcon className="h-4 w-4" />,
+        onSelect: props.onOpenEditVisibility,
+      }] : []),
+      {
+        id: 'delete',
+        label: i18n.t('Home.delete', { defaultValue: 'Delete' }),
+        icon: <TrashIcon className="h-4 w-4" />,
+        tone: 'danger' as const,
+        onSelect: props.onOpenDeleteConfirm,
+      },
+    ]
+    : [
+      ...(props.canUseHumanAuthorActions ? [{
+        id: 'block',
+        label: i18n.t('Home.block', { defaultValue: 'Block' }),
+        icon: <BlockIcon className="h-4 w-4" />,
+        tone: 'danger' as const,
+        onSelect: props.onOpenBlockConfirm,
+      }] : []),
+      {
+        id: 'report',
+        label: i18n.t('Home.report', { defaultValue: 'Report' }),
+        icon: <ReportIcon className="h-4 w-4" />,
+        tone: 'danger' as const,
+        onSelect: props.onOpenReportModal,
+      },
+    ];
   return (
     <AppCardSurface
       kind="promoted-glass"
@@ -79,7 +123,7 @@ export function PostCardArticle(props: PostCardArticleProps) {
                 kind={props.authorKind === 'character' ? 'source' : 'human'}
                 sizeClassName="h-11 w-11"
                 className="shrink-0 ring-1 ring-black/5 transition-transform duration-500 group-hover:scale-105"
-                fallbackClassName="bg-slate-100 text-slate-600 ring-1 ring-black/5"
+                fallbackClassName="bg-[var(--nimi-surface-panel)] text-[var(--nimi-text-secondary)] ring-1 ring-black/5"
                 textClassName="text-sm font-semibold"
               />
 
@@ -120,10 +164,10 @@ export function PostCardArticle(props: PostCardArticleProps) {
               className="block text-left m-0 cursor-pointer border-0 bg-transparent p-0 disabled:cursor-default"
             >
               <div className="flex min-w-0 items-center gap-2">
-                <span className="truncate text-[15px] font-semibold text-slate-950 transition-colors group-hover:text-[var(--nimi-action-primary-bg)]">{authorName}</span>
+                <span className="truncate text-[15px] font-semibold text-[var(--nimi-text-primary)] transition-colors group-hover:text-[var(--nimi-action-primary-bg)]">{authorName}</span>
               </div>
               {authorHandle ? (
-                <div className="mt-0.5 truncate text-[12px] font-medium text-slate-400">
+                <div className="mt-0.5 truncate text-[12px] font-medium text-[var(--nimi-text-muted)]">
                   <span>{authorHandle}</span>
                 </div>
               ) : null}
@@ -132,46 +176,30 @@ export function PostCardArticle(props: PostCardArticleProps) {
         </div>
 
         <div className="flex flex-col items-end gap-2">
-          <div className="relative">
-            <button
-              ref={props.menuButtonRef}
-              type="button"
-              onClick={(event) => {
-                event.stopPropagation();
-                props.onTogglePostMenu();
-              }}
-              className="rounded-full p-2 text-slate-300 transition-all hover:bg-black/5 hover:text-slate-600"
-              aria-label={i18n.t('Home.postMenu', { defaultValue: 'Post menu' })}
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" /><circle cx="5" cy="12" r="1" />
-              </svg>
-            </button>
-            {props.showPostMenu ? (
-              <div className="absolute right-0 top-full z-20 mt-2 w-44 overflow-hidden rounded-2xl nimi-material-glass-chrome bg-[var(--nimi-material-glass-chrome-bg)] border border-[var(--nimi-material-glass-chrome-border)] py-1.5 shadow-[0_18px_48px_rgba(15,23,42,0.16)] backdrop-blur-[var(--nimi-backdrop-blur-chrome)]" data-nimi-material="glass-chrome" data-nimi-tone="card">
-                {props.isOwnPost ? (
-                  <>
-                    {props.canEditPost !== false ? (
-                      <MenuAction label={i18n.t('Home.edit', { defaultValue: 'Edit' })} icon={<EditIcon className="h-4 w-4" />} onClick={props.onOpenEditPost} />
-                    ) : null}
-                    {props.canEditVisibility !== false ? (
-                      <MenuAction label={i18n.t('Home.modifyVisibility', { defaultValue: 'Modify visibility' })} icon={<EyeIcon className="h-4 w-4" />} onClick={props.onOpenEditVisibility} />
-                    ) : null}
-                    <MenuAction label={i18n.t('Home.delete', { defaultValue: 'Delete' })} icon={<TrashIcon className="h-4 w-4" />} onClick={props.onOpenDeleteConfirm} tone="danger" />
-                  </>
-                ) : (
-                  <>
-                    {props.canUseHumanAuthorActions ? (
-                      <MenuAction label={i18n.t('Home.block', { defaultValue: 'Block' })} icon={<BlockIcon className="h-4 w-4" />} onClick={props.onOpenBlockConfirm} tone="danger" />
-                    ) : null}
-                    <MenuAction label={i18n.t('Home.report', { defaultValue: 'Report' })} icon={<ReportIcon className="h-4 w-4" />} onClick={props.onOpenReportModal} tone="danger" />
-                  </>
-                )}
-              </div>
-            ) : null}
-          </div>
+          <Popover open={props.showPostMenu} onOpenChange={props.onPostMenuOpenChange}>
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                onClick={(event) => event.stopPropagation()}
+                className="rounded-full p-2 text-[var(--nimi-text-muted)] transition-all hover:bg-[color-mix(in_srgb,var(--nimi-surface-active)_60%,transparent)] hover:text-[var(--nimi-text-primary)]"
+                aria-label={postMenuLabel}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" /><circle cx="5" cy="12" r="1" />
+                </svg>
+              </button>
+            </PopoverTrigger>
+            <PopoverContent align="end" sideOffset={6} className="w-44 p-1">
+              <ActionMenu items={postMenuItems} ariaLabel={postMenuLabel} />
+            </PopoverContent>
+          </Popover>
           {props.isOwnPost && props.post.visibility !== 'PUBLIC' ? (
-            <span className="flex items-center gap-1 text-[9px] text-slate-400" title={props.post.visibility === 'FRIENDS' ? 'Friends only' : 'Private'}>
+            <span
+              className="flex items-center gap-1 text-[9px] text-[var(--nimi-text-muted)]"
+              title={props.post.visibility === 'FRIENDS'
+                ? i18n.t('Home.visibilityFriendsOnly', { defaultValue: 'Friends only' })
+                : i18n.t('Home.visibilityPrivateOnly', { defaultValue: 'Private' })}
+            >
               {props.post.visibility === 'PRIVATE' ? (
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
@@ -187,7 +215,7 @@ export function PostCardArticle(props: PostCardArticleProps) {
               )}
             </span>
           ) : null}
-          <span className="rounded-full bg-white/62 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400 ring-1 ring-white/70">
+          <span className="rounded-full bg-[color-mix(in_srgb,var(--nimi-surface-card)_62%,transparent)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--nimi-text-muted)] ring-1 ring-[var(--nimi-border-subtle)]">
             {i18nResource.formatDate(props.post.createdAt, { month: 'short', day: 'numeric' })}
           </span>
         </div>
@@ -198,7 +226,7 @@ export function PostCardArticle(props: PostCardArticleProps) {
       ) : props.firstMediaType === 'VIDEO' && props.videoSource?.mode === 'native' ? (
         <div className="px-4 pb-2"><NativeVideoPlayer src={props.videoSource.src} poster={props.firstMediaThumbnail} /></div>
       ) : props.firstMediaType === 'IMAGE' && props.firstMediaUrl ? (
-        <div className="relative mx-4 overflow-hidden rounded-xl bg-slate-100 shadow-inner aspect-[4/5]">
+        <div className="relative mx-4 overflow-hidden rounded-xl bg-[var(--nimi-surface-panel)] shadow-inner aspect-[4/5]">
           <img
             src={props.firstMediaUrl}
             alt=""
@@ -209,7 +237,7 @@ export function PostCardArticle(props: PostCardArticleProps) {
 
       <div className="px-5 py-4">
         {props.post.caption ? (
-          <p className="text-[14px] leading-7 text-slate-700">{props.post.caption}</p>
+          <p className="text-[14px] leading-7 text-[var(--nimi-text-secondary)]">{props.post.caption}</p>
         ) : null}
 
         <div className="mt-5 flex items-center justify-between border-t border-black/5 pt-4">
@@ -222,7 +250,7 @@ export function PostCardArticle(props: PostCardArticleProps) {
               }}
               disabled={props.isLikePending}
               className={`flex h-9 w-9 items-center justify-center rounded-full transition-all ${
-                props.isLiked ? 'scale-105 bg-rose-50 text-rose-500' : 'text-slate-400 hover:bg-rose-50 hover:text-rose-500'
+                props.isLiked ? 'scale-105 bg-rose-50 text-rose-500' : 'text-[var(--nimi-text-muted)] hover:bg-rose-50 hover:text-rose-500'
               } disabled:opacity-50`}
               aria-label={i18n.t('Home.likes', { defaultValue: 'Likes' })}
             >
@@ -276,31 +304,6 @@ export function PostCardArticle(props: PostCardArticleProps) {
         </div>
       )}
     </AppCardSurface>
-  );
-}
-
-function MenuAction(input: {
-  label: string;
-  icon: ReactNode;
-  onClick: () => void;
-  tone?: 'default' | 'danger';
-}) {
-  const className = input.tone === 'danger'
-    ? 'text-red-600 hover:bg-red-50'
-    : 'text-slate-700 hover:bg-slate-50';
-
-  return (
-    <button
-      type="button"
-      onClick={(event) => {
-        event.stopPropagation();
-        input.onClick();
-      }}
-      className={`flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm transition ${className}`}
-    >
-      <span className="shrink-0">{input.icon}</span>
-      {input.label}
-    </button>
   );
 }
 

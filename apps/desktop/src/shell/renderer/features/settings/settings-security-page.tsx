@@ -2,8 +2,9 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { NimiText } from '@nimiplatform/kit/ui';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
+import { InlineFeedback } from '../../ui/feedback/inline-feedback';
 import { Button, Card, PageShell, Section, StatusBadge } from './settings-layout-components.js';
-import { MonitorIcon, ShieldIcon } from './settings-security-controls.js';
+import { MonitorIcon, ShieldIcon } from './settings-assets.js';
 
 // @nimi-authority: rule.nimi.desktop.shell-runtime.r023
 export function SecurityPage() {
@@ -19,7 +20,7 @@ export function SecurityPage() {
     try {
       await bindings.app.commands.openAccountManagement();
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : String(reason || '账号管理页面不可用'));
+      setError(reason instanceof Error ? reason.message : String(reason || t('SecuritySettings.accountManagementUnavailable')));
     } finally {
       setOpening(false);
     }
@@ -41,7 +42,13 @@ export function SecurityPage() {
               {opening ? t('SecuritySettings.openingAccount') : t('SecuritySettings.manageAccount')}
             </Button>
           </div>
-          {error ? <p role="alert" className="mt-4 text-sm text-[var(--nimi-status-danger)]">{error}</p> : null}
+          {error ? (
+            <InlineFeedback
+              feedback={{ kind: 'error', message: error }}
+              onDismiss={() => setError(null)}
+              className="mt-4"
+            />
+          ) : null}
         </Card>
       </Section>
       <Section title={t('SecuritySettings.activeSessionsTitle')} description={t('SecuritySettings.activeSessionsDescription')}>

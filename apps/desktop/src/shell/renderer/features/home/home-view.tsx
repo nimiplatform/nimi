@@ -1,6 +1,6 @@
 import { useRealmSocialData } from '../social/data/realm-social-data-context.js';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ScrollArea, Surface, nimiToast } from '@nimiplatform/kit/ui';
+import { ScrollArea, Surface } from '@nimiplatform/kit/ui';
 import { useTranslation } from 'react-i18next';
 import type { NimiRealmFeedScope } from '@nimiplatform/sdk/realm';
 import { E2E_IDS } from '../../testability/e2e-ids';
@@ -11,6 +11,7 @@ import { usePostCardActionAdapter } from './post-card-action-adapter';
 import { PostFeed } from './post-feed';
 import { HomeCreatePostButton, HomeFeedScopeNav } from './home-feed-controls';
 import { prepareHomeFeedItems } from './utils';
+import { emitFeedbackToast } from '../../ui/feedback/emit-feedback-toast';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 import { useAppStore } from '../../app-shell/providers/app-store.js';
 
@@ -180,14 +181,20 @@ export function HomeView(props: HomeViewProps) {
           setIsPublishing(false);
           if (success) {
             setRefreshKey((k) => k + 1);
-            nimiToast.success(mode === 'edit'
-              ? t('Home.postUpdated', { defaultValue: 'Post updated successfully!' })
-              : t('Home.postPublished', { defaultValue: 'Post published successfully!' }));
+            emitFeedbackToast({
+              kind: 'success',
+              message: mode === 'edit'
+                ? t('Home.postUpdated', { defaultValue: 'Post updated successfully!' })
+                : t('Home.postPublished', { defaultValue: 'Post published successfully!' }),
+            });
             return;
           }
-          nimiToast.danger(mode === 'edit'
-            ? t('Home.postUpdateFailed', { defaultValue: 'Failed to update post' })
-            : t('Home.postPublishFailed', { defaultValue: 'Failed to publish post' }));
+          emitFeedbackToast({
+            kind: 'error',
+            message: mode === 'edit'
+              ? t('Home.postUpdateFailed', { defaultValue: 'Failed to update post' })
+              : t('Home.postPublishFailed', { defaultValue: 'Failed to publish post' }),
+          });
         }}
       />
 

@@ -313,7 +313,7 @@ export function ProfilePage() {
               type="button"
               onClick={() => avatarInputRef.current?.click()}
               disabled={uploadingAvatar}
-              className="absolute -bottom-2 -right-2 flex h-8 w-8 items-center justify-center rounded-xl bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-fg)] shadow-lg transition-transform hover:scale-110 hover:bg-[var(--nimi-action-primary-bg-hover)] disabled:cursor-not-allowed disabled:opacity-60"
+              className="absolute -bottom-2 -right-2 flex h-8 w-8 items-center justify-center rounded-xl bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)] shadow-lg transition-transform hover:scale-110 hover:bg-[var(--nimi-action-primary-bg-hover)] disabled:cursor-not-allowed disabled:opacity-60"
               title={uploadingAvatar ? t('Profile.avatarUploading') : t('Profile.changePhoto')}
             >
               {ICON_CAMERA}
@@ -382,7 +382,7 @@ export function ProfilePage() {
         <Card>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className={`flex h-12 w-12 items-center justify-center rounded-[var(--nimi-radius-md)] ${isEligible ? 'bg-mint-100 text-mint-600' : 'bg-[var(--nimi-surface-active)] text-[var(--nimi-text-muted)]'}`}>
+              <div className={`flex h-12 w-12 items-center justify-center rounded-[var(--nimi-radius-md)] ${isEligible ? 'bg-[color-mix(in_srgb,var(--nimi-status-success)_12%,transparent)] text-[var(--nimi-status-success)]' : 'bg-[var(--nimi-surface-active)] text-[var(--nimi-text-muted)]'}`}>
                 <AwardIcon className="h-6 w-6" />
               </div>
               <div>

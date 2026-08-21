@@ -12,7 +12,7 @@ const DATA_REQUIREMENTS = [
 
 function GiftDataGlyph() {
   return (
-    <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#F0FAF7] text-[#28A77A]">
+    <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[color-mix(in_srgb,var(--nimi-status-success)_10%,var(--nimi-surface-card))] text-[var(--nimi-status-success)]">
       <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true">
         <path
           d="M20 12v8H4v-8"
@@ -68,14 +68,14 @@ function TopSupportersModal({
       kind="dialog"
       onClose={onClose}
       dataTestId={E2E_IDS.profileTopSupportersDialog}
-      panelClassName="max-w-md overflow-hidden rounded-[28px] animate-in fade-in zoom-in duration-200"
+      panelClassName="max-w-md overflow-hidden rounded-[28px]"
       contentClassName="p-0"
       title={(
         <div className="px-1">
-          <h2 className="text-lg font-bold text-gray-900">
+          <h2 className="text-lg font-bold text-[var(--nimi-text-primary)]">
             {i18n.t('Profile.Gifts.topSupporters', { defaultValue: 'Top Supporters' })}
           </h2>
-          <p className="mt-0.5 text-xs text-gray-400">
+          <p className="mt-0.5 text-xs text-[var(--nimi-text-muted)]">
             {i18n.t('Profile.Gifts.unavailableTitle', { defaultValue: 'Gift data unavailable' })}
           </p>
         </div>
@@ -83,21 +83,21 @@ function TopSupportersModal({
     >
       <ScrollArea className="max-h-[360px]" viewportClassName="max-h-[360px]">
         <div className="space-y-4 px-6 py-5">
-          <p className="text-sm leading-relaxed text-gray-600">
+          <p className="text-sm leading-relaxed text-[var(--nimi-text-secondary)]">
             {i18n.t('Profile.Gifts.unavailableDescription', {
               defaultValue: 'This profile has no admitted gift activity data source available.',
             })}
           </p>
           <div className="space-y-3">
             {DATA_REQUIREMENTS.map((key) => (
-              <div key={key} className="rounded-xl border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_72%,white)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_4%,white)] px-4 py-3 text-sm text-gray-700">
+              <div key={key} className="rounded-xl border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_6%,var(--nimi-surface-card))] px-4 py-3 text-sm text-[var(--nimi-text-secondary)]">
                 {i18n.t(key)}
               </div>
             ))}
           </div>
         </div>
       </ScrollArea>
-      <div className="flex justify-end border-t border-gray-100 bg-gray-50 px-6 py-4">
+      <div className="flex justify-end border-t border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] px-6 py-4">
         <CompactAction onClick={onClose} tone="primary">
           {i18n.t('Common.close', { defaultValue: 'Close' })}
         </CompactAction>
@@ -117,10 +117,10 @@ export function GiftsTab() {
           <div className="flex min-w-0 items-start gap-4">
             <GiftDataGlyph />
             <div className="min-w-0">
-              <h2 className="text-lg font-semibold text-gray-900">
+              <h2 className="text-lg font-semibold text-[var(--nimi-text-primary)]">
                 {i18n.t('Profile.Gifts.unavailableTitle', { defaultValue: 'Gift data unavailable' })}
               </h2>
-              <p className="mt-2 max-w-2xl text-sm leading-relaxed text-gray-600">
+              <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[var(--nimi-text-secondary)]">
                 {i18n.t('Profile.Gifts.unavailableDescription', {
                   defaultValue: 'This profile has no admitted gift activity data source available.',
                 })}
@@ -139,7 +139,7 @@ export function GiftsTab() {
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         {DATA_REQUIREMENTS.map((key) => (
           <AppCardSurface key={key} kind="promoted-glass" as="div" className="p-5">
-            <p className="text-sm leading-relaxed text-gray-700">{i18n.t(key)}</p>
+            <p className="text-sm leading-relaxed text-[var(--nimi-text-secondary)]">{i18n.t(key)}</p>
           </AppCardSurface>
         ))}
       </div>

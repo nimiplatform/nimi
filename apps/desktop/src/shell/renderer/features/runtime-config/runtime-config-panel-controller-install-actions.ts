@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import {
   createOfflineNimiError as createOfflineError,
   ReasonCode,
@@ -28,6 +28,15 @@ export type RuntimeConfigInstallActions = {
   installCatalogModelAsset: (templateId: string) => Promise<void>;
 };
 
+export type RuntimeConfigInstallConfirmationRequest = {
+  readonly message: string;
+};
+
+export type UseRuntimeConfigInstallActionsResult = RuntimeConfigInstallActions & {
+  readonly installConfirmation: RuntimeConfigInstallConfirmationRequest | null;
+  readonly resolveInstallConfirmation: (confirmed: boolean) => void;
+};
+
 export type UseRuntimeConfigInstallActionsInput = {
   setStatusBanner: SetRuntimeConfigBanner;
   onOpenLoadouts: () => void;
@@ -49,11 +58,31 @@ export function runtimeConfigInstallConfirmationMessage(input: {
   return `${base}\n\n${input.translate('runtimeConfig.local.installWarnings', 'Before continuing:')}\n${warnings.map((warning) => `• ${warning}`).join('\n')}`;
 }
 
-export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallActionsInput): RuntimeConfigInstallActions {
+export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallActionsInput): UseRuntimeConfigInstallActionsResult {
   const localEnvironmentClient = useRuntimeConfigLocalEnvironmentClient();
   const { t } = useTranslation();
   const bindings = useDesktopRendererBindings();
   const { onOpenLoadouts, setStatusBanner } = input;
+  const [installConfirmation, setInstallConfirmation] = useState<RuntimeConfigInstallConfirmationRequest | null>(null);
+  const installConfirmationResolverRef = useRef<((confirmed: boolean) => void) | null>(null);
+
+  const requestInstallConfirmation = useCallback((message: string) => {
+    // A newer request supersedes a still-open dialog: cancel the pending one so
+    // its install flow unwinds instead of hanging on an unresolved promise.
+    installConfirmationResolverRef.current?.(false);
+    return new Promise<boolean>((resolve) => {
+      installConfirmationResolverRef.current = resolve;
+      setInstallConfirmation({ message });
+    });
+  }, []);
+
+  const resolveInstallConfirmation = useCallback((confirmed: boolean) => {
+    const resolver = installConfirmationResolverRef.current;
+    installConfirmationResolverRef.current = null;
+    setInstallConfirmation(null);
+    resolver?.(confirmed);
+  }, []);
+
   const translateRuntimeLocalText = useCallback((
     key: string,
     defaultValue: string,
@@ -83,7 +112,7 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
       plan.totalSizeBytes,
       translateRuntimeLocalText('runtimeConfig.local.unknownDownloadSize', 'size unknown'),
     );
-    const confirmed = bindings.app.commands.confirmRuntimeProfileInstall(runtimeConfigInstallConfirmationMessage({
+    const confirmed = await requestInstallConfirmation(runtimeConfigInstallConfirmationMessage({
       name: installLabel,
       size: sizeLabel,
       warnings: plan.warnings,
@@ -106,7 +135,7 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
       ),
       onAction: onOpenLoadouts,
     });
-  }, [assertRuntimeWriteAllowed, onOpenLoadouts, setStatusBanner, translateRuntimeLocalText]);
+  }, [assertRuntimeWriteAllowed, onOpenLoadouts, requestInstallConfirmation, setStatusBanner, translateRuntimeLocalText]);
 
   const installCatalogLocalModel = useCallback(async (
     item: NimiRuntimeLocalCatalogItemDescriptor,
@@ -198,5 +227,7 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
     installCatalogLocalModel,
     installResolvedModelPlan,
     installCatalogModelAsset,
+    installConfirmation,
+    resolveInstallConfirmation,
   };
 }

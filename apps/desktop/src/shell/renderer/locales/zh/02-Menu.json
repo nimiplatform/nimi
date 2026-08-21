@@ -5,5 +5,11 @@
   "termsOfService": "服务条款",
   "privacyPolicy": "隐私政策",
   "logout": "退出登录",
-  "switchAccount": "切换账号"
+  "switchAccount": "切换账号",
+  "logoutConfirmTitle": "退出登录?",
+  "logoutConfirmBody": "退出后需要重新登录才能继续使用 Nimi。",
+  "logoutConfirmAction": "退出登录",
+  "switchAccountConfirmTitle": "切换账号?",
+  "switchAccountConfirmBody": "将退出当前账号并返回登录页。",
+  "switchAccountConfirmAction": "切换账号"
 }

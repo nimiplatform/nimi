@@ -93,9 +93,9 @@ export function SupportPanel() {
 
       <Surface
         tone="panel"
-        material="glass-regular"
+        material="solid"
         padding="none"
-        className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-xl"
+        className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-xl border-[color:var(--nimi-border-subtle)] shadow-[0_10px_24px_rgba(15,23,42,0.05)]"
       >
         {renderSupportSection(selected, navigate)}
       </Surface>

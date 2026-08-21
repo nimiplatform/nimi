@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
+import { InlineFeedback } from '../../ui/feedback/inline-feedback';
 
 export function DeveloperModeToggle({
   onEnabledChange,
@@ -103,7 +104,13 @@ export function DeveloperModeToggle({
               ? t('Developer.developerModeStatusOn')
               : t('Developer.developerModeStatusOff')}
           </p>
-          {error ? <p role="alert" className="max-w-xl break-words text-xs text-[var(--nimi-status-danger)]">{error}</p> : null}
+          {error ? (
+            <InlineFeedback
+              feedback={{ kind: 'error', message: error }}
+              onDismiss={() => setError('')}
+              className="mt-2 max-w-xl"
+            />
+          ) : null}
         </div>
         <button
           type="button"
@@ -114,7 +121,7 @@ export function DeveloperModeToggle({
           className={
             enabled
               ? 'rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-active)] px-3.5 py-2 text-xs font-medium text-[var(--nimi-text-primary)] transition hover:bg-[var(--nimi-action-ghost-hover)] disabled:cursor-wait disabled:opacity-70'
-              : 'rounded-lg bg-[var(--nimi-action-primary-bg)] px-3.5 py-2 text-xs font-medium text-[var(--nimi-action-primary-fg)] transition hover:bg-[var(--nimi-action-primary-bg-hover)] disabled:cursor-wait disabled:opacity-70'
+              : 'rounded-lg bg-[var(--nimi-action-primary-bg)] px-3.5 py-2 text-xs font-medium text-[var(--nimi-action-primary-text)] transition hover:bg-[var(--nimi-action-primary-bg-hover)] disabled:cursor-wait disabled:opacity-70'
           }
         >
           {enabled

@@ -1,4 +1,5 @@
 {
   "about": "About",
-  "tags": "Tags"
+  "tags": "Tags",
+  "joinedOn": "Joined {{date}}"
 }

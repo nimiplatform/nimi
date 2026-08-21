@@ -26,6 +26,7 @@ import {
 import type { PersistentOutboxEntry } from '../../../infra/offline/types';
 import type { DesktopRendererOfflinePort } from '../../../renderer/offline-port.js';
 import type { DesktopRendererSdkPort } from '../../../renderer/sdk-port.js';
+import { i18n } from '../../../i18n/index.js';
 
 type DesktopChatErrorEmitter = (
   action: string,
@@ -66,6 +67,13 @@ const unavailableRealmChatService: RealmChatService = Object.freeze({
 });
 
 function emitNoop() {}
+
+function humanChatFallbackMessage(key: string, defaultValue: string): string {
+  const translated = i18n.t(key, { defaultValue });
+  return typeof translated === 'string' && translated.trim().length > 0
+    ? translated
+    : defaultValue;
+}
 
 function createClientMessageId(): string {
   return createNimiClientId('cm');
@@ -377,7 +385,7 @@ export async function flushPendingChatOutbox(
     outbox: await getDesktopRealmChatOutboxStore(offlinePort),
     isOfflineError: isRealmOfflineError,
     describeError: (error, fallback) => getErrorMessage(error, fallback),
-    failureMessage: '重放聊天消息失败',
+    failureMessage: humanChatFallbackMessage('Chat.outboxReplayFailed', 'Failed to resend queued messages'),
     stopOnOffline: false,
     onOffline: (error) => markRealmOffline(error, offlinePort),
     onEntryError: (error, entry) => {

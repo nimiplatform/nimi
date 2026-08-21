@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react';
 import { Button, IconButton, OverlayShell } from '@nimiplatform/kit/ui';
 import { useTranslation } from 'react-i18next';
 import { EntityAvatar } from '../../components/entity-avatar.js';
+import { InlineFeedback } from '../../ui/feedback/inline-feedback';
 
 export type PostCardHumanAuthorPreview = {
   name: string;
@@ -62,7 +63,7 @@ export function AddFriendModal({
       className="bg-[var(--nimi-scrim-modal)]"
       title={(
         <div className="flex items-center justify-between gap-4">
-          <h2 className="text-base font-semibold text-gray-900">{t('Relationship.addContact', { defaultValue: 'Add Friend' })}</h2>
+          <h2 className="text-base font-semibold text-[var(--nimi-text-primary)]">{t('Relationship.addContact', { defaultValue: 'Add Friend' })}</h2>
           <IconButton
             icon={(
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -101,12 +102,12 @@ export function AddFriendModal({
           name={author.name}
           kind="human"
           sizeClassName="h-16 w-16"
-          className="ring-4 ring-mint-100"
+          className="ring-4 ring-[color-mix(in_srgb,var(--nimi-action-primary-bg)_20%,transparent)]"
           textClassName="text-xl font-bold"
-          fallbackClassName="bg-mint-100 text-mint-700"
+          fallbackClassName="bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_14%,var(--nimi-surface-card))] text-[var(--nimi-action-primary-bg)]"
         />
-        <h3 className="mt-3 text-lg font-bold text-gray-900">{author.name}</h3>
-        <p className="text-sm text-gray-500">@{author.handle.replace(/^@/, '')}</p>
+        <h3 className="mt-3 text-lg font-bold text-[var(--nimi-text-primary)]">{author.name}</h3>
+        <p className="text-sm text-[var(--nimi-text-muted)]">@{author.handle.replace(/^@/, '')}</p>
       </div>
 
       <div className="mt-4">
@@ -117,19 +118,12 @@ export function AddFriendModal({
           rows={3}
           maxLength={200}
           disabled={loading}
-          className="w-full resize-none rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 outline-none transition-all placeholder:text-gray-400 focus:border-mint-300 focus:bg-white focus:ring-2 focus:ring-mint-100 disabled:opacity-50"
+          className="w-full resize-none rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] px-4 py-3 text-sm text-[var(--nimi-text-primary)] outline-none transition-all placeholder:text-[var(--nimi-text-muted)] focus:border-[var(--nimi-field-focus)] focus:bg-[var(--nimi-surface-card)] focus:ring-1 focus:ring-[var(--nimi-focus-ring-color)] disabled:opacity-50"
         />
       </div>
 
       {error ? (
-        <div className="mt-3 flex items-center gap-2 rounded-xl bg-red-50 px-3 py-2 text-xs text-red-600">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="10" />
-            <line x1="12" y1="8" x2="12" y2="12" />
-            <line x1="12" y1="16" x2="12.01" y2="16" />
-          </svg>
-          {error}
-        </div>
+        <InlineFeedback className="mt-3" feedback={{ kind: 'error', message: error }} />
       ) : null}
     </OverlayShell>
   );

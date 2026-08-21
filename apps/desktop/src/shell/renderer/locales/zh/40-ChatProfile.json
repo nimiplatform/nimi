@@ -1,4 +1,5 @@
 {
   "about": "关于",
-  "tags": "标签"
+  "tags": "标签",
+  "joinedOn": "加入于 {{date}}"
 }

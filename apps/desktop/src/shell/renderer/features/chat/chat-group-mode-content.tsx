@@ -3,6 +3,7 @@ import {
   type ConversationSetupAction,
   type ConversationTargetSummary,
 } from '@nimiplatform/kit/features/chat/headless';
+import { useTranslation } from 'react-i18next';
 import { useAppStore } from '../../app-shell/providers/app-store';
 import { useGroupConversationModeHost } from './chat-group-adapter';
 import {
@@ -26,6 +27,7 @@ export function ChatGroupModeContent({
   onSetupAction,
   onSelectTarget,
 }: ChatGroupModeContentProps) {
+  const { t } = useTranslation();
   const authStatus = useAppStore((state) => state.auth.status);
   const currentUserId = useAppStore((state) => {
     const user = state.auth.user;
@@ -86,11 +88,11 @@ export function ChatGroupModeContent({
       onCloseSettings={onCloseSettings}
       transcriptPropsOverride={transcriptProps}
       stagePanelPropsOverride={stagePanelProps}
-      settingsSheetTitle={host.settingsDrawerTitle || 'Group'}
+      settingsSheetTitle={host.settingsDrawerTitle || t('Chat.group', { defaultValue: 'Group' })}
       settingsSheetSubtitle={host.characterData?.bio || selectedTarget?.title}
       settingsSheetContent={host.rightPanelContent ?? (
-        <p className="text-sm text-slate-500">
-          Group settings are not available for this conversation yet.
+        <p className="text-sm text-[var(--nimi-text-secondary)]">
+          {t('Chat.groupSettingsEmpty', { defaultValue: 'This mode does not expose extra settings yet.' })}
         </p>
       )}
     />

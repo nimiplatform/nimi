@@ -12,8 +12,8 @@ type CreatePostModalHeaderProps = {
 
 export function CreatePostModalHeader({ isEditMode, uploading, onClose, t }: CreatePostModalHeaderProps) {
   return (
-    <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4">
-      <h2 className="text-base font-semibold text-gray-900">
+    <div className="flex items-center justify-between border-b border-[var(--nimi-border-subtle)] px-5 py-4">
+      <h2 className="text-base font-semibold text-[var(--nimi-text-primary)]">
         {isEditMode
           ? t('Profile.CreatePost.editPost', { defaultValue: 'Edit Post' })
           : t('Home.createPost', { defaultValue: 'Create Post' })}
@@ -22,7 +22,7 @@ export function CreatePostModalHeader({ isEditMode, uploading, onClose, t }: Cre
         type="button"
         onClick={onClose}
         disabled={uploading}
-        className="rounded-lg p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 disabled:opacity-50"
+        className="rounded-lg p-1.5 text-[var(--nimi-text-muted)] transition hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-text-secondary)] disabled:opacity-50"
       >
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <line x1="18" y1="6" x2="6" y2="18" />
@@ -75,7 +75,7 @@ export function CreatePostAttachmentSection({
       {!selectedFile && !selectedAttachmentRef ? (
         <div
           className={`flex flex-col items-center justify-center rounded-xl border-2 border-dashed px-6 py-12 transition ${
-            dragOver ? 'border-[var(--nimi-action-primary-bg)] bg-[var(--nimi-action-primary-bg)]/10' : 'border-gray-300 bg-gray-50 hover:border-[var(--nimi-action-primary-bg)]'
+            dragOver ? 'border-[var(--nimi-action-primary-bg)] bg-[var(--nimi-action-primary-bg)]/10' : 'border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] hover:border-[var(--nimi-action-primary-bg)]'
           }`}
           onDragOver={(event) => {
             event.preventDefault();
@@ -87,15 +87,17 @@ export function CreatePostAttachmentSection({
           role="button"
           tabIndex={0}
         >
-          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="mb-3 text-gray-400">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="mb-3 text-[var(--nimi-text-muted)]">
             <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
             <circle cx="8.5" cy="8.5" r="1.5" />
             <polyline points="21 15 16 10 5 21" />
           </svg>
-          <p className="text-sm font-medium text-gray-700">
-            {dragOver ? 'Drop file here' : 'Click or drag to upload'}
+          <p className="text-sm font-medium text-[var(--nimi-text-secondary)]">
+            {dragOver
+              ? t('Profile.CreatePost.dropFileHere', { defaultValue: 'Drop file here' })
+              : t('Profile.CreatePost.clickOrDragToUpload', { defaultValue: 'Click or drag to upload' })}
           </p>
-          <p className="mt-1 text-xs text-gray-400">
+          <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">
             {t('Profile.CreatePost.supportedMediaTypes', {
               defaultValue: 'PNG, JPEG, GIF, WebP, MP4, MOV (max 100MB)',
             })}
@@ -103,11 +105,11 @@ export function CreatePostAttachmentSection({
         </div>
       ) : (
         <div className="relative">
-          <div className="overflow-hidden rounded-xl bg-gray-100">
+          <div className="overflow-hidden rounded-xl bg-[var(--nimi-surface-panel)]">
             {(selectedFile?.type ?? selectedAttachmentRef?.type) === 'image' ? (
               <img
                 src={selectedFile?.previewUrl || selectedAttachmentRef?.previewUrl || ''}
-                alt="Preview"
+                alt={t('Profile.CreatePost.previewAlt', { defaultValue: 'Preview' })}
                 className="mx-auto max-h-64 object-contain"
               />
             ) : (
@@ -140,7 +142,9 @@ export function CreatePostAttachmentSection({
               <circle cx="12" cy="13" r="4" />
             </svg>
             <span className="hidden sm:inline">
-              {selectedAttachmentRef && !selectedFile ? 'Replace' : 'Change'}
+              {selectedAttachmentRef && !selectedFile
+                ? t('Profile.CreatePost.replace', { defaultValue: 'Replace' })
+                : t('Profile.CreatePost.change', { defaultValue: 'Change' })}
             </span>
           </button>
         </div>
@@ -201,7 +205,7 @@ export function CreatePostCaptionSection({
         placeholder={t('Profile.CreatePost.writeCaptionPlaceholder', { defaultValue: 'Write a caption...' })}
         disabled={uploading}
         rows={3}
-        className="w-full resize-none rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-[var(--nimi-action-primary-bg)] focus:ring-1 focus:ring-[var(--nimi-action-primary-bg)] focus:outline-none disabled:opacity-50"
+        className="w-full resize-none rounded-xl border border-[var(--nimi-field-border)] bg-[var(--nimi-field-bg)] px-4 py-3 text-sm text-[var(--nimi-field-text)] placeholder:text-[var(--nimi-field-placeholder)] focus:border-[var(--nimi-action-primary-bg)] focus:ring-1 focus:ring-[var(--nimi-action-primary-bg)] focus:outline-none disabled:opacity-50"
       />
 
       {(selectedLocation || tags.length > 0) && (
@@ -301,7 +305,7 @@ export function CreatePostCaptionSection({
       </div>
 
       <div className="mt-2 flex items-center justify-end">
-        <span className="text-xs text-gray-400">{caption.length}/{MAX_CAPTION_LENGTH}</span>
+        <span className="text-xs text-[var(--nimi-text-muted)]">{caption.length}/{MAX_CAPTION_LENGTH}</span>
       </div>
     </div>
   );
@@ -314,6 +318,7 @@ type CreatePostModalFooterProps = {
   isEditMode: boolean;
   onClose: () => void;
   onSubmit: () => void;
+  t: TFunction;
 };
 
 export function CreatePostModalFooter({
@@ -323,16 +328,17 @@ export function CreatePostModalFooter({
   isEditMode,
   onClose,
   onSubmit,
+  t,
 }: CreatePostModalFooterProps) {
   return (
-    <div className="flex items-center justify-end gap-3 border-t border-gray-200 px-5 py-4">
+    <div className="flex items-center justify-end gap-3 border-t border-[var(--nimi-border-subtle)] px-5 py-4">
       <button
         type="button"
         onClick={onClose}
         disabled={uploading}
-        className="rounded-[10px] px-4 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-100 disabled:opacity-50"
+        className="rounded-[10px] px-4 py-2 text-sm font-medium text-[var(--nimi-text-secondary)] transition hover:bg-[var(--nimi-action-ghost-hover)] disabled:opacity-50"
       >
-        Cancel
+        {t('Common.cancel', { defaultValue: 'Cancel' })}
       </button>
       <button
         type="button"
@@ -346,10 +352,14 @@ export function CreatePostModalFooter({
               <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" className="opacity-25" />
               <path d="M4 12a8 8 0 0 1 8-8" stroke="currentColor" strokeWidth="3" strokeLinecap="round" className="opacity-75" />
             </svg>
-            {isEditMode ? 'Saving...' : 'Posting...'}
+            {isEditMode
+              ? t('Common.saving', { defaultValue: 'Saving...' })
+              : t('Profile.CreatePost.posting', { defaultValue: 'Posting...' })}
           </>
         ) : (
-          isEditMode ? 'Save' : 'Post'
+          isEditMode
+            ? t('Common.save', { defaultValue: 'Save' })
+            : t('Profile.CreatePost.post', { defaultValue: 'Post' })
         )}
       </button>
     </div>
@@ -439,12 +449,12 @@ function TooltipButton(props: {
         disabled={props.disabled}
         onClick={props.onClick}
         className={`group relative flex h-8 w-8 items-center justify-center rounded-full transition-colors disabled:opacity-50 ${
-          props.active ? 'bg-[#0066CC] text-white' : 'text-gray-500 hover:bg-gray-200/50 hover:text-gray-700'
+          props.active ? 'bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)]' : 'text-[var(--nimi-text-muted)] hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-text-secondary)]'
         }`}
         title={props.label}
       >
         {props.icon}
-        <span className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 rounded-md bg-gray-800 px-2 py-1 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100">
+        <span className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 rounded-md border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-overlay)] px-2 py-1 text-xs text-[var(--nimi-text-primary)] opacity-0 transition-opacity group-hover:opacity-100">
           {props.label}
         </span>
       </button>

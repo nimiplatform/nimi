@@ -94,7 +94,6 @@ export interface DesktopRendererCommandPort {
     readonly filename: string;
     readonly content: string;
   }): void;
-  confirmRuntimeProfileInstall(message: string): boolean;
   pickLocalRuntimeAssetFile(): Promise<string | null>;
   pickLocalRuntimeAssetDirectory(): Promise<string | null>;
   revealLocalRuntimeAssetsRootFolder(): Promise<void>;

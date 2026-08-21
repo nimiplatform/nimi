@@ -39,7 +39,7 @@ export function ChatMessageImage(input: {
 
   if (failed) {
     return (
-      <span role="status" className="inline-flex max-w-[260px] rounded-xl border border-border px-3 py-2 text-sm text-muted-foreground">
+      <span role="status" className="inline-flex max-w-[260px] rounded-xl border border-[var(--nimi-border-subtle)] px-3 py-2 text-sm text-[var(--nimi-text-secondary)]">
         {i18n.t('Chat.mediaUnavailable', { defaultValue: 'Media is unavailable through the current authorization path.' })}
       </span>
     );

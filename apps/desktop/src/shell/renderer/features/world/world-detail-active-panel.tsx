@@ -61,7 +61,7 @@ export function WorldDetailActivePanel() {
 
   if (!selectedWorldId) {
     return (
-      <div className="flex flex-1 items-center justify-center text-sm text-gray-500">
+      <div className="flex flex-1 items-center justify-center text-sm text-[var(--nimi-text-muted)]">
         {t('WorldDetail.noWorldSelected', { defaultValue: 'No world selected' })}
       </div>
     );
@@ -80,8 +80,8 @@ export function WorldDetailActivePanel() {
 
   if (!selectedWorld && worldsQuery.isError) {
     return (
-      <div className="flex flex-1 flex-col items-center justify-center gap-3 bg-gray-50">
-        <span className="text-sm text-red-600">
+      <div className="flex flex-1 flex-col items-center justify-center gap-3 bg-[var(--nimi-surface-canvas)]">
+        <span className="text-sm text-[var(--nimi-status-danger)]">
           {t('WorldDetail.error', { defaultValue: 'Failed to load world details' })}
         </span>
         <div className="flex items-center gap-2">
@@ -90,14 +90,14 @@ export function WorldDetailActivePanel() {
             onClick={() => {
               void worldsQuery.refetch();
             }}
-            className="rounded-[10px] bg-mint-500 px-4 py-2 text-sm font-medium text-white hover:bg-mint-600"
+            className="rounded-[10px] bg-[var(--nimi-action-primary-bg)] px-4 py-2 text-sm font-medium text-[var(--nimi-action-primary-text)] hover:bg-[var(--nimi-action-primary-bg-hover)]"
           >
             {t('NotificationPanel.refresh', { defaultValue: 'Refresh' })}
           </button>
           <button
             type="button"
             onClick={navigateBack}
-            className="rounded-[10px] bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200"
+            className="rounded-[10px] bg-[var(--nimi-surface-panel)] px-4 py-2 text-sm font-medium text-[var(--nimi-text-secondary)] hover:bg-[var(--nimi-surface-active)]"
           >
             {t('WorldDetail.backToList', { defaultValue: 'Back to List' })}
           </button>
@@ -108,14 +108,14 @@ export function WorldDetailActivePanel() {
 
   if (!selectedWorld) {
     return (
-      <div className="flex flex-1 flex-col items-center justify-center gap-3 bg-gray-50">
-        <span className="text-sm text-gray-500">
+      <div className="flex flex-1 flex-col items-center justify-center gap-3 bg-[var(--nimi-surface-canvas)]">
+        <span className="text-sm text-[var(--nimi-text-muted)]">
           {t('WorldDetail.notFound', { defaultValue: 'World not found' })}
         </span>
         <button
           type="button"
           onClick={navigateBack}
-          className="rounded-[10px] bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200"
+          className="rounded-[10px] bg-[var(--nimi-surface-panel)] px-4 py-2 text-sm font-medium text-[var(--nimi-text-secondary)] hover:bg-[var(--nimi-surface-active)]"
         >
           {t('WorldDetail.backToList', { defaultValue: 'Back to List' })}
         </button>

@@ -45,15 +45,15 @@ export function FollowedWorldsTab() {
     return (
       <div
         data-testid="profile-followed-worlds-empty"
-        className="flex flex-col items-center justify-center gap-2 rounded-2xl border border-slate-200/70 bg-white/50 px-6 py-12 text-center"
+        className="flex flex-col items-center justify-center gap-2 rounded-2xl border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_50%,transparent)] px-6 py-12 text-center"
       >
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="text-[var(--nimi-text-muted)]">
           <path d="M19.5 12.572 12 20l-7.5-7.428A5 5 0 1 1 12 6.006a5 5 0 1 1 7.5 6.566z" />
         </svg>
-        <div className="text-[15px] font-semibold text-slate-900">{t('Profile.followedWorldsEmptyTitle')}</div>
-        <div className="max-w-[360px] text-[12.5px] leading-relaxed text-slate-500">{t('Profile.followedWorldsEmptyBody')}</div>
+        <div className="text-[15px] font-semibold text-[var(--nimi-text-primary)]">{t('Profile.followedWorldsEmptyTitle')}</div>
+        <div className="max-w-[360px] text-[12.5px] leading-relaxed text-[var(--nimi-text-secondary)]">{t('Profile.followedWorldsEmptyBody')}</div>
         {followed.error ? (
-          <div className="text-xs font-medium text-red-600">{t('World.atlas.followed.error')}</div>
+          <div className="text-xs font-medium text-[var(--nimi-status-danger)]">{t('World.atlas.followed.error')}</div>
         ) : null}
       </div>
     );
@@ -65,7 +65,7 @@ export function FollowedWorldsTab() {
 
   if (worldsQuery.isError) {
     return (
-      <div className="rounded-2xl border border-slate-200/70 bg-white/50 px-6 py-10 text-center text-sm font-medium text-red-600">
+      <div className="rounded-2xl border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_50%,transparent)] px-6 py-10 text-center text-sm font-medium text-[var(--nimi-status-danger)]">
         {t('Profile.followedWorldsLoadError')}
       </div>
     );
@@ -84,9 +84,7 @@ export function FollowedWorldsTab() {
         <CompactWorldCard
           key={world.id}
           world={world}
-          selected={false}
           view="grid"
-          onSelect={() => navigateToWorld(world.id)}
           onOpen={() => navigateToWorld(world.id)}
           followed={followed.isFollowed(world.id)}
           followAvailable={followed.available}

@@ -66,7 +66,7 @@ export function NotificationPanelItemCard({
       kind="promoted-glass"
     >
       {!item.isRead ? (
-        <div className="absolute right-4 top-4 h-2.5 w-2.5 rounded-full bg-mint-500 shadow-sm" />
+        <div className="absolute right-4 top-4 h-2.5 w-2.5 rounded-full bg-[var(--nimi-action-primary-bg)] shadow-sm" />
       ) : null}
 
       <div className="flex gap-4">
@@ -76,30 +76,30 @@ export function NotificationPanelItemCard({
             name={item.actorName}
             kind="human"
             sizeClassName="h-12 w-12"
-            className="ring-2 ring-gray-100"
+            className="ring-2 ring-[var(--nimi-border-subtle)]"
             fallbackClassName={item.isRead
-              ? 'bg-gray-100 text-gray-500 ring-2 ring-gray-100'
-              : 'bg-mint-100 text-mint-700 ring-2 ring-gray-100'}
+              ? 'bg-[var(--nimi-surface-panel)] text-[var(--nimi-text-muted)] ring-2 ring-[var(--nimi-border-subtle)]'
+              : 'bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_14%,var(--nimi-surface-card))] text-[var(--nimi-action-primary-bg)] ring-2 ring-[var(--nimi-border-subtle)]'}
             textClassName="text-sm font-semibold"
           />
         </div>
 
         <div className="min-w-0 flex-1 pr-6">
-          <p className="text-sm text-gray-800">
+          <p className="text-sm text-[var(--nimi-text-primary)]">
             <span className="font-bold">{item.actorName}</span>{' '}
-            <span className="text-gray-600">{item.title.replace(item.actorName, '').trim()}</span>{' '}
-            <span className="inline-flex items-center rounded-md bg-blue-50 px-1.5 py-0.5 text-[10px] font-medium text-blue-600">
+            <span className="text-[var(--nimi-text-secondary)]">{item.title.replace(item.actorName, '').trim()}</span>{' '}
+            <span className="inline-flex items-center rounded-md bg-[var(--nimi-status-info-soft-bg)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--nimi-status-info-soft-text)]">
               {t(`NotificationPanel.typeNotifications.${badgeKey}`, {
                 defaultValue: getBadgeDefaultLabel(badgeKey),
               })}
             </span>
           </p>
 
-          <p className="mt-0.5 text-xs text-gray-400">{formatNotificationTime(item.createdAt, i18n)}</p>
+          <p className="mt-0.5 text-xs text-[var(--nimi-text-muted)]">{formatNotificationTime(item.createdAt, i18n)}</p>
 
           <div className="mt-2 flex flex-wrap items-center gap-2">
             {item.giftSparkCost ? (
-              <span className="inline-flex items-center rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-700">
+              <span className="inline-flex items-center rounded-full bg-[var(--nimi-status-warning-soft-bg)] px-2.5 py-1 text-[11px] font-semibold text-[var(--nimi-status-warning-soft-text)]">
                 {t('NotificationPanel.sparkAmount', {
                   amount: item.giftSparkCost,
                   defaultValue: '{{amount}} Spark',
@@ -135,7 +135,7 @@ export function NotificationPanelItemCard({
               onCreateReview={onCreateReview}
             />
             {shouldOpenGiftInbox ? (
-              <span className="inline-flex items-center gap-1 rounded-xl border border-mint-200 bg-mint-50 px-3 py-1.5 text-[12px] font-medium text-mint-700 transition-colors group-hover:border-mint-300 group-hover:bg-mint-100">
+              <span className="inline-flex items-center gap-1 rounded-xl border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_24%,transparent)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_6%,var(--nimi-surface-card))] px-3 py-1.5 text-[12px] font-medium text-[var(--nimi-action-primary-bg)] transition-colors group-hover:border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_36%,transparent)] group-hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_12%,var(--nimi-surface-card))]">
                 {t('NotificationPanel.viewGift', { defaultValue: 'View Gift' })}
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="9 18 15 12 9 6" />

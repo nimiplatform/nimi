@@ -97,6 +97,7 @@
   "reportDetailsPlaceholder": "Please provide more details about your report...",
   "reportPost": "Report Post",
   "reportPrompt": "Why are you reporting this post by {{name}}?",
+  "reportReasonLabel": "Report reason",
   "reportSubmitted": "Report submitted successfully",
   "reportSubmitFailed": "Failed to submit report",
   "reportReasons": {
@@ -114,6 +115,8 @@
   "unknownError": "Unknown error",
   "updateLikeFailed": "Failed to update like",
   "visibilityFriendsDescription": "Only your friends can see this post.",
+  "visibilityFriendsOnly": "Friends only",
   "visibilityPrivateDescription": "Only you can see this post.",
+  "visibilityPrivateOnly": "Private",
   "visibilityPublicDescription": "Anyone can see this post."
 }

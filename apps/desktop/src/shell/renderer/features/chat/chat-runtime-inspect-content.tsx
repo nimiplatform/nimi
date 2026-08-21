@@ -25,14 +25,14 @@ export function RuntimeInspectCard(props: {
 }) {
   return (
     <AppCardSurface kind="operational-solid" as="div" className="px-3 py-3">
-      <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400">
+      <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--nimi-text-muted)]">
         {props.label}
       </div>
-      <div className="mt-2 text-sm font-semibold text-gray-900">
+      <div className="mt-2 text-sm font-semibold text-[var(--nimi-text-primary)]">
         {props.value}
       </div>
       {props.detail ? (
-        <div className="mt-1 whitespace-pre-wrap text-xs leading-5 text-gray-500">
+        <div className="mt-1 whitespace-pre-wrap text-xs leading-5 text-[var(--nimi-text-secondary)]">
           {props.detail}
         </div>
       ) : null}
@@ -42,7 +42,7 @@ export function RuntimeInspectCard(props: {
 
 export function RuntimeInspectUnsupportedNote(props: { label: string }) {
   return (
-    <AppCardSurface kind="operational-solid" as="div" className="border-dashed px-3 py-4 text-center text-[11px] text-gray-500">
+    <AppCardSurface kind="operational-solid" as="div" className="border-dashed px-3 py-4 text-center text-[11px] text-[var(--nimi-text-muted)]">
       {props.label}
     </AppCardSurface>
   );

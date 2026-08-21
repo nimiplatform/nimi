@@ -1,6 +1,8 @@
+import { MotionConfig } from 'motion/react';
 import {
   createContext,
   useContext,
+  useEffect,
   useMemo,
   useState,
   type PropsWithChildren,
@@ -20,9 +22,22 @@ export function DesktopMotionProvider(props: PropsWithChildren) {
     setAppReducedMotion,
   }), [appReducedMotion]);
 
+  // Mirror the app-level switch onto the root element so the CSS guard in
+  // styles.css can freeze transitions/animations too; clean up on unmount.
+  useEffect(() => {
+    document.documentElement.dataset.nimiReducedMotion = appReducedMotion ? 'true' : 'false';
+    return () => {
+      delete document.documentElement.dataset.nimiReducedMotion;
+    };
+  }, [appReducedMotion]);
+
   return (
     <DesktopMotionContext.Provider value={value}>
-      {props.children}
+      {/* Feed the app switch into the kit motion substrate: 'always' forces
+          reduced motion; 'user' hands back to the OS media query. */}
+      <MotionConfig reducedMotion={appReducedMotion ? 'always' : 'user'}>
+        {props.children}
+      </MotionConfig>
     </DesktopMotionContext.Provider>
   );
 }

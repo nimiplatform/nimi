@@ -101,13 +101,13 @@ export function useHumanVoiceUiState() {
 
   const rightSidebarOverlayMenu: ReactNode = voiceContextMenu ? (
     <div
-      className="fixed z-50 min-w-[160px] rounded-xl border border-gray-200 bg-white p-1.5 shadow-xl"
-      style={{ left: `${voiceContextMenu.x}px`, top: `${voiceContextMenu.y}px`, animation: 'panel-scale-in 0.15s ease-out both' }}
+      className="fixed z-50 min-w-[160px] rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-overlay)] p-1.5 shadow-xl"
+      style={{ left: `${voiceContextMenu.x}px`, top: `${voiceContextMenu.y}px` }}
       onClick={(event) => event.stopPropagation()}
     >
       <button
         type="button"
-        className="w-full rounded-lg px-3 py-2 text-left text-sm text-gray-800 transition-colors hover:bg-gray-100"
+        className="w-full rounded-lg px-3 py-2 text-left text-sm text-[var(--nimi-text-secondary)] transition-colors hover:bg-[var(--nimi-action-ghost-hover)]"
         onClick={() => toggleVoiceTranscript(voiceContextMenu.messageId)}
       >
         {voiceTranscriptVisibleById[voiceContextMenu.messageId]
@@ -149,8 +149,8 @@ export function HumanVoiceInspectSidebar(props: {
         hint={t('Chat.voiceInspectHint', { defaultValue: 'Playback and transcript controls for the selected voice beat.' })}
       >
         <div className="space-y-2">
-          <div className="text-sm font-semibold text-slate-900">{senderName}</div>
-          <div className="text-xs text-slate-500">
+          <div className="text-sm font-semibold text-[var(--nimi-text-primary)]">{senderName}</div>
+          <div className="text-xs text-[var(--nimi-text-muted)]">
             {props.playing
               ? t('Chat.voiceInspectPlaying', { defaultValue: 'Currently playing' })
               : t('Chat.voiceInspectReady', { defaultValue: 'Ready to play' })}
@@ -169,7 +169,7 @@ export function HumanVoiceInspectSidebar(props: {
           <button
             type="button"
             onClick={() => props.onToggleTranscript(props.message.id)}
-            className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+            className="rounded-full border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-4 py-2 text-sm font-semibold text-[var(--nimi-text-secondary)] transition hover:bg-[var(--nimi-action-ghost-hover)]"
           >
             {props.transcriptVisible
               ? t('Chat.voiceCollapseTranscript', { defaultValue: 'Collapse transcript' })
@@ -183,11 +183,11 @@ export function HumanVoiceInspectSidebar(props: {
         hint={t('Chat.voiceInspectTranscriptHint', { defaultValue: 'Voice transcripts stay hidden until you explicitly reveal them.' })}
       >
         {props.transcriptVisible ? (
-          <p className="text-sm leading-6 text-slate-700">
+          <p className="text-sm leading-6 text-[var(--nimi-text-secondary)]">
             {transcript || t('Chat.voiceInspectTranscriptUnavailable', { defaultValue: 'No transcript available for this voice beat.' })}
           </p>
         ) : (
-          <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50/60 px-3 py-4 text-center text-[11px] text-gray-500">
+          <div className="rounded-xl border border-dashed border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-panel)_60%,transparent)] px-3 py-4 text-center text-[11px] text-[var(--nimi-text-muted)]">
             {t('Chat.voiceInspectTranscriptHidden', { defaultValue: 'Transcript is hidden until you reveal it.' })}
           </div>
         )}

@@ -3,7 +3,7 @@
   "pageDescription": "Manage your public profile information",
   "sectionProfilePicture": "Profile Picture",
   "uploadHint": "Upload a new profile picture",
-  "uploadLimit": "JPG or PNG, max 5MB",
+  "uploadLimit": "PNG, JPEG, GIF or WebP, max 10MB",
   "changePhoto": "Change Photo",
   "sectionBasicInfo": "Basic Information",
   "displayName": "Display Name",
@@ -71,6 +71,9 @@
   "loadPostsFailed": "Failed to load posts",
   "loadLikedPostsFailed": "Failed to load liked posts",
   "noProfileDataAvailable": "No profile data available",
+  "noLikedPosts": "No liked posts yet",
+  "saveProfile": "Save profile",
+  "tabsLabel": "Profile tabs",
   "Collections": {
     "empty": "No collections yet"
   },
@@ -88,7 +91,26 @@
     "searchLocationPlaceholder": "Search location...",
     "loadingLocations": "Loading locations...",
     "searchOrCreateTagPlaceholder": "Search or create a tag...",
-    "typeToSearchOrCreateTag": "Type to search or create a new tag"
+    "typeToSearchOrCreateTag": "Type to search or create a new tag",
+    "dropFileHere": "Drop file here",
+    "clickOrDragToUpload": "Click or drag to upload",
+    "replace": "Replace",
+    "change": "Change",
+    "previewAlt": "Preview",
+    "post": "Post",
+    "posting": "Posting...",
+    "fileTooLarge": "File size exceeds 100MB limit",
+    "unsupportedFileType": "Unsupported file type. Use PNG, JPEG, GIF, WebP, MP4, or MOV.",
+    "imageUploadFailed": "Image upload failed",
+    "videoUploadFailed": "Video upload failed",
+    "emojiCategory": {
+      "smileys": "Smileys",
+      "gestures": "Gestures",
+      "love": "Love",
+      "nature": "Nature",
+      "food": "Food",
+      "activities": "Activities"
+    }
   },
   "Gifts": {
     "replyTo": "Reply to {{senderName}}",

@@ -14,8 +14,8 @@ export function OfflineShellStrip() {
       data-testid={E2E_IDS.offlineStrip}
       className={`border-b px-4 py-2 text-sm ${
         isRuntimeReadOnly
-          ? 'border-amber-200 bg-amber-50 text-amber-900'
-          : 'border-sky-200 bg-sky-50 text-sky-900'
+          ? 'border-[color-mix(in_srgb,var(--nimi-status-warning)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-warning)_10%,var(--nimi-surface-card))] text-[var(--nimi-status-warning)]'
+          : 'border-[color-mix(in_srgb,var(--nimi-status-info)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-info)_10%,var(--nimi-surface-card))] text-[var(--nimi-status-info)]'
       }`}
     >
       <p className="font-medium">

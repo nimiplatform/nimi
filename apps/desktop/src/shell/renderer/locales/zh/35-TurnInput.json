@@ -16,5 +16,17 @@
   "uploadFile": "上传文件",
   "removeAttachment": "移除附件",
   "uploadFailed": "上传失败",
-  "unsupportedFileType": "不支持的文件类型，请上传图片或视频"
+  "unsupportedFileType": "不支持的文件类型，请上传图片或视频",
+  "scenarioJobStatusSubmitted": "已提交",
+  "scenarioJobStatusQueued": "排队中",
+  "scenarioJobStatusRunning": "处理中",
+  "scenarioJobStatusCompleted": "已完成",
+  "scenarioJobStatusFailed": "失败",
+  "scenarioJobStatusCanceled": "已取消",
+  "scenarioJobStatusTimeout": "已超时",
+  "scenarioJobStatusUnknown": "未知",
+  "scenarioJobOverlayRecovering": "重新连接中…",
+  "scenarioJobOverlayCancelling": "取消中…",
+  "scenarioJobOverlayFetchingArtifacts": "结果处理中…",
+  "scenarioJobOverlayRecoveryTimeout": "任务状态未知，请稍后刷新"
 }

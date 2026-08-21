@@ -105,7 +105,7 @@ function BootstrapErrorScreen({ message }: { message: string }) {
         data-testid={E2E_IDS.appBootstrapErrorScreen}
         className="mt-8 rounded-2xl border border-[color-mix(in_srgb,var(--nimi-status-danger)_24%,white)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_10%,white)] px-4 py-3 text-sm text-[var(--nimi-status-danger)]"
       >
-        Runtime bootstrap stopped before the app shell became available.
+        {t('Bootstrap.rendererEntryFailed')}
       </div>
     </SharedStatusShell>
   );
@@ -381,7 +381,7 @@ function DesktopAdmissionFailedScreen(props: {
           type="button"
           data-testid="desktop-admission-failed-retry"
           onClick={props.onRetry}
-          className="inline-flex h-10 items-center justify-center rounded-full bg-[var(--nimi-action-primary-bg)] px-4 text-sm font-semibold text-[var(--nimi-action-primary-fg)] transition-colors hover:bg-[var(--nimi-action-primary-bg-hover)]"
+          className="inline-flex h-10 items-center justify-center rounded-full bg-[var(--nimi-action-primary-bg)] px-4 text-sm font-semibold text-[var(--nimi-action-primary-text)] transition-colors hover:bg-[var(--nimi-action-primary-bg-hover)]"
         >
           {t('Bootstrap.admissionFailedRetry', { defaultValue: 'Retry' })}
         </button>
@@ -416,7 +416,7 @@ function DesktopAccountUnavailableScreen() {
         type="button"
         data-testid="desktop-account-unavailable-retry"
         onClick={() => bindings.app.commands.reloadApplication()}
-        className="mt-8 inline-flex h-10 min-w-36 items-center justify-center rounded-full bg-[var(--nimi-action-primary-bg)] px-5 text-sm font-semibold text-[var(--nimi-action-primary-fg)] transition-colors hover:bg-[var(--nimi-action-primary-bg-hover)]"
+        className="mt-8 inline-flex h-10 min-w-36 items-center justify-center rounded-full bg-[var(--nimi-action-primary-bg)] px-5 text-sm font-semibold text-[var(--nimi-action-primary-text)] transition-colors hover:bg-[var(--nimi-action-primary-bg-hover)]"
       >
         {t('Common.retry', { defaultValue: 'Retry' })}
       </button>

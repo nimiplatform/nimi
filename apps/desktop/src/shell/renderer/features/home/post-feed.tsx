@@ -2,8 +2,9 @@ import { useDesktopI18nResource } from '../../i18n/i18n-context';
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import type { RealmModel } from '@nimiplatform/sdk/realm/generated';
 import type { ReactNode } from 'react';
-import { AppCardSurface } from '@nimiplatform/kit/ui';
+import { AppCardSurface, EmptyState } from '@nimiplatform/kit/ui';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
+import { InlineFeedback } from '../../ui/feedback/inline-feedback';
 
 
 type PostDto = RealmModel<'PostDto'>;
@@ -41,18 +42,18 @@ const VIRTUALIZER_OVERSCAN = 4;
 const PostSkeleton = () => (
   <AppCardSurface kind="promoted-glass" className="mb-6 p-5">
     <div className="flex items-center gap-3">
-      <div className="h-10 w-10 animate-pulse rounded-full bg-muted" />
+      <div className="h-10 w-10 animate-pulse rounded-full bg-[color-mix(in_srgb,var(--nimi-surface-card)_86%,white)]" />
       <div className="space-y-1">
-        <div className="h-4 w-24 animate-pulse rounded bg-muted" />
-        <div className="h-3 w-16 animate-pulse rounded bg-muted" />
+        <div className="h-4 w-24 animate-pulse rounded bg-[color-mix(in_srgb,var(--nimi-surface-card)_86%,white)]" />
+        <div className="h-3 w-16 animate-pulse rounded bg-[color-mix(in_srgb,var(--nimi-surface-card)_86%,white)]" />
       </div>
     </div>
     <div className="mt-4 space-y-2">
-      <div className="h-4 w-full animate-pulse rounded bg-muted" />
-      <div className="h-4 w-[90%] animate-pulse rounded bg-muted" />
-      <div className="h-4 w-[80%] animate-pulse rounded bg-muted" />
+      <div className="h-4 w-full animate-pulse rounded bg-[color-mix(in_srgb,var(--nimi-surface-card)_86%,white)]" />
+      <div className="h-4 w-[90%] animate-pulse rounded bg-[color-mix(in_srgb,var(--nimi-surface-card)_86%,white)]" />
+      <div className="h-4 w-[80%] animate-pulse rounded bg-[color-mix(in_srgb,var(--nimi-surface-card)_86%,white)]" />
     </div>
-    <div className="mt-4 h-[200px] w-full animate-pulse rounded-2xl bg-muted" />
+    <div className="mt-4 h-[200px] w-full animate-pulse rounded-2xl bg-[color-mix(in_srgb,var(--nimi-surface-card)_86%,white)]" />
   </AppCardSurface>
 );
 
@@ -293,7 +294,7 @@ export function PostFeed({
       <Fragment key={post.id}>{renderItem(post, index)}</Fragment>
     ) : (
       <AppCardSurface key={post.id} kind="promoted-glass" className="p-4">
-        <p className="text-sm text-gray-700">
+        <p className="text-sm text-[var(--nimi-text-secondary)]">
           {post.caption ?? i18n.t('Home.noContent', { defaultValue: 'No content' })}
         </p>
       </AppCardSurface>
@@ -302,9 +303,7 @@ export function PostFeed({
   return (
     <>
       {error ? (
-        <div className="mb-4 rounded-lg bg-destructive/10 px-3 py-2 text-xs text-destructive">
-          {error}
-        </div>
+        <InlineFeedback className="mb-4" feedback={{ kind: 'error', message: error }} />
       ) : null}
 
       {useGridVirtual ? (
@@ -377,9 +376,10 @@ export function PostFeed({
       ) : null}
 
       {!loadingInitial && posts.length === 0 && !error ? (
-        <div className="py-8 text-center text-sm text-muted-foreground">
-          {emptyText ?? i18n.t('Home.noPosts', { defaultValue: 'No posts yet' })}
-        </div>
+        <EmptyState
+          className="mb-6"
+          title={emptyText ?? i18n.t('Home.noPosts', { defaultValue: 'No posts yet' })}
+        />
       ) : null}
 
       <div ref={loadMoreRef} className="h-10" />
@@ -397,7 +397,7 @@ export function PostFeed({
       ) : null}
 
       {!hasMore && posts.length > 0 && !loadingMore ? (
-        <div className="py-8 text-center text-sm text-muted-foreground">
+        <div className="py-8 text-center text-sm text-[var(--nimi-text-muted)]">
           {i18n.t('Home.caughtUp', { defaultValue: "You're all caught up!" })}
         </div>
       ) : null}

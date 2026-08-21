@@ -330,6 +330,9 @@
   },
   "local": {
     "confirmModelInstall": "Download and install “{{name}}”? Download size: {{size}}. No download starts until you confirm.",
+    "confirmInstallTitle": "Install model",
+    "confirmInstallConfirm": "Install",
+    "confirmInstallCancel": "Cancel",
     "installWarnings": "Before continuing:",
     "installCanceled": "Download canceled.",
     "unknownDownloadSize": "size unknown",
@@ -1194,6 +1197,8 @@
     "revoke": "Revoke",
     "revokeTokenFailed": "Revoke token failed",
     "revokeThisToken": "Revoke This Token",
+    "revokeConfirmTitle": "Revoke external agent token",
+    "revokeConfirmMessage": "Revoke token {{tokenId}}? Revocation takes effect immediately and the external agent using it loses access. This cannot be undone.",
     "noTokensIssued": "No tokens issued.",
     "loadingStatus": "Loading...",
     "gatewayUnavailable": "Gateway unavailable",

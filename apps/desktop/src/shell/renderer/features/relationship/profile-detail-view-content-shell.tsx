@@ -1,101 +1,108 @@
 import { useDesktopI18nResource } from '../../i18n/i18n-context';
-import { type RefObject } from 'react';
+import { InlineFeedback } from '../../ui/feedback/inline-feedback';
 
-import { ScrollArea, Tooltip } from '@nimiplatform/kit/ui';
+import {
+  ActionMenu,
+  Button,
+  IconButton,
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+  ScrollArea,
+  Tooltip,
+  type NimiMenuItem,
+} from '@nimiplatform/kit/ui';
 import {
   AlertIcon,
   CheckIcon,
   DotsIcon,
   GiftIcon,
-  IconButton,
   MessageIcon,
-  SpinnerIcon,
   StatDivider,
   StatTile,
+  TOPBAR_TOOLTIP_CLASS,
   TrashIcon,
   UserPlusIcon,
 } from './profile-detail-view-parts.js';
 
-const TOPBAR_TOOLTIP_CLASS = 'rounded-full bg-[#0f172a] px-3 py-1.5 text-xs font-semibold text-white shadow-[0_4px_20px_rgba(0,0,0,0.25)]';
-
 export function ProfileDetailLoadingState({ label: _label }: { label: string }) {
   return (
-    <div className="flex h-full min-h-0 flex-1 flex-col bg-[linear-gradient(180deg,#eef3f4_0%,#f7fafb_48%,#fcfefd_100%)]">
+    <div className="flex h-full min-h-0 flex-1 flex-col bg-[var(--nimi-surface-canvas)]">
       <ScrollArea
         className="flex-1"
         contentClassName="mx-auto flex min-h-full w-full max-w-[1440px] flex-col px-6 py-6"
       >
-        <section className="relative overflow-hidden rounded-[34px] bg-white shadow-[0_30px_90px_rgba(15,23,42,0.10)]">
-          <div className="relative h-[220px] animate-pulse bg-gradient-to-r from-slate-200 via-slate-100 to-slate-200 px-8 py-7">
-            <div className="absolute right-8 top-7 h-11 w-11 rounded-full bg-white/60" />
-            <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-white via-white/82 to-transparent" />
+        <section className="relative overflow-hidden rounded-[34px] bg-[var(--nimi-surface-card)] shadow-[0_30px_90px_rgba(15,23,42,0.10)]">
+          <div className="relative h-[220px] animate-pulse bg-[color-mix(in_srgb,var(--nimi-surface-active)_64%,transparent)] px-8 py-7">
+            <div className="absolute right-8 top-7 h-11 w-11 rounded-full bg-[color-mix(in_srgb,var(--nimi-surface-card)_60%,transparent)]" />
+            <div className="absolute inset-x-0 bottom-0 h-24 bg-[linear-gradient(0deg,var(--nimi-surface-card)_0%,color-mix(in_srgb,var(--nimi-surface-card)_82%,transparent)_55%,transparent_100%)]" />
           </div>
 
           <div className="relative z-10 -mt-12 px-8 pb-8">
             <div className="rounded-[30px] nimi-material-glass-regular border-[var(--nimi-material-glass-regular-border)] bg-[var(--nimi-material-glass-regular-bg)] px-6 py-7 shadow-[0_22px_56px_rgba(15,23,42,0.08)] backdrop-blur-[var(--nimi-backdrop-blur-regular)] xl:px-7">
               <div className="grid gap-6 lg:grid-cols-[180px_minmax(0,1fr)] lg:gap-8">
                 <div className="flex shrink-0 flex-col items-center gap-3 lg:pt-[6px]">
-                  <div className="h-32 w-32 animate-pulse rounded-full bg-slate-200/80" />
+                  <div className="h-32 w-32 animate-pulse rounded-full bg-[color-mix(in_srgb,var(--nimi-surface-active)_80%,transparent)]" />
                 </div>
 
                 <div className="min-w-0">
-                  <div className="h-9 w-52 animate-pulse rounded-lg bg-slate-200/80" />
-                  <div className="mt-3 h-5 w-28 animate-pulse rounded-md bg-slate-200/70" />
-                  <div className="mt-5 h-4 w-full max-w-[420px] animate-pulse rounded-md bg-slate-200/70" />
-                  <div className="mt-2 h-4 w-4/5 max-w-[380px] animate-pulse rounded-md bg-slate-200/70" />
+                  <div className="h-9 w-52 animate-pulse rounded-lg bg-[color-mix(in_srgb,var(--nimi-surface-active)_80%,transparent)]" />
+                  <div className="mt-3 h-5 w-28 animate-pulse rounded-md bg-[color-mix(in_srgb,var(--nimi-surface-active)_70%,transparent)]" />
+                  <div className="mt-5 h-4 w-full max-w-[420px] animate-pulse rounded-md bg-[color-mix(in_srgb,var(--nimi-surface-active)_70%,transparent)]" />
+                  <div className="mt-2 h-4 w-4/5 max-w-[380px] animate-pulse rounded-md bg-[color-mix(in_srgb,var(--nimi-surface-active)_70%,transparent)]" />
 
                   <div className="mt-7 grid max-w-[460px] grid-cols-2 gap-x-12 gap-y-3.5">
                     {Array.from({ length: 4 }).map((_, index) => (
                       <div key={`profile-meta-skeleton-${index}`} className="flex items-center gap-2.5">
-                        <div className="h-4 w-4 animate-pulse rounded-full bg-slate-200/80" />
-                        <div className="h-4 w-28 animate-pulse rounded-md bg-slate-200/70" />
+                        <div className="h-4 w-4 animate-pulse rounded-full bg-[color-mix(in_srgb,var(--nimi-surface-active)_80%,transparent)]" />
+                        <div className="h-4 w-28 animate-pulse rounded-md bg-[color-mix(in_srgb,var(--nimi-surface-active)_70%,transparent)]" />
                       </div>
                     ))}
                   </div>
 
                   <div className="mt-7 flex flex-wrap gap-2.5">
-                    <div className="h-8 w-20 animate-pulse rounded-full bg-slate-200/75" />
-                    <div className="h-8 w-24 animate-pulse rounded-full bg-slate-200/75" />
-                    <div className="h-8 w-16 animate-pulse rounded-full bg-slate-200/75" />
+                    <div className="h-8 w-20 animate-pulse rounded-full bg-[color-mix(in_srgb,var(--nimi-surface-active)_75%,transparent)]" />
+                    <div className="h-8 w-24 animate-pulse rounded-full bg-[color-mix(in_srgb,var(--nimi-surface-active)_75%,transparent)]" />
+                    <div className="h-8 w-16 animate-pulse rounded-full bg-[color-mix(in_srgb,var(--nimi-surface-active)_75%,transparent)]" />
                   </div>
                 </div>
               </div>
 
               <div className="mt-6">
                 <div className="px-5">
-                  <div className="rounded-[24px] border border-white/60 bg-white/70 p-4 shadow-[0_14px_34px_rgba(15,23,42,0.06)]">
+                  <div className="rounded-[24px] border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_70%,transparent)] p-4 shadow-[0_14px_34px_rgba(15,23,42,0.06)]">
                     <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                       <div className="grid max-w-[320px] grid-cols-3 gap-2 lg:flex-1">
                         {Array.from({ length: 3 }).map((_, index) => (
                           <div key={`profile-stat-skeleton-${index}`} className="text-center">
-                            <div className="mx-auto h-3 w-12 animate-pulse rounded-md bg-slate-200/70" />
-                            <div className="mx-auto mt-3 h-9 w-14 animate-pulse rounded-md bg-slate-200/80" />
+                            <div className="mx-auto h-3 w-12 animate-pulse rounded-md bg-[color-mix(in_srgb,var(--nimi-surface-active)_70%,transparent)]" />
+                            <div className="mx-auto mt-3 h-9 w-14 animate-pulse rounded-md bg-[color-mix(in_srgb,var(--nimi-surface-active)_80%,transparent)]" />
                           </div>
                         ))}
                       </div>
                       <div className="flex items-center gap-2 lg:justify-end">
-                        <div className="h-10 w-10 animate-pulse rounded-full bg-slate-200/80" />
-                        <div className="h-10 w-10 animate-pulse rounded-full bg-slate-200/80" />
+                        <div className="h-10 w-10 animate-pulse rounded-full bg-[color-mix(in_srgb,var(--nimi-surface-active)_80%,transparent)]" />
+                        <div className="h-10 w-10 animate-pulse rounded-full bg-[color-mix(in_srgb,var(--nimi-surface-active)_80%,transparent)]" />
                       </div>
                     </div>
                   </div>
                 </div>
 
                 <div className="mt-6 px-4">
-                  <div className="relative flex flex-wrap gap-6 border-b border-slate-200/70 pb-3">
-                    <div className="h-5 w-12 animate-pulse rounded-md bg-slate-200/75" />
-                    <div className="h-5 w-24 animate-pulse rounded-md bg-slate-200/75" />
-                    <div className="h-5 w-12 animate-pulse rounded-md bg-slate-200/75" />
-                    <div className="h-5 w-12 animate-pulse rounded-md bg-slate-200/75" />
+                  <div className="relative flex flex-wrap gap-6 border-b border-[var(--nimi-border-subtle)] pb-3">
+                    <div className="h-5 w-12 animate-pulse rounded-md bg-[color-mix(in_srgb,var(--nimi-surface-active)_75%,transparent)]" />
+                    <div className="h-5 w-24 animate-pulse rounded-md bg-[color-mix(in_srgb,var(--nimi-surface-active)_75%,transparent)]" />
+                    <div className="h-5 w-12 animate-pulse rounded-md bg-[color-mix(in_srgb,var(--nimi-surface-active)_75%,transparent)]" />
+                    <div className="h-5 w-12 animate-pulse rounded-md bg-[color-mix(in_srgb,var(--nimi-surface-active)_75%,transparent)]" />
                   </div>
                 </div>
 
                 <div className="px-5 py-5">
                   <div className="space-y-6">
-                    <div className="h-5 w-28 animate-pulse rounded-full bg-slate-200/80" />
+                    <div className="h-5 w-28 animate-pulse rounded-full bg-[color-mix(in_srgb,var(--nimi-surface-active)_80%,transparent)]" />
                     <div className="grid gap-6 md:grid-cols-2">
-                      <div className="h-56 animate-pulse rounded-[26px] border border-white/70 bg-white/70 shadow-[0_6px_24px_rgba(15,23,42,0.05)]" />
-                      <div className="h-56 animate-pulse rounded-[26px] border border-white/70 bg-white/70 shadow-[0_6px_24px_rgba(15,23,42,0.05)]" />
+                      <div className="h-56 animate-pulse rounded-[26px] border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_70%,transparent)] shadow-[0_6px_24px_rgba(15,23,42,0.05)]" />
+                      <div className="h-56 animate-pulse rounded-[26px] border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_70%,transparent)] shadow-[0_6px_24px_rgba(15,23,42,0.05)]" />
                     </div>
                   </div>
                 </div>
@@ -114,16 +121,16 @@ export function ProfileDetailErrorState(input: {
   onClose: () => void;
 }) {
   return (
-    <div className="flex flex-1 items-center justify-center bg-[#f3f6f8]">
-      <div className="rounded-[28px] border border-red-100 bg-white px-8 py-10 text-center shadow-[0_24px_60px_rgba(15,23,42,0.08)]">
-        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-50 text-red-500">
+    <div className="flex flex-1 items-center justify-center bg-[var(--nimi-surface-canvas)]">
+      <div className="rounded-[28px] border border-[color-mix(in_srgb,var(--nimi-status-danger)_28%,transparent)] bg-[var(--nimi-surface-card)] px-8 py-10 text-center shadow-[0_24px_60px_rgba(15,23,42,0.08)]">
+        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--nimi-status-danger)_10%,var(--nimi-surface-card))] text-[var(--nimi-status-danger)]">
           <AlertIcon className="h-5 w-5" />
         </div>
-        <p className="mt-4 text-sm font-medium text-red-600">{input.label}</p>
+        <p className="mt-4 text-sm font-medium text-[var(--nimi-status-danger)]">{input.label}</p>
         <button
           type="button"
           onClick={input.onClose}
-          className="mt-5 rounded-full border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
+          className="mt-5 rounded-full border border-[var(--nimi-border-subtle)] px-4 py-2 text-sm font-medium text-[var(--nimi-text-secondary)] transition hover:bg-[var(--nimi-action-ghost-hover)]"
         >
           {input.backLabel}
         </button>
@@ -135,10 +142,10 @@ export function ProfileDetailErrorState(input: {
 export function ProfileDetailTabFallback() {
   return (
     <div className="space-y-6">
-      <div className="h-5 w-28 animate-pulse rounded-full bg-slate-200/80" />
+      <div className="h-5 w-28 animate-pulse rounded-full bg-[color-mix(in_srgb,var(--nimi-surface-active)_80%,transparent)]" />
       <div className="grid gap-6 md:grid-cols-2">
-        <div className="h-56 animate-pulse rounded-[26px] border border-white/70 bg-white/70 shadow-[0_6px_24px_rgba(15,23,42,0.05)]" />
-        <div className="h-56 animate-pulse rounded-[26px] border border-white/70 bg-white/70 shadow-[0_6px_24px_rgba(15,23,42,0.05)]" />
+        <div className="h-56 animate-pulse rounded-[26px] border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_70%,transparent)] shadow-[0_6px_24px_rgba(15,23,42,0.05)]" />
+        <div className="h-56 animate-pulse rounded-[26px] border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_70%,transparent)] shadow-[0_6px_24px_rgba(15,23,42,0.05)]" />
       </div>
     </div>
   );
@@ -156,19 +163,39 @@ export function ProfileDetailActionButtons(input: {
   showMessageButton: boolean;
   showMoreButton?: boolean;
   showMenu?: boolean;
-  menuButtonRef?: RefObject<HTMLButtonElement | null>;
-  menuRef?: RefObject<HTMLDivElement | null>;
-  onToggleMenu?: () => void;
+  onShowMenuChange?: (open: boolean) => void;
   onBlock?: () => void;
   onRemove?: () => void;
 }) {
   const i18n = useDesktopI18nResource().instance;
   const addFriendLabel = input.addFriendLabel || i18n.t('ProfileView.addFriend', { defaultValue: 'Add Friend' });
+  const moreLabel = i18n.t('Common.moreOptions', { defaultValue: 'More options' });
+  const menuItems: NimiMenuItem[] = [
+    ...(input.onBlock ? [{
+      id: 'block',
+      label: i18n.t('Common.block', { defaultValue: 'Block' }),
+      icon: <AlertIcon className="h-4 w-4" />,
+      onSelect: input.onBlock,
+    }] : []),
+    ...(input.onRemove ? [{
+      id: 'remove',
+      label: i18n.t('Profile.removeFriend', { defaultValue: 'Remove Friend' }),
+      icon: <TrashIcon className="h-4 w-4" />,
+      tone: 'danger' as const,
+      onSelect: input.onRemove,
+    }] : []),
+  ];
   return (
     <>
       {input.showMessageButton ? (
         <Tooltip content={i18n.t('Relationship.chat', { defaultValue: 'Chat' })} placement="bottom" contentClassName={TOPBAR_TOOLTIP_CLASS}>
-          <IconButton icon={<MessageIcon className="h-4 w-4" />} label={i18n.t('Relationship.chat', { defaultValue: 'Chat' })} onClick={input.onMessage} />
+          <IconButton
+            icon={<MessageIcon className="h-4 w-4" />}
+            tone="secondary"
+            aria-label={i18n.t('Relationship.chat', { defaultValue: 'Chat' })}
+            onClick={input.onMessage}
+            className="h-10 w-10 rounded-full"
+          />
         </Tooltip>
       ) : null}
       {input.showAddFriendButton && input.onAddFriend ? (
@@ -181,50 +208,44 @@ export function ProfileDetailActionButtons(input: {
         >
           <IconButton
             icon={<UserPlusIcon className="h-4 w-4" />}
-            label={addFriendLabel}
+            tone="secondary"
+            aria-label={addFriendLabel}
             onClick={input.onAddFriend}
             disabled={input.canAddFriend === false}
+            className="h-10 w-10 rounded-full"
           />
         </Tooltip>
       ) : null}
       {input.showGiftButton ? (
         <Tooltip content={i18n.t('Relationship.gift', { defaultValue: 'Gift' })} placement="bottom" contentClassName={TOPBAR_TOOLTIP_CLASS}>
-          <IconButton icon={<GiftIcon className="h-4 w-4" />} label={i18n.t('Relationship.gift', { defaultValue: 'Gift' })} onClick={input.onSendGift} />
+          <IconButton
+            icon={<GiftIcon className="h-4 w-4" />}
+            tone="secondary"
+            aria-label={i18n.t('Relationship.gift', { defaultValue: 'Gift' })}
+            onClick={input.onSendGift}
+            className="h-10 w-10 rounded-full"
+          />
         </Tooltip>
       ) : null}
       {input.showMoreButton ? (
-        <div className="relative">
-          <Tooltip content={i18n.t('Common.moreOptions', { defaultValue: 'More options' })} placement="bottom" contentClassName={TOPBAR_TOOLTIP_CLASS}>
-            <button
-              ref={input.menuButtonRef}
-              type="button"
-              onClick={input.onToggleMenu}
-              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200/80 bg-white/80 text-slate-700 shadow-[0_8px_20px_rgba(15,23,42,0.05)] transition-[background-color,border-color,color,transform] duration-[var(--nimi-motion-fast)] ease-[var(--nimi-motion-ease-standard)] hover:border-[var(--nimi-action-primary-bg)]/45 hover:bg-[var(--nimi-action-primary-bg)]/12 hover:text-[var(--nimi-action-primary-bg-hover)] active:scale-[var(--nimi-motion-pressed-scale)]"
-              aria-label={i18n.t('Common.moreOptions', { defaultValue: 'More options' })}
-            >
-              <DotsIcon className="h-4 w-4" />
-            </button>
+        <Popover
+          open={input.showMenu}
+          onOpenChange={(open) => input.onShowMenuChange?.(open)}
+        >
+          <Tooltip content={moreLabel} placement="bottom" contentClassName={TOPBAR_TOOLTIP_CLASS}>
+            <PopoverTrigger asChild>
+              <IconButton
+                icon={<DotsIcon className="h-4 w-4" />}
+                tone="secondary"
+                aria-label={moreLabel}
+                className="h-10 w-10 rounded-full"
+              />
+            </PopoverTrigger>
           </Tooltip>
-          {input.showMenu ? (
-            <div
-              ref={input.menuRef}
-              className="absolute right-0 top-full z-20 mt-2 w-44 rounded-2xl border border-slate-100 bg-white py-1.5 shadow-[0_22px_64px_rgba(15,23,42,0.18)]"
-            >
-              {input.onBlock ? (
-                <button type="button" onClick={input.onBlock} className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-slate-700 transition hover:bg-slate-50">
-                  <AlertIcon className="h-4 w-4 text-slate-400" />
-                  {i18n.t('Common.block', { defaultValue: 'Block' })}
-                </button>
-              ) : null}
-              {input.onRemove ? (
-                <button type="button" onClick={input.onRemove} className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-red-600 transition hover:bg-red-50">
-                  <TrashIcon className="h-4 w-4 text-red-500" />
-                  {i18n.t('Profile.removeFriend', { defaultValue: 'Remove Friend' })}
-                </button>
-              ) : null}
-            </div>
-          ) : null}
-        </div>
+          <PopoverContent align="end" sideOffset={6} className="p-1">
+            <ActionMenu items={menuItems} ariaLabel={moreLabel} />
+          </PopoverContent>
+        </Popover>
       ) : null}
     </>
   );
@@ -239,31 +260,36 @@ export function ProfileDetailSaveActions(input: {
   saveError: string | null;
   stacked: boolean;
 }) {
+  const i18n = useDesktopI18nResource().instance;
   const containerClassName = input.stacked ? 'flex flex-col gap-3' : 'flex w-full flex-col gap-3';
-  const buttonClassName = input.stacked ? 'w-full' : 'w-full';
 
   return (
     <div className={containerClassName}>
       {input.saveError ? (
-        <p className="text-sm text-red-500">{input.saveError}</p>
+        <InlineFeedback feedback={{ kind: 'error', message: input.saveError }} />
       ) : null}
-      <button
-        type="button"
+      <Button
+        tone="primary"
+        fullWidth
         onClick={input.onSave}
+        loading={input.isSaving}
         disabled={input.isSaving || input.isUploadingAvatar || !input.draftDisplayName.trim()}
-        className={`inline-flex ${buttonClassName} items-center justify-center gap-2 rounded-full bg-[var(--nimi-action-primary-bg)] px-4 py-3 text-sm font-semibold text-[var(--nimi-action-primary-text)] transition-[background-color,transform] duration-[var(--nimi-motion-fast)] ease-[var(--nimi-motion-ease-standard)] hover:bg-[var(--nimi-action-primary-bg-hover)] active:scale-[var(--nimi-motion-pressed-scale)] disabled:cursor-not-allowed disabled:opacity-50`}
+        leadingIcon={input.isSaving ? undefined : <CheckIcon className="h-4 w-4" />}
+        className="rounded-full py-3"
       >
-        {input.isSaving ? <SpinnerIcon className="h-4 w-4" /> : <CheckIcon className="h-4 w-4" />}
-        {input.isSaving ? 'Saving...' : 'Save profile'}
-      </button>
-      <button
-        type="button"
+        {input.isSaving
+          ? i18n.t('Common.saving', { defaultValue: 'Saving...' })
+          : i18n.t('Profile.saveProfile', { defaultValue: 'Save profile' })}
+      </Button>
+      <Button
+        tone="secondary"
+        fullWidth
         onClick={input.onCancel}
         disabled={input.isSaving}
-        className={`inline-flex ${buttonClassName} items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-50`}
+        className="rounded-full py-3"
       >
-        Cancel
-      </button>
+        {i18n.t('Common.cancel', { defaultValue: 'Cancel' })}
+      </Button>
     </div>
   );
 }
@@ -291,16 +317,14 @@ export function ProfileDetailStatsActionsBlock(input: {
   showMessageButton: boolean;
   showMoreButton?: boolean;
   showMenu?: boolean;
-  menuButtonRef?: RefObject<HTMLButtonElement | null>;
-  menuRef?: RefObject<HTMLDivElement | null>;
-  onToggleMenu?: () => void;
+  onShowMenuChange?: (open: boolean) => void;
   onBlock?: () => void;
   onRemove?: () => void;
 }) {
   const i18n = useDesktopI18nResource().instance;
   if (input.isEditing) {
     return input.isOwnProfile ? (
-      <div className="rounded-[24px] border border-white/60 bg-white/70 p-4 shadow-[0_14px_34px_rgba(15,23,42,0.06)]">
+      <div className="rounded-[24px] border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_70%,transparent)] p-4 shadow-[0_14px_34px_rgba(15,23,42,0.06)]">
         <ProfileDetailSaveActions
           draftDisplayName={input.draftDisplayName}
           isSaving={input.isSaving}
@@ -315,7 +339,7 @@ export function ProfileDetailStatsActionsBlock(input: {
   }
 
   return (
-    <div className="rounded-[24px] border border-white/60 bg-white/70 p-4 shadow-[0_14px_34px_rgba(15,23,42,0.06)]">
+    <div className="rounded-[24px] border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_70%,transparent)] p-4 shadow-[0_14px_34px_rgba(15,23,42,0.06)]">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="grid max-w-[320px] grid-cols-3 gap-2 lg:flex-1">
           <StatTile label={i18n.t('Profile.friends', { defaultValue: 'Friends' })} value={input.friendCount} />
@@ -327,7 +351,7 @@ export function ProfileDetailStatsActionsBlock(input: {
             <ProfileDetailActionButtons {...input} />
           </div>
           {input.showAddFriendButton && input.canAddFriend === false && input.addFriendHint ? (
-            <p className="mt-2 text-xs text-amber-600 lg:text-right">{input.addFriendHint}</p>
+            <p className="mt-2 text-xs text-[var(--nimi-status-warning)] lg:text-right">{input.addFriendHint}</p>
           ) : null}
         </div>
       </div>
@@ -350,9 +374,7 @@ export function ProfileDetailDesktopStatsActions(input: {
   showMessageButton: boolean;
   showMoreButton?: boolean;
   showMenu?: boolean;
-  menuButtonRef?: RefObject<HTMLButtonElement | null>;
-  menuRef?: RefObject<HTMLDivElement | null>;
-  onToggleMenu?: () => void;
+  onShowMenuChange?: (open: boolean) => void;
   onBlock?: () => void;
   onRemove?: () => void;
 }) {
@@ -363,7 +385,7 @@ export function ProfileDetailDesktopStatsActions(input: {
         <ProfileDetailActionButtons {...input} />
       </div>
       {input.showAddFriendButton && input.canAddFriend === false && input.addFriendHint ? (
-        <p className="mt-2 text-right text-xs text-amber-600">{input.addFriendHint}</p>
+        <p className="mt-2 text-right text-xs text-[var(--nimi-status-warning)]">{input.addFriendHint}</p>
       ) : null}
       <div className="mt-5 grid w-full grid-cols-[1fr_18px_1fr_18px_1fr] items-start gap-x-0">
         <StatTile label={i18n.t('Profile.friends', { defaultValue: 'Friends' })} value={input.friendCount} />
