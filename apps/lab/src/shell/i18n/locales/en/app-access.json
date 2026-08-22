@@ -15,7 +15,9 @@
       "sessionBound": "Session bound",
       "noSession": "No session",
       "agentSelectAriaLabel": "Current active Agent",
-      "agentSelectPlaceholder": "No active Agent"
+      "agentSelectPlaceholder": "No active Agent",
+      "summaryAriaLabel": "Probe result summary",
+      "groupProgress": "{{passed}}/{{total}} passed"
     },
     "confirmPersistentWorld": {
       "title": "Create a persistent test WorldCore?",

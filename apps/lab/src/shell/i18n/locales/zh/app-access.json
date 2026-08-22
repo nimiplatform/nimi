@@ -15,7 +15,9 @@
       "sessionBound": "会话已绑定",
       "noSession": "无会话",
       "agentSelectAriaLabel": "当前激活的 Agent",
-      "agentSelectPlaceholder": "无激活的 Agent"
+      "agentSelectPlaceholder": "无激活的 Agent",
+      "summaryAriaLabel": "探针结果汇总",
+      "groupProgress": "{{passed}}/{{total}} 通过"
     },
     "confirmPersistentWorld": {
       "title": "创建持久测试 WorldCore？",

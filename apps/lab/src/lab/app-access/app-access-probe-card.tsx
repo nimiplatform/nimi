@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
-import { Button, StatusBadge, Surface } from '@nimiplatform/kit/ui';
+import { AppCardSurface, Button, InlineAlert, StatusBadge } from '@nimiplatform/kit/ui';
+import { CheckCircle2, ShieldAlert } from 'lucide-react';
 
 import { useTranslation } from '../../shell/i18n/index.js';
 import {
@@ -40,18 +41,15 @@ export function AppAccessProbeCard({
   // catalog i18n key in state.headline.
   const headline = state.status === 'passed' ? state.headline : t(state.headline);
   return (
-    <Surface
+    <AppCardSurface
       as="article"
-      tone="panel"
-      elevation="base"
-      padding="md"
+      kind="operational-solid"
       className="app-access-probe-card"
       data-testid={definition.testId}
       data-state={state.status}
     >
       <div className="app-access-probe-card__head">
-        <StatusBadge tone={badge.tone} shape="dot">{t(badge.labelKey)}</StatusBadge>
-        <h3 className="app-access-probe-card__title">{t(definition.titleKey)}</h3>
+        <StatusBadge tone={badge.tone} shape="soft" className="app-access-probe-card__status">{t(badge.labelKey)}</StatusBadge>
         <Button
           type="button"
           tone="secondary"
@@ -65,9 +63,12 @@ export function AppAccessProbeCard({
           {t('AppAccess.probeCard.run')}
         </Button>
       </div>
+      <h3 className="app-access-probe-card__title">{t(definition.titleKey)}</h3>
       <p className="app-access-probe-card__proves">{t(definition.provesKey)}</p>
       {definition.requiresKey ? (
-        <p className="app-access-probe-card__requires">{t('AppAccess.probeCard.requires', { requires: t(definition.requiresKey) })}</p>
+        <InlineAlert role="note" tone="warning" icon={<ShieldAlert size={14} strokeWidth={2} aria-hidden="true" />}>
+          {t('AppAccess.probeCard.requires', { requires: t(definition.requiresKey) })}
+        </InlineAlert>
       ) : null}
       {children}
       <div
@@ -76,7 +77,7 @@ export function AppAccessProbeCard({
         data-state={state.status}
       >
         {gated && state.status === 'not-run' ? (
-          <p className="app-access-probe-card__guidance">{t(gate.guidanceKey)}</p>
+          <InlineAlert role="note" tone="info">{t(gate.guidanceKey)}</InlineAlert>
         ) : state.status === 'failed' ? (
           <>
             <p className="app-access-probe-card__failure">{headline}</p>
@@ -98,7 +99,10 @@ export function AppAccessProbeCard({
           </>
         ) : (
           <>
-            <p className="app-access-probe-card__headline">{headline}</p>
+            <p className={`app-access-probe-card__headline app-access-probe-card__headline--${state.status}`}>
+              {state.status === 'passed' ? <CheckCircle2 size={14} strokeWidth={2.2} aria-hidden="true" /> : null}
+              <span>{headline}</span>
+            </p>
             {state.facts.length > 0 ? (
               <ul className="app-access-probe-card__facts">
                 {state.facts.map((fact) => <li key={fact}>{fact}</li>)}
@@ -107,6 +111,6 @@ export function AppAccessProbeCard({
           </>
         )}
       </div>
-    </Surface>
+    </AppCardSurface>
   );
 }

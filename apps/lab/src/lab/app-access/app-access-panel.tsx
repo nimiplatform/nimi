@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { RefreshCw } from 'lucide-react';
-import { Button, ConfirmDialog, InlineAlert, SelectField, StatusBadge } from '@nimiplatform/kit/ui';
+import { Button, ConfirmDialog, FieldShell, InlineAlert, SelectField, Statistic, StatisticGroup, StatusBadge } from '@nimiplatform/kit/ui';
 import type { NimiLocalAppAgentReference } from '@nimiplatform/sdk/app';
 
 import { getLabLocalAppClient } from '../../shell/local-app-runtime-platform.js';
@@ -293,21 +293,36 @@ export function AppAccessPanel() {
     ? 'AppAccess.confirmPersistentWorld'
     : 'AppAccess.confirmPersistentPersona';
 
+  const probeSummary = (() => {
+    let passed = 0;
+    let failed = 0;
+    let running = 0;
+    for (const id of Object.keys(probeStates) as AppAccessProbeId[]) {
+      const status = probeStates[id].status;
+      if (status === 'passed') passed += 1;
+      else if (status === 'failed') failed += 1;
+      else if (status === 'running') running += 1;
+    }
+    return { passed, failed, running, touched: passed + failed + running };
+  })();
+
   const renderExtras = (id: AppAccessProbeId) => {
     if (id === 'agent-references') {
       return (
         <div className="app-access-agent-picker">
-          <SelectField
-            aria-label={t('AppAccess.page.agentSelectAriaLabel')}
-            data-testid={appAccessPageIds.agentSelect}
-            value={selectedAgentHandle}
-            placeholder={t('AppAccess.page.agentSelectPlaceholder')}
-            options={agentReferences.map((reference) => ({
-              value: reference.agentHandle,
-              label: reference.displayName,
-            }))}
-            onValueChange={selectAgent}
-          />
+          <FieldShell label={t('AppAccess.page.agentSelectAriaLabel')}>
+            <SelectField
+              aria-label={t('AppAccess.page.agentSelectAriaLabel')}
+              data-testid={appAccessPageIds.agentSelect}
+              value={selectedAgentHandle}
+              placeholder={t('AppAccess.page.agentSelectPlaceholder')}
+              options={agentReferences.map((reference) => ({
+                value: reference.agentHandle,
+                label: reference.displayName,
+              }))}
+              onValueChange={selectAgent}
+            />
+          </FieldShell>
         </div>
       );
     }
@@ -323,7 +338,7 @@ export function AppAccessPanel() {
           <p className="app-access__blurb">{t(appAccessPageCopy.blurb)}</p>
         </div>
         <div className="app-access__head-actions">
-          <StatusBadge tone={sessionBound ? 'success' : 'neutral'} shape="dot">
+          <StatusBadge tone={sessionBound ? 'success' : 'neutral'} shape="soft">
             {sessionBound ? t('AppAccess.page.sessionBound') : t('AppAccess.page.noSession')}
           </StatusBadge>
           <Button
@@ -357,6 +372,22 @@ export function AppAccessPanel() {
         <InlineAlert tone="info" className="app-access__banner">{t(appAccessPageCopy.signedOut)}</InlineAlert>
       ) : null}
 
+      {probeSummary.touched > 0 ? (
+        <section className="app-access-summary" aria-label={t('AppAccess.page.summaryAriaLabel')}>
+          <StatisticGroup>
+            {probeSummary.passed > 0 ? (
+              <Statistic label={t('AppAccess.status.passed')} value={probeSummary.passed} tone="success" />
+            ) : null}
+            {probeSummary.failed > 0 ? (
+              <Statistic label={t('AppAccess.status.failed')} value={probeSummary.failed} tone="danger" />
+            ) : null}
+            {probeSummary.running > 0 ? (
+              <Statistic label={t('AppAccess.status.running')} value={probeSummary.running} tone="info" />
+            ) : null}
+          </StatisticGroup>
+        </section>
+      ) : null}
+
       <AppAccessSessionBar facts={facts} />
 
       {appAccessGroups.map((group) => (
@@ -365,7 +396,8 @@ export function AppAccessPanel() {
           definition={group}
           states={probeStates}
           gateFor={gateFor}
-          groupRunning={runningGroup !== null}
+          activeRun={runningGroup === group.id || runningGroup === 'all'}
+          anyRunActive={runningGroup !== null}
           onRunProbe={requestProbeRun}
           onRunGroup={() => void runGroup(group.id)}
           renderExtras={renderExtras}
