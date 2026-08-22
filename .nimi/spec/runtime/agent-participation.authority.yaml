@@ -33,7 +33,7 @@ units:
   - id: definition.nimi.runtime.agent-participation.ai-config-plane
     kind: definition
     title: Runtime shared LocalAgent AI configuration plane
-    meaning: Runtime owns exactly one canonical AIConfig for the LocalAgent subsystem and all Runtime LocalAgents share it; individual LocalAgents retain independent personality, appearance, behavior, Memory, Conversation, and presentation state but never own an AIConfig, local model, route override, binding, machine selection, or capability readiness lifecycle.
+    meaning: Runtime owns exactly one revisioned canonical AIConfig for the LocalAgent subsystem inside each authenticated account namespace and all Runtime LocalAgents in that account share it; the shared owner may reference exact Runtime-owned Loadout or Connector resources while individual LocalAgents retain independent personality, appearance, behavior, Memory, Conversation, and presentation state but never own an AIConfig, route override, resource content, credential, endpoint, or capability readiness lifecycle.
   - id: definition.nimi.runtime.agent-participation.autonomy-configuration-plane
     kind: definition
     title: Runtime LocalAgent autonomy configuration plane
@@ -210,7 +210,7 @@ units:
     kind: rule
     title: LocalAgent subsystem AIConfig is singular and shared
     modality: must
-    statement: Runtime persists exactly one full canonical AIConfig owned by the LocalAgent subsystem and every LocalAgent consumes that same committed configuration; when it commits a Cloud route, the Nimi-owned implementation-target and current-account Connector selection, usage or cost, and data-egress consequences apply to every future interactive, deferred, or proactive LocalAgent Job for that CapabilityContract without a second per-Agent authorization; a LocalAgent identity, Agent Center record, Conversation, feature, module, route, chat mode, or renderer never creates a second AIConfig or per-Agent model override, no Local request switches implicitly to Cloud, and no App supplies provider credentials, hidden provider calls, or execution truth.
+    statement: Runtime persists exactly one revisioned canonical AIConfig for the LocalAgent subsystem inside each authenticated account namespace and every LocalAgent in that account consumes the same committed configuration; its Local route names one exact Loadout reference and its Cloud route names one exact current-account Connector reference, implementation, and target, and each selection applies to every future interactive, deferred, or proactive LocalAgent Job for that CapabilityContract without a second per-Agent permission or confirmation. A LocalAgent identity, Agent Center record, Conversation, feature, module, route, chat mode, renderer, or App never creates a second AIConfig, per-Agent override, credential, endpoint, hidden provider call, or execution truth, and no request switches route or resource implicitly.
     condition: Whenever LocalAgent AI configuration is read, changed, or consumed.
     failure: Reject per-Agent AIConfig, per-Agent model overrides, hidden shared Cloud impact, implicit Local-to-Cloud switching, parallel model-settings truth, partial overlays, and caller-declared execution truth.
     relations:
@@ -220,7 +220,7 @@ units:
     kind: rule
     title: LocalAgent admission is derived and request scoped
     modality: must
-    statement: Runtime may project a typed request admission reason derived from the shared LocalAgent AIConfig, current machine selection or Runtime-resolved current-account Cloud Connector, standardized feature subset, exact configuration, authorization, credential, policy, Quota, and Budget without persisting or exposing a LocalAgent AI readiness, probe, warm, resident, or health truth.
+    statement: Runtime may project a typed request admission reason derived from the shared LocalAgent AIConfig, its committed exact Loadout or Connector, implementation, and target references, standardized feature subset, lightweight effective selected-resource state, credential, policy, Quota, and Budget without persisting or exposing a LocalAgent AI readiness, probe, warm, resident, credential, endpoint, or health truth.
     condition: Whenever a LocalAgent request is checked or its inability to execute is displayed.
     failure: Return the typed derived reason without credentials, route internals, persistent readiness, fallback, or fabricated success.
     relations:
@@ -230,7 +230,7 @@ units:
     kind: rule
     title: LocalAgent turn admission uses Runtime AI policy
     modality: must
-    statement: Runtime admits a LocalAgent turn only after reading the current authorized LocalAgent, the committed shared LocalAgent AIConfig, and the exact current machine selection for a Local route or the exact Cloud CapabilityImplementation target and internally resolved current-account Connector for an ordinary same-account Cloud route, then checking required standardized features, configuration, ownership, credential, authorization, policy, Quota, and Budget and capturing the effective inputs in the Job.
+    statement: Runtime admits a LocalAgent turn only after reading the current authorized LocalAgent and account-scoped shared LocalAgent AIConfig, resolving the committed exact Loadout reference for Local or capturing the admitted account, exact Connector reference, Cloud CapabilityImplementation, and target for Cloud, then checking required standardized features, resource state, ownership, credential, policy, Quota, and Budget and atomically persisting the effective inputs in the Job; later AIConfig changes never redirect that Job.
     condition: Whenever a LocalAgent turn is admitted.
     failure: Return a typed blocked or unavailable outcome without fallback provider execution.
     relations:
@@ -264,7 +264,7 @@ units:
     kind: rule
     title: LocalAgent transcription and voice truth is Runtime-owned
     modality: must
-    statement: Runtime owns admitted microphone processing, accepted text intent, LocalAgent response selection, voice artifact, playback state, and interruption truth, while the one shared LocalAgent AIConfig owns each audio.transcribe and audio.synthesize Local-or-Cloud route and at Job submission Runtime atomically dereferences the exact selected Loadout into a complete persisted ResolvedAssembly or captures the Cloud implementation and Driver target plus internally resolved current-account Connector inputs; the companion voice plane neither chooses a route nor owns a model axis, queued or running Jobs never reread current Loadout selection, and optional wake behavior remains separately admitted and non-blocking.
+    statement: Runtime owns admitted microphone processing, accepted text intent, LocalAgent response selection, voice artifact, playback state, and interruption truth, while the one shared LocalAgent AIConfig owns each audio.transcribe and audio.synthesize Local-or-Cloud route and at Job submission Runtime atomically dereferences its exact committed Loadout reference into a complete persisted ResolvedAssembly or captures its exact committed Connector reference, Cloud implementation, and Driver target; the companion voice plane neither chooses a route nor owns a model axis, queued or running Jobs never reread current AIConfig or machine preference, and optional wake behavior remains separately admitted and non-blocking.
     condition: Whenever LocalAgent voice input or output is available or requested.
     failure: Fail closed as unavailable without App-local capture truth, direct provider calls, current-state reconstruction, hidden listening, or simulated success.
     relations:
@@ -344,7 +344,7 @@ units:
     kind: rule
     title: Recorded voice transcription uses Runtime LocalAgent AI policy
     modality: must
-    statement: Explicit recorded voice input is transcribed through the route committed in the shared LocalAgent AIConfig before text intent reaches a LocalAgent Conversation; when that intent is Local, the shared AIConfig carries no model binding, Runtime uses the exact current machine selection, and missing or unready Local execution fails closed without automatic Cloud fallback; an explicitly committed Cloud intent instead uses its implementation-target plus internally resolved current-account Connector composition under current authorization, Quota, and Budget, and Runtime never searches for or chooses a substitute route. Runtime independently admits at most 6 MiB of inline audio bytes and rejects a larger payload before authorization or execution with typed AI_AUDIO_INPUT_TOO_LARGE; the bytes-only Runtime request neither measures nor claims capture duration.
+    statement: Explicit recorded voice input is transcribed through the route committed in the shared LocalAgent AIConfig before text intent reaches a LocalAgent Conversation; when that intent is Local, Runtime dereferences the exact committed Loadout reference and missing or unready Local execution fails closed without automatic Cloud fallback; an explicitly committed Cloud intent instead uses its exact Connector reference, implementation, and Driver target under current authorization, Quota, and Budget, and Runtime never searches for or chooses a substitute route or resource. Runtime independently admits at most 6 MiB of inline audio bytes and rejects a larger payload before authorization or execution with typed AI_AUDIO_INPUT_TOO_LARGE; the bytes-only Runtime request neither measures nor claims capture duration.
     condition: Whenever recorded voice input is submitted to a LocalAgent.
     failure: Reject an over-bound payload before authorization or execution with typed AI_AUDIO_INPUT_TOO_LARGE; otherwise return typed unavailable or failed state without App-local provider calls or fabricated transcript.
     relations:
@@ -384,7 +384,7 @@ units:
     kind: rule
     title: LocalAgent AI configuration uses canonical AIConfig
     modality: must
-    statement: Runtime and SDK project the Runtime-owned shared LocalAgent AIConfig as per-CapabilityContract Local or Cloud route intent, required standardized features, defaults, and for Cloud only the CapabilityImplementation plus provider-model target intent chosen through Nimi-owned configuration; it contains no Connector, account, credential, Loadout identity, local model, workflow, node environment, ModelAsset binding, machine selection, Runtime process state, per-Agent field, product revision or history, and Apply Profile to AIConfig atomically creates or overwrites this current state without merge, re-apply, installation, Prepare or Commit Loadout, selection mutation, Connector selection, or readiness gating.
+    statement: Runtime and SDK project the account-scoped shared LocalAgent AIConfig as a revisioned whole-object per-CapabilityContract Local or Cloud route intent with required standardized features, defaults, and one exact Local Loadout reference or Cloud Connector reference, CapabilityImplementation, and provider-model target; any covered App or Desktop uses the same canonical get, compare-and-swap overwrite, clear-by-omission, lightweight effective selected-resource projection, and bounded discriminated options clients, while the AIConfig contains no credential, endpoint, account selector, Loadout content, ModelAsset binding, workflow, node environment, process state, per-Agent field, readiness, fallback, merge, or history. Apply Profile remains portable, returns only non-committing prefill, and does not install, prepare, bind, select environment resources, or write the shared owner.
     condition: Whenever LocalAgent AIConfig is projected, customized, previewed, applied, or consumed for execution.
     failure: Reject per-Agent or route-only shadow truth, local execution material in AIConfig, caller-fabricated owner identity, untyped parameters, live Profile binding, partial write, fallback, or stub success.
     relations:

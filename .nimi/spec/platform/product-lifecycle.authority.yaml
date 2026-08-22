@@ -739,9 +739,9 @@ units:
     kind: rule
     title: P-HOME-009 App AIConfig is centrally discoverable
     modality: must
-    statement: Apps presents every currently manageable App AIConfig owner without launching its App and exposes a bounded current summary that distinguishes unconfigured, partial, Local, Cloud, mixed, and typed unavailable state with configured and total CapabilityContract counts; exact editing remains on the selected App's Nimi-owned AIConfig detail surface, and the summary is a read-only owner projection rather than a second configuration record.
+    statement: Apps presents every currently manageable account-scoped App AIConfig owner without launching its App and exposes a bounded current summary with routePosture unconfigured, partial-local, partial-cloud, partial-mixed, local, cloud, or mixed, healthPosture healthy, blocked, or unavailable, and intentCount, total, and blockedCount; exact editing in Desktop uses the same canonical get, compare-and-swap overwrite, clear, effective selected-resource, and bounded options contract available to the covered App itself, while Desktop remains a centralized but non-exclusive management entry and the summary remains a read-only owner projection rather than a second configuration record or candidate catalog.
     condition: Whenever Nimi Home presents Apps whose canonical owners may consume AI.
-    failure: Reject an App AIConfig that is discoverable only inside its App or detail editor, a renderer-inferred route summary, hidden Cloud posture, fabricated readiness, duplicated configuration, or a summary that collapses partial configuration into unconfigured.
+    failure: Reject an App AIConfig discoverable only inside its App, a Desktop-only mutation path, renderer-inferred route or health, hidden Cloud or blocked posture, fabricated readiness, duplicated configuration, candidate-catalog aggregation, or a summary that collapses partial intent into unconfigured or blocked intent into healthy.
     relations:
       - type: applies_to
         target: definition.nimi.platform.product-lifecycle.home-apps

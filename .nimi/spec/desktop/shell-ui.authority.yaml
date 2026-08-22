@@ -1098,9 +1098,9 @@ units:
     kind: rule
     title: Apps is the unified App AIConfig management entry
     modality: must
-    statement: Desktop Apps lists the bounded canonical AIConfig summary for every currently projected App AIConfig owner without launching the App, supports Local, Cloud, mixed, partial, unconfigured, and typed unavailable discovery, and opens exact editing only in that App's ai-models detail section; the bounded aggregation reads each existing owner through the canonical appAIConfig appId client and persists no second AIConfig, inventory, or Connector binding.
+    statement: Desktop Apps lists the bounded canonical AIConfig summary for every currently projected account-scoped App owner without launching the App, showing routePosture, healthPosture, intentCount, total, and blockedCount from config plus lightweight effective selected-resource results without loading candidate catalogs, and its detail editor uses the same canonical get, compare-and-swap overwrite, clear, and bounded discriminated options contracts available inside the covered App. Desktop validates the management target against the current Apps projection, persists no second AIConfig, inventory, option catalog, or Connector binding, and remains a centralized but non-exclusive management entry rather than a configuration or consumption prerequisite.
     condition: Whenever Desktop presents Apps AI configuration.
-    failure: Reject App-local-only discoverability, launch-required management, renderer-inferred configuration truth, duplicated owner state, or a summary that does not come from the exact current App owner.
+    failure: Reject App-local-only discoverability, Desktop-only mutation, launch-required management, a non-projected management target, renderer-inferred route or health, duplicated owner state, candidate-catalog aggregation, or a summary that does not come from the exact current App owner and bounded effective projection.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.shell-ui.home-shell

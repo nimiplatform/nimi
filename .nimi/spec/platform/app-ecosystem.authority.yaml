@@ -210,7 +210,7 @@ units:
     kind: rule
     title: P-AGID-010 session-derived agent configuration access
     modality: must
-    statement: Each agent configuration operation is admitted only from the current protected App session with Effective App Access Snapshot coverage for agent.configure; shared AIConfig operations resolve the singular Runtime LocalAgent subsystem owner without an Agent handle, while per-Agent autonomy or presentation operations present the session-scoped opaque Agent reference handle with per-call current-account active-Agent revalidation and preserve independent autonomy and presentation revisions through typed conflict results.
+    statement: Each agent configuration operation is admitted only from the current protected App session with Effective App Access Snapshot coverage for agent.configure; shared AIConfig get, compare-and-swap overwrite, and bounded options list resolve the account-scoped singular Runtime LocalAgent subsystem owner without an Agent handle, while per-Agent autonomy or presentation operations present the session-scoped opaque Agent reference handle with per-call current-account active-Agent revalidation and preserve independent autonomy and presentation revisions through typed conflict results.
     condition: Whenever an App invokes an agent configuration operation.
     failure: Fail closed without owner mutation when the session or snapshot coverage is missing or stale, or when a per-Agent operation lacks its required current handle or independent revision or encounters a typed conflict.
     relations:
@@ -222,7 +222,7 @@ units:
     kind: rule
     title: P-AGID-010 no app-owned AI or configuration truth
     modality: must_not
-    statement: An App agent configuration surface carries a secondary access workflow or decision state, addresses the shared LocalAgent AIConfig by Agent handle, merges or versions AIConfig, stores or promotes a selected route, model, Connector, or provider as App-owned truth, stores Provider Credentials, invokes generic Connector management, or infers readiness, Quota, Budget, Rate Limit, or fallback.
+    statement: An App agent configuration surface carries a secondary access workflow or decision state, addresses the shared LocalAgent AIConfig by Agent handle, merges AIConfig, persists a route, model, Connector, provider, option catalog, or effective posture outside the canonical owner record and Runtime projections, stores Provider Credentials or endpoints, invokes generic Connector management, or infers readiness, Quota, Budget, Rate Limit, or fallback; submitting explicit user-selected Loadout or Connector references through the admitted canonical owner compare-and-swap operation is not App-owned truth.
     condition: Whenever an App presents or mutates agent configuration.
     failure: Reject the carrier, cross-owner mutation, or invented truth and keep Runtime owner state unchanged.
     relations:
@@ -246,7 +246,7 @@ units:
   - id: definition.nimi.platform.app-ecosystem.agent-configuration-operation-family
     kind: definition
     title: App agent configuration operation family
-    meaning: The agent configuration operation family is the bounded agent.configure App operation set runtime.agent.ai-config.get, runtime.agent.ai-config.overwrite, runtime.agent.autonomy.snapshot.get, runtime.agent.autonomy.update, runtime.agent.presentation.snapshot.get, and runtime.agent.presentation.commit; the shared Runtime LocalAgent subsystem AIConfig operations resolve the singular subsystem owner without an Agent handle, while autonomy and presentation operations are addressed by the session-scoped opaque Agent reference handle and preserve only their own independent concurrency revisions and typed conflict results, all without a secondary access state, per-Agent route, App-owned model carrier, Connector credential, or generic Connector operation.
+    meaning: The agent configuration operation family is the bounded agent.configure App operation set runtime.agent.ai-config.get, runtime.agent.ai-config.overwrite, runtime.agent.ai-config.options.list, runtime.agent.autonomy.snapshot.get, runtime.agent.autonomy.update, runtime.agent.presentation.snapshot.get, and runtime.agent.presentation.commit; the shared account-scoped Runtime LocalAgent subsystem AIConfig operations resolve the singular subsystem owner without an Agent handle and expose only the canonical record, compare-and-swap mutation, lightweight effective selected-resource projection, and bounded safe Local or Cloud options, while autonomy and presentation operations are addressed by the session-scoped opaque Agent reference handle and preserve only their own independent concurrency revisions and typed conflict results, all without a secondary access state, per-Agent route, App-owned shadow carrier, Connector credential, endpoint, or generic Connector operation.
     relations:
       - type: supersedes
         target: definition.nimi.platform.app-ecosystem.agents-configure-operation-family
@@ -737,9 +737,9 @@ units:
     kind: rule
     title: P-NAPP-003 AIProfile recommendation is portable and non-binding
     modality: must
-    statement: An optional ai_profile_recommendation_ref resolves to an admitted factory AIProfile alias or profileId and remains a visible portable recommendation that writes configuration only if the user later invokes explicit Apply Profile to AIConfig; a registry row contains no embedded provider, connector, engine, or model identifier constant and the recommendation never selects an AIConfig route, Loadout, machine relation, binding, or Connector.
+    statement: An optional ai_profile_recommendation_ref resolves to an admitted factory AIProfile alias or profileId and remains a visible portable recommendation that produces non-committing editor prefill only if the user later invokes explicit Apply Profile to AIConfig; a registry row contains no embedded provider, Connector, engine, model, or current-environment resource identifier constant, and the recommendation never selects or commits an AIConfig route, Loadout reference, machine preference, binding, or Connector reference.
     condition: Whenever AIProfile recommendation metadata is admitted or presented.
-    failure: Reject an unresolved reference, embedded vendor identifier, automatic Apply, or recommendation presented as live selection or binding.
+    failure: Reject an unresolved reference, embedded vendor or resource identifier, automatic Apply or Save, or recommendation presented as committed configuration, live selection, or binding.
     relations:
       - type: applies_to
         target: definition.nimi.platform.app-ecosystem.registry-row
@@ -1635,7 +1635,7 @@ units:
     kind: rule
     title: P-ECO-005 future world and game app boundary
     modality: must
-    statement: A future world or game App remains only a registry candidate, and any cross-world or cross-game flow requires a separate owner-complete authority cut and typed projection while retaining source App, target App, and canonical App owner references on the Realm audit surface; it cannot widen the current four AppAccess domains or forty operations through registry, review, trust inheritance, or raw sharing.
+    statement: A future world or game App remains only a registry candidate, and any cross-world or cross-game flow requires a separate owner-complete authority cut and typed projection while retaining source App, target App, and canonical App owner references on the Realm audit surface; it cannot widen the current four AppAccess domains or forty-three operations through registry, review, trust inheritance, or raw sharing.
     condition: Whenever a world or game app class or cross-app flow is proposed.
     failure: Deny admission or data flow without the separate owner authority, projection, audit reference, and trust-tier boundary.
     relations:

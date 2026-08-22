@@ -86,7 +86,7 @@ units:
     kind: rule
     title: Cognition consumes canonical capability composition
     modality: must
-    statement: The canonical App or shared LocalAgent AIConfig owner commits each CapabilityContract route, the machine owner sets or explicitly clears Loadout selection through Select Loadout, and at Job submission Runtime atomically dereferences any selected Local Loadout into a complete persisted ResolvedAssembly or captures the exact Cloud implementation, target, and current-account Connector custody after ownership, credential, App access, and policy checks together with Quota, Budget, and Rate Limit inputs; Cognition consumes only those immutable Job inputs and cannot select, resolve, probe, reread current owner state, override, or substitute defaults.
+    statement: The canonical App or shared LocalAgent AIConfig owner commits each CapabilityContract route and its exact Loadout reference or exact Connector reference plus Cloud implementation and target, and at Job submission Runtime atomically dereferences the committed Local reference into a complete persisted ResolvedAssembly or captures the committed Cloud references after ownership, credential, App access, and policy checks together with Quota, Budget, and Rate Limit inputs; Cognition consumes only those immutable Job inputs and cannot select, resolve, probe, reread current owner state, override, or substitute defaults or machine preference.
     condition: Whenever a Cognition adapter requires AI or embedding resources for Runtime work.
     failure: Fail closed with the typed selection, derived-admission, or Job failure when exact captured inputs are unavailable.
     relations:
