@@ -324,6 +324,12 @@ func withAuthorizedAppOwnerDecision(ctx context.Context, method string, request 
 			return ctx, nil
 		}
 		owner = req.GetConfig().GetOwner()
+	case "/nimi.runtime.v1.RuntimeAiService/ListAppAIConfigOptions":
+		req, ok := request.(*runtimev1.ListAppAIConfigOptionsRequest)
+		if !ok || req == nil {
+			return ctx, nil
+		}
+		owner = req.GetOwner()
 	default:
 		return ctx, nil
 	}

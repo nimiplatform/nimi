@@ -149,6 +149,15 @@ func TestDesktopAccountProductManagesExactAdmittedAppAIConfig(t *testing.T) {
 	if err != nil || len(read.GetConfig().GetCapabilities()) != 1 {
 		t.Fatalf("managed read = (%+v, %v)", read, err)
 	}
+	options, err := svc.ListAppAIConfigOptions(ctx, &runtimev1.ListAppAIConfigOptionsRequest{
+		Owner: appAIConfigOwner("acme.widget"),
+		Query: &runtimev1.ListAppAIConfigOptionsRequest_LocalLoadouts{
+			LocalLoadouts: &runtimev1.AIConfigLocalLoadoutOptionsQuery{CapabilityContract: "text.generate"},
+		},
+	})
+	if err != nil || options.GetLocalLoadouts() == nil {
+		t.Fatalf("managed options = (%+v, %v)", options, err)
+	}
 	absent, err := svc.GetAppAIConfig(desktopManagedAppAIConfigContext("account-b", "acme.widget"), &runtimev1.GetAppAIConfigRequest{Owner: appAIConfigOwner("acme.widget")})
 	if err != nil || absent.GetConfig() != nil || absent.GetRevision() != "0" {
 		t.Fatalf("managed absent read = (%+v, %v)", absent, err)

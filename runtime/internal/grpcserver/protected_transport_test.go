@@ -418,6 +418,26 @@ func TestDesktopAccountProductAIConfigBindsExactAdmittedAppOwner(t *testing.T) {
 		t.Fatalf("admitted App owner = reached=%v calls=%d err=%v", reached, admissionCalls, err)
 	}
 
+	optionsRequest := &runtimev1.ListAppAIConfigOptionsRequest{
+		Owner: request.Owner,
+		Query: &runtimev1.ListAppAIConfigOptionsRequest_LocalLoadouts{
+			LocalLoadouts: &runtimev1.AIConfigLocalLoadoutOptionsQuery{CapabilityContract: "text.generate"},
+		},
+	}
+	reached = false
+	_, err = interceptor(ctx, optionsRequest, &grpc.UnaryServerInfo{
+		FullMethod: "/nimi.runtime.v1.RuntimeAiService/ListAppAIConfigOptions",
+	}, func(callContext context.Context, _ any) (any, error) {
+		reached = true
+		if appID, ok := protectedprincipal.AuthorizedAppOwnerDecisionFromContext(callContext); !ok || appID != "acme.widget" {
+			t.Fatalf("authorized options App owner decision = %q, %v", appID, ok)
+		}
+		return &runtimev1.ListAppAIConfigOptionsResponse{}, nil
+	})
+	if err != nil || !reached || admissionCalls != 2 {
+		t.Fatalf("admitted App options owner = reached=%v calls=%d err=%v", reached, admissionCalls, err)
+	}
+
 	request.Owner.GetApp().AppId = "nimi.unknown"
 	reached = false
 	_, err = interceptor(ctx, request, &grpc.UnaryServerInfo{
