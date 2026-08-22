@@ -18,5 +18,10 @@
 - Locale bundles live in `src/shell/i18n/locales/{en,zh}/*.json`, one top-level section object per file (e.g. `studio.json` → `"Studio"`); new section files must be registered in `src/shell/i18n/index.ts` and mirrored in both locales (`test/i18n-parity.test.mjs` enforces key parity).
 - Static data modules store i18n keys (e.g. `labelKey`) and translate at render time; prompts/directives sent to Runtime and UI Recipes gallery copy stay English.
 
+## Styling
+- `src/styles.css` imports Tailwind with `source(none)` and adds `@source "./**/*.{ts,tsx}"` so app composition classes are generated; Kit component classes come from the `@source` rules inside Kit's own `styles.css`. Keep new app utilities inside that scan.
+- App plain CSS is wrapped in `@scope (.nimi-workbench-host)`; Kit Popover/Dialog content portals to `<body>` and escapes that scope, so portal-targeted styles must live in their own `@scope (<panel-root-class>)` block (single root per block) — see the history filter popover and image preview modal blocks at the end of `src/ai-studio-core/ai-studio-core.css`.
+- Kit `Button` wraps children in one inline content span with pointer events disabled; composite rows that lay out structured children dissolve that wrapper with `> span { display: contents; }` (and restore `pointer-events: auto` where nested Tooltips need hover).
+
 ## Verification Commands
 - Run the focused test, then `pnpm --filter @nimiplatform/lab test` and `pnpm --filter @nimiplatform/lab run validate`.

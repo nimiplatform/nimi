@@ -1,6 +1,6 @@
-import { randomBytes } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 import { watch, type FSWatcher } from 'node:fs';
-import { open } from 'node:fs/promises';
+import { open, readFile, readdir } from 'node:fs/promises';
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import path from 'node:path';
 import type { ChildProcessWithoutNullStreams } from 'node:child_process';
@@ -104,7 +104,9 @@ type RunContext = {
   rebuilding: boolean;
   rebuildRequested: boolean;
   refreshingRegistration: boolean;
+  refreshRegistrationPromise?: Promise<void>;
   recoveringRuntimeTransport: boolean;
+  electronSourceFingerprint?: string;
   hostRelaunchWindow: number[];
   hostRelaunchEligibleAtUnixMs: number;
 };
@@ -539,7 +541,9 @@ export class ElectronLocalDevelopmentHost {
       await waitForRenderer(run.plan.rendererOrigin, run.renderer, () => run.stopped);
       await this.launchHost(run);
       if (run.stopped) return;
-      run.watcher = watch(path.join(run.plan.projectRoot, 'src-electron'), { recursive: true }, () => {
+      const electronSourceRoot = path.join(run.plan.projectRoot, 'src-electron');
+      run.electronSourceFingerprint = await captureLocalDevelopmentElectronSourceFingerprint(electronSourceRoot);
+      run.watcher = watch(electronSourceRoot, { recursive: true }, () => {
         if (run.stopped) return;
         run.rebuildRequested = true;
         if (run.rebuildTimer) clearTimeout(run.rebuildTimer);
@@ -569,11 +573,25 @@ export class ElectronLocalDevelopmentHost {
     if (run.stopped || run.rebuilding) return;
     run.rebuilding = true;
     try {
+      if (run.refreshRegistrationPromise) await run.refreshRegistrationPromise;
+      if (run.stopped) return;
+      if (!run.renderer) {
+        this.startSupervisor(run);
+        return;
+      }
       do {
         run.rebuildRequested = false;
+        const electronSourceFingerprint = await captureLocalDevelopmentElectronSourceFingerprint(
+          path.join(run.plan.projectRoot, 'src-electron'),
+        );
+        if (electronSourceFingerprint === run.electronSourceFingerprint) {
+          appendLog(run, 'supervisor', 'ignored metadata-only src-electron watch event');
+          continue;
+        }
         setRunState(run, 'restarting', 'Rebuilding Electron main and preload', undefined, true);
         await this.runPackageScript(run, 'build:electron');
         if (run.stopped) return;
+        run.electronSourceFingerprint = electronSourceFingerprint;
         await this.replaceHost(run);
       } while (run.rebuildRequested && !run.stopped);
     } catch (error) {
@@ -620,6 +638,13 @@ export class ElectronLocalDevelopmentHost {
   }
 
   private async replaceHost(run: RunContext): Promise<void> {
+    if (!run.registrationHandle) throw new Error('local-development-registration-not-found');
+    // Runtime renews a one-shot rebind witness for each live source-local Host.
+    // Revoke that replaceable run lease while the original Desktop transport
+    // is still stable, then terminate the old process. The persistent project
+    // registration remains active and the next launch receives a fresh PID
+    // binding.
+    await this.endRunWithTransportRetry(run.registrationHandle, run.supervisorRunId);
     await this.control.terminateHost(run.supervisorRunId);
     if (!run.stopped) await this.launchHost(run);
   }
@@ -628,9 +653,14 @@ export class ElectronLocalDevelopmentHost {
     run.healthTimer ??= setInterval(() => {
       if (run.refreshingRegistration) return;
       run.refreshingRegistration = true;
-      void this.refreshRegistration(run).finally(() => {
-        run.refreshingRegistration = false;
+      const refresh = this.refreshRegistration(run).finally(() => {
+        if (run.refreshRegistrationPromise === refresh) {
+          run.refreshRegistrationPromise = undefined;
+          run.refreshingRegistration = false;
+        }
       });
+      run.refreshRegistrationPromise = refresh;
+      void refresh;
     }, HEALTH_MS);
   }
 
@@ -674,6 +704,10 @@ export class ElectronLocalDevelopmentHost {
         setRunState(run, 'running', 'Supervised electron host is running', undefined, false);
       }
       if (!running && run.status.hostGeneration > 0) {
+        if (!run.renderer) {
+          this.startSupervisor(run);
+          return;
+        }
         const decision = resolveLocalDevelopmentHostRelaunchDecision({
           nowUnixMs: Date.now(),
           relaunchWindow: run.hostRelaunchWindow,
@@ -1026,6 +1060,36 @@ function randomIdentifier(): string {
   const value = randomBytes(32).toString('hex');
   if (/^0+$/u.test(value)) throw new Error('local-development-supervisor-required');
   return value;
+}
+
+/** @internal Focused contract-test seam. */
+export async function captureLocalDevelopmentElectronSourceFingerprint(sourceRoot: string): Promise<string> {
+  const hash = createHash('sha256');
+  await appendLocalDevelopmentElectronSource(hash, path.resolve(sourceRoot), '');
+  return hash.digest('hex');
+}
+
+async function appendLocalDevelopmentElectronSource(
+  hash: ReturnType<typeof createHash>,
+  sourceRoot: string,
+  relativeRoot: string,
+): Promise<void> {
+  const directory = path.join(sourceRoot, relativeRoot);
+  const entries = (await readdir(directory, { withFileTypes: true }))
+    .sort((left, right) => left.name.localeCompare(right.name, 'en'));
+  for (const entry of entries) {
+    const relativePath = path.join(relativeRoot, entry.name);
+    const portablePath = relativePath.split(path.sep).join('/');
+    if (entry.isDirectory()) {
+      await appendLocalDevelopmentElectronSource(hash, sourceRoot, relativePath);
+      continue;
+    }
+    hash.update(entry.isFile() ? 'file\0' : 'other\0');
+    hash.update(portablePath);
+    hash.update('\0');
+    if (entry.isFile()) hash.update(await readFile(path.join(sourceRoot, relativePath)));
+    hash.update('\0');
+  }
 }
 
 function reason(error: unknown): string {

@@ -60,7 +60,11 @@ export function WorkbenchRuntimeGate({
 
   useEffect(() => {
     let active = true;
-    setState({ kind: 'checking' });
+    // A re-run triggered by a changed resolve/toErrorMessage identity (for
+    // example a locale switch) must not tear down the ready subtree: keep the
+    // current state while re-checking, and only surface the checking screen
+    // when no successful check has completed yet.
+    setState((current) => (current.kind === 'ready' ? current : { kind: 'checking' }));
     void resolve().then((projection) => {
       if (!active) return;
       if (projection.status === 'ready') {

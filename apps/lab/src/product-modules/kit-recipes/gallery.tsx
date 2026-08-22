@@ -72,16 +72,16 @@ export function KitRecipesGallery({
   }
 
   return (
-    <div className="kit-doc grid h-full min-h-0 min-w-0 grid-cols-[260px_minmax(0,1fr)] items-stretch gap-4 overflow-x-hidden overflow-y-auto p-4 max-[880px]:grid-cols-1" data-testid={testId}>
+    <div className="kit-doc grid h-full min-h-0 min-w-0 grid-cols-[260px_minmax(0,1fr)] items-stretch gap-4 overflow-x-hidden overflow-y-auto p-4 max-[880px]:grid-cols-1 max-[880px]:auto-rows-max" data-testid={testId}>
       {/* Left — library nav. Sticky while the canvas to its right scrolls. */}
       <Surface as="aside" material="glass-regular" padding="none" elevation="raised" className="kit-doc__library sticky top-0 flex h-[calc(100cqh-2rem)] min-h-0 max-h-none flex-col gap-4 self-stretch overflow-hidden p-4 max-[880px]:static max-[880px]:h-auto max-[880px]:overflow-visible" aria-label="Kit library navigation">
         <div className="kit-doc__intro min-w-0">
           <p className="eyebrow">Nimi UI Kit</p>
           <h1 className="m-0 text-2xl font-bold tracking-tight">UI Recipes</h1>
         </div>
-        <div className="flex min-h-0 flex-1 flex-col gap-2">
+        <div className="flex min-h-0 flex-1 flex-col gap-2 max-[880px]:flex-none">
           <p className="kit-doc__browse-label px-1 text-[10px] font-bold uppercase tracking-wider text-[var(--nimi-text-muted)]">Browse</p>
-          <nav className="kit-doc__taxonomy grid min-h-0 flex-1 content-start gap-1.5 overflow-auto" aria-label="Recipe categories">
+          <nav className="kit-doc__taxonomy grid min-h-0 flex-1 content-start gap-1.5 overflow-auto max-[880px]:flex-none" aria-label="Recipe categories">
             {CATEGORIES.map((entry) => {
               const isActive = entry.id === category;
               return (

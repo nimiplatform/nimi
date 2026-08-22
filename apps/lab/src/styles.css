@@ -6,6 +6,10 @@
 @import "@nimiplatform/kit/auth/styles.css";
 @import "tailwindcss" source(none);
 
+/* Keep Tailwind scanning bounded while including the app composition; Kit
+   sources are scanned through the @source rules in Kit's own styles.css. */
+@source "./**/*.{ts,tsx}";
+
 :root {
   color-scheme: light;
 }

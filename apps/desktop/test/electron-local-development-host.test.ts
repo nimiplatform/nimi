@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, utimes, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { describe, it } from 'node:test';
@@ -8,6 +8,7 @@ import type {
   NimiElectronLocalDevelopmentRegistration,
 } from '@nimiplatform/kit/shell/electron/main';
 import {
+  captureLocalDevelopmentElectronSourceFingerprint,
   ElectronLocalDevelopmentHost,
   isLocalDevelopmentRuntimeTransportFailure,
   localDevelopmentFailureMessage,
@@ -80,7 +81,9 @@ function activeRun() {
     rebuilding: false,
     rebuildRequested: false,
     refreshingRegistration: false,
+    refreshRegistrationPromise: undefined as Promise<void> | undefined,
     recoveringRuntimeTransport: false,
+    electronSourceFingerprint: undefined as string | undefined,
     hostRelaunchWindow: [] as number[],
     hostRelaunchEligibleAtUnixMs: 0,
     renderer: undefined as object | undefined,
@@ -295,6 +298,119 @@ describe('Desktop Electron local-development registration host', () => {
     assert.equal(run.recoveringRuntimeTransport, false);
     assert.equal(run.status.hostGeneration, 1);
     assert.equal(terminateCalls, 0);
+  });
+
+  it('starts one full supervisor after recovery when renderer cleanup removed the prior Host', async () => {
+    const host = new ElectronLocalDevelopmentHost(control({
+      hostRunning: async () => false,
+    }), '/tmp');
+    const run = activeRun();
+    let supervisorStarts = 0;
+    let hostReplacements = 0;
+    Reflect.set(host, 'startSupervisor', () => { supervisorStarts += 1; });
+    Reflect.set(host, 'replaceHost', async () => { hostReplacements += 1; });
+    const healthHost = host as unknown as {
+      refreshRegistration(context: typeof run): Promise<void>;
+    };
+
+    await healthHost.refreshRegistration(run);
+
+    assert.equal(supervisorStarts, 1);
+    assert.equal(hostReplacements, 0);
+  });
+
+  it('waits for an in-flight health refresh before rebuilding the Host', async () => {
+    const projectRoot = await mkdtemp(path.join(os.tmpdir(), 'nimi-rebuild-test-'));
+    try {
+      const sourceRoot = path.join(projectRoot, 'src-electron');
+      await mkdir(sourceRoot);
+      await writeFile(path.join(sourceRoot, 'main.ts'), 'export const generation = 2;\n', 'utf8');
+      const host = new ElectronLocalDevelopmentHost(control(), '/tmp');
+      const run = activeRun();
+      run.plan = { ...run.plan, projectRoot };
+      run.renderer = {};
+      run.electronSourceFingerprint = 'previous-source';
+      const order: string[] = [];
+      let completeRefresh!: () => void;
+      run.refreshRegistrationPromise = new Promise<void>((resolve) => { completeRefresh = resolve; });
+      Reflect.set(host, 'runPackageScript', async () => { order.push('build'); });
+      Reflect.set(host, 'replaceHost', async () => { order.push('replace'); });
+      const rebuildHost = host as unknown as {
+        rebuild(context: typeof run): Promise<void>;
+      };
+
+      const rebuilding = rebuildHost.rebuild(run);
+      await Promise.resolve();
+      assert.deepEqual(order, []);
+
+      completeRefresh();
+      await rebuilding;
+      assert.deepEqual(order, ['build', 'replace']);
+      assert.equal(run.status.state, 'restarting');
+    } finally {
+      await rm(projectRoot, { recursive: true, force: true });
+    }
+  });
+
+  it('restarts the full supervisor when health recovery removed the renderer before rebuilding', async () => {
+    const host = new ElectronLocalDevelopmentHost(control(), '/tmp');
+    const run = activeRun();
+    run.renderer = {};
+    let supervisorStarts = 0;
+    let packageBuilds = 0;
+    let completeRefresh!: () => void;
+    run.refreshRegistrationPromise = new Promise<void>((resolve) => { completeRefresh = resolve; });
+    Reflect.set(host, 'startSupervisor', () => { supervisorStarts += 1; });
+    Reflect.set(host, 'runPackageScript', async () => { packageBuilds += 1; });
+    const rebuildHost = host as unknown as {
+      rebuild(context: typeof run): Promise<void>;
+    };
+
+    const rebuilding = rebuildHost.rebuild(run);
+    run.renderer = undefined;
+    completeRefresh();
+    await rebuilding;
+
+    assert.equal(supervisorStarts, 1);
+    assert.equal(packageBuilds, 0);
+  });
+
+  it('revokes the previous Runtime run lease before launching a replacement Host', async () => {
+    const order: string[] = [];
+    const host = new ElectronLocalDevelopmentHost(control({
+      terminateHost: async () => { order.push('terminate'); },
+      endRun: async () => { order.push('end-run'); },
+    }), '/tmp');
+    Reflect.set(host, 'launchHost', async () => { order.push('launch'); });
+    const run = activeRun();
+    const replacementHost = host as unknown as {
+      replaceHost(context: typeof run): Promise<void>;
+    };
+
+    await replacementHost.replaceHost(run);
+
+    assert.deepEqual(order, ['end-run', 'terminate', 'launch']);
+    assert.equal(run.registrationHandle, HANDLE);
+  });
+
+  it('fingerprints src-electron content without treating timestamp changes as edits', async () => {
+    const projectRoot = await mkdtemp(path.join(os.tmpdir(), 'nimi-source-watch-test-'));
+    try {
+      const sourceRoot = path.join(projectRoot, 'src-electron');
+      const mainPath = path.join(sourceRoot, 'main.ts');
+      await mkdir(sourceRoot);
+      await writeFile(mainPath, 'export const generation = 1;\n', 'utf8');
+      const initial = await captureLocalDevelopmentElectronSourceFingerprint(sourceRoot);
+
+      const touchedAt = new Date(Date.now() + 2_000);
+      await utimes(mainPath, touchedAt, touchedAt);
+      assert.equal(await captureLocalDevelopmentElectronSourceFingerprint(sourceRoot), initial);
+
+      await writeFile(mainPath, 'export const generation = 2;\n', 'utf8');
+      assert.notEqual(await captureLocalDevelopmentElectronSourceFingerprint(sourceRoot), initial);
+    } finally {
+      await rm(projectRoot, { recursive: true, force: true });
+    }
   });
 
   it('bounds host relaunch attempts with exponential backoff and a rolling window', () => {

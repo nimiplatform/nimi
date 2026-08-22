@@ -37,10 +37,10 @@ export type SettingsRouteViewProps = {
 export function SettingsRouteView(props: SettingsRouteViewProps) {
   const { t } = useTranslation();
   return (
-    <Surface className="grid gap-3" material="glass-thin" tone="panel">
+    <Surface className="grid content-start gap-3" material="glass-thin" tone="panel">
       <div className="flex min-w-0 items-start justify-between gap-3">
         <h2 className="m-0 text-sm font-semibold tracking-normal text-[var(--nimi-text-primary)]">{t('Settings.title')}</h2>
-        <ProgressIndicator value={props.localDrafts ? 72 : 46} showValue />
+        <ProgressIndicator value={props.localDrafts ? 72 : 46} showValue className="w-40 shrink-0" />
       </div>
       <label className="flex min-w-0 flex-wrap items-center justify-between gap-3 text-sm text-[var(--nimi-text-secondary)]">
         <span>{t('Settings.localDrafts')}</span>
@@ -50,6 +50,7 @@ export function SettingsRouteView(props: SettingsRouteViewProps) {
         <span>{t('Common.language')}</span>
         <SelectField
           aria-label={t('Common.language')}
+          className="max-w-44"
           value={getCurrentLocale()}
           options={[
             { value: 'en', label: t('Common.languageEnglish') },

@@ -64,6 +64,19 @@ export function NimiLabAccountMenu({ onOpenSettings }: NimiLabAccountMenuProps) 
     };
   }, [refreshAccountUser, t]);
 
+  // Light-dismiss: the panel is not portaled, so neither the root blur handler
+  // nor Escape covers clicks on non-focusable canvas areas.
+  useEffect(() => {
+    if (!open) return;
+    const onPointerDown = (event: PointerEvent) => {
+      if (rootRef.current && !rootRef.current.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener('pointerdown', onPointerDown);
+    return () => document.removeEventListener('pointerdown', onPointerDown);
+  }, [open]);
+
   const displayName = localAppSessionReady
     ? t('Auth.account.displayReady')
     : (loadingUser ? t('Auth.account.displayChecking') : t('Auth.account.displayUnavailable'));
