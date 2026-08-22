@@ -452,7 +452,7 @@ test('Local App text stream preserves whitespace-bearing deltas as content', asy
   ]);
 });
 
-test('App AIConfig exposes self-owner CAS and bounded Local options', async () => {
+test('App AIConfig exposes self-owner CAS and bounded Local/Cloud options', async () => {
   const portableConfig = {
     owner: { owner: { oneofKind: 'app', app: { appId: 'app.example' } } },
     capabilities: [{
@@ -469,18 +469,33 @@ test('App AIConfig exposes self-owner CAS and bounded Local options', async () =
     implementation: { implementationId: 'local.text', driverId: 'driver.local', driverDialect: 'v1' },
     supportedFeatures: [], state: 'ready', reasons: [],
   } as const;
+  const cloudConnector = {
+    connectorRef: 'connector:work', label: 'Work', provider: 'openai', state: 'ready', reasons: [],
+  } as const;
+  const cloudTarget = {
+    connectorRef: 'connector:work', label: 'GPT Test', capabilityContract: 'text.generate',
+    implementation: { implementationId: 'openai', driverId: 'nimillm', driverDialect: 'openai' },
+    providerModelTarget: { provider: 'openai', providerModelId: 'gpt-test', remoteModelCatalogId: 'catalog:gpt-test' },
+    supportedFeatures: [], state: 'ready', reasons: [],
+  } as const;
   const base = standardShell([]);
   const shell: NimiLocalAppStandardShell = {
     ...base,
     aiConfig: {
       get: async () => ({ config: portableConfig, revision: '1', effectiveSelections: [] }),
       overwrite: async () => ({ outcome: 'committed', config: portableConfig, revision: '2' }),
-      listOptions: async () => ({ kind: 'local-loadouts', options: [option], truncated: false }),
+      listOptions: async (query) => query.kind === 'local-loadouts'
+        ? ({ kind: query.kind, options: [option], truncated: false })
+        : query.kind === 'cloud-connectors'
+          ? ({ kind: query.kind, options: [cloudConnector], truncated: false })
+          : ({ kind: query.kind, options: [cloudTarget], truncated: false }),
     },
   };
   const client = createNimiLocalAppClient({ standardShell: shell });
   assert.deepEqual(await client.aiConfig.get(), { config: portableConfig, revision: '1', effectiveSelections: [] });
   assert.deepEqual((await client.aiConfig.listOptions({ kind: 'local-loadouts', capabilityContract: 'text.generate' })).options, [option]);
+  assert.deepEqual((await client.aiConfig.listOptions({ kind: 'cloud-connectors', capabilityContract: 'text.generate' })).options, [cloudConnector]);
+  assert.deepEqual((await client.aiConfig.listOptions({ kind: 'cloud-targets', capabilityContract: 'text.generate', connectorRef: 'connector:work' })).options, [cloudTarget]);
   assert.equal((await client.aiConfig.overwrite({ expectedRevision: '1', capabilities: portableConfig.capabilities })).outcome, 'committed');
   assert.deepEqual(Object.keys(client.aiConfig), ['get', 'overwrite', 'listOptions']);
 });

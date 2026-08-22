@@ -81,6 +81,7 @@ func TestEmbedTextsForMemoryUsesResolvedCloudBinding(t *testing.T) {
 		Capabilities: []*runtimev1.AIConfigCapabilityIntent{{
 			CapabilityContract: capabilitydriver.TextEmbedCapabilityContract,
 			Route: &runtimev1.AIConfigCapabilityIntent_Cloud{Cloud: &runtimev1.AIConfigCloudIntent{
+				ConnectorRef: fixture.connectorID,
 				Implementation: &runtimev1.CapabilityImplementationIdentity{
 					ImplementationId: "cloud.text.embed.openai", DriverId: "nimi.runtime.driver.openai", DriverDialect: "openai/embeddings/v1",
 				},

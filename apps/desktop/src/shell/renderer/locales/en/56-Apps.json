@@ -194,7 +194,6 @@
       "unconfigured": "AI not configured",
       "unavailable": "AI config unavailable"
     },
-    "cloudImpactConfirmation": "I understand {{app}} requests may leave this machine, use account {{account}}, and incur provider cost.",
     "loadFailed": "This app's AI configuration could not be loaded from Runtime.",
     "saveFailed": "Runtime could not save this app's AI configuration.",
     "oneClickLabel": "Configure in one click",

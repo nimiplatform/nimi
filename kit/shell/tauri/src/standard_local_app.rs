@@ -63,7 +63,9 @@ pub struct LocalAppAIConfigOverwritePayload {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct LocalAppAIConfigLocalOptionsPayload {
+    kind: String,
     capability_contract: String,
+    connector_ref: Option<String>,
     search: String,
 }
 
@@ -378,7 +380,9 @@ pub async fn ai_config_local_options_for_host(
     let payload: LocalAppAIConfigLocalOptionsPayload =
         parse_payload(payload, "local_app_ai_config_local_options")?;
     host.app_ai_config_local_options(LocalAppAIConfigLocalOptionsRequest {
+        kind: payload.kind,
         capability_contract: payload.capability_contract,
+        connector_ref: payload.connector_ref.unwrap_or_default(),
         search: payload.search,
     })
     .await
@@ -622,7 +626,9 @@ pub async fn shared_agent_ai_config_local_options_for_host(
     let payload: LocalAppAIConfigLocalOptionsPayload =
         parse_payload(payload, "local_app_shared_agent_ai_config_local_options")?;
     host.shared_agent_ai_config_local_options(LocalAppSharedAgentAIConfigLocalOptionsRequest {
+        kind: payload.kind,
         capability_contract: payload.capability_contract,
+        connector_ref: payload.connector_ref.unwrap_or_default(),
         search: payload.search,
     })
     .await

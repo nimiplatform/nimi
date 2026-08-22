@@ -55,14 +55,6 @@ export function AgentConversationSettingsContent({ input }: AgentConversationSet
         focus: 'runtime-config-action-focus.loadouts',
       });
     },
-    openCloudConnectorConfiguration: () => {
-      setActiveTab('runtime');
-      runtimeConfigNavigation.focusAction({
-        page: 'cloud',
-        action: 'add-connector',
-        focus: 'runtime-config-action-focus.cloud-connector-draft',
-      });
-    },
   }), [input.onCloseAgentCenter, runtimeConfigNavigation, setActiveTab]);
   if (!input.runtimeAgentCenterAdapter) return null;
   return (

@@ -171,6 +171,7 @@ func (r *selectedLocalMachineExecutionBindingResolver) resolveCloudMachineExecut
 		return publicChatExecutionBinding{}, machineExecutionProjectionError(runtimev1.ReasonCode_AI_CONFIG_INVALID, "Cloud AIConfig target is incomplete", nil)
 	}
 	connectorRecord, binding, err := connector.ResolveCurrentAccountConnectorBinding(r.owner.connectorStore, r.owner.modelCatalog, accountNamespace, connector.RemoteModelCatalogRef{
+		ConnectorID:          intent.ConnectorRef,
 		RemoteModelCatalogID: remoteCatalogID,
 		ProviderModelID:      providerModelID,
 		Provider:             provider,

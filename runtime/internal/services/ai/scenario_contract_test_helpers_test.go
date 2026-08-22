@@ -57,6 +57,7 @@ func withCloudScenarioTestIntent(ctx context.Context, capabilityContract string,
 	providerTarget := &structpb.Struct{}
 	providerID := "missing"
 	if cloud != nil {
+		intent.ConnectorRef = cloud.ConnectorID
 		providerTarget, _ = structpb.NewStruct(map[string]any{
 			"provider":             cloud.Provider,
 			"providerModelId":      cloud.ProviderModelID,

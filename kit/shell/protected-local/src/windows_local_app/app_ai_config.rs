@@ -10,8 +10,10 @@ use crate::generated::{
     ai_config_capability_intent, ai_config_effective_selection, ai_config_owner,
     list_app_ai_config_options_request, list_app_ai_config_options_response,
     runtime_ai_service_client::RuntimeAiServiceClient, AiConfig, AiConfigCapabilityIntent,
-    AiConfigCloudIntent, AiConfigEffectiveSelection, AiConfigEffectiveState, AiConfigLocalIntent,
-    AiConfigLocalLoadoutOptionsQuery, AiConfigLocalResourceProjection,
+    AiConfigCloudConnectorOptionsQuery, AiConfigCloudConnectorProjection, AiConfigCloudIntent,
+    AiConfigCloudTargetOptionsQuery, AiConfigCloudTargetProjection, AiConfigEffectiveSelection,
+    AiConfigEffectiveState, AiConfigLocalIntent, AiConfigLocalLoadoutOptionsQuery,
+    AiConfigLocalResourceProjection,
     CapabilityImplementationIdentity, GetAppAiConfigRequest, ListAppAiConfigOptionsRequest,
     OverwriteAppAiConfigRequest, ReasonCode,
 };
@@ -86,52 +88,49 @@ pub async fn list_local_options(
     channel: Channel,
     request: LocalAppAIConfigLocalOptionsRequest,
 ) -> Result<JsonValue, LocalAppOperationError> {
+    let query = match request.kind.as_str() {
+        "local-loadouts" => list_app_ai_config_options_request::Query::LocalLoadouts(
+            AiConfigLocalLoadoutOptionsQuery {
+                capability_contract: required_text_value(&request.capability_contract)?,
+                search: request.search,
+            },
+        ),
+        "cloud-connectors" => list_app_ai_config_options_request::Query::CloudConnectors(
+            AiConfigCloudConnectorOptionsQuery {
+                capability_contract: required_text_value(&request.capability_contract)?,
+                search: request.search,
+            },
+        ),
+        "cloud-targets" => list_app_ai_config_options_request::Query::CloudTargets(
+            AiConfigCloudTargetOptionsQuery {
+                capability_contract: required_text_value(&request.capability_contract)?,
+                connector_ref: required_text_value(&request.connector_ref)?,
+                search: request.search,
+            },
+        ),
+        _ => return Err(invalid_payload()),
+    };
     let response = RuntimeAiServiceClient::new(channel)
         .list_app_ai_config_options(ListAppAiConfigOptionsRequest {
-            query: Some(list_app_ai_config_options_request::Query::LocalLoadouts(
-                AiConfigLocalLoadoutOptionsQuery {
-                    capability_contract: required_text_value(&request.capability_contract)?,
-                    search: request.search,
-                },
-            )),
+            query: Some(query),
             owner: None,
         })
         .await
         .map_err(local_app_error_from_status)?
         .into_inner();
-    let options = match response.result.ok_or_else(untrusted)? {
-        list_app_ai_config_options_response::Result::LocalLoadouts(value) => value
-            .options
-            .into_iter()
-            .map(project_local_resource)
-            .collect::<Result<Vec<_>, _>>()?,
+    let (kind, options) = match response.result.ok_or_else(untrusted)? {
+        list_app_ai_config_options_response::Result::LocalLoadouts(value) if request.kind == "local-loadouts" => (
+            "local-loadouts", value.options.into_iter().map(project_local_resource).collect::<Result<Vec<_>, _>>()?,
+        ),
+        list_app_ai_config_options_response::Result::CloudConnectors(value) if request.kind == "cloud-connectors" => (
+            "cloud-connectors", value.options.into_iter().map(project_cloud_connector).collect::<Result<Vec<_>, _>>()?,
+        ),
+        list_app_ai_config_options_response::Result::CloudTargets(value) if request.kind == "cloud-targets" => (
+            "cloud-targets", value.options.into_iter().map(project_cloud_target).collect::<Result<Vec<_>, _>>()?,
+        ),
+        _ => return Err(untrusted()),
     };
-    Ok(json!({ "kind": "local-loadouts", "options": options, "truncated": response.truncated }))
-}
-
-fn project_effective_defaults(value: ProtoStruct) -> Result<JsonValue, LocalAppOperationError> {
-    if value.fields.is_empty() || value.fields.len() > 64 {
-        return Err(untrusted());
-    }
-    let fields = value
-        .fields
-        .into_iter()
-        .map(|(key, value)| {
-            if key.is_empty() || key.trim() != key || key.len() > 128 {
-                return Err(untrusted());
-            }
-            let text = match value.kind.ok_or_else(untrusted)? {
-                ProtoValueKind::StringValue(text)
-                    if !text.is_empty() && text.trim() == text && text.len() <= 128 =>
-                {
-                    text
-                }
-                _ => return Err(untrusted()),
-            };
-            Ok((key, JsonValue::String(text)))
-        })
-        .collect::<Result<Map<_, _>, LocalAppOperationError>>()?;
-    Ok(JsonValue::Object(fields))
+    Ok(json!({ "kind": kind, "options": options, "truncated": response.truncated }))
 }
 
 pub(super) fn project_effective_selection(
@@ -144,6 +143,13 @@ pub(super) fn project_effective_selection(
             "oneofKind": "local",
             "local": project_local_resource(local)?,
         }),
+        Some(ai_config_effective_selection::Resource::Cloud(cloud)) => json!({
+            "oneofKind": "cloud",
+            "cloud": {
+                "connector": project_cloud_connector(cloud.connector.ok_or_else(untrusted)?)?,
+                "target": project_cloud_target(cloud.target.ok_or_else(untrusted)?)?,
+            },
+        }),
         None => JsonValue::Null,
     };
     Ok(json!({
@@ -151,6 +157,33 @@ pub(super) fn project_effective_selection(
         "state": state,
         "resource": resource,
         "reasons": selection.reasons,
+    }))
+}
+
+pub(super) fn project_cloud_connector(
+    resource: AiConfigCloudConnectorProjection,
+) -> Result<JsonValue, LocalAppOperationError> {
+    Ok(json!({
+        "connectorRef": required_text_value(&resource.connector_ref)?,
+        "label": required_text_value(&resource.label)?,
+        "provider": required_text_value(&resource.provider)?,
+        "state": project_effective_state(resource.state)?,
+        "reasons": resource.reasons,
+    }))
+}
+
+pub(super) fn project_cloud_target(
+    resource: AiConfigCloudTargetProjection,
+) -> Result<JsonValue, LocalAppOperationError> {
+    Ok(json!({
+        "connectorRef": required_text_value(&resource.connector_ref)?,
+        "label": required_text_value(&resource.label)?,
+        "capabilityContract": required_text_value(&resource.capability_contract)?,
+        "implementation": project_implementation(resource.implementation.ok_or_else(untrusted)?)?,
+        "providerModelTarget": project_proto_struct(resource.provider_model_target.ok_or_else(untrusted)?)?,
+        "supportedFeatures": resource.supported_features,
+        "state": project_effective_state(resource.state)?,
+        "reasons": resource.reasons,
     }))
 }
 
@@ -263,8 +296,8 @@ fn parse_route(
             exact_keys(object, &["oneofKind", "cloud"], &["oneofKind", "cloud"])?;
             let cloud = exact_object(
                 object.get("cloud").ok_or_else(invalid_payload)?,
-                &["implementation", "providerModelTarget"],
-                &["implementation"],
+                &["connectorRef", "implementation", "providerModelTarget"],
+                &["connectorRef", "implementation"],
             )?;
             let implementation =
                 parse_implementation(cloud.get("implementation").ok_or_else(invalid_payload)?)?;
@@ -276,6 +309,7 @@ fn parse_route(
                 AiConfigCloudIntent {
                     implementation: Some(implementation),
                     provider_model_target,
+                    connector_ref: required_text(cloud.get("connectorRef"))?,
                 },
             ))
         }
@@ -475,6 +509,10 @@ pub(super) fn project_capability(
                     "driverDialect": implementation.driver_dialect,
                 }),
             )]);
+            projected.insert(
+                "connectorRef".to_string(),
+                JsonValue::String(required_text_value(&cloud.connector_ref)?),
+            );
             if let Some(target) = cloud.provider_model_target {
                 projected.insert(
                     "providerModelTarget".to_string(),
@@ -604,7 +642,7 @@ fn untrusted() -> LocalAppOperationError {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::generated::{AiConfigAppOwner, AiConfigOwner, Loadout, LoadoutSelection};
+    use crate::generated::{AiConfigAppOwner, AiConfigOwner};
 
     #[test]
     fn capability_round_trip_preserves_local_and_cloud_intent_without_owner_input() {
@@ -619,7 +657,10 @@ mod tests {
                         }
                     }
                 },
-                "route": { "oneofKind": "local", "local": {} }
+                "route": {
+                    "oneofKind": "local",
+                    "local": { "loadoutRef": "loadout-text" }
+                }
             },
             {
                 "capabilityContract": "image.generate",
@@ -627,6 +668,7 @@ mod tests {
                 "route": {
                     "oneofKind": "cloud",
                     "cloud": {
+                        "connectorRef": "connector-dashscope",
                         "implementation": {
                             "implementationId": "dashscope.image",
                             "driverId": "dashscope",
@@ -634,9 +676,9 @@ mod tests {
                         },
                         "providerModelTarget": {
                             "fields": {
-                                "model": {
-                                    "kind": { "oneofKind": "stringValue", "stringValue": "wanx-v1" }
-                                }
+                                "provider": { "kind": { "oneofKind": "stringValue", "stringValue": "dashscope" } },
+                                "providerModelId": { "kind": { "oneofKind": "stringValue", "stringValue": "wanx-v1" } },
+                                "remoteModelCatalogId": { "kind": { "oneofKind": "stringValue", "stringValue": "catalog-wanx-v1" } }
                             }
                         },
                     }
@@ -658,36 +700,25 @@ mod tests {
     }
 
     #[test]
-    fn local_selection_projection_keeps_display_facts_and_removes_configuration_identity() {
-        let projected = project_local_selections(MachineLoadouts {
-            loadouts: vec![Loadout {
-                loadout_id: "loadout-private".to_string(),
-                capability_contract: "text.generate".to_string(),
-                supported_features: vec!["input.image".to_string()],
-                validation_state: LoadoutValidationState::Configured as i32,
-                display_name: "gemma4-26b".to_string(),
-                ..Default::default()
-            }],
-            selections: vec![LoadoutSelection {
-                capability_contract: "text.generate".to_string(),
-                loadout_id: "loadout-private".to_string(),
-                effective_defaults: Some(ProtoStruct {
-                    fields: BTreeMap::from([(
-                        "temperature".to_string(),
-                        ProtoValue {
-                            kind: Some(ProtoValueKind::StringValue("0.8".to_string())),
-                        },
-                    )]),
-                }),
-            }],
+    fn local_loadout_option_projects_the_exact_safe_reference() {
+        let projected = project_local_resource(AiConfigLocalResourceProjection {
+            loadout_ref: "loadout-text".to_string(),
+            label: "Gemma 4".to_string(),
+            capability_contract: "text.generate".to_string(),
+            implementation: Some(CapabilityImplementationIdentity {
+                implementation_id: "gemma4".to_string(),
+                driver_id: "nimi.local".to_string(),
+                driver_dialect: "mlx".to_string(),
+            }),
+            supported_features: vec!["input.image".to_string()],
+            state: AiConfigEffectiveState::Ready as i32,
+            reasons: vec![],
         })
         .unwrap();
-        assert_eq!(projected[0]["state"], "selected");
-        assert_eq!(projected[0]["displayName"], "gemma4-26b");
-        assert_eq!(projected[0]["loadoutId"], JsonValue::Null);
-        assert_eq!(projected[0]["supportedFeatures"], json!(["input.image"]));
-        assert_eq!(projected[0]["effectiveDefaults"]["temperature"], "0.8");
-        assert!(!projected.to_string().contains("loadout-private"));
+        assert_eq!(projected["loadoutRef"], "loadout-text");
+        assert_eq!(projected["label"], "Gemma 4");
+        assert_eq!(projected["state"], "ready");
+        assert_eq!(projected["supportedFeatures"], json!(["input.image"]));
     }
 
     #[test]

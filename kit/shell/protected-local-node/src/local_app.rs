@@ -117,7 +117,9 @@ pub async fn local_app_ai_config_local_options(
     invoke_agent(|session| async move {
         session
             .app_ai_config_local_options(LocalAppAIConfigLocalOptionsRequest {
+                kind: input.kind,
                 capability_contract: input.capability_contract,
+                connector_ref: input.connector_ref.unwrap_or_default(),
                 search: input.search.unwrap_or_default(),
             })
             .await
@@ -971,7 +973,9 @@ pub async fn local_app_shared_agent_ai_config_local_options(
     invoke_agent(|session| async move {
         session
             .shared_agent_ai_config_local_options(LocalAppSharedAgentAIConfigLocalOptionsRequest {
+                kind: input.kind,
                 capability_contract: input.capability_contract,
+                connector_ref: input.connector_ref.unwrap_or_default(),
                 search: input.search.unwrap_or_default(),
             })
             .await

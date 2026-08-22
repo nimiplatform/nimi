@@ -51,7 +51,7 @@ func (s *Service) GetAppAIConfig(ctx context.Context, req *runtimev1.GetAppAICon
 	if !found {
 		return &runtimev1.GetAppAIConfigResponse{Revision: revision}, nil
 	}
-	effective := s.projectAppAIConfigEffectiveSelections(config)
+	effective := s.projectAppAIConfigEffectiveSelections(caller.accountNamespace, config)
 	if _, localApp := accountservice.AuthorizedLocalAppDecisionFromContext(ctx); localApp {
 		config = portableLocalAppAIConfigProjection(config)
 	}
@@ -94,7 +94,7 @@ func (s *Service) OverwriteAppAIConfig(ctx context.Context, req *runtimev1.Overw
 	if s == nil || s.aiConfigStore == nil {
 		return nil, appAIConfigPersistenceError(fmt.Errorf("AIConfig store is unavailable"))
 	}
-	if err := s.validateChangedAppAIConfigLocalReferences(ctx, caller.accountNamespace, owner, canonical); err != nil {
+	if err := s.validateChangedAppAIConfigResourceReferences(ctx, caller.accountNamespace, owner, canonical); err != nil {
 		return nil, err
 	}
 	committedConfig, revision, committed, err := s.aiConfigStore.Overwrite(

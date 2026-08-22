@@ -71,6 +71,7 @@ func TestAIBackedPublicChatTurnExecutorPassesCloudIntentPrivately(t *testing.T) 
 			TargetRef:   targetRef,
 			ExecutionIntent: executionintent.Intent{
 				CapabilityContract: "text.generate", Route: runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
+				ConnectorRef:        targetRef.GetCloud().ConnectorID,
 				CloudImplementation: &runtimev1.CapabilityImplementationIdentity{ImplementationId: "cloud.text.openai", DriverId: "driver.openai", DriverDialect: "openai/chat/v1"},
 				ProviderModelTarget: rawTarget,
 			},

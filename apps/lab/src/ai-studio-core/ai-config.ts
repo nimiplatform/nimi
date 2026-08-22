@@ -81,7 +81,8 @@ export function studioCloudIntentHasExactTarget(
   const exactText = (value: unknown): boolean => (
     typeof value === 'string' && value.length > 0 && value.trim() === value
   );
-  return !Object.hasOwn(target, 'model')
+  return exactText(route.cloud.connectorRef)
+    && !Object.hasOwn(target, 'model')
     && exactText(target.provider)
     && exactText(target.providerModelId)
     && exactText(target.remoteModelCatalogId);

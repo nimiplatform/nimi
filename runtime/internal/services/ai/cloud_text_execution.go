@@ -104,6 +104,7 @@ func (s *Service) captureCloudTextEffectiveInputs(
 	}
 	accountID := scenarioTargetSubjectUserID(ctx, head)
 	connectorRecord, binding, err := connector.ResolveCurrentAccountConnectorBinding(s.connStore, s.speechCatalog, accountID, connector.RemoteModelCatalogRef{
+		ConnectorID:          intent.ConnectorRef,
 		RemoteModelCatalogID: target.RemoteModelCatalogID(),
 		ProviderModelID:      target.ProviderModelID(),
 		Provider:             target.Provider(),

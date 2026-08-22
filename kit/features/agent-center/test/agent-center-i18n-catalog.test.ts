@@ -47,7 +47,7 @@ describe('Agent Center canonical i18n catalogs', () => {
   it('covers every literal component key in English and ships matching Chinese keys', () => {
     const enKeys = Object.keys(agentCenterEnCatalog).sort();
     const zhKeys = Object.keys(agentCenterZhCatalog).sort();
-    expect(enKeys).toHaveLength(273);
+    expect(enKeys).toHaveLength(268);
     expect(zhKeys).toEqual(enKeys);
     expect(literalCatalogKeys().filter((key) => !(key in agentCenterEnCatalog))).toEqual([]);
 
@@ -91,7 +91,7 @@ describe('Agent Center canonical i18n catalogs', () => {
     expect(binding.t('AgentCenter.capability.image.generate.label')).toBe('图像生成');
     expect(binding.t('AgentCenter.aiConfig.activeModelLabel')).toBe('当前模型');
     expect(binding.t('AgentCenter.aiConfig.modelPickerTitle')).toBe('选择模型');
-    expect(binding.t('AgentCenter.aiConfig.cloudAuthorizationLabel')).toBe('云端执行路径');
-    expect(binding.t('AgentCenter.aiConfig.cloudAuthorizationNone')).toBe('当前 Nimi 账户');
+    expect(binding.t('AgentCenter.aiConfig.cloudNoticeLabel')).toBe('云端执行');
+    expect(binding.t('AgentCenter.aiConfig.cloudNoticeDescription')).toBe('请求可能离开本机，并产生服务商费用。');
   });
 });

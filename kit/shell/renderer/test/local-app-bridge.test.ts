@@ -77,6 +77,48 @@ describe('renderer local-app standard-shell surface', () => {
     expect(JSON.stringify(invocations)).not.toContain('app.example');
   });
 
+  it('projects Cloud target options as JSON at the renderer boundary', async () => {
+    (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
+      invoke: async () => ({
+        kind: 'cloud-targets',
+        options: [{
+          connectorRef: 'connector-deepseek',
+          label: 'deepseek-v4-flash',
+          capabilityContract: 'text.generate',
+          implementation: {
+            implementationId: 'deepseek',
+            driverId: 'nimillm',
+            driverDialect: 'deepseek',
+          },
+          providerModelTarget: {
+            fields: {
+              provider: { kind: { oneofKind: 'stringValue', stringValue: 'deepseek' } },
+              providerModelId: { kind: { oneofKind: 'stringValue', stringValue: 'deepseek-v4-flash' } },
+              remoteModelCatalogId: { kind: { oneofKind: 'stringValue', stringValue: 'catalog-deepseek-v4-flash' } },
+            },
+          },
+          supportedFeatures: [],
+          state: 'ready',
+          reasons: [],
+        }],
+        truncated: false,
+      }),
+      listen: () => () => {},
+    };
+
+    const result = await createNimiLocalAppStandardShellSurface().aiConfig.listOptions({
+      kind: 'cloud-targets',
+      capabilityContract: 'text.generate',
+      connectorRef: 'connector-deepseek',
+    });
+
+    expect(result.options[0]?.providerModelTarget).toEqual({
+      provider: 'deepseek',
+      providerModelId: 'deepseek-v4-flash',
+      remoteModelCatalogId: 'catalog-deepseek-v4-flash',
+    });
+  });
+
   it('exposes typed scenario execution and rejects untrusted projection expansion', async () => {
     const invocations: Array<{ command: string; payload: unknown }> = [];
     (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
@@ -382,7 +424,7 @@ describe('renderer local-app standard-shell surface', () => {
     expect(invocations).toEqual([
       { command: 'nimi.shell.localApp.sharedAgentAIConfigGet', payload: {} },
       { command: 'nimi.shell.localApp.sharedAgentAIConfigOverwrite', payload: { payload: { expectedRevision: '0', capabilities: [] } } },
-      { command: 'nimi.shell.localApp.sharedAgentAIConfigLocalOptions', payload: { capabilityContract: 'text.generate', search: '' } },
+      { command: 'nimi.shell.localApp.sharedAgentAIConfigLocalOptions', payload: { kind: 'local-loadouts', capabilityContract: 'text.generate', search: '' } },
       { command: 'nimi.shell.localApp.agentAutonomySnapshot', payload: { payload: { agentHandle: handle } } },
       {
         command: 'nimi.shell.localApp.agentUpdateAutonomy',

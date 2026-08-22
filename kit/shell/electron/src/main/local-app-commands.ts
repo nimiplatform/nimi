@@ -224,11 +224,7 @@ function validatePayload(
         capabilities: payload.capabilities as NimiElectronLocalAppRecord[string],
       };
     case 'aiConfigLocalOptions':
-      assertExactKeys(payload, ['capabilityContract', 'search'], command);
-      return {
-        capabilityContract: requiredText(payload.capabilityContract, 'capabilityContract', command, MAX_IDENTIFIER_LENGTH),
-        search: optionalExactText(payload.search, 'search', command, 256),
-      };
+      return aiConfigOptionsPayload(payload, command);
     case 'sharedAgentAIConfigOverwrite':
       assertExactKeys(payload, ['expectedRevision', 'capabilities'], command);
       if (typeof payload.expectedRevision !== 'string'
@@ -243,11 +239,7 @@ function validatePayload(
         capabilities: payload.capabilities as NimiElectronLocalAppRecord[string],
       };
     case 'sharedAgentAIConfigLocalOptions':
-      assertExactKeys(payload, ['capabilityContract', 'search'], command);
-      return {
-        capabilityContract: requiredText(payload.capabilityContract, 'capabilityContract', command, MAX_IDENTIFIER_LENGTH),
-        search: optionalExactText(payload.search, 'search', command, 256),
-      };
+      return aiConfigOptionsPayload(payload, command);
     case 'textGenerateCandidate':
       return textCandidatePayload(payload, command);
     case 'textTurnSubscribe':
@@ -478,6 +470,31 @@ function validatePayload(
         relativePath: assetPath(payload.relativePath, 'relativePath', command), overwrite: payload.overwrite };
     }
   }
+}
+
+function aiConfigOptionsPayload(
+  payload: Readonly<Record<string, unknown>>,
+  command: string,
+): NimiElectronLocalAppRecord {
+  const kind = payload.kind;
+  if (kind !== 'local-loadouts' && kind !== 'cloud-connectors' && kind !== 'cloud-targets') {
+    throw invalidPayload(command, 'AIConfig options kind is invalid');
+  }
+  assertExactKeys(
+    payload,
+    kind === 'cloud-targets'
+      ? ['kind', 'capabilityContract', 'connectorRef', 'search']
+      : ['kind', 'capabilityContract', 'search'],
+    command,
+  );
+  return {
+    kind,
+    capabilityContract: requiredText(payload.capabilityContract, 'capabilityContract', command, MAX_IDENTIFIER_LENGTH),
+    ...(kind === 'cloud-targets'
+      ? { connectorRef: requiredText(payload.connectorRef, 'connectorRef', command, MAX_IDENTIFIER_LENGTH) }
+      : {}),
+    search: optionalExactText(payload.search, 'search', command, 256),
+  };
 }
 
 function textCandidatePayload(

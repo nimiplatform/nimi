@@ -17,6 +17,7 @@ import (
 
 func TestAppAIConfigWholeOverwriteAndAccountIsolation(t *testing.T) {
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	svc.SetLocalExecutionResolver(&mutableLocalExecutionResolver{projection: selectedTextExecutionForTest(t, "app-config", "app-config.gguf")})
 	accountAWrite := protectedAppAIConfigPrincipalContext("account-a", "app.example")
 	accountARead := localAppAIConfigContext(
 		"account-a",
@@ -25,14 +26,14 @@ func TestAppAIConfigWholeOverwriteAndAccountIsolation(t *testing.T) {
 	)
 
 	first := appAIConfig("app.example",
-		cloudAIConfigIntent(t, "text.generate"),
-		cloudAIConfigIntent(t, "image.generate"),
+		localAppAIConfigIntent("text.generate"),
+		localAppAIConfigIntent("image.generate"),
 	)
 	if _, err := svc.OverwriteAppAIConfig(accountAWrite, &runtimev1.OverwriteAppAIConfigRequest{Config: first, ExpectedRevision: "0"}); err != nil {
 		t.Fatalf("OverwriteAppAIConfig(first): %v", err)
 	}
 
-	second := appAIConfig("app.example", cloudAIConfigIntent(t, "text.generate"))
+	second := appAIConfig("app.example", localAppAIConfigIntent("text.generate"))
 	overwritten, err := svc.OverwriteAppAIConfig(accountAWrite, &runtimev1.OverwriteAppAIConfigRequest{Config: second, ExpectedRevision: "1"})
 	if err != nil {
 		t.Fatalf("OverwriteAppAIConfig(second): %v", err)
@@ -43,7 +44,7 @@ func TestAppAIConfigWholeOverwriteAndAccountIsolation(t *testing.T) {
 	if second.GetOwner().GetApp().GetAppId() != "app.example" {
 		t.Fatalf("caller payload owner was mutated: %+v", second.GetOwner())
 	}
-	if got := overwritten.GetConfig().GetCapabilities(); len(got) != 1 || got[0].GetCapabilityContract() != "text.generate" || got[0].GetCloud() == nil {
+	if got := overwritten.GetConfig().GetCapabilities(); len(got) != 1 || got[0].GetCapabilityContract() != "text.generate" || got[0].GetLocal() == nil {
 		t.Fatalf("whole overwrite response = %+v", overwritten.GetConfig())
 	}
 
@@ -68,24 +69,51 @@ func TestAppAIConfigWholeOverwriteAndAccountIsolation(t *testing.T) {
 	}
 }
 
-func TestAppAIConfigCloudIntentPersistsWithoutConnectorSelection(t *testing.T) {
+func TestAppAIConfigCloudIntentRejectsMissingExactConnector(t *testing.T) {
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
 	intent := cloudAIConfigIntent(t, "text.generate")
+	intent.GetCloud().ConnectorRef = ""
 	writeCtx := protectedAppAIConfigPrincipalContext("account-a", "app.example")
 	overwritten, err := svc.OverwriteAppAIConfig(writeCtx, &runtimev1.OverwriteAppAIConfigRequest{Config: appAIConfig("app.example", intent), ExpectedRevision: "0"})
-	if err != nil {
-		t.Fatalf("OverwriteAppAIConfig(connector-free Cloud intent): %v", err)
+	if overwritten != nil || status.Code(err) != codes.InvalidArgument {
+		t.Fatalf("connector-free Cloud intent = (%+v, %v)", overwritten, err)
 	}
-	cloud := overwritten.GetConfig().GetCapabilities()[0].GetCloud()
-	if cloud == nil || cloud.GetImplementation() == nil || cloud.GetProviderModelTarget() == nil {
-		t.Fatalf("stored Cloud intent = %+v", cloud)
+}
+
+func TestProtectedAppAIConfigListsExactCloudConnectorAndTargets(t *testing.T) {
+	fixture := newManagedCloudScenarioTestFixture(t, "openai", "gpt-4o-mini", "https://api.openai.com", Config{})
+	ctx := localAppAIConfigContext(
+		"user-001", "app.options", accountservice.LocalAppOperationAppAIConfigOptionsList,
+	)
+	connectors, err := fixture.service.ListAppAIConfigOptions(ctx, &runtimev1.ListAppAIConfigOptionsRequest{
+		Query: &runtimev1.ListAppAIConfigOptionsRequest_CloudConnectors{
+			CloudConnectors: &runtimev1.AIConfigCloudConnectorOptionsQuery{CapabilityContract: "text.generate"},
+		},
+	})
+	if err != nil || connectors.GetCloudConnectors().GetOptions()[0].GetConnectorRef() != fixture.connectorID {
+		t.Fatalf("Cloud Connector options = (%+v, %v)", connectors, err)
+	}
+	targets, err := fixture.service.ListAppAIConfigOptions(ctx, &runtimev1.ListAppAIConfigOptionsRequest{
+		Query: &runtimev1.ListAppAIConfigOptionsRequest_CloudTargets{
+			CloudTargets: &runtimev1.AIConfigCloudTargetOptionsQuery{
+				CapabilityContract: "text.generate", ConnectorRef: fixture.connectorID,
+			},
+		},
+	})
+	if err != nil || len(targets.GetCloudTargets().GetOptions()) == 0 {
+		t.Fatalf("Cloud target options = (%+v, %v)", targets, err)
+	}
+	selected := targets.GetCloudTargets().GetOptions()[0]
+	if selected.GetConnectorRef() != fixture.connectorID || selected.GetProviderModelTarget() == nil || selected.GetImplementation() == nil {
+		t.Fatalf("Cloud target option = %+v", selected)
 	}
 }
 
 func TestAppAIConfigCASReturnsCurrentSnapshotAndNoOpKeepsRevision(t *testing.T) {
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	svc.SetLocalExecutionResolver(&mutableLocalExecutionResolver{projection: selectedTextExecutionForTest(t, "app-cas", "app-cas.gguf")})
 	ctx := protectedAppAIConfigPrincipalContext("account-a", "app.cas")
-	config := appAIConfig("app.cas", cloudAIConfigIntent(t, "text.generate"))
+	config := appAIConfig("app.cas", localAppAIConfigIntent("text.generate"))
 	first, err := svc.OverwriteAppAIConfig(ctx, &runtimev1.OverwriteAppAIConfigRequest{
 		Config: config, ExpectedRevision: "0",
 	})
@@ -109,8 +137,9 @@ func TestAppAIConfigCASReturnsCurrentSnapshotAndNoOpKeepsRevision(t *testing.T) 
 
 func TestDesktopAccountProductManagesExactAdmittedAppAIConfig(t *testing.T) {
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	svc.SetLocalExecutionResolver(&mutableLocalExecutionResolver{projection: selectedTextExecutionForTest(t, "app-managed", "app-managed.gguf")})
 	ctx := desktopManagedAppAIConfigContext("account-a", "acme.widget")
-	input := appAIConfig("acme.widget", cloudAIConfigIntent(t, "voice.create"))
+	input := appAIConfig("acme.widget", localAppAIConfigIntent("voice.create"))
 
 	written, err := svc.OverwriteAppAIConfig(ctx, &runtimev1.OverwriteAppAIConfigRequest{Config: input, ExpectedRevision: "0"})
 	if err != nil || written.GetConfig().GetOwner().GetApp().GetAppId() != "acme.widget" {
@@ -202,6 +231,7 @@ func TestAppAIConfigRejectsOwnerlessFirstPartyAndUnauthenticatedCalls(t *testing
 
 func TestAppAIConfigAcceptsExactProtectedPrincipalOwner(t *testing.T) {
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	svc.SetLocalExecutionResolver(&mutableLocalExecutionResolver{projection: selectedTextExecutionForTest(t, "app-protected", "app-protected.gguf")})
 	principal := protectedprincipal.New(
 		"nimi.desktop", "desktop-account-product.v1", "desktop-account-product.v1",
 		&runtimev1.AccountProjection{AccountId: "account-desktop", RealmEnvironmentId: "realm-test"},
@@ -209,7 +239,7 @@ func TestAppAIConfigAcceptsExactProtectedPrincipalOwner(t *testing.T) {
 	)
 	ctx := protectedprincipal.With(context.Background(), principal)
 
-	if _, err := svc.OverwriteAppAIConfig(ctx, &runtimev1.OverwriteAppAIConfigRequest{Config: appAIConfig("nimi.desktop", cloudAIConfigIntent(t, "text.generate")), ExpectedRevision: "0"}); err != nil {
+	if _, err := svc.OverwriteAppAIConfig(ctx, &runtimev1.OverwriteAppAIConfigRequest{Config: appAIConfig("nimi.desktop", localAppAIConfigIntent("text.generate")), ExpectedRevision: "0"}); err != nil {
 		t.Fatalf("OverwriteAppAIConfig(protected principal): %v", err)
 	}
 	read, err := svc.GetAppAIConfig(ctx, &runtimev1.GetAppAIConfigRequest{Owner: appAIConfigOwner("nimi.desktop")})
@@ -289,6 +319,7 @@ func cloudAIConfigIntent(t *testing.T, contract string) *runtimev1.AIConfigCapab
 	return &runtimev1.AIConfigCapabilityIntent{
 		CapabilityContract: contract,
 		Route: &runtimev1.AIConfigCapabilityIntent_Cloud{Cloud: &runtimev1.AIConfigCloudIntent{
+			ConnectorRef: "connector:test",
 			Implementation: &runtimev1.CapabilityImplementationIdentity{
 				ImplementationId: "cloud.text.openai",
 				DriverId:         "nimi.runtime.driver.openai",

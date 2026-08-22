@@ -26,6 +26,7 @@ type Intent struct {
 	Defaults            *structpb.Struct
 	Route               runtimev1.RoutePolicy
 	LocalLoadoutRef     string
+	ConnectorRef        string
 	CloudImplementation *runtimev1.CapabilityImplementationIdentity
 	ProviderModelTarget *structpb.Struct
 	// CloudTarget remains for Runtime-private non-AIConfig callers that already
@@ -42,13 +43,14 @@ func (i Intent) IsCloud() bool {
 		return false
 	}
 	if i.CloudImplementation != nil && len(i.ProviderModelTarget.GetFields()) > 0 {
-		return exactImplementation(i.CloudImplementation)
+		return strings.TrimSpace(i.ConnectorRef) != "" && exactImplementation(i.CloudImplementation)
 	}
 	return i.CloudTarget != nil && i.CloudTarget.Valid()
 }
 
 func (i Intent) IsAIConfigCloud() bool {
 	return i.Route == runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD &&
+		strings.TrimSpace(i.ConnectorRef) != "" &&
 		i.CloudImplementation != nil && exactImplementation(i.CloudImplementation) &&
 		len(i.ProviderModelTarget.GetFields()) > 0
 }
@@ -64,6 +66,9 @@ func (i Intent) ModelID() string {
 }
 
 func (i Intent) ConnectorID() string {
+	if ref := strings.TrimSpace(i.ConnectorRef); ref != "" {
+		return ref
+	}
 	if i.CloudTarget == nil {
 		return ""
 	}
@@ -76,6 +81,7 @@ func Clone(input Intent) Intent {
 		RequiredFeatures:   append([]string(nil), input.RequiredFeatures...),
 		Route:              input.Route,
 		LocalLoadoutRef:    strings.TrimSpace(input.LocalLoadoutRef),
+		ConnectorRef:       strings.TrimSpace(input.ConnectorRef),
 		CloudTarget:        input.CloudTarget.Clone(),
 	}
 	if input.Defaults != nil {
@@ -91,7 +97,8 @@ func Clone(input Intent) Intent {
 }
 
 // FromCapability converts canonical AIConfig intent into the closed private
-// execution carrier. Connector and custody identity are intentionally absent.
+// execution carrier. The exact Connector reference is retained while
+// credential custody stays outside this value.
 func FromCapability(capability *runtimev1.AIConfigCapabilityIntent) (Intent, error) {
 	if capability == nil || strings.TrimSpace(capability.GetCapabilityContract()) == "" {
 		return Intent{}, fmt.Errorf("AIConfig capability intent is required")
@@ -114,10 +121,13 @@ func FromCapability(capability *runtimev1.AIConfigCapabilityIntent) (Intent, err
 		return out, nil
 	case *runtimev1.AIConfigCapabilityIntent_Cloud:
 		if route.Cloud == nil || !exactImplementation(route.Cloud.GetImplementation()) ||
+			strings.TrimSpace(route.Cloud.GetConnectorRef()) == "" ||
+			strings.TrimSpace(route.Cloud.GetConnectorRef()) != route.Cloud.GetConnectorRef() ||
 			route.Cloud.GetProviderModelTarget() == nil || len(route.Cloud.GetProviderModelTarget().GetFields()) == 0 {
-			return Intent{}, fmt.Errorf("AIConfig Cloud implementation and provider-model target are required")
+			return Intent{}, fmt.Errorf("AIConfig Cloud connector, implementation, and provider-model target are required")
 		}
 		out.Route = runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD
+		out.ConnectorRef = route.Cloud.GetConnectorRef()
 		out.CloudImplementation, _ = proto.Clone(route.Cloud.GetImplementation()).(*runtimev1.CapabilityImplementationIdentity)
 		out.ProviderModelTarget, _ = proto.Clone(route.Cloud.GetProviderModelTarget()).(*structpb.Struct)
 		return out, nil

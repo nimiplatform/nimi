@@ -1,11 +1,6 @@
 export type {
   ModelConfigAIConfigOwnerContext,
   ModelConfigCapabilityPosture,
-  ModelConfigCloudAIConfigModule,
-  ModelConfigCloudAuthorizationOptions,
-  ModelConfigCloudConnectorOption,
-  ModelConfigCloudImplementationOption,
-  ModelConfigCloudTargetOption,
   ModelConfigCopy,
   ModelConfigFormattedError,
   ModelConfigLocalSelectionProjection,

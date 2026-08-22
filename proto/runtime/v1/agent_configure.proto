@@ -31,10 +31,18 @@ message OverwriteLocalAppSharedLocalAgentAIConfigResponse {
   ReasonCode reason_code = 3;
 }
 message ListLocalAppSharedLocalAgentAIConfigOptionsRequest {
-  AIConfigLocalLoadoutOptionsQuery local_loadouts = 1;
+  oneof query {
+    AIConfigLocalLoadoutOptionsQuery local_loadouts = 1;
+    AIConfigCloudConnectorOptionsQuery cloud_connectors = 2;
+    AIConfigCloudTargetOptionsQuery cloud_targets = 3;
+  }
 }
 message ListLocalAppSharedLocalAgentAIConfigOptionsResponse {
-  AIConfigLocalLoadoutOptions local_loadouts = 1;
+  oneof result {
+    AIConfigLocalLoadoutOptions local_loadouts = 1;
+    AIConfigCloudConnectorOptions cloud_connectors = 3;
+    AIConfigCloudTargetOptions cloud_targets = 4;
+  }
   bool truncated = 2;
 }
 

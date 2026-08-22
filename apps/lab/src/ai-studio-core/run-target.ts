@@ -87,7 +87,7 @@ export function createStudioRunTargetSummary(input: {
       status: 'blocked',
       source: 'unknown',
       intentLabel: 'Not configured',
-      detail: 'This App AIConfig has no intent for the capability. Configure this App in Nimi Desktop.',
+      detail: 'This App AIConfig has no intent for the capability. Configure it here or in Nimi Desktop.',
       canDispatch: false,
     };
   }
@@ -107,7 +107,7 @@ export function createStudioRunTargetSummary(input: {
       status: 'configured',
       source: 'cloud',
       intentLabel: 'Cloud',
-      detail: 'Nimi-owned App configuration selects the Cloud intent, and Runtime resolves the current-account execution route.',
+      detail: 'The App owner committed an exact Cloud Connector and provider-model target. Runtime validates those exact references when execution begins.',
       canDispatch: true,
     };
   }

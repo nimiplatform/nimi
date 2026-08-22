@@ -256,9 +256,53 @@ class AIConfigCapabilityIntent:
     cloud: AIConfigCloudIntent | None = None
 
 @dataclass(frozen=True)
+class AIConfigCloudConnectorOptions:
+    options: tuple[AIConfigCloudConnectorProjection, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
+class AIConfigCloudConnectorOptionsQuery:
+    capability_contract: str | None = None
+    search: str | None = None
+
+@dataclass(frozen=True)
+class AIConfigCloudConnectorProjection:
+    connector_ref: str | None = None
+    label: str | None = None
+    provider: str | None = None
+    state: AIConfigEffectiveState | None = None
+    reasons: tuple[str, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
 class AIConfigCloudIntent:
     implementation: CapabilityImplementationIdentity | None = None
     provider_model_target: Mapping[str, object] | None = None
+    connector_ref: str | None = None
+
+@dataclass(frozen=True)
+class AIConfigCloudResourceProjection:
+    connector: AIConfigCloudConnectorProjection | None = None
+    target: AIConfigCloudTargetProjection | None = None
+
+@dataclass(frozen=True)
+class AIConfigCloudTargetOptions:
+    options: tuple[AIConfigCloudTargetProjection, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
+class AIConfigCloudTargetOptionsQuery:
+    capability_contract: str | None = None
+    connector_ref: str | None = None
+    search: str | None = None
+
+@dataclass(frozen=True)
+class AIConfigCloudTargetProjection:
+    connector_ref: str | None = None
+    label: str | None = None
+    capability_contract: str | None = None
+    implementation: CapabilityImplementationIdentity | None = None
+    provider_model_target: Mapping[str, object] | None = None
+    supported_features: tuple[str, ...] = field(default_factory=tuple)
+    state: AIConfigEffectiveState | None = None
+    reasons: tuple[str, ...] = field(default_factory=tuple)
 
 @dataclass(frozen=True)
 class AIConfigEffectiveSelection:
@@ -266,6 +310,7 @@ class AIConfigEffectiveSelection:
     state: AIConfigEffectiveState | None = None
     local: AIConfigLocalResourceProjection | None = None
     reasons: tuple[str, ...] = field(default_factory=tuple)
+    cloud: AIConfigCloudResourceProjection | None = None
 
 @dataclass(frozen=True)
 class AIConfigLocalIntent:
@@ -2461,12 +2506,16 @@ class ListAgentsResponse:
 @dataclass(frozen=True)
 class ListAppAIConfigOptionsRequest:
     local_loadouts: AIConfigLocalLoadoutOptionsQuery | None = None
+    cloud_connectors: AIConfigCloudConnectorOptionsQuery | None = None
+    cloud_targets: AIConfigCloudTargetOptionsQuery | None = None
     owner: AIConfigOwner | None = None
 
 @dataclass(frozen=True)
 class ListAppAIConfigOptionsResponse:
     local_loadouts: AIConfigLocalLoadoutOptions | None = None
     truncated: bool | None = None
+    cloud_connectors: AIConfigCloudConnectorOptions | None = None
+    cloud_targets: AIConfigCloudTargetOptions | None = None
 
 @dataclass(frozen=True)
 class ListAuditEventsRequest:
@@ -2676,11 +2725,15 @@ class ListLocalAppAssetsResponse:
 @dataclass(frozen=True)
 class ListLocalAppSharedLocalAgentAIConfigOptionsRequest:
     local_loadouts: AIConfigLocalLoadoutOptionsQuery | None = None
+    cloud_connectors: AIConfigCloudConnectorOptionsQuery | None = None
+    cloud_targets: AIConfigCloudTargetOptionsQuery | None = None
 
 @dataclass(frozen=True)
 class ListLocalAppSharedLocalAgentAIConfigOptionsResponse:
     local_loadouts: AIConfigLocalLoadoutOptions | None = None
     truncated: bool | None = None
+    cloud_connectors: AIConfigCloudConnectorOptions | None = None
+    cloud_targets: AIConfigCloudTargetOptions | None = None
 
 @dataclass(frozen=True)
 class ListLocalAppVoiceAssetsRequest:
@@ -2831,11 +2884,15 @@ class ListScenarioProfilesResponse:
 class ListSharedLocalAgentAIConfigOptionsRequest:
     context: AgentRequestContext | None = None
     local_loadouts: AIConfigLocalLoadoutOptionsQuery | None = None
+    cloud_connectors: AIConfigCloudConnectorOptionsQuery | None = None
+    cloud_targets: AIConfigCloudTargetOptionsQuery | None = None
 
 @dataclass(frozen=True)
 class ListSharedLocalAgentAIConfigOptionsResponse:
     local_loadouts: AIConfigLocalLoadoutOptions | None = None
     truncated: bool | None = None
+    cloud_connectors: AIConfigCloudConnectorOptions | None = None
+    cloud_targets: AIConfigCloudTargetOptions | None = None
 
 @dataclass(frozen=True)
 class ListUsageStatsRequest:

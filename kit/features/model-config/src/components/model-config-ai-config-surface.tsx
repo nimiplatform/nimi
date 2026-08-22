@@ -3,6 +3,8 @@ import {
   createNimiCloudAIConfigCapabilityIntent,
   createNimiLocalAIConfigCapabilityIntent,
   runtimeAIConfigStructToJson,
+  type NimiAIConfigCloudConnectorOption,
+  type NimiAIConfigCloudTargetOption,
   type NimiAIConfigLocalLoadoutOption,
   type NimiPortableAppAIConfigIntent,
 } from '@nimiplatform/kit/core/sdk-contract';
@@ -12,7 +14,6 @@ import {
 } from '@nimiplatform/kit/core/runtime-capabilities';
 import {
   Button,
-  Checkbox,
   InlineAlert,
   LoadingSkeleton,
   SelectField,
@@ -35,10 +36,6 @@ import {
 } from '../projection.js';
 import type {
   ModelConfigAIConfigOwnerContext,
-  ModelConfigCloudAIConfigModule,
-  ModelConfigCloudAuthorizationOptions,
-  ModelConfigCloudImplementationOption,
-  ModelConfigCloudTargetOption,
   ModelConfigCopy,
   ModelConfigFormattedError,
   ModelConfigLocalSelectionProjection,
@@ -48,10 +45,6 @@ import type {
 import { sanitizeCapabilityDefaults } from '../capability-defaults.js';
 import { CapabilityDefaultsEditor } from './capability-defaults-editor.js';
 import { ModelConfigOwnerBoundary } from './model-config-owner-boundary.js';
-
-const EMPTY_AUTHORIZATION: ModelConfigCloudAuthorizationOptions = Object.freeze({
-  connectors: Object.freeze([]),
-});
 
 type ResolvedCopy = ReturnType<typeof resolveModelConfigCopy>;
 type PostureBadge = {
@@ -73,8 +66,9 @@ type ModelConfigRouteChoice =
       readonly label: string;
       readonly description: string;
       readonly provider: string;
-      readonly implementation: ModelConfigCloudImplementationOption;
-      readonly target: ModelConfigCloudTargetOption;
+      readonly connectorRef: string;
+      readonly connectorLabel: string;
+      readonly target: NimiAIConfigCloudTargetOption;
     };
 
 export type ModelConfigAIConfigSurfaceProps = {
@@ -87,7 +81,6 @@ export type ModelConfigAIConfigSurfaceProps = {
   readonly revision?: string;
   readonly localSelections?: readonly ModelConfigLocalSelectionProjection[];
   readonly listOptions?: ModelConfigListOptions;
-  readonly cloudAIConfig?: ModelConfigCloudAIConfigModule;
   readonly loading?: boolean;
   readonly disabled?: boolean;
   readonly loadError?: string | null;
@@ -96,7 +89,6 @@ export type ModelConfigAIConfigSurfaceProps = {
   /** Opens the Nimi-owned owner surface for read-only protected App mounts. */
   readonly onOpenOwnerConfiguration?: () => void;
   readonly onOpenMachineLoadout?: (capabilityContract: string) => void;
-  readonly onOpenCloudConnectorConfiguration?: () => void;
   readonly formatError?: (error: unknown) => ModelConfigFormattedError;
   readonly copy?: ModelConfigCopy;
   readonly className?: string;
@@ -160,8 +152,8 @@ function targetText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
 }
 
-function cloudChoiceId(implementationId: string, targetId: string): string {
-  return JSON.stringify(['cloud', implementationId, targetId]);
+function cloudChoiceId(connectorRef: string, targetId: string): string {
+  return JSON.stringify(['cloud', connectorRef, targetId]);
 }
 
 function localChoice(
@@ -198,30 +190,21 @@ function localOptionChoice(
   };
 }
 
-function routeChoices(
-  local: ModelConfigRouteChoice,
-  groups: readonly {
-    readonly implementation: ModelConfigCloudImplementationOption;
-    readonly targets: readonly ModelConfigCloudTargetOption[];
-  }[],
-): readonly ModelConfigRouteChoice[] {
-  const choices = new Map<string, ModelConfigRouteChoice>();
-  choices.set(local.id, local);
-  for (const group of groups) {
-    for (const target of group.targets) {
-      const id = cloudChoiceId(group.implementation.implementation.implementationId, target.targetId);
-      choices.set(id, {
-        id,
-        route: 'cloud',
-        label: target.label,
-        description: group.implementation.label,
-        provider: group.implementation.provider,
-        implementation: group.implementation,
-        target,
-      });
-    }
-  }
-  return [...choices.values()];
+function cloudOptionChoice(
+  connector: NimiAIConfigCloudConnectorOption,
+  target: NimiAIConfigCloudTargetOption,
+): Extract<ModelConfigRouteChoice, { readonly route: 'cloud' }> {
+  const provider = targetText(target.providerModelTarget.provider);
+  return {
+    id: cloudChoiceId(connector.connectorRef, targetText(target.providerModelTarget.remoteModelCatalogId)),
+    route: 'cloud',
+    label: target.label,
+    description: connector.label,
+    provider,
+    connectorRef: connector.connectorRef,
+    connectorLabel: connector.label,
+    target,
+  };
 }
 
 function currentRouteChoice(
@@ -239,26 +222,26 @@ function currentRouteChoice(
   const provider = targetText(target.provider);
   const modelId = targetText(target.providerModelId);
   const remoteModelCatalogId = targetText(target.remoteModelCatalogId);
-  const implementationId = cloud.implementation?.implementationId || '';
-  if (!modelConfigHasExactCloudTarget(intent) || !provider || !modelId || !remoteModelCatalogId || !implementationId || !cloud.implementation) return null;
+  const connectorRef = cloud.connectorRef;
+  if (!modelConfigHasExactCloudTarget(intent) || !provider || !modelId || !remoteModelCatalogId || !connectorRef || !cloud.implementation) return null;
   const targetId = remoteModelCatalogId;
   return {
-    id: cloudChoiceId(implementationId, targetId),
+    id: cloudChoiceId(connectorRef, targetId),
     route: 'cloud',
     label: modelId,
-    description: provider,
+    description: `${provider} · ${connectorRef}`,
     provider,
-    implementation: {
-      optionId: implementationId,
-      label: implementationId,
-      provider,
-      implementation: cloud.implementation,
-    },
+    connectorRef,
+    connectorLabel: connectorRef,
     target: {
-      targetId,
+      connectorRef,
       label: modelId,
-      provider,
+      capabilityContract: intent.capabilityContract,
+      implementation: cloud.implementation,
       providerModelTarget: target,
+      supportedFeatures: [],
+      state: 'ready',
+      reasons: [],
     },
   };
 }
@@ -394,13 +377,11 @@ export function ModelConfigAIConfigSurface(props: ModelConfigAIConfigSurfaceProp
             allCapabilities={props.capabilities || []}
             selection={activeEntry.selection}
             context={props.context}
-            cloudAIConfig={props.cloudAIConfig}
             revision={props.revision}
             listOptions={props.listOptions}
             onOverwrite={props.onOverwrite}
             onOpenOwnerConfiguration={props.onOpenOwnerConfiguration}
             onOpenMachineLoadout={props.onOpenMachineLoadout}
-            onOpenCloudConnectorConfiguration={props.onOpenCloudConnectorConfiguration}
             formatError={props.formatError}
             copy={copy}
             disabled={props.disabled}
@@ -476,13 +457,11 @@ type CapabilityIntentEditorProps = {
   readonly allCapabilities: readonly NimiPortableAppAIConfigIntent[];
   readonly selection: ModelConfigLocalSelectionProjection | null | undefined;
   readonly context: ModelConfigAIConfigOwnerContext;
-  readonly cloudAIConfig?: ModelConfigCloudAIConfigModule;
   readonly revision?: string;
   readonly listOptions?: ModelConfigListOptions;
   readonly onOverwrite?: ModelConfigOverwrite;
   readonly onOpenOwnerConfiguration?: () => void;
   readonly onOpenMachineLoadout?: (capabilityContract: string) => void;
-  readonly onOpenCloudConnectorConfiguration?: () => void;
   readonly formatError?: (error: unknown) => ModelConfigFormattedError;
   readonly copy: ResolvedCopy;
   readonly disabled?: boolean;
@@ -543,10 +522,9 @@ function FirstPartyCapabilityIntentEditor(props: CapabilityIntentEditorProps) {
   const lastSyncKey = useRef('');
   const [draftChoice, setDraftChoice] = useState<ModelConfigRouteChoice | null>(currentChoice);
   const [draftDefaults, setDraftDefaults] = useState(currentDefaults);
-  const [authorization, setAuthorization] = useState<ModelConfigCloudAuthorizationOptions>(EMPTY_AUTHORIZATION);
-  const [connectorId, setConnectorId] = useState('');
-  const [pickerConnectorId, setPickerConnectorId] = useState('');
-  const [impactConfirmed, setImpactConfirmed] = useState(false);
+  const [connectors, setConnectors] = useState<readonly NimiAIConfigCloudConnectorOption[]>([]);
+  const [connectorRef, setConnectorRef] = useState(currentChoice?.route === 'cloud' ? currentChoice.connectorRef : '');
+  const [pickerConnectorRef, setPickerConnectorRef] = useState(currentChoice?.route === 'cloud' ? currentChoice.connectorRef : '');
   const [pickerOpen, setPickerOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [cloudError, setCloudError] = useState('');
@@ -561,72 +539,41 @@ function FirstPartyCapabilityIntentEditor(props: CapabilityIntentEditorProps) {
     setDraftChoice(currentChoice);
     setDraftDefaults(currentDefaults);
     if (!preserveConnector) {
-      setConnectorId('');
-      setPickerConnectorId('');
+      setConnectorRef(currentChoice?.route === 'cloud' ? currentChoice.connectorRef : '');
+      setPickerConnectorRef(currentChoice?.route === 'cloud' ? currentChoice.connectorRef : '');
     }
-    setImpactConfirmed(false);
     setSaveFailure(null);
   }, [currentChoice, currentDefaults, draftChoice, syncKey]);
-
-  useEffect(() => {
-    if (
-      !props.cloudAIConfig
-      || props.context.consumer !== 'nimi-first-party'
-      || props.currentIntent?.route.oneofKind !== 'cloud'
-    ) return;
-    let cancelled = false;
-    void props.cloudAIConfig.listAuthorizationOptions().then((next) => {
-      if (cancelled) return;
-      setAuthorization(next);
-      setConnectorId('');
-      setPickerConnectorId('');
-    }).catch(() => {
-      if (!cancelled) setCloudError(props.copy.cloudLoadFailed);
-    });
-    return () => { cancelled = true; };
-  }, [currentChoice, props.cloudAIConfig, props.context.consumer, props.copy.cloudLoadFailed, props.currentIntent?.route.oneofKind]);
 
   const listChoices = useCallback(async (): Promise<readonly ModelConfigRouteChoice[]> => {
     let locals: readonly Extract<ModelConfigRouteChoice, { readonly route: 'local' }>[] = [localChoice(props.selection, props.copy)];
     if (props.listOptions) {
       const result = await props.listOptions({ kind: 'local-loadouts', capabilityContract: props.capabilityContract });
+      if (result.kind !== 'local-loadouts') throw new Error('Local Loadout options mismatch');
       locals = result.options.map((option) => localOptionChoice(option, props.copy));
     }
-    const local = locals[0] || localChoice(props.selection, props.copy);
-    if (!props.cloudAIConfig) return locals;
     setCloudError('');
     try {
-      if (props.context.consumer === 'nimi-first-party') {
-        let nextAuthorization: ModelConfigCloudAuthorizationOptions;
-        try {
-          nextAuthorization = await props.cloudAIConfig.listAuthorizationOptions();
-          setAuthorization(nextAuthorization);
-        } catch {
-          setAuthorization(EMPTY_AUTHORIZATION);
-          setCloudError(props.copy.cloudLoadFailed);
-          return [local];
-        }
-        const connector = nextAuthorization.connectors.find((entry) => entry.connectorId === pickerConnectorId);
-        if (!connector) return locals;
-        const implementations = (await props.cloudAIConfig.listImplementations(props.capabilityContract))
-          .filter((entry) => entry.provider === connector.provider);
-        const targets = await props.cloudAIConfig.listTargets({
-          capabilityContract: props.capabilityContract,
-          provider: connector.provider,
-          connectorId: connector.connectorId,
-        });
-        return [
-          ...locals,
-          ...routeChoices(local, implementations.map((implementation) => ({ implementation, targets })))
-            .filter((choice) => choice.route === 'cloud'),
-        ];
-      }
-      return locals;
+      const connectorResult = await props.listOptions!({
+        kind: 'cloud-connectors', capabilityContract: props.capabilityContract,
+      });
+      if (connectorResult.kind !== 'cloud-connectors') throw new Error('Cloud Connector options mismatch');
+      setConnectors(connectorResult.options);
+      const connector = connectorResult.options.find((entry) => entry.connectorRef === pickerConnectorRef && entry.state === 'ready');
+      if (!connector) return locals;
+      const targetResult = await props.listOptions!({
+        kind: 'cloud-targets', capabilityContract: props.capabilityContract,
+        connectorRef: connector.connectorRef,
+      });
+      if (targetResult.kind !== 'cloud-targets') throw new Error('Cloud target options mismatch');
+      return [...locals, ...targetResult.options
+        .filter((target) => target.state === 'ready')
+        .map((target) => cloudOptionChoice(connector, target))];
     } catch {
       setCloudError(props.copy.cloudLoadFailed);
       return locals;
     }
-  }, [pickerConnectorId, props.capabilityContract, props.cloudAIConfig, props.context.consumer, props.copy, props.listOptions, props.selection]);
+  }, [pickerConnectorRef, props.capabilityContract, props.copy, props.listOptions, props.selection]);
 
   const pickerAdapter = useMemo<ModelPickerCandidateAdapter<ModelConfigRouteChoice>>(() => ({
     listCandidates: listChoices,
@@ -650,11 +597,14 @@ function FirstPartyCapabilityIntentEditor(props: CapabilityIntentEditorProps) {
   }), [listChoices, props.copy.localLabel, props.selection?.state]);
 
   const selectedConnector = draftChoice?.route === 'cloud'
-    ? authorization.connectors.find((entry) => (
-        entry.connectorId === connectorId && entry.provider === draftChoice.provider
-      )) || null
+    ? connectors.find((entry) => entry.connectorRef === draftChoice.connectorRef) || {
+        connectorRef: draftChoice.connectorRef,
+        label: draftChoice.connectorLabel,
+        provider: draftChoice.provider,
+        state: 'ready' as const,
+        reasons: [],
+      }
     : null;
-  const accountLabel = selectedConnector?.label || props.copy.cloudAuthorizationNone;
   const exactCloudSelection = draftChoice?.route === 'cloud'
     && modelConfigJsonHasExactCloudTarget(draftChoice.target.providerModelTarget);
   const missingFeatures = draftChoice?.route === 'local'
@@ -676,12 +626,13 @@ function FirstPartyCapabilityIntentEditor(props: CapabilityIntentEditorProps) {
           ...(defaults ? { defaults } : {}),
         });
       } else {
-        if (!impactConfirmed || !selectedConnector || !exactCloudSelection) return;
+        if (!selectedConnector || !exactCloudSelection) return;
         intent = createNimiCloudAIConfigCapabilityIntent({
           capabilityContract: props.capabilityContract,
+          connectorRef: draftChoice.connectorRef,
           requiredFeatures,
           ...(defaults ? { defaults } : {}),
-          implementation: draftChoice.implementation.implementation,
+          implementation: draftChoice.target.implementation,
           providerModelTarget: draftChoice.target.providerModelTarget,
         });
       }
@@ -748,7 +699,7 @@ function FirstPartyCapabilityIntentEditor(props: CapabilityIntentEditorProps) {
           disabled={routeDisabled}
           dataTestId={`model-config-model-trigger:${props.capabilityContract}`}
           onClick={() => {
-            setPickerConnectorId(connectorId);
+            setPickerConnectorRef(connectorRef);
             setPickerOpen(true);
           }}
         />
@@ -760,65 +711,39 @@ function FirstPartyCapabilityIntentEditor(props: CapabilityIntentEditorProps) {
           adapter={pickerAdapter}
           selectedId={draftChoice?.id || ''}
           initialSourceFilter={draftChoice?.route || 'local'}
-          sourceOptions={props.cloudAIConfig || props.onOpenCloudConnectorConfiguration
-            ? ['local', 'cloud']
-            : ['local']}
+          sourceOptions={['local', 'cloud']}
           copy={{
             searchPlaceholder: props.copy.modelPickerSearchPlaceholder,
             loadingLabel: props.copy.modelPickerLoadingLabel,
-            emptyLabel: props.context.consumer === 'nimi-first-party'
-              ? cloudError || (authorization.connectors.length === 0
+            emptyLabel: cloudError || (connectors.length === 0
                 ? props.copy.cloudNoConnectorsLabel
-                : !pickerConnectorId
+                : !pickerConnectorRef
                   ? props.copy.cloudConnectorSelectionRequired
-                  : props.copy.modelPickerEmptyLabel)
-              : props.copy.modelPickerEmptyLabel,
+                  : props.copy.modelPickerEmptyLabel),
             sourceLabels: { local: props.copy.localLabel, cloud: props.copy.cloudLabel },
             cancelLabel: props.copy.cancelLabel,
             confirmLabel: props.copy.confirmSelectionLabel,
           }}
           renderSourceControls={({ source, isLoading, clearSelection }) => {
             if (source !== 'cloud') return null;
-            if (props.context.consumer !== 'nimi-first-party') {
-              return !props.cloudAIConfig && props.onOpenCloudConnectorConfiguration ? (
-                <div
-                  className="flex items-center justify-between gap-3"
-                  data-nimi-model-config-cloud-connector-handoff="true"
-                >
-                  <span className="text-xs text-[var(--nimi-text-muted)]">
-                    {props.copy.cloudConnectorSelectionRequired}
-                  </span>
-                  <Button
-                    size="sm"
-                    tone="secondary"
-                    onClick={() => {
-                      setPickerOpen(false);
-                      props.onOpenCloudConnectorConfiguration?.();
-                    }}
-                  >
-                    {props.copy.openCloudConnectorsLabel}
-                  </Button>
-                </div>
-              ) : null;
-            }
             return (
               <div className="space-y-2" data-nimi-model-config-cloud-connector-picker="true">
-                {authorization.connectors.length > 0 ? (
+                {connectors.length > 0 ? (
                   <label className="grid gap-1.5 text-xs font-semibold text-[var(--nimi-text-primary)]">
                     <span>{props.copy.cloudConnectorPickerLabel}</span>
                     <SelectField
                       aria-label={props.copy.cloudConnectorPickerLabel}
-                      value={pickerConnectorId}
+                      value={pickerConnectorRef}
                       placeholder={props.copy.cloudConnectorPickerPlaceholder}
                       contentLayer="dialog"
-                      disabled={isLoading && authorization.connectors.length === 0}
-                      options={authorization.connectors.map((entry) => ({
-                        value: entry.connectorId,
+                      disabled={isLoading && connectors.length === 0}
+                      options={connectors.filter((entry) => entry.state === 'ready').map((entry) => ({
+                        value: entry.connectorRef,
                         label: `${entry.label} · ${entry.provider}`,
                       }))}
                       onValueChange={(value) => {
                         clearSelection();
-                        setPickerConnectorId(value);
+                        setPickerConnectorRef(value);
                         setCloudError('');
                       }}
                     />
@@ -828,21 +753,9 @@ function FirstPartyCapabilityIntentEditor(props: CapabilityIntentEditorProps) {
                     <span className="text-xs text-[var(--nimi-text-muted)]">
                       {isLoading && !cloudError ? props.copy.modelPickerLoadingLabel : cloudError || props.copy.cloudNoConnectorsLabel}
                     </span>
-                    {props.onOpenCloudConnectorConfiguration ? (
-                      <Button
-                        size="sm"
-                        tone="secondary"
-                        onClick={() => {
-                          setPickerOpen(false);
-                          props.onOpenCloudConnectorConfiguration?.();
-                        }}
-                      >
-                        {props.copy.openCloudConnectorsLabel}
-                      </Button>
-                    ) : null}
                   </div>
                 )}
-                {authorization.connectors.length > 0 && !pickerConnectorId ? (
+                {connectors.length > 0 && !pickerConnectorRef ? (
                   <p className="m-0 text-[length:var(--nimi-type-overline-size)] text-[var(--nimi-text-muted)]">{props.copy.cloudConnectorSelectionRequired}</p>
                 ) : null}
               </div>
@@ -860,8 +773,7 @@ function FirstPartyCapabilityIntentEditor(props: CapabilityIntentEditorProps) {
           onClose={() => setPickerOpen(false)}
           onConfirm={(choice) => {
             setDraftChoice(choice);
-            setConnectorId(choice.route === 'cloud' ? pickerConnectorId : '');
-            setImpactConfirmed(false);
+            setConnectorRef(choice.route === 'cloud' ? choice.connectorRef : '');
             setSaveFailure(null);
           }}
         />
@@ -879,22 +791,13 @@ function FirstPartyCapabilityIntentEditor(props: CapabilityIntentEditorProps) {
       {draftChoice?.route === 'cloud' ? (
         <div className="space-y-3 rounded-[var(--nimi-radius-md)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] p-3" data-nimi-model-config-cloud="true">
           <div>
-            <div className="text-xs font-semibold text-[var(--nimi-text-primary)]">{props.copy.cloudAuthorizationLabel}</div>
-            <p className="m-0 mt-1 text-[length:var(--nimi-type-overline-size)] leading-relaxed text-[var(--nimi-text-muted)]">{props.copy.cloudAuthorizationSeparation}</p>
+            <div className="text-xs font-semibold text-[var(--nimi-text-primary)]">{props.copy.cloudNoticeLabel}</div>
+            <p className="m-0 mt-1 text-[length:var(--nimi-type-overline-size)] leading-relaxed text-[var(--nimi-text-muted)]">{props.copy.cloudNoticeDescription}</p>
           </div>
           {cloudError ? <InlineAlert tone="warning">{cloudError}</InlineAlert> : null}
           <InlineAlert tone="info">
-            <div className="space-y-2">
-              <div className="font-semibold">{props.copy.cloudAccountLabel(accountLabel)}</div>
-              <Checkbox
-                checked={impactConfirmed}
-                disabled={saving}
-                onChange={(event) => setImpactConfirmed(event.currentTarget.checked)}
-                label={props.context.owner === 'shared-local-agent-ai-config'
-                  ? props.copy.cloudImpactSharedLabel(accountLabel)
-                  : props.copy.cloudImpactAppLabel(accountLabel)}
-                className="items-start [&>span:last-child]:whitespace-normal"
-              />
+            <div className="font-semibold">
+              {selectedConnector ? `${selectedConnector.label} · ${selectedConnector.provider}` : props.copy.cloudConnectorSelectionRequired}
             </div>
           </InlineAlert>
         </div>
@@ -937,7 +840,7 @@ function FirstPartyCapabilityIntentEditor(props: CapabilityIntentEditorProps) {
           tone="primary"
           disabled={routeDisabled || !draftChoice || !props.revision
             || (draftChoice.route === 'local' && !draftChoice.loadoutRef)
-            || (draftChoice.route === 'cloud' && (!impactConfirmed || !selectedConnector || !exactCloudSelection))}
+            || (draftChoice.route === 'cloud' && (!selectedConnector || !exactCloudSelection))}
           onClick={() => { void commit(); }}
           data-testid={`model-config-save:${props.capabilityContract}`}
         >

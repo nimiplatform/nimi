@@ -36,9 +36,10 @@ const CLOUD_PROFILE = {
   },
 } as const;
 
-test('Cloud AIConfig constructor contains only implementation and provider-model target', () => {
+test('Cloud AIConfig constructor contains exact Connector, implementation, and provider-model target', () => {
   const intent = createNimiCloudAIConfigCapabilityIntent({
     capabilityContract: 'text.generate',
+    connectorRef: 'connector-work',
     requiredFeatures: ['input.image'],
     defaults: { temperature: 0.2 },
     implementation: {
@@ -55,6 +56,7 @@ test('Cloud AIConfig constructor contains only implementation and provider-model
 
   assert.equal(intent.route.oneofKind, 'cloud');
   if (intent.route.oneofKind !== 'cloud') assert.fail('expected Cloud intent');
+  assert.equal(intent.route.cloud.connectorRef, 'connector-work');
   assert.deepEqual(intent.route.cloud.implementation, {
     implementationId: 'openai',
     driverId: 'nimillm',
@@ -75,11 +77,13 @@ test('Cloud AIConfig constructor rejects alias or incomplete durable target iden
   };
   assert.throws(() => createNimiCloudAIConfigCapabilityIntent({
     capabilityContract: 'text.generate',
+    connectorRef: 'connector-work',
     implementation,
     providerModelTarget: { provider: 'openai', model: 'gpt-test', remoteModelCatalogId: 'catalog-1' },
   }), /model is not supported/u);
   assert.throws(() => createNimiCloudAIConfigCapabilityIntent({
     capabilityContract: 'text.generate',
+    connectorRef: 'connector-work',
     implementation,
     providerModelTarget: { provider: 'openai', providerModelId: 'gpt-test' },
   }), /remoteModelCatalogId is required/u);

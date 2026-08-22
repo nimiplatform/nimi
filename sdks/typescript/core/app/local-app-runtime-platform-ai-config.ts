@@ -86,7 +86,8 @@ export function validateCapabilityIntents(
     }
     assertExactKeys(route, ['oneofKind', 'cloud'], `AIConfig capability ${index} route`);
     const cloud = asRecord(route.cloud);
-    assertExactKeys(cloud, ['implementation', 'providerModelTarget'], `AIConfig capability ${index} cloud route`);
+    assertExactKeys(cloud, ['connectorRef', 'implementation', 'providerModelTarget'], `AIConfig capability ${index} cloud route`);
+    requireText(cloud.connectorRef, `ai_config_connector_ref_${index}`);
     const implementation = asRecord(cloud.implementation);
     assertExactKeys(implementation, ['implementationId', 'driverId', 'driverDialect'], `AIConfig capability ${index} implementation`);
     requireText(implementation.implementationId, `ai_config_implementation_${index}`);
@@ -122,9 +123,14 @@ function requireRevision(value: unknown): string {
 }
 
 function validateOptionsQuery(query: NimiAIConfigOptionsQuery): void {
-  assertExactKeys(query, ['kind', 'capabilityContract', 'search'], 'AIConfig options query');
-  if (query.kind !== 'local-loadouts') invalidIntent('options query kind');
+  assertExactKeys(
+    query,
+    query.kind === 'cloud-targets' ? ['kind', 'capabilityContract', 'connectorRef', 'search'] : ['kind', 'capabilityContract', 'search'],
+    'AIConfig options query',
+  );
+  if (!['local-loadouts', 'cloud-connectors', 'cloud-targets'].includes(query.kind)) invalidIntent('options query kind');
   requireText(query.capabilityContract, 'ai_config_options_capability_contract');
+  if (query.kind === 'cloud-targets') requireText(query.connectorRef, 'ai_config_options_connector_ref');
   if (query.search !== undefined && (typeof query.search !== 'string' || query.search.trim() !== query.search)) {
     invalidIntent('options search');
   }
@@ -166,12 +172,15 @@ function projectAppAIConfigOptions(value: unknown): NimiAIConfigOptionsResult {
   const result = asRecord(value);
   assertExactProjectionKeys(result, ['kind', 'options', 'truncated'], 'App AIConfig options');
   assertSafeProjection(result);
-  if (result.kind !== 'local-loadouts' || !Array.isArray(result.options) || typeof result.truncated !== 'boolean') {
+  if (!['local-loadouts', 'cloud-connectors', 'cloud-targets'].includes(String(result.kind))
+    || !Array.isArray(result.options) || typeof result.truncated !== 'boolean') {
     return localAppProjectionError('App AIConfig options');
   }
-  result.options.forEach(projectLocalOption);
+  if (result.kind === 'local-loadouts') result.options.forEach(projectLocalOption);
+  else if (result.kind === 'cloud-connectors') result.options.forEach(projectCloudConnectorOption);
+  else result.options.forEach(projectCloudTargetOption);
   return Object.freeze({
-    kind: 'local-loadouts',
+    kind: result.kind,
     options: Object.freeze([...result.options]),
     truncated: result.truncated,
   }) as NimiAIConfigOptionsResult;
@@ -217,7 +226,12 @@ function projectCapabilityIntent(value: unknown, index: number): void {
     const local = asRecord(route.local);
     assertExactProjectionKeys(local, ['loadoutRef'], `App AIConfig capability ${index} Local resource`);
     projectionText(local.loadoutRef, `App AIConfig capability ${index} loadoutRef`);
+    return;
   }
+  assertExactProjectionKeys(route, ['oneofKind', 'cloud'], `App AIConfig capability ${index} Cloud route`);
+  const cloud = asRecord(route.cloud);
+  assertExactProjectionKeys(cloud, ['connectorRef', 'implementation', 'providerModelTarget'], `App AIConfig capability ${index} Cloud resource`);
+  projectionText(cloud.connectorRef, `App AIConfig capability ${index} connectorRef`);
 }
 
 function projectEffectiveSelection(value: unknown, index: number): void {
@@ -233,9 +247,50 @@ function projectEffectiveSelection(value: unknown, index: number): void {
   }
   if (selection.resource !== null) {
     const resource = asRecord(selection.resource);
-    assertExactProjectionKeys(resource, ['oneofKind', 'local'], `App AIConfig effective selection ${index} resource`);
-    if (resource.oneofKind !== 'local') localAppProjectionError(`App AIConfig effective selection ${index} resource kind`);
-    projectLocalOption(resource.local, index);
+    if (!resource) localAppProjectionError(`App AIConfig effective selection ${index} resource`);
+    if (resource.oneofKind === 'local') {
+      assertExactProjectionKeys(resource, ['oneofKind', 'local'], `App AIConfig effective selection ${index} Local resource`);
+      projectLocalOption(resource.local, index);
+    } else if (resource.oneofKind === 'cloud') {
+      assertExactProjectionKeys(resource, ['oneofKind', 'cloud'], `App AIConfig effective selection ${index} Cloud resource`);
+      const cloud = asRecord(resource.cloud);
+      assertExactProjectionKeys(cloud, ['connector', 'target'], `App AIConfig effective selection ${index} Cloud resource`);
+      projectCloudConnectorOption(cloud.connector, index);
+      projectCloudTargetOption(cloud.target, index);
+    } else {
+      localAppProjectionError(`App AIConfig effective selection ${index} resource kind`);
+    }
+  }
+}
+
+function projectCloudConnectorOption(value: unknown, index: number): void {
+  const option = asRecord(value);
+  assertExactProjectionKeys(option, ['connectorRef', 'label', 'provider', 'state', 'reasons'], `App AIConfig Cloud Connector option ${index}`);
+  projectionText(option.connectorRef, `App AIConfig Cloud Connector option ${index} ref`);
+  projectionText(option.label, `App AIConfig Cloud Connector option ${index} label`);
+  projectionText(option.provider, `App AIConfig Cloud Connector option ${index} provider`);
+  if (!Array.isArray(option.reasons) || !['ready', 'blocked'].includes(String(option.state))) {
+    localAppProjectionError(`App AIConfig Cloud Connector option ${index}`);
+  }
+}
+
+function projectCloudTargetOption(value: unknown, index: number): void {
+  const option = asRecord(value);
+  assertExactProjectionKeys(option, [
+    'connectorRef', 'label', 'capabilityContract', 'implementation', 'providerModelTarget',
+    'supportedFeatures', 'state', 'reasons',
+  ], `App AIConfig Cloud target option ${index}`);
+  projectionText(option.connectorRef, `App AIConfig Cloud target option ${index} connectorRef`);
+  projectionText(option.label, `App AIConfig Cloud target option ${index} label`);
+  projectionText(option.capabilityContract, `App AIConfig Cloud target option ${index} capability`);
+  const implementation = asRecord(option.implementation);
+  assertExactProjectionKeys(implementation, ['implementationId', 'driverId', 'driverDialect'], `App AIConfig Cloud target option ${index} implementation`);
+  projectionText(implementation.implementationId, `App AIConfig Cloud target option ${index} implementationId`);
+  projectionText(implementation.driverId, `App AIConfig Cloud target option ${index} driverId`);
+  projectionText(implementation.driverDialect, `App AIConfig Cloud target option ${index} dialect`);
+  if (!asRecord(option.providerModelTarget) || !Array.isArray(option.supportedFeatures)
+    || !Array.isArray(option.reasons) || !['ready', 'blocked'].includes(String(option.state))) {
+    localAppProjectionError(`App AIConfig Cloud target option ${index}`);
   }
 }
 

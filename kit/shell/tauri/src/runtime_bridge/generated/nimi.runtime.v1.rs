@@ -3886,13 +3886,16 @@ pub struct AiConfigLocalIntent {
 }
 /// AIConfigCloudIntent carries only the exact Cloud implementation and its
 /// Driver-owned provider-model target selected through Nimi-owned configuration.
-/// Connector, account authorization, and credential material never belong here.
+/// Connector credential material never belongs here; connector_ref is the
+/// stable Runtime resource selected by the owner.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct AiConfigCloudIntent {
     #[prost(message, optional, tag = "1")]
     pub implementation: ::core::option::Option<CapabilityImplementationIdentity>,
     #[prost(message, optional, tag = "2")]
     pub provider_model_target: ::core::option::Option<::prost_types::Struct>,
+    #[prost(string, tag = "4")]
+    pub connector_ref: ::prost::alloc::string::String,
 }
 /// AIConfigCapabilityIntent is consumer intent only. It names an exact safe
 /// resource reference but embeds no Loadout content, assets, bindings, Driver
@@ -3946,6 +3949,45 @@ pub struct AiConfigLocalResourceProjection {
     pub reasons: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AiConfigCloudConnectorProjection {
+    #[prost(string, tag = "1")]
+    pub connector_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub label: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub provider: ::prost::alloc::string::String,
+    #[prost(enumeration = "AiConfigEffectiveState", tag = "4")]
+    pub state: i32,
+    #[prost(string, repeated, tag = "5")]
+    pub reasons: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct AiConfigCloudTargetProjection {
+    #[prost(string, tag = "1")]
+    pub connector_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub label: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub capability_contract: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "4")]
+    pub implementation: ::core::option::Option<CapabilityImplementationIdentity>,
+    #[prost(message, optional, tag = "5")]
+    pub provider_model_target: ::core::option::Option<::prost_types::Struct>,
+    #[prost(string, repeated, tag = "6")]
+    pub supported_features: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(enumeration = "AiConfigEffectiveState", tag = "7")]
+    pub state: i32,
+    #[prost(string, repeated, tag = "8")]
+    pub reasons: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct AiConfigCloudResourceProjection {
+    #[prost(message, optional, tag = "1")]
+    pub connector: ::core::option::Option<AiConfigCloudConnectorProjection>,
+    #[prost(message, optional, tag = "2")]
+    pub target: ::core::option::Option<AiConfigCloudTargetProjection>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct AiConfigEffectiveSelection {
     #[prost(string, tag = "1")]
     pub capability_contract: ::prost::alloc::string::String,
@@ -3953,15 +3995,17 @@ pub struct AiConfigEffectiveSelection {
     pub state: i32,
     #[prost(string, repeated, tag = "4")]
     pub reasons: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(oneof = "ai_config_effective_selection::Resource", tags = "3")]
+    #[prost(oneof = "ai_config_effective_selection::Resource", tags = "3, 5")]
     pub resource: ::core::option::Option<ai_config_effective_selection::Resource>,
 }
 /// Nested message and enum types in `AIConfigEffectiveSelection`.
 pub mod ai_config_effective_selection {
-    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+    #[derive(Clone, PartialEq, ::prost::Oneof)]
     pub enum Resource {
         #[prost(message, tag = "3")]
         Local(super::AiConfigLocalResourceProjection),
+        #[prost(message, tag = "5")]
+        Cloud(super::AiConfigCloudResourceProjection),
     }
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
@@ -3977,12 +4021,38 @@ pub struct AiConfigLocalLoadoutOptions {
     pub options: ::prost::alloc::vec::Vec<AiConfigLocalResourceProjection>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AiConfigCloudConnectorOptionsQuery {
+    #[prost(string, tag = "1")]
+    pub capability_contract: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub search: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct AiConfigCloudConnectorOptions {
+    #[prost(message, repeated, tag = "1")]
+    pub options: ::prost::alloc::vec::Vec<AiConfigCloudConnectorProjection>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AiConfigCloudTargetOptionsQuery {
+    #[prost(string, tag = "1")]
+    pub capability_contract: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub connector_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub search: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct AiConfigCloudTargetOptions {
+    #[prost(message, repeated, tag = "1")]
+    pub options: ::prost::alloc::vec::Vec<AiConfigCloudTargetProjection>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ListAppAiConfigOptionsRequest {
     /// Desktop manager consistency assertion. Protected App callers omit it and
     /// Runtime derives the self owner from the admitted session.
     #[prost(message, optional, tag = "4")]
     pub owner: ::core::option::Option<AiConfigOwner>,
-    #[prost(oneof = "list_app_ai_config_options_request::Query", tags = "1")]
+    #[prost(oneof = "list_app_ai_config_options_request::Query", tags = "1, 2, 3")]
     pub query: ::core::option::Option<list_app_ai_config_options_request::Query>,
 }
 /// Nested message and enum types in `ListAppAIConfigOptionsRequest`.
@@ -3991,13 +4061,17 @@ pub mod list_app_ai_config_options_request {
     pub enum Query {
         #[prost(message, tag = "1")]
         LocalLoadouts(super::AiConfigLocalLoadoutOptionsQuery),
+        #[prost(message, tag = "2")]
+        CloudConnectors(super::AiConfigCloudConnectorOptionsQuery),
+        #[prost(message, tag = "3")]
+        CloudTargets(super::AiConfigCloudTargetOptionsQuery),
     }
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListAppAiConfigOptionsResponse {
     #[prost(bool, tag = "2")]
     pub truncated: bool,
-    #[prost(oneof = "list_app_ai_config_options_response::Result", tags = "1")]
+    #[prost(oneof = "list_app_ai_config_options_response::Result", tags = "1, 3, 4")]
     pub result: ::core::option::Option<list_app_ai_config_options_response::Result>,
 }
 /// Nested message and enum types in `ListAppAIConfigOptionsResponse`.
@@ -4006,6 +4080,10 @@ pub mod list_app_ai_config_options_response {
     pub enum Result {
         #[prost(message, tag = "1")]
         LocalLoadouts(super::AiConfigLocalLoadoutOptions),
+        #[prost(message, tag = "3")]
+        CloudConnectors(super::AiConfigCloudConnectorOptions),
+        #[prost(message, tag = "4")]
+        CloudTargets(super::AiConfigCloudTargetOptions),
     }
 }
 /// App AIConfig mutation is whole-object only. The owner carried here is a
@@ -15451,15 +15529,49 @@ pub struct OverwriteLocalAppSharedLocalAgentAiConfigResponse {
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ListLocalAppSharedLocalAgentAiConfigOptionsRequest {
-    #[prost(message, optional, tag = "1")]
-    pub local_loadouts: ::core::option::Option<AiConfigLocalLoadoutOptionsQuery>,
+    #[prost(
+        oneof = "list_local_app_shared_local_agent_ai_config_options_request::Query",
+        tags = "1, 2, 3"
+    )]
+    pub query: ::core::option::Option<
+        list_local_app_shared_local_agent_ai_config_options_request::Query,
+    >,
+}
+/// Nested message and enum types in `ListLocalAppSharedLocalAgentAIConfigOptionsRequest`.
+pub mod list_local_app_shared_local_agent_ai_config_options_request {
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+    pub enum Query {
+        #[prost(message, tag = "1")]
+        LocalLoadouts(super::AiConfigLocalLoadoutOptionsQuery),
+        #[prost(message, tag = "2")]
+        CloudConnectors(super::AiConfigCloudConnectorOptionsQuery),
+        #[prost(message, tag = "3")]
+        CloudTargets(super::AiConfigCloudTargetOptionsQuery),
+    }
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListLocalAppSharedLocalAgentAiConfigOptionsResponse {
-    #[prost(message, optional, tag = "1")]
-    pub local_loadouts: ::core::option::Option<AiConfigLocalLoadoutOptions>,
     #[prost(bool, tag = "2")]
     pub truncated: bool,
+    #[prost(
+        oneof = "list_local_app_shared_local_agent_ai_config_options_response::Result",
+        tags = "1, 3, 4"
+    )]
+    pub result: ::core::option::Option<
+        list_local_app_shared_local_agent_ai_config_options_response::Result,
+    >,
+}
+/// Nested message and enum types in `ListLocalAppSharedLocalAgentAIConfigOptionsResponse`.
+pub mod list_local_app_shared_local_agent_ai_config_options_response {
+    #[derive(Clone, PartialEq, ::prost::Oneof)]
+    pub enum Result {
+        #[prost(message, tag = "1")]
+        LocalLoadouts(super::AiConfigLocalLoadoutOptions),
+        #[prost(message, tag = "3")]
+        CloudConnectors(super::AiConfigCloudConnectorOptions),
+        #[prost(message, tag = "4")]
+        CloudTargets(super::AiConfigCloudTargetOptions),
+    }
 }
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct LocalAppAgentAutonomyConfig {
@@ -18122,15 +18234,49 @@ pub struct OverwriteSharedLocalAgentAiConfigResponse {
 pub struct ListSharedLocalAgentAiConfigOptionsRequest {
     #[prost(message, optional, tag = "1")]
     pub context: ::core::option::Option<AgentRequestContext>,
-    #[prost(message, optional, tag = "2")]
-    pub local_loadouts: ::core::option::Option<AiConfigLocalLoadoutOptionsQuery>,
+    #[prost(
+        oneof = "list_shared_local_agent_ai_config_options_request::Query",
+        tags = "2, 3, 4"
+    )]
+    pub query: ::core::option::Option<
+        list_shared_local_agent_ai_config_options_request::Query,
+    >,
+}
+/// Nested message and enum types in `ListSharedLocalAgentAIConfigOptionsRequest`.
+pub mod list_shared_local_agent_ai_config_options_request {
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+    pub enum Query {
+        #[prost(message, tag = "2")]
+        LocalLoadouts(super::AiConfigLocalLoadoutOptionsQuery),
+        #[prost(message, tag = "3")]
+        CloudConnectors(super::AiConfigCloudConnectorOptionsQuery),
+        #[prost(message, tag = "4")]
+        CloudTargets(super::AiConfigCloudTargetOptionsQuery),
+    }
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListSharedLocalAgentAiConfigOptionsResponse {
-    #[prost(message, optional, tag = "1")]
-    pub local_loadouts: ::core::option::Option<AiConfigLocalLoadoutOptions>,
     #[prost(bool, tag = "2")]
     pub truncated: bool,
+    #[prost(
+        oneof = "list_shared_local_agent_ai_config_options_response::Result",
+        tags = "1, 3, 4"
+    )]
+    pub result: ::core::option::Option<
+        list_shared_local_agent_ai_config_options_response::Result,
+    >,
+}
+/// Nested message and enum types in `ListSharedLocalAgentAIConfigOptionsResponse`.
+pub mod list_shared_local_agent_ai_config_options_response {
+    #[derive(Clone, PartialEq, ::prost::Oneof)]
+    pub enum Result {
+        #[prost(message, tag = "1")]
+        LocalLoadouts(super::AiConfigLocalLoadoutOptions),
+        #[prost(message, tag = "3")]
+        CloudConnectors(super::AiConfigCloudConnectorOptions),
+        #[prost(message, tag = "4")]
+        CloudTargets(super::AiConfigCloudTargetOptions),
+    }
 }
 /// AIProfile remains a portable template. Apply writes complete current owner
 /// intent only; it never materializes Local bindings or waits for readiness.

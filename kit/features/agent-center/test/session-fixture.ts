@@ -1,5 +1,5 @@
 import { createFirstPartyAgentCenterSession } from '../src/session.js';
-import type { ModelConfigCloudAIConfigModule } from '@nimiplatform/kit/features/model-config/headless';
+import type { NimiAIConfigCloudConnectorOption, NimiAIConfigCloudTargetOption } from '@nimiplatform/kit/core/sdk-contract';
 import type {
   AgentCenterAppearanceAdapter,
   AgentCenterAutonomyProjection,
@@ -35,7 +35,10 @@ function defaultAIConfig(): AgentCenterSharedAIConfigProjection {
 export async function sessionFor(
   projection: AgentCenterStateInput = {},
   appearance?: AgentCenterAppearanceAdapter | null,
-  cloudAIConfig?: ModelConfigCloudAIConfigModule,
+  cloudOptions?: {
+    readonly connectors: readonly NimiAIConfigCloudConnectorOption[];
+    readonly targets: readonly NimiAIConfigCloudTargetOption[];
+  },
 ): Promise<AgentCenterSession> {
   let sharedAIConfig = projection.sharedAIConfig || defaultAIConfig();
   const session = createFirstPartyAgentCenterSession({
@@ -84,6 +87,16 @@ export async function sessionFor(
         return { outcome: 'committed' as const, config: sharedAIConfig.aiConfig, revision: sharedAIConfig.revision };
       },
       async listOptions(input) {
+        if (input.kind === 'cloud-connectors') {
+          return { kind: input.kind, options: cloudOptions?.connectors ?? [], truncated: false };
+        }
+        if (input.kind === 'cloud-targets') {
+          return {
+            kind: input.kind,
+            options: (cloudOptions?.targets ?? []).filter((target) => target.connectorRef === input.connectorRef),
+            truncated: false,
+          };
+        }
         return {
           kind: 'local-loadouts' as const,
           options: input.capabilityContract === 'text.generate' ? [{
@@ -95,7 +108,6 @@ export async function sessionFor(
         };
       },
     },
-    cloudAIConfig,
     autonomy: projection.autonomy ? {
       async load() { return projection.autonomy || null; },
       async update(_identity, mutation) {

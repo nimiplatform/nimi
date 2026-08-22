@@ -162,6 +162,7 @@ func TestCloudTextImmediatePathsPersistExactAssemblyBeforeHost(t *testing.T) {
 				&runtimev1.AIConfigCapabilityIntent{
 					CapabilityContract: "text.generate",
 					Route: &runtimev1.AIConfigCapabilityIntent_Cloud{Cloud: &runtimev1.AIConfigCloudIntent{
+						ConnectorRef: fixture.connectorID,
 						Implementation: &runtimev1.CapabilityImplementationIdentity{
 							ImplementationId: "cloud.text.openai", DriverId: "nimi.runtime.driver.openai", DriverDialect: "openai/chat-completions/v1",
 						},
@@ -298,6 +299,7 @@ func TestCloudTextStreamFallbackPersistsActualReturnedCause(t *testing.T) {
 		&runtimev1.AIConfigCapabilityIntent{
 			CapabilityContract: "text.generate",
 			Route: &runtimev1.AIConfigCapabilityIntent_Cloud{Cloud: &runtimev1.AIConfigCloudIntent{
+				ConnectorRef: fixture.connectorID,
 				Implementation: &runtimev1.CapabilityImplementationIdentity{
 					ImplementationId: "cloud.text.openai", DriverId: "nimi.runtime.driver.openai", DriverDialect: "openai/chat-completions/v1",
 				},
@@ -353,6 +355,7 @@ func TestCloudTextStartedSendFailurePersistsStreamBrokenWithoutCallingProvider(t
 		&runtimev1.AIConfigCapabilityIntent{
 			CapabilityContract: "text.generate",
 			Route: &runtimev1.AIConfigCapabilityIntent_Cloud{Cloud: &runtimev1.AIConfigCloudIntent{
+				ConnectorRef: fixture.connectorID,
 				Implementation: &runtimev1.CapabilityImplementationIdentity{
 					ImplementationId: "cloud.text.openai", DriverId: "nimi.runtime.driver.openai", DriverDialect: "openai/chat-completions/v1",
 				},

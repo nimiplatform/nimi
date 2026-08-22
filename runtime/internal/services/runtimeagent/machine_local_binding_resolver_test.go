@@ -139,6 +139,7 @@ func TestCommittedOptionalAudioBindingKeepsCloudTargetFailClosed(t *testing.T) {
 	cloudIntent := executionintent.Intent{
 		CapabilityContract: capabilitydriver.AudioSynthesizeContract,
 		Route:              runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
+		ConnectorRef:       "connector:test",
 		CloudImplementation: &runtimev1.CapabilityImplementationIdentity{
 			ImplementationId: "cloud.audio.test",
 			DriverId:         "driver.audio.test",
@@ -279,6 +280,7 @@ func TestMachineBindingResolverCarriesCloudAIConfigIntentPrivately(t *testing.T)
 		Capabilities: []*runtimev1.AIConfigCapabilityIntent{{
 			CapabilityContract: "audio.synthesize",
 			Route: &runtimev1.AIConfigCapabilityIntent_Cloud{Cloud: &runtimev1.AIConfigCloudIntent{
+				ConnectorRef:        record.ConnectorID,
 				Implementation:      &runtimev1.CapabilityImplementationIdentity{ImplementationId: "cloud.audio.dashscope", DriverId: "driver.dashscope", DriverDialect: "dashscope/audio/v1"},
 				ProviderModelTarget: providerTarget,
 			}},

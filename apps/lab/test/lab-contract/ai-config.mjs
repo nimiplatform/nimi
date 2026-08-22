@@ -109,7 +109,7 @@ test('lab mounts the shared App AIConfig editor with self-owner CAS and optional
     'src/lab/workbench/lab-ai-config-settings-panel.tsx',
   ), 'utf8');
   assert.match(source, /ModelConfigAIConfigSurface/u);
-  assert.match(source, /consumer: 'third-party-app'/u);
+  assert.doesNotMatch(source, /consumer: 'third-party-app'/u);
   assert.match(source, /initialCapabilityContract=\{capabilityId\}/u);
   assert.match(source, /sdk\.aiConfig\.listOptions\(query\)/u);
   assert.match(source, /sdk\.aiConfig\.overwrite\(input\)/u);
@@ -199,7 +199,7 @@ test('lab presents Local intent while leaving implementation selection to Runtim
   assert.equal(imageTarget.canDispatch, true);
 });
 
-test('lab keeps current-account Connector resolution Runtime-owned while allowing Cloud execution', async () => {
+test('lab requires an exact Connector and provider-model target for Cloud execution', async () => {
   const { createLabRunTargetSummary } = await importBehaviorModule('lab/lab-run-target.js');
   const capability = {
     id: 'image.generate', label: 'Image Generate', group: 'media', section: 'image', summary: '', surface: '', execution: 'runtime-sdk', capabilityContract: 'image.generate',
@@ -211,6 +211,7 @@ test('lab keeps current-account Connector resolution Runtime-owned while allowin
     route: {
       oneofKind: 'cloud',
       cloud: {
+        connectorRef: 'connector-cloud-image-test',
         implementation: {
           implementationId: 'cloud.image.test',
           driverId: 'cloud.driver.test',
@@ -231,8 +232,18 @@ test('lab keeps current-account Connector resolution Runtime-owned while allowin
   assert.equal(configured.status, 'configured');
   assert.equal(configured.source, 'cloud');
   assert.equal(configured.canDispatch, true);
-  assert.match(configured.detail, /Nimi-owned App configuration/u);
+  assert.match(configured.detail, /exact Cloud Connector and provider-model target/u);
   assert.doesNotMatch(JSON.stringify(cloudIntent), /custody|binding/iu);
+
+  const missingConnector = structuredClone(cloudIntent);
+  delete missingConnector.route.cloud.connectorRef;
+  const missingConnectorResult = createLabRunTargetSummary({
+    capability,
+    runtime,
+    config: config(missingConnector),
+  });
+  assert.equal(missingConnectorResult.status, 'blocked');
+  assert.equal(missingConnectorResult.canDispatch, false);
 
   const missingExactTarget = structuredClone(cloudIntent);
   delete missingExactTarget.route.cloud.providerModelTarget.fields.remoteModelCatalogId;

@@ -23,7 +23,6 @@ import type {
 } from '@nimiplatform/kit/core/sdk-contract';
 import type { AgentCenterAvatarPreviewServiceResult } from '@nimiplatform/kit/features/avatar/headless';
 import type {
-  ModelConfigCloudAIConfigModule,
   ModelConfigLocalSelectionProjection,
 } from '@nimiplatform/kit/features/model-config/headless';
 
@@ -559,7 +558,6 @@ export interface AgentCenterPlacementActions {
   readonly close?: () => void;
   readonly openRuntimeSettings?: () => void;
   readonly openMachineLoadout?: (capabilityContract: string) => void;
-  readonly openCloudConnectorConfiguration?: () => void;
   readonly launchAvatar?: () => void;
 }
 
@@ -648,7 +646,6 @@ declare const AGENT_CENTER_SESSION: unique symbol;
 
 export interface AgentCenterSession {
   readonly [AGENT_CENTER_SESSION]: true;
-  readonly cloudAIConfig?: ModelConfigCloudAIConfigModule;
   getSnapshot(): AgentCenterSnapshot;
   subscribe(listener: () => void): () => void;
   refresh(): Promise<void>;

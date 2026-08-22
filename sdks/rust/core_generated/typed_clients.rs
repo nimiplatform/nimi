@@ -2585,23 +2585,21 @@ impl AIConfigCapabilityIntent {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct AIConfigCloudIntent {
-    pub implementation: Option<Box<CapabilityImplementationIdentity>>,
-    pub provider_model_target: Option<BTreeMap<String, String>>,
+pub struct AIConfigCloudConnectorOptions {
+    pub options: Vec<Box<AIConfigCloudConnectorProjection>>,
 }
 
-impl AIConfigCloudIntent {
+impl AIConfigCloudConnectorOptions {
     pub fn to_transport(&self) -> Vec<u8> {
         let pairs: Vec<String> = Vec::new();
-        if self.implementation.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode implementation"); }
-        if self.provider_model_target.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode provider_model_target"); }
+        if !self.options.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode options"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
         let out = Self::default();
-        for key in ["implementation", "provider_model_target"] {
+        for key in ["options"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
             }
@@ -2616,11 +2614,234 @@ impl AIConfigCloudIntent {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct AIConfigCloudConnectorOptionsQuery {
+    pub capability_contract: Option<String>,
+    pub search: Option<String>,
+}
+
+impl AIConfigCloudConnectorOptionsQuery {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.capability_contract { pairs.push(format!("capability_contract={}", value)); }
+        if let Some(value) = &self.search { pairs.push(format!("search={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+
+        out.capability_contract = pairs.get("capability_contract").cloned();
+        out.search = pairs.get("search").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AIConfigCloudConnectorProjection {
+    pub connector_ref: Option<String>,
+    pub label: Option<String>,
+    pub provider: Option<String>,
+    pub state: Option<AIConfigEffectiveState>,
+    pub reasons: Vec<String>,
+}
+
+impl AIConfigCloudConnectorProjection {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.connector_ref { pairs.push(format!("connector_ref={}", value)); }
+        if let Some(value) = &self.label { pairs.push(format!("label={}", value)); }
+        if let Some(value) = &self.provider { pairs.push(format!("provider={}", value)); }
+        if let Some(value) = &self.state { pairs.push(format!("state={:?}", value)); }
+        for value in &self.reasons { pairs.push(format!("reasons={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["state"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.connector_ref = pairs.get("connector_ref").cloned();
+        out.label = pairs.get("label").cloned();
+        out.provider = pairs.get("provider").cloned();
+        out.reasons = parse_repeated_string(raw, "reasons");
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AIConfigCloudIntent {
+    pub implementation: Option<Box<CapabilityImplementationIdentity>>,
+    pub provider_model_target: Option<BTreeMap<String, String>>,
+    pub connector_ref: Option<String>,
+}
+
+impl AIConfigCloudIntent {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if self.implementation.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode implementation"); }
+        if self.provider_model_target.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode provider_model_target"); }
+        if let Some(value) = &self.connector_ref { pairs.push(format!("connector_ref={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["implementation", "provider_model_target"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.connector_ref = pairs.get("connector_ref").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AIConfigCloudResourceProjection {
+    pub connector: Option<Box<AIConfigCloudConnectorProjection>>,
+    pub target: Option<Box<AIConfigCloudTargetProjection>>,
+}
+
+impl AIConfigCloudResourceProjection {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let pairs: Vec<String> = Vec::new();
+        if self.connector.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode connector"); }
+        if self.target.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode target"); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let out = Self::default();
+        for key in ["connector", "target"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+        if !pairs.is_empty() {
+            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
+        }
+
+
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AIConfigCloudTargetOptions {
+    pub options: Vec<Box<AIConfigCloudTargetProjection>>,
+}
+
+impl AIConfigCloudTargetOptions {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let pairs: Vec<String> = Vec::new();
+        if !self.options.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode options"); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let out = Self::default();
+        for key in ["options"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+        if !pairs.is_empty() {
+            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
+        }
+
+
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AIConfigCloudTargetOptionsQuery {
+    pub capability_contract: Option<String>,
+    pub connector_ref: Option<String>,
+    pub search: Option<String>,
+}
+
+impl AIConfigCloudTargetOptionsQuery {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.capability_contract { pairs.push(format!("capability_contract={}", value)); }
+        if let Some(value) = &self.connector_ref { pairs.push(format!("connector_ref={}", value)); }
+        if let Some(value) = &self.search { pairs.push(format!("search={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+
+        out.capability_contract = pairs.get("capability_contract").cloned();
+        out.connector_ref = pairs.get("connector_ref").cloned();
+        out.search = pairs.get("search").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AIConfigCloudTargetProjection {
+    pub connector_ref: Option<String>,
+    pub label: Option<String>,
+    pub capability_contract: Option<String>,
+    pub implementation: Option<Box<CapabilityImplementationIdentity>>,
+    pub provider_model_target: Option<BTreeMap<String, String>>,
+    pub supported_features: Vec<String>,
+    pub state: Option<AIConfigEffectiveState>,
+    pub reasons: Vec<String>,
+}
+
+impl AIConfigCloudTargetProjection {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.connector_ref { pairs.push(format!("connector_ref={}", value)); }
+        if let Some(value) = &self.label { pairs.push(format!("label={}", value)); }
+        if let Some(value) = &self.capability_contract { pairs.push(format!("capability_contract={}", value)); }
+        if self.implementation.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode implementation"); }
+        if self.provider_model_target.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode provider_model_target"); }
+        for value in &self.supported_features { pairs.push(format!("supported_features={}", value)); }
+        if let Some(value) = &self.state { pairs.push(format!("state={:?}", value)); }
+        for value in &self.reasons { pairs.push(format!("reasons={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["implementation", "provider_model_target", "state"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.connector_ref = pairs.get("connector_ref").cloned();
+        out.label = pairs.get("label").cloned();
+        out.capability_contract = pairs.get("capability_contract").cloned();
+        out.supported_features = parse_repeated_string(raw, "supported_features");
+        out.reasons = parse_repeated_string(raw, "reasons");
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct AIConfigEffectiveSelection {
     pub capability_contract: Option<String>,
     pub state: Option<AIConfigEffectiveState>,
     pub local: Option<Box<AIConfigLocalResourceProjection>>,
     pub reasons: Vec<String>,
+    pub cloud: Option<Box<AIConfigCloudResourceProjection>>,
 }
 
 impl AIConfigEffectiveSelection {
@@ -2630,13 +2851,14 @@ impl AIConfigEffectiveSelection {
         if let Some(value) = &self.state { pairs.push(format!("state={:?}", value)); }
         if self.local.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode local"); }
         for value in &self.reasons { pairs.push(format!("reasons={}", value)); }
+        if self.cloud.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode cloud"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
         let mut out = Self::default();
-        for key in ["state", "local"] {
+        for key in ["state", "local", "cloud"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
             }
@@ -12913,6 +13135,8 @@ impl ListAgentsResponse {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct ListAppAIConfigOptionsRequest {
     pub local_loadouts: Option<Box<AIConfigLocalLoadoutOptionsQuery>>,
+    pub cloud_connectors: Option<Box<AIConfigCloudConnectorOptionsQuery>>,
+    pub cloud_targets: Option<Box<AIConfigCloudTargetOptionsQuery>>,
     pub owner: Option<Box<AIConfigOwner>>,
 }
 
@@ -12920,6 +13144,8 @@ impl ListAppAIConfigOptionsRequest {
     pub fn to_transport(&self) -> Vec<u8> {
         let pairs: Vec<String> = Vec::new();
         if self.local_loadouts.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode local_loadouts"); }
+        if self.cloud_connectors.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode cloud_connectors"); }
+        if self.cloud_targets.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode cloud_targets"); }
         if self.owner.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode owner"); }
         pairs.join(";").into_bytes()
     }
@@ -12927,7 +13153,7 @@ impl ListAppAIConfigOptionsRequest {
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
         let out = Self::default();
-        for key in ["local_loadouts", "owner"] {
+        for key in ["local_loadouts", "cloud_connectors", "cloud_targets", "owner"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
             }
@@ -12945,6 +13171,8 @@ impl ListAppAIConfigOptionsRequest {
 pub struct ListAppAIConfigOptionsResponse {
     pub local_loadouts: Option<Box<AIConfigLocalLoadoutOptions>>,
     pub truncated: Option<bool>,
+    pub cloud_connectors: Option<Box<AIConfigCloudConnectorOptions>>,
+    pub cloud_targets: Option<Box<AIConfigCloudTargetOptions>>,
 }
 
 impl ListAppAIConfigOptionsResponse {
@@ -12952,13 +13180,15 @@ impl ListAppAIConfigOptionsResponse {
         let mut pairs: Vec<String> = Vec::new();
         if self.local_loadouts.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode local_loadouts"); }
         if let Some(value) = &self.truncated { pairs.push(format!("truncated={}", value)); }
+        if self.cloud_connectors.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode cloud_connectors"); }
+        if self.cloud_targets.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode cloud_targets"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
         let mut out = Self::default();
-        for key in ["local_loadouts"] {
+        for key in ["local_loadouts", "cloud_connectors", "cloud_targets"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
             }
@@ -14019,19 +14249,23 @@ impl ListLocalAppAssetsResponse {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct ListLocalAppSharedLocalAgentAIConfigOptionsRequest {
     pub local_loadouts: Option<Box<AIConfigLocalLoadoutOptionsQuery>>,
+    pub cloud_connectors: Option<Box<AIConfigCloudConnectorOptionsQuery>>,
+    pub cloud_targets: Option<Box<AIConfigCloudTargetOptionsQuery>>,
 }
 
 impl ListLocalAppSharedLocalAgentAIConfigOptionsRequest {
     pub fn to_transport(&self) -> Vec<u8> {
         let pairs: Vec<String> = Vec::new();
         if self.local_loadouts.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode local_loadouts"); }
+        if self.cloud_connectors.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode cloud_connectors"); }
+        if self.cloud_targets.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode cloud_targets"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
         let out = Self::default();
-        for key in ["local_loadouts"] {
+        for key in ["local_loadouts", "cloud_connectors", "cloud_targets"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
             }
@@ -14049,6 +14283,8 @@ impl ListLocalAppSharedLocalAgentAIConfigOptionsRequest {
 pub struct ListLocalAppSharedLocalAgentAIConfigOptionsResponse {
     pub local_loadouts: Option<Box<AIConfigLocalLoadoutOptions>>,
     pub truncated: Option<bool>,
+    pub cloud_connectors: Option<Box<AIConfigCloudConnectorOptions>>,
+    pub cloud_targets: Option<Box<AIConfigCloudTargetOptions>>,
 }
 
 impl ListLocalAppSharedLocalAgentAIConfigOptionsResponse {
@@ -14056,13 +14292,15 @@ impl ListLocalAppSharedLocalAgentAIConfigOptionsResponse {
         let mut pairs: Vec<String> = Vec::new();
         if self.local_loadouts.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode local_loadouts"); }
         if let Some(value) = &self.truncated { pairs.push(format!("truncated={}", value)); }
+        if self.cloud_connectors.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode cloud_connectors"); }
+        if self.cloud_targets.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode cloud_targets"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
         let mut out = Self::default();
-        for key in ["local_loadouts"] {
+        for key in ["local_loadouts", "cloud_connectors", "cloud_targets"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
             }
@@ -14857,6 +15095,8 @@ impl ListScenarioProfilesResponse {
 pub struct ListSharedLocalAgentAIConfigOptionsRequest {
     pub context: Option<Box<AgentRequestContext>>,
     pub local_loadouts: Option<Box<AIConfigLocalLoadoutOptionsQuery>>,
+    pub cloud_connectors: Option<Box<AIConfigCloudConnectorOptionsQuery>>,
+    pub cloud_targets: Option<Box<AIConfigCloudTargetOptionsQuery>>,
 }
 
 impl ListSharedLocalAgentAIConfigOptionsRequest {
@@ -14864,13 +15104,15 @@ impl ListSharedLocalAgentAIConfigOptionsRequest {
         let pairs: Vec<String> = Vec::new();
         if self.context.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode context"); }
         if self.local_loadouts.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode local_loadouts"); }
+        if self.cloud_connectors.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode cloud_connectors"); }
+        if self.cloud_targets.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode cloud_targets"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
         let out = Self::default();
-        for key in ["context", "local_loadouts"] {
+        for key in ["context", "local_loadouts", "cloud_connectors", "cloud_targets"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
             }
@@ -14888,6 +15130,8 @@ impl ListSharedLocalAgentAIConfigOptionsRequest {
 pub struct ListSharedLocalAgentAIConfigOptionsResponse {
     pub local_loadouts: Option<Box<AIConfigLocalLoadoutOptions>>,
     pub truncated: Option<bool>,
+    pub cloud_connectors: Option<Box<AIConfigCloudConnectorOptions>>,
+    pub cloud_targets: Option<Box<AIConfigCloudTargetOptions>>,
 }
 
 impl ListSharedLocalAgentAIConfigOptionsResponse {
@@ -14895,13 +15139,15 @@ impl ListSharedLocalAgentAIConfigOptionsResponse {
         let mut pairs: Vec<String> = Vec::new();
         if self.local_loadouts.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode local_loadouts"); }
         if let Some(value) = &self.truncated { pairs.push(format!("truncated={}", value)); }
+        if self.cloud_connectors.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode cloud_connectors"); }
+        if self.cloud_targets.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode cloud_targets"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
         let mut out = Self::default();
-        for key in ["local_loadouts"] {
+        for key in ["local_loadouts", "cloud_connectors", "cloud_targets"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
             }
@@ -29013,7 +29259,49 @@ impl From<Vec<u8>> for AIConfigCapabilityIntent {
     }
 }
 
+impl From<Vec<u8>> for AIConfigCloudConnectorOptions {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for AIConfigCloudConnectorOptionsQuery {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for AIConfigCloudConnectorProjection {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
 impl From<Vec<u8>> for AIConfigCloudIntent {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for AIConfigCloudResourceProjection {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for AIConfigCloudTargetOptions {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for AIConfigCloudTargetOptionsQuery {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for AIConfigCloudTargetProjection {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }

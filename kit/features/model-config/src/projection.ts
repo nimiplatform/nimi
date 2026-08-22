@@ -13,7 +13,7 @@ export function modelConfigHasExactCloudTarget(
   intent: NimiPortableAppAIConfigIntent | null | undefined,
 ): boolean {
   if (intent?.route.oneofKind !== 'cloud') return false;
-  return modelConfigJsonHasExactCloudTarget(
+  return Boolean(intent.route.cloud.connectorRef?.trim()) && modelConfigJsonHasExactCloudTarget(
     runtimeAIConfigStructToJson(intent.route.cloud.providerModelTarget),
   );
 }

@@ -47,7 +47,11 @@ import { UnknownFieldHandler } from "@protobuf-ts/runtime";
 import type { PartialMessage } from "@protobuf-ts/runtime";
 import { reflectionMergePartial } from "@protobuf-ts/runtime";
 import { MessageType } from "@protobuf-ts/runtime";
+import { AIConfigCloudTargetOptions } from "./capability_configuration";
+import { AIConfigCloudConnectorOptions } from "./capability_configuration";
 import { AIConfigLocalLoadoutOptions } from "./capability_configuration";
+import { AIConfigCloudTargetOptionsQuery } from "./capability_configuration";
+import { AIConfigCloudConnectorOptionsQuery } from "./capability_configuration";
 import { AIConfigLocalLoadoutOptionsQuery } from "./capability_configuration";
 import { AIConfigCapabilityIntent } from "./capability_configuration";
 import { AIConfigEffectiveSelection } from "./capability_configuration";
@@ -3004,18 +3008,58 @@ export interface ListSharedLocalAgentAIConfigOptionsRequest {
      */
     context?: AgentRequestContext;
     /**
-     * @generated from protobuf field: nimi.runtime.v1.AIConfigLocalLoadoutOptionsQuery local_loadouts = 2
+     * @generated from protobuf oneof: query
      */
-    localLoadouts?: AIConfigLocalLoadoutOptionsQuery;
+    query: {
+        oneofKind: "localLoadouts";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.AIConfigLocalLoadoutOptionsQuery local_loadouts = 2
+         */
+        localLoadouts: AIConfigLocalLoadoutOptionsQuery;
+    } | {
+        oneofKind: "cloudConnectors";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.AIConfigCloudConnectorOptionsQuery cloud_connectors = 3
+         */
+        cloudConnectors: AIConfigCloudConnectorOptionsQuery;
+    } | {
+        oneofKind: "cloudTargets";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.AIConfigCloudTargetOptionsQuery cloud_targets = 4
+         */
+        cloudTargets: AIConfigCloudTargetOptionsQuery;
+    } | {
+        oneofKind: undefined;
+    };
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ListSharedLocalAgentAIConfigOptionsResponse
  */
 export interface ListSharedLocalAgentAIConfigOptionsResponse {
     /**
-     * @generated from protobuf field: nimi.runtime.v1.AIConfigLocalLoadoutOptions local_loadouts = 1
+     * @generated from protobuf oneof: result
      */
-    localLoadouts?: AIConfigLocalLoadoutOptions;
+    result: {
+        oneofKind: "localLoadouts";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.AIConfigLocalLoadoutOptions local_loadouts = 1
+         */
+        localLoadouts: AIConfigLocalLoadoutOptions;
+    } | {
+        oneofKind: "cloudConnectors";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.AIConfigCloudConnectorOptions cloud_connectors = 3
+         */
+        cloudConnectors: AIConfigCloudConnectorOptions;
+    } | {
+        oneofKind: "cloudTargets";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.AIConfigCloudTargetOptions cloud_targets = 4
+         */
+        cloudTargets: AIConfigCloudTargetOptions;
+    } | {
+        oneofKind: undefined;
+    };
     /**
      * @generated from protobuf field: bool truncated = 2
      */
@@ -13065,11 +13109,14 @@ class ListSharedLocalAgentAIConfigOptionsRequest$Type extends MessageType<ListSh
     constructor() {
         super("nimi.runtime.v1.ListSharedLocalAgentAIConfigOptionsRequest", [
             { no: 1, name: "context", kind: "message", T: () => AgentRequestContext },
-            { no: 2, name: "local_loadouts", kind: "message", T: () => AIConfigLocalLoadoutOptionsQuery }
+            { no: 2, name: "local_loadouts", kind: "message", oneof: "query", T: () => AIConfigLocalLoadoutOptionsQuery },
+            { no: 3, name: "cloud_connectors", kind: "message", oneof: "query", T: () => AIConfigCloudConnectorOptionsQuery },
+            { no: 4, name: "cloud_targets", kind: "message", oneof: "query", T: () => AIConfigCloudTargetOptionsQuery }
         ]);
     }
     create(value?: PartialMessage<ListSharedLocalAgentAIConfigOptionsRequest>): ListSharedLocalAgentAIConfigOptionsRequest {
         const message = globalThis.Object.create((this.messagePrototype!));
+        message.query = { oneofKind: undefined };
         if (value !== undefined)
             reflectionMergePartial<ListSharedLocalAgentAIConfigOptionsRequest>(this, message, value);
         return message;
@@ -13083,7 +13130,22 @@ class ListSharedLocalAgentAIConfigOptionsRequest$Type extends MessageType<ListSh
                     message.context = AgentRequestContext.internalBinaryRead(reader, reader.uint32(), options, message.context);
                     break;
                 case /* nimi.runtime.v1.AIConfigLocalLoadoutOptionsQuery local_loadouts */ 2:
-                    message.localLoadouts = AIConfigLocalLoadoutOptionsQuery.internalBinaryRead(reader, reader.uint32(), options, message.localLoadouts);
+                    message.query = {
+                        oneofKind: "localLoadouts",
+                        localLoadouts: AIConfigLocalLoadoutOptionsQuery.internalBinaryRead(reader, reader.uint32(), options, (message.query as any).localLoadouts)
+                    };
+                    break;
+                case /* nimi.runtime.v1.AIConfigCloudConnectorOptionsQuery cloud_connectors */ 3:
+                    message.query = {
+                        oneofKind: "cloudConnectors",
+                        cloudConnectors: AIConfigCloudConnectorOptionsQuery.internalBinaryRead(reader, reader.uint32(), options, (message.query as any).cloudConnectors)
+                    };
+                    break;
+                case /* nimi.runtime.v1.AIConfigCloudTargetOptionsQuery cloud_targets */ 4:
+                    message.query = {
+                        oneofKind: "cloudTargets",
+                        cloudTargets: AIConfigCloudTargetOptionsQuery.internalBinaryRead(reader, reader.uint32(), options, (message.query as any).cloudTargets)
+                    };
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -13101,8 +13163,14 @@ class ListSharedLocalAgentAIConfigOptionsRequest$Type extends MessageType<ListSh
         if (message.context)
             AgentRequestContext.internalBinaryWrite(message.context, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
         /* nimi.runtime.v1.AIConfigLocalLoadoutOptionsQuery local_loadouts = 2; */
-        if (message.localLoadouts)
-            AIConfigLocalLoadoutOptionsQuery.internalBinaryWrite(message.localLoadouts, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        if (message.query.oneofKind === "localLoadouts")
+            AIConfigLocalLoadoutOptionsQuery.internalBinaryWrite(message.query.localLoadouts, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.AIConfigCloudConnectorOptionsQuery cloud_connectors = 3; */
+        if (message.query.oneofKind === "cloudConnectors")
+            AIConfigCloudConnectorOptionsQuery.internalBinaryWrite(message.query.cloudConnectors, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.AIConfigCloudTargetOptionsQuery cloud_targets = 4; */
+        if (message.query.oneofKind === "cloudTargets")
+            AIConfigCloudTargetOptionsQuery.internalBinaryWrite(message.query.cloudTargets, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -13117,12 +13185,15 @@ export const ListSharedLocalAgentAIConfigOptionsRequest = new ListSharedLocalAge
 class ListSharedLocalAgentAIConfigOptionsResponse$Type extends MessageType<ListSharedLocalAgentAIConfigOptionsResponse> {
     constructor() {
         super("nimi.runtime.v1.ListSharedLocalAgentAIConfigOptionsResponse", [
-            { no: 1, name: "local_loadouts", kind: "message", T: () => AIConfigLocalLoadoutOptions },
+            { no: 1, name: "local_loadouts", kind: "message", oneof: "result", T: () => AIConfigLocalLoadoutOptions },
+            { no: 3, name: "cloud_connectors", kind: "message", oneof: "result", T: () => AIConfigCloudConnectorOptions },
+            { no: 4, name: "cloud_targets", kind: "message", oneof: "result", T: () => AIConfigCloudTargetOptions },
             { no: 2, name: "truncated", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
         ]);
     }
     create(value?: PartialMessage<ListSharedLocalAgentAIConfigOptionsResponse>): ListSharedLocalAgentAIConfigOptionsResponse {
         const message = globalThis.Object.create((this.messagePrototype!));
+        message.result = { oneofKind: undefined };
         message.truncated = false;
         if (value !== undefined)
             reflectionMergePartial<ListSharedLocalAgentAIConfigOptionsResponse>(this, message, value);
@@ -13134,7 +13205,22 @@ class ListSharedLocalAgentAIConfigOptionsResponse$Type extends MessageType<ListS
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
                 case /* nimi.runtime.v1.AIConfigLocalLoadoutOptions local_loadouts */ 1:
-                    message.localLoadouts = AIConfigLocalLoadoutOptions.internalBinaryRead(reader, reader.uint32(), options, message.localLoadouts);
+                    message.result = {
+                        oneofKind: "localLoadouts",
+                        localLoadouts: AIConfigLocalLoadoutOptions.internalBinaryRead(reader, reader.uint32(), options, (message.result as any).localLoadouts)
+                    };
+                    break;
+                case /* nimi.runtime.v1.AIConfigCloudConnectorOptions cloud_connectors */ 3:
+                    message.result = {
+                        oneofKind: "cloudConnectors",
+                        cloudConnectors: AIConfigCloudConnectorOptions.internalBinaryRead(reader, reader.uint32(), options, (message.result as any).cloudConnectors)
+                    };
+                    break;
+                case /* nimi.runtime.v1.AIConfigCloudTargetOptions cloud_targets */ 4:
+                    message.result = {
+                        oneofKind: "cloudTargets",
+                        cloudTargets: AIConfigCloudTargetOptions.internalBinaryRead(reader, reader.uint32(), options, (message.result as any).cloudTargets)
+                    };
                     break;
                 case /* bool truncated */ 2:
                     message.truncated = reader.bool();
@@ -13152,11 +13238,17 @@ class ListSharedLocalAgentAIConfigOptionsResponse$Type extends MessageType<ListS
     }
     internalBinaryWrite(message: ListSharedLocalAgentAIConfigOptionsResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
         /* nimi.runtime.v1.AIConfigLocalLoadoutOptions local_loadouts = 1; */
-        if (message.localLoadouts)
-            AIConfigLocalLoadoutOptions.internalBinaryWrite(message.localLoadouts, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        if (message.result.oneofKind === "localLoadouts")
+            AIConfigLocalLoadoutOptions.internalBinaryWrite(message.result.localLoadouts, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
         /* bool truncated = 2; */
         if (message.truncated !== false)
             writer.tag(2, WireType.Varint).bool(message.truncated);
+        /* nimi.runtime.v1.AIConfigCloudConnectorOptions cloud_connectors = 3; */
+        if (message.result.oneofKind === "cloudConnectors")
+            AIConfigCloudConnectorOptions.internalBinaryWrite(message.result.cloudConnectors, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.AIConfigCloudTargetOptions cloud_targets = 4; */
+        if (message.result.oneofKind === "cloudTargets")
+            AIConfigCloudTargetOptions.internalBinaryWrite(message.result.cloudTargets, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

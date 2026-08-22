@@ -5,10 +5,12 @@ import (
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	aicatalog "github.com/nimiplatform/nimi/runtime/internal/aicatalog"
 	"github.com/nimiplatform/nimi/runtime/internal/aiconfig"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localappop"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
+	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
@@ -114,6 +116,42 @@ func TestLocalAppSharedAIConfigGetMissingAndWholeOverwrite(t *testing.T) {
 	reread, err := svc.GetLocalAppSharedLocalAgentAIConfig(getCtx, &runtimev1.GetLocalAppSharedLocalAgentAIConfigRequest{})
 	if err != nil || len(reread.GetProjection().GetConfig().GetCapabilities()) != 2 {
 		t.Fatalf("shared AIConfig reread = (%+v, %v)", reread.GetProjection(), err)
+	}
+}
+
+func TestLocalAppSharedAIConfigListsExactCloudOptions(t *testing.T) {
+	svc, accountID, _ := newLocalAppConfigureTestService(t)
+	modelCatalog, err := aicatalog.NewResolver(aicatalog.ResolverConfig{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	connectorStore := connector.NewConnectorStoreWithMemorySecrets(t.TempDir())
+	record, err := connectorStore.Create(connector.ConnectorRecord{
+		ConnectorID: "connector-shared-options", Kind: runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED,
+		OwnerType: runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_REALM_USER, OwnerID: accountID,
+		Provider: "openai", Label: "Shared OpenAI", Status: runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE,
+	}, "test-credential")
+	if err != nil {
+		t.Fatal(err)
+	}
+	svc.SetConnectorStore(connectorStore)
+	svc.SetModelCatalog(modelCatalog)
+	_, optionsCtx := localAppConfigureContext(accountservice.LocalAppOperationSharedAIConfigOptions, 0x22, accountID)
+	connectors, err := svc.ListLocalAppSharedLocalAgentAIConfigOptions(optionsCtx, &runtimev1.ListLocalAppSharedLocalAgentAIConfigOptionsRequest{
+		Query: &runtimev1.ListLocalAppSharedLocalAgentAIConfigOptionsRequest_CloudConnectors{
+			CloudConnectors: &runtimev1.AIConfigCloudConnectorOptionsQuery{CapabilityContract: "text.generate"},
+		},
+	})
+	if err != nil || connectors.GetCloudConnectors().GetOptions()[0].GetConnectorRef() != record.ConnectorID {
+		t.Fatalf("shared Cloud Connector options = (%+v, %v)", connectors, err)
+	}
+	targets, err := svc.ListLocalAppSharedLocalAgentAIConfigOptions(optionsCtx, &runtimev1.ListLocalAppSharedLocalAgentAIConfigOptionsRequest{
+		Query: &runtimev1.ListLocalAppSharedLocalAgentAIConfigOptionsRequest_CloudTargets{
+			CloudTargets: &runtimev1.AIConfigCloudTargetOptionsQuery{CapabilityContract: "text.generate", ConnectorRef: record.ConnectorID},
+		},
+	})
+	if err != nil || len(targets.GetCloudTargets().GetOptions()) == 0 {
+		t.Fatalf("shared Cloud target options = (%+v, %v)", targets, err)
 	}
 }
 

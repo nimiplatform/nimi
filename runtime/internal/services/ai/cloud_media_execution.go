@@ -86,6 +86,7 @@ func (s *Service) resolveCloudMediaRouteComposition(
 		s.speechCatalog,
 		accountID,
 		connector.RemoteModelCatalogRef{
+			ConnectorID:          intent.ConnectorRef,
 			RemoteModelCatalogID: target.RemoteModelCatalogID(),
 			ProviderModelID:      target.ProviderModelID(),
 			Provider:             target.Provider(),

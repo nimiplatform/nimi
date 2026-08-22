@@ -39,13 +39,13 @@ test('Apps detail mounts the Nimi-owned first-party surface with the exact app i
   assert.ok(accessPanelStart >= 0 && aiModelsPanelStart > accessPanelStart);
   assert.doesNotMatch(detailSource.slice(accessPanelStart, aiModelsPanelStart), /AppsAIConfigSection/u);
   assert.match(detailSource, /appId=\{registration\.appId\}/u);
-  assert.match(sectionSource, /consumer:\s*'nimi-first-party'/u);
+  assert.doesNotMatch(sectionSource, /consumer:\s*'nimi-first-party'/u);
   assert.match(sectionSource, /capabilityContracts=\{CANONICAL_CAPABILITY_IDS\}/u);
   assert.match(sectionSource, /useDesktopNimiAppAIConfig\(appId\)/u);
   assert.match(sectionSource, /useOverwriteDesktopNimiAppAIConfig\(appId\)/u);
   assert.match(sectionSource, /projectDesktopAIConfigEffectiveSelections/u);
   assert.match(sectionSource, /listOptions\(query\)/u);
-  assert.match(sectionSource, /createDesktopCloudAIConfigModule\(sdk\)/u);
+  assert.doesNotMatch(sectionSource, /createDesktopCloudAIConfigModule/u);
   assert.doesNotMatch(sectionSource, /buildAppsOneClickLocalAIConfig|apps-ai-config-one-click-local/u);
 });
 
@@ -71,7 +71,6 @@ test('Apps AIConfig owner copy covers every canonical capability in both locales
   for (const locale of [en, zh]) {
     assert.equal(typeof locale.title, 'string');
     assert.equal(typeof locale.description, 'string');
-    assert.equal(typeof locale.cloudImpactConfirmation, 'string');
     assert.equal(typeof locale.oneClickLabel, 'string');
     assert.equal(typeof locale.oneClickHint, 'string');
     assert.equal(typeof locale.oneClickNoLocalModels, 'string');

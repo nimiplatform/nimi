@@ -2,6 +2,8 @@ import type {
   AIConfig,
   AIConfigCapabilityIntent,
   AIConfigCloudIntent,
+  AIConfigCloudConnectorProjection,
+  AIConfigCloudTargetProjection,
   AIConfigLocalResourceProjection,
   AIConfigLocalIntent,
   AIConfigOwner,
@@ -12,11 +14,13 @@ import type {
   OverwriteAppAIConfigRequest,
   OverwriteAppAIConfigResponse,
 } from '../../core-generated/runtime-protobuf/runtime/v1/capability_configuration';
+import { Struct as RuntimeStruct } from '../../core-generated/runtime-protobuf/google/protobuf/struct';
 import { AIConfigEffectiveState } from '../../core-generated/runtime-protobuf/runtime/v1/capability_configuration';
 import { ReasonCode as RuntimeReasonCode } from '../../core-generated/runtime-protobuf/runtime/v1/common';
 import type { RuntimeTypedCallOptions } from '../../core-generated/runtime-typed-client';
 import { withNimiRuntimeIdempotencyMetadata } from '../../runtime/scenario-jobs';
 import { createNimiClientId, createNimiError, ReasonCode } from '../../types';
+import type { NimiJsonObject } from '../contracts/index.js';
 
 export type NimiCapabilityAIConfig = AIConfig;
 export type NimiCapabilityAIConfigIntent = AIConfigCapabilityIntent;
@@ -38,6 +42,7 @@ export type NimiAIConfigEffectiveSelection = {
   readonly state: NimiAIConfigEffectiveState;
   readonly resource:
     | { readonly oneofKind: 'local'; readonly local: NimiAIConfigLocalLoadoutOption }
+    | { readonly oneofKind: 'cloud'; readonly cloud: NimiAIConfigCloudResource }
     | null;
   readonly reasons: readonly string[];
 };
@@ -56,11 +61,10 @@ export type NimiAIConfigOverwriteResult =
       readonly reasonCode: 'AI_CONFIG_REVISION_CONFLICT' | 'AGENT_AI_CONFIG_REVISION_CONFLICT';
     };
 
-export type NimiAIConfigOptionsQuery = {
-  readonly kind: 'local-loadouts';
-  readonly capabilityContract: string;
-  readonly search?: string;
-};
+export type NimiAIConfigOptionsQuery =
+  | { readonly kind: 'local-loadouts'; readonly capabilityContract: string; readonly search?: string }
+  | { readonly kind: 'cloud-connectors'; readonly capabilityContract: string; readonly search?: string }
+  | { readonly kind: 'cloud-targets'; readonly capabilityContract: string; readonly connectorRef: string; readonly search?: string };
 
 export type NimiAIConfigLocalLoadoutOption = {
   readonly loadoutRef: string;
@@ -76,11 +80,38 @@ export type NimiAIConfigLocalLoadoutOption = {
   readonly reasons: readonly string[];
 };
 
-export type NimiAIConfigOptionsResult = {
-  readonly kind: 'local-loadouts';
-  readonly options: readonly NimiAIConfigLocalLoadoutOption[];
-  readonly truncated: boolean;
+export type NimiAIConfigCloudConnectorOption = {
+  readonly connectorRef: string;
+  readonly label: string;
+  readonly provider: string;
+  readonly state: 'ready' | 'blocked';
+  readonly reasons: readonly string[];
 };
+
+export type NimiAIConfigCloudTargetOption = {
+  readonly connectorRef: string;
+  readonly label: string;
+  readonly capabilityContract: string;
+  readonly implementation: {
+    readonly implementationId: string;
+    readonly driverId: string;
+    readonly driverDialect: string;
+  };
+  readonly providerModelTarget: NimiJsonObject;
+  readonly supportedFeatures: readonly string[];
+  readonly state: 'ready' | 'blocked';
+  readonly reasons: readonly string[];
+};
+
+export type NimiAIConfigCloudResource = {
+  readonly connector: NimiAIConfigCloudConnectorOption;
+  readonly target: NimiAIConfigCloudTargetOption;
+};
+
+export type NimiAIConfigOptionsResult =
+  | { readonly kind: 'local-loadouts'; readonly options: readonly NimiAIConfigLocalLoadoutOption[]; readonly truncated: boolean }
+  | { readonly kind: 'cloud-connectors'; readonly options: readonly NimiAIConfigCloudConnectorOption[]; readonly truncated: boolean }
+  | { readonly kind: 'cloud-targets'; readonly options: readonly NimiAIConfigCloudTargetOption[]; readonly truncated: boolean };
 
 export interface NimiAppAIConfigRpcClient {
   getAppAIConfig(
@@ -185,27 +216,50 @@ export function createNimiAppAIConfigClient(options: {
       });
     },
     async listOptions(query: NimiAIConfigOptionsQuery, callOptions?: RuntimeTypedCallOptions) {
-      if (query?.kind !== 'local-loadouts') {
+      if (!query || !['local-loadouts', 'cloud-connectors', 'cloud-targets'].includes(query.kind)) {
         return invalidConfiguration('App AIConfig options query is invalid');
       }
       const capabilityContract = requireText(query.capabilityContract, 'App AIConfig options require capabilityContract');
       const search = query.search === undefined ? '' : String(query.search);
       if (search.trim() !== search) return invalidConfiguration('App AIConfig options search is invalid');
+      const wireQuery: ListAppAIConfigOptionsRequest['query'] = query.kind === 'local-loadouts'
+        ? { oneofKind: 'localLoadouts', localLoadouts: { capabilityContract, search } }
+        : query.kind === 'cloud-connectors'
+          ? { oneofKind: 'cloudConnectors', cloudConnectors: { capabilityContract, search } }
+          : {
+              oneofKind: 'cloudTargets',
+              cloudTargets: {
+                capabilityContract,
+                connectorRef: requireText(query.connectorRef, 'App AIConfig Cloud targets require connectorRef'),
+                search,
+              },
+            };
       const response = await client.listAppAIConfigOptions({
-        query: {
-          oneofKind: 'localLoadouts',
-          localLoadouts: { capabilityContract, search },
-        },
+        query: wireQuery,
         owner,
       }, callOptions);
-      if (response.result.oneofKind !== 'localLoadouts') {
-        return invalidConfiguration('ListAppAIConfigOptions returned a mismatched result');
+	  if (query.kind === 'local-loadouts' && response.result.oneofKind === 'localLoadouts') {
+	    return Object.freeze({
+	      kind: 'local-loadouts' as const,
+	      options: Object.freeze(response.result.localLoadouts.options.map(projectLocalResource)),
+	      truncated: response.truncated,
+	    });
+	  }
+	  if (query.kind === 'cloud-connectors' && response.result.oneofKind === 'cloudConnectors') {
+	    return Object.freeze({
+	      kind: 'cloud-connectors' as const,
+	      options: Object.freeze(response.result.cloudConnectors.options.map(projectCloudConnectorResource)),
+	      truncated: response.truncated,
+	    });
+	  }
+	  if (query.kind === 'cloud-targets' && response.result.oneofKind === 'cloudTargets') {
+	    return Object.freeze({
+	      kind: 'cloud-targets' as const,
+	      options: Object.freeze(response.result.cloudTargets.options.map(projectCloudTargetResource)),
+	      truncated: response.truncated,
+	    });
       }
-      return Object.freeze({
-        kind: 'local-loadouts' as const,
-        options: Object.freeze(response.result.localLoadouts.options.map(projectLocalResource)),
-        truncated: response.truncated,
-      });
+	  return invalidConfiguration('ListAppAIConfigOptions returned a mismatched result');
     },
   });
 }
@@ -214,11 +268,49 @@ function projectEffectiveSelection(value: GetAppAIConfigResponse['effectiveSelec
   const state = projectEffectiveState(value.state);
   const resource = value.resource.oneofKind === 'local'
     ? { oneofKind: 'local' as const, local: projectLocalResource(value.resource.local) }
+    : value.resource.oneofKind === 'cloud'
+      ? {
+          oneofKind: 'cloud' as const,
+          cloud: Object.freeze({
+            connector: projectCloudConnectorResource(value.resource.cloud.connector!),
+            target: projectCloudTargetResource(value.resource.cloud.target!),
+          }),
+        }
     : null;
   return Object.freeze({
     capabilityContract: requireText(value.capabilityContract, 'AIConfig effective capability is invalid'),
     state,
     resource,
+    reasons: Object.freeze([...value.reasons]),
+  });
+}
+
+function projectCloudConnectorResource(value: AIConfigCloudConnectorProjection): NimiAIConfigCloudConnectorOption {
+  return Object.freeze({
+    connectorRef: requireText(value.connectorRef, 'AIConfig Cloud connectorRef is invalid'),
+    label: requireText(value.label, 'AIConfig Cloud Connector label is invalid'),
+    provider: requireText(value.provider, 'AIConfig Cloud Connector provider is invalid'),
+    state: value.state === AIConfigEffectiveState.AI_CONFIG_EFFECTIVE_STATE_READY ? 'ready' : 'blocked',
+    reasons: Object.freeze([...value.reasons]),
+  });
+}
+
+function projectCloudTargetResource(value: AIConfigCloudTargetProjection): NimiAIConfigCloudTargetOption {
+  if (!value.implementation || !value.providerModelTarget) {
+    return invalidConfiguration('AIConfig Cloud target identity is missing');
+  }
+  return Object.freeze({
+    connectorRef: requireText(value.connectorRef, 'AIConfig Cloud target connectorRef is invalid'),
+    label: requireText(value.label, 'AIConfig Cloud target label is invalid'),
+    capabilityContract: requireText(value.capabilityContract, 'AIConfig Cloud target capability is invalid'),
+    implementation: Object.freeze({
+      implementationId: requireText(value.implementation.implementationId, 'AIConfig Cloud target implementation is invalid'),
+      driverId: requireText(value.implementation.driverId, 'AIConfig Cloud target driver is invalid'),
+      driverDialect: requireText(value.implementation.driverDialect, 'AIConfig Cloud target dialect is invalid'),
+    }),
+    providerModelTarget: RuntimeStruct.toJson(value.providerModelTarget) as NimiJsonObject,
+    supportedFeatures: Object.freeze([...value.supportedFeatures]),
+    state: value.state === AIConfigEffectiveState.AI_CONFIG_EFFECTIVE_STATE_READY ? 'ready' : 'blocked',
     reasons: Object.freeze([...value.reasons]),
   });
 }

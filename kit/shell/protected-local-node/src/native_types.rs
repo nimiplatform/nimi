@@ -156,7 +156,9 @@ pub struct NativeAppAIConfigOverwriteInput {
 
 #[napi(object)]
 pub struct NativeAIConfigLocalOptionsInput {
+    pub kind: String,
     pub capability_contract: String,
+    pub connector_ref: Option<String>,
     pub search: Option<String>,
 }
 

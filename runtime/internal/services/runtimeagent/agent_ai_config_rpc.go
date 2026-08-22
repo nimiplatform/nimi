@@ -28,7 +28,7 @@ func (s *Service) GetSharedLocalAgentAIConfig(
 	}
 	return &runtimev1.GetSharedLocalAgentAIConfigResponse{
 		Config: config, Revision: revision,
-		EffectiveSelections: s.projectSharedAIConfigEffectiveSelections(config),
+		EffectiveSelections: s.projectSharedAIConfigEffectiveSelections(caller.accountNamespace, config),
 	}, nil
 }
 
@@ -51,7 +51,7 @@ func (s *Service) OverwriteSharedLocalAgentAIConfig(
 	}
 	response := &runtimev1.OverwriteSharedLocalAgentAIConfigResponse{
 		Config: config, Revision: revision, Committed: committed,
-		EffectiveSelections: s.projectSharedAIConfigEffectiveSelections(config),
+		EffectiveSelections: s.projectSharedAIConfigEffectiveSelections(caller.accountNamespace, config),
 	}
 	if !committed {
 		response.ReasonCode = runtimev1.ReasonCode_AGENT_AI_CONFIG_REVISION_CONFLICT
@@ -66,17 +66,37 @@ func (s *Service) ListSharedLocalAgentAIConfigOptions(
 	if req == nil {
 		return nil, status.Error(codes.InvalidArgument, "list shared LocalAgent AIConfig options request is required")
 	}
-	if _, err := s.authorizeSharedLocalAgentAIConfig(ctx, req.GetContext(), "runtime.agent.ai_config.write"); err != nil {
-		return nil, err
-	}
-	options, truncated, err := s.listSharedAIConfigLocalOptions(req.GetLocalLoadouts())
+	caller, err := s.authorizeSharedLocalAgentAIConfig(ctx, req.GetContext(), "runtime.agent.ai_config.write")
 	if err != nil {
 		return nil, err
 	}
-	return &runtimev1.ListSharedLocalAgentAIConfigOptionsResponse{
-		LocalLoadouts: &runtimev1.AIConfigLocalLoadoutOptions{Options: options},
-		Truncated:     truncated,
-	}, nil
+	response := &runtimev1.ListSharedLocalAgentAIConfigOptionsResponse{}
+	switch query := req.GetQuery().(type) {
+	case *runtimev1.ListSharedLocalAgentAIConfigOptionsRequest_LocalLoadouts:
+		options, truncated, err := s.listSharedAIConfigLocalOptions(query.LocalLoadouts)
+		if err != nil {
+			return nil, err
+		}
+		response.Result = &runtimev1.ListSharedLocalAgentAIConfigOptionsResponse_LocalLoadouts{LocalLoadouts: &runtimev1.AIConfigLocalLoadoutOptions{Options: options}}
+		response.Truncated = truncated
+	case *runtimev1.ListSharedLocalAgentAIConfigOptionsRequest_CloudConnectors:
+		options, truncated, err := s.listSharedAIConfigCloudConnectorOptions(caller.accountNamespace, query.CloudConnectors)
+		if err != nil {
+			return nil, err
+		}
+		response.Result = &runtimev1.ListSharedLocalAgentAIConfigOptionsResponse_CloudConnectors{CloudConnectors: &runtimev1.AIConfigCloudConnectorOptions{Options: options}}
+		response.Truncated = truncated
+	case *runtimev1.ListSharedLocalAgentAIConfigOptionsRequest_CloudTargets:
+		options, truncated, err := s.listSharedAIConfigCloudTargetOptions(caller.accountNamespace, query.CloudTargets)
+		if err != nil {
+			return nil, err
+		}
+		response.Result = &runtimev1.ListSharedLocalAgentAIConfigOptionsResponse_CloudTargets{CloudTargets: &runtimev1.AIConfigCloudTargetOptions{Options: options}}
+		response.Truncated = truncated
+	default:
+		return nil, invalidSharedLocalAgentAIConfigError()
+	}
+	return response, nil
 }
 
 func (s *Service) PreviewSharedLocalAgentAIProfile(

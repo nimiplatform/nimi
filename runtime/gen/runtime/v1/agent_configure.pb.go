@@ -334,8 +334,13 @@ func (x *OverwriteLocalAppSharedLocalAgentAIConfigResponse) GetReasonCode() Reas
 }
 
 type ListLocalAppSharedLocalAgentAIConfigOptionsRequest struct {
-	state         protoimpl.MessageState            `protogen:"open.v1"`
-	LocalLoadouts *AIConfigLocalLoadoutOptionsQuery `protobuf:"bytes,1,opt,name=local_loadouts,json=localLoadouts,proto3" json:"local_loadouts,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Types that are valid to be assigned to Query:
+	//
+	//	*ListLocalAppSharedLocalAgentAIConfigOptionsRequest_LocalLoadouts
+	//	*ListLocalAppSharedLocalAgentAIConfigOptionsRequest_CloudConnectors
+	//	*ListLocalAppSharedLocalAgentAIConfigOptionsRequest_CloudTargets
+	Query         isListLocalAppSharedLocalAgentAIConfigOptionsRequest_Query `protobuf_oneof:"query"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -370,17 +375,74 @@ func (*ListLocalAppSharedLocalAgentAIConfigOptionsRequest) Descriptor() ([]byte,
 	return file_runtime_v1_agent_configure_proto_rawDescGZIP(), []int{5}
 }
 
-func (x *ListLocalAppSharedLocalAgentAIConfigOptionsRequest) GetLocalLoadouts() *AIConfigLocalLoadoutOptionsQuery {
+func (x *ListLocalAppSharedLocalAgentAIConfigOptionsRequest) GetQuery() isListLocalAppSharedLocalAgentAIConfigOptionsRequest_Query {
 	if x != nil {
-		return x.LocalLoadouts
+		return x.Query
 	}
 	return nil
 }
 
+func (x *ListLocalAppSharedLocalAgentAIConfigOptionsRequest) GetLocalLoadouts() *AIConfigLocalLoadoutOptionsQuery {
+	if x != nil {
+		if x, ok := x.Query.(*ListLocalAppSharedLocalAgentAIConfigOptionsRequest_LocalLoadouts); ok {
+			return x.LocalLoadouts
+		}
+	}
+	return nil
+}
+
+func (x *ListLocalAppSharedLocalAgentAIConfigOptionsRequest) GetCloudConnectors() *AIConfigCloudConnectorOptionsQuery {
+	if x != nil {
+		if x, ok := x.Query.(*ListLocalAppSharedLocalAgentAIConfigOptionsRequest_CloudConnectors); ok {
+			return x.CloudConnectors
+		}
+	}
+	return nil
+}
+
+func (x *ListLocalAppSharedLocalAgentAIConfigOptionsRequest) GetCloudTargets() *AIConfigCloudTargetOptionsQuery {
+	if x != nil {
+		if x, ok := x.Query.(*ListLocalAppSharedLocalAgentAIConfigOptionsRequest_CloudTargets); ok {
+			return x.CloudTargets
+		}
+	}
+	return nil
+}
+
+type isListLocalAppSharedLocalAgentAIConfigOptionsRequest_Query interface {
+	isListLocalAppSharedLocalAgentAIConfigOptionsRequest_Query()
+}
+
+type ListLocalAppSharedLocalAgentAIConfigOptionsRequest_LocalLoadouts struct {
+	LocalLoadouts *AIConfigLocalLoadoutOptionsQuery `protobuf:"bytes,1,opt,name=local_loadouts,json=localLoadouts,proto3,oneof"`
+}
+
+type ListLocalAppSharedLocalAgentAIConfigOptionsRequest_CloudConnectors struct {
+	CloudConnectors *AIConfigCloudConnectorOptionsQuery `protobuf:"bytes,2,opt,name=cloud_connectors,json=cloudConnectors,proto3,oneof"`
+}
+
+type ListLocalAppSharedLocalAgentAIConfigOptionsRequest_CloudTargets struct {
+	CloudTargets *AIConfigCloudTargetOptionsQuery `protobuf:"bytes,3,opt,name=cloud_targets,json=cloudTargets,proto3,oneof"`
+}
+
+func (*ListLocalAppSharedLocalAgentAIConfigOptionsRequest_LocalLoadouts) isListLocalAppSharedLocalAgentAIConfigOptionsRequest_Query() {
+}
+
+func (*ListLocalAppSharedLocalAgentAIConfigOptionsRequest_CloudConnectors) isListLocalAppSharedLocalAgentAIConfigOptionsRequest_Query() {
+}
+
+func (*ListLocalAppSharedLocalAgentAIConfigOptionsRequest_CloudTargets) isListLocalAppSharedLocalAgentAIConfigOptionsRequest_Query() {
+}
+
 type ListLocalAppSharedLocalAgentAIConfigOptionsResponse struct {
-	state         protoimpl.MessageState       `protogen:"open.v1"`
-	LocalLoadouts *AIConfigLocalLoadoutOptions `protobuf:"bytes,1,opt,name=local_loadouts,json=localLoadouts,proto3" json:"local_loadouts,omitempty"`
-	Truncated     bool                         `protobuf:"varint,2,opt,name=truncated,proto3" json:"truncated,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Types that are valid to be assigned to Result:
+	//
+	//	*ListLocalAppSharedLocalAgentAIConfigOptionsResponse_LocalLoadouts
+	//	*ListLocalAppSharedLocalAgentAIConfigOptionsResponse_CloudConnectors
+	//	*ListLocalAppSharedLocalAgentAIConfigOptionsResponse_CloudTargets
+	Result        isListLocalAppSharedLocalAgentAIConfigOptionsResponse_Result `protobuf_oneof:"result"`
+	Truncated     bool                                                         `protobuf:"varint,2,opt,name=truncated,proto3" json:"truncated,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -415,9 +477,36 @@ func (*ListLocalAppSharedLocalAgentAIConfigOptionsResponse) Descriptor() ([]byte
 	return file_runtime_v1_agent_configure_proto_rawDescGZIP(), []int{6}
 }
 
+func (x *ListLocalAppSharedLocalAgentAIConfigOptionsResponse) GetResult() isListLocalAppSharedLocalAgentAIConfigOptionsResponse_Result {
+	if x != nil {
+		return x.Result
+	}
+	return nil
+}
+
 func (x *ListLocalAppSharedLocalAgentAIConfigOptionsResponse) GetLocalLoadouts() *AIConfigLocalLoadoutOptions {
 	if x != nil {
-		return x.LocalLoadouts
+		if x, ok := x.Result.(*ListLocalAppSharedLocalAgentAIConfigOptionsResponse_LocalLoadouts); ok {
+			return x.LocalLoadouts
+		}
+	}
+	return nil
+}
+
+func (x *ListLocalAppSharedLocalAgentAIConfigOptionsResponse) GetCloudConnectors() *AIConfigCloudConnectorOptions {
+	if x != nil {
+		if x, ok := x.Result.(*ListLocalAppSharedLocalAgentAIConfigOptionsResponse_CloudConnectors); ok {
+			return x.CloudConnectors
+		}
+	}
+	return nil
+}
+
+func (x *ListLocalAppSharedLocalAgentAIConfigOptionsResponse) GetCloudTargets() *AIConfigCloudTargetOptions {
+	if x != nil {
+		if x, ok := x.Result.(*ListLocalAppSharedLocalAgentAIConfigOptionsResponse_CloudTargets); ok {
+			return x.CloudTargets
+		}
 	}
 	return nil
 }
@@ -427,6 +516,31 @@ func (x *ListLocalAppSharedLocalAgentAIConfigOptionsResponse) GetTruncated() boo
 		return x.Truncated
 	}
 	return false
+}
+
+type isListLocalAppSharedLocalAgentAIConfigOptionsResponse_Result interface {
+	isListLocalAppSharedLocalAgentAIConfigOptionsResponse_Result()
+}
+
+type ListLocalAppSharedLocalAgentAIConfigOptionsResponse_LocalLoadouts struct {
+	LocalLoadouts *AIConfigLocalLoadoutOptions `protobuf:"bytes,1,opt,name=local_loadouts,json=localLoadouts,proto3,oneof"`
+}
+
+type ListLocalAppSharedLocalAgentAIConfigOptionsResponse_CloudConnectors struct {
+	CloudConnectors *AIConfigCloudConnectorOptions `protobuf:"bytes,3,opt,name=cloud_connectors,json=cloudConnectors,proto3,oneof"`
+}
+
+type ListLocalAppSharedLocalAgentAIConfigOptionsResponse_CloudTargets struct {
+	CloudTargets *AIConfigCloudTargetOptions `protobuf:"bytes,4,opt,name=cloud_targets,json=cloudTargets,proto3,oneof"`
+}
+
+func (*ListLocalAppSharedLocalAgentAIConfigOptionsResponse_LocalLoadouts) isListLocalAppSharedLocalAgentAIConfigOptionsResponse_Result() {
+}
+
+func (*ListLocalAppSharedLocalAgentAIConfigOptionsResponse_CloudConnectors) isListLocalAppSharedLocalAgentAIConfigOptionsResponse_Result() {
+}
+
+func (*ListLocalAppSharedLocalAgentAIConfigOptionsResponse_CloudTargets) isListLocalAppSharedLocalAgentAIConfigOptionsResponse_Result() {
 }
 
 type LocalAppAgentAutonomyConfig struct {
@@ -1232,12 +1346,18 @@ const file_runtime_v1_agent_configure_proto_rawDesc = "" +
 	"projection\x12\x1c\n" +
 	"\tcommitted\x18\x02 \x01(\bR\tcommitted\x12<\n" +
 	"\vreason_code\x18\x03 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
-	"reasonCode\"\x8e\x01\n" +
-	"2ListLocalAppSharedLocalAgentAIConfigOptionsRequest\x12X\n" +
-	"\x0elocal_loadouts\x18\x01 \x01(\v21.nimi.runtime.v1.AIConfigLocalLoadoutOptionsQueryR\rlocalLoadouts\"\xa8\x01\n" +
-	"3ListLocalAppSharedLocalAgentAIConfigOptionsResponse\x12S\n" +
-	"\x0elocal_loadouts\x18\x01 \x01(\v2,.nimi.runtime.v1.AIConfigLocalLoadoutOptionsR\rlocalLoadouts\x12\x1c\n" +
-	"\ttruncated\x18\x02 \x01(\bR\ttruncated\"\xc2\x02\n" +
+	"reasonCode\"\xd4\x02\n" +
+	"2ListLocalAppSharedLocalAgentAIConfigOptionsRequest\x12Z\n" +
+	"\x0elocal_loadouts\x18\x01 \x01(\v21.nimi.runtime.v1.AIConfigLocalLoadoutOptionsQueryH\x00R\rlocalLoadouts\x12`\n" +
+	"\x10cloud_connectors\x18\x02 \x01(\v23.nimi.runtime.v1.AIConfigCloudConnectorOptionsQueryH\x00R\x0fcloudConnectors\x12W\n" +
+	"\rcloud_targets\x18\x03 \x01(\v20.nimi.runtime.v1.AIConfigCloudTargetOptionsQueryH\x00R\fcloudTargetsB\a\n" +
+	"\x05query\"\xe5\x02\n" +
+	"3ListLocalAppSharedLocalAgentAIConfigOptionsResponse\x12U\n" +
+	"\x0elocal_loadouts\x18\x01 \x01(\v2,.nimi.runtime.v1.AIConfigLocalLoadoutOptionsH\x00R\rlocalLoadouts\x12[\n" +
+	"\x10cloud_connectors\x18\x03 \x01(\v2..nimi.runtime.v1.AIConfigCloudConnectorOptionsH\x00R\x0fcloudConnectors\x12R\n" +
+	"\rcloud_targets\x18\x04 \x01(\v2+.nimi.runtime.v1.AIConfigCloudTargetOptionsH\x00R\fcloudTargets\x12\x1c\n" +
+	"\ttruncated\x18\x02 \x01(\bR\ttruncatedB\b\n" +
+	"\x06result\"\xc2\x02\n" +
 	"\x1bLocalAppAgentAutonomyConfig\x12,\n" +
 	"\x12daily_token_budget\x18\x01 \x01(\x03R\x10dailyTokenBudget\x12-\n" +
 	"\x13max_tokens_per_hook\x18\x02 \x01(\x03R\x10maxTokensPerHook\x12E\n" +
@@ -1345,17 +1465,21 @@ var file_runtime_v1_agent_configure_proto_goTypes = []any{
 	(*LocalAppAgentPresentationSnapshotResponse)(nil),           // 18: nimi.runtime.v1.LocalAppAgentPresentationSnapshotResponse
 	(*CommitLocalAppAgentPresentationRequest)(nil),              // 19: nimi.runtime.v1.CommitLocalAppAgentPresentationRequest
 	(*LocalAppAgentCommitPresentationResponse)(nil),             // 20: nimi.runtime.v1.LocalAppAgentCommitPresentationResponse
-	(*AIConfig)(nil),                         // 21: nimi.runtime.v1.AIConfig
-	(*AIConfigEffectiveSelection)(nil),       // 22: nimi.runtime.v1.AIConfigEffectiveSelection
-	(*AIConfigCapabilityIntent)(nil),         // 23: nimi.runtime.v1.AIConfigCapabilityIntent
-	(ReasonCode)(0),                          // 24: nimi.runtime.v1.ReasonCode
-	(*AIConfigLocalLoadoutOptionsQuery)(nil), // 25: nimi.runtime.v1.AIConfigLocalLoadoutOptionsQuery
-	(*AIConfigLocalLoadoutOptions)(nil),      // 26: nimi.runtime.v1.AIConfigLocalLoadoutOptions
-	(*durationpb.Duration)(nil),              // 27: google.protobuf.Duration
-	(*timestamppb.Timestamp)(nil),            // 28: google.protobuf.Timestamp
-	(*AgentPresentationProfile)(nil),         // 29: nimi.runtime.v1.AgentPresentationProfile
-	(AgentPresentationBackendKind)(0),        // 30: nimi.runtime.v1.AgentPresentationBackendKind
-	(*AgentPresentationAssetMaterial)(nil),   // 31: nimi.runtime.v1.AgentPresentationAssetMaterial
+	(*AIConfig)(nil),                           // 21: nimi.runtime.v1.AIConfig
+	(*AIConfigEffectiveSelection)(nil),         // 22: nimi.runtime.v1.AIConfigEffectiveSelection
+	(*AIConfigCapabilityIntent)(nil),           // 23: nimi.runtime.v1.AIConfigCapabilityIntent
+	(ReasonCode)(0),                            // 24: nimi.runtime.v1.ReasonCode
+	(*AIConfigLocalLoadoutOptionsQuery)(nil),   // 25: nimi.runtime.v1.AIConfigLocalLoadoutOptionsQuery
+	(*AIConfigCloudConnectorOptionsQuery)(nil), // 26: nimi.runtime.v1.AIConfigCloudConnectorOptionsQuery
+	(*AIConfigCloudTargetOptionsQuery)(nil),    // 27: nimi.runtime.v1.AIConfigCloudTargetOptionsQuery
+	(*AIConfigLocalLoadoutOptions)(nil),        // 28: nimi.runtime.v1.AIConfigLocalLoadoutOptions
+	(*AIConfigCloudConnectorOptions)(nil),      // 29: nimi.runtime.v1.AIConfigCloudConnectorOptions
+	(*AIConfigCloudTargetOptions)(nil),         // 30: nimi.runtime.v1.AIConfigCloudTargetOptions
+	(*durationpb.Duration)(nil),                // 31: google.protobuf.Duration
+	(*timestamppb.Timestamp)(nil),              // 32: google.protobuf.Timestamp
+	(*AgentPresentationProfile)(nil),           // 33: nimi.runtime.v1.AgentPresentationProfile
+	(AgentPresentationBackendKind)(0),          // 34: nimi.runtime.v1.AgentPresentationBackendKind
+	(*AgentPresentationAssetMaterial)(nil),     // 35: nimi.runtime.v1.AgentPresentationAssetMaterial
 }
 var file_runtime_v1_agent_configure_proto_depIdxs = []int32{
 	21, // 0: nimi.runtime.v1.LocalAppSharedLocalAgentAIConfigProjection.config:type_name -> nimi.runtime.v1.AIConfig
@@ -1365,29 +1489,33 @@ var file_runtime_v1_agent_configure_proto_depIdxs = []int32{
 	1,  // 4: nimi.runtime.v1.OverwriteLocalAppSharedLocalAgentAIConfigResponse.projection:type_name -> nimi.runtime.v1.LocalAppSharedLocalAgentAIConfigProjection
 	24, // 5: nimi.runtime.v1.OverwriteLocalAppSharedLocalAgentAIConfigResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
 	25, // 6: nimi.runtime.v1.ListLocalAppSharedLocalAgentAIConfigOptionsRequest.local_loadouts:type_name -> nimi.runtime.v1.AIConfigLocalLoadoutOptionsQuery
-	26, // 7: nimi.runtime.v1.ListLocalAppSharedLocalAgentAIConfigOptionsResponse.local_loadouts:type_name -> nimi.runtime.v1.AIConfigLocalLoadoutOptions
-	27, // 8: nimi.runtime.v1.LocalAppAgentAutonomyConfig.min_hook_interval:type_name -> google.protobuf.Duration
-	28, // 9: nimi.runtime.v1.LocalAppAgentAutonomyConfig.suspend_until:type_name -> google.protobuf.Timestamp
-	0,  // 10: nimi.runtime.v1.LocalAppAgentAutonomyConfig.mode:type_name -> nimi.runtime.v1.LocalAppAgentAutonomyMode
-	8,  // 11: nimi.runtime.v1.LocalAppAgentAutonomyProjection.config:type_name -> nimi.runtime.v1.LocalAppAgentAutonomyConfig
-	28, // 12: nimi.runtime.v1.LocalAppAgentAutonomyProjection.window_started_at:type_name -> google.protobuf.Timestamp
-	28, // 13: nimi.runtime.v1.LocalAppAgentAutonomyProjection.suspended_until:type_name -> google.protobuf.Timestamp
-	8,  // 14: nimi.runtime.v1.LocalAppAgentAutonomyIntent.config:type_name -> nimi.runtime.v1.LocalAppAgentAutonomyConfig
-	9,  // 15: nimi.runtime.v1.LocalAppAgentAutonomySnapshotResponse.projection:type_name -> nimi.runtime.v1.LocalAppAgentAutonomyProjection
-	10, // 16: nimi.runtime.v1.UpdateLocalAppAgentAutonomyRequest.intent:type_name -> nimi.runtime.v1.LocalAppAgentAutonomyIntent
-	9,  // 17: nimi.runtime.v1.LocalAppAgentUpdateAutonomyResponse.projection:type_name -> nimi.runtime.v1.LocalAppAgentAutonomyProjection
-	29, // 18: nimi.runtime.v1.LocalAppAgentPresentationProjection.profile:type_name -> nimi.runtime.v1.AgentPresentationProfile
-	29, // 19: nimi.runtime.v1.LocalAppAgentPresentationProjection.previous_profile:type_name -> nimi.runtime.v1.AgentPresentationProfile
-	30, // 20: nimi.runtime.v1.LocalAppAgentPresentationIntent.backend_kind:type_name -> nimi.runtime.v1.AgentPresentationBackendKind
-	15, // 21: nimi.runtime.v1.LocalAppAgentPresentationSnapshotResponse.projection:type_name -> nimi.runtime.v1.LocalAppAgentPresentationProjection
-	16, // 22: nimi.runtime.v1.CommitLocalAppAgentPresentationRequest.intent:type_name -> nimi.runtime.v1.LocalAppAgentPresentationIntent
-	31, // 23: nimi.runtime.v1.CommitLocalAppAgentPresentationRequest.imported_assets:type_name -> nimi.runtime.v1.AgentPresentationAssetMaterial
-	15, // 24: nimi.runtime.v1.LocalAppAgentCommitPresentationResponse.projection:type_name -> nimi.runtime.v1.LocalAppAgentPresentationProjection
-	25, // [25:25] is the sub-list for method output_type
-	25, // [25:25] is the sub-list for method input_type
-	25, // [25:25] is the sub-list for extension type_name
-	25, // [25:25] is the sub-list for extension extendee
-	0,  // [0:25] is the sub-list for field type_name
+	26, // 7: nimi.runtime.v1.ListLocalAppSharedLocalAgentAIConfigOptionsRequest.cloud_connectors:type_name -> nimi.runtime.v1.AIConfigCloudConnectorOptionsQuery
+	27, // 8: nimi.runtime.v1.ListLocalAppSharedLocalAgentAIConfigOptionsRequest.cloud_targets:type_name -> nimi.runtime.v1.AIConfigCloudTargetOptionsQuery
+	28, // 9: nimi.runtime.v1.ListLocalAppSharedLocalAgentAIConfigOptionsResponse.local_loadouts:type_name -> nimi.runtime.v1.AIConfigLocalLoadoutOptions
+	29, // 10: nimi.runtime.v1.ListLocalAppSharedLocalAgentAIConfigOptionsResponse.cloud_connectors:type_name -> nimi.runtime.v1.AIConfigCloudConnectorOptions
+	30, // 11: nimi.runtime.v1.ListLocalAppSharedLocalAgentAIConfigOptionsResponse.cloud_targets:type_name -> nimi.runtime.v1.AIConfigCloudTargetOptions
+	31, // 12: nimi.runtime.v1.LocalAppAgentAutonomyConfig.min_hook_interval:type_name -> google.protobuf.Duration
+	32, // 13: nimi.runtime.v1.LocalAppAgentAutonomyConfig.suspend_until:type_name -> google.protobuf.Timestamp
+	0,  // 14: nimi.runtime.v1.LocalAppAgentAutonomyConfig.mode:type_name -> nimi.runtime.v1.LocalAppAgentAutonomyMode
+	8,  // 15: nimi.runtime.v1.LocalAppAgentAutonomyProjection.config:type_name -> nimi.runtime.v1.LocalAppAgentAutonomyConfig
+	32, // 16: nimi.runtime.v1.LocalAppAgentAutonomyProjection.window_started_at:type_name -> google.protobuf.Timestamp
+	32, // 17: nimi.runtime.v1.LocalAppAgentAutonomyProjection.suspended_until:type_name -> google.protobuf.Timestamp
+	8,  // 18: nimi.runtime.v1.LocalAppAgentAutonomyIntent.config:type_name -> nimi.runtime.v1.LocalAppAgentAutonomyConfig
+	9,  // 19: nimi.runtime.v1.LocalAppAgentAutonomySnapshotResponse.projection:type_name -> nimi.runtime.v1.LocalAppAgentAutonomyProjection
+	10, // 20: nimi.runtime.v1.UpdateLocalAppAgentAutonomyRequest.intent:type_name -> nimi.runtime.v1.LocalAppAgentAutonomyIntent
+	9,  // 21: nimi.runtime.v1.LocalAppAgentUpdateAutonomyResponse.projection:type_name -> nimi.runtime.v1.LocalAppAgentAutonomyProjection
+	33, // 22: nimi.runtime.v1.LocalAppAgentPresentationProjection.profile:type_name -> nimi.runtime.v1.AgentPresentationProfile
+	33, // 23: nimi.runtime.v1.LocalAppAgentPresentationProjection.previous_profile:type_name -> nimi.runtime.v1.AgentPresentationProfile
+	34, // 24: nimi.runtime.v1.LocalAppAgentPresentationIntent.backend_kind:type_name -> nimi.runtime.v1.AgentPresentationBackendKind
+	15, // 25: nimi.runtime.v1.LocalAppAgentPresentationSnapshotResponse.projection:type_name -> nimi.runtime.v1.LocalAppAgentPresentationProjection
+	16, // 26: nimi.runtime.v1.CommitLocalAppAgentPresentationRequest.intent:type_name -> nimi.runtime.v1.LocalAppAgentPresentationIntent
+	35, // 27: nimi.runtime.v1.CommitLocalAppAgentPresentationRequest.imported_assets:type_name -> nimi.runtime.v1.AgentPresentationAssetMaterial
+	15, // 28: nimi.runtime.v1.LocalAppAgentCommitPresentationResponse.projection:type_name -> nimi.runtime.v1.LocalAppAgentPresentationProjection
+	29, // [29:29] is the sub-list for method output_type
+	29, // [29:29] is the sub-list for method input_type
+	29, // [29:29] is the sub-list for extension type_name
+	29, // [29:29] is the sub-list for extension extendee
+	0,  // [0:29] is the sub-list for field type_name
 }
 
 func init() { file_runtime_v1_agent_configure_proto_init() }
@@ -1398,6 +1526,16 @@ func file_runtime_v1_agent_configure_proto_init() {
 	file_runtime_v1_agent_presentation_proto_init()
 	file_runtime_v1_capability_configuration_proto_init()
 	file_runtime_v1_common_proto_init()
+	file_runtime_v1_agent_configure_proto_msgTypes[5].OneofWrappers = []any{
+		(*ListLocalAppSharedLocalAgentAIConfigOptionsRequest_LocalLoadouts)(nil),
+		(*ListLocalAppSharedLocalAgentAIConfigOptionsRequest_CloudConnectors)(nil),
+		(*ListLocalAppSharedLocalAgentAIConfigOptionsRequest_CloudTargets)(nil),
+	}
+	file_runtime_v1_agent_configure_proto_msgTypes[6].OneofWrappers = []any{
+		(*ListLocalAppSharedLocalAgentAIConfigOptionsResponse_LocalLoadouts)(nil),
+		(*ListLocalAppSharedLocalAgentAIConfigOptionsResponse_CloudConnectors)(nil),
+		(*ListLocalAppSharedLocalAgentAIConfigOptionsResponse_CloudTargets)(nil),
+	}
 	file_runtime_v1_agent_configure_proto_msgTypes[9].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{

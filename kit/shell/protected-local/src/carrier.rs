@@ -560,7 +560,9 @@ pub struct LocalAppSharedAgentAIConfigOverwriteRequest {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct LocalAppSharedAgentAIConfigLocalOptionsRequest {
+    pub kind: String,
     pub capability_contract: String,
+    pub connector_ref: String,
     pub search: String,
 }
 
@@ -572,7 +574,9 @@ pub struct LocalAppAIConfigOverwriteRequest {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct LocalAppAIConfigLocalOptionsRequest {
+    pub kind: String,
     pub capability_contract: String,
+    pub connector_ref: String,
     pub search: String,
 }
 

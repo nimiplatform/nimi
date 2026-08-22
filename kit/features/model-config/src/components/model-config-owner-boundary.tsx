@@ -14,9 +14,6 @@ function assertOwnerContext(context: ModelConfigOwnerContext): void {
   if (context.owner === 'app-ai-config' && !context.appId.trim()) {
     throw new Error('Model Config App AIConfig mode requires an appId.');
   }
-  if (context.owner !== 'app-ai-config' && context.consumer !== 'nimi-first-party') {
-    throw new Error('Only first-party Nimi surfaces may mount shared LocalAgent or Machine Model Config modes.');
-  }
 }
 
 export function ModelConfigOwnerBoundary({ context, children, className }: ModelConfigOwnerBoundaryProps) {
@@ -25,7 +22,6 @@ export function ModelConfigOwnerBoundary({ context, children, className }: Model
     <div
       className={cn('min-w-0 max-w-full', className)}
       data-nimi-model-config-owner={context.owner}
-      data-nimi-model-config-consumer={context.consumer}
       {...(context.owner === 'app-ai-config' ? { 'data-nimi-model-config-app-id': context.appId } : {})}
     >
       {children}

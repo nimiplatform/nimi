@@ -43,6 +43,7 @@ func testVoiceAssetExecutionIntent(target *runtimeidentity.Target) executioninte
 	})
 	return executionintent.Intent{
 		CapabilityContract: "audio.synthesize", Route: runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
+		ConnectorRef: cloud.ConnectorID,
 		CloudImplementation: &runtimev1.CapabilityImplementationIdentity{
 			ImplementationId: "cloud.audio.test", DriverId: "driver." + cloud.Provider, DriverDialect: "provider/audio/v1",
 		},

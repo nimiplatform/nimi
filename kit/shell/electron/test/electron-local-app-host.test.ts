@@ -128,7 +128,7 @@ describe('Electron protected local-app host', () => {
     await expect(host.sharedAgentAIConfigGet()).resolves.toMatchObject({ config: { capabilities: [] }, revision: '0' });
     await expect(host.sharedAgentAIConfigOverwrite({ expectedRevision: '0', capabilities: [] }))
       .resolves.toMatchObject({ outcome: 'committed', config: { capabilities: [] }, revision: '1' });
-    await expect(host.sharedAgentAIConfigLocalOptions({ capabilityContract: 'text.generate', search: '' }))
+    await expect(host.sharedAgentAIConfigLocalOptions({ kind: 'local-loadouts', capabilityContract: 'text.generate', search: '' }))
       .resolves.toEqual({ kind: 'local-loadouts', options: [], truncated: false });
     await expect(host.agentAutonomySnapshot({ agentHandle: handle }))
       .resolves.toMatchObject({ autonomyRevision: '1' });
@@ -144,7 +144,7 @@ describe('Electron protected local-app host', () => {
     expect(calls).toEqual([
       { method: 'localAppSharedAgentAIConfigGet' },
       { method: 'localAppSharedAgentAIConfigOverwrite', input: { expectedRevision: '0', capabilities: [] } },
-      { method: 'localAppSharedAgentAIConfigLocalOptions', input: { capabilityContract: 'text.generate', search: '' } },
+      { method: 'localAppSharedAgentAIConfigLocalOptions', input: { kind: 'local-loadouts', capabilityContract: 'text.generate', search: '' } },
       { method: 'localAppAgentAutonomySnapshot', input: { agentHandle: handle } },
       { method: 'localAppAgentUpdateAutonomy', input: autonomyUpdate },
       { method: 'localAppAgentPresentationSnapshot', input: { agentHandle: handle } },

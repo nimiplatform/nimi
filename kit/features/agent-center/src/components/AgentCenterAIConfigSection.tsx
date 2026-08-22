@@ -129,32 +129,12 @@ function aiConfigCopy(i18n: AgentCenterI18n | undefined): ModelConfigCopy {
       'AgentCenter.aiConfig.cloudTargetDialogDescription',
       'Review the provider-model details, then confirm the target explicitly.',
     ),
-    cloudTargetConfirmation: t(
-      'AgentCenter.aiConfig.cloudTargetConfirmation',
-      'I confirm this implementation and provider-model target.',
-    ),
-    cloudAuthorizationLabel: t('AgentCenter.aiConfig.cloudAuthorizationLabel', 'Cloud execution route'),
-    cloudAuthorizationNone: t('AgentCenter.aiConfig.cloudAuthorizationNone', 'Current Nimi account'),
+    cloudNoticeLabel: t('AgentCenter.aiConfig.cloudNoticeLabel', 'Cloud execution'),
+    cloudNoticeDescription: t('AgentCenter.aiConfig.cloudNoticeDescription', 'Requests may leave this device and incur provider charges.'),
     cloudConnectorLabel: t('AgentCenter.aiConfig.cloudConnectorLabel', 'Configured Connector'),
     cloudConnectorPlaceholder: t(
       'AgentCenter.aiConfig.cloudConnectorPlaceholder',
       'Choose a connector for this provider',
-    ),
-    cloudAuthorizationSeparation: t(
-      'AgentCenter.aiConfig.cloudAuthorizationSeparation',
-      'Nimi resolves the current-account Connector and credential at execution time.',
-    ),
-    cloudAccountLabel: (account: string) => translateAgentCenter(
-      i18n,
-      'AgentCenter.aiConfig.cloudAccountLabel',
-      'Account: {{account}}',
-      { account },
-    ),
-    cloudImpactSharedLabel: (account: string) => translateAgentCenter(
-      i18n,
-      'AgentCenter.aiConfig.cloudSharedScopeConfirmation',
-      'I understand this choice applies to every LocalAgent and proactive task, may send data off this machine, use account {{account}}, and incur provider cost.',
-      { account },
     ),
     cloudLoadFailed: t('AgentCenter.aiConfig.cloudLoadFailed', 'Cloud configuration choices could not be loaded.'),
     retryLabel: t('AgentCenter.common.retryLabel', 'Retry'),
@@ -217,17 +197,15 @@ export function AgentCenterAIConfigSection({
     <SectionShell labelledBy="agent-center-ai-config-title">
       <ModelConfigAIConfigSurface
         titleId="agent-center-ai-config-title"
-        context={{ owner: 'shared-local-agent-ai-config', consumer: 'nimi-first-party' }}
+        context={{ owner: 'shared-local-agent-ai-config' }}
         capabilityContracts={['text.generate', 'audio.transcribe']}
         capabilities={snapshot.state.sharedAIConfig?.aiConfig.capabilities ?? null}
         revision={snapshot.state.sharedAIConfig?.revision ?? '0'}
         disabled={snapshot.state.agentAIConfigMutationDisabledReason !== null}
         localSelections={snapshot.state.localSelections}
         listOptions={(query) => session.listSharedAIConfigOptions(query)}
-        cloudAIConfig={session.cloudAIConfig}
         onOverwrite={(input) => session.overwriteSharedAIConfig(input)}
         onOpenMachineLoadout={placementActions?.openMachineLoadout}
-        onOpenCloudConnectorConfiguration={placementActions?.openCloudConnectorConfiguration}
         formatError={(error) => ({
           message: copy.saveFailed || 'Could not save AIConfig.',
           technicalDetail: error instanceof Error ? error.message : String(error),

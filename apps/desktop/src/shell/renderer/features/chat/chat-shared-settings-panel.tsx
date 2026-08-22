@@ -16,7 +16,6 @@ import {
   useDesktopNimiAppAIConfig,
   useOverwriteDesktopNimiAppAIConfig,
 } from './chat-nimi-app-ai-config.js';
-import { createDesktopCloudAIConfigModule } from './chat-cloud-ai-config-module.js';
 import { toChatUserFacingRuntimeError } from './chat-runtime-error-message.js';
 
 export type ChatSettingsPanelProps = {
@@ -148,25 +147,13 @@ function useNimiChatModelConfigCopy(): ModelConfigCopy {
     cloudTargetDialogDescription: t('Chat.settingsCloudTargetDialogDescription', {
       defaultValue: 'Review the provider-model details, then confirm the target explicitly.',
     }),
-    cloudTargetConfirmation: t('Chat.settingsCloudTargetConfirmation', {
-      defaultValue: 'I confirm this implementation and provider-model target.',
+    cloudNoticeLabel: t('Chat.settingsCloudExecutionRoute', { defaultValue: 'Cloud execution' }),
+    cloudNoticeDescription: t('Chat.settingsCloudConnectorResolution', {
+      defaultValue: 'Requests may leave this device and incur provider charges.',
     }),
-    cloudAuthorizationLabel: t('Chat.settingsCloudExecutionRoute', { defaultValue: 'Cloud execution route' }),
-    cloudAuthorizationNone: t('Chat.settingsCloudCurrentAccount', { defaultValue: 'Current Nimi account' }),
     cloudConnectorLabel: t('Chat.settingsCloudConnector', { defaultValue: 'Configured Connector' }),
     cloudConnectorPlaceholder: t('Chat.settingsCloudConnectorPlaceholder', {
       defaultValue: 'Choose a connector for this provider',
-    }),
-    cloudAuthorizationSeparation: t('Chat.settingsCloudConnectorResolution', {
-      defaultValue: 'Nimi resolves the current-account Connector and credential at execution time.',
-    }),
-    cloudAccountLabel: (account: string) => t('Chat.settingsCloudAccount', {
-      defaultValue: 'Account: {{account}}',
-      account,
-    }),
-    cloudImpactAppLabel: (account: string) => t('Chat.settingsCloudAppImpactConfirmation', {
-      defaultValue: 'I understand Nimi Chat requests may leave this machine, use account {{account}}, and incur provider cost.',
-      account,
     }),
     cloudLoadFailed: t('Chat.settingsCloudChoicesLoadFailed', {
       defaultValue: 'Cloud implementation, target, or Connector choices could not be loaded.',
@@ -207,7 +194,6 @@ function AiModeSettings(props: {
 }) {
   const runtimeConfigNavigation = useDesktopRendererCommands().runtimeConfigNavigation;
   const sdk = useDesktopRendererSdk();
-  const cloudAIConfig = useMemo(() => createDesktopCloudAIConfigModule(sdk), [sdk]);
   const { t } = useTranslation();
   const copy = useNimiChatModelConfigCopy();
   const setActiveTab = useAppStore((state) => state.setActiveTab);
@@ -230,15 +216,6 @@ function AiModeSettings(props: {
       page: 'loadouts',
       action: 'open-loadouts',
       focus: 'runtime-config-action-focus.loadouts',
-    });
-  }, [runtimeConfigNavigation, setActiveTab]);
-
-  const openCloudConnectorConfiguration = useCallback(() => {
-    setActiveTab('runtime');
-    runtimeConfigNavigation.focusAction({
-      page: 'cloud',
-      action: 'add-connector',
-      focus: 'runtime-config-action-focus.cloud-connector-draft',
     });
   }, [runtimeConfigNavigation, setActiveTab]);
 
@@ -265,19 +242,17 @@ function AiModeSettings(props: {
       ) : null}
       <div data-testid="nimi-app-ai-config">
         <ModelConfigAIConfigSurface
-          context={{ owner: 'app-ai-config', consumer: 'nimi-first-party', appId: DESKTOP_NIMI_APP_ID }}
+          context={{ owner: 'app-ai-config', appId: DESKTOP_NIMI_APP_ID }}
           capabilityContracts={['text.generate']}
           capabilities={appAIConfig.data?.config?.capabilities ?? (appAIConfig.isPending ? undefined : null)}
           revision={appAIConfig.data?.revision}
           localSelections={localSelections}
           listOptions={(query) => sdk.accountProduct().appAIConfig(DESKTOP_NIMI_APP_ID).listOptions(query)}
-          cloudAIConfig={cloudAIConfig}
           loading={appAIConfig.isPending}
           loadError={appAIConfig.isError ? copy.loadFailed : null}
           onRetry={() => { void appAIConfig.refetch(); }}
           onOverwrite={(input) => overwriteAppAIConfig.mutateAsync(input)}
           onOpenMachineLoadout={openMachineLoadout}
-          onOpenCloudConnectorConfiguration={openCloudConnectorConfiguration}
           formatError={(error) => {
             const fallback = copy.saveFailed || 'Runtime could not save the Nimi Desktop AI intent.';
             const userFacing = toChatUserFacingRuntimeError(error, fallback, t);

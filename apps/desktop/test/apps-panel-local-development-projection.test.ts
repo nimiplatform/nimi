@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
+import { createNimiCloudAIConfigCapabilityIntent } from '@nimiplatform/sdk/ai';
 import type { LocalDevelopmentRegistration } from '../src/shell/renderer/features/local-development/local-development-types.js';
 import { createAppsPanelProjectionReloader } from '../src/shell/renderer/features/apps/apps-panel-controller.js';
 import {
@@ -78,16 +79,13 @@ describe('Desktop Apps local-development registration projection', () => {
             capabilityContract: 'text.generate',
             requiredFeatures: [],
             route: { oneofKind: 'local', local: { loadoutRef: 'loadout:text' } },
-          }, {
-            capabilityContract: 'image.generate',
-            requiredFeatures: [],
-            route: {
-              oneofKind: 'cloud',
-              cloud: {
-                implementation: { implementationId: 'provider', driverId: 'driver', driverDialect: 'provider' },
-              },
+          }, createNimiCloudAIConfigCapabilityIntent({
+            capabilityContract: 'image.generate', connectorRef: 'connector:image',
+            implementation: { implementationId: 'provider', driverId: 'driver', driverDialect: 'provider' },
+            providerModelTarget: {
+              provider: 'provider', providerModelId: 'image-1', remoteModelCatalogId: 'catalog:image-1',
             },
-          }],
+          })],
         };
       },
     });

@@ -12,7 +12,6 @@ import {
   useDesktopRendererCommands,
   useDesktopRendererSdk,
 } from '../../renderer/binding-context.js';
-import { createDesktopCloudAIConfigModule } from '../chat/chat-cloud-ai-config-module.js';
 import {
   projectDesktopAIConfigEffectiveSelections,
   useDesktopNimiAppAIConfig,
@@ -170,26 +169,13 @@ function useAppsModelConfigCopy(appDisplayName: string): ModelConfigCopy {
     cloudTargetDialogDescription: t('Chat.settingsCloudTargetDialogDescription', {
       defaultValue: 'Review the provider-model details, then confirm the target explicitly.',
     }),
-    cloudTargetConfirmation: t('Chat.settingsCloudTargetConfirmation', {
-      defaultValue: 'I confirm this implementation and provider-model target.',
+    cloudNoticeLabel: t('Chat.settingsCloudExecutionRoute', { defaultValue: 'Cloud execution' }),
+    cloudNoticeDescription: t('Chat.settingsCloudConnectorResolution', {
+      defaultValue: 'Requests may leave this device and incur provider charges.',
     }),
-    cloudAuthorizationLabel: t('Chat.settingsCloudExecutionRoute', { defaultValue: 'Cloud execution route' }),
-    cloudAuthorizationNone: t('Chat.settingsCloudCurrentAccount', { defaultValue: 'Current Nimi account' }),
     cloudConnectorLabel: t('Chat.settingsCloudConnector', { defaultValue: 'Configured Connector' }),
     cloudConnectorPlaceholder: t('Chat.settingsCloudConnectorPlaceholder', {
       defaultValue: 'Choose a connector for this provider',
-    }),
-    cloudAuthorizationSeparation: t('Chat.settingsCloudConnectorResolution', {
-      defaultValue: 'Nimi resolves the current-account Connector and credential at execution time.',
-    }),
-    cloudAccountLabel: (account: string) => t('Chat.settingsCloudAccount', {
-      defaultValue: 'Account: {{account}}',
-      account,
-    }),
-    cloudImpactAppLabel: (account: string) => t('Apps.aiConfig.cloudImpactConfirmation', {
-      defaultValue: 'I understand {{app}} requests may leave this machine, use account {{account}}, and incur provider cost.',
-      app: appDisplayName,
-      account,
     }),
     cloudLoadFailed: t('Chat.settingsCloudChoicesLoadFailed', {
       defaultValue: 'Cloud implementation, target, or Connector choices could not be loaded.',
@@ -235,7 +221,6 @@ export function AppsAIConfigSection({
   const { t } = useTranslation();
   const runtimeConfigNavigation = useDesktopRendererCommands().runtimeConfigNavigation;
   const sdk = useDesktopRendererSdk();
-  const cloudAIConfig = useMemo(() => createDesktopCloudAIConfigModule(sdk), [sdk]);
   const setActiveTab = useAppStore((state) => state.setActiveTab);
   const appAIConfig = useDesktopNimiAppAIConfig(appId);
   const overwriteAppAIConfig = useOverwriteDesktopNimiAppAIConfig(appId);
@@ -254,31 +239,20 @@ export function AppsAIConfigSection({
     });
   }, [runtimeConfigNavigation, setActiveTab]);
 
-  const openCloudConnectorConfiguration = useCallback(() => {
-    setActiveTab('runtime');
-    runtimeConfigNavigation.focusAction({
-      page: 'cloud',
-      action: 'add-connector',
-      focus: 'runtime-config-action-focus.cloud-connector-draft',
-    });
-  }, [runtimeConfigNavigation, setActiveTab]);
-
   return (
     <section data-testid={`apps-ai-config-${appId}`}>
       <ModelConfigAIConfigSurface
-        context={{ owner: 'app-ai-config', consumer: 'nimi-first-party', appId }}
+        context={{ owner: 'app-ai-config', appId }}
         capabilityContracts={CANONICAL_CAPABILITY_IDS}
         capabilities={appAIConfig.data?.config?.capabilities ?? (appAIConfig.isPending ? undefined : null)}
         revision={appAIConfig.data?.revision}
         localSelections={localSelections}
         listOptions={(query) => sdk.accountProduct().appAIConfig(appId).listOptions(query)}
-        cloudAIConfig={cloudAIConfig}
         loading={appAIConfig.isPending}
         loadError={appAIConfig.isError ? copy.loadFailed : null}
         onRetry={() => { void appAIConfig.refetch(); }}
         onOverwrite={(input) => overwriteAppAIConfig.mutateAsync(input)}
         onOpenMachineLoadout={openMachineLoadout}
-        onOpenCloudConnectorConfiguration={openCloudConnectorConfiguration}
         formatError={(error) => ({
           message: copy.saveFailed || 'Runtime could not save this app\'s AI configuration.',
           technicalDetail: error instanceof Error ? error.message : String(error || ''),

@@ -2,12 +2,17 @@ import type { AgentRequestContext } from '../core-generated/runtime-protobuf/run
 import type {
   AIConfig,
   AIConfigCapabilityIntent,
+  AIConfigCloudConnectorProjection,
+  AIConfigCloudTargetProjection,
   AIConfigEffectiveSelection,
   AIConfigLocalResourceProjection,
 } from '../core-generated/runtime-protobuf/runtime/v1/capability_configuration';
 import { AIConfigEffectiveState } from '../core-generated/runtime-protobuf/runtime/v1/capability_configuration';
+import { Struct as RuntimeStruct } from '../core-generated/runtime-protobuf/google/protobuf/struct';
 import type {
   NimiAIConfigEffectiveSelection,
+  NimiAIConfigCloudConnectorOption,
+  NimiAIConfigCloudTargetOption,
   NimiAIConfigLocalLoadoutOption,
   NimiAIConfigOptionsQuery,
   NimiAIConfigOptionsResult,
@@ -57,8 +62,8 @@ export interface NimiSharedLocalAgentAIConfigOverwriteInput
   readonly capabilities: readonly AIConfigCapabilityIntent[];
 }
 
-export interface NimiSharedLocalAgentAIConfigOptionsInput
-  extends NimiSharedLocalAgentAIConfigCallInput, NimiAIConfigOptionsQuery {}
+export type NimiSharedLocalAgentAIConfigOptionsInput =
+  NimiAIConfigOptionsQuery & NimiSharedLocalAgentAIConfigCallInput;
 
 export interface NimiSharedLocalAgentAIProfileInput
   extends NimiSharedLocalAgentAIConfigCallInput {
@@ -213,7 +218,9 @@ export function createNimiSharedLocalAgentAISurface(
     },
 
     async listOptions(input: NimiSharedLocalAgentAIConfigOptionsInput) {
-      if (input.kind !== 'local-loadouts' || !normalizeNimiRuntimeAgentText(input.capabilityContract)
+      if (!['local-loadouts', 'cloud-connectors', 'cloud-targets'].includes(input.kind)
+        || !normalizeNimiRuntimeAgentText(input.capabilityContract)
+        || (input.kind === 'cloud-targets' && !normalizeNimiRuntimeAgentText(input.connectorRef))
         || (input.search !== undefined && input.search.trim() !== input.search)) {
         inputError('Shared LocalAgent AIConfig options query is invalid');
       }
@@ -222,20 +229,23 @@ export function createNimiSharedLocalAgentAISurface(
       const response = await scoped(subjectUserId, [SHARED_LOCAL_AGENT_AI_CONFIG_WRITE_SCOPE], (callOptions) => (
         method({
           context: context(subjectUserId),
-          localLoadouts: {
-            capabilityContract: input.capabilityContract,
-            search: input.search ?? '',
-          },
+          query: input.kind === 'local-loadouts'
+            ? { oneofKind: 'localLoadouts', localLoadouts: { capabilityContract: input.capabilityContract, search: input.search ?? '' } }
+            : input.kind === 'cloud-connectors'
+              ? { oneofKind: 'cloudConnectors', cloudConnectors: { capabilityContract: input.capabilityContract, search: input.search ?? '' } }
+              : { oneofKind: 'cloudTargets', cloudTargets: { capabilityContract: input.capabilityContract, connectorRef: input.connectorRef, search: input.search ?? '' } },
         }, callOptions)
       ));
-      if (!response.localLoadouts || typeof response.truncated !== 'boolean') {
-        invalidResponse('ListSharedLocalAgentAIConfigOptions returned an invalid projection');
+      if (input.kind === 'local-loadouts' && response.result.oneofKind === 'localLoadouts') {
+        return Object.freeze({ kind: input.kind, options: Object.freeze(response.result.localLoadouts.options.map(projectLocalOption)), truncated: response.truncated });
       }
-      return Object.freeze({
-        kind: 'local-loadouts',
-        options: Object.freeze(response.localLoadouts.options.map(projectLocalOption)),
-        truncated: response.truncated,
-      });
+      if (input.kind === 'cloud-connectors' && response.result.oneofKind === 'cloudConnectors') {
+        return Object.freeze({ kind: input.kind, options: Object.freeze(response.result.cloudConnectors.options.map(projectCloudConnectorOption)), truncated: response.truncated });
+      }
+      if (input.kind === 'cloud-targets' && response.result.oneofKind === 'cloudTargets') {
+        return Object.freeze({ kind: input.kind, options: Object.freeze(response.result.cloudTargets.options.map(projectCloudTargetOption)), truncated: response.truncated });
+      }
+      invalidResponse('ListSharedLocalAgentAIConfigOptions returned a mismatched projection');
     },
   });
 
@@ -313,9 +323,45 @@ function projectEffectiveSelections(
     state: projectEffectiveState(selection.state),
     resource: selection.resource.oneofKind === 'local'
       ? Object.freeze({ oneofKind: 'local' as const, local: projectLocalOption(selection.resource.local) })
+      : selection.resource.oneofKind === 'cloud'
+        ? Object.freeze({
+            oneofKind: 'cloud' as const,
+            cloud: Object.freeze({
+              connector: projectCloudConnectorOption(selection.resource.cloud.connector!),
+              target: projectCloudTargetOption(selection.resource.cloud.target!),
+            }),
+          })
       : null,
     reasons: Object.freeze([...selection.reasons]),
   })));
+}
+
+function projectCloudConnectorOption(value: AIConfigCloudConnectorProjection): NimiAIConfigCloudConnectorOption {
+  const state = projectEffectiveState(value.state);
+  if (state !== 'ready' && state !== 'blocked') invalidResponse('Shared AIConfig Cloud Connector state is invalid');
+  return Object.freeze({
+    connectorRef: value.connectorRef,
+    label: value.label,
+    provider: value.provider,
+    state,
+    reasons: Object.freeze([...value.reasons]),
+  });
+}
+
+function projectCloudTargetOption(value: AIConfigCloudTargetProjection): NimiAIConfigCloudTargetOption {
+  if (!value.implementation || !value.providerModelTarget) invalidResponse('Shared AIConfig Cloud target identity is missing');
+  const state = projectEffectiveState(value.state);
+  if (state !== 'ready' && state !== 'blocked') invalidResponse('Shared AIConfig Cloud target state is invalid');
+  return Object.freeze({
+    connectorRef: value.connectorRef,
+    label: value.label,
+    capabilityContract: value.capabilityContract,
+    implementation: Object.freeze({ ...value.implementation }),
+    providerModelTarget: RuntimeStruct.toJson(value.providerModelTarget) as NimiAIConfigCloudTargetOption['providerModelTarget'],
+    supportedFeatures: Object.freeze([...value.supportedFeatures]),
+    state,
+    reasons: Object.freeze([...value.reasons]),
+  });
 }
 
 function projectLocalOption(value: AIConfigLocalResourceProjection): NimiAIConfigLocalLoadoutOption {

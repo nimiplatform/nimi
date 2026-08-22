@@ -3,6 +3,7 @@ import { Struct as RuntimeStruct } from '../../core-generated/runtime-protobuf/g
 import type {
   AIConfig,
   AIConfigCapabilityIntent,
+  AIConfigCloudIntent,
   AIConfigOwner,
   CapabilityImplementationIdentity,
 } from '../../core-generated/runtime-protobuf/runtime/v1/capability_configuration.js';
@@ -11,7 +12,6 @@ import { createNimiError } from '../../types/index.js';
 import { sha256Hex } from '../../types/sha256.js';
 import type { NimiLoadoutRecipe } from '../../runtime/machine-loadouts.js';
 import {
-  createNimiCloudAIConfigCapabilityIntent,
   parseNimiPortableAIProfile,
   runtimeAIConfigStructToJson,
   serializeNimiPortableAIProfile,
@@ -126,7 +126,7 @@ export interface NimiAIProfileAIConfigIntentDiff {
 export type NimiAIProfileCapabilityPrefill = Omit<AIConfigCapabilityIntent, 'route'> & {
   readonly route:
     | { readonly oneofKind: 'local'; readonly local: Readonly<Record<string, never>> }
-    | { readonly oneofKind: 'cloud'; readonly cloud: NonNullable<Extract<AIConfigCapabilityIntent['route'], { oneofKind: 'cloud' }>['cloud']> };
+    | { readonly oneofKind: 'cloud'; readonly cloud: Omit<AIConfigCloudIntent, 'connectorRef'> };
 };
 
 export interface NimiAIProfileAIConfigPrefill {
@@ -618,17 +618,18 @@ export function deriveNimiAIProfileApplyPreview(input: {
         route: { oneofKind: 'local' as const, local: {} },
       };
     }
-    const cloud = createNimiCloudAIConfigCapabilityIntent({
-        capabilityContract,
-        requiredFeatures: capability.requiredFeatures,
-        defaults: capability.defaults,
-        implementation: implementationContent(capability.implementation),
-        providerModelTarget: capability.providerModelTarget,
-    });
-    if (cloud.route.oneofKind !== 'cloud') {
-      return authoringError(`${capabilityContract} Cloud prefill is invalid`);
-    }
-    return { ...cloud, route: cloud.route };
+    return {
+      capabilityContract,
+      requiredFeatures: [...capability.requiredFeatures],
+      ...(capability.defaults ? { defaults: RuntimeStruct.fromJson(capability.defaults as ProtoJsonValue) } : {}),
+      route: {
+        oneofKind: 'cloud' as const,
+        cloud: {
+          implementation: implementationContent(capability.implementation),
+          providerModelTarget: RuntimeStruct.fromJson(capability.providerModelTarget as ProtoJsonValue),
+        },
+      },
+    };
   });
   const after: NimiAIProfileAIConfigPrefill = { owner, capabilities };
   const intentDiff = deriveAIConfigIntentDiff(before, after);

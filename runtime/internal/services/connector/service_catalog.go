@@ -152,9 +152,9 @@ type RemoteModelCatalogBinding struct {
 	InventorySnapshotID  string
 }
 
-// ResolveCurrentAccountConnectorBinding derives one exact ordinary Cloud
-// execution Connector from Nimi-owned implementation-target configuration.
-// It never chooses among ambiguous current-account Connectors.
+// ResolveCurrentAccountConnectorBinding resolves only the exact Connector
+// reference committed by AIConfig. It never searches for or substitutes
+// another current-account Connector.
 func ResolveCurrentAccountConnectorBinding(
 	store *ConnectorStore,
 	modelCatalog *aicatalog.Resolver,
@@ -163,57 +163,34 @@ func ResolveCurrentAccountConnectorBinding(
 ) (ConnectorRecord, *RemoteModelCatalogBinding, error) {
 	accountID = strings.TrimSpace(accountID)
 	provider := strings.TrimSpace(ref.Provider)
-	if store == nil || accountID == "" || provider == "" {
+	connectorID := strings.TrimSpace(ref.ConnectorID)
+	if store == nil || accountID == "" || provider == "" || connectorID == "" {
 		return ConnectorRecord{}, nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND)
 	}
 	remoteModelCatalogID := strings.TrimSpace(ref.RemoteModelCatalogID)
 	if remoteModelCatalogID == "" {
 		return ConnectorRecord{}, nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND)
 	}
-	records, err := store.Load()
+	record, found, err := store.Get(connectorID)
 	if err != nil {
 		return ConnectorRecord{}, nil, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, err, grpcerr.ReasonOptions{Message: "connector registry could not be read"})
 	}
-	owned := make([]ConnectorRecord, 0, 1)
-	for _, record := range records {
-		if record.Kind != runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED ||
-			record.OwnerType != runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_REALM_USER ||
-			record.OwnerID != accountID || strings.TrimSpace(record.Provider) != provider {
-			continue
-		}
-		owned = append(owned, record)
-	}
-
-	type match struct {
-		record  ConnectorRecord
-		binding RemoteModelCatalogBinding
-	}
-	matches := make([]match, 0, 1)
-	for _, record := range owned {
-		binding, bindingErr := ResolveRemoteModelCatalogBinding(modelCatalog, accountID, record, RemoteModelCatalogRef{
-			ConnectorID:          record.ConnectorID,
-			RemoteModelCatalogID: remoteModelCatalogID,
-			ProviderModelID:      ref.ProviderModelID,
-			Provider:             provider,
-		})
-		if bindingErr != nil {
-			if reason, ok := grpcerr.ExtractReasonCode(bindingErr); ok && reason == runtimev1.ReasonCode_AI_REMOTE_MODEL_CATALOG_STALE {
-				continue
-			}
-			return ConnectorRecord{}, nil, bindingErr
-		}
-		matches = append(matches, match{record: record, binding: binding})
-	}
-	if len(matches) != 1 {
+	if !found || record.Kind != runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED ||
+		record.OwnerType != runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_REALM_USER ||
+		record.OwnerID != accountID || strings.TrimSpace(record.Provider) != provider {
 		return ConnectorRecord{}, nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND)
 	}
-	if matches[0].record.Status != runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE {
+	binding, err := ResolveRemoteModelCatalogBinding(modelCatalog, accountID, record, ref)
+	if err != nil {
+		return ConnectorRecord{}, nil, err
+	}
+	if record.Status != runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE {
 		return ConnectorRecord{}, nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONNECTOR_DISABLED)
 	}
-	if !matches[0].record.HasCredential {
+	if !record.HasCredential {
 		return ConnectorRecord{}, nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONNECTOR_CREDENTIAL_MISSING)
 	}
-	return matches[0].record, &matches[0].binding, nil
+	return record, &binding, nil
 }
 
 func ResolveRemoteModelCatalogRef(modelCatalog *aicatalog.Resolver, subjectUserID string, rec ConnectorRecord, ref RemoteModelCatalogRef) (string, error) {

@@ -216,7 +216,7 @@ func TestSubmitLocalAppScenarioJobVoiceWorkflowWithoutCurrentAccountConnectorFai
 	catalogFixture := newManagedCloudScenarioTestFixture(t, "dashscope", "qwen3-tts-vd-2026-01-26", "https://example.invalid", Config{})
 	svc := newTestService(nil)
 	if err := overwriteAIConfigStoreForTest(context.Background(), svc.aiConfigStore, "account-1",
-		appAIConfig("nimi.realm-persona-studio", cloudVoiceAIConfigIntent(t, catalogFixture.descriptor))); err != nil {
+		appAIConfig("nimi.realm-persona-studio", cloudVoiceAIConfigIntent(t, catalogFixture.connectorID, catalogFixture.descriptor))); err != nil {
 		t.Fatalf("install Cloud App AIConfig: %v", err)
 	}
 	request := &runtimev1.SubmitLocalAppScenarioJobRequest{
@@ -246,7 +246,7 @@ func TestSubmitLocalAppScenarioJobVoiceWorkflowMapsProviderUnauthorizedThroughRe
 
 	fixture := newManagedCloudScenarioTestFixture(t, "dashscope", "qwen3-tts-vd-2026-01-26", server.URL, Config{AllowLoopbackEndpoint: true})
 	if err := overwriteAIConfigStoreForTest(context.Background(), fixture.service.aiConfigStore, "user-001",
-		appAIConfig("nimi.realm-persona-studio", cloudVoiceAIConfigIntent(t, fixture.descriptor))); err != nil {
+		appAIConfig("nimi.realm-persona-studio", cloudVoiceAIConfigIntent(t, fixture.connectorID, fixture.descriptor))); err != nil {
 		t.Fatalf("install Cloud App AIConfig: %v", err)
 	}
 	ctx := accountservice.ContextWithAuthorizedLocalAppDecision(context.Background(), accountservice.LocalAppCallerDecision{
@@ -334,7 +334,7 @@ func TestSubmitLocalAppScenarioJobVoiceWorkflowUsesOneCapturedAIConfigSnapshot(t
 	fixture := newManagedCloudScenarioTestFixture(t, "dashscope", "qwen3-tts-vd-2026-01-26", server.URL, Config{AllowLoopbackEndpoint: true})
 	baseStore := fixture.service.aiConfigStore
 	if err := overwriteAIConfigStoreForTest(context.Background(), baseStore, "user-001",
-		appAIConfig("nimi.realm-persona-studio", cloudVoiceAIConfigIntent(t, fixture.descriptor))); err != nil {
+		appAIConfig("nimi.realm-persona-studio", cloudVoiceAIConfigIntent(t, fixture.connectorID, fixture.descriptor))); err != nil {
 		t.Fatalf("install initial Cloud App AIConfig: %v", err)
 	}
 	switchingStore := &replaceAIConfigAfterFirstGetStore{
@@ -390,7 +390,7 @@ func TestSubmitLocalAppScenarioJobVoiceWorkflowUsesOneCapturedAIConfigSnapshot(t
 	}
 }
 
-func cloudVoiceAIConfigIntent(t *testing.T, descriptor *runtimev1.ConnectorModelDescriptor) *runtimev1.AIConfigCapabilityIntent {
+func cloudVoiceAIConfigIntent(t *testing.T, connectorRef string, descriptor *runtimev1.ConnectorModelDescriptor) *runtimev1.AIConfigCapabilityIntent {
 	t.Helper()
 	target, err := structpb.NewStruct(map[string]any{
 		"provider":             descriptor.GetProvider(),
@@ -403,6 +403,7 @@ func cloudVoiceAIConfigIntent(t *testing.T, descriptor *runtimev1.ConnectorModel
 	return &runtimev1.AIConfigCapabilityIntent{
 		CapabilityContract: "voice.create",
 		Route: &runtimev1.AIConfigCapabilityIntent_Cloud{Cloud: &runtimev1.AIConfigCloudIntent{
+			ConnectorRef: connectorRef,
 			Implementation: &runtimev1.CapabilityImplementationIdentity{
 				ImplementationId: "cloud.voice.create.dashscope",
 				DriverId:         "nimi.runtime.driver.dashscope",

@@ -194,7 +194,6 @@
       "unconfigured": "AI 未配置",
       "unavailable": "AI 配置不可用"
     },
-    "cloudImpactConfirmation": "我了解 {{app}} 的请求可能离开此设备、使用账户 {{account}}，并产生服务商费用。",
     "loadFailed": "无法从 Runtime 加载此 App 的 AI 配置。",
     "saveFailed": "Runtime 无法保存此 App 的 AI 配置。",
     "oneClickLabel": "一键配置",

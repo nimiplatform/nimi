@@ -128,7 +128,7 @@ export function LabAiConfigSettingsPanel({
     <section className="flex h-full min-h-0 flex-col" aria-label={t('ModelConfig.drawerDescription')}>
       <div className="min-h-0 flex-1 overflow-y-auto p-5">
         <ModelConfigAIConfigSurface
-          context={{ owner: 'app-ai-config', consumer: 'third-party-app', appId }}
+          context={{ owner: 'app-ai-config', appId }}
           capabilityContracts={labModelConfigCapabilityContracts}
           initialCapabilityContract={capabilityId}
           capabilities={loading || loadError

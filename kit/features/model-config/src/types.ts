@@ -4,70 +4,24 @@ import type {
   NimiAIConfigOverwriteInput,
   NimiAIConfigOverwriteResult,
   NimiPortableAppAIConfigIntent,
-  NimiCloudAIConfigCapabilityInput,
-  NimiJsonObject,
 } from '@nimiplatform/kit/core/sdk-contract';
 
 export type ModelConfigOwnerContext =
   | {
       readonly owner: 'app-ai-config';
-      readonly consumer: 'nimi-first-party';
-      readonly appId: string;
-    }
-  | {
-      readonly owner: 'app-ai-config';
-      readonly consumer: 'third-party-app';
       readonly appId: string;
     }
   | {
       readonly owner: 'shared-local-agent-ai-config';
-      readonly consumer: 'nimi-first-party';
     }
   | {
       readonly owner: 'machine-loadouts';
-      readonly consumer: 'nimi-first-party';
     };
 
 export type ModelConfigAIConfigOwnerContext = Exclude<
   ModelConfigOwnerContext,
   { readonly owner: 'machine-loadouts' }
 >;
-
-export interface ModelConfigCloudImplementationOption {
-  readonly optionId: string;
-  readonly label: string;
-  readonly provider: string;
-  readonly implementation: NimiCloudAIConfigCapabilityInput['implementation'];
-}
-
-export interface ModelConfigCloudTargetOption {
-  readonly targetId: string;
-  readonly label: string;
-  readonly provider: string;
-  readonly providerModelTarget: NimiJsonObject;
-}
-
-export interface ModelConfigCloudConnectorOption {
-  /** A host-confirmed Connector with usable credential custody. */
-  readonly connectorId: string;
-  readonly label: string;
-  readonly provider: string;
-}
-
-export interface ModelConfigCloudAuthorizationOptions {
-  readonly connectors: readonly ModelConfigCloudConnectorOption[];
-}
-
-/** Host-supplied Nimi-owned catalog/Connector seam. It owns no AIConfig state. */
-export interface ModelConfigCloudAIConfigModule {
-  listImplementations(capabilityContract: string): Promise<readonly ModelConfigCloudImplementationOption[]>;
-  listTargets(input: {
-    readonly capabilityContract: string;
-    readonly provider: string;
-    readonly connectorId: string;
-  }): Promise<readonly ModelConfigCloudTargetOption[]>;
-  listAuthorizationOptions(): Promise<ModelConfigCloudAuthorizationOptions>;
-}
 
 export type ModelConfigLocalSelectionProjection = {
   readonly capabilityContract: string;
@@ -144,15 +98,10 @@ export type ModelConfigCopy = Partial<{
   readonly cloudTargetPlaceholder: string;
   readonly cloudTargetDialogTitle: string;
   readonly cloudTargetDialogDescription: string;
-  readonly cloudTargetConfirmation: string;
-  readonly cloudAuthorizationLabel: string;
-  readonly cloudAuthorizationNone: string;
+  readonly cloudNoticeLabel: string;
+  readonly cloudNoticeDescription: string;
   readonly cloudConnectorLabel: string;
   readonly cloudConnectorPlaceholder: string;
-  readonly cloudAuthorizationSeparation: string;
-  readonly cloudAccountLabel: (account: string) => string;
-  readonly cloudImpactAppLabel: (account: string) => string;
-  readonly cloudImpactSharedLabel: (account: string) => string;
   readonly cloudLoadFailed: string;
   readonly retryLabel: string;
   readonly loadFailed: string;

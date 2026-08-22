@@ -9,7 +9,7 @@ import {
 } from '@nimiplatform/kit/core/sdk-contract';
 import { CAPABILITY_DEFAULT_FIELDS } from '../src/capability-defaults.js';
 import { ModelConfigAIConfigSurface } from '../src/components/model-config-ai-config-surface.js';
-import type { ModelConfigCloudAIConfigModule, ModelConfigOverwrite } from '../src/types.js';
+import type { ModelConfigListOptions, ModelConfigOverwrite } from '../src/types.js';
 import {
   modelConfigCapabilityPosture,
   modelConfigMissingRequiredFeatures,
@@ -46,10 +46,8 @@ async function renderSurface(
   onOverwrite: ModelConfigOverwrite,
   onOpenMachineLoadout = vi.fn(),
   options: {
-    readonly cloudAIConfig?: ModelConfigCloudAIConfigModule;
-    readonly consumer?: 'nimi-first-party' | 'third-party-app';
+    readonly listOptions?: ModelConfigListOptions;
     readonly initialCapabilityContract?: string;
-    readonly onOpenCloudConnectorConfiguration?: () => void;
     readonly onOpenOwnerConfiguration?: () => void;
     readonly capabilityContracts?: readonly string[];
     readonly capabilities?: readonly NimiCapabilityAIConfigIntent[];
@@ -61,7 +59,7 @@ async function renderSurface(
   await act(async () => {
     root?.render(
       <ModelConfigAIConfigSurface
-        context={{ owner: 'app-ai-config', consumer: options.consumer || 'nimi-first-party', appId: 'test.app' }}
+        context={{ owner: 'app-ai-config', appId: 'test.app' }}
         capabilityContracts={options.capabilityContracts || ['text.generate']}
         initialCapabilityContract={options.initialCapabilityContract}
         capabilities={options.capabilities || [{
@@ -71,19 +69,30 @@ async function renderSurface(
           route: { oneofKind: 'local', local: { loadoutRef: 'machine-text' } },
         }]}
         revision="1"
-        listOptions={async () => ({
-          kind: 'local-loadouts',
-          options: [{
-            kind: 'local-loadout',
-            ref: 'machine-text',
+        listOptions={options.listOptions || (async (query) => query.kind === 'local-loadouts' ? ({
+          kind: query.kind, options: [{
+            loadoutRef: 'machine-text',
             label: 'Machine text model',
             capabilityContract: 'text.generate',
+            implementation: { implementationId: 'local-text', driverId: 'local', driverDialect: 'test/local/v1' },
             state: 'ready',
             supportedFeatures: [],
             reasons: [],
+          }], truncated: false,
+        }) : query.kind === 'cloud-connectors' ? ({
+          kind: query.kind,
+          options: [{ connectorRef: 'connector-test', label: 'Test account', provider: 'provider-test', state: 'ready', reasons: [] }],
+          truncated: false,
+        }) : ({
+          kind: query.kind,
+          options: [{
+            connectorRef: query.connectorRef, label: 'Cloud Model', capabilityContract: query.capabilityContract,
+            implementation: { implementationId: 'cloud-test', driverId: 'nimillm', driverDialect: 'openai' },
+            providerModelTarget: { provider: 'provider-test', providerModelId: 'cloud-model', remoteModelCatalogId: 'rmc-cloud-model' },
+            supportedFeatures: [], state: 'ready', reasons: [],
           }],
           truncated: false,
-        })}
+        }))}
         localSelections={[{
           capabilityContract: 'text.generate',
           state: 'selected',
@@ -93,33 +102,7 @@ async function renderSurface(
           reasons: [],
           effectiveDefaults: { temperature: '0.8', seed: 'random' },
         }]}
-        cloudAIConfig={Object.hasOwn(options, 'cloudAIConfig') ? options.cloudAIConfig : {
-          listImplementations: async () => [{
-            optionId: 'cloud-test',
-            label: 'Cloud Test',
-            provider: 'provider-test',
-            implementation: {
-              implementationId: 'cloud-test',
-              driverId: 'nimillm',
-              driverDialect: 'openai',
-            },
-          }],
-          listTargets: async () => [{
-            targetId: 'cloud-model',
-            label: 'Cloud Model',
-            provider: 'provider-test',
-            providerModelTarget: {
-              provider: 'provider-test',
-              providerModelId: 'cloud-model',
-              remoteModelCatalogId: 'rmc-cloud-model',
-            },
-          }],
-          listAuthorizationOptions: async () => ({
-            connectors: [{ connectorId: 'connector-test', label: 'Test account', provider: 'provider-test' }],
-          }),
-        }}
         onOpenMachineLoadout={onOpenMachineLoadout}
-        onOpenCloudConnectorConfiguration={options.onOpenCloudConnectorConfiguration}
         onOpenOwnerConfiguration={options.onOpenOwnerConfiguration}
         onOverwrite={onOverwrite}
       />,
@@ -229,6 +212,7 @@ describe('public Model Config contract', () => {
   it('fails closed when a reloaded Cloud intent lacks exact catalog identity', () => {
     const incomplete = createNimiCloudAIConfigCapabilityIntent({
       capabilityContract: 'text.generate',
+      connectorRef: 'connector-test',
       implementation: { implementationId: 'cloud-test', driverId: 'nimillm', driverDialect: 'openai' },
       providerModelTarget: {
         provider: 'provider-test',
@@ -254,8 +238,6 @@ describe('public Model Config contract', () => {
     const onOpenOwnerConfiguration = vi.fn();
     const onOverwrite = vi.fn<ModelConfigOverwrite>(async () => undefined);
     const node = await renderSurface(onOverwrite, vi.fn(), {
-      cloudAIConfig: undefined,
-      consumer: 'third-party-app',
       initialCapabilityContract: 'text.generate',
       onOpenOwnerConfiguration,
     });
@@ -266,49 +248,6 @@ describe('public Model Config contract', () => {
     expect(node.querySelector('[data-nimi-model-config-owner-handoff="true"]')).toBeNull();
     expect(onOpenOwnerConfiguration).not.toHaveBeenCalled();
     expect(onOverwrite).not.toHaveBeenCalled();
-  });
-
-  it('can switch consumer ownership without changing one component hook order', async () => {
-    container = document.createElement('div');
-    document.body.appendChild(container);
-    root = createRoot(container);
-    const capability = {
-      capabilityContract: 'text.generate',
-      requiredFeatures: [],
-      defaults: undefined,
-      route: { oneofKind: 'local' as const, local: { loadoutRef: 'machine-text' } },
-    };
-    const localSelections = [{
-      capabilityContract: 'text.generate',
-      state: 'selected' as const,
-      loadoutId: 'machine-text',
-      displayName: 'Machine text model',
-      supportedFeatures: [],
-      reasons: [],
-      effectiveDefaults: null,
-    }];
-    const renderConsumer = async (consumer: 'nimi-first-party' | 'third-party-app') => {
-      await act(async () => {
-        root?.render(
-          <ModelConfigAIConfigSurface
-            context={{ owner: 'app-ai-config', consumer, appId: 'test.app' }}
-            capabilityContracts={['text.generate']}
-            initialCapabilityContract="text.generate"
-            capabilities={[capability]}
-            localSelections={localSelections}
-            revision="1"
-            listOptions={async () => ({ kind: 'local-loadouts', options: [], truncated: false })}
-            onOverwrite={async () => undefined}
-          />,
-        );
-        await Promise.resolve();
-      });
-    };
-
-    await renderConsumer('third-party-app');
-    expect(container.querySelector('[data-testid="model-config-model-trigger:text.generate"]')).toBeTruthy();
-    await renderConsumer('nimi-first-party');
-    expect(container.querySelector('[data-testid="model-config-model-trigger:text.generate"]')).toBeTruthy();
   });
 
   it('commits canonical App AIConfig intent through the owner callback', async () => {
@@ -359,6 +298,7 @@ describe('public Model Config contract', () => {
       initialCapabilityContract: 'text.generate',
       capabilities: [createNimiCloudAIConfigCapabilityIntent({
         capabilityContract: 'text.generate',
+        connectorRef: 'connector-test',
         implementation: { implementationId: 'cloud-test', driverId: 'nimillm', driverDialect: 'openai' },
         providerModelTarget: {
           provider: 'provider-test',
@@ -446,46 +386,26 @@ describe('public Model Config contract', () => {
   });
 
   it('loads Cloud targets only after choosing a configured Connector', async () => {
-    const listImplementations = vi.fn(async () => [
-      {
-        optionId: 'cloud-test',
-        label: 'Cloud Test',
-        provider: 'provider-test',
-        implementation: {
-          implementationId: 'cloud-test',
-          driverId: 'nimillm',
-          driverDialect: 'openai',
-        },
-      },
-      {
-        optionId: 'cloud-other',
-        label: 'Cloud Other',
-        provider: 'provider-other',
-        implementation: {
-          implementationId: 'cloud-other',
-          driverId: 'nimillm',
-          driverDialect: 'openai',
-        },
-      },
-    ]);
-    const listTargets = vi.fn(async () => [{
-      targetId: 'cloud-model',
-      label: 'Cloud Model',
-      provider: 'provider-test',
-      providerModelTarget: {
-        provider: 'provider-test',
-        providerModelId: 'cloud-model',
-        remoteModelCatalogId: 'rmc-cloud-model',
-      },
-    }]);
+    const listOptions = vi.fn<ModelConfigListOptions>(async (query) => {
+      if (query.kind === 'local-loadouts') return { kind: query.kind, options: [], truncated: false };
+      if (query.kind === 'cloud-connectors') return {
+        kind: query.kind,
+        options: [{ connectorRef: 'connector-test', label: 'Work account', provider: 'provider-test', state: 'ready', reasons: [] }],
+        truncated: false,
+      };
+      return {
+        kind: query.kind,
+        options: [{
+          connectorRef: query.connectorRef, label: 'Cloud Model', capabilityContract: query.capabilityContract,
+          implementation: { implementationId: 'cloud-test', driverId: 'nimillm', driverDialect: 'openai' },
+          providerModelTarget: { provider: 'provider-test', providerModelId: 'cloud-model', remoteModelCatalogId: 'rmc-cloud-model' },
+          supportedFeatures: [], state: 'ready', reasons: [],
+        }],
+        truncated: false,
+      };
+    });
     const node = await renderSurface(vi.fn(async () => undefined), vi.fn(), {
-      cloudAIConfig: {
-        listImplementations,
-        listTargets,
-        listAuthorizationOptions: async () => ({
-          connectors: [{ connectorId: 'connector-test', label: 'Work account', provider: 'provider-test' }],
-        }),
-      },
+      listOptions,
     });
 
     act(() => {
@@ -501,34 +421,22 @@ describe('public Model Config contract', () => {
     await flush();
 
     expect(document.body.querySelector('[data-nimi-model-picker-source="cloud"]')).toBeNull();
-    expect(listImplementations).not.toHaveBeenCalled();
-    expect(listTargets).not.toHaveBeenCalled();
+    expect(listOptions.mock.calls.some(([query]) => query.kind === 'cloud-targets')).toBe(false);
 
     await selectField(document.body, 'Cloud Connector', 'Work account');
-    expect(listImplementations).toHaveBeenCalledWith('text.generate');
-    expect(listTargets).toHaveBeenCalledWith({
-      capabilityContract: 'text.generate',
-      provider: 'provider-test',
-      connectorId: 'connector-test',
+    expect(listOptions).toHaveBeenCalledWith({
+      kind: 'cloud-targets', capabilityContract: 'text.generate', connectorRef: 'connector-test',
     });
     expect(document.body.querySelector('[data-nimi-model-picker-source="cloud"]')?.textContent).toContain('Cloud Model');
   });
 
   it('keeps a persisted Cloud intent configured without inventing Connector ownership', async () => {
-    const listTargets = vi.fn(async () => [{
-      targetId: 'rmc-cloud-model',
-      label: 'Cloud Model',
-      provider: 'provider-test',
-      providerModelTarget: {
-        provider: 'provider-test',
-        providerModelId: 'cloud-model',
-        remoteModelCatalogId: 'rmc-cloud-model',
-      },
-    }]);
+    const listOptions = vi.fn<ModelConfigListOptions>(async () => ({ kind: 'local-loadouts', options: [], truncated: false }));
     const node = await renderSurface(vi.fn(async () => undefined), vi.fn(), {
       initialCapabilityContract: 'text.generate',
       capabilities: [createNimiCloudAIConfigCapabilityIntent({
         capabilityContract: 'text.generate',
+        connectorRef: 'connector-test',
         implementation: { implementationId: 'cloud-test', driverId: 'nimillm', driverDialect: 'openai' },
         providerModelTarget: {
           provider: 'provider-test',
@@ -536,35 +444,26 @@ describe('public Model Config contract', () => {
           remoteModelCatalogId: 'rmc-cloud-model',
         },
       })],
-      cloudAIConfig: {
-        listImplementations: vi.fn(async () => []),
-        listTargets,
-        listAuthorizationOptions: async () => ({
-          connectors: [{ connectorId: 'connector-test', label: 'Work account', provider: 'provider-test' }],
-        }),
-      },
+      listOptions,
     });
     await flush();
     await act(async () => { await new Promise((resolve) => setTimeout(resolve, 50)); });
 
-    expect(listTargets).not.toHaveBeenCalled();
+    expect(listOptions).not.toHaveBeenCalled();
     const trigger = node.querySelector('[data-testid="model-config-model-trigger:text.generate"]') as HTMLButtonElement;
     expect(trigger.textContent).toContain('set up');
     expect(trigger.textContent).not.toContain('setup needed');
-    expect(node.textContent).toContain('Current Nimi account');
-    expect(node.textContent).not.toContain('Work account');
+    expect(node.textContent).toContain('connector-test');
   });
 
-  it('fails closed with no configured Connector and delegates Cloud setup', async () => {
-    const onOpenCloudConnectorConfiguration = vi.fn();
-    const listTargets = vi.fn(async () => []);
+  it('fails closed with no configured Connector without adding a permission handoff', async () => {
+    const listOptions = vi.fn<ModelConfigListOptions>(async (query) => ({
+      kind: query.kind,
+      options: [],
+      truncated: false,
+    }) as never);
     const node = await renderSurface(vi.fn(async () => undefined), vi.fn(), {
-      onOpenCloudConnectorConfiguration,
-      cloudAIConfig: {
-        listImplementations: vi.fn(async () => []),
-        listTargets,
-        listAuthorizationOptions: async () => ({ connectors: [] }),
-      },
+      listOptions,
     });
 
     act(() => {
@@ -581,11 +480,7 @@ describe('public Model Config contract', () => {
 
     expect(document.body.textContent).toContain('No configured Cloud Connector is available.');
     expect(document.body.querySelector('[data-nimi-model-picker-source="cloud"]')).toBeNull();
-    expect(listTargets).not.toHaveBeenCalled();
-    const configure = Array.from(document.body.querySelectorAll('button'))
-      .find((button) => button.textContent?.trim() === 'Configure Cloud Connectors') as HTMLButtonElement;
-    act(() => { configure.click(); });
-    expect(onOpenCloudConnectorConfiguration).toHaveBeenCalledTimes(1);
+    expect(document.body.textContent).not.toContain('permission');
   });
 
   it('applies the kit focus ring to capability grid and machine loadout link buttons', async () => {

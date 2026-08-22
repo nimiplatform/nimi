@@ -270,12 +270,14 @@ message AIConfigLocalIntent {
 
 // AIConfigCloudIntent carries only the exact Cloud implementation and its
 // Driver-owned provider-model target selected through Nimi-owned configuration.
-// Connector, account authorization, and credential material never belong here.
+// Connector credential material never belongs here; connector_ref is the
+// stable Runtime resource selected by the owner.
 message AIConfigCloudIntent {
   CapabilityImplementationIdentity implementation = 1;
   google.protobuf.Struct provider_model_target = 2;
   reserved 3;
   reserved "connector_grant_id";
+  string connector_ref = 4;
 }
 
 // AIConfigCapabilityIntent is consumer intent only. It names an exact safe
@@ -317,11 +319,36 @@ message AIConfigLocalResourceProjection {
   repeated string reasons = 7;
 }
 
+message AIConfigCloudConnectorProjection {
+  string connector_ref = 1;
+  string label = 2;
+  string provider = 3;
+  AIConfigEffectiveState state = 4;
+  repeated string reasons = 5;
+}
+
+message AIConfigCloudTargetProjection {
+  string connector_ref = 1;
+  string label = 2;
+  string capability_contract = 3;
+  CapabilityImplementationIdentity implementation = 4;
+  google.protobuf.Struct provider_model_target = 5;
+  repeated string supported_features = 6;
+  AIConfigEffectiveState state = 7;
+  repeated string reasons = 8;
+}
+
+message AIConfigCloudResourceProjection {
+  AIConfigCloudConnectorProjection connector = 1;
+  AIConfigCloudTargetProjection target = 2;
+}
+
 message AIConfigEffectiveSelection {
   string capability_contract = 1;
   AIConfigEffectiveState state = 2;
   oneof resource {
     AIConfigLocalResourceProjection local = 3;
+    AIConfigCloudResourceProjection cloud = 5;
   }
   repeated string reasons = 4;
 }
@@ -335,9 +362,30 @@ message AIConfigLocalLoadoutOptions {
   repeated AIConfigLocalResourceProjection options = 1;
 }
 
+message AIConfigCloudConnectorOptionsQuery {
+  string capability_contract = 1;
+  string search = 2;
+}
+
+message AIConfigCloudConnectorOptions {
+  repeated AIConfigCloudConnectorProjection options = 1;
+}
+
+message AIConfigCloudTargetOptionsQuery {
+  string capability_contract = 1;
+  string connector_ref = 2;
+  string search = 3;
+}
+
+message AIConfigCloudTargetOptions {
+  repeated AIConfigCloudTargetProjection options = 1;
+}
+
 message ListAppAIConfigOptionsRequest {
   oneof query {
     AIConfigLocalLoadoutOptionsQuery local_loadouts = 1;
+    AIConfigCloudConnectorOptionsQuery cloud_connectors = 2;
+    AIConfigCloudTargetOptionsQuery cloud_targets = 3;
   }
   // Desktop manager consistency assertion. Protected App callers omit it and
   // Runtime derives the self owner from the admitted session.
@@ -347,6 +395,8 @@ message ListAppAIConfigOptionsRequest {
 message ListAppAIConfigOptionsResponse {
   oneof result {
     AIConfigLocalLoadoutOptions local_loadouts = 1;
+    AIConfigCloudConnectorOptions cloud_connectors = 3;
+    AIConfigCloudTargetOptions cloud_targets = 4;
   }
   bool truncated = 2;
 }

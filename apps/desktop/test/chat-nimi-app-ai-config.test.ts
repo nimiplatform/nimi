@@ -28,6 +28,7 @@ test('Nimi Chat locates canonical text intent without owning its construction', 
   });
   const textIntent = createNimiCloudAIConfigCapabilityIntent({
     capabilityContract: 'text.generate',
+    connectorRef: 'connector:text',
     requiredFeatures: ['tool.use'],
     implementation: {
       implementationId: 'openai',

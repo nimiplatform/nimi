@@ -867,10 +867,18 @@ message OverwriteSharedLocalAgentAIConfigResponse {
 }
 message ListSharedLocalAgentAIConfigOptionsRequest {
   AgentRequestContext context = 1;
-  AIConfigLocalLoadoutOptionsQuery local_loadouts = 2;
+  oneof query {
+    AIConfigLocalLoadoutOptionsQuery local_loadouts = 2;
+    AIConfigCloudConnectorOptionsQuery cloud_connectors = 3;
+    AIConfigCloudTargetOptionsQuery cloud_targets = 4;
+  }
 }
 message ListSharedLocalAgentAIConfigOptionsResponse {
-  AIConfigLocalLoadoutOptions local_loadouts = 1;
+  oneof result {
+    AIConfigLocalLoadoutOptions local_loadouts = 1;
+    AIConfigCloudConnectorOptions cloud_connectors = 3;
+    AIConfigCloudTargetOptions cloud_targets = 4;
+  }
   bool truncated = 2;
 }
 // AIProfile remains a portable template. Apply writes complete current owner

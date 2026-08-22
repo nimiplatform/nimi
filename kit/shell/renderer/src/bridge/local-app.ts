@@ -13,6 +13,7 @@ import type {
   NimiLocalAppAgentHandle,
   NimiPortableAppAIConfig,
 } from '@nimiplatform/kit/core/sdk-contract';
+import { runtimeAIConfigStructToJson } from '@nimiplatform/kit/core/sdk-contract';
 import { BridgeError, invoke, invokeChecked } from './invoke.js';
 import { listenShell } from './tauri-api.js';
 import { assertRecord, parseRequiredString } from './types.js';
@@ -509,9 +510,12 @@ export function listNimiLocalAppAIConfigOptions(
   query: NimiAIConfigOptionsQuery,
 ): Promise<NimiAIConfigOptionsResult> {
   const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.aiConfigLocalOptions'];
-  if (query.kind !== 'local-loadouts') throw invalidInput(command, 'options query kind is invalid');
   const payload = {
+    kind: query.kind,
     capabilityContract: requiredText(query.capabilityContract, 'capabilityContract', command, MAX_IDENTIFIER_LENGTH),
+    ...(query.kind === 'cloud-targets'
+      ? { connectorRef: requiredText(query.connectorRef, 'connectorRef', command, MAX_IDENTIFIER_LENGTH) }
+      : {}),
     search: query.search ?? '',
   };
   return invokeChecked(command, payload, (value) => parseAppAIConfigOptions(value, command));
@@ -872,9 +876,12 @@ export function listNimiLocalAppSharedAgentAIConfigOptions(
   query: NimiAIConfigOptionsQuery,
 ): Promise<NimiAIConfigOptionsResult> {
   const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.sharedAgentAIConfigLocalOptions'];
-  if (query.kind !== 'local-loadouts') throw invalidInput(command, 'options query kind is invalid');
   return invokeChecked(command, {
+    kind: query.kind,
     capabilityContract: requiredText(query.capabilityContract, 'capabilityContract', command, MAX_IDENTIFIER_LENGTH),
+    ...(query.kind === 'cloud-targets'
+      ? { connectorRef: requiredText(query.connectorRef, 'connectorRef', command, MAX_IDENTIFIER_LENGTH) }
+      : {}),
     search: query.search ?? '',
   }, (value) => parseAppAIConfigOptions(value, command));
 }
@@ -2116,12 +2123,14 @@ function parseAppAIConfigOptions(value: unknown, command: string): NimiAIConfigO
   const result = parseSafeProjection(value, command);
   rejectPortableAppAIConfigFields(result, command);
   assertProjectionKeys(result, ['kind', 'options', 'truncated'], command, 'App AIConfig options');
-  if (result.kind !== 'local-loadouts' || !Array.isArray(result.options)
+  if (!['local-loadouts', 'cloud-connectors', 'cloud-targets'].includes(String(result.kind)) || !Array.isArray(result.options)
     || result.options.length > 100 || typeof result.truncated !== 'boolean') {
     throw new Error(`${command}: options result is invalid`);
   }
-  result.options.forEach((option) => parseLocalResource(option, command));
-  return Object.freeze({ kind: 'local-loadouts', options: Object.freeze([...result.options]), truncated: result.truncated }) as NimiAIConfigOptionsResult;
+  if (result.kind === 'local-loadouts') result.options.forEach((option) => parseLocalResource(option, command));
+  else if (result.kind === 'cloud-connectors') result.options.forEach((option) => parseCloudConnectorResource(option, command));
+  else result.options.forEach((option) => parseCloudTargetResource(option, command));
+  return Object.freeze({ kind: result.kind, options: Object.freeze([...result.options]), truncated: result.truncated }) as NimiAIConfigOptionsResult;
 }
 
 function parseEffectiveSelection(value: unknown, command: string): void {
@@ -2134,9 +2143,54 @@ function parseEffectiveSelection(value: unknown, command: string): void {
   }
   if (selection.resource !== null) {
     const resource = assertRecord(selection.resource, `${command}: effective resource is invalid`);
-    assertProjectionKeys(resource, ['oneofKind', 'local'], command, 'effective resource');
-    if (resource.oneofKind !== 'local') throw new Error(`${command}: effective resource kind is invalid`);
-    parseLocalResource(resource.local, command);
+    if (resource.oneofKind === 'local') {
+      assertProjectionKeys(resource, ['oneofKind', 'local'], command, 'effective Local resource');
+      parseLocalResource(resource.local, command);
+    } else if (resource.oneofKind === 'cloud') {
+      assertProjectionKeys(resource, ['oneofKind', 'cloud'], command, 'effective Cloud resource');
+      const cloud = assertRecord(resource.cloud, `${command}: effective Cloud resource is invalid`);
+      assertProjectionKeys(cloud, ['connector', 'target'], command, 'effective Cloud resource');
+      parseCloudConnectorResource(cloud.connector, command);
+      parseCloudTargetResource(cloud.target, command);
+    } else throw new Error(`${command}: effective resource kind is invalid`);
+  }
+}
+
+function parseCloudConnectorResource(value: unknown, command: string): void {
+  const resource = assertRecord(value, `${command}: Cloud Connector resource is invalid`);
+  assertProjectionKeys(resource, ['connectorRef', 'label', 'provider', 'state', 'reasons'], command, 'Cloud Connector resource');
+  requiredText(resource.connectorRef, 'connectorRef', command, MAX_IDENTIFIER_LENGTH);
+  requiredText(resource.label, 'label', command, MAX_IDENTIFIER_LENGTH);
+  requiredText(resource.provider, 'provider', command, MAX_IDENTIFIER_LENGTH);
+  if (!Array.isArray(resource.reasons) || !['ready', 'blocked'].includes(String(resource.state))) {
+    throw new Error(`${command}: Cloud Connector resource is invalid`);
+  }
+}
+
+function parseCloudTargetResource(value: unknown, command: string): void {
+  const resource = assertRecord(value, `${command}: Cloud target resource is invalid`);
+  assertProjectionKeys(resource, [
+    'connectorRef', 'label', 'capabilityContract', 'implementation', 'providerModelTarget',
+    'supportedFeatures', 'state', 'reasons',
+  ], command, 'Cloud target resource');
+  requiredText(resource.connectorRef, 'connectorRef', command, MAX_IDENTIFIER_LENGTH);
+  requiredText(resource.label, 'label', command, MAX_IDENTIFIER_LENGTH);
+  requiredText(resource.capabilityContract, 'capabilityContract', command, MAX_IDENTIFIER_LENGTH);
+  const implementation = assertRecord(resource.implementation, `${command}: Cloud target implementation is invalid`);
+  assertProjectionKeys(implementation, ['implementationId', 'driverId', 'driverDialect'], command, 'Cloud target implementation');
+  for (const key of ['implementationId', 'driverId', 'driverDialect'] as const) {
+    requiredText(implementation[key], key, command, MAX_IDENTIFIER_LENGTH);
+  }
+  const providerModelTarget = assertRecord(
+    resource.providerModelTarget,
+    `${command}: Cloud provider-model target is invalid`,
+  );
+  resource.providerModelTarget = runtimeAIConfigStructToJson(
+    providerModelTarget as unknown as Parameters<typeof runtimeAIConfigStructToJson>[0],
+  );
+  if (!Array.isArray(resource.supportedFeatures) || !Array.isArray(resource.reasons)
+    || !['ready', 'blocked'].includes(String(resource.state))) {
+    throw new Error(`${command}: Cloud target resource is invalid`);
   }
 }
 
@@ -2303,8 +2357,8 @@ function canonicalAIConfigRoute(route: JsonObject, index: number, command: strin
   const cloud = assertRecord(route.cloud, `${command}: capabilities[${index}].route.cloud is invalid`);
   assertAllowedInputKeys(
     cloud,
-    ['implementation', 'providerModelTarget'],
-    ['implementation'],
+    ['connectorRef', 'implementation', 'providerModelTarget'],
+    ['connectorRef', 'implementation'],
     command,
   );
   const implementation = assertRecord(
@@ -2318,6 +2372,7 @@ function canonicalAIConfigRoute(route: JsonObject, index: number, command: strin
     `capabilities[${index}].route.cloud.implementation`,
   );
   const canonicalCloud: JsonObject = {
+    connectorRef: requiredText(cloud.connectorRef, 'connectorRef', command, MAX_IDENTIFIER_LENGTH),
     implementation: {
       implementationId: requiredText(implementation.implementationId, 'implementationId', command, MAX_IDENTIFIER_LENGTH),
       driverId: requiredText(implementation.driverId, 'driverId', command, MAX_IDENTIFIER_LENGTH),

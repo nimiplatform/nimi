@@ -678,7 +678,8 @@ export interface AIConfigLocalIntent {
 /**
  * AIConfigCloudIntent carries only the exact Cloud implementation and its
  * Driver-owned provider-model target selected through Nimi-owned configuration.
- * Connector, account authorization, and credential material never belong here.
+ * Connector credential material never belongs here; connector_ref is the
+ * stable Runtime resource selected by the owner.
  *
  * @generated from protobuf message nimi.runtime.v1.AIConfigCloudIntent
  */
@@ -691,6 +692,10 @@ export interface AIConfigCloudIntent {
      * @generated from protobuf field: google.protobuf.Struct provider_model_target = 2
      */
     providerModelTarget?: Struct;
+    /**
+     * @generated from protobuf field: string connector_ref = 4
+     */
+    connectorRef: string;
 }
 /**
  * AIConfigCapabilityIntent is consumer intent only. It names an exact safe
@@ -782,6 +787,81 @@ export interface AIConfigLocalResourceProjection {
     reasons: string[];
 }
 /**
+ * @generated from protobuf message nimi.runtime.v1.AIConfigCloudConnectorProjection
+ */
+export interface AIConfigCloudConnectorProjection {
+    /**
+     * @generated from protobuf field: string connector_ref = 1
+     */
+    connectorRef: string;
+    /**
+     * @generated from protobuf field: string label = 2
+     */
+    label: string;
+    /**
+     * @generated from protobuf field: string provider = 3
+     */
+    provider: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AIConfigEffectiveState state = 4
+     */
+    state: AIConfigEffectiveState;
+    /**
+     * @generated from protobuf field: repeated string reasons = 5
+     */
+    reasons: string[];
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.AIConfigCloudTargetProjection
+ */
+export interface AIConfigCloudTargetProjection {
+    /**
+     * @generated from protobuf field: string connector_ref = 1
+     */
+    connectorRef: string;
+    /**
+     * @generated from protobuf field: string label = 2
+     */
+    label: string;
+    /**
+     * @generated from protobuf field: string capability_contract = 3
+     */
+    capabilityContract: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.CapabilityImplementationIdentity implementation = 4
+     */
+    implementation?: CapabilityImplementationIdentity;
+    /**
+     * @generated from protobuf field: google.protobuf.Struct provider_model_target = 5
+     */
+    providerModelTarget?: Struct;
+    /**
+     * @generated from protobuf field: repeated string supported_features = 6
+     */
+    supportedFeatures: string[];
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AIConfigEffectiveState state = 7
+     */
+    state: AIConfigEffectiveState;
+    /**
+     * @generated from protobuf field: repeated string reasons = 8
+     */
+    reasons: string[];
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.AIConfigCloudResourceProjection
+ */
+export interface AIConfigCloudResourceProjection {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AIConfigCloudConnectorProjection connector = 1
+     */
+    connector?: AIConfigCloudConnectorProjection;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AIConfigCloudTargetProjection target = 2
+     */
+    target?: AIConfigCloudTargetProjection;
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.AIConfigEffectiveSelection
  */
 export interface AIConfigEffectiveSelection {
@@ -802,6 +882,12 @@ export interface AIConfigEffectiveSelection {
          * @generated from protobuf field: nimi.runtime.v1.AIConfigLocalResourceProjection local = 3
          */
         local: AIConfigLocalResourceProjection;
+    } | {
+        oneofKind: "cloud";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.AIConfigCloudResourceProjection cloud = 5
+         */
+        cloud: AIConfigCloudResourceProjection;
     } | {
         oneofKind: undefined;
     };
@@ -833,6 +919,54 @@ export interface AIConfigLocalLoadoutOptions {
     options: AIConfigLocalResourceProjection[];
 }
 /**
+ * @generated from protobuf message nimi.runtime.v1.AIConfigCloudConnectorOptionsQuery
+ */
+export interface AIConfigCloudConnectorOptionsQuery {
+    /**
+     * @generated from protobuf field: string capability_contract = 1
+     */
+    capabilityContract: string;
+    /**
+     * @generated from protobuf field: string search = 2
+     */
+    search: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.AIConfigCloudConnectorOptions
+ */
+export interface AIConfigCloudConnectorOptions {
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.AIConfigCloudConnectorProjection options = 1
+     */
+    options: AIConfigCloudConnectorProjection[];
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.AIConfigCloudTargetOptionsQuery
+ */
+export interface AIConfigCloudTargetOptionsQuery {
+    /**
+     * @generated from protobuf field: string capability_contract = 1
+     */
+    capabilityContract: string;
+    /**
+     * @generated from protobuf field: string connector_ref = 2
+     */
+    connectorRef: string;
+    /**
+     * @generated from protobuf field: string search = 3
+     */
+    search: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.AIConfigCloudTargetOptions
+ */
+export interface AIConfigCloudTargetOptions {
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.AIConfigCloudTargetProjection options = 1
+     */
+    options: AIConfigCloudTargetProjection[];
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.ListAppAIConfigOptionsRequest
  */
 export interface ListAppAIConfigOptionsRequest {
@@ -845,6 +979,18 @@ export interface ListAppAIConfigOptionsRequest {
          * @generated from protobuf field: nimi.runtime.v1.AIConfigLocalLoadoutOptionsQuery local_loadouts = 1
          */
         localLoadouts: AIConfigLocalLoadoutOptionsQuery;
+    } | {
+        oneofKind: "cloudConnectors";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.AIConfigCloudConnectorOptionsQuery cloud_connectors = 2
+         */
+        cloudConnectors: AIConfigCloudConnectorOptionsQuery;
+    } | {
+        oneofKind: "cloudTargets";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.AIConfigCloudTargetOptionsQuery cloud_targets = 3
+         */
+        cloudTargets: AIConfigCloudTargetOptionsQuery;
     } | {
         oneofKind: undefined;
     };
@@ -869,6 +1015,18 @@ export interface ListAppAIConfigOptionsResponse {
          * @generated from protobuf field: nimi.runtime.v1.AIConfigLocalLoadoutOptions local_loadouts = 1
          */
         localLoadouts: AIConfigLocalLoadoutOptions;
+    } | {
+        oneofKind: "cloudConnectors";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.AIConfigCloudConnectorOptions cloud_connectors = 3
+         */
+        cloudConnectors: AIConfigCloudConnectorOptions;
+    } | {
+        oneofKind: "cloudTargets";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.AIConfigCloudTargetOptions cloud_targets = 4
+         */
+        cloudTargets: AIConfigCloudTargetOptions;
     } | {
         oneofKind: undefined;
     };
@@ -3379,11 +3537,13 @@ class AIConfigCloudIntent$Type extends MessageType<AIConfigCloudIntent> {
     constructor() {
         super("nimi.runtime.v1.AIConfigCloudIntent", [
             { no: 1, name: "implementation", kind: "message", T: () => CapabilityImplementationIdentity },
-            { no: 2, name: "provider_model_target", kind: "message", T: () => Struct }
+            { no: 2, name: "provider_model_target", kind: "message", T: () => Struct },
+            { no: 4, name: "connector_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<AIConfigCloudIntent>): AIConfigCloudIntent {
         const message = globalThis.Object.create((this.messagePrototype!));
+        message.connectorRef = "";
         if (value !== undefined)
             reflectionMergePartial<AIConfigCloudIntent>(this, message, value);
         return message;
@@ -3398,6 +3558,9 @@ class AIConfigCloudIntent$Type extends MessageType<AIConfigCloudIntent> {
                     break;
                 case /* google.protobuf.Struct provider_model_target */ 2:
                     message.providerModelTarget = Struct.internalBinaryRead(reader, reader.uint32(), options, message.providerModelTarget);
+                    break;
+                case /* string connector_ref */ 4:
+                    message.connectorRef = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -3417,6 +3580,9 @@ class AIConfigCloudIntent$Type extends MessageType<AIConfigCloudIntent> {
         /* google.protobuf.Struct provider_model_target = 2; */
         if (message.providerModelTarget)
             Struct.internalBinaryWrite(message.providerModelTarget, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        /* string connector_ref = 4; */
+        if (message.connectorRef !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.connectorRef);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -3659,12 +3825,246 @@ class AIConfigLocalResourceProjection$Type extends MessageType<AIConfigLocalReso
  */
 export const AIConfigLocalResourceProjection = new AIConfigLocalResourceProjection$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class AIConfigCloudConnectorProjection$Type extends MessageType<AIConfigCloudConnectorProjection> {
+    constructor() {
+        super("nimi.runtime.v1.AIConfigCloudConnectorProjection", [
+            { no: 1, name: "connector_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "label", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "provider", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "state", kind: "enum", T: () => ["nimi.runtime.v1.AIConfigEffectiveState", AIConfigEffectiveState] },
+            { no: 5, name: "reasons", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<AIConfigCloudConnectorProjection>): AIConfigCloudConnectorProjection {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.connectorRef = "";
+        message.label = "";
+        message.provider = "";
+        message.state = 0;
+        message.reasons = [];
+        if (value !== undefined)
+            reflectionMergePartial<AIConfigCloudConnectorProjection>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AIConfigCloudConnectorProjection): AIConfigCloudConnectorProjection {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string connector_ref */ 1:
+                    message.connectorRef = reader.string();
+                    break;
+                case /* string label */ 2:
+                    message.label = reader.string();
+                    break;
+                case /* string provider */ 3:
+                    message.provider = reader.string();
+                    break;
+                case /* nimi.runtime.v1.AIConfigEffectiveState state */ 4:
+                    message.state = reader.int32();
+                    break;
+                case /* repeated string reasons */ 5:
+                    message.reasons.push(reader.string());
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: AIConfigCloudConnectorProjection, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string connector_ref = 1; */
+        if (message.connectorRef !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.connectorRef);
+        /* string label = 2; */
+        if (message.label !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.label);
+        /* string provider = 3; */
+        if (message.provider !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.provider);
+        /* nimi.runtime.v1.AIConfigEffectiveState state = 4; */
+        if (message.state !== 0)
+            writer.tag(4, WireType.Varint).int32(message.state);
+        /* repeated string reasons = 5; */
+        for (let i = 0; i < message.reasons.length; i++)
+            writer.tag(5, WireType.LengthDelimited).string(message.reasons[i]);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.AIConfigCloudConnectorProjection
+ */
+export const AIConfigCloudConnectorProjection = new AIConfigCloudConnectorProjection$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class AIConfigCloudTargetProjection$Type extends MessageType<AIConfigCloudTargetProjection> {
+    constructor() {
+        super("nimi.runtime.v1.AIConfigCloudTargetProjection", [
+            { no: 1, name: "connector_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "label", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "capability_contract", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "implementation", kind: "message", T: () => CapabilityImplementationIdentity },
+            { no: 5, name: "provider_model_target", kind: "message", T: () => Struct },
+            { no: 6, name: "supported_features", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 7, name: "state", kind: "enum", T: () => ["nimi.runtime.v1.AIConfigEffectiveState", AIConfigEffectiveState] },
+            { no: 8, name: "reasons", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<AIConfigCloudTargetProjection>): AIConfigCloudTargetProjection {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.connectorRef = "";
+        message.label = "";
+        message.capabilityContract = "";
+        message.supportedFeatures = [];
+        message.state = 0;
+        message.reasons = [];
+        if (value !== undefined)
+            reflectionMergePartial<AIConfigCloudTargetProjection>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AIConfigCloudTargetProjection): AIConfigCloudTargetProjection {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string connector_ref */ 1:
+                    message.connectorRef = reader.string();
+                    break;
+                case /* string label */ 2:
+                    message.label = reader.string();
+                    break;
+                case /* string capability_contract */ 3:
+                    message.capabilityContract = reader.string();
+                    break;
+                case /* nimi.runtime.v1.CapabilityImplementationIdentity implementation */ 4:
+                    message.implementation = CapabilityImplementationIdentity.internalBinaryRead(reader, reader.uint32(), options, message.implementation);
+                    break;
+                case /* google.protobuf.Struct provider_model_target */ 5:
+                    message.providerModelTarget = Struct.internalBinaryRead(reader, reader.uint32(), options, message.providerModelTarget);
+                    break;
+                case /* repeated string supported_features */ 6:
+                    message.supportedFeatures.push(reader.string());
+                    break;
+                case /* nimi.runtime.v1.AIConfigEffectiveState state */ 7:
+                    message.state = reader.int32();
+                    break;
+                case /* repeated string reasons */ 8:
+                    message.reasons.push(reader.string());
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: AIConfigCloudTargetProjection, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string connector_ref = 1; */
+        if (message.connectorRef !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.connectorRef);
+        /* string label = 2; */
+        if (message.label !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.label);
+        /* string capability_contract = 3; */
+        if (message.capabilityContract !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.capabilityContract);
+        /* nimi.runtime.v1.CapabilityImplementationIdentity implementation = 4; */
+        if (message.implementation)
+            CapabilityImplementationIdentity.internalBinaryWrite(message.implementation, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
+        /* google.protobuf.Struct provider_model_target = 5; */
+        if (message.providerModelTarget)
+            Struct.internalBinaryWrite(message.providerModelTarget, writer.tag(5, WireType.LengthDelimited).fork(), options).join();
+        /* repeated string supported_features = 6; */
+        for (let i = 0; i < message.supportedFeatures.length; i++)
+            writer.tag(6, WireType.LengthDelimited).string(message.supportedFeatures[i]);
+        /* nimi.runtime.v1.AIConfigEffectiveState state = 7; */
+        if (message.state !== 0)
+            writer.tag(7, WireType.Varint).int32(message.state);
+        /* repeated string reasons = 8; */
+        for (let i = 0; i < message.reasons.length; i++)
+            writer.tag(8, WireType.LengthDelimited).string(message.reasons[i]);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.AIConfigCloudTargetProjection
+ */
+export const AIConfigCloudTargetProjection = new AIConfigCloudTargetProjection$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class AIConfigCloudResourceProjection$Type extends MessageType<AIConfigCloudResourceProjection> {
+    constructor() {
+        super("nimi.runtime.v1.AIConfigCloudResourceProjection", [
+            { no: 1, name: "connector", kind: "message", T: () => AIConfigCloudConnectorProjection },
+            { no: 2, name: "target", kind: "message", T: () => AIConfigCloudTargetProjection }
+        ]);
+    }
+    create(value?: PartialMessage<AIConfigCloudResourceProjection>): AIConfigCloudResourceProjection {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<AIConfigCloudResourceProjection>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AIConfigCloudResourceProjection): AIConfigCloudResourceProjection {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.AIConfigCloudConnectorProjection connector */ 1:
+                    message.connector = AIConfigCloudConnectorProjection.internalBinaryRead(reader, reader.uint32(), options, message.connector);
+                    break;
+                case /* nimi.runtime.v1.AIConfigCloudTargetProjection target */ 2:
+                    message.target = AIConfigCloudTargetProjection.internalBinaryRead(reader, reader.uint32(), options, message.target);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: AIConfigCloudResourceProjection, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.AIConfigCloudConnectorProjection connector = 1; */
+        if (message.connector)
+            AIConfigCloudConnectorProjection.internalBinaryWrite(message.connector, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.AIConfigCloudTargetProjection target = 2; */
+        if (message.target)
+            AIConfigCloudTargetProjection.internalBinaryWrite(message.target, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.AIConfigCloudResourceProjection
+ */
+export const AIConfigCloudResourceProjection = new AIConfigCloudResourceProjection$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class AIConfigEffectiveSelection$Type extends MessageType<AIConfigEffectiveSelection> {
     constructor() {
         super("nimi.runtime.v1.AIConfigEffectiveSelection", [
             { no: 1, name: "capability_contract", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "state", kind: "enum", T: () => ["nimi.runtime.v1.AIConfigEffectiveState", AIConfigEffectiveState] },
             { no: 3, name: "local", kind: "message", oneof: "resource", T: () => AIConfigLocalResourceProjection },
+            { no: 5, name: "cloud", kind: "message", oneof: "resource", T: () => AIConfigCloudResourceProjection },
             { no: 4, name: "reasons", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ }
         ]);
     }
@@ -3695,6 +4095,12 @@ class AIConfigEffectiveSelection$Type extends MessageType<AIConfigEffectiveSelec
                         local: AIConfigLocalResourceProjection.internalBinaryRead(reader, reader.uint32(), options, (message.resource as any).local)
                     };
                     break;
+                case /* nimi.runtime.v1.AIConfigCloudResourceProjection cloud */ 5:
+                    message.resource = {
+                        oneofKind: "cloud",
+                        cloud: AIConfigCloudResourceProjection.internalBinaryRead(reader, reader.uint32(), options, (message.resource as any).cloud)
+                    };
+                    break;
                 case /* repeated string reasons */ 4:
                     message.reasons.push(reader.string());
                     break;
@@ -3722,6 +4128,9 @@ class AIConfigEffectiveSelection$Type extends MessageType<AIConfigEffectiveSelec
         /* repeated string reasons = 4; */
         for (let i = 0; i < message.reasons.length; i++)
             writer.tag(4, WireType.LengthDelimited).string(message.reasons[i]);
+        /* nimi.runtime.v1.AIConfigCloudResourceProjection cloud = 5; */
+        if (message.resource.oneofKind === "cloud")
+            AIConfigCloudResourceProjection.internalBinaryWrite(message.resource.cloud, writer.tag(5, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -3835,10 +4244,224 @@ class AIConfigLocalLoadoutOptions$Type extends MessageType<AIConfigLocalLoadoutO
  */
 export const AIConfigLocalLoadoutOptions = new AIConfigLocalLoadoutOptions$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class AIConfigCloudConnectorOptionsQuery$Type extends MessageType<AIConfigCloudConnectorOptionsQuery> {
+    constructor() {
+        super("nimi.runtime.v1.AIConfigCloudConnectorOptionsQuery", [
+            { no: 1, name: "capability_contract", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "search", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<AIConfigCloudConnectorOptionsQuery>): AIConfigCloudConnectorOptionsQuery {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.capabilityContract = "";
+        message.search = "";
+        if (value !== undefined)
+            reflectionMergePartial<AIConfigCloudConnectorOptionsQuery>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AIConfigCloudConnectorOptionsQuery): AIConfigCloudConnectorOptionsQuery {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string capability_contract */ 1:
+                    message.capabilityContract = reader.string();
+                    break;
+                case /* string search */ 2:
+                    message.search = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: AIConfigCloudConnectorOptionsQuery, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string capability_contract = 1; */
+        if (message.capabilityContract !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.capabilityContract);
+        /* string search = 2; */
+        if (message.search !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.search);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.AIConfigCloudConnectorOptionsQuery
+ */
+export const AIConfigCloudConnectorOptionsQuery = new AIConfigCloudConnectorOptionsQuery$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class AIConfigCloudConnectorOptions$Type extends MessageType<AIConfigCloudConnectorOptions> {
+    constructor() {
+        super("nimi.runtime.v1.AIConfigCloudConnectorOptions", [
+            { no: 1, name: "options", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => AIConfigCloudConnectorProjection }
+        ]);
+    }
+    create(value?: PartialMessage<AIConfigCloudConnectorOptions>): AIConfigCloudConnectorOptions {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.options = [];
+        if (value !== undefined)
+            reflectionMergePartial<AIConfigCloudConnectorOptions>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AIConfigCloudConnectorOptions): AIConfigCloudConnectorOptions {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* repeated nimi.runtime.v1.AIConfigCloudConnectorProjection options */ 1:
+                    message.options.push(AIConfigCloudConnectorProjection.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: AIConfigCloudConnectorOptions, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* repeated nimi.runtime.v1.AIConfigCloudConnectorProjection options = 1; */
+        for (let i = 0; i < message.options.length; i++)
+            AIConfigCloudConnectorProjection.internalBinaryWrite(message.options[i], writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.AIConfigCloudConnectorOptions
+ */
+export const AIConfigCloudConnectorOptions = new AIConfigCloudConnectorOptions$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class AIConfigCloudTargetOptionsQuery$Type extends MessageType<AIConfigCloudTargetOptionsQuery> {
+    constructor() {
+        super("nimi.runtime.v1.AIConfigCloudTargetOptionsQuery", [
+            { no: 1, name: "capability_contract", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "connector_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "search", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<AIConfigCloudTargetOptionsQuery>): AIConfigCloudTargetOptionsQuery {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.capabilityContract = "";
+        message.connectorRef = "";
+        message.search = "";
+        if (value !== undefined)
+            reflectionMergePartial<AIConfigCloudTargetOptionsQuery>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AIConfigCloudTargetOptionsQuery): AIConfigCloudTargetOptionsQuery {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string capability_contract */ 1:
+                    message.capabilityContract = reader.string();
+                    break;
+                case /* string connector_ref */ 2:
+                    message.connectorRef = reader.string();
+                    break;
+                case /* string search */ 3:
+                    message.search = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: AIConfigCloudTargetOptionsQuery, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string capability_contract = 1; */
+        if (message.capabilityContract !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.capabilityContract);
+        /* string connector_ref = 2; */
+        if (message.connectorRef !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.connectorRef);
+        /* string search = 3; */
+        if (message.search !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.search);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.AIConfigCloudTargetOptionsQuery
+ */
+export const AIConfigCloudTargetOptionsQuery = new AIConfigCloudTargetOptionsQuery$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class AIConfigCloudTargetOptions$Type extends MessageType<AIConfigCloudTargetOptions> {
+    constructor() {
+        super("nimi.runtime.v1.AIConfigCloudTargetOptions", [
+            { no: 1, name: "options", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => AIConfigCloudTargetProjection }
+        ]);
+    }
+    create(value?: PartialMessage<AIConfigCloudTargetOptions>): AIConfigCloudTargetOptions {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.options = [];
+        if (value !== undefined)
+            reflectionMergePartial<AIConfigCloudTargetOptions>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AIConfigCloudTargetOptions): AIConfigCloudTargetOptions {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* repeated nimi.runtime.v1.AIConfigCloudTargetProjection options */ 1:
+                    message.options.push(AIConfigCloudTargetProjection.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: AIConfigCloudTargetOptions, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* repeated nimi.runtime.v1.AIConfigCloudTargetProjection options = 1; */
+        for (let i = 0; i < message.options.length; i++)
+            AIConfigCloudTargetProjection.internalBinaryWrite(message.options[i], writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.AIConfigCloudTargetOptions
+ */
+export const AIConfigCloudTargetOptions = new AIConfigCloudTargetOptions$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class ListAppAIConfigOptionsRequest$Type extends MessageType<ListAppAIConfigOptionsRequest> {
     constructor() {
         super("nimi.runtime.v1.ListAppAIConfigOptionsRequest", [
             { no: 1, name: "local_loadouts", kind: "message", oneof: "query", T: () => AIConfigLocalLoadoutOptionsQuery },
+            { no: 2, name: "cloud_connectors", kind: "message", oneof: "query", T: () => AIConfigCloudConnectorOptionsQuery },
+            { no: 3, name: "cloud_targets", kind: "message", oneof: "query", T: () => AIConfigCloudTargetOptionsQuery },
             { no: 4, name: "owner", kind: "message", T: () => AIConfigOwner }
         ]);
     }
@@ -3860,6 +4483,18 @@ class ListAppAIConfigOptionsRequest$Type extends MessageType<ListAppAIConfigOpti
                         localLoadouts: AIConfigLocalLoadoutOptionsQuery.internalBinaryRead(reader, reader.uint32(), options, (message.query as any).localLoadouts)
                     };
                     break;
+                case /* nimi.runtime.v1.AIConfigCloudConnectorOptionsQuery cloud_connectors */ 2:
+                    message.query = {
+                        oneofKind: "cloudConnectors",
+                        cloudConnectors: AIConfigCloudConnectorOptionsQuery.internalBinaryRead(reader, reader.uint32(), options, (message.query as any).cloudConnectors)
+                    };
+                    break;
+                case /* nimi.runtime.v1.AIConfigCloudTargetOptionsQuery cloud_targets */ 3:
+                    message.query = {
+                        oneofKind: "cloudTargets",
+                        cloudTargets: AIConfigCloudTargetOptionsQuery.internalBinaryRead(reader, reader.uint32(), options, (message.query as any).cloudTargets)
+                    };
+                    break;
                 case /* nimi.runtime.v1.AIConfigOwner owner */ 4:
                     message.owner = AIConfigOwner.internalBinaryRead(reader, reader.uint32(), options, message.owner);
                     break;
@@ -3878,6 +4513,12 @@ class ListAppAIConfigOptionsRequest$Type extends MessageType<ListAppAIConfigOpti
         /* nimi.runtime.v1.AIConfigLocalLoadoutOptionsQuery local_loadouts = 1; */
         if (message.query.oneofKind === "localLoadouts")
             AIConfigLocalLoadoutOptionsQuery.internalBinaryWrite(message.query.localLoadouts, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.AIConfigCloudConnectorOptionsQuery cloud_connectors = 2; */
+        if (message.query.oneofKind === "cloudConnectors")
+            AIConfigCloudConnectorOptionsQuery.internalBinaryWrite(message.query.cloudConnectors, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.AIConfigCloudTargetOptionsQuery cloud_targets = 3; */
+        if (message.query.oneofKind === "cloudTargets")
+            AIConfigCloudTargetOptionsQuery.internalBinaryWrite(message.query.cloudTargets, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
         /* nimi.runtime.v1.AIConfigOwner owner = 4; */
         if (message.owner)
             AIConfigOwner.internalBinaryWrite(message.owner, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
@@ -3896,6 +4537,8 @@ class ListAppAIConfigOptionsResponse$Type extends MessageType<ListAppAIConfigOpt
     constructor() {
         super("nimi.runtime.v1.ListAppAIConfigOptionsResponse", [
             { no: 1, name: "local_loadouts", kind: "message", oneof: "result", T: () => AIConfigLocalLoadoutOptions },
+            { no: 3, name: "cloud_connectors", kind: "message", oneof: "result", T: () => AIConfigCloudConnectorOptions },
+            { no: 4, name: "cloud_targets", kind: "message", oneof: "result", T: () => AIConfigCloudTargetOptions },
             { no: 2, name: "truncated", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
         ]);
     }
@@ -3916,6 +4559,18 @@ class ListAppAIConfigOptionsResponse$Type extends MessageType<ListAppAIConfigOpt
                     message.result = {
                         oneofKind: "localLoadouts",
                         localLoadouts: AIConfigLocalLoadoutOptions.internalBinaryRead(reader, reader.uint32(), options, (message.result as any).localLoadouts)
+                    };
+                    break;
+                case /* nimi.runtime.v1.AIConfigCloudConnectorOptions cloud_connectors */ 3:
+                    message.result = {
+                        oneofKind: "cloudConnectors",
+                        cloudConnectors: AIConfigCloudConnectorOptions.internalBinaryRead(reader, reader.uint32(), options, (message.result as any).cloudConnectors)
+                    };
+                    break;
+                case /* nimi.runtime.v1.AIConfigCloudTargetOptions cloud_targets */ 4:
+                    message.result = {
+                        oneofKind: "cloudTargets",
+                        cloudTargets: AIConfigCloudTargetOptions.internalBinaryRead(reader, reader.uint32(), options, (message.result as any).cloudTargets)
                     };
                     break;
                 case /* bool truncated */ 2:
@@ -3939,6 +4594,12 @@ class ListAppAIConfigOptionsResponse$Type extends MessageType<ListAppAIConfigOpt
         /* bool truncated = 2; */
         if (message.truncated !== false)
             writer.tag(2, WireType.Varint).bool(message.truncated);
+        /* nimi.runtime.v1.AIConfigCloudConnectorOptions cloud_connectors = 3; */
+        if (message.result.oneofKind === "cloudConnectors")
+            AIConfigCloudConnectorOptions.internalBinaryWrite(message.result.cloudConnectors, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.AIConfigCloudTargetOptions cloud_targets = 4; */
+        if (message.result.oneofKind === "cloudTargets")
+            AIConfigCloudTargetOptions.internalBinaryWrite(message.result.cloudTargets, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

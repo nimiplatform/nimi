@@ -109,6 +109,7 @@ func TestListPresetVoicesFailsClosedForMissingCloudCompositionStages(t *testing.
 	missingImplementation := &runtimev1.AIConfigCapabilityIntent{
 		CapabilityContract: capabilitydriver.AudioSynthesizeContract,
 		Route: &runtimev1.AIConfigCapabilityIntent_Cloud{Cloud: &runtimev1.AIConfigCloudIntent{
+			ConnectorRef: "connector:test",
 			ProviderModelTarget: validTarget,
 		}},
 	}
@@ -119,6 +120,7 @@ func TestListPresetVoicesFailsClosedForMissingCloudCompositionStages(t *testing.
 	missingDriverTarget := &runtimev1.AIConfigCapabilityIntent{
 		CapabilityContract: capabilitydriver.AudioSynthesizeContract,
 		Route: &runtimev1.AIConfigCapabilityIntent_Cloud{Cloud: &runtimev1.AIConfigCloudIntent{
+			ConnectorRef: "connector:test",
 			Implementation: &runtimev1.CapabilityImplementationIdentity{
 				ImplementationId: "cloud.audio.openai", DriverId: "nimi.runtime.driver.openai", DriverDialect: "provider/media-v1",
 			},
@@ -131,6 +133,7 @@ func TestListPresetVoicesFailsClosedForMissingCloudCompositionStages(t *testing.
 	commitAudioSynthesizeIntent(t, service, "user-001", "nimi.desktop", &runtimev1.AIConfigCapabilityIntent{
 		CapabilityContract: capabilitydriver.AudioSynthesizeContract,
 		Route: &runtimev1.AIConfigCapabilityIntent_Cloud{Cloud: &runtimev1.AIConfigCloudIntent{
+			ConnectorRef: "connector:missing",
 			Implementation: &runtimev1.CapabilityImplementationIdentity{
 				ImplementationId: "cloud.audio.openai", DriverId: "nimi.runtime.driver.openai", DriverDialect: "provider/media-v1",
 			},
@@ -182,6 +185,7 @@ func commitCloudAudioSynthesizeAIConfig(t *testing.T, service *Service, accountI
 	commitAudioSynthesizeIntent(t, service, accountID, appID, &runtimev1.AIConfigCapabilityIntent{
 		CapabilityContract: capabilitydriver.AudioSynthesizeContract,
 		Route: &runtimev1.AIConfigCapabilityIntent_Cloud{Cloud: &runtimev1.AIConfigCloudIntent{
+			ConnectorRef: cloud.ConnectorID,
 			Implementation: &runtimev1.CapabilityImplementationIdentity{
 				ImplementationId: "cloud.audio." + cloud.Provider,
 				DriverId:         "nimi.runtime.driver." + cloud.Provider, DriverDialect: "provider/media-v1",

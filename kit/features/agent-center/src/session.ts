@@ -17,7 +17,6 @@ import {
   type RuntimeLocalAgentIdentityInput,
 } from '@nimiplatform/kit/core/sdk-contract';
 import type {
-  ModelConfigCloudAIConfigModule,
   ModelConfigLocalSelectionProjection,
 } from '@nimiplatform/kit/features/model-config/headless';
 import { buildAgentCenterState, replaceAgentCenterSharedAIConfig } from './state.js';
@@ -161,15 +160,12 @@ function unavailableReasonFromError(error: unknown): AgentCenterActionUnavailabl
 // @nimi-authority: rule.nimi.platform.ui-design-system.p-agent-center-007
 class ManagerSession {
   readonly appearance: AgentCenterSession['appearance'];
-  readonly cloudAIConfig?: ModelConfigCloudAIConfigModule;
   #snapshot: AgentCenterSnapshot;
   #listeners = new Set<() => void>();
 
   constructor(
     private readonly transport: SessionTransport,
-    cloudAIConfig?: ModelConfigCloudAIConfigModule,
   ) {
-    this.cloudAIConfig = cloudAIConfig;
     this.#snapshot = {
       phase: 'loading',
       state: stateWithAvailability({}, allUnavailable('unknown')),
@@ -336,7 +332,6 @@ class ManagerSession {
 
 export interface CreateFirstPartyAgentCenterSessionInput {
   readonly sharedAIConfig: AgentCenterSharedAIConfigModule;
-  readonly cloudAIConfig?: ModelConfigCloudAIConfigModule;
   readonly inspect?: NimiRuntimeAgentInspectSurface | null;
   readonly identity: RuntimeLocalAgentIdentityInput;
   readonly autonomy?: {
@@ -460,7 +455,7 @@ export function createFirstPartyAgentCenterSession(
       return input.appearance.restorePreviousAppearance();
     },
   };
-  return new ManagerSession(transport, input.cloudAIConfig) as unknown as AgentCenterSession;
+  return new ManagerSession(transport) as unknown as AgentCenterSession;
 }
 
 export interface CreateAppAgentCenterSessionInput {
@@ -644,8 +639,9 @@ function projectAppSharedAIConfig(
 function projectAIConfigEffectiveSelections(
   snapshot: NimiAIConfigSnapshot,
 ): readonly ModelConfigLocalSelectionProjection[] {
-  return Object.freeze(snapshot.effectiveSelections.map((selection) => {
+  return Object.freeze(snapshot.effectiveSelections.flatMap((selection) => {
     const local = selection.resource?.oneofKind === 'local' ? selection.resource.local : null;
+    if (!local) return [];
     return Object.freeze({
       capabilityContract: selection.capabilityContract,
       state: selection.state === 'ready'

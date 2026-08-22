@@ -1729,9 +1729,53 @@ type AIConfigCapabilityIntent struct {
 	Cloud *AIConfigCloudIntent `json:"cloud,omitempty"`
 }
 
+type AIConfigCloudConnectorOptions struct {
+	Options []AIConfigCloudConnectorProjection `json:"options,omitempty"`
+}
+
+type AIConfigCloudConnectorOptionsQuery struct {
+	CapabilityContract string `json:"capability_contract,omitempty"`
+	Search string `json:"search,omitempty"`
+}
+
+type AIConfigCloudConnectorProjection struct {
+	ConnectorRef string `json:"connector_ref,omitempty"`
+	Label string `json:"label,omitempty"`
+	Provider string `json:"provider,omitempty"`
+	State AIConfigEffectiveState `json:"state,omitempty"`
+	Reasons []string `json:"reasons,omitempty"`
+}
+
 type AIConfigCloudIntent struct {
 	Implementation *CapabilityImplementationIdentity `json:"implementation,omitempty"`
 	ProviderModelTarget map[string]any `json:"provider_model_target,omitempty"`
+	ConnectorRef string `json:"connector_ref,omitempty"`
+}
+
+type AIConfigCloudResourceProjection struct {
+	Connector *AIConfigCloudConnectorProjection `json:"connector,omitempty"`
+	Target *AIConfigCloudTargetProjection `json:"target,omitempty"`
+}
+
+type AIConfigCloudTargetOptions struct {
+	Options []AIConfigCloudTargetProjection `json:"options,omitempty"`
+}
+
+type AIConfigCloudTargetOptionsQuery struct {
+	CapabilityContract string `json:"capability_contract,omitempty"`
+	ConnectorRef string `json:"connector_ref,omitempty"`
+	Search string `json:"search,omitempty"`
+}
+
+type AIConfigCloudTargetProjection struct {
+	ConnectorRef string `json:"connector_ref,omitempty"`
+	Label string `json:"label,omitempty"`
+	CapabilityContract string `json:"capability_contract,omitempty"`
+	Implementation *CapabilityImplementationIdentity `json:"implementation,omitempty"`
+	ProviderModelTarget map[string]any `json:"provider_model_target,omitempty"`
+	SupportedFeatures []string `json:"supported_features,omitempty"`
+	State AIConfigEffectiveState `json:"state,omitempty"`
+	Reasons []string `json:"reasons,omitempty"`
 }
 
 type AIConfigEffectiveSelection struct {
@@ -1739,6 +1783,7 @@ type AIConfigEffectiveSelection struct {
 	State AIConfigEffectiveState `json:"state,omitempty"`
 	Local *AIConfigLocalResourceProjection `json:"local,omitempty"`
 	Reasons []string `json:"reasons,omitempty"`
+	Cloud *AIConfigCloudResourceProjection `json:"cloud,omitempty"`
 }
 
 type AIConfigLocalIntent struct {
@@ -3934,12 +3979,16 @@ type ListAgentsResponse struct {
 
 type ListAppAIConfigOptionsRequest struct {
 	LocalLoadouts *AIConfigLocalLoadoutOptionsQuery `json:"local_loadouts,omitempty"`
+	CloudConnectors *AIConfigCloudConnectorOptionsQuery `json:"cloud_connectors,omitempty"`
+	CloudTargets *AIConfigCloudTargetOptionsQuery `json:"cloud_targets,omitempty"`
 	Owner *AIConfigOwner `json:"owner,omitempty"`
 }
 
 type ListAppAIConfigOptionsResponse struct {
 	LocalLoadouts *AIConfigLocalLoadoutOptions `json:"local_loadouts,omitempty"`
 	Truncated bool `json:"truncated,omitempty"`
+	CloudConnectors *AIConfigCloudConnectorOptions `json:"cloud_connectors,omitempty"`
+	CloudTargets *AIConfigCloudTargetOptions `json:"cloud_targets,omitempty"`
 }
 
 type ListAuditEventsRequest struct {
@@ -4149,11 +4198,15 @@ type ListLocalAppAssetsResponse struct {
 
 type ListLocalAppSharedLocalAgentAIConfigOptionsRequest struct {
 	LocalLoadouts *AIConfigLocalLoadoutOptionsQuery `json:"local_loadouts,omitempty"`
+	CloudConnectors *AIConfigCloudConnectorOptionsQuery `json:"cloud_connectors,omitempty"`
+	CloudTargets *AIConfigCloudTargetOptionsQuery `json:"cloud_targets,omitempty"`
 }
 
 type ListLocalAppSharedLocalAgentAIConfigOptionsResponse struct {
 	LocalLoadouts *AIConfigLocalLoadoutOptions `json:"local_loadouts,omitempty"`
 	Truncated bool `json:"truncated,omitempty"`
+	CloudConnectors *AIConfigCloudConnectorOptions `json:"cloud_connectors,omitempty"`
+	CloudTargets *AIConfigCloudTargetOptions `json:"cloud_targets,omitempty"`
 }
 
 type ListLocalAppVoiceAssetsRequest struct {
@@ -4304,11 +4357,15 @@ type ListScenarioProfilesResponse struct {
 type ListSharedLocalAgentAIConfigOptionsRequest struct {
 	Context *AgentRequestContext `json:"context,omitempty"`
 	LocalLoadouts *AIConfigLocalLoadoutOptionsQuery `json:"local_loadouts,omitempty"`
+	CloudConnectors *AIConfigCloudConnectorOptionsQuery `json:"cloud_connectors,omitempty"`
+	CloudTargets *AIConfigCloudTargetOptionsQuery `json:"cloud_targets,omitempty"`
 }
 
 type ListSharedLocalAgentAIConfigOptionsResponse struct {
 	LocalLoadouts *AIConfigLocalLoadoutOptions `json:"local_loadouts,omitempty"`
 	Truncated bool `json:"truncated,omitempty"`
+	CloudConnectors *AIConfigCloudConnectorOptions `json:"cloud_connectors,omitempty"`
+	CloudTargets *AIConfigCloudTargetOptions `json:"cloud_targets,omitempty"`
 }
 
 type ListUsageStatsRequest struct {

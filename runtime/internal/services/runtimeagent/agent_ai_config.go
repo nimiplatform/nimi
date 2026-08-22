@@ -146,7 +146,7 @@ func (s *Service) overwriteSharedLocalAgentAIConfig(
 	if !validSharedAIConfigRevision(expectedRevision) {
 		return nil, "", false, invalidSharedLocalAgentAIConfigError()
 	}
-	if err := s.validateChangedSharedAIConfigLocalReferences(ctx, accountNamespace, canonical); err != nil {
+	if err := s.validateChangedSharedAIConfigResourceReferences(ctx, accountNamespace, canonical); err != nil {
 		return nil, "", false, err
 	}
 	committedConfig, revision, committed, err := s.aiConfigStore.Overwrite(ctx, accountNamespace, expectedRevision, canonical)

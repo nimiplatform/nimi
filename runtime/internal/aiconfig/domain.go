@@ -153,6 +153,9 @@ func validateCloudIntent(cloud *runtimev1.AIConfigCloudIntent) error {
 	if len(cloud.ProtoReflect().GetUnknown()) != 0 {
 		return fmt.Errorf("Cloud intent contains unknown wire fields")
 	}
+	if err := requireExactNonEmpty("connector_ref", cloud.GetConnectorRef()); err != nil {
+		return err
+	}
 	implementation := cloud.GetImplementation()
 	if implementation == nil {
 		return fmt.Errorf("Cloud implementation is required")

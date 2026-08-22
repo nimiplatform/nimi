@@ -283,6 +283,7 @@ func (s *Service) deleteProviderPersistentVoiceAsset(ctx context.Context, asset 
 	privateIntent := executionintent.Intent{
 		CapabilityContract:  binding.CapabilityContract,
 		Route:               runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
+		ConnectorRef:        binding.ConnectorID,
 		CloudImplementation: binding.Implementation,
 		ProviderModelTarget: binding.ProviderModelTarget,
 	}

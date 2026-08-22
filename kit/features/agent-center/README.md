@@ -70,12 +70,11 @@ autonomy configuration.
 ## Manager Session
 
 The AIConfig section mounts the public `model-config` owner surface in
-`shared-local-agent-ai-config` mode. The optional first-party `cloudAIConfig`
-seam supplies Runtime-catalog implementation/target choices and account-scoped
-Connector inventory. The same shared-owner snapshot supplies effective Local
-resource state; machine-default selection is not an Agent Center input. Cloud target
-confirmation, off-machine data movement, provider cost, and the impact on every
-LocalAgent and proactive task remain explicit.
+`shared-local-agent-ai-config` mode. Its ordinary `listOptions` manager supplies
+Local and Cloud candidates for every covered App. The same shared-owner snapshot supplies effective Local
+resource state; machine-default selection is not an Agent Center input. Cloud
+data movement and provider-cost information remain visible without adding a
+second Save gate.
 
 Each mounted `AgentCenter` consumes exactly one `AgentCenterSession`. The
 session owns its retryable snapshot, refresh, model/autonomy/appearance

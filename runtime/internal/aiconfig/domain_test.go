@@ -170,6 +170,7 @@ func cloudIntent(t *testing.T, contract string) *runtimev1.AIConfigCapabilityInt
 	return &runtimev1.AIConfigCapabilityIntent{
 		CapabilityContract: contract,
 		Route: &runtimev1.AIConfigCapabilityIntent_Cloud{Cloud: &runtimev1.AIConfigCloudIntent{
+			ConnectorRef: "connector:provider-a",
 			Implementation: &runtimev1.CapabilityImplementationIdentity{
 				ImplementationId: "cloud.image.provider-a",
 				DriverId:         "cloud.provider-a",

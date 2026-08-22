@@ -197,10 +197,13 @@ export function createNimiLocalAppAgentConfigureClient(
         return projectSharedAIConfigOverwrite(await shell.sharedAIConfig.overwrite(input));
       },
       listOptions: async (query: NimiAIConfigOptionsQuery): Promise<NimiAIConfigOptionsResult> => {
-        assertExactKeys(query, ['kind', 'capabilityContract', 'search'], 'shared AIConfig options query');
-        if (query.kind !== 'local-loadouts') return localAppProjectionError('shared AIConfig options kind');
+        assertExactKeys(query, query.kind === 'cloud-targets'
+          ? ['kind', 'capabilityContract', 'connectorRef', 'search']
+          : ['kind', 'capabilityContract', 'search'], 'shared AIConfig options query');
+        if (!['local-loadouts', 'cloud-connectors', 'cloud-targets'].includes(query.kind)) return localAppProjectionError('shared AIConfig options kind');
         if (typeof query.capabilityContract !== 'string' || !query.capabilityContract.trim()
           || query.capabilityContract.trim() !== query.capabilityContract
+          || (query.kind === 'cloud-targets' && (!query.connectorRef || query.connectorRef.trim() !== query.connectorRef))
           || (query.search !== undefined && (typeof query.search !== 'string' || query.search.trim() !== query.search))) {
           return localAppProjectionError('shared AIConfig options query');
         }
@@ -511,12 +514,15 @@ function projectSharedAIConfigOptions(value: unknown): NimiAIConfigOptionsResult
   const result = asRecord(value);
   assertExactProjectionKeys(result, ['kind', 'options', 'truncated'], 'shared LocalAgent AIConfig options');
   assertSafeProjection(result);
-  if (result.kind !== 'local-loadouts' || !Array.isArray(result.options) || typeof result.truncated !== 'boolean') {
+  if (!['local-loadouts', 'cloud-connectors', 'cloud-targets'].includes(String(result.kind))
+    || !Array.isArray(result.options) || typeof result.truncated !== 'boolean') {
     return localAppProjectionError('shared LocalAgent AIConfig options');
   }
-  result.options.forEach(projectSharedLocalOption);
+  if (result.kind === 'local-loadouts') result.options.forEach(projectSharedLocalOption);
+  else if (result.kind === 'cloud-connectors') result.options.forEach(projectSharedCloudConnectorOption);
+  else result.options.forEach(projectSharedCloudTargetOption);
   return Object.freeze({
-    kind: 'local-loadouts',
+    kind: result.kind,
     options: Object.freeze([...result.options]),
     truncated: result.truncated,
   }) as NimiAIConfigOptionsResult;
@@ -532,9 +538,45 @@ function projectSharedEffectiveSelection(value: unknown, index: number): void {
   }
   if (selection.resource !== null) {
     const resource = asRecord(selection.resource);
-    assertExactProjectionKeys(resource, ['oneofKind', 'local'], `shared AIConfig effective resource ${index}`);
-    if (resource.oneofKind !== 'local') localAppProjectionError(`shared AIConfig effective resource ${index}`);
-    projectSharedLocalOption(resource.local, index);
+    if (!resource) localAppProjectionError(`shared AIConfig effective resource ${index}`);
+    if (resource.oneofKind === 'local') {
+      assertExactProjectionKeys(resource, ['oneofKind', 'local'], `shared AIConfig effective Local resource ${index}`);
+      projectSharedLocalOption(resource.local, index);
+    } else if (resource.oneofKind === 'cloud') {
+      assertExactProjectionKeys(resource, ['oneofKind', 'cloud'], `shared AIConfig effective Cloud resource ${index}`);
+      const cloud = asRecord(resource.cloud);
+      assertExactProjectionKeys(cloud, ['connector', 'target'], `shared AIConfig effective Cloud resource ${index}`);
+      projectSharedCloudConnectorOption(cloud.connector, index);
+      projectSharedCloudTargetOption(cloud.target, index);
+    } else localAppProjectionError(`shared AIConfig effective resource ${index}`);
+  }
+}
+
+function projectSharedCloudConnectorOption(value: unknown, index: number): void {
+  const option = asRecord(value);
+  assertExactProjectionKeys(option, ['connectorRef', 'label', 'provider', 'state', 'reasons'], `shared AIConfig Cloud Connector ${index}`);
+  if (typeof option.connectorRef !== 'string' || !option.connectorRef.trim()
+    || typeof option.label !== 'string' || !option.label.trim()
+    || typeof option.provider !== 'string' || !option.provider.trim()
+    || !['ready', 'blocked'].includes(String(option.state)) || !Array.isArray(option.reasons)) {
+    localAppProjectionError(`shared AIConfig Cloud Connector ${index}`);
+  }
+}
+
+function projectSharedCloudTargetOption(value: unknown, index: number): void {
+  const option = asRecord(value);
+  assertExactProjectionKeys(option, [
+    'connectorRef', 'label', 'capabilityContract', 'implementation', 'providerModelTarget',
+    'supportedFeatures', 'state', 'reasons',
+  ], `shared AIConfig Cloud target ${index}`);
+  const implementation = asRecord(option.implementation);
+  assertExactProjectionKeys(implementation, ['implementationId', 'driverId', 'driverDialect'], `shared AIConfig Cloud target ${index} implementation`);
+  if (typeof option.connectorRef !== 'string' || !option.connectorRef.trim()
+    || typeof option.label !== 'string' || !option.label.trim()
+    || typeof option.capabilityContract !== 'string' || !option.capabilityContract.trim()
+    || !asRecord(option.providerModelTarget) || !Array.isArray(option.supportedFeatures)
+    || !['ready', 'blocked'].includes(String(option.state)) || !Array.isArray(option.reasons)) {
+    localAppProjectionError(`shared AIConfig Cloud target ${index}`);
   }
 }
 

@@ -91,6 +91,8 @@ export type {
   NimiCapabilityAIConfig,
   NimiCapabilityAIConfigIntent,
   NimiAIConfigLocalLoadoutOption,
+  NimiAIConfigCloudConnectorOption,
+  NimiAIConfigCloudTargetOption,
   NimiAIConfigOptionsQuery,
   NimiAIConfigOptionsResult,
   NimiAIConfigOverwriteInput,

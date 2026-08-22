@@ -64,6 +64,7 @@ func TestCloudEmbedExecutionUsesCapturedAIConfigConnectorWithoutFallback(t *test
 	config := appAIConfig("app.embed", &runtimev1.AIConfigCapabilityIntent{
 		CapabilityContract: "text.embed",
 		Route: &runtimev1.AIConfigCapabilityIntent_Cloud{Cloud: &runtimev1.AIConfigCloudIntent{
+			ConnectorRef: fixture.connectorID,
 			Implementation: &runtimev1.CapabilityImplementationIdentity{
 				ImplementationId: "cloud.text.embed.openai",
 				DriverId:         "nimi.runtime.driver.openai",

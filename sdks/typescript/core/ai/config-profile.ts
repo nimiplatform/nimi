@@ -80,6 +80,7 @@ export interface NimiPortableLoadoutIntent {
 
 export interface NimiCloudAIConfigCapabilityInput {
   readonly capabilityContract: string;
+  readonly connectorRef: string;
   readonly requiredFeatures?: readonly string[];
   readonly defaults?: NimiJsonObject;
   readonly implementation: CapabilityImplementationIdentity;
@@ -242,6 +243,7 @@ export function createNimiCloudAIConfigCapabilityIntent(
   input: NimiCloudAIConfigCapabilityInput,
 ): AIConfigCapabilityIntent {
   const capabilityContract = requireText(input.capabilityContract, 'Cloud CapabilityContract is required');
+  const connectorRef = requireText(input.connectorRef, 'Cloud connectorRef is required');
   const target = normalizeJsonObject(input.providerModelTarget, 'Cloud providerModelTarget');
   assertExactCloudProviderModelTarget(target);
   return {
@@ -251,6 +253,7 @@ export function createNimiCloudAIConfigCapabilityIntent(
     route: {
       oneofKind: 'cloud',
       cloud: {
+        connectorRef,
         implementation: parseAIConfigImplementation(input.implementation, 'Cloud implementation'),
         providerModelTarget: toRuntimeStruct(target),
       },

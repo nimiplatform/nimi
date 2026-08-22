@@ -6351,7 +6351,14 @@
       "AIConfig",
       "AIConfigAppOwner",
       "AIConfigCapabilityIntent",
+      "AIConfigCloudConnectorOptions",
+      "AIConfigCloudConnectorOptionsQuery",
+      "AIConfigCloudConnectorProjection",
       "AIConfigCloudIntent",
+      "AIConfigCloudResourceProjection",
+      "AIConfigCloudTargetOptions",
+      "AIConfigCloudTargetOptionsQuery",
+      "AIConfigCloudTargetProjection",
       "AIConfigEffectiveSelection",
       "AIConfigLocalIntent",
       "AIConfigLocalLoadoutOptions",
@@ -9803,6 +9810,80 @@
         "source_file": "proto/runtime/v1/capability_configuration.proto"
       },
       {
+        "name": "AIConfigCloudConnectorOptions",
+        "fields": [
+          {
+            "name": "options",
+            "type": "AIConfigCloudConnectorProjection",
+            "repeated": true,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/capability_configuration.proto"
+      },
+      {
+        "name": "AIConfigCloudConnectorOptionsQuery",
+        "fields": [
+          {
+            "name": "capability_contract",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "search",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/capability_configuration.proto"
+      },
+      {
+        "name": "AIConfigCloudConnectorProjection",
+        "fields": [
+          {
+            "name": "connector_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "label",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "provider",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "state",
+            "type": "AIConfigEffectiveState",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "reasons",
+            "type": "string",
+            "repeated": true,
+            "optional": false,
+            "number": 5
+          }
+        ],
+        "source_file": "proto/runtime/v1/capability_configuration.proto"
+      },
+      {
         "name": "AIConfigCloudIntent",
         "fields": [
           {
@@ -9818,6 +9899,135 @@
             "repeated": false,
             "optional": false,
             "number": 2
+          },
+          {
+            "name": "connector_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          }
+        ],
+        "source_file": "proto/runtime/v1/capability_configuration.proto"
+      },
+      {
+        "name": "AIConfigCloudResourceProjection",
+        "fields": [
+          {
+            "name": "connector",
+            "type": "AIConfigCloudConnectorProjection",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "target",
+            "type": "AIConfigCloudTargetProjection",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/capability_configuration.proto"
+      },
+      {
+        "name": "AIConfigCloudTargetOptions",
+        "fields": [
+          {
+            "name": "options",
+            "type": "AIConfigCloudTargetProjection",
+            "repeated": true,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/capability_configuration.proto"
+      },
+      {
+        "name": "AIConfigCloudTargetOptionsQuery",
+        "fields": [
+          {
+            "name": "capability_contract",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "connector_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "search",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/capability_configuration.proto"
+      },
+      {
+        "name": "AIConfigCloudTargetProjection",
+        "fields": [
+          {
+            "name": "connector_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "label",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "capability_contract",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "implementation",
+            "type": "CapabilityImplementationIdentity",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "provider_model_target",
+            "type": "google.protobuf.Struct",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "supported_features",
+            "type": "string",
+            "repeated": true,
+            "optional": false,
+            "number": 6
+          },
+          {
+            "name": "state",
+            "type": "AIConfigEffectiveState",
+            "repeated": false,
+            "optional": false,
+            "number": 7
+          },
+          {
+            "name": "reasons",
+            "type": "string",
+            "repeated": true,
+            "optional": false,
+            "number": 8
           }
         ],
         "source_file": "proto/runtime/v1/capability_configuration.proto"
@@ -9852,6 +10062,13 @@
             "repeated": true,
             "optional": false,
             "number": 4
+          },
+          {
+            "name": "cloud",
+            "type": "AIConfigCloudResourceProjection",
+            "repeated": false,
+            "optional": false,
+            "number": 5
           }
         ],
         "source_file": "proto/runtime/v1/capability_configuration.proto"
@@ -18051,6 +18268,20 @@
             "number": 1
           },
           {
+            "name": "cloud_connectors",
+            "type": "AIConfigCloudConnectorOptionsQuery",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "cloud_targets",
+            "type": "AIConfigCloudTargetOptionsQuery",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
             "name": "owner",
             "type": "AIConfigOwner",
             "repeated": false,
@@ -18076,6 +18307,20 @@
             "repeated": false,
             "optional": false,
             "number": 2
+          },
+          {
+            "name": "cloud_connectors",
+            "type": "AIConfigCloudConnectorOptions",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "cloud_targets",
+            "type": "AIConfigCloudTargetOptions",
+            "repeated": false,
+            "optional": false,
+            "number": 4
           }
         ],
         "source_file": "proto/runtime/v1/capability_configuration.proto"
@@ -19006,6 +19251,20 @@
             "repeated": false,
             "optional": false,
             "number": 1
+          },
+          {
+            "name": "cloud_connectors",
+            "type": "AIConfigCloudConnectorOptionsQuery",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "cloud_targets",
+            "type": "AIConfigCloudTargetOptionsQuery",
+            "repeated": false,
+            "optional": false,
+            "number": 3
           }
         ],
         "source_file": "proto/runtime/v1/agent_configure.proto"
@@ -19026,6 +19285,20 @@
             "repeated": false,
             "optional": false,
             "number": 2
+          },
+          {
+            "name": "cloud_connectors",
+            "type": "AIConfigCloudConnectorOptions",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "cloud_targets",
+            "type": "AIConfigCloudTargetOptions",
+            "repeated": false,
+            "optional": false,
+            "number": 4
           }
         ],
         "source_file": "proto/runtime/v1/agent_configure.proto"
@@ -19609,6 +19882,20 @@
             "repeated": false,
             "optional": false,
             "number": 2
+          },
+          {
+            "name": "cloud_connectors",
+            "type": "AIConfigCloudConnectorOptionsQuery",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "cloud_targets",
+            "type": "AIConfigCloudTargetOptionsQuery",
+            "repeated": false,
+            "optional": false,
+            "number": 4
           }
         ],
         "source_file": "proto/runtime/v1/agent_service.proto"
@@ -19629,6 +19916,20 @@
             "repeated": false,
             "optional": false,
             "number": 2
+          },
+          {
+            "name": "cloud_connectors",
+            "type": "AIConfigCloudConnectorOptions",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "cloud_targets",
+            "type": "AIConfigCloudTargetOptions",
+            "repeated": false,
+            "optional": false,
+            "number": 4
           }
         ],
         "source_file": "proto/runtime/v1/agent_service.proto"

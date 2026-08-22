@@ -472,7 +472,7 @@ describe('Electron local-app standard-shell operations', () => {
     const requests = [
       ['local-app.sharedAgentAIConfigGet', {}],
       ['local-app.sharedAgentAIConfigOverwrite', { expectedRevision: '0', capabilities: [] }],
-      ['local-app.sharedAgentAIConfigLocalOptions', { capabilityContract: 'text.generate', search: '' }],
+      ['local-app.sharedAgentAIConfigLocalOptions', { kind: 'local-loadouts', capabilityContract: 'text.generate', search: '' }],
       ['local-app.agentAutonomySnapshot', { agentHandle: handle }],
       ['local-app.agentUpdateAutonomy', {
         agentHandle: handle, expectedAutonomyRevision: '2', intent: { enabled: true },
@@ -501,7 +501,7 @@ describe('Electron local-app standard-shell operations', () => {
     expect(calls).toEqual([
       ['sharedAgentAIConfigGet'],
       ['sharedAgentAIConfigOverwrite', { expectedRevision: '0', capabilities: [] }],
-      ['sharedAgentAIConfigLocalOptions', { capabilityContract: 'text.generate', search: '' }],
+      ['sharedAgentAIConfigLocalOptions', { kind: 'local-loadouts', capabilityContract: 'text.generate', search: '' }],
       ['agentAutonomySnapshot', { agentHandle: handle }],
       ['agentUpdateAutonomy', {
         agentHandle: handle, expectedAutonomyRevision: '2', intent: { enabled: true },

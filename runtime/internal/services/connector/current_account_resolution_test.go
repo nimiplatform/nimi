@@ -129,7 +129,7 @@ func TestResolveCurrentAccountConnectorBindingStaleRefDoesNotReportUnrelatedDisa
 	ref.RemoteModelCatalogID += "-stale"
 
 	_, _, err := ResolveCurrentAccountConnectorBinding(store, resolver, "account-a", ref)
-	assertCurrentAccountResolutionReason(t, err, runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND)
+	assertCurrentAccountResolutionReason(t, err, runtimev1.ReasonCode_AI_REMOTE_MODEL_CATALOG_STALE)
 }
 
 func TestResolveCurrentAccountConnectorBindingSelectedMissingCredentialWithUnrelatedActiveReturnsCredentialMissing(t *testing.T) {
@@ -214,6 +214,7 @@ func catalogRefForConnectorTest(t *testing.T, resolver *aicatalog.Resolver, acco
 		}
 		identity := remoteModelCatalogIdentityForConnector(record, providerRecord, model)
 		return RemoteModelCatalogRef{
+			ConnectorID:          record.ConnectorID,
 			RemoteModelCatalogID: identity.remoteModelCatalogID,
 			ProviderModelID:      catalogProviderModelID(model.Model),
 			Provider:             record.Provider,

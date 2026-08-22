@@ -46,6 +46,7 @@ func TestCloudTextExecutionResolvesCurrentAccountConnectorAndPreservesConfigurat
 		CapabilityContract: "text.generate",
 		Defaults:           mustCloudDefaults(t, map[string]any{"maxTokens": 32}),
 		Route: &runtimev1.AIConfigCapabilityIntent_Cloud{Cloud: &runtimev1.AIConfigCloudIntent{
+			ConnectorRef: fixture.connectorID,
 			Implementation: &runtimev1.CapabilityImplementationIdentity{
 				ImplementationId: "cloud.text.openai", DriverId: "nimi.runtime.driver.openai", DriverDialect: "openai/chat-completions/v1",
 			},
@@ -107,6 +108,7 @@ func TestCloudTextExecutionDoesNotInferSoleConnectorWithoutExactCatalogTarget(t 
 	config := appAIConfig("app.cloud", &runtimev1.AIConfigCapabilityIntent{
 		CapabilityContract: "text.generate",
 		Route: &runtimev1.AIConfigCapabilityIntent_Cloud{Cloud: &runtimev1.AIConfigCloudIntent{
+			ConnectorRef: fixture.connectorID,
 			Implementation: &runtimev1.CapabilityImplementationIdentity{
 				ImplementationId: "cloud.text.openai", DriverId: "nimi.runtime.driver.openai", DriverDialect: "openai/chat-completions/v1",
 			},

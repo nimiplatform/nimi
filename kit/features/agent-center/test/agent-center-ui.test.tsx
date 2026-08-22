@@ -305,36 +305,26 @@ describe('AgentCenter UI session contract', () => {
     expect(JSON.stringify(config)).not.toContain('targetRef');
   });
 
-  it('keeps target confirmation explicit while Runtime owns current-account Connector resolution', async () => {
-    const listTargets = vi.fn(async () => [{
-      targetId: 'remote-model-catalog-gpt-test',
+  it('saves an exact Cloud Connector and target without a second confirmation gate', async () => {
+    const connector = {
+      connectorRef: 'connector-1', label: 'Work account', provider: 'openai',
+      state: 'ready' as const, reasons: [],
+    };
+    const target = {
+      connectorRef: 'connector-1',
       label: 'gpt-test',
-      provider: 'openai',
+      capabilityContract: 'text.generate',
+      implementation: { implementationId: 'openai', driverId: 'nimillm', driverDialect: 'openai' },
       providerModelTarget: {
         provider: 'openai',
         providerModelId: 'gpt-test',
         remoteModelCatalogId: 'remote-model-catalog-gpt-test',
       },
-    }]);
+      supportedFeatures: [], state: 'ready' as const, reasons: [],
+    };
     const session = await sessionFor({}, null, {
-      async listImplementations() {
-        return [{
-          optionId: 'openai',
-          label: 'OpenAI',
-          provider: 'openai',
-          implementation: {
-            implementationId: 'openai',
-            driverId: 'nimillm',
-            driverDialect: 'openai',
-          },
-        }];
-      },
-      listTargets,
-      async listAuthorizationOptions() {
-        return {
-          connectors: [{ connectorId: 'connector-1', label: 'Work account', provider: 'openai' }],
-        };
-      },
+      connectors: [connector],
+      targets: [target],
     });
     const node = render(<AgentCenter activeSection="ai-config" session={session} />);
     await flush();
@@ -352,25 +342,19 @@ describe('AgentCenter UI session contract', () => {
     expect(document.body.querySelector(
       '[data-nimi-model-picker-source="cloud"]',
     )).toBeNull();
-    expect(listTargets).not.toHaveBeenCalled();
     await selectField(document.body, 'Cloud Connector', 'Work account');
-    const target = document.body.querySelector(
+    const targetButton = document.body.querySelector(
       '[data-nimi-model-picker-source="cloud"]',
     ) as HTMLButtonElement;
-    expect(target).toBeTruthy();
-    act(() => { target.click(); });
+    expect(targetButton).toBeTruthy();
+    act(() => { targetButton.click(); });
     const confirmTarget = Array.from(document.body.querySelectorAll('button'))
       .find((button) => button.textContent?.trim() === 'Use this target') as HTMLButtonElement;
     await act(async () => { confirmTarget.click(); await Promise.resolve(); });
     await flush();
-    expect(node.textContent).toContain('Cloud execution route');
-    expect(node.textContent).toContain('Nimi resolves the current-account Connector');
-    expect(node.textContent).toContain('applies to every LocalAgent and proactive task');
+    expect(node.textContent).toContain('Cloud execution');
     const confirmations = Array.from(node.querySelectorAll('input[type="checkbox"]')) as HTMLInputElement[];
-    expect(confirmations).toHaveLength(1);
-    act(() => {
-      for (const confirmation of confirmations) confirmation.click();
-    });
+    expect(confirmations).toHaveLength(0);
     let save = node.querySelector('[data-testid="model-config-save:text.generate"]') as HTMLButtonElement;
     expect(save.disabled).toBe(false);
     await act(async () => { save.click(); await Promise.resolve(); });
@@ -381,6 +365,7 @@ describe('AgentCenter UI session contract', () => {
     const intent = session.getSnapshot().state.sharedAIConfig?.aiConfig.capabilities[0];
     expect(intent?.route.oneofKind).toBe('cloud');
     if (intent?.route.oneofKind !== 'cloud') throw new Error('expected Cloud intent');
+    expect(intent.route.cloud.connectorRef).toBe('connector-1');
     expect(intent.route.cloud.implementation).toEqual({
       implementationId: 'openai',
       driverId: 'nimillm',

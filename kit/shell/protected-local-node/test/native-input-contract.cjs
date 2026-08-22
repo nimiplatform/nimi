@@ -60,7 +60,6 @@ async function main() {
   assert.equal(invalidUnaryRelease?.reasonCode, 'runtime-service-untrusted');
 
   for (const retired of [
-    'localAppAIConfigOverwrite',
     'localAppAgentConfigurationSnapshot',
     'localAppAgentUpdateConfiguration',
     'localAppAgentReadinessSnapshot',
@@ -88,13 +87,32 @@ async function main() {
     'localAppScenarioJobStreamNext',
     'localAppScenarioJobStreamClose',
     'localAppAssetReveal',
+    'localAppAIConfigOverwrite',
+    'localAppAIConfigLocalOptions',
+    'localAppSharedAgentAIConfigGet',
+    'localAppSharedAgentAIConfigOverwrite',
+    'localAppSharedAgentAIConfigLocalOptions',
   ]) {
     assert.equal(typeof addon[name], 'function', `${name} export is missing`);
   }
   assert.equal(typeof addon.localAppAIConfigGet, 'function', 'localAppAIConfigGet export is missing');
   const aiConfigGet = addon.localAppAIConfigGet();
   assert.equal(typeof aiConfigGet?.then, 'function', 'localAppAIConfigGet must return a Promise');
-  const outcomes = [aiConfigGet, ...calls.map(([name, input]) => {
+  const aiConfigOutcomes = [
+    addon.localAppAIConfigOverwrite({ expectedRevision: '0', capabilities: [] }),
+    addon.localAppAIConfigLocalOptions({
+      kind: 'local-loadouts', capabilityContract: 'text.generate', search: '',
+    }),
+    addon.localAppSharedAgentAIConfigGet(),
+    addon.localAppSharedAgentAIConfigOverwrite({ expectedRevision: '0', capabilities: [] }),
+    addon.localAppSharedAgentAIConfigLocalOptions({
+      kind: 'cloud-connectors', capabilityContract: 'text.generate', search: '',
+    }),
+  ];
+  for (const outcome of aiConfigOutcomes) {
+    assert.equal(typeof outcome?.then, 'function', 'AIConfig native operation must return a Promise');
+  }
+  const outcomes = [aiConfigGet, ...aiConfigOutcomes, ...calls.map(([name, input]) => {
     assert.equal(typeof addon[name], 'function', `${name} export is missing`);
     let operation;
     assert.doesNotThrow(() => {
