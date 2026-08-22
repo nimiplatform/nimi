@@ -87,15 +87,22 @@ export function AvatarTransientComposer(props: AvatarTransientComposerProps) {
   };
 
   const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>): void => {
-    if (event.key === 'Escape') {
-      event.preventDefault();
-      dismiss('escape');
-      return;
-    }
+    // IME composition uses Enter to commit candidates (and Escape to cancel);
+    // those keys must never submit or dismiss the composer.
+    if (event.nativeEvent.isComposing) return;
     if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault();
       event.currentTarget.form?.requestSubmit();
     }
+  };
+
+  const handleComposerKeyDown = (event: KeyboardEvent<HTMLFormElement>): void => {
+    // Escape applies anywhere inside the composer, including its action
+    // buttons, but must not consume Escape owned by another overlay.
+    if (event.key !== 'Escape' || event.nativeEvent.isComposing) return;
+    if (sendState === 'sending') return;
+    event.preventDefault();
+    onDismiss('escape');
   };
 
   return (
@@ -105,6 +112,7 @@ export function AvatarTransientComposer(props: AvatarTransientComposerProps) {
       style={{ left: position.left, top: position.top }}
       data-testid="avatar-transient-composer"
       onSubmit={handleSubmit}
+      onKeyDownCapture={handleComposerKeyDown}
       onContextMenu={(event) => event.preventDefault()}
       onBlurCapture={(event) => {
         const root = event.currentTarget;

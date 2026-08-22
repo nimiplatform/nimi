@@ -515,7 +515,7 @@ export function CompanionSurface(props: CompanionSurfaceProps) {
           className={cn('avatar-companion-surface__settings', settingsOpen && 'avatar-companion-surface__settings--open')}
           onClick={onSettingsToggle}
           aria-expanded={settingsOpen}
-          aria-controls="avatar-companion-settings-popover"
+          aria-controls="avatar-settings-overlay"
           aria-label={t('Avatar.status.settings_aria')}
           title={t('Avatar.status.settings_aria')}
           icon={<Settings size={ICON_SIZE} aria-hidden="true" />}

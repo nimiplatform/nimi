@@ -1,4 +1,4 @@
-﻿import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from './App.js';
 import { useAvatarStore } from './app-shell/app-store.js';
@@ -744,5 +744,79 @@ describe('App transient composer overlay', () => {
     await waitFor(() => {
       expect(screen.queryByTestId('avatar-transient-composer')).toBeNull();
     });
+  });
+
+  it('preserves an unsent draft across focus-switch dismissal', async () => {
+    bootstrapAvatarMock.mockResolvedValue(createBootstrapHandle());
+
+    render(<App />);
+
+    act(() => {
+      seedReadyState();
+    });
+
+    await openComposer();
+    const textarea = screen.getByLabelText('Write a message to this agent') as HTMLTextAreaElement;
+    fireEvent.change(textarea, { target: { value: 'half-written note' } });
+    textarea.blur();
+    await act(async () => {
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+    });
+    await waitFor(() => {
+      expect(screen.queryByTestId('avatar-transient-composer')).toBeNull();
+    });
+
+    await openComposer();
+    const reopened = screen.getByLabelText('Write a message to this agent') as HTMLTextAreaElement;
+    expect(reopened.value).toBe('half-written note');
+  });
+
+  it('discards the saved draft after an intentional Escape close', async () => {
+    bootstrapAvatarMock.mockResolvedValue(createBootstrapHandle());
+
+    render(<App />);
+
+    act(() => {
+      seedReadyState();
+    });
+
+    await openComposer();
+    const textarea = screen.getByLabelText('Write a message to this agent') as HTMLTextAreaElement;
+    fireEvent.change(textarea, { target: { value: 'discard me' } });
+    fireEvent.keyDown(textarea, { key: 'Escape' });
+    await waitFor(() => {
+      expect(screen.queryByTestId('avatar-transient-composer')).toBeNull();
+    });
+
+    await openComposer();
+    const reopened = screen.getByLabelText('Write a message to this agent') as HTMLTextAreaElement;
+    expect(reopened.value).toBe('');
+  });
+
+  it('does not submit or dismiss while IME composition is active', async () => {
+    const handle = createBootstrapHandle();
+    bootstrapAvatarMock.mockResolvedValue(handle);
+
+    render(<App />);
+
+    act(() => {
+      seedReadyState();
+    });
+
+    await openComposer();
+    const textarea = screen.getByLabelText('Write a message to this agent') as HTMLTextAreaElement;
+    fireEvent.change(textarea, { target: { value: 'ni hao' } });
+    fireEvent.keyDown(textarea, { key: 'Enter', shiftKey: false, isComposing: true });
+    await act(async () => {
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+    });
+    expect(handle.requestCompanionParticipation).not.toHaveBeenCalled();
+    expect(screen.getByTestId('avatar-transient-composer')).toBeTruthy();
+
+    fireEvent.keyDown(textarea, { key: 'Escape', isComposing: true });
+    await act(async () => {
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+    });
+    expect(screen.getByTestId('avatar-transient-composer')).toBeTruthy();
   });
 });

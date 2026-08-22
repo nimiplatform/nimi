@@ -140,7 +140,8 @@ export function AvatarAppearanceOverlay(props: AvatarAppearanceOverlayProps) {
         {rows.map((row) => (
           <div className="avatar-appearance-overlay__row" key={row.label}>
             <dt>{row.label}</dt>
-            <dd>{row.value}</dd>
+            {/* Values ellipsis-clip (long model ids); title keeps them readable. */}
+            <dd title={row.value}>{row.value}</dd>
           </div>
         ))}
       </dl>

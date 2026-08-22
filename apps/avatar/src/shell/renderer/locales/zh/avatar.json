@@ -205,6 +205,7 @@
       "loading": "正在加载诊断信息",
       "empty": "暂无检查结果",
       "error_prefix": "调试请求失败",
+      "unknown_failure": "未知诊断错误",
       "columns": {
         "probe": "检查项",
         "status": "状态",

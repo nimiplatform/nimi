@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@nimiplatform/kit/ui';
 import { useTranslation } from '../i18n/index.js';
+import { moveMenuItemFocus } from '../avatar-shell-utils.js';
 
 export type AvatarContextMenuDismissReason =
   | 'action'
@@ -203,6 +204,11 @@ export function AvatarContextMenu(props: AvatarContextMenuProps) {
       tabIndex={-1}
       data-testid="avatar-context-menu"
       onContextMenu={(event) => event.preventDefault()}
+      onKeyDown={(event) => {
+        if (moveMenuItemFocus(event.currentTarget, event.key)) {
+          event.preventDefault();
+        }
+      }}
     >
       {items.map((item) => (
         <button
@@ -212,7 +218,7 @@ export function AvatarContextMenu(props: AvatarContextMenuProps) {
             'avatar-context-menu__item',
             item.checked && 'avatar-context-menu__item--checked',
           )}
-          role="menuitem"
+          role={item.checked === undefined ? 'menuitem' : 'menuitemcheckbox'}
           disabled={!item.enabled}
           aria-disabled={!item.enabled}
           aria-checked={item.checked}

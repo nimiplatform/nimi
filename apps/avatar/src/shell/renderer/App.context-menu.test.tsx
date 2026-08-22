@@ -1,4 +1,4 @@
-﻿import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from './App.js';
 import { useAvatarStore } from './app-shell/app-store.js';
@@ -1078,5 +1078,66 @@ describe('App context menu overlay', () => {
     await waitFor(() => {
       expect(screen.queryByTestId('avatar-debug-overlay')).toBeNull();
     });
+  });
+
+  it('exposes the always-on-top toggle as a checked menu item', async () => {
+    bootstrapAvatarMock.mockResolvedValue(createBootstrapHandle());
+
+    render(<App />);
+
+    act(() => {
+      seedReadyState();
+    });
+
+    const stage = await screen.findByTestId('avatar-embodiment-stage');
+    fireEvent.pointerDown(stage, {
+      button: 2,
+      buttons: 2,
+      pointerId: 41,
+      clientX: 140,
+      clientY: 180,
+    });
+
+    const toggle = await screen.findByTestId('avatar-context-menu-item-toggle_always_on_top');
+    expect(toggle.getAttribute('role')).toBe('menuitemcheckbox');
+    expect(toggle.getAttribute('aria-checked')).toBe('true');
+
+    const plainItem = screen.getByTestId('avatar-context-menu-item-settings');
+    expect(plainItem.getAttribute('role')).toBe('menuitem');
+    expect(plainItem.getAttribute('aria-checked')).toBeNull();
+  });
+
+  it('moves focus across enabled menu items with arrow keys', async () => {
+    bootstrapAvatarMock.mockResolvedValue(createBootstrapHandle());
+
+    render(<App />);
+
+    act(() => {
+      seedReadyState();
+    });
+
+    const stage = await screen.findByTestId('avatar-embodiment-stage');
+    fireEvent.pointerDown(stage, {
+      button: 2,
+      buttons: 2,
+      pointerId: 42,
+      clientX: 140,
+      clientY: 180,
+    });
+
+    const menu = await screen.findByTestId('avatar-context-menu');
+    const first = screen.getByTestId('avatar-context-menu-item-open_text_input');
+
+    fireEvent.keyDown(menu, { key: 'ArrowDown' });
+    expect(document.activeElement).toBe(first);
+
+    fireEvent.keyDown(menu, { key: 'ArrowDown' });
+    expect(document.activeElement).toBe(screen.getByTestId('avatar-context-menu-item-wake_foreground'));
+
+    fireEvent.keyDown(menu, { key: 'ArrowUp' });
+    expect(document.activeElement).toBe(first);
+
+    fireEvent.keyDown(menu, { key: 'End' });
+    expect(document.activeElement).toBe(screen.getByTestId('avatar-context-menu-item-settings'));
   });
 });

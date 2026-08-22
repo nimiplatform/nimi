@@ -56,6 +56,14 @@ export function DegradedSurface(props: DegradedSurfaceProps) {
     (Boolean(composition.reason) || Boolean(composition.modelDiagnostics))
     && composition.variant !== 'loading'
     && composition.variant !== 'relaunch';
+  // loading / relaunch mount on every cold start and avatar switch; an
+  // assertive alert there spam-announces routine transitions. Genuine failure
+  // postures keep role="alert".
+  const liveRegionRole = tone === 'loading' || tone === 'relaunch' ? 'status' : 'alert';
+  // "Restart avatar" during loading contradicts the recovery copy ("Keep this
+  // window open…") and interrupts bootstrap; relaunch copy explicitly invites
+  // a reload, so the action stays there.
+  const reloadVisible = tone !== 'loading';
 
   const summary =
     REASON_AWARE_STATES.has(composition.state) && trimmedReason.length > 0
@@ -72,7 +80,7 @@ export function DegradedSurface(props: DegradedSurfaceProps) {
       className={cn('avatar-degraded-surface nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)]', `avatar-degraded-surface--${tone}`)}
       data-testid="avatar-degraded-surface"
       data-composition-state={composition.state}
-      role="alert"
+      role={liveRegionRole}
       aria-label={t('Avatar.degraded.surface_aria')}
     >
       <div className="avatar-degraded-surface__banner">
@@ -84,16 +92,18 @@ export function DegradedSurface(props: DegradedSurfaceProps) {
       <p className="avatar-degraded-surface__summary">{summary}</p>
       <p className="avatar-degraded-surface__recovery">{t(`${keyPrefix}.recovery`)}</p>
       <div className="avatar-degraded-surface__actions">
-        <Button
-          type="button"
-          className="avatar-degraded-surface__primary-action"
-          tone="primary"
-          size="md"
-          onClick={() => reloadAvatarShell()}
-          data-testid="avatar-degraded-reload"
-        >
-          {t('Avatar.degraded.reload')}
-        </Button>
+        {reloadVisible ? (
+          <Button
+            type="button"
+            className="avatar-degraded-surface__primary-action"
+            tone="primary"
+            size="md"
+            onClick={() => reloadAvatarShell()}
+            data-testid="avatar-degraded-reload"
+          >
+            {t('Avatar.degraded.reload')}
+          </Button>
+        ) : null}
         <Button
           type="button"
           tone="ghost"

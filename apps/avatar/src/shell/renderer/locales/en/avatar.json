@@ -205,6 +205,7 @@
       "loading": "Loading diagnostics",
       "empty": "No check results yet",
       "error_prefix": "Debug request failed",
+      "unknown_failure": "Unknown diagnostics failure",
       "columns": {
         "probe": "Check",
         "status": "Status",

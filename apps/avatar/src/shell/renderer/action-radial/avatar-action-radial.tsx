@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@nimiplatform/kit/ui';
 import { useTranslation } from '../i18n/index.js';
+import { moveMenuItemFocus } from '../avatar-shell-utils.js';
 
 export type AvatarActionRadialAction =
   | 'greet'
@@ -149,6 +150,11 @@ export function AvatarActionRadial(props: AvatarActionRadialProps) {
       tabIndex={-1}
       data-testid="avatar-action-radial"
       onContextMenu={(event) => event.preventDefault()}
+      onKeyDown={(event) => {
+        if (moveMenuItemFocus(event.currentTarget, event.key)) {
+          event.preventDefault();
+        }
+      }}
     >
       {items.map((item, index) => (
         <button
@@ -156,7 +162,6 @@ export function AvatarActionRadial(props: AvatarActionRadialProps) {
           type="button"
           className={cn('avatar-action-radial__item', `avatar-action-radial__item--${index}`)}
           role="menuitem"
-          disabled={!item.enabled}
           aria-disabled={!item.enabled}
           title={t(item.labelKey)}
           data-testid={`avatar-action-radial-item-${item.action}`}

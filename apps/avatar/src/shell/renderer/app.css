@@ -579,6 +579,7 @@ button {
   z-index: 30;
   display: grid;
   width: 220px;
+  max-width: calc(100vw - 16px);
   padding: var(--nimi-space-1);
   border: 1px solid var(--nimi-material-glass-thick-border);
   border-radius: var(--nimi-radius-md);
@@ -686,13 +687,17 @@ button {
   cursor: pointer;
 }
 
-.avatar-action-radial__item:disabled {
+/* Radial items use aria-disabled (not the disabled attribute) so a disabled
+   action stays focusable and its title tooltip remains reachable; clicks are
+   guarded in the component. */
+.avatar-action-radial__item:disabled,
+.avatar-action-radial__item[aria-disabled='true'] {
   cursor: not-allowed;
   opacity: 0.46;
 }
 
-.avatar-action-radial__item:not(:disabled):hover,
-.avatar-action-radial__item:not(:disabled):focus-visible {
+.avatar-action-radial__item:not(:disabled):not([aria-disabled='true']):hover,
+.avatar-action-radial__item:not(:disabled):not([aria-disabled='true']):focus-visible {
   border-color: color-mix(in srgb, var(--nimi-action-primary-bg) 42%, transparent);
   background: var(--nimi-action-ghost-hover);
   color: var(--nimi-action-primary-bg);
@@ -750,6 +755,8 @@ button {
   z-index: 32;
   display: grid;
   width: 336px;
+  /* Minimum window width is 320px; without this the send button clips away. */
+  max-width: calc(100vw - 20px);
   gap: var(--nimi-space-2);
   padding: var(--nimi-space-2);
   border: 1px solid var(--nimi-material-glass-thick-border);
@@ -809,6 +816,7 @@ button {
   flex-direction: column;
   gap: var(--nimi-space-2);
   width: 280px;
+  max-width: calc(100vw - 16px);
   padding: var(--nimi-space-3);
   border-radius: var(--nimi-radius-md);
   background: var(--nimi-material-glass-thick-bg);
@@ -828,8 +836,8 @@ button {
 }
 
 .avatar-settings-popover__close {
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
   padding: 0;
   border: none;
   border-radius: var(--nimi-radius-full);
@@ -840,7 +848,8 @@ button {
   transition: background var(--nimi-motion-fast) cubic-bezier(0.2, 0, 0, 1);
 }
 
-.avatar-settings-popover__close:hover {
+.avatar-settings-popover__close:hover,
+.avatar-settings-popover__close:focus-visible {
   background: var(--nimi-action-ghost-hover);
   color: var(--nimi-text-primary);
 }
@@ -990,6 +999,10 @@ button {
   gap: var(--nimi-space-2);
   width: 420px;
   max-width: calc(100vw - 16px);
+  /* Real content can exceed the 360px mount-time clamp estimate; scroll
+     instead of clipping off-window near the bottom edge. */
+  max-height: calc(100vh - 16px);
+  overflow-y: auto;
   padding: var(--nimi-space-3);
   border-radius: var(--nimi-radius-md);
   background: var(--nimi-material-glass-thick-bg);
@@ -1091,7 +1104,9 @@ button {
   display: grid;
   gap: var(--nimi-space-1);
   max-height: 220px;
-  overflow-y: auto;
+  /* Column minimums (~334px) can exceed the overlay width on small windows;
+     scroll horizontally instead of silently clipping cells. */
+  overflow: auto;
 }
 
 .avatar-debug-overlay__row {

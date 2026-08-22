@@ -320,6 +320,8 @@ namespaces: &avatar_i18n_key_entries
         usage: "src/shell/renderer/debug-overlay/avatar-debug-overlay.tsx"
       - key: Avatar.debug.error_prefix
         usage: "src/shell/renderer/debug-overlay/avatar-debug-overlay.tsx"
+      - key: Avatar.debug.unknown_failure
+        usage: "src/shell/renderer/debug-overlay/avatar-debug-overlay.tsx"
       - key: Avatar.debug.columns.probe
         usage: "src/shell/renderer/debug-overlay/avatar-debug-overlay.tsx"
       - key: Avatar.debug.columns.status

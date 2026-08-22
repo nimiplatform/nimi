@@ -142,4 +142,26 @@ describe('DegradedSurface — reload affordance', () => {
     expect(reloadAvatarShellMock).toHaveBeenCalledTimes(1);
     expect(closeAvatarWindowMock).toHaveBeenCalledTimes(1);
   });
+
+  it('hides the restart action during loading but keeps the close action', () => {
+    render(<DegradedSurface composition={makeComposition('loading')} />);
+    expect(screen.queryByTestId('avatar-degraded-reload')).toBeNull();
+    expect(screen.getByTestId('avatar-degraded-close')).toBeTruthy();
+  });
+});
+
+describe('DegradedSurface — live-region semantics', () => {
+  it('uses a polite status role for routine loading and relaunch postures', () => {
+    const { unmount } = render(<DegradedSurface composition={makeComposition('loading')} />);
+    expect(screen.getByTestId('avatar-degraded-surface').getAttribute('role')).toBe('status');
+    unmount();
+
+    render(<DegradedSurface composition={makeComposition('relaunch_pending')} />);
+    expect(screen.getByTestId('avatar-degraded-surface').getAttribute('role')).toBe('status');
+  });
+
+  it('keeps an assertive alert role for genuine failure postures', () => {
+    render(<DegradedSurface composition={makeComposition('degraded_runtime_unavailable')} />);
+    expect(screen.getByTestId('avatar-degraded-surface').getAttribute('role')).toBe('alert');
+  });
 });

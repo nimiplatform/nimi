@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState, type Dispatch, type SetStateAction } from 'react';
+import { useCallback, useMemo, useRef, useState, type Dispatch, type SetStateAction } from 'react';
 import { AvatarDebugProbeKind } from '@nimiplatform/sdk/runtime/wire-types';
 import type { BootstrapHandle } from './app-shell/app-bootstrap.js';
 import type { AvatarAppState } from './app-shell/app-store.js';
@@ -85,6 +85,9 @@ export function useAvatarShellOverlays(input: {
   const [settingsOverlay, setSettingsOverlay] = useState<AvatarSettingsOverlayState | null>(null);
   const [appearanceOverlay, setAppearanceOverlay] = useState<AvatarAppearanceOverlayState | null>(null);
   const [debugOverlay, setDebugOverlay] = useState<AvatarDebugOverlayState | null>(null);
+  // Last draft lost to an accidental focus-switch dismissal (e.g. right-click
+  // opening the context menu while typing). Intentional closes clear it.
+  const composerDraftRef = useRef('');
 
   const contextIdentity = useCallback(() => {
     return {
@@ -156,7 +159,7 @@ export function useAvatarShellOverlays(input: {
       setTransientComposer((current) => ({
         x,
         y,
-        draft: current?.draft ?? '',
+        draft: current?.draft ?? composerDraftRef.current,
         sendState: current?.sendState === 'sending' ? 'sending' : 'idle',
         sendError: null,
       }));
@@ -165,9 +168,13 @@ export function useAvatarShellOverlays(input: {
   );
 
   const dismissTransientComposer = useCallback(
-    (_reason: AvatarTransientComposerDismissReason): void => {
+    (reason: AvatarTransientComposerDismissReason): void => {
       setTransientComposer((current) => {
         if (!current) return null;
+        // Accidental focus loss (opening another overlay, Alt-Tab) keeps the
+        // draft for the next open; intentional closes and composition changes
+        // discard it.
+        composerDraftRef.current = reason === 'focus_switch' ? current.draft : '';
         return null;
       });
     },
@@ -256,6 +263,7 @@ export function useAvatarShellOverlays(input: {
       if (!bootstrapHandle || !companionBinding) return;
       const text = normalizeText(transientComposer?.draft);
       if (!text || transientComposer?.sendState === 'sending') return;
+      composerDraftRef.current = '';
       setTransientComposer((current) =>
         current
           ? {

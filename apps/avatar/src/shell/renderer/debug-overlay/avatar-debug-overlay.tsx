@@ -60,12 +60,15 @@ function readViewportSize(): { width: number; height: number } {
   };
 }
 
-function toErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error || 'unknown avatar debug failure');
+function toErrorMessage(error: unknown, fallback: string): string {
+  const text = error instanceof Error
+    ? error.message.trim()
+    : String(error ?? '').trim();
+  return text.length > 0 ? text : fallback;
 }
 
-function isTimeoutError(error: unknown): boolean {
-  return /deadline|timed out|timeout/i.test(toErrorMessage(error));
+function isTimeoutError(error: unknown, fallback: string): boolean {
+  return /deadline|timed out|timeout/i.test(toErrorMessage(error, fallback));
 }
 
 function probeKey(probeKind: AvatarDebugProbeKind): string {
@@ -142,6 +145,7 @@ export function AvatarDebugOverlay(props: AvatarDebugOverlayProps) {
   const [loading, setLoading] = useState(true);
   const [requesting, setRequesting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const unknownFailureMessage = t('Avatar.debug.unknown_failure');
 
   const position = useMemo(() => {
     const viewport = readViewportSize();
@@ -165,14 +169,14 @@ export function AvatarDebugOverlay(props: AvatarDebugOverlayProps) {
     } catch (loadError) {
       setError(controller.signal.aborted
         ? t('Avatar.debug.request_canceled')
-        : isTimeoutError(loadError)
+        : isTimeoutError(loadError, unknownFailureMessage)
           ? t('Avatar.debug.request_timeout')
-          : toErrorMessage(loadError));
+          : toErrorMessage(loadError, unknownFailureMessage));
     } finally {
       if (operationAbortRef.current === controller) operationAbortRef.current = null;
       setLoading(false);
     }
-  }, [agentId, avatarDebug, conversationAnchorId, t]);
+  }, [agentId, avatarDebug, conversationAnchorId, t, unknownFailureMessage]);
 
   const requestProbes = useCallback(async () => {
     operationAbortRef.current?.abort();
@@ -194,16 +198,16 @@ export function AvatarDebugOverlay(props: AvatarDebugOverlayProps) {
             setError(t('Avatar.debug.request_canceled'));
             break;
           }
-          const message = toErrorMessage(requestError);
+          const message = toErrorMessage(requestError, unknownFailureMessage);
           onRequestFailed({
             probeKind,
-            reasonCode: isTimeoutError(requestError)
+            reasonCode: isTimeoutError(requestError, unknownFailureMessage)
               ? 'runtime_avatar_debug_request_timeout'
               : 'runtime_avatar_debug_request_rejected',
             error: message,
           });
-          setError(isTimeoutError(requestError) ? t('Avatar.debug.request_timeout') : message);
-          if (isTimeoutError(requestError)) break;
+          setError(isTimeoutError(requestError, unknownFailureMessage) ? t('Avatar.debug.request_timeout') : message);
+          if (isTimeoutError(requestError, unknownFailureMessage)) break;
         }
       }
       if (!controller.signal.aborted) {
@@ -215,14 +219,14 @@ export function AvatarDebugOverlay(props: AvatarDebugOverlayProps) {
     } catch (requestError) {
       setError(controller.signal.aborted
         ? t('Avatar.debug.request_canceled')
-        : isTimeoutError(requestError)
+        : isTimeoutError(requestError, unknownFailureMessage)
           ? t('Avatar.debug.request_timeout')
-          : toErrorMessage(requestError));
+          : toErrorMessage(requestError, unknownFailureMessage));
     } finally {
       if (operationAbortRef.current === controller) operationAbortRef.current = null;
       setRequesting(false);
     }
-  }, [agentId, avatarDebug, avatarInstanceId, conversationAnchorId, onRequestFailed, t]);
+  }, [agentId, avatarDebug, avatarInstanceId, conversationAnchorId, onRequestFailed, t, unknownFailureMessage]);
 
   const cancelRequest = useCallback(() => {
     operationAbortRef.current?.abort(new DOMException('Avatar diagnostics canceled by user', 'AbortError'));
