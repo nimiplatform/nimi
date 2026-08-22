@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   AgentCenter,
   type AgentCenterI18n,
@@ -27,12 +28,15 @@ export function resolveAgentCenterIdentityBadge(input: {
 }
 
 export function AgentConversationSettingsContent({ input }: AgentConversationSettingsContentProps) {
+  const { i18n } = useTranslation();
   const [activeSection, setActiveSection] = useState<AgentCenterSectionId>('overview');
   const setActiveTab = useAppStore((state) => state.setActiveTab);
   const runtimeConfigNavigation = useDesktopRendererCommands().runtimeConfigNavigation;
   const agentCenterI18n = useMemo<AgentCenterI18n>(() => ({
+    language: i18n.resolvedLanguage || i18n.language,
+    exists: (key) => i18n.exists(key),
     t: (key, values) => input.t(key, values) as string,
-  }), [input.t]);
+  }), [i18n, input.t]);
   useEffect(() => {
     void input.messages.length;
     void input.runtimeAgentCenterAdapter?.refresh();

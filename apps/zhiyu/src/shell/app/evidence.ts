@@ -13,6 +13,7 @@ import type {
   NimiRuntimeAgentSourceRef,
   NimiRuntimeAgentTurnContextSummary,
 } from '@nimiplatform/sdk/runtime';
+import type { NimiLocalAppAgentHandle } from '@nimiplatform/sdk/app';
 import {
   createInitialZhiyuDelegationEvidence,
   type ZhiyuDelegationUxStatus,
@@ -118,7 +119,7 @@ export type ZhiyuEvidence = {
     readonly ownerUserId: string | null;
     readonly count: number;
     readonly localAgents: readonly {
-      readonly agentHandle: string;
+      readonly agentHandle: NimiLocalAppAgentHandle;
       readonly displayName: string;
       readonly avatarUrl: string | null;
     }[];
@@ -130,7 +131,7 @@ export type ZhiyuEvidence = {
     readonly actionHint: string;
     readonly source: string;
     readonly message: string;
-    readonly agentHandle: string | null;
+    readonly agentHandle: NimiLocalAppAgentHandle | null;
     readonly ownerUserId: string | null;
     readonly runtimeSourceRef: string | null;
     readonly localAgentRef: string | null;
@@ -142,7 +143,7 @@ export type ZhiyuEvidence = {
     readonly actionHint: string;
     readonly source: string;
     readonly message: string;
-    readonly agentHandle: string | null;
+    readonly agentHandle: NimiLocalAppAgentHandle | null;
     readonly ownerUserId: string | null;
     readonly runtimeSourceRef: string | null;
     readonly localAgentRef: string | null;

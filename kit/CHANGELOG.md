@@ -98,6 +98,14 @@ Discipline.
 
 ### Changed
 
+- **Breaking (0.x):** Agent Center replaces the removed permission/grant
+  session factory with `createAppAgentCenterSession({ handle, client })` for
+  every protected App whose current session has `agent.configure` coverage.
+  The factory consumes the SDK's single nominal `NimiLocalAppAgentHandle` and
+  existing six-operation `NimiLocalAppAgentConfigureClient`; removed exports
+  include `createPermissionedAgentCenterSession`,
+  `sealAgentCenterPermissionedSdkSurface`, permission-posture types, and the
+  duplicate Kit Agent-handle brand. There is no compatibility path.
 - **Breaking (0.x):** Desktop Open removes the `open-agents` target together
   with `NimiDesktopOpenAgentsIntent` and `NimiDesktopOpenAgentsView`. Character
   and partner catalog entry now uses `open-explore` with `section: 'personas'`
@@ -228,18 +236,13 @@ Discipline.
   `appearanceAdapter`, `copy`, `appearanceCopy`, `behaviorCopy`, and `ariaLabel`; removed
   `localAgentRef` from `AgentCenterIdentityProjection`. Use
   `createFirstPartyAgentCenterSession` or
-  `createPermissionedAgentCenterSession({ handle, surface })` and the canonical
+  `createAppAgentCenterSession({ handle, client })` and the canonical
   `i18n` seam. This is a pre-1.0 hard cut with no compatibility path.
 - **Breaking (0.x):** Agent Center autonomy writes require their independent
   `expectedRevision` and return through the Manager Session's revised snapshot;
   `autonomyMutationAvailable` and `autonomyDisabledReason` placement inputs are
   removed.
-- Agent Center permissioned sessions may now consume live product-action posture
-  subscriptions. Manager Sessions degrade in place on denied/revoked events and
-  render typed request-permission/open-settings recovery actions without exposing
-  permission vocabulary to the feature.
-- Agent Center adds an opaque-handle permissioned session factory, one
-  component-level `i18n.t` binding, dynamic canonical capability projection
+- Agent Center adds one component-level `i18n.t` binding, dynamic canonical capability projection
   including `audio.transcribe`, visible loading and embedded load-error states,
   and cross-section mutation write-back. The unsupported AI Profile import
   affordance is hidden.
@@ -404,6 +407,13 @@ Discipline.
 
 ### Fixed
 
+- Agent Center now commits shared AIConfig and autonomy state directly from
+  the canonical mutation response. An unrelated follow-up projection read can
+  no longer turn a successful Runtime write into a reported failure or leave
+  the Manager Session on the pre-commit revision.
+- Agent Center catalogs cover the current speech-synthesis and image-generation
+  capabilities in English and Chinese, and host bindings can report missing
+  keys so the shipped Kit fallback is not replaced by a generic `Label`.
 - Shared kit primitives now consistently expose the standard token-driven
   focus ring. `Toggle`, `NumberStepper` step buttons, `SidebarItem`,
   `Pagination` page buttons, `DashedAddButton`, `FieldTrigger`, and

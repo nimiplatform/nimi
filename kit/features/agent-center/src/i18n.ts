@@ -23,6 +23,7 @@ export function translateAgentCenter(
   if (!i18n) return formatAgentCenterMessage(defaultValue, values);
   const baseMessage = getAgentCenterMessage('en', key) ?? defaultValue;
   const activeMessage = getAgentCenterMessage(i18n.language, key) ?? baseMessage;
+  if (i18n.exists && !i18n.exists(key)) return formatAgentCenterMessage(activeMessage, values);
   const translated = i18n.t(key, { ...values, defaultValue: activeMessage });
   if (!translated || translated === key) return formatAgentCenterMessage(activeMessage, values);
   return formatAgentCenterMessage(translated, values);

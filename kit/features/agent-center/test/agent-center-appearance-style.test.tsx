@@ -44,7 +44,7 @@ describe('AgentCenter committed appearance surface', () => {
       renderState: 'unavailable' as const,
       renderFailureReason: 'committed material unavailable',
       previousSelection: {
-        backendKind: 'vrm',
+        backendKind: 'vrm' as const,
         avatarAssetReference: 'avatar:previous',
       },
     };

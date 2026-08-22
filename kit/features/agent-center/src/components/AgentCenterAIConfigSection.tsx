@@ -206,6 +206,7 @@ export function AgentCenterAIConfigSection({
           action="overwriteSharedAIConfig"
           availability={availability}
           i18n={i18n}
+          onOpenRuntimeSettings={placementActions?.openRuntimeSettings}
           session={session}
         />
       </SectionShell>

@@ -1,12 +1,12 @@
 import type { ConversationCanonicalMessage } from '@nimiplatform/kit/features/chat';
-import type { NimiLocalAppConversationSnapshot } from '@nimiplatform/sdk/app';
+import type { NimiLocalAppAgentHandle, NimiLocalAppConversationSnapshot } from '@nimiplatform/sdk/app';
 import type { ZhiyuEvidence } from '../app/evidence';
 
 export type ZhiyuAgentChatStatus = ZhiyuEvidence['chat'];
 
 export type ZhiyuLocalAppConversationSnapshotInput = {
   readonly current: ZhiyuAgentChatStatus;
-  readonly agentHandle: string;
+  readonly agentHandle: NimiLocalAppAgentHandle;
   readonly conversationAnchorId: string;
   readonly snapshot: NimiLocalAppConversationSnapshot;
 };

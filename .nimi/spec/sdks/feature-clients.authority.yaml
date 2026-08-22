@@ -189,7 +189,7 @@ units:
     kind: rule
     title: AI configuration transport follows canonical ownership
     modality: must
-    statement: Each App or product AIConfig uses its owning host persistence and typed subscription while the one shared LocalAgent AIConfig uses the protected Runtime LocalAgent subsystem boundary; the separate Machine Loadout store uses its machine owner boundary, and exact Job inputs, Provider Credentials, Runtime process state, usage, Quota, Budget, Rate Limit, LocalAgent non-AI configuration, Memory, and Knowledge remain Runtime projections that the SDK neither persists as configuration nor exposes through private loopback wrappers.
+    statement: Each App or product AIConfig uses its owning host persistence and typed subscription while the one shared LocalAgent AIConfig uses the protected Runtime LocalAgent subsystem boundary, including the canonical agent.configure client for a covered protected App; the separate Machine Loadout store uses its machine owner boundary, and exact Job inputs, Provider Credentials, Connector identity and endpoint, Runtime process state, usage, Quota, Budget, Rate Limit, LocalAgent non-AI configuration, Memory, and Knowledge remain Runtime projections that the SDK neither persists as configuration nor exposes through private loopback wrappers.
     condition: Whenever AI config transport or change subscriptions are composed.
     failure: Reject per-Agent or host-local shadow configuration, mixed owner persistence, forbidden payloads, unprotected Runtime mutation, and loopback wrappers.
     relations:

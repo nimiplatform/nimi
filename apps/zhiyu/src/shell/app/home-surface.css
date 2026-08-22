@@ -376,6 +376,12 @@
   color: #334155;
 }
 
+.zhiyu-agent-chat [data-zhiyu-composer-agent-center-state="open"],
+.zhiyu-agent-chat [data-zhiyu-composer-agent-center-state="open"]:not(:disabled):hover {
+  background: var(--nimi-surface-active);
+  color: var(--nimi-action-primary-bg);
+}
+
 .zhiyu-home__composer-avatar {
   overflow: hidden;
   background: transparent;

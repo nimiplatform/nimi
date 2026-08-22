@@ -9,20 +9,17 @@ import type {
 } from '../types.js';
 
 const REASON_COPY = {
-  'needs-grant': 'Permission is required for this action.',
-  'request-pending': 'The permission request is waiting for a decision.',
-  denied: 'Permission was denied for this action.',
-  revoked: 'Permission was revoked for this action.',
-  'runtime-offline': 'Permission status is unavailable while Runtime is offline.',
-  'reserved-not-admitted': 'This action is not admitted yet.',
-  unknown: 'Permission availability is unknown.',
+  'runtime-offline': 'Runtime is offline.',
+  'owner-rejected': 'Runtime rejected this action.',
+  'selection-required': 'A configuration selection is required.',
+  unsupported: 'This action is not supported.',
+  'operation-unavailable': 'This action is unavailable in the current surface.',
+  unknown: 'Action availability is unknown.',
 } as const;
 
 const NEXT_STEP_COPY = {
-  requestPermission: 'Request permission',
-  openPermissionSettings: 'Open permission settings',
+  openRuntimeSettings: 'Open Runtime settings',
   retry: 'Retry',
-  wait: 'Wait for permission availability',
 } as const;
 
 export function AgentCenterProductActionNotice(props: {
@@ -30,6 +27,7 @@ export function AgentCenterProductActionNotice(props: {
   readonly availability: AgentCenterActionAvailability;
   readonly session: AgentCenterSession;
   readonly i18n?: AgentCenterI18n;
+  readonly onOpenRuntimeSettings?: () => void;
 }) {
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState('');
@@ -37,21 +35,20 @@ export function AgentCenterProductActionNotice(props: {
   const { nextStep, reason } = props.availability;
   const reasonLabel = translateAgentCenter(
     props.i18n,
-    `AgentCenter.permission.reason.${reason}`,
+    `AgentCenter.availability.reason.${reason}`,
     REASON_COPY[reason],
   );
   const nextStepLabel = translateAgentCenter(
     props.i18n,
-    `AgentCenter.permission.nextStep.${nextStep}`,
+    `AgentCenter.availability.nextStep.${nextStep}`,
     NEXT_STEP_COPY[nextStep],
   );
   const invokeNextStep = async () => {
     setBusy(true);
     setFailure('');
     try {
-      if (nextStep === 'requestPermission') await props.session.requestPermission();
-      else if (nextStep === 'openPermissionSettings') await props.session.openPermissionSettings();
-      else if (nextStep === 'retry') await props.session.refresh();
+      if (nextStep === 'retry') await props.session.refresh();
+      else if (nextStep === 'openRuntimeSettings') props.onOpenRuntimeSettings?.();
     } catch (error) {
       setFailure(error instanceof Error ? error.message : String(error));
     } finally {
@@ -68,7 +65,7 @@ export function AgentCenterProductActionNotice(props: {
         data-agent-center-next-step={nextStep}
       >
         <span>{reasonLabel}</span>
-        {nextStep === 'wait' ? <span>{nextStepLabel}</span> : (
+        {nextStep === 'openRuntimeSettings' && !props.onOpenRuntimeSettings ? <span>{nextStepLabel}</span> : (
           <Button
             data-agent-center-next-step-action={nextStep}
             disabled={busy}

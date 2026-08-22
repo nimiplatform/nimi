@@ -9,15 +9,10 @@ test('Simulator Agent Center keeps configuration in memory with CAS and fail-clo
   const bindings = createZhiyuSimulatorBindings(context);
   const home = await bindings.app.projection.loadHome({ selectedAgentHandle: null });
   const agentHandle = home.localAgent.agentHandle;
-  const identity = {
-    ownerUserId: home.localAgent.ownerUserId,
-    runtimeSourceRef: home.localAgent.runtimeSourceRef,
-    localAgentRef: home.localAgent.localAgentRef,
-  };
   assert.ok(agentHandle);
-  assert.equal(bindings.app.projection.agentCenterSession('wrong-handle', identity), null);
+  assert.equal(bindings.app.projection.agentCenterSession('wrong-handle'), null);
 
-  const session = bindings.app.projection.agentCenterSession(agentHandle, identity);
+  const session = bindings.app.projection.agentCenterSession(agentHandle);
   assert.ok(session);
   await session.refresh();
   assert.equal(session.getSnapshot().phase, 'ready');
@@ -44,7 +39,7 @@ test('Simulator Agent Center keeps configuration in memory with CAS and fail-clo
     expectedRevision: '1',
     enabled: false,
     mode: 'medium',
-    dailyTokenBudget: '2048',
+    dailyTokenBudget: 2048,
     maxTokensPerHook: 256,
   });
   assert.deepEqual(session.getSnapshot().state.autonomy, {

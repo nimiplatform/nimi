@@ -44,7 +44,11 @@ export function modelConfigCapabilityPosture(
   if (intent.route.oneofKind === 'cloud') {
     return modelConfigHasExactCloudTarget(intent) ? 'cloud-configured' : 'not-configured';
   }
-  if (!selection || selection.state === 'missing') return 'local-selection-missing';
+  // Protected Apps can configure the shared LocalAgent intent without receiving
+  // the separate machine-owner Loadout projection. Only observed absence is a
+  // missing selection; an unobserved selection does not invalidate AIConfig.
+  if (selection === undefined) return 'local-configured';
+  if (selection === null || selection.state === 'missing') return 'local-selection-missing';
   if (selection.state === 'unavailable' || selection.state === 'broken') return 'local-configuration-blocked';
   return modelConfigMissingRequiredFeatures(intent, selection).length > 0
     ? 'local-feature-mismatch'

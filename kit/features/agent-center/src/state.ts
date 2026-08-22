@@ -8,6 +8,7 @@ import type {
   AgentCenterState,
   AgentCenterStateInput,
   AgentCenterStatusTone,
+  AgentCenterSharedAIConfigProjection,
   AgentCenterSourceContextStatus,
 } from './types.js';
 
@@ -120,7 +121,7 @@ export function buildAgentCenterState(input: AgentCenterStateInput): AgentCenter
     statusTone: tone,
     baseTextConfigured,
     sharedAIConfig: input.sharedAIConfig ?? null,
-    localSelections: input.localSelections ?? [],
+    localSelections: input.localSelections,
     baseTextConfigurationDetail: baseTextConfigured ? null : (text?.summary || 'Text capability is not configured'),
     autonomyRevision,
     presentationRevision,
@@ -173,6 +174,32 @@ export function buildAgentCenterState(input: AgentCenterStateInput): AgentCenter
     },
     sourceContext,
     sections: AGENT_CENTER_SECTIONS,
+  };
+}
+
+export function replaceAgentCenterSharedAIConfig(
+  state: AgentCenterState,
+  sharedAIConfig: AgentCenterSharedAIConfigProjection,
+): AgentCenterState {
+  const input: AgentCenterStateInput = { sharedAIConfig };
+  const capabilities = projectedCapabilities(input).map((capability) => buildCapabilityState(input, capability));
+  const text = capabilities.find((capability) => capability.capability === 'text.generate');
+  const baseTextConfigured = text?.configurationState === 'configured' && text.intent !== null;
+  const statusTone: AgentCenterStatusTone = state.runtimeStatus === 'failed' || state.sourceContext.status === 'failed'
+    ? 'failed'
+    : state.sourceContext.status === 'blocked' || !baseTextConfigured
+      ? 'attention'
+      : 'ready';
+  return {
+    ...state,
+    statusTone,
+    baseTextConfigured,
+    sharedAIConfig,
+    baseTextConfigurationDetail: baseTextConfigured
+      ? null
+      : (text?.summary || 'Text capability is not configured'),
+    agentAIConfigMutationDisabledReason: null,
+    capabilities,
   };
 }
 

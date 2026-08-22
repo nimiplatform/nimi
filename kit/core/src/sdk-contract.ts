@@ -35,9 +35,11 @@
  *   @nimiplatform/sdk/features/generation — neutral Scenario identity and
  *       media request payload types; image/video/speech generation executes
  *       through the owner-driven Scenario job runner
- *   @nimiplatform/sdk/app — app-side Desktop Open Intent data surface
- *     - closed intent parser, renderer request parser, envelope composition,
- *       and result parser
+ *   @nimiplatform/sdk/app — protected App and Desktop Open data surfaces
+ *     - the single nominal NimiLocalAppAgentHandle projected by Runtime
+ *     - bounded Local App Agent configure client types used by Agent Center
+ *     - closed Desktop Open intent parser, renderer request parser, envelope
+ *       composition, and result parser
  *
  * Re-export strategy
  * ------------------
@@ -266,7 +268,7 @@ export type {
   NimiConversationTextAccumulatorSnapshot,
 } from '@nimiplatform/sdk/features/conversation';
 
-// --- App-side Desktop Open Intent data surface -----------------------------
+// --- Protected App Agent + Desktop Open data surfaces ----------------------
 export {
   NIMI_DESKTOP_OPEN_RESULT_REASON_CODES,
   NIMI_DESKTOP_OPEN_SCHEMA_VERSION,
@@ -306,4 +308,12 @@ export type {
   NimiDesktopOpenSettingsIntent,
   NimiDesktopOpenSettingsSection,
   NimiDesktopOpenSourceHost,
+  NimiLocalAppAgentAutonomyProjection,
+  NimiLocalAppAgentAutonomyMode,
+  NimiLocalAppAgentConfigureClient,
+  NimiLocalAppAgentHandle,
+  NimiLocalAppAgentPresentationBackendKind,
+  NimiLocalAppAgentPresentationIntent,
+  NimiLocalAppAgentPresentationProfile,
+  NimiLocalAppAgentPresentationProjection,
 } from '@nimiplatform/sdk/app';

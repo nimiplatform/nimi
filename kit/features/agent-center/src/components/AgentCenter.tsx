@@ -348,11 +348,11 @@ function renderSection(
     case 'ai-config':
       return <AgentCenterAIConfigSection i18n={i18n} placementActions={placementActions} session={session} snapshot={snapshot} />;
     case 'behavior':
-      return <AgentCenterBehaviorSection i18n={i18n} session={session} snapshot={snapshot} />;
+      return <AgentCenterBehaviorSection i18n={i18n} placementActions={placementActions} session={session} snapshot={snapshot} />;
     case 'cognition':
-      return <AgentCenterCognitionSection i18n={i18n} session={session} snapshot={snapshot} />;
+      return <AgentCenterCognitionSection i18n={i18n} placementActions={placementActions} session={session} snapshot={snapshot} />;
     case 'appearance':
-      return <AgentCenterAppearanceSection i18n={i18n} session={session} snapshot={snapshot} />;
+      return <AgentCenterAppearanceSection i18n={i18n} placementActions={placementActions} session={session} snapshot={snapshot} />;
     case 'advanced':
       return <AgentCenterAdvanced copy={advancedCopy} state={snapshot.state} />;
   }

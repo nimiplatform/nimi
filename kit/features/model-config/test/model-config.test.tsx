@@ -198,6 +198,16 @@ describe('public Model Config contract', () => {
     expect(modelConfigCapabilityPosture(intent, selection)).toBe('local-feature-mismatch');
   });
 
+  it('keeps a shared local intent configured when machine Loadouts are not observable', () => {
+    const intent = createNimiLocalAIConfigCapabilityIntent({
+      capabilityContract: 'text.generate',
+      requiredFeatures: [],
+    });
+
+    expect(modelConfigCapabilityPosture(intent, undefined)).toBe('local-configured');
+    expect(modelConfigCapabilityPosture(intent, null)).toBe('local-selection-missing');
+  });
+
   it('fails closed when a reloaded Cloud intent lacks exact catalog identity', () => {
     const incomplete = createNimiCloudAIConfigCapabilityIntent({
       capabilityContract: 'text.generate',

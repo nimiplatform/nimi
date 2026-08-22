@@ -47,7 +47,7 @@ describe('Agent Center canonical i18n catalogs', () => {
   it('covers every literal component key in English and ships matching Chinese keys', () => {
     const enKeys = Object.keys(agentCenterEnCatalog).sort();
     const zhKeys = Object.keys(agentCenterZhCatalog).sort();
-    expect(enKeys).toHaveLength(272);
+    expect(enKeys).toHaveLength(273);
     expect(zhKeys).toEqual(enKeys);
     expect(literalCatalogKeys().filter((key) => !(key in agentCenterEnCatalog))).toEqual([]);
 
@@ -74,6 +74,11 @@ describe('Agent Center canonical i18n catalogs', () => {
       language: 'zh-CN',
       t: () => 'Host cognition',
     }, key, english)).toBe('Host cognition');
+    expect(translateAgentCenter({
+      language: 'zh-CN',
+      exists: () => false,
+      t: () => 'Label',
+    }, 'AgentCenter.capability.image.generate.label', 'Image Generate')).toBe('图像生成');
   });
 
   it('provides a mountable Kit-backed host binding', () => {
@@ -82,6 +87,8 @@ describe('Agent Center canonical i18n catalogs', () => {
     expect(binding.t('AgentCenter.cognition.title')).toBe('状态与记忆');
     expect(binding.t('AgentCenter.capability.text.generate.label')).toBe('文本生成');
     expect(binding.t('AgentCenter.capability.audio.transcribe.label')).toBe('音频转写');
+    expect(binding.t('AgentCenter.capability.audio.synthesize.label')).toBe('语音合成');
+    expect(binding.t('AgentCenter.capability.image.generate.label')).toBe('图像生成');
     expect(binding.t('AgentCenter.aiConfig.activeModelLabel')).toBe('当前模型');
     expect(binding.t('AgentCenter.aiConfig.modelPickerTitle')).toBe('选择模型');
     expect(binding.t('AgentCenter.aiConfig.cloudAuthorizationLabel')).toBe('云端执行路径');

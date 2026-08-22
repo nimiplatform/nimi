@@ -3,14 +3,14 @@ import type {
   NimiRendererHostFacadeV1,
   NimiRendererHostMethodMap,
 } from '@nimiplatform/kit/shell/renderer/host';
-import type { AgentCenterOpaqueHandle, AgentCenterSession } from '@nimiplatform/kit/features/agent-center';
+import type { AgentCenterSession } from '@nimiplatform/kit/features/agent-center';
+import type { NimiLocalAppAgentHandle } from '@nimiplatform/sdk/app';
 
 import type { ZhiyuRuntimeAgentChatTurnInput, ZhiyuRuntimeAgentChatTurnResult } from '../shell/agent-chat/runtime-agent-turn-adapter.js';
 import type { ZhiyuAvatarLaunchAction } from '../shell/avatar/avatar-launch.js';
 import type { ZhiyuAvatarLaunchResult } from '../shell/avatar/avatar-launch-handoff.js';
 import type { ZhiyuDesktopOpenActionResult } from '../shell/desktop-open/desktop-open-action.js';
 import type { ZhiyuEvidence } from '../shell/app/evidence.js';
-import type { ZhiyuAuthorizedAgentCenterIdentity } from '../shell/agent/agent-center-handle.js';
 
 export type ZhiyuHomeProjection = Pick<
   ZhiyuEvidence,
@@ -29,17 +29,16 @@ export type ZhiyuHomeProjection = Pick<
 
 export interface ZhiyuRendererProjectionPort {
   agentCenterSession(
-    agentHandle: AgentCenterOpaqueHandle | null,
-    identity: ZhiyuAuthorizedAgentCenterIdentity | null,
+    agentHandle: NimiLocalAppAgentHandle | null,
   ): AgentCenterSession | null;
-  loadHome(input: { readonly selectedAgentHandle: string | null }): Promise<ZhiyuHomeProjection>;
+  loadHome(input: { readonly selectedAgentHandle: NimiLocalAppAgentHandle | null }): Promise<ZhiyuHomeProjection>;
   loadAgentInventory(): Promise<ZhiyuEvidence['inventory']>;
   projectTurnReadiness(
     conversation: ZhiyuEvidence['conversation'],
     inventory: ZhiyuEvidence['inventory'],
   ): ZhiyuEvidence['turn'];
   hydrateConversation(input: {
-    readonly agentHandle: string;
+    readonly agentHandle: NimiLocalAppAgentHandle;
     readonly conversationAnchorId: string;
     readonly currentSource: ZhiyuEvidence['source'];
     readonly currentChat: ZhiyuEvidence['chat'];
@@ -49,7 +48,7 @@ export interface ZhiyuRendererProjectionPort {
 export interface ZhiyuRendererCommandPort {
   allocateTurnRequestId(): Promise<string>;
   runTurn(input: ZhiyuRuntimeAgentChatTurnInput): Promise<ZhiyuRuntimeAgentChatTurnResult>;
-  openDesktopPersonaCatalog(): Promise<void>;
+  openDesktopRuntimeSettings(): Promise<void>;
   openDesktopSelectPartner(): Promise<ZhiyuDesktopOpenActionResult>;
   launchAvatar(input: {
     readonly evidence: ZhiyuEvidence;
@@ -60,7 +59,7 @@ export interface ZhiyuRendererCommandPort {
 export interface ZhiyuRendererEventPort {
   onProjectionChanged?(projection: ZhiyuEvidence): void;
   subscribeConversation(input: {
-    readonly agentHandle: string;
+    readonly agentHandle: NimiLocalAppAgentHandle;
     readonly conversationAnchorId: string;
     readonly onChat: (chat: ZhiyuEvidence['chat']) => void;
   }): () => void;

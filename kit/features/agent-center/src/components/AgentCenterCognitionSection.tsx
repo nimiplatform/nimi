@@ -11,6 +11,7 @@ import { translateAgentCenter } from '../i18n.js';
 import { agentCenterEnCatalog, getAgentCenterCatalogRecord } from '../locales/index.js';
 import type {
   AgentCenterI18n,
+  AgentCenterPlacementActions,
   AgentCenterSession,
   AgentCenterSnapshot,
   AgentCenterState,
@@ -27,6 +28,7 @@ export interface AgentCenterCognitionSectionProps {
   readonly session: AgentCenterSession;
   readonly snapshot: AgentCenterSnapshot;
   readonly i18n?: AgentCenterI18n;
+  readonly placementActions?: AgentCenterPlacementActions;
 }
 
 const LIFECYCLE_STATUS_DEFAULTS = getAgentCenterCatalogRecord('AgentCenter.cognition.lifecycle.');
@@ -74,7 +76,7 @@ function hasCognitionProjection(cognition: AgentCenterState['cognition']) {
   );
 }
 
-export function AgentCenterCognitionSection({ session, snapshot, i18n }: AgentCenterCognitionSectionProps) {
+export function AgentCenterCognitionSection({ session, snapshot, i18n, placementActions }: AgentCenterCognitionSectionProps) {
   const cognition = snapshot.state.cognition;
   const availability = snapshot.availability.readMemorySummary;
   const hasProjection = hasCognitionProjection(cognition);
@@ -107,6 +109,7 @@ export function AgentCenterCognitionSection({ session, snapshot, i18n }: AgentCe
           action="readMemorySummary"
           availability={availability}
           i18n={i18n}
+          onOpenRuntimeSettings={placementActions?.openRuntimeSettings}
           session={session}
         />
       ) : null}

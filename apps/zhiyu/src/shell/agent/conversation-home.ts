@@ -69,8 +69,7 @@ function conversationReady(
 
 function localAgentIdentity(localAgent: ZhiyuLocalAgentStatus): LocalAgentIdentity | null {
   if (!localAgent.ready) return null;
-  const handle = stringOr(localAgent.agentHandle, '');
-  return handle ? { agentHandle: agentHandle(handle) } : null;
+  return localAgent.agentHandle ? { agentHandle: localAgent.agentHandle } : null;
 }
 
 function normalizeConversationError(error: unknown, identity: LocalAgentIdentity): ZhiyuConversationHomeStatus {
@@ -89,7 +88,7 @@ function conversationUnavailable(input: {
   readonly actionHint: string;
   readonly source: string;
   readonly message: string;
-  readonly agentHandle?: string | null;
+  readonly agentHandle?: NimiLocalAppAgentHandle | null;
   readonly ownerUserId?: string | null;
   readonly runtimeSourceRef?: string | null;
   readonly localAgentRef?: string | null;
@@ -104,10 +103,6 @@ function conversationUnavailable(input: {
     conversationAnchorId: null,
     threadId: null,
   };
-}
-
-function agentHandle(value: string): NimiLocalAppAgentHandle {
-  return value as NimiLocalAppAgentHandle;
 }
 
 function stringOr(value: unknown, fallback: string): string {

@@ -19,6 +19,7 @@ import type {
   AgentCenterAutonomyProjection,
   AgentCenterBehaviorCopy,
   AgentCenterI18n,
+  AgentCenterPlacementActions,
   AgentCenterSession,
   AgentCenterSnapshot,
 } from '../types.js';
@@ -37,6 +38,7 @@ export interface AgentCenterBehaviorSectionProps {
   readonly session: AgentCenterSession;
   readonly snapshot: AgentCenterSnapshot;
   readonly i18n?: AgentCenterI18n;
+  readonly placementActions?: AgentCenterPlacementActions;
 }
 
 const DEFAULT_BEHAVIOR_COPY = getAgentCenterCatalogRecord('AgentCenter.behavior.') as Required<AgentCenterBehaviorCopy>;
@@ -102,7 +104,7 @@ function ModeSignalMark({
   );
 }
 
-export function AgentCenterBehaviorSection({ session, snapshot, i18n }: AgentCenterBehaviorSectionProps) {
+export function AgentCenterBehaviorSection({ session, snapshot, i18n, placementActions }: AgentCenterBehaviorSectionProps) {
   const state = snapshot.state;
   const compatibilityLabels = resolveCopy(undefined);
   const labels = Object.fromEntries(
@@ -163,6 +165,7 @@ export function AgentCenterBehaviorSection({ session, snapshot, i18n }: AgentCen
           action="updateAutonomy"
           availability={availability}
           i18n={i18n}
+          onOpenRuntimeSettings={placementActions?.openRuntimeSettings}
           session={session}
         />
       </SectionShell>

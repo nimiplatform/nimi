@@ -5,6 +5,7 @@ import {
 import type {
   NimiCapabilityAIConfig,
   NimiCapabilityAIConfigIntent,
+  NimiLocalAppAgentHandle,
   NimiPortableAppAIConfig,
 } from '@nimiplatform/kit/core/sdk-contract';
 import { BridgeError, invoke, invokeChecked } from './invoke.js';
@@ -68,7 +69,7 @@ export type NimiLocalAppCurrentUserDisplay = {
 };
 
 export type NimiLocalAppAgentReference = {
-  readonly agentHandle: string;
+  readonly agentHandle: NimiLocalAppAgentHandle;
   readonly displayName: string;
   readonly avatarUrl: string | null;
 };
@@ -830,7 +831,11 @@ export function listNimiLocalAppAgentReferences(): Promise<readonly NimiLocalApp
       if (avatarUrl !== null && !safeAgentAvatarUrl(avatarUrl)) {
         throw new Error(`${command}: avatarUrl is invalid`);
       }
-      return Object.freeze({ agentHandle, displayName, avatarUrl: avatarUrl as string | null });
+      return Object.freeze({
+        agentHandle: agentHandle as NimiLocalAppAgentHandle,
+        displayName,
+        avatarUrl: avatarUrl as string | null,
+      });
     }));
   });
 }

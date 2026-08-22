@@ -1,6 +1,7 @@
 import {
   AlertTriangle,
   Lightbulb,
+  SlidersHorizontal,
   UserRound,
 } from 'lucide-react';
 import type { ZhiyuEvidence } from '../app/evidence';
@@ -37,15 +38,11 @@ export function ComposerAvatarButton({
   currentPartnerName,
   currentPartnerAvatarUrl,
   hasCurrentPartner,
-  avatarLaunchAction,
-  onAvatarLaunch,
   onOpenSettings,
 }: {
   readonly currentPartnerName: string;
   readonly currentPartnerAvatarUrl: string | null;
   readonly hasCurrentPartner: boolean;
-  readonly avatarLaunchAction: ZhiyuAvatarLaunchAction;
-  readonly onAvatarLaunch?: () => void;
   readonly onOpenSettings: () => void;
 }) {
   return (
@@ -53,15 +50,8 @@ export function ComposerAvatarButton({
       type="button"
       className="zhiyu-home__composer-avatar"
       aria-label={hasCurrentPartner ? `形象：${currentPartnerName}` : '选择本地伙伴'}
-      data-zhiyu-avatar-launch-entry={avatarLaunchAction.state}
-      data-zhiyu-avatar-launch-reason={avatarLaunchAction.reasonCode}
-      onClick={() => {
-        if (avatarLaunchAction.state === 'ready' && onAvatarLaunch) {
-          onAvatarLaunch();
-          return;
-        }
-        onOpenSettings();
-      }}
+      title={hasCurrentPartner ? `形象：${currentPartnerName}` : '选择本地伙伴'}
+      onClick={onOpenSettings}
     >
       {currentPartnerAvatarUrl ? (
         <img
@@ -76,28 +66,68 @@ export function ComposerAvatarButton({
 }
 
 export function ComposerModeTools({
-  onOpenAgentPanel,
-  onOpenSettings,
+  avatarLaunchAction,
+  onAvatarLaunch,
+  onOpenAppearance,
+  onOpenBehavior,
 }: {
-  readonly onOpenAgentPanel: () => void;
-  readonly onOpenSettings: () => void;
+  readonly avatarLaunchAction: ZhiyuAvatarLaunchAction;
+  readonly onAvatarLaunch?: () => void;
+  readonly onOpenAppearance: () => void;
+  readonly onOpenBehavior: () => void;
 }) {
+  const avatarReady = avatarLaunchAction.state === 'ready' && Boolean(onAvatarLaunch);
   return (
     <>
       <button
         type="button"
-        aria-label="伙伴中心"
-        title="伙伴中心"
-        data-nimi-semantic-id="zhiyu-primary-action"
-        data-zhiyu-composer-tool="agent"
-        onClick={onOpenAgentPanel}
+        aria-label={avatarReady ? '启动形象' : '配置形象'}
+        title={avatarReady ? '启动形象' : '配置形象'}
+        data-zhiyu-composer-tool="avatar"
+        data-zhiyu-avatar-launch-entry={avatarLaunchAction.state}
+        data-zhiyu-avatar-launch-reason={avatarLaunchAction.reasonCode}
+        onClick={() => {
+          if (avatarReady && onAvatarLaunch) {
+            onAvatarLaunch();
+            return;
+          }
+          onOpenAppearance();
+        }}
       >
         <UserRound size={16} aria-hidden="true" />
       </button>
-      <button type="button" aria-label="主动模式" title="主动模式" data-zhiyu-composer-tool="proactive" onClick={onOpenSettings}>
+      <span
+        aria-hidden="true"
+        data-zhiyu-composer-toolbar-divider="true"
+        className="mx-0.5 h-4 w-px bg-[var(--nimi-border-subtle)]"
+      />
+      <button type="button" aria-label="主动模式" title="主动模式" data-zhiyu-composer-tool="proactive" onClick={onOpenBehavior}>
         <Lightbulb size={16} aria-hidden="true" />
       </button>
     </>
+  );
+}
+
+export function ComposerAgentCenterButton({
+  open,
+  onToggleAgentPanel,
+}: {
+  readonly open: boolean;
+  readonly onToggleAgentPanel: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label="伙伴中心"
+      aria-pressed={open}
+      title={open ? '关闭伙伴中心' : '伙伴中心'}
+      data-nimi-semantic-id="zhiyu-primary-action"
+      data-zhiyu-composer-tool="agent"
+      data-zhiyu-composer-agent-center-state={open ? 'open' : 'closed'}
+      onClick={onToggleAgentPanel}
+    >
+      <SlidersHorizontal size={16} aria-hidden="true" />
+    </button>
   );
 }
 

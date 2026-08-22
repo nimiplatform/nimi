@@ -6,7 +6,7 @@ import {
 import type { NimiDesktopOpenIntent } from '@nimiplatform/kit/core/desktop-open';
 
 export const ZHIYU_DESKTOP_OPEN_SELECT_PARTNER_ACTION = 'desktop_open_select_partner' as const;
-export const ZHIYU_DESKTOP_OPEN_PERSONA_CATALOG_ACTION = 'desktop_open_persona_catalog' as const;
+export const ZHIYU_DESKTOP_OPEN_RUNTIME_SETTINGS_ACTION = 'desktop_open_runtime_settings' as const;
 
 export const ZHIYU_DESKTOP_OPEN_SELECT_PARTNER_REQUEST = {
   intent: zhiyuDesktopOpenIntentForProductGap({
@@ -19,11 +19,11 @@ export const ZHIYU_DESKTOP_OPEN_SELECT_PARTNER_REQUEST = {
   },
 } satisfies NimiDesktopOpenRendererRequest;
 
-export const ZHIYU_DESKTOP_OPEN_PERSONA_CATALOG_REQUEST = {
+export const ZHIYU_DESKTOP_OPEN_RUNTIME_SETTINGS_REQUEST = {
   intent: {
-    kind: 'open-explore',
-    section: 'personas',
-    productIntent: 'discover-personas',
+    kind: 'open-runtime-config',
+    page: 'models',
+    action: 'install-model',
   },
 } satisfies NimiDesktopOpenRendererRequest;
 
@@ -66,10 +66,10 @@ export function zhiyuDesktopOpenIntentForProductGap(
   return null;
 }
 
-export async function requestZhiyuDesktopOpenPersonaCatalog(
+export async function requestZhiyuDesktopOpenRuntimeSettings(
   invokeDesktopOpenIntent: ZhiyuDesktopOpenIntentInvoker = openDesktopIntent,
 ): Promise<NimiDesktopOpenResult> {
-  return invokeDesktopOpenIntent(ZHIYU_DESKTOP_OPEN_PERSONA_CATALOG_REQUEST);
+  return invokeDesktopOpenIntent(ZHIYU_DESKTOP_OPEN_RUNTIME_SETTINGS_REQUEST);
 }
 
 export async function requestZhiyuDesktopOpenSelectPartner(

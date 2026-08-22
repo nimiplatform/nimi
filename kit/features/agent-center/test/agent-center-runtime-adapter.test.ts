@@ -1,284 +1,317 @@
 import { describe, expect, it } from 'vitest';
+import type {
+  NimiCapabilityAIConfig,
+  NimiLocalAppAgentConfigureClient,
+  NimiLocalAppAgentHandle,
+} from '@nimiplatform/kit/core/sdk-contract';
 import {
+  createAppAgentCenterSession,
   createFirstPartyAgentCenterSession,
-  createPermissionedAgentCenterSession,
-  projectAgentCenterActionAvailability,
-  sealAgentCenterPermissionedSdkSurface,
 } from '../src/session.js';
 import type {
-  AgentCenterAutonomyProjection,
-  AgentCenterOpaqueHandle,
-  AgentCenterPermissionedPresentationCommitInput,
-  AgentCenterPermissionedSdkSurface,
-  AgentCenterPermissionedSdkSurfaceInput,
-  AgentCenterProductAction,
   AgentCenterSharedAIConfigProjection,
   AgentCenterSession,
-  AgentCenterStateInput,
-  AgentCenterTransportActionProjection,
-  AgentCenterTransportActionReason,
 } from '../src/types.js';
 
-const ACTIONS: readonly AgentCenterProductAction[] = [
-  'getSharedAIConfig', 'overwriteSharedAIConfig', 'readAutonomy', 'updateAutonomy',
-  'readMemorySummary', 'replaceAppearance', 'restorePreviousAppearance',
-  'requestPermission', 'openPermissionSettings',
-];
+const HANDLE = `agent_ref_${'A'.repeat(43)}` as NimiLocalAppAgentHandle;
 
-function transportProjection(reason: AgentCenterTransportActionReason | null = null): AgentCenterTransportActionProjection {
-  return Object.fromEntries(ACTIONS.map((action) => [action, {
-    state: reason ? 'unavailable' : 'available', reason,
-  }])) as AgentCenterTransportActionProjection;
-}
-
-function recoveryProjection(reason: AgentCenterTransportActionReason): AgentCenterTransportActionProjection {
-  const recoveryAction = reason === 'not_granted' || reason === 'grant_denied' || reason === 'grant_revoked'
-    ? 'requestPermission'
-    : null;
-  return Object.fromEntries(ACTIONS.map((action) => [action, action === recoveryAction
-    ? { state: 'available', reason: null }
-    : { state: 'unavailable', reason }])) as AgentCenterTransportActionProjection;
-}
-
-function emptyProjection(capabilities: AgentCenterSharedAIConfigProjection['aiConfig']['capabilities'] = [{
-  capabilityContract: 'text.generate',
-  route: { oneofKind: 'local' as const, local: {} },
-  requiredFeatures: [] as string[],
-}]): AgentCenterStateInput {
+function sharedConfig(
+  capabilities: NimiCapabilityAIConfig['capabilities'] = [{
+    capabilityContract: 'text.generate',
+    route: { oneofKind: 'local', local: {} },
+    requiredFeatures: [],
+  }],
+): NimiCapabilityAIConfig {
   return {
-    sharedAIConfig: {
-      aiConfig: {
-        owner: {
-          owner: { oneofKind: 'runtimeLocalAgentSubsystem', runtimeLocalAgentSubsystem: {} },
-        },
-        capabilities,
-      },
-      capabilities: capabilities.map((intent) => intent.capabilityContract),
-      intents: capabilities.map((intent) => ({
-        capability: intent.capabilityContract,
-        route: intent.route.oneofKind === 'local' ? 'local' : 'cloud',
-        requiredFeatures: intent.requiredFeatures,
-      })),
-    },
-    autonomy: {
-      revision: 'autonomy:1', enabled: true, mode: 'low', budgetExhausted: false,
-      usedTokensInWindow: 0, dailyTokenBudget: 100, maxTokensPerHook: 10,
-      windowStartedAt: null, suspendedUntil: null,
-    },
-    appearance: { status: 'not_configured', presentationRevision: 'presentation:1' },
+    owner: { owner: { oneofKind: 'runtimeLocalAgentSubsystem', runtimeLocalAgentSubsystem: {} } },
+    capabilities,
   };
 }
 
-function permissionedSurface(overrides: Partial<AgentCenterPermissionedSdkSurface> = {}): AgentCenterPermissionedSdkSurface {
-  return sealAgentCenterPermissionedSdkSurface({
-    async actionPosture() { return transportProjection(); },
-    async read() { return emptyProjection(); },
-    async overwriteSharedAIConfig(input) { return emptyProjection([...input.capabilities]).sharedAIConfig!; },
-    async updateAutonomy(_handle, input) {
-      return { ...emptyProjection(), autonomy: {
-        ...emptyProjection().autonomy!, revision: 'autonomy:2',
-        enabled: input.enabled ?? null,
-        mode: input.mode as AgentCenterAutonomyProjection['mode'],
-        dailyTokenBudget: Number(input.dailyTokenBudget),
-        maxTokensPerHook: Number(input.maxTokensPerHook),
-      } };
-    },
-    async replaceAppearance() { return emptyProjection(); },
-    async restorePreviousAppearance() { return emptyProjection(); },
-    ...overrides,
-  });
+function sharedProjection(
+  capabilities: NimiCapabilityAIConfig['capabilities'] = sharedConfig().capabilities,
+): AgentCenterSharedAIConfigProjection {
+  return {
+    aiConfig: sharedConfig(capabilities),
+    capabilities: capabilities.map((entry) => entry.capabilityContract),
+    intents: capabilities.map((entry) => ({
+      capability: entry.capabilityContract,
+      route: entry.route.oneofKind === 'cloud' ? 'cloud' : 'local',
+      requiredFeatures: entry.requiredFeatures,
+    })),
+  };
 }
 
-async function flush(): Promise<void> {
-  await new Promise((resolve) => setTimeout(resolve, 0));
+function appClient(calls: unknown[]): NimiLocalAppAgentConfigureClient {
+  let config = sharedConfig();
+  let autonomyRevision = '1';
+  let presentationRevision = '1';
+  return {
+    sharedAIConfig: {
+      async get() {
+        calls.push(['shared.get']);
+        return config;
+      },
+      async overwrite(capabilities) {
+        calls.push(['shared.overwrite', capabilities]);
+        config = sharedConfig([...capabilities]);
+        return config;
+      },
+    },
+    autonomy: {
+      async snapshot(input) {
+        calls.push(['autonomy.snapshot', input]);
+        return {
+          enabled: true,
+          config: { mode: 'low', dailyTokenBudget: 100, maxTokensPerHook: 10 },
+          usedTokensInWindow: 1,
+          budgetExhausted: false,
+          autonomyRevision,
+        };
+      },
+      async update(input) {
+        calls.push(['autonomy.update', input]);
+        autonomyRevision = String(BigInt(autonomyRevision) + 1n);
+        return {
+          enabled: input.intent.enabled ?? true,
+          config: input.intent.config ?? null,
+          usedTokensInWindow: 1,
+          budgetExhausted: false,
+          autonomyRevision,
+        };
+      },
+    },
+    presentation: {
+      async snapshot(input) {
+        calls.push(['presentation.snapshot', input]);
+        return {
+          profile: {
+            backendKind: 'sprite2d',
+            avatarAssetRef: 'avatar-1',
+            expressionProfileRef: '',
+            idlePreset: '',
+            interactionPolicyRef: '',
+            defaultVoiceReference: 'voice-1',
+            avatarAutoplay: false,
+            backgroundAssetRef: '',
+            revision: presentationRevision,
+          },
+          previousProfile: null,
+          defaultVoiceReference: 'voice-1',
+          presentationRevision,
+        };
+      },
+      async commit(input) {
+        calls.push(['presentation.commit', input]);
+        presentationRevision = String(BigInt(presentationRevision) + 1n);
+        return {
+          profile: { ...input.intent, revision: presentationRevision },
+          previousProfile: null,
+          defaultVoiceReference: input.intent.defaultVoiceReference,
+          presentationRevision,
+        };
+      },
+    },
+  };
 }
 
 describe('AgentCenterSession', () => {
-  it('awaits the committed shared AIConfig projection before write-back', async () => {
+  it('awaits the committed first-party shared AIConfig projection before write-back', async () => {
     const calls: string[] = [];
-    const configInputs: unknown[] = [];
-    let sharedAIConfig = emptyProjection().sharedAIConfig!;
-    const session = createFirstPartyAgentCenterSession({
-      identity: { ownerUserId: 'owner', runtimeSourceRef: 'source', localAgentRef: 'agent' },
-      sharedAIConfig: {
-        async get(input) { calls.push('config.read'); configInputs.push(input); return sharedAIConfig; },
-        async overwrite(input) {
-          configInputs.push(input);
-          calls.push(`config.write:${input.capabilities[0]?.capabilityContract}`);
-          const state = emptyProjection([...input.capabilities]).sharedAIConfig!;
-          sharedAIConfig = state;
-          return sharedAIConfig;
-        },
-      },
-      autonomy: {
-        async load() { return emptyProjection().autonomy!; },
-        async update(_identity, input) {
-          return { ...emptyProjection().autonomy!, enabled: input.enabled ?? null };
-        },
-      },
-    });
-    await session.refresh();
-    await session.overwriteSharedAIConfig({
-      capabilities: [{
-        capabilityContract: 'text.generate',
-        route: { oneofKind: 'local', local: {} },
-        requiredFeatures: ['input.image'],
-      }],
-    });
-
-    expect(session.getSnapshot().state.sharedAIConfig?.aiConfig.owner?.owner.oneofKind).toBe('runtimeLocalAgentSubsystem');
-    expect(session.getSnapshot().state.sharedAIConfig?.aiConfig.capabilities[0]?.requiredFeatures).toEqual(['input.image']);
-    expect(calls).toContain('config.write:text.generate');
-    expect(configInputs).toEqual([
-      { subjectUserId: undefined },
-      { subjectUserId: undefined, capabilities: [expect.objectContaining({ capabilityContract: 'text.generate' })] },
-      { subjectUserId: undefined },
-    ]);
-    expect(JSON.stringify(configInputs)).not.toMatch(/ownerUserId|runtimeSourceRef|localAgentRef/u);
-    expect(JSON.stringify(session.getSnapshot().state)).not.toContain('targetRef');
-  });
-
-  it('treats AI_CONFIG_NOT_FOUND as canonical absence and permits atomic creation', async () => {
-    let sharedAIConfig: AgentCenterSharedAIConfigProjection | null = null;
+    let projection = sharedProjection();
+    let rejectReads = false;
     const session = createFirstPartyAgentCenterSession({
       identity: { ownerUserId: 'owner', runtimeSourceRef: 'source', localAgentRef: 'agent' },
       sharedAIConfig: {
         async get() {
-          if (!sharedAIConfig) throw { reasonCode: 'AI_CONFIG_NOT_FOUND' };
-          return sharedAIConfig;
+          calls.push('read');
+          if (rejectReads) throw new Error('follow-up read must not decide commit success');
+          return projection;
         },
         async overwrite(input) {
-          sharedAIConfig = emptyProjection([...input.capabilities]).sharedAIConfig!;
-          return sharedAIConfig;
+          calls.push('overwrite');
+          projection = sharedProjection([...input.capabilities]);
+          rejectReads = true;
+          return projection;
         },
       },
     });
+    await session.refresh();
+    await session.overwriteSharedAIConfig({ capabilities: [] });
+    expect(calls).toEqual(['read', 'overwrite']);
+    expect(session.getSnapshot().state.sharedAIConfig?.aiConfig.capabilities).toEqual([]);
+  });
 
+  it('binds a covered App session to the SDK nominal handle and existing six operations', async () => {
+    const calls: unknown[] = [];
+    const session = createAppAgentCenterSession({ handle: HANDLE, client: appClient(calls) });
     await session.refresh();
     expect(session.getSnapshot()).toMatchObject({
       phase: 'ready',
       error: null,
-      state: {
-        runtimeStatus: 'ready',
-        sharedAIConfig: null,
-        agentAIConfigMutationDisabledReason: null,
-      },
       availability: {
+        getSharedAIConfig: { state: 'available' },
         overwriteSharedAIConfig: { state: 'available' },
-      },
-    });
-
-    await session.overwriteSharedAIConfig({
-      capabilities: [{
-        capabilityContract: 'text.generate',
-        route: { oneofKind: 'local', local: {} },
-        requiredFeatures: [],
-      }],
-    });
-    expect(session.getSnapshot().state.sharedAIConfig?.aiConfig.capabilities)
-      .toEqual([expect.objectContaining({ capabilityContract: 'text.generate' })]);
-  });
-
-  it.each([
-    ['not_granted', 'needs-grant', 'requestPermission'],
-    ['request_pending', 'request-pending', 'wait'],
-    ['grant_denied', 'denied', 'requestPermission'],
-    ['grant_revoked', 'revoked', 'requestPermission'],
-    ['runtime_offline', 'runtime-offline', 'retry'],
-    ['reserved_not_admitted', 'reserved-not-admitted', 'wait'],
-    ['unknown', 'unknown', 'retry'],
-  ] as const)('maps transport reason %s without collapse', (transportReason, reason, nextStep) => {
-    expect(projectAgentCenterActionAvailability(transportProjection(transportReason)).updateAutonomy)
-      .toEqual({ state: 'unavailable', reason, nextStep });
-  });
-
-  it('routes permissioned shared configuration writes without an Agent handle', async () => {
-    const calls: string[] = [];
-    const session = createPermissionedAgentCenterSession({
-      handle: 'opaque' as AgentCenterOpaqueHandle,
-      surface: permissionedSurface({
-        async overwriteSharedAIConfig(input) {
-          calls.push(`config:${input.capabilities.length}`);
-          return emptyProjection([...input.capabilities]).sharedAIConfig!;
+        readAutonomy: { state: 'available' },
+        updateAutonomy: { state: 'available' },
+        replaceAppearance: { state: 'available' },
+        restorePreviousAppearance: {
+          state: 'unavailable',
+          reason: 'selection-required',
+          nextStep: 'openRuntimeSettings',
         },
-      }),
+      },
     });
-    await session.refresh();
-    await session.overwriteSharedAIConfig({ capabilities: [] });
-    expect(calls).toEqual(['config:0']);
-    expect(session.getSnapshot().state.sharedAIConfig?.aiConfig.capabilities).toEqual([]);
+    expect(session.getSnapshot().state.localSelections).toBeUndefined();
+    expect(calls).toContainEqual(['autonomy.snapshot', { agentHandle: HANDLE }]);
+    expect(calls).toContainEqual(['presentation.snapshot', { agentHandle: HANDLE }]);
+    expect(JSON.stringify(calls)).not.toMatch(/ownerUserId|runtimeSourceRef|localAgentRef/u);
   });
 
-  it('patches avatar autoplay through the permissioned presentation commit without replacing voice', async () => {
-    const calls: AgentCenterPermissionedPresentationCommitInput[] = [];
-    const current: AgentCenterStateInput = {
-      ...emptyProjection(),
-      appearance: {
-        status: 'not_configured',
-        presentationRevision: 'presentation:1',
-        defaultVoiceReference: 'voice_asset_id:voice-song-lian',
-        avatarAutoplay: false,
+  it('preserves typed owner rejection instead of reporting every App read failure as offline', async () => {
+    const calls: unknown[] = [];
+    const base = appClient(calls);
+    const client: NimiLocalAppAgentConfigureClient = {
+      ...base,
+      sharedAIConfig: {
+        ...base.sharedAIConfig,
+        async get() {
+          throw Object.assign(new Error('covered operation rejected'), {
+            reasonCode: 'LOCAL_APP_ACCESS_DENIED',
+          });
+        },
       },
     };
-    const updated: AgentCenterStateInput = {
-      ...current,
-      appearance: { ...current.appearance!, presentationRevision: 'presentation:2', avatarAutoplay: true },
-    };
-    const session = createPermissionedAgentCenterSession({
-      handle: 'opaque' as AgentCenterOpaqueHandle,
-      surface: permissionedSurface({
-        async read() { return current; },
-        async replaceAppearance(_handle, input) { calls.push(input); return updated; },
-      }),
+    const session = createAppAgentCenterSession({ handle: HANDLE, client });
+
+    await session.refresh();
+
+    expect(session.getSnapshot()).toMatchObject({
+      phase: 'degraded',
+      availability: {
+        getSharedAIConfig: {
+          state: 'unavailable',
+          reason: 'owner-rejected',
+          nextStep: 'openRuntimeSettings',
+        },
+      },
     });
+  });
+
+  it('passes typed autonomy values to the SDK client without Kit enum or numeric validation', async () => {
+    const calls: unknown[] = [];
+    const session = createAppAgentCenterSession({ handle: HANDLE, client: appClient(calls) });
+    await session.refresh();
+    await session.updateAutonomy({
+      expectedRevision: '1',
+      enabled: true,
+      mode: 'medium',
+      dailyTokenBudget: 2048,
+      maxTokensPerHook: 256,
+    });
+    expect(calls).toContainEqual(['autonomy.update', {
+      agentHandle: HANDLE,
+      expectedAutonomyRevision: '1',
+      intent: {
+        enabled: true,
+        config: { mode: 'medium', dailyTokenBudget: 2048, maxTokensPerHook: 256 },
+      },
+    }]);
+  });
+
+  it('commits App autonomy from the canonical mutation response without unrelated follow-up reads', async () => {
+    const calls: unknown[] = [];
+    const base = appClient(calls);
+    let rejectSharedReads = false;
+    const client: NimiLocalAppAgentConfigureClient = {
+      ...base,
+      sharedAIConfig: {
+        ...base.sharedAIConfig,
+        async get() {
+          if (rejectSharedReads) throw new Error('follow-up shared read failed');
+          return base.sharedAIConfig.get();
+        },
+      },
+      autonomy: {
+        ...base.autonomy,
+        async update(input) {
+          const projection = await base.autonomy.update(input);
+          rejectSharedReads = true;
+          return projection;
+        },
+      },
+    };
+    const session = createAppAgentCenterSession({ handle: HANDLE, client });
+    await session.refresh();
+    await session.updateAutonomy({
+      expectedRevision: '1',
+      enabled: true,
+      mode: 'medium',
+      dailyTokenBudget: 2048,
+      maxTokensPerHook: 256,
+    });
+
+    expect(session.getSnapshot()).toMatchObject({
+      phase: 'ready',
+      error: null,
+      state: {
+        autonomyRevision: '2',
+        autonomy: { revision: '2', mode: 'medium', dailyTokenBudget: 2048 },
+      },
+    });
+  });
+
+  it('patches presentation through the same nominal handle without replacing other profile fields', async () => {
+    const calls: unknown[] = [];
+    const session = createAppAgentCenterSession({ handle: HANDLE, client: appClient(calls) });
     await session.refresh();
     await session.appearance.setAvatarAutoplay?.(true);
-    expect(calls).toEqual([{
-      expectedRevision: 'presentation:1',
-      intent: { avatarAutoplay: true },
-      importedAssets: [],
-    }]);
-    expect(session.getSnapshot().state.appearance).toMatchObject({
-      presentationRevision: 'presentation:2',
-      defaultVoiceReference: 'voice_asset_id:voice-song-lian',
-      avatarAutoplay: true,
-    });
-  });
-
-  it('recomputes granted posture live without remounting', async () => {
-    let emit!: (projection: AgentCenterTransportActionProjection) => void;
-    let unsubscribed = false;
-    const session = createPermissionedAgentCenterSession({
-      handle: 'opaque' as AgentCenterOpaqueHandle,
-      surface: permissionedSurface({
-        subscribeActionPosture(_handle, listener) {
-          emit = listener;
-          return () => { unsubscribed = true; };
-        },
+    expect(calls).toContainEqual(['presentation.commit', expect.objectContaining({
+      agentHandle: HANDLE,
+      expectedPresentationRevision: '1',
+      intent: expect.objectContaining({
+        avatarAssetRef: 'avatar-1',
+        defaultVoiceReference: 'voice-1',
+        avatarAutoplay: true,
       }),
-    });
-    await session.refresh();
-    const unsubscribe = session.subscribe(() => undefined);
-    await flush();
-    emit(recoveryProjection('not_granted'));
-    expect(session.getSnapshot().availability.updateAutonomy)
-      .toEqual({ state: 'unavailable', reason: 'needs-grant', nextStep: 'requestPermission' });
-    unsubscribe();
-    expect(unsubscribed).toBe(true);
+    })]);
   });
 
-  it('does not allow hand-assembled transports or state to impersonate trusted outputs', () => {
-    const structuralSurface = {} as AgentCenterPermissionedSdkSurfaceInput;
-    // @ts-expect-error Permissioned transport surfaces require the Kit sealer private brand.
-    const fabricatedSurface: AgentCenterPermissionedSdkSurface = structuralSurface;
+  it('preserves nullable presentation clear intent instead of restoring the current field', async () => {
+    const calls: unknown[] = [];
+    const session = createAppAgentCenterSession({ handle: HANDLE, client: appClient(calls) });
+    await session.refresh();
+
+    await session.replaceAppearance({
+      expectedRevision: '1',
+      intent: {
+        avatarAssetReference: null,
+        defaultVoiceReference: null,
+        backgroundAssetReference: null,
+      },
+      importedAssets: [],
+    });
+
+    expect(calls).toContainEqual(['presentation.commit', expect.objectContaining({
+      intent: expect.objectContaining({
+        avatarAssetRef: '',
+        defaultVoiceReference: '',
+        backgroundAssetRef: '',
+      }),
+    })]);
+  });
+
+  it('keeps the Manager Session nominal and rejects a plain string handle at compile time', () => {
+    const client = appClient([]);
+    // @ts-expect-error Agent Center consumes the SDK nominal handle, not a second Kit brand or plain string.
+    createAppAgentCenterSession({ handle: 'agent_ref_plain', client });
     // @ts-expect-error Manager Sessions are nominal factory outputs, not structural caller state.
     const fabricated: AgentCenterSession = {
-      getSnapshot() { throw new Error('fabricated'); }, subscribe() { return () => undefined; },
+      getSnapshot() { throw new Error('fabricated'); },
+      subscribe() { return () => undefined; },
       async refresh() {}, async overwriteSharedAIConfig() {}, async updateAutonomy() {},
-      async replaceAppearance() {}, async restorePreviousAppearance() {},
-      async requestPermission() {}, async openPermissionSettings() {}, appearance: {},
+      async replaceAppearance() {}, async restorePreviousAppearance() {}, appearance: {},
     };
-    expect(fabricatedSurface).toBeTruthy();
     expect(fabricated).toBeTruthy();
   });
 });

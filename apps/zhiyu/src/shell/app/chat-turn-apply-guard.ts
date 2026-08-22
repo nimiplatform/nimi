@@ -9,7 +9,7 @@ export function zhiyuRuntimeChatApplyIdentity(
   conversation: ZhiyuRuntimeChatApplyIdentity,
 ): ZhiyuRuntimeChatApplyIdentity {
   return {
-    agentHandle: normalizedText(conversation.agentHandle),
+    agentHandle: conversation.agentHandle,
     conversationAnchorId: normalizedText(conversation.conversationAnchorId),
     threadId: normalizedText(conversation.threadId),
   };

@@ -30,7 +30,7 @@ export type ZhiyuRuntimeAgentChatTurnResult = {
   readonly actionHint: string;
   readonly source: string;
   readonly message: string;
-  readonly agentHandle: string | null;
+  readonly agentHandle: NimiLocalAppAgentHandle | null;
   readonly ownerUserId: string | null;
   readonly runtimeSourceRef: string | null;
   readonly localAgentRef: string | null;
@@ -405,7 +405,7 @@ function chatUnavailable(input: {
   readonly actionHint: string;
   readonly source: string;
   readonly message: string;
-  readonly agentHandle?: string | null;
+  readonly agentHandle?: NimiLocalAppAgentHandle | null;
   readonly ownerUserId?: string | null;
   readonly runtimeSourceRef?: string | null;
   readonly localAgentRef?: string | null;

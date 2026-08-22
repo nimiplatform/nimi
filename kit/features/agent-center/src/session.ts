@@ -1,5 +1,11 @@
 import {
   asNimiError,
+  type NimiLocalAppAgentAutonomyProjection,
+  type NimiLocalAppAgentConfigureClient,
+  type NimiLocalAppAgentHandle,
+  type NimiLocalAppAgentPresentationIntent,
+  type NimiLocalAppAgentPresentationProfile,
+  type NimiLocalAppAgentPresentationProjection,
   type NimiRuntimeAgentInspectSurface,
   type NimiRuntimeAgentMemoryObservatorySnapshot,
   type NimiRuntimeAgentSourceContextStatus,
@@ -10,31 +16,28 @@ import type {
   ModelConfigCloudAIConfigModule,
   ModelConfigLocalSelectionProjection,
 } from '@nimiplatform/kit/features/model-config/headless';
-import { buildAgentCenterState } from './state.js';
+import { buildAgentCenterState, replaceAgentCenterSharedAIConfig } from './state.js';
 import type {
   AgentCenterActionAvailability,
   AgentCenterActionAvailabilityProjection,
   AgentCenterActionUnavailableReason,
   AgentCenterAppearanceAdapter,
   AgentCenterAppearanceProjection,
+  AgentCenterAutonomyMutation,
   AgentCenterAutonomyMutationInput,
   AgentCenterAutonomyProjection,
+  AgentCenterAIConfigMutation,
   AgentCenterNextStepAction,
-  AgentCenterOpaqueHandle,
+  AgentCenterPresentationCommitInput,
+  AgentCenterPresentationIntent,
   AgentCenterSharedAIConfigModule,
   AgentCenterSharedAIConfigProjection,
-  AgentCenterPermissionedAutonomyMutation,
-  AgentCenterPermissionedAIConfigMutation,
-  AgentCenterPermissionedPresentationCommitInput,
-  AgentCenterPermissionedSdkSurface,
-  AgentCenterPermissionedSdkSurfaceInput,
   AgentCenterProductAction,
   AgentCenterRuntimeLoadInput,
   AgentCenterSession,
   AgentCenterSnapshot,
   AgentCenterState,
   AgentCenterStateInput,
-  AgentCenterTransportActionProjection,
 } from './types.js';
 
 const ACTIONS: readonly AgentCenterProductAction[] = [
@@ -45,8 +48,6 @@ const ACTIONS: readonly AgentCenterProductAction[] = [
   'readMemorySummary',
   'replaceAppearance',
   'restorePreviousAppearance',
-  'requestPermission',
-  'openPermissionSettings',
 ];
 
 const AVAILABLE: AgentCenterActionAvailability = Object.freeze({
@@ -55,11 +56,10 @@ const AVAILABLE: AgentCenterActionAvailability = Object.freeze({
 
 function nextStep(reason: AgentCenterActionUnavailableReason): AgentCenterNextStepAction {
   switch (reason) {
-    case 'needs-grant':
-    case 'denied':
-    case 'revoked': return 'requestPermission';
-    case 'request-pending':
-    case 'reserved-not-admitted': return 'wait';
+    case 'selection-required':
+    case 'unsupported':
+    case 'operation-unavailable':
+    case 'owner-rejected': return 'openRuntimeSettings';
     case 'runtime-offline':
     case 'unknown': return 'retry';
   }
@@ -73,40 +73,14 @@ function allUnavailable(reason: AgentCenterActionUnavailableReason): AgentCenter
   return Object.freeze(Object.fromEntries(ACTIONS.map((action) => [action, unavailable(reason)]))) as AgentCenterActionAvailabilityProjection;
 }
 
-const TRANSPORT_REASON_MAP = {
-  reserved_not_admitted: 'reserved-not-admitted',
-  unknown: 'unknown',
-  not_granted: 'needs-grant',
-  request_pending: 'request-pending',
-  grant_denied: 'denied',
-  grant_revoked: 'revoked',
-  runtime_offline: 'runtime-offline',
-} as const satisfies Record<string, AgentCenterActionUnavailableReason>;
-
-export function projectAgentCenterActionAvailability(
-  projection: AgentCenterTransportActionProjection,
-): AgentCenterActionAvailabilityProjection {
-  return Object.freeze(Object.fromEntries(ACTIONS.map((action) => {
-    const entry = projection[action];
-    if (entry.state === 'available') return [action, AVAILABLE];
-    const reason = entry.reason ? TRANSPORT_REASON_MAP[entry.reason] : 'unknown';
-    return [action, unavailable(reason)];
-  }))) as AgentCenterActionAvailabilityProjection;
-}
-
 interface SessionTransport {
   readonly appearanceAdapter: AgentCenterAppearanceAdapter | null;
   actionAvailability(): Promise<AgentCenterActionAvailabilityProjection>;
   read(): Promise<AgentCenterStateInput>;
-  overwriteSharedAIConfig(input: AgentCenterPermissionedAIConfigMutation): Promise<AgentCenterStateInput | AgentCenterState>;
-  updateAutonomy(input: AgentCenterPermissionedAutonomyMutation): Promise<AgentCenterStateInput | AgentCenterState>;
-  replaceAppearance(input: AgentCenterPermissionedPresentationCommitInput): Promise<AgentCenterStateInput | AgentCenterState | AgentCenterAppearanceProjection>;
+  overwriteSharedAIConfig(input: AgentCenterAIConfigMutation): Promise<AgentCenterSharedAIConfigProjection>;
+  updateAutonomy(input: AgentCenterAutonomyMutation): Promise<AgentCenterAutonomyProjection>;
+  replaceAppearance(input: AgentCenterPresentationCommitInput): Promise<AgentCenterStateInput | AgentCenterState | AgentCenterAppearanceProjection>;
   restorePreviousAppearance(): Promise<AgentCenterStateInput | AgentCenterState | AgentCenterAppearanceProjection>;
-  requestPermission(): Promise<void>;
-  openPermissionSettings(): Promise<void>;
-  subscribeActionPosture?(
-    listener: (availability: AgentCenterActionAvailabilityProjection) => void,
-  ): () => void;
 }
 
 function isBuiltState(value: AgentCenterState | AgentCenterStateInput): value is AgentCenterState {
@@ -146,6 +120,38 @@ function isCanonicalAIConfigAbsence(error: unknown): boolean {
   return asNimiError(error).reasonCode === 'AI_CONFIG_NOT_FOUND';
 }
 
+function unavailableReasonFromError(error: unknown): AgentCenterActionUnavailableReason {
+  switch (asNimiError(error).reasonCode) {
+    case 'LOCAL_APP_OPERATION_UNAVAILABLE':
+    case 'local-app-operation-unavailable':
+      return 'operation-unavailable';
+    case 'LOCAL_APP_OPERATION_UNSUPPORTED':
+    case 'local-app-operation-unsupported':
+    case 'AI_ROUTE_UNSUPPORTED':
+    case 'AI_MODALITY_NOT_SUPPORTED':
+      return 'unsupported';
+    case 'LOCAL_APP_ACCESS_DENIED':
+    case 'local-app-access-denied':
+    case 'LOCAL_APP_OWNER_UNAVAILABLE':
+    case 'local-app-owner-unavailable':
+    case 'LOCAL_APP_SESSION_REVOKED':
+    case 'LOCAL_APP_ACCOUNT_CHANGED':
+      return 'owner-rejected';
+    case 'AI_LOCAL_SELECTION_NOT_FOUND':
+    case 'AI_LOCAL_CONFIGURATION_NOT_CONFIGURED':
+    case 'AGENT_AI_CONFIG_TARGET_REQUIRED':
+      return 'selection-required';
+    case 'RUNTIME_UNAVAILABLE':
+    case 'RUNTIME_BRIDGE_DAEMON_UNAVAILABLE':
+    case 'SDK_HOST_UNAVAILABLE':
+    case 'runtime-service-unavailable':
+    case 'renderer-standard-shell-host-unavailable':
+      return 'runtime-offline';
+    default:
+      return 'unknown';
+  }
+}
+
 // @nimi-authority: rule.nimi.platform.ui-design-system.p-agent-center-006c
 // @nimi-authority: rule.nimi.platform.ui-design-system.p-agent-center-007
 class ManagerSession {
@@ -153,7 +159,6 @@ class ManagerSession {
   readonly cloudAIConfig?: ModelConfigCloudAIConfigModule;
   #snapshot: AgentCenterSnapshot;
   #listeners = new Set<() => void>();
-  #actionPostureUnsubscribe: (() => void) | null = null;
 
   constructor(
     private readonly transport: SessionTransport,
@@ -190,25 +195,20 @@ class ManagerSession {
     this.#listeners.add(listener);
     if (this.#listeners.size === 1) {
       void this.refresh();
-      this.#startActionPosture();
     }
     return () => {
       this.#listeners.delete(listener);
-      if (this.#listeners.size === 0) {
-        this.#actionPostureUnsubscribe?.();
-        this.#actionPostureUnsubscribe = null;
-      }
     };
   };
 
   async refresh(): Promise<void> {
     this.#set({ ...this.#snapshot, phase: 'loading', error: null });
     try {
-      const availability = await this.transport.actionAvailability();
       const state = await this.transport.read();
+      const availability = await this.transport.actionAvailability();
       this.#set({ phase: 'ready', state: stateWithAvailability(state, availability), availability, error: null });
     } catch (error) {
-      const availability = allUnavailable('runtime-offline');
+      const availability = allUnavailable(unavailableReasonFromError(error));
       this.#set({
         phase: 'degraded',
         state: stateWithAvailability(this.#snapshot.state, availability),
@@ -218,19 +218,51 @@ class ManagerSession {
     }
   }
 
-  async overwriteSharedAIConfig(input: AgentCenterPermissionedAIConfigMutation): Promise<void> {
+  async overwriteSharedAIConfig(input: AgentCenterAIConfigMutation): Promise<void> {
     this.#requireAvailable('overwriteSharedAIConfig');
-    const result = await this.transport.overwriteSharedAIConfig(input);
-    this.#replaceState(result);
+    const sharedAIConfig = await this.transport.overwriteSharedAIConfig(input);
+    this.#set({
+      ...this.#snapshot,
+      phase: 'ready',
+      state: stateWithAvailability(
+        replaceAgentCenterSharedAIConfig(this.#snapshot.state, sharedAIConfig),
+        this.#snapshot.availability,
+      ),
+      error: null,
+    });
   }
 
-  async updateAutonomy(input: AgentCenterPermissionedAutonomyMutation): Promise<void> {
+  async updateAutonomy(input: AgentCenterAutonomyMutation): Promise<void> {
     this.#requireAvailable('updateAutonomy');
-    const result = await this.transport.updateAutonomy(input);
-    this.#replaceState(result);
+    const autonomy = await this.transport.updateAutonomy(input);
+    const availability = this.#snapshot.availability.updateAutonomy;
+    this.#set({
+      ...this.#snapshot,
+      phase: 'ready',
+      state: {
+        ...this.#snapshot.state,
+        autonomyRevision: autonomy.revision,
+        autonomy: {
+          revision: autonomy.revision,
+          enabled: autonomy.enabled,
+          mode: autonomy.mode,
+          usedTokensInWindow: autonomy.usedTokensInWindow,
+          dailyTokenBudget: autonomy.dailyTokenBudget,
+          maxTokensPerHook: autonomy.maxTokensPerHook,
+          windowStartedAt: autonomy.windowStartedAt,
+          suspendedUntil: autonomy.suspendedUntil,
+          budgetExhausted: autonomy.budgetExhausted,
+          controlsDisabled: availability.state === 'unavailable' || autonomy.revision === null,
+          disabledReason: availability.state === 'unavailable'
+            ? availability.reason
+            : autonomy.revision === null ? 'runtime autonomy revision unavailable' : null,
+        },
+      },
+      error: null,
+    });
   }
 
-  async replaceAppearance(input: AgentCenterPermissionedPresentationCommitInput): Promise<void> {
+  async replaceAppearance(input: AgentCenterPresentationCommitInput): Promise<void> {
     this.#requireAvailable('replaceAppearance');
     const result = await this.transport.replaceAppearance(input);
     if ('status' in result && !('runtimeStatus' in result) && !('agentAIConfig' in result)) {
@@ -248,17 +280,6 @@ class ManagerSession {
     } else {
       this.#replaceState(result as AgentCenterState | AgentCenterStateInput);
     }
-  }
-
-  async requestPermission(): Promise<void> {
-    this.#requireAvailable('requestPermission');
-    await this.transport.requestPermission();
-    await this.refresh();
-  }
-
-  async openPermissionSettings(): Promise<void> {
-    this.#requireAvailable('openPermissionSettings');
-    await this.transport.openPermissionSettings();
   }
 
   #requireAvailable(action: AgentCenterProductAction): void {
@@ -293,22 +314,6 @@ class ManagerSession {
   #set(snapshot: AgentCenterSnapshot): void {
     this.#snapshot = snapshot;
     for (const listener of this.#listeners) listener();
-  }
-
-  #startActionPosture(): void {
-    if (!this.transport.subscribeActionPosture || this.#actionPostureUnsubscribe) return;
-    this.#actionPostureUnsubscribe = this.transport.subscribeActionPosture((availability) => {
-      const becameReadable = this.#snapshot.availability.getSharedAIConfig.state === 'unavailable'
-        && availability.getSharedAIConfig.state === 'available';
-      this.#set({
-        ...this.#snapshot,
-        phase: this.#snapshot.phase === 'loading' ? 'loading' : 'ready',
-        state: stateWithAvailability(this.#snapshot.state, availability),
-        availability,
-        error: null,
-      });
-      if (becameReadable) void this.refresh();
-    });
   }
 
 }
@@ -353,19 +358,17 @@ function firstPartyActionAvailability(
   const availability: AgentCenterActionAvailabilityProjection = {
     getSharedAIConfig: AVAILABLE,
     overwriteSharedAIConfig: AVAILABLE,
-    readAutonomy: input.autonomy ? AVAILABLE : unavailable('reserved-not-admitted'),
-    updateAutonomy: input.autonomy ? AVAILABLE : unavailable('reserved-not-admitted'),
+    readAutonomy: input.autonomy ? AVAILABLE : unavailable('operation-unavailable'),
+    updateAutonomy: input.autonomy ? AVAILABLE : unavailable('operation-unavailable'),
     readMemorySummary: input.loadMemory || input.inspect
       ? AVAILABLE
-      : unavailable('reserved-not-admitted'),
+      : unavailable('operation-unavailable'),
     replaceAppearance: appearanceWritable
       ? AVAILABLE
-      : unavailable('reserved-not-admitted'),
+      : unavailable('operation-unavailable'),
     restorePreviousAppearance: input.appearance?.restorePreviousAppearance
       ? AVAILABLE
-      : unavailable('reserved-not-admitted'),
-    requestPermission: unavailable('reserved-not-admitted'),
-    openPermissionSettings: unavailable('reserved-not-admitted'),
+      : unavailable('operation-unavailable'),
   };
   return Object.freeze(availability);
 }
@@ -404,17 +407,15 @@ export function createFirstPartyAgentCenterSession(
     actionAvailability: async () => firstPartyActionAvailability(input),
     read,
     async overwriteSharedAIConfig(mutation) {
-      const sharedAIConfig = await input.sharedAIConfig.overwrite({
+      return input.sharedAIConfig.overwrite({
         subjectUserId: input.loadInput?.subjectUserId,
         capabilities: mutation.capabilities,
         ...(mutation.displayProvenance ? { displayProvenance: mutation.displayProvenance } : {}),
       });
-      return { ...(await read()), sharedAIConfig };
     },
     async updateAutonomy(mutation) {
       if (!input.autonomy) throw new Error('Agent Center autonomy transport is unavailable.');
-      const autonomy = await input.autonomy.update(identity, mutation);
-      return { ...(await read()), autonomy };
+      return input.autonomy.update(identity, mutation);
     },
     async replaceAppearance(mutation) {
       if (!input.appearance?.replaceAppearance) {
@@ -426,35 +427,69 @@ export function createFirstPartyAgentCenterSession(
       if (!input.appearance?.restorePreviousAppearance) throw new Error('Agent Center restore transport is unavailable.');
       return input.appearance.restorePreviousAppearance();
     },
-    async requestPermission() {},
-    async openPermissionSettings() {},
   };
   return new ManagerSession(transport, input.cloudAIConfig) as unknown as AgentCenterSession;
 }
 
-export function sealAgentCenterPermissionedSdkSurface(
-  input: AgentCenterPermissionedSdkSurfaceInput,
-): AgentCenterPermissionedSdkSurface {
-  return Object.freeze(input) as AgentCenterPermissionedSdkSurface;
+export interface CreateAppAgentCenterSessionInput {
+  readonly handle: NimiLocalAppAgentHandle;
+  readonly client: NimiLocalAppAgentConfigureClient;
 }
 
-export interface CreatePermissionedAgentCenterSessionInput {
-  readonly handle: AgentCenterOpaqueHandle;
-  readonly surface: AgentCenterPermissionedSdkSurface;
-  readonly loadOptions?: { readonly conversationAnchor?: string };
-}
-
-export function createPermissionedAgentCenterSession(
-  input: CreatePermissionedAgentCenterSessionInput,
+// @nimi-authority: rule.nimi.platform.app-ecosystem.p-agid-010a
+// @nimi-authority: rule.nimi.platform.ui-design-system.p-agent-center-006c
+export function createAppAgentCenterSession(
+  input: CreateAppAgentCenterSessionInput,
 ): AgentCenterSession {
-  if (!String(input.handle).trim()) throw new Error('Agent Center requires an opaque Agent handle.');
+  const handle = input.handle;
   let manager: ManagerSession | null = null;
-  const appearanceFromState = (value: AgentCenterStateInput | AgentCenterState): AgentCenterAppearanceProjection => (
-    isBuiltState(value) ? value : buildAgentCenterState(value)
-  ).appearance;
+  let presentation: NimiLocalAppAgentPresentationProjection | null = null;
+
+  const readSharedAIConfig = async (): Promise<AgentCenterSharedAIConfigProjection | null> => {
+    try {
+      return projectAppSharedAIConfig(await input.client.sharedAIConfig.get());
+    } catch (error) {
+      if (isCanonicalAIConfigAbsence(error)) return null;
+      throw error;
+    }
+  };
+
+  const read = async (): Promise<AgentCenterStateInput> => {
+    const [sharedAIConfig, autonomy, nextPresentation] = await Promise.all([
+      readSharedAIConfig(),
+      input.client.autonomy.snapshot({ agentHandle: handle }),
+      input.client.presentation.snapshot({ agentHandle: handle }),
+    ]);
+    presentation = nextPresentation;
+    return {
+      sharedAIConfig,
+      autonomy: projectAppAutonomy(autonomy),
+      appearance: projectAppAppearance(nextPresentation),
+    };
+  };
+
+  const currentPresentation = async (): Promise<NimiLocalAppAgentPresentationProjection> => {
+    if (presentation) return presentation;
+    presentation = await input.client.presentation.snapshot({ agentHandle: handle });
+    return presentation;
+  };
+
+  const commitPresentation = async (
+    mutation: AgentCenterPresentationCommitInput,
+  ): Promise<AgentCenterAppearanceProjection> => {
+    const current = await currentPresentation();
+    presentation = await input.client.presentation.commit({
+      agentHandle: handle,
+      expectedPresentationRevision: mutation.expectedRevision,
+      intent: mergeAppPresentationIntent(current.profile, mutation.intent),
+      importedAssets: mutation.importedAssets,
+    });
+    return projectAppAppearance(presentation);
+  };
+
   const appearanceAdapter: AgentCenterAppearanceAdapter = {
     async load() {
-      return appearanceFromState(await input.surface.read(input.handle, input.loadOptions));
+      return projectAppAppearance(await currentPresentation());
     },
     async setAvatarAutoplay(enabled) {
       const current = manager?.getSnapshot().state.appearance;
@@ -462,40 +497,212 @@ export function createPermissionedAgentCenterSession(
       if (expectedRevision === null || expectedRevision === undefined) {
         throw new Error('Agent Center Runtime presentation revision is unavailable.');
       }
-      const result = await input.surface.replaceAppearance(input.handle, {
+      return commitPresentation({
         expectedRevision,
         intent: { avatarAutoplay: enabled },
         importedAssets: [],
       });
-      if ('status' in result && !('runtimeStatus' in result) && !('agentAIConfig' in result)) {
-        return result as AgentCenterAppearanceProjection;
+    },
+    async setDefaultVoice(reference) {
+      const current = manager?.getSnapshot().state.appearance;
+      const expectedRevision = current?.presentationRevision;
+      if (expectedRevision === null || expectedRevision === undefined) {
+        throw new Error('Agent Center Runtime presentation revision is unavailable.');
       }
-      return appearanceFromState(result as AgentCenterStateInput | AgentCenterState);
+      return commitPresentation({
+        expectedRevision,
+        intent: { defaultVoiceReference: reference },
+        importedAssets: [],
+      });
     },
   };
+
+  const appAvailability = (): AgentCenterActionAvailabilityProjection => Object.freeze({
+    getSharedAIConfig: AVAILABLE,
+    overwriteSharedAIConfig: AVAILABLE,
+    readAutonomy: AVAILABLE,
+    updateAutonomy: AVAILABLE,
+    readMemorySummary: unavailable('operation-unavailable'),
+    replaceAppearance: presentation?.profile
+      ? AVAILABLE
+      : unavailable('selection-required'),
+    restorePreviousAppearance: presentation?.previousProfile
+      ? AVAILABLE
+      : unavailable('selection-required'),
+  });
+
   const transport: SessionTransport = {
     appearanceAdapter,
-    async actionAvailability() {
-      return projectAgentCenterActionAvailability(await input.surface.actionPosture(input.handle));
-    },
-    read: () => input.surface.read(input.handle, input.loadOptions),
+    actionAvailability: async () => appAvailability(),
+    read,
     async overwriteSharedAIConfig(mutation) {
-      const sharedAIConfig = await input.surface.overwriteSharedAIConfig(mutation);
-      return { ...(await input.surface.read(input.handle, input.loadOptions)), sharedAIConfig };
+      return projectAppSharedAIConfig(
+        await input.client.sharedAIConfig.overwrite(mutation.capabilities),
+      );
     },
-    updateAutonomy: (mutation) => input.surface.updateAutonomy(input.handle, mutation),
-    replaceAppearance: (mutation) => input.surface.replaceAppearance(input.handle, mutation),
-    restorePreviousAppearance: () => input.surface.restorePreviousAppearance(input.handle),
-    requestPermission: async () => { await input.surface.requestPermission?.(input.handle); },
-    openPermissionSettings: async () => { await input.surface.openPermissionSettings?.(input.handle); },
-    ...(input.surface.subscribeActionPosture ? {
-      subscribeActionPosture: (listener: (availability: AgentCenterActionAvailabilityProjection) => void) => (
-        input.surface.subscribeActionPosture!(input.handle, (projection) => {
-          listener(projectAgentCenterActionAvailability(projection));
-        })
-      ),
-    } : {}),
+    async updateAutonomy(mutation) {
+      const autonomy = await input.client.autonomy.update({
+        agentHandle: handle,
+        expectedAutonomyRevision: mutation.expectedRevision,
+        intent: {
+          ...(mutation.enabled === undefined ? {} : { enabled: mutation.enabled }),
+          config: {
+            mode: mutation.mode,
+            dailyTokenBudget: mutation.dailyTokenBudget,
+            maxTokensPerHook: mutation.maxTokensPerHook,
+          },
+        },
+      });
+      return projectAppAutonomy(autonomy);
+    },
+    replaceAppearance: commitPresentation,
+    async restorePreviousAppearance() {
+      const current = await currentPresentation();
+      if (!current.previousProfile) {
+        throw new Error('Agent Center previous presentation is unavailable.');
+      }
+      presentation = await input.client.presentation.commit({
+        agentHandle: handle,
+        expectedPresentationRevision: current.presentationRevision,
+        intent: appPresentationIntent(current.previousProfile),
+        importedAssets: [],
+      });
+      return projectAppAppearance(presentation);
+    },
   };
   manager = new ManagerSession(transport);
   return manager as unknown as AgentCenterSession;
+}
+
+function projectAppSharedAIConfig(
+  aiConfig: AgentCenterSharedAIConfigProjection['aiConfig'],
+): AgentCenterSharedAIConfigProjection {
+  const intents = aiConfig.capabilities.map((intent) => {
+    const route = intent.route.oneofKind;
+    if (route !== 'local' && route !== 'cloud') {
+      throw new Error(`Shared LocalAgent AIConfig capability ${intent.capabilityContract} has no Local or Cloud intent.`);
+    }
+    return Object.freeze({
+      capability: intent.capabilityContract,
+      route,
+      requiredFeatures: Object.freeze([...intent.requiredFeatures]),
+    });
+  });
+  return Object.freeze({
+    aiConfig,
+    capabilities: Object.freeze(intents.map((intent) => intent.capability)),
+    intents: Object.freeze(intents),
+  });
+}
+
+function projectAppAutonomy(
+  projection: NimiLocalAppAgentAutonomyProjection,
+): AgentCenterAutonomyProjection {
+  return Object.freeze({
+    revision: projection.autonomyRevision,
+    mode: projection.config?.mode ?? null,
+    enabled: projection.enabled,
+    budgetExhausted: projection.budgetExhausted,
+    usedTokensInWindow: projection.usedTokensInWindow,
+    dailyTokenBudget: projection.config?.dailyTokenBudget ?? null,
+    maxTokensPerHook: projection.config?.maxTokensPerHook ?? null,
+    windowStartedAt: appTimestampToIso(projection.windowStartedAt),
+    suspendedUntil: appTimestampToIso(projection.suspendedUntil),
+  });
+}
+
+function projectAppAppearance(
+  projection: NimiLocalAppAgentPresentationProjection,
+): AgentCenterAppearanceProjection {
+  const profile = projection.profile;
+  return Object.freeze({
+    status: profile?.avatarAssetRef ? 'ready' : 'not_configured',
+    presentationRevision: projection.presentationRevision,
+    backendKind: profile?.backendKind ?? null,
+    avatarAssetRef: profile?.avatarAssetRef || null,
+    backgroundRef: profile?.backgroundAssetRef || null,
+    defaultVoiceReference: profile?.defaultVoiceReference || projection.defaultVoiceReference || null,
+    avatarAutoplay: profile?.avatarAutoplay ?? false,
+    previousSelection: projection.previousProfile
+      ? projectAppPresentationIntent(projection.previousProfile)
+      : null,
+    avatarImportDisabled: true,
+    backgroundImportDisabled: true,
+    disabledReasonCode: profile?.avatarAssetRef ? null : 'avatar-not-configured',
+    disabledReason: profile?.avatarAssetRef ? null : 'appearance asset not configured',
+  });
+}
+
+function projectAppPresentationIntent(
+  profile: NimiLocalAppAgentPresentationProfile,
+): AgentCenterPresentationIntent {
+  return Object.freeze({
+    backendKind: profile.backendKind,
+    avatarAssetReference: profile.avatarAssetRef,
+    defaultVoiceReference: profile.defaultVoiceReference,
+    avatarAutoplay: profile.avatarAutoplay,
+    backgroundAssetReference: profile.backgroundAssetRef,
+  });
+}
+
+function mergeAppPresentationIntent(
+  current: NimiLocalAppAgentPresentationProfile | null,
+  patch: AgentCenterPresentationIntent,
+): NimiLocalAppAgentPresentationIntent {
+  const backendKind = patch.backendKind === null
+    ? null
+    : patch.backendKind ?? current?.backendKind;
+  if (!backendKind) {
+    throw new Error('Agent Center presentation backend is unavailable.');
+  }
+  return Object.freeze({
+    backendKind,
+    avatarAssetRef: patchedPresentationText(patch.avatarAssetReference, current?.avatarAssetRef),
+    expressionProfileRef: current?.expressionProfileRef ?? '',
+    idlePreset: current?.idlePreset ?? '',
+    interactionPolicyRef: current?.interactionPolicyRef ?? '',
+    defaultVoiceReference: patchedPresentationText(
+      patch.defaultVoiceReference,
+      current?.defaultVoiceReference,
+    ),
+    avatarAutoplay: patch.avatarAutoplay ?? current?.avatarAutoplay ?? false,
+    backgroundAssetRef: patchedPresentationText(
+      patch.backgroundAssetReference,
+      current?.backgroundAssetRef,
+    ),
+  });
+}
+
+function patchedPresentationText(
+  value: string | null | undefined,
+  current: string | undefined,
+): string {
+  if (value === null) return '';
+  return value === undefined ? current ?? '' : value;
+}
+
+function appPresentationIntent(
+  profile: NimiLocalAppAgentPresentationProfile,
+): NimiLocalAppAgentPresentationIntent {
+  return Object.freeze({
+    backendKind: profile.backendKind,
+    avatarAssetRef: profile.avatarAssetRef,
+    expressionProfileRef: profile.expressionProfileRef,
+    idlePreset: profile.idlePreset,
+    interactionPolicyRef: profile.interactionPolicyRef,
+    defaultVoiceReference: profile.defaultVoiceReference,
+    avatarAutoplay: profile.avatarAutoplay,
+    backgroundAssetRef: profile.backgroundAssetRef,
+  });
+}
+
+function appTimestampToIso(
+  value: NimiLocalAppAgentAutonomyProjection['windowStartedAt'],
+): string | null {
+  if (!value) return null;
+  const millis = (BigInt(value.seconds) * 1_000n) + BigInt(Math.floor(value.nanos / 1_000_000));
+  const numeric = Number(millis);
+  if (!Number.isSafeInteger(numeric)) return null;
+  const date = new Date(numeric);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
 }

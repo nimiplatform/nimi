@@ -76,13 +76,19 @@ export const agentCenterLocaleResources = {
 export function createAgentCenterI18n(input: {
   readonly language?: string | null;
   readonly t?: AgentCenterI18n['t'];
+  readonly exists?: AgentCenterI18n['exists'];
 } = {}): AgentCenterI18n {
   return {
     language: input.language ?? AGENT_CENTER_BASE_LANGUAGE,
+    exists(key) {
+      return getAgentCenterMessage(input.language, key) !== undefined
+        || Boolean(input.exists?.(key));
+    },
     t(key, values) {
       const kitMessage = getAgentCenterMessage(input.language, key)
         ?? (typeof values?.defaultValue === 'string' ? values.defaultValue : '');
       if (!input.t) return kitMessage;
+      if (input.exists && !input.exists(key)) return kitMessage;
       const translated = input.t(key, { ...values, defaultValue: kitMessage });
       return translated && translated !== key ? translated : kitMessage;
     },

@@ -21,11 +21,9 @@ import { projectZhiyuHomeProductState } from './home-product-state';
 import { projectZhiyuIdentitySafetyEvidence } from './identity-safety-evidence';
 import { projectZhiyuAvatarLaunchAction } from '../avatar/avatar-launch';
 import type { ZhiyuCanonicalRendererBindings } from '../../renderer/contract';
+import type { NimiLocalAppAgentHandle } from '@nimiplatform/sdk/app';
 import { sameZhiyuRuntimeAgentInventory } from '../agent/agent-inventory-projection';
-import {
-  projectZhiyuAuthorizedAgentCenterHandle,
-  projectZhiyuAuthorizedAgentCenterIdentity,
-} from '../agent/agent-center-handle';
+import { projectZhiyuAuthorizedAgentCenterHandle } from '../agent/agent-center-handle';
 import {
   isZhiyuDirectLocalAppSubmitEnabled,
   refreshZhiyuDirectLocalAppSubmitGate,
@@ -34,25 +32,16 @@ import {
 export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRendererBindings }) {
   const { bindings } = props;
   const [evidence, setEvidence] = useState<ZhiyuEvidence>(() => createInitialZhiyuEvidence());
-  const [selectedAgentHandle, setSelectedAgentHandle] = useState<string | null>(null);
+  const [selectedAgentHandle, setSelectedAgentHandle] = useState<NimiLocalAppAgentHandle | null>(null);
   const [selectedLocalAgentRefreshKey, setSelectedLocalAgentRefreshKey] = useState(0);
   const [draft, setDraft] = useState('');
   const activeChatAbortRef = useRef<AbortController | null>(null);
   const latestAgentInventoryRef = useRef<ZhiyuEvidence['inventory']>(evidence.inventory);
   const renderEvidence = useMemo(() => projectZhiyuIdentitySafetyEvidence(evidence), [evidence]);
   const agentCenterHandle = projectZhiyuAuthorizedAgentCenterHandle(renderEvidence);
-  const agentCenterIdentity = useMemo(
-    () => projectZhiyuAuthorizedAgentCenterIdentity(renderEvidence, agentCenterHandle),
-    [
-      agentCenterHandle,
-      renderEvidence.conversation,
-      renderEvidence.inventory,
-      renderEvidence.localAgent,
-    ],
-  );
   const agentCenterSession = useMemo(
-    () => bindings.app.projection.agentCenterSession(agentCenterHandle, agentCenterIdentity),
-    [bindings, agentCenterHandle, agentCenterIdentity],
+    () => bindings.app.projection.agentCenterSession(agentCenterHandle),
+    [bindings, agentCenterHandle],
   );
   const latestConversationIdentityRef = useRef<ZhiyuRuntimeChatApplyIdentity>(
     zhiyuRuntimeChatApplyIdentity(evidence.conversation),
@@ -423,14 +412,10 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
     });
   }
 
-  function handleSelectLocalAgent(agentHandle: string) {
-    const selected = agentHandle.trim();
-    if (!selected) {
-      return;
-    }
+  function handleSelectLocalAgent(agentHandle: NimiLocalAppAgentHandle) {
     activeChatAbortRef.current?.abort('zhiyu_chat_turn_local_agent_changed');
     const initial = createInitialZhiyuEvidence();
-    setSelectedAgentHandle(selected);
+    setSelectedAgentHandle(agentHandle);
     setSelectedLocalAgentRefreshKey((current) => current + 1);
     setDraft('');
     setEvidence((current) => ({
@@ -483,7 +468,7 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
       onSubmit={handleSubmit}
       onStopChat={handleStopChat}
       onSelectLocalAgent={handleSelectLocalAgent}
-      onDesktopOpenPersonaCatalog={bindings.app.commands.openDesktopPersonaCatalog}
+      onDesktopOpenRuntimeSettings={bindings.app.commands.openDesktopRuntimeSettings}
       onDesktopOpenSelectPartner={bindings.app.commands.openDesktopSelectPartner}
       onAvatarLaunch={() => {
         void handleAvatarLaunch();

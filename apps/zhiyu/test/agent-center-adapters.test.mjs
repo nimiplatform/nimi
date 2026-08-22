@@ -6,11 +6,6 @@ import { build } from 'esbuild';
 
 const root = path.resolve(import.meta.dirname, '..');
 const AGENT_HANDLE = `agent_ref_${'A'.repeat(43)}`;
-const IDENTITY = Object.freeze({
-  ownerUserId: 'owner-1',
-  runtimeSourceRef: 'runtime-source-1',
-  localAgentRef: 'local-agent-1',
-});
 const COMMANDS = Object.freeze({
   sharedGet: 'nimi.shell.localApp.sharedAgentAIConfigGet',
   sharedOverwrite: 'nimi.shell.localApp.sharedAgentAIConfigOverwrite',
@@ -20,42 +15,24 @@ const COMMANDS = Object.freeze({
   presentationCommit: 'nimi.shell.localApp.agentCommitPresentation',
 });
 
-test('Agent Center identity is derived only from the covered opaque handle evidence', async () => {
-  const {
-    projectZhiyuAuthorizedAgentCenterHandle,
-    projectZhiyuAuthorizedAgentCenterIdentity,
-  } = await loadIdentityModule();
+test('Agent Center uses only the covered SDK nominal handle evidence', async () => {
+  const { projectZhiyuAuthorizedAgentCenterHandle } = await loadIdentityModule();
   const evidence = authorizedEvidence();
   const handle = projectZhiyuAuthorizedAgentCenterHandle(evidence);
 
   assert.equal(handle, AGENT_HANDLE);
-  assert.deepEqual(projectZhiyuAuthorizedAgentCenterIdentity(evidence, handle), IDENTITY);
   assert.equal(projectZhiyuAuthorizedAgentCenterHandle({
     ...evidence,
     inventory: { ...evidence.inventory, localAgents: [] },
   }), null);
-  assert.equal(projectZhiyuAuthorizedAgentCenterIdentity({
-    ...evidence,
-    localAgent: { ...evidence.localAgent, localAgentRef: 'conflicting-local-agent' },
-  }, handle), null);
-  assert.equal(projectZhiyuAuthorizedAgentCenterIdentity({
-    ...evidence,
-    inventory: { ...evidence.inventory, ownerUserId: 'other-owner' },
-  }, handle), null);
 });
 
-test('production Agent Center fails closed until handle and correlated identity are both present', async () => {
+test('production Agent Center requires only the covered nominal handle', async () => {
   const { createZhiyuProductionAgentCenterSession } = await loadFactoryModule();
 
-  assert.equal(createZhiyuProductionAgentCenterSession(null, null), null);
-  assert.equal(createZhiyuProductionAgentCenterSession(AGENT_HANDLE, null), null);
-  assert.equal(createZhiyuProductionAgentCenterSession('opaque-handle', IDENTITY), null);
-  assert.equal(createZhiyuProductionAgentCenterSession(
-    `agent_ref_${'A'.repeat(42)}`,
-    IDENTITY,
-  ), null);
+  assert.equal(createZhiyuProductionAgentCenterSession(null), null);
 
-  const session = createZhiyuProductionAgentCenterSession(AGENT_HANDLE, IDENTITY);
+  const session = createZhiyuProductionAgentCenterSession(AGENT_HANDLE);
   assert.ok(session);
   assert.equal(session.getSnapshot().phase, 'loading');
 });
@@ -70,7 +47,7 @@ test('production Agent Center routes all six configuration operations through th
   };
 
   try {
-    const session = createZhiyuProductionAgentCenterSession(AGENT_HANDLE, IDENTITY);
+    const session = createZhiyuProductionAgentCenterSession(AGENT_HANDLE);
     assert.ok(session);
     await session.refresh();
 
@@ -126,7 +103,7 @@ test('production Agent Center routes all six configuration operations through th
       expectedRevision: '7',
       enabled: false,
       mode: 'medium',
-      dailyTokenBudget: '2048',
+      dailyTokenBudget: 2048,
       maxTokensPerHook: 256,
     });
     assert.deepEqual(session.getSnapshot().state.autonomy, {
@@ -209,17 +186,17 @@ test('production Agent Center routes all six configuration operations through th
 test('production adapter positively binds the shared Kit session to the public configuration namespace', async () => {
   const source = await readFile(path.join(root, 'src/production/agent-center-adapters.ts'), 'utf8');
 
-  assert.match(source, /createFirstPartyAgentCenterSession/u);
-  assert.match(source, /createAgentCenterShellAppearanceAdapter/u);
+  assert.match(source, /createAppAgentCenterSession/u);
   assert.match(source, /getZhiyuLocalAppClient\(\)\.agentConfigure/u);
+  assert.doesNotMatch(source, /ownerUserId|runtimeSourceRef|localAgentRef/u);
 });
 
 function authorizedEvidence() {
   return {
-    conversation: { agentHandle: AGENT_HANDLE, ...IDENTITY },
-    localAgent: { agentHandle: AGENT_HANDLE, ...IDENTITY },
+    conversation: { agentHandle: AGENT_HANDLE },
+    localAgent: { agentHandle: AGENT_HANDLE },
     inventory: {
-      ownerUserId: IDENTITY.ownerUserId,
+      ownerUserId: null,
       localAgents: [{ agentHandle: AGENT_HANDLE }],
     },
   };

@@ -10,8 +10,8 @@ truth, SDK transport, app shell chrome, provider secrets, or app-specific
 developer tools.
 
 Runtime truth enters through a nominal `AgentCenterSession` created by the
-sealed first-party or permissioned factory. The React component accepts no
-state seed, carrier adapter, permission posture, or raw Agent identity. Apps
+sealed first-party or covered-App factory. The React component accepts no
+state seed, carrier adapter, access posture, or raw Agent identity. Apps
 must not pass arbitrary feature panels or reconstruct Runtime execution truth
 inside Agent Center.
 
@@ -88,14 +88,16 @@ carrier kind.
 
 `createFirstPartyAgentCenterSession` binds protected first-party dependencies.
 Its action availability is projected from the dependencies actually connected;
-missing autonomy, memory, appearance, or permission modules are unavailable
+missing autonomy, memory, or appearance modules are unavailable
 rather than reported as successful.
-`createPermissionedAgentCenterSession({ handle, surface })` binds an
-SDK-materialized opaque Agent handle. The session projects the closed product
-action set to `available` or to one of `needs-grant`, `request-pending`,
-`denied`, `revoked`, `runtime-offline`, `reserved-not-admitted`, and `unknown`,
-with a typed next step. Raw authority identifiers, grant scope, and source
-posture objects never enter Kit presentation state.
+`createAppAgentCenterSession({ handle, client })` binds the SDK-owned nominal
+`NimiLocalAppAgentHandle` directly to the existing six-operation
+`NimiLocalAppAgentConfigureClient`. Shared AIConfig reads and overwrites carry
+no Agent handle; autonomy and presentation use the same current handle. Kit
+does not revalidate SDK enum or numeric inputs, reconstruct raw LocalAgent or
+account identity, or expose a permission-request lifecycle. Typed owner and
+operation failures keep their exact Agent Center availability reason and route
+recovery through retry or the host-provided Runtime owner-surface handoff.
 
 Agent Center ships its typed `en` and `zh` catalogs through the headless surface.
 Hosts may mount `agentCenterLocaleResources` in an existing locale runtime or use

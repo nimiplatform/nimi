@@ -5,15 +5,9 @@ import { runtimeAIConfigStructToJson } from '@nimiplatform/kit/core/sdk-contract
 import { AgentCenter } from '../src/components/AgentCenter.js';
 import {
   createFirstPartyAgentCenterSession,
-  createPermissionedAgentCenterSession,
-  sealAgentCenterPermissionedSdkSurface,
 } from '../src/session.js';
 import type {
-  AgentCenterOpaqueHandle,
-  AgentCenterProductAction,
   AgentCenterSharedAIConfigProjection,
-  AgentCenterTransportActionProjection,
-  AgentCenterTransportActionReason,
 } from '../src/types.js';
 import { sessionFor } from './session-fixture.js';
 
@@ -90,69 +84,6 @@ async function selectField(node: HTMLElement, ariaLabel: string, optionLabel: st
   await flush();
 }
 
-const PRODUCT_ACTIONS: readonly AgentCenterProductAction[] = [
-  'getSharedAIConfig', 'overwriteSharedAIConfig', 'readAutonomy', 'updateAutonomy',
-  'readMemorySummary', 'replaceAppearance', 'restorePreviousAppearance',
-  'requestPermission', 'openPermissionSettings',
-];
-
-function actionProjection(
-  reason: AgentCenterTransportActionReason | null,
-): AgentCenterTransportActionProjection {
-  const recoveryAction = reason === 'not_granted' || reason === 'grant_denied' || reason === 'grant_revoked'
-    ? 'requestPermission'
-    : null;
-  return Object.fromEntries(PRODUCT_ACTIONS.map((action) => [action, !reason || action === recoveryAction
-    ? { state: 'available', reason: null }
-    : { state: 'unavailable', reason }])) as AgentCenterTransportActionProjection;
-}
-
-function permissionedSession(input: {
-  readonly initialReason: AgentCenterTransportActionReason | null;
-  readonly onRequest?: () => void;
-  readonly onOpenSettings?: () => void;
-  readonly onSubscribe?: (listener: (projection: AgentCenterTransportActionProjection) => void) => void;
-}) {
-  return createPermissionedAgentCenterSession({
-    handle: 'opaque' as AgentCenterOpaqueHandle,
-    surface: sealAgentCenterPermissionedSdkSurface({
-      async actionPosture() { return actionProjection(input.initialReason); },
-      async read() {
-        return {
-          autonomy: {
-            revision: '1', enabled: true, mode: 'low', budgetExhausted: false,
-            usedTokensInWindow: 0, dailyTokenBudget: 100, maxTokensPerHook: 10,
-            windowStartedAt: null, suspendedUntil: null,
-          },
-        };
-      },
-      async overwriteSharedAIConfig() {
-        return {
-          aiConfig: {
-            owner: {
-              owner: { oneofKind: 'runtimeLocalAgentSubsystem', runtimeLocalAgentSubsystem: {} },
-            },
-            capabilities: [],
-          },
-          capabilities: [],
-          intents: [],
-        };
-      },
-      async updateAutonomy() { return {}; },
-      async replaceAppearance() { return {}; },
-      async restorePreviousAppearance() { return {}; },
-      async requestPermission() { input.onRequest?.(); },
-      async openPermissionSettings() { input.onOpenSettings?.(); },
-      ...(input.onSubscribe ? {
-        subscribeActionPosture(_handle, listener) {
-          input.onSubscribe?.(listener);
-          return () => undefined;
-        },
-      } : {}),
-    }),
-  });
-}
-
 describe('AgentCenter UI session contract', () => {
   it('renders from the Manager Session and exposes only UI composition props', async () => {
     const intent = {
@@ -207,6 +138,26 @@ describe('AgentCenter UI session contract', () => {
     expect(closed).toBe(1);
   });
 
+  it('routes unavailable covered actions to the admitted Runtime owner surface', async () => {
+    const session = await sessionFor();
+    let opened = 0;
+    const node = render(
+      <AgentCenter
+        activeSection="behavior"
+        placementActions={{ openRuntimeSettings: () => { opened += 1; } }}
+        session={session}
+      />,
+    );
+    await flush();
+
+    const handoff = node.querySelector(
+      '[data-agent-center-next-step-action="openRuntimeSettings"]',
+    ) as HTMLButtonElement;
+    expect(handoff).toBeTruthy();
+    act(() => handoff.click());
+    expect(opened).toBe(1);
+  });
+
   it('uses the canonical i18n seam without copy-object props', async () => {
     const session = await sessionFor();
     const node = render(
@@ -255,52 +206,6 @@ describe('AgentCenter UI session contract', () => {
     });
     expect(document.activeElement).toBe(overview);
     expect(node.querySelector('#agent-center-panel-overview')).not.toBeNull();
-  });
-
-  it('renders the needs-grant request entry, invokes it, and keeps reserved posture on wait', async () => {
-    let requests = 0;
-    const needsGrant = permissionedSession({
-      initialReason: 'not_granted',
-      onRequest: () => { requests += 1; },
-    });
-    let node = render(<AgentCenter activeSection="ai-config" session={needsGrant} />);
-    await flush();
-    const request = node.querySelector('[data-agent-center-next-step-action="requestPermission"]') as HTMLButtonElement;
-    expect(request).not.toBeNull();
-    await act(async () => { request.click(); await Promise.resolve(); });
-    expect(requests).toBe(1);
-
-    act(() => root?.unmount());
-    root = null;
-    container?.remove();
-    container = null;
-    const reserved = permissionedSession({ initialReason: 'reserved_not_admitted' });
-    node = render(<AgentCenter activeSection="ai-config" session={reserved} />);
-    await flush();
-    expect(node.querySelector('[data-agent-center-next-step="wait"]')).not.toBeNull();
-    expect(node.querySelector('[data-agent-center-next-step-action="requestPermission"]')).toBeNull();
-    expect(node.textContent).toContain('Wait for permission availability');
-  });
-
-  it('re-renders live grant removal as prompt with request affordance', async () => {
-    let emit!: (projection: AgentCenterTransportActionProjection) => void;
-    let requestCalls = 0;
-    const session = permissionedSession({
-      initialReason: null,
-      onRequest: () => { requestCalls += 1; },
-      onSubscribe: (listener) => { emit = listener; },
-    });
-    const node = render(<AgentCenter activeSection="behavior" session={session} />);
-    await flush();
-    expect(node.querySelector('[data-agent-center-proactive-toggle="true"]')).not.toBeNull();
-
-    act(() => emit(actionProjection('not_granted')));
-    expect(node.querySelector('[data-agent-center-action-reason="needs-grant"]')).not.toBeNull();
-    const request = node.querySelector('[data-agent-center-next-step-action="requestPermission"]') as HTMLButtonElement;
-    expect(request).not.toBeNull();
-    expect(node.querySelector('[data-agent-center-next-step-action="openPermissionSettings"]')).toBeNull();
-    await act(async () => { request.click(); await Promise.resolve(); });
-    expect(requestCalls).toBe(1);
   });
 
   it('renders AIConfig, behavior, and appearance sections through session-owned state', async () => {
@@ -369,18 +274,6 @@ describe('AgentCenter UI session contract', () => {
     await flush();
     expect(session.getSnapshot().state.sharedAIConfig?.aiConfig.capabilities)
       .toEqual([expect.objectContaining({ capabilityContract: 'text.generate' })]);
-  });
-
-  it('keeps first-time actions disabled when no configuration read completed', async () => {
-    const session = permissionedSession({ initialReason: null });
-    const node = render(<AgentCenter activeSection="ai-config" session={session} />);
-    await flush();
-    await openTextCapability(node);
-    const configure = node.querySelector(
-      '[data-testid="model-config-save:text.generate"]',
-    ) as HTMLButtonElement;
-    expect(configure).toBeTruthy();
-    expect(configure.disabled).toBe(true);
   });
 
   it('writes a Local text.generate intent without exposing model targets', async () => {

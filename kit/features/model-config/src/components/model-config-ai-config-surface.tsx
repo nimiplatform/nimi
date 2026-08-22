@@ -160,7 +160,7 @@ function cloudChoiceId(implementationId: string, targetId: string): string {
 }
 
 function localChoice(
-  selection: ModelConfigLocalSelectionProjection | null,
+  selection: ModelConfigLocalSelectionProjection | null | undefined,
   copy: ResolvedCopy,
 ): ModelConfigRouteChoice {
   let description = copy.localChoiceDescription;
@@ -207,7 +207,7 @@ function routeChoices(
 
 function currentRouteChoice(
   intent: NimiCapabilityAIConfigIntent | null,
-  selection: ModelConfigLocalSelectionProjection | null,
+  selection: ModelConfigLocalSelectionProjection | null | undefined,
   copy: ResolvedCopy,
 ): ModelConfigRouteChoice | null {
   if (intent?.route.oneofKind === 'local') return localChoice(selection, copy);
@@ -249,7 +249,7 @@ function cloudModelLabel(intent: NimiCapabilityAIConfigIntent | null): string | 
 
 function capabilitySummary(
   intent: NimiCapabilityAIConfigIntent | null,
-  selection: ModelConfigLocalSelectionProjection | null,
+  selection: ModelConfigLocalSelectionProjection | null | undefined,
   descriptor: CanonicalCapabilityDescriptor | undefined,
   copy: ResolvedCopy,
 ): string {
@@ -325,14 +325,18 @@ export function ModelConfigAIConfigSurface(props: ModelConfigAIConfigSurfaceProp
   const entries = contracts.map((contract) => {
     const descriptor = CANONICAL_CAPABILITY_CATALOG_BY_ID[contract];
     const intent = props.capabilities?.find((entry) => entry.capabilityContract === contract) ?? null;
-    const selection = props.localSelections?.find((entry) => entry.capabilityContract === contract) ?? null;
+    const selection = props.localSelections === undefined
+      ? undefined
+      : props.localSelections.find((entry) => entry.capabilityContract === contract) ?? null;
     const badge = statusBadge(modelConfigCapabilityPosture(intent, selection), copy);
     return { contract, descriptor, intent, selection, badge };
   });
   const configuredCount = entries.filter((entry) => entry.badge.tone === 'success').length;
-  const aggregateBadge: PostureBadge = entries.some((entry) => entry.badge.tone === 'warning')
-    ? { label: copy.selectionRequiredLabel, tone: 'warning' }
-    : configuredCount === entries.length && entries.length > 0
+  const aggregateBadge: PostureBadge = configuredCount > 0 && configuredCount < entries.length
+    ? { label: `${configuredCount}/${entries.length} ${copy.configuredLabel}`, tone: 'warning' }
+    : entries.some((entry) => entry.badge.tone === 'warning')
+      ? { label: copy.selectionRequiredLabel, tone: 'warning' }
+      : configuredCount === entries.length && entries.length > 0
       ? { label: copy.configuredLabel, tone: 'success' }
       : { label: copy.notConfiguredLabel, tone: 'neutral' };
   const activeEntry = entries.find((entry) => entry.contract === activeContract) || null;
@@ -446,7 +450,7 @@ type CapabilityIntentEditorProps = {
   readonly descriptor?: CanonicalCapabilityDescriptor;
   readonly currentIntent: NimiCapabilityAIConfigIntent | null;
   readonly allCapabilities: readonly NimiCapabilityAIConfigIntent[];
-  readonly selection: ModelConfigLocalSelectionProjection | null;
+  readonly selection: ModelConfigLocalSelectionProjection | null | undefined;
   readonly context: ModelConfigAIConfigOwnerContext;
   readonly cloudAIConfig?: ModelConfigCloudAIConfigModule;
   readonly onOverwrite?: ModelConfigOverwrite;
@@ -900,7 +904,7 @@ function FirstPartyCapabilityIntentEditor(props: CapabilityIntentEditorProps) {
 }
 
 function LocalSelectionSummary(props: {
-  readonly selection: ModelConfigLocalSelectionProjection | null;
+  readonly selection: ModelConfigLocalSelectionProjection | null | undefined;
   readonly missingFeatures: readonly string[];
   readonly copy: ResolvedCopy;
   readonly onOpenMachineLoadout?: () => void;
@@ -908,7 +912,10 @@ function LocalSelectionSummary(props: {
   const selection = props.selection;
   let toneClass = 'text-[var(--nimi-status-warning)]';
   let message = props.copy.localMissingLabel;
-  if (selection?.state === 'unavailable') {
+  if (selection === undefined) {
+    toneClass = 'text-[var(--nimi-status-success)]';
+    message = `${props.copy.localLabel} · ${props.copy.configuredLabel}`;
+  } else if (selection?.state === 'unavailable') {
     toneClass = 'text-[var(--nimi-text-muted)]';
     message = props.copy.localUnavailableLabel;
   } else if (selection?.state === 'broken') {

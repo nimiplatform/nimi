@@ -41,7 +41,7 @@ units:
   - id: definition.nimi.platform.ui-design-system.agent-center-surface
     kind: definition
     title: LocalAgent Center surface
-    meaning: Agent Center is the reusable Nimi-owned first-party Kit surface for presenting and editing admitted Runtime LocalAgent personality, appearance, behavior, Memory, Conversation-presentation, and shared LocalAgent AIConfig projections without owning execution, lifecycle, Machine Loadout store, Loadout, machine selection, configuration persistence, or semantic presentation truth; it is not a third-party App access surface.
+    meaning: Agent Center is the reusable Nimi-owned Kit surface for presenting and editing admitted Runtime LocalAgent personality, appearance, behavior, Memory, Conversation-presentation, and shared LocalAgent AIConfig projections from Desktop or any protected App whose current session has agent.configure coverage, without owning execution, lifecycle, Machine Loadout store, Loadout, machine selection, configuration persistence, authorization, or semantic presentation truth.
   - id: definition.nimi.platform.ui-design-system.runtime-projection
     kind: definition
     title: Runtime-owned UI projection
@@ -460,7 +460,7 @@ units:
     kind: rule
     title: P-AGENT-CENTER-001 public Kit surface ownership
     modality: must
-    statement: Kit owns the AgentCenter component's shared layout, typed controls, loading, failure, disabled, and responsive behavior while combining Runtime-owned LocalAgent projections with bounded Kit Shell asset custody; current product rollout stages the bundled Nimi-owned Zhiyu integration first through the admitted agent configuration operation family of the canonical App Operation Contract, but this staging order neither changes Runtime operation admission nor creates a permanent App eligibility class for later public Kit consumers.
+    statement: Kit owns the AgentCenter component's shared layout, typed controls, loading, failure, disabled, and responsive behavior while combining Runtime-owned LocalAgent projections with bounded Kit Shell asset custody; Desktop and every protected App whose current session has agent.configure coverage may mount the same public Kit surface through the canonical App Operation Contract, and Nimi ownership, bundling, incubation, rollout order, or third-party status creates no additional eligibility class.
     condition: Whenever AgentCenter is rendered or integrated.
     failure: Reject an app fork of shared behavior, a private operation path, treatment of rollout staging as access eligibility, or ownership transfer of Runtime LocalAgent truth.
     relations:
@@ -484,7 +484,7 @@ units:
     kind: rule
     title: P-AGENT-CENTER-001 bounded staged integration
     modality: must
-    statement: AgentCenter consumers may supply presentation-tier inputs for standalone or embedded chrome, layout, density, and active semantic area plus admitted typed adapters, copy, navigation, and placement callbacks, while access facts, arbitrary feature panels, private bridges, raw context, prompts, Memory or Knowledge content, proof, provider, credential, and tool payloads remain outside component props; Zhiyu is the current staged integration for refining this composition, and a later App may integrate through the same public Kit surface and its separately admitted canonical App operations without belonging to an incubated-App category.
+    statement: AgentCenter consumers may supply presentation-tier inputs for standalone or embedded chrome, layout, density, and active semantic area plus the sealed canonical Manager Session, copy, navigation, and placement callbacks, while access facts, arbitrary feature panels, private bridges, raw Agent or account identity, raw context, prompts, Memory or Knowledge content, proof, provider credential, Connector endpoint, and tool payloads remain outside component props; every protected App with current agent.configure coverage integrates through the same public Kit surface and exact canonical App operations.
     condition: Whenever a consumer integrates AgentCenter or a staged rollout is evaluated.
     failure: Reject an authority-bearing prop, untyped or App-authoritative input, raw data, private adapter, speculative integration, or treatment of the current staging sequence as a permanent eligibility boundary.
     relations:
@@ -531,7 +531,7 @@ units:
     kind: rule
     title: P-AGENT-CENTER-004 Runtime-owned voice split
     modality: must
-    statement: First-party AgentCenter reads and commits the default voice reference through the Runtime presentation-profile path, configures the audio.transcribe route only in the one shared LocalAgent subsystem AIConfig, and invokes neither voice generation nor transcription execution because those operations require a separately admitted first-party Runtime surface; it never chooses a machine Loadout and creates no third-party App voice operation.
+    statement: AgentCenter reads and commits the default voice reference only through the admitted Runtime presentation-profile operation, configures the audio.transcribe route only in the one shared LocalAgent subsystem AIConfig, and invokes neither voice generation nor transcription execution; it never chooses a machine Loadout, creates an App-local voice operation, or transfers voice truth to the host App.
     condition: Whenever LocalAgent voice, transcription, or audio configuration is read, changed, generated, or executed.
     failure: Reject an AI-config-owned default voice, app-local audio truth, direct execution, or pseudo artifact and retain the applicable Runtime owner path.
     relations:
@@ -566,7 +566,7 @@ units:
     kind: rule
     title: P-AGENT-CENTER-006 single Manager Session and transport-only factories
     modality: must
-    statement: Each mounted first-party AgentCenter has exactly one Manager Session that owns its snapshot, refresh, mutation, typed action-availability subscription, commit, and one section model; sealed Nimi-owned first-party factories construct transport only and own no state logic; React props are limited to UI and UX inputs for chrome, layout, density, active section, locale, and placement callbacks; and the pre-1.0 hard cut admits no third-party factory, legacy seed-authority, per-adapter props, compatibility copy objects, caller-owned authority, per-Agent AIConfig, or parallel state path.
+    statement: Each mounted AgentCenter has exactly one Manager Session that owns its snapshot, refresh, mutation, typed action availability, commit, and one section model; sealed Nimi-owned factories bind either the first-party Runtime surface or the current protected App agent.configure surface while constructing transport only and owning no state logic; React props are limited to UI and UX inputs for chrome, layout, density, active section, locale, and placement callbacks; and the pre-1.0 hard cut admits no legacy seed authority, per-adapter props, compatibility copy objects, caller-owned access posture, raw identity, per-Agent AIConfig, carrier branch inside presentation state, or parallel state path.
     condition: Whenever AgentCenter state, sections, sessions, transports, factories, or React props are constructed.
     failure: Reject a missing or second Manager Session, divergent store, stateful factory, authority-bearing prop, caller-assembled authority, legacy compatibility input, or carrier distinction implemented inside presentation state.
     relations:
@@ -588,9 +588,9 @@ units:
     kind: rule
     title: P-AGENT-CENTER-007 closed product-action availability projection
     modality: must
-    statement: The single first-party Manager Session materializes from Runtime or SDK truth the only action-availability projection AgentCenter consumes, covering first-party reads and mutations for shared LocalAgent AIConfig, Profile Apply, autonomy, bounded Memory summary, and presentation selection; each action is available or unavailable with one typed owner reason such as runtime-offline, owner-rejected, selection-required, unsupported, reserved-not-admitted, or unknown and an admitted next step, while AgentCenter receives no machine-selection action, Loadout mutation, AppOperationId, Effective App Access Snapshot, carrier discriminator, credential, or raw Agent identity through props or state and callers cannot assemble or override availability.
-    condition: Whenever first-party AgentCenter action availability, degraded state, props, or state are materialized.
-    failure: Fail closed and reject caller-supplied authority facts, third-party exposure, an action outside the closed projection, an untyped or collapsed unavailable reason, a non-admitted next step, leaked authority material or identity, or a misleading enabled state.
+    statement: The single Manager Session materializes from Runtime or SDK truth the only action-availability projection AgentCenter consumes, covering admitted reads and mutations for shared LocalAgent AIConfig, autonomy, bounded Memory summary, and presentation selection; each action is available or unavailable with one typed owner reason such as runtime-offline, owner-rejected, selection-required, unsupported, operation-unavailable, or unknown and an admitted retry or owner-surface handoff, while AgentCenter receives no machine-selection action, Loadout mutation, AppOperationId, Effective App Access Snapshot, carrier discriminator, credential, Connector endpoint, account identity, or raw Agent identity through props or state and callers cannot assemble or override availability.
+    condition: Whenever AgentCenter action availability, degraded state, props, or state are materialized.
+    failure: Fail closed and reject caller-supplied authority facts, an action outside the closed projection, an untyped or collapsed unavailable reason, a non-admitted next step, leaked authority material or identity, carrier-specific presentation state, or a misleading enabled state.
     relations:
       - type: applies_to
         target: definition.nimi.platform.ui-design-system.agent-center-surface
@@ -741,7 +741,7 @@ units:
   - id: definition.nimi.platform.ui-design-system.model-config-surface
     kind: definition
     title: Public Kit model-config surface
-    meaning: Model-config is the public Kit feature module for typed composition of Nimi-owned canonical AIConfig editing and separately authorized Machine Loadout store editing without app-authored, feature-local, or per-Agent model truth; every mount declares one owner and consumer context, a protected third-party App mount is read-only and hands configuration to the Nimi-owned owner surface, public reuse never gives a third-party App access to route, implementation, provider-model target, current-account Connector identity, credential custody, or machine-owner actions, and no context presents a per-App Connector picker.
+    meaning: Model-config is the public Kit feature module for typed composition of canonical AIConfig editing and separately authorized Machine Loadout store editing without app-authored, feature-local, or per-Agent model truth; every mount declares one owner and consumer context, a protected App is read-only for its own App AIConfig but may edit the singular shared LocalAgent AIConfig only through current agent.configure coverage and the existing bounded configuration operation family, public reuse never gives an App Connector credentials, endpoints, account identity, generic Connector CRUD, or machine-owner actions, and no context presents a per-App Connector picker.
   - id: definition.nimi.platform.ui-design-system.model-picker-surface
     kind: definition
     title: Public Kit model-picker surface
@@ -754,9 +754,9 @@ units:
     kind: rule
     title: P-MODEL-CONFIG-001 public shared configuration surface
     modality: must
-    statement: Model-config follows the Kit public-module, dependency, and portable-feature rules, consumes the canonical CapabilityContract and standardized-feature catalog, and mounts in exactly one declared owner and consumer mode; a third-party App context may read only its own portable AIConfig projection and hands every Local or Cloud choice to the Nimi-owned owner surface, while an authorized first-party Nimi account-product context may edit the exact admitted App owner, select the implementation-target and current-account Connector posture without storing Connector identity, and Runtime resolves current-account custody internally without a second per-App authorization; shared LocalAgent AIConfig and Machine Loadout store modes remain first-party owner surfaces, and no mode renders public readiness, probe, warm, install-as-apply, fallback, stub, or unsupported parameter.
+    statement: Model-config follows the Kit public-module, dependency, and portable-feature rules, consumes the canonical CapabilityContract and standardized-feature catalog, and mounts in exactly one declared owner and consumer mode; a protected App context may read only its own App AIConfig projection and hands App-owner configuration to the Desktop-managed owner surface, while an authorized Nimi account-product context may edit the exact admitted App owner; the shared LocalAgent AIConfig mode may be read and overwritten from Desktop or any protected App with current agent.configure coverage through the existing canonical operation family, while Connector discovery and custody remain outside the protected App surface; Machine Loadout store mode remains restricted to the machine owner surface, and no mode renders public readiness, probe, warm, install-as-apply, fallback, stub, or unsupported parameter.
     condition: Whenever model-config is published, integrated, or rendered.
-    failure: Reject a private or parallel model-config surface, per-Agent model truth, mixed owner or consumer mode, any third-party route, implementation, target, Connector posture, or AIConfig mutation control, an inferred or unauthorized App owner, catalog shadow, fabricated config, unsupported control, or Profile apply that mutates machine-owned truth.
+    failure: Reject a private or parallel model-config surface, per-Agent model truth, mixed owner or consumer mode, protected App mutation of its own App AIConfig, shared LocalAgent mutation without agent.configure coverage, Connector credential or generic CRUD exposure, an inferred or unauthorized owner, catalog shadow, fabricated config, unsupported control, or Profile apply that mutates machine-owned truth.
     relations:
       - type: applies_to
         target: definition.nimi.platform.ui-design-system.kit-module-family

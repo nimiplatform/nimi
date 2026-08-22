@@ -6,7 +6,7 @@ import type {
   AgentCenterAppearanceAdapter,
   AgentCenterAppearanceProjection,
   AgentCenterAvatarPreviewAdapter,
-  AgentCenterPermissionedPresentationIntent,
+  AgentCenterPresentationIntent,
   AgentCenterPresentationAssetMaterial,
   AgentCenterRuntimePresentationProfileMutationResult,
   AgentCenterRuntimePresentationProfilePatch,
@@ -335,7 +335,7 @@ async function projectCommittedAppearance(input: {
 
 function profileIntent(
   profile: NimiRuntimeAgentPresentationProfileProjection | null,
-): AgentCenterPermissionedPresentationIntent | null {
+): AgentCenterPresentationIntent | null {
   if (!profile) return null;
   return {
     backendKind: profile.backendKind,

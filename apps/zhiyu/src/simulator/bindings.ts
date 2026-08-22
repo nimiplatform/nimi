@@ -11,6 +11,7 @@ import {
   type AgentCenterSession,
   type AgentCenterSharedAIConfigProjection,
 } from '@nimiplatform/kit/features/agent-center';
+import type { NimiLocalAppAgentHandle } from '@nimiplatform/sdk/app';
 
 import type { ZhiyuCanonicalRendererBindings, ZhiyuHomeProjection } from '../renderer/contract.js';
 import type { ZhiyuRuntimeAgentChatTurnResult } from '../shell/agent-chat/runtime-agent-turn-adapter.js';
@@ -85,13 +86,13 @@ function companionStatusText(value: Projection): string {
   return '等待与你对话';
 }
 
-function simulatedAgentHandle(localAgentRef: string): string {
-  return `sim-agent-handle:${localAgentRef}`;
+function simulatedAgentHandle(localAgentRef: string): NimiLocalAppAgentHandle {
+  return `sim-agent-handle:${localAgentRef}` as NimiLocalAppAgentHandle;
 }
 
 function simulatedHome(
   context: ZhiyuSimulatorPrepareContext,
-  selectedAgentHandle: string | null,
+  selectedAgentHandle: NimiLocalAppAgentHandle | null,
 ): ZhiyuHomeProjection {
   const scenario = projection(context).scenario;
   const selected = scenario.agents.find((agent) => simulatedAgentHandle(agent.localAgentRef) === selectedAgentHandle)
@@ -231,10 +232,17 @@ async function invoke(
 }
 
 function simulatedAgentCenterSession(
+  context: ZhiyuSimulatorPrepareContext,
   agentHandle: Parameters<ZhiyuCanonicalRendererBindings['app']['projection']['agentCenterSession']>[0],
-  identity: Parameters<ZhiyuCanonicalRendererBindings['app']['projection']['agentCenterSession']>[1],
 ): AgentCenterSession | null {
-  if (!agentHandle || !identity || agentHandle !== simulatedAgentHandle(identity.localAgentRef)) return null;
+  const scenario = projection(context).scenario;
+  const selected = scenario.agents.find((agent) => simulatedAgentHandle(agent.localAgentRef) === agentHandle);
+  if (!agentHandle || !selected) return null;
+  const identity = {
+    ownerUserId: scenario.ownerUserId,
+    runtimeSourceRef: selected.runtimeSourceRef,
+    localAgentRef: selected.localAgentRef,
+  };
 
   let capabilities: AgentCenterSharedAIConfigProjection['aiConfig']['capabilities'] = [{
     capabilityContract: 'text.generate',
@@ -441,8 +449,10 @@ export function createZhiyuSimulatorBindings(
     sdk: Object.freeze({}),
     app: {
       projection: Object.freeze({
-        agentCenterSession: simulatedAgentCenterSession,
-        loadHome: ({ selectedAgentHandle }: { readonly selectedAgentHandle: string | null }) => (
+        agentCenterSession: (
+          agentHandle: Parameters<ZhiyuCanonicalRendererBindings['app']['projection']['agentCenterSession']>[0],
+        ) => simulatedAgentCenterSession(context, agentHandle),
+        loadHome: ({ selectedAgentHandle }: { readonly selectedAgentHandle: NimiLocalAppAgentHandle | null }) => (
           Promise.resolve(simulatedHome(context, selectedAgentHandle))
         ),
         loadAgentInventory: async () => simulatedHome(context, null).inventory,
@@ -514,7 +524,7 @@ export function createZhiyuSimulatorBindings(
             diagnostics: null,
           };
         },
-        async openDesktopPersonaCatalog(): Promise<void> {
+        async openDesktopRuntimeSettings(): Promise<void> {
           return undefined;
         },
         async openDesktopSelectPartner(): ReturnType<ZhiyuCanonicalRendererBindings['app']['commands']['openDesktopSelectPartner']> {

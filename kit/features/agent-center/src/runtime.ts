@@ -1,9 +1,8 @@
 export {
+  createAppAgentCenterSession,
   createFirstPartyAgentCenterSession,
-  createPermissionedAgentCenterSession,
-  projectAgentCenterActionAvailability,
 } from './session.js';
 export type {
+  CreateAppAgentCenterSessionInput,
   CreateFirstPartyAgentCenterSessionInput,
-  CreatePermissionedAgentCenterSessionInput,
 } from './session.js';

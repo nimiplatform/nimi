@@ -210,9 +210,9 @@ units:
     kind: rule
     title: P-AGID-010 session-derived agent configuration access
     modality: must
-    statement: Each agent configuration operation is admitted only from the current protected App session with Effective App Access Snapshot coverage for agent.configure; shared AIConfig operations resolve the singular Runtime LocalAgent subsystem owner without an Agent handle, and per-Agent autonomy or presentation operations present the session-scoped opaque Agent reference handle with per-call current-account active-Agent revalidation and preserve independent autonomy and presentation revisions through typed conflict results.
+    statement: Each agent configuration operation is admitted only from the current protected App session with Effective App Access Snapshot coverage for agent.configure; shared AIConfig operations resolve the singular Runtime LocalAgent subsystem owner without an Agent handle, while per-Agent autonomy or presentation operations present the session-scoped opaque Agent reference handle with per-call current-account active-Agent revalidation and preserve independent autonomy and presentation revisions through typed conflict results.
     condition: Whenever an App invokes an agent configuration operation.
-    failure: Fail closed without owner mutation when the session, snapshot coverage, handle, or revision is missing, stale, or conflicting.
+    failure: Fail closed without owner mutation when the session or snapshot coverage is missing or stale, or when a per-Agent operation lacks its required current handle or independent revision or encounters a typed conflict.
     relations:
       - type: applies_to
         target: definition.nimi.platform.app-ecosystem.agent-configuration-operation-family
@@ -222,7 +222,7 @@ units:
     kind: rule
     title: P-AGID-010 no app-owned AI or configuration truth
     modality: must_not
-    statement: An App agent configuration surface carries a secondary per-Agent access workflow or decision state, addresses the shared LocalAgent AIConfig by Agent handle, merges or versions AIConfig, stores Provider Credentials, selects an execution route or model as Runtime truth, or infers readiness, Quota, Budget, or fallback.
+    statement: An App agent configuration surface carries a secondary access workflow or decision state, addresses the shared LocalAgent AIConfig by Agent handle, merges or versions AIConfig, stores or promotes a selected route, model, Connector, or provider as App-owned truth, stores Provider Credentials, invokes generic Connector management, or infers readiness, Quota, Budget, Rate Limit, or fallback.
     condition: Whenever an App presents or mutates agent configuration.
     failure: Reject the carrier, cross-owner mutation, or invented truth and keep Runtime owner state unchanged.
     relations:
@@ -246,7 +246,7 @@ units:
   - id: definition.nimi.platform.app-ecosystem.agent-configuration-operation-family
     kind: definition
     title: App agent configuration operation family
-    meaning: The agent configuration operation family is the bounded agent.configure App operation set runtime.agent.ai-config.get, runtime.agent.ai-config.overwrite, runtime.agent.autonomy.snapshot.get, runtime.agent.autonomy.update, runtime.agent.presentation.snapshot.get, and runtime.agent.presentation.commit; the shared Runtime LocalAgent subsystem AIConfig operations resolve the singular subsystem owner without an Agent handle, while autonomy and presentation operations are addressed by the session-scoped opaque Agent reference handle and preserve only their own independent concurrency revisions and typed conflict results, all without a secondary per-Agent access-state, route, or model carrier.
+    meaning: The agent configuration operation family is the bounded agent.configure App operation set runtime.agent.ai-config.get, runtime.agent.ai-config.overwrite, runtime.agent.autonomy.snapshot.get, runtime.agent.autonomy.update, runtime.agent.presentation.snapshot.get, and runtime.agent.presentation.commit; the shared Runtime LocalAgent subsystem AIConfig operations resolve the singular subsystem owner without an Agent handle, while autonomy and presentation operations are addressed by the session-scoped opaque Agent reference handle and preserve only their own independent concurrency revisions and typed conflict results, all without a secondary access state, per-Agent route, App-owned model carrier, Connector credential, or generic Connector operation.
     relations:
       - type: supersedes
         target: definition.nimi.platform.app-ecosystem.agents-configure-operation-family

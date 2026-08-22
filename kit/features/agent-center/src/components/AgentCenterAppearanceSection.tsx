@@ -13,6 +13,7 @@ import { translateAgentCenter } from '../i18n.js';
 import { agentCenterEnCatalog, getAgentCenterCatalogRecord } from '../locales/index.js';
 import type {
   AgentCenterI18n,
+  AgentCenterPlacementActions,
   AgentCenterSession,
   AgentCenterSnapshot,
 } from '../types.js';
@@ -27,6 +28,7 @@ export interface AgentCenterAppearanceSectionProps {
   readonly session: AgentCenterSession;
   readonly snapshot: AgentCenterSnapshot;
   readonly i18n?: AgentCenterI18n;
+  readonly placementActions?: AgentCenterPlacementActions;
 }
 
 type PendingKind = 'live2d' | 'vrm' | null;
@@ -73,7 +75,7 @@ function message(error: unknown): { message: string; reasonCode: string } {
   return { message: error instanceof Error ? error.message : String(error), reasonCode: 'appearance-save-failed' };
 }
 
-export function AgentCenterAppearanceSection({ session, snapshot, i18n }: AgentCenterAppearanceSectionProps) {
+export function AgentCenterAppearanceSection({ session, snapshot, i18n, placementActions }: AgentCenterAppearanceSectionProps) {
   const appearance = snapshot.state.appearance;
   const availability = snapshot.availability.replaceAppearance;
   const [pendingKind, setPendingKind] = useState<PendingKind>(null);
@@ -199,6 +201,7 @@ export function AgentCenterAppearanceSection({ session, snapshot, i18n }: AgentC
           action="replaceAppearance"
           availability={availability}
           i18n={i18n}
+          onOpenRuntimeSettings={placementActions?.openRuntimeSettings}
           session={session}
         />
       ) : null}

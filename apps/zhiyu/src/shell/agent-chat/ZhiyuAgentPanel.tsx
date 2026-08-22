@@ -1,9 +1,10 @@
 import nimiLogoImage from '../assets/logo.png';
+import type { NimiLocalAppAgentHandle } from '@nimiplatform/sdk/app';
 
 type DesktopPresenceRailProps = {
   readonly agents: readonly {
     readonly itemKey: string;
-    readonly agentHandle: string | null;
+    readonly agentHandle: NimiLocalAppAgentHandle | null;
     readonly displayName?: string | null;
     readonly avatarUrl: string | null;
   }[];
@@ -11,7 +12,7 @@ type DesktopPresenceRailProps = {
   readonly currentPartnerName: string;
   readonly hasCurrentPartner: boolean;
   readonly onOpenCurrentAgent: () => void;
-  readonly onSelectAgent: (agentHandle: string) => void;
+  readonly onSelectAgent: (agentHandle: NimiLocalAppAgentHandle) => void;
 };
 
 export function DesktopPresenceRail({

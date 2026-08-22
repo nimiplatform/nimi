@@ -1,5 +1,6 @@
 import type { ZhiyuEvidence } from '../app/evidence';
 import type { ZhiyuConversationHomeStatus } from '../agent/conversation-home';
+import type { NimiLocalAppAgentHandle } from '@nimiplatform/sdk/app';
 
 export type ZhiyuRuntimeTurnStatus = ZhiyuEvidence['turn'];
 
@@ -67,14 +68,14 @@ export function probeZhiyuAgentTurnReadiness(
 }
 
 function conversationIdentity(conversation: ZhiyuConversationHomeStatus): {
-  readonly agentHandle: string;
+  readonly agentHandle: NimiLocalAppAgentHandle;
   readonly conversationAnchorId: string;
   readonly threadId: string;
 } | null {
   if (!conversation.ready) {
     return null;
   }
-  const agentHandle = stringOr(conversation.agentHandle, '');
+  const agentHandle = conversation.agentHandle;
   const conversationAnchorId = stringOr(conversation.conversationAnchorId, '');
   const threadId = stringOr(conversation.threadId, '');
   if (!agentHandle || !conversationAnchorId || !threadId) {

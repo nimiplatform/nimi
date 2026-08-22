@@ -69,11 +69,11 @@ test('Zhiyu Agent Center panel renders the Manager Session without caller postur
       activeTab: 'overview',
       onActiveTabChange() {},
       onClose() {},
-      onOpenDesktopPersonaCatalog() {},
-      session: { getSnapshot: () => ({ availability: { updateModelSettings: { state: 'unavailable', reason: 'reserved-not-admitted' } } }) },
+      onOpenDesktopRuntimeSettings() {},
+      session: { getSnapshot: () => ({ availability: { updateModelSettings: { state: 'unavailable', reason: 'operation-unavailable' } } }) },
     });
   });
-  assert.match(html, /data-test-action-reason="reserved-not-admitted"/);
+  assert.match(html, /data-test-action-reason="operation-unavailable"/);
   assert.match(html, /data-test-chrome="standalone"/);
   assert.match(html, /data-test-identity="伙伴"/);
   assert.match(html, /data-test-avatar-url="https:\/\/assets\.example\.test\/agent\.png"/);
@@ -91,6 +91,14 @@ test('Zhiyu adopts Kit canonical Agent Center chrome and keeps host context outs
   assert.doesNotMatch(source, /runtimeError:/);
 });
 
+test('Zhiyu composer Agent Center action is a real open and close toggle', async () => {
+  const source = await readFile(path.join(appRoot, 'src/shell/agent-chat/ZhiyuAgentChatSurface.tsx'), 'utf8');
+
+  assert.match(source, /onToggleAgentPanel=/);
+  assert.match(source, /if \(rightPanelMode === 'agent'\) \{\s*setRightPanelMode\('closed'\);\s*return;/u);
+  assert.match(source, /setRightPanelMode\('agent'\);\s*setActiveAgentTab\('overview'\);/u);
+});
+
 test('Zhiyu Agent Center panel fails closed with a typed unavailable state when the session is absent', async () => {
   const { renderPanel } = await importRightPanelModule();
   const html = renderPanel({
@@ -104,12 +112,14 @@ test('Zhiyu Agent Center panel fails closed with a typed unavailable state when 
     activeTab: 'overview',
     onActiveTabChange() {},
     onClose() {},
-    onOpenDesktopPersonaCatalog() {},
+    onOpenDesktopRuntimeSettings() {},
     session: null,
   });
   assert.match(html, /data-zhiyu-agent-center-unavailable="protected-app-access-unavailable"/);
   assert.match(html, /data-zhiyu-agent-center-unavailable-close="true"/);
-  assert.match(html, /data-zhiyu-desktop-open-action="desktop_open_persona_catalog"/);
+  assert.match(html, /data-zhiyu-desktop-open-action="desktop_open_runtime_settings"/);
+  assert.match(html, /在 Nimi Desktop 中打开本地模型设置/);
+  assert.doesNotMatch(html, /浏览伙伴目录/);
   assert.doesNotMatch(html, /data-test-chrome/);
 });
 

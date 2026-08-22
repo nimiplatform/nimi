@@ -18,6 +18,7 @@ import type { ZhiyuEvidence } from '../app/evidence';
 import type { ZhiyuAvatarLaunchAction } from '../avatar/avatar-launch';
 import type { ZhiyuDesktopOpenActionResult } from '../desktop-open/desktop-open-action';
 import type { ZhiyuRendererProjectionPort } from '../../renderer/contract';
+import type { NimiLocalAppAgentHandle } from '@nimiplatform/sdk/app';
 import type {
   ZhiyuHomeProductState,
 } from '../app/home-product-state';
@@ -33,6 +34,7 @@ import {
   formatZhiyuTranscriptDateLabel,
 } from './ZhiyuAgentChatLabels';
 import {
+  ComposerAgentCenterButton,
   ComposerAvatarButton,
   ComposerModeTools,
   RuntimeChatFailureNotice,
@@ -59,8 +61,8 @@ export type ZhiyuAgentChatSurfaceProps = {
   readonly onDraftChange: (value: string) => void;
   readonly onSubmit: (text: string) => Promise<void> | void;
   readonly onStopChat: () => void;
-  readonly onSelectLocalAgent: (agentHandle: string) => void;
-  readonly onDesktopOpenPersonaCatalog: () => Promise<void> | void;
+  readonly onSelectLocalAgent: (agentHandle: NimiLocalAppAgentHandle) => void;
+  readonly onDesktopOpenRuntimeSettings: () => Promise<void> | void;
   readonly onDesktopOpenSelectPartner: () => Promise<ZhiyuDesktopOpenActionResult> | ZhiyuDesktopOpenActionResult;
   readonly onAvatarLaunch?: () => void;
   readonly onAvatarManage?: () => void;
@@ -78,7 +80,7 @@ export function ZhiyuAgentChatSurface({
   onSubmit,
   onStopChat,
   onSelectLocalAgent,
-  onDesktopOpenPersonaCatalog,
+  onDesktopOpenRuntimeSettings,
   onDesktopOpenSelectPartner,
   onAvatarLaunch,
 }: ZhiyuAgentChatSurfaceProps) {
@@ -333,23 +335,34 @@ export function ZhiyuAgentChatSurface({
                 placeholder={hasCurrentPartner ? '和这个伙伴聊点什么...' : hasLocalPartners ? '先选择本地伙伴...' : '添加本地伙伴后开始聊天...'}
                 runtimeHint={chatRuntimeHint}
                 sendHint={evidence.chat.state === 'streaming' ? '回复中' : undefined}
+                layout="stacked"
                 leadingSlot={(
                   <ComposerAvatarButton
                     currentPartnerName={currentPartnerName}
                     currentPartnerAvatarUrl={currentPartnerAvatar}
                     hasCurrentPartner={hasCurrentPartner}
-                    avatarLaunchAction={avatarLaunchAction}
-                    onAvatarLaunch={onAvatarLaunch}
                     onOpenSettings={openAppearanceConfig}
                   />
                 )}
                 toolbarSlot={(
                   <ComposerModeTools
-                    onOpenAgentPanel={() => {
+                    avatarLaunchAction={avatarLaunchAction}
+                    onAvatarLaunch={onAvatarLaunch}
+                    onOpenAppearance={openAppearanceConfig}
+                    onOpenBehavior={openBehaviorConfig}
+                  />
+                )}
+                trailingSlot={(
+                  <ComposerAgentCenterButton
+                    open={rightPanelMode === 'agent'}
+                    onToggleAgentPanel={() => {
+                      if (rightPanelMode === 'agent') {
+                        setRightPanelMode('closed');
+                        return;
+                      }
                       setRightPanelMode('agent');
                       setActiveAgentTab('overview');
                     }}
-                    onOpenSettings={openBehaviorConfig}
                   />
                 )}
                 className="zhiyu-chat-canvas__canonical-composer"
@@ -382,7 +395,7 @@ export function ZhiyuAgentChatSurface({
             activeTab={activeAgentTab}
             onActiveTabChange={setActiveAgentTab}
             onClose={() => setRightPanelMode('closed')}
-            onOpenDesktopPersonaCatalog={() => { void onDesktopOpenPersonaCatalog(); }}
+            onOpenDesktopRuntimeSettings={() => { void onDesktopOpenRuntimeSettings(); }}
             onAvatarLaunch={onAvatarLaunch}
             session={agentCenterSession}
           />
