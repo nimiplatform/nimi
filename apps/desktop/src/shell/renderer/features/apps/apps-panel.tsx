@@ -1,17 +1,23 @@
-import { useEffect, type ReactElement } from 'react';
+import { useCallback, useEffect, type ReactElement } from 'react';
 import { useAppStore } from '../../app-shell/providers/app-store';
-import { useDesktopRendererCommands } from '../../renderer/binding-context.js';
+import { useDesktopRendererCommands, useDesktopRendererSdk } from '../../renderer/binding-context.js';
+import { readDesktopNimiAppAIConfig } from '../chat/chat-nimi-app-ai-config.js';
 import { useAppsPanelController } from './apps-panel-controller.js';
 import { AppsPanelView } from './apps-panel-view.js';
 
 export function AppsPanel(): ReactElement {
   const settings = useDesktopRendererCommands().settings;
+  const sdk = useDesktopRendererSdk();
   const requestedDetailAppId = useAppStore((state) => state.appsDetailAppId);
   const requestedDetailSection = useAppStore((state) => state.appsDetailSection);
   const requestedDetailNavigationRevision = useAppStore((state) => state.appsDetailNavigationRevision);
   const setAppsDetailAppId = useAppStore((state) => state.setAppsDetailAppId);
   const setActiveTab = useAppStore((state) => state.setActiveTab);
-  const controller = useAppsPanelController();
+  const readAppAIConfig = useCallback(
+    (appId: string) => readDesktopNimiAppAIConfig(sdk.accountProduct().appAIConfig(appId)),
+    [sdk],
+  );
+  const controller = useAppsPanelController({ readAppAIConfig });
   const {
     projection,
     detailAppId,

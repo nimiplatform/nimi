@@ -61,6 +61,7 @@ function entry(
         retryable: false,
         hostGeneration: 1,
       },
+    aiConfigSummary: null,
   };
 }
 
@@ -133,6 +134,26 @@ test('Apps library renders cover grid cards with resolved zh copy', async () => 
   assert.ok(markup.includes('最近更新'), 'expected default sort copy');
   assert.equal(markup.includes('Apps.library.'), false, 'no raw i18n keys');
   assert.equal(markup.includes('Apps.sourceBadge.'), false, 'no raw i18n keys');
+});
+
+test('Apps library renders bounded App AIConfig posture without opening the App', async () => {
+  await initI18n();
+  await changeLocale('zh');
+  const configured = {
+    ...entry(),
+    aiConfigSummary: {
+      posture: 'partial-cloud' as const,
+      configuredCount: 2,
+      totalCount: 9,
+      localCount: 0,
+      cloudCount: 2,
+    },
+  };
+  const markup = renderView(baseProps({
+    projection: { status: 'loaded', entries: [configured] },
+  }));
+  assert.ok(markup.includes('data-app-ai-config-summary="partial-cloud"'));
+  assert.ok(markup.includes('部分云端 · 2/9'));
 });
 
 test('Apps rail pins running apps first without group sections', async () => {

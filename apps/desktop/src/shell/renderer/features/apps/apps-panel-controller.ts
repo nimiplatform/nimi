@@ -4,7 +4,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { AppCardActionId } from './apps-card-actions.js';
 import { resolveDetailAppId } from './apps-card-fields.js';
 import { createDesktopAppsLiveBridge } from './apps-live-bridge.js';
-import { projectAppsPanel, type DesktopAppsPanelProjection } from './apps-panel-projection.js';
+import {
+  projectAppsPanel,
+  type DesktopAppsPanelProjection,
+  type DesktopAppsProjectionSource,
+} from './apps-panel-projection.js';
+import type { NimiCapabilityAIConfig } from '@nimiplatform/kit/core/sdk-contract';
 
 export interface AppsPanelState {
   readonly projection: DesktopAppsPanelProjection | null;
@@ -23,35 +28,123 @@ export type AppsPanelController = AppsPanelState & AppsPanelActions;
 
 export interface AppsPanelControllerDeps {
   readonly buildLiveBridge?: typeof createDesktopAppsLiveBridge;
+  readonly readAppAIConfig?: (appId: string) => Promise<NimiCapabilityAIConfig | null>;
+}
+
+type AppsPanelReloadLane = 'lifecycle' | 'ai-config';
+
+export interface AppsPanelProjectionReloader {
+  reload(refreshAIConfig?: boolean): Promise<void>;
+  dispose(): void;
+}
+
+export function mergeAppsPanelProjection(
+  current: DesktopAppsPanelProjection | null,
+  next: DesktopAppsPanelProjection,
+  lane: AppsPanelReloadLane,
+): DesktopAppsPanelProjection {
+  if (current?.status !== 'loaded' || next.status !== 'loaded') return next;
+  if (lane === 'lifecycle') {
+    const currentByAppId = new Map(current.entries.map((entry) => [entry.registration.appId, entry]));
+    return {
+      status: 'loaded',
+      entries: next.entries.map((entry) => {
+        const currentEntry = currentByAppId.get(entry.registration.appId);
+        return {
+          ...entry,
+          aiConfigSummary: currentEntry ? currentEntry.aiConfigSummary : entry.aiConfigSummary,
+        };
+      }),
+    };
+  }
+  const refreshedByAppId = new Map(next.entries.map((entry) => [entry.registration.appId, entry]));
+  return {
+    status: 'loaded',
+    entries: current.entries.map((entry) => {
+      const refreshedEntry = refreshedByAppId.get(entry.registration.appId);
+      return {
+        ...entry,
+        aiConfigSummary: refreshedEntry ? refreshedEntry.aiConfigSummary : entry.aiConfigSummary,
+      };
+    }),
+  };
+}
+
+export function createAppsPanelProjectionReloader(input: {
+  readonly source: DesktopAppsProjectionSource;
+  readonly getCurrent: () => DesktopAppsPanelProjection | null;
+  readonly commit: (projection: DesktopAppsPanelProjection) => void;
+}): AppsPanelProjectionReloader {
+  let disposed = false;
+  const inFlight: Record<AppsPanelReloadLane, Promise<void> | null> = {
+    lifecycle: null,
+    'ai-config': null,
+  };
+
+  const reload = (refreshAIConfig = true): Promise<void> => {
+    const lane: AppsPanelReloadLane = refreshAIConfig ? 'ai-config' : 'lifecycle';
+    const existing = inFlight[lane];
+    if (existing) return existing;
+    const task = projectAppsPanel(input.source, {
+      previous: input.getCurrent(),
+      refreshAIConfig,
+    }).then((next) => {
+      if (disposed) return;
+      input.commit(mergeAppsPanelProjection(input.getCurrent(), next, lane));
+    }).finally(() => {
+      if (inFlight[lane] === task) inFlight[lane] = null;
+    });
+    inFlight[lane] = task;
+    return task;
+  };
+
+  return Object.freeze({
+    reload,
+    dispose() {
+      disposed = true;
+    },
+  });
 }
 
 export function useAppsPanelController(deps: AppsPanelControllerDeps = {}): AppsPanelController {
   const buildLiveBridge = deps.buildLiveBridge ?? createDesktopAppsLiveBridge;
   const liveBridge = useMemo(() => buildLiveBridge(), [buildLiveBridge]);
   const [projection, setProjection] = useState<DesktopAppsPanelProjection | null>(null);
+  const projectionRef = useRef<DesktopAppsPanelProjection | null>(null);
   const [detailAppId, setDetailAppId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [activeAction, setActiveAction] = useState<Readonly<{
     appId: string;
     action: AppCardActionId;
   }> | null>(null);
-  const reloadTokenRef = useRef(0);
-
-  const reload = useCallback(async (): Promise<void> => {
-    const token = ++reloadTokenRef.current;
-    const next = await projectAppsPanel(liveBridge);
-    if (token === reloadTokenRef.current) setProjection(next);
-  }, [liveBridge]);
+  const reloader = useMemo(() => createAppsPanelProjectionReloader({
+    source: {
+      ...liveBridge,
+      readAppAIConfig: deps.readAppAIConfig,
+    },
+    getCurrent: () => projectionRef.current,
+    commit(next) {
+      projectionRef.current = next;
+      setProjection(next);
+    },
+  }), [deps.readAppAIConfig, liveBridge]);
+  const reload = useCallback(
+    (refreshAIConfig = true): Promise<void> => reloader.reload(refreshAIConfig),
+    [reloader],
+  );
 
   useEffect(() => {
-    void reload();
-    return () => {
-      reloadTokenRef.current += 1;
-    };
+    void reload(true);
+    return () => reloader.dispose();
+  }, [reload, reloader]);
+
+  useEffect(() => {
+    const interval = window.setInterval(() => void reload(false), 2_000);
+    return () => window.clearInterval(interval);
   }, [reload]);
 
   useEffect(() => {
-    const interval = window.setInterval(() => void reload(), 2_000);
+    const interval = window.setInterval(() => void reload(true), 30_000);
     return () => window.clearInterval(interval);
   }, [reload]);
 
@@ -86,7 +179,7 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps = {}): Apps
         } else {
           assertAppsAction(action);
         }
-        await reload();
+        await reload(false);
       } catch (error) {
         setActionError(error instanceof Error ? error.message : String(error));
       } finally {
@@ -98,7 +191,7 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps = {}): Apps
   const retryProjection = useCallback((): void => {
     setProjection(null);
     setActionError(null);
-    void reload();
+    void reload(true);
   }, [reload]);
 
   const closeDetail = useCallback((): void => setDetailAppId(null), []);

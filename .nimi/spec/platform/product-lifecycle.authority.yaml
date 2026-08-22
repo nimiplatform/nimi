@@ -54,7 +54,7 @@ units:
   - id: definition.nimi.platform.product-lifecycle.home-apps
     kind: definition
     title: Home Apps projection
-    meaning: The current Apps surface is the Nimi Home library and discovery projection for admitted catalog releases, committed verified and user-imported packages, Developer-Mode local projects, Runtime registration and access state, and Desktop Host supervision, with Apps retained as the primary navigation label while Library and Discovery remain internal collection modes.
+    meaning: The current Apps surface is the Nimi Home library and discovery projection for admitted catalog releases, committed verified and user-imported packages, Developer-Mode local projects, Runtime registration and access state, canonical current App AIConfig summaries for unified configuration discovery, and Desktop Host supervision, with Apps retained as the primary navigation label while Library and Discovery remain internal collection modes.
   - id: rule.nimi.platform.product-lifecycle.p-cold-001a
     kind: rule
     title: P-COLD-001 closed cold-start state set
@@ -697,7 +697,7 @@ units:
     kind: rule
     title: P-HOME-009 Apps projection and label
     modality: must
-    statement: Current Apps consumes admitted Platform catalog and descriptor projections, Runtime-owned install, update, repair, uninstall, package-job, inventory, registration, and access projections, and Desktop-owned launch and process state, adds explicit local-import and Developer-Mode entry paths, and uses Apps as the primary navigation label rather than Library or Discovery.
+    statement: Current Apps consumes admitted Platform catalog and descriptor projections, Runtime-owned install, update, repair, uninstall, package-job, inventory, registration, access, and canonical App AIConfig summary projections, and Desktop-owned launch and process state, adds explicit local-import and Developer-Mode entry paths, and uses Apps as the primary navigation label rather than Library or Discovery.
     condition: When the Apps surface is populated or labeled.
     failure: Reject an owner-crossing, renderer-authored, missing-lifecycle, or noncanonical primary-label projection.
     relations:
@@ -735,6 +735,16 @@ units:
         target: definition.nimi.platform.product-lifecycle.home-apps
       - type: applies_to
         target: definition.nimi.platform.product-lifecycle.home-surface
+  - id: rule.nimi.platform.product-lifecycle.p-home-009e
+    kind: rule
+    title: P-HOME-009 App AIConfig is centrally discoverable
+    modality: must
+    statement: Apps presents every currently manageable App AIConfig owner without launching its App and exposes a bounded current summary that distinguishes unconfigured, partial, Local, Cloud, mixed, and typed unavailable state with configured and total CapabilityContract counts; exact editing remains on the selected App's Nimi-owned AIConfig detail surface, and the summary is a read-only owner projection rather than a second configuration record.
+    condition: Whenever Nimi Home presents Apps whose canonical owners may consume AI.
+    failure: Reject an App AIConfig that is discoverable only inside its App or detail editor, a renderer-inferred route summary, hidden Cloud posture, fabricated readiness, duplicated configuration, or a summary that collapses partial configuration into unconfigured.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.product-lifecycle.home-apps
   - id: rule.nimi.platform.product-lifecycle.p-home-010a
     kind: rule
     title: P-HOME-010 actionable product-control first screen

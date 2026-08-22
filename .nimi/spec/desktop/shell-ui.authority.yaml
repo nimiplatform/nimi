@@ -1094,3 +1094,15 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.desktop.shell-ui.error-boundary
+  - id: rule.nimi.desktop.shell-ui.r102
+    kind: rule
+    title: Apps is the unified App AIConfig management entry
+    modality: must
+    statement: Desktop Apps lists the bounded canonical AIConfig summary for every currently projected App AIConfig owner without launching the App, supports Local, Cloud, mixed, partial, unconfigured, and typed unavailable discovery, and opens exact editing only in that App's ai-models detail section; the bounded aggregation reads each existing owner through the canonical appAIConfig appId client and persists no second AIConfig, inventory, or Connector binding.
+    condition: Whenever Desktop presents Apps AI configuration.
+    failure: Reject App-local-only discoverability, launch-required management, renderer-inferred configuration truth, duplicated owner state, or a summary that does not come from the exact current App owner.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.home-shell
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.shell-plane

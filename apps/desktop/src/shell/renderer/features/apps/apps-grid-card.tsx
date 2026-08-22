@@ -9,6 +9,7 @@ import {
   Popover,
   PopoverContent,
   PopoverTrigger,
+  StatusBadge,
   type NimiMenuItem,
 } from '@nimiplatform/kit/ui';
 import {
@@ -23,6 +24,25 @@ import {
   AppSourceBadge,
 } from './apps-card-visuals.js';
 import type { DesktopAppsEntry } from './apps-panel-projection.js';
+
+function aiConfigSummaryPresentation(
+  entry: DesktopAppsEntry,
+  t: ReturnType<typeof useTranslation>['t'],
+): { readonly label: string; readonly tone: 'neutral' | 'success' | 'info' | 'warning' | 'danger' } | null {
+  const summary = entry.aiConfigSummary;
+  if (!summary) return null;
+  const count = `${summary.configuredCount}/${summary.totalCount}`;
+  switch (summary.posture) {
+    case 'local': return { label: t('Apps.aiConfig.summary.local', { defaultValue: `Local · ${count}`, summaryCount: count }), tone: 'success' };
+    case 'cloud': return { label: t('Apps.aiConfig.summary.cloud', { defaultValue: `Cloud · ${count}`, summaryCount: count }), tone: 'info' };
+    case 'mixed': return { label: t('Apps.aiConfig.summary.mixed', { defaultValue: `Mixed · ${count}`, summaryCount: count }), tone: 'info' };
+    case 'partial-local': return { label: t('Apps.aiConfig.summary.partialLocal', { defaultValue: `Partial Local · ${count}`, summaryCount: count }), tone: 'warning' };
+    case 'partial-cloud': return { label: t('Apps.aiConfig.summary.partialCloud', { defaultValue: `Partial Cloud · ${count}`, summaryCount: count }), tone: 'warning' };
+    case 'partial-mixed': return { label: t('Apps.aiConfig.summary.partialMixed', { defaultValue: `Partial Mixed · ${count}`, summaryCount: count }), tone: 'warning' };
+    case 'unconfigured': return { label: t('Apps.aiConfig.summary.unconfigured', { defaultValue: 'AI not configured' }), tone: 'neutral' };
+    case 'unavailable': return { label: t('Apps.aiConfig.summary.unavailable', { defaultValue: 'AI config unavailable' }), tone: 'danger' };
+  }
+}
 
 function stopCardEvent(event: MouseEvent): void {
   event.stopPropagation();
@@ -40,6 +60,7 @@ export function AppGridCard({
   const { t } = useTranslation();
   const { registration } = entry;
   const visual = appRunVisualState(entry.run?.state ?? null);
+  const aiConfigSummary = aiConfigSummaryPresentation(entry, t);
   const actionPlan = actionPlanForLocalDevelopmentEntry(entry.run?.state ?? null);
   const primary = actionPlan.primary?.id === 'stop' ? 'stop' : 'launch';
 
@@ -156,6 +177,13 @@ export function AppGridCard({
           <AppSourceBadge source={CURRENT_APP_SOURCE} />
           <AppRunStatusLine entry={entry} />
         </div>
+        {aiConfigSummary ? (
+          <div className="mt-1 flex min-w-0 items-center" data-app-ai-config-summary={entry.aiConfigSummary?.posture}>
+            <StatusBadge tone={aiConfigSummary.tone} shape="dot">
+              {aiConfigSummary.label}
+            </StatusBadge>
+          </div>
+        ) : null}
       </div>
     </AppCardSurface>
   );

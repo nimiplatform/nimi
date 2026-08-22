@@ -49,6 +49,7 @@ function entry(
         retryable: false,
         hostGeneration: 1,
       },
+    aiConfigSummary: null,
   };
 }
 

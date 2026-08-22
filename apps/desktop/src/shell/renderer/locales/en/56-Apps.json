@@ -184,6 +184,16 @@
     "description": "Choose the Local or Cloud implementation Nimi uses when this app calls an AI capability.",
     "configuredSummary": "Model settings complete",
     "emptySummary": "No model selected",
+    "summary": {
+      "local": "Local · {{summaryCount}}",
+      "cloud": "Cloud · {{summaryCount}}",
+      "mixed": "Mixed · {{summaryCount}}",
+      "partialLocal": "Partial Local · {{summaryCount}}",
+      "partialCloud": "Partial Cloud · {{summaryCount}}",
+      "partialMixed": "Partial Mixed · {{summaryCount}}",
+      "unconfigured": "AI not configured",
+      "unavailable": "AI config unavailable"
+    },
     "cloudImpactConfirmation": "I understand {{app}} requests may leave this machine, use account {{account}}, and incur provider cost.",
     "loadFailed": "This app's AI configuration could not be loaded from Runtime.",
     "saveFailed": "Runtime could not save this app's AI configuration.",
