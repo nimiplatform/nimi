@@ -50,7 +50,7 @@ type MediaHost interface {
 
 // ProviderMediaHost transports existing nimillm provider dialects. Its
 // transport is configured without provider credentials; each dispatch opens
-// exactly one Runtime-resolved current-account Connector secret and clears it before return.
+// exactly one committed account-owned Connector secret and clears it before return.
 type ProviderMediaHost struct {
 	connectors    *connector.ConnectorStore
 	transport     *nimillm.CloudProvider

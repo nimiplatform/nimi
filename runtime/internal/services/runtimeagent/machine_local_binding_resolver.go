@@ -170,7 +170,7 @@ func (r *selectedLocalMachineExecutionBindingResolver) resolveCloudMachineExecut
 	if !providerOK || !modelOK || !catalogOK {
 		return publicChatExecutionBinding{}, machineExecutionProjectionError(runtimev1.ReasonCode_AI_CONFIG_INVALID, "Cloud AIConfig target is incomplete", nil)
 	}
-	connectorRecord, binding, err := connector.ResolveCurrentAccountConnectorBinding(r.owner.connectorStore, r.owner.modelCatalog, accountNamespace, connector.RemoteModelCatalogRef{
+	connectorRecord, binding, err := connector.ResolveExactAccountConnectorBinding(r.owner.connectorStore, r.owner.modelCatalog, accountNamespace, connector.RemoteModelCatalogRef{
 		ConnectorID:          intent.ConnectorRef,
 		RemoteModelCatalogID: remoteCatalogID,
 		ProviderModelID:      providerModelID,
@@ -181,7 +181,7 @@ func (r *selectedLocalMachineExecutionBindingResolver) resolveCloudMachineExecut
 		if extracted, ok := grpcerr.ExtractReasonCode(err); ok {
 			reason = extracted
 		}
-		return publicChatExecutionBinding{}, machineExecutionProjectionError(reason, "Cloud AIConfig current-account Connector is not executable", nil)
+		return publicChatExecutionBinding{}, machineExecutionProjectionError(reason, "Cloud AIConfig selected Connector is not executable", nil)
 	}
 	if binding == nil {
 		return publicChatExecutionBinding{}, machineExecutionProjectionError(runtimev1.ReasonCode_AI_CONFIG_INVALID, "Cloud AIConfig catalog target is incomplete", nil)

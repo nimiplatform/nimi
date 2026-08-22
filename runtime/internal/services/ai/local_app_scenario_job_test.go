@@ -227,7 +227,7 @@ func TestSubmitLocalAppScenarioJobVoiceWorkflowWithoutCurrentAccountConnectorFai
 		},
 	}
 	// The wrapper fills target_model_id from a complete Connector-scoped target,
-	// so owner spec validation passes and current-account Connector resolution is
+	// so owner spec validation passes and exact Connector resolution is
 	// the first failing boundary. The protected App supplies no execution-route input.
 	_, err := svc.SubmitLocalAppScenarioJob(
 		localAppScenarioJobContext(accountservice.LocalAppOperationScenarioJobSubmit, localappop.AppOperationIDScenarioJobSubmit), request)

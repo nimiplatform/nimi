@@ -152,10 +152,10 @@ type RemoteModelCatalogBinding struct {
 	InventorySnapshotID  string
 }
 
-// ResolveCurrentAccountConnectorBinding resolves only the exact Connector
-// reference committed by AIConfig. It never searches for or substitutes
-// another current-account Connector.
-func ResolveCurrentAccountConnectorBinding(
+// ResolveExactAccountConnectorBinding resolves only the exact account-owned
+// Connector reference committed by AIConfig. It never searches for or
+// substitutes another Connector.
+func ResolveExactAccountConnectorBinding(
 	store *ConnectorStore,
 	modelCatalog *aicatalog.Resolver,
 	accountID string,

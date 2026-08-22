@@ -111,7 +111,7 @@ func (s *Service) captureCloudEmbedEffectiveInputs(
 		return nil, cloudEmbedDriverError(err)
 	}
 	accountID := scenarioTargetSubjectUserID(ctx, head)
-	connectorRecord, binding, err := connector.ResolveCurrentAccountConnectorBinding(s.connStore, s.speechCatalog, accountID, connector.RemoteModelCatalogRef{
+	connectorRecord, binding, err := connector.ResolveExactAccountConnectorBinding(s.connStore, s.speechCatalog, accountID, connector.RemoteModelCatalogRef{
 		ConnectorID:          intent.ConnectorRef,
 		RemoteModelCatalogID: target.RemoteModelCatalogID(),
 		ProviderModelID:      target.ProviderModelID(),

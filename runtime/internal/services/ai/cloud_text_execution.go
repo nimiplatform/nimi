@@ -103,7 +103,7 @@ func (s *Service) captureCloudTextEffectiveInputs(
 		return nil, cloudTextDriverError(err)
 	}
 	accountID := scenarioTargetSubjectUserID(ctx, head)
-	connectorRecord, binding, err := connector.ResolveCurrentAccountConnectorBinding(s.connStore, s.speechCatalog, accountID, connector.RemoteModelCatalogRef{
+	connectorRecord, binding, err := connector.ResolveExactAccountConnectorBinding(s.connStore, s.speechCatalog, accountID, connector.RemoteModelCatalogRef{
 		ConnectorID:          intent.ConnectorRef,
 		RemoteModelCatalogID: target.RemoteModelCatalogID(),
 		ProviderModelID:      target.ProviderModelID(),

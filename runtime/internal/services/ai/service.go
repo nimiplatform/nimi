@@ -228,8 +228,8 @@ func newFromProviderConfig(logger *slog.Logger, auditStore *auditlog.Store, conn
 	})
 	cloudProvider := nimillm.NewCloudProvider(cfg.toCloudConfig())
 	remoteCloudConfig := cfg.toCloudConfig()
-	// Remote cloud execution may receive credentials only from request-scoped
-	// current-account Connector Host resolution; configured probe credentials are
+	// Remote cloud execution may receive credentials only from the request-scoped
+	// Host opening the committed Connector; configured probe credentials are
 	// deliberately absent from the shared transport instance.
 	remoteCloudConfig.Providers = nil
 	remoteCloudTransport := nimillm.NewCloudProvider(remoteCloudConfig)

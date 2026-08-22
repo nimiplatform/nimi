@@ -8,7 +8,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 )
 
-func TestResolveCurrentAccountConnectorBindingUsesExactCurrentAccountTarget(t *testing.T) {
+func TestResolveExactAccountConnectorBindingUsesCommittedTarget(t *testing.T) {
 	resolver, err := aicatalog.NewResolver(aicatalog.ResolverConfig{})
 	if err != nil {
 		t.Fatal(err)
@@ -24,20 +24,20 @@ func TestResolveCurrentAccountConnectorBindingUsesExactCurrentAccountTarget(t *t
 	}
 	ref := catalogRefForConnectorTest(t, resolver, "account-a", current, "qwen3-tts-vc")
 
-	resolved, binding, err := ResolveCurrentAccountConnectorBinding(store, resolver, "account-a", ref)
+	resolved, binding, err := ResolveExactAccountConnectorBinding(store, resolver, "account-a", ref)
 	if err != nil {
-		t.Fatalf("ResolveCurrentAccountConnectorBinding: %v", err)
+		t.Fatalf("ResolveExactAccountConnectorBinding: %v", err)
 	}
 	if resolved.ConnectorID != current.ConnectorID || binding == nil || binding.ConnectorID != current.ConnectorID {
 		t.Fatalf("resolved Connector=%+v binding=%+v", resolved, binding)
 	}
 }
 
-func TestResolveCurrentAccountConnectorBindingFailsClosedWithoutExactTarget(t *testing.T) {
+func TestResolveExactAccountConnectorBindingFailsClosedWithoutExactTarget(t *testing.T) {
 	store := NewConnectorStoreWithMemorySecrets(t.TempDir())
 	createConnectorResolutionRecord(t, store, "connector-current", "account-a", runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE, "valid-current-credential")
 
-	resolved, binding, err := ResolveCurrentAccountConnectorBinding(store, newCurrentAccountCatalogResolver(t), "account-a", RemoteModelCatalogRef{
+	resolved, binding, err := ResolveExactAccountConnectorBinding(store, newCurrentAccountCatalogResolver(t), "account-a", RemoteModelCatalogRef{
 		ProviderModelID: "qwen3-tts-vc",
 		Provider:        "dashscope",
 	})
@@ -47,7 +47,7 @@ func TestResolveCurrentAccountConnectorBindingFailsClosedWithoutExactTarget(t *t
 	assertCurrentAccountResolutionReason(t, err, runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND)
 }
 
-func TestResolveCurrentAccountConnectorBindingFailsClosedForForeignConnector(t *testing.T) {
+func TestResolveExactAccountConnectorBindingFailsClosedForForeignConnector(t *testing.T) {
 	resolver, err := aicatalog.NewResolver(aicatalog.ResolverConfig{})
 	if err != nil {
 		t.Fatal(err)
@@ -71,11 +71,11 @@ func TestResolveCurrentAccountConnectorBindingFailsClosedForForeignConnector(t *
 	}
 	foreignRef := catalogRefForConnectorTest(t, resolver, "account-b", foreign, "qwen3-tts-vc")
 
-	_, _, err = ResolveCurrentAccountConnectorBinding(store, resolver, "account-a", foreignRef)
+	_, _, err = ResolveExactAccountConnectorBinding(store, resolver, "account-a", foreignRef)
 	assertCurrentAccountResolutionReason(t, err, runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND)
 }
 
-func TestResolveCurrentAccountConnectorBindingFailsClosedWithoutCredential(t *testing.T) {
+func TestResolveExactAccountConnectorBindingFailsClosedWithoutCredential(t *testing.T) {
 	resolver, err := aicatalog.NewResolver(aicatalog.ResolverConfig{})
 	if err != nil {
 		t.Fatal(err)
@@ -91,11 +91,11 @@ func TestResolveCurrentAccountConnectorBindingFailsClosedWithoutCredential(t *te
 	}
 	ref := catalogRefForConnectorTest(t, resolver, "account-a", record, "qwen3-tts-vc")
 
-	_, _, err = ResolveCurrentAccountConnectorBinding(store, resolver, "account-a", ref)
+	_, _, err = ResolveExactAccountConnectorBinding(store, resolver, "account-a", ref)
 	assertCurrentAccountResolutionReason(t, err, runtimev1.ReasonCode_AI_CONNECTOR_CREDENTIAL_MISSING)
 }
 
-func TestResolveCurrentAccountConnectorBindingSelectedDisabledWithUnrelatedActiveReturnsDisabled(t *testing.T) {
+func TestResolveExactAccountConnectorBindingSelectedDisabledWithUnrelatedActiveReturnsDisabled(t *testing.T) {
 	resolver := newCurrentAccountCatalogResolver(t)
 	store := NewConnectorStoreWithMemorySecrets(t.TempDir())
 	selected := createConnectorResolutionRecord(t, store, "connector-selected", "account-a", runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE, "selected-credential")
@@ -106,44 +106,44 @@ func TestResolveCurrentAccountConnectorBindingSelectedDisabledWithUnrelatedActiv
 	}
 	createConnectorResolutionRecord(t, store, "connector-unrelated", "account-a", runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE, "unrelated-credential")
 
-	_, _, err := ResolveCurrentAccountConnectorBinding(store, resolver, "account-a", ref)
+	_, _, err := ResolveExactAccountConnectorBinding(store, resolver, "account-a", ref)
 	assertCurrentAccountResolutionReason(t, err, runtimev1.ReasonCode_AI_CONNECTOR_DISABLED)
 }
 
-func TestResolveCurrentAccountConnectorBindingForeignRefDoesNotLeakDisabledCurrentConnector(t *testing.T) {
+func TestResolveExactAccountConnectorBindingForeignRefDoesNotLeakDisabledConnector(t *testing.T) {
 	resolver := newCurrentAccountCatalogResolver(t)
 	store := NewConnectorStoreWithMemorySecrets(t.TempDir())
 	createConnectorResolutionRecord(t, store, "connector-current-disabled", "account-a", runtimev1.ConnectorStatus_CONNECTOR_STATUS_DISABLED, "current-credential")
 	foreign := createConnectorResolutionRecord(t, store, "connector-foreign", "account-b", runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE, "foreign-credential")
 	foreignRef := catalogRefForConnectorTest(t, resolver, "account-b", foreign, "qwen3-tts-vc")
 
-	_, _, err := ResolveCurrentAccountConnectorBinding(store, resolver, "account-a", foreignRef)
+	_, _, err := ResolveExactAccountConnectorBinding(store, resolver, "account-a", foreignRef)
 	assertCurrentAccountResolutionReason(t, err, runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND)
 }
 
-func TestResolveCurrentAccountConnectorBindingStaleRefDoesNotReportUnrelatedDisabledConnector(t *testing.T) {
+func TestResolveExactAccountConnectorBindingStaleRefDoesNotReportUnrelatedDisabledConnector(t *testing.T) {
 	resolver := newCurrentAccountCatalogResolver(t)
 	store := NewConnectorStoreWithMemorySecrets(t.TempDir())
 	record := createConnectorResolutionRecord(t, store, "connector-current-disabled", "account-a", runtimev1.ConnectorStatus_CONNECTOR_STATUS_DISABLED, "current-credential")
 	ref := catalogRefForConnectorTest(t, resolver, "account-a", record, "qwen3-tts-vc")
 	ref.RemoteModelCatalogID += "-stale"
 
-	_, _, err := ResolveCurrentAccountConnectorBinding(store, resolver, "account-a", ref)
+	_, _, err := ResolveExactAccountConnectorBinding(store, resolver, "account-a", ref)
 	assertCurrentAccountResolutionReason(t, err, runtimev1.ReasonCode_AI_REMOTE_MODEL_CATALOG_STALE)
 }
 
-func TestResolveCurrentAccountConnectorBindingSelectedMissingCredentialWithUnrelatedActiveReturnsCredentialMissing(t *testing.T) {
+func TestResolveExactAccountConnectorBindingSelectedMissingCredentialWithUnrelatedActiveReturnsCredentialMissing(t *testing.T) {
 	resolver := newCurrentAccountCatalogResolver(t)
 	store := NewConnectorStoreWithMemorySecrets(t.TempDir())
 	selected := createConnectorResolutionRecord(t, store, "connector-selected", "account-a", runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE, "")
 	ref := catalogRefForConnectorTest(t, resolver, "account-a", selected, "qwen3-tts-vc")
 	createConnectorResolutionRecord(t, store, "connector-unrelated", "account-a", runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE, "unrelated-credential")
 
-	_, _, err := ResolveCurrentAccountConnectorBinding(store, resolver, "account-a", ref)
+	_, _, err := ResolveExactAccountConnectorBinding(store, resolver, "account-a", ref)
 	assertCurrentAccountResolutionReason(t, err, runtimev1.ReasonCode_AI_CONNECTOR_CREDENTIAL_MISSING)
 }
 
-func TestResolveCurrentAccountConnectorBindingCredentialRemovedAfterSelectionReturnsCredentialMissing(t *testing.T) {
+func TestResolveExactAccountConnectorBindingCredentialRemovedAfterSelectionReturnsCredentialMissing(t *testing.T) {
 	resolver := newCurrentAccountCatalogResolver(t)
 	store := NewConnectorStoreWithMemorySecrets(t.TempDir())
 	selected := createConnectorResolutionRecord(t, store, "connector-selected", "account-a", runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE, "selected-credential")
@@ -153,7 +153,7 @@ func TestResolveCurrentAccountConnectorBindingCredentialRemovedAfterSelectionRet
 		t.Fatal(err)
 	}
 
-	_, _, err := ResolveCurrentAccountConnectorBinding(store, resolver, "account-a", ref)
+	_, _, err := ResolveExactAccountConnectorBinding(store, resolver, "account-a", ref)
 	assertCurrentAccountResolutionReason(t, err, runtimev1.ReasonCode_AI_CONNECTOR_CREDENTIAL_MISSING)
 }
 

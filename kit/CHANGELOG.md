@@ -178,18 +178,17 @@ Discipline.
   must remove Twitter login/link actions; no compatibility provider alias is
   retained.
 
-- **Breaking (0.x):** Protected third-party App Model Config is read-only and
-  `onOverwrite` is no longer required for that consumer mode. App hosts must
-  hand configuration to the Nimi-owned owner surface; the protected Local App
-  standard shell no longer exposes App AIConfig overwrite.
+- **Breaking (0.x):** Every covered App may read, CAS-overwrite, and list bounded
+  Local/Cloud options for its own canonical AIConfig owner. Desktop remains an
+  optional centralized manager rather than a configuration prerequisite.
 
 - Model Config restores the established AI Model hub, capability-detail, Active
   Model trigger, and compact Local/Cloud picker UX. App and Agent Local choices
   now project the machine-selected Loadout and deep-link to the Loadout owner
-  AI configuration instead of selecting a machine model. First-party Cloud
-  choice is Connector-first and fail-closed: no models are exposed until the
-  user selects a host-projected current-account Connector; target and
-  account-impact confirmation remain Nimi-owned actions.
+  AI configuration instead of selecting a machine model. Cloud choice is
+  Connector-first for every covered App: the user selects one exact Connector
+  and target, then commits both through the same single Save without a separate
+  permission or confirmation flow.
 
 - **Breaking (0.x):** `registerNimiElectronAppBridge` no longer accepts
   `onProtectedSessionFailure`. Consumers must keep App and Host lifecycle

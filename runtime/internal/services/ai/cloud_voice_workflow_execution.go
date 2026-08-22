@@ -115,7 +115,7 @@ func (s *Service) captureCloudVoiceWorkflowEffectiveInputs(
 	if target.RemoteModelCatalogID() == "" {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
 	}
-	connectorRecord, binding, err := connector.ResolveCurrentAccountConnectorBinding(s.connStore, s.speechCatalog, accountID, connector.RemoteModelCatalogRef{
+	connectorRecord, binding, err := connector.ResolveExactAccountConnectorBinding(s.connStore, s.speechCatalog, accountID, connector.RemoteModelCatalogRef{
 		ConnectorID:          intent.ConnectorRef,
 		RemoteModelCatalogID: target.RemoteModelCatalogID(),
 		ProviderModelID:      target.ProviderModelID(),

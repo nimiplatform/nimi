@@ -55,7 +55,7 @@ func (s *Service) validateChangedSharedAIConfigResourceReferences(
 		}
 		if cloud := capability.GetCloud(); cloud != nil {
 			target := cloud.GetProviderModelTarget().GetFields()
-			if _, _, err := connector.ResolveCurrentAccountConnectorBinding(
+			if _, _, err := connector.ResolveExactAccountConnectorBinding(
 				s.connectorStore, s.modelCatalog, accountNamespace, connector.RemoteModelCatalogRef{
 					ConnectorID: cloud.GetConnectorRef(), Provider: target["provider"].GetStringValue(),
 					ProviderModelID:      target["providerModelId"].GetStringValue(),
@@ -128,7 +128,7 @@ func (s *Service) projectSharedCloudEffectiveSelection(
 		return selection
 	}
 	target := cloud.GetProviderModelTarget().GetFields()
-	record, _, err := connector.ResolveCurrentAccountConnectorBinding(
+	record, _, err := connector.ResolveExactAccountConnectorBinding(
 		s.connectorStore, s.modelCatalog, accountNamespace, connector.RemoteModelCatalogRef{
 			ConnectorID: cloud.GetConnectorRef(), Provider: target["provider"].GetStringValue(),
 			ProviderModelID:      target["providerModelId"].GetStringValue(),

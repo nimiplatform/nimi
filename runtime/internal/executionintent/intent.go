@@ -18,8 +18,8 @@ import (
 // @nimi-authority: rule.nimi.runtime.rpc-foundations.r015
 // Intent is one immutable capability-scoped AIConfig snapshot. Local carries
 // the exact committed Loadout reference without resource content. Cloud keeps
-// implementation and Driver-owned target intent; Runtime resolves Connector
-// custody later from the separately committed Connector reference.
+// implementation and Driver-owned target intent; Runtime opens custody later
+// for the separately committed exact Connector reference.
 type Intent struct {
 	CapabilityContract  string
 	RequiredFeatures    []string

@@ -469,12 +469,12 @@ type CapabilityIntentEditorProps = {
 
 function CapabilityIntentEditor(props: CapabilityIntentEditorProps) {
   if (!props.onOverwrite || props.revision === undefined || !props.listOptions) {
-    return <ThirdPartyCapabilityIntentView {...props} />;
+    return <ReadOnlyCapabilityIntentView {...props} />;
   }
-  return <FirstPartyCapabilityIntentEditor {...props} />;
+  return <EditableCapabilityIntentEditor {...props} />;
 }
 
-function ThirdPartyCapabilityIntentView(props: CapabilityIntentEditorProps) {
+function ReadOnlyCapabilityIntentView(props: CapabilityIntentEditorProps) {
   const posture = modelConfigCapabilityPosture(props.currentIntent, props.selection);
   const badge = statusBadge(posture, props.copy);
   return (
@@ -502,7 +502,7 @@ function ThirdPartyCapabilityIntentView(props: CapabilityIntentEditorProps) {
   );
 }
 
-function FirstPartyCapabilityIntentEditor(props: CapabilityIntentEditorProps) {
+function EditableCapabilityIntentEditor(props: CapabilityIntentEditorProps) {
   const currentChoice = useMemo(
     () => currentRouteChoice(props.currentIntent, props.selection, props.copy),
     [props.copy, props.currentIntent, props.selection],

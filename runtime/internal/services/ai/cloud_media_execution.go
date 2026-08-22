@@ -81,7 +81,7 @@ func (s *Service) resolveCloudMediaRouteComposition(
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
 	}
 	accountID := scenarioTargetSubjectUserID(ctx, head)
-	connectorRecord, binding, err := connector.ResolveCurrentAccountConnectorBinding(
+	connectorRecord, binding, err := connector.ResolveExactAccountConnectorBinding(
 		s.connStore,
 		s.speechCatalog,
 		accountID,

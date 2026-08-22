@@ -35,16 +35,15 @@ func (s *Service) SetAIProfileStore(store aiprofile.Store) {
 	}
 }
 
-// SetConnectorStore wires Runtime-owned current-account Connector resolution.
+// SetConnectorStore wires Runtime-owned exact Connector resolution and custody.
 func (s *Service) SetConnectorStore(store *connector.ConnectorStore) {
 	if s != nil {
 		s.connectorStore = store
 	}
 }
 
-// SetModelCatalog wires the catalog needed to resolve an AIConfig target to
-// one exact current-account Connector without exposing Connector identity in
-// the AIConfig contract.
+// SetModelCatalog wires the catalog needed to validate an AIConfig target
+// against its exact committed Connector reference.
 func (s *Service) SetModelCatalog(modelCatalog *aicatalog.Resolver) {
 	if s != nil {
 		s.modelCatalog = modelCatalog

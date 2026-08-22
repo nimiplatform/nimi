@@ -51,8 +51,7 @@ func (t *LocalTarget) Valid() bool {
 }
 
 // CloudTarget is the exact Runtime-private connector/model binding captured
-// from Nimi-owned AIConfig and current-account Connector resolution before
-// execution.
+// from canonical AIConfig and its committed Connector reference before execution.
 type CloudTarget struct {
 	ConnectorID          string `json:"connectorId"`
 	RemoteModelCatalogID string `json:"remoteModelCatalogId"`
