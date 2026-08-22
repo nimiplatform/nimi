@@ -208,7 +208,7 @@
   },
   "StudioModelConfig": {
     "drawerTitle": "App AI configuration",
-    "drawerDescription": "Read-only {{appTitle}} AI configuration"
+    "drawerDescription": "Configure {{appTitle}} AI capabilities"
   },
   "Studio": {
     "admission": {

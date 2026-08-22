@@ -5,7 +5,7 @@ import type {
   NimiRealmNotificationUnreadView,
   NimiRealmRequestDataExportOutput,
 } from '@nimiplatform/sdk/realm';
-import type { NimiPortableAppAIConfig } from '@nimiplatform/sdk/ai';
+import type { NimiLocalAppAIConfigClient } from '@nimiplatform/sdk/app';
 import type {
   NimiLocalAppAgentHandle,
   NimiLocalAppArtifactImageMime,
@@ -99,20 +99,7 @@ export interface LabRendererSdkPort {
     readonly bytes: Uint8Array;
     readonly mimeType: NimiLocalAppArtifactImageMime;
   }): Promise<{ readonly artifactId: string; readonly sizeBytes: number; readonly mimeType: NimiLocalAppArtifactImageMime }>;
-  aiConfig: {
-    get(): Promise<NimiPortableAppAIConfig | null>;
-  };
-  modelConfig: {
-    localSelections(): Promise<readonly {
-      readonly capabilityContract: string;
-      readonly state: 'selected' | 'broken';
-      readonly loadoutId: null;
-      readonly displayName: string | null;
-      readonly supportedFeatures: readonly string[];
-      readonly reasons: readonly string[];
-      readonly effectiveDefaults: Readonly<Record<string, string>> | null;
-    }[]>;
-  };
+  aiConfig: NimiLocalAppAIConfigClient;
   storage: {
     readonly assets: NimiLocalAppAssetsClient;
   };

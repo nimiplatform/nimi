@@ -70,11 +70,13 @@ func TestStreamLocalAppTextTurnRejectsInvalidInput(t *testing.T) {
 
 func TestStreamLocalAppTextTurnProjectsTypedDeltasAndTerminal(t *testing.T) {
 	svc := newTestService(nil)
-	if err := svc.aiConfigStore.Overwrite(context.Background(), "account-1", &runtimev1.AIConfig{
+	if err := overwriteAIConfigStoreForTest(context.Background(), svc.aiConfigStore, "account-1", &runtimev1.AIConfig{
 		Owner: derivedAppAIConfigOwner("nimi.realm-persona-studio"),
 		Capabilities: []*runtimev1.AIConfigCapabilityIntent{{
 			CapabilityContract: "text.generate",
-			Route:              &runtimev1.AIConfigCapabilityIntent_Local{Local: &runtimev1.AIConfigLocalIntent{}},
+			Route: &runtimev1.AIConfigCapabilityIntent_Local{Local: &runtimev1.AIConfigLocalIntent{
+				LoadoutRef: "loadout:test:text.generate",
+			}},
 		}},
 	}); err != nil {
 		t.Fatalf("install App AIConfig: %v", err)

@@ -220,10 +220,12 @@ export function AgentCenterAIConfigSection({
         context={{ owner: 'shared-local-agent-ai-config', consumer: 'nimi-first-party' }}
         capabilityContracts={['text.generate', 'audio.transcribe']}
         capabilities={snapshot.state.sharedAIConfig?.aiConfig.capabilities ?? null}
+        revision={snapshot.state.sharedAIConfig?.revision ?? '0'}
         disabled={snapshot.state.agentAIConfigMutationDisabledReason !== null}
         localSelections={snapshot.state.localSelections}
+        listOptions={(query) => session.listSharedAIConfigOptions(query)}
         cloudAIConfig={session.cloudAIConfig}
-        onOverwrite={(capabilities) => session.overwriteSharedAIConfig({ capabilities })}
+        onOverwrite={(input) => session.overwriteSharedAIConfig(input)}
         onOpenMachineLoadout={placementActions?.openMachineLoadout}
         onOpenCloudConnectorConfiguration={placementActions?.openCloudConnectorConfiguration}
         formatError={(error) => ({

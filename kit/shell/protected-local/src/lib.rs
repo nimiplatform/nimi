@@ -2,9 +2,6 @@
 
 mod adapters;
 mod asset_reveal;
-#[cfg(target_os = "windows")]
-#[allow(unsafe_code)]
-mod windows_asset_reveal;
 mod bundled_avatar;
 mod carrier;
 mod desktop_account;
@@ -34,6 +31,9 @@ mod macos_service_control;
 mod macos_supervised_process;
 mod reason;
 mod service;
+#[cfg(target_os = "windows")]
+#[allow(unsafe_code)]
+mod windows_asset_reveal;
 mod windows_source_policy;
 #[allow(
     dead_code,
@@ -103,14 +103,15 @@ pub use bundled_avatar::{
     BundledAvatarRuntimeStreamReceiver,
 };
 pub use carrier::{
-    DesktopControlFuture, LocalAppAgentCommitPresentationRequest, LocalAppAgentHandleRequest,
-    LocalAppAgentReference, LocalAppAgentUpdateAutonomyRequest, LocalAppAssetAdoptRequest,
-    LocalAppAssetListRequest, LocalAppAssetListResult, LocalAppAssetMoveRequest,
-    LocalAppAssetRange, LocalAppAssetReadReceiver, LocalAppAssetReadRequest,
-    LocalAppAssetReadResult, LocalAppAssetRecord, LocalAppAssetRemoveRequest,
-    LocalAppAssetRemoveResult, LocalAppAssetRevealRequest, LocalAppAssetRevealTarget,
-    LocalAppAssetStatRequest, LocalAppAssetWriteReceiver, LocalAppAssetWriteRequest,
-    LocalAppConversationEvent, LocalAppConversationEventKind, LocalAppConversationInterruptRequest,
+    DesktopControlFuture, LocalAppAIConfigLocalOptionsRequest, LocalAppAIConfigOverwriteRequest,
+    LocalAppAgentCommitPresentationRequest, LocalAppAgentHandleRequest, LocalAppAgentReference,
+    LocalAppAgentUpdateAutonomyRequest, LocalAppAssetAdoptRequest, LocalAppAssetListRequest,
+    LocalAppAssetListResult, LocalAppAssetMoveRequest, LocalAppAssetRange,
+    LocalAppAssetReadReceiver, LocalAppAssetReadRequest, LocalAppAssetReadResult,
+    LocalAppAssetRecord, LocalAppAssetRemoveRequest, LocalAppAssetRemoveResult,
+    LocalAppAssetRevealRequest, LocalAppAssetRevealTarget, LocalAppAssetStatRequest,
+    LocalAppAssetWriteReceiver, LocalAppAssetWriteRequest, LocalAppConversationEvent,
+    LocalAppConversationEventKind, LocalAppConversationInterruptRequest,
     LocalAppConversationInterruptResult, LocalAppConversationMessage,
     LocalAppConversationMessageRole, LocalAppConversationOpenRequest,
     LocalAppConversationOpenResult, LocalAppConversationSendRequest,
@@ -124,12 +125,12 @@ pub use carrier::{
     LocalAppScenarioJobSubscribeRequest, LocalAppScenarioListVoiceAssetsRequest,
     LocalAppScenarioReadArtifactRequest, LocalAppScenarioStreamReceiver,
     LocalAppScenarioSubmitRequest, LocalAppScenarioUploadArtifactRequest, LocalAppSessionFuture,
-    LocalAppSessionState, LocalAppSessionStatus, LocalAppSharedAgentAIConfigOverwriteRequest,
-    LocalAppStorageDocument, LocalAppStorageReadRequest, LocalAppStorageRemoveRequest,
-    LocalAppStorageRemoveResult, LocalAppStorageWriteRequest, LocalAppTextCandidateMessage,
-    LocalAppTextCandidateRequest, LocalAppTextCandidateResult, LocalAppWorldCoreCreateRequest,
-    LocalAppWorldCoreListRequest, NimiDesktopControl, NimiLocalAppCarrier, NimiLocalAppSession,
-    NimiProtectedLocalHostCarrier,
+    LocalAppSessionState, LocalAppSessionStatus, LocalAppSharedAgentAIConfigLocalOptionsRequest,
+    LocalAppSharedAgentAIConfigOverwriteRequest, LocalAppStorageDocument,
+    LocalAppStorageReadRequest, LocalAppStorageRemoveRequest, LocalAppStorageRemoveResult,
+    LocalAppStorageWriteRequest, LocalAppTextCandidateMessage, LocalAppTextCandidateRequest,
+    LocalAppTextCandidateResult, LocalAppWorldCoreCreateRequest, LocalAppWorldCoreListRequest,
+    NimiDesktopControl, NimiLocalAppCarrier, NimiLocalAppSession, NimiProtectedLocalHostCarrier,
 };
 pub use desktop_account::{
     DesktopAccountActionRequest, DesktopAccountBeginLoginRequest, DesktopAccountBeginLoginResponse,

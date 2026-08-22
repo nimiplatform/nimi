@@ -10,7 +10,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/aiprofile"
 	"github.com/nimiplatform/nimi/runtime/internal/authn"
 	"github.com/nimiplatform/nimi/runtime/internal/config"
-	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 	memoryservice "github.com/nimiplatform/nimi/runtime/internal/services/memory"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -33,7 +33,23 @@ func newSharedAIConfigTestService(t *testing.T) *Service {
 	t.Cleanup(svc.Close)
 	svc.SetAIConfigStore(aiconfig.NewMemoryStore())
 	svc.SetAIProfileStore(aiprofile.NewMemoryStore())
+	svc.SetMachineLocalExecutionResolver(sharedAIConfigLocalResolver{})
 	return svc
+}
+
+type sharedAIConfigLocalResolver struct{}
+
+func (sharedAIConfigLocalResolver) ListLocalLoadouts(string, string, int) ([]localexecution.LoadoutOption, bool, error) {
+	return nil, false, nil
+}
+
+func (sharedAIConfigLocalResolver) ResolveLocalExecution(contract string, loadoutRef string) (*localexecution.SelectedLocalExecution, error) {
+	return &localexecution.SelectedLocalExecution{
+		LoadoutID: loadoutRef, CapabilityContract: contract, DisplayName: loadoutRef,
+		DriverIdentity: &runtimev1.CapabilityImplementationIdentity{
+			ImplementationId: "test.local", DriverId: "test", DriverDialect: "test/local/v1",
+		},
+	}, nil
 }
 
 func sharedAIConfigTestContext(accountID, appID string) (context.Context, *runtimev1.AgentRequestContext) {
@@ -46,7 +62,7 @@ func sharedLocalIntent(contract string) *runtimev1.AIConfigCapabilityIntent {
 	return &runtimev1.AIConfigCapabilityIntent{
 		CapabilityContract: contract,
 		Route: &runtimev1.AIConfigCapabilityIntent_Local{
-			Local: &runtimev1.AIConfigLocalIntent{},
+			Local: &runtimev1.AIConfigLocalIntent{LoadoutRef: "loadout-" + contract},
 		},
 	}
 }
@@ -55,7 +71,8 @@ func TestSharedLocalAgentAIConfigOverwriteAndGetUseSingularOwner(t *testing.T) {
 	svc := newSharedAIConfigTestService(t)
 	ctx, requestContext := sharedAIConfigTestContext("account-a", "nimi.desktop")
 	overwritten, err := svc.OverwriteSharedLocalAgentAIConfig(ctx, &runtimev1.OverwriteSharedLocalAgentAIConfigRequest{
-		Context: requestContext,
+		Context:          requestContext,
+		ExpectedRevision: "0",
 		Capabilities: []*runtimev1.AIConfigCapabilityIntent{
 			sharedLocalIntent("text.generate"),
 		},
@@ -65,6 +82,9 @@ func TestSharedLocalAgentAIConfigOverwriteAndGetUseSingularOwner(t *testing.T) {
 	}
 	if overwritten.GetConfig().GetOwner().GetRuntimeLocalAgentSubsystem() == nil {
 		t.Fatalf("shared owner = %+v", overwritten.GetConfig().GetOwner())
+	}
+	if !overwritten.GetCommitted() || overwritten.GetRevision() != "1" {
+		t.Fatalf("overwrite result = %+v", overwritten)
 	}
 	got, err := svc.GetSharedLocalAgentAIConfig(ctx, &runtimev1.GetSharedLocalAgentAIConfigRequest{Context: requestContext})
 	if err != nil {
@@ -78,12 +98,9 @@ func TestSharedLocalAgentAIConfigOverwriteAndGetUseSingularOwner(t *testing.T) {
 func TestSharedLocalAgentAIConfigGetMissingIsTyped(t *testing.T) {
 	svc := newSharedAIConfigTestService(t)
 	ctx, requestContext := sharedAIConfigTestContext("account-a", "nimi.desktop")
-	_, err := svc.GetSharedLocalAgentAIConfig(ctx, &runtimev1.GetSharedLocalAgentAIConfigRequest{Context: requestContext})
-	if status.Code(err) != codes.NotFound {
-		t.Fatalf("code = %s, want NotFound: %v", status.Code(err), err)
-	}
-	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_CONFIG_NOT_FOUND {
-		t.Fatalf("reason = %s, present=%v", reason, ok)
+	projection, err := svc.GetSharedLocalAgentAIConfig(ctx, &runtimev1.GetSharedLocalAgentAIConfigRequest{Context: requestContext})
+	if err != nil || projection.GetConfig() != nil || projection.GetRevision() != "0" {
+		t.Fatalf("missing projection = %+v err=%v", projection, err)
 	}
 }
 
@@ -92,7 +109,7 @@ func TestSharedLocalAgentAIConfigRejectsPerAgentSelectors(t *testing.T) {
 	ctx, requestContext := sharedAIConfigTestContext("account-a", "nimi.desktop")
 	requestContext.LocalAgentRef = "local-agent:forbidden"
 	_, err := svc.OverwriteSharedLocalAgentAIConfig(ctx, &runtimev1.OverwriteSharedLocalAgentAIConfigRequest{
-		Context: requestContext, Capabilities: []*runtimev1.AIConfigCapabilityIntent{sharedLocalIntent("text.generate")},
+		Context: requestContext, ExpectedRevision: "0", Capabilities: []*runtimev1.AIConfigCapabilityIntent{sharedLocalIntent("text.generate")},
 	})
 	if status.Code(err) != codes.InvalidArgument {
 		t.Fatalf("code = %s, want InvalidArgument: %v", status.Code(err), err)

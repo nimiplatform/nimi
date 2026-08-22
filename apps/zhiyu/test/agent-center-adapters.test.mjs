@@ -9,6 +9,7 @@ const AGENT_HANDLE = `agent_ref_${'A'.repeat(43)}`;
 const COMMANDS = Object.freeze({
   sharedGet: 'nimi.shell.localApp.sharedAgentAIConfigGet',
   sharedOverwrite: 'nimi.shell.localApp.sharedAgentAIConfigOverwrite',
+  sharedOptions: 'nimi.shell.localApp.sharedAgentAIConfigLocalOptions',
   autonomySnapshot: 'nimi.shell.localApp.agentAutonomySnapshot',
   autonomyUpdate: 'nimi.shell.localApp.agentUpdateAutonomy',
   presentationSnapshot: 'nimi.shell.localApp.agentPresentationSnapshot',
@@ -37,7 +38,7 @@ test('production Agent Center requires only the covered nominal handle', async (
   assert.equal(session.getSnapshot().phase, 'loading');
 });
 
-test('production Agent Center routes all six configuration operations through the public local-App client', async () => {
+test('production Agent Center routes all seven configuration operations through the public local-App client', async () => {
   const { createZhiyuProductionAgentCenterSession } = await loadFactoryModule();
   const host = createAgentConfigureHost();
   const previousHook = globalThis.__NIMI_ELECTRON_TEST__;
@@ -83,13 +84,18 @@ test('production Agent Center routes all six configuration operations through th
     assert.equal(session.getSnapshot().state.appearance.avatarAutoplay, true);
     assert.equal(session.getSnapshot().state.appearance.previousSelection?.avatarAutoplay, false);
     assert.equal(session.getSnapshot().state.appearance.avatarImportDisabled, true);
+    await session.listSharedAIConfigOptions({
+      kind: 'local-loadouts',
+      capabilityContract: 'text.generate',
+    });
 
     const replacementCapabilities = [{
       capabilityContract: 'text.generate',
       requiredFeatures: ['input.image'],
-      route: { oneofKind: 'local', local: {} },
+      route: { oneofKind: 'local', local: { loadoutRef: 'loadout:text' } },
     }];
     await session.overwriteSharedAIConfig({
+      expectedRevision: '1',
       capabilities: replacementCapabilities,
       displayProvenance: { source: 'zhiyu-test' },
       agentHandle: AGENT_HANDLE,
@@ -129,7 +135,7 @@ test('production Agent Center routes all six configuration operations through th
     assert.deepEqual(initialSharedGet?.payload, {});
     const sharedOverwrite = host.invocations.find((entry) => entry.command === COMMANDS.sharedOverwrite);
     assert.deepEqual(sharedOverwrite?.payload, {
-      payload: { capabilities: replacementCapabilities },
+      payload: { expectedRevision: '1', capabilities: replacementCapabilities },
     });
     assert.doesNotMatch(JSON.stringify(sharedOverwrite?.payload), /agentHandle/u);
 
@@ -171,7 +177,7 @@ test('production Agent Center routes all six configuration operations through th
     const observedCommands = [...new Set(host.invocations.map((entry) => entry.command))].sort();
     assert.deepEqual(observedCommands, Object.values(COMMANDS).sort());
     for (const invocation of host.invocations) {
-      if (invocation.command === COMMANDS.sharedGet || invocation.command === COMMANDS.sharedOverwrite) {
+      if ([COMMANDS.sharedGet, COMMANDS.sharedOverwrite, COMMANDS.sharedOptions].includes(invocation.command)) {
         assert.doesNotMatch(JSON.stringify(invocation.payload), new RegExp(AGENT_HANDLE, 'u'));
       } else {
         assert.equal(invocation.payload?.payload?.agentHandle, AGENT_HANDLE);
@@ -207,8 +213,9 @@ function createAgentConfigureHost() {
   let capabilities = [{
     capabilityContract: 'text.generate',
     requiredFeatures: [],
-    route: { oneofKind: 'local', local: {} },
+    route: { oneofKind: 'local', local: { loadoutRef: 'loadout:text' } },
   }];
+  let aiConfigRevision = '1';
   let autonomy = {
     enabled: true,
     dailyTokenBudget: 4096,
@@ -253,10 +260,17 @@ function createAgentConfigureHost() {
       const input = payload?.payload;
       switch (command) {
         case COMMANDS.sharedGet:
-          return sharedProjection();
+          return { config: sharedProjection(), revision: aiConfigRevision, effectiveSelections: [] };
         case COMMANDS.sharedOverwrite:
+          assert.equal(input.expectedRevision, aiConfigRevision);
           capabilities = [...input.capabilities];
-          return sharedProjection();
+          aiConfigRevision = String(BigInt(aiConfigRevision) + 1n);
+          return {
+            outcome: 'committed', config: sharedProjection(), revision: aiConfigRevision,
+            effectiveSelections: [], reasonCode: 'REASON_CODE_UNSPECIFIED',
+          };
+        case COMMANDS.sharedOptions:
+          return { kind: 'local-loadouts', options: [], truncated: false };
         case COMMANDS.autonomySnapshot:
           return autonomyProjection();
         case COMMANDS.autonomyUpdate:

@@ -52,7 +52,7 @@ func TestCloudTextExecutionResolvesCurrentAccountConnectorAndPreservesConfigurat
 			ProviderModelTarget: cloudTarget,
 		}},
 	})
-	if err := fixture.service.aiConfigStore.Overwrite(scenarioJobUserContext("app.cloud", "user-001"), "user-001", config); err != nil {
+	if err := overwriteAIConfigStoreForTest(scenarioJobUserContext("app.cloud", "user-001"), fixture.service.aiConfigStore, "user-001", config); err != nil {
 		t.Fatalf("store AIConfig: %v", err)
 	}
 	request := &runtimev1.ExecuteScenarioRequest{
@@ -74,7 +74,7 @@ func TestCloudTextExecutionResolvesCurrentAccountConnectorAndPreservesConfigurat
 	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_PROVIDER_AUTH_FAILED {
 		t.Fatalf("provider auth reason = %v present=%v err=%v", reason, ok, err)
 	}
-	stored, found, err := fixture.service.aiConfigStore.Get(ctx, "user-001", appAIConfigOwner("app.cloud"))
+	stored, _, found, err := fixture.service.aiConfigStore.Get(ctx, "user-001", appAIConfigOwner("app.cloud"))
 	if err != nil || !found || stored.GetCapabilities()[0].GetCloud() == nil {
 		t.Fatalf("provider failure mutated AIConfig: found=%v config=%+v err=%v", found, stored, err)
 	}

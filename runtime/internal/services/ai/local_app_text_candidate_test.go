@@ -27,13 +27,15 @@ func TestGenerateLocalAppTextCandidateFailsClosedWithoutAmbientExecution(t *test
 	assertLocalAppTextCandidateError(t, err, codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_NOT_FOUND)
 }
 
-func TestGenerateLocalAppTextCandidateUsesAppIntentAndMachineSelection(t *testing.T) {
+func TestGenerateLocalAppTextCandidateUsesAppIntentAndExactLoadoutRef(t *testing.T) {
 	svc := newTestService(nil)
-	if err := svc.aiConfigStore.Overwrite(context.Background(), "account-1", &runtimev1.AIConfig{
+	if err := overwriteAIConfigStoreForTest(context.Background(), svc.aiConfigStore, "account-1", &runtimev1.AIConfig{
 		Owner: derivedAppAIConfigOwner("nimi.realm-persona-studio"),
 		Capabilities: []*runtimev1.AIConfigCapabilityIntent{{
 			CapabilityContract: "text.generate",
-			Route:              &runtimev1.AIConfigCapabilityIntent_Local{Local: &runtimev1.AIConfigLocalIntent{}},
+			Route: &runtimev1.AIConfigCapabilityIntent_Local{Local: &runtimev1.AIConfigLocalIntent{
+				LoadoutRef: "loadout:test:text.generate",
+			}},
 		}},
 	}); err != nil {
 		t.Fatalf("install App AIConfig: %v", err)
@@ -65,7 +67,7 @@ func TestGenerateLocalAppTextCandidateCloudWithoutCurrentAccountConnectorFailsCl
 	svc := newTestService(nil)
 	intent := cloudAIConfigIntent(t, "text.generate")
 	config := appAIConfig("nimi.realm-persona-studio", intent)
-	if err := svc.aiConfigStore.Overwrite(context.Background(), "account-1", config); err != nil {
+	if err := overwriteAIConfigStoreForTest(context.Background(), svc.aiConfigStore, "account-1", config); err != nil {
 		t.Fatalf("install Cloud App AIConfig: %v", err)
 	}
 	response, err := svc.GenerateLocalAppTextCandidate(localAppTextCandidateContext(), validLocalAppTextCandidateRequest())
@@ -73,7 +75,7 @@ func TestGenerateLocalAppTextCandidateCloudWithoutCurrentAccountConnectorFailsCl
 		t.Fatalf("configuration-required response = %+v, want nil", response)
 	}
 	assertLocalAppTextCandidateError(t, err, codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND)
-	stored, found, readErr := svc.aiConfigStore.Get(context.Background(), "account-1", appAIConfigOwner("nimi.realm-persona-studio"))
+	stored, _, found, readErr := svc.aiConfigStore.Get(context.Background(), "account-1", appAIConfigOwner("nimi.realm-persona-studio"))
 	if readErr != nil || !found || stored.GetCapabilities()[0].GetCloud() == nil {
 		t.Fatalf("configuration failure changed committed route = (%+v, %v, %v)", stored, found, readErr)
 	}
@@ -81,11 +83,13 @@ func TestGenerateLocalAppTextCandidateCloudWithoutCurrentAccountConnectorFailsCl
 
 func TestGenerateLocalAppTextCandidateRejectsMalformedOwnerOutput(t *testing.T) {
 	svc := newTestService(nil)
-	if err := svc.aiConfigStore.Overwrite(context.Background(), "account-1", &runtimev1.AIConfig{
+	if err := overwriteAIConfigStoreForTest(context.Background(), svc.aiConfigStore, "account-1", &runtimev1.AIConfig{
 		Owner: derivedAppAIConfigOwner("nimi.realm-persona-studio"),
 		Capabilities: []*runtimev1.AIConfigCapabilityIntent{{
 			CapabilityContract: "text.generate",
-			Route:              &runtimev1.AIConfigCapabilityIntent_Local{Local: &runtimev1.AIConfigLocalIntent{}},
+			Route: &runtimev1.AIConfigCapabilityIntent_Local{Local: &runtimev1.AIConfigLocalIntent{
+				LoadoutRef: "loadout:test:text.generate",
+			}},
 		}},
 	}); err != nil {
 		t.Fatalf("install App AIConfig: %v", err)

@@ -158,7 +158,7 @@ func TestCloudTextImmediatePathsPersistExactAssemblyBeforeHost(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if err := fixture.service.aiConfigStore.Overwrite(scenarioJobUserContext(appID, "user-001"), "user-001", appAIConfig(appID,
+			if err := overwriteAIConfigStoreForTest(scenarioJobUserContext(appID, "user-001"), fixture.service.aiConfigStore, "user-001", appAIConfig(appID,
 				&runtimev1.AIConfigCapabilityIntent{
 					CapabilityContract: "text.generate",
 					Route: &runtimev1.AIConfigCapabilityIntent_Cloud{Cloud: &runtimev1.AIConfigCloudIntent{
@@ -294,7 +294,7 @@ func TestCloudTextStreamFallbackPersistsActualReturnedCause(t *testing.T) {
 		t.Fatal(err)
 	}
 	const appID = "app.cloud.stream-cause"
-	if err := fixture.service.aiConfigStore.Overwrite(scenarioJobUserContext(appID, "user-001"), "user-001", appAIConfig(appID,
+	if err := overwriteAIConfigStoreForTest(scenarioJobUserContext(appID, "user-001"), fixture.service.aiConfigStore, "user-001", appAIConfig(appID,
 		&runtimev1.AIConfigCapabilityIntent{
 			CapabilityContract: "text.generate",
 			Route: &runtimev1.AIConfigCapabilityIntent_Cloud{Cloud: &runtimev1.AIConfigCloudIntent{
@@ -349,7 +349,7 @@ func TestCloudTextStartedSendFailurePersistsStreamBrokenWithoutCallingProvider(t
 		t.Fatal(err)
 	}
 	const appID = "app.cloud.stream-delivery"
-	if err := fixture.service.aiConfigStore.Overwrite(scenarioJobUserContext(appID, "user-001"), "user-001", appAIConfig(appID,
+	if err := overwriteAIConfigStoreForTest(scenarioJobUserContext(appID, "user-001"), fixture.service.aiConfigStore, "user-001", appAIConfig(appID,
 		&runtimev1.AIConfigCapabilityIntent{
 			CapabilityContract: "text.generate",
 			Route: &runtimev1.AIConfigCapabilityIntent_Cloud{Cloud: &runtimev1.AIConfigCloudIntent{

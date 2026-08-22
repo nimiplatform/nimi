@@ -228,16 +228,6 @@ export type NimiLocalAppTextCandidateInput = {
   readonly seed?: number;
 };
 
-export type NimiLocalAppModelConfigLocalSelection = {
-  readonly capabilityContract: string;
-  readonly state: 'selected' | 'broken';
-  readonly loadoutId: null;
-  readonly displayName: string | null;
-  readonly supportedFeatures: readonly string[];
-  readonly reasons: readonly string[];
-  readonly effectiveDefaults: Readonly<Record<string, string>> | null;
-};
-
 export type NimiLocalAppTextCandidateResult = {
   readonly text: string;
   readonly finishReason: 'stop' | 'length' | 'content-filter';
@@ -264,9 +254,6 @@ export type NimiLocalAppStandardShell = {
     readonly voiceAssets: NimiLocalAppAIConsumptionShell['voiceAssets'];
   };
   readonly aiConfig: NimiLocalAppAIConfigShell;
-  readonly modelConfig: {
-    readonly localSelections: () => Promise<unknown>;
-  };
   readonly storage: {
     readonly readJson: (relativePath: string) => Promise<unknown>;
     readonly writeJson: (relativePath: string, value: JsonValue) => Promise<unknown>;
@@ -309,9 +296,6 @@ export type NimiLocalAppClient = {
     readonly voiceAssets: NimiLocalAppAIConsumptionClient['voiceAssets'];
   };
   readonly aiConfig: NimiLocalAppAIConfigClient;
-  readonly modelConfig: {
-    readonly localSelections: () => Promise<readonly NimiLocalAppModelConfigLocalSelection[]>;
-  };
   readonly storage: {
     readonly readJson: (relativePath: string) => Promise<NimiAppRuntimeStorageDocument>;
     readonly writeJson: (
@@ -352,7 +336,7 @@ export function createNimiLocalAppClient(
 ): NimiLocalAppClient {
   assertExactKeys(input, ['standardShell'], 'SDK local-app client input');
   const standardShell = input.standardShell;
-  const expectedNamespaces = ['session', 'ai', 'aiConfig', 'modelConfig', 'storage', 'realm', 'agents', 'conversation', 'agentConfigure'] as const;
+  const expectedNamespaces = ['session', 'ai', 'aiConfig', 'storage', 'realm', 'agents', 'conversation', 'agentConfigure'] as const;
   if (!asRecord(standardShell)
     || Object.keys(standardShell).sort().join('|') !== [...expectedNamespaces].sort().join('|')) {
     return localAppError(
@@ -376,8 +360,7 @@ export function createNimiLocalAppClient(
   assertExactMethodNamespace(ai.scenarioJobs, ['submit', 'get', 'subscribe', 'cancel'], 'ai.scenarioJobs');
   assertExactMethodNamespace(ai.artifacts, ['read', 'upload'], 'ai.artifacts');
   assertExactMethodNamespace(ai.voiceAssets, ['list'], 'ai.voiceAssets');
-  assertExactMethodNamespace(standardShell.aiConfig, ['get'], 'aiConfig');
-  assertExactMethodNamespace(standardShell.modelConfig, ['localSelections'], 'modelConfig');
+  assertExactMethodNamespace(standardShell.aiConfig, ['get', 'overwrite', 'listOptions'], 'aiConfig');
   const storage = asRecord(standardShell.storage);
   if (!storage || Object.keys(storage).sort().join('|') !== ['assets', 'readJson', 'removeJson', 'writeJson'].sort().join('|')) {
     return localAppError('Host-injected local-app standardShell storage namespace is invalid.', 'SDK_LOCAL_APP_CARRIER_REQUIRED', 'use_host_injected_standard_shell');
@@ -410,7 +393,7 @@ export function createNimiLocalAppClient(
       'use_host_injected_standard_shell',
     );
   }
-  assertExactMethodNamespace(agentConfigure.sharedAIConfig, ['get', 'overwrite'], 'agentConfigure.sharedAIConfig');
+  assertExactMethodNamespace(agentConfigure.sharedAIConfig, ['get', 'overwrite', 'listOptions'], 'agentConfigure.sharedAIConfig');
   assertExactMethodNamespace(agentConfigure.autonomy, ['snapshot', 'update'], 'agentConfigure.autonomy');
   assertExactMethodNamespace(agentConfigure.presentation, ['snapshot', 'commit'], 'agentConfigure.presentation');
 
@@ -423,11 +406,6 @@ export function createNimiLocalAppClient(
     }),
     ai: createAIClient(standardShell.ai),
     aiConfig: createNimiLocalAppAIConfigClient(standardShell.aiConfig),
-    modelConfig: Object.freeze({
-      localSelections: async () => projectModelConfigLocalSelections(
-        await standardShell.modelConfig.localSelections(),
-      ),
-    }),
     storage: Object.freeze({
       ...createNimiAppRuntimeStorageClient(standardShell.storage),
       assets: createNimiLocalAppAssetsClient(standardShell.storage.assets),
@@ -780,64 +758,6 @@ function assertWorldCoreInputJson(
     for (const entry of Object.values(record)) assertWorldCoreInputJson(entry, depth + 1, state);
   }
   state.ancestors.delete(value);
-}
-
-function projectModelConfigLocalSelections(
-  value: unknown,
-): readonly NimiLocalAppModelConfigLocalSelection[] {
-  if (!Array.isArray(value) || value.length > 64) {
-    return localAppProjectionError('Model Config local selections');
-  }
-  return Object.freeze(value.map((entry) => {
-    const record = asRecord(entry);
-    assertExactProjectionKeys(record, [
-      'capabilityContract', 'state', 'loadoutId', 'displayName',
-      'supportedFeatures', 'reasons', 'effectiveDefaults',
-    ], 'Model Config local selection');
-    assertSafeProjection(record);
-    const capabilityContract = projectionText(
-      record.capabilityContract,
-      'Model Config capabilityContract',
-    );
-    if ((record.state !== 'selected' && record.state !== 'broken')
-      || record.loadoutId !== null
-      || (record.displayName !== null && (
-        typeof record.displayName !== 'string'
-        || !record.displayName
-        || record.displayName.trim() !== record.displayName
-      ))
-      || !Array.isArray(record.supportedFeatures)
-      || record.supportedFeatures.some((feature) => typeof feature !== 'string'
-        || !feature || feature.trim() !== feature)
-      || !Array.isArray(record.reasons)
-      || record.reasons.some((reason) => typeof reason !== 'string'
-        || !reason || reason.trim() !== reason)) {
-      return localAppProjectionError('Model Config local selection');
-    }
-    return Object.freeze({
-      capabilityContract,
-      state: record.state,
-      loadoutId: null,
-      displayName: record.displayName as string | null,
-      supportedFeatures: Object.freeze([...record.supportedFeatures] as string[]),
-      reasons: Object.freeze([...record.reasons] as string[]),
-      effectiveDefaults: projectEffectiveDefaults(record.effectiveDefaults),
-    });
-  }));
-}
-
-function projectEffectiveDefaults(value: unknown): Readonly<Record<string, string>> | null {
-  if (value === null) return null;
-  const record = asRecord(value);
-  const entries = record ? Object.entries(record) : [];
-  if (!record || entries.length === 0 || entries.length > 64 || entries.some(([key, item]) => (
-    !key || key.trim() !== key || new TextEncoder().encode(key).byteLength > 128
-    || typeof item !== 'string' || !item || item.trim() !== item
-    || new TextEncoder().encode(item).byteLength > 128
-  ))) {
-    return localAppProjectionError('Model Config effective defaults');
-  }
-  return Object.freeze(Object.fromEntries(entries) as Record<string, string>);
 }
 
 function projectAuth(value: unknown): NimiAppAuthProjection {

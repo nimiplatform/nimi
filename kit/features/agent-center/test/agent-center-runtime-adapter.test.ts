@@ -18,7 +18,7 @@ const HANDLE = `agent_ref_${'A'.repeat(43)}` as NimiLocalAppAgentHandle;
 function sharedConfig(
   capabilities: NimiCapabilityAIConfig['capabilities'] = [{
     capabilityContract: 'text.generate',
-    route: { oneofKind: 'local', local: {} },
+    route: { oneofKind: 'local', local: { loadoutRef: 'loadout:text' } },
     requiredFeatures: [],
   }],
 ): NimiCapabilityAIConfig {
@@ -33,6 +33,7 @@ function sharedProjection(
 ): AgentCenterSharedAIConfigProjection {
   return {
     aiConfig: sharedConfig(capabilities),
+    revision: '1',
     capabilities: capabilities.map((entry) => entry.capabilityContract),
     intents: capabilities.map((entry) => ({
       capability: entry.capabilityContract,
@@ -50,13 +51,14 @@ function appClient(calls: unknown[]): NimiLocalAppAgentConfigureClient {
     sharedAIConfig: {
       async get() {
         calls.push(['shared.get']);
-        return config;
+        return { config, revision: '1', effectiveSelections: [] };
       },
-      async overwrite(capabilities) {
-        calls.push(['shared.overwrite', capabilities]);
-        config = sharedConfig([...capabilities]);
-        return config;
+      async overwrite(input) {
+        calls.push(['shared.overwrite', input]);
+        config = sharedConfig([...input.capabilities]);
+        return { outcome: 'committed', config, revision: '2' };
       },
+      async listOptions() { return { kind: 'local-loadouts', options: [], truncated: false }; },
     },
     autonomy: {
       async snapshot(input) {
@@ -126,23 +128,24 @@ describe('AgentCenterSession', () => {
         async get() {
           calls.push('read');
           if (rejectReads) throw new Error('follow-up read must not decide commit success');
-          return projection;
+          return { config: projection.aiConfig, revision: projection.revision, effectiveSelections: [] };
         },
         async overwrite(input) {
           calls.push('overwrite');
           projection = sharedProjection([...input.capabilities]);
           rejectReads = true;
-          return projection;
+          return { outcome: 'committed' as const, config: projection.aiConfig, revision: projection.revision };
         },
+        async listOptions() { return { kind: 'local-loadouts' as const, options: [], truncated: false }; },
       },
     });
     await session.refresh();
-    await session.overwriteSharedAIConfig({ capabilities: [] });
+    await session.overwriteSharedAIConfig({ expectedRevision: '1', capabilities: [] });
     expect(calls).toEqual(['read', 'overwrite']);
     expect(session.getSnapshot().state.sharedAIConfig?.aiConfig.capabilities).toEqual([]);
   });
 
-  it('binds a covered App session to the SDK nominal handle and existing six operations', async () => {
+  it('binds a covered App session to the SDK nominal handle and canonical configuration operations', async () => {
     const calls: unknown[] = [];
     const session = createAppAgentCenterSession({ handle: HANDLE, client: appClient(calls) });
     await session.refresh();
@@ -162,7 +165,7 @@ describe('AgentCenterSession', () => {
         },
       },
     });
-    expect(session.getSnapshot().state.localSelections).toBeUndefined();
+    expect(session.getSnapshot().state.localSelections).toEqual([]);
     expect(calls).toContainEqual(['autonomy.snapshot', { agentHandle: HANDLE }]);
     expect(calls).toContainEqual(['presentation.snapshot', { agentHandle: HANDLE }]);
     expect(JSON.stringify(calls)).not.toMatch(/ownerUserId|runtimeSourceRef|localAgentRef/u);

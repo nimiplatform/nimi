@@ -75,7 +75,7 @@ export function LabAIStudioAdapter({ children }: { readonly children: ReactNode 
       listLocalAppVoiceAssets: () => rendererHost.sdk.listLocalAppVoiceAssets(),
       uploadLocalAppArtifact: (input) => rendererHost.sdk.uploadLocalAppArtifact(input),
       aiConfig: {
-        get: () => loadLabAIConfig(rendererHost.sdk.aiConfig),
+        get: async () => (await loadLabAIConfig(rendererHost.sdk.aiConfig)).config,
       },
       revealLocalAppAsset: (relativePath) => rendererHost.sdk.storage.assets.reveal(relativePath),
     },

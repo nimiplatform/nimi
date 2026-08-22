@@ -149,8 +149,15 @@ pub struct NativeLocalDevelopmentEndRunInput {
 }
 
 #[napi(object)]
-pub struct NativeAIConfigOverwriteInput {
+pub struct NativeAppAIConfigOverwriteInput {
+    pub expected_revision: String,
     pub capabilities: JsonValue,
+}
+
+#[napi(object)]
+pub struct NativeAIConfigLocalOptionsInput {
+    pub capability_contract: String,
+    pub search: Option<String>,
 }
 
 #[napi(object)]

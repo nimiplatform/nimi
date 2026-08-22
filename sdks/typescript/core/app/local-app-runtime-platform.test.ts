@@ -66,8 +66,11 @@ function standardShell(operationCalls: string[]): NimiLocalAppStandardShell {
       },
       voiceAssets: { list: touched('ai.voiceAssets.list') },
     },
-    aiConfig: { get: touched('aiConfig.get') },
-    modelConfig: { localSelections: touched('modelConfig.localSelections') },
+    aiConfig: {
+      get: touched('aiConfig.get'),
+      overwrite: touched('aiConfig.overwrite'),
+      listOptions: touched('aiConfig.listOptions'),
+    },
     storage: {
       readJson: touched('storage.readJson'),
       writeJson: touched('storage.writeJson'),
@@ -104,6 +107,7 @@ function standardShell(operationCalls: string[]): NimiLocalAppStandardShell {
       sharedAIConfig: {
         get: touched('agentConfigure.sharedAIConfig.get'),
         overwrite: touched('agentConfigure.sharedAIConfig.overwrite'),
+        listOptions: touched('agentConfigure.sharedAIConfig.listOptions'),
       },
       autonomy: {
         snapshot: touched('agentConfigure.autonomy.snapshot'),
@@ -136,7 +140,7 @@ test('generated local-app session wire projection is posture-only', () => {
 test('local-app client hard-cuts the access workflow namespace', () => {
   const client = createNimiLocalAppClient({ standardShell: standardShell([]) });
   assert.deepEqual(Object.keys(client).sort(), [
-    'agentConfigure', 'agents', 'ai', 'aiConfig', 'auth', 'conversation', 'currentUser', 'modelConfig', 'realm', 'storage',
+    'agentConfigure', 'agents', 'ai', 'aiConfig', 'auth', 'conversation', 'currentUser', 'realm', 'storage',
   ]);
   assert.equal('permissions' in client, false);
   assert.equal('artifacts' in client, false);
@@ -144,7 +148,7 @@ test('local-app client hard-cuts the access workflow namespace', () => {
   assert.deepEqual(Object.keys(client.ai.text).sort(), ['generateCandidate', 'streamTurn']);
   assert.deepEqual(Object.keys(client.ai.artifacts).sort(), ['read', 'upload']);
   assert.deepEqual(Object.keys(client.agentConfigure).sort(), ['autonomy', 'presentation', 'sharedAIConfig']);
-  assert.deepEqual(Object.keys(client.agentConfigure.sharedAIConfig).sort(), ['get', 'overwrite']);
+  assert.deepEqual(Object.keys(client.agentConfigure.sharedAIConfig).sort(), ['get', 'listOptions', 'overwrite']);
   assert.deepEqual(Object.keys(client.agentConfigure.autonomy).sort(), ['snapshot', 'update']);
   assert.deepEqual(Object.keys(client.agentConfigure.presentation).sort(), ['commit', 'snapshot']);
   assert.deepEqual(Object.keys(client.storage).sort(), ['assets', 'readJson', 'removeJson', 'writeJson']);
@@ -245,51 +249,6 @@ test('local-app auth remains a separate availability projection', async () => {
     actionHint: 'start_fixed_runtime_service',
     retryable: true,
   });
-});
-
-test('Model Config projects bounded read-only machine selections', async () => {
-  const base = standardShell([]);
-  const shell: NimiLocalAppStandardShell = {
-    ...base,
-    modelConfig: { localSelections: async () => [{
-      capabilityContract: 'text.generate',
-      state: 'selected',
-      loadoutId: null,
-      displayName: 'gemma4-26b',
-      supportedFeatures: ['input.image'],
-      reasons: [],
-      effectiveDefaults: { temperature: '0.8', seed: 'random' },
-    }] },
-  };
-  const selections = await createNimiLocalAppClient({ standardShell: shell })
-    .modelConfig.localSelections();
-  assert.deepEqual(selections, [{
-    capabilityContract: 'text.generate',
-    state: 'selected',
-    loadoutId: null,
-    displayName: 'gemma4-26b',
-    supportedFeatures: ['input.image'],
-    reasons: [],
-    effectiveDefaults: { temperature: '0.8', seed: 'random' },
-  }]);
-  assert.doesNotMatch(JSON.stringify(selections), /config-private|binding|asset|path/iu);
-
-  const invalidShell: NimiLocalAppStandardShell = {
-    ...base,
-    modelConfig: { localSelections: async () => [{
-      capabilityContract: 'text.generate',
-      state: 'selected',
-      loadoutId: null,
-      displayName: 'gemma4-26b',
-      supportedFeatures: [],
-      reasons: [],
-      effectiveDefaults: { temperature: '界'.repeat(43) },
-    }] },
-  };
-  await assert.rejects(
-    () => createNimiLocalAppClient({ standardShell: invalidShell }).modelConfig.localSelections(),
-    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_LOCAL_APP_PROJECTION_INVALID',
-  );
 });
 
 test('Current User failure is isolated from the ready App session', async () => {
@@ -493,39 +452,37 @@ test('Local App text stream preserves whitespace-bearing deltas as content', asy
   ]);
 });
 
-test('App AIConfig is read-only and rejects binding material in its projection', async () => {
+test('App AIConfig exposes self-owner CAS and bounded Local options', async () => {
   const portableConfig = {
     owner: { owner: { oneofKind: 'app', app: { appId: 'app.example' } } },
     capabilities: [{
       capabilityContract: 'text.generate',
       requiredFeatures: [],
-      defaults: {
-        fields: { temperature: { kind: { oneofKind: 'numberValue', numberValue: 0.3 } } },
-      },
       route: {
-        oneofKind: 'cloud',
-        cloud: {
-          implementation: {
-            implementationId: 'cloud.text.example',
-            driverId: 'cloud.example',
-            driverDialect: 'v1',
-          },
-          providerModelTarget: { fields: {} },
-        },
+        oneofKind: 'local',
+        local: { loadoutRef: 'loadout:text' },
       },
     }],
+  } as const;
+  const option = {
+    loadoutRef: 'loadout:text', label: 'Local text', capabilityContract: 'text.generate',
+    implementation: { implementationId: 'local.text', driverId: 'driver.local', driverDialect: 'v1' },
+    supportedFeatures: [], state: 'ready', reasons: [],
   } as const;
   const base = standardShell([]);
   const shell: NimiLocalAppStandardShell = {
     ...base,
     aiConfig: {
-      get: async () => portableConfig,
+      get: async () => ({ config: portableConfig, revision: '1', effectiveSelections: [] }),
+      overwrite: async () => ({ outcome: 'committed', config: portableConfig, revision: '2' }),
+      listOptions: async () => ({ kind: 'local-loadouts', options: [option], truncated: false }),
     },
   };
   const client = createNimiLocalAppClient({ standardShell: shell });
-  assert.deepEqual(await client.aiConfig.get(), portableConfig);
-  assert.deepEqual(Object.keys(client.aiConfig), ['get']);
-
+  assert.deepEqual(await client.aiConfig.get(), { config: portableConfig, revision: '1', effectiveSelections: [] });
+  assert.deepEqual((await client.aiConfig.listOptions({ kind: 'local-loadouts', capabilityContract: 'text.generate' })).options, [option]);
+  assert.equal((await client.aiConfig.overwrite({ expectedRevision: '1', capabilities: portableConfig.capabilities })).outcome, 'committed');
+  assert.deepEqual(Object.keys(client.aiConfig), ['get', 'overwrite', 'listOptions']);
 });
 
 test('WorldCore list accepts the exact owner DTO and rejects raw or credential-adjacent projections', async () => {
@@ -601,7 +558,8 @@ test('canonical protected operations reach typed ingress and preserve owner-unav
     () => client.conversation.subscribe({ agentHandle: handle, conversationAnchorId: 'anchor' }),
     () => client.conversation.snapshot({ agentHandle: handle, conversationAnchorId: 'anchor' }),
     () => client.agentConfigure.sharedAIConfig.get(),
-    () => client.agentConfigure.sharedAIConfig.overwrite([]),
+    () => client.agentConfigure.sharedAIConfig.overwrite({ expectedRevision: '0', capabilities: [] }),
+    () => client.agentConfigure.sharedAIConfig.listOptions({ kind: 'local-loadouts', capabilityContract: 'text.generate' }),
     () => client.agentConfigure.autonomy.snapshot({ agentHandle: handle }),
     () => client.agentConfigure.autonomy.update({
       agentHandle: handle,
@@ -653,6 +611,7 @@ test('canonical protected operations reach typed ingress and preserve owner-unav
     'conversation.snapshot',
     'agentConfigure.sharedAIConfig.get',
     'agentConfigure.sharedAIConfig.overwrite',
+    'agentConfigure.sharedAIConfig.listOptions',
     'agentConfigure.autonomy.snapshot',
     'agentConfigure.autonomy.update',
     'agentConfigure.presentation.snapshot',

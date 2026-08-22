@@ -132,6 +132,8 @@ func FirstPartyProfileMethod(profileID, methodID string) (FirstPartyMethodKind, 
 			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeAiService/OverwriteAppAIConfig":
 			return FirstPartyMethodUnary, true
+		case "/nimi.runtime.v1.RuntimeAiService/ListAppAIConfigOptions":
+			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeAiService/ExecuteScenario":
 			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeAiService/StreamScenario":
@@ -175,6 +177,8 @@ func FirstPartyProfileMethod(profileID, methodID string) (FirstPartyMethodKind, 
 		case "/nimi.runtime.v1.RuntimeAgentService/GetSharedLocalAgentAIConfig":
 			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeAgentService/OverwriteSharedLocalAgentAIConfig":
+			return FirstPartyMethodUnary, true
+		case "/nimi.runtime.v1.RuntimeAgentService/ListSharedLocalAgentAIConfigOptions":
 			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeAgentService/PreviewSharedLocalAgentAIProfile":
 			return FirstPartyMethodUnary, true
@@ -380,6 +384,7 @@ func FirstPartyProfileMethods(profileID string) []FirstPartyProfileMethodEntry {
 		return []FirstPartyProfileMethodEntry{
 			{MethodID: "/nimi.runtime.v1.RuntimeAiService/GetAppAIConfig", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAiService/OverwriteAppAIConfig", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeAiService/ListAppAIConfigOptions", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAiService/ExecuteScenario", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAiService/StreamScenario", Kind: FirstPartyMethodServerStream},
 			{MethodID: "/nimi.runtime.v1.RuntimeAiService/SubmitScenarioJob", Kind: FirstPartyMethodUnary},
@@ -402,6 +407,7 @@ func FirstPartyProfileMethods(profileID string) []FirstPartyProfileMethodEntry {
 			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/SetAgentPresentationProfile", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/GetSharedLocalAgentAIConfig", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/OverwriteSharedLocalAgentAIConfig", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/ListSharedLocalAgentAIConfigOptions", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/PreviewSharedLocalAgentAIProfile", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/ApplySharedLocalAgentAIProfile", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/ImportPortableAIProfile", Kind: FirstPartyMethodUnary},

@@ -1,28 +1,29 @@
 import type {
+  NimiAIConfigSnapshot,
   NimiCapabilityAIConfigIntent,
   NimiPortableAppAIConfig,
   NimiPortableAppAIConfigIntent,
 } from '@nimiplatform/sdk/ai';
 
 import {
-  loadStudioAIConfig,
   requireStudioAIConfigOwner,
   subscribeStudioAIConfigRefresh,
-  type StudioAIConfigClient,
   type StudioAIConfigRefreshEventTarget,
   type StudioAIConfigVisibilityTarget,
 } from '../ai-studio-core/ai-config.js';
 import { appId } from '../shell/auth/app-identity.js';
 
-export type LabAIConfigProjection = NimiPortableAppAIConfig | null;
+export type LabAIConfigProjection = NimiAIConfigSnapshot;
 
 export async function loadLabAIConfig(
-  client: Pick<StudioAIConfigClient, 'get'>,
+  client: { readonly get: () => Promise<NimiAIConfigSnapshot> },
 ): Promise<LabAIConfigProjection> {
-  return loadStudioAIConfig(client, appId);
+  const snapshot = await client.get();
+  if (snapshot.config) requireStudioAIConfigOwner(snapshot.config, appId);
+  return snapshot;
 }
 
-/** Refreshes the read-only projection after the Nimi-owned Desktop surface returns control. */
+/** Refreshes the canonical owner projection after another admitted surface writes. */
 export function subscribeLabAIConfigOwnerRefresh(
   refresh: () => void,
   focusTarget: StudioAIConfigRefreshEventTarget,
@@ -31,21 +32,30 @@ export function subscribeLabAIConfigOwnerRefresh(
   return subscribeStudioAIConfigRefresh(refresh, focusTarget, visibilityTarget);
 }
 
-/** Clones the immutable SDK projection into Kit's read-only display shape. */
+/** Clones the immutable SDK projection into Kit's editor shape. */
 export function projectLabAIConfigCapabilities(
   capabilities: readonly NimiPortableAppAIConfigIntent[],
 ): NimiCapabilityAIConfigIntent[] {
-  return capabilities.map((intent) => ({
-    capabilityContract: intent.capabilityContract,
-    requiredFeatures: [...intent.requiredFeatures],
-    ...(intent.defaults ? { defaults: intent.defaults } : {}),
-    route: intent.route.oneofKind === 'local'
-      ? { oneofKind: 'local', local: {} }
-      : {
-          oneofKind: 'cloud',
-          cloud: { ...intent.route.cloud },
-        },
-  }));
+  return capabilities.map((intent) => {
+    const route = intent.route;
+    if (route.oneofKind === 'local' && 'local' in route) {
+      return {
+        capabilityContract: intent.capabilityContract,
+        requiredFeatures: [...intent.requiredFeatures],
+        ...(intent.defaults ? { defaults: intent.defaults } : {}),
+        route: { oneofKind: 'local', local: { loadoutRef: route.local.loadoutRef } },
+      };
+    }
+    if (route.oneofKind === 'cloud' && 'cloud' in route) {
+      return {
+        capabilityContract: intent.capabilityContract,
+        requiredFeatures: [...intent.requiredFeatures],
+        ...(intent.defaults ? { defaults: intent.defaults } : {}),
+        route: { oneofKind: 'cloud', cloud: { ...route.cloud } },
+      };
+    }
+    throw new Error(`AIConfig route is missing for ${intent.capabilityContract}.`);
+  });
 }
 
 export function requireLabAIConfigOwner(

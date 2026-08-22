@@ -261,9 +261,11 @@ message AIConfigOwner {
   }
 }
 
-// AIConfigLocalIntent is deliberately empty: Local implementation identity,
-// machine selection, resources, and bindings belong to machine configuration.
 message AIConfigLocalIntent {
+  // Stable Runtime Loadout resource reference selected by the AIConfig owner.
+  // Loadout content, ModelAsset bindings, paths, and process state stay in the
+  // machine Loadout store.
+  string loadout_ref = 1;
 }
 
 // AIConfigCloudIntent carries only the exact Cloud implementation and its
@@ -276,9 +278,9 @@ message AIConfigCloudIntent {
   reserved "connector_grant_id";
 }
 
-// AIConfigCapabilityIntent is consumer intent only. Local execution identity,
-// machine selection, assets, bindings, Driver state, and readiness never enter
-// this payload.
+// AIConfigCapabilityIntent is consumer intent only. It names an exact safe
+// resource reference but embeds no Loadout content, assets, bindings, Driver
+// state, credentials, endpoints, process state, or readiness.
 message AIConfigCapabilityIntent {
   string capability_contract = 1;
   repeated string required_features = 2;
@@ -290,10 +292,63 @@ message AIConfigCapabilityIntent {
 }
 
 // AIConfig is the complete current capability intent for exactly one owner.
-// It has overwrite semantics and carries no revision, history, or readiness.
+// Revision is transported by owner operation results rather than embedded in
+// this portable value; no history or readiness is persisted here.
 message AIConfig {
   AIConfigOwner owner = 1;
   repeated AIConfigCapabilityIntent capabilities = 2;
+}
+
+enum AIConfigEffectiveState {
+  AI_CONFIG_EFFECTIVE_STATE_UNSPECIFIED = 0;
+  AI_CONFIG_EFFECTIVE_STATE_READY = 1;
+  AI_CONFIG_EFFECTIVE_STATE_MISSING = 2;
+  AI_CONFIG_EFFECTIVE_STATE_BLOCKED = 3;
+  AI_CONFIG_EFFECTIVE_STATE_UNAVAILABLE = 4;
+}
+
+message AIConfigLocalResourceProjection {
+  string loadout_ref = 1;
+  string label = 2;
+  string capability_contract = 3;
+  CapabilityImplementationIdentity implementation = 4;
+  repeated string supported_features = 5;
+  AIConfigEffectiveState state = 6;
+  repeated string reasons = 7;
+}
+
+message AIConfigEffectiveSelection {
+  string capability_contract = 1;
+  AIConfigEffectiveState state = 2;
+  oneof resource {
+    AIConfigLocalResourceProjection local = 3;
+  }
+  repeated string reasons = 4;
+}
+
+message AIConfigLocalLoadoutOptionsQuery {
+  string capability_contract = 1;
+  string search = 2;
+}
+
+message AIConfigLocalLoadoutOptions {
+  repeated AIConfigLocalResourceProjection options = 1;
+}
+
+message ListAppAIConfigOptionsRequest {
+  oneof query {
+    AIConfigLocalLoadoutOptionsQuery local_loadouts = 1;
+  }
+  // Desktop manager consistency assertion. Protected App callers omit it and
+  // Runtime derives the self owner from the admitted session.
+  AIConfigOwner owner = 4;
+}
+
+message ListAppAIConfigOptionsResponse {
+  oneof result {
+    AIConfigLocalLoadoutOptions local_loadouts = 1;
+  }
+  bool truncated = 2;
 }
 
 // App AIConfig mutation is whole-object only. The owner carried here is a
@@ -305,14 +360,20 @@ message GetAppAIConfigRequest {
 
 message GetAppAIConfigResponse {
   AIConfig config = 1;
+  string revision = 2;
+  repeated AIConfigEffectiveSelection effective_selections = 3;
 }
 
 message OverwriteAppAIConfigRequest {
   AIConfig config = 1;
+  string expected_revision = 2;
 }
 
 message OverwriteAppAIConfigResponse {
   AIConfig config = 1;
+  string revision = 2;
+  bool committed = 3;
+  ReasonCode reason_code = 4;
 }
 
 message LoadoutRecipeCustodyDescriptor {

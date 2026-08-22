@@ -34,14 +34,11 @@ func newConcurrentCaptureLocalExecutionResolver(selection *localexecution.Select
 	}
 }
 
-func (r *concurrentCaptureLocalExecutionResolver) SelectedLocalCapabilityContracts() []string {
-	if r == nil || r.selection == nil {
-		return nil
-	}
-	return []string{r.selection.CapabilityContract}
+func (r *concurrentCaptureLocalExecutionResolver) ListLocalLoadouts(string, string, int) ([]localexecution.LoadoutOption, bool, error) {
+	return nil, false, nil
 }
 
-func (r *concurrentCaptureLocalExecutionResolver) ResolveSelectedLocalExecution(contract string) (*localexecution.SelectedLocalExecution, error) {
+func (r *concurrentCaptureLocalExecutionResolver) ResolveLocalExecution(contract string, _ string) (*localexecution.SelectedLocalExecution, error) {
 	if r == nil || r.selection == nil || contract != r.selection.CapabilityContract {
 		return nil, fmt.Errorf("no Local execution for %s", contract)
 	}

@@ -28,9 +28,11 @@ func (s *Service) SetMachineLocalExecutionResolver(source localexecution.Resolve
 		return
 	}
 	if source == nil {
+		s.localExecution = nil
 		s.setMachineExecutionBindingResolver(nil)
 		return
 	}
+	s.localExecution = source
 	s.setMachineExecutionBindingResolver(&selectedLocalMachineExecutionBindingResolver{owner: s, source: source})
 }
 
@@ -111,7 +113,8 @@ func (r *selectedLocalMachineExecutionBindingResolver) ResolveMachineExecutionBi
 		if intent.GetLocal() == nil {
 			continue
 		}
-		selected, err := r.source.ResolveSelectedLocalExecution(capabilityContract)
+		loadoutRef := strings.TrimSpace(intent.GetLocal().GetLoadoutRef())
+		selected, err := r.source.ResolveLocalExecution(capabilityContract, loadoutRef)
 		if err != nil {
 			return nil, err
 		}
@@ -136,6 +139,7 @@ func (r *selectedLocalMachineExecutionBindingResolver) ResolveMachineExecutionBi
 			ExecutionIntent: executionintent.Intent{
 				CapabilityContract: capabilityContract, RequiredFeatures: append([]string(nil), intent.GetRequiredFeatures()...),
 				Defaults: clonePublicChatSelectedParams(intent.GetDefaults()), Route: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+				LocalLoadoutRef: loadoutRef,
 			},
 			LocalAIConfigIntent: true,
 			LocalExecution:      localexecution.CloneSelectedLocalExecution(selected),

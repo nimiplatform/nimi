@@ -614,6 +614,21 @@ impl Default for AgentTurnContextTruncationReason {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub enum AIConfigEffectiveState {
+    AICONFIGEFFECTIVESTATEUNSPECIFIED,
+    AICONFIGEFFECTIVESTATEREADY,
+    AICONFIGEFFECTIVESTATEMISSING,
+    AICONFIGEFFECTIVESTATEBLOCKED,
+    AICONFIGEFFECTIVESTATEUNAVAILABLE,
+}
+
+impl Default for AIConfigEffectiveState {
+    fn default() -> Self {
+        Self::AICONFIGEFFECTIVESTATEUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum AppMessageEventType {
     APPMESSAGEEVENTTYPEUNSPECIFIED,
     APPMESSAGEEVENTRECEIVED,
@@ -2011,6 +2026,7 @@ pub enum ReasonCode {
     AILOADOUTNOTCONFIGURED,
     AILOADOUTCATALOGSCHEMAINVALID,
     AILOCALEXECUTIONOUTOFMEMORY,
+    AICONFIGREVISIONCONFLICT,
 }
 
 impl Default for ReasonCode {
@@ -2600,20 +2616,151 @@ impl AIConfigCloudIntent {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct AIConfigLocalIntent {
+pub struct AIConfigEffectiveSelection {
+    pub capability_contract: Option<String>,
+    pub state: Option<AIConfigEffectiveState>,
+    pub local: Option<Box<AIConfigLocalResourceProjection>>,
+    pub reasons: Vec<String>,
+}
 
+impl AIConfigEffectiveSelection {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.capability_contract { pairs.push(format!("capability_contract={}", value)); }
+        if let Some(value) = &self.state { pairs.push(format!("state={:?}", value)); }
+        if self.local.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode local"); }
+        for value in &self.reasons { pairs.push(format!("reasons={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["state", "local"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.capability_contract = pairs.get("capability_contract").cloned();
+        out.reasons = parse_repeated_string(raw, "reasons");
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AIConfigLocalIntent {
+    pub loadout_ref: Option<String>,
 }
 
 impl AIConfigLocalIntent {
     pub fn to_transport(&self) -> Vec<u8> {
-        Vec::new()
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.loadout_ref { pairs.push(format!("loadout_ref={}", value)); }
+        pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
-        if !raw.is_empty() {
-            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client received undecodable response payload");
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+
+        out.loadout_ref = pairs.get("loadout_ref").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AIConfigLocalLoadoutOptions {
+    pub options: Vec<Box<AIConfigLocalResourceProjection>>,
+}
+
+impl AIConfigLocalLoadoutOptions {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let pairs: Vec<String> = Vec::new();
+        if !self.options.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode options"); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let out = Self::default();
+        for key in ["options"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
         }
-        Self::default()
+        if !pairs.is_empty() {
+            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
+        }
+
+
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AIConfigLocalLoadoutOptionsQuery {
+    pub capability_contract: Option<String>,
+    pub search: Option<String>,
+}
+
+impl AIConfigLocalLoadoutOptionsQuery {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.capability_contract { pairs.push(format!("capability_contract={}", value)); }
+        if let Some(value) = &self.search { pairs.push(format!("search={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+
+        out.capability_contract = pairs.get("capability_contract").cloned();
+        out.search = pairs.get("search").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AIConfigLocalResourceProjection {
+    pub loadout_ref: Option<String>,
+    pub label: Option<String>,
+    pub capability_contract: Option<String>,
+    pub implementation: Option<Box<CapabilityImplementationIdentity>>,
+    pub supported_features: Vec<String>,
+    pub state: Option<AIConfigEffectiveState>,
+    pub reasons: Vec<String>,
+}
+
+impl AIConfigLocalResourceProjection {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.loadout_ref { pairs.push(format!("loadout_ref={}", value)); }
+        if let Some(value) = &self.label { pairs.push(format!("label={}", value)); }
+        if let Some(value) = &self.capability_contract { pairs.push(format!("capability_contract={}", value)); }
+        if self.implementation.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode implementation"); }
+        for value in &self.supported_features { pairs.push(format!("supported_features={}", value)); }
+        if let Some(value) = &self.state { pairs.push(format!("state={:?}", value)); }
+        for value in &self.reasons { pairs.push(format!("reasons={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["implementation", "state"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.loadout_ref = pairs.get("loadout_ref").cloned();
+        out.label = pairs.get("label").cloned();
+        out.capability_contract = pairs.get("capability_contract").cloned();
+        out.supported_features = parse_repeated_string(raw, "supported_features");
+        out.reasons = parse_repeated_string(raw, "reasons");
+        out
     }
 }
 
@@ -9618,28 +9765,29 @@ impl GetAppAIConfigRequest {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct GetAppAIConfigResponse {
     pub config: Option<Box<AIConfig>>,
+    pub revision: Option<String>,
+    pub effective_selections: Vec<Box<AIConfigEffectiveSelection>>,
 }
 
 impl GetAppAIConfigResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let pairs: Vec<String> = Vec::new();
+        let mut pairs: Vec<String> = Vec::new();
         if self.config.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode config"); }
+        if let Some(value) = &self.revision { pairs.push(format!("revision={}", value)); }
+        if !self.effective_selections.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode effective_selections"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let out = Self::default();
-        for key in ["config"] {
+        let mut out = Self::default();
+        for key in ["config", "effective_selections"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
             }
         }
-        if !pairs.is_empty() {
-            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
-        }
 
-
+        out.revision = pairs.get("revision").cloned();
         out
     }
 }
@@ -11169,28 +11317,29 @@ impl GetSharedLocalAgentAIConfigRequest {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct GetSharedLocalAgentAIConfigResponse {
     pub config: Option<Box<AIConfig>>,
+    pub revision: Option<String>,
+    pub effective_selections: Vec<Box<AIConfigEffectiveSelection>>,
 }
 
 impl GetSharedLocalAgentAIConfigResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let pairs: Vec<String> = Vec::new();
+        let mut pairs: Vec<String> = Vec::new();
         if self.config.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode config"); }
+        if let Some(value) = &self.revision { pairs.push(format!("revision={}", value)); }
+        if !self.effective_selections.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode effective_selections"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let out = Self::default();
-        for key in ["config"] {
+        let mut out = Self::default();
+        for key in ["config", "effective_selections"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
             }
         }
-        if !pairs.is_empty() {
-            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
-        }
 
-
+        out.revision = pairs.get("revision").cloned();
         out
     }
 }
@@ -12762,6 +12911,65 @@ impl ListAgentsResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct ListAppAIConfigOptionsRequest {
+    pub local_loadouts: Option<Box<AIConfigLocalLoadoutOptionsQuery>>,
+    pub owner: Option<Box<AIConfigOwner>>,
+}
+
+impl ListAppAIConfigOptionsRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let pairs: Vec<String> = Vec::new();
+        if self.local_loadouts.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode local_loadouts"); }
+        if self.owner.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode owner"); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let out = Self::default();
+        for key in ["local_loadouts", "owner"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+        if !pairs.is_empty() {
+            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
+        }
+
+
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ListAppAIConfigOptionsResponse {
+    pub local_loadouts: Option<Box<AIConfigLocalLoadoutOptions>>,
+    pub truncated: Option<bool>,
+}
+
+impl ListAppAIConfigOptionsResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if self.local_loadouts.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode local_loadouts"); }
+        if let Some(value) = &self.truncated { pairs.push(format!("truncated={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["local_loadouts"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.truncated = pairs.get("truncated").and_then(|value| value.parse().ok());
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct ListAuditEventsRequest {
     pub app_id: Option<String>,
     pub subject_user_id: Option<String>,
@@ -13809,6 +14017,63 @@ impl ListLocalAppAssetsResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct ListLocalAppSharedLocalAgentAIConfigOptionsRequest {
+    pub local_loadouts: Option<Box<AIConfigLocalLoadoutOptionsQuery>>,
+}
+
+impl ListLocalAppSharedLocalAgentAIConfigOptionsRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let pairs: Vec<String> = Vec::new();
+        if self.local_loadouts.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode local_loadouts"); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let out = Self::default();
+        for key in ["local_loadouts"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+        if !pairs.is_empty() {
+            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
+        }
+
+
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ListLocalAppSharedLocalAgentAIConfigOptionsResponse {
+    pub local_loadouts: Option<Box<AIConfigLocalLoadoutOptions>>,
+    pub truncated: Option<bool>,
+}
+
+impl ListLocalAppSharedLocalAgentAIConfigOptionsResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if self.local_loadouts.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode local_loadouts"); }
+        if let Some(value) = &self.truncated { pairs.push(format!("truncated={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["local_loadouts"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.truncated = pairs.get("truncated").and_then(|value| value.parse().ok());
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct ListLocalAppVoiceAssetsRequest {
     pub page_size: Option<i32>,
     pub page_token: Option<String>,
@@ -14584,6 +14849,65 @@ impl ListScenarioProfilesResponse {
         }
 
 
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ListSharedLocalAgentAIConfigOptionsRequest {
+    pub context: Option<Box<AgentRequestContext>>,
+    pub local_loadouts: Option<Box<AIConfigLocalLoadoutOptionsQuery>>,
+}
+
+impl ListSharedLocalAgentAIConfigOptionsRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let pairs: Vec<String> = Vec::new();
+        if self.context.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode context"); }
+        if self.local_loadouts.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode local_loadouts"); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let out = Self::default();
+        for key in ["context", "local_loadouts"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+        if !pairs.is_empty() {
+            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
+        }
+
+
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ListSharedLocalAgentAIConfigOptionsResponse {
+    pub local_loadouts: Option<Box<AIConfigLocalLoadoutOptions>>,
+    pub truncated: Option<bool>,
+}
+
+impl ListSharedLocalAgentAIConfigOptionsResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if self.local_loadouts.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode local_loadouts"); }
+        if let Some(value) = &self.truncated { pairs.push(format!("truncated={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["local_loadouts"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.truncated = pairs.get("truncated").and_then(|value| value.parse().ok());
         out
     }
 }
@@ -16280,28 +16604,29 @@ impl LocalAppScenarioJobEvent {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct LocalAppSharedLocalAgentAIConfigProjection {
     pub config: Option<Box<AIConfig>>,
+    pub revision: Option<String>,
+    pub effective_selections: Vec<Box<AIConfigEffectiveSelection>>,
 }
 
 impl LocalAppSharedLocalAgentAIConfigProjection {
     pub fn to_transport(&self) -> Vec<u8> {
-        let pairs: Vec<String> = Vec::new();
+        let mut pairs: Vec<String> = Vec::new();
         if self.config.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode config"); }
+        if let Some(value) = &self.revision { pairs.push(format!("revision={}", value)); }
+        if !self.effective_selections.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode effective_selections"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let out = Self::default();
-        for key in ["config"] {
+        let mut out = Self::default();
+        for key in ["config", "effective_selections"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
             }
         }
-        if !pairs.is_empty() {
-            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
-        }
 
-
+        out.revision = pairs.get("revision").cloned();
         out
     }
 }
@@ -20207,28 +20532,27 @@ impl OpenSessionResponse {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct OverwriteAppAIConfigRequest {
     pub config: Option<Box<AIConfig>>,
+    pub expected_revision: Option<String>,
 }
 
 impl OverwriteAppAIConfigRequest {
     pub fn to_transport(&self) -> Vec<u8> {
-        let pairs: Vec<String> = Vec::new();
+        let mut pairs: Vec<String> = Vec::new();
         if self.config.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode config"); }
+        if let Some(value) = &self.expected_revision { pairs.push(format!("expected_revision={}", value)); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let out = Self::default();
+        let mut out = Self::default();
         for key in ["config"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
             }
         }
-        if !pairs.is_empty() {
-            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
-        }
 
-
+        out.expected_revision = pairs.get("expected_revision").cloned();
         out
     }
 }
@@ -20236,28 +20560,32 @@ impl OverwriteAppAIConfigRequest {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct OverwriteAppAIConfigResponse {
     pub config: Option<Box<AIConfig>>,
+    pub revision: Option<String>,
+    pub committed: Option<bool>,
+    pub reason_code: Option<ReasonCode>,
 }
 
 impl OverwriteAppAIConfigResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let pairs: Vec<String> = Vec::new();
+        let mut pairs: Vec<String> = Vec::new();
         if self.config.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode config"); }
+        if let Some(value) = &self.revision { pairs.push(format!("revision={}", value)); }
+        if let Some(value) = &self.committed { pairs.push(format!("committed={}", value)); }
+        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let out = Self::default();
-        for key in ["config"] {
+        let mut out = Self::default();
+        for key in ["config", "reason_code"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
             }
         }
-        if !pairs.is_empty() {
-            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
-        }
 
-
+        out.revision = pairs.get("revision").cloned();
+        out.committed = pairs.get("committed").and_then(|value| value.parse().ok());
         out
     }
 }
@@ -20265,28 +20593,27 @@ impl OverwriteAppAIConfigResponse {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct OverwriteLocalAppSharedLocalAgentAIConfigRequest {
     pub capabilities: Vec<Box<AIConfigCapabilityIntent>>,
+    pub expected_revision: Option<String>,
 }
 
 impl OverwriteLocalAppSharedLocalAgentAIConfigRequest {
     pub fn to_transport(&self) -> Vec<u8> {
-        let pairs: Vec<String> = Vec::new();
+        let mut pairs: Vec<String> = Vec::new();
         if !self.capabilities.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode capabilities"); }
+        if let Some(value) = &self.expected_revision { pairs.push(format!("expected_revision={}", value)); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let out = Self::default();
+        let mut out = Self::default();
         for key in ["capabilities"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
             }
         }
-        if !pairs.is_empty() {
-            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
-        }
 
-
+        out.expected_revision = pairs.get("expected_revision").cloned();
         out
     }
 }
@@ -20294,28 +20621,29 @@ impl OverwriteLocalAppSharedLocalAgentAIConfigRequest {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct OverwriteLocalAppSharedLocalAgentAIConfigResponse {
     pub projection: Option<Box<LocalAppSharedLocalAgentAIConfigProjection>>,
+    pub committed: Option<bool>,
+    pub reason_code: Option<ReasonCode>,
 }
 
 impl OverwriteLocalAppSharedLocalAgentAIConfigResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let pairs: Vec<String> = Vec::new();
+        let mut pairs: Vec<String> = Vec::new();
         if self.projection.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode projection"); }
+        if let Some(value) = &self.committed { pairs.push(format!("committed={}", value)); }
+        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let out = Self::default();
-        for key in ["projection"] {
+        let mut out = Self::default();
+        for key in ["projection", "reason_code"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
             }
         }
-        if !pairs.is_empty() {
-            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
-        }
 
-
+        out.committed = pairs.get("committed").and_then(|value| value.parse().ok());
         out
     }
 }
@@ -20324,29 +20652,28 @@ impl OverwriteLocalAppSharedLocalAgentAIConfigResponse {
 pub struct OverwriteSharedLocalAgentAIConfigRequest {
     pub context: Option<Box<AgentRequestContext>>,
     pub capabilities: Vec<Box<AIConfigCapabilityIntent>>,
+    pub expected_revision: Option<String>,
 }
 
 impl OverwriteSharedLocalAgentAIConfigRequest {
     pub fn to_transport(&self) -> Vec<u8> {
-        let pairs: Vec<String> = Vec::new();
+        let mut pairs: Vec<String> = Vec::new();
         if self.context.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode context"); }
         if !self.capabilities.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode capabilities"); }
+        if let Some(value) = &self.expected_revision { pairs.push(format!("expected_revision={}", value)); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let out = Self::default();
+        let mut out = Self::default();
         for key in ["context", "capabilities"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
             }
         }
-        if !pairs.is_empty() {
-            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
-        }
 
-
+        out.expected_revision = pairs.get("expected_revision").cloned();
         out
     }
 }
@@ -20354,28 +20681,34 @@ impl OverwriteSharedLocalAgentAIConfigRequest {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct OverwriteSharedLocalAgentAIConfigResponse {
     pub config: Option<Box<AIConfig>>,
+    pub revision: Option<String>,
+    pub committed: Option<bool>,
+    pub reason_code: Option<ReasonCode>,
+    pub effective_selections: Vec<Box<AIConfigEffectiveSelection>>,
 }
 
 impl OverwriteSharedLocalAgentAIConfigResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let pairs: Vec<String> = Vec::new();
+        let mut pairs: Vec<String> = Vec::new();
         if self.config.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode config"); }
+        if let Some(value) = &self.revision { pairs.push(format!("revision={}", value)); }
+        if let Some(value) = &self.committed { pairs.push(format!("committed={}", value)); }
+        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
+        if !self.effective_selections.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode effective_selections"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let out = Self::default();
-        for key in ["config"] {
+        let mut out = Self::default();
+        for key in ["config", "reason_code", "effective_selections"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
             }
         }
-        if !pairs.is_empty() {
-            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
-        }
 
-
+        out.revision = pairs.get("revision").cloned();
+        out.committed = pairs.get("committed").and_then(|value| value.parse().ok());
         out
     }
 }
@@ -28686,7 +29019,31 @@ impl From<Vec<u8>> for AIConfigCloudIntent {
     }
 }
 
+impl From<Vec<u8>> for AIConfigEffectiveSelection {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
 impl From<Vec<u8>> for AIConfigLocalIntent {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for AIConfigLocalLoadoutOptions {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for AIConfigLocalLoadoutOptionsQuery {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for AIConfigLocalResourceProjection {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -30504,6 +30861,18 @@ impl From<Vec<u8>> for ListAgentsResponse {
     }
 }
 
+impl From<Vec<u8>> for ListAppAIConfigOptionsRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for ListAppAIConfigOptionsResponse {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
 impl From<Vec<u8>> for ListAuditEventsRequest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -30708,6 +31077,18 @@ impl From<Vec<u8>> for ListLocalAppAssetsResponse {
     }
 }
 
+impl From<Vec<u8>> for ListLocalAppSharedLocalAgentAIConfigOptionsRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for ListLocalAppSharedLocalAgentAIConfigOptionsResponse {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
 impl From<Vec<u8>> for ListLocalAppVoiceAssetsRequest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -30871,6 +31252,18 @@ impl From<Vec<u8>> for ListScenarioProfilesRequest {
 }
 
 impl From<Vec<u8>> for ListScenarioProfilesResponse {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for ListSharedLocalAgentAIConfigOptionsRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for ListSharedLocalAgentAIConfigOptionsResponse {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -33798,6 +34191,16 @@ where
         Ok(ListLocalAppAgentReferencesResponse::from_transport(&raw))
     }
 
+    pub fn list_local_app_shared_local_agent_aiconfig_options(&self, request: ListLocalAppSharedLocalAgentAIConfigOptionsRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ListLocalAppSharedLocalAgentAIConfigOptionsResponse, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppSharedLocalAgentAIConfigOptions".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(ListLocalAppSharedLocalAgentAIConfigOptionsResponse::from_transport(&raw))
+    }
+
     pub fn list_pending_hooks(&self, request: ListPendingHooksRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ListPendingHooksResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "/nimi.runtime.v1.RuntimeAgentService/ListPendingHooks".to_string(),
@@ -33816,6 +34219,16 @@ where
             timeout,
         })?;
         Ok(ListPortableAIProfilesResponse::from_transport(&raw))
+    }
+
+    pub fn list_shared_local_agent_aiconfig_options(&self, request: ListSharedLocalAgentAIConfigOptionsRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ListSharedLocalAgentAIConfigOptionsResponse, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/nimi.runtime.v1.RuntimeAgentService/ListSharedLocalAgentAIConfigOptions".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(ListSharedLocalAgentAIConfigOptionsResponse::from_transport(&raw))
     }
 
     pub fn materialize_realm_source(&self, request: MaterializeRealmSourceRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<MaterializeRealmSourceResponse, T::Error> {
@@ -34238,6 +34651,16 @@ where
             timeout,
         })?;
         Ok(GetVoiceAssetResponse::from_transport(&raw))
+    }
+
+    pub fn list_app_aiconfig_options(&self, request: ListAppAIConfigOptionsRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ListAppAIConfigOptionsResponse, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/nimi.runtime.v1.RuntimeAiService/ListAppAIConfigOptions".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(ListAppAIConfigOptionsResponse::from_transport(&raw))
     }
 
     pub fn list_local_app_voice_assets(&self, request: ListLocalAppVoiceAssetsRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ListLocalAppVoiceAssetsResponse, T::Error> {

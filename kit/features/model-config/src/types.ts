@@ -1,5 +1,9 @@
 import type {
-  NimiCapabilityAIConfigIntent,
+  NimiAIConfigOptionsQuery,
+  NimiAIConfigOptionsResult,
+  NimiAIConfigOverwriteInput,
+  NimiAIConfigOverwriteResult,
+  NimiPortableAppAIConfigIntent,
   NimiCloudAIConfigCapabilityInput,
   NimiJsonObject,
 } from '@nimiplatform/kit/core/sdk-contract';
@@ -167,5 +171,9 @@ export type ModelConfigCopy = Partial<{
 }>;
 
 export type ModelConfigOverwrite = (
-  capabilities: readonly NimiCapabilityAIConfigIntent[],
-) => Promise<void>;
+  input: NimiAIConfigOverwriteInput,
+) => Promise<NimiAIConfigOverwriteResult>;
+
+export type ModelConfigListOptions = (
+  query: NimiAIConfigOptionsQuery,
+) => Promise<NimiAIConfigOptionsResult>;

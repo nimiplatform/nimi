@@ -7,7 +7,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"math"
 	"sort"
@@ -50,7 +49,8 @@ type portableAIProfile struct {
 // AIProfile document admitted by the TypeScript SDK, projects consumer intent
 // only, and canonicalizes the resulting singular shared-owner AIConfig. Local
 // implementation and resource recommendations are validated but never become
-// a model, binding, or machine selection.
+// a model, binding, or machine selection. The result is editor prefill, not a
+// committable AIConfig; Local refs are selected later by the ordinary Save.
 func sharedLocalAgentAIConfigFromProfile(raw []byte) (*runtimev1.AIConfig, error) {
 	profile, err := parsePortableAIProfile(raw)
 	if err != nil {
@@ -82,14 +82,10 @@ func sharedLocalAgentAIConfigFromProfile(raw []byte) (*runtimev1.AIConfig, error
 		}
 		capabilities = append(capabilities, intent)
 	}
-	canonical, err := aiconfig.Canonicalize(&runtimev1.AIConfig{
+	return &runtimev1.AIConfig{
 		Owner:        aiconfig.LocalAgentSubsystemOwner(),
 		Capabilities: capabilities,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("%w: %v", errPortableAIProfileInvalid, err)
-	}
-	return canonical, nil
+	}, nil
 }
 
 func parsePortableAIProfile(raw []byte) (*portableAIProfile, error) {

@@ -61,7 +61,7 @@ func TestListPresetVoicesUsesSelectedLocalSpeechConfigurationWithoutTargetRef(t 
 			Configured: true,
 		},
 	}
-	if err := service.aiConfigStore.Overwrite(context.Background(), "user-1", appAIConfig(
+	if err := overwriteAIConfigStoreForTest(context.Background(), service.aiConfigStore, "user-1", appAIConfig(
 		"nimi.desktop",
 		localAppAIConfigIntent(capabilitydriver.AudioSynthesizeContract),
 	)); err != nil {
@@ -81,7 +81,7 @@ func TestListPresetVoicesUsesSelectedLocalSpeechConfigurationWithoutTargetRef(t 
 func TestListPresetVoicesUsesExactQwenAudioCppBinding(t *testing.T) {
 	service := newTestService(nil)
 	service.SetLocalExecutionResolver(&mutableLocalExecutionResolver{projection: selectedQwen3TTSAudioCppExecutionForTest(t)})
-	if err := service.aiConfigStore.Overwrite(context.Background(), "user-1", appAIConfig("nimi.desktop", localAppAIConfigIntent(capabilitydriver.AudioSynthesizeContract))); err != nil {
+	if err := overwriteAIConfigStoreForTest(context.Background(), service.aiConfigStore, "user-1", appAIConfig("nimi.desktop", localAppAIConfigIntent(capabilitydriver.AudioSynthesizeContract))); err != nil {
 		t.Fatal(err)
 	}
 	response, err := service.ListPresetVoices(scenarioJobUserContext("nimi.desktop", "user-1"), &runtimev1.ListPresetVoicesRequest{AppId: "nimi.desktop", SubjectUserId: "user-1"})

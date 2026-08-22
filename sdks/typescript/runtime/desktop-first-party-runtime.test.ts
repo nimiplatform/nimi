@@ -13,11 +13,11 @@ test('Desktop account product binds AIConfig to one explicit admitted App owner'
       calls.push(request);
       if (request.methodId === '/nimi.runtime.v1.RuntimeAiService/GetAppAIConfig') {
         const body = request.body as { owner?: unknown };
-        return { config: { owner: body.owner, capabilities: [] } } as Response;
+        return { config: { owner: body.owner, capabilities: [] }, revision: '0', effectiveSelections: [] } as Response;
       }
       if (request.methodId === '/nimi.runtime.v1.RuntimeAiService/OverwriteAppAIConfig') {
         const body = request.body as { config?: unknown };
-        return { config: body.config } as Response;
+        return { config: body.config, revision: '1', committed: true, reasonCode: 0 } as Response;
       }
       throw new Error(`unexpected Runtime method: ${request.methodId}`);
     },
@@ -32,21 +32,21 @@ test('Desktop account product binds AIConfig to one explicit admitted App owner'
 
   const managed = clients.accountProduct.appAIConfig('acme.widget');
   const existing = await managed.get();
-  assert.equal(existing.owner?.owner.oneofKind, 'app');
-  if (existing.owner?.owner.oneofKind === 'app') {
-    assert.equal(existing.owner.owner.app.appId, 'acme.widget');
+  assert.equal(existing.config?.owner?.owner.oneofKind, 'app');
+  if (existing.config?.owner?.owner.oneofKind === 'app') {
+    assert.equal(existing.config.owner.owner.app.appId, 'acme.widget');
   }
 
   const localIntent: AIConfigCapabilityIntent = {
     capabilityContract: 'text.generate',
     requiredFeatures: [],
-    route: { oneofKind: 'local', local: {} },
+    route: { oneofKind: 'local', local: { loadoutRef: 'loadout:text' } },
   };
-  const overwritten = await managed.overwrite([localIntent]);
-  assert.equal(overwritten.capabilities[0]?.capabilityContract, 'text.generate');
-  assert.equal(overwritten.owner?.owner.oneofKind, 'app');
-  if (overwritten.owner?.owner.oneofKind === 'app') {
-    assert.equal(overwritten.owner.owner.app.appId, 'acme.widget');
+  const overwritten = await managed.overwrite({ expectedRevision: '0', capabilities: [localIntent] });
+  assert.equal(overwritten.config?.capabilities[0]?.capabilityContract, 'text.generate');
+  assert.equal(overwritten.config?.owner?.owner.oneofKind, 'app');
+  if (overwritten.config?.owner?.owner.oneofKind === 'app') {
+    assert.equal(overwritten.config.owner.owner.app.appId, 'acme.widget');
   }
 
   assert.deepEqual(calls.map((call) => call.methodId), [

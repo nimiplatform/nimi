@@ -1,4 +1,8 @@
 import type {
+  NimiAIConfigOptionsQuery,
+  NimiAIConfigOptionsResult,
+  NimiAIConfigOverwriteResult,
+  NimiAIConfigSnapshot,
   NimiLocalAppAgentAutonomyMode,
   NimiLocalAppAgentHandle,
   NimiLocalAppAgentPresentationBackendKind,
@@ -208,6 +212,7 @@ export interface AgentCenterAutonomyMutationInput {
 }
 
 export interface AgentCenterAIConfigMutation {
+  readonly expectedRevision: string;
   readonly capabilities: readonly NimiCapabilityAIConfigIntent[];
   readonly displayProvenance?: NimiJsonObject;
 }
@@ -254,6 +259,7 @@ export interface AgentCenterAIConfigIntentProjection {
 
 export interface AgentCenterSharedAIConfigProjection {
   readonly aiConfig: NimiCapabilityAIConfig;
+  readonly revision: string;
   readonly capabilities: readonly string[];
   readonly intents: readonly AgentCenterAIConfigIntentProjection[];
 }
@@ -646,7 +652,8 @@ export interface AgentCenterSession {
   getSnapshot(): AgentCenterSnapshot;
   subscribe(listener: () => void): () => void;
   refresh(): Promise<void>;
-  overwriteSharedAIConfig(input: AgentCenterAIConfigMutation): Promise<void>;
+  overwriteSharedAIConfig(input: AgentCenterAIConfigMutation): Promise<NimiAIConfigOverwriteResult>;
+  listSharedAIConfigOptions(input: NimiAIConfigOptionsQuery): Promise<NimiAIConfigOptionsResult>;
   updateAutonomy(input: AgentCenterAutonomyMutation): Promise<void>;
   replaceAppearance(input: AgentCenterPresentationCommitInput): Promise<void>;
   restorePreviousAppearance(): Promise<void>;
@@ -675,11 +682,13 @@ export interface AgentCenterProps {
 }
 
 export interface AgentCenterSharedAIConfigModule {
-  get(input: { readonly subjectUserId?: string }): Promise<AgentCenterSharedAIConfigProjection>;
+  get(input: { readonly subjectUserId?: string }): Promise<NimiAIConfigSnapshot>;
   overwrite(input: {
     readonly subjectUserId?: string;
+    readonly expectedRevision: string;
     readonly capabilities: readonly NimiCapabilityAIConfigIntent[];
     readonly displayProvenance?: NimiJsonObject;
-  }): Promise<AgentCenterSharedAIConfigProjection>;
+  }): Promise<NimiAIConfigOverwriteResult>;
+  listOptions(input: NimiAIConfigOptionsQuery & { readonly subjectUserId?: string }): Promise<NimiAIConfigOptionsResult>;
 }
 export type AgentCenterAIConfigRouteIntent = AgentCenterAIConfigIntentProjection;

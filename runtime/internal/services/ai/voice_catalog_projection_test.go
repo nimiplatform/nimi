@@ -112,7 +112,7 @@ func TestListPresetVoicesFailsClosedForMissingCloudCompositionStages(t *testing.
 			ProviderModelTarget: validTarget,
 		}},
 	}
-	if err := service.aiConfigStore.Overwrite(context.Background(), "user-001", appAIConfig("nimi.desktop", missingImplementation)); err == nil {
+	if err := overwriteAIConfigStoreForTest(context.Background(), service.aiConfigStore, "user-001", appAIConfig("nimi.desktop", missingImplementation)); err == nil {
 		t.Fatal("AIConfig without CapabilityImplementation was committed")
 	}
 
@@ -124,7 +124,7 @@ func TestListPresetVoicesFailsClosedForMissingCloudCompositionStages(t *testing.
 			},
 		}},
 	}
-	if err := service.aiConfigStore.Overwrite(context.Background(), "user-001", appAIConfig("nimi.desktop", missingDriverTarget)); err == nil {
+	if err := overwriteAIConfigStoreForTest(context.Background(), service.aiConfigStore, "user-001", appAIConfig("nimi.desktop", missingDriverTarget)); err == nil {
 		t.Fatal("AIConfig without Driver target was committed")
 	}
 
@@ -193,7 +193,7 @@ func commitCloudAudioSynthesizeAIConfig(t *testing.T, service *Service, accountI
 
 func commitAudioSynthesizeIntent(t *testing.T, service *Service, accountID string, appID string, intent *runtimev1.AIConfigCapabilityIntent) {
 	t.Helper()
-	if err := service.aiConfigStore.Overwrite(context.Background(), accountID, appAIConfig(appID, intent)); err != nil {
+	if err := overwriteAIConfigStoreForTest(context.Background(), service.aiConfigStore, accountID, appAIConfig(appID, intent)); err != nil {
 		t.Fatalf("commit audio.synthesize AIConfig: %v", err)
 	}
 }

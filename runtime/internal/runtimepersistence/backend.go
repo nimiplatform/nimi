@@ -579,6 +579,7 @@ func (b *Backend) ensureSchema() error {
 			owner_kind INTEGER NOT NULL,
 			owner_id TEXT NOT NULL,
 			config_blob BLOB NOT NULL,
+			revision INTEGER NOT NULL,
 			PRIMARY KEY(account_namespace, owner_kind, owner_id)
 		)`,
 		`CREATE TABLE IF NOT EXISTS runtime_ai_profile (

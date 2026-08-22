@@ -388,6 +388,16 @@ const (
 	AGENTTURNCONTEXTTRUNCATIONREASONCONTEXTCAPACITYEXCEEDED AgentTurnContextTruncationReason = "AGENT_TURN_CONTEXT_TRUNCATION_REASON_CONTEXT_CAPACITY_EXCEEDED"
 )
 
+type AIConfigEffectiveState string
+
+const (
+	AICONFIGEFFECTIVESTATEUNSPECIFIED AIConfigEffectiveState = "AI_CONFIG_EFFECTIVE_STATE_UNSPECIFIED"
+	AICONFIGEFFECTIVESTATEREADY AIConfigEffectiveState = "AI_CONFIG_EFFECTIVE_STATE_READY"
+	AICONFIGEFFECTIVESTATEMISSING AIConfigEffectiveState = "AI_CONFIG_EFFECTIVE_STATE_MISSING"
+	AICONFIGEFFECTIVESTATEBLOCKED AIConfigEffectiveState = "AI_CONFIG_EFFECTIVE_STATE_BLOCKED"
+	AICONFIGEFFECTIVESTATEUNAVAILABLE AIConfigEffectiveState = "AI_CONFIG_EFFECTIVE_STATE_UNAVAILABLE"
+)
+
 type AppMessageEventType string
 
 const (
@@ -1392,6 +1402,7 @@ const (
 	AILOADOUTNOTCONFIGURED ReasonCode = "AI_LOADOUT_NOT_CONFIGURED"
 	AILOADOUTCATALOGSCHEMAINVALID ReasonCode = "AI_LOADOUT_CATALOG_SCHEMA_INVALID"
 	AILOCALEXECUTIONOUTOFMEMORY ReasonCode = "AI_LOCAL_EXECUTION_OUT_OF_MEMORY"
+	AICONFIGREVISIONCONFLICT ReasonCode = "AI_CONFIG_REVISION_CONFLICT"
 )
 
 type ReasoningMode string
@@ -1723,8 +1734,34 @@ type AIConfigCloudIntent struct {
 	ProviderModelTarget map[string]any `json:"provider_model_target,omitempty"`
 }
 
-type AIConfigLocalIntent struct {
+type AIConfigEffectiveSelection struct {
+	CapabilityContract string `json:"capability_contract,omitempty"`
+	State AIConfigEffectiveState `json:"state,omitempty"`
+	Local *AIConfigLocalResourceProjection `json:"local,omitempty"`
+	Reasons []string `json:"reasons,omitempty"`
+}
 
+type AIConfigLocalIntent struct {
+	LoadoutRef string `json:"loadout_ref,omitempty"`
+}
+
+type AIConfigLocalLoadoutOptions struct {
+	Options []AIConfigLocalResourceProjection `json:"options,omitempty"`
+}
+
+type AIConfigLocalLoadoutOptionsQuery struct {
+	CapabilityContract string `json:"capability_contract,omitempty"`
+	Search string `json:"search,omitempty"`
+}
+
+type AIConfigLocalResourceProjection struct {
+	LoadoutRef string `json:"loadout_ref,omitempty"`
+	Label string `json:"label,omitempty"`
+	CapabilityContract string `json:"capability_contract,omitempty"`
+	Implementation *CapabilityImplementationIdentity `json:"implementation,omitempty"`
+	SupportedFeatures []string `json:"supported_features,omitempty"`
+	State AIConfigEffectiveState `json:"state,omitempty"`
+	Reasons []string `json:"reasons,omitempty"`
 }
 
 type AIConfigOwner struct {
@@ -3280,6 +3317,8 @@ type GetAppAIConfigRequest struct {
 
 type GetAppAIConfigResponse struct {
 	Config *AIConfig `json:"config,omitempty"`
+	Revision string `json:"revision,omitempty"`
+	EffectiveSelections []AIConfigEffectiveSelection `json:"effective_selections,omitempty"`
 }
 
 type GetAppStorageRequest struct {
@@ -3560,6 +3599,8 @@ type GetSharedLocalAgentAIConfigRequest struct {
 
 type GetSharedLocalAgentAIConfigResponse struct {
 	Config *AIConfig `json:"config,omitempty"`
+	Revision string `json:"revision,omitempty"`
+	EffectiveSelections []AIConfigEffectiveSelection `json:"effective_selections,omitempty"`
 }
 
 type GetVoiceAssetRequest struct {
@@ -3891,6 +3932,16 @@ type ListAgentsResponse struct {
 	NextPageToken string `json:"next_page_token,omitempty"`
 }
 
+type ListAppAIConfigOptionsRequest struct {
+	LocalLoadouts *AIConfigLocalLoadoutOptionsQuery `json:"local_loadouts,omitempty"`
+	Owner *AIConfigOwner `json:"owner,omitempty"`
+}
+
+type ListAppAIConfigOptionsResponse struct {
+	LocalLoadouts *AIConfigLocalLoadoutOptions `json:"local_loadouts,omitempty"`
+	Truncated bool `json:"truncated,omitempty"`
+}
+
 type ListAuditEventsRequest struct {
 	AppId string `json:"app_id,omitempty"`
 	SubjectUserId string `json:"subject_user_id,omitempty"`
@@ -4096,6 +4147,15 @@ type ListLocalAppAssetsResponse struct {
 	ReasonCode ReasonCode `json:"reason_code,omitempty"`
 }
 
+type ListLocalAppSharedLocalAgentAIConfigOptionsRequest struct {
+	LocalLoadouts *AIConfigLocalLoadoutOptionsQuery `json:"local_loadouts,omitempty"`
+}
+
+type ListLocalAppSharedLocalAgentAIConfigOptionsResponse struct {
+	LocalLoadouts *AIConfigLocalLoadoutOptions `json:"local_loadouts,omitempty"`
+	Truncated bool `json:"truncated,omitempty"`
+}
+
 type ListLocalAppVoiceAssetsRequest struct {
 	PageSize int32 `json:"page_size,omitempty"`
 	PageToken string `json:"page_token,omitempty"`
@@ -4239,6 +4299,16 @@ type ListScenarioProfilesRequest struct {
 
 type ListScenarioProfilesResponse struct {
 	Profiles []ScenarioProfile `json:"profiles,omitempty"`
+}
+
+type ListSharedLocalAgentAIConfigOptionsRequest struct {
+	Context *AgentRequestContext `json:"context,omitempty"`
+	LocalLoadouts *AIConfigLocalLoadoutOptionsQuery `json:"local_loadouts,omitempty"`
+}
+
+type ListSharedLocalAgentAIConfigOptionsResponse struct {
+	LocalLoadouts *AIConfigLocalLoadoutOptions `json:"local_loadouts,omitempty"`
+	Truncated bool `json:"truncated,omitempty"`
 }
 
 type ListUsageStatsRequest struct {
@@ -4626,6 +4696,8 @@ type LocalAppScenarioJobEvent struct {
 
 type LocalAppSharedLocalAgentAIConfigProjection struct {
 	Config *AIConfig `json:"config,omitempty"`
+	Revision string `json:"revision,omitempty"`
+	EffectiveSelections []AIConfigEffectiveSelection `json:"effective_selections,omitempty"`
 }
 
 type LocalAppSpeechSynthesizeJobSpec struct {
@@ -5572,27 +5644,39 @@ type OpenSessionResponse struct {
 
 type OverwriteAppAIConfigRequest struct {
 	Config *AIConfig `json:"config,omitempty"`
+	ExpectedRevision string `json:"expected_revision,omitempty"`
 }
 
 type OverwriteAppAIConfigResponse struct {
 	Config *AIConfig `json:"config,omitempty"`
+	Revision string `json:"revision,omitempty"`
+	Committed bool `json:"committed,omitempty"`
+	ReasonCode ReasonCode `json:"reason_code,omitempty"`
 }
 
 type OverwriteLocalAppSharedLocalAgentAIConfigRequest struct {
 	Capabilities []AIConfigCapabilityIntent `json:"capabilities,omitempty"`
+	ExpectedRevision string `json:"expected_revision,omitempty"`
 }
 
 type OverwriteLocalAppSharedLocalAgentAIConfigResponse struct {
 	Projection *LocalAppSharedLocalAgentAIConfigProjection `json:"projection,omitempty"`
+	Committed bool `json:"committed,omitempty"`
+	ReasonCode ReasonCode `json:"reason_code,omitempty"`
 }
 
 type OverwriteSharedLocalAgentAIConfigRequest struct {
 	Context *AgentRequestContext `json:"context,omitempty"`
 	Capabilities []AIConfigCapabilityIntent `json:"capabilities,omitempty"`
+	ExpectedRevision string `json:"expected_revision,omitempty"`
 }
 
 type OverwriteSharedLocalAgentAIConfigResponse struct {
 	Config *AIConfig `json:"config,omitempty"`
+	Revision string `json:"revision,omitempty"`
+	Committed bool `json:"committed,omitempty"`
+	ReasonCode ReasonCode `json:"reason_code,omitempty"`
+	EffectiveSelections []AIConfigEffectiveSelection `json:"effective_selections,omitempty"`
 }
 
 type PauseLocalTransferRequest struct {
@@ -7757,6 +7841,14 @@ func (c RuntimeTypedClient) ListLocalAppAgentReferences(ctx context.Context, req
 	return decodeRuntimeTypedResponse[ListLocalAppAgentReferencesResponse](raw, "ListLocalAppAgentReferencesResponse")
 }
 
+func (c RuntimeTypedClient) ListLocalAppSharedLocalAgentAIConfigOptions(ctx context.Context, request ListLocalAppSharedLocalAgentAIConfigOptionsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListLocalAppSharedLocalAgentAIConfigOptionsResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppSharedLocalAgentAIConfigOptions", request, metadata, timeoutMS)
+	if err != nil {
+		return ListLocalAppSharedLocalAgentAIConfigOptionsResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[ListLocalAppSharedLocalAgentAIConfigOptionsResponse](raw, "ListLocalAppSharedLocalAgentAIConfigOptionsResponse")
+}
+
 func (c RuntimeTypedClient) ListPendingHooks(ctx context.Context, request ListPendingHooksRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListPendingHooksResponse, error) {
 	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/ListPendingHooks", request, metadata, timeoutMS)
 	if err != nil {
@@ -7771,6 +7863,14 @@ func (c RuntimeTypedClient) ListPortableAIProfiles(ctx context.Context, request 
 		return ListPortableAIProfilesResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[ListPortableAIProfilesResponse](raw, "ListPortableAIProfilesResponse")
+}
+
+func (c RuntimeTypedClient) ListSharedLocalAgentAIConfigOptions(ctx context.Context, request ListSharedLocalAgentAIConfigOptionsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListSharedLocalAgentAIConfigOptionsResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/ListSharedLocalAgentAIConfigOptions", request, metadata, timeoutMS)
+	if err != nil {
+		return ListSharedLocalAgentAIConfigOptionsResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[ListSharedLocalAgentAIConfigOptionsResponse](raw, "ListSharedLocalAgentAIConfigOptionsResponse")
 }
 
 func (c RuntimeTypedClient) MaterializeRealmSource(ctx context.Context, request MaterializeRealmSourceRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (MaterializeRealmSourceResponse, error) {
@@ -8099,6 +8199,14 @@ func (c RuntimeTypedClient) GetVoiceAsset(ctx context.Context, request GetVoiceA
 		return GetVoiceAssetResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[GetVoiceAssetResponse](raw, "GetVoiceAssetResponse")
+}
+
+func (c RuntimeTypedClient) ListAppAIConfigOptions(ctx context.Context, request ListAppAIConfigOptionsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListAppAIConfigOptionsResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAiService/ListAppAIConfigOptions", request, metadata, timeoutMS)
+	if err != nil {
+		return ListAppAIConfigOptionsResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[ListAppAIConfigOptionsResponse](raw, "ListAppAIConfigOptionsResponse")
 }
 
 func (c RuntimeTypedClient) ListLocalAppVoiceAssets(ctx context.Context, request ListLocalAppVoiceAssetsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListLocalAppVoiceAssetsResponse, error) {

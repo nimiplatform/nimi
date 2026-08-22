@@ -5,6 +5,11 @@ import {
 import type {
   NimiCapabilityAIConfig,
   NimiCapabilityAIConfigIntent,
+  NimiAIConfigOptionsQuery,
+  NimiAIConfigOptionsResult,
+  NimiAIConfigOverwriteInput,
+  NimiAIConfigOverwriteResult,
+  NimiAIConfigSnapshot,
   NimiLocalAppAgentHandle,
   NimiPortableAppAIConfig,
 } from '@nimiplatform/kit/core/sdk-contract';
@@ -86,16 +91,6 @@ export type NimiLocalAppSessionStatus = {
   readonly reasonCode: string;
   readonly retryable: boolean;
   readonly currentUser: NimiLocalAppCurrentUserStatus;
-};
-
-export type NimiLocalAppModelConfigLocalSelection = {
-  readonly capabilityContract: string;
-  readonly state: 'selected' | 'broken';
-  readonly loadoutId: null;
-  readonly displayName: string | null;
-  readonly supportedFeatures: readonly string[];
-  readonly reasons: readonly string[];
-  readonly effectiveDefaults: Readonly<Record<string, string>> | null;
 };
 
 export type NimiLocalAppTextCandidateMessage = {
@@ -315,10 +310,9 @@ export type NimiLocalAppConversationSubscription = {
 
 export type NimiLocalAppAgentConfigureShellSurface = {
   readonly sharedAIConfig: {
-    readonly get: () => Promise<NimiCapabilityAIConfig>;
-    readonly overwrite: (
-      capabilities: readonly NimiCapabilityAIConfigIntent[],
-    ) => Promise<NimiCapabilityAIConfig>;
+    readonly get: () => Promise<NimiAIConfigSnapshot>;
+    readonly overwrite: (input: NimiAIConfigOverwriteInput) => Promise<NimiAIConfigOverwriteResult>;
+    readonly listOptions: (query: NimiAIConfigOptionsQuery) => Promise<NimiAIConfigOptionsResult>;
   };
   readonly autonomy: {
     readonly snapshot: (input: { readonly agentHandle: string }) => Promise<JsonObject>;
@@ -379,10 +373,9 @@ export type NimiLocalAppStandardShellSurface = {
     };
   };
   readonly aiConfig: {
-    readonly get: () => Promise<NimiPortableAppAIConfig>;
-  };
-  readonly modelConfig: {
-    readonly localSelections: () => Promise<readonly NimiLocalAppModelConfigLocalSelection[]>;
+    readonly get: () => Promise<NimiAIConfigSnapshot>;
+    readonly overwrite: (input: NimiAIConfigOverwriteInput) => Promise<NimiAIConfigOverwriteResult>;
+    readonly listOptions: (query: NimiAIConfigOptionsQuery) => Promise<NimiAIConfigOptionsResult>;
   };
   readonly storage: {
     readonly readJson: (relativePath: string) => Promise<NimiLocalAppStorageDocument>;
@@ -447,9 +440,8 @@ export function createNimiLocalAppStandardShellSurface(): NimiLocalAppStandardSh
     },
     aiConfig: {
       get: getNimiLocalAppAIConfig,
-    },
-    modelConfig: {
-      localSelections: getNimiLocalAppModelConfigLocalSelections,
+      overwrite: overwriteNimiLocalAppAIConfig,
+      listOptions: listNimiLocalAppAIConfigOptions,
     },
     storage: {
       readJson: readNimiLocalAppStorageJson,
@@ -476,6 +468,7 @@ export function createNimiLocalAppStandardShellSurface(): NimiLocalAppStandardSh
       sharedAIConfig: {
         get: getNimiLocalAppSharedAgentAIConfig,
         overwrite: overwriteNimiLocalAppSharedAgentAIConfig,
+        listOptions: listNimiLocalAppSharedAgentAIConfigOptions,
       },
       autonomy: {
         snapshot: getNimiLocalAppAgentAutonomySnapshot,
@@ -496,14 +489,32 @@ export function createNimiLocalAppStandardShellSurface(): NimiLocalAppStandardSh
   };
 }
 
-export function getNimiLocalAppAIConfig(): Promise<NimiPortableAppAIConfig> {
+export function getNimiLocalAppAIConfig(): Promise<NimiAIConfigSnapshot> {
   const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.aiConfigGet'];
-  return invokeChecked(command, {}, (value) => parseAppAIConfig(value, command));
+  return invokeChecked(command, {}, (value) => parseAppAIConfigSnapshot(value, command));
 }
 
-export function getNimiLocalAppModelConfigLocalSelections(): Promise<readonly NimiLocalAppModelConfigLocalSelection[]> {
-  const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.modelConfigLocalSelectionsGet'];
-  return invokeChecked(command, {}, (value) => parseModelConfigLocalSelections(value, command));
+export function overwriteNimiLocalAppAIConfig(
+  input: NimiAIConfigOverwriteInput,
+): Promise<NimiAIConfigOverwriteResult> {
+  const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.aiConfigOverwrite'];
+  const payload = {
+    expectedRevision: requiredText(input.expectedRevision, 'expectedRevision', command, MAX_IDENTIFIER_LENGTH),
+    capabilities: canonicalAIConfigCapabilities(input.capabilities, command),
+  };
+  return invokeChecked(command, payload, (value) => parseAppAIConfigOverwrite(value, command));
+}
+
+export function listNimiLocalAppAIConfigOptions(
+  query: NimiAIConfigOptionsQuery,
+): Promise<NimiAIConfigOptionsResult> {
+  const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.aiConfigLocalOptions'];
+  if (query.kind !== 'local-loadouts') throw invalidInput(command, 'options query kind is invalid');
+  const payload = {
+    capabilityContract: requiredText(query.capabilityContract, 'capabilityContract', command, MAX_IDENTIFIER_LENGTH),
+    search: query.search ?? '',
+  };
+  return invokeChecked(command, payload, (value) => parseAppAIConfigOptions(value, command));
 }
 
 export function getNimiLocalAppSessionStatus(): Promise<NimiLocalAppSessionStatus> {
@@ -840,21 +851,32 @@ export function listNimiLocalAppAgentReferences(): Promise<readonly NimiLocalApp
   });
 }
 
-export function getNimiLocalAppSharedAgentAIConfig(): Promise<NimiCapabilityAIConfig> {
+export function getNimiLocalAppSharedAgentAIConfig(): Promise<NimiAIConfigSnapshot> {
   const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.sharedAgentAIConfigGet'];
-  return invokeChecked(command, {}, (value) => parseSharedAgentAIConfig(value, command));
+  return invokeChecked(command, {}, (value) => parseSharedAgentAIConfigSnapshot(value, command));
 }
 
 export function overwriteNimiLocalAppSharedAgentAIConfig(
-  capabilities: readonly NimiCapabilityAIConfigIntent[],
-): Promise<NimiCapabilityAIConfig> {
+  input: NimiAIConfigOverwriteInput,
+): Promise<NimiAIConfigOverwriteResult> {
   const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.sharedAgentAIConfigOverwrite'];
-  const payload = canonicalAIConfigCapabilities(capabilities, command);
+  const payload = canonicalAIConfigCapabilities(input.capabilities, command);
   return invokeChecked(
     command,
-    { payload: { capabilities: payload } },
-    (value) => parseSharedAgentAIConfig(value, command),
+    { payload: { expectedRevision: input.expectedRevision, capabilities: payload } },
+    (value) => parseSharedAgentAIConfigOverwrite(value, command),
   );
+}
+
+export function listNimiLocalAppSharedAgentAIConfigOptions(
+  query: NimiAIConfigOptionsQuery,
+): Promise<NimiAIConfigOptionsResult> {
+  const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.sharedAgentAIConfigLocalOptions'];
+  if (query.kind !== 'local-loadouts') throw invalidInput(command, 'options query kind is invalid');
+  return invokeChecked(command, {
+    capabilityContract: requiredText(query.capabilityContract, 'capabilityContract', command, MAX_IDENTIFIER_LENGTH),
+    search: query.search ?? '',
+  }, (value) => parseAppAIConfigOptions(value, command));
 }
 
 export function getNimiLocalAppAgentAutonomySnapshot(
@@ -2062,67 +2084,87 @@ function parseSafeProjection(value: unknown, command: string): JsonObject {
   return record;
 }
 
-function parseModelConfigLocalSelections(
-  value: unknown,
-  command: string,
-): readonly NimiLocalAppModelConfigLocalSelection[] {
-  if (!Array.isArray(value) || value.length > 64) {
-    throw new Error(`${command}: local selection projection is invalid`);
+function parseAppAIConfigSnapshot(value: unknown, command: string): NimiAIConfigSnapshot {
+  const snapshot = parseSafeProjection(value, command);
+  rejectPortableAppAIConfigFields(snapshot, command);
+  assertProjectionKeys(snapshot, ['config', 'revision', 'effectiveSelections'], command, 'App AIConfig snapshot');
+  const revision = parseRevision(snapshot.revision, command);
+  const config = snapshot.config === null ? null : parseAppAIConfig(snapshot.config, command);
+  if (!Array.isArray(snapshot.effectiveSelections) || snapshot.effectiveSelections.length > 128) {
+    throw new Error(`${command}: effective selections are invalid`);
   }
-  return Object.freeze(value.map((entry) => {
-    const record = assertRecord(entry, `${command}: local selection is invalid`);
-    assertProjectionKeys(record, [
-      'capabilityContract', 'state', 'loadoutId', 'displayName',
-      'supportedFeatures', 'reasons', 'effectiveDefaults',
-    ], command, 'Model Config local selection');
-    const capabilityContract = requiredText(
-      record.capabilityContract,
-      'capabilityContract',
-      command,
-      MAX_IDENTIFIER_LENGTH,
-    );
-    if ((record.state !== 'selected' && record.state !== 'broken')
-      || record.loadoutId !== null
-      || (record.displayName !== null && (
-        typeof record.displayName !== 'string'
-        || !record.displayName
-        || record.displayName.trim() !== record.displayName
-      ))
-      || !Array.isArray(record.supportedFeatures)
-      || record.supportedFeatures.some((feature) => typeof feature !== 'string'
-        || !feature || feature.trim() !== feature)
-      || !Array.isArray(record.reasons)
-      || record.reasons.some((reason) => typeof reason !== 'string'
-        || !reason || reason.trim() !== reason)) {
-      throw new Error(`${command}: local selection projection is invalid`);
-    }
-    return Object.freeze({
-      capabilityContract,
-      state: record.state,
-      loadoutId: null,
-      displayName: record.displayName as string | null,
-      supportedFeatures: Object.freeze([...record.supportedFeatures] as string[]),
-      reasons: Object.freeze([...record.reasons] as string[]),
-      effectiveDefaults: parseEffectiveDefaults(record.effectiveDefaults, command),
-    });
-  }));
+  snapshot.effectiveSelections.forEach((selection) => parseEffectiveSelection(selection, command));
+  return Object.freeze({ config, revision, effectiveSelections: Object.freeze([...snapshot.effectiveSelections]) }) as NimiAIConfigSnapshot;
 }
 
-function parseEffectiveDefaults(
-  value: unknown,
-  command: string,
-): Readonly<Record<string, string>> | null {
-  if (value === null) return null;
-  const record = assertRecord(value, `${command}: effective defaults are invalid`);
-  const entries = Object.entries(record);
-  if (entries.length === 0 || entries.length > 64 || entries.some(([key, item]) => (
-    !key || key.trim() !== key || new TextEncoder().encode(key).byteLength > 128
-    || typeof item !== 'string' || !item || item.trim() !== item
-    || new TextEncoder().encode(item).byteLength > 128
-  ))) {
-    throw new Error(`${command}: effective defaults are invalid`);
+function parseAppAIConfigOverwrite(value: unknown, command: string): NimiAIConfigOverwriteResult {
+  const result = parseSafeProjection(value, command);
+  rejectPortableAppAIConfigFields(result, command);
+  assertProjectionKeys(result, ['outcome', 'config', 'revision', 'reasonCode'], command, 'App AIConfig overwrite');
+  const revision = parseRevision(result.revision, command);
+  const config = result.config === null ? null : parseAppAIConfig(result.config, command);
+  if (result.outcome === 'committed' && result.reasonCode === 'REASON_CODE_UNSPECIFIED' && config) {
+    return Object.freeze({ outcome: 'committed', config, revision });
   }
-  return Object.freeze(Object.fromEntries(entries) as Record<string, string>);
+  if (result.outcome === 'conflict' && result.reasonCode === 'AI_CONFIG_REVISION_CONFLICT') {
+    return Object.freeze({ outcome: 'conflict', config, revision, reasonCode: result.reasonCode });
+  }
+  throw new Error(`${command}: overwrite outcome is invalid`);
+}
+
+function parseAppAIConfigOptions(value: unknown, command: string): NimiAIConfigOptionsResult {
+  const result = parseSafeProjection(value, command);
+  rejectPortableAppAIConfigFields(result, command);
+  assertProjectionKeys(result, ['kind', 'options', 'truncated'], command, 'App AIConfig options');
+  if (result.kind !== 'local-loadouts' || !Array.isArray(result.options)
+    || result.options.length > 100 || typeof result.truncated !== 'boolean') {
+    throw new Error(`${command}: options result is invalid`);
+  }
+  result.options.forEach((option) => parseLocalResource(option, command));
+  return Object.freeze({ kind: 'local-loadouts', options: Object.freeze([...result.options]), truncated: result.truncated }) as NimiAIConfigOptionsResult;
+}
+
+function parseEffectiveSelection(value: unknown, command: string): void {
+  const selection = assertRecord(value, `${command}: effective selection is invalid`);
+  assertProjectionKeys(selection, ['capabilityContract', 'state', 'resource', 'reasons'], command, 'effective selection');
+  requiredText(selection.capabilityContract, 'capabilityContract', command, MAX_IDENTIFIER_LENGTH);
+  if (!['ready', 'missing', 'blocked', 'unavailable'].includes(String(selection.state))
+    || !Array.isArray(selection.reasons)) {
+    throw new Error(`${command}: effective selection is invalid`);
+  }
+  if (selection.resource !== null) {
+    const resource = assertRecord(selection.resource, `${command}: effective resource is invalid`);
+    assertProjectionKeys(resource, ['oneofKind', 'local'], command, 'effective resource');
+    if (resource.oneofKind !== 'local') throw new Error(`${command}: effective resource kind is invalid`);
+    parseLocalResource(resource.local, command);
+  }
+}
+
+function parseLocalResource(value: unknown, command: string): void {
+  const resource = assertRecord(value, `${command}: Local resource is invalid`);
+  assertProjectionKeys(resource, [
+    'loadoutRef', 'label', 'capabilityContract', 'implementation',
+    'supportedFeatures', 'state', 'reasons',
+  ], command, 'Local resource');
+  requiredText(resource.loadoutRef, 'loadoutRef', command, MAX_IDENTIFIER_LENGTH);
+  requiredText(resource.label, 'label', command, MAX_IDENTIFIER_LENGTH);
+  requiredText(resource.capabilityContract, 'capabilityContract', command, MAX_IDENTIFIER_LENGTH);
+  const implementation = assertRecord(resource.implementation, `${command}: Local implementation is invalid`);
+  assertProjectionKeys(implementation, ['implementationId', 'driverId', 'driverDialect'], command, 'Local implementation');
+  for (const key of ['implementationId', 'driverId', 'driverDialect'] as const) {
+    requiredText(implementation[key], key, command, MAX_IDENTIFIER_LENGTH);
+  }
+  if (!Array.isArray(resource.supportedFeatures) || !Array.isArray(resource.reasons)
+    || (resource.state !== 'ready' && resource.state !== 'blocked')) {
+    throw new Error(`${command}: Local resource is invalid`);
+  }
+}
+
+function parseRevision(value: unknown, command: string): string {
+  if (typeof value !== 'string' || !/^(0|[1-9][0-9]*)$/u.test(value)) {
+    throw new Error(`${command}: revision is invalid`);
+  }
+  return value;
 }
 
 function parseAppAIConfig(value: unknown, command: string): NimiPortableAppAIConfig {
@@ -2168,6 +2210,36 @@ function parseSharedAgentAIConfig(value: unknown, command: string): NimiCapabili
     throw new Error(`${command}: shared LocalAgent AIConfig capabilities are invalid`);
   }
   return config as unknown as NimiCapabilityAIConfig;
+}
+
+function parseSharedAgentAIConfigSnapshot(value: unknown, command: string): NimiAIConfigSnapshot {
+  const snapshot = parseSafeProjection(value, command);
+  assertProjectionKeys(snapshot, ['config', 'revision', 'effectiveSelections'], command, 'shared AIConfig snapshot');
+  const revision = parseRevision(snapshot.revision, command);
+  const config = snapshot.config === null ? null : parseSharedAgentAIConfig(snapshot.config, command);
+  if (!Array.isArray(snapshot.effectiveSelections) || snapshot.effectiveSelections.length > 128) {
+    throw new Error(`${command}: effective selections are invalid`);
+  }
+  snapshot.effectiveSelections.forEach((selection) => parseEffectiveSelection(selection, command));
+  return Object.freeze({ config, revision, effectiveSelections: Object.freeze([...snapshot.effectiveSelections]) }) as NimiAIConfigSnapshot;
+}
+
+function parseSharedAgentAIConfigOverwrite(value: unknown, command: string): NimiAIConfigOverwriteResult {
+  const result = parseSafeProjection(value, command);
+  assertProjectionKeys(result, ['outcome', 'config', 'revision', 'effectiveSelections', 'reasonCode'], command, 'shared AIConfig overwrite');
+  const revision = parseRevision(result.revision, command);
+  const config = result.config === null ? null : parseSharedAgentAIConfig(result.config, command);
+  if (!Array.isArray(result.effectiveSelections) || result.effectiveSelections.length > 128) {
+    throw new Error(`${command}: effective selections are invalid`);
+  }
+  result.effectiveSelections.forEach((selection) => parseEffectiveSelection(selection, command));
+  if (result.outcome === 'committed' && result.reasonCode === 'REASON_CODE_UNSPECIFIED' && config) {
+    return Object.freeze({ outcome: 'committed', config, revision });
+  }
+  if (result.outcome === 'conflict' && result.reasonCode === 'AGENT_AI_CONFIG_REVISION_CONFLICT') {
+    return Object.freeze({ outcome: 'conflict', config, revision, reasonCode: result.reasonCode });
+  }
+  throw new Error(`${command}: overwrite outcome is invalid`);
 }
 
 function canonicalAIConfigCapabilities(
@@ -2216,8 +2288,13 @@ function canonicalAIConfigRoute(route: JsonObject, index: number, command: strin
   if (route.oneofKind === 'local') {
     assertProjectionKeys(route, ['oneofKind', 'local'], command, `capabilities[${index}].route`);
     const local = assertRecord(route.local, `${command}: capabilities[${index}].route.local is invalid`);
-    assertProjectionKeys(local, [], command, `capabilities[${index}].route.local`);
-    return { oneofKind: 'local', local: {} };
+    assertProjectionKeys(local, ['loadoutRef'], command, `capabilities[${index}].route.local`);
+    return {
+      oneofKind: 'local',
+      local: {
+        loadoutRef: requiredText(local.loadoutRef, 'loadoutRef', command, MAX_IDENTIFIER_LENGTH),
+      },
+    };
   }
   if (route.oneofKind !== 'cloud') {
     throw invalidInput(command, `capabilities[${index}].route is invalid`);

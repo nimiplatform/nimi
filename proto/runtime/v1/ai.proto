@@ -1182,6 +1182,7 @@ message UploadArtifactResponse {
 service RuntimeAiService {
   rpc GetAppAIConfig(GetAppAIConfigRequest) returns (GetAppAIConfigResponse);
   rpc OverwriteAppAIConfig(OverwriteAppAIConfigRequest) returns (OverwriteAppAIConfigResponse);
+  rpc ListAppAIConfigOptions(ListAppAIConfigOptionsRequest) returns (ListAppAIConfigOptionsResponse);
   rpc GenerateLocalAppTextCandidate(GenerateLocalAppTextCandidateRequest) returns (GenerateLocalAppTextCandidateResponse);
   rpc ExecuteLocalAppScenario(ExecuteLocalAppScenarioRequest) returns (ExecuteLocalAppScenarioResponse);
   rpc SubmitLocalAppScenarioJob(SubmitLocalAppScenarioJobRequest) returns (SubmitLocalAppScenarioJobResponse);

@@ -7,15 +7,19 @@ use serde_json::{json, Map, Value as JsonValue};
 use tonic::transport::Channel;
 
 use crate::generated::{
-    ai_config_capability_intent, ai_config_owner,
-    runtime_ai_service_client::RuntimeAiServiceClient,
-    runtime_local_service_client::RuntimeLocalServiceClient, AiConfig, AiConfigCapabilityIntent,
-    AiConfigCloudIntent, AiConfigLocalIntent, CapabilityImplementationIdentity,
-    GetAppAiConfigRequest, GetMachineLoadoutsRequest, LoadoutValidationState, MachineLoadouts,
-    ReasonCode,
+    ai_config_capability_intent, ai_config_effective_selection, ai_config_owner,
+    list_app_ai_config_options_request, list_app_ai_config_options_response,
+    runtime_ai_service_client::RuntimeAiServiceClient, AiConfig, AiConfigCapabilityIntent,
+    AiConfigCloudIntent, AiConfigEffectiveSelection, AiConfigEffectiveState, AiConfigLocalIntent,
+    AiConfigLocalLoadoutOptionsQuery, AiConfigLocalResourceProjection,
+    CapabilityImplementationIdentity, GetAppAiConfigRequest, ListAppAiConfigOptionsRequest,
+    OverwriteAppAiConfigRequest, ReasonCode,
 };
 use crate::grpc_status::local_app_error_from_status;
-use crate::{LocalAppOperationError, LocalAppReasonCode};
+use crate::{
+    LocalAppAIConfigLocalOptionsRequest, LocalAppAIConfigOverwriteRequest, LocalAppOperationError,
+    LocalAppReasonCode,
+};
 
 const MAX_JSON_DEPTH: usize = 32;
 const MAX_JSON_NODES: usize = 100_000;
@@ -26,85 +30,83 @@ pub async fn get(channel: Channel) -> Result<JsonValue, LocalAppOperationError> 
         .await
         .map_err(local_app_error_from_status)?
         .into_inner();
-    project_config(response.config.ok_or_else(untrusted)?)
+    if response.revision.trim().is_empty() {
+        return Err(untrusted());
+    }
+    let config = response.config.map(project_config).transpose()?;
+    let effective = response
+        .effective_selections
+        .into_iter()
+        .map(project_effective_selection)
+        .collect::<Result<Vec<_>, _>>()?;
+    Ok(json!({
+        "config": config,
+        "revision": response.revision,
+        "effectiveSelections": effective,
+    }))
 }
 
-// @nimi-authority: rule.nimi.runtime.local-compute.r107
-pub async fn local_selections(channel: Channel) -> Result<JsonValue, LocalAppOperationError> {
-    let response = RuntimeLocalServiceClient::new(channel)
-        .get_machine_loadouts(GetMachineLoadoutsRequest {})
+pub async fn overwrite(
+    channel: Channel,
+    request: LocalAppAIConfigOverwriteRequest,
+) -> Result<JsonValue, LocalAppOperationError> {
+    let expected_revision = required_text_value(&request.expected_revision)?;
+    let capabilities = parse_capabilities(request.capabilities)?;
+    let response = RuntimeAiServiceClient::new(channel)
+        .overwrite_app_ai_config(OverwriteAppAiConfigRequest {
+            config: Some(AiConfig {
+                owner: None,
+                capabilities,
+            }),
+            expected_revision,
+        })
         .await
         .map_err(local_app_error_from_status)?
         .into_inner();
-    project_local_selections(response.aggregate.ok_or_else(untrusted)?)
+    if response.revision.trim().is_empty() {
+        return Err(untrusted());
+    }
+    let config = response.config.map(project_config).transpose()?;
+    let reason = ReasonCode::try_from(response.reason_code).map_err(|_| untrusted())?;
+    if response.committed && reason != ReasonCode::Unspecified {
+        return Err(untrusted());
+    }
+    if !response.committed && reason != ReasonCode::AiConfigRevisionConflict {
+        return Err(untrusted());
+    }
+    Ok(json!({
+        "outcome": if response.committed { "committed" } else { "conflict" },
+        "config": config,
+        "revision": response.revision,
+        "reasonCode": reason.as_str_name(),
+    }))
 }
 
-fn project_local_selections(
-    aggregate: MachineLoadouts,
+pub async fn list_local_options(
+    channel: Channel,
+    request: LocalAppAIConfigLocalOptionsRequest,
 ) -> Result<JsonValue, LocalAppOperationError> {
-    let loadouts = aggregate
-        .loadouts
-        .into_iter()
-        .map(|loadout| (loadout.loadout_id.clone(), loadout))
-        .collect::<BTreeMap<_, _>>();
-    let selections = aggregate
-        .selections
-        .into_iter()
-        .map(|selection| {
-            if selection.capability_contract.trim().is_empty()
-                || selection.loadout_id.trim().is_empty()
-            {
-                return Err(untrusted());
-            }
-            let Some(loadout) = loadouts.get(&selection.loadout_id) else {
-                return Ok(json!({
-                    "capabilityContract": selection.capability_contract,
-                    "state": "broken",
-                    "loadoutId": null,
-                    "displayName": null,
-                    "supportedFeatures": [],
-                    "reasons": ["selected-loadout-not-found"],
-                    "effectiveDefaults": null,
-                }));
-            };
-            if loadout.capability_contract != selection.capability_contract {
-                return Err(untrusted());
-            }
-            let mut reasons = Vec::new();
-            if loadout.validation_state != LoadoutValidationState::Configured as i32 {
-                reasons.push("loadout-unresolved".to_string());
-            }
-            for reason in &loadout.reasons {
-                let reason = ReasonCode::try_from(*reason).map_err(|_| untrusted())?;
-                if reason != ReasonCode::Unspecified {
-                    reasons.push(
-                        reason
-                            .as_str_name()
-                            .trim_start_matches("REASON_CODE_")
-                            .to_ascii_lowercase()
-                            .replace('_', "-"),
-                    );
-                }
-            }
-            reasons.sort();
-            reasons.dedup();
-            let display_name = loadout.display_name.trim();
-            let effective_defaults = selection
-                .effective_defaults
-                .map(project_effective_defaults)
-                .transpose()?;
-            Ok(json!({
-                "capabilityContract": selection.capability_contract,
-                "state": if reasons.is_empty() { "selected" } else { "broken" },
-                "loadoutId": null,
-                "displayName": if display_name.is_empty() { JsonValue::Null } else { JsonValue::String(display_name.to_string()) },
-                "supportedFeatures": loadout.supported_features,
-                "reasons": reasons,
-                "effectiveDefaults": effective_defaults,
-            }))
+    let response = RuntimeAiServiceClient::new(channel)
+        .list_app_ai_config_options(ListAppAiConfigOptionsRequest {
+            query: Some(list_app_ai_config_options_request::Query::LocalLoadouts(
+                AiConfigLocalLoadoutOptionsQuery {
+                    capability_contract: required_text_value(&request.capability_contract)?,
+                    search: request.search,
+                },
+            )),
+            owner: None,
         })
-        .collect::<Result<Vec<_>, LocalAppOperationError>>()?;
-    Ok(JsonValue::Array(selections))
+        .await
+        .map_err(local_app_error_from_status)?
+        .into_inner();
+    let options = match response.result.ok_or_else(untrusted)? {
+        list_app_ai_config_options_response::Result::LocalLoadouts(value) => value
+            .options
+            .into_iter()
+            .map(project_local_resource)
+            .collect::<Result<Vec<_>, _>>()?,
+    };
+    Ok(json!({ "kind": "local-loadouts", "options": options, "truncated": response.truncated }))
 }
 
 fn project_effective_defaults(value: ProtoStruct) -> Result<JsonValue, LocalAppOperationError> {
@@ -130,6 +132,65 @@ fn project_effective_defaults(value: ProtoStruct) -> Result<JsonValue, LocalAppO
         })
         .collect::<Result<Map<_, _>, LocalAppOperationError>>()?;
     Ok(JsonValue::Object(fields))
+}
+
+pub(super) fn project_effective_selection(
+    selection: AiConfigEffectiveSelection,
+) -> Result<JsonValue, LocalAppOperationError> {
+    let capability_contract = required_text_value(&selection.capability_contract)?;
+    let state = project_effective_state(selection.state)?;
+    let resource = match selection.resource {
+        Some(ai_config_effective_selection::Resource::Local(local)) => json!({
+            "oneofKind": "local",
+            "local": project_local_resource(local)?,
+        }),
+        None => JsonValue::Null,
+    };
+    Ok(json!({
+        "capabilityContract": capability_contract,
+        "state": state,
+        "resource": resource,
+        "reasons": selection.reasons,
+    }))
+}
+
+pub(super) fn project_local_resource(
+    resource: AiConfigLocalResourceProjection,
+) -> Result<JsonValue, LocalAppOperationError> {
+    let implementation = resource
+        .implementation
+        .map(project_implementation)
+        .transpose()?
+        .unwrap_or(JsonValue::Null);
+    Ok(json!({
+        "loadoutRef": required_text_value(&resource.loadout_ref)?,
+        "label": required_text_value(&resource.label)?,
+        "capabilityContract": required_text_value(&resource.capability_contract)?,
+        "implementation": implementation,
+        "supportedFeatures": resource.supported_features,
+        "state": project_effective_state(resource.state)?,
+        "reasons": resource.reasons,
+    }))
+}
+
+fn project_implementation(
+    implementation: CapabilityImplementationIdentity,
+) -> Result<JsonValue, LocalAppOperationError> {
+    Ok(json!({
+        "implementationId": required_text_value(&implementation.implementation_id)?,
+        "driverId": required_text_value(&implementation.driver_id)?,
+        "driverDialect": required_text_value(&implementation.driver_dialect)?,
+    }))
+}
+
+fn project_effective_state(value: i32) -> Result<&'static str, LocalAppOperationError> {
+    match AiConfigEffectiveState::try_from(value).map_err(|_| untrusted())? {
+        AiConfigEffectiveState::Ready => Ok("ready"),
+        AiConfigEffectiveState::Missing => Ok("missing"),
+        AiConfigEffectiveState::Blocked => Ok("blocked"),
+        AiConfigEffectiveState::Unavailable => Ok("unavailable"),
+        AiConfigEffectiveState::Unspecified => Err(untrusted()),
+    }
 }
 
 pub(super) fn parse_capabilities(
@@ -187,12 +248,15 @@ fn parse_route(
     match object.get("oneofKind").and_then(JsonValue::as_str) {
         Some("local") => {
             exact_keys(object, &["oneofKind", "local"], &["oneofKind", "local"])?;
-            let local = exact_object(object.get("local").ok_or_else(invalid_payload)?, &[], &[])?;
-            if !local.is_empty() {
-                return Err(invalid_payload());
-            }
+            let local = exact_object(
+                object.get("local").ok_or_else(invalid_payload)?,
+                &["loadoutRef"],
+                &["loadoutRef"],
+            )?;
             Ok(ai_config_capability_intent::Route::Local(
-                AiConfigLocalIntent {},
+                AiConfigLocalIntent {
+                    loadout_ref: required_text(local.get("loadoutRef"))?,
+                },
             ))
         }
         Some("cloud") => {
@@ -389,8 +453,11 @@ pub(super) fn project_capability(
         return Err(untrusted());
     }
     let route = match intent.route.ok_or_else(untrusted)? {
-        ai_config_capability_intent::Route::Local(_) => {
-            json!({ "oneofKind": "local", "local": {} })
+        ai_config_capability_intent::Route::Local(local) => {
+            json!({
+                "oneofKind": "local",
+                "local": { "loadoutRef": required_text_value(&local.loadout_ref)? },
+            })
         }
         ai_config_capability_intent::Route::Cloud(cloud) => {
             let implementation = cloud.implementation.ok_or_else(untrusted)?;
@@ -505,6 +572,13 @@ fn required_text(value: Option<&JsonValue>) -> Result<String, LocalAppOperationE
     let value = value
         .and_then(JsonValue::as_str)
         .ok_or_else(invalid_payload)?;
+    if value.is_empty() || value.trim() != value {
+        return Err(invalid_payload());
+    }
+    Ok(value.to_string())
+}
+
+pub(super) fn required_text_value(value: &str) -> Result<String, LocalAppOperationError> {
     if value.is_empty() || value.trim() != value {
         return Err(invalid_payload());
     }

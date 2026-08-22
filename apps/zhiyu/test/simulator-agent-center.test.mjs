@@ -24,10 +24,11 @@ test('Simulator Agent Center keeps configuration in memory with CAS and fail-clo
   );
 
   await session.overwriteSharedAIConfig({
+    expectedRevision: '1',
     capabilities: [{
       capabilityContract: 'text.embed',
       requiredFeatures: [],
-      route: { oneofKind: 'local', local: {} },
+      route: { oneofKind: 'local', local: { loadoutRef: 'simulated-embed-loadout' } },
     }],
   });
   assert.equal(

@@ -46,6 +46,8 @@ const (
 	LocalAppOperationPersonaCreate           = localappop.OperationRealmPersonaCharacterCreate
 	LocalAppOperationPersonaReplace          = localappop.OperationRealmPersonaCharacterReplace
 	LocalAppOperationAppAIConfigRead         = localappop.OperationAppAIConfigGet
+	LocalAppOperationAppAIConfigOverwrite    = localappop.OperationAppAIConfigOverwrite
+	LocalAppOperationAppAIConfigOptionsList  = localappop.OperationAppAIConfigOptionsList
 	LocalAppOperationTextCandidateGenerate   = localappop.OperationTextCandidateGenerate
 	LocalAppOperationTextTurnStream          = localappop.OperationTextTurnStream
 	LocalAppOperationScenarioExecute         = localappop.OperationScenarioExecute
@@ -58,6 +60,7 @@ const (
 	LocalAppOperationVoiceAssetsList         = localappop.OperationVoiceAssetsList
 	LocalAppOperationSharedAIConfigGet       = localappop.OperationAgentAIConfigGet
 	LocalAppOperationSharedAIConfigOverwrite = localappop.OperationAgentAIConfigOverwrite
+	LocalAppOperationSharedAIConfigOptions   = localappop.OperationAgentAIConfigOptionsList
 	LocalAppOperationAutonomySnapshot        = localappop.OperationAgentAutonomySnapshotGet
 	LocalAppOperationUpdateAutonomy          = localappop.OperationAgentAutonomyUpdate
 	LocalAppOperationPresentationSnapshot    = localappop.OperationAgentPresentationSnapshotGet

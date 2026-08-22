@@ -9,6 +9,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import {
+  type NimiCapabilityAIConfig,
   type NimiAIProfileApplyPreview,
   type NimiAIProfileFeatureSubsetResult,
   type NimiAIProfileLocalConfigurationDecision,
@@ -84,10 +85,12 @@ export function AIProfileAuthoringPage() {
     try {
       const next = await loadRuntimeConfigAIProfileAuthoringCurrentProjection({
         appId: appAIConfig.appId,
-        getAppAIConfig: () => readOptionalAIConfig(() => appAIConfig.get()),
+        getAppAIConfig: () => readOptionalAIConfig(async () => (
+          (await appAIConfig.get()).config as unknown as NimiCapabilityAIConfig | null
+        )),
         getSharedAIConfig: () => readOptionalAIConfig(async () => (
           await sharedAIConfig.get({ subjectUserId })
-        ).aiConfig),
+        ).config),
         getLoadouts: () => loadouts.get(),
         getRecipes: () => loadouts.listRecipes(),
       });
@@ -814,9 +817,7 @@ function ApplyPreviewSection(props: {
   const { intentDiff } = props.preview;
   return (
     <PreviewSection title={props.t('runtimeConfig.profiles.authoring.applyPreviewTitle', { owner: props.ownerLabel })} testId={`ai-profile-authoring-apply-preview:${props.preview.target.kind}`}>
-      <div>{props.preview.identical
-        ? props.t('runtimeConfig.profiles.authoring.applyIdentical')
-        : props.t('runtimeConfig.profiles.authoring.applyChanges')}</div>
+      <div>{props.t('runtimeConfig.profiles.authoring.applyChanges')}</div>
       <dl className="mt-2 grid gap-1">
         <PreviewFact label={props.t('runtimeConfig.profiles.authoring.added')} value={listOrNone(intentDiff.addedCapabilityContracts.map((contract) => displayRuntimeConfigCapabilityLabel(contract, props.t)), props.t)} />
         <PreviewFact label={props.t('runtimeConfig.profiles.authoring.changed')} value={listOrNone(intentDiff.changedCapabilityContracts.map((contract) => displayRuntimeConfigCapabilityLabel(contract, props.t)), props.t)} />

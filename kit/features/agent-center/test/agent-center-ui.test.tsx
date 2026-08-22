@@ -88,7 +88,7 @@ describe('AgentCenter UI session contract', () => {
   it('renders from the Manager Session and exposes only UI composition props', async () => {
     const intent = {
       capabilityContract: 'text.generate',
-      route: { oneofKind: 'local' as const, local: {} },
+      route: { oneofKind: 'local' as const, local: { loadoutRef: 'loadout:text' } },
       requiredFeatures: [] as string[],
     };
     const session = await sessionFor({
@@ -99,6 +99,7 @@ describe('AgentCenter UI session contract', () => {
           },
           capabilities: [intent],
         },
+        revision: '1',
         capabilities: ['text.generate'],
         intents: [{ capability: 'text.generate', route: 'local', requiredFeatures: [] }],
       },
@@ -229,31 +230,35 @@ describe('AgentCenter UI session contract', () => {
   });
 
   it('allows first-time configuration after Runtime reports canonical AIConfig absence', async () => {
-    let committed: AgentCenterSharedAIConfigProjection | null = null;
+    let committed: AgentCenterSharedAIConfigProjection['aiConfig'] | null = null;
+    let revision = '0';
     const session = createFirstPartyAgentCenterSession({
       identity: { ownerUserId: 'owner', runtimeSourceRef: 'source', localAgentRef: 'agent' },
       sharedAIConfig: {
         async get() {
-          if (!committed) throw { reasonCode: 'AI_CONFIG_NOT_FOUND' };
-          return committed;
+          return { config: committed, revision, effectiveSelections: [] };
         },
         async overwrite(input) {
           const capabilities = [...input.capabilities];
           committed = {
-            aiConfig: {
-              owner: {
-                owner: { oneofKind: 'runtimeLocalAgentSubsystem', runtimeLocalAgentSubsystem: {} },
-              },
-              capabilities,
+            owner: {
+              owner: { oneofKind: 'runtimeLocalAgentSubsystem', runtimeLocalAgentSubsystem: {} },
             },
-            capabilities: capabilities.map((intent) => intent.capabilityContract),
-            intents: capabilities.map((intent) => ({
-              capability: intent.capabilityContract,
-              route: intent.route.oneofKind === 'local' ? 'local' : 'cloud',
-              requiredFeatures: [...intent.requiredFeatures],
-            })),
+            capabilities,
           };
-          return committed;
+          revision = '1';
+          return { outcome: 'committed' as const, config: committed, revision };
+        },
+        async listOptions() {
+          return {
+            kind: 'local-loadouts' as const,
+            options: [{
+              loadoutRef: 'loadout:text', label: 'Local text model', capabilityContract: 'text.generate',
+              implementation: { implementationId: 'local.text', driverId: 'test', driverDialect: 'test/local/v1' },
+              supportedFeatures: [], state: 'ready' as const, reasons: [],
+            }],
+            truncated: false,
+          };
         },
       },
     });
@@ -295,7 +300,7 @@ describe('AgentCenter UI session contract', () => {
     expect(config?.owner?.owner.oneofKind).toBe('runtimeLocalAgentSubsystem');
     expect(config?.capabilities).toEqual([expect.objectContaining({
       capabilityContract: 'text.generate',
-      route: { oneofKind: 'local', local: {} },
+      route: { oneofKind: 'local', local: { loadoutRef: 'loadout:text' } },
     })]);
     expect(JSON.stringify(config)).not.toContain('targetRef');
   });

@@ -21,6 +21,7 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	RuntimeAiService_GetAppAIConfig_FullMethodName                     = "/nimi.runtime.v1.RuntimeAiService/GetAppAIConfig"
 	RuntimeAiService_OverwriteAppAIConfig_FullMethodName               = "/nimi.runtime.v1.RuntimeAiService/OverwriteAppAIConfig"
+	RuntimeAiService_ListAppAIConfigOptions_FullMethodName             = "/nimi.runtime.v1.RuntimeAiService/ListAppAIConfigOptions"
 	RuntimeAiService_GenerateLocalAppTextCandidate_FullMethodName      = "/nimi.runtime.v1.RuntimeAiService/GenerateLocalAppTextCandidate"
 	RuntimeAiService_ExecuteLocalAppScenario_FullMethodName            = "/nimi.runtime.v1.RuntimeAiService/ExecuteLocalAppScenario"
 	RuntimeAiService_SubmitLocalAppScenarioJob_FullMethodName          = "/nimi.runtime.v1.RuntimeAiService/SubmitLocalAppScenarioJob"
@@ -53,6 +54,7 @@ const (
 type RuntimeAiServiceClient interface {
 	GetAppAIConfig(ctx context.Context, in *GetAppAIConfigRequest, opts ...grpc.CallOption) (*GetAppAIConfigResponse, error)
 	OverwriteAppAIConfig(ctx context.Context, in *OverwriteAppAIConfigRequest, opts ...grpc.CallOption) (*OverwriteAppAIConfigResponse, error)
+	ListAppAIConfigOptions(ctx context.Context, in *ListAppAIConfigOptionsRequest, opts ...grpc.CallOption) (*ListAppAIConfigOptionsResponse, error)
 	GenerateLocalAppTextCandidate(ctx context.Context, in *GenerateLocalAppTextCandidateRequest, opts ...grpc.CallOption) (*GenerateLocalAppTextCandidateResponse, error)
 	ExecuteLocalAppScenario(ctx context.Context, in *ExecuteLocalAppScenarioRequest, opts ...grpc.CallOption) (*ExecuteLocalAppScenarioResponse, error)
 	SubmitLocalAppScenarioJob(ctx context.Context, in *SubmitLocalAppScenarioJobRequest, opts ...grpc.CallOption) (*SubmitLocalAppScenarioJobResponse, error)
@@ -102,6 +104,16 @@ func (c *runtimeAiServiceClient) OverwriteAppAIConfig(ctx context.Context, in *O
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(OverwriteAppAIConfigResponse)
 	err := c.cc.Invoke(ctx, RuntimeAiService_OverwriteAppAIConfig_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAiServiceClient) ListAppAIConfigOptions(ctx context.Context, in *ListAppAIConfigOptionsRequest, opts ...grpc.CallOption) (*ListAppAIConfigOptionsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListAppAIConfigOptionsResponse)
+	err := c.cc.Invoke(ctx, RuntimeAiService_ListAppAIConfigOptions_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -393,6 +405,7 @@ func (c *runtimeAiServiceClient) PeekScheduling(ctx context.Context, in *PeekSch
 type RuntimeAiServiceServer interface {
 	GetAppAIConfig(context.Context, *GetAppAIConfigRequest) (*GetAppAIConfigResponse, error)
 	OverwriteAppAIConfig(context.Context, *OverwriteAppAIConfigRequest) (*OverwriteAppAIConfigResponse, error)
+	ListAppAIConfigOptions(context.Context, *ListAppAIConfigOptionsRequest) (*ListAppAIConfigOptionsResponse, error)
 	GenerateLocalAppTextCandidate(context.Context, *GenerateLocalAppTextCandidateRequest) (*GenerateLocalAppTextCandidateResponse, error)
 	ExecuteLocalAppScenario(context.Context, *ExecuteLocalAppScenarioRequest) (*ExecuteLocalAppScenarioResponse, error)
 	SubmitLocalAppScenarioJob(context.Context, *SubmitLocalAppScenarioJobRequest) (*SubmitLocalAppScenarioJobResponse, error)
@@ -432,6 +445,9 @@ func (UnimplementedRuntimeAiServiceServer) GetAppAIConfig(context.Context, *GetA
 }
 func (UnimplementedRuntimeAiServiceServer) OverwriteAppAIConfig(context.Context, *OverwriteAppAIConfigRequest) (*OverwriteAppAIConfigResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method OverwriteAppAIConfig not implemented")
+}
+func (UnimplementedRuntimeAiServiceServer) ListAppAIConfigOptions(context.Context, *ListAppAIConfigOptionsRequest) (*ListAppAIConfigOptionsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListAppAIConfigOptions not implemented")
 }
 func (UnimplementedRuntimeAiServiceServer) GenerateLocalAppTextCandidate(context.Context, *GenerateLocalAppTextCandidateRequest) (*GenerateLocalAppTextCandidateResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GenerateLocalAppTextCandidate not implemented")
@@ -557,6 +573,24 @@ func _RuntimeAiService_OverwriteAppAIConfig_Handler(srv interface{}, ctx context
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(RuntimeAiServiceServer).OverwriteAppAIConfig(ctx, req.(*OverwriteAppAIConfigRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAiService_ListAppAIConfigOptions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListAppAIConfigOptionsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAiServiceServer).ListAppAIConfigOptions(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAiService_ListAppAIConfigOptions_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAiServiceServer).ListAppAIConfigOptions(ctx, req.(*ListAppAIConfigOptionsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -968,6 +1002,10 @@ var RuntimeAiService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "OverwriteAppAIConfig",
 			Handler:    _RuntimeAiService_OverwriteAppAIConfig_Handler,
+		},
+		{
+			MethodName: "ListAppAIConfigOptions",
+			Handler:    _RuntimeAiService_ListAppAIConfigOptions_Handler,
 		},
 		{
 			MethodName: "GenerateLocalAppTextCandidate",

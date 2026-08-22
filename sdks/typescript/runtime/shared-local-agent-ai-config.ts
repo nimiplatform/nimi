@@ -2,7 +2,18 @@ import type { AgentRequestContext } from '../core-generated/runtime-protobuf/run
 import type {
   AIConfig,
   AIConfigCapabilityIntent,
+  AIConfigEffectiveSelection,
+  AIConfigLocalResourceProjection,
 } from '../core-generated/runtime-protobuf/runtime/v1/capability_configuration';
+import { AIConfigEffectiveState } from '../core-generated/runtime-protobuf/runtime/v1/capability_configuration';
+import type {
+  NimiAIConfigEffectiveSelection,
+  NimiAIConfigLocalLoadoutOption,
+  NimiAIConfigOptionsQuery,
+  NimiAIConfigOptionsResult,
+  NimiAIConfigOverwriteResult,
+  NimiAIConfigSnapshot,
+} from '../core/ai/capability-configuration';
 import type {
   ApplySharedLocalAgentAIProfileRequest,
   ApplySharedLocalAgentAIProfileResponse,
@@ -12,7 +23,10 @@ import type {
   PreviewSharedLocalAgentAIProfileResponse,
   OverwriteSharedLocalAgentAIConfigRequest,
   OverwriteSharedLocalAgentAIConfigResponse,
+  ListSharedLocalAgentAIConfigOptionsRequest,
+  ListSharedLocalAgentAIConfigOptionsResponse,
 } from '../core-generated/runtime-protobuf/runtime/v1/agent_service';
+import { ReasonCode as RuntimeReasonCode } from '../core-generated/runtime-protobuf/runtime/v1/common';
 import type { RuntimeTypedCallOptions } from '../core-generated/runtime-typed-client';
 import {
   parseNimiPortableAIProfile,
@@ -39,8 +53,12 @@ export interface NimiSharedLocalAgentAIConfigCallInput {
 
 export interface NimiSharedLocalAgentAIConfigOverwriteInput
   extends NimiSharedLocalAgentAIConfigCallInput {
+  readonly expectedRevision: string;
   readonly capabilities: readonly AIConfigCapabilityIntent[];
 }
+
+export interface NimiSharedLocalAgentAIConfigOptionsInput
+  extends NimiSharedLocalAgentAIConfigCallInput, NimiAIConfigOptionsQuery {}
 
 export interface NimiSharedLocalAgentAIProfileInput
   extends NimiSharedLocalAgentAIConfigCallInput {
@@ -56,12 +74,14 @@ export interface NimiSharedLocalAgentAIProfilePreview {
 
 /**
  * Typed SDK projection of the singular Runtime-owned LocalAgent subsystem
- * AIConfig. No individual LocalAgent identity, revision, readiness, route
- * option, or machine binding can be expressed through this surface.
+ * AIConfig. No individual LocalAgent identity or machine binding can be
+ * expressed through this surface; revision, effective state, and bounded
+ * candidate options belong to the singular owner manager.
  */
 export interface NimiSharedLocalAgentAIConfigClient {
-  get(input?: NimiSharedLocalAgentAIConfigCallInput): Promise<AIConfig>;
-  overwrite(input: NimiSharedLocalAgentAIConfigOverwriteInput): Promise<AIConfig>;
+  get(input?: NimiSharedLocalAgentAIConfigCallInput): Promise<NimiAIConfigSnapshot>;
+  overwrite(input: NimiSharedLocalAgentAIConfigOverwriteInput): Promise<NimiAIConfigOverwriteResult>;
+  listOptions(input: NimiSharedLocalAgentAIConfigOptionsInput): Promise<NimiAIConfigOptionsResult>;
 }
 
 export interface NimiSharedLocalAgentAIProfileClient {
@@ -83,6 +103,10 @@ export interface NimiSharedLocalAgentAIConfigAgentSurface {
     request: OverwriteSharedLocalAgentAIConfigRequest,
     options?: RuntimeTypedCallOptions,
   ): Promise<OverwriteSharedLocalAgentAIConfigResponse>;
+  listSharedLocalAgentAIConfigOptions?(
+    request: ListSharedLocalAgentAIConfigOptionsRequest,
+    options?: RuntimeTypedCallOptions,
+  ): Promise<ListSharedLocalAgentAIConfigOptionsResponse>;
   previewSharedLocalAgentAIProfile?(
     request: PreviewSharedLocalAgentAIProfileRequest,
     options?: RuntimeTypedCallOptions,
@@ -147,19 +171,26 @@ export function createNimiSharedLocalAgentAISurface(
       const response = await scoped(subjectUserId, [SHARED_LOCAL_AGENT_AI_CONFIG_READ_SCOPE], (callOptions) => (
         method({ context: context(subjectUserId) }, callOptions)
       ));
-      return requireSharedAIConfig(response.config, 'GetSharedLocalAgentAIConfig');
+      const revision = requireRevision(response.revision, 'GetSharedLocalAgentAIConfig');
+      return Object.freeze({
+        config: response.config ? requireSharedAIConfig(response.config, 'GetSharedLocalAgentAIConfig') : null,
+        revision,
+        effectiveSelections: projectEffectiveSelections(response.effectiveSelections),
+      });
     },
 
     async overwrite(input: NimiSharedLocalAgentAIConfigOverwriteInput) {
       if (!Array.isArray(input.capabilities)) {
         inputError('Shared LocalAgent AIConfig capabilities must be an array');
       }
+      requireRevision(input.expectedRevision, 'OverwriteSharedLocalAgentAIConfig');
       const method = requireMethod(runtime.agent.overwriteSharedLocalAgentAIConfig, 'overwriteSharedLocalAgentAIConfig');
       const subjectUserId = await resolveSubject(input.subjectUserId);
       const response = await scoped(subjectUserId, [SHARED_LOCAL_AGENT_AI_CONFIG_WRITE_SCOPE], (callOptions) => (
         method(
           {
             context: context(subjectUserId),
+            expectedRevision: input.expectedRevision,
             capabilities: [...input.capabilities],
           },
           withNimiRuntimeIdempotencyMetadata(
@@ -168,7 +199,43 @@ export function createNimiSharedLocalAgentAISurface(
           ),
         )
       ));
-      return requireSharedAIConfig(response.config, 'OverwriteSharedLocalAgentAIConfig');
+      const revision = requireRevision(response.revision, 'OverwriteSharedLocalAgentAIConfig');
+      const config = response.config
+        ? requireSharedAIConfig(response.config, 'OverwriteSharedLocalAgentAIConfig')
+        : null;
+      if (response.committed && response.reasonCode === RuntimeReasonCode.REASON_CODE_UNSPECIFIED && config) {
+        return Object.freeze({ outcome: 'committed', config, revision });
+      }
+      if (!response.committed && response.reasonCode === RuntimeReasonCode.AGENT_AI_CONFIG_REVISION_CONFLICT) {
+        return Object.freeze({ outcome: 'conflict', config, revision, reasonCode: 'AGENT_AI_CONFIG_REVISION_CONFLICT' });
+      }
+      invalidResponse('OverwriteSharedLocalAgentAIConfig returned an invalid outcome');
+    },
+
+    async listOptions(input: NimiSharedLocalAgentAIConfigOptionsInput) {
+      if (input.kind !== 'local-loadouts' || !normalizeNimiRuntimeAgentText(input.capabilityContract)
+        || (input.search !== undefined && input.search.trim() !== input.search)) {
+        inputError('Shared LocalAgent AIConfig options query is invalid');
+      }
+      const method = requireMethod(runtime.agent.listSharedLocalAgentAIConfigOptions, 'listSharedLocalAgentAIConfigOptions');
+      const subjectUserId = await resolveSubject(input.subjectUserId);
+      const response = await scoped(subjectUserId, [SHARED_LOCAL_AGENT_AI_CONFIG_WRITE_SCOPE], (callOptions) => (
+        method({
+          context: context(subjectUserId),
+          localLoadouts: {
+            capabilityContract: input.capabilityContract,
+            search: input.search ?? '',
+          },
+        }, callOptions)
+      ));
+      if (!response.localLoadouts || typeof response.truncated !== 'boolean') {
+        invalidResponse('ListSharedLocalAgentAIConfigOptions returned an invalid projection');
+      }
+      return Object.freeze({
+        kind: 'local-loadouts',
+        options: Object.freeze(response.localLoadouts.options.map(projectLocalOption)),
+        truncated: response.truncated,
+      });
     },
   });
 
@@ -229,6 +296,53 @@ function requireSharedAIConfig(config: AIConfig | undefined, operation: string):
     invalidResponse(`${operation} did not return the shared LocalAgent subsystem AIConfig`);
   }
   return config;
+}
+
+function requireRevision(value: unknown, operation: string): string {
+  if (typeof value !== 'string' || !/^(?:0|[1-9][0-9]*)$/u.test(value)) {
+    invalidResponse(`${operation} did not return a valid owner revision`);
+  }
+  return value;
+}
+
+function projectEffectiveSelections(
+  values: readonly AIConfigEffectiveSelection[],
+): readonly NimiAIConfigEffectiveSelection[] {
+  return Object.freeze(values.map((selection) => Object.freeze({
+    capabilityContract: selection.capabilityContract,
+    state: projectEffectiveState(selection.state),
+    resource: selection.resource.oneofKind === 'local'
+      ? Object.freeze({ oneofKind: 'local' as const, local: projectLocalOption(selection.resource.local) })
+      : null,
+    reasons: Object.freeze([...selection.reasons]),
+  })));
+}
+
+function projectLocalOption(value: AIConfigLocalResourceProjection): NimiAIConfigLocalLoadoutOption {
+  if (!value.implementation) invalidResponse('Shared LocalAgent AIConfig Local option omitted implementation');
+  const state = projectEffectiveState(value.state);
+  if (state !== 'ready' && state !== 'blocked') {
+    invalidResponse('Shared LocalAgent AIConfig Local option state is invalid');
+  }
+  return Object.freeze({
+    loadoutRef: value.loadoutRef,
+    label: value.label,
+    capabilityContract: value.capabilityContract,
+    implementation: Object.freeze({ ...value.implementation }),
+    supportedFeatures: Object.freeze([...value.supportedFeatures]),
+    state,
+    reasons: Object.freeze([...value.reasons]),
+  });
+}
+
+function projectEffectiveState(value: AIConfigEffectiveState): NimiAIConfigEffectiveSelection['state'] {
+  switch (value) {
+    case AIConfigEffectiveState.AI_CONFIG_EFFECTIVE_STATE_READY: return 'ready';
+    case AIConfigEffectiveState.AI_CONFIG_EFFECTIVE_STATE_MISSING: return 'missing';
+    case AIConfigEffectiveState.AI_CONFIG_EFFECTIVE_STATE_BLOCKED: return 'blocked';
+    case AIConfigEffectiveState.AI_CONFIG_EFFECTIVE_STATE_UNAVAILABLE: return 'unavailable';
+    default: invalidResponse('Shared LocalAgent AIConfig effective state is invalid');
+  }
 }
 
 function encodeProfile(input: NimiPortableAIProfileInput): {

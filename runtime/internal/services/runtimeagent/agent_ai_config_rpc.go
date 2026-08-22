@@ -19,11 +19,17 @@ func (s *Service) GetSharedLocalAgentAIConfig(
 	if err != nil {
 		return nil, err
 	}
-	config, err := s.requireSharedLocalAgentAIConfig(ctx, caller.accountNamespace)
+	config, revision, found, err := s.readSharedLocalAgentAIConfig(ctx, caller.accountNamespace)
 	if err != nil {
 		return nil, err
 	}
-	return &runtimev1.GetSharedLocalAgentAIConfigResponse{Config: config}, nil
+	if !found {
+		return &runtimev1.GetSharedLocalAgentAIConfigResponse{Revision: revision}, nil
+	}
+	return &runtimev1.GetSharedLocalAgentAIConfigResponse{
+		Config: config, Revision: revision,
+		EffectiveSelections: s.projectSharedAIConfigEffectiveSelections(config),
+	}, nil
 }
 
 func (s *Service) OverwriteSharedLocalAgentAIConfig(
@@ -37,11 +43,40 @@ func (s *Service) OverwriteSharedLocalAgentAIConfig(
 	if err != nil {
 		return nil, err
 	}
-	config, err := s.overwriteSharedLocalAgentAIConfig(ctx, caller.accountNamespace, req.GetCapabilities())
+	config, revision, committed, err := s.overwriteSharedLocalAgentAIConfig(
+		ctx, caller.accountNamespace, req.GetExpectedRevision(), req.GetCapabilities(),
+	)
 	if err != nil {
 		return nil, err
 	}
-	return &runtimev1.OverwriteSharedLocalAgentAIConfigResponse{Config: config}, nil
+	response := &runtimev1.OverwriteSharedLocalAgentAIConfigResponse{
+		Config: config, Revision: revision, Committed: committed,
+		EffectiveSelections: s.projectSharedAIConfigEffectiveSelections(config),
+	}
+	if !committed {
+		response.ReasonCode = runtimev1.ReasonCode_AGENT_AI_CONFIG_REVISION_CONFLICT
+	}
+	return response, nil
+}
+
+func (s *Service) ListSharedLocalAgentAIConfigOptions(
+	ctx context.Context,
+	req *runtimev1.ListSharedLocalAgentAIConfigOptionsRequest,
+) (*runtimev1.ListSharedLocalAgentAIConfigOptionsResponse, error) {
+	if req == nil {
+		return nil, status.Error(codes.InvalidArgument, "list shared LocalAgent AIConfig options request is required")
+	}
+	if _, err := s.authorizeSharedLocalAgentAIConfig(ctx, req.GetContext(), "runtime.agent.ai_config.write"); err != nil {
+		return nil, err
+	}
+	options, truncated, err := s.listSharedAIConfigLocalOptions(req.GetLocalLoadouts())
+	if err != nil {
+		return nil, err
+	}
+	return &runtimev1.ListSharedLocalAgentAIConfigOptionsResponse{
+		LocalLoadouts: &runtimev1.AIConfigLocalLoadoutOptions{Options: options},
+		Truncated:     truncated,
+	}, nil
 }
 
 func (s *Service) PreviewSharedLocalAgentAIProfile(
@@ -59,7 +94,7 @@ func (s *Service) PreviewSharedLocalAgentAIProfile(
 	if err != nil {
 		return nil, invalidSharedLocalAgentAIConfigError()
 	}
-	before, found, err := s.readSharedLocalAgentAIConfig(ctx, caller.accountNamespace)
+	before, _, found, err := s.readSharedLocalAgentAIConfig(ctx, caller.accountNamespace)
 	if err != nil {
 		return nil, err
 	}
@@ -79,7 +114,7 @@ func (s *Service) ApplySharedLocalAgentAIProfile(
 	if req == nil {
 		return nil, status.Error(codes.InvalidArgument, "apply shared LocalAgent AIProfile request is required")
 	}
-	caller, err := s.authorizeSharedLocalAgentAIConfig(ctx, req.GetContext(), "runtime.agent.ai_config.write")
+	_, err := s.authorizeSharedLocalAgentAIConfig(ctx, req.GetContext(), "runtime.agent.ai_config.write")
 	if err != nil {
 		return nil, err
 	}
@@ -87,11 +122,9 @@ func (s *Service) ApplySharedLocalAgentAIProfile(
 	if err != nil {
 		return nil, invalidSharedLocalAgentAIConfigError()
 	}
-	config, err := s.overwriteSharedLocalAgentAIConfig(ctx, caller.accountNamespace, candidate.GetCapabilities())
-	if err != nil {
-		return nil, err
-	}
-	return &runtimev1.ApplySharedLocalAgentAIProfileResponse{Config: config}, nil
+	// Apply is a non-committing editor prefill. Exact resource refs and the
+	// owner revision enter only through the ordinary AIConfig CAS Save.
+	return &runtimev1.ApplySharedLocalAgentAIProfileResponse{Config: candidate}, nil
 }
 
 // @nimi-authority: rule.nimi.runtime.ai-provider.r003

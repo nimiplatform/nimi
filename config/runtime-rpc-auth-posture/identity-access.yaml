@@ -58,6 +58,8 @@ methods:
     posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAppService/MoveLocalAppAsset
     posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAppService/RevealLocalAppAsset
+    posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAppService/AdoptLocalAppArtifact
     posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAppService/PrepareLocalAppLaunch

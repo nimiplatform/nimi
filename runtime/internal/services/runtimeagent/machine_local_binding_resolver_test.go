@@ -43,16 +43,16 @@ type recordingMachineLocalExecutionResolver struct {
 	calls []string
 }
 
-func (stub *recordingMachineLocalExecutionResolver) ResolveSelectedLocalExecution(capabilityContract string) (*localexecution.SelectedLocalExecution, error) {
-	stub.calls = append(stub.calls, capabilityContract)
-	return stub.machineLocalExecutionResolverStub.ResolveSelectedLocalExecution(capabilityContract)
+func (stub *recordingMachineLocalExecutionResolver) ResolveLocalExecution(capabilityContract string, loadoutRef string) (*localexecution.SelectedLocalExecution, error) {
+	stub.calls = append(stub.calls, capabilityContract+"/"+loadoutRef)
+	return stub.machineLocalExecutionResolverStub.ResolveLocalExecution(capabilityContract, loadoutRef)
 }
 
-func (stub machineLocalExecutionResolverStub) SelectedLocalCapabilityContracts() []string {
-	return append([]string(nil), stub.contracts...)
+func (stub machineLocalExecutionResolverStub) ListLocalLoadouts(string, string, int) ([]localexecution.LoadoutOption, bool, error) {
+	return nil, false, nil
 }
 
-func (stub machineLocalExecutionResolverStub) ResolveSelectedLocalExecution(capabilityContract string) (*localexecution.SelectedLocalExecution, error) {
+func (stub machineLocalExecutionResolverStub) ResolveLocalExecution(capabilityContract string, _ string) (*localexecution.SelectedLocalExecution, error) {
 	if err := stub.errors[capabilityContract]; err != nil {
 		return nil, err
 	}
@@ -221,7 +221,10 @@ func TestPublicChatTurnAdmissionResolvesOnlyTurnExecutableSelections(t *testing.
 	if err != nil {
 		t.Fatalf("resolveExecutionBindingsFromConfig: %v", err)
 	}
-	wantCalls := []string{textContract, imageContract}
+	wantCalls := []string{
+		textContract + "/test-loadout:" + textContract,
+		imageContract + "/test-loadout:" + imageContract,
+	}
 	if len(source.calls) != len(wantCalls) || source.calls[0] != wantCalls[0] || source.calls[1] != wantCalls[1] {
 		t.Fatalf("turn admission resolved selections = %v, want %v", source.calls, wantCalls)
 	}
@@ -271,7 +274,7 @@ func TestMachineBindingResolverCarriesCloudAIConfigIntentPrivately(t *testing.T)
 		"provider": descriptor.GetProvider(), "providerModelId": descriptor.GetProviderModelId(), "remoteModelCatalogId": descriptor.GetRemoteModelCatalogId(),
 	})
 	store := aiconfig.NewMemoryStore()
-	if err := store.Overwrite(context.Background(), accountID, &runtimev1.AIConfig{
+	if _, _, committed, err := store.Overwrite(context.Background(), accountID, aiconfig.InitialRevision, &runtimev1.AIConfig{
 		Owner: aiconfig.LocalAgentSubsystemOwner(),
 		Capabilities: []*runtimev1.AIConfigCapabilityIntent{{
 			CapabilityContract: "audio.synthesize",
@@ -280,7 +283,7 @@ func TestMachineBindingResolverCarriesCloudAIConfigIntentPrivately(t *testing.T)
 				ProviderModelTarget: providerTarget,
 			}},
 		}},
-	}); err != nil {
+	}); err != nil || !committed {
 		t.Fatal(err)
 	}
 	service.SetAIConfigStore(store)
@@ -335,12 +338,14 @@ func installMachineAIConfigForTest(t *testing.T, service *Service, accountID str
 	for _, contract := range contracts {
 		capabilities = append(capabilities, &runtimev1.AIConfigCapabilityIntent{
 			CapabilityContract: contract,
-			Route:              &runtimev1.AIConfigCapabilityIntent_Local{Local: &runtimev1.AIConfigLocalIntent{}},
+			Route: &runtimev1.AIConfigCapabilityIntent_Local{Local: &runtimev1.AIConfigLocalIntent{
+				LoadoutRef: "test-loadout:" + contract,
+			}},
 		})
 	}
-	if err := store.Overwrite(context.Background(), accountID, &runtimev1.AIConfig{
+	if _, _, committed, err := store.Overwrite(context.Background(), accountID, aiconfig.InitialRevision, &runtimev1.AIConfig{
 		Owner: aiconfig.LocalAgentSubsystemOwner(), Capabilities: capabilities,
-	}); err != nil {
+	}); err != nil || !committed {
 		t.Fatalf("install shared LocalAgent AIConfig: %v", err)
 	}
 	service.SetAIConfigStore(store)

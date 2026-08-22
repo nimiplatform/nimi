@@ -68,11 +68,22 @@ type SelectedLocalExecution struct {
 	Configured      bool
 }
 
-// Resolver is the private machine-configuration seam consumed by Runtime job
-// composition. SelectedLocalCapabilityContracts returns stable sorted keys.
+type LoadoutOption struct {
+	LoadoutID          string
+	DisplayName        string
+	CapabilityContract string
+	Implementation     *runtimev1.CapabilityImplementationIdentity
+	SupportedFeatures  []string
+	ValidationState    runtimev1.LoadoutValidationState
+	Reasons            []runtimev1.ReasonCode
+}
+
+// Resolver is the private machine-configuration seam consumed by Runtime
+// AIConfig projection and Job composition. Every execution resolution names
+// one exact Loadout resource; machine-default selection is not an input.
 type Resolver interface {
-	SelectedLocalCapabilityContracts() []string
-	ResolveSelectedLocalExecution(capabilityContract string) (*SelectedLocalExecution, error)
+	ListLocalLoadouts(capabilityContract string, search string, limit int) ([]LoadoutOption, bool, error)
+	ResolveLocalExecution(capabilityContract string, loadoutRef string) (*SelectedLocalExecution, error)
 }
 
 // TextExecutionProgress reports private host lifecycle progress to the job or

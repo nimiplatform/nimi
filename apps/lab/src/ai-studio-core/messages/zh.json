@@ -208,7 +208,7 @@
   },
   "StudioModelConfig": {
     "drawerTitle": "App AI 配置",
-    "drawerDescription": "只读查看 {{appTitle}} AI 配置"
+    "drawerDescription": "配置 {{appTitle}} AI 能力"
   },
   "Studio": {
     "admission": {

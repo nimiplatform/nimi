@@ -1,15 +1,22 @@
 use serde_json::{json, Value as JsonValue};
 use tonic::transport::Channel;
 
-use crate::generated::runtime_agent_service_client::RuntimeAgentServiceClient;
 use crate::generated::{
-    ai_config_owner, AiConfig, GetLocalAppSharedLocalAgentAiConfigRequest,
-    LocalAppSharedLocalAgentAiConfigProjection, OverwriteLocalAppSharedLocalAgentAiConfigRequest,
+    ai_config_owner, runtime_agent_service_client::RuntimeAgentServiceClient, AiConfig,
+    AiConfigLocalLoadoutOptionsQuery, GetLocalAppSharedLocalAgentAiConfigRequest,
+    ListLocalAppSharedLocalAgentAiConfigOptionsRequest, LocalAppSharedLocalAgentAiConfigProjection,
+    OverwriteLocalAppSharedLocalAgentAiConfigRequest, ReasonCode,
 };
 use crate::grpc_status::local_app_error_from_status;
-use crate::{LocalAppOperationError, LocalAppSharedAgentAIConfigOverwriteRequest};
+use crate::{
+    LocalAppOperationError, LocalAppSharedAgentAIConfigLocalOptionsRequest,
+    LocalAppSharedAgentAIConfigOverwriteRequest,
+};
 
-use super::app_ai_config::{parse_capabilities, project_capability};
+use super::app_ai_config::{
+    parse_capabilities, project_capability, project_effective_selection, project_local_resource,
+    required_text_value,
+};
 use super::untrusted;
 
 pub(super) async fn get(channel: Channel) -> Result<JsonValue, LocalAppOperationError> {
@@ -18,7 +25,7 @@ pub(super) async fn get(channel: Channel) -> Result<JsonValue, LocalAppOperation
         .await
         .map_err(local_app_error_from_status)?
         .into_inner();
-    project_projection(response.projection.ok_or_else(untrusted)?)
+    project_snapshot(response.projection.ok_or_else(untrusted)?)
 }
 
 pub(super) async fn overwrite(
@@ -28,19 +35,74 @@ pub(super) async fn overwrite(
     let response = RuntimeAgentServiceClient::new(channel)
         .overwrite_local_app_shared_local_agent_ai_config(
             OverwriteLocalAppSharedLocalAgentAiConfigRequest {
+                expected_revision: required_text_value(&request.expected_revision)?,
                 capabilities: parse_capabilities(request.capabilities)?,
             },
         )
         .await
         .map_err(local_app_error_from_status)?
         .into_inner();
-    project_projection(response.projection.ok_or_else(untrusted)?)
+    let projection = response.projection.ok_or_else(untrusted)?;
+    let reason = ReasonCode::try_from(response.reason_code).map_err(|_| untrusted())?;
+    if response.committed && reason != ReasonCode::Unspecified {
+        return Err(untrusted());
+    }
+    if !response.committed && reason != ReasonCode::AgentAiConfigRevisionConflict {
+        return Err(untrusted());
+    }
+    let snapshot = project_snapshot(projection)?;
+    let object = snapshot.as_object().ok_or_else(untrusted)?;
+    Ok(json!({
+        "outcome": if response.committed { "committed" } else { "conflict" },
+        "config": object.get("config").cloned().unwrap_or(JsonValue::Null),
+        "revision": object.get("revision").cloned().ok_or_else(untrusted)?,
+        "effectiveSelections": object.get("effectiveSelections").cloned().ok_or_else(untrusted)?,
+        "reasonCode": reason.as_str_name(),
+    }))
 }
 
-fn project_projection(
+pub(super) async fn list_local_options(
+    channel: Channel,
+    request: LocalAppSharedAgentAIConfigLocalOptionsRequest,
+) -> Result<JsonValue, LocalAppOperationError> {
+    let response = RuntimeAgentServiceClient::new(channel)
+        .list_local_app_shared_local_agent_ai_config_options(
+            ListLocalAppSharedLocalAgentAiConfigOptionsRequest {
+                local_loadouts: Some(AiConfigLocalLoadoutOptionsQuery {
+                    capability_contract: required_text_value(&request.capability_contract)?,
+                    search: request.search,
+                }),
+            },
+        )
+        .await
+        .map_err(local_app_error_from_status)?
+        .into_inner();
+    let local = response.local_loadouts.ok_or_else(untrusted)?;
+    let options = local
+        .options
+        .into_iter()
+        .map(project_local_resource)
+        .collect::<Result<Vec<_>, _>>()?;
+    Ok(json!({ "kind": "local-loadouts", "options": options, "truncated": response.truncated }))
+}
+
+fn project_snapshot(
     projection: LocalAppSharedLocalAgentAiConfigProjection,
 ) -> Result<JsonValue, LocalAppOperationError> {
-    project_config(projection.config.ok_or_else(untrusted)?)
+    if projection.revision.trim().is_empty() {
+        return Err(untrusted());
+    }
+    let config = projection.config.map(project_config).transpose()?;
+    let effective = projection
+        .effective_selections
+        .into_iter()
+        .map(project_effective_selection)
+        .collect::<Result<Vec<_>, _>>()?;
+    Ok(json!({
+        "config": config,
+        "revision": projection.revision,
+        "effectiveSelections": effective,
+    }))
 }
 
 fn project_config(config: AiConfig) -> Result<JsonValue, LocalAppOperationError> {

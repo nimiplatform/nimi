@@ -17,13 +17,15 @@ import (
 // @nimi-authority: definition.nimi.runtime.rpc-foundations.target-identity-plane
 // @nimi-authority: rule.nimi.runtime.rpc-foundations.r015
 // Intent is one immutable capability-scoped AIConfig snapshot. Local carries
-// no execution identity. Cloud keeps only implementation and Driver-owned
-// target intent; Runtime resolves current-account Connector custody later.
+// the exact committed Loadout reference without resource content. Cloud keeps
+// implementation and Driver-owned target intent; Runtime resolves Connector
+// custody later from the separately committed Connector reference.
 type Intent struct {
 	CapabilityContract  string
 	RequiredFeatures    []string
 	Defaults            *structpb.Struct
 	Route               runtimev1.RoutePolicy
+	LocalLoadoutRef     string
 	CloudImplementation *runtimev1.CapabilityImplementationIdentity
 	ProviderModelTarget *structpb.Struct
 	// CloudTarget remains for Runtime-private non-AIConfig callers that already
@@ -73,6 +75,7 @@ func Clone(input Intent) Intent {
 		CapabilityContract: strings.TrimSpace(input.CapabilityContract),
 		RequiredFeatures:   append([]string(nil), input.RequiredFeatures...),
 		Route:              input.Route,
+		LocalLoadoutRef:    strings.TrimSpace(input.LocalLoadoutRef),
 		CloudTarget:        input.CloudTarget.Clone(),
 	}
 	if input.Defaults != nil {
@@ -102,10 +105,12 @@ func FromCapability(capability *runtimev1.AIConfigCapabilityIntent) (Intent, err
 	}
 	switch route := capability.GetRoute().(type) {
 	case *runtimev1.AIConfigCapabilityIntent_Local:
-		if route.Local == nil {
-			return Intent{}, fmt.Errorf("AIConfig Local route marker is required")
+		if route.Local == nil || strings.TrimSpace(route.Local.GetLoadoutRef()) == "" ||
+			strings.TrimSpace(route.Local.GetLoadoutRef()) != route.Local.GetLoadoutRef() {
+			return Intent{}, fmt.Errorf("AIConfig Local loadout_ref is required")
 		}
 		out.Route = runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL
+		out.LocalLoadoutRef = route.Local.GetLoadoutRef()
 		return out, nil
 	case *runtimev1.AIConfigCapabilityIntent_Cloud:
 		if route.Cloud == nil || !exactImplementation(route.Cloud.GetImplementation()) ||

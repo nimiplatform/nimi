@@ -69,7 +69,7 @@ func selectedMusicExecutionForTest(t *testing.T) *localexecution.SelectedLocalEx
 }
 
 func localMusicIntentContext(parent context.Context) context.Context {
-	return executionintent.WithIntent(parent, executionintent.Intent{CapabilityContract: capabilitydriver.MiniMaxMusic3CapabilityContract, Route: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL})
+	return executionintent.WithIntent(parent, executionintent.Intent{CapabilityContract: capabilitydriver.MiniMaxMusic3CapabilityContract, LocalLoadoutRef: "test-loadout:music.generate", Route: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL})
 }
 
 func localMusicJobRequestForTest() *runtimev1.SubmitScenarioJobRequest {

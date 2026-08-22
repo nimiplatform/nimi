@@ -360,6 +360,14 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "ListLocalAppAgentReferencesResponse",
     },
     RuntimeMethodDescriptor {
+        method_id: "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppSharedLocalAgentAIConfigOptions",
+        service: "RuntimeAgentService",
+        method: "ListLocalAppSharedLocalAgentAIConfigOptions",
+        kind: "unary",
+        request_type: "ListLocalAppSharedLocalAgentAIConfigOptionsRequest",
+        response_type: "ListLocalAppSharedLocalAgentAIConfigOptionsResponse",
+    },
+    RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeAgentService/ListPendingHooks",
         service: "RuntimeAgentService",
         method: "ListPendingHooks",
@@ -374,6 +382,14 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         kind: "unary",
         request_type: "ListPortableAIProfilesRequest",
         response_type: "ListPortableAIProfilesResponse",
+    },
+    RuntimeMethodDescriptor {
+        method_id: "/nimi.runtime.v1.RuntimeAgentService/ListSharedLocalAgentAIConfigOptions",
+        service: "RuntimeAgentService",
+        method: "ListSharedLocalAgentAIConfigOptions",
+        kind: "unary",
+        request_type: "ListSharedLocalAgentAIConfigOptionsRequest",
+        response_type: "ListSharedLocalAgentAIConfigOptionsResponse",
     },
     RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeAgentService/MaterializeRealmSource",
@@ -702,6 +718,14 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         kind: "unary",
         request_type: "GetVoiceAssetRequest",
         response_type: "GetVoiceAssetResponse",
+    },
+    RuntimeMethodDescriptor {
+        method_id: "/nimi.runtime.v1.RuntimeAiService/ListAppAIConfigOptions",
+        service: "RuntimeAiService",
+        method: "ListAppAIConfigOptions",
+        kind: "unary",
+        request_type: "ListAppAIConfigOptionsRequest",
+        response_type: "ListAppAIConfigOptionsResponse",
     },
     RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeAiService/ListLocalAppVoiceAssets",

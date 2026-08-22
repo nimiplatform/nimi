@@ -68,7 +68,7 @@ func TestSharedLocalAgentAIProfilePreviewDoesNotPersistAndApplyOverwrites(t *tes
 	if after.GetOwner().GetRuntimeLocalAgentSubsystem() == nil || len(after.GetCapabilities()) != 2 {
 		t.Fatalf("preview after = %+v", after)
 	}
-	if _, found, err := svc.readSharedLocalAgentAIConfig(ctx, "account-a"); err != nil || found {
+	if _, _, found, err := svc.readSharedLocalAgentAIConfig(ctx, "account-a"); err != nil || found {
 		t.Fatalf("preview persisted config: found=%v err=%v", found, err)
 	}
 	local := after.GetCapabilities()[1]
@@ -91,9 +91,9 @@ func TestSharedLocalAgentAIProfilePreviewDoesNotPersistAndApplyOverwrites(t *tes
 	if aiconfig.Hash(applied.GetConfig()) != aiconfig.Hash(after) {
 		t.Fatalf("applied config differs from preview: preview=%+v apply=%+v", after, applied.GetConfig())
 	}
-	stored, found, err := svc.readSharedLocalAgentAIConfig(ctx, "account-a")
-	if err != nil || !found || aiconfig.Hash(stored) != aiconfig.Hash(after) {
-		t.Fatalf("applied config not persisted: found=%v config=%+v err=%v", found, stored, err)
+	stored, _, found, err := svc.readSharedLocalAgentAIConfig(ctx, "account-a")
+	if err != nil || found {
+		t.Fatalf("non-committing Apply persisted config: found=%v config=%+v err=%v", found, stored, err)
 	}
 }
 
@@ -110,7 +110,7 @@ func TestImportPortableAIProfileSavesOnlyCatalogDocument(t *testing.T) {
 	if imported.GetProfile().GetProfileId() != "portable-profile" || imported.GetProfile().GetTitle() != "Portable Profile" {
 		t.Fatalf("imported profile = %+v", imported.GetProfile())
 	}
-	if _, found, readErr := svc.readSharedLocalAgentAIConfig(ctx, "account-a"); readErr != nil || found {
+	if _, _, found, readErr := svc.readSharedLocalAgentAIConfig(ctx, "account-a"); readErr != nil || found {
 		t.Fatalf("Import Profile changed AIConfig: found=%v err=%v", found, readErr)
 	}
 
@@ -213,7 +213,7 @@ func TestSharedLocalAgentAIProfileRejectsSDKInvalidDocumentsFailClosed(t *testin
 			if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_CONFIG_INVALID {
 				t.Fatalf("reason = %s, present=%v", reason, ok)
 			}
-			if _, found, readErr := svc.readSharedLocalAgentAIConfig(ctx, "account-a"); readErr != nil || found {
+			if _, _, found, readErr := svc.readSharedLocalAgentAIConfig(ctx, "account-a"); readErr != nil || found {
 				t.Fatalf("invalid profile persisted partial config: found=%v err=%v", found, readErr)
 			}
 		})

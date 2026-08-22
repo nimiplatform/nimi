@@ -4,6 +4,7 @@ import (
 	"context"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"google.golang.org/grpc/codes"
 )
@@ -27,6 +28,23 @@ func (s *Service) SubmitScenarioJob(ctx context.Context, req *runtimev1.SubmitSc
 	if mode != runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
 	}
+	// Validate the route-neutral request before resolving any configured
+	// resource. An invalid request must not touch a Local Loadout or Cloud
+	// Connector merely to discover the error it already carries.
+	if err := validateSubmitScenarioAsyncJobRequest(req); err != nil {
+		return nil, err
+	}
+	ignored, err := classifyScenarioExtensions(req.GetScenarioType(), req.GetExtensions())
+	if err != nil {
+		return nil, err
+	}
+	if existing, ok := executionintent.FromContext(ctx); ok && existing.IsLocal() {
+		if req.GetScenarioType() == runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE {
+			if _, err := localImageJobTimeoutDuration(req.GetHead().GetTimeoutMs()); err != nil {
+				return nil, err
+			}
+		}
+	}
 	var intentErr error
 	ctx, intent, intentErr := s.captureScenarioExecutionIntent(ctx, req.GetHead(), scenarioTargetCapability(req.GetScenarioType()))
 	if intentErr != nil {
@@ -37,10 +55,6 @@ func (s *Service) SubmitScenarioJob(ctx context.Context, req *runtimev1.SubmitSc
 	localMusic := req.GetScenarioType() == runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE && intent.IsLocal()
 	localSpeech := (req.GetScenarioType() == runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE ||
 		req.GetScenarioType() == runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE) && intent.IsLocal()
-	ignored, err := classifyScenarioExtensions(req.GetScenarioType(), req.GetExtensions())
-	if err != nil {
-		return nil, err
-	}
 	if err := s.reportScenarioSpendDisclosure(ctx, req.GetHead(), req.GetScenarioType()); err != nil {
 		return nil, err
 	}

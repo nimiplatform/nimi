@@ -1,4 +1,4 @@
-import type { NimiCapabilityAIConfigIntent } from '@nimiplatform/kit/core/sdk-contract';
+import type { NimiPortableAppAIConfigIntent } from '@nimiplatform/kit/core/sdk-contract';
 import { runtimeAIConfigStructToJson } from '@nimiplatform/kit/core/sdk-contract';
 import type {
   ModelConfigCapabilityPosture,
@@ -10,7 +10,7 @@ function exactCloudTargetText(value: unknown): string {
 }
 
 export function modelConfigHasExactCloudTarget(
-  intent: NimiCapabilityAIConfigIntent | null | undefined,
+  intent: NimiPortableAppAIConfigIntent | null | undefined,
 ): boolean {
   if (intent?.route.oneofKind !== 'cloud') return false;
   return modelConfigJsonHasExactCloudTarget(
@@ -28,7 +28,7 @@ export function modelConfigJsonHasExactCloudTarget(
 }
 
 export function modelConfigMissingRequiredFeatures(
-  intent: NimiCapabilityAIConfigIntent | null | undefined,
+  intent: NimiPortableAppAIConfigIntent | null | undefined,
   selection: ModelConfigLocalSelectionProjection | null | undefined,
 ): readonly string[] {
   if (!intent || intent.route.oneofKind !== 'local' || selection?.state !== 'selected') return [];
@@ -37,7 +37,7 @@ export function modelConfigMissingRequiredFeatures(
 }
 
 export function modelConfigCapabilityPosture(
-  intent: NimiCapabilityAIConfigIntent | null | undefined,
+  intent: NimiPortableAppAIConfigIntent | null | undefined,
   selection: ModelConfigLocalSelectionProjection | null | undefined,
 ): ModelConfigCapabilityPosture {
   if (!intent || !intent.route.oneofKind) return 'not-configured';

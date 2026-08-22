@@ -161,7 +161,7 @@ func localIntent(t *testing.T, contract string, features []string, defaults map[
 		CapabilityContract: contract,
 		RequiredFeatures:   features,
 		Defaults:           mustStruct(t, defaults),
-		Route:              &runtimev1.AIConfigCapabilityIntent_Local{Local: &runtimev1.AIConfigLocalIntent{}},
+		Route:              &runtimev1.AIConfigCapabilityIntent_Local{Local: &runtimev1.AIConfigLocalIntent{LoadoutRef: "loadout:" + contract}},
 	}
 }
 

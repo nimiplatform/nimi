@@ -352,6 +352,14 @@ RUNTIME_METHODS = [
     "response_type": "ListLocalAppAgentReferencesResponse"
   },
   {
+    "method_id": "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppSharedLocalAgentAIConfigOptions",
+    "service": "RuntimeAgentService",
+    "method": "ListLocalAppSharedLocalAgentAIConfigOptions",
+    "kind": "unary",
+    "request_type": "ListLocalAppSharedLocalAgentAIConfigOptionsRequest",
+    "response_type": "ListLocalAppSharedLocalAgentAIConfigOptionsResponse"
+  },
+  {
     "method_id": "/nimi.runtime.v1.RuntimeAgentService/ListPendingHooks",
     "service": "RuntimeAgentService",
     "method": "ListPendingHooks",
@@ -366,6 +374,14 @@ RUNTIME_METHODS = [
     "kind": "unary",
     "request_type": "ListPortableAIProfilesRequest",
     "response_type": "ListPortableAIProfilesResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeAgentService/ListSharedLocalAgentAIConfigOptions",
+    "service": "RuntimeAgentService",
+    "method": "ListSharedLocalAgentAIConfigOptions",
+    "kind": "unary",
+    "request_type": "ListSharedLocalAgentAIConfigOptionsRequest",
+    "response_type": "ListSharedLocalAgentAIConfigOptionsResponse"
   },
   {
     "method_id": "/nimi.runtime.v1.RuntimeAgentService/MaterializeRealmSource",
@@ -694,6 +710,14 @@ RUNTIME_METHODS = [
     "kind": "unary",
     "request_type": "GetVoiceAssetRequest",
     "response_type": "GetVoiceAssetResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeAiService/ListAppAIConfigOptions",
+    "service": "RuntimeAiService",
+    "method": "ListAppAIConfigOptions",
+    "kind": "unary",
+    "request_type": "ListAppAIConfigOptionsRequest",
+    "response_type": "ListAppAIConfigOptionsResponse"
   },
   {
     "method_id": "/nimi.runtime.v1.RuntimeAiService/ListLocalAppVoiceAssets",

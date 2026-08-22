@@ -1,4 +1,5 @@
 use nimi_shell_protected_local::{
+    LocalAppAIConfigLocalOptionsRequest, LocalAppAIConfigOverwriteRequest,
     LocalAppAgentCommitPresentationRequest, LocalAppAgentHandleRequest,
     LocalAppAgentUpdateAutonomyRequest, LocalAppAssetAdoptRequest, LocalAppAssetListRequest,
     LocalAppAssetMoveRequest, LocalAppAssetReadRequest, LocalAppAssetRecord,
@@ -6,7 +7,8 @@ use nimi_shell_protected_local::{
     LocalAppAssetWriteRequest, LocalAppOperationError, LocalAppPersonaCharacterCreateRequest,
     LocalAppPersonaCharacterGetOwnedRequest, LocalAppPersonaCharacterListOwnedRequest,
     LocalAppPersonaCharacterReplaceRequest, LocalAppScenarioUploadArtifactRequest,
-    LocalAppSessionStatus, LocalAppSharedAgentAIConfigOverwriteRequest, LocalAppStorageReadRequest,
+    LocalAppSessionStatus, LocalAppSharedAgentAIConfigLocalOptionsRequest,
+    LocalAppSharedAgentAIConfigOverwriteRequest, LocalAppStorageReadRequest,
     LocalAppStorageRemoveRequest, LocalAppStorageWriteRequest, LocalAppTextCandidateMessage,
     LocalAppTextCandidateRequest, LocalAppWorldCoreCreateRequest, LocalAppWorldCoreListRequest,
 };
@@ -47,7 +49,22 @@ pub struct LocalAppTextCandidatePayload {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct LocalAppSharedAgentAIConfigOverwritePayload {
+    expected_revision: String,
     capabilities: Value,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct LocalAppAIConfigOverwritePayload {
+    expected_revision: String,
+    capabilities: Value,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct LocalAppAIConfigLocalOptionsPayload {
+    capability_contract: String,
+    search: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -340,12 +357,32 @@ pub async fn ai_config_get_for_host(host: &RuntimeBridgeLocalAppHost) -> Result<
     host.app_ai_config_get().await.map_err(map_local_app_error)
 }
 
-pub async fn model_config_local_selections_get_for_host(
+pub async fn ai_config_overwrite_for_host(
     host: &RuntimeBridgeLocalAppHost,
+    payload: Value,
 ) -> Result<Value, String> {
-    host.model_config_local_selections_get()
-        .await
-        .map_err(map_local_app_error)
+    let payload: LocalAppAIConfigOverwritePayload =
+        parse_payload(payload, "local_app_ai_config_overwrite")?;
+    host.app_ai_config_overwrite(LocalAppAIConfigOverwriteRequest {
+        expected_revision: payload.expected_revision,
+        capabilities: payload.capabilities,
+    })
+    .await
+    .map_err(map_local_app_error)
+}
+
+pub async fn ai_config_local_options_for_host(
+    host: &RuntimeBridgeLocalAppHost,
+    payload: Value,
+) -> Result<Value, String> {
+    let payload: LocalAppAIConfigLocalOptionsPayload =
+        parse_payload(payload, "local_app_ai_config_local_options")?;
+    host.app_ai_config_local_options(LocalAppAIConfigLocalOptionsRequest {
+        capability_contract: payload.capability_contract,
+        search: payload.search,
+    })
+    .await
+    .map_err(map_local_app_error)
 }
 
 pub async fn world_core_list_for_host(
@@ -571,7 +608,22 @@ pub async fn shared_agent_ai_config_overwrite_for_host(
         ));
     }
     host.shared_agent_ai_config_overwrite(LocalAppSharedAgentAIConfigOverwriteRequest {
+        expected_revision: payload.expected_revision,
         capabilities: payload.capabilities,
+    })
+    .await
+    .map_err(map_local_app_error)
+}
+
+pub async fn shared_agent_ai_config_local_options_for_host(
+    host: &RuntimeBridgeLocalAppHost,
+    payload: Value,
+) -> Result<Value, String> {
+    let payload: LocalAppAIConfigLocalOptionsPayload =
+        parse_payload(payload, "local_app_shared_agent_ai_config_local_options")?;
+    host.shared_agent_ai_config_local_options(LocalAppSharedAgentAIConfigLocalOptionsRequest {
+        capability_contract: payload.capability_contract,
+        search: payload.search,
     })
     .await
     .map_err(map_local_app_error)

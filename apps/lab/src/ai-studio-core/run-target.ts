@@ -97,7 +97,7 @@ export function createStudioRunTargetSummary(input: {
       status: 'configured',
       source: 'local',
       intentLabel: 'Local',
-      detail: 'The App owner selected Local intent. Runtime chooses and validates the implementation when execution begins.',
+      detail: 'The App owner committed an exact Local Loadout reference. Runtime validates that Loadout when execution begins.',
       canDispatch: true,
     };
   }

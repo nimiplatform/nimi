@@ -64,7 +64,7 @@ func (s *Service) captureMemoryEmbeddingIntent(ctx context.Context) (context.Con
 	if accountID == "" {
 		return ctx, nil, executionintent.Intent{}, grpcerr.WithReasonCode(codes.Unauthenticated, runtimev1.ReasonCode_AUTH_TOKEN_INVALID)
 	}
-	config, found, err := s.aiConfigStore.Get(ctx, accountID, aiconfig.LocalAgentSubsystemOwner())
+	config, _, found, err := s.aiConfigStore.Get(ctx, accountID, aiconfig.LocalAgentSubsystemOwner())
 	if err != nil {
 		return ctx, nil, executionintent.Intent{}, appAIConfigPersistenceError(err)
 	}
@@ -110,7 +110,7 @@ func (s *Service) embedMemoryTextsLocal(
 	}
 	effective, err := s.captureSelectedLocalEmbedEffectiveInputs(&runtimev1.TextEmbedScenarioSpec{
 		Inputs: append([]string(nil), inputs...),
-	}, intent.RequiredFeatures, modelAssetID)
+	}, intent.LocalLoadoutRef, intent.RequiredFeatures, modelAssetID)
 	if err != nil {
 		return nil, err
 	}

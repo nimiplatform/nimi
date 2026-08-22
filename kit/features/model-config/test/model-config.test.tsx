@@ -68,8 +68,22 @@ async function renderSurface(
           capabilityContract: 'text.generate',
           requiredFeatures: [],
           defaults: undefined,
-          route: { oneofKind: 'local', local: {} },
+          route: { oneofKind: 'local', local: { loadoutRef: 'machine-text' } },
         }]}
+        revision="1"
+        listOptions={async () => ({
+          kind: 'local-loadouts',
+          options: [{
+            kind: 'local-loadout',
+            ref: 'machine-text',
+            label: 'Machine text model',
+            capabilityContract: 'text.generate',
+            state: 'ready',
+            supportedFeatures: [],
+            reasons: [],
+          }],
+          truncated: false,
+        })}
         localSelections={[{
           capabilityContract: 'text.generate',
           state: 'selected',
@@ -170,7 +184,10 @@ describe('public Model Config contract', () => {
   ])('does not render defaults for Runtime-rejected %s intents', async (capabilityContract) => {
     const node = await renderSurface(vi.fn(async () => undefined), vi.fn(), {
       capabilityContracts: [capabilityContract],
-      capabilities: [createNimiLocalAIConfigCapabilityIntent({ capabilityContract })],
+      capabilities: [createNimiLocalAIConfigCapabilityIntent({
+        capabilityContract,
+        loadoutRef: `loadout-${capabilityContract}`,
+      })],
       initialCapabilityContract: capabilityContract,
     });
 
@@ -202,6 +219,7 @@ describe('public Model Config contract', () => {
     const intent = createNimiLocalAIConfigCapabilityIntent({
       capabilityContract: 'text.generate',
       requiredFeatures: [],
+      loadoutRef: 'machine-text',
     });
 
     expect(modelConfigCapabilityPosture(intent, undefined)).toBe('local-configured');
@@ -232,7 +250,7 @@ describe('public Model Config contract', () => {
     expect(node.querySelector('[data-testid="model-config-model-trigger:text.generate"]')).toBeTruthy();
   });
 
-  it('keeps a third-party App read-only and hands configuration to the Nimi owner surface', async () => {
+  it('lets a covered third-party App edit through the same manager and keeps Desktop handoff optional', async () => {
     const onOpenOwnerConfiguration = vi.fn();
     const onOverwrite = vi.fn<ModelConfigOverwrite>(async () => undefined);
     const node = await renderSurface(onOverwrite, vi.fn(), {
@@ -242,11 +260,11 @@ describe('public Model Config contract', () => {
       onOpenOwnerConfiguration,
     });
 
-    expect(node.querySelector('[data-nimi-model-config-read-only="true"]')).toBeTruthy();
-    expect(node.querySelector('[data-testid="model-config-model-trigger:text.generate"]')).toBeNull();
-    expect(node.querySelector('[data-testid="model-config-save:text.generate"]')).toBeNull();
-    act(() => { (node.querySelector('[data-nimi-model-config-owner-handoff="true"]') as HTMLButtonElement).click(); });
-    expect(onOpenOwnerConfiguration).toHaveBeenCalledTimes(1);
+    expect(node.querySelector('[data-nimi-model-config-read-only="true"]')).toBeNull();
+    expect(node.querySelector('[data-testid="model-config-model-trigger:text.generate"]')).toBeTruthy();
+    expect(node.querySelector('[data-testid="model-config-save:text.generate"]')).toBeTruthy();
+    expect(node.querySelector('[data-nimi-model-config-owner-handoff="true"]')).toBeNull();
+    expect(onOpenOwnerConfiguration).not.toHaveBeenCalled();
     expect(onOverwrite).not.toHaveBeenCalled();
   });
 
@@ -258,7 +276,7 @@ describe('public Model Config contract', () => {
       capabilityContract: 'text.generate',
       requiredFeatures: [],
       defaults: undefined,
-      route: { oneofKind: 'local' as const, local: {} },
+      route: { oneofKind: 'local' as const, local: { loadoutRef: 'machine-text' } },
     };
     const localSelections = [{
       capabilityContract: 'text.generate',
@@ -278,6 +296,8 @@ describe('public Model Config contract', () => {
             initialCapabilityContract="text.generate"
             capabilities={[capability]}
             localSelections={localSelections}
+            revision="1"
+            listOptions={async () => ({ kind: 'local-loadouts', options: [], truncated: false })}
             onOverwrite={async () => undefined}
           />,
         );
@@ -286,7 +306,7 @@ describe('public Model Config contract', () => {
     };
 
     await renderConsumer('third-party-app');
-    expect(container.querySelector('[data-nimi-model-config-read-only="true"]')).toBeTruthy();
+    expect(container.querySelector('[data-testid="model-config-model-trigger:text.generate"]')).toBeTruthy();
     await renderConsumer('nimi-first-party');
     expect(container.querySelector('[data-testid="model-config-model-trigger:text.generate"]')).toBeTruthy();
   });
@@ -309,12 +329,15 @@ describe('public Model Config contract', () => {
     await act(async () => { save.click(); await Promise.resolve(); });
 
     expect(onOverwrite).toHaveBeenCalledTimes(1);
-    expect(onOverwrite.mock.calls[0]?.[0]).toEqual([{
-      capabilityContract: 'text.generate',
-      requiredFeatures: [],
-      defaults: undefined,
-      route: { oneofKind: 'local', local: {} },
-    }]);
+    expect(onOverwrite.mock.calls[0]?.[0]).toEqual({
+      expectedRevision: '1',
+      capabilities: [{
+        capabilityContract: 'text.generate',
+        requiredFeatures: [],
+        defaults: undefined,
+        route: { oneofKind: 'local', local: { loadoutRef: 'machine-text' } },
+      }],
+    });
     expect(JSON.stringify(onOverwrite.mock.calls[0]?.[0])).not.toMatch(/modelId|targetRef|loadoutId/u);
   });
 
@@ -353,6 +376,7 @@ describe('public Model Config contract', () => {
     const onOverwrite = vi.fn<ModelConfigOverwrite>(async () => undefined);
     const intent = createNimiLocalAIConfigCapabilityIntent({
       capabilityContract: 'video.generate',
+      loadoutRef: 'machine-video',
       defaults: {
         negativePrompt: 'blur',
         unknown: 'drop-me',
@@ -376,7 +400,7 @@ describe('public Model Config contract', () => {
     const save = node.querySelector('[data-testid="model-config-save:video.generate"]') as HTMLButtonElement;
     await act(async () => { save.click(); await Promise.resolve(); });
 
-    const saved = onOverwrite.mock.calls[0]?.[0][0];
+    const saved = onOverwrite.mock.calls[0]?.[0].capabilities[0];
     expect(saved).toBeTruthy();
     expect(runtimeAIConfigStructToJson(saved?.defaults)).toEqual({
       negative_prompt: 'blur',

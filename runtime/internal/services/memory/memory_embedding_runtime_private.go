@@ -25,9 +25,9 @@ type MemoryEmbeddingCloudBindingRef struct {
 	Provider             string
 }
 
-// MemoryEmbeddingLocalBindingRef is an intent marker only. Machine identity is
-// resolved from the current selected text.embed Loadout by the Runtime owner.
-type MemoryEmbeddingLocalBindingRef struct{}
+// MemoryEmbeddingLocalBindingRef carries only the exact Loadout reference
+// committed by the shared AIConfig owner; resource content stays machine-owned.
+type MemoryEmbeddingLocalBindingRef struct{ LoadoutRef string }
 
 type MemoryEmbeddingTextEmbedIntentSnapshot struct {
 	SourceKind     MemoryEmbeddingTextEmbedSourceKind
@@ -148,7 +148,11 @@ func normalizeMemoryEmbeddingLocalBinding(input *MemoryEmbeddingLocalBindingRef)
 	if input == nil {
 		return nil
 	}
-	return &MemoryEmbeddingLocalBindingRef{}
+	loadoutRef := strings.TrimSpace(input.LoadoutRef)
+	if loadoutRef == "" {
+		return nil
+	}
+	return &MemoryEmbeddingLocalBindingRef{LoadoutRef: loadoutRef}
 }
 
 func normalizeMemoryEmbeddingIntentSnapshot(input *MemoryEmbeddingTextEmbedIntentSnapshot) *MemoryEmbeddingTextEmbedIntentSnapshot {
@@ -202,7 +206,7 @@ func cloneMemoryEmbeddingIntentSnapshot(input *MemoryEmbeddingTextEmbedIntentSna
 			if input.LocalBinding == nil {
 				return nil
 			}
-			return &MemoryEmbeddingLocalBindingRef{}
+			return &MemoryEmbeddingLocalBindingRef{LoadoutRef: input.LocalBinding.LoadoutRef}
 		}(),
 		ConfigRevision: input.ConfigRevision,
 		RevisionToken:  input.RevisionToken,

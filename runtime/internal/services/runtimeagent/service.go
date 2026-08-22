@@ -14,6 +14,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/aiconfig"
 	"github.com/nimiplatform/nimi/runtime/internal/aiprofile"
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
+	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 	"github.com/nimiplatform/nimi/runtime/internal/runtimepersistence"
 	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
 	"github.com/nimiplatform/nimi/runtime/internal/services/delegation"
@@ -90,6 +91,7 @@ type Service struct {
 	aiBridge                                 *RuntimePrivateAIBridge
 	machineExecutionBindingMu                sync.RWMutex
 	machineExecutionBindingResolver          machineExecutionBindingResolver
+	localExecution                           localexecution.Resolver
 	aiConfigStore                            aiconfig.Store
 	aiProfileStore                           aiprofile.Store
 	connectorStore                           *connector.ConnectorStore

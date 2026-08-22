@@ -42,6 +42,7 @@ const (
 	protectedConversationSnapshotMethod      = "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppConversationSnapshot"
 	protectedGetSharedAIConfigMethod         = "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppSharedLocalAgentAIConfig"
 	protectedOverwriteSharedAIConfigMethod   = "/nimi.runtime.v1.RuntimeAgentService/OverwriteLocalAppSharedLocalAgentAIConfig"
+	protectedListSharedAIConfigOptionsMethod = "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppSharedLocalAgentAIConfigOptions"
 	protectedAutonomySnapshotMethod          = "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentAutonomySnapshot"
 	protectedUpdateAutonomyMethod            = "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentAutonomy"
 	protectedPresentationSnapshotMethod      = "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentPresentationSnapshot"
@@ -57,7 +58,8 @@ const (
 	protectedUploadLocalAppArtifactMethod    = "/nimi.runtime.v1.RuntimeAiService/UploadLocalAppArtifact"
 	protectedListLocalAppVoiceAssetsMethod   = "/nimi.runtime.v1.RuntimeAiService/ListLocalAppVoiceAssets"
 	protectedGetAppAIConfigMethod            = "/nimi.runtime.v1.RuntimeAiService/GetAppAIConfig"
-	protectedGetMachineLoadoutsMethod        = "/nimi.runtime.v1.RuntimeLocalService/GetMachineLoadouts"
+	protectedOverwriteAppAIConfigMethod      = "/nimi.runtime.v1.RuntimeAiService/OverwriteAppAIConfig"
+	protectedListAppAIConfigOptionsMethod    = "/nimi.runtime.v1.RuntimeAiService/ListAppAIConfigOptions"
 	protectedInvokeRealmUnaryMethod          = "/nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary"
 )
 
@@ -94,6 +96,7 @@ var protectedLocalAppUnaryMethodPolicies = map[string]protectedLocalAppMethodPol
 	protectedConversationSnapshotMethod:      localAppSessionMethodPolicy(),
 	protectedGetSharedAIConfigMethod:         localAppSessionMethodPolicy(),
 	protectedOverwriteSharedAIConfigMethod:   localAppSessionMethodPolicy(),
+	protectedListSharedAIConfigOptionsMethod: localAppSessionMethodPolicy(),
 	protectedAutonomySnapshotMethod:          localAppSessionMethodPolicy(),
 	protectedUpdateAutonomyMethod:            localAppSessionMethodPolicy(),
 	protectedPresentationSnapshotMethod:      localAppSessionMethodPolicy(),
@@ -107,7 +110,8 @@ var protectedLocalAppUnaryMethodPolicies = map[string]protectedLocalAppMethodPol
 	protectedUploadLocalAppArtifactMethod:    localAppSessionMethodPolicy(),
 	protectedListLocalAppVoiceAssetsMethod:   localAppSessionMethodPolicy(),
 	protectedGetAppAIConfigMethod:            localAppSessionMethodPolicy(),
-	protectedGetMachineLoadoutsMethod:        localAppSessionMethodPolicy(),
+	protectedOverwriteAppAIConfigMethod:      localAppSessionMethodPolicy(),
+	protectedListAppAIConfigOptionsMethod:    localAppSessionMethodPolicy(),
 	protectedInvokeRealmUnaryMethod:          localAppSessionMethodPolicy(),
 }
 
@@ -341,8 +345,12 @@ func protectedLocalAppUnaryIngress(method string, request any) localappop.Ingres
 		return localappop.IngressStorageAssetMove
 	case protectedAdoptLocalAppArtifactMethod:
 		return localappop.IngressArtifactAdoptToStorage
-	case protectedGetAppAIConfigMethod, protectedGetMachineLoadoutsMethod:
+	case protectedGetAppAIConfigMethod:
 		return localappop.IngressAppAIConfigGet
+	case protectedOverwriteAppAIConfigMethod:
+		return localappop.IngressAppAIConfigOverwrite
+	case protectedListAppAIConfigOptionsMethod:
+		return localappop.IngressAppAIConfigOptionsList
 	case protectedGenerateTextCandidateMethod:
 		return localappop.IngressTextCandidateGenerate
 	case protectedExecuteLocalAppScenarioMethod:
@@ -394,6 +402,8 @@ func protectedLocalAppUnaryIngress(method string, request any) localappop.Ingres
 		return localappop.IngressAgentAIConfigGet
 	case protectedOverwriteSharedAIConfigMethod:
 		return localappop.IngressAgentAIConfigOverwrite
+	case protectedListSharedAIConfigOptionsMethod:
+		return localappop.IngressAgentAIConfigOptionsList
 	case protectedAutonomySnapshotMethod:
 		return localappop.IngressAgentAutonomySnapshotGet
 	case protectedUpdateAutonomyMethod:
@@ -412,12 +422,13 @@ func protectedLocalAppOwnerEnabled(method string, request any, ingress localappo
 	case protectedReadLocalAppStorageJSONMethod, protectedWriteLocalAppStorageJSONMethod, protectedRemoveLocalAppStorageJSONMethod,
 		protectedStatLocalAppAssetMethod, protectedListLocalAppAssetsMethod, protectedRemoveLocalAppAssetMethod, protectedMoveLocalAppAssetMethod, protectedRevealLocalAppAssetMethod,
 		protectedAdoptLocalAppArtifactMethod,
-		protectedGetAppAIConfigMethod, protectedGetMachineLoadoutsMethod, protectedGenerateTextCandidateMethod,
+		protectedGetAppAIConfigMethod, protectedOverwriteAppAIConfigMethod,
+		protectedListAppAIConfigOptionsMethod, protectedGenerateTextCandidateMethod,
 		protectedExecuteLocalAppScenarioMethod, protectedSubmitScenarioJobMethod, protectedGetScenarioJobMethod, protectedCancelScenarioJobMethod,
 		protectedReadLocalAppArtifactMethod, protectedUploadLocalAppArtifactMethod, protectedListLocalAppVoiceAssetsMethod,
 		protectedAgentReferenceListMethod, protectedOpenConversationMethod, protectedSendConversationTurnMethod,
 		protectedInterruptConversationTurnMethod, protectedConversationSnapshotMethod,
-		protectedGetSharedAIConfigMethod, protectedOverwriteSharedAIConfigMethod,
+		protectedGetSharedAIConfigMethod, protectedOverwriteSharedAIConfigMethod, protectedListSharedAIConfigOptionsMethod,
 		protectedAutonomySnapshotMethod, protectedUpdateAutonomyMethod,
 		protectedPresentationSnapshotMethod, protectedCommitPresentationMethod:
 		return true

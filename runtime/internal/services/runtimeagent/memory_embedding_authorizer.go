@@ -70,7 +70,9 @@ func (s *Service) ResolveMemoryEmbeddingIntent(ctx context.Context, reqContext *
 	}
 	if embeddingIntent.GetLocal() != nil {
 		snapshot.SourceKind = memoryservice.MemoryEmbeddingTextEmbedSourceKindLocal
-		snapshot.LocalBinding = &memoryservice.MemoryEmbeddingLocalBindingRef{}
+		snapshot.LocalBinding = &memoryservice.MemoryEmbeddingLocalBindingRef{
+			LoadoutRef: embeddingIntent.GetLocal().GetLoadoutRef(),
+		}
 		return snapshot, nil
 	}
 	if embeddingIntent.GetCloud() == nil {

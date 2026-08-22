@@ -75,7 +75,9 @@ export function studioCloudIntentHasExactTarget(
   intent: NimiPortableAppAIConfigIntent,
 ): boolean {
   if (intent.route.oneofKind !== 'cloud') return false;
-  const target = runtimeAIConfigStructToJson(intent.route.cloud.providerModelTarget);
+  const route = intent.route;
+  if (!('cloud' in route)) return false;
+  const target = runtimeAIConfigStructToJson(route.cloud.providerModelTarget);
   const exactText = (value: unknown): boolean => (
     typeof value === 'string' && value.length > 0 && value.trim() === value
   );

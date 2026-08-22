@@ -2,20 +2,22 @@ import {
   createNimiSharedLocalAgentAISurface,
   type NimiRuntimeAgentScopeRunner,
   type NimiSharedLocalAgentAIConfigCallInput,
-  type NimiSharedLocalAgentAIConfigClient,
+  type NimiSharedLocalAgentAIConfigOptionsInput,
   type NimiSharedLocalAgentAIConfigOverwriteInput,
   type NimiSharedLocalAgentAIConfigRuntime,
 } from '@nimiplatform/sdk/runtime';
+import type {
+  NimiAIConfigOptionsResult,
+  NimiAIConfigOverwriteResult,
+  NimiAIConfigSnapshot,
+} from '@nimiplatform/sdk/ai';
 
-type SharedLocalAgentAIConfig = Awaited<ReturnType<NimiSharedLocalAgentAIConfigClient['get']>>;
-
-export interface NimiRuntimeAgentAIConfigSnapshot {
-  readonly aiConfig: SharedLocalAgentAIConfig;
-}
+export type NimiRuntimeAgentAIConfigSnapshot = NimiAIConfigSnapshot;
 
 export interface NimiRuntimeAgentAIConfigAdapter {
   get(input?: NimiSharedLocalAgentAIConfigCallInput): Promise<NimiRuntimeAgentAIConfigSnapshot>;
-  update(input: NimiSharedLocalAgentAIConfigOverwriteInput): Promise<NimiRuntimeAgentAIConfigSnapshot>;
+  update(input: NimiSharedLocalAgentAIConfigOverwriteInput): Promise<NimiAIConfigOverwriteResult>;
+  listOptions(input: NimiSharedLocalAgentAIConfigOptionsInput): Promise<NimiAIConfigOptionsResult>;
 }
 
 type RuntimeAgentAIConfigDeps = {
@@ -35,10 +37,13 @@ export function createRuntimeAgentAIConfigAdapter(
 
   return Object.freeze({
     async get(input: NimiSharedLocalAgentAIConfigCallInput = {}) {
-      return Object.freeze({ aiConfig: await sharedAIConfig.get(input) });
+      return sharedAIConfig.get(input);
     },
     async update(input: NimiSharedLocalAgentAIConfigOverwriteInput) {
-      return Object.freeze({ aiConfig: await sharedAIConfig.overwrite(input) });
+      return sharedAIConfig.overwrite(input);
+    },
+    async listOptions(input: NimiSharedLocalAgentAIConfigOptionsInput) {
+      return sharedAIConfig.listOptions(input);
     },
   });
 }

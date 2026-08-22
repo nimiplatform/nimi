@@ -180,7 +180,7 @@ func TestLocalAppSessionCurrentUserProjectionAndFailureIsolation(t *testing.T) {
 }
 
 func TestLocalAppSessionOwnerHandoffContainsOnlyRuntimeDerivedAdmission(t *testing.T) {
-	fixture := newLocalAppSessionFixture(t, []string{"realm.data", "agent.local", "agent.configure"})
+	fixture := newLocalAppSessionFixture(t, []string{"realm.data", "runtime.consume", "agent.local", "agent.configure"})
 	if _, err := fixture.service.OpenLocalAppSessionProjection(fixture.context); err != nil {
 		t.Fatal(err)
 	}
@@ -195,7 +195,15 @@ func TestLocalAppSessionOwnerHandoffContainsOnlyRuntimeDerivedAdmission(t *testi
 		},
 		localappop.IngressAppAIConfigGet: {
 			operation: accountservice.LocalAppOperationAppAIConfigRead,
-			class:     localappop.AuthorityClassBase, capability: "",
+			class:     localappop.AuthorityClassAppAccess, capability: "runtime.consume",
+		},
+		localappop.IngressAppAIConfigOverwrite: {
+			operation: accountservice.LocalAppOperationAppAIConfigOverwrite,
+			class:     localappop.AuthorityClassAppAccess, capability: "runtime.consume",
+		},
+		localappop.IngressAppAIConfigOptionsList: {
+			operation: accountservice.LocalAppOperationAppAIConfigOptionsList,
+			class:     localappop.AuthorityClassAppAccess, capability: "runtime.consume",
 		},
 		localappop.IngressRealmWorldCoreList: {
 			operation: accountservice.LocalAppOperationRealmWorldCoreList,

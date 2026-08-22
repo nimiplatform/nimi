@@ -32,6 +32,7 @@ use crate::windows_service_control::open_verified_runtime_channel;
 #[cfg(all(target_os = "windows", feature = "windows-source-local-development"))]
 use crate::windows_service_control::{open_verified_runtime_channel, SOURCE_LOCAL_APP_PIPE_REF};
 use crate::{
+    LocalAppAIConfigLocalOptionsRequest, LocalAppAIConfigOverwriteRequest,
     LocalAppAgentCommitPresentationRequest, LocalAppAgentHandleRequest, LocalAppAgentReference,
     LocalAppAgentUpdateAutonomyRequest, LocalAppAssetAdoptRequest, LocalAppAssetListRequest,
     LocalAppAssetListResult, LocalAppAssetMoveRequest, LocalAppAssetReadRequest,
@@ -50,7 +51,8 @@ use crate::{
     LocalAppScenarioJobSubscribeRequest, LocalAppScenarioListVoiceAssetsRequest,
     LocalAppScenarioReadArtifactRequest, LocalAppScenarioStreamReceiver,
     LocalAppScenarioSubmitRequest, LocalAppScenarioUploadArtifactRequest, LocalAppSessionState,
-    LocalAppSessionStatus, LocalAppSharedAgentAIConfigOverwriteRequest, LocalAppStorageDocument,
+    LocalAppSessionStatus, LocalAppSharedAgentAIConfigLocalOptionsRequest,
+    LocalAppSharedAgentAIConfigOverwriteRequest, LocalAppStorageDocument,
     LocalAppStorageReadRequest, LocalAppStorageRemoveRequest, LocalAppStorageRemoveResult,
     LocalAppStorageWriteRequest, LocalAppTextCandidateRequest, LocalAppTextCandidateResult,
     LocalAppWorldCoreCreateRequest, LocalAppWorldCoreListRequest, NimiLocalAppCarrier,
@@ -334,13 +336,25 @@ impl NimiLocalAppSession for PlatformLocalAppSession {
         })
     }
 
-    fn model_config_local_selections_get(
+    fn app_ai_config_overwrite(
         &self,
+        request: LocalAppAIConfigOverwriteRequest,
     ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
     {
         Box::pin(async move {
             let _operation = self.operation_gate.read().await;
-            app_ai_config::local_selections(self.checked_channel()?).await
+            app_ai_config::overwrite(self.checked_channel()?, request).await
+        })
+    }
+
+    fn app_ai_config_local_options(
+        &self,
+        request: LocalAppAIConfigLocalOptionsRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
+    {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            app_ai_config::list_local_options(self.checked_channel()?, request).await
         })
     }
 
@@ -688,6 +702,17 @@ impl NimiLocalAppSession for PlatformLocalAppSession {
         Box::pin(async move {
             let _operation = self.operation_gate.read().await;
             shared_agent_ai_config::overwrite(self.checked_channel()?, request).await
+        })
+    }
+
+    fn shared_agent_ai_config_local_options(
+        &self,
+        request: LocalAppSharedAgentAIConfigLocalOptionsRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
+    {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            shared_agent_ai_config::list_local_options(self.checked_channel()?, request).await
         })
     }
 

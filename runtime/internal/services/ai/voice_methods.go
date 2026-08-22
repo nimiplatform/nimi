@@ -13,6 +13,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 	"github.com/nimiplatform/nimi/runtime/internal/remoteexecution"
 	"github.com/nimiplatform/nimi/runtime/internal/runtimeidentity"
 	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
@@ -461,7 +462,7 @@ func (s *Service) ListPresetVoices(ctx context.Context, req *runtimev1.ListPrese
 		return nil, err
 	}
 	if intent.IsLocal() {
-		return s.listSelectedLocalPresetVoices(ctx, appID, subjectUserID)
+		return s.listSelectedLocalPresetVoices(capturedCtx, appID, subjectUserID)
 	}
 	if !intent.IsAIConfigCloud() {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
@@ -518,12 +519,9 @@ func (s *Service) listSelectedLocalPresetVoices(
 	appID string,
 	subjectUserID string,
 ) (*runtimev1.ListPresetVoicesResponse, error) {
-	if s.localExecution == nil {
-		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_SELECTION_NOT_FOUND)
-	}
-	selected, err := s.localExecution.ResolveSelectedLocalExecution(capabilitydriver.AudioSynthesizeContract)
-	if err != nil {
-		return nil, err
+	selected, ok := localexecution.SelectedLocalExecutionFromContext(ctx, capabilitydriver.AudioSynthesizeContract)
+	if !ok {
+		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
 	}
 	if !validSelectedSpeechExecution(selected, capabilitydriver.AudioSynthesizeContract) || len(selected.ExactBindings) != 1 {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_CONFIGURATION_NOT_CONFIGURED)

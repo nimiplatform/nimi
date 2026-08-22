@@ -32,14 +32,11 @@ type mutableLocalExecutionResolver struct {
 	calls              int
 }
 
-func (r *mutableLocalExecutionResolver) SelectedLocalCapabilityContracts() []string {
-	if strings.TrimSpace(r.capabilityContract) != "" {
-		return []string{r.capabilityContract}
-	}
-	return []string{capabilitydriver.LlamaCapabilityContract}
+func (r *mutableLocalExecutionResolver) ListLocalLoadouts(string, string, int) ([]localexecution.LoadoutOption, bool, error) {
+	return nil, false, r.err
 }
 
-func (r *mutableLocalExecutionResolver) ResolveSelectedLocalExecution(string) (*localexecution.SelectedLocalExecution, error) {
+func (r *mutableLocalExecutionResolver) ResolveLocalExecution(string, string) (*localexecution.SelectedLocalExecution, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	r.calls++
@@ -310,12 +307,14 @@ func TestSubmitAppLocalImageCapturesAIConfigBeforeRunningJob(t *testing.T) {
 	}
 	writeConfig := func(value *structpb.Struct) {
 		t.Helper()
-		if err := svc.aiConfigStore.Overwrite(context.Background(), "account-a", &runtimev1.AIConfig{
+		if err := overwriteAIConfigStoreForTest(context.Background(), svc.aiConfigStore, "account-a", &runtimev1.AIConfig{
 			Owner: derivedAppAIConfigOwner("app.local"),
 			Capabilities: []*runtimev1.AIConfigCapabilityIntent{{
 				CapabilityContract: capabilitydriver.StableDiffusionCapabilityContract,
 				Defaults:           value,
-				Route:              &runtimev1.AIConfigCapabilityIntent_Local{Local: &runtimev1.AIConfigLocalIntent{}},
+				Route: &runtimev1.AIConfigCapabilityIntent_Local{Local: &runtimev1.AIConfigLocalIntent{
+					LoadoutRef: "loadout:test:text.generate",
+				}},
 			}},
 		}); err != nil {
 			t.Fatalf("write App AIConfig: %v", err)
@@ -393,7 +392,7 @@ func TestLocalTextLoadFailureIsTypedAndDoesNotMutateSelection(t *testing.T) {
 	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_LOCAL_EXECUTION_LOAD_FAILED {
 		t.Fatalf("load error = %v, reason=%v ok=%v", err, reason, ok)
 	}
-	current, resolveErr := resolver.ResolveSelectedLocalExecution(capabilitydriver.LlamaCapabilityContract)
+	current, resolveErr := resolver.ResolveLocalExecution(capabilitydriver.LlamaCapabilityContract, selected.LoadoutID)
 	if resolveErr != nil || current.LoadoutID != selected.LoadoutID || current.ExactBindings[0].AbsolutePath != selected.ExactBindings[0].AbsolutePath {
 		t.Fatalf("load failure mutated selection/binding: %+v, %v", current, resolveErr)
 	}
@@ -408,8 +407,9 @@ func TestSelectedLocalTextContextMetadataHasNoResidentOrDurableTarget(t *testing
 	}
 	selected.PortableConfig = portable
 	svc.SetLocalExecutionResolver(&mutableLocalExecutionResolver{projection: selected})
+	captured := localexecution.WithSelectedLocalExecution(context.Background(), selected)
 	window, catalogRevision, modelRevision, provider, targetRef, release, err := svc.ResolvePublicChatTextContextMetadataLease(
-		context.Background(), runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL, "display-only", nil,
+		captured, runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL, "display-only", nil,
 	)
 	if err != nil {
 		t.Fatalf("ResolvePublicChatTextContextMetadataLease: %v", err)
@@ -866,6 +866,7 @@ func cloneSelectedExecutionForTest(input *localexecution.SelectedLocalExecution)
 func localTextIntentContext(parent context.Context, defaults *structpb.Struct) context.Context {
 	return executionintent.WithIntent(parent, executionintent.Intent{
 		CapabilityContract: capabilitydriver.LlamaCapabilityContract,
+		LocalLoadoutRef:    "test-loadout:text.generate",
 		Defaults:           defaults,
 		Route:              runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 	})

@@ -1,8 +1,8 @@
 {
   "ModelConfig": {
     "drawerTitle": "App AI 配置",
-    "drawerDescription": "只读查看 Nimi Lab AI 配置",
-    "title": "已配置的能力",
+    "drawerDescription": "配置 Nimi Lab AI 能力",
+    "title": "AI 能力配置",
     "backLabel": "返回",
     "detailTitle": "{{capability}} 配置",
     "activeModelLabel": "当前 owner 配置",
@@ -11,7 +11,7 @@
     "localBrokenLabel": "所选本机模型不可用：",
     "localUnavailableLabel": "暂时无法读取本机模型选择。",
     "localMismatchLabel": "所选本机模型不支持：{{features}}",
-    "openOwnerConfigurationLabel": "在 Nimi Desktop 中配置此 App",
+    "openOwnerConfigurationLabel": "在 Nimi Desktop 中统一管理",
     "loadFailed": "无法从 Runtime 加载 Nimi Lab AI 配置。",
     "unsupportedCapabilityLabel": "此能力暂不可用。",
     "notConfiguredLabel": "未配置",
@@ -21,7 +21,7 @@
     "mismatchLabel": "功能不匹配",
     "runtimeConnected": "已连接 Runtime",
     "runtimeUnavailable": "Runtime 不可用",
-    "headerDescription": "这里仅展示 Nimi Lab 当前解析到的 App AI 配置；所有变更均由 Nimi Desktop 管理。",
-    "footerNote": "如需修改能力配置，请在 Nimi Desktop 中打开此 App。"
+    "headerDescription": "在这里选择当前 Runtime 中已有的本机模型并直接保存到 Nimi Lab 的 App AI 配置。",
+    "footerNote": "相同配置也可以在 Nimi Desktop 中统一查看和管理。"
   }
 }

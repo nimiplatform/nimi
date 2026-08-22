@@ -554,7 +554,26 @@ pub struct LocalAppAgentHandleRequest {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct LocalAppSharedAgentAIConfigOverwriteRequest {
+    pub expected_revision: String,
     pub capabilities: JsonValue,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LocalAppSharedAgentAIConfigLocalOptionsRequest {
+    pub capability_contract: String,
+    pub search: String,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct LocalAppAIConfigOverwriteRequest {
+    pub expected_revision: String,
+    pub capabilities: JsonValue,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LocalAppAIConfigLocalOptionsRequest {
+    pub capability_contract: String,
+    pub search: String,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -944,8 +963,14 @@ pub trait NimiLocalAppSession: Send + Sync {
         &self,
     ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
 
-    fn model_config_local_selections_get(
+    fn app_ai_config_overwrite(
         &self,
+        request: LocalAppAIConfigOverwriteRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+
+    fn app_ai_config_local_options(
+        &self,
+        request: LocalAppAIConfigLocalOptionsRequest,
     ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
 
     fn realm_world_core_list(
@@ -1160,6 +1185,11 @@ pub trait NimiLocalAppSession: Send + Sync {
     fn shared_agent_ai_config_overwrite(
         &self,
         request: LocalAppSharedAgentAIConfigOverwriteRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+
+    fn shared_agent_ai_config_local_options(
+        &self,
+        request: LocalAppSharedAgentAIConfigLocalOptionsRequest,
     ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
 
     fn agent_autonomy_snapshot(

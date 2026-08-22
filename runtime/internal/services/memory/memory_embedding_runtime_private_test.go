@@ -75,10 +75,10 @@ func setManagedEmbeddingProfileForTest(svc *Service, profile *runtimev1.MemoryEm
 	})
 }
 
-func testLocalBindingSnapshot(_ string) *MemoryEmbeddingTextEmbedIntentSnapshot {
+func testLocalBindingSnapshot(loadoutRef string) *MemoryEmbeddingTextEmbedIntentSnapshot {
 	return &MemoryEmbeddingTextEmbedIntentSnapshot{
 		SourceKind:    MemoryEmbeddingTextEmbedSourceKindLocal,
-		LocalBinding:  &MemoryEmbeddingLocalBindingRef{},
+		LocalBinding:  &MemoryEmbeddingLocalBindingRef{LoadoutRef: loadoutRef},
 		RevisionToken: "rev-1",
 	}
 }

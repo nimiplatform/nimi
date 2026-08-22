@@ -59,6 +59,7 @@ func TestLocalSpeechJobsPersistCompleteEffectiveInputIdentity(t *testing.T) {
 			svc.SetLocalSpeechExecutionHost(&localSpeechHostStub{})
 			ctx := executionintent.WithIntent(context.Background(), executionintent.Intent{
 				CapabilityContract: test.contract,
+				LocalLoadoutRef:    "test-loadout:" + test.contract,
 				Route:              runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 			})
 			response, err := svc.SubmitScenarioJob(ctx, &runtimev1.SubmitScenarioJobRequest{

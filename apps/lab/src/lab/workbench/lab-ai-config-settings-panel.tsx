@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import type { NimiPortableAppAIConfig } from '@nimiplatform/sdk/ai';
+import type { NimiAIConfigSnapshot } from '@nimiplatform/sdk/ai';
 import type { StudioRuntimeInspection } from '../../ai-studio-core/index.js';
 import {
   ModelConfigAIConfigSurface,
@@ -27,8 +27,8 @@ type LabAiConfigSettingsPanelProps = {
   capabilityId: string;
 };
 
-// The protected Lab mount is projection-only. It supplies only copy used by
-// Kit's third-party read surface and one exact Desktop owner handoff.
+// The protected Lab mount uses the same canonical manager contract as Desktop;
+// the Desktop handoff remains an optional centralized-management convenience.
 function useLabModelConfigCopy(): ModelConfigCopy {
   const { t } = useTranslation();
   return useMemo(() => ({
@@ -68,29 +68,15 @@ export function LabAiConfigSettingsPanel({
   const rendererHost = useLabRendererHost();
   const { t } = useTranslation();
   const copy = useLabModelConfigCopy();
-  const [config, setConfig] = useState<NimiPortableAppAIConfig | null>(null);
+  const [snapshot, setSnapshot] = useState<NimiAIConfigSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [localSelections, setLocalSelections] = useState<readonly ModelConfigLocalSelectionProjection[]>([]);
 
   const refresh = useCallback(async () => {
     setLoading(true);
     setLoadError(null);
     try {
-      setConfig(await loadLabAIConfig(rendererHost.sdk.aiConfig));
-      try {
-        setLocalSelections(await rendererHost.sdk.modelConfig.localSelections());
-      } catch {
-        setLocalSelections(labModelConfigCapabilityContracts.map((capabilityContract) => ({
-          capabilityContract,
-          state: 'unavailable',
-          loadoutId: null,
-          displayName: null,
-          supportedFeatures: [],
-          reasons: ['machine-loadout-unavailable'],
-          effectiveDefaults: null,
-        })));
-      }
+      setSnapshot(await loadLabAIConfig(rendererHost.sdk.aiConfig));
     } catch (cause) {
       setLoadError(cause instanceof Error ? cause.message : String(cause || t('ModelConfig.loadFailed')));
     } finally {
@@ -111,6 +97,33 @@ export function LabAiConfigSettingsPanel({
     ? t('ModelConfig.runtimeConnected')
     : t('ModelConfig.runtimeUnavailable');
 
+  const localSelections = useMemo<readonly ModelConfigLocalSelectionProjection[]>(() => {
+    if (!snapshot) return [];
+    return snapshot.effectiveSelections.map((selection) => {
+      const local = selection.resource?.oneofKind === 'local' ? selection.resource.local : null;
+      const intent = snapshot.config?.capabilities.find((entry) => (
+        entry.capabilityContract === selection.capabilityContract && entry.route.oneofKind === 'local'
+      ));
+      const loadoutRef = local?.loadoutRef
+        || (intent?.route.oneofKind === 'local' ? intent.route.local.loadoutRef : null);
+      return {
+        capabilityContract: selection.capabilityContract,
+        state: selection.state === 'ready'
+          ? 'selected' as const
+          : selection.state === 'missing'
+            ? 'missing' as const
+            : selection.state === 'blocked'
+              ? 'broken' as const
+              : 'unavailable' as const,
+        loadoutId: loadoutRef,
+        displayName: local?.label || null,
+        supportedFeatures: local?.supportedFeatures || [],
+        reasons: selection.reasons,
+        effectiveDefaults: null,
+      };
+    });
+  }, [snapshot]);
+
   return (
     <section className="flex h-full min-h-0 flex-col" aria-label={t('ModelConfig.drawerDescription')}>
       <div className="min-h-0 flex-1 overflow-y-auto p-5">
@@ -120,11 +133,23 @@ export function LabAiConfigSettingsPanel({
           initialCapabilityContract={capabilityId}
           capabilities={loading || loadError
             ? undefined
-            : config ? projectLabAIConfigCapabilities(config.capabilities) : null}
+            : snapshot?.config ? projectLabAIConfigCapabilities(snapshot.config.capabilities) : null}
+          revision={snapshot?.revision}
           localSelections={localSelections}
+          listOptions={(query) => rendererHost.sdk.aiConfig.listOptions(query)}
           loading={loading}
           loadError={loadError}
           onRetry={() => { void refresh(); }}
+          onOverwrite={async (input) => {
+            const result = await rendererHost.sdk.aiConfig.overwrite(input);
+            if (result.outcome === 'committed') {
+              setSnapshot({ config: result.config, revision: result.revision, effectiveSelections: [] });
+              void refresh();
+            } else {
+              setSnapshot({ config: result.config, revision: result.revision, effectiveSelections: [] });
+            }
+            return result;
+          }}
           onOpenOwnerConfiguration={() => {
             void openDesktopIntent({
               intent: {

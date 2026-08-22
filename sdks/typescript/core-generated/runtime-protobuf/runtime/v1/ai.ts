@@ -12,6 +12,8 @@ import { ListVoiceAssetsResponse } from "./voice";
 import { ListVoiceAssetsRequest } from "./voice";
 import { GetVoiceAssetResponse } from "./voice";
 import { GetVoiceAssetRequest } from "./voice";
+import { ListAppAIConfigOptionsResponse } from "./capability_configuration";
+import { ListAppAIConfigOptionsRequest } from "./capability_configuration";
 import { OverwriteAppAIConfigResponse } from "./capability_configuration";
 import { OverwriteAppAIConfigRequest } from "./capability_configuration";
 import { GetAppAIConfigResponse } from "./capability_configuration";

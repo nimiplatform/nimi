@@ -644,10 +644,19 @@ pub mod local_app {
     }
 
     #[tauri::command]
-    pub async fn local_app_model_config_local_selections_get(
+    pub async fn local_app_ai_config_overwrite(
         host: tauri::State<'_, crate::runtime_bridge::RuntimeBridgeLocalAppHost>,
+        payload: serde_json::Value,
     ) -> Result<serde_json::Value, String> {
-        crate::standard_local_app::model_config_local_selections_get_for_host(host.inner()).await
+        crate::standard_local_app::ai_config_overwrite_for_host(host.inner(), payload).await
+    }
+
+    #[tauri::command]
+    pub async fn local_app_ai_config_local_options(
+        host: tauri::State<'_, crate::runtime_bridge::RuntimeBridgeLocalAppHost>,
+        payload: serde_json::Value,
+    ) -> Result<serde_json::Value, String> {
+        crate::standard_local_app::ai_config_local_options_for_host(host.inner(), payload).await
     }
 
     #[tauri::command]
@@ -713,6 +722,18 @@ pub mod local_app {
     ) -> Result<serde_json::Value, String> {
         crate::standard_local_app::shared_agent_ai_config_overwrite_for_host(host.inner(), payload)
             .await
+    }
+
+    #[tauri::command]
+    pub async fn local_app_shared_agent_ai_config_local_options(
+        host: tauri::State<'_, crate::runtime_bridge::RuntimeBridgeLocalAppHost>,
+        payload: serde_json::Value,
+    ) -> Result<serde_json::Value, String> {
+        crate::standard_local_app::shared_agent_ai_config_local_options_for_host(
+            host.inner(),
+            payload,
+        )
+        .await
     }
 
     #[tauri::command]

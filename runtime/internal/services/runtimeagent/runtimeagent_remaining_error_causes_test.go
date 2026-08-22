@@ -15,12 +15,12 @@ import (
 
 type failingSharedAIConfigStore struct{ err error }
 
-func (s failingSharedAIConfigStore) Get(context.Context, string, *runtimev1.AIConfigOwner) (*runtimev1.AIConfig, bool, error) {
-	return nil, false, s.err
+func (s failingSharedAIConfigStore) Get(context.Context, string, *runtimev1.AIConfigOwner) (*runtimev1.AIConfig, string, bool, error) {
+	return nil, "", false, s.err
 }
 
-func (s failingSharedAIConfigStore) Overwrite(context.Context, string, *runtimev1.AIConfig) error {
-	return s.err
+func (s failingSharedAIConfigStore) Overwrite(context.Context, string, string, *runtimev1.AIConfig) (*runtimev1.AIConfig, string, bool, error) {
+	return nil, "", false, s.err
 }
 
 type runtimeAgentTestStructPayload struct {
@@ -35,7 +35,7 @@ func TestSharedAIConfigReadPreservesRepositoryCause(t *testing.T) {
 	svc := newSharedAIConfigTestService(t)
 	svc.SetAIConfigStore(failingSharedAIConfigStore{err: errors.New("private store closed")})
 
-	_, _, err := svc.readSharedLocalAgentAIConfig(context.Background(), "account-a")
+	_, _, _, err := svc.readSharedLocalAgentAIConfig(context.Background(), "account-a")
 	if err == nil {
 		t.Fatal("expected repository error")
 	}

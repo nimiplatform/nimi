@@ -8,7 +8,8 @@ const LOCAL_APP_BINDING_METHODS = [
   'localAppSessionStatus',
   'localAppSessionRenew',
   'localAppAIConfigGet',
-  'localAppModelConfigLocalSelectionsGet',
+  'localAppAIConfigOverwrite',
+  'localAppAIConfigLocalOptions',
   'localAppTextGenerateCandidate',
   'localAppTextTurnSubscribe',
   'localAppTextTurnStreamNext',
@@ -55,6 +56,7 @@ const LOCAL_APP_BINDING_METHODS = [
   'localAppConversationSnapshot',
   'localAppSharedAgentAIConfigGet',
   'localAppSharedAgentAIConfigOverwrite',
+  'localAppSharedAgentAIConfigLocalOptions',
   'localAppAgentAutonomySnapshot',
   'localAppAgentUpdateAutonomy',
   'localAppAgentPresentationSnapshot',
@@ -220,7 +222,8 @@ export type NimiElectronProtectedLocalBinding = {
   readonly localAppSessionStatus: () => Promise<NativeLocalAppOutcome>;
   readonly localAppSessionRenew: () => Promise<NativeLocalAppOutcome>;
   readonly localAppAIConfigGet: () => Promise<NativeLocalAppOutcome>;
-  readonly localAppModelConfigLocalSelectionsGet: () => Promise<NativeLocalAppOutcome>;
+  readonly localAppAIConfigOverwrite: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppAIConfigLocalOptions: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppTextGenerateCandidate: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppTextTurnSubscribe: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppTextTurnStreamNext: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
@@ -267,6 +270,7 @@ export type NimiElectronProtectedLocalBinding = {
   readonly localAppConversationSnapshot: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppSharedAgentAIConfigGet: () => Promise<NativeLocalAppOutcome>;
   readonly localAppSharedAgentAIConfigOverwrite: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppSharedAgentAIConfigLocalOptions: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppAgentAutonomySnapshot: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppAgentUpdateAutonomy: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppAgentPresentationSnapshot: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
@@ -277,7 +281,8 @@ export type NimiElectronLocalAppHost = {
   readonly sessionStatus: () => Promise<NimiElectronLocalAppRecord>;
   readonly renewTechnicalSession: () => Promise<NimiElectronLocalAppRecord>;
   readonly aiConfigGet: () => Promise<NimiElectronLocalAppRecord>;
-  readonly modelConfigLocalSelectionsGet: () => Promise<readonly NimiElectronLocalAppRecord[]>;
+  readonly aiConfigOverwrite: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly aiConfigLocalOptions: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly textGenerateCandidate: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly textTurnSubscribe: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly textTurnStreamNext: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
@@ -324,6 +329,7 @@ export type NimiElectronLocalAppHost = {
   readonly conversationSnapshot: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly sharedAgentAIConfigGet: () => Promise<NimiElectronLocalAppRecord>;
   readonly sharedAgentAIConfigOverwrite: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly sharedAgentAIConfigLocalOptions: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly agentAutonomySnapshot: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly agentUpdateAutonomy: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly agentPresentationSnapshot: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
@@ -476,10 +482,12 @@ class ElectronLocalAppHost implements NimiElectronLocalAppHost {
     return invokePortableAppAIConfig(() => this.binding.localAppAIConfigGet());
   }
 
-  modelConfigLocalSelectionsGet(): Promise<readonly NimiElectronLocalAppRecord[]> {
-    return invokeModelConfigLocalSelections(
-      () => this.binding.localAppModelConfigLocalSelectionsGet(),
-    );
+  aiConfigOverwrite(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return invokePortableAppAIConfig(() => this.binding.localAppAIConfigOverwrite(input));
+  }
+
+  aiConfigLocalOptions(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return invokePortableAppAIConfig(() => this.binding.localAppAIConfigLocalOptions(input));
   }
 
   textGenerateCandidate(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
@@ -713,6 +721,10 @@ class ElectronLocalAppHost implements NimiElectronLocalAppHost {
     return invokeRecord(() => this.binding.localAppSharedAgentAIConfigOverwrite(input));
   }
 
+  sharedAgentAIConfigLocalOptions(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return invokeRecord(() => this.binding.localAppSharedAgentAIConfigLocalOptions(input));
+  }
+
   agentAutonomySnapshot(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
     return invokeRecord(() => this.binding.localAppAgentAutonomySnapshot(input));
   }
@@ -753,8 +765,12 @@ class LazyElectronLocalAppHost implements NimiElectronLocalAppHost {
     return this.resolve().aiConfigGet();
   }
 
-  modelConfigLocalSelectionsGet(): Promise<readonly NimiElectronLocalAppRecord[]> {
-    return this.resolve().modelConfigLocalSelectionsGet();
+  aiConfigOverwrite(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return this.resolve().aiConfigOverwrite(input);
+  }
+
+  aiConfigLocalOptions(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return this.resolve().aiConfigLocalOptions(input);
   }
 
   textGenerateCandidate(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
@@ -901,6 +917,10 @@ class LazyElectronLocalAppHost implements NimiElectronLocalAppHost {
 
   sharedAgentAIConfigOverwrite(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
     return this.resolve().sharedAgentAIConfigOverwrite(input);
+  }
+
+  sharedAgentAIConfigLocalOptions(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return this.resolve().sharedAgentAIConfigLocalOptions(input);
   }
 
   agentAutonomySnapshot(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
@@ -1405,62 +1425,6 @@ function boundedImageMime(value: unknown): string {
     throw untrustedRuntimeError();
   }
   return mime;
-}
-
-async function invokeModelConfigLocalSelections(
-  call: () => Promise<NativeLocalAppOutcome>,
-): Promise<readonly NimiElectronLocalAppRecord[]> {
-  const value = await invoke(call);
-  if (!Array.isArray(value) || value.length > 64) throw untrustedRuntimeError();
-  return Object.freeze(value.map((entry) => {
-    if (!isPlainRecord(entry)
-      || !hasExactKeys(entry, [
-        'capabilityContract', 'state', 'loadoutId', 'displayName',
-        'supportedFeatures', 'reasons', 'effectiveDefaults',
-      ])
-      || typeof entry.capabilityContract !== 'string'
-      || !entry.capabilityContract
-      || entry.capabilityContract.trim() !== entry.capabilityContract
-      || (entry.state !== 'selected' && entry.state !== 'broken')
-      || entry.loadoutId !== null
-      || (entry.displayName !== null && (
-        typeof entry.displayName !== 'string'
-        || !entry.displayName
-        || entry.displayName.trim() !== entry.displayName
-        || Buffer.byteLength(entry.displayName, 'utf8') > 256
-      ))
-      || !Array.isArray(entry.supportedFeatures)
-      || entry.supportedFeatures.some((feature) => typeof feature !== 'string'
-        || !feature || feature.trim() !== feature)
-      || !Array.isArray(entry.reasons)
-      || entry.reasons.some((reason) => typeof reason !== 'string'
-        || !reason || reason.trim() !== reason)) {
-      throw untrustedRuntimeError();
-    }
-    return Object.freeze({
-      capabilityContract: entry.capabilityContract,
-      state: entry.state,
-      loadoutId: null,
-      displayName: entry.displayName,
-      supportedFeatures: Object.freeze([...entry.supportedFeatures]),
-      reasons: Object.freeze([...entry.reasons]),
-      effectiveDefaults: boundedEffectiveDefaults(entry.effectiveDefaults),
-    }) as NimiElectronLocalAppRecord;
-  }));
-}
-
-function boundedEffectiveDefaults(value: unknown): Readonly<Record<string, string>> | null {
-  if (value === null) return null;
-  if (!isPlainRecord(value)) throw untrustedRuntimeError();
-  const entries = Object.entries(value);
-  if (entries.length === 0 || entries.length > 64 || entries.some(([key, item]) => (
-    !key || key.trim() !== key || Buffer.byteLength(key, 'utf8') > 128
-    || typeof item !== 'string' || !item || item.trim() !== item
-    || Buffer.byteLength(item, 'utf8') > 128
-  ))) {
-    throw untrustedRuntimeError();
-  }
-  return Object.freeze(Object.fromEntries(entries) as Record<string, string>);
 }
 
 async function invokeWorldCoreList(

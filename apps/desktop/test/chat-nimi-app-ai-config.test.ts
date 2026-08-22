@@ -8,7 +8,6 @@ import {
 import {
   desktopNimiAppAIConfigQueryKey,
   findDesktopNimiTextIntent,
-  projectDesktopMachineLoadoutSelections,
   readDesktopNimiAppAIConfig,
 } from '../src/shell/renderer/features/chat/chat-nimi-app-ai-config.js';
 
@@ -24,6 +23,7 @@ test('Desktop App AIConfig cache identity preserves one exact appId', () => {
 test('Nimi Chat locates canonical text intent without owning its construction', () => {
   const imageIntent = createNimiLocalAIConfigCapabilityIntent({
     capabilityContract: 'image.generate',
+    loadoutRef: 'loadout:image',
     requiredFeatures: [],
   });
   const textIntent = createNimiCloudAIConfigCapabilityIntent({
@@ -47,37 +47,13 @@ test('Nimi Chat locates canonical text intent without owning its construction', 
   }), textIntent);
 });
 
-test('Nimi Chat projects machine-local selection as read-only Model Config context', () => {
-  assert.deepEqual(projectDesktopMachineLoadoutSelections({
-    selections: [{
-      capabilityContract: 'text.generate',
-      loadoutId: 'local-text',
-      effectiveDefaults: { temperature: '0.8' },
-    }],
-    loadouts: [{
-      loadoutId: 'local-text', capabilityContract: 'text.generate',
-      implementation: { implementationId: 'local.text.generate.llama-cpp', driverId: 'nimi.runtime.driver.llama-cpp', driverDialect: 'llama.cpp/text-generate/v1' },
-      recipeId: 'llama.text-generate.gemma.v1', recipeRevision: '1', options: {}, modelAxes: [], recipeCustody: [],
-      displayName: 'Local text', supportedFeatures: ['tool.use'], validationState: 'configured', reasons: [],
-      provenance: {}, createdAt: '2026-08-15T00:00:00Z', updatedAt: '2026-08-15T00:00:00Z',
-    }],
-  }), [{
-    capabilityContract: 'text.generate',
-    state: 'selected',
-    loadoutId: null,
-    displayName: 'Local text',
-    supportedFeatures: ['tool.use'],
-    reasons: [],
-    effectiveDefaults: { temperature: '0.8' },
-  }]);
-});
-
 test('Nimi Chat treats missing App AIConfig as canonical not-configured state', async () => {
-  assert.equal(await readDesktopNimiAppAIConfig({
+  const missing = { config: null, revision: '0', effectiveSelections: [] } as const;
+  assert.deepEqual(await readDesktopNimiAppAIConfig({
     async get() {
-      throw { reasonCode: 'AI_CONFIG_NOT_FOUND' };
+      return missing;
     },
-  }), null);
+  }), missing);
 
   const unavailable = { reasonCode: 'RUNTIME_UNAVAILABLE' };
   await assert.rejects(

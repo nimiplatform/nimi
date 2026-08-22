@@ -20,10 +20,8 @@ import {
   createFirstPartyAgentCenterSession,
   createAgentCenterShellAppearanceAdapter,
   type AgentCenterSharedAIConfigModule,
-  type AgentCenterSharedAIConfigProjection,
   type AgentCenterSession,
 } from '@nimiplatform/kit/features/agent-center';
-import { projectDesktopMachineLoadoutSelections } from './chat-nimi-app-ai-config.js';
 import { createAgentCenterShellBridge, hasElectronInvoke } from '@nimiplatform/kit/shell/renderer/bridge';
 import type { AgentLocalTargetSnapshot } from '../../bridge/runtime-bridge/types';
 import { type InlineFeedbackState } from '../../ui/feedback/inline-feedback';
@@ -118,27 +116,6 @@ function toRuntimeIdentityInput(target: AgentLocalTargetSnapshot): RuntimeIdenti
   };
 }
 
-function projectAgentCenterAIConfig(
-  snapshot: NimiRuntimeAgentAIConfigSnapshot,
-): AgentCenterSharedAIConfigProjection {
-  const intents = snapshot.aiConfig.capabilities.map((intent) => {
-    const route = intent.route.oneofKind;
-    if (route !== 'local' && route !== 'cloud') {
-      throw new Error(`Shared LocalAgent AIConfig capability ${intent.capabilityContract} has no Local or Cloud intent.`);
-    }
-    return {
-      capability: intent.capabilityContract,
-      route,
-      requiredFeatures: [...intent.requiredFeatures],
-    };
-  });
-  return {
-    aiConfig: snapshot.aiConfig,
-    capabilities: intents.map((intent) => intent.capability),
-    intents,
-  };
-}
-
 export function useAgentConversationRuntimeController(
   input: UseAgentConversationRuntimeControllerInput,
 ): AgentConversationRuntimeController {
@@ -202,16 +179,19 @@ export function useAgentConversationRuntimeController(
   }), [bindings, getSubjectUserId]);
   const runtimeAgentCenterSharedAIConfig = useMemo<AgentCenterSharedAIConfigModule>(() => ({
     async get(account: NimiSharedLocalAgentAIConfigCallInput) {
-      return projectAgentCenterAIConfig(await runtimeAgentAIConfigAdapter.get({
+      return runtimeAgentAIConfigAdapter.get({
         subjectUserId: account.subjectUserId,
-      }));
+      });
     },
     async overwrite(updateInput: NimiSharedLocalAgentAIConfigOverwriteInput) {
-      const config = await runtimeAgentAIConfigAdapter.update({
+      return runtimeAgentAIConfigAdapter.update({
         subjectUserId: updateInput.subjectUserId,
+        expectedRevision: updateInput.expectedRevision,
         capabilities: updateInput.capabilities,
       });
-      return projectAgentCenterAIConfig(config);
+    },
+    async listOptions(optionsInput) {
+      return runtimeAgentAIConfigAdapter.listOptions(optionsInput);
     },
   }), [runtimeAgentAIConfigAdapter]);
   const runtimeAgentCenterAdapter = useMemo(() => {
@@ -267,22 +247,6 @@ export function useAgentConversationRuntimeController(
       appearance,
       sharedAIConfig: runtimeAgentCenterSharedAIConfig,
       cloudAIConfig: createDesktopCloudAIConfigModule(bindings.sdk),
-      async loadLocalSelections() {
-        try {
-          return projectDesktopMachineLoadoutSelections(
-            await bindings.sdk.machineProduct().local.loadouts.get(),
-          );
-        } catch {
-          return ['text.generate', 'audio.transcribe'].map((capabilityContract) => ({
-            capabilityContract,
-            state: 'unavailable' as const,
-            loadoutId: null,
-            displayName: null,
-            supportedFeatures: [],
-            reasons: ['machine-loadouts-unavailable'],
-          }));
-        }
-      },
       autonomy: createDesktopAgentCenterAutonomyAdapter(runtimeAgentInspect),
       inspect: runtimeAgentInspect,
       async loadSourceContextStatus(identity) {

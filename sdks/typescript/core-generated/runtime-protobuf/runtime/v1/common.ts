@@ -1329,7 +1329,13 @@ export enum ReasonCode {
      *
      * @generated from protobuf enum value: AI_LOCAL_EXECUTION_OUT_OF_MEMORY = 725;
      */
-    AI_LOCAL_EXECUTION_OUT_OF_MEMORY = 725
+    AI_LOCAL_EXECUTION_OUT_OF_MEMORY = 725,
+    /**
+     * Canonical App or shared subsystem AIConfig optimistic concurrency.
+     *
+     * @generated from protobuf enum value: AI_CONFIG_REVISION_CONFLICT = 726;
+     */
+    AI_CONFIG_REVISION_CONFLICT = 726
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.ExternalPrincipalType

@@ -31,6 +31,9 @@ services:
       - name: OverwriteAppAIConfig
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeAiService/OverwriteAppAIConfig
+      - name: ListAppAIConfigOptions
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAiService/ListAppAIConfigOptions
       - name: ExecuteScenario
         type: unary
       - name: StreamScenario
@@ -553,6 +556,8 @@ services:
       - name: GetSharedLocalAgentAIConfig
         type: unary
       - name: OverwriteSharedLocalAgentAIConfig
+        type: unary
+      - name: ListSharedLocalAgentAIConfigOptions
         type: unary
       - name: PreviewSharedLocalAgentAIProfile
         type: unary

@@ -23,9 +23,11 @@ type localVoiceExecutionResolver struct {
 	selections map[string]*localexecution.SelectedLocalExecution
 }
 
-func (r *localVoiceExecutionResolver) SelectedLocalCapabilityContracts() []string { return nil }
+func (r *localVoiceExecutionResolver) ListLocalLoadouts(string, string, int) ([]localexecution.LoadoutOption, bool, error) {
+	return nil, false, nil
+}
 
-func (r *localVoiceExecutionResolver) ResolveSelectedLocalExecution(contract string) (*localexecution.SelectedLocalExecution, error) {
+func (r *localVoiceExecutionResolver) ResolveLocalExecution(contract string, _ string) (*localexecution.SelectedLocalExecution, error) {
 	if r == nil || r.selections[contract] == nil {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_SELECTION_NOT_FOUND)
 	}
@@ -55,7 +57,7 @@ func TestLocalVoiceCreateTypedSourcesProduceReusableVoiceAssets(t *testing.T) {
 			host := &localSpeechHostStub{voiceCreateResult: &localexecution.VoiceCreateResult{ProviderVoiceRef: "opaque-" + test.name, Usage: &runtimev1.UsageStats{ComputeMs: 7}}}
 			svc.SetLocalSpeechExecutionHost(host)
 			ownerCtx := scenarioJobUserContext("app.local", "anonymous")
-			voiceCtx := executionintent.WithIntent(ownerCtx, executionintent.Intent{CapabilityContract: capabilitydriver.VoiceCreateContract, Route: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL, RequiredFeatures: []string{test.feature}})
+			voiceCtx := executionintent.WithIntent(ownerCtx, executionintent.Intent{CapabilityContract: capabilitydriver.VoiceCreateContract, LocalLoadoutRef: "test-loadout:voice.create", Route: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL, RequiredFeatures: []string{test.feature}})
 			response, err := svc.SubmitScenarioJob(voiceCtx, &runtimev1.SubmitScenarioJobRequest{
 				Head:          &runtimev1.ScenarioRequestHead{AppId: "app.local", SubjectUserId: "anonymous"},
 				ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE,
@@ -90,7 +92,7 @@ func TestLocalVoiceCreateTypedSourcesProduceReusableVoiceAssets(t *testing.T) {
 				t.Fatalf("voice reference=%+v asset=%+v", result.GetVoiceReference(), asset)
 			}
 
-			synthCtx := executionintent.WithIntent(ownerCtx, executionintent.Intent{CapabilityContract: capabilitydriver.AudioSynthesizeContract, Route: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL})
+			synthCtx := executionintent.WithIntent(ownerCtx, executionintent.Intent{CapabilityContract: capabilitydriver.AudioSynthesizeContract, LocalLoadoutRef: "test-loadout:audio.synthesize", Route: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL})
 			synthResponse, err := svc.SubmitScenarioJob(synthCtx, &runtimev1.SubmitScenarioJobRequest{
 				Head:          &runtimev1.ScenarioRequestHead{AppId: "app.local", SubjectUserId: "anonymous"},
 				ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE,
@@ -119,7 +121,7 @@ func TestLocalVoiceCreateFailsClosedOnUnsupportedSelectedSource(t *testing.T) {
 		capabilitydriver.VoiceCreateContract: selectedLocalVoiceCreateExecutionForTest(t, "voice-text-only", "input.text"),
 	}})
 	svc.SetLocalSpeechExecutionHost(&localSpeechHostStub{})
-	ctx := executionintent.WithIntent(scenarioJobUserContext("app.local", "anonymous"), executionintent.Intent{CapabilityContract: capabilitydriver.VoiceCreateContract, Route: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL, RequiredFeatures: []string{"input.audio"}})
+	ctx := executionintent.WithIntent(scenarioJobUserContext("app.local", "anonymous"), executionintent.Intent{CapabilityContract: capabilitydriver.VoiceCreateContract, LocalLoadoutRef: "test-loadout:voice.create", Route: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL, RequiredFeatures: []string{"input.audio"}})
 	response, err := svc.SubmitScenarioJob(ctx, &runtimev1.SubmitScenarioJobRequest{
 		Head: &runtimev1.ScenarioRequestHead{AppId: "app.local", SubjectUserId: "anonymous"}, ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE, ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
 		Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_VoiceCreate{VoiceCreate: &runtimev1.VoiceCreateScenarioSpec{Source: &runtimev1.VoiceCreateScenarioSpec_ReferenceAudio{ReferenceAudio: &runtimev1.VoiceV2VInput{ReferenceAudioBytes: []byte("audio"), ReferenceAudioMime: "audio/wav"}}}}},

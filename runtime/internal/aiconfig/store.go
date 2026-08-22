@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strconv"
 	"sync"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -14,11 +15,13 @@ import (
 
 var ErrBackendRequired = errors.New("AIConfig persistence backend is required")
 
+const InitialRevision = "0"
+
 // Store owns complete current AIConfig values. Overwrite replaces the whole
 // value for one account namespace and owner; no partial mutation is exposed.
 type Store interface {
-	Get(context.Context, string, *runtimev1.AIConfigOwner) (*runtimev1.AIConfig, bool, error)
-	Overwrite(context.Context, string, *runtimev1.AIConfig) error
+	Get(context.Context, string, *runtimev1.AIConfigOwner) (*runtimev1.AIConfig, string, bool, error)
+	Overwrite(context.Context, string, string, *runtimev1.AIConfig) (*runtimev1.AIConfig, string, bool, error)
 }
 
 type storeKey struct {
@@ -35,40 +38,63 @@ const (
 
 type MemoryStore struct {
 	mu   sync.RWMutex
-	rows map[storeKey]*runtimev1.AIConfig
+	rows map[storeKey]memoryRow
+}
+
+type memoryRow struct {
+	config   *runtimev1.AIConfig
+	revision uint64
 }
 
 func NewMemoryStore() *MemoryStore {
-	return &MemoryStore{rows: make(map[storeKey]*runtimev1.AIConfig)}
+	return &MemoryStore{rows: make(map[storeKey]memoryRow)}
 }
 
-func (s *MemoryStore) Get(_ context.Context, accountNamespace string, owner *runtimev1.AIConfigOwner) (*runtimev1.AIConfig, bool, error) {
+func (s *MemoryStore) Get(_ context.Context, accountNamespace string, owner *runtimev1.AIConfigOwner) (*runtimev1.AIConfig, string, bool, error) {
 	key, err := canonicalStoreKey(accountNamespace, owner)
 	if err != nil {
-		return nil, false, err
+		return nil, "", false, err
 	}
 	s.mu.RLock()
 	stored, found := s.rows[key]
 	s.mu.RUnlock()
 	if !found {
-		return nil, false, nil
+		return nil, InitialRevision, false, nil
 	}
-	return cloneConfig(stored), true, nil
+	return cloneConfig(stored.config), encodeRevision(stored.revision), true, nil
 }
 
-func (s *MemoryStore) Overwrite(_ context.Context, accountNamespace string, config *runtimev1.AIConfig) error {
+func (s *MemoryStore) Overwrite(_ context.Context, accountNamespace string, expectedRevision string, config *runtimev1.AIConfig) (*runtimev1.AIConfig, string, bool, error) {
 	canonical, err := Canonicalize(config)
 	if err != nil {
-		return err
+		return nil, "", false, err
 	}
 	key, err := canonicalStoreKey(accountNamespace, canonical.GetOwner())
 	if err != nil {
-		return err
+		return nil, "", false, err
+	}
+	expected, err := parseRevision(expectedRevision)
+	if err != nil {
+		return nil, "", false, err
 	}
 	s.mu.Lock()
-	s.rows[key] = canonical
-	s.mu.Unlock()
-	return nil
+	defer s.mu.Unlock()
+	current, found := s.rows[key]
+	if found && current.revision != expected {
+		return cloneConfig(current.config), encodeRevision(current.revision), false, nil
+	}
+	if !found && expected != 0 {
+		return nil, InitialRevision, false, nil
+	}
+	if found && proto.Equal(current.config, canonical) {
+		return cloneConfig(current.config), encodeRevision(current.revision), true, nil
+	}
+	next := expected + 1
+	if next == 0 {
+		return nil, "", false, fmt.Errorf("AIConfig revision overflow")
+	}
+	s.rows[key] = memoryRow{config: canonical, revision: next}
+	return cloneConfig(canonical), encodeRevision(next), true, nil
 }
 
 type SQLiteStore struct {
@@ -82,66 +108,134 @@ func NewSQLiteStore(backend *runtimepersistence.Backend) (*SQLiteStore, error) {
 	return &SQLiteStore{backend: backend}, nil
 }
 
-func (s *SQLiteStore) Get(ctx context.Context, accountNamespace string, owner *runtimev1.AIConfigOwner) (*runtimev1.AIConfig, bool, error) {
+func (s *SQLiteStore) Get(ctx context.Context, accountNamespace string, owner *runtimev1.AIConfigOwner) (*runtimev1.AIConfig, string, bool, error) {
 	key, err := canonicalStoreKey(accountNamespace, owner)
 	if err != nil {
-		return nil, false, err
+		return nil, "", false, err
 	}
 	var raw []byte
+	var revision uint64
 	err = s.backend.DB().QueryRowContext(ctx, `
-		SELECT config_blob
+		SELECT config_blob, revision
 		FROM runtime_ai_config
 		WHERE account_namespace = ? AND owner_kind = ? AND owner_id = ?
-	`, key.accountNamespace, key.ownerKind, key.ownerID).Scan(&raw)
+	`, key.accountNamespace, key.ownerKind, key.ownerID).Scan(&raw, &revision)
 	if errors.Is(err, sql.ErrNoRows) {
-		return nil, false, nil
+		return nil, InitialRevision, false, nil
 	}
 	if err != nil {
-		return nil, false, fmt.Errorf("read AIConfig: %w", err)
+		return nil, "", false, fmt.Errorf("read AIConfig: %w", err)
+	}
+	if revision == 0 {
+		return nil, "", false, fmt.Errorf("read AIConfig: invalid zero revision")
 	}
 	config := &runtimev1.AIConfig{}
 	if err := proto.Unmarshal(raw, config); err != nil {
-		return nil, false, fmt.Errorf("decode AIConfig: %w", err)
+		return nil, "", false, fmt.Errorf("decode AIConfig: %w", err)
 	}
 	canonical, err := Canonicalize(config)
 	if err != nil {
-		return nil, false, fmt.Errorf("validate persisted AIConfig: %w", err)
+		return nil, "", false, fmt.Errorf("validate persisted AIConfig: %w", err)
 	}
 	persistedKey, err := canonicalStoreKey(key.accountNamespace, canonical.GetOwner())
 	if err != nil {
-		return nil, false, fmt.Errorf("validate persisted AIConfig owner: %w", err)
+		return nil, "", false, fmt.Errorf("validate persisted AIConfig owner: %w", err)
 	}
 	if persistedKey != key {
-		return nil, false, fmt.Errorf("persisted AIConfig owner does not match storage key")
+		return nil, "", false, fmt.Errorf("persisted AIConfig owner does not match storage key")
 	}
-	return canonical, true, nil
+	return canonical, encodeRevision(revision), true, nil
 }
 
-func (s *SQLiteStore) Overwrite(ctx context.Context, accountNamespace string, config *runtimev1.AIConfig) error {
+func (s *SQLiteStore) Overwrite(ctx context.Context, accountNamespace string, expectedRevision string, config *runtimev1.AIConfig) (*runtimev1.AIConfig, string, bool, error) {
 	canonical, err := Canonicalize(config)
 	if err != nil {
-		return err
+		return nil, "", false, err
 	}
 	key, err := canonicalStoreKey(accountNamespace, canonical.GetOwner())
 	if err != nil {
-		return err
+		return nil, "", false, err
+	}
+	expected, err := parseRevision(expectedRevision)
+	if err != nil {
+		return nil, "", false, err
 	}
 	raw, err := proto.MarshalOptions{Deterministic: true}.Marshal(canonical)
 	if err != nil {
-		return fmt.Errorf("encode AIConfig: %w", err)
+		return nil, "", false, fmt.Errorf("encode AIConfig: %w", err)
 	}
+	var resultConfig *runtimev1.AIConfig
+	var resultRevision uint64
+	committed := false
 	if err := s.backend.WriteTx(ctx, func(tx *sql.Tx) error {
-		_, err := tx.ExecContext(ctx, `
-			INSERT INTO runtime_ai_config(account_namespace, owner_kind, owner_id, config_blob)
-			VALUES (?, ?, ?, ?)
+		var currentRaw []byte
+		var currentRevision uint64
+		err := tx.QueryRowContext(ctx, `
+			SELECT config_blob, revision FROM runtime_ai_config
+			WHERE account_namespace = ? AND owner_kind = ? AND owner_id = ?
+		`, key.accountNamespace, key.ownerKind, key.ownerID).Scan(&currentRaw, &currentRevision)
+		if errors.Is(err, sql.ErrNoRows) {
+			if expected != 0 {
+				resultRevision = 0
+				return nil
+			}
+		} else if err != nil {
+			return err
+		} else {
+			current := &runtimev1.AIConfig{}
+			if err := proto.Unmarshal(currentRaw, current); err != nil {
+				return fmt.Errorf("decode current AIConfig: %w", err)
+			}
+			currentCanonical, err := Canonicalize(current)
+			if err != nil {
+				return fmt.Errorf("validate current AIConfig: %w", err)
+			}
+			resultConfig = currentCanonical
+			resultRevision = currentRevision
+			if currentRevision != expected {
+				return nil
+			}
+			if proto.Equal(currentCanonical, canonical) {
+				committed = true
+				return nil
+			}
+		}
+		next := expected + 1
+		if next == 0 {
+			return fmt.Errorf("AIConfig revision overflow")
+		}
+		_, err = tx.ExecContext(ctx, `
+			INSERT INTO runtime_ai_config(account_namespace, owner_kind, owner_id, config_blob, revision)
+			VALUES (?, ?, ?, ?, ?)
 			ON CONFLICT(account_namespace, owner_kind, owner_id)
-			DO UPDATE SET config_blob = excluded.config_blob
-		`, key.accountNamespace, key.ownerKind, key.ownerID, raw)
-		return err
+			DO UPDATE SET config_blob = excluded.config_blob, revision = excluded.revision
+		`, key.accountNamespace, key.ownerKind, key.ownerID, raw, next)
+		if err != nil {
+			return err
+		}
+		resultConfig = canonical
+		resultRevision = next
+		committed = true
+		return nil
 	}); err != nil {
-		return fmt.Errorf("overwrite AIConfig: %w", err)
+		return nil, "", false, fmt.Errorf("overwrite AIConfig: %w", err)
 	}
-	return nil
+	return cloneConfig(resultConfig), encodeRevision(resultRevision), committed, nil
+}
+
+func parseRevision(value string) (uint64, error) {
+	if value == "" || (len(value) > 1 && value[0] == '0') {
+		return 0, fmt.Errorf("AIConfig expected revision is invalid")
+	}
+	revision, err := strconv.ParseUint(value, 10, 64)
+	if err != nil {
+		return 0, fmt.Errorf("AIConfig expected revision is invalid")
+	}
+	return revision, nil
+}
+
+func encodeRevision(value uint64) string {
+	return strconv.FormatUint(value, 10)
 }
 
 func canonicalStoreKey(accountNamespace string, owner *runtimev1.AIConfigOwner) (storeKey, error) {

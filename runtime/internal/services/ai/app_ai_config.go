@@ -3,6 +3,7 @@ package ai
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 	"unicode"
 
@@ -21,6 +22,7 @@ type appAIConfigCaller struct {
 	managesAppOwners bool
 }
 
+// @nimi-authority: rule.nimi.runtime.security-core.r057
 // GetAppAIConfig reads the complete current App-owned AIConfig. Protected Local
 // App calls carry no owner and derive it from the admitted operation decision.
 // First-party protected callers retain an exact consistency assertion. Account
@@ -42,22 +44,24 @@ func (s *Service) GetAppAIConfig(ctx context.Context, req *runtimev1.GetAppAICon
 	if s == nil || s.aiConfigStore == nil {
 		return nil, appAIConfigPersistenceError(fmt.Errorf("AIConfig store is unavailable"))
 	}
-	config, found, err := s.aiConfigStore.Get(ctx, caller.accountNamespace, owner)
+	config, revision, found, err := s.aiConfigStore.Get(ctx, caller.accountNamespace, owner)
 	if err != nil {
 		return nil, appAIConfigPersistenceError(err)
 	}
 	if !found {
-		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_CONFIG_NOT_FOUND)
+		return &runtimev1.GetAppAIConfigResponse{Revision: revision}, nil
 	}
+	effective := s.projectAppAIConfigEffectiveSelections(config)
 	if _, localApp := accountservice.AuthorizedLocalAppDecisionFromContext(ctx); localApp {
 		config = portableLocalAppAIConfigProjection(config)
 	}
-	return &runtimev1.GetAppAIConfigResponse{Config: config}, nil
+	return &runtimev1.GetAppAIConfigResponse{Config: config, Revision: revision, EffectiveSelections: effective}, nil
 }
 
-// OverwriteAppAIConfig atomically replaces the complete App-owned AIConfig for
-// an authenticated Nimi owner surface. Protected Local Apps are read-only and
-// cannot reach this method through their closed operation contract.
+// @nimi-authority: definition.nimi.platform.core-protocol.ai-config
+// OverwriteAppAIConfig atomically compare-and-swap replaces the complete
+// App-owned AIConfig for an admitted protected App self owner or a currently
+// projected Desktop-managed owner.
 func (s *Service) OverwriteAppAIConfig(ctx context.Context, req *runtimev1.OverwriteAppAIConfigRequest) (*runtimev1.OverwriteAppAIConfigResponse, error) {
 	caller, err := authenticatedAppAIConfigCaller(ctx)
 	if err != nil {
@@ -66,14 +70,14 @@ func (s *Service) OverwriteAppAIConfig(ctx context.Context, req *runtimev1.Overw
 	if req == nil || req.GetConfig() == nil {
 		return nil, invalidAppAIConfigError()
 	}
-	if _, localApp := accountservice.AuthorizedLocalAppDecisionFromContext(ctx); localApp {
-		return nil, unauthorizedAppAIConfigCallerError()
+	if !validAppAIConfigRevision(req.GetExpectedRevision()) {
+		return nil, invalidAppAIConfigError()
 	}
 	owner, err := s.appAIConfigOwnerForCaller(
 		ctx,
 		caller,
 		req.GetConfig().GetOwner(),
-		accountservice.LocalAppOperationAppAIConfigRead,
+		accountservice.LocalAppOperationAppAIConfigOverwrite,
 	)
 	if err != nil {
 		return nil, err
@@ -90,10 +94,36 @@ func (s *Service) OverwriteAppAIConfig(ctx context.Context, req *runtimev1.Overw
 	if s == nil || s.aiConfigStore == nil {
 		return nil, appAIConfigPersistenceError(fmt.Errorf("AIConfig store is unavailable"))
 	}
-	if err := s.aiConfigStore.Overwrite(ctx, caller.accountNamespace, canonical); err != nil {
+	if err := s.validateChangedAppAIConfigLocalReferences(ctx, caller.accountNamespace, owner, canonical); err != nil {
+		return nil, err
+	}
+	committedConfig, revision, committed, err := s.aiConfigStore.Overwrite(
+		ctx,
+		caller.accountNamespace,
+		req.GetExpectedRevision(),
+		canonical,
+	)
+	if err != nil {
 		return nil, appAIConfigPersistenceError(err)
 	}
-	return &runtimev1.OverwriteAppAIConfigResponse{Config: canonical}, nil
+	if _, localApp := accountservice.AuthorizedLocalAppDecisionFromContext(ctx); localApp {
+		committedConfig = portableLocalAppAIConfigProjection(committedConfig)
+	}
+	response := &runtimev1.OverwriteAppAIConfigResponse{
+		Config: committedConfig, Revision: revision, Committed: committed,
+	}
+	if !committed {
+		response.ReasonCode = runtimev1.ReasonCode_AI_CONFIG_REVISION_CONFLICT
+	}
+	return response, nil
+}
+
+func validAppAIConfigRevision(value string) bool {
+	if value == "" || (len(value) > 1 && value[0] == '0') {
+		return false
+	}
+	_, err := strconv.ParseUint(value, 10, 64)
+	return err == nil
 }
 
 func portableLocalAppAIConfigProjection(config *runtimev1.AIConfig) *runtimev1.AIConfig {

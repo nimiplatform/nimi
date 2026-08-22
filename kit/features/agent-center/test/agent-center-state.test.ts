@@ -6,12 +6,12 @@ function input(patch: Partial<AgentCenterStateInput> = {}): AgentCenterStateInpu
   const capabilities = [
     {
       capabilityContract: 'text.generate',
-      route: { oneofKind: 'local' as const, local: {} },
+      route: { oneofKind: 'local' as const, local: { loadoutRef: 'loadout:text' } },
       requiredFeatures: [],
     },
     {
       capabilityContract: 'text.embed',
-      route: { oneofKind: 'local' as const, local: {} },
+      route: { oneofKind: 'local' as const, local: { loadoutRef: 'loadout:embed' } },
       requiredFeatures: [],
     },
   ];
@@ -23,6 +23,7 @@ function input(patch: Partial<AgentCenterStateInput> = {}): AgentCenterStateInpu
         },
         capabilities,
       },
+      revision: '1',
       capabilities: capabilities.map((intent) => intent.capabilityContract),
       intents: capabilities.map((intent) => ({
         capability: intent.capabilityContract,
@@ -48,7 +49,8 @@ describe('Agent Center state projection', () => {
     expect(state.sharedAIConfig?.aiConfig.owner?.owner.oneofKind).toBe('runtimeLocalAgentSubsystem');
     expect(state.sharedAIConfig?.intents[0]).toMatchObject({ capability: 'text.generate', route: 'local' });
     expect(state.baseTextConfigured).toBe(true);
-    expect(JSON.stringify(state.sharedAIConfig)).not.toMatch(/revision|readiness|updatedAt/u);
+    expect(state.sharedAIConfig?.revision).toBe('1');
+    expect(JSON.stringify(state.sharedAIConfig)).not.toMatch(/readiness|updatedAt/u);
   });
 
   it('distinguishes canonical not-configured state from an unavailable snapshot', () => {
@@ -75,7 +77,7 @@ describe('Agent Center state projection', () => {
     const current = input().sharedAIConfig!;
     const audioIntent = {
       capabilityContract: 'audio.transcribe',
-      route: { oneofKind: 'local' as const, local: {} },
+      route: { oneofKind: 'local' as const, local: { loadoutRef: 'loadout:audio' } },
       requiredFeatures: [],
     };
     const state = buildAgentCenterState(input({

@@ -104,7 +104,9 @@ func TestProtectedLocalAppAIConfigOwnersDispatchAfterAdmission(t *testing.T) {
 		ingress localappop.Ingress
 	}{
 		{method: protectedGetAppAIConfigMethod, request: &runtimev1.GetAppAIConfigRequest{}, ingress: localappop.IngressAppAIConfigGet},
-		{method: protectedGetMachineLoadoutsMethod, request: &runtimev1.GetMachineLoadoutsRequest{}, ingress: localappop.IngressAppAIConfigGet},
+		{method: protectedOverwriteAppAIConfigMethod, request: &runtimev1.OverwriteAppAIConfigRequest{}, ingress: localappop.IngressAppAIConfigOverwrite},
+		{method: protectedListAppAIConfigOptionsMethod, request: &runtimev1.ListAppAIConfigOptionsRequest{}, ingress: localappop.IngressAppAIConfigOptionsList},
+		{method: protectedListSharedAIConfigOptionsMethod, request: &runtimev1.ListLocalAppSharedLocalAgentAIConfigOptionsRequest{}, ingress: localappop.IngressAgentAIConfigOptionsList},
 	}
 	for _, test := range tests {
 		handlerCalled := false
@@ -115,23 +117,6 @@ func TestProtectedLocalAppAIConfigOwnersDispatchAfterAdmission(t *testing.T) {
 		if err != nil || !handlerCalled || admission.ingress != test.ingress {
 			t.Fatalf("AIConfig %s = handler:%v ingress:%v error:%v", test.method, handlerCalled, admission.ingress, err)
 		}
-	}
-}
-
-func TestProtectedLocalAppTransportRejectsAIConfigOverwriteBeforeAdmission(t *testing.T) {
-	connection := newGRPCLocalAppConnection(t, 0x4d)
-	if err := connection.BindSession(protectedlocal.LocalAppSessionHandle{SessionID: grpcLocalAppIdentifier(0x4e), SessionProof: grpcLocalAppIdentifier(0x4f)}); err != nil {
-		t.Fatal(err)
-	}
-	ctx := peer.NewContext(context.Background(), &peer.Peer{AuthInfo: &protectedLocalAppAuthInfo{connection: connection}})
-	admission := &localAppAdmissionStub{}
-	handlerCalled := false
-	_, err := newUnaryProtectedLocalAppTransportInterceptor(admission)(ctx, &runtimev1.OverwriteAppAIConfigRequest{}, &grpc.UnaryServerInfo{FullMethod: "/nimi.runtime.v1.RuntimeAiService/OverwriteAppAIConfig"}, func(context.Context, any) (any, error) {
-		handlerCalled = true
-		return &runtimev1.OverwriteAppAIConfigResponse{}, nil
-	})
-	if handlerCalled || admission.calls != 0 || localAppTransportReason(err) != runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH {
-		t.Fatalf("App AIConfig overwrite = handler:%v admission:%+v reason:%v", handlerCalled, admission, localAppTransportReason(err))
 	}
 }
 

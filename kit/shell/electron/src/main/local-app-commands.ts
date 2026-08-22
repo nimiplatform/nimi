@@ -52,7 +52,8 @@ const ACTIVE_SCENARIO_STREAMS = new WeakMap<NimiElectronLocalAppHost, Set<string
 const COMMAND_METHODS = new Map<string, RendererLocalAppHostMethod>([
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.sessionStatus'], 'sessionStatus'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.aiConfigGet'], 'aiConfigGet'],
-  [NIMI_STANDARD_SHELL_COMMANDS['local-app.modelConfigLocalSelectionsGet'], 'modelConfigLocalSelectionsGet'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.aiConfigOverwrite'], 'aiConfigOverwrite'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.aiConfigLocalOptions'], 'aiConfigLocalOptions'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.textGenerateCandidate'], 'textGenerateCandidate'],
   [AIC_COMMANDS.textTurnStream, 'textTurnSubscribe'],
   [AIC_COMMANDS.scenarioExecute, 'scenarioExecute'],
@@ -77,6 +78,7 @@ const COMMAND_METHODS = new Map<string, RendererLocalAppHostMethod>([
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationSnapshot'], 'conversationSnapshot'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.sharedAgentAIConfigGet'], 'sharedAgentAIConfigGet'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.sharedAgentAIConfigOverwrite'], 'sharedAgentAIConfigOverwrite'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.sharedAgentAIConfigLocalOptions'], 'sharedAgentAIConfigLocalOptions'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentAutonomySnapshot'], 'agentAutonomySnapshot'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentUpdateAutonomy'], 'agentUpdateAutonomy'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentPresentationSnapshot'], 'agentPresentationSnapshot'],
@@ -117,9 +119,11 @@ export async function dispatchElectronLocalAppCommand(input: {
   try {
     if (method === 'sessionStatus') return await input.host.sessionStatus();
     if (method === 'aiConfigGet') return await input.host.aiConfigGet();
-    if (method === 'modelConfigLocalSelectionsGet') return await input.host.modelConfigLocalSelectionsGet();
+    if (method === 'aiConfigOverwrite') return await input.host.aiConfigOverwrite(payload);
+    if (method === 'aiConfigLocalOptions') return await input.host.aiConfigLocalOptions(payload);
     if (method === 'agentReferenceList') return await input.host.agentReferenceList();
     if (method === 'sharedAgentAIConfigGet') return await input.host.sharedAgentAIConfigGet();
+    if (method === 'sharedAgentAIConfigLocalOptions') return await input.host.sharedAgentAIConfigLocalOptions(payload);
     if (method === 'storageReadJson') return await input.host.storageReadJson(payload);
     if (method === 'storageWriteJson') return await input.host.storageWriteJson(payload);
     if (method === 'storageRemoveJson') return await input.host.storageRemoveJson(payload);
@@ -202,19 +206,48 @@ function validatePayload(
       assertExactKeys(payload, [], command);
       return {};
     case 'aiConfigGet':
-    case 'modelConfigLocalSelectionsGet':
     case 'agentReferenceList':
     case 'sharedAgentAIConfigGet':
       assertExactKeys(payload, [], command);
       return {};
-    case 'sharedAgentAIConfigOverwrite':
-      assertExactKeys(payload, ['capabilities'], command);
-      if (!Array.isArray(payload.capabilities)) {
-        throw invalidPayload(command, 'capabilities is invalid');
+    case 'aiConfigOverwrite':
+      assertExactKeys(payload, ['expectedRevision', 'capabilities'], command);
+      if (typeof payload.expectedRevision !== 'string'
+        || !/^(0|[1-9][0-9]*)$/u.test(payload.expectedRevision)
+        || !Array.isArray(payload.capabilities)) {
+        throw invalidPayload(command, 'AIConfig overwrite input is invalid');
       }
       assertNoPortableAppAIConfigFields(payload.capabilities, command);
       validateJsonValue(payload.capabilities, command, 4 * 1024 * 1024);
-      return { capabilities: payload.capabilities as NimiElectronLocalAppRecord[string] };
+      return {
+        expectedRevision: payload.expectedRevision,
+        capabilities: payload.capabilities as NimiElectronLocalAppRecord[string],
+      };
+    case 'aiConfigLocalOptions':
+      assertExactKeys(payload, ['capabilityContract', 'search'], command);
+      return {
+        capabilityContract: requiredText(payload.capabilityContract, 'capabilityContract', command, MAX_IDENTIFIER_LENGTH),
+        search: optionalExactText(payload.search, 'search', command, 256),
+      };
+    case 'sharedAgentAIConfigOverwrite':
+      assertExactKeys(payload, ['expectedRevision', 'capabilities'], command);
+      if (typeof payload.expectedRevision !== 'string'
+        || !/^(0|[1-9][0-9]*)$/u.test(payload.expectedRevision)
+        || !Array.isArray(payload.capabilities)) {
+        throw invalidPayload(command, 'shared AIConfig overwrite input is invalid');
+      }
+      assertNoPortableAppAIConfigFields(payload.capabilities, command);
+      validateJsonValue(payload.capabilities, command, 4 * 1024 * 1024);
+      return {
+        expectedRevision: payload.expectedRevision,
+        capabilities: payload.capabilities as NimiElectronLocalAppRecord[string],
+      };
+    case 'sharedAgentAIConfigLocalOptions':
+      assertExactKeys(payload, ['capabilityContract', 'search'], command);
+      return {
+        capabilityContract: requiredText(payload.capabilityContract, 'capabilityContract', command, MAX_IDENTIFIER_LENGTH),
+        search: optionalExactText(payload.search, 'search', command, 256),
+      };
     case 'textGenerateCandidate':
       return textCandidatePayload(payload, command);
     case 'textTurnSubscribe':

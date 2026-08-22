@@ -1,13 +1,12 @@
 import type { JsonValue as ProtoJsonValue } from '@protobuf-ts/runtime';
 import { Struct as RuntimeStruct, type Struct } from '../../core-generated/runtime-protobuf/google/protobuf/struct';
 import {
-  type AIConfig,
   type AIConfigCapabilityIntent,
   type CapabilityImplementationIdentity,
 } from '../../core-generated/runtime-protobuf/runtime/v1/capability_configuration';
 import type { NimiJsonObject, NimiJsonValue } from '../contracts/index.js';
-import { createNimiError, extractNimiErrorFields } from '../../types/index.js';
-import type { NimiAppAIConfigClient } from './capability-configuration.js';
+import { createNimiError } from '../../types/index.js';
+import type { NimiAppAIConfigClient, NimiPortableAppAIConfig } from './capability-configuration.js';
 
 export interface NimiPortableAIProfileImplementation {
   readonly implementationId: string;
@@ -88,19 +87,18 @@ export interface NimiCloudAIConfigCapabilityInput {
 }
 
 export interface NimiAppAIProfilePreview {
-  /** Portable source remains separate from the resulting mutable AIConfig. */
+  /** Portable source remains non-committing until exact resources are selected. */
   readonly source: NimiPortableAIProfile;
-  readonly before: AIConfig | null;
-  readonly after: AIConfig;
-  readonly identical: boolean;
+  readonly before: NimiPortableAppAIConfig | null;
+  readonly requiresResourceSelection: true;
 }
 
 export type NimiPortableAIProfileInput = NimiPortableAIProfile | string | Uint8Array | NimiJsonObject;
 
 export interface NimiAppAIProfileClient {
   preview(profile: NimiPortableAIProfileInput): Promise<NimiAppAIProfilePreview>;
-  /** Direct atomic overwrite; it accepts source intent, never Preview output. */
-  apply(profile: NimiPortableAIProfileInput): Promise<AIConfig>;
+  /** Apply is non-committing editor prefill and grants no mutation authority. */
+  apply(profile: NimiPortableAIProfileInput): Promise<NimiAppAIProfilePreview>;
 }
 
 // @nimi-authority: definition.nimi.sdks.feature-clients.ai-config-plane
@@ -274,15 +272,17 @@ function assertExactCloudProviderModelTarget(target: NimiJsonObject): void {
 
 export function createNimiLocalAIConfigCapabilityIntent(input: {
   readonly capabilityContract: string;
+  readonly loadoutRef: string;
   readonly requiredFeatures?: readonly string[];
   readonly defaults?: NimiJsonObject;
 }): AIConfigCapabilityIntent {
   const capabilityContract = requireText(input.capabilityContract, 'Local CapabilityContract is required');
+  const loadoutRef = requireText(input.loadoutRef, 'Local loadoutRef is required');
   return {
     capabilityContract,
     requiredFeatures: [...parseRequiredFeatures(input.requiredFeatures, capabilityContract)],
     ...(input.defaults ? { defaults: toRuntimeStruct(normalizeJsonObject(input.defaults, 'Local defaults')) } : {}),
-    route: { oneofKind: 'local', local: {} },
+    route: { oneofKind: 'local', local: { loadoutRef } },
   };
 }
 
@@ -291,61 +291,16 @@ export function runtimeAIConfigStructToJson(value: Struct | undefined): NimiJson
   return normalizeJsonObject(RuntimeStruct.toJson(value), 'Runtime Struct');
 }
 
-function projectPortableProfileToAIConfig(
-  source: NimiPortableAIProfile,
-  client: NimiAppAIConfigClient,
-): AIConfig {
-  const capabilities = Object.entries(source.capabilities).map(([capabilityContract, capability]) => (
-    capability.route === 'local'
-      ? createNimiLocalAIConfigCapabilityIntent({
-        capabilityContract,
-        requiredFeatures: capability.requiredFeatures,
-        defaults: capability.defaults,
-      })
-      : createNimiCloudAIConfigCapabilityIntent({
-        capabilityContract,
-        requiredFeatures: capability.requiredFeatures,
-        defaults: capability.defaults,
-        implementation: {
-          implementationId: capability.implementation.implementationId,
-          driverId: capability.implementation.driverId,
-          driverDialect: capability.implementation.driverDialect,
-        },
-        providerModelTarget: capability.providerModelTarget,
-      })
-  ));
-  return Object.freeze({
-    owner: client.owner,
-    capabilities,
-  });
-}
-
 export function createNimiAppAIProfileClient(client: NimiAppAIConfigClient): NimiAppAIProfileClient {
-  const readCurrent = async (): Promise<AIConfig | null> => {
-    try {
-      return await client.get();
-    } catch (error) {
-      if (extractNimiErrorFields(error).reasonCode === 'AI_CONFIG_NOT_FOUND') return null;
-      throw error;
-    }
-  };
+  const readCurrent = async (): Promise<NimiPortableAppAIConfig | null> => (await client.get()).config;
+  const prefill = async (input: NimiPortableAIProfileInput): Promise<NimiAppAIProfilePreview> => Object.freeze({
+    source: parseNimiPortableAIProfile(input),
+    before: await readCurrent(),
+    requiresResourceSelection: true as const,
+  });
   return {
-    async preview(input) {
-      const source = parseNimiPortableAIProfile(input);
-      const before = await readCurrent();
-      const after = projectPortableProfileToAIConfig(source, client);
-      return Object.freeze({
-        source,
-        before,
-        after,
-        identical: before !== null && canonicalConfig(before) === canonicalConfig(after),
-      });
-    },
-    async apply(input) {
-      const source = parseNimiPortableAIProfile(input);
-      const after = projectPortableProfileToAIConfig(source, client);
-      return client.overwrite(after.capabilities);
-    },
+    preview: prefill,
+    apply: prefill,
   };
 }
 
@@ -591,29 +546,6 @@ function requireExactText(value: unknown, message: string): string {
 
 function toRuntimeStruct(value: NimiJsonObject): Struct {
   return RuntimeStruct.fromJson(value as ProtoJsonValue);
-}
-
-function canonicalConfig(config: AIConfig): string {
-  const capabilities = [...config.capabilities]
-    .map((intent) => ({
-      capabilityContract: intent.capabilityContract,
-      requiredFeatures: [...intent.requiredFeatures].sort(),
-      ...(intent.defaults ? { defaults: runtimeAIConfigStructToJson(intent.defaults) } : {}),
-      route: intent.route.oneofKind === 'local'
-        ? { oneofKind: 'local' as const }
-        : intent.route.oneofKind === 'cloud'
-          ? {
-            oneofKind: 'cloud' as const,
-            implementation: intent.route.cloud.implementation,
-            providerModelTarget: runtimeAIConfigStructToJson(intent.route.cloud.providerModelTarget),
-          }
-          : { oneofKind: undefined },
-    }))
-    .sort((left, right) => left.capabilityContract.localeCompare(right.capabilityContract));
-  return JSON.stringify({
-    owner: config.owner,
-    capabilities,
-  });
 }
 
 function profileError(message: string): never {

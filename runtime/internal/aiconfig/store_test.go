@@ -18,26 +18,29 @@ func TestMemoryStoreIsolatesAccountsAppsAndClones(t *testing.T) {
 		Owner:        appOwner("app.a"),
 		Capabilities: []*runtimev1.AIConfigCapabilityIntent{localIntent(t, "text.generate", []string{"input.image"}, nil)},
 	}
-	if err := store.Overwrite(ctx, "account-a", input); err != nil {
+	if _, revision, committed, err := store.Overwrite(ctx, "account-a", InitialRevision, input); err != nil || !committed || revision != "1" {
 		t.Fatalf("Overwrite: %v", err)
 	}
 	input.Capabilities[0].CapabilityContract = "mutated.input"
 
-	if _, found, err := store.Get(ctx, "account-b", appOwner("app.a")); err != nil || found {
+	if _, revision, found, err := store.Get(ctx, "account-b", appOwner("app.a")); err != nil || found || revision != InitialRevision {
 		t.Fatalf("cross-account Get = found %v, err %v", found, err)
 	}
-	if _, found, err := store.Get(ctx, "account-a", appOwner("app.b")); err != nil || found {
+	if _, _, found, err := store.Get(ctx, "account-a", appOwner("app.b")); err != nil || found {
 		t.Fatalf("cross-App Get = found %v, err %v", found, err)
 	}
-	got, found, err := store.Get(ctx, "account-a", appOwner("app.a"))
+	got, revision, found, err := store.Get(ctx, "account-a", appOwner("app.a"))
 	if err != nil || !found {
 		t.Fatalf("Get = found %v, err %v", found, err)
+	}
+	if revision != "1" {
+		t.Fatalf("revision = %q, want 1", revision)
 	}
 	if got.GetCapabilities()[0].GetCapabilityContract() != "text.generate" {
 		t.Fatalf("stored config followed caller mutation: %v", got)
 	}
 	got.Capabilities[0].CapabilityContract = "mutated.output"
-	again, found, err := store.Get(ctx, "account-a", appOwner("app.a"))
+	again, _, found, err := store.Get(ctx, "account-a", appOwner("app.a"))
 	if err != nil || !found {
 		t.Fatalf("Get again = found %v, err %v", found, err)
 	}
@@ -52,13 +55,13 @@ func TestMemoryStoreRuntimeLocalAgentSubsystemIsOneAccountScopedOwner(t *testing
 	owner := &runtimev1.AIConfigOwner{
 		Owner: &runtimev1.AIConfigOwner_RuntimeLocalAgentSubsystem{RuntimeLocalAgentSubsystem: &runtimev1.AIConfigRuntimeLocalAgentSubsystemOwner{}},
 	}
-	if err := store.Overwrite(ctx, "account-a", &runtimev1.AIConfig{Owner: owner}); err != nil {
+	if _, _, committed, err := store.Overwrite(ctx, "account-a", InitialRevision, &runtimev1.AIConfig{Owner: owner}); err != nil || !committed {
 		t.Fatalf("Overwrite shared LocalAgent: %v", err)
 	}
-	if _, found, err := store.Get(ctx, "account-a", owner); err != nil || !found {
+	if _, _, found, err := store.Get(ctx, "account-a", owner); err != nil || !found {
 		t.Fatalf("Get shared LocalAgent = found %v, err %v", found, err)
 	}
-	if _, found, err := store.Get(ctx, "account-b", owner); err != nil || found {
+	if _, _, found, err := store.Get(ctx, "account-b", owner); err != nil || found {
 		t.Fatalf("shared LocalAgent crossed account namespace: found %v, err %v", found, err)
 	}
 }
@@ -81,14 +84,14 @@ func TestSQLiteStorePersistsAndCompletelyOverwrites(t *testing.T) {
 			cloudIntent(t, "image.generate"),
 		},
 	}
-	if err := store.Overwrite(ctx, "account-a", first); err != nil {
+	if _, revision, committed, err := store.Overwrite(ctx, "account-a", InitialRevision, first); err != nil || !committed || revision != "1" {
 		t.Fatalf("Overwrite first: %v", err)
 	}
 	second := &runtimev1.AIConfig{
 		Owner:        appOwner("app.persisted"),
 		Capabilities: []*runtimev1.AIConfigCapabilityIntent{localIntent(t, "audio.transcribe", nil, nil)},
 	}
-	if err := store.Overwrite(ctx, "account-a", second); err != nil {
+	if _, revision, committed, err := store.Overwrite(ctx, "account-a", "1", second); err != nil || !committed || revision != "2" {
 		t.Fatalf("Overwrite second: %v", err)
 	}
 	if err := backend.Close(); err != nil {
@@ -104,12 +107,15 @@ func TestSQLiteStorePersistsAndCompletelyOverwrites(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewSQLiteStore(restart): %v", err)
 	}
-	got, found, err := store.Get(ctx, "account-a", appOwner("app.persisted"))
+	got, revision, found, err := store.Get(ctx, "account-a", appOwner("app.persisted"))
 	if err != nil || !found {
 		t.Fatalf("Get after restart = found %v, err %v", found, err)
 	}
 	if len(got.GetCapabilities()) != 1 || got.GetCapabilities()[0].GetCapabilityContract() != "audio.transcribe" {
 		t.Fatalf("overwrite retained old capability intent: %v", got)
+	}
+	if revision != "2" {
+		t.Fatalf("revision after restart = %q, want 2", revision)
 	}
 }
 
@@ -132,7 +138,7 @@ func TestSQLiteStoreKeepsAccountAndOwnerInCompositePrimaryKey(t *testing.T) {
 		{account: "account-a", owner: appOwner("app.b")},
 		{account: "account-b", owner: appOwner("app.a")},
 	} {
-		if err := store.Overwrite(ctx, row.account, &runtimev1.AIConfig{Owner: row.owner}); err != nil {
+		if _, _, committed, err := store.Overwrite(ctx, row.account, InitialRevision, &runtimev1.AIConfig{Owner: row.owner}); err != nil || !committed {
 			t.Fatalf("Overwrite(%s,%v): %v", row.account, row.owner.GetOwner(), err)
 		}
 	}
@@ -162,14 +168,14 @@ func TestSQLiteStoreRejectsPersistedOwnerKeyMismatch(t *testing.T) {
 	}
 	if err := backend.WriteTx(ctx, func(tx *sql.Tx) error {
 		_, err := tx.ExecContext(ctx, `
-			INSERT INTO runtime_ai_config(account_namespace, owner_kind, owner_id, config_blob)
-			VALUES (?, ?, ?, ?)
-		`, "account-a", storeOwnerKindApp, "app.requested", raw)
+			INSERT INTO runtime_ai_config(account_namespace, owner_kind, owner_id, config_blob, revision)
+			VALUES (?, ?, ?, ?, ?)
+		`, "account-a", storeOwnerKindApp, "app.requested", raw, 1)
 		return err
 	}); err != nil {
 		t.Fatalf("seed mismatched row: %v", err)
 	}
-	_, found, err := store.Get(ctx, "account-a", appOwner("app.requested"))
+	_, _, found, err := store.Get(ctx, "account-a", appOwner("app.requested"))
 	if found || err == nil || !strings.Contains(err.Error(), "does not match storage key") {
 		t.Fatalf("Get mismatched row = found %v, err %v", found, err)
 	}

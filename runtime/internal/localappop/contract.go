@@ -74,6 +74,8 @@ const (
 	IngressStorageAssetReveal
 	IngressArtifactAdoptToStorage
 	IngressAppAIConfigGet
+	IngressAppAIConfigOverwrite
+	IngressAppAIConfigOptionsList
 	IngressRealmWorldCoreList
 	IngressRealmWorldCoreCreate
 	IngressRealmPersonaCharacterListOwned
@@ -98,6 +100,7 @@ const (
 	IngressConversationSnapshotGet
 	IngressAgentAIConfigGet
 	IngressAgentAIConfigOverwrite
+	IngressAgentAIConfigOptionsList
 	IngressAgentAutonomySnapshotGet
 	IngressAgentAutonomyUpdate
 	IngressAgentPresentationSnapshotGet
@@ -118,6 +121,8 @@ const (
 	OperationStorageAssetReveal
 	OperationArtifactAdoptToStorage
 	OperationAppAIConfigGet
+	OperationAppAIConfigOverwrite
+	OperationAppAIConfigOptionsList
 	OperationRealmWorldCoreList
 	OperationRealmWorldCoreCreate
 	OperationRealmPersonaCharacterListOwned
@@ -142,6 +147,7 @@ const (
 	OperationConversationSnapshotGet
 	OperationAgentAIConfigGet
 	OperationAgentAIConfigOverwrite
+	OperationAgentAIConfigOptionsList
 	OperationAgentAutonomySnapshotGet
 	OperationAgentAutonomyUpdate
 	OperationAgentPresentationSnapshotGet
@@ -173,7 +179,9 @@ var canonicalAppOperationContract = [...]contractRow{
 	{IngressStorageAssetMove, OperationStorageAssetMove, AppOperationIDStorageAssetMove, AuthorityClassBase, ""},
 	{IngressStorageAssetReveal, OperationStorageAssetReveal, AppOperationIDStorageAssetReveal, AuthorityClassBase, ""},
 	{IngressArtifactAdoptToStorage, OperationArtifactAdoptToStorage, AppOperationIDArtifactAdopt, AuthorityClassAppAccess, "runtime.consume"},
-	{IngressAppAIConfigGet, OperationAppAIConfigGet, "runtime.ai.app-config.get", AuthorityClassBase, ""},
+	{IngressAppAIConfigGet, OperationAppAIConfigGet, "runtime.ai.app-config.get", AuthorityClassAppAccess, "runtime.consume"},
+	{IngressAppAIConfigOverwrite, OperationAppAIConfigOverwrite, "runtime.ai.app-config.overwrite", AuthorityClassAppAccess, "runtime.consume"},
+	{IngressAppAIConfigOptionsList, OperationAppAIConfigOptionsList, "runtime.ai.app-config.options.list", AuthorityClassAppAccess, "runtime.consume"},
 	{IngressRealmWorldCoreList, OperationRealmWorldCoreList, "realm.world-core.list", AuthorityClassAppAccess, "realm.data"},
 	{IngressRealmWorldCoreCreate, OperationRealmWorldCoreCreate, "realm.world-core.create", AuthorityClassAppAccess, "realm.data"},
 	{IngressRealmPersonaCharacterListOwned, OperationRealmPersonaCharacterListOwned, AppOperationIDPersonaListOwned, AuthorityClassAppAccess, "realm.data"},
@@ -198,6 +206,7 @@ var canonicalAppOperationContract = [...]contractRow{
 	{IngressConversationSnapshotGet, OperationConversationSnapshotGet, "runtime.agent.conversation.snapshot.get", AuthorityClassAppAccess, "agent.local"},
 	{IngressAgentAIConfigGet, OperationAgentAIConfigGet, "runtime.agent.ai-config.get", AuthorityClassAppAccess, "agent.configure"},
 	{IngressAgentAIConfigOverwrite, OperationAgentAIConfigOverwrite, "runtime.agent.ai-config.overwrite", AuthorityClassAppAccess, "agent.configure"},
+	{IngressAgentAIConfigOptionsList, OperationAgentAIConfigOptionsList, "runtime.agent.ai-config.options.list", AuthorityClassAppAccess, "agent.configure"},
 	{IngressAgentAutonomySnapshotGet, OperationAgentAutonomySnapshotGet, "runtime.agent.autonomy.snapshot.get", AuthorityClassAppAccess, "agent.configure"},
 	{IngressAgentAutonomyUpdate, OperationAgentAutonomyUpdate, "runtime.agent.autonomy.update", AuthorityClassAppAccess, "agent.configure"},
 	{IngressAgentPresentationSnapshotGet, OperationAgentPresentationSnapshotGet, "runtime.agent.presentation.snapshot.get", AuthorityClassAppAccess, "agent.configure"},

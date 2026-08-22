@@ -14,17 +14,18 @@ const owner = { owner: { oneofKind: 'app', app: { appId: 'nimi.lab' } } };
 const localIntent = (capabilityContract) => ({
   capabilityContract,
   requiredFeatures: [],
-  route: { oneofKind: 'local', local: {} },
+  route: { oneofKind: 'local', local: { loadoutRef: `loadout-${capabilityContract}` } },
 });
 const config = (...capabilities) => ({ owner, capabilities });
 
-test('lab treats AI_CONFIG_NOT_FOUND as one unconfigured App AIConfig projection', async () => {
+test('lab loads the canonical unconfigured snapshot and propagates transport failures', async () => {
   const { loadLabAIConfig } = await importBehaviorModule('lab/lab-ai-config-store.js');
-  assert.equal(await loadLabAIConfig({
+  const unconfigured = { config: null, revision: '0', effectiveSelections: [] };
+  assert.deepEqual(await loadLabAIConfig({
     async get() {
-      throw { reasonCode: 'AI_CONFIG_NOT_FOUND' };
+      return unconfigured;
     },
-  }), null);
+  }), unconfigured);
   await assert.rejects(() => loadLabAIConfig({
     async get() {
       throw { reasonCode: 'AI_CONFIG_PERSISTENCE_UNAVAILABLE' };
@@ -32,7 +33,7 @@ test('lab treats AI_CONFIG_NOT_FOUND as one unconfigured App AIConfig projection
   }));
 });
 
-test('lab refreshes the read-only AIConfig projection when owner handoff returns focus', async () => {
+test('lab refreshes the canonical AIConfig projection when another manager returns focus', async () => {
   const { subscribeLabAIConfigOwnerRefresh } = await importBehaviorModule('lab/lab-ai-config-store.js');
   const createTarget = () => {
     const listeners = new Map();
@@ -72,7 +73,7 @@ test('lab refreshes the read-only AIConfig projection when owner handoff returns
   assert.equal(refreshes, 2);
 });
 
-test('lab clones the immutable AIConfig projection only for read-only Kit display', async () => {
+test('lab clones the immutable AIConfig projection for the Kit editor', async () => {
   const { projectLabAIConfigCapabilities } = await importBehaviorModule('lab/lab-ai-config-store.js');
   const intent = localIntent('text.generate');
   const projected = projectLabAIConfigCapabilities([intent]);
@@ -102,7 +103,7 @@ test('lab shared Model Config inventory includes video.generate and deduplicates
   }
 });
 
-test('lab mounts the shared third-party App AIConfig surface as read-only with an exact owner handoff', () => {
+test('lab mounts the shared App AIConfig editor with self-owner CAS and optional Desktop handoff', () => {
   const source = readFileSync(path.join(
     root,
     'src/lab/workbench/lab-ai-config-settings-panel.tsx',
@@ -110,25 +111,25 @@ test('lab mounts the shared third-party App AIConfig surface as read-only with a
   assert.match(source, /ModelConfigAIConfigSurface/u);
   assert.match(source, /consumer: 'third-party-app'/u);
   assert.match(source, /initialCapabilityContract=\{capabilityId\}/u);
-  assert.match(source, /rendererHost\.sdk\.modelConfig\.localSelections\(\)/u);
+  assert.match(source, /sdk\.aiConfig\.listOptions\(query\)/u);
+  assert.match(source, /sdk\.aiConfig\.overwrite\(input\)/u);
   assert.match(source, /onOpenOwnerConfiguration/u);
   assert.match(source, /kind: 'open-apps'[\s\S]*appId[\s\S]*section: 'ai-models'/u);
   assert.match(
     source,
     /return subscribeLabAIConfigOwnerRefresh\([\s\S]{0,240}?window,[\s\S]{0,80}?document/u,
   );
-  assert.doesNotMatch(source, /onOverwrite|onOpenCloudConnectorConfiguration|open-runtime-config/u);
-  assert.doesNotMatch(source, /cloudAIConfig|ModelPicker|provider picker/iu);
+  assert.doesNotMatch(source, /sdk\.modelConfig|open-runtime-config/u);
 });
 
-test('lab renderer exposes App AIConfig projection without a write port', () => {
+test('lab renderer exposes the canonical self-owner App AIConfig manager', () => {
   const sources = [
     'src/renderer/contract.ts',
     'src/renderer/production-bindings.ts',
     'src/lab/lab-ai-config-store.ts',
   ].map((relative) => readFileSync(path.join(root, relative), 'utf8')).join('\n');
+  assert.match(sources, /NimiLocalAppAIConfigClient/u);
   assert.doesNotMatch(sources, /lab\.ai-config\.update|overwriteLabAIConfig|toLabPortableAIConfigCapabilities/u);
-  assert.doesNotMatch(sources, /aiConfig\s*:\s*\{[\s\S]{0,240}?overwrite\s*\(/u);
 });
 
 test('lab rejects any AIConfig projection not owned by the exact nimi.lab App', async () => {
@@ -184,7 +185,7 @@ test('lab presents Local intent while leaving implementation selection to Runtim
   assert.equal(target.intentLabel, 'Local');
   assert.equal(target.capabilityContract, 'text.generate');
   assert.equal(target.canDispatch, true);
-  assert.match(target.detail, /Runtime chooses and validates/u);
+  assert.match(target.detail, /committed an exact Local Loadout reference/u);
 
   const imageTarget = createLabRunTargetSummary({
     capability: {

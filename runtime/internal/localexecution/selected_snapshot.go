@@ -26,6 +26,20 @@ func CloneSelectedLocalExecution(input *SelectedLocalExecution) *SelectedLocalEx
 		SupportedFeatures:        append([]string(nil), input.SupportedFeatures...),
 		Configured:               input.Configured,
 	}
+	for index := range out.ExactBindings {
+		out.ExactBindings[index].DeclaredFiles = append([]string(nil), input.ExactBindings[index].DeclaredFiles...)
+	}
+	out.ExactDependencySources = make([]ExactDependencySource, len(input.ExactDependencySources))
+	for index, source := range input.ExactDependencySources {
+		out.ExactDependencySources[index] = source
+		out.ExactDependencySources[index].VerifiedArtifacts = append([]string(nil), source.VerifiedArtifacts...)
+		if source.Hashes != nil {
+			out.ExactDependencySources[index].Hashes = make(map[string]string, len(source.Hashes))
+			for key, value := range source.Hashes {
+				out.ExactDependencySources[index].Hashes[key] = value
+			}
+		}
+	}
 	if input.DriverIdentity != nil {
 		out.DriverIdentity, _ = proto.Clone(input.DriverIdentity).(*runtimev1.CapabilityImplementationIdentity)
 	}

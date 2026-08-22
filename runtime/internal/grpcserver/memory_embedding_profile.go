@@ -32,7 +32,7 @@ func resolveRuntimeMemoryEmbeddingProfile(
 	}
 	switch normalized.SourceKind {
 	case memoryservice.MemoryEmbeddingTextEmbedSourceKindLocal:
-		return resolveLocalRuntimeMemoryEmbeddingProfile(localResolver, modelCatalog)
+		return resolveLocalRuntimeMemoryEmbeddingProfile(localResolver, modelCatalog, normalized.LocalBinding.LoadoutRef)
 	case memoryservice.MemoryEmbeddingTextEmbedSourceKindCloud:
 		return resolveCloudRuntimeMemoryEmbeddingProfile(ctx, normalized, connStore, modelCatalog)
 	default:
@@ -63,7 +63,9 @@ func normalizeMemoryEmbeddingTextEmbedIntentSnapshot(input *memoryservice.Memory
 		}
 	}
 	if input.LocalBinding != nil {
-		out.LocalBinding = &memoryservice.MemoryEmbeddingLocalBindingRef{}
+		out.LocalBinding = &memoryservice.MemoryEmbeddingLocalBindingRef{
+			LoadoutRef: strings.TrimSpace(input.LocalBinding.LoadoutRef),
+		}
 	}
 	return out
 }
@@ -85,6 +87,7 @@ func memoryEmbeddingTextEmbedIntentPresent(snapshot *memoryservice.MemoryEmbeddi
 func resolveLocalRuntimeMemoryEmbeddingProfile(
 	localResolver localexecution.Resolver,
 	modelCatalog *catalog.Resolver,
+	loadoutRef string,
 ) memoryservice.MemoryEmbeddingResolvedProfile {
 	if localResolver == nil || modelCatalog == nil {
 		return memoryservice.MemoryEmbeddingResolvedProfile{
@@ -92,7 +95,7 @@ func resolveLocalRuntimeMemoryEmbeddingProfile(
 			BlockedReasonCode: runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE,
 		}
 	}
-	selected, err := localResolver.ResolveSelectedLocalExecution(capabilitydriver.TextEmbedCapabilityContract)
+	selected, err := localResolver.ResolveLocalExecution(capabilitydriver.TextEmbedCapabilityContract, loadoutRef)
 	if err != nil || selected == nil || !selected.Configured ||
 		selected.CapabilityContract != capabilitydriver.TextEmbedCapabilityContract ||
 		len(selected.Requirements) != 1 || len(selected.ExactBindings) != 1 ||

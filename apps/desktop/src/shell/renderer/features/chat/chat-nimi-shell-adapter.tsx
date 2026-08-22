@@ -61,7 +61,7 @@ export function useAiConversationModeHost(
   const setChatThinkingPreference = useAppStore((state) => state.setChatThinkingPreference);
   const authUserId = useAppStore((state) => String(state.auth.user?.id || '').trim());
   const appAIConfig = useDesktopNimiAppAIConfig(DESKTOP_NIMI_APP_ID);
-  const textIntent = findDesktopNimiTextIntent(appAIConfig.data);
+  const textIntent = findDesktopNimiTextIntent(appAIConfig.data?.config);
   const [submittingThreadId, setSubmittingThreadId] = useState<string | null>(null);
   const [hostFeedback, setHostFeedback] = useState<InlineFeedbackState | null>(null);
   const [ephemeralThread, setEphemeralThread] = useState<ChatAiThreadRecord | null>(null);

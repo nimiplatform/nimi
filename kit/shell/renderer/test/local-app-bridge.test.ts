@@ -21,9 +21,11 @@ describe('renderer local-app standard-shell surface', () => {
       NIMI_STANDARD_SHELL_COMMANDS['local-app.textGenerateCandidate'],
     )).toBe('local_app_text_generate_candidate');
     const mappings = [
-      ['local-app.modelConfigLocalSelectionsGet', 'local_app_model_config_local_selections_get'],
+      ['local-app.aiConfigOverwrite', 'local_app_ai_config_overwrite'],
+      ['local-app.aiConfigLocalOptions', 'local_app_ai_config_local_options'],
       ['local-app.sharedAgentAIConfigGet', 'local_app_shared_agent_ai_config_get'],
       ['local-app.sharedAgentAIConfigOverwrite', 'local_app_shared_agent_ai_config_overwrite'],
+      ['local-app.sharedAgentAIConfigLocalOptions', 'local_app_shared_agent_ai_config_local_options'],
       ['local-app.agentAutonomySnapshot', 'local_app_agent_autonomy_snapshot'],
       ['local-app.agentUpdateAutonomy', 'local_app_agent_update_autonomy'],
       ['local-app.agentPresentationSnapshot', 'local_app_agent_presentation_snapshot'],
@@ -48,10 +50,11 @@ describe('renderer local-app standard-shell surface', () => {
     }
   });
 
-  it('maps read-only App AIConfig to the exact host command', async () => {
+  it('maps the canonical App AIConfig manager to exact host commands', async () => {
     const invocations: Array<{ command: string; payload: unknown }> = [];
     const generatedIntent = createNimiLocalAIConfigCapabilityIntent({
       capabilityContract: 'text.generate',
+      loadoutRef: 'loadout-text',
       defaults: { temperature: 0.3 },
     });
     expect(Object.getPrototypeOf(generatedIntent.defaults)).not.toBe(Object.prototype);
@@ -62,58 +65,16 @@ describe('renderer local-app standard-shell surface', () => {
     (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
       invoke: async (command: string, payload: unknown) => {
         invocations.push({ command, payload });
-        return config;
+        return { config, revision: '1', effectiveSelections: [] };
       },
       listen: () => () => {},
     };
     const aiConfig = createNimiLocalAppStandardShellSurface().aiConfig;
-    await expect(aiConfig.get()).resolves.toEqual(config);
+    await expect(aiConfig.get()).resolves.toEqual({ config, revision: '1', effectiveSelections: [] });
     expect(invocations).toEqual([
       { command: 'nimi.shell.localApp.aiConfigGet', payload: {} },
     ]);
     expect(JSON.stringify(invocations)).not.toContain('app.example');
-  });
-
-  it('projects bounded machine selections without configuration identity', async () => {
-    (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
-      invoke: async () => [{
-        capabilityContract: 'text.generate',
-        state: 'selected',
-        loadoutId: null,
-        displayName: 'gemma4-26b',
-        supportedFeatures: ['input.image'],
-        reasons: [],
-        effectiveDefaults: { temperature: '0.8' },
-      }],
-      listen: () => () => {},
-    };
-    await expect(
-      createNimiLocalAppStandardShellSurface().modelConfig.localSelections(),
-    ).resolves.toEqual([{
-      capabilityContract: 'text.generate',
-      state: 'selected',
-      loadoutId: null,
-      displayName: 'gemma4-26b',
-      supportedFeatures: ['input.image'],
-      reasons: [],
-      effectiveDefaults: { temperature: '0.8' },
-    }]);
-
-    (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
-      invoke: async () => [{
-        capabilityContract: 'text.generate',
-        state: 'selected',
-        loadoutId: null,
-        displayName: 'gemma4-26b',
-        supportedFeatures: [],
-        reasons: [],
-        effectiveDefaults: { temperature: '界'.repeat(43) },
-      }],
-      listen: () => () => {},
-    };
-    await expect(
-      createNimiLocalAppStandardShellSurface().modelConfig.localSelections(),
-    ).rejects.toThrow('effective defaults are invalid');
   });
 
   it('exposes typed scenario execution and rejects untrusted projection expansion', async () => {
@@ -374,14 +335,28 @@ describe('renderer local-app standard-shell surface', () => {
     (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
       invoke: async (command: string, payload: unknown) => {
         invocations.push({ command, payload });
-        if (command.includes('sharedAgentAIConfig')) return sharedConfig;
+        if (command.endsWith('sharedAgentAIConfigGet')) {
+          return { config: sharedConfig, revision: '1', effectiveSelections: [] };
+        }
+        if (command.endsWith('sharedAgentAIConfigOverwrite')) {
+          return {
+            outcome: 'committed', config: sharedConfig, revision: '1',
+            effectiveSelections: [], reasonCode: 'REASON_CODE_UNSPECIFIED',
+          };
+        }
+        if (command.endsWith('sharedAgentAIConfigLocalOptions')) {
+          return { kind: 'local-loadouts', options: [], truncated: false };
+        }
         return { autonomyRevision: '2', presentationRevision: '3' };
       },
       listen: () => () => {},
     };
     const configure = createNimiLocalAppStandardShellSurface().agentConfigure;
-    await expect(configure.sharedAIConfig.get()).resolves.toEqual(sharedConfig);
-    await expect(configure.sharedAIConfig.overwrite([])).resolves.toEqual(sharedConfig);
+    await expect(configure.sharedAIConfig.get()).resolves.toEqual({ config: sharedConfig, revision: '1', effectiveSelections: [] });
+    await expect(configure.sharedAIConfig.overwrite({ expectedRevision: '0', capabilities: [] }))
+      .resolves.toEqual({ outcome: 'committed', config: sharedConfig, revision: '1' });
+    await expect(configure.sharedAIConfig.listOptions({ kind: 'local-loadouts', capabilityContract: 'text.generate' }))
+      .resolves.toEqual({ kind: 'local-loadouts', options: [], truncated: false });
     await expect(configure.autonomy.snapshot({ agentHandle: handle }))
       .resolves.toEqual({ autonomyRevision: '2', presentationRevision: '3' });
     await expect(configure.autonomy.update({
@@ -406,7 +381,8 @@ describe('renderer local-app standard-shell surface', () => {
     })).resolves.toEqual({ autonomyRevision: '2', presentationRevision: '3' });
     expect(invocations).toEqual([
       { command: 'nimi.shell.localApp.sharedAgentAIConfigGet', payload: {} },
-      { command: 'nimi.shell.localApp.sharedAgentAIConfigOverwrite', payload: { payload: { capabilities: [] } } },
+      { command: 'nimi.shell.localApp.sharedAgentAIConfigOverwrite', payload: { payload: { expectedRevision: '0', capabilities: [] } } },
+      { command: 'nimi.shell.localApp.sharedAgentAIConfigLocalOptions', payload: { capabilityContract: 'text.generate', search: '' } },
       { command: 'nimi.shell.localApp.agentAutonomySnapshot', payload: { payload: { agentHandle: handle } } },
       {
         command: 'nimi.shell.localApp.agentUpdateAutonomy',
@@ -436,7 +412,7 @@ describe('renderer local-app standard-shell surface', () => {
   it('physically omits the retired access-workflow namespace', () => {
     const surface = createNimiLocalAppStandardShellSurface() as unknown as Record<string, unknown>;
     expect(Object.keys(surface).sort()).toEqual([
-      'session', 'ai', 'aiConfig', 'modelConfig', 'storage', 'realm', 'agents', 'agentConfigure', 'conversation',
+      'session', 'ai', 'aiConfig', 'storage', 'realm', 'agents', 'agentConfigure', 'conversation',
     ].sort());
     expect(Object.keys(surface.agentConfigure as Record<string, unknown>).sort()).toEqual([
       'sharedAIConfig', 'autonomy', 'presentation',

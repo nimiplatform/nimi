@@ -14,7 +14,9 @@ export function AppsPanel(): ReactElement {
   const setAppsDetailAppId = useAppStore((state) => state.setAppsDetailAppId);
   const setActiveTab = useAppStore((state) => state.setActiveTab);
   const readAppAIConfig = useCallback(
-    (appId: string) => readDesktopNimiAppAIConfig(sdk.accountProduct().appAIConfig(appId)),
+    async (appId: string) => (await readDesktopNimiAppAIConfig(
+      sdk.accountProduct().appAIConfig(appId),
+    )).config,
     [sdk],
   );
   const controller = useAppsPanelController({ readAppAIConfig });

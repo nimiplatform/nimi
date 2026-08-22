@@ -282,7 +282,8 @@ test('Import and Apply previews stay owner-specific and non-committing', () => {
   });
   assert.equal(appPreview.after.owner?.owner.oneofKind, 'app');
   assert.deepEqual(appPreview.intentDiff.addedCapabilityContracts, ['text.generate']);
-  assert.equal(appPreview.writesOnly, 'target-ai-config');
+  assert.equal(appPreview.writesOnly, 'none');
+  assert.equal(appPreview.requiresResourceSelection, true);
 });
 
 test('Local configuration preview reuses generic Recipe slots and keeps decisions separate', () => {

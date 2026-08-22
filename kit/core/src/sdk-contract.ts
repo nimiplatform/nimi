@@ -90,6 +90,12 @@ export {
 export type {
   NimiCapabilityAIConfig,
   NimiCapabilityAIConfigIntent,
+  NimiAIConfigLocalLoadoutOption,
+  NimiAIConfigOptionsQuery,
+  NimiAIConfigOptionsResult,
+  NimiAIConfigOverwriteInput,
+  NimiAIConfigOverwriteResult,
+  NimiAIConfigSnapshot,
   NimiCloudAIConfigCapabilityInput,
   NimiPortableAppAIConfig,
   NimiPortableAppAIConfigIntent,

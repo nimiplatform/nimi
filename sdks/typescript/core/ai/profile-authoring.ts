@@ -1,3 +1,5 @@
+import type { JsonValue as ProtoJsonValue } from '@protobuf-ts/runtime';
+import { Struct as RuntimeStruct } from '../../core-generated/runtime-protobuf/google/protobuf/struct.js';
 import type {
   AIConfig,
   AIConfigCapabilityIntent,
@@ -10,7 +12,6 @@ import { sha256Hex } from '../../types/sha256.js';
 import type { NimiLoadoutRecipe } from '../../runtime/machine-loadouts.js';
 import {
   createNimiCloudAIConfigCapabilityIntent,
-  createNimiLocalAIConfigCapabilityIntent,
   parseNimiPortableAIProfile,
   runtimeAIConfigStructToJson,
   serializeNimiPortableAIProfile,
@@ -122,20 +123,31 @@ export interface NimiAIProfileAIConfigIntentDiff {
   readonly unchangedCapabilityContracts: readonly string[];
 }
 
+export type NimiAIProfileCapabilityPrefill = Omit<AIConfigCapabilityIntent, 'route'> & {
+  readonly route:
+    | { readonly oneofKind: 'local'; readonly local: Readonly<Record<string, never>> }
+    | { readonly oneofKind: 'cloud'; readonly cloud: NonNullable<Extract<AIConfigCapabilityIntent['route'], { oneofKind: 'cloud' }>['cloud']> };
+};
+
+export interface NimiAIProfileAIConfigPrefill {
+  readonly owner: AIConfigOwner;
+  readonly capabilities: readonly NimiAIProfileCapabilityPrefill[];
+}
+
 export interface NimiAIProfileApplyPreview {
   readonly action: 'apply-to-ai-config';
   readonly target: NimiAIProfileApplyTarget;
   readonly source: NimiPortableAIProfile;
   readonly before: AIConfig | null;
-  readonly after: AIConfig;
-  readonly identical: boolean;
+  readonly after: NimiAIProfileAIConfigPrefill;
   readonly intentDiff: NimiAIProfileAIConfigIntentDiff;
   readonly cloudConfigurations: readonly {
     readonly capabilityContract: string;
     readonly state: 'configured';
   }[];
   readonly previewOnly: true;
-  readonly writesOnly: 'target-ai-config';
+  readonly writesOnly: 'none';
+  readonly requiresResourceSelection: true;
 }
 
 export interface NimiAIProfileAuthoringMachineLoadoutProjection {
@@ -597,22 +609,28 @@ export function deriveNimiAIProfileApplyPreview(input: {
   const owner = applyTargetOwner(target);
   const before = input.before ?? null;
   if (before !== null) assertAIConfigOwner(before, target);
-  const capabilities = Object.entries(source.capabilities).map(([capabilityContract, capability]) => (
-    capability.route === 'local'
-      ? createNimiLocalAIConfigCapabilityIntent({
+  const capabilities: NimiAIProfileCapabilityPrefill[] = Object.entries(source.capabilities).map(([capabilityContract, capability]) => {
+    if (capability.route === 'local') {
+      return {
         capabilityContract,
-        requiredFeatures: capability.requiredFeatures,
-        defaults: capability.defaults,
-      })
-      : createNimiCloudAIConfigCapabilityIntent({
+        requiredFeatures: [...capability.requiredFeatures],
+        ...(capability.defaults ? { defaults: RuntimeStruct.fromJson(capability.defaults as ProtoJsonValue) } : {}),
+        route: { oneofKind: 'local' as const, local: {} },
+      };
+    }
+    const cloud = createNimiCloudAIConfigCapabilityIntent({
         capabilityContract,
         requiredFeatures: capability.requiredFeatures,
         defaults: capability.defaults,
         implementation: implementationContent(capability.implementation),
         providerModelTarget: capability.providerModelTarget,
-      })
-  ));
-  const after: AIConfig = { owner, capabilities };
+    });
+    if (cloud.route.oneofKind !== 'cloud') {
+      return authoringError(`${capabilityContract} Cloud prefill is invalid`);
+    }
+    return { ...cloud, route: cloud.route };
+  });
+  const after: NimiAIProfileAIConfigPrefill = { owner, capabilities };
   const intentDiff = deriveAIConfigIntentDiff(before, after);
   const cloudConfigurations = Object.freeze(after.capabilities
     .filter((intent) => intent.route.oneofKind === 'cloud')
@@ -626,11 +644,11 @@ export function deriveNimiAIProfileApplyPreview(input: {
     source,
     before,
     after,
-    identical: before !== null && canonicalAIConfig(before) === canonicalAIConfig(after),
     intentDiff,
     cloudConfigurations,
     previewOnly: true as const,
-    writesOnly: 'target-ai-config' as const,
+    writesOnly: 'none' as const,
+    requiresResourceSelection: true as const,
   });
 }
 
@@ -1402,7 +1420,7 @@ function assertAIConfigOwner(config: AIConfig, target: NimiAIProfileApplyTarget)
 
 function deriveAIConfigIntentDiff(
   before: AIConfig | null,
-  after: AIConfig,
+  after: NimiAIProfileAIConfigPrefill,
 ): NimiAIProfileAIConfigIntentDiff {
   const beforeByContract = indexAIConfigIntents(before?.capabilities ?? [], 'before AIConfig');
   const afterByContract = indexAIConfigIntents(after.capabilities, 'after AIConfig');
@@ -1431,11 +1449,11 @@ function deriveAIConfigIntentDiff(
 }
 
 function indexAIConfigIntents(
-  intents: readonly AIConfigCapabilityIntent[],
+  intents: readonly (AIConfigCapabilityIntent | NimiAIProfileCapabilityPrefill)[],
   label: string,
-): Map<string, AIConfigCapabilityIntent> {
+): Map<string, AIConfigCapabilityIntent | NimiAIProfileCapabilityPrefill> {
   if (!Array.isArray(intents)) return authoringError(`${label} capabilities must be an array`);
-  const result = new Map<string, AIConfigCapabilityIntent>();
+  const result = new Map<string, AIConfigCapabilityIntent | NimiAIProfileCapabilityPrefill>();
   for (const intent of intents) {
     const capabilityContract = requireExactNonEmptyText(
       intent?.capabilityContract,
@@ -1449,20 +1467,11 @@ function indexAIConfigIntents(
   return result;
 }
 
-function canonicalAIConfig(config: AIConfig): string {
-  return canonicalJson({
-    owner: config.owner,
-    capabilities: [...indexAIConfigIntents(config.capabilities, 'AIConfig').values()]
-      .map(canonicalAIConfigIntentValue)
-      .sort((left, right) => compareCanonicalText(left.capabilityContract, right.capabilityContract)),
-  });
-}
-
-function canonicalAIConfigIntent(intent: AIConfigCapabilityIntent): string {
+function canonicalAIConfigIntent(intent: AIConfigCapabilityIntent | NimiAIProfileCapabilityPrefill): string {
   return canonicalJson(canonicalAIConfigIntentValue(intent));
 }
 
-function canonicalAIConfigIntentValue(intent: AIConfigCapabilityIntent): {
+function canonicalAIConfigIntentValue(intent: AIConfigCapabilityIntent | NimiAIProfileCapabilityPrefill): {
   readonly capabilityContract: string;
   readonly requiredFeatures: readonly string[];
   readonly defaults?: NimiJsonObject;

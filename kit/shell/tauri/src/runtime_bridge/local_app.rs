@@ -5,6 +5,7 @@ use nimi_shell_protected_local::MacOsLocalAppCarrier;
 #[cfg(target_os = "windows")]
 use nimi_shell_protected_local::WindowsLocalAppCarrier;
 use nimi_shell_protected_local::{
+    LocalAppAIConfigLocalOptionsRequest, LocalAppAIConfigOverwriteRequest,
     LocalAppAgentCommitPresentationRequest, LocalAppAgentHandleRequest,
     LocalAppAgentUpdateAutonomyRequest, LocalAppAssetAdoptRequest, LocalAppAssetListRequest,
     LocalAppAssetListResult, LocalAppAssetMoveRequest, LocalAppAssetRange,
@@ -15,11 +16,11 @@ use nimi_shell_protected_local::{
     LocalAppPersonaCharacterGetOwnedRequest, LocalAppPersonaCharacterListOwnedRequest,
     LocalAppPersonaCharacterReplaceRequest, LocalAppReasonCode,
     LocalAppScenarioUploadArtifactRequest, LocalAppSessionStatus,
-    LocalAppSharedAgentAIConfigOverwriteRequest, LocalAppStorageDocument,
-    LocalAppStorageReadRequest, LocalAppStorageRemoveRequest, LocalAppStorageRemoveResult,
-    LocalAppStorageWriteRequest, LocalAppTextCandidateRequest, LocalAppTextCandidateResult,
-    LocalAppWorldCoreCreateRequest, LocalAppWorldCoreListRequest, NimiLocalAppCarrier,
-    NimiLocalAppSession,
+    LocalAppSharedAgentAIConfigLocalOptionsRequest, LocalAppSharedAgentAIConfigOverwriteRequest,
+    LocalAppStorageDocument, LocalAppStorageReadRequest, LocalAppStorageRemoveRequest,
+    LocalAppStorageRemoveResult, LocalAppStorageWriteRequest, LocalAppTextCandidateRequest,
+    LocalAppTextCandidateResult, LocalAppWorldCoreCreateRequest, LocalAppWorldCoreListRequest,
+    NimiLocalAppCarrier, NimiLocalAppSession,
 };
 use std::{
     collections::HashMap,
@@ -152,11 +153,26 @@ impl RuntimeBridgeLocalAppHost {
         }
     }
 
-    pub async fn model_config_local_selections_get(
+    pub async fn app_ai_config_overwrite(
         &self,
+        request: LocalAppAIConfigOverwriteRequest,
     ) -> Result<serde_json::Value, LocalAppOperationError> {
         let session = self.current_or_open_session().await?;
-        match session.model_config_local_selections_get().await {
+        match session.app_ai_config_overwrite(request).await {
+            Ok(value) => Ok(value),
+            Err(error) => {
+                self.clear_on_transport_failure(&session, &error).await;
+                Err(error)
+            }
+        }
+    }
+
+    pub async fn app_ai_config_local_options(
+        &self,
+        request: LocalAppAIConfigLocalOptionsRequest,
+    ) -> Result<serde_json::Value, LocalAppOperationError> {
+        let session = self.current_or_open_session().await?;
+        match session.app_ai_config_local_options(request).await {
             Ok(value) => Ok(value),
             Err(error) => {
                 self.clear_on_transport_failure(&session, &error).await;
@@ -268,6 +284,20 @@ impl RuntimeBridgeLocalAppHost {
     ) -> Result<serde_json::Value, LocalAppOperationError> {
         let session = self.current_or_open_session().await?;
         match session.shared_agent_ai_config_overwrite(request).await {
+            Ok(value) => Ok(value),
+            Err(error) => {
+                self.clear_on_transport_failure(&session, &error).await;
+                Err(error)
+            }
+        }
+    }
+
+    pub async fn shared_agent_ai_config_local_options(
+        &self,
+        request: LocalAppSharedAgentAIConfigLocalOptionsRequest,
+    ) -> Result<serde_json::Value, LocalAppOperationError> {
+        let session = self.current_or_open_session().await?;
+        match session.shared_agent_ai_config_local_options(request).await {
             Ok(value) => Ok(value),
             Err(error) => {
                 self.clear_on_transport_failure(&session, &error).await;

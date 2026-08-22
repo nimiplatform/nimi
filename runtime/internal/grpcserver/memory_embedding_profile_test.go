@@ -166,11 +166,11 @@ type memoryEmbeddingLocalResolverStub struct {
 	selected *localexecution.SelectedLocalExecution
 }
 
-func (s memoryEmbeddingLocalResolverStub) SelectedLocalCapabilityContracts() []string {
-	return []string{capabilitydriver.TextEmbedCapabilityContract}
+func (s memoryEmbeddingLocalResolverStub) ListLocalLoadouts(string, string, int) ([]localexecution.LoadoutOption, bool, error) {
+	return nil, false, nil
 }
 
-func (s memoryEmbeddingLocalResolverStub) ResolveSelectedLocalExecution(string) (*localexecution.SelectedLocalExecution, error) {
+func (s memoryEmbeddingLocalResolverStub) ResolveLocalExecution(string, string) (*localexecution.SelectedLocalExecution, error) {
 	return localexecution.CloneSelectedLocalExecution(s.selected), nil
 }
 
@@ -194,7 +194,7 @@ func TestResolveRuntimeMemoryEmbeddingProfileUsesSelectedCatalogContent(t *testi
 	}
 	resolved := resolveRuntimeMemoryEmbeddingProfile(context.Background(), &memoryservice.MemoryEmbeddingTextEmbedIntentSnapshot{
 		SourceKind:   memoryservice.MemoryEmbeddingTextEmbedSourceKindLocal,
-		LocalBinding: &memoryservice.MemoryEmbeddingLocalBindingRef{},
+		LocalBinding: &memoryservice.MemoryEmbeddingLocalBindingRef{LoadoutRef: "loadout-embed"},
 	}, nil, resolver, memoryEmbeddingLocalResolverStub{selected: selected})
 	if resolved.ResolutionState != "resolved" || resolved.Profile == nil ||
 		resolved.Profile.GetModelId() != "nomic-embed-text-local" || resolved.Profile.GetVersion() != "asset-nomic" || resolved.Profile.GetDimension() != 768 {
@@ -205,7 +205,7 @@ func TestResolveRuntimeMemoryEmbeddingProfileUsesSelectedCatalogContent(t *testi
 func TestResolveRuntimeMemoryEmbeddingProfileRequiresSelectedLoadoutResolver(t *testing.T) {
 	snapshot := &memoryservice.MemoryEmbeddingTextEmbedIntentSnapshot{
 		SourceKind:   memoryservice.MemoryEmbeddingTextEmbedSourceKindLocal,
-		LocalBinding: &memoryservice.MemoryEmbeddingLocalBindingRef{},
+		LocalBinding: &memoryservice.MemoryEmbeddingLocalBindingRef{LoadoutRef: "loadout-embed"},
 	}
 	resolved := resolveRuntimeMemoryEmbeddingProfile(context.Background(), snapshot, nil, nil, nil)
 	if resolved.Profile != nil {

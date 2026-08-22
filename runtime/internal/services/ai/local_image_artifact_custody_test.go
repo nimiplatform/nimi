@@ -236,7 +236,7 @@ func TestCloudImageArtifactReferenceIsTypedUnsupported(t *testing.T) {
 
 func installLocalAppImageArtifactTestExecution(t *testing.T, svc *Service, configurationID string) {
 	t.Helper()
-	if err := svc.aiConfigStore.Overwrite(context.Background(), "account-1",
+	if err := overwriteAIConfigStoreForTest(context.Background(), svc.aiConfigStore, "account-1",
 		appAIConfig("nimi.realm-persona-studio", localAppAIConfigIntent(capabilitydriver.StableDiffusionCapabilityContract))); err != nil {
 		t.Fatalf("install Local App AIConfig: %v", err)
 	}

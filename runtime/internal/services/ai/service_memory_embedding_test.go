@@ -76,7 +76,7 @@ func TestEmbedTextsForMemoryUsesResolvedCloudBinding(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := fixture.service.aiConfigStore.Overwrite(fixture.context, "user-001", &runtimev1.AIConfig{
+	if err := overwriteAIConfigStoreForTest(fixture.context, fixture.service.aiConfigStore, "user-001", &runtimev1.AIConfig{
 		Owner: aiconfig.LocalAgentSubsystemOwner(),
 		Capabilities: []*runtimev1.AIConfigCapabilityIntent{{
 			CapabilityContract: capabilitydriver.TextEmbedCapabilityContract,
@@ -159,11 +159,13 @@ func TestEmbedTextsForMemoryUsesSelectedLocalLlamaBinding(t *testing.T) {
 	}}
 	service.SetLocalTextExecutionHost(host)
 	ctx := scenarioJobUserContext("nimi.runtime.memory", "user-001")
-	if err := service.aiConfigStore.Overwrite(ctx, "user-001", &runtimev1.AIConfig{
+	if err := overwriteAIConfigStoreForTest(ctx, service.aiConfigStore, "user-001", &runtimev1.AIConfig{
 		Owner: aiconfig.LocalAgentSubsystemOwner(),
 		Capabilities: []*runtimev1.AIConfigCapabilityIntent{{
 			CapabilityContract: capabilitydriver.TextEmbedCapabilityContract,
-			Route:              &runtimev1.AIConfigCapabilityIntent_Local{Local: &runtimev1.AIConfigLocalIntent{}},
+			Route: &runtimev1.AIConfigCapabilityIntent_Local{Local: &runtimev1.AIConfigLocalIntent{
+				LoadoutRef: "loadout:test:text.embed",
+			}},
 		}},
 	}); err != nil {
 		t.Fatalf("store shared LocalAgent AIConfig: %v", err)

@@ -38,6 +38,7 @@ describe('Electron protected local-app host', () => {
     expect(methods).toEqual(expect.arrayContaining([
       'sharedAgentAIConfigGet',
       'sharedAgentAIConfigOverwrite',
+      'sharedAgentAIConfigLocalOptions',
       'agentAutonomySnapshot',
       'agentUpdateAutonomy',
       'agentPresentationSnapshot',
@@ -124,9 +125,11 @@ describe('Electron protected local-app host', () => {
       }],
     };
 
-    await expect(host.sharedAgentAIConfigGet()).resolves.toMatchObject({ capabilities: [] });
-    await expect(host.sharedAgentAIConfigOverwrite({ capabilities: [] }))
-      .resolves.toMatchObject({ capabilities: [] });
+    await expect(host.sharedAgentAIConfigGet()).resolves.toMatchObject({ config: { capabilities: [] }, revision: '0' });
+    await expect(host.sharedAgentAIConfigOverwrite({ expectedRevision: '0', capabilities: [] }))
+      .resolves.toMatchObject({ outcome: 'committed', config: { capabilities: [] }, revision: '1' });
+    await expect(host.sharedAgentAIConfigLocalOptions({ capabilityContract: 'text.generate', search: '' }))
+      .resolves.toEqual({ kind: 'local-loadouts', options: [], truncated: false });
     await expect(host.agentAutonomySnapshot({ agentHandle: handle }))
       .resolves.toMatchObject({ autonomyRevision: '1' });
     await expect(host.agentUpdateAutonomy(autonomyUpdate))
@@ -140,7 +143,8 @@ describe('Electron protected local-app host', () => {
 
     expect(calls).toEqual([
       { method: 'localAppSharedAgentAIConfigGet' },
-      { method: 'localAppSharedAgentAIConfigOverwrite', input: { capabilities: [] } },
+      { method: 'localAppSharedAgentAIConfigOverwrite', input: { expectedRevision: '0', capabilities: [] } },
+      { method: 'localAppSharedAgentAIConfigLocalOptions', input: { capabilityContract: 'text.generate', search: '' } },
       { method: 'localAppAgentAutonomySnapshot', input: { agentHandle: handle } },
       { method: 'localAppAgentUpdateAutonomy', input: autonomyUpdate },
       { method: 'localAppAgentPresentationSnapshot', input: { agentHandle: handle } },
@@ -488,12 +492,12 @@ function binding(calls: Array<{ method: string; input?: unknown }>) {
   return {
     localAppSessionStatus: record('localAppSessionStatus', statusProjection()),
     localAppSessionRenew: record('localAppSessionRenew', statusProjection()),
-    localAppAIConfigGet: record('localAppAIConfigGet', { owner: { owner: { oneofKind: 'app', app: { appId: 'app.example' } } }, capabilities: [] }),
-    localAppModelConfigLocalSelectionsGet: record('localAppModelConfigLocalSelectionsGet', [{
-      capabilityContract: 'text.generate', state: 'selected', loadoutId: null,
-      displayName: 'gemma4-26b', supportedFeatures: [], reasons: [],
-      effectiveDefaults: { temperature: '0.8' },
-    }]),
+    localAppAIConfigGet: record('localAppAIConfigGet', {
+      config: { owner: { owner: { oneofKind: 'app', app: { appId: 'app.example' } } }, capabilities: [] },
+      revision: '0', effectiveSelections: [],
+    }),
+    localAppAIConfigOverwrite: record('localAppAIConfigOverwrite', {}),
+    localAppAIConfigLocalOptions: record('localAppAIConfigLocalOptions', {}),
     localAppTextGenerateCandidate: record('localAppTextGenerateCandidate', { text: 'hello', finishReason: 'stop', traceId: 'trace-1' }),
     localAppTextTurnSubscribe: record('localAppTextTurnSubscribe', { streamId: 'text-turn-1' }),
     localAppTextTurnStreamNext: record('localAppTextTurnStreamNext', { completed: true }),
@@ -522,12 +526,16 @@ function binding(calls: Array<{ method: string; input?: unknown }>) {
       avatarUrl: null,
     }]),
     localAppSharedAgentAIConfigGet: record('localAppSharedAgentAIConfigGet', {
-      owner: { owner: { oneofKind: 'runtimeLocalAgentSubsystem', runtimeLocalAgentSubsystem: {} } },
-      capabilities: [],
+      config: { owner: { owner: { oneofKind: 'runtimeLocalAgentSubsystem', runtimeLocalAgentSubsystem: {} } }, capabilities: [] },
+      revision: '0', effectiveSelections: [],
     }),
     localAppSharedAgentAIConfigOverwrite: record('localAppSharedAgentAIConfigOverwrite', {
-      owner: { owner: { oneofKind: 'runtimeLocalAgentSubsystem', runtimeLocalAgentSubsystem: {} } },
-      capabilities: [],
+      outcome: 'committed',
+      config: { owner: { owner: { oneofKind: 'runtimeLocalAgentSubsystem', runtimeLocalAgentSubsystem: {} } }, capabilities: [] },
+      revision: '1', effectiveSelections: [], reasonCode: 'REASON_CODE_UNSPECIFIED',
+    }),
+    localAppSharedAgentAIConfigLocalOptions: record('localAppSharedAgentAIConfigLocalOptions', {
+      kind: 'local-loadouts', options: [], truncated: false,
     }),
     localAppAgentAutonomySnapshot: record('localAppAgentAutonomySnapshot', {
       enabled: false, config: null, usedTokensInWindow: 0, budgetExhausted: false,

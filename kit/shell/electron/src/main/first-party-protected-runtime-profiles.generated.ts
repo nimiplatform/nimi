@@ -65,6 +65,7 @@ export const NIMI_ELECTRON_FIRST_PARTY_PROTECTED_RUNTIME_PROFILES = {
     methods: {
       "/nimi.runtime.v1.RuntimeAiService/GetAppAIConfig": { kind: "unary" },
       "/nimi.runtime.v1.RuntimeAiService/OverwriteAppAIConfig": { kind: "unary" },
+      "/nimi.runtime.v1.RuntimeAiService/ListAppAIConfigOptions": { kind: "unary" },
       "/nimi.runtime.v1.RuntimeAiService/ExecuteScenario": { kind: "unary" },
       "/nimi.runtime.v1.RuntimeAiService/StreamScenario": { kind: "server_stream" },
       "/nimi.runtime.v1.RuntimeAiService/SubmitScenarioJob": { kind: "unary" },
@@ -87,6 +88,7 @@ export const NIMI_ELECTRON_FIRST_PARTY_PROTECTED_RUNTIME_PROFILES = {
       "/nimi.runtime.v1.RuntimeAgentService/SetAgentPresentationProfile": { kind: "unary" },
       "/nimi.runtime.v1.RuntimeAgentService/GetSharedLocalAgentAIConfig": { kind: "unary" },
       "/nimi.runtime.v1.RuntimeAgentService/OverwriteSharedLocalAgentAIConfig": { kind: "unary" },
+      "/nimi.runtime.v1.RuntimeAgentService/ListSharedLocalAgentAIConfigOptions": { kind: "unary" },
       "/nimi.runtime.v1.RuntimeAgentService/PreviewSharedLocalAgentAIProfile": { kind: "unary" },
       "/nimi.runtime.v1.RuntimeAgentService/ApplySharedLocalAgentAIProfile": { kind: "unary" },
       "/nimi.runtime.v1.RuntimeAgentService/ImportPortableAIProfile": { kind: "unary" },

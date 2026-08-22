@@ -10,7 +10,7 @@ import type {
   LocalDevelopmentRun,
 } from '../local-development/local-development-types.js';
 import { CANONICAL_CAPABILITY_IDS } from '@nimiplatform/kit/core/runtime-capabilities';
-import type { NimiCapabilityAIConfig } from '@nimiplatform/kit/core/sdk-contract';
+import type { NimiPortableAppAIConfig } from '@nimiplatform/kit/core/sdk-contract';
 
 export type DesktopAppAIConfigPosture =
   | 'unconfigured'
@@ -33,7 +33,7 @@ export interface DesktopAppAIConfigSummary {
 export interface DesktopAppsProjectionSource {
   listRegistrations(): Promise<readonly LocalDevelopmentRegistration[]>;
   listRuns(): Promise<readonly LocalDevelopmentRun[]>;
-  readAppAIConfig?(appId: string): Promise<NimiCapabilityAIConfig | null>;
+  readAppAIConfig?(appId: string): Promise<NimiPortableAppAIConfig | null>;
 }
 
 export interface DesktopAppsEntry {
@@ -112,7 +112,7 @@ async function projectAppAIConfigSummary(input: {
 }
 
 export function summarizeAppAIConfig(
-  config: NimiCapabilityAIConfig | null,
+  config: NimiPortableAppAIConfig | null,
 ): DesktopAppAIConfigSummary {
   const capabilities = config?.capabilities ?? [];
   const localCount = capabilities.filter((entry) => entry.route.oneofKind === 'local').length;

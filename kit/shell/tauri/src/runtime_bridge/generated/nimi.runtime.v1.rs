@@ -408,6 +408,8 @@ pub enum ReasonCode {
     /// Native local execution exhausted device or host memory. This is distinct
     /// from an ordinary inference failure and never triggers model substitution.
     AiLocalExecutionOutOfMemory = 725,
+    /// Canonical App or shared subsystem AIConfig optimistic concurrency.
+    AiConfigRevisionConflict = 726,
 }
 impl ReasonCode {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -759,6 +761,7 @@ impl ReasonCode {
             Self::AiLoadoutNotConfigured => "AI_LOADOUT_NOT_CONFIGURED",
             Self::AiLoadoutCatalogSchemaInvalid => "AI_LOADOUT_CATALOG_SCHEMA_INVALID",
             Self::AiLocalExecutionOutOfMemory => "AI_LOCAL_EXECUTION_OUT_OF_MEMORY",
+            Self::AiConfigRevisionConflict => "AI_CONFIG_REVISION_CONFLICT",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -1179,6 +1182,7 @@ impl ReasonCode {
                 Some(Self::AiLoadoutCatalogSchemaInvalid)
             }
             "AI_LOCAL_EXECUTION_OUT_OF_MEMORY" => Some(Self::AiLocalExecutionOutOfMemory),
+            "AI_CONFIG_REVISION_CONFLICT" => Some(Self::AiConfigRevisionConflict),
             _ => None,
         }
     }
@@ -3872,10 +3876,14 @@ pub mod ai_config_owner {
         RuntimeLocalAgentSubsystem(super::AiConfigRuntimeLocalAgentSubsystemOwner),
     }
 }
-/// AIConfigLocalIntent is deliberately empty: Local implementation identity,
-/// machine selection, resources, and bindings belong to machine configuration.
-#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct AiConfigLocalIntent {}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AiConfigLocalIntent {
+    /// Stable Runtime Loadout resource reference selected by the AIConfig owner.
+    /// Loadout content, ModelAsset bindings, paths, and process state stay in the
+    /// machine Loadout store.
+    #[prost(string, tag = "1")]
+    pub loadout_ref: ::prost::alloc::string::String,
+}
 /// AIConfigCloudIntent carries only the exact Cloud implementation and its
 /// Driver-owned provider-model target selected through Nimi-owned configuration.
 /// Connector, account authorization, and credential material never belong here.
@@ -3886,9 +3894,9 @@ pub struct AiConfigCloudIntent {
     #[prost(message, optional, tag = "2")]
     pub provider_model_target: ::core::option::Option<::prost_types::Struct>,
 }
-/// AIConfigCapabilityIntent is consumer intent only. Local execution identity,
-/// machine selection, assets, bindings, Driver state, and readiness never enter
-/// this payload.
+/// AIConfigCapabilityIntent is consumer intent only. It names an exact safe
+/// resource reference but embeds no Loadout content, assets, bindings, Driver
+/// state, credentials, endpoints, process state, or readiness.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct AiConfigCapabilityIntent {
     #[prost(string, tag = "1")]
@@ -3911,13 +3919,94 @@ pub mod ai_config_capability_intent {
     }
 }
 /// AIConfig is the complete current capability intent for exactly one owner.
-/// It has overwrite semantics and carries no revision, history, or readiness.
+/// Revision is transported by owner operation results rather than embedded in
+/// this portable value; no history or readiness is persisted here.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct AiConfig {
     #[prost(message, optional, tag = "1")]
     pub owner: ::core::option::Option<AiConfigOwner>,
     #[prost(message, repeated, tag = "2")]
     pub capabilities: ::prost::alloc::vec::Vec<AiConfigCapabilityIntent>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AiConfigLocalResourceProjection {
+    #[prost(string, tag = "1")]
+    pub loadout_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub label: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub capability_contract: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "4")]
+    pub implementation: ::core::option::Option<CapabilityImplementationIdentity>,
+    #[prost(string, repeated, tag = "5")]
+    pub supported_features: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(enumeration = "AiConfigEffectiveState", tag = "6")]
+    pub state: i32,
+    #[prost(string, repeated, tag = "7")]
+    pub reasons: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AiConfigEffectiveSelection {
+    #[prost(string, tag = "1")]
+    pub capability_contract: ::prost::alloc::string::String,
+    #[prost(enumeration = "AiConfigEffectiveState", tag = "2")]
+    pub state: i32,
+    #[prost(string, repeated, tag = "4")]
+    pub reasons: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(oneof = "ai_config_effective_selection::Resource", tags = "3")]
+    pub resource: ::core::option::Option<ai_config_effective_selection::Resource>,
+}
+/// Nested message and enum types in `AIConfigEffectiveSelection`.
+pub mod ai_config_effective_selection {
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+    pub enum Resource {
+        #[prost(message, tag = "3")]
+        Local(super::AiConfigLocalResourceProjection),
+    }
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AiConfigLocalLoadoutOptionsQuery {
+    #[prost(string, tag = "1")]
+    pub capability_contract: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub search: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct AiConfigLocalLoadoutOptions {
+    #[prost(message, repeated, tag = "1")]
+    pub options: ::prost::alloc::vec::Vec<AiConfigLocalResourceProjection>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ListAppAiConfigOptionsRequest {
+    /// Desktop manager consistency assertion. Protected App callers omit it and
+    /// Runtime derives the self owner from the admitted session.
+    #[prost(message, optional, tag = "4")]
+    pub owner: ::core::option::Option<AiConfigOwner>,
+    #[prost(oneof = "list_app_ai_config_options_request::Query", tags = "1")]
+    pub query: ::core::option::Option<list_app_ai_config_options_request::Query>,
+}
+/// Nested message and enum types in `ListAppAIConfigOptionsRequest`.
+pub mod list_app_ai_config_options_request {
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+    pub enum Query {
+        #[prost(message, tag = "1")]
+        LocalLoadouts(super::AiConfigLocalLoadoutOptionsQuery),
+    }
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListAppAiConfigOptionsResponse {
+    #[prost(bool, tag = "2")]
+    pub truncated: bool,
+    #[prost(oneof = "list_app_ai_config_options_response::Result", tags = "1")]
+    pub result: ::core::option::Option<list_app_ai_config_options_response::Result>,
+}
+/// Nested message and enum types in `ListAppAIConfigOptionsResponse`.
+pub mod list_app_ai_config_options_response {
+    #[derive(Clone, PartialEq, ::prost::Oneof)]
+    pub enum Result {
+        #[prost(message, tag = "1")]
+        LocalLoadouts(super::AiConfigLocalLoadoutOptions),
+    }
 }
 /// App AIConfig mutation is whole-object only. The owner carried here is a
 /// consistency assertion checked against Runtime-authenticated caller truth;
@@ -3931,16 +4020,28 @@ pub struct GetAppAiConfigRequest {
 pub struct GetAppAiConfigResponse {
     #[prost(message, optional, tag = "1")]
     pub config: ::core::option::Option<AiConfig>,
+    #[prost(string, tag = "2")]
+    pub revision: ::prost::alloc::string::String,
+    #[prost(message, repeated, tag = "3")]
+    pub effective_selections: ::prost::alloc::vec::Vec<AiConfigEffectiveSelection>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct OverwriteAppAiConfigRequest {
     #[prost(message, optional, tag = "1")]
     pub config: ::core::option::Option<AiConfig>,
+    #[prost(string, tag = "2")]
+    pub expected_revision: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct OverwriteAppAiConfigResponse {
     #[prost(message, optional, tag = "1")]
     pub config: ::core::option::Option<AiConfig>,
+    #[prost(string, tag = "2")]
+    pub revision: ::prost::alloc::string::String,
+    #[prost(bool, tag = "3")]
+    pub committed: bool,
+    #[prost(enumeration = "ReasonCode", tag = "4")]
+    pub reason_code: i32,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct LoadoutRecipeCustodyDescriptor {
@@ -4195,6 +4296,41 @@ impl LoadoutValidationState {
             "LOADOUT_VALIDATION_STATE_CONFIGURED" => Some(Self::Configured),
             "LOADOUT_VALIDATION_STATE_UNRESOLVED" => Some(Self::Unresolved),
             "LOADOUT_VALIDATION_STATE_BLOCKED" => Some(Self::Blocked),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AiConfigEffectiveState {
+    Unspecified = 0,
+    Ready = 1,
+    Missing = 2,
+    Blocked = 3,
+    Unavailable = 4,
+}
+impl AiConfigEffectiveState {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "AI_CONFIG_EFFECTIVE_STATE_UNSPECIFIED",
+            Self::Ready => "AI_CONFIG_EFFECTIVE_STATE_READY",
+            Self::Missing => "AI_CONFIG_EFFECTIVE_STATE_MISSING",
+            Self::Blocked => "AI_CONFIG_EFFECTIVE_STATE_BLOCKED",
+            Self::Unavailable => "AI_CONFIG_EFFECTIVE_STATE_UNAVAILABLE",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "AI_CONFIG_EFFECTIVE_STATE_UNSPECIFIED" => Some(Self::Unspecified),
+            "AI_CONFIG_EFFECTIVE_STATE_READY" => Some(Self::Ready),
+            "AI_CONFIG_EFFECTIVE_STATE_MISSING" => Some(Self::Missing),
+            "AI_CONFIG_EFFECTIVE_STATE_BLOCKED" => Some(Self::Blocked),
+            "AI_CONFIG_EFFECTIVE_STATE_UNAVAILABLE" => Some(Self::Unavailable),
             _ => None,
         }
     }
@@ -7034,6 +7170,35 @@ pub mod runtime_ai_service_client {
                     GrpcMethod::new(
                         "nimi.runtime.v1.RuntimeAiService",
                         "OverwriteAppAIConfig",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn list_app_ai_config_options(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ListAppAiConfigOptionsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ListAppAiConfigOptionsResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAiService/ListAppAIConfigOptions",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAiService",
+                        "ListAppAIConfigOptions",
                     ),
                 );
             self.inner.unary(req, path, codec).await
@@ -15256,6 +15421,10 @@ impl CompanionParticipationStatus {
 pub struct LocalAppSharedLocalAgentAiConfigProjection {
     #[prost(message, optional, tag = "1")]
     pub config: ::core::option::Option<AiConfig>,
+    #[prost(string, tag = "2")]
+    pub revision: ::prost::alloc::string::String,
+    #[prost(message, repeated, tag = "3")]
+    pub effective_selections: ::prost::alloc::vec::Vec<AiConfigEffectiveSelection>,
 }
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct GetLocalAppSharedLocalAgentAiConfigRequest {}
@@ -15268,11 +15437,29 @@ pub struct GetLocalAppSharedLocalAgentAiConfigResponse {
 pub struct OverwriteLocalAppSharedLocalAgentAiConfigRequest {
     #[prost(message, repeated, tag = "1")]
     pub capabilities: ::prost::alloc::vec::Vec<AiConfigCapabilityIntent>,
+    #[prost(string, tag = "2")]
+    pub expected_revision: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct OverwriteLocalAppSharedLocalAgentAiConfigResponse {
     #[prost(message, optional, tag = "1")]
     pub projection: ::core::option::Option<LocalAppSharedLocalAgentAiConfigProjection>,
+    #[prost(bool, tag = "2")]
+    pub committed: bool,
+    #[prost(enumeration = "ReasonCode", tag = "3")]
+    pub reason_code: i32,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ListLocalAppSharedLocalAgentAiConfigOptionsRequest {
+    #[prost(message, optional, tag = "1")]
+    pub local_loadouts: ::core::option::Option<AiConfigLocalLoadoutOptionsQuery>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListLocalAppSharedLocalAgentAiConfigOptionsResponse {
+    #[prost(message, optional, tag = "1")]
+    pub local_loadouts: ::core::option::Option<AiConfigLocalLoadoutOptions>,
+    #[prost(bool, tag = "2")]
+    pub truncated: bool,
 }
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct LocalAppAgentAutonomyConfig {
@@ -17904,6 +18091,10 @@ pub struct GetSharedLocalAgentAiConfigRequest {
 pub struct GetSharedLocalAgentAiConfigResponse {
     #[prost(message, optional, tag = "1")]
     pub config: ::core::option::Option<AiConfig>,
+    #[prost(string, tag = "2")]
+    pub revision: ::prost::alloc::string::String,
+    #[prost(message, repeated, tag = "3")]
+    pub effective_selections: ::prost::alloc::vec::Vec<AiConfigEffectiveSelection>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct OverwriteSharedLocalAgentAiConfigRequest {
@@ -17911,11 +18102,35 @@ pub struct OverwriteSharedLocalAgentAiConfigRequest {
     pub context: ::core::option::Option<AgentRequestContext>,
     #[prost(message, repeated, tag = "2")]
     pub capabilities: ::prost::alloc::vec::Vec<AiConfigCapabilityIntent>,
+    #[prost(string, tag = "3")]
+    pub expected_revision: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct OverwriteSharedLocalAgentAiConfigResponse {
     #[prost(message, optional, tag = "1")]
     pub config: ::core::option::Option<AiConfig>,
+    #[prost(string, tag = "2")]
+    pub revision: ::prost::alloc::string::String,
+    #[prost(bool, tag = "3")]
+    pub committed: bool,
+    #[prost(enumeration = "ReasonCode", tag = "4")]
+    pub reason_code: i32,
+    #[prost(message, repeated, tag = "5")]
+    pub effective_selections: ::prost::alloc::vec::Vec<AiConfigEffectiveSelection>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ListSharedLocalAgentAiConfigOptionsRequest {
+    #[prost(message, optional, tag = "1")]
+    pub context: ::core::option::Option<AgentRequestContext>,
+    #[prost(message, optional, tag = "2")]
+    pub local_loadouts: ::core::option::Option<AiConfigLocalLoadoutOptionsQuery>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListSharedLocalAgentAiConfigOptionsResponse {
+    #[prost(message, optional, tag = "1")]
+    pub local_loadouts: ::core::option::Option<AiConfigLocalLoadoutOptions>,
+    #[prost(bool, tag = "2")]
+    pub truncated: bool,
 }
 /// AIProfile remains a portable template. Apply writes complete current owner
 /// intent only; it never materializes Local bindings or waits for readiness.
@@ -20643,6 +20858,37 @@ pub mod runtime_agent_service_client {
                 );
             self.inner.unary(req, path, codec).await
         }
+        pub async fn list_shared_local_agent_ai_config_options(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::ListSharedLocalAgentAiConfigOptionsRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<super::ListSharedLocalAgentAiConfigOptionsResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/ListSharedLocalAgentAIConfigOptions",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "ListSharedLocalAgentAIConfigOptions",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
         pub async fn preview_shared_local_agent_ai_profile(
             &mut self,
             request: impl tonic::IntoRequest<
@@ -20824,6 +21070,37 @@ pub mod runtime_agent_service_client {
                     GrpcMethod::new(
                         "nimi.runtime.v1.RuntimeAgentService",
                         "OverwriteLocalAppSharedLocalAgentAIConfig",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn list_local_app_shared_local_agent_ai_config_options(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::ListLocalAppSharedLocalAgentAiConfigOptionsRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<super::ListLocalAppSharedLocalAgentAiConfigOptionsResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppSharedLocalAgentAIConfigOptions",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "ListLocalAppSharedLocalAgentAIConfigOptions",
                     ),
                 );
             self.inner.unary(req, path, codec).await

@@ -62,10 +62,7 @@ func (s *Service) captureLocalVideoEffectiveInputs(
 	if !intent.IsLocal() || intent.CapabilityContract != capabilitydriver.StableDiffusionVideoCapabilityContract {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_CAPABILITY_MISMATCH)
 	}
-	if s.localExecution == nil {
-		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_SELECTION_NOT_FOUND)
-	}
-	selected, err := s.localExecution.ResolveSelectedLocalExecution(capabilitydriver.StableDiffusionVideoCapabilityContract)
+	selected, err := s.resolveReferencedLocalExecution(ctx, intent)
 	if err != nil {
 		return nil, err
 	}

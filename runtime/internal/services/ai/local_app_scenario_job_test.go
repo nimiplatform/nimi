@@ -2,6 +2,7 @@ package ai
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -171,6 +172,7 @@ func TestSubmitLocalAppSpeechJobAcceptsMinimalTypedSpecAndBindsOwner(t *testing.
 		localAppScenarioJobContext(accountservice.LocalAppOperationScenarioJobSubmit, localappop.AppOperationIDScenarioJobSubmit),
 		executionintent.Intent{
 			CapabilityContract: capabilitydriver.AudioSynthesizeContract,
+			LocalLoadoutRef:    "test-loadout:" + capabilitydriver.AudioSynthesizeContract,
 			Route:              runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 		},
 	)
@@ -213,7 +215,7 @@ func TestSubmitLocalAppSpeechJobAcceptsMinimalTypedSpecAndBindsOwner(t *testing.
 func TestSubmitLocalAppScenarioJobVoiceWorkflowWithoutCurrentAccountConnectorFailsClosed(t *testing.T) {
 	catalogFixture := newManagedCloudScenarioTestFixture(t, "dashscope", "qwen3-tts-vd-2026-01-26", "https://example.invalid", Config{})
 	svc := newTestService(nil)
-	if err := svc.aiConfigStore.Overwrite(context.Background(), "account-1",
+	if err := overwriteAIConfigStoreForTest(context.Background(), svc.aiConfigStore, "account-1",
 		appAIConfig("nimi.realm-persona-studio", cloudVoiceAIConfigIntent(t, catalogFixture.descriptor))); err != nil {
 		t.Fatalf("install Cloud App AIConfig: %v", err)
 	}
@@ -243,7 +245,7 @@ func TestSubmitLocalAppScenarioJobVoiceWorkflowMapsProviderUnauthorizedThroughRe
 	defer server.Close()
 
 	fixture := newManagedCloudScenarioTestFixture(t, "dashscope", "qwen3-tts-vd-2026-01-26", server.URL, Config{AllowLoopbackEndpoint: true})
-	if err := fixture.service.aiConfigStore.Overwrite(context.Background(), "user-001",
+	if err := overwriteAIConfigStoreForTest(context.Background(), fixture.service.aiConfigStore, "user-001",
 		appAIConfig("nimi.realm-persona-studio", cloudVoiceAIConfigIntent(t, fixture.descriptor))); err != nil {
 		t.Fatalf("install Cloud App AIConfig: %v", err)
 	}
@@ -296,23 +298,27 @@ func (s *replaceAIConfigAfterFirstGetStore) Get(
 	ctx context.Context,
 	accountNamespace string,
 	owner *runtimev1.AIConfigOwner,
-) (*runtimev1.AIConfig, bool, error) {
-	config, found, err := s.delegate.Get(ctx, accountNamespace, owner)
+) (*runtimev1.AIConfig, string, bool, error) {
+	config, revision, found, err := s.delegate.Get(ctx, accountNamespace, owner)
 	if err != nil || !found || s.getCount.Add(1) != 1 {
-		return config, found, err
+		return config, revision, found, err
 	}
-	if err := s.delegate.Overwrite(ctx, accountNamespace, s.replacement); err != nil {
-		return nil, false, err
+	if _, _, committed, err := s.delegate.Overwrite(ctx, accountNamespace, revision, s.replacement); err != nil || !committed {
+		if err == nil {
+			err = errors.New("replacement AIConfig conflicted")
+		}
+		return nil, "", false, err
 	}
-	return config, found, nil
+	return config, revision, found, nil
 }
 
 func (s *replaceAIConfigAfterFirstGetStore) Overwrite(
 	ctx context.Context,
 	accountNamespace string,
+	expectedRevision string,
 	config *runtimev1.AIConfig,
-) error {
-	return s.delegate.Overwrite(ctx, accountNamespace, config)
+) (*runtimev1.AIConfig, string, bool, error) {
+	return s.delegate.Overwrite(ctx, accountNamespace, expectedRevision, config)
 }
 
 func TestSubmitLocalAppScenarioJobVoiceWorkflowUsesOneCapturedAIConfigSnapshot(t *testing.T) {
@@ -327,7 +333,7 @@ func TestSubmitLocalAppScenarioJobVoiceWorkflowUsesOneCapturedAIConfigSnapshot(t
 
 	fixture := newManagedCloudScenarioTestFixture(t, "dashscope", "qwen3-tts-vd-2026-01-26", server.URL, Config{AllowLoopbackEndpoint: true})
 	baseStore := fixture.service.aiConfigStore
-	if err := baseStore.Overwrite(context.Background(), "user-001",
+	if err := overwriteAIConfigStoreForTest(context.Background(), baseStore, "user-001",
 		appAIConfig("nimi.realm-persona-studio", cloudVoiceAIConfigIntent(t, fixture.descriptor))); err != nil {
 		t.Fatalf("install initial Cloud App AIConfig: %v", err)
 	}
@@ -409,7 +415,7 @@ func cloudVoiceAIConfigIntent(t *testing.T, descriptor *runtimev1.ConnectorModel
 
 func TestSubmitLocalAppScenarioJobLocalVoiceWorkflowRequiresSelectedImplementation(t *testing.T) {
 	svc := newTestService(nil)
-	if err := svc.aiConfigStore.Overwrite(context.Background(), "account-1", &runtimev1.AIConfig{
+	if err := overwriteAIConfigStoreForTest(context.Background(), svc.aiConfigStore, "account-1", &runtimev1.AIConfig{
 		Owner:        derivedAppAIConfigOwner("nimi.realm-persona-studio"),
 		Capabilities: []*runtimev1.AIConfigCapabilityIntent{localAppAIConfigIntent("voice.create")},
 	}); err != nil {
@@ -424,7 +430,7 @@ func TestSubmitLocalAppScenarioJobLocalVoiceWorkflowRequiresSelectedImplementati
 	}
 	_, err := svc.SubmitLocalAppScenarioJob(
 		localAppScenarioJobContext(accountservice.LocalAppOperationScenarioJobSubmit, localappop.AppOperationIDScenarioJobSubmit), request)
-	assertLocalAppTextCandidateError(t, err, codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_SELECTION_NOT_FOUND)
+	assertLocalAppTextCandidateError(t, err, codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_CONFIGURATION_NOT_CONFIGURED)
 }
 
 func createLocalAppScenarioJobForTest(

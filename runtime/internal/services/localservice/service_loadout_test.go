@@ -22,6 +22,17 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
+func selectedLoadoutRefForTest(t *testing.T, svc *Service, capabilityContract string) string {
+	t.Helper()
+	svc.mu.RLock()
+	selection := cloneLoadoutSelection(svc.loadoutSelections[capabilityContract])
+	svc.mu.RUnlock()
+	if selection == nil || selection.GetLoadoutId() == "" {
+		t.Fatalf("no test Loadout preference for %s", capabilityContract)
+	}
+	return selection.GetLoadoutId()
+}
+
 func TestLoadoutPrepareCommitSelectAndResolveGemmaModelAsset(t *testing.T) {
 	svc, asset := loadoutGemmaFixture(t)
 	prepared := prepareGemmaLoadoutForTest(t, svc, context.Background(), "", "Gemma primary", asset)
@@ -38,7 +49,7 @@ func TestLoadoutPrepareCommitSelectAndResolveGemmaModelAsset(t *testing.T) {
 	if _, err := svc.SelectLoadout(context.Background(), &runtimev1.SelectLoadoutRequest{CapabilityContract: capabilitydriver.LlamaCapabilityContract, LoadoutId: committed.GetLoadoutId(), ConfirmedMachineImpact: true}); err != nil {
 		t.Fatal(err)
 	}
-	resolved, err := svc.ResolveSelectedLocalExecution(capabilitydriver.LlamaCapabilityContract)
+	resolved, err := svc.ResolveLocalExecution(capabilitydriver.LlamaCapabilityContract, selectedLoadoutRefForTest(t, svc, capabilitydriver.LlamaCapabilityContract))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -148,7 +159,7 @@ func TestStoredLoadoutSurvivesCatalogRecipeRevisionUpgradeAndRemovalWithoutExecu
 		t.Fatal(err)
 	}
 	svc.localProviderCatalog = nil
-	resolved, err := svc.ResolveSelectedLocalExecution(capabilitydriver.LlamaCapabilityContract)
+	resolved, err := svc.ResolveLocalExecution(capabilitydriver.LlamaCapabilityContract, selectedLoadoutRefForTest(t, svc, capabilitydriver.LlamaCapabilityContract))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -192,7 +203,7 @@ func TestVoxCPMLoadoutDirectoryAssetUsesEntryAndStructuralContract(t *testing.T)
 	if len(selections) != 1 || selections[0].GetCapabilityContract() != capabilitydriver.AudioSynthesizeContract || selections[0].GetEffectiveDefaults() != nil {
 		t.Fatalf("VoxCPM selection defaults = %+v, want nil", selections)
 	}
-	resolved, err := svc.ResolveSelectedLocalExecution(capabilitydriver.AudioSynthesizeContract)
+	resolved, err := svc.ResolveLocalExecution(capabilitydriver.AudioSynthesizeContract, selectedLoadoutRefForTest(t, svc, capabilitydriver.AudioSynthesizeContract))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -412,7 +423,7 @@ func TestLoadoutJobAdmissionRehashesEveryPayloadWhileProjectionUsesCache(t *test
 		t.Fatalf("second projection reread payloads: calls=%d", hashCalls)
 	}
 
-	resolved, err := svc.ResolveSelectedLocalExecution(capabilitydriver.LlamaCapabilityContract)
+	resolved, err := svc.ResolveLocalExecution(capabilitydriver.LlamaCapabilityContract, selectedLoadoutRefForTest(t, svc, capabilitydriver.LlamaCapabilityContract))
 	if err != nil {
 		t.Fatalf("fresh Job admission: %v", err)
 	}
@@ -429,7 +440,7 @@ func TestLoadoutJobAdmissionRehashesEveryPayloadWhileProjectionUsesCache(t *test
 		len(resolved.ExactBindings[0].DeclaredFiles) != declaredFileCount {
 		t.Fatalf("fresh ResolvedAssembly verification = %+v", resolved.ExactBindings)
 	}
-	if _, err := svc.ResolveSelectedLocalExecution(capabilitydriver.LlamaCapabilityContract); err != nil {
+	if _, err := svc.ResolveLocalExecution(capabilitydriver.LlamaCapabilityContract, selectedLoadoutRefForTest(t, svc, capabilitydriver.LlamaCapabilityContract)); err != nil {
 		t.Fatalf("second fresh Job admission: %v", err)
 	}
 	if hashCalls != 3*declaredFileCount {
@@ -464,7 +475,7 @@ func TestLoadoutJobAdmissionRehashesEveryPayloadWhileProjectionUsesCache(t *test
 	if hashCalls != 3*declaredFileCount {
 		t.Fatalf("cached projection reread same-size, same-mtime drift: calls=%d", hashCalls)
 	}
-	_, err = svc.ResolveSelectedLocalExecution(capabilitydriver.LlamaCapabilityContract)
+	_, err = svc.ResolveLocalExecution(capabilitydriver.LlamaCapabilityContract, selectedLoadoutRefForTest(t, svc, capabilitydriver.LlamaCapabilityContract))
 	if grpcReasonForTest(err) != runtimev1.ReasonCode_AI_LOADOUT_MODEL_ASSET_CONTENT_MISMATCH || !strings.Contains(status.Convert(err).Message(), "byte drift") {
 		t.Fatalf("Job admission drift rejection = reason:%s err:%v", grpcReasonForTest(err), err)
 	}
@@ -491,7 +502,7 @@ func TestLoadoutJobAdmissionRejectsUndeclaredBundlePayload(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, err := svc.ResolveSelectedLocalExecution(capabilitydriver.LlamaCapabilityContract)
+	_, err := svc.ResolveLocalExecution(capabilitydriver.LlamaCapabilityContract, selectedLoadoutRefForTest(t, svc, capabilitydriver.LlamaCapabilityContract))
 	if grpcReasonForTest(err) != runtimev1.ReasonCode_AI_LOADOUT_MODEL_ASSET_CONTENT_MISMATCH {
 		t.Fatalf("undeclared bundle payload admission = reason:%s err:%v", grpcReasonForTest(err), err)
 	}
@@ -542,7 +553,7 @@ func TestQwen3SpeechLoadoutsResolveExecutableSelectedAssembly(t *testing.T) {
 			if _, err := svc.SelectLoadout(context.Background(), &runtimev1.SelectLoadoutRequest{CapabilityContract: test.contract, LoadoutId: committed.GetLoadoutId(), ConfirmedMachineImpact: true}); err != nil {
 				t.Fatalf("SelectLoadout(%s): %v", test.recipeID, err)
 			}
-			resolved, err := svc.ResolveSelectedLocalExecution(test.contract)
+			resolved, err := svc.ResolveLocalExecution(test.contract, selectedLoadoutRefForTest(t, svc, test.contract))
 			if err != nil {
 				t.Fatalf("ResolveSelectedLocalExecution(%s): %v", test.contract, err)
 			}
@@ -671,7 +682,7 @@ func TestQwenImageLoadoutsShareCompanionsAndAdmitCustomMainByStructuralContract(
 	if _, err := svc.SelectLoadout(context.Background(), &runtimev1.SelectLoadoutRequest{CapabilityContract: capabilitydriver.StableDiffusionCapabilityContract, LoadoutId: editLoadout.GetLoadoutId(), ConfirmedMachineImpact: true}); err != nil {
 		t.Fatal(err)
 	}
-	resolved, err := svc.ResolveSelectedLocalExecution(capabilitydriver.StableDiffusionCapabilityContract)
+	resolved, err := svc.ResolveLocalExecution(capabilitydriver.StableDiffusionCapabilityContract, selectedLoadoutRefForTest(t, svc, capabilitydriver.StableDiffusionCapabilityContract))
 	if err != nil || resolved.LoadoutID != editLoadout.GetLoadoutId() || resolved.RecipeID != capabilitydriver.StableDiffusionQwenImageEditRecipeID || len(resolved.ExactBindings) != 3 {
 		t.Fatalf("image ResolvedAssembly = %+v err=%v", resolved, err)
 	}
@@ -830,7 +841,7 @@ func TestMiniMaxH3LoadoutCommitsFiveIndependentAxesWithoutCombinationPin(t *test
 	}); err != nil {
 		t.Fatal(err)
 	}
-	resolved, err := svc.ResolveSelectedLocalExecution(capabilitydriver.StableDiffusionVideoCapabilityContract)
+	resolved, err := svc.ResolveLocalExecution(capabilitydriver.StableDiffusionVideoCapabilityContract, selectedLoadoutRefForTest(t, svc, capabilitydriver.StableDiffusionVideoCapabilityContract))
 	if err != nil || len(resolved.ExactBindings) != 5 || resolved.RecipeID != capabilitydriver.StableDiffusionVideoRecipeID {
 		t.Fatalf("MiniMax-H3 ResolvedAssembly = %+v err=%v", resolved, err)
 	}

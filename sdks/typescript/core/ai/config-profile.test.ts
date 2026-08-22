@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { createNimiError } from '../../types';
 import {
   createNimiAppAIConfigOwner,
   type NimiAppAIConfigClient,
@@ -158,50 +157,29 @@ test('portable AIProfile rejects unsafe integers in arbitrary portable metadata'
   }), /safe integer/u);
 });
 
-test('App AIProfile Preview is non-committing and direct Apply writes connector-free owner intent', async () => {
+test('App AIProfile Preview and Apply are non-committing resource-selection prefill', async () => {
   const owner = createNimiAppAIConfigOwner('app.profile.test');
-  let current: Awaited<ReturnType<NimiAppAIConfigClient['get']>> | null = null;
   let writes = 0;
   const client: NimiAppAIConfigClient = {
     appId: 'app.profile.test',
     owner,
-    async get() {
-      if (!current) {
-        throw createNimiError({
-          message: 'missing',
-          reasonCode: 'AI_CONFIG_NOT_FOUND',
-          source: 'runtime',
-        });
-      }
-      return current;
-    },
-    async overwrite(capabilities) {
+    async get() { return { config: null, revision: '0', effectiveSelections: [] }; },
+    async overwrite() {
       writes += 1;
-      current = { owner, capabilities: [...capabilities] };
-      return current;
+      throw new Error('Profile Apply must not overwrite AIConfig');
     },
+    async listOptions() { return { kind: 'local-loadouts', options: [], truncated: false }; },
   };
 
   const profiles = createNimiAppAIProfileClient(client);
   const preview = await profiles.preview(CLOUD_PROFILE);
   assert.equal(writes, 0);
   assert.equal(preview.source.profileId, CLOUD_PROFILE.profileId);
-  assert.equal(preview.after.capabilities[0]?.route.oneofKind, 'cloud');
-  if (preview.after.capabilities[0]?.route.oneofKind !== 'cloud') {
-    assert.fail('expected Cloud capability intent');
-  }
-  assert.deepEqual(
-    runtimeAIConfigStructToJson(preview.after.capabilities[0].route.cloud.providerModelTarget),
-    { provider: 'example', providerModelId: 'model-1', remoteModelCatalogId: 'remote-model-catalog-model-1' },
-  );
+  assert.equal(preview.requiresResourceSelection, true);
 
   const applied = await profiles.apply(CLOUD_PROFILE);
-  assert.equal(writes, 1);
-  assert.equal(applied.owner?.owner.oneofKind, 'app');
-  assert.equal(applied.capabilities[0]?.route.oneofKind, 'cloud');
-  if (applied.capabilities[0]?.route.oneofKind !== 'cloud') {
-    assert.fail('expected Cloud capability intent');
-  }
+  assert.equal(writes, 0);
+  assert.equal(applied.requiresResourceSelection, true);
 });
 
 test('Profile Apply keeps Local machine implementation intent outside AIConfig', async () => {
@@ -239,20 +217,16 @@ test('Profile Apply keeps Local machine implementation intent outside AIConfig',
     },
   } as const;
   const owner = createNimiAppAIConfigOwner('app.profile.local-separate');
-  let committed: readonly unknown[] = [];
   const client: NimiAppAIConfigClient = {
     appId: 'app.profile.local-separate',
     owner,
-    async get() { throw new Error('direct Apply must not read Preview state'); },
-    async overwrite(capabilities) {
-      committed = capabilities;
-      return { owner, capabilities: [...capabilities] };
-    },
+    async get() { return { config: null, revision: '0', effectiveSelections: [] }; },
+    async overwrite() { throw new Error('Profile Apply must not overwrite AIConfig'); },
+    async listOptions() { return { kind: 'local-loadouts', options: [], truncated: false }; },
   };
 
-  await createNimiAppAIProfileClient(client).apply(profile);
-  const encoded = JSON.stringify(committed);
-  assert.doesNotMatch(encoded, /implementation|driverPortableConfig|resourceOccurrences/u);
+  const applied = await createNimiAppAIProfileClient(client).apply(profile);
+  assert.equal(applied.requiresResourceSelection, true);
   const localIntent = projectNimiPortableLoadoutIntent(profile, 'text.generate');
   assert.equal(localIntent?.resourceOccurrences.length, 1);
   assert.deepEqual(localIntent?.supportedFeatures, ['input.image', 'output.tool_calls']);

@@ -73,7 +73,7 @@ func TestCloudEmbedExecutionUsesCapturedAIConfigConnectorWithoutFallback(t *test
 		}},
 	})
 	ctx := scenarioJobUserContext("app.embed", "user-001")
-	if err := fixture.service.aiConfigStore.Overwrite(ctx, "user-001", config); err != nil {
+	if err := overwriteAIConfigStoreForTest(ctx, fixture.service.aiConfigStore, "user-001", config); err != nil {
 		t.Fatalf("store AIConfig: %v", err)
 	}
 	request := &runtimev1.ExecuteScenarioRequest{

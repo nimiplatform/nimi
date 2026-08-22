@@ -53,11 +53,12 @@ func (s *Service) captureLocalEmbedEffectiveInputs(
 	if !intent.IsLocal() || intent.CapabilityContract != capabilitydriver.TextEmbedCapabilityContract {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_CAPABILITY_MISMATCH)
 	}
-	return s.captureSelectedLocalEmbedEffectiveInputs(spec, intent.RequiredFeatures, "")
+	return s.captureSelectedLocalEmbedEffectiveInputs(spec, intent.LocalLoadoutRef, intent.RequiredFeatures, "")
 }
 
 func (s *Service) captureSelectedLocalEmbedEffectiveInputs(
 	spec *runtimev1.TextEmbedScenarioSpec,
+	loadoutRef string,
 	requiredFeatures []string,
 	expectedModelAssetID string,
 ) (*localEmbedEffectiveInputs, error) {
@@ -67,7 +68,7 @@ func (s *Service) captureSelectedLocalEmbedEffectiveInputs(
 	if s.localExecution == nil {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_SELECTION_NOT_FOUND)
 	}
-	selected, err := s.localExecution.ResolveSelectedLocalExecution(capabilitydriver.TextEmbedCapabilityContract)
+	selected, err := s.localExecution.ResolveLocalExecution(capabilitydriver.TextEmbedCapabilityContract, loadoutRef)
 	if err != nil {
 		return nil, err
 	}

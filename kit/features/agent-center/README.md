@@ -72,8 +72,8 @@ autonomy configuration.
 The AIConfig section mounts the public `model-config` owner surface in
 `shared-local-agent-ai-config` mode. The optional first-party `cloudAIConfig`
 seam supplies Runtime-catalog implementation/target choices and account-scoped
-Connector inventory. `loadLocalSelections` supplies read-only
-Machine owner context; Agent Center cannot mutate those selections. Cloud target
+Connector inventory. The same shared-owner snapshot supplies effective Local
+resource state; machine-default selection is not an Agent Center input. Cloud target
 confirmation, off-machine data movement, provider cost, and the impact on every
 LocalAgent and proactive task remain explicit.
 

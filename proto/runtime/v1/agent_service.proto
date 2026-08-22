@@ -848,12 +848,31 @@ message GetAvatarDebugReplayResponse { AvatarDebugProbeRequestEnvelope request =
 // requests carry only authenticated App/account scope; runtime_source_ref and
 // local_agent_ref remain empty and never select a configuration owner.
 message GetSharedLocalAgentAIConfigRequest { AgentRequestContext context = 1; }
-message GetSharedLocalAgentAIConfigResponse { AIConfig config = 1; }
+message GetSharedLocalAgentAIConfigResponse {
+  AIConfig config = 1;
+  string revision = 2;
+  repeated AIConfigEffectiveSelection effective_selections = 3;
+}
 message OverwriteSharedLocalAgentAIConfigRequest {
   AgentRequestContext context = 1;
   repeated AIConfigCapabilityIntent capabilities = 2;
+  string expected_revision = 3;
 }
-message OverwriteSharedLocalAgentAIConfigResponse { AIConfig config = 1; }
+message OverwriteSharedLocalAgentAIConfigResponse {
+  AIConfig config = 1;
+  string revision = 2;
+  bool committed = 3;
+  ReasonCode reason_code = 4;
+  repeated AIConfigEffectiveSelection effective_selections = 5;
+}
+message ListSharedLocalAgentAIConfigOptionsRequest {
+  AgentRequestContext context = 1;
+  AIConfigLocalLoadoutOptionsQuery local_loadouts = 2;
+}
+message ListSharedLocalAgentAIConfigOptionsResponse {
+  AIConfigLocalLoadoutOptions local_loadouts = 1;
+  bool truncated = 2;
+}
 // AIProfile remains a portable template. Apply writes complete current owner
 // intent only; it never materializes Local bindings or waits for readiness.
 message PreviewSharedLocalAgentAIProfileRequest {
@@ -943,6 +962,7 @@ service RuntimeAgentService {
   // Shared Runtime LocalAgent subsystem AIConfig surface.
   rpc GetSharedLocalAgentAIConfig(GetSharedLocalAgentAIConfigRequest) returns (GetSharedLocalAgentAIConfigResponse);
   rpc OverwriteSharedLocalAgentAIConfig(OverwriteSharedLocalAgentAIConfigRequest) returns (OverwriteSharedLocalAgentAIConfigResponse);
+  rpc ListSharedLocalAgentAIConfigOptions(ListSharedLocalAgentAIConfigOptionsRequest) returns (ListSharedLocalAgentAIConfigOptionsResponse);
   rpc PreviewSharedLocalAgentAIProfile(PreviewSharedLocalAgentAIProfileRequest) returns (PreviewSharedLocalAgentAIProfileResponse);
   rpc ApplySharedLocalAgentAIProfile(ApplySharedLocalAgentAIProfileRequest) returns (ApplySharedLocalAgentAIProfileResponse);
   rpc ImportPortableAIProfile(ImportPortableAIProfileRequest) returns (ImportPortableAIProfileResponse);
@@ -952,6 +972,7 @@ service RuntimeAgentService {
   // autonomy and presentation stay per-Agent behind session-scoped handles.
   rpc GetLocalAppSharedLocalAgentAIConfig(GetLocalAppSharedLocalAgentAIConfigRequest) returns (GetLocalAppSharedLocalAgentAIConfigResponse);
   rpc OverwriteLocalAppSharedLocalAgentAIConfig(OverwriteLocalAppSharedLocalAgentAIConfigRequest) returns (OverwriteLocalAppSharedLocalAgentAIConfigResponse);
+  rpc ListLocalAppSharedLocalAgentAIConfigOptions(ListLocalAppSharedLocalAgentAIConfigOptionsRequest) returns (ListLocalAppSharedLocalAgentAIConfigOptionsResponse);
   rpc GetLocalAppAgentAutonomySnapshot(GetLocalAppAgentAutonomySnapshotRequest) returns (LocalAppAgentAutonomySnapshotResponse);
   rpc UpdateLocalAppAgentAutonomy(UpdateLocalAppAgentAutonomyRequest) returns (LocalAppAgentUpdateAutonomyResponse);
   rpc GetLocalAppAgentPresentationSnapshot(GetLocalAppAgentPresentationSnapshotRequest) returns (LocalAppAgentPresentationSnapshotResponse);

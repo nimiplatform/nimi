@@ -8,20 +8,35 @@ import "google/protobuf/duration.proto";
 import "google/protobuf/timestamp.proto";
 import "runtime/v1/agent_presentation.proto";
 import "runtime/v1/capability_configuration.proto";
+import "runtime/v1/common.proto";
 
 // Shared LocalAgent AIConfig actions resolve the singular subsystem owner from
 // the authorized account scope and carry no Agent handle. Autonomy and
 // presentation remain per-Agent and continue to require Runtime-issued handles.
 message LocalAppSharedLocalAgentAIConfigProjection {
   AIConfig config = 1;
+  string revision = 2;
+  repeated AIConfigEffectiveSelection effective_selections = 3;
 }
 
 message GetLocalAppSharedLocalAgentAIConfigRequest {}
 message GetLocalAppSharedLocalAgentAIConfigResponse { LocalAppSharedLocalAgentAIConfigProjection projection = 1; }
 message OverwriteLocalAppSharedLocalAgentAIConfigRequest {
   repeated AIConfigCapabilityIntent capabilities = 1;
+  string expected_revision = 2;
 }
-message OverwriteLocalAppSharedLocalAgentAIConfigResponse { LocalAppSharedLocalAgentAIConfigProjection projection = 1; }
+message OverwriteLocalAppSharedLocalAgentAIConfigResponse {
+  LocalAppSharedLocalAgentAIConfigProjection projection = 1;
+  bool committed = 2;
+  ReasonCode reason_code = 3;
+}
+message ListLocalAppSharedLocalAgentAIConfigOptionsRequest {
+  AIConfigLocalLoadoutOptionsQuery local_loadouts = 1;
+}
+message ListLocalAppSharedLocalAgentAIConfigOptionsResponse {
+  AIConfigLocalLoadoutOptions local_loadouts = 1;
+  bool truncated = 2;
+}
 
 enum LocalAppAgentAutonomyMode {
   LOCAL_APP_AGENT_AUTONOMY_MODE_UNSPECIFIED = 0;

@@ -10,6 +10,8 @@ import { LocalAppAgentUpdateAutonomyResponse } from "./agent_configure";
 import { UpdateLocalAppAgentAutonomyRequest } from "./agent_configure";
 import { LocalAppAgentAutonomySnapshotResponse } from "./agent_configure";
 import { GetLocalAppAgentAutonomySnapshotRequest } from "./agent_configure";
+import { ListLocalAppSharedLocalAgentAIConfigOptionsResponse } from "./agent_configure";
+import { ListLocalAppSharedLocalAgentAIConfigOptionsRequest } from "./agent_configure";
 import { OverwriteLocalAppSharedLocalAgentAIConfigResponse } from "./agent_configure";
 import { OverwriteLocalAppSharedLocalAgentAIConfigRequest } from "./agent_configure";
 import { GetLocalAppSharedLocalAgentAIConfigResponse } from "./agent_configure";
@@ -45,7 +47,10 @@ import { UnknownFieldHandler } from "@protobuf-ts/runtime";
 import type { PartialMessage } from "@protobuf-ts/runtime";
 import { reflectionMergePartial } from "@protobuf-ts/runtime";
 import { MessageType } from "@protobuf-ts/runtime";
+import { AIConfigLocalLoadoutOptions } from "./capability_configuration";
+import { AIConfigLocalLoadoutOptionsQuery } from "./capability_configuration";
 import { AIConfigCapabilityIntent } from "./capability_configuration";
+import { AIConfigEffectiveSelection } from "./capability_configuration";
 import { AIConfig } from "./capability_configuration";
 import { AgentTurnContextSummary } from "./agent_source_materialization";
 import { VoicePlaybackState } from "./voice";
@@ -2939,6 +2944,14 @@ export interface GetSharedLocalAgentAIConfigResponse {
      * @generated from protobuf field: nimi.runtime.v1.AIConfig config = 1
      */
     config?: AIConfig;
+    /**
+     * @generated from protobuf field: string revision = 2
+     */
+    revision: string;
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.AIConfigEffectiveSelection effective_selections = 3
+     */
+    effectiveSelections: AIConfigEffectiveSelection[];
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.OverwriteSharedLocalAgentAIConfigRequest
@@ -2952,6 +2965,10 @@ export interface OverwriteSharedLocalAgentAIConfigRequest {
      * @generated from protobuf field: repeated nimi.runtime.v1.AIConfigCapabilityIntent capabilities = 2
      */
     capabilities: AIConfigCapabilityIntent[];
+    /**
+     * @generated from protobuf field: string expected_revision = 3
+     */
+    expectedRevision: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.OverwriteSharedLocalAgentAIConfigResponse
@@ -2961,6 +2978,48 @@ export interface OverwriteSharedLocalAgentAIConfigResponse {
      * @generated from protobuf field: nimi.runtime.v1.AIConfig config = 1
      */
     config?: AIConfig;
+    /**
+     * @generated from protobuf field: string revision = 2
+     */
+    revision: string;
+    /**
+     * @generated from protobuf field: bool committed = 3
+     */
+    committed: boolean;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 4
+     */
+    reasonCode: ReasonCode;
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.AIConfigEffectiveSelection effective_selections = 5
+     */
+    effectiveSelections: AIConfigEffectiveSelection[];
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ListSharedLocalAgentAIConfigOptionsRequest
+ */
+export interface ListSharedLocalAgentAIConfigOptionsRequest {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AgentRequestContext context = 1
+     */
+    context?: AgentRequestContext;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AIConfigLocalLoadoutOptionsQuery local_loadouts = 2
+     */
+    localLoadouts?: AIConfigLocalLoadoutOptionsQuery;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ListSharedLocalAgentAIConfigOptionsResponse
+ */
+export interface ListSharedLocalAgentAIConfigOptionsResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AIConfigLocalLoadoutOptions local_loadouts = 1
+     */
+    localLoadouts?: AIConfigLocalLoadoutOptions;
+    /**
+     * @generated from protobuf field: bool truncated = 2
+     */
+    truncated: boolean;
 }
 /**
  * AIProfile remains a portable template. Apply writes complete current owner
@@ -12803,11 +12862,15 @@ export const GetSharedLocalAgentAIConfigRequest = new GetSharedLocalAgentAIConfi
 class GetSharedLocalAgentAIConfigResponse$Type extends MessageType<GetSharedLocalAgentAIConfigResponse> {
     constructor() {
         super("nimi.runtime.v1.GetSharedLocalAgentAIConfigResponse", [
-            { no: 1, name: "config", kind: "message", T: () => AIConfig }
+            { no: 1, name: "config", kind: "message", T: () => AIConfig },
+            { no: 2, name: "revision", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "effective_selections", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => AIConfigEffectiveSelection }
         ]);
     }
     create(value?: PartialMessage<GetSharedLocalAgentAIConfigResponse>): GetSharedLocalAgentAIConfigResponse {
         const message = globalThis.Object.create((this.messagePrototype!));
+        message.revision = "";
+        message.effectiveSelections = [];
         if (value !== undefined)
             reflectionMergePartial<GetSharedLocalAgentAIConfigResponse>(this, message, value);
         return message;
@@ -12819,6 +12882,12 @@ class GetSharedLocalAgentAIConfigResponse$Type extends MessageType<GetSharedLoca
             switch (fieldNo) {
                 case /* nimi.runtime.v1.AIConfig config */ 1:
                     message.config = AIConfig.internalBinaryRead(reader, reader.uint32(), options, message.config);
+                    break;
+                case /* string revision */ 2:
+                    message.revision = reader.string();
+                    break;
+                case /* repeated nimi.runtime.v1.AIConfigEffectiveSelection effective_selections */ 3:
+                    message.effectiveSelections.push(AIConfigEffectiveSelection.internalBinaryRead(reader, reader.uint32(), options));
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -12835,6 +12904,12 @@ class GetSharedLocalAgentAIConfigResponse$Type extends MessageType<GetSharedLoca
         /* nimi.runtime.v1.AIConfig config = 1; */
         if (message.config)
             AIConfig.internalBinaryWrite(message.config, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* string revision = 2; */
+        if (message.revision !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.revision);
+        /* repeated nimi.runtime.v1.AIConfigEffectiveSelection effective_selections = 3; */
+        for (let i = 0; i < message.effectiveSelections.length; i++)
+            AIConfigEffectiveSelection.internalBinaryWrite(message.effectiveSelections[i], writer.tag(3, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -12850,12 +12925,14 @@ class OverwriteSharedLocalAgentAIConfigRequest$Type extends MessageType<Overwrit
     constructor() {
         super("nimi.runtime.v1.OverwriteSharedLocalAgentAIConfigRequest", [
             { no: 1, name: "context", kind: "message", T: () => AgentRequestContext },
-            { no: 2, name: "capabilities", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => AIConfigCapabilityIntent }
+            { no: 2, name: "capabilities", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => AIConfigCapabilityIntent },
+            { no: 3, name: "expected_revision", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<OverwriteSharedLocalAgentAIConfigRequest>): OverwriteSharedLocalAgentAIConfigRequest {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.capabilities = [];
+        message.expectedRevision = "";
         if (value !== undefined)
             reflectionMergePartial<OverwriteSharedLocalAgentAIConfigRequest>(this, message, value);
         return message;
@@ -12870,6 +12947,9 @@ class OverwriteSharedLocalAgentAIConfigRequest$Type extends MessageType<Overwrit
                     break;
                 case /* repeated nimi.runtime.v1.AIConfigCapabilityIntent capabilities */ 2:
                     message.capabilities.push(AIConfigCapabilityIntent.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* string expected_revision */ 3:
+                    message.expectedRevision = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -12889,6 +12969,9 @@ class OverwriteSharedLocalAgentAIConfigRequest$Type extends MessageType<Overwrit
         /* repeated nimi.runtime.v1.AIConfigCapabilityIntent capabilities = 2; */
         for (let i = 0; i < message.capabilities.length; i++)
             AIConfigCapabilityIntent.internalBinaryWrite(message.capabilities[i], writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        /* string expected_revision = 3; */
+        if (message.expectedRevision !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.expectedRevision);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -12903,11 +12986,19 @@ export const OverwriteSharedLocalAgentAIConfigRequest = new OverwriteSharedLocal
 class OverwriteSharedLocalAgentAIConfigResponse$Type extends MessageType<OverwriteSharedLocalAgentAIConfigResponse> {
     constructor() {
         super("nimi.runtime.v1.OverwriteSharedLocalAgentAIConfigResponse", [
-            { no: 1, name: "config", kind: "message", T: () => AIConfig }
+            { no: 1, name: "config", kind: "message", T: () => AIConfig },
+            { no: 2, name: "revision", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "committed", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 4, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] },
+            { no: 5, name: "effective_selections", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => AIConfigEffectiveSelection }
         ]);
     }
     create(value?: PartialMessage<OverwriteSharedLocalAgentAIConfigResponse>): OverwriteSharedLocalAgentAIConfigResponse {
         const message = globalThis.Object.create((this.messagePrototype!));
+        message.revision = "";
+        message.committed = false;
+        message.reasonCode = 0;
+        message.effectiveSelections = [];
         if (value !== undefined)
             reflectionMergePartial<OverwriteSharedLocalAgentAIConfigResponse>(this, message, value);
         return message;
@@ -12919,6 +13010,18 @@ class OverwriteSharedLocalAgentAIConfigResponse$Type extends MessageType<Overwri
             switch (fieldNo) {
                 case /* nimi.runtime.v1.AIConfig config */ 1:
                     message.config = AIConfig.internalBinaryRead(reader, reader.uint32(), options, message.config);
+                    break;
+                case /* string revision */ 2:
+                    message.revision = reader.string();
+                    break;
+                case /* bool committed */ 3:
+                    message.committed = reader.bool();
+                    break;
+                case /* nimi.runtime.v1.ReasonCode reason_code */ 4:
+                    message.reasonCode = reader.int32();
+                    break;
+                case /* repeated nimi.runtime.v1.AIConfigEffectiveSelection effective_selections */ 5:
+                    message.effectiveSelections.push(AIConfigEffectiveSelection.internalBinaryRead(reader, reader.uint32(), options));
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -12935,6 +13038,18 @@ class OverwriteSharedLocalAgentAIConfigResponse$Type extends MessageType<Overwri
         /* nimi.runtime.v1.AIConfig config = 1; */
         if (message.config)
             AIConfig.internalBinaryWrite(message.config, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* string revision = 2; */
+        if (message.revision !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.revision);
+        /* bool committed = 3; */
+        if (message.committed !== false)
+            writer.tag(3, WireType.Varint).bool(message.committed);
+        /* nimi.runtime.v1.ReasonCode reason_code = 4; */
+        if (message.reasonCode !== 0)
+            writer.tag(4, WireType.Varint).int32(message.reasonCode);
+        /* repeated nimi.runtime.v1.AIConfigEffectiveSelection effective_selections = 5; */
+        for (let i = 0; i < message.effectiveSelections.length; i++)
+            AIConfigEffectiveSelection.internalBinaryWrite(message.effectiveSelections[i], writer.tag(5, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -12945,6 +13060,113 @@ class OverwriteSharedLocalAgentAIConfigResponse$Type extends MessageType<Overwri
  * @generated MessageType for protobuf message nimi.runtime.v1.OverwriteSharedLocalAgentAIConfigResponse
  */
 export const OverwriteSharedLocalAgentAIConfigResponse = new OverwriteSharedLocalAgentAIConfigResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ListSharedLocalAgentAIConfigOptionsRequest$Type extends MessageType<ListSharedLocalAgentAIConfigOptionsRequest> {
+    constructor() {
+        super("nimi.runtime.v1.ListSharedLocalAgentAIConfigOptionsRequest", [
+            { no: 1, name: "context", kind: "message", T: () => AgentRequestContext },
+            { no: 2, name: "local_loadouts", kind: "message", T: () => AIConfigLocalLoadoutOptionsQuery }
+        ]);
+    }
+    create(value?: PartialMessage<ListSharedLocalAgentAIConfigOptionsRequest>): ListSharedLocalAgentAIConfigOptionsRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<ListSharedLocalAgentAIConfigOptionsRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ListSharedLocalAgentAIConfigOptionsRequest): ListSharedLocalAgentAIConfigOptionsRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.AgentRequestContext context */ 1:
+                    message.context = AgentRequestContext.internalBinaryRead(reader, reader.uint32(), options, message.context);
+                    break;
+                case /* nimi.runtime.v1.AIConfigLocalLoadoutOptionsQuery local_loadouts */ 2:
+                    message.localLoadouts = AIConfigLocalLoadoutOptionsQuery.internalBinaryRead(reader, reader.uint32(), options, message.localLoadouts);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ListSharedLocalAgentAIConfigOptionsRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.AgentRequestContext context = 1; */
+        if (message.context)
+            AgentRequestContext.internalBinaryWrite(message.context, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.AIConfigLocalLoadoutOptionsQuery local_loadouts = 2; */
+        if (message.localLoadouts)
+            AIConfigLocalLoadoutOptionsQuery.internalBinaryWrite(message.localLoadouts, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ListSharedLocalAgentAIConfigOptionsRequest
+ */
+export const ListSharedLocalAgentAIConfigOptionsRequest = new ListSharedLocalAgentAIConfigOptionsRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ListSharedLocalAgentAIConfigOptionsResponse$Type extends MessageType<ListSharedLocalAgentAIConfigOptionsResponse> {
+    constructor() {
+        super("nimi.runtime.v1.ListSharedLocalAgentAIConfigOptionsResponse", [
+            { no: 1, name: "local_loadouts", kind: "message", T: () => AIConfigLocalLoadoutOptions },
+            { no: 2, name: "truncated", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ListSharedLocalAgentAIConfigOptionsResponse>): ListSharedLocalAgentAIConfigOptionsResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.truncated = false;
+        if (value !== undefined)
+            reflectionMergePartial<ListSharedLocalAgentAIConfigOptionsResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ListSharedLocalAgentAIConfigOptionsResponse): ListSharedLocalAgentAIConfigOptionsResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.AIConfigLocalLoadoutOptions local_loadouts */ 1:
+                    message.localLoadouts = AIConfigLocalLoadoutOptions.internalBinaryRead(reader, reader.uint32(), options, message.localLoadouts);
+                    break;
+                case /* bool truncated */ 2:
+                    message.truncated = reader.bool();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ListSharedLocalAgentAIConfigOptionsResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.AIConfigLocalLoadoutOptions local_loadouts = 1; */
+        if (message.localLoadouts)
+            AIConfigLocalLoadoutOptions.internalBinaryWrite(message.localLoadouts, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* bool truncated = 2; */
+        if (message.truncated !== false)
+            writer.tag(2, WireType.Varint).bool(message.truncated);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ListSharedLocalAgentAIConfigOptionsResponse
+ */
+export const ListSharedLocalAgentAIConfigOptionsResponse = new ListSharedLocalAgentAIConfigOptionsResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class PreviewSharedLocalAgentAIProfileRequest$Type extends MessageType<PreviewSharedLocalAgentAIProfileRequest> {
     constructor() {

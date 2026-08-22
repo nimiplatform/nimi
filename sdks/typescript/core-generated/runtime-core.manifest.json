@@ -601,6 +601,15 @@
           "response_stream": false
         },
         {
+          "name": "ListSharedLocalAgentAIConfigOptions",
+          "method_id": "/nimi.runtime.v1.RuntimeAgentService/ListSharedLocalAgentAIConfigOptions",
+          "kind": "unary",
+          "request_type": "ListSharedLocalAgentAIConfigOptionsRequest",
+          "response_type": "ListSharedLocalAgentAIConfigOptionsResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
           "name": "PreviewSharedLocalAgentAIProfile",
           "method_id": "/nimi.runtime.v1.RuntimeAgentService/PreviewSharedLocalAgentAIProfile",
           "kind": "unary",
@@ -651,6 +660,15 @@
           "kind": "unary",
           "request_type": "OverwriteLocalAppSharedLocalAgentAIConfigRequest",
           "response_type": "OverwriteLocalAppSharedLocalAgentAIConfigResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "ListLocalAppSharedLocalAgentAIConfigOptions",
+          "method_id": "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppSharedLocalAgentAIConfigOptions",
+          "kind": "unary",
+          "request_type": "ListLocalAppSharedLocalAgentAIConfigOptionsRequest",
+          "response_type": "ListLocalAppSharedLocalAgentAIConfigOptionsResponse",
           "request_stream": false,
           "response_stream": false
         },
@@ -711,6 +729,15 @@
           "kind": "unary",
           "request_type": "OverwriteAppAIConfigRequest",
           "response_type": "OverwriteAppAIConfigResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "ListAppAIConfigOptions",
+          "method_id": "/nimi.runtime.v1.RuntimeAiService/ListAppAIConfigOptions",
+          "kind": "unary",
+          "request_type": "ListAppAIConfigOptionsRequest",
+          "response_type": "ListAppAIConfigOptionsResponse",
           "request_stream": false,
           "response_stream": false
         },
@@ -2294,8 +2321,10 @@
     "/nimi.runtime.v1.RuntimeAgentService/ListDelegatedDiagnostics",
     "/nimi.runtime.v1.RuntimeAgentService/ListDelegatedProviderProfiles",
     "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentReferences",
+    "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppSharedLocalAgentAIConfigOptions",
     "/nimi.runtime.v1.RuntimeAgentService/ListPendingHooks",
     "/nimi.runtime.v1.RuntimeAgentService/ListPortableAIProfiles",
+    "/nimi.runtime.v1.RuntimeAgentService/ListSharedLocalAgentAIConfigOptions",
     "/nimi.runtime.v1.RuntimeAgentService/MaterializeRealmSource",
     "/nimi.runtime.v1.RuntimeAgentService/OpenCompanionParticipationReplay",
     "/nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor",
@@ -2337,6 +2366,7 @@
     "/nimi.runtime.v1.RuntimeAiService/GetScenarioArtifacts",
     "/nimi.runtime.v1.RuntimeAiService/GetScenarioJob",
     "/nimi.runtime.v1.RuntimeAiService/GetVoiceAsset",
+    "/nimi.runtime.v1.RuntimeAiService/ListAppAIConfigOptions",
     "/nimi.runtime.v1.RuntimeAiService/ListLocalAppVoiceAssets",
     "/nimi.runtime.v1.RuntimeAiService/ListPresetVoices",
     "/nimi.runtime.v1.RuntimeAiService/ListScenarioProfiles",
@@ -2834,6 +2864,14 @@
       "response_type": "ListLocalAppAgentReferencesResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppSharedLocalAgentAIConfigOptions",
+      "service": "RuntimeAgentService",
+      "method": "ListLocalAppSharedLocalAgentAIConfigOptions",
+      "kind": "unary",
+      "request_type": "ListLocalAppSharedLocalAgentAIConfigOptionsRequest",
+      "response_type": "ListLocalAppSharedLocalAgentAIConfigOptionsResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/ListPendingHooks",
       "service": "RuntimeAgentService",
       "method": "ListPendingHooks",
@@ -2848,6 +2886,14 @@
       "kind": "unary",
       "request_type": "ListPortableAIProfilesRequest",
       "response_type": "ListPortableAIProfilesResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/ListSharedLocalAgentAIConfigOptions",
+      "service": "RuntimeAgentService",
+      "method": "ListSharedLocalAgentAIConfigOptions",
+      "kind": "unary",
+      "request_type": "ListSharedLocalAgentAIConfigOptionsRequest",
+      "response_type": "ListSharedLocalAgentAIConfigOptionsResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/MaterializeRealmSource",
@@ -3176,6 +3222,14 @@
       "kind": "unary",
       "request_type": "GetVoiceAssetRequest",
       "response_type": "GetVoiceAssetResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAiService/ListAppAIConfigOptions",
+      "service": "RuntimeAiService",
+      "method": "ListAppAIConfigOptions",
+      "kind": "unary",
+      "request_type": "ListAppAIConfigOptionsRequest",
+      "response_type": "ListAppAIConfigOptionsResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAiService/ListLocalAppVoiceAssets",
@@ -4724,6 +4778,14 @@
       "response_type": "ListLocalAppAgentReferencesResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppSharedLocalAgentAIConfigOptions",
+      "service": "RuntimeAgentService",
+      "method": "ListLocalAppSharedLocalAgentAIConfigOptions",
+      "kind": "unary",
+      "request_type": "ListLocalAppSharedLocalAgentAIConfigOptionsRequest",
+      "response_type": "ListLocalAppSharedLocalAgentAIConfigOptionsResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/ListPendingHooks",
       "service": "RuntimeAgentService",
       "method": "ListPendingHooks",
@@ -4738,6 +4800,14 @@
       "kind": "unary",
       "request_type": "ListPortableAIProfilesRequest",
       "response_type": "ListPortableAIProfilesResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/ListSharedLocalAgentAIConfigOptions",
+      "service": "RuntimeAgentService",
+      "method": "ListSharedLocalAgentAIConfigOptions",
+      "kind": "unary",
+      "request_type": "ListSharedLocalAgentAIConfigOptionsRequest",
+      "response_type": "ListSharedLocalAgentAIConfigOptionsResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/MaterializeRealmSource",
@@ -5066,6 +5136,14 @@
       "kind": "unary",
       "request_type": "GetVoiceAssetRequest",
       "response_type": "GetVoiceAssetResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAiService/ListAppAIConfigOptions",
+      "service": "RuntimeAiService",
+      "method": "ListAppAIConfigOptions",
+      "kind": "unary",
+      "request_type": "ListAppAIConfigOptionsRequest",
+      "response_type": "ListAppAIConfigOptionsResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAiService/ListLocalAppVoiceAssets",
@@ -6274,7 +6352,11 @@
       "AIConfigAppOwner",
       "AIConfigCapabilityIntent",
       "AIConfigCloudIntent",
+      "AIConfigEffectiveSelection",
       "AIConfigLocalIntent",
+      "AIConfigLocalLoadoutOptions",
+      "AIConfigLocalLoadoutOptionsQuery",
+      "AIConfigLocalResourceProjection",
       "AIConfigOwner",
       "AIConfigRuntimeLocalAgentSubsystemOwner",
       "AccountCaller",
@@ -6577,6 +6659,8 @@
       "ListAgentConversationSummariesResponse",
       "ListAgentsRequest",
       "ListAgentsResponse",
+      "ListAppAIConfigOptionsRequest",
+      "ListAppAIConfigOptionsResponse",
       "ListAuditEventsRequest",
       "ListAuditEventsResponse",
       "ListAvatarDebugProbeResultsRequest",
@@ -6611,6 +6695,8 @@
       "ListLocalAppAgentReferencesResponse",
       "ListLocalAppAssetsRequest",
       "ListLocalAppAssetsResponse",
+      "ListLocalAppSharedLocalAgentAIConfigOptionsRequest",
+      "ListLocalAppSharedLocalAgentAIConfigOptionsResponse",
       "ListLocalAppVoiceAssetsRequest",
       "ListLocalAppVoiceAssetsResponse",
       "ListLocalAuditsRequest",
@@ -6639,6 +6725,8 @@
       "ListProviderCatalogResponse",
       "ListScenarioProfilesRequest",
       "ListScenarioProfilesResponse",
+      "ListSharedLocalAgentAIConfigOptionsRequest",
+      "ListSharedLocalAgentAIConfigOptionsResponse",
       "ListUsageStatsRequest",
       "ListUsageStatsResponse",
       "ListVerifiedAssetsRequest",
@@ -7053,6 +7141,7 @@
       "WriteLocalAppStorageJsonResponse"
     ],
     "enums": [
+      "AIConfigEffectiveState",
       "AccountCallerMode",
       "AccountEventType",
       "AccountReasonCode",
@@ -9734,8 +9823,138 @@
         "source_file": "proto/runtime/v1/capability_configuration.proto"
       },
       {
+        "name": "AIConfigEffectiveSelection",
+        "fields": [
+          {
+            "name": "capability_contract",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "state",
+            "type": "AIConfigEffectiveState",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "local",
+            "type": "AIConfigLocalResourceProjection",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "reasons",
+            "type": "string",
+            "repeated": true,
+            "optional": false,
+            "number": 4
+          }
+        ],
+        "source_file": "proto/runtime/v1/capability_configuration.proto"
+      },
+      {
         "name": "AIConfigLocalIntent",
-        "fields": [],
+        "fields": [
+          {
+            "name": "loadout_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/capability_configuration.proto"
+      },
+      {
+        "name": "AIConfigLocalLoadoutOptions",
+        "fields": [
+          {
+            "name": "options",
+            "type": "AIConfigLocalResourceProjection",
+            "repeated": true,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/capability_configuration.proto"
+      },
+      {
+        "name": "AIConfigLocalLoadoutOptionsQuery",
+        "fields": [
+          {
+            "name": "capability_contract",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "search",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/capability_configuration.proto"
+      },
+      {
+        "name": "AIConfigLocalResourceProjection",
+        "fields": [
+          {
+            "name": "loadout_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "label",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "capability_contract",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "implementation",
+            "type": "CapabilityImplementationIdentity",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "supported_features",
+            "type": "string",
+            "repeated": true,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "state",
+            "type": "AIConfigEffectiveState",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          },
+          {
+            "name": "reasons",
+            "type": "string",
+            "repeated": true,
+            "optional": false,
+            "number": 7
+          }
+        ],
         "source_file": "proto/runtime/v1/capability_configuration.proto"
       },
       {
@@ -15127,6 +15346,20 @@
             "repeated": false,
             "optional": false,
             "number": 1
+          },
+          {
+            "name": "revision",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "effective_selections",
+            "type": "AIConfigEffectiveSelection",
+            "repeated": true,
+            "optional": false,
+            "number": 3
           }
         ],
         "source_file": "proto/runtime/v1/capability_configuration.proto"
@@ -16199,6 +16432,20 @@
             "repeated": false,
             "optional": false,
             "number": 1
+          },
+          {
+            "name": "revision",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "effective_selections",
+            "type": "AIConfigEffectiveSelection",
+            "repeated": true,
+            "optional": false,
+            "number": 3
           }
         ],
         "source_file": "proto/runtime/v1/agent_service.proto"
@@ -17794,6 +18041,46 @@
         "source_file": "proto/runtime/v1/agent_service.proto"
       },
       {
+        "name": "ListAppAIConfigOptionsRequest",
+        "fields": [
+          {
+            "name": "local_loadouts",
+            "type": "AIConfigLocalLoadoutOptionsQuery",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "owner",
+            "type": "AIConfigOwner",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          }
+        ],
+        "source_file": "proto/runtime/v1/capability_configuration.proto"
+      },
+      {
+        "name": "ListAppAIConfigOptionsResponse",
+        "fields": [
+          {
+            "name": "local_loadouts",
+            "type": "AIConfigLocalLoadoutOptions",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "truncated",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/capability_configuration.proto"
+      },
+      {
         "name": "ListAuditEventsRequest",
         "fields": [
           {
@@ -18711,6 +18998,39 @@
         "source_file": "proto/runtime/v1/app.proto"
       },
       {
+        "name": "ListLocalAppSharedLocalAgentAIConfigOptionsRequest",
+        "fields": [
+          {
+            "name": "local_loadouts",
+            "type": "AIConfigLocalLoadoutOptionsQuery",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_configure.proto"
+      },
+      {
+        "name": "ListLocalAppSharedLocalAgentAIConfigOptionsResponse",
+        "fields": [
+          {
+            "name": "local_loadouts",
+            "type": "AIConfigLocalLoadoutOptions",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "truncated",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_configure.proto"
+      },
+      {
         "name": "ListLocalAppVoiceAssetsRequest",
         "fields": [
           {
@@ -19272,6 +19592,46 @@
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
+        "name": "ListSharedLocalAgentAIConfigOptionsRequest",
+        "fields": [
+          {
+            "name": "context",
+            "type": "AgentRequestContext",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "local_loadouts",
+            "type": "AIConfigLocalLoadoutOptionsQuery",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "ListSharedLocalAgentAIConfigOptionsResponse",
+        "fields": [
+          {
+            "name": "local_loadouts",
+            "type": "AIConfigLocalLoadoutOptions",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "truncated",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
       },
       {
         "name": "ListUsageStatsRequest",
@@ -21243,6 +21603,20 @@
             "repeated": false,
             "optional": false,
             "number": 1
+          },
+          {
+            "name": "revision",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "effective_selections",
+            "type": "AIConfigEffectiveSelection",
+            "repeated": true,
+            "optional": false,
+            "number": 3
           }
         ],
         "source_file": "proto/runtime/v1/agent_configure.proto"
@@ -26340,6 +26714,13 @@
             "repeated": false,
             "optional": false,
             "number": 1
+          },
+          {
+            "name": "expected_revision",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
           }
         ],
         "source_file": "proto/runtime/v1/capability_configuration.proto"
@@ -26353,6 +26734,27 @@
             "repeated": false,
             "optional": false,
             "number": 1
+          },
+          {
+            "name": "revision",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "committed",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "reason_code",
+            "type": "ReasonCode",
+            "repeated": false,
+            "optional": false,
+            "number": 4
           }
         ],
         "source_file": "proto/runtime/v1/capability_configuration.proto"
@@ -26366,6 +26768,13 @@
             "repeated": true,
             "optional": false,
             "number": 1
+          },
+          {
+            "name": "expected_revision",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
           }
         ],
         "source_file": "proto/runtime/v1/agent_configure.proto"
@@ -26379,6 +26788,20 @@
             "repeated": false,
             "optional": false,
             "number": 1
+          },
+          {
+            "name": "committed",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "reason_code",
+            "type": "ReasonCode",
+            "repeated": false,
+            "optional": false,
+            "number": 3
           }
         ],
         "source_file": "proto/runtime/v1/agent_configure.proto"
@@ -26399,6 +26822,13 @@
             "repeated": true,
             "optional": false,
             "number": 2
+          },
+          {
+            "name": "expected_revision",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
           }
         ],
         "source_file": "proto/runtime/v1/agent_service.proto"
@@ -26412,6 +26842,34 @@
             "repeated": false,
             "optional": false,
             "number": 1
+          },
+          {
+            "name": "revision",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "committed",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "reason_code",
+            "type": "ReasonCode",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "effective_selections",
+            "type": "AIConfigEffectiveSelection",
+            "repeated": true,
+            "optional": false,
+            "number": 5
           }
         ],
         "source_file": "proto/runtime/v1/agent_service.proto"
@@ -34914,6 +35372,17 @@
         "source_file": "proto/runtime/v1/agent_source_materialization.proto"
       },
       {
+        "name": "AIConfigEffectiveState",
+        "values": [
+          "AI_CONFIG_EFFECTIVE_STATE_UNSPECIFIED",
+          "AI_CONFIG_EFFECTIVE_STATE_READY",
+          "AI_CONFIG_EFFECTIVE_STATE_MISSING",
+          "AI_CONFIG_EFFECTIVE_STATE_BLOCKED",
+          "AI_CONFIG_EFFECTIVE_STATE_UNAVAILABLE"
+        ],
+        "source_file": "proto/runtime/v1/capability_configuration.proto"
+      },
+      {
         "name": "AppMessageEventType",
         "values": [
           "APP_MESSAGE_EVENT_TYPE_UNSPECIFIED",
@@ -35995,7 +36464,8 @@
           "AI_LOADOUT_PERSISTENCE_UNAVAILABLE",
           "AI_LOADOUT_NOT_CONFIGURED",
           "AI_LOADOUT_CATALOG_SCHEMA_INVALID",
-          "AI_LOCAL_EXECUTION_OUT_OF_MEMORY"
+          "AI_LOCAL_EXECUTION_OUT_OF_MEMORY",
+          "AI_CONFIG_REVISION_CONFLICT"
         ],
         "source_file": "proto/runtime/v1/common.proto"
       },

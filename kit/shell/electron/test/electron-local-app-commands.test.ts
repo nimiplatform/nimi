@@ -55,21 +55,6 @@ describe('Electron local-app standard-shell operations', () => {
     expect(calls).toEqual([]);
   });
 
-  it('routes the bounded Model Config local-selection projection', async () => {
-    const ipcMain = new FakeIpcMain();
-    const calls: unknown[] = [];
-    registerBridge(ipcMain, calls);
-    await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
-      command: NIMI_STANDARD_SHELL_COMMANDS['local-app.modelConfigLocalSelectionsGet'],
-      payload: { payload: {} },
-    })).resolves.toEqual([{
-      capabilityContract: 'text.generate', state: 'selected', loadoutId: null,
-      displayName: 'gemma4-26b', supportedFeatures: [], reasons: [],
-      effectiveDefaults: { temperature: '0.8' },
-    }]);
-    expect(calls).toEqual([['modelConfigLocalSelectionsGet']]);
-  });
-
   it('routes a closed scenario execute payload without route selection', async () => {
     const calls: unknown[] = [];
     const command = 'nimi.shell.localApp.scenarioExecute';
@@ -353,7 +338,7 @@ describe('Electron local-app standard-shell operations', () => {
     await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
       command: NIMI_STANDARD_SHELL_COMMANDS['local-app.aiConfigGet'],
       payload: { payload: {} },
-    })).resolves.toMatchObject({ capabilities: [] });
+    })).resolves.toMatchObject({ config: { capabilities: [] }, revision: '0' });
     expect(calls).toEqual([['aiConfigGet']]);
   });
 
@@ -486,7 +471,8 @@ describe('Electron local-app standard-shell operations', () => {
     registerBridge(ipcMain, calls);
     const requests = [
       ['local-app.sharedAgentAIConfigGet', {}],
-      ['local-app.sharedAgentAIConfigOverwrite', { capabilities: [] }],
+      ['local-app.sharedAgentAIConfigOverwrite', { expectedRevision: '0', capabilities: [] }],
+      ['local-app.sharedAgentAIConfigLocalOptions', { capabilityContract: 'text.generate', search: '' }],
       ['local-app.agentAutonomySnapshot', { agentHandle: handle }],
       ['local-app.agentUpdateAutonomy', {
         agentHandle: handle, expectedAutonomyRevision: '2', intent: { enabled: true },
@@ -514,20 +500,21 @@ describe('Electron local-app standard-shell operations', () => {
     }
     expect(calls).toEqual([
       ['sharedAgentAIConfigGet'],
-      ['sharedAgentAIConfigOverwrite', { capabilities: [] }],
+      ['sharedAgentAIConfigOverwrite', { expectedRevision: '0', capabilities: [] }],
+      ['sharedAgentAIConfigLocalOptions', { capabilityContract: 'text.generate', search: '' }],
       ['agentAutonomySnapshot', { agentHandle: handle }],
       ['agentUpdateAutonomy', {
         agentHandle: handle, expectedAutonomyRevision: '2', intent: { enabled: true },
       }],
       ['agentPresentationSnapshot', { agentHandle: handle }],
-      ['agentCommitPresentation', requests[5][1]],
+      ['agentCommitPresentation', requests[6][1]],
     ]);
 
     await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
       command: NIMI_STANDARD_SHELL_COMMANDS['local-app.sharedAgentAIConfigGet'],
       payload: { payload: { agentHandle: handle } },
     })).rejects.toMatchObject({ code: 'invalid-payload' });
-    expect(calls).toHaveLength(6);
+    expect(calls).toHaveLength(7);
   });
 
   it('does not register the retired shared Agent AI profile operations', async () => {
@@ -732,16 +719,13 @@ function localAppHost(calls: unknown[]) {
     sessionStatus: async () => ({ state: 'ready', reasonCode: 'action-executed', retryable: false }),
     aiConfigGet: async () => {
       calls.push(['aiConfigGet']);
-      return { owner: { owner: { oneofKind: 'app', app: { appId: 'app.example' } } }, capabilities: [] };
+      return {
+        config: { owner: { owner: { oneofKind: 'app', app: { appId: 'app.example' } } }, capabilities: [] },
+        revision: '0', effectiveSelections: [],
+      };
     },
-    modelConfigLocalSelectionsGet: async () => {
-      calls.push(['modelConfigLocalSelectionsGet']);
-      return [{
-        capabilityContract: 'text.generate', state: 'selected', loadoutId: null,
-        displayName: 'gemma4-26b', supportedFeatures: [], reasons: [],
-        effectiveDefaults: { temperature: '0.8' },
-      }];
-    },
+    aiConfigOverwrite: async (input: unknown) => { calls.push(['aiConfigOverwrite', input]); return {}; },
+    aiConfigLocalOptions: async (input: unknown) => { calls.push(['aiConfigLocalOptions', input]); return {}; },
     textGenerateCandidate: async (input: unknown) => {
       calls.push(['textGenerateCandidate', input]);
       return { text: 'hello', finishReason: 'stop', traceId: 'trace-1' };
@@ -807,16 +791,21 @@ function localAppHost(calls: unknown[]) {
     sharedAgentAIConfigGet: async () => {
       calls.push(['sharedAgentAIConfigGet']);
       return {
-        owner: { owner: { oneofKind: 'runtimeLocalAgentSubsystem', runtimeLocalAgentSubsystem: {} } },
-        capabilities: [],
+        config: { owner: { owner: { oneofKind: 'runtimeLocalAgentSubsystem', runtimeLocalAgentSubsystem: {} } }, capabilities: [] },
+        revision: '0', effectiveSelections: [],
       };
     },
     sharedAgentAIConfigOverwrite: async (input: unknown) => {
       calls.push(['sharedAgentAIConfigOverwrite', input]);
       return {
-        owner: { owner: { oneofKind: 'runtimeLocalAgentSubsystem', runtimeLocalAgentSubsystem: {} } },
-        capabilities: [],
+        outcome: 'committed',
+        config: { owner: { owner: { oneofKind: 'runtimeLocalAgentSubsystem', runtimeLocalAgentSubsystem: {} } }, capabilities: [] },
+        revision: '1', effectiveSelections: [], reasonCode: 'REASON_CODE_UNSPECIFIED',
       };
+    },
+    sharedAgentAIConfigLocalOptions: async (input: unknown) => {
+      calls.push(['sharedAgentAIConfigLocalOptions', input]);
+      return { kind: 'local-loadouts', options: [], truncated: false };
     },
     agentAutonomySnapshot: async (input: unknown) => {
       calls.push(['agentAutonomySnapshot', input]);

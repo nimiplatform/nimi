@@ -44,15 +44,11 @@ type capabilityLocalExecutionResolver struct {
 	selections map[string]*localexecution.SelectedLocalExecution
 }
 
-func (r *capabilityLocalExecutionResolver) SelectedLocalCapabilityContracts() []string {
-	contracts := make([]string, 0, len(r.selections))
-	for contract := range r.selections {
-		contracts = append(contracts, contract)
-	}
-	return contracts
+func (r *capabilityLocalExecutionResolver) ListLocalLoadouts(string, string, int) ([]localexecution.LoadoutOption, bool, error) {
+	return nil, false, nil
 }
 
-func (r *capabilityLocalExecutionResolver) ResolveSelectedLocalExecution(contract string) (*localexecution.SelectedLocalExecution, error) {
+func (r *capabilityLocalExecutionResolver) ResolveLocalExecution(contract string, _ string) (*localexecution.SelectedLocalExecution, error) {
 	selected := r.selections[contract]
 	if selected == nil {
 		return nil, fmt.Errorf("no Local execution for %s", contract)
@@ -495,7 +491,7 @@ func TestLocalImageJobStaysQueuedThenCommitsArtifactsIncrementallyFromImmutableC
 	ownerCtx := protectedprincipal.With(context.Background(), principal)
 	initialIntent := localAppAIConfigIntent(capabilitydriver.StableDiffusionCapabilityContract)
 	initialIntent.Defaults = defaults
-	if _, err := svc.OverwriteAppAIConfig(ownerCtx, &runtimev1.OverwriteAppAIConfigRequest{Config: appAIConfig("app.local", initialIntent)}); err != nil {
+	if _, err := svc.OverwriteAppAIConfig(ownerCtx, &runtimev1.OverwriteAppAIConfigRequest{Config: appAIConfig("app.local", initialIntent), ExpectedRevision: "0"}); err != nil {
 		t.Fatalf("OverwriteAppAIConfig(initial): %v", err)
 	}
 	request := localImageJobRequestForTest(0)
@@ -520,7 +516,7 @@ func TestLocalImageJobStaysQueuedThenCommitsArtifactsIncrementallyFromImmutableC
 	replacementDefaults, _ := structpb.NewStruct(map[string]any{"size": "128x128", "n": 1.0, "seed": 99.0})
 	replacementIntent := localAppAIConfigIntent(capabilitydriver.StableDiffusionCapabilityContract)
 	replacementIntent.Defaults = replacementDefaults
-	if _, err := svc.OverwriteAppAIConfig(ownerCtx, &runtimev1.OverwriteAppAIConfigRequest{Config: appAIConfig("app.local", replacementIntent)}); err != nil {
+	if _, err := svc.OverwriteAppAIConfig(ownerCtx, &runtimev1.OverwriteAppAIConfigRequest{Config: appAIConfig("app.local", replacementIntent), ExpectedRevision: "1"}); err != nil {
 		t.Fatalf("OverwriteAppAIConfig(replacement): %v", err)
 	}
 	close(host.allowStart)
@@ -965,7 +961,7 @@ func TestLocalVideoExecutionWithoutSelectionFailsClosed(t *testing.T) {
 			Options: &runtimev1.VideoGenerationOptions{},
 		}}},
 	})
-	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_LOCAL_SELECTION_NOT_FOUND {
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_CONFIG_INVALID {
 		t.Fatalf("local video no-selection error = %v reason=%v ok=%v", err, reason, ok)
 	}
 }
@@ -1013,6 +1009,7 @@ func selectedImageExecutionForTest(t *testing.T, configurationID string) *locale
 func localImageIntentContext(parent context.Context, defaults *structpb.Struct) context.Context {
 	return executionintent.WithIntent(parent, executionintent.Intent{
 		CapabilityContract: capabilitydriver.StableDiffusionCapabilityContract,
+		LocalLoadoutRef:    "test-loadout:image.generate",
 		Defaults:           defaults, Route: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 	})
 }

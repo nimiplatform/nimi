@@ -256,9 +256,10 @@ func (s *Service) AuthorizeLocalAppIngress(ctx context.Context, ingress localapp
 		capability = appstorage.LocalAppPrivateStorageEntitlement
 	case localappop.OperationArtifactAdoptToStorage:
 		capability = "runtime.consume"
-	case localappop.OperationAppAIConfigGet:
-		// The AIConfig owner validates the exact admitted operation directly;
-		// it has no separate capability string or caller-selected owner input.
+	case localappop.OperationAppAIConfigGet,
+		localappop.OperationAppAIConfigOverwrite,
+		localappop.OperationAppAIConfigOptionsList:
+		capability = string(admission.Domain)
 	case localappop.OperationRealmWorldCoreList:
 		capability = "realm.world-core.list"
 	case localappop.OperationRealmWorldCoreCreate:
@@ -299,6 +300,7 @@ func (s *Service) AuthorizeLocalAppIngress(ctx context.Context, ingress localapp
 		localappop.OperationConversationSnapshotGet,
 		localappop.OperationAgentAIConfigGet,
 		localappop.OperationAgentAIConfigOverwrite,
+		localappop.OperationAgentAIConfigOptionsList,
 		localappop.OperationAgentAutonomySnapshotGet,
 		localappop.OperationAgentAutonomyUpdate,
 		localappop.OperationAgentPresentationSnapshotGet,

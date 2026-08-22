@@ -80,6 +80,7 @@ func withCloudScenarioTestIntent(ctx context.Context, capabilityContract string,
 func withLocalScenarioTestIntent(ctx context.Context, capabilityContract string) context.Context {
 	return executionintent.WithIntent(ctx, executionintent.Intent{
 		CapabilityContract: capabilityContract,
+		LocalLoadoutRef:    "test-loadout:" + capabilityContract,
 		Route:              runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 	})
 }

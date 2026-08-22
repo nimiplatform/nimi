@@ -14,7 +14,7 @@ const SHARED_AI_CONFIG = {
   capabilities: [{
     capabilityContract: 'text.generate',
     requiredFeatures: [],
-    route: { oneofKind: 'local', local: {} },
+    route: { oneofKind: 'local', local: { loadoutRef: 'loadout:text' } },
   }],
 } as const;
 
@@ -56,11 +56,18 @@ function shell(calls: unknown[]): NimiLocalAppAgentConfigureShell {
     sharedAIConfig: {
       get: async () => {
         calls.push(['sharedAIConfig.get']);
-        return SHARED_AI_CONFIG;
+        return { config: SHARED_AI_CONFIG, revision: '1', effectiveSelections: [] };
       },
-      overwrite: async (capabilities) => {
-        calls.push(['sharedAIConfig.overwrite', capabilities]);
-        return { ...SHARED_AI_CONFIG, capabilities };
+      overwrite: async (input) => {
+        calls.push(['sharedAIConfig.overwrite', input]);
+        return {
+          outcome: 'committed', config: { ...SHARED_AI_CONFIG, capabilities: input.capabilities },
+          revision: '2',
+        };
+      },
+      listOptions: async (query) => {
+        calls.push(['sharedAIConfig.listOptions', query]);
+        return { kind: 'local-loadouts', options: [], truncated: false };
       },
     },
     autonomy: {
@@ -93,13 +100,19 @@ function reasonCode(error: unknown): string | undefined {
 test('sharedAIConfig get/overwrite round-trips the subsystem-owned projection', async () => {
   const calls: unknown[] = [];
   const client = createNimiLocalAppAgentConfigureClient(shell(calls));
-  assert.deepEqual(await client.sharedAIConfig.get(), SHARED_AI_CONFIG);
+  assert.deepEqual(await client.sharedAIConfig.get(), { config: SHARED_AI_CONFIG, revision: '1', effectiveSelections: [] });
   const capabilities = [...SHARED_AI_CONFIG.capabilities] as never;
-  const overwrite = await client.sharedAIConfig.overwrite(capabilities);
-  assert.deepEqual(overwrite.capabilities, SHARED_AI_CONFIG.capabilities);
+  const input = { expectedRevision: '1', capabilities };
+  const overwrite = await client.sharedAIConfig.overwrite(input);
+  assert.equal(overwrite.outcome, 'committed');
+  assert.deepEqual(overwrite.config?.capabilities, SHARED_AI_CONFIG.capabilities);
+  assert.deepEqual(await client.sharedAIConfig.listOptions({ kind: 'local-loadouts', capabilityContract: 'text.generate' }), {
+    kind: 'local-loadouts', options: [], truncated: false,
+  });
   assert.deepEqual(calls, [
     ['sharedAIConfig.get'],
-    ['sharedAIConfig.overwrite', capabilities],
+    ['sharedAIConfig.overwrite', input],
+    ['sharedAIConfig.listOptions', { kind: 'local-loadouts', capabilityContract: 'text.generate' }],
   ]);
 });
 
@@ -110,8 +123,8 @@ test('sharedAIConfig rejects a non-subsystem owner projection', async () => {
     sharedAIConfig: {
       ...base.sharedAIConfig,
       get: async () => ({
-        owner: { owner: { oneofKind: 'app', app: { appId: 'app.example' } } },
-        capabilities: [],
+        config: { owner: { owner: { oneofKind: 'app', app: { appId: 'app.example' } } }, capabilities: [] },
+        revision: '0', effectiveSelections: [],
       }),
     },
   });

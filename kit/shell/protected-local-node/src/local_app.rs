@@ -95,9 +95,34 @@ pub async fn local_app_ai_config_get() -> NativeJsonOutcome {
     invoke_agent(|session| async move { session.app_ai_config_get().await }).await
 }
 
-#[napi(js_name = "localAppModelConfigLocalSelectionsGet")]
-pub async fn local_app_model_config_local_selections_get() -> NativeJsonOutcome {
-    invoke_agent(|session| async move { session.model_config_local_selections_get().await }).await
+#[napi(js_name = "localAppAIConfigOverwrite")]
+pub async fn local_app_ai_config_overwrite(
+    input: NativeAppAIConfigOverwriteInput,
+) -> NativeJsonOutcome {
+    invoke_agent(|session| async move {
+        session
+            .app_ai_config_overwrite(LocalAppAIConfigOverwriteRequest {
+                expected_revision: input.expected_revision,
+                capabilities: input.capabilities,
+            })
+            .await
+    })
+    .await
+}
+
+#[napi(js_name = "localAppAIConfigLocalOptions")]
+pub async fn local_app_ai_config_local_options(
+    input: NativeAIConfigLocalOptionsInput,
+) -> NativeJsonOutcome {
+    invoke_agent(|session| async move {
+        session
+            .app_ai_config_local_options(LocalAppAIConfigLocalOptionsRequest {
+                capability_contract: input.capability_contract,
+                search: input.search.unwrap_or_default(),
+            })
+            .await
+    })
+    .await
 }
 
 #[napi(js_name = "localAppTextGenerateCandidate")]
@@ -926,12 +951,28 @@ pub async fn local_app_shared_agent_ai_config_get() -> NativeJsonOutcome {
 
 #[napi(js_name = "localAppSharedAgentAIConfigOverwrite")]
 pub async fn local_app_shared_agent_ai_config_overwrite(
-    input: NativeAIConfigOverwriteInput,
+    input: NativeAppAIConfigOverwriteInput,
 ) -> NativeJsonOutcome {
     invoke_agent(|session| async move {
         session
             .shared_agent_ai_config_overwrite(LocalAppSharedAgentAIConfigOverwriteRequest {
+                expected_revision: input.expected_revision,
                 capabilities: input.capabilities,
+            })
+            .await
+    })
+    .await
+}
+
+#[napi(js_name = "localAppSharedAgentAIConfigLocalOptions")]
+pub async fn local_app_shared_agent_ai_config_local_options(
+    input: NativeAIConfigLocalOptionsInput,
+) -> NativeJsonOutcome {
+    invoke_agent(|session| async move {
+        session
+            .shared_agent_ai_config_local_options(LocalAppSharedAgentAIConfigLocalOptionsRequest {
+                capability_contract: input.capability_contract,
+                search: input.search.unwrap_or_default(),
             })
             .await
     })

@@ -25,15 +25,15 @@ func TestAppAIConfigWholeOverwriteAndAccountIsolation(t *testing.T) {
 	)
 
 	first := appAIConfig("app.example",
-		localAppAIConfigIntent("text.generate"),
-		localAppAIConfigIntent("image.generate"),
+		cloudAIConfigIntent(t, "text.generate"),
+		cloudAIConfigIntent(t, "image.generate"),
 	)
-	if _, err := svc.OverwriteAppAIConfig(accountAWrite, &runtimev1.OverwriteAppAIConfigRequest{Config: first}); err != nil {
+	if _, err := svc.OverwriteAppAIConfig(accountAWrite, &runtimev1.OverwriteAppAIConfigRequest{Config: first, ExpectedRevision: "0"}); err != nil {
 		t.Fatalf("OverwriteAppAIConfig(first): %v", err)
 	}
 
 	second := appAIConfig("app.example", cloudAIConfigIntent(t, "text.generate"))
-	overwritten, err := svc.OverwriteAppAIConfig(accountAWrite, &runtimev1.OverwriteAppAIConfigRequest{Config: second})
+	overwritten, err := svc.OverwriteAppAIConfig(accountAWrite, &runtimev1.OverwriteAppAIConfigRequest{Config: second, ExpectedRevision: "1"})
 	if err != nil {
 		t.Fatalf("OverwriteAppAIConfig(second): %v", err)
 	}
@@ -55,7 +55,7 @@ func TestAppAIConfigWholeOverwriteAndAccountIsolation(t *testing.T) {
 		t.Fatalf("stored whole overwrite = %+v", read.GetConfig())
 	}
 
-	_, err = svc.GetAppAIConfig(
+	absent, err := svc.GetAppAIConfig(
 		localAppAIConfigContext(
 			"account-b",
 			"app.example",
@@ -63,14 +63,16 @@ func TestAppAIConfigWholeOverwriteAndAccountIsolation(t *testing.T) {
 		),
 		&runtimev1.GetAppAIConfigRequest{},
 	)
-	assertAppAIConfigError(t, err, codes.NotFound, runtimev1.ReasonCode_AI_CONFIG_NOT_FOUND)
+	if err != nil || absent.GetConfig() != nil || absent.GetRevision() != "0" {
+		t.Fatalf("absent account snapshot = %+v, %v", absent, err)
+	}
 }
 
 func TestAppAIConfigCloudIntentPersistsWithoutConnectorSelection(t *testing.T) {
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
 	intent := cloudAIConfigIntent(t, "text.generate")
 	writeCtx := protectedAppAIConfigPrincipalContext("account-a", "app.example")
-	overwritten, err := svc.OverwriteAppAIConfig(writeCtx, &runtimev1.OverwriteAppAIConfigRequest{Config: appAIConfig("app.example", intent)})
+	overwritten, err := svc.OverwriteAppAIConfig(writeCtx, &runtimev1.OverwriteAppAIConfigRequest{Config: appAIConfig("app.example", intent), ExpectedRevision: "0"})
 	if err != nil {
 		t.Fatalf("OverwriteAppAIConfig(connector-free Cloud intent): %v", err)
 	}
@@ -80,12 +82,37 @@ func TestAppAIConfigCloudIntentPersistsWithoutConnectorSelection(t *testing.T) {
 	}
 }
 
+func TestAppAIConfigCASReturnsCurrentSnapshotAndNoOpKeepsRevision(t *testing.T) {
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	ctx := protectedAppAIConfigPrincipalContext("account-a", "app.cas")
+	config := appAIConfig("app.cas", cloudAIConfigIntent(t, "text.generate"))
+	first, err := svc.OverwriteAppAIConfig(ctx, &runtimev1.OverwriteAppAIConfigRequest{
+		Config: config, ExpectedRevision: "0",
+	})
+	if err != nil || !first.GetCommitted() || first.GetRevision() != "1" {
+		t.Fatalf("first CAS = %+v, %v", first, err)
+	}
+	conflict, err := svc.OverwriteAppAIConfig(ctx, &runtimev1.OverwriteAppAIConfigRequest{
+		Config: config, ExpectedRevision: "0",
+	})
+	if err != nil || conflict.GetCommitted() || conflict.GetRevision() != "1" ||
+		conflict.GetReasonCode() != runtimev1.ReasonCode_AI_CONFIG_REVISION_CONFLICT || conflict.GetConfig() == nil {
+		t.Fatalf("stale CAS = %+v, %v", conflict, err)
+	}
+	noOp, err := svc.OverwriteAppAIConfig(ctx, &runtimev1.OverwriteAppAIConfigRequest{
+		Config: config, ExpectedRevision: "1",
+	})
+	if err != nil || !noOp.GetCommitted() || noOp.GetRevision() != "1" {
+		t.Fatalf("no-op CAS = %+v, %v", noOp, err)
+	}
+}
+
 func TestDesktopAccountProductManagesExactAdmittedAppAIConfig(t *testing.T) {
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
 	ctx := desktopManagedAppAIConfigContext("account-a", "acme.widget")
 	input := appAIConfig("acme.widget", cloudAIConfigIntent(t, "voice.create"))
 
-	written, err := svc.OverwriteAppAIConfig(ctx, &runtimev1.OverwriteAppAIConfigRequest{Config: input})
+	written, err := svc.OverwriteAppAIConfig(ctx, &runtimev1.OverwriteAppAIConfigRequest{Config: input, ExpectedRevision: "0"})
 	if err != nil || written.GetConfig().GetOwner().GetApp().GetAppId() != "acme.widget" {
 		t.Fatalf("managed overwrite = (%+v, %v)", written, err)
 	}
@@ -93,25 +120,27 @@ func TestDesktopAccountProductManagesExactAdmittedAppAIConfig(t *testing.T) {
 	if err != nil || len(read.GetConfig().GetCapabilities()) != 1 {
 		t.Fatalf("managed read = (%+v, %v)", read, err)
 	}
-	_, err = svc.GetAppAIConfig(desktopManagedAppAIConfigContext("account-b", "acme.widget"), &runtimev1.GetAppAIConfigRequest{Owner: appAIConfigOwner("acme.widget")})
-	assertAppAIConfigError(t, err, codes.NotFound, runtimev1.ReasonCode_AI_CONFIG_NOT_FOUND)
+	absent, err := svc.GetAppAIConfig(desktopManagedAppAIConfigContext("account-b", "acme.widget"), &runtimev1.GetAppAIConfigRequest{Owner: appAIConfigOwner("acme.widget")})
+	if err != nil || absent.GetConfig() != nil || absent.GetRevision() != "0" {
+		t.Fatalf("managed absent read = (%+v, %v)", absent, err)
+	}
 }
 
 func TestAppAIConfigRejectsUnadmittedOrNonDesktopCrossAppOwner(t *testing.T) {
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
 	desktop := desktopAccountProductAIConfigContext("account-a")
-	_, err := svc.OverwriteAppAIConfig(desktop, &runtimev1.OverwriteAppAIConfigRequest{Config: appAIConfig("nimi.unknown")})
+	_, err := svc.OverwriteAppAIConfig(desktop, &runtimev1.OverwriteAppAIConfigRequest{Config: appAIConfig("nimi.unknown"), ExpectedRevision: "0"})
 	assertAppAIConfigError(t, err, codes.PermissionDenied, runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED)
 
 	ordinary := protectedprincipal.ContextWithAuthorizedAppOwnerDecision(
 		protectedAppAIConfigPrincipalContext("account-a", "app.manager"),
 		"acme.widget",
 	)
-	_, err = svc.OverwriteAppAIConfig(ordinary, &runtimev1.OverwriteAppAIConfigRequest{Config: appAIConfig("acme.widget")})
+	_, err = svc.OverwriteAppAIConfig(ordinary, &runtimev1.OverwriteAppAIConfigRequest{Config: appAIConfig("acme.widget"), ExpectedRevision: "0"})
 	assertAppAIConfigError(t, err, codes.PermissionDenied, runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED)
 
 	local := localAppAIConfigContext("account-a", "acme.widget", accountservice.LocalAppOperationAppAIConfigRead)
-	_, err = svc.OverwriteAppAIConfig(local, &runtimev1.OverwriteAppAIConfigRequest{Config: ownerlessAppAIConfig()})
+	_, err = svc.OverwriteAppAIConfig(local, &runtimev1.OverwriteAppAIConfigRequest{Config: ownerlessAppAIConfig(), ExpectedRevision: "0"})
 	assertAppAIConfigError(t, err, codes.PermissionDenied, runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED)
 }
 
@@ -120,7 +149,7 @@ func TestProtectedLocalAppAIConfigRejectsCallerOwnerAndWrongOperation(t *testing
 	writeContext := localAppAIConfigContext(
 		"account-a",
 		"app.a",
-		accountservice.LocalAppOperationAppAIConfigRead,
+		accountservice.LocalAppOperationAppAIConfigOverwrite,
 	)
 	readContext := localAppAIConfigContext(
 		"account-a",
@@ -128,11 +157,13 @@ func TestProtectedLocalAppAIConfigRejectsCallerOwnerAndWrongOperation(t *testing
 		accountservice.LocalAppOperationAppAIConfigRead,
 	)
 
-	_, err := svc.OverwriteAppAIConfig(writeContext, &runtimev1.OverwriteAppAIConfigRequest{Config: appAIConfig("app.a")})
-	assertAppAIConfigError(t, err, codes.PermissionDenied, runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED)
+	written, err := svc.OverwriteAppAIConfig(writeContext, &runtimev1.OverwriteAppAIConfigRequest{Config: ownerlessAppAIConfig(), ExpectedRevision: "0"})
+	if err != nil || !written.GetCommitted() || written.GetConfig().GetOwner().GetApp().GetAppId() != "app.a" {
+		t.Fatalf("protected App self overwrite = %+v, %v", written, err)
+	}
 
-	_, err = svc.OverwriteAppAIConfig(writeContext, &runtimev1.OverwriteAppAIConfigRequest{Config: appAIConfig("app.b")})
-	assertAppAIConfigError(t, err, codes.PermissionDenied, runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED)
+	_, err = svc.OverwriteAppAIConfig(writeContext, &runtimev1.OverwriteAppAIConfigRequest{Config: appAIConfig("app.b"), ExpectedRevision: "1"})
+	assertAppAIConfigError(t, err, codes.InvalidArgument, runtimev1.ReasonCode_AI_CONFIG_INVALID)
 
 	_, err = svc.GetAppAIConfig(readContext, &runtimev1.GetAppAIConfigRequest{Owner: appAIConfigOwner("app.a")})
 	assertAppAIConfigError(t, err, codes.InvalidArgument, runtimev1.ReasonCode_AI_CONFIG_INVALID)
@@ -144,8 +175,10 @@ func TestProtectedLocalAppAIConfigRejectsCallerOwnerAndWrongOperation(t *testing
 	}})
 	assertAppAIConfigError(t, err, codes.InvalidArgument, runtimev1.ReasonCode_AI_CONFIG_INVALID)
 
-	_, err = svc.GetAppAIConfig(writeContext, &runtimev1.GetAppAIConfigRequest{})
-	assertAppAIConfigError(t, err, codes.NotFound, runtimev1.ReasonCode_AI_CONFIG_NOT_FOUND)
+	read, err := svc.GetAppAIConfig(readContext, &runtimev1.GetAppAIConfigRequest{})
+	if err != nil || read.GetRevision() != "1" || read.GetConfig().GetOwner().GetApp().GetAppId() != "app.a" {
+		t.Fatalf("protected App self read = %+v, %v", read, err)
+	}
 }
 
 func TestAppAIConfigRejectsOwnerlessFirstPartyAndUnauthenticatedCalls(t *testing.T) {
@@ -157,7 +190,7 @@ func TestAppAIConfigRejectsOwnerlessFirstPartyAndUnauthenticatedCalls(t *testing
 	)
 	ctx := protectedprincipal.With(context.Background(), principal)
 
-	_, err := svc.OverwriteAppAIConfig(ctx, &runtimev1.OverwriteAppAIConfigRequest{Config: ownerlessAppAIConfig()})
+	_, err := svc.OverwriteAppAIConfig(ctx, &runtimev1.OverwriteAppAIConfigRequest{Config: ownerlessAppAIConfig(), ExpectedRevision: "0"})
 	assertAppAIConfigError(t, err, codes.InvalidArgument, runtimev1.ReasonCode_AI_CONFIG_INVALID)
 
 	_, err = svc.GetAppAIConfig(ctx, &runtimev1.GetAppAIConfigRequest{})
@@ -176,7 +209,7 @@ func TestAppAIConfigAcceptsExactProtectedPrincipalOwner(t *testing.T) {
 	)
 	ctx := protectedprincipal.With(context.Background(), principal)
 
-	if _, err := svc.OverwriteAppAIConfig(ctx, &runtimev1.OverwriteAppAIConfigRequest{Config: appAIConfig("nimi.desktop", localAppAIConfigIntent("text.generate"))}); err != nil {
+	if _, err := svc.OverwriteAppAIConfig(ctx, &runtimev1.OverwriteAppAIConfigRequest{Config: appAIConfig("nimi.desktop", cloudAIConfigIntent(t, "text.generate")), ExpectedRevision: "0"}); err != nil {
 		t.Fatalf("OverwriteAppAIConfig(protected principal): %v", err)
 	}
 	read, err := svc.GetAppAIConfig(ctx, &runtimev1.GetAppAIConfigRequest{Owner: appAIConfigOwner("nimi.desktop")})
@@ -238,7 +271,7 @@ func localAppAIConfigIntent(contract string) *runtimev1.AIConfigCapabilityIntent
 	return &runtimev1.AIConfigCapabilityIntent{
 		CapabilityContract: contract,
 		Route: &runtimev1.AIConfigCapabilityIntent_Local{
-			Local: &runtimev1.AIConfigLocalIntent{},
+			Local: &runtimev1.AIConfigLocalIntent{LoadoutRef: "loadout:test:" + contract},
 		},
 	}
 }

@@ -247,8 +247,9 @@ function simulatedAgentCenterSession(
   let capabilities: AgentCenterSharedAIConfigProjection['aiConfig']['capabilities'] = [{
     capabilityContract: 'text.generate',
     requiredFeatures: [],
-    route: { oneofKind: 'local', local: {} },
+    route: { oneofKind: 'local', local: { loadoutRef: 'simulated-text-loadout' } },
   }];
+  let aiConfigRevision = '1';
   const sharedAIConfig = () => simulatedSharedAIConfig(capabilities);
 
   let autonomy: AgentCenterAutonomyProjection = Object.freeze({
@@ -322,11 +323,47 @@ function simulatedAgentCenterSession(
     identity,
     sharedAIConfig: {
       async get() {
-        return sharedAIConfig();
+        return Object.freeze({
+          config: sharedAIConfig().aiConfig,
+          revision: aiConfigRevision,
+          effectiveSelections: Object.freeze([]),
+        });
       },
       async overwrite(input) {
+        if (input.expectedRevision !== aiConfigRevision) {
+          return Object.freeze({
+            outcome: 'conflict' as const,
+            config: sharedAIConfig().aiConfig,
+            revision: aiConfigRevision,
+            reasonCode: 'AGENT_AI_CONFIG_REVISION_CONFLICT' as const,
+          });
+        }
         capabilities = [...input.capabilities];
-        return sharedAIConfig();
+        aiConfigRevision = String(BigInt(aiConfigRevision) + 1n);
+        return Object.freeze({
+          outcome: 'committed' as const,
+          config: sharedAIConfig().aiConfig,
+          revision: aiConfigRevision,
+        });
+      },
+      async listOptions(input) {
+        return Object.freeze({
+          kind: 'local-loadouts' as const,
+          options: input.capabilityContract === 'text.generate' ? Object.freeze([{
+            loadoutRef: 'simulated-text-loadout',
+            label: 'Simulated local text model',
+            capabilityContract: 'text.generate',
+            implementation: {
+              implementationId: 'simulated.local.text',
+              driverId: 'simulated',
+              driverDialect: 'simulated/text/v1',
+            },
+            supportedFeatures: Object.freeze([]),
+            state: 'ready' as const,
+            reasons: Object.freeze([]),
+          }]) : Object.freeze([]),
+          truncated: false,
+        });
       },
     },
     autonomy: {
@@ -379,6 +416,7 @@ function simulatedSharedAIConfig(
   };
   return Object.freeze({
     aiConfig,
+    revision: '1',
     capabilities: Object.freeze(intents.map((intent) => intent.capability)),
     intents: Object.freeze(intents),
   });

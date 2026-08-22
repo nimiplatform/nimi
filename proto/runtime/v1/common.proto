@@ -409,6 +409,9 @@ enum ReasonCode {
   // from an ordinary inference failure and never triggers model substitution.
   AI_LOCAL_EXECUTION_OUT_OF_MEMORY = 725;
 
+  // Canonical App or shared subsystem AIConfig optimistic concurrency.
+  AI_CONFIG_REVISION_CONFLICT = 726;
+
   // Reserved: old values of renumbered codes.
   // 104=APP_SCOPE_FORBIDDEN→503, 106=APP_SCOPE_REVOKED→504,
   // 115=APP_MODE_DOMAIN_FORBIDDEN→500, 116=APP_MODE_SCOPE_FORBIDDEN→501,

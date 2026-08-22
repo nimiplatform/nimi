@@ -3,7 +3,8 @@ import {
   createNimiCloudAIConfigCapabilityIntent,
   createNimiLocalAIConfigCapabilityIntent,
   runtimeAIConfigStructToJson,
-  type NimiCapabilityAIConfigIntent,
+  type NimiAIConfigLocalLoadoutOption,
+  type NimiPortableAppAIConfigIntent,
 } from '@nimiplatform/kit/core/sdk-contract';
 import {
   CANONICAL_CAPABILITY_CATALOG_BY_ID,
@@ -41,6 +42,7 @@ import type {
   ModelConfigCopy,
   ModelConfigFormattedError,
   ModelConfigLocalSelectionProjection,
+  ModelConfigListOptions,
   ModelConfigOverwrite,
 } from '../types.js';
 import { sanitizeCapabilityDefaults } from '../capability-defaults.js';
@@ -59,8 +61,9 @@ type PostureBadge = {
 
 type ModelConfigRouteChoice =
   | {
-      readonly id: 'local';
+      readonly id: string;
       readonly route: 'local';
+      readonly loadoutRef: string;
       readonly label: string;
       readonly description: string;
     }
@@ -80,8 +83,10 @@ export type ModelConfigAIConfigSurfaceProps = {
   /** Opens one requested capability detail on first mount when it is in capabilityContracts. */
   readonly initialCapabilityContract?: string | null;
   /** Null is canonical absence/not configured; undefined is an unavailable read. */
-  readonly capabilities: readonly NimiCapabilityAIConfigIntent[] | null | undefined;
+  readonly capabilities: readonly NimiPortableAppAIConfigIntent[] | null | undefined;
+  readonly revision?: string;
   readonly localSelections?: readonly ModelConfigLocalSelectionProjection[];
+  readonly listOptions?: ModelConfigListOptions;
   readonly cloudAIConfig?: ModelConfigCloudAIConfigModule;
   readonly loading?: boolean;
   readonly disabled?: boolean;
@@ -102,7 +107,7 @@ export type ModelConfigAIConfigSurfaceProps = {
 
 function uniqueContracts(
   requested: readonly string[],
-  capabilities: readonly NimiCapabilityAIConfigIntent[] | null | undefined,
+  capabilities: readonly NimiPortableAppAIConfigIntent[] | null | undefined,
 ): readonly string[] {
   return [...new Set([
     ...requested.map((entry) => entry.trim()).filter(Boolean),
@@ -162,7 +167,7 @@ function cloudChoiceId(implementationId: string, targetId: string): string {
 function localChoice(
   selection: ModelConfigLocalSelectionProjection | null | undefined,
   copy: ResolvedCopy,
-): ModelConfigRouteChoice {
+): Extract<ModelConfigRouteChoice, { readonly route: 'local' }> {
   let description = copy.localChoiceDescription;
   if (selection?.state === 'selected') {
     description = copy.localSelectedLabel;
@@ -172,10 +177,24 @@ function localChoice(
     description = copy.localUnavailableLabel;
   }
   return {
-    id: 'local',
+    id: selection?.loadoutId ? `local:${selection.loadoutId}` : 'local:',
     route: 'local',
+    loadoutRef: selection?.loadoutId || '',
     label: selection?.displayName || copy.localLabel,
     description,
+  };
+}
+
+function localOptionChoice(
+  option: NimiAIConfigLocalLoadoutOption,
+  copy: ResolvedCopy,
+): Extract<ModelConfigRouteChoice, { readonly route: 'local' }> {
+  return {
+    id: `local:${option.loadoutRef}`,
+    route: 'local',
+    loadoutRef: option.loadoutRef,
+    label: option.label,
+    description: option.state === 'ready' ? copy.localSelectedLabel : copy.localBrokenLabel,
   };
 }
 
@@ -206,11 +225,14 @@ function routeChoices(
 }
 
 function currentRouteChoice(
-  intent: NimiCapabilityAIConfigIntent | null,
+  intent: NimiPortableAppAIConfigIntent | null,
   selection: ModelConfigLocalSelectionProjection | null | undefined,
   copy: ResolvedCopy,
 ): ModelConfigRouteChoice | null {
-  if (intent?.route.oneofKind === 'local') return localChoice(selection, copy);
+  if (intent?.route.oneofKind === 'local') return {
+    ...localChoice(selection, copy),
+    loadoutRef: intent.route.local.loadoutRef,
+  };
   if (intent?.route.oneofKind !== 'cloud') return null;
   const cloud = intent.route.cloud;
   const target = runtimeAIConfigStructToJson(cloud.providerModelTarget);
@@ -241,14 +263,14 @@ function currentRouteChoice(
   };
 }
 
-function cloudModelLabel(intent: NimiCapabilityAIConfigIntent | null): string | null {
+function cloudModelLabel(intent: NimiPortableAppAIConfigIntent | null): string | null {
   if (!modelConfigHasExactCloudTarget(intent) || intent?.route.oneofKind !== 'cloud') return null;
   const target = runtimeAIConfigStructToJson(intent.route.cloud.providerModelTarget);
   return targetText(target.providerModelId) || null;
 }
 
 function capabilitySummary(
-  intent: NimiCapabilityAIConfigIntent | null,
+  intent: NimiPortableAppAIConfigIntent | null,
   selection: ModelConfigLocalSelectionProjection | null | undefined,
   descriptor: CanonicalCapabilityDescriptor | undefined,
   copy: ResolvedCopy,
@@ -373,6 +395,8 @@ export function ModelConfigAIConfigSurface(props: ModelConfigAIConfigSurfaceProp
             selection={activeEntry.selection}
             context={props.context}
             cloudAIConfig={props.cloudAIConfig}
+            revision={props.revision}
+            listOptions={props.listOptions}
             onOverwrite={props.onOverwrite}
             onOpenOwnerConfiguration={props.onOpenOwnerConfiguration}
             onOpenMachineLoadout={props.onOpenMachineLoadout}
@@ -448,11 +472,13 @@ export function ModelConfigAIConfigSurface(props: ModelConfigAIConfigSurfaceProp
 type CapabilityIntentEditorProps = {
   readonly capabilityContract: string;
   readonly descriptor?: CanonicalCapabilityDescriptor;
-  readonly currentIntent: NimiCapabilityAIConfigIntent | null;
-  readonly allCapabilities: readonly NimiCapabilityAIConfigIntent[];
+  readonly currentIntent: NimiPortableAppAIConfigIntent | null;
+  readonly allCapabilities: readonly NimiPortableAppAIConfigIntent[];
   readonly selection: ModelConfigLocalSelectionProjection | null | undefined;
   readonly context: ModelConfigAIConfigOwnerContext;
   readonly cloudAIConfig?: ModelConfigCloudAIConfigModule;
+  readonly revision?: string;
+  readonly listOptions?: ModelConfigListOptions;
   readonly onOverwrite?: ModelConfigOverwrite;
   readonly onOpenOwnerConfiguration?: () => void;
   readonly onOpenMachineLoadout?: (capabilityContract: string) => void;
@@ -463,7 +489,7 @@ type CapabilityIntentEditorProps = {
 };
 
 function CapabilityIntentEditor(props: CapabilityIntentEditorProps) {
-  if (props.context.consumer === 'third-party-app') {
+  if (!props.onOverwrite || props.revision === undefined || !props.listOptions) {
     return <ThirdPartyCapabilityIntentView {...props} />;
   }
   return <FirstPartyCapabilityIntentEditor {...props} />;
@@ -561,8 +587,13 @@ function FirstPartyCapabilityIntentEditor(props: CapabilityIntentEditorProps) {
   }, [currentChoice, props.cloudAIConfig, props.context.consumer, props.copy.cloudLoadFailed, props.currentIntent?.route.oneofKind]);
 
   const listChoices = useCallback(async (): Promise<readonly ModelConfigRouteChoice[]> => {
-    const local = localChoice(props.selection, props.copy);
-    if (!props.cloudAIConfig) return [local];
+    let locals: readonly Extract<ModelConfigRouteChoice, { readonly route: 'local' }>[] = [localChoice(props.selection, props.copy)];
+    if (props.listOptions) {
+      const result = await props.listOptions({ kind: 'local-loadouts', capabilityContract: props.capabilityContract });
+      locals = result.options.map((option) => localOptionChoice(option, props.copy));
+    }
+    const local = locals[0] || localChoice(props.selection, props.copy);
+    if (!props.cloudAIConfig) return locals;
     setCloudError('');
     try {
       if (props.context.consumer === 'nimi-first-party') {
@@ -576,7 +607,7 @@ function FirstPartyCapabilityIntentEditor(props: CapabilityIntentEditorProps) {
           return [local];
         }
         const connector = nextAuthorization.connectors.find((entry) => entry.connectorId === pickerConnectorId);
-        if (!connector) return [local];
+        if (!connector) return locals;
         const implementations = (await props.cloudAIConfig.listImplementations(props.capabilityContract))
           .filter((entry) => entry.provider === connector.provider);
         const targets = await props.cloudAIConfig.listTargets({
@@ -584,14 +615,18 @@ function FirstPartyCapabilityIntentEditor(props: CapabilityIntentEditorProps) {
           provider: connector.provider,
           connectorId: connector.connectorId,
         });
-        return routeChoices(local, implementations.map((implementation) => ({ implementation, targets })));
+        return [
+          ...locals,
+          ...routeChoices(local, implementations.map((implementation) => ({ implementation, targets })))
+            .filter((choice) => choice.route === 'cloud'),
+        ];
       }
-      return [local];
+      return locals;
     } catch {
       setCloudError(props.copy.cloudLoadFailed);
-      return [local];
+      return locals;
     }
-  }, [pickerConnectorId, props.capabilityContract, props.cloudAIConfig, props.context.consumer, props.copy, props.selection]);
+  }, [pickerConnectorId, props.capabilityContract, props.cloudAIConfig, props.context.consumer, props.copy, props.listOptions, props.selection]);
 
   const pickerAdapter = useMemo<ModelPickerCandidateAdapter<ModelConfigRouteChoice>>(() => ({
     listCandidates: listChoices,
@@ -632,10 +667,11 @@ function FirstPartyCapabilityIntentEditor(props: CapabilityIntentEditorProps) {
     try {
       const requiredFeatures = [...(props.currentIntent?.requiredFeatures || [])];
       const defaults = Object.keys(draftDefaults).length > 0 ? draftDefaults : undefined;
-      let intent: NimiCapabilityAIConfigIntent;
+      let intent: NimiPortableAppAIConfigIntent;
       if (draftChoice.route === 'local') {
         intent = createNimiLocalAIConfigCapabilityIntent({
           capabilityContract: props.capabilityContract,
+          loadoutRef: draftChoice.loadoutRef,
           requiredFeatures,
           ...(defaults ? { defaults } : {}),
         });
@@ -653,7 +689,13 @@ function FirstPartyCapabilityIntentEditor(props: CapabilityIntentEditorProps) {
         .filter((entry) => entry.capabilityContract !== props.capabilityContract)
         .concat(intent);
       setSaving(true);
-      await props.onOverwrite(next);
+      const result = await props.onOverwrite({
+        expectedRevision: props.revision || '',
+        capabilities: next,
+      });
+      if (result.outcome === 'conflict') {
+        throw new Error(props.copy.loadFailed);
+      }
     } catch (error) {
       setSaveFailure(props.formatError?.(error) || defaultFormatError(error, props.copy.saveFailed));
     } finally {
@@ -665,6 +707,7 @@ function FirstPartyCapabilityIntentEditor(props: CapabilityIntentEditorProps) {
     ? modelConfigCapabilityPosture(
         props.currentIntent?.route.oneofKind === 'local' ? props.currentIntent : createNimiLocalAIConfigCapabilityIntent({
           capabilityContract: props.capabilityContract,
+          loadoutRef: draftChoice.loadoutRef,
           requiredFeatures: [...(props.currentIntent?.requiredFeatures || [])],
         }),
         props.selection,
@@ -892,7 +935,9 @@ function FirstPartyCapabilityIntentEditor(props: CapabilityIntentEditorProps) {
       <div className="flex justify-end">
         <Button
           tone="primary"
-          disabled={routeDisabled || !draftChoice || (draftChoice.route === 'cloud' && (!impactConfirmed || !selectedConnector || !exactCloudSelection))}
+          disabled={routeDisabled || !draftChoice || !props.revision
+            || (draftChoice.route === 'local' && !draftChoice.loadoutRef)
+            || (draftChoice.route === 'cloud' && (!impactConfirmed || !selectedConnector || !exactCloudSelection))}
           onClick={() => { void commit(); }}
           data-testid={`model-config-save:${props.capabilityContract}`}
         >

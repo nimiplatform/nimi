@@ -69,7 +69,7 @@ func TestValidateLocalAppImageGenerateSpecPreservesRouteNeutralSeed(t *testing.T
 
 func TestSubmitLocalAppImageJobReachesSelectedDriverWithNegativeSeed(t *testing.T) {
 	svc := newTestService(nil)
-	if err := svc.aiConfigStore.Overwrite(context.Background(), "account-1",
+	if err := overwriteAIConfigStoreForTest(context.Background(), svc.aiConfigStore, "account-1",
 		appAIConfig("nimi.realm-persona-studio", localAppAIConfigIntent("image.generate"))); err != nil {
 		t.Fatalf("install Local App AIConfig: %v", err)
 	}
@@ -135,7 +135,7 @@ func TestLocalAppImageOptionsUseResolvedLocalDriverClassificationBeforeWork(t *t
 	for _, option := range options {
 		t.Run(option.name, func(t *testing.T) {
 			svc := newTestService(nil)
-			if err := svc.aiConfigStore.Overwrite(context.Background(), "account-1",
+			if err := overwriteAIConfigStoreForTest(context.Background(), svc.aiConfigStore, "account-1",
 				appAIConfig("nimi.realm-persona-studio", localAppAIConfigIntent("image.generate"))); err != nil {
 				t.Fatalf("install Local App AIConfig: %v", err)
 			}
@@ -223,19 +223,19 @@ func TestExecuteLocalAppScenarioFailsClosedWithoutAIConfig(t *testing.T) {
 
 func TestExecuteLocalAppScenarioLocalEmbedFailsClosedWithoutMachineSelection(t *testing.T) {
 	svc := newTestService(nil)
-	if err := svc.aiConfigStore.Overwrite(context.Background(), "account-1", &runtimev1.AIConfig{
+	if err := overwriteAIConfigStoreForTest(context.Background(), svc.aiConfigStore, "account-1", &runtimev1.AIConfig{
 		Owner:        derivedAppAIConfigOwner("nimi.realm-persona-studio"),
 		Capabilities: []*runtimev1.AIConfigCapabilityIntent{localAppAIConfigIntent("text.embed")},
 	}); err != nil {
 		t.Fatalf("install App AIConfig: %v", err)
 	}
 	_, err := svc.ExecuteLocalAppScenario(localAppScenarioExecuteContext(), validLocalAppEmbedExecuteRequest())
-	assertLocalAppTextCandidateError(t, err, codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_SELECTION_NOT_FOUND)
+	assertLocalAppTextCandidateError(t, err, codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_CONFIGURATION_NOT_CONFIGURED)
 }
 
 func TestExecuteLocalAppScenarioCloudEmbedFailsClosedWithoutBinding(t *testing.T) {
 	svc := newTestService(nil)
-	if err := svc.aiConfigStore.Overwrite(context.Background(), "account-1",
+	if err := overwriteAIConfigStoreForTest(context.Background(), svc.aiConfigStore, "account-1",
 		appAIConfig("nimi.realm-persona-studio", cloudAIConfigIntent(t, "text.embed"))); err != nil {
 		t.Fatalf("install Cloud App AIConfig: %v", err)
 	}

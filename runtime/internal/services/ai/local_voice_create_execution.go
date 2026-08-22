@@ -61,10 +61,7 @@ func (s *Service) captureLocalVoiceCreateEffectiveInputs(
 	if strings.TrimSpace(req.GetSpec().GetVoiceCreate().GetTargetModelId()) != "" {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_TARGET_MODEL_MISMATCH)
 	}
-	if s.localExecution == nil {
-		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_SELECTION_NOT_FOUND)
-	}
-	selected, err := s.localExecution.ResolveSelectedLocalExecution(capabilitydriver.VoiceCreateContract)
+	selected, err := s.resolveReferencedLocalExecution(ctx, intent)
 	if err != nil {
 		return nil, err
 	}

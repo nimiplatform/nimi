@@ -8,7 +8,8 @@ import {
 const FINAL_LOCAL_APP_OPERATIONS = [
   'local-app.sessionStatus',
   'local-app.aiConfigGet',
-  'local-app.modelConfigLocalSelectionsGet',
+  'local-app.aiConfigOverwrite',
+  'local-app.aiConfigLocalOptions',
   'local-app.textGenerateCandidate',
   'local-app.textTurnStream',
   'local-app.scenarioExecute',
@@ -27,6 +28,7 @@ const FINAL_LOCAL_APP_OPERATIONS = [
   'local-app.conversationSnapshot',
   'local-app.sharedAgentAIConfigGet',
   'local-app.sharedAgentAIConfigOverwrite',
+  'local-app.sharedAgentAIConfigLocalOptions',
   'local-app.agentAutonomySnapshot',
   'local-app.agentUpdateAutonomy',
   'local-app.agentPresentationSnapshot',

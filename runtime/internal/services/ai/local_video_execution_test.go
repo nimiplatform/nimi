@@ -162,11 +162,11 @@ type countingLocalExecutionResolver struct {
 	calls      int
 }
 
-func (r *countingLocalExecutionResolver) SelectedLocalCapabilityContracts() []string {
-	return []string{capabilitydriver.StableDiffusionVideoCapabilityContract}
+func (r *countingLocalExecutionResolver) ListLocalLoadouts(string, string, int) ([]localexecution.LoadoutOption, bool, error) {
+	return nil, false, r.err
 }
 
-func (r *countingLocalExecutionResolver) ResolveSelectedLocalExecution(string) (*localexecution.SelectedLocalExecution, error) {
+func (r *countingLocalExecutionResolver) ResolveLocalExecution(string, string) (*localexecution.SelectedLocalExecution, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	r.calls++
@@ -297,7 +297,7 @@ func TestLocalVideoHappyPathPreservesProgressSnapshotAndJobCustody(t *testing.T)
 	initialDefaults, _ := structpb.NewStruct(map[string]any{"options": map[string]any{"seed": 19.0}})
 	initialIntent := localAppAIConfigIntent(capabilitydriver.StableDiffusionVideoCapabilityContract)
 	initialIntent.Defaults = initialDefaults
-	if _, err := svc.OverwriteAppAIConfig(ownerCtx, &runtimev1.OverwriteAppAIConfigRequest{Config: appAIConfig("app.local", initialIntent)}); err != nil {
+	if _, err := svc.OverwriteAppAIConfig(ownerCtx, &runtimev1.OverwriteAppAIConfigRequest{Config: appAIConfig("app.local", initialIntent), ExpectedRevision: "0"}); err != nil {
 		t.Fatalf("OverwriteAppAIConfig(initial): %v", err)
 	}
 	response, err := svc.SubmitScenarioJob(ownerCtx, localVideoJobRequestForTest(512, 288, 22))
@@ -322,7 +322,7 @@ func TestLocalVideoHappyPathPreservesProgressSnapshotAndJobCustody(t *testing.T)
 	replacementDefaults, _ := structpb.NewStruct(map[string]any{"options": map[string]any{"resolution": "64x64", "frames": 5.0, "seed": 99.0}})
 	replacementIntent := localAppAIConfigIntent(capabilitydriver.StableDiffusionVideoCapabilityContract)
 	replacementIntent.Defaults = replacementDefaults
-	if _, err := svc.OverwriteAppAIConfig(ownerCtx, &runtimev1.OverwriteAppAIConfigRequest{Config: appAIConfig("app.local", replacementIntent)}); err != nil {
+	if _, err := svc.OverwriteAppAIConfig(ownerCtx, &runtimev1.OverwriteAppAIConfigRequest{Config: appAIConfig("app.local", replacementIntent), ExpectedRevision: "1"}); err != nil {
 		t.Fatalf("OverwriteAppAIConfig(replacement): %v", err)
 	}
 	close(host.release)
@@ -354,7 +354,7 @@ func TestLocalVideoHappyPathPreservesProgressSnapshotAndJobCustody(t *testing.T)
 	host.mu.Unlock()
 	width, height := captured.Size()
 	if captured.LoadoutID() != first.LoadoutID || captured.LoadoutID() == second.LoadoutID || width != 512 || height != 288 ||
-		captured.FrameCount() != 22 || captured.FPS() != 24 || captured.Seed() != 19 || resolver.calls != 1 {
+		captured.FrameCount() != 22 || captured.FPS() != 24 || captured.Seed() != 19 || resolver.calls != 3 {
 		t.Fatalf("immutable capture = loadout=%q size=%dx%d frames=%d fps=%d seed=%d resolves=%d", captured.LoadoutID(), width, height, captured.FrameCount(), captured.FPS(), captured.Seed(), resolver.calls)
 	}
 }
@@ -908,6 +908,7 @@ func selectedVideoExecutionForTest(t *testing.T, configurationID string) *locale
 func localVideoIntentContext(parent context.Context) context.Context {
 	return executionintent.WithIntent(parent, executionintent.Intent{
 		CapabilityContract: capabilitydriver.StableDiffusionVideoCapabilityContract,
+		LocalLoadoutRef:    "test-loadout:video.generate",
 		Route:              runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 	})
 }

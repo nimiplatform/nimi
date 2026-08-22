@@ -101,22 +101,22 @@ func (s *Service) authorizeSharedLocalAgentAIConfig(
 func (s *Service) readSharedLocalAgentAIConfig(
 	ctx context.Context,
 	accountNamespace string,
-) (*runtimev1.AIConfig, bool, error) {
+) (*runtimev1.AIConfig, string, bool, error) {
 	if s == nil || s.aiConfigStore == nil {
-		return nil, false, sharedLocalAgentAIConfigPersistenceError(fmt.Errorf("AIConfig store is unavailable"))
+		return nil, "", false, sharedLocalAgentAIConfigPersistenceError(fmt.Errorf("AIConfig store is unavailable"))
 	}
-	config, found, err := s.aiConfigStore.Get(ctx, accountNamespace, aiconfig.LocalAgentSubsystemOwner())
+	config, revision, found, err := s.aiConfigStore.Get(ctx, accountNamespace, aiconfig.LocalAgentSubsystemOwner())
 	if err != nil {
-		return nil, false, sharedLocalAgentAIConfigPersistenceError(err)
+		return nil, "", false, sharedLocalAgentAIConfigPersistenceError(err)
 	}
-	return config, found, nil
+	return config, revision, found, nil
 }
 
 func (s *Service) requireSharedLocalAgentAIConfig(
 	ctx context.Context,
 	accountNamespace string,
 ) (*runtimev1.AIConfig, error) {
-	config, found, err := s.readSharedLocalAgentAIConfig(ctx, accountNamespace)
+	config, _, found, err := s.readSharedLocalAgentAIConfig(ctx, accountNamespace)
 	if err != nil {
 		return nil, err
 	}
@@ -129,23 +129,31 @@ func (s *Service) requireSharedLocalAgentAIConfig(
 func (s *Service) overwriteSharedLocalAgentAIConfig(
 	ctx context.Context,
 	accountNamespace string,
+	expectedRevision string,
 	capabilities []*runtimev1.AIConfigCapabilityIntent,
-) (*runtimev1.AIConfig, error) {
+) (*runtimev1.AIConfig, string, bool, error) {
 	candidate := &runtimev1.AIConfig{
 		Owner:        aiconfig.LocalAgentSubsystemOwner(),
 		Capabilities: cloneAIConfigCapabilityIntents(capabilities),
 	}
 	canonical, err := aiconfig.Canonicalize(candidate)
 	if err != nil {
-		return nil, invalidSharedLocalAgentAIConfigError()
+		return nil, "", false, invalidSharedLocalAgentAIConfigError()
 	}
 	if s == nil || s.aiConfigStore == nil {
-		return nil, sharedLocalAgentAIConfigPersistenceError(fmt.Errorf("AIConfig store is unavailable"))
+		return nil, "", false, sharedLocalAgentAIConfigPersistenceError(fmt.Errorf("AIConfig store is unavailable"))
 	}
-	if err := s.aiConfigStore.Overwrite(ctx, accountNamespace, canonical); err != nil {
-		return nil, sharedLocalAgentAIConfigPersistenceError(err)
+	if !validSharedAIConfigRevision(expectedRevision) {
+		return nil, "", false, invalidSharedLocalAgentAIConfigError()
 	}
-	return canonical, nil
+	if err := s.validateChangedSharedAIConfigLocalReferences(ctx, accountNamespace, canonical); err != nil {
+		return nil, "", false, err
+	}
+	committedConfig, revision, committed, err := s.aiConfigStore.Overwrite(ctx, accountNamespace, expectedRevision, canonical)
+	if err != nil {
+		return nil, "", false, sharedLocalAgentAIConfigPersistenceError(err)
+	}
+	return committedConfig, revision, committed, nil
 }
 
 func exactSharedAIConfigIdentity(value string) bool {

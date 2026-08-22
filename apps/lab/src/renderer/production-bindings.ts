@@ -22,7 +22,6 @@ import {
 
 import { getRuntimePlatformProjection } from '../shell/auth/runtime-platform.js';
 import { getLabLocalAppClient } from '../shell/local-app-runtime-platform.js';
-import { loadLabAIConfig } from '../lab/lab-ai-config-store.js';
 import { loadLabAIConfigSummary } from '../lab/lab-ai-config.js';
 import { runLabConversationJourney } from '../lab/local-app-conversation-journey.js';
 import { saveLabExport } from '../lab/lab-export.js';
@@ -124,12 +123,7 @@ export function createLabProductionBindings(
         }));
       },
       uploadLocalAppArtifact: (input: Parameters<LabRendererSdkPort['uploadLocalAppArtifact']>[0]) => labLocalAppClient.ai.artifacts.upload(input),
-      aiConfig: Object.freeze({
-        get: () => loadLabAIConfig(labLocalAppClient.aiConfig),
-      }),
-      modelConfig: Object.freeze({
-        localSelections: () => labLocalAppClient.modelConfig.localSelections(),
-      }),
+      aiConfig: labLocalAppClient.aiConfig,
       storage: Object.freeze({ assets: labLocalAppClient.storage.assets }),
       settings: Object.freeze({
         notificationUnread: async () => loadNimiRealmNotificationUnreadCount(await requireLabRealm()),

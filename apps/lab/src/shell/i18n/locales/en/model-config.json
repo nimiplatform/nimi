@@ -1,8 +1,8 @@
 {
   "ModelConfig": {
     "drawerTitle": "App AI configuration",
-    "drawerDescription": "Read-only Nimi Lab AI configuration",
-    "title": "Configured capabilities",
+    "drawerDescription": "Configure Nimi Lab AI capabilities",
+    "title": "AI capability configuration",
     "backLabel": "Back",
     "detailTitle": "{{capability}} configuration",
     "activeModelLabel": "Current owner configuration",
@@ -11,7 +11,7 @@
     "localBrokenLabel": "The selected on-device model is unavailable:",
     "localUnavailableLabel": "The current on-device selection could not be loaded.",
     "localMismatchLabel": "The selected on-device model does not support: {{features}}",
-    "openOwnerConfigurationLabel": "Configure this App in Nimi Desktop",
+    "openOwnerConfigurationLabel": "Manage centrally in Nimi Desktop",
     "loadFailed": "Nimi Lab AI configuration could not be loaded from Runtime.",
     "unsupportedCapabilityLabel": "This capability is unavailable.",
     "notConfiguredLabel": "Not configured",
@@ -21,7 +21,7 @@
     "mismatchLabel": "Feature mismatch",
     "runtimeConnected": "Connected to Runtime",
     "runtimeUnavailable": "Runtime unavailable",
-    "headerDescription": "This is the read-only App AI configuration resolved for Nimi Lab. Nimi Desktop owns all changes.",
-    "footerNote": "Open this exact App in Nimi Desktop to change its capability configuration."
+    "headerDescription": "Choose an existing on-device model from the current Runtime and save it directly to Nimi Lab's App AI configuration.",
+    "footerNote": "The same configuration can also be viewed and managed centrally in Nimi Desktop."
   }
 }

@@ -30,6 +30,10 @@ func validateSubmitScenarioAsyncJobRequest(req *runtimev1.SubmitScenarioJobReque
 	}
 
 	switch req.GetScenarioType() {
+	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE:
+		if err := validateVoiceWorkflowSpec(req.GetScenarioType(), req.GetSpec()); err != nil {
+			return err
+		}
 	case runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE:
 		spec := req.GetSpec().GetImageGenerate()
 		if spec == nil || strings.TrimSpace(spec.GetPrompt()) == "" {

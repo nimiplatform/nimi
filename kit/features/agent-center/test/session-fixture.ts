@@ -26,6 +26,7 @@ function defaultAIConfig(): AgentCenterSharedAIConfigProjection {
       },
       capabilities: [],
     },
+    revision: '1',
     capabilities: [],
     intents: [],
   };
@@ -44,7 +45,31 @@ export async function sessionFor(
       localAgentRef: 'local-agent:test',
     },
     sharedAIConfig: {
-      async get() { return sharedAIConfig; },
+      async get() {
+        return {
+          config: sharedAIConfig.aiConfig,
+          revision: sharedAIConfig.revision,
+          effectiveSelections: (projection.localSelections ?? []).map((selection) => ({
+            capabilityContract: selection.capabilityContract,
+            state: selection.state === 'selected' ? 'ready' as const
+              : selection.state === 'missing' ? 'missing' as const
+                : selection.state === 'broken' ? 'blocked' as const : 'unavailable' as const,
+            resource: selection.loadoutId ? {
+              oneofKind: 'local' as const,
+              local: {
+                loadoutRef: selection.loadoutId,
+                label: selection.displayName ?? selection.loadoutId,
+                capabilityContract: selection.capabilityContract,
+                implementation: { implementationId: 'test.local', driverId: 'test', driverDialect: 'test/local/v1' },
+                supportedFeatures: [...selection.supportedFeatures],
+                state: selection.state === 'selected' ? 'ready' as const : 'blocked' as const,
+                reasons: [...selection.reasons],
+              },
+            } : null,
+            reasons: [...selection.reasons],
+          })),
+        };
+      },
       async overwrite(input) {
         const capabilities = [...input.capabilities];
         sharedAIConfig = {
@@ -52,16 +77,25 @@ export async function sessionFor(
             ...sharedAIConfig.aiConfig,
             capabilities,
           },
+          revision: String(BigInt(sharedAIConfig.revision) + 1n),
           capabilities: capabilities.map((intent) => intent.capabilityContract),
           intents: projectIntents(capabilities),
         };
-        return sharedAIConfig;
+        return { outcome: 'committed' as const, config: sharedAIConfig.aiConfig, revision: sharedAIConfig.revision };
+      },
+      async listOptions(input) {
+        return {
+          kind: 'local-loadouts' as const,
+          options: input.capabilityContract === 'text.generate' ? [{
+            loadoutRef: 'loadout:text', label: 'Local text model', capabilityContract: 'text.generate',
+            implementation: { implementationId: 'local.text', driverId: 'test', driverDialect: 'test/local/v1' },
+            supportedFeatures: [], state: 'ready' as const, reasons: [],
+          }] : [],
+          truncated: false,
+        };
       },
     },
     cloudAIConfig,
-    loadLocalSelections: projection.localSelections
-      ? async () => projection.localSelections!
-      : undefined,
     autonomy: projection.autonomy ? {
       async load() { return projection.autonomy || null; },
       async update(_identity, mutation) {

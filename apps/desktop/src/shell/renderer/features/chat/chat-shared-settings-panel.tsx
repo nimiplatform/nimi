@@ -4,7 +4,6 @@ import { InlineAlert, Surface } from '@nimiplatform/kit/ui';
 import {
   ModelConfigAIConfigSurface,
   type ModelConfigCopy,
-  type ModelConfigLocalSelectionProjection,
 } from '@nimiplatform/kit/features/model-config';
 import { useAppStore } from '../../app-shell/providers/app-store';
 import {
@@ -13,8 +12,8 @@ import {
 } from '../../renderer/binding-context.js';
 import {
   DESKTOP_NIMI_APP_ID,
+  projectDesktopAIConfigEffectiveSelections,
   useDesktopNimiAppAIConfig,
-  useDesktopNimiMachineLocalSelections,
   useOverwriteDesktopNimiAppAIConfig,
 } from './chat-nimi-app-ai-config.js';
 import { createDesktopCloudAIConfigModule } from './chat-cloud-ai-config-module.js';
@@ -213,7 +212,6 @@ function AiModeSettings(props: {
   const copy = useNimiChatModelConfigCopy();
   const setActiveTab = useAppStore((state) => state.setActiveTab);
   const appAIConfig = useDesktopNimiAppAIConfig(DESKTOP_NIMI_APP_ID);
-  const machineSelections = useDesktopNimiMachineLocalSelections();
   const overwriteAppAIConfig = useOverwriteDesktopNimiAppAIConfig(DESKTOP_NIMI_APP_ID);
 
   useEffect(() => {
@@ -221,16 +219,10 @@ function AiModeSettings(props: {
     return () => { props.onDiagnosticsVisibilityChange?.(false); };
   }, [props.onDiagnosticsVisibilityChange]);
 
-  const localSelections = useMemo<readonly ModelConfigLocalSelectionProjection[]>(() => (
-    machineSelections.data ?? [{
-      capabilityContract: 'text.generate',
-      state: 'unavailable',
-      loadoutId: null,
-      displayName: null,
-      supportedFeatures: [],
-      reasons: [],
-    }]
-  ), [machineSelections.data]);
+  const localSelections = useMemo(
+    () => projectDesktopAIConfigEffectiveSelections(appAIConfig.data),
+    [appAIConfig.data],
+  );
 
   const openMachineLoadout = useCallback(() => {
     setActiveTab('runtime');
@@ -275,15 +267,15 @@ function AiModeSettings(props: {
         <ModelConfigAIConfigSurface
           context={{ owner: 'app-ai-config', consumer: 'nimi-first-party', appId: DESKTOP_NIMI_APP_ID }}
           capabilityContracts={['text.generate']}
-          capabilities={appAIConfig.data?.capabilities ?? (appAIConfig.isPending ? undefined : null)}
+          capabilities={appAIConfig.data?.config?.capabilities ?? (appAIConfig.isPending ? undefined : null)}
+          revision={appAIConfig.data?.revision}
           localSelections={localSelections}
+          listOptions={(query) => sdk.accountProduct().appAIConfig(DESKTOP_NIMI_APP_ID).listOptions(query)}
           cloudAIConfig={cloudAIConfig}
           loading={appAIConfig.isPending}
           loadError={appAIConfig.isError ? copy.loadFailed : null}
           onRetry={() => { void appAIConfig.refetch(); }}
-          onOverwrite={async (capabilities) => {
-            await overwriteAppAIConfig.mutateAsync(capabilities);
-          }}
+          onOverwrite={(input) => overwriteAppAIConfig.mutateAsync(input)}
           onOpenMachineLoadout={openMachineLoadout}
           onOpenCloudConnectorConfiguration={openCloudConnectorConfiguration}
           formatError={(error) => {

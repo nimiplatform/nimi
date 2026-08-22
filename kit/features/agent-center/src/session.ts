@@ -1,5 +1,9 @@
 import {
   asNimiError,
+  type NimiAIConfigOptionsQuery,
+  type NimiAIConfigOptionsResult,
+  type NimiAIConfigSnapshot,
+  type NimiAIConfigOverwriteResult,
   type NimiLocalAppAgentAutonomyProjection,
   type NimiLocalAppAgentConfigureClient,
   type NimiLocalAppAgentHandle,
@@ -77,7 +81,8 @@ interface SessionTransport {
   readonly appearanceAdapter: AgentCenterAppearanceAdapter | null;
   actionAvailability(): Promise<AgentCenterActionAvailabilityProjection>;
   read(): Promise<AgentCenterStateInput>;
-  overwriteSharedAIConfig(input: AgentCenterAIConfigMutation): Promise<AgentCenterSharedAIConfigProjection>;
+  overwriteSharedAIConfig(input: AgentCenterAIConfigMutation): Promise<NimiAIConfigOverwriteResult>;
+  listSharedAIConfigOptions(input: NimiAIConfigOptionsQuery): Promise<NimiAIConfigOptionsResult>;
   updateAutonomy(input: AgentCenterAutonomyMutation): Promise<AgentCenterAutonomyProjection>;
   replaceAppearance(input: AgentCenterPresentationCommitInput): Promise<AgentCenterStateInput | AgentCenterState | AgentCenterAppearanceProjection>;
   restorePreviousAppearance(): Promise<AgentCenterStateInput | AgentCenterState | AgentCenterAppearanceProjection>;
@@ -218,18 +223,29 @@ class ManagerSession {
     }
   }
 
-  async overwriteSharedAIConfig(input: AgentCenterAIConfigMutation): Promise<void> {
+  async overwriteSharedAIConfig(input: AgentCenterAIConfigMutation): Promise<NimiAIConfigOverwriteResult> {
     this.#requireAvailable('overwriteSharedAIConfig');
-    const sharedAIConfig = await this.transport.overwriteSharedAIConfig(input);
-    this.#set({
-      ...this.#snapshot,
-      phase: 'ready',
-      state: stateWithAvailability(
-        replaceAgentCenterSharedAIConfig(this.#snapshot.state, sharedAIConfig),
-        this.#snapshot.availability,
-      ),
-      error: null,
-    });
+    const result = await this.transport.overwriteSharedAIConfig(input);
+    if (result.config) {
+      this.#set({
+        ...this.#snapshot,
+        phase: 'ready',
+        state: stateWithAvailability(
+          replaceAgentCenterSharedAIConfig(
+            this.#snapshot.state,
+            projectAppSharedAIConfig(result.config, result.revision),
+          ),
+          this.#snapshot.availability,
+        ),
+        error: null,
+      });
+    }
+    return result;
+  }
+
+  async listSharedAIConfigOptions(input: NimiAIConfigOptionsQuery): Promise<NimiAIConfigOptionsResult> {
+    this.#requireAvailable('overwriteSharedAIConfig');
+    return this.transport.listSharedAIConfigOptions(input);
   }
 
   async updateAutonomy(input: AgentCenterAutonomyMutation): Promise<void> {
@@ -331,7 +347,6 @@ export interface CreateFirstPartyAgentCenterSessionInput {
     ) => Promise<AgentCenterAutonomyProjection>;
   } | null;
   readonly appearance?: AgentCenterAppearanceAdapter | null;
-  readonly loadLocalSelections?: () => Promise<readonly ModelConfigLocalSelectionProjection[]>;
   readonly loadMemory?: (input: RuntimeLocalAgentIdentityInput) => Promise<NimiRuntimeAgentMemoryObservatorySnapshot | null>;
   readonly loadSourceContextStatus?: (input: RuntimeLocalAgentIdentityInput) => Promise<NimiRuntimeAgentSourceContextStatus | null>;
   readonly loadTurnContextSummary?: (
@@ -378,18 +393,24 @@ export function createFirstPartyAgentCenterSession(
 ): AgentCenterSession {
   const identity = input.loadInput?.identity || input.identity;
   const aiConfigAccountInput = { subjectUserId: input.loadInput?.subjectUserId };
-  const readSharedAIConfig = async (): Promise<AgentCenterSharedAIConfigProjection | null> => {
+  const readSharedAIConfig = async (): Promise<{
+    readonly sharedAIConfig: AgentCenterSharedAIConfigProjection | null;
+    readonly localSelections: readonly ModelConfigLocalSelectionProjection[];
+  }> => {
     try {
-      return await input.sharedAIConfig.get(aiConfigAccountInput);
+      const snapshot = await input.sharedAIConfig.get(aiConfigAccountInput);
+      return {
+        sharedAIConfig: snapshot.config ? projectAppSharedAIConfig(snapshot.config, snapshot.revision) : null,
+        localSelections: projectAIConfigEffectiveSelections(snapshot),
+      };
     } catch (error) {
-      if (isCanonicalAIConfigAbsence(error)) return null;
+      if (isCanonicalAIConfigAbsence(error)) return { sharedAIConfig: null, localSelections: [] };
       throw error;
     }
   };
   const read = async (): Promise<AgentCenterStateInput> => {
-    const [sharedAIConfig, localSelections, autonomy, inspect, memory, sourceContextStatus, turnContextSummary, appearance] = await Promise.all([
+    const [shared, autonomy, inspect, memory, sourceContextStatus, turnContextSummary, appearance] = await Promise.all([
       readSharedAIConfig(),
-      input.loadLocalSelections?.() ?? Promise.resolve([]),
       input.autonomy?.load(identity) ?? Promise.resolve(null),
       input.inspect?.getPublicInspect(identity) ?? Promise.resolve(null),
       input.loadMemory?.(identity) ?? Promise.resolve(null),
@@ -400,7 +421,11 @@ export function createFirstPartyAgentCenterSession(
       }) ?? Promise.resolve(null),
       input.appearance?.load() ?? Promise.resolve(null),
     ]);
-    return { sharedAIConfig, localSelections, autonomy, inspect, memory, sourceContextStatus, turnContextSummary, appearance };
+    return {
+      sharedAIConfig: shared.sharedAIConfig,
+      localSelections: shared.localSelections,
+      autonomy, inspect, memory, sourceContextStatus, turnContextSummary, appearance,
+    };
   };
   const transport: SessionTransport = {
     appearanceAdapter: input.appearance || null,
@@ -409,8 +434,15 @@ export function createFirstPartyAgentCenterSession(
     async overwriteSharedAIConfig(mutation) {
       return input.sharedAIConfig.overwrite({
         subjectUserId: input.loadInput?.subjectUserId,
+        expectedRevision: mutation.expectedRevision,
         capabilities: mutation.capabilities,
         ...(mutation.displayProvenance ? { displayProvenance: mutation.displayProvenance } : {}),
+      });
+    },
+    async listSharedAIConfigOptions(query) {
+      return input.sharedAIConfig.listOptions({
+        ...query,
+        subjectUserId: input.loadInput?.subjectUserId,
       });
     },
     async updateAutonomy(mutation) {
@@ -445,24 +477,32 @@ export function createAppAgentCenterSession(
   let manager: ManagerSession | null = null;
   let presentation: NimiLocalAppAgentPresentationProjection | null = null;
 
-  const readSharedAIConfig = async (): Promise<AgentCenterSharedAIConfigProjection | null> => {
+  const readSharedAIConfig = async (): Promise<{
+    readonly sharedAIConfig: AgentCenterSharedAIConfigProjection | null;
+    readonly localSelections: readonly ModelConfigLocalSelectionProjection[];
+  }> => {
     try {
-      return projectAppSharedAIConfig(await input.client.sharedAIConfig.get());
+      const snapshot = await input.client.sharedAIConfig.get();
+      return {
+        sharedAIConfig: snapshot.config ? projectAppSharedAIConfig(snapshot.config, snapshot.revision) : null,
+        localSelections: projectAIConfigEffectiveSelections(snapshot),
+      };
     } catch (error) {
-      if (isCanonicalAIConfigAbsence(error)) return null;
+      if (isCanonicalAIConfigAbsence(error)) return { sharedAIConfig: null, localSelections: [] };
       throw error;
     }
   };
 
   const read = async (): Promise<AgentCenterStateInput> => {
-    const [sharedAIConfig, autonomy, nextPresentation] = await Promise.all([
+    const [shared, autonomy, nextPresentation] = await Promise.all([
       readSharedAIConfig(),
       input.client.autonomy.snapshot({ agentHandle: handle }),
       input.client.presentation.snapshot({ agentHandle: handle }),
     ]);
     presentation = nextPresentation;
     return {
-      sharedAIConfig,
+      sharedAIConfig: shared.sharedAIConfig,
+      localSelections: shared.localSelections,
       autonomy: projectAppAutonomy(autonomy),
       appearance: projectAppAppearance(nextPresentation),
     };
@@ -536,9 +576,13 @@ export function createAppAgentCenterSession(
     actionAvailability: async () => appAvailability(),
     read,
     async overwriteSharedAIConfig(mutation) {
-      return projectAppSharedAIConfig(
-        await input.client.sharedAIConfig.overwrite(mutation.capabilities),
-      );
+      return input.client.sharedAIConfig.overwrite({
+        expectedRevision: mutation.expectedRevision,
+        capabilities: mutation.capabilities,
+      });
+    },
+    async listSharedAIConfigOptions(query) {
+      return input.client.sharedAIConfig.listOptions(query);
     },
     async updateAutonomy(mutation) {
       const autonomy = await input.client.autonomy.update({
@@ -576,6 +620,7 @@ export function createAppAgentCenterSession(
 
 function projectAppSharedAIConfig(
   aiConfig: AgentCenterSharedAIConfigProjection['aiConfig'],
+  revision: string,
 ): AgentCenterSharedAIConfigProjection {
   const intents = aiConfig.capabilities.map((intent) => {
     const route = intent.route.oneofKind;
@@ -590,9 +635,33 @@ function projectAppSharedAIConfig(
   });
   return Object.freeze({
     aiConfig,
+    revision,
     capabilities: Object.freeze(intents.map((intent) => intent.capability)),
     intents: Object.freeze(intents),
   });
+}
+
+function projectAIConfigEffectiveSelections(
+  snapshot: NimiAIConfigSnapshot,
+): readonly ModelConfigLocalSelectionProjection[] {
+  return Object.freeze(snapshot.effectiveSelections.map((selection) => {
+    const local = selection.resource?.oneofKind === 'local' ? selection.resource.local : null;
+    return Object.freeze({
+      capabilityContract: selection.capabilityContract,
+      state: selection.state === 'ready'
+        ? 'selected' as const
+        : selection.state === 'missing'
+          ? 'missing' as const
+          : selection.state === 'blocked'
+            ? 'broken' as const
+            : 'unavailable' as const,
+      loadoutId: local?.loadoutRef ?? null,
+      displayName: local?.label ?? null,
+      supportedFeatures: Object.freeze([...(local?.supportedFeatures ?? [])]),
+      reasons: Object.freeze([...selection.reasons]),
+      effectiveDefaults: null,
+    });
+  }));
 }
 
 function projectAppAutonomy(

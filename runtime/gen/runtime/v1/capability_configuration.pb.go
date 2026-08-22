@@ -346,6 +346,61 @@ func (LoadoutValidationState) EnumDescriptor() ([]byte, []int) {
 	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{5}
 }
 
+type AIConfigEffectiveState int32
+
+const (
+	AIConfigEffectiveState_AI_CONFIG_EFFECTIVE_STATE_UNSPECIFIED AIConfigEffectiveState = 0
+	AIConfigEffectiveState_AI_CONFIG_EFFECTIVE_STATE_READY       AIConfigEffectiveState = 1
+	AIConfigEffectiveState_AI_CONFIG_EFFECTIVE_STATE_MISSING     AIConfigEffectiveState = 2
+	AIConfigEffectiveState_AI_CONFIG_EFFECTIVE_STATE_BLOCKED     AIConfigEffectiveState = 3
+	AIConfigEffectiveState_AI_CONFIG_EFFECTIVE_STATE_UNAVAILABLE AIConfigEffectiveState = 4
+)
+
+// Enum value maps for AIConfigEffectiveState.
+var (
+	AIConfigEffectiveState_name = map[int32]string{
+		0: "AI_CONFIG_EFFECTIVE_STATE_UNSPECIFIED",
+		1: "AI_CONFIG_EFFECTIVE_STATE_READY",
+		2: "AI_CONFIG_EFFECTIVE_STATE_MISSING",
+		3: "AI_CONFIG_EFFECTIVE_STATE_BLOCKED",
+		4: "AI_CONFIG_EFFECTIVE_STATE_UNAVAILABLE",
+	}
+	AIConfigEffectiveState_value = map[string]int32{
+		"AI_CONFIG_EFFECTIVE_STATE_UNSPECIFIED": 0,
+		"AI_CONFIG_EFFECTIVE_STATE_READY":       1,
+		"AI_CONFIG_EFFECTIVE_STATE_MISSING":     2,
+		"AI_CONFIG_EFFECTIVE_STATE_BLOCKED":     3,
+		"AI_CONFIG_EFFECTIVE_STATE_UNAVAILABLE": 4,
+	}
+)
+
+func (x AIConfigEffectiveState) Enum() *AIConfigEffectiveState {
+	p := new(AIConfigEffectiveState)
+	*p = x
+	return p
+}
+
+func (x AIConfigEffectiveState) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (AIConfigEffectiveState) Descriptor() protoreflect.EnumDescriptor {
+	return file_runtime_v1_capability_configuration_proto_enumTypes[6].Descriptor()
+}
+
+func (AIConfigEffectiveState) Type() protoreflect.EnumType {
+	return &file_runtime_v1_capability_configuration_proto_enumTypes[6]
+}
+
+func (x AIConfigEffectiveState) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use AIConfigEffectiveState.Descriptor instead.
+func (AIConfigEffectiveState) EnumDescriptor() ([]byte, []int) {
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{6}
+}
+
 // CapabilityImplementationIdentity identifies the implementation vocabulary
 // against which a configuration's requirements are interpreted.
 type CapabilityImplementationIdentity struct {
@@ -2488,10 +2543,12 @@ func (*AIConfigOwner_App) isAIConfigOwner_Owner() {}
 
 func (*AIConfigOwner_RuntimeLocalAgentSubsystem) isAIConfigOwner_Owner() {}
 
-// AIConfigLocalIntent is deliberately empty: Local implementation identity,
-// machine selection, resources, and bindings belong to machine configuration.
 type AIConfigLocalIntent struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Stable Runtime Loadout resource reference selected by the AIConfig owner.
+	// Loadout content, ModelAsset bindings, paths, and process state stay in the
+	// machine Loadout store.
+	LoadoutRef    string `protobuf:"bytes,1,opt,name=loadout_ref,json=loadoutRef,proto3" json:"loadout_ref,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2524,6 +2581,13 @@ func (x *AIConfigLocalIntent) ProtoReflect() protoreflect.Message {
 // Deprecated: Use AIConfigLocalIntent.ProtoReflect.Descriptor instead.
 func (*AIConfigLocalIntent) Descriptor() ([]byte, []int) {
 	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{33}
+}
+
+func (x *AIConfigLocalIntent) GetLoadoutRef() string {
+	if x != nil {
+		return x.LoadoutRef
+	}
+	return ""
 }
 
 // AIConfigCloudIntent carries only the exact Cloud implementation and its
@@ -2581,9 +2645,9 @@ func (x *AIConfigCloudIntent) GetProviderModelTarget() *structpb.Struct {
 	return nil
 }
 
-// AIConfigCapabilityIntent is consumer intent only. Local execution identity,
-// machine selection, assets, bindings, Driver state, and readiness never enter
-// this payload.
+// AIConfigCapabilityIntent is consumer intent only. It names an exact safe
+// resource reference but embeds no Loadout content, assets, bindings, Driver
+// state, credentials, endpoints, process state, or readiness.
 type AIConfigCapabilityIntent struct {
 	state              protoimpl.MessageState `protogen:"open.v1"`
 	CapabilityContract string                 `protobuf:"bytes,1,opt,name=capability_contract,json=capabilityContract,proto3" json:"capability_contract,omitempty"`
@@ -2691,7 +2755,8 @@ func (*AIConfigCapabilityIntent_Local) isAIConfigCapabilityIntent_Route() {}
 func (*AIConfigCapabilityIntent_Cloud) isAIConfigCapabilityIntent_Route() {}
 
 // AIConfig is the complete current capability intent for exactly one owner.
-// It has overwrite semantics and carries no revision, history, or readiness.
+// Revision is transported by owner operation results rather than embedded in
+// this portable value; no history or readiness is persisted here.
 type AIConfig struct {
 	state         protoimpl.MessageState      `protogen:"open.v1"`
 	Owner         *AIConfigOwner              `protobuf:"bytes,1,opt,name=owner,proto3" json:"owner,omitempty"`
@@ -2744,6 +2809,434 @@ func (x *AIConfig) GetCapabilities() []*AIConfigCapabilityIntent {
 	return nil
 }
 
+type AIConfigLocalResourceProjection struct {
+	state              protoimpl.MessageState            `protogen:"open.v1"`
+	LoadoutRef         string                            `protobuf:"bytes,1,opt,name=loadout_ref,json=loadoutRef,proto3" json:"loadout_ref,omitempty"`
+	Label              string                            `protobuf:"bytes,2,opt,name=label,proto3" json:"label,omitempty"`
+	CapabilityContract string                            `protobuf:"bytes,3,opt,name=capability_contract,json=capabilityContract,proto3" json:"capability_contract,omitempty"`
+	Implementation     *CapabilityImplementationIdentity `protobuf:"bytes,4,opt,name=implementation,proto3" json:"implementation,omitempty"`
+	SupportedFeatures  []string                          `protobuf:"bytes,5,rep,name=supported_features,json=supportedFeatures,proto3" json:"supported_features,omitempty"`
+	State              AIConfigEffectiveState            `protobuf:"varint,6,opt,name=state,proto3,enum=nimi.runtime.v1.AIConfigEffectiveState" json:"state,omitempty"`
+	Reasons            []string                          `protobuf:"bytes,7,rep,name=reasons,proto3" json:"reasons,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
+}
+
+func (x *AIConfigLocalResourceProjection) Reset() {
+	*x = AIConfigLocalResourceProjection{}
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[37]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AIConfigLocalResourceProjection) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AIConfigLocalResourceProjection) ProtoMessage() {}
+
+func (x *AIConfigLocalResourceProjection) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[37]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AIConfigLocalResourceProjection.ProtoReflect.Descriptor instead.
+func (*AIConfigLocalResourceProjection) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{37}
+}
+
+func (x *AIConfigLocalResourceProjection) GetLoadoutRef() string {
+	if x != nil {
+		return x.LoadoutRef
+	}
+	return ""
+}
+
+func (x *AIConfigLocalResourceProjection) GetLabel() string {
+	if x != nil {
+		return x.Label
+	}
+	return ""
+}
+
+func (x *AIConfigLocalResourceProjection) GetCapabilityContract() string {
+	if x != nil {
+		return x.CapabilityContract
+	}
+	return ""
+}
+
+func (x *AIConfigLocalResourceProjection) GetImplementation() *CapabilityImplementationIdentity {
+	if x != nil {
+		return x.Implementation
+	}
+	return nil
+}
+
+func (x *AIConfigLocalResourceProjection) GetSupportedFeatures() []string {
+	if x != nil {
+		return x.SupportedFeatures
+	}
+	return nil
+}
+
+func (x *AIConfigLocalResourceProjection) GetState() AIConfigEffectiveState {
+	if x != nil {
+		return x.State
+	}
+	return AIConfigEffectiveState_AI_CONFIG_EFFECTIVE_STATE_UNSPECIFIED
+}
+
+func (x *AIConfigLocalResourceProjection) GetReasons() []string {
+	if x != nil {
+		return x.Reasons
+	}
+	return nil
+}
+
+type AIConfigEffectiveSelection struct {
+	state              protoimpl.MessageState `protogen:"open.v1"`
+	CapabilityContract string                 `protobuf:"bytes,1,opt,name=capability_contract,json=capabilityContract,proto3" json:"capability_contract,omitempty"`
+	State              AIConfigEffectiveState `protobuf:"varint,2,opt,name=state,proto3,enum=nimi.runtime.v1.AIConfigEffectiveState" json:"state,omitempty"`
+	// Types that are valid to be assigned to Resource:
+	//
+	//	*AIConfigEffectiveSelection_Local
+	Resource      isAIConfigEffectiveSelection_Resource `protobuf_oneof:"resource"`
+	Reasons       []string                              `protobuf:"bytes,4,rep,name=reasons,proto3" json:"reasons,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AIConfigEffectiveSelection) Reset() {
+	*x = AIConfigEffectiveSelection{}
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[38]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AIConfigEffectiveSelection) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AIConfigEffectiveSelection) ProtoMessage() {}
+
+func (x *AIConfigEffectiveSelection) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[38]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AIConfigEffectiveSelection.ProtoReflect.Descriptor instead.
+func (*AIConfigEffectiveSelection) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{38}
+}
+
+func (x *AIConfigEffectiveSelection) GetCapabilityContract() string {
+	if x != nil {
+		return x.CapabilityContract
+	}
+	return ""
+}
+
+func (x *AIConfigEffectiveSelection) GetState() AIConfigEffectiveState {
+	if x != nil {
+		return x.State
+	}
+	return AIConfigEffectiveState_AI_CONFIG_EFFECTIVE_STATE_UNSPECIFIED
+}
+
+func (x *AIConfigEffectiveSelection) GetResource() isAIConfigEffectiveSelection_Resource {
+	if x != nil {
+		return x.Resource
+	}
+	return nil
+}
+
+func (x *AIConfigEffectiveSelection) GetLocal() *AIConfigLocalResourceProjection {
+	if x != nil {
+		if x, ok := x.Resource.(*AIConfigEffectiveSelection_Local); ok {
+			return x.Local
+		}
+	}
+	return nil
+}
+
+func (x *AIConfigEffectiveSelection) GetReasons() []string {
+	if x != nil {
+		return x.Reasons
+	}
+	return nil
+}
+
+type isAIConfigEffectiveSelection_Resource interface {
+	isAIConfigEffectiveSelection_Resource()
+}
+
+type AIConfigEffectiveSelection_Local struct {
+	Local *AIConfigLocalResourceProjection `protobuf:"bytes,3,opt,name=local,proto3,oneof"`
+}
+
+func (*AIConfigEffectiveSelection_Local) isAIConfigEffectiveSelection_Resource() {}
+
+type AIConfigLocalLoadoutOptionsQuery struct {
+	state              protoimpl.MessageState `protogen:"open.v1"`
+	CapabilityContract string                 `protobuf:"bytes,1,opt,name=capability_contract,json=capabilityContract,proto3" json:"capability_contract,omitempty"`
+	Search             string                 `protobuf:"bytes,2,opt,name=search,proto3" json:"search,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
+}
+
+func (x *AIConfigLocalLoadoutOptionsQuery) Reset() {
+	*x = AIConfigLocalLoadoutOptionsQuery{}
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[39]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AIConfigLocalLoadoutOptionsQuery) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AIConfigLocalLoadoutOptionsQuery) ProtoMessage() {}
+
+func (x *AIConfigLocalLoadoutOptionsQuery) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[39]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AIConfigLocalLoadoutOptionsQuery.ProtoReflect.Descriptor instead.
+func (*AIConfigLocalLoadoutOptionsQuery) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{39}
+}
+
+func (x *AIConfigLocalLoadoutOptionsQuery) GetCapabilityContract() string {
+	if x != nil {
+		return x.CapabilityContract
+	}
+	return ""
+}
+
+func (x *AIConfigLocalLoadoutOptionsQuery) GetSearch() string {
+	if x != nil {
+		return x.Search
+	}
+	return ""
+}
+
+type AIConfigLocalLoadoutOptions struct {
+	state         protoimpl.MessageState             `protogen:"open.v1"`
+	Options       []*AIConfigLocalResourceProjection `protobuf:"bytes,1,rep,name=options,proto3" json:"options,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AIConfigLocalLoadoutOptions) Reset() {
+	*x = AIConfigLocalLoadoutOptions{}
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[40]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AIConfigLocalLoadoutOptions) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AIConfigLocalLoadoutOptions) ProtoMessage() {}
+
+func (x *AIConfigLocalLoadoutOptions) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[40]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AIConfigLocalLoadoutOptions.ProtoReflect.Descriptor instead.
+func (*AIConfigLocalLoadoutOptions) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{40}
+}
+
+func (x *AIConfigLocalLoadoutOptions) GetOptions() []*AIConfigLocalResourceProjection {
+	if x != nil {
+		return x.Options
+	}
+	return nil
+}
+
+type ListAppAIConfigOptionsRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Types that are valid to be assigned to Query:
+	//
+	//	*ListAppAIConfigOptionsRequest_LocalLoadouts
+	Query isListAppAIConfigOptionsRequest_Query `protobuf_oneof:"query"`
+	// Desktop manager consistency assertion. Protected App callers omit it and
+	// Runtime derives the self owner from the admitted session.
+	Owner         *AIConfigOwner `protobuf:"bytes,4,opt,name=owner,proto3" json:"owner,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListAppAIConfigOptionsRequest) Reset() {
+	*x = ListAppAIConfigOptionsRequest{}
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[41]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListAppAIConfigOptionsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListAppAIConfigOptionsRequest) ProtoMessage() {}
+
+func (x *ListAppAIConfigOptionsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[41]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListAppAIConfigOptionsRequest.ProtoReflect.Descriptor instead.
+func (*ListAppAIConfigOptionsRequest) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{41}
+}
+
+func (x *ListAppAIConfigOptionsRequest) GetQuery() isListAppAIConfigOptionsRequest_Query {
+	if x != nil {
+		return x.Query
+	}
+	return nil
+}
+
+func (x *ListAppAIConfigOptionsRequest) GetLocalLoadouts() *AIConfigLocalLoadoutOptionsQuery {
+	if x != nil {
+		if x, ok := x.Query.(*ListAppAIConfigOptionsRequest_LocalLoadouts); ok {
+			return x.LocalLoadouts
+		}
+	}
+	return nil
+}
+
+func (x *ListAppAIConfigOptionsRequest) GetOwner() *AIConfigOwner {
+	if x != nil {
+		return x.Owner
+	}
+	return nil
+}
+
+type isListAppAIConfigOptionsRequest_Query interface {
+	isListAppAIConfigOptionsRequest_Query()
+}
+
+type ListAppAIConfigOptionsRequest_LocalLoadouts struct {
+	LocalLoadouts *AIConfigLocalLoadoutOptionsQuery `protobuf:"bytes,1,opt,name=local_loadouts,json=localLoadouts,proto3,oneof"`
+}
+
+func (*ListAppAIConfigOptionsRequest_LocalLoadouts) isListAppAIConfigOptionsRequest_Query() {}
+
+type ListAppAIConfigOptionsResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Types that are valid to be assigned to Result:
+	//
+	//	*ListAppAIConfigOptionsResponse_LocalLoadouts
+	Result        isListAppAIConfigOptionsResponse_Result `protobuf_oneof:"result"`
+	Truncated     bool                                    `protobuf:"varint,2,opt,name=truncated,proto3" json:"truncated,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListAppAIConfigOptionsResponse) Reset() {
+	*x = ListAppAIConfigOptionsResponse{}
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[42]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListAppAIConfigOptionsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListAppAIConfigOptionsResponse) ProtoMessage() {}
+
+func (x *ListAppAIConfigOptionsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[42]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListAppAIConfigOptionsResponse.ProtoReflect.Descriptor instead.
+func (*ListAppAIConfigOptionsResponse) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{42}
+}
+
+func (x *ListAppAIConfigOptionsResponse) GetResult() isListAppAIConfigOptionsResponse_Result {
+	if x != nil {
+		return x.Result
+	}
+	return nil
+}
+
+func (x *ListAppAIConfigOptionsResponse) GetLocalLoadouts() *AIConfigLocalLoadoutOptions {
+	if x != nil {
+		if x, ok := x.Result.(*ListAppAIConfigOptionsResponse_LocalLoadouts); ok {
+			return x.LocalLoadouts
+		}
+	}
+	return nil
+}
+
+func (x *ListAppAIConfigOptionsResponse) GetTruncated() bool {
+	if x != nil {
+		return x.Truncated
+	}
+	return false
+}
+
+type isListAppAIConfigOptionsResponse_Result interface {
+	isListAppAIConfigOptionsResponse_Result()
+}
+
+type ListAppAIConfigOptionsResponse_LocalLoadouts struct {
+	LocalLoadouts *AIConfigLocalLoadoutOptions `protobuf:"bytes,1,opt,name=local_loadouts,json=localLoadouts,proto3,oneof"`
+}
+
+func (*ListAppAIConfigOptionsResponse_LocalLoadouts) isListAppAIConfigOptionsResponse_Result() {}
+
 // App AIConfig mutation is whole-object only. The owner carried here is a
 // consistency assertion checked against Runtime-authenticated caller truth;
 // it is never accepted as caller identity.
@@ -2756,7 +3249,7 @@ type GetAppAIConfigRequest struct {
 
 func (x *GetAppAIConfigRequest) Reset() {
 	*x = GetAppAIConfigRequest{}
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[37]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[43]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2768,7 +3261,7 @@ func (x *GetAppAIConfigRequest) String() string {
 func (*GetAppAIConfigRequest) ProtoMessage() {}
 
 func (x *GetAppAIConfigRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[37]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[43]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2781,7 +3274,7 @@ func (x *GetAppAIConfigRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetAppAIConfigRequest.ProtoReflect.Descriptor instead.
 func (*GetAppAIConfigRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{37}
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{43}
 }
 
 func (x *GetAppAIConfigRequest) GetOwner() *AIConfigOwner {
@@ -2792,15 +3285,17 @@ func (x *GetAppAIConfigRequest) GetOwner() *AIConfigOwner {
 }
 
 type GetAppAIConfigResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Config        *AIConfig              `protobuf:"bytes,1,opt,name=config,proto3" json:"config,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state               protoimpl.MessageState        `protogen:"open.v1"`
+	Config              *AIConfig                     `protobuf:"bytes,1,opt,name=config,proto3" json:"config,omitempty"`
+	Revision            string                        `protobuf:"bytes,2,opt,name=revision,proto3" json:"revision,omitempty"`
+	EffectiveSelections []*AIConfigEffectiveSelection `protobuf:"bytes,3,rep,name=effective_selections,json=effectiveSelections,proto3" json:"effective_selections,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *GetAppAIConfigResponse) Reset() {
 	*x = GetAppAIConfigResponse{}
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[38]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[44]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2812,7 +3307,7 @@ func (x *GetAppAIConfigResponse) String() string {
 func (*GetAppAIConfigResponse) ProtoMessage() {}
 
 func (x *GetAppAIConfigResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[38]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[44]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2825,7 +3320,7 @@ func (x *GetAppAIConfigResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetAppAIConfigResponse.ProtoReflect.Descriptor instead.
 func (*GetAppAIConfigResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{38}
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{44}
 }
 
 func (x *GetAppAIConfigResponse) GetConfig() *AIConfig {
@@ -2835,16 +3330,31 @@ func (x *GetAppAIConfigResponse) GetConfig() *AIConfig {
 	return nil
 }
 
+func (x *GetAppAIConfigResponse) GetRevision() string {
+	if x != nil {
+		return x.Revision
+	}
+	return ""
+}
+
+func (x *GetAppAIConfigResponse) GetEffectiveSelections() []*AIConfigEffectiveSelection {
+	if x != nil {
+		return x.EffectiveSelections
+	}
+	return nil
+}
+
 type OverwriteAppAIConfigRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Config        *AIConfig              `protobuf:"bytes,1,opt,name=config,proto3" json:"config,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	Config           *AIConfig              `protobuf:"bytes,1,opt,name=config,proto3" json:"config,omitempty"`
+	ExpectedRevision string                 `protobuf:"bytes,2,opt,name=expected_revision,json=expectedRevision,proto3" json:"expected_revision,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *OverwriteAppAIConfigRequest) Reset() {
 	*x = OverwriteAppAIConfigRequest{}
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[39]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[45]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2856,7 +3366,7 @@ func (x *OverwriteAppAIConfigRequest) String() string {
 func (*OverwriteAppAIConfigRequest) ProtoMessage() {}
 
 func (x *OverwriteAppAIConfigRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[39]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[45]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2869,7 +3379,7 @@ func (x *OverwriteAppAIConfigRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OverwriteAppAIConfigRequest.ProtoReflect.Descriptor instead.
 func (*OverwriteAppAIConfigRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{39}
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{45}
 }
 
 func (x *OverwriteAppAIConfigRequest) GetConfig() *AIConfig {
@@ -2879,16 +3389,26 @@ func (x *OverwriteAppAIConfigRequest) GetConfig() *AIConfig {
 	return nil
 }
 
+func (x *OverwriteAppAIConfigRequest) GetExpectedRevision() string {
+	if x != nil {
+		return x.ExpectedRevision
+	}
+	return ""
+}
+
 type OverwriteAppAIConfigResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Config        *AIConfig              `protobuf:"bytes,1,opt,name=config,proto3" json:"config,omitempty"`
+	Revision      string                 `protobuf:"bytes,2,opt,name=revision,proto3" json:"revision,omitempty"`
+	Committed     bool                   `protobuf:"varint,3,opt,name=committed,proto3" json:"committed,omitempty"`
+	ReasonCode    ReasonCode             `protobuf:"varint,4,opt,name=reason_code,json=reasonCode,proto3,enum=nimi.runtime.v1.ReasonCode" json:"reason_code,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *OverwriteAppAIConfigResponse) Reset() {
 	*x = OverwriteAppAIConfigResponse{}
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[40]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[46]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2900,7 +3420,7 @@ func (x *OverwriteAppAIConfigResponse) String() string {
 func (*OverwriteAppAIConfigResponse) ProtoMessage() {}
 
 func (x *OverwriteAppAIConfigResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[40]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[46]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2913,7 +3433,7 @@ func (x *OverwriteAppAIConfigResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OverwriteAppAIConfigResponse.ProtoReflect.Descriptor instead.
 func (*OverwriteAppAIConfigResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{40}
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{46}
 }
 
 func (x *OverwriteAppAIConfigResponse) GetConfig() *AIConfig {
@@ -2921,6 +3441,27 @@ func (x *OverwriteAppAIConfigResponse) GetConfig() *AIConfig {
 		return x.Config
 	}
 	return nil
+}
+
+func (x *OverwriteAppAIConfigResponse) GetRevision() string {
+	if x != nil {
+		return x.Revision
+	}
+	return ""
+}
+
+func (x *OverwriteAppAIConfigResponse) GetCommitted() bool {
+	if x != nil {
+		return x.Committed
+	}
+	return false
+}
+
+func (x *OverwriteAppAIConfigResponse) GetReasonCode() ReasonCode {
+	if x != nil {
+		return x.ReasonCode
+	}
+	return ReasonCode_REASON_CODE_UNSPECIFIED
 }
 
 type LoadoutRecipeCustodyDescriptor struct {
@@ -2935,7 +3476,7 @@ type LoadoutRecipeCustodyDescriptor struct {
 
 func (x *LoadoutRecipeCustodyDescriptor) Reset() {
 	*x = LoadoutRecipeCustodyDescriptor{}
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[41]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[47]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2947,7 +3488,7 @@ func (x *LoadoutRecipeCustodyDescriptor) String() string {
 func (*LoadoutRecipeCustodyDescriptor) ProtoMessage() {}
 
 func (x *LoadoutRecipeCustodyDescriptor) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[41]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[47]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2960,7 +3501,7 @@ func (x *LoadoutRecipeCustodyDescriptor) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LoadoutRecipeCustodyDescriptor.ProtoReflect.Descriptor instead.
 func (*LoadoutRecipeCustodyDescriptor) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{41}
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{47}
 }
 
 func (x *LoadoutRecipeCustodyDescriptor) GetFile() string {
@@ -3172,8 +3713,10 @@ const file_runtime_v1_capability_configuration_proto_rawDesc = "" +
 	"\rAIConfigOwner\x125\n" +
 	"\x03app\x18\x01 \x01(\v2!.nimi.runtime.v1.AIConfigAppOwnerH\x00R\x03app\x12}\n" +
 	"\x1druntime_local_agent_subsystem\x18\x02 \x01(\v28.nimi.runtime.v1.AIConfigRuntimeLocalAgentSubsystemOwnerH\x00R\x1aruntimeLocalAgentSubsystemB\a\n" +
-	"\x05owner\"\x15\n" +
-	"\x13AIConfigLocalIntent\"\xd7\x01\n" +
+	"\x05owner\"6\n" +
+	"\x13AIConfigLocalIntent\x12\x1f\n" +
+	"\vloadout_ref\x18\x01 \x01(\tR\n" +
+	"loadoutRef\"\xd7\x01\n" +
 	"\x13AIConfigCloudIntent\x12Y\n" +
 	"\x0eimplementation\x18\x01 \x01(\v21.nimi.runtime.v1.CapabilityImplementationIdentityR\x0eimplementation\x12K\n" +
 	"\x15provider_model_target\x18\x02 \x01(\v2\x17.google.protobuf.StructR\x13providerModelTargetJ\x04\b\x03\x10\x04R\x12connector_grant_id\"\xb2\x02\n" +
@@ -3186,15 +3729,51 @@ const file_runtime_v1_capability_configuration_proto_rawDesc = "" +
 	"\x05route\"\x8f\x01\n" +
 	"\bAIConfig\x124\n" +
 	"\x05owner\x18\x01 \x01(\v2\x1e.nimi.runtime.v1.AIConfigOwnerR\x05owner\x12M\n" +
-	"\fcapabilities\x18\x02 \x03(\v2).nimi.runtime.v1.AIConfigCapabilityIntentR\fcapabilities\"M\n" +
+	"\fcapabilities\x18\x02 \x03(\v2).nimi.runtime.v1.AIConfigCapabilityIntentR\fcapabilities\"\xec\x02\n" +
+	"\x1fAIConfigLocalResourceProjection\x12\x1f\n" +
+	"\vloadout_ref\x18\x01 \x01(\tR\n" +
+	"loadoutRef\x12\x14\n" +
+	"\x05label\x18\x02 \x01(\tR\x05label\x12/\n" +
+	"\x13capability_contract\x18\x03 \x01(\tR\x12capabilityContract\x12Y\n" +
+	"\x0eimplementation\x18\x04 \x01(\v21.nimi.runtime.v1.CapabilityImplementationIdentityR\x0eimplementation\x12-\n" +
+	"\x12supported_features\x18\x05 \x03(\tR\x11supportedFeatures\x12=\n" +
+	"\x05state\x18\x06 \x01(\x0e2'.nimi.runtime.v1.AIConfigEffectiveStateR\x05state\x12\x18\n" +
+	"\areasons\x18\a \x03(\tR\areasons\"\xfc\x01\n" +
+	"\x1aAIConfigEffectiveSelection\x12/\n" +
+	"\x13capability_contract\x18\x01 \x01(\tR\x12capabilityContract\x12=\n" +
+	"\x05state\x18\x02 \x01(\x0e2'.nimi.runtime.v1.AIConfigEffectiveStateR\x05state\x12H\n" +
+	"\x05local\x18\x03 \x01(\v20.nimi.runtime.v1.AIConfigLocalResourceProjectionH\x00R\x05local\x12\x18\n" +
+	"\areasons\x18\x04 \x03(\tR\areasonsB\n" +
+	"\n" +
+	"\bresource\"k\n" +
+	" AIConfigLocalLoadoutOptionsQuery\x12/\n" +
+	"\x13capability_contract\x18\x01 \x01(\tR\x12capabilityContract\x12\x16\n" +
+	"\x06search\x18\x02 \x01(\tR\x06search\"i\n" +
+	"\x1bAIConfigLocalLoadoutOptions\x12J\n" +
+	"\aoptions\x18\x01 \x03(\v20.nimi.runtime.v1.AIConfigLocalResourceProjectionR\aoptions\"\xba\x01\n" +
+	"\x1dListAppAIConfigOptionsRequest\x12Z\n" +
+	"\x0elocal_loadouts\x18\x01 \x01(\v21.nimi.runtime.v1.AIConfigLocalLoadoutOptionsQueryH\x00R\rlocalLoadouts\x124\n" +
+	"\x05owner\x18\x04 \x01(\v2\x1e.nimi.runtime.v1.AIConfigOwnerR\x05ownerB\a\n" +
+	"\x05query\"\x9f\x01\n" +
+	"\x1eListAppAIConfigOptionsResponse\x12U\n" +
+	"\x0elocal_loadouts\x18\x01 \x01(\v2,.nimi.runtime.v1.AIConfigLocalLoadoutOptionsH\x00R\rlocalLoadouts\x12\x1c\n" +
+	"\ttruncated\x18\x02 \x01(\bR\ttruncatedB\b\n" +
+	"\x06result\"M\n" +
 	"\x15GetAppAIConfigRequest\x124\n" +
-	"\x05owner\x18\x01 \x01(\v2\x1e.nimi.runtime.v1.AIConfigOwnerR\x05owner\"K\n" +
+	"\x05owner\x18\x01 \x01(\v2\x1e.nimi.runtime.v1.AIConfigOwnerR\x05owner\"\xc7\x01\n" +
 	"\x16GetAppAIConfigResponse\x121\n" +
-	"\x06config\x18\x01 \x01(\v2\x19.nimi.runtime.v1.AIConfigR\x06config\"P\n" +
+	"\x06config\x18\x01 \x01(\v2\x19.nimi.runtime.v1.AIConfigR\x06config\x12\x1a\n" +
+	"\brevision\x18\x02 \x01(\tR\brevision\x12^\n" +
+	"\x14effective_selections\x18\x03 \x03(\v2+.nimi.runtime.v1.AIConfigEffectiveSelectionR\x13effectiveSelections\"}\n" +
 	"\x1bOverwriteAppAIConfigRequest\x121\n" +
-	"\x06config\x18\x01 \x01(\v2\x19.nimi.runtime.v1.AIConfigR\x06config\"Q\n" +
+	"\x06config\x18\x01 \x01(\v2\x19.nimi.runtime.v1.AIConfigR\x06config\x12+\n" +
+	"\x11expected_revision\x18\x02 \x01(\tR\x10expectedRevision\"\xc9\x01\n" +
 	"\x1cOverwriteAppAIConfigResponse\x121\n" +
-	"\x06config\x18\x01 \x01(\v2\x19.nimi.runtime.v1.AIConfigR\x06config\"x\n" +
+	"\x06config\x18\x01 \x01(\v2\x19.nimi.runtime.v1.AIConfigR\x06config\x12\x1a\n" +
+	"\brevision\x18\x02 \x01(\tR\brevision\x12\x1c\n" +
+	"\tcommitted\x18\x03 \x01(\bR\tcommitted\x12<\n" +
+	"\vreason_code\x18\x04 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
+	"reasonCode\"x\n" +
 	"\x1eLoadoutRecipeCustodyDescriptor\x12\x12\n" +
 	"\x04file\x18\x01 \x01(\tR\x04file\x12\x16\n" +
 	"\x06sha256\x18\x02 \x01(\tR\x06sha256\x12\x16\n" +
@@ -3234,7 +3813,13 @@ const file_runtime_v1_capability_configuration_proto_rawDesc = "" +
 	"$LOADOUT_VALIDATION_STATE_UNSPECIFIED\x10\x00\x12'\n" +
 	"#LOADOUT_VALIDATION_STATE_CONFIGURED\x10\x01\x12'\n" +
 	"#LOADOUT_VALIDATION_STATE_UNRESOLVED\x10\x02\x12$\n" +
-	" LOADOUT_VALIDATION_STATE_BLOCKED\x10\x03B?Z=github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1b\x06proto3"
+	" LOADOUT_VALIDATION_STATE_BLOCKED\x10\x03*\xe1\x01\n" +
+	"\x16AIConfigEffectiveState\x12)\n" +
+	"%AI_CONFIG_EFFECTIVE_STATE_UNSPECIFIED\x10\x00\x12#\n" +
+	"\x1fAI_CONFIG_EFFECTIVE_STATE_READY\x10\x01\x12%\n" +
+	"!AI_CONFIG_EFFECTIVE_STATE_MISSING\x10\x02\x12%\n" +
+	"!AI_CONFIG_EFFECTIVE_STATE_BLOCKED\x10\x03\x12)\n" +
+	"%AI_CONFIG_EFFECTIVE_STATE_UNAVAILABLE\x10\x04B?Z=github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1b\x06proto3"
 
 var (
 	file_runtime_v1_capability_configuration_proto_rawDescOnce sync.Once
@@ -3248,8 +3833,8 @@ func file_runtime_v1_capability_configuration_proto_rawDescGZIP() []byte {
 	return file_runtime_v1_capability_configuration_proto_rawDescData
 }
 
-var file_runtime_v1_capability_configuration_proto_enumTypes = make([]protoimpl.EnumInfo, 6)
-var file_runtime_v1_capability_configuration_proto_msgTypes = make([]protoimpl.MessageInfo, 42)
+var file_runtime_v1_capability_configuration_proto_enumTypes = make([]protoimpl.EnumInfo, 7)
+var file_runtime_v1_capability_configuration_proto_msgTypes = make([]protoimpl.MessageInfo, 48)
 var file_runtime_v1_capability_configuration_proto_goTypes = []any{
 	(LocalCapabilityInterpretability)(0),            // 0: nimi.runtime.v1.LocalCapabilityInterpretability
 	(LocalCapabilityRequirementResolution)(0),       // 1: nimi.runtime.v1.LocalCapabilityRequirementResolution
@@ -3257,107 +3842,124 @@ var file_runtime_v1_capability_configuration_proto_goTypes = []any{
 	(LocalCapabilityRequirementRole)(0),             // 3: nimi.runtime.v1.LocalCapabilityRequirementRole
 	(LocalCapabilityReason)(0),                      // 4: nimi.runtime.v1.LocalCapabilityReason
 	(LoadoutValidationState)(0),                     // 5: nimi.runtime.v1.LoadoutValidationState
-	(*CapabilityImplementationIdentity)(nil),        // 6: nimi.runtime.v1.CapabilityImplementationIdentity
-	(*LocalCapabilityRequirement)(nil),              // 7: nimi.runtime.v1.LocalCapabilityRequirement
-	(*ModelAssetExactBinding)(nil),                  // 8: nimi.runtime.v1.ModelAssetExactBinding
-	(*LoadoutModelAxis)(nil),                        // 9: nimi.runtime.v1.LoadoutModelAxis
-	(*LoadoutRecipeCustodyReference)(nil),           // 10: nimi.runtime.v1.LoadoutRecipeCustodyReference
-	(*Loadout)(nil),                                 // 11: nimi.runtime.v1.Loadout
-	(*LoadoutSelection)(nil),                        // 12: nimi.runtime.v1.LoadoutSelection
-	(*MachineLoadouts)(nil),                         // 13: nimi.runtime.v1.MachineLoadouts
-	(*LoadoutModelAxisInput)(nil),                   // 14: nimi.runtime.v1.LoadoutModelAxisInput
-	(*LoadoutImpactProjection)(nil),                 // 15: nimi.runtime.v1.LoadoutImpactProjection
-	(*LoadoutRecipeSlotDescriptor)(nil),             // 16: nimi.runtime.v1.LoadoutRecipeSlotDescriptor
-	(*LoadoutRecipeDescriptor)(nil),                 // 17: nimi.runtime.v1.LoadoutRecipeDescriptor
-	(*ListLoadoutRecipesRequest)(nil),               // 18: nimi.runtime.v1.ListLoadoutRecipesRequest
-	(*ListLoadoutRecipesResponse)(nil),              // 19: nimi.runtime.v1.ListLoadoutRecipesResponse
-	(*GetMachineLoadoutsRequest)(nil),               // 20: nimi.runtime.v1.GetMachineLoadoutsRequest
-	(*GetMachineLoadoutsResponse)(nil),              // 21: nimi.runtime.v1.GetMachineLoadoutsResponse
-	(*GetLoadoutRequest)(nil),                       // 22: nimi.runtime.v1.GetLoadoutRequest
-	(*GetLoadoutResponse)(nil),                      // 23: nimi.runtime.v1.GetLoadoutResponse
-	(*PrepareLoadoutRequest)(nil),                   // 24: nimi.runtime.v1.PrepareLoadoutRequest
-	(*PrepareLoadoutResponse)(nil),                  // 25: nimi.runtime.v1.PrepareLoadoutResponse
-	(*CommitLoadoutRequest)(nil),                    // 26: nimi.runtime.v1.CommitLoadoutRequest
-	(*CommitLoadoutResponse)(nil),                   // 27: nimi.runtime.v1.CommitLoadoutResponse
-	(*UpdateLoadoutRequest)(nil),                    // 28: nimi.runtime.v1.UpdateLoadoutRequest
-	(*UpdateLoadoutResponse)(nil),                   // 29: nimi.runtime.v1.UpdateLoadoutResponse
-	(*SelectLoadoutRequest)(nil),                    // 30: nimi.runtime.v1.SelectLoadoutRequest
-	(*SelectLoadoutResponse)(nil),                   // 31: nimi.runtime.v1.SelectLoadoutResponse
-	(*DeleteLoadoutRequest)(nil),                    // 32: nimi.runtime.v1.DeleteLoadoutRequest
-	(*DeleteLoadoutResponse)(nil),                   // 33: nimi.runtime.v1.DeleteLoadoutResponse
-	(*LoadoutEffectiveModelAxisIdentity)(nil),       // 34: nimi.runtime.v1.LoadoutEffectiveModelAxisIdentity
-	(*LoadoutEffectiveInputIdentity)(nil),           // 35: nimi.runtime.v1.LoadoutEffectiveInputIdentity
-	(*AIConfigAppOwner)(nil),                        // 36: nimi.runtime.v1.AIConfigAppOwner
-	(*AIConfigRuntimeLocalAgentSubsystemOwner)(nil), // 37: nimi.runtime.v1.AIConfigRuntimeLocalAgentSubsystemOwner
-	(*AIConfigOwner)(nil),                           // 38: nimi.runtime.v1.AIConfigOwner
-	(*AIConfigLocalIntent)(nil),                     // 39: nimi.runtime.v1.AIConfigLocalIntent
-	(*AIConfigCloudIntent)(nil),                     // 40: nimi.runtime.v1.AIConfigCloudIntent
-	(*AIConfigCapabilityIntent)(nil),                // 41: nimi.runtime.v1.AIConfigCapabilityIntent
-	(*AIConfig)(nil),                                // 42: nimi.runtime.v1.AIConfig
-	(*GetAppAIConfigRequest)(nil),                   // 43: nimi.runtime.v1.GetAppAIConfigRequest
-	(*GetAppAIConfigResponse)(nil),                  // 44: nimi.runtime.v1.GetAppAIConfigResponse
-	(*OverwriteAppAIConfigRequest)(nil),             // 45: nimi.runtime.v1.OverwriteAppAIConfigRequest
-	(*OverwriteAppAIConfigResponse)(nil),            // 46: nimi.runtime.v1.OverwriteAppAIConfigResponse
-	(*LoadoutRecipeCustodyDescriptor)(nil),          // 47: nimi.runtime.v1.LoadoutRecipeCustodyDescriptor
-	(*structpb.Struct)(nil),                         // 48: google.protobuf.Struct
-	(ReasonCode)(0),                                 // 49: nimi.runtime.v1.ReasonCode
+	(AIConfigEffectiveState)(0),                     // 6: nimi.runtime.v1.AIConfigEffectiveState
+	(*CapabilityImplementationIdentity)(nil),        // 7: nimi.runtime.v1.CapabilityImplementationIdentity
+	(*LocalCapabilityRequirement)(nil),              // 8: nimi.runtime.v1.LocalCapabilityRequirement
+	(*ModelAssetExactBinding)(nil),                  // 9: nimi.runtime.v1.ModelAssetExactBinding
+	(*LoadoutModelAxis)(nil),                        // 10: nimi.runtime.v1.LoadoutModelAxis
+	(*LoadoutRecipeCustodyReference)(nil),           // 11: nimi.runtime.v1.LoadoutRecipeCustodyReference
+	(*Loadout)(nil),                                 // 12: nimi.runtime.v1.Loadout
+	(*LoadoutSelection)(nil),                        // 13: nimi.runtime.v1.LoadoutSelection
+	(*MachineLoadouts)(nil),                         // 14: nimi.runtime.v1.MachineLoadouts
+	(*LoadoutModelAxisInput)(nil),                   // 15: nimi.runtime.v1.LoadoutModelAxisInput
+	(*LoadoutImpactProjection)(nil),                 // 16: nimi.runtime.v1.LoadoutImpactProjection
+	(*LoadoutRecipeSlotDescriptor)(nil),             // 17: nimi.runtime.v1.LoadoutRecipeSlotDescriptor
+	(*LoadoutRecipeDescriptor)(nil),                 // 18: nimi.runtime.v1.LoadoutRecipeDescriptor
+	(*ListLoadoutRecipesRequest)(nil),               // 19: nimi.runtime.v1.ListLoadoutRecipesRequest
+	(*ListLoadoutRecipesResponse)(nil),              // 20: nimi.runtime.v1.ListLoadoutRecipesResponse
+	(*GetMachineLoadoutsRequest)(nil),               // 21: nimi.runtime.v1.GetMachineLoadoutsRequest
+	(*GetMachineLoadoutsResponse)(nil),              // 22: nimi.runtime.v1.GetMachineLoadoutsResponse
+	(*GetLoadoutRequest)(nil),                       // 23: nimi.runtime.v1.GetLoadoutRequest
+	(*GetLoadoutResponse)(nil),                      // 24: nimi.runtime.v1.GetLoadoutResponse
+	(*PrepareLoadoutRequest)(nil),                   // 25: nimi.runtime.v1.PrepareLoadoutRequest
+	(*PrepareLoadoutResponse)(nil),                  // 26: nimi.runtime.v1.PrepareLoadoutResponse
+	(*CommitLoadoutRequest)(nil),                    // 27: nimi.runtime.v1.CommitLoadoutRequest
+	(*CommitLoadoutResponse)(nil),                   // 28: nimi.runtime.v1.CommitLoadoutResponse
+	(*UpdateLoadoutRequest)(nil),                    // 29: nimi.runtime.v1.UpdateLoadoutRequest
+	(*UpdateLoadoutResponse)(nil),                   // 30: nimi.runtime.v1.UpdateLoadoutResponse
+	(*SelectLoadoutRequest)(nil),                    // 31: nimi.runtime.v1.SelectLoadoutRequest
+	(*SelectLoadoutResponse)(nil),                   // 32: nimi.runtime.v1.SelectLoadoutResponse
+	(*DeleteLoadoutRequest)(nil),                    // 33: nimi.runtime.v1.DeleteLoadoutRequest
+	(*DeleteLoadoutResponse)(nil),                   // 34: nimi.runtime.v1.DeleteLoadoutResponse
+	(*LoadoutEffectiveModelAxisIdentity)(nil),       // 35: nimi.runtime.v1.LoadoutEffectiveModelAxisIdentity
+	(*LoadoutEffectiveInputIdentity)(nil),           // 36: nimi.runtime.v1.LoadoutEffectiveInputIdentity
+	(*AIConfigAppOwner)(nil),                        // 37: nimi.runtime.v1.AIConfigAppOwner
+	(*AIConfigRuntimeLocalAgentSubsystemOwner)(nil), // 38: nimi.runtime.v1.AIConfigRuntimeLocalAgentSubsystemOwner
+	(*AIConfigOwner)(nil),                           // 39: nimi.runtime.v1.AIConfigOwner
+	(*AIConfigLocalIntent)(nil),                     // 40: nimi.runtime.v1.AIConfigLocalIntent
+	(*AIConfigCloudIntent)(nil),                     // 41: nimi.runtime.v1.AIConfigCloudIntent
+	(*AIConfigCapabilityIntent)(nil),                // 42: nimi.runtime.v1.AIConfigCapabilityIntent
+	(*AIConfig)(nil),                                // 43: nimi.runtime.v1.AIConfig
+	(*AIConfigLocalResourceProjection)(nil),         // 44: nimi.runtime.v1.AIConfigLocalResourceProjection
+	(*AIConfigEffectiveSelection)(nil),              // 45: nimi.runtime.v1.AIConfigEffectiveSelection
+	(*AIConfigLocalLoadoutOptionsQuery)(nil),        // 46: nimi.runtime.v1.AIConfigLocalLoadoutOptionsQuery
+	(*AIConfigLocalLoadoutOptions)(nil),             // 47: nimi.runtime.v1.AIConfigLocalLoadoutOptions
+	(*ListAppAIConfigOptionsRequest)(nil),           // 48: nimi.runtime.v1.ListAppAIConfigOptionsRequest
+	(*ListAppAIConfigOptionsResponse)(nil),          // 49: nimi.runtime.v1.ListAppAIConfigOptionsResponse
+	(*GetAppAIConfigRequest)(nil),                   // 50: nimi.runtime.v1.GetAppAIConfigRequest
+	(*GetAppAIConfigResponse)(nil),                  // 51: nimi.runtime.v1.GetAppAIConfigResponse
+	(*OverwriteAppAIConfigRequest)(nil),             // 52: nimi.runtime.v1.OverwriteAppAIConfigRequest
+	(*OverwriteAppAIConfigResponse)(nil),            // 53: nimi.runtime.v1.OverwriteAppAIConfigResponse
+	(*LoadoutRecipeCustodyDescriptor)(nil),          // 54: nimi.runtime.v1.LoadoutRecipeCustodyDescriptor
+	(*structpb.Struct)(nil),                         // 55: google.protobuf.Struct
+	(ReasonCode)(0),                                 // 56: nimi.runtime.v1.ReasonCode
 }
 var file_runtime_v1_capability_configuration_proto_depIdxs = []int32{
 	3,  // 0: nimi.runtime.v1.LocalCapabilityRequirement.role:type_name -> nimi.runtime.v1.LocalCapabilityRequirementRole
 	2,  // 1: nimi.runtime.v1.LocalCapabilityRequirement.policy:type_name -> nimi.runtime.v1.LocalCapabilityRequirementPolicy
-	48, // 2: nimi.runtime.v1.LocalCapabilityRequirement.compatibility_constraints:type_name -> google.protobuf.Struct
-	49, // 3: nimi.runtime.v1.LoadoutModelAxis.reasons:type_name -> nimi.runtime.v1.ReasonCode
-	6,  // 4: nimi.runtime.v1.Loadout.implementation:type_name -> nimi.runtime.v1.CapabilityImplementationIdentity
-	48, // 5: nimi.runtime.v1.Loadout.options:type_name -> google.protobuf.Struct
-	9,  // 6: nimi.runtime.v1.Loadout.model_axes:type_name -> nimi.runtime.v1.LoadoutModelAxis
-	10, // 7: nimi.runtime.v1.Loadout.recipe_custody:type_name -> nimi.runtime.v1.LoadoutRecipeCustodyReference
+	55, // 2: nimi.runtime.v1.LocalCapabilityRequirement.compatibility_constraints:type_name -> google.protobuf.Struct
+	56, // 3: nimi.runtime.v1.LoadoutModelAxis.reasons:type_name -> nimi.runtime.v1.ReasonCode
+	7,  // 4: nimi.runtime.v1.Loadout.implementation:type_name -> nimi.runtime.v1.CapabilityImplementationIdentity
+	55, // 5: nimi.runtime.v1.Loadout.options:type_name -> google.protobuf.Struct
+	10, // 6: nimi.runtime.v1.Loadout.model_axes:type_name -> nimi.runtime.v1.LoadoutModelAxis
+	11, // 7: nimi.runtime.v1.Loadout.recipe_custody:type_name -> nimi.runtime.v1.LoadoutRecipeCustodyReference
 	5,  // 8: nimi.runtime.v1.Loadout.validation_state:type_name -> nimi.runtime.v1.LoadoutValidationState
-	49, // 9: nimi.runtime.v1.Loadout.reasons:type_name -> nimi.runtime.v1.ReasonCode
-	48, // 10: nimi.runtime.v1.Loadout.provenance:type_name -> google.protobuf.Struct
-	48, // 11: nimi.runtime.v1.LoadoutSelection.effective_defaults:type_name -> google.protobuf.Struct
-	11, // 12: nimi.runtime.v1.MachineLoadouts.loadouts:type_name -> nimi.runtime.v1.Loadout
-	12, // 13: nimi.runtime.v1.MachineLoadouts.selections:type_name -> nimi.runtime.v1.LoadoutSelection
-	48, // 14: nimi.runtime.v1.LoadoutRecipeSlotDescriptor.model_contract:type_name -> google.protobuf.Struct
-	6,  // 15: nimi.runtime.v1.LoadoutRecipeDescriptor.implementation:type_name -> nimi.runtime.v1.CapabilityImplementationIdentity
-	48, // 16: nimi.runtime.v1.LoadoutRecipeDescriptor.default_options:type_name -> google.protobuf.Struct
-	16, // 17: nimi.runtime.v1.LoadoutRecipeDescriptor.slots:type_name -> nimi.runtime.v1.LoadoutRecipeSlotDescriptor
-	47, // 18: nimi.runtime.v1.LoadoutRecipeDescriptor.custody:type_name -> nimi.runtime.v1.LoadoutRecipeCustodyDescriptor
-	17, // 19: nimi.runtime.v1.ListLoadoutRecipesResponse.recipes:type_name -> nimi.runtime.v1.LoadoutRecipeDescriptor
-	13, // 20: nimi.runtime.v1.GetMachineLoadoutsResponse.aggregate:type_name -> nimi.runtime.v1.MachineLoadouts
-	11, // 21: nimi.runtime.v1.GetLoadoutResponse.loadout:type_name -> nimi.runtime.v1.Loadout
-	48, // 22: nimi.runtime.v1.PrepareLoadoutRequest.options:type_name -> google.protobuf.Struct
-	14, // 23: nimi.runtime.v1.PrepareLoadoutRequest.model_axes:type_name -> nimi.runtime.v1.LoadoutModelAxisInput
-	48, // 24: nimi.runtime.v1.PrepareLoadoutRequest.provenance:type_name -> google.protobuf.Struct
-	11, // 25: nimi.runtime.v1.PrepareLoadoutResponse.proposed_loadout:type_name -> nimi.runtime.v1.Loadout
-	15, // 26: nimi.runtime.v1.PrepareLoadoutResponse.impact:type_name -> nimi.runtime.v1.LoadoutImpactProjection
-	11, // 27: nimi.runtime.v1.CommitLoadoutResponse.loadout:type_name -> nimi.runtime.v1.Loadout
-	48, // 28: nimi.runtime.v1.UpdateLoadoutRequest.options:type_name -> google.protobuf.Struct
-	14, // 29: nimi.runtime.v1.UpdateLoadoutRequest.model_axes:type_name -> nimi.runtime.v1.LoadoutModelAxisInput
-	48, // 30: nimi.runtime.v1.UpdateLoadoutRequest.provenance:type_name -> google.protobuf.Struct
-	11, // 31: nimi.runtime.v1.UpdateLoadoutResponse.loadout:type_name -> nimi.runtime.v1.Loadout
-	12, // 32: nimi.runtime.v1.SelectLoadoutResponse.selection:type_name -> nimi.runtime.v1.LoadoutSelection
-	6,  // 33: nimi.runtime.v1.LoadoutEffectiveInputIdentity.implementation:type_name -> nimi.runtime.v1.CapabilityImplementationIdentity
-	48, // 34: nimi.runtime.v1.LoadoutEffectiveInputIdentity.options:type_name -> google.protobuf.Struct
-	34, // 35: nimi.runtime.v1.LoadoutEffectiveInputIdentity.model_axes:type_name -> nimi.runtime.v1.LoadoutEffectiveModelAxisIdentity
-	10, // 36: nimi.runtime.v1.LoadoutEffectiveInputIdentity.recipe_custody:type_name -> nimi.runtime.v1.LoadoutRecipeCustodyReference
-	36, // 37: nimi.runtime.v1.AIConfigOwner.app:type_name -> nimi.runtime.v1.AIConfigAppOwner
-	37, // 38: nimi.runtime.v1.AIConfigOwner.runtime_local_agent_subsystem:type_name -> nimi.runtime.v1.AIConfigRuntimeLocalAgentSubsystemOwner
-	6,  // 39: nimi.runtime.v1.AIConfigCloudIntent.implementation:type_name -> nimi.runtime.v1.CapabilityImplementationIdentity
-	48, // 40: nimi.runtime.v1.AIConfigCloudIntent.provider_model_target:type_name -> google.protobuf.Struct
-	48, // 41: nimi.runtime.v1.AIConfigCapabilityIntent.defaults:type_name -> google.protobuf.Struct
-	39, // 42: nimi.runtime.v1.AIConfigCapabilityIntent.local:type_name -> nimi.runtime.v1.AIConfigLocalIntent
-	40, // 43: nimi.runtime.v1.AIConfigCapabilityIntent.cloud:type_name -> nimi.runtime.v1.AIConfigCloudIntent
-	38, // 44: nimi.runtime.v1.AIConfig.owner:type_name -> nimi.runtime.v1.AIConfigOwner
-	41, // 45: nimi.runtime.v1.AIConfig.capabilities:type_name -> nimi.runtime.v1.AIConfigCapabilityIntent
-	38, // 46: nimi.runtime.v1.GetAppAIConfigRequest.owner:type_name -> nimi.runtime.v1.AIConfigOwner
-	42, // 47: nimi.runtime.v1.GetAppAIConfigResponse.config:type_name -> nimi.runtime.v1.AIConfig
-	42, // 48: nimi.runtime.v1.OverwriteAppAIConfigRequest.config:type_name -> nimi.runtime.v1.AIConfig
-	42, // 49: nimi.runtime.v1.OverwriteAppAIConfigResponse.config:type_name -> nimi.runtime.v1.AIConfig
-	50, // [50:50] is the sub-list for method output_type
-	50, // [50:50] is the sub-list for method input_type
-	50, // [50:50] is the sub-list for extension type_name
-	50, // [50:50] is the sub-list for extension extendee
-	0,  // [0:50] is the sub-list for field type_name
+	56, // 9: nimi.runtime.v1.Loadout.reasons:type_name -> nimi.runtime.v1.ReasonCode
+	55, // 10: nimi.runtime.v1.Loadout.provenance:type_name -> google.protobuf.Struct
+	55, // 11: nimi.runtime.v1.LoadoutSelection.effective_defaults:type_name -> google.protobuf.Struct
+	12, // 12: nimi.runtime.v1.MachineLoadouts.loadouts:type_name -> nimi.runtime.v1.Loadout
+	13, // 13: nimi.runtime.v1.MachineLoadouts.selections:type_name -> nimi.runtime.v1.LoadoutSelection
+	55, // 14: nimi.runtime.v1.LoadoutRecipeSlotDescriptor.model_contract:type_name -> google.protobuf.Struct
+	7,  // 15: nimi.runtime.v1.LoadoutRecipeDescriptor.implementation:type_name -> nimi.runtime.v1.CapabilityImplementationIdentity
+	55, // 16: nimi.runtime.v1.LoadoutRecipeDescriptor.default_options:type_name -> google.protobuf.Struct
+	17, // 17: nimi.runtime.v1.LoadoutRecipeDescriptor.slots:type_name -> nimi.runtime.v1.LoadoutRecipeSlotDescriptor
+	54, // 18: nimi.runtime.v1.LoadoutRecipeDescriptor.custody:type_name -> nimi.runtime.v1.LoadoutRecipeCustodyDescriptor
+	18, // 19: nimi.runtime.v1.ListLoadoutRecipesResponse.recipes:type_name -> nimi.runtime.v1.LoadoutRecipeDescriptor
+	14, // 20: nimi.runtime.v1.GetMachineLoadoutsResponse.aggregate:type_name -> nimi.runtime.v1.MachineLoadouts
+	12, // 21: nimi.runtime.v1.GetLoadoutResponse.loadout:type_name -> nimi.runtime.v1.Loadout
+	55, // 22: nimi.runtime.v1.PrepareLoadoutRequest.options:type_name -> google.protobuf.Struct
+	15, // 23: nimi.runtime.v1.PrepareLoadoutRequest.model_axes:type_name -> nimi.runtime.v1.LoadoutModelAxisInput
+	55, // 24: nimi.runtime.v1.PrepareLoadoutRequest.provenance:type_name -> google.protobuf.Struct
+	12, // 25: nimi.runtime.v1.PrepareLoadoutResponse.proposed_loadout:type_name -> nimi.runtime.v1.Loadout
+	16, // 26: nimi.runtime.v1.PrepareLoadoutResponse.impact:type_name -> nimi.runtime.v1.LoadoutImpactProjection
+	12, // 27: nimi.runtime.v1.CommitLoadoutResponse.loadout:type_name -> nimi.runtime.v1.Loadout
+	55, // 28: nimi.runtime.v1.UpdateLoadoutRequest.options:type_name -> google.protobuf.Struct
+	15, // 29: nimi.runtime.v1.UpdateLoadoutRequest.model_axes:type_name -> nimi.runtime.v1.LoadoutModelAxisInput
+	55, // 30: nimi.runtime.v1.UpdateLoadoutRequest.provenance:type_name -> google.protobuf.Struct
+	12, // 31: nimi.runtime.v1.UpdateLoadoutResponse.loadout:type_name -> nimi.runtime.v1.Loadout
+	13, // 32: nimi.runtime.v1.SelectLoadoutResponse.selection:type_name -> nimi.runtime.v1.LoadoutSelection
+	7,  // 33: nimi.runtime.v1.LoadoutEffectiveInputIdentity.implementation:type_name -> nimi.runtime.v1.CapabilityImplementationIdentity
+	55, // 34: nimi.runtime.v1.LoadoutEffectiveInputIdentity.options:type_name -> google.protobuf.Struct
+	35, // 35: nimi.runtime.v1.LoadoutEffectiveInputIdentity.model_axes:type_name -> nimi.runtime.v1.LoadoutEffectiveModelAxisIdentity
+	11, // 36: nimi.runtime.v1.LoadoutEffectiveInputIdentity.recipe_custody:type_name -> nimi.runtime.v1.LoadoutRecipeCustodyReference
+	37, // 37: nimi.runtime.v1.AIConfigOwner.app:type_name -> nimi.runtime.v1.AIConfigAppOwner
+	38, // 38: nimi.runtime.v1.AIConfigOwner.runtime_local_agent_subsystem:type_name -> nimi.runtime.v1.AIConfigRuntimeLocalAgentSubsystemOwner
+	7,  // 39: nimi.runtime.v1.AIConfigCloudIntent.implementation:type_name -> nimi.runtime.v1.CapabilityImplementationIdentity
+	55, // 40: nimi.runtime.v1.AIConfigCloudIntent.provider_model_target:type_name -> google.protobuf.Struct
+	55, // 41: nimi.runtime.v1.AIConfigCapabilityIntent.defaults:type_name -> google.protobuf.Struct
+	40, // 42: nimi.runtime.v1.AIConfigCapabilityIntent.local:type_name -> nimi.runtime.v1.AIConfigLocalIntent
+	41, // 43: nimi.runtime.v1.AIConfigCapabilityIntent.cloud:type_name -> nimi.runtime.v1.AIConfigCloudIntent
+	39, // 44: nimi.runtime.v1.AIConfig.owner:type_name -> nimi.runtime.v1.AIConfigOwner
+	42, // 45: nimi.runtime.v1.AIConfig.capabilities:type_name -> nimi.runtime.v1.AIConfigCapabilityIntent
+	7,  // 46: nimi.runtime.v1.AIConfigLocalResourceProjection.implementation:type_name -> nimi.runtime.v1.CapabilityImplementationIdentity
+	6,  // 47: nimi.runtime.v1.AIConfigLocalResourceProjection.state:type_name -> nimi.runtime.v1.AIConfigEffectiveState
+	6,  // 48: nimi.runtime.v1.AIConfigEffectiveSelection.state:type_name -> nimi.runtime.v1.AIConfigEffectiveState
+	44, // 49: nimi.runtime.v1.AIConfigEffectiveSelection.local:type_name -> nimi.runtime.v1.AIConfigLocalResourceProjection
+	44, // 50: nimi.runtime.v1.AIConfigLocalLoadoutOptions.options:type_name -> nimi.runtime.v1.AIConfigLocalResourceProjection
+	46, // 51: nimi.runtime.v1.ListAppAIConfigOptionsRequest.local_loadouts:type_name -> nimi.runtime.v1.AIConfigLocalLoadoutOptionsQuery
+	39, // 52: nimi.runtime.v1.ListAppAIConfigOptionsRequest.owner:type_name -> nimi.runtime.v1.AIConfigOwner
+	47, // 53: nimi.runtime.v1.ListAppAIConfigOptionsResponse.local_loadouts:type_name -> nimi.runtime.v1.AIConfigLocalLoadoutOptions
+	39, // 54: nimi.runtime.v1.GetAppAIConfigRequest.owner:type_name -> nimi.runtime.v1.AIConfigOwner
+	43, // 55: nimi.runtime.v1.GetAppAIConfigResponse.config:type_name -> nimi.runtime.v1.AIConfig
+	45, // 56: nimi.runtime.v1.GetAppAIConfigResponse.effective_selections:type_name -> nimi.runtime.v1.AIConfigEffectiveSelection
+	43, // 57: nimi.runtime.v1.OverwriteAppAIConfigRequest.config:type_name -> nimi.runtime.v1.AIConfig
+	43, // 58: nimi.runtime.v1.OverwriteAppAIConfigResponse.config:type_name -> nimi.runtime.v1.AIConfig
+	56, // 59: nimi.runtime.v1.OverwriteAppAIConfigResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	60, // [60:60] is the sub-list for method output_type
+	60, // [60:60] is the sub-list for method input_type
+	60, // [60:60] is the sub-list for extension type_name
+	60, // [60:60] is the sub-list for extension extendee
+	0,  // [0:60] is the sub-list for field type_name
 }
 
 func init() { file_runtime_v1_capability_configuration_proto_init() }
@@ -3374,13 +3976,22 @@ func file_runtime_v1_capability_configuration_proto_init() {
 		(*AIConfigCapabilityIntent_Local)(nil),
 		(*AIConfigCapabilityIntent_Cloud)(nil),
 	}
+	file_runtime_v1_capability_configuration_proto_msgTypes[38].OneofWrappers = []any{
+		(*AIConfigEffectiveSelection_Local)(nil),
+	}
+	file_runtime_v1_capability_configuration_proto_msgTypes[41].OneofWrappers = []any{
+		(*ListAppAIConfigOptionsRequest_LocalLoadouts)(nil),
+	}
+	file_runtime_v1_capability_configuration_proto_msgTypes[42].OneofWrappers = []any{
+		(*ListAppAIConfigOptionsResponse_LocalLoadouts)(nil),
+	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_runtime_v1_capability_configuration_proto_rawDesc), len(file_runtime_v1_capability_configuration_proto_rawDesc)),
-			NumEnums:      6,
-			NumMessages:   42,
+			NumEnums:      7,
+			NumMessages:   48,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

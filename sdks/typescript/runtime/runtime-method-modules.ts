@@ -82,6 +82,7 @@ export type RuntimeRootAgentFacadeMethodName =
 export const RUNTIME_AI_METHODS = [
   'getAppAIConfig',
   'overwriteAppAIConfig',
+  'listAppAIConfigOptions',
   'executeScenario',
   'streamScenario',
   'submitScenarioJob',

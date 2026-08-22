@@ -26,6 +26,8 @@ methods:
     posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAgentService/OverwriteLocalAppSharedLocalAgentAIConfig
     posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAgentService/ListLocalAppSharedLocalAgentAIConfigOptions
+    posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentAutonomySnapshot
     posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentAutonomy
@@ -110,6 +112,8 @@ methods:
     posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAgentService/OverwriteSharedLocalAgentAIConfig
     posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAgentService/ListSharedLocalAgentAIConfigOptions
+    posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAgentService/PreviewSharedLocalAgentAIProfile
     posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAgentService/ApplySharedLocalAgentAIProfile
@@ -155,6 +159,8 @@ methods:
   - method_id: /nimi.runtime.v1.RuntimeAiService/GetAppAIConfig
     posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAiService/OverwriteAppAIConfig
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAiService/ListAppAIConfigOptions
     posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAiService/ExecuteScenario
     posture: mixed

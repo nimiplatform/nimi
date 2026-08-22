@@ -77,7 +77,7 @@ describe('Desktop Apps local-development registration projection', () => {
           capabilities: [{
             capabilityContract: 'text.generate',
             requiredFeatures: [],
-            route: { oneofKind: 'local', local: {} },
+            route: { oneofKind: 'local', local: { loadoutRef: 'loadout:text' } },
           }, {
             capabilityContract: 'image.generate',
             requiredFeatures: [],

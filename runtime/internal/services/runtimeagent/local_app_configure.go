@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
-	"github.com/nimiplatform/nimi/runtime/internal/aiconfig"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localappop"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
@@ -37,14 +36,17 @@ func (s *Service) GetLocalAppSharedLocalAgentAIConfig(ctx context.Context, req *
 	if err != nil {
 		return nil, err
 	}
-	config, found, err := s.readSharedLocalAgentAIConfig(ctx, decision.AccountID)
+	config, revision, found, err := s.readSharedLocalAgentAIConfig(ctx, decision.AccountID)
 	if err != nil {
 		return nil, err
 	}
-	if !found {
-		config = &runtimev1.AIConfig{Owner: aiconfig.LocalAgentSubsystemOwner()}
+	var effective []*runtimev1.AIConfigEffectiveSelection
+	if found {
+		effective = s.projectSharedAIConfigEffectiveSelections(config)
 	}
-	return &runtimev1.GetLocalAppSharedLocalAgentAIConfigResponse{Projection: localAppSharedAIConfigProjection(config)}, nil
+	return &runtimev1.GetLocalAppSharedLocalAgentAIConfigResponse{
+		Projection: localAppSharedAIConfigProjection(config, revision, effective),
+	}, nil
 }
 
 func (s *Service) OverwriteLocalAppSharedLocalAgentAIConfig(ctx context.Context, req *runtimev1.OverwriteLocalAppSharedLocalAgentAIConfigRequest) (*runtimev1.OverwriteLocalAppSharedLocalAgentAIConfigResponse, error) {
@@ -55,18 +57,52 @@ func (s *Service) OverwriteLocalAppSharedLocalAgentAIConfig(ctx context.Context,
 	if err != nil {
 		return nil, err
 	}
-	config, err := s.overwriteSharedLocalAgentAIConfig(ctx, decision.AccountID, req.GetCapabilities())
+	config, revision, committed, err := s.overwriteSharedLocalAgentAIConfig(
+		ctx, decision.AccountID, req.GetExpectedRevision(), req.GetCapabilities(),
+	)
 	if err != nil {
 		return nil, err
 	}
-	return &runtimev1.OverwriteLocalAppSharedLocalAgentAIConfigResponse{Projection: localAppSharedAIConfigProjection(config)}, nil
+	response := &runtimev1.OverwriteLocalAppSharedLocalAgentAIConfigResponse{
+		Projection: localAppSharedAIConfigProjection(
+			config, revision, s.projectSharedAIConfigEffectiveSelections(config),
+		),
+		Committed: committed,
+	}
+	if !committed {
+		response.ReasonCode = runtimev1.ReasonCode_AGENT_AI_CONFIG_REVISION_CONFLICT
+	}
+	return response, nil
 }
 
-func localAppSharedAIConfigProjection(config *runtimev1.AIConfig) *runtimev1.LocalAppSharedLocalAgentAIConfigProjection {
-	if config == nil {
-		return nil
+func (s *Service) ListLocalAppSharedLocalAgentAIConfigOptions(
+	ctx context.Context,
+	req *runtimev1.ListLocalAppSharedLocalAgentAIConfigOptionsRequest,
+) (*runtimev1.ListLocalAppSharedLocalAgentAIConfigOptionsResponse, error) {
+	if req == nil {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
-	return &runtimev1.LocalAppSharedLocalAgentAIConfigProjection{Config: cloneAIConfig(config)}
+	if _, err := authorizedLocalAppSharedAIConfig(ctx, accountservice.LocalAppOperationSharedAIConfigOptions); err != nil {
+		return nil, err
+	}
+	options, truncated, err := s.listSharedAIConfigLocalOptions(req.GetLocalLoadouts())
+	if err != nil {
+		return nil, err
+	}
+	return &runtimev1.ListLocalAppSharedLocalAgentAIConfigOptionsResponse{
+		LocalLoadouts: &runtimev1.AIConfigLocalLoadoutOptions{Options: options},
+		Truncated:     truncated,
+	}, nil
+}
+
+func localAppSharedAIConfigProjection(
+	config *runtimev1.AIConfig,
+	revision string,
+	effective []*runtimev1.AIConfigEffectiveSelection,
+) *runtimev1.LocalAppSharedLocalAgentAIConfigProjection {
+	return &runtimev1.LocalAppSharedLocalAgentAIConfigProjection{
+		Config: cloneAIConfig(config), Revision: revision, EffectiveSelections: effective,
+	}
 }
 
 func (s *Service) GetLocalAppAgentAutonomySnapshot(ctx context.Context, req *runtimev1.GetLocalAppAgentAutonomySnapshotRequest) (*runtimev1.LocalAppAgentAutonomySnapshotResponse, error) {

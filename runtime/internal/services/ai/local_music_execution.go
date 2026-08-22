@@ -51,15 +51,9 @@ func (s *Service) captureLocalMusicEffectiveInputs(ctx context.Context, head *ru
 	if !intent.IsLocal() || intent.CapabilityContract != capabilitydriver.MiniMaxMusic3CapabilityContract {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_CAPABILITY_MISMATCH)
 	}
-	selected, captured := localexecution.SelectedLocalExecutionFromContext(ctx, capabilitydriver.MiniMaxMusic3CapabilityContract)
-	if !captured {
-		if s.localExecution == nil {
-			return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_SELECTION_NOT_FOUND)
-		}
-		selected, err = s.localExecution.ResolveSelectedLocalExecution(capabilitydriver.MiniMaxMusic3CapabilityContract)
-		if err != nil {
-			return nil, err
-		}
+	selected, err := s.resolveReferencedLocalExecution(ctx, intent)
+	if err != nil {
+		return nil, err
 	}
 	if !validSelectedMusicExecution(selected) {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_CONFIGURATION_NOT_CONFIGURED)

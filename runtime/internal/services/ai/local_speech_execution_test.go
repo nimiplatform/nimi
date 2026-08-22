@@ -120,6 +120,7 @@ func TestLocalSpeechMaterializationFailureNeverPublishesRunning(t *testing.T) {
 	ownerCtx := scenarioJobUserContext("app.local", "anonymous")
 	ctx := executionintent.WithIntent(ownerCtx, executionintent.Intent{
 		CapabilityContract: capabilitydriver.AudioSynthesizeContract,
+		LocalLoadoutRef:    "test-loadout:" + capabilitydriver.AudioSynthesizeContract,
 		Route:              runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 	})
 	response, err := svc.SubmitScenarioJob(ctx, &runtimev1.SubmitScenarioJobRequest{
@@ -163,6 +164,7 @@ func TestLocalSpeechJobRejectsPublicTimeoutAboveServerMaximumBeforePublication(t
 	ownerCtx := scenarioJobUserContext("app.local", "anonymous")
 	ctx := executionintent.WithIntent(ownerCtx, executionintent.Intent{
 		CapabilityContract: capabilitydriver.AudioSynthesizeContract,
+		LocalLoadoutRef:    "test-loadout:" + capabilitydriver.AudioSynthesizeContract,
 		Route:              runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 	})
 	response, err := svc.SubmitScenarioJob(ctx, &runtimev1.SubmitScenarioJobRequest{
@@ -210,6 +212,7 @@ func TestLocalSpeechRunningCancelRetainsSchedulerLeaseUntilHostExits(t *testing.
 	ownerCtx := scenarioJobUserContext("app.local", "anonymous")
 	ctx := executionintent.WithIntent(ownerCtx, executionintent.Intent{
 		CapabilityContract: capabilitydriver.AudioSynthesizeContract,
+		LocalLoadoutRef:    "test-loadout:" + capabilitydriver.AudioSynthesizeContract,
 		Route:              runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 	})
 	submit := func(text string) *runtimev1.ScenarioJob {
@@ -285,6 +288,7 @@ func TestLocalSpeechJobRemainsQueuedUntilSchedulerLeaseAndCancelsWithoutEntering
 	ownerCtx := scenarioJobUserContext("app.local", "anonymous")
 	ctx := executionintent.WithIntent(ownerCtx, executionintent.Intent{
 		CapabilityContract: capabilitydriver.AudioSynthesizeContract,
+		LocalLoadoutRef:    "test-loadout:" + capabilitydriver.AudioSynthesizeContract,
 		Route:              runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 	})
 	submit := func(text string, timeoutMS int32) *runtimev1.ScenarioJob {
@@ -491,7 +495,7 @@ func TestQwen3TTSAudioCppScenarioJobUsesSpeechWaistAndRuntimeCustody(t *testing.
 		return localexecution.SpeechSynthesisResult{StagingWAVPath: exact.StagingWAVPath(), SizeBytes: 48044, MIMEType: "audio/wav", ComputeMS: 17}, nil
 	}}
 	svc.SetLocalSpeechExecutionHost(host)
-	ctx := executionintent.WithIntent(scenarioJobUserContext("app.local", "anonymous"), executionintent.Intent{CapabilityContract: capabilitydriver.AudioSynthesizeContract, Route: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL})
+	ctx := executionintent.WithIntent(scenarioJobUserContext("app.local", "anonymous"), executionintent.Intent{CapabilityContract: capabilitydriver.AudioSynthesizeContract, LocalLoadoutRef: "test-loadout:audio.synthesize", Route: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL})
 	response, err := svc.SubmitScenarioJob(ctx, &runtimev1.SubmitScenarioJobRequest{Head: &runtimev1.ScenarioRequestHead{AppId: "app.local", SubjectUserId: "anonymous"}, ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE, ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB, Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_SpeechSynthesize{SpeechSynthesize: &runtimev1.SpeechSynthesizeScenarioSpec{Text: "Hello from the audio.cpp reference.", VoiceRef: &runtimev1.VoiceReference{Kind: runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_PRESET, Reference: &runtimev1.VoiceReference_PresetVoiceId{PresetVoiceId: capabilitydriver.Qwen3TTSAudioCppPresetVoiceVivian}}, Language: "en", AudioFormat: "wav"}}}})
 	if err != nil {
 		t.Fatal(err)
@@ -584,6 +588,7 @@ func TestLocalSpeechWithoutMachineSelectionFailsClosed(t *testing.T) {
 			)})
 			ctx := executionintent.WithIntent(context.Background(), executionintent.Intent{
 				CapabilityContract: test.capabilityContract,
+				LocalLoadoutRef:    "test-loadout:" + test.capabilityContract,
 				Route:              runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 			})
 			_, err := svc.SubmitScenarioJob(ctx, &runtimev1.SubmitScenarioJobRequest{
@@ -674,6 +679,7 @@ func TestLocalSpeechJobsExecuteExactCapturedDriverPlans(t *testing.T) {
 			svc.SetLocalSpeechExecutionHost(host)
 			ctx := executionintent.WithIntent(context.Background(), executionintent.Intent{
 				CapabilityContract: test.capabilityContract,
+				LocalLoadoutRef:    "test-loadout:" + test.capabilityContract,
 				Route:              runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 			})
 			spec := test.spec()
@@ -718,6 +724,7 @@ func TestLocalSpeechJobStreamsHostBodyIntoRuntimeCustody(t *testing.T) {
 	svc.SetLocalSpeechExecutionHost(host)
 	ctx := executionintent.WithIntent(context.Background(), executionintent.Intent{
 		CapabilityContract: capabilitydriver.AudioSynthesizeContract,
+		LocalLoadoutRef:    "test-loadout:" + capabilitydriver.AudioSynthesizeContract,
 		Route:              runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 	})
 	response, err := svc.SubmitScenarioJob(ctx, &runtimev1.SubmitScenarioJobRequest{
@@ -768,6 +775,7 @@ func TestLocalSpeechSynthesisStreamUsesDeclaredSimulatedMode(t *testing.T) {
 	svc.SetLocalSpeechExecutionHost(host)
 	ctx := executionintent.WithIntent(context.Background(), executionintent.Intent{
 		CapabilityContract: capabilitydriver.AudioSynthesizeContract,
+		LocalLoadoutRef:    "test-loadout:" + capabilitydriver.AudioSynthesizeContract,
 		Route:              runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 	})
 	stream := &mockScenarioEventStream{ctx: ctx}
@@ -807,6 +815,7 @@ func TestLocalSpeechStartedSendFailurePersistsStreamBroken(t *testing.T) {
 	svc.SetLocalSpeechExecutionHost(&localSpeechHostStub{})
 	ctx := executionintent.WithIntent(context.Background(), executionintent.Intent{
 		CapabilityContract: capabilitydriver.AudioSynthesizeContract,
+		LocalLoadoutRef:    "test-loadout:" + capabilitydriver.AudioSynthesizeContract,
 		Route:              runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 	})
 	sendErr := status.Error(codes.Unavailable, "stream transport closed")
@@ -845,6 +854,7 @@ func TestLocalSpeechSynthesisStreamFirstPacketTimeoutStartsAfterHostLease(t *tes
 	svc.SetLocalSpeechExecutionHost(host)
 	ctx := executionintent.WithIntent(context.Background(), executionintent.Intent{
 		CapabilityContract: capabilitydriver.AudioSynthesizeContract,
+		LocalLoadoutRef:    "test-loadout:" + capabilitydriver.AudioSynthesizeContract,
 		Route:              runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 	})
 	stream := &mockScenarioEventStream{ctx: ctx}

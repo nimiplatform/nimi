@@ -274,6 +274,7 @@ export function createNimiDesktopFirstPartyRuntimeClients(
       ai: {
         getAppAIConfig: runtime.ai.getAppAIConfig,
         overwriteAppAIConfig: runtime.ai.overwriteAppAIConfig,
+        listAppAIConfigOptions: runtime.ai.listAppAIConfigOptions,
       },
     },
   });

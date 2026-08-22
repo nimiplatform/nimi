@@ -19,6 +19,7 @@ func newLocalAppConfigureTestService(t *testing.T) (*Service, string, string) {
 	t.Helper()
 	svc := newRuntimeAgentTestService(t)
 	svc.SetAIConfigStore(aiconfig.NewMemoryStore())
+	svc.SetMachineLocalExecutionResolver(sharedAIConfigLocalResolver{})
 	if _, err := materializeRealmSourceTestAgent(t, svc, context.Background(), &realmSourceTestAgentInput{
 		Context: testRuntimeAgentIdentityContext("agent-configure"),
 	}); err != nil {
@@ -81,8 +82,8 @@ func TestLocalAppConfigureWireCarriesNoCallerAssertionOrOwnerIdentity(t *testing
 		t.Fatalf("shared AIConfig get carries %d caller-selectable fields", empty.Fields().Len())
 	}
 	overwrite := (&runtimev1.OverwriteLocalAppSharedLocalAgentAIConfigRequest{}).ProtoReflect().Descriptor()
-	if overwrite.Fields().Len() != 1 || overwrite.Fields().ByName("capabilities") == nil {
-		t.Fatalf("shared AIConfig overwrite fields = %d, want exactly capabilities", overwrite.Fields().Len())
+	if overwrite.Fields().Len() != 2 || overwrite.Fields().ByName("expected_revision") == nil || overwrite.Fields().ByName("capabilities") == nil {
+		t.Fatalf("shared AIConfig overwrite fields = %d, want expected_revision plus capabilities", overwrite.Fields().Len())
 	}
 }
 
@@ -93,13 +94,13 @@ func TestLocalAppSharedAIConfigGetMissingAndWholeOverwrite(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetLocalAppSharedLocalAgentAIConfig: %v", err)
 	}
-	if missing.GetProjection().GetConfig().GetOwner().GetRuntimeLocalAgentSubsystem() == nil ||
-		len(missing.GetProjection().GetConfig().GetCapabilities()) != 0 {
+	if missing.GetProjection().GetConfig() != nil || missing.GetProjection().GetRevision() != "0" {
 		t.Fatalf("missing shared projection = %+v", missing.GetProjection())
 	}
 
 	_, overwriteCtx := localAppConfigureContext(accountservice.LocalAppOperationSharedAIConfigOverwrite, 0x21, accountID)
 	written, err := svc.OverwriteLocalAppSharedLocalAgentAIConfig(overwriteCtx, &runtimev1.OverwriteLocalAppSharedLocalAgentAIConfigRequest{
+		ExpectedRevision: "0",
 		Capabilities: []*runtimev1.AIConfigCapabilityIntent{
 			sharedLocalIntent("text.generate"), sharedLocalIntent("audio.transcribe"),
 		},
