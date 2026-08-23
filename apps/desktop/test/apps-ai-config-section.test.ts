@@ -53,6 +53,9 @@ test('Apps detail mounts the Nimi-owned first-party surface with the exact app i
   assert.match(sectionSource, /apps-ai-config-one-click-local/u);
   assert.match(sectionSource, /machineSelections\.refetch\(\)/u);
   assert.match(sectionSource, /appAIConfig\.refetch\(\)/u);
+  assert.match(sectionSource, /staleTime:\s*0/u);
+  assert.match(sectionSource, /refetchOnMount:\s*'always'/u);
+  assert.match(sectionSource, /refetchOnWindowFocus:\s*'always'/u);
   assert.match(sectionSource, /result\.outcome === 'conflict'[\s\S]*setOneClickFailure\('conflict'\)/u);
 });
 

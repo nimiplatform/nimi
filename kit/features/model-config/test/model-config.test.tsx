@@ -51,6 +51,7 @@ async function renderSurface(
     readonly initialCapabilityContract?: string;
     readonly onOpenOwnerConfiguration?: () => void;
     readonly capabilityContracts?: readonly string[];
+    readonly allowedRoutes?: readonly ('local' | 'cloud')[];
     readonly capabilities?: readonly NimiCapabilityAIConfigIntent[];
     readonly effectiveSelections?: readonly NimiAIConfigEffectiveSelection[] | null;
     readonly loading?: boolean;
@@ -66,6 +67,7 @@ async function renderSurface(
       <ModelConfigAIConfigSurface
         context={{ owner: 'app-ai-config', appId: 'test.app' }}
         capabilityContracts={options.capabilityContracts || ['text.generate']}
+        allowedRoutes={options.allowedRoutes}
         initialCapabilityContract={options.initialCapabilityContract}
         capabilities={options.capabilitiesUnavailable ? undefined : options.capabilities || [{
           capabilityContract: 'text.generate',
@@ -300,6 +302,26 @@ describe('public Model Config contract', () => {
     expect(node.querySelector('[data-nimi-model-config-owner-handoff="true"]')).toBeNull();
     expect(onOpenOwnerConfiguration).not.toHaveBeenCalled();
     expect(onOverwrite).not.toHaveBeenCalled();
+  });
+
+  it('lets an App product narrow the editor to Local without querying or exposing Cloud choices', async () => {
+    const listOptions = vi.fn(async () => ({
+      kind: 'local-loadouts',
+      options: [],
+      truncated: false,
+    })) as unknown as ModelConfigListOptions;
+    const node = await renderSurface(committedOverwrite(), vi.fn(), {
+      initialCapabilityContract: 'text.generate',
+      allowedRoutes: ['local'],
+      listOptions,
+    });
+
+    const trigger = node.querySelector('[data-testid="model-config-model-trigger:text.generate"]') as HTMLButtonElement;
+    await act(async () => { trigger.click(); await Promise.resolve(); });
+    await flush();
+
+    expect(document.body.textContent).not.toContain('Cloud');
+    expect(listOptions).not.toHaveBeenCalled();
   });
 
   it('commits canonical App AIConfig intent through the owner callback', async () => {

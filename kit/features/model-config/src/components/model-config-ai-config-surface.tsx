@@ -69,9 +69,15 @@ type ModelConfigRouteChoice =
       readonly target: NimiAIConfigCloudTargetOption;
     };
 
+export type ModelConfigAllowedRoute = ModelConfigRouteChoice['route'];
+
+const DEFAULT_ALLOWED_ROUTES: readonly ModelConfigAllowedRoute[] = ['local', 'cloud'];
+
 export type ModelConfigAIConfigSurfaceProps = {
   readonly context: ModelConfigAIConfigOwnerContext;
   readonly capabilityContracts: readonly string[];
+  /** App product policy may narrow the editor without changing AIConfig authority or wire shape. */
+  readonly allowedRoutes?: readonly ModelConfigAllowedRoute[];
   /** Opens one requested capability detail on first mount when it is in capabilityContracts. */
   readonly initialCapabilityContract?: string | null;
   /** Null is canonical absence/not configured; undefined is an unavailable read. */
@@ -380,6 +386,7 @@ export function ModelConfigAIConfigSurface(props: ModelConfigAIConfigSurfaceProp
           <CapabilityIntentEditor
             key={activeEntry.contract}
             capabilityContract={activeEntry.contract}
+            allowedRoutes={props.allowedRoutes || DEFAULT_ALLOWED_ROUTES}
             descriptor={activeEntry.descriptor}
             currentIntent={activeEntry.intent}
             allCapabilities={props.capabilities || []}
@@ -452,6 +459,7 @@ export function ModelConfigAIConfigSurface(props: ModelConfigAIConfigSurfaceProp
 
 type CapabilityIntentEditorProps = {
   readonly capabilityContract: string;
+  readonly allowedRoutes: readonly ModelConfigAllowedRoute[];
   readonly descriptor?: CanonicalCapabilityDescriptor;
   readonly currentIntent: NimiPortableAppAIConfigIntent | null;
   readonly allCapabilities: readonly NimiPortableAppAIConfigIntent[];
@@ -554,8 +562,11 @@ function EditableCapabilityIntentEditor(props: CapabilityIntentEditorProps) {
   }, [currentChoice, currentDefaults, draftChoice, syncKey]);
 
   const listChoices = useCallback(async (): Promise<readonly ModelConfigRouteChoice[]> => {
-    const locals: readonly Extract<ModelConfigRouteChoice, { readonly route: 'local' }>[] = [localChoice(props.selection, props.copy)];
+    const locals: readonly Extract<ModelConfigRouteChoice, { readonly route: 'local' }>[] = props.allowedRoutes.includes('local')
+      ? [localChoice(props.selection, props.copy)]
+      : [];
     setCloudError('');
+    if (!props.allowedRoutes.includes('cloud')) return locals;
     try {
       const connectorResult = await props.listOptions!({
         kind: 'cloud-connectors', capabilityContract: props.capabilityContract,
@@ -576,7 +587,7 @@ function EditableCapabilityIntentEditor(props: CapabilityIntentEditorProps) {
       setCloudError(props.copy.cloudLoadFailed);
       return locals;
     }
-  }, [pickerConnectorRef, props.capabilityContract, props.copy, props.listOptions, props.selection]);
+  }, [pickerConnectorRef, props.allowedRoutes, props.capabilityContract, props.copy, props.listOptions, props.selection]);
 
   const pickerAdapter = useMemo<ModelPickerCandidateAdapter<ModelConfigRouteChoice>>(() => ({
     listCandidates: listChoices,
@@ -730,6 +741,7 @@ function EditableCapabilityIntentEditor(props: CapabilityIntentEditorProps) {
       : 'not-configured';
   const draftBadge = statusBadge(draftPosture, props.copy);
   const routeDisabled = Boolean(props.disabled) || saving || !props.descriptor;
+  const draftRouteAllowed = draftChoice ? props.allowedRoutes.includes(draftChoice.route) : true;
   const modelDetail = draftChoice?.route === 'local'
     ? props.copy.localLabel
     : draftChoice?.route === 'cloud' ? draftChoice.provider : null;
@@ -775,8 +787,10 @@ function EditableCapabilityIntentEditor(props: CapabilityIntentEditorProps) {
           description={descriptorLabel(props.capabilityContract, props.descriptor, props.copy)}
           adapter={pickerAdapter}
           selectedId={draftChoice?.id || ''}
-          initialSourceFilter={draftChoice?.route || 'local'}
-          sourceOptions={['local', 'cloud']}
+          initialSourceFilter={draftChoice && props.allowedRoutes.includes(draftChoice.route)
+            ? draftChoice.route
+            : props.allowedRoutes[0] || 'local'}
+          sourceOptions={props.allowedRoutes}
           copy={{
             searchPlaceholder: props.copy.modelPickerSearchPlaceholder,
             loadingLabel: props.copy.modelPickerLoadingLabel,
@@ -928,7 +942,7 @@ function EditableCapabilityIntentEditor(props: CapabilityIntentEditorProps) {
         ) : null}
         <Button
           tone="primary"
-          disabled={routeDisabled || !draftChoice || !props.revision
+          disabled={routeDisabled || !draftRouteAllowed || !draftChoice || !props.revision
             || (draftChoice.route === 'cloud' && (!selectedConnector || !exactCloudSelection))}
           onClick={() => { void commit(); }}
           data-testid={`model-config-save:${props.capabilityContract}`}

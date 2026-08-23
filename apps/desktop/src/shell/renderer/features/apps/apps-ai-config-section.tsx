@@ -275,7 +275,9 @@ export function AppsAIConfigSection({
       return selections.filter((entry): entry is string => entry !== null);
     },
     retry: false,
-    staleTime: 5_000,
+    staleTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: 'always',
   });
   const openMachineLoadout = useCallback(() => {
     setActiveTab('runtime');
