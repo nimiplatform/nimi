@@ -62,6 +62,10 @@ describe('Electron protected local-app host', () => {
     }]);
     await expect(host.conversationOpen({ agentHandle: 'lash_one' }))
       .resolves.toEqual({ conversationAnchorId: 'anchor-1', activeTurnId: null });
+    await expect(host.conversationAttachmentUpload({
+      agentHandle: 'lash_one', conversationAnchorId: 'anchor-1', mimeType: 'image/png',
+      displayName: 'attachment.png', bytes: [1, 2, 3],
+    })).resolves.toEqual({ artifactId: 'artifact-1', expiresAt: '2026-08-23T09:00:00Z' });
     await expect(host.conversationVoiceTranscribe({
       agentHandle: 'lash_one', conversationAnchorId: 'anchor-1', requestId: 'voice-request-1',
       mimeType: 'audio/webm', audioBytes: [1, 2, 3],
@@ -75,6 +79,7 @@ describe('Electron protected local-app host', () => {
       'localAppStorageReadJson',
       'localAppAgentReferenceList',
       'localAppConversationOpen',
+      'localAppConversationAttachmentUpload',
       'localAppConversationVoiceTranscribe',
       'localAppConversationVoiceTranscribeCancel',
     ]);

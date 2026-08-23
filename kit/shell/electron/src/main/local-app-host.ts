@@ -1302,9 +1302,11 @@ async function invokeConversationAttachmentUpload(
   if (!isPlainRecord(value) || !hasExactKeys(value, ['artifactId', 'expiresAt'])) {
     throw untrustedRuntimeError();
   }
+  const expiresAt = boundedExactText(value.expiresAt, 64, false);
+  if (!Number.isFinite(Date.parse(expiresAt))) throw untrustedRuntimeError();
   return Object.freeze({
     artifactId: boundedExactText(value.artifactId, 256, false),
-    expiresAt: validateTimestamp(value.expiresAt),
+    expiresAt,
   });
 }
 
