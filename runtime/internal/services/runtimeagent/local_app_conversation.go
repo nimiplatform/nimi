@@ -693,6 +693,7 @@ func (s *Service) buildLocalAppConversationSnapshot(
 		turn     *runtimev1.LocalAppConversationTurn
 		actions  []*runtimev1.LocalAppConversationAction
 		bytes    int
+		orderAt  time.Time
 	}
 	groups := make([]messageGroup, 0, len(transcript))
 	var activeGroup *messageGroup
@@ -726,6 +727,7 @@ func (s *Service) buildLocalAppConversationSnapshot(
 			projection = activeSnapshot
 		}
 		group.turn = localAppConversationTurnFromProjection(turn.TurnID, projection, active)
+		group.orderAt = localAppConversationTurnProjectionOrderTime(projection)
 		for index := range turn.OutputArtifacts {
 			artifact := turn.OutputArtifacts[index]
 			message := localAppConversationArtifactMessage(turn.TurnID, artifact)
@@ -769,12 +771,23 @@ func (s *Service) buildLocalAppConversationSnapshot(
 	})
 	for _, turnID := range terminalOnlyIDs {
 		projection := terminalSnapshots[turnID]
-		group := messageGroup{turn: localAppConversationTurnFromProjection(turnID, projection, false)}
+		group := messageGroup{
+			turn:    localAppConversationTurnFromProjection(turnID, projection, false),
+			orderAt: localAppConversationTurnProjectionOrderTime(projection),
+		}
 		if action := localAppConversationNonCompletedAction(turnID, projection); action != nil {
 			group.actions = append(group.actions, action)
 		}
 		groups = append(groups, group)
 	}
+	sort.SliceStable(groups, func(left, right int) bool {
+		leftTime := groups[left].orderAt
+		rightTime := groups[right].orderAt
+		if leftTime.IsZero() != rightTime.IsZero() {
+			return leftTime.IsZero()
+		}
+		return !leftTime.IsZero() && leftTime.Before(rightTime)
+	})
 
 	start := len(groups)
 	messageCount := 0
@@ -849,6 +862,16 @@ func (s *Service) buildLocalAppConversationSnapshot(
 		snapshot.Voices = append(snapshot.Voices, projected)
 	}
 	return snapshot, nil
+}
+
+func localAppConversationTurnProjectionOrderTime(projection *publicChatTurnProjectionState) time.Time {
+	if projection == nil {
+		return time.Time{}
+	}
+	if !projection.TimelineStartedAt.IsZero() {
+		return projection.TimelineStartedAt
+	}
+	return projection.UpdatedAt
 }
 
 func localAppConversationMessageID(turnID string, kind string, ref string) string {

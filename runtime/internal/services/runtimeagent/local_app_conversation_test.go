@@ -456,6 +456,56 @@ func TestLocalAppConversationSnapshotIncludesTerminalTurnWithoutMessages(t *test
 	}
 }
 
+func TestLocalAppConversationSnapshotOrdersTerminalOnlyTurnBeforeLaterCommittedTurn(t *testing.T) {
+	svc := newRuntimeAgentServiceForPublicChatTest(t)
+	openDecision := localAppConversationDecision(accountservice.LocalAppOperationOpenConversation, 0x49, "user-1")
+	handle := mintLocalAppAgentHandle(openDecision, testRuntimeAgentLocalRef("agent-alpha"))
+	opened, err := svc.OpenLocalAppConversation(
+		accountservice.ContextWithAuthorizedLocalAppDecision(context.Background(), openDecision),
+		&runtimev1.OpenLocalAppConversationRequest{AgentHandle: handle},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	anchorID := opened.GetConversationAnchorId()
+	failedTurnID := "turn-failed-before-later-commit"
+	completedTurnID := "turn-completed-after-failure"
+	startedAt := time.Now().UTC()
+	svc.chatSurfaceMu.Lock()
+	anchor := svc.chatAnchors[anchorID]
+	anchor.CommittedTranscript = []publicChatCommittedTranscriptTurn{{
+		TurnID: completedTurnID, Sequence: 0, Origin: publicChatTurnOriginUser,
+		InputText: "later", AssistantText: "completed",
+	}}
+	anchor.CompletedTurnSnapshots = map[string]*publicChatTurnProjectionState{
+		failedTurnID: {
+			TurnID: failedTurnID, Status: publicChatTurnStatusFailed,
+			ReasonCode:        runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE,
+			TimelineStartedAt: startedAt,
+		},
+		completedTurnID: {
+			TurnID: completedTurnID, Status: publicChatTurnStatusCompleted,
+			TimelineStartedAt: startedAt.Add(time.Second),
+		},
+	}
+	svc.chatSurfaceMu.Unlock()
+
+	snapshotDecision := openDecision
+	snapshotDecision.Operation = accountservice.LocalAppOperationConversationSnapshot
+	response, err := svc.GetLocalAppConversationSnapshot(
+		accountservice.ContextWithAuthorizedLocalAppDecision(context.Background(), snapshotDecision),
+		&runtimev1.GetLocalAppConversationSnapshotRequest{AgentHandle: handle, ConversationAnchorId: anchorID},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	turns := response.GetSnapshot().GetTurns()
+	if len(turns) != 2 || turns[0].GetTurnId() != failedTurnID || turns[1].GetTurnId() != completedTurnID ||
+		turns[1].GetStatus() != runtimev1.LocalAppConversationTurnStatus_LOCAL_APP_CONVERSATION_TURN_STATUS_COMPLETED {
+		t.Fatalf("snapshot turn order = %+v", turns)
+	}
+}
+
 func TestLocalAppConversationAttachmentCandidateAdoptsIntoCrossAppReadableMembership(t *testing.T) {
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
 	openDecision := localAppConversationDecision(accountservice.LocalAppOperationOpenConversation, 0x45, "user-1")
