@@ -22,7 +22,7 @@ units:
   - id: definition.nimi.runtime.rpc-foundations.capability-composition-plane
     kind: definition
     title: Runtime capability composition plane
-    meaning: The Runtime capability composition plane checks the committed AIConfig route and exact Loadout reference or exact Connector reference plus Cloud CapabilityImplementation target, standardized features, ownership, credentials, App Capability access, policy, and derived admission, then at Job submission atomically dereferences the committed Local reference into a complete persisted ResolvedAssembly or captures the committed Cloud references; queued, running, and resumed Jobs use only captured effective inputs without Job-time resource overrides, machine preference, current-owner rereads, searching, ranking, probing, warming, or substitution.
+    meaning: The Runtime capability composition plane checks the committed AIConfig route and standardized features together with the current machine-selected Loadout for Local or the exact committed Connector reference plus Cloud CapabilityImplementation target for Cloud, ownership, credentials, App Capability access, policy, and derived admission, then at Job submission atomically dereferences and captures the selected Local Loadout identity into a complete persisted ResolvedAssembly or captures the committed Cloud references; queued, running, and resumed Jobs use only captured effective inputs without Job-time resource overrides, machine-selection rereads, current-owner rereads, searching, ranking, probing, warming, or substitution.
     relations:
       - type: supersedes
         target: definition.nimi.runtime.rpc-foundations.route-description-plane
@@ -33,7 +33,7 @@ units:
   - id: definition.nimi.runtime.rpc-foundations.target-identity-plane
     kind: definition
     title: Runtime target identity plane
-    meaning: The Runtime target identity plane separates durable AIConfig route and safe exact Loadout or Connector references, Runtime-private Connector custody content, Machine Loadout store resource content and optional default preference, derived admission, and exact immutable Job effective inputs including a Local ResolvedAssembly.
+    meaning: The Runtime target identity plane separates durable AIConfig route and exact Cloud Connector references, Runtime-private Connector custody content, Machine Loadout store resource content and current per-CapabilityContract Local selection, derived admission, and exact immutable Job effective inputs including the submission-time selected Loadout identity and Local ResolvedAssembly.
   - id: rule.nimi.runtime.rpc-foundations.r001
     kind: rule
     title: Audit follows owner actions
@@ -118,7 +118,7 @@ units:
     kind: rule
     title: Capability composition descriptions are bounded
     modality: must
-    statement: Runtime may describe the committed AIConfig route intent, its safe exact Loadout or Connector reference, Cloud CapabilityImplementation target, supported and required standardized features, and the current derived admission reason without exposing Provider Credentials, Connector custody content, endpoints, raw provider payloads, public readiness, probe, warm, resident, health, ranking, or fallback facts to an ordinary App.
+    statement: Runtime may describe the committed AIConfig route intent, current machine-selected Loadout facts for Local or its safe exact Connector reference and Cloud CapabilityImplementation target for Cloud, supported and required standardized features, and the current derived admission reason without exposing Provider Credentials, Connector custody content, endpoints, raw provider payloads, public readiness, probe, warm, resident, health, ranking, or fallback facts to an ordinary App.
     condition: Whenever an authorized consumer inspects effective capability composition.
     failure: Return the typed derived admission reason when the committed composition cannot execute and never search for another target.
     relations:
@@ -126,9 +126,9 @@ units:
         target: definition.nimi.runtime.rpc-foundations.capability-composition-plane
   - id: rule.nimi.runtime.rpc-foundations.r010
     kind: rule
-    title: Consumers respect AIConfig reference and resource owners
+    title: Consumers respect AIConfig route and resource owners
     modality: must_not
-    statement: SDK, Kit, Desktop, Avatar, or an App guesses a provider, model, Local or Cloud route, Loadout or Connector reference, fallback, CapabilityContract, standardized feature, Quota, Budget, Rate Limit, or admission from names, cached state, inventory, machine preference, health, or partial metadata; an authorized AIConfig owner may instead commit an explicit route and exact resource reference, while Select Loadout only sets one eligible machine-default preference or explicitly clears it without a seventh Clear action and never supplies execution truth.
+    statement: SDK, Kit, Desktop, Avatar, or an App guesses a provider, model, Local or Cloud route, Loadout or Connector reference, fallback, CapabilityContract, standardized feature, Quota, Budget, Rate Limit, or admission from names, cached state, unselected inventory, health, or partial metadata; an authorized AIConfig owner may instead commit an explicit route and exact Cloud resource references, while Select Loadout alone sets or clears the current machine selection without a seventh Clear action, copying it into AIConfig, or rewriting captured Job truth.
     condition: Whenever a consumer presents, changes, or executes AI intent.
     failure: Use the canonical owner action or captured composition and report the typed failure without inference, deletion-required deselection, or current-state reconstruction.
     relations:
@@ -176,11 +176,11 @@ units:
         target: definition.nimi.runtime.rpc-foundations.streaming-plane
   - id: rule.nimi.runtime.rpc-foundations.r015
     kind: rule
-    title: Durable route and exact resource intent is secret free
+    title: Durable route and Cloud resource intent is secret free
     modality: must
-    statement: AIConfig stores Local or Cloud route intent and exactly one safe Loadout reference or safe current-account Connector reference plus the intended Cloud CapabilityImplementation and provider-model target; it carries no secret material, bearer or session proof, Loadout content, ModelAsset binding, machine preference, Connector custody content, endpoint, account selector, process state, public readiness, or mutable Job binding.
+    statement: AIConfig stores a route-only Local marker or a Cloud route with one safe current-account Connector reference plus the intended Cloud CapabilityImplementation and provider-model target; it carries no secret material, bearer or session proof, Local Loadout or ModelAsset identity, machine selection, Loadout content, ModelAsset binding, Connector custody content, endpoint, account selector, process state, public readiness, or mutable Job binding.
     condition: Whenever Runtime stores or transports durable AI route or Cloud target intent.
-    failure: Reject a route without its required exact reference, secret or embedded resource material, and keep each resource fact with its canonical owner.
+    failure: Reject a Local resource reference, a Cloud route without its required exact references, secret or embedded resource material, and keep each resource fact with its canonical owner.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.rpc-foundations.target-identity-plane
@@ -188,7 +188,7 @@ units:
     kind: rule
     title: Job submission captures deterministic composition
     modality: must
-    statement: At Job submission Runtime reads the committed AIConfig route and exact Loadout reference for Local, validates the referenced Loadout's CapabilityImplementation, versioned Driver dialect and recipeId, typed options, every model_asset_id and expected_content_id, RecipeCustody, content bytes, ownership, standardized features, authorization, Quota, Budget, Rate Limit, request, load plan, and process identity, and atomically persists the complete ResolvedAssembly before publication; for Cloud it validates and captures the exact committed Connector reference, CapabilityImplementation target, credential, access, policy, defaults, and request. Queued, running, and resumed Jobs use only those persisted effective inputs and never reread current AIConfig, Loadout, catalog, inventory, machine preference, process state, or private CAS.
+    statement: At Job submission Runtime reads the committed AIConfig route and, for Local, the current machine-selected Loadout for the same CapabilityContract, validates the selected Loadout's CapabilityImplementation, versioned Driver dialect and recipeId, typed options, every model_asset_id and expected_content_id, RecipeCustody, content bytes, ownership, standardized features, authorization, Quota, Budget, Rate Limit, request, load plan, and process identity, and atomically persists its exact identity and the complete ResolvedAssembly before publication; for Cloud it validates and captures the exact committed Connector reference, CapabilityImplementation target, credential, access, policy, defaults, and request. Queued, running, and resumed Jobs use only those persisted effective inputs and never reread current AIConfig, Loadout, catalog, inventory, machine selection, process state, or private CAS.
     condition: Whenever Runtime turns committed capability intent into a Job.
     failure: Fail closed with the typed admission reason when any exact required fact is missing, invalid, or only partially persisted and never probe, reread, re-resolve ambient inventory, switch provider, or fall back.
     relations:

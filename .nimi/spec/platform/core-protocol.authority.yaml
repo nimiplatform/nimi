@@ -67,7 +67,7 @@ units:
   - id: definition.nimi.platform.core-protocol.ai-route
     kind: definition
     title: AI route
-    meaning: An AIConfig route intent is exactly Local or Cloud for one CapabilityContract; Local names one exact Runtime Loadout reference, Cloud names one exact current-account Connector reference plus one Cloud CapabilityImplementation and Driver-owned provider-model target, neither route carries resource content, credential, endpoint, account identity, fallback, or alternate target, and local privacy semantics apply only to Local.
+    meaning: An AIConfig route intent is exactly Local or Cloud for one CapabilityContract; Local is a route-only marker composed at new Job admission with that CapabilityContract's current machine-selected Loadout, while Cloud names one exact current-account Connector reference plus one Cloud CapabilityImplementation and Driver-owned provider-model target; neither route carries resource content, credential, endpoint, account identity, fallback, or alternate target, and local privacy semantics apply only to Local.
   - id: definition.nimi.platform.core-protocol.ai-scope-ref
     kind: definition
     lifecycle: removed
@@ -130,7 +130,7 @@ units:
   - id: definition.nimi.platform.core-protocol.ai-config
     kind: definition
     title: AIConfig
-    meaning: An AIConfig is the revisioned whole-object current capability intent for exactly one account-scoped canonical AIConfig owner, contains at most one entry per CapabilityContract in canonical order, treats an omitted entry on overwrite as clearing that capability, and stores required standardized features, defaults, and exactly one Local Loadout reference or Cloud Connector reference plus CapabilityImplementation and Driver-owned provider-model target; an admitted protected App may get and compare-and-swap overwrite its own App owner under runtime.consume or the shared LocalAgent owner under agent.configure, Desktop may manage only currently projected owners without becoming the exclusive configuration path, and no AIConfig carries credential, endpoint, account identity, resource content, readiness, fallback, or shadow App truth.
+    meaning: An AIConfig is the revisioned whole-object current capability intent for exactly one account-scoped canonical AIConfig owner, contains at most one entry per CapabilityContract in canonical order, treats an omitted entry on overwrite as clearing that capability, and stores required standardized features, defaults, and either a route-only Local marker or a Cloud Connector reference plus CapabilityImplementation and Driver-owned provider-model target; an admitted protected App may get and compare-and-swap overwrite its own App owner under runtime.consume or the shared LocalAgent owner under agent.configure, Desktop may manage only currently projected owners without becoming the exclusive configuration path, and no AIConfig carries Local Loadout or ModelAsset identity, machine selection, credential, endpoint, account identity, resource content, readiness, fallback, or shadow App truth.
     relations:
       - type: supersedes
         target: definition.nimi.platform.core-protocol.materialized-ai-config
@@ -141,14 +141,14 @@ units:
   - id: definition.nimi.platform.core-protocol.ai-profile-actions
     kind: definition
     title: AIProfile and Loadout product actions
-    meaning: The closed formal product action set is Import Profile, Apply Profile to AIConfig, Prepare Loadout, Commit Loadout, Select Loadout, and Delete Loadout; Apply Profile produces only a non-committing portable prefill for a later canonical AIConfig Save after the user selects current-environment exact resource references, Prepare is a server-held no-write action, Commit is the only Loadout content mutation, Select Loadout either sets one eligible Loadout as the machine-default CapabilityContract preference or explicitly clears that preference without deleting any owner state and never binds or overrides AIConfig, UpdateLoadout is only a Prepare-plus-Commit convenience rather than another action, independent bind, unbind, rebind, reprojection, and Clear Loadout Selection actions do not exist, and every action returns only its own typed outcome without cross-owner success.
+    meaning: The closed formal product action set is Import Profile, Apply Profile to AIConfig, Prepare Loadout, Commit Loadout, Select Loadout, and Delete Loadout; Apply Profile produces only a non-committing portable prefill for a later canonical AIConfig Save after the user chooses a route and, for Cloud, exact current-environment Connector and target references, Prepare is a server-held no-write action, Commit is the only Loadout content mutation, Select Loadout either sets one eligible Loadout as the current machine selection for that CapabilityContract or explicitly clears that selection without deleting or rewriting any AIConfig owner state, UpdateLoadout is only a Prepare-plus-Commit convenience rather than another action, independent bind, unbind, rebind, reprojection, and Clear Loadout Selection actions do not exist, and every action returns only its own typed outcome without cross-owner success.
     relations:
       - type: supersedes
         target: definition.nimi.platform.core-protocol.ai-profile-apply-state
   - id: definition.nimi.platform.core-protocol.machine-local-ai-configuration
     kind: definition
     title: Machine Loadout store
-    meaning: The Machine Loadout store is the unique per-machine owner of zero or more flat saved Loadouts per CapabilityContract and at most one machine-default preference per contract, may hold one current Runtime-private CAS token solely for lost-write prevention, and contains no App Cloud intent, App defaults, AIProfile, global AIConfig, public CAS, product revision, history, rollback, preset chain, inheritance, Job input, or process identity; its preference never supplies or overrides an App or shared LocalAgent AIConfig execution reference.
+    meaning: The Machine Loadout store is the unique per-machine owner of zero or more flat saved Loadouts per CapabilityContract and at most one current selected Loadout per contract, may hold one current Runtime-private CAS token solely for lost-write prevention, and contains no App Cloud intent, App defaults, AIProfile, global AIConfig, public CAS, product revision, history, rollback, preset chain, inheritance, Job input, or process identity; Runtime composes that selection with every matching committed Local route only at new Job admission, without copying it into or changing any App or shared LocalAgent AIConfig.
   - id: definition.nimi.platform.core-protocol.local-capability-configuration
     kind: definition
     title: Loadout
@@ -161,7 +161,7 @@ units:
   - id: definition.nimi.platform.core-protocol.capability-job-effective-inputs
     kind: definition
     title: Capability job effective inputs
-    meaning: Capability job effective inputs are the immutable exact composition atomically captured and persisted at submission from authorization, owner AIConfig, and either its exact committed Loadout reference dereferenced into a complete Local ResolvedAssembly containing exact versioned Driver dialect and recipeId, typed options, every model slot's reverified absolute path and content identity, RecipeCustody identity, load plan, process identity, defaults, and request, or its exact committed Connector reference, Cloud implementation, target, defaults, and request; they never contain the Loadout store's private CAS token or credential material.
+    meaning: Capability job effective inputs are the immutable exact composition atomically captured and persisted at submission from authorization, owner AIConfig, and either the current machine-selected Loadout for its committed Local route dereferenced into a complete Local ResolvedAssembly containing exact Loadout identity, versioned Driver dialect and recipeId, typed options, every model slot's reverified absolute path and content identity, RecipeCustody identity, load plan, process identity, defaults, and request, or its exact committed Connector reference, Cloud implementation, target, defaults, and request; they never contain the Loadout store's private CAS token or credential material.
   - id: definition.nimi.platform.core-protocol.derived-capability-admission
     kind: definition
     title: Derived capability admission
@@ -665,9 +665,9 @@ units:
     kind: rule
     title: P-AISC-003 AIConfig has no inheritance or embedded Local resource truth
     modality: must_not
-    statement: An AIConfig inherits another AIConfig, retains an AIProfile as live configuration, or embeds a local model, Loadout content, workflow, node environment, ModelAsset binding, machine preference, process state, residency, health, credential, endpoint, or resolved local execution assembly; its safe exact Loadout reference remains a resource reference owned by the canonical AIConfig entry rather than duplicated Loadout truth.
+    statement: An AIConfig inherits another AIConfig, retains an AIProfile as live configuration, or embeds a local model or Loadout identity, Loadout content, workflow, node environment, ModelAsset binding, machine selection, process state, residency, health, credential, endpoint, or resolved local execution assembly; the Local branch remains route-only while the Machine Loadout store owns current Local selection.
     condition: Whenever an AIConfig is created, overwritten, edited, read, or composed for execution.
-    failure: Reject inheritance or duplicated Local resource truth while preserving only the exact committed Loadout reference in AIConfig and keeping implementation content and model bindings solely in the Machine Loadout store.
+    failure: Reject inheritance or duplicated Local resource truth, including any optional or required Local Loadout reference, while keeping selection, implementation content, and model bindings solely in the Machine Loadout store.
     relations:
       - type: applies_to
         target: definition.nimi.platform.core-protocol.ai-config
@@ -1197,7 +1197,7 @@ units:
     kind: rule
     title: P-AIPS-003 six product actions remain disjoint
     modality: must
-    statement: Import Profile saves only portable AIProfile; Apply Profile to AIConfig produces only non-committing portable prefill and changes no owner record; canonical AIConfig overwrite is the sole commit path after the user selects exact current-environment resource references and supplies the owner revision; Prepare Loadout stores only a bounded server-held proposal and writes no owner; Commit Loadout atomically creates or replaces only one Loadout from prepare_id; Select Loadout writes only the machine-default preference by setting an eligible target or explicitly clearing it and never supplies or changes AIConfig execution truth; and Delete Loadout removes only its target and clears only that target's machine-default preference when applicable without rewriting an AIConfig that references it. Explicit preference clearing deletes or mutates no Loadout or ModelAsset, changes no AIConfig or captured Job, and selects no replacement; UpdateLoadout is only a Prepare-plus-Commit wrapper, and no bind, unbind, rebind, reprojection, or seventh Clear action exists.
+    statement: Import Profile saves only portable AIProfile; Apply Profile to AIConfig produces only non-committing portable prefill and changes no owner record; canonical AIConfig overwrite is the sole config commit path after the user chooses a route and, for Cloud, exact current-environment Connector and target references and supplies the owner revision; Prepare Loadout stores only a bounded server-held proposal and writes no owner; Commit Loadout atomically creates or replaces only one Loadout from prepare_id; Select Loadout writes only the current machine selection by setting an eligible target or explicitly clearing it and changes no AIConfig or captured Job; and Delete Loadout removes only its target and clears only that target's machine selection when applicable without rewriting any Local route intent. Explicit selection clearing deletes or mutates no Loadout or ModelAsset, changes no AIConfig or captured Job, and selects no replacement; UpdateLoadout is only a Prepare-plus-Commit wrapper, and no bind, unbind, rebind, reprojection, or seventh Clear action exists.
     condition: Whenever any Profile or Loadout product action is invoked.
     failure: Reject an undeclared mutation channel, cross-owner transaction, caller-carried proposal, merged write, implicit re-apply, download, implicit selection, or fabricated aggregate success.
     relations:
@@ -1213,7 +1213,7 @@ units:
     kind: rule
     title: P-AIPS-003 Apply produces portable prefill without committing AIConfig
     modality: must
-    statement: Apply Profile to AIConfig validates portable schema and owner eligibility and produces route, required-feature, default, and Cloud implementation-target recommendation as non-committing editor prefill without Loadout reference, Connector reference, owner revision mutation, installation, binding, probe, process start, or readiness; the user then selects exact current-environment references and uses the canonical whole-object compare-and-swap Save to commit a valid AIConfig.
+    statement: Apply Profile to AIConfig validates portable schema and owner eligibility and produces route, required-feature, default, and Cloud implementation-target recommendation as non-committing editor prefill without Loadout reference, Connector reference, owner revision mutation, installation, binding, probe, process start, or readiness; the user then chooses a route and, for Cloud, exact current-environment Connector and target references and uses the canonical whole-object compare-and-swap Save to commit a valid AIConfig.
     condition: Whenever Apply Profile to AIConfig validates or produces prefill.
     failure: Reject invalid portable intent or an ineligible owner and reject any Profile Apply path that writes canonical AIConfig, guesses a resource reference, or bypasses the owner revision.
     relations:
@@ -1293,11 +1293,11 @@ units:
         target: definition.nimi.platform.core-protocol.ai-route
   - id: rule.nimi.platform.core-protocol.p-aips-006b
     kind: rule
-    title: P-AIPS-006 AIConfig route references and machine preference are disjoint
+    title: P-AIPS-006 AIConfig route and machine selection owners are disjoint
     modality: must
-    statement: AIConfig route and exact Loadout or Connector reference selection changes only one canonical owner AIConfig, while the Machine Loadout store's separate Select Loadout action changes only an optional machine-default preference and changes no AIConfig, Cloud route, Loadout, ModelAsset, or already captured Job; Runtime composes only the AIConfig-committed route and resource reference and never substitutes the machine preference or performs another model, Loadout, or Connector selection.
-    condition: Whenever an AIConfig route or resource reference or a machine-default Loadout preference is set, cleared, described, or projected.
-    failure: Reject a mixed write, use of machine preference as execution truth, Runtime re-selection, implicit fallback, App veto over Loadout resource management, deletion presented as required for AIConfig clear-by-omission, or application of machine preference to a Cloud route.
+    statement: AIConfig route selection changes only one canonical owner AIConfig; its Local branch carries no resource reference, while its Cloud branch carries an exact Connector reference, implementation, and target. The Machine Loadout store's separate Select Loadout action changes the current Local selection for one CapabilityContract and changes no AIConfig, Cloud route, Loadout, ModelAsset, or already captured Job; Runtime composes a committed Local route with that current machine selection only at new Job admission and never scans, ranks, substitutes, or falls back.
+    condition: Whenever an AIConfig route or Cloud resource reference or a machine Local selection is set, cleared, described, or projected.
+    failure: Reject a mixed write, copying machine selection into AIConfig, selection-driven Cloud execution, Runtime re-selection, implicit fallback, App veto over Loadout resource management, or deletion presented as required for AIConfig clear-by-omission.
     relations:
       - type: applies_to
         target: definition.nimi.platform.core-protocol.ai-route
@@ -1365,7 +1365,7 @@ units:
     kind: rule
     title: P-AIPS-010 formal action scope closure
     modality: must
-    statement: Import Profile, Apply Profile to AIConfig, Prepare Loadout, Commit Loadout, Select Loadout, and Delete Loadout each return only their own typed outcome; Apply returns only non-committing portable prefill, Prepare returns only server-held proposal identity and diagnostics, Commit alone mutates Loadout content, Select alone mutates machine preference, Delete alone removes its target, and none establishes a second CAS, product revision, history, durable draft, rollback, re-apply, materialization, activation, readiness, or cross-action lifecycle beyond the canonical AIConfig manager's owner-scoped revision and whole-object overwrite.
+    statement: Import Profile, Apply Profile to AIConfig, Prepare Loadout, Commit Loadout, Select Loadout, and Delete Loadout each return only their own typed outcome; Apply returns only non-committing portable prefill, Prepare returns only server-held proposal identity and diagnostics, Commit alone mutates Loadout content, Select alone mutates current machine selection, Delete alone removes its target, and none establishes a second CAS, product revision, history, durable draft, rollback, re-apply, materialization, activation, readiness, or cross-action lifecycle beyond the canonical AIConfig manager's owner-scoped revision and whole-object overwrite.
     condition: Whenever a formal Profile or Loadout action is executed or projected.
     failure: Reject an undeclared action or mutation channel, Profile Apply commit, a second CAS or revision, cross-owner success, lifecycle state machine, or success inferred from a later action.
     relations:
@@ -1459,7 +1459,7 @@ units:
     kind: rule
     title: P-CAIEX-001 Capability execution chain is closed
     modality: must
-    statement: An App or LocalAgent request enters one CapabilityContract and owner AIConfig; Local composition atomically dereferences that AIConfig entry's exact Loadout reference through its CapabilityImplementation, versioned Driver dialect and recipeId, model axes, options, and RecipeCustody into one Job-captured ResolvedAssembly before the local ExecutionHost runs, while same-account Cloud composition uses that AIConfig entry's exact Connector reference, implementation, and Driver target before Remote ExecutionHost transport.
+    statement: An App or LocalAgent request enters one CapabilityContract and owner AIConfig; Local composition atomically reads the current machine-selected Loadout for that CapabilityContract and dereferences its CapabilityImplementation, versioned Driver dialect and recipeId, model axes, options, and RecipeCustody into one Job-captured ResolvedAssembly before the local ExecutionHost runs, while same-account Cloud composition uses that AIConfig entry's exact Connector reference, implementation, and Driver target before Remote ExecutionHost transport.
     condition: Whenever a capability request is admitted, composed, or executed.
     failure: Reject a bypass, alternate owner, missing committed or captured link, live catalog or inventory interpretation, engine or provider inference, Core option union, or Core Workflow DAG intermediate representation.
     relations:
@@ -1489,11 +1489,11 @@ units:
         target: definition.nimi.platform.core-protocol.execution-host
   - id: rule.nimi.platform.core-protocol.p-caiex-003
     kind: rule
-    title: P-CAIEX-003 Machine Loadout store has at most one default preference per contract
+    title: P-CAIEX-003 Machine Loadout store has at most one current selection per contract
     modality: must
-    statement: Each machine has exactly one Loadout store containing zero or more flat Loadouts per CapabilityContract and zero or one machine-default preference per contract; that preference is never routing or Job-composition truth, and any eligible Loadout may participate only when an exact canonical AIConfig reference names it, without ranking, fallback, or implicit active-record semantics.
-    condition: Whenever a Loadout is committed, listed, preferred, referenced, or dereferenced.
-    failure: Reject a second store, nested preset or inheritance chain, multiple default preferences, implicit active record, preference-derived execution, or dereference without an exact admitted AIConfig reference.
+    statement: Each machine has exactly one Loadout store containing zero or more flat Loadouts per CapabilityContract and zero or one current selected Loadout per contract; that selection is the unique Local resource-selection truth for every future Job whose canonical AIConfig commits Local for the same contract, without ranking, fallback, alternate candidates, or copying the selection into AIConfig.
+    condition: Whenever a Loadout is committed, listed, selected, referenced, or dereferenced.
+    failure: Reject a second store, nested preset or inheritance chain, multiple current selections, implicit alternative selection, per-owner Local pinning, or Local dereference without both a committed Local route and the current matching machine selection.
     relations:
       - type: applies_to
         target: definition.nimi.platform.core-protocol.local-capability-configuration
@@ -1503,7 +1503,7 @@ units:
     kind: rule
     title: P-CAIEX-004 Loadout state is orthogonal
     modality: must
-    statement: A Loadout records interpretability, Model Contract and assembly validation with typed reasons, each Driver-projected model slot as unresolved or bound, and optional machine-default preference posture without treating that posture as execution truth; derived AIConfig effective state, admission, ModelAsset integrity freshness, RecipeCustody materialization, ResolvedAssembly, process state, and each Job outcome remain separate facts, unresolved is legal persistent state, and there is no draft, public CAS, revision, history, rollback, readiness, warm, resident, active, or health lifecycle.
+    statement: A Loadout records interpretability, Model Contract and assembly validation with typed reasons and each Driver-projected model slot as unresolved or bound, while the Machine Loadout store separately records optional current selection posture; derived AIConfig effective state, admission, ModelAsset integrity freshness, RecipeCustody materialization, ResolvedAssembly, process state, and each Job outcome remain separate facts, unresolved is legal persistent state, and there is no draft, public CAS, revision, history, rollback, readiness, warm, resident, active, or health lifecycle. Current selection is resource truth for future matching Local Jobs but never becomes AIConfig or captured Job mutation.
     condition: Whenever a Loadout is prepared, committed, displayed, preferred, referenced, admitted, or executed.
     failure: Reject a collapsed state, public or execution-visible CAS, readiness alias, persistent draft, product revision, Job or process result written as Loadout state, or unavailable Driver intent discarded instead of preserved.
     relations:
@@ -1525,11 +1525,11 @@ units:
         target: definition.nimi.platform.core-protocol.local-capability-configuration
   - id: rule.nimi.platform.core-protocol.p-caiex-006
     kind: rule
-    title: P-CAIEX-006 Loadout resource and AIConfig reference mutation hard cut
+    title: P-CAIEX-006 Loadout resource, machine selection, and AIConfig mutation hard cut
     modality: must
-    statement: Select Loadout changes only the retained machine-default CapabilityContract preference and admits either an eligible non-empty target or an explicit empty target that clears the preference; neither action supplies or changes an App or shared LocalAgent AIConfig reference, affects an already captured Job, or selects a replacement. Each AIConfig owner changes its own Local reference only through canonical compare-and-swap overwrite or clear-by-omission. When a referenced Loadout or bound ModelAsset later becomes missing, removed, changed, or damaged, or the Driver, contract, dependency, process, or execution later fails, the committed AIConfig reference and the Loadout's model_asset_id and expected_content_id axes remain unchanged while effective projection, admission, or execution fails typed. Only Commit Loadout from a valid Prepare may change any axis or reproject slots, UpdateLoadout is only that two-stage wrapper, and no independent bind, unbind, rebind, reprojection, or Clear handler remains.
-    condition: Whenever a machine-default preference is set or cleared, a canonical AIConfig Local reference is overwritten or cleared, a Loadout axis changes, or an AIConfig-referenced Loadout later becomes unresolved or blocked.
-    failure: Reject use of machine preference as execution truth, deletion required as a substitute for AIConfig clear-by-omission, old binding or Clear handlers, automatic clearing, replacement, re-resolution, binding deletion caused by ModelAsset loss or execution failure, or mutation of any already captured Job.
+    statement: Select Loadout changes only the current machine selection for one CapabilityContract and admits either an eligible non-empty target or an explicit empty target that clears the selection; neither action changes an App or shared LocalAgent AIConfig, affects an already captured Job, or selects a replacement. Each AIConfig owner changes its own route-only Local intent only through canonical compare-and-swap overwrite or clear-by-omission. When the current selected Loadout or a bound ModelAsset later becomes missing, removed, changed, or damaged, or the Driver, contract, dependency, process, or execution later fails, every committed Local intent and the Loadout's model_asset_id and expected_content_id axes remain unchanged while effective projection, admission, or execution fails typed. Only Commit Loadout from a valid Prepare may change any axis or reproject slots, UpdateLoadout is only that two-stage wrapper, and no independent bind, unbind, rebind, reprojection, or Clear handler remains.
+    condition: Whenever a machine selection is set or cleared, a canonical AIConfig Local route is overwritten or cleared, a Loadout axis changes, or the selected Loadout later becomes unresolved or blocked.
+    failure: Reject copying selection into AIConfig, deletion required as a substitute for AIConfig clear-by-omission, old binding or Clear handlers, automatic clearing, replacement, scanning, re-resolution to another Loadout, binding deletion caused by ModelAsset loss or execution failure, or mutation of any already captured Job.
     relations:
       - type: applies_to
         target: definition.nimi.platform.core-protocol.derived-capability-admission
@@ -1541,8 +1541,8 @@ units:
     kind: rule
     title: P-CAIEX-007 confirmation is limited to resource lifecycle effects
     modality: must
-    statement: Canonical AIConfig overwrite, clear-by-omission, and safe Local or Cloud option choice require no second permission, grant, approval, or confirmation after the user's explicit Save, and Select Loadout machine-default set or clear also requires no execution-wide confirmation because it never supplies AIConfig execution truth. Any confirmation retained for destructive Loadout or ModelAsset lifecycle actions is scoped only to that resource mutation, grants no App veto, rewrites no AIConfig or captured Job, chooses no replacement, and never cascades shared ModelAsset deletion.
-    condition: Whenever an AIConfig Save, machine-default preference change, or destructive Loadout or ModelAsset lifecycle action is presented or committed.
+    statement: Canonical AIConfig overwrite, clear-by-omission, Local route choice, and safe Cloud option choice require no second permission, grant, approval, or confirmation after the user's explicit Save, and Select Loadout set or clear remains the existing machine-owner action rather than an App AIConfig permission flow. Any confirmation retained for destructive Loadout or ModelAsset lifecycle actions is scoped only to that resource mutation, grants no App veto, rewrites no AIConfig or captured Job, chooses no replacement, and never cascades shared ModelAsset deletion.
+    condition: Whenever an AIConfig Save, machine selection change, or destructive Loadout or ModelAsset lifecycle action is presented or committed.
     failure: Reject an extra AIConfig or selection confirmation gate, persisted owner index or compatibility snapshot, AIConfig rewrite, automatic replacement, or cascading ModelAsset deletion.
     relations:
       - type: applies_to
@@ -1600,7 +1600,7 @@ units:
     kind: rule
     title: P-CAIEX-011 Jobs atomically capture exact immutable composition
     modality: must
-    statement: Local Job submission atomically captures and persists authorization, AIConfig Local route, exact committed Loadout reference, features, defaults, exact CapabilityImplementation, versioned Driver dialect and recipeId, typed options, every model axis's model_asset_id, expected_content_id, reverified absolute path and content identity, RecipeCustody identity, request, load plan, and process identity as one ResolvedAssembly before Job publication; Cloud submission captures and persists authorization, exact committed Connector reference, implementation, provider-model target, defaults, and request. Queued, running, and resumed Jobs never reread AIConfig, Loadout, inventory, catalog, machine preference, process state, or private CAS, and later AIConfig, Loadout, ModelAsset, catalog, Connector, preference, or process changes never rewrite captured inputs.
+    statement: Local Job submission atomically captures and persists authorization, AIConfig Local route, the exact current machine-selected Loadout identity, features, defaults, exact CapabilityImplementation, versioned Driver dialect and recipeId, typed options, every model axis's model_asset_id, expected_content_id, reverified absolute path and content identity, RecipeCustody identity, request, load plan, and process identity as one ResolvedAssembly before Job publication; Cloud submission captures and persists authorization, exact committed Connector reference, implementation, provider-model target, defaults, and request. Queued, running, and resumed Jobs never reread AIConfig, Loadout, inventory, catalog, machine selection, process state, or private CAS, and later AIConfig, Loadout, ModelAsset, catalog, Connector, selection, or process changes never rewrite captured inputs.
     condition: Whenever a Local or Cloud capability Job is submitted or resumed.
     failure: Reject a missing or partially persisted exact input, live reread as execution truth, Job write-back into configuration, private CAS in Job identity, or substitution from catalog, inventory, filename, path, prefix, resident process, or unselected record.
     relations:
@@ -1750,7 +1750,7 @@ units:
     kind: rule
     title: P-ARCH-010 current AI execution owner boundary
     modality: must
-    statement: Each canonical AIConfig owner commits explicit Local or Cloud intent with an exact Loadout reference or exact current-account Connector reference plus Cloud implementation and Driver target, Runtime deterministically validates and composes only that intent and owns execution truth and credential custody without accepting Job-time overrides, searching for a substitute, probing, or falling back, while Core defines no cross-engine option union or general Workflow DAG intermediate representation.
+    statement: Each canonical AIConfig owner commits explicit route-only Local intent or Cloud intent with an exact current-account Connector reference plus Cloud implementation and Driver target; Runtime composes Local with the current machine-selected Loadout at Job admission, deterministically validates and captures the resulting exact execution inputs, and owns execution truth and credential custody without accepting Job-time overrides, searching for a substitute, probing, or falling back, while Core defines no cross-engine option union or general Workflow DAG intermediate representation.
     condition: Whenever the current AI execution stack is implemented or described.
     failure: Reject Runtime route choice, hidden fallback, caller credential injection, App-owned execution truth, a Core engine-option union, or Workflow treated as a core prerequisite.
     relations:

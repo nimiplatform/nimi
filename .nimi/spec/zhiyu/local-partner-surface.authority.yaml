@@ -92,7 +92,7 @@ units:
     kind: rule
     title: Shared AIConfig and per-Agent settings remain distinct
     modality: must
-    statement: Zhiyu may get, compare-and-swap overwrite, clear, and list bounded Local Loadout or Cloud Connector and target options for the account-scoped shared LocalAgent subsystem AIConfig only through the public agent.configure SDK and canonical Kit Manager Session that resolve the singular subsystem owner without an Agent handle; the same manager projects the fixed five LocalAgent capability-role participation rows independently of configured intents and effective selections, retains them for absent or cleared config, and never auto-configures an intent, while per-Agent autonomy and presentation remain separately handle-addressed with independent revisions and typed conflicts and Zhiyu persists no second configuration or participation truth.
+    statement: Zhiyu may get, compare-and-swap overwrite, clear, and list bounded current Local selection projection or Cloud Connector and target options for the account-scoped shared LocalAgent subsystem AIConfig only through the public agent.configure SDK and canonical Kit Manager Session that resolve the singular subsystem owner without an Agent handle; the same manager projects the fixed five LocalAgent capability-role participation rows independently of configured intents and effective selections, retains them for absent or cleared config, and never auto-configures an intent, while per-Agent autonomy and presentation remain separately handle-addressed with independent revisions and typed conflicts and Zhiyu persists no second configuration or participation truth.
     condition: Whenever Zhiyu edits shared LocalAgent AIConfig or per-Agent non-AI settings.
     failure: Reject an Agent-handle-addressed AI action, per-Agent route or model, Zhiyu-owned AIConfig revision, history, or merge, cross-owner mutation, or lost autonomy or presentation conflict and keep the Runtime-issued opaque AIConfig revision and Runtime truth unchanged.
     relations:
@@ -102,7 +102,7 @@ units:
     kind: rule
     title: Configuration does not own AI resources
     modality: must_not
-    statement: Zhiyu stores Provider Credentials, Connector endpoints, Loadout content, option catalogs, effective health, selected route or resource as Zhiyu-owned truth, infers readiness, Quota, Budget, Rate Limit, or fallback, calls generic Connector management, or calls an unadmitted provider directly; passing the user's selected safe Loadout or Connector reference to the canonical shared-owner compare-and-swap operation is not Zhiyu-owned truth.
+    statement: Zhiyu stores Provider Credentials, Connector endpoints, Loadout content, option catalogs, effective health, selected route or resource as Zhiyu-owned truth, infers readiness, Quota, Budget, Rate Limit, or fallback, calls generic Connector management, or calls an unadmitted provider directly; passing route-only Local intent or the user's selected safe Cloud Connector and target references to the canonical shared-owner compare-and-swap operation is not Zhiyu-owned truth.
     condition: Whenever Zhiyu presents or applies LocalAgent AI settings.
     failure: Use the canonical shared AIConfig owner action, per-Agent non-AI owner action, request-time derived admission, or exact Job failure without creating a Zhiyu-owned projection.
     relations:

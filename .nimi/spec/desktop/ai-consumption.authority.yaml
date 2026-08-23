@@ -26,7 +26,7 @@ units:
     kind: rule
     title: AIConfig stores route intent with exact safe resource references
     modality: must
-    statement: Desktop projects AIConfig per CapabilityContract as Local or Cloud route intent with required standardized features and defaults; Local carries one exact Loadout reference without Loadout content, model, workflow, node, ModelAsset binding, or machine preference, while Cloud carries one exact current-account Connector reference plus CapabilityImplementation and Driver-owned provider-model target without account selector, credential, endpoint, or secret.
+    statement: Desktop projects AIConfig per CapabilityContract as Local or Cloud route intent with required standardized features and defaults; Local is route-only and carries no Loadout, model, workflow, node, ModelAsset binding, or machine selection, while Cloud carries one exact current-account Connector reference plus CapabilityImplementation and Driver-owned provider-model target without account selector, credential, endpoint, or secret.
     condition: Whenever Desktop stores, applies, exports, imports, or projects durable AI target identity.
     failure: Reject legacy or guessed target references, embedded local resource material, Connector-derived routing, account selectors, and any credential-, endpoint-, or secret-bearing target.
     relations:
@@ -76,7 +76,7 @@ units:
     kind: rule
     title: Profile local intent uses a separate configuration action
     modality: must
-    statement: Portable local implementation intent in a Profile is never a Machine Loadout store preference or exact AIConfig resource reference and may be consumed only by Prepare Loadout followed by Commit Loadout, which may save unresolved model slots without selecting the result; a user may later choose the saved Loadout reference in the canonical AIConfig editor and commit it through the same compare-and-swap Save, while UpdateLoadout is only the two-stage Loadout convenience and Profile handling never invokes model acquisition or an independent binding mutation.
+    statement: Portable local implementation intent in a Profile is never a Machine Loadout store selection or AIConfig resource reference and may be consumed only by Prepare Loadout followed by Commit Loadout, which may save unresolved model slots without selecting the result; a user may separately choose that Loadout on the machine owner surface while the canonical AIConfig editor commits only route-only Local intent through compare-and-swap Save, and UpdateLoadout remains only the two-stage Loadout convenience while Profile handling never invokes model acquisition or an independent binding mutation.
     condition: Whenever Desktop relates portable Profile intent to Prepare and Commit Loadout.
     failure: Reject Profile-driven resource selection, guessed reference, installation, binding, direct Loadout mutation, or a Profile Apply path that writes AIConfig.
     relations:
@@ -86,9 +86,9 @@ units:
     kind: rule
     title: AIConfig is complete current intent for one canonical owner
     modality: must
-    statement: Every revisioned AIConfig belongs to exactly one account-scoped canonical App owner or the singular shared LocalAgent subsystem owner and stores the complete current per-CapabilityContract route intent, required standardized features, defaults, and one exact Local Loadout reference or exact Cloud Connector reference plus implementation-target intent without account selector, credential, endpoint, partial overlay, inheritance, history, per-Agent override, or fallback chain; a committed reference that later becomes missing, blocked, or unusable remains legal saved intent with typed effective failure until the user explicitly replaces or clears it.
+    statement: Every revisioned AIConfig belongs to exactly one account-scoped canonical App owner or the singular shared LocalAgent subsystem owner and stores the complete current per-CapabilityContract route intent, required standardized features and defaults, with route-only Local or exact Cloud Connector reference plus implementation-target intent without account selector, credential, endpoint, partial overlay, inheritance, history, per-Agent override, or fallback chain; a Local intent whose current machine selection becomes missing, blocked, or unusable and a Cloud intent whose reference becomes invalid both remain legal saved intent with typed effective failure until the user explicitly changes or clears the route.
     condition: Whenever a live AIConfig is committed, read, subscribed, or presented.
-    failure: Reject partial or inherited configuration, a route without its required exact reference, and a write without the expected owner revision, and preserve the prior committed current state on atomic-write failure.
+    failure: Reject partial or inherited configuration, a Local resource reference, a Cloud route without its required exact references, and a write without the expected owner revision, and preserve the prior committed current state on atomic-write failure.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.ai-consumption.profile-config
@@ -96,9 +96,9 @@ units:
     kind: rule
     title: AIConfig preserves its canonical envelope
     modality: must
-    statement: AIConfig contains its canonical owner, opaque owner revision, per-CapabilityContract Local or Cloud route intent, required standardized-feature set, defaults, and exactly one Local Loadout reference or Cloud Connector reference plus CapabilityImplementation and Driver-owned provider-model target; resource content, credentials, endpoints, and account selectors remain outside the envelope, and optional Profile provenance is display-only and never a live binding or re-apply relation.
+    statement: AIConfig contains its canonical owner, opaque owner revision, per-CapabilityContract Local or Cloud route intent, required standardized-feature set and defaults, with no Local resource identity or one exact Cloud Connector reference plus CapabilityImplementation and Driver-owned provider-model target; resource content, machine selection, credentials, endpoints, and account selectors remain outside the envelope, and optional Profile provenance is display-only and never a live binding or re-apply relation.
     condition: Whenever Desktop serializes or projects an AIConfig.
-    failure: Reject an envelope without exact owner identity and opaque revision, without its route's exact resource reference, with embedded resource or credential material, or treating Profile provenance as a live binding.
+    failure: Reject an envelope without exact owner identity and opaque revision, with a Local resource reference, without a Cloud route's exact resource references, with embedded resource or credential material, or treating Profile provenance as a live binding.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.ai-consumption.profile-config
@@ -106,9 +106,9 @@ units:
     kind: rule
     title: AIConfig capability payload stays compact
     modality: must
-    statement: AIConfig capability entries contain only CapabilityContract identity, Local or Cloud route intent, the contract-scoped required standardized-feature set, typed defaults, and either one exact Loadout reference or one exact Connector reference plus intended CapabilityImplementation, Driver-owned provider-model target configuration, and portable display provenance; account selector, credential, endpoint, Local model content, components, workflow, node environment, ModelAsset bindings, and machine preference are absent.
+    statement: AIConfig capability entries contain only CapabilityContract identity, Local or Cloud route intent, the contract-scoped required standardized-feature set, typed defaults, and for Cloud one exact Connector reference plus intended CapabilityImplementation, Driver-owned provider-model target configuration, and portable display provenance; Local Loadout or model identity, account selector, credential, endpoint, Local model content, components, workflow, node environment, ModelAsset bindings, and machine selection are absent.
     condition: Whenever a capability entry is materialized or persisted in AIConfig.
-    failure: Reject a capability entry that exceeds its owner intent boundary, omits its exact route reference, or embeds Loadout content, Connector custody, ModelAsset binding, ResolvedAssembly, or other resource-owned state in AIConfig.
+    failure: Reject a capability entry that exceeds its owner intent boundary, carries a Local resource reference, omits its Cloud route references, or embeds Loadout content, Connector custody, ModelAsset binding, ResolvedAssembly, or other resource-owned state in AIConfig.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.ai-consumption.profile-config
@@ -116,7 +116,7 @@ units:
     kind: rule
     title: AIConfig excludes Runtime and credential evidence
     modality: must_not
-    statement: AIConfig persists Loadout content, local model or workflow identity, local components, requirement slots, ModelAsset ids or paths, exact Local bindings beyond its safe Loadout reference, machine preference, selected source records, install or process state, Connector content beyond its safe Connector reference, endpoint authority, provider health, scheduler state, raw secrets, tokens, API keys, OAuth payloads, credential payloads, or mutable Job inputs.
+    statement: AIConfig persists Loadout identity or content, local model or workflow identity, local components, requirement slots, ModelAsset ids or paths, exact Local bindings, machine selection, selected source records, install or process state, Connector content beyond its safe Connector reference, endpoint authority, provider health, scheduler state, raw secrets, tokens, API keys, OAuth payloads, credential payloads, or mutable Job inputs.
     condition: Whenever Desktop writes or exports live AIConfig.
     failure: Reject the write and retain the Runtime-owned facts or credentials solely in their typed owner projection.
     relations:
@@ -156,7 +156,7 @@ units:
     kind: rule
     title: Job inputs are an immutable execution envelope
     modality: must
-    statement: Each Job records its Runtime-issued identity, admitted account and canonical AIConfig owner, CapabilityContract, creation time, and exact immutable effective inputs atomically persisted before publication; for Local those inputs are one complete ResolvedAssembly containing the committed Loadout reference, route, features, defaults, CapabilityImplementation, versioned Driver dialect and recipeId, typed options, every model axis's model_asset_id, expected_content_id, reverified absolute path and content identity, RecipeCustody identity, request, load plan, and process identity, while Cloud captures the committed Connector reference, implementation, provider-model target, defaults, and request and resolves custody only from that captured reference. Runtime owns the Job and SDK and Desktop consume bounded typed projections only.
+    statement: Each Job records its Runtime-issued identity, admitted account and canonical AIConfig owner, CapabilityContract, creation time, and exact immutable effective inputs atomically persisted before publication; for Local those inputs are one complete ResolvedAssembly containing the submission-time current machine-selected Loadout identity, route, features, defaults, CapabilityImplementation, versioned Driver dialect and recipeId, typed options, every model axis's model_asset_id, expected_content_id, reverified absolute path and content identity, RecipeCustody identity, request, load plan, and process identity, while Cloud captures the committed Connector reference, implementation, provider-model target, defaults, and request and resolves custody only from that captured reference. Runtime owns the Job and SDK and Desktop consume bounded typed projections only.
     condition: Whenever a Desktop-consumed turn or Job is submitted or resumed.
     failure: Reject an ownerless, consumer-local, mutable, reconstructed, live-read, or field-incomplete Job input snapshot.
     relations:
@@ -186,7 +186,7 @@ units:
     kind: rule
     title: Profile apply prefill and AIConfig overwrite remain separate
     modality: must
-    statement: Applying AIProfile to one canonical App or shared LocalAgent AIConfig owner returns only non-committing portable editor prefill without exact resource references, merge, partial patch, shared Profile binding, owner mutation, or history; after the user selects exact current-environment Loadout or Connector references, the same canonical whole-object overwrite with expected opaque owner revision is the only commit path.
+    statement: Applying AIProfile to one canonical App or shared LocalAgent AIConfig owner returns only non-committing portable editor prefill without exact resource references, merge, partial patch, shared Profile binding, owner mutation, or history; after the user chooses a route and, for Cloud, exact current-environment Connector and target references, the same canonical whole-object overwrite with expected opaque owner revision is the only commit path.
     condition: Whenever Profile Apply prefill or a later AIConfig Save is requested.
     failure: Reject Profile Apply as a commit, guessed references, or a mutation without the expected owner revision; a failed overwrite leaves the prior config unchanged.
     relations:
@@ -206,7 +206,7 @@ units:
     kind: rule
     title: Apply never manufactures execution state
     modality: must_not
-    statement: Desktop treats Profile import, preview, Apply, current inventory, Connector diagnostic, installation, process start, or static schema validity as an exact resource reference, binding, machine preference, admission, readiness, Job success, or committed AIConfig fact, or deletes unresolved prefill or committed intent to report success.
+    statement: Desktop treats Profile import, preview, Apply, current inventory, Connector diagnostic, installation, process start, or static schema validity as a Local machine selection, Cloud resource reference, binding, admission, readiness, Job success, or committed AIConfig fact, or deletes unresolved prefill or committed intent to report success.
     condition: Whenever Profile or AIConfig actions are presented.
     failure: Preserve the committed owner intent, keep prefill non-committing, and let exact Job submission derive a typed admission result only after canonical Save.
     relations:
@@ -246,9 +246,9 @@ units:
     kind: rule
     title: Image Loadout ownership stays machine scoped
     modality: must
-    statement: An AIProfile may carry portable image.generate implementation and Driver configuration intent without resource identity, while AIConfig carries one exact saved image Loadout reference for Local image execution and the Machine Loadout store separately owns that Loadout's content and any machine-default preference; defaultRefs.imageProfileRef, localProfileRef, compact local targets, and App-local shadow configuration do not exist.
+    statement: An AIProfile may carry portable image.generate implementation and Driver configuration intent without resource identity, while AIConfig carries only route-only Local intent for local image execution and the Machine Loadout store separately owns saved image Loadouts and their current selection; defaultRefs.imageProfileRef, localProfileRef, compact local targets, per-owner Loadout refs, and App-local shadow configuration do not exist.
     condition: Whenever Desktop reads, writes, or displays image-related AI configuration.
-    failure: Reject each retired field without a compatibility layer and require the canonical AIConfig Local route plus exact Loadout reference without transferring Loadout content ownership.
+    failure: Reject each retired field without a compatibility layer and require only the canonical AIConfig Local route plus the separately machine-owned current selection.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.ai-consumption.profile-config
@@ -276,7 +276,7 @@ units:
     kind: rule
     title: Six product actions mutate only their owner
     modality: must
-    statement: Import Profile changes only the portable Profile catalog, Apply Profile to AIConfig returns only non-committing portable prefill, canonical AIConfig overwrite with expected owner revision is the only config commit, Prepare Loadout stores only a server-held no-write proposal, Commit Loadout atomically creates or replaces one Loadout from prepare_id, Select Loadout changes only one machine-default preference by setting an eligible target or explicitly clearing it, and Delete Loadout removes only its target and any preference selecting that target. Explicit Select clearing preserves Loadouts and ModelAssets, changes no AIConfig or captured Job, and chooses no replacement; UpdateLoadout is only a Prepare-plus-Commit convenience, no seventh Clear action or independent bind, unbind, rebind, or reprojection action exists, and no action installs, probes, prewarms, starts a Job, mutates another owner, or automatically invokes another action. A Desktop wizard may visibly sequence separately user-invoked resource actions and Profile prefill but never auto-selects a reference, commits AIConfig, or adds an aggregate confirmation gate.
+    statement: Import Profile changes only the portable Profile catalog, Apply Profile to AIConfig returns only non-committing portable prefill, canonical AIConfig overwrite with expected owner revision is the only config commit, Prepare Loadout stores only a server-held no-write proposal, Commit Loadout atomically creates or replaces one Loadout from prepare_id, Select Loadout changes only one current machine selection by setting an eligible target or explicitly clearing it, and Delete Loadout removes only its target and any selection naming that target. Explicit Select clearing preserves Loadouts and ModelAssets, changes no AIConfig or captured Job, and chooses no replacement; UpdateLoadout is only a Prepare-plus-Commit convenience, no seventh Clear action or independent bind, unbind, rebind, or reprojection action exists, and no action installs, probes, prewarms, starts a Job, mutates another owner, or automatically invokes another action. A Desktop wizard may visibly sequence separately user-invoked resource actions and Profile prefill but never auto-selects a resource, commits AIConfig, or adds an aggregate confirmation gate.
     condition: Whenever Desktop presents or invokes a Profile or Loadout action.
     failure: Reject Profile Apply commit, cross-owner mutation, reverse Profile mutation, implicit reapply, deletion required for preference clearing, automatic mutation chaining, aggregate confirmation, or consumer-specific persistence.
     relations:
@@ -301,7 +301,7 @@ units:
     kind: rule
     title: Built-in chat AIConfig owners remain distinct
     modality: must
-    statement: Desktop Nimi Chat is a Desktop-owned capability consumer using the Desktop App AIConfig, while Desktop Agent Chat is a projection of Runtime LocalAgent Conversation using the one shared LocalAgent subsystem AIConfig; neither creates a chat-specific or per-Agent owner, Profile Apply produces only portable non-committing prefill, and the later canonical Save requires user-selected exact current-environment references and expected owner revision without waiting for execution readiness.
+    statement: Desktop Nimi Chat is a Desktop-owned capability consumer using the Desktop App AIConfig, while Desktop Agent Chat is a projection of Runtime LocalAgent Conversation using the one shared LocalAgent subsystem AIConfig; neither creates a chat-specific or per-Agent owner, Profile Apply produces only portable non-committing prefill, and the later canonical Save requires an explicit route and, for Cloud, exact current-environment references plus expected owner revision without waiting for execution readiness.
     condition: Whenever built-in Nimi chat or a Runtime LocalAgent AIConfig is initialized or reconfigured.
     failure: Reject owner conflation, per-Agent AIConfig, Profile Apply commit, guessed resource references, and implicit execution materialization without changing Product Control readiness.
     relations:
@@ -386,7 +386,7 @@ units:
     kind: rule
     title: LocalAgent identity does not own route resolution
     modality: must
-    statement: localAgentId identifies the authorized LocalAgent and Conversation only; every LocalAgent request uses the same shared LocalAgent AIConfig and at Job submission Runtime atomically dereferences its exact committed Loadout reference into a complete persisted ResolvedAssembly or captures its exact committed Connector reference plus Cloud implementation-target; missing identity, configuration, referenced resource, binding, credential, or feature support returns a typed failure without synthesizing a route or substituting machine preference.
+    statement: localAgentId identifies the authorized LocalAgent and Conversation only; every LocalAgent request uses the same shared LocalAgent AIConfig and at Job submission Runtime atomically dereferences the current machine-selected Loadout for its committed Local CapabilityContract into a complete persisted ResolvedAssembly or captures its exact committed Connector reference plus Cloud implementation-target; missing identity, configuration, machine selection, binding, credential, or feature support returns a typed failure without synthesizing a route or selecting a substitute resource.
     condition: Whenever Desktop submits a LocalAgent Conversation request.
     failure: Reject the request and present the typed Runtime failure without per-Agent model or route state.
     relations:
@@ -396,7 +396,7 @@ units:
     kind: rule
     title: Text execution consumes deterministic composition
     modality: must
-    statement: Desktop text.generate execution submits under the committed canonical AIConfig and consumes Runtime's exact Job projection; only at Job submission Runtime atomically dereferences its exact committed Local Loadout reference into a complete persisted ResolvedAssembly or captures its exact committed Cloud Connector reference and implementation target, then never searches, ranks, probes, rereads current owner state, chooses a substitute, or falls back, while Desktop infers nothing from provider, model, endpoint, inventory, machine preference, process, setup, or launcher state.
+    statement: Desktop text.generate execution submits under the committed canonical AIConfig and consumes Runtime's exact Job projection; only at Job submission Runtime atomically dereferences the current machine-selected Loadout for the committed Local CapabilityContract into a complete persisted ResolvedAssembly or captures its exact committed Cloud Connector reference and implementation target, then never searches, ranks, probes, rereads mutable owner state after publication, chooses a substitute, or falls back, while Desktop infers nothing from provider, model, endpoint, unselected inventory, process, setup, or launcher state.
     condition: Whenever an LLM Job is submitted or presented.
     failure: Fail closed with the typed admission or Job reason for the exact captured composition.
     relations:
@@ -446,7 +446,7 @@ units:
     kind: rule
     title: Voice capabilities compose committed routes independently
     modality: must
-    statement: audio.synthesize and voice.create each use their own committed AIConfig CapabilityContract route and at Job submission Runtime atomically dereferences the exact committed Local Loadout reference into a complete persisted ResolvedAssembly or captures the exact committed Cloud Connector reference and implementation-target; a voice.create typed source determines only its input.text or input.audio feature preflight and creates no independent route, mode, Loadout, provider, or fallback selection, and queued or running Jobs never reread current AIConfig, machine preference, or Loadout. No contract reuses another contract's route, feature, binding, or Job snapshot and none performs execution-time list-options, resolve, health-check, or fallback selection.
+    statement: audio.synthesize and voice.create each use their own committed AIConfig CapabilityContract route and at Job submission Runtime atomically dereferences that contract's current machine-selected Loadout into a complete persisted ResolvedAssembly or captures the exact committed Cloud Connector reference and implementation-target; a voice.create typed source determines only its input.text or input.audio feature preflight and creates no independent route, mode, Loadout, provider, or fallback selection, and queued or running Jobs never reread current AIConfig, machine selection, or Loadout. No contract reuses another contract's route, feature, binding, or Job snapshot and none performs execution-time list-options, search, health-check, or fallback selection.
     condition: Whenever Desktop invokes audio synthesis or voice creation.
     failure: Fail closed with the exact typed admission reason instead of returning an empty voice list or substitute execution as success.
     relations:
@@ -696,7 +696,7 @@ units:
     kind: rule
     title: Interactive profile apply is non-committing prefill
     modality: must
-    statement: Desktop interactive Profile Apply produces editable portable prefill and may display its changes without a confirmation gate, never invokes or queues a commit, and leaves exact current-environment resource choice to the ordinary AIConfig editor; the user's later single Save invokes only the canonical whole-object compare-and-swap overwrite.
+    statement: Desktop interactive Profile Apply produces editable portable prefill and may display its changes without a confirmation gate, never invokes or queues a commit, and leaves route choice and, for Cloud, exact current-environment resource choice to the ordinary AIConfig editor; the user's later single Save invokes only the canonical whole-object compare-and-swap overwrite.
     condition: Whenever a user applies an AIProfile through the ordinary Desktop UI or saves the resulting AIConfig.
     failure: Reject Profile Apply as commit authority, guessed resource references, a second confirmation or approval gate, and any Save path outside the canonical owner revision overwrite.
     relations:
