@@ -33,7 +33,7 @@ units:
   - id: definition.nimi.runtime.agent-participation.ai-config-plane
     kind: definition
     title: Runtime shared LocalAgent AI configuration plane
-    meaning: Runtime owns exactly one revisioned canonical AIConfig for the LocalAgent subsystem inside each authenticated account namespace and all Runtime LocalAgents in that account share it; the shared owner may reference exact Runtime-owned Loadout or Connector resources while individual LocalAgents retain independent personality, appearance, behavior, Memory, Conversation, and presentation state but never own an AIConfig, route override, resource content, credential, endpoint, or capability readiness lifecycle.
+    meaning: Runtime owns exactly one revisioned canonical AIConfig for the LocalAgent subsystem inside each authenticated account namespace and all Runtime LocalAgents in that account share it; the shared manager also projects one fixed LocalAgent capability-role participation policy independently of configured intent and effective resource state, the shared owner may reference exact Runtime-owned Loadout or Connector resources, and individual LocalAgents retain independent personality, appearance, behavior, Memory, Conversation, and presentation state but never own an AIConfig, participation override, route override, resource content, credential, endpoint, or capability readiness lifecycle.
   - id: definition.nimi.runtime.agent-participation.autonomy-configuration-plane
     kind: definition
     title: Runtime LocalAgent autonomy configuration plane
@@ -41,11 +41,23 @@ units:
   - id: definition.nimi.runtime.agent-participation.app-consume-plane
     kind: definition
     title: Runtime protected Third-party Local App consume plane
-    meaning: A protected Third-party Local App consumes only the canonical App Operation Contract agent.local subset—the bounded current-account active-Agent reference listing plus its five Conversation operations—through the standard Runtime SDK seam; Runtime returns a session-scoped opaque agentHandle for later calls, never raw localAgentId, rich state, voice, presentation, Memory, Knowledge, Runtime proof, Realm JWT, Provider Credentials, or a product binding entity.
+    meaning: A protected Third-party Local App consumes only the canonical App Operation Contract agent.local subset—the bounded current-account active-Agent reference listing plus eight Conversation operations—through the standard Runtime SDK seam; Runtime returns a session-scoped opaque agentHandle for later calls and may project bounded typed text and image messages, image-action lifecycle and artifacts, recorded-voice transcription text, and terminal final-voice artifact sidecars, while never exposing raw localAgentId, activity, emotion, Avatar rendering, native voice chunks, Memory, Knowledge, Runtime proof, Realm JWT, Provider Credentials, provider or model detail, or a product binding entity.
+  - id: definition.nimi.runtime.agent-participation.public-conversation-projection-plane
+    kind: definition
+    title: Runtime protected LocalAgent Conversation projection plane
+    meaning: Runtime owns the closed protected LocalAgent Conversation projection of stable turns, role-typed messages and content parts, image actions, final voice sidecars, canonical failures, ordered events, bounded snapshots, and cross-restart convergence; Desktop first-party surfaces may use a different selector or transport while sharing the same Conversation semantics, and no consumer owns a second transcript, identity, event history, reducer truth, or execution proof.
+  - id: definition.nimi.runtime.agent-participation.conversation-artifact-access-plane
+    kind: definition
+    title: Runtime Conversation artifact access plane
+    meaning: Runtime owns purpose-bound LocalAgent attachment upload and Conversation artifact read over the single artifact store, including candidate custody, adoption, trusted metadata, Conversation membership, current access revalidation, bounded inline bytes, and typed rejection; an artifact id is never a bearer, inventory capability, App-storage owner transfer, or alternate media store.
+  - id: definition.nimi.runtime.agent-participation.local-agent-capability-participation-plane
+    kind: definition
+    title: Runtime LocalAgent CapabilityContract participation plane
+    meaning: Runtime owns one ordered role mapping from canonical CapabilityContracts into LocalAgent behavior and projects that policy independently of configured AIConfig intent, effective resource state, request-time admission, exact App operation coverage, and host controls; the mapping is neither a second capability catalog nor a readiness lifecycle.
   - id: definition.nimi.runtime.agent-participation.companion-wake-voice-plane
     kind: definition
     title: Runtime LocalAgent wake and voice plane
-    meaning: Runtime owns admitted microphone, wake, transcription, accepted turn, response selection, voice generation, playback and interruption truth, while Avatar owns only visible rendering, local playback, and backend-local lipsync from Runtime-projected artifacts.
+    meaning: Runtime owns admitted microphone, wake, transcription, accepted turn, response selection, voice generation, terminal voice artifact or failure, and first-party managed playback and interruption truth; protected agent.local consumers receive only final voice sidecars and own ephemeral local artifact playback without creating Runtime playback truth, while Avatar owns visible rendering, local playback, and backend-local lipsync from Runtime-projected artifacts.
   - id: definition.nimi.runtime.agent-participation.avatar-event-provenance-plane
     kind: definition
     title: Runtime LocalAgent event provenance plane
@@ -238,11 +250,11 @@ units:
         target: definition.nimi.runtime.agent-participation.ai-config-plane
   - id: rule.nimi.runtime.agent-participation.r093
     kind: rule
-    title: Third-party Apps use the canonical LocalAgent consume seam
+    title: Protected Apps use the canonical multimodal LocalAgent consume seam
     modality: must
-    statement: A protected Third-party Local App submits typed user intent and consumes only the canonical App Operation Contract agent.local reference-list operation and its five Conversation operations through the standard SDK and Runtime seam, never rich LocalAgent state, voice, presentation, Memory, Knowledge, raw local IPC, provider APIs, parser events, or App-local orchestration.
+    statement: A protected Third-party Local App submits typed user intent and consumes only the canonical App Operation Contract agent.local reference-list operation and its eight Conversation operations through the standard SDK and Runtime seam; the bounded public projection may contain typed text and image messages, image-action lifecycle and artifacts, recorded-voice transcription text, and terminal final-voice artifact sidecars, but never activity, emotion, Avatar rendering, native voice chunks, presentation internals, Memory, Knowledge, raw local IPC, provider APIs, parser payloads, execution proof, or App-local orchestration.
     condition: Whenever a protected Third-party Local App interacts with a LocalAgent.
-    failure: Reject a bypass and keep the operation unavailable.
+    failure: Reject a bypass, private or unknown projection variant, operation outside the canonical nine-row agent.local family, or consumer-authored truth and keep the operation unavailable.
     relations:
       - type: applies_to
         target: definition.nimi.platform.core-protocol.app-operation-contract
@@ -264,7 +276,7 @@ units:
     kind: rule
     title: LocalAgent transcription and voice truth is Runtime-owned
     modality: must
-    statement: Runtime owns admitted microphone processing, accepted text intent, LocalAgent response selection, voice artifact, playback state, and interruption truth, while the one shared LocalAgent AIConfig owns each audio.transcribe and audio.synthesize Local-or-Cloud route and at Job submission Runtime atomically dereferences its exact committed Loadout reference into a complete persisted ResolvedAssembly or captures its exact committed Connector reference, Cloud implementation, and Driver target; the companion voice plane neither chooses a route nor owns a model axis, queued or running Jobs never reread current AIConfig or machine preference, and optional wake behavior remains separately admitted and non-blocking.
+    statement: Runtime owns admitted microphone processing, accepted text intent, LocalAgent response selection, voice artifact and terminal synthesis truth, and any first-party managed playback and interruption truth, while the one shared LocalAgent AIConfig owns each audio.transcribe and audio.synthesize Local-or-Cloud route and at Job submission Runtime atomically dereferences its exact committed Loadout reference into a complete persisted ResolvedAssembly or captures its exact committed Connector reference, Cloud implementation, and Driver target; a protected agent.local consumer receives no native chunks or Runtime playback controls and may locally play, pause, or stop only the final artifact as ephemeral UI state, the companion voice plane neither chooses a route nor owns a model axis, queued or running Jobs never reread current AIConfig or machine preference, and optional wake behavior remains separately admitted and non-blocking.
     condition: Whenever LocalAgent voice input or output is available or requested.
     failure: Fail closed as unavailable without App-local capture truth, direct provider calls, current-state reconstruction, hidden listening, or simulated success.
     relations:
@@ -398,7 +410,7 @@ units:
     kind: rule
     title: Attachment upload authenticity and bounds are Runtime-validated
     modality: must
-    statement: Runtime validates uploaded attachment material before admission by checking the raw byte length against the admitted per-file bound, the declared image mime against the admitted whitelist, and the file signature against the declared mime, and the Runtime artifact store remains the only source of trusted attachment mime and size.
+    statement: Runtime validates LocalAgent attachment upload before admission by requiring no more than 4 MiB of raw bytes, one declared image mime from image/png, image/jpeg, image/webp, or image/gif, signature agreement with that mime, and an optional display name no longer than 255 UTF-8 bytes; Runtime validates and stores the display name once, and the artifact store remains the only source of trusted attachment mime, size, display name, and media kind.
     condition: Whenever a caller uploads attachment material for a LocalAgent Conversation.
     failure: Reject oversize, non-admitted type, corrupt, or signature-mismatched material with a typed failure and store nothing.
     relations:
@@ -406,11 +418,11 @@ units:
         target: definition.nimi.runtime.agent-participation.user-attachment-plane
   - id: rule.nimi.runtime.agent-participation.r171
     kind: rule
-    title: Attachment reference requires owner identity
+    title: Attachment reference and read follow the custody transition
     modality: must
-    statement: An attachment artifact record carries Runtime-owned owner metadata written at upload, a turn may reference an attachment only when the caller identity matches the artifact owner, and the artifact id alone never authorizes reference or read.
+    statement: An uploaded attachment candidate carries Runtime-owned account, App subject, Agent, Conversation anchor, expiry, and artifact metadata; before commit only the current uploader owner with the exact upload or turn-send operation and matching Agent and anchor may reference it, while after the first successful user-message commit any independently current authorized App with the exact Conversation artifact-read operation and the same account, Agent, anchor, and committed transcript membership may read it without requiring uploader-App equality, and the artifact id alone never authorizes reference or read.
     condition: Whenever an attachment artifact is uploaded, referenced by a turn, or read back for rendering.
-    failure: Reject cross-owner reference or read as typed forbidden, and never authorize by artifact id possession alone.
+    failure: Reject pre-commit owner mismatch, expired or adopted reuse, missing exact operation, stale handle or session, cross-account, cross-Agent, cross-anchor, non-member, or bearer-style access with a canonical typed reason and expose no generic artifact inventory.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.agent-participation.user-attachment-plane
@@ -418,9 +430,9 @@ units:
     kind: rule
     title: A turn carries at most one referenced attachment
     modality: must
-    statement: A LocalAgent Conversation turn carries at most one user attachment as a Runtime artifact reference, the request requires text or attachment at minimum one, and Runtime admits the attachment into turn context composition only through the standard turn admission path.
+    statement: A LocalAgent Conversation turn carries exactly the restricted canonical input-part subset—zero or one non-empty text part of at most 64 KiB UTF-8 plus zero or one Runtime image artifact reference, with at least one part—and Runtime admits the attachment into turn context composition only through the standard turn admission path; caller-supplied raw bytes, mime, media kind, display name, owner, or storage truth are never turn input.
     condition: Whenever a user submits a turn carrying an attachment.
-    failure: Reject excess attachments, missing text and attachment, or a bypass reference with a typed failure.
+    failure: Reject duplicate or empty text, excess attachments, missing text and attachment, raw bytes, caller-authored artifact metadata, unknown part kinds, or a bypass reference with a canonical typed reason before execution.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.agent-participation.user-attachment-plane
@@ -428,7 +440,7 @@ units:
     kind: rule
     title: Attachment messages persist and project as media
     modality: must
-    statement: A committed user attachment message is durably persisted with the owning conversation transcript and projected with its media kind, artifact reference, and trusted mime for authorized rendering, so the user's own attachment remains visible after a restart.
+    statement: A committed user attachment message is durably persisted with one Runtime-issued message id and owning turn id and projected with its image media kind, artifact reference, trusted mime, and upload-time display name for authorized rendering; the same identity and parts appear in live message-committed events and durable snapshots, so the user's own attachment remains visible after renderer or Runtime restart.
     condition: Whenever a turn carrying an attachment is committed or projected.
     failure: Never silently drop or text-flatten an attachment message; project a typed unavailable state instead.
     relations:
@@ -440,9 +452,129 @@ units:
     kind: rule
     title: Image-input feature mismatch fails without losing the attachment
     modality: must
-    statement: When the shared LocalAgent AIConfig requires input.image for text.generate and the effective CapabilityImplementation does not declare that contract-scoped standardized feature, Runtime still commits and persists the user attachment message and emits a structured feature-mismatch failure, never dropping the attachment, pretending it was consumed, or changing the route, machine selection, or Cloud provider.
+    statement: When the shared LocalAgent AIConfig requires input.image for text.generate and the effective CapabilityImplementation does not declare that contract-scoped standardized feature, Runtime commits exactly the user attachment message, commits no primary assistant message, and terminalizes the turn with the canonical feature-mismatch reason, never dropping the attachment, creating synthetic assistant failure text, pretending the image was consumed, or changing the route, Loadout, Connector, implementation, or target.
     condition: Whenever an effective text.generate implementation without input.image receives an attachment turn.
-    failure: Surface the typed feature-mismatch failure on the assistant side while the user attachment stays committed and visible.
+    failure: Preserve the committed user attachment and failed turn in live and snapshot projection with no synthetic assistant message or success artifact.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.agent-participation.user-attachment-plane
+  - id: rule.nimi.runtime.agent-participation.r175
+    kind: rule
+    title: Protected Conversation turn and message projection is closed
+    modality: must
+    statement: Runtime projects each admitted protected Conversation turn with one stable Runtime-issued turn id and immutable role-typed messages; a successful user turn commits exactly one user message and one primary assistant message containing exactly one non-empty text part, each completed image action adds exactly one assistant image message containing exactly one artifact reference and no text, live events publish the user message before the primary assistant message, committed text uses message-committed only with no public text-delta, and live and snapshot projections use the same ids and parts. The send request id is caller-local correlation excluded from durable Turn, event, and snapshot truth, lost response may remain indeterminate and never authorizes automatic resend, and Runtime admits at most one active turn per Agent across Apps and Conversation anchors.
+    condition: Whenever a protected LocalAgent turn is accepted, committed, projected, retried after caller transport loss, or attempted while the Agent is active.
+    failure: Reject malformed or contradictory message shapes, App-synthesized identity, public text-delta, request-id persistence, automatic resend, or a second active turn with a canonical typed reason and never queue, join across Apps, supersede, or implicitly interrupt.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.conversation-anchor-plane
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.public-conversation-projection-plane
+  - id: rule.nimi.runtime.agent-participation.r176
+    kind: rule
+    title: Conversation events and snapshots converge without an event log
+    modality: must
+    statement: Runtime allocates one monotonic unsigned 64-bit Conversation sequence before protected filtering, so private sidebands may create legal public gaps; every public event carries its canonical decimal sequence, each bounded snapshot atomically carries state and throughSequence, consumers subscribe and buffer before hydration and apply only later events through stable-identity monotonic reducers, and explicit retryable overflow requires replacement subscription before a fresh snapshot while access denial or non-retryable closure stops recovery. The 200-message and 1-MiB text limits bound retained terminal history, the single active or recoverable turn closure remains complete beyond that history bound, terminal history truncates only whole turns with all message, action, and voice children, and Runtime restart preserves committed truth while terminalizing a non-terminal turn as interrupted and coupled non-terminal actions as failed. Runtime persists only the sequence counter and snapshot truth, never an event log, resume cursor, checksum, receipt, or replay service.
+    condition: Whenever protected Conversation events are subscribed, a snapshot is read, history is truncated, a subscription overflows, a renderer refreshes, or Runtime restarts.
+    failure: Reject sequence rollback or reuse, provisional or fabricated sequence, stale-event rollback, orphan or duplicate child state, partial-turn truncation, blind retry loops, phantom running work, or reconstruction from App cache.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.conversation-anchor-plane
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.public-conversation-projection-plane
+  - id: rule.nimi.runtime.agent-participation.r177
+    kind: rule
+    title: Image action lifecycle commits one artifact projection
+    modality: must
+    statement: The only admitted public LocalAgent action in this cut is image.generate with one Runtime-issued action id, owning turn id, canonical CapabilityContract id, and the closed planned, started, completed, or failed lifecycle; planned, started, and failed carry no projection message or artifact, completed carries exactly one artifact id and one same-turn assistant image projection message whose sole artifact reference equals that id, and Runtime atomically commits artifact membership, projection message, and durable completed action before publishing message-committed, artifact-ready, and action-completed in that order. On normal completion, Runtime publishes the parent turn terminal only after every coupled image action is completed or failed; external turn terminalization first terminalizes every unfinished coupled action and no later action message, artifact, or success may be published. A failed action persists one canonical failure without artifact, accepted interruption terminalizes unfinished action work and rejects late success, and optional action failure does not rewrite an otherwise successful primary text turn; action-progress, multi-artifact result, music.generate, video.generate, voice.create, world.generate, provider detail, model detail, route detail, and generic scenario execution are absent.
+    condition: Whenever Runtime plans, executes, commits, fails, interrupts, publishes, or recovers a LocalAgent image action.
+    failure: Reject an unknown action capability or state, progress event, multiple artifacts, missing or cross-turn projection message, ready-before-commit event, contradictory terminal, late overwrite, private execution payload, or consumer-authored action success.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.output-wire-plane
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.public-conversation-projection-plane
+  - id: rule.nimi.runtime.agent-participation.r178
+    kind: rule
+    title: Conversation artifact read is membership-bound and bounded
+    modality: must
+    statement: runtime.agent.conversation.artifact.read accepts only the current opaque Agent handle, Conversation anchor, and artifact id, revalidates the current session and exact operation, and returns artifact id, bytes, store-owned mime, and byte length only when the same account, Agent, and anchor owns either a committed user or action transcript member or a committed Runtime-generated final-voice sidecar; committed membership permits an independently authorized current App to read without uploader-App equality, inline read is capped at 32 MiB, an existing oversized member fails with the canonical too-large reason, and newly generated action or voice output exceeding that bound fails output validation before ready projection. Artifact-ready or voice-ready publishes only after membership commit and immediate purpose-bound readability, and no call exposes generic artifact inventory, App-storage access, caller-authored metadata, or bearer semantics.
+    condition: Whenever a protected App reads, projects, or marks ready a Conversation attachment, action artifact, or final voice artifact.
+    failure: Reject stale or unauthorized access, non-member, cross-account, cross-Agent, cross-anchor, uncommitted, missing, oversized, unreadable, or metadata-mismatched artifacts with a canonical typed reason and publish no ready state.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.conversation-artifact-access-plane
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.public-conversation-projection-plane
+  - id: rule.nimi.runtime.agent-participation.r179
+    kind: rule
+    title: Attachment candidates expire and adopt exactly once
+    modality: must
+    statement: runtime.agent.conversation.attachment.upload creates an uncommitted candidate bound to the current account, App subject, Agent, and Conversation anchor with Runtime-issued artifact id and expiresAt exactly one hour after upload; before expiry a failed or canceled pre-commit send may reference the same unadopted candidate with a new send request id, the first successful user-message commit atomically adopts it into exactly one turn and removes candidate expiry semantics, and an adopted, expired, different-owner, or later-turn reference requires a new upload. Upload has no public idempotency key, response loss may create another bounded candidate whose own expiry remains authoritative, and physical reclamation follows existing artifact-store retention without a public deletion-time promise, sweeper, inventory, quota, rate-limit, ledger, or migration subsystem.
+    condition: Whenever a LocalAgent attachment candidate is uploaded, referenced, adopted, retried, expired, or reclaimed.
+    failure: Reject use at or after expiry, second adoption, owner or anchor mismatch, later-turn reuse, or fabricated expiry and preserve committed artifacts independently of candidate cleanup.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.conversation-artifact-access-plane
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.user-attachment-plane
+  - id: rule.nimi.runtime.agent-participation.r180
+    kind: rule
+    title: Protected recorded voice transcription returns text only
+    modality: must
+    statement: runtime.agent.conversation.voice.transcribe accepts only the current opaque Agent handle, Conversation anchor, caller-local request id, normalized audio mime satisfying the existing audio/* grammar, and no more than 6 MiB of recorded bytes, applies the audio.transcribe route from the shared LocalAgent AIConfig through the existing Runtime Job owner, and returns only trimmed non-empty valid UTF-8 text of at most 64 KiB. Scenario Job id, trace id, route, Loadout, Connector, provider, model, credential, endpoint, and execution proof remain private; the host stops capture no later than five minutes and owns OS permission while Runtime claims only the byte bound, capture cancel submits nothing, transcription cancellation cancels the current wait or Job under its owner, and stale handle, anchor, or consumer generation suppresses late turn submission without creating another cancellation or replay protocol.
+    condition: Whenever a protected App submits explicit recorded voice for LocalAgent transcription.
+    failure: Reject invalid identity, mime, bytes, size, configuration, feature, admission, policy, Quota, Budget, cancellation, transport, execution, empty, invalid, or oversized output with the canonical Runtime reason and never truncate, fabricate text, or submit a late turn.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.ai-config-plane
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.app-consume-plane
+  - id: rule.nimi.runtime.agent-participation.r181
+    kind: rule
+    title: Protected final voice is a terminal presentation sidecar
+    modality: must
+    statement: A protected agent.local Conversation receives no native audio chunks and at most one immutable final voice sidecar for the primary assistant text message; when synthesis starts Runtime reaches ready with exactly one immediately readable artifact or failed with one canonical reason and no artifact before normal turn completion, while policy that does not start synthesis leaves voice absent. External interruption, session termination, or Runtime restart abandons unpublished synthesis as absent and rejects late output, an already published terminal sidecar remains unchanged, voice never enters message content parts or action messages, and protected play, pause, stop, and progress are consumer-local ephemeral state that calls no Runtime interruption operation and does not change Conversation truth; Desktop and other first-party managed voice playback and interruption remain under their separate existing owner contracts.
+    condition: Whenever final voice is synthesized, projected, read, played locally, interrupted, failed, or recovered for a protected Conversation.
+    failure: Reject native-chunk exposure, multiple or reopened sidecars, voice on a non-primary message, ready without readable artifact, failed with artifact, late publication, provider detail, App-local synthesis success, or protected playback reported as Runtime interruption truth.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.companion-wake-voice-plane
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.public-conversation-projection-plane
+  - id: rule.nimi.runtime.agent-participation.r182
+    kind: rule
+    title: LocalAgent CapabilityContract participation is one exact five-row mapping
+    modality: must
+    statement: Runtime owns and projects in stable order exactly text.generate as conversation.primary, text.embed as memory.embedding, audio.transcribe as conversation.input.voice, audio.synthesize as conversation.output.voice, and image.generate as conversation.action.image; text.embed is internal Memory or Knowledge support rather than a direct action, and voice.create, music.generate, video.generate, world.generate, vision.locate, unknown capabilities, and capability-role cross-pairs are absent. This participation policy is independent of configured AIConfig intents, catalog metadata, effective resource state, request-time admission, App operation coverage, and host picker, capture, or playback adapters and creates no second capability identity, permission, route, readiness, or availability catalog.
+    condition: Whenever Runtime declares, projects, configures, admits, or renders CapabilityContract participation for LocalAgent.
+    failure: Reject a missing, duplicate, reordered, deferred, unknown, cross-paired, configured-only, catalog-derived, readiness-bearing, or consumer-authored participation row.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.ai-config-plane
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.local-agent-capability-participation-plane
+  - id: rule.nimi.runtime.agent-participation.r183
+    kind: rule
+    title: Shared AIConfig manager projects participation independently
+    modality: must
+    statement: One Runtime projector supplies the same ordered five LocalAgent participation rows in first-party GetSharedLocalAgentAIConfigResponse and OverwriteSharedLocalAgentAIConfigResponse and in protected LocalAppSharedLocalAgentAIConfigProjection used by Get and Overwrite, while ListOptions responses carry no participation; canonical absent config, clear, overwrite success or conflict, and unavailable effective selection preserve the same participation rows and never create five configured intents. Participation adds no operation, RPC, AIConfig owner, revision, overwrite, options, exact resource selection, effective-selection field, manager, editor, or generic App AIConfig field, and configured intent mutation never changes or recomputes participation.
+    condition: Whenever the shared LocalAgent AIConfig manager reads, overwrites, clears, conflicts, lists options, or projects participation through first-party or protected SDK surfaces.
+    failure: Reject divergent first-party and protected rows, participation in options, configured-intent derivation, loss on absent config or clear, generic App AIConfig pollution, parallel manager state, or mutation of the fixed participation policy.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.ai-config-plane
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.local-agent-capability-participation-plane
+  - id: rule.nimi.runtime.agent-participation.r184
+    kind: rule
+    title: Protected Conversation failures preserve canonical Runtime reasons
+    modality: must
+    statement: Protected Conversation operation, turn, action, voice, artifact, and subscription failures use the canonical Runtime ReasonCode as their only programmatic discriminator with optional bounded display text that consumers never parse; user, session, supersede, or Runtime-restart termination uses the interrupted turn terminal, while timeout, policy, configuration, feature, Quota, Budget, Runtime-observed downstream transport, execution, and output failure uses failed. App-to-SDK or RPC response loss, subscription closure, and caller cancellation are caller-local and never rewrite Runtime turn truth, and a caller changes an accepted turn only through runtime.agent.conversation.turn.interrupt; unknown public content, action, voice, event, or terminal variants fail typed instead of being discarded or converted to success.
+    condition: Whenever a protected Conversation call, stream, turn, action, artifact, or voice path fails, closes, is canceled, or receives an unknown projection.
+    failure: Reject a LocalAgent-only failure taxonomy, human-text classification, caller-local transport promoted to durable failure, dual terminal, silent unknown variant, fabricated retryability, or pseudo-success.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.app-consume-plane
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.public-conversation-projection-plane

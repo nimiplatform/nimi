@@ -30,7 +30,7 @@ units:
     kind: rule
     title: LocalAgent Conversation accepts typed user intent only
     modality: must
-    statement: Desktop submits typed current-user intent for an explicit authorized localAgentId through the standard SDK and Runtime seam and never attaches prompts, provider choices, Memory, Knowledge, credentials, Runtime proof, or caller-composed execution context.
+    statement: Desktop submits the canonical typed current-user LocalAgent intent for an explicit authorized localAgentId through the standard SDK and Runtime seam, containing zero or one bounded text part plus zero or one Runtime image artifact reference with at least one part, and never attaches raw media bytes, prompts, provider choices, route or resource overrides, Memory, Knowledge, credentials, Runtime proof, or caller-composed execution context.
     condition: Whenever Desktop starts or continues a LocalAgent Conversation.
     failure: Reject untyped, unauthorized, or context-bearing input before execution.
     relations:
@@ -40,7 +40,7 @@ units:
     kind: rule
     title: Desktop consumes Runtime LocalAgent truth
     modality: must
-    statement: Desktop renders committed Runtime LocalAgent Conversation, state, voice, presentation, continuity, and failure projections without reinterpreting UI state, local history, optimistic output, or cached events as Runtime truth.
+    statement: Desktop renders committed Runtime LocalAgent text and image messages, image-action lifecycle and artifact references, final voice sidecars, state, presentation, continuity, and canonical failure projections with the same stable turn, message, action, voice, event-sequence, and bounded snapshot semantics as protected consumers, while retaining its first-party selector and managed voice playback contracts and never reinterpreting UI state, local history, optimistic output, or cached events as Runtime truth.
     condition: Whenever Desktop renders or replays LocalAgent state.
     failure: Reject local semantic reconstruction and use the Runtime projection or explicit unavailable state.
     relations:
@@ -230,7 +230,7 @@ units:
     kind: rule
     title: Selected Conversation recovers from Runtime
     modality: must
-    statement: Desktop recovers a selected LocalAgent Conversation through Runtime-owned committed snapshots and projections with stable Runtime identity and status.
+    statement: Desktop recovers a selected LocalAgent Conversation through Runtime-owned committed bounded snapshots and ordered projections with stable turn, message, action, voice, artifact, sequence-high-watermark, and terminal status and never loses or duplicates an included content or sidecar relation.
     condition: Whenever Desktop reloads or reattaches to a LocalAgent Conversation.
     failure: Reject Desktop-local transcript reconstruction.
     relations:
@@ -308,3 +308,13 @@ units:
         target: definition.nimi.desktop.agent-projection.agent-chat
       - type: applies_to
         target: definition.nimi.sdks.realm-consumer.character-profile-projection
+  - id: rule.nimi.desktop.agent-projection.r202
+    kind: rule
+    title: Desktop attachment composer preserves Runtime custody and one-item bounds
+    modality: must
+    statement: Desktop stages at most one pending LocalAgent image attachment per turn across file selection, repeated selection, paste, retry restoration, and thread switching, uses only the Runtime attachment upload and artifact-reference path or its authority-equivalent first-party facade, and submits only the resulting artifact id with optional bounded text; selected bytes, display name, preview URL, capture state, and retry draft remain ephemeral UI state until Runtime commits one user message, and Desktop never creates an App-local artifact store, durable candidate, ownership proof, mime truth, multi-attachment turn, or generic artifact read authority.
+    condition: Whenever Desktop selects, pastes, replaces, retries, submits, clears, or restores a LocalAgent attachment.
+    failure: Reject a second staged attachment, raw-byte turn input, caller-authored artifact metadata, stale or foreign artifact reference, or local custody claim and keep the composer non-authoritative until Runtime commit.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.agent-chat

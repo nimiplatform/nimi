@@ -160,9 +160,9 @@ units:
     kind: rule
     title: LocalAgent access is session derived
     modality: must
-    statement: A scaffolded protected Third-party Local App uses the standard SDK to request the canonical agent.local reference listing and supplies only a returned session-scoped opaque agentHandle with a later canonical Conversation operation; Runtime derives and revalidates the current account, App subject, active LocalAgent, agent.local coverage, and exact AppOperationId, and the SDK never accepts raw localAgentId or exposes rich LocalAgent state, voice, presentation, Memory, Knowledge, authorization proof, or credential material on this path.
+    statement: A scaffolded protected Third-party Local App uses the standard SDK to request the canonical agent.local reference listing and supplies only a returned session-scoped opaque agentHandle with one of the eight canonical Conversation operations; Runtime derives and revalidates the current account, App subject, active LocalAgent, agent.local coverage, and exact AppOperationId, while the SDK projects only the closed typed Conversation turn, text and image message, image-action, purpose-bound artifact, recorded-transcription text, terminal final-voice sidecar, canonical failure, event, and snapshot contracts and never accepts raw localAgentId or exposes activity, emotion, Avatar rendering, native voice chunks, presentation internals, Memory, Knowledge, provider or model detail, authorization proof, credential material, generic Runtime, or generic artifact inventory on this path.
     condition: Whenever a scaffolded protected Third-party Local App requests a LocalAgent operation.
-    failure: Fail closed when the handle or any derived admission or owner input is missing, stale, caller-authored, cross-account, inactive-Agent, or unsupported.
+    failure: Fail closed when the handle, exact operation, typed input, public variant, or any derived admission or owner input is missing, stale, unknown, caller-authored, cross-account, inactive-Agent, unsupported, or private.
     relations:
       - type: applies_to
         target: definition.nimi.platform.core-protocol.app-operation-contract

@@ -41,7 +41,7 @@ units:
   - id: definition.nimi.platform.ui-design-system.agent-center-surface
     kind: definition
     title: LocalAgent Center surface
-    meaning: Agent Center is the reusable Kit surface for presenting and editing admitted Runtime LocalAgent personality, appearance, behavior, Memory, Conversation-presentation, and the account-scoped shared LocalAgent AIConfig from Desktop or any protected App whose current session has agent.configure coverage; it may select exact Loadout or Connector references through the canonical AIConfig manager and bounded options client while owning no execution, lifecycle, Loadout or Connector content, credential, endpoint, configuration persistence, authorization, or semantic presentation truth.
+    meaning: Agent Center is the reusable Kit surface for presenting and editing admitted Runtime LocalAgent personality, appearance, behavior, Memory, Conversation-presentation, and the account-scoped shared LocalAgent AIConfig from Desktop or any protected App whose current session has agent.configure coverage; it presents Runtime-owned LocalAgent CapabilityContract participation independently from configured AIConfig intent, may select exact Loadout or Connector references through the canonical AIConfig manager and bounded options client, and owns no execution, lifecycle, capability catalog, participation policy, readiness, Loadout or Connector content, credential, endpoint, configuration persistence, authorization, or semantic presentation truth.
   - id: definition.nimi.platform.ui-design-system.runtime-projection
     kind: definition
     title: Runtime-owned UI projection
@@ -618,6 +618,18 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.platform.ui-design-system.agent-center-surface
+  - id: rule.nimi.platform.ui-design-system.p-agent-center-010
+    kind: rule
+    title: P-AGENT-CENTER-010 participation is independent Manager truth
+    modality: must
+    statement: The single AgentCenter Manager Session consumes one ordered Runtime-owned participation projection containing exactly text.generate as conversation.primary, text.embed as memory.embedding, audio.transcribe as conversation.input.voice, audio.synthesize as conversation.output.voice, and image.generate as conversation.action.image; it uses those five rows as the capability denominator and joins configured intents and effective selections separately, so absent config, clear, overwrite success or conflict, and effective-selection failure retain five unconfigured or configured rows without creating intents. Kit removes any configured-capabilities parallel list and hardcoded capability pair, derives ModelConfig capability inputs from participation, labels text.embed as internal Memory or Knowledge support rather than an action, keeps deferred capabilities absent, and preserves the same state and behavior for Desktop first-party and protected App factories without changing the generic ModelConfig editor or accepting caller-owned participation, readiness, host support, or operation authority through React props.
+    condition: Whenever AgentCenter loads, refreshes, overwrites, clears, reduces, or renders shared LocalAgent AI configuration and participation.
+    failure: Reject missing, duplicate, reordered, deferred, cross-paired, configured-only, catalog-derived, caller-supplied, readiness-bearing, or carrier-divergent participation; fail closed as manager unavailable without synthesizing rows when the Runtime participation projection itself is unavailable.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.ui-design-system.agent-center-surface
+      - type: applies_to
+        target: definition.nimi.platform.ui-design-system.runtime-projection
   - id: rule.nimi.platform.ui-design-system.p-design-022d
     kind: rule
     title: P-DESIGN-022 material token interface and radii

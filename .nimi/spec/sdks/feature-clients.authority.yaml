@@ -9,7 +9,7 @@ units:
   - id: definition.nimi.sdks.feature-clients.ai-config-plane
     kind: definition
     title: SDK AI config plane
-    meaning: The SDK AI configuration plane owns one host-neutral typed manager contract for canonical App or account-scoped shared LocalAgent AIConfig get, owner-scoped compare-and-swap overwrite, clear-by-omission, lightweight selected-resource effective projection, and bounded Local Loadout or Cloud Connector and target options; config read, effective projection, candidate options, and mutation are independent failure domains, and the mutation response alone acknowledges commit with the canonical record and revision. The plane also owns portable AIProfile import and validation, non-committing Apply Profile prefill without resource binding, the separate Machine Loadout store resource actions, and immutable Job projections, while owning no per-Agent or App-local shadow configuration, credential, endpoint, resource content, readiness lifecycle, route resolver, fallback, or implementation binding truth.
+    meaning: The SDK AI configuration plane owns one host-neutral typed manager contract for canonical App or account-scoped shared LocalAgent AIConfig get, owner-scoped compare-and-swap overwrite, clear-by-omission, lightweight selected-resource effective projection, and bounded Local Loadout or Cloud Connector and target options; the shared LocalAgent specialization additionally carries one fixed Runtime-owned capability-role participation projection on Get and Overwrite without widening generic App AIConfig, while config read, participation, effective projection, candidate options, and mutation remain independent failure domains and the mutation response alone acknowledges commit with the canonical record and revision. The plane also owns portable AIProfile import and validation, non-committing Apply Profile prefill without resource binding, the separate Machine Loadout store resource actions, and immutable Job projections, while owning no per-Agent or App-local shadow configuration, credential, endpoint, resource content, readiness lifecycle, route resolver, fallback, or implementation binding truth.
   - id: definition.nimi.sdks.feature-clients.app-client-plane
     kind: definition
     title: SDK app client plane
@@ -866,3 +866,31 @@ units:
         target: definition.nimi.sdks.feature-clients.app-client-plane
       - type: applies_to
         target: definition.nimi.sdks.realm-consumer.character-profile-projection
+  - id: rule.nimi.sdks.feature-clients.r105
+    kind: rule
+    title: Protected LocalAgent Conversation client is multimodal and bounded
+    modality: must
+    statement: The host-injected App client exposes exactly the nine canonical agent.local methods through typed namespaces comprising current-Agent reference listing and Conversation open, turn send, turn interrupt, events subscribe, snapshot get, attachment upload, artifact read, and voice transcribe. Send accepts only zero or one bounded text part plus zero or one Runtime artifact reference with at least one part; upload enforces the closed image contract and returns artifact id plus expiry; read accepts only Agent handle, anchor, and artifact id and returns bounded store-owned bytes and metadata; transcription returns text only; event and snapshot projections preserve stable Runtime ids, canonical decimal sequence and high-watermark, closed message, image-action, final-voice, and ReasonCode unions, and unknown or malformed variants fail closed. The client exposes no text-only compatibility path, App-local attachment store, raw bytes in turn send, route or resource override, Scenario Job or trace identity from transcription, generic artifact or Runtime facade, native voice chunks, provider detail, readiness, replay coordinator, or caller authority.
+    condition: Whenever a protected App composes, sends, subscribes, hydrates, uploads, reads, transcribes, or renders a LocalAgent Conversation through the TypeScript SDK.
+    failure: Fail closed before transport on invalid or oversized input, unavailable exact operation or host carrier, stale handle, or malformed public projection and preserve canonical Runtime failure without dropping media, action, voice, or terminal state or fabricating success.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.app-operation-contract
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.effective-app-access-snapshot
+      - type: applies_to
+        target: definition.nimi.sdks.feature-clients.app-client-plane
+      - type: supersedes
+        target: rule.nimi.sdks.feature-clients.r100
+  - id: rule.nimi.sdks.feature-clients.r106
+    kind: rule
+    title: Shared LocalAgent manager carries one participation projection
+    modality: must
+    statement: The SDK defines one shared-specific LocalAgent participation row and shared-AIConfig snapshot and overwrite-result contract used identically by first-party NimiSharedLocalAgentAIConfigClient and protected NimiLocalAppAgentConfigureClient.sharedAIConfig; Get and Overwrite preserve the same ordered five exact capability-role pairs when config is absent, cleared, committed, conflicted, or effectively unavailable, while ListOptions carries no participation. Generic App-owned NimiAIConfigSnapshot, NimiAIConfigOverwriteResult, NimiLocalAppClient.aiConfig, shared owner/revision/CAS, options, resource selection, and manager method names remain unchanged, and exact-key parsing rejects missing, duplicate, deferred, unknown, cross-paired, or consumer-authored participation.
+    condition: Whenever shared LocalAgent AIConfig participation is generated, projected, parsed, mutated, cleared, or consumed through first-party or protected SDK managers.
+    failure: Reject divergent manager types or rows, configured-intent derivation, loss on absent config or clear, participation in generic App AIConfig or options, parallel manager state, unknown fields, or mutation of participation through overwrite.
+    relations:
+      - type: applies_to
+        target: definition.nimi.sdks.feature-clients.ai-config-plane
+      - type: applies_to
+        target: definition.nimi.sdks.feature-clients.app-client-plane

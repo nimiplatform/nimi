@@ -9,7 +9,7 @@ units:
   - id: definition.nimi.platform.app-ecosystem.local-agent-projection
     kind: definition
     title: LocalAgent consumer projection
-    meaning: Nimi-owned Home, Zhiyu, and Avatar may consume rich Runtime LocalAgent messages, state, activity, emotion, voice, and errors under their owner contracts; supported Third-party Apps consume only the agent.local and agent.configure rows of the canonical App operation contract—Agent reference listing, five conversation operations, and the bounded agent configuration family—and receive no voice, avatar render, or other rich first-party projection beyond that contract. Neither projection creates a separate identity or owns LocalAgent execution truth.
+    meaning: Nimi-owned Home, Zhiyu, and Avatar may consume rich Runtime LocalAgent messages, state, activity, emotion, voice, and errors under their owner contracts; supported Third-party Apps consume only the agent.local and agent.configure rows of the canonical App operation contract—Agent reference listing, eight conversation operations, and the bounded agent configuration family—and may receive typed text and image content, image-action lifecycle and artifact references, recorded-voice transcription text, and terminal final-voice artifact sidecars while receiving no activity, emotion, Avatar render, native voice chunks, private execution proof, or broader first-party projection beyond that contract. Neither projection creates a separate identity or owns LocalAgent execution truth.
   - id: definition.nimi.platform.app-ecosystem.character-local-agent-model
     kind: definition
     title: Realm Character and Runtime LocalAgent model
@@ -210,7 +210,7 @@ units:
     kind: rule
     title: P-AGID-010 session-derived agent configuration access
     modality: must
-    statement: Each agent configuration operation is admitted only from the current protected App session with Effective App Access Snapshot coverage for agent.configure; shared AIConfig get, compare-and-swap overwrite, and bounded options list resolve the account-scoped singular Runtime LocalAgent subsystem owner without an Agent handle, while per-Agent autonomy or presentation operations present the session-scoped opaque Agent reference handle with per-call current-account active-Agent revalidation and preserve independent autonomy and presentation revisions through typed conflict results.
+    statement: Each agent configuration operation is admitted only from the current protected App session with Effective App Access Snapshot coverage for agent.configure; shared AIConfig get, compare-and-swap overwrite, and bounded options list resolve the account-scoped singular Runtime LocalAgent subsystem owner without an Agent handle, Get and Overwrite project the same fixed Runtime-owned LocalAgent capability-role participation rows independently of configured intent while Options does not, and per-Agent autonomy or presentation operations present the session-scoped opaque Agent reference handle with per-call current-account active-Agent revalidation and preserve independent autonomy and presentation revisions through typed conflict results.
     condition: Whenever an App invokes an agent configuration operation.
     failure: Fail closed without owner mutation when the session or snapshot coverage is missing or stale, or when a per-Agent operation lacks its required current handle or independent revision or encounters a typed conflict.
     relations:
@@ -222,12 +222,24 @@ units:
     kind: rule
     title: P-AGID-010 no app-owned AI or configuration truth
     modality: must_not
-    statement: An App agent configuration surface carries a secondary access workflow or decision state, addresses the shared LocalAgent AIConfig by Agent handle, merges AIConfig, persists a route, model, Connector, provider, option catalog, or effective posture outside the canonical owner record and Runtime projections, stores Provider Credentials or endpoints, invokes generic Connector management, or infers readiness, Quota, Budget, Rate Limit, or fallback; submitting explicit user-selected Loadout or Connector references through the admitted canonical owner compare-and-swap operation is not App-owned truth.
+    statement: An App agent configuration surface carries a secondary access workflow or decision state, addresses the shared LocalAgent AIConfig by Agent handle, merges AIConfig, derives or mutates LocalAgent capability participation from configured intents, persists a route, model, Connector, provider, option catalog, participation catalog, or effective posture outside the canonical owner record and Runtime projections, stores Provider Credentials or endpoints, invokes generic Connector management, or infers readiness, Quota, Budget, Rate Limit, or fallback; submitting explicit user-selected Loadout or Connector references through the admitted canonical owner compare-and-swap operation is not App-owned truth.
     condition: Whenever an App presents or mutates agent configuration.
     failure: Reject the carrier, cross-owner mutation, or invented truth and keep Runtime owner state unchanged.
     relations:
       - type: applies_to
         target: definition.nimi.platform.app-ecosystem.agent-configuration-operation-family
+  - id: rule.nimi.platform.app-ecosystem.p-agid-011a
+    kind: rule
+    title: P-AGID-011 protected multimodal LocalAgent operation boundary
+    modality: must
+    statement: A protected App with current agent.local coverage uses exactly runtime.agent.reference.list, runtime.agent.conversation.open, runtime.agent.conversation.turn.send, runtime.agent.conversation.turn.interrupt, runtime.agent.conversation.events.subscribe, runtime.agent.conversation.snapshot.get, runtime.agent.conversation.attachment.upload, runtime.agent.conversation.artifact.read, and runtime.agent.conversation.voice.transcribe through the standard typed SDK and opaque Agent-handle seam; the Conversation operations may project bounded typed text and image messages, image-action lifecycle and artifacts, recorded-voice transcription text, and terminal final-voice artifact sidecars, while Runtime revalidates the exact operation per call and exposes no activity, emotion, Avatar rendering, native voice chunks, LocalAgent identity, provider, model, route, credential, prompt, Memory, Knowledge, execution proof, generic artifact inventory, or generic Runtime forwarding.
+    condition: Whenever a protected App invokes or consumes agent.local after the multimodal hard cut.
+    failure: Reject an operation outside the nine-row agent.local family, a stale or unauthorized handle, a caller-authored authority or execution field, a private first-party sideband, an unknown public variant, or a generic forwarding or artifact path.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.app-ecosystem.local-agent-projection
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.app-operation-contract
   - id: definition.nimi.platform.app-ecosystem.app-permission
     kind: definition
     lifecycle: removed
@@ -246,7 +258,7 @@ units:
   - id: definition.nimi.platform.app-ecosystem.agent-configuration-operation-family
     kind: definition
     title: App agent configuration operation family
-    meaning: The agent configuration operation family is the bounded agent.configure App operation set runtime.agent.ai-config.get, runtime.agent.ai-config.overwrite, runtime.agent.ai-config.options.list, runtime.agent.autonomy.snapshot.get, runtime.agent.autonomy.update, runtime.agent.presentation.snapshot.get, and runtime.agent.presentation.commit; the shared account-scoped Runtime LocalAgent subsystem AIConfig operations resolve the singular subsystem owner without an Agent handle and expose only the canonical record, compare-and-swap mutation, lightweight effective selected-resource projection, and bounded safe Local or Cloud options, while autonomy and presentation operations are addressed by the session-scoped opaque Agent reference handle and preserve only their own independent concurrency revisions and typed conflict results, all without a secondary access state, per-Agent route, App-owned shadow carrier, Connector credential, endpoint, or generic Connector operation.
+    meaning: The agent configuration operation family is the bounded agent.configure App operation set runtime.agent.ai-config.get, runtime.agent.ai-config.overwrite, runtime.agent.ai-config.options.list, runtime.agent.autonomy.snapshot.get, runtime.agent.autonomy.update, runtime.agent.presentation.snapshot.get, and runtime.agent.presentation.commit; the shared account-scoped Runtime LocalAgent subsystem AIConfig operations resolve the singular subsystem owner without an Agent handle and expose the canonical record, compare-and-swap mutation, lightweight effective selected-resource projection, bounded safe Local or Cloud options, and for Get and Overwrite one fixed Runtime-owned LocalAgent capability-role participation projection independent of configured intent, while autonomy and presentation operations are addressed by the session-scoped opaque Agent reference handle and preserve only their own independent concurrency revisions and typed conflict results, all without a secondary access state, per-Agent route, App-owned shadow carrier, Connector credential, endpoint, generic Connector operation, or second participation catalog.
     relations:
       - type: supersedes
         target: definition.nimi.platform.app-ecosystem.agents-configure-operation-family
@@ -1635,7 +1647,7 @@ units:
     kind: rule
     title: P-ECO-005 future world and game app boundary
     modality: must
-    statement: A future world or game App remains only a registry candidate, and any cross-world or cross-game flow requires a separate owner-complete authority cut and typed projection while retaining source App, target App, and canonical App owner references on the Realm audit surface; it cannot widen the current four AppAccess domains or forty-three operations through registry, review, trust inheritance, or raw sharing.
+    statement: A future world or game App remains only a registry candidate, and any cross-world or cross-game flow requires a separate owner-complete authority cut and typed projection while retaining source App, target App, and canonical App owner references on the Realm audit surface; it cannot widen the current four AppAccess domains or forty-six operations through registry, review, trust inheritance, or raw sharing.
     condition: Whenever a world or game app class or cross-app flow is proposed.
     failure: Deny admission or data flow without the separate owner authority, projection, audit reference, and trust-tier boundary.
     relations:

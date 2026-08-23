@@ -9,7 +9,7 @@ units:
   - id: definition.nimi.zhiyu.local-partner-surface.conversation-surface
     kind: definition
     title: Zhiyu Conversation projection
-    meaning: Zhiyu projects Runtime-owned Conversation messages, state, activity, emotion, voice, errors, and continuity through standard SDK and demand-driven Kit surfaces.
+    meaning: Zhiyu projects the Runtime-owned protected agent.local Conversation core—typed text and image messages, image actions and artifacts, recorded-voice transcription text, terminal final-voice sidecars, canonical failures, events, snapshots, and continuity—through the standard SDK and demand-driven Kit surfaces; separately owned first-party activity, emotion, Avatar, and presentation sidebands remain outside the protected Conversation reducer and do not substitute for its truth or acceptance.
   - id: definition.nimi.zhiyu.local-partner-surface.configuration-surface
     kind: definition
     title: Zhiyu LocalAgent settings projection
@@ -42,7 +42,7 @@ units:
     kind: rule
     title: Conversation continuity is Runtime owned
     modality: must
-    statement: Zhiyu preserves Runtime-issued LocalAgent, Conversation, turn, message, stream, and parent continuity and never reconstructs it from local history, selected partner UI, timestamps, or cached messages.
+    statement: Zhiyu preserves Runtime-issued Agent handle, Conversation anchor, turn, message, action, voice, artifact, event sequence, snapshot high-watermark, and parent continuity, subscribes before hydration, and never synthesizes identity or reconstructs, rolls back, or duplicates durable state from local history, array position, selected partner UI, timestamps, activity or emotion sidebands, or cached messages.
     condition: Whenever Zhiyu opens, resumes, or streams a Conversation.
     failure: Re-read Runtime continuity or show unavailable.
     relations:
@@ -82,7 +82,7 @@ units:
     kind: rule
     title: Runtime state remains typed
     modality: must
-    statement: Zhiyu renders Runtime message, activity, emotion, voice, operation-specific owner decision, cancellation, request-time derived-admission, and exact Job-failure projections without inventing fallback values, aggregate AI readiness, or converting unknown state into success.
+    statement: Zhiyu renders protected Runtime text and image messages, image-action lifecycle and artifacts, terminal final-voice sidecars, operation-specific owner decision, cancellation, request-time derived admission, and canonical failure projection without silently dropping unknown public variants, duplicating artifacts from action records, inventing fallback values or aggregate AI readiness, or converting unknown state into success; first-party activity, emotion, Avatar, and presentation sidebands remain independently rendered and never feed the protected Conversation reducer.
     condition: Whenever Zhiyu consumes Runtime state.
     failure: Preserve the typed unavailable or failure state.
     relations:
@@ -92,7 +92,7 @@ units:
     kind: rule
     title: Shared AIConfig and per-Agent settings remain distinct
     modality: must
-    statement: Zhiyu may get, compare-and-swap overwrite, clear, and list bounded Local Loadout or Cloud Connector and target options for the account-scoped shared LocalAgent subsystem AIConfig only through the public agent.configure SDK and canonical Kit Manager Session that resolve the singular subsystem owner without an Agent handle; the manager returns an opaque owner revision and lightweight effective selected-resource results without merge, history, or readiness truth, per-Agent autonomy and presentation remain separately handle-addressed with independent revisions and typed conflicts, and Zhiyu persists no second configuration truth.
+    statement: Zhiyu may get, compare-and-swap overwrite, clear, and list bounded Local Loadout or Cloud Connector and target options for the account-scoped shared LocalAgent subsystem AIConfig only through the public agent.configure SDK and canonical Kit Manager Session that resolve the singular subsystem owner without an Agent handle; the same manager projects the fixed five LocalAgent capability-role participation rows independently of configured intents and effective selections, retains them for absent or cleared config, and never auto-configures an intent, while per-Agent autonomy and presentation remain separately handle-addressed with independent revisions and typed conflicts and Zhiyu persists no second configuration or participation truth.
     condition: Whenever Zhiyu edits shared LocalAgent AIConfig or per-Agent non-AI settings.
     failure: Reject an Agent-handle-addressed AI action, per-Agent route or model, Zhiyu-owned AIConfig revision, history, or merge, cross-owner mutation, or lost autonomy or presentation conflict and keep the Runtime-issued opaque AIConfig revision and Runtime truth unchanged.
     relations:
@@ -112,7 +112,7 @@ units:
     kind: rule
     title: Kit composition is demand driven
     modality: must
-    statement: Zhiyu uses only the public SDK and Kit controls required by its current Conversation and settings journeys and does not define a reusable LocalAgent Center framework, capability catalog, private Kit registry, or second SDK.
+    statement: Zhiyu uses only the public SDK and Kit controls required by its current protected Conversation and settings journeys, derives attachment, microphone, artifact, and local playback controls from the exact current operation plus host adapter and Agent Center rows from Runtime participation, and does not define a reusable LocalAgent Center framework, capability or participation catalog, private Kit registry, hardcoded denominator, configured-intent fallback list, or second SDK.
     condition: Whenever Zhiyu adds shared SDK or Kit composition.
     failure: Keep product-specific composition in Zhiyu and shared capability demand-driven.
     relations:
@@ -155,6 +155,16 @@ units:
     statement: Any parity with Nimi Home LocalAgent Conversation covers product copy, layout, input, selection, rendering, failure, and diagnostics presentation while shared typed SDK or Kit state mapping remains the only projection path.
     condition: Whenever Zhiyu aligns with another LocalAgent Conversation surface.
     failure: Reject App-local transport, execution, provider, model, Memory, Knowledge, Avatar, voice, or authorization truth.
+    relations:
+      - type: applies_to
+        target: definition.nimi.zhiyu.local-partner-surface.conversation-surface
+  - id: rule.nimi.zhiyu.local-partner-surface.r015
+    kind: rule
+    title: Protected multimodal controls use exact agent.local operations
+    modality: must
+    statement: Zhiyu exposes image attachment only when the host picker and runtime.agent.conversation.attachment.upload are available, artifact rendering only through runtime.agent.conversation.artifact.read, microphone only when host capture and runtime.agent.conversation.voice.transcribe are available, and local final-voice playback only from a ready protected sidecar; capture cancel submits nothing, transcription cancellation or generation change suppresses late turn submission, local play or stop never calls Runtime interruption, and no control uses runtime.consume, provider APIs, raw native chunks, App-local artifacts, configured AIConfig rows, or predicted readiness as a LocalAgent substitute.
+    condition: Whenever Zhiyu renders or invokes a protected attachment, artifact, microphone, transcription, or final-voice control.
+    failure: Hide or disable the unavailable control and preserve the canonical typed Runtime failure without mock success, fallback execution, late send, generic artifact access, or first-party sideband substitution.
     relations:
       - type: applies_to
         target: definition.nimi.zhiyu.local-partner-surface.conversation-surface
