@@ -13,7 +13,7 @@
       "summary": "参考音频或文本描述 → voice.create 场景任务 → 可复用 VoiceAsset。"
     },
     "speechBundle": {
-      "label": "语音包",
+      "label": "语音目录",
       "summary": "通过受保护的 Runtime 语音目录查看所有者范围内的语音引用。"
     }
   },

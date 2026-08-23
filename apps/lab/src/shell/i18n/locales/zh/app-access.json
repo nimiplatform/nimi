@@ -67,6 +67,14 @@
       "title": "会话与身份",
       "blurb": "各项事实独立查询，互不派生。"
     },
+    "nav": {
+      "ariaLabel": "探针分组",
+      "label": "分组",
+      "overview": "概览"
+    },
+    "index": {
+      "probeCount": "{{count}} 个探针"
+    },
     "groups": {
       "storage": {
         "title": "App 存储（基础）",

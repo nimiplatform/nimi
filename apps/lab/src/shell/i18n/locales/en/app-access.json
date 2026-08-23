@@ -67,6 +67,14 @@
       "title": "Session & Identity",
       "blurb": "Independent facts, each queried on its own — none is derived from another."
     },
+    "nav": {
+      "ariaLabel": "Probe groups",
+      "label": "Groups",
+      "overview": "Overview"
+    },
+    "index": {
+      "probeCount": "{{count}} probe{{plural}}"
+    },
     "groups": {
       "storage": {
         "title": "App Storage (Base)",

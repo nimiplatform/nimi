@@ -29,6 +29,10 @@ const groupIcons: Record<AppAccessGroupId, LucideIcon> = {
   boundary: ShieldX,
 };
 
+export function appAccessGroupIcon(id: AppAccessGroupId): LucideIcon {
+  return groupIcons[id];
+}
+
 export function AppAccessGroup({
   definition,
   states,
@@ -61,7 +65,7 @@ export function AppAccessGroup({
           <Icon size={17} strokeWidth={1.9} />
         </span>
         <div className="app-access-group__head-text">
-          <h2 className="app-access-group__title">{t(definition.titleKey)}</h2>
+          <h2 className="app-access-group__title" tabIndex={-1} data-app-access-section-title>{t(definition.titleKey)}</h2>
           <p className="app-access-group__blurb">{t(definition.blurbKey)}</p>
         </div>
         <div className="app-access-group__head-actions">

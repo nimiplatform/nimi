@@ -20,7 +20,7 @@ export const studioVoiceDescriptors = Object.freeze([
     surface: 'sdk.localApp.ai.scenarioJobs.submit:voice-create', execution: 'runtime-sdk', capabilityContract: 'voice.create',
   },
   {
-    id: 'speech.bundle', label: 'Speech Bundle', labelKey: 'Capabilities.speechBundle.label', group: 'audio',
+    id: 'speech.bundle', label: 'Voice Catalog', labelKey: 'Capabilities.speechBundle.label', group: 'audio',
     section: 'voice',
     summary: 'Inspect owner-scoped voice references through the protected Runtime voice catalog.', summaryKey: 'Capabilities.speechBundle.summary',
     surface: 'kit.runRuntimeVoiceCatalog → sdk.localApp.ai.voiceAssets.list', execution: 'runtime-sdk', capabilityContract: 'audio.synthesize',

@@ -46,7 +46,7 @@ function DevPreview() {
       'audio.synthesize': 'Speech Synthesis',
       stt: 'Speech Transcribe',
       'audio.transcribe': 'Speech Transcribe',
-      'speech-bundle': 'Speech Bundle',
+      'speech-bundle': 'Voice Catalog',
       world: 'World Tour',
       'ui-recipes': 'UI Recipes',
     };

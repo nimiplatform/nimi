@@ -13,7 +13,7 @@
       "summary": "Reference audio or text description → voice.create Scenario Job → reusable VoiceAsset."
     },
     "speechBundle": {
-      "label": "Speech Bundle",
+      "label": "Voice Catalog",
       "summary": "Inspect owner-scoped voice references through the protected Runtime voice catalog."
     }
   },

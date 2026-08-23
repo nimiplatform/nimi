@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { RefreshCw } from 'lucide-react';
-import { Button, ConfirmDialog, FieldShell, InlineAlert, SelectField, Statistic, StatisticGroup, StatusBadge } from '@nimiplatform/kit/ui';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { ChevronRight, LayoutDashboard, RefreshCw } from 'lucide-react';
+import { Button, ConfirmDialog, FieldShell, InlineAlert, SelectField, Statistic, StatisticGroup, StatusBadge, Surface } from '@nimiplatform/kit/ui';
 import type { NimiLocalAppAgentReference } from '@nimiplatform/sdk/app';
 
 import { getLabLocalAppClient } from '../../shell/local-app-runtime-platform.js';
@@ -27,7 +27,7 @@ import {
   type AppAccessGateContext,
   type AppAccessProbeStates,
 } from './app-access-state.js';
-import { AppAccessGroup } from './app-access-group.js';
+import { AppAccessGroup, appAccessGroupIcon } from './app-access-group.js';
 import { AppAccessSessionBar, type AppAccessSessionFacts } from './app-access-session-bar.js';
 
 type LabHotContext = {
@@ -77,6 +77,9 @@ export function AppAccessPanel() {
   const [runningGroup, setRunningGroup] = useState<AppAccessGroupId | 'all' | null>(null);
   const [explicitProbe, setExplicitProbe] = useState<AppAccessProbeId | null>(null);
   const [explicitProbeRunning, setExplicitProbeRunning] = useState(false);
+  const [section, setSection] = useState<AppAccessGroupId | 'overview'>('overview');
+  const panelRef = useRef<HTMLElement>(null);
+  const sectionNavigationPendingRef = useRef(false);
 
   // Refs mirror the latest committed values so sequential group/run-all loops
   // read fresh state synchronously instead of waiting for re-renders.
@@ -85,6 +88,20 @@ export function AppAccessPanel() {
   const sessionBoundRef = useRef(sessionBound);
   const agentReferencesRef = useRef(agentReferences);
   const selectedAgentHandleRef = useRef(selectedAgentHandle);
+
+  const selectSection = useCallback((nextSection: AppAccessGroupId | 'overview') => {
+    if (nextSection === section) return;
+    sectionNavigationPendingRef.current = true;
+    setSection(nextSection);
+  }, [section]);
+
+  useLayoutEffect(() => {
+    if (!sectionNavigationPendingRef.current) return;
+    sectionNavigationPendingRef.current = false;
+    const panel = panelRef.current;
+    panel?.querySelector<HTMLElement>('[data-app-access-section-title]')?.focus({ preventScroll: true });
+    if (panel) panel.scrollTop = 0;
+  }, [section]);
 
   const updateProbeStates = useCallback((update: (current: AppAccessProbeStates) => AppAccessProbeStates) => {
     const next = update(probeStatesRef.current);
@@ -329,80 +346,160 @@ export function AppAccessPanel() {
     return undefined;
   };
 
+  const groupProgress = (group: (typeof appAccessGroups)[number]) => {
+    const passed = group.probes.filter((id) => probeStates[id].status === 'passed').length;
+    const touched = group.probes.filter((id) => probeStates[id].status !== 'not-run').length;
+    return { passed, touched, total: group.probes.length };
+  };
+
   return (
-    <section className="app-access" data-testid={appAccessPageIds.page} aria-labelledby="app-access-title">
-      <header className="app-access__head">
-        <div className="app-access__head-text">
+    <section ref={panelRef} className="app-access" data-testid={appAccessPageIds.page} aria-labelledby="app-access-title">
+      <Surface as="aside" material="glass-regular" tone="panel" elevation="raised" padding="none" className="app-access__sidebar">
+        <div className="app-access__brand">
           <p className="app-access__eyebrow">{t(appAccessPageCopy.eyebrow)}</p>
           <h1 id="app-access-title" className="app-access__title">{t(appAccessPageCopy.title)}</h1>
-          <p className="app-access__blurb">{t(appAccessPageCopy.blurb)}</p>
+          <div>
+            <StatusBadge tone={sessionBound ? 'success' : 'neutral'} shape="soft">
+              {sessionBound ? t('AppAccess.page.sessionBound') : t('AppAccess.page.noSession')}
+            </StatusBadge>
+          </div>
         </div>
-        <div className="app-access__head-actions">
-          <StatusBadge tone={sessionBound ? 'success' : 'neutral'} shape="soft">
-            {sessionBound ? t('AppAccess.page.sessionBound') : t('AppAccess.page.noSession')}
-          </StatusBadge>
-          <Button
+        <nav className="app-access__nav" aria-label={t('AppAccess.nav.ariaLabel')}>
+          <p className="app-access__nav-label">{t('AppAccess.nav.label')}</p>
+          <button
             type="button"
-            tone="ghost"
-            size="sm"
-            leadingIcon={<RefreshCw size={14} aria-hidden="true" />}
-            data-testid={appAccessPageIds.refreshSession}
-            onClick={() => void refreshSession()}
+            className="app-access__nav-item"
+            data-active={section === 'overview' ? '' : undefined}
+            aria-current={section === 'overview' ? 'page' : undefined}
+            onClick={() => selectSection('overview')}
           >
-            {t(appAccessPageCopy.refreshSession)}
-          </Button>
-          <Button
-            type="button"
-            tone="primary"
-            size="sm"
-            data-testid={appAccessPageIds.runAll}
-            disabled={!sessionBound || runningGroup !== null}
-            loading={runningGroup === 'all'}
-            onClick={() => void runAll()}
-          >
-            {t(appAccessPageCopy.runAll)}
-          </Button>
-        </div>
-      </header>
+            <span className="app-access__nav-symbol" aria-hidden="true"><LayoutDashboard size={17} strokeWidth={1.8} /></span>
+            <span className="app-access__nav-copy"><strong>{t('AppAccess.nav.overview')}</strong></span>
+          </button>
+          {appAccessGroups.map((group) => {
+            const Icon = appAccessGroupIcon(group.id);
+            const progress = groupProgress(group);
+            return (
+              <button
+                key={group.id}
+                type="button"
+                className="app-access__nav-item"
+                data-active={section === group.id ? '' : undefined}
+                aria-current={section === group.id ? 'page' : undefined}
+                onClick={() => selectSection(group.id)}
+              >
+                <span className="app-access__nav-symbol" aria-hidden="true"><Icon size={17} strokeWidth={1.8} /></span>
+                <span className="app-access__nav-copy"><strong>{t(group.titleKey)}</strong></span>
+                <span className="app-access__nav-count">
+                  {progress.touched > 0 ? `${progress.passed}/${progress.total}` : progress.total}
+                </span>
+              </button>
+            );
+          })}
+        </nav>
+      </Surface>
 
-      {sessionLost ? (
-        <InlineAlert tone="info" className="app-access__banner">{t(appAccessPageCopy.sessionLost)}</InlineAlert>
-      ) : null}
-      {!sessionBound ? (
-        <InlineAlert tone="info" className="app-access__banner">{t(appAccessPageCopy.signedOut)}</InlineAlert>
-      ) : null}
+      <div className="app-access__canvas">
+        {sessionLost ? (
+          <InlineAlert tone="info" className="app-access__banner">{t(appAccessPageCopy.sessionLost)}</InlineAlert>
+        ) : null}
+        {!sessionBound ? (
+          <InlineAlert tone="info" className="app-access__banner">{t(appAccessPageCopy.signedOut)}</InlineAlert>
+        ) : null}
 
-      {probeSummary.touched > 0 ? (
-        <section className="app-access-summary" aria-label={t('AppAccess.page.summaryAriaLabel')}>
-          <StatisticGroup>
-            {probeSummary.passed > 0 ? (
-              <Statistic label={t('AppAccess.status.passed')} value={probeSummary.passed} tone="success" />
+        {section === 'overview' ? (
+          <>
+            <header className="app-access__canvas-head">
+              <div className="app-access__canvas-head-text">
+                <h2 className="app-access__canvas-title" tabIndex={-1} data-app-access-section-title>{t('AppAccess.nav.overview')}</h2>
+                <p className="app-access__blurb">{t(appAccessPageCopy.blurb)}</p>
+              </div>
+              <div className="app-access__head-actions">
+                <Button
+                  type="button"
+                  tone="ghost"
+                  size="sm"
+                  leadingIcon={<RefreshCw size={14} aria-hidden="true" />}
+                  data-testid={appAccessPageIds.refreshSession}
+                  onClick={() => void refreshSession()}
+                >
+                  {t(appAccessPageCopy.refreshSession)}
+                </Button>
+                <Button
+                  type="button"
+                  tone="primary"
+                  size="sm"
+                  data-testid={appAccessPageIds.runAll}
+                  disabled={!sessionBound || runningGroup !== null}
+                  loading={runningGroup === 'all'}
+                  onClick={() => void runAll()}
+                >
+                  {t(appAccessPageCopy.runAll)}
+                </Button>
+              </div>
+            </header>
+
+            {probeSummary.touched > 0 ? (
+              <section className="app-access-summary" aria-label={t('AppAccess.page.summaryAriaLabel')}>
+                <StatisticGroup>
+                  {probeSummary.passed > 0 ? (
+                    <Statistic label={t('AppAccess.status.passed')} value={probeSummary.passed} tone="success" />
+                  ) : null}
+                  {probeSummary.failed > 0 ? (
+                    <Statistic label={t('AppAccess.status.failed')} value={probeSummary.failed} tone="danger" />
+                  ) : null}
+                  {probeSummary.running > 0 ? (
+                    <Statistic label={t('AppAccess.status.running')} value={probeSummary.running} tone="info" />
+                  ) : null}
+                </StatisticGroup>
+              </section>
             ) : null}
-            {probeSummary.failed > 0 ? (
-              <Statistic label={t('AppAccess.status.failed')} value={probeSummary.failed} tone="danger" />
-            ) : null}
-            {probeSummary.running > 0 ? (
-              <Statistic label={t('AppAccess.status.running')} value={probeSummary.running} tone="info" />
-            ) : null}
-          </StatisticGroup>
-        </section>
-      ) : null}
 
-      <AppAccessSessionBar facts={facts} />
+            <AppAccessSessionBar facts={facts} />
 
-      {appAccessGroups.map((group) => (
-        <AppAccessGroup
-          key={group.id}
-          definition={group}
-          states={probeStates}
-          gateFor={gateFor}
-          activeRun={runningGroup === group.id || runningGroup === 'all'}
-          anyRunActive={runningGroup !== null}
-          onRunProbe={requestProbeRun}
-          onRunGroup={() => void runGroup(group.id)}
-          renderExtras={renderExtras}
-        />
-      ))}
+            <Surface as="div" tone="panel" material="glass-regular" elevation="base" padding="none" className="app-access-index">
+              {appAccessGroups.map((group) => {
+                const Icon = appAccessGroupIcon(group.id);
+                const progress = groupProgress(group);
+                return (
+                  <button
+                    key={group.id}
+                    type="button"
+                    className="app-access-index__row"
+                    onClick={() => selectSection(group.id)}
+                  >
+                    <span className="app-access-group__icon" aria-hidden="true"><Icon size={17} strokeWidth={1.9} /></span>
+                    <span className="app-access-index__copy">
+                      <strong>{t(group.titleKey)}</strong>
+                      <span>{t('AppAccess.index.probeCount', { count: progress.total, plural: progress.total === 1 ? '' : 's' })}</span>
+                    </span>
+                    {progress.touched > 0 ? (
+                      <StatusBadge tone={progress.passed === progress.total ? 'success' : 'neutral'} shape="soft">
+                        {t('AppAccess.page.groupProgress', { passed: progress.passed, total: progress.total })}
+                      </StatusBadge>
+                    ) : null}
+                    <ChevronRight size={16} strokeWidth={2} aria-hidden="true" className="app-access-index__chevron" />
+                  </button>
+                );
+              })}
+            </Surface>
+          </>
+        ) : (
+          appAccessGroups.filter((group) => group.id === section).map((group) => (
+            <AppAccessGroup
+              key={group.id}
+              definition={group}
+              states={probeStates}
+              gateFor={gateFor}
+              activeRun={runningGroup === group.id || runningGroup === 'all'}
+              anyRunActive={runningGroup !== null}
+              onRunProbe={requestProbeRun}
+              onRunGroup={() => void runGroup(group.id)}
+              renderExtras={renderExtras}
+            />
+          ))
+        )}
+      </div>
 
       <ConfirmDialog
         open={explicitProbe !== null}

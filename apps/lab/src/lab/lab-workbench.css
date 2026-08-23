@@ -8,17 +8,39 @@
 .workbench__body > .workbench-side-nav [data-workbench-account-trigger]:hover .lab-account-menu__avatar-glyph{ background: var(--nimi-material-glass-regular-bg); color: var(--nimi-text-primary);}
 .workbench__body > .workbench-side-nav [data-workbench-account-trigger][data-open="true"] .lab-account-menu__avatar-glyph{ background: transparent; color: inherit; box-shadow: none;}
 .workbench__body > .workbench-side-nav [data-workbench-account-panel]{ position: fixed; left: 84px; bottom: 18px; z-index: 70;}
-.app-access{ min-width: 0; min-height: 0; height: 100%; overflow: auto; overscroll-behavior: contain; padding: 24px 26px 34px;}
-.app-access > *{ max-width: 1180px;}
-.app-access__head{ display: flex; align-items: flex-start; justify-content: space-between; gap: 18px;}
-.app-access__head-text{ display: grid; gap: 6px; min-width: 0;}
+.app-access{ display: grid; grid-template-columns: 264px minmax(0, 1fr); align-items: start; gap: 16px; min-width: 0; min-height: 0; height: 100%; overflow-y: auto; overscroll-behavior: contain; padding: 18px;}
+.app-access__sidebar{ position: sticky; top: 0; display: flex; flex-direction: column; gap: 14px; min-width: 0; max-height: calc(100cqh - 40px); min-height: 0; overflow: auto; padding: 16px;}
+.app-access__brand{ display: grid; justify-items: start; gap: 6px; min-width: 0;}
 .app-access__eyebrow{ margin: 0; color: var(--nimi-text-muted); font-size: 11px; font-weight: var(--nimi-type-page-title-weight); letter-spacing: 0.1em; text-transform: uppercase;}
-.app-access__title{ margin: 0; color: var(--nimi-text-primary); font-size: 28px; font-weight: var(--nimi-type-page-title-weight); line-height: 1.12; letter-spacing: -0.02em;}
-.app-access__blurb{ margin: 0; max-width: 760px; color: var(--nimi-text-secondary); font-size: 14px; line-height: 1.55;}
+.app-access__title{ margin: 0; color: var(--nimi-text-primary); font-size: 24px; font-weight: var(--nimi-type-page-title-weight); line-height: 1.12; letter-spacing: -0.02em;}
+.app-access__nav{ display: grid; gap: 4px; min-width: 0;}
+.app-access__nav-label{ margin: 0 0 2px; padding: 0 4px; color: var(--nimi-text-muted); font-size: 10px; font-weight: var(--nimi-type-page-title-weight); letter-spacing: 0.1em; text-transform: uppercase;}
+.app-access__nav-item{ display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px; min-width: 0; border: 0; border-radius: var(--nimi-radius-lg); background: transparent; padding: 7px 8px; color: var(--nimi-text-secondary); text-align: left; cursor: pointer;}
+.app-access__nav-item:hover{ background: var(--nimi-action-ghost-hover); color: var(--nimi-text-primary);}
+.app-access__nav-item[data-active]{ background: var(--nimi-surface-active); color: var(--nimi-text-primary); box-shadow: var(--nimi-elevation-base);}
+.app-access__nav-symbol{ display: grid; place-items: center; width: 34px; height: 34px; border: 1px solid var(--nimi-border-subtle); border-radius: var(--nimi-radius-md); background: color-mix(in srgb, var(--nimi-text-muted) 10%, transparent); color: var(--nimi-text-secondary);}
+.app-access__nav-item[data-active] .app-access__nav-symbol{ border-color: color-mix(in srgb, var(--nimi-action-primary-bg) 34%, transparent); background: var(--nimi-surface-active); color: var(--nimi-action-primary-bg);}
+.app-access__nav-copy{ min-width: 0;}
+.app-access__nav-copy strong{ display: block; overflow: hidden; color: inherit; font-size: 13px; font-weight: var(--nimi-type-label-weight); text-overflow: ellipsis; white-space: nowrap;}
+.app-access__nav-count{ border-radius: 999px; background: color-mix(in srgb, var(--nimi-text-muted) 12%, transparent); padding: 1px 8px; color: var(--nimi-text-secondary); font-size: 11px; font-weight: var(--nimi-type-page-title-weight);}
+.app-access__nav-item[data-active] .app-access__nav-count{ background: var(--nimi-surface-active); color: var(--nimi-action-primary-bg);}
+.app-access__canvas{ display: grid; align-content: start; gap: 14px; min-width: 0; max-width: 1180px; padding-bottom: 26px;}
+.app-access__canvas-head{ display: flex; align-items: flex-start; justify-content: space-between; gap: 16px;}
+.app-access__canvas-head-text{ display: grid; gap: 5px; min-width: 0;}
+.app-access__canvas-title{ margin: 0; color: var(--nimi-text-primary); font-size: 24px; font-weight: var(--nimi-type-page-title-weight); line-height: 1.15; letter-spacing: -0.02em;}
+.app-access__blurb{ margin: 0; max-width: 760px; color: var(--nimi-text-secondary); font-size: 13px; line-height: 1.55;}
 .app-access__head-actions{ display: flex; align-items: center; flex-wrap: wrap; gap: 8px; flex: 0 0 auto; padding-top: 4px;}
-.app-access__banner{ margin-top: 14px;}
-.app-access-summary{ max-width: 620px; margin-top: 18px;}
-.app-access-session{ display: grid; gap: 10px; margin-top: 22px;}
+.app-access__banner{ margin: 0;}
+.app-access-summary{ max-width: 620px;}
+.app-access-index{ display: grid; overflow: hidden;}
+.app-access-index__row{ display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: center; gap: 12px; min-width: 0; border: 0; border-bottom: 1px solid var(--nimi-border-subtle); background: transparent; padding: 10px 14px; text-align: left; cursor: pointer;}
+.app-access-index__row:last-child{ border-bottom: 0;}
+.app-access-index__row:hover{ background: var(--nimi-action-ghost-hover);}
+.app-access-index__copy{ display: grid; gap: 2px; min-width: 0;}
+.app-access-index__copy strong{ overflow: hidden; color: var(--nimi-text-primary); font-size: 14px; font-weight: var(--nimi-type-page-title-weight); text-overflow: ellipsis; white-space: nowrap;}
+.app-access-index__copy span{ color: var(--nimi-text-muted); font-size: 12px;}
+.app-access-index__chevron{ color: var(--nimi-text-muted);}
+.app-access-session{ display: grid; gap: 10px;}
 .app-access-session__head{ display: grid; gap: 2px;}
 .app-access-session__panel{ overflow: hidden;}
 .app-access-session__grid{ display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 1px; background: var(--nimi-border-subtle);}
@@ -31,12 +53,12 @@
 .app-access-fact__label{ color: var(--nimi-text-muted); font-size: 11px; font-weight: var(--nimi-type-page-title-weight); letter-spacing: 0.08em; text-transform: uppercase;}
 .app-access-fact__detail{ color: var(--nimi-text-secondary); font-size: 13px; line-height: 1.45; overflow-wrap: anywhere;}
 .app-access-fact[data-state="ready"] .app-access-fact__detail{ color: var(--nimi-text-primary);}
-.app-access-group{ display: grid; gap: 12px; margin-top: 28px;}
+.app-access-group{ display: grid; gap: 12px;}
 .app-access-group__head{ display: flex; align-items: center; flex-wrap: wrap; gap: 12px;}
 .app-access-group__icon{ display: grid; flex: 0 0 auto; place-items: center; width: 40px; height: 40px; border-radius: var(--nimi-radius-lg); background: color-mix(in srgb, var(--nimi-action-primary-bg) 10%, var(--nimi-surface-card)); color: var(--nimi-action-primary-bg);}
 .app-access-group__head-text{ display: grid; flex: 1 1 auto; gap: 3px; min-width: 0;}
-.app-access-group__title{ margin: 0; color: var(--nimi-text-primary); font-size: 17px; font-weight: var(--nimi-type-page-title-weight); line-height: 1.25;}
-.app-access-group__blurb{ margin: 0; color: var(--nimi-text-muted); font-size: 13px; line-height: 1.45;}
+.app-access-group__title{ margin: 0; color: var(--nimi-text-primary); font-size: 20px; font-weight: var(--nimi-type-page-title-weight); line-height: 1.25;}
+.app-access-group__blurb{ margin: 0; max-width: 720px; color: var(--nimi-text-muted); font-size: 13px; line-height: 1.45;}
 .app-access-group__head-actions{ display: flex; align-items: center; flex: 0 0 auto; gap: 10px;}
 .app-access-group__cards{ display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 12px; align-items: stretch;}
 .app-access-probe-card{ display: flex; flex-direction: column; gap: 9px; min-width: 0; padding: 16px;}
@@ -68,8 +90,9 @@
 @media (prefers-reduced-motion: reduce){ .app-access-fact__dot--checking, .app-access-probe-card__headline--running{ animation: none;}}
 @container nimi-workbench-surface (max-width: 720px){
   .workbench__body > .workbench-side-nav [data-workbench-account-panel]{ left: 52px;}
-  .app-access{ padding: 20px 16px 28px;}
-  .app-access__head{ align-items: stretch; flex-direction: column;}
+  .app-access{ display: block; padding: 14px;}
+  .app-access__sidebar{ position: static; max-height: none; margin-bottom: 14px;}
+  .app-access__canvas-head{ align-items: stretch; flex-direction: column;}
   .app-access__head-actions{ max-width: 100%; padding-top: 0;}
   .app-access-group__cards{ grid-template-columns: minmax(0, 1fr);}
 }

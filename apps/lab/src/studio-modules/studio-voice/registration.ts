@@ -1,4 +1,4 @@
-import { AudioWaveform, Captions, Speech } from 'lucide-react';
+import { AudioWaveform, Captions, ListMusic, Speech } from 'lucide-react';
 import type { AIStudioModuleRegistration } from '../../ai-studio-core/module-registration.js';
 import { studioVoiceDescriptors, type StudioVoiceCapabilityId } from './descriptors.js';
 import {
@@ -47,7 +47,7 @@ export const studioVoiceModule = Object.freeze({
     },
     {
       descriptor: studioVoiceDescriptors[3],
-      icon: AudioWaveform,
+      icon: ListMusic,
       profile: {
         studioTag: 'Voices', inputTitleKey: 'Studio.profiles.speechBundle.inputTitle', inputPlaceholderKey: 'Studio.profiles.speechBundle.inputPlaceholder', inputKind: 'none', inputNoteKey: 'Studio.profiles.speechBundle.inputNote', supportsAttachments: false, controls: [], primaryLabelKey: 'Studio.profiles.speechBundle.primaryLabel', primaryRunningLabelKey: 'Studio.profiles.speechBundle.primaryRunningLabel', resultTitle: 'Voice catalog', emptyTitleKey: 'Studio.profiles.speechBundle.emptyTitle', emptyHintKey: 'Studio.profiles.speechBundle.emptyHint', resultKind: 'voice-catalog', footnoteKey: 'Studio.profiles.speechBundle.footnote',
       },
