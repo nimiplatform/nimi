@@ -217,7 +217,7 @@ units:
     kind: rule
     title: Loadouts and ModelAssets do not use Connector custody ownership
     modality: must_not
-    statement: A Loadout, Machine Loadout store default preference, ModelAsset, Driver configuration, ResolvedAssembly, or Local Job is treated as a Connector custody kind or ownership path instead of using the canonical machine, Loadout, asset, and Job owner policy; Select Loadout authorization covers either one eligible preference target or an explicit empty preference without creating a separate Clear authority or execution binding.
+    statement: A Loadout, current Machine Loadout store selection, ModelAsset, Driver configuration, ResolvedAssembly, or Local Job is treated as a Connector custody kind or ownership path instead of using the canonical machine, Loadout, asset, and Job owner policy; after the required machine-wide impact confirmation, Select Loadout authorization covers either one eligible selection target or an explicit empty selection without creating a separate Clear authority or execution binding.
     condition: Whenever Runtime authorizes a Local Loadout action or execution.
     failure: Reject Connector-derived Local ownership, deletion required for deselection, and any owner path outside the exact machine-owned action, ModelAsset axes, captured assembly, and request.
     relations:
@@ -617,8 +617,8 @@ units:
     kind: rule
     title: AIProfile carries no account authorization binding
     modality: must
-    statement: AIProfile remains portable and carries only CapabilityImplementation and provider-model recommendation with features, defaults, and provenance, never a Loadout reference, Connector reference, account identity, custody reference, endpoint, secret, or live binding; canonical AIConfig may instead carry one safe Loadout or current-account Connector reference chosen explicitly for its exact owner, while still excluding credential, endpoint, account selector, custody payload, and resource content.
-    condition: Whenever AIProfile expresses Cloud intent or AIConfig selects Cloud authorization.
+    statement: AIProfile remains portable and carries only CapabilityImplementation and provider-model recommendation with features, defaults, and provenance, never a Loadout reference, Connector reference, account identity, custody reference, endpoint, secret, or live binding; canonical AIConfig may instead carry route-only Local intent or one current-account Cloud Connector reference plus implementation and Driver-owned target chosen explicitly for its exact owner, while still excluding Local Loadout identity, machine selection, credential, endpoint, account selector, custody payload, and resource content.
+    condition: Whenever AIProfile expresses portable intent or AIConfig selects Cloud resource intent.
     failure: Reject account-bound, secret-bearing, custody-bound, or implicitly selected Profile content.
     relations:
       - type: applies_to

@@ -1341,7 +1341,7 @@ units:
     kind: rule
     title: P-AIPS-009 typed first-party hint
     modality: must
-    statement: An admitted first-party App may declare a typed non-binding factory AIProfile recommendation and, only when explicitly requested by the user, produce non-committing portable editor prefill for that App's canonical AIConfig owner; the hint grants no mutation authority, and after the user selects exact current-environment resource references only the ordinary owner-revision whole-object compare-and-swap Save may commit configuration.
+    statement: An admitted first-party App may declare a typed non-binding factory AIProfile recommendation and, only when explicitly requested by the user, produce non-committing portable editor prefill for that App's canonical AIConfig owner; the hint grants no mutation authority, and after the user chooses a route and, for Cloud, exact current-environment Connector and target references only the ordinary owner-revision whole-object compare-and-swap Save may commit configuration.
     condition: Whenever a first-party App declares or applies a default-experience hint as editor prefill.
     failure: Reject an untyped, unresolved, implicit, owner-mutating, resource-guessing, machine-selecting, installing, binding, readiness-gated, or first-party-only commit path.
     relations:
@@ -1539,11 +1539,11 @@ units:
         target: definition.nimi.platform.core-protocol.machine-local-ai-configuration
   - id: rule.nimi.platform.core-protocol.p-caiex-007
     kind: rule
-    title: P-CAIEX-007 confirmation is limited to resource lifecycle effects
+    title: P-CAIEX-007 machine-wide Loadout mutation requires explicit confirmation
     modality: must
-    statement: Canonical AIConfig overwrite, clear-by-omission, Local route choice, and safe Cloud option choice require no second permission, grant, approval, or confirmation after the user's explicit Save, and Select Loadout set or clear remains the existing machine-owner action rather than an App AIConfig permission flow. Any confirmation retained for destructive Loadout or ModelAsset lifecycle actions is scoped only to that resource mutation, grants no App veto, rewrites no AIConfig or captured Job, chooses no replacement, and never cascades shared ModelAsset deletion.
-    condition: Whenever an AIConfig Save, machine selection change, or destructive Loadout or ModelAsset lifecycle action is presented or committed.
-    failure: Reject an extra AIConfig or selection confirmation gate, persisted owner index or compatibility snapshot, AIConfig rewrite, automatic replacement, or cascading ModelAsset deletion.
+    statement: Canonical AIConfig overwrite, clear-by-omission, Local route choice, and safe Cloud option choice require no second permission, grant, approval, or confirmation after the user's explicit Save. Before Select Loadout sets or explicitly clears the current machine selection, an execution-relevant Commit over the selected Loadout, or Delete of the selected Loadout commits, the machine owner surface derives and displays impact on every future matching Local App and shared LocalAgent execution and obtains user-observed explicit confirmation; impact display alone is not confirmation, presentation-only Commit and Delete of an unselected Loadout require no machine-wide confirmation, the projection is not persisted and grants no App veto, no action changes AIConfig or an already captured Job, explicit Select clearing preserves Loadouts and ModelAssets, and Delete of the selected Loadout atomically clears selection without choosing another or deleting shared ModelAssets.
+    condition: Whenever AIConfig intent is saved or a Loadout action can change future Local dereference.
+    failure: Reject an extra AIConfig Save confirmation, a machine-wide Loadout mutation without required confirmation, a persisted owner index or compatibility snapshot, Cloud AIConfig in the impact set, AIConfig rewrite, automatic replacement, or cascading ModelAsset deletion.
     relations:
       - type: applies_to
         target: definition.nimi.platform.core-protocol.ai-config
