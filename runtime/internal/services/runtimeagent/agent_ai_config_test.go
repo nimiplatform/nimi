@@ -136,6 +136,31 @@ func TestSharedLocalAgentAIConfigEffectiveSelectionFollowsMachineWithoutRevision
 	assertLoadout("loadout-b")
 }
 
+func TestSharedLocalAgentAIConfigEffectiveSelectionBlocksFeatureIncompatibleLoadout(t *testing.T) {
+	svc := newSharedAIConfigTestService(t)
+	contract := capabilitydriver.LlamaCapabilityContract
+	selected := machineLocalExecutionProjectionForTest("loadout-feature-mismatch", contract, "Model", nil)
+	selected.SupportedFeatures = []string{"input.audio"}
+	svc.SetMachineLocalExecutionResolver(machineLocalExecutionResolverStub{projections: map[string]*localexecution.SelectedLocalExecution{
+		contract: selected,
+	}})
+	ctx, requestContext := sharedAIConfigTestContext("account-a", "nimi.desktop")
+	intent := sharedLocalIntent(contract)
+	intent.RequiredFeatures = []string{"input.image"}
+	if _, err := svc.OverwriteSharedLocalAgentAIConfig(ctx, &runtimev1.OverwriteSharedLocalAgentAIConfigRequest{
+		Context: requestContext, ExpectedRevision: "0", Capabilities: []*runtimev1.AIConfigCapabilityIntent{intent},
+	}); err != nil {
+		t.Fatalf("OverwriteSharedLocalAgentAIConfig: %v", err)
+	}
+	read, err := svc.GetSharedLocalAgentAIConfig(ctx, &runtimev1.GetSharedLocalAgentAIConfigRequest{Context: requestContext})
+	selection := read.GetEffectiveSelections()[0]
+	if err != nil || selection.GetState() != runtimev1.AIConfigEffectiveState_AI_CONFIG_EFFECTIVE_STATE_BLOCKED ||
+		len(selection.GetReasons()) != 1 || selection.GetReasons()[0] != runtimev1.ReasonCode_AI_LOCAL_CAPABILITY_MISMATCH.String() ||
+		selection.GetLocal().GetLoadoutRef() != selected.LoadoutID {
+		t.Fatalf("shared feature-incompatible effective selection = %+v, %v", selection, err)
+	}
+}
+
 func TestSharedLocalAgentAIConfigGetMissingIsTyped(t *testing.T) {
 	svc := newSharedAIConfigTestService(t)
 	ctx, requestContext := sharedAIConfigTestContext("account-a", "nimi.desktop")

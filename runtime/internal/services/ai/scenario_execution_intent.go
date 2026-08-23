@@ -21,6 +21,25 @@ func (s *Service) captureScenarioExecutionIntent(
 	head *runtimev1.ScenarioRequestHead,
 	capabilityContract string,
 ) (context.Context, executionintent.Intent, error) {
+	capturedCtx, intent, err := s.resolveScenarioExecutionIntent(ctx, head, capabilityContract)
+	if err != nil {
+		return capturedCtx, executionintent.Intent{}, err
+	}
+	capturedCtx, err = s.captureReferencedLocalExecution(capturedCtx, intent)
+	if err == nil {
+		intent, _ = executionintent.FromContext(capturedCtx)
+	}
+	return capturedCtx, intent, err
+}
+
+// resolveScenarioExecutionIntent snapshots canonical route/defaults/features
+// without consulting mutable Local machine selection. This lets an
+// idempotent retry find its already-published Job before new admission work.
+func (s *Service) resolveScenarioExecutionIntent(
+	ctx context.Context,
+	head *runtimev1.ScenarioRequestHead,
+	capabilityContract string,
+) (context.Context, executionintent.Intent, error) {
 	capabilityContract = strings.TrimSpace(capabilityContract)
 	if head == nil || capabilityContract == "" {
 		return ctx, executionintent.Intent{}, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
@@ -32,11 +51,7 @@ func (s *Service) captureScenarioExecutionIntent(
 		if !intent.IsLocal() && !intent.IsCloud() {
 			return ctx, executionintent.Intent{}, missingAIConfigRouteError()
 		}
-		capturedCtx, err := s.captureReferencedLocalExecution(ctx, intent)
-		if err == nil {
-			intent, _ = executionintent.FromContext(capturedCtx)
-		}
-		return capturedCtx, intent, err
+		return executionintent.WithIntent(ctx, intent), intent, nil
 	}
 
 	caller, err := scenarioAppAIConfigCaller(ctx, head)
@@ -66,12 +81,7 @@ func (s *Service) captureScenarioExecutionIntent(
 				grpcerr.ReasonOptions{Message: "AIConfig capability execution intent is incomplete"},
 			)
 		}
-		capturedCtx := executionintent.WithIntent(ctx, intent)
-		capturedCtx, err = s.captureReferencedLocalExecution(capturedCtx, intent)
-		if err == nil {
-			intent, _ = executionintent.FromContext(capturedCtx)
-		}
-		return capturedCtx, intent, err
+		return executionintent.WithIntent(ctx, intent), intent, nil
 	}
 	return ctx, executionintent.Intent{}, grpcerr.WithReasonCodeOptions(
 		codes.FailedPrecondition,

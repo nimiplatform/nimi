@@ -101,6 +101,37 @@ test('Desktop account product binds AIConfig to one explicit admitted App owner'
   }
 });
 
+test('shared LocalAgent AIConfig rejects retired Local loadout references before transport', async () => {
+  let overwriteCalls = 0;
+  const sharedAI = createNimiSharedLocalAgentAISurface({
+    runtime: {
+      appId: 'nimi.desktop',
+      auth: {} as never,
+      agent: {
+        async overwriteSharedLocalAgentAIConfig() {
+          overwriteCalls += 1;
+          throw new Error('transport must not be called');
+        },
+      },
+    },
+    getSubjectUserId: () => 'account-a',
+    withScopes: (_scopes, operation) => operation({}),
+  });
+
+  await assert.rejects(
+    () => sharedAI.sharedAIConfig.overwrite({
+      expectedRevision: '0',
+      capabilities: [{
+        capabilityContract: 'text.generate',
+        requiredFeatures: [],
+        route: { oneofKind: 'local', local: { loadoutRef: 'loadout.legacy' } },
+      } as never],
+    }),
+    /must not contain a Loadout reference/u,
+  );
+  assert.equal(overwriteCalls, 0);
+});
+
 test('Desktop account product imports only a portable Profile document and lists the catalog', async () => {
   const calls: CoreUnaryRequest[] = [];
   const artifactJson = JSON.stringify({

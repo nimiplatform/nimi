@@ -93,6 +93,36 @@ func TestConcurrentLocalImageIdempotentSubmissionsUseOneJobAndWorker(t *testing.
 	assertSingleDurableScenarioJobBinding(t, store, localStatePath, canonicalID)
 }
 
+func TestLocalImageIdempotentRetryReturnsCapturedJobBeforeCurrentSelection(t *testing.T) {
+	svc := newTestService(nil)
+	resolver := &mutableLocalExecutionResolver{projection: selectedImageExecutionForTest(t, "image-idempotent-capture")}
+	svc.SetLocalExecutionResolver(resolver)
+	svc.SetLocalImageExecutionHost(&localImageHostStub{})
+	ctx := localImageIntentContext(context.Background(), nil)
+	request := localImageJobRequestForTest(1)
+	request.IdempotencyKey = "local-image-captured-before-selection-change"
+
+	first, err := svc.SubmitScenarioJob(ctx, request)
+	if err != nil {
+		t.Fatalf("first SubmitScenarioJob: %v", err)
+	}
+	initialCalls := resolver.callCount()
+	resolver.mu.Lock()
+	resolver.err = fmt.Errorf("current machine selection is unavailable")
+	resolver.mu.Unlock()
+
+	retry, err := svc.SubmitScenarioJob(ctx, request)
+	if err != nil {
+		t.Fatalf("idempotent retry: %v", err)
+	}
+	if retry.GetJob().GetJobId() != first.GetJob().GetJobId() {
+		t.Fatalf("retry Job=%q, want captured Job=%q", retry.GetJob().GetJobId(), first.GetJob().GetJobId())
+	}
+	if calls := resolver.callCount(); calls != initialCalls {
+		t.Fatalf("idempotent retry resolved mutable selection: calls=%d want=%d", calls, initialCalls)
+	}
+}
+
 func TestConcurrentCloudMediaIdempotentSubmissionsUseOneJobAndProviderCall(t *testing.T) {
 	const callers = 16
 	fixture := newManagedCloudScenarioTestFixture(t, "openai", "gpt-image-1.5", "https://api.openai.com/v1", Config{})

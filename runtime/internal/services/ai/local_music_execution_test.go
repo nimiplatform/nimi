@@ -124,6 +124,36 @@ func TestLocalMusicUnsupportedFieldsFailBeforePublication(t *testing.T) {
 	}
 }
 
+func TestLocalMusicRequiredFeaturesFailBeforePublication(t *testing.T) {
+	svc := newTestService(nil)
+	svc.localMusicStagingRoot = t.TempDir()
+	host := &localMusicHostStub{}
+	svc.SetLocalExecutionResolver(&mutableLocalExecutionResolver{projection: selectedMusicExecutionForTest(t)})
+	svc.SetLocalMusicExecutionHost(host)
+	ctx := executionintent.WithIntent(context.Background(), executionintent.Intent{
+		CapabilityContract: capabilitydriver.MiniMaxMusic3CapabilityContract,
+		LocalLoadoutRef:    "test-loadout:music.generate",
+		RequiredFeatures:   []string{"output.music.stems"},
+		Route:              runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+	})
+
+	_, err := svc.SubmitScenarioJob(ctx, localMusicJobRequestForTest())
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_LOCAL_CAPABILITY_MISMATCH {
+		t.Fatalf("required feature error=%v reason=%v", err, reason)
+	}
+	svc.scenarioJobs.mu.Lock()
+	published := len(svc.scenarioJobs.jobs)
+	svc.scenarioJobs.mu.Unlock()
+	if published != 0 {
+		t.Fatal("feature-incompatible request published a ScenarioJob")
+	}
+	host.mu.Lock()
+	defer host.mu.Unlock()
+	if len(host.plans) != 0 {
+		t.Fatalf("feature-incompatible request reached execution host: %+v", host.plans)
+	}
+}
+
 func TestLocalMusicScenarioJobRejectsInvalidAndPartialWAV(t *testing.T) {
 	tests := []struct {
 		name  string

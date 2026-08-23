@@ -42,6 +42,7 @@ import {
   type NimiPortableAIProfile,
   type NimiPortableAIProfileInput,
 } from '../core/ai/config-profile';
+import { assertRouteOnlyLocalAIConfigIntents } from '../core/ai/capability-configuration-local-intent.js';
 import { createNimiClientId, createNimiError } from '../types';
 import { withNimiRuntimeIdempotencyMetadata } from './scenario-jobs';
 import {
@@ -192,6 +193,7 @@ export function createNimiSharedLocalAgentAISurface(
       if (!Array.isArray(input.capabilities)) {
         inputError('Shared LocalAgent AIConfig capabilities must be an array');
       }
+      assertRouteOnlyLocalAIConfigIntents(input.capabilities, inputError);
       requireRevision(input.expectedRevision, 'OverwriteSharedLocalAgentAIConfig');
       const method = requireMethod(runtime.agent.overwriteSharedLocalAgentAIConfig, 'overwriteSharedLocalAgentAIConfig');
       const subjectUserId = await resolveSubject(input.subjectUserId);

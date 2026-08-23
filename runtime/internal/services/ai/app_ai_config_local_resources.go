@@ -109,12 +109,25 @@ func (s *Service) projectAppAIConfigEffectiveSelections(
 		if option.ValidationState == runtimev1.LoadoutValidationState_LOADOUT_VALIDATION_STATE_CONFIGURED {
 			selection.State = runtimev1.AIConfigEffectiveState_AI_CONFIG_EFFECTIVE_STATE_READY
 		}
+		if !localexecution.SupportsRequiredFeatures(capability.GetRequiredFeatures(), option.SupportedFeatures) {
+			selection.State = runtimev1.AIConfigEffectiveState_AI_CONFIG_EFFECTIVE_STATE_BLOCKED
+			selection.Reasons = appendReasonStringOnce(selection.Reasons, runtimev1.ReasonCode_AI_LOCAL_CAPABILITY_MISMATCH.String())
+		}
 		if option.Implementation != nil && strings.TrimSpace(option.DisplayName) != "" {
 			selection.Resource = &runtimev1.AIConfigEffectiveSelection_Local{Local: projectLocalResourceProjection(option)}
 		}
 		result = append(result, selection)
 	}
 	return result
+}
+
+func appendReasonStringOnce(reasons []string, candidate string) []string {
+	for _, reason := range reasons {
+		if reason == candidate {
+			return reasons
+		}
+	}
+	return append(reasons, candidate)
 }
 
 func (s *Service) projectCloudEffectiveSelection(

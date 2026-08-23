@@ -46,7 +46,22 @@ func (s *Service) SubmitScenarioJob(ctx context.Context, req *runtimev1.SubmitSc
 		}
 	}
 	var intentErr error
-	ctx, intent, intentErr := s.captureScenarioExecutionIntent(ctx, req.GetHead(), scenarioTargetCapability(req.GetScenarioType()))
+	ctx, intent, intentErr := s.resolveScenarioExecutionIntent(ctx, req.GetHead(), scenarioTargetCapability(req.GetScenarioType()))
+	if intentErr != nil {
+		return nil, intentErr
+	}
+	idempotencyScope, err := buildScenarioJobIdempotencyScope(ctx, req)
+	if err != nil {
+		return nil, grpcerr.WrapWithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID, err, grpcerr.ReasonOptions{
+			Message: "scenario job idempotency scope is invalid",
+		})
+	}
+	if idempotencyScope != "" {
+		if existing, ok := s.scenarioJobs.getByIdempotency(idempotencyScope); ok {
+			return &runtimev1.SubmitScenarioJobResponse{Job: existing}, nil
+		}
+	}
+	ctx, intent, intentErr = s.captureScenarioExecutionIntent(ctx, req.GetHead(), scenarioTargetCapability(req.GetScenarioType()))
 	if intentErr != nil {
 		return nil, intentErr
 	}

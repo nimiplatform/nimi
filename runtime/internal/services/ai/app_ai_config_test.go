@@ -138,6 +138,33 @@ func TestAppLocalAIConfigPersistsWhenMachineSelectionIsMissing(t *testing.T) {
 	}
 }
 
+func TestAppLocalAIConfigEffectiveSelectionBlocksFeatureIncompatibleLoadout(t *testing.T) {
+	selected := selectedTextExecutionForTest(t, "loadout-feature-mismatch", "feature-mismatch.gguf")
+	selected.SupportedFeatures = []string{"input.audio"}
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	svc.SetLocalExecutionResolver(&mutableLocalExecutionResolver{projection: selected})
+	intent := localAppAIConfigIntent("text.generate")
+	intent.RequiredFeatures = []string{"input.image"}
+	appID := "app.feature-mismatch"
+
+	if _, err := svc.OverwriteAppAIConfig(
+		protectedAppAIConfigPrincipalContext("account-a", appID),
+		&runtimev1.OverwriteAppAIConfigRequest{Config: appAIConfig(appID, intent), ExpectedRevision: "0"},
+	); err != nil {
+		t.Fatalf("OverwriteAppAIConfig: %v", err)
+	}
+	read, err := svc.GetAppAIConfig(
+		localAppAIConfigContext("account-a", appID, accountservice.LocalAppOperationAppAIConfigRead),
+		&runtimev1.GetAppAIConfigRequest{},
+	)
+	selection := read.GetEffectiveSelections()[0]
+	if err != nil || selection.GetState() != runtimev1.AIConfigEffectiveState_AI_CONFIG_EFFECTIVE_STATE_BLOCKED ||
+		len(selection.GetReasons()) != 1 || selection.GetReasons()[0] != runtimev1.ReasonCode_AI_LOCAL_CAPABILITY_MISMATCH.String() ||
+		selection.GetLocal().GetLoadoutRef() != selected.LoadoutID {
+		t.Fatalf("feature-incompatible effective selection = %+v, %v", selection, err)
+	}
+}
+
 func TestAppAIConfigCloudIntentRejectsMissingExactConnector(t *testing.T) {
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
 	intent := cloudAIConfigIntent(t, "text.generate")

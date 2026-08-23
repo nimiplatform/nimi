@@ -21,6 +21,7 @@ import type { RuntimeTypedCallOptions } from '../../core-generated/runtime-typed
 import { withNimiRuntimeIdempotencyMetadata } from '../../runtime/scenario-jobs';
 import { createNimiClientId, createNimiError, ReasonCode } from '../../types';
 import type { NimiJsonObject } from '../contracts/index.js';
+import { assertRouteOnlyLocalAIConfigIntents } from './capability-configuration-local-intent.js';
 
 export type NimiCapabilityAIConfig = AIConfig;
 export type NimiCapabilityAIConfigIntent = AIConfigCapabilityIntent;
@@ -209,6 +210,7 @@ export function createNimiAppAIConfigClient(options: {
       if (!Array.isArray(input?.capabilities)) {
         return invalidConfiguration('App AIConfig capabilities must be an array');
       }
+      assertRouteOnlyLocalAIConfigIntents(input.capabilities, invalidConfiguration);
       const response = await client.overwriteAppAIConfig(
         {
           config: {
