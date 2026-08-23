@@ -456,6 +456,14 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "QueryAgentMemoryResponse",
     },
     RuntimeMethodDescriptor {
+        method_id: "/nimi.runtime.v1.RuntimeAgentService/ReadLocalAppConversationArtifact",
+        service: "RuntimeAgentService",
+        method: "ReadLocalAppConversationArtifact",
+        kind: "unary",
+        request_type: "ReadLocalAppConversationArtifactRequest",
+        response_type: "ReadLocalAppConversationArtifactResponse",
+    },
+    RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeAgentService/RegisterAvatarLiveInstanceBinding",
         service: "RuntimeAgentService",
         method: "RegisterAvatarLiveInstanceBinding",
@@ -576,6 +584,14 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "TranscribeAgentVoiceInputResponse",
     },
     RuntimeMethodDescriptor {
+        method_id: "/nimi.runtime.v1.RuntimeAgentService/TranscribeLocalAppConversationVoice",
+        service: "RuntimeAgentService",
+        method: "TranscribeLocalAppConversationVoice",
+        kind: "unary",
+        request_type: "TranscribeLocalAppConversationVoiceRequest",
+        response_type: "TranscribeLocalAppConversationVoiceResponse",
+    },
+    RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeAgentService/UpdateAgentState",
         service: "RuntimeAgentService",
         method: "UpdateAgentState",
@@ -590,6 +606,14 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         kind: "unary",
         request_type: "UpdateLocalAppAgentAutonomyRequest",
         response_type: "LocalAppAgentUpdateAutonomyResponse",
+    },
+    RuntimeMethodDescriptor {
+        method_id: "/nimi.runtime.v1.RuntimeAgentService/UploadLocalAppConversationAttachment",
+        service: "RuntimeAgentService",
+        method: "UploadLocalAppConversationAttachment",
+        kind: "unary",
+        request_type: "UploadLocalAppConversationAttachmentRequest",
+        response_type: "UploadLocalAppConversationAttachmentResponse",
     },
     RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeAgentService/WriteAgentMemory",

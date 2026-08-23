@@ -448,6 +448,14 @@ RUNTIME_METHODS = [
     "response_type": "QueryAgentMemoryResponse"
   },
   {
+    "method_id": "/nimi.runtime.v1.RuntimeAgentService/ReadLocalAppConversationArtifact",
+    "service": "RuntimeAgentService",
+    "method": "ReadLocalAppConversationArtifact",
+    "kind": "unary",
+    "request_type": "ReadLocalAppConversationArtifactRequest",
+    "response_type": "ReadLocalAppConversationArtifactResponse"
+  },
+  {
     "method_id": "/nimi.runtime.v1.RuntimeAgentService/RegisterAvatarLiveInstanceBinding",
     "service": "RuntimeAgentService",
     "method": "RegisterAvatarLiveInstanceBinding",
@@ -568,6 +576,14 @@ RUNTIME_METHODS = [
     "response_type": "TranscribeAgentVoiceInputResponse"
   },
   {
+    "method_id": "/nimi.runtime.v1.RuntimeAgentService/TranscribeLocalAppConversationVoice",
+    "service": "RuntimeAgentService",
+    "method": "TranscribeLocalAppConversationVoice",
+    "kind": "unary",
+    "request_type": "TranscribeLocalAppConversationVoiceRequest",
+    "response_type": "TranscribeLocalAppConversationVoiceResponse"
+  },
+  {
     "method_id": "/nimi.runtime.v1.RuntimeAgentService/UpdateAgentState",
     "service": "RuntimeAgentService",
     "method": "UpdateAgentState",
@@ -582,6 +598,14 @@ RUNTIME_METHODS = [
     "kind": "unary",
     "request_type": "UpdateLocalAppAgentAutonomyRequest",
     "response_type": "LocalAppAgentUpdateAutonomyResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeAgentService/UploadLocalAppConversationAttachment",
+    "service": "RuntimeAgentService",
+    "method": "UploadLocalAppConversationAttachment",
+    "kind": "unary",
+    "request_type": "UploadLocalAppConversationAttachmentRequest",
+    "response_type": "UploadLocalAppConversationAttachmentResponse"
   },
   {
     "method_id": "/nimi.runtime.v1.RuntimeAgentService/WriteAgentMemory",

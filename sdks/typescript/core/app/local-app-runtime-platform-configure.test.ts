@@ -18,6 +18,14 @@ const SHARED_AI_CONFIG = {
   }],
 } as const;
 
+const PARTICIPATION = [
+  { role: 'conversation.primary', capabilityContract: 'text.generate' },
+  { role: 'memory.embedding', capabilityContract: 'text.embed' },
+  { role: 'conversation.input.voice', capabilityContract: 'audio.transcribe' },
+  { role: 'conversation.output.voice', capabilityContract: 'audio.synthesize' },
+  { role: 'conversation.action.image', capabilityContract: 'image.generate' },
+] as const;
+
 const AUTONOMY_PROJECTION = {
   enabled: true,
   config: {
@@ -56,13 +64,13 @@ function shell(calls: unknown[]): NimiLocalAppAgentConfigureShell {
     sharedAIConfig: {
       get: async () => {
         calls.push(['sharedAIConfig.get']);
-        return { config: SHARED_AI_CONFIG, revision: '1', effectiveSelections: [] };
+        return { config: SHARED_AI_CONFIG, revision: '1', effectiveSelections: [], participation: PARTICIPATION };
       },
       overwrite: async (input) => {
         calls.push(['sharedAIConfig.overwrite', input]);
         return {
           outcome: 'committed', config: { ...SHARED_AI_CONFIG, capabilities: input.capabilities },
-          revision: '2',
+          revision: '2', participation: PARTICIPATION,
         };
       },
       listOptions: async (query) => {
@@ -100,7 +108,7 @@ function reasonCode(error: unknown): string | undefined {
 test('sharedAIConfig get/overwrite round-trips the subsystem-owned projection', async () => {
   const calls: unknown[] = [];
   const client = createNimiLocalAppAgentConfigureClient(shell(calls));
-  assert.deepEqual(await client.sharedAIConfig.get(), { config: SHARED_AI_CONFIG, revision: '1', effectiveSelections: [] });
+  assert.deepEqual(await client.sharedAIConfig.get(), { config: SHARED_AI_CONFIG, revision: '1', effectiveSelections: [], participation: PARTICIPATION });
   const capabilities = [...SHARED_AI_CONFIG.capabilities] as never;
   const input = { expectedRevision: '1', capabilities };
   const overwrite = await client.sharedAIConfig.overwrite(input);
@@ -125,6 +133,7 @@ test('sharedAIConfig rejects a non-subsystem owner projection', async () => {
       get: async () => ({
         config: { owner: { owner: { oneofKind: 'app', app: { appId: 'app.example' } } }, capabilities: [] },
         revision: '0', effectiveSelections: [],
+        participation: PARTICIPATION,
       }),
     },
   });

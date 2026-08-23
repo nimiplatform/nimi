@@ -26,6 +26,18 @@ test('Desktop account product binds AIConfig to one explicit admitted App owner'
           truncated: false,
         } as Response;
       }
+      if (request.methodId === '/nimi.runtime.v1.RuntimeAgentService/GetSharedLocalAgentAIConfig') {
+        return {
+          revision: '0', effectiveSelections: [],
+          participation: [
+            { role: 1, capabilityContract: 'text.generate' },
+            { role: 2, capabilityContract: 'text.embed' },
+            { role: 3, capabilityContract: 'audio.transcribe' },
+            { role: 4, capabilityContract: 'audio.synthesize' },
+            { role: 5, capabilityContract: 'image.generate' },
+          ],
+        } as Response;
+      }
       throw new Error(`unexpected Runtime method: ${request.methodId}`);
     },
     async *serverStream<Response>(_request: CoreStreamRequest): AsyncIterable<Response> {
@@ -65,6 +77,14 @@ test('Desktop account product binds AIConfig to one explicit admitted App owner'
     getSubjectUserId: () => 'account-a',
     withScopes: (_scopes, operation) => operation({}),
   });
+  const sharedSnapshot = await sharedAI.sharedAIConfig.get();
+  assert.deepEqual(sharedSnapshot.participation.map(({ role, capabilityContract }) => [role, capabilityContract]), [
+    ['conversation.primary', 'text.generate'],
+    ['memory.embedding', 'text.embed'],
+    ['conversation.input.voice', 'audio.transcribe'],
+    ['conversation.output.voice', 'audio.synthesize'],
+    ['conversation.action.image', 'image.generate'],
+  ]);
   assert.deepEqual(await sharedAI.sharedAIConfig.listOptions({
     kind: 'local-loadouts',
     capabilityContract: 'text.generate',
@@ -73,6 +93,7 @@ test('Desktop account product binds AIConfig to one explicit admitted App owner'
   assert.deepEqual(calls.map((call) => call.methodId), [
     '/nimi.runtime.v1.RuntimeAiService/GetAppAIConfig',
     '/nimi.runtime.v1.RuntimeAiService/OverwriteAppAIConfig',
+    '/nimi.runtime.v1.RuntimeAgentService/GetSharedLocalAgentAIConfig',
     '/nimi.runtime.v1.RuntimeAgentService/ListSharedLocalAgentAIConfigOptions',
   ]);
   for (const call of calls) {

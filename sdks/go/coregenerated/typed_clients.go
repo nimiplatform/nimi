@@ -782,6 +782,17 @@ const (
 	LOADOUTVALIDATIONSTATEBLOCKED LoadoutValidationState = "LOADOUT_VALIDATION_STATE_BLOCKED"
 )
 
+type LocalAgentCapabilityParticipationRole string
+
+const (
+	LOCALAGENTCAPABILITYPARTICIPATIONROLEUNSPECIFIED LocalAgentCapabilityParticipationRole = "LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_UNSPECIFIED"
+	LOCALAGENTCAPABILITYPARTICIPATIONROLECONVERSATIONPRIMARY LocalAgentCapabilityParticipationRole = "LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_CONVERSATION_PRIMARY"
+	LOCALAGENTCAPABILITYPARTICIPATIONROLEMEMORYEMBEDDING LocalAgentCapabilityParticipationRole = "LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_MEMORY_EMBEDDING"
+	LOCALAGENTCAPABILITYPARTICIPATIONROLECONVERSATIONINPUTVOICE LocalAgentCapabilityParticipationRole = "LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_CONVERSATION_INPUT_VOICE"
+	LOCALAGENTCAPABILITYPARTICIPATIONROLECONVERSATIONOUTPUTVOICE LocalAgentCapabilityParticipationRole = "LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_CONVERSATION_OUTPUT_VOICE"
+	LOCALAGENTCAPABILITYPARTICIPATIONROLECONVERSATIONACTIONIMAGE LocalAgentCapabilityParticipationRole = "LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_CONVERSATION_ACTION_IMAGE"
+)
+
 type LocalAppAgentAutonomyMode string
 
 const (
@@ -792,12 +803,55 @@ const (
 	LOCALAPPAGENTAUTONOMYMODEHIGH LocalAppAgentAutonomyMode = "LOCAL_APP_AGENT_AUTONOMY_MODE_HIGH"
 )
 
+type LocalAppConversationActionStatus string
+
+const (
+	LOCALAPPCONVERSATIONACTIONSTATUSUNSPECIFIED LocalAppConversationActionStatus = "LOCAL_APP_CONVERSATION_ACTION_STATUS_UNSPECIFIED"
+	LOCALAPPCONVERSATIONACTIONSTATUSPLANNED LocalAppConversationActionStatus = "LOCAL_APP_CONVERSATION_ACTION_STATUS_PLANNED"
+	LOCALAPPCONVERSATIONACTIONSTATUSSTARTED LocalAppConversationActionStatus = "LOCAL_APP_CONVERSATION_ACTION_STATUS_STARTED"
+	LOCALAPPCONVERSATIONACTIONSTATUSCOMPLETED LocalAppConversationActionStatus = "LOCAL_APP_CONVERSATION_ACTION_STATUS_COMPLETED"
+	LOCALAPPCONVERSATIONACTIONSTATUSFAILED LocalAppConversationActionStatus = "LOCAL_APP_CONVERSATION_ACTION_STATUS_FAILED"
+)
+
+type LocalAppConversationMediaKind string
+
+const (
+	LOCALAPPCONVERSATIONMEDIAKINDUNSPECIFIED LocalAppConversationMediaKind = "LOCAL_APP_CONVERSATION_MEDIA_KIND_UNSPECIFIED"
+	LOCALAPPCONVERSATIONMEDIAKINDIMAGE LocalAppConversationMediaKind = "LOCAL_APP_CONVERSATION_MEDIA_KIND_IMAGE"
+)
+
 type LocalAppConversationMessageRole string
 
 const (
 	LOCALAPPCONVERSATIONMESSAGEROLEUNSPECIFIED LocalAppConversationMessageRole = "LOCAL_APP_CONVERSATION_MESSAGE_ROLE_UNSPECIFIED"
 	LOCALAPPCONVERSATIONMESSAGEROLEUSER LocalAppConversationMessageRole = "LOCAL_APP_CONVERSATION_MESSAGE_ROLE_USER"
 	LOCALAPPCONVERSATIONMESSAGEROLEASSISTANT LocalAppConversationMessageRole = "LOCAL_APP_CONVERSATION_MESSAGE_ROLE_ASSISTANT"
+)
+
+type LocalAppConversationTurnPhase string
+
+const (
+	LOCALAPPCONVERSATIONTURNPHASEUNSPECIFIED LocalAppConversationTurnPhase = "LOCAL_APP_CONVERSATION_TURN_PHASE_UNSPECIFIED"
+	LOCALAPPCONVERSATIONTURNPHASEACCEPTED LocalAppConversationTurnPhase = "LOCAL_APP_CONVERSATION_TURN_PHASE_ACCEPTED"
+	LOCALAPPCONVERSATIONTURNPHASESTARTED LocalAppConversationTurnPhase = "LOCAL_APP_CONVERSATION_TURN_PHASE_STARTED"
+)
+
+type LocalAppConversationTurnStatus string
+
+const (
+	LOCALAPPCONVERSATIONTURNSTATUSUNSPECIFIED LocalAppConversationTurnStatus = "LOCAL_APP_CONVERSATION_TURN_STATUS_UNSPECIFIED"
+	LOCALAPPCONVERSATIONTURNSTATUSACTIVE LocalAppConversationTurnStatus = "LOCAL_APP_CONVERSATION_TURN_STATUS_ACTIVE"
+	LOCALAPPCONVERSATIONTURNSTATUSCOMPLETED LocalAppConversationTurnStatus = "LOCAL_APP_CONVERSATION_TURN_STATUS_COMPLETED"
+	LOCALAPPCONVERSATIONTURNSTATUSFAILED LocalAppConversationTurnStatus = "LOCAL_APP_CONVERSATION_TURN_STATUS_FAILED"
+	LOCALAPPCONVERSATIONTURNSTATUSINTERRUPTED LocalAppConversationTurnStatus = "LOCAL_APP_CONVERSATION_TURN_STATUS_INTERRUPTED"
+)
+
+type LocalAppConversationVoiceState string
+
+const (
+	LOCALAPPCONVERSATIONVOICESTATEUNSPECIFIED LocalAppConversationVoiceState = "LOCAL_APP_CONVERSATION_VOICE_STATE_UNSPECIFIED"
+	LOCALAPPCONVERSATIONVOICESTATEREADY LocalAppConversationVoiceState = "LOCAL_APP_CONVERSATION_VOICE_STATE_READY"
+	LOCALAPPCONVERSATIONVOICESTATEFAILED LocalAppConversationVoiceState = "LOCAL_APP_CONVERSATION_VOICE_STATE_FAILED"
 )
 
 type LocalAppSessionState string
@@ -3646,6 +3700,7 @@ type GetSharedLocalAgentAIConfigResponse struct {
 	Config *AIConfig `json:"config,omitempty"`
 	Revision string `json:"revision,omitempty"`
 	EffectiveSelections []AIConfigEffectiveSelection `json:"effective_selections,omitempty"`
+	Participation []LocalAgentCapabilityParticipation `json:"participation,omitempty"`
 }
 
 type GetVoiceAssetRequest struct {
@@ -4511,6 +4566,11 @@ type LoadoutSelection struct {
 	EffectiveDefaults map[string]any `json:"effective_defaults,omitempty"`
 }
 
+type LocalAgentCapabilityParticipation struct {
+	Role LocalAgentCapabilityParticipationRole `json:"role,omitempty"`
+	CapabilityContract string `json:"capability_contract,omitempty"`
+}
+
 type LocalAgentRecord struct {
 	LocalAgentRef string `json:"local_agent_ref,omitempty"`
 	DisplayName string `json:"display_name,omitempty"`
@@ -4629,45 +4689,104 @@ type LocalAppAssetRecord struct {
 	UpdatedAt string `json:"updated_at,omitempty"`
 }
 
+type LocalAppConversationAction struct {
+	ActionId string `json:"action_id,omitempty"`
+	TurnId string `json:"turn_id,omitempty"`
+	CapabilityContract string `json:"capability_contract,omitempty"`
+	Status LocalAppConversationActionStatus `json:"status,omitempty"`
+	ProjectionMessageId *string `json:"projection_message_id,omitempty"`
+	ArtifactId *string `json:"artifact_id,omitempty"`
+	ReasonCode ReasonCode `json:"reason_code,omitempty"`
+	Message *string `json:"message,omitempty"`
+}
+
+type LocalAppConversationActionEvent struct {
+	Action *LocalAppConversationAction `json:"action,omitempty"`
+}
+
+type LocalAppConversationArtifactPart struct {
+	ArtifactId string `json:"artifact_id,omitempty"`
+	MediaKind LocalAppConversationMediaKind `json:"media_kind,omitempty"`
+	MimeType string `json:"mime_type,omitempty"`
+	DisplayName *string `json:"display_name,omitempty"`
+}
+
+type LocalAppConversationArtifactReady struct {
+	TurnId string `json:"turn_id,omitempty"`
+	ActionId string `json:"action_id,omitempty"`
+	CapabilityContract string `json:"capability_contract,omitempty"`
+	ProjectionMessageId string `json:"projection_message_id,omitempty"`
+	ArtifactId string `json:"artifact_id,omitempty"`
+}
+
 type LocalAppConversationEvent struct {
 	ConversationAnchorId string `json:"conversation_anchor_id,omitempty"`
 	Sequence uint64 `json:"sequence,omitempty"`
 	TurnAccepted *LocalAppConversationTurnAccepted `json:"turn_accepted,omitempty"`
 	TurnStarted *LocalAppConversationTurnStarted `json:"turn_started,omitempty"`
-	TextDelta *LocalAppConversationTextDelta `json:"text_delta,omitempty"`
 	MessageCommitted *LocalAppConversationMessageCommitted `json:"message_committed,omitempty"`
 	TurnCompleted *LocalAppConversationTurnCompleted `json:"turn_completed,omitempty"`
 	TurnFailed *LocalAppConversationTurnFailed `json:"turn_failed,omitempty"`
 	TurnInterrupted *LocalAppConversationTurnInterrupted `json:"turn_interrupted,omitempty"`
+	ActionPlanned *LocalAppConversationActionEvent `json:"action_planned,omitempty"`
+	ActionStarted *LocalAppConversationActionEvent `json:"action_started,omitempty"`
+	ArtifactReady *LocalAppConversationArtifactReady `json:"artifact_ready,omitempty"`
+	ActionCompleted *LocalAppConversationActionEvent `json:"action_completed,omitempty"`
+	ActionFailed *LocalAppConversationActionEvent `json:"action_failed,omitempty"`
+	VoiceReady *LocalAppConversationVoiceEvent `json:"voice_ready,omitempty"`
+	VoiceFailed *LocalAppConversationVoiceEvent `json:"voice_failed,omitempty"`
+}
+
+type LocalAppConversationInputArtifactRef struct {
+	ArtifactId string `json:"artifact_id,omitempty"`
+}
+
+type LocalAppConversationInputPart struct {
+	Text *LocalAppConversationTextPart `json:"text,omitempty"`
+	ArtifactRef *LocalAppConversationInputArtifactRef `json:"artifact_ref,omitempty"`
 }
 
 type LocalAppConversationMessage struct {
 	TurnId string `json:"turn_id,omitempty"`
 	Role LocalAppConversationMessageRole `json:"role,omitempty"`
-	Text string `json:"text,omitempty"`
+	MessageId string `json:"message_id,omitempty"`
+	Parts []LocalAppConversationMessagePart `json:"parts,omitempty"`
 }
 
 type LocalAppConversationMessageCommitted struct {
-	TurnId string `json:"turn_id,omitempty"`
-	MessageId string `json:"message_id,omitempty"`
-	Text string `json:"text,omitempty"`
+	Message *LocalAppConversationMessage `json:"message,omitempty"`
+}
+
+type LocalAppConversationMessagePart struct {
+	Text *LocalAppConversationTextPart `json:"text,omitempty"`
+	Artifact *LocalAppConversationArtifactPart `json:"artifact,omitempty"`
 }
 
 type LocalAppConversationSnapshot struct {
 	ConversationAnchorId string `json:"conversation_anchor_id,omitempty"`
-	ActiveTurnId *string `json:"active_turn_id,omitempty"`
 	Messages []LocalAppConversationMessage `json:"messages,omitempty"`
 	TruncatedBefore bool `json:"truncated_before,omitempty"`
+	ThroughSequence uint64 `json:"through_sequence,omitempty"`
+	Turns []LocalAppConversationTurn `json:"turns,omitempty"`
+	Actions []LocalAppConversationAction `json:"actions,omitempty"`
+	Voices []LocalAppConversationVoice `json:"voices,omitempty"`
 }
 
-type LocalAppConversationTextDelta struct {
-	TurnId string `json:"turn_id,omitempty"`
+type LocalAppConversationTextPart struct {
 	Text string `json:"text,omitempty"`
+}
+
+type LocalAppConversationTurn struct {
+	TurnId string `json:"turn_id,omitempty"`
+	Status LocalAppConversationTurnStatus `json:"status,omitempty"`
+	Phase LocalAppConversationTurnPhase `json:"phase,omitempty"`
+	TerminalReason *string `json:"terminal_reason,omitempty"`
+	ReasonCode ReasonCode `json:"reason_code,omitempty"`
+	Message *string `json:"message,omitempty"`
 }
 
 type LocalAppConversationTurnAccepted struct {
 	TurnId string `json:"turn_id,omitempty"`
-	RequestId string `json:"request_id,omitempty"`
 }
 
 type LocalAppConversationTurnCompleted struct {
@@ -4688,6 +4807,20 @@ type LocalAppConversationTurnInterrupted struct {
 
 type LocalAppConversationTurnStarted struct {
 	TurnId string `json:"turn_id,omitempty"`
+}
+
+type LocalAppConversationVoice struct {
+	VoiceId string `json:"voice_id,omitempty"`
+	TurnId string `json:"turn_id,omitempty"`
+	MessageId string `json:"message_id,omitempty"`
+	State LocalAppConversationVoiceState `json:"state,omitempty"`
+	ArtifactId *string `json:"artifact_id,omitempty"`
+	ReasonCode ReasonCode `json:"reason_code,omitempty"`
+	Message *string `json:"message,omitempty"`
+}
+
+type LocalAppConversationVoiceEvent struct {
+	Voice *LocalAppConversationVoice `json:"voice,omitempty"`
 }
 
 type LocalAppImageGenerateOutput struct {
@@ -4755,6 +4888,7 @@ type LocalAppSharedLocalAgentAIConfigProjection struct {
 	Config *AIConfig `json:"config,omitempty"`
 	Revision string `json:"revision,omitempty"`
 	EffectiveSelections []AIConfigEffectiveSelection `json:"effective_selections,omitempty"`
+	Participation []LocalAgentCapabilityParticipation `json:"participation,omitempty"`
 }
 
 type LocalAppSpeechSynthesizeJobSpec struct {
@@ -5734,6 +5868,7 @@ type OverwriteSharedLocalAgentAIConfigResponse struct {
 	Committed bool `json:"committed,omitempty"`
 	ReasonCode ReasonCode `json:"reason_code,omitempty"`
 	EffectiveSelections []AIConfigEffectiveSelection `json:"effective_selections,omitempty"`
+	Participation []LocalAgentCapabilityParticipation `json:"participation,omitempty"`
 }
 
 type PauseLocalTransferRequest struct {
@@ -5920,6 +6055,19 @@ type ReadLocalAppAssetRequest struct {
 type ReadLocalAppAssetResponse struct {
 	Metadata *ReadLocalAppAssetMetadata `json:"metadata,omitempty"`
 	BodyChunk []byte `json:"body_chunk,omitempty"`
+}
+
+type ReadLocalAppConversationArtifactRequest struct {
+	AgentHandle string `json:"agent_handle,omitempty"`
+	ConversationAnchorId string `json:"conversation_anchor_id,omitempty"`
+	ArtifactId string `json:"artifact_id,omitempty"`
+}
+
+type ReadLocalAppConversationArtifactResponse struct {
+	ArtifactId string `json:"artifact_id,omitempty"`
+	Data []byte `json:"data,omitempty"`
+	MimeType string `json:"mime_type,omitempty"`
+	ByteLength int64 `json:"byte_length,omitempty"`
 }
 
 type ReadLocalAppStorageJsonRequest struct {
@@ -6625,7 +6773,7 @@ type SendLocalAppConversationTurnRequest struct {
 	AgentHandle string `json:"agent_handle,omitempty"`
 	ConversationAnchorId string `json:"conversation_anchor_id,omitempty"`
 	RequestId string `json:"request_id,omitempty"`
-	Text string `json:"text,omitempty"`
+	Parts []LocalAppConversationInputPart `json:"parts,omitempty"`
 }
 
 type SendLocalAppConversationTurnResponse struct {
@@ -7035,6 +7183,18 @@ type TranscribeAgentVoiceInputResponse struct {
 	TraceId string `json:"trace_id,omitempty"`
 }
 
+type TranscribeLocalAppConversationVoiceRequest struct {
+	AgentHandle string `json:"agent_handle,omitempty"`
+	ConversationAnchorId string `json:"conversation_anchor_id,omitempty"`
+	RequestId string `json:"request_id,omitempty"`
+	MimeType string `json:"mime_type,omitempty"`
+	AudioBytes []byte `json:"audio_bytes,omitempty"`
+}
+
+type TranscribeLocalAppConversationVoiceResponse struct {
+	Text string `json:"text,omitempty"`
+}
+
 type TraverseGraphRequest struct {
 	Context *KnowledgeRequestContext `json:"context,omitempty"`
 	BankId string `json:"bank_id,omitempty"`
@@ -7129,6 +7289,19 @@ type UploadLocalAppArtifactResponse struct {
 	ArtifactId string `json:"artifact_id,omitempty"`
 	SizeBytes int64 `json:"size_bytes,omitempty"`
 	MimeType string `json:"mime_type,omitempty"`
+}
+
+type UploadLocalAppConversationAttachmentRequest struct {
+	AgentHandle string `json:"agent_handle,omitempty"`
+	ConversationAnchorId string `json:"conversation_anchor_id,omitempty"`
+	MimeType string `json:"mime_type,omitempty"`
+	DisplayName *string `json:"display_name,omitempty"`
+	Data []byte `json:"data,omitempty"`
+}
+
+type UploadLocalAppConversationAttachmentResponse struct {
+	ArtifactId string `json:"artifact_id,omitempty"`
+	ExpiresAt string `json:"expires_at,omitempty"`
 }
 
 type UpsertCatalogModelOverlayRequest struct {
@@ -7994,6 +8167,14 @@ func (c RuntimeTypedClient) QueryAgentMemory(ctx context.Context, request QueryA
 	return decodeRuntimeTypedResponse[QueryAgentMemoryResponse](raw, "QueryAgentMemoryResponse")
 }
 
+func (c RuntimeTypedClient) ReadLocalAppConversationArtifact(ctx context.Context, request ReadLocalAppConversationArtifactRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ReadLocalAppConversationArtifactResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/ReadLocalAppConversationArtifact", request, metadata, timeoutMS)
+	if err != nil {
+		return ReadLocalAppConversationArtifactResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[ReadLocalAppConversationArtifactResponse](raw, "ReadLocalAppConversationArtifactResponse")
+}
+
 func (c RuntimeTypedClient) RegisterAvatarLiveInstanceBinding(ctx context.Context, request RegisterAvatarLiveInstanceBindingRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RegisterAvatarLiveInstanceBindingResponse, error) {
 	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/RegisterAvatarLiveInstanceBinding", request, metadata, timeoutMS)
 	if err != nil {
@@ -8114,6 +8295,14 @@ func (c RuntimeTypedClient) TranscribeAgentVoiceInput(ctx context.Context, reque
 	return decodeRuntimeTypedResponse[TranscribeAgentVoiceInputResponse](raw, "TranscribeAgentVoiceInputResponse")
 }
 
+func (c RuntimeTypedClient) TranscribeLocalAppConversationVoice(ctx context.Context, request TranscribeLocalAppConversationVoiceRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (TranscribeLocalAppConversationVoiceResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/TranscribeLocalAppConversationVoice", request, metadata, timeoutMS)
+	if err != nil {
+		return TranscribeLocalAppConversationVoiceResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[TranscribeLocalAppConversationVoiceResponse](raw, "TranscribeLocalAppConversationVoiceResponse")
+}
+
 func (c RuntimeTypedClient) UpdateAgentState(ctx context.Context, request UpdateAgentStateRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (UpdateAgentStateResponse, error) {
 	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/UpdateAgentState", request, metadata, timeoutMS)
 	if err != nil {
@@ -8128,6 +8317,14 @@ func (c RuntimeTypedClient) UpdateLocalAppAgentAutonomy(ctx context.Context, req
 		return LocalAppAgentUpdateAutonomyResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[LocalAppAgentUpdateAutonomyResponse](raw, "LocalAppAgentUpdateAutonomyResponse")
+}
+
+func (c RuntimeTypedClient) UploadLocalAppConversationAttachment(ctx context.Context, request UploadLocalAppConversationAttachmentRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (UploadLocalAppConversationAttachmentResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/UploadLocalAppConversationAttachment", request, metadata, timeoutMS)
+	if err != nil {
+		return UploadLocalAppConversationAttachmentResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[UploadLocalAppConversationAttachmentResponse](raw, "UploadLocalAppConversationAttachmentResponse")
 }
 
 func (c RuntimeTypedClient) WriteAgentMemory(ctx context.Context, request WriteAgentMemoryRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (WriteAgentMemoryResponse, error) {

@@ -99,6 +99,9 @@ function standardShell(operationCalls: string[]): NimiLocalAppStandardShell {
     conversation: {
       open: touched('conversation.open'),
       send: touched('conversation.send'),
+      uploadAttachment: touched('conversation.uploadAttachment'),
+      readArtifact: touched('conversation.readArtifact'),
+      transcribeVoice: touched('conversation.transcribeVoice'),
       interruptTurn: touched('conversation.interruptTurn'),
       subscribe: touched('conversation.subscribe'),
       snapshot: touched('conversation.snapshot'),
@@ -334,6 +337,18 @@ test('Agent conversation projects only the exact typed union and bounded snapsho
         calls.push(['send', input]);
         return { turnId: 'agent_turn_01J' };
       },
+      async uploadAttachment(input) {
+        calls.push(['uploadAttachment', input]);
+        return { artifactId: 'artifact_01J', expiresAt: '2026-08-23T09:00:00Z' };
+      },
+      async readArtifact(input) {
+        calls.push(['readArtifact', input]);
+        return { artifactId: 'artifact_01J', bytes: [1, 2, 3], mimeType: 'image/png', byteLength: 3 };
+      },
+      async transcribeVoice(input) {
+        calls.push(['transcribeVoice', input]);
+        return { text: 'transcribed intent' };
+      },
       async interruptTurn(input) {
         calls.push(['interrupt', input]);
         return { turnId: 'agent_turn_01J' };
@@ -344,11 +359,23 @@ test('Agent conversation projects only the exact typed union and bounded snapsho
           events: (async function* () {
             yield {
               type: 'turn-accepted', conversationAnchorId: 'agent_anchor_01J',
-              sequence: '1', turnId: 'agent_turn_01J', requestId: 'request-1',
+              sequence: '1', turnId: 'agent_turn_01J',
             };
             yield {
               type: 'message-committed', conversationAnchorId: 'agent_anchor_01J',
-              sequence: '4', turnId: 'agent_turn_01J', messageId: 'message-1', text: 'hello',
+              sequence: '3', turnId: 'agent_turn_01J',
+              message: {
+                messageId: 'message-user-1', turnId: 'agent_turn_01J', role: 'user',
+                parts: [{ kind: 'text', text: 'hello' }],
+              },
+            };
+            yield {
+              type: 'message-committed', conversationAnchorId: 'agent_anchor_01J',
+              sequence: '4', turnId: 'agent_turn_01J',
+              message: {
+                messageId: 'message-assistant-1', turnId: 'agent_turn_01J', role: 'assistant',
+                parts: [{ kind: 'text', text: 'hello back' }],
+              },
             };
             yield {
               type: 'turn-completed', conversationAnchorId: 'agent_anchor_01J',
@@ -361,11 +388,23 @@ test('Agent conversation projects only the exact typed union and bounded snapsho
       async snapshot(input) {
         calls.push(['snapshot', input]);
         return {
-          conversationAnchorId: 'agent_anchor_01J', activeTurnId: null,
+          conversationAnchorId: 'agent_anchor_01J', throughSequence: '6',
+          turns: [{
+            turnId: 'agent_turn_01J', status: 'completed', phase: null,
+            terminalReason: 'stop', reasonCode: null, message: null,
+          }],
           messages: [
-            { turnId: 'agent_turn_01J', role: 'user', text: 'hello' },
-            { turnId: 'agent_turn_01J', role: 'assistant', text: 'hello back' },
+            {
+              messageId: 'message-user-1', turnId: 'agent_turn_01J', role: 'user',
+              parts: [{ kind: 'text', text: 'hello' }],
+            },
+            {
+              messageId: 'message-assistant-1', turnId: 'agent_turn_01J', role: 'assistant',
+              parts: [{ kind: 'text', text: 'hello back' }],
+            },
           ],
+          actions: [],
+          voices: [],
           truncatedBefore: false,
         };
       },
@@ -376,22 +415,46 @@ test('Agent conversation projects only the exact typed union and bounded snapsho
     conversationAnchorId: 'agent_anchor_01J', activeTurnId: null,
   });
   assert.deepEqual(await conversation.send({
-    agentHandle: handle, conversationAnchorId: 'agent_anchor_01J', requestId: 'request-1', text: 'hello',
+    agentHandle: handle, conversationAnchorId: 'agent_anchor_01J', requestId: 'request-1',
+    parts: [{ kind: 'text', text: 'hello' }],
   }), { turnId: 'agent_turn_01J' });
+  assert.deepEqual(await conversation.uploadAttachment({
+    agentHandle: handle, conversationAnchorId: 'agent_anchor_01J', mimeType: 'image/png',
+    displayName: 'photo.png', bytes: Uint8Array.from([1, 2, 3]),
+  }), { artifactId: 'artifact_01J', expiresAt: '2026-08-23T09:00:00Z' });
+  assert.deepEqual(await conversation.readArtifact({
+    agentHandle: handle, conversationAnchorId: 'agent_anchor_01J', artifactId: 'artifact_01J',
+  }), { artifactId: 'artifact_01J', bytes: Uint8Array.from([1, 2, 3]), mimeType: 'image/png', byteLength: 3 });
+  assert.deepEqual(await conversation.transcribeVoice({
+    agentHandle: handle, conversationAnchorId: 'agent_anchor_01J', requestId: 'voice-request-1',
+    mimeType: 'audio/webm;codecs=opus', audioBytes: Uint8Array.from([1, 2, 3]),
+  }), { text: 'transcribed intent' });
   const subscription = await conversation.subscribe({ agentHandle: handle, conversationAnchorId: 'agent_anchor_01J' });
   const events = [];
   for await (const event of subscription) events.push(event);
   assert.deepEqual(events.map((event) => event.type), [
-    'turn-accepted', 'message-committed', 'turn-completed',
+    'turn-accepted', 'message-committed', 'message-committed', 'turn-completed',
   ]);
   assert.equal(JSON.stringify(events).includes('payload'), false);
   assert.equal(JSON.stringify(events).includes('messageType'), false);
   assert.deepEqual(await conversation.snapshot({ agentHandle: handle, conversationAnchorId: 'agent_anchor_01J' }), {
-    conversationAnchorId: 'agent_anchor_01J', activeTurnId: null,
+    conversationAnchorId: 'agent_anchor_01J', throughSequence: '6',
+    turns: [{
+      turnId: 'agent_turn_01J', status: 'completed', phase: null,
+      terminalReason: 'stop', reasonCode: null, message: null,
+    }],
     messages: [
-      { turnId: 'agent_turn_01J', role: 'user', text: 'hello' },
-      { turnId: 'agent_turn_01J', role: 'assistant', text: 'hello back' },
+      {
+        messageId: 'message-user-1', turnId: 'agent_turn_01J', role: 'user',
+        parts: [{ kind: 'text', text: 'hello' }],
+      },
+      {
+        messageId: 'message-assistant-1', turnId: 'agent_turn_01J', role: 'assistant',
+        parts: [{ kind: 'text', text: 'hello back' }],
+      },
     ],
+    actions: [],
+    voices: [],
     truncatedBefore: false,
   });
   assert.equal(JSON.stringify(calls).includes('localAgentId'), false);
@@ -568,7 +631,10 @@ test('canonical protected operations reach typed ingress and preserve owner-unav
     () => client.realm.worldCore.create({ core: {}, origin: { kind: 'manual' } } as never),
     () => client.agents.listReferences(),
     () => client.conversation.open({ agentHandle: handle }),
-    () => client.conversation.send({ agentHandle: handle, conversationAnchorId: 'anchor', requestId: 'request', text: 'hello' }),
+    () => client.conversation.send({ agentHandle: handle, conversationAnchorId: 'anchor', requestId: 'request', parts: [{ kind: 'text', text: 'hello' }] }),
+    () => client.conversation.uploadAttachment({ agentHandle: handle, conversationAnchorId: 'anchor', mimeType: 'image/png', bytes: Uint8Array.of(1) }),
+    () => client.conversation.readArtifact({ agentHandle: handle, conversationAnchorId: 'anchor', artifactId: 'artifact-1' }),
+    () => client.conversation.transcribeVoice({ agentHandle: handle, conversationAnchorId: 'anchor', requestId: 'voice-request', mimeType: 'audio/webm', audioBytes: Uint8Array.of(1) }),
     () => client.conversation.interruptTurn({ agentHandle: handle, conversationAnchorId: 'anchor' }),
     () => client.conversation.subscribe({ agentHandle: handle, conversationAnchorId: 'anchor' }),
     () => client.conversation.snapshot({ agentHandle: handle, conversationAnchorId: 'anchor' }),
@@ -621,6 +687,9 @@ test('canonical protected operations reach typed ingress and preserve owner-unav
     'agents.listReferences',
     'conversation.open',
     'conversation.send',
+    'conversation.uploadAttachment',
+    'conversation.readArtifact',
+    'conversation.transcribeVoice',
     'conversation.interruptTurn',
     'conversation.subscribe',
     'conversation.snapshot',

@@ -27,10 +27,19 @@ import { AIConfigCapabilityIntent } from "./capability_configuration";
 import { AIConfigEffectiveSelection } from "./capability_configuration";
 import { AIConfig } from "./capability_configuration";
 /**
- * Shared LocalAgent AIConfig actions resolve the singular subsystem owner from
- * the authorized account scope and carry no Agent handle. Autonomy and
- * presentation remain per-Agent and continue to require Runtime-issued handles.
- *
+ * @generated from protobuf message nimi.runtime.v1.LocalAgentCapabilityParticipation
+ */
+export interface LocalAgentCapabilityParticipation {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalAgentCapabilityParticipationRole role = 1
+     */
+    role: LocalAgentCapabilityParticipationRole;
+    /**
+     * @generated from protobuf field: string capability_contract = 2
+     */
+    capabilityContract: string;
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.LocalAppSharedLocalAgentAIConfigProjection
  */
 export interface LocalAppSharedLocalAgentAIConfigProjection {
@@ -46,6 +55,10 @@ export interface LocalAppSharedLocalAgentAIConfigProjection {
      * @generated from protobuf field: repeated nimi.runtime.v1.AIConfigEffectiveSelection effective_selections = 3
      */
     effectiveSelections: AIConfigEffectiveSelection[];
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.LocalAgentCapabilityParticipation participation = 4
+     */
+    participation: LocalAgentCapabilityParticipation[];
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.GetLocalAppSharedLocalAgentAIConfigRequest
@@ -375,6 +388,39 @@ export interface LocalAppAgentCommitPresentationResponse {
     projection?: LocalAppAgentPresentationProjection;
 }
 /**
+ * Shared LocalAgent AIConfig actions resolve the singular subsystem owner from
+ * the authorized account scope and carry no Agent handle. Autonomy and
+ * presentation remain per-Agent and continue to require Runtime-issued handles.
+ *
+ * @generated from protobuf enum nimi.runtime.v1.LocalAgentCapabilityParticipationRole
+ */
+export enum LocalAgentCapabilityParticipationRole {
+    /**
+     * @generated from protobuf enum value: LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_CONVERSATION_PRIMARY = 1;
+     */
+    CONVERSATION_PRIMARY = 1,
+    /**
+     * @generated from protobuf enum value: LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_MEMORY_EMBEDDING = 2;
+     */
+    MEMORY_EMBEDDING = 2,
+    /**
+     * @generated from protobuf enum value: LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_CONVERSATION_INPUT_VOICE = 3;
+     */
+    CONVERSATION_INPUT_VOICE = 3,
+    /**
+     * @generated from protobuf enum value: LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_CONVERSATION_OUTPUT_VOICE = 4;
+     */
+    CONVERSATION_OUTPUT_VOICE = 4,
+    /**
+     * @generated from protobuf enum value: LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_CONVERSATION_ACTION_IMAGE = 5;
+     */
+    CONVERSATION_ACTION_IMAGE = 5
+}
+/**
  * @generated from protobuf enum nimi.runtime.v1.LocalAppAgentAutonomyMode
  */
 export enum LocalAppAgentAutonomyMode {
@@ -400,18 +446,75 @@ export enum LocalAppAgentAutonomyMode {
     HIGH = 4
 }
 // @generated message type with reflection information, may provide speed optimized methods
+class LocalAgentCapabilityParticipation$Type extends MessageType<LocalAgentCapabilityParticipation> {
+    constructor() {
+        super("nimi.runtime.v1.LocalAgentCapabilityParticipation", [
+            { no: 1, name: "role", kind: "enum", T: () => ["nimi.runtime.v1.LocalAgentCapabilityParticipationRole", LocalAgentCapabilityParticipationRole, "LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_"] },
+            { no: 2, name: "capability_contract", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<LocalAgentCapabilityParticipation>): LocalAgentCapabilityParticipation {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.role = 0;
+        message.capabilityContract = "";
+        if (value !== undefined)
+            reflectionMergePartial<LocalAgentCapabilityParticipation>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAgentCapabilityParticipation): LocalAgentCapabilityParticipation {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.LocalAgentCapabilityParticipationRole role */ 1:
+                    message.role = reader.int32();
+                    break;
+                case /* string capability_contract */ 2:
+                    message.capabilityContract = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LocalAgentCapabilityParticipation, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.LocalAgentCapabilityParticipationRole role = 1; */
+        if (message.role !== 0)
+            writer.tag(1, WireType.Varint).int32(message.role);
+        /* string capability_contract = 2; */
+        if (message.capabilityContract !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.capabilityContract);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalAgentCapabilityParticipation
+ */
+export const LocalAgentCapabilityParticipation = new LocalAgentCapabilityParticipation$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class LocalAppSharedLocalAgentAIConfigProjection$Type extends MessageType<LocalAppSharedLocalAgentAIConfigProjection> {
     constructor() {
         super("nimi.runtime.v1.LocalAppSharedLocalAgentAIConfigProjection", [
             { no: 1, name: "config", kind: "message", T: () => AIConfig },
             { no: 2, name: "revision", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "effective_selections", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => AIConfigEffectiveSelection }
+            { no: 3, name: "effective_selections", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => AIConfigEffectiveSelection },
+            { no: 4, name: "participation", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalAgentCapabilityParticipation }
         ]);
     }
     create(value?: PartialMessage<LocalAppSharedLocalAgentAIConfigProjection>): LocalAppSharedLocalAgentAIConfigProjection {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.revision = "";
         message.effectiveSelections = [];
+        message.participation = [];
         if (value !== undefined)
             reflectionMergePartial<LocalAppSharedLocalAgentAIConfigProjection>(this, message, value);
         return message;
@@ -429,6 +532,9 @@ class LocalAppSharedLocalAgentAIConfigProjection$Type extends MessageType<LocalA
                     break;
                 case /* repeated nimi.runtime.v1.AIConfigEffectiveSelection effective_selections */ 3:
                     message.effectiveSelections.push(AIConfigEffectiveSelection.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* repeated nimi.runtime.v1.LocalAgentCapabilityParticipation participation */ 4:
+                    message.participation.push(LocalAgentCapabilityParticipation.internalBinaryRead(reader, reader.uint32(), options));
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -451,6 +557,9 @@ class LocalAppSharedLocalAgentAIConfigProjection$Type extends MessageType<LocalA
         /* repeated nimi.runtime.v1.AIConfigEffectiveSelection effective_selections = 3; */
         for (let i = 0; i < message.effectiveSelections.length; i++)
             AIConfigEffectiveSelection.internalBinaryWrite(message.effectiveSelections[i], writer.tag(3, WireType.LengthDelimited).fork(), options).join();
+        /* repeated nimi.runtime.v1.LocalAgentCapabilityParticipation participation = 4; */
+        for (let i = 0; i < message.participation.length; i++)
+            LocalAgentCapabilityParticipation.internalBinaryWrite(message.participation[i], writer.tag(4, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

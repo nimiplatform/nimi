@@ -2,8 +2,9 @@ import type {
   NimiAIConfigOptionsQuery,
   NimiAIConfigOptionsResult,
   NimiAIConfigOverwriteInput,
-  NimiAIConfigOverwriteResult,
-  NimiAIConfigSnapshot,
+  NimiSharedLocalAgentAIConfigOverwriteResult,
+  NimiSharedLocalAgentAIConfigSnapshot,
+  NimiSharedLocalAgentCapabilityParticipation,
   NimiCapabilityAIConfig,
 } from '../ai/capability-configuration.js';
 import { validateCapabilityIntents } from './local-app-runtime-platform-ai-config.js';
@@ -143,8 +144,8 @@ export type NimiLocalAppAgentConfigureShell = {
 
 export type NimiLocalAppAgentConfigureClient = {
   readonly sharedAIConfig: {
-    readonly get: () => Promise<NimiAIConfigSnapshot>;
-    readonly overwrite: (input: NimiAIConfigOverwriteInput) => Promise<NimiAIConfigOverwriteResult>;
+    readonly get: () => Promise<NimiSharedLocalAgentAIConfigSnapshot>;
+    readonly overwrite: (input: NimiAIConfigOverwriteInput) => Promise<NimiSharedLocalAgentAIConfigOverwriteResult>;
     readonly listOptions: (query: NimiAIConfigOptionsQuery) => Promise<NimiAIConfigOptionsResult>;
   };
   readonly autonomy: {
@@ -190,8 +191,8 @@ export function createNimiLocalAppAgentConfigureClient(
 ): NimiLocalAppAgentConfigureClient {
   return Object.freeze({
     sharedAIConfig: Object.freeze({
-      get: async (): Promise<NimiAIConfigSnapshot> => projectSharedAIConfigSnapshot(await shell.sharedAIConfig.get()),
-      overwrite: async (input: NimiAIConfigOverwriteInput): Promise<NimiAIConfigOverwriteResult> => {
+      get: async (): Promise<NimiSharedLocalAgentAIConfigSnapshot> => projectSharedAIConfigSnapshot(await shell.sharedAIConfig.get()),
+      overwrite: async (input: NimiAIConfigOverwriteInput): Promise<NimiSharedLocalAgentAIConfigOverwriteResult> => {
         validateCapabilityIntents(input.capabilities);
         decimalRevision(input.expectedRevision, 'expectedRevision', true);
         return projectSharedAIConfigOverwrite(await shell.sharedAIConfig.overwrite(input));
@@ -482,32 +483,56 @@ function projectSharedAIConfig(value: unknown): NimiCapabilityAIConfig {
   return config as unknown as NimiCapabilityAIConfig;
 }
 
-function projectSharedAIConfigSnapshot(value: unknown): NimiAIConfigSnapshot {
+function projectSharedAIConfigSnapshot(value: unknown): NimiSharedLocalAgentAIConfigSnapshot {
   const snapshot = asRecord(value);
-  assertExactProjectionKeys(snapshot, ['config', 'revision', 'effectiveSelections'], 'shared LocalAgent AIConfig snapshot');
+  assertExactProjectionKeys(snapshot, ['config', 'revision', 'effectiveSelections', 'participation'], 'shared LocalAgent AIConfig snapshot');
   assertSafeProjection(snapshot);
   const config = snapshot.config === null ? null : projectSharedAIConfig(snapshot.config);
   const revision = projectionRevision(snapshot.revision, 'shared LocalAgent AIConfig revision');
   if (!Array.isArray(snapshot.effectiveSelections)) localAppProjectionError('shared LocalAgent AIConfig effective selections');
   snapshot.effectiveSelections.forEach(projectSharedEffectiveSelection);
-  return Object.freeze({ config, revision, effectiveSelections: Object.freeze([...snapshot.effectiveSelections]) }) as NimiAIConfigSnapshot;
+  const participation = projectSharedParticipation(snapshot.participation);
+  return Object.freeze({ config, revision, effectiveSelections: Object.freeze([...snapshot.effectiveSelections]), participation }) as NimiSharedLocalAgentAIConfigSnapshot;
 }
 
-function projectSharedAIConfigOverwrite(value: unknown): NimiAIConfigOverwriteResult {
+function projectSharedAIConfigOverwrite(value: unknown): NimiSharedLocalAgentAIConfigOverwriteResult {
   const result = asRecord(value);
   if (!result) return localAppProjectionError('shared LocalAgent AIConfig overwrite');
   assertSafeProjection(result);
   const revision = projectionRevision(result.revision, 'shared LocalAgent AIConfig revision');
   const config = result.config === null ? null : projectSharedAIConfig(result.config);
+  const participation = projectSharedParticipation(result.participation);
   if (result.outcome === 'committed' && config) {
-    assertExactProjectionKeys(result, ['outcome', 'config', 'revision'], 'shared LocalAgent AIConfig committed overwrite');
-    return Object.freeze({ outcome: 'committed', config, revision });
+    assertExactProjectionKeys(result, ['outcome', 'config', 'revision', 'participation'], 'shared LocalAgent AIConfig committed overwrite');
+    return Object.freeze({ outcome: 'committed', config, revision, participation });
   }
   if (result.outcome === 'conflict' && result.reasonCode === 'AGENT_AI_CONFIG_REVISION_CONFLICT') {
-    assertExactProjectionKeys(result, ['outcome', 'config', 'revision', 'reasonCode'], 'shared LocalAgent AIConfig conflict overwrite');
-    return Object.freeze({ outcome: 'conflict', config, revision, reasonCode: result.reasonCode });
+    assertExactProjectionKeys(result, ['outcome', 'config', 'revision', 'participation', 'reasonCode'], 'shared LocalAgent AIConfig conflict overwrite');
+    return Object.freeze({ outcome: 'conflict', config, revision, reasonCode: result.reasonCode, participation });
   }
   return localAppProjectionError('shared LocalAgent AIConfig overwrite outcome');
+}
+
+function projectSharedParticipation(value: unknown): readonly NimiSharedLocalAgentCapabilityParticipation[] {
+  const expected = [
+    ['conversation.primary', 'text.generate'],
+    ['memory.embedding', 'text.embed'],
+    ['conversation.input.voice', 'audio.transcribe'],
+    ['conversation.output.voice', 'audio.synthesize'],
+    ['conversation.action.image', 'image.generate'],
+  ] as const;
+  if (!Array.isArray(value) || value.length !== expected.length) {
+    return localAppProjectionError('shared LocalAgent participation');
+  }
+  return Object.freeze(value.map((entry, index) => {
+    const row = asRecord(entry);
+    const expectedRow = expected[index];
+    assertExactProjectionKeys(row, ['role', 'capabilityContract'], `shared LocalAgent participation ${index}`);
+    if (!expectedRow || row.role !== expectedRow[0] || row.capabilityContract !== expectedRow[1]) {
+      return localAppProjectionError(`shared LocalAgent participation ${index}`);
+    }
+    return Object.freeze({ role: expectedRow[0], capabilityContract: expectedRow[1] });
+  }));
 }
 
 function projectSharedAIConfigOptions(value: unknown): NimiAIConfigOptionsResult {

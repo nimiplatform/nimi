@@ -16,9 +16,12 @@ import type {
   NimiAIConfigLocalLoadoutOption,
   NimiAIConfigOptionsQuery,
   NimiAIConfigOptionsResult,
-  NimiAIConfigOverwriteResult,
-  NimiAIConfigSnapshot,
+  NimiSharedLocalAgentCapabilityParticipation,
+  NimiSharedLocalAgentAIConfigSnapshot,
+  NimiSharedLocalAgentAIConfigOverwriteResult,
 } from '../core/ai/capability-configuration';
+import type { LocalAgentCapabilityParticipation } from '../core-generated/runtime-protobuf/runtime/v1/agent_configure';
+import { LocalAgentCapabilityParticipationRole } from '../core-generated/runtime-protobuf/runtime/v1/agent_configure';
 import type {
   ApplySharedLocalAgentAIProfileRequest,
   ApplySharedLocalAgentAIProfileResponse,
@@ -84,8 +87,8 @@ export interface NimiSharedLocalAgentAIProfilePreview {
  * candidate options belong to the singular owner manager.
  */
 export interface NimiSharedLocalAgentAIConfigClient {
-  get(input?: NimiSharedLocalAgentAIConfigCallInput): Promise<NimiAIConfigSnapshot>;
-  overwrite(input: NimiSharedLocalAgentAIConfigOverwriteInput): Promise<NimiAIConfigOverwriteResult>;
+  get(input?: NimiSharedLocalAgentAIConfigCallInput): Promise<NimiSharedLocalAgentAIConfigSnapshot>;
+  overwrite(input: NimiSharedLocalAgentAIConfigOverwriteInput): Promise<NimiSharedLocalAgentAIConfigOverwriteResult>;
   listOptions(input: NimiSharedLocalAgentAIConfigOptionsInput): Promise<NimiAIConfigOptionsResult>;
 }
 
@@ -181,6 +184,7 @@ export function createNimiSharedLocalAgentAISurface(
         config: response.config ? requireSharedAIConfig(response.config, 'GetSharedLocalAgentAIConfig') : null,
         revision,
         effectiveSelections: projectEffectiveSelections(response.effectiveSelections),
+        participation: projectLocalAgentParticipation(response.participation),
       });
     },
 
@@ -208,11 +212,12 @@ export function createNimiSharedLocalAgentAISurface(
       const config = response.config
         ? requireSharedAIConfig(response.config, 'OverwriteSharedLocalAgentAIConfig')
         : null;
+      const participation = projectLocalAgentParticipation(response.participation);
       if (response.committed && response.reasonCode === RuntimeReasonCode.REASON_CODE_UNSPECIFIED && config) {
-        return Object.freeze({ outcome: 'committed', config, revision });
+        return Object.freeze({ outcome: 'committed', config, revision, participation });
       }
       if (!response.committed && response.reasonCode === RuntimeReasonCode.AGENT_AI_CONFIG_REVISION_CONFLICT) {
-        return Object.freeze({ outcome: 'conflict', config, revision, reasonCode: 'AGENT_AI_CONFIG_REVISION_CONFLICT' });
+        return Object.freeze({ outcome: 'conflict', config, revision, reasonCode: 'AGENT_AI_CONFIG_REVISION_CONFLICT', participation });
       }
       invalidResponse('OverwriteSharedLocalAgentAIConfig returned an invalid outcome');
     },
@@ -299,6 +304,28 @@ export function createNimiSharedLocalAgentAISurface(
   });
 
   return Object.freeze({ sharedAIConfig, sharedAIProfile });
+}
+
+function projectLocalAgentParticipation(
+  rows: readonly LocalAgentCapabilityParticipation[],
+): readonly NimiSharedLocalAgentCapabilityParticipation[] {
+  const expected = [
+    [LocalAgentCapabilityParticipationRole.CONVERSATION_PRIMARY, 'conversation.primary', 'text.generate'],
+    [LocalAgentCapabilityParticipationRole.MEMORY_EMBEDDING, 'memory.embedding', 'text.embed'],
+    [LocalAgentCapabilityParticipationRole.CONVERSATION_INPUT_VOICE, 'conversation.input.voice', 'audio.transcribe'],
+    [LocalAgentCapabilityParticipationRole.CONVERSATION_OUTPUT_VOICE, 'conversation.output.voice', 'audio.synthesize'],
+    [LocalAgentCapabilityParticipationRole.CONVERSATION_ACTION_IMAGE, 'conversation.action.image', 'image.generate'],
+  ] as const;
+  if (!Array.isArray(rows) || rows.length !== expected.length) {
+    invalidResponse('Shared LocalAgent participation is invalid');
+  }
+  return Object.freeze(rows.map((row, index) => {
+    const expectedRow = expected[index];
+    if (!expectedRow || row.role !== expectedRow[0] || row.capabilityContract !== expectedRow[2]) {
+      return invalidResponse('Shared LocalAgent participation row is invalid');
+    }
+    return Object.freeze({ role: expectedRow[1], capabilityContract: expectedRow[2] });
+  }));
 }
 
 function requireSharedAIConfig(config: AIConfig | undefined, operation: string): AIConfig {

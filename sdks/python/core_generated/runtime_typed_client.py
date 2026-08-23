@@ -170,8 +170,14 @@ HookTriggerFamily = Literal["HOOK_TRIGGER_FAMILY_UNSPECIFIED"]
 KnowledgeBankScope = Literal["KNOWLEDGE_BANK_SCOPE_UNSPECIFIED", "KNOWLEDGE_BANK_SCOPE_APP_PRIVATE", "KNOWLEDGE_BANK_SCOPE_WORKSPACE_PRIVATE"]
 KnowledgeIngestTaskStatus = Literal["KNOWLEDGE_INGEST_TASK_STATUS_UNSPECIFIED", "KNOWLEDGE_INGEST_TASK_STATUS_QUEUED", "KNOWLEDGE_INGEST_TASK_STATUS_RUNNING", "KNOWLEDGE_INGEST_TASK_STATUS_COMPLETED", "KNOWLEDGE_INGEST_TASK_STATUS_FAILED"]
 LoadoutValidationState = Literal["LOADOUT_VALIDATION_STATE_UNSPECIFIED", "LOADOUT_VALIDATION_STATE_CONFIGURED", "LOADOUT_VALIDATION_STATE_UNRESOLVED", "LOADOUT_VALIDATION_STATE_BLOCKED"]
+LocalAgentCapabilityParticipationRole = Literal["LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_UNSPECIFIED", "LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_CONVERSATION_PRIMARY", "LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_MEMORY_EMBEDDING", "LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_CONVERSATION_INPUT_VOICE", "LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_CONVERSATION_OUTPUT_VOICE", "LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_CONVERSATION_ACTION_IMAGE"]
 LocalAppAgentAutonomyMode = Literal["LOCAL_APP_AGENT_AUTONOMY_MODE_UNSPECIFIED", "LOCAL_APP_AGENT_AUTONOMY_MODE_OFF", "LOCAL_APP_AGENT_AUTONOMY_MODE_LOW", "LOCAL_APP_AGENT_AUTONOMY_MODE_MEDIUM", "LOCAL_APP_AGENT_AUTONOMY_MODE_HIGH"]
+LocalAppConversationActionStatus = Literal["LOCAL_APP_CONVERSATION_ACTION_STATUS_UNSPECIFIED", "LOCAL_APP_CONVERSATION_ACTION_STATUS_PLANNED", "LOCAL_APP_CONVERSATION_ACTION_STATUS_STARTED", "LOCAL_APP_CONVERSATION_ACTION_STATUS_COMPLETED", "LOCAL_APP_CONVERSATION_ACTION_STATUS_FAILED"]
+LocalAppConversationMediaKind = Literal["LOCAL_APP_CONVERSATION_MEDIA_KIND_UNSPECIFIED", "LOCAL_APP_CONVERSATION_MEDIA_KIND_IMAGE"]
 LocalAppConversationMessageRole = Literal["LOCAL_APP_CONVERSATION_MESSAGE_ROLE_UNSPECIFIED", "LOCAL_APP_CONVERSATION_MESSAGE_ROLE_USER", "LOCAL_APP_CONVERSATION_MESSAGE_ROLE_ASSISTANT"]
+LocalAppConversationTurnPhase = Literal["LOCAL_APP_CONVERSATION_TURN_PHASE_UNSPECIFIED", "LOCAL_APP_CONVERSATION_TURN_PHASE_ACCEPTED", "LOCAL_APP_CONVERSATION_TURN_PHASE_STARTED"]
+LocalAppConversationTurnStatus = Literal["LOCAL_APP_CONVERSATION_TURN_STATUS_UNSPECIFIED", "LOCAL_APP_CONVERSATION_TURN_STATUS_ACTIVE", "LOCAL_APP_CONVERSATION_TURN_STATUS_COMPLETED", "LOCAL_APP_CONVERSATION_TURN_STATUS_FAILED", "LOCAL_APP_CONVERSATION_TURN_STATUS_INTERRUPTED"]
+LocalAppConversationVoiceState = Literal["LOCAL_APP_CONVERSATION_VOICE_STATE_UNSPECIFIED", "LOCAL_APP_CONVERSATION_VOICE_STATE_READY", "LOCAL_APP_CONVERSATION_VOICE_STATE_FAILED"]
 LocalAppSessionState = Literal["LOCAL_APP_SESSION_STATE_UNSPECIFIED", "LOCAL_APP_SESSION_STATE_READY", "LOCAL_APP_SESSION_STATE_RUNTIME_UNAVAILABLE", "LOCAL_APP_SESSION_STATE_REVOKED", "LOCAL_APP_SESSION_STATE_ACCOUNT_CHANGED", "LOCAL_APP_SESSION_STATE_PROCESS_REPLACED"]
 LocalAppTrustClass = Literal["LOCAL_APP_TRUST_CLASS_UNSPECIFIED", "LOCAL_APP_TRUST_CLASS_VERIFIED", "LOCAL_APP_TRUST_CLASS_USER_IMPORTED", "LOCAL_APP_TRUST_CLASS_LOCAL_DEVELOPMENT"]
 LocalAssetKind = Literal["LOCAL_ASSET_KIND_UNSPECIFIED", "LOCAL_ASSET_KIND_CHAT", "LOCAL_ASSET_KIND_IMAGE", "LOCAL_ASSET_KIND_VIDEO", "LOCAL_ASSET_KIND_TTS", "LOCAL_ASSET_KIND_STT", "LOCAL_ASSET_KIND_EMBEDDING", "LOCAL_ASSET_KIND_MUSIC", "LOCAL_ASSET_KIND_VAE", "LOCAL_ASSET_KIND_CLIP", "LOCAL_ASSET_KIND_LORA", "LOCAL_ASSET_KIND_CONTROLNET", "LOCAL_ASSET_KIND_AUXILIARY"]
@@ -2173,6 +2179,7 @@ class GetSharedLocalAgentAIConfigResponse:
     config: AIConfig | None = None
     revision: str | None = None
     effective_selections: tuple[AIConfigEffectiveSelection, ...] = field(default_factory=tuple)
+    participation: tuple[LocalAgentCapabilityParticipation, ...] = field(default_factory=tuple)
 
 @dataclass(frozen=True)
 class GetVoiceAssetRequest:
@@ -3038,6 +3045,11 @@ class LoadoutSelection:
     effective_defaults: Mapping[str, object] | None = None
 
 @dataclass(frozen=True)
+class LocalAgentCapabilityParticipation:
+    role: LocalAgentCapabilityParticipationRole | None = None
+    capability_contract: str | None = None
+
+@dataclass(frozen=True)
 class LocalAgentRecord:
     local_agent_ref: str | None = None
     display_name: str | None = None
@@ -3156,45 +3168,104 @@ class LocalAppAssetRecord:
     updated_at: str | None = None
 
 @dataclass(frozen=True)
+class LocalAppConversationAction:
+    action_id: str | None = None
+    turn_id: str | None = None
+    capability_contract: str | None = None
+    status: LocalAppConversationActionStatus | None = None
+    projection_message_id: str | None = None
+    artifact_id: str | None = None
+    reason_code: ReasonCode | None = None
+    message: str | None = None
+
+@dataclass(frozen=True)
+class LocalAppConversationActionEvent:
+    action: LocalAppConversationAction | None = None
+
+@dataclass(frozen=True)
+class LocalAppConversationArtifactPart:
+    artifact_id: str | None = None
+    media_kind: LocalAppConversationMediaKind | None = None
+    mime_type: str | None = None
+    display_name: str | None = None
+
+@dataclass(frozen=True)
+class LocalAppConversationArtifactReady:
+    turn_id: str | None = None
+    action_id: str | None = None
+    capability_contract: str | None = None
+    projection_message_id: str | None = None
+    artifact_id: str | None = None
+
+@dataclass(frozen=True)
 class LocalAppConversationEvent:
     conversation_anchor_id: str | None = None
     sequence: int | None = None
     turn_accepted: LocalAppConversationTurnAccepted | None = None
     turn_started: LocalAppConversationTurnStarted | None = None
-    text_delta: LocalAppConversationTextDelta | None = None
     message_committed: LocalAppConversationMessageCommitted | None = None
     turn_completed: LocalAppConversationTurnCompleted | None = None
     turn_failed: LocalAppConversationTurnFailed | None = None
     turn_interrupted: LocalAppConversationTurnInterrupted | None = None
+    action_planned: LocalAppConversationActionEvent | None = None
+    action_started: LocalAppConversationActionEvent | None = None
+    artifact_ready: LocalAppConversationArtifactReady | None = None
+    action_completed: LocalAppConversationActionEvent | None = None
+    action_failed: LocalAppConversationActionEvent | None = None
+    voice_ready: LocalAppConversationVoiceEvent | None = None
+    voice_failed: LocalAppConversationVoiceEvent | None = None
+
+@dataclass(frozen=True)
+class LocalAppConversationInputArtifactRef:
+    artifact_id: str | None = None
+
+@dataclass(frozen=True)
+class LocalAppConversationInputPart:
+    text: LocalAppConversationTextPart | None = None
+    artifact_ref: LocalAppConversationInputArtifactRef | None = None
 
 @dataclass(frozen=True)
 class LocalAppConversationMessage:
     turn_id: str | None = None
     role: LocalAppConversationMessageRole | None = None
-    text: str | None = None
+    message_id: str | None = None
+    parts: tuple[LocalAppConversationMessagePart, ...] = field(default_factory=tuple)
 
 @dataclass(frozen=True)
 class LocalAppConversationMessageCommitted:
-    turn_id: str | None = None
-    message_id: str | None = None
-    text: str | None = None
+    message: LocalAppConversationMessage | None = None
+
+@dataclass(frozen=True)
+class LocalAppConversationMessagePart:
+    text: LocalAppConversationTextPart | None = None
+    artifact: LocalAppConversationArtifactPart | None = None
 
 @dataclass(frozen=True)
 class LocalAppConversationSnapshot:
     conversation_anchor_id: str | None = None
-    active_turn_id: str | None = None
     messages: tuple[LocalAppConversationMessage, ...] = field(default_factory=tuple)
     truncated_before: bool | None = None
+    through_sequence: int | None = None
+    turns: tuple[LocalAppConversationTurn, ...] = field(default_factory=tuple)
+    actions: tuple[LocalAppConversationAction, ...] = field(default_factory=tuple)
+    voices: tuple[LocalAppConversationVoice, ...] = field(default_factory=tuple)
 
 @dataclass(frozen=True)
-class LocalAppConversationTextDelta:
-    turn_id: str | None = None
+class LocalAppConversationTextPart:
     text: str | None = None
+
+@dataclass(frozen=True)
+class LocalAppConversationTurn:
+    turn_id: str | None = None
+    status: LocalAppConversationTurnStatus | None = None
+    phase: LocalAppConversationTurnPhase | None = None
+    terminal_reason: str | None = None
+    reason_code: ReasonCode | None = None
+    message: str | None = None
 
 @dataclass(frozen=True)
 class LocalAppConversationTurnAccepted:
     turn_id: str | None = None
-    request_id: str | None = None
 
 @dataclass(frozen=True)
 class LocalAppConversationTurnCompleted:
@@ -3215,6 +3286,20 @@ class LocalAppConversationTurnInterrupted:
 @dataclass(frozen=True)
 class LocalAppConversationTurnStarted:
     turn_id: str | None = None
+
+@dataclass(frozen=True)
+class LocalAppConversationVoice:
+    voice_id: str | None = None
+    turn_id: str | None = None
+    message_id: str | None = None
+    state: LocalAppConversationVoiceState | None = None
+    artifact_id: str | None = None
+    reason_code: ReasonCode | None = None
+    message: str | None = None
+
+@dataclass(frozen=True)
+class LocalAppConversationVoiceEvent:
+    voice: LocalAppConversationVoice | None = None
 
 @dataclass(frozen=True)
 class LocalAppImageGenerateOutput:
@@ -3282,6 +3367,7 @@ class LocalAppSharedLocalAgentAIConfigProjection:
     config: AIConfig | None = None
     revision: str | None = None
     effective_selections: tuple[AIConfigEffectiveSelection, ...] = field(default_factory=tuple)
+    participation: tuple[LocalAgentCapabilityParticipation, ...] = field(default_factory=tuple)
 
 @dataclass(frozen=True)
 class LocalAppSpeechSynthesizeJobSpec:
@@ -4261,6 +4347,7 @@ class OverwriteSharedLocalAgentAIConfigResponse:
     committed: bool | None = None
     reason_code: ReasonCode | None = None
     effective_selections: tuple[AIConfigEffectiveSelection, ...] = field(default_factory=tuple)
+    participation: tuple[LocalAgentCapabilityParticipation, ...] = field(default_factory=tuple)
 
 @dataclass(frozen=True)
 class PauseLocalTransferRequest:
@@ -4447,6 +4534,19 @@ class ReadLocalAppAssetRequest:
 class ReadLocalAppAssetResponse:
     metadata: ReadLocalAppAssetMetadata | None = None
     body_chunk: bytes | None = None
+
+@dataclass(frozen=True)
+class ReadLocalAppConversationArtifactRequest:
+    agent_handle: str | None = None
+    conversation_anchor_id: str | None = None
+    artifact_id: str | None = None
+
+@dataclass(frozen=True)
+class ReadLocalAppConversationArtifactResponse:
+    artifact_id: str | None = None
+    data: bytes | None = None
+    mime_type: str | None = None
+    byte_length: int | None = None
 
 @dataclass(frozen=True)
 class ReadLocalAppStorageJsonRequest:
@@ -5152,7 +5252,7 @@ class SendLocalAppConversationTurnRequest:
     agent_handle: str | None = None
     conversation_anchor_id: str | None = None
     request_id: str | None = None
-    text: str | None = None
+    parts: tuple[LocalAppConversationInputPart, ...] = field(default_factory=tuple)
 
 @dataclass(frozen=True)
 class SendLocalAppConversationTurnResponse:
@@ -5562,6 +5662,18 @@ class TranscribeAgentVoiceInputResponse:
     trace_id: str | None = None
 
 @dataclass(frozen=True)
+class TranscribeLocalAppConversationVoiceRequest:
+    agent_handle: str | None = None
+    conversation_anchor_id: str | None = None
+    request_id: str | None = None
+    mime_type: str | None = None
+    audio_bytes: bytes | None = None
+
+@dataclass(frozen=True)
+class TranscribeLocalAppConversationVoiceResponse:
+    text: str | None = None
+
+@dataclass(frozen=True)
 class TraverseGraphRequest:
     context: KnowledgeRequestContext | None = None
     bank_id: str | None = None
@@ -5656,6 +5768,19 @@ class UploadLocalAppArtifactResponse:
     artifact_id: str | None = None
     size_bytes: int | None = None
     mime_type: str | None = None
+
+@dataclass(frozen=True)
+class UploadLocalAppConversationAttachmentRequest:
+    agent_handle: str | None = None
+    conversation_anchor_id: str | None = None
+    mime_type: str | None = None
+    display_name: str | None = None
+    data: bytes | None = None
+
+@dataclass(frozen=True)
+class UploadLocalAppConversationAttachmentResponse:
+    artifact_id: str | None = None
+    expires_at: str | None = None
 
 @dataclass(frozen=True)
 class UpsertCatalogModelOverlayRequest:
@@ -6200,6 +6325,10 @@ class RuntimeTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/QueryAgentMemory", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(QueryAgentMemoryResponse, raw)
 
+    async def read_local_app_conversation_artifact(self, request: ReadLocalAppConversationArtifactRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ReadLocalAppConversationArtifactResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/ReadLocalAppConversationArtifact", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(ReadLocalAppConversationArtifactResponse, raw)
+
     async def register_avatar_live_instance_binding(self, request: RegisterAvatarLiveInstanceBindingRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RegisterAvatarLiveInstanceBindingResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/RegisterAvatarLiveInstanceBinding", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(RegisterAvatarLiveInstanceBindingResponse, raw)
@@ -6257,6 +6386,10 @@ class RuntimeTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/TranscribeAgentVoiceInput", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(TranscribeAgentVoiceInputResponse, raw)
 
+    async def transcribe_local_app_conversation_voice(self, request: TranscribeLocalAppConversationVoiceRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> TranscribeLocalAppConversationVoiceResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/TranscribeLocalAppConversationVoice", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(TranscribeLocalAppConversationVoiceResponse, raw)
+
     async def update_agent_state(self, request: UpdateAgentStateRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> UpdateAgentStateResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/UpdateAgentState", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(UpdateAgentStateResponse, raw)
@@ -6264,6 +6397,10 @@ class RuntimeTypedClient:
     async def update_local_app_agent_autonomy(self, request: UpdateLocalAppAgentAutonomyRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> LocalAppAgentUpdateAutonomyResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentAutonomy", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(LocalAppAgentUpdateAutonomyResponse, raw)
+
+    async def upload_local_app_conversation_attachment(self, request: UploadLocalAppConversationAttachmentRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> UploadLocalAppConversationAttachmentResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/UploadLocalAppConversationAttachment", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(UploadLocalAppConversationAttachmentResponse, raw)
 
     async def write_agent_memory(self, request: WriteAgentMemoryRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> WriteAgentMemoryResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/WriteAgentMemory", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))

@@ -54,6 +54,7 @@ import { AIConfigCloudTargetOptionsQuery } from "./capability_configuration";
 import { AIConfigCloudConnectorOptionsQuery } from "./capability_configuration";
 import { AIConfigLocalLoadoutOptionsQuery } from "./capability_configuration";
 import { AIConfigCapabilityIntent } from "./capability_configuration";
+import { LocalAgentCapabilityParticipation } from "./agent_configure";
 import { AIConfigEffectiveSelection } from "./capability_configuration";
 import { AIConfig } from "./capability_configuration";
 import { AgentTurnContextSummary } from "./agent_source_materialization";
@@ -2172,10 +2173,8 @@ export interface ListLocalAppAgentReferencesResponse {
     references: LocalAppAgentReference[];
 }
 /**
- * Protected Third-party Local App Conversation ingress is text-only and uses
- * the session-scoped Agent selector above. These messages intentionally carry
- * no raw LocalAgent identity, generic App-message envelope, attachment,
- * execution configuration, provider choice, or caller-authored context.
+ * Protected Local App Conversation uses the session-scoped Agent selector
+ * above and one canonical bounded content-part vocabulary.
  *
  * @generated from protobuf message nimi.runtime.v1.OpenLocalAppConversationRequest
  */
@@ -2215,9 +2214,9 @@ export interface SendLocalAppConversationTurnRequest {
      */
     requestId: string;
     /**
-     * @generated from protobuf field: string text = 4
+     * @generated from protobuf field: repeated nimi.runtime.v1.LocalAppConversationInputPart parts = 5
      */
-    text: string;
+    parts: LocalAppConversationInputPart[];
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.SendLocalAppConversationTurnResponse
@@ -2227,6 +2226,148 @@ export interface SendLocalAppConversationTurnResponse {
      * @generated from protobuf field: string turn_id = 1
      */
     turnId: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.LocalAppConversationInputArtifactRef
+ */
+export interface LocalAppConversationInputArtifactRef {
+    /**
+     * @generated from protobuf field: string artifact_id = 1
+     */
+    artifactId: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.LocalAppConversationInputPart
+ */
+export interface LocalAppConversationInputPart {
+    /**
+     * @generated from protobuf oneof: part
+     */
+    part: {
+        oneofKind: "text";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.LocalAppConversationTextPart text = 1
+         */
+        text: LocalAppConversationTextPart;
+    } | {
+        oneofKind: "artifactRef";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.LocalAppConversationInputArtifactRef artifact_ref = 2
+         */
+        artifactRef: LocalAppConversationInputArtifactRef;
+    } | {
+        oneofKind: undefined;
+    };
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.UploadLocalAppConversationAttachmentRequest
+ */
+export interface UploadLocalAppConversationAttachmentRequest {
+    /**
+     * @generated from protobuf field: string agent_handle = 1
+     */
+    agentHandle: string;
+    /**
+     * @generated from protobuf field: string conversation_anchor_id = 2
+     */
+    conversationAnchorId: string;
+    /**
+     * @generated from protobuf field: string mime_type = 3
+     */
+    mimeType: string;
+    /**
+     * @generated from protobuf field: optional string display_name = 4
+     */
+    displayName?: string;
+    /**
+     * @generated from protobuf field: bytes data = 5
+     */
+    data: Uint8Array;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.UploadLocalAppConversationAttachmentResponse
+ */
+export interface UploadLocalAppConversationAttachmentResponse {
+    /**
+     * @generated from protobuf field: string artifact_id = 1
+     */
+    artifactId: string;
+    /**
+     * @generated from protobuf field: string expires_at = 2
+     */
+    expiresAt: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ReadLocalAppConversationArtifactRequest
+ */
+export interface ReadLocalAppConversationArtifactRequest {
+    /**
+     * @generated from protobuf field: string agent_handle = 1
+     */
+    agentHandle: string;
+    /**
+     * @generated from protobuf field: string conversation_anchor_id = 2
+     */
+    conversationAnchorId: string;
+    /**
+     * @generated from protobuf field: string artifact_id = 3
+     */
+    artifactId: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ReadLocalAppConversationArtifactResponse
+ */
+export interface ReadLocalAppConversationArtifactResponse {
+    /**
+     * @generated from protobuf field: string artifact_id = 1
+     */
+    artifactId: string;
+    /**
+     * @generated from protobuf field: bytes data = 2
+     */
+    data: Uint8Array;
+    /**
+     * @generated from protobuf field: string mime_type = 3
+     */
+    mimeType: string;
+    /**
+     * @generated from protobuf field: int64 byte_length = 4
+     */
+    byteLength: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.TranscribeLocalAppConversationVoiceRequest
+ */
+export interface TranscribeLocalAppConversationVoiceRequest {
+    /**
+     * @generated from protobuf field: string agent_handle = 1
+     */
+    agentHandle: string;
+    /**
+     * @generated from protobuf field: string conversation_anchor_id = 2
+     */
+    conversationAnchorId: string;
+    /**
+     * @generated from protobuf field: string request_id = 3
+     */
+    requestId: string;
+    /**
+     * @generated from protobuf field: string mime_type = 4
+     */
+    mimeType: string;
+    /**
+     * @generated from protobuf field: bytes audio_bytes = 5
+     */
+    audioBytes: Uint8Array;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.TranscribeLocalAppConversationVoiceResponse
+ */
+export interface TranscribeLocalAppConversationVoiceResponse {
+    /**
+     * @generated from protobuf field: string text = 1
+     */
+    text: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.InterruptLocalAppConversationTurnRequest
@@ -2289,9 +2430,165 @@ export interface LocalAppConversationMessage {
      */
     role: LocalAppConversationMessageRole;
     /**
-     * @generated from protobuf field: string text = 3
+     * @generated from protobuf field: string message_id = 4
+     */
+    messageId: string;
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.LocalAppConversationMessagePart parts = 5
+     */
+    parts: LocalAppConversationMessagePart[];
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.LocalAppConversationTextPart
+ */
+export interface LocalAppConversationTextPart {
+    /**
+     * @generated from protobuf field: string text = 1
      */
     text: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.LocalAppConversationArtifactPart
+ */
+export interface LocalAppConversationArtifactPart {
+    /**
+     * @generated from protobuf field: string artifact_id = 1
+     */
+    artifactId: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalAppConversationMediaKind media_kind = 2
+     */
+    mediaKind: LocalAppConversationMediaKind;
+    /**
+     * @generated from protobuf field: string mime_type = 3
+     */
+    mimeType: string;
+    /**
+     * @generated from protobuf field: optional string display_name = 4
+     */
+    displayName?: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.LocalAppConversationMessagePart
+ */
+export interface LocalAppConversationMessagePart {
+    /**
+     * @generated from protobuf oneof: part
+     */
+    part: {
+        oneofKind: "text";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.LocalAppConversationTextPart text = 1
+         */
+        text: LocalAppConversationTextPart;
+    } | {
+        oneofKind: "artifact";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.LocalAppConversationArtifactPart artifact = 2
+         */
+        artifact: LocalAppConversationArtifactPart;
+    } | {
+        oneofKind: undefined;
+    };
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.LocalAppConversationTurn
+ */
+export interface LocalAppConversationTurn {
+    /**
+     * @generated from protobuf field: string turn_id = 1
+     */
+    turnId: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalAppConversationTurnStatus status = 2
+     */
+    status: LocalAppConversationTurnStatus;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalAppConversationTurnPhase phase = 3
+     */
+    phase: LocalAppConversationTurnPhase;
+    /**
+     * @generated from protobuf field: optional string terminal_reason = 4
+     */
+    terminalReason?: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 5
+     */
+    reasonCode: ReasonCode;
+    /**
+     * @generated from protobuf field: optional string message = 6
+     */
+    message?: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.LocalAppConversationAction
+ */
+export interface LocalAppConversationAction {
+    /**
+     * @generated from protobuf field: string action_id = 1
+     */
+    actionId: string;
+    /**
+     * @generated from protobuf field: string turn_id = 2
+     */
+    turnId: string;
+    /**
+     * @generated from protobuf field: string capability_contract = 3
+     */
+    capabilityContract: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalAppConversationActionStatus status = 4
+     */
+    status: LocalAppConversationActionStatus;
+    /**
+     * @generated from protobuf field: optional string projection_message_id = 5
+     */
+    projectionMessageId?: string;
+    /**
+     * @generated from protobuf field: optional string artifact_id = 6
+     */
+    artifactId?: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 7
+     */
+    reasonCode: ReasonCode;
+    /**
+     * @generated from protobuf field: optional string message = 8
+     */
+    message?: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.LocalAppConversationVoice
+ */
+export interface LocalAppConversationVoice {
+    /**
+     * @generated from protobuf field: string voice_id = 1
+     */
+    voiceId: string;
+    /**
+     * @generated from protobuf field: string turn_id = 2
+     */
+    turnId: string;
+    /**
+     * @generated from protobuf field: string message_id = 3
+     */
+    messageId: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalAppConversationVoiceState state = 4
+     */
+    state: LocalAppConversationVoiceState;
+    /**
+     * @generated from protobuf field: optional string artifact_id = 5
+     */
+    artifactId?: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 6
+     */
+    reasonCode: ReasonCode;
+    /**
+     * @generated from protobuf field: optional string message = 7
+     */
+    message?: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.LocalAppConversationSnapshot
@@ -2302,10 +2599,6 @@ export interface LocalAppConversationSnapshot {
      */
     conversationAnchorId: string;
     /**
-     * @generated from protobuf field: optional string active_turn_id = 2
-     */
-    activeTurnId?: string;
-    /**
      * @generated from protobuf field: repeated nimi.runtime.v1.LocalAppConversationMessage messages = 3
      */
     messages: LocalAppConversationMessage[];
@@ -2313,6 +2606,22 @@ export interface LocalAppConversationSnapshot {
      * @generated from protobuf field: bool truncated_before = 4
      */
     truncatedBefore: boolean;
+    /**
+     * @generated from protobuf field: uint64 through_sequence = 5
+     */
+    throughSequence: string;
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.LocalAppConversationTurn turns = 6
+     */
+    turns: LocalAppConversationTurn[];
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.LocalAppConversationAction actions = 7
+     */
+    actions: LocalAppConversationAction[];
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.LocalAppConversationVoice voices = 8
+     */
+    voices: LocalAppConversationVoice[];
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.GetLocalAppConversationSnapshotResponse
@@ -2331,10 +2640,6 @@ export interface LocalAppConversationTurnAccepted {
      * @generated from protobuf field: string turn_id = 1
      */
     turnId: string;
-    /**
-     * @generated from protobuf field: string request_id = 2
-     */
-    requestId: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.LocalAppConversationTurnStarted
@@ -2346,34 +2651,13 @@ export interface LocalAppConversationTurnStarted {
     turnId: string;
 }
 /**
- * @generated from protobuf message nimi.runtime.v1.LocalAppConversationTextDelta
- */
-export interface LocalAppConversationTextDelta {
-    /**
-     * @generated from protobuf field: string turn_id = 1
-     */
-    turnId: string;
-    /**
-     * @generated from protobuf field: string text = 2
-     */
-    text: string;
-}
-/**
  * @generated from protobuf message nimi.runtime.v1.LocalAppConversationMessageCommitted
  */
 export interface LocalAppConversationMessageCommitted {
     /**
-     * @generated from protobuf field: string turn_id = 1
+     * @generated from protobuf field: nimi.runtime.v1.LocalAppConversationMessage message = 4
      */
-    turnId: string;
-    /**
-     * @generated from protobuf field: string message_id = 2
-     */
-    messageId: string;
-    /**
-     * @generated from protobuf field: string text = 3
-     */
-    text: string;
+    message?: LocalAppConversationMessage;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.LocalAppConversationTurnCompleted
@@ -2419,6 +2703,49 @@ export interface LocalAppConversationTurnInterrupted {
     reason: string;
 }
 /**
+ * @generated from protobuf message nimi.runtime.v1.LocalAppConversationActionEvent
+ */
+export interface LocalAppConversationActionEvent {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalAppConversationAction action = 1
+     */
+    action?: LocalAppConversationAction;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.LocalAppConversationArtifactReady
+ */
+export interface LocalAppConversationArtifactReady {
+    /**
+     * @generated from protobuf field: string turn_id = 1
+     */
+    turnId: string;
+    /**
+     * @generated from protobuf field: string action_id = 2
+     */
+    actionId: string;
+    /**
+     * @generated from protobuf field: string capability_contract = 3
+     */
+    capabilityContract: string;
+    /**
+     * @generated from protobuf field: string projection_message_id = 4
+     */
+    projectionMessageId: string;
+    /**
+     * @generated from protobuf field: string artifact_id = 5
+     */
+    artifactId: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.LocalAppConversationVoiceEvent
+ */
+export interface LocalAppConversationVoiceEvent {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalAppConversationVoice voice = 1
+     */
+    voice?: LocalAppConversationVoice;
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.LocalAppConversationEvent
  */
 export interface LocalAppConversationEvent {
@@ -2446,12 +2773,6 @@ export interface LocalAppConversationEvent {
          */
         turnStarted: LocalAppConversationTurnStarted;
     } | {
-        oneofKind: "textDelta";
-        /**
-         * @generated from protobuf field: nimi.runtime.v1.LocalAppConversationTextDelta text_delta = 12
-         */
-        textDelta: LocalAppConversationTextDelta;
-    } | {
         oneofKind: "messageCommitted";
         /**
          * @generated from protobuf field: nimi.runtime.v1.LocalAppConversationMessageCommitted message_committed = 13
@@ -2475,6 +2796,48 @@ export interface LocalAppConversationEvent {
          * @generated from protobuf field: nimi.runtime.v1.LocalAppConversationTurnInterrupted turn_interrupted = 16
          */
         turnInterrupted: LocalAppConversationTurnInterrupted;
+    } | {
+        oneofKind: "actionPlanned";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.LocalAppConversationActionEvent action_planned = 17
+         */
+        actionPlanned: LocalAppConversationActionEvent;
+    } | {
+        oneofKind: "actionStarted";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.LocalAppConversationActionEvent action_started = 18
+         */
+        actionStarted: LocalAppConversationActionEvent;
+    } | {
+        oneofKind: "artifactReady";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.LocalAppConversationArtifactReady artifact_ready = 19
+         */
+        artifactReady: LocalAppConversationArtifactReady;
+    } | {
+        oneofKind: "actionCompleted";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.LocalAppConversationActionEvent action_completed = 20
+         */
+        actionCompleted: LocalAppConversationActionEvent;
+    } | {
+        oneofKind: "actionFailed";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.LocalAppConversationActionEvent action_failed = 21
+         */
+        actionFailed: LocalAppConversationActionEvent;
+    } | {
+        oneofKind: "voiceReady";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.LocalAppConversationVoiceEvent voice_ready = 22
+         */
+        voiceReady: LocalAppConversationVoiceEvent;
+    } | {
+        oneofKind: "voiceFailed";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.LocalAppConversationVoiceEvent voice_failed = 23
+         */
+        voiceFailed: LocalAppConversationVoiceEvent;
     } | {
         oneofKind: undefined;
     };
@@ -2956,6 +3319,10 @@ export interface GetSharedLocalAgentAIConfigResponse {
      * @generated from protobuf field: repeated nimi.runtime.v1.AIConfigEffectiveSelection effective_selections = 3
      */
     effectiveSelections: AIConfigEffectiveSelection[];
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.LocalAgentCapabilityParticipation participation = 4
+     */
+    participation: LocalAgentCapabilityParticipation[];
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.OverwriteSharedLocalAgentAIConfigRequest
@@ -2998,6 +3365,10 @@ export interface OverwriteSharedLocalAgentAIConfigResponse {
      * @generated from protobuf field: repeated nimi.runtime.v1.AIConfigEffectiveSelection effective_selections = 5
      */
     effectiveSelections: AIConfigEffectiveSelection[];
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.LocalAgentCapabilityParticipation participation = 6
+     */
+    participation: LocalAgentCapabilityParticipation[];
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ListSharedLocalAgentAIConfigOptionsRequest
@@ -3891,6 +4262,103 @@ export enum LocalAppConversationMessageRole {
      * @generated from protobuf enum value: LOCAL_APP_CONVERSATION_MESSAGE_ROLE_ASSISTANT = 2;
      */
     ASSISTANT = 2
+}
+/**
+ * @generated from protobuf enum nimi.runtime.v1.LocalAppConversationMediaKind
+ */
+export enum LocalAppConversationMediaKind {
+    /**
+     * @generated from protobuf enum value: LOCAL_APP_CONVERSATION_MEDIA_KIND_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: LOCAL_APP_CONVERSATION_MEDIA_KIND_IMAGE = 1;
+     */
+    IMAGE = 1
+}
+/**
+ * @generated from protobuf enum nimi.runtime.v1.LocalAppConversationTurnStatus
+ */
+export enum LocalAppConversationTurnStatus {
+    /**
+     * @generated from protobuf enum value: LOCAL_APP_CONVERSATION_TURN_STATUS_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: LOCAL_APP_CONVERSATION_TURN_STATUS_ACTIVE = 1;
+     */
+    ACTIVE = 1,
+    /**
+     * @generated from protobuf enum value: LOCAL_APP_CONVERSATION_TURN_STATUS_COMPLETED = 2;
+     */
+    COMPLETED = 2,
+    /**
+     * @generated from protobuf enum value: LOCAL_APP_CONVERSATION_TURN_STATUS_FAILED = 3;
+     */
+    FAILED = 3,
+    /**
+     * @generated from protobuf enum value: LOCAL_APP_CONVERSATION_TURN_STATUS_INTERRUPTED = 4;
+     */
+    INTERRUPTED = 4
+}
+/**
+ * @generated from protobuf enum nimi.runtime.v1.LocalAppConversationTurnPhase
+ */
+export enum LocalAppConversationTurnPhase {
+    /**
+     * @generated from protobuf enum value: LOCAL_APP_CONVERSATION_TURN_PHASE_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: LOCAL_APP_CONVERSATION_TURN_PHASE_ACCEPTED = 1;
+     */
+    ACCEPTED = 1,
+    /**
+     * @generated from protobuf enum value: LOCAL_APP_CONVERSATION_TURN_PHASE_STARTED = 2;
+     */
+    STARTED = 2
+}
+/**
+ * @generated from protobuf enum nimi.runtime.v1.LocalAppConversationActionStatus
+ */
+export enum LocalAppConversationActionStatus {
+    /**
+     * @generated from protobuf enum value: LOCAL_APP_CONVERSATION_ACTION_STATUS_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: LOCAL_APP_CONVERSATION_ACTION_STATUS_PLANNED = 1;
+     */
+    PLANNED = 1,
+    /**
+     * @generated from protobuf enum value: LOCAL_APP_CONVERSATION_ACTION_STATUS_STARTED = 2;
+     */
+    STARTED = 2,
+    /**
+     * @generated from protobuf enum value: LOCAL_APP_CONVERSATION_ACTION_STATUS_COMPLETED = 3;
+     */
+    COMPLETED = 3,
+    /**
+     * @generated from protobuf enum value: LOCAL_APP_CONVERSATION_ACTION_STATUS_FAILED = 4;
+     */
+    FAILED = 4
+}
+/**
+ * @generated from protobuf enum nimi.runtime.v1.LocalAppConversationVoiceState
+ */
+export enum LocalAppConversationVoiceState {
+    /**
+     * @generated from protobuf enum value: LOCAL_APP_CONVERSATION_VOICE_STATE_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: LOCAL_APP_CONVERSATION_VOICE_STATE_READY = 1;
+     */
+    READY = 1,
+    /**
+     * @generated from protobuf enum value: LOCAL_APP_CONVERSATION_VOICE_STATE_FAILED = 2;
+     */
+    FAILED = 2
 }
 // @generated message type with reflection information, may provide speed optimized methods
 class AgentAutonomyConfig$Type extends MessageType<AgentAutonomyConfig> {
@@ -10337,7 +10805,7 @@ class SendLocalAppConversationTurnRequest$Type extends MessageType<SendLocalAppC
             { no: 1, name: "agent_handle", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "conversation_anchor_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "request_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 4, name: "text", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 5, name: "parts", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalAppConversationInputPart }
         ]);
     }
     create(value?: PartialMessage<SendLocalAppConversationTurnRequest>): SendLocalAppConversationTurnRequest {
@@ -10345,7 +10813,7 @@ class SendLocalAppConversationTurnRequest$Type extends MessageType<SendLocalAppC
         message.agentHandle = "";
         message.conversationAnchorId = "";
         message.requestId = "";
-        message.text = "";
+        message.parts = [];
         if (value !== undefined)
             reflectionMergePartial<SendLocalAppConversationTurnRequest>(this, message, value);
         return message;
@@ -10364,8 +10832,8 @@ class SendLocalAppConversationTurnRequest$Type extends MessageType<SendLocalAppC
                 case /* string request_id */ 3:
                     message.requestId = reader.string();
                     break;
-                case /* string text */ 4:
-                    message.text = reader.string();
+                case /* repeated nimi.runtime.v1.LocalAppConversationInputPart parts */ 5:
+                    message.parts.push(LocalAppConversationInputPart.internalBinaryRead(reader, reader.uint32(), options));
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -10388,9 +10856,9 @@ class SendLocalAppConversationTurnRequest$Type extends MessageType<SendLocalAppC
         /* string request_id = 3; */
         if (message.requestId !== "")
             writer.tag(3, WireType.LengthDelimited).string(message.requestId);
-        /* string text = 4; */
-        if (message.text !== "")
-            writer.tag(4, WireType.LengthDelimited).string(message.text);
+        /* repeated nimi.runtime.v1.LocalAppConversationInputPart parts = 5; */
+        for (let i = 0; i < message.parts.length; i++)
+            LocalAppConversationInputPart.internalBinaryWrite(message.parts[i], writer.tag(5, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -10448,6 +10916,506 @@ class SendLocalAppConversationTurnResponse$Type extends MessageType<SendLocalApp
  * @generated MessageType for protobuf message nimi.runtime.v1.SendLocalAppConversationTurnResponse
  */
 export const SendLocalAppConversationTurnResponse = new SendLocalAppConversationTurnResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class LocalAppConversationInputArtifactRef$Type extends MessageType<LocalAppConversationInputArtifactRef> {
+    constructor() {
+        super("nimi.runtime.v1.LocalAppConversationInputArtifactRef", [
+            { no: 1, name: "artifact_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<LocalAppConversationInputArtifactRef>): LocalAppConversationInputArtifactRef {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.artifactId = "";
+        if (value !== undefined)
+            reflectionMergePartial<LocalAppConversationInputArtifactRef>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAppConversationInputArtifactRef): LocalAppConversationInputArtifactRef {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string artifact_id */ 1:
+                    message.artifactId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LocalAppConversationInputArtifactRef, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string artifact_id = 1; */
+        if (message.artifactId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.artifactId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalAppConversationInputArtifactRef
+ */
+export const LocalAppConversationInputArtifactRef = new LocalAppConversationInputArtifactRef$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class LocalAppConversationInputPart$Type extends MessageType<LocalAppConversationInputPart> {
+    constructor() {
+        super("nimi.runtime.v1.LocalAppConversationInputPart", [
+            { no: 1, name: "text", kind: "message", oneof: "part", T: () => LocalAppConversationTextPart },
+            { no: 2, name: "artifact_ref", kind: "message", oneof: "part", T: () => LocalAppConversationInputArtifactRef }
+        ]);
+    }
+    create(value?: PartialMessage<LocalAppConversationInputPart>): LocalAppConversationInputPart {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.part = { oneofKind: undefined };
+        if (value !== undefined)
+            reflectionMergePartial<LocalAppConversationInputPart>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAppConversationInputPart): LocalAppConversationInputPart {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.LocalAppConversationTextPart text */ 1:
+                    message.part = {
+                        oneofKind: "text",
+                        text: LocalAppConversationTextPart.internalBinaryRead(reader, reader.uint32(), options, (message.part as any).text)
+                    };
+                    break;
+                case /* nimi.runtime.v1.LocalAppConversationInputArtifactRef artifact_ref */ 2:
+                    message.part = {
+                        oneofKind: "artifactRef",
+                        artifactRef: LocalAppConversationInputArtifactRef.internalBinaryRead(reader, reader.uint32(), options, (message.part as any).artifactRef)
+                    };
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LocalAppConversationInputPart, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.LocalAppConversationTextPart text = 1; */
+        if (message.part.oneofKind === "text")
+            LocalAppConversationTextPart.internalBinaryWrite(message.part.text, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.LocalAppConversationInputArtifactRef artifact_ref = 2; */
+        if (message.part.oneofKind === "artifactRef")
+            LocalAppConversationInputArtifactRef.internalBinaryWrite(message.part.artifactRef, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalAppConversationInputPart
+ */
+export const LocalAppConversationInputPart = new LocalAppConversationInputPart$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class UploadLocalAppConversationAttachmentRequest$Type extends MessageType<UploadLocalAppConversationAttachmentRequest> {
+    constructor() {
+        super("nimi.runtime.v1.UploadLocalAppConversationAttachmentRequest", [
+            { no: 1, name: "agent_handle", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "conversation_anchor_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "mime_type", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "display_name", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "data", kind: "scalar", T: 12 /*ScalarType.BYTES*/ }
+        ]);
+    }
+    create(value?: PartialMessage<UploadLocalAppConversationAttachmentRequest>): UploadLocalAppConversationAttachmentRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.agentHandle = "";
+        message.conversationAnchorId = "";
+        message.mimeType = "";
+        message.data = new Uint8Array(0);
+        if (value !== undefined)
+            reflectionMergePartial<UploadLocalAppConversationAttachmentRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: UploadLocalAppConversationAttachmentRequest): UploadLocalAppConversationAttachmentRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string agent_handle */ 1:
+                    message.agentHandle = reader.string();
+                    break;
+                case /* string conversation_anchor_id */ 2:
+                    message.conversationAnchorId = reader.string();
+                    break;
+                case /* string mime_type */ 3:
+                    message.mimeType = reader.string();
+                    break;
+                case /* optional string display_name */ 4:
+                    message.displayName = reader.string();
+                    break;
+                case /* bytes data */ 5:
+                    message.data = reader.bytes();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: UploadLocalAppConversationAttachmentRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string agent_handle = 1; */
+        if (message.agentHandle !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.agentHandle);
+        /* string conversation_anchor_id = 2; */
+        if (message.conversationAnchorId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.conversationAnchorId);
+        /* string mime_type = 3; */
+        if (message.mimeType !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.mimeType);
+        /* optional string display_name = 4; */
+        if (message.displayName !== undefined)
+            writer.tag(4, WireType.LengthDelimited).string(message.displayName);
+        /* bytes data = 5; */
+        if (message.data.length)
+            writer.tag(5, WireType.LengthDelimited).bytes(message.data);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.UploadLocalAppConversationAttachmentRequest
+ */
+export const UploadLocalAppConversationAttachmentRequest = new UploadLocalAppConversationAttachmentRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class UploadLocalAppConversationAttachmentResponse$Type extends MessageType<UploadLocalAppConversationAttachmentResponse> {
+    constructor() {
+        super("nimi.runtime.v1.UploadLocalAppConversationAttachmentResponse", [
+            { no: 1, name: "artifact_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "expires_at", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<UploadLocalAppConversationAttachmentResponse>): UploadLocalAppConversationAttachmentResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.artifactId = "";
+        message.expiresAt = "";
+        if (value !== undefined)
+            reflectionMergePartial<UploadLocalAppConversationAttachmentResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: UploadLocalAppConversationAttachmentResponse): UploadLocalAppConversationAttachmentResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string artifact_id */ 1:
+                    message.artifactId = reader.string();
+                    break;
+                case /* string expires_at */ 2:
+                    message.expiresAt = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: UploadLocalAppConversationAttachmentResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string artifact_id = 1; */
+        if (message.artifactId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.artifactId);
+        /* string expires_at = 2; */
+        if (message.expiresAt !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.expiresAt);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.UploadLocalAppConversationAttachmentResponse
+ */
+export const UploadLocalAppConversationAttachmentResponse = new UploadLocalAppConversationAttachmentResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ReadLocalAppConversationArtifactRequest$Type extends MessageType<ReadLocalAppConversationArtifactRequest> {
+    constructor() {
+        super("nimi.runtime.v1.ReadLocalAppConversationArtifactRequest", [
+            { no: 1, name: "agent_handle", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "conversation_anchor_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "artifact_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ReadLocalAppConversationArtifactRequest>): ReadLocalAppConversationArtifactRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.agentHandle = "";
+        message.conversationAnchorId = "";
+        message.artifactId = "";
+        if (value !== undefined)
+            reflectionMergePartial<ReadLocalAppConversationArtifactRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ReadLocalAppConversationArtifactRequest): ReadLocalAppConversationArtifactRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string agent_handle */ 1:
+                    message.agentHandle = reader.string();
+                    break;
+                case /* string conversation_anchor_id */ 2:
+                    message.conversationAnchorId = reader.string();
+                    break;
+                case /* string artifact_id */ 3:
+                    message.artifactId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ReadLocalAppConversationArtifactRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string agent_handle = 1; */
+        if (message.agentHandle !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.agentHandle);
+        /* string conversation_anchor_id = 2; */
+        if (message.conversationAnchorId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.conversationAnchorId);
+        /* string artifact_id = 3; */
+        if (message.artifactId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.artifactId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ReadLocalAppConversationArtifactRequest
+ */
+export const ReadLocalAppConversationArtifactRequest = new ReadLocalAppConversationArtifactRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ReadLocalAppConversationArtifactResponse$Type extends MessageType<ReadLocalAppConversationArtifactResponse> {
+    constructor() {
+        super("nimi.runtime.v1.ReadLocalAppConversationArtifactResponse", [
+            { no: 1, name: "artifact_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "data", kind: "scalar", T: 12 /*ScalarType.BYTES*/ },
+            { no: 3, name: "mime_type", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "byte_length", kind: "scalar", T: 3 /*ScalarType.INT64*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ReadLocalAppConversationArtifactResponse>): ReadLocalAppConversationArtifactResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.artifactId = "";
+        message.data = new Uint8Array(0);
+        message.mimeType = "";
+        message.byteLength = "0";
+        if (value !== undefined)
+            reflectionMergePartial<ReadLocalAppConversationArtifactResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ReadLocalAppConversationArtifactResponse): ReadLocalAppConversationArtifactResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string artifact_id */ 1:
+                    message.artifactId = reader.string();
+                    break;
+                case /* bytes data */ 2:
+                    message.data = reader.bytes();
+                    break;
+                case /* string mime_type */ 3:
+                    message.mimeType = reader.string();
+                    break;
+                case /* int64 byte_length */ 4:
+                    message.byteLength = reader.int64().toString();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ReadLocalAppConversationArtifactResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string artifact_id = 1; */
+        if (message.artifactId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.artifactId);
+        /* bytes data = 2; */
+        if (message.data.length)
+            writer.tag(2, WireType.LengthDelimited).bytes(message.data);
+        /* string mime_type = 3; */
+        if (message.mimeType !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.mimeType);
+        /* int64 byte_length = 4; */
+        if (message.byteLength !== "0")
+            writer.tag(4, WireType.Varint).int64(message.byteLength);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ReadLocalAppConversationArtifactResponse
+ */
+export const ReadLocalAppConversationArtifactResponse = new ReadLocalAppConversationArtifactResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class TranscribeLocalAppConversationVoiceRequest$Type extends MessageType<TranscribeLocalAppConversationVoiceRequest> {
+    constructor() {
+        super("nimi.runtime.v1.TranscribeLocalAppConversationVoiceRequest", [
+            { no: 1, name: "agent_handle", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "conversation_anchor_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "request_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "mime_type", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "audio_bytes", kind: "scalar", T: 12 /*ScalarType.BYTES*/ }
+        ]);
+    }
+    create(value?: PartialMessage<TranscribeLocalAppConversationVoiceRequest>): TranscribeLocalAppConversationVoiceRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.agentHandle = "";
+        message.conversationAnchorId = "";
+        message.requestId = "";
+        message.mimeType = "";
+        message.audioBytes = new Uint8Array(0);
+        if (value !== undefined)
+            reflectionMergePartial<TranscribeLocalAppConversationVoiceRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: TranscribeLocalAppConversationVoiceRequest): TranscribeLocalAppConversationVoiceRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string agent_handle */ 1:
+                    message.agentHandle = reader.string();
+                    break;
+                case /* string conversation_anchor_id */ 2:
+                    message.conversationAnchorId = reader.string();
+                    break;
+                case /* string request_id */ 3:
+                    message.requestId = reader.string();
+                    break;
+                case /* string mime_type */ 4:
+                    message.mimeType = reader.string();
+                    break;
+                case /* bytes audio_bytes */ 5:
+                    message.audioBytes = reader.bytes();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: TranscribeLocalAppConversationVoiceRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string agent_handle = 1; */
+        if (message.agentHandle !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.agentHandle);
+        /* string conversation_anchor_id = 2; */
+        if (message.conversationAnchorId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.conversationAnchorId);
+        /* string request_id = 3; */
+        if (message.requestId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.requestId);
+        /* string mime_type = 4; */
+        if (message.mimeType !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.mimeType);
+        /* bytes audio_bytes = 5; */
+        if (message.audioBytes.length)
+            writer.tag(5, WireType.LengthDelimited).bytes(message.audioBytes);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.TranscribeLocalAppConversationVoiceRequest
+ */
+export const TranscribeLocalAppConversationVoiceRequest = new TranscribeLocalAppConversationVoiceRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class TranscribeLocalAppConversationVoiceResponse$Type extends MessageType<TranscribeLocalAppConversationVoiceResponse> {
+    constructor() {
+        super("nimi.runtime.v1.TranscribeLocalAppConversationVoiceResponse", [
+            { no: 1, name: "text", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<TranscribeLocalAppConversationVoiceResponse>): TranscribeLocalAppConversationVoiceResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.text = "";
+        if (value !== undefined)
+            reflectionMergePartial<TranscribeLocalAppConversationVoiceResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: TranscribeLocalAppConversationVoiceResponse): TranscribeLocalAppConversationVoiceResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string text */ 1:
+                    message.text = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: TranscribeLocalAppConversationVoiceResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string text = 1; */
+        if (message.text !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.text);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.TranscribeLocalAppConversationVoiceResponse
+ */
+export const TranscribeLocalAppConversationVoiceResponse = new TranscribeLocalAppConversationVoiceResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class InterruptLocalAppConversationTurnRequest$Type extends MessageType<InterruptLocalAppConversationTurnRequest> {
     constructor() {
@@ -10666,14 +11634,16 @@ class LocalAppConversationMessage$Type extends MessageType<LocalAppConversationM
         super("nimi.runtime.v1.LocalAppConversationMessage", [
             { no: 1, name: "turn_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "role", kind: "enum", T: () => ["nimi.runtime.v1.LocalAppConversationMessageRole", LocalAppConversationMessageRole, "LOCAL_APP_CONVERSATION_MESSAGE_ROLE_"] },
-            { no: 3, name: "text", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 4, name: "message_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "parts", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalAppConversationMessagePart }
         ]);
     }
     create(value?: PartialMessage<LocalAppConversationMessage>): LocalAppConversationMessage {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.turnId = "";
         message.role = 0;
-        message.text = "";
+        message.messageId = "";
+        message.parts = [];
         if (value !== undefined)
             reflectionMergePartial<LocalAppConversationMessage>(this, message, value);
         return message;
@@ -10689,8 +11659,11 @@ class LocalAppConversationMessage$Type extends MessageType<LocalAppConversationM
                 case /* nimi.runtime.v1.LocalAppConversationMessageRole role */ 2:
                     message.role = reader.int32();
                     break;
-                case /* string text */ 3:
-                    message.text = reader.string();
+                case /* string message_id */ 4:
+                    message.messageId = reader.string();
+                    break;
+                case /* repeated nimi.runtime.v1.LocalAppConversationMessagePart parts */ 5:
+                    message.parts.push(LocalAppConversationMessagePart.internalBinaryRead(reader, reader.uint32(), options));
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -10710,9 +11683,12 @@ class LocalAppConversationMessage$Type extends MessageType<LocalAppConversationM
         /* nimi.runtime.v1.LocalAppConversationMessageRole role = 2; */
         if (message.role !== 0)
             writer.tag(2, WireType.Varint).int32(message.role);
-        /* string text = 3; */
-        if (message.text !== "")
-            writer.tag(3, WireType.LengthDelimited).string(message.text);
+        /* string message_id = 4; */
+        if (message.messageId !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.messageId);
+        /* repeated nimi.runtime.v1.LocalAppConversationMessagePart parts = 5; */
+        for (let i = 0; i < message.parts.length; i++)
+            LocalAppConversationMessagePart.internalBinaryWrite(message.parts[i], writer.tag(5, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -10724,13 +11700,471 @@ class LocalAppConversationMessage$Type extends MessageType<LocalAppConversationM
  */
 export const LocalAppConversationMessage = new LocalAppConversationMessage$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class LocalAppConversationTextPart$Type extends MessageType<LocalAppConversationTextPart> {
+    constructor() {
+        super("nimi.runtime.v1.LocalAppConversationTextPart", [
+            { no: 1, name: "text", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<LocalAppConversationTextPart>): LocalAppConversationTextPart {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.text = "";
+        if (value !== undefined)
+            reflectionMergePartial<LocalAppConversationTextPart>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAppConversationTextPart): LocalAppConversationTextPart {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string text */ 1:
+                    message.text = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LocalAppConversationTextPart, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string text = 1; */
+        if (message.text !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.text);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalAppConversationTextPart
+ */
+export const LocalAppConversationTextPart = new LocalAppConversationTextPart$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class LocalAppConversationArtifactPart$Type extends MessageType<LocalAppConversationArtifactPart> {
+    constructor() {
+        super("nimi.runtime.v1.LocalAppConversationArtifactPart", [
+            { no: 1, name: "artifact_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "media_kind", kind: "enum", T: () => ["nimi.runtime.v1.LocalAppConversationMediaKind", LocalAppConversationMediaKind, "LOCAL_APP_CONVERSATION_MEDIA_KIND_"] },
+            { no: 3, name: "mime_type", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "display_name", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<LocalAppConversationArtifactPart>): LocalAppConversationArtifactPart {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.artifactId = "";
+        message.mediaKind = 0;
+        message.mimeType = "";
+        if (value !== undefined)
+            reflectionMergePartial<LocalAppConversationArtifactPart>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAppConversationArtifactPart): LocalAppConversationArtifactPart {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string artifact_id */ 1:
+                    message.artifactId = reader.string();
+                    break;
+                case /* nimi.runtime.v1.LocalAppConversationMediaKind media_kind */ 2:
+                    message.mediaKind = reader.int32();
+                    break;
+                case /* string mime_type */ 3:
+                    message.mimeType = reader.string();
+                    break;
+                case /* optional string display_name */ 4:
+                    message.displayName = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LocalAppConversationArtifactPart, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string artifact_id = 1; */
+        if (message.artifactId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.artifactId);
+        /* nimi.runtime.v1.LocalAppConversationMediaKind media_kind = 2; */
+        if (message.mediaKind !== 0)
+            writer.tag(2, WireType.Varint).int32(message.mediaKind);
+        /* string mime_type = 3; */
+        if (message.mimeType !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.mimeType);
+        /* optional string display_name = 4; */
+        if (message.displayName !== undefined)
+            writer.tag(4, WireType.LengthDelimited).string(message.displayName);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalAppConversationArtifactPart
+ */
+export const LocalAppConversationArtifactPart = new LocalAppConversationArtifactPart$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class LocalAppConversationMessagePart$Type extends MessageType<LocalAppConversationMessagePart> {
+    constructor() {
+        super("nimi.runtime.v1.LocalAppConversationMessagePart", [
+            { no: 1, name: "text", kind: "message", oneof: "part", T: () => LocalAppConversationTextPart },
+            { no: 2, name: "artifact", kind: "message", oneof: "part", T: () => LocalAppConversationArtifactPart }
+        ]);
+    }
+    create(value?: PartialMessage<LocalAppConversationMessagePart>): LocalAppConversationMessagePart {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.part = { oneofKind: undefined };
+        if (value !== undefined)
+            reflectionMergePartial<LocalAppConversationMessagePart>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAppConversationMessagePart): LocalAppConversationMessagePart {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.LocalAppConversationTextPart text */ 1:
+                    message.part = {
+                        oneofKind: "text",
+                        text: LocalAppConversationTextPart.internalBinaryRead(reader, reader.uint32(), options, (message.part as any).text)
+                    };
+                    break;
+                case /* nimi.runtime.v1.LocalAppConversationArtifactPart artifact */ 2:
+                    message.part = {
+                        oneofKind: "artifact",
+                        artifact: LocalAppConversationArtifactPart.internalBinaryRead(reader, reader.uint32(), options, (message.part as any).artifact)
+                    };
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LocalAppConversationMessagePart, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.LocalAppConversationTextPart text = 1; */
+        if (message.part.oneofKind === "text")
+            LocalAppConversationTextPart.internalBinaryWrite(message.part.text, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.LocalAppConversationArtifactPart artifact = 2; */
+        if (message.part.oneofKind === "artifact")
+            LocalAppConversationArtifactPart.internalBinaryWrite(message.part.artifact, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalAppConversationMessagePart
+ */
+export const LocalAppConversationMessagePart = new LocalAppConversationMessagePart$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class LocalAppConversationTurn$Type extends MessageType<LocalAppConversationTurn> {
+    constructor() {
+        super("nimi.runtime.v1.LocalAppConversationTurn", [
+            { no: 1, name: "turn_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "status", kind: "enum", T: () => ["nimi.runtime.v1.LocalAppConversationTurnStatus", LocalAppConversationTurnStatus, "LOCAL_APP_CONVERSATION_TURN_STATUS_"] },
+            { no: 3, name: "phase", kind: "enum", T: () => ["nimi.runtime.v1.LocalAppConversationTurnPhase", LocalAppConversationTurnPhase, "LOCAL_APP_CONVERSATION_TURN_PHASE_"] },
+            { no: 4, name: "terminal_reason", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] },
+            { no: 6, name: "message", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<LocalAppConversationTurn>): LocalAppConversationTurn {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.turnId = "";
+        message.status = 0;
+        message.phase = 0;
+        message.reasonCode = 0;
+        if (value !== undefined)
+            reflectionMergePartial<LocalAppConversationTurn>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAppConversationTurn): LocalAppConversationTurn {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string turn_id */ 1:
+                    message.turnId = reader.string();
+                    break;
+                case /* nimi.runtime.v1.LocalAppConversationTurnStatus status */ 2:
+                    message.status = reader.int32();
+                    break;
+                case /* nimi.runtime.v1.LocalAppConversationTurnPhase phase */ 3:
+                    message.phase = reader.int32();
+                    break;
+                case /* optional string terminal_reason */ 4:
+                    message.terminalReason = reader.string();
+                    break;
+                case /* nimi.runtime.v1.ReasonCode reason_code */ 5:
+                    message.reasonCode = reader.int32();
+                    break;
+                case /* optional string message */ 6:
+                    message.message = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LocalAppConversationTurn, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string turn_id = 1; */
+        if (message.turnId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.turnId);
+        /* nimi.runtime.v1.LocalAppConversationTurnStatus status = 2; */
+        if (message.status !== 0)
+            writer.tag(2, WireType.Varint).int32(message.status);
+        /* nimi.runtime.v1.LocalAppConversationTurnPhase phase = 3; */
+        if (message.phase !== 0)
+            writer.tag(3, WireType.Varint).int32(message.phase);
+        /* optional string terminal_reason = 4; */
+        if (message.terminalReason !== undefined)
+            writer.tag(4, WireType.LengthDelimited).string(message.terminalReason);
+        /* nimi.runtime.v1.ReasonCode reason_code = 5; */
+        if (message.reasonCode !== 0)
+            writer.tag(5, WireType.Varint).int32(message.reasonCode);
+        /* optional string message = 6; */
+        if (message.message !== undefined)
+            writer.tag(6, WireType.LengthDelimited).string(message.message);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalAppConversationTurn
+ */
+export const LocalAppConversationTurn = new LocalAppConversationTurn$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class LocalAppConversationAction$Type extends MessageType<LocalAppConversationAction> {
+    constructor() {
+        super("nimi.runtime.v1.LocalAppConversationAction", [
+            { no: 1, name: "action_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "turn_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "capability_contract", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "status", kind: "enum", T: () => ["nimi.runtime.v1.LocalAppConversationActionStatus", LocalAppConversationActionStatus, "LOCAL_APP_CONVERSATION_ACTION_STATUS_"] },
+            { no: 5, name: "projection_message_id", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "artifact_id", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
+            { no: 7, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] },
+            { no: 8, name: "message", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<LocalAppConversationAction>): LocalAppConversationAction {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.actionId = "";
+        message.turnId = "";
+        message.capabilityContract = "";
+        message.status = 0;
+        message.reasonCode = 0;
+        if (value !== undefined)
+            reflectionMergePartial<LocalAppConversationAction>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAppConversationAction): LocalAppConversationAction {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string action_id */ 1:
+                    message.actionId = reader.string();
+                    break;
+                case /* string turn_id */ 2:
+                    message.turnId = reader.string();
+                    break;
+                case /* string capability_contract */ 3:
+                    message.capabilityContract = reader.string();
+                    break;
+                case /* nimi.runtime.v1.LocalAppConversationActionStatus status */ 4:
+                    message.status = reader.int32();
+                    break;
+                case /* optional string projection_message_id */ 5:
+                    message.projectionMessageId = reader.string();
+                    break;
+                case /* optional string artifact_id */ 6:
+                    message.artifactId = reader.string();
+                    break;
+                case /* nimi.runtime.v1.ReasonCode reason_code */ 7:
+                    message.reasonCode = reader.int32();
+                    break;
+                case /* optional string message */ 8:
+                    message.message = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LocalAppConversationAction, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string action_id = 1; */
+        if (message.actionId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.actionId);
+        /* string turn_id = 2; */
+        if (message.turnId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.turnId);
+        /* string capability_contract = 3; */
+        if (message.capabilityContract !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.capabilityContract);
+        /* nimi.runtime.v1.LocalAppConversationActionStatus status = 4; */
+        if (message.status !== 0)
+            writer.tag(4, WireType.Varint).int32(message.status);
+        /* optional string projection_message_id = 5; */
+        if (message.projectionMessageId !== undefined)
+            writer.tag(5, WireType.LengthDelimited).string(message.projectionMessageId);
+        /* optional string artifact_id = 6; */
+        if (message.artifactId !== undefined)
+            writer.tag(6, WireType.LengthDelimited).string(message.artifactId);
+        /* nimi.runtime.v1.ReasonCode reason_code = 7; */
+        if (message.reasonCode !== 0)
+            writer.tag(7, WireType.Varint).int32(message.reasonCode);
+        /* optional string message = 8; */
+        if (message.message !== undefined)
+            writer.tag(8, WireType.LengthDelimited).string(message.message);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalAppConversationAction
+ */
+export const LocalAppConversationAction = new LocalAppConversationAction$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class LocalAppConversationVoice$Type extends MessageType<LocalAppConversationVoice> {
+    constructor() {
+        super("nimi.runtime.v1.LocalAppConversationVoice", [
+            { no: 1, name: "voice_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "turn_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "message_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "state", kind: "enum", T: () => ["nimi.runtime.v1.LocalAppConversationVoiceState", LocalAppConversationVoiceState, "LOCAL_APP_CONVERSATION_VOICE_STATE_"] },
+            { no: 5, name: "artifact_id", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] },
+            { no: 7, name: "message", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<LocalAppConversationVoice>): LocalAppConversationVoice {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.voiceId = "";
+        message.turnId = "";
+        message.messageId = "";
+        message.state = 0;
+        message.reasonCode = 0;
+        if (value !== undefined)
+            reflectionMergePartial<LocalAppConversationVoice>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAppConversationVoice): LocalAppConversationVoice {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string voice_id */ 1:
+                    message.voiceId = reader.string();
+                    break;
+                case /* string turn_id */ 2:
+                    message.turnId = reader.string();
+                    break;
+                case /* string message_id */ 3:
+                    message.messageId = reader.string();
+                    break;
+                case /* nimi.runtime.v1.LocalAppConversationVoiceState state */ 4:
+                    message.state = reader.int32();
+                    break;
+                case /* optional string artifact_id */ 5:
+                    message.artifactId = reader.string();
+                    break;
+                case /* nimi.runtime.v1.ReasonCode reason_code */ 6:
+                    message.reasonCode = reader.int32();
+                    break;
+                case /* optional string message */ 7:
+                    message.message = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LocalAppConversationVoice, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string voice_id = 1; */
+        if (message.voiceId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.voiceId);
+        /* string turn_id = 2; */
+        if (message.turnId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.turnId);
+        /* string message_id = 3; */
+        if (message.messageId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.messageId);
+        /* nimi.runtime.v1.LocalAppConversationVoiceState state = 4; */
+        if (message.state !== 0)
+            writer.tag(4, WireType.Varint).int32(message.state);
+        /* optional string artifact_id = 5; */
+        if (message.artifactId !== undefined)
+            writer.tag(5, WireType.LengthDelimited).string(message.artifactId);
+        /* nimi.runtime.v1.ReasonCode reason_code = 6; */
+        if (message.reasonCode !== 0)
+            writer.tag(6, WireType.Varint).int32(message.reasonCode);
+        /* optional string message = 7; */
+        if (message.message !== undefined)
+            writer.tag(7, WireType.LengthDelimited).string(message.message);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalAppConversationVoice
+ */
+export const LocalAppConversationVoice = new LocalAppConversationVoice$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class LocalAppConversationSnapshot$Type extends MessageType<LocalAppConversationSnapshot> {
     constructor() {
         super("nimi.runtime.v1.LocalAppConversationSnapshot", [
             { no: 1, name: "conversation_anchor_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "active_turn_id", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "messages", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalAppConversationMessage },
-            { no: 4, name: "truncated_before", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+            { no: 4, name: "truncated_before", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 5, name: "through_sequence", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
+            { no: 6, name: "turns", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalAppConversationTurn },
+            { no: 7, name: "actions", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalAppConversationAction },
+            { no: 8, name: "voices", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalAppConversationVoice }
         ]);
     }
     create(value?: PartialMessage<LocalAppConversationSnapshot>): LocalAppConversationSnapshot {
@@ -10738,6 +12172,10 @@ class LocalAppConversationSnapshot$Type extends MessageType<LocalAppConversation
         message.conversationAnchorId = "";
         message.messages = [];
         message.truncatedBefore = false;
+        message.throughSequence = "0";
+        message.turns = [];
+        message.actions = [];
+        message.voices = [];
         if (value !== undefined)
             reflectionMergePartial<LocalAppConversationSnapshot>(this, message, value);
         return message;
@@ -10750,14 +12188,23 @@ class LocalAppConversationSnapshot$Type extends MessageType<LocalAppConversation
                 case /* string conversation_anchor_id */ 1:
                     message.conversationAnchorId = reader.string();
                     break;
-                case /* optional string active_turn_id */ 2:
-                    message.activeTurnId = reader.string();
-                    break;
                 case /* repeated nimi.runtime.v1.LocalAppConversationMessage messages */ 3:
                     message.messages.push(LocalAppConversationMessage.internalBinaryRead(reader, reader.uint32(), options));
                     break;
                 case /* bool truncated_before */ 4:
                     message.truncatedBefore = reader.bool();
+                    break;
+                case /* uint64 through_sequence */ 5:
+                    message.throughSequence = reader.uint64().toString();
+                    break;
+                case /* repeated nimi.runtime.v1.LocalAppConversationTurn turns */ 6:
+                    message.turns.push(LocalAppConversationTurn.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* repeated nimi.runtime.v1.LocalAppConversationAction actions */ 7:
+                    message.actions.push(LocalAppConversationAction.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* repeated nimi.runtime.v1.LocalAppConversationVoice voices */ 8:
+                    message.voices.push(LocalAppConversationVoice.internalBinaryRead(reader, reader.uint32(), options));
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -10774,15 +12221,24 @@ class LocalAppConversationSnapshot$Type extends MessageType<LocalAppConversation
         /* string conversation_anchor_id = 1; */
         if (message.conversationAnchorId !== "")
             writer.tag(1, WireType.LengthDelimited).string(message.conversationAnchorId);
-        /* optional string active_turn_id = 2; */
-        if (message.activeTurnId !== undefined)
-            writer.tag(2, WireType.LengthDelimited).string(message.activeTurnId);
         /* repeated nimi.runtime.v1.LocalAppConversationMessage messages = 3; */
         for (let i = 0; i < message.messages.length; i++)
             LocalAppConversationMessage.internalBinaryWrite(message.messages[i], writer.tag(3, WireType.LengthDelimited).fork(), options).join();
         /* bool truncated_before = 4; */
         if (message.truncatedBefore !== false)
             writer.tag(4, WireType.Varint).bool(message.truncatedBefore);
+        /* uint64 through_sequence = 5; */
+        if (message.throughSequence !== "0")
+            writer.tag(5, WireType.Varint).uint64(message.throughSequence);
+        /* repeated nimi.runtime.v1.LocalAppConversationTurn turns = 6; */
+        for (let i = 0; i < message.turns.length; i++)
+            LocalAppConversationTurn.internalBinaryWrite(message.turns[i], writer.tag(6, WireType.LengthDelimited).fork(), options).join();
+        /* repeated nimi.runtime.v1.LocalAppConversationAction actions = 7; */
+        for (let i = 0; i < message.actions.length; i++)
+            LocalAppConversationAction.internalBinaryWrite(message.actions[i], writer.tag(7, WireType.LengthDelimited).fork(), options).join();
+        /* repeated nimi.runtime.v1.LocalAppConversationVoice voices = 8; */
+        for (let i = 0; i < message.voices.length; i++)
+            LocalAppConversationVoice.internalBinaryWrite(message.voices[i], writer.tag(8, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -10843,14 +12299,12 @@ export const GetLocalAppConversationSnapshotResponse = new GetLocalAppConversati
 class LocalAppConversationTurnAccepted$Type extends MessageType<LocalAppConversationTurnAccepted> {
     constructor() {
         super("nimi.runtime.v1.LocalAppConversationTurnAccepted", [
-            { no: 1, name: "turn_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "request_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "turn_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<LocalAppConversationTurnAccepted>): LocalAppConversationTurnAccepted {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.turnId = "";
-        message.requestId = "";
         if (value !== undefined)
             reflectionMergePartial<LocalAppConversationTurnAccepted>(this, message, value);
         return message;
@@ -10862,9 +12316,6 @@ class LocalAppConversationTurnAccepted$Type extends MessageType<LocalAppConversa
             switch (fieldNo) {
                 case /* string turn_id */ 1:
                     message.turnId = reader.string();
-                    break;
-                case /* string request_id */ 2:
-                    message.requestId = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -10881,9 +12332,6 @@ class LocalAppConversationTurnAccepted$Type extends MessageType<LocalAppConversa
         /* string turn_id = 1; */
         if (message.turnId !== "")
             writer.tag(1, WireType.LengthDelimited).string(message.turnId);
-        /* string request_id = 2; */
-        if (message.requestId !== "")
-            writer.tag(2, WireType.LengthDelimited).string(message.requestId);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -10942,74 +12390,14 @@ class LocalAppConversationTurnStarted$Type extends MessageType<LocalAppConversat
  */
 export const LocalAppConversationTurnStarted = new LocalAppConversationTurnStarted$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class LocalAppConversationTextDelta$Type extends MessageType<LocalAppConversationTextDelta> {
-    constructor() {
-        super("nimi.runtime.v1.LocalAppConversationTextDelta", [
-            { no: 1, name: "turn_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "text", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
-        ]);
-    }
-    create(value?: PartialMessage<LocalAppConversationTextDelta>): LocalAppConversationTextDelta {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        message.turnId = "";
-        message.text = "";
-        if (value !== undefined)
-            reflectionMergePartial<LocalAppConversationTextDelta>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAppConversationTextDelta): LocalAppConversationTextDelta {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* string turn_id */ 1:
-                    message.turnId = reader.string();
-                    break;
-                case /* string text */ 2:
-                    message.text = reader.string();
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: LocalAppConversationTextDelta, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* string turn_id = 1; */
-        if (message.turnId !== "")
-            writer.tag(1, WireType.LengthDelimited).string(message.turnId);
-        /* string text = 2; */
-        if (message.text !== "")
-            writer.tag(2, WireType.LengthDelimited).string(message.text);
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.LocalAppConversationTextDelta
- */
-export const LocalAppConversationTextDelta = new LocalAppConversationTextDelta$Type();
-// @generated message type with reflection information, may provide speed optimized methods
 class LocalAppConversationMessageCommitted$Type extends MessageType<LocalAppConversationMessageCommitted> {
     constructor() {
         super("nimi.runtime.v1.LocalAppConversationMessageCommitted", [
-            { no: 1, name: "turn_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "message_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "text", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 4, name: "message", kind: "message", T: () => LocalAppConversationMessage }
         ]);
     }
     create(value?: PartialMessage<LocalAppConversationMessageCommitted>): LocalAppConversationMessageCommitted {
         const message = globalThis.Object.create((this.messagePrototype!));
-        message.turnId = "";
-        message.messageId = "";
-        message.text = "";
         if (value !== undefined)
             reflectionMergePartial<LocalAppConversationMessageCommitted>(this, message, value);
         return message;
@@ -11019,14 +12407,8 @@ class LocalAppConversationMessageCommitted$Type extends MessageType<LocalAppConv
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
-                case /* string turn_id */ 1:
-                    message.turnId = reader.string();
-                    break;
-                case /* string message_id */ 2:
-                    message.messageId = reader.string();
-                    break;
-                case /* string text */ 3:
-                    message.text = reader.string();
+                case /* nimi.runtime.v1.LocalAppConversationMessage message */ 4:
+                    message.message = LocalAppConversationMessage.internalBinaryRead(reader, reader.uint32(), options, message.message);
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -11040,15 +12422,9 @@ class LocalAppConversationMessageCommitted$Type extends MessageType<LocalAppConv
         return message;
     }
     internalBinaryWrite(message: LocalAppConversationMessageCommitted, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* string turn_id = 1; */
-        if (message.turnId !== "")
-            writer.tag(1, WireType.LengthDelimited).string(message.turnId);
-        /* string message_id = 2; */
-        if (message.messageId !== "")
-            writer.tag(2, WireType.LengthDelimited).string(message.messageId);
-        /* string text = 3; */
-        if (message.text !== "")
-            writer.tag(3, WireType.LengthDelimited).string(message.text);
+        /* nimi.runtime.v1.LocalAppConversationMessage message = 4; */
+        if (message.message)
+            LocalAppConversationMessage.internalBinaryWrite(message.message, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -11232,6 +12608,177 @@ class LocalAppConversationTurnInterrupted$Type extends MessageType<LocalAppConve
  */
 export const LocalAppConversationTurnInterrupted = new LocalAppConversationTurnInterrupted$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class LocalAppConversationActionEvent$Type extends MessageType<LocalAppConversationActionEvent> {
+    constructor() {
+        super("nimi.runtime.v1.LocalAppConversationActionEvent", [
+            { no: 1, name: "action", kind: "message", T: () => LocalAppConversationAction }
+        ]);
+    }
+    create(value?: PartialMessage<LocalAppConversationActionEvent>): LocalAppConversationActionEvent {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<LocalAppConversationActionEvent>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAppConversationActionEvent): LocalAppConversationActionEvent {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.LocalAppConversationAction action */ 1:
+                    message.action = LocalAppConversationAction.internalBinaryRead(reader, reader.uint32(), options, message.action);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LocalAppConversationActionEvent, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.LocalAppConversationAction action = 1; */
+        if (message.action)
+            LocalAppConversationAction.internalBinaryWrite(message.action, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalAppConversationActionEvent
+ */
+export const LocalAppConversationActionEvent = new LocalAppConversationActionEvent$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class LocalAppConversationArtifactReady$Type extends MessageType<LocalAppConversationArtifactReady> {
+    constructor() {
+        super("nimi.runtime.v1.LocalAppConversationArtifactReady", [
+            { no: 1, name: "turn_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "action_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "capability_contract", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "projection_message_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "artifact_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<LocalAppConversationArtifactReady>): LocalAppConversationArtifactReady {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.turnId = "";
+        message.actionId = "";
+        message.capabilityContract = "";
+        message.projectionMessageId = "";
+        message.artifactId = "";
+        if (value !== undefined)
+            reflectionMergePartial<LocalAppConversationArtifactReady>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAppConversationArtifactReady): LocalAppConversationArtifactReady {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string turn_id */ 1:
+                    message.turnId = reader.string();
+                    break;
+                case /* string action_id */ 2:
+                    message.actionId = reader.string();
+                    break;
+                case /* string capability_contract */ 3:
+                    message.capabilityContract = reader.string();
+                    break;
+                case /* string projection_message_id */ 4:
+                    message.projectionMessageId = reader.string();
+                    break;
+                case /* string artifact_id */ 5:
+                    message.artifactId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LocalAppConversationArtifactReady, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string turn_id = 1; */
+        if (message.turnId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.turnId);
+        /* string action_id = 2; */
+        if (message.actionId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.actionId);
+        /* string capability_contract = 3; */
+        if (message.capabilityContract !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.capabilityContract);
+        /* string projection_message_id = 4; */
+        if (message.projectionMessageId !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.projectionMessageId);
+        /* string artifact_id = 5; */
+        if (message.artifactId !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.artifactId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalAppConversationArtifactReady
+ */
+export const LocalAppConversationArtifactReady = new LocalAppConversationArtifactReady$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class LocalAppConversationVoiceEvent$Type extends MessageType<LocalAppConversationVoiceEvent> {
+    constructor() {
+        super("nimi.runtime.v1.LocalAppConversationVoiceEvent", [
+            { no: 1, name: "voice", kind: "message", T: () => LocalAppConversationVoice }
+        ]);
+    }
+    create(value?: PartialMessage<LocalAppConversationVoiceEvent>): LocalAppConversationVoiceEvent {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<LocalAppConversationVoiceEvent>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAppConversationVoiceEvent): LocalAppConversationVoiceEvent {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.LocalAppConversationVoice voice */ 1:
+                    message.voice = LocalAppConversationVoice.internalBinaryRead(reader, reader.uint32(), options, message.voice);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LocalAppConversationVoiceEvent, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.LocalAppConversationVoice voice = 1; */
+        if (message.voice)
+            LocalAppConversationVoice.internalBinaryWrite(message.voice, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalAppConversationVoiceEvent
+ */
+export const LocalAppConversationVoiceEvent = new LocalAppConversationVoiceEvent$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class LocalAppConversationEvent$Type extends MessageType<LocalAppConversationEvent> {
     constructor() {
         super("nimi.runtime.v1.LocalAppConversationEvent", [
@@ -11239,11 +12786,17 @@ class LocalAppConversationEvent$Type extends MessageType<LocalAppConversationEve
             { no: 2, name: "sequence", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
             { no: 10, name: "turn_accepted", kind: "message", oneof: "event", T: () => LocalAppConversationTurnAccepted },
             { no: 11, name: "turn_started", kind: "message", oneof: "event", T: () => LocalAppConversationTurnStarted },
-            { no: 12, name: "text_delta", kind: "message", oneof: "event", T: () => LocalAppConversationTextDelta },
             { no: 13, name: "message_committed", kind: "message", oneof: "event", T: () => LocalAppConversationMessageCommitted },
             { no: 14, name: "turn_completed", kind: "message", oneof: "event", T: () => LocalAppConversationTurnCompleted },
             { no: 15, name: "turn_failed", kind: "message", oneof: "event", T: () => LocalAppConversationTurnFailed },
-            { no: 16, name: "turn_interrupted", kind: "message", oneof: "event", T: () => LocalAppConversationTurnInterrupted }
+            { no: 16, name: "turn_interrupted", kind: "message", oneof: "event", T: () => LocalAppConversationTurnInterrupted },
+            { no: 17, name: "action_planned", kind: "message", oneof: "event", T: () => LocalAppConversationActionEvent },
+            { no: 18, name: "action_started", kind: "message", oneof: "event", T: () => LocalAppConversationActionEvent },
+            { no: 19, name: "artifact_ready", kind: "message", oneof: "event", T: () => LocalAppConversationArtifactReady },
+            { no: 20, name: "action_completed", kind: "message", oneof: "event", T: () => LocalAppConversationActionEvent },
+            { no: 21, name: "action_failed", kind: "message", oneof: "event", T: () => LocalAppConversationActionEvent },
+            { no: 22, name: "voice_ready", kind: "message", oneof: "event", T: () => LocalAppConversationVoiceEvent },
+            { no: 23, name: "voice_failed", kind: "message", oneof: "event", T: () => LocalAppConversationVoiceEvent }
         ]);
     }
     create(value?: PartialMessage<LocalAppConversationEvent>): LocalAppConversationEvent {
@@ -11278,12 +12831,6 @@ class LocalAppConversationEvent$Type extends MessageType<LocalAppConversationEve
                         turnStarted: LocalAppConversationTurnStarted.internalBinaryRead(reader, reader.uint32(), options, (message.event as any).turnStarted)
                     };
                     break;
-                case /* nimi.runtime.v1.LocalAppConversationTextDelta text_delta */ 12:
-                    message.event = {
-                        oneofKind: "textDelta",
-                        textDelta: LocalAppConversationTextDelta.internalBinaryRead(reader, reader.uint32(), options, (message.event as any).textDelta)
-                    };
-                    break;
                 case /* nimi.runtime.v1.LocalAppConversationMessageCommitted message_committed */ 13:
                     message.event = {
                         oneofKind: "messageCommitted",
@@ -11306,6 +12853,48 @@ class LocalAppConversationEvent$Type extends MessageType<LocalAppConversationEve
                     message.event = {
                         oneofKind: "turnInterrupted",
                         turnInterrupted: LocalAppConversationTurnInterrupted.internalBinaryRead(reader, reader.uint32(), options, (message.event as any).turnInterrupted)
+                    };
+                    break;
+                case /* nimi.runtime.v1.LocalAppConversationActionEvent action_planned */ 17:
+                    message.event = {
+                        oneofKind: "actionPlanned",
+                        actionPlanned: LocalAppConversationActionEvent.internalBinaryRead(reader, reader.uint32(), options, (message.event as any).actionPlanned)
+                    };
+                    break;
+                case /* nimi.runtime.v1.LocalAppConversationActionEvent action_started */ 18:
+                    message.event = {
+                        oneofKind: "actionStarted",
+                        actionStarted: LocalAppConversationActionEvent.internalBinaryRead(reader, reader.uint32(), options, (message.event as any).actionStarted)
+                    };
+                    break;
+                case /* nimi.runtime.v1.LocalAppConversationArtifactReady artifact_ready */ 19:
+                    message.event = {
+                        oneofKind: "artifactReady",
+                        artifactReady: LocalAppConversationArtifactReady.internalBinaryRead(reader, reader.uint32(), options, (message.event as any).artifactReady)
+                    };
+                    break;
+                case /* nimi.runtime.v1.LocalAppConversationActionEvent action_completed */ 20:
+                    message.event = {
+                        oneofKind: "actionCompleted",
+                        actionCompleted: LocalAppConversationActionEvent.internalBinaryRead(reader, reader.uint32(), options, (message.event as any).actionCompleted)
+                    };
+                    break;
+                case /* nimi.runtime.v1.LocalAppConversationActionEvent action_failed */ 21:
+                    message.event = {
+                        oneofKind: "actionFailed",
+                        actionFailed: LocalAppConversationActionEvent.internalBinaryRead(reader, reader.uint32(), options, (message.event as any).actionFailed)
+                    };
+                    break;
+                case /* nimi.runtime.v1.LocalAppConversationVoiceEvent voice_ready */ 22:
+                    message.event = {
+                        oneofKind: "voiceReady",
+                        voiceReady: LocalAppConversationVoiceEvent.internalBinaryRead(reader, reader.uint32(), options, (message.event as any).voiceReady)
+                    };
+                    break;
+                case /* nimi.runtime.v1.LocalAppConversationVoiceEvent voice_failed */ 23:
+                    message.event = {
+                        oneofKind: "voiceFailed",
+                        voiceFailed: LocalAppConversationVoiceEvent.internalBinaryRead(reader, reader.uint32(), options, (message.event as any).voiceFailed)
                     };
                     break;
                 default:
@@ -11332,9 +12921,6 @@ class LocalAppConversationEvent$Type extends MessageType<LocalAppConversationEve
         /* nimi.runtime.v1.LocalAppConversationTurnStarted turn_started = 11; */
         if (message.event.oneofKind === "turnStarted")
             LocalAppConversationTurnStarted.internalBinaryWrite(message.event.turnStarted, writer.tag(11, WireType.LengthDelimited).fork(), options).join();
-        /* nimi.runtime.v1.LocalAppConversationTextDelta text_delta = 12; */
-        if (message.event.oneofKind === "textDelta")
-            LocalAppConversationTextDelta.internalBinaryWrite(message.event.textDelta, writer.tag(12, WireType.LengthDelimited).fork(), options).join();
         /* nimi.runtime.v1.LocalAppConversationMessageCommitted message_committed = 13; */
         if (message.event.oneofKind === "messageCommitted")
             LocalAppConversationMessageCommitted.internalBinaryWrite(message.event.messageCommitted, writer.tag(13, WireType.LengthDelimited).fork(), options).join();
@@ -11347,6 +12933,27 @@ class LocalAppConversationEvent$Type extends MessageType<LocalAppConversationEve
         /* nimi.runtime.v1.LocalAppConversationTurnInterrupted turn_interrupted = 16; */
         if (message.event.oneofKind === "turnInterrupted")
             LocalAppConversationTurnInterrupted.internalBinaryWrite(message.event.turnInterrupted, writer.tag(16, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.LocalAppConversationActionEvent action_planned = 17; */
+        if (message.event.oneofKind === "actionPlanned")
+            LocalAppConversationActionEvent.internalBinaryWrite(message.event.actionPlanned, writer.tag(17, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.LocalAppConversationActionEvent action_started = 18; */
+        if (message.event.oneofKind === "actionStarted")
+            LocalAppConversationActionEvent.internalBinaryWrite(message.event.actionStarted, writer.tag(18, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.LocalAppConversationArtifactReady artifact_ready = 19; */
+        if (message.event.oneofKind === "artifactReady")
+            LocalAppConversationArtifactReady.internalBinaryWrite(message.event.artifactReady, writer.tag(19, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.LocalAppConversationActionEvent action_completed = 20; */
+        if (message.event.oneofKind === "actionCompleted")
+            LocalAppConversationActionEvent.internalBinaryWrite(message.event.actionCompleted, writer.tag(20, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.LocalAppConversationActionEvent action_failed = 21; */
+        if (message.event.oneofKind === "actionFailed")
+            LocalAppConversationActionEvent.internalBinaryWrite(message.event.actionFailed, writer.tag(21, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.LocalAppConversationVoiceEvent voice_ready = 22; */
+        if (message.event.oneofKind === "voiceReady")
+            LocalAppConversationVoiceEvent.internalBinaryWrite(message.event.voiceReady, writer.tag(22, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.LocalAppConversationVoiceEvent voice_failed = 23; */
+        if (message.event.oneofKind === "voiceFailed")
+            LocalAppConversationVoiceEvent.internalBinaryWrite(message.event.voiceFailed, writer.tag(23, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -12908,13 +14515,15 @@ class GetSharedLocalAgentAIConfigResponse$Type extends MessageType<GetSharedLoca
         super("nimi.runtime.v1.GetSharedLocalAgentAIConfigResponse", [
             { no: 1, name: "config", kind: "message", T: () => AIConfig },
             { no: 2, name: "revision", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "effective_selections", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => AIConfigEffectiveSelection }
+            { no: 3, name: "effective_selections", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => AIConfigEffectiveSelection },
+            { no: 4, name: "participation", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalAgentCapabilityParticipation }
         ]);
     }
     create(value?: PartialMessage<GetSharedLocalAgentAIConfigResponse>): GetSharedLocalAgentAIConfigResponse {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.revision = "";
         message.effectiveSelections = [];
+        message.participation = [];
         if (value !== undefined)
             reflectionMergePartial<GetSharedLocalAgentAIConfigResponse>(this, message, value);
         return message;
@@ -12932,6 +14541,9 @@ class GetSharedLocalAgentAIConfigResponse$Type extends MessageType<GetSharedLoca
                     break;
                 case /* repeated nimi.runtime.v1.AIConfigEffectiveSelection effective_selections */ 3:
                     message.effectiveSelections.push(AIConfigEffectiveSelection.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* repeated nimi.runtime.v1.LocalAgentCapabilityParticipation participation */ 4:
+                    message.participation.push(LocalAgentCapabilityParticipation.internalBinaryRead(reader, reader.uint32(), options));
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -12954,6 +14566,9 @@ class GetSharedLocalAgentAIConfigResponse$Type extends MessageType<GetSharedLoca
         /* repeated nimi.runtime.v1.AIConfigEffectiveSelection effective_selections = 3; */
         for (let i = 0; i < message.effectiveSelections.length; i++)
             AIConfigEffectiveSelection.internalBinaryWrite(message.effectiveSelections[i], writer.tag(3, WireType.LengthDelimited).fork(), options).join();
+        /* repeated nimi.runtime.v1.LocalAgentCapabilityParticipation participation = 4; */
+        for (let i = 0; i < message.participation.length; i++)
+            LocalAgentCapabilityParticipation.internalBinaryWrite(message.participation[i], writer.tag(4, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -13034,7 +14649,8 @@ class OverwriteSharedLocalAgentAIConfigResponse$Type extends MessageType<Overwri
             { no: 2, name: "revision", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "committed", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
             { no: 4, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] },
-            { no: 5, name: "effective_selections", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => AIConfigEffectiveSelection }
+            { no: 5, name: "effective_selections", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => AIConfigEffectiveSelection },
+            { no: 6, name: "participation", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalAgentCapabilityParticipation }
         ]);
     }
     create(value?: PartialMessage<OverwriteSharedLocalAgentAIConfigResponse>): OverwriteSharedLocalAgentAIConfigResponse {
@@ -13043,6 +14659,7 @@ class OverwriteSharedLocalAgentAIConfigResponse$Type extends MessageType<Overwri
         message.committed = false;
         message.reasonCode = 0;
         message.effectiveSelections = [];
+        message.participation = [];
         if (value !== undefined)
             reflectionMergePartial<OverwriteSharedLocalAgentAIConfigResponse>(this, message, value);
         return message;
@@ -13066,6 +14683,9 @@ class OverwriteSharedLocalAgentAIConfigResponse$Type extends MessageType<Overwri
                     break;
                 case /* repeated nimi.runtime.v1.AIConfigEffectiveSelection effective_selections */ 5:
                     message.effectiveSelections.push(AIConfigEffectiveSelection.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* repeated nimi.runtime.v1.LocalAgentCapabilityParticipation participation */ 6:
+                    message.participation.push(LocalAgentCapabilityParticipation.internalBinaryRead(reader, reader.uint32(), options));
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -13094,6 +14714,9 @@ class OverwriteSharedLocalAgentAIConfigResponse$Type extends MessageType<Overwri
         /* repeated nimi.runtime.v1.AIConfigEffectiveSelection effective_selections = 5; */
         for (let i = 0; i < message.effectiveSelections.length; i++)
             AIConfigEffectiveSelection.internalBinaryWrite(message.effectiveSelections[i], writer.tag(5, WireType.LengthDelimited).fork(), options).join();
+        /* repeated nimi.runtime.v1.LocalAgentCapabilityParticipation participation = 6; */
+        for (let i = 0; i < message.participation.length; i++)
+            LocalAgentCapabilityParticipation.internalBinaryWrite(message.participation[i], writer.tag(6, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

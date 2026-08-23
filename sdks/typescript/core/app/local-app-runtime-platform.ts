@@ -17,6 +17,12 @@ import {
 } from './local-app-runtime-platform-agent-references.js';
 import {
   createNimiLocalAppConversationClient,
+  type NimiLocalAppConversationArtifactReadInput,
+  type NimiLocalAppConversationArtifactReadResult,
+  type NimiLocalAppConversationAttachmentUploadInput,
+  type NimiLocalAppConversationAttachmentUploadResult,
+  type NimiLocalAppConversationVoiceTranscriptionInput,
+  type NimiLocalAppConversationVoiceTranscriptionResult,
   type NimiLocalAppConversationOpenInput,
   NimiLocalAppConversationOpenResult,
   NimiLocalAppConversationInterruptResult,
@@ -100,8 +106,17 @@ export type {
   NimiLocalAppAgentReferencesShell,
 } from './local-app-runtime-platform-agent-references.js';
 export type {
+  NimiLocalAppConversationAction,
   NimiLocalAppConversationEvent,
   NimiLocalAppConversationMessage,
+  NimiLocalAppConversationMessagePart,
+  NimiLocalAppConversationInputPart,
+  NimiLocalAppConversationArtifactReadInput,
+  NimiLocalAppConversationArtifactReadResult,
+  NimiLocalAppConversationAttachmentUploadInput,
+  NimiLocalAppConversationAttachmentUploadResult,
+  NimiLocalAppConversationVoiceTranscriptionInput,
+  NimiLocalAppConversationVoiceTranscriptionResult,
   NimiLocalAppConversationOpenInput,
   NimiLocalAppConversationOpenResult,
   NimiLocalAppConversationInterruptResult,
@@ -111,6 +126,8 @@ export type {
   NimiLocalAppConversationShellSubscription,
   NimiLocalAppConversationSnapshot,
   NimiLocalAppConversationSubscription,
+  NimiLocalAppConversationTurn,
+  NimiLocalAppConversationVoice,
   NimiLocalAppAgentHandle,
 } from './local-app-runtime-platform-conversation.js';
 export type {
@@ -321,6 +338,9 @@ export type NimiLocalAppClient = {
   readonly conversation: {
     readonly open: (input: NimiLocalAppConversationOpenInput) => Promise<NimiLocalAppConversationOpenResult>;
     readonly send: (input: NimiLocalAppConversationSendInput) => Promise<NimiLocalAppConversationSendResult>;
+    readonly uploadAttachment: (input: NimiLocalAppConversationAttachmentUploadInput) => Promise<NimiLocalAppConversationAttachmentUploadResult>;
+    readonly readArtifact: (input: NimiLocalAppConversationArtifactReadInput) => Promise<NimiLocalAppConversationArtifactReadResult>;
+    readonly transcribeVoice: (input: NimiLocalAppConversationVoiceTranscriptionInput) => Promise<NimiLocalAppConversationVoiceTranscriptionResult>;
     readonly interruptTurn: (input: NimiLocalAppConversationScopeInput) => Promise<NimiLocalAppConversationInterruptResult>;
     readonly subscribe: (input: NimiLocalAppConversationScopeInput) => Promise<NimiLocalAppConversationSubscription>;
     readonly snapshot: (input: NimiLocalAppConversationScopeInput) => Promise<NimiLocalAppConversationSnapshot>;
@@ -380,7 +400,7 @@ export function createNimiLocalAppClient(
   assertExactMethodNamespace(realm.worldCore, ['list', 'create'], 'realm.worldCore');
   assertExactMethodNamespace(realm.personaCharacter, ['listOwned', 'getOwned', 'create', 'replace'], 'realm.personaCharacter');
   assertExactMethodNamespace(standardShell.agents, ['listReferences'], 'agents');
-  assertExactMethodNamespace(standardShell.conversation, ['open', 'send', 'interruptTurn', 'subscribe', 'snapshot'], 'conversation');
+  assertExactMethodNamespace(standardShell.conversation, ['open', 'send', 'uploadAttachment', 'readArtifact', 'transcribeVoice', 'interruptTurn', 'subscribe', 'snapshot'], 'conversation');
   const agentConfigure = asRecord(standardShell.agentConfigure);
   if (!agentConfigure
     || Object.keys(agentConfigure).length !== 3

@@ -455,6 +455,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "QueryAgentMemoryResponse"
   },
   {
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/ReadLocalAppConversationArtifact",
+    "service": "RuntimeAgentService",
+    "method": "ReadLocalAppConversationArtifact",
+    "kind": "unary",
+    "requestType": "ReadLocalAppConversationArtifactRequest",
+    "responseType": "ReadLocalAppConversationArtifactResponse"
+  },
+  {
     "methodId": "/nimi.runtime.v1.RuntimeAgentService/RegisterAvatarLiveInstanceBinding",
     "service": "RuntimeAgentService",
     "method": "RegisterAvatarLiveInstanceBinding",
@@ -575,6 +583,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "TranscribeAgentVoiceInputResponse"
   },
   {
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/TranscribeLocalAppConversationVoice",
+    "service": "RuntimeAgentService",
+    "method": "TranscribeLocalAppConversationVoice",
+    "kind": "unary",
+    "requestType": "TranscribeLocalAppConversationVoiceRequest",
+    "responseType": "TranscribeLocalAppConversationVoiceResponse"
+  },
+  {
     "methodId": "/nimi.runtime.v1.RuntimeAgentService/UpdateAgentState",
     "service": "RuntimeAgentService",
     "method": "UpdateAgentState",
@@ -589,6 +605,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "kind": "unary",
     "requestType": "UpdateLocalAppAgentAutonomyRequest",
     "responseType": "LocalAppAgentUpdateAutonomyResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/UploadLocalAppConversationAttachment",
+    "service": "RuntimeAgentService",
+    "method": "UploadLocalAppConversationAttachment",
+    "kind": "unary",
+    "requestType": "UploadLocalAppConversationAttachmentRequest",
+    "responseType": "UploadLocalAppConversationAttachmentResponse"
   },
   {
     "methodId": "/nimi.runtime.v1.RuntimeAgentService/WriteAgentMemory",

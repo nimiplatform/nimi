@@ -7,6 +7,15 @@ export enum GpuMemoryModel {
   UNIFIED = 2,
 }
 
+export enum LocalAgentCapabilityParticipationRole {
+  UNSPECIFIED = 0,
+  CONVERSATION_PRIMARY = 1,
+  MEMORY_EMBEDDING = 2,
+  CONVERSATION_INPUT_VOICE = 3,
+  CONVERSATION_OUTPUT_VOICE = 4,
+  CONVERSATION_ACTION_IMAGE = 5,
+}
+
 export enum LocalAppAgentAutonomyMode {
   UNSPECIFIED = 0,
   OFF = 1,
@@ -15,10 +24,43 @@ export enum LocalAppAgentAutonomyMode {
   HIGH = 4,
 }
 
+export enum LocalAppConversationActionStatus {
+  UNSPECIFIED = 0,
+  PLANNED = 1,
+  STARTED = 2,
+  COMPLETED = 3,
+  FAILED = 4,
+}
+
+export enum LocalAppConversationMediaKind {
+  UNSPECIFIED = 0,
+  IMAGE = 1,
+}
+
 export enum LocalAppConversationMessageRole {
   UNSPECIFIED = 0,
   USER = 1,
   ASSISTANT = 2,
+}
+
+export enum LocalAppConversationTurnPhase {
+  UNSPECIFIED = 0,
+  ACCEPTED = 1,
+  STARTED = 2,
+}
+
+export enum LocalAppConversationTurnStatus {
+  UNSPECIFIED = 0,
+  ACTIVE = 1,
+  COMPLETED = 2,
+  FAILED = 3,
+  INTERRUPTED = 4,
+}
+
+export enum LocalAppConversationVoiceState {
+  UNSPECIFIED = 0,
+  READY = 1,
+  FAILED = 2,
 }
 
 export enum LocalAppSessionState {

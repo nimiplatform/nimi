@@ -29,10 +29,29 @@ export type NimiPortableAppAIConfigIntent = AIConfigCapabilityIntent;
 
 export type NimiPortableAppAIConfig = AIConfig;
 
+export type NimiSharedLocalAgentCapabilityParticipation = {
+  readonly role:
+    | 'conversation.primary'
+    | 'memory.embedding'
+    | 'conversation.input.voice'
+    | 'conversation.output.voice'
+    | 'conversation.action.image';
+  readonly capabilityContract:
+    | 'text.generate'
+    | 'text.embed'
+    | 'audio.transcribe'
+    | 'audio.synthesize'
+    | 'image.generate';
+};
+
 export type NimiAIConfigSnapshot = {
   readonly config: NimiPortableAppAIConfig | null;
   readonly revision: string;
   readonly effectiveSelections: readonly NimiAIConfigEffectiveSelection[];
+};
+
+export type NimiSharedLocalAgentAIConfigSnapshot = NimiAIConfigSnapshot & {
+  readonly participation: readonly NimiSharedLocalAgentCapabilityParticipation[];
 };
 
 export type NimiAIConfigEffectiveState = 'ready' | 'missing' | 'blocked' | 'unavailable';
@@ -60,6 +79,14 @@ export type NimiAIConfigOverwriteResult =
       readonly revision: string;
       readonly reasonCode: 'AI_CONFIG_REVISION_CONFLICT' | 'AGENT_AI_CONFIG_REVISION_CONFLICT';
     };
+
+export type NimiSharedLocalAgentAIConfigOverwriteResult =
+  | (Extract<NimiAIConfigOverwriteResult, { outcome: 'committed' }> & {
+      readonly participation: readonly NimiSharedLocalAgentCapabilityParticipation[];
+    })
+  | (Extract<NimiAIConfigOverwriteResult, { outcome: 'conflict' }> & {
+      readonly participation: readonly NimiSharedLocalAgentCapabilityParticipation[];
+    });
 
 export type NimiAIConfigOptionsQuery =
   | { readonly kind: 'local-loadouts'; readonly capabilityContract: string; readonly search?: string }
