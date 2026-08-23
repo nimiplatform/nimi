@@ -152,6 +152,7 @@ function chatStatus({ requestId, messages, ready = false, state = 'streaming' })
     eventTypes: [],
     messageCount: messages.length,
     messages,
+		actions: [],
     latestAssistantText: messages.findLast(({ role }) => role === 'agent')?.text ?? null,
     reasoningText: null,
     outputText: null,

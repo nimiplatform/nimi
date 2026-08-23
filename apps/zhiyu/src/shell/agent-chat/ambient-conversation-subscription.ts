@@ -5,7 +5,7 @@ import type {
 } from '@nimiplatform/sdk/app';
 import type { ConversationCanonicalMessage } from '@nimiplatform/kit/features/chat';
 
-import type { ZhiyuEvidence } from '../app/evidence.js';
+import type { ZhiyuConversationActionProjection, ZhiyuEvidence } from '../app/evidence.js';
 import { projectZhiyuLocalAppConversationMessage } from './agent-conversation-state.js';
 
 export type ZhiyuAmbientConversationIdentity = {
@@ -22,12 +22,31 @@ type AmbientTurn = {
   messages: ConversationCanonicalMessage[];
 };
 
+type AmbientReducerOptions = {
+  readonly throughSequence?: string;
+  readonly initialChat?: ZhiyuEvidence['chat'];
+  readonly resolveArtifactUrl?: (artifactId: string) => Promise<string>;
+};
+
 export function createZhiyuAmbientConversationEventReducer(
   identity: ZhiyuAmbientConversationIdentity,
   now: () => number = Date.now,
+	options: AmbientReducerOptions = {},
 ) {
   const turns = new Map<string, AmbientTurn>();
+	const actions = new Map<string, ZhiyuConversationActionProjection>();
   const observedEvents = new Set<string>();
+	let throughSequence = conversationSequence(options.throughSequence ?? '0');
+	for (const message of options.initialChat?.messages ?? []) {
+		const turnId = typeof message.metadata?.runtimeTurnId === 'string' ? message.metadata.runtimeTurnId : '';
+		if (!turnId) continue;
+		const turn = turns.get(turnId) ?? { messages: [] };
+		turn.messages.push(message);
+		turns.set(turnId, turn);
+		observedEvents.add(`${turnId}\u0000${message.id}`);
+	}
+	for (const action of options.initialChat?.actions ?? []) actions.set(action.actionId, action);
+	const projectedActions = () => Object.freeze([...actions.values()]);
 
   const failure = (
     reasonCode: string,
@@ -48,13 +67,16 @@ export function createZhiyuAmbientConversationEventReducer(
       runtimeTurnId: null,
       eventType: 'ambient-subscription-failed',
       messages: [],
+		actions: projectedActions(),
     }),
     close: true,
   });
 
   return Object.freeze({
-    reduce(event: NimiLocalAppConversationEvent): ZhiyuAmbientConversationReduction | null {
-      if (!AMBIENT_EVENT_TYPES.has(event.type)) return null;
+    async reduce(event: NimiLocalAppConversationEvent): Promise<ZhiyuAmbientConversationReduction | null> {
+		const eventSequence = conversationSequence(event.sequence);
+		if (eventSequence <= throughSequence) return null;
+		throughSequence = eventSequence;
       if (event.conversationAnchorId !== identity.conversationAnchorId) {
         return failure(
           'zhiyu-conversation-anchor-mismatch',
@@ -75,13 +97,22 @@ export function createZhiyuAmbientConversationEventReducer(
         const eventKey = `${runtimeTurnId}\u0000${event.message.messageId}`;
         if (observedEvents.has(eventKey)) return null;
         observedEvents.add(eventKey);
-        const message = projectZhiyuLocalAppConversationMessage({
+        let message = projectZhiyuLocalAppConversationMessage({
           message: event.message,
           agentHandle: identity.agentHandle,
           conversationAnchorId: identity.conversationAnchorId,
           createdAt: new Date(now()).toISOString(),
         });
-        turn.messages.push(message);
+		const artifactId = typeof message.metadata?.artifactId === 'string' ? message.metadata.artifactId : '';
+		if (artifactId && options.resolveArtifactUrl) {
+			try {
+				const mediaUrl = await options.resolveArtifactUrl(artifactId);
+				message = { ...message, metadata: { ...message.metadata, mediaUrl } };
+			} catch {
+				message = { ...message, metadata: { ...message.metadata, mediaError: 'Conversation image is unavailable.' } };
+			}
+		}
+		turn.messages = [...turn.messages.filter((candidate) => candidate.id !== message.id), message];
         turns.set(runtimeTurnId, turn);
         return {
           chat: chatUpdate({
@@ -96,10 +127,89 @@ export function createZhiyuAmbientConversationEventReducer(
             runtimeTurnId,
             eventType: event.type,
             messages: [message],
+			actions: projectedActions(),
           }),
           close: false,
         };
       }
+
+		if (event.type === 'action-planned' || event.type === 'action-started'
+			|| event.type === 'action-completed' || event.type === 'action-failed') {
+			actions.set(event.action.actionId, {
+				actionId: event.action.actionId,
+				turnId: event.action.turnId,
+				capabilityContract: event.action.capabilityContract,
+				status: event.action.status,
+				reasonCode: event.action.reasonCode,
+				message: event.action.message,
+			});
+			return {
+				chat: chatUpdate({
+					identity,
+					ready: false,
+					state: 'streaming',
+					reasonCode: `runtime-agent-${event.type}`,
+					actionHint: 'wait_runtime_agent_turn_terminal',
+					source: 'runtime',
+					message: 'Runtime Agent image action state changed.',
+					requestId: null,
+					runtimeTurnId,
+					eventType: event.type,
+					messages: [],
+					actions: projectedActions(),
+				}),
+				close: false,
+			};
+		}
+
+		if (event.type === 'artifact-ready') {
+			return {
+				chat: chatUpdate({
+					identity, ready: false, state: 'streaming', reasonCode: 'runtime-agent-artifact-ready',
+					actionHint: 'wait_runtime_agent_turn_terminal', source: 'runtime',
+					message: 'Runtime Agent image artifact is ready.', requestId: null, runtimeTurnId,
+					eventType: event.type, messages: [], actions: projectedActions(),
+				}),
+				close: false,
+			};
+		}
+
+		if (event.type === 'voice-ready' || event.type === 'voice-failed') {
+			const existing = turn.messages.find((message) => message.id === event.voice.messageId);
+			if (!existing) return null;
+			let message = existing;
+			if (event.type === 'voice-failed') {
+				message = { ...existing, metadata: { ...existing.metadata, voiceError: event.voice.reasonCode } };
+			} else if (event.voice.artifactId && options.resolveArtifactUrl) {
+				try {
+					const voiceUrl = await options.resolveArtifactUrl(event.voice.artifactId);
+					message = {
+						...existing,
+						kind: 'voice',
+						metadata: {
+							...existing.metadata,
+							voiceArtifactId: event.voice.artifactId,
+							voiceUrl,
+							voiceTranscript: existing.text,
+						},
+					};
+				} catch {
+					message = { ...existing, metadata: { ...existing.metadata, voiceError: 'Conversation voice is unavailable.' } };
+				}
+			}
+			turn.messages = [...turn.messages.filter((candidate) => candidate.id !== message.id), message];
+			turns.set(runtimeTurnId, turn);
+			return {
+				chat: chatUpdate({
+					identity, ready: false, state: 'streaming', reasonCode: `runtime-agent-${event.type}`,
+					actionHint: 'wait_runtime_agent_turn_terminal', source: 'runtime',
+					message: 'Runtime Agent voice state changed.', requestId: null, runtimeTurnId,
+					eventType: event.type, messages: [message],
+					actions: projectedActions(),
+				}),
+				close: false,
+			};
+		}
 
       if (event.type !== 'turn-completed'
         && event.type !== 'turn-failed'
@@ -119,6 +229,7 @@ export function createZhiyuAmbientConversationEventReducer(
           runtimeTurnId,
           eventType: event.type,
           messages: [],
+			actions: projectedActions(),
         }),
         close: false,
       };
@@ -140,50 +251,84 @@ export function subscribeZhiyuAmbientConversation(input: {
   readonly conversation: Pick<NimiLocalAppClient['conversation'], 'subscribe'>;
   readonly identity: ZhiyuAmbientConversationIdentity;
   readonly onChat: (chat: ZhiyuEvidence['chat']) => void;
+	readonly hydrate: () => Promise<ZhiyuEvidence['chat']>;
+	readonly resolveArtifactUrl?: (artifactId: string) => Promise<string>;
   readonly now?: () => number;
 }): () => void {
   let active = true;
   let subscription: Awaited<ReturnType<typeof input.conversation.subscribe>> | null = null;
   let cancellation: Promise<void> | null = null;
-  const reducer = createZhiyuAmbientConversationEventReducer(input.identity, input.now);
-  const cancel = (): Promise<void> => {
+	const cancelCurrent = (): Promise<void> => {
     if (!subscription) return Promise.resolve();
     cancellation ??= subscription.cancel().catch(() => undefined);
     return cancellation;
   };
 
   void (async () => {
-    try {
-      subscription = await input.conversation.subscribe(input.identity);
-      if (!active) return;
-      for await (const event of subscription) {
-        if (!active) break;
-        const reduction = reducer.reduce(event);
-        if (!reduction) continue;
-        input.onChat(reduction.chat);
-        if (reduction.close) break;
-      }
-    } catch (error) {
-      if (active) input.onChat(reducer.failure(error).chat);
-    } finally {
-      await cancel();
-    }
+		for (let attempt = 0; active && attempt < 2; attempt += 1) {
+			let reducer: ReturnType<typeof createZhiyuAmbientConversationEventReducer> | null = null;
+			let recoverOverflow = false;
+			try {
+				subscription = await input.conversation.subscribe(input.identity);
+				if (!active) return;
+				const hydrated = await input.hydrate();
+				if (!active) return;
+				input.onChat(hydrated);
+				const highWater = typeof hydrated.diagnostics?.throughSequence === 'string'
+					? hydrated.diagnostics.throughSequence
+					: null;
+				if (highWater === null) return;
+				reducer = createZhiyuAmbientConversationEventReducer(input.identity, input.now, {
+					throughSequence: highWater,
+					initialChat: hydrated,
+					resolveArtifactUrl: input.resolveArtifactUrl,
+				});
+				for await (const event of subscription) {
+					if (!active) return;
+					const reduction = await reducer.reduce(event);
+					if (!reduction) continue;
+					input.onChat(reduction.chat);
+					if (reduction.close) return;
+				}
+				return;
+			} catch (error) {
+				recoverOverflow = attempt === 0 && retryableConversationOverflow(error);
+				if (!recoverOverflow && active) {
+					input.onChat((reducer ?? createZhiyuAmbientConversationEventReducer(input.identity, input.now)).failure(error).chat);
+				}
+			} finally {
+				await cancelCurrent();
+			}
+			if (!recoverOverflow) return;
+			subscription = null;
+			cancellation = null;
+		}
   })();
 
   return () => {
     if (!active) return;
     active = false;
-    void cancel();
+	void cancelCurrent();
   };
 }
 
-const AMBIENT_EVENT_TYPES = new Set<NimiLocalAppConversationEvent['type']>([
-  'turn-accepted',
-  'message-committed',
-  'turn-completed',
-  'turn-failed',
-  'turn-interrupted',
-]);
+function retryableConversationOverflow(error: unknown): boolean {
+	const record = recordValue(error);
+	const details = recordValue(record.details);
+	if (details.retryable !== true) return false;
+	const reasonCode = textValue(record, 'reasonCode');
+	if (reasonCode === 'renderer-local-app-conversation-buffer-exhausted') {
+		return details.diagnosticStage === 'renderer_local_app_conversation_buffer_overflow';
+	}
+	const reasonMetadata = recordValue(details.reasonMetadata);
+	return reasonCode === 'local-app-owner-unavailable'
+		&& reasonMetadata.diagnostic_stage === 'local_app_conversation_subscription_overflow';
+}
+
+function conversationSequence(value: string): bigint {
+	if (!/^(0|[1-9][0-9]*)$/u.test(value)) throw new Error('Conversation sequence is invalid.');
+	return BigInt(value);
+}
 
 function chatUpdate(input: {
   readonly identity: ZhiyuAmbientConversationIdentity;
@@ -197,6 +342,7 @@ function chatUpdate(input: {
   readonly runtimeTurnId: string | null;
   readonly eventType: string;
   readonly messages: ZhiyuEvidence['chat']['messages'];
+	readonly actions: ZhiyuEvidence['chat']['actions'];
 }): ZhiyuEvidence['chat'] {
   const latestAssistant = [...input.messages].reverse().find((message) => message.role === 'agent') ?? null;
   return {
@@ -217,6 +363,7 @@ function chatUpdate(input: {
     eventTypes: [input.eventType],
     messageCount: input.messages.length,
     messages: input.messages,
+	actions: input.actions,
     latestAssistantText: latestAssistant?.text || null,
     reasoningText: null,
     outputText: latestAssistant?.text || null,

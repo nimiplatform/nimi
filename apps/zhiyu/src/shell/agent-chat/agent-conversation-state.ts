@@ -27,15 +27,37 @@ export function hydrateZhiyuAgentChatFromLocalAppConversationSnapshot(
     conversationAnchorId: input.conversationAnchorId,
     createdAt: '',
   }));
+	const actions = input.snapshot.actions.map((action) => ({
+		actionId: action.actionId,
+		turnId: action.turnId,
+		capabilityContract: action.capabilityContract,
+		status: action.status,
+		reasonCode: action.reasonCode,
+		message: action.message,
+	}));
   const latestAssistant = [...messages].reverse().find((message) => message.role === 'agent');
   const outputText = latestAssistant?.text || null;
   const activeTurn = input.snapshot.turns.find((turn) => turn.status === 'active');
+	const projectedTurn = activeTurn ?? input.snapshot.turns.at(-1);
+	const projectedState = projectedTurn?.status === 'active'
+		? 'streaming'
+		: projectedTurn?.status === 'failed'
+			? 'failed'
+			: projectedTurn?.status === 'interrupted'
+				? 'canceled'
+				: 'completed';
+	const ready = projectedState === 'completed';
   return {
     transport: 'electron-ipc',
-    ready: true,
-    state: 'completed',
-    reasonCode: 'runtime-agent-conversation-snapshot-hydrated',
-    actionHint: 'continue_runtime_agent_conversation',
+	ready,
+	state: projectedState,
+	reasonCode: projectedTurn?.reasonCode
+		|| (projectedState === 'completed' ? 'runtime-agent-conversation-snapshot-hydrated' : `runtime-agent-turn-${projectedState}`),
+	actionHint: projectedState === 'streaming'
+		? 'wait_runtime_agent_turn_terminal'
+		: projectedState === 'completed'
+			? 'continue_runtime_agent_conversation'
+			: 'inspect_runtime_agent_chat_stream',
     source: 'runtime',
     message: 'Runtime Agent conversation snapshot was hydrated through the typed local App projection.',
     ownerUserId: null,
@@ -43,13 +65,13 @@ export function hydrateZhiyuAgentChatFromLocalAppConversationSnapshot(
     localAgentRef: null,
     conversationAnchorId: input.conversationAnchorId,
     requestId: null,
-    runtimeTurnId: activeTurn?.turnId
-      || input.snapshot.turns.at(-1)?.turnId
+	runtimeTurnId: projectedTurn?.turnId
       || null,
     runtimeStreamId: null,
     eventTypes: ['conversation-snapshot-hydrated'],
     messageCount: messages.length,
     messages,
+	actions,
     latestAssistantText: outputText,
     reasoningText: null,
     outputText,

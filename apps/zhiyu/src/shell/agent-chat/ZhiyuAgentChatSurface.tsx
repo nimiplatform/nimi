@@ -14,6 +14,7 @@ import {
   ChatStreamStatus,
 } from '@nimiplatform/kit/features/chat/ui';
 import {
+	AlertTriangle,
   ChevronRight,
   ShieldCheck,
   X,
@@ -54,6 +55,7 @@ import {
   formatReasonLabel,
 } from '../app/home-surface-sections';
 import { followZhiyuTranscriptToLatest } from './transcript-auto-follow';
+import { runZhiyuVoiceTranscriptionAttempt } from './voice-transcription-guard';
 
 export type ZhiyuAgentChatSurfaceProps = {
   readonly evidence: ZhiyuEvidence;
@@ -65,7 +67,7 @@ export type ZhiyuAgentChatSurfaceProps = {
   readonly agentCenterSession: ReturnType<ZhiyuRendererProjectionPort['agentCenterSession']>;
   readonly onDraftChange: (value: string) => void;
   readonly onSubmit: (text: string, attachment?: ZhiyuRuntimeAgentChatAttachment) => Promise<void> | void;
-  readonly onTranscribeVoice?: (audioBytes: Uint8Array, mimeType: string) => Promise<string>;
+  readonly onTranscribeVoice?: (audioBytes: Uint8Array, mimeType: string, signal: AbortSignal) => Promise<string>;
   readonly onStopChat: () => void;
   readonly onSelectLocalAgent: (agentHandle: NimiLocalAppAgentHandle) => void;
   readonly onDesktopOpenRuntimeSettings: () => Promise<void> | void;
@@ -174,6 +176,8 @@ export function ZhiyuAgentChatSurface({
   const voiceStreamRef = useRef<MediaStream | null>(null);
   const voiceChunksRef = useRef<Blob[]>([]);
   const voiceCanceledRef = useRef(false);
+  const voiceTranscriptionAbortRef = useRef<AbortController | null>(null);
+  const voiceGenerationRef = useRef(0);
   const voiceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const clearVoiceCapture = useCallback(() => {
     if (voiceTimerRef.current) clearTimeout(voiceTimerRef.current);
@@ -184,6 +188,9 @@ export function ZhiyuAgentChatSurface({
   }, []);
   const cancelVoiceCapture = useCallback(() => {
     voiceCanceledRef.current = true;
+    voiceGenerationRef.current += 1;
+    voiceTranscriptionAbortRef.current?.abort('zhiyu_voice_transcription_canceled');
+    voiceTranscriptionAbortRef.current = null;
     const recorder = voiceRecorderRef.current;
     if (recorder && recorder.state !== 'inactive') recorder.stop();
     else clearVoiceCapture();
@@ -214,12 +221,29 @@ export function ZhiyuAgentChatSurface({
         voiceChunksRef.current = [];
         clearVoiceCapture();
         if (canceled) return;
+		const generation = voiceGenerationRef.current + 1;
+		voiceGenerationRef.current = generation;
+		const transcriptionAbort = new AbortController();
+		voiceTranscriptionAbortRef.current = transcriptionAbort;
         setVoiceStatus('transcribing');
         void blob.arrayBuffer()
-          .then((buffer) => onTranscribeVoice(new Uint8Array(buffer), blob.type || 'audio/webm'))
-          .then((text) => onSubmit(text))
-          .then(() => setVoiceStatus('idle'))
-          .catch(() => setVoiceStatus('failed'));
+			.then((buffer) => runZhiyuVoiceTranscriptionAttempt({
+				audioBytes: new Uint8Array(buffer),
+				mimeType: blob.type || 'audio/webm',
+				signal: transcriptionAbort.signal,
+				isCurrent: () => voiceGenerationRef.current === generation,
+				transcribe: onTranscribeVoice,
+				submit: onSubmit,
+			}))
+			.then(() => {
+				if (voiceGenerationRef.current === generation) setVoiceStatus('idle');
+			})
+			.catch(() => {
+				if (!transcriptionAbort.signal.aborted && voiceGenerationRef.current === generation) setVoiceStatus('failed');
+			})
+			.finally(() => {
+				if (voiceTranscriptionAbortRef.current === transcriptionAbort) voiceTranscriptionAbortRef.current = null;
+			});
       }, { once: true });
       recorder.start();
       setVoiceStatus('recording');
@@ -230,10 +254,18 @@ export function ZhiyuAgentChatSurface({
   }, [clearVoiceCapture, onSubmit, onTranscribeVoice]);
   useEffect(() => () => {
     voiceCanceledRef.current = true;
+    voiceGenerationRef.current += 1;
+    voiceTranscriptionAbortRef.current?.abort('zhiyu_voice_surface_unmounted');
+    voiceTranscriptionAbortRef.current = null;
     const recorder = voiceRecorderRef.current;
     if (recorder && recorder.state !== 'inactive') recorder.stop();
     clearVoiceCapture();
   }, [clearVoiceCapture]);
+  useEffect(() => {
+	voiceGenerationRef.current += 1;
+	voiceTranscriptionAbortRef.current?.abort('zhiyu_voice_conversation_changed');
+	voiceTranscriptionAbortRef.current = null;
+  }, [evidence.conversation.agentHandle, evidence.conversation.conversationAnchorId]);
   const voiceState = onTranscribeVoice
     && typeof navigator !== 'undefined'
     && Boolean(navigator.mediaDevices?.getUserMedia)
@@ -271,6 +303,7 @@ export function ZhiyuAgentChatSurface({
       </button>
     </div>
   ) : null;
+	const failedImageActions = evidence.chat.actions.filter((action) => action.status === 'failed');
   const [rightPanelMode, setRightPanelMode] = useState<RightPanelMode>('closed');
   const [activeAgentTab, setActiveAgentTab] = useState<AgentPanelTab>('overview');
   const chatTranscriptViewportRef = useRef<HTMLDivElement>(null);
@@ -435,6 +468,26 @@ export function ZhiyuAgentChatSurface({
             {evidence.chat.state === 'failed' ? (
               <RuntimeChatFailureNotice chat={evidence.chat} />
             ) : null}
+			{failedImageActions.map((action) => (
+				<section
+					key={action.actionId}
+					className="zhiyu-home__chat-failure-notice"
+					data-zhiyu-image-action-failure="true"
+					data-zhiyu-image-action-id={action.actionId}
+					data-zhiyu-image-action-reason={action.reasonCode ?? 'unknown'}
+					aria-live="polite"
+					aria-label="图片生成失败"
+				>
+					<div className="zhiyu-home__chat-failure-mark" aria-hidden="true">
+						<AlertTriangle size={17} />
+					</div>
+					<div className="zhiyu-home__chat-failure-copy">
+						<span>图片生成失败</span>
+						<strong>文字回复已保留</strong>
+						<p>{action.message || '图片没有生成完成，请稍后重试。'}</p>
+					</div>
+				</section>
+			))}
           </div>
             <div className="zhiyu-chat-canvas__overlay">
               <div className="zhiyu-chat-canvas__overlay-inner">

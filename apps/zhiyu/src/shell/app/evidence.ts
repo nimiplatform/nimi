@@ -46,6 +46,15 @@ export type ZhiyuMemoryObservatoryState =
   | 'runtime-unavailable'
   | 'partial';
 
+export type ZhiyuConversationActionProjection = {
+  readonly actionId: string;
+  readonly turnId: string;
+  readonly capabilityContract: 'image.generate';
+  readonly status: 'planned' | 'started' | 'completed' | 'failed';
+  readonly reasonCode: string | null;
+  readonly message: string | null;
+};
+
 export type ZhiyuRuntimeAgentChatStatus = {
   readonly transport: 'electron-ipc';
   readonly ready: boolean;
@@ -64,6 +73,7 @@ export type ZhiyuRuntimeAgentChatStatus = {
   readonly eventTypes: readonly string[];
   readonly messageCount: number;
   readonly messages: RuntimeAgentConversationProjectionState['messages'];
+	readonly actions: readonly ZhiyuConversationActionProjection[];
   readonly latestAssistantText: string | null;
   readonly reasoningText: string | null;
   readonly outputText: string | null;
@@ -480,6 +490,7 @@ export function createInitialZhiyuEvidence(): ZhiyuEvidence {
       eventTypes: [],
       messageCount: 0,
       messages: [],
+		actions: [],
       latestAssistantText: null,
       reasoningText: null,
       outputText: null,

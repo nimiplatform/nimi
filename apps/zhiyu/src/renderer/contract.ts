@@ -54,7 +54,7 @@ export interface ZhiyuRendererCommandPort {
     readonly requestId: string;
     readonly mimeType: string;
     readonly audioBytes: Uint8Array;
-  }): Promise<{ readonly text: string }>;
+  }, options?: { readonly signal?: AbortSignal }): Promise<{ readonly text: string }>;
   openDesktopRuntimeSettings(): Promise<void>;
   openDesktopSelectPartner(): Promise<ZhiyuDesktopOpenActionResult>;
   launchAvatar(input: {
@@ -68,6 +68,8 @@ export interface ZhiyuRendererEventPort {
   subscribeConversation(input: {
     readonly agentHandle: NimiLocalAppAgentHandle;
     readonly conversationAnchorId: string;
+	readonly currentSource: ZhiyuEvidence['source'];
+	readonly currentChat: ZhiyuEvidence['chat'];
     readonly onChat: (chat: ZhiyuEvidence['chat']) => void;
   }): () => void;
 }

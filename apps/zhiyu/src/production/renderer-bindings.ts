@@ -17,7 +17,7 @@ import { probeZhiyuRuntimeMemoryObservatory } from '../shell/agent/memory-observ
 import { projectZhiyuProposalIntakeStatus } from '../shell/agent/proposal-intake.js';
 import { projectZhiyuRuntimeSourceProjection } from '../shell/agent/source-projection.js';
 import { probeZhiyuAgentTurnReadiness } from '../shell/agent-chat/agent-turn-readiness.js';
-import { runZhiyuAgentChatTurn } from '../shell/agent-chat/runtime-agent-turn-adapter.js';
+import { runZhiyuAgentChatTurn, zhiyuArtifactDataUrl } from '../shell/agent-chat/runtime-agent-turn-adapter.js';
 import { probeZhiyuAvatarPresence } from '../shell/avatar/avatar-presence.js';
 import { launchZhiyuAvatar } from '../shell/avatar/avatar-launch-handoff.js';
 import { probeZhiyuRuntimeAccountStatus } from '../shell/auth/runtime-account-status.js';
@@ -104,8 +104,8 @@ export function createZhiyuProductionBindings(
           return createZhiyuProductionTurnRequestId();
         },
         runTurn: runZhiyuAgentChatTurn,
-        async transcribeVoice(input: Parameters<ZhiyuCanonicalRendererBindings['app']['commands']['transcribeVoice']>[0]) {
-          return getZhiyuLocalAppClient().conversation.transcribeVoice(input);
+        async transcribeVoice(input: Parameters<ZhiyuCanonicalRendererBindings['app']['commands']['transcribeVoice']>[0], options?: Parameters<ZhiyuCanonicalRendererBindings['app']['commands']['transcribeVoice']>[1]) {
+          return getZhiyuLocalAppClient().conversation.transcribeVoice(input, options);
         },
         async openDesktopRuntimeSettings() {
           await requestZhiyuDesktopOpenRuntimeSettings();
@@ -115,12 +115,27 @@ export function createZhiyuProductionBindings(
       }),
       events: Object.freeze({
         subscribeConversation(input: Parameters<ZhiyuCanonicalRendererBindings['app']['events']['subscribeConversation']>[0]) {
+			const conversation = getZhiyuLocalAppClient().conversation;
           return subscribeZhiyuAmbientConversation({
-            conversation: getZhiyuLocalAppClient().conversation,
+			conversation,
             identity: {
               agentHandle: input.agentHandle as NimiLocalAppAgentHandle,
               conversationAnchorId: input.conversationAnchorId,
             },
+			hydrate: async () => (await hydrateZhiyuProductionConversation({
+				agentHandle: input.agentHandle,
+				conversationAnchorId: input.conversationAnchorId,
+				currentSource: input.currentSource,
+				currentChat: input.currentChat,
+			}, conversation)).chat,
+			resolveArtifactUrl: async (artifactId) => {
+				const artifact = await conversation.readArtifact({
+					agentHandle: input.agentHandle,
+					conversationAnchorId: input.conversationAnchorId,
+					artifactId,
+				});
+				return zhiyuArtifactDataUrl(artifact.bytes, artifact.mimeType);
+			},
             onChat: input.onChat,
           });
         },

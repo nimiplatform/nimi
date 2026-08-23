@@ -34,6 +34,7 @@ export function chatStatusFromSubmitRefreshFailure({
     eventTypes: [],
     messageCount: current.messages.length,
     messages: current.messages,
+		actions: current.actions,
     latestAssistantText: current.latestAssistantText,
     reasoningText: null,
     outputText: null,
@@ -127,6 +128,7 @@ export function chatStatusFromProjection(
     eventTypes: projection.events.map((event) => event.type),
     messageCount: projection.messages.length,
     messages: projection.messages,
+		actions: [],
     latestAssistantText: latestAssistant?.text || null,
     reasoningText: projection.reasoningText || null,
     outputText: projection.outputText || null,
@@ -157,6 +159,7 @@ export function chatStatusFromResult(
     eventTypes: result.events.map((event) => event.type),
     messageCount: result.messages.length,
     messages: result.messages,
+	actions: [],
     latestAssistantText: latestAssistant?.text || result.outputText,
     reasoningText: result.reasoningText,
     outputText: result.outputText,
@@ -177,6 +180,9 @@ export function mergeChatTranscript(
     return incoming;
   }
   const messages = mergeConversationMessages(current.messages, incoming.messages);
+	const actionsById = new Map(current.actions.map((action) => [action.actionId, action]));
+	for (const action of incoming.actions) actionsById.set(action.actionId, action);
+	const actions = [...actionsById.values()];
   const latestAssistant = latestAssistantMessage(messages);
   return {
     ...incoming,
@@ -184,6 +190,7 @@ export function mergeChatTranscript(
     runtimeStreamId: incoming.runtimeStreamId ?? current.runtimeStreamId,
     messageCount: messages.length,
     messages,
+	actions,
     latestAssistantText: latestAssistant?.text || incoming.latestAssistantText,
   };
 }

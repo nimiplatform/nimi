@@ -112,58 +112,11 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
     if (!renderEvidence.conversation.ready || !agentHandle || !conversationAnchorId) {
       return undefined;
     }
-
-    let active = true;
-    void (async () => {
-      try {
-        const hydrated = await bindings.app.projection.hydrateConversation({
-          agentHandle,
-          conversationAnchorId,
-          currentSource: renderEvidence.source,
-          currentChat: renderEvidence.chat,
-        });
-        if (!active) return;
-        setEvidence((current) => {
-          if (
-            current.conversation.agentHandle !== agentHandle
-            || current.conversation.conversationAnchorId !== conversationAnchorId
-          ) {
-            return current;
-          }
-          const chat = hydrated.chat.conversationAnchorId === conversationAnchorId
-            ? mergeChatTranscript(current.chat, hydrated.chat)
-            : current.chat;
-          return {
-            ...current,
-            source: hydrated.source,
-            chat,
-            turn: turnStatusFromChat(chat),
-          };
-        });
-      } catch {
-        // Production returns typed failure evidence; an unexpected binding rejection cannot invent transcript state.
-      }
-    })();
-
-    return () => {
-      active = false;
-    };
-  }, [
-    bindings,
-    renderEvidence.conversation.ready,
-    renderEvidence.conversation.agentHandle,
-    renderEvidence.conversation.conversationAnchorId,
-  ]);
-
-  useEffect(() => {
-    const agentHandle = renderEvidence.conversation.agentHandle;
-    const conversationAnchorId = renderEvidence.conversation.conversationAnchorId;
-    if (!renderEvidence.conversation.ready || !agentHandle || !conversationAnchorId) {
-      return undefined;
-    }
     return bindings.app.events.subscribeConversation({
       agentHandle,
       conversationAnchorId,
+		currentSource: renderEvidence.source,
+		currentChat: renderEvidence.chat,
       onChat: (incoming) => {
         setEvidence((current) => {
           if (
@@ -471,7 +424,7 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
       agentCenterSession={agentCenterSession}
       onDraftChange={setDraft}
       onSubmit={handleSubmit}
-      onTranscribeVoice={async (audioBytes, mimeType) => {
+      onTranscribeVoice={async (audioBytes, mimeType, signal) => {
         const agentHandle = evidence.conversation.agentHandle;
         const conversationAnchorId = evidence.conversation.conversationAnchorId;
         if (!agentHandle || !conversationAnchorId) throw new Error('Runtime conversation is unavailable.');
@@ -482,7 +435,11 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
           requestId,
           mimeType,
           audioBytes,
-        });
+		}, { signal });
+		if (signal.aborted || latestConversationIdentityRef.current.agentHandle !== agentHandle ||
+			latestConversationIdentityRef.current.conversationAnchorId !== conversationAnchorId) {
+			throw new DOMException('Voice transcription is no longer current.', 'AbortError');
+		}
         return result.text;
       }}
       onStopChat={handleStopChat}

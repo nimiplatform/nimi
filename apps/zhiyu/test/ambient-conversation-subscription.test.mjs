@@ -28,23 +28,25 @@ test('ambient committed and terminal events merge once with the per-send transcr
   const runtimeMessageId = 'runtime-message-shared-1';
   const requestId = 'zhiyu-turn-request-1';
 
-  assert.equal(reducer.reduce(event('runtime.agent.turn.accepted', {
+	assert.equal(await reducer.reduce(event('runtime.agent.turn.accepted', {
     conversation_anchor_id: 'conversation-anchor:shared',
     turn_id: runtimeTurnId,
+		sequence: '1',
     stream_id: 'agent_stream_shared_1',
     detail: {},
-  })), null);
+	})), null);
 
   const committedEvent = event('runtime.agent.turn.message_committed', {
     conversation_anchor_id: 'conversation-anchor:shared',
     turn_id: runtimeTurnId,
+		sequence: '2',
     stream_id: 'agent_stream_shared_1',
     message_id: runtimeMessageId,
     detail: { message_id: runtimeMessageId, text: 'Shared committed answer' },
   });
-  const committed = reducer.reduce(committedEvent);
+	const committed = await reducer.reduce(committedEvent);
   assert.ok(committed);
-  assert.equal(reducer.reduce(committedEvent), null, 'turn_id/message_id duplicate must be ignored');
+	assert.equal(await reducer.reduce(committedEvent), null, 'turn_id/message_id duplicate must be ignored');
 
   let chat = mergeChatTranscript(perSendChat({ requestId, runtimeTurnId, runtimeMessageId }), committed.chat);
   assert.equal(chat.messageCount, 2);
@@ -53,9 +55,10 @@ test('ambient committed and terminal events merge once with the per-send transcr
     ['agent', 'Shared committed answer'],
   ]);
 
-  const completed = reducer.reduce(event('runtime.agent.turn.completed', {
+	const completed = await reducer.reduce(event('runtime.agent.turn.completed', {
     conversation_anchor_id: 'conversation-anchor:shared',
     turn_id: runtimeTurnId,
+		sequence: '3',
     stream_id: 'agent_stream_shared_1',
     detail: { terminal_reason: 'stop' },
   }));
@@ -73,9 +76,10 @@ test('ambient conversation reducer fails closed on an anchor mismatch', async ()
     agentHandle: 'opaque-agent-handle',
     conversationAnchorId: 'conversation-anchor:expected',
   });
-  const reduction = reducer.reduce(event('runtime.agent.turn.message_committed', {
+	const reduction = await reducer.reduce(event('runtime.agent.turn.message_committed', {
     conversation_anchor_id: 'conversation-anchor:other',
     turn_id: 'agent_turn_other',
+		sequence: '1',
     stream_id: 'agent_stream_other',
     message_id: 'message-other',
     detail: { message_id: 'message-other', text: 'must not apply' },
@@ -87,6 +91,129 @@ test('ambient conversation reducer fails closed on an anchor mismatch', async ()
   assert.equal(reduction.chat.state, 'failed');
   assert.equal(reduction.chat.reasonCode, 'zhiyu-conversation-anchor-mismatch');
   assert.deepEqual(reduction.chat.messages, []);
+});
+
+test('ambient reducer applies only post-snapshot sequence and keeps multimodal events', async () => {
+	const { createZhiyuAmbientConversationEventReducer } = await importAmbientModule();
+	const initial = perSendChat({ requestId: 'request-1', runtimeTurnId: 'turn-1', runtimeMessageId: 'message-1' });
+	const reducer = createZhiyuAmbientConversationEventReducer({
+		agentHandle: 'opaque-agent-handle',
+		conversationAnchorId: 'conversation-anchor:shared',
+	}, () => Date.parse('2026-07-14T01:00:00.000Z'), {
+		throughSequence: '5',
+		initialChat: initial,
+		resolveArtifactUrl: async (artifactId) => `data:application/octet-stream;base64,${artifactId}`,
+	});
+	assert.equal(await reducer.reduce({
+		type: 'turn-completed', conversationAnchorId: 'conversation-anchor:shared', sequence: '5',
+		turnId: 'turn-1', terminalReason: 'stop',
+	}), null);
+	const action = await reducer.reduce({
+		type: 'action-started', conversationAnchorId: 'conversation-anchor:shared', sequence: '6', turnId: 'turn-1',
+		action: { actionId: 'action-1', turnId: 'turn-1', capabilityContract: 'image.generate', status: 'started', projectionMessageId: null, artifactId: null, reasonCode: null, message: null },
+	});
+	assert.equal(action?.chat.eventTypes[0], 'action-started');
+	const voice = await reducer.reduce({
+		type: 'voice-ready', conversationAnchorId: 'conversation-anchor:shared', sequence: '7', turnId: 'turn-1',
+		voice: { voiceId: 'voice-1', turnId: 'turn-1', messageId: 'message-1', state: 'ready', artifactId: 'voice-artifact-1', reasonCode: null, message: null },
+	});
+	assert.equal(voice?.chat.messages[0].kind, 'voice');
+	assert.equal(voice?.chat.messages[0].metadata.voiceArtifactId, 'voice-artifact-1');
+	const actionFailed = await reducer.reduce({
+		type: 'action-failed', conversationAnchorId: 'conversation-anchor:shared', sequence: '8', turnId: 'turn-1',
+		action: { actionId: 'action-1', turnId: 'turn-1', capabilityContract: 'image.generate', status: 'failed', projectionMessageId: null, artifactId: null, reasonCode: 'AI_PROVIDER_UNAVAILABLE', message: 'Image provider unavailable.' },
+	});
+	assert.equal(actionFailed?.chat.actions[0].status, 'failed');
+	const completed = await reducer.reduce({
+		type: 'turn-completed', conversationAnchorId: 'conversation-anchor:shared', sequence: '9', turnId: 'turn-1', terminalReason: 'stop',
+	});
+	assert.equal(completed?.chat.state, 'completed');
+	assert.equal(completed?.chat.actions[0].status, 'failed');
+	assert.equal(completed?.chat.actions[0].reasonCode, 'AI_PROVIDER_UNAVAILABLE');
+});
+
+test('ambient synchronization subscribes before snapshot and replays only above high-water', async () => {
+	const { subscribeZhiyuAmbientConversation } = await importAmbientModule();
+	let subscribed = false;
+	let canceled = false;
+	const updates = [];
+	let resolveFresh;
+	const fresh = new Promise((resolve) => { resolveFresh = resolve; });
+	const cleanup = subscribeZhiyuAmbientConversation({
+		conversation: {
+			async subscribe() {
+				subscribed = true;
+				return {
+					async *[Symbol.asyncIterator]() {
+						yield { type: 'turn-failed', conversationAnchorId: 'conversation-anchor:shared', sequence: '5', turnId: 'turn-1', reasonCode: 'STALE', message: null };
+						yield { type: 'turn-completed', conversationAnchorId: 'conversation-anchor:shared', sequence: '6', turnId: 'turn-1', terminalReason: 'stop' };
+					},
+					async cancel() { canceled = true; },
+				};
+			},
+		},
+		identity: { agentHandle: 'opaque-agent-handle', conversationAnchorId: 'conversation-anchor:shared' },
+		async hydrate() {
+			assert.equal(subscribed, true, 'subscription must be established before snapshot hydration');
+			return { ...perSendChat({ requestId: 'request-1', runtimeTurnId: 'turn-1', runtimeMessageId: 'message-1' }), diagnostics: { throughSequence: '5' } };
+		},
+		onChat(chat) {
+			updates.push(chat);
+			if (chat.eventTypes.includes('turn-completed')) resolveFresh();
+		},
+	});
+	await fresh;
+	cleanup();
+	await new Promise((resolve) => setTimeout(resolve, 0));
+	assert.equal(updates.some((chat) => chat.reasonCode === 'STALE'), false);
+	assert.equal(updates.at(-1).state, 'completed');
+	assert.equal(canceled, true);
+});
+
+test('ambient synchronization replaces subscription once after exact retryable overflow', async () => {
+	const { subscribeZhiyuAmbientConversation } = await importAmbientModule();
+	let subscribeCalls = 0;
+	let hydrateCalls = 0;
+	let cancelCalls = 0;
+	let resolveCompleted;
+	const completed = new Promise((resolve) => { resolveCompleted = resolve; });
+	const cleanup = subscribeZhiyuAmbientConversation({
+		conversation: {
+			async subscribe() {
+				subscribeCalls += 1;
+				const attempt = subscribeCalls;
+				return {
+					async *[Symbol.asyncIterator]() {
+						if (attempt === 1) {
+							throw Object.assign(new Error('conversation overflow'), {
+								reasonCode: 'local-app-owner-unavailable',
+								details: { retryable: true, reasonMetadata: { diagnostic_stage: 'local_app_conversation_subscription_overflow' } },
+							});
+						}
+						yield { type: 'turn-completed', conversationAnchorId: 'conversation-anchor:shared', sequence: '7', turnId: 'turn-1', terminalReason: 'stop' };
+					},
+					async cancel() { cancelCalls += 1; },
+				};
+			},
+		},
+		identity: { agentHandle: 'opaque-agent-handle', conversationAnchorId: 'conversation-anchor:shared' },
+		async hydrate() {
+			hydrateCalls += 1;
+			return {
+				...perSendChat({ requestId: 'request-1', runtimeTurnId: 'turn-1', runtimeMessageId: 'message-1' }),
+				diagnostics: { throughSequence: hydrateCalls === 1 ? '5' : '6' },
+			};
+		},
+		onChat(chat) {
+			if (chat.eventTypes.includes('turn-completed')) resolveCompleted();
+		},
+	});
+	await completed;
+	cleanup();
+	await new Promise((resolve) => setTimeout(resolve, 0));
+	assert.equal(subscribeCalls, 2);
+	assert.equal(hydrateCalls, 2);
+	assert.equal(cancelCalls, 2);
 });
 
 async function importAmbientModule() {
@@ -123,7 +250,7 @@ async function buildModules() {
 function event(messageType, payload) {
   const base = {
     conversationAnchorId: payload.conversation_anchor_id,
-    sequence: '1',
+		sequence: payload.sequence ?? '1',
     turnId: payload.turn_id,
   };
   switch (messageType) {
@@ -190,6 +317,7 @@ function perSendChat({ requestId, runtimeTurnId, runtimeMessageId }) {
     eventTypes: [],
     messageCount: messages.length,
     messages,
+		actions: [],
     latestAssistantText: 'Shared committed answer',
     reasoningText: null,
     outputText: 'Shared committed answer',

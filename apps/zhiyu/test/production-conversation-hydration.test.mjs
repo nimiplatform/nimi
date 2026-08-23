@@ -119,6 +119,55 @@ test('production conversation hydration accepts an empty bounded snapshot withou
   assert.deepEqual(hydrated.chat.messages, []);
 });
 
+test('production conversation hydration preserves active and terminal failure truth', async () => {
+	const { hydrateZhiyuProductionConversation } = await importHydrationModule();
+	for (const [status, state, ready] of [
+		['active', 'streaming', false],
+		['failed', 'failed', false],
+		['interrupted', 'canceled', false],
+	]) {
+		const hydrated = await hydrateZhiyuProductionConversation({
+			agentHandle: 'opaque-agent-handle', conversationAnchorId: 'conversation-anchor:shared',
+			currentChat: idleChat(), currentSource: blockedSource(),
+		}, {
+			async snapshot() {
+				return {
+					conversationAnchorId: 'conversation-anchor:shared', throughSequence: '4',
+					turns: [{ turnId: 'turn-state', status, phase: status === 'active' ? 'started' : null, terminalReason: null, reasonCode: status === 'failed' ? 'AI_PROVIDER_TIMEOUT' : null, message: null }],
+					messages: [], actions: [], voices: [], truncatedBefore: false,
+				};
+			},
+		});
+		assert.equal(hydrated.chat.state, state);
+		assert.equal(hydrated.chat.ready, ready);
+		assert.equal(hydrated.chat.runtimeTurnId, 'turn-state');
+	}
+});
+
+test('production conversation hydration preserves failed image action beside completed text turn', async () => {
+	const { hydrateZhiyuProductionConversation } = await importHydrationModule();
+	const hydrated = await hydrateZhiyuProductionConversation({
+		agentHandle: 'opaque-agent-handle', conversationAnchorId: 'conversation-anchor:shared',
+		currentChat: idleChat(), currentSource: blockedSource(),
+	}, {
+		async snapshot() {
+			return {
+				conversationAnchorId: 'conversation-anchor:shared', throughSequence: '12',
+				turns: [{ turnId: 'turn-action-failed', status: 'completed', phase: null, terminalReason: 'stop', reasonCode: null, message: null }],
+				messages: [{ messageId: 'assistant-action-failed', turnId: 'turn-action-failed', role: 'assistant', parts: [{ kind: 'text', text: 'Text reply remains.' }] }],
+				actions: [{ actionId: 'action-failed-1', turnId: 'turn-action-failed', capabilityContract: 'image.generate', status: 'failed', projectionMessageId: null, artifactId: null, reasonCode: 'AI_PROVIDER_UNAVAILABLE', message: 'Image provider unavailable.' }],
+				voices: [], truncatedBefore: false,
+			};
+		},
+	});
+	assert.equal(hydrated.chat.state, 'completed');
+	assert.equal(hydrated.chat.messages[0].text, 'Text reply remains.');
+	assert.deepEqual(hydrated.chat.actions, [{
+		actionId: 'action-failed-1', turnId: 'turn-action-failed', capabilityContract: 'image.generate',
+		status: 'failed', reasonCode: 'AI_PROVIDER_UNAVAILABLE', message: 'Image provider unavailable.',
+	}]);
+});
+
 test('production conversation hydration resolves a final voice sidecar without an audio message part', async () => {
   const { hydrateZhiyuProductionConversation } = await importHydrationModule();
   const hydrated = await hydrateZhiyuProductionConversation({
