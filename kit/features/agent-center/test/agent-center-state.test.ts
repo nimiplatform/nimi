@@ -59,6 +59,9 @@ describe('Agent Center state projection', () => {
     expect(state.baseTextConfigured).toBe(true);
     expect(state.sharedAIConfig?.revision).toBe('1');
     expect(JSON.stringify(state.sharedAIConfig)).not.toMatch(/readiness|updatedAt/u);
+	expect(state.capabilities.map((capability) => capability.capability)).toEqual(
+		PARTICIPATION.map((row) => row.capabilityContract),
+	);
   });
 
   it('distinguishes canonical not-configured state from an unavailable snapshot', () => {

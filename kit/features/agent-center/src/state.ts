@@ -21,10 +21,10 @@ function capabilityLabel(capability: AgentCenterCapabilityId): string {
 }
 
 function projectedCapabilities(input: AgentCenterStateInput): readonly AgentCenterCapabilityId[] {
-  const reported = new Set<string>((input.participation ?? []).map((row) => row.capabilityContract));
-  return CANONICAL_CAPABILITY_CATALOG
-    .map((descriptor) => descriptor.capabilityId)
-    .filter((capability) => reported.has(capability));
+  const catalog = new Set(CANONICAL_CAPABILITY_CATALOG.map((descriptor) => descriptor.capabilityId));
+  return (input.participation ?? [])
+    .map((row) => row.capabilityContract)
+		.filter((capability) => catalog.has(capability));
 }
 
 const DEFAULT_APPEARANCE: AgentCenterAppearanceProjection = {
