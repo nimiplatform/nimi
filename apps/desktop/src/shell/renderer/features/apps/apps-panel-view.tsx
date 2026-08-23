@@ -56,6 +56,7 @@ export interface AppsPanelViewProps {
   readonly onBack: () => void;
   readonly onOpenDeveloperMode: () => void;
   readonly onRetry: () => void;
+  readonly onAIConfigChanged: () => void;
   readonly actionError: string | null;
   readonly activeAction: Readonly<{ appId: string; action: AppCardActionId }> | null;
 }
@@ -76,6 +77,7 @@ export function AppsPanelView({
   onBack,
   onOpenDeveloperMode,
   onRetry,
+  onAIConfigChanged,
   actionError,
   activeAction,
 }: AppsPanelViewProps): ReactElement {
@@ -147,6 +149,7 @@ export function AppsPanelView({
             onAction={(action) => onCardAction(selectedEntry.registration.appId, action)}
             activeAction={activeAction?.appId === selectedEntry.registration.appId ? activeAction.action : null}
             actionError={actionError}
+            onAIConfigChanged={onAIConfigChanged}
           />
         ) : (
           <LibraryContent

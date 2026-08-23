@@ -27,6 +27,7 @@ export function AppsPanel(): ReactElement {
     runCardAction,
     retryProjection,
     closeDetail,
+    refreshAIConfig,
   } = controller;
 
   useEffect(() => {
@@ -52,6 +53,7 @@ export function AppsPanel(): ReactElement {
           setActiveTab('settings');
         }}
         onRetry={retryProjection}
+        onAIConfigChanged={refreshAIConfig}
         actionError={actionError}
         activeAction={activeAction}
       />

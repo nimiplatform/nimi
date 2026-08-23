@@ -66,6 +66,7 @@ export interface AppsDetailViewProps {
   readonly onAction: (action: AppCardActionId) => void;
   readonly activeAction: AppCardActionId | null;
   readonly actionError: string | null;
+  readonly onAIConfigChanged: () => void;
 }
 
 export function AppsDetailView({
@@ -76,6 +77,7 @@ export function AppsDetailView({
   onAction,
   activeAction,
   actionError,
+  onAIConfigChanged,
 }: AppsDetailViewProps): ReactElement {
   const { t, i18n } = useTranslation();
   const [activeTab, setActiveTab] = useState<AppsDetailTab>('overview');
@@ -343,6 +345,8 @@ export function AppsDetailView({
               <AppsAIConfigSection
                 appId={registration.appId}
                 appDisplayName={registration.displayName}
+                allowedRoutes={registration.aiConfigAllowedRoutes}
+                onAIConfigChanged={onAIConfigChanged}
               />
             </div>
           ) : null}

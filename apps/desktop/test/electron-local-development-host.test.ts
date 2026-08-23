@@ -15,7 +15,10 @@ import {
   resolveLocalDevelopmentRegistrationFailureState,
   sameLocalDevelopmentProject,
 } from '../src-electron/local-development-host.js';
-import type { ElectronLocalDevelopmentPlan } from '../src-electron/local-development-plan.js';
+import {
+  readElectronAIConfigAllowedRoutes,
+  type ElectronLocalDevelopmentPlan,
+} from '../src-electron/local-development-plan.js';
 import { resolveLocalDevelopmentElectronHostArguments } from '../src-electron/local-development-host-arguments.js';
 
 const HANDLE = '11'.repeat(32);
@@ -30,7 +33,7 @@ function registration(
       appId: 'example.local-app',
       displayName: 'Example Local App',
       canonicalProjectRoot: '/projects/example',
-      canonicalManifestPath: '/projects/example/nimi.app.yaml',
+      canonicalManifestPath: path.resolve(import.meta.dirname, '../../lab/nimi.app.yaml'),
       shell: 'electron',
       appAccess: ['realm.data', 'future.unknown'],
       sourceGeneration: 3,
@@ -59,6 +62,7 @@ function plan(): ElectronLocalDevelopmentPlan {
   return {
     appId: 'example.local-app',
     displayName: 'Example Local App',
+    aiConfigAllowedRoutes: ['local', 'cloud'],
     projectRoot: '/projects/example',
     rendererOrigin: 'http://127.0.0.1:1420',
     electronExecutable: '/runtime/electron',
@@ -106,6 +110,22 @@ function activeRun() {
 }
 
 describe('Desktop Electron local-development registration host', () => {
+  it('defaults route presentation to both and rejects an invalid declared set', async () => {
+    const projectRoot = await mkdtemp(path.join(os.tmpdir(), 'nimi-ai-config-routes-test-'));
+    const manifestPath = path.join(projectRoot, 'nimi.app.yaml');
+    try {
+      await writeFile(manifestPath, 'app_id: example.local-app\n', 'utf8');
+      assert.deepEqual(await readElectronAIConfigAllowedRoutes(manifestPath), ['local', 'cloud']);
+      await writeFile(manifestPath, 'ai_config_ui:\n  allowed_routes:\n    - local\n    - local\n', 'utf8');
+      await assert.rejects(
+        readElectronAIConfigAllowedRoutes(manifestPath),
+        /local-development-project-changed/u,
+      );
+    } finally {
+      await rm(projectRoot, { recursive: true, force: true });
+    }
+  });
+
   it('projects registration selectors without exposing management handles', async () => {
     const host = new ElectronLocalDevelopmentHost(control(), '/tmp');
     const rows = await host.invoke('local_development_registrations_list', {}) as Array<Record<string, unknown>>;
@@ -113,6 +133,7 @@ describe('Desktop Electron local-development registration host', () => {
     assert.equal(rows.length, 1);
     assert.equal(rows[0]?.appId, 'example.local-app');
     assert.deepEqual(rows[0]?.appAccess, ['realm.data', 'future.unknown']);
+    assert.deepEqual(rows[0]?.aiConfigAllowedRoutes, ['local', 'cloud']);
     assert.equal(rows[0]?.sourceGeneration, 3);
     assert.equal(rows[0]?.declarationGeneration, 4);
     assert.match(String(rows[0]?.selector), /^dev-project-/u);
@@ -605,6 +626,7 @@ describe('Desktop local-development project README', () => {
   it('returns the bounded README content for a registered project', async () => {
     const projectRoot = await mkdtemp(path.join(os.tmpdir(), 'nimi-readme-test-'));
     try {
+      await writeFile(path.join(projectRoot, 'nimi.app.yaml'), 'ai_config_ui:\n  allowed_routes:\n    - local\n', 'utf8');
       await writeFile(path.join(projectRoot, 'README.md'), '# Example App\n\nHello from the project.\n', 'utf8');
       const appControl = control({
         listRegistrations: async () => [registration({
@@ -621,7 +643,8 @@ describe('Desktop local-development project README', () => {
         })],
       });
       const host = new ElectronLocalDevelopmentHost(appControl, '/tmp');
-      const [row] = await host.invoke('local_development_registrations_list', {}) as Array<{ selector: string }>;
+      const [row] = await host.invoke('local_development_registrations_list', {}) as Array<{ selector: string; aiConfigAllowedRoutes: readonly string[] }>;
+      assert.deepEqual(row?.aiConfigAllowedRoutes, ['local']);
       const result = await host.invoke('local_development_project_readme', {
         payload: { selector: row!.selector },
       }) as { selector: string; content: string | null; fileName: string | null };
@@ -636,6 +659,7 @@ describe('Desktop local-development project README', () => {
   it('returns null content when no conventional README exists', async () => {
     const projectRoot = await mkdtemp(path.join(os.tmpdir(), 'nimi-readme-test-'));
     try {
+      await writeFile(path.join(projectRoot, 'nimi.app.yaml'), 'app_id: example.local-app\n', 'utf8');
       const appControl = control({
         listRegistrations: async () => [registration({
           project: {

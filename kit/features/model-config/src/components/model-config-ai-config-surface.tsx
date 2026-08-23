@@ -174,11 +174,11 @@ function localChoice(
   let description = copy.localChoiceDescription;
   if (selection?.state === 'ready' && local) {
     description = copy.localSelectedLabel;
-  } else if (selection === null || selection?.state === 'missing') {
+  } else if (selection?.state === 'missing') {
     description = copy.localMissingLabel;
   } else if (selection?.state === 'blocked') {
     description = copy.localBrokenLabel;
-  } else if (selection?.state === 'unavailable') {
+  } else if (selection !== undefined) {
     description = copy.localUnavailableLabel;
   }
   return {
@@ -964,17 +964,16 @@ function LocalSelectionSummary(props: {
 }) {
   const selection = props.selection;
   const local = selection?.resource?.oneofKind === 'local' ? selection.resource.local : null;
-  let toneClass = 'text-[var(--nimi-status-warning)]';
-  let message = props.copy.localMissingLabel;
-  if (selection === undefined) {
-    toneClass = 'text-[var(--nimi-status-success)]';
-    message = `${props.copy.localLabel} · ${props.copy.configuredLabel}`;
-  } else if (selection?.state === 'unavailable') {
-    toneClass = 'text-[var(--nimi-text-muted)]';
-    message = props.copy.localUnavailableLabel;
+  let toneClass = 'text-[var(--nimi-text-muted)]';
+  let message = props.copy.localUnavailableLabel;
+  if (selection?.state === 'missing') {
+    toneClass = 'text-[var(--nimi-status-warning)]';
+    message = props.copy.localMissingLabel;
   } else if (selection?.state === 'blocked') {
+    toneClass = 'text-[var(--nimi-status-warning)]';
     message = `${props.copy.localBrokenLabel}${selection.reasons.length > 0 ? ` ${selection.reasons.join(', ')}` : ''}`;
   } else if (selection?.state === 'ready' && props.missingFeatures.length > 0) {
+    toneClass = 'text-[var(--nimi-status-warning)]';
     message = props.copy.localMismatchLabel(props.missingFeatures.join(', '));
   } else if (selection?.state === 'ready' && local) {
     toneClass = 'text-[var(--nimi-status-success)]';

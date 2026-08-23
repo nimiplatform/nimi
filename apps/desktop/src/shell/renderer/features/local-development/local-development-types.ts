@@ -5,6 +5,7 @@ export type LocalDevelopmentRegistration = {
   readonly canonicalProjectRoot: string;
   readonly shell: 'electron';
   readonly appAccess: readonly string[];
+  readonly aiConfigAllowedRoutes: readonly ('local' | 'cloud')[];
   readonly sourceGeneration: number;
   readonly declarationGeneration: number;
   readonly registeredAtUnixMs: number;

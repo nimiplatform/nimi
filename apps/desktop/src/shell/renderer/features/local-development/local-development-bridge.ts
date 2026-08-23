@@ -101,6 +101,7 @@ function requireReadmeText(value: unknown): string | null {
 function parseRegistration(value: unknown): LocalDevelopmentRegistration {
   const record = exactRecord(value, [
     'appAccess',
+    'aiConfigAllowedRoutes',
     'appId',
     'canonicalProjectRoot',
     'declarationGeneration',
@@ -121,11 +122,28 @@ function parseRegistration(value: unknown): LocalDevelopmentRegistration {
     canonicalProjectRoot: requireText(record.canonicalProjectRoot),
     shell: 'electron',
     appAccess: record.appAccess.map(requireText),
+    aiConfigAllowedRoutes: requireAIConfigAllowedRoutes(record.aiConfigAllowedRoutes),
     sourceGeneration: requireInteger(record.sourceGeneration, 1),
     declarationGeneration: requireInteger(record.declarationGeneration, 1),
     registeredAtUnixMs: requireInteger(record.registeredAtUnixMs, 1),
     updatedAtUnixMs: requireInteger(record.updatedAtUnixMs, 1),
   };
+}
+
+function requireAIConfigAllowedRoutes(value: unknown): readonly ('local' | 'cloud')[] {
+  if (!Array.isArray(value) || value.length === 0 || value.length > 2) {
+    throw new Error('Local development registration response is invalid');
+  }
+  const routes = value.map((route) => {
+    if (route !== 'local' && route !== 'cloud') {
+      throw new Error('Local development registration response is invalid');
+    }
+    return route;
+  });
+  if (new Set(routes).size !== routes.length) {
+    throw new Error('Local development registration response is invalid');
+  }
+  return routes;
 }
 
 function parseRun(value: unknown): LocalDevelopmentRun {

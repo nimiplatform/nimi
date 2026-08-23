@@ -40,7 +40,9 @@ export function useDesktopNimiAppAIConfig(appId: string) {
     queryKey,
     queryFn: () => readDesktopNimiAppAIConfig(sdk.accountProduct().appAIConfig(appId)),
     retry: false,
-    staleTime: 30_000,
+    staleTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: 'always',
   });
 }
 

@@ -23,6 +23,7 @@ export interface AppsPanelActions {
   readonly runCardAction: (appId: string, action: AppCardActionId) => void;
   readonly retryProjection: () => void;
   readonly closeDetail: () => void;
+  readonly refreshAIConfig: () => void;
 }
 
 export type AppsPanelController = AppsPanelState & AppsPanelActions;
@@ -199,6 +200,9 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps = {}): Apps
   }, [reload]);
 
   const closeDetail = useCallback((): void => setDetailAppId(null), []);
+  const refreshAIConfig = useCallback((): void => {
+    void reload(true);
+  }, [reload]);
 
   return {
     projection,
@@ -208,6 +212,7 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps = {}): Apps
     runCardAction,
     retryProjection,
     closeDetail,
+    refreshAIConfig,
   };
 }
 

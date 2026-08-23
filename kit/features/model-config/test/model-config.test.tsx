@@ -421,6 +421,45 @@ describe('public Model Config contract', () => {
     expect(node.querySelector('[data-testid="model-config-save:text.generate"]')).toBeNull();
   });
 
+  it('does not present an absent or non-Local effective projection as a missing machine selection', async () => {
+    const absent = await renderSurface(committedOverwrite(), vi.fn(), {
+      initialCapabilityContract: 'text.generate',
+      effectiveSelections: [],
+    });
+    expect(absent.textContent).toContain('The on-device model selection could not be loaded.');
+    expect(absent.textContent).not.toContain('No on-device model is selected for this capability.');
+
+    act(() => root?.unmount());
+    container?.remove();
+    root = null;
+    container = null;
+
+    const nonLocal = await renderSurface(committedOverwrite(), vi.fn(), {
+      initialCapabilityContract: 'text.generate',
+      effectiveSelections: [{
+        capabilityContract: 'text.generate',
+        state: 'ready',
+        resource: {
+          oneofKind: 'cloud',
+          cloud: {
+            connector: {
+              connectorRef: 'connector-test', label: 'Test account', provider: 'provider-test', state: 'ready', reasons: [],
+            },
+            target: {
+              connectorRef: 'connector-test', label: 'Cloud Model', capabilityContract: 'text.generate',
+              implementation: { implementationId: 'cloud-test', driverId: 'nimillm', driverDialect: 'openai' },
+              providerModelTarget: { provider: 'provider-test', providerModelId: 'cloud-model', remoteModelCatalogId: 'rmc-cloud-model' },
+              supportedFeatures: [], state: 'ready', reasons: [],
+            },
+          },
+        },
+        reasons: [],
+      }],
+    });
+    expect(nonLocal.textContent).toContain('The on-device model selection could not be loaded.');
+    expect(nonLocal.textContent).not.toContain('No on-device model is selected for this capability.');
+  });
+
   it('preserves the local draft after CAS conflict and retries with the returned revision', async () => {
     const calls: Parameters<ModelConfigOverwrite>[0][] = [];
     const initialIntent = createNimiLocalAIConfigCapabilityIntent({

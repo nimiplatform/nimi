@@ -41,8 +41,12 @@ test('Apps detail mounts the Nimi-owned first-party surface with the exact app i
   assert.ok(accessPanelStart >= 0 && aiModelsPanelStart > accessPanelStart);
   assert.doesNotMatch(detailSource.slice(accessPanelStart, aiModelsPanelStart), /AppsAIConfigSection/u);
   assert.match(detailSource, /appId=\{registration\.appId\}/u);
+  assert.match(detailSource, /allowedRoutes=\{registration\.aiConfigAllowedRoutes\}/u);
   assert.doesNotMatch(sectionSource, /consumer:\s*'nimi-first-party'/u);
   assert.match(sectionSource, /capabilityContracts=\{CANONICAL_CAPABILITY_IDS\}/u);
+  assert.match(sectionSource, /allowedRoutes=\{allowedRoutes\}/u);
+  assert.match(sectionSource, /headerSlot=\{allowedRoutes\.includes\('local'\)/u);
+  assert.doesNotMatch(sectionSource, /parentos/iu);
   assert.match(sectionSource, /useDesktopNimiAppAIConfig\(appId\)/u);
   assert.match(sectionSource, /useOverwriteDesktopNimiAppAIConfig\(appId\)/u);
   assert.match(sectionSource, /effectiveSelections=\{appAIConfig\.data\?\.effectiveSelections\}/u);
@@ -57,6 +61,7 @@ test('Apps detail mounts the Nimi-owned first-party surface with the exact app i
   assert.match(sectionSource, /refetchOnMount:\s*'always'/u);
   assert.match(sectionSource, /refetchOnWindowFocus:\s*'always'/u);
   assert.match(sectionSource, /result\.outcome === 'conflict'[\s\S]*setOneClickFailure\('conflict'\)/u);
+  assert.match(sectionSource, /overwriteAppAIConfig\.mutateAsync\(input\)[\s\S]*onAIConfigChanged\(\)/u);
 });
 
 test('Apps one-click Local writes route-only intent and preserves capabilities without machine selection', () => {
@@ -85,6 +90,30 @@ test('Apps one-click Local writes route-only intent and preserves capabilities w
   assert.equal(text?.defaults?.fields.maxTokens?.kind.oneofKind, 'numberValue');
   assert.deepEqual(audio, preservedCloud);
   assert.doesNotMatch(JSON.stringify(next), /loadoutRef/u);
+});
+
+test('Apps AIConfig mutations refresh the canonical card summary lane', async () => {
+  const sources = await Promise.all([
+    'apps-ai-config-section.tsx',
+    'apps-detail-view.tsx',
+    'apps-panel-view.tsx',
+    'apps-panel.tsx',
+    'apps-panel-controller.ts',
+  ].map((fileName) => readFile(new URL(
+    `../src/shell/renderer/features/apps/${fileName}`,
+    import.meta.url,
+  ), 'utf8')));
+  const sectionSource = sources[0]!;
+  const detailSource = sources[1]!;
+  const viewSource = sources[2]!;
+  const panelSource = sources[3]!;
+  const controllerSource = sources[4]!;
+
+  assert.match(sectionSource, /onAIConfigChanged\(\)/u);
+  assert.match(detailSource, /onAIConfigChanged=\{onAIConfigChanged\}/u);
+  assert.match(viewSource, /onAIConfigChanged=\{onAIConfigChanged\}/u);
+  assert.match(panelSource, /onAIConfigChanged=\{refreshAIConfig\}/u);
+  assert.match(controllerSource, /const refreshAIConfig = useCallback\(\(\): void => \{\s*void reload\(true\);/u);
 });
 
 test('Apps AIConfig owner copy covers every canonical capability in both locales', () => {

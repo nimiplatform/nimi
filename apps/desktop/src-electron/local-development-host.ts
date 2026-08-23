@@ -17,7 +17,9 @@ import {
 import {
   canonicalElectronMain,
   ElectronLocalDevelopmentPlanError,
+  readElectronAIConfigAllowedRoutes,
   resolveElectronLocalDevelopmentPlan,
+  type ElectronAIConfigAllowedRoute,
   type ElectronLocalDevelopmentPlan,
 } from './local-development-plan.js';
 import {
@@ -112,6 +114,7 @@ type RendererRegistration = {
   readonly canonicalProjectRoot: string;
   readonly shell: 'electron';
   readonly appAccess: readonly string[];
+  readonly aiConfigAllowedRoutes: readonly ElectronAIConfigAllowedRoute[];
   readonly sourceGeneration: number;
   readonly declarationGeneration: number;
   readonly registeredAtUnixMs: number;
@@ -405,13 +408,17 @@ export class ElectronLocalDevelopmentHost {
     for (const [selectorValue, handle] of this.registrationSelectors) {
       if (!currentHandles.has(handle)) this.registrationSelectors.delete(selectorValue);
     }
-    return rows.map((registration) => {
+    return Promise.all(rows.map(async (registration) => {
       let selectorValue = [...this.registrationSelectors]
         .find(([, handle]) => handle === registration.registrationHandle)?.[0];
       selectorValue ??= randomSelector('dev-project');
       this.registrationSelectors.set(selectorValue, registration.registrationHandle);
-      return projectRegistration(selectorValue, registration);
-    });
+      return projectRegistration(
+        selectorValue,
+        registration,
+        await readElectronAIConfigAllowedRoutes(registration.project.canonicalManifestPath),
+      );
+    }));
   }
 
   // The project README is presentation content for the Apps detail surface,
@@ -917,6 +924,7 @@ function projectRun(status: RunStatus) {
 function projectRegistration(
   selectorValue: string,
   registration: NimiElectronLocalDevelopmentRegistration,
+  aiConfigAllowedRoutes: readonly ElectronAIConfigAllowedRoute[],
 ): RendererRegistration {
   if (registration.project.shell !== 'electron') {
     throw new Error('local-development-registration-shell-unsupported');
@@ -928,6 +936,7 @@ function projectRegistration(
     canonicalProjectRoot: registration.project.canonicalProjectRoot,
     shell: registration.project.shell,
     appAccess: [...registration.project.appAccess],
+    aiConfigAllowedRoutes: [...aiConfigAllowedRoutes],
     sourceGeneration: registration.project.sourceGeneration,
     declarationGeneration: registration.project.declarationGeneration,
     registeredAtUnixMs: registration.registeredAtUnixMs,
@@ -941,6 +950,7 @@ function sameLocalDevelopmentPlan(
 ): boolean {
   return left.appId === right.appId
     && left.displayName === right.displayName
+    && left.aiConfigAllowedRoutes.join('|') === right.aiConfigAllowedRoutes.join('|')
     && comparableCanonicalProjectPath(left.projectRoot) === comparableCanonicalProjectPath(right.projectRoot)
     && left.rendererOrigin === right.rendererOrigin
     && comparableCanonicalProjectPath(left.electronExecutable) === comparableCanonicalProjectPath(right.electronExecutable)

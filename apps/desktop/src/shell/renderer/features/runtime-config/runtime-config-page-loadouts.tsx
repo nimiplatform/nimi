@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useQueryClient } from '@tanstack/react-query';
 import { isNimiError } from '@nimiplatform/sdk/types';
 import type {
   NimiLoadoutRecipe,
@@ -71,6 +72,7 @@ function capabilitySortIndex(capabilityContract: string): number {
 export function LoadoutsPage(props: { readonly onOpenEnvironment?: () => void }) {
   const { t } = useTranslation();
   const sdk = useDesktopRendererSdk();
+  const queryClient = useQueryClient();
   const loadoutsClient = useMemo(() => sdk.machineProduct().local.loadouts, [sdk]);
   const modelAssetsClient = useRuntimeConfigLocalEnvironmentClient();
   const impactState = useMemo(() => createRuntimeConfigLoadoutImpactState(), []);
@@ -127,6 +129,13 @@ export function LoadoutsPage(props: { readonly onOpenEnvironment?: () => void })
   }, [loadoutsClient, modelAssetsClient]);
 
   useEffect(() => { void refresh(); }, [refresh]);
+
+  const refreshAIConfigProjections = useCallback(() => {
+    void Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['app-ai-config'] }),
+      queryClient.invalidateQueries({ queryKey: ['desktop', 'machine-local-ai-config-selections'] }),
+    ]);
+  }, [queryClient]);
 
   const capabilities = useMemo(() => {
     const contracts = new Set<string>();
@@ -227,6 +236,7 @@ export function LoadoutsPage(props: { readonly onOpenEnvironment?: () => void })
     try {
       await action();
       await refresh();
+      refreshAIConfigProjections();
       emitFeedbackToast({ kind: 'success', message: t('runtimeConfig.loadouts.saved') });
     } catch (error) {
       const message = errorMessage(error);
@@ -235,7 +245,7 @@ export function LoadoutsPage(props: { readonly onOpenEnvironment?: () => void })
     } finally {
       setBusy('');
     }
-  }, [busy, refresh, t]);
+  }, [busy, refresh, refreshAIConfigProjections, t]);
 
   const create = useCallback(() => {
     if (!selectedRecipe || !displayName.trim()) return;

@@ -19,11 +19,14 @@ const MACOS_PRODUCTION_LOCAL_APP_HOST_PATH = '/Applications/Nimi.app/Contents/Fr
 export type ElectronLocalDevelopmentPlan = {
   readonly appId: string;
   readonly displayName: string;
+  readonly aiConfigAllowedRoutes: readonly ElectronAIConfigAllowedRoute[];
   readonly projectRoot: string;
   readonly rendererOrigin: string;
   readonly electronExecutable: string;
   readonly mainEntry: string;
 };
+
+export type ElectronAIConfigAllowedRoute = 'local' | 'cloud';
 
 export async function resolveElectronLocalDevelopmentPlan(
   rawRoot: string,
@@ -38,6 +41,7 @@ export async function resolveElectronLocalDevelopmentPlan(
   const document = record(manifest);
   const appId = exactAppId(document.app_id);
   const displayName = text(document.display_name);
+  const aiConfigAllowedRoutes = parseAIConfigAllowedRoutes(document.ai_config_ui);
   if (expectedAppId !== appId) fail('local-development-project-changed');
   const localDevelopment = record(document.local_development);
   const electron = record(localDevelopment.electron);
@@ -61,7 +65,29 @@ export async function resolveElectronLocalDevelopmentPlan(
       projectRoot, 'node_modules', 'electron', 'dist', 'electron.exe',
     )));
   const mainEntry = within(projectRoot, path.join(projectRoot, 'dist-electron', 'main.js'));
-  return { appId, displayName, projectRoot, rendererOrigin, electronExecutable, mainEntry };
+  return { appId, displayName, aiConfigAllowedRoutes, projectRoot, rendererOrigin, electronExecutable, mainEntry };
+}
+
+// @nimi-authority: rule.nimi.platform.app-ecosystem.p-scaf-004
+export async function readElectronAIConfigAllowedRoutes(
+  manifestPath: string,
+): Promise<readonly ElectronAIConfigAllowedRoute[]> {
+  const document = record(parseYaml(await readFile(await canonicalFile(manifestPath), 'utf8')) as unknown);
+  return parseAIConfigAllowedRoutes(document.ai_config_ui);
+}
+
+function parseAIConfigAllowedRoutes(value: unknown): readonly ElectronAIConfigAllowedRoute[] {
+  if (value === undefined) return ['local', 'cloud'];
+  const ui = record(value);
+  if (!Array.isArray(ui.allowed_routes) || ui.allowed_routes.length === 0 || ui.allowed_routes.length > 2) {
+    fail('local-development-project-changed');
+  }
+  const routes = ui.allowed_routes.map((route) => {
+    if (route !== 'local' && route !== 'cloud') fail('local-development-project-changed');
+    return route;
+  });
+  if (new Set(routes).size !== routes.length) fail('local-development-project-changed');
+  return routes;
 }
 
 function macOSLocalAppHostPath(): string {

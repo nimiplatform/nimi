@@ -30,6 +30,18 @@ const testDir = path.dirname(fileURLToPath(import.meta.url));
 const rendererDir = path.join(testDir, '..', 'src', 'shell', 'renderer');
 const localePath = (locale: 'en' | 'zh') => path.join(rendererDir, 'locales', locale, '46-runtimeConfig.json');
 
+test('Loadout mutations invalidate App effective projections and one-click selection reads', async () => {
+  const source = await readFile(path.join(
+    rendererDir,
+    'features',
+    'runtime-config',
+    'runtime-config-page-loadouts.tsx',
+  ), 'utf8');
+  assert.match(source, /invalidateQueries\(\{ queryKey: \['app-ai-config'\] \}\)/u);
+  assert.match(source, /invalidateQueries\(\{ queryKey: \['desktop', 'machine-local-ai-config-selections'\] \}\)/u);
+  assert.match(source, /await refresh\(\);\s*refreshAIConfigProjections\(\);/u);
+});
+
 test('Loadout slot incompatibility preserves the Runtime typed reason', () => {
   const error = createNimiError({
     message: 'Loadout is not fully configured against current ModelAsset content',

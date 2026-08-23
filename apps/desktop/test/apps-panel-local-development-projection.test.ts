@@ -21,6 +21,7 @@ function registration(
     canonicalProjectRoot: '/projects/example',
     shell: 'electron',
     appAccess: ['realm.data', 'future.unknown'],
+    aiConfigAllowedRoutes: ['local', 'cloud'],
     sourceGeneration: 1,
     declarationGeneration: 2,
     registeredAtUnixMs: 1_721_000_000_000,

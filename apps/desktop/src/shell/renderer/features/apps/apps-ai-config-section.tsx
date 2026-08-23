@@ -249,11 +249,16 @@ function useAppsModelConfigCopy(appDisplayName: string): ModelConfigCopy {
 export interface AppsAIConfigSectionProps {
   readonly appId: string;
   readonly appDisplayName: string;
+  readonly allowedRoutes: readonly ('local' | 'cloud')[];
+  readonly onAIConfigChanged: () => void;
 }
 
+// @nimi-authority: rule.nimi.desktop.shell-ui.r102
 export function AppsAIConfigSection({
   appId,
   appDisplayName,
+  allowedRoutes,
+  onAIConfigChanged,
 }: AppsAIConfigSectionProps) {
   const { t } = useTranslation();
   const runtimeConfigNavigation = useDesktopRendererCommands().runtimeConfigNavigation;
@@ -263,6 +268,13 @@ export function AppsAIConfigSection({
   const overwriteAppAIConfig = useOverwriteDesktopNimiAppAIConfig(appId);
   const copy = useAppsModelConfigCopy(appDisplayName);
   const [oneClickFailure, setOneClickFailure] = useState<'conflict' | 'failed' | null>(null);
+  const overwriteAndRefreshSummary = useCallback(async (
+    input: Parameters<typeof overwriteAppAIConfig.mutateAsync>[0],
+  ) => {
+    const result = await overwriteAppAIConfig.mutateAsync(input);
+    onAIConfigChanged();
+    return result;
+  }, [onAIConfigChanged, overwriteAppAIConfig]);
   const machineSelections = useQuery({
     queryKey: ['desktop', 'machine-local-ai-config-selections'],
     queryFn: async () => {
@@ -293,6 +305,7 @@ export function AppsAIConfigSection({
       <ModelConfigAIConfigSurface
         context={{ owner: 'app-ai-config', appId }}
         capabilityContracts={CANONICAL_CAPABILITY_IDS}
+        allowedRoutes={allowedRoutes}
         capabilities={appAIConfig.data?.config?.capabilities ?? (appAIConfig.isPending ? undefined : null)}
         revision={appAIConfig.data?.revision}
         effectiveSelections={appAIConfig.data?.effectiveSelections}
@@ -300,14 +313,14 @@ export function AppsAIConfigSection({
         loading={appAIConfig.isPending}
         loadError={appAIConfig.isError ? copy.loadFailed : null}
         onRetry={() => { void appAIConfig.refetch(); }}
-        onOverwrite={(input) => overwriteAppAIConfig.mutateAsync(input)}
+        onOverwrite={overwriteAndRefreshSummary}
         onOpenMachineLoadout={openMachineLoadout}
         formatError={(error) => ({
           message: copy.saveFailed || 'Runtime could not save this app\'s AI configuration.',
           technicalDetail: error instanceof Error ? error.message : String(error || ''),
         })}
         copy={copy}
-        headerSlot={(
+        headerSlot={allowedRoutes.includes('local') ? (
           <div className="space-y-2" data-testid="apps-ai-config-one-click-local">
             <Button
               tone="secondary"
@@ -329,7 +342,7 @@ export function AppsAIConfigSection({
                   const revision = freshConfig.data?.revision;
                   const selectedCapabilities = freshSelections.data ?? [];
                   if (revision === undefined || selectedCapabilities.length === 0) return;
-                  const result = await overwriteAppAIConfig.mutateAsync({
+                  const result = await overwriteAndRefreshSummary({
                     expectedRevision: revision,
                     capabilities: buildAppsOneClickLocalAIConfig(
                       freshConfig.data?.config?.capabilities ?? [],
@@ -358,7 +371,7 @@ export function AppsAIConfigSection({
               <InlineAlert tone="danger">{t('Apps.aiConfig.oneClickFailed')}</InlineAlert>
             ) : null}
           </div>
-        )}
+        ) : undefined}
       />
     </section>
   );
