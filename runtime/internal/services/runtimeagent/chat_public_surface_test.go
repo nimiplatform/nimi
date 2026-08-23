@@ -168,9 +168,12 @@ func TestPublicChatTurnRequestImageActionPromptFollowsAgentAIConfig(t *testing.T
 		t.Fatalf("not_configured prompt must state the not-configured truth, got %q", notConfigured)
 	}
 
+	selected := machineLocalExecutionProjectionForTest("lcc-image", runtimeAgentAIConfigCapabilityImageGenerate, "local/image", nil)
+	selected.SupportedFeatures = []string{"output.image"}
 	available := publicChatScenarioSystemPromptForImageConfig(t, &publicChatExecutionBinding{
 		ModelID: "local/image", RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
-		TargetRef: publicChatTestLocalRuntimeTargetRef("test_runtime_readiness:v2:image"),
+		CapabilityContract: runtimeAgentAIConfigCapabilityImageGenerate,
+		RequiredFeatures:   []string{"output.image"}, LocalAIConfigIntent: true, LocalExecution: selected,
 	})
 	if !strings.Contains(available, `include exactly one sibling <action kind="image">`) {
 		t.Fatalf("image action routing rule must be exposed when the committed image.generate binding is ready, got %q", available)
@@ -183,6 +186,18 @@ func TestPublicChatTurnRequestImageActionPromptFollowsAgentAIConfig(t *testing.T
 	}
 	if !strings.Contains(available, `all reply text stays in message, with no text between/after tags`) {
 		t.Fatalf("APML prompt must prohibit natural-language text outside message, got %q", available)
+	}
+
+	unavailable := publicChatScenarioSystemPromptForImageConfig(t, &publicChatExecutionBinding{
+		ModelID: "local/image", RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+		CapabilityContract: runtimeAgentAIConfigCapabilityImageGenerate,
+		RequiredFeatures:   []string{"input.image"}, LocalAIConfigIntent: true, LocalExecution: selected,
+	})
+	if strings.Contains(unavailable, `include exactly one sibling <action kind="image">`) {
+		t.Fatalf("feature-incompatible Local image binding must not expose the image action, got %q", unavailable)
+	}
+	if !strings.Contains(unavailable, "Image route unavailable") {
+		t.Fatalf("feature-incompatible Local image binding must project unavailable, got %q", unavailable)
 	}
 }
 

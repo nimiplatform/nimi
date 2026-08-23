@@ -520,9 +520,21 @@ func publicChatImageActionTurnPayload(t *testing.T, anchorID string) *structpb.S
 func submitPublicChatImageActionTurn(t *testing.T, svc *Service, anchorID string, includeImageBinding bool) {
 	t.Helper()
 	if includeImageBinding {
+		selected := machineLocalExecutionProjectionForTest(
+			"lcc-image",
+			runtimeAgentAIConfigCapabilityImageGenerate,
+			"local/image",
+			nil,
+		)
 		upsertPublicChatTestAgentAIConfig(t, svc, publicChatExecutionBinding{
-			ModelID: "local/image", RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
-			TargetRef: publicChatTestLocalRuntimeTargetRef("test_runtime_readiness:v2:image"),
+			BindingAlias: "lcc-image", ModelID: "local/image", RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+			CapabilityContract: runtimeAgentAIConfigCapabilityImageGenerate,
+			ExecutionIntent: executionintent.Intent{
+				CapabilityContract: runtimeAgentAIConfigCapabilityImageGenerate,
+				Route:              runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+			},
+			LocalAIConfigIntent: true,
+			LocalExecution:      selected,
 		})
 	}
 	err := svc.ConsumePublicChatAppMessage(context.Background(), &runtimev1.AppMessageEvent{

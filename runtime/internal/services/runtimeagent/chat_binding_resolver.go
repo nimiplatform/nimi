@@ -395,12 +395,19 @@ func validateCommittedOptionalExecutionBinding(capability string, binding public
 	return nil
 }
 
-func (s *Service) deriveImageActionAvailability(agentInstanceID string, configRevision uint64, hasImageBinding bool) publicChatImageActionAvailability {
+func (s *Service) deriveImageActionAvailability(agentInstanceID string, configRevision uint64, binding publicChatExecutionBinding, hasImageBinding bool) publicChatImageActionAvailability {
 	_ = s
 	_ = agentInstanceID
 	_ = configRevision
 	if !hasImageBinding {
 		return publicChatImageActionNotConfigured
+	}
+	if binding.RoutePolicy == runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL &&
+		(binding.LocalExecution == nil || !localexecution.SupportsRequiredFeatures(
+			binding.RequiredFeatures,
+			binding.LocalExecution.SupportedFeatures,
+		)) {
+		return publicChatImageActionUnavailable
 	}
 	return publicChatImageActionAvailable
 }

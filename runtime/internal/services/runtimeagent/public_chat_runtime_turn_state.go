@@ -66,9 +66,9 @@ func (r publicChatRuntime) reserveTurn(
 			releaseUnclaimedBinding()
 		}
 	}()
-	_, hasImageBinding := resolvedBindings[runtimeAgentAIConfigCapabilityImageGenerate]
+	imageBinding, hasImageBinding := resolvedBindings[runtimeAgentAIConfigCapabilityImageGenerate]
 	availableActions := publicChatAvailableActions{
-		ImageGenerate: r.svc.deriveImageActionAvailability(localAgentRef, configRevision, hasImageBinding),
+		ImageGenerate: r.svc.deriveImageActionAvailability(localAgentRef, configRevision, imageBinding, hasImageBinding),
 	}
 	reasoning := normalizePublicChatReasoning(req.Reasoning)
 	for {
