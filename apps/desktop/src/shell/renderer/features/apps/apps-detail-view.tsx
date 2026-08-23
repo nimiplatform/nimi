@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactElement, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { NimiDesktopOpenAppsSection } from '@nimiplatform/kit/core/desktop-open';
+import type { NimiAIConfigOverwriteResult } from '@nimiplatform/kit/core/sdk-contract';
 import {
   ArrowLeft,
   BookOpen,
@@ -66,7 +67,7 @@ export interface AppsDetailViewProps {
   readonly onAction: (action: AppCardActionId) => void;
   readonly activeAction: AppCardActionId | null;
   readonly actionError: string | null;
-  readonly onAIConfigChanged: () => void;
+  readonly onAIConfigChanged: (result: NimiAIConfigOverwriteResult) => void;
 }
 
 export function AppsDetailView({

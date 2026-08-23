@@ -61,7 +61,7 @@ test('Apps detail mounts the Nimi-owned first-party surface with the exact app i
   assert.match(sectionSource, /refetchOnMount:\s*'always'/u);
   assert.match(sectionSource, /refetchOnWindowFocus:\s*'always'/u);
   assert.match(sectionSource, /result\.outcome === 'conflict'[\s\S]*setOneClickFailure\('conflict'\)/u);
-  assert.match(sectionSource, /overwriteAppAIConfig\.mutateAsync\(input\)[\s\S]*onAIConfigChanged\(\)/u);
+  assert.match(sectionSource, /overwriteAppAIConfig\.mutateAsync\(input\)[\s\S]*onAIConfigChanged\(result\)/u);
 });
 
 test('Apps one-click Local writes route-only intent and preserves capabilities without machine selection', () => {
@@ -109,11 +109,12 @@ test('Apps AIConfig mutations refresh the canonical card summary lane', async ()
   const panelSource = sources[3]!;
   const controllerSource = sources[4]!;
 
-  assert.match(sectionSource, /onAIConfigChanged\(\)/u);
+  assert.match(sectionSource, /onAIConfigChanged\(result\)/u);
   assert.match(detailSource, /onAIConfigChanged=\{onAIConfigChanged\}/u);
-  assert.match(viewSource, /onAIConfigChanged=\{onAIConfigChanged\}/u);
-  assert.match(panelSource, /onAIConfigChanged=\{refreshAIConfig\}/u);
-  assert.match(controllerSource, /const refreshAIConfig = useCallback\(\(\): void => \{\s*void reload\(true\);/u);
+  assert.match(viewSource, /onAIConfigChanged=\{\(result\) => onAIConfigChanged\(selectedEntry\.registration\.appId, result\)\}/u);
+  assert.match(panelSource, /onAIConfigChanged=\{acknowledgeAIConfigMutation\}/u);
+  assert.match(controllerSource, /applyAppsPanelAIConfigAcknowledgement\(projectionRef\.current, appId, result\)/u);
+  assert.match(controllerSource, /setProjection\(acknowledged\)[\s\S]*void reload\(true\)/u);
 });
 
 test('Apps AIConfig owner copy covers every canonical capability in both locales', () => {

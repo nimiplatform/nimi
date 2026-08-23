@@ -8,6 +8,7 @@ import {
 } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { NimiDesktopOpenAppsSection } from '@nimiplatform/kit/core/desktop-open';
+import type { NimiAIConfigOverwriteResult } from '@nimiplatform/kit/core/sdk-contract';
 import {
   ArrowUpDown,
   Box,
@@ -56,7 +57,7 @@ export interface AppsPanelViewProps {
   readonly onBack: () => void;
   readonly onOpenDeveloperMode: () => void;
   readonly onRetry: () => void;
-  readonly onAIConfigChanged: () => void;
+  readonly onAIConfigChanged: (appId: string, result: NimiAIConfigOverwriteResult) => void;
   readonly actionError: string | null;
   readonly activeAction: Readonly<{ appId: string; action: AppCardActionId }> | null;
 }
@@ -149,7 +150,7 @@ export function AppsPanelView({
             onAction={(action) => onCardAction(selectedEntry.registration.appId, action)}
             activeAction={activeAction?.appId === selectedEntry.registration.appId ? activeAction.action : null}
             actionError={actionError}
-            onAIConfigChanged={onAIConfigChanged}
+            onAIConfigChanged={(result) => onAIConfigChanged(selectedEntry.registration.appId, result)}
           />
         ) : (
           <LibraryContent

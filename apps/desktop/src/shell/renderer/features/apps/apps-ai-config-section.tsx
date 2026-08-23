@@ -6,6 +6,7 @@ import {
 } from '@nimiplatform/kit/core/runtime-capabilities';
 import {
   createNimiLocalAIConfigCapabilityIntent,
+  type NimiAIConfigOverwriteResult,
   type NimiPortableAppAIConfigIntent,
 } from '@nimiplatform/kit/core/sdk-contract';
 import {
@@ -250,7 +251,7 @@ export interface AppsAIConfigSectionProps {
   readonly appId: string;
   readonly appDisplayName: string;
   readonly allowedRoutes: readonly ('local' | 'cloud')[];
-  readonly onAIConfigChanged: () => void;
+  readonly onAIConfigChanged: (result: NimiAIConfigOverwriteResult) => void;
 }
 
 // @nimi-authority: rule.nimi.desktop.shell-ui.r102
@@ -272,7 +273,7 @@ export function AppsAIConfigSection({
     input: Parameters<typeof overwriteAppAIConfig.mutateAsync>[0],
   ) => {
     const result = await overwriteAppAIConfig.mutateAsync(input);
-    onAIConfigChanged();
+    onAIConfigChanged(result);
     return result;
   }, [onAIConfigChanged, overwriteAppAIConfig]);
   const machineSelections = useQuery({

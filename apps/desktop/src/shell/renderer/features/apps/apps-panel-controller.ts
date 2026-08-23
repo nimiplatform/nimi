@@ -6,11 +6,15 @@ import { resolveDetailAppId } from './apps-card-fields.js';
 import { createDesktopAppsLiveBridge } from './apps-live-bridge.js';
 import {
   projectAppsPanel,
+  summarizeAppAIConfig,
   type DesktopAppAIConfigReadOptions,
   type DesktopAppsPanelProjection,
   type DesktopAppsProjectionSource,
 } from './apps-panel-projection.js';
-import type { NimiAIConfigSnapshot } from '@nimiplatform/kit/core/sdk-contract';
+import type {
+  NimiAIConfigOverwriteResult,
+  NimiAIConfigSnapshot,
+} from '@nimiplatform/kit/core/sdk-contract';
 
 export interface AppsPanelState {
   readonly projection: DesktopAppsPanelProjection | null;
@@ -23,7 +27,7 @@ export interface AppsPanelActions {
   readonly runCardAction: (appId: string, action: AppCardActionId) => void;
   readonly retryProjection: () => void;
   readonly closeDetail: () => void;
-  readonly refreshAIConfig: () => void;
+  readonly acknowledgeAIConfigMutation: (appId: string, result: NimiAIConfigOverwriteResult) => void;
 }
 
 export type AppsPanelController = AppsPanelState & AppsPanelActions;
@@ -73,6 +77,26 @@ export function mergeAppsPanelProjection(
       };
     }),
   };
+}
+
+export function applyAppsPanelAIConfigAcknowledgement(
+  current: DesktopAppsPanelProjection | null,
+  appId: string,
+  result: NimiAIConfigOverwriteResult,
+): DesktopAppsPanelProjection | null {
+  if (current?.status !== 'loaded') return current;
+  let matched = false;
+  const aiConfigSummary = summarizeAppAIConfig({
+    config: result.config,
+    revision: result.revision,
+    effectiveSelections: [],
+  });
+  const entries = current.entries.map((entry) => {
+    if (entry.registration.appId !== appId) return entry;
+    matched = true;
+    return { ...entry, aiConfigSummary };
+  });
+  return matched ? { status: 'loaded', entries } : current;
 }
 
 export function createAppsPanelProjectionReloader(input: {
@@ -200,7 +224,15 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps = {}): Apps
   }, [reload]);
 
   const closeDetail = useCallback((): void => setDetailAppId(null), []);
-  const refreshAIConfig = useCallback((): void => {
+  const acknowledgeAIConfigMutation = useCallback((
+    appId: string,
+    result: NimiAIConfigOverwriteResult,
+  ): void => {
+    const acknowledged = applyAppsPanelAIConfigAcknowledgement(projectionRef.current, appId, result);
+    if (acknowledged !== projectionRef.current) {
+      projectionRef.current = acknowledged;
+      setProjection(acknowledged);
+    }
     void reload(true);
   }, [reload]);
 
@@ -212,7 +244,7 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps = {}): Apps
     runCardAction,
     retryProjection,
     closeDetail,
-    refreshAIConfig,
+    acknowledgeAIConfigMutation,
   };
 }
 

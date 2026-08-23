@@ -5,7 +5,10 @@ import {
   type NimiAIConfigSnapshot,
 } from '@nimiplatform/sdk/ai';
 import type { LocalDevelopmentRegistration } from '../src/shell/renderer/features/local-development/local-development-types.js';
-import { createAppsPanelProjectionReloader } from '../src/shell/renderer/features/apps/apps-panel-controller.js';
+import {
+  applyAppsPanelAIConfigAcknowledgement,
+  createAppsPanelProjectionReloader,
+} from '../src/shell/renderer/features/apps/apps-panel-controller.js';
 import {
   projectAppsPanel,
   type DesktopAppsPanelProjection,
@@ -155,6 +158,48 @@ describe('Desktop Apps local-development registration projection', () => {
       assert.equal(refreshedProjection.entries[0]?.aiConfigSummary?.healthPosture, 'healthy');
     }
     reloader.dispose();
+  });
+
+  it('applies mutation acknowledgement route facts before an effective refresh', () => {
+    const row = registration({ appAccess: ['runtime.consume'] });
+    const current: DesktopAppsPanelProjection = {
+      status: 'loaded',
+      entries: [{
+        registration: row,
+        run: null,
+        aiConfigSummary: {
+          routePosture: 'partial-local', healthPosture: 'healthy', intentCount: 1, total: 9,
+          blockedCount: 0, localCount: 1, cloudCount: 0,
+        },
+      }],
+    };
+    const cloud = createNimiCloudAIConfigCapabilityIntent({
+      capabilityContract: 'text.generate',
+      connectorRef: 'connector:text',
+      implementation: { implementationId: 'provider', driverId: 'driver', driverDialect: 'provider' },
+      providerModelTarget: {
+        provider: 'provider', providerModelId: 'text-1', remoteModelCatalogId: 'catalog:text-1',
+      },
+    });
+
+    const acknowledged = applyAppsPanelAIConfigAcknowledgement(current, row.appId, {
+      outcome: 'conflict',
+      config: { capabilities: [cloud] },
+      revision: '2',
+      reasonCode: 'AI_CONFIG_REVISION_CONFLICT',
+    });
+
+    assert.equal(acknowledged?.status, 'loaded');
+    if (acknowledged?.status !== 'loaded') return;
+    assert.deepEqual(acknowledged.entries[0]?.aiConfigSummary, {
+      routePosture: 'partial-cloud',
+      healthPosture: 'unavailable',
+      intentCount: 1,
+      total: 9,
+      blockedCount: 0,
+      localCount: 0,
+      cloudCount: 1,
+    });
   });
 
   it('bounds AIConfig fan-out and isolates one timed-out owner', async () => {
