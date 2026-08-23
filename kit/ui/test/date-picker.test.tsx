@@ -161,6 +161,22 @@ test('legacy onChange alias still receives committed values', async () => {
   expect(onChange).toHaveBeenCalledWith('2024-05-20');
 });
 
+test('wheel scrolling is handled by a non-passive listener so preventDefault works', async () => {
+  await mount(<DatePicker value="2024-05-20" onChange={() => undefined} />);
+  const input = container?.querySelector('input') as HTMLInputElement;
+  await openPanel(input);
+
+  const columns = panel()?.querySelectorAll('.nimi-date-picker-scroll') ?? [];
+  expect(columns.length).toBe(3);
+  for (const column of columns) {
+    const event = new WheelEvent('wheel', { deltaY: 120, cancelable: true, bubbles: true });
+    column.dispatchEvent(event);
+    // A passive listener would leave defaultPrevented false and the browser
+    // would scroll natively on top of the component's own row stepping.
+    expect(event.defaultPrevented).toBe(true);
+  }
+});
+
 test('legacy size aliases normal/small normalize onto the md/sm layouts', async () => {
   await mount(
     <div>
