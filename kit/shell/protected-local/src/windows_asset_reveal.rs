@@ -21,12 +21,7 @@ pub(crate) fn reveal_selected_file(path: &Path) -> Result<(), ()> {
         .encode_wide()
         .chain(std::iter::once(0))
         .collect::<Vec<_>>();
-    let initialize_result = unsafe {
-        CoInitializeEx(
-            ptr::null(),
-            COINIT_APARTMENTTHREADED as u32,
-        )
-    };
+    let initialize_result = unsafe { CoInitializeEx(ptr::null(), COINIT_APARTMENTTHREADED as u32) };
     if initialize_result < 0 && initialize_result != RPC_E_CHANGED_MODE {
         return Err(());
     }

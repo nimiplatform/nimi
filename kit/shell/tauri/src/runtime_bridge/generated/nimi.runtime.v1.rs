@@ -15492,9 +15492,13 @@ impl CompanionParticipationStatus {
         }
     }
 }
-/// Shared LocalAgent AIConfig actions resolve the singular subsystem owner from
-/// the authorized account scope and carry no Agent handle. Autonomy and
-/// presentation remain per-Agent and continue to require Runtime-issued handles.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAgentCapabilityParticipation {
+    #[prost(enumeration = "LocalAgentCapabilityParticipationRole", tag = "1")]
+    pub role: i32,
+    #[prost(string, tag = "2")]
+    pub capability_contract: ::prost::alloc::string::String,
+}
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct LocalAppSharedLocalAgentAiConfigProjection {
     #[prost(message, optional, tag = "1")]
@@ -15503,6 +15507,8 @@ pub struct LocalAppSharedLocalAgentAiConfigProjection {
     pub revision: ::prost::alloc::string::String,
     #[prost(message, repeated, tag = "3")]
     pub effective_selections: ::prost::alloc::vec::Vec<AiConfigEffectiveSelection>,
+    #[prost(message, repeated, tag = "4")]
+    pub participation: ::prost::alloc::vec::Vec<LocalAgentCapabilityParticipation>,
 }
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct GetLocalAppSharedLocalAgentAiConfigRequest {}
@@ -15689,6 +15695,69 @@ pub struct CommitLocalAppAgentPresentationRequest {
 pub struct LocalAppAgentCommitPresentationResponse {
     #[prost(message, optional, tag = "1")]
     pub projection: ::core::option::Option<LocalAppAgentPresentationProjection>,
+}
+/// Shared LocalAgent AIConfig actions resolve the singular subsystem owner from
+/// the authorized account scope and carry no Agent handle. Autonomy and
+/// presentation remain per-Agent and continue to require Runtime-issued handles.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum LocalAgentCapabilityParticipationRole {
+    Unspecified = 0,
+    ConversationPrimary = 1,
+    MemoryEmbedding = 2,
+    ConversationInputVoice = 3,
+    ConversationOutputVoice = 4,
+    ConversationActionImage = 5,
+}
+impl LocalAgentCapabilityParticipationRole {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_UNSPECIFIED",
+            Self::ConversationPrimary => {
+                "LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_CONVERSATION_PRIMARY"
+            }
+            Self::MemoryEmbedding => {
+                "LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_MEMORY_EMBEDDING"
+            }
+            Self::ConversationInputVoice => {
+                "LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_CONVERSATION_INPUT_VOICE"
+            }
+            Self::ConversationOutputVoice => {
+                "LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_CONVERSATION_OUTPUT_VOICE"
+            }
+            Self::ConversationActionImage => {
+                "LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_CONVERSATION_ACTION_IMAGE"
+            }
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_UNSPECIFIED" => {
+                Some(Self::Unspecified)
+            }
+            "LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_CONVERSATION_PRIMARY" => {
+                Some(Self::ConversationPrimary)
+            }
+            "LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_MEMORY_EMBEDDING" => {
+                Some(Self::MemoryEmbedding)
+            }
+            "LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_CONVERSATION_INPUT_VOICE" => {
+                Some(Self::ConversationInputVoice)
+            }
+            "LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_CONVERSATION_OUTPUT_VOICE" => {
+                Some(Self::ConversationOutputVoice)
+            }
+            "LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_CONVERSATION_ACTION_IMAGE" => {
+                Some(Self::ConversationActionImage)
+            }
+            _ => None,
+        }
+    }
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
@@ -17788,10 +17857,8 @@ pub struct ListLocalAppAgentReferencesResponse {
     #[prost(message, repeated, tag = "1")]
     pub references: ::prost::alloc::vec::Vec<LocalAppAgentReference>,
 }
-/// Protected Third-party Local App Conversation ingress is text-only and uses
-/// the session-scoped Agent selector above. These messages intentionally carry
-/// no raw LocalAgent identity, generic App-message envelope, attachment,
-/// execution configuration, provider choice, or caller-authored context.
+/// Protected Local App Conversation uses the session-scoped Agent selector
+/// above and one canonical bounded content-part vocabulary.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct OpenLocalAppConversationRequest {
     #[prost(string, tag = "1")]
@@ -17804,7 +17871,7 @@ pub struct OpenLocalAppConversationResponse {
     #[prost(string, optional, tag = "2")]
     pub active_turn_id: ::core::option::Option<::prost::alloc::string::String>,
 }
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct SendLocalAppConversationTurnRequest {
     #[prost(string, tag = "1")]
     pub agent_handle: ::prost::alloc::string::String,
@@ -17812,13 +17879,91 @@ pub struct SendLocalAppConversationTurnRequest {
     pub conversation_anchor_id: ::prost::alloc::string::String,
     #[prost(string, tag = "3")]
     pub request_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub text: ::prost::alloc::string::String,
+    #[prost(message, repeated, tag = "5")]
+    pub parts: ::prost::alloc::vec::Vec<LocalAppConversationInputPart>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct SendLocalAppConversationTurnResponse {
     #[prost(string, tag = "1")]
     pub turn_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppConversationInputArtifactRef {
+    #[prost(string, tag = "1")]
+    pub artifact_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppConversationInputPart {
+    #[prost(oneof = "local_app_conversation_input_part::Part", tags = "1, 2")]
+    pub part: ::core::option::Option<local_app_conversation_input_part::Part>,
+}
+/// Nested message and enum types in `LocalAppConversationInputPart`.
+pub mod local_app_conversation_input_part {
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+    pub enum Part {
+        #[prost(message, tag = "1")]
+        Text(super::LocalAppConversationTextPart),
+        #[prost(message, tag = "2")]
+        ArtifactRef(super::LocalAppConversationInputArtifactRef),
+    }
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct UploadLocalAppConversationAttachmentRequest {
+    #[prost(string, tag = "1")]
+    pub agent_handle: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub conversation_anchor_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub mime_type: ::prost::alloc::string::String,
+    #[prost(string, optional, tag = "4")]
+    pub display_name: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(bytes = "vec", tag = "5")]
+    pub data: ::prost::alloc::vec::Vec<u8>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct UploadLocalAppConversationAttachmentResponse {
+    #[prost(string, tag = "1")]
+    pub artifact_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub expires_at: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ReadLocalAppConversationArtifactRequest {
+    #[prost(string, tag = "1")]
+    pub agent_handle: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub conversation_anchor_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub artifact_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ReadLocalAppConversationArtifactResponse {
+    #[prost(string, tag = "1")]
+    pub artifact_id: ::prost::alloc::string::String,
+    #[prost(bytes = "vec", tag = "2")]
+    pub data: ::prost::alloc::vec::Vec<u8>,
+    #[prost(string, tag = "3")]
+    pub mime_type: ::prost::alloc::string::String,
+    #[prost(int64, tag = "4")]
+    pub byte_length: i64,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct TranscribeLocalAppConversationVoiceRequest {
+    #[prost(string, tag = "1")]
+    pub agent_handle: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub conversation_anchor_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub request_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub mime_type: ::prost::alloc::string::String,
+    #[prost(bytes = "vec", tag = "5")]
+    pub audio_bytes: ::prost::alloc::vec::Vec<u8>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct TranscribeLocalAppConversationVoiceResponse {
+    #[prost(string, tag = "1")]
+    pub text: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct InterruptLocalAppConversationTurnRequest {
@@ -17846,25 +17991,115 @@ pub struct GetLocalAppConversationSnapshotRequest {
     #[prost(string, tag = "2")]
     pub conversation_anchor_id: ::prost::alloc::string::String,
 }
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct LocalAppConversationMessage {
     #[prost(string, tag = "1")]
     pub turn_id: ::prost::alloc::string::String,
     #[prost(enumeration = "LocalAppConversationMessageRole", tag = "2")]
     pub role: i32,
-    #[prost(string, tag = "3")]
+    #[prost(string, tag = "4")]
+    pub message_id: ::prost::alloc::string::String,
+    #[prost(message, repeated, tag = "5")]
+    pub parts: ::prost::alloc::vec::Vec<LocalAppConversationMessagePart>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppConversationTextPart {
+    #[prost(string, tag = "1")]
     pub text: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppConversationArtifactPart {
+    #[prost(string, tag = "1")]
+    pub artifact_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "LocalAppConversationMediaKind", tag = "2")]
+    pub media_kind: i32,
+    #[prost(string, tag = "3")]
+    pub mime_type: ::prost::alloc::string::String,
+    #[prost(string, optional, tag = "4")]
+    pub display_name: ::core::option::Option<::prost::alloc::string::String>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppConversationMessagePart {
+    #[prost(oneof = "local_app_conversation_message_part::Part", tags = "1, 2")]
+    pub part: ::core::option::Option<local_app_conversation_message_part::Part>,
+}
+/// Nested message and enum types in `LocalAppConversationMessagePart`.
+pub mod local_app_conversation_message_part {
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+    pub enum Part {
+        #[prost(message, tag = "1")]
+        Text(super::LocalAppConversationTextPart),
+        #[prost(message, tag = "2")]
+        Artifact(super::LocalAppConversationArtifactPart),
+    }
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppConversationTurn {
+    #[prost(string, tag = "1")]
+    pub turn_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "LocalAppConversationTurnStatus", tag = "2")]
+    pub status: i32,
+    #[prost(enumeration = "LocalAppConversationTurnPhase", tag = "3")]
+    pub phase: i32,
+    #[prost(string, optional, tag = "4")]
+    pub terminal_reason: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(enumeration = "ReasonCode", tag = "5")]
+    pub reason_code: i32,
+    #[prost(string, optional, tag = "6")]
+    pub message: ::core::option::Option<::prost::alloc::string::String>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppConversationAction {
+    #[prost(string, tag = "1")]
+    pub action_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub turn_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub capability_contract: ::prost::alloc::string::String,
+    #[prost(enumeration = "LocalAppConversationActionStatus", tag = "4")]
+    pub status: i32,
+    #[prost(string, optional, tag = "5")]
+    pub projection_message_id: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(string, optional, tag = "6")]
+    pub artifact_id: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(enumeration = "ReasonCode", tag = "7")]
+    pub reason_code: i32,
+    #[prost(string, optional, tag = "8")]
+    pub message: ::core::option::Option<::prost::alloc::string::String>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppConversationVoice {
+    #[prost(string, tag = "1")]
+    pub voice_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub turn_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub message_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "LocalAppConversationVoiceState", tag = "4")]
+    pub state: i32,
+    #[prost(string, optional, tag = "5")]
+    pub artifact_id: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(enumeration = "ReasonCode", tag = "6")]
+    pub reason_code: i32,
+    #[prost(string, optional, tag = "7")]
+    pub message: ::core::option::Option<::prost::alloc::string::String>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct LocalAppConversationSnapshot {
     #[prost(string, tag = "1")]
     pub conversation_anchor_id: ::prost::alloc::string::String,
-    #[prost(string, optional, tag = "2")]
-    pub active_turn_id: ::core::option::Option<::prost::alloc::string::String>,
     #[prost(message, repeated, tag = "3")]
     pub messages: ::prost::alloc::vec::Vec<LocalAppConversationMessage>,
     #[prost(bool, tag = "4")]
     pub truncated_before: bool,
+    #[prost(uint64, tag = "5")]
+    pub through_sequence: u64,
+    #[prost(message, repeated, tag = "6")]
+    pub turns: ::prost::alloc::vec::Vec<LocalAppConversationTurn>,
+    #[prost(message, repeated, tag = "7")]
+    pub actions: ::prost::alloc::vec::Vec<LocalAppConversationAction>,
+    #[prost(message, repeated, tag = "8")]
+    pub voices: ::prost::alloc::vec::Vec<LocalAppConversationVoice>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetLocalAppConversationSnapshotResponse {
@@ -17875,29 +18110,16 @@ pub struct GetLocalAppConversationSnapshotResponse {
 pub struct LocalAppConversationTurnAccepted {
     #[prost(string, tag = "1")]
     pub turn_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub request_id: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct LocalAppConversationTurnStarted {
     #[prost(string, tag = "1")]
     pub turn_id: ::prost::alloc::string::String,
 }
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct LocalAppConversationTextDelta {
-    #[prost(string, tag = "1")]
-    pub turn_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub text: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct LocalAppConversationMessageCommitted {
-    #[prost(string, tag = "1")]
-    pub turn_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub message_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub text: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "4")]
+    pub message: ::core::option::Option<LocalAppConversationMessage>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct LocalAppConversationTurnCompleted {
@@ -17923,6 +18145,29 @@ pub struct LocalAppConversationTurnInterrupted {
     pub reason: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppConversationActionEvent {
+    #[prost(message, optional, tag = "1")]
+    pub action: ::core::option::Option<LocalAppConversationAction>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppConversationArtifactReady {
+    #[prost(string, tag = "1")]
+    pub turn_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub action_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub capability_contract: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub projection_message_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub artifact_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppConversationVoiceEvent {
+    #[prost(message, optional, tag = "1")]
+    pub voice: ::core::option::Option<LocalAppConversationVoice>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct LocalAppConversationEvent {
     #[prost(string, tag = "1")]
     pub conversation_anchor_id: ::prost::alloc::string::String,
@@ -17930,20 +18175,18 @@ pub struct LocalAppConversationEvent {
     pub sequence: u64,
     #[prost(
         oneof = "local_app_conversation_event::Event",
-        tags = "10, 11, 12, 13, 14, 15, 16"
+        tags = "10, 11, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23"
     )]
     pub event: ::core::option::Option<local_app_conversation_event::Event>,
 }
 /// Nested message and enum types in `LocalAppConversationEvent`.
 pub mod local_app_conversation_event {
-    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+    #[derive(Clone, PartialEq, ::prost::Oneof)]
     pub enum Event {
         #[prost(message, tag = "10")]
         TurnAccepted(super::LocalAppConversationTurnAccepted),
         #[prost(message, tag = "11")]
         TurnStarted(super::LocalAppConversationTurnStarted),
-        #[prost(message, tag = "12")]
-        TextDelta(super::LocalAppConversationTextDelta),
         #[prost(message, tag = "13")]
         MessageCommitted(super::LocalAppConversationMessageCommitted),
         #[prost(message, tag = "14")]
@@ -17952,6 +18195,20 @@ pub mod local_app_conversation_event {
         TurnFailed(super::LocalAppConversationTurnFailed),
         #[prost(message, tag = "16")]
         TurnInterrupted(super::LocalAppConversationTurnInterrupted),
+        #[prost(message, tag = "17")]
+        ActionPlanned(super::LocalAppConversationActionEvent),
+        #[prost(message, tag = "18")]
+        ActionStarted(super::LocalAppConversationActionEvent),
+        #[prost(message, tag = "19")]
+        ArtifactReady(super::LocalAppConversationArtifactReady),
+        #[prost(message, tag = "20")]
+        ActionCompleted(super::LocalAppConversationActionEvent),
+        #[prost(message, tag = "21")]
+        ActionFailed(super::LocalAppConversationActionEvent),
+        #[prost(message, tag = "22")]
+        VoiceReady(super::LocalAppConversationVoiceEvent),
+        #[prost(message, tag = "23")]
+        VoiceFailed(super::LocalAppConversationVoiceEvent),
     }
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
@@ -18207,6 +18464,8 @@ pub struct GetSharedLocalAgentAiConfigResponse {
     pub revision: ::prost::alloc::string::String,
     #[prost(message, repeated, tag = "3")]
     pub effective_selections: ::prost::alloc::vec::Vec<AiConfigEffectiveSelection>,
+    #[prost(message, repeated, tag = "4")]
+    pub participation: ::prost::alloc::vec::Vec<LocalAgentCapabilityParticipation>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct OverwriteSharedLocalAgentAiConfigRequest {
@@ -18229,6 +18488,8 @@ pub struct OverwriteSharedLocalAgentAiConfigResponse {
     pub reason_code: i32,
     #[prost(message, repeated, tag = "5")]
     pub effective_selections: ::prost::alloc::vec::Vec<AiConfigEffectiveSelection>,
+    #[prost(message, repeated, tag = "6")]
+    pub participation: ::prost::alloc::vec::Vec<LocalAgentCapabilityParticipation>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ListSharedLocalAgentAiConfigOptionsRequest {
@@ -19411,6 +19672,160 @@ impl LocalAppConversationMessageRole {
         }
     }
 }
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum LocalAppConversationMediaKind {
+    Unspecified = 0,
+    Image = 1,
+}
+impl LocalAppConversationMediaKind {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "LOCAL_APP_CONVERSATION_MEDIA_KIND_UNSPECIFIED",
+            Self::Image => "LOCAL_APP_CONVERSATION_MEDIA_KIND_IMAGE",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "LOCAL_APP_CONVERSATION_MEDIA_KIND_UNSPECIFIED" => Some(Self::Unspecified),
+            "LOCAL_APP_CONVERSATION_MEDIA_KIND_IMAGE" => Some(Self::Image),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum LocalAppConversationTurnStatus {
+    Unspecified = 0,
+    Active = 1,
+    Completed = 2,
+    Failed = 3,
+    Interrupted = 4,
+}
+impl LocalAppConversationTurnStatus {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "LOCAL_APP_CONVERSATION_TURN_STATUS_UNSPECIFIED",
+            Self::Active => "LOCAL_APP_CONVERSATION_TURN_STATUS_ACTIVE",
+            Self::Completed => "LOCAL_APP_CONVERSATION_TURN_STATUS_COMPLETED",
+            Self::Failed => "LOCAL_APP_CONVERSATION_TURN_STATUS_FAILED",
+            Self::Interrupted => "LOCAL_APP_CONVERSATION_TURN_STATUS_INTERRUPTED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "LOCAL_APP_CONVERSATION_TURN_STATUS_UNSPECIFIED" => Some(Self::Unspecified),
+            "LOCAL_APP_CONVERSATION_TURN_STATUS_ACTIVE" => Some(Self::Active),
+            "LOCAL_APP_CONVERSATION_TURN_STATUS_COMPLETED" => Some(Self::Completed),
+            "LOCAL_APP_CONVERSATION_TURN_STATUS_FAILED" => Some(Self::Failed),
+            "LOCAL_APP_CONVERSATION_TURN_STATUS_INTERRUPTED" => Some(Self::Interrupted),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum LocalAppConversationTurnPhase {
+    Unspecified = 0,
+    Accepted = 1,
+    Started = 2,
+}
+impl LocalAppConversationTurnPhase {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "LOCAL_APP_CONVERSATION_TURN_PHASE_UNSPECIFIED",
+            Self::Accepted => "LOCAL_APP_CONVERSATION_TURN_PHASE_ACCEPTED",
+            Self::Started => "LOCAL_APP_CONVERSATION_TURN_PHASE_STARTED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "LOCAL_APP_CONVERSATION_TURN_PHASE_UNSPECIFIED" => Some(Self::Unspecified),
+            "LOCAL_APP_CONVERSATION_TURN_PHASE_ACCEPTED" => Some(Self::Accepted),
+            "LOCAL_APP_CONVERSATION_TURN_PHASE_STARTED" => Some(Self::Started),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum LocalAppConversationActionStatus {
+    Unspecified = 0,
+    Planned = 1,
+    Started = 2,
+    Completed = 3,
+    Failed = 4,
+}
+impl LocalAppConversationActionStatus {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "LOCAL_APP_CONVERSATION_ACTION_STATUS_UNSPECIFIED",
+            Self::Planned => "LOCAL_APP_CONVERSATION_ACTION_STATUS_PLANNED",
+            Self::Started => "LOCAL_APP_CONVERSATION_ACTION_STATUS_STARTED",
+            Self::Completed => "LOCAL_APP_CONVERSATION_ACTION_STATUS_COMPLETED",
+            Self::Failed => "LOCAL_APP_CONVERSATION_ACTION_STATUS_FAILED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "LOCAL_APP_CONVERSATION_ACTION_STATUS_UNSPECIFIED" => Some(Self::Unspecified),
+            "LOCAL_APP_CONVERSATION_ACTION_STATUS_PLANNED" => Some(Self::Planned),
+            "LOCAL_APP_CONVERSATION_ACTION_STATUS_STARTED" => Some(Self::Started),
+            "LOCAL_APP_CONVERSATION_ACTION_STATUS_COMPLETED" => Some(Self::Completed),
+            "LOCAL_APP_CONVERSATION_ACTION_STATUS_FAILED" => Some(Self::Failed),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum LocalAppConversationVoiceState {
+    Unspecified = 0,
+    Ready = 1,
+    Failed = 2,
+}
+impl LocalAppConversationVoiceState {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "LOCAL_APP_CONVERSATION_VOICE_STATE_UNSPECIFIED",
+            Self::Ready => "LOCAL_APP_CONVERSATION_VOICE_STATE_READY",
+            Self::Failed => "LOCAL_APP_CONVERSATION_VOICE_STATE_FAILED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "LOCAL_APP_CONVERSATION_VOICE_STATE_UNSPECIFIED" => Some(Self::Unspecified),
+            "LOCAL_APP_CONVERSATION_VOICE_STATE_READY" => Some(Self::Ready),
+            "LOCAL_APP_CONVERSATION_VOICE_STATE_FAILED" => Some(Self::Failed),
+            _ => None,
+        }
+    }
+}
 /// Generated client implementations.
 pub mod runtime_agent_service_client {
     #![allow(
@@ -19698,6 +20113,99 @@ pub mod runtime_agent_service_client {
                     GrpcMethod::new(
                         "nimi.runtime.v1.RuntimeAgentService",
                         "SendLocalAppConversationTurn",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn upload_local_app_conversation_attachment(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::UploadLocalAppConversationAttachmentRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<super::UploadLocalAppConversationAttachmentResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/UploadLocalAppConversationAttachment",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "UploadLocalAppConversationAttachment",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn read_local_app_conversation_artifact(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::ReadLocalAppConversationArtifactRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<super::ReadLocalAppConversationArtifactResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/ReadLocalAppConversationArtifact",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "ReadLocalAppConversationArtifact",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn transcribe_local_app_conversation_voice(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::TranscribeLocalAppConversationVoiceRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<super::TranscribeLocalAppConversationVoiceResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/TranscribeLocalAppConversationVoice",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "TranscribeLocalAppConversationVoice",
                     ),
                 );
             self.inner.unary(req, path, codec).await

@@ -441,10 +441,13 @@ describe('Electron local-app standard-shell operations', () => {
     expect(calls).toEqual([['agentReferenceList']]);
   });
 
-  it('reaches all five conversation operations but preserves typed failures', async () => {
+  it('reaches all eight conversation operations but preserves typed failures', async () => {
     const requests = [
       ['local-app.conversationOpen', { agentHandle: 'lash_one' }],
-      ['local-app.conversationSendTurn', { agentHandle: 'lash_one', conversationAnchorId: 'anchor-1', requestId: 'request-1', text: 'hello' }],
+      ['local-app.conversationSendTurn', { agentHandle: 'lash_one', conversationAnchorId: 'anchor-1', requestId: 'request-1', parts: [{ kind: 'text', text: 'hello' }] }],
+      ['local-app.conversationAttachmentUpload', { agentHandle: 'lash_one', conversationAnchorId: 'anchor-1', mimeType: 'image/png', bytes: [1] }],
+      ['local-app.conversationArtifactRead', { agentHandle: 'lash_one', conversationAnchorId: 'anchor-1', artifactId: 'artifact-1' }],
+      ['local-app.conversationVoiceTranscribe', { agentHandle: 'lash_one', conversationAnchorId: 'anchor-1', requestId: 'voice-request-1', mimeType: 'audio/webm', audioBytes: [1] }],
       ['local-app.conversationInterruptTurn', { agentHandle: 'lash_one', conversationAnchorId: 'anchor-1' }],
       ['local-app.conversationSubscribe', { agentHandle: 'lash_one', conversationAnchorId: 'anchor-1' }],
       ['local-app.conversationSnapshot', { agentHandle: 'lash_one', conversationAnchorId: 'anchor-1' }],
@@ -564,7 +567,7 @@ describe('Electron local-app standard-shell operations', () => {
           agentHandle: 'lash_one',
           conversationAnchorId: 'anchor-1',
           requestId: 'request-1',
-          text: 'hello',
+          parts: [{ kind: 'text', text: 'hello' }],
         },
       },
     })).rejects.toMatchObject({
@@ -646,7 +649,7 @@ describe('Electron local-app standard-shell operations', () => {
     })).rejects.toMatchObject({ code: 'invalid-payload', reasonCode: 'invalid-payload' });
   });
 
-  it('hard-rejects conversation attachments before the carrier', async () => {
+  it('hard-rejects legacy conversation attachment residue before the carrier', async () => {
     const ipcMain = new FakeIpcMain();
     const calls: unknown[] = [];
     registerBridge(ipcMain, calls);
@@ -657,7 +660,7 @@ describe('Electron local-app standard-shell operations', () => {
           agentHandle: 'lash_one',
           conversationAnchorId: 'anchor-1',
           requestId: 'request-1',
-          text: 'hello',
+          parts: [{ kind: 'text', text: 'hello' }],
           attachments: [{ artifactId: 'artifact_01J', displayName: 'photo.png' }],
         },
       },
@@ -676,7 +679,7 @@ describe('Electron local-app standard-shell operations', () => {
           agentHandle: 'lash_one',
           conversationAnchorId: 'anchor-1',
           requestId: 'request-1',
-          text: '',
+          parts: [{ kind: 'text', text: '' }],
         },
       },
     })).rejects.toMatchObject({ code: 'invalid-payload' });
@@ -825,6 +828,9 @@ function localAppHost(calls: unknown[]) {
     },
     conversationOpen: unavailable('conversationOpen', calls),
     conversationSendTurn: unavailable('conversationSendTurn', calls),
+    conversationAttachmentUpload: unavailable('conversationAttachmentUpload', calls),
+    conversationArtifactRead: unavailable('conversationArtifactRead', calls),
+    conversationVoiceTranscribe: unavailable('conversationVoiceTranscribe', calls),
     conversationInterruptTurn: unavailable('conversationInterruptTurn', calls),
     conversationSubscribe: unavailable('conversationSubscribe', calls),
     conversationSnapshot: unavailable('conversationSnapshot', calls),

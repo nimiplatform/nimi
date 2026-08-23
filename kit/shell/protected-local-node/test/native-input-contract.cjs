@@ -32,7 +32,18 @@ const calls = [
     agentHandle,
     conversationAnchorId: 'contract-anchor',
     requestId: 'contract-request',
-    text: 'contract',
+    parts: [{ kind: 'text', text: 'contract' }],
+  }],
+  ['localAppConversationAttachmentUpload', {
+    agentHandle, conversationAnchorId: 'contract-anchor', mimeType: 'image/png',
+    displayName: 'contract.png', bytes: Buffer.from([1]),
+  }],
+  ['localAppConversationArtifactRead', {
+    agentHandle, conversationAnchorId: 'contract-anchor', artifactId: 'artifact-contract',
+  }],
+  ['localAppConversationVoiceTranscribe', {
+    agentHandle, conversationAnchorId: 'contract-anchor', requestId: 'voice-contract',
+    mimeType: 'audio/webm', audioBytes: Buffer.from([1]),
   }],
   ['localAppConversationInterruptTurn', { agentHandle, conversationAnchorId: 'contract-anchor' }],
   ['localAppConversationSnapshot', { agentHandle, conversationAnchorId: 'contract-anchor' }],

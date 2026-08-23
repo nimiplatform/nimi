@@ -516,12 +516,62 @@ pub struct LocalAppConversationSendRequest {
     pub agent_handle: String,
     pub conversation_anchor_id: String,
     pub request_id: String,
-    pub text: String,
+    pub parts: Vec<LocalAppConversationInputPart>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum LocalAppConversationInputPart {
+    Text(String),
+    ArtifactRef(String),
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct LocalAppConversationSendResult {
     pub turn_id: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LocalAppConversationAttachmentUploadRequest {
+    pub agent_handle: String,
+    pub conversation_anchor_id: String,
+    pub mime_type: String,
+    pub display_name: Option<String>,
+    pub bytes: Vec<u8>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LocalAppConversationAttachmentUploadResult {
+    pub artifact_id: String,
+    pub expires_at: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LocalAppConversationArtifactReadRequest {
+    pub agent_handle: String,
+    pub conversation_anchor_id: String,
+    pub artifact_id: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LocalAppConversationArtifactReadResult {
+    pub artifact_id: String,
+    pub bytes: Vec<u8>,
+    pub mime_type: String,
+    pub byte_length: i64,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LocalAppConversationVoiceTranscriptionRequest {
+    pub agent_handle: String,
+    pub conversation_anchor_id: String,
+    pub request_id: String,
+    pub mime_type: String,
+    pub audio_bytes: Vec<u8>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LocalAppConversationVoiceTranscriptionResult {
+    pub text: String,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -603,16 +653,20 @@ pub enum LocalAppConversationMessageRole {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct LocalAppConversationMessage {
+    pub message_id: String,
     pub turn_id: String,
     pub role: LocalAppConversationMessageRole,
-    pub text: String,
+    pub parts: JsonValue,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct LocalAppConversationSnapshot {
     pub conversation_anchor_id: String,
-    pub active_turn_id: Option<String>,
+    pub through_sequence: u64,
+    pub turns: Vec<JsonValue>,
     pub messages: Vec<LocalAppConversationMessage>,
+    pub actions: Vec<JsonValue>,
+    pub voices: Vec<JsonValue>,
     pub truncated_before: bool,
 }
 
@@ -627,19 +681,44 @@ pub struct LocalAppConversationEvent {
 pub enum LocalAppConversationEventKind {
     TurnAccepted {
         turn_id: String,
-        request_id: String,
     },
     TurnStarted {
         turn_id: String,
     },
-    TextDelta {
-        turn_id: String,
-        text: String,
-    },
     MessageCommitted {
         turn_id: String,
-        message_id: String,
-        text: String,
+        message: JsonValue,
+    },
+    ActionPlanned {
+        turn_id: String,
+        action: JsonValue,
+    },
+    ActionStarted {
+        turn_id: String,
+        action: JsonValue,
+    },
+    ArtifactReady {
+        turn_id: String,
+        action_id: String,
+        capability_contract: String,
+        projection_message_id: String,
+        artifact_id: String,
+    },
+    ActionCompleted {
+        turn_id: String,
+        action: JsonValue,
+    },
+    ActionFailed {
+        turn_id: String,
+        action: JsonValue,
+    },
+    VoiceReady {
+        turn_id: String,
+        voice: JsonValue,
+    },
+    VoiceFailed {
+        turn_id: String,
+        voice: JsonValue,
     },
     TurnCompleted {
         turn_id: String,
@@ -1141,6 +1220,48 @@ pub trait NimiLocalAppSession: Send + Sync {
         Box<
             dyn Future<Output = Result<LocalAppConversationSendResult, LocalAppOperationError>>
                 + Send
+                + '_,
+        >,
+    >;
+
+    fn conversation_attachment_upload(
+        &self,
+        request: LocalAppConversationAttachmentUploadRequest,
+    ) -> Pin<
+        Box<
+            dyn Future<
+                    Output = Result<
+                        LocalAppConversationAttachmentUploadResult,
+                        LocalAppOperationError,
+                    >,
+                > + Send
+                + '_,
+        >,
+    >;
+
+    fn conversation_artifact_read(
+        &self,
+        request: LocalAppConversationArtifactReadRequest,
+    ) -> Pin<
+        Box<
+            dyn Future<
+                    Output = Result<LocalAppConversationArtifactReadResult, LocalAppOperationError>,
+                > + Send
+                + '_,
+        >,
+    >;
+
+    fn conversation_voice_transcribe(
+        &self,
+        request: LocalAppConversationVoiceTranscriptionRequest,
+    ) -> Pin<
+        Box<
+            dyn Future<
+                    Output = Result<
+                        LocalAppConversationVoiceTranscriptionResult,
+                        LocalAppOperationError,
+                    >,
+                > + Send
                 + '_,
         >,
     >;

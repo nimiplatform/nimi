@@ -7,7 +7,8 @@ use crate::generated::{
     runtime_agent_service_client::RuntimeAgentServiceClient, AiConfig,
     AiConfigCloudConnectorOptionsQuery, AiConfigCloudTargetOptionsQuery,
     AiConfigLocalLoadoutOptionsQuery, GetLocalAppSharedLocalAgentAiConfigRequest,
-    ListLocalAppSharedLocalAgentAiConfigOptionsRequest, LocalAppSharedLocalAgentAiConfigProjection,
+    ListLocalAppSharedLocalAgentAiConfigOptionsRequest, LocalAgentCapabilityParticipation,
+    LocalAgentCapabilityParticipationRole, LocalAppSharedLocalAgentAiConfigProjection,
     OverwriteLocalAppSharedLocalAgentAiConfigRequest, ReasonCode,
 };
 use crate::grpc_status::local_app_error_from_status;
@@ -60,6 +61,7 @@ pub(super) async fn overwrite(
         "config": object.get("config").cloned().unwrap_or(JsonValue::Null),
         "revision": object.get("revision").cloned().ok_or_else(untrusted)?,
         "effectiveSelections": object.get("effectiveSelections").cloned().ok_or_else(untrusted)?,
+        "participation": object.get("participation").cloned().ok_or_else(untrusted)?,
         "reasonCode": reason.as_str_name(),
     }))
 }
@@ -69,15 +71,31 @@ pub(super) async fn list_local_options(
     request: LocalAppSharedAgentAIConfigLocalOptionsRequest,
 ) -> Result<JsonValue, LocalAppOperationError> {
     let query = match request.kind.as_str() {
-        "local-loadouts" => list_local_app_shared_local_agent_ai_config_options_request::Query::LocalLoadouts(
-            AiConfigLocalLoadoutOptionsQuery { capability_contract: required_text_value(&request.capability_contract)?, search: request.search },
-        ),
-        "cloud-connectors" => list_local_app_shared_local_agent_ai_config_options_request::Query::CloudConnectors(
-            AiConfigCloudConnectorOptionsQuery { capability_contract: required_text_value(&request.capability_contract)?, search: request.search },
-        ),
-        "cloud-targets" => list_local_app_shared_local_agent_ai_config_options_request::Query::CloudTargets(
-            AiConfigCloudTargetOptionsQuery { capability_contract: required_text_value(&request.capability_contract)?, connector_ref: required_text_value(&request.connector_ref)?, search: request.search },
-        ),
+        "local-loadouts" => {
+            list_local_app_shared_local_agent_ai_config_options_request::Query::LocalLoadouts(
+                AiConfigLocalLoadoutOptionsQuery {
+                    capability_contract: required_text_value(&request.capability_contract)?,
+                    search: request.search,
+                },
+            )
+        }
+        "cloud-connectors" => {
+            list_local_app_shared_local_agent_ai_config_options_request::Query::CloudConnectors(
+                AiConfigCloudConnectorOptionsQuery {
+                    capability_contract: required_text_value(&request.capability_contract)?,
+                    search: request.search,
+                },
+            )
+        }
+        "cloud-targets" => {
+            list_local_app_shared_local_agent_ai_config_options_request::Query::CloudTargets(
+                AiConfigCloudTargetOptionsQuery {
+                    capability_contract: required_text_value(&request.capability_contract)?,
+                    connector_ref: required_text_value(&request.connector_ref)?,
+                    search: request.search,
+                },
+            )
+        }
         _ => return Err(untrusted()),
     };
     let response = RuntimeAgentServiceClient::new(channel)
@@ -88,14 +106,35 @@ pub(super) async fn list_local_options(
         .map_err(local_app_error_from_status)?
         .into_inner();
     let (kind, options) = match response.result.ok_or_else(untrusted)? {
-        list_local_app_shared_local_agent_ai_config_options_response::Result::LocalLoadouts(value) if request.kind == "local-loadouts" => (
-            "local-loadouts", value.options.into_iter().map(project_local_resource).collect::<Result<Vec<_>, _>>()?,
+        list_local_app_shared_local_agent_ai_config_options_response::Result::LocalLoadouts(
+            value,
+        ) if request.kind == "local-loadouts" => (
+            "local-loadouts",
+            value
+                .options
+                .into_iter()
+                .map(project_local_resource)
+                .collect::<Result<Vec<_>, _>>()?,
         ),
-        list_local_app_shared_local_agent_ai_config_options_response::Result::CloudConnectors(value) if request.kind == "cloud-connectors" => (
-            "cloud-connectors", value.options.into_iter().map(project_cloud_connector).collect::<Result<Vec<_>, _>>()?,
+        list_local_app_shared_local_agent_ai_config_options_response::Result::CloudConnectors(
+            value,
+        ) if request.kind == "cloud-connectors" => (
+            "cloud-connectors",
+            value
+                .options
+                .into_iter()
+                .map(project_cloud_connector)
+                .collect::<Result<Vec<_>, _>>()?,
         ),
-        list_local_app_shared_local_agent_ai_config_options_response::Result::CloudTargets(value) if request.kind == "cloud-targets" => (
-            "cloud-targets", value.options.into_iter().map(project_cloud_target).collect::<Result<Vec<_>, _>>()?,
+        list_local_app_shared_local_agent_ai_config_options_response::Result::CloudTargets(
+            value,
+        ) if request.kind == "cloud-targets" => (
+            "cloud-targets",
+            value
+                .options
+                .into_iter()
+                .map(project_cloud_target)
+                .collect::<Result<Vec<_>, _>>()?,
         ),
         _ => return Err(untrusted()),
     };
@@ -114,11 +153,60 @@ fn project_snapshot(
         .into_iter()
         .map(project_effective_selection)
         .collect::<Result<Vec<_>, _>>()?;
+    let participation = project_participation(projection.participation)?;
     Ok(json!({
         "config": config,
         "revision": projection.revision,
         "effectiveSelections": effective,
+        "participation": participation,
     }))
+}
+
+fn project_participation(
+    rows: Vec<LocalAgentCapabilityParticipation>,
+) -> Result<Vec<JsonValue>, LocalAppOperationError> {
+    let expected = [
+        (
+            LocalAgentCapabilityParticipationRole::ConversationPrimary,
+            "conversation.primary",
+            "text.generate",
+        ),
+        (
+            LocalAgentCapabilityParticipationRole::MemoryEmbedding,
+            "memory.embedding",
+            "text.embed",
+        ),
+        (
+            LocalAgentCapabilityParticipationRole::ConversationInputVoice,
+            "conversation.input.voice",
+            "audio.transcribe",
+        ),
+        (
+            LocalAgentCapabilityParticipationRole::ConversationOutputVoice,
+            "conversation.output.voice",
+            "audio.synthesize",
+        ),
+        (
+            LocalAgentCapabilityParticipationRole::ConversationActionImage,
+            "conversation.action.image",
+            "image.generate",
+        ),
+    ];
+    if rows.len() != expected.len() {
+        return Err(untrusted());
+    }
+    rows.into_iter()
+        .zip(expected)
+        .map(|(row, (expected_role, role, capability))| {
+            if LocalAgentCapabilityParticipationRole::try_from(row.role).map_err(|_| untrusted())?
+                != expected_role
+                || row.capability_contract != capability
+            {
+                return Err(untrusted());
+            }
+            Ok(json!({ "role": role, "capabilityContract": capability }))
+        })
+        .collect()
 }
 
 fn project_config(config: AiConfig) -> Result<JsonValue, LocalAppOperationError> {

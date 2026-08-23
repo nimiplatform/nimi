@@ -212,7 +212,7 @@ describe('Electron protected local-app host', () => {
       agentHandle: 'lash_one',
       conversationAnchorId: 'anchor-1',
       requestId: 'request-1',
-      text: 'hello',
+      parts: [{ kind: 'text', text: 'hello' }],
     })).rejects.toMatchObject({ reasonCode: 'local-app-operation-unavailable', retryable: false });
   });
 
@@ -578,6 +578,15 @@ function binding(calls: Array<{ method: string; input?: unknown }>) {
     localAppAssetAdopt: record('localAppAssetAdopt', assetProjection()),
     localAppConversationOpen: record('localAppConversationOpen', { conversationAnchorId: 'anchor-1', activeTurnId: null }),
     localAppConversationSendTurn: record('localAppConversationSendTurn', { turnId: 'turn-1' }),
+    localAppConversationAttachmentUpload: record('localAppConversationAttachmentUpload', {
+      artifactId: 'artifact-1', expiresAt: '2026-08-23T09:00:00Z',
+    }),
+    localAppConversationArtifactRead: record('localAppConversationArtifactRead', {
+      artifactId: 'artifact-1', bytes: [1, 2, 3], mimeType: 'image/png', byteLength: 3,
+    }),
+    localAppConversationVoiceTranscribe: record('localAppConversationVoiceTranscribe', {
+      text: 'transcribed intent',
+    }),
     localAppConversationInterruptTurn: record('localAppConversationInterruptTurn', { turnId: 'turn-1' }),
     localAppConversationSubscribe: record('localAppConversationSubscribe', { streamId: 'conversation-1' }),
     localAppConversationStreamNext: record('localAppConversationStreamNext', { completed: true }),

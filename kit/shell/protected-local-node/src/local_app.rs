@@ -1112,18 +1112,123 @@ pub async fn local_app_conversation_open(input: NativeConversationOpenInput) -> 
 pub async fn local_app_conversation_send_turn(
     input: NativeConversationSendInput,
 ) -> NativeJsonOutcome {
+    let parts = match native_conversation_input_parts(input.parts) {
+        Ok(parts) => parts,
+        Err(error) => return NativeJsonOutcome::error(error),
+    };
     invoke_agent(|session| async move {
         session
             .conversation_send_turn(LocalAppConversationSendRequest {
                 agent_handle: input.agent_handle,
                 conversation_anchor_id: input.conversation_anchor_id,
                 request_id: input.request_id,
-                text: input.text,
+                parts,
             })
             .await
             .map(|result| json!({ "turnId": result.turn_id }))
     })
     .await
+}
+
+#[napi(js_name = "localAppConversationAttachmentUpload")]
+pub async fn local_app_conversation_attachment_upload(
+    input: NativeConversationAttachmentUploadInput,
+) -> NativeJsonOutcome {
+    invoke_agent(|session| async move {
+        session
+            .conversation_attachment_upload(LocalAppConversationAttachmentUploadRequest {
+                agent_handle: input.agent_handle,
+                conversation_anchor_id: input.conversation_anchor_id,
+                mime_type: input.mime_type,
+                display_name: input.display_name,
+                bytes: input.bytes.to_vec(),
+            })
+            .await
+            .map(|result| {
+                json!({
+                    "artifactId": result.artifact_id,
+                    "expiresAt": result.expires_at,
+                })
+            })
+    })
+    .await
+}
+
+#[napi(js_name = "localAppConversationArtifactRead")]
+pub async fn local_app_conversation_artifact_read(
+    input: NativeConversationArtifactReadInput,
+) -> NativeJsonOutcome {
+    invoke_agent(|session| async move {
+        session
+            .conversation_artifact_read(LocalAppConversationArtifactReadRequest {
+                agent_handle: input.agent_handle,
+                conversation_anchor_id: input.conversation_anchor_id,
+                artifact_id: input.artifact_id,
+            })
+            .await
+            .map(|result| {
+                json!({
+                    "artifactId": result.artifact_id,
+                    "bytes": result.bytes,
+                    "mimeType": result.mime_type,
+                    "byteLength": result.byte_length,
+                })
+            })
+    })
+    .await
+}
+
+#[napi(js_name = "localAppConversationVoiceTranscribe")]
+pub async fn local_app_conversation_voice_transcribe(
+    input: NativeConversationVoiceTranscriptionInput,
+) -> NativeJsonOutcome {
+    invoke_agent(|session| async move {
+        session
+            .conversation_voice_transcribe(LocalAppConversationVoiceTranscriptionRequest {
+                agent_handle: input.agent_handle,
+                conversation_anchor_id: input.conversation_anchor_id,
+                request_id: input.request_id,
+                mime_type: input.mime_type,
+                audio_bytes: input.audio_bytes.to_vec(),
+            })
+            .await
+            .map(|result| json!({ "text": result.text }))
+    })
+    .await
+}
+
+fn native_conversation_input_parts(
+    value: JsonValue,
+) -> Result<Vec<LocalAppConversationInputPart>, LocalAppOperationError> {
+    let parts = value.as_array().ok_or_else(native_invalid_payload)?;
+    if parts.is_empty() || parts.len() > 2 {
+        return Err(native_invalid_payload());
+    }
+    parts
+        .iter()
+        .map(|part| {
+            let record = part.as_object().ok_or_else(native_invalid_payload)?;
+            match record.get("kind").and_then(JsonValue::as_str) {
+                Some("text") if record.len() == 2 => record
+                    .get("text")
+                    .and_then(JsonValue::as_str)
+                    .map(|text| LocalAppConversationInputPart::Text(text.to_string()))
+                    .ok_or_else(native_invalid_payload),
+                Some("artifact-ref") if record.len() == 2 => record
+                    .get("artifactId")
+                    .and_then(JsonValue::as_str)
+                    .map(|artifact_id| {
+                        LocalAppConversationInputPart::ArtifactRef(artifact_id.to_string())
+                    })
+                    .ok_or_else(native_invalid_payload),
+                _ => Err(native_invalid_payload()),
+            }
+        })
+        .collect()
+}
+
+fn native_invalid_payload() -> LocalAppOperationError {
+    LocalAppOperationError::new(LocalAppReasonCode::InvalidPayload, false)
 }
 
 #[napi(js_name = "localAppConversationInterruptTurn")]
@@ -1156,15 +1261,19 @@ pub async fn local_app_conversation_snapshot(
             .map(|snapshot| {
                 json!({
                     "conversationAnchorId": snapshot.conversation_anchor_id,
-                    "activeTurnId": snapshot.active_turn_id,
+                    "throughSequence": snapshot.through_sequence.to_string(),
+                    "turns": snapshot.turns,
                     "messages": snapshot.messages.into_iter().map(|message| json!({
+                        "messageId": message.message_id,
                         "turnId": message.turn_id,
                         "role": match message.role {
                             LocalAppConversationMessageRole::User => "user",
                             LocalAppConversationMessageRole::Assistant => "assistant",
                         },
-                        "text": message.text,
+                        "parts": message.parts,
                     })).collect::<Vec<_>>(),
+                    "actions": snapshot.actions,
+                    "voices": snapshot.voices,
                     "truncatedBefore": snapshot.truncated_before,
                 })
             })
@@ -1285,24 +1394,43 @@ pub async fn local_app_conversation_stream_close(
 
 fn project_conversation_event(event: LocalAppConversationEvent) -> JsonValue {
     let mut projection = match event.event {
-        LocalAppConversationEventKind::TurnAccepted {
-            turn_id,
-            request_id,
-        } => json!({
-            "type": "turn-accepted", "turnId": turn_id, "requestId": request_id,
+        LocalAppConversationEventKind::TurnAccepted { turn_id } => json!({
+            "type": "turn-accepted", "turnId": turn_id,
         }),
         LocalAppConversationEventKind::TurnStarted { turn_id } => json!({
             "type": "turn-started", "turnId": turn_id,
         }),
-        LocalAppConversationEventKind::TextDelta { turn_id, text } => json!({
-            "type": "text-delta", "turnId": turn_id, "text": text,
+        LocalAppConversationEventKind::MessageCommitted { turn_id, message } => json!({
+            "type": "message-committed", "turnId": turn_id, "message": message,
         }),
-        LocalAppConversationEventKind::MessageCommitted {
+        LocalAppConversationEventKind::ActionPlanned { turn_id, action } => json!({
+            "type": "action-planned", "turnId": turn_id, "action": action,
+        }),
+        LocalAppConversationEventKind::ActionStarted { turn_id, action } => json!({
+            "type": "action-started", "turnId": turn_id, "action": action,
+        }),
+        LocalAppConversationEventKind::ArtifactReady {
             turn_id,
-            message_id,
-            text,
+            action_id,
+            capability_contract,
+            projection_message_id,
+            artifact_id,
         } => json!({
-            "type": "message-committed", "turnId": turn_id, "messageId": message_id, "text": text,
+            "type": "artifact-ready", "turnId": turn_id, "actionId": action_id,
+            "capabilityContract": capability_contract, "projectionMessageId": projection_message_id,
+            "artifactId": artifact_id,
+        }),
+        LocalAppConversationEventKind::ActionCompleted { turn_id, action } => json!({
+            "type": "action-completed", "turnId": turn_id, "action": action,
+        }),
+        LocalAppConversationEventKind::ActionFailed { turn_id, action } => json!({
+            "type": "action-failed", "turnId": turn_id, "action": action,
+        }),
+        LocalAppConversationEventKind::VoiceReady { turn_id, voice } => json!({
+            "type": "voice-ready", "turnId": turn_id, "voice": voice,
+        }),
+        LocalAppConversationEventKind::VoiceFailed { turn_id, voice } => json!({
+            "type": "voice-failed", "turnId": turn_id, "voice": voice,
         }),
         LocalAppConversationEventKind::TurnCompleted {
             turn_id,

@@ -73,6 +73,9 @@ const COMMAND_METHODS = new Map<string, RendererLocalAppHostMethod>([
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentReferenceList'], 'agentReferenceList'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationOpen'], 'conversationOpen'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationSendTurn'], 'conversationSendTurn'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationAttachmentUpload'], 'conversationAttachmentUpload'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationArtifactRead'], 'conversationArtifactRead'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationVoiceTranscribe'], 'conversationVoiceTranscribe'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationInterruptTurn'], 'conversationInterruptTurn'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationSubscribe'], 'conversationSubscribe'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationSnapshot'], 'conversationSnapshot'],
@@ -356,11 +359,45 @@ function validatePayload(
     case 'conversationOpen':
       return identifiers(payload, ['agentHandle'], command);
     case 'conversationSendTurn': {
-      assertExactKeys(payload, ['agentHandle', 'conversationAnchorId', 'requestId', 'text'], command);
+      assertExactKeys(payload, ['agentHandle', 'conversationAnchorId', 'requestId', 'parts'], command);
       return {
         ...identifiers(payload, ['agentHandle', 'conversationAnchorId', 'requestId'], command,
-          new Set(), ['agentHandle', 'conversationAnchorId', 'requestId', 'text']),
-        text: requiredUtf8Text(payload.text, 'text', command, 64 * 1024),
+          new Set(), ['agentHandle', 'conversationAnchorId', 'requestId', 'parts']),
+        parts: conversationInputParts(payload.parts, command),
+      };
+    }
+    case 'conversationAttachmentUpload': {
+      assertAllowedKeys(payload, ['agentHandle', 'conversationAnchorId', 'mimeType', 'displayName', 'bytes'], ['agentHandle', 'conversationAnchorId', 'mimeType', 'bytes'], command);
+      if (!Array.isArray(payload.bytes) || payload.bytes.length === 0 || payload.bytes.length > 4 * 1024 * 1024
+        || payload.bytes.some((entry) => !Number.isInteger(entry) || Number(entry) < 0 || Number(entry) > 255)) {
+        throw invalidPayload(command, 'conversation attachment bytes are invalid');
+      }
+      const displayName = payload.displayName === undefined
+        ? undefined
+        : requiredUtf8Text(payload.displayName, 'displayName', command, 255).trim();
+      return {
+        agentHandle: requiredText(payload.agentHandle, 'agentHandle', command, MAX_IDENTIFIER_LENGTH),
+        conversationAnchorId: requiredText(payload.conversationAnchorId, 'conversationAnchorId', command, MAX_IDENTIFIER_LENGTH),
+        mimeType: boundedImageMime(payload.mimeType, command),
+        ...(displayName ? { displayName } : {}),
+        bytes: [...payload.bytes] as NimiElectronLocalAppJson,
+      };
+    }
+    case 'conversationArtifactRead':
+      return identifiers(payload, ['agentHandle', 'conversationAnchorId', 'artifactId'], command);
+    case 'conversationVoiceTranscribe': {
+      assertExactKeys(payload, ['agentHandle', 'conversationAnchorId', 'requestId', 'mimeType', 'audioBytes'], command);
+      if (!Array.isArray(payload.audioBytes) || payload.audioBytes.length === 0 || payload.audioBytes.length > 6 * 1024 * 1024
+        || payload.audioBytes.some((entry) => !Number.isInteger(entry) || Number(entry) < 0 || Number(entry) > 255)
+        || typeof payload.mimeType !== 'string' || !payload.mimeType.startsWith('audio/')
+        || payload.mimeType.trim() !== payload.mimeType || /[\u0000-\u001f\u007f]/u.test(payload.mimeType)) {
+        throw invalidPayload(command, 'conversation voice input is invalid');
+      }
+      return {
+        ...identifiers(payload, ['agentHandle', 'conversationAnchorId', 'requestId'], command,
+          new Set(), ['agentHandle', 'conversationAnchorId', 'requestId', 'mimeType', 'audioBytes']),
+        mimeType: payload.mimeType,
+        audioBytes: [...payload.audioBytes] as NimiElectronLocalAppJson,
       };
     }
     case 'conversationInterruptTurn':
@@ -1092,6 +1129,46 @@ function requiredUtf8Text(value: unknown, field: string, command: string, maxByt
     throw invalidPayload(command, `${field} is invalid`);
   }
   return normalized;
+}
+
+function conversationInputParts(value: unknown, command: string): NimiElectronLocalAppJson {
+  if (!Array.isArray(value) || value.length < 1 || value.length > 2) {
+    throw invalidPayload(command, 'conversation parts are invalid');
+  }
+  let textSeen = false;
+  let artifactSeen = false;
+  return value.map((part, index) => {
+    if (!isPlainRecord(part) || typeof part.kind !== 'string') {
+      throw invalidPayload(command, `conversation part ${index} is invalid`);
+    }
+    if (part.kind === 'text') {
+      assertExactKeys(part, ['kind', 'text'], command);
+      if (textSeen || artifactSeen || index !== 0 || typeof part.text !== 'string'
+        || !part.text.trim() || part.text.includes('\0') || Buffer.byteLength(part.text, 'utf8') > 64 * 1024) {
+        throw invalidPayload(command, `conversation text part ${index} is invalid`);
+      }
+      textSeen = true;
+      return { kind: 'text', text: part.text } as NimiElectronLocalAppRecord;
+    }
+    if (part.kind === 'artifact-ref') {
+      assertExactKeys(part, ['kind', 'artifactId'], command);
+      if (artifactSeen) throw invalidPayload(command, `conversation artifact part ${index} is invalid`);
+      artifactSeen = true;
+      return {
+        kind: 'artifact-ref',
+        artifactId: requiredText(part.artifactId, 'artifactId', command, MAX_IDENTIFIER_LENGTH),
+      } as NimiElectronLocalAppRecord;
+    }
+    throw invalidPayload(command, `conversation part ${index} kind is invalid`);
+  });
+}
+
+function boundedImageMime(value: unknown, command: string): string {
+  const mimeType = typeof value === 'string' ? value : '';
+  if (!['image/png', 'image/jpeg', 'image/webp', 'image/gif'].includes(mimeType)) {
+    throw invalidPayload(command, 'image MIME is invalid');
+  }
+  return mimeType;
 }
 
 function activeConversationStreams(host: NimiElectronLocalAppHost): Set<string> {

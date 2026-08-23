@@ -39,11 +39,14 @@ use crate::{
     LocalAppAssetReadResult, LocalAppAssetRecord, LocalAppAssetRemoveRequest,
     LocalAppAssetRemoveResult, LocalAppAssetRevealRequest, LocalAppAssetRevealTarget,
     LocalAppAssetStatRequest, LocalAppAssetWriteReceiver, LocalAppAssetWriteRequest,
+    LocalAppConversationArtifactReadRequest, LocalAppConversationArtifactReadResult,
+    LocalAppConversationAttachmentUploadRequest, LocalAppConversationAttachmentUploadResult,
     LocalAppConversationInterruptRequest, LocalAppConversationInterruptResult,
     LocalAppConversationOpenRequest, LocalAppConversationOpenResult,
     LocalAppConversationSendRequest, LocalAppConversationSendResult, LocalAppConversationSnapshot,
     LocalAppConversationSnapshotRequest, LocalAppConversationSubscribeRequest,
-    LocalAppConversationSubscriptionReceiver, LocalAppCurrentUserDisplay,
+    LocalAppConversationSubscriptionReceiver, LocalAppConversationVoiceTranscriptionRequest,
+    LocalAppConversationVoiceTranscriptionResult, LocalAppCurrentUserDisplay,
     LocalAppCurrentUserStatus, LocalAppOperationError, LocalAppPersonaCharacterCreateRequest,
     LocalAppPersonaCharacterGetOwnedRequest, LocalAppPersonaCharacterListOwnedRequest,
     LocalAppPersonaCharacterReplaceRequest, LocalAppReasonCode, LocalAppScenarioCancelRequest,
@@ -629,6 +632,63 @@ impl NimiLocalAppSession for PlatformLocalAppSession {
         Box::pin(async move {
             let _operation = self.operation_gate.read().await;
             conversation::send_turn(self.checked_channel()?, request).await
+        })
+    }
+
+    fn conversation_attachment_upload(
+        &self,
+        request: LocalAppConversationAttachmentUploadRequest,
+    ) -> Pin<
+        Box<
+            dyn Future<
+                    Output = Result<
+                        LocalAppConversationAttachmentUploadResult,
+                        LocalAppOperationError,
+                    >,
+                > + Send
+                + '_,
+        >,
+    > {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            conversation::upload_attachment(self.checked_channel()?, request).await
+        })
+    }
+
+    fn conversation_artifact_read(
+        &self,
+        request: LocalAppConversationArtifactReadRequest,
+    ) -> Pin<
+        Box<
+            dyn Future<
+                    Output = Result<LocalAppConversationArtifactReadResult, LocalAppOperationError>,
+                > + Send
+                + '_,
+        >,
+    > {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            conversation::read_artifact(self.checked_channel()?, request).await
+        })
+    }
+
+    fn conversation_voice_transcribe(
+        &self,
+        request: LocalAppConversationVoiceTranscriptionRequest,
+    ) -> Pin<
+        Box<
+            dyn Future<
+                    Output = Result<
+                        LocalAppConversationVoiceTranscriptionResult,
+                        LocalAppOperationError,
+                    >,
+                > + Send
+                + '_,
+        >,
+    > {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            conversation::transcribe_voice(self.checked_channel()?, request).await
         })
     }
 

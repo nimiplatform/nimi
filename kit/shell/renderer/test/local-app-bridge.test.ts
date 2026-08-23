@@ -374,16 +374,24 @@ describe('renderer local-app standard-shell surface', () => {
       owner: { owner: { oneofKind: 'runtimeLocalAgentSubsystem', runtimeLocalAgentSubsystem: {} } },
       capabilities: [],
     };
+    const participation = [
+      { role: 'conversation.primary', capabilityContract: 'text.generate' },
+      { role: 'memory.embedding', capabilityContract: 'text.embed' },
+      { role: 'conversation.input.voice', capabilityContract: 'audio.transcribe' },
+      { role: 'conversation.output.voice', capabilityContract: 'audio.synthesize' },
+      { role: 'conversation.action.image', capabilityContract: 'image.generate' },
+    ];
     (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
       invoke: async (command: string, payload: unknown) => {
         invocations.push({ command, payload });
         if (command.endsWith('sharedAgentAIConfigGet')) {
-          return { config: sharedConfig, revision: '1', effectiveSelections: [] };
+          return { config: sharedConfig, revision: '1', effectiveSelections: [], participation };
         }
         if (command.endsWith('sharedAgentAIConfigOverwrite')) {
           return {
             outcome: 'committed', config: sharedConfig, revision: '1',
             effectiveSelections: [], reasonCode: 'REASON_CODE_UNSPECIFIED',
+            participation,
           };
         }
         if (command.endsWith('sharedAgentAIConfigLocalOptions')) {
@@ -394,9 +402,9 @@ describe('renderer local-app standard-shell surface', () => {
       listen: () => () => {},
     };
     const configure = createNimiLocalAppStandardShellSurface().agentConfigure;
-    await expect(configure.sharedAIConfig.get()).resolves.toEqual({ config: sharedConfig, revision: '1', effectiveSelections: [] });
+    await expect(configure.sharedAIConfig.get()).resolves.toEqual({ config: sharedConfig, revision: '1', effectiveSelections: [], participation });
     await expect(configure.sharedAIConfig.overwrite({ expectedRevision: '0', capabilities: [] }))
-      .resolves.toEqual({ outcome: 'committed', config: sharedConfig, revision: '1' });
+      .resolves.toEqual({ outcome: 'committed', config: sharedConfig, revision: '1', participation });
     await expect(configure.sharedAIConfig.listOptions({ kind: 'local-loadouts', capabilityContract: 'text.generate' }))
       .resolves.toEqual({ kind: 'local-loadouts', options: [], truncated: false });
     await expect(configure.autonomy.snapshot({ agentHandle: handle }))
@@ -643,11 +651,16 @@ describe('renderer local-app standard-shell surface', () => {
         subscriptionId: 'conversation-1',
         eventType: 'next',
         event: {
-          type: 'text-delta',
+          type: 'message-committed',
           conversationAnchorId: 'anchor-1',
           sequence: '1',
           turnId: 'agent-turn-1',
-          text: 'hello',
+          message: {
+            messageId: 'message-1',
+            turnId: 'agent-turn-1',
+            role: 'assistant',
+            parts: [{ kind: 'text', text: 'hello' }],
+          },
         },
       },
     });
@@ -667,7 +680,7 @@ describe('renderer local-app standard-shell surface', () => {
     ]);
   });
 
-  it('sends one exact text-only conversation turn and rejects attachment residue', async () => {
+  it('sends one exact content-part conversation turn and rejects legacy attachment residue', async () => {
     const invocations: Array<{ command: string; payload: unknown }> = [];
     (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
       invoke: async (command: string, payload: unknown) => {
@@ -681,7 +694,7 @@ describe('renderer local-app standard-shell surface', () => {
       agentHandle: 'lash_owner_issued',
       conversationAnchorId: 'anchor-1',
       requestId: 'request-1',
-      text: 'hello',
+      parts: [{ kind: 'text', text: 'hello' }],
     })).resolves.toEqual({ turnId: 'agent-turn-1' });
     expect(invocations).toEqual([{
       command: 'nimi.shell.localApp.conversationSendTurn',
@@ -690,7 +703,7 @@ describe('renderer local-app standard-shell surface', () => {
           agentHandle: 'lash_owner_issued',
           conversationAnchorId: 'anchor-1',
           requestId: 'request-1',
-          text: 'hello',
+          parts: [{ kind: 'text', text: 'hello' }],
         },
       },
     }]);
@@ -698,14 +711,14 @@ describe('renderer local-app standard-shell surface', () => {
       agentHandle: 'lash_owner_issued',
       conversationAnchorId: 'anchor-1',
       requestId: 'request-1',
-      text: 'hello',
+      parts: [{ kind: 'text', text: 'hello' }],
       attachments: [{ artifactId: 'artifact_01J' }],
     } as never)).toThrow(/input fields must be exactly/u);
     expect(() => conversation.send({
       agentHandle: 'lash_owner_issued',
       conversationAnchorId: 'anchor-1',
       requestId: 'request-1',
-      text: '',
+      parts: [{ kind: 'text', text: '' }],
     })).toThrow(/text is invalid/u);
     expect(invocations).toHaveLength(1);
   });

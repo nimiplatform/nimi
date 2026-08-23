@@ -10,6 +10,8 @@ import type {
   NimiAIConfigOverwriteInput,
   NimiAIConfigOverwriteResult,
   NimiAIConfigSnapshot,
+  NimiSharedLocalAgentAIConfigSnapshot,
+  NimiSharedLocalAgentAIConfigOverwriteResult,
   NimiLocalAppAgentHandle,
   NimiPortableAppAIConfig,
 } from '@nimiplatform/kit/core/sdk-contract';
@@ -406,7 +408,23 @@ export type NimiLocalAppStandardShellSurface = {
     }) => Promise<JsonObject>;
     readonly send: (input: NimiLocalAppConversationScopeInput & {
       readonly requestId: string;
-      readonly text: string;
+      readonly parts: readonly (
+        | { readonly kind: 'text'; readonly text: string }
+        | { readonly kind: 'artifact-ref'; readonly artifactId: string }
+      )[];
+    }) => Promise<JsonObject>;
+    readonly uploadAttachment: (input: NimiLocalAppConversationScopeInput & {
+      readonly mimeType: string;
+      readonly displayName?: string;
+      readonly bytes: readonly number[];
+    }) => Promise<JsonObject>;
+    readonly readArtifact: (input: NimiLocalAppConversationScopeInput & {
+      readonly artifactId: string;
+    }) => Promise<JsonObject>;
+    readonly transcribeVoice: (input: NimiLocalAppConversationScopeInput & {
+      readonly requestId: string;
+      readonly mimeType: string;
+      readonly audioBytes: readonly number[];
     }) => Promise<JsonObject>;
     readonly interruptTurn: (input: NimiLocalAppConversationScopeInput) => Promise<JsonObject>;
     readonly subscribe: (input: NimiLocalAppConversationScopeInput) => Promise<NimiLocalAppConversationSubscription>;
@@ -483,6 +501,9 @@ export function createNimiLocalAppStandardShellSurface(): NimiLocalAppStandardSh
     conversation: {
       open: openNimiLocalAppConversation,
       send: sendNimiLocalAppConversationTurn,
+      uploadAttachment: uploadNimiLocalAppConversationAttachment,
+      readArtifact: readNimiLocalAppConversationArtifact,
+      transcribeVoice: transcribeNimiLocalAppConversationVoice,
       interruptTurn: interruptNimiLocalAppConversationTurn,
       subscribe: subscribeNimiLocalAppConversation,
       snapshot: getNimiLocalAppConversationSnapshot,
@@ -991,15 +1012,110 @@ export function openNimiLocalAppConversation(input: {
 
 export function sendNimiLocalAppConversationTurn(input: NimiLocalAppConversationScopeInput & {
   readonly requestId: string;
-  readonly text: string;
+  readonly parts: readonly (
+    | { readonly kind: 'text'; readonly text: string }
+    | { readonly kind: 'artifact-ref'; readonly artifactId: string }
+  )[];
 }): Promise<JsonObject> {
   const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationSendTurn'];
-  assertExactInput(input, ['agentHandle', 'conversationAnchorId', 'requestId', 'text'], command);
+  assertExactInput(input, ['agentHandle', 'conversationAnchorId', 'requestId', 'parts'], command);
   return invokeLocalAppRecord(command, {
     agentHandle: requiredText(input.agentHandle, 'agentHandle', command, MAX_IDENTIFIER_LENGTH),
     conversationAnchorId: requiredText(input.conversationAnchorId, 'conversationAnchorId', command, MAX_IDENTIFIER_LENGTH),
     requestId: requiredText(input.requestId, 'requestId', command, MAX_IDENTIFIER_LENGTH),
-    text: requiredUtf8Text(input.text, 'text', command, 64 * 1024),
+    parts: parseConversationInputParts(input.parts, command),
+  });
+}
+
+export function uploadNimiLocalAppConversationAttachment(
+  input: NimiLocalAppConversationScopeInput & {
+    readonly mimeType: string;
+    readonly displayName?: string;
+    readonly bytes: readonly number[];
+  },
+): Promise<JsonObject> {
+  const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationAttachmentUpload'];
+  assertExactInput(
+    input,
+    input.displayName === undefined
+      ? ['agentHandle', 'conversationAnchorId', 'mimeType', 'bytes']
+      : ['agentHandle', 'conversationAnchorId', 'mimeType', 'displayName', 'bytes'],
+    command,
+  );
+  if (!Array.isArray(input.bytes) || input.bytes.length === 0 || input.bytes.length > 4 * 1024 * 1024
+    || input.bytes.some((entry) => !Number.isInteger(entry) || entry < 0 || entry > 255)
+    || !['image/png', 'image/jpeg', 'image/webp', 'image/gif'].includes(input.mimeType)) {
+    throw new Error(`${command}: attachment upload is invalid`);
+  }
+  const displayName = input.displayName === undefined
+    ? undefined
+    : requiredUtf8Text(input.displayName, 'displayName', command, 255);
+  return invokeChecked(command, { payload: {
+    agentHandle: requiredText(input.agentHandle, 'agentHandle', command, MAX_IDENTIFIER_LENGTH),
+    conversationAnchorId: requiredText(input.conversationAnchorId, 'conversationAnchorId', command, MAX_IDENTIFIER_LENGTH),
+    mimeType: input.mimeType,
+    ...(displayName ? { displayName } : {}),
+    bytes: [...input.bytes],
+  } }, (value) => {
+    const record = assertRecord(value, `${command} returned invalid attachment upload`);
+    assertProjectionKeys(record, ['artifactId', 'expiresAt'], command, 'conversation attachment upload');
+    const expiresAt = parseRequiredString(record.expiresAt, 'expiresAt', command);
+    if (!Number.isFinite(Date.parse(expiresAt))) throw new Error(`${command}: expiresAt is invalid`);
+    return Object.freeze({
+      artifactId: requiredText(record.artifactId, 'artifactId', command, MAX_IDENTIFIER_LENGTH),
+      expiresAt,
+    });
+  });
+}
+
+export function readNimiLocalAppConversationArtifact(
+  input: NimiLocalAppConversationScopeInput & { readonly artifactId: string },
+): Promise<JsonObject> {
+  const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationArtifactRead'];
+  assertExactInput(input, ['agentHandle', 'conversationAnchorId', 'artifactId'], command);
+  return invokeChecked(command, { payload: identifiers(input, ['agentHandle', 'conversationAnchorId', 'artifactId'], command) }, (value) => {
+    const record = assertRecord(value, `${command} returned invalid artifact read`);
+    assertProjectionKeys(record, ['artifactId', 'bytes', 'mimeType', 'byteLength'], command, 'conversation artifact read');
+    if (!Array.isArray(record.bytes) || record.bytes.length === 0 || record.bytes.length > 32 * 1024 * 1024
+      || record.bytes.some((entry) => !Number.isInteger(entry) || Number(entry) < 0 || Number(entry) > 255)
+      || typeof record.byteLength !== 'number' || !Number.isSafeInteger(record.byteLength)
+      || record.byteLength !== record.bytes.length) {
+      throw new Error(`${command}: artifact read body is invalid`);
+    }
+    return Object.freeze({
+      artifactId: requiredText(record.artifactId, 'artifactId', command, MAX_IDENTIFIER_LENGTH),
+      bytes: Object.freeze([...record.bytes] as number[]),
+      mimeType: requiredText(record.mimeType, 'mimeType', command, 128),
+      byteLength: record.byteLength,
+    });
+  });
+}
+
+export function transcribeNimiLocalAppConversationVoice(
+  input: NimiLocalAppConversationScopeInput & {
+    readonly requestId: string;
+    readonly mimeType: string;
+    readonly audioBytes: readonly number[];
+  },
+): Promise<JsonObject> {
+  const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationVoiceTranscribe'];
+  assertExactInput(input, ['agentHandle', 'conversationAnchorId', 'requestId', 'mimeType', 'audioBytes'], command);
+  if (!Array.isArray(input.audioBytes) || input.audioBytes.length === 0 || input.audioBytes.length > 6 * 1024 * 1024
+    || input.audioBytes.some((entry) => !Number.isInteger(entry) || entry < 0 || entry > 255)
+    || !input.mimeType.startsWith('audio/') || input.mimeType.trim() !== input.mimeType
+    || /[\u0000-\u001f\u007f]/u.test(input.mimeType)) {
+    throw new Error(`${command}: voice input is invalid`);
+  }
+  return invokeChecked(command, { payload: {
+    agentHandle: requiredText(input.agentHandle, 'agentHandle', command, MAX_IDENTIFIER_LENGTH),
+    conversationAnchorId: requiredText(input.conversationAnchorId, 'conversationAnchorId', command, MAX_IDENTIFIER_LENGTH),
+    requestId: requiredText(input.requestId, 'requestId', command, MAX_IDENTIFIER_LENGTH),
+    mimeType: input.mimeType,
+    audioBytes: [...input.audioBytes],
+  } }, (value) => {
+    const record = assertRecord(value, `${command} returned invalid transcription`);
+    assertProjectionKeys(record, ['text'], command, 'conversation voice transcription');
+    return Object.freeze({ text: requiredUtf8Content(record.text, 'text', command, 64 * 1024) });
   });
 }
 
@@ -1245,21 +1361,45 @@ function parseConversationEvent(value: unknown, command: string): JsonObject {
   parseRequiredString(record.turnId, 'turnId', command);
   switch (record.type) {
     case 'turn-accepted':
-      assertProjectionKeys(record, [...common, 'requestId'], command, 'turn accepted event');
-      parseRequiredString(record.requestId, 'requestId', command);
-      break;
     case 'turn-started':
       assertProjectionKeys(record, common, command, 'turn started event');
       break;
-    case 'text-delta':
-      assertProjectionKeys(record, [...common, 'text'], command, 'text delta event');
-      parseRequiredString(record.text, 'text', command);
-      break;
     case 'message-committed':
-      assertProjectionKeys(record, [...common, 'messageId', 'text'], command, 'message committed event');
-      parseRequiredString(record.messageId, 'messageId', command);
-      parseRequiredString(record.text, 'text', command);
+      assertProjectionKeys(record, [...common, 'message'], command, 'message committed event');
+      parseConversationMessage(record.message, command);
       break;
+    case 'action-planned':
+    case 'action-started':
+    case 'action-completed':
+    case 'action-failed': {
+      assertProjectionKeys(record, [...common, 'action'], command, `${record.type} event`);
+      const action = parseConversationAction(record.action, command);
+      if (action.turnId !== record.turnId || action.status !== record.type.slice('action-'.length)) {
+        throw new Error(`${command}: action event linkage is invalid`);
+      }
+      break;
+    }
+    case 'artifact-ready':
+      assertProjectionKeys(
+        record,
+        [...common, 'actionId', 'capabilityContract', 'projectionMessageId', 'artifactId'],
+        command,
+        'artifact ready event',
+      );
+      if (record.capabilityContract !== 'image.generate') throw new Error(`${command}: artifact capability is invalid`);
+      parseRequiredString(record.actionId, 'actionId', command);
+      parseRequiredString(record.projectionMessageId, 'projectionMessageId', command);
+      parseRequiredString(record.artifactId, 'artifactId', command);
+      break;
+    case 'voice-ready':
+    case 'voice-failed': {
+      assertProjectionKeys(record, [...common, 'voice'], command, `${record.type} event`);
+      const voice = parseConversationVoice(record.voice, command);
+      if (voice.turnId !== record.turnId || voice.state !== record.type.slice('voice-'.length)) {
+        throw new Error(`${command}: voice event linkage is invalid`);
+      }
+      break;
+    }
     case 'turn-completed':
       assertProjectionKeys(record, [...common, 'terminalReason'], command, 'turn completed event');
       if (typeof record.terminalReason !== 'string'
@@ -1293,33 +1433,156 @@ function parseConversationSnapshot(value: unknown, command: string): JsonObject 
   const record = assertRecord(value, `${command} returned invalid conversation snapshot`);
   assertProjectionKeys(
     record,
-    ['conversationAnchorId', 'activeTurnId', 'messages', 'truncatedBefore'],
+    ['conversationAnchorId', 'throughSequence', 'turns', 'messages', 'actions', 'voices', 'truncatedBefore'],
     command,
     'conversation snapshot',
   );
   const conversationAnchorId = parseRequiredString(record.conversationAnchorId, 'conversationAnchorId', command);
-  if (record.activeTurnId !== null) parseRequiredString(record.activeTurnId, 'activeTurnId', command);
-  if (!Array.isArray(record.messages) || record.messages.length > 200 || typeof record.truncatedBefore !== 'boolean') {
+  if (typeof record.throughSequence !== 'string' || !/^(0|[1-9][0-9]*)$/u.test(record.throughSequence)
+    || !Array.isArray(record.turns) || record.turns.length > 201
+    || !Array.isArray(record.messages) || record.messages.length > 203
+    || !Array.isArray(record.actions) || record.actions.length > 201
+    || !Array.isArray(record.voices) || record.voices.length > 201
+    || typeof record.truncatedBefore !== 'boolean') {
     throw new Error(`${command}: conversation snapshot is invalid`);
   }
   let textBytes = 0;
-  const messages = record.messages.map((value) => {
-    const message = assertRecord(value, `${command} returned invalid conversation message`);
-    assertProjectionKeys(message, ['turnId', 'role', 'text'], command, 'conversation message');
-    if (message.role !== 'user' && message.role !== 'assistant') {
-      throw new Error(`${command}: conversation message role is invalid`);
-    }
-    const turnId = parseRequiredString(message.turnId, 'turnId', command);
-    const text = parseRequiredString(message.text, 'text', command);
+  const turns = record.turns.map((value) => parseConversationTurn(value, command));
+  const messages = record.messages.map((value) => parseConversationMessage(value, command, (text) => {
     textBytes += new TextEncoder().encode(text).byteLength;
-    if (textBytes > 1024 * 1024) throw new Error(`${command}: conversation snapshot is too large`);
-    return Object.freeze({ turnId, role: message.role, text });
-  });
+    if (textBytes > 1024 * 1024 + 128 * 1024) throw new Error(`${command}: conversation snapshot is too large`);
+  }));
+  const actions = record.actions.map((value) => parseConversationAction(value, command));
+  const voices = record.voices.map((value) => parseConversationVoice(value, command));
+  const turnIds = new Set(turns.map((turn) => turn.turnId));
+  if (turnIds.size !== turns.length
+    || messages.some((message) => !turnIds.has(message.turnId))
+    || actions.some((action) => !turnIds.has(action.turnId))
+    || voices.some((voice) => !turnIds.has(voice.turnId))) {
+    throw new Error(`${command}: conversation snapshot references are invalid`);
+  }
   return Object.freeze({
     conversationAnchorId,
-    activeTurnId: record.activeTurnId as string | null,
+    throughSequence: record.throughSequence,
+    turns: Object.freeze(turns),
     messages: Object.freeze(messages),
+    actions: Object.freeze(actions),
+    voices: Object.freeze(voices),
     truncatedBefore: record.truncatedBefore,
+  }) as JsonObject;
+}
+
+function parseConversationMessage(
+  value: unknown,
+  command: string,
+  observeText: (text: string) => void = () => {},
+): JsonObject {
+  const message = assertRecord(value, `${command} returned invalid conversation message`);
+  assertProjectionKeys(message, ['messageId', 'turnId', 'role', 'parts'], command, 'conversation message');
+  if ((message.role !== 'user' && message.role !== 'assistant')
+    || !Array.isArray(message.parts) || message.parts.length < 1 || message.parts.length > 2) {
+    throw new Error(`${command}: conversation message is invalid`);
+  }
+  let textCount = 0;
+  let artifactCount = 0;
+  const parts = message.parts.map((value) => {
+    const part = assertRecord(value, `${command} returned invalid conversation message part`);
+    if (part.kind === 'text') {
+      assertProjectionKeys(part, ['kind', 'text'], command, 'conversation text part');
+      const text = parseRequiredString(part.text, 'text', command);
+      textCount += 1;
+      observeText(text);
+      return Object.freeze({ kind: 'text', text });
+    }
+    if (part.kind === 'artifact-ref') {
+      assertProjectionKeys(
+        part,
+        ['kind', 'artifactId', 'mediaKind', 'mimeType', 'displayName'],
+        command,
+        'conversation artifact part',
+      );
+      if (part.mediaKind !== 'image'
+        || typeof part.mimeType !== 'string'
+        || !['image/png', 'image/jpeg', 'image/webp', 'image/gif'].includes(part.mimeType)
+        || (part.displayName !== null && typeof part.displayName !== 'string')) {
+        throw new Error(`${command}: conversation artifact part is invalid`);
+      }
+      artifactCount += 1;
+      return Object.freeze({
+        kind: 'artifact-ref',
+        artifactId: parseRequiredString(part.artifactId, 'artifactId', command),
+        mediaKind: 'image',
+        mimeType: part.mimeType,
+        displayName: part.displayName,
+      });
+    }
+    throw new Error(`${command}: conversation message part kind is invalid`);
+  });
+  if (textCount > 1 || artifactCount > 1
+    || (message.role === 'assistant' && textCount === 1 && artifactCount === 1)) {
+    throw new Error(`${command}: conversation message cardinality is invalid`);
+  }
+  return Object.freeze({
+    messageId: parseRequiredString(message.messageId, 'messageId', command),
+    turnId: parseRequiredString(message.turnId, 'turnId', command),
+    role: message.role,
+    parts: Object.freeze(parts),
+  }) as JsonObject;
+}
+
+function parseConversationTurn(value: unknown, command: string): JsonObject {
+  const turn = assertRecord(value, `${command} returned invalid conversation turn`);
+  assertProjectionKeys(turn, ['turnId', 'status', 'phase', 'terminalReason', 'reasonCode', 'message'], command, 'conversation turn');
+  if (!['active', 'completed', 'failed', 'interrupted'].includes(String(turn.status))
+    || (turn.phase !== null && turn.phase !== 'accepted' && turn.phase !== 'started')
+    || (turn.terminalReason !== null && typeof turn.terminalReason !== 'string')
+    || (turn.reasonCode !== null && typeof turn.reasonCode !== 'string')
+    || (turn.message !== null && typeof turn.message !== 'string')) {
+    throw new Error(`${command}: conversation turn is invalid`);
+  }
+  return Object.freeze({
+    ...turn,
+    turnId: parseRequiredString(turn.turnId, 'turnId', command),
+  }) as JsonObject;
+}
+
+function parseConversationAction(value: unknown, command: string): JsonObject {
+  const action = assertRecord(value, `${command} returned invalid conversation action`);
+  assertProjectionKeys(
+    action,
+    ['actionId', 'turnId', 'capabilityContract', 'status', 'projectionMessageId', 'artifactId', 'reasonCode', 'message'],
+    command,
+    'conversation action',
+  );
+  if (action.capabilityContract !== 'image.generate'
+    || !['planned', 'started', 'completed', 'failed'].includes(String(action.status))
+    || (action.projectionMessageId !== null && typeof action.projectionMessageId !== 'string')
+    || (action.artifactId !== null && typeof action.artifactId !== 'string')
+    || (action.reasonCode !== null && typeof action.reasonCode !== 'string')
+    || (action.message !== null && typeof action.message !== 'string')) {
+    throw new Error(`${command}: conversation action is invalid`);
+  }
+  return Object.freeze({
+    ...action,
+    actionId: parseRequiredString(action.actionId, 'actionId', command),
+    turnId: parseRequiredString(action.turnId, 'turnId', command),
+  }) as JsonObject;
+}
+
+function parseConversationVoice(value: unknown, command: string): JsonObject {
+  const voice = assertRecord(value, `${command} returned invalid conversation voice`);
+  assertProjectionKeys(voice, ['voiceId', 'turnId', 'messageId', 'state', 'artifactId', 'reasonCode', 'message'], command, 'conversation voice');
+  if ((voice.state !== 'ready' && voice.state !== 'failed')
+    || (voice.artifactId !== null && typeof voice.artifactId !== 'string')
+    || (voice.reasonCode !== null && typeof voice.reasonCode !== 'string')
+    || (voice.message !== null && typeof voice.message !== 'string')) {
+    throw new Error(`${command}: conversation voice is invalid`);
+  }
+  return Object.freeze({
+    ...voice,
+    voiceId: parseRequiredString(voice.voiceId, 'voiceId', command),
+    turnId: parseRequiredString(voice.turnId, 'turnId', command),
+    messageId: parseRequiredString(voice.messageId, 'messageId', command),
   }) as JsonObject;
 }
 
@@ -2266,34 +2529,58 @@ function parseSharedAgentAIConfig(value: unknown, command: string): NimiCapabili
   return config as unknown as NimiCapabilityAIConfig;
 }
 
-function parseSharedAgentAIConfigSnapshot(value: unknown, command: string): NimiAIConfigSnapshot {
+function parseSharedAgentAIConfigSnapshot(value: unknown, command: string): NimiSharedLocalAgentAIConfigSnapshot {
   const snapshot = parseSafeProjection(value, command);
-  assertProjectionKeys(snapshot, ['config', 'revision', 'effectiveSelections'], command, 'shared AIConfig snapshot');
+  assertProjectionKeys(snapshot, ['config', 'revision', 'effectiveSelections', 'participation'], command, 'shared AIConfig snapshot');
   const revision = parseRevision(snapshot.revision, command);
   const config = snapshot.config === null ? null : parseSharedAgentAIConfig(snapshot.config, command);
   if (!Array.isArray(snapshot.effectiveSelections) || snapshot.effectiveSelections.length > 128) {
     throw new Error(`${command}: effective selections are invalid`);
   }
   snapshot.effectiveSelections.forEach((selection) => parseEffectiveSelection(selection, command));
-  return Object.freeze({ config, revision, effectiveSelections: Object.freeze([...snapshot.effectiveSelections]) }) as NimiAIConfigSnapshot;
+  const participation = parseLocalAgentParticipation(snapshot.participation, command);
+  return Object.freeze({ config, revision, effectiveSelections: Object.freeze([...snapshot.effectiveSelections]), participation }) as NimiSharedLocalAgentAIConfigSnapshot;
 }
 
-function parseSharedAgentAIConfigOverwrite(value: unknown, command: string): NimiAIConfigOverwriteResult {
+function parseSharedAgentAIConfigOverwrite(value: unknown, command: string): NimiSharedLocalAgentAIConfigOverwriteResult {
   const result = parseSafeProjection(value, command);
-  assertProjectionKeys(result, ['outcome', 'config', 'revision', 'effectiveSelections', 'reasonCode'], command, 'shared AIConfig overwrite');
+  assertProjectionKeys(result, ['outcome', 'config', 'revision', 'effectiveSelections', 'participation', 'reasonCode'], command, 'shared AIConfig overwrite');
   const revision = parseRevision(result.revision, command);
   const config = result.config === null ? null : parseSharedAgentAIConfig(result.config, command);
   if (!Array.isArray(result.effectiveSelections) || result.effectiveSelections.length > 128) {
     throw new Error(`${command}: effective selections are invalid`);
   }
   result.effectiveSelections.forEach((selection) => parseEffectiveSelection(selection, command));
+  const participation = parseLocalAgentParticipation(result.participation, command);
   if (result.outcome === 'committed' && result.reasonCode === 'REASON_CODE_UNSPECIFIED' && config) {
-    return Object.freeze({ outcome: 'committed', config, revision });
+    return Object.freeze({ outcome: 'committed', config, revision, participation });
   }
   if (result.outcome === 'conflict' && result.reasonCode === 'AGENT_AI_CONFIG_REVISION_CONFLICT') {
-    return Object.freeze({ outcome: 'conflict', config, revision, reasonCode: result.reasonCode });
+    return Object.freeze({ outcome: 'conflict', config, revision, reasonCode: result.reasonCode, participation });
   }
   throw new Error(`${command}: overwrite outcome is invalid`);
+}
+
+function parseLocalAgentParticipation(value: unknown, command: string) {
+  const expected = [
+    ['conversation.primary', 'text.generate'],
+    ['memory.embedding', 'text.embed'],
+    ['conversation.input.voice', 'audio.transcribe'],
+    ['conversation.output.voice', 'audio.synthesize'],
+    ['conversation.action.image', 'image.generate'],
+  ] as const;
+  if (!Array.isArray(value) || value.length !== expected.length) {
+    throw new Error(`${command}: LocalAgent participation is invalid`);
+  }
+  return Object.freeze(value.map((entry, index) => {
+    const row = assertRecord(entry, `${command}: participation row is invalid`);
+    assertProjectionKeys(row, ['role', 'capabilityContract'], command, `participation row ${index}`);
+    const expectedRow = expected[index];
+    if (!expectedRow || row.role !== expectedRow[0] || row.capabilityContract !== expectedRow[1]) {
+      throw new Error(`${command}: participation row ${index} is invalid`);
+    }
+    return Object.freeze({ role: expectedRow[0], capabilityContract: expectedRow[1] });
+  }));
 }
 
 function canonicalAIConfigCapabilities(
@@ -2596,6 +2883,41 @@ function requiredUtf8Content(value: unknown, field: string, command: string, max
     throw invalidInput(command, `${field} is invalid`);
   }
   return value;
+}
+
+function parseConversationInputParts(value: unknown, command: string): readonly JsonValue[] {
+  if (!Array.isArray(value) || value.length < 1 || value.length > 2) {
+    throw invalidInput(command, 'conversation parts are invalid');
+  }
+  let textSeen = false;
+  let artifactSeen = false;
+  return Object.freeze(value.map((part, index): JsonValue => {
+    if (!part || typeof part !== 'object' || Array.isArray(part)) {
+      throw invalidInput(command, `conversation part ${index} is invalid`);
+    }
+    const record = part as Record<string, unknown>;
+    if (record.kind === 'text') {
+      assertExactInput(record, ['kind', 'text'], command);
+      if (textSeen || artifactSeen || index !== 0) {
+        throw invalidInput(command, `conversation text part ${index} is invalid`);
+      }
+      textSeen = true;
+      return Object.freeze({
+        kind: 'text',
+        text: requiredUtf8Content(record.text, 'text', command, 64 * 1024),
+      });
+    }
+    if (record.kind === 'artifact-ref') {
+      assertExactInput(record, ['kind', 'artifactId'], command);
+      if (artifactSeen) throw invalidInput(command, `conversation artifact part ${index} is invalid`);
+      artifactSeen = true;
+      return Object.freeze({
+        kind: 'artifact-ref',
+        artifactId: requiredText(record.artifactId, 'artifactId', command, MAX_IDENTIFIER_LENGTH),
+      });
+    }
+    throw invalidInput(command, `conversation part ${index} kind is invalid`);
+  }));
 }
 
 function invalidInput(command: string, reason: string): BridgeError {

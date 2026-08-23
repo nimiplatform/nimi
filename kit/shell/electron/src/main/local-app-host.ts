@@ -49,6 +49,9 @@ const LOCAL_APP_BINDING_METHODS = [
   'localAppAssetAdopt',
   'localAppConversationOpen',
   'localAppConversationSendTurn',
+  'localAppConversationAttachmentUpload',
+  'localAppConversationArtifactRead',
+  'localAppConversationVoiceTranscribe',
   'localAppConversationInterruptTurn',
   'localAppConversationSubscribe',
   'localAppConversationStreamNext',
@@ -200,6 +203,22 @@ type NimiElectronLocalAppArtifactUploadBindingInput = {
   readonly mimeType: string;
 };
 
+type NimiElectronLocalAppConversationAttachmentUploadBindingInput = {
+  readonly agentHandle: string;
+  readonly conversationAnchorId: string;
+  readonly mimeType: string;
+  readonly displayName?: string;
+  readonly bytes: Buffer;
+};
+
+type NimiElectronLocalAppConversationVoiceTranscriptionBindingInput = {
+  readonly agentHandle: string;
+  readonly conversationAnchorId: string;
+  readonly requestId: string;
+  readonly mimeType: string;
+  readonly audioBytes: Buffer;
+};
+
 type NativeLocalAppOutcome =
   | { readonly status: 'ok'; readonly value: unknown }
   | {
@@ -263,6 +282,9 @@ export type NimiElectronProtectedLocalBinding = {
   readonly localAppAssetAdopt: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppConversationOpen: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppConversationSendTurn: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppConversationAttachmentUpload: (input: NimiElectronLocalAppConversationAttachmentUploadBindingInput) => Promise<NativeLocalAppOutcome>;
+  readonly localAppConversationArtifactRead: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppConversationVoiceTranscribe: (input: NimiElectronLocalAppConversationVoiceTranscriptionBindingInput) => Promise<NativeLocalAppOutcome>;
   readonly localAppConversationInterruptTurn: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppConversationSubscribe: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppConversationStreamNext: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
@@ -322,6 +344,9 @@ export type NimiElectronLocalAppHost = {
   readonly assetAdopt: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly conversationOpen: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly conversationSendTurn: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly conversationAttachmentUpload: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly conversationArtifactRead: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly conversationVoiceTranscribe: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly conversationInterruptTurn: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly conversationSubscribe: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly conversationStreamNext: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
@@ -693,6 +718,40 @@ class ElectronLocalAppHost implements NimiElectronLocalAppHost {
     return invokeExactTextRecord(() => this.binding.localAppConversationSendTurn(input), ['turnId']);
   }
 
+  conversationAttachmentUpload(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    const bytes = validateByteArray(input.bytes);
+    if (bytes.length === 0 || bytes.length > 4 * 1024 * 1024) throw untrustedRuntimeError();
+    const displayName = input.displayName === undefined
+      ? undefined
+      : boundedExactText(input.displayName, 255, false);
+    return invokeConversationAttachmentUpload(() => this.binding.localAppConversationAttachmentUpload({
+      agentHandle: boundedExactText(input.agentHandle, 256, false),
+      conversationAnchorId: boundedExactText(input.conversationAnchorId, 256, false),
+      mimeType: boundedImageMime(input.mimeType),
+      ...(displayName ? { displayName } : {}),
+      bytes: Buffer.from(bytes),
+    }));
+  }
+
+  conversationArtifactRead(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return invokeConversationArtifactRead(() => this.binding.localAppConversationArtifactRead(input));
+  }
+
+  conversationVoiceTranscribe(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    const audioBytes = validateByteArray(input.audioBytes);
+    const mimeType = boundedMime(input.mimeType);
+    if (audioBytes.length === 0 || audioBytes.length > 6 * 1024 * 1024 || !mimeType.startsWith('audio/')) {
+      throw untrustedRuntimeError();
+    }
+    return invokeExactTextRecord(() => this.binding.localAppConversationVoiceTranscribe({
+      agentHandle: boundedExactText(input.agentHandle, 256, false),
+      conversationAnchorId: boundedExactText(input.conversationAnchorId, 256, false),
+      requestId: boundedExactText(input.requestId, 256, false),
+      mimeType,
+      audioBytes: Buffer.from(audioBytes),
+    }), ['text']);
+  }
+
   conversationInterruptTurn(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
     return invokeExactTextRecord(() => this.binding.localAppConversationInterruptTurn(input), ['turnId']);
   }
@@ -889,6 +948,18 @@ class LazyElectronLocalAppHost implements NimiElectronLocalAppHost {
 
   conversationSendTurn(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
     return this.resolve().conversationSendTurn(input);
+  }
+
+  conversationAttachmentUpload(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return this.resolve().conversationAttachmentUpload(input);
+  }
+
+  conversationArtifactRead(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return this.resolve().conversationArtifactRead(input);
+  }
+
+  conversationVoiceTranscribe(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return this.resolve().conversationVoiceTranscribe(input);
   }
 
   conversationInterruptTurn(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
@@ -1211,6 +1282,37 @@ async function invokeArtifactUpload(
   const mimeType = boundedImageMime(value.mimeType);
   if (sizeBytes !== expectedSize || mimeType !== expectedMimeType) throw untrustedRuntimeError();
   return Object.freeze({ artifactId, sizeBytes, mimeType });
+}
+
+async function invokeConversationAttachmentUpload(
+  call: () => Promise<NativeLocalAppOutcome>,
+): Promise<NimiElectronLocalAppRecord> {
+  const value = await invoke(call);
+  if (!isPlainRecord(value) || !hasExactKeys(value, ['artifactId', 'expiresAt'])) {
+    throw untrustedRuntimeError();
+  }
+  return Object.freeze({
+    artifactId: boundedExactText(value.artifactId, 256, false),
+    expiresAt: validateTimestamp(value.expiresAt),
+  });
+}
+
+async function invokeConversationArtifactRead(
+  call: () => Promise<NativeLocalAppOutcome>,
+): Promise<NimiElectronLocalAppRecord> {
+  const value = await invoke(call);
+  if (!isPlainRecord(value) || !hasExactKeys(value, ['artifactId', 'bytes', 'mimeType', 'byteLength'])) {
+    throw untrustedRuntimeError();
+  }
+  const bytes = validateByteArray(value.bytes);
+  const byteLength = boundedInteger(value.byteLength, 1, 32 * 1024 * 1024);
+  if (bytes.length !== byteLength) throw untrustedRuntimeError();
+  return Object.freeze({
+    artifactId: boundedExactText(value.artifactId, 256, false),
+    bytes,
+    mimeType: boundedMime(value.mimeType),
+    byteLength,
+  });
 }
 
 async function invokeVoiceAssetsList(
@@ -1679,20 +1781,31 @@ function validateConversationEvent(value: Record<string, unknown>): NimiElectron
   const common = ['type', 'conversationAnchorId', 'sequence', 'turnId'];
   switch (value.type) {
     case 'turn-accepted':
-      if (!hasExactKeys(value, [...common, 'requestId'])) throw untrustedRuntimeError();
-      exactText(value.requestId);
-      break;
     case 'turn-started':
       if (!hasExactKeys(value, common)) throw untrustedRuntimeError();
       break;
-    case 'text-delta':
-      if (!hasExactKeys(value, [...common, 'text'])) throw untrustedRuntimeError();
-      exactText(value.text);
-      break;
     case 'message-committed':
-      if (!hasExactKeys(value, [...common, 'messageId', 'text'])) throw untrustedRuntimeError();
-      exactText(value.messageId);
-      exactText(value.text);
+      if (!hasExactKeys(value, [...common, 'message'])) throw untrustedRuntimeError();
+      validateConversationMessage(value.message);
+      break;
+    case 'action-planned':
+    case 'action-started':
+    case 'action-completed':
+    case 'action-failed':
+      if (!hasExactKeys(value, [...common, 'action'])) throw untrustedRuntimeError();
+      validateConversationAction(value.action);
+      break;
+    case 'artifact-ready':
+      if (!hasExactKeys(value, [...common, 'actionId', 'capabilityContract', 'projectionMessageId', 'artifactId'])
+        || value.capabilityContract !== 'image.generate') throw untrustedRuntimeError();
+      exactText(value.actionId);
+      exactText(value.projectionMessageId);
+      exactText(value.artifactId);
+      break;
+    case 'voice-ready':
+    case 'voice-failed':
+      if (!hasExactKeys(value, [...common, 'voice'])) throw untrustedRuntimeError();
+      validateConversationVoice(value.voice);
       break;
     case 'turn-completed':
       if (!hasExactKeys(value, [...common, 'terminalReason'])
@@ -1728,32 +1841,122 @@ async function invokeConversationSnapshot(
 ): Promise<NimiElectronLocalAppRecord> {
   const value = await invoke(call);
   if (!isPlainRecord(value)
-    || !hasExactKeys(value, ['conversationAnchorId', 'activeTurnId', 'messages', 'truncatedBefore'])
+    || !hasExactKeys(value, ['conversationAnchorId', 'throughSequence', 'turns', 'messages', 'actions', 'voices', 'truncatedBefore'])
+    || typeof value.throughSequence !== 'string'
+    || !/^(0|[1-9][0-9]*)$/u.test(value.throughSequence)
+    || !Array.isArray(value.turns)
+    || value.turns.length > 201
     || !Array.isArray(value.messages)
-    || value.messages.length > 200
+    || value.messages.length > 203
+    || !Array.isArray(value.actions)
+    || value.actions.length > 201
+    || !Array.isArray(value.voices)
+    || value.voices.length > 201
     || typeof value.truncatedBefore !== 'boolean') {
     throw untrustedRuntimeError();
   }
   const conversationAnchorId = exactText(value.conversationAnchorId);
-  const activeTurnId = optionalExactText(value.activeTurnId);
-  let textBytes = 0;
-  const messages = value.messages.map((entry) => {
-    if (!isPlainRecord(entry) || !hasExactKeys(entry, ['turnId', 'role', 'text'])
-      || (entry.role !== 'user' && entry.role !== 'assistant')) {
-      throw untrustedRuntimeError();
-    }
-    const turnId = exactText(entry.turnId);
-    const text = exactText(entry.text);
-    textBytes += new TextEncoder().encode(text).byteLength;
-    if (textBytes > 1024 * 1024) throw untrustedRuntimeError();
-    return Object.freeze({ turnId, role: entry.role, text }) as NimiElectronLocalAppRecord;
-  });
+  const turns = value.turns.map(validateConversationTurn);
+  const messages = value.messages.map(validateConversationMessage);
+  const actions = value.actions.map(validateConversationAction);
+  const voices = value.voices.map(validateConversationVoice);
   return Object.freeze({
     conversationAnchorId,
-    activeTurnId,
+    throughSequence: value.throughSequence,
+    turns: Object.freeze(turns),
     messages: Object.freeze(messages),
+    actions: Object.freeze(actions),
+    voices: Object.freeze(voices),
     truncatedBefore: value.truncatedBefore,
   });
+}
+
+function validateConversationMessage(value: unknown): NimiElectronLocalAppRecord {
+  if (!isPlainRecord(value) || !hasExactKeys(value, ['messageId', 'turnId', 'role', 'parts'])
+    || (value.role !== 'user' && value.role !== 'assistant')
+    || !Array.isArray(value.parts) || value.parts.length < 1 || value.parts.length > 2) {
+    throw untrustedRuntimeError();
+  }
+  const messageId = exactText(value.messageId);
+  const turnId = exactText(value.turnId);
+  let textCount = 0;
+  let artifactCount = 0;
+  const parts = value.parts.map((part) => {
+    if (!isPlainRecord(part) || typeof part.kind !== 'string') throw untrustedRuntimeError();
+    if (part.kind === 'text') {
+      if (!hasExactKeys(part, ['kind', 'text'])) throw untrustedRuntimeError();
+      textCount++;
+      return Object.freeze({ kind: 'text', text: exactText(part.text) });
+    }
+    if (part.kind === 'artifact-ref') {
+      if (!hasExactKeys(part, ['kind', 'artifactId', 'mediaKind', 'mimeType', 'displayName'])
+        || part.mediaKind !== 'image'
+        || typeof part.mimeType !== 'string'
+        || !['image/png', 'image/jpeg', 'image/webp', 'image/gif'].includes(part.mimeType)
+        || (part.displayName !== null && typeof part.displayName !== 'string')) throw untrustedRuntimeError();
+      artifactCount++;
+      return Object.freeze({
+        kind: 'artifact-ref',
+        artifactId: exactText(part.artifactId),
+        mediaKind: 'image',
+        mimeType: part.mimeType,
+        displayName: part.displayName === null ? null : exactText(part.displayName),
+      });
+    }
+    throw untrustedRuntimeError();
+  });
+  if (textCount > 1 || artifactCount > 1 || (value.role === 'assistant' && textCount === 1 && artifactCount === 1)) {
+    throw untrustedRuntimeError();
+  }
+  return Object.freeze({ messageId, turnId, role: value.role, parts: Object.freeze(parts) });
+}
+
+function validateConversationTurn(value: unknown): NimiElectronLocalAppRecord {
+  if (!isPlainRecord(value) || !hasExactKeys(value, ['turnId', 'status', 'phase', 'terminalReason', 'reasonCode', 'message'])
+    || !['active', 'completed', 'failed', 'interrupted'].includes(String(value.status))
+    || (value.phase !== null && value.phase !== 'accepted' && value.phase !== 'started')
+    || (value.terminalReason !== null && typeof value.terminalReason !== 'string')
+    || (value.reasonCode !== null && (typeof value.reasonCode !== 'string' || !/^[A-Z0-9_-]{1,128}$/u.test(value.reasonCode)))
+    || (value.message !== null && typeof value.message !== 'string')
+    || ((value.status === 'active') !== (value.phase === 'accepted' || value.phase === 'started'))) throw untrustedRuntimeError();
+  return Object.freeze({ ...value, turnId: exactText(value.turnId) }) as NimiElectronLocalAppRecord;
+}
+
+function validateConversationAction(value: unknown): NimiElectronLocalAppRecord {
+  if (!isPlainRecord(value) || !hasExactKeys(value, ['actionId', 'turnId', 'capabilityContract', 'status', 'projectionMessageId', 'artifactId', 'reasonCode', 'message'])
+    || value.capabilityContract !== 'image.generate'
+    || !['planned', 'started', 'completed', 'failed'].includes(String(value.status))
+    || (value.projectionMessageId !== null && typeof value.projectionMessageId !== 'string')
+    || (value.artifactId !== null && typeof value.artifactId !== 'string')
+    || (value.reasonCode !== null && (typeof value.reasonCode !== 'string' || !/^[A-Z0-9_-]{1,128}$/u.test(value.reasonCode)))
+    || (value.message !== null && typeof value.message !== 'string')
+    || ((value.status === 'completed') !== (value.projectionMessageId !== null && value.artifactId !== null))
+    || ((value.status === 'failed') !== (value.reasonCode !== null))
+    || (value.status !== 'failed' && value.message !== null)) throw untrustedRuntimeError();
+  return Object.freeze({
+    ...value,
+    actionId: exactText(value.actionId),
+    turnId: exactText(value.turnId),
+    projectionMessageId: optionalExactText(value.projectionMessageId),
+    artifactId: optionalExactText(value.artifactId),
+  }) as NimiElectronLocalAppRecord;
+}
+
+function validateConversationVoice(value: unknown): NimiElectronLocalAppRecord {
+  if (!isPlainRecord(value) || !hasExactKeys(value, ['voiceId', 'turnId', 'messageId', 'state', 'artifactId', 'reasonCode', 'message'])
+    || (value.state !== 'ready' && value.state !== 'failed')
+    || (value.artifactId !== null && typeof value.artifactId !== 'string')
+    || (value.reasonCode !== null && (typeof value.reasonCode !== 'string' || !/^[A-Z0-9_-]{1,128}$/u.test(value.reasonCode)))
+    || (value.message !== null && typeof value.message !== 'string')
+    || ((value.state === 'ready') !== (value.artifactId !== null))
+    || ((value.state === 'failed') !== (value.reasonCode !== null))) throw untrustedRuntimeError();
+  return Object.freeze({
+    ...value,
+    voiceId: exactText(value.voiceId),
+    turnId: exactText(value.turnId),
+    messageId: exactText(value.messageId),
+    artifactId: optionalExactText(value.artifactId),
+  }) as NimiElectronLocalAppRecord;
 }
 
 function validateReasonMetadata(value: unknown): Readonly<Record<string, string>> {

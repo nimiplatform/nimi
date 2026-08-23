@@ -337,7 +337,32 @@ pub struct NativeConversationSendInput {
     pub agent_handle: String,
     pub conversation_anchor_id: String,
     pub request_id: String,
-    pub text: String,
+    pub parts: JsonValue,
+}
+
+#[napi(object)]
+pub struct NativeConversationAttachmentUploadInput {
+    pub agent_handle: String,
+    pub conversation_anchor_id: String,
+    pub mime_type: String,
+    pub display_name: Option<String>,
+    pub bytes: Buffer,
+}
+
+#[napi(object)]
+pub struct NativeConversationArtifactReadInput {
+    pub agent_handle: String,
+    pub conversation_anchor_id: String,
+    pub artifact_id: String,
+}
+
+#[napi(object)]
+pub struct NativeConversationVoiceTranscriptionInput {
+    pub agent_handle: String,
+    pub conversation_anchor_id: String,
+    pub request_id: String,
+    pub mime_type: String,
+    pub audio_bytes: Buffer,
 }
 
 #[napi(object)]

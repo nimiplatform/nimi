@@ -13,9 +13,8 @@ use crate::generated::{
     AiConfigCloudConnectorOptionsQuery, AiConfigCloudConnectorProjection, AiConfigCloudIntent,
     AiConfigCloudTargetOptionsQuery, AiConfigCloudTargetProjection, AiConfigEffectiveSelection,
     AiConfigEffectiveState, AiConfigLocalIntent, AiConfigLocalLoadoutOptionsQuery,
-    AiConfigLocalResourceProjection,
-    CapabilityImplementationIdentity, GetAppAiConfigRequest, ListAppAiConfigOptionsRequest,
-    OverwriteAppAiConfigRequest, ReasonCode,
+    AiConfigLocalResourceProjection, CapabilityImplementationIdentity, GetAppAiConfigRequest,
+    ListAppAiConfigOptionsRequest, OverwriteAppAiConfigRequest, ReasonCode,
 };
 use crate::grpc_status::local_app_error_from_status;
 use crate::{
@@ -119,15 +118,42 @@ pub async fn list_local_options(
         .map_err(local_app_error_from_status)?
         .into_inner();
     let (kind, options) = match response.result.ok_or_else(untrusted)? {
-        list_app_ai_config_options_response::Result::LocalLoadouts(value) if request.kind == "local-loadouts" => (
-            "local-loadouts", value.options.into_iter().map(project_local_resource).collect::<Result<Vec<_>, _>>()?,
-        ),
-        list_app_ai_config_options_response::Result::CloudConnectors(value) if request.kind == "cloud-connectors" => (
-            "cloud-connectors", value.options.into_iter().map(project_cloud_connector).collect::<Result<Vec<_>, _>>()?,
-        ),
-        list_app_ai_config_options_response::Result::CloudTargets(value) if request.kind == "cloud-targets" => (
-            "cloud-targets", value.options.into_iter().map(project_cloud_target).collect::<Result<Vec<_>, _>>()?,
-        ),
+        list_app_ai_config_options_response::Result::LocalLoadouts(value)
+            if request.kind == "local-loadouts" =>
+        {
+            (
+                "local-loadouts",
+                value
+                    .options
+                    .into_iter()
+                    .map(project_local_resource)
+                    .collect::<Result<Vec<_>, _>>()?,
+            )
+        }
+        list_app_ai_config_options_response::Result::CloudConnectors(value)
+            if request.kind == "cloud-connectors" =>
+        {
+            (
+                "cloud-connectors",
+                value
+                    .options
+                    .into_iter()
+                    .map(project_cloud_connector)
+                    .collect::<Result<Vec<_>, _>>()?,
+            )
+        }
+        list_app_ai_config_options_response::Result::CloudTargets(value)
+            if request.kind == "cloud-targets" =>
+        {
+            (
+                "cloud-targets",
+                value
+                    .options
+                    .into_iter()
+                    .map(project_cloud_target)
+                    .collect::<Result<Vec<_>, _>>()?,
+            )
+        }
         _ => return Err(untrusted()),
     };
     Ok(json!({ "kind": kind, "options": options, "truncated": response.truncated }))
