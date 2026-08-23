@@ -267,9 +267,9 @@ describe('normalizeCapabilityOption', () => {
     assert.equal(normalizeCapabilityOption('rerank'), 'chat');
   });
 
-  test('does not expose deferred runtime-only music capability in desktop local catalog filters', () => {
-    assert.equal(CAPABILITY_OPTIONS.includes('music' as never), false);
-    assert.equal(normalizeCapabilityOption('music'), 'chat');
+  test('exposes the canonical Runtime music asset kind in desktop local catalog filters', () => {
+    assert.equal(CAPABILITY_OPTIONS.includes('music'), true);
+    assert.equal(normalizeCapabilityOption('music'), 'music');
   });
 });
 
