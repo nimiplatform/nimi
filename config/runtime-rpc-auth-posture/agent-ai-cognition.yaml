@@ -16,6 +16,12 @@ methods:
     posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAgentService/SendLocalAppConversationTurn
     posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAgentService/UploadLocalAppConversationAttachment
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAgentService/ReadLocalAppConversationArtifact
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAgentService/TranscribeLocalAppConversationVoice
+    posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAgentService/InterruptLocalAppConversationTurn
     posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAgentService/GetLocalAppConversationSnapshot

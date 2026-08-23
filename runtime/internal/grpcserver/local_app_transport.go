@@ -21,46 +21,49 @@ import (
 )
 
 const (
-	protectedOpenLocalAppSessionMethod       = "/nimi.runtime.v1.RuntimeAuthService/OpenLocalAppSession"
-	protectedRenewLocalAppSessionMethod      = "/nimi.runtime.v1.RuntimeAuthService/RenewLocalAppSession"
-	protectedReadLocalAppStorageJSONMethod   = "/nimi.runtime.v1.RuntimeAppService/ReadLocalAppStorageJson"
-	protectedWriteLocalAppStorageJSONMethod  = "/nimi.runtime.v1.RuntimeAppService/WriteLocalAppStorageJson"
-	protectedRemoveLocalAppStorageJSONMethod = "/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppStorageJson"
-	protectedStatLocalAppAssetMethod         = "/nimi.runtime.v1.RuntimeAppService/StatLocalAppAsset"
-	protectedListLocalAppAssetsMethod        = "/nimi.runtime.v1.RuntimeAppService/ListLocalAppAssets"
-	protectedWriteLocalAppAssetMethod        = "/nimi.runtime.v1.RuntimeAppService/WriteLocalAppAsset"
-	protectedReadLocalAppAssetMethod         = "/nimi.runtime.v1.RuntimeAppService/ReadLocalAppAsset"
-	protectedRemoveLocalAppAssetMethod       = "/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppAsset"
-	protectedMoveLocalAppAssetMethod         = "/nimi.runtime.v1.RuntimeAppService/MoveLocalAppAsset"
-	protectedRevealLocalAppAssetMethod       = "/nimi.runtime.v1.RuntimeAppService/RevealLocalAppAsset"
-	protectedAdoptLocalAppArtifactMethod     = "/nimi.runtime.v1.RuntimeAppService/AdoptLocalAppArtifact"
-	protectedAgentReferenceListMethod        = "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentReferences"
-	protectedOpenConversationMethod          = "/nimi.runtime.v1.RuntimeAgentService/OpenLocalAppConversation"
-	protectedSendConversationTurnMethod      = "/nimi.runtime.v1.RuntimeAgentService/SendLocalAppConversationTurn"
-	protectedInterruptConversationTurnMethod = "/nimi.runtime.v1.RuntimeAgentService/InterruptLocalAppConversationTurn"
-	protectedSubscribeConversationMethod     = "/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppConversationEvents"
-	protectedConversationSnapshotMethod      = "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppConversationSnapshot"
-	protectedGetSharedAIConfigMethod         = "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppSharedLocalAgentAIConfig"
-	protectedOverwriteSharedAIConfigMethod   = "/nimi.runtime.v1.RuntimeAgentService/OverwriteLocalAppSharedLocalAgentAIConfig"
-	protectedListSharedAIConfigOptionsMethod = "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppSharedLocalAgentAIConfigOptions"
-	protectedAutonomySnapshotMethod          = "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentAutonomySnapshot"
-	protectedUpdateAutonomyMethod            = "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentAutonomy"
-	protectedPresentationSnapshotMethod      = "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentPresentationSnapshot"
-	protectedCommitPresentationMethod        = "/nimi.runtime.v1.RuntimeAgentService/CommitLocalAppAgentPresentation"
-	protectedGenerateTextCandidateMethod     = "/nimi.runtime.v1.RuntimeAiService/GenerateLocalAppTextCandidate"
-	protectedStreamTextTurnMethod            = "/nimi.runtime.v1.RuntimeAiService/StreamLocalAppTextTurn"
-	protectedExecuteLocalAppScenarioMethod   = "/nimi.runtime.v1.RuntimeAiService/ExecuteLocalAppScenario"
-	protectedSubmitScenarioJobMethod         = "/nimi.runtime.v1.RuntimeAiService/SubmitLocalAppScenarioJob"
-	protectedGetScenarioJobMethod            = "/nimi.runtime.v1.RuntimeAiService/GetLocalAppScenarioJob"
-	protectedSubscribeScenarioJobMethod      = "/nimi.runtime.v1.RuntimeAiService/SubscribeLocalAppScenarioJobEvents"
-	protectedCancelScenarioJobMethod         = "/nimi.runtime.v1.RuntimeAiService/CancelLocalAppScenarioJob"
-	protectedReadLocalAppArtifactMethod      = "/nimi.runtime.v1.RuntimeAiService/ReadLocalAppArtifact"
-	protectedUploadLocalAppArtifactMethod    = "/nimi.runtime.v1.RuntimeAiService/UploadLocalAppArtifact"
-	protectedListLocalAppVoiceAssetsMethod   = "/nimi.runtime.v1.RuntimeAiService/ListLocalAppVoiceAssets"
-	protectedGetAppAIConfigMethod            = "/nimi.runtime.v1.RuntimeAiService/GetAppAIConfig"
-	protectedOverwriteAppAIConfigMethod      = "/nimi.runtime.v1.RuntimeAiService/OverwriteAppAIConfig"
-	protectedListAppAIConfigOptionsMethod    = "/nimi.runtime.v1.RuntimeAiService/ListAppAIConfigOptions"
-	protectedInvokeRealmUnaryMethod          = "/nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary"
+	protectedOpenLocalAppSessionMethod          = "/nimi.runtime.v1.RuntimeAuthService/OpenLocalAppSession"
+	protectedRenewLocalAppSessionMethod         = "/nimi.runtime.v1.RuntimeAuthService/RenewLocalAppSession"
+	protectedReadLocalAppStorageJSONMethod      = "/nimi.runtime.v1.RuntimeAppService/ReadLocalAppStorageJson"
+	protectedWriteLocalAppStorageJSONMethod     = "/nimi.runtime.v1.RuntimeAppService/WriteLocalAppStorageJson"
+	protectedRemoveLocalAppStorageJSONMethod    = "/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppStorageJson"
+	protectedStatLocalAppAssetMethod            = "/nimi.runtime.v1.RuntimeAppService/StatLocalAppAsset"
+	protectedListLocalAppAssetsMethod           = "/nimi.runtime.v1.RuntimeAppService/ListLocalAppAssets"
+	protectedWriteLocalAppAssetMethod           = "/nimi.runtime.v1.RuntimeAppService/WriteLocalAppAsset"
+	protectedReadLocalAppAssetMethod            = "/nimi.runtime.v1.RuntimeAppService/ReadLocalAppAsset"
+	protectedRemoveLocalAppAssetMethod          = "/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppAsset"
+	protectedMoveLocalAppAssetMethod            = "/nimi.runtime.v1.RuntimeAppService/MoveLocalAppAsset"
+	protectedRevealLocalAppAssetMethod          = "/nimi.runtime.v1.RuntimeAppService/RevealLocalAppAsset"
+	protectedAdoptLocalAppArtifactMethod        = "/nimi.runtime.v1.RuntimeAppService/AdoptLocalAppArtifact"
+	protectedAgentReferenceListMethod           = "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentReferences"
+	protectedOpenConversationMethod             = "/nimi.runtime.v1.RuntimeAgentService/OpenLocalAppConversation"
+	protectedSendConversationTurnMethod         = "/nimi.runtime.v1.RuntimeAgentService/SendLocalAppConversationTurn"
+	protectedUploadConversationAttachmentMethod = "/nimi.runtime.v1.RuntimeAgentService/UploadLocalAppConversationAttachment"
+	protectedReadConversationArtifactMethod     = "/nimi.runtime.v1.RuntimeAgentService/ReadLocalAppConversationArtifact"
+	protectedTranscribeConversationVoiceMethod  = "/nimi.runtime.v1.RuntimeAgentService/TranscribeLocalAppConversationVoice"
+	protectedInterruptConversationTurnMethod    = "/nimi.runtime.v1.RuntimeAgentService/InterruptLocalAppConversationTurn"
+	protectedSubscribeConversationMethod        = "/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppConversationEvents"
+	protectedConversationSnapshotMethod         = "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppConversationSnapshot"
+	protectedGetSharedAIConfigMethod            = "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppSharedLocalAgentAIConfig"
+	protectedOverwriteSharedAIConfigMethod      = "/nimi.runtime.v1.RuntimeAgentService/OverwriteLocalAppSharedLocalAgentAIConfig"
+	protectedListSharedAIConfigOptionsMethod    = "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppSharedLocalAgentAIConfigOptions"
+	protectedAutonomySnapshotMethod             = "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentAutonomySnapshot"
+	protectedUpdateAutonomyMethod               = "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentAutonomy"
+	protectedPresentationSnapshotMethod         = "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentPresentationSnapshot"
+	protectedCommitPresentationMethod           = "/nimi.runtime.v1.RuntimeAgentService/CommitLocalAppAgentPresentation"
+	protectedGenerateTextCandidateMethod        = "/nimi.runtime.v1.RuntimeAiService/GenerateLocalAppTextCandidate"
+	protectedStreamTextTurnMethod               = "/nimi.runtime.v1.RuntimeAiService/StreamLocalAppTextTurn"
+	protectedExecuteLocalAppScenarioMethod      = "/nimi.runtime.v1.RuntimeAiService/ExecuteLocalAppScenario"
+	protectedSubmitScenarioJobMethod            = "/nimi.runtime.v1.RuntimeAiService/SubmitLocalAppScenarioJob"
+	protectedGetScenarioJobMethod               = "/nimi.runtime.v1.RuntimeAiService/GetLocalAppScenarioJob"
+	protectedSubscribeScenarioJobMethod         = "/nimi.runtime.v1.RuntimeAiService/SubscribeLocalAppScenarioJobEvents"
+	protectedCancelScenarioJobMethod            = "/nimi.runtime.v1.RuntimeAiService/CancelLocalAppScenarioJob"
+	protectedReadLocalAppArtifactMethod         = "/nimi.runtime.v1.RuntimeAiService/ReadLocalAppArtifact"
+	protectedUploadLocalAppArtifactMethod       = "/nimi.runtime.v1.RuntimeAiService/UploadLocalAppArtifact"
+	protectedListLocalAppVoiceAssetsMethod      = "/nimi.runtime.v1.RuntimeAiService/ListLocalAppVoiceAssets"
+	protectedGetAppAIConfigMethod               = "/nimi.runtime.v1.RuntimeAiService/GetAppAIConfig"
+	protectedOverwriteAppAIConfigMethod         = "/nimi.runtime.v1.RuntimeAiService/OverwriteAppAIConfig"
+	protectedListAppAIConfigOptionsMethod       = "/nimi.runtime.v1.RuntimeAiService/ListAppAIConfigOptions"
+	protectedInvokeRealmUnaryMethod             = "/nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary"
 )
 
 type protectedLocalAppAdmission interface {
@@ -394,6 +397,12 @@ func protectedLocalAppUnaryIngress(method string, request any) localappop.Ingres
 		return localappop.IngressConversationOpen
 	case protectedSendConversationTurnMethod:
 		return localappop.IngressConversationTurnSend
+	case protectedUploadConversationAttachmentMethod:
+		return localappop.IngressConversationAttachmentUpload
+	case protectedReadConversationArtifactMethod:
+		return localappop.IngressConversationArtifactRead
+	case protectedTranscribeConversationVoiceMethod:
+		return localappop.IngressConversationVoiceTranscribe
 	case protectedInterruptConversationTurnMethod:
 		return localappop.IngressConversationTurnInterrupt
 	case protectedConversationSnapshotMethod:

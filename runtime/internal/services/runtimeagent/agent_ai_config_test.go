@@ -102,6 +102,29 @@ func TestSharedLocalAgentAIConfigGetMissingIsTyped(t *testing.T) {
 	if err != nil || projection.GetConfig() != nil || projection.GetRevision() != "0" {
 		t.Fatalf("missing projection = %+v err=%v", projection, err)
 	}
+	assertLocalAgentParticipation(t, projection.GetParticipation())
+}
+
+func assertLocalAgentParticipation(t *testing.T, rows []*runtimev1.LocalAgentCapabilityParticipation) {
+	t.Helper()
+	want := []struct {
+		role runtimev1.LocalAgentCapabilityParticipationRole
+		capability string
+	}{
+		{runtimev1.LocalAgentCapabilityParticipationRole_LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_CONVERSATION_PRIMARY, "text.generate"},
+		{runtimev1.LocalAgentCapabilityParticipationRole_LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_MEMORY_EMBEDDING, "text.embed"},
+		{runtimev1.LocalAgentCapabilityParticipationRole_LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_CONVERSATION_INPUT_VOICE, "audio.transcribe"},
+		{runtimev1.LocalAgentCapabilityParticipationRole_LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_CONVERSATION_OUTPUT_VOICE, "audio.synthesize"},
+		{runtimev1.LocalAgentCapabilityParticipationRole_LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_CONVERSATION_ACTION_IMAGE, "image.generate"},
+	}
+	if len(rows) != len(want) {
+		t.Fatalf("participation rows = %+v", rows)
+	}
+	for index := range want {
+		if rows[index].GetRole() != want[index].role || rows[index].GetCapabilityContract() != want[index].capability {
+			t.Fatalf("participation row %d = %+v want=%+v", index, rows[index], want[index])
+		}
+	}
 }
 
 func TestSharedLocalAgentAIConfigRejectsPerAgentSelectors(t *testing.T) {

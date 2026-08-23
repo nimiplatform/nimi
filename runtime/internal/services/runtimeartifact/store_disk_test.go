@@ -100,6 +100,39 @@ func TestDiskStorePersistsGeneratedVoiceArtifactsAcrossReopen(t *testing.T) {
 	}
 }
 
+func TestDiskStorePersistsConversationAttachmentCandidateExpiryAcrossReopen(t *testing.T) {
+	root := filepath.Join(t.TempDir(), "runtime-artifacts")
+	store, err := NewDiskStore(root)
+	if err != nil {
+		t.Fatalf("NewDiskStore: %v", err)
+	}
+	expiresAt := artifactTestNow.Add(time.Hour)
+	if err := store.Put("artifact-attachment-1", ArtifactRecord{
+		Bytes:     []byte("attachment bytes"),
+		MimeType:  "image/png",
+		CreatedAt: artifactTestNow,
+		Owner:     artifactTestOwner(),
+		ConversationAttachment: &ConversationAttachmentArtifactMetadata{
+			AgentID: "agent-1", ConversationAnchorID: "anchor-1",
+			DisplayName: "photo.png", ExpiresAt: expiresAt,
+		},
+	}); err != nil {
+		t.Fatalf("Put: %v", err)
+	}
+	reopened, err := NewDiskStore(root)
+	if err != nil {
+		t.Fatalf("reopen NewDiskStore: %v", err)
+	}
+	record, ok := reopened.Get("artifact-attachment-1")
+	if !ok || record.ConversationAttachment == nil ||
+		record.ConversationAttachment.AgentID != "agent-1" ||
+		record.ConversationAttachment.ConversationAnchorID != "anchor-1" ||
+		record.ConversationAttachment.DisplayName != "photo.png" ||
+		!record.ConversationAttachment.ExpiresAt.Equal(expiresAt) {
+		t.Fatalf("candidate metadata after reopen = %#v", record.ConversationAttachment)
+	}
+}
+
 func TestDiskStoreRejectsPayloadTampering(t *testing.T) {
 	root := filepath.Join(t.TempDir(), "runtime-artifacts")
 	store, err := NewDiskStore(root)

@@ -384,6 +384,22 @@ func (r publicChatRuntime) runTurn(
 			r.svc.logger.Warn("public chat committed action failed", "agent_id", session.AgentID, "turn_id", turn.TurnID, "error", err)
 		}
 	}
+	if hasCoupledPublicChatImageAction(structured) {
+		interrupted, interruptReason, _ = r.svc.publicChatInterruptStatus(turn.TurnID)
+		if interrupted {
+			reason := firstNonEmpty(interruptReason, "user_cancel")
+			r.svc.finalizePublicChatTurnProjection(turn.TurnID, true, func(projection *publicChatTurnProjectionState) {
+				projection.Status = publicChatTurnStatusInterrupted
+				projection.TraceID = traceID
+				projection.ModelResolved = modelResolved
+				projection.RouteDecision = routeDecision
+				projection.ReasonCode = runtimev1.ReasonCode_AI_STREAM_BROKEN
+				projection.Message = reason
+			})
+			r.emitTurnInterrupted(session, turn, traceID, modelResolved, routeDecision, reason)
+			return
+		}
+	}
 	r.svc.observeCounter("runtime_agent_turn_message_committed_total", 1,
 		"caller_app_id", session.CallerAppID,
 		"agent_id", session.AgentID,

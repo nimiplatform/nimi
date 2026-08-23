@@ -52,6 +52,10 @@ func (r publicChatRuntime) executeCommittedActions(
 			_ = r.emitTurnActionFailed(session, turn, action, projectionMessageID, publicChatActionFailedReasonImageExecutionFailed, err)
 			return err
 		}
+		if interrupted, _, _ := r.svc.publicChatInterruptStatus(turn.TurnID); interrupted {
+			_ = r.emitTurnActionFailed(session, turn, action, projectionMessageID, publicChatActionFailedReasonImageExecutionFailed, context.Canceled)
+			return context.Canceled
+		}
 		artifact, err := r.validateRuntimeActionArtifact(result.ArtifactID)
 		if err != nil {
 			_ = r.emitTurnActionFailed(session, turn, action, projectionMessageID, publicChatActionFailedReasonImageExecutionFailed, err)
@@ -82,6 +86,18 @@ func (r publicChatRuntime) executeCommittedActions(
 		}
 	}
 	return nil
+}
+
+func hasCoupledPublicChatImageAction(structured *publicChatStructuredEnvelope) bool {
+	if structured == nil {
+		return false
+	}
+	for _, action := range structured.Actions {
+		if action.Modality == "image" && action.Operation == "image.generate" {
+			return true
+		}
+	}
+	return false
 }
 
 // K-AGCORE-148 typed action_failed reason codes

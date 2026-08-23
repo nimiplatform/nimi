@@ -41,6 +41,16 @@ func TestPublicChatTranscriptAndContextSummaryRecoverAcrossRestart(t *testing.T)
 		Status:         publicChatTurnStatusCompleted,
 		ContextSummary: summary,
 	}
+	first.chatAnchors[anchorID].LocalAppSequence = 17
+	voiceTurnID := first.chatAnchors[anchorID].CommittedTranscript[0].TurnID
+	first.chatAnchors[anchorID].VoiceSidecars = map[string]*publicChatVoiceSidecarState{
+		voiceTurnID: {
+			VoiceID: "local_app_voice_restart_1", TurnID: voiceTurnID,
+			MessageID: localAppConversationMessageID(voiceTurnID, "assistant", ""),
+			State:     "failed", ReasonCode: runtimev1.ReasonCode_AI_OUTPUT_INVALID,
+			Message: "VOICE_SYNTHESIS_FAILED",
+		},
+	}
 	first.chatSurfaceMu.Unlock()
 	first.persistCurrentPublicChatSurfaceState()
 	var persistedRaw string
@@ -74,6 +84,13 @@ func TestPublicChatTranscriptAndContextSummaryRecoverAcrossRestart(t *testing.T)
 	}
 	if !proto.Equal(lastTurn.ContextSummary, summary) {
 		t.Fatalf("recovered context summary mismatch: got=%+v want=%+v", lastTurn.ContextSummary, summary)
+	}
+	if recovered.LocalAppSequence != 17 {
+		t.Fatalf("recovered local-app sequence mismatch: got=%d want=17", recovered.LocalAppSequence)
+	}
+	if voice := recovered.VoiceSidecars[voiceTurnID]; voice == nil || voice.State != "failed" ||
+		voice.MessageID != localAppConversationMessageID(voiceTurnID, "assistant", "") {
+		t.Fatalf("recovered voice sidecar mismatch: %#v", voice)
 	}
 	ctx := testLocalAgentContext("user-1", "agent-alpha")
 	ctx.AppId = "zhiyu.app"

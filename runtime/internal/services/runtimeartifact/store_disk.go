@@ -32,16 +32,17 @@ type DiskStore struct {
 }
 
 type diskArtifactRecord struct {
-	ArtifactID     string                          `json:"artifact_id"`
-	PayloadFile    string                          `json:"payload_file"`
-	MimeType       string                          `json:"mime_type"`
-	ProducerJobID  string                          `json:"producer_job_id,omitempty"`
-	SizeBytes      int64                           `json:"size_bytes"`
-	ContentSHA256  string                          `json:"content_sha256"`
-	MimeInferred   bool                            `json:"mime_inferred"`
-	CreatedAt      time.Time                       `json:"created_at"`
-	GeneratedVoice *GeneratedVoiceArtifactMetadata `json:"generated_voice,omitempty"`
-	Owner          *diskArtifactOwner              `json:"owner,omitempty"`
+	ArtifactID             string                                  `json:"artifact_id"`
+	PayloadFile            string                                  `json:"payload_file"`
+	MimeType               string                                  `json:"mime_type"`
+	ProducerJobID          string                                  `json:"producer_job_id,omitempty"`
+	SizeBytes              int64                                   `json:"size_bytes"`
+	ContentSHA256          string                                  `json:"content_sha256"`
+	MimeInferred           bool                                    `json:"mime_inferred"`
+	CreatedAt              time.Time                               `json:"created_at"`
+	GeneratedVoice         *GeneratedVoiceArtifactMetadata         `json:"generated_voice,omitempty"`
+	ConversationAttachment *ConversationAttachmentArtifactMetadata `json:"conversation_attachment,omitempty"`
+	Owner                  *diskArtifactOwner                      `json:"owner,omitempty"`
 }
 
 // diskArtifactOwner persists the PutArtifact uploader identity. It is absent
@@ -93,16 +94,17 @@ func (s *DiskStore) Put(artifactID string, record ArtifactRecord) error {
 	key := diskArtifactKey(artifactID)
 	payloadFile := key + ".bin"
 	diskRecord := diskArtifactRecord{
-		ArtifactID:     artifactID,
-		PayloadFile:    payloadFile,
-		MimeType:       normalized.MimeType,
-		ProducerJobID:  normalized.ProducerJobID,
-		SizeBytes:      normalized.SizeBytes,
-		ContentSHA256:  normalized.ContentSHA256,
-		MimeInferred:   normalized.MimeInferred,
-		CreatedAt:      normalized.CreatedAt,
-		GeneratedVoice: normalized.GeneratedVoice,
-		Owner:          diskArtifactOwnerFromRecord(normalized.Owner),
+		ArtifactID:             artifactID,
+		PayloadFile:            payloadFile,
+		MimeType:               normalized.MimeType,
+		ProducerJobID:          normalized.ProducerJobID,
+		SizeBytes:              normalized.SizeBytes,
+		ContentSHA256:          normalized.ContentSHA256,
+		MimeInferred:           normalized.MimeInferred,
+		CreatedAt:              normalized.CreatedAt,
+		GeneratedVoice:         normalized.GeneratedVoice,
+		ConversationAttachment: normalized.ConversationAttachment,
+		Owner:                  diskArtifactOwnerFromRecord(normalized.Owner),
 	}
 	metadata, err := json.MarshalIndent(diskRecord, "", "  ")
 	if err != nil {
@@ -127,16 +129,17 @@ func (s *DiskStore) Put(artifactID string, record ArtifactRecord) error {
 			return nil
 		}
 		mergedDisk := diskArtifactRecord{
-			ArtifactID:     artifactID,
-			PayloadFile:    existingDisk.PayloadFile,
-			MimeType:       merged.MimeType,
-			ProducerJobID:  merged.ProducerJobID,
-			SizeBytes:      merged.SizeBytes,
-			ContentSHA256:  merged.ContentSHA256,
-			MimeInferred:   merged.MimeInferred,
-			CreatedAt:      existing.CreatedAt,
-			GeneratedVoice: merged.GeneratedVoice,
-			Owner:          diskArtifactOwnerFromRecord(merged.Owner),
+			ArtifactID:             artifactID,
+			PayloadFile:            existingDisk.PayloadFile,
+			MimeType:               merged.MimeType,
+			ProducerJobID:          merged.ProducerJobID,
+			SizeBytes:              merged.SizeBytes,
+			ContentSHA256:          merged.ContentSHA256,
+			MimeInferred:           merged.MimeInferred,
+			CreatedAt:              existing.CreatedAt,
+			GeneratedVoice:         merged.GeneratedVoice,
+			ConversationAttachment: merged.ConversationAttachment,
+			Owner:                  diskArtifactOwnerFromRecord(merged.Owner),
 		}
 		mergedMetadata, err := json.MarshalIndent(mergedDisk, "", "  ")
 		if err != nil {
@@ -197,16 +200,17 @@ func (s *DiskStore) PutStream(ctx context.Context, artifactID string, record Art
 	key := diskArtifactKey(artifactID)
 	payloadFile := key + ".bin"
 	diskRecord := diskArtifactRecord{
-		ArtifactID:     artifactID,
-		PayloadFile:    payloadFile,
-		MimeType:       normalized.MimeType,
-		ProducerJobID:  normalized.ProducerJobID,
-		SizeBytes:      normalized.SizeBytes,
-		ContentSHA256:  normalized.ContentSHA256,
-		MimeInferred:   normalized.MimeInferred,
-		CreatedAt:      normalized.CreatedAt,
-		GeneratedVoice: normalized.GeneratedVoice,
-		Owner:          diskArtifactOwnerFromRecord(normalized.Owner),
+		ArtifactID:             artifactID,
+		PayloadFile:            payloadFile,
+		MimeType:               normalized.MimeType,
+		ProducerJobID:          normalized.ProducerJobID,
+		SizeBytes:              normalized.SizeBytes,
+		ContentSHA256:          normalized.ContentSHA256,
+		MimeInferred:           normalized.MimeInferred,
+		CreatedAt:              normalized.CreatedAt,
+		GeneratedVoice:         normalized.GeneratedVoice,
+		ConversationAttachment: normalized.ConversationAttachment,
+		Owner:                  diskArtifactOwnerFromRecord(normalized.Owner),
 	}
 	metadata, err := json.MarshalIndent(diskRecord, "", "  ")
 	if err != nil {
@@ -235,7 +239,9 @@ func (s *DiskStore) PutStream(ctx context.Context, artifactID string, record Art
 			MimeType: merged.MimeType, ProducerJobID: merged.ProducerJobID,
 			SizeBytes: merged.SizeBytes, ContentSHA256: merged.ContentSHA256,
 			MimeInferred: merged.MimeInferred, CreatedAt: existing.CreatedAt,
-			GeneratedVoice: merged.GeneratedVoice, Owner: diskArtifactOwnerFromRecord(merged.Owner),
+			GeneratedVoice:         merged.GeneratedVoice,
+			ConversationAttachment: merged.ConversationAttachment,
+			Owner:                  diskArtifactOwnerFromRecord(merged.Owner),
 		}
 		mergedMetadata, marshalErr := json.MarshalIndent(mergedDisk, "", "  ")
 		if marshalErr != nil {
@@ -334,15 +340,16 @@ func (s *DiskStore) artifactFromDiskRecordLocked(diskRecord diskArtifactRecord) 
 		return ArtifactRecord{}, false
 	}
 	record, err := normalizeArtifactRecord(ArtifactRecord{
-		Bytes:          payload,
-		MimeType:       diskRecord.MimeType,
-		ProducerJobID:  diskRecord.ProducerJobID,
-		SizeBytes:      diskRecord.SizeBytes,
-		ContentSHA256:  diskRecord.ContentSHA256,
-		MimeInferred:   diskRecord.MimeInferred,
-		CreatedAt:      diskRecord.CreatedAt,
-		GeneratedVoice: diskRecord.GeneratedVoice,
-		Owner:          artifactOwnerFromDisk(diskRecord.Owner),
+		Bytes:                  payload,
+		MimeType:               diskRecord.MimeType,
+		ProducerJobID:          diskRecord.ProducerJobID,
+		SizeBytes:              diskRecord.SizeBytes,
+		ContentSHA256:          diskRecord.ContentSHA256,
+		MimeInferred:           diskRecord.MimeInferred,
+		CreatedAt:              diskRecord.CreatedAt,
+		GeneratedVoice:         diskRecord.GeneratedVoice,
+		ConversationAttachment: diskRecord.ConversationAttachment,
+		Owner:                  artifactOwnerFromDisk(diskRecord.Owner),
 	})
 	if err != nil {
 		return ArtifactRecord{}, false
@@ -562,7 +569,8 @@ func artifactMetadataFromDiskRecord(record diskArtifactRecord) (ArtifactRecord, 
 		MimeType: record.MimeType, ProducerJobID: record.ProducerJobID,
 		SizeBytes: record.SizeBytes, ContentSHA256: record.ContentSHA256,
 		MimeInferred: record.MimeInferred, CreatedAt: record.CreatedAt,
-		GeneratedVoice: record.GeneratedVoice, Owner: artifactOwnerFromDisk(record.Owner),
+		GeneratedVoice: record.GeneratedVoice, ConversationAttachment: record.ConversationAttachment,
+		Owner: artifactOwnerFromDisk(record.Owner),
 	}
 	if metadata.Owner != nil {
 		owner, err := normalizeArtifactOwner(*metadata.Owner)

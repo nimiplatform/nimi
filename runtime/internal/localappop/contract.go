@@ -31,18 +31,21 @@ type Domain string
 const AppOperationIDTextCandidateGenerate = "runtime.ai.text-candidate.generate"
 
 const (
-	AppOperationIDStorageAssetStat   = "runtime.app-storage.asset.stat"
-	AppOperationIDStorageAssetList   = "runtime.app-storage.asset.list"
-	AppOperationIDStorageAssetWrite  = "runtime.app-storage.asset.write"
-	AppOperationIDStorageAssetRead   = "runtime.app-storage.asset.read"
-	AppOperationIDStorageAssetRemove = "runtime.app-storage.asset.remove"
-	AppOperationIDStorageAssetMove   = "runtime.app-storage.asset.move"
-	AppOperationIDStorageAssetReveal = "runtime.app-storage.asset.reveal"
-	AppOperationIDArtifactAdopt      = "runtime.ai.artifact.adopt-to-app-storage"
-	AppOperationIDPersonaListOwned   = "realm.persona-character.list-owned"
-	AppOperationIDPersonaGetOwned    = "realm.persona-character.get-owned"
-	AppOperationIDPersonaCreate      = "realm.persona-character.create"
-	AppOperationIDPersonaReplace     = "realm.persona-character.replace"
+	AppOperationIDStorageAssetStat             = "runtime.app-storage.asset.stat"
+	AppOperationIDStorageAssetList             = "runtime.app-storage.asset.list"
+	AppOperationIDStorageAssetWrite            = "runtime.app-storage.asset.write"
+	AppOperationIDStorageAssetRead             = "runtime.app-storage.asset.read"
+	AppOperationIDStorageAssetRemove           = "runtime.app-storage.asset.remove"
+	AppOperationIDStorageAssetMove             = "runtime.app-storage.asset.move"
+	AppOperationIDStorageAssetReveal           = "runtime.app-storage.asset.reveal"
+	AppOperationIDArtifactAdopt                = "runtime.ai.artifact.adopt-to-app-storage"
+	AppOperationIDPersonaListOwned             = "realm.persona-character.list-owned"
+	AppOperationIDPersonaGetOwned              = "realm.persona-character.get-owned"
+	AppOperationIDPersonaCreate                = "realm.persona-character.create"
+	AppOperationIDPersonaReplace               = "realm.persona-character.replace"
+	AppOperationIDConversationAttachmentUpload = "runtime.agent.conversation.attachment.upload"
+	AppOperationIDConversationArtifactRead     = "runtime.agent.conversation.artifact.read"
+	AppOperationIDConversationVoiceTranscribe  = "runtime.agent.conversation.voice.transcribe"
 )
 
 // Canonical operation identifiers for the scenario-consumption operation
@@ -98,6 +101,9 @@ const (
 	IngressConversationTurnInterrupt
 	IngressConversationEventsSubscribe
 	IngressConversationSnapshotGet
+	IngressConversationAttachmentUpload
+	IngressConversationArtifactRead
+	IngressConversationVoiceTranscribe
 	IngressAgentAIConfigGet
 	IngressAgentAIConfigOverwrite
 	IngressAgentAIConfigOptionsList
@@ -145,6 +151,9 @@ const (
 	OperationConversationTurnInterrupt
 	OperationConversationEventsSubscribe
 	OperationConversationSnapshotGet
+	OperationConversationAttachmentUpload
+	OperationConversationArtifactRead
+	OperationConversationVoiceTranscribe
 	OperationAgentAIConfigGet
 	OperationAgentAIConfigOverwrite
 	OperationAgentAIConfigOptionsList
@@ -204,6 +213,9 @@ var canonicalAppOperationContract = [...]contractRow{
 	{IngressConversationTurnInterrupt, OperationConversationTurnInterrupt, "runtime.agent.conversation.turn.interrupt", AuthorityClassAppAccess, "agent.local"},
 	{IngressConversationEventsSubscribe, OperationConversationEventsSubscribe, "runtime.agent.conversation.events.subscribe", AuthorityClassAppAccess, "agent.local"},
 	{IngressConversationSnapshotGet, OperationConversationSnapshotGet, "runtime.agent.conversation.snapshot.get", AuthorityClassAppAccess, "agent.local"},
+	{IngressConversationAttachmentUpload, OperationConversationAttachmentUpload, AppOperationIDConversationAttachmentUpload, AuthorityClassAppAccess, "agent.local"},
+	{IngressConversationArtifactRead, OperationConversationArtifactRead, AppOperationIDConversationArtifactRead, AuthorityClassAppAccess, "agent.local"},
+	{IngressConversationVoiceTranscribe, OperationConversationVoiceTranscribe, AppOperationIDConversationVoiceTranscribe, AuthorityClassAppAccess, "agent.local"},
 	{IngressAgentAIConfigGet, OperationAgentAIConfigGet, "runtime.agent.ai-config.get", AuthorityClassAppAccess, "agent.configure"},
 	{IngressAgentAIConfigOverwrite, OperationAgentAIConfigOverwrite, "runtime.agent.ai-config.overwrite", AuthorityClassAppAccess, "agent.configure"},
 	{IngressAgentAIConfigOptionsList, OperationAgentAIConfigOptionsList, "runtime.agent.ai-config.options.list", AuthorityClassAppAccess, "agent.configure"},
@@ -259,7 +271,7 @@ func IsSupportedDomain(value string) bool {
 
 func validateContractRows(rows []contractRow) error {
 	if len(rows) != len(canonicalAppOperationContract) {
-		return fmt.Errorf("%w: expected thirty-nine rows", ErrContractInvalid)
+		return fmt.Errorf("%w: expected %d rows", ErrContractInvalid, len(canonicalAppOperationContract))
 	}
 	seenIngress := make(map[Ingress]struct{}, len(rows))
 	seenOperation := make(map[Operation]struct{}, len(rows))

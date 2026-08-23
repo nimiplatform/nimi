@@ -25,6 +25,16 @@ type stubPublicChatActionExecutor struct {
 	request PublicChatActionExecutionRequest
 }
 
+type interruptiblePublicChatActionExecutor struct {
+	entered chan struct{}
+}
+
+func (e *interruptiblePublicChatActionExecutor) ExecuteImageAction(ctx context.Context, _ PublicChatActionExecutionRequest) (PublicChatActionExecutionResult, error) {
+	close(e.entered)
+	<-ctx.Done()
+	return PublicChatActionExecutionResult{}, ctx.Err()
+}
+
 type capturePublicChatImageScenarioExecutor struct {
 	submitRequest *runtimev1.SubmitScenarioJobRequest
 	submitContext context.Context
@@ -630,6 +640,65 @@ func TestPublicChatImageActionExecutesAndEmitsArtifactLifecycle(t *testing.T) {
 	}
 	if image["parent_message_id"] != publicChatTranscriptMessageID(anchorID, 0) {
 		t.Fatalf("assistant image must remain parented to the originating user message: %v", image)
+	}
+}
+
+func TestPublicChatImageActionInterruptTerminalizesActionBeforeParentTurn(t *testing.T) {
+	svc := newRuntimeAgentServiceForPublicChatTest(t)
+	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
+	capture := newPublicChatEmitCapture()
+	svc.SetPublicChatAppEmitter(capture.emit)
+	rawAPML := publicChatImageActionAPML("message-image-interrupt", "I will create that image.", "action-image-interrupt", "studio portrait")
+	svc.SetPublicChatTurnExecutor(stubPublicChatTurnExecutor{
+		stream: emitPublicChatImageActionStream("trace-image-action-interrupt", rawAPML),
+	})
+	actionExecutor := &interruptiblePublicChatActionExecutor{entered: make(chan struct{})}
+	svc.SetPublicChatActionExecutor(actionExecutor)
+
+	submitPublicChatImageActionTurn(t, svc, anchorID, true)
+
+	accepted := capture.waitForMessageType(t, publicChatTurnAcceptedType)
+	turnID := publicChatPayloadMap(t, accepted)["turn_id"].(string)
+	_ = capture.waitForMessageType(t, publicChatTurnActionStartedType)
+	select {
+	case <-actionExecutor.entered:
+	case <-time.After(time.Second):
+		t.Fatal("image action executor was not entered")
+	}
+
+	err := svc.ConsumePublicChatAppMessage(context.Background(), &runtimev1.AppMessageEvent{
+		ToAppId:       publicChatRuntimeAppID,
+		FromAppId:     "desktop.app",
+		SubjectUserId: "user-1",
+		MessageType:   publicChatTurnInterruptType,
+		Payload: publicChatStructPayload(t, map[string]any{
+			"conversation_anchor_id": anchorID,
+			"turn_id":                turnID,
+			"reason":                 "user_cancel",
+		}),
+	})
+	if err != nil {
+		t.Fatalf("ConsumePublicChatAppMessage(interrupt): %v", err)
+	}
+	_ = capture.waitForMessageType(t, publicChatTurnActionFailedType)
+	_ = capture.waitForMessageType(t, publicChatTurnInterruptedType)
+	waitForPublicChatAgentIdle(t, svc, "agent-alpha")
+
+	messageTypes := capture.messageTypes()
+	actionFailedIndex := -1
+	turnInterruptedIndex := -1
+	for index, messageType := range messageTypes {
+		switch messageType {
+		case publicChatTurnActionFailedType:
+			actionFailedIndex = index
+		case publicChatTurnInterruptedType:
+			turnInterruptedIndex = index
+		case publicChatTurnArtifactReadyType, publicChatTurnActionCompletedType, publicChatTurnCompletedType:
+			t.Fatalf("interrupted image action published forbidden success terminal %s: %v", messageType, messageTypes)
+		}
+	}
+	if actionFailedIndex < 0 || turnInterruptedIndex <= actionFailedIndex {
+		t.Fatalf("expected action_failed before turn_interrupted, got %v", messageTypes)
 	}
 }
 

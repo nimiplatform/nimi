@@ -13,10 +13,23 @@ import "runtime/v1/common.proto";
 // Shared LocalAgent AIConfig actions resolve the singular subsystem owner from
 // the authorized account scope and carry no Agent handle. Autonomy and
 // presentation remain per-Agent and continue to require Runtime-issued handles.
+enum LocalAgentCapabilityParticipationRole {
+  LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_UNSPECIFIED = 0;
+  LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_CONVERSATION_PRIMARY = 1;
+  LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_MEMORY_EMBEDDING = 2;
+  LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_CONVERSATION_INPUT_VOICE = 3;
+  LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_CONVERSATION_OUTPUT_VOICE = 4;
+  LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_CONVERSATION_ACTION_IMAGE = 5;
+}
+message LocalAgentCapabilityParticipation {
+  LocalAgentCapabilityParticipationRole role = 1;
+  string capability_contract = 2;
+}
 message LocalAppSharedLocalAgentAIConfigProjection {
   AIConfig config = 1;
   string revision = 2;
   repeated AIConfigEffectiveSelection effective_selections = 3;
+  repeated LocalAgentCapabilityParticipation participation = 4;
 }
 
 message GetLocalAppSharedLocalAgentAIConfigRequest {}

@@ -82,6 +82,17 @@ func (s *Service) TranscribeAgentVoiceInput(
 	if err := s.validateAgentVoiceInputAnchor(identity, anchorID); err != nil {
 		return nil, err
 	}
+	return s.transcribeAgentVoiceInput(ctx, identity, anchorID, mimeType, requestID, req.GetAudioBytes())
+}
+
+func (s *Service) transcribeAgentVoiceInput(
+	ctx context.Context,
+	identity localAgentIdentity,
+	anchorID string,
+	mimeType string,
+	requestID string,
+	audioBytes []byte,
+) (*runtimev1.TranscribeAgentVoiceInputResponse, error) {
 	binding, err := s.resolveAgentVoiceInputBinding(ctx, identity)
 	if err != nil {
 		return nil, err
@@ -106,7 +117,7 @@ func (s *Service) TranscribeAgentVoiceInput(
 			SpeechTranscribe: &runtimev1.SpeechTranscribeScenarioSpec{
 				MimeType: mimeType,
 				AudioSource: &runtimev1.SpeechTranscriptionAudioSource{Source: &runtimev1.SpeechTranscriptionAudioSource_AudioBytes{
-					AudioBytes: append([]byte(nil), req.GetAudioBytes()...),
+					AudioBytes: append([]byte(nil), audioBytes...),
 				}},
 			},
 		}},
@@ -129,7 +140,7 @@ func (s *Service) TranscribeAgentVoiceInput(
 		return nil, err
 	}
 	text := strings.TrimSpace(artifacts.GetOutput().GetSpeechTranscribe().GetText())
-	if text == "" {
+	if text == "" || len([]byte(text)) > localAppConversationMaxTextBytes {
 		s.schedulePublishedAgentVoiceTranscriptionCleanup(waitCtx, operationDeadline, jobID)
 		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}

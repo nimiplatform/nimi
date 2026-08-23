@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
@@ -332,7 +333,7 @@ func validatePublicChatCommittedTranscript(transcript []publicChatCommittedTrans
 		for outputIndex := range turn.OutputArtifacts {
 			output := turn.OutputArtifacts[outputIndex]
 			normalized := normalizePublicChatCommittedTranscriptAttachment(&output)
-			if normalized == nil || normalized.ArtifactID != output.ArtifactID || normalized.MimeType != output.MimeType {
+			if normalized == nil || !publicChatCommittedTranscriptAttachmentsEqual(&output, normalized) {
 				return fmt.Errorf("Runtime committed transcript output artifact is invalid")
 			}
 			if _, duplicate := seenOutputs[normalized.ArtifactID]; duplicate {
@@ -421,7 +422,11 @@ func normalizePublicChatCommittedTranscriptAttachment(input *publicChatCommitted
 	}
 	artifactID := strings.TrimSpace(input.ArtifactID)
 	mimeType := strings.ToLower(strings.TrimSpace(input.MimeType))
+	displayName := strings.TrimSpace(input.DisplayName)
 	if artifactID == "" || artifactID != input.ArtifactID {
+		return nil
+	}
+	if !utf8.ValidString(displayName) || len([]byte(displayName)) > localAppConversationMaxDisplayNameBytes || strings.ContainsRune(displayName, '\x00') {
 		return nil
 	}
 	switch mimeType {
@@ -429,7 +434,7 @@ func normalizePublicChatCommittedTranscriptAttachment(input *publicChatCommitted
 	default:
 		return nil
 	}
-	return &publicChatCommittedTranscriptAttachment{ArtifactID: artifactID, MimeType: mimeType}
+	return &publicChatCommittedTranscriptAttachment{ArtifactID: artifactID, MimeType: mimeType, DisplayName: displayName}
 }
 
 func publicChatCommittedTranscriptAttachmentsEqual(left, right *publicChatCommittedTranscriptAttachment) bool {
@@ -439,7 +444,7 @@ func publicChatCommittedTranscriptAttachmentsEqual(left, right *publicChatCommit
 	if left == nil {
 		return true
 	}
-	return left.ArtifactID == right.ArtifactID && left.MimeType == right.MimeType
+	return left.ArtifactID == right.ArtifactID && left.MimeType == right.MimeType && left.DisplayName == right.DisplayName
 }
 
 func validatePublicChatCommittedTurnIDReplay(transcript []publicChatCommittedTranscriptTurn, turnID string, origin string, inputText string, inputAttachment *publicChatCommittedTranscriptAttachment, assistantText string) (bool, error) {
@@ -505,6 +510,7 @@ func publicChatTranscriptProjection(transcript []publicChatCommittedTranscriptTu
 				Content: &runtimev1.ChatContentPart_ArtifactRef{ArtifactRef: &runtimev1.ChatContentArtifactRef{
 					LocalArtifactId: attachment.ArtifactID,
 					MimeType:        attachment.MimeType,
+					DisplayName:     attachment.DisplayName,
 				}},
 			}}
 		}
@@ -525,6 +531,7 @@ func publicChatTranscriptProjection(transcript []publicChatCommittedTranscriptTu
 					Content: &runtimev1.ChatContentPart_ArtifactRef{ArtifactRef: &runtimev1.ChatContentArtifactRef{
 						LocalArtifactId: attachment.ArtifactID,
 						MimeType:        attachment.MimeType,
+						DisplayName:     attachment.DisplayName,
 					}},
 				}},
 			})
@@ -566,8 +573,9 @@ func publicChatCommittedAttachmentFromMessage(message *runtimev1.ChatMessage) *p
 		return nil
 	}
 	return normalizePublicChatCommittedTranscriptAttachment(&publicChatCommittedTranscriptAttachment{
-		ArtifactID: ref.GetLocalArtifactId(),
-		MimeType:   ref.GetMimeType(),
+		ArtifactID:  ref.GetLocalArtifactId(),
+		MimeType:    ref.GetMimeType(),
+		DisplayName: ref.GetDisplayName(),
 	})
 }
 

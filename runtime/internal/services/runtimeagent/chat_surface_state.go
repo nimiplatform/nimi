@@ -51,10 +51,12 @@ type persistedPublicChatAnchor struct {
 	ActiveTurnSnapshot     *persistedPublicChatTurnSnapshot            `json:"activeTurnSnapshot,omitempty"`
 	LastTurnSnapshot       *persistedPublicChatTurnSnapshot            `json:"lastTurnSnapshot,omitempty"`
 	CompletedTurnSnapshots map[string]*persistedPublicChatTurnSnapshot `json:"completedTurnSnapshots,omitempty"`
+	VoiceSidecars          map[string]*publicChatVoiceSidecarState     `json:"voiceSidecars,omitempty"`
 	PendingFollowUpID      string                                      `json:"pendingFollowUpId,omitempty"`
 	Status                 int32                                       `json:"status,omitempty"`
 	LastTurnID             string                                      `json:"lastTurnId,omitempty"`
 	LastMessageID          string                                      `json:"lastMessageId,omitempty"`
+	LocalAppSequence       uint64                                      `json:"localAppSequence,omitempty"`
 	CreatedAt              string                                      `json:"createdAt,omitempty"`
 	UpdatedAt              string                                      `json:"updatedAt,omitempty"`
 }
@@ -205,11 +207,13 @@ func (s *Service) capturePublicChatSurfaceSnapshotLocked() (persistedPublicChatS
 			ActiveTurnSnapshot:     toPersistedPublicChatTurnSnapshot(session.ActiveTurnSnapshot),
 			LastTurnSnapshot:       toPersistedPublicChatTurnSnapshot(session.LastTurnSnapshot),
 			CompletedTurnSnapshots: toPersistedPublicChatTurnSnapshotMap(session.CompletedTurnSnapshots),
+			VoiceSidecars:          clonePublicChatVoiceSidecars(session.VoiceSidecars),
 			PendingFollowUpID:      session.PendingFollowUpID,
 			CommittedTranscript:    clonePublicChatCommittedTranscript(session.CommittedTranscript),
 			Status:                 int32(session.Status),
 			LastTurnID:             session.LastTurnID,
 			LastMessageID:          session.LastMessageID,
+			LocalAppSequence:       session.LocalAppSequence,
 		}
 		if !session.CreatedAt.IsZero() {
 			item.CreatedAt = session.CreatedAt.UTC().Format(time.RFC3339Nano)
@@ -544,10 +548,12 @@ func (r *publicChatSurfaceStateRepository) loadPublicChatSurfaceStateFromDB(s *S
 			ActiveTurnSnapshot:     fromPersistedPublicChatTurnSnapshot(item.ActiveTurnSnapshot),
 			LastTurnSnapshot:       fromPersistedPublicChatTurnSnapshot(item.LastTurnSnapshot),
 			CompletedTurnSnapshots: fromPersistedPublicChatTurnSnapshotMap(item.CompletedTurnSnapshots),
+			VoiceSidecars:          clonePublicChatVoiceSidecars(item.VoiceSidecars),
 			PendingFollowUpID:      item.PendingFollowUpID,
 			Status:                 status,
 			LastTurnID:             item.LastTurnID,
 			LastMessageID:          item.LastMessageID,
+			LocalAppSequence:       item.LocalAppSequence,
 			CreatedAt:              createdAt,
 			UpdatedAt:              updatedAt,
 		}

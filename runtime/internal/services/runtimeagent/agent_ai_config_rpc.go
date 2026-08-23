@@ -24,11 +24,14 @@ func (s *Service) GetSharedLocalAgentAIConfig(
 		return nil, err
 	}
 	if !found {
-		return &runtimev1.GetSharedLocalAgentAIConfigResponse{Revision: revision}, nil
+		return &runtimev1.GetSharedLocalAgentAIConfigResponse{
+			Revision: revision, Participation: projectLocalAgentCapabilityParticipation(),
+		}, nil
 	}
 	return &runtimev1.GetSharedLocalAgentAIConfigResponse{
 		Config: config, Revision: revision,
 		EffectiveSelections: s.projectSharedAIConfigEffectiveSelections(caller.accountNamespace, config),
+		Participation:       projectLocalAgentCapabilityParticipation(),
 	}, nil
 }
 
@@ -52,6 +55,7 @@ func (s *Service) OverwriteSharedLocalAgentAIConfig(
 	response := &runtimev1.OverwriteSharedLocalAgentAIConfigResponse{
 		Config: config, Revision: revision, Committed: committed,
 		EffectiveSelections: s.projectSharedAIConfigEffectiveSelections(caller.accountNamespace, config),
+		Participation:       projectLocalAgentCapabilityParticipation(),
 	}
 	if !committed {
 		response.ReasonCode = runtimev1.ReasonCode_AGENT_AI_CONFIG_REVISION_CONFLICT

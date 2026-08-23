@@ -9,6 +9,8 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
 	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 	"github.com/nimiplatform/nimi/runtime/internal/runtimeidentity"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func (r publicChatRuntime) projectCommittedStatusCue(session publicChatAnchorState, turn publicChatTurnState, structured *publicChatStructuredEnvelope) {
@@ -181,6 +183,12 @@ func (r publicChatRuntime) projectCommittedVoiceLipsync(ctx context.Context, ses
 		r.emitVoiceProjectionFailedTerminal(session, turn, messageID, "batch_final_artifact", "avatar_autoplay", "VOICE_ARTIFACT_RETENTION_FAILED")
 		return
 	}
+	if err := r.svc.commitLocalAppConversationVoiceReady(session, turn, messageID, out.AudioArtifactID); err != nil {
+		if r.svc.logger != nil {
+			r.svc.logger.Warn("commit protected final voice sidecar failed", "turn_id", turnID, "error", err)
+		}
+		return
+	}
 	if err := r.emitVoiceStreamChunkTimelineEvent(session, turn, publicChatVoiceStreamChunkProjection{
 		AudioArtifactID:    out.AudioArtifactID,
 		AudioMimeType:      out.AudioMimeType,
@@ -250,6 +258,15 @@ func (r publicChatRuntime) emitVoiceProjectionFailedTerminal(
 	reason := strings.TrimSpace(terminalReason)
 	if reason == "" {
 		reason = "VOICE_SYNTHESIS_FAILED"
+	}
+	if err := r.svc.commitLocalAppConversationVoiceFailed(session, turn, reason); err != nil {
+		if status.Code(err) == codes.Canceled {
+			return
+		}
+		if r.svc.logger != nil {
+			r.svc.logger.Warn("commit protected voice failure sidecar failed", "turn_id", turn.TurnID, "error", err)
+		}
+		return
 	}
 	voiceStreamID := runtimeAgentVoiceStreamID(turn.TurnID, messageID)
 	if err := r.emitVoicePlaybackTerminalTimelineEvent(session, turn, publicChatVoicePlaybackTerminalProjection{
@@ -353,6 +370,9 @@ func (r publicChatRuntime) projectCommittedNativeVoiceStream(session publicChatA
 	if err := r.svc.verifyVoiceAudioArtifact(out); err != nil {
 		return true, err
 	}
+	if err := r.svc.commitLocalAppConversationVoiceReady(session, turn, messageID, out.AudioArtifactID); err != nil {
+		return true, err
+	}
 	if err := r.emitVoicePlaybackTimelineEvent(session, turn, publicChatVoicePlaybackProjection{
 		AudioArtifactID:       out.AudioArtifactID,
 		AudioMimeType:         out.AudioMimeType,
@@ -414,6 +434,9 @@ func (r publicChatRuntime) emitNativeVoiceStreamFailedTerminal(
 	terminalReason = strings.TrimSpace(terminalReason)
 	if terminalReason == "" {
 		terminalReason = "VOICE_SYNTHESIS_FAILED"
+	}
+	if err := r.svc.commitLocalAppConversationVoiceFailed(session, turn, terminalReason); err != nil {
+		return err
 	}
 	messageID := strings.TrimSpace(input.MessageID)
 	if err := r.emitVoicePlaybackTerminalTimelineEvent(session, turn, publicChatVoicePlaybackTerminalProjection{

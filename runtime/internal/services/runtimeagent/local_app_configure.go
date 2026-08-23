@@ -122,6 +122,7 @@ func localAppSharedAIConfigProjection(
 ) *runtimev1.LocalAppSharedLocalAgentAIConfigProjection {
 	return &runtimev1.LocalAppSharedLocalAgentAIConfigProjection{
 		Config: cloneAIConfig(config), Revision: revision, EffectiveSelections: effective,
+		Participation: projectLocalAgentCapabilityParticipation(),
 	}
 }
 

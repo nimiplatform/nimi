@@ -32,15 +32,16 @@ const MaxCustodyBytes int64 = 8 * 1024 * 1024 * 1024
 
 // ArtifactRecord holds artifact bytes + metadata indexed by artifact_id.
 type ArtifactRecord struct {
-	Bytes          []byte
-	MimeType       string
-	ProducerJobID  string
-	SizeBytes      int64
-	ContentSHA256  string
-	MimeInferred   bool
-	CreatedAt      time.Time
-	GeneratedVoice *GeneratedVoiceArtifactMetadata
-	Owner          *ArtifactOwner
+	Bytes                  []byte
+	MimeType               string
+	ProducerJobID          string
+	SizeBytes              int64
+	ContentSHA256          string
+	MimeInferred           bool
+	CreatedAt              time.Time
+	GeneratedVoice         *GeneratedVoiceArtifactMetadata
+	ConversationAttachment *ConversationAttachmentArtifactMetadata
+	Owner                  *ArtifactOwner
 }
 
 // ArtifactOwner is the Runtime-owned uploader identity written at protected
@@ -70,6 +71,17 @@ type GeneratedVoiceArtifactMetadata struct {
 	RoutePolicy          string
 	ByteDigest           string
 	RetentionScope       string
+}
+
+// ConversationAttachmentArtifactMetadata binds an uncommitted protected-App
+// upload candidate to the exact Runtime-owned LocalAgent Conversation scope.
+// Adoption is derived from the durable transcript membership; the persisted
+// expiry applies only while that membership is absent.
+type ConversationAttachmentArtifactMetadata struct {
+	AgentID              string
+	ConversationAnchorID string
+	DisplayName          string
+	ExpiresAt            time.Time
 }
 
 // @nimi-authority: definition.nimi.runtime.service-operations.artifact-plane
@@ -272,6 +284,13 @@ func normalizeArtifactRecord(record ArtifactRecord) (ArtifactRecord, error) {
 		metadata := normalizeGeneratedVoiceArtifactMetadata(*record.GeneratedVoice, record.Bytes)
 		record.GeneratedVoice = &metadata
 	}
+	if record.ConversationAttachment != nil {
+		metadata, err := normalizeConversationAttachmentArtifactMetadata(*record.ConversationAttachment)
+		if err != nil || record.Owner == nil {
+			return ArtifactRecord{}, ErrInvalidArtifactRecord
+		}
+		record.ConversationAttachment = &metadata
+	}
 	if record.Owner != nil {
 		owner, err := normalizeArtifactOwner(*record.Owner)
 		if err != nil {
@@ -287,6 +306,10 @@ func cloneArtifactRecord(record ArtifactRecord) ArtifactRecord {
 	if record.GeneratedVoice != nil {
 		metadata := *record.GeneratedVoice
 		record.GeneratedVoice = &metadata
+	}
+	if record.ConversationAttachment != nil {
+		metadata := *record.ConversationAttachment
+		record.ConversationAttachment = &metadata
 	}
 	if record.Owner != nil {
 		owner := *record.Owner
@@ -315,6 +338,20 @@ func artifactOwnersEqual(left, right *ArtifactOwner) bool {
 	return left.SubjectUserID == right.SubjectUserID &&
 		left.RegisteredAppSubject == right.RegisteredAppSubject &&
 		left.AppID == right.AppID
+}
+
+func normalizeConversationAttachmentArtifactMetadata(
+	input ConversationAttachmentArtifactMetadata,
+) (ConversationAttachmentArtifactMetadata, error) {
+	input.AgentID = strings.TrimSpace(input.AgentID)
+	input.ConversationAnchorID = strings.TrimSpace(input.ConversationAnchorID)
+	input.DisplayName = strings.TrimSpace(input.DisplayName)
+	if input.AgentID == "" || input.ConversationAnchorID == "" || input.ExpiresAt.IsZero() ||
+		len(input.DisplayName) > 255 || strings.ContainsRune(input.DisplayName, '\x00') {
+		return ConversationAttachmentArtifactMetadata{}, ErrInvalidArtifactRecord
+	}
+	input.ExpiresAt = input.ExpiresAt.UTC()
+	return input, nil
 }
 
 type memoryArtifactBody struct{ bytes.Reader }
@@ -360,7 +397,7 @@ func artifactRecordIntegrityValid(record ArtifactRecord) bool {
 }
 
 func mergeArtifactRecords(existing, incoming ArtifactRecord) (ArtifactRecord, bool, bool) {
-	if existing.ContentSHA256 != incoming.ContentSHA256 || existing.SizeBytes != incoming.SizeBytes || existing.MimeType != incoming.MimeType || existing.MimeInferred != incoming.MimeInferred || existing.ProducerJobID != incoming.ProducerJobID || !artifactOwnersEqual(existing.Owner, incoming.Owner) {
+	if existing.ContentSHA256 != incoming.ContentSHA256 || existing.SizeBytes != incoming.SizeBytes || existing.MimeType != incoming.MimeType || existing.MimeInferred != incoming.MimeInferred || existing.ProducerJobID != incoming.ProducerJobID || !artifactOwnersEqual(existing.Owner, incoming.Owner) || !conversationAttachmentMetadataEqual(existing.ConversationAttachment, incoming.ConversationAttachment) {
 		return ArtifactRecord{}, false, false
 	}
 	merged := cloneArtifactRecord(existing)
@@ -376,6 +413,21 @@ func mergeArtifactRecords(existing, incoming ArtifactRecord) (ArtifactRecord, bo
 		return ArtifactRecord{}, false, false
 	}
 	return merged, false, true
+}
+
+func conversationAttachmentMetadataEqual(
+	left, right *ConversationAttachmentArtifactMetadata,
+) bool {
+	if (left == nil) != (right == nil) {
+		return false
+	}
+	if left == nil {
+		return true
+	}
+	return left.AgentID == right.AgentID &&
+		left.ConversationAnchorID == right.ConversationAnchorID &&
+		left.DisplayName == right.DisplayName &&
+		left.ExpiresAt.Equal(right.ExpiresAt)
 }
 
 func normalizeGeneratedVoiceArtifactMetadata(input GeneratedVoiceArtifactMetadata, payload []byte) GeneratedVoiceArtifactMetadata {

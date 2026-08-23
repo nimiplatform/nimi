@@ -125,8 +125,19 @@ type publicChatCommittedTranscriptTurn struct {
 // truth of a committed turn (rule.nimi.runtime.agent-participation.r173).
 // MimeType is the artifact store record mime, never a caller-declared value.
 type publicChatCommittedTranscriptAttachment struct {
-	ArtifactID string `json:"artifactId"`
-	MimeType   string `json:"mimeType"`
+	ArtifactID  string `json:"artifactId"`
+	MimeType    string `json:"mimeType"`
+	DisplayName string `json:"displayName,omitempty"`
+}
+
+type publicChatVoiceSidecarState struct {
+	VoiceID    string               `json:"voiceId"`
+	TurnID     string               `json:"turnId"`
+	MessageID  string               `json:"messageId"`
+	State      string               `json:"state"`
+	ArtifactID string               `json:"artifactId,omitempty"`
+	ReasonCode runtimev1.ReasonCode `json:"reasonCode,omitempty"`
+	Message    string               `json:"message,omitempty"`
 }
 
 type avatarLiveInstanceBindingState struct {
@@ -170,12 +181,17 @@ type publicChatAnchorState struct {
 	ActiveTurnSnapshot     *publicChatTurnProjectionState
 	LastTurnSnapshot       *publicChatTurnProjectionState
 	CompletedTurnSnapshots map[string]*publicChatTurnProjectionState
+	VoiceSidecars          map[string]*publicChatVoiceSidecarState
 	PendingFollowUpID      string
 	Status                 runtimev1.ConversationAnchorStatus
 	LastTurnID             string
 	LastMessageID          string
-	CreatedAt              time.Time
-	UpdatedAt              time.Time
+	// LocalAppSequence is the protected Conversation projection high-water.
+	// It advances for every source event before protected filtering and is
+	// persisted with the Runtime-owned Conversation anchor.
+	LocalAppSequence uint64
+	CreatedAt        time.Time
+	UpdatedAt        time.Time
 }
 type publicChatTurnState struct {
 	ConversationAnchorID string

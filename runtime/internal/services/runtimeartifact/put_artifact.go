@@ -43,17 +43,13 @@ func (s *Service) PutArtifact(
 		return nil, err
 	}
 	data := req.GetData()
-	if len(data) > MaxPutArtifactBytes {
-		return nil, grpcerr.WithReasonCode(codes.ResourceExhausted, runtimev1.ReasonCode_ARTIFACT_UPLOAD_TOO_LARGE)
-	}
-	mimeType := strings.ToLower(strings.TrimSpace(req.GetMimeType()))
-	switch mimeType {
-	case "image/png", "image/jpeg", "image/webp", "image/gif":
-	default:
-		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_ARTIFACT_UPLOAD_MIME_UNSUPPORTED)
-	}
-	if !putArtifactSignatureMatches(mimeType, data) {
-		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_ARTIFACT_UPLOAD_CONTENT_MISMATCH)
+	mimeType, reason := ValidateImageUpload(req.GetMimeType(), data)
+	if reason != runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
+		code := codes.InvalidArgument
+		if reason == runtimev1.ReasonCode_ARTIFACT_UPLOAD_TOO_LARGE {
+			code = codes.ResourceExhausted
+		}
+		return nil, grpcerr.WithReasonCode(code, reason)
 	}
 	artifactID := "artifact_" + ulid.Make().String()
 	if err := s.store.Put(artifactID, ArtifactRecord{
@@ -69,6 +65,24 @@ func (s *Service) PutArtifact(
 		)
 	}
 	return &runtimev1.PutArtifactResponse{ArtifactId: artifactID}, nil
+}
+
+// ValidateImageUpload applies the single Runtime image-upload byte, MIME, and
+// signature contract and returns the normalized MIME on success.
+func ValidateImageUpload(declaredMime string, data []byte) (string, runtimev1.ReasonCode) {
+	if len(data) > MaxPutArtifactBytes {
+		return "", runtimev1.ReasonCode_ARTIFACT_UPLOAD_TOO_LARGE
+	}
+	mimeType := strings.ToLower(strings.TrimSpace(declaredMime))
+	switch mimeType {
+	case "image/png", "image/jpeg", "image/webp", "image/gif":
+	default:
+		return "", runtimev1.ReasonCode_ARTIFACT_UPLOAD_MIME_UNSUPPORTED
+	}
+	if !putArtifactSignatureMatches(mimeType, data) {
+		return "", runtimev1.ReasonCode_ARTIFACT_UPLOAD_CONTENT_MISMATCH
+	}
+	return mimeType, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED
 }
 
 // putArtifactCallerOwner resolves the protected Runtime principal that becomes

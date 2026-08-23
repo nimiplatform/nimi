@@ -656,10 +656,8 @@ message ListLocalAppAgentReferencesResponse {
   repeated LocalAppAgentReference references = 1;
 }
 
-// Protected Third-party Local App Conversation ingress is text-only and uses
-// the session-scoped Agent selector above. These messages intentionally carry
-// no raw LocalAgent identity, generic App-message envelope, attachment,
-// execution configuration, provider choice, or caller-authored context.
+// Protected Local App Conversation uses the session-scoped Agent selector
+// above and one canonical bounded content-part vocabulary.
 message OpenLocalAppConversationRequest {
   string agent_handle = 1;
 }
@@ -671,10 +669,53 @@ message SendLocalAppConversationTurnRequest {
   string agent_handle = 1;
   string conversation_anchor_id = 2;
   string request_id = 3;
-  string text = 4;
+  reserved 4;
+  reserved "text";
+  repeated LocalAppConversationInputPart parts = 5;
 }
 message SendLocalAppConversationTurnResponse {
   string turn_id = 1;
+}
+message LocalAppConversationInputArtifactRef {
+  string artifact_id = 1;
+}
+message LocalAppConversationInputPart {
+  oneof part {
+    LocalAppConversationTextPart text = 1;
+    LocalAppConversationInputArtifactRef artifact_ref = 2;
+  }
+}
+message UploadLocalAppConversationAttachmentRequest {
+  string agent_handle = 1;
+  string conversation_anchor_id = 2;
+  string mime_type = 3;
+  optional string display_name = 4;
+  bytes data = 5;
+}
+message UploadLocalAppConversationAttachmentResponse {
+  string artifact_id = 1;
+  string expires_at = 2;
+}
+message ReadLocalAppConversationArtifactRequest {
+  string agent_handle = 1;
+  string conversation_anchor_id = 2;
+  string artifact_id = 3;
+}
+message ReadLocalAppConversationArtifactResponse {
+  string artifact_id = 1;
+  bytes data = 2;
+  string mime_type = 3;
+  int64 byte_length = 4;
+}
+message TranscribeLocalAppConversationVoiceRequest {
+  string agent_handle = 1;
+  string conversation_anchor_id = 2;
+  string request_id = 3;
+  string mime_type = 4;
+  bytes audio_bytes = 5;
+}
+message TranscribeLocalAppConversationVoiceResponse {
+  string text = 1;
 }
 message InterruptLocalAppConversationTurnRequest {
   string agent_handle = 1;
@@ -700,13 +741,89 @@ enum LocalAppConversationMessageRole {
 message LocalAppConversationMessage {
   string turn_id = 1;
   LocalAppConversationMessageRole role = 2;
-  string text = 3;
+  reserved 3;
+  reserved "text";
+  string message_id = 4;
+  repeated LocalAppConversationMessagePart parts = 5;
+}
+message LocalAppConversationTextPart { string text = 1; }
+enum LocalAppConversationMediaKind {
+  LOCAL_APP_CONVERSATION_MEDIA_KIND_UNSPECIFIED = 0;
+  LOCAL_APP_CONVERSATION_MEDIA_KIND_IMAGE = 1;
+}
+message LocalAppConversationArtifactPart {
+  string artifact_id = 1;
+  LocalAppConversationMediaKind media_kind = 2;
+  string mime_type = 3;
+  optional string display_name = 4;
+}
+message LocalAppConversationMessagePart {
+  oneof part {
+    LocalAppConversationTextPart text = 1;
+    LocalAppConversationArtifactPart artifact = 2;
+  }
+}
+enum LocalAppConversationTurnStatus {
+  LOCAL_APP_CONVERSATION_TURN_STATUS_UNSPECIFIED = 0;
+  LOCAL_APP_CONVERSATION_TURN_STATUS_ACTIVE = 1;
+  LOCAL_APP_CONVERSATION_TURN_STATUS_COMPLETED = 2;
+  LOCAL_APP_CONVERSATION_TURN_STATUS_FAILED = 3;
+  LOCAL_APP_CONVERSATION_TURN_STATUS_INTERRUPTED = 4;
+}
+enum LocalAppConversationTurnPhase {
+  LOCAL_APP_CONVERSATION_TURN_PHASE_UNSPECIFIED = 0;
+  LOCAL_APP_CONVERSATION_TURN_PHASE_ACCEPTED = 1;
+  LOCAL_APP_CONVERSATION_TURN_PHASE_STARTED = 2;
+}
+message LocalAppConversationTurn {
+  string turn_id = 1;
+  LocalAppConversationTurnStatus status = 2;
+  LocalAppConversationTurnPhase phase = 3;
+  optional string terminal_reason = 4;
+  ReasonCode reason_code = 5;
+  optional string message = 6;
+}
+enum LocalAppConversationActionStatus {
+  LOCAL_APP_CONVERSATION_ACTION_STATUS_UNSPECIFIED = 0;
+  LOCAL_APP_CONVERSATION_ACTION_STATUS_PLANNED = 1;
+  LOCAL_APP_CONVERSATION_ACTION_STATUS_STARTED = 2;
+  LOCAL_APP_CONVERSATION_ACTION_STATUS_COMPLETED = 3;
+  LOCAL_APP_CONVERSATION_ACTION_STATUS_FAILED = 4;
+}
+message LocalAppConversationAction {
+  string action_id = 1;
+  string turn_id = 2;
+  string capability_contract = 3;
+  LocalAppConversationActionStatus status = 4;
+  optional string projection_message_id = 5;
+  optional string artifact_id = 6;
+  ReasonCode reason_code = 7;
+  optional string message = 8;
+}
+enum LocalAppConversationVoiceState {
+  LOCAL_APP_CONVERSATION_VOICE_STATE_UNSPECIFIED = 0;
+  LOCAL_APP_CONVERSATION_VOICE_STATE_READY = 1;
+  LOCAL_APP_CONVERSATION_VOICE_STATE_FAILED = 2;
+}
+message LocalAppConversationVoice {
+  string voice_id = 1;
+  string turn_id = 2;
+  string message_id = 3;
+  LocalAppConversationVoiceState state = 4;
+  optional string artifact_id = 5;
+  ReasonCode reason_code = 6;
+  optional string message = 7;
 }
 message LocalAppConversationSnapshot {
   string conversation_anchor_id = 1;
-  optional string active_turn_id = 2;
+  reserved 2;
+  reserved "active_turn_id";
   repeated LocalAppConversationMessage messages = 3;
   bool truncated_before = 4;
+  uint64 through_sequence = 5;
+  repeated LocalAppConversationTurn turns = 6;
+  repeated LocalAppConversationAction actions = 7;
+  repeated LocalAppConversationVoice voices = 8;
 }
 message GetLocalAppConversationSnapshotResponse {
   LocalAppConversationSnapshot snapshot = 1;
@@ -714,19 +831,16 @@ message GetLocalAppConversationSnapshotResponse {
 
 message LocalAppConversationTurnAccepted {
   string turn_id = 1;
-  string request_id = 2;
+  reserved 2;
+  reserved "request_id";
 }
 message LocalAppConversationTurnStarted {
   string turn_id = 1;
 }
-message LocalAppConversationTextDelta {
-  string turn_id = 1;
-  string text = 2;
-}
 message LocalAppConversationMessageCommitted {
-  string turn_id = 1;
-  string message_id = 2;
-  string text = 3;
+  reserved 1, 2, 3;
+  reserved "turn_id", "message_id", "text";
+  LocalAppConversationMessage message = 4;
 }
 message LocalAppConversationTurnCompleted {
   string turn_id = 1;
@@ -741,17 +855,34 @@ message LocalAppConversationTurnInterrupted {
   string turn_id = 1;
   string reason = 2;
 }
+message LocalAppConversationActionEvent { LocalAppConversationAction action = 1; }
+message LocalAppConversationArtifactReady {
+  string turn_id = 1;
+  string action_id = 2;
+  string capability_contract = 3;
+  string projection_message_id = 4;
+  string artifact_id = 5;
+}
+message LocalAppConversationVoiceEvent { LocalAppConversationVoice voice = 1; }
 message LocalAppConversationEvent {
   string conversation_anchor_id = 1;
   uint64 sequence = 2;
+  reserved 12;
+  reserved "text_delta";
   oneof event {
     LocalAppConversationTurnAccepted turn_accepted = 10;
     LocalAppConversationTurnStarted turn_started = 11;
-    LocalAppConversationTextDelta text_delta = 12;
     LocalAppConversationMessageCommitted message_committed = 13;
     LocalAppConversationTurnCompleted turn_completed = 14;
     LocalAppConversationTurnFailed turn_failed = 15;
     LocalAppConversationTurnInterrupted turn_interrupted = 16;
+    LocalAppConversationActionEvent action_planned = 17;
+    LocalAppConversationActionEvent action_started = 18;
+    LocalAppConversationArtifactReady artifact_ready = 19;
+    LocalAppConversationActionEvent action_completed = 20;
+    LocalAppConversationActionEvent action_failed = 21;
+    LocalAppConversationVoiceEvent voice_ready = 22;
+    LocalAppConversationVoiceEvent voice_failed = 23;
   }
 }
 
@@ -852,6 +983,7 @@ message GetSharedLocalAgentAIConfigResponse {
   AIConfig config = 1;
   string revision = 2;
   repeated AIConfigEffectiveSelection effective_selections = 3;
+  repeated LocalAgentCapabilityParticipation participation = 4;
 }
 message OverwriteSharedLocalAgentAIConfigRequest {
   AgentRequestContext context = 1;
@@ -864,6 +996,7 @@ message OverwriteSharedLocalAgentAIConfigResponse {
   bool committed = 3;
   ReasonCode reason_code = 4;
   repeated AIConfigEffectiveSelection effective_selections = 5;
+  repeated LocalAgentCapabilityParticipation participation = 6;
 }
 message ListSharedLocalAgentAIConfigOptionsRequest {
   AgentRequestContext context = 1;
@@ -925,6 +1058,9 @@ service RuntimeAgentService {
   rpc ListLocalAppAgentReferences(ListLocalAppAgentReferencesRequest) returns (ListLocalAppAgentReferencesResponse);
   rpc OpenLocalAppConversation(OpenLocalAppConversationRequest) returns (OpenLocalAppConversationResponse);
   rpc SendLocalAppConversationTurn(SendLocalAppConversationTurnRequest) returns (SendLocalAppConversationTurnResponse);
+  rpc UploadLocalAppConversationAttachment(UploadLocalAppConversationAttachmentRequest) returns (UploadLocalAppConversationAttachmentResponse);
+  rpc ReadLocalAppConversationArtifact(ReadLocalAppConversationArtifactRequest) returns (ReadLocalAppConversationArtifactResponse);
+  rpc TranscribeLocalAppConversationVoice(TranscribeLocalAppConversationVoiceRequest) returns (TranscribeLocalAppConversationVoiceResponse);
   rpc InterruptLocalAppConversationTurn(InterruptLocalAppConversationTurnRequest) returns (InterruptLocalAppConversationTurnResponse);
   rpc SubscribeLocalAppConversationEvents(SubscribeLocalAppConversationEventsRequest) returns (stream LocalAppConversationEvent);
   rpc GetLocalAppConversationSnapshot(GetLocalAppConversationSnapshotRequest) returns (GetLocalAppConversationSnapshotResponse);

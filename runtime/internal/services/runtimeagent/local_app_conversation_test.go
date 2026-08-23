@@ -1,7 +1,11 @@
 package runtimeagent
 
 import (
+	"bytes"
 	"context"
+	"image"
+	"image/color"
+	"image/png"
 	"sync"
 	"testing"
 	"time"
@@ -9,6 +13,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/localappop"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
+	runtimeartifact "github.com/nimiplatform/nimi/runtime/internal/services/runtimeartifact"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
@@ -19,7 +24,7 @@ import (
 func TestLocalAppConversationWireIsExactAndHasNoGenericMessageEnvelope(t *testing.T) {
 	send := (&runtimev1.SendLocalAppConversationTurnRequest{}).ProtoReflect().Descriptor()
 	if send.Fields().Len() != 4 {
-		t.Fatalf("send field count = %d, want handle, anchor, request id, text", send.Fields().Len())
+		t.Fatalf("send field count = %d, want handle, anchor, request id, parts", send.Fields().Len())
 	}
 	for _, forbidden := range []string{
 		"agent_id", "local_agent_id", "attachments", "message_type", "payload", "context",
@@ -30,7 +35,7 @@ func TestLocalAppConversationWireIsExactAndHasNoGenericMessageEnvelope(t *testin
 		}
 	}
 	event := (&runtimev1.LocalAppConversationEvent{}).ProtoReflect().Descriptor()
-	if event.Fields().Len() != 9 || event.Oneofs().Len() != 1 {
+	if event.Fields().Len() != 15 || event.Oneofs().Len() != 1 {
 		t.Fatalf("event descriptor fields=%d oneofs=%d", event.Fields().Len(), event.Oneofs().Len())
 	}
 	for _, forbidden := range []string{
@@ -41,7 +46,7 @@ func TestLocalAppConversationWireIsExactAndHasNoGenericMessageEnvelope(t *testin
 		}
 	}
 	snapshot := (&runtimev1.LocalAppConversationSnapshot{}).ProtoReflect().Descriptor()
-	if snapshot.Fields().Len() != 4 {
+	if snapshot.Fields().Len() != 7 {
 		t.Fatalf("snapshot field count = %d", snapshot.Fields().Len())
 	}
 }
@@ -182,7 +187,10 @@ func TestLocalAppReferenceToConversationJourneyUsesTheOwnerEngine(t *testing.T) 
 		accountservice.ContextWithAuthorizedLocalAppDecision(context.Background(), sendDecision),
 		&runtimev1.SendLocalAppConversationTurnRequest{
 			AgentHandle: handle, ConversationAnchorId: anchorID,
-			RequestId: "request-local-app", Text: "hello",
+			RequestId: "request-local-app",
+			Parts: []*runtimev1.LocalAppConversationInputPart{{
+				Part: &runtimev1.LocalAppConversationInputPart_Text{Text: &runtimev1.LocalAppConversationTextPart{Text: "hello"}},
+			}},
 		},
 	)
 	if err != nil || sent.GetTurnId() == "" {
@@ -212,9 +220,22 @@ func TestLocalAppReferenceToConversationJourneyUsesTheOwnerEngine(t *testing.T) 
 		&runtimev1.GetLocalAppConversationSnapshotRequest{AgentHandle: handle, ConversationAnchorId: anchorID},
 	)
 	if err != nil || len(snapshot.GetSnapshot().GetMessages()) != 2 ||
-		snapshot.GetSnapshot().GetMessages()[1].GetText() != "hello from Runtime" {
+		localAppConversationTestMessageText(snapshot.GetSnapshot().GetMessages()[1]) != "hello from Runtime" {
 		t.Fatalf("journey snapshot = %+v err=%v", snapshot, err)
 	}
+	if stream.events[2].GetMessageCommitted().GetMessage().GetMessageId() != snapshot.GetSnapshot().GetMessages()[0].GetMessageId() ||
+		stream.events[3].GetMessageCommitted().GetMessage().GetMessageId() != snapshot.GetSnapshot().GetMessages()[1].GetMessageId() ||
+		stream.events[2].GetMessageCommitted().GetMessage().GetRole() != runtimev1.LocalAppConversationMessageRole_LOCAL_APP_CONVERSATION_MESSAGE_ROLE_USER ||
+		stream.events[3].GetMessageCommitted().GetMessage().GetRole() != runtimev1.LocalAppConversationMessageRole_LOCAL_APP_CONVERSATION_MESSAGE_ROLE_ASSISTANT {
+		t.Fatalf("live/snapshot message identity or order diverged: events=%+v snapshot=%+v", stream.events, snapshot.GetSnapshot())
+	}
+}
+
+func localAppConversationTestMessageText(message *runtimev1.LocalAppConversationMessage) string {
+	if message == nil || len(message.GetParts()) != 1 {
+		return ""
+	}
+	return message.GetParts()[0].GetText().GetText()
 }
 
 func TestLocalAppConversationSnapshotIsBoundedOwnerProjection(t *testing.T) {
@@ -252,7 +273,7 @@ func TestLocalAppConversationSnapshotIsBoundedOwnerProjection(t *testing.T) {
 		t.Fatalf("snapshot = %+v", projected)
 	}
 	for _, message := range projected.GetMessages() {
-		if message.GetTurnId() == "" || message.GetText() == "" ||
+		if message.GetTurnId() == "" || message.GetMessageId() == "" || localAppConversationTestMessageText(message) == "" ||
 			(message.GetRole() != runtimev1.LocalAppConversationMessageRole_LOCAL_APP_CONVERSATION_MESSAGE_ROLE_USER &&
 				message.GetRole() != runtimev1.LocalAppConversationMessageRole_LOCAL_APP_CONVERSATION_MESSAGE_ROLE_ASSISTANT) {
 			t.Fatalf("message = %+v", message)
@@ -260,7 +281,234 @@ func TestLocalAppConversationSnapshotIsBoundedOwnerProjection(t *testing.T) {
 	}
 }
 
+func TestLocalAppConversationAttachmentCandidateAdoptsIntoCrossAppReadableMembership(t *testing.T) {
+	svc := newRuntimeAgentServiceForPublicChatTest(t)
+	openDecision := localAppConversationDecision(accountservice.LocalAppOperationOpenConversation, 0x45, "user-1")
+	handle := mintLocalAppAgentHandle(openDecision, testRuntimeAgentLocalRef("agent-alpha"))
+	opened, err := svc.OpenLocalAppConversation(
+		accountservice.ContextWithAuthorizedLocalAppDecision(context.Background(), openDecision),
+		&runtimev1.OpenLocalAppConversationRequest{AgentHandle: handle},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	anchorID := opened.GetConversationAnchorId()
+
+	uploadDecision := openDecision
+	uploadDecision.Operation = accountservice.LocalAppOperationConversationAttachmentUpload
+	displayName := "photo.png"
+	uploaded, err := svc.UploadLocalAppConversationAttachment(
+		accountservice.ContextWithAuthorizedLocalAppDecision(context.Background(), uploadDecision),
+		&runtimev1.UploadLocalAppConversationAttachmentRequest{
+			AgentHandle: handle, ConversationAnchorId: anchorID,
+			MimeType: "image/png", DisplayName: &displayName, Data: localAppConversationTestPNG(t),
+		},
+	)
+	if err != nil {
+		t.Fatalf("UploadLocalAppConversationAttachment: %v", err)
+	}
+	expiresAt, err := time.Parse(time.RFC3339Nano, uploaded.GetExpiresAt())
+	if err != nil || time.Until(expiresAt) < 59*time.Minute || time.Until(expiresAt) > time.Hour {
+		t.Fatalf("upload expiry = %q err=%v", uploaded.GetExpiresAt(), err)
+	}
+
+	readDecision := openDecision
+	readDecision.Operation = accountservice.LocalAppOperationConversationArtifactRead
+	_, err = svc.ReadLocalAppConversationArtifact(
+		accountservice.ContextWithAuthorizedLocalAppDecision(context.Background(), readDecision),
+		&runtimev1.ReadLocalAppConversationArtifactRequest{
+			AgentHandle: handle, ConversationAnchorId: anchorID, ArtifactId: uploaded.GetArtifactId(),
+		},
+	)
+	if status.Code(err) != codes.PermissionDenied {
+		t.Fatalf("uncommitted candidate read error = %v", err)
+	}
+
+	attachment := &publicChatCommittedTranscriptAttachment{
+		ArtifactID: uploaded.GetArtifactId(), MimeType: "image/png", DisplayName: "photo.png",
+	}
+	if err := svc.commitPublicChatTranscriptTurn(
+		context.Background(), anchorID, "turn-image-1", publicChatTurnOriginUser,
+		"show this", attachment, "I received the image.", nil,
+	); err != nil {
+		t.Fatalf("commit attachment membership: %v", err)
+	}
+
+	crossAppDecision := readDecision
+	crossAppDecision.AppID = "nimi.other.fixture"
+	crossAppDecision.RegisteredAppSubject = "other-registered-app-subject"
+	crossAppHandle := mintLocalAppAgentHandle(crossAppDecision, testRuntimeAgentLocalRef("agent-alpha"))
+	read, err := svc.ReadLocalAppConversationArtifact(
+		accountservice.ContextWithAuthorizedLocalAppDecision(context.Background(), crossAppDecision),
+		&runtimev1.ReadLocalAppConversationArtifactRequest{
+			AgentHandle: crossAppHandle, ConversationAnchorId: anchorID, ArtifactId: uploaded.GetArtifactId(),
+		},
+	)
+	if err != nil || read.GetArtifactId() != uploaded.GetArtifactId() || read.GetMimeType() != "image/png" ||
+		read.GetByteLength() != int64(len(read.GetData())) || len(read.GetData()) == 0 {
+		t.Fatalf("cross-App committed read = %+v err=%v", read, err)
+	}
+
+	sendDecision := openDecision
+	sendDecision.Operation = accountservice.LocalAppOperationSendConversationTurn
+	resolved, _, err := svc.resolveLocalAppAgent(
+		accountservice.ContextWithAuthorizedLocalAppDecision(context.Background(), sendDecision),
+		accountservice.LocalAppOperationSendConversationTurn,
+		handle,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := svc.resolveLocalAppConversationAttachmentCandidate(resolved, anchorID, uploaded.GetArtifactId()); status.Code(err) != codes.FailedPrecondition {
+		t.Fatalf("adopted candidate reuse error = %v", err)
+	}
+
+	snapshotDecision := openDecision
+	snapshotDecision.Operation = accountservice.LocalAppOperationConversationSnapshot
+	snapshot, err := svc.GetLocalAppConversationSnapshot(
+		accountservice.ContextWithAuthorizedLocalAppDecision(context.Background(), snapshotDecision),
+		&runtimev1.GetLocalAppConversationSnapshotRequest{AgentHandle: handle, ConversationAnchorId: anchorID},
+	)
+	if err != nil || len(snapshot.GetSnapshot().GetMessages()) != 2 {
+		t.Fatalf("attachment snapshot = %+v err=%v", snapshot, err)
+	}
+	user := snapshot.GetSnapshot().GetMessages()[0]
+	if len(user.GetParts()) != 2 || user.GetParts()[1].GetArtifact().GetArtifactId() != uploaded.GetArtifactId() ||
+		user.GetParts()[1].GetArtifact().GetDisplayName() != "photo.png" {
+		t.Fatalf("committed user attachment message = %+v", user)
+	}
+}
+
+func TestLocalAppConversationVoiceTranscriptionReturnsTextOnly(t *testing.T) {
+	svc := newRuntimeAgentServiceForPublicChatTest(t)
+	openDecision := localAppConversationDecision(accountservice.LocalAppOperationOpenConversation, 0x47, "user-1")
+	handle := mintLocalAppAgentHandle(openDecision, testRuntimeAgentLocalRef("agent-alpha"))
+	opened, err := svc.OpenLocalAppConversation(
+		accountservice.ContextWithAuthorizedLocalAppDecision(context.Background(), openDecision),
+		&runtimev1.OpenLocalAppConversationRequest{AgentHandle: handle},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	configureLocalAgentVoiceTranscriptionBinding(t, svc)
+	executor := &captureAgentVoiceTranscriptionExecutor{}
+	svc.SetAgentVoiceTranscriptionScenarioExecutor(executor)
+	decision := openDecision
+	decision.Operation = accountservice.LocalAppOperationConversationVoiceTranscribe
+	response, err := svc.TranscribeLocalAppConversationVoice(
+		accountservice.ContextWithAuthorizedLocalAppDecision(context.Background(), decision),
+		&runtimev1.TranscribeLocalAppConversationVoiceRequest{
+			AgentHandle: handle, ConversationAnchorId: opened.GetConversationAnchorId(),
+			RequestId: "voice-input-local-app-1", MimeType: "audio/webm;codecs=opus",
+			AudioBytes: []byte{1, 2, 3, 4},
+		},
+	)
+	if err != nil || response.GetText() != "transcribed intent" {
+		t.Fatalf("TranscribeLocalAppConversationVoice: response=%+v err=%v", response, err)
+	}
+	if response.ProtoReflect().Descriptor().Fields().Len() != 1 {
+		t.Fatalf("protected transcription response exposed execution identity: %+v", response)
+	}
+}
+
+func TestLocalAppConversationFinalVoiceSidecarsAreDurableReadableAndTerminal(t *testing.T) {
+	svc := newRuntimeAgentServiceForPublicChatTest(t)
+	openDecision := localAppConversationDecision(accountservice.LocalAppOperationOpenConversation, 0x49, "user-1")
+	handle := mintLocalAppAgentHandle(openDecision, testRuntimeAgentLocalRef("agent-alpha"))
+	opened, err := svc.OpenLocalAppConversation(
+		accountservice.ContextWithAuthorizedLocalAppDecision(context.Background(), openDecision),
+		&runtimev1.OpenLocalAppConversationRequest{AgentHandle: handle},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	anchorID := opened.GetConversationAnchorId()
+	for _, turnID := range []string{"turn-voice-ready", "turn-voice-failed", "turn-voice-interrupted"} {
+		if err := svc.commitPublicChatTranscriptTurn(
+			context.Background(), anchorID, turnID, publicChatTurnOriginUser,
+			"voice input "+turnID, nil, "voice answer "+turnID, nil,
+		); err != nil {
+			t.Fatal(err)
+		}
+		svc.chatSurfaceMu.Lock()
+		svc.chatTurns[turnID] = &publicChatTurnState{
+			ConversationAnchorID: anchorID, TurnID: turnID, SubjectUserID: "user-1",
+		}
+		svc.chatSurfaceMu.Unlock()
+	}
+	session, ok := svc.publicChatAnchorSnapshot(anchorID)
+	if !ok {
+		t.Fatal("conversation anchor missing")
+	}
+	readyTurn := *svc.chatTurns["turn-voice-ready"]
+	ownerMessageID := "internal-assistant-message-ready"
+	if err := svc.runtimeArtifacts.Put("artifact-voice-ready", runtimeartifact.ArtifactRecord{
+		Bytes: []byte{1, 2, 3, 4}, MimeType: "audio/wav",
+		GeneratedVoice: &runtimeartifact.GeneratedVoiceArtifactMetadata{
+			AgentID: session.AgentID, ConversationAnchorID: anchorID,
+			TurnID: readyTurn.TurnID, MessageID: ownerMessageID,
+		},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err := svc.commitLocalAppConversationVoiceReady(session, readyTurn, ownerMessageID, "artifact-voice-ready"); err != nil {
+		t.Fatalf("commit ready voice: %v", err)
+	}
+	failedTurn := *svc.chatTurns["turn-voice-failed"]
+	if err := svc.commitLocalAppConversationVoiceFailed(session, failedTurn, "VOICE_SYNTHESIS_UNAVAILABLE"); err != nil {
+		t.Fatalf("commit failed voice: %v", err)
+	}
+	svc.chatSurfaceMu.Lock()
+	svc.chatTurns["turn-voice-interrupted"].Interrupted = true
+	interruptedTurn := *svc.chatTurns["turn-voice-interrupted"]
+	svc.chatSurfaceMu.Unlock()
+	if err := svc.commitLocalAppConversationVoiceFailed(session, interruptedTurn, "VOICE_SYNTHESIS_FAILED"); status.Code(err) != codes.Canceled {
+		t.Fatalf("interrupted unpublished voice error = %v", err)
+	}
+
+	snapshotDecision := openDecision
+	snapshotDecision.Operation = accountservice.LocalAppOperationConversationSnapshot
+	snapshot, err := svc.GetLocalAppConversationSnapshot(
+		accountservice.ContextWithAuthorizedLocalAppDecision(context.Background(), snapshotDecision),
+		&runtimev1.GetLocalAppConversationSnapshotRequest{AgentHandle: handle, ConversationAnchorId: anchorID},
+	)
+	if err != nil || len(snapshot.GetSnapshot().GetVoices()) != 2 {
+		t.Fatalf("voice snapshot = %+v err=%v", snapshot, err)
+	}
+	voices := snapshot.GetSnapshot().GetVoices()
+	if voices[0].GetState() != runtimev1.LocalAppConversationVoiceState_LOCAL_APP_CONVERSATION_VOICE_STATE_READY ||
+		voices[0].GetArtifactId() != "artifact-voice-ready" ||
+		voices[1].GetState() != runtimev1.LocalAppConversationVoiceState_LOCAL_APP_CONVERSATION_VOICE_STATE_FAILED ||
+		voices[1].GetArtifactId() != "" {
+		t.Fatalf("voice terminal shapes = %+v", voices)
+	}
+
+	readDecision := openDecision
+	readDecision.Operation = accountservice.LocalAppOperationConversationArtifactRead
+	read, err := svc.ReadLocalAppConversationArtifact(
+		accountservice.ContextWithAuthorizedLocalAppDecision(context.Background(), readDecision),
+		&runtimev1.ReadLocalAppConversationArtifactRequest{
+			AgentHandle: handle, ConversationAnchorId: anchorID, ArtifactId: "artifact-voice-ready",
+		},
+	)
+	if err != nil || read.GetMimeType() != "audio/wav" || read.GetByteLength() != 4 {
+		t.Fatalf("ready voice artifact read = %+v err=%v", read, err)
+	}
+}
+
+func localAppConversationTestPNG(t *testing.T) []byte {
+	t.Helper()
+	var payload bytes.Buffer
+	imageValue := image.NewRGBA(image.Rect(0, 0, 1, 1))
+	imageValue.Set(0, 0, color.RGBA{R: 42, G: 84, B: 126, A: 255})
+	if err := png.Encode(&payload, imageValue); err != nil {
+		t.Fatal(err)
+	}
+	return payload.Bytes()
+}
+
 func TestLocalAppConversationEventProjectionIsClosedTypedUnion(t *testing.T) {
+	svc := newRuntimeAgentServiceForPublicChatTest(t)
 	base := map[string]any{
 		"conversation_anchor_id": "agent_anchor_01J",
 		"turn_id":                "agent_turn_01J",
@@ -276,17 +524,8 @@ func TestLocalAppConversationEventProjectionIsClosedTypedUnion(t *testing.T) {
 			name: "accepted", messageType: publicChatTurnAcceptedType,
 			detail: map[string]any{"request_id": "request-1"},
 			assert: func(t *testing.T, event *runtimev1.LocalAppConversationEvent) {
-				if event.GetTurnAccepted().GetRequestId() != "request-1" {
+				if event.GetTurnAccepted().GetTurnId() != "agent_turn_01J" {
 					t.Fatalf("accepted = %+v", event)
-				}
-			},
-		},
-		{
-			name: "delta", messageType: publicChatTurnTextDeltaType,
-			detail: map[string]any{"text": "hello"},
-			assert: func(t *testing.T, event *runtimev1.LocalAppConversationEvent) {
-				if event.GetTextDelta().GetText() != "hello" {
-					t.Fatalf("delta = %+v", event)
 				}
 			},
 		},
@@ -307,22 +546,22 @@ func TestLocalAppConversationEventProjectionIsClosedTypedUnion(t *testing.T) {
 				payload[key] = value
 			}
 			payload["detail"] = test.detail
-			event, supported, err := projectLocalAppConversationEvent(test.messageType, payload)
-			if err != nil || !supported || event.GetSequence() != 3 {
-				t.Fatalf("projection event=%+v supported=%v err=%v", event, supported, err)
+			events, supported, err := svc.projectLocalAppConversationEvents(test.messageType, payload, 3)
+			if err != nil || !supported || len(events) != 1 || events[0].GetSequence() != 3 {
+				t.Fatalf("projection events=%+v supported=%v err=%v", events, supported, err)
 			}
-			test.assert(t, event)
+			test.assert(t, events[0])
 		})
 	}
-	if event, supported, err := projectLocalAppConversationEvent(publicChatTurnReasoningDeltaType, base); err != nil || supported || event != nil {
-		t.Fatalf("reasoning event escaped union: event=%+v supported=%v err=%v", event, supported, err)
+	if events, supported, err := svc.projectLocalAppConversationEvents(publicChatTurnReasoningDeltaType, base, 4); err != nil || supported || events != nil {
+		t.Fatalf("reasoning event escaped union: events=%+v supported=%v err=%v", events, supported, err)
 	}
 	malformed := map[string]any{}
 	for key, value := range base {
 		malformed[key] = value
 	}
 	malformed["detail"] = map[string]any{"payload": map[string]any{"private": true}}
-	if _, supported, err := projectLocalAppConversationEvent(publicChatTurnTextDeltaType, malformed); !supported || err == nil {
+	if _, supported, err := svc.projectLocalAppConversationEvents(publicChatTurnActionPlannedType, malformed, 5); !supported || err == nil {
 		t.Fatalf("generic payload was not rejected: supported=%v err=%v", supported, err)
 	}
 }
@@ -342,11 +581,11 @@ func TestLocalAppConversationStreamDeliversTypedEventAndClosesOnCancel(t *testin
 	done := make(chan error, 1)
 	go func() { done <- svc.SubscribeLocalAppConversationEvents(req, stream) }()
 	waitForLocalAppConversationSubscriber(t, svc)
-	svc.publishLocalAppConversationEvent("user-1", publicChatTurnTextDeltaType, map[string]any{
+	svc.publishLocalAppConversationEvent("user-1", publicChatTurnStartedType, map[string]any{
 		"conversation_anchor_id": anchorID,
 		"turn_id":                "agent_turn_01J",
 		"timeline":               map[string]any{"sequence": int64(1)},
-		"detail":                 map[string]any{"text": "hello"},
+		"detail":                 map[string]any{},
 	})
 	select {
 	case err := <-done:
@@ -356,7 +595,7 @@ func TestLocalAppConversationStreamDeliversTypedEventAndClosesOnCancel(t *testin
 	case <-time.After(2 * time.Second):
 		t.Fatal("stream did not close after consumer cancellation")
 	}
-	if len(stream.events) != 1 || stream.events[0].GetTextDelta().GetText() != "hello" {
+	if len(stream.events) != 1 || stream.events[0].GetTurnStarted().GetTurnId() != "agent_turn_01J" {
 		t.Fatalf("stream events = %+v", stream.events)
 	}
 }
@@ -380,11 +619,11 @@ func TestLocalAppConversationStreamSendsHeaderOnEstablishmentBeforeEvents(t *tes
 		}
 		time.Sleep(5 * time.Millisecond)
 	}
-	svc.publishLocalAppConversationEvent("user-1", publicChatTurnTextDeltaType, map[string]any{
+	svc.publishLocalAppConversationEvent("user-1", publicChatTurnStartedType, map[string]any{
 		"conversation_anchor_id": anchorID,
 		"turn_id":                "agent_turn_01J",
 		"timeline":               map[string]any{"sequence": int64(1)},
-		"detail":                 map[string]any{"text": "hello"},
+		"detail":                 map[string]any{},
 	})
 	select {
 	case err := <-done:
@@ -472,7 +711,7 @@ func TestLocalAppConversationStreamSurfacesBoundedOwnerTerminalError(t *testing.
 	done := make(chan error, 1)
 	go func() { done <- svc.SubscribeLocalAppConversationEvents(req, stream) }()
 	waitForLocalAppConversationSubscriber(t, svc)
-	svc.publishLocalAppConversationEvent("user-1", publicChatTurnTextDeltaType, map[string]any{
+	svc.publishLocalAppConversationEvent("user-1", publicChatTurnActionPlannedType, map[string]any{
 		"conversation_anchor_id": anchorID,
 		"turn_id":                "agent_turn_01J",
 		"timeline":               map[string]any{"sequence": int64(1)},

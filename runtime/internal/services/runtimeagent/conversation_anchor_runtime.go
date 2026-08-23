@@ -184,6 +184,7 @@ func clonePublicChatAnchorState(anchor *publicChatAnchorState) *publicChatAnchor
 	cloned.ActiveTurnSnapshot = clonePublicChatTurnProjectionState(anchor.ActiveTurnSnapshot)
 	cloned.LastTurnSnapshot = clonePublicChatTurnProjectionState(anchor.LastTurnSnapshot)
 	cloned.CompletedTurnSnapshots = clonePublicChatTurnProjectionStateMap(anchor.CompletedTurnSnapshots)
+	cloned.VoiceSidecars = clonePublicChatVoiceSidecars(anchor.VoiceSidecars)
 	return &cloned
 }
 

@@ -100,6 +100,7 @@ func TestLocalAppSharedAIConfigGetMissingAndWholeOverwrite(t *testing.T) {
 	if missing.GetProjection().GetConfig() != nil || missing.GetProjection().GetRevision() != "0" {
 		t.Fatalf("missing shared projection = %+v", missing.GetProjection())
 	}
+	assertLocalAgentParticipation(t, missing.GetProjection().GetParticipation())
 
 	_, overwriteCtx := localAppConfigureContext(accountservice.LocalAppOperationSharedAIConfigOverwrite, 0x21, accountID)
 	written, err := svc.OverwriteLocalAppSharedLocalAgentAIConfig(overwriteCtx, &runtimev1.OverwriteLocalAppSharedLocalAgentAIConfigRequest{
