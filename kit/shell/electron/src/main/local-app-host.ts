@@ -52,6 +52,7 @@ const LOCAL_APP_BINDING_METHODS = [
   'localAppConversationAttachmentUpload',
   'localAppConversationArtifactRead',
   'localAppConversationVoiceTranscribe',
+  'localAppConversationVoiceTranscribeCancel',
   'localAppConversationInterruptTurn',
   'localAppConversationSubscribe',
   'localAppConversationStreamNext',
@@ -219,6 +220,10 @@ type NimiElectronLocalAppConversationVoiceTranscriptionBindingInput = {
   readonly audioBytes: Buffer;
 };
 
+type NimiElectronLocalAppConversationVoiceTranscriptionCancelBindingInput = {
+  readonly requestId: string;
+};
+
 type NativeLocalAppOutcome =
   | { readonly status: 'ok'; readonly value: unknown }
   | {
@@ -285,6 +290,7 @@ export type NimiElectronProtectedLocalBinding = {
   readonly localAppConversationAttachmentUpload: (input: NimiElectronLocalAppConversationAttachmentUploadBindingInput) => Promise<NativeLocalAppOutcome>;
   readonly localAppConversationArtifactRead: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppConversationVoiceTranscribe: (input: NimiElectronLocalAppConversationVoiceTranscriptionBindingInput) => Promise<NativeLocalAppOutcome>;
+  readonly localAppConversationVoiceTranscribeCancel: (input: NimiElectronLocalAppConversationVoiceTranscriptionCancelBindingInput) => Promise<NativeLocalAppOutcome>;
   readonly localAppConversationInterruptTurn: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppConversationSubscribe: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppConversationStreamNext: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
@@ -738,6 +744,11 @@ class ElectronLocalAppHost implements NimiElectronLocalAppHost {
   }
 
   conversationVoiceTranscribe(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    if (input.action === 'cancel') {
+      return invokeExactBooleanRecord(() => this.binding.localAppConversationVoiceTranscribeCancel({
+        requestId: boundedExactText(input.requestId, 256, false),
+      }), 'canceled');
+    }
     const audioBytes = validateByteArray(input.audioBytes);
     const mimeType = boundedMime(input.mimeType);
     if (audioBytes.length === 0 || audioBytes.length > 6 * 1024 * 1024 || !mimeType.startsWith('audio/')) {

@@ -386,6 +386,13 @@ function validatePayload(
     case 'conversationArtifactRead':
       return identifiers(payload, ['agentHandle', 'conversationAnchorId', 'artifactId'], command);
     case 'conversationVoiceTranscribe': {
+      if (payload.action === 'cancel') {
+        assertExactKeys(payload, ['action', 'requestId'], command);
+        return {
+          action: 'cancel',
+          requestId: requiredText(payload.requestId, 'requestId', command, MAX_IDENTIFIER_LENGTH),
+        };
+      }
       assertExactKeys(payload, ['agentHandle', 'conversationAnchorId', 'requestId', 'mimeType', 'audioBytes'], command);
       if (!Array.isArray(payload.audioBytes) || payload.audioBytes.length === 0 || payload.audioBytes.length > 6 * 1024 * 1024
         || payload.audioBytes.some((entry) => !Number.isInteger(entry) || Number(entry) < 0 || Number(entry) > 255)
@@ -1230,7 +1237,13 @@ async function pumpScenarioStream(
         reasonCode: mapped.reasonCode,
         actionHint: mapped.actionHint,
         source: mapped.source,
-        details: { command, retryable: error instanceof NimiElectronLocalAppHostError && error.retryable },
+		details: {
+			command,
+			retryable: error instanceof NimiElectronLocalAppHostError && error.retryable,
+			...(error instanceof NimiElectronLocalAppHostError && Object.keys(error.reasonMetadata).length > 0
+				? { reasonMetadata: error.reasonMetadata }
+				: {}),
+		},
       },
     });
   } finally {

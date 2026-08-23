@@ -18,6 +18,20 @@ static CONVERSATION_STREAMS: OnceLock<Mutex<ConversationStreamRegistry>> = OnceL
 static CONVERSATION_STREAM_COUNTER: AtomicU64 = AtomicU64::new(1);
 const MAX_CONVERSATION_STREAMS: usize = 8;
 
+enum ConversationVoiceCancellation {
+    Pending,
+    Active(Arc<Notify>),
+}
+
+static CONVERSATION_VOICE_CANCELLATIONS: OnceLock<
+    Mutex<HashMap<String, ConversationVoiceCancellation>>,
+> = OnceLock::new();
+
+fn conversation_voice_cancellations(
+) -> &'static Mutex<HashMap<String, ConversationVoiceCancellation>> {
+    CONVERSATION_VOICE_CANCELLATIONS.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
 type ScenarioStreamRegistry = HashMap<String, Arc<ScenarioStream>>;
 struct ScenarioStream {
     receiver: Mutex<Option<LocalAppScenarioStreamReceiver>>,
@@ -1182,19 +1196,103 @@ pub async fn local_app_conversation_artifact_read(
 pub async fn local_app_conversation_voice_transcribe(
     input: NativeConversationVoiceTranscriptionInput,
 ) -> NativeJsonOutcome {
-    invoke_agent(|session| async move {
-        session
-            .conversation_voice_transcribe(LocalAppConversationVoiceTranscriptionRequest {
-                agent_handle: input.agent_handle,
-                conversation_anchor_id: input.conversation_anchor_id,
-                request_id: input.request_id,
-                mime_type: input.mime_type,
-                audio_bytes: input.audio_bytes.to_vec(),
-            })
-            .await
-            .map(|result| json!({ "text": result.text }))
-    })
+    let request_id = input.request_id.trim().to_string();
+    if request_id.is_empty() || request_id.len() > 256 {
+        return NativeJsonOutcome::error(LocalAppOperationError::new(
+            LocalAppReasonCode::AiVoiceInputInvalid,
+            false,
+        ));
+    }
+    run_conversation_voice_transcription(
+        request_id,
+        invoke_agent(|session| async move {
+            session
+                .conversation_voice_transcribe(LocalAppConversationVoiceTranscriptionRequest {
+                    agent_handle: input.agent_handle,
+                    conversation_anchor_id: input.conversation_anchor_id,
+                    request_id: input.request_id,
+                    mime_type: input.mime_type,
+                    audio_bytes: input.audio_bytes.to_vec(),
+                })
+                .await
+                .map(|result| json!({ "text": result.text }))
+        }),
+    )
     .await
+}
+
+#[napi(js_name = "localAppConversationVoiceTranscribeCancel")]
+pub async fn local_app_conversation_voice_transcribe_cancel(
+    input: NativeConversationVoiceTranscriptionCancelInput,
+) -> NativeJsonOutcome {
+    let request_id = input.request_id.trim().to_string();
+    if request_id.is_empty() || request_id.len() > 256 {
+        return NativeJsonOutcome::error(LocalAppOperationError::new(
+            LocalAppReasonCode::AiVoiceInputInvalid,
+            false,
+        ));
+    }
+    let cancellation = {
+        let mut registry = conversation_voice_cancellations().lock().await;
+        match registry.remove(&request_id) {
+            Some(ConversationVoiceCancellation::Active(cancellation)) => Some(cancellation),
+            Some(ConversationVoiceCancellation::Pending) => {
+                registry.insert(request_id, ConversationVoiceCancellation::Pending);
+                None
+            }
+            None => {
+                registry.insert(request_id, ConversationVoiceCancellation::Pending);
+                None
+            }
+        }
+    };
+    if let Some(cancellation) = cancellation {
+        cancellation.notify_one();
+    }
+    NativeJsonOutcome::success(json!({ "canceled": true }))
+}
+
+async fn run_conversation_voice_transcription<F>(
+    request_id: String,
+    operation: F,
+) -> NativeJsonOutcome
+where
+    F: Future<Output = NativeJsonOutcome>,
+{
+    let cancellation = Arc::new(Notify::new());
+    {
+        let mut registry = conversation_voice_cancellations().lock().await;
+        match registry.remove(&request_id) {
+            Some(ConversationVoiceCancellation::Pending) => {
+                return NativeJsonOutcome::error(LocalAppOperationError::new(
+                    LocalAppReasonCode::Canceled,
+                    true,
+                ));
+            }
+            Some(existing @ ConversationVoiceCancellation::Active(_)) => {
+                registry.insert(request_id, existing);
+                return NativeJsonOutcome::host_reason("runtime-service-untrusted", false);
+            }
+            None => {
+                registry.insert(
+                    request_id.clone(),
+                    ConversationVoiceCancellation::Active(Arc::clone(&cancellation)),
+                );
+            }
+        }
+    }
+    tokio::pin!(operation);
+    let outcome = tokio::select! {
+        biased;
+        outcome = &mut operation => outcome,
+        () = cancellation.notified() => NativeJsonOutcome::error(LocalAppOperationError::new(LocalAppReasonCode::Canceled, true)),
+    };
+    let mut registry = conversation_voice_cancellations().lock().await;
+    if matches!(registry.get(&request_id), Some(ConversationVoiceCancellation::Active(current)) if Arc::ptr_eq(current, &cancellation))
+    {
+        registry.remove(&request_id);
+    }
+    outcome
 }
 
 fn native_conversation_input_parts(
@@ -1608,5 +1706,47 @@ mod session_rebind_tests {
     fn native_text_conversion_rejects_non_integer_or_unsafe_numbers() {
         assert!(optional_native_i32(Some(0.5)).is_err());
         assert!(optional_native_i64(Some(9_007_199_254_740_992.0)).is_err());
+    }
+
+    #[tokio::test]
+    async fn conversation_voice_cancel_before_registration_is_consumed() {
+        let request_id = "conversation-voice-cancel-before".to_string();
+        let canceled = local_app_conversation_voice_transcribe_cancel(
+            NativeConversationVoiceTranscriptionCancelInput {
+                request_id: request_id.clone(),
+            },
+        )
+        .await;
+        assert_eq!(canceled.status, "ok");
+        let outcome = run_conversation_voice_transcription(request_id, async {
+            NativeJsonOutcome::success(json!({ "text": "late" }))
+        })
+        .await;
+        assert_eq!(outcome.status, "error");
+        assert_eq!(outcome.reason_code.as_deref(), Some("canceled"));
+    }
+
+    #[tokio::test]
+    async fn conversation_voice_cancel_drops_active_operation() {
+        let request_id = "conversation-voice-cancel-active".to_string();
+        let entered = Arc::new(Notify::new());
+        let operation_entered = Arc::clone(&entered);
+        let task_request_id = request_id.clone();
+        let task = tokio::spawn(async move {
+            run_conversation_voice_transcription(task_request_id, async move {
+                operation_entered.notify_one();
+                std::future::pending::<NativeJsonOutcome>().await
+            })
+            .await
+        });
+        entered.notified().await;
+        let canceled = local_app_conversation_voice_transcribe_cancel(
+            NativeConversationVoiceTranscriptionCancelInput { request_id },
+        )
+        .await;
+        assert_eq!(canceled.status, "ok");
+        let outcome = task.await.expect("conversation voice operation must join");
+        assert_eq!(outcome.status, "error");
+        assert_eq!(outcome.reason_code.as_deref(), Some("canceled"));
     }
 }

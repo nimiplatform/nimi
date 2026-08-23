@@ -62,6 +62,12 @@ describe('Electron protected local-app host', () => {
     }]);
     await expect(host.conversationOpen({ agentHandle: 'lash_one' }))
       .resolves.toEqual({ conversationAnchorId: 'anchor-1', activeTurnId: null });
+    await expect(host.conversationVoiceTranscribe({
+      agentHandle: 'lash_one', conversationAnchorId: 'anchor-1', requestId: 'voice-request-1',
+      mimeType: 'audio/webm', audioBytes: [1, 2, 3],
+    })).resolves.toEqual({ text: 'transcribed intent' });
+    await expect(host.conversationVoiceTranscribe({ action: 'cancel', requestId: 'voice-request-1' }))
+      .resolves.toEqual({ canceled: true });
 
     expect(calls.map(({ method }) => method)).toEqual([
       'localAppSessionStatus',
@@ -69,6 +75,8 @@ describe('Electron protected local-app host', () => {
       'localAppStorageReadJson',
       'localAppAgentReferenceList',
       'localAppConversationOpen',
+      'localAppConversationVoiceTranscribe',
+      'localAppConversationVoiceTranscribeCancel',
     ]);
   });
 
@@ -586,6 +594,9 @@ function binding(calls: Array<{ method: string; input?: unknown }>) {
     }),
     localAppConversationVoiceTranscribe: record('localAppConversationVoiceTranscribe', {
       text: 'transcribed intent',
+    }),
+    localAppConversationVoiceTranscribeCancel: record('localAppConversationVoiceTranscribeCancel', {
+      canceled: true,
     }),
     localAppConversationInterruptTurn: record('localAppConversationInterruptTurn', { turnId: 'turn-1' }),
     localAppConversationSubscribe: record('localAppConversationSubscribe', { streamId: 'conversation-1' }),

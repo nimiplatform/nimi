@@ -69,6 +69,16 @@ async function main() {
   const invalidUnaryRelease = await addon.desktopFirstPartyProductUnaryRelease({ requestId: '' });
   assert.equal(invalidUnaryRelease?.status, 'error');
   assert.equal(invalidUnaryRelease?.reasonCode, 'runtime-service-untrusted');
+  assert.equal(
+    typeof addon.localAppConversationVoiceTranscribeCancel,
+    'function',
+    'localAppConversationVoiceTranscribeCancel export is missing',
+  );
+  const voiceCancellation = await addon.localAppConversationVoiceTranscribeCancel({
+    requestId: 'voice-cancel-contract',
+  });
+  assert.equal(voiceCancellation?.status, 'ok');
+  assert.equal(voiceCancellation?.value?.canceled, true);
 
   for (const retired of [
     'localAppAgentConfigurationSnapshot',

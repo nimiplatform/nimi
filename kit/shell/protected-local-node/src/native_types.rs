@@ -366,6 +366,11 @@ pub struct NativeConversationVoiceTranscriptionInput {
 }
 
 #[napi(object)]
+pub struct NativeConversationVoiceTranscriptionCancelInput {
+    pub request_id: String,
+}
+
+#[napi(object)]
 pub struct NativeConversationScopeInput {
     pub agent_handle: String,
     pub conversation_anchor_id: String,

@@ -623,6 +623,43 @@ describe('renderer local-app standard-shell surface', () => {
     }]);
   });
 
+  it('cancels an in-flight conversation transcription with the same host command', async () => {
+    const invocations: Array<{ command: string; payload: unknown }> = [];
+    let resolveTranscription: ((value: unknown) => void) | undefined;
+    (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
+      invoke: async (command: string, payload: unknown) => {
+        invocations.push({ command, payload });
+        if ((payload as { payload?: { action?: string } })?.payload?.action === 'cancel') {
+          return { canceled: true };
+        }
+        return new Promise((resolve) => { resolveTranscription = resolve; });
+      },
+      listen: () => () => {},
+    };
+    const controller = new AbortController();
+    const transcription = createNimiLocalAppStandardShellSurface().conversation.transcribeVoice({
+      agentHandle: 'lash_owner_issued', conversationAnchorId: 'anchor-1', requestId: 'voice-request-1',
+      mimeType: 'audio/webm', audioBytes: [1, 2, 3],
+    }, { signal: controller.signal });
+    await Promise.resolve();
+    controller.abort();
+    await expect(transcription).rejects.toMatchObject({ name: 'AbortError' });
+    resolveTranscription?.({ text: 'late transcript' });
+    expect(invocations).toEqual([
+      {
+        command: 'nimi.shell.localApp.conversationVoiceTranscribe',
+        payload: { payload: {
+          agentHandle: 'lash_owner_issued', conversationAnchorId: 'anchor-1', requestId: 'voice-request-1',
+          mimeType: 'audio/webm', audioBytes: [1, 2, 3],
+        } },
+      },
+      {
+        command: 'nimi.shell.localApp.conversationVoiceTranscribe',
+        payload: { payload: { action: 'cancel', requestId: 'voice-request-1' } },
+      },
+    ]);
+  });
+
   it('projects conversation events through a cancellable bounded async subscription', async () => {
     const invocations: Array<{ command: string; payload: unknown }> = [];
     let eventHandler: ((event: { payload: unknown }) => void) | undefined;

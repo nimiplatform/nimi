@@ -425,7 +425,7 @@ export type NimiLocalAppStandardShellSurface = {
       readonly requestId: string;
       readonly mimeType: string;
       readonly audioBytes: readonly number[];
-    }) => Promise<JsonObject>;
+    }, options?: { readonly signal?: AbortSignal }) => Promise<JsonObject>;
     readonly interruptTurn: (input: NimiLocalAppConversationScopeInput) => Promise<JsonObject>;
     readonly subscribe: (input: NimiLocalAppConversationScopeInput) => Promise<NimiLocalAppConversationSubscription>;
     readonly snapshot: (input: NimiLocalAppConversationScopeInput) => Promise<JsonObject>;
@@ -1097,6 +1097,7 @@ export function transcribeNimiLocalAppConversationVoice(
     readonly mimeType: string;
     readonly audioBytes: readonly number[];
   },
+  options?: { readonly signal?: AbortSignal },
 ): Promise<JsonObject> {
   const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationVoiceTranscribe'];
   assertExactInput(input, ['agentHandle', 'conversationAnchorId', 'requestId', 'mimeType', 'audioBytes'], command);
@@ -1106,7 +1107,7 @@ export function transcribeNimiLocalAppConversationVoice(
     || /[\u0000-\u001f\u007f]/u.test(input.mimeType)) {
     throw new Error(`${command}: voice input is invalid`);
   }
-  return invokeChecked(command, { payload: {
+  const operation = invokeChecked(command, { payload: {
     agentHandle: requiredText(input.agentHandle, 'agentHandle', command, MAX_IDENTIFIER_LENGTH),
     conversationAnchorId: requiredText(input.conversationAnchorId, 'conversationAnchorId', command, MAX_IDENTIFIER_LENGTH),
     requestId: requiredText(input.requestId, 'requestId', command, MAX_IDENTIFIER_LENGTH),
@@ -1116,6 +1117,38 @@ export function transcribeNimiLocalAppConversationVoice(
     const record = assertRecord(value, `${command} returned invalid transcription`);
     assertProjectionKeys(record, ['text'], command, 'conversation voice transcription');
     return Object.freeze({ text: requiredUtf8Content(record.text, 'text', command, 64 * 1024) });
+  });
+  const signal = options?.signal;
+  if (!signal) return operation;
+  return abortableConversationVoiceTranscription(command, input.requestId, signal, operation);
+}
+
+function abortableConversationVoiceTranscription(
+  command: string,
+  requestId: string,
+  signal: AbortSignal,
+  operation: Promise<JsonObject>,
+): Promise<JsonObject> {
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    const finish = (callback: () => void) => {
+      if (settled) return;
+      settled = true;
+      signal.removeEventListener('abort', onAbort);
+      callback();
+    };
+    const onAbort = () => {
+      void invoke(command, { payload: { action: 'cancel', requestId } }).catch(() => undefined);
+      const error = new Error('Local-app conversation voice transcription was canceled.');
+      error.name = 'AbortError';
+      finish(() => reject(error));
+    };
+    signal.addEventListener('abort', onAbort, { once: true });
+    if (signal.aborted) onAbort();
+    operation.then(
+      (value) => finish(() => resolve(value)),
+      (error) => finish(() => reject(error)),
+    );
   });
 }
 
@@ -1995,6 +2028,7 @@ class LocalAppConversationEventSubscription implements NimiLocalAppConversationS
           reasonCode: 'renderer-local-app-conversation-buffer-exhausted',
           actionHint: 'consume_or_cancel_conversation_subscription',
           source: 'renderer',
+		  details: { retryable: true, diagnosticStage: 'renderer_local_app_conversation_buffer_overflow' },
         });
         this.fail(error);
         void this.cancel().catch(() => undefined);
