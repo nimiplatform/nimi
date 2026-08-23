@@ -56,6 +56,7 @@ import {
 } from '../app/home-surface-sections';
 import { followZhiyuTranscriptToLatest } from './transcript-auto-follow';
 import { runZhiyuVoiceTranscriptionAttempt } from './voice-transcription-guard';
+import { isZhiyuRecoverableTerminalTurn } from '../app/direct-local-app-submit-gate';
 
 export type ZhiyuAgentChatSurfaceProps = {
   readonly evidence: ZhiyuEvidence;
@@ -154,8 +155,9 @@ export function ZhiyuAgentChatSurface({
       </div>
     </section>
   ) : null;
+  const recoverableTerminalTurn = isZhiyuRecoverableTerminalTurn(evidence);
   const chatDisabled = !evidence.conversation.ready
-    || !evidence.turn.ready
+    || (!evidence.turn.ready && !recoverableTerminalTurn)
     || evidence.chat.state === 'streaming';
   const [attachments, setAttachments] = useState<readonly BrowserDataUrlAttachment[]>([]);
   const attachmentAdapter = useMemo(() => createBrowserDataUrlAttachmentAdapter({
@@ -304,6 +306,9 @@ export function ZhiyuAgentChatSurface({
     </div>
   ) : null;
 	const failedImageActions = evidence.chat.actions.filter((action) => action.status === 'failed');
+	const failedVoiceMessages = evidence.chat.messages.filter((message) => (
+		typeof message.metadata?.voiceError === 'string' && message.metadata.voiceError.trim()
+	));
   const [rightPanelMode, setRightPanelMode] = useState<RightPanelMode>('closed');
   const [activeAgentTab, setActiveAgentTab] = useState<AgentPanelTab>('overview');
   const chatTranscriptViewportRef = useRef<HTMLDivElement>(null);
@@ -485,6 +490,26 @@ export function ZhiyuAgentChatSurface({
 						<span>图片生成失败</span>
 						<strong>文字回复已保留</strong>
 						<p>{action.message || '图片没有生成完成，请稍后重试。'}</p>
+					</div>
+				</section>
+			))}
+			{failedVoiceMessages.map((message) => (
+				<section
+					key={`voice-failure:${message.id}`}
+					className="zhiyu-home__chat-failure-notice"
+					data-zhiyu-voice-failure="true"
+					data-zhiyu-voice-message-id={message.id}
+					data-zhiyu-voice-failure-reason={String(message.metadata?.voiceError)}
+					aria-live="polite"
+					aria-label="语音回复生成失败"
+				>
+					<div className="zhiyu-home__chat-failure-mark" aria-hidden="true">
+						<AlertTriangle size={17} />
+					</div>
+					<div className="zhiyu-home__chat-failure-copy">
+						<span>语音回复生成失败</span>
+						<strong>文字回复已保留</strong>
+						<p>{String(message.metadata?.voiceError)}</p>
 					</div>
 				</section>
 			))}

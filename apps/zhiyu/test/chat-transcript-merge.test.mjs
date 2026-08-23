@@ -44,6 +44,8 @@ test('appends the submitted user message from the protected local-app Agent hand
     }],
   );
   assert.equal(appended.messages[0]?.metadata?.localAgentRef, undefined);
+  assert.equal(appended.runtimeTurnId, null);
+  assert.equal(appended.runtimeStreamId, null);
 });
 
 test('merges the streamed and committed primary assistant for one Runtime turn', async () => {
@@ -86,10 +88,67 @@ test('merges the streamed and committed primary assistant for one Runtime turn',
   assert.equal(turnStatusFromChat(merged).messageId, 'runtime-message-1');
 });
 
+test('replaces caller-local optimistic messages with Runtime-issued committed identities', async () => {
+  const { mergeChatTranscript } = await importTransitionsModule();
+  const callerRequestId = 'caller-request-1';
+  const runtimeTurnId = 'runtime-turn-9';
+  const current = chatStatus({
+    requestId: callerRequestId,
+    runtimeTurnId: null,
+    messages: [
+      message({ id: `${callerRequestId}:user`, role: 'user', text: 'question', turnId: callerRequestId }),
+      message({
+        id: `${callerRequestId}:assistant`,
+        role: 'agent',
+        text: '',
+        turnId: callerRequestId,
+        status: 'streaming',
+        kind: 'streaming',
+      }),
+    ],
+  });
+  const committedUser = chatStatus({
+    requestId: null,
+    runtimeTurnId,
+    messages: [runtimeMessage({
+      id: 'runtime-user-9',
+      role: 'user',
+      text: 'question',
+      runtimeTurnId,
+    })],
+  });
+
+  const afterUser = mergeChatTranscript(current, committedUser);
+  assert.equal(afterUser.messages.filter(({ role }) => role === 'user').length, 1);
+  assert.equal(afterUser.messages[0]?.metadata?.zhiyuOriginalMessageId, 'runtime-user-9');
+
+  const committedAssistant = chatStatus({
+    requestId: null,
+    runtimeTurnId,
+    ready: true,
+    state: 'completed',
+    messages: [runtimeMessage({
+      id: 'runtime-assistant-9',
+      role: 'agent',
+      text: 'answer',
+      runtimeTurnId,
+    })],
+  });
+  const completed = mergeChatTranscript(afterUser, committedAssistant);
+
+  assert.equal(completed.messageCount, 2);
+  assert.deepEqual(completed.messages.map(({ role, text }) => [role, text]), [
+    ['user', 'question'],
+    ['agent', 'answer'],
+  ]);
+  assert.equal(completed.messages[1]?.id, 'runtime-assistant-9');
+});
+
 test('does not merge equal assistant text from different Runtime turns', async () => {
   const { mergeChatTranscript } = await importTransitionsModule();
   const current = chatStatus({
     requestId: 'zhiyu-turn-1',
+    runtimeTurnId: 'runtime-turn-1',
     messages: [
       message({ id: 'turn-1:user', role: 'user', text: 'first', turnId: 'zhiyu-turn-1' }),
       message({ id: 'runtime-message-1', role: 'agent', text: 'same answer', turnId: 'zhiyu-turn-1' }),
@@ -97,6 +156,7 @@ test('does not merge equal assistant text from different Runtime turns', async (
   });
   const incoming = chatStatus({
     requestId: 'zhiyu-turn-2',
+    runtimeTurnId: 'runtime-turn-2',
     messages: [
       message({ id: 'turn-2:user', role: 'user', text: 'second', turnId: 'zhiyu-turn-2' }),
       message({ id: 'runtime-message-2', role: 'agent', text: 'same answer', turnId: 'zhiyu-turn-2' }),
@@ -133,7 +193,7 @@ async function buildTransitionsModule() {
   return buildDir;
 }
 
-function chatStatus({ requestId, messages, ready = false, state = 'streaming' }) {
+function chatStatus({ requestId, messages, ready = false, state = 'streaming', runtimeTurnId = 'runtime-turn-1' }) {
   return {
     transport: 'electron-ipc',
     ready,
@@ -147,7 +207,7 @@ function chatStatus({ requestId, messages, ready = false, state = 'streaming' })
     localAgentRef: 'local-agent:1',
     conversationAnchorId: 'agent-anchor-1',
     requestId,
-    runtimeTurnId: 'runtime-turn-1',
+    runtimeTurnId,
     runtimeStreamId: 'runtime-stream-1',
     eventTypes: [],
     messageCount: messages.length,
@@ -157,6 +217,28 @@ function chatStatus({ requestId, messages, ready = false, state = 'streaming' })
     reasoningText: null,
     outputText: null,
     diagnostics: null,
+  };
+}
+
+function runtimeMessage({ id, role, text, runtimeTurnId }) {
+  return {
+    id,
+    sessionId: 'agent-anchor-1',
+    targetId: 'local-agent:1',
+    source: 'agent',
+    role,
+    text,
+    createdAt: '2026-07-12T00:00:00.000Z',
+    updatedAt: '2026-07-12T00:00:01.000Z',
+    status: 'complete',
+    kind: 'text',
+    senderName: role === 'user' ? 'You' : 'Zhiyu Agent',
+    senderKind: role === 'user' ? 'human' : 'agent',
+    metadata: {
+      transport: 'runtime.agent.local-app.conversation',
+      runtimeTurnId,
+      conversationAnchorId: 'agent-anchor-1',
+    },
   };
 }
 

@@ -6,22 +6,27 @@ export function isZhiyuDirectLocalAppSubmitEnabled(input: {
   readonly draft: string;
 }): boolean {
   const { evidence } = input;
-  const recoverableFailedTurn = evidence.chat.state === 'failed'
+  const recoverableTerminalTurn = isZhiyuRecoverableTerminalTurn(evidence);
+  return evidence.conversation.ready
+    && (evidence.turn.ready || recoverableTerminalTurn)
+    && evidence.chat.state !== 'streaming'
+    && evidence.composer.submitState !== 'submitting'
+    && input.draft.trim().length > 0;
+}
+
+export function isZhiyuRecoverableTerminalTurn(
+  evidence: Pick<ZhiyuEvidence, 'turn' | 'chat'>,
+): boolean {
+  const runtimeTerminal = (evidence.chat.state === 'failed' || evidence.chat.state === 'canceled')
     && evidence.chat.source === 'runtime'
     && evidence.turn.source === 'runtime'
-    && Boolean(evidence.turn.requestId)
-    && evidence.chat.requestId === evidence.turn.requestId
-    && Boolean(evidence.turn.messageId);
-  const recoverableCanceledTurn = evidence.chat.state === 'canceled'
+    && Boolean(evidence.turn.runtimeTurnId);
+  const callerCanceled = evidence.chat.state === 'canceled'
     && evidence.chat.reasonCode === 'runtime-agent-chat-user-canceled'
     && evidence.turn.reasonCode === 'runtime-agent-chat-user-canceled'
     && Boolean(evidence.chat.requestId)
     && evidence.chat.requestId === evidence.turn.requestId;
-  return evidence.conversation.ready
-    && (evidence.turn.ready || recoverableFailedTurn || recoverableCanceledTurn)
-    && evidence.chat.state !== 'streaming'
-    && evidence.composer.submitState !== 'submitting'
-    && input.draft.trim().length > 0;
+  return runtimeTerminal || callerCanceled;
 }
 
 export async function refreshZhiyuDirectLocalAppSubmitGate(input: {

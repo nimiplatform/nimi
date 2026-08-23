@@ -56,6 +56,8 @@ export function appendSubmittedUserMessage(
     localAgentRef: conversation.localAgentRef ?? current.localAgentRef,
     conversationAnchorId: conversation.conversationAnchorId ?? current.conversationAnchorId,
     requestId,
+    runtimeTurnId: null,
+    runtimeStreamId: null,
   }, conversation, requestId, text, createdAt);
 }
 
@@ -179,7 +181,17 @@ export function mergeChatTranscript(
   ) {
     return incoming;
   }
-  const messages = mergeConversationMessages(current.messages, incoming.messages);
+  const activeRuntimeTurnId = incoming.runtimeTurnId ?? current.runtimeTurnId;
+  const hasLiveTurn = current.state === 'streaming' || incoming.state === 'streaming';
+  const currentMessages = hasLiveTurn
+    && (!current.runtimeTurnId || current.runtimeTurnId === activeRuntimeTurnId)
+    ? correlateCallerLocalTurnMessages(current.messages, current.requestId, activeRuntimeTurnId)
+    : current.messages;
+  const incomingMessages = hasLiveTurn
+    && (!incoming.runtimeTurnId || incoming.runtimeTurnId === activeRuntimeTurnId)
+    ? correlateCallerLocalTurnMessages(incoming.messages, incoming.requestId, activeRuntimeTurnId)
+    : incoming.messages;
+  const messages = mergeConversationMessages(currentMessages, incomingMessages);
 	const actionsById = new Map(current.actions.map((action) => [action.actionId, action]));
 	for (const action of incoming.actions) actionsById.set(action.actionId, action);
 	const actions = [...actionsById.values()];
@@ -193,6 +205,27 @@ export function mergeChatTranscript(
 	actions,
     latestAssistantText: latestAssistant?.text || incoming.latestAssistantText,
   };
+}
+
+function correlateCallerLocalTurnMessages(
+  messages: RuntimeAgentConversationProjectionState['messages'],
+  callerRequestId: string | null,
+  runtimeTurnId: string | null,
+): RuntimeAgentConversationProjectionState['messages'] {
+  if (!callerRequestId || !runtimeTurnId) return messages;
+  return messages.map((message) => {
+    if (conversationMessageTurnId(message) !== callerRequestId
+      || conversationMessageRuntimeTurnId(message)) {
+      return message;
+    }
+    return {
+      ...message,
+      metadata: {
+        ...(message.metadata || {}),
+        runtimeTurnId,
+      },
+    };
+  });
 }
 
 export function turnStatusFromChat(chat: ZhiyuRuntimeAgentChatStatus): ZhiyuEvidence['turn'] {

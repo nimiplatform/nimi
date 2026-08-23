@@ -45,6 +45,36 @@ test('direct local-app composer gate requires an admitted conversation turn', ()
   }), false);
 });
 
+test('a Runtime-terminal failed turn does not close the Conversation composer', () => {
+  const evidence = readyEvidence();
+  const failed = {
+    ...evidence,
+    turn: {
+      ...evidence.turn,
+      ready: false,
+      source: 'runtime',
+      reasonCode: 'AI_LOCAL_CAPABILITY_MISMATCH',
+      requestId: null,
+      runtimeTurnId: 'runtime-turn-failed-1',
+      messageId: null,
+    },
+    chat: {
+      ...evidence.chat,
+      ready: false,
+      state: 'failed',
+      source: 'runtime',
+      reasonCode: 'AI_LOCAL_CAPABILITY_MISMATCH',
+      requestId: null,
+      runtimeTurnId: 'runtime-turn-failed-1',
+    },
+  };
+
+  assert.equal(isZhiyuDirectLocalAppSubmitEnabled({
+    evidence: failed,
+    draft: '下一轮仍可发送',
+  }), true);
+});
+
 test('submit preflight refreshes account permission inventory', async () => {
   const evidence = readyEvidence();
   const calls = [];
