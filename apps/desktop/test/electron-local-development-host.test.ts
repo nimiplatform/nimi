@@ -12,7 +12,6 @@ import {
   ElectronLocalDevelopmentHost,
   isLocalDevelopmentRuntimeTransportFailure,
   localDevelopmentFailureMessage,
-  resolveLocalDevelopmentHostRelaunchDecision,
   resolveLocalDevelopmentRegistrationFailureState,
   sameLocalDevelopmentProject,
 } from '../src-electron/local-development-host.js';
@@ -84,8 +83,6 @@ function activeRun() {
     refreshRegistrationPromise: undefined as Promise<void> | undefined,
     recoveringRuntimeTransport: false,
     electronSourceFingerprint: undefined as string | undefined,
-    hostRelaunchWindow: [] as number[],
-    hostRelaunchEligibleAtUnixMs: 0,
     renderer: undefined as object | undefined,
     watcher: undefined as { close: () => void } | undefined,
     healthTimer: undefined as ReturnType<typeof setInterval> | undefined,
@@ -300,6 +297,45 @@ describe('Desktop Electron local-development registration host', () => {
     assert.equal(terminateCalls, 0);
   });
 
+  it('ends the run when its Host exits during Runtime transport recovery', async () => {
+    let transportAvailable = false;
+    let terminateCalls = 0;
+    let endRunCalls = 0;
+    const host = new ElectronLocalDevelopmentHost(control({
+      listRegistrations: async () => {
+        if (!transportAvailable) {
+          throw Object.assign(new Error('runtime-service-unavailable'), {
+            reasonCode: 'runtime-service-unavailable',
+          });
+        }
+        return [registration()];
+      },
+      hostRunning: async () => false,
+      terminateHost: async () => { terminateCalls += 1; },
+      endRun: async () => { endRunCalls += 1; },
+    }), '/tmp');
+    const run = activeRun();
+    run.renderer = {};
+    const healthHost = host as unknown as {
+      refreshRegistration(context: typeof run): Promise<void>;
+    };
+
+    await healthHost.refreshRegistration(run);
+    assert.equal(run.status.state, 'runtime-unavailable');
+    assert.equal(run.recoveringRuntimeTransport, true);
+
+    transportAvailable = true;
+    await healthHost.refreshRegistration(run);
+
+    assert.equal(run.recoveringRuntimeTransport, false);
+    assert.equal(run.stopped, true);
+    assert.equal(run.stoppedCleanupComplete, true);
+    assert.equal(run.status.state, 'stopped');
+    assert.equal(run.renderer, undefined);
+    assert.equal(terminateCalls, 1);
+    assert.equal(endRunCalls, 1);
+  });
+
   it('starts one full supervisor after recovery when renderer cleanup removed the prior Host', async () => {
     const host = new ElectronLocalDevelopmentHost(control({
       hostRunning: async () => false,
@@ -413,77 +449,11 @@ describe('Desktop Electron local-development registration host', () => {
     }
   });
 
-  it('bounds host relaunch attempts with exponential backoff and a rolling window', () => {
-    const first = resolveLocalDevelopmentHostRelaunchDecision({
-      nowUnixMs: 100_000,
-      relaunchWindow: [],
-      eligibleAtUnixMs: 0,
-    });
-    assert.equal(first.action, 'relaunch');
-    if (first.action !== 'relaunch') return;
-    assert.deepEqual(first.relaunchWindow, [100_000]);
-    assert.equal(first.eligibleAtUnixMs, 104_000);
-
-    assert.deepEqual(resolveLocalDevelopmentHostRelaunchDecision({
-      nowUnixMs: 102_000,
-      relaunchWindow: first.relaunchWindow,
-      eligibleAtUnixMs: first.eligibleAtUnixMs,
-    }), { action: 'wait' });
-
-    let relaunchWindow = first.relaunchWindow;
-    let eligibleAtUnixMs = first.eligibleAtUnixMs;
-    let nowUnixMs = first.eligibleAtUnixMs;
-    const delays: number[] = [];
-    for (;;) {
-      const next = resolveLocalDevelopmentHostRelaunchDecision({ nowUnixMs, relaunchWindow, eligibleAtUnixMs });
-      if (next.action !== 'relaunch') {
-        assert.equal(next.action, 'crash-loop');
-        break;
-      }
-      delays.push(next.eligibleAtUnixMs - nowUnixMs);
-      relaunchWindow = next.relaunchWindow;
-      eligibleAtUnixMs = next.eligibleAtUnixMs;
-      nowUnixMs = next.eligibleAtUnixMs;
-    }
-    assert.deepEqual(delays, [8_000, 16_000, 32_000, 60_000]);
-    assert.equal(relaunchWindow.length, 5);
-
-    const aged = resolveLocalDevelopmentHostRelaunchDecision({
-      nowUnixMs: nowUnixMs + 600_000,
-      relaunchWindow,
-      eligibleAtUnixMs,
-    });
-    assert.equal(aged.action, 'relaunch');
-    if (aged.action !== 'relaunch') return;
-    assert.equal(aged.relaunchWindow.length, 1);
-  });
-
-  it('waits for host relaunch eligibility before replacing the host again', async () => {
-    const host = new ElectronLocalDevelopmentHost(control(), '/tmp');
-    let replacements = 0;
-    Reflect.set(host, 'replaceHost', async () => { replacements += 1; });
-    const run = activeRun();
-    run.renderer = {};
-    const healthHost = host as unknown as {
-      refreshRegistration(context: typeof run): Promise<void>;
-    };
-
-    await healthHost.refreshRegistration(run);
-    assert.equal(replacements, 1);
-    assert.equal(run.hostRelaunchWindow.length, 1);
-    assert.ok(run.hostRelaunchEligibleAtUnixMs > Date.now());
-
-    await healthHost.refreshRegistration(run);
-    assert.equal(replacements, 1);
-    assert.equal(run.stopped, false);
-    assert.equal(run.status.state, 'restarting');
-    assert.equal(run.status.retryable, true);
-  });
-
-  it('ends a crash-looping run without removing its persistent registration', async () => {
+  it('ends the run when its supervised Host exits instead of launching a replacement', async () => {
     const terminated: string[] = [];
     const ended: Array<readonly [string, string]> = [];
     let removed = 0;
+    let replacements = 0;
     const host = new ElectronLocalDevelopmentHost(control({
       terminateHost: async (supervisorRunId) => { terminated.push(supervisorRunId); },
       endRun: async (registrationHandle, supervisorRunId) => {
@@ -491,9 +461,8 @@ describe('Desktop Electron local-development registration host', () => {
       },
       removeRegistration: async () => { removed += 1; },
     }), '/tmp');
+    Reflect.set(host, 'replaceHost', async () => { replacements += 1; });
     const run = activeRun();
-    const now = Date.now();
-    run.hostRelaunchWindow = [now - 5_000, now - 4_000, now - 3_000, now - 2_000, now - 1_000];
     run.renderer = {};
     let watcherClosed = 0;
     run.watcher = { close: () => { watcherClosed += 1; } };
@@ -507,17 +476,20 @@ describe('Desktop Electron local-development registration host', () => {
       assert.deepEqual(terminated, [SUPERVISOR]);
       assert.deepEqual(ended, [[HANDLE, SUPERVISOR]]);
       assert.equal(removed, 0);
+      assert.equal(replacements, 0);
       assert.equal(run.registrationHandle, undefined);
       assert.equal(run.pendingEndRunRegistrationHandle, undefined);
+      assert.equal(run.renderer, undefined);
       assert.equal(run.watcher, undefined);
       assert.equal(watcherClosed, 1);
       assert.equal(run.healthTimer, undefined);
       assert.equal(run.stopped, true);
       assert.equal(run.stoppedCleanupComplete, true);
-      assert.equal(run.status.state, 'failed');
-      assert.equal(run.status.reasonCode, 'local-development-host-crash-loop');
+      assert.equal(run.status.state, 'stopped');
+      assert.equal(run.status.reasonCode, undefined);
       assert.equal(run.status.retryable, false);
       assert.equal(run.status.hostGeneration, 1);
+      assert.match(run.status.logs.at(-1)?.message ?? '', /host exited; ending the development run/u);
     } finally {
       if (run.healthTimer) clearInterval(run.healthTimer);
     }

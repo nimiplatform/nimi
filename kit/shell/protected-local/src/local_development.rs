@@ -6,6 +6,18 @@ use std::path::PathBuf;
 
 pub const LOCAL_DEVELOPMENT_TRUST_CLASS: &str = "local_development";
 
+#[cfg(any(
+    test,
+    all(target_os = "macos", feature = "macos-source-local-development"),
+    all(target_os = "windows", feature = "windows-source-local-development")
+))]
+pub(crate) fn local_development_rebind_candidate_is_stale(
+    current: Option<(u32, bool)>,
+    expected_process_id: u32,
+) -> bool {
+    !matches!(current, Some((process_id, true)) if process_id == expected_process_id)
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum DeveloperModeState {
     Disabled,
@@ -232,5 +244,27 @@ impl From<ProtectedCarrierError> for NimiHostError {
             }
         };
         Self::new(reason_code, error.retryable())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::local_development_rebind_candidate_is_stale;
+
+    #[test]
+    fn rebind_failure_is_stale_only_after_the_exact_candidate_stops_or_is_replaced() {
+        assert!(!local_development_rebind_candidate_is_stale(
+            Some((41, true)),
+            41
+        ));
+        assert!(local_development_rebind_candidate_is_stale(
+            Some((41, false)),
+            41
+        ));
+        assert!(local_development_rebind_candidate_is_stale(
+            Some((42, true)),
+            41
+        ));
+        assert!(local_development_rebind_candidate_is_stale(None, 41));
     }
 }

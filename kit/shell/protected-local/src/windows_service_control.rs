@@ -23,6 +23,8 @@ use windows_sys::Win32::System::Pipes::GetNamedPipeServerProcessId;
 use crate::generated::runtime_auth_service_client::RuntimeAuthServiceClient;
 #[cfg(not(feature = "windows-source-local-development"))]
 use crate::generated::OpenDesktopSessionRequest;
+#[cfg(feature = "windows-source-local-development")]
+use crate::local_development::local_development_rebind_candidate_is_stale;
 use crate::windows_peer_trust::{verify_runtime_peer, VerifiedRuntimePeer};
 #[cfg(feature = "windows-source-local-development")]
 use crate::windows_source_policy::{source_pipe_name, WindowsSourcePipeRole};
@@ -671,22 +673,48 @@ async fn rebind_supervised_development_processes(
         let mut entries = registry.lock().map_err(|_| untrusted())?;
         entries.retain(|_, entry| entry.process.running());
         entries
-            .values()
-            .map(|entry| (entry.request.clone(), entry.process.id()))
+            .iter()
+            .map(|(run_id, entry)| (*run_id, entry.request.clone(), entry.process.id()))
             .collect::<Vec<_>>()
     };
-    for (request, process_id) in running {
-        crate::windows_local_development::rebind_host(channel.clone(), request, process_id)
-            .await
-            .map_err(|error| {
-                if error.retryable() {
-                    unavailable()
-                } else {
-                    untrusted()
-                }
-            })?;
+    for (run_id, request, process_id) in running {
+        if let Err(error) =
+            crate::windows_local_development::rebind_host(channel.clone(), request, process_id)
+                .await
+        {
+            if discard_stale_supervised_development_rebind(&registry, run_id, process_id)? {
+                continue;
+            }
+            return Err(if error.retryable() {
+                unavailable()
+            } else {
+                untrusted()
+            });
+        }
     }
     Ok(())
+}
+
+#[cfg(feature = "windows-source-local-development")]
+fn discard_stale_supervised_development_rebind(
+    registry: &SupervisedDevelopmentRegistry,
+    run_id: [u8; 32],
+    expected_process_id: u32,
+) -> Result<bool, ProtectedCarrierError> {
+    let mut entries = registry.lock().map_err(|_| untrusted())?;
+    let current = entries
+        .get(&run_id)
+        .map(|entry| (entry.process.id(), entry.process.running()));
+    let stale = local_development_rebind_candidate_is_stale(current, expected_process_id);
+    let removed =
+        if stale && current.is_some_and(|(process_id, _)| process_id == expected_process_id) {
+            entries.remove(&run_id)
+        } else {
+            None
+        };
+    drop(entries);
+    drop(removed);
+    Ok(stale)
 }
 
 #[cfg(feature = "windows-source-local-development")]

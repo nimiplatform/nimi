@@ -54,10 +54,6 @@ const PROJECT_README_MAX_BYTES = 96 * 1024;
 const HEALTH_MS = 2_000;
 const LAUNCHER_LEASE_MS = 10_000;
 const REBUILD_DEBOUNCE_MS = 450;
-const HOST_RELAUNCH_WINDOW_MS = 300_000;
-const HOST_RELAUNCH_LIMIT = 5;
-const HOST_RELAUNCH_BACKOFF_BASE_MS = HEALTH_MS;
-const HOST_RELAUNCH_BACKOFF_MAX_MS = 60_000;
 const RESTARTABLE_RUN_STATES = new Set([
   'failed',
   'project-changed',
@@ -107,8 +103,6 @@ type RunContext = {
   refreshRegistrationPromise?: Promise<void>;
   recoveringRuntimeTransport: boolean;
   electronSourceFingerprint?: string;
-  hostRelaunchWindow: number[];
-  hostRelaunchEligibleAtUnixMs: number;
 };
 
 type RendererRegistration = {
@@ -338,8 +332,6 @@ export class ElectronLocalDevelopmentHost {
       rebuildRequested: false,
       refreshingRegistration: false,
       recoveringRuntimeTransport: false,
-      hostRelaunchWindow: [],
-      hostRelaunchEligibleAtUnixMs: 0,
       status: {
         schemaVersion: 1,
         runId,
@@ -699,43 +691,19 @@ export class ElectronLocalDevelopmentHost {
       }
       const running = await this.control.hostRunning(run.supervisorRunId);
       if (run.recoveringRuntimeTransport) {
-        if (!running) return;
         run.recoveringRuntimeTransport = false;
-        setRunState(run, 'running', 'Supervised electron host is running', undefined, false);
+        if (running) {
+          setRunState(run, 'running', 'Supervised electron host is running', undefined, false);
+        }
       }
       if (!running && run.status.hostGeneration > 0) {
         if (!run.renderer) {
           this.startSupervisor(run);
           return;
         }
-        const decision = resolveLocalDevelopmentHostRelaunchDecision({
-          nowUnixMs: Date.now(),
-          relaunchWindow: run.hostRelaunchWindow,
-          eligibleAtUnixMs: run.hostRelaunchEligibleAtUnixMs,
-        });
-        if (decision.action === 'crash-loop') {
-          appendLog(
-            run,
-            'supervisor',
-            `host relaunch stopped after ${HOST_RELAUNCH_LIMIT} attempts within ${HOST_RELAUNCH_WINDOW_MS}ms`,
-          );
-          await this.failClosedRun(run, {
-            state: 'failed',
-            message: 'The supervised Electron host exited repeatedly; automatic restart stopped',
-            reasonCode: 'local-development-host-crash-loop',
-            retryable: false,
-            endRun: true,
-            resumeRegistrationRefresh: false,
-          });
-          return;
-        }
-        if (decision.action === 'wait') {
-          setRunState(run, 'restarting', 'Waiting to restart the supervised Electron host', undefined, true);
-          return;
-        }
-        run.hostRelaunchWindow = decision.relaunchWindow;
-        run.hostRelaunchEligibleAtUnixMs = decision.eligibleAtUnixMs;
-        await this.replaceHost(run);
+        appendLog(run, 'supervisor', 'host exited; ending the development run');
+        await this.stopRun(run, 'stopped');
+        return;
       }
       if (!run.supervising && !run.renderer) this.startSupervisor(run);
     } catch (error) {
@@ -915,30 +883,6 @@ export class ElectronLocalDevelopmentHost {
     if (failures.length > 0) throw new AggregateError(failures, 'local-development-process-cleanup-failed');
   }
 
-}
-
-export type LocalDevelopmentHostRelaunchDecision =
-  | { readonly action: 'relaunch'; readonly relaunchWindow: number[]; readonly eligibleAtUnixMs: number }
-  | { readonly action: 'wait' }
-  | { readonly action: 'crash-loop' };
-
-export function resolveLocalDevelopmentHostRelaunchDecision(input: {
-  readonly nowUnixMs: number;
-  readonly relaunchWindow: readonly number[];
-  readonly eligibleAtUnixMs: number;
-}): LocalDevelopmentHostRelaunchDecision {
-  const recent = input.relaunchWindow.filter((at) => input.nowUnixMs - at < HOST_RELAUNCH_WINDOW_MS);
-  if (recent.length >= HOST_RELAUNCH_LIMIT) return { action: 'crash-loop' };
-  if (input.nowUnixMs < input.eligibleAtUnixMs) return { action: 'wait' };
-  const relaunchWindow = [...recent, input.nowUnixMs];
-  return {
-    action: 'relaunch',
-    relaunchWindow,
-    eligibleAtUnixMs: input.nowUnixMs + Math.min(
-      HOST_RELAUNCH_BACKOFF_BASE_MS * 2 ** relaunchWindow.length,
-      HOST_RELAUNCH_BACKOFF_MAX_MS,
-    ),
-  };
 }
 
 async function closeHttpServer(server: Server): Promise<void> {

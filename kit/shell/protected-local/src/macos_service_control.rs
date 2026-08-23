@@ -14,6 +14,8 @@ use tower::service_fn;
 use crate::generated::runtime_service_control_service_client::RuntimeServiceControlServiceClient;
 #[cfg(not(feature = "macos-source-local-development"))]
 use crate::generated::RequestRuntimeRestartRequest;
+#[cfg(feature = "macos-source-local-development")]
+use crate::local_development::local_development_rebind_candidate_is_stale;
 use crate::macos_peer_trust::{
     local_app_runtime_socket_path, runtime_socket_path, verify_runtime_peer_once,
 };
@@ -441,22 +443,48 @@ async fn rebind_supervised_development_processes(
         let mut entries = registry.lock().map_err(|_| untrusted())?;
         entries.retain(|_, entry| entry.process.running());
         entries
-            .values()
-            .map(|entry| (entry.request.clone(), entry.process.id()))
+            .iter()
+            .map(|(run_id, entry)| (*run_id, entry.request.clone(), entry.process.id()))
             .collect::<Vec<_>>()
     };
-    for (request, process_id) in running {
-        crate::windows_local_development::rebind_host(channel.clone(), request, process_id)
-            .await
-            .map_err(|error| {
-                if error.retryable() {
-                    unavailable()
-                } else {
-                    untrusted()
-                }
-            })?;
+    for (run_id, request, process_id) in running {
+        if let Err(error) =
+            crate::windows_local_development::rebind_host(channel.clone(), request, process_id)
+                .await
+        {
+            if discard_stale_supervised_development_rebind(&registry, run_id, process_id)? {
+                continue;
+            }
+            return Err(if error.retryable() {
+                unavailable()
+            } else {
+                untrusted()
+            });
+        }
     }
     Ok(())
+}
+
+#[cfg(feature = "macos-source-local-development")]
+fn discard_stale_supervised_development_rebind(
+    registry: &SupervisedDevelopmentRegistry,
+    run_id: [u8; 32],
+    expected_process_id: u32,
+) -> Result<bool, ProtectedCarrierError> {
+    let mut entries = registry.lock().map_err(|_| untrusted())?;
+    let current = entries
+        .get(&run_id)
+        .map(|entry| (entry.process.id(), entry.process.running()));
+    let stale = local_development_rebind_candidate_is_stale(current, expected_process_id);
+    let removed =
+        if stale && current.is_some_and(|(process_id, _)| process_id == expected_process_id) {
+            entries.remove(&run_id)
+        } else {
+            None
+        };
+    drop(entries);
+    drop(removed);
+    Ok(stale)
 }
 
 // A one-shot Host rebind witness is consumed by the App's first connect and
