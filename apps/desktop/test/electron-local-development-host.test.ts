@@ -140,6 +140,25 @@ describe('Desktop Electron local-development registration host', () => {
     assert.equal(JSON.stringify(rows).includes(HANDLE), false);
   });
 
+  it('isolates stale registrations whose submitted manifest no longer exists', async () => {
+    const valid = registration();
+    const stale = registration({
+      registrationHandle: '33'.repeat(32),
+      project: {
+        ...valid.project,
+        appId: 'stale.local-app',
+        canonicalProjectRoot: path.resolve('missing-local-app'),
+        canonicalManifestPath: path.resolve('missing-local-app', 'nimi.app.yaml'),
+      },
+    });
+    const host = new ElectronLocalDevelopmentHost(control({
+      listRegistrations: async () => [stale, valid],
+    }), '/tmp');
+
+    const rows = await host.invoke('local_development_registrations_list', {}) as Array<Record<string, unknown>>;
+    assert.deepEqual(rows.map((row) => row.appId), ['example.local-app']);
+  });
+
   it('removes by renderer selector and never accepts the private handle directly', async () => {
     const removed: string[] = [];
     const host = new ElectronLocalDevelopmentHost(control({

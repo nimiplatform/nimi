@@ -408,17 +408,22 @@ export class ElectronLocalDevelopmentHost {
     for (const [selectorValue, handle] of this.registrationSelectors) {
       if (!currentHandles.has(handle)) this.registrationSelectors.delete(selectorValue);
     }
-    return Promise.all(rows.map(async (registration) => {
-      let selectorValue = [...this.registrationSelectors]
-        .find(([, handle]) => handle === registration.registrationHandle)?.[0];
-      selectorValue ??= randomSelector('dev-project');
-      this.registrationSelectors.set(selectorValue, registration.registrationHandle);
-      return projectRegistration(
-        selectorValue,
-        registration,
-        await readElectronAIConfigAllowedRoutes(registration.project.canonicalManifestPath),
-      );
+    const projected = await Promise.all(rows.map(async (registration) => {
+      try {
+        const aiConfigAllowedRoutes = await readElectronAIConfigAllowedRoutes(
+          registration.project.canonicalManifestPath,
+        );
+        let selectorValue = [...this.registrationSelectors]
+          .find(([, handle]) => handle === registration.registrationHandle)?.[0];
+        selectorValue ??= randomSelector('dev-project');
+        this.registrationSelectors.set(selectorValue, registration.registrationHandle);
+        return projectRegistration(selectorValue, registration, aiConfigAllowedRoutes);
+      } catch (error) {
+        if (error instanceof ElectronLocalDevelopmentPlanError) return null;
+        throw error;
+      }
     }));
+    return projected.filter((registration): registration is RendererRegistration => registration !== null);
   }
 
   // The project README is presentation content for the Apps detail surface,
