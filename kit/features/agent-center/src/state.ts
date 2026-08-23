@@ -179,9 +179,10 @@ export function buildAgentCenterState(input: AgentCenterStateInput): AgentCenter
 
 export function replaceAgentCenterSharedAIConfig(
   state: AgentCenterState,
-  sharedAIConfig: AgentCenterSharedAIConfigProjection,
+  sharedAIConfig: AgentCenterSharedAIConfigProjection | null,
+  effectiveSelections: AgentCenterStateInput['effectiveSelections'],
 ): AgentCenterState {
-  const input: AgentCenterStateInput = { sharedAIConfig };
+  const input: AgentCenterStateInput = { sharedAIConfig, effectiveSelections };
   const capabilities = projectedCapabilities(input).map((capability) => buildCapabilityState(input, capability));
   const text = capabilities.find((capability) => capability.capability === 'text.generate');
   const baseTextConfigured = text?.configurationState === 'configured' && text.intent !== null;
@@ -195,6 +196,7 @@ export function replaceAgentCenterSharedAIConfig(
     statusTone,
     baseTextConfigured,
     sharedAIConfig,
+    effectiveSelections,
     baseTextConfigurationDetail: baseTextConfigured
       ? null
       : (text?.summary || 'Text capability is not configured'),

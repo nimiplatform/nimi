@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type {
   NimiCapabilityAIConfig,
+  NimiAIConfigEffectiveSelection,
   NimiLocalAppAgentConfigureClient,
   NimiLocalAppAgentHandle,
 } from '@nimiplatform/kit/core/sdk-contract';
@@ -30,16 +31,37 @@ function sharedConfig(
 
 function sharedProjection(
   capabilities: NimiCapabilityAIConfig['capabilities'] = sharedConfig().capabilities,
+  revision = '1',
 ): AgentCenterSharedAIConfigProjection {
   return {
     aiConfig: sharedConfig(capabilities),
-    revision: '1',
+    revision,
     capabilities: capabilities.map((entry) => entry.capabilityContract),
     intents: capabilities.map((entry) => ({
       capability: entry.capabilityContract,
       route: entry.route.oneofKind === 'cloud' ? 'cloud' : 'local',
       requiredFeatures: entry.requiredFeatures,
     })),
+  };
+}
+
+function localEffectiveSelection(loadoutRef: string, label: string): NimiAIConfigEffectiveSelection {
+  return {
+    capabilityContract: 'text.generate',
+    state: 'ready',
+    resource: {
+      oneofKind: 'local',
+      local: {
+        loadoutRef,
+        label,
+        capabilityContract: 'text.generate',
+        implementation: { implementationId: loadoutRef, driverId: 'local', driverDialect: 'test/local/v1' },
+        supportedFeatures: [],
+        state: 'ready',
+        reasons: [],
+      },
+    },
+    reasons: [],
   };
 }
 
@@ -118,7 +140,7 @@ function appClient(calls: unknown[]): NimiLocalAppAgentConfigureClient {
 }
 
 describe('AgentCenterSession', () => {
-  it('awaits the committed first-party shared AIConfig projection before write-back', async () => {
+  it('keeps a committed mutation authoritative when the effective follow-up read fails', async () => {
     const calls: string[] = [];
     let projection = sharedProjection();
     let rejectReads = false;
@@ -128,11 +150,15 @@ describe('AgentCenterSession', () => {
         async get() {
           calls.push('read');
           if (rejectReads) throw new Error('follow-up read must not decide commit success');
-          return { config: projection.aiConfig, revision: projection.revision, effectiveSelections: [] };
+          return {
+            config: projection.aiConfig,
+            revision: projection.revision,
+            effectiveSelections: [localEffectiveSelection('loadout:text', 'Text A')],
+          };
         },
         async overwrite(input) {
           calls.push('overwrite');
-          projection = sharedProjection([...input.capabilities]);
+          projection = sharedProjection([...input.capabilities], '2');
           rejectReads = true;
           return { outcome: 'committed' as const, config: projection.aiConfig, revision: projection.revision };
         },
@@ -141,8 +167,72 @@ describe('AgentCenterSession', () => {
     });
     await session.refresh();
     await session.overwriteSharedAIConfig({ expectedRevision: '1', capabilities: [] });
-    expect(calls).toEqual(['read', 'overwrite']);
+    await Promise.resolve();
+    expect(calls).toEqual(['read', 'overwrite', 'read']);
     expect(session.getSnapshot().state.sharedAIConfig?.aiConfig.capabilities).toEqual([]);
+    expect(session.getSnapshot().state.sharedAIConfig?.revision).toBe('2');
+    expect(session.getSnapshot().state.effectiveSelections).toEqual([]);
+    expect(session.getSnapshot().phase).toBe('ready');
+  });
+
+  it('invalidates stale effective facts and restores only the matching committed revision', async () => {
+    const intentA = {
+      capabilityContract: 'text.generate',
+      route: { oneofKind: 'local' as const, local: { loadoutRef: 'loadout:a' } },
+      requiredFeatures: [] as string[],
+    };
+    const intentB = {
+      capabilityContract: 'text.generate',
+      route: { oneofKind: 'local' as const, local: { loadoutRef: 'loadout:b' } },
+      requiredFeatures: [] as string[],
+    };
+    let projection = sharedProjection([intentA], '1');
+    let readCount = 0;
+    let resolveFollowUp: ((value: {
+      config: NimiCapabilityAIConfig;
+      revision: string;
+      effectiveSelections: readonly NimiAIConfigEffectiveSelection[];
+    }) => void) | null = null;
+    const session = createFirstPartyAgentCenterSession({
+      identity: { ownerUserId: 'owner', runtimeSourceRef: 'source', localAgentRef: 'agent' },
+      sharedAIConfig: {
+        async get() {
+          readCount += 1;
+          if (readCount === 1) {
+            return {
+              config: projection.aiConfig,
+              revision: projection.revision,
+              effectiveSelections: [localEffectiveSelection('loadout:a', 'Text A')],
+            };
+          }
+          return new Promise((resolve) => { resolveFollowUp = resolve; });
+        },
+        async overwrite() {
+          projection = sharedProjection([intentB], '2');
+          return { outcome: 'committed' as const, config: projection.aiConfig, revision: projection.revision };
+        },
+        async listOptions() { return { kind: 'local-loadouts' as const, options: [], truncated: false }; },
+      },
+    });
+
+    await session.refresh();
+    expect(session.getSnapshot().state.effectiveSelections?.[0]?.resource).toMatchObject({
+      oneofKind: 'local', local: { loadoutRef: 'loadout:a', label: 'Text A' },
+    });
+
+    await session.overwriteSharedAIConfig({ expectedRevision: '1', capabilities: [intentB] });
+    expect(session.getSnapshot().state.sharedAIConfig?.revision).toBe('2');
+    expect(session.getSnapshot().state.effectiveSelections).toEqual([]);
+
+    resolveFollowUp?.({
+      config: projection.aiConfig,
+      revision: projection.revision,
+      effectiveSelections: [localEffectiveSelection('loadout:b', 'Text B')],
+    });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(session.getSnapshot().state.effectiveSelections?.[0]?.resource).toMatchObject({
+      oneofKind: 'local', local: { loadoutRef: 'loadout:b', label: 'Text B' },
+    });
   });
 
   it('binds a covered App session to the SDK nominal handle and canonical configuration operations', async () => {

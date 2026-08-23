@@ -76,10 +76,16 @@ function allUnavailable(reason: AgentCenterActionUnavailableReason): AgentCenter
   return Object.freeze(Object.fromEntries(ACTIONS.map((action) => [action, unavailable(reason)]))) as AgentCenterActionAvailabilityProjection;
 }
 
+type SharedAIConfigRead = {
+  readonly sharedAIConfig: AgentCenterSharedAIConfigProjection | null;
+  readonly effectiveSelections: readonly ModelConfigEffectiveSelectionProjection[];
+};
+
 interface SessionTransport {
   readonly appearanceAdapter: AgentCenterAppearanceAdapter | null;
   actionAvailability(): Promise<AgentCenterActionAvailabilityProjection>;
   read(): Promise<AgentCenterStateInput>;
+  readSharedAIConfig(): Promise<SharedAIConfigRead>;
   overwriteSharedAIConfig(input: AgentCenterAIConfigMutation): Promise<NimiAIConfigOverwriteResult>;
   listSharedAIConfigOptions(input: NimiAIConfigOptionsQuery): Promise<NimiAIConfigOptionsResult>;
   updateAutonomy(input: AgentCenterAutonomyMutation): Promise<AgentCenterAutonomyProjection>;
@@ -222,21 +228,47 @@ class ManagerSession {
   async overwriteSharedAIConfig(input: AgentCenterAIConfigMutation): Promise<NimiAIConfigOverwriteResult> {
     this.#requireAvailable('overwriteSharedAIConfig');
     const result = await this.transport.overwriteSharedAIConfig(input);
-    if (result.config) {
+    const sharedAIConfig = result.config
+      ? projectAppSharedAIConfig(result.config, result.revision)
+      : null;
+    this.#set({
+      ...this.#snapshot,
+      phase: 'ready',
+      state: stateWithAvailability(
+        replaceAgentCenterSharedAIConfig(
+          this.#snapshot.state,
+          sharedAIConfig,
+          [],
+        ),
+        this.#snapshot.availability,
+      ),
+      error: null,
+    });
+    if (result.config) void this.#refreshSharedAIConfigEffectiveSelections(result.revision);
+    return result;
+  }
+
+  async #refreshSharedAIConfigEffectiveSelections(expectedRevision: string): Promise<void> {
+    try {
+      const refreshed = await this.transport.readSharedAIConfig();
+      const currentRevision = this.#snapshot.state.sharedAIConfig?.revision ?? '0';
+      const refreshedRevision = refreshed.sharedAIConfig?.revision ?? '0';
+      if (currentRevision !== expectedRevision || refreshedRevision !== expectedRevision) return;
       this.#set({
         ...this.#snapshot,
-        phase: 'ready',
         state: stateWithAvailability(
           replaceAgentCenterSharedAIConfig(
             this.#snapshot.state,
-            projectAppSharedAIConfig(result.config, result.revision),
+            refreshed.sharedAIConfig,
+            refreshed.effectiveSelections,
           ),
           this.#snapshot.availability,
         ),
-        error: null,
       });
+    } catch {
+      // The mutation acknowledgement remains authoritative. A later read
+      // failure leaves effective facts unknown until the next successful read.
     }
-    return result;
   }
 
   async listSharedAIConfigOptions(input: NimiAIConfigOptionsQuery): Promise<NimiAIConfigOptionsResult> {
@@ -388,10 +420,7 @@ export function createFirstPartyAgentCenterSession(
 ): AgentCenterSession {
   const identity = input.loadInput?.identity || input.identity;
   const aiConfigAccountInput = { subjectUserId: input.loadInput?.subjectUserId };
-  const readSharedAIConfig = async (): Promise<{
-    readonly sharedAIConfig: AgentCenterSharedAIConfigProjection | null;
-    readonly effectiveSelections: readonly ModelConfigEffectiveSelectionProjection[];
-  }> => {
+  const readSharedAIConfig = async (): Promise<SharedAIConfigRead> => {
     try {
       const snapshot = await input.sharedAIConfig.get(aiConfigAccountInput);
       return {
@@ -426,6 +455,7 @@ export function createFirstPartyAgentCenterSession(
     appearanceAdapter: input.appearance || null,
     actionAvailability: async () => firstPartyActionAvailability(input),
     read,
+    readSharedAIConfig,
     async overwriteSharedAIConfig(mutation) {
       return input.sharedAIConfig.overwrite({
         subjectUserId: input.loadInput?.subjectUserId,
@@ -472,10 +502,7 @@ export function createAppAgentCenterSession(
   let manager: ManagerSession | null = null;
   let presentation: NimiLocalAppAgentPresentationProjection | null = null;
 
-  const readSharedAIConfig = async (): Promise<{
-    readonly sharedAIConfig: AgentCenterSharedAIConfigProjection | null;
-    readonly effectiveSelections: readonly ModelConfigEffectiveSelectionProjection[];
-  }> => {
+  const readSharedAIConfig = async (): Promise<SharedAIConfigRead> => {
     try {
       const snapshot = await input.client.sharedAIConfig.get();
       return {
@@ -570,6 +597,7 @@ export function createAppAgentCenterSession(
     appearanceAdapter,
     actionAvailability: async () => appAvailability(),
     read,
+    readSharedAIConfig,
     async overwriteSharedAIConfig(mutation) {
       return input.client.sharedAIConfig.overwrite({
         expectedRevision: mutation.expectedRevision,

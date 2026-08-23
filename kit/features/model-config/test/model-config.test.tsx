@@ -55,6 +55,7 @@ async function renderSurface(
     readonly effectiveSelections?: readonly NimiAIConfigEffectiveSelection[] | null;
     readonly loading?: boolean;
     readonly loadError?: string | null;
+    readonly capabilitiesUnavailable?: boolean;
   } = {},
 ) {
   container = document.createElement('div');
@@ -66,7 +67,7 @@ async function renderSurface(
         context={{ owner: 'app-ai-config', appId: 'test.app' }}
         capabilityContracts={options.capabilityContracts || ['text.generate']}
         initialCapabilityContract={options.initialCapabilityContract}
-        capabilities={options.capabilities || [{
+        capabilities={options.capabilitiesUnavailable ? undefined : options.capabilities || [{
           capabilityContract: 'text.generate',
           requiredFeatures: [],
           defaults: undefined,
@@ -389,6 +390,20 @@ describe('public Model Config contract', () => {
     const clear = node.querySelector('[data-testid="model-config-clear:text.generate"]') as HTMLButtonElement;
     await act(async () => { clear.click(); await Promise.resolve(); });
     expect(onOverwrite.mock.calls[0]?.[0].capabilities).toEqual([sibling]);
+  });
+
+  it('does not project an unavailable initial read as not configured', async () => {
+    const node = await renderSurface(committedOverwrite(), vi.fn(), {
+      initialCapabilityContract: 'text.generate',
+      capabilitiesUnavailable: true,
+      loadError: 'Initial read failed',
+    });
+
+    expect(node.textContent).toContain('Initial read failed');
+    expect(node.textContent).not.toContain('Not configured');
+    expect(node.querySelector('[data-nimi-model-config-detail="text.generate"]')).toBeNull();
+    expect(node.querySelector('[data-nimi-model-config-capability-grid]')).toBeNull();
+    expect(node.querySelector('[data-testid="model-config-save:text.generate"]')).toBeNull();
   });
 
   it('preserves the local draft after CAS conflict and retries with the returned revision', async () => {

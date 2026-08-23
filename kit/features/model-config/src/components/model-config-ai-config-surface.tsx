@@ -357,6 +357,7 @@ export function ModelConfigAIConfigSurface(props: ModelConfigAIConfigSurfaceProp
       ? { label: copy.configuredLabel, tone: 'success' }
       : { label: copy.notConfiguredLabel, tone: 'neutral' };
   const activeEntry = entries.find((entry) => entry.contract === activeContract) || null;
+  const configurationObserved = props.capabilities !== undefined;
 
   return (
     <ModelConfigOwnerBoundary context={props.context} className={cn('min-w-0 space-y-5', props.className)}>
@@ -370,8 +371,11 @@ export function ModelConfigAIConfigSurface(props: ModelConfigAIConfigSurfaceProp
       {props.loading && props.capabilities === undefined ? (
         <LoadingSkeleton lines={2} label={copy.modelPickerLoadingLabel} />
       ) : null}
+      {!props.loading && !configurationObserved && !props.loadError ? (
+        <InlineAlert tone="warning" data-nimi-model-config-unavailable="true">{copy.loadFailed}</InlineAlert>
+      ) : null}
 
-      {activeEntry ? (
+      {!configurationObserved ? null : activeEntry ? (
         <div className="space-y-4" data-nimi-model-config-detail={activeEntry.contract}>
           <div className="flex min-w-0 items-center gap-2">
             <button
