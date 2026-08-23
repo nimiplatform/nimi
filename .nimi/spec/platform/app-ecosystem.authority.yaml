@@ -1424,9 +1424,9 @@ units:
     kind: rule
     title: P-SCAF-004 submitted manifest is not descriptor truth
     modality: must
-    statement: Scaffolding may generate nimi.app.yaml only as labeled developer-submitted input for the owner review flow and never as release-descriptor, registry, review, mirror, ordinary-install, or public-admission truth.
+    statement: Scaffolding may generate nimi.app.yaml only as labeled developer-submitted input for the owner review flow and never as release-descriptor, registry, review, mirror, ordinary-install, or public-admission truth; for local-development presentation it may separately carry optional ai_config_ui.allowed_routes as a non-empty duplicate-free subset of local and cloud, defaulting to both when absent, solely so the App and Desktop use the same editor route choices without changing AppAccess, AIConfig owner eligibility, Runtime overwrite validation, execution admission, or a committed current route, while an installed release must receive any equivalent presentation policy from its canonical release descriptor rather than the submitted manifest.
     condition: Whenever a scaffold generates, labels, or consumes nimi.app.yaml.
-    failure: Reject any positive owner truth inferred from the submitted manifest.
+    failure: Reject any positive owner, access, configuration, or execution truth inferred from the submitted manifest, reject an invalid ai_config_ui route set, and reject hardcoded App identity as a substitute for the bounded presentation input.
     relations:
       - type: applies_to
         target: definition.nimi.platform.app-ecosystem.release-descriptor
