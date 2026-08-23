@@ -23,6 +23,7 @@ import {
   type NimiLocalAppConversationAttachmentUploadResult,
   type NimiLocalAppConversationVoiceTranscriptionInput,
   type NimiLocalAppConversationVoiceTranscriptionResult,
+	type NimiLocalAppConversationCallOptions,
   type NimiLocalAppConversationOpenInput,
   NimiLocalAppConversationOpenResult,
   NimiLocalAppConversationInterruptResult,
@@ -340,7 +341,7 @@ export type NimiLocalAppClient = {
     readonly send: (input: NimiLocalAppConversationSendInput) => Promise<NimiLocalAppConversationSendResult>;
     readonly uploadAttachment: (input: NimiLocalAppConversationAttachmentUploadInput) => Promise<NimiLocalAppConversationAttachmentUploadResult>;
     readonly readArtifact: (input: NimiLocalAppConversationArtifactReadInput) => Promise<NimiLocalAppConversationArtifactReadResult>;
-    readonly transcribeVoice: (input: NimiLocalAppConversationVoiceTranscriptionInput) => Promise<NimiLocalAppConversationVoiceTranscriptionResult>;
+	readonly transcribeVoice: (input: NimiLocalAppConversationVoiceTranscriptionInput, options?: NimiLocalAppConversationCallOptions) => Promise<NimiLocalAppConversationVoiceTranscriptionResult>;
     readonly interruptTurn: (input: NimiLocalAppConversationScopeInput) => Promise<NimiLocalAppConversationInterruptResult>;
     readonly subscribe: (input: NimiLocalAppConversationScopeInput) => Promise<NimiLocalAppConversationSubscription>;
     readonly snapshot: (input: NimiLocalAppConversationScopeInput) => Promise<NimiLocalAppConversationSnapshot>;

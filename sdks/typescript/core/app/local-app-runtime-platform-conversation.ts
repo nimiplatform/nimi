@@ -70,6 +70,10 @@ export type NimiLocalAppConversationVoiceTranscriptionResult = {
   readonly text: string;
 };
 
+export type NimiLocalAppConversationCallOptions = {
+  readonly signal?: AbortSignal;
+};
+
 export type NimiLocalAppConversationSendResult = {
   readonly turnId: string;
 };
@@ -223,7 +227,7 @@ export type NimiLocalAppConversationShell = {
     readonly requestId: string;
     readonly mimeType: string;
     readonly audioBytes: readonly number[];
-  }) => Promise<unknown>;
+  }, options?: NimiLocalAppConversationCallOptions) => Promise<unknown>;
   readonly interruptTurn: (input: {
     readonly agentHandle: string;
     readonly conversationAnchorId: string;
@@ -243,7 +247,7 @@ export type NimiLocalAppConversationClient = {
   readonly send: (input: NimiLocalAppConversationSendInput) => Promise<NimiLocalAppConversationSendResult>;
   readonly uploadAttachment: (input: NimiLocalAppConversationAttachmentUploadInput) => Promise<NimiLocalAppConversationAttachmentUploadResult>;
   readonly readArtifact: (input: NimiLocalAppConversationArtifactReadInput) => Promise<NimiLocalAppConversationArtifactReadResult>;
-  readonly transcribeVoice: (input: NimiLocalAppConversationVoiceTranscriptionInput) => Promise<NimiLocalAppConversationVoiceTranscriptionResult>;
+  readonly transcribeVoice: (input: NimiLocalAppConversationVoiceTranscriptionInput, options?: NimiLocalAppConversationCallOptions) => Promise<NimiLocalAppConversationVoiceTranscriptionResult>;
   readonly interruptTurn: (input: NimiLocalAppConversationScopeInput) => Promise<NimiLocalAppConversationInterruptResult>;
   readonly subscribe: (input: NimiLocalAppConversationScopeInput) => Promise<NimiLocalAppConversationSubscription>;
   readonly snapshot: (input: NimiLocalAppConversationScopeInput) => Promise<NimiLocalAppConversationSnapshot>;
@@ -332,7 +336,7 @@ export function createNimiLocalAppConversationClient(
         byteLength: record.byteLength,
       });
     },
-    transcribeVoice: async (input) => {
+    transcribeVoice: async (input, options) => {
       assertExactKeys(
         input,
         ['agentHandle', 'conversationAnchorId', 'requestId', 'mimeType', 'audioBytes'],
@@ -351,7 +355,7 @@ export function createNimiLocalAppConversationClient(
         requestId: boundedSelector(input.requestId, 'requestId'),
         mimeType: input.mimeType,
         audioBytes: Object.freeze(Array.from(input.audioBytes)),
-      });
+      }, options);
       const record = asRecord(value);
       assertExactProjectionKeys(record, ['text'], 'conversation voice transcription');
       return Object.freeze({ text: boundedProjectionText(record.text, 'text', 64 * 1024) });

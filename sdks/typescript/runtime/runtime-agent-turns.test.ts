@@ -126,7 +126,7 @@ test('Runtime Agent voice input exports one typed limit and exact cancellation c
   assert.equal(NIMI_RUNTIME_AGENT_VOICE_INPUT_MAX_DURATION_MS, 5 * 60 * 1000);
 
   const tooLarge = createNimiRuntimeAgentVoiceInputTooLargeError();
-  assert.equal(tooLarge.message, 'Recorded audio exceeds the 5-minute or 6 MiB voice-input limit.');
+  assert.equal(tooLarge.message, 'Recorded audio exceeds the 6 MiB voice-input limit.');
   assert.equal(tooLarge.code, 'AI_AUDIO_INPUT_TOO_LARGE');
   assert.equal(tooLarge.reasonCode, 'AI_AUDIO_INPUT_TOO_LARGE');
   assert.equal(tooLarge.actionHint, 'record_shorter_audio_input');

@@ -345,8 +345,8 @@ test('Agent conversation projects only the exact typed union and bounded snapsho
         calls.push(['readArtifact', input]);
         return { artifactId: 'artifact_01J', bytes: [1, 2, 3], mimeType: 'image/png', byteLength: 3 };
       },
-      async transcribeVoice(input) {
-        calls.push(['transcribeVoice', input]);
+      async transcribeVoice(input, options) {
+		calls.push(['transcribeVoice', input, options]);
         return { text: 'transcribed intent' };
       },
       async interruptTurn(input) {
@@ -425,10 +425,12 @@ test('Agent conversation projects only the exact typed union and bounded snapsho
   assert.deepEqual(await conversation.readArtifact({
     agentHandle: handle, conversationAnchorId: 'agent_anchor_01J', artifactId: 'artifact_01J',
   }), { artifactId: 'artifact_01J', bytes: Uint8Array.from([1, 2, 3]), mimeType: 'image/png', byteLength: 3 });
+	const transcriptionAbort = new AbortController();
   assert.deepEqual(await conversation.transcribeVoice({
     agentHandle: handle, conversationAnchorId: 'agent_anchor_01J', requestId: 'voice-request-1',
     mimeType: 'audio/webm;codecs=opus', audioBytes: Uint8Array.from([1, 2, 3]),
-  }), { text: 'transcribed intent' });
+	}, { signal: transcriptionAbort.signal }), { text: 'transcribed intent' });
+	assert.equal(((calls.find((call) => Array.isArray(call) && call[0] === 'transcribeVoice') as unknown[])[2] as { signal: AbortSignal }).signal, transcriptionAbort.signal);
   const subscription = await conversation.subscribe({ agentHandle: handle, conversationAnchorId: 'agent_anchor_01J' });
   const events = [];
   for await (const event of subscription) events.push(event);
