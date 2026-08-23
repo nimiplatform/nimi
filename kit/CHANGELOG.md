@@ -98,6 +98,17 @@ Discipline.
 
 ### Changed
 
+- **Breaking (0.x):** protected Local App conversations now use ordered
+  content parts, Runtime-issued message identities, durable image-action and
+  final-voice projections, and the purpose-bound attachment upload/read and
+  voice-transcription operations. The former text-only send, event, and
+  snapshot members are removed. Migration: construct `parts` on send, reduce
+  the closed message/action/voice event union, and hydrate from the new
+  conversation snapshot; do not retain a parallel text-only reader.
+- **Breaking (0.x):** Agent Center capability rows now come from the Runtime
+  participation projection instead of a Kit-owned capability denominator.
+  Migration: pass the shared LocalAgent AIConfig response, including its
+  ordered `participation` rows, to the existing Agent Center session/adapter.
 - **Breaking (0.x):** Agent Center replaces the removed permission/grant
   session factory with `createAppAgentCenterSession({ handle, client })` for
   every protected App whose current session has `agent.configure` coverage.
