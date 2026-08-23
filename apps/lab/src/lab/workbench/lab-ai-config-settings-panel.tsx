@@ -120,12 +120,8 @@ export function LabAiConfigSettingsPanel({
           onRetry={() => { void refresh(); }}
           onOverwrite={async (input) => {
             const result = await rendererHost.sdk.aiConfig.overwrite(input);
-            if (result.outcome === 'committed') {
-              setSnapshot({ config: result.config, revision: result.revision, effectiveSelections: [] });
-              void refresh();
-            } else {
-              setSnapshot({ config: result.config, revision: result.revision, effectiveSelections: [] });
-            }
+            setSnapshot({ config: result.config, revision: result.revision, effectiveSelections: [] });
+            void refresh();
             return result;
           }}
           onOpenOwnerConfiguration={() => {

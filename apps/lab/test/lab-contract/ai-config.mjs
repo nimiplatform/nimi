@@ -113,6 +113,8 @@ test('lab mounts the shared App AIConfig editor with self-owner CAS and optional
   assert.match(source, /initialCapabilityContract=\{capabilityId\}/u);
   assert.match(source, /sdk\.aiConfig\.listOptions\(query\)/u);
   assert.match(source, /sdk\.aiConfig\.overwrite\(input\)/u);
+  assert.match(source, /setSnapshot\(\{ config: result\.config, revision: result\.revision, effectiveSelections: \[\] \}\);\s*void refresh\(\);/u);
+  assert.doesNotMatch(source, /result\.outcome === 'committed'/u);
   assert.match(source, /onOpenOwnerConfiguration/u);
   assert.match(source, /kind: 'open-apps'[\s\S]*appId[\s\S]*section: 'ai-models'/u);
   assert.match(
@@ -185,7 +187,8 @@ test('lab presents Local intent while leaving implementation selection to Runtim
   assert.equal(target.intentLabel, 'Local');
   assert.equal(target.capabilityContract, 'text.generate');
   assert.equal(target.canDispatch, true);
-  assert.match(target.detail, /committed an exact Local Loadout reference/u);
+  assert.match(target.detail, /committed the Local route/u);
+  assert.match(target.detail, /current machine-selected Loadout/u);
 
   const imageTarget = createLabRunTargetSummary({
     capability: {
