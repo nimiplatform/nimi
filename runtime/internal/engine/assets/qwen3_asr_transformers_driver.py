@@ -2,11 +2,14 @@
 from __future__ import annotations
 
 import argparse
+import contextlib
 import importlib.metadata
 import json
 import os
 import pathlib
+import subprocess
 import sys
+import tempfile
 from typing import Any
 
 
@@ -166,6 +169,52 @@ def ensure_transformers_importable() -> None:
         fail(f"Transformers-native Qwen3-ASR import failed: {error}")
 
 
+def is_wave_audio(path: pathlib.Path) -> bool:
+    try:
+        header = path.read_bytes()[:12]
+    except OSError:
+        return False
+    return len(header) == 12 and header[:4] == b"RIFF" and header[8:] == b"WAVE"
+
+
+@contextlib.contextmanager
+def transformers_audio_source(audio_path: str):
+    source = pathlib.Path(audio_path)
+    if is_wave_audio(source):
+        yield str(source)
+        return
+    try:
+        import imageio_ffmpeg
+
+        ffmpeg = pathlib.Path(str(imageio_ffmpeg.get_ffmpeg_exe() or "").strip())
+    except Exception as error:
+        fail(f"managed audio decoder is unavailable: {error}")
+    if not ffmpeg.is_file() or ffmpeg.is_symlink():
+        fail("managed audio decoder executable is unavailable")
+    with tempfile.TemporaryDirectory(prefix="nimi-asr-audio-", dir=str(source.parent)) as temp_dir:
+        normalized = pathlib.Path(temp_dir) / "audio.wav"
+        try:
+            result = subprocess.run(
+                [
+                    str(ffmpeg), "-hide_banner", "-loglevel", "error", "-nostdin", "-y",
+                    "-i", str(source), "-vn", "-ac", "1", "-ar", "16000",
+                    "-acodec", "pcm_s16le", str(normalized),
+                ],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                check=False,
+                timeout=120,
+            )
+        except Exception as error:
+            fail(f"managed audio normalization failed: {error}")
+        if result.returncode != 0:
+            detail = bytes(result.stderr or b"").decode("utf-8", errors="replace").strip()
+            fail(f"managed audio normalization failed: {detail or f'exit status {result.returncode}'}")
+        if not normalized.is_file() or not is_wave_audio(normalized):
+            fail("managed audio normalization returned invalid WAV output")
+        yield str(normalized)
+
+
 def cache_key(model_ref: str) -> tuple[str, str, str]:
     dtype = transformers_dtype()
     return model_ref, transformers_device_map(), str(dtype)
@@ -225,11 +274,12 @@ def handle_transcribe(request: dict[str, Any]) -> dict[str, Any]:
     processor, model = load_model(model_ref)
     language = normalized_language(optional_string(request, "language"))
     try:
-        inputs = processor.apply_transcription_request(audio=audio_path, language=language)
-        inputs = inputs.to(model.device, model.dtype)
-        output_ids = model.generate(**inputs, max_new_tokens=max_new_tokens())
-        generated_ids = output_ids[:, inputs["input_ids"].shape[1]:]
-        decoded = processor.decode(generated_ids, return_format="transcription_only")
+        with transformers_audio_source(audio_path) as normalized_audio_path:
+            inputs = processor.apply_transcription_request(audio=normalized_audio_path, language=language)
+            inputs = inputs.to(model.device, model.dtype)
+            output_ids = model.generate(**inputs, max_new_tokens=max_new_tokens())
+            generated_ids = output_ids[:, inputs["input_ids"].shape[1]:]
+            decoded = processor.decode(generated_ids, return_format="transcription_only")
     except Exception as error:
         fail(f"Transformers-native Qwen3-ASR transcription failed: {error}")
     if isinstance(decoded, (list, tuple)):

@@ -32,7 +32,7 @@ func TestTransformersNativeQwen3ASRPackageSetKeepsDistinctConsumptionProbes(t *t
 		t.Fatalf("manifest id = %q", manifest.ID)
 	}
 	joined := strings.Join(manifest.ImportProbes, "\n")
-	if !strings.Contains(joined, "transformers") || !strings.Contains(joined, "torch") || !strings.Contains(joined, "librosa") || strings.Contains(joined, "qwen_asr") {
+	if !strings.Contains(joined, "transformers") || !strings.Contains(joined, "torch") || !strings.Contains(joined, "imageio_ffmpeg") || !strings.Contains(joined, "librosa") || strings.Contains(joined, "qwen_asr") {
 		t.Fatalf("Transformers-native import probes = %v", manifest.ImportProbes)
 	}
 	packageNative, err := resolvePythonPackageSetManifest("speech.qwen3-asr.python")

@@ -39,7 +39,7 @@ func resolvePythonPackageSetManifest(consumer string) (pythonPackageSetManifest,
 	case trimmed == "speech.qwen3-asr-transformers.python":
 		return pythonPackageSetManifest{
 			ID:           "speech-qwen3-asr-transformers-python-core",
-			ImportProbes: []string{"fastapi", "uvicorn", "multipart", "torch", "transformers", "accelerate", "librosa", "soundfile"},
+			ImportProbes: []string{"fastapi", "uvicorn", "multipart", "torch", "transformers", "accelerate", "imageio_ffmpeg", "librosa", "soundfile"},
 		}, nil
 	case trimmed == "speech.voxcpm.python":
 		return pythonPackageSetManifest{

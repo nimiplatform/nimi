@@ -362,7 +362,7 @@ class SpeechServerTests(unittest.TestCase):
                 bundle_path.mkdir()
                 (bundle_path / "model.safetensors").write_bytes(b"model")
                 audio_path = pathlib.Path(temp_dir) / "speech.wav"
-                audio_path.write_bytes(b"RIFFdemo")
+                audio_path.write_bytes(b"RIFFdemoWAVE")
                 result = QWEN3_ASR_TRANSFORMERS_DRIVER.handle_transcribe(
                     {
                         "audio_path": str(audio_path),
@@ -385,6 +385,36 @@ class SpeechServerTests(unittest.TestCase):
             QWEN3_ASR_TRANSFORMERS_DRIVER.resolve_model_ref(
                 {"model_ref": "Qwen/Qwen3-ASR-0.6B-hf"},
             )
+
+    def test_transformers_native_driver_normalizes_webm_with_managed_ffmpeg(self) -> None:
+        calls = []
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = pathlib.Path(temp_dir)
+            ffmpeg = root / "managed-ffmpeg.exe"
+            ffmpeg.write_bytes(b"managed")
+            audio_path = root / "speech.webm"
+            audio_path.write_bytes(b"webm-audio")
+
+            def fake_run(args, **kwargs):
+                calls.append((args, kwargs))
+                pathlib.Path(args[-1]).write_bytes(b"RIFFdemoWAVE")
+                return types.SimpleNamespace(returncode=0, stdout=b"", stderr=b"")
+
+            fake_imageio_ffmpeg = types.SimpleNamespace(get_ffmpeg_exe=lambda: str(ffmpeg))
+            with mock.patch.dict(sys.modules, {"imageio_ffmpeg": fake_imageio_ffmpeg}), mock.patch.object(
+                QWEN3_ASR_TRANSFORMERS_DRIVER.subprocess,
+                "run",
+                side_effect=fake_run,
+            ):
+                with QWEN3_ASR_TRANSFORMERS_DRIVER.transformers_audio_source(str(audio_path)) as normalized:
+                    normalized_path = pathlib.Path(normalized)
+                    self.assertTrue(normalized_path.is_file())
+                    self.assertTrue(QWEN3_ASR_TRANSFORMERS_DRIVER.is_wave_audio(normalized_path))
+
+        self.assertEqual(calls[0][0][0], str(ffmpeg))
+        self.assertIn("-nostdin", calls[0][0])
+        self.assertIn("pcm_s16le", calls[0][0])
+        self.assertEqual(calls[0][1]["timeout"], 120)
 
     def test_driver_work_root_is_required_and_request_exchange_is_cleaned(self) -> None:
         speech_server_runtime = sys.modules["speech_server_runtime"]
