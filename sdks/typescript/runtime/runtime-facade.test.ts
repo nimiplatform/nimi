@@ -130,6 +130,30 @@ test('Runtime facade exposes active typed namespaces over generated Runtime core
   assert.equal(transport.unaryCalls[2]?.methodId, '/nimi.runtime.v1.RuntimeArtifactService/CleanupGeneratedVoiceArtifacts');
 });
 
+test('Runtime raw AIConfig namespaces reject retired Local loadout references before transport', async () => {
+  const transport = new FakeRuntimeTransport();
+  const runtime = createRuntime({ transport });
+  const retiredLocalIntent = {
+    capabilityContract: 'text.generate',
+    requiredFeatures: [],
+    route: { oneofKind: 'local', local: { loadoutRef: 'loadout.legacy' } },
+  };
+
+  await assert.rejects(
+    () => runtime.ai.overwriteAppAIConfig({
+      config: { capabilities: [retiredLocalIntent] }, expectedRevision: '0',
+    } as never),
+    /must not contain a Loadout reference/u,
+  );
+  await assert.rejects(
+    () => runtime.agents.overwriteSharedLocalAgentAIConfig({
+      capabilities: [retiredLocalIntent], expectedRevision: '0',
+    } as never),
+    /must not contain a Loadout reference/u,
+  );
+  assert.equal(transport.unaryCalls.length, 0);
+});
+
 test('Runtime facade materializes a Realm source from sourceRef and requestId only', async () => {
   const transport = new FakeRuntimeTransport();
   const runtime = createRuntime({

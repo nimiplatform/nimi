@@ -112,7 +112,8 @@ func (s *Service) projectSharedAIConfigEffectiveSelections(
 		if option.ValidationState == runtimev1.LoadoutValidationState_LOADOUT_VALIDATION_STATE_CONFIGURED {
 			selection.State = runtimev1.AIConfigEffectiveState_AI_CONFIG_EFFECTIVE_STATE_READY
 		}
-		if !localexecution.SupportsRequiredFeatures(capability.GetRequiredFeatures(), option.SupportedFeatures) {
+		if selection.State != runtimev1.AIConfigEffectiveState_AI_CONFIG_EFFECTIVE_STATE_MISSING &&
+			!localexecution.SupportsRequiredFeatures(capability.GetRequiredFeatures(), option.SupportedFeatures) {
 			selection.State = runtimev1.AIConfigEffectiveState_AI_CONFIG_EFFECTIVE_STATE_BLOCKED
 			selection.Reasons = appendSharedReasonOnce(selection.Reasons, runtimev1.ReasonCode_AI_LOCAL_CAPABILITY_MISMATCH.String())
 		}

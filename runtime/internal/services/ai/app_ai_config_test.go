@@ -8,6 +8,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedprincipal"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	"google.golang.org/grpc/codes"
@@ -15,6 +16,24 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 )
+
+type missingLoadoutProjectionResolver struct{}
+
+func (missingLoadoutProjectionResolver) ProjectSelectedLocalLoadout(contract string) (localexecution.LoadoutOption, bool, error) {
+	return localexecution.LoadoutOption{
+		LoadoutID: "loadout-deleted", CapabilityContract: contract,
+		ValidationState: runtimev1.LoadoutValidationState_LOADOUT_VALIDATION_STATE_BLOCKED,
+		Reasons:         []runtimev1.ReasonCode{runtimev1.ReasonCode_AI_LOADOUT_NOT_FOUND},
+	}, true, nil
+}
+
+func (missingLoadoutProjectionResolver) ResolveSelectedLocalExecution(string) (*localexecution.SelectedLocalExecution, error) {
+	return nil, nil
+}
+
+func (missingLoadoutProjectionResolver) ResolveLocalExecution(string, string) (*localexecution.SelectedLocalExecution, error) {
+	return nil, nil
+}
 
 func TestAppAIConfigWholeOverwriteAndAccountIsolation(t *testing.T) {
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
@@ -162,6 +181,29 @@ func TestAppLocalAIConfigEffectiveSelectionBlocksFeatureIncompatibleLoadout(t *t
 		len(selection.GetReasons()) != 1 || selection.GetReasons()[0] != runtimev1.ReasonCode_AI_LOCAL_CAPABILITY_MISMATCH.String() ||
 		selection.GetLocal().GetLoadoutRef() != selected.LoadoutID {
 		t.Fatalf("feature-incompatible effective selection = %+v, %v", selection, err)
+	}
+}
+
+func TestAppLocalAIConfigMissingLoadoutTakesPrecedenceOverFeatureMismatch(t *testing.T) {
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	svc.SetLocalExecutionResolver(missingLoadoutProjectionResolver{})
+	intent := localAppAIConfigIntent("text.generate")
+	intent.RequiredFeatures = []string{"input.image"}
+	appID := "app.missing-loadout"
+	if _, err := svc.OverwriteAppAIConfig(
+		protectedAppAIConfigPrincipalContext("account-a", appID),
+		&runtimev1.OverwriteAppAIConfigRequest{Config: appAIConfig(appID, intent), ExpectedRevision: "0"},
+	); err != nil {
+		t.Fatalf("OverwriteAppAIConfig: %v", err)
+	}
+	read, err := svc.GetAppAIConfig(
+		localAppAIConfigContext("account-a", appID, accountservice.LocalAppOperationAppAIConfigRead),
+		&runtimev1.GetAppAIConfigRequest{},
+	)
+	selection := read.GetEffectiveSelections()[0]
+	if err != nil || selection.GetState() != runtimev1.AIConfigEffectiveState_AI_CONFIG_EFFECTIVE_STATE_MISSING ||
+		len(selection.GetReasons()) != 1 || selection.GetReasons()[0] != runtimev1.ReasonCode_AI_LOADOUT_NOT_FOUND.String() {
+		t.Fatalf("missing Loadout effective selection = %+v, %v", selection, err)
 	}
 }
 

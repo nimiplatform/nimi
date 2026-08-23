@@ -132,6 +132,36 @@ test('shared LocalAgent AIConfig rejects retired Local loadout references before
   assert.equal(overwriteCalls, 0);
 });
 
+test('Desktop account-product raw shared overwrite rejects retired Local loadout references', async () => {
+  const calls: CoreUnaryRequest[] = [];
+  const transport: CoreTransport = {
+    async unary<Response>(request: CoreUnaryRequest): Promise<Response> {
+      calls.push(request);
+      throw new Error('transport must not be called');
+    },
+    async *serverStream<Response>(_request: CoreStreamRequest): AsyncIterable<Response> {
+      throw new Error('unexpected Runtime stream');
+    },
+  };
+  const clients = createNimiDesktopFirstPartyRuntimeClients({
+    appId: 'nimi.desktop',
+    transport,
+  });
+
+  await assert.rejects(
+    () => clients.accountProduct.agents.overwriteSharedLocalAgentAIConfig({
+      expectedRevision: '0',
+      capabilities: [{
+        capabilityContract: 'text.generate',
+        requiredFeatures: [],
+        route: { oneofKind: 'local', local: { loadoutRef: 'loadout.legacy' } },
+      } as never],
+    } as never),
+    /must not contain a Loadout reference/u,
+  );
+  assert.equal(calls.length, 0);
+});
+
 test('Desktop account product imports only a portable Profile document and lists the catalog', async () => {
   const calls: CoreUnaryRequest[] = [];
   const artifactJson = JSON.stringify({

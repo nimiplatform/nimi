@@ -40,6 +40,24 @@ func newSharedAIConfigTestService(t *testing.T) *Service {
 
 type sharedAIConfigLocalResolver struct{}
 
+type missingSharedLoadoutProjectionResolver struct{}
+
+func (missingSharedLoadoutProjectionResolver) ProjectSelectedLocalLoadout(contract string) (localexecution.LoadoutOption, bool, error) {
+	return localexecution.LoadoutOption{
+		LoadoutID: "loadout-deleted", CapabilityContract: contract,
+		ValidationState: runtimev1.LoadoutValidationState_LOADOUT_VALIDATION_STATE_BLOCKED,
+		Reasons:         []runtimev1.ReasonCode{runtimev1.ReasonCode_AI_LOADOUT_NOT_FOUND},
+	}, true, nil
+}
+
+func (missingSharedLoadoutProjectionResolver) ResolveSelectedLocalExecution(string) (*localexecution.SelectedLocalExecution, error) {
+	return nil, nil
+}
+
+func (missingSharedLoadoutProjectionResolver) ResolveLocalExecution(string, string) (*localexecution.SelectedLocalExecution, error) {
+	return nil, nil
+}
+
 func (sharedAIConfigLocalResolver) ProjectSelectedLocalLoadout(contract string) (localexecution.LoadoutOption, bool, error) {
 	selected, err := (sharedAIConfigLocalResolver{}).ResolveSelectedLocalExecution(contract)
 	if err != nil {
@@ -158,6 +176,26 @@ func TestSharedLocalAgentAIConfigEffectiveSelectionBlocksFeatureIncompatibleLoad
 		len(selection.GetReasons()) != 1 || selection.GetReasons()[0] != runtimev1.ReasonCode_AI_LOCAL_CAPABILITY_MISMATCH.String() ||
 		selection.GetLocal().GetLoadoutRef() != selected.LoadoutID {
 		t.Fatalf("shared feature-incompatible effective selection = %+v, %v", selection, err)
+	}
+}
+
+func TestSharedLocalAgentAIConfigMissingLoadoutTakesPrecedenceOverFeatureMismatch(t *testing.T) {
+	svc := newSharedAIConfigTestService(t)
+	svc.SetMachineLocalExecutionResolver(missingSharedLoadoutProjectionResolver{})
+	contract := capabilitydriver.LlamaCapabilityContract
+	ctx, requestContext := sharedAIConfigTestContext("account-a", "nimi.desktop")
+	intent := sharedLocalIntent(contract)
+	intent.RequiredFeatures = []string{"input.image"}
+	if _, err := svc.OverwriteSharedLocalAgentAIConfig(ctx, &runtimev1.OverwriteSharedLocalAgentAIConfigRequest{
+		Context: requestContext, ExpectedRevision: "0", Capabilities: []*runtimev1.AIConfigCapabilityIntent{intent},
+	}); err != nil {
+		t.Fatalf("OverwriteSharedLocalAgentAIConfig: %v", err)
+	}
+	read, err := svc.GetSharedLocalAgentAIConfig(ctx, &runtimev1.GetSharedLocalAgentAIConfigRequest{Context: requestContext})
+	selection := read.GetEffectiveSelections()[0]
+	if err != nil || selection.GetState() != runtimev1.AIConfigEffectiveState_AI_CONFIG_EFFECTIVE_STATE_MISSING ||
+		len(selection.GetReasons()) != 1 || selection.GetReasons()[0] != runtimev1.ReasonCode_AI_LOADOUT_NOT_FOUND.String() {
+		t.Fatalf("shared missing Loadout effective selection = %+v, %v", selection, err)
 	}
 }
 

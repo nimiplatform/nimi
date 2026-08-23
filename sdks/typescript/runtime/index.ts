@@ -16,6 +16,7 @@ import type {
   RuntimeTypedCallOptions,
 } from '../core-generated/runtime-typed-client';
 import { createNimiError, ReasonCode } from '../types';
+import { assertRouteOnlyLocalAIConfigIntents } from '../core/ai/capability-configuration-local-intent.js';
 import type {
   CoreMetadata,
   CoreResponseMetadata,
@@ -427,8 +428,18 @@ export class Runtime {
       );
     }
     this.account = bindRuntimeModule(this.generated, RUNTIME_ACCOUNT_METHODS);
-    this.agents = bindRuntimeModule(generated, RUNTIME_AGENT_METHODS);
-    this.ai = bindRuntimeModule(generated, RUNTIME_AI_METHODS);
+    const agents = bindRuntimeModule(generated, RUNTIME_AGENT_METHODS);
+    this.agents = Object.freeze({
+      ...agents,
+      overwriteSharedLocalAgentAIConfig: guardSharedLocalAgentAIConfigOverwrite(
+        agents.overwriteSharedLocalAgentAIConfig,
+      ),
+    });
+    const ai = bindRuntimeModule(generated, RUNTIME_AI_METHODS);
+    this.ai = Object.freeze({
+      ...ai,
+      overwriteAppAIConfig: guardAppAIConfigOverwrite(ai.overwriteAppAIConfig),
+    });
     this.scheduling = bindRuntimeModule(generated, RUNTIME_SCHEDULING_METHODS);
     this.realtime = bindRuntimeModule(generated, RUNTIME_REALTIME_METHODS);
     this.connectors = bindRuntimeModule(generated, RUNTIME_CONNECTOR_METHODS);
@@ -549,6 +560,37 @@ export class Runtime {
       runtimeMajor,
     };
   }
+}
+
+function guardAppAIConfigOverwrite(
+  method: RuntimeAiModule['overwriteAppAIConfig'],
+): RuntimeAiModule['overwriteAppAIConfig'] {
+  return async (request, options) => {
+    if (Array.isArray(request?.config?.capabilities)) {
+      assertRouteOnlyLocalAIConfigIntents(request.config.capabilities, invalidRawAIConfigMutation);
+    }
+    return method(request, options);
+  };
+}
+
+function guardSharedLocalAgentAIConfigOverwrite(
+  method: RuntimeAgentModule['overwriteSharedLocalAgentAIConfig'],
+): RuntimeAgentModule['overwriteSharedLocalAgentAIConfig'] {
+  return async (request, options) => {
+    if (Array.isArray(request?.capabilities)) {
+      assertRouteOnlyLocalAIConfigIntents(request.capabilities, invalidRawAIConfigMutation);
+    }
+    return method(request, options);
+  };
+}
+
+function invalidRawAIConfigMutation(message: string): never {
+  throw createNimiError({
+    message,
+    reasonCode: ReasonCode.SDK_AI_INPUT_INVALID,
+    actionHint: 'provide_route_only_local_ai_config_intent',
+    source: 'sdk',
+  });
 }
 
 export function createRuntime(options: RuntimeOptions = {}): Runtime {
