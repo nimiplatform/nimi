@@ -18,6 +18,7 @@ export type BrowserDataUrlAttachment = {
 
 export type BrowserDataUrlAttachmentAdapterOptions = {
   accept?: readonly string[];
+  maxAttachments?: number;
   idPrefix?: string;
   inputFactory?: () => HTMLInputElement;
   idFactory?: () => string;
@@ -93,7 +94,10 @@ function openBrowserFilePicker(
   return new Promise((resolve) => {
     const input = options.inputFactory?.() ?? document.createElement('input');
     input.type = 'file';
-    input.multiple = true;
+    const maxAttachments = Number.isInteger(options.maxAttachments) && Number(options.maxAttachments) > 0
+      ? Number(options.maxAttachments)
+      : Number.POSITIVE_INFINITY;
+    input.multiple = maxAttachments > 1;
     input.accept = accept.join(',');
     input.style.display = 'none';
     let settled = false;
@@ -106,7 +110,10 @@ function openBrowserFilePicker(
     };
 
     input.addEventListener('change', () => {
-      void browserFilesToDataUrlAttachments(input.files, options).then(finish, () => finish([]));
+      void browserFilesToDataUrlAttachments(input.files, options).then(
+        (attachments) => finish(attachments.slice(0, maxAttachments)),
+        () => finish([]),
+      );
     }, { once: true });
     document.body.appendChild(input);
     input.click();
@@ -117,9 +124,12 @@ export function createBrowserDataUrlAttachmentAdapter(
   options: BrowserDataUrlAttachmentAdapterOptions = {},
 ): AttachmentAdapter<BrowserDataUrlAttachment> {
   const accept = options.accept?.length ? options.accept : DEFAULT_BROWSER_DATA_URL_ATTACHMENT_ACCEPT;
+  const maxAttachments = Number.isInteger(options.maxAttachments) && Number(options.maxAttachments) > 0
+    ? Number(options.maxAttachments)
+    : Number.POSITIVE_INFINITY;
   return {
     openPicker: () => openBrowserFilePicker(accept, options),
-    mergeAttachments: (current, incoming) => [...current, ...incoming],
+    mergeAttachments: (current, incoming) => [...current, ...incoming].slice(-maxAttachments),
     getKey: (attachment) => attachment.id,
     getLabel: (attachment) => attachment.name,
     getSecondaryLabel: (attachment) => attachment.mimeType,

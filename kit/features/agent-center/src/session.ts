@@ -3,7 +3,8 @@ import {
   type NimiAIConfigOptionsQuery,
   type NimiAIConfigOptionsResult,
   type NimiAIConfigSnapshot,
-  type NimiAIConfigOverwriteResult,
+  type NimiSharedLocalAgentAIConfigOverwriteResult,
+  type NimiSharedLocalAgentCapabilityParticipation,
   type NimiLocalAppAgentAutonomyProjection,
   type NimiLocalAppAgentConfigureClient,
   type NimiLocalAppAgentHandle,
@@ -79,6 +80,7 @@ function allUnavailable(reason: AgentCenterActionUnavailableReason): AgentCenter
 type SharedAIConfigRead = {
   readonly sharedAIConfig: AgentCenterSharedAIConfigProjection | null;
   readonly effectiveSelections: readonly ModelConfigEffectiveSelectionProjection[];
+  readonly participation: readonly NimiSharedLocalAgentCapabilityParticipation[];
 };
 
 interface SessionTransport {
@@ -86,7 +88,7 @@ interface SessionTransport {
   actionAvailability(): Promise<AgentCenterActionAvailabilityProjection>;
   read(): Promise<AgentCenterStateInput>;
   readSharedAIConfig(): Promise<SharedAIConfigRead>;
-  overwriteSharedAIConfig(input: AgentCenterAIConfigMutation): Promise<NimiAIConfigOverwriteResult>;
+  overwriteSharedAIConfig(input: AgentCenterAIConfigMutation): Promise<NimiSharedLocalAgentAIConfigOverwriteResult>;
   listSharedAIConfigOptions(input: NimiAIConfigOptionsQuery): Promise<NimiAIConfigOptionsResult>;
   updateAutonomy(input: AgentCenterAutonomyMutation): Promise<AgentCenterAutonomyProjection>;
   replaceAppearance(input: AgentCenterPresentationCommitInput): Promise<AgentCenterStateInput | AgentCenterState | AgentCenterAppearanceProjection>;
@@ -225,7 +227,7 @@ class ManagerSession {
     }
   }
 
-  async overwriteSharedAIConfig(input: AgentCenterAIConfigMutation): Promise<NimiAIConfigOverwriteResult> {
+  async overwriteSharedAIConfig(input: AgentCenterAIConfigMutation): Promise<NimiSharedLocalAgentAIConfigOverwriteResult> {
     this.#requireAvailable('overwriteSharedAIConfig');
     const result = await this.transport.overwriteSharedAIConfig(input);
     const sharedAIConfig = result.config
@@ -239,6 +241,7 @@ class ManagerSession {
           this.#snapshot.state,
           sharedAIConfig,
           [],
+          result.participation,
         ),
         this.#snapshot.availability,
       ),
@@ -261,6 +264,7 @@ class ManagerSession {
             this.#snapshot.state,
             refreshed.sharedAIConfig,
             refreshed.effectiveSelections,
+            refreshed.participation,
           ),
           this.#snapshot.availability,
         ),
@@ -426,9 +430,10 @@ export function createFirstPartyAgentCenterSession(
       return {
         sharedAIConfig: snapshot.config ? projectAppSharedAIConfig(snapshot.config, snapshot.revision) : null,
         effectiveSelections: projectAIConfigEffectiveSelections(snapshot),
+        participation: Object.freeze([...(snapshot.participation ?? [])]),
       };
     } catch (error) {
-      if (isCanonicalAIConfigAbsence(error)) return { sharedAIConfig: null, effectiveSelections: [] };
+      if (isCanonicalAIConfigAbsence(error)) return { sharedAIConfig: null, effectiveSelections: [], participation: [] };
       throw error;
     }
   };
@@ -448,6 +453,7 @@ export function createFirstPartyAgentCenterSession(
     return {
       sharedAIConfig: shared.sharedAIConfig,
       effectiveSelections: shared.effectiveSelections,
+      participation: shared.participation,
       autonomy, inspect, memory, sourceContextStatus, turnContextSummary, appearance,
     };
   };
@@ -508,9 +514,10 @@ export function createAppAgentCenterSession(
       return {
         sharedAIConfig: snapshot.config ? projectAppSharedAIConfig(snapshot.config, snapshot.revision) : null,
         effectiveSelections: projectAIConfigEffectiveSelections(snapshot),
+        participation: Object.freeze([...(snapshot.participation ?? [])]),
       };
     } catch (error) {
-      if (isCanonicalAIConfigAbsence(error)) return { sharedAIConfig: null, effectiveSelections: [] };
+      if (isCanonicalAIConfigAbsence(error)) return { sharedAIConfig: null, effectiveSelections: [], participation: [] };
       throw error;
     }
   };
@@ -525,6 +532,7 @@ export function createAppAgentCenterSession(
     return {
       sharedAIConfig: shared.sharedAIConfig,
       effectiveSelections: shared.effectiveSelections,
+      participation: shared.participation,
       autonomy: projectAppAutonomy(autonomy),
       appearance: projectAppAppearance(nextPresentation),
     };
@@ -659,7 +667,6 @@ function projectAppSharedAIConfig(
   return Object.freeze({
     aiConfig,
     revision,
-    capabilities: Object.freeze(intents.map((intent) => intent.capability)),
     intents: Object.freeze(intents),
   });
 }

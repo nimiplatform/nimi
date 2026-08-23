@@ -2,6 +2,14 @@ import { describe, expect, it } from 'vitest';
 import { buildAgentCenterState } from '../src/state.js';
 import type { AgentCenterAutonomyProjection, AgentCenterStateInput } from '../src/types.js';
 
+const PARTICIPATION = [
+  { role: 'conversation.primary', capabilityContract: 'text.generate' },
+  { role: 'memory.embedding', capabilityContract: 'text.embed' },
+  { role: 'conversation.input.voice', capabilityContract: 'audio.transcribe' },
+  { role: 'conversation.output.voice', capabilityContract: 'audio.synthesize' },
+  { role: 'conversation.action.image', capabilityContract: 'image.generate' },
+] as const;
+
 function input(patch: Partial<AgentCenterStateInput> = {}): AgentCenterStateInput {
   const capabilities = [
     {
@@ -16,6 +24,7 @@ function input(patch: Partial<AgentCenterStateInput> = {}): AgentCenterStateInpu
     },
   ];
   return {
+    participation: PARTICIPATION,
     sharedAIConfig: {
       aiConfig: {
         owner: {
@@ -24,7 +33,6 @@ function input(patch: Partial<AgentCenterStateInput> = {}): AgentCenterStateInpu
         capabilities,
       },
       revision: '1',
-      capabilities: capabilities.map((intent) => intent.capabilityContract),
       intents: capabilities.map((intent) => ({
         capability: intent.capabilityContract,
         route: 'local' as const,
@@ -84,7 +92,6 @@ describe('Agent Center state projection', () => {
       sharedAIConfig: {
         ...current,
         aiConfig: { ...current.aiConfig, capabilities: [...current.aiConfig.capabilities, audioIntent] },
-        capabilities: [...current.capabilities, 'audio.transcribe'],
         intents: [...current.intents, { capability: 'audio.transcribe', route: 'local', requiredFeatures: [] }],
       },
       inspect: {

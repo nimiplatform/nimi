@@ -8,6 +8,14 @@ import type {
   AgentCenterStateInput,
 } from '../src/types.js';
 
+export const TEST_LOCAL_AGENT_PARTICIPATION = [
+  { role: 'conversation.primary', capabilityContract: 'text.generate' },
+  { role: 'memory.embedding', capabilityContract: 'text.embed' },
+  { role: 'conversation.input.voice', capabilityContract: 'audio.transcribe' },
+  { role: 'conversation.output.voice', capabilityContract: 'audio.synthesize' },
+  { role: 'conversation.action.image', capabilityContract: 'image.generate' },
+] as const;
+
 function projectIntents(
   capabilities: AgentCenterSharedAIConfigProjection['aiConfig']['capabilities'],
 ): AgentCenterSharedAIConfigProjection['intents'] {
@@ -27,7 +35,6 @@ function defaultAIConfig(): AgentCenterSharedAIConfigProjection {
       capabilities: [],
     },
     revision: '1',
-    capabilities: [],
     intents: [],
   };
 }
@@ -53,6 +60,7 @@ export async function sessionFor(
           config: sharedAIConfig.aiConfig,
           revision: sharedAIConfig.revision,
           effectiveSelections: projection.effectiveSelections ?? [],
+          participation: projection.participation ?? TEST_LOCAL_AGENT_PARTICIPATION,
         };
       },
       async overwrite(input) {
@@ -63,10 +71,14 @@ export async function sessionFor(
             capabilities,
           },
           revision: String(BigInt(sharedAIConfig.revision) + 1n),
-          capabilities: capabilities.map((intent) => intent.capabilityContract),
           intents: projectIntents(capabilities),
         };
-        return { outcome: 'committed' as const, config: sharedAIConfig.aiConfig, revision: sharedAIConfig.revision };
+        return {
+          outcome: 'committed' as const,
+          config: sharedAIConfig.aiConfig,
+          revision: sharedAIConfig.revision,
+          participation: projection.participation ?? TEST_LOCAL_AGENT_PARTICIPATION,
+        };
       },
       async listOptions(input) {
         if (input.kind === 'cloud-connectors') {

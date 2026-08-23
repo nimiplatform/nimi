@@ -1,8 +1,10 @@
 import type {
   NimiAIConfigOptionsQuery,
   NimiAIConfigOptionsResult,
-  NimiAIConfigOverwriteResult,
   NimiAIConfigSnapshot,
+  NimiSharedLocalAgentCapabilityParticipation,
+  NimiSharedLocalAgentAIConfigSnapshot,
+  NimiSharedLocalAgentAIConfigOverwriteResult,
   NimiLocalAppAgentAutonomyMode,
   NimiLocalAppAgentHandle,
   NimiLocalAppAgentPresentationBackendKind,
@@ -259,7 +261,6 @@ export interface AgentCenterAIConfigIntentProjection {
 export interface AgentCenterSharedAIConfigProjection {
   readonly aiConfig: NimiCapabilityAIConfig;
   readonly revision: string;
-  readonly capabilities: readonly string[];
   readonly intents: readonly AgentCenterAIConfigIntentProjection[];
 }
 
@@ -268,6 +269,7 @@ export interface AgentCenterRuntimeSnapshot {
   readonly sharedAIConfig?: AgentCenterSharedAIConfigProjection | null;
   /** Runtime effective facts for the committed shared AIConfig; never a second configuration truth. */
   readonly effectiveSelections?: readonly ModelConfigEffectiveSelectionProjection[];
+  readonly participation?: readonly NimiSharedLocalAgentCapabilityParticipation[];
   readonly autonomy?: AgentCenterAutonomyProjection | null;
   readonly inspect?: NimiRuntimeAgentInspectSnapshot | null;
   readonly memory?: NimiRuntimeAgentMemoryObservatorySnapshot | null;
@@ -616,6 +618,7 @@ export interface AgentCenterState {
   readonly sharedAIConfig: AgentCenterSharedAIConfigProjection | null;
   /** Undefined means the current Manager Session cannot observe Runtime effective facts. */
   readonly effectiveSelections?: readonly ModelConfigEffectiveSelectionProjection[];
+  readonly participation: readonly NimiSharedLocalAgentCapabilityParticipation[];
   readonly baseTextConfigurationDetail: string | null;
   readonly autonomyRevision: string | null;
   readonly presentationRevision: string | null;
@@ -649,7 +652,7 @@ export interface AgentCenterSession {
   getSnapshot(): AgentCenterSnapshot;
   subscribe(listener: () => void): () => void;
   refresh(): Promise<void>;
-  overwriteSharedAIConfig(input: AgentCenterAIConfigMutation): Promise<NimiAIConfigOverwriteResult>;
+  overwriteSharedAIConfig(input: AgentCenterAIConfigMutation): Promise<NimiSharedLocalAgentAIConfigOverwriteResult>;
   listSharedAIConfigOptions(input: NimiAIConfigOptionsQuery): Promise<NimiAIConfigOptionsResult>;
   updateAutonomy(input: AgentCenterAutonomyMutation): Promise<void>;
   replaceAppearance(input: AgentCenterPresentationCommitInput): Promise<void>;
@@ -679,13 +682,13 @@ export interface AgentCenterProps {
 }
 
 export interface AgentCenterSharedAIConfigModule {
-  get(input: { readonly subjectUserId?: string }): Promise<NimiAIConfigSnapshot>;
+  get(input: { readonly subjectUserId?: string }): Promise<NimiSharedLocalAgentAIConfigSnapshot>;
   overwrite(input: {
     readonly subjectUserId?: string;
     readonly expectedRevision: string;
     readonly capabilities: readonly NimiCapabilityAIConfigIntent[];
     readonly displayProvenance?: NimiJsonObject;
-  }): Promise<NimiAIConfigOverwriteResult>;
+  }): Promise<NimiSharedLocalAgentAIConfigOverwriteResult>;
   listOptions(input: NimiAIConfigOptionsQuery & { readonly subjectUserId?: string }): Promise<NimiAIConfigOptionsResult>;
 }
 export type AgentCenterAIConfigRouteIntent = AgentCenterAIConfigIntentProjection;

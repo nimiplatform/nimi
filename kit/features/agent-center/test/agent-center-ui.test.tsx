@@ -9,7 +9,7 @@ import {
 import type {
   AgentCenterSharedAIConfigProjection,
 } from '../src/types.js';
-import { sessionFor } from './session-fixture.js';
+import { sessionFor, TEST_LOCAL_AGENT_PARTICIPATION } from './session-fixture.js';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -100,7 +100,6 @@ describe('AgentCenter UI session contract', () => {
           capabilities: [intent],
         },
         revision: '1',
-        capabilities: ['text.generate'],
         intents: [{ capability: 'text.generate', route: 'local', requiredFeatures: [] }],
       },
     });
@@ -273,7 +272,7 @@ describe('AgentCenter UI session contract', () => {
       identity: { ownerUserId: 'owner', runtimeSourceRef: 'source', localAgentRef: 'agent' },
       sharedAIConfig: {
         async get() {
-          return { config: committed, revision, effectiveSelections: [] };
+          return { config: committed, revision, effectiveSelections: [], participation: TEST_LOCAL_AGENT_PARTICIPATION };
         },
         async overwrite(input) {
           const capabilities = [...input.capabilities];
@@ -284,7 +283,7 @@ describe('AgentCenter UI session contract', () => {
             capabilities,
           };
           revision = '1';
-          return { outcome: 'committed' as const, config: committed, revision };
+          return { outcome: 'committed' as const, config: committed, revision, participation: TEST_LOCAL_AGENT_PARTICIPATION };
         },
         async listOptions() {
           return {

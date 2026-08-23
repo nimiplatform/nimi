@@ -21,10 +21,7 @@ function capabilityLabel(capability: AgentCenterCapabilityId): string {
 }
 
 function projectedCapabilities(input: AgentCenterStateInput): readonly AgentCenterCapabilityId[] {
-  const reported = new Set<string>([
-    ...(input.sharedAIConfig?.capabilities || []),
-    ...(input.sharedAIConfig?.intents.map((entry) => entry.capability) || []),
-  ]);
+  const reported = new Set<string>((input.participation ?? []).map((row) => row.capabilityContract));
   return CANONICAL_CAPABILITY_CATALOG
     .map((descriptor) => descriptor.capabilityId)
     .filter((capability) => reported.has(capability));
@@ -122,6 +119,7 @@ export function buildAgentCenterState(input: AgentCenterStateInput): AgentCenter
     baseTextConfigured,
     sharedAIConfig: input.sharedAIConfig ?? null,
     effectiveSelections: input.effectiveSelections,
+    participation: Object.freeze([...(input.participation ?? [])]),
     baseTextConfigurationDetail: baseTextConfigured ? null : (text?.summary || 'Text capability is not configured'),
     autonomyRevision,
     presentationRevision,
@@ -181,8 +179,9 @@ export function replaceAgentCenterSharedAIConfig(
   state: AgentCenterState,
   sharedAIConfig: AgentCenterSharedAIConfigProjection | null,
   effectiveSelections: AgentCenterStateInput['effectiveSelections'],
+  participation: AgentCenterStateInput['participation'],
 ): AgentCenterState {
-  const input: AgentCenterStateInput = { sharedAIConfig, effectiveSelections };
+  const input: AgentCenterStateInput = { sharedAIConfig, effectiveSelections, participation };
   const capabilities = projectedCapabilities(input).map((capability) => buildCapabilityState(input, capability));
   const text = capabilities.find((capability) => capability.capability === 'text.generate');
   const baseTextConfigured = text?.configurationState === 'configured' && text.intent !== null;
@@ -197,6 +196,7 @@ export function replaceAgentCenterSharedAIConfig(
     baseTextConfigured,
     sharedAIConfig,
     effectiveSelections,
+    participation: Object.freeze([...(participation ?? state.participation)]),
     baseTextConfigurationDetail: baseTextConfigured
       ? null
       : (text?.summary || 'Text capability is not configured'),

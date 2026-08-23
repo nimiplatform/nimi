@@ -15,6 +15,13 @@ import type {
 } from '../src/types.js';
 
 const HANDLE = `agent_ref_${'A'.repeat(43)}` as NimiLocalAppAgentHandle;
+const PARTICIPATION = [
+  { role: 'conversation.primary', capabilityContract: 'text.generate' },
+  { role: 'memory.embedding', capabilityContract: 'text.embed' },
+  { role: 'conversation.input.voice', capabilityContract: 'audio.transcribe' },
+  { role: 'conversation.output.voice', capabilityContract: 'audio.synthesize' },
+  { role: 'conversation.action.image', capabilityContract: 'image.generate' },
+] as const;
 
 function sharedConfig(
   capabilities: NimiCapabilityAIConfig['capabilities'] = [{
@@ -36,7 +43,6 @@ function sharedProjection(
   return {
     aiConfig: sharedConfig(capabilities),
     revision,
-    capabilities: capabilities.map((entry) => entry.capabilityContract),
     intents: capabilities.map((entry) => ({
       capability: entry.capabilityContract,
       route: entry.route.oneofKind === 'cloud' ? 'cloud' : 'local',
@@ -73,12 +79,12 @@ function appClient(calls: unknown[]): NimiLocalAppAgentConfigureClient {
     sharedAIConfig: {
       async get() {
         calls.push(['shared.get']);
-        return { config, revision: '1', effectiveSelections: [] };
+        return { config, revision: '1', effectiveSelections: [], participation: PARTICIPATION };
       },
       async overwrite(input) {
         calls.push(['shared.overwrite', input]);
         config = sharedConfig([...input.capabilities]);
-        return { outcome: 'committed', config, revision: '2' };
+        return { outcome: 'committed', config, revision: '2', participation: PARTICIPATION };
       },
       async listOptions() { return { kind: 'local-loadouts', options: [], truncated: false }; },
     },
@@ -154,13 +160,14 @@ describe('AgentCenterSession', () => {
             config: projection.aiConfig,
             revision: projection.revision,
             effectiveSelections: [localEffectiveSelection('loadout:text', 'Text A')],
+            participation: PARTICIPATION,
           };
         },
         async overwrite(input) {
           calls.push('overwrite');
           projection = sharedProjection([...input.capabilities], '2');
           rejectReads = true;
-          return { outcome: 'committed' as const, config: projection.aiConfig, revision: projection.revision };
+          return { outcome: 'committed' as const, config: projection.aiConfig, revision: projection.revision, participation: PARTICIPATION };
         },
         async listOptions() { return { kind: 'local-loadouts' as const, options: [], truncated: false }; },
       },
@@ -203,13 +210,14 @@ describe('AgentCenterSession', () => {
               config: projection.aiConfig,
               revision: projection.revision,
               effectiveSelections: [localEffectiveSelection('loadout:a', 'Text A')],
+              participation: PARTICIPATION,
             };
           }
           return new Promise((resolve) => { resolveFollowUp = resolve; });
         },
         async overwrite() {
           projection = sharedProjection([intentB], '2');
-          return { outcome: 'committed' as const, config: projection.aiConfig, revision: projection.revision };
+          return { outcome: 'committed' as const, config: projection.aiConfig, revision: projection.revision, participation: PARTICIPATION };
         },
         async listOptions() { return { kind: 'local-loadouts' as const, options: [], truncated: false }; },
       },
@@ -228,6 +236,7 @@ describe('AgentCenterSession', () => {
       config: projection.aiConfig,
       revision: projection.revision,
       effectiveSelections: [localEffectiveSelection('loadout:b', 'Text B')],
+      participation: PARTICIPATION,
     });
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(session.getSnapshot().state.effectiveSelections?.[0]?.resource).toMatchObject({
