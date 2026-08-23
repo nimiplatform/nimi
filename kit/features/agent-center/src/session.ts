@@ -17,7 +17,7 @@ import {
   type RuntimeLocalAgentIdentityInput,
 } from '@nimiplatform/kit/core/sdk-contract';
 import type {
-  ModelConfigLocalSelectionProjection,
+  ModelConfigEffectiveSelectionProjection,
 } from '@nimiplatform/kit/features/model-config/headless';
 import { buildAgentCenterState, replaceAgentCenterSharedAIConfig } from './state.js';
 import type {
@@ -390,16 +390,16 @@ export function createFirstPartyAgentCenterSession(
   const aiConfigAccountInput = { subjectUserId: input.loadInput?.subjectUserId };
   const readSharedAIConfig = async (): Promise<{
     readonly sharedAIConfig: AgentCenterSharedAIConfigProjection | null;
-    readonly localSelections: readonly ModelConfigLocalSelectionProjection[];
+    readonly effectiveSelections: readonly ModelConfigEffectiveSelectionProjection[];
   }> => {
     try {
       const snapshot = await input.sharedAIConfig.get(aiConfigAccountInput);
       return {
         sharedAIConfig: snapshot.config ? projectAppSharedAIConfig(snapshot.config, snapshot.revision) : null,
-        localSelections: projectAIConfigEffectiveSelections(snapshot),
+        effectiveSelections: projectAIConfigEffectiveSelections(snapshot),
       };
     } catch (error) {
-      if (isCanonicalAIConfigAbsence(error)) return { sharedAIConfig: null, localSelections: [] };
+      if (isCanonicalAIConfigAbsence(error)) return { sharedAIConfig: null, effectiveSelections: [] };
       throw error;
     }
   };
@@ -418,7 +418,7 @@ export function createFirstPartyAgentCenterSession(
     ]);
     return {
       sharedAIConfig: shared.sharedAIConfig,
-      localSelections: shared.localSelections,
+      effectiveSelections: shared.effectiveSelections,
       autonomy, inspect, memory, sourceContextStatus, turnContextSummary, appearance,
     };
   };
@@ -474,16 +474,16 @@ export function createAppAgentCenterSession(
 
   const readSharedAIConfig = async (): Promise<{
     readonly sharedAIConfig: AgentCenterSharedAIConfigProjection | null;
-    readonly localSelections: readonly ModelConfigLocalSelectionProjection[];
+    readonly effectiveSelections: readonly ModelConfigEffectiveSelectionProjection[];
   }> => {
     try {
       const snapshot = await input.client.sharedAIConfig.get();
       return {
         sharedAIConfig: snapshot.config ? projectAppSharedAIConfig(snapshot.config, snapshot.revision) : null,
-        localSelections: projectAIConfigEffectiveSelections(snapshot),
+        effectiveSelections: projectAIConfigEffectiveSelections(snapshot),
       };
     } catch (error) {
-      if (isCanonicalAIConfigAbsence(error)) return { sharedAIConfig: null, localSelections: [] };
+      if (isCanonicalAIConfigAbsence(error)) return { sharedAIConfig: null, effectiveSelections: [] };
       throw error;
     }
   };
@@ -497,7 +497,7 @@ export function createAppAgentCenterSession(
     presentation = nextPresentation;
     return {
       sharedAIConfig: shared.sharedAIConfig,
-      localSelections: shared.localSelections,
+      effectiveSelections: shared.effectiveSelections,
       autonomy: projectAppAutonomy(autonomy),
       appearance: projectAppAppearance(nextPresentation),
     };
@@ -638,26 +638,8 @@ function projectAppSharedAIConfig(
 
 function projectAIConfigEffectiveSelections(
   snapshot: NimiAIConfigSnapshot,
-): readonly ModelConfigLocalSelectionProjection[] {
-  return Object.freeze(snapshot.effectiveSelections.flatMap((selection) => {
-    const local = selection.resource?.oneofKind === 'local' ? selection.resource.local : null;
-    if (!local) return [];
-    return Object.freeze({
-      capabilityContract: selection.capabilityContract,
-      state: selection.state === 'ready'
-        ? 'selected' as const
-        : selection.state === 'missing'
-          ? 'missing' as const
-          : selection.state === 'blocked'
-            ? 'broken' as const
-            : 'unavailable' as const,
-      loadoutId: local?.loadoutRef ?? null,
-      displayName: local?.label ?? null,
-      supportedFeatures: Object.freeze([...(local?.supportedFeatures ?? [])]),
-      reasons: Object.freeze([...selection.reasons]),
-      effectiveDefaults: null,
-    });
-  }));
+): readonly ModelConfigEffectiveSelectionProjection[] {
+  return Object.freeze([...snapshot.effectiveSelections]);
 }
 
 function projectAppAutonomy(

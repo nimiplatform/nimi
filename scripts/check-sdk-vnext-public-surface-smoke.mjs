@@ -163,8 +163,9 @@ const localAppStandardShell: NimiLocalAppStandardShell = {
   },
   aiConfig: {
     async get() { return {}; },
+    overwrite: unavailableCarrier,
+    listOptions: unavailableCarrier,
   },
-  modelConfig: { localSelections: unavailableCarrier },
   storage: {
     async readJson() { return {}; },
     async writeJson() { return {}; },
@@ -177,6 +178,7 @@ const localAppStandardShell: NimiLocalAppStandardShell = {
       remove: unavailableCarrier,
       move: unavailableCarrier,
       adoptArtifact: unavailableCarrier,
+      reveal: unavailableCarrier,
     },
   },
   realm: {
@@ -207,7 +209,7 @@ const localAppStandardShell: NimiLocalAppStandardShell = {
     async snapshot() { return {}; },
   },
   agentConfigure: {
-    sharedAIConfig: { get: unavailableCarrier, overwrite: unavailableCarrier },
+    sharedAIConfig: { get: unavailableCarrier, overwrite: unavailableCarrier, listOptions: unavailableCarrier },
     autonomy: { snapshot: unavailableCarrier, update: unavailableCarrier },
     presentation: { snapshot: unavailableCarrier, commit: unavailableCarrier },
   },

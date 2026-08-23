@@ -5,7 +5,6 @@ import type {
   NimiPortableAppAIConfig,
   NimiPortableAppAIConfigIntent,
 } from '@nimiplatform/sdk/ai';
-import type { ModelConfigLocalSelectionProjection } from '@nimiplatform/kit/features/model-config/headless';
 import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
 
 export const DESKTOP_NIMI_APP_ID = 'nimi.desktop';
@@ -64,33 +63,5 @@ export function useOverwriteDesktopNimiAppAIConfig(appId: string) {
         void queryClient.invalidateQueries({ queryKey });
       }
     },
-  });
-}
-
-export function projectDesktopAIConfigEffectiveSelections(
-  snapshot: NimiAIConfigSnapshot | undefined,
-): readonly ModelConfigLocalSelectionProjection[] {
-  if (!snapshot) return [];
-  return snapshot.effectiveSelections.map((selection) => {
-    const local = selection.resource?.oneofKind === 'local' ? selection.resource.local : null;
-    const intent = snapshot.config?.capabilities.find((entry) => (
-      entry.capabilityContract === selection.capabilityContract && entry.route.oneofKind === 'local'
-    ));
-    return {
-      capabilityContract: selection.capabilityContract,
-      state: selection.state === 'ready'
-        ? 'selected' as const
-        : selection.state === 'missing'
-          ? 'missing' as const
-          : selection.state === 'blocked'
-            ? 'broken' as const
-            : 'unavailable' as const,
-      loadoutId: local?.loadoutRef
-        || (intent?.route.oneofKind === 'local' ? intent.route.local.loadoutRef : null),
-      displayName: local?.label || null,
-      supportedFeatures: local?.supportedFeatures || [],
-      reasons: selection.reasons,
-      effectiveDefaults: null,
-    };
   });
 }

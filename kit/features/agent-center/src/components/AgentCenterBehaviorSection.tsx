@@ -60,9 +60,9 @@ function resolveCopy(copy: AgentCenterBehaviorCopy | undefined): Required<AgentC
   };
 }
 
-function normalizeNonNegative(value: string | number | null | undefined): number {
+function budgetDisplayValue(value: string | number | null | undefined): number {
   const numeric = Number(value ?? 0);
-  return Number.isFinite(numeric) && numeric > 0 ? Math.floor(numeric) : 0;
+  return Number.isFinite(numeric) && numeric > 0 ? numeric : 0;
 }
 
 function budgetPercent(used: number, dailyLimit: number): number {
@@ -134,9 +134,9 @@ export function AgentCenterBehaviorSection({ session, snapshot, i18n, placementA
     setMaxTokensPerHook(String(autonomy.maxTokensPerHook ?? 0));
   }, [autonomy.dailyTokenBudget, autonomy.enabled, autonomy.maxTokensPerHook, autonomy.mode]);
 
-  const usedTokens = normalizeNonNegative(autonomy.usedTokensInWindow);
-  const dailyLimit = normalizeNonNegative(dailyTokenBudget);
-  const singleLimit = normalizeNonNegative(maxTokensPerHook);
+  const usedTokens = budgetDisplayValue(autonomy.usedTokensInWindow);
+  const dailyLimit = budgetDisplayValue(dailyTokenBudget);
+  const singleLimit = budgetDisplayValue(maxTokensPerHook);
   const percent = budgetPercent(usedTokens, dailyLimit);
   const modeOptions: readonly {
     readonly id: AgentCenterAutonomyMode;
@@ -196,8 +196,8 @@ export function AgentCenterBehaviorSection({ session, snapshot, i18n, placementA
         ? 'medium'
         : patch.mode ?? mode;
     const nextEnabled = patch.enabled ?? nextMode !== 'off';
-    const nextDailyBudget = patch.dailyTokenBudget ?? dailyLimit;
-    const nextPerHookBudget = patch.maxTokensPerHook ?? singleLimit;
+    const nextDailyBudget = patch.dailyTokenBudget ?? Number(dailyTokenBudget);
+    const nextPerHookBudget = patch.maxTokensPerHook ?? Number(maxTokensPerHook);
 
     setEnabled(nextEnabled);
     setMode(nextMode);
@@ -430,8 +430,8 @@ export function AgentCenterBehaviorSection({ session, snapshot, i18n, placementA
                 disabled={!mutationAvailable}
                 onClick={() => {
                   void commit({
-                    dailyTokenBudget: normalizeNonNegative(dailyTokenBudget),
-                    maxTokensPerHook: normalizeNonNegative(maxTokensPerHook),
+                    dailyTokenBudget: Number(dailyTokenBudget),
+                    maxTokensPerHook: Number(maxTokensPerHook),
                   });
                 }}
                 size="sm"

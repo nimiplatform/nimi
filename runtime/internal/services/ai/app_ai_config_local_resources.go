@@ -137,14 +137,9 @@ func (s *Service) projectCloudEffectiveSelection(
 		},
 	)
 	if err != nil {
-		selection.State = runtimev1.AIConfigEffectiveState_AI_CONFIG_EFFECTIVE_STATE_BLOCKED
+		selection.State = connector.AIConfigEffectiveFailureState(err)
 		if reason, ok := grpcerr.ExtractReasonCode(err); ok {
 			selection.Reasons = []string{reason.String()}
-			if reason == runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND {
-				selection.State = runtimev1.AIConfigEffectiveState_AI_CONFIG_EFFECTIVE_STATE_MISSING
-			}
-		} else {
-			selection.State = runtimev1.AIConfigEffectiveState_AI_CONFIG_EFFECTIVE_STATE_UNAVAILABLE
 		}
 		return selection
 	}

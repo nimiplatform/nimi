@@ -1,4 +1,5 @@
 import type {
+  NimiAIConfigEffectiveSelection,
   NimiAIConfigOptionsQuery,
   NimiAIConfigOptionsResult,
   NimiAIConfigOverwriteInput,
@@ -23,22 +24,18 @@ export type ModelConfigAIConfigOwnerContext = Exclude<
   { readonly owner: 'machine-loadouts' }
 >;
 
-export type ModelConfigLocalSelectionProjection = {
-  readonly capabilityContract: string;
-  readonly state: 'missing' | 'selected' | 'broken' | 'unavailable';
-  readonly loadoutId: string | null;
-  readonly displayName: string | null;
-  readonly supportedFeatures: readonly string[];
-  readonly reasons: readonly string[];
-  readonly effectiveDefaults?: Readonly<Record<string, string>> | null;
-};
+export type ModelConfigEffectiveSelectionProjection = NimiAIConfigEffectiveSelection;
 
 export type ModelConfigCapabilityPosture =
   | 'not-configured'
   | 'local-selection-missing'
   | 'local-configuration-blocked'
+  | 'local-configuration-unavailable'
   | 'local-feature-mismatch'
   | 'local-configured'
+  | 'cloud-selection-missing'
+  | 'cloud-configuration-blocked'
+  | 'cloud-configuration-unavailable'
   | 'cloud-configured';
 
 export type ModelConfigFormattedError = {
@@ -67,6 +64,11 @@ export type ModelConfigCopy = Partial<{
   readonly saveLocalLabel: string;
   readonly saveCloudLabel: string;
   readonly savingLabel: string;
+  readonly clearLabel: string;
+  readonly clearingLabel: string;
+  readonly conflictLabel: string;
+  readonly conflictDescription: string;
+  readonly conflictCurrentLabel: (revision: string, summary: string) => string;
   readonly advancedLabel: string;
   readonly advancedHint: string;
   readonly requiredFeaturesLabel: string;
@@ -112,6 +114,7 @@ export type ModelConfigCopy = Partial<{
   readonly configuredLabel: string;
   readonly selectionRequiredLabel: string;
   readonly blockedLabel: string;
+  readonly unavailableLabel: string;
   readonly mismatchLabel: string;
   readonly cancelLabel: string;
   readonly confirmSelectionLabel: string;

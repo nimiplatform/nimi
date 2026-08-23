@@ -2,8 +2,8 @@ export type {
   ModelConfigAIConfigOwnerContext,
   ModelConfigCapabilityPosture,
   ModelConfigCopy,
+  ModelConfigEffectiveSelectionProjection,
   ModelConfigFormattedError,
-  ModelConfigLocalSelectionProjection,
   ModelConfigOverwrite,
   ModelConfigOwnerContext,
 } from './types.js';

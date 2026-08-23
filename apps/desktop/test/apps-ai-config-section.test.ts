@@ -43,7 +43,8 @@ test('Apps detail mounts the Nimi-owned first-party surface with the exact app i
   assert.match(sectionSource, /capabilityContracts=\{CANONICAL_CAPABILITY_IDS\}/u);
   assert.match(sectionSource, /useDesktopNimiAppAIConfig\(appId\)/u);
   assert.match(sectionSource, /useOverwriteDesktopNimiAppAIConfig\(appId\)/u);
-  assert.match(sectionSource, /projectDesktopAIConfigEffectiveSelections/u);
+  assert.match(sectionSource, /effectiveSelections=\{appAIConfig\.data\?\.effectiveSelections\}/u);
+  assert.doesNotMatch(sectionSource, /projectDesktopAIConfigEffectiveSelections/u);
   assert.match(sectionSource, /listOptions\(query\)/u);
   assert.doesNotMatch(sectionSource, /createDesktopCloudAIConfigModule/u);
   assert.doesNotMatch(sectionSource, /buildAppsOneClickLocalAIConfig|apps-ai-config-one-click-local/u);

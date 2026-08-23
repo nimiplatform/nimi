@@ -229,6 +229,43 @@ describe('AgentCenter UI session contract', () => {
     }
   });
 
+  it('passes autonomy budget input unchanged to the SDK-owned validation boundary', async () => {
+    const session = await sessionFor({
+      autonomy: {
+        revision: 'a1', enabled: true, mode: 'low', budgetExhausted: false,
+        usedTokensInWindow: 1, dailyTokenBudget: 100, maxTokensPerHook: 10,
+        windowStartedAt: null, suspendedUntil: null,
+      },
+    });
+    const update = vi.spyOn(session, 'updateAutonomy').mockRejectedValue(new Error('invalid budget'));
+    const node = render(<AgentCenter activeSection="behavior" session={session} />);
+    await flush();
+
+    act(() => {
+      (node.querySelector('[data-agent-center-budget-adjust="true"]') as HTMLButtonElement).click();
+    });
+    const inputs = node.querySelectorAll('input[type="number"]');
+    const daily = inputs[0] as HTMLInputElement;
+    const perHook = inputs[1] as HTMLInputElement;
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set?.call(daily, '-1');
+      daily.dispatchEvent(new Event('input', { bubbles: true }));
+      Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set?.call(perHook, '1.5');
+      perHook.dispatchEvent(new Event('input', { bubbles: true }));
+      await Promise.resolve();
+    });
+    await act(async () => {
+      (node.querySelector('[data-agent-center-autonomy-apply="true"]') as HTMLButtonElement).click();
+      await Promise.resolve();
+    });
+
+    expect(update).toHaveBeenCalledWith(expect.objectContaining({
+      dailyTokenBudget: -1,
+      maxTokensPerHook: 1.5,
+    }));
+    expect(node.textContent).toContain('invalid budget');
+  });
+
   it('allows first-time configuration after Runtime reports canonical AIConfig absence', async () => {
     let committed: AgentCenterSharedAIConfigProjection['aiConfig'] | null = null;
     let revision = '0';

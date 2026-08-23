@@ -2,7 +2,7 @@ import type { NimiPortableAppAIConfigIntent } from '@nimiplatform/kit/core/sdk-c
 import { runtimeAIConfigStructToJson } from '@nimiplatform/kit/core/sdk-contract';
 import type {
   ModelConfigCapabilityPosture,
-  ModelConfigLocalSelectionProjection,
+  ModelConfigEffectiveSelectionProjection,
 } from './types.js';
 
 function exactCloudTargetText(value: unknown): string {
@@ -29,27 +29,38 @@ export function modelConfigJsonHasExactCloudTarget(
 
 export function modelConfigMissingRequiredFeatures(
   intent: NimiPortableAppAIConfigIntent | null | undefined,
-  selection: ModelConfigLocalSelectionProjection | null | undefined,
+  selection: ModelConfigEffectiveSelectionProjection | null | undefined,
 ): readonly string[] {
-  if (!intent || intent.route.oneofKind !== 'local' || selection?.state !== 'selected') return [];
-  const supported = new Set(selection.supportedFeatures);
+  const local = selection?.resource?.oneofKind === 'local' ? selection.resource.local : null;
+  if (!intent || intent.route.oneofKind !== 'local' || selection?.state !== 'ready' || !local) return [];
+  const supported = new Set(local.supportedFeatures);
   return intent.requiredFeatures.filter((feature) => !supported.has(feature));
 }
 
+// @nimi-authority: rule.nimi.platform.ui-design-system.p-model-config-001
 export function modelConfigCapabilityPosture(
   intent: NimiPortableAppAIConfigIntent | null | undefined,
-  selection: ModelConfigLocalSelectionProjection | null | undefined,
+  selection: ModelConfigEffectiveSelectionProjection | null | undefined,
 ): ModelConfigCapabilityPosture {
   if (!intent || !intent.route.oneofKind) return 'not-configured';
   if (intent.route.oneofKind === 'cloud') {
-    return modelConfigHasExactCloudTarget(intent) ? 'cloud-configured' : 'not-configured';
+    if (!modelConfigHasExactCloudTarget(intent)) return 'not-configured';
+    if (selection === undefined) return 'cloud-configured';
+    if (selection === null || selection.state === 'unavailable') return 'cloud-configuration-unavailable';
+    if (selection.state === 'missing') return 'cloud-selection-missing';
+    if (selection.state === 'blocked') return 'cloud-configuration-blocked';
+    return selection.resource?.oneofKind === 'cloud'
+      ? 'cloud-configured'
+      : 'cloud-configuration-unavailable';
   }
   // Protected Apps can configure the shared LocalAgent intent without receiving
   // the separate machine-owner Loadout projection. Only observed absence is a
   // missing selection; an unobserved selection does not invalidate AIConfig.
   if (selection === undefined) return 'local-configured';
-  if (selection === null || selection.state === 'missing') return 'local-selection-missing';
-  if (selection.state === 'unavailable' || selection.state === 'broken') return 'local-configuration-blocked';
+  if (selection === null || selection.state === 'unavailable') return 'local-configuration-unavailable';
+  if (selection.state === 'missing') return 'local-selection-missing';
+  if (selection.state === 'blocked') return 'local-configuration-blocked';
+  if (selection.resource?.oneofKind !== 'local') return 'local-configuration-unavailable';
   return modelConfigMissingRequiredFeatures(intent, selection).length > 0
     ? 'local-feature-mismatch'
     : 'local-configured';

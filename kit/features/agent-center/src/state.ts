@@ -121,7 +121,7 @@ export function buildAgentCenterState(input: AgentCenterStateInput): AgentCenter
     statusTone: tone,
     baseTextConfigured,
     sharedAIConfig: input.sharedAIConfig ?? null,
-    localSelections: input.localSelections,
+    effectiveSelections: input.effectiveSelections,
     baseTextConfigurationDetail: baseTextConfigured ? null : (text?.summary || 'Text capability is not configured'),
     autonomyRevision,
     presentationRevision,

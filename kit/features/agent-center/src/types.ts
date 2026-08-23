@@ -23,7 +23,7 @@ import type {
 } from '@nimiplatform/kit/core/sdk-contract';
 import type { AgentCenterAvatarPreviewServiceResult } from '@nimiplatform/kit/features/avatar/headless';
 import type {
-  ModelConfigLocalSelectionProjection,
+  ModelConfigEffectiveSelectionProjection,
 } from '@nimiplatform/kit/features/model-config/headless';
 
 /** Capability identities are runtime-projected and admitted by the canonical Kit catalog. */
@@ -266,8 +266,8 @@ export interface AgentCenterSharedAIConfigProjection {
 export interface AgentCenterRuntimeSnapshot {
   /** Undefined means the read is unavailable; null is Runtime-confirmed canonical absence. */
   readonly sharedAIConfig?: AgentCenterSharedAIConfigProjection | null;
-  /** Read-only machine-owner context. Agent Center never mutates this projection. */
-  readonly localSelections?: readonly ModelConfigLocalSelectionProjection[];
+  /** Runtime effective facts for the committed shared AIConfig; never a second configuration truth. */
+  readonly effectiveSelections?: readonly ModelConfigEffectiveSelectionProjection[];
   readonly autonomy?: AgentCenterAutonomyProjection | null;
   readonly inspect?: NimiRuntimeAgentInspectSnapshot | null;
   readonly memory?: NimiRuntimeAgentMemoryObservatorySnapshot | null;
@@ -614,8 +614,8 @@ export interface AgentCenterState {
   readonly statusTone: AgentCenterStatusTone;
   readonly baseTextConfigured: boolean;
   readonly sharedAIConfig: AgentCenterSharedAIConfigProjection | null;
-  /** Undefined means the current Manager Session cannot observe machine Loadout selections. */
-  readonly localSelections?: readonly ModelConfigLocalSelectionProjection[];
+  /** Undefined means the current Manager Session cannot observe Runtime effective facts. */
+  readonly effectiveSelections?: readonly ModelConfigEffectiveSelectionProjection[];
   readonly baseTextConfigurationDetail: string | null;
   readonly autonomyRevision: string | null;
   readonly presentationRevision: string | null;

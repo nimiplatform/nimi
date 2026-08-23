@@ -13,7 +13,6 @@ import {
   useDesktopRendererSdk,
 } from '../../renderer/binding-context.js';
 import {
-  projectDesktopAIConfigEffectiveSelections,
   useDesktopNimiAppAIConfig,
   useOverwriteDesktopNimiAppAIConfig,
 } from '../chat/chat-nimi-app-ai-config.js';
@@ -102,6 +101,15 @@ function useAppsModelConfigCopy(appDisplayName: string): ModelConfigCopy {
     saveLocalLabel: t('Chat.settingsSaveIntent', { defaultValue: 'Save intent' }),
     saveCloudLabel: t('Chat.settingsSaveIntent', { defaultValue: 'Save intent' }),
     savingLabel: t('Chat.settingsSavingIntent', { defaultValue: 'Saving…' }),
+    clearLabel: t('Chat.settingsClearIntent', { defaultValue: 'Clear configuration' }),
+    clearingLabel: t('Chat.settingsClearingIntent', { defaultValue: 'Clearing…' }),
+    conflictLabel: t('Chat.settingsConfigConflict', { defaultValue: 'Configuration changed elsewhere' }),
+    conflictDescription: t('Chat.settingsConfigConflictDescription', {
+      defaultValue: 'Your draft was kept. Review the current configuration, then save again to replace it.',
+    }),
+    conflictCurrentLabel: (revision: string, summary: string) => t('Chat.settingsConfigConflictCurrent', {
+      defaultValue: 'Current revision {{revision}}: {{summary}}', revision, summary,
+    }),
     advancedLabel: t('Chat.settingsAdvanced', { defaultValue: 'Advanced intent' }),
     advancedHint: t('Chat.settingsAdvancedHint', {
       defaultValue: 'Required features and default parameters travel with this App AIConfig intent.',
@@ -195,6 +203,7 @@ function useAppsModelConfigCopy(appDisplayName: string): ModelConfigCopy {
     configuredLabel: t('Chat.settingsModelConfigured', { defaultValue: 'Configured' }),
     selectionRequiredLabel: t('Chat.settingsModelSelectionRequired', { defaultValue: 'Selection required' }),
     blockedLabel: t('Chat.settingsModelBlocked', { defaultValue: 'Blocked' }),
+    unavailableLabel: t('Chat.settingsModelUnavailable', { defaultValue: 'Unavailable' }),
     mismatchLabel: t('Chat.settingsModelFeatureMismatch', { defaultValue: 'Feature mismatch' }),
     cancelLabel: t('Chat.settingsModelPickerCancel', { defaultValue: 'Cancel' }),
     confirmSelectionLabel: t('Chat.settingsUseModelSelection', { defaultValue: 'Use selection' }),
@@ -225,11 +234,6 @@ export function AppsAIConfigSection({
   const appAIConfig = useDesktopNimiAppAIConfig(appId);
   const overwriteAppAIConfig = useOverwriteDesktopNimiAppAIConfig(appId);
   const copy = useAppsModelConfigCopy(appDisplayName);
-  const localSelections = useMemo(
-    () => projectDesktopAIConfigEffectiveSelections(appAIConfig.data),
-    [appAIConfig.data],
-  );
-
   const openMachineLoadout = useCallback(() => {
     setActiveTab('runtime');
     runtimeConfigNavigation.focusAction({
@@ -246,7 +250,7 @@ export function AppsAIConfigSection({
         capabilityContracts={CANONICAL_CAPABILITY_IDS}
         capabilities={appAIConfig.data?.config?.capabilities ?? (appAIConfig.isPending ? undefined : null)}
         revision={appAIConfig.data?.revision}
-        localSelections={localSelections}
+        effectiveSelections={appAIConfig.data?.effectiveSelections}
         listOptions={(query) => sdk.accountProduct().appAIConfig(appId).listOptions(query)}
         loading={appAIConfig.isPending}
         loadError={appAIConfig.isError ? copy.loadFailed : null}

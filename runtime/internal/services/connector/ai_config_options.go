@@ -8,6 +8,7 @@ import (
 	aicatalog "github.com/nimiplatform/nimi/runtime/internal/aicatalog"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 )
@@ -29,6 +30,25 @@ type AIConfigCloudTargetOption struct {
 	SupportedFeatures []string
 	State             runtimev1.AIConfigEffectiveState
 	Reasons           []runtimev1.ReasonCode
+}
+
+// @nimi-authority: rule.nimi.platform.core-protocol.p-caiex-006
+// AIConfigEffectiveFailureState distinguishes an exact resource problem from
+// a Runtime dependency failure while preserving the original reason separately.
+func AIConfigEffectiveFailureState(err error) runtimev1.AIConfigEffectiveState {
+	if err == nil {
+		return runtimev1.AIConfigEffectiveState_AI_CONFIG_EFFECTIVE_STATE_READY
+	}
+	if code := status.Code(err); code == codes.Internal || code == codes.Unavailable {
+		return runtimev1.AIConfigEffectiveState_AI_CONFIG_EFFECTIVE_STATE_UNAVAILABLE
+	}
+	if reason, ok := grpcerr.ExtractReasonCode(err); ok {
+		if reason == runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND {
+			return runtimev1.AIConfigEffectiveState_AI_CONFIG_EFFECTIVE_STATE_MISSING
+		}
+		return runtimev1.AIConfigEffectiveState_AI_CONFIG_EFFECTIVE_STATE_BLOCKED
+	}
+	return runtimev1.AIConfigEffectiveState_AI_CONFIG_EFFECTIVE_STATE_UNAVAILABLE
 }
 
 func aiConfigCloudImplementation(provider string) (*runtimev1.CapabilityImplementationIdentity, bool) {

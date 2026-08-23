@@ -37,8 +37,8 @@ import {
 import type {
   ModelConfigAIConfigOwnerContext,
   ModelConfigCopy,
+  ModelConfigEffectiveSelectionProjection,
   ModelConfigFormattedError,
-  ModelConfigLocalSelectionProjection,
   ModelConfigListOptions,
   ModelConfigOverwrite,
 } from '../types.js';
@@ -79,14 +79,15 @@ export type ModelConfigAIConfigSurfaceProps = {
   /** Null is canonical absence/not configured; undefined is an unavailable read. */
   readonly capabilities: readonly NimiPortableAppAIConfigIntent[] | null | undefined;
   readonly revision?: string;
-  readonly localSelections?: readonly ModelConfigLocalSelectionProjection[];
+  /** Route-neutral Runtime effective facts; undefined means this host cannot observe them. */
+  readonly effectiveSelections?: readonly ModelConfigEffectiveSelectionProjection[];
   readonly listOptions?: ModelConfigListOptions;
   readonly loading?: boolean;
   readonly disabled?: boolean;
   readonly loadError?: string | null;
   readonly onRetry?: () => void;
   readonly onOverwrite?: ModelConfigOverwrite;
-  /** Opens the Nimi-owned owner surface for read-only protected App mounts. */
+  /** Optional centralized-management handoff. It never gates editing in this surface. */
   readonly onOpenOwnerConfiguration?: () => void;
   readonly onOpenMachineLoadout?: (capabilityContract: string) => void;
   readonly formatError?: (error: unknown) => ModelConfigFormattedError;
@@ -116,9 +117,14 @@ function statusBadge(
     case 'cloud-configured':
       return { label: copy.configuredLabel, tone: 'success' };
     case 'local-selection-missing':
+    case 'cloud-selection-missing':
       return { label: copy.selectionRequiredLabel, tone: 'warning' };
     case 'local-configuration-blocked':
+    case 'cloud-configuration-blocked':
       return { label: copy.blockedLabel, tone: 'warning' };
+    case 'local-configuration-unavailable':
+    case 'cloud-configuration-unavailable':
+      return { label: copy.unavailableLabel, tone: 'warning' };
     case 'local-feature-mismatch':
       return { label: copy.mismatchLabel, tone: 'warning' };
     case 'not-configured':
@@ -157,22 +163,23 @@ function cloudChoiceId(connectorRef: string, targetId: string): string {
 }
 
 function localChoice(
-  selection: ModelConfigLocalSelectionProjection | null | undefined,
+  selection: ModelConfigEffectiveSelectionProjection | null | undefined,
   copy: ResolvedCopy,
 ): Extract<ModelConfigRouteChoice, { readonly route: 'local' }> {
+  const local = selection?.resource?.oneofKind === 'local' ? selection.resource.local : null;
   let description = copy.localChoiceDescription;
-  if (selection?.state === 'selected') {
+  if (selection?.state === 'ready' && local) {
     description = copy.localSelectedLabel;
-  } else if (selection?.state === 'broken') {
+  } else if (selection?.state === 'blocked') {
     description = copy.localBrokenLabel;
   } else if (selection?.state === 'unavailable') {
     description = copy.localUnavailableLabel;
   }
   return {
-    id: selection?.loadoutId ? `local:${selection.loadoutId}` : 'local:',
+    id: local?.loadoutRef ? `local:${local.loadoutRef}` : 'local:',
     route: 'local',
-    loadoutRef: selection?.loadoutId || '',
-    label: selection?.displayName || copy.localLabel,
+    loadoutRef: local?.loadoutRef || '',
+    label: local?.label || copy.localLabel,
     description,
   };
 }
@@ -209,7 +216,7 @@ function cloudOptionChoice(
 
 function currentRouteChoice(
   intent: NimiPortableAppAIConfigIntent | null,
-  selection: ModelConfigLocalSelectionProjection | null | undefined,
+  selection: ModelConfigEffectiveSelectionProjection | null | undefined,
   copy: ResolvedCopy,
 ): ModelConfigRouteChoice | null {
   if (intent?.route.oneofKind === 'local') return {
@@ -223,25 +230,29 @@ function currentRouteChoice(
   const modelId = targetText(target.providerModelId);
   const remoteModelCatalogId = targetText(target.remoteModelCatalogId);
   const connectorRef = cloud.connectorRef;
+  const effectiveCloud = selection?.resource?.oneofKind === 'cloud' ? selection.resource.cloud : null;
+  const connectorLabel = effectiveCloud?.connector.label || connectorRef;
   if (!modelConfigHasExactCloudTarget(intent) || !provider || !modelId || !remoteModelCatalogId || !connectorRef || !cloud.implementation) return null;
   const targetId = remoteModelCatalogId;
   return {
     id: cloudChoiceId(connectorRef, targetId),
     route: 'cloud',
     label: modelId,
-    description: `${provider} · ${connectorRef}`,
+    description: `${provider} · ${connectorLabel}`,
     provider,
     connectorRef,
-    connectorLabel: connectorRef,
+    connectorLabel,
     target: {
       connectorRef,
       label: modelId,
       capabilityContract: intent.capabilityContract,
       implementation: cloud.implementation,
       providerModelTarget: target,
-      supportedFeatures: [],
-      state: 'ready',
-      reasons: [],
+      supportedFeatures: [...(effectiveCloud?.target.supportedFeatures || [])],
+      state: selection?.state === 'blocked' || selection?.state === 'missing'
+        ? 'blocked'
+        : selection?.state === 'unavailable' ? 'blocked' : 'ready',
+      reasons: [...(selection?.reasons || [])],
     },
   };
 }
@@ -254,13 +265,14 @@ function cloudModelLabel(intent: NimiPortableAppAIConfigIntent | null): string |
 
 function capabilitySummary(
   intent: NimiPortableAppAIConfigIntent | null,
-  selection: ModelConfigLocalSelectionProjection | null | undefined,
+  selection: ModelConfigEffectiveSelectionProjection | null | undefined,
   descriptor: CanonicalCapabilityDescriptor | undefined,
   copy: ResolvedCopy,
 ): string {
   const posture = modelConfigCapabilityPosture(intent, selection);
   if (posture === 'local-configured') {
-    return selection?.displayName || selection?.loadoutId || copy.configuredLabel;
+    const local = selection?.resource?.oneofKind === 'local' ? selection.resource.local : null;
+    return local?.label || local?.loadoutRef || copy.configuredLabel;
   }
   if (posture === 'cloud-configured') {
     return cloudModelLabel(intent) || statusBadge(posture, copy).label;
@@ -330,9 +342,9 @@ export function ModelConfigAIConfigSurface(props: ModelConfigAIConfigSurfaceProp
   const entries = contracts.map((contract) => {
     const descriptor = CANONICAL_CAPABILITY_CATALOG_BY_ID[contract];
     const intent = props.capabilities?.find((entry) => entry.capabilityContract === contract) ?? null;
-    const selection = props.localSelections === undefined
+    const selection = props.effectiveSelections === undefined
       ? undefined
-      : props.localSelections.find((entry) => entry.capabilityContract === contract) ?? null;
+      : props.effectiveSelections.find((entry) => entry.capabilityContract === contract) ?? null;
     const badge = statusBadge(modelConfigCapabilityPosture(intent, selection), copy);
     return { contract, descriptor, intent, selection, badge };
   });
@@ -349,6 +361,15 @@ export function ModelConfigAIConfigSurface(props: ModelConfigAIConfigSurfaceProp
   return (
     <ModelConfigOwnerBoundary context={props.context} className={cn('min-w-0 space-y-5', props.className)}>
       {props.headerSlot}
+      {props.loadError ? (
+        <div className="flex flex-wrap items-center gap-2">
+          <InlineAlert tone="warning">{props.loadError || copy.loadFailed}</InlineAlert>
+          {props.onRetry ? <Button size="sm" tone="secondary" onClick={props.onRetry}>{copy.retryLabel}</Button> : null}
+        </div>
+      ) : null}
+      {props.loading && props.capabilities === undefined ? (
+        <LoadingSkeleton lines={2} label={copy.modelPickerLoadingLabel} />
+      ) : null}
 
       {activeEntry ? (
         <div className="space-y-4" data-nimi-model-config-detail={activeEntry.contract}>
@@ -397,15 +418,7 @@ export function ModelConfigAIConfigSurface(props: ModelConfigAIConfigSurfaceProp
             </div>
           </div>
 
-          {props.loadError ? (
-            <div className="flex flex-wrap items-center gap-2">
-              <InlineAlert tone="warning">{props.loadError || copy.loadFailed}</InlineAlert>
-              {props.onRetry ? <Button size="sm" tone="secondary" onClick={props.onRetry}>{copy.retryLabel}</Button> : null}
-            </div>
-          ) : null}
-          {props.loading ? <LoadingSkeleton lines={2} label={copy.modelPickerLoadingLabel} /> : null}
-
-          {!props.loading && !props.loadError ? (
+          {props.capabilities !== undefined ? (
             <div className="space-y-2" data-nimi-model-config-capability-grid="true">
               {entries.map((entry) => (
                 <button
@@ -455,7 +468,7 @@ type CapabilityIntentEditorProps = {
   readonly descriptor?: CanonicalCapabilityDescriptor;
   readonly currentIntent: NimiPortableAppAIConfigIntent | null;
   readonly allCapabilities: readonly NimiPortableAppAIConfigIntent[];
-  readonly selection: ModelConfigLocalSelectionProjection | null | undefined;
+  readonly selection: ModelConfigEffectiveSelectionProjection | null | undefined;
   readonly context: ModelConfigAIConfigOwnerContext;
   readonly revision?: string;
   readonly listOptions?: ModelConfigListOptions;
@@ -520,6 +533,7 @@ function EditableCapabilityIntentEditor(props: CapabilityIntentEditorProps) {
     defaults: currentDefaults,
   }), [currentChoice?.id, currentDefaults, props.currentIntent?.requiredFeatures]);
   const lastSyncKey = useRef('');
+  const preserveDraftAcrossSync = useRef(false);
   const [draftChoice, setDraftChoice] = useState<ModelConfigRouteChoice | null>(currentChoice);
   const [draftDefaults, setDraftDefaults] = useState(currentDefaults);
   const [connectors, setConnectors] = useState<readonly NimiAIConfigCloudConnectorOption[]>([]);
@@ -527,12 +541,18 @@ function EditableCapabilityIntentEditor(props: CapabilityIntentEditorProps) {
   const [pickerConnectorRef, setPickerConnectorRef] = useState(currentChoice?.route === 'cloud' ? currentChoice.connectorRef : '');
   const [pickerOpen, setPickerOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [mutationKind, setMutationKind] = useState<'save' | 'clear' | null>(null);
   const [cloudError, setCloudError] = useState('');
   const [saveFailure, setSaveFailure] = useState<ModelConfigFormattedError | null>(null);
+  const [conflictCurrent, setConflictCurrent] = useState<{
+    readonly revision: string;
+    readonly intent: NimiPortableAppAIConfigIntent | null;
+  } | null>(null);
 
   useEffect(() => {
     if (lastSyncKey.current === syncKey) return;
     lastSyncKey.current = syncKey;
+    if (preserveDraftAcrossSync.current) return;
     const preserveConnector = currentChoice?.route === 'cloud'
       && draftChoice?.route === 'cloud'
       && currentChoice.id === draftChoice.id;
@@ -543,6 +563,7 @@ function EditableCapabilityIntentEditor(props: CapabilityIntentEditorProps) {
       setPickerConnectorRef(currentChoice?.route === 'cloud' ? currentChoice.connectorRef : '');
     }
     setSaveFailure(null);
+    setConflictCurrent(null);
   }, [currentChoice, currentDefaults, draftChoice, syncKey]);
 
   const listChoices = useCallback(async (): Promise<readonly ModelConfigRouteChoice[]> => {
@@ -583,7 +604,7 @@ function EditableCapabilityIntentEditor(props: CapabilityIntentEditorProps) {
     getSource: (choice) => choice.route,
     getBadges: (choice) => [{
       label: choice.route === 'cloud' ? choice.provider : props.copy.localLabel,
-      tone: choice.route === 'cloud' ? 'neutral' : props.selection?.state === 'selected' ? 'success' : 'warning',
+      tone: choice.route === 'cloud' ? 'neutral' : props.selection?.state === 'ready' ? 'success' : 'warning',
     }],
     getSearchText: (choice) => choice.route === 'cloud'
       ? JSON.stringify(choice.target.providerModelTarget)
@@ -639,18 +660,77 @@ function EditableCapabilityIntentEditor(props: CapabilityIntentEditorProps) {
       const next = props.allCapabilities
         .filter((entry) => entry.capabilityContract !== props.capabilityContract)
         .concat(intent);
+      preserveDraftAcrossSync.current = true;
+      setMutationKind('save');
       setSaving(true);
       const result = await props.onOverwrite({
         expectedRevision: props.revision || '',
         capabilities: next,
       });
       if (result.outcome === 'conflict') {
-        throw new Error(props.copy.loadFailed);
+        setConflictCurrent({
+          revision: result.revision,
+          intent: result.config?.capabilities.find(
+            (entry) => entry.capabilityContract === props.capabilityContract,
+          ) ?? null,
+        });
+        setSaveFailure({
+          message: `${props.copy.conflictLabel}. ${props.copy.conflictDescription}`,
+        });
+        return;
       }
+      preserveDraftAcrossSync.current = false;
+      setConflictCurrent(null);
+      setSaveFailure(null);
     } catch (error) {
+      preserveDraftAcrossSync.current = false;
+      setConflictCurrent(null);
       setSaveFailure(props.formatError?.(error) || defaultFormatError(error, props.copy.saveFailed));
     } finally {
       setSaving(false);
+      setMutationKind(null);
+    }
+  };
+
+  const clearIntent = async () => {
+    if (saving || !props.currentIntent || !props.onOverwrite || !props.revision) return;
+    preserveDraftAcrossSync.current = true;
+    setSaveFailure(null);
+    setMutationKind('clear');
+    setSaving(true);
+    try {
+      const result = await props.onOverwrite({
+        expectedRevision: props.revision,
+        capabilities: props.allCapabilities.filter(
+          (entry) => entry.capabilityContract !== props.capabilityContract,
+        ),
+      });
+      if (result.outcome === 'conflict') {
+        setConflictCurrent({
+          revision: result.revision,
+          intent: result.config?.capabilities.find(
+            (entry) => entry.capabilityContract === props.capabilityContract,
+          ) ?? null,
+        });
+        setSaveFailure({
+          message: `${props.copy.conflictLabel}. ${props.copy.conflictDescription}`,
+        });
+        return;
+      }
+      preserveDraftAcrossSync.current = false;
+      setDraftChoice(null);
+      setDraftDefaults({});
+      setConnectorRef('');
+      setPickerConnectorRef('');
+      setConflictCurrent(null);
+      setSaveFailure(null);
+    } catch (error) {
+      preserveDraftAcrossSync.current = false;
+      setConflictCurrent(null);
+      setSaveFailure(props.formatError?.(error) || defaultFormatError(error, props.copy.saveFailed));
+    } finally {
+      setSaving(false);
+      setMutationKind(null);
     }
   };
 
@@ -664,7 +744,9 @@ function EditableCapabilityIntentEditor(props: CapabilityIntentEditorProps) {
         props.selection,
       )
     : draftChoice?.route === 'cloud'
-      ? exactCloudSelection ? 'cloud-configured' : 'not-configured'
+      ? currentChoice?.id === draftChoice.id
+        ? modelConfigCapabilityPosture(props.currentIntent, props.selection)
+        : exactCloudSelection ? 'cloud-configured' : 'not-configured'
       : 'not-configured';
   const draftBadge = statusBadge(draftPosture, props.copy);
   const routeDisabled = Boolean(props.disabled) || saving || !props.descriptor;
@@ -808,7 +890,7 @@ function EditableCapabilityIntentEditor(props: CapabilityIntentEditorProps) {
         value={draftDefaults}
         onChange={setDraftDefaults}
         route={draftChoice?.route || null}
-        effectiveDefaults={draftChoice?.route === 'local' ? props.selection?.effectiveDefaults : null}
+        effectiveDefaults={null}
         disabled={routeDisabled}
         copy={{
           label: props.copy.defaultsLabel,
@@ -826,6 +908,21 @@ function EditableCapabilityIntentEditor(props: CapabilityIntentEditorProps) {
       {saveFailure ? (
         <div className="space-y-2">
           <InlineAlert tone="danger">{saveFailure.message}</InlineAlert>
+          {conflictCurrent ? (
+            <p
+              className="m-0 text-xs text-[var(--nimi-text-secondary)]"
+              data-nimi-model-config-conflict-current="true"
+            >
+              {props.copy.conflictCurrentLabel(
+                conflictCurrent.revision,
+                conflictCurrent.intent?.route.oneofKind === 'local'
+                  ? `${props.copy.localLabel} · ${conflictCurrent.intent.route.local.loadoutRef}`
+                  : conflictCurrent.intent?.route.oneofKind === 'cloud'
+                    ? `${props.copy.cloudLabel} · ${cloudModelLabel(conflictCurrent.intent) || conflictCurrent.intent.route.cloud.connectorRef}`
+                    : props.copy.notConfiguredLabel,
+              )}
+            </p>
+          ) : null}
           {saveFailure.technicalDetail ? (
             <details className="rounded-[var(--nimi-radius-md)] border border-[var(--nimi-border-subtle)] p-2 text-xs text-[var(--nimi-text-secondary)]">
               <summary className="cursor-pointer font-semibold">{props.copy.technicalDetailsLabel}</summary>
@@ -835,7 +932,17 @@ function EditableCapabilityIntentEditor(props: CapabilityIntentEditorProps) {
         </div>
       ) : null}
 
-      <div className="flex justify-end">
+      <div className="flex flex-wrap justify-end gap-2">
+        {props.currentIntent ? (
+          <Button
+            tone="secondary"
+            disabled={routeDisabled || !props.revision}
+            onClick={() => { void clearIntent(); }}
+            data-testid={`model-config-clear:${props.capabilityContract}`}
+          >
+            {saving && mutationKind === 'clear' ? props.copy.clearingLabel : props.copy.clearLabel}
+          </Button>
+        ) : null}
         <Button
           tone="primary"
           disabled={routeDisabled || !draftChoice || !props.revision
@@ -844,7 +951,9 @@ function EditableCapabilityIntentEditor(props: CapabilityIntentEditorProps) {
           onClick={() => { void commit(); }}
           data-testid={`model-config-save:${props.capabilityContract}`}
         >
-          {saving ? props.copy.savingLabel : draftChoice?.route === 'cloud' ? props.copy.saveCloudLabel : props.copy.saveLocalLabel}
+          {saving && mutationKind === 'save'
+            ? props.copy.savingLabel
+            : draftChoice?.route === 'cloud' ? props.copy.saveCloudLabel : props.copy.saveLocalLabel}
         </Button>
       </div>
     </div>
@@ -852,12 +961,13 @@ function EditableCapabilityIntentEditor(props: CapabilityIntentEditorProps) {
 }
 
 function LocalSelectionSummary(props: {
-  readonly selection: ModelConfigLocalSelectionProjection | null | undefined;
+  readonly selection: ModelConfigEffectiveSelectionProjection | null | undefined;
   readonly missingFeatures: readonly string[];
   readonly copy: ResolvedCopy;
   readonly onOpenMachineLoadout?: () => void;
 }) {
   const selection = props.selection;
+  const local = selection?.resource?.oneofKind === 'local' ? selection.resource.local : null;
   let toneClass = 'text-[var(--nimi-status-warning)]';
   let message = props.copy.localMissingLabel;
   if (selection === undefined) {
@@ -866,13 +976,13 @@ function LocalSelectionSummary(props: {
   } else if (selection?.state === 'unavailable') {
     toneClass = 'text-[var(--nimi-text-muted)]';
     message = props.copy.localUnavailableLabel;
-  } else if (selection?.state === 'broken') {
+  } else if (selection?.state === 'blocked') {
     message = `${props.copy.localBrokenLabel}${selection.reasons.length > 0 ? ` ${selection.reasons.join(', ')}` : ''}`;
-  } else if (selection?.state === 'selected' && props.missingFeatures.length > 0) {
+  } else if (selection?.state === 'ready' && props.missingFeatures.length > 0) {
     message = props.copy.localMismatchLabel(props.missingFeatures.join(', '));
-  } else if (selection?.state === 'selected') {
+  } else if (selection?.state === 'ready' && local) {
     toneClass = 'text-[var(--nimi-status-success)]';
-    message = `${props.copy.localSelectedLabel}: ${selection.displayName || selection.loadoutId || ''}`;
+    message = `${props.copy.localSelectedLabel}: ${local.label || local.loadoutRef || ''}`;
   }
   return (
     <div className="flex min-w-0 items-start justify-between gap-3">

@@ -52,25 +52,7 @@ export async function sessionFor(
         return {
           config: sharedAIConfig.aiConfig,
           revision: sharedAIConfig.revision,
-          effectiveSelections: (projection.localSelections ?? []).map((selection) => ({
-            capabilityContract: selection.capabilityContract,
-            state: selection.state === 'selected' ? 'ready' as const
-              : selection.state === 'missing' ? 'missing' as const
-                : selection.state === 'broken' ? 'blocked' as const : 'unavailable' as const,
-            resource: selection.loadoutId ? {
-              oneofKind: 'local' as const,
-              local: {
-                loadoutRef: selection.loadoutId,
-                label: selection.displayName ?? selection.loadoutId,
-                capabilityContract: selection.capabilityContract,
-                implementation: { implementationId: 'test.local', driverId: 'test', driverDialect: 'test/local/v1' },
-                supportedFeatures: [...selection.supportedFeatures],
-                state: selection.state === 'selected' ? 'ready' as const : 'blocked' as const,
-                reasons: [...selection.reasons],
-              },
-            } : null,
-            reasons: [...selection.reasons],
-          })),
+          effectiveSelections: projection.effectiveSelections ?? [],
         };
       },
       async overwrite(input) {

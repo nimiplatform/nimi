@@ -28,8 +28,8 @@
  *     - resolveNimiRealmMediaUrl (chat/src/realm/attachments.ts)
  *   @nimiplatform/sdk/types — typed error envelope
  *     - NimiError and error helpers
- *   @nimiplatform/sdk/ai — canonical capability configuration plus Nimi-native
- *       text-generation developer experience
+ *   @nimiplatform/sdk/ai — canonical capability configuration, route-neutral
+ *       effective selection facts, and Nimi-native text-generation developer experience
  *   @nimiplatform/sdk/features/conversation — conversation primitives
  *     - history windows, text accumulation, and stream snapshots
  *   @nimiplatform/sdk/features/generation — neutral Scenario identity and
@@ -90,6 +90,7 @@ export {
 export type {
   NimiCapabilityAIConfig,
   NimiCapabilityAIConfigIntent,
+  NimiAIConfigEffectiveSelection,
   NimiAIConfigLocalLoadoutOption,
   NimiAIConfigCloudConnectorOption,
   NimiAIConfigCloudTargetOption,

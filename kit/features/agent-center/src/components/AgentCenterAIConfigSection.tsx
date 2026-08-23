@@ -49,6 +49,16 @@ function aiConfigCopy(i18n: AgentCenterI18n | undefined): ModelConfigCopy {
     saveLocalLabel: t('AgentCenter.aiConfig.configureLocalAction', 'Save Local intent'),
     saveCloudLabel: t('AgentCenter.aiConfig.cloudSaveAction', 'Save Cloud intent'),
     savingLabel: t('AgentCenter.aiConfig.savingLabel', 'Saving…'),
+    clearLabel: t('AgentCenter.aiConfig.clearLabel', 'Clear configuration'),
+    clearingLabel: t('AgentCenter.aiConfig.clearingLabel', 'Clearing…'),
+    conflictLabel: t('AgentCenter.aiConfig.conflictLabel', 'Configuration changed elsewhere'),
+    conflictDescription: t('AgentCenter.aiConfig.conflictDescription', 'Your draft was kept. Review the current configuration, then save again to replace it.'),
+    conflictCurrentLabel: (revision: string, summary: string) => translateAgentCenter(
+      i18n,
+      'AgentCenter.aiConfig.conflictCurrentLabel',
+      'Current revision {{revision}}: {{summary}}',
+      { revision, summary },
+    ),
     advancedLabel: t('AgentCenter.aiConfig.advancedLabel', 'Advanced intent'),
     advancedHint: t(
       'AgentCenter.aiConfig.advancedHint',
@@ -149,6 +159,7 @@ function aiConfigCopy(i18n: AgentCenterI18n | undefined): ModelConfigCopy {
     configuredLabel: t('AgentCenter.aiConfig.configuredLabel', 'Configured'),
     selectionRequiredLabel: t('AgentCenter.aiConfig.selectionRequiredLabel', 'Selection required'),
     blockedLabel: t('AgentCenter.aiConfig.blockedLabel', 'Blocked'),
+    unavailableLabel: t('AgentCenter.aiConfig.unavailableLabel', 'Unavailable'),
     mismatchLabel: t('AgentCenter.aiConfig.mismatchLabel', 'Feature mismatch'),
     cancelLabel: t('AgentCenter.aiConfig.cloudCancelAction', 'Cancel'),
     confirmSelectionLabel: t('AgentCenter.aiConfig.confirmSelectionLabel', 'Use this target'),
@@ -202,7 +213,7 @@ export function AgentCenterAIConfigSection({
         capabilities={snapshot.state.sharedAIConfig?.aiConfig.capabilities ?? null}
         revision={snapshot.state.sharedAIConfig?.revision ?? '0'}
         disabled={snapshot.state.agentAIConfigMutationDisabledReason !== null}
-        localSelections={snapshot.state.localSelections}
+        effectiveSelections={snapshot.state.effectiveSelections}
         listOptions={(query) => session.listSharedAIConfigOptions(query)}
         onOverwrite={(input) => session.overwriteSharedAIConfig(input)}
         onOpenMachineLoadout={placementActions?.openMachineLoadout}

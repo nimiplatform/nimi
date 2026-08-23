@@ -4,7 +4,6 @@ import type { StudioRuntimeInspection } from '../../ai-studio-core/index.js';
 import {
   ModelConfigAIConfigSurface,
   type ModelConfigCopy,
-  type ModelConfigLocalSelectionProjection,
 } from '@nimiplatform/kit/features/model-config';
 import { openDesktopIntent } from '@nimiplatform/kit/shell/renderer/bridge';
 import { StatusBadge } from '@nimiplatform/kit/ui';
@@ -36,6 +35,11 @@ function useLabModelConfigCopy(): ModelConfigCopy {
     backLabel: t('ModelConfig.backLabel'),
     detailTitle: (capabilityLabel: string) => t('ModelConfig.detailTitle', { capability: capabilityLabel }),
     activeModelLabel: t('ModelConfig.activeModelLabel'),
+    clearLabel: t('ModelConfig.clearLabel'),
+    clearingLabel: t('ModelConfig.clearingLabel'),
+    conflictLabel: t('ModelConfig.conflictLabel'),
+    conflictDescription: t('ModelConfig.conflictDescription'),
+    conflictCurrentLabel: (revision: string, summary: string) => t('ModelConfig.conflictCurrentLabel', { revision, summary }),
     localLabel: t('ModelConfig.localLabel'),
     localSelectedLabel: t('ModelConfig.localSelectedLabel'),
     localBrokenLabel: t('ModelConfig.localBrokenLabel'),
@@ -49,6 +53,7 @@ function useLabModelConfigCopy(): ModelConfigCopy {
     configuredLabel: t('ModelConfig.configuredLabel'),
     selectionRequiredLabel: t('ModelConfig.selectionRequiredLabel'),
     blockedLabel: t('ModelConfig.blockedLabel'),
+    unavailableLabel: t('ModelConfig.unavailableLabel'),
     mismatchLabel: t('ModelConfig.mismatchLabel'),
     capabilityLabel: (capabilityContract, fallback) => {
       const entry = labCapabilities.find((item) => item.capabilityContract === capabilityContract);
@@ -97,33 +102,6 @@ export function LabAiConfigSettingsPanel({
     ? t('ModelConfig.runtimeConnected')
     : t('ModelConfig.runtimeUnavailable');
 
-  const localSelections = useMemo<readonly ModelConfigLocalSelectionProjection[]>(() => {
-    if (!snapshot) return [];
-    return snapshot.effectiveSelections.map((selection) => {
-      const local = selection.resource?.oneofKind === 'local' ? selection.resource.local : null;
-      const intent = snapshot.config?.capabilities.find((entry) => (
-        entry.capabilityContract === selection.capabilityContract && entry.route.oneofKind === 'local'
-      ));
-      const loadoutRef = local?.loadoutRef
-        || (intent?.route.oneofKind === 'local' ? intent.route.local.loadoutRef : null);
-      return {
-        capabilityContract: selection.capabilityContract,
-        state: selection.state === 'ready'
-          ? 'selected' as const
-          : selection.state === 'missing'
-            ? 'missing' as const
-            : selection.state === 'blocked'
-              ? 'broken' as const
-              : 'unavailable' as const,
-        loadoutId: loadoutRef,
-        displayName: local?.label || null,
-        supportedFeatures: local?.supportedFeatures || [],
-        reasons: selection.reasons,
-        effectiveDefaults: null,
-      };
-    });
-  }, [snapshot]);
-
   return (
     <section className="flex h-full min-h-0 flex-col" aria-label={t('ModelConfig.drawerDescription')}>
       <div className="min-h-0 flex-1 overflow-y-auto p-5">
@@ -131,13 +109,13 @@ export function LabAiConfigSettingsPanel({
           context={{ owner: 'app-ai-config', appId }}
           capabilityContracts={labModelConfigCapabilityContracts}
           initialCapabilityContract={capabilityId}
-          capabilities={loading || loadError
-            ? undefined
-            : snapshot?.config ? projectLabAIConfigCapabilities(snapshot.config.capabilities) : null}
+          capabilities={snapshot?.config
+            ? projectLabAIConfigCapabilities(snapshot.config.capabilities)
+            : snapshot ? null : undefined}
           revision={snapshot?.revision}
-          localSelections={localSelections}
+          effectiveSelections={snapshot?.effectiveSelections}
           listOptions={(query) => rendererHost.sdk.aiConfig.listOptions(query)}
-          loading={loading}
+          loading={loading && !snapshot}
           loadError={loadError}
           onRetry={() => { void refresh(); }}
           onOverwrite={async (input) => {

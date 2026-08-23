@@ -165,7 +165,7 @@ describe('AgentCenterSession', () => {
         },
       },
     });
-    expect(session.getSnapshot().state.localSelections).toEqual([]);
+    expect(session.getSnapshot().state.effectiveSelections).toEqual([]);
     expect(calls).toContainEqual(['autonomy.snapshot', { agentHandle: HANDLE }]);
     expect(calls).toContainEqual(['presentation.snapshot', { agentHandle: HANDLE }]);
     expect(JSON.stringify(calls)).not.toMatch(/ownerUserId|runtimeSourceRef|localAgentRef/u);
