@@ -60,6 +60,7 @@ export const RUNTIME_AGENT_METHODS = [
   'requestAgentCanonicalMemoryBankBind',
   'getSharedLocalAgentAIConfig',
   'overwriteSharedLocalAgentAIConfig',
+  'listSharedLocalAgentAIConfigOptions',
   'previewSharedLocalAgentAIProfile',
   'applySharedLocalAgentAIProfile',
   'importPortableAIProfile',

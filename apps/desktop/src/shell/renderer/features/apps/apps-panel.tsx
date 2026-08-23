@@ -1,7 +1,6 @@
 import { useCallback, useEffect, type ReactElement } from 'react';
 import { useAppStore } from '../../app-shell/providers/app-store';
 import { useDesktopRendererCommands, useDesktopRendererSdk } from '../../renderer/binding-context.js';
-import { readDesktopNimiAppAIConfig } from '../chat/chat-nimi-app-ai-config.js';
 import { useAppsPanelController } from './apps-panel-controller.js';
 import { AppsPanelView } from './apps-panel-view.js';
 
@@ -14,9 +13,9 @@ export function AppsPanel(): ReactElement {
   const setAppsDetailAppId = useAppStore((state) => state.setAppsDetailAppId);
   const setActiveTab = useAppStore((state) => state.setActiveTab);
   const readAppAIConfig = useCallback(
-    async (appId: string) => (await readDesktopNimiAppAIConfig(
-      sdk.accountProduct().appAIConfig(appId),
-    )).config,
+    (appId: string, options: { readonly timeoutMs: number; readonly signal: AbortSignal }) => (
+      sdk.accountProduct().appAIConfig(appId).get(options)
+    ),
     [sdk],
   );
   const controller = useAppsPanelController({ readAppAIConfig });

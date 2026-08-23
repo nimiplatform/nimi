@@ -55,8 +55,9 @@ func (s *Service) validateChangedSharedAIConfigResourceReferences(
 		}
 		if cloud := capability.GetCloud(); cloud != nil {
 			target := cloud.GetProviderModelTarget().GetFields()
-			if _, _, err := connector.ResolveExactAccountConnectorBinding(
-				s.connectorStore, s.modelCatalog, accountNamespace, connector.RemoteModelCatalogRef{
+			if _, _, err := connector.ValidateAIConfigCloudSelection(
+				s.connectorStore, s.modelCatalog, accountNamespace,
+				capability.GetCapabilityContract(), cloud.GetImplementation(), connector.RemoteModelCatalogRef{
 					ConnectorID: cloud.GetConnectorRef(), Provider: target["provider"].GetStringValue(),
 					ProviderModelID:      target["providerModelId"].GetStringValue(),
 					RemoteModelCatalogID: target["remoteModelCatalogId"].GetStringValue(),
@@ -128,8 +129,9 @@ func (s *Service) projectSharedCloudEffectiveSelection(
 		return selection
 	}
 	target := cloud.GetProviderModelTarget().GetFields()
-	record, _, err := connector.ResolveExactAccountConnectorBinding(
-		s.connectorStore, s.modelCatalog, accountNamespace, connector.RemoteModelCatalogRef{
+	record, _, err := connector.ValidateAIConfigCloudSelection(
+		s.connectorStore, s.modelCatalog, accountNamespace, capabilityContract, cloud.GetImplementation(),
+		connector.RemoteModelCatalogRef{
 			ConnectorID: cloud.GetConnectorRef(), Provider: target["provider"].GetStringValue(),
 			ProviderModelID:      target["providerModelId"].GetStringValue(),
 			RemoteModelCatalogID: target["remoteModelCatalogId"].GetStringValue(),

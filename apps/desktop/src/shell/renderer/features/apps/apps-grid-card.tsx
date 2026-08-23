@@ -31,17 +31,40 @@ function aiConfigSummaryPresentation(
 ): { readonly label: string; readonly tone: 'neutral' | 'success' | 'info' | 'warning' | 'danger' } | null {
   const summary = entry.aiConfigSummary;
   if (!summary) return null;
-  const count = `${summary.configuredCount}/${summary.totalCount}`;
-  switch (summary.posture) {
-    case 'local': return { label: t('Apps.aiConfig.summary.local', { defaultValue: `Local · ${count}`, summaryCount: count }), tone: 'success' };
-    case 'cloud': return { label: t('Apps.aiConfig.summary.cloud', { defaultValue: `Cloud · ${count}`, summaryCount: count }), tone: 'info' };
-    case 'mixed': return { label: t('Apps.aiConfig.summary.mixed', { defaultValue: `Mixed · ${count}`, summaryCount: count }), tone: 'info' };
-    case 'partial-local': return { label: t('Apps.aiConfig.summary.partialLocal', { defaultValue: `Partial Local · ${count}`, summaryCount: count }), tone: 'warning' };
-    case 'partial-cloud': return { label: t('Apps.aiConfig.summary.partialCloud', { defaultValue: `Partial Cloud · ${count}`, summaryCount: count }), tone: 'warning' };
-    case 'partial-mixed': return { label: t('Apps.aiConfig.summary.partialMixed', { defaultValue: `Partial Mixed · ${count}`, summaryCount: count }), tone: 'warning' };
-    case 'unconfigured': return { label: t('Apps.aiConfig.summary.unconfigured', { defaultValue: 'AI not configured' }), tone: 'neutral' };
-    case 'unavailable': return { label: t('Apps.aiConfig.summary.unavailable', { defaultValue: 'AI config unavailable' }), tone: 'danger' };
+  const count = `${summary.intentCount}/${summary.total}`;
+  const route = (() => {
+    switch (summary.routePosture) {
+      case 'local': return { label: t('Apps.aiConfig.summary.local', { defaultValue: `Local · ${count}`, summaryCount: count }), tone: 'success' as const };
+      case 'cloud': return { label: t('Apps.aiConfig.summary.cloud', { defaultValue: `Cloud · ${count}`, summaryCount: count }), tone: 'info' as const };
+      case 'mixed': return { label: t('Apps.aiConfig.summary.mixed', { defaultValue: `Mixed · ${count}`, summaryCount: count }), tone: 'info' as const };
+      case 'partial-local': return { label: t('Apps.aiConfig.summary.partialLocal', { defaultValue: `Partial Local · ${count}`, summaryCount: count }), tone: 'warning' as const };
+      case 'partial-cloud': return { label: t('Apps.aiConfig.summary.partialCloud', { defaultValue: `Partial Cloud · ${count}`, summaryCount: count }), tone: 'warning' as const };
+      case 'partial-mixed': return { label: t('Apps.aiConfig.summary.partialMixed', { defaultValue: `Partial Mixed · ${count}`, summaryCount: count }), tone: 'warning' as const };
+      case 'unconfigured': return { label: t('Apps.aiConfig.summary.unconfigured', { defaultValue: 'AI not configured' }), tone: 'neutral' as const };
+    }
+  })();
+  if (summary.healthPosture === 'blocked') {
+    return {
+      label: t('Apps.aiConfig.summary.blocked', {
+        defaultValue: `${route.label} · ${summary.blockedCount} blocked`,
+        routeLabel: route.label,
+        blockedCount: summary.blockedCount,
+      }),
+      tone: 'danger',
+    };
   }
+  if (summary.healthPosture === 'unavailable') {
+    return {
+      label: summary.intentCount === 0
+        ? t('Apps.aiConfig.summary.unavailable', { defaultValue: 'AI config unavailable' })
+        : t('Apps.aiConfig.summary.healthUnavailable', {
+            defaultValue: `${route.label} · health unavailable`,
+            routeLabel: route.label,
+          }),
+      tone: 'danger',
+    };
+  }
+  return route;
 }
 
 function stopCardEvent(event: MouseEvent): void {
@@ -178,7 +201,11 @@ export function AppGridCard({
           <AppRunStatusLine entry={entry} />
         </div>
         {aiConfigSummary ? (
-          <div className="mt-1 flex min-w-0 items-center" data-app-ai-config-summary={entry.aiConfigSummary?.posture}>
+          <div
+            className="mt-1 flex min-w-0 items-center"
+            data-app-ai-config-summary={entry.aiConfigSummary?.routePosture}
+            data-app-ai-config-health={entry.aiConfigSummary?.healthPosture}
+          >
             <StatusBadge tone={aiConfigSummary.tone} shape="dot">
               {aiConfigSummary.label}
             </StatusBadge>

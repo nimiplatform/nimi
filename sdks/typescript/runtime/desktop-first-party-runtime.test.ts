@@ -5,6 +5,7 @@ import type { CoreTransport } from '../core-client';
 import type { AIConfigCapabilityIntent } from '../core-generated/runtime-protobuf/runtime/v1/capability_configuration';
 import type { CoreStreamRequest, CoreUnaryRequest } from '../types';
 import { createNimiDesktopFirstPartyRuntimeClients } from './desktop-first-party-runtime';
+import { createNimiSharedLocalAgentAISurface } from './shared-local-agent-ai-config';
 
 test('Desktop account product binds AIConfig to one explicit admitted App owner', async () => {
   const calls: CoreUnaryRequest[] = [];
@@ -18,6 +19,12 @@ test('Desktop account product binds AIConfig to one explicit admitted App owner'
       if (request.methodId === '/nimi.runtime.v1.RuntimeAiService/OverwriteAppAIConfig') {
         const body = request.body as { config?: unknown };
         return { config: body.config, revision: '1', committed: true, reasonCode: 0 } as Response;
+      }
+      if (request.methodId === '/nimi.runtime.v1.RuntimeAgentService/ListSharedLocalAgentAIConfigOptions') {
+        return {
+          result: { oneofKind: 'localLoadouts', localLoadouts: { options: [] } },
+          truncated: false,
+        } as Response;
       }
       throw new Error(`unexpected Runtime method: ${request.methodId}`);
     },
@@ -49,9 +56,24 @@ test('Desktop account product binds AIConfig to one explicit admitted App owner'
     assert.equal(overwritten.config.owner.owner.app.appId, 'acme.widget');
   }
 
+  const sharedAI = createNimiSharedLocalAgentAISurface({
+    runtime: {
+      appId: 'nimi.desktop',
+      auth: {} as never,
+      agent: clients.accountProduct.agents,
+    },
+    getSubjectUserId: () => 'account-a',
+    withScopes: (_scopes, operation) => operation({}),
+  });
+  assert.deepEqual(await sharedAI.sharedAIConfig.listOptions({
+    kind: 'local-loadouts',
+    capabilityContract: 'text.generate',
+  }), { kind: 'local-loadouts', options: [], truncated: false });
+
   assert.deepEqual(calls.map((call) => call.methodId), [
     '/nimi.runtime.v1.RuntimeAiService/GetAppAIConfig',
     '/nimi.runtime.v1.RuntimeAiService/OverwriteAppAIConfig',
+    '/nimi.runtime.v1.RuntimeAgentService/ListSharedLocalAgentAIConfigOptions',
   ]);
   for (const call of calls) {
     assert.equal(call.metadata?.appId, undefined, 'protected host owns caller identity');

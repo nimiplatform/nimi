@@ -191,6 +191,8 @@
       "partialLocal": "部分本地 · {{summaryCount}}",
       "partialCloud": "部分云端 · {{summaryCount}}",
       "partialMixed": "部分混合 · {{summaryCount}}",
+      "blocked": "{{routeLabel}} · {{blockedCount}} 项受阻",
+      "healthUnavailable": "{{routeLabel}} · 健康状态不可用",
       "unconfigured": "AI 未配置",
       "unavailable": "AI 配置不可用"
     },

@@ -10,30 +10,38 @@ import type {
   LocalDevelopmentRun,
 } from '../local-development/local-development-types.js';
 import { CANONICAL_CAPABILITY_IDS } from '@nimiplatform/kit/core/runtime-capabilities';
-import type { NimiPortableAppAIConfig } from '@nimiplatform/kit/core/sdk-contract';
+import type { NimiAIConfigSnapshot } from '@nimiplatform/kit/core/sdk-contract';
 
-export type DesktopAppAIConfigPosture =
+export type DesktopAppAIConfigRoutePosture =
   | 'unconfigured'
   | 'partial-local'
   | 'partial-cloud'
   | 'partial-mixed'
   | 'local'
   | 'cloud'
-  | 'mixed'
-  | 'unavailable';
+  | 'mixed';
+
+export type DesktopAppAIConfigHealthPosture = 'healthy' | 'blocked' | 'unavailable';
 
 export interface DesktopAppAIConfigSummary {
-  readonly posture: DesktopAppAIConfigPosture;
-  readonly configuredCount: number;
-  readonly totalCount: number;
+  readonly routePosture: DesktopAppAIConfigRoutePosture;
+  readonly healthPosture: DesktopAppAIConfigHealthPosture;
+  readonly intentCount: number;
+  readonly total: number;
+  readonly blockedCount: number;
   readonly localCount: number;
   readonly cloudCount: number;
+}
+
+export interface DesktopAppAIConfigReadOptions {
+  readonly timeoutMs: number;
+  readonly signal: AbortSignal;
 }
 
 export interface DesktopAppsProjectionSource {
   listRegistrations(): Promise<readonly LocalDevelopmentRegistration[]>;
   listRuns(): Promise<readonly LocalDevelopmentRun[]>;
-  readAppAIConfig?(appId: string): Promise<NimiPortableAppAIConfig | null>;
+  readAppAIConfig?(appId: string, options: DesktopAppAIConfigReadOptions): Promise<NimiAIConfigSnapshot>;
 }
 
 export interface DesktopAppsEntry {
@@ -54,6 +62,7 @@ export async function projectAppsPanel(
   options: {
     readonly previous?: DesktopAppsPanelProjection | null;
     readonly refreshAIConfig?: boolean;
+    readonly aiConfigReadTimeoutMs?: number;
   } = {},
 ): Promise<DesktopAppsPanelProjection> {
   if (!source || typeof source.listRegistrations !== 'function' || typeof source.listRuns !== 'function') {
@@ -72,7 +81,7 @@ export async function projectAppsPanel(
       const byUpdatedAt = right.updatedAtUnixMs - left.updatedAtUnixMs;
       return byUpdatedAt || left.appId.localeCompare(right.appId);
     });
-    const entries = await Promise.all(registrationsSorted.map(async (registration) => ({
+    const entries = await projectEntriesBounded(registrationsSorted, async (registration) => ({
       registration,
       run: runs.find((run) => run.appId === registration.appId) ?? null,
       aiConfigSummary: await projectAppAIConfigSummary({
@@ -80,8 +89,9 @@ export async function projectAppsPanel(
         source,
         previous: previousEntries.get(registration.appId)?.aiConfigSummary ?? null,
         refresh: options.refreshAIConfig !== false,
+        timeoutMs: options.aiConfigReadTimeoutMs ?? 10_000,
       }),
-    })));
+    }));
     return {
       status: 'loaded',
       entries,
@@ -94,46 +104,103 @@ export async function projectAppsPanel(
   }
 }
 
+async function projectEntriesBounded<TInput, TOutput>(
+  input: readonly TInput[],
+  project: (value: TInput) => Promise<TOutput>,
+): Promise<readonly TOutput[]> {
+  const output = new Array<TOutput>(input.length);
+  let cursor = 0;
+  const worker = async () => {
+    while (cursor < input.length) {
+      const index = cursor;
+      cursor += 1;
+      output[index] = await project(input[index]!);
+    }
+  };
+  await Promise.all(Array.from(
+    { length: Math.min(4, input.length) },
+    () => worker(),
+  ));
+  return output;
+}
+
 async function projectAppAIConfigSummary(input: {
   readonly registration: LocalDevelopmentRegistration;
   readonly source: DesktopAppsProjectionSource;
   readonly previous: DesktopAppAIConfigSummary | null;
   readonly refresh: boolean;
+  readonly timeoutMs: number;
 }): Promise<DesktopAppAIConfigSummary | null> {
   if (!input.registration.appAccess.includes('runtime.consume')) return null;
   if (!input.refresh) return input.previous;
   if (!input.source.readAppAIConfig) return unavailableAIConfigSummary();
+  const controller = new AbortController();
+  let timeout: ReturnType<typeof setTimeout> | undefined;
   try {
-    const config = await input.source.readAppAIConfig(input.registration.appId);
-    return summarizeAppAIConfig(config);
+    const timedOut = new Promise<never>((_resolve, reject) => {
+      timeout = setTimeout(() => {
+        controller.abort('desktop-app-ai-config-summary-timeout');
+        reject(new Error('Desktop App AIConfig summary read timed out'));
+      }, input.timeoutMs);
+    });
+    const snapshot = await Promise.race([
+      input.source.readAppAIConfig(input.registration.appId, {
+        timeoutMs: input.timeoutMs,
+        signal: controller.signal,
+      }),
+      timedOut,
+    ]);
+    return summarizeAppAIConfig(snapshot);
   } catch {
-    return unavailableAIConfigSummary();
+    return unavailableAIConfigSummary(input.previous);
+  } finally {
+    if (timeout !== undefined) clearTimeout(timeout);
   }
 }
 
 export function summarizeAppAIConfig(
-  config: NimiPortableAppAIConfig | null,
+  snapshot: NimiAIConfigSnapshot,
 ): DesktopAppAIConfigSummary {
+  const config = snapshot.config;
   const capabilities = config?.capabilities ?? [];
   const localCount = capabilities.filter((entry) => entry.route.oneofKind === 'local').length;
   const cloudCount = capabilities.filter((entry) => entry.route.oneofKind === 'cloud').length;
-  const configuredCount = localCount + cloudCount;
-  const totalCount = CANONICAL_CAPABILITY_IDS.length;
-  const partial = configuredCount > 0 && configuredCount < totalCount;
+  const intentCount = localCount + cloudCount;
+  const total = CANONICAL_CAPABILITY_IDS.length;
+  const partial = intentCount > 0 && intentCount < total;
   const route = localCount > 0 && cloudCount > 0
     ? 'mixed'
     : cloudCount > 0 ? 'cloud' : 'local';
-  const posture: DesktopAppAIConfigPosture = configuredCount === 0
+  const routePosture: DesktopAppAIConfigRoutePosture = intentCount === 0
     ? 'unconfigured'
     : partial ? `partial-${route}` : route;
-  return { posture, configuredCount, totalCount, localCount, cloudCount };
+  const effectiveByCapability = new Map(
+    snapshot.effectiveSelections.map((selection) => [selection.capabilityContract, selection]),
+  );
+  const blockedCount = capabilities.filter((capability) => {
+    const state = effectiveByCapability.get(capability.capabilityContract)?.state;
+    return state === 'missing' || state === 'blocked';
+  }).length;
+  const effectiveUnavailable = capabilities.some((capability) => {
+    const state = effectiveByCapability.get(capability.capabilityContract)?.state;
+    return state === undefined || state === 'unavailable';
+  });
+  const healthPosture: DesktopAppAIConfigHealthPosture = effectiveUnavailable
+    ? 'unavailable'
+    : blockedCount > 0 ? 'blocked' : 'healthy';
+  return { routePosture, healthPosture, intentCount, total, blockedCount, localCount, cloudCount };
 }
 
-function unavailableAIConfigSummary(): DesktopAppAIConfigSummary {
+function unavailableAIConfigSummary(
+  previous: DesktopAppAIConfigSummary | null = null,
+): DesktopAppAIConfigSummary {
+  if (previous) return { ...previous, healthPosture: 'unavailable' };
   return {
-    posture: 'unavailable',
-    configuredCount: 0,
-    totalCount: CANONICAL_CAPABILITY_IDS.length,
+    routePosture: 'unconfigured',
+    healthPosture: 'unavailable',
+    intentCount: 0,
+    total: CANONICAL_CAPABILITY_IDS.length,
+    blockedCount: 0,
     localCount: 0,
     cloudCount: 0,
   };

@@ -8,6 +8,7 @@ import (
 	aicatalog "github.com/nimiplatform/nimi/runtime/internal/aicatalog"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -28,6 +29,43 @@ type AIConfigCloudTargetOption struct {
 	SupportedFeatures []string
 	State             runtimev1.AIConfigEffectiveState
 	Reasons           []runtimev1.ReasonCode
+}
+
+func aiConfigCloudImplementation(provider string) (*runtimev1.CapabilityImplementationIdentity, bool) {
+	provider = strings.TrimSpace(provider)
+	providerCapability, supported := ProviderCapabilities[provider]
+	if !supported || providerCapability.RuntimePlane != "remote" || !providerCapability.ManagedSupported ||
+		strings.TrimSpace(providerCapability.ExecutionModule) == "" {
+		return nil, false
+	}
+	return &runtimev1.CapabilityImplementationIdentity{
+		ImplementationId: provider,
+		DriverId:         providerCapability.ExecutionModule,
+		DriverDialect:    provider,
+	}, true
+}
+
+// ValidateAIConfigCloudSelection closes the safe configuration boundary for
+// one exact Connector, capability, implementation, and provider-model target.
+// It performs no credential projection, provider probe, routing, or fallback.
+func ValidateAIConfigCloudSelection(
+	store *ConnectorStore,
+	modelCatalog *aicatalog.Resolver,
+	accountID string,
+	capabilityContract string,
+	implementation *runtimev1.CapabilityImplementationIdentity,
+	ref RemoteModelCatalogRef,
+) (ConnectorRecord, *RemoteModelCatalogBinding, error) {
+	record, binding, err := ResolveExactAccountConnectorBinding(store, modelCatalog, accountID, ref)
+	if err != nil {
+		return ConnectorRecord{}, nil, err
+	}
+	expected, supported := aiConfigCloudImplementation(record.Provider)
+	if binding == nil || !supported || !containsExact(binding.Capabilities, strings.TrimSpace(capabilityContract)) ||
+		!proto.Equal(implementation, expected) {
+		return ConnectorRecord{}, nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONFIG_INVALID)
+	}
+	return record, binding, nil
 }
 
 func ListAIConfigCloudConnectorOptions(
@@ -159,11 +197,13 @@ func ListAIConfigCloudTargetOptions(
 		if err != nil {
 			return nil, false, err
 		}
+		implementation, implementationSupported := aiConfigCloudImplementation(provider)
+		if !implementationSupported {
+			continue
+		}
 		options = append(options, AIConfigCloudTargetOption{
 			ConnectorRef: connectorRef, Label: label, Capability: capabilityContract,
-			Implementation: &runtimev1.CapabilityImplementationIdentity{
-				ImplementationId: provider, DriverId: providerCapability.ExecutionModule, DriverDialect: provider,
-			},
+			Implementation: implementation,
 			ProviderTarget: target, SupportedFeatures: append([]string(nil), model.Model.Features...),
 			State: state, Reasons: append([]runtimev1.ReasonCode(nil), reasons...),
 		})

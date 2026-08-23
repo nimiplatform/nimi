@@ -15,6 +15,7 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 func newLocalAppConfigureTestService(t *testing.T) (*Service, string, string) {
@@ -152,6 +153,35 @@ func TestLocalAppSharedAIConfigListsExactCloudOptions(t *testing.T) {
 	})
 	if err != nil || len(targets.GetCloudTargets().GetOptions()) == 0 {
 		t.Fatalf("shared Cloud target options = (%+v, %v)", targets, err)
+	}
+	selected := targets.GetCloudTargets().GetOptions()[0]
+	badImplementation, _ := proto.Clone(selected.GetImplementation()).(*runtimev1.CapabilityImplementationIdentity)
+	badImplementation.DriverDialect += ".forged"
+	badIntent := &runtimev1.AIConfigCapabilityIntent{
+		CapabilityContract: "text.generate",
+		Route: &runtimev1.AIConfigCapabilityIntent_Cloud{Cloud: &runtimev1.AIConfigCloudIntent{
+			ConnectorRef: record.ConnectorID, Implementation: badImplementation,
+			ProviderModelTarget: proto.Clone(selected.GetProviderModelTarget()).(*structpb.Struct),
+		}},
+	}
+	_, overwriteCtx := localAppConfigureContext(accountservice.LocalAppOperationSharedAIConfigOverwrite, 0x22, accountID)
+	if _, err := svc.OverwriteLocalAppSharedLocalAgentAIConfig(overwriteCtx, &runtimev1.OverwriteLocalAppSharedLocalAgentAIConfigRequest{
+		ExpectedRevision: "0", Capabilities: []*runtimev1.AIConfigCapabilityIntent{badIntent},
+	}); status.Code(err) != codes.InvalidArgument {
+		t.Fatalf("forged shared Cloud implementation code = %s, want InvalidArgument: %v", status.Code(err), err)
+	}
+	badStored := &runtimev1.AIConfig{
+		Owner: aiconfig.LocalAgentSubsystemOwner(), Capabilities: []*runtimev1.AIConfigCapabilityIntent{badIntent},
+	}
+	if _, _, committed, err := svc.aiConfigStore.Overwrite(context.Background(), accountID, "0", badStored); err != nil || !committed {
+		t.Fatalf("seed incompatible shared Cloud intent = committed=%v err=%v", committed, err)
+	}
+	_, getCtx := localAppConfigureContext(accountservice.LocalAppOperationSharedAIConfigGet, 0x22, accountID)
+	read, err := svc.GetLocalAppSharedLocalAgentAIConfig(getCtx, &runtimev1.GetLocalAppSharedLocalAgentAIConfigRequest{})
+	effective := read.GetProjection().GetEffectiveSelections()
+	if err != nil || len(effective) != 1 ||
+		effective[0].GetState() != runtimev1.AIConfigEffectiveState_AI_CONFIG_EFFECTIVE_STATE_BLOCKED {
+		t.Fatalf("incompatible stored shared Cloud effective projection = (%+v, %v)", read, err)
 	}
 }
 

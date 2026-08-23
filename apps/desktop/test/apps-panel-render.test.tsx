@@ -142,9 +142,11 @@ test('Apps library renders bounded App AIConfig posture without opening the App'
   const configured = {
     ...entry(),
     aiConfigSummary: {
-      posture: 'partial-cloud' as const,
-      configuredCount: 2,
-      totalCount: 9,
+      routePosture: 'partial-cloud' as const,
+      healthPosture: 'blocked' as const,
+      intentCount: 2,
+      total: 9,
+      blockedCount: 1,
       localCount: 0,
       cloudCount: 2,
     },
@@ -153,7 +155,8 @@ test('Apps library renders bounded App AIConfig posture without opening the App'
     projection: { status: 'loaded', entries: [configured] },
   }));
   assert.ok(markup.includes('data-app-ai-config-summary="partial-cloud"'));
-  assert.ok(markup.includes('部分云端 · 2/9'));
+  assert.ok(markup.includes('data-app-ai-config-health="blocked"'));
+  assert.ok(markup.includes('部分云端 · 2/9 · 1 项受阻'));
 });
 
 test('Apps rail pins running apps first without group sections', async () => {

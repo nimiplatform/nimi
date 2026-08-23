@@ -6,10 +6,11 @@ import { resolveDetailAppId } from './apps-card-fields.js';
 import { createDesktopAppsLiveBridge } from './apps-live-bridge.js';
 import {
   projectAppsPanel,
+  type DesktopAppAIConfigReadOptions,
   type DesktopAppsPanelProjection,
   type DesktopAppsProjectionSource,
 } from './apps-panel-projection.js';
-import type { NimiCapabilityAIConfig } from '@nimiplatform/kit/core/sdk-contract';
+import type { NimiAIConfigSnapshot } from '@nimiplatform/kit/core/sdk-contract';
 
 export interface AppsPanelState {
   readonly projection: DesktopAppsPanelProjection | null;
@@ -28,7 +29,10 @@ export type AppsPanelController = AppsPanelState & AppsPanelActions;
 
 export interface AppsPanelControllerDeps {
   readonly buildLiveBridge?: typeof createDesktopAppsLiveBridge;
-  readonly readAppAIConfig?: (appId: string) => Promise<NimiCapabilityAIConfig | null>;
+  readonly readAppAIConfig?: (
+    appId: string,
+    options: DesktopAppAIConfigReadOptions,
+  ) => Promise<NimiAIConfigSnapshot>;
 }
 
 type AppsPanelReloadLane = 'lifecycle' | 'ai-config';

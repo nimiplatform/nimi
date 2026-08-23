@@ -48,8 +48,9 @@ func (s *Service) validateChangedAppAIConfigResourceReferences(
 		}
 		if cloud := capability.GetCloud(); cloud != nil {
 			target := cloud.GetProviderModelTarget().GetFields()
-			if _, _, err := connector.ResolveExactAccountConnectorBinding(
+			if _, _, err := connector.ValidateAIConfigCloudSelection(
 				s.connStore, s.speechCatalog, accountNamespace,
+				capability.GetCapabilityContract(), cloud.GetImplementation(),
 				connector.RemoteModelCatalogRef{
 					ConnectorID:          cloud.GetConnectorRef(),
 					Provider:             target["provider"].GetStringValue(),
@@ -127,8 +128,9 @@ func (s *Service) projectCloudEffectiveSelection(
 		return selection
 	}
 	target := cloud.GetProviderModelTarget().GetFields()
-	record, _, err := connector.ResolveExactAccountConnectorBinding(
-		s.connStore, s.speechCatalog, accountNamespace, connector.RemoteModelCatalogRef{
+	record, _, err := connector.ValidateAIConfigCloudSelection(
+		s.connStore, s.speechCatalog, accountNamespace, capabilityContract, cloud.GetImplementation(),
+		connector.RemoteModelCatalogRef{
 			ConnectorID: cloud.GetConnectorRef(), Provider: target["provider"].GetStringValue(),
 			ProviderModelID:      target["providerModelId"].GetStringValue(),
 			RemoteModelCatalogID: target["remoteModelCatalogId"].GetStringValue(),

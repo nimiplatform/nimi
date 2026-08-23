@@ -17,6 +17,7 @@ import { translateAgentCenter } from '../i18n.js';
 import { getAgentCenterCatalogRecord } from '../locales/index.js';
 import type {
   AgentCenterAutonomyProjection,
+  AgentCenterAutonomyMutationInput,
   AgentCenterBehaviorCopy,
   AgentCenterI18n,
   AgentCenterPlacementActions,
@@ -32,7 +33,7 @@ import {
 } from './AgentCenterPrimitives.js';
 import { AgentCenterProductActionNotice } from './AgentCenterProductActionNotice.js';
 
-type AgentCenterAutonomyMode = 'off' | 'low' | 'medium' | 'high';
+type AgentCenterAutonomyMode = AgentCenterAutonomyMutationInput['mode'];
 
 export interface AgentCenterBehaviorSectionProps {
   readonly session: AgentCenterSession;
@@ -119,7 +120,7 @@ export function AgentCenterBehaviorSection({ session, snapshot, i18n, placementA
   const mutationAvailable = actionAvailable && !autonomy.controlsDisabled;
   const [enabled, setEnabled] = useState(autonomy.enabled === true);
   const [mode, setMode] = useState<AgentCenterAutonomyMode>(
-    (autonomy.mode || 'off') as AgentCenterAutonomyMode,
+    autonomy.mode || 'off',
   );
   const [dailyTokenBudget, setDailyTokenBudget] = useState(String(autonomy.dailyTokenBudget ?? 0));
   const [maxTokensPerHook, setMaxTokensPerHook] = useState(String(autonomy.maxTokensPerHook ?? 0));
@@ -128,7 +129,7 @@ export function AgentCenterBehaviorSection({ session, snapshot, i18n, placementA
 
   useEffect(() => {
     setEnabled(autonomy.enabled === true);
-    setMode((autonomy.mode || 'off') as AgentCenterAutonomyMode);
+    setMode(autonomy.mode || 'off');
     setDailyTokenBudget(String(autonomy.dailyTokenBudget ?? 0));
     setMaxTokensPerHook(String(autonomy.maxTokensPerHook ?? 0));
   }, [autonomy.dailyTokenBudget, autonomy.enabled, autonomy.maxTokensPerHook, autonomy.mode]);
@@ -217,7 +218,7 @@ export function AgentCenterBehaviorSection({ session, snapshot, i18n, placementA
       });
       const committed = session.getSnapshot().state.autonomy;
       setEnabled(committed.enabled ?? nextEnabled);
-      setMode((committed.mode || nextMode) as AgentCenterAutonomyMode);
+      setMode(committed.mode || nextMode);
       setDailyTokenBudget(String(committed.dailyTokenBudget ?? nextDailyBudget));
       setMaxTokensPerHook(String(committed.maxTokensPerHook ?? nextPerHookBudget));
       setMutationStatus({ text: labels.savedLabel, tone: 'success' });

@@ -12,6 +12,7 @@ import (
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -106,6 +107,35 @@ func TestProtectedAppAIConfigListsExactCloudConnectorAndTargets(t *testing.T) {
 	selected := targets.GetCloudTargets().GetOptions()[0]
 	if selected.GetConnectorRef() != fixture.connectorID || selected.GetProviderModelTarget() == nil || selected.GetImplementation() == nil {
 		t.Fatalf("Cloud target option = %+v", selected)
+	}
+	badImplementation, _ := proto.Clone(selected.GetImplementation()).(*runtimev1.CapabilityImplementationIdentity)
+	badImplementation.DriverId += ".forged"
+	badIntent := &runtimev1.AIConfigCapabilityIntent{
+		CapabilityContract: "text.generate",
+		Route: &runtimev1.AIConfigCapabilityIntent_Cloud{Cloud: &runtimev1.AIConfigCloudIntent{
+			ConnectorRef: fixture.connectorID, Implementation: badImplementation,
+			ProviderModelTarget: proto.Clone(selected.GetProviderModelTarget()).(*structpb.Struct),
+		}},
+	}
+	writeCtx := localAppAIConfigContext(
+		"user-001", "app.options", accountservice.LocalAppOperationAppAIConfigOverwrite,
+	)
+	if _, err := fixture.service.OverwriteAppAIConfig(writeCtx, &runtimev1.OverwriteAppAIConfigRequest{
+		Config: ownerlessAppAIConfig(badIntent), ExpectedRevision: "0",
+	}); status.Code(err) != codes.InvalidArgument {
+		t.Fatalf("forged Cloud implementation code = %s, want InvalidArgument: %v", status.Code(err), err)
+	}
+	badStored := appAIConfig("app.options", badIntent)
+	if _, _, committed, err := fixture.service.aiConfigStore.Overwrite(context.Background(), "user-001", "0", badStored); err != nil || !committed {
+		t.Fatalf("seed incompatible stored Cloud intent = committed=%v err=%v", committed, err)
+	}
+	readCtx := localAppAIConfigContext(
+		"user-001", "app.options", accountservice.LocalAppOperationAppAIConfigRead,
+	)
+	read, err := fixture.service.GetAppAIConfig(readCtx, &runtimev1.GetAppAIConfigRequest{})
+	if err != nil || len(read.GetEffectiveSelections()) != 1 ||
+		read.GetEffectiveSelections()[0].GetState() != runtimev1.AIConfigEffectiveState_AI_CONFIG_EFFECTIVE_STATE_BLOCKED {
+		t.Fatalf("incompatible stored Cloud effective projection = (%+v, %v)", read, err)
 	}
 }
 

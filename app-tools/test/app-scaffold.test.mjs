@@ -1214,6 +1214,11 @@ test('create accepts candidate studio-create as one shared AI Studio route with 
   assert.match(host, /_STORAGE_JSON_NOT_FOUND/);
   assert.match(host, /_LOCAL_ASSET_NOT_FOUND/);
   assert.match(host, /section: 'ai-models'/);
+  assert.match(host, /aiConfig\.listOptions\(query\)/);
+  assert.match(host, /aiConfig\.overwrite\(input\)/);
+  assert.match(host, /revision=\{snapshot\?\.revision\}/);
+  assert.match(host, /effectiveSelections\.map/);
+  assert.doesNotMatch(host, /modelConfig\.localSelections|consumer: 'third-party-app'/);
   assert.match(host, /renderAIConfigPanel=\{\(input\) => <GeneratedAIConfigPanel/);
   assert.match(host, /load: loadVerifiedHistory/);
   assert.match(host, /persist: persistHistory/);

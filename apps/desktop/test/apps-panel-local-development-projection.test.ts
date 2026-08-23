@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { createNimiCloudAIConfigCapabilityIntent } from '@nimiplatform/sdk/ai';
+import {
+  createNimiCloudAIConfigCapabilityIntent,
+  type NimiAIConfigSnapshot,
+} from '@nimiplatform/sdk/ai';
 import type { LocalDevelopmentRegistration } from '../src/shell/renderer/features/local-development/local-development-types.js';
 import { createAppsPanelProjectionReloader } from '../src/shell/renderer/features/apps/apps-panel-controller.js';
 import {
@@ -24,6 +27,10 @@ function registration(
     updatedAtUnixMs: 1_722_000_000_000,
     ...overrides,
   };
+}
+
+function unconfiguredSnapshot(): NimiAIConfigSnapshot {
+  return { config: null, revision: '0', effectiveSelections: [] };
 }
 
 describe('Desktop Apps local-development registration projection', () => {
@@ -74,18 +81,25 @@ describe('Desktop Apps local-development registration projection', () => {
       async readAppAIConfig(appId) {
         reads.push(appId);
         return {
-          owner: { owner: { oneofKind: 'app', app: { appId } } },
-          capabilities: [{
-            capabilityContract: 'text.generate',
-            requiredFeatures: [],
-            route: { oneofKind: 'local', local: { loadoutRef: 'loadout:text' } },
-          }, createNimiCloudAIConfigCapabilityIntent({
-            capabilityContract: 'image.generate', connectorRef: 'connector:image',
-            implementation: { implementationId: 'provider', driverId: 'driver', driverDialect: 'provider' },
-            providerModelTarget: {
-              provider: 'provider', providerModelId: 'image-1', remoteModelCatalogId: 'catalog:image-1',
-            },
-          })],
+          config: {
+            owner: { owner: { oneofKind: 'app', app: { appId } } },
+            capabilities: [{
+              capabilityContract: 'text.generate',
+              requiredFeatures: [],
+              route: { oneofKind: 'local', local: { loadoutRef: 'loadout:text' } },
+            }, createNimiCloudAIConfigCapabilityIntent({
+              capabilityContract: 'image.generate', connectorRef: 'connector:image',
+              implementation: { implementationId: 'provider', driverId: 'driver', driverDialect: 'provider' },
+              providerModelTarget: {
+                provider: 'provider', providerModelId: 'image-1', remoteModelCatalogId: 'catalog:image-1',
+              },
+            })],
+          },
+          revision: '1',
+          effectiveSelections: [
+            { capabilityContract: 'text.generate', state: 'ready', resource: null, reasons: [] },
+            { capabilityContract: 'image.generate', state: 'blocked', resource: null, reasons: ['AI_CONNECTOR_DISABLED'] },
+          ],
         };
       },
     });
@@ -93,17 +107,19 @@ describe('Desktop Apps local-development registration projection', () => {
     if (projection.status !== 'loaded') return;
     assert.deepEqual(reads, ['example.local-app']);
     assert.deepEqual(projection.entries[0]?.aiConfigSummary, {
-      posture: 'partial-mixed',
-      configuredCount: 2,
-      totalCount: 9,
+      routePosture: 'partial-mixed',
+      healthPosture: 'blocked',
+      intentCount: 2,
+      total: 9,
+      blockedCount: 1,
       localCount: 1,
       cloudCount: 1,
     });
   });
 
   it('keeps AIConfig refresh single-flight while lifecycle refresh commits independently', async () => {
-    let resolveAIConfig!: (value: null) => void;
-    const pendingAIConfig = new Promise<null>((resolve) => { resolveAIConfig = resolve; });
+    let resolveAIConfig!: (value: NimiAIConfigSnapshot) => void;
+    const pendingAIConfig = new Promise<NimiAIConfigSnapshot>((resolve) => { resolveAIConfig = resolve; });
     let reads = 0;
     let current: DesktopAppsPanelProjection | null = null;
     const reloader = createAppsPanelProjectionReloader({
@@ -129,14 +145,55 @@ describe('Desktop Apps local-development registration projection', () => {
     assert.strictEqual(reloader.reload(true), initialAIRefresh);
     assert.equal(reads, 1);
 
-    resolveAIConfig(null);
+    resolveAIConfig(unconfiguredSnapshot());
     await initialAIRefresh;
     const refreshedProjection = current as DesktopAppsPanelProjection | null;
     assert.equal(refreshedProjection?.status, 'loaded');
     if (refreshedProjection?.status === 'loaded') {
-      assert.equal(refreshedProjection.entries[0]?.aiConfigSummary?.posture, 'unconfigured');
+      assert.equal(refreshedProjection.entries[0]?.aiConfigSummary?.routePosture, 'unconfigured');
+      assert.equal(refreshedProjection.entries[0]?.aiConfigSummary?.healthPosture, 'healthy');
     }
     reloader.dispose();
+  });
+
+  it('bounds AIConfig fan-out and isolates one timed-out owner', async () => {
+    const registrations = Array.from({ length: 7 }, (_value, index) => registration({
+      selector: `dev-project-${index}`,
+      appId: index === 0 ? 'hung.local-app' : `app-${index}.local-app`,
+      appAccess: ['runtime.consume'],
+      updatedAtUnixMs: 1_723_000_000_000 - index,
+    }));
+    let active = 0;
+    let maximumActive = 0;
+    const projection = await projectAppsPanel({
+      listRegistrations: async () => registrations,
+      listRuns: async () => [],
+      readAppAIConfig: async (appId, options) => {
+        active += 1;
+        maximumActive = Math.max(maximumActive, active);
+        if (appId === 'hung.local-app') {
+          return await new Promise<NimiAIConfigSnapshot>((_resolve, reject) => {
+            options.signal.addEventListener('abort', () => {
+              active -= 1;
+              reject(new Error('timed out'));
+            }, { once: true });
+          });
+        }
+        return await new Promise<NimiAIConfigSnapshot>((resolve) => {
+          setTimeout(() => {
+            active -= 1;
+            resolve(unconfiguredSnapshot());
+          }, 1);
+        });
+      },
+    }, { aiConfigReadTimeoutMs: 20 });
+
+    assert.equal(projection.status, 'loaded');
+    assert.ok(maximumActive <= 4, `maximum active AIConfig reads = ${maximumActive}`);
+    if (projection.status !== 'loaded') return;
+    assert.equal(projection.entries.length, registrations.length);
+    assert.equal(projection.entries[0]?.aiConfigSummary?.healthPosture, 'unavailable');
+    assert.equal(projection.entries[1]?.aiConfigSummary?.healthPosture, 'healthy');
   });
 
   it('surfaces Runtime failure without fabricating entries', async () => {

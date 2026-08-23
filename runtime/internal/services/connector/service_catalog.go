@@ -150,6 +150,7 @@ type RemoteModelCatalogBinding struct {
 	EndpointProfileID    string
 	ConnectorSnapshotID  string
 	InventorySnapshotID  string
+	Capabilities         []string
 }
 
 // ResolveExactAccountConnectorBinding resolves only the exact account-owned
@@ -250,6 +251,7 @@ func ResolveRemoteModelCatalogBinding(modelCatalog *aicatalog.Resolver, subjectU
 			EndpointProfileID:    identity.endpointProfileID,
 			ConnectorSnapshotID:  identity.connectorSnapshotID,
 			InventorySnapshotID:  identity.inventorySnapshotID,
+			Capabilities:         append([]string(nil), model.Model.Capabilities...),
 		}, nil
 	}
 	return RemoteModelCatalogBinding{}, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_REMOTE_MODEL_CATALOG_STALE)

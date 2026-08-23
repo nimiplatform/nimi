@@ -105,6 +105,7 @@ export type NimiDesktopAccountProductRuntimeClient = {
     | 'setAgentPresentationProfile'
     | 'getSharedLocalAgentAIConfig'
     | 'overwriteSharedLocalAgentAIConfig'
+    | 'listSharedLocalAgentAIConfigOptions'
     | 'previewSharedLocalAgentAIProfile'
     | 'applySharedLocalAgentAIProfile'
     | 'getAgentCanonicalMemoryBankStatus'
@@ -250,6 +251,7 @@ export function createNimiDesktopFirstPartyRuntimeClients(
     setAgentPresentationProfile: runtime.agents.setAgentPresentationProfile,
     getSharedLocalAgentAIConfig: runtime.agents.getSharedLocalAgentAIConfig,
     overwriteSharedLocalAgentAIConfig: runtime.agents.overwriteSharedLocalAgentAIConfig,
+    listSharedLocalAgentAIConfigOptions: runtime.agents.listSharedLocalAgentAIConfigOptions,
     previewSharedLocalAgentAIProfile: runtime.agents.previewSharedLocalAgentAIProfile,
     applySharedLocalAgentAIProfile: runtime.agents.applySharedLocalAgentAIProfile,
     getAgentCanonicalMemoryBankStatus: runtime.agents.getAgentCanonicalMemoryBankStatus,
