@@ -32,7 +32,7 @@ test('ambient committed and terminal events merge once with the per-send transcr
     conversation_anchor_id: 'conversation-anchor:shared',
     turn_id: runtimeTurnId,
     stream_id: 'agent_stream_shared_1',
-    detail: { request_id: requestId },
+    detail: {},
   })), null);
 
   const committedEvent = event('runtime.agent.turn.message_committed', {
@@ -128,13 +128,17 @@ function event(messageType, payload) {
   };
   switch (messageType) {
     case 'runtime.agent.turn.accepted':
-      return { ...base, type: 'turn-accepted', requestId: payload.detail.request_id };
+      return { ...base, type: 'turn-accepted' };
     case 'runtime.agent.turn.message_committed':
       return {
         ...base,
         type: 'message-committed',
-        messageId: payload.detail.message_id,
-        text: payload.detail.text,
+        message: {
+          messageId: payload.detail.message_id,
+          turnId: payload.turn_id,
+          role: 'assistant',
+          parts: [{ kind: 'text', text: payload.detail.text }],
+        },
       };
     case 'runtime.agent.turn.completed':
       return { ...base, type: 'turn-completed', terminalReason: payload.detail.terminal_reason };

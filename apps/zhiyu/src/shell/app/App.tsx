@@ -17,6 +17,7 @@ import {
   type ZhiyuRuntimeChatApplyIdentity,
 } from './chat-turn-apply-guard';
 import { ZhiyuAgentChatSurface } from '../agent-chat/ZhiyuAgentChatSurface';
+import type { ZhiyuRuntimeAgentChatAttachment } from '../agent-chat/runtime-agent-turn-adapter';
 import { projectZhiyuHomeProductState } from './home-product-state';
 import { projectZhiyuIdentitySafetyEvidence } from './identity-safety-evidence';
 import { projectZhiyuAvatarLaunchAction } from '../avatar/avatar-launch';
@@ -200,7 +201,10 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
       ? 'ready'
       : 'blocked';
 
-  async function handleSubmit(textInput: string) {
+  async function handleSubmit(
+    textInput: string,
+    attachment?: ZhiyuRuntimeAgentChatAttachment,
+  ) {
     const text = textInput.trim();
     activeChatAbortRef.current?.abort('zhiyu_chat_turn_superseded');
     const activeChatAbort = new AbortController();
@@ -287,6 +291,7 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
     const submitted = await bindings.app.commands.runTurn({
       conversation: evidence.conversation,
       text,
+      ...(attachment ? { attachment } : {}),
       requestId,
       expectedConversationAnchorId: submittedConversation.conversationAnchorId,
       signal: activeChatAbort.signal,
@@ -466,6 +471,20 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
       agentCenterSession={agentCenterSession}
       onDraftChange={setDraft}
       onSubmit={handleSubmit}
+      onTranscribeVoice={async (audioBytes, mimeType) => {
+        const agentHandle = evidence.conversation.agentHandle;
+        const conversationAnchorId = evidence.conversation.conversationAnchorId;
+        if (!agentHandle || !conversationAnchorId) throw new Error('Runtime conversation is unavailable.');
+        const requestId = await bindings.app.commands.allocateTurnRequestId();
+        const result = await bindings.app.commands.transcribeVoice({
+          agentHandle,
+          conversationAnchorId,
+          requestId,
+          mimeType,
+          audioBytes,
+        });
+        return result.text;
+      }}
       onStopChat={handleStopChat}
       onSelectLocalAgent={handleSelectLocalAgent}
       onDesktopOpenRuntimeSettings={bindings.app.commands.openDesktopRuntimeSettings}

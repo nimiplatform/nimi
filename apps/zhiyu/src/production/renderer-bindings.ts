@@ -104,6 +104,9 @@ export function createZhiyuProductionBindings(
           return createZhiyuProductionTurnRequestId();
         },
         runTurn: runZhiyuAgentChatTurn,
+        async transcribeVoice(input: Parameters<ZhiyuCanonicalRendererBindings['app']['commands']['transcribeVoice']>[0]) {
+          return getZhiyuLocalAppClient().conversation.transcribeVoice(input);
+        },
         async openDesktopRuntimeSettings() {
           await requestZhiyuDesktopOpenRuntimeSettings();
         },

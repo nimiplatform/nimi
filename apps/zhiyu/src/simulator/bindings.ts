@@ -11,12 +11,21 @@ import {
   type AgentCenterSession,
   type AgentCenterSharedAIConfigProjection,
 } from '@nimiplatform/kit/features/agent-center';
+
 import type { NimiLocalAppAgentHandle } from '@nimiplatform/sdk/app';
 
 import type { ZhiyuCanonicalRendererBindings, ZhiyuHomeProjection } from '../renderer/contract.js';
 import type { ZhiyuRuntimeAgentChatTurnResult } from '../shell/agent-chat/runtime-agent-turn-adapter.js';
 import { createInitialZhiyuEvidence, type ZhiyuEvidence } from '../shell/app/evidence.js';
 import type { ZhiyuSimulatorJsonValue, ZhiyuSimulatorPrepareContext } from './protocol.js';
+
+const SIMULATED_LOCAL_AGENT_PARTICIPATION = Object.freeze([
+  Object.freeze({ role: 'conversation.primary' as const, capabilityContract: 'text.generate' as const }),
+  Object.freeze({ role: 'memory.embedding' as const, capabilityContract: 'text.embed' as const }),
+  Object.freeze({ role: 'conversation.input.voice' as const, capabilityContract: 'audio.transcribe' as const }),
+  Object.freeze({ role: 'conversation.output.voice' as const, capabilityContract: 'audio.synthesize' as const }),
+  Object.freeze({ role: 'conversation.action.image' as const, capabilityContract: 'image.generate' as const }),
+]);
 
 type JsonRecord = { readonly [key: string]: ZhiyuSimulatorJsonValue };
 type ScenarioAgent = {
@@ -327,6 +336,7 @@ function simulatedAgentCenterSession(
           config: sharedAIConfig().aiConfig,
           revision: aiConfigRevision,
           effectiveSelections: Object.freeze([]),
+          participation: SIMULATED_LOCAL_AGENT_PARTICIPATION,
         });
       },
       async overwrite(input) {
@@ -336,6 +346,7 @@ function simulatedAgentCenterSession(
             config: sharedAIConfig().aiConfig,
             revision: aiConfigRevision,
             reasonCode: 'AGENT_AI_CONFIG_REVISION_CONFLICT' as const,
+            participation: SIMULATED_LOCAL_AGENT_PARTICIPATION,
           });
         }
         capabilities = [...input.capabilities];
@@ -344,6 +355,7 @@ function simulatedAgentCenterSession(
           outcome: 'committed' as const,
           config: sharedAIConfig().aiConfig,
           revision: aiConfigRevision,
+          participation: SIMULATED_LOCAL_AGENT_PARTICIPATION,
         });
       },
       async listOptions(input) {
@@ -417,7 +429,6 @@ function simulatedSharedAIConfig(
   return Object.freeze({
     aiConfig,
     revision: '1',
-    capabilities: Object.freeze(intents.map((intent) => intent.capability)),
     intents: Object.freeze(intents),
   });
 }
@@ -500,6 +511,9 @@ export function createZhiyuSimulatorBindings(
         },
       }),
       commands: Object.freeze({
+        async transcribeVoice() {
+          throw new Error('Protected voice transcription is unavailable in the simulator.');
+        },
         async allocateTurnRequestId() {
           const accepted = await invoke(context, 'zhiyu.turn.allocate', {});
           return `zhiyu-turn-sim-${accepted.revision}`;

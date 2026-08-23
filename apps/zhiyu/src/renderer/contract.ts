@@ -48,6 +48,13 @@ export interface ZhiyuRendererProjectionPort {
 export interface ZhiyuRendererCommandPort {
   allocateTurnRequestId(): Promise<string>;
   runTurn(input: ZhiyuRuntimeAgentChatTurnInput): Promise<ZhiyuRuntimeAgentChatTurnResult>;
+  transcribeVoice(input: {
+    readonly agentHandle: NimiLocalAppAgentHandle;
+    readonly conversationAnchorId: string;
+    readonly requestId: string;
+    readonly mimeType: string;
+    readonly audioBytes: Uint8Array;
+  }): Promise<{ readonly text: string }>;
   openDesktopRuntimeSettings(): Promise<void>;
   openDesktopSelectPartner(): Promise<ZhiyuDesktopOpenActionResult>;
   launchAvatar(input: {

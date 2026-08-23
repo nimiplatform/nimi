@@ -58,11 +58,19 @@ export type ZhiyuLocalAppTurnRequest = {
   readonly threadId: string;
   readonly requestId: string;
   readonly text: string;
+  readonly attachment?: ZhiyuRuntimeAgentChatAttachment;
+};
+
+export type ZhiyuRuntimeAgentChatAttachment = {
+  readonly bytes: Uint8Array;
+  readonly mimeType: 'image/png' | 'image/jpeg' | 'image/webp' | 'image/gif';
+  readonly displayName: string;
 };
 
 export type ZhiyuRuntimeAgentChatTurnInput = {
   readonly conversation: ZhiyuConversationHomeStatus;
   readonly text: unknown;
+  readonly attachment?: ZhiyuRuntimeAgentChatAttachment;
   readonly requestId?: unknown;
   readonly expectedConversationAnchorId?: unknown;
   readonly signal?: AbortSignal;
@@ -81,15 +89,6 @@ export type ZhiyuRuntimeAgentChatTurnInput = {
 export async function runZhiyuAgentChatTurn(
   input: ZhiyuRuntimeAgentChatTurnInput,
 ): Promise<ZhiyuRuntimeAgentChatTurnResult> {
-  if ('attachments' in input) {
-    return chatUnavailable({
-      reasonCode: 'zhiyu-turn-attachment-unsupported',
-      actionHint: 'remove_conversation_attachment',
-      source: 'renderer',
-      message: 'Third-party Local App Agent conversations are text-only.',
-      requestId: stringOr(input.requestId, null),
-    });
-  }
   const identity = conversationIdentity(input.conversation);
   if (!identity) {
     return chatUnavailable({
@@ -119,7 +118,7 @@ export async function runZhiyuAgentChatTurn(
   }
 
   const text = stringOr(input.text, '');
-  if (!text) {
+  if (!text && !input.attachment) {
     return chatUnavailable({
       reasonCode: 'zhiyu-turn-text-required',
       actionHint: 'enter_runtime_agent_turn_text',
@@ -135,9 +134,12 @@ export async function runZhiyuAgentChatTurn(
     ...identity,
     requestId,
     text,
+    ...(input.attachment ? { attachment: input.attachment } : {}),
   });
+  const conversationClient = input.conversationClient
+    ?? (input.streamTurn ? null : getZhiyuLocalAppClient().conversation);
   const streamTurn = input.streamTurn
-    ?? createLocalAppStreamTurn(input.conversationClient ?? getZhiyuLocalAppClient().conversation);
+    ?? createLocalAppStreamTurn(conversationClient!);
   const initialProjection = createRuntimeAgentConversationProjectionState({
     modeId: 'runtime-agent-chat-v1',
     threadId: identity.threadId,
@@ -148,7 +150,7 @@ export async function runZhiyuAgentChatTurn(
     localAgentRef: null,
     userMessage: {
       id: `${requestId}:user`,
-      text,
+      text: text || input.attachment?.displayName || 'Attached image',
     },
     assistantMessageId: `${requestId}:assistant`,
     assistantName: 'Zhiyu Agent',
@@ -162,9 +164,25 @@ export async function runZhiyuAgentChatTurn(
       threadId: identity.threadId,
       turnId: requestId,
       parts: streamed.stream,
+      ...(conversationClient ? { resolveArtifactPreviewUri: async ({ artifactId }: { artifactId: string }) => {
+        const artifact = await conversationClient.readArtifact({
+          agentHandle: identity.agentHandle,
+          conversationAnchorId: identity.conversationAnchorId,
+          artifactId,
+        });
+        return zhiyuArtifactDataUrl(artifact.bytes, artifact.mimeType);
+      } } : {}),
     })) {
       projection = reduceRuntimeAgentConversationProjectionEvent(projection, event);
       input.onEvent?.(event, projection);
+    }
+    if (conversationClient) {
+      projection = await attachFinalVoiceSidecar(
+        projection,
+        conversationClient,
+        identity.agentHandle,
+        identity.conversationAnchorId,
+      );
     }
     return chatResultFromProjection(projection, {
       ...identity,
@@ -191,6 +209,7 @@ function buildLocalAppTurnRequest(input: {
   readonly threadId: string;
   readonly requestId: string;
   readonly text: string;
+  readonly attachment?: ZhiyuRuntimeAgentChatAttachment;
 }): ZhiyuLocalAppTurnRequest {
   return {
     agentHandle: input.agentHandle,
@@ -198,6 +217,7 @@ function buildLocalAppTurnRequest(input: {
     requestId: input.requestId,
     threadId: input.threadId,
     text: input.text,
+    ...(input.attachment ? { attachment: input.attachment } : {}),
   };
 }
 
@@ -233,10 +253,22 @@ async function* localAppConversationParts(
       yield { type: 'turn-canceled', scope: 'turn' };
       return;
     }
+    const uploaded = request.attachment
+      ? await conversation.uploadAttachment({
+        ...scope,
+        mimeType: request.attachment.mimeType,
+        displayName: request.attachment.displayName,
+        bytes: request.attachment.bytes,
+      })
+      : null;
+    const parts = [
+      ...(request.text ? [{ kind: 'text' as const, text: request.text }] : []),
+      ...(uploaded ? [{ kind: 'artifact-ref' as const, artifactId: uploaded.artifactId }] : []),
+    ];
     const sent = await conversation.send({
       ...scope,
       requestId: request.requestId,
-      text: request.text,
+      parts,
     });
     const iterator = subscription[Symbol.asyncIterator]();
     while (true) {
@@ -252,9 +284,6 @@ async function* localAppConversationParts(
       const event = next.result.value;
       if (event.conversationAnchorId !== request.conversationAnchorId
         || event.turnId !== sent.turnId) {
-        continue;
-      }
-      if (event.type === 'turn-accepted' && event.requestId !== request.requestId) {
         continue;
       }
       const part = localAppEventPart(event);
@@ -313,17 +342,63 @@ function localAppEventPart(
   event: NimiLocalAppConversationEvent,
 ): RuntimeAgentTurnRunnerPartLike | null {
   switch (event.type) {
-    case 'text-delta':
-      return { type: 'text-delta', textDelta: event.text };
-    case 'message-committed':
+    case 'message-committed': {
+      if (event.message.role !== 'assistant') return null;
+      const text = event.message.parts.find((part) => part.kind === 'text');
+      const artifact = event.message.parts.find((part) => part.kind === 'artifact-ref');
+      if (artifact) {
+        return {
+          type: 'artifact-ready',
+          beatId: artifact.artifactId,
+          turnId: event.turnId,
+          artifactId: artifact.artifactId,
+          mimeType: artifact.mimeType,
+          projectionMessageId: event.message.messageId,
+        };
+      }
+      if (!text) return null;
       return {
         type: 'message-sealed',
         envelope: {
           message: {
-            messageId: event.messageId,
-            text: event.text,
+            messageId: event.message.messageId,
+            text: text.text,
           },
         },
+      };
+    }
+    case 'action-planned':
+      return {
+        type: 'beat-planned',
+        beatId: event.action.actionId,
+        turnId: event.turnId,
+        projectionMessageId: event.action.projectionMessageId ?? undefined,
+      };
+    case 'action-started':
+      return {
+        type: 'beat-delivery-started',
+        beatId: event.action.actionId,
+        turnId: event.turnId,
+        projectionMessageId: event.action.projectionMessageId ?? undefined,
+      };
+    case 'action-completed':
+      return {
+        type: 'beat-delivered',
+        beatId: event.action.actionId,
+        turnId: event.turnId,
+        projectionMessageId: event.action.projectionMessageId ?? undefined,
+        artifactId: event.action.artifactId ?? undefined,
+      };
+    case 'action-failed':
+      return {
+        type: 'beat-delivery-failed',
+        beatId: event.action.actionId,
+        turnId: event.turnId,
+        operation: event.action.capabilityContract,
+        modality: 'image',
+        reasonCode: event.action.reasonCode ?? undefined,
+        message: event.action.message ?? undefined,
+        projectionMessageId: event.action.projectionMessageId ?? undefined,
       };
     case 'turn-completed':
       return {
@@ -343,6 +418,9 @@ function localAppEventPart(
       return { type: 'turn-canceled', scope: 'turn' };
     case 'turn-accepted':
     case 'turn-started':
+    case 'artifact-ready':
+    case 'voice-ready':
+    case 'voice-failed':
       return null;
   }
 }
@@ -465,6 +543,60 @@ function createTurnRequestId(): string {
     ? crypto.randomUUID()
     : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
   return `zhiyu-turn-${randomId}`;
+}
+
+export function zhiyuArtifactDataUrl(bytes: Uint8Array, mimeType: string): string {
+  let binary = '';
+  const chunkSize = 0x8000;
+  for (let offset = 0; offset < bytes.length; offset += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(offset, offset + chunkSize));
+  }
+  return `data:${mimeType};base64,${btoa(binary)}`;
+}
+
+async function attachFinalVoiceSidecar(
+  projection: RuntimeAgentConversationProjectionState,
+  conversation: NimiLocalAppClient['conversation'],
+  agentHandle: NimiLocalAppAgentHandle,
+  conversationAnchorId: string,
+): Promise<RuntimeAgentConversationProjectionState> {
+  const snapshot = await conversation.snapshot({ agentHandle, conversationAnchorId });
+  const runtimeTurnId = typeof projection.diagnostics?.runtimeTurnId === 'string'
+    ? projection.diagnostics.runtimeTurnId
+    : null;
+  const voice = runtimeTurnId
+    ? snapshot.voices.find((candidate) => candidate.turnId === runtimeTurnId)
+    : null;
+  if (!voice) return projection;
+  if (voice.state === 'failed') {
+    return {
+      ...projection,
+      messages: projection.messages.map((message) => message.id === voice.messageId
+        ? { ...message, metadata: { ...message.metadata, voiceError: voice.reasonCode } }
+        : message),
+    };
+  }
+  if (!voice.artifactId) return projection;
+  const artifact = await conversation.readArtifact({
+    agentHandle,
+    conversationAnchorId,
+    artifactId: voice.artifactId,
+  });
+  return {
+    ...projection,
+    messages: projection.messages.map((message) => message.id === voice.messageId
+      ? {
+        ...message,
+        kind: 'voice',
+        metadata: {
+          ...message.metadata,
+          voiceArtifactId: voice.artifactId,
+          voiceUrl: zhiyuArtifactDataUrl(artifact.bytes, artifact.mimeType),
+          voiceTranscript: message.text,
+        },
+      }
+      : message),
+  };
 }
 
 function stringOr(value: unknown, fallback: string): string;

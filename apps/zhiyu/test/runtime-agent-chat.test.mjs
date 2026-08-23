@@ -63,7 +63,7 @@ test('Zhiyu Runtime Agent chat delegates streaming turns through Desktop-parity 
     JSON.stringify(captured[0].request),
     /ownerUserId|runtimeSourceRef|localAgentRef|modelId|binding|accessToken|authorization/u,
   );
-  assert.equal(result.ready, true);
+  if (!result.ready) assert.fail(JSON.stringify(result));
   assert.equal(result.state, 'completed');
   assert.equal(result.reasonCode, 'runtime-agent-turn-completed');
   assert.equal(
@@ -119,7 +119,7 @@ test('Zhiyu Runtime Agent chat consumes the admitted direct local-app conversati
           agentHandle: 'lah_v1_agent_opaque',
           conversationAnchorId: 'conversation-anchor:opaque',
           requestId: 'zhiyu-turn-test-local-app',
-          text: 'hello through local app',
+          parts: [{ kind: 'text', text: 'hello through local app' }],
         },
       },
       { method: 'cancel' },
@@ -170,6 +170,7 @@ test('Zhiyu stop routes through the exact local App interrupt operation', async 
           captured.push({ method: 'interrupt', input });
           return { turnId: 'runtime-turn-interrupted' };
         },
+        async snapshot() { return { voices: [] }; },
       },
     });
 
@@ -332,42 +333,41 @@ test('Zhiyu Runtime Agent chat fails closed when the direct local-app shell brid
   assert.equal(result.actionHint, 'inspect_runtime_agent_chat_stream');
 });
 
-test('Zhiyu hard-rejects uploaded artifact attachment residue before turn dispatch', async () => {
+test('Zhiyu uploads one image candidate and sends its artifact ref through the protected conversation', async () => {
   const module = await importRuntimeAgentChat();
-  let called = false;
-  const result = await module.runZhiyuAgentChatTurn({
-    conversation: conversationReady(),
-    text: 'with attachment',
-    attachments: [{ artifactId: 'artifact_01J', displayName: 'photo.png' }],
-    requestId: 'zhiyu-turn-test-attachment',
-    streamTurn: async () => {
-      called = true;
-      throw new Error('attachment residue must not dispatch');
-    },
-  });
-  assert.equal(result.ready, false);
-  assert.equal(result.reasonCode, 'zhiyu-turn-attachment-unsupported');
-  assert.equal(called, false);
-});
-
-test('Zhiyu rejects every attachment-shaped turn before dispatch', async () => {
-  const module = await importRuntimeAgentChat();
-  let called = false;
-  const streamTurn = async () => {
-    called = true;
-    throw new Error('streamTurn must not be called');
-  };
-  for (const attachments of [[], [{ artifactId: 'artifact_01J' }], ['artifact_01J']]) {
-    const rejected = await module.runZhiyuAgentChatTurn({
+  const captured = [];
+  const previousWindow = globalThis.window;
+  globalThis.window = {};
+  globalThis.__nimiZhiyuHasElectronRuntime = true;
+  try {
+    const result = await module.runZhiyuAgentChatTurn({
       conversation: conversationReady(),
-      text: 'with attachment residue',
-      attachments,
-      streamTurn,
+      text: 'with attachment',
+      attachment: {
+        bytes: Uint8Array.from([1, 2, 3]),
+        mimeType: 'image/png',
+        displayName: 'photo.png',
+      },
+      requestId: 'zhiyu-turn-test-attachment',
+      conversationClient: localAppConversationClient(captured),
     });
-    assert.equal(rejected.ready, false);
-    assert.equal(rejected.reasonCode, 'zhiyu-turn-attachment-unsupported');
+    if (!result.ready) assert.fail(JSON.stringify(result));
+    assert.deepEqual(captured.find((entry) => entry.method === 'uploadAttachment')?.input, {
+      agentHandle: 'lah_v1_agent_opaque',
+      conversationAnchorId: 'conversation-anchor:opaque',
+      bytes: Uint8Array.from([1, 2, 3]),
+      mimeType: 'image/png',
+      displayName: 'photo.png',
+    });
+    assert.deepEqual(captured.find((entry) => entry.method === 'send')?.input.parts, [
+      { kind: 'text', text: 'with attachment' },
+      { kind: 'artifact-ref', artifactId: 'artifact-uploaded-local-app' },
+    ]);
+  } finally {
+    delete globalThis.__nimiZhiyuHasElectronRuntime;
+    if (previousWindow === undefined) delete globalThis.window;
+    else globalThis.window = previousWindow;
   }
-  assert.equal(called, false);
 });
 
 test('Zhiyu Runtime Agent chat fails closed for conversation anchor mismatch', async () => {
@@ -524,6 +524,15 @@ async function* parts(items) {
 
 function localAppConversationClient(captured) {
   return {
+    async snapshot() { return { voices: [] }; },
+    async uploadAttachment(input) {
+      captured.push({ method: 'uploadAttachment', input });
+      return { artifactId: 'artifact-uploaded-local-app', expiresAt: '2026-08-23T09:00:00Z' };
+    },
+    async readArtifact(input) {
+      captured.push({ method: 'readArtifact', input });
+      return { artifactId: input.artifactId, bytes: Uint8Array.from([1]), mimeType: 'image/png', byteLength: 1 };
+    },
     async subscribe(scope) {
       captured.push({ method: 'subscribe', input: scope });
       return {
@@ -535,14 +544,28 @@ function localAppConversationClient(captured) {
             conversationAnchorId: 'conversation-anchor:opaque',
             turnId: 'runtime-turn-local-app',
           };
-          yield { ...base, type: 'turn-accepted', sequence: '1', requestId: 'zhiyu-turn-test-local-app' };
-          yield { ...base, type: 'text-delta', sequence: '3', text: 'Hello' };
+          yield { ...base, type: 'turn-accepted', sequence: '1' };
+          yield {
+            ...base,
+            type: 'message-committed',
+            sequence: '3',
+            message: {
+              messageId: 'runtime-message-local-app-user',
+              turnId: 'runtime-turn-local-app',
+              role: 'user',
+              parts: [{ kind: 'text', text: 'Hello' }],
+            },
+          };
           yield {
             ...base,
             type: 'message-committed',
             sequence: '4',
-            messageId: 'runtime-message-local-app',
-            text: 'Hello',
+            message: {
+              messageId: 'runtime-message-local-app',
+              turnId: 'runtime-turn-local-app',
+              role: 'assistant',
+              parts: [{ kind: 'text', text: 'Hello' }],
+            },
           };
           yield { ...base, type: 'turn-completed', sequence: '6', terminalReason: 'stop' };
         },

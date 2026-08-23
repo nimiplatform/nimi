@@ -6,6 +6,7 @@ import type {
 import type { ConversationCanonicalMessage } from '@nimiplatform/kit/features/chat';
 
 import type { ZhiyuEvidence } from '../app/evidence.js';
+import { projectZhiyuLocalAppConversationMessage } from './agent-conversation-state.js';
 
 export type ZhiyuAmbientConversationIdentity = {
   readonly agentHandle: NimiLocalAppAgentHandle;
@@ -18,8 +19,7 @@ export type ZhiyuAmbientConversationReduction = {
 };
 
 type AmbientTurn = {
-  requestId: string;
-  message: ConversationCanonicalMessage | null;
+  messages: ConversationCanonicalMessage[];
 };
 
 export function createZhiyuAmbientConversationEventReducer(
@@ -63,28 +63,25 @@ export function createZhiyuAmbientConversationEventReducer(
       }
       const runtimeTurnId = event.turnId;
       const turn = turns.get(runtimeTurnId) ?? {
-        requestId: runtimeTurnId,
-        message: null,
+        messages: [],
       };
 
       if (event.type === 'turn-accepted') {
-        turn.requestId = event.requestId;
         turns.set(runtimeTurnId, turn);
         return null;
       }
 
       if (event.type === 'message-committed') {
-        const eventKey = `${runtimeTurnId}\u0000${event.messageId}`;
+        const eventKey = `${runtimeTurnId}\u0000${event.message.messageId}`;
         if (observedEvents.has(eventKey)) return null;
         observedEvents.add(eventKey);
-        turn.message = ambientAssistantMessage({
-          identity,
-          requestId: turn.requestId,
-          runtimeTurnId,
-          messageId: event.messageId,
-          text: event.text,
+        const message = projectZhiyuLocalAppConversationMessage({
+          message: event.message,
+          agentHandle: identity.agentHandle,
+          conversationAnchorId: identity.conversationAnchorId,
           createdAt: new Date(now()).toISOString(),
         });
+        turn.messages.push(message);
         turns.set(runtimeTurnId, turn);
         return {
           chat: chatUpdate({
@@ -95,10 +92,10 @@ export function createZhiyuAmbientConversationEventReducer(
             actionHint: 'wait_runtime_agent_turn_terminal',
             source: 'runtime',
             message: 'Runtime Agent committed a conversation message.',
-            requestId: turn.requestId,
+            requestId: null,
             runtimeTurnId,
             eventType: event.type,
-            messages: [turn.message],
+            messages: [message],
           }),
           close: false,
         };
@@ -118,10 +115,10 @@ export function createZhiyuAmbientConversationEventReducer(
         chat: chatUpdate({
           identity,
           ...terminal,
-          requestId: turn.requestId,
+          requestId: null,
           runtimeTurnId,
           eventType: event.type,
-          messages: turn.message ? [turn.message] : [],
+          messages: [],
         }),
         close: false,
       };
@@ -188,36 +185,6 @@ const AMBIENT_EVENT_TYPES = new Set<NimiLocalAppConversationEvent['type']>([
   'turn-interrupted',
 ]);
 
-function ambientAssistantMessage(input: {
-  readonly identity: ZhiyuAmbientConversationIdentity;
-  readonly requestId: string;
-  readonly runtimeTurnId: string;
-  readonly messageId: string;
-  readonly text: string;
-  readonly createdAt: string;
-}): ConversationCanonicalMessage {
-  return {
-    id: input.messageId,
-    sessionId: input.identity.conversationAnchorId,
-    targetId: input.identity.agentHandle,
-    source: 'agent',
-    role: 'agent',
-    text: input.text,
-    createdAt: input.createdAt,
-    updatedAt: input.createdAt,
-    status: 'complete',
-    kind: 'text',
-    senderName: 'Zhiyu Agent',
-    senderKind: 'agent',
-    metadata: {
-      modeId: 'runtime-agent-chat-v1',
-      turnId: input.requestId,
-      runtimeTurnId: input.runtimeTurnId,
-      conversationAnchorId: input.identity.conversationAnchorId,
-    },
-  };
-}
-
 function chatUpdate(input: {
   readonly identity: ZhiyuAmbientConversationIdentity;
   readonly ready: boolean;
@@ -231,7 +198,7 @@ function chatUpdate(input: {
   readonly eventType: string;
   readonly messages: ZhiyuEvidence['chat']['messages'];
 }): ZhiyuEvidence['chat'] {
-  const latestAssistant = input.messages.at(-1) ?? null;
+  const latestAssistant = [...input.messages].reverse().find((message) => message.role === 'agent') ?? null;
   return {
     transport: 'electron-ipc',
     ready: input.ready,

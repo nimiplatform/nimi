@@ -2,8 +2,12 @@ import {
   nimiToast,
   StatusBadge,
 } from '@nimiplatform/kit/ui';
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import type { ChatComposerAdapter } from '@nimiplatform/kit/features/chat/headless';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import {
+  createBrowserDataUrlAttachmentAdapter,
+  type BrowserDataUrlAttachment,
+  type ChatComposerAdapter,
+} from '@nimiplatform/kit/features/chat/headless';
 import {
   CanonicalComposer,
   CanonicalTranscriptView,
@@ -19,6 +23,7 @@ import type { ZhiyuAvatarLaunchAction } from '../avatar/avatar-launch';
 import type { ZhiyuDesktopOpenActionResult } from '../desktop-open/desktop-open-action';
 import type { ZhiyuRendererProjectionPort } from '../../renderer/contract';
 import type { NimiLocalAppAgentHandle } from '@nimiplatform/sdk/app';
+import type { ZhiyuRuntimeAgentChatAttachment } from './runtime-agent-turn-adapter';
 import type {
   ZhiyuHomeProductState,
 } from '../app/home-product-state';
@@ -59,7 +64,8 @@ export type ZhiyuAgentChatSurfaceProps = {
   readonly avatarLaunchAction: ZhiyuAvatarLaunchAction;
   readonly agentCenterSession: ReturnType<ZhiyuRendererProjectionPort['agentCenterSession']>;
   readonly onDraftChange: (value: string) => void;
-  readonly onSubmit: (text: string) => Promise<void> | void;
+  readonly onSubmit: (text: string, attachment?: ZhiyuRuntimeAgentChatAttachment) => Promise<void> | void;
+  readonly onTranscribeVoice?: (audioBytes: Uint8Array, mimeType: string) => Promise<string>;
   readonly onStopChat: () => void;
   readonly onSelectLocalAgent: (agentHandle: NimiLocalAppAgentHandle) => void;
   readonly onDesktopOpenRuntimeSettings: () => Promise<void> | void;
@@ -78,6 +84,7 @@ export function ZhiyuAgentChatSurface({
   agentCenterSession,
   onDraftChange,
   onSubmit,
+  onTranscribeVoice,
   onStopChat,
   onSelectLocalAgent,
   onDesktopOpenRuntimeSettings,
@@ -148,11 +155,91 @@ export function ZhiyuAgentChatSurface({
   const chatDisabled = !evidence.conversation.ready
     || !evidence.turn.ready
     || evidence.chat.state === 'streaming';
-  const chatComposerAdapter: ChatComposerAdapter<never> = {
+  const [attachments, setAttachments] = useState<readonly BrowserDataUrlAttachment[]>([]);
+  const attachmentAdapter = useMemo(() => createBrowserDataUrlAttachmentAdapter({
+    accept: ['image/png', 'image/jpeg', 'image/webp', 'image/gif'],
+    maxAttachments: 1,
+    idPrefix: 'zhiyu-conversation-image',
+  }), []);
+  const chatComposerAdapter: ChatComposerAdapter<BrowserDataUrlAttachment> = {
     submit: async (input) => {
-      await onSubmit(input.text);
+      const attachment = input.attachments[0]
+        ? await browserAttachmentPayload(input.attachments[0])
+        : undefined;
+      await onSubmit(input.text, attachment);
     },
   };
+  const [voiceStatus, setVoiceStatus] = useState<'idle' | 'recording' | 'transcribing' | 'failed'>('idle');
+  const voiceRecorderRef = useRef<MediaRecorder | null>(null);
+  const voiceStreamRef = useRef<MediaStream | null>(null);
+  const voiceChunksRef = useRef<Blob[]>([]);
+  const voiceCanceledRef = useRef(false);
+  const voiceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const clearVoiceCapture = useCallback(() => {
+    if (voiceTimerRef.current) clearTimeout(voiceTimerRef.current);
+    voiceTimerRef.current = null;
+    voiceStreamRef.current?.getTracks().forEach((track) => track.stop());
+    voiceStreamRef.current = null;
+    voiceRecorderRef.current = null;
+  }, []);
+  const cancelVoiceCapture = useCallback(() => {
+    voiceCanceledRef.current = true;
+    const recorder = voiceRecorderRef.current;
+    if (recorder && recorder.state !== 'inactive') recorder.stop();
+    else clearVoiceCapture();
+    setVoiceStatus('idle');
+  }, [clearVoiceCapture]);
+  const toggleVoiceCapture = useCallback(() => {
+    const active = voiceRecorderRef.current;
+    if (active && active.state === 'recording') {
+      active.stop();
+      return;
+    }
+    if (!onTranscribeVoice || !navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') return;
+    voiceCanceledRef.current = false;
+    voiceChunksRef.current = [];
+    void navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
+      const preferredMime = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+        ? 'audio/webm;codecs=opus'
+        : '';
+      const recorder = new MediaRecorder(stream, preferredMime ? { mimeType: preferredMime } : undefined);
+      voiceStreamRef.current = stream;
+      voiceRecorderRef.current = recorder;
+      recorder.addEventListener('dataavailable', (event) => {
+        if (event.data.size > 0) voiceChunksRef.current.push(event.data);
+      });
+      recorder.addEventListener('stop', () => {
+        const canceled = voiceCanceledRef.current;
+        const blob = new Blob(voiceChunksRef.current, { type: recorder.mimeType || preferredMime || 'audio/webm' });
+        voiceChunksRef.current = [];
+        clearVoiceCapture();
+        if (canceled) return;
+        setVoiceStatus('transcribing');
+        void blob.arrayBuffer()
+          .then((buffer) => onTranscribeVoice(new Uint8Array(buffer), blob.type || 'audio/webm'))
+          .then((text) => onSubmit(text))
+          .then(() => setVoiceStatus('idle'))
+          .catch(() => setVoiceStatus('failed'));
+      }, { once: true });
+      recorder.start();
+      setVoiceStatus('recording');
+      voiceTimerRef.current = setTimeout(() => {
+        if (recorder.state === 'recording') recorder.stop();
+      }, 5 * 60 * 1_000);
+    }).catch(() => setVoiceStatus('failed'));
+  }, [clearVoiceCapture, onSubmit, onTranscribeVoice]);
+  useEffect(() => () => {
+    voiceCanceledRef.current = true;
+    const recorder = voiceRecorderRef.current;
+    if (recorder && recorder.state !== 'inactive') recorder.stop();
+    clearVoiceCapture();
+  }, [clearVoiceCapture]);
+  const voiceState = onTranscribeVoice
+    && typeof navigator !== 'undefined'
+    && Boolean(navigator.mediaDevices?.getUserMedia)
+    && typeof MediaRecorder !== 'undefined'
+    ? { status: voiceStatus, onToggle: toggleVoiceCapture, onCancel: cancelVoiceCapture }
+    : undefined;
   const chatRuntimeHint = chatDisabled && (hasCurrentPartner || evidence.chat.state === 'streaming')
     ? (
       evidence.chat.state === 'streaming'
@@ -189,6 +276,33 @@ export function ZhiyuAgentChatSurface({
   const chatTranscriptViewportRef = useRef<HTMLDivElement>(null);
   const chatTranscriptEndRef = useRef<HTMLSpanElement>(null);
   const composerRootRef = useRef<HTMLDivElement>(null);
+  const voiceAudioRef = useRef<HTMLAudioElement | null>(null);
+  const [voicePlayingMessageId, setVoicePlayingMessageId] = useState<string | null>(null);
+  const playVoiceMessage = useCallback((message: ZhiyuEvidence['chat']['messages'][number]) => {
+    const voiceUrl = typeof message.metadata?.voiceUrl === 'string' ? message.metadata.voiceUrl : '';
+    if (!voiceUrl) return;
+    if (voicePlayingMessageId === message.id) {
+      voiceAudioRef.current?.pause();
+      voiceAudioRef.current = null;
+      setVoicePlayingMessageId(null);
+      return;
+    }
+    voiceAudioRef.current?.pause();
+    const audio = new Audio(voiceUrl);
+    voiceAudioRef.current = audio;
+    setVoicePlayingMessageId(message.id);
+    const clear = () => {
+      if (voiceAudioRef.current === audio) voiceAudioRef.current = null;
+      setVoicePlayingMessageId((current) => current === message.id ? null : current);
+    };
+    audio.addEventListener('ended', clear, { once: true });
+    audio.addEventListener('error', clear, { once: true });
+    void audio.play().catch(clear);
+  }, [voicePlayingMessageId]);
+  useEffect(() => () => {
+    voiceAudioRef.current?.pause();
+    voiceAudioRef.current = null;
+  }, []);
   const getChatTranscriptRoot = useCallback(() => (
     chatTranscriptViewportRef.current?.querySelector<HTMLElement>('[data-canonical-transcript-root="true"]') ?? null
   ), []);
@@ -313,6 +427,9 @@ export function ZhiyuAgentChatSurface({
                 scrollViewportWidthClassName="w-full"
                 contentPaddingBottomClassName="pb-[clamp(160px,18vh,220px)]"
                 disableRpContent
+                voicePlayingMessageId={voicePlayingMessageId}
+                isVoiceTranscriptVisible={() => true}
+                onPlayVoiceMessage={playVoiceMessage}
               />
             </div>
             {evidence.chat.state === 'failed' ? (
@@ -329,6 +446,11 @@ export function ZhiyuAgentChatSurface({
                 >
               <CanonicalComposer
                 adapter={chatComposerAdapter}
+                attachmentAdapter={attachmentAdapter}
+                attachments={attachments}
+                onAttachmentsChange={setAttachments}
+                attachLabel="添加图片"
+                voiceState={voiceState}
                 text={draft}
                 onTextChange={onDraftChange}
                 disabled={chatDisabled}
@@ -404,4 +526,19 @@ export function ZhiyuAgentChatSurface({
       </div>
     </main>
   );
+}
+
+async function browserAttachmentPayload(
+  attachment: BrowserDataUrlAttachment,
+): Promise<ZhiyuRuntimeAgentChatAttachment> {
+  const response = await fetch(attachment.dataUrl);
+  const bytes = new Uint8Array(await response.arrayBuffer());
+  if (!['image/png', 'image/jpeg', 'image/webp', 'image/gif'].includes(attachment.mimeType)) {
+    throw new Error('Unsupported conversation image MIME.');
+  }
+  return {
+    bytes,
+    mimeType: attachment.mimeType as ZhiyuRuntimeAgentChatAttachment['mimeType'],
+    displayName: attachment.name,
+  };
 }

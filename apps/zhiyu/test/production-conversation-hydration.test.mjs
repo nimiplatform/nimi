@@ -15,7 +15,7 @@ test.after(async () => {
   if (buildDir) await rm(buildDir, { recursive: true, force: true });
 });
 
-test('production conversation hydration maps the bounded text-only local App snapshot', async () => {
+test('production conversation hydration maps the bounded local App snapshot', async () => {
   const { hydrateZhiyuProductionConversation } = await importHydrationModule();
   const calls = [];
   const currentSource = blockedSource();
@@ -29,11 +29,23 @@ test('production conversation hydration maps the bounded text-only local App sna
       calls.push(input);
       return {
         conversationAnchorId: 'conversation-anchor:shared',
-        activeTurnId: null,
+        throughSequence: '8',
+        turns: [{
+          turnId: 'agent-turn-1', status: 'completed', phase: null,
+          terminalReason: 'stop', reasonCode: null, message: null,
+        }],
         messages: [
-          { turnId: 'agent-turn-1', role: 'user', text: 'Shared question' },
-          { turnId: 'agent-turn-1', role: 'assistant', text: 'Shared answer from Desktop' },
+          {
+            messageId: 'runtime-message-user-1', turnId: 'agent-turn-1', role: 'user',
+            parts: [{ kind: 'text', text: 'Shared question' }],
+          },
+          {
+            messageId: 'runtime-message-assistant-1', turnId: 'agent-turn-1', role: 'assistant',
+            parts: [{ kind: 'text', text: 'Shared answer from Desktop' }],
+          },
         ],
+        actions: [],
+        voices: [],
         truncatedBefore: false,
       };
     },
@@ -92,8 +104,11 @@ test('production conversation hydration accepts an empty bounded snapshot withou
     async snapshot() {
       return {
         conversationAnchorId: 'conversation-anchor:shared',
-        activeTurnId: null,
+        throughSequence: '0',
+        turns: [],
         messages: [],
+        actions: [],
+        voices: [],
         truncatedBefore: false,
       };
     },
@@ -102,6 +117,43 @@ test('production conversation hydration accepts an empty bounded snapshot withou
   assert.equal(hydrated.chat.ready, true);
   assert.equal(hydrated.chat.messageCount, 0);
   assert.deepEqual(hydrated.chat.messages, []);
+});
+
+test('production conversation hydration resolves a final voice sidecar without an audio message part', async () => {
+  const { hydrateZhiyuProductionConversation } = await importHydrationModule();
+  const hydrated = await hydrateZhiyuProductionConversation({
+    agentHandle: 'opaque-agent-handle',
+    conversationAnchorId: 'conversation-anchor:shared',
+    currentChat: idleChat(),
+    currentSource: blockedSource(),
+  }, {
+    async snapshot() {
+      return {
+        conversationAnchorId: 'conversation-anchor:shared', throughSequence: '9',
+        turns: [{
+          turnId: 'agent-turn-voice', status: 'completed', phase: null,
+          terminalReason: 'stop', reasonCode: null, message: null,
+        }],
+        messages: [{
+          messageId: 'assistant-message-voice', turnId: 'agent-turn-voice', role: 'assistant',
+          parts: [{ kind: 'text', text: 'Spoken answer' }],
+        }],
+        actions: [],
+        voices: [{
+          voiceId: 'voice-1', turnId: 'agent-turn-voice', messageId: 'assistant-message-voice',
+          state: 'ready', artifactId: 'artifact-voice-1', reasonCode: null, message: null,
+        }],
+        truncatedBefore: false,
+      };
+    },
+    async readArtifact(input) {
+      assert.equal(input.artifactId, 'artifact-voice-1');
+      return { artifactId: input.artifactId, bytes: Uint8Array.from([1, 2, 3]), mimeType: 'audio/wav', byteLength: 3 };
+    },
+  });
+  assert.equal(hydrated.chat.messages[0].kind, 'voice');
+  assert.equal(hydrated.chat.messages[0].metadata.voiceTranscript, 'Spoken answer');
+  assert.match(hydrated.chat.messages[0].metadata.voiceUrl, /^data:audio\/wav;base64,/u);
 });
 
 async function importHydrationModule() {

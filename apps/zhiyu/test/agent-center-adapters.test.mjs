@@ -15,6 +15,13 @@ const COMMANDS = Object.freeze({
   presentationSnapshot: 'nimi.shell.localApp.agentPresentationSnapshot',
   presentationCommit: 'nimi.shell.localApp.agentCommitPresentation',
 });
+const PARTICIPATION = [
+  { role: 'conversation.primary', capabilityContract: 'text.generate' },
+  { role: 'memory.embedding', capabilityContract: 'text.embed' },
+  { role: 'conversation.input.voice', capabilityContract: 'audio.transcribe' },
+  { role: 'conversation.output.voice', capabilityContract: 'audio.synthesize' },
+  { role: 'conversation.action.image', capabilityContract: 'image.generate' },
+];
 
 test('Agent Center uses only the covered SDK nominal handle evidence', async () => {
   const { projectZhiyuAuthorizedAgentCenterHandle } = await loadIdentityModule();
@@ -67,6 +74,7 @@ test('production Agent Center routes all seven configuration operations through 
       session.getSnapshot().state.sharedAIConfig?.aiConfig.capabilities[0]?.capabilityContract,
       'text.generate',
     );
+    assert.deepEqual(session.getSnapshot().state.participation, PARTICIPATION);
     assert.deepEqual(session.getSnapshot().state.autonomy, {
       revision: '7',
       enabled: true,
@@ -260,14 +268,14 @@ function createAgentConfigureHost() {
       const input = payload?.payload;
       switch (command) {
         case COMMANDS.sharedGet:
-          return { config: sharedProjection(), revision: aiConfigRevision, effectiveSelections: [] };
+          return { config: sharedProjection(), revision: aiConfigRevision, effectiveSelections: [], participation: PARTICIPATION };
         case COMMANDS.sharedOverwrite:
           assert.equal(input.expectedRevision, aiConfigRevision);
           capabilities = [...input.capabilities];
           aiConfigRevision = String(BigInt(aiConfigRevision) + 1n);
           return {
             outcome: 'committed', config: sharedProjection(), revision: aiConfigRevision,
-            effectiveSelections: [], reasonCode: 'REASON_CODE_UNSPECIFIED',
+            effectiveSelections: [], participation: PARTICIPATION, reasonCode: 'REASON_CODE_UNSPECIFIED',
           };
         case COMMANDS.sharedOptions:
           return { kind: 'local-loadouts', options: [], truncated: false };
