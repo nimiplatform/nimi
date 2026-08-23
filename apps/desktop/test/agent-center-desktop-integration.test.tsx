@@ -73,7 +73,6 @@ async function desktopAgentCenterSession() {
       },
       capabilities: [],
     },
-    capabilities: [],
     intents: [],
   };
   const session = createFirstPartyAgentCenterSession({
@@ -86,7 +85,6 @@ async function desktopAgentCenterSession() {
         const capabilities = [...input.capabilities];
         projection = {
           aiConfig: { ...projection.aiConfig, capabilities },
-          capabilities: capabilities.map((intent) => intent.capabilityContract),
           intents: projectSharedAIConfigIntents(capabilities),
         };
         return projection;

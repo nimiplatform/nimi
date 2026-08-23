@@ -318,22 +318,19 @@ export function AgentCanonicalComposer(props: {
   }, [props]);
 
   const buildIncomingAttachments = useCallback((files: readonly File[]) => {
-    let built = [...attachmentsRef.current];
-    let hadUnsupported = false;
-    for (const file of files) {
-      if (!file.type.toLowerCase().startsWith('image/')) {
-        hadUnsupported = true;
-        continue;
-      }
-      const next = appendPendingAttachment(built, file, {
+    const imageFile = files.find((file) => file.type.toLowerCase().startsWith('image/'));
+    const hadUnsupported = files.some((file) => !file.type.toLowerCase().startsWith('image/'));
+    let built: PendingAttachment[] = [];
+    if (imageFile) {
+      const next = appendPendingAttachment([], imageFile, {
         createObjectUrl: (nextFile) => URL.createObjectURL(nextFile),
         revokeObjectUrl: (url) => URL.revokeObjectURL(url),
       });
       if (!next) {
-        hadUnsupported = true;
-        continue;
+        built = [];
+      } else {
+        built = next;
       }
-      built = next;
     }
     if (hadUnsupported) {
       emitFeedbackToast({

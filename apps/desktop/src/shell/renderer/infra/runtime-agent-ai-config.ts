@@ -8,15 +8,15 @@ import {
 } from '@nimiplatform/sdk/runtime';
 import type {
   NimiAIConfigOptionsResult,
-  NimiAIConfigOverwriteResult,
-  NimiAIConfigSnapshot,
+  NimiSharedLocalAgentAIConfigOverwriteResult,
+  NimiSharedLocalAgentAIConfigSnapshot,
 } from '@nimiplatform/sdk/ai';
 
-export type NimiRuntimeAgentAIConfigSnapshot = NimiAIConfigSnapshot;
+export type NimiRuntimeAgentAIConfigSnapshot = NimiSharedLocalAgentAIConfigSnapshot;
 
 export interface NimiRuntimeAgentAIConfigAdapter {
   get(input?: NimiSharedLocalAgentAIConfigCallInput): Promise<NimiRuntimeAgentAIConfigSnapshot>;
-  update(input: NimiSharedLocalAgentAIConfigOverwriteInput): Promise<NimiAIConfigOverwriteResult>;
+  update(input: NimiSharedLocalAgentAIConfigOverwriteInput): Promise<NimiSharedLocalAgentAIConfigOverwriteResult>;
   listOptions(input: NimiSharedLocalAgentAIConfigOptionsInput): Promise<NimiAIConfigOptionsResult>;
 }
 
