@@ -205,6 +205,19 @@ test('production adapter positively binds the shared Kit session to the public c
   assert.doesNotMatch(source, /ownerUserId|runtimeSourceRef|localAgentRef/u);
 });
 
+test('window focus refreshes the stable Agent Center session without adding session polling', async () => {
+  const source = await readFile(path.join(root, 'src/shell/app/App.tsx'), 'utf8');
+
+  assert.match(
+    source,
+    /const handleWindowFocus = \(\) => \{\s*void refreshAgentInventory\(\);\s*void agentCenterSession\?\.refresh\(\);\s*\}/u,
+  );
+  const intervalStart = source.indexOf('const interval = window.setInterval');
+  const focusListenerStart = source.indexOf("window.addEventListener('focus'", intervalStart);
+  assert.ok(intervalStart >= 0 && focusListenerStart > intervalStart);
+  assert.doesNotMatch(source.slice(intervalStart, focusListenerStart), /agentCenterSession/u);
+});
+
 function authorizedEvidence() {
   return {
     conversation: { agentHandle: AGENT_HANDLE },

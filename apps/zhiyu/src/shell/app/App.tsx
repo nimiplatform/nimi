@@ -93,6 +93,7 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
     };
     const handleWindowFocus = () => {
       void refreshAgentInventory();
+      void agentCenterSession?.refresh();
     };
     const interval = window.setInterval(() => {
       void refreshAgentInventory();
@@ -104,7 +105,7 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
       window.clearInterval(interval);
       window.removeEventListener('focus', handleWindowFocus);
     };
-  }, [bindings]);
+  }, [agentCenterSession, bindings]);
 
   useEffect(() => {
     const agentHandle = renderEvidence.conversation.agentHandle;
