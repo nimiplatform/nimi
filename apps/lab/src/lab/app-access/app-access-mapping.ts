@@ -18,7 +18,7 @@ export const appAccessTestIdMapping: readonly AppAccessTestIdMappingEntry[] = [
   {
     legacy: 'imp4-ai-config',
     current: '(folded)',
-    note: 'App AIConfig is a read-only settings projection with configuration handed off to Nimi Desktop',
+    note: 'App AIConfig uses the covered self-owner get/options/CAS manager; Desktop remains an optional centralized handoff',
   },
   {
     legacy: 'imp4-local-text',
@@ -56,9 +56,9 @@ export const appAccessTestIdMapping: readonly AppAccessTestIdMappingEntry[] = [
     current: 'app-access-run-text-generation',
     note: 'runs against the current owner-managed App AIConfig without mutating it',
   },
-  { legacy: 'imp4-run-authority-rejection', current: '(folded)', note: 'the protected Lab surface carries no AIConfig write operation' },
+  { legacy: 'imp4-run-authority-rejection', current: '(folded)', note: 'self-owner mutation and conflicts are handled by the shared Model Config manager' },
   { legacy: 'imp4-run-world-create', current: 'app-access-run-world-create' },
-  { legacy: 'imp4-run-cloud-selection', current: '(folded)', note: 'cloud route authoring moved to Nimi Desktop' },
+  { legacy: 'imp4-run-cloud-selection', current: '(folded)', note: 'Cloud route selection is available through the shared Model Config manager in Lab or Desktop' },
   { legacy: 'imp5-agent-catalog', current: 'app-access-run-agent-references-result' },
   { legacy: 'imp5-agent-select', current: 'app-access-agent-select' },
   { legacy: 'imp5-run-agent-list', current: 'app-access-run-agent-references' },
@@ -90,10 +90,10 @@ export const appAccessLabelMapping: readonly AppAccessLabelMappingEntry[] = [
     current: 'Configured text generation → Run',
     note: 'reads the owner-managed App AIConfig and does not mutate it',
   },
-  { legacy: 'Prove owner/custody rejection', current: 'Removed with the protected AIConfig write carrier' },
+  { legacy: 'Prove owner/custody rejection', current: 'Covered by the self-owner AIConfig manager and SDK validation' },
   { legacy: 'Create + verify WorldCore', current: 'WorldCore create & read-back → Run' },
   { legacy: 'List active Agent references', current: 'Active Agent references → Run' },
   { legacy: 'Run typed Agent conversation', current: 'Agent conversation → Run' },
   { legacy: 'Run typed Agent interrupt', current: 'Agent turn interrupt → Run' },
-  { legacy: 'Save Cloud + prove selection-required', current: 'Configure this App in Nimi Desktop' },
+  { legacy: 'Save Cloud + prove selection-required', current: 'Configure this App in Lab or Nimi Desktop' },
 ];
