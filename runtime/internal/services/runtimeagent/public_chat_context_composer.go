@@ -328,6 +328,12 @@ func publicChatAgentTurnTranscriptInput(session publicChatAnchorState) ([]agentT
 	}
 	out := make([]agentTurnTranscriptPairInput, 0, len(session.CommittedTranscript))
 	for _, turn := range session.CommittedTranscript {
+		// A feature-mismatch turn may durably commit only the user attachment
+		// for product continuity. It never became provider-consumed dialogue,
+		// so it must not be fabricated into the paired private model transcript.
+		if strings.TrimSpace(turn.AssistantText) == "" {
+			continue
+		}
 		inputText := turn.InputText
 		if turn.Origin == publicChatTurnOriginFollowUp {
 			inputText = "Runtime-admitted follow-up instruction: " + inputText

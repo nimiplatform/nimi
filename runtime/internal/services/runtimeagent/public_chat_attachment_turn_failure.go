@@ -13,8 +13,7 @@ import (
 // persists without a synthetic assistant message, then the turn surfaces the
 // typed failure.
 const (
-	publicChatTurnAttachmentVisionUnsupportedReasonCode = "turn-attachment-route-vision-unsupported"
-	publicChatTurnAttachmentVisionUnsupportedMessage    = "current route cannot consume image content"
+	publicChatTurnAttachmentVisionUnsupportedMessage = "current route cannot consume image content"
 )
 
 // publicChatTurnCarriesUserAttachment reports whether the admitted current
@@ -106,23 +105,17 @@ func (r publicChatRuntime) failVisionUnsupportedAttachmentTurn(
 		projection.MessageID = ""
 		projection.AssistantText = ""
 		projection.ReasonCode = runtimev1.ReasonCode_AI_MODALITY_NOT_SUPPORTED
-		projection.ReasonCodeToken = publicChatTurnAttachmentVisionUnsupportedReasonCode
+		projection.ReasonCodeToken = ""
 		projection.Message = publicChatTurnAttachmentVisionUnsupportedMessage
 	})
-	r.emitTurnFailedReasonToken(session, turn, publicChatTurnAttachmentVisionUnsupportedReasonCode, publicChatTurnAttachmentVisionUnsupportedMessage)
-}
-
-// emitTurnFailedReasonToken projects `turn.failed.detail` with an exact
-// reason code token instead of an enum label, keeping the admitted detail
-// shape (`reason_code` required, `message?`).
-func (r publicChatRuntime) emitTurnFailedReasonToken(session publicChatAnchorState, turn publicChatTurnState, reasonToken string, message string) {
-	payload := map[string]any{
-		"reason_code": strings.TrimSpace(reasonToken),
-	}
-	if trimmed := strings.TrimSpace(message); trimmed != "" {
-		payload["message"] = trimmed
-	}
-	if err := r.emitTurnEvent(session, turn.TurnID, publicChatTurnFailedType, payload); err != nil && r.svc.logger != nil {
-		r.svc.logger.Warn("emit public chat failed event failed", "agent_id", session.AgentID, "turn_id", turn.TurnID, "error", err)
-	}
+	r.emitTurnFailed(
+		session,
+		turn,
+		traceID,
+		modelResolved,
+		routeDecision,
+		runtimev1.ReasonCode_AI_MODALITY_NOT_SUPPORTED,
+		publicChatTurnAttachmentVisionUnsupportedMessage,
+		"",
+	)
 }

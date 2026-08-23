@@ -337,7 +337,7 @@ func TestPublicChatVisionUnsupportedRouteCommitsAttachmentAndFailsTyped(t *testi
 	waitForPublicChatAgentIdle(t, svc, "agent-alpha")
 	failedDetail := failed.GetPayload().AsMap()["detail"]
 	failedMap, _ := failedDetail.(map[string]any)
-	if failedMap["reason_code"] != publicChatTurnAttachmentVisionUnsupportedReasonCode {
+	if failedMap["reason_code"] != runtimev1.ReasonCode_AI_MODALITY_NOT_SUPPORTED.String() {
 		t.Fatalf("turn.failed detail = %#v", failedMap)
 	}
 	for _, messageType := range capture.messageTypes() {
@@ -351,7 +351,7 @@ func TestPublicChatVisionUnsupportedRouteCommitsAttachmentAndFailsTyped(t *testi
 
 	snapshot := requestPublicChatSessionSnapshot(t, svc, capture, anchorID, "snapshot-vision-unsupported")
 	lastTurn := publicChatLastTurnSnapshot(t, snapshot)
-	if lastTurn["status"] != publicChatTurnStatusFailed || lastTurn["reason_code"] != publicChatTurnAttachmentVisionUnsupportedReasonCode {
+	if lastTurn["status"] != publicChatTurnStatusFailed || lastTurn["reason_code"] != runtimev1.ReasonCode_AI_MODALITY_NOT_SUPPORTED.String() {
 		t.Fatalf("last_turn projection = %#v", lastTurn)
 	}
 	detail := publicChatSessionSnapshotDetail(t, snapshot)
@@ -365,6 +365,17 @@ func TestPublicChatVisionUnsupportedRouteCommitsAttachmentAndFailsTyped(t *testi
 	}
 	if len(transcript) != 1 {
 		t.Fatalf("vision-unsupported transcript must contain only the user message: %#v", transcript)
+	}
+	anchor, _, _, _, err := svc.snapshotPublicChatAnchorForCaller("desktop.app", anchorID)
+	if err != nil {
+		t.Fatalf("snapshot private attachment history: %v", err)
+	}
+	privateHistory, err := publicChatAgentTurnTranscriptInput(anchor)
+	if err != nil {
+		t.Fatalf("compile private attachment history: %v", err)
+	}
+	if len(privateHistory) != 0 {
+		t.Fatalf("user-only feature-mismatch turn must not become a fabricated provider transcript pair: %+v", privateHistory)
 	}
 }
 
