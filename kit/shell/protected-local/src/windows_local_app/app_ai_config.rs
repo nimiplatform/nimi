@@ -307,16 +307,12 @@ fn parse_route(
     match object.get("oneofKind").and_then(JsonValue::as_str) {
         Some("local") => {
             exact_keys(object, &["oneofKind", "local"], &["oneofKind", "local"])?;
-            let local = exact_object(
+            exact_object(
                 object.get("local").ok_or_else(invalid_payload)?,
-                &["loadoutRef"],
-                &["loadoutRef"],
+                &[],
+                &[],
             )?;
-            Ok(ai_config_capability_intent::Route::Local(
-                AiConfigLocalIntent {
-                    loadout_ref: required_text(local.get("loadoutRef"))?,
-                },
-            ))
+            Ok(ai_config_capability_intent::Route::Local(AiConfigLocalIntent {}))
         }
         Some("cloud") => {
             exact_keys(object, &["oneofKind", "cloud"], &["oneofKind", "cloud"])?;
@@ -513,10 +509,10 @@ pub(super) fn project_capability(
         return Err(untrusted());
     }
     let route = match intent.route.ok_or_else(untrusted)? {
-        ai_config_capability_intent::Route::Local(local) => {
+        ai_config_capability_intent::Route::Local(_) => {
             json!({
                 "oneofKind": "local",
-                "local": { "loadoutRef": required_text_value(&local.loadout_ref)? },
+                "local": {},
             })
         }
         ai_config_capability_intent::Route::Cloud(cloud) => {
@@ -685,7 +681,7 @@ mod tests {
                 },
                 "route": {
                     "oneofKind": "local",
-                    "local": { "loadoutRef": "loadout-text" }
+                    "local": {}
                 }
             },
             {

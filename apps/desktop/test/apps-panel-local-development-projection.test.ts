@@ -86,7 +86,7 @@ describe('Desktop Apps local-development registration projection', () => {
             capabilities: [{
               capabilityContract: 'text.generate',
               requiredFeatures: [],
-              route: { oneofKind: 'local', local: { loadoutRef: 'loadout:text' } },
+              route: { oneofKind: 'local', local: {} },
             }, createNimiCloudAIConfigCapabilityIntent({
               capabilityContract: 'image.generate', connectorRef: 'connector:image',
               implementation: { implementationId: 'provider', driverId: 'driver', driverDialect: 'provider' },

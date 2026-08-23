@@ -70,6 +70,74 @@ func TestAppAIConfigWholeOverwriteAndAccountIsolation(t *testing.T) {
 	}
 }
 
+func TestAppLocalAIConfigsShareCurrentMachineSelectionWithoutRevisionChanges(t *testing.T) {
+	resolver := &mutableLocalExecutionResolver{projection: selectedTextExecutionForTest(t, "loadout-a", "a.gguf")}
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	svc.SetLocalExecutionResolver(resolver)
+
+	for _, appID := range []string{"app.a", "app.b"} {
+		written, err := svc.OverwriteAppAIConfig(
+			protectedAppAIConfigPrincipalContext("account-a", appID),
+			&runtimev1.OverwriteAppAIConfigRequest{
+				Config: appAIConfig(appID, localAppAIConfigIntent("text.generate")), ExpectedRevision: "0",
+			},
+		)
+		if err != nil || written.GetRevision() != "1" {
+			t.Fatalf("write %s = %+v, %v", appID, written, err)
+		}
+	}
+
+	assertEffectiveLoadout := func(appID, loadoutID string) {
+		t.Helper()
+		read, err := svc.GetAppAIConfig(
+			localAppAIConfigContext("account-a", appID, accountservice.LocalAppOperationAppAIConfigRead),
+			&runtimev1.GetAppAIConfigRequest{},
+		)
+		if err != nil || read.GetRevision() != "1" || len(read.GetEffectiveSelections()) != 1 {
+			t.Fatalf("read %s = %+v, %v", appID, read, err)
+		}
+		intent := read.GetConfig().GetCapabilities()[0]
+		selection := read.GetEffectiveSelections()[0]
+		if intent.GetLocal() == nil || len(intent.GetLocal().ProtoReflect().GetUnknown()) != 0 ||
+			selection.GetState() != runtimev1.AIConfigEffectiveState_AI_CONFIG_EFFECTIVE_STATE_READY ||
+			selection.GetLocal().GetLoadoutRef() != loadoutID {
+			t.Fatalf("effective %s = intent=%+v selection=%+v", appID, intent, selection)
+		}
+	}
+
+	assertEffectiveLoadout("app.a", "loadout-a")
+	assertEffectiveLoadout("app.b", "loadout-a")
+	resolver.set(selectedTextExecutionForTest(t, "loadout-b", "b.gguf"))
+	assertEffectiveLoadout("app.a", "loadout-b")
+	assertEffectiveLoadout("app.b", "loadout-b")
+}
+
+func TestAppLocalAIConfigPersistsWhenMachineSelectionIsMissing(t *testing.T) {
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	svc.SetLocalExecutionResolver(&mutableLocalExecutionResolver{})
+	appID := "app.missing-local"
+	written, err := svc.OverwriteAppAIConfig(
+		protectedAppAIConfigPrincipalContext("account-a", appID),
+		&runtimev1.OverwriteAppAIConfigRequest{
+			Config: appAIConfig(appID, localAppAIConfigIntent("text.generate")), ExpectedRevision: "0",
+		},
+	)
+	if err != nil || !written.GetCommitted() || written.GetRevision() != "1" {
+		t.Fatalf("route-only Local write = %+v, %v", written, err)
+	}
+	read, err := svc.GetAppAIConfig(
+		localAppAIConfigContext("account-a", appID, accountservice.LocalAppOperationAppAIConfigRead),
+		&runtimev1.GetAppAIConfigRequest{},
+	)
+	if err != nil || read.GetRevision() != "1" || read.GetConfig().GetCapabilities()[0].GetLocal() == nil ||
+		len(read.GetEffectiveSelections()) != 1 ||
+		read.GetEffectiveSelections()[0].GetState() != runtimev1.AIConfigEffectiveState_AI_CONFIG_EFFECTIVE_STATE_MISSING ||
+		len(read.GetEffectiveSelections()[0].GetReasons()) != 1 ||
+		read.GetEffectiveSelections()[0].GetReasons()[0] != runtimev1.ReasonCode_AI_LOCAL_SELECTION_NOT_FOUND.String() {
+		t.Fatalf("missing selection projection = %+v, %v", read, err)
+	}
+}
+
 func TestAppAIConfigCloudIntentRejectsMissingExactConnector(t *testing.T) {
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
 	intent := cloudAIConfigIntent(t, "text.generate")
@@ -340,7 +408,7 @@ func localAppAIConfigIntent(contract string) *runtimev1.AIConfigCapabilityIntent
 	return &runtimev1.AIConfigCapabilityIntent{
 		CapabilityContract: contract,
 		Route: &runtimev1.AIConfigCapabilityIntent_Local{
-			Local: &runtimev1.AIConfigLocalIntent{LoadoutRef: "loadout:test:" + contract},
+			Local: &runtimev1.AIConfigLocalIntent{},
 		},
 	}
 }

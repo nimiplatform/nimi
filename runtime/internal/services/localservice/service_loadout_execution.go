@@ -3,7 +3,6 @@
 package localservice
 
 import (
-	"sort"
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -14,62 +13,62 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-const maxAIConfigLocalLoadoutOptions = 100
-
-func (s *Service) ListLocalLoadouts(capabilityContract string, search string, limit int) ([]localexecution.LoadoutOption, bool, error) {
+func (s *Service) ProjectSelectedLocalLoadout(capabilityContract string) (localexecution.LoadoutOption, bool, error) {
 	capabilityContract = strings.TrimSpace(capabilityContract)
-	search = strings.ToLower(strings.TrimSpace(search))
 	if s == nil || capabilityContract == "" {
-		return nil, false, loadoutError(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONFIG_INVALID, "capability contract is required", nil)
-	}
-	if limit <= 0 || limit > maxAIConfigLocalLoadoutOptions {
-		limit = maxAIConfigLocalLoadoutOptions
+		return localexecution.LoadoutOption{}, false, loadoutError(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONFIG_INVALID, "capability contract is required", nil)
 	}
 	s.loadoutMutationMu.Lock()
 	defer s.loadoutMutationMu.Unlock()
 	s.mu.RLock()
-	stored := make([]*runtimev1.Loadout, 0, len(s.loadouts))
-	for _, loadout := range s.loadouts {
-		if loadout.GetCapabilityContract() == capabilityContract {
-			stored = append(stored, cloneLoadout(loadout))
-		}
-	}
+	selection := cloneLoadoutSelection(s.loadoutSelections[capabilityContract])
+	loadout := cloneLoadout(s.loadouts[selection.GetLoadoutId()])
 	s.mu.RUnlock()
-	options := make([]localexecution.LoadoutOption, 0, len(stored))
-	for _, loadout := range stored {
-		loadout = s.deriveCurrentLoadout(loadout)
-		if search != "" && !strings.Contains(strings.ToLower(loadout.GetLoadoutId()), search) &&
-			!strings.Contains(strings.ToLower(loadout.GetDisplayName()), search) {
-			continue
-		}
-		implementation, _ := proto.Clone(loadout.GetImplementation()).(*runtimev1.CapabilityImplementationIdentity)
-		options = append(options, localexecution.LoadoutOption{
-			LoadoutID: loadout.GetLoadoutId(), DisplayName: loadout.GetDisplayName(),
-			CapabilityContract: loadout.GetCapabilityContract(),
-			Implementation:     implementation,
-			SupportedFeatures:  append([]string(nil), loadout.GetSupportedFeatures()...),
-			ValidationState:    loadout.GetValidationState(), Reasons: append([]runtimev1.ReasonCode(nil), loadout.GetReasons()...),
-		})
+	if selection == nil || strings.TrimSpace(selection.GetLoadoutId()) == "" {
+		return localexecution.LoadoutOption{}, false, nil
 	}
-	sort.Slice(options, func(i, j int) bool {
-		left := strings.ToLower(options[i].DisplayName)
-		right := strings.ToLower(options[j].DisplayName)
-		if left == right {
-			return options[i].LoadoutID < options[j].LoadoutID
-		}
-		return left < right
-	})
-	truncated := len(options) > limit
-	if truncated {
-		options = options[:limit]
+	if loadout == nil {
+		return localexecution.LoadoutOption{
+			LoadoutID: selection.GetLoadoutId(), CapabilityContract: capabilityContract,
+			ValidationState: runtimev1.LoadoutValidationState_LOADOUT_VALIDATION_STATE_BLOCKED,
+			Reasons:         []runtimev1.ReasonCode{runtimev1.ReasonCode_AI_LOADOUT_NOT_FOUND},
+		}, true, nil
 	}
-	return options, truncated, nil
+	loadout = s.deriveCurrentLoadout(loadout)
+	implementation, _ := proto.Clone(loadout.GetImplementation()).(*runtimev1.CapabilityImplementationIdentity)
+	return localexecution.LoadoutOption{
+		LoadoutID: loadout.GetLoadoutId(), DisplayName: loadout.GetDisplayName(),
+		CapabilityContract: loadout.GetCapabilityContract(),
+		Implementation:     implementation,
+		SupportedFeatures:  append([]string(nil), loadout.GetSupportedFeatures()...),
+		ValidationState:    loadout.GetValidationState(), Reasons: append([]runtimev1.ReasonCode(nil), loadout.GetReasons()...),
+	}, true, nil
 }
 
-// ResolveLocalExecution atomically captures the exact AIConfig-referenced
-// Loadout and resolves every ModelAsset axis to immutable absolute paths and
+// ResolveSelectedLocalExecution atomically captures the current machine
+// selection and resolves every ModelAsset axis to immutable absolute paths and
 // content identities. Callers retain this ResolvedAssembly and never reread
-// AIConfig, Loadout, inventory, catalog, machine preference, or process state.
+// AIConfig, Loadout, inventory, catalog, machine selection, or process state.
+func (s *Service) ResolveSelectedLocalExecution(capabilityContract string) (*localexecution.SelectedLocalExecution, error) {
+	capabilityContract = strings.TrimSpace(capabilityContract)
+	if s == nil || capabilityContract == "" {
+		return nil, loadoutError(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONFIG_INVALID, "capability contract is required", nil)
+	}
+	s.loadoutMutationMu.Lock()
+	defer s.loadoutMutationMu.Unlock()
+	s.modelAssetMutationMu.Lock()
+	defer s.modelAssetMutationMu.Unlock()
+	s.mu.RLock()
+	selection := cloneLoadoutSelection(s.loadoutSelections[capabilityContract])
+	s.mu.RUnlock()
+	if selection == nil || strings.TrimSpace(selection.GetLoadoutId()) == "" {
+		return nil, loadoutError(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_SELECTION_NOT_FOUND, "no Loadout is selected for the capability contract", map[string]string{"capability_contract": capabilityContract})
+	}
+	return s.resolveLocalExecutionLocked(capabilityContract, selection.GetLoadoutId())
+}
+
+// ResolveLocalExecution resolves an exact Loadout identity already captured by
+// a Runtime-private caller. AIConfig admission uses ResolveSelectedLocalExecution.
 func (s *Service) ResolveLocalExecution(capabilityContract string, loadoutRef string) (*localexecution.SelectedLocalExecution, error) {
 	capabilityContract = strings.TrimSpace(capabilityContract)
 	loadoutRef = strings.TrimSpace(loadoutRef)
@@ -80,7 +79,10 @@ func (s *Service) ResolveLocalExecution(capabilityContract string, loadoutRef st
 	defer s.loadoutMutationMu.Unlock()
 	s.modelAssetMutationMu.Lock()
 	defer s.modelAssetMutationMu.Unlock()
+	return s.resolveLocalExecutionLocked(capabilityContract, loadoutRef)
+}
 
+func (s *Service) resolveLocalExecutionLocked(capabilityContract string, loadoutRef string) (*localexecution.SelectedLocalExecution, error) {
 	s.mu.RLock()
 	loadout := cloneLoadout(s.loadouts[loadoutRef])
 	s.mu.RUnlock()

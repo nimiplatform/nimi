@@ -3876,14 +3876,8 @@ pub mod ai_config_owner {
         RuntimeLocalAgentSubsystem(super::AiConfigRuntimeLocalAgentSubsystemOwner),
     }
 }
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct AiConfigLocalIntent {
-    /// Stable Runtime Loadout resource reference selected by the AIConfig owner.
-    /// Loadout content, ModelAsset bindings, paths, and process state stay in the
-    /// machine Loadout store.
-    #[prost(string, tag = "1")]
-    pub loadout_ref: ::prost::alloc::string::String,
-}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AiConfigLocalIntent {}
 /// AIConfigCloudIntent carries only the exact Cloud implementation and its
 /// Driver-owned provider-model target selected through Nimi-owned configuration.
 /// Connector credential material never belongs here; connector_ref is the
@@ -3897,9 +3891,10 @@ pub struct AiConfigCloudIntent {
     #[prost(string, tag = "4")]
     pub connector_ref: ::prost::alloc::string::String,
 }
-/// AIConfigCapabilityIntent is consumer intent only. It names an exact safe
-/// resource reference but embeds no Loadout content, assets, bindings, Driver
-/// state, credentials, endpoints, process state, or readiness.
+/// AIConfigCapabilityIntent is consumer intent only. Local carries no resource
+/// reference; Cloud names an exact safe Connector and target. Neither branch
+/// embeds Loadout content, assets, bindings, Driver state, credentials,
+/// endpoints, process state, or readiness.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct AiConfigCapabilityIntent {
     #[prost(string, tag = "1")]

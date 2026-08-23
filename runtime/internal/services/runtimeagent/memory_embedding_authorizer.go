@@ -69,9 +69,20 @@ func (s *Service) ResolveMemoryEmbeddingIntent(ctx context.Context, reqContext *
 		RevisionToken: aiconfig.Hash(config),
 	}
 	if embeddingIntent.GetLocal() != nil {
+		if s.localExecution == nil {
+			return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE)
+		}
+		selected, err := s.localExecution.ResolveSelectedLocalExecution(capabilitydriver.TextEmbedCapabilityContract)
+		if err != nil {
+			return nil, err
+		}
+		if selected == nil || strings.TrimSpace(selected.LoadoutID) == "" ||
+			selected.CapabilityContract != capabilitydriver.TextEmbedCapabilityContract {
+			return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_SELECTION_NOT_FOUND)
+		}
 		snapshot.SourceKind = memoryservice.MemoryEmbeddingTextEmbedSourceKindLocal
 		snapshot.LocalBinding = &memoryservice.MemoryEmbeddingLocalBindingRef{
-			LoadoutRef: embeddingIntent.GetLocal().GetLoadoutRef(),
+			LoadoutRef: selected.LoadoutID,
 		}
 		return snapshot, nil
 	}

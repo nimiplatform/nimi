@@ -2544,11 +2544,7 @@ func (*AIConfigOwner_App) isAIConfigOwner_Owner() {}
 func (*AIConfigOwner_RuntimeLocalAgentSubsystem) isAIConfigOwner_Owner() {}
 
 type AIConfigLocalIntent struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Stable Runtime Loadout resource reference selected by the AIConfig owner.
-	// Loadout content, ModelAsset bindings, paths, and process state stay in the
-	// machine Loadout store.
-	LoadoutRef    string `protobuf:"bytes,1,opt,name=loadout_ref,json=loadoutRef,proto3" json:"loadout_ref,omitempty"`
+	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2581,13 +2577,6 @@ func (x *AIConfigLocalIntent) ProtoReflect() protoreflect.Message {
 // Deprecated: Use AIConfigLocalIntent.ProtoReflect.Descriptor instead.
 func (*AIConfigLocalIntent) Descriptor() ([]byte, []int) {
 	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{33}
-}
-
-func (x *AIConfigLocalIntent) GetLoadoutRef() string {
-	if x != nil {
-		return x.LoadoutRef
-	}
-	return ""
 }
 
 // AIConfigCloudIntent carries only the exact Cloud implementation and its
@@ -2654,9 +2643,10 @@ func (x *AIConfigCloudIntent) GetConnectorRef() string {
 	return ""
 }
 
-// AIConfigCapabilityIntent is consumer intent only. It names an exact safe
-// resource reference but embeds no Loadout content, assets, bindings, Driver
-// state, credentials, endpoints, process state, or readiness.
+// AIConfigCapabilityIntent is consumer intent only. Local carries no resource
+// reference; Cloud names an exact safe Connector and target. Neither branch
+// embeds Loadout content, assets, bindings, Driver state, credentials,
+// endpoints, process state, or readiness.
 type AIConfigCapabilityIntent struct {
 	state              protoimpl.MessageState `protogen:"open.v1"`
 	CapabilityContract string                 `protobuf:"bytes,1,opt,name=capability_contract,json=capabilityContract,proto3" json:"capability_contract,omitempty"`
@@ -4230,10 +4220,8 @@ const file_runtime_v1_capability_configuration_proto_rawDesc = "" +
 	"\rAIConfigOwner\x125\n" +
 	"\x03app\x18\x01 \x01(\v2!.nimi.runtime.v1.AIConfigAppOwnerH\x00R\x03app\x12}\n" +
 	"\x1druntime_local_agent_subsystem\x18\x02 \x01(\v28.nimi.runtime.v1.AIConfigRuntimeLocalAgentSubsystemOwnerH\x00R\x1aruntimeLocalAgentSubsystemB\a\n" +
-	"\x05owner\"6\n" +
-	"\x13AIConfigLocalIntent\x12\x1f\n" +
-	"\vloadout_ref\x18\x01 \x01(\tR\n" +
-	"loadoutRef\"\xfc\x01\n" +
+	"\x05owner\"(\n" +
+	"\x13AIConfigLocalIntentJ\x04\b\x01\x10\x02R\vloadout_ref\"\xfc\x01\n" +
 	"\x13AIConfigCloudIntent\x12Y\n" +
 	"\x0eimplementation\x18\x01 \x01(\v21.nimi.runtime.v1.CapabilityImplementationIdentityR\x0eimplementation\x12K\n" +
 	"\x15provider_model_target\x18\x02 \x01(\v2\x17.google.protobuf.StructR\x13providerModelTarget\x12#\n" +

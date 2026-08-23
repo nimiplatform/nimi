@@ -26,7 +26,7 @@ const PARTICIPATION = [
 function sharedConfig(
   capabilities: NimiCapabilityAIConfig['capabilities'] = [{
     capabilityContract: 'text.generate',
-    route: { oneofKind: 'local', local: { loadoutRef: 'loadout:text' } },
+    route: { oneofKind: 'local', local: {} },
     requiredFeatures: [],
   }],
 ): NimiCapabilityAIConfig {
@@ -185,13 +185,15 @@ describe('AgentCenterSession', () => {
   it('invalidates stale effective facts and restores only the matching committed revision', async () => {
     const intentA = {
       capabilityContract: 'text.generate',
-      route: { oneofKind: 'local' as const, local: { loadoutRef: 'loadout:a' } },
+      route: { oneofKind: 'local' as const, local: {} },
       requiredFeatures: [] as string[],
+      defaults: { fields: { temperature: { kind: { oneofKind: 'numberValue' as const, numberValue: 0.1 } } } },
     };
     const intentB = {
       capabilityContract: 'text.generate',
-      route: { oneofKind: 'local' as const, local: { loadoutRef: 'loadout:b' } },
+      route: { oneofKind: 'local' as const, local: {} },
       requiredFeatures: [] as string[],
+      defaults: { fields: { temperature: { kind: { oneofKind: 'numberValue' as const, numberValue: 0.2 } } } },
     };
     let projection = sharedProjection([intentA], '1');
     let readCount = 0;

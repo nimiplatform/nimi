@@ -108,9 +108,13 @@ func (s *Service) embedMemoryTextsLocal(
 	if modelAssetID == "" {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEMORY_EMBEDDING_TARGET_REF_INVALID)
 	}
+	selected, err := s.resolveReferencedLocalExecution(ctx, intent)
+	if err != nil {
+		return nil, err
+	}
 	effective, err := s.captureSelectedLocalEmbedEffectiveInputs(&runtimev1.TextEmbedScenarioSpec{
 		Inputs: append([]string(nil), inputs...),
-	}, intent.LocalLoadoutRef, intent.RequiredFeatures, modelAssetID)
+	}, selected, intent.RequiredFeatures, modelAssetID)
 	if err != nil {
 		return nil, err
 	}

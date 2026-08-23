@@ -44,13 +44,9 @@ func (s *Service) validateChangedSharedAIConfigResourceReferences(
 		if proto.Equal(currentByCapability[capability.GetCapabilityContract()], capability) {
 			continue
 		}
-		if local := capability.GetLocal(); local != nil {
-			if s.localExecution == nil {
-				return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_CONFIGURATION_NOT_CONFIGURED)
-			}
-			if _, err := s.localExecution.ResolveLocalExecution(capability.GetCapabilityContract(), local.GetLoadoutRef()); err != nil {
-				return err
-			}
+		if capability.GetLocal() != nil {
+			// Local intent is route-only. Current machine selection is validated
+			// independently by effective projection and Job admission.
 			continue
 		}
 		if cloud := capability.GetCloud(); cloud != nil {
@@ -91,27 +87,34 @@ func (s *Service) projectSharedAIConfigEffectiveSelections(
 			result = append(result, selection)
 			continue
 		}
-		resolved, err := s.localExecution.ResolveLocalExecution(capability.GetCapabilityContract(), local.GetLoadoutRef())
+		option, found, err := s.localExecution.ProjectSelectedLocalLoadout(capability.GetCapabilityContract())
 		if err != nil {
-			selection.State = runtimev1.AIConfigEffectiveState_AI_CONFIG_EFFECTIVE_STATE_BLOCKED
+			selection.State = runtimev1.AIConfigEffectiveState_AI_CONFIG_EFFECTIVE_STATE_UNAVAILABLE
 			if reason, ok := grpcerr.ExtractReasonCode(err); ok {
 				selection.Reasons = []string{reason.String()}
-				if reason == runtimev1.ReasonCode_AI_LOADOUT_NOT_FOUND {
-					selection.State = runtimev1.AIConfigEffectiveState_AI_CONFIG_EFFECTIVE_STATE_MISSING
-				}
-			} else {
-				selection.State = runtimev1.AIConfigEffectiveState_AI_CONFIG_EFFECTIVE_STATE_UNAVAILABLE
 			}
 			result = append(result, selection)
 			continue
 		}
-		selection.State = runtimev1.AIConfigEffectiveState_AI_CONFIG_EFFECTIVE_STATE_READY
-		selection.Resource = &runtimev1.AIConfigEffectiveSelection_Local{Local: projectSharedLocalResource(localexecution.LoadoutOption{
-			LoadoutID: resolved.LoadoutID, DisplayName: resolved.DisplayName,
-			CapabilityContract: resolved.CapabilityContract, Implementation: resolved.DriverIdentity,
-			SupportedFeatures: resolved.SupportedFeatures,
-			ValidationState:   runtimev1.LoadoutValidationState_LOADOUT_VALIDATION_STATE_CONFIGURED,
-		})}
+		if !found {
+			selection.State = runtimev1.AIConfigEffectiveState_AI_CONFIG_EFFECTIVE_STATE_MISSING
+			selection.Reasons = []string{runtimev1.ReasonCode_AI_LOCAL_SELECTION_NOT_FOUND.String()}
+			result = append(result, selection)
+			continue
+		}
+		selection.State = runtimev1.AIConfigEffectiveState_AI_CONFIG_EFFECTIVE_STATE_BLOCKED
+		for _, reason := range option.Reasons {
+			selection.Reasons = append(selection.Reasons, reason.String())
+			if reason == runtimev1.ReasonCode_AI_LOADOUT_NOT_FOUND {
+				selection.State = runtimev1.AIConfigEffectiveState_AI_CONFIG_EFFECTIVE_STATE_MISSING
+			}
+		}
+		if option.ValidationState == runtimev1.LoadoutValidationState_LOADOUT_VALIDATION_STATE_CONFIGURED {
+			selection.State = runtimev1.AIConfigEffectiveState_AI_CONFIG_EFFECTIVE_STATE_READY
+		}
+		if option.Implementation != nil && strings.TrimSpace(option.DisplayName) != "" {
+			selection.Resource = &runtimev1.AIConfigEffectiveSelection_Local{Local: projectSharedLocalResource(option)}
+		}
 		result = append(result, selection)
 	}
 	return result
@@ -176,15 +179,17 @@ func (s *Service) listSharedAIConfigLocalOptions(
 	if s == nil || s.localExecution == nil {
 		return nil, false, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_LOCAL_CONFIGURATION_PERSISTENCE_UNAVAILABLE)
 	}
-	options, truncated, err := s.localExecution.ListLocalLoadouts(query.GetCapabilityContract(), query.GetSearch(), sharedAIConfigOptionsLimit)
+	option, found, err := s.localExecution.ProjectSelectedLocalLoadout(query.GetCapabilityContract())
 	if err != nil {
 		return nil, false, err
 	}
-	projected := make([]*runtimev1.AIConfigLocalResourceProjection, 0, len(options))
-	for _, option := range options {
+	projected := make([]*runtimev1.AIConfigLocalResourceProjection, 0, 1)
+	search := strings.ToLower(query.GetSearch())
+	if found && (search == "" || strings.Contains(strings.ToLower(option.LoadoutID), search) || strings.Contains(strings.ToLower(option.DisplayName), search)) &&
+		option.Implementation != nil && strings.TrimSpace(option.DisplayName) != "" {
 		projected = append(projected, projectSharedLocalResource(option))
 	}
-	return projected, truncated, nil
+	return projected, false, nil
 }
 
 func (s *Service) listSharedAIConfigCloudConnectorOptions(

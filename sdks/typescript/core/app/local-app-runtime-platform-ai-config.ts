@@ -80,8 +80,7 @@ export function validateCapabilityIntents(
     if (route.oneofKind === 'local') {
       assertExactKeys(route, ['oneofKind', 'local'], `AIConfig capability ${index} route`);
       const local = asRecord(route.local);
-      assertExactKeys(local, ['loadoutRef'], `AIConfig capability ${index} local route`);
-      requireText(local.loadoutRef, `ai_config_loadout_ref_${index}`);
+      assertExactKeys(local, [], `AIConfig capability ${index} local route`);
       return;
     }
     assertExactKeys(route, ['oneofKind', 'cloud'], `AIConfig capability ${index} route`);
@@ -224,8 +223,7 @@ function projectCapabilityIntent(value: unknown, index: number): void {
   if (route.oneofKind === 'local') {
     assertExactProjectionKeys(route, ['oneofKind', 'local'], `App AIConfig capability ${index} Local route`);
     const local = asRecord(route.local);
-    assertExactProjectionKeys(local, ['loadoutRef'], `App AIConfig capability ${index} Local resource`);
-    projectionText(local.loadoutRef, `App AIConfig capability ${index} loadoutRef`);
+    assertExactProjectionKeys(local, [], `App AIConfig capability ${index} Local route marker`);
     return;
   }
   assertExactProjectionKeys(route, ['oneofKind', 'cloud'], `App AIConfig capability ${index} Cloud route`);

@@ -44,8 +44,12 @@ type capabilityLocalExecutionResolver struct {
 	selections map[string]*localexecution.SelectedLocalExecution
 }
 
-func (r *capabilityLocalExecutionResolver) ListLocalLoadouts(string, string, int) ([]localexecution.LoadoutOption, bool, error) {
-	return nil, false, nil
+func (r *capabilityLocalExecutionResolver) ProjectSelectedLocalLoadout(contract string) (localexecution.LoadoutOption, bool, error) {
+	return selectedLoadoutOptionForTest(r.selections[contract])
+}
+
+func (r *capabilityLocalExecutionResolver) ResolveSelectedLocalExecution(contract string) (*localexecution.SelectedLocalExecution, error) {
+	return r.ResolveLocalExecution(contract, "")
 }
 
 func (r *capabilityLocalExecutionResolver) ResolveLocalExecution(contract string, _ string) (*localexecution.SelectedLocalExecution, error) {
@@ -948,6 +952,7 @@ func TestLocalImageRequestFeatureMismatchFailsBeforeHost(t *testing.T) {
 
 func TestLocalVideoExecutionWithoutSelectionFailsClosed(t *testing.T) {
 	svc := newTestService(nil)
+	svc.SetLocalExecutionResolver(&mutableLocalExecutionResolver{})
 	ctx := executionintent.WithIntent(context.Background(), executionintent.Intent{
 		CapabilityContract: scenarioTargetCapability(runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE),
 		Route:              runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
@@ -961,7 +966,7 @@ func TestLocalVideoExecutionWithoutSelectionFailsClosed(t *testing.T) {
 			Options: &runtimev1.VideoGenerationOptions{},
 		}}},
 	})
-	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_CONFIG_INVALID {
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_LOCAL_SELECTION_NOT_FOUND {
 		t.Fatalf("local video no-selection error = %v reason=%v ok=%v", err, reason, ok)
 	}
 }

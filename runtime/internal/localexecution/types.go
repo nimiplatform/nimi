@@ -79,10 +79,12 @@ type LoadoutOption struct {
 }
 
 // Resolver is the private machine-configuration seam consumed by Runtime
-// AIConfig projection and Job composition. Every execution resolution names
-// one exact Loadout resource; machine-default selection is not an input.
+// AIConfig projection and Job composition. AIConfig reads use the current
+// machine selection; exact resolution remains available only for Runtime
+// inputs that already captured one immutable Loadout identity.
 type Resolver interface {
-	ListLocalLoadouts(capabilityContract string, search string, limit int) ([]LoadoutOption, bool, error)
+	ProjectSelectedLocalLoadout(capabilityContract string) (LoadoutOption, bool, error)
+	ResolveSelectedLocalExecution(capabilityContract string) (*SelectedLocalExecution, error)
 	ResolveLocalExecution(capabilityContract string, loadoutRef string) (*SelectedLocalExecution, error)
 }
 

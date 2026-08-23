@@ -16,10 +16,12 @@ import (
 
 // @nimi-authority: definition.nimi.runtime.rpc-foundations.target-identity-plane
 // @nimi-authority: rule.nimi.runtime.rpc-foundations.r015
-// Intent is one immutable capability-scoped AIConfig snapshot. Local carries
-// the exact committed Loadout reference without resource content. Cloud keeps
-// implementation and Driver-owned target intent; Runtime opens custody later
-// for the separately committed exact Connector reference.
+// Intent is one immutable capability-scoped AIConfig snapshot. Local is
+// route-only until admission captures machine-selected execution inputs.
+// LocalLoadoutRef is reserved for Runtime-private already-captured callers and
+// is never populated by AIConfig conversion. Cloud keeps implementation and
+// Driver-owned target intent; Runtime opens custody later for the separately
+// committed exact Connector reference.
 type Intent struct {
 	CapabilityContract  string
 	RequiredFeatures    []string
@@ -112,12 +114,10 @@ func FromCapability(capability *runtimev1.AIConfigCapabilityIntent) (Intent, err
 	}
 	switch route := capability.GetRoute().(type) {
 	case *runtimev1.AIConfigCapabilityIntent_Local:
-		if route.Local == nil || strings.TrimSpace(route.Local.GetLoadoutRef()) == "" ||
-			strings.TrimSpace(route.Local.GetLoadoutRef()) != route.Local.GetLoadoutRef() {
-			return Intent{}, fmt.Errorf("AIConfig Local loadout_ref is required")
+		if route.Local == nil || len(route.Local.ProtoReflect().GetUnknown()) != 0 {
+			return Intent{}, fmt.Errorf("AIConfig Local route marker is invalid")
 		}
 		out.Route = runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL
-		out.LocalLoadoutRef = route.Local.GetLoadoutRef()
 		return out, nil
 	case *runtimev1.AIConfigCapabilityIntent_Cloud:
 		if route.Cloud == nil || !exactImplementation(route.Cloud.GetImplementation()) ||

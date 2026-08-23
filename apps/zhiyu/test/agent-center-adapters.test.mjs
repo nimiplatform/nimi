@@ -100,7 +100,7 @@ test('production Agent Center routes all seven configuration operations through 
     const replacementCapabilities = [{
       capabilityContract: 'text.generate',
       requiredFeatures: ['input.image'],
-      route: { oneofKind: 'local', local: { loadoutRef: 'loadout:text' } },
+      route: { oneofKind: 'local', local: {} },
     }];
     await session.overwriteSharedAIConfig({
       expectedRevision: '1',
@@ -221,7 +221,7 @@ function createAgentConfigureHost() {
   let capabilities = [{
     capabilityContract: 'text.generate',
     requiredFeatures: [],
-    route: { oneofKind: 'local', local: { loadoutRef: 'loadout:text' } },
+    route: { oneofKind: 'local', local: {} },
   }];
   let aiConfigRevision = '1';
   let autonomy = {

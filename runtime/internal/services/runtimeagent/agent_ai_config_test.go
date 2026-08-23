@@ -9,6 +9,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/aiconfig"
 	"github.com/nimiplatform/nimi/runtime/internal/aiprofile"
 	"github.com/nimiplatform/nimi/runtime/internal/authn"
+	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/config"
 	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 	memoryservice "github.com/nimiplatform/nimi/runtime/internal/services/memory"
@@ -39,8 +40,20 @@ func newSharedAIConfigTestService(t *testing.T) *Service {
 
 type sharedAIConfigLocalResolver struct{}
 
-func (sharedAIConfigLocalResolver) ListLocalLoadouts(string, string, int) ([]localexecution.LoadoutOption, bool, error) {
-	return nil, false, nil
+func (sharedAIConfigLocalResolver) ProjectSelectedLocalLoadout(contract string) (localexecution.LoadoutOption, bool, error) {
+	selected, err := (sharedAIConfigLocalResolver{}).ResolveSelectedLocalExecution(contract)
+	if err != nil {
+		return localexecution.LoadoutOption{}, false, err
+	}
+	return localexecution.LoadoutOption{
+		LoadoutID: selected.LoadoutID, DisplayName: selected.DisplayName,
+		CapabilityContract: contract, Implementation: selected.DriverIdentity,
+		ValidationState: runtimev1.LoadoutValidationState_LOADOUT_VALIDATION_STATE_CONFIGURED,
+	}, true, nil
+}
+
+func (sharedAIConfigLocalResolver) ResolveSelectedLocalExecution(contract string) (*localexecution.SelectedLocalExecution, error) {
+	return (sharedAIConfigLocalResolver{}).ResolveLocalExecution(contract, "loadout-"+contract)
 }
 
 func (sharedAIConfigLocalResolver) ResolveLocalExecution(contract string, loadoutRef string) (*localexecution.SelectedLocalExecution, error) {
@@ -62,7 +75,7 @@ func sharedLocalIntent(contract string) *runtimev1.AIConfigCapabilityIntent {
 	return &runtimev1.AIConfigCapabilityIntent{
 		CapabilityContract: contract,
 		Route: &runtimev1.AIConfigCapabilityIntent_Local{
-			Local: &runtimev1.AIConfigLocalIntent{LoadoutRef: "loadout-" + contract},
+			Local: &runtimev1.AIConfigLocalIntent{},
 		},
 	}
 }
@@ -95,6 +108,34 @@ func TestSharedLocalAgentAIConfigOverwriteAndGetUseSingularOwner(t *testing.T) {
 	}
 }
 
+func TestSharedLocalAgentAIConfigEffectiveSelectionFollowsMachineWithoutRevisionChange(t *testing.T) {
+	svc := newSharedAIConfigTestService(t)
+	contract := capabilitydriver.LlamaCapabilityContract
+	projections := map[string]*localexecution.SelectedLocalExecution{
+		contract: machineLocalExecutionProjectionForTest("loadout-a", contract, "Model A", nil),
+	}
+	svc.SetMachineLocalExecutionResolver(machineLocalExecutionResolverStub{projections: projections})
+	ctx, requestContext := sharedAIConfigTestContext("account-a", "nimi.desktop")
+	written, err := svc.OverwriteSharedLocalAgentAIConfig(ctx, &runtimev1.OverwriteSharedLocalAgentAIConfigRequest{
+		Context: requestContext, ExpectedRevision: "0",
+		Capabilities: []*runtimev1.AIConfigCapabilityIntent{sharedLocalIntent(contract)},
+	})
+	if err != nil || written.GetRevision() != "1" {
+		t.Fatalf("shared Local write = %+v, %v", written, err)
+	}
+	assertLoadout := func(loadoutID string) {
+		t.Helper()
+		read, readErr := svc.GetSharedLocalAgentAIConfig(ctx, &runtimev1.GetSharedLocalAgentAIConfigRequest{Context: requestContext})
+		if readErr != nil || read.GetRevision() != "1" || len(read.GetEffectiveSelections()) != 1 ||
+			read.GetEffectiveSelections()[0].GetLocal().GetLoadoutRef() != loadoutID {
+			t.Fatalf("shared effective selection = %+v, %v", read, readErr)
+		}
+	}
+	assertLoadout("loadout-a")
+	projections[contract] = machineLocalExecutionProjectionForTest("loadout-b", contract, "Model B", nil)
+	assertLoadout("loadout-b")
+}
+
 func TestSharedLocalAgentAIConfigGetMissingIsTyped(t *testing.T) {
 	svc := newSharedAIConfigTestService(t)
 	ctx, requestContext := sharedAIConfigTestContext("account-a", "nimi.desktop")
@@ -108,7 +149,7 @@ func TestSharedLocalAgentAIConfigGetMissingIsTyped(t *testing.T) {
 func assertLocalAgentParticipation(t *testing.T, rows []*runtimev1.LocalAgentCapabilityParticipation) {
 	t.Helper()
 	want := []struct {
-		role runtimev1.LocalAgentCapabilityParticipationRole
+		role       runtimev1.LocalAgentCapabilityParticipationRole
 		capability string
 	}{
 		{runtimev1.LocalAgentCapabilityParticipationRole_LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_CONVERSATION_PRIMARY, "text.generate"},

@@ -33,9 +33,7 @@ func TestGenerateLocalAppTextCandidateUsesAppIntentAndExactLoadoutRef(t *testing
 		Owner: derivedAppAIConfigOwner("nimi.realm-persona-studio"),
 		Capabilities: []*runtimev1.AIConfigCapabilityIntent{{
 			CapabilityContract: "text.generate",
-			Route: &runtimev1.AIConfigCapabilityIntent_Local{Local: &runtimev1.AIConfigLocalIntent{
-				LoadoutRef: "loadout:test:text.generate",
-			}},
+			Route:              &runtimev1.AIConfigCapabilityIntent_Local{Local: &runtimev1.AIConfigLocalIntent{}},
 		}},
 	}); err != nil {
 		t.Fatalf("install App AIConfig: %v", err)
@@ -87,9 +85,7 @@ func TestGenerateLocalAppTextCandidateRejectsMalformedOwnerOutput(t *testing.T) 
 		Owner: derivedAppAIConfigOwner("nimi.realm-persona-studio"),
 		Capabilities: []*runtimev1.AIConfigCapabilityIntent{{
 			CapabilityContract: "text.generate",
-			Route: &runtimev1.AIConfigCapabilityIntent_Local{Local: &runtimev1.AIConfigLocalIntent{
-				LoadoutRef: "loadout:test:text.generate",
-			}},
+			Route:              &runtimev1.AIConfigCapabilityIntent_Local{Local: &runtimev1.AIConfigLocalIntent{}},
 		}},
 	}); err != nil {
 		t.Fatalf("install App AIConfig: %v", err)

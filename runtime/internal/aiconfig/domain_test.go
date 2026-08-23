@@ -106,6 +106,15 @@ func TestCanonicalizeRejectsRemovedConnectorGrantWireField(t *testing.T) {
 	assertCanonicalizeFails(t, capability, "unknown wire fields")
 }
 
+func TestCanonicalizeRejectsRemovedLocalLoadoutWireField(t *testing.T) {
+	capability := localIntent(t, "text.generate", nil, nil)
+	unknown := protowire.AppendTag(nil, 1, protowire.BytesType)
+	unknown = protowire.AppendString(unknown, "removed-loadout")
+	capability.GetLocal().ProtoReflect().SetUnknown(unknown)
+
+	assertCanonicalizeFails(t, capability, "Local intent contains unknown wire fields")
+}
+
 func TestCanonicalizeRejectsDuplicateAndForbiddenLocalTruth(t *testing.T) {
 	assertCanonicalizeFails(t, localIntent(t, "text.generate.vision", nil, nil), "canonical capability catalog")
 	assertCanonicalizeFails(t, localIntent(t, "TEXT.GENERATE", nil, nil), "canonical capability catalog")
@@ -161,7 +170,7 @@ func localIntent(t *testing.T, contract string, features []string, defaults map[
 		CapabilityContract: contract,
 		RequiredFeatures:   features,
 		Defaults:           mustStruct(t, defaults),
-		Route:              &runtimev1.AIConfigCapabilityIntent_Local{Local: &runtimev1.AIConfigLocalIntent{LoadoutRef: "loadout:" + contract}},
+		Route:              &runtimev1.AIConfigCapabilityIntent_Local{Local: &runtimev1.AIConfigLocalIntent{}},
 	}
 }
 

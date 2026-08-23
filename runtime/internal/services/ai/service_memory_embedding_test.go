@@ -164,9 +164,7 @@ func TestEmbedTextsForMemoryUsesSelectedLocalLlamaBinding(t *testing.T) {
 		Owner: aiconfig.LocalAgentSubsystemOwner(),
 		Capabilities: []*runtimev1.AIConfigCapabilityIntent{{
 			CapabilityContract: capabilitydriver.TextEmbedCapabilityContract,
-			Route: &runtimev1.AIConfigCapabilityIntent_Local{Local: &runtimev1.AIConfigLocalIntent{
-				LoadoutRef: "loadout:test:text.embed",
-			}},
+			Route:              &runtimev1.AIConfigCapabilityIntent_Local{Local: &runtimev1.AIConfigLocalIntent{}},
 		}},
 	}); err != nil {
 		t.Fatalf("store shared LocalAgent AIConfig: %v", err)

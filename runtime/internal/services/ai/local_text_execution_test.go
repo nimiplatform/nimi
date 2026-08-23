@@ -32,8 +32,21 @@ type mutableLocalExecutionResolver struct {
 	calls              int
 }
 
-func (r *mutableLocalExecutionResolver) ListLocalLoadouts(string, string, int) ([]localexecution.LoadoutOption, bool, error) {
-	return nil, false, r.err
+func (r *mutableLocalExecutionResolver) ProjectSelectedLocalLoadout(string) (localexecution.LoadoutOption, bool, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.err != nil {
+		return localexecution.LoadoutOption{}, false, r.err
+	}
+	return selectedLoadoutOptionForTest(r.projection)
+}
+
+func (r *mutableLocalExecutionResolver) ResolveSelectedLocalExecution(contract string) (*localexecution.SelectedLocalExecution, error) {
+	selected, err := r.ResolveLocalExecution(contract, "")
+	if err == nil && selected == nil {
+		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_SELECTION_NOT_FOUND)
+	}
+	return selected, err
 }
 
 func (r *mutableLocalExecutionResolver) ResolveLocalExecution(string, string) (*localexecution.SelectedLocalExecution, error) {
@@ -56,6 +69,18 @@ func (r *mutableLocalExecutionResolver) set(projection *localexecution.SelectedL
 	r.mu.Lock()
 	r.projection = projection
 	r.mu.Unlock()
+}
+
+func selectedLoadoutOptionForTest(selected *localexecution.SelectedLocalExecution) (localexecution.LoadoutOption, bool, error) {
+	if selected == nil {
+		return localexecution.LoadoutOption{}, false, nil
+	}
+	return localexecution.LoadoutOption{
+		LoadoutID: selected.LoadoutID, DisplayName: selected.DisplayName,
+		CapabilityContract: selected.CapabilityContract, Implementation: selected.DriverIdentity,
+		SupportedFeatures: append([]string(nil), selected.SupportedFeatures...),
+		ValidationState:   runtimev1.LoadoutValidationState_LOADOUT_VALIDATION_STATE_CONFIGURED,
+	}, true, nil
 }
 
 type localTextHostStub struct {
@@ -312,9 +337,7 @@ func TestSubmitAppLocalImageCapturesAIConfigBeforeRunningJob(t *testing.T) {
 			Capabilities: []*runtimev1.AIConfigCapabilityIntent{{
 				CapabilityContract: capabilitydriver.StableDiffusionCapabilityContract,
 				Defaults:           value,
-				Route: &runtimev1.AIConfigCapabilityIntent_Local{Local: &runtimev1.AIConfigLocalIntent{
-					LoadoutRef: "loadout:test:text.generate",
-				}},
+				Route:              &runtimev1.AIConfigCapabilityIntent_Local{Local: &runtimev1.AIConfigLocalIntent{}},
 			}},
 		}); err != nil {
 			t.Fatalf("write App AIConfig: %v", err)

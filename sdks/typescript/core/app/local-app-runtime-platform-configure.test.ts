@@ -14,7 +14,7 @@ const SHARED_AI_CONFIG = {
   capabilities: [{
     capabilityContract: 'text.generate',
     requiredFeatures: [],
-    route: { oneofKind: 'local', local: { loadoutRef: 'loadout:text' } },
+    route: { oneofKind: 'local', local: {} },
   }],
 } as const;
 

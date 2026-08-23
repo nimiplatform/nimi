@@ -14,12 +14,12 @@ function input(patch: Partial<AgentCenterStateInput> = {}): AgentCenterStateInpu
   const capabilities = [
     {
       capabilityContract: 'text.generate',
-      route: { oneofKind: 'local' as const, local: { loadoutRef: 'loadout:text' } },
+      route: { oneofKind: 'local' as const, local: {} },
       requiredFeatures: [],
     },
     {
       capabilityContract: 'text.embed',
-      route: { oneofKind: 'local' as const, local: { loadoutRef: 'loadout:embed' } },
+      route: { oneofKind: 'local' as const, local: {} },
       requiredFeatures: [],
     },
   ];
@@ -88,7 +88,7 @@ describe('Agent Center state projection', () => {
     const current = input().sharedAIConfig!;
     const audioIntent = {
       capabilityContract: 'audio.transcribe',
-      route: { oneofKind: 'local' as const, local: { loadoutRef: 'loadout:audio' } },
+      route: { oneofKind: 'local' as const, local: {} },
       requiredFeatures: [],
     };
     const state = buildAgentCenterState(input({

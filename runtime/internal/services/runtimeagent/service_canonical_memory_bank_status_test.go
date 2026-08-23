@@ -41,13 +41,12 @@ func TestRuntimeAgentCanonicalMemoryBankUsesSharedLocalIntentMarker(t *testing.T
 	closeRuntimeAgentServiceForTest(t, svc)
 	aiConfigStore := aiconfig.NewMemoryStore()
 	svc.SetAIConfigStore(aiConfigStore)
+	svc.SetMachineLocalExecutionResolver(sharedAIConfigLocalResolver{})
 	if _, _, committed, err := aiConfigStore.Overwrite(ctx, "user-1", aiconfig.InitialRevision, &runtimev1.AIConfig{
 		Owner: aiconfig.LocalAgentSubsystemOwner(),
 		Capabilities: []*runtimev1.AIConfigCapabilityIntent{{
 			CapabilityContract: capabilitydriver.TextEmbedCapabilityContract,
-			Route: &runtimev1.AIConfigCapabilityIntent_Local{Local: &runtimev1.AIConfigLocalIntent{
-				LoadoutRef: "loadout:memory-test",
-			}},
+			Route:              &runtimev1.AIConfigCapabilityIntent_Local{Local: &runtimev1.AIConfigLocalIntent{}},
 		}},
 	}); err != nil || !committed {
 		t.Fatalf("seed shared AIConfig: %v", err)

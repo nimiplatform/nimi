@@ -14,7 +14,7 @@ const owner = { owner: { oneofKind: 'app', app: { appId: 'nimi.lab' } } };
 const localIntent = (capabilityContract) => ({
   capabilityContract,
   requiredFeatures: [],
-  route: { oneofKind: 'local', local: { loadoutRef: `loadout-${capabilityContract}` } },
+  route: { oneofKind: 'local', local: {} },
 });
 const config = (...capabilities) => ({ owner, capabilities });
 

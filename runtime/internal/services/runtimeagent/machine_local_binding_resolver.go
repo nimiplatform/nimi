@@ -113,8 +113,7 @@ func (r *selectedLocalMachineExecutionBindingResolver) ResolveMachineExecutionBi
 		if intent.GetLocal() == nil {
 			continue
 		}
-		loadoutRef := strings.TrimSpace(intent.GetLocal().GetLoadoutRef())
-		selected, err := r.source.ResolveLocalExecution(capabilityContract, loadoutRef)
+		selected, err := r.source.ResolveSelectedLocalExecution(capabilityContract)
 		if err != nil {
 			return nil, err
 		}
@@ -126,6 +125,7 @@ func (r *selectedLocalMachineExecutionBindingResolver) ResolveMachineExecutionBi
 			)
 		}
 		loadoutID := strings.TrimSpace(selected.LoadoutID)
+		loadoutRef := loadoutID
 		modelID := strings.TrimSpace(selected.DisplayName)
 		if modelID == "" {
 			modelID = loadoutID

@@ -2956,22 +2956,19 @@ impl AIConfigEffectiveSelection {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct AIConfigLocalIntent {
-    pub loadout_ref: Option<String>,
+
 }
 
 impl AIConfigLocalIntent {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.loadout_ref { pairs.push(format!("loadout_ref={}", value)); }
-        pairs.join(";").into_bytes()
+        Vec::new()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-
-        out.loadout_ref = pairs.get("loadout_ref").cloned();
-        out
+        if !raw.is_empty() {
+            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client received undecodable response payload");
+        }
+        Self::default()
     }
 }
 

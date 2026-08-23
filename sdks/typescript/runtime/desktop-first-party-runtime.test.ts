@@ -59,7 +59,7 @@ test('Desktop account product binds AIConfig to one explicit admitted App owner'
   const localIntent: AIConfigCapabilityIntent = {
     capabilityContract: 'text.generate',
     requiredFeatures: [],
-    route: { oneofKind: 'local', local: { loadoutRef: 'loadout:text' } },
+    route: { oneofKind: 'local', local: {} },
   };
   const overwritten = await managed.overwrite({ expectedRevision: '0', capabilities: [localIntent] });
   assert.equal(overwritten.config?.capabilities[0]?.capabilityContract, 'text.generate');

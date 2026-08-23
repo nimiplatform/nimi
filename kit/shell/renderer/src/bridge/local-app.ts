@@ -2663,12 +2663,10 @@ function canonicalAIConfigRoute(route: JsonObject, index: number, command: strin
   if (route.oneofKind === 'local') {
     assertProjectionKeys(route, ['oneofKind', 'local'], command, `capabilities[${index}].route`);
     const local = assertRecord(route.local, `${command}: capabilities[${index}].route.local is invalid`);
-    assertProjectionKeys(local, ['loadoutRef'], command, `capabilities[${index}].route.local`);
+    assertProjectionKeys(local, [], command, `capabilities[${index}].route.local`);
     return {
       oneofKind: 'local',
-      local: {
-        loadoutRef: requiredText(local.loadoutRef, 'loadoutRef', command, MAX_IDENTIFIER_LENGTH),
-      },
+      local: {},
     };
   }
   if (route.oneofKind !== 'cloud') {

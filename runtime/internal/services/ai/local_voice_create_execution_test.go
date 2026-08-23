@@ -23,8 +23,12 @@ type localVoiceExecutionResolver struct {
 	selections map[string]*localexecution.SelectedLocalExecution
 }
 
-func (r *localVoiceExecutionResolver) ListLocalLoadouts(string, string, int) ([]localexecution.LoadoutOption, bool, error) {
-	return nil, false, nil
+func (r *localVoiceExecutionResolver) ProjectSelectedLocalLoadout(contract string) (localexecution.LoadoutOption, bool, error) {
+	return selectedLoadoutOptionForTest(r.selections[contract])
+}
+
+func (r *localVoiceExecutionResolver) ResolveSelectedLocalExecution(contract string) (*localexecution.SelectedLocalExecution, error) {
+	return r.ResolveLocalExecution(contract, "")
 }
 
 func (r *localVoiceExecutionResolver) ResolveLocalExecution(contract string, _ string) (*localexecution.SelectedLocalExecution, error) {

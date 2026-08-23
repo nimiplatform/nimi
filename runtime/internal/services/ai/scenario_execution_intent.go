@@ -33,6 +33,9 @@ func (s *Service) captureScenarioExecutionIntent(
 			return ctx, executionintent.Intent{}, missingAIConfigRouteError()
 		}
 		capturedCtx, err := s.captureReferencedLocalExecution(ctx, intent)
+		if err == nil {
+			intent, _ = executionintent.FromContext(capturedCtx)
+		}
 		return capturedCtx, intent, err
 	}
 
@@ -65,6 +68,9 @@ func (s *Service) captureScenarioExecutionIntent(
 		}
 		capturedCtx := executionintent.WithIntent(ctx, intent)
 		capturedCtx, err = s.captureReferencedLocalExecution(capturedCtx, intent)
+		if err == nil {
+			intent, _ = executionintent.FromContext(capturedCtx)
+		}
 		return capturedCtx, intent, err
 	}
 	return ctx, executionintent.Intent{}, grpcerr.WithReasonCodeOptions(
@@ -85,21 +91,27 @@ func (s *Service) captureReferencedLocalExecution(
 	if !intent.IsLocal() {
 		return ctx, nil
 	}
-	if strings.TrimSpace(intent.LocalLoadoutRef) == "" {
-		return ctx, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
-	}
 	if captured, ok := localexecution.SelectedLocalExecutionFromContext(ctx, intent.CapabilityContract); ok {
-		_ = captured
-		return ctx, nil
+		intent.LocalLoadoutRef = captured.LoadoutID
+		return executionintent.WithIntent(ctx, intent), nil
 	}
 	if s == nil || s.localExecution == nil {
 		return ctx, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_CONFIGURATION_NOT_CONFIGURED)
 	}
-	resolved, err := s.localExecution.ResolveLocalExecution(intent.CapabilityContract, intent.LocalLoadoutRef)
+	var (
+		resolved *localexecution.SelectedLocalExecution
+		err      error
+	)
+	if strings.TrimSpace(intent.LocalLoadoutRef) != "" {
+		resolved, err = s.localExecution.ResolveLocalExecution(intent.CapabilityContract, intent.LocalLoadoutRef)
+	} else {
+		resolved, err = s.localExecution.ResolveSelectedLocalExecution(intent.CapabilityContract)
+	}
 	if err != nil {
 		return ctx, err
 	}
-	return localexecution.WithSelectedLocalExecution(ctx, resolved), nil
+	intent.LocalLoadoutRef = resolved.LoadoutID
+	return localexecution.WithSelectedLocalExecution(executionintent.WithIntent(ctx, intent), resolved), nil
 }
 
 func (s *Service) resolveReferencedLocalExecution(
@@ -134,9 +146,6 @@ func scenarioExecutionIntentFromContext(
 		return executionintent.Intent{}, missingAIConfigRouteError()
 	}
 	if !intent.IsLocal() && !intent.IsCloud() {
-		return executionintent.Intent{}, missingAIConfigRouteError()
-	}
-	if intent.IsLocal() && strings.TrimSpace(intent.LocalLoadoutRef) == "" {
 		return executionintent.Intent{}, missingAIConfigRouteError()
 	}
 	return intent, nil

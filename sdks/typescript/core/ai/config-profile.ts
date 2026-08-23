@@ -275,17 +275,15 @@ function assertExactCloudProviderModelTarget(target: NimiJsonObject): void {
 
 export function createNimiLocalAIConfigCapabilityIntent(input: {
   readonly capabilityContract: string;
-  readonly loadoutRef: string;
   readonly requiredFeatures?: readonly string[];
   readonly defaults?: NimiJsonObject;
 }): AIConfigCapabilityIntent {
   const capabilityContract = requireText(input.capabilityContract, 'Local CapabilityContract is required');
-  const loadoutRef = requireText(input.loadoutRef, 'Local loadoutRef is required');
   return {
     capabilityContract,
     requiredFeatures: [...parseRequiredFeatures(input.requiredFeatures, capabilityContract)],
     ...(input.defaults ? { defaults: toRuntimeStruct(normalizeJsonObject(input.defaults, 'Local defaults')) } : {}),
-    route: { oneofKind: 'local', local: { loadoutRef } },
+    route: { oneofKind: 'local', local: {} },
   };
 }
 

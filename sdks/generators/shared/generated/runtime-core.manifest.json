@@ -10176,15 +10176,7 @@
       },
       {
         "name": "AIConfigLocalIntent",
-        "fields": [
-          {
-            "name": "loadout_ref",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          }
-        ],
+        "fields": [],
         "source_file": "proto/runtime/v1/capability_configuration.proto"
       },
       {

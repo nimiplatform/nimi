@@ -88,7 +88,7 @@ describe('AgentCenter UI session contract', () => {
   it('renders from the Manager Session and exposes only UI composition props', async () => {
     const intent = {
       capabilityContract: 'text.generate',
-      route: { oneofKind: 'local' as const, local: { loadoutRef: 'loadout:text' } },
+      route: { oneofKind: 'local' as const, local: {} },
       requiredFeatures: [] as string[],
     };
     const session = await sessionFor({
@@ -336,7 +336,7 @@ describe('AgentCenter UI session contract', () => {
     expect(config?.owner?.owner.oneofKind).toBe('runtimeLocalAgentSubsystem');
     expect(config?.capabilities).toEqual([expect.objectContaining({
       capabilityContract: 'text.generate',
-      route: { oneofKind: 'local', local: { loadoutRef: 'loadout:text' } },
+      route: { oneofKind: 'local', local: {} },
     })]);
     expect(JSON.stringify(config)).not.toContain('targetRef');
   });

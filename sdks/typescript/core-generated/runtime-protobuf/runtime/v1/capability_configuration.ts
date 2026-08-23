@@ -666,14 +666,6 @@ export interface AIConfigOwner {
  * @generated from protobuf message nimi.runtime.v1.AIConfigLocalIntent
  */
 export interface AIConfigLocalIntent {
-    /**
-     * Stable Runtime Loadout resource reference selected by the AIConfig owner.
-     * Loadout content, ModelAsset bindings, paths, and process state stay in the
-     * machine Loadout store.
-     *
-     * @generated from protobuf field: string loadout_ref = 1
-     */
-    loadoutRef: string;
 }
 /**
  * AIConfigCloudIntent carries only the exact Cloud implementation and its
@@ -698,9 +690,10 @@ export interface AIConfigCloudIntent {
     connectorRef: string;
 }
 /**
- * AIConfigCapabilityIntent is consumer intent only. It names an exact safe
- * resource reference but embeds no Loadout content, assets, bindings, Driver
- * state, credentials, endpoints, process state, or readiness.
+ * AIConfigCapabilityIntent is consumer intent only. Local carries no resource
+ * reference; Cloud names an exact safe Connector and target. Neither branch
+ * embeds Loadout content, assets, bindings, Driver state, credentials,
+ * endpoints, process state, or readiness.
  *
  * @generated from protobuf message nimi.runtime.v1.AIConfigCapabilityIntent
  */
@@ -3488,13 +3481,10 @@ export const AIConfigOwner = new AIConfigOwner$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class AIConfigLocalIntent$Type extends MessageType<AIConfigLocalIntent> {
     constructor() {
-        super("nimi.runtime.v1.AIConfigLocalIntent", [
-            { no: 1, name: "loadout_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
-        ]);
+        super("nimi.runtime.v1.AIConfigLocalIntent", []);
     }
     create(value?: PartialMessage<AIConfigLocalIntent>): AIConfigLocalIntent {
         const message = globalThis.Object.create((this.messagePrototype!));
-        message.loadoutRef = "";
         if (value !== undefined)
             reflectionMergePartial<AIConfigLocalIntent>(this, message, value);
         return message;
@@ -3504,9 +3494,6 @@ class AIConfigLocalIntent$Type extends MessageType<AIConfigLocalIntent> {
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
-                case /* string loadout_ref */ 1:
-                    message.loadoutRef = reader.string();
-                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -3519,9 +3506,6 @@ class AIConfigLocalIntent$Type extends MessageType<AIConfigLocalIntent> {
         return message;
     }
     internalBinaryWrite(message: AIConfigLocalIntent, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* string loadout_ref = 1; */
-        if (message.loadoutRef !== "")
-            writer.tag(1, WireType.LengthDelimited).string(message.loadoutRef);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

@@ -320,7 +320,7 @@ class AIConfigEffectiveSelection:
 
 @dataclass(frozen=True)
 class AIConfigLocalIntent:
-    loadout_ref: str | None = None
+    pass
 
 @dataclass(frozen=True)
 class AIConfigLocalLoadoutOptions:

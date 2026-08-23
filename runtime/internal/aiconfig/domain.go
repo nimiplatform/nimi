@@ -111,8 +111,8 @@ func canonicalizeCapability(capability *runtimev1.AIConfigCapabilityIntent) erro
 		if route.Local == nil {
 			return fmt.Errorf("capability %q: Local route marker is required", contract)
 		}
-		if err := requireExactNonEmpty("loadout_ref", route.Local.GetLoadoutRef()); err != nil {
-			return fmt.Errorf("capability %q: %w", contract, err)
+		if len(route.Local.ProtoReflect().GetUnknown()) != 0 {
+			return fmt.Errorf("capability %q: Local intent contains unknown wire fields", contract)
 		}
 	case *runtimev1.AIConfigCapabilityIntent_Cloud:
 		if err := validateCloudIntent(route.Cloud); err != nil {

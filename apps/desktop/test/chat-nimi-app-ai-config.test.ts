@@ -23,7 +23,6 @@ test('Desktop App AIConfig cache identity preserves one exact appId', () => {
 test('Nimi Chat locates canonical text intent without owning its construction', () => {
   const imageIntent = createNimiLocalAIConfigCapabilityIntent({
     capabilityContract: 'image.generate',
-    loadoutRef: 'loadout:image',
     requiredFeatures: [],
   });
   const textIntent = createNimiCloudAIConfigCapabilityIntent({

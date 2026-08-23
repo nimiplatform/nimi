@@ -525,7 +525,7 @@ test('App AIConfig exposes self-owner CAS and bounded Local/Cloud options', asyn
       requiredFeatures: [],
       route: {
         oneofKind: 'local',
-        local: { loadoutRef: 'loadout:text' },
+        local: {},
       },
     }],
   } as const;

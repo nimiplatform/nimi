@@ -43,7 +43,7 @@ export function projectLabAIConfigCapabilities(
         capabilityContract: intent.capabilityContract,
         requiredFeatures: [...intent.requiredFeatures],
         ...(intent.defaults ? { defaults: intent.defaults } : {}),
-        route: { oneofKind: 'local', local: { loadoutRef: route.local.loadoutRef } },
+        route: { oneofKind: 'local', local: {} },
       };
     }
     if (route.oneofKind === 'cloud' && 'cloud' in route) {

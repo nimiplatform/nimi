@@ -5,7 +5,6 @@ import {
   runtimeAIConfigStructToJson,
   type NimiAIConfigCloudConnectorOption,
   type NimiAIConfigCloudTargetOption,
-  type NimiAIConfigLocalLoadoutOption,
   type NimiPortableAppAIConfigIntent,
 } from '@nimiplatform/kit/core/sdk-contract';
 import {
@@ -56,7 +55,6 @@ type ModelConfigRouteChoice =
   | {
       readonly id: string;
       readonly route: 'local';
-      readonly loadoutRef: string;
       readonly label: string;
       readonly description: string;
     }
@@ -170,30 +168,18 @@ function localChoice(
   let description = copy.localChoiceDescription;
   if (selection?.state === 'ready' && local) {
     description = copy.localSelectedLabel;
+  } else if (selection === null || selection?.state === 'missing') {
+    description = copy.localMissingLabel;
   } else if (selection?.state === 'blocked') {
     description = copy.localBrokenLabel;
   } else if (selection?.state === 'unavailable') {
     description = copy.localUnavailableLabel;
   }
   return {
-    id: local?.loadoutRef ? `local:${local.loadoutRef}` : 'local:',
+    id: 'local',
     route: 'local',
-    loadoutRef: local?.loadoutRef || '',
     label: local?.label || copy.localLabel,
     description,
-  };
-}
-
-function localOptionChoice(
-  option: NimiAIConfigLocalLoadoutOption,
-  copy: ResolvedCopy,
-): Extract<ModelConfigRouteChoice, { readonly route: 'local' }> {
-  return {
-    id: `local:${option.loadoutRef}`,
-    route: 'local',
-    loadoutRef: option.loadoutRef,
-    label: option.label,
-    description: option.state === 'ready' ? copy.localSelectedLabel : copy.localBrokenLabel,
   };
 }
 
@@ -219,10 +205,7 @@ function currentRouteChoice(
   selection: ModelConfigEffectiveSelectionProjection | null | undefined,
   copy: ResolvedCopy,
 ): ModelConfigRouteChoice | null {
-  if (intent?.route.oneofKind === 'local') return {
-    ...localChoice(selection, copy),
-    loadoutRef: intent.route.local.loadoutRef,
-  };
+  if (intent?.route.oneofKind === 'local') return localChoice(selection, copy);
   if (intent?.route.oneofKind !== 'cloud') return null;
   const cloud = intent.route.cloud;
   const target = runtimeAIConfigStructToJson(cloud.providerModelTarget);
@@ -571,12 +554,7 @@ function EditableCapabilityIntentEditor(props: CapabilityIntentEditorProps) {
   }, [currentChoice, currentDefaults, draftChoice, syncKey]);
 
   const listChoices = useCallback(async (): Promise<readonly ModelConfigRouteChoice[]> => {
-    let locals: readonly Extract<ModelConfigRouteChoice, { readonly route: 'local' }>[] = [localChoice(props.selection, props.copy)];
-    if (props.listOptions) {
-      const result = await props.listOptions({ kind: 'local-loadouts', capabilityContract: props.capabilityContract });
-      if (result.kind !== 'local-loadouts') throw new Error('Local Loadout options mismatch');
-      locals = result.options.map((option) => localOptionChoice(option, props.copy));
-    }
+    const locals: readonly Extract<ModelConfigRouteChoice, { readonly route: 'local' }>[] = [localChoice(props.selection, props.copy)];
     setCloudError('');
     try {
       const connectorResult = await props.listOptions!({
@@ -646,7 +624,6 @@ function EditableCapabilityIntentEditor(props: CapabilityIntentEditorProps) {
       if (draftChoice.route === 'local') {
         intent = createNimiLocalAIConfigCapabilityIntent({
           capabilityContract: props.capabilityContract,
-          loadoutRef: draftChoice.loadoutRef,
           requiredFeatures,
           ...(defaults ? { defaults } : {}),
         });
@@ -742,7 +719,6 @@ function EditableCapabilityIntentEditor(props: CapabilityIntentEditorProps) {
     ? modelConfigCapabilityPosture(
         props.currentIntent?.route.oneofKind === 'local' ? props.currentIntent : createNimiLocalAIConfigCapabilityIntent({
           capabilityContract: props.capabilityContract,
-          loadoutRef: draftChoice.loadoutRef,
           requiredFeatures: [...(props.currentIntent?.requiredFeatures || [])],
         }),
         props.selection,
@@ -760,6 +736,9 @@ function EditableCapabilityIntentEditor(props: CapabilityIntentEditorProps) {
   const modelDetailStatus = draftChoice
     ? draftBadge.tone === 'success' ? props.copy.activeModelConfiguredLabel : props.copy.activeModelSetupPendingLabel
     : null;
+  const displayedChoice = draftChoice?.route === 'local'
+    ? localChoice(props.selection, props.copy)
+    : draftChoice;
 
   return (
     <div className="min-w-0 space-y-4" data-nimi-model-config-capability={props.capabilityContract}>
@@ -775,8 +754,8 @@ function EditableCapabilityIntentEditor(props: CapabilityIntentEditorProps) {
           </span>
         </div>
         <ModelSelectorTrigger
-          source={draftChoice?.route || null}
-          label={draftChoice?.label || null}
+          source={displayedChoice?.route || null}
+          label={displayedChoice?.label || null}
           detail={modelDetail}
           detailStatus={modelDetailStatus}
           detailTone={draftBadge.tone === 'success' ? 'success' : draftBadge.tone === 'warning' ? 'warning' : 'neutral'}
@@ -920,7 +899,7 @@ function EditableCapabilityIntentEditor(props: CapabilityIntentEditorProps) {
               {props.copy.conflictCurrentLabel(
                 conflictCurrent.revision,
                 conflictCurrent.intent?.route.oneofKind === 'local'
-                  ? `${props.copy.localLabel} · ${conflictCurrent.intent.route.local.loadoutRef}`
+                  ? props.copy.localLabel
                   : conflictCurrent.intent?.route.oneofKind === 'cloud'
                     ? `${props.copy.cloudLabel} · ${cloudModelLabel(conflictCurrent.intent) || conflictCurrent.intent.route.cloud.connectorRef}`
                     : props.copy.notConfiguredLabel,
@@ -950,7 +929,6 @@ function EditableCapabilityIntentEditor(props: CapabilityIntentEditorProps) {
         <Button
           tone="primary"
           disabled={routeDisabled || !draftChoice || !props.revision
-            || (draftChoice.route === 'local' && !draftChoice.loadoutRef)
             || (draftChoice.route === 'cloud' && (!selectedConnector || !exactCloudSelection))}
           onClick={() => { void commit(); }}
           data-testid={`model-config-save:${props.capabilityContract}`}

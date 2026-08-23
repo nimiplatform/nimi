@@ -256,7 +256,7 @@ function simulatedAgentCenterSession(
   let capabilities: AgentCenterSharedAIConfigProjection['aiConfig']['capabilities'] = [{
     capabilityContract: 'text.generate',
     requiredFeatures: [],
-    route: { oneofKind: 'local', local: { loadoutRef: 'simulated-text-loadout' } },
+    route: { oneofKind: 'local', local: {} },
   }];
   let aiConfigRevision = '1';
   const sharedAIConfig = () => simulatedSharedAIConfig(capabilities);

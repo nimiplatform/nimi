@@ -28,7 +28,7 @@ test('Simulator Agent Center keeps configuration in memory with CAS and fail-clo
     capabilities: [{
       capabilityContract: 'text.embed',
       requiredFeatures: [],
-      route: { oneofKind: 'local', local: { loadoutRef: 'simulated-embed-loadout' } },
+      route: { oneofKind: 'local', local: {} },
     }],
   });
   assert.equal(

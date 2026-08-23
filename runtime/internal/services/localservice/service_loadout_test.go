@@ -49,13 +49,34 @@ func TestLoadoutPrepareCommitSelectAndResolveGemmaModelAsset(t *testing.T) {
 	if _, err := svc.SelectLoadout(context.Background(), &runtimev1.SelectLoadoutRequest{CapabilityContract: capabilitydriver.LlamaCapabilityContract, LoadoutId: committed.GetLoadoutId(), ConfirmedMachineImpact: true}); err != nil {
 		t.Fatal(err)
 	}
-	resolved, err := svc.ResolveLocalExecution(capabilitydriver.LlamaCapabilityContract, selectedLoadoutRefForTest(t, svc, capabilitydriver.LlamaCapabilityContract))
+	projected, found, err := svc.ProjectSelectedLocalLoadout(capabilitydriver.LlamaCapabilityContract)
+	if err != nil || !found || projected.LoadoutID != committed.GetLoadoutId() {
+		t.Fatalf("selected Loadout projection = %+v found=%v err=%v", projected, found, err)
+	}
+	resolved, err := svc.ResolveSelectedLocalExecution(capabilitydriver.LlamaCapabilityContract)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if resolved.LoadoutID != committed.GetLoadoutId() || resolved.RecipeID != capabilitydriver.LlamaGemma4E2BRecipeID || len(resolved.ExactBindings) != 1 || resolved.ExactBindings[0].ModelAssetID != asset.GetModelAssetId() || !filepath.IsAbs(resolved.ExactBindings[0].AbsolutePath) || resolved.ModelContextWindowTokens != 262144 ||
 		resolved.ExecutionTarget == nil || resolved.ExecutionTarget.GetLocalRuntime().GetReadinessRef() != "model-asset://"+asset.GetModelAssetId() {
 		t.Fatalf("ResolvedAssembly = %+v", resolved)
+	}
+
+	preparedB := prepareGemmaLoadoutForTest(t, svc, context.Background(), "", "Gemma secondary", asset)
+	committedB := commitLoadoutForTest(t, svc, context.Background(), preparedB.GetPrepareId(), false)
+	if _, err := svc.SelectLoadout(context.Background(), &runtimev1.SelectLoadoutRequest{
+		CapabilityContract:     capabilitydriver.LlamaCapabilityContract,
+		LoadoutId:              committedB.GetLoadoutId(),
+		ConfirmedMachineImpact: true,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	resolvedB, err := svc.ResolveSelectedLocalExecution(capabilitydriver.LlamaCapabilityContract)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resolvedB.LoadoutID != committedB.GetLoadoutId() || resolved.LoadoutID != committed.GetLoadoutId() {
+		t.Fatalf("machine switch rewrote capture: before=%q after=%q", resolved.LoadoutID, resolvedB.LoadoutID)
 	}
 }
 

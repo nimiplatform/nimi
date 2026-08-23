@@ -166,8 +166,19 @@ type memoryEmbeddingLocalResolverStub struct {
 	selected *localexecution.SelectedLocalExecution
 }
 
-func (s memoryEmbeddingLocalResolverStub) ListLocalLoadouts(string, string, int) ([]localexecution.LoadoutOption, bool, error) {
-	return nil, false, nil
+func (s memoryEmbeddingLocalResolverStub) ProjectSelectedLocalLoadout(string) (localexecution.LoadoutOption, bool, error) {
+	if s.selected == nil {
+		return localexecution.LoadoutOption{}, false, nil
+	}
+	return localexecution.LoadoutOption{
+		LoadoutID: s.selected.LoadoutID, DisplayName: s.selected.DisplayName,
+		CapabilityContract: s.selected.CapabilityContract, Implementation: s.selected.DriverIdentity,
+		ValidationState: runtimev1.LoadoutValidationState_LOADOUT_VALIDATION_STATE_CONFIGURED,
+	}, true, nil
+}
+
+func (s memoryEmbeddingLocalResolverStub) ResolveSelectedLocalExecution(string) (*localexecution.SelectedLocalExecution, error) {
+	return localexecution.CloneSelectedLocalExecution(s.selected), nil
 }
 
 func (s memoryEmbeddingLocalResolverStub) ResolveLocalExecution(string, string) (*localexecution.SelectedLocalExecution, error) {

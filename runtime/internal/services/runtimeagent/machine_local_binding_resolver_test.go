@@ -48,8 +48,29 @@ func (stub *recordingMachineLocalExecutionResolver) ResolveLocalExecution(capabi
 	return stub.machineLocalExecutionResolverStub.ResolveLocalExecution(capabilityContract, loadoutRef)
 }
 
-func (stub machineLocalExecutionResolverStub) ListLocalLoadouts(string, string, int) ([]localexecution.LoadoutOption, bool, error) {
-	return nil, false, nil
+func (stub *recordingMachineLocalExecutionResolver) ResolveSelectedLocalExecution(capabilityContract string) (*localexecution.SelectedLocalExecution, error) {
+	stub.calls = append(stub.calls, capabilityContract)
+	return stub.machineLocalExecutionResolverStub.ResolveSelectedLocalExecution(capabilityContract)
+}
+
+func (stub machineLocalExecutionResolverStub) ProjectSelectedLocalLoadout(capabilityContract string) (localexecution.LoadoutOption, bool, error) {
+	selected, err := stub.ResolveSelectedLocalExecution(capabilityContract)
+	if err != nil {
+		return localexecution.LoadoutOption{}, false, err
+	}
+	if selected == nil {
+		return localexecution.LoadoutOption{}, false, nil
+	}
+	return localexecution.LoadoutOption{
+		LoadoutID: selected.LoadoutID, DisplayName: selected.DisplayName,
+		CapabilityContract: capabilityContract, Implementation: selected.DriverIdentity,
+		SupportedFeatures: append([]string(nil), selected.SupportedFeatures...),
+		ValidationState:   runtimev1.LoadoutValidationState_LOADOUT_VALIDATION_STATE_CONFIGURED,
+	}, true, nil
+}
+
+func (stub machineLocalExecutionResolverStub) ResolveSelectedLocalExecution(capabilityContract string) (*localexecution.SelectedLocalExecution, error) {
+	return stub.ResolveLocalExecution(capabilityContract, "")
 }
 
 func (stub machineLocalExecutionResolverStub) ResolveLocalExecution(capabilityContract string, _ string) (*localexecution.SelectedLocalExecution, error) {
@@ -223,8 +244,8 @@ func TestPublicChatTurnAdmissionResolvesOnlyTurnExecutableSelections(t *testing.
 		t.Fatalf("resolveExecutionBindingsFromConfig: %v", err)
 	}
 	wantCalls := []string{
-		textContract + "/test-loadout:" + textContract,
-		imageContract + "/test-loadout:" + imageContract,
+		textContract,
+		imageContract,
 	}
 	if len(source.calls) != len(wantCalls) || source.calls[0] != wantCalls[0] || source.calls[1] != wantCalls[1] {
 		t.Fatalf("turn admission resolved selections = %v, want %v", source.calls, wantCalls)
@@ -340,9 +361,7 @@ func installMachineAIConfigForTest(t *testing.T, service *Service, accountID str
 	for _, contract := range contracts {
 		capabilities = append(capabilities, &runtimev1.AIConfigCapabilityIntent{
 			CapabilityContract: contract,
-			Route: &runtimev1.AIConfigCapabilityIntent_Local{Local: &runtimev1.AIConfigLocalIntent{
-				LoadoutRef: "test-loadout:" + contract,
-			}},
+			Route:              &runtimev1.AIConfigCapabilityIntent_Local{Local: &runtimev1.AIConfigLocalIntent{}},
 		})
 	}
 	if _, _, committed, err := store.Overwrite(context.Background(), accountID, aiconfig.InitialRevision, &runtimev1.AIConfig{

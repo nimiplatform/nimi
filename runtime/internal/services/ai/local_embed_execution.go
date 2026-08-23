@@ -53,24 +53,21 @@ func (s *Service) captureLocalEmbedEffectiveInputs(
 	if !intent.IsLocal() || intent.CapabilityContract != capabilitydriver.TextEmbedCapabilityContract {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_CAPABILITY_MISMATCH)
 	}
-	return s.captureSelectedLocalEmbedEffectiveInputs(spec, intent.LocalLoadoutRef, intent.RequiredFeatures, "")
+	selected, err := s.resolveReferencedLocalExecution(ctx, intent)
+	if err != nil {
+		return nil, err
+	}
+	return s.captureSelectedLocalEmbedEffectiveInputs(spec, selected, intent.RequiredFeatures, "")
 }
 
 func (s *Service) captureSelectedLocalEmbedEffectiveInputs(
 	spec *runtimev1.TextEmbedScenarioSpec,
-	loadoutRef string,
+	selected *localexecution.SelectedLocalExecution,
 	requiredFeatures []string,
 	expectedModelAssetID string,
 ) (*localEmbedEffectiveInputs, error) {
 	if s == nil || spec == nil {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
-	}
-	if s.localExecution == nil {
-		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_SELECTION_NOT_FOUND)
-	}
-	selected, err := s.localExecution.ResolveLocalExecution(capabilitydriver.TextEmbedCapabilityContract, loadoutRef)
-	if err != nil {
-		return nil, err
 	}
 	if !validSelectedEmbedExecution(selected) {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_CONFIGURATION_NOT_CONFIGURED)

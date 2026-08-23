@@ -26,7 +26,7 @@ test('App AIConfig client uses exact whole-object owner intent', async () => {
   await client.get();
   const stored = await client.overwrite({ expectedRevision: '0', capabilities: [{
     capabilityContract: 'text.generate', requiredFeatures: [],
-    route: { oneofKind: 'local', local: { loadoutRef: 'loadout:text' } },
+    route: { oneofKind: 'local', local: {} },
   }] });
 
   assert.deepEqual(client.owner, createNimiAppAIConfigOwner('app.example'));

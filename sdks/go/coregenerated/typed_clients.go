@@ -1841,7 +1841,7 @@ type AIConfigEffectiveSelection struct {
 }
 
 type AIConfigLocalIntent struct {
-	LoadoutRef string `json:"loadout_ref,omitempty"`
+
 }
 
 type AIConfigLocalLoadoutOptions struct {

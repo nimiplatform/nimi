@@ -71,7 +71,7 @@ async function renderSurface(
           capabilityContract: 'text.generate',
           requiredFeatures: [],
           defaults: undefined,
-          route: { oneofKind: 'local', local: { loadoutRef: 'machine-text' } },
+          route: { oneofKind: 'local', local: {} },
         }]}
         revision="1"
         listOptions={options.listOptions || (async (query) => query.kind === 'local-loadouts' ? ({
@@ -192,7 +192,6 @@ describe('public Model Config contract', () => {
       capabilityContracts: [capabilityContract],
       capabilities: [createNimiLocalAIConfigCapabilityIntent({
         capabilityContract,
-        loadoutRef: `loadout-${capabilityContract}`,
       })],
       initialCapabilityContract: capabilityContract,
     });
@@ -233,7 +232,6 @@ describe('public Model Config contract', () => {
     const intent = createNimiLocalAIConfigCapabilityIntent({
       capabilityContract: 'text.generate',
       requiredFeatures: [],
-      loadoutRef: 'machine-text',
     });
 
     expect(modelConfigCapabilityPosture(intent, undefined)).toBe('local-configured');
@@ -327,8 +325,7 @@ describe('public Model Config contract', () => {
       capabilities: [{
         capabilityContract: 'text.generate',
         requiredFeatures: [],
-        defaults: undefined,
-        route: { oneofKind: 'local', local: { loadoutRef: 'machine-text' } },
+        route: { oneofKind: 'local', local: {} },
       }],
     });
     expect(JSON.stringify(onOverwrite.mock.calls[0]?.[0])).not.toMatch(/modelId|targetRef|loadoutId/u);
@@ -338,14 +335,12 @@ describe('public Model Config contract', () => {
     const onOverwrite = committedOverwrite();
     const sibling = createNimiLocalAIConfigCapabilityIntent({
       capabilityContract: 'audio.transcribe',
-      loadoutRef: 'machine-audio',
     });
     const node = await renderSurface(onOverwrite, vi.fn(), {
       capabilityContracts: ['text.generate', 'audio.transcribe'],
       capabilities: [
         createNimiLocalAIConfigCapabilityIntent({
           capabilityContract: 'text.generate',
-          loadoutRef: 'machine-text',
         }),
         sibling,
       ],
@@ -367,14 +362,12 @@ describe('public Model Config contract', () => {
     const onOverwrite = committedOverwrite();
     const sibling = createNimiLocalAIConfigCapabilityIntent({
       capabilityContract: 'audio.transcribe',
-      loadoutRef: 'machine-audio',
     });
     const node = await renderSurface(onOverwrite, vi.fn(), {
       capabilityContracts: ['text.generate', 'audio.transcribe'],
       capabilities: [
         createNimiLocalAIConfigCapabilityIntent({
           capabilityContract: 'text.generate',
-          loadoutRef: 'machine-text',
         }),
         sibling,
       ],
@@ -410,12 +403,10 @@ describe('public Model Config contract', () => {
     const calls: Parameters<ModelConfigOverwrite>[0][] = [];
     const initialIntent = createNimiLocalAIConfigCapabilityIntent({
       capabilityContract: 'text.generate',
-      loadoutRef: 'machine-text',
       defaults: { temperature: 0.2 },
     });
     const concurrentIntent = createNimiLocalAIConfigCapabilityIntent({
       capabilityContract: 'text.generate',
-      loadoutRef: 'machine-text',
       defaults: { temperature: 0.4 },
     });
 
@@ -475,7 +466,7 @@ describe('public Model Config contract', () => {
     await act(async () => { save.click(); await Promise.resolve(); });
     await flush();
     expect(container.textContent).toContain('Configuration changed elsewhere');
-    expect(container.textContent).toContain('Current revision 2: On-device · machine-text');
+    expect(container.textContent).toContain('Current revision 2: On-device');
     expect(temperature.value).toBe('0.7');
 
     await act(async () => { save.click(); await Promise.resolve(); });
@@ -521,7 +512,6 @@ describe('public Model Config contract', () => {
     const onOverwrite = committedOverwrite();
     const intent = createNimiLocalAIConfigCapabilityIntent({
       capabilityContract: 'video.generate',
-      loadoutRef: 'machine-video',
       defaults: {
         negativePrompt: 'blur',
         unknown: 'drop-me',

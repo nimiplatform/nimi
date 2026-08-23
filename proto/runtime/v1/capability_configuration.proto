@@ -262,10 +262,10 @@ message AIConfigOwner {
 }
 
 message AIConfigLocalIntent {
-  // Stable Runtime Loadout resource reference selected by the AIConfig owner.
-  // Loadout content, ModelAsset bindings, paths, and process state stay in the
-  // machine Loadout store.
-  string loadout_ref = 1;
+  // Local is a route-only marker. The machine Loadout store owns the current
+  // per-CapabilityContract selection used at new Job admission.
+  reserved 1;
+  reserved "loadout_ref";
 }
 
 // AIConfigCloudIntent carries only the exact Cloud implementation and its
@@ -280,9 +280,10 @@ message AIConfigCloudIntent {
   string connector_ref = 4;
 }
 
-// AIConfigCapabilityIntent is consumer intent only. It names an exact safe
-// resource reference but embeds no Loadout content, assets, bindings, Driver
-// state, credentials, endpoints, process state, or readiness.
+// AIConfigCapabilityIntent is consumer intent only. Local carries no resource
+// reference; Cloud names an exact safe Connector and target. Neither branch
+// embeds Loadout content, assets, bindings, Driver state, credentials,
+// endpoints, process state, or readiness.
 message AIConfigCapabilityIntent {
   string capability_contract = 1;
   repeated string required_features = 2;
