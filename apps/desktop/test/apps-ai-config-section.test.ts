@@ -51,6 +51,9 @@ test('Apps detail mounts the Nimi-owned first-party surface with the exact app i
   assert.doesNotMatch(sectionSource, /createDesktopCloudAIConfigModule/u);
   assert.match(sectionSource, /buildAppsOneClickLocalAIConfig/u);
   assert.match(sectionSource, /apps-ai-config-one-click-local/u);
+  assert.match(sectionSource, /machineSelections\.refetch\(\)/u);
+  assert.match(sectionSource, /appAIConfig\.refetch\(\)/u);
+  assert.match(sectionSource, /result\.outcome === 'conflict'[\s\S]*setOneClickFailure\('conflict'\)/u);
 });
 
 test('Apps one-click Local writes route-only intent and preserves capabilities without machine selection', () => {

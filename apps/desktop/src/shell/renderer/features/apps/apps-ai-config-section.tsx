@@ -262,7 +262,7 @@ export function AppsAIConfigSection({
   const appAIConfig = useDesktopNimiAppAIConfig(appId);
   const overwriteAppAIConfig = useOverwriteDesktopNimiAppAIConfig(appId);
   const copy = useAppsModelConfigCopy(appDisplayName);
-  const [oneClickFailure, setOneClickFailure] = useState(false);
+  const [oneClickFailure, setOneClickFailure] = useState<'conflict' | 'failed' | null>(null);
   const machineSelections = useQuery({
     queryKey: ['desktop', 'machine-local-ai-config-selections'],
     queryFn: async () => {
@@ -309,24 +309,33 @@ export function AppsAIConfigSection({
           <div className="space-y-2" data-testid="apps-ai-config-one-click-local">
             <Button
               tone="secondary"
-              disabled={machineSelections.isPending || machineSelections.isError
+              disabled={machineSelections.isPending || machineSelections.isFetching || machineSelections.isError
                 || (machineSelections.data?.length ?? 0) === 0
                 || appAIConfig.data?.revision === undefined
                 || overwriteAppAIConfig.isPending}
-              loading={machineSelections.isPending || overwriteAppAIConfig.isPending}
+              loading={machineSelections.isPending || machineSelections.isFetching || overwriteAppAIConfig.isPending}
               onClick={() => {
-                const revision = appAIConfig.data?.revision;
-                if (revision === undefined) return;
-                setOneClickFailure(false);
-                void overwriteAppAIConfig.mutateAsync({
-                  expectedRevision: revision,
-                  capabilities: buildAppsOneClickLocalAIConfig(
-                    appAIConfig.data?.config?.capabilities ?? [],
-                    machineSelections.data ?? [],
-                  ),
-                }).then((result) => {
-                  if (result.outcome === 'conflict') setOneClickFailure(true);
-                }).catch(() => setOneClickFailure(true));
+                setOneClickFailure(null);
+                void Promise.all([
+                  machineSelections.refetch(),
+                  appAIConfig.refetch(),
+                ]).then(async ([freshSelections, freshConfig]) => {
+                  if (freshSelections.isError || freshConfig.isError) {
+                    setOneClickFailure('failed');
+                    return;
+                  }
+                  const revision = freshConfig.data?.revision;
+                  const selectedCapabilities = freshSelections.data ?? [];
+                  if (revision === undefined || selectedCapabilities.length === 0) return;
+                  const result = await overwriteAppAIConfig.mutateAsync({
+                    expectedRevision: revision,
+                    capabilities: buildAppsOneClickLocalAIConfig(
+                      freshConfig.data?.config?.capabilities ?? [],
+                      selectedCapabilities,
+                    ),
+                  });
+                  if (result.outcome === 'conflict') setOneClickFailure('conflict');
+                }).catch(() => setOneClickFailure('failed'));
               }}
             >
               {machineSelections.isPending
@@ -340,7 +349,12 @@ export function AppsAIConfigSection({
             {!machineSelections.isPending && !machineSelections.isError && machineSelections.data?.length === 0 ? (
               <InlineAlert tone="warning">{t('Apps.aiConfig.oneClickNoLocalModels')}</InlineAlert>
             ) : null}
-            {oneClickFailure ? <InlineAlert tone="danger">{t('Apps.aiConfig.oneClickFailed')}</InlineAlert> : null}
+            {oneClickFailure === 'conflict' ? (
+              <InlineAlert tone="warning">{copy.conflictLabel}: {copy.conflictDescription}</InlineAlert>
+            ) : null}
+            {oneClickFailure === 'failed' ? (
+              <InlineAlert tone="danger">{t('Apps.aiConfig.oneClickFailed')}</InlineAlert>
+            ) : null}
           </div>
         )}
       />

@@ -83,4 +83,6 @@ test('Desktop App AIConfig hooks resolve the exact App through the first-party s
 
   assert.match(source, /accountProduct\(\)\.appAIConfig\(appId\)/u);
   assert.doesNotMatch(source, /accountProduct\(\)\.aiConfig/u);
+  assert.match(source, /Mutation results acknowledge committed\/current config/u);
+  assert.doesNotMatch(source, /result\.outcome === 'committed'[\s\S]*invalidateQueries/u);
 });

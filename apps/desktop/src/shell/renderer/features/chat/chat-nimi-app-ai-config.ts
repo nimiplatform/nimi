@@ -59,9 +59,9 @@ export function useOverwriteDesktopNimiAppAIConfig(appId: string) {
         revision: result.revision,
         effectiveSelections: [],
       });
-      if (result.outcome === 'committed') {
-        void queryClient.invalidateQueries({ queryKey });
-      }
+      // Mutation results acknowledge committed/current config but do not own
+      // effective state. Refresh it for both commit and typed CAS conflict.
+      void queryClient.invalidateQueries({ queryKey });
     },
   });
 }
