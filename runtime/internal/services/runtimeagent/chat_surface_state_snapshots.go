@@ -41,6 +41,9 @@ func toPersistedPublicChatTurnSnapshot(input *publicChatTurnProjectionState) *pe
 		ReasonCodeToken:   input.ReasonCodeToken,
 		ActionHint:        input.ActionHint,
 		Message:           input.Message,
+		ActionStatus:      input.ActionStatus,
+		ActionReasonCode:  input.ActionReasonCode,
+		ActionMessage:     input.ActionMessage,
 		UpdatedAt:         input.UpdatedAt.UTC().Format(time.RFC3339Nano),
 	}
 }
@@ -113,6 +116,9 @@ func fromPersistedPublicChatTurnSnapshot(input *persistedPublicChatTurnSnapshot)
 		ReasonCodeToken:   input.ReasonCodeToken,
 		ActionHint:        input.ActionHint,
 		Message:           input.Message,
+		ActionStatus:      input.ActionStatus,
+		ActionReasonCode:  input.ActionReasonCode,
+		ActionMessage:     input.ActionMessage,
 		UpdatedAt:         updatedAt,
 	}
 }

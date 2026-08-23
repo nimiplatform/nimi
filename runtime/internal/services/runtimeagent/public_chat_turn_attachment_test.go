@@ -332,6 +332,7 @@ func TestPublicChatVisionUnsupportedRouteCommitsAttachmentAndFailsTyped(t *testi
 	}); err != nil {
 		t.Fatalf("ConsumePublicChatAppMessage(request): %v", err)
 	}
+	committed := capture.waitForMessageType(t, publicChatTurnMessageCommittedType)
 	failed := capture.waitForMessageType(t, publicChatTurnFailedType)
 	waitForPublicChatAgentIdle(t, svc, "agent-alpha")
 	failedDetail := failed.GetPayload().AsMap()["detail"]
@@ -340,9 +341,12 @@ func TestPublicChatVisionUnsupportedRouteCommitsAttachmentAndFailsTyped(t *testi
 		t.Fatalf("turn.failed detail = %#v", failedMap)
 	}
 	for _, messageType := range capture.messageTypes() {
-		if messageType == publicChatTurnMessageCommittedType || messageType == publicChatTurnCompletedType {
+		if messageType == publicChatTurnCompletedType {
 			t.Fatalf("vision-unsupported turn must not report success: %v", capture.messageTypes())
 		}
+	}
+	if publicChatPayloadMap(t, committed)["turn_id"] != publicChatPayloadMap(t, failed)["turn_id"] {
+		t.Fatalf("committed user message and failed terminal must share one turn: %v", capture.messageTypes())
 	}
 
 	snapshot := requestPublicChatSessionSnapshot(t, svc, capture, anchorID, "snapshot-vision-unsupported")
@@ -351,7 +355,7 @@ func TestPublicChatVisionUnsupportedRouteCommitsAttachmentAndFailsTyped(t *testi
 		t.Fatalf("last_turn projection = %#v", lastTurn)
 	}
 	detail := publicChatSessionSnapshotDetail(t, snapshot)
-	if got := detail["transcript_message_count"]; got != float64(2) {
+	if got := detail["transcript_message_count"]; got != float64(1) {
 		t.Fatalf("user attachment message must stay committed, transcript_message_count=%v", got)
 	}
 	transcript, _ := detail["transcript"].([]any)
@@ -359,9 +363,8 @@ func TestPublicChatVisionUnsupportedRouteCommitsAttachmentAndFailsTyped(t *testi
 	if userEnvelope["kind"] != "image" || userEnvelope["artifact_id"] != "artifact_vision" || userEnvelope["media_mime_type"] != "image/png" || userEnvelope["content"] != "look at this" {
 		t.Fatalf("user envelope = %#v", userEnvelope)
 	}
-	assistantEnvelope, _ := transcript[1].(map[string]any)
-	if assistantEnvelope["role"] != "assistant" || assistantEnvelope["content"] != publicChatTurnAttachmentVisionUnsupportedBeatText {
-		t.Fatalf("assistant failure beat = %#v", assistantEnvelope)
+	if len(transcript) != 1 {
+		t.Fatalf("vision-unsupported transcript must contain only the user message: %#v", transcript)
 	}
 }
 
@@ -562,10 +565,6 @@ func TestPublicChatVisionCapableRouteCompletesAttachmentTurn(t *testing.T) {
 			if assistantEnvelope["role"] != "assistant" || assistantEnvelope["kind"] != "text" || assistantEnvelope["content"] != assistantText {
 				t.Fatalf("assistant envelope = %#v", assistantEnvelope)
 			}
-			if assistantEnvelope["content"] == publicChatTurnAttachmentVisionUnsupportedBeatText {
-				t.Fatal("vision-capable route must not emit the vision-unsupported failure beat")
-			}
-
 			committed := svc.chatAnchors[anchorID].CommittedTranscript
 			if len(committed) != 1 || committed[0].InputAttachment == nil ||
 				committed[0].InputAttachment.ArtifactID != artifactID || committed[0].InputAttachment.MimeType != test.mime ||

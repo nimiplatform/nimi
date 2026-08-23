@@ -529,7 +529,7 @@ func TestTranscribeAgentVoiceInputRejectsOversizedAudioBeforeAuthorizationOrExec
 		t.Fatalf("unexpected typed metadata ok=%v metadata=%#v", ok, metadata)
 	}
 	message, ok := grpcerr.ExtractPublicMessage(err)
-	if !ok || message != "Recorded audio exceeds the 5-minute or 6 MiB voice-input limit." {
+	if !ok || message != "Recorded audio exceeds the 6 MiB voice-input limit." {
 		t.Fatalf("unexpected public message ok=%v message=%q", ok, message)
 	}
 	if executor.submit != nil {

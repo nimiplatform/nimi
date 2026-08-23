@@ -58,10 +58,13 @@ type publicChatTurnProjectionState struct {
 	// consumers in place of the enum label (e.g. the typed
 	// turn-attachment-route-vision-unsupported failure of
 	// rule.nimi.runtime.agent-participation.r174).
-	ReasonCodeToken string
-	ActionHint      string
-	Message         string
-	UpdatedAt       time.Time
+	ReasonCodeToken  string
+	ActionHint       string
+	Message          string
+	ActionStatus     string
+	ActionReasonCode runtimev1.ReasonCode
+	ActionMessage    string
+	UpdatedAt        time.Time
 }
 
 func newPublicChatTurnProjection(turn *publicChatTurnState) *publicChatTurnProjectionState {
@@ -192,7 +195,8 @@ func (s *Service) commitPublicChatTranscriptTurn(
 	trimmedInput := strings.TrimSpace(inputText)
 	trimmedAssistant := strings.TrimSpace(assistantText)
 	inputAttachment = normalizePublicChatCommittedTranscriptAttachment(inputAttachment)
-	if trimmedAnchorID == "" || (trimmedInput == "" && inputAttachment == nil) || trimmedAssistant == "" ||
+	userOnlyAttachmentFailure := origin == publicChatTurnOriginUser && inputAttachment != nil && trimmedAssistant == ""
+	if trimmedAnchorID == "" || (trimmedInput == "" && inputAttachment == nil) || (trimmedAssistant == "" && !userOnlyAttachmentFailure) ||
 		(origin != publicChatTurnOriginUser && origin != publicChatTurnOriginFollowUp) ||
 		(origin == publicChatTurnOriginFollowUp && (trimmedTurnID == "" || inputAttachment != nil)) {
 		return status.Error(codes.InvalidArgument, "committed transcript turn is invalid")
@@ -289,8 +293,8 @@ func (s *Service) commitPublicChatTranscriptTurn(
 		finalizeProjection(turn.Projection)
 		turn.Projection.UpdatedAt = time.Now().UTC()
 		if turn.Projection.Status != publicChatTurnStatusCommitted ||
-			strings.TrimSpace(turn.Projection.MessageID) == "" ||
-			strings.TrimSpace(turn.Projection.AssistantText) == "" {
+			(!userOnlyAttachmentFailure && (strings.TrimSpace(turn.Projection.MessageID) == "" ||
+				strings.TrimSpace(turn.Projection.AssistantText) == "")) {
 			rollback()
 			return status.Error(codes.FailedPrecondition, "durable transcript commit requires committed message projection")
 		}
@@ -318,8 +322,9 @@ func validatePublicChatCommittedTranscript(transcript []publicChatCommittedTrans
 	seen := make(map[string]struct{}, len(transcript))
 	for index, turn := range transcript {
 		attachment := normalizePublicChatCommittedTranscriptAttachment(turn.InputAttachment)
+		userOnlyAttachmentFailure := turn.Origin == publicChatTurnOriginUser && attachment != nil && strings.TrimSpace(turn.AssistantText) == ""
 		if turn.Sequence != uint64(index) || strings.TrimSpace(turn.TurnID) == "" || turn.TurnID != strings.TrimSpace(turn.TurnID) ||
-			(strings.TrimSpace(turn.InputText) == "" && attachment == nil) || strings.TrimSpace(turn.AssistantText) == "" ||
+			(strings.TrimSpace(turn.InputText) == "" && attachment == nil) || (strings.TrimSpace(turn.AssistantText) == "" && !userOnlyAttachmentFailure) ||
 			turn.InputText != strings.TrimSpace(turn.InputText) || turn.AssistantText != strings.TrimSpace(turn.AssistantText) ||
 			(turn.Origin != publicChatTurnOriginUser && turn.Origin != publicChatTurnOriginFollowUp) ||
 			(turn.Origin == publicChatTurnOriginFollowUp && attachment != nil) ||
@@ -514,10 +519,10 @@ func publicChatTranscriptProjection(transcript []publicChatCommittedTranscriptTu
 				}},
 			}}
 		}
-		messages = append(messages,
-			userMessage,
-			&runtimev1.ChatMessage{Role: "assistant", Content: turn.AssistantText},
-		)
+		messages = append(messages, userMessage)
+		if strings.TrimSpace(turn.AssistantText) != "" {
+			messages = append(messages, &runtimev1.ChatMessage{Role: "assistant", Content: turn.AssistantText})
+		}
 		for outputIndex := range turn.OutputArtifacts {
 			output := turn.OutputArtifacts[outputIndex]
 			attachment := normalizePublicChatCommittedTranscriptAttachment(&output)
@@ -805,7 +810,7 @@ func (s *Service) finalizePublicChatTurnProjection(turnID string, persist bool, 
 		if messageID := strings.TrimSpace(projection.MessageID); messageID != "" {
 			terminalSession.LastMessageID = messageID
 		}
-		if projection.Status == publicChatTurnStatusCompleted && strings.TrimSpace(projection.MessageID) != "" {
+		if publicChatTurnProjectionIsTerminal(projection) {
 			if terminalSession.CompletedTurnSnapshots == nil {
 				terminalSession.CompletedTurnSnapshots = make(map[string]*publicChatTurnProjectionState)
 			}
@@ -834,6 +839,18 @@ func (s *Service) finalizePublicChatTurnProjection(turnID string, persist bool, 
 		s.persistCurrentPublicChatSurfaceState()
 	}
 	return out
+}
+
+func publicChatTurnProjectionIsTerminal(projection *publicChatTurnProjectionState) bool {
+	if projection == nil || strings.TrimSpace(projection.TurnID) == "" {
+		return false
+	}
+	switch projection.Status {
+	case publicChatTurnStatusCompleted, publicChatTurnStatusFailed, publicChatTurnStatusInterrupted:
+		return true
+	default:
+		return false
+	}
 }
 
 // snapshotPublicChatAnchorForCaller returns an anchor snapshot for a given

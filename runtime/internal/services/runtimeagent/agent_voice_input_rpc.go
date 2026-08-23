@@ -23,7 +23,7 @@ const (
 func runtimeAgentVoiceInputTooLargeError() error {
 	retryable := false
 	return grpcerr.WithReasonCodeOptions(codes.ResourceExhausted, runtimev1.ReasonCode_AI_AUDIO_INPUT_TOO_LARGE, grpcerr.ReasonOptions{
-		Message:    "Recorded audio exceeds the 5-minute or 6 MiB voice-input limit.",
+		Message:    "Recorded audio exceeds the 6 MiB voice-input limit.",
 		ActionHint: "record_shorter_audio_input",
 		Retryable:  &retryable,
 	})
@@ -82,7 +82,7 @@ func (s *Service) TranscribeAgentVoiceInput(
 	if err := s.validateAgentVoiceInputAnchor(identity, anchorID); err != nil {
 		return nil, err
 	}
-	return s.transcribeAgentVoiceInput(ctx, identity, anchorID, mimeType, requestID, req.GetAudioBytes())
+	return s.transcribeAgentVoiceInput(ctx, identity, anchorID, mimeType, requestID, "", req.GetAudioBytes())
 }
 
 func (s *Service) transcribeAgentVoiceInput(
@@ -91,6 +91,7 @@ func (s *Service) transcribeAgentVoiceInput(
 	anchorID string,
 	mimeType string,
 	requestID string,
+	requestScope string,
 	audioBytes []byte,
 ) (*runtimev1.TranscribeAgentVoiceInputResponse, error) {
 	binding, err := s.resolveAgentVoiceInputBinding(ctx, identity)
@@ -103,6 +104,13 @@ func (s *Service) transcribeAgentVoiceInput(
 	waitCtx, cancel := context.WithDeadline(ctx, operationDeadline)
 	defer cancel()
 	waitCtx = withPublicChatExecutionIntent(waitCtx, binding, runtimeAgentAIConfigCapabilityAudioTranscribe)
+	scenarioRequestID := requestID
+	idempotencyKey := strings.Join([]string{"runtime-agent-voice-input", anchorID, requestID}, ":")
+	if requestScope = strings.TrimSpace(requestScope); requestScope != "" {
+		digest := sha256HexBytes([]byte(requestScope + "\x00" + anchorID + "\x00" + requestID))
+		scenarioRequestID = "runtime-agent-voice-input-" + digest[:24]
+		idempotencyKey = "runtime-agent-voice-input:" + digest
+	}
 	submit, err := s.voiceTranscription.SubmitScenarioJob(waitCtx, &runtimev1.SubmitScenarioJobRequest{
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         runtimeAgentVoiceInputAppID,
@@ -111,8 +119,8 @@ func (s *Service) transcribeAgentVoiceInput(
 		},
 		ScenarioType:   runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE,
 		ExecutionMode:  runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
-		RequestId:      requestID,
-		IdempotencyKey: strings.Join([]string{"runtime-agent-voice-input", anchorID, requestID}, ":"),
+		RequestId:      scenarioRequestID,
+		IdempotencyKey: idempotencyKey,
 		Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_SpeechTranscribe{
 			SpeechTranscribe: &runtimev1.SpeechTranscribeScenarioSpec{
 				MimeType: mimeType,

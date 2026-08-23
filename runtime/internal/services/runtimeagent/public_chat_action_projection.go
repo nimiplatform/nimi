@@ -7,6 +7,15 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	runtimeartifact "github.com/nimiplatform/nimi/runtime/internal/services/runtimeartifact"
+	"google.golang.org/grpc/codes"
+)
+
+const (
+	publicChatActionStatusPlanned   = "planned"
+	publicChatActionStatusStarted   = "started"
+	publicChatActionStatusCompleted = "completed"
+	publicChatActionStatusFailed    = "failed"
 )
 
 func (r publicChatRuntime) executeCommittedActions(
@@ -23,21 +32,27 @@ func (r publicChatRuntime) executeCommittedActions(
 			continue
 		}
 		projectionMessageID := publicChatActionProjectionMessageID(turn.TurnID, action)
+		r.recordPublicChatActionState(turn.TurnID, publicChatActionStatusPlanned, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED, "")
 		if err := r.emitTurnEvent(session, turn.TurnID, publicChatTurnActionPlannedType, map[string]any{
 			"action_id":             action.ActionID,
 			"modality":              action.Modality,
 			"operation":             action.Operation,
 			"projection_message_id": projectionMessageID,
 		}); err != nil {
-			return fmt.Errorf("emit public chat action_planned failed: %w", err)
+			failure := fmt.Errorf("emit public chat action_planned failed: %w", err)
+			_ = r.emitTurnActionFailed(session, turn, action, projectionMessageID, publicChatActionFailedReasonImageExecutionFailed, failure)
+			return failure
 		}
+		r.recordPublicChatActionState(turn.TurnID, publicChatActionStatusStarted, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED, "")
 		if err := r.emitTurnEvent(session, turn.TurnID, publicChatTurnActionStartedType, map[string]any{
 			"action_id":             action.ActionID,
 			"modality":              action.Modality,
 			"operation":             action.Operation,
 			"projection_message_id": projectionMessageID,
 		}); err != nil {
-			return fmt.Errorf("emit public chat action_started failed: %w", err)
+			failure := fmt.Errorf("emit public chat action_started failed: %w", err)
+			_ = r.emitTurnActionFailed(session, turn, action, projectionMessageID, publicChatActionFailedReasonImageExecutionFailed, failure)
+			return failure
 		}
 		if reason, err := validateImageActionExecutionBinding(session, turn, action); err != nil {
 			_ = r.emitTurnActionFailed(session, turn, action, projectionMessageID, reason, err)
@@ -65,6 +80,7 @@ func (r publicChatRuntime) executeCommittedActions(
 			_ = r.emitTurnActionFailed(session, turn, action, projectionMessageID, publicChatActionFailedReasonImageExecutionFailed, err)
 			return err
 		}
+		r.recordPublicChatActionState(turn.TurnID, publicChatActionStatusCompleted, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED, "")
 		if err := r.emitTurnEvent(session, turn.TurnID, publicChatTurnArtifactReadyType, map[string]any{
 			"action_id":             result.ActionID,
 			"projection_message_id": result.ProjectionMessageID,
@@ -86,6 +102,48 @@ func (r publicChatRuntime) executeCommittedActions(
 		}
 	}
 	return nil
+}
+
+func (r publicChatRuntime) ensureCoupledPublicChatActionTerminal(
+	session publicChatAnchorState,
+	turn publicChatTurnState,
+	structured *publicChatStructuredEnvelope,
+) error {
+	if !hasCoupledPublicChatImageAction(structured) || r.svc == nil {
+		return nil
+	}
+	r.svc.chatSurfaceMu.Lock()
+	current := r.svc.chatTurns[strings.TrimSpace(turn.TurnID)]
+	status := ""
+	if current != nil && current.Projection != nil {
+		status = strings.TrimSpace(current.Projection.ActionStatus)
+	}
+	r.svc.chatSurfaceMu.Unlock()
+	if status == publicChatActionStatusCompleted || status == publicChatActionStatusFailed {
+		return nil
+	}
+	action := structured.Actions[0]
+	failure := fmt.Errorf("public chat image action did not terminalize before parent turn completion")
+	_ = r.emitTurnActionFailed(
+		session,
+		turn,
+		action,
+		publicChatActionProjectionMessageID(turn.TurnID, action),
+		publicChatActionFailedReasonImageExecutionFailed,
+		failure,
+	)
+	return failure
+}
+
+func (r publicChatRuntime) recordPublicChatActionState(turnID string, actionStatus string, reasonCode runtimev1.ReasonCode, message string) {
+	if r.svc == nil {
+		return
+	}
+	r.svc.mutatePublicChatTurnProjection(turnID, true, func(projection *publicChatTurnProjectionState) {
+		projection.ActionStatus = strings.TrimSpace(actionStatus)
+		projection.ActionReasonCode = reasonCode
+		projection.ActionMessage = strings.TrimSpace(message)
+	})
 }
 
 func hasCoupledPublicChatImageAction(structured *publicChatStructuredEnvelope) bool {
@@ -145,6 +203,11 @@ func (r publicChatRuntime) validateRuntimeActionArtifact(artifactID string) (*pu
 		ArtifactID: trimmed,
 		MimeType:   strings.ToLower(strings.TrimSpace(record.MimeType)),
 	})
+	if record.SizeBytes <= 0 || record.SizeBytes != int64(len(record.Bytes)) || record.SizeBytes > runtimeartifact.MaxInlineBytes {
+		return nil, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_OUTPUT_INVALID, grpcerr.ReasonOptions{
+			Message: "Runtime public chat image action artifact exceeds the readable Conversation output bound.",
+		})
+	}
 	if len(record.Bytes) == 0 || attachment == nil {
 		return nil, fmt.Errorf("runtime public chat image action artifact %s has no readable image bytes", trimmed)
 	}
@@ -163,6 +226,11 @@ func (r publicChatRuntime) emitTurnActionFailed(
 	if publicMessage, ok := grpcerr.ExtractPublicMessage(err); ok {
 		message = publicMessage
 	}
+	reasonCode := reasonCodeFromError(err)
+	if reasonCode == runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
+		reasonCode = runtimev1.ReasonCode_AI_PROVIDER_INTERNAL
+	}
+	r.recordPublicChatActionState(turn.TurnID, publicChatActionStatusFailed, reasonCode, message)
 	return r.emitTurnEvent(session, turn.TurnID, publicChatTurnActionFailedType, map[string]any{
 		"action_id":             action.ActionID,
 		"modality":              action.Modality,

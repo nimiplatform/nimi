@@ -191,14 +191,14 @@ func (r publicChatRuntime) runTurn(
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
 			r.svc.finalizePublicChatTurnProjection(turn.TurnID, true, func(projection *publicChatTurnProjectionState) {
-				projection.Status = publicChatTurnStatusInterrupted
+				projection.Status = publicChatTurnStatusFailed
 				projection.TraceID = traceID
 				projection.ModelResolved = modelResolved
 				projection.RouteDecision = routeDecision
-				projection.ReasonCode = runtimev1.ReasonCode_AI_STREAM_BROKEN
-				projection.Message = "timeout"
+				projection.ReasonCode = runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT
+				projection.Message = "runtime public chat turn timed out"
 			})
-			r.emitTurnInterrupted(session, turn, traceID, modelResolved, routeDecision, "timeout")
+			r.emitTurnFailed(session, turn, traceID, modelResolved, routeDecision, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT, "runtime public chat turn timed out", "")
 			return
 		}
 		if interrupted || errors.Is(err, context.Canceled) {
@@ -377,11 +377,15 @@ func (r publicChatRuntime) runTurn(
 	r.projectCommittedVoiceLipsync(ctx, session, turn, structured)
 	postCommitReasonCode := runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED
 	postCommitDiagnostic := ""
-	if err := r.executeCommittedActions(ctx, session, turn, structured); err != nil {
-		postCommitReasonCode = publicChatActionFailureReason(err)
-		postCommitDiagnostic = err.Error()
+	actionErr := r.executeCommittedActions(ctx, session, turn, structured)
+	if barrierErr := r.ensureCoupledPublicChatActionTerminal(session, turn, structured); actionErr == nil && barrierErr != nil {
+		actionErr = barrierErr
+	}
+	if actionErr != nil {
+		postCommitReasonCode = publicChatActionFailureReason(actionErr)
+		postCommitDiagnostic = actionErr.Error()
 		if r.svc.logger != nil {
-			r.svc.logger.Warn("public chat committed action failed", "agent_id", session.AgentID, "turn_id", turn.TurnID, "error", err)
+			r.svc.logger.Warn("public chat committed action failed", "agent_id", session.AgentID, "turn_id", turn.TurnID, "error", actionErr)
 		}
 	}
 	if hasCoupledPublicChatImageAction(structured) {

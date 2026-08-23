@@ -91,6 +91,9 @@ type persistedPublicChatTurnSnapshot struct {
 	ReasonCodeToken   string                            `json:"reasonCodeToken,omitempty"`
 	ActionHint        string                            `json:"actionHint,omitempty"`
 	Message           string                            `json:"message,omitempty"`
+	ActionStatus      string                            `json:"actionStatus,omitempty"`
+	ActionReasonCode  runtimev1.ReasonCode              `json:"actionReasonCode,omitempty"`
+	ActionMessage     string                            `json:"actionMessage,omitempty"`
 	UpdatedAt         string                            `json:"updatedAt,omitempty"`
 }
 
@@ -562,8 +565,17 @@ func (r *publicChatSurfaceStateRepository) loadPublicChatSurfaceStateFromDB(s *S
 			recovered.Status = publicChatTurnStatusInterrupted
 			recovered.ReasonCode = runtimev1.ReasonCode_AI_STREAM_BROKEN
 			recovered.Message = "public chat turn interrupted by runtime restart"
+			if recovered.ActionStatus == publicChatActionStatusPlanned || recovered.ActionStatus == publicChatActionStatusStarted {
+				recovered.ActionStatus = publicChatActionStatusFailed
+				recovered.ActionReasonCode = runtimev1.ReasonCode_AI_STREAM_BROKEN
+				recovered.ActionMessage = "public chat image action interrupted by runtime restart"
+			}
 			recovered.UpdatedAt = time.Now().UTC()
 			restored.LastTurnSnapshot = recovered
+			if restored.CompletedTurnSnapshots == nil {
+				restored.CompletedTurnSnapshots = make(map[string]*publicChatTurnProjectionState)
+			}
+			restored.CompletedTurnSnapshots[recovered.TurnID] = clonePublicChatTurnProjectionState(recovered)
 			restored.ActiveTurnSnapshot = nil
 			restored.ActiveTurnID = ""
 		}

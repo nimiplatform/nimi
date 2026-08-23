@@ -12,6 +12,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/runtimeidentity"
+	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	runtimeartifact "github.com/nimiplatform/nimi/runtime/internal/services/runtimeartifact"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/proto"
@@ -702,6 +703,55 @@ func TestPublicChatImageActionInterruptTerminalizesActionBeforeParentTurn(t *tes
 	}
 }
 
+func TestPublicChatImageActionEmissionFailureTerminalizesChildBeforeParent(t *testing.T) {
+	for _, failedType := range []string{publicChatTurnActionPlannedType, publicChatTurnActionStartedType} {
+		t.Run(failedType, func(t *testing.T) {
+			svc := newRuntimeAgentServiceForPublicChatTest(t)
+			anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
+			capture := newPublicChatEmitCapture()
+			failedOnce := false
+			svc.SetPublicChatAppEmitter(func(ctx context.Context, req *runtimev1.SendAppMessageRequest) (*runtimev1.SendAppMessageResponse, error) {
+				if req.GetMessageType() == failedType && !failedOnce {
+					failedOnce = true
+					return nil, fmt.Errorf("injected %s delivery failure", failedType)
+				}
+				return capture.emit(ctx, req)
+			})
+			rawAPML := publicChatImageActionAPML("message-image-emission", "I will create that image.", "action-image-emission", "studio portrait")
+			svc.SetPublicChatTurnExecutor(stubPublicChatTurnExecutor{
+				stream: emitPublicChatImageActionStream("trace-image-action-emission", rawAPML),
+			})
+			actionExecutor := &stubPublicChatActionExecutor{}
+			svc.SetPublicChatActionExecutor(actionExecutor)
+			submitPublicChatImageActionTurn(t, svc, anchorID, true)
+
+			_ = capture.waitForMessageType(t, publicChatTurnActionFailedType)
+			_ = capture.waitForMessageType(t, publicChatTurnCompletedType)
+			waitForPublicChatAgentIdle(t, svc, "agent-alpha")
+			if actionExecutor.calls != 0 {
+				t.Fatalf("image executor ran after %s delivery failure", failedType)
+			}
+
+			snapshotDecision := localAppConversationDecision(accountservice.LocalAppOperationConversationSnapshot, 0x72, "user-1")
+			handle := mintLocalAppAgentHandle(snapshotDecision, testRuntimeAgentLocalRef("agent-alpha"))
+			response, err := svc.GetLocalAppConversationSnapshot(
+				accountservice.ContextWithAuthorizedLocalAppDecision(context.Background(), snapshotDecision),
+				&runtimev1.GetLocalAppConversationSnapshotRequest{AgentHandle: handle, ConversationAnchorId: anchorID},
+			)
+			if err != nil {
+				t.Fatal(err)
+			}
+			snapshot := response.GetSnapshot()
+			if len(snapshot.GetActions()) != 1 || snapshot.GetActions()[0].GetStatus() != runtimev1.LocalAppConversationActionStatus_LOCAL_APP_CONVERSATION_ACTION_STATUS_FAILED {
+				t.Fatalf("emission failure action closure = %+v", snapshot.GetActions())
+			}
+			if len(snapshot.GetTurns()) != 1 || snapshot.GetTurns()[0].GetStatus() != runtimev1.LocalAppConversationTurnStatus_LOCAL_APP_CONVERSATION_TURN_STATUS_COMPLETED {
+				t.Fatalf("emission failure parent closure = %+v", snapshot.GetTurns())
+			}
+		})
+	}
+}
+
 func TestPublicChatImageActionFailsClosedWithoutImageBinding(t *testing.T) {
 	t.Parallel()
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
@@ -803,4 +853,42 @@ func TestPublicChatImageActionFailsClosedWhenArtifactMissing(t *testing.T) {
 		t.Fatalf("expected artifact storage failure, got=%v", publicChatTurnDetail(t, actionFailed))
 	}
 	assertPublicChatActionFailurePreservesCommittedTurn(t, svc, capture, anchorID, "was not stored")
+}
+
+func TestPublicChatImageActionRejectsOversizedArtifactBeforeReady(t *testing.T) {
+	svc := newRuntimeAgentServiceForPublicChatTest(t)
+	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
+	capture := newPublicChatEmitCapture()
+	svc.SetPublicChatAppEmitter(capture.emit)
+	rawAPML := publicChatImageActionAPML("message-image", "I will create that image.", "action-image-oversized", "studio portrait")
+	svc.SetPublicChatTurnExecutor(stubPublicChatTurnExecutor{
+		stream: emitPublicChatImageActionStream("trace-image-action-oversized", rawAPML),
+	})
+	payload := make([]byte, runtimeartifact.MaxInlineBytes+1)
+	if err := svc.runtimeArtifacts.Put("artifact-image-oversized", runtimeartifact.ArtifactRecord{
+		Bytes: payload, MimeType: "image/png", SizeBytes: int64(len(payload)),
+	}); err != nil {
+		t.Fatalf("store oversized artifact: %v", err)
+	}
+	svc.SetPublicChatActionExecutor(&stubPublicChatActionExecutor{
+		result: PublicChatActionExecutionResult{
+			ActionID: "action-image-oversized", ProjectionMessageID: "agent-turn:image:oversized",
+			ArtifactID: "artifact-image-oversized", MimeType: "image/png", JobID: "job-image-oversized",
+		},
+	})
+
+	submitPublicChatImageActionTurn(t, svc, anchorID, true)
+
+	_ = capture.waitForMessageType(t, publicChatTurnActionStartedType)
+	actionFailed := capture.waitForMessageType(t, publicChatTurnActionFailedType)
+	detail := publicChatTurnDetail(t, actionFailed)
+	if detail["reason_code"] != runtimev1.ReasonCode_AI_OUTPUT_INVALID.String() {
+		t.Fatalf("oversized action failure reason = %#v", detail)
+	}
+	for _, messageType := range capture.messageTypes() {
+		if messageType == publicChatTurnArtifactReadyType || messageType == publicChatTurnActionCompletedType {
+			t.Fatalf("oversized image action published ready success: %v", capture.messageTypes())
+		}
+	}
+	assertPublicChatActionFailurePreservesCommittedTurn(t, svc, capture, anchorID, "exceeds the readable Conversation output bound")
 }

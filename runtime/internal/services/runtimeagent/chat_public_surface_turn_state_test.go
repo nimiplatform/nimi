@@ -113,6 +113,51 @@ func TestPublicChatTurnInterruptCancelsActiveTurn(t *testing.T) {
 	}
 	waitForPublicChatAgentIdle(t, svc, "agent-alpha")
 }
+
+func TestPublicChatExecutorDeadlineIsFailedNotInterrupted(t *testing.T) {
+	svc := newRuntimeAgentServiceForPublicChatTest(t)
+	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
+	capture := newPublicChatEmitCapture()
+	svc.SetPublicChatAppEmitter(capture.emit)
+	svc.SetPublicChatTurnExecutor(stubPublicChatTurnExecutor{
+		stream: func(_ context.Context, _ *PublicChatTurnExecutionRequest, emit func(*runtimev1.StreamScenarioEvent) error) error {
+			if err := emit(&runtimev1.StreamScenarioEvent{
+				EventType: runtimev1.StreamEventType_STREAM_EVENT_STARTED,
+				TraceId:   "trace-timeout",
+				Payload: &runtimev1.StreamScenarioEvent_Started{Started: &runtimev1.ScenarioStreamStarted{
+					ModelResolved: "qwen3-chat", RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+				}},
+			}); err != nil {
+				return err
+			}
+			return context.DeadlineExceeded
+		},
+	})
+	if err := svc.ConsumePublicChatAppMessage(context.Background(), &runtimev1.AppMessageEvent{
+		ToAppId:       publicChatRuntimeAppID,
+		FromAppId:     "desktop.app",
+		SubjectUserId: "user-1",
+		MessageType:   publicChatTurnRequestType,
+		Payload: publicChatStructPayload(t, map[string]any{
+			"local_agent_ref": testRuntimeAgentLocalRef("agent-alpha"), "owner_user_id": "user-1",
+			"runtime_source_ref": testRuntimeAgentSourceRef("agent-alpha"), "conversation_anchor_id": anchorID,
+			"messages": []any{map[string]any{"role": "user", "content": "timeout"}},
+		}),
+	}); err != nil {
+		t.Fatal(err)
+	}
+	failed := capture.waitForMessageType(t, publicChatTurnFailedType)
+	waitForPublicChatAgentIdle(t, svc, "agent-alpha")
+	if got := publicChatTurnDetail(t, failed)["reason_code"]; got != runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT.String() {
+		t.Fatalf("timeout failure reason = %v", got)
+	}
+	for _, messageType := range capture.messageTypes() {
+		if messageType == publicChatTurnInterruptedType || messageType == publicChatTurnCompletedType {
+			t.Fatalf("execution timeout published wrong terminal: %v", capture.messageTypes())
+		}
+	}
+}
+
 func TestPublicChatSessionSnapshotReportsLiveAndTerminalState(t *testing.T) {
 	t.Parallel()
 	svc := newRuntimeAgentServiceForPublicChatTest(t)

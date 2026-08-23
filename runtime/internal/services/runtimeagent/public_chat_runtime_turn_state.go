@@ -212,9 +212,7 @@ func (r publicChatRuntime) releaseTurnReservation(anchorID string, turnID string
 			if messageID := strings.TrimSpace(terminal.MessageID); messageID != "" {
 				session.LastMessageID = messageID
 			}
-			if terminal.Status == publicChatTurnStatusCompleted &&
-				strings.TrimSpace(terminal.TurnID) != "" &&
-				strings.TrimSpace(terminal.MessageID) != "" {
+			if publicChatTurnProjectionIsTerminal(terminal) {
 				if session.CompletedTurnSnapshots == nil {
 					session.CompletedTurnSnapshots = make(map[string]*publicChatTurnProjectionState)
 				}

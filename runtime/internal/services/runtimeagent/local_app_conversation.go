@@ -3,6 +3,7 @@ package runtimeagent
 import (
 	"context"
 	"crypto/subtle"
+	"sort"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -326,6 +327,7 @@ func (s *Service) TranscribeLocalAppConversationVoice(
 		anchorID,
 		mimeType,
 		requestID,
+		localAppVoiceTranscriptionRequestScope(resolved),
 		req.GetAudioBytes(),
 	)
 	if err != nil {
@@ -336,6 +338,12 @@ func (s *Service) TranscribeLocalAppConversationVoice(
 		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
 	return &runtimev1.TranscribeLocalAppConversationVoiceResponse{Text: text}, nil
+}
+
+func localAppVoiceTranscriptionRequestScope(resolved localAppAgentIdentity) string {
+	material := []byte(strings.TrimSpace(resolved.decision.AppID) + "\x00" + strings.TrimSpace(resolved.decision.RegisteredAppSubject) + "\x00")
+	material = append(material, resolved.decision.SessionID[:]...)
+	return sha256HexBytes(material)
 }
 
 func parseLocalAppConversationInputParts(
@@ -649,7 +657,7 @@ func (s *Service) buildLocalAppConversationSnapshot(
 	transcript := clonePublicChatCommittedTranscript(anchor.CommittedTranscript)
 	throughSequence := anchor.LocalAppSequence
 	activeSnapshot := clonePublicChatTurnProjectionState(anchor.ActiveTurnSnapshot)
-	completedSnapshots := clonePublicChatTurnProjectionStateMap(anchor.CompletedTurnSnapshots)
+	terminalSnapshots := clonePublicChatTurnProjectionStateMap(anchor.CompletedTurnSnapshots)
 	voiceSidecars := clonePublicChatVoiceSidecars(anchor.VoiceSidecars)
 	s.chatSurfaceMu.Unlock()
 	if err := validatePublicChatCommittedTranscript(transcript); err != nil {
@@ -663,10 +671,13 @@ func (s *Service) buildLocalAppConversationSnapshot(
 		bytes    int
 	}
 	groups := make([]messageGroup, 0, len(transcript))
+	var activeGroup *messageGroup
+	seenTurnIDs := make(map[string]struct{}, len(transcript))
 	for _, turn := range transcript {
 		if turn.Origin != publicChatTurnOriginUser || !validLocalAppConversationSelector(turn.TurnID) {
 			continue
 		}
+		seenTurnIDs[turn.TurnID] = struct{}{}
 		group := messageGroup{}
 		userMessage := localAppConversationUserMessage(turn)
 		if userMessage == nil {
@@ -674,17 +685,23 @@ func (s *Service) buildLocalAppConversationSnapshot(
 		}
 		group.messages = append(group.messages, userMessage)
 		group.bytes += len(turn.InputText)
-		if !validLocalAppConversationText(turn.AssistantText, localAppConversationMaxTextBytes, true) {
+		if strings.TrimSpace(turn.AssistantText) != "" && !validLocalAppConversationText(turn.AssistantText, localAppConversationMaxTextBytes, true) {
 			return nil, localAppConversationOwnerUnavailable()
 		}
-		group.messages = append(group.messages, localAppConversationTextMessage(
-			turn.TurnID,
-			runtimev1.LocalAppConversationMessageRole_LOCAL_APP_CONVERSATION_MESSAGE_ROLE_ASSISTANT,
-			turn.AssistantText,
-		))
-		group.bytes += len(turn.AssistantText)
-		projection := completedSnapshots[turn.TurnID]
-		group.turn = localAppConversationTurnFromProjection(turn.TurnID, projection, false)
+		if strings.TrimSpace(turn.AssistantText) != "" {
+			group.messages = append(group.messages, localAppConversationTextMessage(
+				turn.TurnID,
+				runtimev1.LocalAppConversationMessageRole_LOCAL_APP_CONVERSATION_MESSAGE_ROLE_ASSISTANT,
+				turn.AssistantText,
+			))
+			group.bytes += len(turn.AssistantText)
+		}
+		projection := terminalSnapshots[turn.TurnID]
+		active := activeSnapshot != nil && strings.TrimSpace(activeSnapshot.TurnID) == turn.TurnID
+		if active {
+			projection = activeSnapshot
+		}
+		group.turn = localAppConversationTurnFromProjection(turn.TurnID, projection, active)
 		for index := range turn.OutputArtifacts {
 			artifact := turn.OutputArtifacts[index]
 			message := localAppConversationArtifactMessage(turn.TurnID, artifact)
@@ -692,9 +709,45 @@ func (s *Service) buildLocalAppConversationSnapshot(
 			group.actions = append(group.actions, localAppConversationCompletedAction(turn.TurnID, projection, message, artifact))
 		}
 		if len(turn.OutputArtifacts) == 0 {
-			if action := localAppConversationFailedAction(turn.TurnID, projection); action != nil {
+			if action := localAppConversationNonCompletedAction(turn.TurnID, projection); action != nil {
 				group.actions = append(group.actions, action)
 			}
+		}
+		if active {
+			copy := group
+			activeGroup = &copy
+			continue
+		}
+		groups = append(groups, group)
+	}
+	terminalOnlyIDs := make([]string, 0)
+	for turnID, projection := range terminalSnapshots {
+		if _, exists := seenTurnIDs[turnID]; exists || !publicChatTurnProjectionIsTerminal(projection) {
+			continue
+		}
+		terminalOnlyIDs = append(terminalOnlyIDs, turnID)
+	}
+	sort.Slice(terminalOnlyIDs, func(left, right int) bool {
+		leftProjection := terminalSnapshots[terminalOnlyIDs[left]]
+		rightProjection := terminalSnapshots[terminalOnlyIDs[right]]
+		leftTime := leftProjection.TimelineStartedAt
+		if leftTime.IsZero() {
+			leftTime = leftProjection.UpdatedAt
+		}
+		rightTime := rightProjection.TimelineStartedAt
+		if rightTime.IsZero() {
+			rightTime = rightProjection.UpdatedAt
+		}
+		if !leftTime.Equal(rightTime) {
+			return leftTime.Before(rightTime)
+		}
+		return terminalOnlyIDs[left] < terminalOnlyIDs[right]
+	})
+	for _, turnID := range terminalOnlyIDs {
+		projection := terminalSnapshots[turnID]
+		group := messageGroup{turn: localAppConversationTurnFromProjection(turnID, projection, false)}
+		if action := localAppConversationNonCompletedAction(turnID, projection); action != nil {
+			group.actions = append(group.actions, action)
 		}
 		groups = append(groups, group)
 	}
@@ -712,7 +765,11 @@ func (s *Service) buildLocalAppConversationSnapshot(
 		messageCount += len(candidate.messages)
 		textBytes += candidate.bytes
 	}
-	messages := make([]*runtimev1.LocalAppConversationMessage, 0, messageCount)
+	activeMessageCount := 0
+	if activeGroup != nil {
+		activeMessageCount = len(activeGroup.messages)
+	}
+	messages := make([]*runtimev1.LocalAppConversationMessage, 0, messageCount+activeMessageCount)
 	turns := make([]*runtimev1.LocalAppConversationTurn, 0, len(groups)-start+1)
 	actions := make([]*runtimev1.LocalAppConversationAction, 0)
 	for _, group := range groups[start:] {
@@ -721,6 +778,13 @@ func (s *Service) buildLocalAppConversationSnapshot(
 			turns = append(turns, group.turn)
 		}
 		actions = append(actions, group.actions...)
+	}
+	if activeGroup != nil {
+		messages = append(messages, activeGroup.messages...)
+		if activeGroup.turn != nil {
+			turns = append(turns, activeGroup.turn)
+		}
+		actions = append(actions, activeGroup.actions...)
 	}
 	if activeSnapshot != nil && strings.TrimSpace(activeSnapshot.TurnID) != "" {
 		found := false
@@ -917,26 +981,48 @@ func localAppConversationCompletedAction(
 	}
 }
 
-func localAppConversationFailedAction(
+func localAppConversationNonCompletedAction(
 	turnID string,
 	projection *publicChatTurnProjectionState,
 ) *runtimev1.LocalAppConversationAction {
-	if projection == nil || projection.Structured == nil || len(projection.Structured.Actions) == 0 || strings.TrimSpace(projection.Message) == "" {
+	if projection == nil || projection.Structured == nil || len(projection.Structured.Actions) == 0 {
 		return nil
 	}
 	actionID, capability := localAppConversationActionIdentity(turnID, projection)
-	reasonCode := projection.ReasonCode
-	if reasonCode == runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
-		reasonCode = runtimev1.ReasonCode_AI_PROVIDER_INTERNAL
-	}
-	message := strings.TrimSpace(projection.Message)
-	return &runtimev1.LocalAppConversationAction{
+	action := &runtimev1.LocalAppConversationAction{
 		ActionId:           actionID,
 		TurnId:             strings.TrimSpace(turnID),
 		CapabilityContract: capability,
-		Status:             runtimev1.LocalAppConversationActionStatus_LOCAL_APP_CONVERSATION_ACTION_STATUS_FAILED,
-		ReasonCode:         reasonCode,
-		Message:            &message,
+	}
+	switch projection.ActionStatus {
+	case publicChatActionStatusPlanned:
+		action.Status = runtimev1.LocalAppConversationActionStatus_LOCAL_APP_CONVERSATION_ACTION_STATUS_PLANNED
+		return action
+	case publicChatActionStatusStarted:
+		action.Status = runtimev1.LocalAppConversationActionStatus_LOCAL_APP_CONVERSATION_ACTION_STATUS_STARTED
+		return action
+	case publicChatActionStatusFailed:
+		action.Status = runtimev1.LocalAppConversationActionStatus_LOCAL_APP_CONVERSATION_ACTION_STATUS_FAILED
+		action.ReasonCode = projection.ActionReasonCode
+		if action.ReasonCode == runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
+			action.ReasonCode = runtimev1.ReasonCode_AI_PROVIDER_INTERNAL
+		}
+		if message := strings.TrimSpace(projection.ActionMessage); message != "" {
+			action.Message = &message
+		}
+		return action
+	default:
+		message := strings.TrimSpace(projection.Message)
+		if message == "" {
+			return nil
+		}
+		action.Status = runtimev1.LocalAppConversationActionStatus_LOCAL_APP_CONVERSATION_ACTION_STATUS_FAILED
+		action.ReasonCode = projection.ReasonCode
+		if action.ReasonCode == runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
+			action.ReasonCode = runtimev1.ReasonCode_AI_PROVIDER_INTERNAL
+		}
+		action.Message = &message
+		return action
 	}
 }
 
@@ -1172,10 +1258,15 @@ func sendLocalAppConversationEmission(subscriber *localAppConversationSubscriber
 		case <-subscriber.events:
 		default:
 		}
+		retryable := true
 		select {
-		case subscriber.events <- localAppConversationEmission{err: grpcerr.WithReasonCode(
+		case subscriber.events <- localAppConversationEmission{err: grpcerr.WithReasonCodeOptions(
 			codes.ResourceExhausted,
 			runtimev1.ReasonCode_LOCAL_APP_OWNER_UNAVAILABLE,
+			grpcerr.ReasonOptions{
+				Retryable: &retryable,
+				Metadata:  map[string]string{"diagnostic_stage": "local_app_conversation_subscription_overflow"},
+			},
 		)}:
 		default:
 		}

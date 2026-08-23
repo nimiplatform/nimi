@@ -9,6 +9,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/runtimeidentity"
+	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 )
@@ -122,9 +123,18 @@ func TestPublicChatRestartRecoveryInterruptsTurnWithoutClosingConversationAnchor
 	first, closeFirst := newRuntimeAgentServiceForPublicChatStatePathWithClose(t, statePath)
 	anchorID := openPublicChatTestAnchor(t, first, "agent-alpha", "desktop.app", "user-1")
 	first.chatSurfaceMu.Lock()
+	first.chatAnchors[anchorID].CommittedTranscript = []publicChatCommittedTranscriptTurn{{
+		TurnID: "turn-interrupted-by-restart", Sequence: 0, Origin: publicChatTurnOriginUser,
+		InputText: "draw", AssistantText: "drawing",
+	}}
 	first.chatAnchors[anchorID].ActiveTurnSnapshot = &publicChatTurnProjectionState{
 		TurnID: "turn-interrupted-by-restart", Status: publicChatTurnStatusStarted,
+		Structured: &publicChatStructuredEnvelope{Actions: []publicChatStructuredAction{{
+			ActionID: "action-interrupted-by-restart", Modality: "image", Operation: "image.generate",
+		}}},
+		ActionStatus: publicChatActionStatusStarted,
 	}
+	first.chatAnchors[anchorID].ActiveTurnID = "turn-interrupted-by-restart"
 	first.chatAnchors[anchorID].UpdatedAt = time.Now().UTC()
 	first.chatSurfaceMu.Unlock()
 	first.persistCurrentPublicChatSurfaceState()
@@ -143,6 +153,23 @@ func TestPublicChatRestartRecoveryInterruptsTurnWithoutClosingConversationAnchor
 		recovered.LastTurnSnapshot.Status != publicChatTurnStatusInterrupted ||
 		recovered.LastTurnSnapshot.ReasonCode != runtimev1.ReasonCode_AI_STREAM_BROKEN {
 		t.Fatalf("restart recovery turn projection mismatch: active=%+v last=%+v", recovered.ActiveTurnSnapshot, recovered.LastTurnSnapshot)
+	}
+	snapshotDecision := localAppConversationDecision(accountservice.LocalAppOperationConversationSnapshot, 0x44, "user-1")
+	handle := mintLocalAppAgentHandle(snapshotDecision, testRuntimeAgentLocalRef("agent-alpha"))
+	protected, err := restarted.GetLocalAppConversationSnapshot(
+		accountservice.ContextWithAuthorizedLocalAppDecision(context.Background(), snapshotDecision),
+		&runtimev1.GetLocalAppConversationSnapshotRequest{AgentHandle: handle, ConversationAnchorId: anchorID},
+	)
+	if err != nil {
+		t.Fatalf("GetLocalAppConversationSnapshot after restart: %v", err)
+	}
+	if len(protected.GetSnapshot().GetTurns()) != 1 ||
+		protected.GetSnapshot().GetTurns()[0].GetStatus() != runtimev1.LocalAppConversationTurnStatus_LOCAL_APP_CONVERSATION_TURN_STATUS_INTERRUPTED {
+		t.Fatalf("protected restart turn closure = %+v", protected.GetSnapshot().GetTurns())
+	}
+	if len(protected.GetSnapshot().GetActions()) != 1 ||
+		protected.GetSnapshot().GetActions()[0].GetStatus() != runtimev1.LocalAppConversationActionStatus_LOCAL_APP_CONVERSATION_ACTION_STATUS_FAILED {
+		t.Fatalf("protected restart action closure = %+v", protected.GetSnapshot().GetActions())
 	}
 	if resolved := openPublicChatTestAnchor(t, restarted, "agent-alpha", "web.app", "user-1"); resolved != anchorID {
 		t.Fatalf("post-restart open resolved %q, want active canonical anchor %q", resolved, anchorID)

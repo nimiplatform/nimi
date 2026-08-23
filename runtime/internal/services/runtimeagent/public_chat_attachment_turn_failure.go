@@ -10,11 +10,11 @@ import (
 // Vision-unsupported attachment turn semantics
 // (rule.nimi.runtime.agent-participation.r174): when the current route cannot
 // consume image content, the user attachment message still commits and
-// persists, and the assistant side surfaces exactly this typed failure.
+// persists without a synthetic assistant message, then the turn surfaces the
+// typed failure.
 const (
 	publicChatTurnAttachmentVisionUnsupportedReasonCode = "turn-attachment-route-vision-unsupported"
 	publicChatTurnAttachmentVisionUnsupportedMessage    = "current route cannot consume image content"
-	publicChatTurnAttachmentVisionUnsupportedBeatText   = "The current route cannot consume image content; the attachment was kept but not processed."
 )
 
 // publicChatTurnCarriesUserAttachment reports whether the admitted current
@@ -45,10 +45,10 @@ func publicChatCurrentUserCommitMessage(req publicChatTurnRequestPayload) *runti
 	return message
 }
 
-// failVisionUnsupportedAttachmentTurn commits the user attachment message
-// with a truthful assistant failure beat, then projects the typed
-// vision-unsupported failure. The attachment is never dropped, the user
-// message is never rejected, and the image is never reported as consumed.
+// failVisionUnsupportedAttachmentTurn commits only the user attachment
+// message, then projects the typed vision-unsupported failure. The attachment
+// is never dropped, no assistant message is fabricated, and the image is never
+// reported as consumed.
 func (r publicChatRuntime) failVisionUnsupportedAttachmentTurn(
 	ctx context.Context,
 	session publicChatAnchorState,
@@ -58,22 +58,23 @@ func (r publicChatRuntime) failVisionUnsupportedAttachmentTurn(
 	modelResolved string,
 	routeDecision runtimev1.RoutePolicy,
 ) {
-	messageID := "message-0"
 	finalizeCommittedProjection := func(projection *publicChatTurnProjectionState) {
 		projection.Status = publicChatTurnStatusCommitted
 		projection.TraceID = strings.TrimSpace(traceID)
 		projection.ModelResolved = strings.TrimSpace(modelResolved)
 		projection.RouteDecision = routeDecision
-		projection.OutputObserved = true
-		projection.MessageID = messageID
-		projection.AssistantText = publicChatTurnAttachmentVisionUnsupportedBeatText
+		projection.OutputObserved = false
+		projection.MessageID = ""
+		projection.AssistantText = ""
 	}
-	commitErr := r.svc.commitPublicChatTurnTranscriptForTurnWithProjection(
+	commitErr := r.svc.commitPublicChatTranscriptTurn(
 		ctx,
 		session.ConversationAnchorID,
 		turn.TurnID,
-		publicChatCurrentUserCommitMessage(req),
-		publicChatTurnAttachmentVisionUnsupportedBeatText,
+		publicChatTurnOriginUser,
+		strings.TrimSpace(req.Messages[0].Content),
+		publicChatCommittedAttachmentFromMessage(publicChatCurrentUserCommitMessage(req)),
+		"",
 		finalizeCommittedProjection,
 	)
 	if commitErr != nil {
@@ -89,13 +90,21 @@ func (r publicChatRuntime) failVisionUnsupportedAttachmentTurn(
 		r.emitTurnFailed(session, turn, traceID, modelResolved, routeDecision, runtimev1.ReasonCode_AI_STREAM_BROKEN, diagnostic, "")
 		return
 	}
+	if err := r.emitTurnMessageCommitted(
+		session,
+		turn.TurnID,
+		localAppConversationMessageID(turn.TurnID, "user", ""),
+		strings.TrimSpace(req.Messages[0].Content),
+	); err != nil && r.svc.logger != nil {
+		r.svc.logger.Warn("emit vision-unsupported committed user message failed", "agent_id", session.AgentID, "turn_id", turn.TurnID, "error", err)
+	}
 	r.svc.finalizePublicChatTurnProjection(turn.TurnID, true, func(projection *publicChatTurnProjectionState) {
 		projection.Status = publicChatTurnStatusFailed
 		projection.TraceID = strings.TrimSpace(traceID)
 		projection.ModelResolved = strings.TrimSpace(modelResolved)
 		projection.RouteDecision = routeDecision
-		projection.MessageID = messageID
-		projection.AssistantText = publicChatTurnAttachmentVisionUnsupportedBeatText
+		projection.MessageID = ""
+		projection.AssistantText = ""
 		projection.ReasonCode = runtimev1.ReasonCode_AI_MODALITY_NOT_SUPPORTED
 		projection.ReasonCodeToken = publicChatTurnAttachmentVisionUnsupportedReasonCode
 		projection.Message = publicChatTurnAttachmentVisionUnsupportedMessage
