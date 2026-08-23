@@ -476,14 +476,17 @@ test('agent conversation probe requires a reference and reports bounded facts', 
     async subscribe() {
       return {
         async *[Symbol.asyncIterator]() {
-          yield { type: 'turn-accepted', conversationAnchorId: 'anchor-1', turnId: 'turn-1', requestId: sentRequestId };
-          yield { type: 'message-committed', conversationAnchorId: 'anchor-1', turnId: 'turn-1', sequence: '2', messageId: 'm-1', text: 'confirmed' };
+          yield { type: 'turn-accepted', conversationAnchorId: 'anchor-1', turnId: 'turn-1', sequence: '1' };
+          yield {
+            type: 'message-committed', conversationAnchorId: 'anchor-1', turnId: 'turn-1', sequence: '2',
+            message: { messageId: 'm-1', turnId: 'turn-1', role: 'assistant', parts: [{ kind: 'text', text: 'confirmed' }] },
+          };
           yield { type: 'turn-completed', conversationAnchorId: 'anchor-1', turnId: 'turn-1', sequence: '3', terminalReason: 'stop' };
         },
         async cancel() {},
       };
     },
-    async snapshot() { return { conversationAnchorId: 'anchor-1', activeTurnId: null, messages: [], truncatedBefore: false }; },
+    async snapshot() { return { conversationAnchorId: 'anchor-1', throughSequence: '3', turns: [], messages: [], actions: [], voices: [], truncatedBefore: false }; },
   };
   const outcome = await runAppAccessProbe('agent-conversation', {
     client: clientPort({ conversation }),

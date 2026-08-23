@@ -12,7 +12,7 @@ export type LabConversationPort = {
     readonly agentHandle: NimiLocalAppAgentHandle;
     readonly conversationAnchorId: string;
     readonly requestId: string;
-    readonly text: string;
+    readonly parts: readonly ({ readonly kind: 'text'; readonly text: string } | { readonly kind: 'artifact-ref'; readonly artifactId: string })[];
   }) => Promise<{ readonly turnId: string }>;
   readonly interruptTurn: (input: {
     readonly agentHandle: NimiLocalAppAgentHandle;
@@ -64,11 +64,10 @@ export async function runLabConversationJourney(input: {
     const sent = await input.conversation.send({
       ...scope,
       requestId: input.requestId,
-      text: input.text,
+      parts: [{ kind: 'text', text: input.text }],
     });
     const terminal = await waitForTerminalTurn({
       subscription,
-      requestId: input.requestId,
       turnId: sent.turnId,
       conversationAnchorId: opened.conversationAnchorId,
     });
@@ -106,11 +105,10 @@ export async function runLabConversationInterruptJourney(input: {
     const sent = await input.conversation.send({
       ...scope,
       requestId: input.requestId,
-      text: input.text,
+      parts: [{ kind: 'text', text: input.text }],
     });
     await waitForAcceptedTurn({
       iterator,
-      requestId: input.requestId,
       turnId: sent.turnId,
       conversationAnchorId: opened.conversationAnchorId,
     });
@@ -140,7 +138,6 @@ export async function runLabConversationInterruptJourney(input: {
 
 async function waitForAcceptedTurn(input: {
   readonly iterator: AsyncIterator<NimiLocalAppConversationEvent>;
-  readonly requestId: string;
   readonly turnId: string;
   readonly conversationAnchorId: string;
 }): Promise<void> {
@@ -156,7 +153,7 @@ async function waitForAcceptedTurn(input: {
     if (event.conversationAnchorId !== input.conversationAnchorId || event.turnId !== input.turnId) {
       continue;
     }
-    if (event.type === 'turn-accepted' && event.requestId === input.requestId) return;
+    if (event.type === 'turn-accepted') return;
     if (event.type === 'turn-failed') {
       throw terminalFailure(event.message || 'Runtime Agent turn failed.', event.reasonCode);
     }
@@ -204,7 +201,6 @@ async function waitForInterruptedTurn(input: {
 
 async function waitForTerminalTurn(input: {
   readonly subscription: AsyncIterable<NimiLocalAppConversationEvent>;
-  readonly requestId: string;
   readonly turnId: string;
   readonly conversationAnchorId: string;
 }): Promise<{
@@ -220,10 +216,13 @@ async function waitForTerminalTurn(input: {
     }
     switch (event.type) {
       case 'turn-accepted':
-        if (event.requestId === input.requestId) accepted = true;
+        accepted = true;
         break;
       case 'message-committed':
-        if (accepted && event.text.trim()) assistantText = event.text;
+        if (accepted && event.message.role === 'assistant') {
+          const text = event.message.parts.find((part) => part.kind === 'text');
+          if (text?.text.trim()) assistantText = text.text;
+        }
         break;
       case 'turn-failed':
         if (accepted) {
@@ -255,7 +254,13 @@ async function waitForTerminalTurn(input: {
           assistantText,
         });
       case 'turn-started':
-      case 'text-delta':
+      case 'action-planned':
+      case 'action-started':
+      case 'artifact-ready':
+      case 'action-completed':
+      case 'action-failed':
+      case 'voice-ready':
+      case 'voice-failed':
         break;
     }
   }

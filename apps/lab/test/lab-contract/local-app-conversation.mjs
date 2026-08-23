@@ -4,8 +4,11 @@ import { importBehaviorModule } from './helpers.mjs';
 
 const snapshot = {
   conversationAnchorId: 'anchor-1',
-  activeTurnId: null,
+  throughSequence: '3',
+  turns: [],
   messages: [],
+  actions: [],
+  voices: [],
   truncatedBefore: false,
 };
 
@@ -34,8 +37,14 @@ test('agent.local journey uses one listed session handle and cancels', async () 
         calls.push(['subscribe', input]);
         return {
           async *[Symbol.asyncIterator]() {
-            yield event('turn-accepted', { requestId: 'request-1' });
-            yield event('message-committed', { sequence: '4', messageId: 'message-1', text: 'terminal reply' });
+            yield event('turn-accepted');
+            yield event('message-committed', {
+              sequence: '4',
+              message: {
+                messageId: 'message-1', turnId: 'turn-1', role: 'assistant',
+                parts: [{ kind: 'text', text: 'terminal reply' }],
+              },
+            });
             yield event('turn-completed', { sequence: '6', terminalReason: 'stop' });
           },
           async cancel() { calls.push(['cancel']); },
@@ -55,6 +64,7 @@ test('agent.local journey uses one listed session handle and cancels', async () 
   });
   assert.deepEqual(calls.map(([operation]) => operation), ['open', 'subscribe', 'send', 'snapshot', 'cancel']);
   assert.deepEqual(calls[0], ['open', { agentHandle: handle }]);
+  assert.deepEqual(calls.find(([operation]) => operation === 'send')[1].parts, [{ kind: 'text', text: 'hello' }]);
   for (const [, input] of calls.slice(0, 4)) assert.equal(input.agentHandle, handle);
   assert.equal(JSON.stringify(calls).includes('localAgentId'), false);
   assert.equal(JSON.stringify(calls).includes('attachments'), false);
@@ -76,7 +86,7 @@ test('typed interrupt journey waits for acceptance and observes the owner termin
         calls.push(['subscribe', input]);
         return {
           async *[Symbol.asyncIterator]() {
-            yield event('turn-accepted', { requestId: 'request-interrupt' });
+            yield event('turn-accepted');
             yield event('turn-started', { sequence: '2' });
             yield event('turn-interrupted', { sequence: '3', reason: 'user_cancel' });
           },
@@ -112,7 +122,7 @@ test('typed interrupt journey cancels and fails closed on a mismatched owner tur
       async subscribe() {
         return {
           async *[Symbol.asyncIterator]() {
-            yield event('turn-accepted', { requestId: 'request-mismatch' });
+            yield event('turn-accepted');
           },
           async cancel() { cancelled += 1; },
         };
@@ -153,7 +163,7 @@ test('journey fails closed when the matching typed stream ends without terminal 
       async subscribe() {
         return {
           async *[Symbol.asyncIterator]() {
-            yield event('turn-accepted', { requestId: 'request-3' });
+            yield event('turn-accepted');
           },
           async cancel() { cancelled += 1; },
         };
@@ -189,7 +199,7 @@ test('journey preserves owner-specific terminal failure fields', async () => {
         async subscribe() {
           return {
             async *[Symbol.asyncIterator]() {
-              yield event('turn-accepted', { requestId: 'request-terminal-detail' });
+              yield event('turn-accepted');
               yield terminal.terminal;
             },
             async cancel() {},
