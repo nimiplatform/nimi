@@ -209,12 +209,12 @@ func (s *Service) localAppConversationVoiceForTurn(
 }
 
 func (s *Service) localAppConversationVoiceArtifactMembership(
-	resolved localAppAgentIdentity,
+	localAgentRef string,
 	anchorID string,
 	artifactID string,
 	record runtimeartifact.ArtifactRecord,
 ) bool {
-	if record.GeneratedVoice == nil || strings.TrimSpace(record.GeneratedVoice.AgentID) != resolved.identity.LocalAgentRef ||
+	if record.GeneratedVoice == nil || strings.TrimSpace(record.GeneratedVoice.AgentID) != strings.TrimSpace(localAgentRef) ||
 		strings.TrimSpace(record.GeneratedVoice.ConversationAnchorID) != strings.TrimSpace(anchorID) {
 		return false
 	}

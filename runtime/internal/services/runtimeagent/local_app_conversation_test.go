@@ -523,6 +523,24 @@ func TestLocalAppConversationAttachmentCandidateAdoptsIntoCrossAppReadableMember
 		read.GetByteLength() != int64(len(read.GetData())) || len(read.GetData()) == 0 {
 		t.Fatalf("cross-App committed read = %+v err=%v", read, err)
 	}
+	firstPartyRead, err := svc.ReadConversationArtifact(
+		authenticatedRuntimeAgentTestContext(context.Background(), "user-1"),
+		&runtimev1.ReadConversationArtifactRequest{
+			Context: &runtimev1.AgentRequestContext{
+				AppId:            "nimi.desktop",
+				LocalAgentRef:    testRuntimeAgentLocalRef("agent-alpha"),
+				OwnerUserId:      "user-1",
+				RuntimeSourceRef: testRuntimeAgentSourceRef("agent-alpha"),
+			},
+			AgentId:              testRuntimeAgentLocalRef("agent-alpha"),
+			ConversationAnchorId: anchorID,
+			ArtifactId:           uploaded.GetArtifactId(),
+		},
+	)
+	if err != nil || firstPartyRead.GetArtifactId() != uploaded.GetArtifactId() || firstPartyRead.GetMimeType() != "image/png" ||
+		firstPartyRead.GetByteLength() != int64(len(firstPartyRead.GetData())) || len(firstPartyRead.GetData()) == 0 {
+		t.Fatalf("first-party committed read = %+v err=%v", firstPartyRead, err)
+	}
 
 	sendDecision := openDecision
 	sendDecision.Operation = accountservice.LocalAppOperationSendConversationTurn

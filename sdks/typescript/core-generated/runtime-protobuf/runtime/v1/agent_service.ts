@@ -3010,6 +3010,48 @@ export interface GetPublicChatSessionSnapshotResponse {
     snapshot?: Struct;
 }
 /**
+ * @generated from protobuf message nimi.runtime.v1.ReadConversationArtifactRequest
+ */
+export interface ReadConversationArtifactRequest {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AgentRequestContext context = 1
+     */
+    context?: AgentRequestContext;
+    /**
+     * @generated from protobuf field: string agent_id = 2
+     */
+    agentId: string;
+    /**
+     * @generated from protobuf field: string conversation_anchor_id = 3
+     */
+    conversationAnchorId: string;
+    /**
+     * @generated from protobuf field: string artifact_id = 4
+     */
+    artifactId: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ReadConversationArtifactResponse
+ */
+export interface ReadConversationArtifactResponse {
+    /**
+     * @generated from protobuf field: string artifact_id = 1
+     */
+    artifactId: string;
+    /**
+     * @generated from protobuf field: bytes data = 2
+     */
+    data: Uint8Array;
+    /**
+     * @generated from protobuf field: string mime_type = 3
+     */
+    mimeType: string;
+    /**
+     * @generated from protobuf field: int64 byte_length = 4
+     */
+    byteLength: string;
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.AgentConversationSummary
  */
 export interface AgentConversationSummary {
@@ -13535,6 +13577,147 @@ class GetPublicChatSessionSnapshotResponse$Type extends MessageType<GetPublicCha
  * @generated MessageType for protobuf message nimi.runtime.v1.GetPublicChatSessionSnapshotResponse
  */
 export const GetPublicChatSessionSnapshotResponse = new GetPublicChatSessionSnapshotResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ReadConversationArtifactRequest$Type extends MessageType<ReadConversationArtifactRequest> {
+    constructor() {
+        super("nimi.runtime.v1.ReadConversationArtifactRequest", [
+            { no: 1, name: "context", kind: "message", T: () => AgentRequestContext },
+            { no: 2, name: "agent_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "conversation_anchor_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "artifact_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ReadConversationArtifactRequest>): ReadConversationArtifactRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.agentId = "";
+        message.conversationAnchorId = "";
+        message.artifactId = "";
+        if (value !== undefined)
+            reflectionMergePartial<ReadConversationArtifactRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ReadConversationArtifactRequest): ReadConversationArtifactRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.AgentRequestContext context */ 1:
+                    message.context = AgentRequestContext.internalBinaryRead(reader, reader.uint32(), options, message.context);
+                    break;
+                case /* string agent_id */ 2:
+                    message.agentId = reader.string();
+                    break;
+                case /* string conversation_anchor_id */ 3:
+                    message.conversationAnchorId = reader.string();
+                    break;
+                case /* string artifact_id */ 4:
+                    message.artifactId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ReadConversationArtifactRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.AgentRequestContext context = 1; */
+        if (message.context)
+            AgentRequestContext.internalBinaryWrite(message.context, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* string agent_id = 2; */
+        if (message.agentId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.agentId);
+        /* string conversation_anchor_id = 3; */
+        if (message.conversationAnchorId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.conversationAnchorId);
+        /* string artifact_id = 4; */
+        if (message.artifactId !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.artifactId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ReadConversationArtifactRequest
+ */
+export const ReadConversationArtifactRequest = new ReadConversationArtifactRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ReadConversationArtifactResponse$Type extends MessageType<ReadConversationArtifactResponse> {
+    constructor() {
+        super("nimi.runtime.v1.ReadConversationArtifactResponse", [
+            { no: 1, name: "artifact_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "data", kind: "scalar", T: 12 /*ScalarType.BYTES*/ },
+            { no: 3, name: "mime_type", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "byte_length", kind: "scalar", T: 3 /*ScalarType.INT64*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ReadConversationArtifactResponse>): ReadConversationArtifactResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.artifactId = "";
+        message.data = new Uint8Array(0);
+        message.mimeType = "";
+        message.byteLength = "0";
+        if (value !== undefined)
+            reflectionMergePartial<ReadConversationArtifactResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ReadConversationArtifactResponse): ReadConversationArtifactResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string artifact_id */ 1:
+                    message.artifactId = reader.string();
+                    break;
+                case /* bytes data */ 2:
+                    message.data = reader.bytes();
+                    break;
+                case /* string mime_type */ 3:
+                    message.mimeType = reader.string();
+                    break;
+                case /* int64 byte_length */ 4:
+                    message.byteLength = reader.int64().toString();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ReadConversationArtifactResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string artifact_id = 1; */
+        if (message.artifactId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.artifactId);
+        /* bytes data = 2; */
+        if (message.data.length)
+            writer.tag(2, WireType.LengthDelimited).bytes(message.data);
+        /* string mime_type = 3; */
+        if (message.mimeType !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.mimeType);
+        /* int64 byte_length = 4; */
+        if (message.byteLength !== "0")
+            writer.tag(4, WireType.Varint).int64(message.byteLength);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ReadConversationArtifactResponse
+ */
+export const ReadConversationArtifactResponse = new ReadConversationArtifactResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class AgentConversationSummary$Type extends MessageType<AgentConversationSummary> {
     constructor() {

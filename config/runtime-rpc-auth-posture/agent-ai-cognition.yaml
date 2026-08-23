@@ -54,6 +54,8 @@ methods:
     posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot
     posture: authenticated_or_protected_local_app_operation
+  - method_id: /nimi.runtime.v1.RuntimeAgentService/ReadConversationArtifact
+    posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAgentService/TranscribeAgentVoiceInput
     posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAgentService/GetCompanionParticipationProjection

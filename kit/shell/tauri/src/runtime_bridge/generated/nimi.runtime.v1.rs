@@ -18296,6 +18296,28 @@ pub struct GetPublicChatSessionSnapshotResponse {
     #[prost(message, optional, tag = "1")]
     pub snapshot: ::core::option::Option<::prost_types::Struct>,
 }
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ReadConversationArtifactRequest {
+    #[prost(message, optional, tag = "1")]
+    pub context: ::core::option::Option<AgentRequestContext>,
+    #[prost(string, tag = "2")]
+    pub agent_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub conversation_anchor_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub artifact_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ReadConversationArtifactResponse {
+    #[prost(string, tag = "1")]
+    pub artifact_id: ::prost::alloc::string::String,
+    #[prost(bytes = "vec", tag = "2")]
+    pub data: ::prost::alloc::vec::Vec<u8>,
+    #[prost(string, tag = "3")]
+    pub mime_type: ::prost::alloc::string::String,
+    #[prost(int64, tag = "4")]
+    pub byte_length: i64,
+}
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct AgentConversationSummary {
     #[prost(message, optional, tag = "1")]
@@ -20443,6 +20465,35 @@ pub mod runtime_agent_service_client {
                     GrpcMethod::new(
                         "nimi.runtime.v1.RuntimeAgentService",
                         "GetPublicChatSessionSnapshot",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn read_conversation_artifact(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ReadConversationArtifactRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ReadConversationArtifactResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/ReadConversationArtifact",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "ReadConversationArtifact",
                     ),
                 );
             self.inner.unary(req, path, codec).await

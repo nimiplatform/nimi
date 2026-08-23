@@ -448,6 +448,14 @@ RUNTIME_METHODS = [
     "response_type": "QueryAgentMemoryResponse"
   },
   {
+    "method_id": "/nimi.runtime.v1.RuntimeAgentService/ReadConversationArtifact",
+    "service": "RuntimeAgentService",
+    "method": "ReadConversationArtifact",
+    "kind": "unary",
+    "request_type": "ReadConversationArtifactRequest",
+    "response_type": "ReadConversationArtifactResponse"
+  },
+  {
     "method_id": "/nimi.runtime.v1.RuntimeAgentService/ReadLocalAppConversationArtifact",
     "service": "RuntimeAgentService",
     "method": "ReadLocalAppConversationArtifact",

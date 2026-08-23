@@ -255,33 +255,57 @@ func (s *Service) ReadLocalAppConversationArtifact(
 	if err := s.validateLocalAppConversationResource(resolved, anchorID); err != nil {
 		return nil, err
 	}
+	result, err := s.readConversationArtifact(resolved.identity.LocalAgentRef, anchorID, artifactID)
+	if err != nil {
+		return nil, err
+	}
+	return &runtimev1.ReadLocalAppConversationArtifactResponse{
+		ArtifactId: result.ArtifactID,
+		Data:       result.Bytes,
+		MimeType:   result.MimeType,
+		ByteLength: result.ByteLength,
+	}, nil
+}
+
+type conversationArtifactReadResult struct {
+	ArtifactID string
+	Bytes      []byte
+	MimeType   string
+	ByteLength int64
+}
+
+func (s *Service) readConversationArtifact(
+	localAgentRef string,
+	anchorID string,
+	artifactID string,
+) (conversationArtifactReadResult, error) {
 	if s.runtimeArtifacts == nil {
-		return nil, localAppConversationOwnerUnavailable()
+		return conversationArtifactReadResult{}, localAppConversationOwnerUnavailable()
 	}
 	record, ok := s.runtimeArtifacts.Get(artifactID)
 	if !ok {
-		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_ARTIFACT_NOT_FOUND)
+		return conversationArtifactReadResult{}, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_ARTIFACT_NOT_FOUND)
 	}
 	mimeType := strings.ToLower(strings.TrimSpace(record.MimeType))
 	expectedMime, member := s.localAppConversationTranscriptArtifactMembership(anchorID, artifactID)
 	if !member {
-		member = s.localAppConversationVoiceArtifactMembership(resolved, anchorID, artifactID, record)
+		member = s.localAppConversationVoiceArtifactMembership(localAgentRef, anchorID, artifactID, record)
 		if member {
 			expectedMime = mimeType
 		}
 	}
 	if !member {
-		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_ARTIFACT_FORBIDDEN)
+		return conversationArtifactReadResult{}, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_ARTIFACT_FORBIDDEN)
 	}
 	if expectedMime == "" || mimeType != expectedMime || record.SizeBytes != int64(len(record.Bytes)) {
-		return nil, localAppConversationOwnerUnavailable()
+		return conversationArtifactReadResult{}, localAppConversationOwnerUnavailable()
 	}
 	if record.SizeBytes > runtimeartifact.MaxInlineBytes {
-		return nil, grpcerr.WithReasonCode(codes.ResourceExhausted, runtimev1.ReasonCode_ARTIFACT_TOO_LARGE)
+		return conversationArtifactReadResult{}, grpcerr.WithReasonCode(codes.ResourceExhausted, runtimev1.ReasonCode_ARTIFACT_TOO_LARGE)
 	}
-	return &runtimev1.ReadLocalAppConversationArtifactResponse{
-		ArtifactId: artifactID,
-		Data:       record.Bytes,
+	return conversationArtifactReadResult{
+		ArtifactID: artifactID,
+		Bytes:      record.Bytes,
 		MimeType:   mimeType,
 		ByteLength: record.SizeBytes,
 	}, nil

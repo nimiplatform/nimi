@@ -938,6 +938,18 @@ message GetPublicChatSessionSnapshotRequest {
 message GetPublicChatSessionSnapshotResponse {
   google.protobuf.Struct snapshot = 1;
 }
+message ReadConversationArtifactRequest {
+  AgentRequestContext context = 1;
+  string agent_id = 2;
+  string conversation_anchor_id = 3;
+  string artifact_id = 4;
+}
+message ReadConversationArtifactResponse {
+  string artifact_id = 1;
+  bytes data = 2;
+  string mime_type = 3;
+  int64 byte_length = 4;
+}
 message AgentConversationSummary {
   ConversationAnchor anchor = 1;
   string title = 2;
@@ -1069,6 +1081,7 @@ service RuntimeAgentService {
   rpc RegisterAvatarLiveInstanceBinding(RegisterAvatarLiveInstanceBindingRequest) returns (RegisterAvatarLiveInstanceBindingResponse);
   rpc ResolveAvatarLiveInstanceBinding(ResolveAvatarLiveInstanceBindingRequest) returns (ResolveAvatarLiveInstanceBindingResponse);
   rpc GetPublicChatSessionSnapshot(GetPublicChatSessionSnapshotRequest) returns (GetPublicChatSessionSnapshotResponse);
+  rpc ReadConversationArtifact(ReadConversationArtifactRequest) returns (ReadConversationArtifactResponse);
   rpc ListAgentConversationSummaries(ListAgentConversationSummariesRequest) returns (ListAgentConversationSummariesResponse);
   rpc GetCompanionParticipationProjection(GetCompanionParticipationProjectionRequest) returns (GetCompanionParticipationProjectionResponse);
   rpc RequestCompanionParticipation(RequestCompanionParticipationRequest) returns (RequestCompanionParticipationResponse);

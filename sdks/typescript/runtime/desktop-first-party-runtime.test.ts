@@ -38,6 +38,11 @@ test('Desktop account product binds AIConfig to one explicit admitted App owner'
           ],
         } as Response;
       }
+      if (request.methodId === '/nimi.runtime.v1.RuntimeAgentService/ReadConversationArtifact') {
+        return {
+          artifactId: 'artifact-1', data: Uint8Array.from([1, 2, 3]), mimeType: 'image/png', byteLength: '3',
+        } as Response;
+      }
       throw new Error(`unexpected Runtime method: ${request.methodId}`);
     },
     async *serverStream<Response>(_request: CoreStreamRequest): AsyncIterable<Response> {
@@ -89,13 +94,28 @@ test('Desktop account product binds AIConfig to one explicit admitted App owner'
     kind: 'local-loadouts',
     capabilityContract: 'text.generate',
   }), { kind: 'local-loadouts', options: [], truncated: false });
+  const conversationArtifact = await clients.accountProduct.agents.readConversationArtifact({
+    context: {
+      ownerUserId: 'account-a',
+      runtimeSourceRef: 'runtime-source-1',
+      localAgentRef: 'local-agent-1',
+    },
+    agentId: 'local-agent-1',
+    conversationAnchorId: 'anchor-1',
+    artifactId: 'artifact-1',
+  });
+  assert.deepEqual([...conversationArtifact.data], [1, 2, 3]);
 
   assert.deepEqual(calls.map((call) => call.methodId), [
     '/nimi.runtime.v1.RuntimeAiService/GetAppAIConfig',
     '/nimi.runtime.v1.RuntimeAiService/OverwriteAppAIConfig',
     '/nimi.runtime.v1.RuntimeAgentService/GetSharedLocalAgentAIConfig',
     '/nimi.runtime.v1.RuntimeAgentService/ListSharedLocalAgentAIConfigOptions',
+    '/nimi.runtime.v1.RuntimeAgentService/ReadConversationArtifact',
   ]);
+  const artifactCall = calls.at(-1)?.body as { context?: { appId?: string; localAgentRef?: string } };
+  assert.equal(artifactCall.context?.appId, 'nimi.desktop');
+  assert.equal(artifactCall.context?.localAgentRef, 'local-agent-1');
   for (const call of calls) {
     assert.equal(call.metadata?.appId, undefined, 'protected host owns caller identity');
   }

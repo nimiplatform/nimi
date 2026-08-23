@@ -80,6 +80,7 @@ profiles:
       - method_id: /nimi.runtime.v1.RuntimeAgentService/GetConversationAnchorSnapshot
       - method_id: /nimi.runtime.v1.RuntimeAgentService/ListAgentConversationSummaries
       - method_id: /nimi.runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/ReadConversationArtifact
       - method_id: /nimi.runtime.v1.RuntimeAgentService/TranscribeAgentVoiceInput
       - method_id: /nimi.runtime.v1.RuntimeAgentService/RegisterAvatarLiveInstanceBinding
       - method_id: /nimi.runtime.v1.RuntimeAgentService/ResolveAvatarLiveInstanceBinding

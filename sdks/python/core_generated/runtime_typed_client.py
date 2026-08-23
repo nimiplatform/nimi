@@ -4510,6 +4510,20 @@ class ReadArtifactBytesResponse:
     mime_inferred: bool | None = None
 
 @dataclass(frozen=True)
+class ReadConversationArtifactRequest:
+    context: AgentRequestContext | None = None
+    agent_id: str | None = None
+    conversation_anchor_id: str | None = None
+    artifact_id: str | None = None
+
+@dataclass(frozen=True)
+class ReadConversationArtifactResponse:
+    artifact_id: str | None = None
+    data: bytes | None = None
+    mime_type: str | None = None
+    byte_length: int | None = None
+
+@dataclass(frozen=True)
 class ReadLocalAppArtifactRequest:
     artifact_id: str | None = None
 
@@ -6324,6 +6338,10 @@ class RuntimeTypedClient:
     async def query_agent_memory(self, request: QueryAgentMemoryRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> QueryAgentMemoryResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/QueryAgentMemory", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(QueryAgentMemoryResponse, raw)
+
+    async def read_conversation_artifact(self, request: ReadConversationArtifactRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ReadConversationArtifactResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/ReadConversationArtifact", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(ReadConversationArtifactResponse, raw)
 
     async def read_local_app_conversation_artifact(self, request: ReadLocalAppConversationArtifactRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ReadLocalAppConversationArtifactResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/ReadLocalAppConversationArtifact", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))

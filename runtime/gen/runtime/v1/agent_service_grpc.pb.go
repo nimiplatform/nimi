@@ -37,6 +37,7 @@ const (
 	RuntimeAgentService_RegisterAvatarLiveInstanceBinding_FullMethodName           = "/nimi.runtime.v1.RuntimeAgentService/RegisterAvatarLiveInstanceBinding"
 	RuntimeAgentService_ResolveAvatarLiveInstanceBinding_FullMethodName            = "/nimi.runtime.v1.RuntimeAgentService/ResolveAvatarLiveInstanceBinding"
 	RuntimeAgentService_GetPublicChatSessionSnapshot_FullMethodName                = "/nimi.runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot"
+	RuntimeAgentService_ReadConversationArtifact_FullMethodName                    = "/nimi.runtime.v1.RuntimeAgentService/ReadConversationArtifact"
 	RuntimeAgentService_ListAgentConversationSummaries_FullMethodName              = "/nimi.runtime.v1.RuntimeAgentService/ListAgentConversationSummaries"
 	RuntimeAgentService_GetCompanionParticipationProjection_FullMethodName         = "/nimi.runtime.v1.RuntimeAgentService/GetCompanionParticipationProjection"
 	RuntimeAgentService_RequestCompanionParticipation_FullMethodName               = "/nimi.runtime.v1.RuntimeAgentService/RequestCompanionParticipation"
@@ -112,6 +113,7 @@ type RuntimeAgentServiceClient interface {
 	RegisterAvatarLiveInstanceBinding(ctx context.Context, in *RegisterAvatarLiveInstanceBindingRequest, opts ...grpc.CallOption) (*RegisterAvatarLiveInstanceBindingResponse, error)
 	ResolveAvatarLiveInstanceBinding(ctx context.Context, in *ResolveAvatarLiveInstanceBindingRequest, opts ...grpc.CallOption) (*ResolveAvatarLiveInstanceBindingResponse, error)
 	GetPublicChatSessionSnapshot(ctx context.Context, in *GetPublicChatSessionSnapshotRequest, opts ...grpc.CallOption) (*GetPublicChatSessionSnapshotResponse, error)
+	ReadConversationArtifact(ctx context.Context, in *ReadConversationArtifactRequest, opts ...grpc.CallOption) (*ReadConversationArtifactResponse, error)
 	ListAgentConversationSummaries(ctx context.Context, in *ListAgentConversationSummariesRequest, opts ...grpc.CallOption) (*ListAgentConversationSummariesResponse, error)
 	GetCompanionParticipationProjection(ctx context.Context, in *GetCompanionParticipationProjectionRequest, opts ...grpc.CallOption) (*GetCompanionParticipationProjectionResponse, error)
 	RequestCompanionParticipation(ctx context.Context, in *RequestCompanionParticipationRequest, opts ...grpc.CallOption) (*RequestCompanionParticipationResponse, error)
@@ -357,6 +359,16 @@ func (c *runtimeAgentServiceClient) GetPublicChatSessionSnapshot(ctx context.Con
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetPublicChatSessionSnapshotResponse)
 	err := c.cc.Invoke(ctx, RuntimeAgentService_GetPublicChatSessionSnapshot_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAgentServiceClient) ReadConversationArtifact(ctx context.Context, in *ReadConversationArtifactRequest, opts ...grpc.CallOption) (*ReadConversationArtifactResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ReadConversationArtifactResponse)
+	err := c.cc.Invoke(ctx, RuntimeAgentService_ReadConversationArtifact_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -886,6 +898,7 @@ type RuntimeAgentServiceServer interface {
 	RegisterAvatarLiveInstanceBinding(context.Context, *RegisterAvatarLiveInstanceBindingRequest) (*RegisterAvatarLiveInstanceBindingResponse, error)
 	ResolveAvatarLiveInstanceBinding(context.Context, *ResolveAvatarLiveInstanceBindingRequest) (*ResolveAvatarLiveInstanceBindingResponse, error)
 	GetPublicChatSessionSnapshot(context.Context, *GetPublicChatSessionSnapshotRequest) (*GetPublicChatSessionSnapshotResponse, error)
+	ReadConversationArtifact(context.Context, *ReadConversationArtifactRequest) (*ReadConversationArtifactResponse, error)
 	ListAgentConversationSummaries(context.Context, *ListAgentConversationSummariesRequest) (*ListAgentConversationSummariesResponse, error)
 	GetCompanionParticipationProjection(context.Context, *GetCompanionParticipationProjectionRequest) (*GetCompanionParticipationProjectionResponse, error)
 	RequestCompanionParticipation(context.Context, *RequestCompanionParticipationRequest) (*RequestCompanionParticipationResponse, error)
@@ -1000,6 +1013,9 @@ func (UnimplementedRuntimeAgentServiceServer) ResolveAvatarLiveInstanceBinding(c
 }
 func (UnimplementedRuntimeAgentServiceServer) GetPublicChatSessionSnapshot(context.Context, *GetPublicChatSessionSnapshotRequest) (*GetPublicChatSessionSnapshotResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetPublicChatSessionSnapshot not implemented")
+}
+func (UnimplementedRuntimeAgentServiceServer) ReadConversationArtifact(context.Context, *ReadConversationArtifactRequest) (*ReadConversationArtifactResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ReadConversationArtifact not implemented")
 }
 func (UnimplementedRuntimeAgentServiceServer) ListAgentConversationSummaries(context.Context, *ListAgentConversationSummariesRequest) (*ListAgentConversationSummariesResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListAgentConversationSummaries not implemented")
@@ -1478,6 +1494,24 @@ func _RuntimeAgentService_GetPublicChatSessionSnapshot_Handler(srv interface{}, 
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(RuntimeAgentServiceServer).GetPublicChatSessionSnapshot(ctx, req.(*GetPublicChatSessionSnapshotRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAgentService_ReadConversationArtifact_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ReadConversationArtifactRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAgentServiceServer).ReadConversationArtifact(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAgentService_ReadConversationArtifact_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAgentServiceServer).ReadConversationArtifact(ctx, req.(*ReadConversationArtifactRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -2406,6 +2440,10 @@ var RuntimeAgentService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetPublicChatSessionSnapshot",
 			Handler:    _RuntimeAgentService_GetPublicChatSessionSnapshot_Handler,
+		},
+		{
+			MethodName: "ReadConversationArtifact",
+			Handler:    _RuntimeAgentService_ReadConversationArtifact_Handler,
 		},
 		{
 			MethodName: "ListAgentConversationSummaries",

@@ -82,6 +82,7 @@ export const NIMI_ELECTRON_FIRST_PARTY_PROTECTED_RUNTIME_PROFILES = {
       "/nimi.runtime.v1.RuntimeAgentService/GetConversationAnchorSnapshot": { kind: "unary" },
       "/nimi.runtime.v1.RuntimeAgentService/ListAgentConversationSummaries": { kind: "unary" },
       "/nimi.runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot": { kind: "unary" },
+      "/nimi.runtime.v1.RuntimeAgentService/ReadConversationArtifact": { kind: "unary" },
       "/nimi.runtime.v1.RuntimeAgentService/TranscribeAgentVoiceInput": { kind: "unary" },
       "/nimi.runtime.v1.RuntimeAgentService/RegisterAvatarLiveInstanceBinding": { kind: "unary" },
       "/nimi.runtime.v1.RuntimeAgentService/ResolveAvatarLiveInstanceBinding": { kind: "unary" },

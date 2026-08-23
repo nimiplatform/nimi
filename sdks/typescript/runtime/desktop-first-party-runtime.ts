@@ -99,6 +99,7 @@ export type NimiDesktopAccountProductRuntimeClient = {
     | 'getConversationAnchorSnapshot'
     | 'listAgentConversationSummaries'
     | 'getPublicChatSessionSnapshot'
+    | 'readConversationArtifact'
     | 'transcribeAgentVoiceInput'
     | 'registerAvatarLiveInstanceBinding'
     | 'resolveAvatarLiveInstanceBinding'
@@ -245,6 +246,18 @@ export function createNimiDesktopFirstPartyRuntimeClients(
     getConversationAnchorSnapshot: runtime.agents.getConversationAnchorSnapshot,
     listAgentConversationSummaries: runtime.agents.listAgentConversationSummaries,
     getPublicChatSessionSnapshot: runtime.agents.getPublicChatSessionSnapshot,
+    readConversationArtifact: (request, options) => (
+      runtime.agents.readConversationArtifact({
+        ...request,
+        context: {
+          appId: input.appId,
+          subjectUserId: request.context?.subjectUserId ?? '',
+          ownerUserId: request.context?.ownerUserId ?? '',
+          runtimeSourceRef: request.context?.runtimeSourceRef ?? '',
+          localAgentRef: request.context?.localAgentRef ?? '',
+        },
+      }, options)
+    ),
     transcribeAgentVoiceInput: protectedAgent(runtime.agents.transcribeAgentVoiceInput),
     registerAvatarLiveInstanceBinding: runtime.agents.registerAvatarLiveInstanceBinding,
     resolveAvatarLiveInstanceBinding: runtime.agents.resolveAvatarLiveInstanceBinding,

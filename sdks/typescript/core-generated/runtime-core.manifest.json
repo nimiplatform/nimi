@@ -304,6 +304,15 @@
           "response_stream": false
         },
         {
+          "name": "ReadConversationArtifact",
+          "method_id": "/nimi.runtime.v1.RuntimeAgentService/ReadConversationArtifact",
+          "kind": "unary",
+          "request_type": "ReadConversationArtifactRequest",
+          "response_type": "ReadConversationArtifactResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
           "name": "ListAgentConversationSummaries",
           "method_id": "/nimi.runtime.v1.RuntimeAgentService/ListAgentConversationSummaries",
           "kind": "unary",
@@ -2360,6 +2369,7 @@
     "/nimi.runtime.v1.RuntimeAgentService/OverwriteSharedLocalAgentAIConfig",
     "/nimi.runtime.v1.RuntimeAgentService/PreviewSharedLocalAgentAIProfile",
     "/nimi.runtime.v1.RuntimeAgentService/QueryAgentMemory",
+    "/nimi.runtime.v1.RuntimeAgentService/ReadConversationArtifact",
     "/nimi.runtime.v1.RuntimeAgentService/ReadLocalAppConversationArtifact",
     "/nimi.runtime.v1.RuntimeAgentService/RegisterAvatarLiveInstanceBinding",
     "/nimi.runtime.v1.RuntimeAgentService/RequestAgentCanonicalMemoryBankBind",
@@ -2988,6 +2998,14 @@
       "kind": "unary",
       "request_type": "QueryAgentMemoryRequest",
       "response_type": "QueryAgentMemoryResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/ReadConversationArtifact",
+      "service": "RuntimeAgentService",
+      "method": "ReadConversationArtifact",
+      "kind": "unary",
+      "request_type": "ReadConversationArtifactRequest",
+      "response_type": "ReadConversationArtifactResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/ReadLocalAppConversationArtifact",
@@ -4926,6 +4944,14 @@
       "kind": "unary",
       "request_type": "QueryAgentMemoryRequest",
       "response_type": "QueryAgentMemoryResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/ReadConversationArtifact",
+      "service": "RuntimeAgentService",
+      "method": "ReadConversationArtifact",
+      "kind": "unary",
+      "request_type": "ReadConversationArtifactRequest",
+      "response_type": "ReadConversationArtifactResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/ReadLocalAppConversationArtifact",
@@ -7004,6 +7030,8 @@
       "RawChunk",
       "ReadArtifactBytesRequest",
       "ReadArtifactBytesResponse",
+      "ReadConversationArtifactRequest",
+      "ReadConversationArtifactResponse",
       "ReadLocalAppArtifactRequest",
       "ReadLocalAppArtifactResponse",
       "ReadLocalAppAssetMetadata",
@@ -28399,6 +28427,74 @@
           }
         ],
         "source_file": "proto/runtime/v1/artifact_service.proto"
+      },
+      {
+        "name": "ReadConversationArtifactRequest",
+        "fields": [
+          {
+            "name": "context",
+            "type": "AgentRequestContext",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "agent_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "conversation_anchor_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "artifact_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "ReadConversationArtifactResponse",
+        "fields": [
+          {
+            "name": "artifact_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "data",
+            "type": "bytes",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "mime_type",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "byte_length",
+            "type": "int64",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
       },
       {
         "name": "ReadLocalAppArtifactRequest",

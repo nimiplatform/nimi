@@ -22247,6 +22247,74 @@ impl ReadArtifactBytesResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct ReadConversationArtifactRequest {
+    pub context: Option<Box<AgentRequestContext>>,
+    pub agent_id: Option<String>,
+    pub conversation_anchor_id: Option<String>,
+    pub artifact_id: Option<String>,
+}
+
+impl ReadConversationArtifactRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if self.context.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode context"); }
+        if let Some(value) = &self.agent_id { pairs.push(format!("agent_id={}", value)); }
+        if let Some(value) = &self.conversation_anchor_id { pairs.push(format!("conversation_anchor_id={}", value)); }
+        if let Some(value) = &self.artifact_id { pairs.push(format!("artifact_id={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["context"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.agent_id = pairs.get("agent_id").cloned();
+        out.conversation_anchor_id = pairs.get("conversation_anchor_id").cloned();
+        out.artifact_id = pairs.get("artifact_id").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ReadConversationArtifactResponse {
+    pub artifact_id: Option<String>,
+    pub data: Option<Vec<u8>>,
+    pub mime_type: Option<String>,
+    pub byte_length: Option<i64>,
+}
+
+impl ReadConversationArtifactResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.artifact_id { pairs.push(format!("artifact_id={}", value)); }
+        if self.data.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode data"); }
+        if let Some(value) = &self.mime_type { pairs.push(format!("mime_type={}", value)); }
+        if let Some(value) = &self.byte_length { pairs.push(format!("byte_length={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["data"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.artifact_id = pairs.get("artifact_id").cloned();
+        out.mime_type = pairs.get("mime_type").cloned();
+        out.byte_length = pairs.get("byte_length").and_then(|value| value.parse().ok());
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct ReadLocalAppArtifactRequest {
     pub artifact_id: Option<String>,
 }
@@ -33357,6 +33425,18 @@ impl From<Vec<u8>> for ReadArtifactBytesResponse {
     }
 }
 
+impl From<Vec<u8>> for ReadConversationArtifactRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for ReadConversationArtifactResponse {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
 impl From<Vec<u8>> for ReadLocalAppArtifactRequest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -35347,6 +35427,16 @@ where
             timeout,
         })?;
         Ok(QueryAgentMemoryResponse::from_transport(&raw))
+    }
+
+    pub fn read_conversation_artifact(&self, request: ReadConversationArtifactRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ReadConversationArtifactResponse, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/nimi.runtime.v1.RuntimeAgentService/ReadConversationArtifact".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(ReadConversationArtifactResponse::from_transport(&raw))
     }
 
     pub fn read_local_app_conversation_artifact(&self, request: ReadLocalAppConversationArtifactRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ReadLocalAppConversationArtifactResponse, T::Error> {

@@ -6031,6 +6031,20 @@ type ReadArtifactBytesResponse struct {
 	MimeInferred bool `json:"mime_inferred,omitempty"`
 }
 
+type ReadConversationArtifactRequest struct {
+	Context *AgentRequestContext `json:"context,omitempty"`
+	AgentId string `json:"agent_id,omitempty"`
+	ConversationAnchorId string `json:"conversation_anchor_id,omitempty"`
+	ArtifactId string `json:"artifact_id,omitempty"`
+}
+
+type ReadConversationArtifactResponse struct {
+	ArtifactId string `json:"artifact_id,omitempty"`
+	Data []byte `json:"data,omitempty"`
+	MimeType string `json:"mime_type,omitempty"`
+	ByteLength int64 `json:"byte_length,omitempty"`
+}
+
 type ReadLocalAppArtifactRequest struct {
 	ArtifactId string `json:"artifact_id,omitempty"`
 }
@@ -8165,6 +8179,14 @@ func (c RuntimeTypedClient) QueryAgentMemory(ctx context.Context, request QueryA
 		return QueryAgentMemoryResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[QueryAgentMemoryResponse](raw, "QueryAgentMemoryResponse")
+}
+
+func (c RuntimeTypedClient) ReadConversationArtifact(ctx context.Context, request ReadConversationArtifactRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ReadConversationArtifactResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/ReadConversationArtifact", request, metadata, timeoutMS)
+	if err != nil {
+		return ReadConversationArtifactResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[ReadConversationArtifactResponse](raw, "ReadConversationArtifactResponse")
 }
 
 func (c RuntimeTypedClient) ReadLocalAppConversationArtifact(ctx context.Context, request ReadLocalAppConversationArtifactRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ReadLocalAppConversationArtifactResponse, error) {

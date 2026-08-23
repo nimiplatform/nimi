@@ -29,6 +29,7 @@ export const RUNTIME_AGENT_METHODS = [
   'registerAvatarLiveInstanceBinding',
   'resolveAvatarLiveInstanceBinding',
   'getPublicChatSessionSnapshot',
+  'readConversationArtifact',
   'transcribeAgentVoiceInput',
   'getCompanionParticipationProjection',
   'requestCompanionParticipation',

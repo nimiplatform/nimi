@@ -456,6 +456,14 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "QueryAgentMemoryResponse",
     },
     RuntimeMethodDescriptor {
+        method_id: "/nimi.runtime.v1.RuntimeAgentService/ReadConversationArtifact",
+        service: "RuntimeAgentService",
+        method: "ReadConversationArtifact",
+        kind: "unary",
+        request_type: "ReadConversationArtifactRequest",
+        response_type: "ReadConversationArtifactResponse",
+    },
+    RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeAgentService/ReadLocalAppConversationArtifact",
         service: "RuntimeAgentService",
         method: "ReadLocalAppConversationArtifact",

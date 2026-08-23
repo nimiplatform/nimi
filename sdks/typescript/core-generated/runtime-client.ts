@@ -455,6 +455,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "QueryAgentMemoryResponse"
   },
   {
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/ReadConversationArtifact",
+    "service": "RuntimeAgentService",
+    "method": "ReadConversationArtifact",
+    "kind": "unary",
+    "requestType": "ReadConversationArtifactRequest",
+    "responseType": "ReadConversationArtifactResponse"
+  },
+  {
     "methodId": "/nimi.runtime.v1.RuntimeAgentService/ReadLocalAppConversationArtifact",
     "service": "RuntimeAgentService",
     "method": "ReadLocalAppConversationArtifact",

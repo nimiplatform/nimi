@@ -50,9 +50,16 @@ function elapsedMs(startedAt: number, now: number): number {
 type DesktopSessionSnapshotSdk = ReturnType<typeof useDesktopRendererBindings>['sdk'];
 
 async function resolveSnapshotTranscriptImageMediaUrls(
-  snapshot: NimiRuntimeAgentSessionSnapshot,
-  sdk: DesktopSessionSnapshotSdk,
+  input: {
+    readonly snapshot: NimiRuntimeAgentSessionSnapshot;
+    readonly sdk: DesktopSessionSnapshotSdk;
+    readonly localAgentRef: string;
+    readonly ownerUserId: string;
+    readonly runtimeSourceRef: string;
+    readonly conversationAnchorId: string;
+  },
 ): Promise<NimiRuntimeAgentSessionSnapshot> {
+  const { snapshot } = input;
   const transcript = Array.isArray(snapshot.transcript) ? snapshot.transcript : null;
   if (!transcript || !transcript.some((message) => (
     message.kind === 'image' && normalizeText(message.artifactId) && !normalizeText(message.mediaUrl)
@@ -65,11 +72,22 @@ async function resolveSnapshotTranscriptImageMediaUrls(
       return message;
     }
     try {
-      const artifact = await sdk.accountProduct().artifacts.readArtifactBytes({ artifactId });
+      const artifact = await input.sdk.accountProduct().agents.readConversationArtifact({
+        context: {
+          appId: '',
+          subjectUserId: '',
+          ownerUserId: input.ownerUserId,
+          runtimeSourceRef: input.runtimeSourceRef,
+          localAgentRef: input.localAgentRef,
+        },
+        agentId: input.localAgentRef,
+        conversationAnchorId: input.conversationAnchorId,
+        artifactId,
+      });
       const mimeType = normalizeText(artifact.mimeType)
         || normalizeText(message.mediaMimeType)
         || 'application/octet-stream';
-      return { ...message, mediaUrl: encodeBytesAsDataUrl(mimeType, artifact.bytes) };
+      return { ...message, mediaUrl: encodeBytesAsDataUrl(mimeType, artifact.data) };
     } catch (error) {
       logRendererEvent({
         level: 'warn',
@@ -191,7 +209,14 @@ export function useAgentRuntimeSessionSnapshotHydration(
             hasPendingFollowUp: Boolean(snapshot?.pendingFollowUp),
           },
         });
-        return resolveSnapshotTranscriptImageMediaUrls(snapshot, bindings.sdk);
+        return resolveSnapshotTranscriptImageMediaUrls({
+          snapshot,
+          sdk: bindings.sdk,
+          localAgentRef,
+          ownerUserId: thread.ownerUserId,
+          runtimeSourceRef: thread.runtimeSourceRef,
+          conversationAnchorId,
+        });
       })
       .then((snapshot) => {
         if (cancelled || !snapshot) {
